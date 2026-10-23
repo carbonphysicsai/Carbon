@@ -34,6 +34,7 @@ def _pack(n):
     files = {
         "public/interface.json": b'{"interface":1}',
         "private/case_bank.npz": b"sealed-case-bank-bytes-%d" % n,
+        "private/reference_rows.json": b'{"rows":%d}' % n,
     }
     manifest = {
         "schema": SCHEMA,
@@ -50,17 +51,29 @@ def _pack(n):
         "path": "private/case_bank.npz",
         "sha256": _sha(files["private/case_bank.npz"]),
     }
+    manifest["private"]["reference_rows"] = {
+        "path": "private/reference_rows.json",
+        "sha256": _sha(files["private/reference_rows.json"]),
+    }
     return json.dumps(manifest, sort_keys=True).encode(), files
+
+
+#: Each batch pack's manifest by its digest, for the set's content key.
+_MANIFESTS = {}
 
 
 def _batch_package(key, n):
     manifest, files = _pack(n)
     commitment = sp.commitment_for(CHALLENGE, VERSION, manifest, files, WINDOW)
+    _MANIFESTS[commitment["manifest_digest"]] = manifest
     return commitment, ak.package(key, commitment, sp.payload_for(manifest, files))
 
 
 def _set_package(key, digests, challenge=CHALLENGE, version=VERSION):
-    commitment = sp.set_commitment_for(challenge, version, digests, WINDOW)
+    contents = {d: sp.manifest_content(_MANIFESTS[d]) for d in digests}
+    commitment = sp.set_commitment_for(
+        challenge, version, digests, WINDOW, contents=contents
+    )
     return commitment, ak.package(key, commitment, sp.set_payload_for(commitment))
 
 
@@ -97,7 +110,11 @@ def world(tmp_path):
 
 
 def test_the_set_key_is_the_evaluation_key_of_its_batches(world):
-    document = common.pack_set_document(CHALLENGE, VERSION, world["digests"])
+    document = common.pack_set_document(
+        CHALLENGE,
+        VERSION,
+        [sp.manifest_content(_MANIFESTS[d]) for d in world["digests"]],
+    )
     assert world["set"]["set_key"] == world["set"]["fingerprint"]
     assert world["set"]["set_key"] == common.pack_set_key(document)
     assert world["set"]["batches"] == sorted(world["digests"])
@@ -186,11 +203,15 @@ def test_a_set_for_another_challenge_or_version_is_refused(world):
 def test_a_tampered_set_is_refused(world):
     commitment = world["set"]
     payload = sp.set_payload_for(commitment)
+    # A key that is not the batches' content key: the key names the exam's
+    # content, so it is checked against every delivered batch at use.
+    contents = [sp.manifest_content(_MANIFESTS[d]) for d in commitment["batches"]]
+    other = {**commitment, "set_key": _sha(b"other"), "fingerprint": _sha(b"other")}
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_pack_set"):
+        sp.verify_set(other, payload, contents)
+    assert sp.verify_set(commitment, payload, contents) is not None
     for bad_commitment, bad_payload in (
-        (
-            {**commitment, "set_key": _sha(b"other"), "fingerprint": _sha(b"other")},
-            payload,
-        ),
+        ({**commitment, "fingerprint": _sha(b"other")}, payload),
         ({**commitment, "batches": commitment["batches"][:1]}, payload),
         (commitment, {"batches": list(reversed(payload["batches"]))}),
         (commitment, {"batches": payload["batches"][:1]}),
@@ -347,31 +368,81 @@ def test_a_forged_or_foreign_withdrawal_changes_nothing(world, tmp_path):
     assert world["store"].delivered(victim, CHALLENGE, VERSION)
 
 
-def test_a_set_stored_before_v2_still_verifies():
-    """Prospective re-key (VALIDATOR-KOTH-CARRY-SCOPE-01): a v1 commitment keeps
-    its key; a new commitment carries the v2 key."""
-    digests = [_sha(b"one"), _sha(b"two")]
-    new = sp.set_commitment_for(CHALLENGE, VERSION, digests, WINDOW)
-    v1 = common.pack_set_key(common.pack_set_document_v1(CHALLENGE, VERSION, digests))
-    assert new["set_key"] != v1
-    old = {**new, "set_key": v1, "fingerprint": v1}
-    assert sp.verify_set(old, sp.set_payload_for(old))["schema"] == (
-        common.PACK_SET_SCHEMA_V1
-    )
-    assert sp.verify_set(new, sp.set_payload_for(new))["schema"] == (
+def _contents(*pairs):
+    return {
+        _sha(b"manifest-%d" % i): {
+            "case_bank": _sha(bank),
+            "reference_rows": _sha(rows),
+        }
+        for i, (bank, rows) in enumerate(pairs)
+    }
+
+
+def test_a_stored_set_still_verifies():
+    """Prospective re-key: a v1 or v2 commitment keeps its stored key; a new
+    commitment carries the v3 content key, checked once the content is known."""
+    contents = _contents((b"bank-1", b"rows-1"), (b"bank-2", b"rows-2"))
+    digests = sorted(contents)
+    new = sp.set_commitment_for(CHALLENGE, VERSION, digests, WINDOW, contents=contents)
+    ordered = [contents[d] for d in digests]
+    for build in (common.pack_set_document_v1, common.pack_set_document_v2):
+        key = common.pack_set_key(build(CHALLENGE, VERSION, digests))
+        assert key != new["set_key"]
+        old = {**new, "set_key": key, "fingerprint": key}
+        assert sp.verify_set(old, sp.set_payload_for(old)) == build(
+            CHALLENGE, VERSION, digests
+        )
+        assert sp.verify_set(old, sp.set_payload_for(old), ordered) is not None
+    # A v3 key is only a digest at import; with the content it must match.
+    assert sp.verify_set(new, sp.set_payload_for(new)) is None
+    assert sp.verify_set(new, sp.set_payload_for(new), ordered)["schema"] == (
         common.PACK_SET_SCHEMA
     )
+    moved = [ordered[0], {**ordered[1], "reference_rows": _sha(b"rows-9")}]
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_pack_set"):
+        sp.verify_set(new, sp.set_payload_for(new), moved)
 
 
-def test_two_construction_versions_on_one_set_are_each_kept(tmp_path):
-    """F08 1.4 and 1.5 on the same batches share the v2 key; each version's
-    signed commitment is kept, so neither shadows the other."""
-    digests = [_sha(b"one"), _sha(b"two")]
+def test_a_set_names_every_batch_content_or_is_refused():
+    contents = _contents((b"bank-1", b"rows-1"))
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_pack_set"):
+        sp.set_commitment_for(
+            CHALLENGE, VERSION, [*contents, _sha(b"other")], WINDOW, contents=contents
+        )
+    manifest, _files = _pack(7)
+    body = json.loads(manifest)
+    body["private"]["reference_rows"] = UNAVAILABLE
+    with pytest.raises(
+        ak.AnswerKeyRefused, match="answer_key_pack_set_content_unavailable"
+    ):
+        sp.manifest_content(json.dumps(body).encode())
+
+
+def test_two_construction_versions_on_one_exam_are_each_kept(tmp_path):
+    """F08 1.4 and 1.5 packs differ by manifest (each names its version) but
+    hold the same exam content: one key, and each version's signed commitment
+    is kept, so neither shadows the other."""
+    content = [(b"bank-1", b"rows-1"), (b"bank-2", b"rows-2")]
     store = sp.SealedPackStore(tmp_path / "store")
-    sets = [
-        sp.set_commitment_for("f08-ribbed-bracket", version, digests, WINDOW)
-        for version in ("1.4", "1.5")
-    ]
+    sets = []
+    for version in ("1.4", "1.5"):
+        contents = {
+            _sha(b"%s-manifest-%d" % (version.encode(), i)): {
+                "case_bank": _sha(bank),
+                "reference_rows": _sha(rows),
+            }
+            for i, (bank, rows) in enumerate(content)
+        }
+        sets.append(
+            sp.set_commitment_for(
+                "f08-ribbed-bracket",
+                version,
+                sorted(contents),
+                WINDOW,
+                contents=contents,
+            )
+        )
+    assert sets[0]["batches"] != sets[1]["batches"]
     assert sets[0]["set_key"] == sets[1]["set_key"]
     for commitment in sets:
         assert store.import_pack_set(commitment, sp.set_payload_for(commitment)) == (
@@ -384,6 +455,7 @@ def test_two_construction_versions_on_one_set_are_each_kept(tmp_path):
         )
         assert json.loads(path.read_bytes()) == commitment
     # A v1 set stored at its key alone is still read for its version.
+    digests = sets[0]["batches"]
     v1 = common.pack_set_key(
         common.pack_set_document_v1("f08-ribbed-bracket", "1.3", digests)
     )
@@ -392,3 +464,26 @@ def test_two_construction_versions_on_one_set_are_each_kept(tmp_path):
     assert store.holds_set(legacy)
     with pytest.raises(ak.AnswerKeyRefused, match="answer_key_pack_set_batch_missing"):
         store.pack_set(v1, "f08-ribbed-bracket", "1.3")
+
+
+def test_a_delivered_set_whose_key_is_not_its_content_grades_nothing(world):
+    """The content key is re-derived from every delivered batch at use."""
+    forged = {**world["set"], "set_key": _sha(b"x"), "fingerprint": _sha(b"x")}
+    package = ak.package(world["key"], forged, sp.set_payload_for(forged))
+    ak.sync(
+        world["adapter"],
+        _Fetcher(package, *world["packages"][1:]),
+        world["key"].public_key,
+        CHALLENGE,
+    )
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_pack_set"):
+        world["store"].pack_set(forged["set_key"], CHALLENGE, VERSION)
+    # The genuine set over the same batches takes them back.
+    ak.sync(
+        world["adapter"],
+        _Fetcher(*world["packages"]),
+        world["key"].public_key,
+        CHALLENGE,
+    )
+    taken = world["store"].pack_set(world["set"]["set_key"], CHALLENGE, VERSION)
+    assert [digest for digest, _ in taken] == world["set"]["batches"]

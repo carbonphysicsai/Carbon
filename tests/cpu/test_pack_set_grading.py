@@ -22,6 +22,12 @@ HOTKEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 GATES = ("g1", "g2")
 
 
+def _contents(batches):
+    """Each batch's exam content for the pack-set key (inert: the batch digest
+    stands in for both role digests)."""
+    return [{"case_bank": d, "reference_rows": d} for d in batches]
+
+
 def _digest(c):
     return "sha256:" + c * 64
 
@@ -126,7 +132,9 @@ def test_a_retained_model_is_graded_on_every_batch_and_the_set_is_aggregated(
         )
         world = _world(tmp_path)
         key = common.pack_set_key(
-            common.pack_set_document("electric-motor-magnetics", "1.0", BATCHES)
+            common.pack_set_document(
+                "electric-motor-magnetics", "1.0", _contents(BATCHES)
+            )
         )
         result = _run(fixture, adapters, world, key)
         assert result["status"] == psr.SCORED and result["batches"] == 2
@@ -153,7 +161,9 @@ def test_an_ungraded_batch_gives_no_set_result(tmp_path, monkeypatch):
         _stub_core(monkeypatch, {BATCHES[0]: _row(0.8, 0.4), BATCHES[1]: None})
         world = _world(tmp_path)
         key = common.pack_set_key(
-            common.pack_set_document("electric-motor-magnetics", "1.0", BATCHES)
+            common.pack_set_document(
+                "electric-motor-magnetics", "1.0", _contents(BATCHES)
+            )
         )
         result = _run(fixture, adapters, world, key)
         assert result["state"] == psr.UNAVAILABLE
@@ -179,7 +189,9 @@ def test_a_batch_without_an_adapter_gives_no_set_result(tmp_path, monkeypatch):
         )
         world = _world(tmp_path)
         key = common.pack_set_key(
-            common.pack_set_document("electric-motor-magnetics", "1.0", BATCHES)
+            common.pack_set_document(
+                "electric-motor-magnetics", "1.0", _contents(BATCHES)
+            )
         )
         result = _run(fixture, adapters, world, key)
         assert result == {
@@ -213,7 +225,9 @@ def test_the_operator_step_takes_owner_and_origin_from_the_task_and_records_once
         monkeypatch.setattr(exam_cap, "submission_block", lambda *_a: 360)
         ladder = _ladder_spy(monkeypatch)
         key = common.pack_set_key(
-            common.pack_set_document(fixture.adapter.challenge_id, "1.0", BATCHES)
+            common.pack_set_document(
+                fixture.adapter.challenge_id, "1.0", _contents(BATCHES)
+            )
         )
         result = grading.grade_set_entry(
             adapters,
@@ -250,7 +264,9 @@ def test_no_set_result_means_no_ladder_record(tmp_path, monkeypatch):
         monkeypatch.setattr(exam_cap, "submission_block", lambda *_a: 360)
         ladder = _ladder_spy(monkeypatch)
         key = common.pack_set_key(
-            common.pack_set_document(fixture.adapter.challenge_id, "1.0", BATCHES)
+            common.pack_set_document(
+                fixture.adapter.challenge_id, "1.0", _contents(BATCHES)
+            )
         )
         result = grading.grade_set_entry(
             adapters,

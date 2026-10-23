@@ -97,12 +97,46 @@ def commitment_for(challenge_id, challenge_version, manifest_bytes, files, windo
     }
 
 
-def set_commitment_for(challenge_id, challenge_version, batch_digests, window):
-    """The commitment a producer signs for a pack set: the Challenge version and
-    the active batch packs. The set key (the evaluation key) is its fingerprint."""
+def manifest_content(manifest_bytes):
+    """A batch pack's exam content: its `case_bank` and `reference_rows` role
+    digests, read from its manifest. These name neither the construction
+    version nor the pack version, so they key the pack set
+    (`sealed_exam_common.pack_set_document`). A role without a pinned file
+    digest has no content identity: refused, never guessed."""
     from . import sealed_exam_common as common
 
-    document = common.pack_set_document(challenge_id, challenge_version, batch_digests)
+    try:
+        body = json.loads(manifest_bytes)
+        roles = body["private"]
+        content = {role: roles[role]["sha256"] for role in common.CONTENT_ROLES}
+    except (ValueError, TypeError, KeyError):
+        raise AnswerKeyRefused("answer_key_pack_set_content_unavailable") from None
+    if any(
+        type(v) is not str or _DIGEST.fullmatch(v) is None for v in content.values()
+    ):
+        raise AnswerKeyRefused("answer_key_pack_set_content_unavailable")
+    return content
+
+
+def set_commitment_for(
+    challenge_id, challenge_version, batch_digests, window, *, contents
+):
+    """The commitment a producer signs for a pack set: the Challenge version and
+    the active batch packs by manifest digest. Its key (the evaluation key, also
+    the fingerprint) is over the batches' exam content, ``contents`` mapping each
+    manifest digest to `manifest_content` of that pack; it stays in
+    validator-side records."""
+    from . import sealed_exam_common as common
+
+    try:
+        batches = common._set_batches(challenge_id, challenge_version, batch_digests)
+        if type(contents) is not dict or set(contents) != set(batches):
+            raise common.PackSetRefused(common.SET_REFUSED)
+        document = common.pack_set_document(
+            challenge_id, challenge_version, [contents[d] for d in batches]
+        )
+    except common.PackSetRefused:
+        raise AnswerKeyRefused("answer_key_pack_set") from None
     key = common.pack_set_key(document)
     return {
         "schema": SET_COMMITMENT_SCHEMA,
@@ -111,7 +145,7 @@ def set_commitment_for(challenge_id, challenge_version, batch_digests, window):
         "challenge_version": challenge_version,
         "fingerprint": key,
         "set_key": key,
-        "batches": document["batches"],
+        "batches": batches,
         "window": window,
     }
 
@@ -121,10 +155,17 @@ def set_payload_for(commitment):
     return {"batches": list(commitment["batches"])}
 
 
-def verify_set(commitment, payload):
-    """Verify a pack-set commitment against its payload; returns the set body.
-    The payload must be exactly the committed batches, in the set's one order,
-    and the committed key must be the body's digest. Writes nothing."""
+def verify_set(commitment, payload, contents=None):
+    """Verify a pack-set commitment against its payload. The payload must be
+    exactly the committed batches, in the set's one order. Writes nothing.
+
+    The key: a set stored before v3 keeps its stored v2/v1 key and meaning
+    (`sealed_exam_common.stored_set_key`). A v3 key is over the batches' exam
+    content, so it is checked only with ``contents`` (`manifest_content` of each
+    delivered batch, in the set's order): at use (`SealedPackStore.pack_set`),
+    where every batch must be present. At import, before the batches arrive, a
+    v3 key is only checked to be a digest. Returns the verified body, or None
+    when the content check is still to come."""
     from . import sealed_exam_common as common
 
     if (
@@ -133,26 +174,38 @@ def verify_set(commitment, payload):
         or commitment["schema"] != SET_COMMITMENT_SCHEMA
         or commitment["kind"] != SET_KIND
         or commitment["fingerprint"] != commitment["set_key"]
+        or type(commitment["set_key"]) is not str
+        or _DIGEST.fullmatch(commitment["set_key"]) is None
     ):
         raise AnswerKeyRefused("answer_key_malformed")
     try:
-        # The v2 key leaves the construction version out; a set stored before
-        # v2 keeps its v1 key and meaning (VALIDATOR-KOTH-CARRY-SCOPE-01).
-        document = common.verified_pack_set(
+        batches = common._set_batches(
             commitment["challenge_id"],
             commitment["challenge_version"],
             commitment["batches"],
-            commitment["set_key"],
         )
-        key = common.pack_set_key(document)
+        if contents is None:
+            document = common.stored_set_key(
+                commitment["challenge_id"],
+                commitment["challenge_version"],
+                batches,
+                commitment["set_key"],
+            )
+        else:
+            document = common.verified_pack_set(
+                commitment["challenge_id"],
+                commitment["challenge_version"],
+                batches,
+                commitment["set_key"],
+                contents,
+            )
     except common.PackSetRefused:
         raise AnswerKeyRefused("answer_key_pack_set") from None
     if (
         type(payload) is not dict
         or set(payload) != {"batches"}
-        or payload["batches"] != document["batches"]
-        or commitment["batches"] != document["batches"]
-        or key != commitment["set_key"]
+        or payload["batches"] != batches
+        or commitment["batches"] != batches
     ):
         raise AnswerKeyRefused("answer_key_pack_set")
     return document
@@ -426,7 +479,8 @@ class SealedPackStore:
             )
         except (OSError, ValueError):
             raise AnswerKeyRefused("answer_key_pack_set_missing") from None
-        verify_set(commitment, set_payload_for(commitment))
+        payload = set_payload_for(commitment)
+        verify_set(commitment, payload)
         if (
             commitment["set_key"] != set_key
             or commitment["challenge_id"] != challenge_id
@@ -442,6 +496,13 @@ class SealedPackStore:
             batches.append(
                 (digest, self.pack_directory(digest, challenge_id, challenge_version))
             )
+        # The key names the exam's content: re-derived now from every delivered
+        # batch's own manifest, never taken from the commitment alone.
+        contents = [
+            manifest_content((directory / MANIFEST_NAME).read_bytes())
+            for _digest, directory in batches
+        ]
+        verify_set(commitment, payload, contents)
         return batches
 
     def _record_delivery(self, commitment):
@@ -566,6 +627,7 @@ __all__ = [
     "SealedPackAdapter",
     "SealedPackStore",
     "commitment_for",
+    "manifest_content",
     "payload_for",
     "set_commitment_for",
     "set_payload_for",

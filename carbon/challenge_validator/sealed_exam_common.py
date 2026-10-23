@@ -249,20 +249,41 @@ __all__ = [
 # --- the pack set and the version's aggregate (OWNER-FULL-EXAM-BANK-01) -----------------
 #
 # A Challenge version's exam is the union of its active sealed batches. The signed
-# pack-set manifest lists the batch packs by manifest digest; the digest of its
-# canonical body is the evaluation key KOTH compares on. A rotation is a new
-# manifest and so a new key; the king is regraded on it before any comparison.
+# pack-set manifest lists the batch packs by manifest digest; the pack-set key is
+# the evaluation key KOTH compares on.
 #
-# v2 (VALIDATOR-KOTH-CARRY-SCOPE-01): the body names the Challenge, its sealed
-# evaluation version and the batches, and leaves the construction version out, so
-# a construction-only successor (F08 1.4 -> 1.5) serving the same batches has the
-# same key. A version with no registered sealed exam keys by its construction
-# version (`sealed_versions.ladder_key`), which can never equal an evaluation
-# version. Prospective: a v1 set keeps its stored key and meaning, and
-# `pack_set_key` still verifies a v1 body (`pack_set_document_v1`).
+# The key identifies the exam's CONTENT (VALIDATOR-KOTH-CARRY-SCOPE-01 and the
+# Validator's content-key ruling, 2026-10-23): sha256 of the canonical
+# {challenge_id, sealed evaluation_version, per batch {case_bank, reference_rows}
+# role digests}, the batches in one canonical order. Nothing that names a
+# construction version, a pack version or a copy goes in - no batch manifest
+# digest, since a manifest names its version. So:
+#   1. the same exam content under a new construction version (F08 1.4 -> 1.5)
+#      has the same key, and a KOTH king carries with no regrade;
+#   2. a rotation (any batch's case bank or reference rows changed) is a new key,
+#      and the king meets challengers there only once regraded on it
+#      (OWNER-EXAM-CAP-ROTATION-01);
+#   3. a new evaluation version is a new key and resets the king.
+# A version with no registered sealed exam keys by its construction version
+# (`sealed_versions.ladder_key`), which can never equal an evaluation version.
+#
+# Operator ordering (not code): never cut over a construction version and rotate a
+# pack in the same step. Rotate and regrade on the old deployment first, then cut
+# over, so the key is equal. Otherwise the carried king stays UNAVAILABLE until he
+# is regraded: visible, never a reset.
+#
+# The key stays in validator-side records; it is never published.
+#
+# Prospective: a stored set keeps its stored key and meaning. `pack_set_key` still
+# verifies a v2 body (`pack_set_document_v2`, version-neutral over manifest
+# digests, superseded) and a v1 body (`pack_set_document_v1`, which named the
+# construction version), and `verified_pack_set` reads a stored key through them.
 
-PACK_SET_SCHEMA = "carbon.sealed-exam.pack-set.v2"
+PACK_SET_SCHEMA = "carbon.sealed-exam.pack-set.v3"
+PACK_SET_SCHEMA_V2 = "carbon.sealed-exam.pack-set.v2"
 PACK_SET_SCHEMA_V1 = "carbon.sealed-exam.pack-set.v1"
+#: The two roles whose bytes are a batch's exam: its queries and its truth.
+CONTENT_ROLES = ("case_bank", "reference_rows")
 SET_REFUSED = "pack_set_malformed"
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
@@ -275,11 +296,15 @@ class PackSetRefused(ValueError):
         super().__init__(code)
 
 
-def _set_batches(challenge_id, challenge_version, batch_digests):
+def _identity(challenge_id, challenge_version):
     if type(challenge_id) is not str or not challenge_id:
         raise PackSetRefused(SET_REFUSED)
     if type(challenge_version) is not str or not challenge_version:
         raise PackSetRefused(SET_REFUSED)
+
+
+def _set_batches(challenge_id, challenge_version, batch_digests):
+    _identity(challenge_id, challenge_version)
     digests = list(batch_digests)
     if (
         not digests
@@ -290,16 +315,50 @@ def _set_batches(challenge_id, challenge_version, batch_digests):
     return sorted(digests)
 
 
-def pack_set_document(challenge_id, challenge_version, batch_digests):
-    """The pack-set body (v2): the Challenge, the sealed evaluation version that
-    grades this construction version, and its active batch packs' manifest
-    digests, sorted and distinct so one set has one body. At least one batch is
-    required; a rehearsal batch is never listed (the caller's rule)."""
+def _set_contents(contents):
+    """Each batch's {case_bank, reference_rows} role digests, in one canonical
+    order (by those digests) and distinct, so one exam has one body."""
+    rows = list(contents)
+    if not rows or any(
+        type(row) is not dict
+        or set(row) != set(CONTENT_ROLES)
+        or any(type(row[r]) is not str or not _DIGEST.fullmatch(row[r]) for r in row)
+        for row in rows
+    ):
+        raise PackSetRefused(SET_REFUSED)
+    ordered = sorted(
+        ({role: row[role] for role in CONTENT_ROLES} for row in rows),
+        key=lambda row: tuple(row[role] for role in CONTENT_ROLES),
+    )
+    if len({tuple(row.values()) for row in ordered}) != len(ordered):
+        raise PackSetRefused(SET_REFUSED)
+    return ordered
+
+
+def pack_set_document(challenge_id, challenge_version, contents):
+    """The pack-set body (v3): the Challenge, the sealed evaluation version that
+    grades this construction version, and each active batch's content role
+    digests. At least one batch is required; a rehearsal batch is never listed
+    (the caller's rule)."""
+    from carbon.scoring.sealed_versions import ladder_key
+
+    _identity(challenge_id, challenge_version)
+    return {
+        "schema": PACK_SET_SCHEMA,
+        "challenge_id": challenge_id,
+        "evaluation_version": ladder_key(challenge_id, challenge_version),
+        "batches": _set_contents(contents),
+    }
+
+
+def pack_set_document_v2(challenge_id, challenge_version, batch_digests):
+    """The superseded v2 body (version-neutral over batch manifest digests).
+    Read only: it rebuilds the key of a set stored under v2."""
     from carbon.scoring.sealed_versions import ladder_key
 
     batches = _set_batches(challenge_id, challenge_version, batch_digests)
     return {
-        "schema": PACK_SET_SCHEMA,
+        "schema": PACK_SET_SCHEMA_V2,
         "challenge_id": challenge_id,
         "evaluation_version": ladder_key(challenge_id, challenge_version),
         "batches": batches,
@@ -308,7 +367,7 @@ def pack_set_document(challenge_id, challenge_version, batch_digests):
 
 def pack_set_document_v1(challenge_id, challenge_version, batch_digests):
     """The historical v1 body, which named the construction version. Read only:
-    it rebuilds the key of a set stored before v2; no new set is keyed by it."""
+    it rebuilds the key of a set stored under v1."""
     batches = _set_batches(challenge_id, challenge_version, batch_digests)
     return {
         "schema": PACK_SET_SCHEMA_V1,
@@ -319,31 +378,31 @@ def pack_set_document_v1(challenge_id, challenge_version, batch_digests):
 
 def pack_set_key(document):
     """The evaluation key: the digest of the canonical body. Refuses a body that
-    is not exactly what `pack_set_document` (v2) or `pack_set_document_v1`
-    builds."""
+    is not exactly what `pack_set_document` (v3), `pack_set_document_v2` or
+    `pack_set_document_v1` builds."""
     import hashlib
     import json
 
     if type(document) is not dict:
         raise PackSetRefused(SET_REFUSED)
-    if document.get("schema") == PACK_SET_SCHEMA and set(document) == {
-        "schema",
-        "challenge_id",
-        "evaluation_version",
-        "batches",
-    }:
+    schema = document.get("schema")
+    neutral = {"schema", "challenge_id", "evaluation_version", "batches"}
+    if schema in (PACK_SET_SCHEMA, PACK_SET_SCHEMA_V2) and set(document) == neutral:
         evaluation_version = document["evaluation_version"]
         if type(evaluation_version) is not str or not evaluation_version:
             raise PackSetRefused(SET_REFUSED)
+        _identity(document["challenge_id"], evaluation_version)
         rebuilt = {
-            "schema": PACK_SET_SCHEMA,
-            "challenge_id": document["challenge_id"],
-            "evaluation_version": evaluation_version,
-            "batches": _set_batches(
-                document["challenge_id"], evaluation_version, document["batches"]
+            **document,
+            "batches": (
+                _set_contents(document["batches"])
+                if schema == PACK_SET_SCHEMA
+                else _set_batches(
+                    document["challenge_id"], evaluation_version, document["batches"]
+                )
             ),
         }
-    elif document.get("schema") == PACK_SET_SCHEMA_V1 and set(document) == {
+    elif schema == PACK_SET_SCHEMA_V1 and set(document) == {
         "schema",
         "challenge",
         "batches",
@@ -362,15 +421,31 @@ def pack_set_key(document):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
-def verified_pack_set(challenge_id, challenge_version, batch_digests, set_key):
-    """The body whose key is `set_key` for these batches: the v2 body, or - for
-    a set stored before v2 - its v1 body, which keeps its key and meaning.
-    Refuses a key that neither builds."""
-    for build in (pack_set_document, pack_set_document_v1):
+def stored_set_key(challenge_id, challenge_version, batch_digests, set_key):
+    """The v2 or v1 body of a set stored before v3 whose key is `set_key`, or
+    None. Such a set keeps its stored key and meaning."""
+    for build in (pack_set_document_v2, pack_set_document_v1):
         document = build(challenge_id, challenge_version, batch_digests)
         if pack_set_key(document) == set_key:
             return document
-    raise PackSetRefused("pack_set_key_mismatch")
+    return None
+
+
+def verified_pack_set(
+    challenge_id, challenge_version, batch_digests, set_key, contents
+):
+    """The body whose key is `set_key`: a stored v2/v1 body over the manifest
+    digests, or the v3 body over `contents` (each delivered batch's content role
+    digests, one per batch). Refuses a key that none builds."""
+    stored = stored_set_key(challenge_id, challenge_version, batch_digests, set_key)
+    if stored is not None:
+        return stored
+    if len(list(contents)) != len(list(batch_digests)):
+        raise PackSetRefused("pack_set_key_mismatch")
+    document = pack_set_document(challenge_id, challenge_version, contents)
+    if pack_set_key(document) != set_key:
+        raise PackSetRefused("pack_set_key_mismatch")
+    return document
 
 
 def _unit(value):

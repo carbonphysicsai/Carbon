@@ -257,25 +257,38 @@ def _digest(c):
     return "sha256:" + c * 64
 
 
+def _content(case_bank, reference_rows):
+    return {"case_bank": _digest(case_bank), "reference_rows": _digest(reference_rows)}
+
+
 def test_a_pack_set_has_one_body_and_its_digest_is_the_evaluation_key():
-    one = common.pack_set_document("motor", "1.0", [_digest("b"), _digest("a")])
-    two = common.pack_set_document("motor", "1.0", [_digest("a"), _digest("b")])
-    assert one == two and one["batches"] == [_digest("a"), _digest("b")]
+    one = common.pack_set_document(
+        "motor", "1.0", [_content("b", "2"), _content("a", "1")]
+    )
+    two = common.pack_set_document(
+        "motor", "1.0", [_content("a", "1"), _content("b", "2")]
+    )
+    assert one == two and one["batches"] == [_content("a", "1"), _content("b", "2")]
     key = common.pack_set_key(one)
     assert key.startswith("sha256:") and len(key) == 71
     # A rotation is a new set and so a new key.
-    rotated = common.pack_set_document("motor", "1.0", [_digest("a"), _digest("c")])
+    rotated = common.pack_set_document(
+        "motor", "1.0", [_content("a", "1"), _content("c", "3")]
+    )
     assert common.pack_set_key(rotated) != key
     # A version with no registered sealed exam keys by its construction version.
-    other = common.pack_set_document("motor", "1.1", [_digest("a"), _digest("b")])
+    other = common.pack_set_document(
+        "motor", "1.1", [_content("a", "1"), _content("b", "2")]
+    )
     assert common.pack_set_key(other) != key
 
 
-def test_the_set_key_leaves_the_construction_version_out():
-    """VALIDATOR-KOTH-CARRY-SCOPE-01: {challenge, evaluation version, batches}."""
-    batches = [_digest("b"), _digest("a")]
-    f14 = common.pack_set_document("f08-ribbed-bracket", "1.4", batches)
-    f15 = common.pack_set_document("f08-ribbed-bracket", "1.5", batches)
+def test_the_set_key_is_the_exam_content_without_any_version():
+    """The Validator's content-key ruling: {challenge, evaluation version, per
+    batch {case_bank, reference_rows}}; no construction or pack version."""
+    contents = [_content("b", "2"), _content("a", "1")]
+    f14 = common.pack_set_document("f08-ribbed-bracket", "1.4", contents)
+    f15 = common.pack_set_document("f08-ribbed-bracket", "1.5", contents)
     assert (
         f14
         == f15
@@ -283,62 +296,83 @@ def test_the_set_key_leaves_the_construction_version_out():
             "schema": common.PACK_SET_SCHEMA,
             "challenge_id": "f08-ribbed-bracket",
             "evaluation_version": "f08-dual-sealed-batch-8-v1",
-            "batches": sorted(batches),
+            "batches": [_content("a", "1"), _content("b", "2")],
         }
     )
-    assert common.pack_set_key(f14) == common.pack_set_key(f15)
-    # Different batches are a different set, on any version.
-    rotated = common.pack_set_document(
-        "f08-ribbed-bracket", "1.5", [_digest("a"), _digest("c")]
-    )
-    assert common.pack_set_key(rotated) != common.pack_set_key(f14)
-    # Another Challenge on the same batches is another set.
-    f02 = common.pack_set_document("f02", "2.4", batches)
-    assert common.pack_set_key(f02) != common.pack_set_key(f14)
+    key = common.pack_set_key(f14)
+    assert common.pack_set_key(f15) == key
+    # One batch's reference rows changed, or separately its case bank: a new exam.
+    for changed in (_content("a", "9"), _content("9", "1")):
+        moved = common.pack_set_document(
+            "f08-ribbed-bracket", "1.5", [changed, _content("b", "2")]
+        )
+        assert common.pack_set_key(moved) != key
+    # Another Challenge on the same content is another set.
+    f02 = common.pack_set_document("f02", "2.4", contents)
+    assert common.pack_set_key(f02) != key
 
 
-def test_a_set_keyed_before_v2_keeps_its_key_and_meaning():
+def test_a_stored_set_keeps_its_key_and_meaning():
     batches = [_digest("a"), _digest("b")]
-    old = common.pack_set_document_v1("f08-ribbed-bracket", "1.4", batches)
-    assert old["challenge"] == {"id": "f08-ribbed-bracket", "version": "1.4"}
-    old_key = common.pack_set_key(old)
-    new_key = common.pack_set_key(
-        common.pack_set_document("f08-ribbed-bracket", "1.4", batches)
-    )
-    assert old_key != new_key
-    for key, document in ((old_key, old), (new_key, None)):
-        found = common.verified_pack_set("f08-ribbed-bracket", "1.4", batches, key)
-        assert common.pack_set_key(found) == key
-        assert document is None or found == document
-    # The v1 key named its version: it never verifies for 1.5.
+    contents = [_content("a", "1"), _content("b", "2")]
+    v1 = common.pack_set_document_v1("f08-ribbed-bracket", "1.4", batches)
+    v2 = common.pack_set_document_v2("f08-ribbed-bracket", "1.4", batches)
+    assert v1["challenge"] == {"id": "f08-ribbed-bracket", "version": "1.4"}
+    v3 = common.pack_set_document("f08-ribbed-bracket", "1.4", contents)
+    keys = [common.pack_set_key(d) for d in (v1, v2, v3)]
+    assert len(set(keys)) == 3
+    for key, document in zip(keys, (v1, v2, v3), strict=True):
+        found = common.verified_pack_set(
+            "f08-ribbed-bracket", "1.4", batches, key, contents
+        )
+        assert found == document
+    assert common.stored_set_key("f08-ribbed-bracket", "1.4", batches, keys[2]) is None
+    # A v1 key named its version: it never verifies for 1.5; a v2 key does.
     with pytest.raises(common.PackSetRefused, match="pack_set_key_mismatch"):
-        common.verified_pack_set("f08-ribbed-bracket", "1.5", batches, old_key)
+        common.verified_pack_set(
+            "f08-ribbed-bracket", "1.5", batches, keys[0], contents
+        )
+    assert common.stored_set_key("f08-ribbed-bracket", "1.5", batches, keys[1]) == v2
+    # A content key over other content, or the wrong number of batches, refuses.
+    for wrong in ([_content("a", "1"), _content("b", "9")], contents[:1]):
+        with pytest.raises(common.PackSetRefused, match="pack_set_key_mismatch"):
+            common.verified_pack_set(
+                "f08-ribbed-bracket", "1.4", batches, keys[2], wrong
+            )
 
 
 @pytest.mark.parametrize(
-    "challenge,version,batches",
+    "challenge,version,contents",
     [
         ("motor", "1.0", []),
-        ("motor", "1.0", [_digest("a"), _digest("a")]),
-        ("motor", "1.0", ["sha256:short"]),
-        ("motor", "1.0", ["a" * 64]),
-        ("", "1.0", [_digest("a")]),
-        ("motor", "", [_digest("a")]),
+        ("motor", "1.0", [_content("a", "1"), _content("a", "1")]),
+        (
+            "motor",
+            "1.0",
+            [{"case_bank": "sha256:short", "reference_rows": _digest("1")}],
+        ),
+        ("motor", "1.0", [{"case_bank": _digest("a")}]),
+        ("motor", "1.0", [_digest("a")]),
+        ("", "1.0", [_content("a", "1")]),
+        ("motor", "", [_content("a", "1")]),
     ],
 )
-def test_a_malformed_pack_set_is_refused(challenge, version, batches):
+def test_a_malformed_pack_set_is_refused(challenge, version, contents):
     with pytest.raises(common.PackSetRefused):
-        common.pack_set_document(challenge, version, batches)
+        common.pack_set_document(challenge, version, contents)
 
 
 def test_a_body_not_built_by_the_builder_has_no_key():
-    body = common.pack_set_document("motor", "1.0", [_digest("a")])
+    body = common.pack_set_document(
+        "motor", "1.0", [_content("a", "1"), _content("b", "2")]
+    )
     for broken in (
-        {**body, "batches": [_digest("b"), _digest("a")]},
+        {**body, "batches": list(reversed(body["batches"]))},
         {**body, "extra": 1},
         {**body, "schema": "other"},
         {k: v for k, v in body.items() if k != "challenge_id"},
         {**body, "evaluation_version": ""},
+        {**common.pack_set_document_v2("motor", "1.0", [_digest("a")]), "extra": 1},
         {**common.pack_set_document_v1("motor", "1.0", [_digest("a")]), "extra": 1},
     ):
         with pytest.raises(common.PackSetRefused):

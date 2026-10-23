@@ -11,6 +11,7 @@ straight into the pool store: they exercise the store, the carry and the
 unchanged comparator, not the binder (covered by the pool-consider tests).
 """
 
+import hashlib
 import json
 
 import pytest
@@ -329,6 +330,66 @@ def test_a_carry_onto_a_new_pack_set_keeps_the_king_until_regraded(tmp_path):
             UNAVAILABLE,
             "incumbent_regrade_required",
         )
+    assert new.incumbent()["model_id"] == "king"
+
+
+def _set_key(version, exam):
+    """The key a producer's signed set commitment carries for `version`'s packs
+    over `exam` (each batch's (case_bank, reference_rows) bytes). Each version's
+    packs have their own manifests, which name the version."""
+    from carbon.challenge_validator import sealed_pack_import as sp
+
+    contents = {
+        "sha256:"
+        + hashlib.sha256(b"%s-manifest-%d" % (version.encode(), i)).hexdigest(): {
+            "case_bank": "sha256:" + hashlib.sha256(bank).hexdigest(),
+            "reference_rows": "sha256:" + hashlib.sha256(rows).hexdigest(),
+        }
+        for i, (bank, rows) in enumerate(exam)
+    }
+    return sp.set_commitment_for(
+        F08, version, sorted(contents), None, contents=contents
+    )["set_key"]
+
+
+EXAM = ((b"bank-1", b"rows-1"), (b"bank-2", b"rows-2"))
+
+
+def test_the_same_exam_content_on_15_carries_the_king_with_no_regrade(tmp_path):
+    """Rule 1 of the content key: same content, new construction version -> one
+    key -> the king carries and meets 1.5 challengers with no regrade."""
+    old_key, new_key = _set_key("1.4", EXAM), _set_key("1.5", EXAM)
+    assert old_key == new_key
+    old, new = _old_deployment(tmp_path), _new_deployment(tmp_path)
+    record = _carry(old, new, old_pack_set_key=old_key, new_pack_set_key=new_key)
+    assert record["regrade"] == "NOT_REQUIRED"
+    beyond = _challenge(new, "beyond", 0.80 + 2 * NOISE)
+    assert (beyond["outcome"], beyond["incumbent"]) == (CHALLENGER, "king")
+
+
+@pytest.mark.parametrize(
+    "changed",
+    [
+        ((b"bank-1", b"rows-9"), (b"bank-2", b"rows-2")),  # one batch's truth
+        ((b"bank-9", b"rows-1"), (b"bank-2", b"rows-2")),  # one batch's queries
+    ],
+)
+def test_changed_batch_content_is_a_new_key_and_takes_the_regrade_path(
+    tmp_path, changed
+):
+    """Rule 2: a rotation (reference rows, or separately the case bank, of one
+    batch changed) is a new key; the king carries, marked for a regrade, and is
+    UNAVAILABLE to challengers until regraded: never a reset."""
+    old_key, new_key = _set_key("1.4", EXAM), _set_key("1.5", changed)
+    assert old_key != new_key
+    old, new = _old_deployment(tmp_path), _new_deployment(tmp_path)
+    record = _carry(old, new, old_pack_set_key=old_key, new_pack_set_key=new_key)
+    assert record["regrade"] == "REQUIRED"
+    outcome = _challenge(new, "challenger", 0.99)
+    assert (outcome["outcome"], outcome["reason"]) == (
+        UNAVAILABLE,
+        "incumbent_regrade_required",
+    )
     assert new.incumbent()["model_id"] == "king"
 
 

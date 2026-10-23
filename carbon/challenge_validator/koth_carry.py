@@ -12,13 +12,23 @@ The continuity key is `(challenge_id, evaluation_version, pack_set_key)`:
   the table the sealed graders register (F08 1.4 and 1.5 both grade on
   `f08-dual-sealed-batch-8-v1`); a different one refuses the carry;
 - `pack_set_key` is each deployment's configured active pack set
-  (`evaluation_pack_set.set_key`). Its key leaves the construction version out
-  (`sealed_exam_common.pack_set_document`, v2), so the same batches on 1.4 and
-  1.5 give one key and no regrade is needed; a different key marks the carry
-  `regrade: REQUIRED`.
+  (`evaluation_pack_set.set_key`). It keys the exam's content - per batch its
+  case bank and reference rows - with no construction or pack version
+  (`sealed_exam_common.pack_set_document`, v3). So:
+  1. the same exam content under a new construction version is the same key:
+     the king carries with no regrade (`regrade: NOT_REQUIRED`);
+  2. a rotation is a new key: the carry is marked `regrade: REQUIRED`, and the
+     king meets challengers there only once regraded on it;
+  3. a new evaluation version refuses the carry: the king resets.
 
 Either part unknown means no carry: the new deployment starts without a king,
 as before (fail closed).
+
+Operator ordering (not code): never cut over a construction version and rotate
+a pack in the same step. Rotate and regrade on the old deployment first, then
+cut over, so the key is equal. Otherwise the carried king stays UNAVAILABLE
+until he is regraded (a 1.5 receiver cannot regrade a 1.4 recipe): visible,
+never a reset. The key and the carry record stay in validator-side records.
 
 Where: at the cutover, once, into the new deployment's pool store
 (`PoolStore.carry_incumbent`). The new store's incumbent is then the king, so
@@ -123,7 +133,9 @@ def carry(
             # A pack-set change still carries the king
             # (OWNER-EXAM-CAP-ROTATION-01, VALIDATOR-KOTH-CARRY-SCOPE-01): he
             # meets challengers on the new set only once he is regraded on it;
-            # until then every comparison is UNAVAILABLE, never a reset.
+            # until then every comparison is UNAVAILABLE, never a reset. Rotate
+            # and regrade on the old deployment before the cutover, so the
+            # content key is equal here and no regrade is needed.
             "regrade": "NOT_REQUIRED" if old[2] == new[2] else "REQUIRED",
             "king_source_receipt_sha256": king_source_receipt_sha256,
         }
