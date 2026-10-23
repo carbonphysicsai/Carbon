@@ -140,6 +140,7 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     # A measured graph keeps its batched cold query as a separate timed receipt.
     timed_fields = (
         {"timed_operation", "timed_receipt"}
+        | ({"timed_controls_digest"} if "timed_controls_digest" in evidence else set())
         if type(evidence) is dict and "timed_receipt" in evidence
         else set()
     )
@@ -241,6 +242,12 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
             is None
         ):
             raise RetentionUnavailable("timed_operation_invalid")
+        if "timed_controls_digest" in evidence and (
+            type(evidence["timed_controls_digest"]) is not str
+            or re.fullmatch(r"sha256:[0-9a-f]{64}", evidence["timed_controls_digest"])
+            is None
+        ):
+            raise RetentionUnavailable("timed_controls_invalid")
         timed_receipt = _receipt_snapshot(
             root / evidence["timed_operation"] / "snapshot" / "receipt.json",
             evidence["timed_receipt"],

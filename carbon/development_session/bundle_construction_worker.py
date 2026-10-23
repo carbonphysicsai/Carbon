@@ -1619,6 +1619,8 @@ class DirectReconstructionResult:
     prediction_comparison: dict | None = None
     #: The batched cold query kept for timing when the task is measured.
     timed: BundleInferenceResult | None = None
+    #: The timed query's own settled-operation controls digest (a real C-03 run only).
+    timed_controls_digest: str | None = None
 
 
 def _private_controls_digest(
@@ -1843,6 +1845,17 @@ def reconstruct_and_infer_public(
         if runner is None
         else (None, None)
     )
+    timed_controls = (
+        _private_controls_digest(
+            ledger,
+            owner=owner,
+            identity=direct_child_identity(identity, "timed"),
+            operation=timed.worker_operation,
+            provenance="DIRECT_BUNDLE_PUBLIC_INFERENCE",
+        )
+        if timed is not None and runner is None
+        else None
+    )
     return DirectReconstructionResult(
         build,
         inference,
@@ -1853,4 +1866,5 @@ def reconstruct_and_infer_public(
         elapsed,
         comparison,
         timed,
+        timed_controls,
     )

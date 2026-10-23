@@ -109,6 +109,8 @@ CODES = {
     "parameter_not_default": REFUSED,
     "parameters_not_allowlisted": REFUSED,
     "prng_impl_not_allowed": REFUSED,
+    # An op Carbon's own allowlist admits but its interpreter cannot bind.
+    "primitive_unsupported": GAP,
     "result_count_mismatch": REFUSED,
     "role_mismatch": REFUSED,
     "role_unknown": REFUSED,
