@@ -248,8 +248,9 @@ class CoolingCatalogPractice:
         rows = result.inference.predictions
         if len(rows) != len(practice.records):
             raise ValueError("cooling catalog practice row count differs")
+        encoded = interface.get("output_encoding")
         predictions = {
-            record["case_id"]: _outputs(row, slices)
+            record["case_id"]: _outputs(row, slices, encoded)
             for record, row in zip(practice.records, rows, strict=True)
         }
         _rows, summary = score_practice(
@@ -300,9 +301,16 @@ class CoolingCatalogPractice:
         return out
 
 
-def _outputs(row, slices):
+def _outputs(row, slices, encoding=None):
     """One predicted row as Cooling's named outputs, by the interface's target
-    slices; a scalar output (shape []) is a number, a profile a list."""
+    slices; a scalar output (shape []) is a number, a profile a list. Under
+    the law-safe output encoding (Cooling 1.3) the row is decoded first."""
+    if encoding is not None:
+        from .output_encoding import ENCODING, decode_flat
+
+        if encoding != ENCODING:
+            raise ValueError("unknown Cooling output encoding")
+        row = decode_flat(row)
     values = [float(v) for v in row]
     out = {}
     for name, (start, end) in slices.items():

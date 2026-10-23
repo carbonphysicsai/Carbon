@@ -116,9 +116,19 @@ def _source(challenge_id: str):
     raise ValueError("unknown public physical TRAIN challenge")
 
 
-def numeric_interface_document(challenge_id: str) -> dict:
-    """Reversible layout of one native case per numeric row, without scaling."""
+def numeric_interface_document(challenge_id: str, encoding=None) -> dict:
+    """Reversible layout of one native case per numeric row, without scaling.
+
+    `encoding` (Cooling only; `cold_plate.output_encoding.ENCODING`) names a
+    law-safe output encoding: slots 0 and 31 then hold raw values the decoder
+    maps back (peak excess and pressure), and the document records it, so its
+    digest differs from the unencoded one."""
     challenge, domain, _ = _source(challenge_id)
+    if encoding is not None and (
+        challenge_id != cooling.CHALLENGE.challenge_id
+        or encoding != _cooling_encoding()
+    ):
+        raise ValueError("unknown output encoding")
     if challenge_id == motor.CHALLENGE.challenge_id:
         slices = {"torque_nm": [0, domain.ANGLE_STEPS]}
         axis = {
@@ -159,7 +169,25 @@ def numeric_interface_document(challenge_id: str) -> dict:
         "target_axis": axis,
         "one_row_per_native_case": True,
         "transform": "native parsed numbers in source row/index order; no scaling or aggregation",
+        **(
+            {}
+            if encoding is None
+            else {
+                "output_encoding": encoding,
+                "transform": (
+                    "native parsed numbers in source row/index order; slot 0 "
+                    "holds e with peak_c = max(profile_c) + softplus(e), slot "
+                    "31 holds q with pressure_drop_pa = softplus(q)"
+                ),
+            }
+        ),
     }
+
+
+def _cooling_encoding():
+    from carbon.cold_plate.output_encoding import ENCODING
+
+    return ENCODING
 
 
 def _npz(inputs: np.ndarray, targets: np.ndarray) -> bytes:
@@ -238,8 +266,56 @@ def derive_public_train(challenge_id: str, source_raw: bytes) -> tuple[bytes, di
     return raw, provenance
 
 
-def load_public_train(challenge_id: str) -> dict:
-    """Load only pinned DEVELOPMENT bytes; never admit an evaluation role."""
+#: Versions whose TRAIN is the law-safe encoded artifact (Cooling 1.3),
+#: derived once from the pinned v1 TRAIN (`derive_encoded_public_train`) and
+#: pinned by sha256 so every host reads the same bytes.
+ENCODED_VERSIONS = {(cooling.CHALLENGE.challenge_id, "1.3")}
+_ENCODED_ARTIFACTS = {
+    cooling.CHALLENGE.challenge_id: (
+        "cooling-dev-train-400-v2-encoded.npz",
+        "cooling-dev-train-400-v2-encoded.provenance.json",
+    ),
+}
+_ENCODED_PINNED = {
+    cooling.CHALLENGE.challenge_id: (
+        "2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+        "f6edbb850fb635bdc317df9b87ba1ee09b7539c43db982d9bfcf65fdc0c60c39",
+    ),
+}
+_ENCODED_SCHEMA = "carbon.physical-public-train.encoded-provenance.v1"
+
+
+def derive_encoded_public_train(challenge_id: str) -> tuple[bytes, dict]:
+    """The law-safe encoded TRAIN from the pinned v1 TRAIN: same inputs and
+    case order, targets through `output_encoding.encode_targets`."""
+    from carbon.cold_plate.output_encoding import encode_targets
+
+    source = load_public_train(challenge_id)
+    encoding = _cooling_encoding()
+    y = encode_targets(source["targets"])
+    raw = _npz(np.asarray(source["inputs"], dtype="<f8"), y.astype("<f8"))
+    challenge, _, _ = _source(challenge_id)
+    provenance = {
+        "schema": _ENCODED_SCHEMA,
+        "scope": _SCOPE,
+        "challenge": {"id": challenge_id, "version": challenge.CHALLENGE.version},
+        "encoding": encoding,
+        "source_train_sha256": source["provenance"]["train_sha256"],
+        "train_sha256": "sha256:" + _sha(raw),
+        "transformation_version": "law-safe-output-encoding-v1",
+        "case_ids": list(source["case_ids"]),
+        "numeric_interface": numeric_interface_document(challenge_id, encoding),
+    }
+    return raw, provenance
+
+
+def load_public_train(challenge_id: str, version: str | None = None) -> dict:
+    """Load only pinned DEVELOPMENT bytes; never admit an evaluation role.
+    `version` selects the encoded TRAIN where that version uses it
+    (`ENCODED_VERSIONS`); otherwise the native TRAIN, as for every version
+    before."""
+    if (challenge_id, version) in ENCODED_VERSIONS:
+        return _load_encoded(challenge_id)
     challenge, domain, count = _source(challenge_id)
     train_name, provenance_name = _ARTIFACTS[challenge_id]
     train_raw = (_DATA / train_name).read_bytes()
@@ -293,6 +369,51 @@ def load_public_train(challenge_id: str) -> dict:
         or not np.isfinite(y).all()
     ):
         raise ValueError("public numeric TRAIN tensor differs")
+    x.setflags(write=False)
+    y.setflags(write=False)
+    return {
+        "train": train_raw,
+        "inputs": x,
+        "targets": y,
+        "case_ids": tuple(provenance["case_ids"]),
+        "provenance": provenance,
+    }
+
+
+def _load_encoded(challenge_id: str) -> dict:
+    _source(challenge_id)
+    train_name, provenance_name = _ENCODED_ARTIFACTS[challenge_id]
+    train_raw = (_DATA / train_name).read_bytes()
+    provenance_raw = (_DATA / provenance_name).read_bytes()
+    train_sha, provenance_sha = _ENCODED_PINNED[challenge_id]
+    if _sha(train_raw) != train_sha or _sha(provenance_raw) != provenance_sha:
+        raise ValueError("encoded public TRAIN artifact identity differs")
+    provenance = json.loads(provenance_raw, object_pairs_hook=_pairs)
+    source = load_public_train(challenge_id)
+    if (
+        type(provenance) is not dict
+        or provenance.get("schema") != _ENCODED_SCHEMA
+        or provenance.get("encoding") != _cooling_encoding()
+        or provenance.get("source_train_sha256") != source["provenance"]["train_sha256"]
+        or provenance.get("train_sha256") != "sha256:" + train_sha
+        or provenance.get("case_ids") != list(source["case_ids"])
+        or provenance.get("numeric_interface")
+        != numeric_interface_document(challenge_id, _cooling_encoding())
+    ):
+        raise ValueError("encoded public TRAIN provenance differs")
+    with np.load(io.BytesIO(train_raw), allow_pickle=False) as data:
+        if set(data.files) != {"inputs", "targets"}:
+            raise ValueError("encoded public TRAIN arrays differ")
+        x, y = data["inputs"], data["targets"]
+    if (
+        x.shape != source["inputs"].shape
+        or y.shape != source["targets"].shape
+        or x.dtype != np.dtype("<f8")
+        or y.dtype != np.dtype("<f8")
+        or not np.array_equal(x, source["inputs"])
+        or not np.isfinite(y).all()
+    ):
+        raise ValueError("encoded public TRAIN tensor differs")
     x.setflags(write=False)
     y.setflags(write=False)
     return {
