@@ -16,6 +16,19 @@ challenge_id, challenge_version, pack (directory holding the canonical
 `evaluation-pack.json` and its files), batch (the canonical `sealed-batch.json`),
 copies (output directory), window, hotkeys (a JSON list file of permitted hotkeys,
 read from the finalized chain by the operator).
+
+Set config (owner-only JSON, `publish-set`; `SET_CONFIG_SCHEMA`): producer_key,
+challenge_id, challenge_version, batches (the active batches' canonical manifest
+digests, in the set's order), packs (a map of each of those digests to the
+directory holding that canonical pack: its `evaluation-pack.json` is read, checked
+against its digest, and its exam content - the `case_bank` and `reference_rows`
+role digests - keys the set), window, inbox. The set's key is over that content, so
+the same exam content gives the same set whichever copies produced it, and a changed
+case gives another. Refusals, all typed and never a fallback to digests:
+`copy_issuance_config_malformed` (a field missing or `packs` not matching `batches`),
+`copy_issuance_pack_missing` (no pack in custody for a batch) and
+`copy_issuance_pack_digest_mismatch` (a manifest that is not the one the batch names).
+Nothing of the exam content is written out: the signed payload is digests only.
 """
 
 from __future__ import annotations
