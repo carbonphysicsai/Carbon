@@ -350,6 +350,36 @@ scenario("the runs screen shows no best tile, best line or best card when no dir
   clean(page);
 });
 
+scenario("practice picks a tested backbone from a list and two settings are form fields; the JSON sits under Advanced (E4)", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  run.journey.frozen_awaiting_submission = false;
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const entry = state.caps.challenges.find(item => item.challenge_id === run.challenge.id && item.version === run.challenge.version);
+  assert.ok(entry, "the campaign's Challenge is on the list");
+  const recipeOf = id => ({schema: "carbon.construction-recipe.v1", source: {kind: "catalog", catalog_id: id}, procedure: {entrypoint: null, configuration: {}, train_use: {}, initial_state: null}});
+  entry.catalog_recipes = [{catalog_id: "neuralop.FNO", backbone: "FNO", recipe: recipeOf("neuralop.FNO")}, {catalog_id: "neuralop.TFNO", backbone: "TFNO", recipe: recipeOf("neuralop.TFNO")}];
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  const pick = one(page, "#journey-backbone-" + run.id);
+  assert.deepEqual([...pick.options].map(option => option.value), ["neuralop.FNO", "neuralop.TFNO"]);
+  assert.ok(one(page, "#journey-recipe-" + run.id).closest("details.advanced"), "the JSON is under Advanced");
+  assert.equal(one(page, "#journey-steps-" + run.id).type, "number");
+  await page.change(pick, "neuralop.TFNO");
+  await page.type(one(page, "#journey-steps-" + run.id), "40");
+  await page.type(one(page, "#journey-rate-" + run.id), "0.003");
+  await page.type(one(page, "#journey-hypothesis-" + run.id), "a different backbone");
+  state.script.push({match: r => r.path === "/api/v1/operations/practice", answer: () => ({body: {...run, state: "PRACTICING"}})});
+  await page.press(one(page, "#journey-practice-" + run.id));
+  const sent = lastPost(state, "/api/v1/operations/practice").body.strategy;
+  assert.equal(sent.source.catalog_id, "neuralop.TFNO");
+  assert.equal(sent.procedure.train_use.steps, 40);
+  assert.equal(sent.procedure.configuration.learning_rate, 0.003);
+  clean(page);
+});
+
 scenario("a GPU host that ran the CPU build says so on the run row and the best-run card (R9-3)", async () => {
   const words = "Ran on CPU: this catalog entry has no GPU build yet. The score is the CPU build's.";
   const state = launchable(world());

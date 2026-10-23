@@ -3323,6 +3323,49 @@
   function smokeResultText(experiment) {
     return "Smoke: " + (experiment.status === "PASSED" ? "passed" : experiment.status === "FAILED" ? "failed" : "result unavailable");
   }
+  // The place under "Advanced" where the raw recipe JSON lives when a backbone list is offered (E4).
+  function advancedHolder(parent) {
+    const box = el("details", undefined, "advanced"); box.append(el("summary", "Advanced: the recipe as JSON"));
+    const body = el("div", undefined, "detail-body"); box.append(body); box.dataset.holder = "1";
+    parent.append(box);
+    return body;
+  }
+  // A tested backbone chosen from a list, with the two settings a newcomer changes first as form fields. It writes
+  // the recipe JSON (the Advanced text area) from the chosen backbone's ready recipe; whatever that text area holds
+  // when "Run practice trial" is pressed is what is sent (E4).
+  function catalogPracticeForm(box, run, catalog, raw, holder) {
+    const form = el("div", undefined, "catalog-practice"); form.id = "journey-form-" + run.id;
+    const idOf = text => { try { return JSON.parse(text)?.source?.catalog_id || null; } catch (_) { return null; } };
+    const known = id => catalog.some(item => item.catalog_id === id);
+    const start = known(idOf(raw.value)) ? idOf(raw.value) : catalog[0].catalog_id;
+    const pickLabel = el("label", "Backbone"); const pick = document.createElement("select"); pick.id = "journey-backbone-" + run.id; pickLabel.htmlFor = pick.id;
+    for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "")); option.value = item.catalog_id; pick.append(option); }
+    pick.value = start; pick.dataset.draft = "1";
+    const about = el("p", undefined, "hint"); about.id = "journey-backbone-about-" + run.id;
+    const stepsLabel = el("label", "Training steps (empty keeps the tested default)"); const steps = document.createElement("input"); steps.type = "number"; steps.min = "1"; steps.step = "1"; steps.id = "journey-steps-" + run.id; stepsLabel.htmlFor = steps.id; steps.dataset.draft = "1";
+    const rateLabel = el("label", "Learning rate (empty keeps the tested default)"); const rate = document.createElement("input"); rate.type = "number"; rate.min = "0"; rate.step = "any"; rate.id = "journey-rate-" + run.id; rateLabel.htmlFor = rate.id; rate.dataset.draft = "1";
+    const current = () => catalog.find(item => item.catalog_id === pick.value) || catalog[0];
+    const describe = () => { about.textContent = current().variant ? current().variant : "A backbone Carbon has tested on this Challenge. Its tested settings are the starting point."; };
+    try { const kept = JSON.parse(raw.value); const s = kept?.procedure?.train_use?.steps, r = kept?.procedure?.configuration?.learning_rate; if (known(idOf(raw.value))) { if (Number.isFinite(s)) steps.value = String(s); if (Number.isFinite(r)) rate.value = String(r); } } catch (_) { /* kept as typed */ }
+    const write = () => {
+      const recipe = JSON.parse(JSON.stringify(current().recipe));
+      recipe.procedure = recipe.procedure || {};
+      recipe.procedure.configuration = {...(recipe.procedure.configuration || {})};
+      recipe.procedure.train_use = {...(recipe.procedure.train_use || {})};
+      const s = Number.parseInt(steps.value, 10), r = Number.parseFloat(rate.value);
+      if (Number.isFinite(s) && s >= 1) recipe.procedure.train_use.steps = s;
+      if (Number.isFinite(r) && r > 0) recipe.procedure.configuration.learning_rate = r;
+      raw.value = JSON.stringify(recipe, null, 2);
+      journeyDrafts[run.id + ":recipe"] = raw.value; store(draftKey, journeyDrafts);
+    };
+    pick.addEventListener("change", () => { describe(); write(); });
+    steps.addEventListener("input", write); rate.addEventListener("input", write);
+    describe();
+    if (!known(idOf(raw.value))) write();
+    form.append(pickLabel, pick, about, stepsLabel, steps, rateLabel, rate);
+    box.insertBefore(form, holder.parentElement);
+    researchNote(box, "Pick a tested backbone and, if you like, change its steps or learning rate. Anything else is under Advanced.", "hint");
+  }
   function renderJourneyPractice(parent, run) {
     // A person's own journey, with no Carbon agent: practice, freeze, submit.
     // Each step is an operation from the same table the agent and MCP use.
@@ -3331,9 +3374,15 @@
     researchNote(box, "1 · Practice a recipe here. 2 · Freeze one you practiced and 3 · submit it under Submission. Nothing reaches the chain.");
     const {journey, exhausted, ready} = journeyState(run);
     const example = exampleRecipe(run);
-    const recipe = journeyField(box, run.id, "recipe", "Recipe to practice (JSON)", document.createElement("textarea"), example);
+    const entry = run.challenge ? challengeEntry({id: run.challenge.id, version: run.challenge.version}) : null;
+    const catalog = (Array.isArray(entry?.catalog_recipes) ? entry.catalog_recipes : []).filter(item => item && typeof item.catalog_id === "string" && item.recipe && typeof item.recipe === "object");
+    // E4: with a tested-backbone list, the miner picks a backbone and fills two settings; the recipe JSON sits
+    // under Advanced and is what a practice sends either way.
+    const holder = catalog.length ? advancedHolder(box) : box;
+    const recipe = journeyField(holder, run.id, "recipe", "Recipe to practice (JSON)", document.createElement("textarea"), example || (catalog.length ? JSON.stringify(catalog[0].recipe, null, 2) : ""));
     recipe.rows = 8; recipe.className = "research-guidance";
-    if (example) researchNote(box, "Prefilled with this Challenge's registered example, which passes admission. Edit it freely.", "hint");
+    if (catalog.length) catalogPracticeForm(box, run, catalog, recipe, holder);
+    else if (example) researchNote(box, "Prefilled with this Challenge's registered example, which passes admission. Edit it freely.", "hint");
     else researchNote(box, "No registered example for this campaign's Challenge; write a recipe.", "hint");
     const hypothesis = journeyField(box, run.id, "hypothesis", "What this trial tests", document.createElement("input"), "");
     if (!ready) researchNote(box, "Working: " + String(run.state).replaceAll("_", " ").toLowerCase() + ". The next step opens when the campaign is ready.");
