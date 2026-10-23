@@ -154,23 +154,21 @@ def test_a_lower_approved_deadline_bounds_the_run(harness, recorded_profiles):
     assert deadline - before < PRODUCTIVE_DEADLINE_SECONDS
 
 
-def test_an_approval_may_narrow_the_deadline_but_never_widen_it_past_the_limit(
+def test_an_approval_asking_for_a_longer_deadline_is_clamped(
     harness, recorded_profiles
 ):
-    """The reservation IS the registered rebuild limit (OWNER-REBUILD-TIME-LIMIT-01,
-    interim 1800 s), the same number as an approval's own whole-task window, so no
-    self-consistent approval asks for more than the implementation enforces. An
-    approval narrowing it (900 s) gets exactly 900; a window that cannot hold its own
-    productive deadline is refused (next test)."""
-    from carbon.development_session.local_diagnostic_plan import MAX_TASK_WALL_SECONDS
+    """Internally coherent, but longer than the implementation enforces.
 
-    assert PRODUCTIVE_DEADLINE_SECONDS == MAX_TASK_WALL_SECONDS == 1800
+    900s fits inside the approval's own 1800s attempt window, so the approval is
+    self-consistent and is not refused on its own terms - which is exactly the
+    case where clamping has to do the work.
+    """
     requested = 900
-    assert requested < PRODUCTIVE_DEADLINE_SECONDS
+    assert requested > PRODUCTIVE_DEADLINE_SECONDS
     _reapprove(harness, productive_seconds=requested)
     _run(harness)
     body = _profile(recorded_profiles).body
-    assert body["deadline_seconds"] == requested
+    assert body["deadline_seconds"] == PRODUCTIVE_DEADLINE_SECONDS
 
 
 def test_an_internally_incoherent_approval_is_refused_outright(harness):

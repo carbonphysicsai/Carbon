@@ -45,7 +45,6 @@ from carbon.reconstruction.worker.model import (
 )
 from carbon.reconstruction.worker.protocol import decode_output_stream
 
-
 @pytest.fixture
 def large_profile_applied(monkeypatch):
     """Apply the larger-resources profile for a test (the gate is off in code
@@ -57,9 +56,9 @@ def large_profile_applied(monkeypatch):
 
 V6 = "level4-allowlist-v6"
 V7 = "level4-allowlist-v7"
-#: The C-03 CPU profile's digest (pinned elsewhere too); it moved when the rebuild reservation became the registered limit (1,800 s).
+#: The C-03 CPU profile's digest before this change (pinned elsewhere too).
 C03_CPU_DIGEST = (
-    "sha256:c0d93d4429d347eb968fdcc0df8ff2290ab81699acf986a46f414e47aa0c62ac"
+    "sha256:0d1168fb5bbffde24617c54df2cedfcb092d73b97f88fa8aae400f430869347f"
 )
 GIB = 1024**3
 
@@ -89,9 +88,9 @@ def test_a_v7_launch_resolves_2_4_16_and_the_extras(large_profile_applied):
     assert version == V7
     large = _profile(version)
     assert large.digest != C03_CPU_DIGEST
-    assert (
-        large.effective_output_bytes == 2 * GIB == LARGE_MODEL_RESOURCES["output_bytes"]
-    )
+    assert large.effective_output_bytes == 2 * GIB == LARGE_MODEL_RESOURCES[
+        "output_bytes"
+    ]
     assert large.effective_scratch_tmpfs_bytes == 4 * GIB
     assert large.effective_memory_bytes == 16 * GIB
     assert large.effective_cpu_count == 4
@@ -165,9 +164,7 @@ def _inspect(expected, created_with, tmp_path):
     )
 
 
-def test_inspection_accepts_each_profile_and_refuses_the_other(
-    tmp_path, large_profile_applied
-):
+def test_inspection_accepts_each_profile_and_refuses_the_other(tmp_path, large_profile_applied):
     today, large = _profile(None), _profile(V7)
     _inspect(today, today, tmp_path)
     _digest, evidence = _inspect(large, large, tmp_path)
@@ -202,7 +199,9 @@ def test_the_doctor_sizes_the_host_for_the_launch(large_profile_applied):
         assert not docker_runtime.doctor(
             cli=Cli(ncpu, memory), worker_profile=_profile(V7)
         ).eligible
-    ready = docker_runtime.doctor(cli=Cli(8, 20 * GIB), worker_profile=_profile(V7))
+    ready = docker_runtime.doctor(
+        cli=Cli(8, 20 * GIB), worker_profile=_profile(V7)
+    )
     assert ready.eligible and ready.cpuset == "0,1,2,3"
 
 
@@ -215,9 +214,7 @@ def test_the_cpuset_follows_the_cpu_count(tmp_path, large_profile_applied):
         resolve_cpuset(logical_cpus=3, count=4)
 
 
-def test_exporter_and_decoder_bound_by_the_launch_envelope(
-    tmp_path, monkeypatch, large_profile_applied
-):
+def test_exporter_and_decoder_bound_by_the_launch_envelope(tmp_path, monkeypatch, large_profile_applied):
     from carbon.reconstruction.worker import exporter
 
     assert exporter._output_bytes([]) == OUTPUT_BYTES
@@ -262,9 +259,7 @@ def test_other_lanes_refuse_the_larger_resources(tmp_path, large_profile_applied
         )
 
 
-def test_the_staged_worker_request_does_not_carry_large_resources(
-    large_profile_applied,
-):
+def test_the_staged_worker_request_does_not_carry_large_resources(large_profile_applied):
     # The staged request has no field for them, so a v7 profile cannot be
     # rebuilt from one; the staging path refuses it by name (protocol.py).
     import inspect
@@ -300,15 +295,11 @@ V2 = {
 
 
 def test_miner_profile_v1_is_unchanged_and_v2_carries_scratch_and_output(tmp_path):
-    one = mc.load_host_profile(
-        {mc.RESOURCE_PROFILE_ENV: str(_write_profile(tmp_path, V1))}
-    )
+    one = mc.load_host_profile({mc.RESOURCE_PROFILE_ENV: str(_write_profile(tmp_path, V1))})
     assert not one.v2 and one.record() == V1
     assert one.tmpfs_options == mc.SCRATCH_TMPFS_OPTIONS
     assert one.export_max_bytes == mc.SCRATCH_EXPORT_MAX_BYTES
-    two = mc.load_host_profile(
-        {mc.RESOURCE_PROFILE_ENV: str(_write_profile(tmp_path, V2))}
-    )
+    two = mc.load_host_profile({mc.RESOURCE_PROFILE_ENV: str(_write_profile(tmp_path, V2))})
     assert two.v2 and two.record() == V2 and two.digest() != one.digest()
     assert f"size={4 * GIB}," in two.tmpfs_options
     assert two.export_max_bytes == 2 * GIB + mc.SCRATCH_CAP_INODES * 4096 + 1024**2

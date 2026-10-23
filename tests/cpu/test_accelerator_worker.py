@@ -19,7 +19,6 @@ from carbon.reconstruction.profile import ACCELERATOR_ENVIRONMENT_VERSION
 from carbon.reconstruction.worker import accelerator_runtime as runtime
 from carbon.reconstruction.worker.controller import IsolatedReconstructionController
 from carbon.reconstruction.worker.docker_runtime import create_arguments
-from carbon.reconstruction.worker.model import PRODUCTIVE_DEADLINE_SECONDS
 from carbon.reconstruction.worker.model import (
     STRICT_HOST_GRANT_AUTHORITY,
     DevelopmentWorkerProfile,
@@ -67,7 +66,7 @@ def host_grant(tmp_path, monkeypatch):
         "image_id": image.image_id,
         "resource_policy_digest": _sha("2"),
         "resource_class_digest": _sha("3"),
-        "expires_unix": 1000 + PRODUCTIVE_DEADLINE_SECONDS + 400,
+        "expires_unix": 2000,
         "allocation": "EXCLUSIVE_SINGLE_DEVICE",
         "cleanup": "EXACT_GRANT_OWNED_CONTAINERS_AND_DEVICE_RELEASE",
         "host_use": "DEDICATED_NO_DISPLAY_OR_OTHER_COMPUTE",
@@ -105,10 +104,7 @@ def test_private_host_grant_is_revocable_and_not_relocatable(host_grant):
         grant.verify(**options)
 
 
-@pytest.mark.parametrize(
-    "expiry",
-    [999, 1000, 1000 + PRODUCTIVE_DEADLINE_SECONDS - 1, True, "2000"],
-)
+@pytest.mark.parametrize("expiry", [999, 1000, 1599, True, "2000"])
 def test_expiry_reserves_full_dispatched_deadline(host_grant, expiry):
     path, document, options = host_grant
     path.write_bytes(canonical({**document, "expires_unix": expiry}))

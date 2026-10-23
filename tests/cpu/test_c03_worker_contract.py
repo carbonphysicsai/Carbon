@@ -611,7 +611,7 @@ def test_live_wait_uses_same_boot_monotonic_deadline(monkeypatch) -> None:
 
     controller = object.__new__(IsolatedReconstructionController)
     controller.cli = NoCLI()
-    monkeypatch.setattr(time, "monotonic", lambda: 11.0 + PRODUCTIVE_DEADLINE_SECONDS)
+    monkeypatch.setattr(time, "monotonic", lambda: 611.0)
     monkeypatch.setattr(time, "time", lambda: 0.0)
 
     with pytest.raises(WorkerFailure) as captured:
