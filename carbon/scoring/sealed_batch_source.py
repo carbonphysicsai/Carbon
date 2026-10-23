@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
 SEALED_BATCH_FILE = "sealed-batch.json"
@@ -169,8 +170,12 @@ def _sha(raw):
 
 
 def _pinned_case_bank(selected_pack):
+    """The pack's pinned case-bank digest, or None when the pack does not pin one. A
+    parsed pack freezes its role entries as read-only mappings (``MappingProxyType``), so
+    this takes any ``Mapping``: a ``dict`` check here once read a sealed pack as unpinned.
+    """
     entry = selected_pack.private.get("case_bank")
-    digest = entry.get("sha256") if type(entry) is dict else None
+    digest = entry.get("sha256") if isinstance(entry, Mapping) else None
     return digest if type(digest) is str else None
 
 
@@ -195,7 +200,10 @@ def resolve(
 
     pinned = _pinned_case_bank(selected_pack)
     if pinned is None:
-        return None
+        # Fail closed: a pack that does not pin a case bank is not the development
+        # pack (that one positively equals the development bank's digest below), so
+        # it is never graded on the public bank by default.
+        raise SealedBankRefused("sealed_pack_unresolved")
     try:
         development = physical_pack.development_bank(challenge, version)
     except ValueError as exc:
