@@ -449,6 +449,17 @@ def _bank_file(challenge_id: str, name: str) -> bytes:
 
 
 def development_bank(challenge_id: str, version: str) -> dict:
+    """The exposed DEVELOPMENT bank of a served version. A dev-grid version (dev-pack v2,
+    `scoring.dev_grid`) has the practice grid with public probes; every other version has
+    ``legacy_development_bank``."""
+    from carbon.scoring import dev_grid
+
+    if dev_grid.kind(challenge_id, version) is not None:
+        return dev_grid.bank(challenge_id, version)
+    return legacy_development_bank(challenge_id, version)
+
+
+def legacy_development_bank(challenge_id: str, version: str) -> dict:
     """The exposed DEVELOPMENT bank, in a fixed declared order and cohorts.
 
     Motor: 30 PRACTICE, 12 selected pilot cases, then the 48 old-V2 decision

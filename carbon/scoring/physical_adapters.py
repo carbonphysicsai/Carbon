@@ -24,6 +24,7 @@ def _static():
     from carbon.scoring import (
         cooling_dual_pack,
         cooling_encoded_dual_pack,
+        dev_grid,
         f02_dual_pack,
         f08_dual_pack,
         motor_dual_pack,
@@ -43,13 +44,19 @@ def _static():
             if version in cooling_encoded_dual_pack.VERSIONS
             else physical.versioned(cooling_dual_pack, version)
         ),
+        # Dev-pack v2: a dev-grid version's development adapter is the sealed v2 grader
+        # (`dev_grid`); every other version keeps its own.
         f08_dual_pack.CHALLENGE: lambda version: (
-            f08_dual_pack.adapter(version=version)
-            if version in f08_dual_pack.VERSIONS
-            else None
+            dev_grid.adapter(f08_dual_pack.CHALLENGE, version)
+            or (
+                f08_dual_pack.adapter(version=version)
+                if version in f08_dual_pack.VERSIONS
+                else None
+            )
         ),
-        f02_dual_pack.CHALLENGE: lambda version: physical.versioned(
-            f02_dual_pack, version
+        f02_dual_pack.CHALLENGE: lambda version: (
+            dev_grid.adapter(f02_dual_pack.CHALLENGE, version)
+            or physical.versioned(f02_dual_pack, version)
         ),
     }
 

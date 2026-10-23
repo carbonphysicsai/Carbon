@@ -138,13 +138,36 @@ def test_a_new_version_is_its_predecessor_s_material(key):
         return {k: v for k, v in document.items() if k != "challenge"}
 
     assert interface(new["interface_document"]) == interface(old["interface_document"])
-    assert np.array_equal(new["practice_inputs"], old["practice_inputs"])
-    assert np.array_equal(new["practice_reference"], old["practice_reference"])
+    from carbon.challenge_kit import physical_pack
+    from carbon.scoring import dev_grid
+
+    grid = dev_grid.kind(cid, version) is not None
+    if not grid:
+        assert np.array_equal(new["practice_inputs"], old["practice_inputs"])
+        assert np.array_equal(new["practice_reference"], old["practice_reference"])
+    else:
+        # New version, pre-publish, dev-pack v2 (Validator 2026-10-23): the
+        # development bank is the predecessor's cells plus interleaved public probes.
+        bank = physical_pack.development_bank(cid, version)
+        cells = [
+            row
+            for row, cohort in zip(new["practice_inputs"], bank["cohorts"], strict=True)
+            if cohort != "probe_response"
+        ]
+        assert sorted(map(tuple, np.asarray(cells).tolist())) == sorted(
+            map(tuple, np.asarray(old["practice_inputs"]).tolist())
+        )
+        assert len(new["practice_inputs"]) > len(old["practice_inputs"])
     assert new["physics_digest"] == old["physics_digest"]
     new_adapter = physical_adapters.adapter(cid, version)
     old_adapter = physical_adapters.adapter(cid, previous)
     assert new_adapter is not None and old_adapter is not None
-    assert new_adapter.EVALUATION_VERSION == old_adapter.EVALUATION_VERSION
+    if grid:
+        assert new_adapter.EVALUATION_VERSION == (
+            f"{dev_grid.kind(cid, version)}-dual-development-grid-v2"
+        )
+    else:
+        assert new_adapter.EVALUATION_VERSION == old_adapter.EVALUATION_VERSION
     assert sealed_versions.evaluation_version(cid, version) == (
         sealed_versions.evaluation_version(cid, previous)
     )
@@ -173,11 +196,18 @@ def test_the_registry_declares_each_new_version_in_full():
         # Its 30-minute rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01).
         "rebuild_wall_seconds",
     }
+    from carbon.scoring import dev_grid
+
     for cid, version in NEW:
         new = version_registry.entry(cid, version)
         old = version_registry.entry(cid, new.predecessor)
+        # Dev-pack v2: a dev-grid version names its own development evaluation
+        # (new version, pre-publish; Validator 2026-10-23).
+        own_here = own | (
+            {"development_evaluation"} if dev_grid.kind(cid, version) else set()
+        )
         for field in new.__dataclass_fields__:
-            if field not in own:
+            if field not in own_here:
                 assert getattr(new, field) == getattr(old, field), (cid, field)
         assert new.graph_adapter == "v2" and new.pack_version != old.pack_version
         assert served_versions.serves_catalog(cid, version)
@@ -210,6 +240,13 @@ def _scorer_tables():
     for module in (cooling_dual_pack, cooling_encoded_dual_pack):
         for version, entry in module.VERSIONS.items():
             development[(module.CHALLENGE, version)] = tuple(entry)
+    # Dev-pack v2: a dev-grid version's development pack is graded by the sealed v2 grader
+    # under its own development evaluation version (`scoring.dev_grid`).
+    from carbon.scoring import dev_grid
+
+    for key in dev_grid.GRID_KINDS:
+        variant = dev_grid.adapter(*key)
+        development[key] = (variant.EVALUATION_VERSION, variant.CASE_ID)
     # Scoring v2: F08, F02 and Motor are graded by their sealed grid graders.
     for module in (
         f08_sealed_dual_pack,

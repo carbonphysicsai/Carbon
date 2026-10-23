@@ -79,7 +79,7 @@ def practice_bank(kind, version):
     kit, dev, _sealed = _modules(kind)
     from carbon.challenge_kit import physical_pack
 
-    source = physical_pack.development_bank(dev.CHALLENGE, version)
+    source = physical_pack.legacy_development_bank(dev.CHALLENGE, version)
     if kind in ("f08", "f02"):
         keep = list(range(len(source["case_ids"])))
     else:
@@ -119,9 +119,7 @@ def practice_bank(kind, version):
         for i, row in enumerate(bank["inputs"])
     }
     label = kind + "-practice"
-    if kind == "f08":
-        bank = kit._with_probes(bank, cases, names, inputs.dtype, challenge=label)
-    elif kind == "f02":
+    if kind == "f08" or kind == "f02":
         bank = kit._with_probes(bank, cases, names, inputs.dtype, challenge=label)
     elif kind == "motor":
         bank = kit._with_probes(bank, cases, inputs.dtype, challenge=label)

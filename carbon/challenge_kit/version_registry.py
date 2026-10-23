@@ -100,6 +100,11 @@ _F08_DEV_NL2 = ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8")
 _F08_SEALED = "f08-dual-sealed-grid-8x1-v2"
 _F02_DEV_1 = ("f02-dual-development-bank-8-v1", "f02-development-bank-8")
 _F02_DEV_2 = ("f02-dual-development-bank-8-v2", "f02-development-bank-8")
+#: Dev-pack v2 (Validator 2026-10-23): the new graph-route-v2 versions' development pack is
+#: the practice grid (public cells and public-seeded probes) graded by the sealed v2
+#: grader (`scoring.dev_grid`); a new version, pre-publish.
+_F08_DEV_GRID = ("f08-dual-development-grid-v2", "f08-development-grid-8x1")
+_F02_DEV_GRID = ("f02-dual-development-grid-v2", "f02-development-grid-8x1")
 _F02_SEALED = "f02-dual-sealed-grid-8x1-v2"
 _MOTOR_DEV_2 = ("motor-dual-development-bank-90-v2", "motor-development-bank-90")
 _MOTOR_DEV_3 = ("motor-dual-development-bank-90-v3", "motor-development-bank-90")
@@ -316,7 +321,7 @@ VERSIONS = dict(
             "v7",
             False,
             "f08-normal-construction-development-6",
-            _F08_DEV_NL2,
+            _F08_DEV_GRID,
             _F08_SEALED,
             "direct",
             catalog=True,
@@ -382,7 +387,7 @@ VERSIONS = dict(
             "v7",
             False,
             "f02-normal-construction-development-6",
-            _F02_DEV_2,
+            _F02_DEV_GRID,
             _F02_SEALED,
             "direct",
             catalog=True,
