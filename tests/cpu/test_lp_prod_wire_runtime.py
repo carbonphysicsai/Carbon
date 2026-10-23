@@ -636,13 +636,14 @@ def test_carbon_mcp_never_attaches_a_stale_profile(tmp_path, head, capsys):
     assert served == 2
     reasons, step = profile_staleness(setup.profile_path, profile_of(setup))
     assert step.startswith(REINSTALL_STEP)
-    assert capsys.readouterr().err == (
-        "Carbon MCP unavailable: carbon_updated_rerun_installer. Next: "
-        + step
-        + ": "
-        + "; ".join(reasons)
-        + ".\n"
+    # It no longer exits on a stale profile: it serves the setup tier over the
+    # same state directory and tells the agent what to call (gate round 2b).
+    message = capsys.readouterr().err
+    assert message.startswith(
+        "Your runner profile cannot be used here (carbon_updated_rerun_installer). "
+        "Serving setup instead. Call carbon_setup_status: it names the next step."
     )
+    assert "carbon_setup_recheck" in message
     # The same step the HTTP door sends for the same profile.
     _, refused = controller.attach_runner(setup.profile_path)
     assert refused["next_step"] == step + ": " + "; ".join(reasons)

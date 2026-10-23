@@ -328,7 +328,9 @@ def test_no_setup_operation_mcp_tool_or_status_call_can_start_it(tmp_path, state
     from scripts.dev.miner_launchpad.environment_setup import EnvironmentSetup
 
     names = set(setup_operations.SETUP_OPERATIONS)
-    assert not {n for n in names if "build" in n or "gpu" in n}
+    # `test_gpu` (OWNER-TEST-MY-GPU-01) is the miner's consent-gated per-framework
+    # GPU check, not a build: it runs one synthetic matmul and builds nothing.
+    assert {n for n in names if "build" in n or "gpu" in n} == {"test_gpu"}
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Checks())
     # `perform` calls setup's method of the operation's name: there is none.
     assert not any(hasattr(setup, n) for n in ("gpu_worker_build", "build_gpu_worker"))

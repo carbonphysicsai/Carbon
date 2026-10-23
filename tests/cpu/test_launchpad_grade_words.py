@@ -56,7 +56,21 @@ def test_every_scorer_verdict_reads_as_graded_in_words(challenge, verdict):
     shown = projection._grade({"latest": document, "best": None}, DIGEST, 3)
     assert shown["this_submission"] == "graded"
     latest = shown["latest"]
-    assert latest["words"] == projection.GRADE_WORDS[document["status"]]
+    # A NOT_SCORED grade says why when the Ladder carries its closed reason
+    # (not admitted / not graded); otherwise the plain words of its status.
+    reason = document.get("reason")
+    # A leg-minimum failure with no leg name keeps the plain words (the Ladder
+    # names the leg or nothing; a number or blank is never shown).
+    if reason == "LEG_MINIMUM_FAILED" and not document.get("leg"):
+        reason = None
+    if document["status"] == "NOT_SCORED" and reason in projection.NOT_SCORED_WORDS:
+        assert latest["reason"] == reason
+        assert latest["words"].startswith(("not admitted:", "not graded:"))
+        assert latest["words"] == projection.NOT_SCORED_WORDS[reason].format(
+            leg=document.get("leg")
+        )
+    else:
+        assert latest["words"] == projection.GRADE_WORDS[document["status"]]
     if verdict == "MANDATORY_GATE_FAILED":
         assert latest["gate_names"] == ["native_motor_valid"]
     if document["status"] == "NOT_SCORED":
