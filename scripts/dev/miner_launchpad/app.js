@@ -783,7 +783,7 @@
     ["agent", "Who researches?", "Carbon's agent, or your own agent over MCP. This step also checks your signer."],
     ["inference", "AI model", "Choose the AI model Carbon's agent uses. You bring your own key from the model's provider."],
     ["compute", "Compute", "Choose where practice runs: this machine, or a GPU you run elsewhere."],
-    ["review", "Review and launch", "Carbon writes your runner profile and loads it. Then you choose a Challenge."],
+    ["review", "Review and launch", "Carbon saves your settings and loads them. Then you choose a Challenge."],
   ];
   const SETUP_IDS = SETUP_STEPS.map(([id]) => id);
   // One step reads Next; others a miner can take now, in any order, read Open.
@@ -855,7 +855,7 @@
       return name + " " + KEY_REFUSALS[error.code] + " The key field clears after each check, so paste it again to retry.";
     }
     // U13: one plain sentence, never the raw "intakes: challenge has no intake".
-    if (error.code === "challenge_has_no_intake") return error.nextStep || "This Challenge takes no validator intake: put its construction receiver under 'Where your recipe is checked' instead.";
+    if (error.code === "challenge_has_no_intake") return error.nextStep || "This Challenge takes no validator intake: put your grader under 'Where your recipe is graded' instead.";
     return plainWords((error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : ""));
   }
   async function setupCall(step, body, timeout = 60000) {
@@ -1088,7 +1088,7 @@
     for (const item of items) {
       const row = el("div", undefined, "evaluation-row"); row.dataset.challenge = item.id;
       const head = el("p");
-      const [tag, kind] = item.intake ? [item.source === "published" ? "Carbon's endpoint" : "Your intake", "pill-done"] : ["None yet", "pill-need"];
+      const [tag, kind] = item.intake ? [item.source === "published" ? "Carbon's endpoint" : "Your own grader", "pill-done"] : ["None yet", "pill-need"];
       head.append(el("strong", plainTitle(item.title || item.id) + " · v" + item.version), " ", pill(tag, kind));
       row.append(head);
       if (item.intake) row.append(el("p", "A frozen candidate is submitted to " + item.intake + ".", "status-line"));
@@ -1106,7 +1106,7 @@
       if (item.direct_intake_serves_other && typeof item.direct_intake_serves_other.note === "string") row.append(el("p", plainWords(item.direct_intake_serves_other.note), "hint"));
       if (typeof item.direct_intake_serves_note === "string") row.append(el("p", plainWords(item.direct_intake_serves_note), "hint"));
       if (item.set_aside_intake) {
-        row.append(el("p", "Your own intake, set aside by the update: " + item.set_aside_intake, "status-line"));
+        row.append(el("p", "Your own grading address, set aside by the update: " + item.set_aside_intake, "status-line"));
         const again = el("button", "Name it again"); again.type = "button"; again.dataset.nameAgain = item.id;
         again.addEventListener("click", () => nameAgain(item.id, item.set_aside_intake, item.set_aside_receiver || ""));
         row.append(again);
@@ -1832,7 +1832,7 @@
       const state = steps[name] || {};
       summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : j.skipped[name] ? "Skipped: your agent uses its own model" : "Not checked yet"));
     }
-    researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
+    researchNote(review, "Saves your settings beside this controller and loads them. Nothing is launched and nothing is spent.", "hint");
     // The miner's choice, off unless turned on (LAUNCHPAD-PRACTICE-RETRY-01):
     // a practice the Control Center's restart cut off is sent again on its
     // own, on the miner's compute. Written by Review, like the intakes.
@@ -1846,15 +1846,15 @@
     // A validator's intake, when a Challenge's validator runs elsewhere
     // (C-MLP-03 slice 6, per Challenge since C-MLP-04). Its public facts are
     // read and checked by that Challenge; nothing is signed.
-    const reviewMore = advanced(review, "Advanced: a validator's intake");
+    const reviewMore = advanced(review, "Advanced: where a Challenge's grader runs");
     const intakeChallenges = offered.intake_challenges || [];
-    const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Validator intake for", intakeChallenges.map(item => [item.id + "@" + item.version, plainTitle(item.title) + " · v" + item.version]));
-    const intake = setupField(reviewMore, "intake_url", "Validator intake URL (optional; https, or loopback)");
+    const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Grading address for", intakeChallenges.map(item => [item.id + "@" + item.version, plainTitle(item.title) + " · v" + item.version]));
+    const intake = setupField(reviewMore, "intake_url", "Grading address (optional; https, or this machine)");
     // Pinned in the profile: nothing is signed for an intake that reports
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
     const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver mining key (its public wallet address; required with an intake URL)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
-    const directMore = advanced(review, "Where your recipe is checked: your construction receiver");
+    const directMore = advanced(review, "Where your recipe is graded: your own grader");
     researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no validator intake of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
     const directIntake = setupField(directMore, "direct_intake_url", "Receiver URL (https, or loopback)");
     const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Receiver mining key (its public wallet address)");
@@ -1869,7 +1869,7 @@
       // Review writes only the intakes it is given: this one, again.
       intakeChallenge.value = [...intakeChallenge.options].map(option => option.value).find(value => value.split("@")[0] === challengeId) || challengeId; intake.value = url; receiver.value = hotkey;
       reviewMore.parentNode.open = true;
-      $("setup-result").replaceChildren(setupLine("Your intake is named again below. Write your profile to keep it."));
+      $("setup-result").replaceChildren(setupLine("Your grading address is filled in again below. Save your settings to keep it."));
     });
     // U9: pick where the finished recipe is checked from Carbon's published receivers, instead of typing a URL and a
     // key. A pick fills the same fields the two Advanced folds hold, so writing the profile is unchanged. A Challenge
@@ -1904,7 +1904,7 @@
       pickBox.append(el("p", "Carbon has not published a receiver yet, so there is nothing to choose. Practice and freezing work without one.", "hint"));
     }
     review.insertBefore(pickBox, reviewMore.parentNode);
-    const write = el("button", written ? "Write my profile again" : "Write my profile", written ? "" : "primary");
+    const write = el("button", written ? "Save my settings again" : "Save my settings", written ? "" : "primary");
     write.disabled = !steps.review?.ready;
     const reviewAction = el("div", undefined, "step-action"); reviewAction.append(write);
     if (caps?.profile?.configured) {
@@ -2395,8 +2395,8 @@
     if (!caps) return [];
     const items = [];
     items.push(caps.profile.configured
-      ? {ok: true, text: "Your runner profile is loaded.", detail: ["Profile: " + caps.profile.profile_id]}
-      : {ok: false, area: "Runner profile", item: caps.profile});
+      ? {ok: true, text: "Your settings are loaded.", detail: ["Profile: " + caps.profile.profile_id]}
+      : {ok: false, area: "Your settings", item: caps.profile});
     items.push({ok: null, text: "Your registration is read at launch, before anything is recorded.", fix: {label: "Check it", href: "#wallet"}});
     const selectable = caps.challenges.filter(entry => entry.selectable);
     items.push(selectable.length
@@ -2791,7 +2791,7 @@
       copyRow(box, "Connect your client with:", mcp.command, "connection-mcp-copy");
       // The command names this controller's own runner profile when it has
       // one (LP-PROD-F); otherwise it says where that path comes from.
-      if (mcp.profile_path) researchNote(box, "Your runner profile: " + mcp.profile_path + ". The command above names it; your client starts the server with it.", "hint");
+      if (mcp.profile_path) researchNote(box, "Your settings file: " + mcp.profile_path + ". The command above names it; your client starts the server with it.", "hint");
       else researchNote(box, "Replace <your runner profile> with your runner profile's path: Set up writes it, and this page shows it here once a profile is loaded.", "hint");
       if (mcp.client_configuration) details(box, "Client configuration (JSON)", [el("pre", JSON.stringify(mcp.client_configuration, null, 2))]);
       if (mcp.availability !== "available") unavailableNote(box, mcp);
@@ -2801,8 +2801,8 @@
   function renderWallet(target) {
     const box = card(target, "Research identity", ...(caps.profile.configured ? ["Ready", "pill-done"] : ["Needs setup", "pill-need"]));
     if (caps.profile.configured) {
-      box.append(el("p", "Your runner profile is loaded. Your registered miner is read from it at launch; signing stays in your own wallet.", "status-line"));
-      details(box, "Details", ["Runner profile " + caps.profile.profile_id]);
+      box.append(el("p", "Your settings are loaded. Your registered miner is read from it at launch; signing stays in your own wallet.", "status-line"));
+      details(box, "Details", ["Settings " + caps.profile.profile_id]);
     } else unavailableNote(box, caps.profile);
     // Registration is the miner's own transaction: said here, with no link
     // back to this same page.
@@ -2919,7 +2919,7 @@
       // A disabled control says why, rather than leaving the miner to guess.
       const reason = !connected ? "Reconnect this browser first."
         : busy ? "Another request is in progress."
-        : action === "resume" && !research.preflight.available ? "Resume needs a configured runner profile."
+        : action === "resume" && !research.preflight.available ? "Resume needs your settings saved first."
         : action !== "export" && ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE"].includes(run.state) ? "This campaign is " + run.state + "; there is nothing left to " + action + ". Export still gives its full record."
         : "";
       button.disabled = Boolean(reason);
@@ -3429,7 +3429,7 @@
     const item = evaluationFor(run);
     if (!item || EVALUABLE.includes(item.status)) return;
     const note = el("div", undefined, "evaluation-unavailable"); note.dataset.evaluation = item.status;
-    note.append(el("p", "Evaluation is unavailable for this Challenge today: no validator intake is configured in your runner profile" + (item.status === "NONE_PUBLISHED" ? ", and none is published for it yet" : "") + ". Submit is refused as evaluation unavailable, and a frozen candidate is kept.", "reason"));
+    note.append(el("p", "Evaluation is unavailable for this Challenge today: no grading address is saved in your settings" + (item.status === "NONE_PUBLISHED" ? ", and none is published for it yet" : "") + ". Submit is refused as evaluation unavailable, and a frozen candidate is kept.", "reason"));
     note.append(el("p", "What you can do now: practise, observe, freeze a candidate, and stop or pause this campaign.", "hint"));
     if (typeof item.next_step === "string" && item.next_step) note.append(el("p", "Next: " + item.next_step, "hint"));
     const link = el("a", "Review evaluation in setup"); link.href = "#setup/review";
@@ -4376,7 +4376,7 @@
       const compute = computeChoice();
       const budget = composition.budget || {};
       const setup = setupModel();
-      row("Identity", caps.profile.configured ? "Runner profile " + caps.profile.profile_id + " · registered mining key read from it at launch" : "No runner profile");
+      row("Identity", caps.profile.configured ? "Settings " + caps.profile.profile_id + " · registered mining key read from it at launch" : "No settings saved");
       row("Network", research.preflight.review?.admission?.gate ? words(research.preflight.review.admission.gate).toLowerCase() + " · see Wallet & Identity for the network and netuid" : "Registration, read at launch · see Wallet & Identity");
       row("Challenge", entry ? entry.title + " · " + entry.challenge_id + " · version " + entry.version + (entry.description?.contract_digest ? " · contract " + entry.description.contract_digest : "") : "Not chosen");
       row("Agent", agent ? agent.label + " (launch agent: " + agent.launch_agent + ")" : "Not chosen");

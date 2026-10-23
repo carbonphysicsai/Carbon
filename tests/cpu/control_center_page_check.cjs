@@ -794,7 +794,7 @@ scenario("with no evaluation endpoint the submission says what works and what to
   await page.advance(0);
   const note = one(page, "#campaign-detail .evaluation-unavailable");
   assert.equal(note.dataset.evaluation, "NONE_PUBLISHED");
-  assert.match(note.textContent, /Evaluation is unavailable for this Challenge today: no validator intake is configured in your runner profile, and none is published for it yet\./);
+  assert.match(note.textContent, /Evaluation is unavailable for this Challenge today: no grading address is saved in your settings, and none is published for it yet\./);
   assert.match(note.textContent, /What you can do now: practise, observe, freeze a candidate, and stop or pause this campaign\./);
   assert.match(note.textContent, /Next: Carbon has not published an evaluation endpoint for .* yet, so there is nothing for you to fix/);
   assert.equal(note.querySelector("a").getAttribute("href"), "#setup/review");
@@ -1413,7 +1413,7 @@ scenario("Connections shows the real MCP command and the profile it names", asyn
   page.go("#connections");
   await page.advance(0);
   assert.match(page.text("connection-catalog"), /\/venv\/bin\/carbon-mcp --configuration \/srv\/miner\/profile\.json/);
-  assert.match(page.text("connection-catalog"), /Your runner profile: \/srv\/miner\/profile\.json/);
+  assert.match(page.text("connection-catalog"), /Your settings file: \/srv\/miner\/profile\.json/);
   assert.doesNotMatch(page.text("connection-catalog"), /<your runner profile>/);
   clean(page);
 });
@@ -1773,7 +1773,7 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   const answer = fx.setups.review_answer;
   assert.ok(answer.warnings.length, "the real review warned");
   state.script.push({match: r => r.path === "/api/v1/setup/review", answer: () => { state.setup = copy(fx.setups.none_reviewed); return {body: copy(answer)}; }});
-  await page.press([...all(page, "#setup-body form[data-step=review] button")].find(b => /Write my profile/.test(b.textContent)));
+  await page.press([...all(page, "#setup-body form[data-step=review] button")].find(b => /Save my settings/.test(b.textContent)));
   assert.deepEqual(lastPost(state, "/api/v1/setup/review").body, {confirm: true});
   // Challenges with no Carbon receiver are one calm line (U8); any other warning is shown whole.
   for (const warning of answer.warnings) {
