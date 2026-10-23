@@ -20,8 +20,6 @@ def test_an_unreachable_construction_receiver_is_not_called_unconfigured():
 def test_a_direct_challenge_without_a_capability_contract_has_a_toolbox():
     # R5-9: F08 1.4 and F02 2.3 read challenge_has_no_toolbox, since neither
     # has a construction capability contract; a miner had no example.
-    import pytest
-
     from carbon.challenge_registry.campaigns import challenge_ref
     from carbon.direct_campaign.spec import SPECS
     from carbon.reconstruction.capability_registry import (
@@ -30,9 +28,15 @@ def test_a_direct_challenge_without_a_capability_contract_has_a_toolbox():
     )
     from scripts.dev.miner_launchpad import toolbox
 
+    without = set()
     for challenge_id in SPECS:
-        with pytest.raises(UnknownChallenge):
+        # A direct Challenge may or may not have a capability contract
+        # (Battery 2.2 does); this is about the ones that have none.
+        try:
             public_registry(challenge_id)
+            continue
+        except UnknownChallenge:
+            without.add(challenge_id)
         ref = challenge_ref(challenge_id)
         built = toolbox.build(ref, lanes={}, direct=True)
         assert built["examples"], challenge_id
@@ -40,6 +44,7 @@ def test_a_direct_challenge_without_a_capability_contract_has_a_toolbox():
             "carbon.construction-recipe.v1"
         }
         assert all(e["challenge"]["id"] == challenge_id for e in built["examples"])
+    assert {"f08-ribbed-bracket", "f02"} <= without
 
 
 def test_an_unnamed_grade_is_never_any_submission_s_own(tmp_path):
