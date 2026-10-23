@@ -978,6 +978,9 @@
   function journey() {
     const steps = setupState?.steps || {};
     const registered = Boolean(setupState?.registered_hotkey);
+    // Practising without registering: this machine's practice identity stands in, with no keys or signer. The
+    // registration steps are "Later" and nothing after them is held back; freezing and submitting wait for one.
+    const practising = !registered && Boolean(setupState?.status?.practice_only || setupState?.practice_only);
     const sendPending = Boolean(steps.compute?.checked && steps.compute.check?.next_step);
     const profile = Boolean(caps?.profile?.configured);
     const state = {};
@@ -992,7 +995,7 @@
     const current = SETUP_IDS.find(id => state[id] === "open") || null;
     if (current) state[current] = "next";
     const ready = ["agent", "inference", "compute"].every(id => done[id] || skipped[id]);
-    return {state, done, skipped, current, registered, ready, profile, sendPending, steps};
+    return {state, done, skipped, current, registered, practising, ready, profile, sendPending, steps};
   }
   function stepTitle(id, j) {
     if (id === "review" && j.profile && !j.done.review) return "Choose a Challenge and launch";
@@ -1125,6 +1128,7 @@
   function stepSentence(id, j) {
     const state = j.state[id];
     const steps = j.steps;
+    if (j.practising && (id === "signer" || id === "register") && state !== "done") return "Later: you are practising without registering, with a practice identity on this machine. Register when you want to freeze and submit.";
     if (id === "signer") return state === "done" ? "Your signer answered for " + shortKey(steps.signer?.hotkey || setupState?.registered_hotkey) + "." : "Start carbon-miner-signer in your own terminal, then check it here.";
     if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm you have joined the network." + (state === "open" ? " Steps 1 and 2 can be done in either order." : "");
     if (state === "waiting" && id !== "review") return "Opens once your registration is confirmed.";
@@ -1143,11 +1147,11 @@
     if (id === "review" && j.profile) return j.done.review ? "#launch" : "#challenges";
     return "#setup/" + id;
   }
-  function reachable(id, j) { return id === "signer" || id === "register" || j.registered; }
+  function reachable(id, j) { return id === "signer" || id === "register" || j.registered || j.practising; }
   // Why Next cannot be taken from this step yet, or null.
   function nextProblem(id, j) {
-    if (id === "signer") return j.registered ? null : "Join the network first: the steps after this need it.";
-    if (id === "register") return j.registered ? null : "Confirm you have joined first.";
+    if (id === "signer") return j.registered || j.practising ? null : "Join the network first: the steps after this need it.";
+    if (id === "register") return j.registered || j.practising ? null : "Confirm you have joined first.";
     if (id === "compute" && j.sendPending) return "Send your worker first.";
     if (["inference", "compute", "agent"].includes(id)) return j.done[id] || j.skipped[id] ? null : "Run this step's check first.";
     return null;
@@ -1469,7 +1473,17 @@
     researchNote(signer, "This asks your signer which mining key it holds. Nothing is signed. You can also register first: steps 1 and 2 go in either order.", "hint");
 
     // 2. Register on the subnet: confirmed here, prepared under Wallet.
-    const register = stepPanel(body, "register", j.registered ? "Registered: " + setupState.registered_hotkey : null);
+    const register = stepPanel(body, "register", j.registered ? "Registered: " + setupState.registered_hotkey : j.practising ? "Practising without registering." : null);
+    if (!j.registered && !j.practising) {
+      // The other way in: practise with nothing to register, install or sign.
+      register.append(el("p", "Just want to practise?", "eyebrow"));
+      register.append(el("p", "Practise without registering. Setup makes a practice identity for this machine: a key kept on this computer, registered nowhere and never sent. Your agent can research and practise any Challenge. Freeze, submit and commit need a registration; register later and keep the steps you have checked.", "step-lede"));
+      const practise = el("button", "Practise without registering", "go"); practise.type = "button"; practise.id = "setup-practice-only";
+      practise.addEventListener("click", async () => { if (await setupCall("practice", {confirm: true})) location.hash = "#setup/agent"; });
+      const practiseAction = el("div", undefined, "step-action"); practiseAction.append(practise);
+      register.append(practiseAction);
+    }
+    if (j.practising) researchNote(register, "You are practising with a practice identity on this machine. Nothing leaves it. To freeze and submit, join the network below; the steps you checked are kept.", "hint");
     if (!j.registered) {
       identityHelperCard(register);
       register.append(el("p", "3. Join", "eyebrow"));
@@ -3304,7 +3318,7 @@
     row("Profile", run.profile || "unavailable");
     row("Runtime revision", run.runtime_revision || "unavailable");
     row("Your budget", run.usage ? (Object.keys(run.usage.budget || {}).length ? JSON.stringify(run.usage.budget) : "none: no limit") : "unavailable");
-    row("Admission", words(run.admission || "unavailable"));
+    row("Admission", admissionWords(run.admission));
     panel.append(grid);
     const details = document.createElement("details"); const summary = document.createElement("summary"); summary.textContent = "Research, usage, candidate and independent result";
     details.dataset.researchRun = run.id;
@@ -3448,6 +3462,11 @@
       : caps?.challenges.find(item => item.portfolio === "historical_development");
     return entry?.example_strategy ? JSON.stringify(entry.example_strategy, null, 2) : "";
   }
+  // PRACTICE_ONLY: this install's practice identity, research and reports only (no registration).
+  function admissionWords(value) {
+    return value === "PRACTICE_ONLY" ? "Practice only: this machine's practice identity, no registration" : words(value || "unavailable");
+  }
+  function needsRegistration(run) { return run?.admission === "PRACTICE_ONLY"; }
   function journeyState(run) {
     const journey = run.journey || {};
     return {journey, frozen: journey.frozen_awaiting_submission === true, exhausted: journey.final_exams_remaining === 0, ready: run.state === "READY"};
@@ -3623,13 +3642,14 @@
     if (!practiced.length) researchNote(box, "No practiced recipe yet: a candidate must have a practice result before it can be frozen. Practice under Experiments.", "reason");
     const second = document.createElement("div"); second.className = "controls";
     const freeze = document.createElement("button"); freeze.type = "button"; freeze.id = "journey-freeze-" + run.id; freeze.textContent = "Freeze candidate";
-    freeze.disabled = !connected || busy || !ready || !practiced.length || frozen || exhausted;
+    freeze.disabled = !connected || busy || !ready || !practiced.length || frozen || exhausted || needsRegistration(run);
     // Said as started, not as done: the record says when it is done.
     freeze.addEventListener("click", () => operate("freeze_candidate", {campaign: run.id, strategy: JSON.parse(choose.value), reason: reason.value || "practiced"}, "Freezing your candidate. It shows here once the campaign records it."));
     const submit = document.createElement("button"); submit.type = "button"; submit.id = "journey-submit-" + run.id; submit.textContent = "Submit frozen candidate";
-    submit.disabled = !connected || busy || !ready || !frozen;
+    submit.disabled = !connected || busy || !ready || !frozen || needsRegistration(run);
     submit.addEventListener("click", () => operate("submit", {campaign: run.id}, "Submit started: your registration is read, then your frozen candidate is sent for the DEVELOPMENT comparison. Whether it was admitted shows here."));
     second.append(freeze, submit); box.append(second);
+    if (needsRegistration(run)) researchNote(box, "Freezing and submitting need a registration. This campaign practises with a practice identity. Register under Setup, then start a new campaign: your practice campaigns stay readable.", "hint");
     evaluationNote(box, run);
     operationLine(box, run, ["freeze_candidate", "submit"]);
     parent.append(box);

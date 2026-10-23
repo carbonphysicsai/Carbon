@@ -518,6 +518,55 @@ scenario("Test my GPU shows each command first, runs only after the miner agrees
   clean(page);
 });
 
+// Practise without registering (Validator-receipted core): a practice identity on this machine, no keys or signer.
+function practisingSetup() {
+  const setup = copy(fx.setups.none);
+  setup.registered_hotkey = null;
+  setup.practice_only = true;
+  setup.status = {...(setup.status || {}), practice_only: true, steps: (setup.status?.steps || []).map(row => row.id === "signer" || row.id === "register" ? {...row, state: "skipped", later: true} : row)};
+  return setup;
+}
+scenario("Setup offers Practise without registering and takes it with one confirmed call (practice-only)", async () => {
+  const state = launchable(world({setup: {...copy(fx.setups.none), registered_hotkey: null}}));
+  const page = await open(state);
+  page.go("#setup/register");
+  await page.advance(0);
+  const button = one(page, "#setup-practice-only");
+  assert.match(page.text("setup-body"), /practice identity/);
+  state.script.push({match: r => r.path === "/api/v1/setup/practice", answer: () => { state.setup = practisingSetup(); return {body: copy(state.setup)}; }});
+  await page.press(button);
+  assert.deepEqual(lastPost(state, "/api/v1/setup/practice").body, {confirm: true});
+  assert.equal(page.window.location.hash, "#setup/agent");
+  clean(page);
+});
+scenario("practising without registering: the registration steps read Later and the steps after them are open", async () => {
+  const state = launchable(world({setup: practisingSetup()}));
+  const page = await open(state);
+  page.go("#setup/register");
+  await page.advance(0);
+  assert.match(page.text("setup-body"), /Practising without registering/);
+  assert.equal(all(page, "#setup-practice-only").length, 0, "the choice is made, so it is not offered again");
+  page.go("#setup/agent");
+  await page.advance(0);
+  assert.equal(page.window.location.hash, "#setup/agent", "the agent step is reachable without a registration");
+  clean(page);
+});
+scenario("a practice-only campaign says so and Freeze and Submit wait for a registration", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  run.admission = "PRACTICE_ONLY";
+  state.runs = [run];
+  state.view = copy(fx.view);
+  state.view.campaign = {...state.view.campaign, admission: "PRACTICE_ONLY"};
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/submission");
+  await page.advance(0);
+  assert.equal(one(page, "#journey-freeze-" + run.id).disabled, true);
+  assert.equal(one(page, "#journey-submit-" + run.id).disabled, true);
+  assert.match(page.text("campaign-detail"), /Freezing and submitting need a registration/);
+  clean(page);
+});
+
 scenario("a GPU host that ran the CPU build says so on the run row and the best-run card (R9-3)", async () => {
   const words = "Ran on CPU: this catalog entry has no GPU build yet. The score is the CPU build's.";
   const state = launchable(world());
