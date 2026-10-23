@@ -86,3 +86,25 @@ def test_batterys_outcome_and_epoch_shape_is_still_read(tmp_path):
     assert (
         found["status"] == "VALIDATOR_OUTCOME" and found["result"]["state"] == "SCORED"
     )
+
+
+@pytest.mark.parametrize("epoch", [0, 1, 2])
+def test_a_receiver_written_direct_document_names_its_epoch_by_its_folder(
+    tmp_path, monkeypatch, epoch
+):
+    # Validator (R10-2 was this same comparison in mismatched units): the
+    # document the direct campaigns write (`direct_campaign.record_verdict`,
+    # as Motor and Cooling do) names no epoch; its folder `epoch-<N>` does,
+    # in the campaign's own index (FINAL_EPOCHS), the unit this reader is
+    # asked in. So the epoch check never refuses a real direct document.
+    from types import SimpleNamespace
+
+    from carbon.development_session import research_report
+    from carbon.direct_campaign import campaign as direct
+
+    monkeypatch.setattr(research_report, "report", lambda ledger, owner: None)
+    (tmp_path / f"epoch-{epoch}").mkdir()  # the campaign makes it at submit
+    direct.record_verdict(SimpleNamespace(root=tmp_path), "alice", epoch, DOCUMENT)
+    path = tmp_path / f"epoch-{epoch}" / "permitted-final-feedback.json"
+    assert "epoch" not in json.loads(path.read_bytes())
+    assert projection._validator_outcome(epoch, path)["status"] == "VALIDATOR_OUTCOME"
