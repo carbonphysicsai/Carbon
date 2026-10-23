@@ -497,6 +497,26 @@ scenario("the how-to-buy guide names two exchanges as plain links with no affili
   assert.match(page.text("setup-fund"), /Carbon has no link or share in any exchange/);
   clean(page);
 });
+scenario("Test my GPU shows each command first, runs only after the miner agrees, and says works or does not work in plain words", async () => {
+  const setup = copy(fx.setups.none);
+  const consent = {test: {where: "this machine", workers: [{backend: "pytorch", image: "sha256:" + "a".repeat(64), command: "docker run --gpus all worker-image python -c 'import torch'"}]}};
+  setup.status = {...(setup.status || {}), test_gpu: {call: {}, consent, last: null}};
+  const state = launchable(world({setup}));
+  state.script.push({match: r => r.path === "/api/v1/setup/test_gpu", answer: () => ({body: {gpu_test: {verdicts: [{backend: "pytorch", image: "x", verdict: "does_not_work", seconds: 61.2, driver_cuda: "12.2", code: "gpu_driver_too_old", next_step: "Update the NVIDIA driver, then test again."}]}}})});
+  const page = await open(state);
+  page.go("#setup/compute");
+  await page.advance(0);
+  assert.ok(page.text("setup-gpu-test").includes("docker run --gpus all worker-image"), "the command is shown first");
+  assert.match(page.text("setup-gpu-test"), /about a minute per framework/);
+  assert.equal(one(page, "#setup-gpu-test-run").disabled, true, "nothing runs before the miner agrees");
+  assert.equal(lastPost(state, "/api/v1/setup/test_gpu"), undefined);
+  await page.press(one(page, "#setup-gpu-test-agree"));
+  assert.equal(one(page, "#setup-gpu-test-run").disabled, false);
+  await page.press(one(page, "#setup-gpu-test-run"));
+  assert.deepEqual(lastPost(state, "/api/v1/setup/test_gpu").body, {consent});
+  assert.match(page.text("setup-gpu-test-result"), /Does not work.*pytorch.*Update the NVIDIA driver, then test again\./);
+  clean(page);
+});
 
 scenario("a GPU host that ran the CPU build says so on the run row and the best-run card (R9-3)", async () => {
   const words = "Ran on CPU: this catalog entry has no GPU build yet. The score is the CPU build's.";

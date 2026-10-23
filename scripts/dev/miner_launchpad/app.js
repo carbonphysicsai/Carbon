@@ -1347,6 +1347,53 @@
     how.append(links);
     return fund;
   }
+  // "Test my GPU" (OWNER-TEST-MY-GPU-01): shown only when setup's status offers it. Each worker command is shown first, and
+  // nothing runs until the miner agrees and presses the button; the verdict is plain, with driver advice on a failure.
+  // The last verdicts this tab got, kept across the redraw that follows a test.
+  let gpuVerdicts = null;
+  function testMyGpu(panel) {
+    const offer = setupState?.status?.test_gpu;
+    if (!offer || !offer.consent) return;
+    const box = el("div", undefined, "gpu-test"); box.id = "setup-gpu-test";
+    box.append(el("p", "Test my GPU", "eyebrow"));
+    box.append(el("p", "Checks that your GPU runs Carbon's workers. It takes about a minute per framework, and nothing is sent anywhere.", "step-lede"));
+    const where = offer.consent.test?.where;
+    if (where) box.append(el("p", "Runs " + (String(where).includes("remote") ? "on your rented GPU machine" : "on this machine") + ".", "hint"));
+    for (const worker of offer.consent.test?.workers || []) {
+      box.append(el("p", words(worker.backend) + " · image " + shortKey(String(worker.image)), "hint"));
+      const code = el("code", String(worker.command)); code.className = "gpu-command"; box.append(code);
+    }
+    const agree = el("input"); agree.type = "checkbox"; agree.id = "setup-gpu-test-agree";
+    const agreeLabel = el("label", " I agree to run the commands above."); agreeLabel.prepend(agree);
+    const run = el("button", "Test my GPU", "go"); run.type = "button"; run.id = "setup-gpu-test-run"; run.disabled = true;
+    agree.addEventListener("change", () => { run.disabled = !agree.checked; });
+    const result = el("div", undefined, "gpu-test-result"); result.id = "setup-gpu-test-result";
+    const show = verdicts => {
+      gpuVerdicts = verdicts;
+      result.replaceChildren(...verdicts.map(item => {
+        const works = item.verdict === "works";
+        const line = el("p", undefined, works ? "step-done" : "");
+        line.append(pill(works ? "Works" : "Does not work", works ? "pill-done" : "pill-need"), el("span", " " + words(item.backend) + ", " + (typeof item.seconds === "number" ? item.seconds + " s" : "") + (item.driver_cuda ? ", driver CUDA " + item.driver_cuda : "") + (!works && item.next_step ? ". " + item.next_step : "")));
+        return line;
+      }));
+    };
+    const last = gpuVerdicts || offer.last?.verdicts || offer.last?.gpu_test?.verdicts;
+    if (Array.isArray(last) && last.length) show(last);
+    run.addEventListener("click", async () => {
+      if (!agree.checked || busy || !connected) return;
+      run.disabled = true; setText(run, "Testing…");
+      try {
+        const answer = await api("/api/v1/setup/test_gpu", {consent: offer.consent}, undefined, 600000);
+        show((answer.gpu_test || answer).verdicts || []);
+        await readSetup();
+      } catch (error) {
+        result.replaceChildren(el("p", "The test did not run: " + words(error.message) + (error.nextStep ? ". " + error.nextStep : ""), "reason"));
+      } finally { setText(run, "Test my GPU"); run.disabled = !agree.checked; }
+    });
+    const action = el("div", undefined, "step-action"); action.append(run);
+    box.append(agreeLabel, action, result);
+    panel.append(box);
+  }
   function stepPanel(parent, id, doneText) {
     const panel = el("section", undefined, "setup-step"); panel.dataset.stepPanel = id;
     if (doneText) { const done = el("p", undefined, "step-done"); done.append(pill("Done", "pill-done"), el("span", doneText)); panel.append(done); }
@@ -1563,6 +1610,7 @@
     // Checked but still waiting for its worker is not done yet.
     const computeDone = steps.compute?.checked && !j.sendPending ? checkedLine("compute", steps, ".") : null;
     const computePanel = stepPanel(body, "compute", computeDone);
+    testMyGpu(computePanel);
     // A check that no longer describes this install, or one an update set
     // aside (LP-PROD-E): why, and setup's own step that clears it.
     const computeStale = staleCompute(steps);
