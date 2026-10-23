@@ -503,13 +503,12 @@ def test_a_checkout_moved_since_the_install_names_the_installer(tmp_path, head):
         + REVISION[:12]
         + " Carbon was installed at"
     ]
-    assert step == REINSTALL_STEP
+    assert step.startswith(REINSTALL_STEP)
     # An unusable record is the installer's to replace, too.
     setup.installation_path.write_text("not json")
-    assert profile_staleness(setup.profile_path, profile_of(setup)) == (
-        ["the installer's record here is unreadable"],
-        REINSTALL_STEP,
-    )
+    reasons, step = profile_staleness(setup.profile_path, profile_of(setup))
+    assert reasons == ["the installer's record here is unreadable"]
+    assert step.startswith(REINSTALL_STEP)
 
 
 def test_images_the_installer_did_not_build_are_named(tmp_path, head):
@@ -609,9 +608,10 @@ def test_a_restarted_control_center_names_the_profile_it_did_not_attach(
     assert (
         "Runner profile not attached: carbon_updated_rerun_installer. Next: "
         + REINSTALL_STEP
-        + ": this checkout is at "
-        + NEW[:12]
     ) in out
+    # It names this setup's own state directory (M1 E2E R8-2).
+    assert "CARBON_STATE_DIR=" + str(tmp_path / "state") in out
+    assert ": this checkout is at " + NEW[:12] in out
 
 
 def test_carbon_mcp_never_attaches_a_stale_profile(tmp_path, head, capsys):
@@ -635,7 +635,7 @@ def test_carbon_mcp_never_attaches_a_stale_profile(tmp_path, head, capsys):
     )
     assert served == 2
     reasons, step = profile_staleness(setup.profile_path, profile_of(setup))
-    assert step == REINSTALL_STEP
+    assert step.startswith(REINSTALL_STEP)
     assert capsys.readouterr().err == (
         "Carbon MCP unavailable: carbon_updated_rerun_installer. Next: "
         + step

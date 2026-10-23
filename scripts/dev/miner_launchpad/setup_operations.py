@@ -694,7 +694,9 @@ def _one_click(compute) -> bool:
     if not (compute.get("stale") or compute.get("set_aside")):
         return False
     choice = compute.get("choice") or (compute.get("set_aside") or {}).get("choice")
-    return compute.get("next_step") != REINSTALL_STEP and choice in (
+    return not (compute.get("next_step") or "").startswith(
+        REINSTALL_STEP
+    ) and choice in (
         LOCAL_CPU,
         LOCAL_GPU,
     )

@@ -2129,7 +2129,24 @@ class EnvironmentSetup:
         reasons += drift
         if not reasons:
             return [], None
-        return reasons, REINSTALL_STEP if reinstall else RECHECK_STEP
+        return reasons, self._reinstall_step() if reinstall else RECHECK_STEP
+
+    def _reinstall_step(self) -> str:
+        """The installer step that clears a moved checkout, for this setup's
+        own state directory: one checkout may serve several installs, and an
+        update of one moves the checkout under the others (M1 E2E R8-2:
+        agents on a second state directory were sent to "--update" with no
+        word of which install, while the default one was current)."""
+        state_dir = self.root.parent
+        if os.path.realpath(state_dir) == os.path.realpath(DEFAULT_STATE_DIR):
+            return REINSTALL_STEP
+        return (
+            REINSTALL_STEP
+            + " with CARBON_STATE_DIR="
+            + shlex.quote(str(state_dir))
+            + " (this setup's own state directory: another install sharing "
+            "this checkout updated it)"
+        )
 
     def _install_drift(self, revision, manifests, *, made, other):
         """Why `revision` and the image manifests at `manifests` ({field:
@@ -2224,7 +2241,7 @@ class EnvironmentSetup:
                 )
         if not reasons:
             return [], None
-        return reasons, REINSTALL_STEP if reinstall else PROFILE_RECHECK_STEP
+        return reasons, self._reinstall_step() if reinstall else PROFILE_RECHECK_STEP
 
     # -- the steps
 
@@ -3770,11 +3787,11 @@ class EnvironmentSetup:
                 )[1]
             except (OSError, ValueError):
                 clears = None
-        if clears == REINSTALL_STEP:
+        if (clears or "").startswith(REINSTALL_STEP):
             raise SetupRefused(
                 "accepted_revision",
                 "carbon_updated_rerun_installer",
-                next_step=REINSTALL_STEP,
+                next_step=clears,
             )
         report = {"next_steps": []}
         if compute is None:

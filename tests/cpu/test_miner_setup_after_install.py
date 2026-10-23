@@ -250,12 +250,12 @@ def test_once_installed_a_check_at_another_revision_is_refused(tmp_path, state, 
     assert "this checkout is at " + REVISION[:12] in step
     # The checkout moved since the install: only the installer clears that
     # (review finding, 2026-10-03), so it is the step named.
-    assert step.startswith(REINSTALL_STEP + ": ")
+    assert step.startswith(REINSTALL_STEP) and "CARBON_STATE_DIR=" in step
     # A record that is not the installer's is never read past.
     setup.installation_path.write_text("not json")
     compute = setup.state()["steps"]["compute"]
     assert compute["stale"] == ["the installer's record here is unreadable"]
-    assert compute["next_step"] == REINSTALL_STEP
+    assert compute["next_step"].startswith(REINSTALL_STEP)
 
 
 def test_a_check_at_a_moved_checkout_names_the_installer_not_a_loop(
@@ -279,7 +279,7 @@ def test_a_check_at_a_moved_checkout_names_the_installer_not_a_loop(
     head["revision"] = checks.revision = NEW  # moved by hand
     compute = setup.state()["steps"]["compute"]
     assert compute["checked"] is False
-    assert compute["next_step"] == REINSTALL_STEP
+    assert compute["next_step"].startswith(REINSTALL_STEP)
     setup.compute(
         {
             "choice": LOCAL_CPU,
@@ -290,7 +290,7 @@ def test_a_check_at_a_moved_checkout_names_the_installer_not_a_loop(
     with pytest.raises(SetupRefused) as refused:
         setup.review({"confirm": True})
     assert refused.value.code == "compute_check_is_stale"
-    assert refused.value.next_step.startswith(REINSTALL_STEP + ": ")
+    assert refused.value.next_step.startswith(REINSTALL_STEP)
     assert "this checkout is at " + NEW[:12] in refused.value.next_step
 
 
@@ -720,7 +720,7 @@ def test_recheck_leaves_a_remote_setup_and_a_moved_checkout_to_their_owners(
     with pytest.raises(SetupRefused) as refused:
         setup2.recheck({"confirm": True})
     assert refused.value.code == "carbon_updated_rerun_installer"
-    assert refused.value.next_step == REINSTALL_STEP
+    assert refused.value.next_step.startswith(REINSTALL_STEP)
 
 
 def test_a_stale_check_that_blocks_nothing_reads_done_on_the_step_and_the_list(
@@ -775,7 +775,7 @@ def test_a_head_git_cannot_read_is_not_a_moved_checkout(tmp_path, state, head):
     head["revision"] = None
     assert "stale" not in setup.state()["steps"]["compute"]
     head["revision"] = NEW
-    assert setup.state()["steps"]["compute"]["next_step"] == REINSTALL_STEP
+    assert setup.state()["steps"]["compute"]["next_step"].startswith(REINSTALL_STEP)
 
 
 def test_recheck_writes_the_profile_a_changed_step_left_unwritten(
@@ -823,6 +823,30 @@ def test_a_challenge_without_an_intake_names_a_field_the_schema_has(
     for door in (setup_operations.MCP, setup_operations.HTTP):
         properties = setup_operations.schema("review", door)["properties"]
         assert {"intakes", "direct_intake_target"} <= set(properties)
+
+
+def test_a_moved_checkout_names_the_install_that_needs_updating(
+    tmp_path, state, head, monkeypatch
+):
+    """M1 E2E R8-2: one checkout served two installs; updating the default
+    one moved the checkout under the second, whose agents were sent to
+    "--update" with no word of which. The step names this setup's own state
+    directory, unless it is the default one."""
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
+    completed(tmp_path, setup)
+    rebuild(tmp_path, state, REVISION)
+    setup.after_install()
+    head["revision"] = NEW
+    step = setup.state()["steps"]["compute"]["next_step"]
+    assert step == (
+        REINSTALL_STEP
+        + " with CARBON_STATE_DIR="
+        + str(state)
+        + " (this setup's own state directory: another install sharing this "
+        "checkout updated it)"
+    )
+    monkeypatch.setattr(environment, "DEFAULT_STATE_DIR", state)
+    assert setup.state()["steps"]["compute"]["next_step"] == REINSTALL_STEP
 
 
 def test_after_install_needs_the_installed_images(state, head):
