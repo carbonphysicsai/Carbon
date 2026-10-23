@@ -192,6 +192,11 @@ def encode(peak, profile, pressure):
     )
 
 
+def decode_positive(raw):
+    """The positive quantity a raw slot holds (softplus)."""
+    return jnp.maximum(raw, 0.0) + jnp.log1p(jnp.exp(-jnp.abs(raw)))
+
+
 def encode_positive(value):
     """The raw slot value of a positive decoded value (inverse softplus)."""
     return _inverse_softplus(value)

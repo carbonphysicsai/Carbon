@@ -229,3 +229,95 @@ def test_solve_spd_matches_numpy_and_krr_is_deterministic_and_beats_the_plain_fi
         build.build(
             x, y, seed=1, configuration={"backbone": "krr"}, train_use={"steps": 5}
         )
+
+
+def _prior_module(tmp_path_factory, file):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("prior_under_test", SRC / file)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_motor_prior_equals_the_repositorys_analytic_model(
+    prior_build, tmp_path_factory
+):
+    import jax.numpy as jnp
+
+    from carbon.motor import analytic, domain
+
+    prior = _prior_module(tmp_path_factory, "prior_motor.py")
+    rng = np.random.default_rng(3)
+    low = np.array([domain.INPUT_BOUNDS[k][0] for k in domain.INPUTS])
+    high = np.array([domain.INPUT_BOUNDS[k][1] for k in domain.INPUTS])
+    rows = low + (high - low) * rng.random((6, len(domain.INPUTS)))
+    got = np.asarray(prior.prior(jnp.asarray(rows)))
+    assert got.shape == (6, 60)
+    for row, mine in zip(rows, got):
+        reference = analytic.predict(dict(zip(domain.INPUTS, map(float, row))))[
+            "torque_nm"
+        ]
+        assert np.allclose(mine, reference, rtol=1e-10, atol=1e-12)
+    assert prior.PRIOR_ID == "prior.motor.surface-pm-v1"
+
+
+def test_the_f08_prior_equals_an_independent_beam_computation(
+    prior_build, tmp_path_factory
+):
+    import jax.numpy as jnp
+
+    prior = _prior_module(tmp_path_factory, "prior_f08.py")
+    rng = np.random.default_rng(4)
+    low = np.array([b[0] for b in prior.INPUT_BOUNDS])
+    high = np.array([b[1] for b in prior.INPUT_BOUNDS])
+    rows = low + (high - low) * rng.random((5, 6))
+    got = np.asarray(prior.prior(jnp.asarray(rows)))
+    for (length, w, t, hr, tr, relief), mine in zip(rows * 1e-3, got):
+        # independent reading of the note: composite section by parallel axes, compliance by integrating (L-x)^2/(E I)
+        def section(narrow):
+            pw = w - (0.020 if narrow else 0.0)
+            parts = [
+                (pw * t, t / 2, pw * t**3 / 12),
+                (tr * hr, t + hr / 2, tr * hr**3 / 12),
+                (tr * hr, t + hr / 2, tr * hr**3 / 12),
+            ]
+            area = sum(a for a, _, _ in parts)
+            zc = sum(a * z for a, z, _ in parts) / area
+            return area, sum(i + a * (z - zc) ** 2 for a, z, i in parts)
+
+        (a1, i1), (a2, i2) = section(False), section(True)
+        s, e = length / 2 - relief / 2, length / 2 + relief / 2
+        seg = lambda lo, hi: ((length - lo) ** 3 - (length - hi) ** 3) / 3  # noqa: E731
+        delta = (seg(0, s) + seg(e, length)) / (70e9 * i1) + seg(s, e) / (70e9 * i2)
+        mass = 2700.0 * (a1 * (length - relief) + a2 * relief)
+        f1 = np.sqrt(1 / delta / (33 / 140 * mass)) / (2 * np.pi)
+        expected = [delta * 1e3]
+        for z in (0.005, 0.01, 0.02):
+            expected += [delta * 1e3 / (2 * z), f1 * np.sqrt(1 - 2 * z * z)]
+        assert np.allclose(mine, expected, rtol=1e-9)
+    assert prior.PRIOR_ID == "prior.f08.cantilever-beam-v1" and prior.N_OUT == 7
+
+
+def test_the_f02_prior_matches_a_numerical_integration_of_its_two_node_network(
+    prior_build, tmp_path_factory
+):
+    import jax.numpy as jnp
+
+    prior = _prior_module(tmp_path_factory, "prior_f02.py")
+    rows = np.array([[80.0, 5.0], [110.0, 10.0], [140.0, 20.0], [85.0, 5.0]])
+    got = np.asarray(prior.prior(jnp.asarray(rows))).ravel()
+    c_s, c_c = 2330.0 * 700.0 * 4e-4 * 5e-4, 8960.0 * 385.0 * 9e-4 * 2e-3
+    r_con = 1.0 / (4 * 130.0 * np.sqrt(0.5 * 4e-4 / np.pi))
+    r_sc = 5e-4 / (2 * 130 * 4e-4) + 2e-4 / (5 * 4e-4) + 2e-3 / (2 * 390 * 9e-4) + r_con
+    r_cv = 1.0 / (2500.0 * 9e-4)
+    for (power, on), mine in zip(rows, got):
+        ts = tc = 40.0
+        dt = 1e-4
+        for _ in range(int(round(on / dt))):
+            ts, tc = (
+                ts + dt * (power - (ts - tc) / r_sc) / c_s,
+                tc + dt * ((ts - tc) / r_sc - (tc - 30.0) / r_cv) / c_c,
+            )
+        assert abs(ts - mine) < 0.05
+    assert prior.PRIOR_ID == "prior.f02.two-node-rc-v1" and prior.N_OUT == 1

@@ -12,7 +12,8 @@ configuration (all optional):
                     kernel        rbf | matern32 | matern52           (default rbf)
                     length_scales one number or one per input         (unit-cube inputs; default DEFAULT_LENGTH)
                     ridge         added to the kernel diagonal, > 0   (default DEFAULT_RIDGE)
-                    log_space     fit log(output / prior output) on the outputs the prior declares positive
+                    log_space     fit log(output / prior output) on the outputs the prior declares positive (POSITIVE_OUTPUTS; its
+                                  decode_positive / encode_positive map a raw slot to the quantity and back, default identity)
                     groups        [{"outputs": [start, stop], kernel, length_scales, ridge, log_space}, ...]: separate
                                   models (e.g. a separate pressure model) over contiguous output ranges that cover every
                                   output once; a missing key takes the top-level value
@@ -206,11 +207,9 @@ def build(train_inputs, train_targets, *, seed, configuration, train_use):
             return (1 + math.sqrt(3) * r) * jnp.exp(-math.sqrt(3) * r)
         return (1 + math.sqrt(5) * r + 5.0 / 3.0 * d2) * jnp.exp(-math.sqrt(5) * r)
 
-    def softplus_np(v):
-        return np.log1p(np.exp(-np.abs(v))) + np.maximum(v, 0.0)
-
-    def softplus_jx(v):
-        return jnp.log1p(jnp.exp(-jnp.abs(v))) + jnp.maximum(v, 0.0)
+    # How a raw slot value maps to the positive physical quantity (and back) is the prior's: the identity unless it says otherwise.
+    decode_positive = getattr(P, "decode_positive", lambda v: v)
+    encode_positive = getattr(P, "encode_positive", lambda v: v)
 
     params, plan = [jnp.asarray(unit, dtype=FLOAT)], []
     for start, stop, spec in groups:
@@ -219,7 +218,8 @@ def build(train_inputs, train_targets, *, seed, configuration, train_use):
         gram = kernel_np((diff * diff).sum(-1), spec["kernel"])
         target = residual[:, start:stop].copy()
         if spec["log_space"]:
-            true_pos, prior_pos = softplus_np(y[:, start:stop]), softplus_np(base[:, start:stop])
+            true_pos = np.asarray(decode_positive(jnp.asarray(y[:, start:stop])), dtype=np.float64)
+            prior_pos = np.asarray(decode_positive(jnp.asarray(base[:, start:stop])), dtype=np.float64)
             if not (np.all(true_pos > 0) and np.all(prior_pos > 0)):
                 raise ValueError("log_space needs positive values")
             target = np.log(true_pos) - np.log(prior_pos)
@@ -242,7 +242,7 @@ def build(train_inputs, train_targets, *, seed, configuration, train_use):
             diff = (z[:, None, :] - p[0][None, :, :]) * inv_ls
             part = kernel_jx((diff * diff).sum(axis=-1), name) @ alpha + mean
             if logged:
-                part = P.encode_positive(softplus_jx(pri[:, start:stop]) * jnp.exp(part))
+                part = encode_positive(decode_positive(pri[:, start:stop]) * jnp.exp(part))
             else:
                 part = pri[:, start:stop] + part
             parts.append(part)

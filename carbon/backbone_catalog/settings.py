@@ -148,7 +148,7 @@ JAX_V2 = Schema(
 JAX_PRIOR = Schema(
     "carbon-candidate-jax-prior-v1",
     "carbon_candidate/build.py",
-    "sha256:3a3394ddcd35fe4c4581a2142408ee97e058cf02c4e182e0005a2999525b4bd2",
+    "sha256:8597f12df0483f87d0916e7f101b348d66d8aaa128317ca1d53146bc3c990304",
     frozenset({"learning_rate", "prior", "krr"}),
     LEVERS.train_use,
     vocabulary="v2",
