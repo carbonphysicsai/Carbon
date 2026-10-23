@@ -36,35 +36,35 @@ from carbon.development_session.research_carrier import (
 NEW = sorted(version_registry.keys(graph_adapter="v2"))
 WALLS = ("build_wall_seconds_max", "inference_wall_seconds_max")
 
-#: Each new version's limits digest as served at 600 s (rc7 ba04fb6b7), the
+#: Each new version's limits digest as served at 600 s (rc8 1ea4c49ad), the
 #: document its 600-second form must reproduce.
 AT_600 = {
     ("chip-cold-plate", "1.4"): (
-        "7578be6dac4c19d1c49377728f018aa575c364cfa40088aadf111011e93c9546"
+        "22e5a43f94235d1511259e754067b8e4f263658a1b8a67a2b32df4f9e5e9f253"
     ),
     ("electric-motor-magnetics", "1.4"): (
-        "a2855d5a4a8e7cc8bb20082e9a0ffe8c5f9631ee3ffd22b31c8dd9f36db8d345"
+        "07d08ec38eda6f78b34880846e3dc9cbbf840b2f732cd5517b77373a6fe71d45"
     ),
-    ("f02", "2.4"): "556d0c14c4111ed7604dd9f44e17c999913fa1f2232b967f300a7c21ac37eaf9",
+    ("f02", "2.4"): "a6195b4ea335306f10ad647caf9d9f51748b9ca0339916ac69ddb5c0ebd2c50c",
     ("f08-ribbed-bracket", "1.5"): (
-        "0efc4dcda08c571215898b60478a6c4878f2fc1f2ce1afffbdb298ccf532f62f"
+        "ae6be62f31881aa2ce41e5dd631349672d101fdb4b351e9a3260f4bf0e8e3650"
     ),
 }
 #: The new versions' kits, re-pinned once: new version, pre-publish,
 #: OWNER-SANDBOX-REBUILD-WALL-01.
 NEW_KITS = {
     ("chip-cold-plate", "1.4"): (
-        "b6d5b6181886fc08b2e738c525df68a8ea4dd501df5f103cfd43c6787f61945b"
+        "7fa9d2c89326b8fbf82e0500b49c139fa35790cbd91ec0029f119dbd3751876c"
     ),
     ("electric-motor-magnetics", "1.4"): (
-        "efdbde97bbfea10587912f5b04707fe6a40dc94aa8527e6efb595636da27ac00"
+        "43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0"
     ),
-    ("f02", "2.4"): "8188f29dbb9f11d2c41c8a552b18981f163814c15e3f1e2d3f65857900b4c9d3",
+    ("f02", "2.4"): "5e1bf1057bbbaad62b223e748b54dd92ec94c384020c63778228789967feaf1f",
     ("f08-ribbed-bracket", "1.5"): (
-        "9da5628287dbbb4d68cde35c55b86758a0fb490f91060c81194b55d652a7ecb2"
+        "9ada93ee419c2adbe91e7e8aae8176f35e2d60b11484ad9e9814b772ae4cf63b"
     ),
 }
-#: The shared C-03 profiles (CPU build, G5 compile) at rc7 ba04fb6b7.
+#: The shared C-03 profiles (CPU build, G5 compile) at rc8 1ea4c49ad.
 C03_PROFILES = {
     LIBRARY_BUILD_PROVENANCE: (
         "sha256:0d1168fb5bbffde24617c54df2cedfcb092d73b97f88fa8aae400f430869347f"
