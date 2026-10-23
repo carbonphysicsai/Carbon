@@ -839,6 +839,9 @@
     return (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
   }
   async function setupCall(step, body, timeout = 60000) {
+    // The button that asked shows it is working (U5); the page redraws when the answer lands.
+    const asking = document.querySelector('#setup-body form[data-step="' + step + '"] button[type=submit], #setup-body form[data-step="' + step + '"] button:not([type])');
+    if (asking) { asking.classList.add("checking"); asking.setAttribute("aria-busy", "true"); }
     try {
       const result = await api("/api/v1/setup/" + step, body, undefined, timeout);
       // A step only the miner can take (their signer, their registration):
@@ -870,6 +873,8 @@
     } catch (error) {
       $("setup-result").replaceChildren(setupLine(setupErrorText(step, body, error), "error"));
       return false;
+    } finally {
+      if (asking) { asking.classList.remove("checking"); asking.removeAttribute("aria-busy"); }
     }
   }
   // Sending the GPU worker streams an image over the miner's own SSH: minutes,
@@ -976,6 +981,31 @@
     return (setupState?.choices?.[step] || []).find(choice => choice.id === id)?.display_name || words(id);
   }
   // What a checked step holds, in plain words.
+  // One status per route, with when it was checked (U4): "Checked 00:52 ✓: this machine."
+  function checkedLine(id, steps, tail) {
+    const at = steps[id]?.checked_at;
+    const time = typeof at === "number" ? " " + new Date(at * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "";
+    return "Checked" + time + " ✓: " + checkedText(id, steps) + tail;
+  }
+  // Only a Carbon test is worth a word in a setup list; "Untested" on every row is noise (U4, U6).
+  function testedSuffix(item) { const text = acceptanceText(item); return text === "Untested" ? "" : " · " + text; }
+  // What a model check learned, only from fields the record carries (U7).
+  function learnedCard(parent, check) {
+    if (!check?.checked) return;
+    const limits = check.published_limits || {};
+    const price = check.published_pricing || check.declared_pricing || {};
+    const count = value => typeof value === "number" && value > 0 ? (value >= 1000 ? Math.round(value / 1000) + "k" : String(value)) : null;
+    const perMillion = nano => typeof nano === "number" ? "$" + (nano / 1000).toFixed(2) : null;
+    const context = count(limits.context_length ?? limits.max_model_len);
+    const output = count(limits.max_output_length);
+    const input = perMillion(price.input ?? price.input_nano);
+    const out = perMillion(price.output_including_reasoning ?? price.output ?? price.output_nano);
+    const facts = [context && context + " tokens of context", output && "replies up to " + output + " tokens", input && out && input + " in / " + out + " out per million tokens"].filter(Boolean);
+    if (!facts.length) return;
+    const card = el("p", undefined, "learned-card"); card.dataset.part = "learned";
+    card.append(el("strong", check.model_id + ": "), document.createTextNode(facts.join(" · ") + "."));
+    parent.append(card);
+  }
   function checkedText(id, steps) {
     if (id === "inference") return choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id;
     if (id === "compute") return choiceName("compute", steps.compute.choice) + (steps.compute.remote_machine ? " · " + steps.compute.remote_machine.destination + " (" + steps.compute.remote_machine.transport + ")" : "");
@@ -1286,15 +1316,16 @@
     }
 
     // 3. Inference.
-    const inferencePanel = stepPanel(body, "inference", steps.inference?.checked ? "Checked: " + checkedText("inference", steps) + "." : null);
+    const inferencePanel = stepPanel(body, "inference", steps.inference?.checked ? checkedLine("inference", steps, ".") : null);
     if (j.skipped.inference) {
       // The miner's own agent brings its own model.
       const skip = el("p", undefined, "step-done"); skip.id = "setup-inference-skipped";
       skip.append(pill("Skipped", "pill-wait"), el("span", "Your agent uses its own model. Set one here only if you also want Carbon's agent."));
       inferencePanel.prepend(skip);
     }
+    learnedCard(inferencePanel, steps.inference);
     const inference = stepForm(inferencePanel, "inference");
-    const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name + " · " + acceptanceText(c)]));
+    const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name + testedSuffix(c)]));
     const model = setupField(inference, "model_id", "Model (type to search the provider's models)");
     // A searchable list of the models this provider offers, not a blind id. Any
     // other id the provider serves can still be typed.
@@ -1401,7 +1432,7 @@
 
     // 4. Compute: "Where's your GPU?" (LINKONLY-D10).
     // Checked but still waiting for its worker is not done yet.
-    const computeDone = steps.compute?.checked && !j.sendPending ? "Checked: " + checkedText("compute", steps) + "." : null;
+    const computeDone = steps.compute?.checked && !j.sendPending ? checkedLine("compute", steps, ".") : null;
     const computePanel = stepPanel(body, "compute", computeDone);
     // A check that no longer describes this install, or one an update set
     // aside (LP-PROD-E): why, and setup's own step that clears it.
@@ -1464,7 +1495,7 @@
     const missing = el("div"); compute.append(missing);
     // Everything setup fills in for you, or a miner changes on purpose.
     const more = advanced(compute, "Advanced: images and transport");
-    const computeChoice = setupSelect(more, "choice", "Where research runs (set by the cards above)", offered.compute.map(c => [c.id, c.display_name + " · " + acceptanceText(c)]));
+    const computeChoice = setupSelect(more, "choice", "Where research runs (set by the cards above)", offered.compute.map(c => [c.id, c.display_name + testedSuffix(c)]));
     const transportBox = el("div"); transportBox.dataset.step = "compute"; more.append(transportBox);
     const transport = setupSelect(transportBox, "transport", "How Carbon reaches it (set by your card)", []);
     const transportNote = el("div"); transportBox.append(transportNote);
@@ -1545,8 +1576,8 @@
     // The cards: this machine, then each setup the wiring guide covers.
     const local = offered.compute.filter(c => !c.needs_remote);
     const cards = [
-      ...local.map(c => ({id: c.id, title: "This machine · " + acceptanceText(c), sub: c.needs_gpu_image ? "My GPU" : "CPU · the default", choice: c.id})),
-      ...(remoteChoice ? guides.cards.map(g => ({id: g.id, title: g.display_name + " · " + acceptanceText(g), sub: g.transport === "ssh-container" ? "Container · SSH" : "Machine with Docker · SSH", choice: remoteChoice.id, transport: g.transport, guide: g})) : []),
+      ...local.map(c => ({id: c.id, title: "This machine" + testedSuffix(c), sub: c.needs_gpu_image ? "My GPU" : "CPU · the default", choice: c.id})),
+      ...(remoteChoice ? guides.cards.map(g => ({id: g.id, title: g.display_name + testedSuffix(g), sub: g.transport === "ssh-container" ? "Container · SSH" : "Machine with Docker · SSH", choice: remoteChoice.id, transport: g.transport, guide: g})) : []),
     ];
     const aboutRemote = (parent, choice) => details(parent, "About remote practice", ["Cost: " + choice.cost_basis, "Live check: " + choice.live_check, choice.note, "Wiring guide: " + choice.guide]);
     const showWhere = card => {
@@ -1569,7 +1600,7 @@
         return;
       }
       const g = card.guide;
-      const head = el("div", undefined, "card-head"); head.append(el("h3", g.display_name), pill(g.transport, "pill-dev"), pill(acceptanceText(g), "pill-wait"));
+      const head = el("div", undefined, "card-head"); head.append(el("h3", g.display_name), pill(g.transport, "pill-dev"), ...(acceptanceText(g) === "Untested" ? [] : [pill(acceptanceText(g), "pill-wait")]));
       wherePanel.append(head);
       wherePanel.append(el("p", "You start, stop and pay for it" + (g.id === "own-server" ? "" : " at " + g.display_name) + ". Carbon reaches it with your own SSH and never starts, stops or bills it."));
       wherePanel.append(el("p", "Your steps, from the guide", "eyebrow"));
@@ -1676,9 +1707,9 @@
     // 3. Who researches? Carbon's agent, or the miner's own agent over MCP
     // (OWNER-MINER-SETUP-AGENT-FIRST-01): any MCP client, or Hermes with its
     // ready-made profile.
-    const agentPanel = stepPanel(body, "agent", steps.agent?.checked ? "Checked: " + checkedText("agent", steps) + ", and your signer answered." : null);
+    const agentPanel = stepPanel(body, "agent", steps.agent?.checked ? checkedLine("agent", steps, ", and your signer answered.") : null);
     const agent = stepForm(agentPanel, "agent");
-    const agentChoice = setupSelect(agent, "choice", "Who researches", offered.agent.map(c => [c.id, c.display_name + " · " + acceptanceText(c)]));
+    const agentChoice = setupSelect(agent, "choice", "Who researches", offered.agent.map(c => [c.id, c.display_name + testedSuffix(c)]));
     const agentCost = el("div"); agent.append(agentCost);
     // Your own agent: the one command, and each client's snippet to copy.
     const connectBox = el("div", undefined, "guide-panel"); connectBox.id = "setup-agent-connect"; agent.append(connectBox);

@@ -440,3 +440,8 @@ label.check input{width:auto;min-height:0}
 .guide-section > summary h2 { display: inline; margin: 0; font-size: 20px; }
 .guide-section > summary::before { content: "+ "; }
 .guide-section[open] > summary::before { content: "– "; }
+
+button.checking::after{content:"";display:inline-block;width:12px;height:12px;margin-left:8px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:ccspin .8s linear infinite}
+@keyframes ccspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){button.checking::after{animation:none}}
+.learned-card{margin:6px 0 14px;padding:8px 12px;border-left:3px solid currentColor;font-size:15px}
