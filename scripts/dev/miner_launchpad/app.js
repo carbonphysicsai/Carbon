@@ -73,7 +73,7 @@
   // people read the name; the full title stays on hover (U10).
   // Words that came from the controller, in plain terms (Dana #4): the technical name stays in the Help fold.
   function plainWords(text) {
-    return typeof text === "string" ? text.replace(/\bhotkeys\b/g, "mining keys").replace(/\bhotkey\b/g, "mining key").replace(/\bcoldkey\b/g, "money key").replace(/\bss58 address\b/g, "mining key address").replace(/\bss58\b/g, "mining key address").replace(/\bnetuid\b/g, "network number").replace(/\bsubnet\b/g, "Carbon network") : text;
+    return typeof text === "string" ? text.replace(/\bhotkeys\b/g, "mining keys").replace(/\bhotkey\b/g, "mining key").replace(/\bcoldkey\b/g, "money key").replace(/\bss58 address\b/g, "mining key address").replace(/\bss58\b/g, "mining key address").replace(/\bnetuid\b/g, "network number").replace(/\bsubnet\b/g, "Carbon network").replace(/\bevaluation endpoints\b/g, "grading addresses").replace(/\bevaluation endpoint\b/g, "grading address").replace(/\bvalidator intakes\b/g, "grading addresses").replace(/\bvalidator intake\b/g, "grading address").replace(/\b[Cc]onstruction intake\b/g, "recipe receiver").replace(/\bconstruction receiver\b/g, "recipe receiver") : text;
   }
   // The technical names, kept for those who meet them elsewhere (Dana #4).
   function termsFold(parent) {
@@ -855,7 +855,7 @@
       return name + " " + KEY_REFUSALS[error.code] + " The key field clears after each check, so paste it again to retry.";
     }
     // U13: one plain sentence, never the raw "intakes: challenge has no intake".
-    if (error.code === "challenge_has_no_intake") return error.nextStep || "This Challenge takes no validator intake: put your grader under 'Where your recipe is graded' instead.";
+    if (error.code === "challenge_has_no_intake") return error.nextStep || "This Challenge has no grading address of its own: put your grader under 'Where your recipe is graded' instead.";
     return plainWords((error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : ""));
   }
   async function setupCall(step, body, timeout = 60000) {
@@ -1088,10 +1088,13 @@
     for (const item of items) {
       const row = el("div", undefined, "evaluation-row"); row.dataset.challenge = item.id;
       const head = el("p");
-      const [tag, kind] = item.intake ? [item.source === "published" ? "Carbon's endpoint" : "Your own grader", "pill-done"] : ["None yet", "pill-need"];
+      // R12-2: a recipe receiver the miner set that serves this very Challenge is a grader for it, so it is not "None yet".
+      const recipeReceiver = !item.intake && item.direct_intake && item.direct_intake.intake_url ? item.direct_intake : null;
+      const [tag, kind] = item.intake ? [item.source === "published" ? "Carbon's endpoint" : "Your own grader", "pill-done"] : recipeReceiver ? ["Your recipe receiver", "pill-done"] : ["None yet", "pill-need"];
       head.append(el("strong", plainTitle(item.title || item.id) + " · v" + item.version), " ", pill(tag, kind));
       row.append(head);
       if (item.intake) row.append(el("p", "A frozen candidate is submitted to " + item.intake + ".", "status-line"));
+      else if (recipeReceiver) row.append(el("p", "A frozen recipe is sent to your recipe receiver at " + recipeReceiver.intake_url + ".", "status-line"));
       if (item.receiver_hotkey) {
         row.append(el("p", "Grader's mining key address: " + item.receiver_hotkey, "hint"));
         const note = item.receiver_hotkey_note;
@@ -1114,7 +1117,7 @@
       folded.append(row);
     }
     if (items.length) box.append(folded);
-    if (evaluation.problem) box.append(el("p", "Carbon's list of evaluation endpoints could not be read (" + words(evaluation.problem) + "), so none is offered.", "reason"));
+    if (evaluation.problem) box.append(el("p", "Carbon's list of grading addresses could not be read (" + words(evaluation.problem) + "), so none is offered.", "reason"));
     if (evaluation.published_by) box.append(el("p", "Carbon publishes its endpoints in " + evaluation.published_by + ", in this checkout.", "hint"));
     parent.append(box);
     return box;
@@ -1855,7 +1858,7 @@
     const receiver = setupField(reviewMore, "receiver_hotkey", "The grader's mining key address (public, starts with 5…; never a key, password or seed phrase; required with a grading address)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
     const directMore = advanced(review, "Where your recipe is graded: your own grader");
-    researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no validator intake of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
+    researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no grading address of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
     const directIntake = setupField(directMore, "direct_intake_url", "Receiver URL (https, or loopback)");
     const directReceiver = setupField(directMore, "direct_receiver_hotkey", "The grader's mining key address (public, starts with 5…; never a key, password or seed phrase)");
     // U12: what Review last wrote comes back filled in, and is said plainly,
@@ -2575,7 +2578,7 @@
     box.append(el("p", (REFUSAL_KINDS[refusal.kind] || "Refused") + ": " + (practiceMessage(refusal.code) || words(refusal.code)) + (refusal.operation ? " (" + words(refusal.operation) + ")" : "") + (at ? " · " + at : ""), "status-line"));
     // A submit through a validator intake that was not a verdict
     // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
-    if (refusal.intake_outcome) box.append(el("p", "Validator intake: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
+    if (refusal.intake_outcome) box.append(el("p", "The grader's answer: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
     // What stopped it, by its code, so it can be named to someone who can help.
     if (refusal.kind === "interrupted" && !compact) box.append(el("p", "Code: " + refusal.code, "hint"));
     // A card in a list says what stopped it; the code and the long next action are in the campaign.

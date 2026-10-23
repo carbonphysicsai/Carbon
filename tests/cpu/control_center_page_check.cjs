@@ -74,6 +74,8 @@ const all = (page, selector) => page.doc.querySelectorAll(selector);
 // A control by its current value (a property, as in a browser, not markup).
 const byValue = (page, selector, value) => { const node = all(page, selector).find(item => item.value === value); assert.ok(node, "no " + selector + " valued " + value); return node; };
 function clean(page) { assert.deepEqual(page.errors.map(String), [], "the page raised no error"); }
+// The page's own plain-words pass over a controller's sentence (what the miner reads).
+const plain = text => String(text).replace(/\bevaluation endpoints\b/g, "grading addresses").replace(/\bevaluation endpoint\b/g, "grading address").replace(/\bvalidator intakes\b/g, "grading addresses").replace(/\bvalidator intake\b/g, "grading address").replace(/\b[Cc]onstruction intake\b/g, "recipe receiver").replace(/\bconstruction receiver\b/g, "recipe receiver");
 function selectable() { return fx.caps.challenges.find(entry => entry.selectable); }
 // The first Challenge the wizard lists (its newest version) that can be launched and practised: a
 // Challenge that cannot practise is Coming soon (Battery is out of launch), so no wizard scenario picks it.
@@ -401,6 +403,23 @@ scenario("the Overview launch card follows Setup's agent and does not mix in a s
   assert.doesNotMatch(card("agent"), /Graphite/, "no stale Graphite sub-line under Setup's agent");
   assert.match(card("agent"), /Your own agent, with its own model/);
   assert.equal(all(page, "#launchpad-strip [data-card=inference]").length, 0, "an own agent skips the model step");
+  clean(page);
+});
+
+scenario("Review shows a recipe receiver the miner set as the grader for the Challenge it serves, not None yet (R12-2)", async () => {
+  const setup = copy(fx.setups.none);
+  const item = setup.steps.evaluation.challenges.find(entry => !/battery/.test(entry.id));
+  delete item.note;
+  item.direct_intake = {intake_url: "http://127.0.0.1:8771", receiver_hotkey: "5" + "F".repeat(47), serves: {id: item.id, version: item.version}};
+  const state = launchable(world({setup}));
+  const page = await open(state);
+  page.go("#setup/review");
+  await page.advance(0);
+  const row = [...all(page, "#setup-evaluation .evaluation-row")].find(node => node.dataset.challenge === item.id);
+  assert.ok(row, "a row for " + item.id);
+  assert.match(row.textContent, /Your recipe receiver/);
+  assert.doesNotMatch(row.textContent, /None yet/);
+  assert.ok(row.textContent.includes("http://127.0.0.1:8771"));
   clean(page);
 });
 
@@ -1805,7 +1824,7 @@ scenario("Review shows each Challenge's evaluation and names a set-aside intake 
   await page.advance(0);
   const row = [...all(page, "#setup-evaluation .evaluation-row")].find(node => node.dataset.challenge === item.id);
   assert.ok(row, "a row for " + item.id);
-  assert.ok(row.textContent.includes(item.note));
+  assert.ok(row.textContent.includes(plain(item.note)));
   assert.ok(row.textContent.includes("set aside by the update: " + item.set_aside_intake));
   await page.press([...row.querySelectorAll("button")].find(b => b.textContent === "Name it again"));
   assert.equal(page.$("setup-review-intake_challenge").value, item.id + "@" + item.version);
@@ -1823,7 +1842,7 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   await page.advance(0);
   const none = fx.setups.none.steps.evaluation.challenges[0];
   assert.match(page.text("setup-evaluation"), /None yet/);
-  assert.ok(page.text("setup-evaluation").includes(none.note));
+  assert.ok(page.text("setup-evaluation").includes(plain(none.note)));
   const answer = fx.setups.review_answer;
   assert.ok(answer.warnings.length, "the real review warned");
   state.script.push({match: r => r.path === "/api/v1/setup/review", answer: () => { state.setup = copy(fx.setups.none_reviewed); return {body: copy(answer)}; }});
@@ -1832,7 +1851,7 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   // Challenges with no Carbon receiver are one calm line (U8); any other warning is shown whole.
   for (const warning of answer.warnings) {
     if (/has not published an evaluation endpoint/.test(warning.message)) assert.match(page.text("setup-result"), /no Carbon receiver yet\. Practice and freezing work without one/, warning.code);
-    else assert.ok(page.text("setup-result").includes(warning.message), warning.code);
+    else assert.ok(page.text("setup-result").includes(plain(warning.message)), warning.code);
   }
   // Carbon's published endpoint: whose it is, and its receiver, now binding
   // (LAUNCHPAD-ACCEPT-03).
