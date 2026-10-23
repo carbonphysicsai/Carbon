@@ -1,6 +1,6 @@
 {
  "bundle_ref": {
-  "bundle_digest": "sha256:413acef70a7000990de9a5c19f620888881dcb1de73c7e11e0144d72d5848862",
+  "bundle_digest": "sha256:8f70e3e6a5eec6e8758e7b2015e428702c56a3d46c1d131411cd34ba4fc3ac8e",
   "environment_digest": "sha256:0a313185d40515172cd71c18383598ae8d6f52e5540569dc51c385fa570f7f96",
   "language": "python",
   "runtime_profile_id": "torch-cpu-py311",

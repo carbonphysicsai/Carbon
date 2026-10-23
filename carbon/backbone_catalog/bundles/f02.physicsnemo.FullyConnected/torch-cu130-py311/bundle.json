@@ -4,14 +4,14 @@
  "base_environment_digest": "sha256:8ebbccd38e0d1f9b1992242ddb8ff49b31270b439f7a21d50051da55fa796c7e",
  "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
  "language": "python",
- "license_sha256": "sha256:1776bbc6884f5982c21d2875ba2a1c595a19aff71983141cade8aad502c40709",
+ "license_sha256": "sha256:c4394d203a6ed9946f2d55e2e5c60b53cf15b0b74ca18848cd3d3d084d8d626f",
  "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
  "name": "f02-catalog-physicsnemo-fullyconnected-baseline",
  "os": "linux",
  "python_abi": "cp311",
  "runtime_profile_id": "torch-cu130-py311",
  "schema": "carbon.development.library-bundle.v1",
- "source_bytes": 12584,
- "source_sha256": "sha256:76cdc8dd534889a115dc5f943af4db8408cba717291ec9354267fdbcaa8a24c7",
+ "source_bytes": 12157,
+ "source_sha256": "sha256:63a4a05a25881fceaff21f9a514151be43f3e203d0fd301e73db986fcd37c919",
  "wheels": {}
 }

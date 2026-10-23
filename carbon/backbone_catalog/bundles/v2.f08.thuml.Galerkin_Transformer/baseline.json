@@ -1,7 +1,7 @@
 {
  "bundle_ref": {
-  "bundle_digest": "sha256:d6a0e2f803889343c146fca73dac9be3f5dfd4e6420a90f635c93721c9b5a407",
-  "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+  "bundle_digest": "sha256:a458135ba12ddcb1d553f295e6028ead42f2101896debadc49b1b826462ccb03",
+  "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
   "language": "python",
   "runtime_profile_id": "torch-cpu-py311",
   "schema": "carbon.library-bundle-ref.v1"

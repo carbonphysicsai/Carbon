@@ -1,6 +1,6 @@
 {
  "bundle_ref": {
-  "bundle_digest": "sha256:e09a3d56edbaa47a0dd3276fd3b6f67274825d2336b491d79e90e120c428beba",
+  "bundle_digest": "sha256:5182b94283cd150d2776a87a13d0d71ee9fc592c47136d2b8a051333c52b4464",
   "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
   "language": "python",
   "runtime_profile_id": "python-cpu-py311",

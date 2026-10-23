@@ -3,7 +3,7 @@
   {
    "backbone": "cno.CNO1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:484a8e221c42fd2f63c2426dc54a1856d60df08783f29868251f65757090c65d",
+    "bundle_digest": "sha256:0ee50b50ef31d303d887d5f00dd953824709cd2b1ef936d3201566d6d8dcf005",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -11,7 +11,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:4010e540d63b0782357fe03ada15f95e001cd051b5477b565768d6c9639ec4b9",
+     "bundle_digest": "sha256:8ee2e0c1cae47e0b1b8a6b479d3a64036a6c163abbcd8d9fcd938c314f7e8e59",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -42,7 +42,7 @@
   {
    "backbone": "neuralop.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:891cb46b3adf84eaaf9eb9d62399d4d8ad003eb7df82c8129e0052ed01b848e8",
+    "bundle_digest": "sha256:eda00d68627b906211533bd6c466c2358c10b92c5a95dcf308c9bb2037685c82",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -50,7 +50,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:94956d4b9cf4c76be16a230733da4f6a35d4ba919f0aa89f36633730e7dac1b5",
+     "bundle_digest": "sha256:767b171db4280be4c3bba7aa333e36a612470fbced7bebf3dea07ff7d1b6f865",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -86,7 +86,7 @@
   {
    "backbone": "neuralop.TFNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:372b832e9e6e762e90af84fe0cff08f59b9bd29553e08f2643661835a68e4f45",
+    "bundle_digest": "sha256:f10856b6a002336101519c451b28ad00c64c0fc744fe6a76e9b185ec97d02d14",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -94,7 +94,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:565471177cd14e0674b8e940b4e2fbb1bbc282ff563c8e3bf13949b0d531c97a",
+     "bundle_digest": "sha256:a27f845e74c29f9209df3c8e800bcf2b81a097f4bb32cce21b641942b5bd18d2",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -131,7 +131,7 @@
   {
    "backbone": "neuralop.UQNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:062c71f0c97dd7e3706ac91fc9b0e9c37ad7cff5bac0dd686a07d3d0b9ef1534",
+    "bundle_digest": "sha256:bce46407822bfb76e2e86d38c2c866b155d3a2c8adc3e354e7c88b8213140117",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -139,7 +139,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:f9f020ef07b6adb39ae0eb1c47a0648b421540f6f90ba26190952be9861df7e9",
+     "bundle_digest": "sha256:af224573ebe6a5bbb87a6f4b7c5474b47b776b6f9c42a3322575902281aeb14f",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -170,7 +170,7 @@
   {
    "backbone": "physicsnemo.FullyConnected",
    "bundle_ref": {
-    "bundle_digest": "sha256:271502487f89b4959fbc121e510e634219a3f0ffaed4b6d815774fcaf61b3ffc",
+    "bundle_digest": "sha256:b646fd9da5d54f2955c729b00b18187469e0fb77be100757ebfb9508cc50b674",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -178,7 +178,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:cdbcfde96b6d7b279cc20e1e086377725617fade61a145ca6c4e09060557e84a",
+     "bundle_digest": "sha256:6ed65a993cefb0382b2519f50a5b9a38f09c4eb076932e87c83fb7f092896cd5",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -209,7 +209,7 @@
   {
    "backbone": "transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:ab173cfedbea5c2481b01dfb347153a3a0709737b39bfdd5a7a53e7f11fe8d7a",
+    "bundle_digest": "sha256:968718440166dc4263b28eecf9a35917bfb7856d02dfdb14890838b401aab4d7",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -217,7 +217,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:a40cfa274dcddc51ebfa24a2882c6070c568ade8d166f038a62fff1c48245c11",
+     "bundle_digest": "sha256:2ab03f7a58fb67fb66b4231a4569c9bb7163129bda7e77c415c95e415d27cd69",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -254,7 +254,7 @@
   {
    "backbone": "neuralop.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:891cb46b3adf84eaaf9eb9d62399d4d8ad003eb7df82c8129e0052ed01b848e8",
+    "bundle_digest": "sha256:eda00d68627b906211533bd6c466c2358c10b92c5a95dcf308c9bb2037685c82",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -262,7 +262,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:94956d4b9cf4c76be16a230733da4f6a35d4ba919f0aa89f36633730e7dac1b5",
+     "bundle_digest": "sha256:767b171db4280be4c3bba7aa333e36a612470fbced7bebf3dea07ff7d1b6f865",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -298,7 +298,7 @@
   {
    "backbone": "neuralop.TFNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:372b832e9e6e762e90af84fe0cff08f59b9bd29553e08f2643661835a68e4f45",
+    "bundle_digest": "sha256:f10856b6a002336101519c451b28ad00c64c0fc744fe6a76e9b185ec97d02d14",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -306,7 +306,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:565471177cd14e0674b8e940b4e2fbb1bbc282ff563c8e3bf13949b0d531c97a",
+     "bundle_digest": "sha256:a27f845e74c29f9209df3c8e800bcf2b81a097f4bb32cce21b641942b5bd18d2",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -343,7 +343,7 @@
   {
    "backbone": "neuralop.UQNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:062c71f0c97dd7e3706ac91fc9b0e9c37ad7cff5bac0dd686a07d3d0b9ef1534",
+    "bundle_digest": "sha256:bce46407822bfb76e2e86d38c2c866b155d3a2c8adc3e354e7c88b8213140117",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -351,7 +351,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:f9f020ef07b6adb39ae0eb1c47a0648b421540f6f90ba26190952be9861df7e9",
+     "bundle_digest": "sha256:af224573ebe6a5bbb87a6f4b7c5474b47b776b6f9c42a3322575902281aeb14f",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -382,7 +382,7 @@
   {
    "backbone": "physicsnemo.FullyConnected",
    "bundle_ref": {
-    "bundle_digest": "sha256:271502487f89b4959fbc121e510e634219a3f0ffaed4b6d815774fcaf61b3ffc",
+    "bundle_digest": "sha256:b646fd9da5d54f2955c729b00b18187469e0fb77be100757ebfb9508cc50b674",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -390,7 +390,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:cdbcfde96b6d7b279cc20e1e086377725617fade61a145ca6c4e09060557e84a",
+     "bundle_digest": "sha256:6ed65a993cefb0382b2519f50a5b9a38f09c4eb076932e87c83fb7f092896cd5",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -421,7 +421,7 @@
   {
    "backbone": "transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:ab173cfedbea5c2481b01dfb347153a3a0709737b39bfdd5a7a53e7f11fe8d7a",
+    "bundle_digest": "sha256:968718440166dc4263b28eecf9a35917bfb7856d02dfdb14890838b401aab4d7",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -429,7 +429,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:a40cfa274dcddc51ebfa24a2882c6070c568ade8d166f038a62fff1c48245c11",
+     "bundle_digest": "sha256:2ab03f7a58fb67fb66b4231a4569c9bb7163129bda7e77c415c95e415d27cd69",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -466,7 +466,7 @@
   {
    "backbone": "deepxde.DeepONetCartesianProd",
    "bundle_ref": {
-    "bundle_digest": "sha256:8bd248e4b03b49b6b03ce7ff04f907c8d0bfb35e42cb409eba1052130cff446d",
+    "bundle_digest": "sha256:386d48fc653663a36f4f6d21f3ab349438a6050025dc44623088c20debabc354",
     "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -474,7 +474,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:14a677710f787ff84aaf5a9e1d83c60a73b145ff75fa9075651b868369bdd6ef",
+     "bundle_digest": "sha256:a1582b6c176afce627697404ca3275e6ea4e2252520f79449dbf6d651c94125c",
      "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -505,7 +505,7 @@
   {
    "backbone": "deepxde.DeepONetCartesianProd",
    "bundle_ref": {
-    "bundle_digest": "sha256:83fdcac4b0fc85047afeff9b98a4aabbefe41802364fcc36c807ee70c5941aa2",
+    "bundle_digest": "sha256:a0bf0034e683208f34853d89ec01e0b2106453801b8754f0b2605366136b243c",
     "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -513,7 +513,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:add79af5ea906405a86afca27f53455ce7537a40bbc6062b8bff756aa5230e29",
+     "bundle_digest": "sha256:09efed0b92757b29396fa2c2b1951a57362d295d9a8c6ad52b909e8d38037171",
      "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -544,7 +544,7 @@
   {
    "backbone": "physicsnemo.FullyConnected",
    "bundle_ref": {
-    "bundle_digest": "sha256:7d8627ba1c728d7799881bcf14f24864e31cb356330f5e7d788a40612f2c33ce",
+    "bundle_digest": "sha256:f8f742d5e354f8608128e0314da1f0b7679c094c494123e77f3a405d928c66bd",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -552,7 +552,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:bd67de72f4edd5ef0c6e80c3ec32012e3e232f4d5b7b4c8df58b334009b12055",
+     "bundle_digest": "sha256:0f3ce09ef570202e767416c6968f44c821972080016476fa106bd3f456732b1c",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -583,7 +583,7 @@
   {
    "backbone": "cno.CNO1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:f44595a631ece0b4da4c0b3105c4e17727036961fa14af4eceac45ae8667231a",
+    "bundle_digest": "sha256:e3c7dfd57e88972e8c263ac2a4adf572aa5db42cc7fcdcf42919ef5b1e74f543",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -591,7 +591,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:815d1a67314929dfcaf58944e457f23523d5d2729d69d8f5d5fcb78f02ad0937",
+     "bundle_digest": "sha256:6edb15ef2c9e8276d84d7a0527c30e85aba799546233e52562e8035e472f10e9",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -622,7 +622,7 @@
   {
    "backbone": "deepxde.DeepONetCartesianProd",
    "bundle_ref": {
-    "bundle_digest": "sha256:759dd2c306eef79bcaa5d414602301d2c6466f52132cda372e4c80af0a1bbc79",
+    "bundle_digest": "sha256:f68295ae3fde4bc44e6960b00d878b72c25fecbbcdb063c4a0c9cf0765cf9aa4",
     "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -630,7 +630,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:80a92beecedfad5064f5f380d5c5fd74c8a433da514d252ad37a5dbb36dab488",
+     "bundle_digest": "sha256:f48e8f5470884cb203a378ed603e8b201aefcf5ee40dd11e72f4d4a1bfaf53f1",
      "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -661,7 +661,7 @@
   {
    "backbone": "neuralop.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:5dfd50c2cae072e12e19ebc9acc6e6a53c94e312632d185b9fbce8ff0cc591c4",
+    "bundle_digest": "sha256:21e21f7f0f5e944f2c17d9eb1d4c9f0d1d5ff57f764d30857d106efae04d71c4",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -669,7 +669,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:2451d689cb5159830e1ef34591a2ad2d9dc7e14a2d94240d159202a1cbf77121",
+     "bundle_digest": "sha256:51a86abc2621fc2460bb7fb1a75c5c605a0d8b661e38cfc3d727ddfa061a8dc0",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -705,7 +705,7 @@
   {
    "backbone": "neuralop.LocalNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:dbd8a861476870c187f194437218041ef124417f9088e198088f8d4e20cf6198",
+    "bundle_digest": "sha256:6bccc94ee7a53c4b4cfab665470acc9b972e47005ff5d1b87513276ac27aec09",
     "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -713,7 +713,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:5712216b443912959a57ac63745d962092fffb07ead36f2d69e37b52f60dd9cc",
+     "bundle_digest": "sha256:350bead828e72ec221bc7e21f3dbc6da678cf6643229cad32b3799c14e7749c7",
      "environment_digest": "sha256:13eba7b94e0f9cbeda75aa745c60b36e1e177adfaa565954ed2df0b667faeba9",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -744,7 +744,7 @@
   {
    "backbone": "neuralop.TFNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:b028938a1fe0a5ec973f06feeadbad193c65ea0b772b8a9edf34083254f2016f",
+    "bundle_digest": "sha256:a34cd6eff16c1d129559f01ca1cbef1bfaa323e2fd7ec29753be181c65d9f88b",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -752,7 +752,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:33e4927ae8bdb40c078a4d2aa87de367c899fb8c945d497cff7362abda2932a4",
+     "bundle_digest": "sha256:c74e68c5978be1ec778a0fe064470a6b2e24bc684e238a44ffdbaaa7bdba660a",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -789,7 +789,7 @@
   {
    "backbone": "neuralop.UQNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:3dec9db14858cd9931cd8f7d687d6edd0e42907e5bb0a9409b3ff29630e3c03f",
+    "bundle_digest": "sha256:46297f4fd6067347d67052115ee238d45adf3330fbd325cc1ba3b9e858ade10e",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -797,7 +797,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:c65086f78c00bc79d7a63bd5974aada755b1e5f080233336a5ed3655aa3d9d20",
+     "bundle_digest": "sha256:6e8cfd22b2ea850b03c9ca8259e06c61e6a0dc5bd48938b5405217392a85300c",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -828,7 +828,7 @@
   {
    "backbone": "oformer.Encoder1D_PointWiseDecoder1D",
    "bundle_ref": {
-    "bundle_digest": "sha256:6de9e11ac29ca016391e2f1e3a1e1fd7a3ba07fee6e913fdabeb115b5902350e",
+    "bundle_digest": "sha256:30a61ff2b344eeb6c0cdf7038ba186f843f7650fe4b64919662451fde5fc2e65",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -836,7 +836,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:2932052382823d3ff8a79457a3b98d5706f5a8dad11319ff2a867a1f86364132",
+     "bundle_digest": "sha256:83e025c9a24a23bff39b90bc2db637328dc2d87ad69dee3a9f887cd8c25594aa",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -867,7 +867,7 @@
   {
    "backbone": "physicsnemo.FullyConnected",
    "bundle_ref": {
-    "bundle_digest": "sha256:3dfc0111c6d50a78b0bed4763bf9a209a06fe6259e2e9c486372c93ca98dafd2",
+    "bundle_digest": "sha256:a06f3e46f331af175faa8ae3e6af85bd8262be02d5b919345f894483e29a3af4",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -875,7 +875,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:54f37ed367fe3b65e705b28c08021a4ac5f346776089e7418f7801a825f7b5e9",
+     "bundle_digest": "sha256:c29aa058c3ba15ec87e3a30a272a002a271de58400553d87a77ed37fff7c8b33",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -906,16 +906,16 @@
   {
    "backbone": "thuml.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:fcf1354f05ea9f25d573d5b015c364ac784da9075c19ab11a2077703dee595d5",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:c2f28ccea9acc1cebbf4d5f953546e51ee28bb781a8a3442bfde8c486aa097ad",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:cb68351259c00f959fb36d5f42c1edf690b85c30addc4eb716e73785cef39fce",
-     "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
+     "bundle_digest": "sha256:23146e996899bbecd4f6db080c2791c696da59cdd196d66e14f6365e493be2a4",
+     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
      "schema": "carbon.library-bundle-ref.v1"
@@ -945,16 +945,16 @@
   {
    "backbone": "thuml.F_FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:16f89ae05a7ad5ab8aa227f5658e46a285f53be01c36977a413502ecfda9b1dd",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:90262419986d9422b24421818bb8605148e543671b0c430cfe85e8f864c53feb",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:b80ffd680133514772846df2f4af56753a74906492ebe82b1c7a65362e125896",
-     "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
+     "bundle_digest": "sha256:599b7e120a33d12dda59b34cbad6f167a73f6c795e26e221a543c7a25f98e6a2",
+     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
      "schema": "carbon.library-bundle-ref.v1"
@@ -984,16 +984,16 @@
   {
    "backbone": "thuml.Factformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:27851c085e66e0d1335ec9eb6e4f1ee13b646f05fb1e64b51245c2a1e8fa74b1",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:54971e29882f60a5f029f2699a882939d055a987ee9bbb22a0f9f5e0354bfd99",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:7f23d8c3805c2dd714d83858d39f4d8a9cf0c52a08e3b54ea81735c22a0d9a14",
-     "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
+     "bundle_digest": "sha256:298ba509d2120a0780a228b7665679b5399cd21a3d6a161583206e461c76df94",
+     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
      "schema": "carbon.library-bundle-ref.v1"
@@ -1023,16 +1023,16 @@
   {
    "backbone": "thuml.Galerkin_Transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:8953f8bd9918a36da5ef931a908b831b831069d20271bdbb36dd1520a110850e",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:0cc61b3325fe85501a0efde6c19fb6ceca08a096f664254f3f7e592f4a45dc23",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:f9b8eb3721e75931c1a4d23362a21a9b8e0019a5ec66a0a4091aa8d492f8507f",
-     "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
+     "bundle_digest": "sha256:d1bd247c1ef2390023c232a70012bd2a71db3154ba578031b96d32d655263d81",
+     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
      "schema": "carbon.library-bundle-ref.v1"
@@ -1062,7 +1062,7 @@
   {
    "backbone": "thuml.LSM",
    "bundle_ref": {
-    "bundle_digest": "sha256:55a86184c0b636ea03404d4d43040d97173c761c914379c24bc5a92ab8fae419",
+    "bundle_digest": "sha256:76f68cc8bf67f37a0fa3d39aa215ba427ac5742d4845ab299086818c5144040b",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1092,7 +1092,7 @@
   {
    "backbone": "thuml.MWT",
    "bundle_ref": {
-    "bundle_digest": "sha256:d90f12d4186f39ca93650eac7477526088a0c851d6959d7cbafcb3c3da61bde0",
+    "bundle_digest": "sha256:988c39571de03e0cc8221c10c79e215873e04db2cb1e3121c88a79a26bfa39bf",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1100,7 +1100,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:ad5d79ca61802b13b67950146e3f7265be3a6dfbe67dc9a397b9b6334a6c800c",
+     "bundle_digest": "sha256:993791e7383fddd133b029502bec66236180c487a1fc2c37301ebbc104502db4",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -1131,7 +1131,7 @@
   {
    "backbone": "thuml.Transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:3ac00f1742a175030aabd634fb073dd155ff6cf9eaf8559a3622cbe362b0f5ee",
+    "bundle_digest": "sha256:6104f2540482bd34641ae0df5a3310cc25150bde273919cce7524250503db6a5",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1139,7 +1139,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:ec22f2ae21317c188051e77b369c72b19361a154915fe7897ccfa1b48c85f946",
+     "bundle_digest": "sha256:bf73f6ddfcef4ce85734ccace33255ca40ea5d69fb1f9246a4beafa4c4291a4c",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -1170,16 +1170,16 @@
   {
    "backbone": "thuml.Transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:498be076eb65b57248f3a50b8f8d11b3827f7ea5265b75bfb9ba0b7621069497",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:d086f697d681d9aa684766c5a41d7b1d38d868cf3f1002d3ce2729d23dd6d3dc",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:4e0873bfa575e69e34438b5c2066a969eb5d6c54f45db62e14e7e1f99d8a1713",
-     "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
+     "bundle_digest": "sha256:d3f30166da4667d1acba7aad57fc743c3828f93c3c4623f7c199379b57d80d26",
+     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
      "schema": "carbon.library-bundle-ref.v1"
@@ -1209,7 +1209,7 @@
   {
    "backbone": "transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:2858d19ab300a58d3a032dd77d608c4f15e2e26ada2dada80169c3a2f642a507",
+    "bundle_digest": "sha256:b1382e6b8464d3413dd5fbb34f884a5aeb12ea89d258c4054cbde7b3f3172150",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1217,7 +1217,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:080d7247b9ad9264a025e33802fa6d96de6a6feae5e3aac6206e84f7e82f831d",
+     "bundle_digest": "sha256:11dc1ee9067b7f80823d0bf0162df6c0ad2ccbe6dde5a8aa85bd053296efbe29",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -1254,7 +1254,7 @@
   {
    "backbone": "deeponet",
    "bundle_ref": {
-    "bundle_digest": "sha256:dc01a9e0db1e7c78a2cb422d857bf737318e805728eba171fe988fa49c209206",
+    "bundle_digest": "sha256:8574ade1e4aa48f93b1bce757258b9bdf6bc65caae340bc2eb61118f44c9f2c2",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1262,7 +1262,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:98682c063e6c02decf2a5616fdcab9801582b4a4427b53d87fa2e69890f59b57",
+     "bundle_digest": "sha256:2505f11bb20f3f460bcc9c43b9b73470ba6194323e92e21ca22f9f131151be8c",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1293,7 +1293,7 @@
   {
    "backbone": "fno1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:bd08bd7ad7391bff8eb2c2ed583d0b177e8a8d941d0ba016df8c14fccdbb248a",
+    "bundle_digest": "sha256:7c39eafdde635da700cf72f326bdcd7fa79bad5529d6c1606946cee7a31e1ff6",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1301,7 +1301,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:f13be9aa607913f7ac5657658517b6ea1156971964606eee09ff306d5262be43",
+     "bundle_digest": "sha256:3e476313d05291bd0ea0d6e7b4b1f7914d29f898162b05b14f66b73b65328ba1",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1332,7 +1332,7 @@
   {
    "backbone": "fno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:369887aea6ec797f1f8660f5a443a3b7c005403e95a25b2066b1fefd446fdf49",
+    "bundle_digest": "sha256:f1edc4b44eeee15980ca1624a9c48ba63152d83adfb7fe5bb3af80c4d64dc651",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1340,7 +1340,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:f3a27d95b4fe70661c14991bfec79c959fc3abb50237aa6b1a3c761b7110c39b",
+     "bundle_digest": "sha256:612dbd2adb6f5397404aa07f6e4fbd3d75a8195295b5be4dfe492a2fa3edfb20",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1371,7 +1371,7 @@
   {
    "backbone": "fno3d",
    "bundle_ref": {
-    "bundle_digest": "sha256:e91352eac5c1c08b767355a502d977cc631888b0fd9d6010f2ebe961a35905e8",
+    "bundle_digest": "sha256:aad6b8a30443f2a304509feab1695d7ead30e64fb1ad5aa5d891ec2a78297afb",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1379,7 +1379,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:7e247dbe79f6ebe93a17d46ec15ef94f60142f34a36524426a27111ba4372475",
+     "bundle_digest": "sha256:3c8a04677829f8c09993f40a49b62f5b38f6d673d94c1cbea68ef6d9f5f35e0e",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1410,7 +1410,7 @@
   {
    "backbone": "geofno",
    "bundle_ref": {
-    "bundle_digest": "sha256:d531d312485b849424764ada8b6109495beac0df3d4472a5e6563ba753120fd7",
+    "bundle_digest": "sha256:30f79ee9b5bb84cd04f181a05620e5d2383646d0aba7cd75928056aa399b8c36",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1418,7 +1418,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:87bb1dc2cf41238155134a217d189e97abfda3646864631ac3b8a3c38dec2a03",
+     "bundle_digest": "sha256:02e2ed9009141abbe81a70162dba41a857b5d9ec088577b689d283816d32a1f5",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1449,7 +1449,7 @@
   {
    "backbone": "linear",
    "bundle_ref": {
-    "bundle_digest": "sha256:2f724b9f4b76afd88f6b2a68770464111396a72dbbc42ed9185f63f867d2de47",
+    "bundle_digest": "sha256:dc7ca8fe82503eab619de2c0590f965b4b013e5357ba07d529a427dab9e892d2",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1457,7 +1457,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:f9bd9f47aa047286e8669d36a74b57ea3f7ded517e714d72962771eb78f82633",
+     "bundle_digest": "sha256:04b4916747ff7a7589a70b96c58c8ba794f88181a8aa13e36543601471fe6cb0",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1488,7 +1488,7 @@
   {
    "backbone": "mgno1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:6acd73a674be9c29f8e1a362d85853a2641ba5f94e7d09752bef093bb2adc430",
+    "bundle_digest": "sha256:2486227368bc0d8f5fd075623a5861448c795d093039e8cc548b7f1ed57a6497",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1496,7 +1496,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:b7a23267ce8f40f0544f0c0053d39bb635565f52ede50e61fc134796f8f9de5e",
+     "bundle_digest": "sha256:02688c4ad35c8e7b5edb5a3e0ca9f86120293721509df8e81ac420bd6168ca4a",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1527,7 +1527,7 @@
   {
    "backbone": "mgno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:e5581e0f33bb6c8a0fd2d0860e1a22412ee1b65ec654e5daadfc88575af235a1",
+    "bundle_digest": "sha256:e0a24614b0d10d7d5486c4b450de2c1b32612031a2c507450448d755bc48a0c0",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1535,7 +1535,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:1e2779758efd773ffbddc5a7dcc7e3f450b3763f1da43736c3da7450caab9b39",
+     "bundle_digest": "sha256:b165badb5542e0e5b66a0b827553a6e56cef509b68b860cc7e860de8203a0ade",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1566,7 +1566,7 @@
   {
    "backbone": "mlp",
    "bundle_ref": {
-    "bundle_digest": "sha256:00f9b79becd88d1e53c0bab129c6e955c750ad2bd831921984bcf97dbee1aaeb",
+    "bundle_digest": "sha256:a5cd9b17425ad53c055eb7dff3dd8f372b6e4c8b33285376ec05f1bba3f4ec5a",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1574,7 +1574,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:f34e90b19402a00736d12682ddd6917dc2886f5dfa699053b7536f27d6892f61",
+     "bundle_digest": "sha256:0d14c0ea1fb8f105caac2f379eff5698cd03811626125539265a5c70270799df",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1605,7 +1605,7 @@
   {
    "backbone": "unet1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:81055dbbc2ed2c72ecd671dbfb170fa75789a391489726481fdbe5dc256f662e",
+    "bundle_digest": "sha256:1ba2cab69bf7b0c759cc8ef7d70765a79ac49b5ae129199a5d25514797168449",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1613,7 +1613,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:93f914df9871877041f0b7cbd070419253a06f6e9f92c4a2b3c96ea8313c6442",
+     "bundle_digest": "sha256:697badc292b76366bf408d8eed0685c1f5504d4bc233485a90f3b9270e73921a",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1644,7 +1644,7 @@
   {
    "backbone": "unet2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:5f62e7142650fe2393cb7875fb318bc570a5fecfd966cd56b9342d9427163976",
+    "bundle_digest": "sha256:79b64de649c3a3714a7d34b43a855a1a423228cd4f5ea12a392acb7e0892d6cb",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -1652,7 +1652,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:5fb645479529fc7acdd5932ad795a39e8c5016b5ad602b604b293874703f6f9b",
+     "bundle_digest": "sha256:e092308cc48ec403766b217950b00cccb3908a7b288fe1157a10650551a934a8",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -1683,7 +1683,7 @@
   {
    "backbone": "lno.LNO1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:a739df0334792061d044356641c8a77df36aaa844eca514190c57cd80eb916ba",
+    "bundle_digest": "sha256:1c69ec46b8c587b729088efde986cc1e574f14c9b6ed7dd5f03ed690bc3cdd11",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1691,7 +1691,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:2f8f9f6a3cbd4a2a340e451581cc5508b2d5205b6c42f659977b03b357e03f85",
+     "bundle_digest": "sha256:4021a3ab16827cd92a4b4a7e20672696738972813ade0a7b6926c4f58829aaa3",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -1722,7 +1722,7 @@
   {
    "backbone": "neuralop.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:dc24f45d12d97e444929af967f5ae0b2baf29de9703223f87634bcf1b2c4feb5",
+    "bundle_digest": "sha256:4a1611691a5662efe6adb50b4d2ded25a583e7b25c9f89176870f3dbdf3d86ad",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1730,7 +1730,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:4ceeb4149a5a5ed8433f66ec79f4d6ee99a5228ce5f7142d208356b682a0d147",
+     "bundle_digest": "sha256:3255a8957c531b0d346cb0448b646b209731c8b97d8cabc1dedf31e27d6e568e",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -1770,7 +1770,7 @@
   {
    "backbone": "neuralop.GINO",
    "bundle_ref": {
-    "bundle_digest": "sha256:ddf53025f9de563fa645c203026f087893e79afb96d6e1eb9786ff2ba2997d31",
+    "bundle_digest": "sha256:2a16cada297bc2c2a3624035e541cea624a7c1906355f0490d5bf91fd14b3e86",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1778,7 +1778,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:934a7810c4f02685c83c5fa6ca914fb488803d8b931f08d5e55c8a970a09c625",
+     "bundle_digest": "sha256:509fee3de3df0ac4721e4ca431d0d5ebac9ad6113e4cb946c118fbdc7a088893",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -1809,7 +1809,7 @@
   {
    "backbone": "neuralop.LocalNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:e37d94064bc05c422ebed9a3be1f9f941f65200580432b89a866ab83a73ccada",
+    "bundle_digest": "sha256:8c89a53f8425e0bbdd44dcb45466141774b691d53a0cbb37a3aea5286e7b9ed3",
     "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1817,7 +1817,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:e31ecf071d046207279a737e18569f72ae28779d95405ca7abd2763d8f5e7f0c",
+     "bundle_digest": "sha256:7f5b1e610ecf8af837dab100e48ae9da5016383ca113279d5d53370b106e59b0",
      "environment_digest": "sha256:13eba7b94e0f9cbeda75aa745c60b36e1e177adfaa565954ed2df0b667faeba9",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -1848,7 +1848,7 @@
   {
    "backbone": "neuralop.SFNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:65a5671c69f260ab59ebd063b8c17c5b69a7feaa9f17b5a6732a87788bcab8b2",
+    "bundle_digest": "sha256:19310de61ad164283d9418dbb3e5895b80d493551c7b1b7e251006b3f3585617",
     "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1856,7 +1856,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:91bd2430f2e54a9c1de724aaca42732c680cc7355334e1e767e984942bbef1af",
+     "bundle_digest": "sha256:49834f451d424403c119cf7646dcfffc021dd80f20ab122f9cb55ab25821bbb6",
      "environment_digest": "sha256:13eba7b94e0f9cbeda75aa745c60b36e1e177adfaa565954ed2df0b667faeba9",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -1887,7 +1887,7 @@
   {
    "backbone": "neuralop.TFNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:047a0b5f40cf7afbde34ad8f35c2bc6a90ab8594c9ba0f88047aeb6af521d6a2",
+    "bundle_digest": "sha256:240781deb94cacc1c64d420a70d52a85fea7a1b366711a80bf2d524edf5b77e6",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1895,7 +1895,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:d19ec8de1054f3de07a50f0ed7764a6317303d3c05b37babee7c645de9ef695c",
+     "bundle_digest": "sha256:6c173275d5b017dfcf7981b2494c65149c7643a98de08250022e4f14f52372d9",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -1936,7 +1936,7 @@
   {
    "backbone": "neuralop.UQNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:3dee94b0a35a80f0f82d0a1fd44dca494d7b627e83543cbf5e858854fd5d4215",
+    "bundle_digest": "sha256:fa19444119da9b0b8d49e162e2110d0242d8e01834f9435a2de537bdfa2720a5",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1944,7 +1944,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:0cd607b2c7ae040fd38d2217d2c142cce41b4c1d54de9014afb88024ad414866",
+     "bundle_digest": "sha256:04c865da470f0285ff415ed676ac75a7142a5d2706e630cf729454da6b3ecf71",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -1979,7 +1979,7 @@
   {
    "backbone": "oformer.Encoder1D_PointWiseDecoder1D",
    "bundle_ref": {
-    "bundle_digest": "sha256:67079eecfd1a590a956b5e3a3e8b055d22911ce7915c5beb0d313739f2287ea3",
+    "bundle_digest": "sha256:53959a1d38e17cb4fd223df238d99a525c34ac21ad77ff181e84729e6837a799",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -1987,7 +1987,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:fb03afbf0aac204b1d0619da35ff2d525a3282d4712ce23f267b6fc094635cb0",
+     "bundle_digest": "sha256:eae1cfa20723acbee5ac5c51df8107eaf1d5d605762d08aad342b3267e4b954d",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -2018,7 +2018,7 @@
   {
    "backbone": "physicsnemo.FullyConnected",
    "bundle_ref": {
-    "bundle_digest": "sha256:6c51ce9927d96010e9ec2dbe1a4a39ff3def8a496a37129709db6e0b1c8b3939",
+    "bundle_digest": "sha256:60becf5c03981c73e1f153b4b5ab37990bdcea3686cbb34d485e4a21d1eebd54",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -2026,7 +2026,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:ac680c1989d42471d7720bb97d8d881567198f4e6eec55071278ac76ffa2ebea",
+     "bundle_digest": "sha256:e77529bb583b05179acfd691db8b8ff5fa12b1d9e4c83ef743fbcf6adfcee6a4",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -2061,7 +2061,7 @@
   {
    "backbone": "physicsnemo.MeshGraphNet",
    "bundle_ref": {
-    "bundle_digest": "sha256:3d2cbe7e8933f6d90dc286f7790c6ab6c97bc6018508b1a618db6fa9fae5d2b6",
+    "bundle_digest": "sha256:81ad85c2e6129b90563acd4aa7b25c0129f0dc5c44f52ad7b3c472fdedf9e237",
     "environment_digest": "sha256:0a313185d40515172cd71c18383598ae8d6f52e5540569dc51c385fa570f7f96",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -2069,7 +2069,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:102e2e69923461ddd9dac0fe5d3f1ee4276233eb2e083eed4379ef52e92ca525",
+     "bundle_digest": "sha256:f291dc9bad86aad7a21b82c0d4243f645465b59d5efce49b7520c3b61cb67620",
      "environment_digest": "sha256:1864f308b2d1353b2c4ee7021ef6171ca61c056365419293f32c302a44b0b22c",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -2100,16 +2100,16 @@
   {
    "backbone": "thuml.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:e900d7d18a8049e43b7281b753f0c91f0b4cc567e4ce36f96cdd143b3ec167fc",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:b6ea4ebf4374b1777ef8c77c96817b94fbcfa6cd55762ea721a443e8f057e56d",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:3e94a754eacdeedf7febb5b2ec849826ad2f8129f8ee8e09e9abc9cf4b9944fb",
-     "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
+     "bundle_digest": "sha256:2493347c1d2c007ac6e297b31617876161934769dae2cf3bd234781fea015ee5",
+     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
      "schema": "carbon.library-bundle-ref.v1"
@@ -2139,16 +2139,16 @@
   {
    "backbone": "thuml.F_FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:70f959f2e9d0792debe6f2bb295ebd3b865918ff246b668f27b3b168d32bda00",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:bf1b808286b85c27bac5505b79f5c17a99c53af27b2e712ea2133cdecfe6eb2b",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:9b616c82185e1c4674c15908c67344a9ff9de01450a31be2996bffbc0a77024c",
-     "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
+     "bundle_digest": "sha256:5a9c15c2769d3132314a670452315ce7ca69995958637531a4b7c83ff4bac1c3",
+     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
      "schema": "carbon.library-bundle-ref.v1"
@@ -2178,16 +2178,16 @@
   {
    "backbone": "thuml.Factformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:ad1951f29df0f635a22098e67aa87ba38bb5a6415ed40fc5ca5964519c166251",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:032a41b2175c594f34d474b4e97eab747903a751467337890657c675715f3155",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:9b44aa1cd36f16786909cf519b2c643a9aecb6a8632faf3f6def03254016c561",
-     "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
+     "bundle_digest": "sha256:9cbfb3bed9dd0374a251f2142cb7ec00b4df65a40f4fe7a6e59cfb9966e677a8",
+     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
      "schema": "carbon.library-bundle-ref.v1"
@@ -2217,16 +2217,16 @@
   {
    "backbone": "thuml.Galerkin_Transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:5d1321647573cd9025d51a0fdf6ce11c70d94e9e049171ae11e3060ca27f6a7c",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:3ee7c08746057f9eff31fc8ae6261e958b60d43b84315f127200372680178c47",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:80478cd149b66ea1a08c554f00a194222986e37d9e43fdafab5d273695ba63ce",
-     "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
+     "bundle_digest": "sha256:6d2472f15af9b84039d7ce368b83c7634d84279f5283215081db5a33060b802c",
+     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
      "schema": "carbon.library-bundle-ref.v1"
@@ -2256,7 +2256,7 @@
   {
    "backbone": "thuml.LSM",
    "bundle_ref": {
-    "bundle_digest": "sha256:dfb38b6f9fe8c075178cec19c1dc2eca3852792bf154d80cea50a34e385fd233",
+    "bundle_digest": "sha256:54a6122d7f4b11d8e86da471e1e1c9a45f2e664a4b73ee1a61911777fc49178e",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -2286,7 +2286,7 @@
   {
    "backbone": "thuml.MWT",
    "bundle_ref": {
-    "bundle_digest": "sha256:8e4903c18e403dac2e64462e3e7562ea1f395979e78c55a8ecef5d754276d7f3",
+    "bundle_digest": "sha256:a0dd3695ce87376a6c40a51344eba459c3af4270f1382b009e5af19f42f2af7e",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -2294,7 +2294,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:17d69f6e02dcbf6452f6044554700dc3a1bdcc1fa260c8fa58ad99ad7c0c9eab",
+     "bundle_digest": "sha256:7557c16d57f39e6bb23a047f37d12ff8cd0c84f137c7b9b797a83c2e3c3a8aac",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -2325,7 +2325,7 @@
   {
    "backbone": "thuml.Transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:c27c922a035f8978ed0bbde1fb6173ecf1b62f86450ac493e16b518f6cbc9093",
+    "bundle_digest": "sha256:cb8197581d206670990c90c6e7dd329673e0f747a95fa8388b59e4fff88ceebf",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -2333,7 +2333,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:efe8216e5350c46747fc5c168dcb13179b117c0e1d14327a0049d3d97edec83d",
+     "bundle_digest": "sha256:8909d0e29f7875c679d984204bbe1737b831600e4aefc269cb1c320bf35686a4",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -2364,16 +2364,16 @@
   {
    "backbone": "thuml.Transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:69c7bc30045143d0ca11ba8f234ee932a24f50436973d4f3605fbd04b7ec15c4",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:43dfabdbe20c652b935b53f10f14a450a17e34518fbd4feb4bd3d5e1d572ed5d",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:b47d2933260d13afba56e2a8e56d5213661c9dd46921cee082ca00a0df430033",
-     "environment_digest": "sha256:78b8404ae08d66c52df12d67fae1ab04b332f7b1facb5543b1506ded995ac356",
+     "bundle_digest": "sha256:73bc17a568967662c34e7b228f90238562886a559aff6d71edcca7c661675714",
+     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
      "schema": "carbon.library-bundle-ref.v1"
@@ -2403,7 +2403,7 @@
   {
    "backbone": "transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:b3fad147ec398f7a1abb6becf755aafcd3252d70ebc86426a502824a22f5b02b",
+    "bundle_digest": "sha256:94b1b3dfa79230764eef1e74f9e2cdaa45a6f3728eb496669c53a78e9a517423",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -2411,7 +2411,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:b2c5c0f543902e79831a781fd3ebd7b760ce8602ab7507cc4b0c60a1b9683986",
+     "bundle_digest": "sha256:ad9f130c710654f70134735a92858030843f2e22e1ba3c98790463183f77b92f",
      "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -2452,7 +2452,7 @@
   {
    "backbone": "cno.CNO1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:16bee985772eb9b4a7400a4aa7f11733360adcbfa886015fa05014af166f19b9",
+    "bundle_digest": "sha256:cf4f07bf3f92ab424ea36afd69e363961823f983c4eb57ac9670ccf1b8a86a17",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -2482,7 +2482,7 @@
   {
    "backbone": "deepxde.DeepONetCartesianProd",
    "bundle_ref": {
-    "bundle_digest": "sha256:9c330cbe71016e2b386338ec70aa01815bf460bf883bb6d62fbf35dc657f4095",
+    "bundle_digest": "sha256:17ae6e210a4973bc64147169789240fb6d724d758080f0b4c4e1cbdc4f249537",
     "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -2512,7 +2512,7 @@
   {
    "backbone": "bcat",
    "bundle_ref": {
-    "bundle_digest": "sha256:262871e25b8e12b99c66aef3d79a8cb99656b2f4f7481c4edce081b78006984f",
+    "bundle_digest": "sha256:aaf1ff3fd11103680162b15deb37447a08496d735248d2b3bd5e3d5df8f21199",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2542,7 +2542,7 @@
   {
    "backbone": "cno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:f09199a4b598c7412403d74d3a93ff0d81d5ee10879b40b2740be6e188134f1d",
+    "bundle_digest": "sha256:5bb703334915e7d87419ceed85160a46764338aefe4845220aca2f2f97a07b6b",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2572,7 +2572,7 @@
   {
    "backbone": "deeponet",
    "bundle_ref": {
-    "bundle_digest": "sha256:6d3aad1c3465501ff95be9be6dbc253b2d14687b005e5b703d56bc7d5bf0adc3",
+    "bundle_digest": "sha256:39ff1b8a62a82690a67d31d6096100ee97210ab20807b4b4f9ae0f9d8b600a72",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2602,7 +2602,7 @@
   {
    "backbone": "dpot",
    "bundle_ref": {
-    "bundle_digest": "sha256:a6641da2ddbddd45c3fdd872b07e94334d73f9f9a980c4c7d3fe53379a1e80b1",
+    "bundle_digest": "sha256:e04e25cccad08211688bde1164fbc4182c44e6937f75f34dab857f7288d65d77",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2632,7 +2632,7 @@
   {
    "backbone": "fno1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:2fb8e97a7442d4f64a1ca6da358e6edd9998ac6bb2f17c762002792922c6ab00",
+    "bundle_digest": "sha256:83840ca8ba51da444b671dfe4d7b1a06b5dcb00957740e7abe3bc1b47aedf577",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2662,7 +2662,7 @@
   {
    "backbone": "fno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:8b8fafc581f78ec8edb41bc62e7c9c7a41c3b1706c5baf66fe9f10ca620d50a4",
+    "bundle_digest": "sha256:79a21258c2a7d31ad069bc0a7a243e87bbb59b981fd2e798c2f6dcb1e9a380f4",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2692,7 +2692,7 @@
   {
    "backbone": "fno3d",
    "bundle_ref": {
-    "bundle_digest": "sha256:8d2d0bb49adbfddbc26838bb895ad015e3c2105df86db349139166a7f107352d",
+    "bundle_digest": "sha256:767524f2449123ce2471a99a770d40e47f7b5d9b0957be8a708238fd1df28b9c",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2722,7 +2722,7 @@
   {
    "backbone": "geofno",
    "bundle_ref": {
-    "bundle_digest": "sha256:74a792a1e85fc53022e027ea654fd6179901b884d26403fc9477747be276101f",
+    "bundle_digest": "sha256:ba39b60646153ebfda9f091e063996450d0c1e94f87b24963687e93152e949c1",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2752,7 +2752,7 @@
   {
    "backbone": "gnot",
    "bundle_ref": {
-    "bundle_digest": "sha256:c99d7a6824cb18ee15ae3d8abac6c9938008ed1e2fceff7f601d8606d5ba0311",
+    "bundle_digest": "sha256:7492ad93ee86e91f8aad6427f1d14df173fd58f2cf38d8476128a508464728bc",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2782,7 +2782,7 @@
   {
    "backbone": "linear",
    "bundle_ref": {
-    "bundle_digest": "sha256:0cbf4073c09b4f5934bacfe5826551d6621d4d08ce852e72006b251af921c251",
+    "bundle_digest": "sha256:4b76ec8c0d8a2c2b59bf3e69225287ca17e073fc2671aaff22aac007ee0b2687",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2812,7 +2812,7 @@
   {
    "backbone": "mgno1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:dd591565318789d0aa8d10abe86d90cbf0133f3c80d1748b25c947b2393199e6",
+    "bundle_digest": "sha256:72a05400bd4d0f5a0c29def967a4ddef67a7e27db4882c16fd831deedb23c92c",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2842,7 +2842,7 @@
   {
    "backbone": "mgno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:34c913cc226f8fa5bb73fae2a2e8bc71cc2d3318a675700bc54e11aa06ea3c12",
+    "bundle_digest": "sha256:0b634777f7a20d089d73c1aaea6d3a16a9600d14282dc29cb96efb5e4ec37670",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2872,7 +2872,7 @@
   {
    "backbone": "mlp",
    "bundle_ref": {
-    "bundle_digest": "sha256:4ad797d39bd1bb896139702e745f30e2c366fd0e2835c1147b5d1165f0357512",
+    "bundle_digest": "sha256:87fbe4d15bc285f60e5e1f80b3c6c9e5069baee9a880ae48b7d2d5a5e34f7f45",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2902,7 +2902,7 @@
   {
    "backbone": "moegptno",
    "bundle_ref": {
-    "bundle_digest": "sha256:0dbac0136deb1ce41cbaaaed617447a27e648d4ccb76d2ac774aec0c112aa858",
+    "bundle_digest": "sha256:c408eb5111af545f50f1b503d01fcfae6f842775df7c4d1ea863db1906905462",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2932,7 +2932,7 @@
   {
    "backbone": "morph",
    "bundle_ref": {
-    "bundle_digest": "sha256:79cc886c7f5e912ed3382bc35304fc4c89273f294d428724801f28db1eb01df8",
+    "bundle_digest": "sha256:9e8d5e4a7ab72ac2eefa8daa2af15b2855d531237a0473f2b15b826a20ebf107",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2962,7 +2962,7 @@
   {
    "backbone": "mpp",
    "bundle_ref": {
-    "bundle_digest": "sha256:d32af09c5f15bbdc0e9e9d7fd89184bbc80d875d389db3d81d1cffb72668d647",
+    "bundle_digest": "sha256:0676f530de456138d72c59761dae5477276d4806bbbc82d5770e62ad2fe892ae",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -2992,7 +2992,7 @@
   {
    "backbone": "pcno",
    "bundle_ref": {
-    "bundle_digest": "sha256:ea6e020631f1645cb5997cb1bd7b2d7c91f7ad1c6060cb8cea15c0e3fd62ed2a",
+    "bundle_digest": "sha256:6638d80aa56b31ce39cf14fb6cd980acdda23b04ed1296740d9c3bd4b3518ff2",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3022,7 +3022,7 @@
   {
    "backbone": "pdeformer2",
    "bundle_ref": {
-    "bundle_digest": "sha256:49b51aa2749014c3fb646c284d8ef673ba6b4fb0c03e248d81d2dc288648e733",
+    "bundle_digest": "sha256:d74340c0510f1e45a911f316f12f7d4fd48221272ee460fa8faf253e321dad78",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3052,7 +3052,7 @@
   {
    "backbone": "pit",
    "bundle_ref": {
-    "bundle_digest": "sha256:3db69d5a0555abc07da22c427a7f6e0018d988edaf7df620e83e233eebb47256",
+    "bundle_digest": "sha256:a5f0bcb070af1d142e2a8f87217ae14d7a7df1f36a175f31ddaddaf54c4ed5ed",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3082,7 +3082,7 @@
   {
    "backbone": "transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:c19974138ef907ae2b67aad8ca624e7651cf54a74b8c7d1d4c8dbb78adfca650",
+    "bundle_digest": "sha256:674d355693d8ad7f33872b6928ae95cbe8a75c0e21bb98f082cb665c184f9efd",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3112,7 +3112,7 @@
   {
    "backbone": "transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:5d026dc2c5269514889fc159ee5a3b1df71ccd13c2918996ae729f63d81bd7ac",
+    "bundle_digest": "sha256:7cdd7e13ac97bfccfdd681a6a108c0a61ab7d255709205473b74cc4a27e200ba",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3148,7 +3148,7 @@
   {
    "backbone": "unet1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:201bf217c6c4972532dc63bf9117ed89f12f4b0ce62c728cabb960eb5d421ba2",
+    "bundle_digest": "sha256:3bdf5fa15ba513b0430bf372f4efa8689cae6968291fe5c6455b592b56077069",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3178,7 +3178,7 @@
   {
    "backbone": "unet2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:4e609ac3b9d9c61e3e59b1fa53b41df5b7e235f94ff684f9bf3294c21f6b1b25",
+    "bundle_digest": "sha256:efe04b8693cbb0fb822a84517258e7d396cfd85433e51fd1d41901749e7f4202",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3208,7 +3208,7 @@
   {
    "backbone": "unet3d",
    "bundle_ref": {
-    "bundle_digest": "sha256:269cdcb7f65e677952d6cf954b5e0ec421aebbb11ab6072bd3a1ade7d2a5aaed",
+    "bundle_digest": "sha256:386d29df09547549c2436de630cac4451473d88b876a087128d356d3534e907a",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3238,7 +3238,7 @@
   {
    "backbone": "walrus",
    "bundle_ref": {
-    "bundle_digest": "sha256:e25bdffe37446372c3e497b8b6db216ae142b96308c489453c1f06f8d122bfb2",
+    "bundle_digest": "sha256:2b5c81a1039afa723f5e8c3feb9141272b23c861d49255a0fa1294f1319ce713",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3268,7 +3268,7 @@
   {
    "backbone": "lno.LNO1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:0b40f993f5ff142b2b7c62f2eb1d72822f30ac546e1b939835c46899c5d3c841",
+    "bundle_digest": "sha256:9a5c3ec5e7b21c3ce380a526e54c50bdbb4493413f31f80f96d67306ec898be2",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3298,7 +3298,7 @@
   {
    "backbone": "neuralop.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:96d65d10a9bec8d5e5973a5de44d7b629d8c7de2b6b0f3633652cd5070cb23cd",
+    "bundle_digest": "sha256:3b1f2ff789f85f1ce51d913a5a4204c05f331c6b5dd33e59feecd877ab4dd5ba",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3333,7 +3333,7 @@
   {
    "backbone": "neuralop.GINO",
    "bundle_ref": {
-    "bundle_digest": "sha256:439651dd5d1f08255bc6ed0885346fae43e66f72d8ca0ae0b336e7e688aea63f",
+    "bundle_digest": "sha256:316ab53060c34b05c560d39e1ad4bcde108f4e53ec110454d46e4dbbeba201e5",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3363,7 +3363,7 @@
   {
    "backbone": "neuralop.LocalNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:7e39f8344544ac51d1818798d78a5fc8f6f7bf39fd0b8d9d5f5749231c0aa2d9",
+    "bundle_digest": "sha256:9543a5813f36957ab0af3418e3720c2a63b1febb70ce1d70b7746b7b6e7eb1c6",
     "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3393,7 +3393,7 @@
   {
    "backbone": "neuralop.TFNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:bc17131b9a4c5014917acc74d7f42c11e961ba4c49b6a385478aebcce400cd1f",
+    "bundle_digest": "sha256:35f99ea2862ce476d5542ae9b0058c3bf0e7feb3eac2521e7a4a90a4339ff324",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3429,7 +3429,7 @@
   {
    "backbone": "neuralop.UQNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:7a30d53a7d56ef677355ebf96ffb576424253a46f91480c8bff1135b29719842",
+    "bundle_digest": "sha256:17dc59eaa4c485df1e4cc2fa6d8c9b7950484a19594c185fdf88f9e4ed3ddf1c",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3459,7 +3459,7 @@
   {
    "backbone": "oformer.Encoder1D_PointWiseDecoder1D",
    "bundle_ref": {
-    "bundle_digest": "sha256:10d570a9b9c88fcf9af380e433dfdb88f7c6f6a7e400235bf6c49f0554764007",
+    "bundle_digest": "sha256:98f6bc787e98206217c8062797e7c3e4514edee75e7f43c84fd26dd02a064e19",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3489,7 +3489,7 @@
   {
    "backbone": "physicsnemo.FullyConnected",
    "bundle_ref": {
-    "bundle_digest": "sha256:38f8ea0ab746d5220b8ae1da7fb81c113682490b871795e0378995a95742962e",
+    "bundle_digest": "sha256:55b2b901578e2389a8e36aa7fb25f7ccf3a57bc09fd6c4e93f3c915cc91c16a2",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3519,7 +3519,7 @@
   {
    "backbone": "physicsnemo.MeshGraphNet",
    "bundle_ref": {
-    "bundle_digest": "sha256:a42950d4be0d57abf8ff815fff4b46b9e44497c35939c1d4a6ca5af0ded3dbef",
+    "bundle_digest": "sha256:2beafac756aede4c902a29653e4964f1dfe07f606c5294f1b5e4a65ef4ee7a5d",
     "environment_digest": "sha256:0a313185d40515172cd71c18383598ae8d6f52e5540569dc51c385fa570f7f96",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3549,8 +3549,8 @@
   {
    "backbone": "thuml.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:6081b0e4aa9a0ea28a9315dec76711fb0f50336dffed2ec4543e660507d816e3",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:966d6d9834445e86d3bb523e8bb2c5cfd3c269f77db56be8c6e8650889ea39ca",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -3579,8 +3579,8 @@
   {
    "backbone": "thuml.F_FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:2bcf28fee1ac2e8345d51054b7d0d65dd4e9c9b4828fab6481518dc8ca55f094",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:6a7956cf33a8bce7ae684efa40c3ad17d303e34e3d4f4f0e307cf9ebe06c13f4",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -3609,8 +3609,8 @@
   {
    "backbone": "thuml.Factformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:94d1901374bc0cd21b63e4049283c6f834bdd820df18d9b10672869e3de7a0ee",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:3cd10fd09160f79b58a170aff2d1c07ce302ca94cd4485dea6424b7c87aaef6a",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -3639,8 +3639,8 @@
   {
    "backbone": "thuml.Galerkin_Transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:d08be42d60f1642b1bd4f48bf02902d46d8cd589202dc92d77ef2132f4e2de6a",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:47328254c15338b7fd01c4caadcccc22edcbcae4099c0227f84d423fdaf25bcc",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -3669,7 +3669,7 @@
   {
    "backbone": "thuml.LSM",
    "bundle_ref": {
-    "bundle_digest": "sha256:c09e28e2538eb42bf19edec86bdc305f5ff1f120391a8e78587ba10c875b3900",
+    "bundle_digest": "sha256:7ead8add398bbbe53eb20b7bc4feaf7ebb3d2bba2528fa803e740c316bf905d4",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3699,7 +3699,7 @@
   {
    "backbone": "thuml.MWT",
    "bundle_ref": {
-    "bundle_digest": "sha256:bc4a1ca051983b29aaf378faa17fd8c9b2edeeeb3db7738d9f634f3748c047d9",
+    "bundle_digest": "sha256:08eee3a859a90fd2895664b1f73e79c5b69c48c86462d611adf681bcdab5ef64",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3729,7 +3729,7 @@
   {
    "backbone": "thuml.Transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:fe7846fc9763acf79e3babc56cd0772772718d4ab0950fb6b2ba33abee3fc0e3",
+    "bundle_digest": "sha256:15868c0d0869424d56cfe1022cd604b73f9d0c9a637822af335960ae620971f0",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3759,8 +3759,8 @@
   {
    "backbone": "thuml.Transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:1006f71b581af50917acb20506da044b8d2f292802ffad1befdd3a3974650ca6",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:d1f241b4063201df014a4d7d31f6befbc5bb521919f7ca87e4f54d7b70da485e",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -3789,7 +3789,7 @@
   {
    "backbone": "deepxde.DeepONetCartesianProd",
    "bundle_ref": {
-    "bundle_digest": "sha256:573bc86769c8d41d7084f2a1060207d808aa4c261521b282c816eb802e70dd94",
+    "bundle_digest": "sha256:da9cfef5f8e54861de340a9aed63695bc18ca77a0f88d2e789645b562ed74ad5",
     "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3819,7 +3819,7 @@
   {
    "backbone": "linear",
    "bundle_ref": {
-    "bundle_digest": "sha256:c10f4f9004e6e7b9cdc4ec561b8731f364e1cbfd7e3fb174a606826ec9ce73d6",
+    "bundle_digest": "sha256:35f6c109c74ca728e82a5e28879409b05ffbd368a8416e91fd95e9e49cf58971",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3849,7 +3849,7 @@
   {
    "backbone": "mlp",
    "bundle_ref": {
-    "bundle_digest": "sha256:6a33ea741a446be621565ee57d1e407bd544198809071ac18853af0c5f5cf825",
+    "bundle_digest": "sha256:692abbfa600a5ea92644ba4353147c7aae0cbc7123364f22b8b9a15f7b290b4a",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3879,7 +3879,7 @@
   {
    "backbone": "physicsnemo.FullyConnected",
    "bundle_ref": {
-    "bundle_digest": "sha256:7531e9aea4a9ddda511ce2ae4996f051857dbbb94c8a92ae8ae0611d1afa4e43",
+    "bundle_digest": "sha256:379a612b43eac4aeeaf9634af4c223684836ad69e848af254cc847c53df03861",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3909,7 +3909,7 @@
   {
    "backbone": "krr",
    "bundle_ref": {
-    "bundle_digest": "sha256:0d17ae4381867edf00d6193fde0e1fdecbe946c61daa5c3b9df5f5403aa4b8fc",
+    "bundle_digest": "sha256:04b718580f406ce4a141250377f8e1c98dc4932fc27d2604b46985fe0652e254",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3942,7 +3942,7 @@
   {
    "backbone": "cno.CNO1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:1807ba7b09278da273f3ceab6b1fc2a7493a1734673d136b37fea43aa9cbf6bf",
+    "bundle_digest": "sha256:3e2df60ed48b1e7d5d22491b67f8dca35ad4328a38d8e1f173a139f2e48089f8",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -3972,7 +3972,7 @@
   {
    "backbone": "deepxde.DeepONetCartesianProd",
    "bundle_ref": {
-    "bundle_digest": "sha256:115a1643970930f93eb2d64fbd800a3492dbe3afe5c464bc182159e12da0c384",
+    "bundle_digest": "sha256:7aa9c06385a61751afe64a5053580fc9bed347dfa95c618a961ddc2a1bbace53",
     "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -4002,7 +4002,7 @@
   {
    "backbone": "bcat",
    "bundle_ref": {
-    "bundle_digest": "sha256:8579466be759c0e1cd0d0e8ca98780baf0c689b9142ecec6aaadf8ef58300a15",
+    "bundle_digest": "sha256:c1f5cf666207883cac1221512f552bf8a8ad518dfb739d132b73e37af31e606a",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4032,7 +4032,7 @@
   {
    "backbone": "cno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:f4226ba639e04b39049cc2e60a80c1be2df147c2bd655cadda46d1f77f7171dc",
+    "bundle_digest": "sha256:e25a7dbce7d6c723bb12ff2f7016041438795f3b94d3b438baf1008a5e19e65b",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4062,7 +4062,7 @@
   {
    "backbone": "deeponet",
    "bundle_ref": {
-    "bundle_digest": "sha256:173ba31cb08a065ea13c568a9b8df31375c91b32154cfa421654916a016d776d",
+    "bundle_digest": "sha256:5e2d51a1cd94a6fe5a59a3a21d094e82001a4dfd7012546f23c469fff2ad5254",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4092,7 +4092,7 @@
   {
    "backbone": "dpot",
    "bundle_ref": {
-    "bundle_digest": "sha256:0060dfc3fafd6f0fff3206e00158c4410d2a0b6d295a45c21d57c3a11f40a2ac",
+    "bundle_digest": "sha256:e8f6ea07926ac6073a9342e2672172552334abb82d873e9f4b65a18239d63646",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4122,7 +4122,7 @@
   {
    "backbone": "fno1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:90c5428c6f7b5d3b44898f907592a3fe6f51389fdbcb1acf0ec026dd6e1f06f4",
+    "bundle_digest": "sha256:20f1c1d51f83449fafa255aa475ff12964e33d6277f5804e7a5e57b144d1a60a",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4152,7 +4152,7 @@
   {
    "backbone": "fno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:3e5d2a1830800ba67148348f2965b779951f8a522070e2dc9ab7feb27c004f7c",
+    "bundle_digest": "sha256:0863003b8a8fc248436ad955a943ae456623fd27c38614bab238c9c549f63a56",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4182,7 +4182,7 @@
   {
    "backbone": "fno3d",
    "bundle_ref": {
-    "bundle_digest": "sha256:39c8026c68c5685c66aee4743fdcb0020b3a802aca088fdf6b8436aeac727b18",
+    "bundle_digest": "sha256:a895481d7bbb3d0875718fff9392cf9f6546eb8dbd21bd4cf1f4fede2f9ccc04",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4212,7 +4212,7 @@
   {
    "backbone": "geofno",
    "bundle_ref": {
-    "bundle_digest": "sha256:25968fa5055a2c8c488fc1d7af52f737aa6045bb1aa492b9aa404dd9b94d5ea7",
+    "bundle_digest": "sha256:75b7eaa8c374c6c045f5948f899a6f8923ca32ab250d713ede088333e731d327",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4242,7 +4242,7 @@
   {
    "backbone": "gnot",
    "bundle_ref": {
-    "bundle_digest": "sha256:6bec359e2636f09ecb43bc3c16dd18bb9b06e62fb5caef8cdc7952b7f8680c5f",
+    "bundle_digest": "sha256:9736dea04b04dddc019427065e19501a7782b2714412bd085ecc15dd83e92b16",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4272,7 +4272,7 @@
   {
    "backbone": "linear",
    "bundle_ref": {
-    "bundle_digest": "sha256:d9186b2c76b6b12a8804dc0e5e6c6c9fca2c1a3d56bcab9869a0e2a261611d77",
+    "bundle_digest": "sha256:584c59b4ebce9cfe00b76e4eff86393aa4be371dc704190a95b5846d17884e63",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4302,7 +4302,7 @@
   {
    "backbone": "mgno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:88f6d28c4d980bbb48faec232aa5ac8579b6fb50a55b2895090cfa7b867da413",
+    "bundle_digest": "sha256:5fc9f4ef44d8c0cced6fe7e4581905db6964e951b15f22ab866be3907e345267",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4332,7 +4332,7 @@
   {
    "backbone": "mlp",
    "bundle_ref": {
-    "bundle_digest": "sha256:64b10f8f049a16bb07ef2085be591aa052b6bad46559771cb1eb8840d7daacf1",
+    "bundle_digest": "sha256:4e81fc5266d3f4490b81182c82bef9e80ea01293d4ebcf81887d607ae816213c",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4362,7 +4362,7 @@
   {
    "backbone": "moegptno",
    "bundle_ref": {
-    "bundle_digest": "sha256:8c9659ac9d416ff1c0f3b7f8a3a1b0d1c56890280921bc2d6217a2b9c45d33e9",
+    "bundle_digest": "sha256:de7466610e25f1ff6386f45f2dff30ed8b62b54531418681967e9e591d8d22e8",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4392,7 +4392,7 @@
   {
    "backbone": "morph",
    "bundle_ref": {
-    "bundle_digest": "sha256:5f976a2c18828c348fc415a7b488391bad29893c76eb6c78a1396d49157a95d0",
+    "bundle_digest": "sha256:c49a3a88c9035b0364705adc0dae141e13a35b20603d574e20d6fba48affeff7",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4422,7 +4422,7 @@
   {
    "backbone": "mpp",
    "bundle_ref": {
-    "bundle_digest": "sha256:d1d1d7f276e65ed6e7e887884cd6964299b868293ff0b3deb501ecaf48d3208f",
+    "bundle_digest": "sha256:abeca922b362a889db9e56c2c610408b8f7edccae2681d470b395b1e05ef4887",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4452,7 +4452,7 @@
   {
    "backbone": "pcno",
    "bundle_ref": {
-    "bundle_digest": "sha256:4428432f518eb4d0752e76b767a9f9fa12029a8ba9a33c4d2e18050d59ccdff7",
+    "bundle_digest": "sha256:d71e7724edce57a58575e513c09afa6d73cfcc2c0143d06141453c470b1d13bc",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4482,7 +4482,7 @@
   {
    "backbone": "pdeformer2",
    "bundle_ref": {
-    "bundle_digest": "sha256:8fb3b6de6fbe8a8da6c7df95f5a945abd1d02bafc30138212d9599eb76d6deeb",
+    "bundle_digest": "sha256:b39206bd10ac86adb4aba8b5f9790b22a4e4ab774bb151df8cbae437b678ee9a",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4512,7 +4512,7 @@
   {
    "backbone": "pit",
    "bundle_ref": {
-    "bundle_digest": "sha256:2c979c1c3dacef13d16d940985a8fb25b709704fcda3b34ab38d0925a30b0bf2",
+    "bundle_digest": "sha256:bb405d6ffc8eba8c143b015f303beec5a23c754817eb4cb05b4e25bb2afd2f1c",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4542,7 +4542,7 @@
   {
    "backbone": "transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:867c3bd7a1d10653cff057ad285dd5b9968e63548bb97171c6b920c72798b956",
+    "bundle_digest": "sha256:c017adcaef49b2d9d9c9e8c72f6dc824b1f2df741b248272210a1aa420dd90c0",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4572,7 +4572,7 @@
   {
    "backbone": "transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:6e25e2ce7b376f66742fac5dd2e20b2390e3bdc7a51a94df5f59a09e84c0e85e",
+    "bundle_digest": "sha256:a9b98a568aab8bbc8226b9ace38ce45c16b62cf7261d2b8ab48df8724897ade0",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -4608,7 +4608,7 @@
   {
    "backbone": "unet1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:8a20a14d020e1621b6f7703d66f46c3490124ec1808e6048b3e321ded1d7fa6a",
+    "bundle_digest": "sha256:d07afb1472dcbdf7ccbd1268104c2d846248400ecb79ebb4d17d7d95a70983cd",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4638,7 +4638,7 @@
   {
    "backbone": "unet2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:9fe9649601cf548663dadbd3ae4965607e98a5860d750ad7feb1fcffd7507240",
+    "bundle_digest": "sha256:9d3bb1f8357c585b66afa29bb2d9d62bf9a20d479548e9f01b44306b8bcb50bc",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4668,7 +4668,7 @@
   {
    "backbone": "unet3d",
    "bundle_ref": {
-    "bundle_digest": "sha256:7f35bd999f58e74901f54580902da6423c3527efb1d31b2de3c700e657a2dda3",
+    "bundle_digest": "sha256:c9e5bd846bb0f3e9fdb44598c793dfb849be4eb2a0381fc353d822fc7bcb521d",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4698,7 +4698,7 @@
   {
    "backbone": "walrus",
    "bundle_ref": {
-    "bundle_digest": "sha256:f5731fef79d89026ace7961bdf9bd21062946d4e821a5687169cd845d8c18246",
+    "bundle_digest": "sha256:9cabb9b183b3a8ab618c2ce1664f29b525f3dc0a22dcde97b185b41d4349b4a7",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4728,7 +4728,7 @@
   {
    "backbone": "lno.LNO1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:eb0105c1bfdd139a36014036f64b4e1894622076c58f5b76c212001fab66ae70",
+    "bundle_digest": "sha256:7b55e26fffd5090aa34d76d356ab25c2e970a25a322b88ec807dfec45655c4bc",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -4758,7 +4758,7 @@
   {
    "backbone": "neuralop.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:26792bdb7df99cb92f05a315793548e94ce3e3db0c8a0b2f5cd20f82e9268c8e",
+    "bundle_digest": "sha256:21410dc5d4cda5ad19c84040153d9c0fa8b1318c95b581bd8a4a3ab6c1eeb31c",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -4793,7 +4793,7 @@
   {
    "backbone": "neuralop.GINO",
    "bundle_ref": {
-    "bundle_digest": "sha256:c0e76fb515221bff83c757cf1438af6b7bbde33735cafe60c19ceca25600afec",
+    "bundle_digest": "sha256:850daccfa575383447d5ad0275c3462fb42cd8546b758d680a0e5f1deff78fdc",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -4823,7 +4823,7 @@
   {
    "backbone": "neuralop.LocalNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:96d273105cbb2899ae849667ad61b10851af73ffca1944c5888853432832bf1e",
+    "bundle_digest": "sha256:3c491a0b584c675ecd797227692d198786fc4252454eeca4eba8f64b5afa40b6",
     "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -4853,7 +4853,7 @@
   {
    "backbone": "neuralop.TFNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:aac1eedf0e839466c887c8137b56c716232d2e918916639c482fcab8946cd4df",
+    "bundle_digest": "sha256:008bbde33d00774d2ff54e7beaef37279481edc004f2dab435107be7e0e3b66e",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -4889,7 +4889,7 @@
   {
    "backbone": "neuralop.UQNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:0351540b4177cbf4ff6d20e7f65706f84496c086dffa80edc14b4d38e2f9eea4",
+    "bundle_digest": "sha256:ba0881120ba5ab7007df88bf5f77e857dc095183542abcf5b33e380ca380b6b1",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -4919,7 +4919,7 @@
   {
    "backbone": "oformer.Encoder1D_PointWiseDecoder1D",
    "bundle_ref": {
-    "bundle_digest": "sha256:e9d4130c3e0edb41148753d76db3e389ef1f97a9f6501bdcd9336a0d5afc32ef",
+    "bundle_digest": "sha256:abc39f2403595320775827beafb96d311fc1dd6d0dd8c3ed1bf272edf8928010",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -4949,7 +4949,7 @@
   {
    "backbone": "physicsnemo.FullyConnected",
    "bundle_ref": {
-    "bundle_digest": "sha256:725340f45dbf4c2a323d5e29c03a2a85ca3faef4fb1f18bc1e66e7fdfab68958",
+    "bundle_digest": "sha256:2645c37de45d759dcc8641e5736be15064cf8d85c6bf5f3b41a0c80515f63351",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -4979,7 +4979,7 @@
   {
    "backbone": "physicsnemo.MeshGraphNet",
    "bundle_ref": {
-    "bundle_digest": "sha256:58f5f9be5949c7295a54b27b7c696f537181d037ab8aa00f0930801e32434814",
+    "bundle_digest": "sha256:8354624db7321866f6bd950c6b22a34f958db6bfffc11f0d84d73c3b7cfbbe98",
     "environment_digest": "sha256:0a313185d40515172cd71c18383598ae8d6f52e5540569dc51c385fa570f7f96",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -5009,7 +5009,7 @@
   {
    "backbone": "krr",
    "bundle_ref": {
-    "bundle_digest": "sha256:3b5922e69d8373d943289329041e8b71716278d3c9924fb0dbafe27ee62d4aa0",
+    "bundle_digest": "sha256:37301dcd44411ad8ebe276230c3f6ad54473ec9fa42476d67e2c8ff31c8c0079",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5050,8 +5050,8 @@
   {
    "backbone": "thuml.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:2cedb891c8df73d290dbb70e3b8361cf0cd8cbc180646d697ed01560f157a15d",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:0bab111005c2771b80d1c71e35bf0d9518690c2091ec05f1dcc501fcec1d3f0d",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -5080,8 +5080,8 @@
   {
    "backbone": "thuml.F_FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:2620e4eae1911bc5704fdce7c078282345e1c85a263c0b76c79c5fb8213f1f00",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:98cc5a216031996487f4a0632b0edd964c63dc61724cfdecf746c1f8ac2e1abd",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -5110,8 +5110,8 @@
   {
    "backbone": "thuml.Factformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:18aac925877a4918e23f4278dff33cee1300dcbf916409281fe8c2bbb855db61",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:b8500a52d0fbe362aba65cb7a904185d98f8881a5fc0046987bb59eab310a061",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -5140,8 +5140,8 @@
   {
    "backbone": "thuml.Galerkin_Transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:d6a0e2f803889343c146fca73dac9be3f5dfd4e6420a90f635c93721c9b5a407",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:a458135ba12ddcb1d553f295e6028ead42f2101896debadc49b1b826462ccb03",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -5170,7 +5170,7 @@
   {
    "backbone": "thuml.LSM",
    "bundle_ref": {
-    "bundle_digest": "sha256:4507453fedbfcf60a37debc7b5ca17e83dd303683ccb24d1629d48d10a845cab",
+    "bundle_digest": "sha256:55cf0c4c96db1f336490e78cd5f1df0a17dc443e0de0beaaff64923ba31bcbbf",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -5200,7 +5200,7 @@
   {
    "backbone": "thuml.MWT",
    "bundle_ref": {
-    "bundle_digest": "sha256:46bd56cc07030875c0b2df5bc5dc135a2dab25d8f0f2d7680c40a88d7ec64dc6",
+    "bundle_digest": "sha256:81def19f5fe66ff38b14cb6828460f8eac788c45fc6c213fd7a290364ac7eb82",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -5230,7 +5230,7 @@
   {
    "backbone": "thuml.Transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:c160bdd8a5d0c5438188653043b680a5aba72f6da77e7d0270ae7c47991becab",
+    "bundle_digest": "sha256:201e362957c57edc15ea321e047fe9f5a1eebce4387e935227a64d00efc75f2c",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -5260,8 +5260,8 @@
   {
    "backbone": "thuml.Transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:a26b3682a4d2936b41255586281dd24747bb658a1d71b396d1e26ccb91c98ef8",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:c8fad479b750acff1e34fcb07c652363dc29c1e31b01230e60205cae12c2b2b0",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -5290,7 +5290,7 @@
   {
    "backbone": "cno.CNO1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:89d769c82ebef77f7fdfc047330e6265acf2c954fda6b53d8fd9759160960956",
+    "bundle_digest": "sha256:be11b4671886fbe964a0ea5b06b942bd4b38554647bd30d90eda04464a966647",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -5320,7 +5320,7 @@
   {
    "backbone": "deepxde.DeepONetCartesianProd",
    "bundle_ref": {
-    "bundle_digest": "sha256:3156ec45f4119526219ac9517f0ff88eeaf00afb3436251bb0c5a27b324ca33d",
+    "bundle_digest": "sha256:86ceb744a3ca5a20cd9f72d2e3a53f34bcb836e933c390303c4855c096536e6f",
     "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -5350,7 +5350,7 @@
   {
    "backbone": "bcat",
    "bundle_ref": {
-    "bundle_digest": "sha256:fec63b9902e14f8e51f48a5ca62b0f309bef65baa65267d11e12058b5c9c7a0f",
+    "bundle_digest": "sha256:f4f66cc0da239a995248909a5a236925d72c194270a20da19b5f2988ea49e66b",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5380,7 +5380,7 @@
   {
    "backbone": "cno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:1d3d0c2bbf3acda777fab23d744aa0524150f43dfefd0d00ab20a704be7655a2",
+    "bundle_digest": "sha256:5c35112db0bfcd18fc294600ddd638680315d7870a8326efc60675df1f4f58a5",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5410,7 +5410,7 @@
   {
    "backbone": "deeponet",
    "bundle_ref": {
-    "bundle_digest": "sha256:5225719ceb71b352d3790693ab428f537959a8c51f2d3de21cf6a17fe7b87e4a",
+    "bundle_digest": "sha256:6a9312649235efeaa73605c028f7a02397c01890b887f85eb3a5095f29f8cf19",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5440,7 +5440,7 @@
   {
    "backbone": "dpot",
    "bundle_ref": {
-    "bundle_digest": "sha256:4ac4959ab09f8c8505c562393e02aea7df623bbe5f07f7a9783d8caf7154615f",
+    "bundle_digest": "sha256:bfb07c1b3e89f295104aa923998254f4f72e3d1094957747d9f9dec5929fde5a",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5470,7 +5470,7 @@
   {
    "backbone": "fno1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:245f37bb58dce8ab4c61c4d55264d5c3b69005de993e18751a8c12736aecfee2",
+    "bundle_digest": "sha256:9e9da01635647b8f44bc333211de13b9dc8d0b9a14228369a2fba135e75f6af8",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5500,7 +5500,7 @@
   {
    "backbone": "fno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:73e8506732dd2e30534febc9aa239e120ff1ff0f39ac0978a7db8a47c1cc2eeb",
+    "bundle_digest": "sha256:86ac9246b162d6cf3d9a2344cf0db191faeee054cd6a2d99d95974314303c053",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5530,7 +5530,7 @@
   {
    "backbone": "fno3d",
    "bundle_ref": {
-    "bundle_digest": "sha256:2d17bbfdc79f9f55a6453bf59cc424e6495519a2f304a67ea11623beb8ebb3f6",
+    "bundle_digest": "sha256:b6128d6c68ca70605ad82eec0b298285b7a7dc1b0f1c99d9779810ddde5389b3",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5560,7 +5560,7 @@
   {
    "backbone": "geofno",
    "bundle_ref": {
-    "bundle_digest": "sha256:4be930314139ea07e0894fc185ebcd237f28be95ad2b38abd0530b44e3a2a384",
+    "bundle_digest": "sha256:af1dfc681addb86e069aa7211112be86da5e7bdb8bd57b539e28b2d62607dd3f",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5590,7 +5590,7 @@
   {
    "backbone": "gnot",
    "bundle_ref": {
-    "bundle_digest": "sha256:b2d63fe94ed62228e534f7f9838d2ec102fc36221d65648382d29c6c57c44979",
+    "bundle_digest": "sha256:47e4ac0b92ce2940e524549eb2946364c2b14dffd9bf77c1e16c0600397d870e",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5620,7 +5620,7 @@
   {
    "backbone": "linear",
    "bundle_ref": {
-    "bundle_digest": "sha256:68142a27086a1842d9d056da0269ae5180740b2cda446107e180c869b1893f47",
+    "bundle_digest": "sha256:a16df39c6ea26c1fbea0fe2e4c02046843113b8f86e3bfced5304f539d327d5e",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5650,7 +5650,7 @@
   {
    "backbone": "mgno1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:3efe12c982f15c15afe5b277d4cca1bc08e6b8847c7b7724d5acd05a6828289b",
+    "bundle_digest": "sha256:90897a7e062d6a09ea4b493e569a2bde893ee163d44d695b296fa3341dc3e2a5",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5680,7 +5680,7 @@
   {
    "backbone": "mgno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:79fa66bb0c1b6709f9613c02a167a85a020e53e980d17d1d6a6eceaf5547f0ff",
+    "bundle_digest": "sha256:179491cc8567437a838878cafb2321e61903eba4254e1d3540d2a29f55f44709",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5710,7 +5710,7 @@
   {
    "backbone": "mlp",
    "bundle_ref": {
-    "bundle_digest": "sha256:daf041ea46c38201ba8ced8eb80fd737a4ff3310f165844ba021788028126693",
+    "bundle_digest": "sha256:1107d9793c8505f6f220a1350b1554e08327635ae956e9d8c2605cb372b50f7a",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5740,7 +5740,7 @@
   {
    "backbone": "moegptno",
    "bundle_ref": {
-    "bundle_digest": "sha256:f18900a507c9b82b962835a19e46d64f0f5f5817b1cbda90c655bad8bef6fe1b",
+    "bundle_digest": "sha256:1ae3754edcb77ddb1fef22d2e1467330cb65864bfc65f2fed4c462685903c712",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5770,7 +5770,7 @@
   {
    "backbone": "morph",
    "bundle_ref": {
-    "bundle_digest": "sha256:8156c3840aa068ccacb7c7dbf4fe98754b0bfc61f4a073511f748ae336aa50a4",
+    "bundle_digest": "sha256:f280e5d79febd5b3b355c1cff417e5fb77f5fea9a70b4761dce9a29998836c06",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5800,7 +5800,7 @@
   {
    "backbone": "mpp",
    "bundle_ref": {
-    "bundle_digest": "sha256:72232e581d8957ebf13042210306f55b0f3d69e62b2efafe4324f5e4fe1f8a16",
+    "bundle_digest": "sha256:e0e670845b934e4c793533dc14c699fe731443842b9771b390b565aab3c68c2f",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5830,7 +5830,7 @@
   {
    "backbone": "pcno",
    "bundle_ref": {
-    "bundle_digest": "sha256:918c134f9e830d641564e0414fbbe2601cb5c13a094a44a74763b96960548694",
+    "bundle_digest": "sha256:f172f0e45f178ef3b5e154e9bccee280b2ebe0c41045b517de35ea137b6877a5",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5860,7 +5860,7 @@
   {
    "backbone": "pdeformer2",
    "bundle_ref": {
-    "bundle_digest": "sha256:6f61321782d4aaa7f26417ee28c441fcdb9147fc74596f7dfb93160c0ea27a77",
+    "bundle_digest": "sha256:33215a01cb6262975bc56d1c263252a11a74d2512e7bd52a32ba65ad7fd67ee1",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5890,7 +5890,7 @@
   {
    "backbone": "pit",
    "bundle_ref": {
-    "bundle_digest": "sha256:5c81a65714697ba229a9895369640e91b0f7b8288541373da52869a0ab7ab9a9",
+    "bundle_digest": "sha256:d6556c93261dc7818714d7843a98ee0fbc2a005c613ee890d636e011947d2511",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5920,7 +5920,7 @@
   {
    "backbone": "transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:a638fe5219876649fb05f409353beea61d3970280629fea1d9643be2800380d5",
+    "bundle_digest": "sha256:bed6f7c88ac819a6f51de1b25d956c2a151abf0a45971b20d8404842bf411cc3",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -5950,7 +5950,7 @@
   {
    "backbone": "transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:48edaab31a80ad901cbc501abea4878ca9d52b9eec18bdfd49126cd159dd0562",
+    "bundle_digest": "sha256:e161963d5fd9b02690ff3ee656804dfd170d089942059b8341d077c426d19666",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -5986,7 +5986,7 @@
   {
    "backbone": "unet1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:2ee77d54c0d94f3bd6c2fb694605fb335d6e080716a1f36a6e450dfe08486677",
+    "bundle_digest": "sha256:c01d9cda362448e767a1b924cec1f0172a74dd0cc05c99a473fea77961b82be2",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -6016,7 +6016,7 @@
   {
    "backbone": "unet2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:347e757d7280dca13544a0045f29e31ea48b415ab43e83a3c932bec862558b4e",
+    "bundle_digest": "sha256:d453332a5267cc7181eb0f81a78f8cca936403ea3cc0a99428a4cec3fb45fd67",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -6046,7 +6046,7 @@
   {
    "backbone": "unet3d",
    "bundle_ref": {
-    "bundle_digest": "sha256:7bde3420bfb81f46f08081efb343282b8533121cbd04744589809719df503c7a",
+    "bundle_digest": "sha256:6873336dad0bcafb586b37448f893ad565f8f723ba3fa737cb1d5bd4c9a8c99d",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -6076,7 +6076,7 @@
   {
    "backbone": "walrus",
    "bundle_ref": {
-    "bundle_digest": "sha256:e09a3d56edbaa47a0dd3276fd3b6f67274825d2336b491d79e90e120c428beba",
+    "bundle_digest": "sha256:5182b94283cd150d2776a87a13d0d71ee9fc592c47136d2b8a051333c52b4464",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -6106,7 +6106,7 @@
   {
    "backbone": "lno.LNO1d",
    "bundle_ref": {
-    "bundle_digest": "sha256:8890da6b52ba4e42e3d89bff2798af191399eb900ec722774e51f570eb39f154",
+    "bundle_digest": "sha256:89f012e5f7b10ede05ac243e2530a3c4e20e2a16fccccef21c4c9bb06b987f62",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6136,7 +6136,7 @@
   {
    "backbone": "neuralop.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:0c4dcb0118691fc3ade7fddcaee83ae9c007f35d2c97231b74305bb4ba261ed5",
+    "bundle_digest": "sha256:45fccd365f507c56a6ad58cbc125fd611fc6eafb643c1f3e948076788d9afca7",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6171,7 +6171,7 @@
   {
    "backbone": "neuralop.GINO",
    "bundle_ref": {
-    "bundle_digest": "sha256:0e4fa1e496c8af79e0bc57c920cca8a3bd3a8146caccff937902933fc6f32686",
+    "bundle_digest": "sha256:8d4d7af4a21b5bd564325e80dc53971894a1febf183d21094d6647422ab1fe40",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6201,7 +6201,7 @@
   {
    "backbone": "neuralop.LocalNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:5813929073a5e94e40697961f6947060fa10d5079c9f697409f93029c444a8a8",
+    "bundle_digest": "sha256:29da370c0191fbcda9d93cfcde6a4e6ce11d49cb7ebfa7f015e41383638782b4",
     "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6231,7 +6231,7 @@
   {
    "backbone": "neuralop.SFNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:38c0b08de36ea9d3a9c94f7d481d13092c862688bcf3446c6680885f9b29c881",
+    "bundle_digest": "sha256:6be2afd1e2a74d21400340710d44ab9b6e759980c95242d81f38c619ec7edc49",
     "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6261,7 +6261,7 @@
   {
    "backbone": "neuralop.TFNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:376e67e0eeae035dcc9f1b1d62276f2a04066cd4a03ab9607654df3dd91b3f1c",
+    "bundle_digest": "sha256:fd2dcd49df87336cbe602065924a012f16fed1826f4ad3b0b2ca6fc8aede1430",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6297,7 +6297,7 @@
   {
    "backbone": "neuralop.UQNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:c6d55e6cef5c719fa8b140c09ab3178d586049ad5cbdb150f6706d07a78ca910",
+    "bundle_digest": "sha256:5b77eeb13481cfeaa649fa6557a5209c4ea90a2c2ef937104163a1ff7a2a83a8",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6327,7 +6327,7 @@
   {
    "backbone": "oformer.Encoder1D_PointWiseDecoder1D",
    "bundle_ref": {
-    "bundle_digest": "sha256:7ba26431674a8a88e5e4cfd9b728d9847d662db657c26cc1050d4c499bd4c87d",
+    "bundle_digest": "sha256:7e6befd4a219c61af4983bcdcf358d6abed446339107e0412cca208df2ebc519",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6357,7 +6357,7 @@
   {
    "backbone": "physicsnemo.FullyConnected",
    "bundle_ref": {
-    "bundle_digest": "sha256:bb4de46cdbc497de6ce9b36c27e28ac3415cf1eb463bb4f10fd2824b48bbf825",
+    "bundle_digest": "sha256:c9c93b2a40663861c868f3c6330760f1844efdfd63e26496fc7a03e421ac9ca8",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6387,7 +6387,7 @@
   {
    "backbone": "physicsnemo.MeshGraphNet",
    "bundle_ref": {
-    "bundle_digest": "sha256:413acef70a7000990de9a5c19f620888881dcb1de73c7e11e0144d72d5848862",
+    "bundle_digest": "sha256:8f70e3e6a5eec6e8758e7b2015e428702c56a3d46c1d131411cd34ba4fc3ac8e",
     "environment_digest": "sha256:0a313185d40515172cd71c18383598ae8d6f52e5540569dc51c385fa570f7f96",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6417,7 +6417,7 @@
   {
    "backbone": "krr",
    "bundle_ref": {
-    "bundle_digest": "sha256:1f0ab5c03a4e03afaf9ba833907d2e1838235bf92c0ea29e6bdcebcdbae9b017",
+    "bundle_digest": "sha256:c8af6f41d656b1d7e96dd5488aa9830fb59f036d4ddf4bf00e42e6ed05033f34",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -6450,8 +6450,8 @@
   {
    "backbone": "thuml.FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:b9661e70b169405878471543d423ad6b90d524400651c457a60e0d8e9c1895ea",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:93ce83f96a961e73fca24956b306f9712256b8b16ee795539b6a685f150a3ec9",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -6480,8 +6480,8 @@
   {
    "backbone": "thuml.F_FNO",
    "bundle_ref": {
-    "bundle_digest": "sha256:3fec9cd502c49998fd6026476461bd02a0b8c372de26c3fa4a9de26fc521294b",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:247d7d8c2fd5434c51fd3d0e872c1141e40173bb04fb095e04a06ab0c74fb29c",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -6510,8 +6510,8 @@
   {
    "backbone": "thuml.Factformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:d304a99c89f100523ed065aa2f3727329e25b347868a7812a005fc5b9e21a811",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:3bbb65cc3430a6aa0d708fb2c321f4179130fc4c09f161b561fdaf7fcaf7fe64",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -6540,8 +6540,8 @@
   {
    "backbone": "thuml.Galerkin_Transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:60fbb8660c26ed58b9093abf4e4f7464a520cb1ce5a23073bf2715c518c84665",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:c01960eb8e5267a4d5d978a33746da72a786c0d3000f1ffe7a522ff2f690bacb",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
@@ -6570,7 +6570,7 @@
   {
    "backbone": "thuml.LSM",
    "bundle_ref": {
-    "bundle_digest": "sha256:478542ba27a2d08aff27e442449760c966cbdd2fe7086001cc8887a8860c99fa",
+    "bundle_digest": "sha256:16045da7585b3fae53e382de6ef6d27e290bd44dc7c045bc99ead2f987928b18",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6600,7 +6600,7 @@
   {
    "backbone": "thuml.MWT",
    "bundle_ref": {
-    "bundle_digest": "sha256:7cf87759a5cc872673c1bccf451b58d4760f8ce8fa5fbff016bb170f75ba8c90",
+    "bundle_digest": "sha256:d3aee18235624bdcb9df78ddc80e56afa51612df800b3e290ab37f3e931f7f52",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6630,7 +6630,7 @@
   {
    "backbone": "thuml.Transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:d7f2e0c465bae0feadc0af367ee6d4dc135178ccd6d77fdb8b781806665be581",
+    "bundle_digest": "sha256:76f94da3282f7a9f60fcb86affda74de306ad447f60650ef2a7035a777ab3c63",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
@@ -6660,8 +6660,8 @@
   {
    "backbone": "thuml.Transolver",
    "bundle_ref": {
-    "bundle_digest": "sha256:f599307505cdd06f97ac179333f3912296483625a4f275566641919cac75d6ae",
-    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "bundle_digest": "sha256:15450e8cd868b42d3e8eb05717c366d4d442adb042110290cac26a087c5774c1",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"

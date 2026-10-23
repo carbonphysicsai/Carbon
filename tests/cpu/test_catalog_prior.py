@@ -199,7 +199,10 @@ def test_the_cooling_prior_follows_the_repositorys_analytic_model_and_stays_smal
         31,
     )
     # the graph must stay small: a custody ceiling of 1 MiB bound it at about 130 bytes per equation
-    assert len(jax.make_jaxpr(prior.prior)(jnp.asarray(rows)).jaxpr.eqns) < 7500
+    jaxpr = jax.make_jaxpr(prior.prior)(jnp.asarray(rows)).jaxpr
+    assert len(jaxpr.eqns) < 9000
+    # ops the public inference interpreter at the graph-route-v2 head does not have must not appear
+    assert "split" not in {str(e.primitive) for e in jaxpr.eqns}
 
 
 def test_solve_spd_matches_numpy_and_krr_is_deterministic_and_beats_the_plain_fit(

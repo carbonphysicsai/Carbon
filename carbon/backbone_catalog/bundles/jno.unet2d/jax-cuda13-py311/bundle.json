@@ -4,14 +4,14 @@
  "base_environment_digest": "sha256:a197af534a061636ba77e4f97f7e9be508b795d58883b6774fde74a5135ad434",
  "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
  "language": "python",
- "license_sha256": "sha256:1776bbc6884f5982c21d2875ba2a1c595a19aff71983141cade8aad502c40709",
+ "license_sha256": "sha256:edb620ce5938f7ca2895696b7681244a7f67dbe3deceb05863c665b96041ac88",
  "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
  "name": "motor-stress-t-jno-unet2d-baseline",
  "os": "linux",
  "python_abi": "cp311",
  "runtime_profile_id": "jax-cuda13-py311",
  "schema": "carbon.development.library-bundle.v1",
- "source_bytes": 14257,
- "source_sha256": "sha256:7c6335f242d3f25a4c6d5be611ed363d521b89060ae1377a5bee25acb7333817",
+ "source_bytes": 13771,
+ "source_sha256": "sha256:0e940b42f5916e218a4964c1e2edd5fb9ce3eac6c6333e811f1e1b1f9502173f",
  "wheels": {}
 }

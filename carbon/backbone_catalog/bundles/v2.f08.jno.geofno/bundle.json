@@ -4,14 +4,14 @@
  "base_environment_digest": "sha256:5dd9a364333ca3ec56383a36c0b3edefad817be93a2f30c49f775af00cd094a4",
  "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
  "language": "python",
- "license_sha256": "sha256:1776bbc6884f5982c21d2875ba2a1c595a19aff71983141cade8aad502c40709",
+ "license_sha256": "sha256:edb620ce5938f7ca2895696b7681244a7f67dbe3deceb05863c665b96041ac88",
  "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
  "name": "f08-catalog-jno-geofno-baseline-v2",
  "os": "linux",
  "python_abi": "cp311",
  "runtime_profile_id": "python-cpu-py311",
  "schema": "carbon.development.library-bundle.v1",
- "source_bytes": 16647,
- "source_sha256": "sha256:79ee10953dbacd40520626e3085e3cc1e3f35c2cbea4ca313999db5c0b93d660",
+ "source_bytes": 16165,
+ "source_sha256": "sha256:ce2a26244c8e3f0448eca091e31af3f25c2d681b6fc5320c146172f1d95e4783",
  "wheels": {}
 }

@@ -169,7 +169,8 @@ def native(x, steps_per_segment=STEPS_PER_SEGMENT, passes=COUPLING_PASSES):
     for _ in range(passes):
         # the bulk temperature entering each cell: a sequential march
         tbs, t_b = [], t_in[:, None]
-        steps_b = jnp.split(absorbed * dx / m_dot[:, None], steps, axis=1)
+        heat = absorbed * dx / m_dot[:, None]
+        steps_b = [heat[:, i : i + 1] for i in range(steps)]  # slices, not `split`: the public interpreter has no split
         for step_b in steps_b:
             tbs.append(t_b)
             t_b = t_b + step_b / _pg("cp", t_b)

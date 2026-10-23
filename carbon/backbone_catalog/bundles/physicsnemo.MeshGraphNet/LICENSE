@@ -1,6 +1,17 @@
-MIT License
+Third-party licences for this bundle
+=====================================
 
-Copyright (c) 2026 Carbon Physics
+This bundle's source archive holds Carbon's own glue code (carbon_candidate/) and the third-party components listed
+below; the pinned wheels (if any) are installed beside it. This file reproduces the licences of those third-party
+components, unmodified. It is not a licence for Carbon's own code.
+
+Used from the base worker image, not vendored here: nvidia-physicsnemo 2.2.0 (Apache-2.0) with torch (BSD-3-Clause and others); torch-geometric (MIT, pinned below).
+
+------------------------------------------------------------------------------
+Pinned wheel: torch_geometric-2.8.1-py3-none-any.whl  (torch-geometric 2.8.1; declared MIT)
+------------------------------------------------------------------------------
+[torch_geometric-2.8.1.dist-info/licenses/LICENSE]
+Copyright (c) 2023 PyG Team <team@pyg.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -9,13 +20,15 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+[torch_geometric/graphgym/utils/LICENSE]
