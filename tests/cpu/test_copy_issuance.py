@@ -181,6 +181,32 @@ def test_the_pack_set_is_signed_published_once_and_imports_on_a_validator(job):
     assert first["set_key"] == common.pack_set_key(
         common.pack_set_document(challenge, version, contents)
     )
+    # The same contents give the same key; one changed case bank gives another.
+    again = issuance.publish_set({**config, "inbox": str(job["tmp"] / "inbox-2")})
+    assert again["set_key"] == first["set_key"]
+    changed = json.loads(other_bytes)
+    changed["private"]["case_bank"]["sha256"] = "sha256:" + "cd" * 32
+    changed_bytes = json.dumps(changed, sort_keys=True).encode()
+    third_dir = job["tmp"] / "pack-three"
+    third_dir.mkdir()
+    (third_dir / spi.MANIFEST_NAME).write_bytes(changed_bytes)
+    moved = {
+        **config,
+        "inbox": str(job["tmp"] / "inbox-3"),
+        "batches": [batches[0], delivery._sha(changed_bytes)],
+        "packs": {
+            batches[0]: str(first_dir),
+            delivery._sha(changed_bytes): str(third_dir),
+        },
+    }
+    assert issuance.publish_set(moved)["set_key"] != first["set_key"]
+    # A batch with no pack in custody is refused typed.
+    missing = {
+        **config,
+        "packs": {**config["packs"], batches[1]: str(job["tmp"] / "none")},
+    }
+    with pytest.raises(ak.AnswerKeyRefused, match="copy_issuance_pack_missing"):
+        issuance.publish_set(missing)
     # A pack whose manifest is not the one the batch names is refused.
     wrong = {
         **config,

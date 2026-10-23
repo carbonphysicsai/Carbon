@@ -186,7 +186,12 @@ def publish_set(config):
         raise AnswerKeyRefused("copy_issuance_config_malformed")
     contents = {}
     for digest, directory in packs.items():
-        manifest = (Path(directory) / MANIFEST_NAME).read_bytes()
+        try:
+            manifest = (Path(directory) / MANIFEST_NAME).read_bytes()
+        except OSError:
+            # No pack in custody for this batch: refused, never a fallback to
+            # digests (Validator, pack-set fix).
+            raise AnswerKeyRefused("copy_issuance_pack_missing") from None
         if copy_delivery._sha(manifest) != digest:
             raise AnswerKeyRefused("copy_issuance_pack_digest_mismatch")
         contents[digest] = spi.manifest_content(manifest)
