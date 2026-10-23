@@ -2359,7 +2359,7 @@ scenario("Graphite: per-epoch limits are optional; blank sends none, set sends w
   assert.match(page.text("graphite-limits"), /only your campaign's own limits bind/);
   await page.type(page.$("graphite-limit-calls_per_epoch"), "0");
   assert.equal(page.$("wizard-next").disabled, true);
-  assert.ok(page.text("wizard-next-reason").includes("per-epoch limits: model calls per epoch is a whole number from 1 to " + state.options.graphite.limits.maximum), page.text("wizard-next-reason"));
+  assert.ok(page.text("wizard-next-reason").includes("per-round limits: model calls per round is a whole number from 1 to " + state.options.graphite.limits.maximum), page.text("wizard-next-reason"));
   assert.equal(page.$("graphite-limit-calls_per_epoch").max, String(state.options.graphite.limits.maximum), "the input's bound is the controller's");
   await page.type(page.$("graphite-limit-calls_per_epoch"), String(state.options.graphite.limits.maximum + 1));
   assert.equal(page.$("wizard-next").disabled, true, "past the controller's own maximum");
@@ -3099,6 +3099,18 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   assert.doesNotMatch(text, /electric-motor-magnetics · version 1\.(0|2)/);
   assert.match(text, /electric-motor-magnetics · version 1\.3/);
   clean(page);
+});
+
+scenario("plainWords keeps E10's secret warning and names an address as a mining key address, with no epoch word for a round", async () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "..", "scripts", "dev", "miner_launchpad", "app.js"), "utf8");
+  const text = source.match(/function plainWords[(]text[)] [{][^]*?\n  [}]/)[0];
+  const plainWords = new Function(text + "; return plainWords;")();
+  const e10 = "(public, starts with 5…; never a key, password or seed phrase";
+  assert.equal(plainWords(e10), e10, "the sentence survives plainWords untouched");
+  assert.equal(plainWords("its public ss58 address"), "its public mining key address");
+  assert.equal(plainWords("the hotkey address"), "the mining key address");
+  assert.doesNotMatch(plainWords("hotkey ss58 coldkey subnet netuid"), /wallet|hotkey|ss58|coldkey|subnet|netuid/);
+  assert.doesNotMatch(source, /Model calls per epoch|Practice trials per epoch|end an epoch sooner/);
 });
 
 (async () => {

@@ -73,13 +73,13 @@
   // people read the name; the full title stays on hover (U10).
   // Words that came from the controller, in plain terms (Dana #4): the technical name stays in the Help fold.
   function plainWords(text) {
-    return typeof text === "string" ? text.replace(/\bhotkeys\b/g, "mining keys").replace(/\bhotkey\b/g, "mining key").replace(/\bcoldkey\b/g, "money key").replace(/\bss58\b/g, "wallet").replace(/\bnetuid\b/g, "network number").replace(/\bsubnet\b/g, "Carbon network") : text;
+    return typeof text === "string" ? text.replace(/\bhotkeys\b/g, "mining keys").replace(/\bhotkey\b/g, "mining key").replace(/\bcoldkey\b/g, "money key").replace(/\bss58 address\b/g, "mining key address").replace(/\bss58\b/g, "mining key address").replace(/\bnetuid\b/g, "network number").replace(/\bsubnet\b/g, "Carbon network") : text;
   }
   // The technical names, kept for those who meet them elsewhere (Dana #4).
   function termsFold(parent) {
     const fold = el("details", undefined, "terms-fold");
     fold.append(el("summary", "What do these words mean?"));
-    fold.append(el("p", "Mining key = the key that signs your work (its technical name is mining key). Money key = the key that pays the joining fee (money key). Wallet address = the public text that names a key (wallet address). Carbon network = the group of miners you join (Carbon network). The joining fee is called a recycle fee.", "hint"));
+    fold.append(el("p", "Mining key = the key that signs your work (technical name: hotkey). Money key = the key that pays the joining fee (coldkey). Mining key address = the public text that names your mining key (ss58 address); it is safe to share, and no key, password or seed phrase is ever asked for. Carbon network = the group of miners you join (subnet). The joining fee is called a recycle fee.", "hint"));
     parent.append(fold);
     return fold;
   }
@@ -1246,7 +1246,7 @@
     copyRow(box, null, "carbon-miner-identity", "setup-identity-copy");
     box.append(el("p", "At the end it shows two wallet addresses. Both are public. Copy the mining-key address into step 3, and the money-key address into step 2.", "hint"));
     details(box, "What are the two keys?", [
-      "Your wallet holds two keys. The money key (money key) holds your funds. The mining key (mining key) signs your mining work and names you on the network; it cannot move your funds. Their addresses are public."
+      "Your wallet holds two keys. The money key (technical name: coldkey) holds your funds. The mining key (hotkey) signs your mining work and names you on the network; it cannot move your funds. Their addresses are public."
     ]);
     details(box, "Is my key safe?", [
       "The helper runs only on your computer and saves each key encrypted under its own password, one for your money and one for mining. Nothing it makes is sent anywhere, and Carbon never sees your keys, your recovery phrase or your passwords. Anyone who has your recovery phrase can take your funds, so write it on paper and keep it private."
@@ -1332,7 +1332,7 @@
     const signerCheck = el("button", j.done.signer ? "Check my signer again" : "Check my signer", j.done.signer ? "" : "primary"); signerCheck.type = "button"; signerCheck.id = "setup-signer-check";
     signerCheck.addEventListener("click", () => {
       const address = signerAddress.value.trim();
-      if (!address) { $("setup-result").replaceChildren(setupLine("Enter your mining key address: its public wallet address, never a key or phrase.", "error")); return; }
+      if (!address) { $("setup-result").replaceChildren(setupLine("Enter your mining key address: the public one, never a key or phrase.", "error")); return; }
       setupCall("signer", {address});
     });
     const signerAction = el("div", undefined, "step-action"); signerAction.append(signerCheck);
@@ -1852,12 +1852,12 @@
     const intake = setupField(reviewMore, "intake_url", "Grading address (optional; https, or this machine)");
     // Pinned in the profile: nothing is signed for an intake that reports
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
-    const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver mining key (its public wallet address; required with an intake URL)");
+    const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver mining key address (public; required with an intake URL)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
     const directMore = advanced(review, "Where your recipe is graded: your own grader");
     researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no validator intake of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
     const directIntake = setupField(directMore, "direct_intake_url", "Receiver URL (https, or loopback)");
-    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Receiver mining key (its public wallet address)");
+    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Receiver mining key address (public)");
     // U12: what Review last wrote comes back filled in, and is said plainly,
     // so writing the profile again never clears it by accident.
     const savedDirect = (steps.evaluation?.challenges || []).map(item => item.direct_intake).find(item => item && item.intake_url);
@@ -3535,7 +3535,7 @@
   // The launch fields Graphite's choices travel in (S4's launch operation).
   const GRAPHITE_FIELDS = ["graphite_mode", "graphite_edition", "research_share", "plan", "hunt", "limits", "submission_policy"];
   // Optional per-epoch counts: blank leaves only the campaign's own limits.
-  const GRAPHITE_LIMITS = [["calls_per_epoch", "Model calls per epoch"], ["trials_per_epoch", "Practice trials per epoch"], ["planner_calls", "Planner model calls"]];
+  const GRAPHITE_LIMITS = [["calls_per_epoch", "Model calls per round"], ["trials_per_epoch", "Practice trials per round"], ["planner_calls", "Planner model calls"]];
   // A hunt's closed query grammar (the design's): at most 8 queries of at
   // most 6 terms, each letters, digits and hyphens. Raw arXiv syntax is
   // never accepted. The counts and the record bounds are the controller's
@@ -3928,7 +3928,7 @@
         // provider ceilings (graphite_ceilings_required); say so here, before
         // Launch, instead of calling every limit optional.
         const limits = graphiteLimitsProblem();
-        if (limits) return "Fix Graphite's per-epoch limits: " + limits + ".";
+        if (limits) return "Fix Graphite's per-round limits: " + limits + ".";
         const ceilings = composition.budget?.ceilings || {};
         if (!Number.isSafeInteger(ceilings.provider_attempts) || !Number.isSafeInteger(ceilings.provider_nanodollars)) return "Graphite needs two of your limits: a model-call ceiling and a model-spend ceiling. Set both under Advanced limits, Ceilings per resource; every other limit stays optional.";
       }
@@ -4194,12 +4194,12 @@
     options.append(estimate);
     hunt.append(options);
     box.append(hunt);
-    box.append(el("p", "Per-epoch limits are optional, under Tools & limits, Advanced: left blank, only your campaign's own limits bind, money and time.", "hint"));
+    box.append(el("p", "Per-round limits are optional, under Tools & limits, Advanced: left blank, only your campaign's own limits bind, money and time.", "hint"));
   }
   function buildGraphiteLimits() {
     const box = $("graphite-limits");
     if (box.dataset.built) return;
-    box.append(el("p", "Optional. Left blank, only your campaign's own limits bind: its money, calls, trials and time. Set one only to end an epoch sooner.", "hint"));
+    box.append(el("p", "Optional. Left blank, only your campaign's own limits bind: its money, calls, trials and time. Set one only to end a round sooner.", "hint"));
     for (const [key, label] of GRAPHITE_LIMITS) {
       const wrap = el("div");
       graphiteInput(wrap, "graphite-limit-" + key, label, "number", value => setGraphite({limits: {...graphiteChoices().limits, [key]: value}}), {min: "1", max: String(limitMax()), step: "1", placeholder: "No limit"});
