@@ -945,6 +945,10 @@ def _retain_selected_pack_evaluation(
                     gates=registered["score_pack"]["hard_gates"],
                     graded=scoring["models"][0],
                     recipe_digest=registered["entry"]["recipe_digest"],
+                    leg_minimums={
+                        name: leg["minimum"]
+                        for name, leg in registered["score_pack"]["legs"].items()
+                    },
                 )
             }
         ),
@@ -1177,6 +1181,7 @@ def _record_ladder(
     gates,
     graded,
     recipe_digest=None,
+    leg_minimums=None,
 ):
     """Apply the bound result to the miner's private-exam Ladder
     (`ladder_store`), stepped by the Challenge's registered rebuild noise from
@@ -1201,6 +1206,7 @@ def _record_ladder(
             graded,
             exam_version=exam_version,
             gates=gates,
+            leg_minimums=leg_minimums,
             **about,
             rebuild_noise=koth_registry.rebuild_noise(
                 adapter.discovery.info.challenge_key.challenge_id

@@ -106,6 +106,8 @@ def checked(document, *, latest=False):
     ):
         raise LadderStoreRefused("ladder_document")
     fields = gf.FIELDS_V3 if version == gf.SCHEMA_V3 else gf.FIELDS
+    if "reason" in document:
+        fields = gf.FIELDS_V3_NOT_SCORED
     return {name: document[name] for name in sorted(fields)}
 
 
@@ -213,6 +215,7 @@ class LadderStore:
         rebuild_noise,
         recipe_digest=None,
         epoch=None,
+        leg_minimums=None,
     ):
         """Apply one graded private-exam result (the score row) and return the
         document it shows: stored as the latest, and as the best only when it
@@ -228,6 +231,7 @@ class LadderStore:
             rebuild_noise=noise,
             recipe_digest=recipe_digest,
             epoch=epoch,
+            leg_minimums=leg_minimums,
         )
         kept = gf.next_best(best, shown)
         with self.ledger._db() as db:
