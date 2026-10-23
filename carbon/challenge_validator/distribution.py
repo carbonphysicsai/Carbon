@@ -44,14 +44,23 @@ from .answer_key import (
     PATH,
     REQUEST_SCHEMA,
     AnswerKeyRefused,
+    ProducerKey,
+    _digest,
+    key_id,
     listing_entry,
     read_private,
     verify,
+    verify_in,
 )
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 CONFIG_SCHEMA = "carbon.challenge-validator.distribution-config.v1"
 LOG_SCHEMA = "carbon.challenge-validator.distribution-fetch.v1"
+#: A signed per-fetch delivery record (tracing ruling): the host's own signature
+#: over what it served to whom, in its own signing domain. The host never holds
+#: the producer's key; this is a separate distribution key.
+DELIVERY_SCHEMA = "carbon.challenge-validator.delivery-record.v1"
+DELIVERY_DOMAIN = b"carbon.answer-key-delivery/1\x00"
 #: A request body limit: an engineering bound, not a scientific value.
 MAX_REQUEST = 4096
 
@@ -165,6 +174,45 @@ class FetchLog:
                 handle.write(json.dumps(entry, sort_keys=True) + "\n")
 
 
+def delivery_record(
+    signer, *, challenge_id, fingerprint, hotkey, block, package, time_ns
+):
+    """The host's signed record that this hotkey was served this package (by the
+    digest of the exact package served) at this finalized block."""
+    manifest = {
+        "schema": DELIVERY_SCHEMA,
+        "challenge_id": challenge_id,
+        "fingerprint": fingerprint,
+        "hotkey": hotkey,
+        "block": block,
+        "time_ns": time_ns,
+        "package_digest": _digest(package),
+    }
+    return {
+        "manifest": manifest,
+        "key_id": key_id(signer.public_key),
+        "public_key": signer.public_key,
+        "signature": signer.sign_in(DELIVERY_DOMAIN, manifest),
+    }
+
+
+def verify_delivery(record, public_key):
+    """The record's manifest when it is ``public_key``'s signature in the delivery
+    domain, else None."""
+    try:
+        manifest = record["manifest"]
+        if (
+            record["public_key"] != public_key
+            or record["key_id"] != key_id(public_key)
+            or manifest["schema"] != DELIVERY_SCHEMA
+            or not verify_in(DELIVERY_DOMAIN, manifest, record["signature"], public_key)
+        ):
+            return None
+    except (KeyError, TypeError):
+        return None
+    return manifest
+
+
 class DistributionService:
     """Answers one authenticated request. Transport-free, so tests drive it
     directly."""
@@ -180,6 +228,7 @@ class DistributionService:
         log,
         clock_ns=time.time_ns,
         training=None,
+        signer=None,
     ):
         self.inbox, self.receiver = inbox, receiver
         self.verifier, self.permits = verifier, permits
@@ -187,6 +236,11 @@ class DistributionService:
         #: The public training pool (OWNER-AUTO-PUBLISH-RETIRED-01): retired
         #: cases only, read-only, to anyone. None serves nothing.
         self.training = training
+        #: The host's own delivery-signing key (a ProducerKey), or None: with it
+        #: every SERVED fetch logs a signed delivery record.
+        if signer is not None and type(signer) is not ProducerKey:
+            raise TypeError("a ProducerKey is required")
+        self.signer = signer
 
     def handle_training(self, path):
         """`(status, answer)` for one public `GET` of the training pool. No
@@ -201,6 +255,18 @@ class DistributionService:
         )
         return status, answer
 
+    #: The route this service answers (its requests are signed for this path).
+    route = PATH
+    request_schema = REQUEST_SCHEMA
+
+    def _packages(self, challenge_id, block, hotkey):
+        """`(packages by fingerprint, skipped)` this hotkey may be served."""
+        return self.inbox.packages(challenge_id, block=block)
+
+    def _served_extra(self, package):
+        """Extra fields for the fetch-log line of a SERVED package."""
+        return {}
+
     def handle(self, headers, body):
         """`(status, answer)` for one request."""
         from carbon.chain.auth import AuthFailure
@@ -211,7 +277,7 @@ class DistributionService:
                 headers,
                 body,
                 method="POST",
-                path=PATH,
+                path=self.route,
                 receiver=self.receiver,
                 now_ns=self.clock_ns(),
                 nonce_store=self.nonces,
@@ -225,7 +291,7 @@ class DistributionService:
             if (
                 type(request) is not dict
                 or set(request) != {"schema", "challenge_id", "fingerprint"}
-                or request["schema"] != REQUEST_SCHEMA
+                or request["schema"] != self.request_schema
                 or type(request["challenge_id"]) is not str
                 or type(request["fingerprint"]) not in (str, type(None))
             ):
@@ -252,7 +318,7 @@ class DistributionService:
             return refuse(403, "answer_key_no_validator_permit", block)
         block = permit["block"]
         try:
-            packages, _ = self.inbox.packages(request["challenge_id"], block=block)
+            packages, _ = self._packages(request["challenge_id"], block, hotkey)
         except (AnswerKeyRefused, OSError):
             return refuse(503, "answer_key_inbox_unavailable", block)
         if fingerprint is None:
@@ -265,8 +331,28 @@ class DistributionService:
             }
         if fingerprint not in packages:
             return refuse(404, "answer_key_unknown_batch", block)
+        delivery = (
+            {}
+            if self.signer is None
+            else {
+                "delivery": delivery_record(
+                    self.signer,
+                    challenge_id=request["challenge_id"],
+                    fingerprint=fingerprint,
+                    hotkey=hotkey,
+                    block=block,
+                    package=packages[fingerprint],
+                    time_ns=self.clock_ns(),
+                )
+            }
+        )
         self.log.note(
-            hotkey=hotkey, block=block, fingerprint=fingerprint, verdict="SERVED"
+            hotkey=hotkey,
+            block=block,
+            fingerprint=fingerprint,
+            verdict="SERVED",
+            **self._served_extra(packages[fingerprint]),
+            **delivery,
         )
         return 200, {"package": packages[fingerprint]}
 
@@ -313,7 +399,7 @@ def load_config(path, *, repository=REPOSITORY):
         "host",
         "port",
     }
-    optional = {"exposure_record", "tls_cert", "tls_key"}
+    optional = {"exposure_record", "tls_cert", "tls_key", "signing_key", "copies"}
     if (
         type(config) is not dict
         or config.get("schema") != CONFIG_SCHEMA
@@ -359,7 +445,12 @@ def make_server(service, config, *, repository=REPOSITORY):
             return self._answer(*service.handle_training(self.path))
 
         def do_POST(self):
-            if self.path != PATH:
+            routes = {PATH: service}
+            extra = getattr(service, "pack_service", None)
+            if extra is not None:
+                routes[extra.route] = extra
+            answering = routes.get(self.path)
+            if answering is None:
                 return self._answer(404, {"refused": "not_found"})
             length = int(self.headers.get("Content-Length") or 0)
             if not 0 < length <= MAX_REQUEST:
@@ -369,9 +460,21 @@ def make_server(service, config, *, repository=REPOSITORY):
             if len(headers) != len(self.headers.items()):
                 # A repeated header is ambiguous: refused, as the intake does.
                 return self._answer(400, {"refused": "answer_key_headers"})
-            return self._answer(*service.handle(headers, body))
+            return self._answer(*answering.handle(headers, body))
 
     return hardened_listener(config, Handler, service=SERVICE)
+
+
+def _delivery_signer(config):
+    """The host's delivery-signing key, or None. It must be the host's own: a key
+    equal to the producer's would let the public host forge package signatures,
+    so it is refused."""
+    if "signing_key" not in config:
+        return None
+    signer = ProducerKey.load(config["signing_key"])
+    if signer.public_key == config["producer_public_key"]:
+        raise AnswerKeyRefused("answer_key_signing_key_is_producer_key")
+    return signer
 
 
 def build(config):
@@ -381,7 +484,7 @@ def build(config):
 
     from .training_pool import TrainingPool
 
-    return DistributionService(
+    service = DistributionService(
         Inbox(config["inbox"], config["producer_public_key"]),
         receiver=config["receiver"],
         verifier=BittensorHotkeyVerifier(),
@@ -392,7 +495,16 @@ def build(config):
         training=TrainingPool(
             Path(config["inbox"]) / "training", config["producer_public_key"]
         ),
+        # The host's own owner-only delivery-signing key, when configured.
+        signer=_delivery_signer(config),
     )
+    if "copies" in config:
+        # The per-hotkey evaluation-pack route (E4): signed per-hotkey copies the
+        # producer pushed; a hotkey is served only its own.
+        from .copy_route import attach
+
+        attach(service, config["copies"], config["producer_public_key"])
+    return service
 
 
 def main(argv=None):

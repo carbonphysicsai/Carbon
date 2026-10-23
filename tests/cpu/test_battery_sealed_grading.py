@@ -32,9 +32,10 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 DECISION_REFERENCES = (
     REPOSITORY / "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz"
 )
-#: Battery's development producer digest before this change (HANDOFF §2).
+#: Battery's development producer digest after the one accepted move that hashed
+#: the sealed bank loader and copy modules (Validator, 2026-10-22).
 DEV_PRODUCER_DIGEST = (
-    "sha256:abd7a4cbe54eac8500d3e30a79937a5ea68ac6f3f67b0d51f3eb3c9f0344f670"
+    "sha256:d0f4804a0b4c9294cfeec7674900aad6472ba6ad9c8a20c9f277cb9abb420e35"
 )
 
 
@@ -45,11 +46,7 @@ def _sealed_bank():
     decision-row format with each record's own mesh-160 margin."""
     contract = dev._contract()
     lines = gzip.decompress(DECISION_REFERENCES.read_bytes()).decode().splitlines()
-    ok = {
-        r["case_id"]: r
-        for r in map(json.loads, lines)
-        if r["status"] == "OK"
-    }
+    ok = {r["case_id"]: r for r in map(json.loads, lines) if r["status"] == "OK"}
     m160 = gp.m160_by_case()
     candidates = ev.candidates(contract)
     chosen = []
@@ -155,7 +152,14 @@ def test_the_definition_binds_the_batchs_own_scenarios_and_receipt():
         {**definition, "grid": {"scenarios": 12, "candidates": 35}},
         {**definition, "decision_scenarios": definition["decision_scenarios"][:3]},
         {**definition, "reference_receipt_sha256": "x"},
-        {**definition, "g_feas": {"measure": "feasibility", "cutoff": 0.5, "comparison": "exceeds"}},
+        {
+            **definition,
+            "g_feas": {
+                "measure": "feasibility",
+                "cutoff": 0.5,
+                "comparison": "exceeds",
+            },
+        },
         {k: v for k, v in definition.items() if k != "unresolved_mask"},
     ):
         with pytest.raises(bdm.BatteryMeasurementRefused):
@@ -260,7 +264,9 @@ def test_a_grid_that_is_not_4_by_35_refuses():
     with pytest.raises(bdm.BatteryMeasurementRefused):
         _measure(_truth(), rows=foreign)
     moved = copy.deepcopy(rows)
-    moved[0]["inputs"] = dict(moved[0]["inputs"], soc0=moved[0]["inputs"]["soc0"] + 0.01)
+    moved[0]["inputs"] = dict(
+        moved[0]["inputs"], soc0=moved[0]["inputs"]["soc0"] + 0.01
+    )
     with pytest.raises(bdm.BatteryMeasurementRefused):
         _measure(_truth(), rows=moved)
     absent = copy.deepcopy(rows)
@@ -268,9 +274,12 @@ def test_a_grid_that_is_not_4_by_35_refuses():
     with pytest.raises(bdm.BatteryMeasurementRefused):
         _measure(_truth(), rows=absent)
     # A definition from another batch's scenarios is refused.
-    other = dict(_definition(), decision_scenarios=[
-        {**s, "id": s["id"] + "x"} for s in _definition()["decision_scenarios"]
-    ])
+    other = dict(
+        _definition(),
+        decision_scenarios=[
+            {**s, "id": s["id"] + "x"} for s in _definition()["decision_scenarios"]
+        ],
+    )
     with pytest.raises(bdm.BatteryMeasurementRefused) as refused:
         _measure(_truth(), definition=other)
     assert refused.value.code == "battery_sealed_scenarios"
@@ -302,17 +311,21 @@ def test_the_development_producer_is_untouched_and_a_dev_bank_refuses_here():
 
 
 def test_dispatch_is_by_the_banks_declared_population():
-    for version in ("2.0", "2.1"):
+    for version in ("2.0", "2.1", "2.2"):
         chosen = sealed.adapter_for_bank(_bank(), version)
         assert chosen.EVALUATION_VERSION == "battery-dual-sealed-grid-4x35-v1"
         assert chosen.VERSION == version and chosen.CASE_ID == sealed.CASE_ID
-    assert sealed.adapter("1.0") is None and sealed.adapter("2.2") is None
+    assert sealed.adapter("1.0") is None and sealed.adapter("2.3") is None
     development = physical_pack.development_bank(dev.CHALLENGE, "2.0")
     chosen = sealed.adapter_for_bank(development, "2.0")
     assert chosen.EVALUATION_VERSION == dev.VERSIONS["2.0"][0]
     assert sealed.is_sealed_bank(_bank()) and not sealed.is_sealed_bank(development)
-    mixed = dict(_bank(), cohorts=(sealed.COHORT,) * 139 + ("practice",) + (sealed.PROBE,) * 0)
-    mixed["cohorts"] = tuple(mixed["cohorts"]) + (sealed.PROBE,) * (len(_bank()["cohorts"]) - 140)
+    mixed = dict(
+        _bank(), cohorts=(sealed.COHORT,) * 139 + ("practice",) + (sealed.PROBE,) * 0
+    )
+    mixed["cohorts"] = tuple(mixed["cohorts"]) + (sealed.PROBE,) * (
+        len(_bank()["cohorts"]) - 140
+    )
     with pytest.raises(bdm.BatteryMeasurementRefused):
         sealed.adapter_for_bank(mixed, "2.1")
 
@@ -397,3 +410,20 @@ def test_the_receiver_pack_directory_scores_half_a_plus_half_d(tmp_path):
             physical_pack.development_bank(dev.CHALLENGE, "2.0"),
             version="2.1",
         )
+
+
+def test_the_sealed_exam_is_graded_under_every_served_battery_version():
+    from carbon.challenge_kit import physical_pack
+
+    assert set(sealed.VERSIONS) == {"2.0", "2.1", "2.2"}
+    assert len({value for value in sealed.VERSIONS.values()}) == 1
+    assert sealed.adapter("2.2") is not None and sealed.adapter("2.3") is None
+    # 2.2 is 2.1 plus the catalog: the same exam, so its train and interface roles
+    # must equal 2.1's wherever 2.2 is served.
+    try:
+        newer = physical_pack.public_roles(sealed.CHALLENGE, "2.2")
+    except ValueError:
+        pytest.skip("Battery 2.2 is not served at this base")
+    older = physical_pack.public_roles(sealed.CHALLENGE, "2.1")
+    assert newer["train"] == older["train"]
+    assert newer["interface"] == older["interface"]

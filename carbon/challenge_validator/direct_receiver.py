@@ -325,19 +325,22 @@ def _set_batch_adapters(cfg, root, challenge, material, discovery, providers, le
     store = SealedPackStore(block["store"])
     primary = block["batches"][0]
     adapters = {}
-    for digest in block["batches"]:
-        if digest == primary:
+    for batch_digest in block["batches"]:
+        if batch_digest == primary:
             batch_discovery = discovery
         else:
             directory = store.pack_directory(
-                digest, challenge.challenge_id, challenge.version
+                batch_digest, challenge.challenge_id, challenge.version
             )
             selection = {
                 "root": str(directory),
                 "manifest": "evaluation-pack.json",
                 "public_root": str(directory),
                 "private_root": str(directory),
-                "sealed_delivery": {"store": block["store"], "manifest_digest": digest},
+                "sealed_delivery": {
+                    "store": block["store"],
+                    "manifest_digest": batch_digest,
+                },
             }
             pack_digest, pack_check, snapshot = _sealed_pack(
                 root, selection, challenge, bound=False
@@ -352,8 +355,12 @@ def _set_batch_adapters(cfg, root, challenge, material, discovery, providers, le
                 evaluation_pack_public_root=Path(selection["public_root"]),
                 evaluation_pack_private_root=Path(selection["private_root"]),
             )
-        adapters[digest] = LeanRecipeAdapter(
-            batch_discovery, providers, ledger, measure_query=cfg["measure_query"]
+        adapters[batch_digest] = LeanRecipeAdapter(
+            batch_discovery,
+            providers,
+            ledger,
+            measure_query=cfg["measure_query"],
+            copy_hotkey=cfg["receiver_hotkey"],
         )
     return adapters
 
@@ -1235,6 +1242,7 @@ def serve(
                 provider_for=providers,
                 attempt_ledger=ledger,
                 measure_query=cfg["measure_query"],
+                copy_hotkey=cfg["receiver_hotkey"],
             )
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention
@@ -1266,6 +1274,7 @@ def serve(
                             entry_id=task_id,
                             artifact_directory=artifact_directory,
                             entry_directory=entry_directory,
+                            promotion=_open_pool_store(pool_store),
                         )
                     if regrade:
                         # ``task_id`` is the retained bank entry id to regrade.
@@ -1376,9 +1385,14 @@ def main(argv=None):
     if args.exam_se and args.regrade_entry is None:
         parser.error("--exam-se applies to --regrade-entry only")
     if args.pool_store is not None and (
-        args.regrade_entry is None and args.retain_task is None
+        args.regrade_entry is None
+        and args.retain_task is None
+        and args.grade_set_entry is None
     ):
-        parser.error("--pool-store applies to --retain-task or --regrade-entry")
+        parser.error(
+            "--pool-store applies to --retain-task, --regrade-entry or "
+            "--grade-set-entry"
+        )
     retention_args = (
         (
             args.grade_set_entry

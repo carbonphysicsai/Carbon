@@ -76,7 +76,8 @@ def hidden_rule(repository=REPOSITORY):
                 "predicted_feasible_per_limit": list(WINDOW),
                 "limits": {"mean_torque_nm": ">= 4.0", "ripple_fraction": "<= 0.30"},
                 "decision": {
-                    "designs_feasible_at_every_condition": [1, 3],
+                    "designs_feasible_at_every_condition": [2, 3],
+                    "clearance": "U only (C17 fallback: the measured full clearance leaves no placeable grid)",
                     "every_condition_has_a_feasible_design": True,
                     "no_condition_where_every_design_is_feasible": True,
                 },

@@ -36,7 +36,10 @@ def test_the_bank_has_the_development_banks_shape():
     mine = sealed.sealed_bank(doc, records)
     theirs = physical_pack.development_bank(*F08)
     assert set(mine) == set(theirs)
-    assert mine["cohorts"] == theirs["cohorts"] == ("decision_near_limit",) * 8
+    assert theirs["cohorts"] == ("decision_near_limit",) * 8
+    assert (
+        mine["cohorts"] == ("decision_sealed_grid",) * 8
+    )  # the one sealed-grid cohort (C3)
     assert mine["inputs"].dtype == theirs["inputs"].dtype
     assert mine["inputs"].shape == theirs["inputs"].shape
     assert mine["references"].shape == theirs["references"].shape

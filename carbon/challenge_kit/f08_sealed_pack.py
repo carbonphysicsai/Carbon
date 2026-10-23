@@ -26,7 +26,8 @@ from pathlib import Path
 
 import numpy as np
 
-COHORT = "decision_near_limit"
+#: The one cohort a sealed grid's cells carry (C3); the development bank's `decision_near_limit` is not used.
+COHORT = "decision_sealed_grid"
 #: The pack rule's version, recorded in the pack summary and beside the pack
 #: (Validator, VALIDATOR_F08_SEALED_STOP_20261022). v1 required all three rungs
 #: to agree on the 0.15 mm/N side; h = 3 is biased about 1e-4 below the reference

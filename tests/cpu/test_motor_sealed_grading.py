@@ -28,9 +28,10 @@ from carbon.scoring import motor_sealed_dual_pack as sealed
 from carbon.scoring import physical_dual_pack as physical
 
 MOTOR = "electric-motor-magnetics"
-#: Motor's development producer digest before this change (HANDOFF §2).
+#: Motor's development producer digest after the one accepted move that hashed
+#: the sealed bank loader and copy modules (Validator, 2026-10-22).
 DEV_PRODUCER_DIGEST = (
-    "sha256:6fd856dcdd459a08fd841d505d2bffec7b36e776d33c7f9eda6707bee5621e73"
+    "sha256:5fe2c492b3e56334fd8cefe183d41f1cb7d9198ca057213079c3df42c75a2b9c"
 )
 DESIGNS, CONDITIONS = 5, 6
 

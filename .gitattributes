@@ -58,3 +58,12 @@ carbon/scoring/f08_dual_pack.py -text
 carbon/scoring/f08_dual_measurement.py -text
 carbon/scoring/motor_dual_pack.py -text
 carbon/scoring/motor_dual_measurement.py -text
+carbon/scoring/battery_sealed_dual_pack.py -text
+carbon/scoring/copy_derivation.py -text
+carbon/scoring/copy_package.py -text
+carbon/scoring/f02_sealed_dual_pack.py -text
+carbon/scoring/f08_sealed_dual_pack.py -text
+carbon/scoring/motor_sealed_dual_pack.py -text
+carbon/scoring/sealed_batch_source.py -text
+carbon/scoring/sealed_grid_common.py -text
+carbon/scoring/sealed_pack_writer.py -text
