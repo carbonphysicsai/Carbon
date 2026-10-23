@@ -27,6 +27,10 @@ class Schema:
     build_sha256: str
     configuration: frozenset
     train_use: frozenset
+    #: "v1": the pinned builds' own vocabulary; "v2": the catalog trainer v2 (build_v2_src), Carbon's limits removed.
+    vocabulary: str = "v1"
+    #: Exclusive upper bound of a seed candidate (the trainer's own: torch seeds up to 2**64 - 1, numpy up to 2**32 - 1).
+    seed_limit: int = 2**32
 
 
 #: The coverage build: one backbone trained fresh with Adam (the DeepXDE and
@@ -113,6 +117,27 @@ COVERAGE_F32 = Schema(
     COVERAGE.configuration,
     COVERAGE.train_use,
 )
+#: Catalog trainer v2 (`build_v2_src/build.py` and `build_jax.py`; "No Carbon limits", step 3). One Torch and one JAX build for
+#: every Challenge: the trainers follow the TRAIN's own dtype and the registry's POINTS, so no per-Challenge variant exists.
+#: The digests are of the files as they are in `build_v2_src` (provisional until the Validator's review ends).
+TORCH_V2 = Schema(
+    "carbon-candidate-torch-v2",
+    "carbon_candidate/build.py",
+    "sha256:f9a7f7768bd719ea50e38e4be7a738837f2348d88b5829fbd47554ae374d31a3",
+    frozenset({"learning_rate", "arch"}),
+    LEVERS.train_use,
+    vocabulary="v2",
+    seed_limit=2**64,
+)
+JAX_V2 = Schema(
+    "carbon-candidate-jax-v2",
+    "carbon_candidate/build.py",
+    "sha256:cd42478074e93e6e1adbb2e39250f7fd2514a81eef270a04821d4ff15851daad",
+    frozenset({"learning_rate"}),
+    LEVERS.train_use,
+    vocabulary="v2",
+    seed_limit=2**32,
+)
 SCHEMAS = {
     s.schema_id: s
     for s in (
@@ -123,6 +148,8 @@ SCHEMAS = {
         F08_LEVERS,
         F02_LEVERS,
         COVERAGE_F32,
+        TORCH_V2,
+        JAX_V2,
     )
 }
 #: Each Torch schema's GPU (`torch-cu130-py311`) build, the one deterministic
@@ -155,6 +182,8 @@ PRECISIONS = {
     F08_LEVERS.schema_id: ("bfloat16", "float16"),
     F02_LEVERS.schema_id: ("bfloat16", "float16"),
     JAX_LEVERS.schema_id: ("bfloat16", "float16", "float32"),
+    TORCH_V2.schema_id: ("bfloat16", "float16", "float32"),
+    JAX_V2.schema_id: ("bfloat16", "float16", "float32"),
 }
 #: The levers build's architecture settings, per backbone (its `ARCH`).
 ARCH = {
@@ -162,6 +191,57 @@ ARCH = {
     "neuralop.TFNO": ("modes", "hidden", "layers", "rank"),
     "transolver": ("layers", "hidden", "heads", "slices"),
 }
+#: Library arguments the THUML library entries take as architecture settings in the v2 trainer (its `LIBRARY_ARCH`).
+LIBRARY_ARCH = (
+    "n_hidden",
+    "n_layers",
+    "n_heads",
+    "modes",
+    "mlp_ratio",
+    "slice_num",
+    "mwt_k",
+    "dropout",
+)
+#: The output counts of the registered interfaces, so a per-output setting is checked at the door, not in the build.
+OUTPUT_COUNT = {
+    "electric-motor-magnetics": 60,
+    "chip-cold-plate": 32,
+    "f08-ribbed-bracket": 7,
+    "f02": 1,
+    "battery-fastcharge-ageing-development-v1": 247,
+}
+#: Choice lists per vocabulary: what the build implements.
+CHOICES = {
+    "v1": {
+        "loss": ("mse", "huber", "l1", "relative_l2"),
+        "optimizer": ("adam", "adamw", "sgd", "rmsprop", "lbfgs"),
+        "schedule": ("none", "cosine", "step", "onecycle", "warmup_cosine"),
+    },
+    "v2": {
+        "loss": ("mse", "huber", "l1", "relative_l2", "log_cosh"),
+        "optimizer": (
+            "adam",
+            "adamw",
+            "sgd",
+            "rmsprop",
+            "lbfgs",
+            "adagrad",
+            "nadam",
+            "radam",
+        ),
+        "schedule": (
+            "none",
+            "cosine",
+            "step",
+            "onecycle",
+            "warmup_cosine",
+            "exponential",
+            "polynomial",
+            "cosine_restarts",
+        ),
+    },
+}
+COMBINES = ("mean", "stacking", "stacking_per_output", "best_per_output", "weights")
 #: Levers a search candidate may set (the build's `TRAIN_LEVERS`).
 TRAIN_LEVERS = (
     "loss",
@@ -240,60 +320,90 @@ def _rate(value, where):
     _within(value, where, 0, 1, low_open=True)
 
 
-def _arch(backbone, arch, where):
-    if backbone not in ARCH:
+def arch_keys(backbone, vocabulary="v1"):
+    """The architecture settings a backbone takes under a vocabulary."""
+    if backbone in ARCH:
+        return tuple(ARCH[backbone])
+    if vocabulary == "v2" and backbone.startswith("thuml."):
+        return LIBRARY_ARCH
+    return ()
+
+
+def _arch(backbone, arch, where, vocabulary="v1"):
+    keys = arch_keys(backbone, vocabulary)
+    if not keys:
         if arch:
             raise CatalogRefused(
                 "catalog_setting_unknown", f"{backbone} takes no {where} settings"
             )
         return
-    _only(arch, ARCH[backbone], where)
+    _only(arch, keys, where)
     for key, value in arch.items():
         if key == "rank":
             _within(value, f"{where}.rank", 0, 1, low_open=True)
+        elif key == "dropout":
+            _within(value, f"{where}.dropout", 0, 1, high_open=True)
         else:
             _positive_int(value, f"{where}.{key}")
     if backbone == "transolver":
         merged = {"hidden": 32, "heads": 4, **arch}  # the build's ARCH defaults
-        if merged["hidden"] % merged["heads"]:
+        if (
+            merged["hidden"] % merged["heads"]
+        ):  # external fact: dim_head = hidden // heads (Transolver_plus.py:128)
             raise CatalogRefused(
                 "catalog_settings_inconsistent",
                 "transolver hidden must be a multiple of heads",
             )
 
 
-def _loss(spec, where):
-    _only(spec, {"kind", "delta", "smoothness"}, where)
+def _loss(spec, where, vocabulary="v1", n_out=None):
+    keys = {"kind", "delta", "smoothness"} | (
+        {"output_weights"} if vocabulary == "v2" else set()
+    )
+    _only(spec, keys, where)
     if "kind" in spec:
-        _choice(spec["kind"], where + ".kind", ("mse", "huber", "l1", "relative_l2"))
+        _choice(spec["kind"], where + ".kind", CHOICES[vocabulary]["loss"])
     if "delta" in spec:
         _within(spec["delta"], where + ".delta", 0, None, low_open=True)
     if "smoothness" in spec:
         _within(spec["smoothness"], where + ".smoothness", 0, None)
+    if "output_weights" in spec:
+        weights = spec["output_weights"]
+        if type(weights) is not list or not weights:
+            _bad(where + ".output_weights", "a list with one weight per output")
+        if n_out is not None and len(weights) != n_out:
+            _bad(
+                where + ".output_weights", f"a list of {n_out} weights, one per output"
+            )
+        for index, value in enumerate(weights):
+            _within(value, f"{where}.output_weights[{index}]", 0, None)
+        if not any(value > 0 for value in weights):
+            _bad(where + ".output_weights", "weights with at least one above 0")
 
 
-def _optimizer(spec, where):
+def _optimizer(spec, where, vocabulary="v1"):
     _only(spec, {"name", "weight_decay", "momentum"}, where)
     if "name" in spec:
-        _choice(
-            spec["name"], where + ".name", ("adam", "adamw", "sgd", "rmsprop", "lbfgs")
-        )
+        _choice(spec["name"], where + ".name", CHOICES[vocabulary]["optimizer"])
     if "weight_decay" in spec:
         _within(spec["weight_decay"], where + ".weight_decay", 0, None)
     if "momentum" in spec:
         _within(spec["momentum"], where + ".momentum", 0, 1, high_open=True)
 
 
-def _schedule(spec, where):
-    _only(spec, {"name", "gamma", "every", "warmup"}, where)
+def _schedule(spec, where, vocabulary="v1"):
+    _only(
+        spec,
+        {"name", "gamma", "every", "warmup"}
+        | ({"power"} if vocabulary == "v2" else set()),
+        where,
+    )
     if "name" in spec:
-        _choice(
-            spec["name"],
-            where + ".name",
-            ("none", "cosine", "step", "onecycle", "warmup_cosine"),
-        )
+        _choice(spec["name"], where + ".name", CHOICES[vocabulary]["schedule"])
     if "gamma" in spec:
         _within(spec["gamma"], where + ".gamma", 0, None, low_open=True)
+    if "power" in spec:
+        _within(spec["power"], where + ".power", 0, None, low_open=True)
     for key in ("every", "warmup"):
         if key in spec:
             _positive_int(spec[key], f"{where}.{key}")
@@ -342,14 +452,16 @@ def _validation(spec, where):
         )
 
 
-def _train_levers(use, where, precisions=("bfloat16", "float16")):
+def _train_levers(
+    use, where, precisions=("bfloat16", "float16"), vocabulary="v1", n_out=None
+):
     """The levers one training run takes (also a search candidate's)."""
     if "loss" in use:
-        _loss(use["loss"], where + ".loss")
+        _loss(use["loss"], where + ".loss", vocabulary, n_out)
     if "optimizer" in use:
-        _optimizer(use["optimizer"], where + ".optimizer")
+        _optimizer(use["optimizer"], where + ".optimizer", vocabulary)
     if "schedule" in use:
-        _schedule(use["schedule"], where + ".schedule")
+        _schedule(use["schedule"], where + ".schedule", vocabulary)
     if "data" in use:
         _data(use["data"], where + ".data")
     if "precision" in use and use["precision"] is not None:
@@ -374,13 +486,52 @@ def _train_levers(use, where, precisions=("bfloat16", "float16")):
             if "learning_rate" in stage:
                 _rate(stage["learning_rate"], at + ".learning_rate")
             if "optimizer" in stage:
-                _optimizer(stage["optimizer"], at + ".optimizer")
+                _optimizer(stage["optimizer"], at + ".optimizer", vocabulary)
             if "schedule" in stage:
-                _schedule(stage["schedule"], at + ".schedule")
+                _schedule(stage["schedule"], at + ".schedule", vocabulary)
 
 
-def _levers(backbone, use, precisions=("bfloat16", "float16")):
-    _train_levers(use, "train_use", precisions)
+def _members_v2(spec, where, n_out):
+    """`ensemble.members` under the v2 trainer: a whole number, or a list of member specs covering every output."""
+    members = spec.get("members", 3)
+    if type(members) is int:
+        _positive_int(members, where + ".members")
+        return
+    if type(members) is not list or not members:
+        _bad(
+            where + ".members",
+            "a whole number, 1 or more, or a non-empty list of member specs",
+        )
+    covered = set()
+    for index, member in enumerate(members):
+        at = f"{where}.members[{index}]"
+        _only(member, {"outputs"}, at)
+        outputs = member.get("outputs")
+        if outputs is None:
+            covered.update(range(n_out or 0))
+            continue
+        if type(outputs) is not list or not outputs:
+            _bad(at + ".outputs", "a non-empty list of output indices")
+        for value in outputs:
+            if (
+                type(value) is not int
+                or value < 0
+                or (n_out is not None and value >= n_out)
+            ):
+                _bad(at + ".outputs", f"output indices from 0 to {(n_out or 1) - 1}")
+        covered.update(outputs)
+    if n_out is not None and covered != set(range(n_out)):
+        missing = min(set(range(n_out)) - covered)
+        raise CatalogRefused(
+            "catalog_settings_inconsistent",
+            f"{where}.members leave output {missing} covered by no member",
+        )
+
+
+def _levers(backbone, use, precisions=("bfloat16", "float16"), schema=None, n_out=None):
+    vocabulary = schema.vocabulary if schema else "v1"
+    seed_limit = schema.seed_limit if schema else 2**32
+    _train_levers(use, "train_use", precisions, vocabulary, n_out)
     if "early_stopping" in use:
         spec = use["early_stopping"]
         _only(spec, {"validation", "every", "patience"}, "train_use.early_stopping")
@@ -403,8 +554,15 @@ def _levers(backbone, use, precisions=("bfloat16", "float16")):
         for index, candidate in enumerate(candidates):
             at = f"{where}.candidates[{index}]"
             if lever == "seeds":
-                if type(candidate) is not int or not 0 <= candidate < 2**32:
-                    _bad(at, "a uint32 integer")
+                if type(candidate) is not int or not 0 <= candidate < seed_limit:
+                    _bad(
+                        at,
+                        (
+                            "a uint32 integer"
+                            if seed_limit == 2**32
+                            else "an integer from 0 to 2**64 - 1"
+                        ),
+                    )
                 continue
             if type(candidate) is dict and "backbone" in candidate:
                 raise CatalogRefused(
@@ -415,9 +573,35 @@ def _levers(backbone, use, precisions=("bfloat16", "float16")):
             if "learning_rate" in candidate:
                 _rate(candidate["learning_rate"], at + ".learning_rate")
             if "arch" in candidate:
-                _arch(backbone, candidate["arch"], at + ".arch")
-            _train_levers(candidate, at, precisions)
-    if "ensemble" in use:
+                _arch(backbone, candidate["arch"], at + ".arch", vocabulary)
+            _train_levers(candidate, at, precisions, vocabulary, n_out)
+    if "ensemble" in use and vocabulary == "v2":
+        spec = use["ensemble"]
+        _only(
+            spec, {"members", "combine", "weights", "validation"}, "train_use.ensemble"
+        )
+        _validation(spec, "train_use.ensemble")
+        _members_v2(spec, "train_use.ensemble", n_out)
+        if "combine" in spec:
+            _choice(spec["combine"], "train_use.ensemble.combine", COMBINES)
+        if spec.get("combine") == "weights" and type(spec.get("weights")) is not list:
+            _bad("train_use.ensemble.weights", "a list with one entry per member")
+        if "weights" in spec:
+            if type(spec["weights"]) is not list:
+                _bad("train_use.ensemble.weights", "a list with one entry per member")
+            members = spec.get("members", 3)
+            if len(spec["weights"]) != (
+                members if type(members) is int else len(members)
+            ):
+                _bad("train_use.ensemble.weights", "a list with one entry per member")
+            for index, entry in enumerate(spec["weights"]):
+                at = f"train_use.ensemble.weights[{index}]"
+                for item in entry if type(entry) is list else [entry]:
+                    if not _number(item):
+                        _bad(at, "a finite number or a list of finite numbers")
+                if type(entry) is list and n_out is not None and len(entry) != n_out:
+                    _bad(at, f"a list of {n_out} weights, one per output")
+    elif "ensemble" in use:
         spec = use["ensemble"]
         _only(spec, {"members", "combine", "validation"}, "train_use.ensemble")
         _validation(spec, "train_use.ensemble")
@@ -458,7 +642,12 @@ def _levers(backbone, use, precisions=("bfloat16", "float16")):
     if "quantize" in use:
         spec = use["quantize"]
         _only(spec, {"bits"}, "train_use.quantize")
-        if "bits" in spec and (
+        if (
+            vocabulary == "v2"
+        ):  # bits >= 2 is structural (one bit has no levels); no upper bound
+            if "bits" in spec and (type(spec["bits"]) is not int or spec["bits"] < 2):
+                _bad("train_use.quantize.bits", "a whole number, 2 or more")
+        elif "bits" in spec and (
             type(spec["bits"]) is not int or not 2 <= spec["bits"] <= 16
         ):
             _bad("train_use.quantize.bits", "a whole number from 2 to 16")
@@ -478,8 +667,9 @@ def resolve(item, configuration, train_use):
     backbone = item["backbone"]
     if "learning_rate" in configuration:
         _rate(configuration["learning_rate"], "configuration.learning_rate")
+    vocabulary = schema.vocabulary
     if "arch" in configuration:
-        _arch(backbone, configuration["arch"], "configuration.arch")
+        _arch(backbone, configuration["arch"], "configuration.arch", vocabulary)
     if "steps" in train_use:
         _positive_int(train_use["steps"], "train_use.steps")
     if schema in (COVERAGE, COVERAGE_F32):
@@ -490,12 +680,15 @@ def resolve(item, configuration, train_use):
                 train_use["derivative_weight"], "train_use.derivative_weight", 0, None
             )
     else:
-        _levers(backbone, train_use, PRECISIONS[schema.schema_id])
+        n_out = None
+        if vocabulary == "v2":
+            n_out = OUTPUT_COUNT.get(item["challenges"][0]["id"])
+        _levers(backbone, train_use, PRECISIONS[schema.schema_id], schema, n_out)
     defaults = item["defaults"]
     merged = {**defaults["configuration"], **configuration, "backbone": backbone}
     if "arch" in configuration and "arch" in defaults["configuration"]:
         merged["arch"] = {**defaults["configuration"]["arch"], **configuration["arch"]}
-        _arch(backbone, merged["arch"], "configuration.arch")
+        _arch(backbone, merged["arch"], "configuration.arch", vocabulary)
     return merged, {**defaults["train_use"], **train_use}
 
 
@@ -506,7 +699,7 @@ def document(item):
         "schema": schema.schema_id,
         "configuration": sorted(schema.configuration),
         "train_use": sorted(schema.train_use),
-        "arch": list(ARCH.get(item["backbone"], ())),
+        "arch": list(arch_keys(item["backbone"], schema.vocabulary)),
         "defaults": item["defaults"],
         "fixed": {"backbone": item["backbone"]},
         "limits": "the rebuild's wall time is the only training limit; no step cap",
