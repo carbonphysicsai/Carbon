@@ -61,9 +61,17 @@ def _number(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
-def block(components, objective):
+#: OWNER-DESIGN-DECISION-FIDELITY-01 starting values: the main limit is shifted
+#: by +-5% and the three decision measures are equally weighted.
+SHIFT = 0.05
+
+
+def block(components, objective, main_limits):
     """The definition block: ``components`` is a list of ``(id, kind, quantity,
-    unit, scale)`` and ``objective`` ``(unit, direction, scale)``."""
+    unit, scale)``, ``objective`` ``(unit, direction, scale)`` and
+    ``main_limits`` a list of ``(component id, sigma)`` naming the main limit's
+    margin components (sigma +1 when the margin is ``limit - value``, -1 when it
+    is ``value - limit``), shifted together in the nearby-variant questions."""
     return {
         "schema": SCHEMA,
         "rule": RULE,
@@ -77,6 +85,12 @@ def block(components, objective):
             "scale": objective[2],
         },
         "components_not_applied": list(NOT_APPLIED),
+        "value": {
+            "rule": "V=mean(V_pair,V_feas,V_var)",
+            "shift": SHIFT,
+            "resolution": 0.0,
+            "main_limit": [{"component": c, "sigma": sg} for c, sg in main_limits],
+        },
     }
 
 
@@ -84,7 +98,14 @@ def validate_block(value):
     _require(
         type(value) is dict
         and set(value)
-        == {"schema", "rule", "components", "objective", "components_not_applied"}
+        == {
+            "schema",
+            "rule",
+            "components",
+            "objective",
+            "components_not_applied",
+            "value",
+        }
         and value["schema"] == SCHEMA
         and value["rule"] == RULE
         and value["components_not_applied"] == list(NOT_APPLIED)
@@ -113,6 +134,26 @@ def validate_block(value):
             "critical_component",
         )
         seen.add(component["id"])
+    spec = value["value"]
+    _require(
+        type(spec) is dict
+        and set(spec) == {"rule", "shift", "resolution", "main_limit"}
+        and spec["rule"] == "V=mean(V_pair,V_feas,V_var)"
+        and _number(spec["shift"])
+        and 0 < spec["shift"] < 1
+        and _number(spec["resolution"])
+        and spec["resolution"] >= 0
+        and type(spec["main_limit"]) is list
+        and bool(spec["main_limit"])
+        and all(
+            type(m) is dict
+            and set(m) == {"component", "sigma"}
+            and m["sigma"] in (1, -1)
+            and m["component"] in seen
+            for m in spec["main_limit"]
+        ),
+        "critical_value_block",
+    )
     return value
 
 
@@ -270,6 +311,130 @@ def summary(model_result):
     }
 
 
+def _worst_margins(spec, cells_of, cases):
+    """Per action, per margin component: the worst (smallest) margin over the
+    action's cells, in that component's scale units."""
+    scale = {c["id"]: c["scale"] for c in spec["components"] if c["kind"] == "margin"}
+    quantity = {
+        c["id"]: c["quantity"] for c in spec["components"] if c["kind"] == "margin"
+    }
+    return {
+        action: {
+            cid: min(cases[cell][quantity[cid]] for cell in cells) / scale[cid]
+            for cid in scale
+        }
+        for action, cells in cells_of.items()
+    }
+
+
+def value(spec, *, cells_of, reference, prediction, base_v, limits, exact_ok=None):
+    """V = the equal-weight mean of V_pair, V_feas and V_var
+    (OWNER-DESIGN-DECISION-FIDELITY-01), from the references already held.
+
+    ``cells_of``: ``{action: [cell ids]}``. ``reference`` and ``prediction`` as
+    in `reduce`, the prediction also carrying ``objective``: ``{action: float}``.
+    ``base_v`` is the Challenge's native pick value on the base question.
+    ``limits`` maps each main-limit component id to its registered limit value.
+    ``exact_ok`` maps an action to False when an exactly known limit (F08's
+    mass) already rules it out, for model and reference alike.
+
+    Returns ``(V, record)``; V is None when the model left any needed
+    prediction out (a candidate fault, never a smaller error)."""
+    validate_block(spec)
+    actions = list(cells_of)
+    exact = {a: (exact_ok or {}).get(a, True) for a in actions}
+    objective = spec["objective"]
+    record = {"rule": spec["value"]["rule"], "V_pair": None, "V_feas": None}
+    ref_obj = {a: reference["actions"][a]["objective"] for a in actions}
+    pred_obj = prediction.get("objective") or {}
+    pred_cases = prediction["cases"]
+    needed = [c["quantity"] for c in spec["components"] if c["kind"] == "margin"]
+    if (
+        base_v is None
+        or not all(_number(pred_obj.get(a)) for a in actions)
+        or not all(
+            _number(pred_cases.get(cell, {}).get(q))
+            for cells in cells_of.values()
+            for cell in cells
+            for q in needed
+        )
+    ):
+        return None, record
+    ref_w = _worst_margins(spec, cells_of, reference["cases"])
+    pred_w = _worst_margins(spec, cells_of, pred_cases)
+
+    # V_pair: misordered pairs cost their true objective gap.
+    resolution = spec["value"]["resolution"]
+    total = wrong = 0.0
+    for i, first in enumerate(actions):
+        for second in actions[i + 1 :]:
+            gap = abs(ref_obj[first] - ref_obj[second])
+            if gap <= resolution:
+                continue
+            total += gap
+            if (ref_obj[first] - ref_obj[second]) * (
+                pred_obj[first] - pred_obj[second]
+            ) <= 0:
+                wrong += gap
+    v_pair = 1.0 if total == 0 else 1.0 - wrong / total
+
+    # V_feas: a wrong accept costs the true violation, a wrong reject the true
+    # margin given up, both in the limit's own scale units.
+    costs = []
+    for a in actions:
+        s_ref, s_pred = min(ref_w[a].values()), min(pred_w[a].values())
+        if exact[a] and s_ref < 0 <= s_pred:
+            costs.append(-s_ref)
+        elif exact[a] and s_pred < 0 <= s_ref:
+            costs.append(s_ref)
+        else:
+            costs.append(0.0)
+    v_feas = 1.0 / (1.0 + sum(costs) / len(costs))
+
+    # V_var: the pick question under the main limit shifted +-shift; the base
+    # question is the Challenge's own.
+    shift = spec["value"]["shift"]
+    minimise = objective["direction"] == "MINIMIZE"
+
+    def feasible(w, delta):
+        for cid, value_ in w.items():
+            for entry in spec["value"]["main_limit"]:
+                if entry["component"] == cid:
+                    scale = next(
+                        c["scale"] for c in spec["components"] if c["id"] == cid
+                    )
+                    value_ = value_ + entry["sigma"] * delta * limits[cid] / scale
+            if value_ < 0:
+                return False
+        return True
+
+    questions = [base_v]
+    for delta in (-shift, shift):
+        truth = [a for a in actions if exact[a] and feasible(ref_w[a], delta)]
+        if not truth:
+            continue  # nothing is feasible: the variant measures nothing
+        offered = [a for a in actions if exact[a] and feasible(pred_w[a], delta)]
+        if not offered:
+            questions.append(0.0)
+            continue
+        choose = min if minimise else max
+        pick = choose(offered, key=lambda a: pred_obj[a])
+        if pick not in truth:
+            questions.append(0.0)
+            continue
+        best = choose(ref_obj[a] for a in truth)
+        regret = abs(ref_obj[pick] - best)
+        questions.append(1.0 / (1.0 + regret / objective["scale"]))
+    v_var = sum(questions) / len(questions)
+    record.update(
+        V_pair=v_pair,
+        V_feas=v_feas,
+        V_var=v_var,
+        variant_questions=len(questions) - 1,
+    )
+    return (v_pair + v_feas + v_var) / 3.0, record
+
+
 def design(value_benefit, model_result):
     """``(D, summary)``: D = min(V, C). ``value_benefit`` is the Challenge's own
     native V (unchanged): None stays None, and a V of 0 stays 0 (an unsafe or
@@ -292,5 +457,6 @@ __all__ = [
     "design",
     "reduce",
     "summary",
+    "value",
     "validate_block",
 ]

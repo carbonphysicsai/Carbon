@@ -42,13 +42,18 @@ def block(base):
             ),
         ],
         ("mm/N", "MINIMIZE", base["D_scale_mm_per_n"]),
+        [("dynamic_margin_" + name, 1) for name in base["tip_targets"]],
     )
 
 
 def apply(measured, *, bank_rows, outputs, definition, constraints):
     """``measured`` (F08's native measurement) with D = min(V, C), when the
     definition registers the rule; unchanged otherwise (a v1 definition)."""
-    if "critical" not in definition or not measured["D"]:
+    if (
+        "critical" not in definition
+        or measured["D"] is None
+        or not measured["gates"]["finite_native_summary"]
+    ):
         return measured
     targets = definition["targets"]
     index = {name: j for j, name in enumerate(targets)}
@@ -70,32 +75,57 @@ def apply(measured, *, bank_rows, outputs, definition, constraints):
     ids = [row["case_id"] for row in bank_rows]
     references = [[float(v) for v in row["reference"]] for row in bank_rows]
     predictions = [[float(v) for v in row] for row in outputs]
-    reduction = critical.reduce(
-        definition["critical"],
-        case_ids=ids,
-        action_ids=ids,
-        reference={
-            "cases": {
-                cid: quantities(row) for cid, row in zip(ids, references, strict=True)
-            },
-            "actions": {
-                cid: {
-                    "feasible": row[index[static]]
-                    <= constraints["static_tip_mm_per_n_max"]
-                    and max(row[index[name]] for name in tips)
-                    <= constraints["dynamic_tip_mm_per_n_max"]
-                    and bank["record"]["cad_mass_kg"] <= constraints["mass_kg_max"],
-                    "objective": max(row[index[name]] for name in tips),
-                }
-                for cid, row, bank in zip(ids, references, bank_rows, strict=True)
-            },
+    masses = [row["record"]["cad_mass_kg"] for row in bank_rows]
+    reference = {
+        "cases": {
+            cid: quantities(row) for cid, row in zip(ids, references, strict=True)
         },
-        prediction={
-            "cases": {
-                cid: quantities(row) for cid, row in zip(ids, predictions, strict=True)
-            },
-            "selected": measured["pick"],
+        "actions": {
+            cid: {
+                "feasible": row[index[static]] <= constraints["static_tip_mm_per_n_max"]
+                and max(row[index[name]] for name in tips)
+                <= constraints["dynamic_tip_mm_per_n_max"]
+                and bank["record"]["cad_mass_kg"] <= constraints["mass_kg_max"],
+                "objective": max(row[index[name]] for name in tips),
+            }
+            for cid, row, bank in zip(ids, references, bank_rows, strict=True)
+        },
+    }
+    prediction = {
+        "cases": {
+            cid: quantities(row) for cid, row in zip(ids, predictions, strict=True)
+        },
+        "selected": measured["pick"],
+        "objective": {
+            cid: max(row[index[name]] for name in tips)
+            for cid, row in zip(ids, predictions, strict=True)
+        },
+    }
+    cells_of = {cid: [cid] for cid in ids}
+    v, v_record = critical.value(
+        definition["critical"],
+        cells_of=cells_of,
+        reference=reference,
+        prediction=prediction,
+        base_v=measured["D"],
+        limits={
+            "dynamic_margin_" + name: constraints["dynamic_tip_mm_per_n_max"]
+            for name in tips
+        },
+        exact_ok={
+            cid: mass <= constraints["mass_kg_max"]
+            for cid, mass in zip(ids, masses, strict=True)
         },
     )
-    d, record = critical.design(measured["D"], reduction)
+    d, record = critical.design(
+        v,
+        critical.reduce(
+            definition["critical"],
+            case_ids=ids,
+            action_ids=ids,
+            reference=reference,
+            prediction=prediction,
+        ),
+    )
+    record["value"] = v_record
     return {**measured, "D": d, "design_fidelity": record}

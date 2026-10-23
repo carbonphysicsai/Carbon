@@ -170,6 +170,7 @@ def definition(*, bank, train_raw):
                 ("ripple_margin", "margin", RIPPLE_MARGIN, "1", RIPPLE_MARGIN_SCALE),
             ],
             ("1", "MINIMIZE", values["D_scale"]),
+            [("torque_margin", -1)],
         ),
     }
 
@@ -323,47 +324,61 @@ def measure(
         bank_rows, index, quantities, reference_quantities, grid_objective, definition
     )
     fidelity = None
-    if "critical" in definition and quantities is not None and d:
+    if "critical" in definition and quantities is not None:
         # D = min(V, C): C is the worst signed torque/ripple margin error over
-        # every cell, the unselected designs included.
+        # every cell, the unselected designs included; V is the mean of the
+        # pair-ordering, accept/reject and nearby-variant measures.
+        cells_of = {
+            design: [bank_rows[i]["case_id"] for i in layout.rows_of_design(design)]
+            for design in designs
+        }
+        reference = {
+            "cases": {
+                k: {q: v[q] for q in (TORQUE_MARGIN, RIPPLE_MARGIN)}
+                for k, v in reference_quantities.items()
+            },
+            "actions": {
+                design: {
+                    "feasible": all(
+                        reference_quantities[cid]["feasible"] for cid in cells
+                    ),
+                    "objective": max(
+                        reference_quantities[cid]["ripple_fraction"] for cid in cells
+                    ),
+                }
+                for design, cells in cells_of.items()
+            },
+        }
+        prediction = {
+            "cases": {
+                k: {q: v[q] for q in (TORQUE_MARGIN, RIPPLE_MARGIN)}
+                for k, v in quantities.items()
+            },
+            "selected": selected,
+            "objective": {
+                design: max(quantities[cid]["ripple_fraction"] for cid in cells)
+                for design, cells in cells_of.items()
+            },
+        }
+        v_total, v_record = critical.value(
+            definition["critical"],
+            cells_of=cells_of,
+            reference=reference,
+            prediction=prediction,
+            base_v=d if d is not None else 0.0,
+            limits={"torque_margin": constraints["min_mean_torque_nm"]},
+        )
         d, fidelity = critical.design(
-            d,
+            v_total,
             critical.reduce(
                 definition["critical"],
                 case_ids=[row["case_id"] for row in bank_rows],
                 action_ids=designs,
-                reference={
-                    "cases": {
-                        k: {q: v[q] for q in (TORQUE_MARGIN, RIPPLE_MARGIN)}
-                        for k, v in reference_quantities.items()
-                    },
-                    "actions": {
-                        design: {
-                            "feasible": all(
-                                reference_quantities[bank_rows[i]["case_id"]][
-                                    "feasible"
-                                ]
-                                for i in layout.rows_of_design(design)
-                            ),
-                            "objective": max(
-                                reference_quantities[bank_rows[i]["case_id"]][
-                                    "ripple_fraction"
-                                ]
-                                for i in layout.rows_of_design(design)
-                            ),
-                        }
-                        for design in designs
-                    },
-                },
-                prediction={
-                    "cases": {
-                        k: {q: v[q] for q in (TORQUE_MARGIN, RIPPLE_MARGIN)}
-                        for k, v in quantities.items()
-                    },
-                    "selected": selected,
-                },
+                reference=reference,
+                prediction=prediction,
             ),
         )
+        fidelity["value"] = v_record
     return {
         "A": a,
         "D": d,

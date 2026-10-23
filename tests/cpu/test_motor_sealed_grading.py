@@ -186,13 +186,14 @@ def test_a_is_the_minimum_of_the_registered_benefits(case):
 def test_d_is_the_registered_decision_workflow_not_a_carried_a(case):
     # A uniform torque shift worsens A, and moves the ripple ranking so the
     # designs the model verifies are not the reference's feasible ones: the
-    # registered workflow reports a missed opportunity and D is its policy
-    # floor, whatever A is. D is not a copy of A.
+    # registered workflow reports a missed opportunity, whatever A is. D is not a copy of A.
     shifted = [[v + 0.35 for v in row] for row in _truth(case)]
     result = _measure(case, shifted)
     assert 0.0 < result["A"] < 1.0
     assert result["decision_outcome"] == "MISSED_OPPORTUNITY"
-    assert result["D"] == 0.0 != result["A"]
+    # The mean V keeps the pair/accept measures of a missed pick; the pack's
+    # MISSED_OPPORTUNITY policy (maximum_D 0) is what floors the grade.
+    assert 0.0 <= result["D"] < 1.0 and result["D"] != result["A"]
     assert result["selected_design"] is None and result["verified_regret"] is None
     # The reference itself picks a design and earns the full benefit.
     exact = _measure(case, _truth(case))

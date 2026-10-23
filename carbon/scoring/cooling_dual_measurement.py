@@ -68,6 +68,7 @@ def critical_block(d_scale_w):
             ),
         ],
         ("W", "MINIMIZE", d_scale_w),
+        [("die_margin", 1)],
     )
 
 
@@ -319,12 +320,13 @@ def measure(*, bank, outputs, repeats, definition, contract, train):
     regret = max(0.0, reference_objectives[picked] - best) if verified else None
     d_benefit = _benefit(regret, definition["D_scale_W"]) if verified else 0.0
     fidelity = None
-    if "critical" in definition and d_benefit:
+    if "critical" in definition:
         # D = min(V, C): C is the worst signed die/hydraulic margin error over
-        # every design x condition cell, the unselected designs included.
-        d_benefit, fidelity = critical.design(
+        # every design x condition cell, the unselected designs included; V is
+        # the mean of the pair-ordering, accept/reject and nearby-variant measures.
+        d_benefit, fidelity = _critical_design(
             d_benefit,
-            _critical_reduction(
+            _critical_inputs(
                 definition,
                 bank,
                 keys,
@@ -335,6 +337,7 @@ def measure(*, bank, outputs, repeats, definition, contract, train):
                 contract,
                 picked,
             ),
+            definition,
         )
     return {
         "design_fidelity": fidelity,
@@ -354,11 +357,12 @@ def measure(*, bank, outputs, repeats, definition, contract, train):
 _MARGINS = ("die_margin_c", "hydraulic_margin_w")
 
 
-def _critical_reduction(
+def _critical_inputs(
     definition, bank, keys, designs, conditions, references, predictions, contract, pick
 ):
     """Cooling's cells for ``critical_fidelity``: the reference's and the
-    model's signed die and hydraulic margins at every design x condition."""
+    model's signed die and hydraulic margins at every design x condition, and
+    each design's worst-condition hydraulic power."""
     ids = [row["case_id"] for row in bank]
 
     def cells(outputs):
@@ -377,27 +381,53 @@ def _critical_reduction(
 
     truth = cells([r["outputs"] for r in references])
     _require(all(truth[cid] for cid in ids), "cooling_reference_quantities")
-    by_design = {d: [ids[keys.index((d, c))] for c in conditions] for d in designs}
+    cells_of = {d: [ids[keys.index((d, c))] for c in conditions] for d in designs}
     predicted = cells(predictions)
-    return critical.reduce(
+    reference = {
+        "cases": {cid: {n: row[n] for n in _MARGINS} for cid, row in truth.items()},
+        "actions": {
+            d: {
+                "feasible": all(truth[cid]["feasible"] for cid in members),
+                "objective": max(truth[cid]["hydraulic_w"] for cid in members),
+            }
+            for d, members in cells_of.items()
+        },
+    }
+    prediction = {
+        "cases": {
+            cid: {n: row[n] for n in _MARGINS if n in row}
+            for cid, row in predicted.items()
+        },
+        "selected": pick,
+        "objective": {
+            d: max(predicted[cid]["hydraulic_w"] for cid in members)
+            for d, members in cells_of.items()
+            if all("hydraulic_w" in predicted[cid] for cid in members)
+        },
+    }
+    limits = {"die_margin": contract["constraints"]["die_peak_c_max"]}
+    return ids, list(designs), cells_of, reference, prediction, limits
+
+
+def _critical_design(base_v, inputs, definition):
+    ids, actions, cells_of, reference, prediction, limits = inputs
+    v, v_record = critical.value(
         definition["critical"],
-        case_ids=ids,
-        action_ids=list(designs),
-        reference={
-            "cases": {cid: {n: row[n] for n in _MARGINS} for cid, row in truth.items()},
-            "actions": {
-                d: {
-                    "feasible": all(truth[cid]["feasible"] for cid in members),
-                    "objective": max(truth[cid]["hydraulic_w"] for cid in members),
-                }
-                for d, members in by_design.items()
-            },
-        },
-        prediction={
-            "cases": {
-                cid: {n: row[n] for n in _MARGINS if n in row}
-                for cid, row in predicted.items()
-            },
-            "selected": pick,
-        },
+        cells_of=cells_of,
+        reference=reference,
+        prediction=prediction,
+        base_v=base_v,
+        limits=limits,
     )
+    d, record = critical.design(
+        v,
+        critical.reduce(
+            definition["critical"],
+            case_ids=ids,
+            action_ids=actions,
+            reference=reference,
+            prediction=prediction,
+        ),
+    )
+    record["value"] = v_record
+    return d, record
