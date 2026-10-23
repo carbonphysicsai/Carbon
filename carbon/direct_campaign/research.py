@@ -60,6 +60,7 @@ NAMES = (
     "reference_method",
     "catalog",
     "construction_kit",
+    "scaffold_recipe",
 )
 
 
@@ -459,6 +460,19 @@ class DirectPublicMaterial:
             }
         elif name == "construction_kit":
             value = construction_kit(self.spec)
+        elif name == "scaffold_recipe":
+            from carbon.challenge_registry.direct import catalog_recipe, graph_recipe
+            from carbon.development_session.research_tasks import ready_recipes
+
+            version = self.key.version
+            value = ready_recipes(
+                self.key.challenge_id,
+                version,
+                {
+                    "catalog": lambda: catalog_recipe(self.spec, version=version),
+                    "graph": lambda: graph_recipe(self.spec, version=version),
+                },
+            )
         else:
             raise ValueError("material outside public allowlist")
         body = canonical(value)

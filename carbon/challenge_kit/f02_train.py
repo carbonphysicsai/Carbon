@@ -19,6 +19,8 @@ import statistics
 import zipfile
 from pathlib import Path
 
+from . import version_registry
+
 CHALLENGE_ID = "f02"
 #: TRAIN40-v2 is F02's evaluation version 2 (the owner record calls it a new
 #: evaluation version); TRAIN40 (v1) is history and is not served here.
@@ -30,7 +32,9 @@ CHALLENGE_VERSION = "2.0"
 #: serves the same TRAIN40-v2 bytes; only the version binding differs.
 #: 2.3 (the Validator, 2026-10-20: the catalog binding plus Carbon's graph
 #: training adapter) serves the same TRAIN40-v2 bytes.
-CHALLENGE_VERSIONS = ("2.0", "2.1", "2.2", "2.3")
+#: Every version (2.4, graph route v2, is 2.3 plus the graph adapter v2: the
+#: same TRAIN), as the version registry declares them (`version_registry`).
+CHALLENGE_VERSIONS = version_registry.versions(CHALLENGE_ID)
 CONTEXT = {
     "coolant_c": 30.0,
     "h_w_m2_k": 2500.0,

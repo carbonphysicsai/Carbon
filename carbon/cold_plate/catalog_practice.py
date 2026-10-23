@@ -183,25 +183,12 @@ class CoolingCatalogPractice:
 
         material = self._material()
         from carbon.development_session.catalog_gpu import backend_record
-        from carbon.development_session.gpu_practice import device_build, gpu_overlay
 
-        expanded, _bundle, image, construction_parent, accelerator, gpu_note = (
-            device_build(
-                self,
-                lambda runtime: self._expanded(strategy, material, runtime),
-                _bundle_ref,
-                lambda bundle, parent, built: gpu_overlay(
-                    self,
-                    identity,
-                    bundle,
-                    parent,
-                    built,
-                    material["construction_kit"],
-                    material["construction_limits_document"],
-                ),
-            )
+        source_kind = (
+            strategy.get("source", {}).get("kind")
+            if type(strategy) is dict and type(strategy.get("source")) is dict
+            else None
         )
-        recipe = ConstructionRecipe.from_dict(expanded)
         kit = material["construction_kit"]
         interface = material["interface_document"]
         slices = interface["target_slices"]
@@ -216,36 +203,101 @@ class CoolingCatalogPractice:
             ],
             dtype=interface["dtype"],
         )
-        result = reconstruct_and_infer_public(
-            self.ledger,
-            owner=self.owner,
-            identity=identity,
-            image=image,
-            inference_image=self.parent,
-            construction_parent=construction_parent,
-            recipe=recipe,
-            # The worker's trusted binding names the kit by challenge_id /
-            # challenge_version (`_checked_binding`), as the receiver's does.
-            challenge_binding={
-                "challenge_id": kit["id"],
-                "challenge_version": kit["version"],
-                "train_digest": kit["train_digest"],
-                "interface_digest": kit["interface_digest"],
-                "construction_limits_digest": kit["construction_limits_digest"],
-            },
-            limits_document=material["construction_limits_document"],
-            train=material["train"],
-            example=inputs,
-            seed=0,
-            inputs=inputs,
-            expected_output_shape=(len(practice.records), width),
-            allowlist_bytes=material["allowlist_bytes"],
-            expected_output_dtype=output_dtype(interface),
-            accelerator=accelerator,
-            runner=self.runner,
-        )
-        if result.build.state_digest != result.inference.state_digest:
-            raise ValueError("cooling catalog practice state differs between phases")
+        if source_kind == "graph":
+            # Graph route v2: the miner's own graph on Carbon's graph training
+            # adapter, one path for every Challenge (`graph_adapters.practise`).
+            from carbon.development_session import graph_adapters
+            from carbon.development_session.construction_recipe import bind_recipe
+
+            bound = bind_recipe(
+                strategy,
+                challenge_id=kit["id"],
+                challenge_version=kit["version"],
+                train_digest=kit["train_digest"],
+                interface_digest=kit["interface_digest"],
+                construction_limits_digest=kit["construction_limits_digest"],
+            )
+            try:
+                result, _backend = graph_adapters.practise(
+                    self.ledger,
+                    owner=self.owner,
+                    parent=self.parent,
+                    runner=self.runner,
+                    recipe=bound,
+                    binding={
+                        "challenge_id": kit["id"],
+                        "challenge_version": kit["version"],
+                        "train_digest": kit["train_digest"],
+                        "interface_digest": kit["interface_digest"],
+                        "construction_limits_digest": kit["construction_limits_digest"],
+                    },
+                    material=material,
+                    identity=identity,
+                    inputs=inputs,
+                    expected_output_shape=(len(practice.records), width),
+                )
+            except graph_adapters.GraphAdapterUnregistered:
+                raise ValueError("cooling_catalog_recipe_required") from None
+            recipe = bound
+            catalog_source = {"catalog_id": None, "catalog_digest": None}
+            bundle_recipe_digest = None
+            accelerator = construction_parent = gpu_note = None
+        else:
+            from carbon.development_session.gpu_practice import (
+                device_build,
+                gpu_overlay,
+            )
+
+            expanded, _bundle, image, construction_parent, accelerator, gpu_note = (
+                device_build(
+                    self,
+                    lambda runtime: self._expanded(strategy, material, runtime),
+                    _bundle_ref,
+                    lambda bundle, parent, built: gpu_overlay(
+                        self,
+                        identity,
+                        bundle,
+                        parent,
+                        built,
+                        material["construction_kit"],
+                        material["construction_limits_document"],
+                    ),
+                )
+            )
+            recipe = ConstructionRecipe.from_dict(expanded)
+            kit = material["construction_kit"]
+            result = reconstruct_and_infer_public(
+                self.ledger,
+                owner=self.owner,
+                identity=identity,
+                image=image,
+                inference_image=self.parent,
+                construction_parent=construction_parent,
+                recipe=recipe,
+                # The worker's trusted binding names the kit by challenge_id /
+                # challenge_version (`_checked_binding`), as the receiver's does.
+                challenge_binding={
+                    "challenge_id": kit["id"],
+                    "challenge_version": kit["version"],
+                    "train_digest": kit["train_digest"],
+                    "interface_digest": kit["interface_digest"],
+                    "construction_limits_digest": kit["construction_limits_digest"],
+                },
+                limits_document=material["construction_limits_document"],
+                train=material["train"],
+                example=inputs,
+                seed=0,
+                inputs=inputs,
+                expected_output_shape=(len(practice.records), width),
+                allowlist_bytes=material["allowlist_bytes"],
+                expected_output_dtype=output_dtype(interface),
+                accelerator=accelerator,
+                runner=self.runner,
+            )
+            if result.build.state_digest != result.inference.state_digest:
+                raise ValueError(
+                    "cooling catalog practice state differs between phases"
+                )
         rows = result.inference.predictions
         if len(rows) != len(practice.records):
             raise ValueError("cooling catalog practice row count differs")
@@ -257,15 +309,21 @@ class CoolingCatalogPractice:
         _rows, summary = score_practice(
             predictions, practice, PublicMaterial.load(self.root)
         )
-        source = json.loads(canonical(strategy))["source"]
+        if source_kind != "graph":
+            source = json.loads(canonical(strategy))["source"]
+            catalog_source = {
+                "catalog_id": source["catalog_id"],
+                "catalog_digest": source["catalog_digest"],
+            }
+            bundle_recipe_digest = recipe.digest
         out = {
             "schema": FEEDBACK_SCHEMA,
             "provenance": PROVENANCE,
             "challenge": {"id": kit["id"], "version": kit["version"]},
-            "catalog_id": source["catalog_id"],
-            "catalog_digest": source["catalog_digest"],
+            **catalog_source,
+            **({"source_kind": "graph"} if source_kind == "graph" else {}),
             "recipe_digest": ConstructionRecipe.from_dict(strategy).digest,
-            "bundle_recipe_digest": recipe.digest,
+            "bundle_recipe_digest": bundle_recipe_digest,
             "summary": summary,
             "fit": {"state_digest": result.build.state_digest},
             "backend": backend_record(

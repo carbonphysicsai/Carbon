@@ -515,16 +515,33 @@ def _battery_catalog_direct(version):
 def _versioned_campaigns():
     """Campaigns registered for a Challenge version beyond its first, by
     (Challenge id, version)."""
+    from carbon.challenge_kit import version_registry
     from carbon.reconstruction.capability_registry import (
         COLD_PLATE_CHALLENGE,
         MOTOR_CHALLENGE,
     )
 
+    # Every catalog campaign the version registry declares (Motor 1.2 keeps its
+    # one-argument default).
     return {
-        (MOTOR_CHALLENGE, "1.2"): _motor_catalog,
-        (MOTOR_CHALLENGE, "1.3"): functools.partial(_motor_catalog, "1.3"),
-        (COLD_PLATE_CHALLENGE, "1.2"): functools.partial(_cold_plate_catalog, "1.2"),
-        (COLD_PLATE_CHALLENGE, "1.3"): functools.partial(_cold_plate_catalog, "1.3"),
+        **{
+            (MOTOR_CHALLENGE, version): (
+                _motor_catalog
+                if version == "1.2"
+                else functools.partial(_motor_catalog, version)
+            )
+            for version in version_registry.versions(
+                MOTOR_CHALLENGE, campaign="catalog"
+            )
+        },
+        **{
+            (COLD_PLATE_CHALLENGE, version): functools.partial(
+                _cold_plate_catalog, version
+            )
+            for version in version_registry.versions(
+                COLD_PLATE_CHALLENGE, campaign="catalog"
+            )
+        },
         **_direct_campaigns(),
     }
 
@@ -532,10 +549,22 @@ def _versioned_campaigns():
 def _direct_campaigns():
     """The direct-recipe-only versions: their Challenges have no id-level
     campaign (no Level-0 version), so each is registered by version only."""
+    from carbon.challenge_kit import version_registry
+
+    builders = {"f08-ribbed-bracket": _f08_direct, "f02": _f02_direct}
     return {
-        ("f08-ribbed-bracket", "1.4"): functools.partial(_f08_direct, "1.4"),
-        ("f02", "2.3"): functools.partial(_f02_direct, "2.3"),
-        # Battery 2.2 is not served (OWNER-BATTERY-OUT-OF-LAUNCH-01).
+        (challenge, version): functools.partial(builder, version)
+        for challenge, builder in builders.items()
+        for version in version_registry.versions(challenge, campaign="direct")
+    } | {
+        # Battery has an id-level campaign (1.0); its catalog version 2.2 is
+        # registered by version and reuses Battery's practice provenance.
+        ("battery-fastcharge-ageing-development-v1", version): functools.partial(
+            _battery_catalog_direct, version
+        )
+        for version in version_registry.versions(
+            "battery-fastcharge-ageing-development-v1", campaign="battery_catalog"
+        )
     }
 
 

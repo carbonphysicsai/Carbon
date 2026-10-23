@@ -68,6 +68,14 @@ PLATING_RULES = (
 )
 
 
+def _v1(version):
+    """Whether `version` serves Battery's v1 public TRAIN (the version
+    registry's declaration), not the v2 material rows."""
+    from .version_registry import BATTERY_TRAIN_V1, entry
+
+    return entry(CHALLENGE_ID, version).train == BATTERY_TRAIN_V1
+
+
 def _canonical(value: object) -> bytes:
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), allow_nan=False
@@ -154,7 +162,7 @@ def public_roles(version: str) -> dict[str, bytes]:
         "source": source,
         "plating_reference": plating_reference(),
     }
-    if version == "1.0":
+    if _v1(version):
         material = bundle_material(_REPOSITORY)
         physics = (_REPOSITORY / PHYSICS_PATH).read_bytes()
         if hashlib.sha256(physics).hexdigest() != PHYSICS_SHA256:
@@ -196,7 +204,7 @@ def development_bank(version: str) -> dict:
     with the authoritative `reference_present` mask."""
     _check(version)
     practice_bank = _practice_bank()
-    if version == "1.0":
+    if _v1(version):
         return practice_bank
     return _bank_v2(practice_bank)
 

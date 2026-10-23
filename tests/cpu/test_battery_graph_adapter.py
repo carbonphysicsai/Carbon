@@ -129,10 +129,14 @@ def test_the_registry_serves_battery_2_2_and_leaves_f08_f02_alone():
         physical_graph_adapter
     )
     assert graph_adapters.registered_train_use(*KEY) == direct_graph.TRAIN_USE
+    from carbon.development_session import physical_graph_adapter_v2
+
     assert direct_graph_construction_worker.graph_adapter_ids() == {
         direct_graph_construction_worker.SYNTHETIC_ADAPTER_ID,
         *physical_graph_adapter.ADAPTER_IDS,
         *adapter.ADAPTER_IDS,
+        # Graph route v2's adapters, registered beside Battery's.
+        *physical_graph_adapter_v2.ADAPTER_IDS,
     }
     assert physical_graph_adapter.TRAINER_SHA256 == F08_F02_TRAINER
     assert BATTERY not in physical_graph_adapter.PREFIXES

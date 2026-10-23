@@ -58,7 +58,9 @@ VERSION = "1.1"
 EVALUATION_VERSION = "motor-dual-sealed-batch-30-v1"
 CASE_ID = "motor-sealed-batch-30"
 VERSIONS = {
-    version: (EVALUATION_VERSION, CASE_ID) for version in ("1.1", "1.2", "1.3")
+    # 1.4 is graph route v2: construction only, 1.3's sealed batches.
+    version: (EVALUATION_VERSION, CASE_ID)
+    for version in ("1.1", "1.2", "1.3", "1.4")
 }
 OUTPUT = _motor.OUTPUT
 FILES = (*_motor.FILES, "sealed_grid_common.py", "motor_sealed_dual_pack.py")
@@ -149,9 +151,7 @@ def applied_pack(**_):
     pack = _motor._applied_pack()
     return {
         **pack,
-        "legs": {
-            leg: {**body, "minimum": None} for leg, body in pack["legs"].items()
-        },
+        "legs": {leg: {**body, "minimum": None} for leg, body in pack["legs"].items()},
     }
 
 
@@ -261,9 +261,7 @@ def measure(
             )
             f0[bank_rows[i]["case_id"]] = (parts["mean"] + parts["shape"]) / 2
         per_design = [
-            fmean(
-                f0[row["case_id"]] for row in bank_rows if row["design_id"] == design
-            )
+            fmean(f0[row["case_id"]] for row in bank_rows if row["design_id"] == design)
             for design in designs
         ]
         cell = definition["signed_margin_cell"]

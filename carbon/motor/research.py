@@ -391,7 +391,12 @@ class MotorCatalogMaterial(MotorPublicMaterial):
     kit (OWNER-BACKBONE-CATALOG-01)."""
 
     VERSION = "1.2"
-    NAMES = (*MotorPublicMaterial.NAMES, "catalog", "construction_kit")
+    NAMES = (
+        *MotorPublicMaterial.NAMES,
+        "catalog",
+        "construction_kit",
+        "scaffold_recipe",
+    )
 
     def __init__(self, root=".", version=VERSION):
         from .campaign import CATALOG_VERSIONS
@@ -402,13 +407,20 @@ class MotorCatalogMaterial(MotorPublicMaterial):
         self.VERSION = version
 
     def __call__(self, name, workspace):
-        if name not in ("catalog", "construction_kit"):
+        if name not in ("catalog", "construction_kit", "scaffold_recipe"):
             return super().__call__(name, workspace)
         from carbon.backbone_catalog import served
         from carbon.challenge_kit import physical_public
         from carbon.challenge_registry.motor import catalog_recipe
+        from carbon.development_session.research_tasks import ready_recipes
 
-        if name == "catalog":
+        if name == "scaffold_recipe":
+            value = ready_recipes(
+                MOTOR_CHALLENGE,
+                self.VERSION,
+                {"catalog": lambda: catalog_recipe(version=self.VERSION)},
+            )
+        elif name == "catalog":
             value = {
                 **served.document(MOTOR_CHALLENGE, self.VERSION),
                 "catalog_digest": served.digest(MOTOR_CHALLENGE, self.VERSION),

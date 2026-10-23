@@ -1716,7 +1716,7 @@ class DirectDevelopmentTasksV3:
                         )
                 provisioning = False
             self._bindings(request)
-            from carbon.challenge_kit import physical_material
+            from carbon.challenge_kit import physical_material, version_registry
             from carbon.challenge_kit.interface_dtype import output_dtype
 
             material = self.discovery._material
@@ -1771,8 +1771,10 @@ class DirectDevelopmentTasksV3:
                         output_dtype(material["interface_document"])
                         if (
                             kit["id"] == BATTERY_CHALLENGE
-                            and kit["version"] in ("1.0", "2.0", "2.1")
+                            and version_registry.find(kit["id"], kit["version"])
+                            is not None
                         )
+                        # The synthetic Challenge's 1.3 (its own kit module).
                         or kit["version"] == "1.3"
                         or physical_material.is_registered(kit["id"], kit["version"])
                         or task_id.value in self._measured_tasks
@@ -2206,6 +2208,62 @@ SCAFFOLD_RECIPE = "scaffold_recipe"
 #: Motor 1.2's backbone catalog and construction kit
 #: (`carbon.motor.research.MotorCatalogMaterial`).
 CATALOG_MATERIALS = ("catalog", "construction_kit")
+#: How a catalog version's scaffold_recipe reads (`ready_recipes`).
+READY_RECIPES_USE = (
+    "One recipe per source kind this version takes. Practise one as "
+    "strategy_json (kind=practice), as it is or edited. catalog: one of "
+    "Carbon's tested backbones, ready to run; its settings go in "
+    "procedure.configuration and procedure.train_use, each from the entry's "
+    "own list (public_material catalog). graph: a template for your own "
+    "graph - stage it in your workspace and put its submission_digest in "
+    "source; procedure.configuration.training left empty keeps every "
+    "registered default."
+)
+
+
+def ready_recipes(challenge_id, version, builders):
+    """A catalog version's scaffold_recipe document (M1 G5b): for each source
+    kind the version takes (`research_service.recipe_source_kinds`), the
+    ready recipe or template `builders[kind]()` returns. A kind it takes
+    with no builder here is listed with null, never left out; none taken
+    (an empty catalog and no graph adapter) says so."""
+    from carbon import research
+
+    from .research_service import recipe_source_kinds
+
+    kinds = recipe_source_kinds(research.ChallengeKey(challenge_id, version))
+    if "graph" in kinds and "graph" not in builders:
+        # Every graph-served version's template, one builder for all
+        # (`graph_adapters.graph_recipe`), with the v2 configuration example.
+        from . import graph_adapters
+
+        builders = {
+            **builders,
+            "graph": lambda: graph_adapters.graph_recipe(
+                challenge_id,
+                version,
+                configuration=graph_adapters.configuration_example(
+                    challenge_id, version
+                ),
+            ),
+        }
+    return {
+        "schema": "carbon.ready-recipes.v1",
+        "challenge": {"id": challenge_id, "version": version},
+        "source_kinds": list(kinds),
+        "recipes": {
+            kind: builders[kind]() if kind in builders else None for kind in kinds
+        },
+        "use": (
+            READY_RECIPES_USE
+            if kinds
+            else "This version takes no source kind yet: no backbone is tested "
+            "for it and no graph adapter is registered, so nothing can be "
+            "practised."
+        ),
+    }
+
+
 #: The material names every bound material service serves.
 PUBLIC_MATERIALS = (
     "objective",

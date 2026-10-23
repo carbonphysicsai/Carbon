@@ -48,8 +48,11 @@ def interface_document(challenge_id: str, version: str) -> dict:
 
 def output_encoding(challenge_id: str, version: str):
     """The law-safe output encoding a version's rows use (Cooling 1.3,
-    `cold_plate.output_encoding`), or None: rows are the native outputs."""
-    if (challenge_id, version) not in physical_public_train.ENCODED_VERSIONS:
+    `cold_plate.output_encoding`), or None: rows are the native outputs, as
+    the version registry declares it."""
+    from .version_registry import entry
+
+    if entry(challenge_id, version).output_encoding is None:
         return None
     from carbon.cold_plate.output_encoding import ENCODING
 
@@ -109,6 +112,16 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
             "schema": served.SCHEMA,
             "digest": served.digest(challenge_id, version),
         }
+    from .version_registry import entry
+
+    if entry(challenge_id, version).graph_adapter == "v2":
+        # Graph route v2: Carbon's graph training adapter v2, its surfaces and
+        # its pinned trainer's digest. Earlier versions keep their bytes.
+        from carbon.development_session import graph_adapters
+
+        document["graph_training_adapter"] = graph_adapters.adapter_block(
+            challenge_id, version
+        )
     return document
 
 

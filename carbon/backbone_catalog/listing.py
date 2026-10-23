@@ -35,12 +35,22 @@ def load():
 
 
 def entries(challenge_id=None, version=None):
-    """Every entry, or those offered on (challenge_id, version)."""
+    """Every entry, or those offered on (challenge_id, version): named for it,
+    or for each version whose entries it declares it offers
+    (`version_registry`'s `catalog_entries_from`: graph route v2's Motor and
+    Cooling 1.4 also offer 1.3's). An unregistered version offers its own
+    named entries only."""
+    if challenge_id is None:
+        return list(load()["entries"])
+    from carbon.challenge_kit.version_registry import find
+
+    declared = find(challenge_id, version)
+    named = declared.catalog_entries_from if declared is not None else ()
+    offered = [{"id": challenge_id, "version": each} for each in (version, *named)]
     return [
         e
         for e in load()["entries"]
-        if challenge_id is None
-        or {"id": challenge_id, "version": version} in e["challenges"]
+        if any(challenge in e["challenges"] for challenge in offered)
     ]
 
 

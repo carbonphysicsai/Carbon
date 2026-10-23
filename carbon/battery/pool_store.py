@@ -1867,6 +1867,8 @@ class PoolStore:
                 )
             )
             if incumbent_id is not None and incumbent is None:
+                incumbent = self._carried_evaluation(db, incumbent_id, candidate)
+            if incumbent_id is not None and incumbent is None:
                 raise StateError("incumbent_evaluation_required")
             return {
                 "scope": "PRIVATE_OPERATOR_DEVELOPMENT",
@@ -1875,6 +1877,163 @@ class PoolStore:
                 "candidate": candidate,
                 "incumbent": incumbent,
             }
+
+    # --- a king carried across construction versions --------------------------------
+    # OWNER-KOTH-CARRY-ACROSS-VERSIONS-01: a king carries to a new construction
+    # version's deployment while the sealed evaluation version and the active
+    # pack set are unchanged (decided by `challenge_validator.koth_carry`). The
+    # carry is one `koth_carry` event here, in the new deployment's store.
+
+    @staticmethod
+    def _carry_records(db):
+        rows = db.execute(
+            "SELECT body FROM events WHERE kind='koth_carry' ORDER BY sequence"
+        ).fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+    def koth_carries(self):
+        """The recorded carry-overs into this deployment (oldest first)."""
+        with self.db() as db:
+            return self._carry_records(db)
+
+    def _carried_evaluation(self, db, incumbent_id, candidate):
+        """A carried king's own filed evaluation of the exam the candidate was
+        graded on, or None. Only a king this store recorded as carried on an
+        unchanged pack set, only to the candidate's construction version, only
+        under the pin the carry
+        registered, and only where the measured exam - its evaluation version
+        included - is the same (`bank_promotion.carry_identity`)."""
+        from carbon.challenge_validator.bank_promotion import carry_identity
+
+        evidence = candidate["evidence"]
+        wanted = carry_identity(evidence)
+        if wanted is None:
+            return None
+        for record in self._carry_records(db):
+            if (
+                record["king"]["submission_id"] != incumbent_id
+                or record["new_version"] != evidence["challenge_version"]
+                # On a changed pack set the king's old evidence never stands
+                # in: he meets challengers there only once regraded on it.
+                or record["regrade"] != "NOT_REQUIRED"
+            ):
+                continue
+            for key in record["carried_evaluations"]:
+                body = self._private_evaluation(
+                    db, incumbent_id, key, record["king_source_receipt_sha256"]
+                )
+                if body is not None and carry_identity(body["evidence"]) == wanted:
+                    return body
+        return None
+
+    def carry_incumbent(self, source, record):
+        """Seed this new deployment's incumbent with `source`'s live king and
+        write the carry record, exactly once.
+
+        `record` (built by `koth_carry`) names the king, both construction
+        versions, the evaluation version, both pack-set keys, whether a
+        regrade is required and the king's registered source pin. The king's admission, retained model and its
+        filed evaluations on the old version under that pin are copied
+        unchanged (historical evidence keeps its own key and meaning). The
+        incumbent keeps its reason, so the reward layer reads the same crown.
+        Returns the stored record; a replay returns the first one."""
+        if (
+            type(source) is not PoolStore
+            or source.path.resolve() == self.path.resolve()
+        ):
+            raise StateError("koth_carry_same_store")
+        king = record["king"]["submission_id"]
+        same = ("king", "old_version", "new_version", "evaluation_version")
+        for found in self.koth_carries():
+            # A replay of the same carry returns the first record unchanged.
+            if all(
+                found[k] == record[k]
+                for k in (*same, "old_pack_set_key", "new_pack_set_key")
+            ):
+                return found
+        live = source.incumbent()
+        if live is None or live["model_id"] != king:
+            raise StateError("koth_carry_king_moved")
+        pin = record["king_source_receipt_sha256"]
+        with source.db() as old:
+            submission = old.execute(
+                "SELECT * FROM submissions WHERE submission_id=?", (king,)
+            ).fetchone()
+            model = old.execute(
+                "SELECT * FROM models WHERE model_id=?", (king,)
+            ).fetchone()
+            operations = old.execute(
+                "SELECT op_id, kind, state, body FROM operations "
+                "WHERE kind='private_evaluation.v1' ORDER BY op_id"
+            ).fetchall()
+        if submission is None or model is None:
+            raise StateError("koth_carry_king_unretained")
+        if submission[2] != record["king"]["hotkey"]:
+            raise StateError("koth_carry_king_moved")
+        carried = []
+        for op_id, kind, state, raw in operations:
+            body = json.loads(raw)
+            evidence = body.get("evidence") or {}
+            if (
+                body.get("submission_id") == king
+                and evidence.get("challenge_version") == record["old_version"]
+                and evidence.get("source_receipt_sha256") == pin
+            ):
+                carried.append((op_id, kind, state, raw, body["evaluation_key"]))
+        if not carried:
+            raise StateError("koth_carry_king_evaluation_unavailable")
+        stored = {
+            **record,
+            "carried_evaluations": sorted(key for *_, key in carried),
+            "carried_at": self.clock(),
+        }
+        with self.transaction() as db:
+            for found in self._carry_records(db):
+                if all(
+                    found[k] == record[k]
+                    for k in (*same, "old_pack_set_key", "new_pack_set_key")
+                ):
+                    return found
+            if (
+                self._incumbent_id(db) is not None
+                or db.execute(
+                    "SELECT 1 FROM events WHERE kind='incumbent' LIMIT 1"
+                ).fetchone()
+                is not None
+            ):
+                # This deployment already crowned or vacated on its own.
+                raise StateError("koth_carry_deployment_has_history")
+            if (
+                db.execute(
+                    "SELECT 1 FROM submissions WHERE submission_id=?", (king,)
+                ).fetchone()
+                is not None
+            ):
+                raise StateError("koth_carry_king_already_admitted")
+            db.execute(
+                "INSERT INTO submissions VALUES(?,?,?,?,?,?,?,?,?,?)", submission
+            )
+            db.execute("INSERT INTO models VALUES(?,?,?,?,?,?)", model)
+            for op_id, kind, state, raw, _key in carried:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)", (op_id, kind, state, raw)
+                )
+            db.execute(
+                "INSERT INTO incumbent VALUES(1, ?, ?, ?)",
+                (king, live["reason"], self.clock()),
+            )
+            self._event(
+                db,
+                "incumbent",
+                {
+                    "model_id": king,
+                    "reason": live["reason"],
+                    "previous": None,
+                    "carried_from_version": record["old_version"],
+                },
+            )
+            self._event(db, "koth_carry", stored)
+        return stored
 
     # --- incumbent and historical finals ---------------------------------------------
 

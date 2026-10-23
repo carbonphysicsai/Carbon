@@ -236,7 +236,7 @@ def test_a_correction_of_another_research_operation_reaches_the_client(
     assert payload["status"] == "REJECTED_BEFORE_DISPATCH"
     assert (payload["correction_code"], payload["field"]) == (
         "tool_value_invalid",
-        "arguments",
+        "strategy",
     )
     assert "The tool: dry_validate." in payload["correction"]
     assert "PRIVATE" not in json.dumps(payload)
