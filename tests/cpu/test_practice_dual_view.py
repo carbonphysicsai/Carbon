@@ -68,6 +68,7 @@ def test_only_allow_listed_fields_reach_the_page():
         "gates",
         "eligible",
         "total",
+        "total_direction",
         "accuracy",
         "design_value",
         "n_cases",

@@ -332,7 +332,7 @@ def _grade(ladder, submission=None, epoch=None):
     # `latest` is this submission's grade only when the document names this
     # submission (Ladder v3, U63). A v2 document names none, and a v3 one may
     # name another: either is the mining key's latest grade on the exam
-    # (`exam_latest`), never this submit's. M1 E2E R5-1: three submits read
+    # (`other_submission_latest`), never this submit's. M1 E2E R5-1: three submits read
     # "Graded 0.54" although the receiver graded only one of them.
     own = (
         latest
@@ -344,11 +344,16 @@ def _grade(ladder, submission=None, epoch=None):
         and (epoch is None or latest.get("epoch") in (None, epoch))
         else None
     )
+    # M1 E2E R8-1: agents read the key's latest grade as their own, so the
+    # answer says in words whether this submission has a grade, and which way
+    # the score points (R8-3).
     return {
         "latest": own,
-        "exam_latest": None if own is not None else latest,
+        "this_submission": "graded" if own is not None else "not_graded_yet",
+        "other_submission_latest": None if own is not None else latest,
         "best": best,
         "submission": submission,
+        "score_direction": "higher_is_better",
     }
 
 

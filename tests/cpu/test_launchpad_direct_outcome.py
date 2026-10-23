@@ -53,7 +53,7 @@ def test_a_direct_outcome_is_read_with_its_grade(tmp_path):
     # A v2 document names no submission, so it is the mining key's latest
     # grade on the exam, never this submit's (M1 E2E R5-1).
     assert grade["latest"] is None
-    assert grade["exam_latest"] == {
+    assert grade["other_submission_latest"] == {
         "status": "IMPROVED",
         "total": 0.5488,
         "A": 0.298,
@@ -61,16 +61,18 @@ def test_a_direct_outcome_is_read_with_its_grade(tmp_path):
         "exam_version": "motor-1.3-dev",
     }
     assert grade["best"]["total"] == 0.5488
-    assert "gate_names" not in grade["exam_latest"]
+    assert "gate_names" not in grade["other_submission_latest"]
 
 
 def test_a_direct_outcome_before_any_grade_says_none_yet(tmp_path):
     shown = _project(tmp_path, _document({"best": None, "latest": None}))
     assert shown["result"]["grade"] == {
         "latest": None,
-        "exam_latest": None,
+        "this_submission": "not_graded_yet",
+        "other_submission_latest": None,
         "best": None,
         "submission": "sha256:" + "a" * 64,
+        "score_direction": "higher_is_better",
     }
 
 
@@ -151,7 +153,7 @@ def test_check_for_result_stores_the_fresh_ladder_and_the_page_shows_it(
     ]
     assert (folder / ds.EXAM_FEEDBACK_FILE).is_file()
     shown = projection._validator_outcome(1, folder / "permitted-final-feedback.json")
-    assert shown["result"]["grade"]["exam_latest"]["total"] == 0.5488
+    assert shown["result"]["grade"]["other_submission_latest"]["total"] == 0.5488
 
 
 def test_a_stored_read_of_another_recipe_is_not_shown(tmp_path, monkeypatch):
@@ -169,9 +171,11 @@ def test_a_stored_read_of_another_recipe_is_not_shown(tmp_path, monkeypatch):
     shown = projection._validator_outcome(1, folder / "permitted-final-feedback.json")
     assert shown["result"]["grade"] == {
         "latest": None,
-        "exam_latest": None,
+        "this_submission": "not_graded_yet",
+        "other_submission_latest": None,
         "best": None,
         "submission": "sha256:" + "a" * 64,
+        "score_direction": "higher_is_better",
     }
 
 
@@ -223,12 +227,12 @@ def test_a_v3_grade_shows_only_on_the_submit_it_is_about(tmp_path):
     shown = _project(tmp_path, _document({"best": other, "latest": other}))
     grade = shown["result"]["grade"]
     assert grade["latest"] is None
-    assert grade["exam_latest"]["recipe_digest"] == "sha256:" + "b" * 64
+    assert grade["other_submission_latest"]["recipe_digest"] == "sha256:" + "b" * 64
     assert grade["best"]["recipe_digest"] == "sha256:" + "b" * 64
     (tmp_path / "permitted-final-feedback.json").unlink()
     shown = _project(tmp_path, _document({"best": other, "latest": mine}))
     assert shown["result"]["grade"]["latest"]["epoch"] == 1
-    assert shown["result"]["grade"]["exam_latest"] is None
+    assert shown["result"]["grade"]["other_submission_latest"] is None
 
 
 def test_two_campaigns_freezing_one_recipe_never_share_a_request_id(tmp_path):

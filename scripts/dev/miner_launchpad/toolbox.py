@@ -531,6 +531,16 @@ def build(challenge, *, lanes=None, compute=None, direct=False):
                                 "backend_support",
                                 "basis",
                             )
+                        }
+                        | {
+                            # M1 E2E R8-4: agents read BACKEND_UNSUPPORTED as
+                            # "my submission cannot be rebuilt".
+                            "meaning": (
+                                "This is about qualifying the environment for "
+                                "cross-backend comparison, which is not done yet. "
+                                "It does not stop a submission: the validator still "
+                                "rebuilds and grades your recipe on this environment."
+                            )
                         },
                         "pinned_dependencies": exam.get("pinned_dependencies"),
                         "precision": exam.get("precision"),

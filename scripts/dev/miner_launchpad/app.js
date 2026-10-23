@@ -2875,10 +2875,10 @@
   }
   // M1 E2E R5-1: `latest` is this submission's grade only when the receiver
   // names this submission; the mining key's latest grade on the exam
-  // (`exam_latest`) is shown apart, never as this submit's, and "not graded
+  // (`other_submission_latest`) is shown apart, never as this submit's, and "not graded
   // yet" says how far this submission got (its own state).
   function examLatestLine(grade) {
-    const other = grade && grade.exam_latest;
+    const other = grade && grade.other_submission_latest;
     if (!other) return "";
     const said = other.status === "GATE_FAILED" ? "not eligible (a mandatory gate failed)" : other.status === "NOT_SCORED" || typeof other.total !== "number" ? "not scored" : other.total.toFixed(4);
     return " Your mining key's latest grade on this exam is " + said + ", from " + (other.recipe_digest ? "another submission" : "a submission the validator did not name") + "; it is not this one's.";

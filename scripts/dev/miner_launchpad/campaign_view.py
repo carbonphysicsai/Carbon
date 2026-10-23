@@ -325,6 +325,9 @@ def dual_feedback(experiment):
         },
         "eligible": found.get("eligible") is True,
         "total": finite(found.get("total")),
+        # M1 E2E R8-3: an agent assumed lower is better; the total is 0..1,
+        # higher is better, as the grade is.
+        "total_direction": "higher_is_better",
         "accuracy": finite(found.get("accuracy")),
         "design_value": finite(found.get("design_value")),
         "note": _str(found.get("note"), 256),

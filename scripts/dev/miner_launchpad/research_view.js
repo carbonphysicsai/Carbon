@@ -1307,7 +1307,7 @@
       // own signed re-read while none has arrived (Validator-approved).
       if (r.grade !== undefined) {
         const latest = r.grade && r.grade.latest;
-        const other = r.grade && r.grade.exam_latest;
+        const other = r.grade && r.grade.other_submission_latest;
         const stage = r.state === "ADMITTED" ? "received, waiting to be rebuilt" : r.state === "RECONSTRUCTED" ? "rebuilt, not graded yet" : "not graded yet";
         // M1 E2E R5-1: the mining key's latest grade on the exam is never this submit's.
         const otherWords = !other ? "" : " Your mining key's latest grade on this exam is " + (other.status === "GATE_FAILED" ? "not eligible" : typeof other.total === "number" && other.status !== "NOT_SCORED" ? other.total.toFixed(4) : "not scored") + ", from " + (other.recipe_digest ? "another submission" : "a submission the validator did not name") + "; it is not this one's.";

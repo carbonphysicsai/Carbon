@@ -64,7 +64,7 @@ def test_an_unnamed_grade_is_never_any_submission_s_own(tmp_path):
             {"best": unnamed, "latest": unnamed}, "sha256:" + digest * 64
         )
         assert grade["latest"] is None
-        assert grade["exam_latest"]["total"] == 0.5488
+        assert grade["other_submission_latest"]["total"] == 0.5488
     page = Path("scripts/dev/miner_launchpad")
     for name in ("app.js", "research_view.js"):
         text = (page / name).read_text(encoding="utf-8")
@@ -90,6 +90,6 @@ def test_a_v3_grade_of_this_recipe_s_other_epoch_is_not_this_submit_s():
         "epoch": 1,
     }
     grade = projection._grade({"best": earlier, "latest": earlier}, digest, 2)
-    assert grade["latest"] is None and grade["exam_latest"]["epoch"] == 1
+    assert grade["latest"] is None and grade["other_submission_latest"]["epoch"] == 1
     grade = projection._grade({"best": earlier, "latest": earlier}, digest, 1)
-    assert grade["latest"]["epoch"] == 1 and grade["exam_latest"] is None
+    assert grade["latest"]["epoch"] == 1 and grade["other_submission_latest"] is None
