@@ -241,6 +241,11 @@ FALLBACK_WORDS = {
     "catalog_gpu_build_not_offered": "the entry's GPU build has no GPU receipt yet",
     "gpu_overlay_not_installed": "the entry's GPU build is not installed here",
     "gpu_build_failed": "the entry's GPU build failed",
+    "gpu_driver_too_old": (
+        "your GPU machine's NVIDIA driver is older than this GPU worker's CUDA "
+        "runtime; update the driver (nvidia-smi shows the newest CUDA it "
+        "runs), then check Compute again"
+    ),
 }
 
 

@@ -111,6 +111,18 @@ DIRECT_RUNTIMES = {
 GPU_RUNTIMES = {"pytorch": "torch-cu130-py311", "jax": "jax-cuda13-py311"}
 
 
+def runtime_cuda(runtime):
+    """The CUDA major version a GPU build runtime is built for, from its
+    registered name ("jax-cuda13-py311" -> 13, "torch-cu130-py311" -> 13),
+    else None."""
+    import re
+
+    match = re.search(r"-cuda(\d{1,2})-|-cu(\d{2,3})-", str(runtime or ""))
+    if match is None:
+        return None
+    return int(match.group(1)) if match.group(1) else int(match.group(2)[:-1])
+
+
 def gpu_runtime(gpu_image):
     """The catalog GPU build runtime a host's declared GPU worker builds (by
     its backend), or None: the one device choice every Challenge's catalog
@@ -362,6 +374,16 @@ def campaign_limits():
     return (LedgerRefusal, DispatchStopped, DispatchPaused)
 
 
+def _gpu_failure_note(failure):
+    """The note a GPU attempt's failure leaves: `gpu_driver_too_old` when the
+    miner's driver is older than the worker's CUDA runtime (the one cause the
+    miner can act on), else `gpu_build_failed`."""
+    from carbon.compute.remote_runner import GPU_DRIVER_TOO_OLD
+
+    detail = getattr(failure, "detail", None)
+    return GPU_DRIVER_TOO_OLD if detail == GPU_DRIVER_TOO_OLD else "gpu_build_failed"
+
+
 def run_on_device(practice, identity, expand_for, bundle_of, overlay, run):
     """One catalog practice on the device `device_build` picks, the same for
     every Challenge: `run(trial_identity, expanded, image, construction_parent,
@@ -388,7 +410,7 @@ def run_on_device(practice, identity, expand_for, bundle_of, overlay, run):
         )
     try:
         result = run(identity, expanded, image, parent, accelerator)
-    except (RemoteJobFailure, RemoteMachineError, OSError, RuntimeError):
+    except (RemoteJobFailure, RemoteMachineError, OSError, RuntimeError) as failure:
         import logging
 
         logging.getLogger(__name__).warning(
@@ -403,7 +425,7 @@ def run_on_device(practice, identity, expand_for, bundle_of, overlay, run):
             raise DirectParentRefused("backend_not_served") from None
         parent = practice.parents().for_bundle(bundle)
         result = run(identity + "-cpu", expanded, image, parent, None)
-        return result, expanded, parent, None, "gpu_build_failed"
+        return result, expanded, parent, None, _gpu_failure_note(failure)
     return result, expanded, parent, accelerator, None
 
 
@@ -464,7 +486,7 @@ def device_build(practice, expand_for, bundle_of, overlay=None):
             # pause: never a GPU failure to work around on CPU (gate2b: a
             # time-fit refusal fell back, failed again, and read as infra).
             raise
-        except Exception:  # a GPU attempt never fails the practice
+        except Exception as failure:  # a GPU attempt never fails the practice
             # Why, in the controller's own log (M1 E2E: a 5090 fell back with
             # no reason anywhere). The note stays the code; the CPU build runs.
             import logging
@@ -474,7 +496,7 @@ def device_build(practice, expand_for, bundle_of, overlay=None):
                 runtime,
                 exc_info=True,
             )
-            note = "gpu_build_failed"
+            note = _gpu_failure_note(failure)
     expanded = expand_for(None)
     bundle = bundle_of(expanded["source"]["bundle_ref"])
     try:

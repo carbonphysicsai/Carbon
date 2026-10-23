@@ -589,13 +589,26 @@ def image_check_script(image_id: str, fingerprint: str | None = None) -> str:
 def check_script(image_id: str, fingerprint: str | None = None) -> str:
     """Setup's live check: the start script's own checks, in its order, and
     nothing started. Exit 0, or the code of the first thing missing; a
-    missing image (93) is what "send your worker" fixes."""
+    missing image (93) is what "send your worker" fixes. It also prints the
+    newest CUDA the machine's driver runs (`carbon-driver-cuda <version>`),
+    read from nvidia-smi, so setup can say when a worker's CUDA runtime is
+    newer (M1 S5)."""
     return f"""set -u
 command -v docker >/dev/null 2>&1 || exit {NO_DOCKER}
 command -v nvidia-ctk >/dev/null 2>&1 || command -v nvidia-container-cli >/dev/null 2>&1 || exit {NO_NVIDIA_TOOLKIT}
 docker info >/dev/null 2>&1 || exit {NO_DOCKER_ACCESS}
+carbon_cuda="$(nvidia-smi 2>/dev/null | grep -o 'CUDA Version: [0-9.]*' | head -n1)" || carbon_cuda=""
+[ -z "$carbon_cuda" ] || printf 'carbon-driver-cuda %s\\n' "${{carbon_cuda#CUDA Version: }}"
 {_image_lines(image_id, fingerprint)}exit 0
 """
+
+
+def driver_cuda(stdout: bytes) -> str | None:
+    """The newest CUDA the remote driver runs, as the check printed it."""
+    match = re.search(
+        rb"^carbon-driver-cuda ([0-9]{1,3}\.[0-9]{1,3})$", stdout, re.MULTILINE
+    )
+    return match.group(1).decode() if match else None
 
 
 def start_script(

@@ -50,6 +50,7 @@ from .remote_machine import (
     SSHClient,
     check_script,
     checked_destination,
+    driver_cuda,
     failure_for,
     job_endpoint,
     local_fingerprint,
@@ -254,13 +255,13 @@ class SSHDocker(RemoteTransport):
         self.fingerprint = fingerprint
 
     def check(self, image) -> dict:
-        code, _ = self.ssh.run(
+        code, stdout = self.ssh.run(
             check_script(image.image_id, self.fingerprint(image.image_id)),
             timeout=CHECK_SECONDS,
         )
         if code not in (0, NO_WORKER_IMAGE):
             raise failure_for(code)
-        return {
+        result = {
             "transport": self.name,
             "reached": True,
             "docker": "usable without sudo",
@@ -268,6 +269,11 @@ class SSHDocker(RemoteTransport):
             "worker_image": "present" if code == 0 else "missing",
             "image_verified_by": self.image_verified_by,
         }
+        # The newest CUDA the machine's driver runs (M1 S5), read only.
+        cuda = driver_cuda(stdout if type(stdout) is bytes else b"")
+        if cuda is not None:
+            result["driver_cuda"] = cuda
+        return result
 
     def verify(self, image) -> None:
         # The start script itself refuses an image not present by ID (93).

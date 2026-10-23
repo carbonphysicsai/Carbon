@@ -509,6 +509,41 @@ class SetupRefused(Rejected):
         self.next_step = next_step
 
 
+def driver_warning(image, driver):
+    """A plain warning when the GPU machine's driver runs an older CUDA than
+    `image`'s GPU runtime is built for (M1 S5: the JAX cuda13 worker failed
+    on a CUDA 12.8 driver while the PyTorch cu130 one ran), else None. A
+    warning, never a refusal: a worker whose image carries CUDA's
+    forward-compatibility libraries still runs, and the compute check starts
+    nothing to find out (OWNER-MINER-COMPUTE-LINK-ONLY-01)."""
+    from carbon.development_session.gpu_practice import (
+        gpu_image_backend,
+        gpu_runtime,
+        runtime_cuda,
+    )
+
+    needed = runtime_cuda(gpu_runtime(image))
+    try:
+        major = int(str(driver).split(".")[0])
+    except (TypeError, ValueError):
+        return None
+    if needed is None or major >= needed:
+        return None
+    return {
+        "result": "gpu_driver_older_than_worker",
+        "backend": gpu_image_backend(image),
+        "driver_cuda": driver,
+        "worker_cuda": needed,
+        "next_step": (
+            f"your GPU machine's NVIDIA driver runs CUDA {driver}, and this "
+            f"GPU worker is built for CUDA {needed}: it runs only if its image "
+            "carries CUDA's forward-compatibility libraries. If a practice "
+            "says the driver is too old, update the driver, then check Compute "
+            "again; until then that backend practises on CPU"
+        ),
+    }
+
+
 def _practice_only(record) -> bool:
     """Whether a setup record is a practice-only one: Setup's "Practise
     without registering" chosen, and no registration confirmed since."""
@@ -1515,6 +1550,9 @@ class LiveChecks:
             check = transport.check(image)
         except RemoteMachineError as refused:
             raise self._remote_refused(refused) from None
+        warning = driver_warning(image, check.get("driver_cuda"))
+        if warning is not None:
+            check = {**check, "gpu_warning": warning}
         return {
             # The chosen Challenge's own GPU practice scope, and remote
             # practice beside it over the miner's transport.
@@ -2971,6 +3009,15 @@ class EnvironmentSetup:
                     (check.get("remote_extra") or {}).get("worker_image") == "missing"
                 ):
                     check["next_step"] = "send your worker"
+                # A worker that could not use the GPU in its test run, said in
+                # plain words: its backend practises on CPU until it is fixed.
+                warnings = [
+                    probed["gpu_warning"]
+                    for probed in (found["check"], check.get("remote_extra") or {})
+                    if probed.get("gpu_warning")
+                ]
+                if warnings:
+                    check["gpu_warnings"] = warnings
             if self._forget_compute_keys():
                 check["retired_compute_key"] = COMPUTE_KEY_REMOVED
             result = self._step("compute", {**step, "runtime": runtime, "check": check})

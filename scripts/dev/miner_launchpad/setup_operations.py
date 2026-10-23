@@ -637,6 +637,16 @@ def status(
     # (MINER-SURVIVE-REBOOT-01): setup's own read-only warning, as Review's.
     reboot = getattr(setup, "reboot_warnings", None)
     result["warnings"] = reboot() if reboot is not None else []
+    # A GPU worker that could not use the miner's GPU in its test run at the
+    # compute check (M1 S5): its backend practises on CPU until it is fixed.
+    for probe in (steps["compute"].get("check") or {}).get("gpu_warnings") or []:
+        result["warnings"].append(
+            {
+                "code": probe["result"],
+                "backend": probe["backend"],
+                "next_step": probe.get("next_step"),
+            }
+        )
     if nxt is not None and nxt["id"] == "catalog":
         launched = campaigns is not None and campaigns > 0
         result["next"] = {

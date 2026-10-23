@@ -66,6 +66,12 @@ START_COMMAND = (
     "carbon.compute.job_server",
 )
 _IMAGE_ID = re.compile(r"^sha256:[0-9a-f]{64}$")
+#: A job's stderr naming a driver older than the worker's CUDA runtime.
+DRIVER_TOO_OLD = re.compile(
+    rb"cudaErrorInsufficientDriver|CUDA driver version is insufficient", re.IGNORECASE
+)
+#: The `RemoteJobFailure` detail for it, which a practice records as its note.
+GPU_DRIVER_TOO_OLD = "gpu_driver_too_old"
 #: What a carrier-layout job stages beside its inputs: the carrier's program,
 #: its bootstrap, the layout itself and, for an overlay build, the verified
 #: overlay as one archive.
@@ -514,6 +520,10 @@ class RemoteRunner:
                 stderr = output.pop("carbon-job-stderr.txt", b"")
                 write_once(operation / "remote-stderr.txt", stderr[-65536:])
                 if result.get("state") != "DONE":
+                    # The one cause a miner can act on, by its closed code
+                    # (M1 S5: the JAX cuda13 worker on a CUDA 12.8 driver).
+                    if DRIVER_TOO_OLD.search(stderr[-65536:]):
+                        raise RemoteJobFailure("run", GPU_DRIVER_TOO_OLD)
                     raise RemoteJobFailure("run", "the carrier program failed")
         except (RemoteMachineError, RemoteJobFailure, OSError, ValueError) as failure:
             self._failed(ledger, cleaned=cleaned, failure=failure, **settle)
