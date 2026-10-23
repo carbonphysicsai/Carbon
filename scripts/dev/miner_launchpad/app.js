@@ -1314,13 +1314,13 @@
         // The address goes only in the POST body, never a URL; the read is made again on every press, never kept.
         const value = await api("/api/v1/onboarding/funding", {address});
         const balance = tao(value.balance_tao), cost = tao(value.joining_cost_tao);
-        // Display only (OWNER-TAO-USD-PRICE-SOURCE-01): "about $X" only when the controller sent a price, with its time;
-        // TAO alone otherwise. The page itself never asks a price service anything.
-        const rate = Number(value.usd_per_tao);
-        const priced = Number.isFinite(rate) && rate > 0;
-        const usd = amount => " (about $" + (Number(amount) * rate).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ")";
-        const lines = [el("p", "Your money key holds " + balance + " TAO" + (priced ? usd(value.balance_tao) : "") + ". Joining costs " + cost + " TAO" + (priced ? usd(value.joining_cost_tao) : "") + " right now.", "status-line")];
-        if (priced) lines.push(el("p", "Dollar amounts are approximate, from CoinGecko's public TAO price" + (value.usd_read_at ? " at " + new Date(value.usd_read_at * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "") + ". They are for orientation only; the joining cost is set in TAO.", "hint"));
+        // Display only (OWNER-TAO-USD-PRICE-SOURCE-01): the controller's own "about $X" strings, beside the TAO amounts, with
+        // the source and time; null means TAO alone (never an old price). The page asks no price service anything.
+        const quote = value.usd && typeof value.usd === "object" ? value.usd : null;
+        const usd = key => quote && typeof quote[key] === "string" && quote[key] ? " (" + quote[key] + ")" : "";
+        const lines = [el("p", "Your money key holds " + balance + " TAO" + usd("balance") + ". Joining costs " + cost + " TAO" + usd("joining_cost") + ".", "status-line")];
+        if (typeof value.label === "string" && value.label) lines.push(el("p", value.label[0].toUpperCase() + value.label.slice(1) + ".", "hint"));
+        if (quote) lines.push(el("p", "Dollar amounts are " + (quote.label || "approximate") + ", from " + (quote.source || "a public price") + (quote.fetched_at ? " at " + new Date(quote.fetched_at).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "") + ". They are for orientation only; the joining cost is set in TAO.", "hint"));
         // The controller's own sentence says whether it is enough, "before transaction fees" (Validator condition), and its note
         // says where it was read: both shown as sent.
         const sentence = typeof value.enough_words === "string" && value.enough_words ? value.enough_words : (value.enough === true ? "Enough to join" : "Not enough to join") + (value.read_at_block ? ", at block " + value.read_at_block : "") + ", before transaction fees.";

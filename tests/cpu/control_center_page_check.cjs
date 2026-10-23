@@ -449,7 +449,7 @@ scenario("the funding step rejects a non-address, then shows the address with co
   clean(page);
 });
 const FUNDING_NOTE = "Read at block 123. Your wallet shows the cost again when you sign; that figure is the one that counts.";
-const funded = extra => ({schema: "carbon.onboarding.funding.v1", network: "testnet", netuid: 567, address: MONEY_KEY, balance_rao: 1500000000, balance_tao: "1.500000000", joining_cost_rao: 500000, joining_cost_tao: "0.000500000", enough: true, enough_words: "Enough to join, at block 123, before transaction fees.", read_at_block: 123, note: FUNDING_NOTE, ...extra});
+const funded = extra => ({schema: "carbon.onboarding.funding.v1", network: "testnet", netuid: 567, address: MONEY_KEY, balance_rao: 1500000000, balance_tao: "1.500000000", joining_cost_rao: 500000, joining_cost_tao: "0.000500000", enough: true, label: "current estimate; your wallet confirms the exact amount when you sign", usd: null, enough_words: "Enough to join, at block 123, before transaction fees.", read_at_block: 123, note: FUNDING_NOTE, ...extra});
 scenario("the balance check says Ready to join before transaction fees, shows the block and the note word for word, and never puts the address in a URL", async () => {
   const enough = await fundingPage({body: funded({})});
   await enough.page.type(one(enough.page, "#setup-fund-address"), MONEY_KEY);
@@ -458,7 +458,8 @@ scenario("the balance check says Ready to join before transaction fees, shows th
   assert.deepEqual(post.body, {address: MONEY_KEY});
   assert.ok(!post.path.includes(MONEY_KEY) && !String(enough.page.window.location.href).includes(MONEY_KEY), "the address is in the POST body only");
   const text = enough.page.text("setup-fund-result");
-  assert.match(text, /holds 1\.5 TAO\. Joining costs 0\.0005 TAO right now/);
+  assert.match(text, /holds 1\.5 TAO\. Joining costs 0\.0005 TAO\./);
+  assert.ok(text.includes("Current estimate; your wallet confirms the exact amount when you sign."));
   assert.ok(text.includes("Enough to join, at block 123, before transaction fees."));
   assert.ok(text.includes(FUNDING_NOTE), "the note, word for word");
   assert.ok(one(enough.page, "#setup-fund-ready").textContent.includes("Ready to join"));
@@ -471,13 +472,13 @@ scenario("the balance check says Ready to join before transaction fees, shows th
   assert.match(short.page.text("setup-fund-result"), /Not enough to join, at block 123, before transaction fees\. You need about 0\.0003 more TAO/);
   clean(short.page);
 });
-scenario("the funding check shows a dollar figure only when the controller sends a price, labelled approximate with its time", async () => {
-  const priced = await fundingPage({body: funded({usd_per_tao: 300, usd_read_at: 1760000000})});
+scenario("the funding check shows the controller's dollar strings only when it sends a price, labelled approximate with source and time", async () => {
+  const priced = await fundingPage({body: funded({usd: {balance: "about $450.00", joining_cost: "about $0.15", usd_per_tao: "300", fetched_at: "2026-10-23T18:00:00Z", source: "CoinGecko", label: "approximate"}})});
   await priced.page.type(one(priced.page, "#setup-fund-address"), MONEY_KEY);
   await priced.page.press(one(priced.page, "#setup-fund-check"));
   const text = priced.page.text("setup-fund-result");
-  assert.match(text, /holds 1\.5 TAO \(about \$450\.00\)\. Joining costs 0\.0005 TAO \(about \$0\.15\) right now/);
-  assert.match(text, /approximate, from CoinGecko's public TAO price at /);
+  assert.match(text, /holds 1\.5 TAO \(about \$450\.00\)\. Joining costs 0\.0005 TAO \(about \$0\.15\)\./);
+  assert.match(text, /Dollar amounts are approximate, from CoinGecko at /);
   clean(priced.page);
 });
 scenario("a failed balance read says why and what to do, and offers the read again", async () => {
