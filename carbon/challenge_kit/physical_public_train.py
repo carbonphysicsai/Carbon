@@ -270,11 +270,9 @@ def derive_public_train(challenge_id: str, source_raw: bytes) -> tuple[bytes, di
 #: derived once from the pinned v1 TRAIN (`derive_encoded_public_train`) and
 #: pinned by sha256 so every host reads the same bytes.
 ENCODED_VERSIONS = {(cooling.CHALLENGE.challenge_id, "1.3")}
-#: Only the (text) provenance record is committed; the encoded TRAIN is derived from the
-#: pinned v1 TRAIN at load and checked against its pinned sha256 (no numeric payload is
-#: committed, so no exception to the no-committed-payload invariant).
 _ENCODED_ARTIFACTS = {
     cooling.CHALLENGE.challenge_id: (
+        "cooling-dev-train-400-v2-encoded.npz",
         "cooling-dev-train-400-v2-encoded.provenance.json",
     ),
 }
@@ -384,8 +382,8 @@ def load_public_train(challenge_id: str, version: str | None = None) -> dict:
 
 def _load_encoded(challenge_id: str) -> dict:
     _source(challenge_id)
-    (provenance_name,) = _ENCODED_ARTIFACTS[challenge_id]
-    train_raw, _derived = derive_encoded_public_train(challenge_id)
+    train_name, provenance_name = _ENCODED_ARTIFACTS[challenge_id]
+    train_raw = (_DATA / train_name).read_bytes()
     provenance_raw = (_DATA / provenance_name).read_bytes()
     train_sha, provenance_sha = _ENCODED_PINNED[challenge_id]
     if _sha(train_raw) != train_sha or _sha(provenance_raw) != provenance_sha:
