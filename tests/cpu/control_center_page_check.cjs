@@ -321,6 +321,18 @@ scenario("the runs screen's best tile is the highest passing score when higher i
   assert.equal(all(page, "#campaign-detail .best-card").length, 1);
   clean(page);
 });
+scenario("the runs table's score header says which way is better only when a direction is declared (R8-4)", async () => {
+  const headers = async direction => {
+    const {page} = await runsScreen(direction);
+    const text = [...all(page, "#campaign-detail th")].map(node => node.textContent).find(name => name.startsWith("Practice "));
+    clean(page);
+    return text;
+  };
+  assert.equal(await headers("lower_is_better"), "Practice error (lower is better)");
+  assert.equal(await headers("higher_is_better"), "Practice score (higher is better)");
+  assert.equal(await headers(undefined), "Practice value");
+  assert.equal(await headers("sideways"), "Practice value");
+});
 scenario("the runs screen shows no best tile, best line or best card when no direction is declared", async () => {
   const {page, tiles} = await runsScreen(undefined);
   assert.ok(tiles.length >= 2, "the runs screen itself still shows");
