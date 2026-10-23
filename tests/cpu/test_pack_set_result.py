@@ -23,7 +23,15 @@ def _digest(c):
 
 
 BATCHES = [_digest("a"), _digest("b")]
-SET_KEY = common.pack_set_key(common.pack_set_document(*CHALLENGE, BATCHES))
+
+
+def _contents(batches):
+    """Each batch's exam content for the pack-set key (inert: the batch digest
+    stands in for both role digests)."""
+    return [{"case_bank": d, "reference_rows": d} for d in batches]
+
+
+SET_KEY = common.pack_set_key(common.pack_set_document(*CHALLENGE, _contents(BATCHES)))
 
 
 @pytest.fixture
@@ -179,7 +187,7 @@ def test_the_ladder_and_koth_read_only_the_set_result(world):
 
 def test_only_the_same_set_key_is_comparable(world):
     rotated = common.pack_set_key(
-        common.pack_set_document(*CHALLENGE, [BATCHES[0], _digest("c")])
+        common.pack_set_document(*CHALLENGE, _contents([BATCHES[0], _digest("c")]))
     )
     assert psr.comparable(SET_KEY, SET_KEY)
     assert not psr.comparable(SET_KEY, rotated)

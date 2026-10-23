@@ -210,10 +210,19 @@ LABELS = {
 
 
 def value(spec, version, name):
-    """The approved value of `name` at exactly `version`, or HUMAN_INPUT."""
-    return FACTS[(spec.challenge_id, version)][name]
+    """The approved value of `name` at exactly `version`, or HUMAN_INPUT. A
+    version uses the facts key it declares in the version registry (graph
+    route v2: its predecessor's approved facts, named explicitly)."""
+    from carbon.challenge_kit.version_registry import entry
+
+    return FACTS[(spec.challenge_id, entry(spec.challenge_id, version).facts)][name]
 
 
 def label(spec, version, name):
-    """The approved clause label for `name`, or None while it is unset."""
-    return LABELS[(spec.challenge_id, version)].get(name)
+    """The approved clause label for `name`, or None while it is unset (a
+    graph route v2 version: its predecessor's)."""
+    from carbon.challenge_kit.version_registry import entry
+
+    return LABELS[(spec.challenge_id, entry(spec.challenge_id, version).facts)].get(
+        name
+    )

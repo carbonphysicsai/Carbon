@@ -23,6 +23,14 @@ none is registered, and has no default, so it cannot be left out.
 
 The table sits beside the exam cap's in the receiver's owner-only
 `AttemptLedger` file.
+
+Rows are keyed by the sealed evaluation version, not the construction version
+(`ladder_feedback_v2`; Validator, no-limits binding, KOTH and Ladder
+continuity): a construction-only version bump (graph route v2) keeps a
+miner's ladder on the same exam. Rows written before keyed the construction
+version (`ladder_feedback`); they keep their meaning, are read through the
+version -> evaluation map (`scoring.sealed_versions`) and are never rewritten
+or rescored.
 """
 
 from __future__ import annotations
@@ -42,6 +50,17 @@ CREATE TABLE IF NOT EXISTS ladder_feedback(
     latest TEXT NOT NULL,
     updated_ns INTEGER NOT NULL,
     PRIMARY KEY(hotkey, challenge_id, challenge_version, exam_key)
+);
+CREATE TABLE IF NOT EXISTS ladder_feedback_v2(
+    hotkey TEXT NOT NULL,
+    challenge_id TEXT NOT NULL,
+    evaluation_version TEXT NOT NULL,
+    exam_key TEXT NOT NULL,
+    challenge_version TEXT NOT NULL,
+    best TEXT,
+    latest TEXT NOT NULL,
+    updated_ns INTEGER NOT NULL,
+    PRIMARY KEY(hotkey, challenge_id, evaluation_version, exam_key)
 );
 """
 
@@ -125,20 +144,51 @@ class LadderStore:
 
     @staticmethod
     def _key(hotkey, challenge, exam_key):
-        return (
-            _text(hotkey, "ladder_hotkey"),
-            _text(getattr(challenge, "challenge_id", None), "ladder_challenge"),
-            _text(getattr(challenge, "version", None), "ladder_challenge"),
-            _text(exam_key, "ladder_exam_key"),
-        )
+        """(hotkey, Challenge id, evaluation key, exam key, construction
+        version): the row's key, then the version it was graded on."""
+        from carbon.scoring.sealed_versions import ladder_key
 
-    def _documents(self, key):
+        hotkey = _text(hotkey, "ladder_hotkey")
+        challenge_id = _text(
+            getattr(challenge, "challenge_id", None), "ladder_challenge"
+        )
+        version = _text(getattr(challenge, "version", None), "ladder_challenge")
+        exam_key = _text(exam_key, "ladder_exam_key")
+        return (
+            hotkey,
+            challenge_id,
+            ladder_key(challenge_id, version),
+            exam_key,
+        ), version
+
+    def _row(self, key):
+        """The current row for `key`: the evaluation-keyed one, else the most
+        recent row written before under a construction version that maps to
+        the same evaluation key (read only, never rewritten)."""
+        from carbon.scoring.sealed_versions import ladder_key
+
+        hotkey, challenge_id, evaluation, exam_key = key
         with self.ledger._db() as db:
             row = db.execute(
-                "SELECT best, latest FROM ladder_feedback WHERE hotkey=?"
-                " AND challenge_id=? AND challenge_version=? AND exam_key=?",
+                "SELECT best, latest FROM ladder_feedback_v2 WHERE hotkey=?"
+                " AND challenge_id=? AND evaluation_version=? AND exam_key=?",
                 key,
             ).fetchone()
+            if row is not None:
+                return row
+            earlier = db.execute(
+                "SELECT challenge_version, best, latest FROM ladder_feedback"
+                " WHERE hotkey=? AND challenge_id=? AND exam_key=?"
+                " ORDER BY updated_ns DESC",
+                (hotkey, challenge_id, exam_key),
+            ).fetchall()
+        for version, best, latest in earlier:
+            if ladder_key(challenge_id, version) == evaluation:
+                return best, latest
+        return None
+
+    def _documents(self, key):
+        row = self._row(key)
         if row is None:
             return None, None
         best, latest = row
@@ -167,7 +217,7 @@ class LadderStore:
         """Apply one graded private-exam result (the score row) and return the
         document it shows: stored as the latest, and as the best only when it
         improved. ``rebuild_noise`` is the Challenge's registration or None."""
-        key = self._key(hotkey, challenge, exam_key)
+        key, version = self._key(hotkey, challenge, exam_key)
         noise = _noise_value(rebuild_noise)
         best, _ = self._documents(key)
         shown = gf.ladder_feedback(
@@ -182,13 +232,16 @@ class LadderStore:
         kept = gf.next_best(best, shown)
         with self.ledger._db() as db:
             db.execute(
-                "INSERT INTO ladder_feedback(hotkey, challenge_id, challenge_version,"
-                " exam_key, best, latest, updated_ns) VALUES(?,?,?,?,?,?,?)"
-                " ON CONFLICT(hotkey, challenge_id, challenge_version, exam_key)"
-                " DO UPDATE SET best=excluded.best, latest=excluded.latest,"
+                "INSERT INTO ladder_feedback_v2(hotkey, challenge_id,"
+                " evaluation_version, exam_key, challenge_version, best, latest,"
+                " updated_ns) VALUES(?,?,?,?,?,?,?,?)"
+                " ON CONFLICT(hotkey, challenge_id, evaluation_version, exam_key)"
+                " DO UPDATE SET challenge_version=excluded.challenge_version,"
+                " best=excluded.best, latest=excluded.latest,"
                 " updated_ns=excluded.updated_ns",
                 (
                     *key,
+                    version,
                     _raw(kept),
                     _raw(shown, latest=True),
                     int(self.ledger.clock()),
@@ -199,5 +252,5 @@ class LadderStore:
     def served(self, hotkey, challenge, exam_key):
         """What the miner may read for this exam: ``{"best", "latest"}``, each
         a builder document or None."""
-        best, latest = self._documents(self._key(hotkey, challenge, exam_key))
+        best, latest = self._documents(self._key(hotkey, challenge, exam_key)[0])
         return {"best": best, "latest": latest}

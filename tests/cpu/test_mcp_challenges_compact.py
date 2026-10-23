@@ -11,6 +11,7 @@ import json
 import pytest
 
 from carbon import challenge_registry as challenges
+from carbon.miner_mcp import mcp_challenges
 from carbon.miner_mcp.mcp_challenges import (
     COMPACT_SCHEMA,
     PREFIX,
@@ -37,8 +38,8 @@ KEYS = {
 }
 #: compact fits one small agent turn and is well under half the full answer,
 #: for every version (measured 2026-10-22: 2.0-4.0 KB against 8.5-31 KB full,
-#: ratios 0.07-0.37).
-MAX_COMPACT_BYTES = 4096
+#: ratios 0.07-0.37; Motor's catalog has since grown to 32 entries, 4.3 KB).
+MAX_COMPACT_BYTES = 6144
 MAX_RATIO = 0.4
 
 
@@ -108,8 +109,23 @@ def test_compact_is_a_small_projection_of_the_full_answer(
     for side in ("inputs", "outputs"):
         assert compact["interface"][side] == list(names[side])
 
-    # The ready recipe is the full answer's first example, byte for byte.
-    ((kind, document),) = full["examples"][0].items()
+    # The ready recipe is the full answer's first ready example, byte for
+    # byte: an unfilled graph template (graph route v2) is not one.
+    ready = [
+        next(iter(example.items()))
+        for example in full["examples"]
+        if not mcp_challenges._template(*next(iter(example.items())))
+    ]
+    if not ready:
+        # No ready example: a graph template's reason names the digest to
+        # fill; a version publishing none (Battery 2.2 until an entry is
+        # receipted) says so.
+        assert compact["ready_recipe"] is None
+        assert ("submission_digest" in reasons["ready_recipe"]) == bool(
+            full.get("examples")
+        )
+        return
+    kind, document = ready[0]
     assert compact["ready_recipe_kind"] == kind
     assert compact["ready_recipe"] == document
     catalog = full["models"].get("catalog")
@@ -144,6 +160,11 @@ def test_the_ready_recipe_binds(challenge_id, version):
     compact = compact_description(
         challenges.describe(challenge_id, version, host=EVERYTHING)
     )
+    if compact["ready_recipe"] is None:
+        # No ready example yet (graph template only, or none): stated, not
+        # silently absent.
+        assert compact["reasons"]["ready_recipe"]
+        return
     if compact["ready_recipe_kind"] != "recipe":
         pytest.skip("a Level 0 strategy version; admitted by examples_admission")
     key = ChallengeKey(challenge_id, version)

@@ -1716,7 +1716,7 @@ class DirectDevelopmentTasksV3:
                         )
                 provisioning = False
             self._bindings(request)
-            from carbon.challenge_kit import physical_material
+            from carbon.challenge_kit import physical_material, version_registry
             from carbon.challenge_kit.interface_dtype import output_dtype
 
             material = self.discovery._material
@@ -1771,8 +1771,10 @@ class DirectDevelopmentTasksV3:
                         output_dtype(material["interface_document"])
                         if (
                             kit["id"] == BATTERY_CHALLENGE
-                            and kit["version"] in ("1.0", "2.0", "2.1")
+                            and version_registry.find(kit["id"], kit["version"])
+                            is not None
                         )
+                        # The synthetic Challenge's 1.3 (its own kit module).
                         or kit["version"] == "1.3"
                         or physical_material.is_registered(kit["id"], kit["version"])
                         or task_id.value in self._measured_tasks
@@ -2230,6 +2232,21 @@ def ready_recipes(challenge_id, version, builders):
     from .research_service import recipe_source_kinds
 
     kinds = recipe_source_kinds(research.ChallengeKey(challenge_id, version))
+    if "graph" in kinds and "graph" not in builders:
+        # Every graph-served version's template, one builder for all
+        # (`graph_adapters.graph_recipe`), with the v2 configuration example.
+        from . import graph_adapters
+
+        builders = {
+            **builders,
+            "graph": lambda: graph_adapters.graph_recipe(
+                challenge_id,
+                version,
+                configuration=graph_adapters.configuration_example(
+                    challenge_id, version
+                ),
+            ),
+        }
     return {
         "schema": "carbon.ready-recipes.v1",
         "challenge": {"id": challenge_id, "version": version},

@@ -318,6 +318,44 @@ def private_evaluation_key(evidence):
     )
 
 
+def carry_identity(evidence):
+    """The exam a paired dual evaluation measured, without its construction
+    version: the evaluation version, the score pack and execution profile, and
+    the measurement's registration, contract, producer, mask, ordered queries,
+    reference rows and coverage. A carried king meets a challenger of a new
+    construction version only where these are equal
+    (OWNER-KOTH-CARRY-ACROSS-VERSIONS-01). None for evidence that is not a
+    paired dual binding (the only kind the comparator accepts).
+
+    Left out are only the fields that name the construction version or its
+    pack wrapper: `challenge_version`, `evaluation_version_digest` (the source
+    registration names the version, its TRAIN, interface and job), the source
+    receipt pin (a receipt of that registration; a carried king's own pin is
+    the carry record's, registered by the operator at the carry) and
+    `evaluation_pack_digest` (a version's pack manifest names the version)."""
+    private_evaluation_key(evidence)  # validates, or refuses
+    if evidence["schema"] != PAIRED_BINDING:
+        return None
+    fields = (
+        "registration_digest",
+        "measurement_contract_digest",
+        "producer_digest",
+        "common_mask_digest",
+        "ordered_query_material_digest",
+        "reference_rows_digest",
+        "reference_coverage_digest",
+    )
+    identity = {
+        "challenge": evidence["challenge"],
+        "evaluation_version": evidence["evaluation_version"],
+        "score_compatibility": evidence["score_compatibility"],
+        "binding_schema": evidence["schema"],
+        "reference_coverage": evidence["reference_coverage"],
+        **{field: evidence[field] for field in fields},
+    }
+    return digest({"schema": "carbon.koth.carry-identity.v1", **identity})
+
+
 @dataclass(frozen=True)
 class BankVersion:
     """Exact exam, bank, rule and score-pack identity; never miner supplied."""
@@ -528,9 +566,25 @@ class BankPromotion:
         the receiver; never the pack's shape). Its win
         then carries `bank_comparison_sealed_testnet`, which the reward layer
         pays only under a testnet policy (Workstream I5).
+
+        An incumbent not yet regraded on this key (a rotation, or a carried
+        king whose regrade is unavailable) gives UNAVAILABLE with nothing
+        changed: never a reset, never a win (OWNER-EXAM-CAP-ROTATION-01,
+        VALIDATOR-KOTH-CARRY-SCOPE-01).
         """
         reason = SEALED_TESTNET_PROMOTION if sealed else DEVELOPMENT_PROMOTION
-        pair = self.private_pair(submission_id, evaluation_key)
+        try:
+            pair = self.private_pair(submission_id, evaluation_key)
+        except StateError as refused:
+            if refused.code != "incumbent_evaluation_required":
+                raise
+            return {
+                "outcome": UNAVAILABLE,
+                "reason": "incumbent_regrade_required",
+                "evaluation_key": evaluation_key,
+                "candidate": submission_id,
+                "incumbent": (self.store.incumbent() or {}).get("model_id"),
+            }
         outcome = compare_private_pair(pair, comparator)
         if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):
             self.store.set_incumbent(

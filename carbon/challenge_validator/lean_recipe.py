@@ -53,12 +53,18 @@ _SOURCE_PATHS = (
     "carbon/battery/recipes.py",
     "carbon/battery/training.py",
     "carbon/battery/direct_graph.py",
+    # Graph route v2's adapter, state, trainer and refusal classes.
+    "carbon/development_session/physical_graph_adapter_v2.py",
+    "carbon/development_session/physical_graph_state_v2.py",
+    "carbon/development_session/physical_graph_trainer_v2.py",
+    "carbon/development_session/build_refusal_v2.py",
     "carbon/development_session/bundle_graph_state.py",
     "carbon/reconstruction/served_recipe_contract.py",
     "carbon/challenge_kit/physical_material.py",
     "carbon/challenge_kit/physical_pack.py",
     "carbon/challenge_kit/physical_public.py",
     "carbon/challenge_kit/physical_public_train.py",
+    "carbon/challenge_kit/version_registry.py",
 )
 
 

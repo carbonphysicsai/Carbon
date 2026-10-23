@@ -130,6 +130,10 @@ VERSIONS = {
     # Allowlist v7's catalog version (Validator, 2026-10-20): the predecessor's
     # measurement under its evaluation version; only the served allowlist differs.
     "1.3": ("motor-dual-development-bank-90-v3", CASE_ID),
+    # Graph route v2 (`challenge_kit.version_registry`; Validator no-limits
+    # binding, 2026-10-23): construction only, so the predecessor's measurement
+    # under its evaluation version.
+    "1.4": ("motor-dual-development-bank-90-v3", CASE_ID),
 }
 OUTPUT = {"quantity": "torque_nm", "unit": "N.m"}
 FILES = ("motor_dual_pack.py", "motor_dual_measurement.py")

@@ -193,9 +193,9 @@ def test_a_stored_row_with_anything_but_the_allow_list_is_refused(
 ):
     _record(store, _scored(0.60, 0.30, 0.90))
     with store.ledger._db() as db:
-        (raw,) = db.execute(f"SELECT {column} FROM ladder_feedback").fetchone()
+        (raw,) = db.execute(f"SELECT {column} FROM ladder_feedback_v2").fetchone()
         tampered = {**json.loads(raw), **change}
-        db.execute(f"UPDATE ladder_feedback SET {column}=?", (json.dumps(tampered),))
+        db.execute(f"UPDATE ladder_feedback_v2 SET {column}=?", (json.dumps(tampered),))
     with pytest.raises(LadderStoreRefused) as refused:
         store.served("5Miner", MOTOR, EXAM)
     assert refused.value.code == "ladder_document"
@@ -458,7 +458,7 @@ def test_a_stored_v1_document_that_showed_a_and_d_is_not_served(store):
     }
     raw = json.dumps(v1, sort_keys=True)
     with store.ledger._db() as db:
-        db.execute("UPDATE ladder_feedback SET best=?, latest=?", (raw, raw))
+        db.execute("UPDATE ladder_feedback_v2 SET best=?, latest=?", (raw, raw))
     assert store.served("5Miner", MOTOR, EXAM) == {"best": None, "latest": None}
     fresh = _record(store, _scored(0.61, 0.31, 0.91))
     assert fresh["status"] == "IMPROVED" and "A" not in fresh and "D" not in fresh

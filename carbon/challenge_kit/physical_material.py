@@ -27,40 +27,29 @@ from . import (
     physical_pack,
     physical_public,
     physical_public_train,
+    version_registry,
 )
 
 SCOPE = physical_public.SCOPE
-#: Registered public physical Challenges, by (id, version).
-REGISTERED = (
-    (motor.CHALLENGE.challenge_id, motor.CHALLENGE.version),
-    (cooling.CHALLENGE.challenge_id, cooling.CHALLENGE.version),
-    # The step-2 versions (STEP2_BATCH_VERSIONS_20261020): served v6, no step caps.
-    (motor.CHALLENGE.challenge_id, "1.1"),
-    (cooling.CHALLENGE.challenge_id, "1.1"),
-    # The backbone-catalog version (OWNER-BACKBONE-CATALOG-01): step-2 serving
-    # plus Carbon's tested backbones by catalog id.
-    (motor.CHALLENGE.challenge_id, "1.2"),
-    # The catalog versions serving allowlist v7 (Validator, 2026-10-20): Motor
-    # 1.3 is 1.2 plus v7; Cooling 1.2 serves v7 and no catalog yet.
-    (motor.CHALLENGE.challenge_id, "1.3"),
-    (cooling.CHALLENGE.challenge_id, "1.2"),
-    (cooling.CHALLENGE.challenge_id, "1.3"),
-    # Both F08 versions: 1.0 (255-row TRAIN v1) and 1.1 (287-row TRAIN v2, the straddling bank).
-    *((f08_train.CHALLENGE_ID, version) for version in f08_train.CHALLENGE_VERSIONS),
-    # F02 2.0 (TRAIN40-v2): its own public module and float32 TRAIN, like F08. Named explicitly,
-    # so a future version bump in the loader cannot silently move what is served.
-    ("f02", "2.0"),
-    # F02 2.1 (step 2) and 2.2 (its catalog version, allowlist v7), receivable with their
-    # approved packs (Validator, 2026-10-20).
-    ("f02", "2.1"),
-    ("f02", "2.2"),
-    # F02 2.3 (the Validator, 2026-10-20): the catalog binding plus Carbon's graph training
-    # adapter. F08 1.4 registers through f08_train.CHALLENGE_VERSIONS above. Their material
-    # loads once their pack labels exist (physical_pack); until then it fails closed.
-    ("f02", "2.3"),
-    # Battery 2.2 is not registered: Battery is out of launch (OWNER-BATTERY-OUT-OF-LAUNCH-01)
-    # and 2.2 was never completed; `battery.catalog_version` stays, unserved.
+#: Registered public physical Challenges, by (id, version): every Motor,
+#: Cooling, F08 and F02 version the version registry declares
+#: (`version_registry`), each with its own explicit entry.
+REGISTERED = tuple(
+    sorted(
+        key
+        for key in version_registry.VERSIONS
+        if key[0]
+        in (
+            motor.CHALLENGE.challenge_id,
+            cooling.CHALLENGE.challenge_id,
+            f08_train.CHALLENGE_ID,
+            f02_train.CHALLENGE_ID,
+        )
+    )
 )
+# Battery 2.2 is not registered: Battery is out of launch
+# (OWNER-BATTERY-OUT-OF-LAUNCH-01) and 2.2 was never completed;
+# `battery.catalog_version` stays, unserved.
 
 
 def is_registered(challenge_id: str, version: str) -> bool:

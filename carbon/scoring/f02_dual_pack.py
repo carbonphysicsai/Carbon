@@ -50,6 +50,10 @@ VERSIONS = {
     # Catalog + graph version (Launchpad, allowlist v7): the predecessor's
     # measurement under its evaluation version.
     "2.3": ("f02-dual-development-bank-8-v2", CASE_ID),
+    # Graph route v2 (`challenge_kit.version_registry`; Validator no-limits
+    # binding, 2026-10-23): construction only, so the predecessor's measurement
+    # under its evaluation version.
+    "2.4": ("f02-dual-development-bank-8-v2", CASE_ID),
 }
 OUTPUT = {"quantity": "peak_top_c", "unit": "degC"}
 FILES = ("f02_dual_pack.py",)
@@ -75,6 +79,8 @@ SEALED_VERSIONS = {
     "2.1": SEALED_EVALUATION_VERSION,
     "2.2": SEALED_EVALUATION_VERSION,
     "2.3": SEALED_EVALUATION_VERSION,
+    # Graph route v2: 2.3's sealed exam, the same evaluation version.
+    "2.4": SEALED_EVALUATION_VERSION,
 }
 ANALYTIC_ENERGY = "analytic:(peak_w-20)*on_time_s"
 #: dev1 §7 DEVELOPMENT normalisation scales, not physical thresholds.

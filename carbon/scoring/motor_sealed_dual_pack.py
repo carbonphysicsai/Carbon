@@ -61,7 +61,11 @@ VERSION = "1.1"
 #: alone and stays as history under its own evaluation version, never re-scored.
 EVALUATION_VERSION = "motor-dual-sealed-batch-30-v2"
 CASE_ID = "motor-sealed-batch-30"
-VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in ("1.1", "1.2", "1.3")}
+VERSIONS = {
+    # 1.4 is graph route v2: construction only, 1.3's sealed batches.
+    version: (EVALUATION_VERSION, CASE_ID)
+    for version in ("1.1", "1.2", "1.3", "1.4")
+}
 OUTPUT = _motor.OUTPUT
 FILES = (
     *_motor.FILES,

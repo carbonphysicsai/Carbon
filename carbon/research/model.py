@@ -417,7 +417,7 @@ _RECIPE_SCHEMA = "carbon.construction-recipe.v1"
 def _registered_train_use(key: object, strategy: object) -> str | None:
     """The TRAIN use id a construction recipe on `key` may name at
     procedure.train_use.dataset: the served version's registered graph
-    training adapter dataset (`physical_graph_adapter.SPECS`, or the
+    training adapter dataset (`graph_adapters.train_use`: v1 or v2, or the
     synthetic 1.3 adapter), the value that adapter itself checks. None - the
     key's ban stands - for any other strategy or version. Read only when the
     recipe sends that key, so no other request imports the adapter."""
@@ -431,11 +431,11 @@ def _registered_train_use(key: object, strategy: object) -> str | None:
     ):
         return None
     from carbon.challenge_kit import synthetic_linear_field_2d as synthetic
-    from carbon.development_session import physical_graph_adapter
+    from carbon.development_session import graph_adapters
 
-    spec = physical_graph_adapter.SPECS.get((key.challenge_id, key.version))
-    if spec is not None:
-        return spec.train_use
+    registered = graph_adapters.train_use(key.challenge_id, key.version)
+    if registered is not None:
+        return registered
     if (key.challenge_id, key.version) == (synthetic.CHALLENGE.challenge_id, "1.3"):
         block = synthetic.construction_limits_document_v3()["graph_training_adapter"]
         return block["train_use_dataset"]
