@@ -1510,6 +1510,10 @@ def view(root, *, operations=None):
             "state": state,
             "code": None if done is None else done.get("code"),
         }
+        if done is not None and type(done.get("dimension")) is str:
+            # Which of the miner's limits stopped it, so the page names it
+            # (G1: a time stop read as "a ceiling you set").
+            row["dimension"] = done["dimension"]
         if done is not None and done.get("cause") == OUTPUT_CAP_HIT:
             # The cap the stage's replies were cut at, for the step a
             # campaign view shows (set max output tokens higher).

@@ -874,18 +874,60 @@ EARLY_STOP_CODES = (
 )
 
 
+#: Each of the miner's own limits a stop can name, in their words, and the
+#: step for it (G1, Validator: the page names the stopping limit for every
+#: dimension). Anything else keeps the code's generic step.
+STOP_LIMITS = {
+    "provider_nanodollars": (
+        "money limit",
+        (
+            "The agent used the money limit you set, so it stopped there; nothing "
+            "past it was reserved or sent. Launch a new campaign with a larger "
+            "money limit to go further."
+        ),
+    ),
+    "provider_attempts": (
+        "model call limit",
+        (
+            "The agent made as many model calls as you allowed, so it stopped "
+            "there. Launch a new campaign with more model calls to go further."
+        ),
+    ),
+    "research_trials": (
+        "practice run limit",
+        (
+            "The agent ran as many practice runs as you allowed, so it stopped "
+            "there. Launch a new campaign with more practice runs to go further."
+        ),
+    ),
+    "elapsed_seconds": (
+        "time limit",
+        (
+            "The agent used the time limit you set (too little was left for one "
+            "more model call), so it stopped there. Launch a new campaign with a "
+            "longer time limit to go further."
+        ),
+    ),
+}
+
+
 def ended_early(stages):
     """The first stage that stopped on one of `EARLY_STOP_CODES`, as
-    `{stage, code, next_step}`, or None."""
+    `{stage, code, next_step}` (plus `limit`, the miner's limit in words,
+    when the stop names one of `STOP_LIMITS`), or None."""
     from scripts.dev.miner_launchpad.supervisor import next_action
 
     for row in stages:
         if row.get("state") == "STOPPED" and row.get("code") in EARLY_STOP_CODES:
-            return {
+            found = {
                 "stage": row["stage"],
                 "code": row["code"],
                 "next_step": next_action(row["code"]),
             }
+            named = STOP_LIMITS.get(row.get("dimension"))
+            if named is not None and row["code"] == "miner_ceiling_reached":
+                found["limit"], found["next_step"] = named
+            return found
     return None
 
 
@@ -941,6 +983,12 @@ def graphite_section(own):
                 row["code"]
                 if type(row.get("code")) is str and _CODE.fullmatch(row["code"])
                 else None
+            ),
+            # Which of the miner's limits stopped it (`STOP_LIMITS`), allow-listed.
+            **(
+                {"dimension": row["dimension"]}
+                if row.get("dimension") in STOP_LIMITS
+                else {}
             ),
             **_output_cap_step(row),
         }

@@ -81,7 +81,9 @@
     const early = doc.graphite?.ended_early && typeof doc.graphite.ended_early.code === "string" ? doc.graphite.ended_early : null;
     if (early) {
       const stage = early.stage ? (STAGE_NOUNS[early.stage] || words(early.stage)).toLowerCase() : "";
-      return {label: "Stopped early", reason: "Stopped early" + (stage ? " while " + stage : "") + ": " + words(early.code) + ".", next: typeof early.next_step === "string" ? early.next_step : ""};
+      // Which of the miner's limits stopped it, in words (G1: a time stop read as "a ceiling you set").
+      const why = typeof early.limit === "string" && early.limit ? early.limit + " reached" : words(early.code);
+      return {label: "Stopped early", reason: "Stopped early" + (stage ? " while " + stage : "") + ": " + why + ".", next: typeof early.next_step === "string" ? early.next_step : ""};
     }
     if (!doc.graphite && doc.tiles?.practice_runs && !(doc.tiles.practice_runs.completed > 0)) {
       return {label: "Finished, no result", reason: "Finished without a result: no practice run completed, so there is nothing to grade.", next: ""};
@@ -473,7 +475,8 @@
     // a ceiling the miner set) is named with its next step, so a COMPLETED
     // campaign that built nothing never reads as finished work (M1 S19).
     const early = g.ended_early && typeof g.ended_early.code === "string" ? g.ended_early : null;
-    para(box, "Now: " + (early ? "stopped early at " + (STAGE_NOUNS[early.stage] || words(early.stage)).toLowerCase() + ": " + words(early.code) : G.now(g.stage, doc.campaign?.state)), "status-line rs-graphite-stage");
+    const earlyWhy = early && typeof early.limit === "string" && early.limit ? early.limit + " reached" : early ? words(early.code) : "";
+    para(box, "Now: " + (early ? "stopped early at " + (STAGE_NOUNS[early.stage] || words(early.stage)).toLowerCase() + ": " + earlyWhy : G.now(g.stage, doc.campaign?.state)), "status-line rs-graphite-stage");
     if (early && typeof early.next_step === "string") para(box, early.next_step, "reason rs-graphite-early");
     if (g.submission_policy === "retain_only_v1") para(box, "Retain only: this campaign does not commit or submit candidates to a validator.");
     const grid = el("dl", undefined, "review-grid rs-graphite");

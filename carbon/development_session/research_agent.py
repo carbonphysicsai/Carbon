@@ -399,6 +399,10 @@ REQUEST_HOLD_FIT_V1 = "carbon.autoresearch.request-hold.fit.v1"
 REQUEST_HOLDS = (REQUEST_HOLD_V1, REQUEST_HOLD_FIT_V1)
 #: The smallest reply a fitted call asks for (Validator, G1).
 FIT_MIN_OUTPUT_TOKENS = 512
+#: The least of the elapsed limit a fitted call needs to start; its deadline
+#: is then what is left (Validator, G1's time twin; the ledger's existing
+#: provider-timeout floor).
+FIT_MIN_SECONDS = 120
 
 
 def request_extends(previous, request):
@@ -809,10 +813,14 @@ def _request_once(
         from .research_ledger import NO_BUDGET, _elapsed
 
         elapsed = _elapsed(json.loads(campaign[1]))
-        if (
-            elapsed is not NO_BUDGET
-            and ledger.clock() + settings.timeout_seconds > campaign[0] + elapsed
-        ):
+        # G1's time twin (Validator): under the fit rule a call needs only
+        # `FIT_MIN_SECONDS` of the elapsed limit; its deadline is what is left
+        # (the transport's `remaining_seconds`). Otherwise a whole provider
+        # timeout must fit, as before.
+        need = (
+            FIT_MIN_SECONDS if hold == REQUEST_HOLD_FIT_V1 else settings.timeout_seconds
+        )
+        if elapsed is not NO_BUDGET and ledger.clock() + need > campaign[0] + elapsed:
             raise ValueError("provider timeout cannot fit remaining campaign time")
     request_digest = digest(payload)
     directory = ledger.root / ("model-" + digest(canonical([owner, identity]))[7:])
@@ -868,10 +876,13 @@ def _request_once(
                 else SelectionTransport(provider)
             )
         began = time.monotonic()
-        if isinstance(transport, SelectionTransport) and provider.streams:
+        if isinstance(transport, SelectionTransport) and (
+            provider.streams or hold == REQUEST_HOLD_FIT_V1
+        ):
             # A streamed call has no whole-reply deadline: what is left of
             # the miner's elapsed limit bounds it
-            # (`model_provider.TRANSPORT_STREAM_V1`).
+            # (`model_provider.TRANSPORT_STREAM_V1`). Under the fit rule a
+            # whole-reply call's deadline is also no later than that.
             response = transport(request, remaining_seconds=_time_left(ledger))
         else:
             response = transport(request)

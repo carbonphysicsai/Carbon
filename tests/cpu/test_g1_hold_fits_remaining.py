@@ -181,3 +181,64 @@ def test_a_recorded_call_replays_its_own_clamped_request(tmp_path):
     # be a replay conflict), and must not send again.
     assert call(budget, "m-1", lambda r: (sent.append(r), reply([]))[1]) == first
     assert len(sent) == 1
+
+
+# -- G1's time twin (Validator, 2026-10-23) ---------------------------------------
+
+
+def test_the_1200s_600s_shape_keeps_calling_until_under_120s_is_left(tmp_path):
+    from carbon.development_session.research_agent import FIT_MIN_SECONDS
+
+    now = {"t": 1000.0}
+    budget = ledger(
+        tmp_path,
+        clock=lambda: now["t"],
+        ceilings={**DEVELOPMENT_CEILINGS, "provider_nanodollars": 10**12},
+        elapsed_seconds=1200,
+    )
+    # The Motor 1.3 run's model: a 600 s provider timeout (cmp-b526c4ec).
+    import dataclasses
+
+    settings = DEFAULT_SELECTION.settings
+    object.__setattr__(
+        DEFAULT_SELECTION,
+        "settings",
+        dataclasses.replace(settings, timeout_seconds=600),
+    )
+    made = 0
+
+    def slow(r):
+        now["t"] += 60  # each call takes a minute of the miner's 20
+        return reply([])
+
+    try:
+        with pytest.raises(ValueError, match="provider timeout cannot fit"):
+            while True:
+                call(budget, f"t-{made}", slow)
+                made += 1
+                assert made < 100
+    finally:
+        object.__setattr__(DEFAULT_SELECTION, "settings", settings)
+    left = 1000 + 1200 - now["t"]
+    assert left < FIT_MIN_SECONDS
+    # The whole-timeout rule stopped with 600 s still left (after 10 calls);
+    # the fit rule calls until under the 120 s floor.
+    assert made == (1200 - FIT_MIN_SECONDS) // 60 + 1
+
+
+def test_a_whole_reply_call_s_deadline_is_no_later_than_the_time_left(monkeypatch):
+    from carbon.development_session import model_provider
+
+    seen = {}
+
+    def fake_post(selection, body, opener=None, deadline=None, **kw):
+        seen["deadline"] = deadline
+        return {"model": MODEL, "status": "completed", "output": [], "usage": {}}
+
+    monkeypatch.setattr(model_provider, "_post", fake_post)
+    transport = model_provider.SelectionTransport(DEFAULT_SELECTION)
+    monkeypatch.setattr(type(DEFAULT_SELECTION), "streams", property(lambda s: False))
+    transport(request(), remaining_seconds=60)
+    assert seen["deadline"] == 60
+    transport(request())
+    assert seen["deadline"] is None  # the call's own default deadline, as before
