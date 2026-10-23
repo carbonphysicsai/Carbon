@@ -2523,7 +2523,10 @@
     return entry.status + (entry.selectable ? " · launchable" : "");
   }
   // The card's state in a word: ready, set up first, or why it never is here.
+  // A Challenge with no ready recipe yet is shown as coming soon and is not offered as launchable (E11).
+  function comingSoon(entry) { return Boolean(entry?.practise) && entry.practise.ready === false; }
   function challengePill(entry) {
+    if (comingSoon(entry)) return ["Coming soon", "pill-wait"];
     if (entry.selectable) return ["Ready", "pill-done"];
     if (entry.implemented) return ["Set up first", "pill-need"];
     return [{RESERVED: "Reserved", DEFERRED: "Deferred", RETIRED: "Retired"}[entry.status] || words(entry.status), "pill-wait"];
@@ -2533,7 +2536,9 @@
       const [tag, kind] = challengePill(entry);
       const box = card(target, entry.title, tag, kind);
       box.dataset.challenge = entry.challenge_id;
-      if (entry.selectable) {
+      if (comingSoon(entry)) {
+        box.append(el("p", typeof entry.practise.plain === "string" ? entry.practise.plain : "Coming soon.", "status-line"));
+      } else if (entry.selectable) {
         box.append(el("p", "Ready to launch.", "status-line"));
         const choose = el("button", "Use for a new campaign", "primary"); choose.type = "button";
         choose.addEventListener("click", () => { selectChallenge(entry); location.hash = "#launch"; });
@@ -3799,10 +3804,11 @@
         const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id;
         input.dataset.version = entry.version || "";
         // Unimplemented Challenges are shown, never offered as working choices.
-        input.disabled = !entry.implemented;
+        input.disabled = !entry.implemented || comingSoon(entry);
         input.addEventListener("change", () => selectChallenge(entry));
         const text = el("span");
         text.append(el("strong", entry.title), el("span", " " + challengeStatus(entry) + (entry.version ? " · v" + entry.version : "") + " · " + acceptanceText(entry), "small-tag"));
+        if (comingSoon(entry)) text.append(el("span", " " + (typeof entry.practise.plain === "string" ? entry.practise.plain : "Coming soon."), "hint"));
         if (!entry.selectable) text.append(el("span", "Unavailable: " + why(entry) + " · Next: " + entry.next_action, "reason"));
         label.append(input, text); node.append(label);
       }
