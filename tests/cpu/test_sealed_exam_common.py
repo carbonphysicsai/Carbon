@@ -295,7 +295,7 @@ def test_the_set_key_is_the_exam_content_without_any_version():
         == {
             "schema": common.PACK_SET_SCHEMA,
             "challenge_id": "f08-ribbed-bracket",
-            "evaluation_version": "f08-dual-sealed-batch-8-v1",
+            "evaluation_version": "f08-dual-sealed-grid-8x1-v2",
             "batches": [_content("a", "1"), _content("b", "2")],
         }
     )
