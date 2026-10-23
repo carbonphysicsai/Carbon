@@ -65,5 +65,14 @@ carbon/scoring/f02_sealed_dual_pack.py -text
 carbon/scoring/f08_sealed_dual_pack.py -text
 carbon/scoring/motor_sealed_dual_pack.py -text
 carbon/scoring/sealed_batch_source.py -text
+carbon/scoring/cooling_physics.py -text
+carbon/scoring/critical_fidelity.py -text
+carbon/scoring/design_fidelity.py -text
+carbon/scoring/f02_physics.py -text
+carbon/scoring/f08_critical.py -text
+carbon/scoring/f08_physics.py -text
+carbon/scoring/motor_physics.py -text
+carbon/scoring/physics_half.py -text
+carbon/scoring/probe_design.py -text
 carbon/scoring/sealed_grid_common.py -text
 carbon/scoring/sealed_pack_writer.py -text
