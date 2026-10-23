@@ -53,3 +53,8 @@ def test_the_backend_qualification_says_it_does_not_stop_a_submission():
     built = toolbox.build(challenge_ref("electric-motor-magnetics"), lanes={})
     text = repr(built)
     assert "does not stop a submission" in text
+    # Validator: grading happens on its own registered machines, and no
+    # cross-backend parity is promised.
+    assert "on its own registered machines" in text
+    assert "this environment" not in text
+    assert "not done yet" not in text

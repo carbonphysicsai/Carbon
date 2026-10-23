@@ -994,20 +994,24 @@
     });
   }
   function runsDashboard(box, doc, runs) {
-    const lower = doc.declaration?.direction !== "higher_is_better";
+    // A best run needs a declared direction: none is assumed (Validator), so without one there is no best tile,
+    // best line or best card.
+    const direction = doc.declaration?.direction;
+    const known = direction === "lower_is_better" || direction === "higher_is_better";
+    const lower = direction === "lower_is_better";
     const scored = runs.filter(r => typeof r.score === "number" && Number.isFinite(r.score));
     if (!scored.length) return;
     const better = (a, b) => lower ? a < b : a > b;
     let best = null; const trace = [];
     for (const r of scored) {
-      if (r.eligible === true && (best === null || better(r.score, best.score))) best = r;
+      if (known && r.eligible === true && (best === null || better(r.score, best.score))) best = r;
       trace.push(best ? best.score : null);
     }
     const passed = scored.filter(r => r.eligible === true).length;
     const strip = el("div", undefined, "run-strip");
     const tile = (label, value) => { const d = el("div", undefined, "run-tile"); d.append(el("span", label, "hint"), el("strong", value)); strip.append(d); };
     tile("Runs", String(runs.length)); tile("Passed the gates", passed + " of " + scored.length);
-    tile(lower ? "Best passing score (lower is better)" : "Best passing score (higher is better)", best ? fmt(best.score) : "none yet");
+    if (known) tile(lower ? "Best passing score (lower is better)" : "Best passing score (higher is better)", best ? fmt(best.score) : "none yet");
     tile("Latest", fmt(scored[scored.length - 1].score));
     box.append(strip);
     // The chart: x = practice run (integer), y = score. Passing runs are filled marks, gate failures crosses, the
@@ -1053,7 +1057,7 @@
       }
     });
     const figure = el("div", undefined, "run-figure"); figure.append(svg);
-    figure.append(el("p", "● passed the gates   ✕ a mandatory gate failed   ━ best passing score so far" + (baseline !== undefined ? "   ┄ baseline" : "") + ". Gates come first: a failed run is never ranked on its score. Hover a mark for the run.", "hint run-legend"));
+    figure.append(el("p", "● passed the gates   ✕ a mandatory gate failed" + (known ? "   ━ best passing score so far" : "") + (baseline !== undefined ? "   ┄ baseline" : "") + ". Gates come first: a failed run is never ranked on its score. Hover a mark for the run.", "hint run-legend"));
     box.append(figure);
     // The pinned best passing run, with the next step for it.
     if (best) {
