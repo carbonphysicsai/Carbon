@@ -137,7 +137,8 @@ def test_pack_rule_v2_ignores_h3_and_v1_keeps_it():
     assert bank["solver_evidence"] is not None
     assert all(
         kept[r["case_id"]]["rung_worst_dynamic_mm_per_n"]["h3"] is not None
-        for r in bank["reference_records"][:8]  # the cells; probes follow
+        for r in bank["reference_records"]
+        if "case_id" in r  # the cells; the private probes carry none
     )
     with pytest.raises(sealed.SealedPackRefused) as refused:
         sealed.sealed_bank(doc, h3_only, rule=sealed.PACK_RULE_V1)
