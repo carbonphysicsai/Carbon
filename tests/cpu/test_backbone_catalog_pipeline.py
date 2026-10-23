@@ -75,11 +75,34 @@ F08 = {
     "f08.neuralop.UQNO",
     "f08.physicsnemo.FullyConnected",
     "f08.transolver",
+    # PX15: the Motor Torch bundles resized to 7 outputs (PAIR_IDENTITY_PX15_F08_20261022).
+    "f08.cno.CNO1d",
+    "f08.deepxde.DeepONetCartesianProd",
+    "f08.neuralop.LocalNO",
+    "f08.oformer.Encoder1D_PointWiseDecoder1D",
+    "f08.thuml.F_FNO",
+    "f08.thuml.FNO",
+    "f08.thuml.Factformer",
+    "f08.thuml.Galerkin_Transformer",
+    "f08.thuml.MWT",
+    "f08.thuml.Transformer",
+    "f08.thuml.Transolver",
+    # PAIR_IDENTITY_LSM2_F08: the 16-hidden-channel variant (the 32-channel one outran the build budget).
+    "f08.thuml.LSM",
 }
-F02 = {"f02.physicsnemo.FullyConnected"}
+F02 = {"f02.physicsnemo.FullyConnected", "f02.deepxde.DeepONetCartesianProd"}
 #: The five Torch builds resized to Cooling's 32 outputs, each with its own
 #: Cooling pair-identity receipt (Test Lead, PAIR_IDENTITY_COOLING_CATALOG_
 #: 20261020), offered on Cooling 1.2 only.
+#: The five Cooling baselines re-tested on Cooling 1.3 (law-safe output encoding; its TRAIN and interface digests
+#: differ from 1.2's, so the 1.2 receipts cannot serve), offered on Cooling 1.3 only (PAIR_IDENTITY_C13_COOLING_20261022).
+COOLING13 = {
+    "cooling13.neuralop.FNO",
+    "cooling13.neuralop.TFNO",
+    "cooling13.neuralop.UQNO",
+    "cooling13.physicsnemo.FullyConnected",
+    "cooling13.transolver",
+}
 COOLING = {
     "cooling.neuralop.FNO",
     "cooling.neuralop.TFNO",
@@ -101,7 +124,7 @@ COVERAGE_ITEM = {
 
 def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
     assert set(pipeline.verify_all()) == (
-        TORCH | JNO | CLEAN | HARD | COOLING | F08 | F02
+        TORCH | JNO | CLEAN | HARD | COOLING | COOLING13 | F08 | F02
     )
     # Motor 1.2 is unchanged: the five Torch entries. Motor 1.3 (1.2 plus
     # allowlist v7) adds the eleven jNO entries, built on the C-03 CPU parent,
@@ -117,15 +140,27 @@ def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
             [{"id": "chip-cold-plate", "version": "1.2"}]
             if item["catalog_id"] in COOLING
             else (
-                [{"id": "f08-ribbed-bracket", "version": "1.4"}]
-                if item["catalog_id"] in F08
+                [{"id": "chip-cold-plate", "version": "1.3"}]
+                if item["catalog_id"] in COOLING13
                 else (
-                    [{"id": "f02", "version": "2.3"}]
-                    if item["catalog_id"] in F02
+                    [{"id": "f08-ribbed-bracket", "version": "1.4"}]
+                    if item["catalog_id"] in F08
                     else (
-                        [{**MOTOR, "version": "1.3"}]
-                        if item["catalog_id"] in JNO | CLEAN | HARD
-                        else [MOTOR, {**MOTOR, "version": "1.3"}]
+                        [{"id": "f02", "version": "2.3"}]
+                        if item["catalog_id"] in F02
+                        else (
+                            [{"id": "f08-ribbed-bracket", "version": "1.4"}]
+                            if item["catalog_id"] in F08
+                            else (
+                                [{"id": "f02", "version": "2.3"}]
+                                if item["catalog_id"] in F02
+                                else (
+                                    [{**MOTOR, "version": "1.3"}]
+                                    if item["catalog_id"] in JNO | CLEAN | HARD
+                                    else [MOTOR, {**MOTOR, "version": "1.3"}]
+                                )
+                            )
+                        )
                     )
                 )
             )

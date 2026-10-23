@@ -50,6 +50,11 @@ from the test venv and must be re-read from the published image when it is built
 
 - **`thuml.LSM`** is the upstream instance-norm variant (`task: dynamic`): it uses upstream's own
   instance-norm option, so it differs from the plain default build. Any card or listing text for it must say so.
+- **`cno.CNO1d`** has a GPU build with a smoke receipt only: "smoke only: not bit-reproducible on GPU (no deterministic CUDA implementation of the upsample backward)" (owner, 2026-10-22). Its GPU twin differs from the plain derivation by one more change: `torch.use_deterministic_algorithms(True)` is relaxed to `warn_only=True`. Its GPU build is offered, but a card must not claim a reproducible GPU build for it and says "GPU practice only; official grading rebuilds on CPU".
+- **`f08.thuml.LSM`** is the same instance-norm variant at half the width (16 hidden channels instead of 32) so its CPU
+  build fits the 600 s build budget on F08's TRAIN (263 s measured; 32 channels reached 553 s and was stopped). It has no
+  GPU build either. Any card or listing text for it must say so.
+- **`thuml.LSM`** has no GPU build: it stays CPU-only and officially gradable with its CPU receipt (Validator ruling, 2026-10-22).
 
 ## Code with no licence
 

@@ -1,0 +1,17 @@
+{
+ "accelerator": "cuda13",
+ "architecture": "amd64",
+ "base_environment_digest": "sha256:a197af534a061636ba77e4f97f7e9be508b795d58883b6774fde74a5135ad434",
+ "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
+ "language": "python",
+ "license_sha256": "sha256:1776bbc6884f5982c21d2875ba2a1c595a19aff71983141cade8aad502c40709",
+ "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+ "name": "motor-stress-t-jno-deeponet-baseline",
+ "os": "linux",
+ "python_abi": "cp311",
+ "runtime_profile_id": "jax-cuda13-py311",
+ "schema": "carbon.development.library-bundle.v1",
+ "source_bytes": 14256,
+ "source_sha256": "sha256:6ee4ded1d2d8a05a2c2142d27e60ab5a12d1d529f5d069f6461892e007492c88",
+ "wheels": {}
+}

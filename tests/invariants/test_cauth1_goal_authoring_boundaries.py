@@ -104,6 +104,11 @@ _PINNED_NUMPY_PAYLOADS = {
     "carbon/challenge_kit/data/f02-dev-train40-v2.npz": (
         "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
     ),
+    # Cooling 1.3's law-safe encoded TRAIN (Validator ruling G1, FINAL on
+    # 75bd58356): its kit's train_digest.
+    "carbon/challenge_kit/data/cooling-dev-train-400-v2-encoded.npz": (
+        "2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0"
+    ),
 }
 
 

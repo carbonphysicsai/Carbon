@@ -28,12 +28,14 @@ def test_an_entry_without_a_gpu_build_is_refused_typed_and_cpu_is_unchanged():
         served._bundle_ref(item, "torch-cu130-py311")
     assert refused.value.code == "catalog_gpu_build_missing"
     gpu = {"runtime_profile_id": "torch-cu130-py311", "bundle_digest": "sha256:g"}
-    assert (
+    # A GPU ref with no receipt is not served for practice either (Validator, 2026-10-22): a build never shown to
+    # run on a GPU is not offered, and the typed GAP names the CPU build. A receipted build is served
+    # (tests/cpu/test_backbone_catalog_practice_runtime.py).
+    with pytest.raises(served.GpuBuildNotOffered) as refused:
         served._bundle_ref(
             {**item, "bundle_refs": {"torch-cu130-py311": gpu}}, "torch-cu130-py311"
         )
-        == gpu
-    )
+    assert refused.value.code == "catalog_gpu_build_not_offered"
 
 
 class _Practice:

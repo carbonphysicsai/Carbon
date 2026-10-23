@@ -1,0 +1,20 @@
+{
+ "bundle_ref": {
+  "bundle_digest": "sha256:062c71f0c97dd7e3706ac91fc9b0e9c37ad7cff5bac0dd686a07d3d0b9ef1534",
+  "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+  "language": "python",
+  "runtime_profile_id": "torch-cpu-py311",
+  "schema": "carbon.library-bundle-ref.v1"
+ },
+ "configuration": {
+  "backbone": "neuralop.UQNO",
+  "learning_rate": 0.001
+ },
+ "entrypoint": {
+  "module": "carbon_candidate.build",
+  "name": "build"
+ },
+ "output_format": "carbon.numeric-graph.v1",
+ "packet": "t_cooling_neuralop_uqno_baseline",
+ "train_use": {}
+}
