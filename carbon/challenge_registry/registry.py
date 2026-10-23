@@ -296,14 +296,14 @@ def _with_graph_route(described, challenge_id, version):
     """A graph route v2 version's description: its predecessor's, plus the
     graph training adapter v2 it serves and a ready graph recipe template
     (`development_session.graph_adapters`)."""
-    from carbon.challenge_kit import version_lineage
+    from carbon.challenge_kit import version_registry
     from carbon.development_session import graph_adapters
 
     block = graph_adapters.adapter_block(challenge_id, version)
     described = dict(described)
     described["graph_route"] = {
         "adapter": block,
-        "predecessor": version_lineage.predecessor(challenge_id, version),
+        "predecessor": version_registry.entry(challenge_id, version).predecessor,
         "summary": (
             "Your own graph, trained by Carbon's graph training adapter v2: "
             "per-output loss weights, ensembles whose members each train on a "
@@ -520,7 +520,7 @@ def _entries():
             _motor_catalog_v7,
             None,
         ),
-        # Graph route v2 (`challenge_kit.version_lineage`): the predecessor
+        # Graph route v2 (`challenge_kit.version_registry`): the predecessor
         # plus Carbon's graph training adapter v2; the predecessor is unchanged.
         Entry(
             MOTOR_CHALLENGE,
@@ -597,7 +597,7 @@ def _entries():
             _cold_plate_catalog_encoded,
             None,
         ),
-        # Graph route v2 (`challenge_kit.version_lineage`): the predecessor
+        # Graph route v2 (`challenge_kit.version_registry`): the predecessor
         # plus Carbon's graph training adapter v2; the predecessor is unchanged.
         Entry(
             COLD_PLATE_CHALLENGE,
@@ -649,7 +649,7 @@ def _entries():
             _f08_direct,
             None,
         ),
-        # Graph route v2 (`challenge_kit.version_lineage`): the predecessor
+        # Graph route v2 (`challenge_kit.version_registry`): the predecessor
         # plus Carbon's graph training adapter v2; the predecessor is unchanged.
         Entry(
             "f08-ribbed-bracket",
@@ -698,7 +698,7 @@ def _entries():
             _f02_direct,
             None,
         ),
-        # Graph route v2 (`challenge_kit.version_lineage`): the predecessor
+        # Graph route v2 (`challenge_kit.version_registry`): the predecessor
         # plus Carbon's graph training adapter v2; the predecessor is unchanged.
         Entry(
             "f02",

@@ -406,7 +406,12 @@ def king_record(store, records, canaries, *, challenge=None):
     deployment's current incumbent**: the publisher pays a ledger winner only
     through the deployment's live promotion, so after a cutover to a new
     deployment (no incumbent yet) the old deployment's last winner is not the
-    king, and none is shown. Handovers stay the Challenge's whole history."""
+    king, and none is shown. Handovers stay the Challenge's whole history.
+
+    A king carried to a new construction version on the same evaluation
+    version and pack set (OWNER-KOTH-CARRY-ACROSS-VERSIONS-01,
+    `koth_carry`) is the new deployment's incumbent, so he is shown here
+    unchanged; a new exam or pack set carries nothing and clears him."""
 
     if challenge is not None:
         records = [r for r in records if r.get("challenge") == challenge]

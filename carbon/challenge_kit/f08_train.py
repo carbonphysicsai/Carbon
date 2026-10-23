@@ -16,6 +16,8 @@ import re
 import zipfile
 from pathlib import Path
 
+from . import version_registry
+
 CHALLENGE_ID = "f08-ribbed-bracket"
 CHALLENGE_VERSION = "1.0"
 #: 1.1 adds the near-limit TRAIN stratum and the straddling exam ladder; 1.0
@@ -27,18 +29,16 @@ CHALLENGE_VERSION = "1.0"
 #: 1.4 (the Validator, 2026-10-20: the catalog binding plus Carbon's graph
 #: training adapter) serves the same TRAIN v2 bytes.
 #: 1.5 (graph route v2) is 1.4 plus Carbon's graph training adapter v2, and
-#: serves the same TRAIN v2 bytes (`challenge_kit.version_lineage`).
-CHALLENGE_VERSIONS = ("1.0", "1.1", "1.2", "1.3", "1.4", "1.5")
-#: Each version's TRAIN, by name: v1 (255 rows) or v2 (287 rows). Explicit,
-#: so a version the table does not name is refused, never sent to v1
-#: (Validator, X23).
+#: serves the same TRAIN v2 bytes. Every version, and its TRAIN, is declared in
+#: the version registry (`version_registry`): an unregistered version is
+#: refused, never sent to v1 (Validator, X23).
+CHALLENGE_VERSIONS = version_registry.versions(CHALLENGE_ID)
+#: Each version's TRAIN, by name: v1 (255 rows) or v2 (287 rows).
 TRAIN_FOR_VERSION = {
-    "1.0": "v1",
-    "1.1": "v2",
-    "1.2": "v2",
-    "1.3": "v2",
-    "1.4": "v2",
-    "1.5": "v2",
+    version: {version_registry.F08_TRAIN_V1: "v1", version_registry.F08_TRAIN_V2: "v2"}[
+        version_registry.entry(CHALLENGE_ID, version).train
+    ]
+    for version in CHALLENGE_VERSIONS
 }
 TRAIN_SHA256 = "65eb6a5f4e95ab3e2120c78cf3cd6a60d37554934c7d7ddea71e53cdadaac947"
 PROVENANCE_SHA256 = "f510f92f77ec0c1d3655069703e70d25585648dc2766e14cef5f4689089c1860"

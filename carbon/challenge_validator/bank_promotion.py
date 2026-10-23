@@ -146,6 +146,44 @@ def private_evaluation_key(evidence):
     )
 
 
+def carry_identity(evidence):
+    """The exam a paired dual evaluation measured, without its construction
+    version: the evaluation version, the score pack and execution profile, and
+    the measurement's registration, contract, producer, mask, ordered queries,
+    reference rows and coverage. A carried king meets a challenger of a new
+    construction version only where these are equal
+    (OWNER-KOTH-CARRY-ACROSS-VERSIONS-01). None for evidence that is not a
+    paired dual binding (the only kind the comparator accepts).
+
+    Left out are only the fields that name the construction version or its
+    pack wrapper: `challenge_version`, `evaluation_version_digest` (the source
+    registration names the version, its TRAIN, interface and job), the source
+    receipt pin (a receipt of that registration; a carried king's own pin is
+    the carry record's, registered by the operator at the carry) and
+    `evaluation_pack_digest` (a version's pack manifest names the version)."""
+    private_evaluation_key(evidence)  # validates, or refuses
+    if evidence["schema"] != PAIRED_BINDING:
+        return None
+    fields = (
+        "registration_digest",
+        "measurement_contract_digest",
+        "producer_digest",
+        "common_mask_digest",
+        "ordered_query_material_digest",
+        "reference_rows_digest",
+        "reference_coverage_digest",
+    )
+    identity = {
+        "challenge": evidence["challenge"],
+        "evaluation_version": evidence["evaluation_version"],
+        "score_compatibility": evidence["score_compatibility"],
+        "binding_schema": evidence["schema"],
+        "reference_coverage": evidence["reference_coverage"],
+        **{field: evidence[field] for field in fields},
+    }
+    return digest({"schema": "carbon.koth.carry-identity.v1", **identity})
+
+
 @dataclass(frozen=True)
 class BankVersion:
     """Exact exam, bank, rule and score-pack identity; never miner supplied."""
@@ -437,7 +475,11 @@ def _comparator(comparator, evidence):
         != evidence["score_compatibility"]["score_pack_digest"]
     ):
         raise StateError("comparator_not_for_this_evaluation")
-    return noise, frozenset(comparator["minimum_source_entry_ids"]), comparator["baseline_total"]
+    return (
+        noise,
+        frozenset(comparator["minimum_source_entry_ids"]),
+        comparator["baseline_total"],
+    )
 
 
 def _scored(body):
@@ -494,6 +536,7 @@ def compare_private_pair(pair, comparator):
             NO_WINNER if incumbent is None else INCUMBENT_KEEPS,
             "leg_minimum_source_not_a_contender",
         )
+
     def beats_baseline():
         # Carbon's baseline is the unpaid starting king: the first crown, or a
         # crown after a dethrone, must beat it by the margin

@@ -34,7 +34,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from carbon.challenge_kit import physical_material, served_versions, version_lineage
+from carbon.challenge_kit import physical_material, served_versions, version_registry
 from carbon.development_session import (
     build_refusal_v2,
     direct_graph_construction_worker,
@@ -50,7 +50,7 @@ from carbon.level4 import allowlist as allowlist_module
 posix = pytest.mark.skipif(os.name != "posix", reason="isolated build programs")
 F08, F02 = "f08-ribbed-bracket", "f02"
 MOTOR, COOLING = "electric-motor-magnetics", "chip-cold-plate"
-NEW = sorted(version_lineage.GRAPH_ROUTE_V2)
+NEW = sorted(version_registry.keys(graph_adapter="v2"))
 
 #: Every existing version's construction kit digests (TRAIN, interface,
 #: limits), as served at 942080f3a, before graph route v2.
@@ -125,7 +125,7 @@ def test_a_new_version_is_its_predecessor_s_material(key):
     from carbon.scoring import physical_adapters, sealed_versions
 
     cid, version = key
-    previous = version_lineage.predecessor(cid, version)
+    previous = version_registry.entry(cid, version).predecessor
     new = physical_material.bundle_material(cid, version)
     old = physical_material.bundle_material(cid, previous)
     assert new["construction_kit"]["train_digest"] == (
@@ -153,26 +153,123 @@ def test_a_new_version_is_its_predecessor_s_material(key):
     assert limits["challenge"] == {"id": cid, "version": version}
 
 
-def test_the_lineage_names_each_new_version_and_refuses_cycles():
-    assert version_lineage.GRAPH_ROUTE_V2 == {
-        (F08, "1.5"): "1.4",
-        (F02, "2.4"): "2.3",
-        (MOTOR, "1.4"): "1.3",
+def test_the_registry_declares_each_new_version_in_full():
+    """Each graph route v2 version is written out, never read through its
+    predecessor: every field but its identity, pack version, adapter, catalog
+    entries and lineage equals the predecessor's."""
+    assert {key: version_registry.entry(*key).predecessor for key in NEW} == {
         (COOLING, "1.4"): "1.3",
+        (F02, "2.4"): "2.3",
+        (F08, "1.5"): "1.4",
+        (MOTOR, "1.4"): "1.3",
     }
-    assert version_lineage.material_version(F08, "1.5") == "1.4"
-    assert version_lineage.material_version(F08, "1.4") == "1.4"
-    assert version_lineage.successors(F08, "1.4") == ("1.4", "1.5")
-    for key in NEW:
-        assert served_versions.serves_catalog(*key)
-        assert served_versions.serves_v7(*key)
-        assert physical_material.is_registered(*key)
+    own = {
+        "version",
+        "pack_version",
+        "graph_adapter",
+        "catalog_entries_from",
+        "predecessor",
+    }
+    for cid, version in NEW:
+        new = version_registry.entry(cid, version)
+        old = version_registry.entry(cid, new.predecessor)
+        for field in new.__dataclass_fields__:
+            if field not in own:
+                assert getattr(new, field) == getattr(old, field), (cid, field)
+        assert new.graph_adapter == "v2" and new.pack_version != old.pack_version
+        assert served_versions.serves_catalog(cid, version)
+        assert served_versions.serves_v7(cid, version)
+        assert physical_material.is_registered(cid, version)
+    with pytest.raises(version_registry.UnregisteredVersion):
+        version_registry.entry(F08, "1.6")
+    assert version_registry.find(F08, "1.6") is None
+
+
+def _scorer_tables():
+    from carbon.challenge_validator import cooling_hidden
+    from carbon.scoring import (
+        battery_dual_pack,
+        battery_sealed_dual_pack,
+        cooling_dual_pack,
+        cooling_encoded_dual_pack,
+        f02_dual_pack,
+        f08_dual_pack,
+        motor_dual_pack,
+        motor_sealed_dual_pack,
+    )
+
+    development, sealed = {}, {}
+    for module in (f08_dual_pack, f02_dual_pack, motor_dual_pack, battery_dual_pack):
+        for version, entry in module.VERSIONS.items():
+            development[(module.CHALLENGE, version)] = tuple(entry)
+    for module in (cooling_dual_pack, cooling_encoded_dual_pack):
+        for version, entry in module.VERSIONS.items():
+            development[(module.CHALLENGE, version)] = tuple(entry)
+    for module in (f08_dual_pack, f02_dual_pack):
+        for version, value in module.SEALED_VERSIONS.items():
+            sealed[(module.CHALLENGE, version)] = value
+    for module in (motor_sealed_dual_pack, battery_sealed_dual_pack):
+        for version, entry in module.VERSIONS.items():
+            sealed[(module.CHALLENGE, version)] = entry[0]
+    sealed[(cooling_hidden.CHALLENGE_ID, cooling_hidden.CHALLENGE_VERSION)] = (
+        cooling_hidden.EVALUATION_VERSION
+    )
+    return development, sealed
+
+
+def test_every_served_version_resolves_through_the_registry():
+    """The Lead (2026-10-23): one registry; every served version resolves
+    through it, and the scorers' own tables (inside their producer identity)
+    agree with what it declares."""
+    from carbon.challenge_kit import physical_pack
+    from carbon.challenge_kit.served_versions import _known
+    from carbon.scoring import physical_adapters
+
+    development, sealed = _scorer_tables()
+    served = (
+        served_versions.STEP2
+        | served_versions.CATALOG
+        | served_versions.V7
+        | served_versions.EXISTING
+    )
+    assert served == set(version_registry.VERSIONS)
+    for key, entry in version_registry.VERSIONS.items():
+        assert _known(*key) == key
+        assert development.get(key) == entry.development_evaluation, key
+        assert sealed.get(key) == entry.sealed_evaluation, key
+        assert physical_pack.PACK_VERSIONS[key] == entry.pack_version
+        if key[0] != version_registry.BATTERY:
+            adapter_ = physical_adapters.adapter(*key)
+            assert (adapter_ is not None) == (entry.development_evaluation is not None)
+            # The cooling encoded scorer exactly where rows are encoded.
+            if key[0] == COOLING:
+                from carbon.scoring import cooling_encoded_dual_pack
+
+                assert (key[1] in cooling_encoded_dual_pack.VERSIONS) == (
+                    entry.output_encoding is not None
+                )
+        assert graph_adapters.serves_graph(*key) == (entry.graph_adapter is not None)
+    # Development and sealed tables name no version the registry does not.
+    assert set(development) <= set(version_registry.VERSIONS)
+    assert set(sealed) <= set(version_registry.VERSIONS)
+
+
+def test_versions_naming_the_same_train_serve_the_same_bytes():
+    seen = {}
+    for (cid, version), entry in version_registry.VERSIONS.items():
+        if cid == version_registry.BATTERY:
+            continue
+        digest = physical_material.construction_kit(cid, version)["train_digest"]
+        seen.setdefault(entry.train, set()).add(digest)
+    assert all(len(digests) == 1 for digests in seen.values()), seen
+    assert len(seen) == 6
 
 
 def test_f08_train_is_an_explicit_table_that_refuses_unknown_versions():
     from carbon.challenge_kit import f08_train
 
     assert set(f08_train.TRAIN_FOR_VERSION) == set(f08_train.CHALLENGE_VERSIONS)
+    assert f08_train.CHALLENGE_VERSIONS == version_registry.versions(F08)
     for version, train in f08_train.TRAIN_FOR_VERSION.items():
         loaded = f08_train.load_public_train(version)
         expected = (
@@ -928,3 +1025,12 @@ def test_an_ensemble_state_with_a_bad_combination_is_refused():
     with pytest.raises(RecipeRefused):
         # The decoder and combination share the interface dtype.
         state._combine(good, 2, 3, np.float64)
+
+
+def test_each_adapter_s_specs_are_exactly_the_versions_declaring_it():
+    from carbon.development_session import physical_graph_adapter as v1
+
+    assert set(adapter.SPECS) == version_registry.keys(graph_adapter="v2")
+    assert set(v1.SPECS) == version_registry.keys(graph_adapter="v1")
+    for key, spec in adapter.SPECS.items():
+        assert spec.predecessor == version_registry.entry(*key).predecessor

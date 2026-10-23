@@ -43,6 +43,14 @@ PREDECESSOR = {
 #: The graph versions (the Validator, 2026-10-20), each 1.3 / 2.2 plus the
 #: catalog binding and the graph adapter.
 GRAPH = {(F08, "1.4"): "1.3", (F02, "2.3"): "2.2", (COOLING, "1.3"): "1.2"}
+#: Graph route v2 (`version_registry`): each its predecessor plus the graph
+#: adapter v2, serving v7 and the catalog as its predecessor does.
+GRAPH_V2 = {
+    (F08, "1.5"): "1.4",
+    (F02, "2.4"): "2.3",
+    (MOTOR, "1.4"): "1.3",
+    (COOLING, "1.4"): "1.3",
+}
 
 
 def _digest(raw):
@@ -51,8 +59,8 @@ def _digest(raw):
 
 def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
     v7 = allowlist_module.v7_bytes()
-    assert sv.V7 == frozenset(PREDECESSOR) | frozenset(GRAPH)
-    for key, before in GRAPH.items():
+    assert sv.V7 == frozenset(PREDECESSOR) | frozenset(GRAPH) | frozenset(GRAPH_V2)
+    for key, before in {**GRAPH, **GRAPH_V2}.items():
         assert sv.material_allowlist_bytes(*key) == v7
         assert sv.material_allowlist_bytes(key[0], before) == v7
     for key, before in PREDECESSOR.items():
@@ -72,6 +80,7 @@ def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
         (MOTOR, "1.3"),
         (COOLING, "1.2"),
         *GRAPH,
+        *GRAPH_V2,
     }
     for key in ((MOTOR, "1.3"), (COOLING, "1.2")):
         limits = physical_public.construction_limits_document(*key)
@@ -124,8 +133,15 @@ def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
         (COOLING, "1.3"),
         ("f08-ribbed-bracket", "1.4"),
         ("f02", "2.3"),
+        # Graph route v2: Motor and Cooling 1.4 offer 1.3's receipted entries.
+        (MOTOR, "1.4"),
+        (COOLING, "1.4"),
     }:
         assert pipeline.entries(challenge_id, version) == []
+    for challenge_id in (MOTOR, COOLING):
+        assert pipeline.entries(challenge_id, "1.4") == pipeline.entries(
+            challenge_id, "1.3"
+        )
 
 
 @pytest.mark.parametrize("key", [(MOTOR, "1.3"), (COOLING, "1.2")])
@@ -279,14 +295,14 @@ def test_motor_1_3_is_its_own_catalog_campaign():
     from carbon.challenge_registry.motor import catalog_recipe
     from carbon.motor import campaign
 
-    assert campaign.CATALOG_VERSIONS == ("1.2", "1.3")
+    assert campaign.CATALOG_VERSIONS == ("1.2", "1.3", "1.4")
     document = describe(MOTOR, "1.3")
     assert document["identity"] == "carbon.electric-motor-magnetics-catalog.1.3"
     recipe = catalog_recipe(version="1.3")
     assert recipe["challenge"] == physical_public.construction_kit(MOTOR, "1.3")
     assert recipe["source"]["catalog_digest"] == served.digest(MOTOR, "1.3")
     built = campaigns._versioned_campaigns()
-    assert {key[1] for key in built if key[0] == MOTOR} == {"1.2", "1.3"}
+    assert {key[1] for key in built if key[0] == MOTOR} == {"1.2", "1.3", "1.4"}
     assert built[(MOTOR, "1.3")]().key.version == "1.3"
     assert built[(MOTOR, "1.2")]().key.version == "1.2"
     with pytest.raises(ValueError, match="motor catalog version"):

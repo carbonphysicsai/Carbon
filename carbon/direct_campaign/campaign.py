@@ -59,13 +59,13 @@ def catalog_empty_code(spec):
 def refuse_empty_catalog(spec):
     """A campaign with no tested catalog entry and no graph route is refused
     before anything is frozen, connected or charged (each entry needs its own
-    pair-identity receipt). A version that serves Carbon's graph training
-    adapter has something to practise without one (graph route v2)."""
+    pair-identity receipt). A graph route v2 version has the miner's own
+    graph to practise without one; F08 1.4 / F02 2.3 keep their refusal."""
     from carbon.backbone_catalog import listing
-    from carbon.development_session import graph_adapters
+    from carbon.challenge_kit import version_registry
 
     key = research_key(spec)
-    if graph_adapters.serves_graph(key.challenge_id, key.version):
+    if version_registry.entry(key.challenge_id, key.version).graph_adapter == "v2":
         return
     if not listing.entries(key.challenge_id, key.version):
         raise ValueError(

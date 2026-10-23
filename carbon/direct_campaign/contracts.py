@@ -75,7 +75,7 @@ IMPLEMENTATION_SOURCES = (
     "carbon/development_session/physical_graph_state_v2.py",
     "carbon/development_session/physical_graph_trainer_v2.py",
     "carbon/development_session/build_refusal_v2.py",
-    "carbon/challenge_kit/version_lineage.py",
+    "carbon/challenge_kit/version_registry.py",
 )
 REPOSITORY = Path(__file__).resolve().parents[2]
 

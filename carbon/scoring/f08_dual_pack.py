@@ -80,7 +80,7 @@ VERSIONS = {
     # Catalog + graph version (Launchpad, allowlist v7): the predecessor's
     # measurement under its evaluation version.
     "1.4": ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8"),
-    # Graph route v2 (`challenge_kit.version_lineage`; Validator no-limits
+    # Graph route v2 (`challenge_kit.version_registry`; Validator no-limits
     # binding, 2026-10-23): construction only, so the predecessor's measurement
     # under its evaluation version.
     "1.5": ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8"),

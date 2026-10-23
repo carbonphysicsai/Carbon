@@ -159,8 +159,8 @@ def test_f08_1_4_and_f02_2_3_register_as_v7_catalog_versions():
     assert f02_train.load_public_train("2.3")["train"] == (
         f02_train.load_public_train("2.2")["train"]
     )
-    # No 1.5 / 2.4 (the Validator: graph joins 1.4 / 2.3).
-    for key in ((F08, "1.5"), (F02, "2.4")):
+    # 1.5 / 2.4 are graph route v2 (`version_registry`); 1.6 / 2.5 are not.
+    for key in ((F08, "1.6"), (F02, "2.5")):
         with pytest.raises(sv.UnregisteredVersion):
             sv.graph_allowlist_bytes(*key)
 
@@ -440,9 +440,12 @@ def test_the_receiver_selects_the_adapter_only_on_1_4_and_2_3():
     assert select(_discovery(synthetic, limits), synthetic) == (
         direct_graph_construction_worker.SYNTHETIC_ADAPTER_ID
     )
+    from carbon.development_session import physical_graph_adapter_v2
+
     assert direct_graph_construction_worker.graph_adapter_ids() == {
         direct_graph_construction_worker.SYNTHETIC_ADAPTER_ID,
         *adapter.ADAPTER_IDS,
+        *physical_graph_adapter_v2.ADAPTER_IDS,
     }
 
 

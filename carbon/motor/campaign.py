@@ -12,6 +12,7 @@ import json
 import time
 from pathlib import Path
 
+from carbon.challenge_kit import version_registry
 from carbon.challenge_registry.agent_plan import (
     agent_policies,
     plan_selection,
@@ -41,8 +42,11 @@ RUNTIME_KEYS = frozenset(
 CATALOG_VERSION = "1.2"
 #: Every catalog version: 1.2 (v6) and 1.3, 1.2 plus allowlist v7 (Validator,
 #: 2026-10-20). Each serves exactly its own version, by its research key.
-#: 1.4 is graph route v2: 1.3 plus Carbon's graph training adapter v2.
-CATALOG_VERSIONS = (CATALOG_VERSION, "1.3", "1.4")
+#: 1.4 is graph route v2: 1.3 plus Carbon's graph training adapter v2. Read
+#: from the version registry: every Motor version whose campaign is catalog.
+CATALOG_VERSIONS = version_registry.versions(
+    "electric-motor-magnetics", campaign="catalog"
+)
 
 
 def _key():

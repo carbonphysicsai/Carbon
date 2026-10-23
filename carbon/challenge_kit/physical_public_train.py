@@ -21,6 +21,8 @@ from carbon.cold_plate import domain as cooling_domain
 from carbon.motor import challenge as motor
 from carbon.motor import domain as motor_domain
 
+from . import version_registry
+
 _DATA = Path(__file__).with_name("data")
 _SCHEMA = "carbon.physical-public-train.provenance.v1"
 _SCOPE = "PUBLIC_DEVELOPMENT_ONLY"
@@ -266,10 +268,11 @@ def derive_public_train(challenge_id: str, source_raw: bytes) -> tuple[bytes, di
     return raw, provenance
 
 
-#: Versions whose TRAIN is the law-safe encoded artifact (Cooling 1.3),
-#: derived once from the pinned v1 TRAIN (`derive_encoded_public_train`) and
-#: pinned by sha256 so every host reads the same bytes.
-ENCODED_VERSIONS = {(cooling.CHALLENGE.challenge_id, "1.3")}
+#: Versions whose TRAIN is the law-safe encoded artifact (Cooling 1.3 and
+#: 1.4), derived once from the pinned v1 TRAIN (`derive_encoded_public_train`)
+#: and pinned by sha256 so every host reads the same bytes. Read from the
+#: version registry, where each version names its TRAIN.
+ENCODED_VERSIONS = version_registry.keys(train=version_registry.COOLING_TRAIN_ENCODED)
 _ENCODED_ARTIFACTS = {
     cooling.CHALLENGE.challenge_id: (
         "cooling-dev-train-400-v2-encoded.npz",
@@ -313,12 +316,8 @@ def load_public_train(challenge_id: str, version: str | None = None) -> dict:
     """Load only pinned DEVELOPMENT bytes; never admit an evaluation role.
     `version` selects the encoded TRAIN where that version uses it
     (`ENCODED_VERSIONS`); otherwise the native TRAIN, as for every version
-    before. A construction-only successor (`version_lineage`) reads its
-    predecessor's TRAIN, so Cooling 1.4 reads 1.3's encoded TRAIN."""
-    from .version_lineage import material_version
-
-    if version is not None:
-        version = material_version(challenge_id, version)
+    before. Each version declares its TRAIN in the version registry, so
+    Cooling 1.4 names 1.3's encoded TRAIN itself."""
     if (challenge_id, version) in ENCODED_VERSIONS:
         return _load_encoded(challenge_id)
     challenge, domain, count = _source(challenge_id)

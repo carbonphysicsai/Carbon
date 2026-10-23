@@ -50,7 +50,7 @@ VERSIONS = {
     # Catalog + graph version (Launchpad, allowlist v7): the predecessor's
     # measurement under its evaluation version.
     "2.3": ("f02-dual-development-bank-8-v2", CASE_ID),
-    # Graph route v2 (`challenge_kit.version_lineage`; Validator no-limits
+    # Graph route v2 (`challenge_kit.version_registry`; Validator no-limits
     # binding, 2026-10-23): construction only, so the predecessor's measurement
     # under its evaluation version.
     "2.4": ("f02-dual-development-bank-8-v2", CASE_ID),

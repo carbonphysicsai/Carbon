@@ -443,9 +443,13 @@ class DirectFixtureDiscovery:
         # Battery 2.0 (step 2) and 2.1 (its catalog version): the bank's rows
         # with the reference_present mask; an absent reference stays NaN (mask
         # interface §3).
+        from carbon.challenge_kit import version_registry
+
+        declared = version_registry.find(key.challenge_id, key.version)
         battery_v2 = (
             key.challenge_id == battery_challenge.CHALLENGE.challenge_id
-            and key.version in ("2.0", "2.1")
+            and declared is not None
+            and declared.train == version_registry.BATTERY_TRAIN_V2
         )
         present = material.get("reference_present") if battery_v2 else None
         physical = physical_material.is_registered(key.challenge_id, key.version)

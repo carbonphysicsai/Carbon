@@ -14,6 +14,8 @@ import contextvars
 import importlib
 from dataclasses import dataclass, field
 
+from carbon.challenge_kit import version_registry
+
 #: The literal every unresolved owner/Validator decision carries.
 HUMAN_INPUT = "HUMAN_INPUT"
 
@@ -50,7 +52,7 @@ F08 = Spec(
     "f08-ribbed-bracket",
     "f08",
     "Ribbed Bracket",
-    ("1.4", "1.5"),
+    version_registry.versions("f08-ribbed-bracket", campaign="direct"),
     "carbon.challenge_kit.f08_public",
     "F08_PUBLIC_PRACTICE",
     contextvars.ContextVar("carbon_f08_research_key", default=None),
@@ -59,7 +61,7 @@ F02 = Spec(
     "f02",
     "f02",
     "Burst Thermal",
-    ("2.3", "2.4"),
+    version_registry.versions("f02", campaign="direct"),
     "carbon.challenge_kit.f02_public",
     "F02_PUBLIC_PRACTICE",
     contextvars.ContextVar("carbon_f02_research_key", default=None),

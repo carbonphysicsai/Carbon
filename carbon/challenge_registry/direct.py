@@ -75,10 +75,10 @@ def graph_recipe(spec, submission_digest=None, *, version, training=None):
     default). Without `submission_digest` it is an unfilled template (None):
     the miner's graph, staged in their workspace, names it. A graph route v2
     version's template is its adapter v2's (`graph_adapters.graph_recipe`)."""
-    from carbon.challenge_kit import version_lineage
+    from carbon.challenge_kit import version_registry
     from carbon.development_session import physical_graph_adapter as adapter
 
-    if version_lineage.serves_graph_route_v2(spec.challenge_id, version):
+    if version_registry.entry(spec.challenge_id, version).graph_adapter == "v2":
         from carbon.development_session import graph_adapters
 
         return graph_adapters.graph_recipe(

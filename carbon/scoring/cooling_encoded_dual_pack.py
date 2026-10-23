@@ -22,7 +22,7 @@ CHALLENGE = _cooling.CHALLENGE
 VERSION = "1.3"
 EVALUATION_VERSION = "cooling-dual-development-bank-48-v4"
 CASE_ID = _cooling.CASE_ID
-#: 1.4 is graph route v2 (`challenge_kit.version_lineage`): 1.3's encoded
+#: 1.4 is graph route v2 (`challenge_kit.version_registry`): 1.3's encoded
 #: TRAIN, bank and measurement under 1.3's evaluation version.
 VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in (VERSION, "1.4")}
 FILES = (*_cooling.FILES, "cooling_encoded_dual_pack.py")

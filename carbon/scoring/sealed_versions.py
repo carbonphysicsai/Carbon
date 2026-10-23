@@ -8,8 +8,9 @@ across a construction-only version bump - the Ladder - key on the evaluation
 version this returns, never on the construction version (Validator,
 no-limits binding, KOTH and Ladder continuity).
 
-Read-only: the graders' own tables are the authority. It sits outside every
-producer's `FILES`, so reading here moves no producer identity.
+Read-only, from the version registry (`challenge_kit.version_registry`); the
+graders' own tables stay the authority inside their producers, and a test holds
+the two equal. It sits outside every producer's `FILES`.
 """
 
 from __future__ import annotations
@@ -17,32 +18,16 @@ from __future__ import annotations
 
 def evaluation_version(challenge_id: str, version: str) -> str | None:
     """The sealed evaluation version that grades (challenge_id, version), or
-    None where no sealed exam is registered for it."""
+    None where no sealed exam is registered for it: the version registry's
+    declaration, which a test holds equal to the sealed graders' own tables.
+    Read there, not from the graders, so a miner-reachable reader (the
+    Ladder) imports no grader (Battery's reach its panel's attack harness)."""
     if type(challenge_id) is not str or type(version) is not str:
         return None
-    from carbon.scoring import (
-        battery_sealed_dual_pack,
-        f02_dual_pack,
-        f08_dual_pack,
-        motor_sealed_dual_pack,
-    )
+    from carbon.challenge_kit.version_registry import find
 
-    if challenge_id == f08_dual_pack.CHALLENGE:
-        return f08_dual_pack.SEALED_VERSIONS.get(version)
-    if challenge_id == f02_dual_pack.CHALLENGE:
-        return f02_dual_pack.SEALED_VERSIONS.get(version)
-    for module in (motor_sealed_dual_pack, battery_sealed_dual_pack):
-        if challenge_id == module.CHALLENGE:
-            entry = module.VERSIONS.get(version)
-            return None if entry is None else entry[0]
-    from carbon.challenge_validator import cooling_hidden
-
-    if (challenge_id, version) == (
-        cooling_hidden.CHALLENGE_ID,
-        cooling_hidden.CHALLENGE_VERSION,
-    ):
-        return cooling_hidden.EVALUATION_VERSION
-    return None
+    declared = find(challenge_id, version)
+    return None if declared is None else declared.sealed_evaluation
 
 
 def ladder_key(challenge_id: str, version: str) -> str:

@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-from . import f08_train
+from . import f08_train, version_registry
 
 LIMITS_SCHEMA = "carbon.f08-ribbed-bracket.bundle-construction-limits.v1"
 SCOPE = "PUBLIC_F08_DEVELOPMENT_ONLY"
@@ -75,10 +75,11 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
 
     provenance = _check_identity(challenge_id, version)
     profile = _worker_profile(None, LIBRARY_BUILD_PROVENANCE).body
+    v1 = version_registry.entry(challenge_id, version).train == (
+        version_registry.F08_TRAIN_V1
+    )
     provenance_sha256 = (
-        f08_train.PROVENANCE_SHA256
-        if version == "1.0"
-        else f08_train.PROVENANCE_V2_SHA256
+        f08_train.PROVENANCE_SHA256 if v1 else f08_train.PROVENANCE_V2_SHA256
     )
     document = {
         "schema": LIMITS_SCHEMA,
@@ -111,7 +112,7 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
         "accuracy_gate": None,
         "live_eligible": False,
     }
-    if version != "1.0":
+    if not v1:
         # 1.0's document (and so its digest) is unchanged; 1.1 states the
         # near-limit stratum and the TRAIN-versus-exam mesh shift.
         stratum = provenance["near_limit_stratum"]

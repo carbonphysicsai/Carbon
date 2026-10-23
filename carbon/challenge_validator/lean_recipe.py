@@ -46,7 +46,7 @@ _SOURCE_PATHS = (
     "carbon/challenge_kit/physical_pack.py",
     "carbon/challenge_kit/physical_public.py",
     "carbon/challenge_kit/physical_public_train.py",
-    "carbon/challenge_kit/version_lineage.py",
+    "carbon/challenge_kit/version_registry.py",
 )
 
 

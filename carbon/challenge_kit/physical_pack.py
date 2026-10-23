@@ -39,6 +39,7 @@ from . import (
     f08_train,
     physical_public,
     physical_public_train,
+    version_registry,
 )
 
 _DATA = Path(__file__).with_name("data")
@@ -87,58 +88,7 @@ _ROLE_FILES = {
 #: whose exam content is unchanged apart from the version binding (Battery 2.0
 #: adds its v2 material rows). Existing versions keep their pack versions.
 PACK_VERSIONS = {
-    (motor.CHALLENGE.challenge_id, "1.0"): "motor-normal-construction-development-1",
-    (motor.CHALLENGE.challenge_id, "1.1"): "motor-normal-construction-development-2",
-    # Motor 1.2, the backbone catalog: 1.1's exam content under its own pack
-    # version; graded by 1.1's evaluation versions (Validator, 2026-10-20:
-    # only the construction source changes).
-    (motor.CHALLENGE.challenge_id, "1.2"): "motor-normal-construction-development-3",
-    # The v7 catalog versions (Launchpad 294c3f1e7; Validator): each is its
-    # predecessor's exam content under its own pack version; only the
-    # construction kit (and the version in identity-bearing roles) differs.
-    (motor.CHALLENGE.challenge_id, "1.3"): "motor-normal-construction-development-4",
-    (
-        cooling.CHALLENGE.challenge_id,
-        "1.0",
-    ): "cooling-normal-construction-development-1",
-    (
-        cooling.CHALLENGE.challenge_id,
-        "1.1",
-    ): "cooling-normal-construction-development-2",
-    (
-        cooling.CHALLENGE.challenge_id,
-        "1.2",
-    ): "cooling-normal-construction-development-3",
-    # Cooling 1.3: the law-safe encoded TRAIN and interface; the bank's
-    # references stay the native outputs, scored against decoded rows.
-    (
-        cooling.CHALLENGE.challenge_id,
-        "1.3",
-    ): "cooling-normal-construction-development-4",
-    (battery_pack.CHALLENGE_ID, "1.0"): battery_pack.PACK_VERSION,
-    (battery_pack.CHALLENGE_ID, "2.0"): "battery-normal-construction-development-3",
-    (battery_pack.CHALLENGE_ID, "2.1"): "battery-normal-construction-development-4",
-    (f08_train.CHALLENGE_ID, "1.0"): "f08-normal-construction-development-1",
-    (f08_train.CHALLENGE_ID, "1.1"): "f08-normal-construction-development-2",
-    (f08_train.CHALLENGE_ID, "1.2"): "f08-normal-construction-development-3",
-    (f08_train.CHALLENGE_ID, "1.3"): "f08-normal-construction-development-4",
-    # F08 1.4 and F02 2.3 (catalog + graph, allowlist v7; Launchpad fda49512e;
-    # Validator): the predecessor's exam under their own pack versions.
-    (f08_train.CHALLENGE_ID, "1.4"): "f08-normal-construction-development-5",
-    (f02_train.CHALLENGE_ID, "2.0"): "f02-normal-construction-development-2",
-    (f02_train.CHALLENGE_ID, "2.1"): "f02-normal-construction-development-3",
-    (f02_train.CHALLENGE_ID, "2.2"): "f02-normal-construction-development-4",
-    (f02_train.CHALLENGE_ID, "2.3"): "f02-normal-construction-development-5",
-    # Graph route v2 (`version_lineage`; Validator, 2026-10-23: no exam
-    # redraw): each the predecessor's exam content under its own pack
-    # version; only the construction kit (graph adapter v2) differs.
-    (motor.CHALLENGE.challenge_id, "1.4"): "motor-normal-construction-development-5",
-    (
-        cooling.CHALLENGE.challenge_id,
-        "1.4",
-    ): "cooling-normal-construction-development-5",
-    (f08_train.CHALLENGE_ID, "1.5"): "f08-normal-construction-development-6",
-    (f02_train.CHALLENGE_ID, "2.4"): "f02-normal-construction-development-6",
+    key: entry.pack_version for key, entry in version_registry.VERSIONS.items()
 }
 #: F02's eight registered cold actions (the scoring producer's
 #: `_F02_ACTIONS`), judged B10 ACCEPTED_FOR_DEVELOPMENT_BANK by RR-PACKS-04's
@@ -612,7 +562,10 @@ def _f08_limit_extras(version: str) -> dict:
     """1.1's limit statement: the exam straddles the dynamic limit, and the
     TRAIN mesh reads slightly lower than the exam truth there. From 1.4 the
     reference term is the registered U (worst dynamic, 3.9e-5 mm/N)."""
-    if version == "1.0":
+    if (
+        version_registry.entry(f08_train.CHALLENGE_ID, version).train
+        == version_registry.F08_TRAIN_V1
+    ):
         return {}
     straddle = {
         "limit": "dynamic_tip_mm_per_n_max",
@@ -737,7 +690,10 @@ def _f08_bank(challenge_id: str, version: str) -> dict:
         or not np.isfinite(targets).all()
     ):
         raise ValueError("F08 bank tensor differs")
-    if version != "1.0":
+    if (
+        version_registry.entry(f08_train.CHALLENGE_ID, version).train
+        != version_registry.F08_TRAIN_V1
+    ):
         _f08_refuse_train_overlap(inputs, version)
     inputs.setflags(write=False)
     targets.setflags(write=False)

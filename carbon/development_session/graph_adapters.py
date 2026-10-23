@@ -5,7 +5,7 @@ Carbon's graph training adapters for physical Challenges:
 - v1 (`physical_graph_adapter`): F08 1.4 and F02 2.3, byte for byte as the
   Validator approved them (2026-10-20);
 - v2 (`physical_graph_adapter_v2`): every graph route v2 version
-  (`challenge_kit.version_lineage.GRAPH_ROUTE_V2`), every Challenge.
+  (`version_registry`: `graph_adapter` "v2"), every Challenge.
 
 Every reader that needs a version's adapter - its construction limits, the
 research wire's registered TRAIN use, practice and the receiver - asks here,
@@ -18,15 +18,19 @@ from __future__ import annotations
 
 def module_for(challenge_id: str, version: str):
     """The adapter module serving (challenge_id, version), or None."""
-    from carbon.challenge_kit import version_lineage
+    from carbon.challenge_kit import version_registry
 
     from . import physical_graph_adapter, physical_graph_adapter_v2
 
-    if version_lineage.serves_graph_route_v2(challenge_id, version):
-        return physical_graph_adapter_v2
-    if (challenge_id, version) in physical_graph_adapter.SPECS:
-        return physical_graph_adapter
-    return None
+    declared = version_registry.find(challenge_id, version)
+    served = None if declared is None else declared.graph_adapter
+    return {"v1": physical_graph_adapter, "v2": physical_graph_adapter_v2}.get(served)
+
+
+def _v2():
+    from . import physical_graph_adapter_v2
+
+    return physical_graph_adapter_v2
 
 
 def serves_graph(challenge_id: str, version: str) -> bool:
@@ -101,9 +105,7 @@ def configuration_example(challenge_id: str, version: str) -> dict | None:
     """A graph route v2 configuration showing per-output loss weights and a
     two-member ensemble on a split of the outputs, or None where the version
     serves no v2 adapter (one output takes a one-member example)."""
-    from carbon.challenge_kit import version_lineage
-
-    if not version_lineage.serves_graph_route_v2(challenge_id, version):
+    if module_for(challenge_id, version) is not _v2():
         return None
     width = adapter_block(challenge_id, version)["interface"]["output_shape"][0]
     half = max(1, width // 2)
