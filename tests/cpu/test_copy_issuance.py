@@ -151,21 +151,69 @@ def test_the_pack_set_is_signed_published_once_and_imports_on_a_validator(job):
 
     challenge = job["config"]["challenge_id"]
     version = job["config"]["challenge_version"]
-    batches = [delivery._sha(job["manifest"]), "sha256:" + "ab" * 32]
+    # Two real canonical batches: the job's pack, and a second whose exam
+    # content (its case bank role) differs.
+    other = json.loads(job["manifest"])
+    other["private"]["case_bank"]["sha256"] = "sha256:" + "ab" * 32
+    other_bytes = json.dumps(other, sort_keys=True).encode()
+    first_dir = job["tmp"] / "pack-one"
+    second_dir = job["tmp"] / "pack-two"
+    for directory, body in ((first_dir, job["manifest"]), (second_dir, other_bytes)):
+        directory.mkdir()
+        (directory / spi.MANIFEST_NAME).write_bytes(body)
+    batches = [delivery._sha(job["manifest"]), delivery._sha(other_bytes)]
+    contents = [
+        spi.manifest_content(job["manifest"]),
+        spi.manifest_content(other_bytes),
+    ]
     config = {
         "schema": issuance.SET_CONFIG_SCHEMA,
         "producer_key": job["config"]["producer_key"],
         "challenge_id": challenge,
         "challenge_version": version,
         "batches": batches,
+        "packs": {batches[0]: str(first_dir), batches[1]: str(second_dir)},
         "window": WINDOW,
         "inbox": str(job["tmp"] / "inbox"),
     }
     first = issuance.publish_set(config)
     assert first["batches"] == 2 and first["written"] is True
     assert first["set_key"] == common.pack_set_key(
-        common.pack_set_document(challenge, version, batches)
+        common.pack_set_document(challenge, version, contents)
     )
+    # The same contents give the same key; one changed case bank gives another.
+    again = issuance.publish_set({**config, "inbox": str(job["tmp"] / "inbox-2")})
+    assert again["set_key"] == first["set_key"]
+    changed = json.loads(other_bytes)
+    changed["private"]["case_bank"]["sha256"] = "sha256:" + "cd" * 32
+    changed_bytes = json.dumps(changed, sort_keys=True).encode()
+    third_dir = job["tmp"] / "pack-three"
+    third_dir.mkdir()
+    (third_dir / spi.MANIFEST_NAME).write_bytes(changed_bytes)
+    moved = {
+        **config,
+        "inbox": str(job["tmp"] / "inbox-3"),
+        "batches": [batches[0], delivery._sha(changed_bytes)],
+        "packs": {
+            batches[0]: str(first_dir),
+            delivery._sha(changed_bytes): str(third_dir),
+        },
+    }
+    assert issuance.publish_set(moved)["set_key"] != first["set_key"]
+    # A batch with no pack in custody is refused typed.
+    missing = {
+        **config,
+        "packs": {**config["packs"], batches[1]: str(job["tmp"] / "none")},
+    }
+    with pytest.raises(ak.AnswerKeyRefused, match="copy_issuance_pack_missing"):
+        issuance.publish_set(missing)
+    # A pack whose manifest is not the one the batch names is refused.
+    wrong = {
+        **config,
+        "packs": {batches[0]: str(second_dir), batches[1]: str(first_dir)},
+    }
+    with pytest.raises(ak.AnswerKeyRefused, match="copy_issuance_pack_digest_mismatch"):
+        issuance.publish_set(wrong)
     assert issuance.publish_set(config)["written"] is False
     (path,) = (job["tmp"] / "inbox" / challenge).glob("set-*.json")
     assert stat.S_IMODE(path.stat().st_mode) == 0o600

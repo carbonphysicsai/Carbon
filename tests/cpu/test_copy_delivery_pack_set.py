@@ -41,7 +41,13 @@ def test_two_hotkeys_get_the_same_pack_set_and_the_same_koth_keys(tmp_path, prod
     (digest_one,) = set(batches[0])  # the same exam twice: one canonical batch
     # The signed pack set names canonical batches; both stores resolve it.
     second = digest_one
-    commitment = spi.set_commitment_for(challenge, version, [digest_one], WINDOW)
+    commitment = spi.set_commitment_for(
+        challenge,
+        version,
+        [digest_one],
+        WINDOW,
+        contents={digest_one: spi.manifest_content(manifest)},
+    )
     keys = set()
     for hotkey, store in stores.items():
         store.import_pack_set(commitment, spi.set_payload_for(commitment))

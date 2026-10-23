@@ -16,6 +16,19 @@ challenge_id, challenge_version, pack (directory holding the canonical
 `evaluation-pack.json` and its files), batch (the canonical `sealed-batch.json`),
 copies (output directory), window, hotkeys (a JSON list file of permitted hotkeys,
 read from the finalized chain by the operator).
+
+Set config (owner-only JSON, `publish-set`; `SET_CONFIG_SCHEMA`): producer_key,
+challenge_id, challenge_version, batches (the active batches' canonical manifest
+digests, in the set's order), packs (a map of each of those digests to the
+directory holding that canonical pack: its `evaluation-pack.json` is read, checked
+against its digest, and its exam content - the `case_bank` and `reference_rows`
+role digests - keys the set), window, inbox. The set's key is over that content, so
+the same exam content gives the same set whichever copies produced it, and a changed
+case gives another. Refusals, all typed and never a fallback to digests:
+`copy_issuance_config_malformed` (a field missing or `packs` not matching `batches`),
+`copy_issuance_pack_missing` (no pack in custody for a batch) and
+`copy_issuance_pack_digest_mismatch` (a manifest that is not the one the batch names).
+Nothing of the exam content is written out: the signed payload is digests only.
 """
 
 from __future__ import annotations
@@ -151,6 +164,7 @@ _SET_FIELDS = {
     "challenge_id",
     "challenge_version",
     "batches",
+    "packs",
     "window",
     "inbox",
 }
@@ -163,7 +177,13 @@ def publish_set(config):
     content), so every validator receives the same bytes. It goes into the first
     route's inbox (`<inbox>/<challenge>/set-<key>.json`, create-only, 0600); the host
     serves it to permit holders like any signed package. Returns the set key and the
-    batch count only."""
+    batch count only.
+
+    The set's key is over the batches' exam content (graph route v2's pack-set
+    key): `packs` maps each batch's canonical manifest digest to the directory
+    holding that canonical pack, and each manifest is read from there, checked
+    against its digest, and its `manifest_content` keys the set. Nothing of it is
+    written out."""
     from . import sealed_pack_import as spi
     from .answer_key import package
 
@@ -174,11 +194,26 @@ def publish_set(config):
     ):
         raise AnswerKeyRefused("copy_issuance_config_malformed")
     key = ProducerKey.load(config["producer_key"])
+    packs = config["packs"]
+    if type(packs) is not dict or set(packs) != set(config["batches"]):
+        raise AnswerKeyRefused("copy_issuance_config_malformed")
+    contents = {}
+    for digest, directory in packs.items():
+        try:
+            manifest = (Path(directory) / MANIFEST_NAME).read_bytes()
+        except OSError:
+            # No pack in custody for this batch: refused, never a fallback to
+            # digests (Validator, pack-set fix).
+            raise AnswerKeyRefused("copy_issuance_pack_missing") from None
+        if copy_delivery._sha(manifest) != digest:
+            raise AnswerKeyRefused("copy_issuance_pack_digest_mismatch")
+        contents[digest] = spi.manifest_content(manifest)
     commitment = spi.set_commitment_for(
         config["challenge_id"],
         config["challenge_version"],
         config["batches"],
         config["window"],
+        contents=contents,
     )
     signed = package(key, commitment, spi.set_payload_for(commitment))
     folder = Path(config["inbox"]) / config["challenge_id"]

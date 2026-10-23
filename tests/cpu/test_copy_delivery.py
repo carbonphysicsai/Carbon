@@ -122,8 +122,20 @@ def test_two_hotkeys_copies_import_to_one_canonical_pack(tmp_path, producer, nam
             assert path.read_bytes() == (two / path.relative_to(one)).read_bytes()
     # Shared identities (pack-set document and key) are the same for both.
     keys = [
-        common.pack_set_key(common.pack_set_document(challenge, version, [d]))
-        for d in digests
+        common.pack_set_key(
+            common.pack_set_document(
+                challenge,
+                version,
+                [
+                    spi.manifest_content(
+                        store.pack_directory(d, challenge, version)
+                        .joinpath(spi.MANIFEST_NAME)
+                        .read_bytes()
+                    )
+                ],
+            )
+        )
+        for store, d in zip(stores, digests, strict=True)
     ]
     assert keys[0] == keys[1]
     # No copy manifest digest leaks into a shared (canonical-keyed) record.
