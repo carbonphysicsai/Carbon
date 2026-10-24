@@ -71,6 +71,7 @@ START=1
 UPDATE=0
 SERVICE=0
 REMOVE_OLD_IMAGES=0
+PRUNE_BUILD_CACHE=0
 REF_GIVEN=0
 RELEASE=""
 DEVELOPMENT_REVISION=""
@@ -136,6 +137,12 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                installs that this install no longer records without asking
                (otherwise it lists them and asks first). No other image is
                touched, and one a container still uses is kept
+  --prune-build-cache
+               when space is short, also prune Docker's unused build cache
+               without asking (otherwise it asks first, separately). That
+               cache is shared by EVERY Docker build on this machine, not only
+               Carbon's, so other projects' builds will be slower the next
+               time. Never done by default or by --remove-old-images
   --service    run the Control Center as a systemd user service, so this
                terminal stays free: carbon-control-center for the default
                state directory, and carbon-control-center-NAME-HASH for any
@@ -161,6 +168,7 @@ while [[ $# -gt 0 ]]; do
     --no-start) START=0 ;;
     --service) SERVICE=1 ;;
     --remove-old-images) REMOVE_OLD_IMAGES=1 ;;
+    --prune-build-cache) PRUNE_BUILD_CACHE=1 ;;
     --port) PORT="${2:?--port needs a value}"; PORT_GIVEN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
@@ -376,6 +384,32 @@ docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
 #: repositories are listed (scripts/dev/miner_launchpad/superseded_images.py);
 #: Docker keeps any image a container still uses. A first install, with no
 #: environment yet, has none.
+#: offer_build_cache: Docker's unused build cache, on its own flag (--prune-build-cache) and its own yes. It is shared by
+#: every Docker build on this machine, so it is never done with Carbon's images and never by default.
+build_cache_offered=0
+offer_build_cache() {
+  local py="${repo_root}/.venv/bin/python" listing answer=""
+  [[ "${build_cache_offered}" == 0 ]] || return 0
+  build_cache_offered=1
+  [[ -x "${py}" ]] || return 0
+  listing="$(cd "${repo_root}" && PYTHONDONTWRITEBYTECODE=1 "${py}" -B -m scripts.dev.miner_launchpad.superseded_images \
+    cache-list --state-dir "${STATE_DIR}" --repo "${repo_root}" 2>/dev/null)" || return 0
+  [[ -n "${listing}" ]] || return 0
+  echo "Space is still short. Docker keeps unused build cache:"
+  echo "${listing}"
+  if [[ "${PRUNE_BUILD_CACHE}" == 0 ]]; then
+    if [[ -t 0 ]]; then
+      read -r -p "Prune it? This affects EVERY Docker build on this machine, not only Carbon's: other projects' builds will be slower the next time. [y/N] " answer || answer=""
+    fi
+    if [[ "${answer}" != [yY]* ]]; then
+      echo "Kept it. To prune it, answer y, or run this again with --prune-build-cache."
+      return 0
+    fi
+  fi
+  (cd "${repo_root}" && PYTHONDONTWRITEBYTECODE=1 "${py}" -B -m scripts.dev.miner_launchpad.superseded_images \
+    cache-remove --state-dir "${STATE_DIR}" --repo "${repo_root}") \
+    || echo "Docker kept the build cache an active build uses."
+}
 old_images_offered=0
 offer_old_images() {
   local py="${repo_root}/.venv/bin/python" listing answer=""
@@ -389,11 +423,11 @@ offer_old_images() {
   listing="$(cd "${repo_root}" && PYTHONDONTWRITEBYTECODE=1 "${py}" -B -m scripts.dev.miner_launchpad.superseded_images \
     list --state-dir "${STATE_DIR}" --repo "${repo_root}" 2>/dev/null)" || return 0
   [[ -n "${listing}" ]] || return 0
-  echo "Space is short. These are Carbon's own images and finished practice-job containers from earlier installs, which this install does not use; Docker's unused build cache is listed too (it is shared with any other builds on this machine and is made again when needed) (the catalog images are built again over the new worker):"
+  echo "Space is short. These are Carbon's own images and finished practice-job containers from earlier installs, which this install does not use (the catalog images are built again over the new worker):"
   echo "${listing}"
   if [[ "${REMOVE_OLD_IMAGES}" == 0 ]]; then
     if [[ -t 0 ]]; then
-      read -r -p "Remove them? No other image or container is touched; Docker only drops build cache nothing is using. [y/N] " answer || answer=""
+      read -r -p "Remove them? No other image or container is touched. [y/N] " answer || answer=""
     fi
     if [[ "${answer}" != [yY]* ]]; then
       echo "Kept them. To remove them, answer y, or run this again with --remove-old-images."
@@ -418,6 +452,7 @@ short_of() {
 # --remove-old-images, done) now, then every check reads the space again.
 if short_of "${repo_root}" "${CHECKOUT_GIB}"   || { [[ -n "${docker_root}" && -d "${docker_root}" ]]     && short_of "${docker_root}" "$(( IMAGES_GIB + gpu_space * GPU_GIB ))"; }; then
   offer_old_images
+  offer_build_cache
 fi
 need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 check_image_space() {

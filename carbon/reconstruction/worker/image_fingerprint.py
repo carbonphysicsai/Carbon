@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -22,7 +23,7 @@ FINGERPRINT_FORMAT = (
 )
 PARENT_TAG = re.compile(r"^carbon-c03-worker:[0-9a-f]{16}$")
 SIDECAR_NAME = "store-fingerprint.json"
-SIDECAR_SCHEMA = "carbon.worker-store-fingerprint.v1"
+SIDECAR_SCHEMA = "carbon.worker-store-fingerprint.v2"
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -52,17 +53,32 @@ def sidecar_path(manifest: Path) -> Path:
     return Path(manifest).with_name(SIDECAR_NAME)
 
 
+def manifest_sha256(manifest: Path) -> str:
+    """The sha256 of the identity manifest's exact bytes: what a sidecar is bound to."""
+    return hashlib.sha256(Path(manifest).read_bytes()).hexdigest()
+
+
+def _current_manifest_sha(manifest: Path) -> str | None:
+    try:
+        return manifest_sha256(manifest)
+    except OSError:
+        return None
+
+
 def write_sidecar(
     manifest: Path, *, parent_image_id: str, tag: str, value: str
 ) -> Path:
-    """Record, at install, the fingerprint of the parent image found under `tag`."""
+    """Record, at install, the fingerprint of the parent image found under `tag`, bound to the exact manifest it vouches
+    for (so a stale or copied sidecar cannot vouch for another image) and written owner-only (0600).
+    """
     if not PARENT_TAG.fullmatch(tag) or not _HEX64.fullmatch(value):
         raise ValueError("a parent tag and a sha256 fingerprint are required")
     path = sidecar_path(manifest)
-    path.write_text(
+    document = (
         json.dumps(
             {
                 "schema": SIDECAR_SCHEMA,
+                "manifest_sha256": manifest_sha256(manifest),
                 "parent_image_id": parent_image_id,
                 "tag": tag,
                 "fingerprint": value,
@@ -70,22 +86,29 @@ def write_sidecar(
             sort_keys=True,
             separators=(",", ":"),
         )
-        + "\n",
-        encoding="utf-8",
-    )
+        + "\n"
+    ).encode("utf-8")
+    path.unlink(missing_ok=True)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(document)
     return path
 
 
 def read_sidecar(manifest: Path, parent_image_id: str) -> tuple[str, str] | None:
-    """(tag, fingerprint) recorded for `parent_image_id`, or None: absent, malformed or for another image."""
+    """(tag, fingerprint) recorded for `parent_image_id` on exactly this manifest, or None: absent, malformed, for another
+    image, or bound to a different manifest (a stale or copied sidecar vouches for nothing).
+    """
     try:
         value = json.loads(sidecar_path(manifest).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, ValueError):
         return None
     if (
         type(value) is not dict
-        or set(value) != {"schema", "parent_image_id", "tag", "fingerprint"}
+        or set(value)
+        != {"schema", "manifest_sha256", "parent_image_id", "tag", "fingerprint"}
         or value["schema"] != SIDECAR_SCHEMA
+        or value["manifest_sha256"] != _current_manifest_sha(manifest)
         or value["parent_image_id"] != parent_image_id
         or type(value["tag"]) is not str
         or not PARENT_TAG.fullmatch(value["tag"])
