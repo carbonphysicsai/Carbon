@@ -16,8 +16,8 @@ Docker is a stand-in: no engine is reached. The rules held here:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 from scripts.dev.miner_launchpad import installed, superseded_images
 
@@ -64,8 +64,6 @@ class Docker:
         self.containers = [
             json.dumps({"ID": "c" * 64, "Names": "carbon-d4-old", "Size": "12MB"})
         ]
-        # `docker system df`: Docker's own build cache, reclaimable (none unless a test sets it).
-        self.df = []
 
     def __call__(self, *argv):
         self.calls.append(argv)
@@ -84,11 +82,6 @@ class Docker:
             return ok("\n".join(self.images))
         if argv[:2] == ("image", "inspect"):
             return ok(json.dumps(self.labels.get(argv[-1], {})))
-        if argv[:2] == ("system", "df"):
-            return ok("\n".join(self.df))
-        if argv[:2] == ("builder", "prune"):
-            assert argv == ("builder", "prune", "--all", "--force")
-            return ok("Total reclaimed space: 3.2GB")
         if argv[0] == "rm" or argv[:2] == ("image", "rm"):
             target = argv[-1]
             if target in self.refuse:
@@ -186,55 +179,62 @@ def test_sizes_read_as_docker_prints_them():
     assert superseded_images.human(8_400_000_000) == "8.4GB"
 
 
-CACHE = json.dumps({"Type": "Build Cache", "Size": "9GB", "Reclaimable": "3.2GB (35%)"})
-
-
-def test_docker_build_cache_is_never_listed_with_carbons_images_and_has_its_own_listing(
+def test_the_catalog_images_the_install_names_are_a_separate_offer_never_listed_as_superseded(
     tmp_path,
 ):
+    """An update builds the catalog again over the new worker, so the images it names now may go first, on their own
+    yes: `current_catalog` lists exactly the catalog images `superseded` does not (here the one over the current
+    parent), by label only."""
     state, repo = install(tmp_path)
     docker = Docker()
-    docker.df = [json.dumps({"Type": "Images", "Reclaimable": "1GB (10%)"}), CACHE]
-    assert "build_cache" not in {
-        item["kind"] for item in superseded_images.superseded(state, repo, docker)
-    }
-    item = superseded_images.build_cache(docker)
-    assert item["kind"] == "build_cache"
-    assert superseded_images.size_bytes(item["size"]) == 3_200_000_000
-    docker.df = [json.dumps({"Type": "Build Cache", "Reclaimable": "0B (0%)"})]
-    assert superseded_images.build_cache(docker) is None
+    listed = {item["id"] for item in superseded_images.superseded(state, repo, docker)}
+    assert CATALOG_OLD in listed and CATALOG_NEW not in listed
+    current = superseded_images.current_catalog(state, repo, docker)
+    assert [item["id"] for item in current] == [CATALOG_NEW]
+    assert current[0]["kind"] == "catalog_current"
+    # Nothing outside the label is offered: no worker, analysis or other program's image.
+    assert not any(item["id"] in (CURRENT, ANALYSIS, OTHER, OLD) for item in current)
 
 
-def test_the_cache_commands_prune_only_the_cache_with_the_exact_command(
-    tmp_path, capsys
-):
+def test_the_catalog_commands_remove_only_those_images_without_force(tmp_path, capsys):
     state, repo = install(tmp_path)
     docker = Docker()
-    docker.df = [CACHE]
     args = ["--state-dir", str(state), "--repo", str(repo)]
-    assert superseded_images.main(["cache-list", *args], docker) == 0
-    assert "shared with every Docker build on this machine" in capsys.readouterr().out
+    assert superseded_images.main(["catalog-list", *args], docker) == 0
+    listing = capsys.readouterr().out
+    assert "catalog images this update builds again: 1" in listing
+    assert "frees about 2.0GB" in listing
     docker.calls.clear()
-    assert superseded_images.main(["cache-remove", *args], docker) == 0
-    assert docker.calls[-1] == ("builder", "prune", "--all", "--force")
-    assert not any(
-        call[0] in ("rm",) or call[:2] == ("image", "rm") for call in docker.calls
-    )
-    # The ordinary removal never touches the cache.
+    assert superseded_images.main(["catalog-remove", *args], docker) == 0
+    removals = [c for c in docker.calls if c[0] == "rm" or c[:2] == ("image", "rm")]
+    assert removals == [("image", "rm", CATALOG_NEW)]
+    assert not any("--force" in call or "-f" in call for call in docker.calls)
+    # A refusal (a container still uses it) is reported, not overridden.
+    refusing = Docker(refuse={CATALOG_NEW})
+    assert superseded_images.main(["catalog-remove", *args], refusing) == 1
+    assert "kept " + CATALOG_NEW in capsys.readouterr().out
+    # The ordinary removal never touches it.
     docker.calls.clear()
     superseded_images.remove(superseded_images.superseded(state, repo, docker), docker)
-    assert ("builder", "prune", "--all", "--force") not in docker.calls
+    assert ("image", "rm", CATALOG_NEW) not in docker.calls
 
 
-def test_the_installer_has_its_own_flag_and_prompt_and_never_prunes_by_default_or_with_the_images():
+def test_the_module_and_installer_never_name_a_docker_prune():
+    """The never-prunes rule (LA-F7): Docker's build cache is the miner's, not Carbon's. The word is simply absent."""
+    root = Path(__file__).resolve().parents[2]
+    for name in (
+        "scripts/install_miner.sh",
+        "scripts/dev/miner_launchpad/superseded_images.py",
+    ):
+        assert "prune" not in (root / name).read_text(encoding="utf-8").lower(), name
+
+
+def test_the_installer_offers_the_current_catalog_only_on_its_own_flag_and_yes():
     script = (
         Path(__file__).resolve().parents[2] / "scripts/install_miner.sh"
     ).read_text(encoding="utf-8")
-    assert "--prune-build-cache) PRUNE_BUILD_CACHE=1" in script
-    assert "PRUNE_BUILD_CACHE=0" in script
-    assert (
-        "REMOVE_OLD_IMAGES"
-        not in script.split("offer_build_cache() {")[1].split("old_images_offered=0")[0]
-    )
-    assert "affects EVERY Docker build on this machine" in script
-    assert "cache-remove" in script
+    assert "--remove-catalog-images) REMOVE_CATALOG_IMAGES=1" in script
+    assert "REMOVE_CATALOG_IMAGES=0" in script
+    body = script.split("offer_current_catalog() {")[1].split("old_images_offered=0")[0]
+    assert "REMOVE_OLD_IMAGES" not in body
+    assert "catalog-remove" in body and "catalog-list" in body

@@ -22,10 +22,12 @@ Another program's image or container is never listed. Each is removed
 without force: Docker refuses an image a container still uses, and that
 refusal is reported, not overridden. A running container is never listed.
 
-Docker's unused build cache is separate (`build_cache`, `--prune-build-cache`): every
-Carbon build leaves cache, and an update stopped at its own space check after the images
-were removed because the cache was not. It is Docker's, shared with every build on this
-machine, so it has its own flag and its own yes, and is never done with the images.
+The catalog images the current install DOES name are a separate offer (`current_catalog`,
+`--remove-catalog-images`): an update builds them again over the new worker, so a space-short
+update may remove them first, on its own yes, and they are built again afterwards.
+
+Docker's own build cache is never touched here: it is shared by every Docker build on this machine, and
+Carbon never removes anything it did not tag.
 """
 
 from __future__ import annotations
@@ -66,12 +68,8 @@ KINDS = {
     "catalog": "catalog images built over an earlier worker",
     "image": "Carbon images from earlier installs",
 }
-#: Docker's unused build cache is not one of these kinds: `docker builder prune --all` touches the miner's non-Carbon
-#: build cache too, so it has its own flag (`--prune-build-cache`) and its own prompt in the installer, and is never
-#: listed or removed with Carbon's own images.
-BUILD_CACHE_WORDS = (
-    "Docker's unused build cache, shared with every Docker build on this machine"
-)
+#: The catalog images the current install names, which an update builds again: its own kind and its own offer.
+CURRENT_CATALOG_WORDS = "catalog images this update builds again"
 _IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}")
 _SIZE = re.compile(r"([0-9.]+)\s*([kKMGT]?B)")
 _UNITS = {"B": 1, "kB": 1e3, "KB": 1e3, "MB": 1e6, "GB": 1e9, "TB": 1e12}
@@ -217,18 +215,36 @@ def superseded(state_dir, repo, docker=_docker) -> list[dict]:
     return found
 
 
-def build_cache(docker=_docker) -> dict | None:
-    """Docker's unused build cache as {kind, ref, id, size}, by the size Docker reports as reclaimable; None when there
-    is none. Never part of `superseded`."""
-    for usage in _lines(docker("system", "df", "--format", "{{json .}}")):
-        if usage.get("Type") == "Build Cache" and size_bytes(usage.get("Reclaimable")):
-            return {
-                "kind": "build_cache",
-                "ref": "Docker build cache",
-                "id": "build-cache",
-                "size": usage.get("Reclaimable"),
+def current_catalog(state_dir, repo, docker=_docker) -> list[dict]:
+    """The catalog images (labelled `LIBRARY_LABEL`) that `superseded` does not list because the current install names
+    them or their parent: [{kind: "catalog_current", ref, id, size}]. An update builds them again over the new worker;
+    only the miner's own yes removes them, never `superseded`'s offer."""
+    listed = {item["id"] for item in superseded(state_dir, repo, docker)}
+    found, seen = [], set()
+    for image in _lines(
+        docker(
+            "image",
+            "ls",
+            "--no-trunc",
+            "--filter",
+            "label=" + LIBRARY_LABEL,
+            "--format",
+            "{{json .}}",
+        )
+    ):
+        image_id = image.get("ID")
+        if not image_id or image_id in seen or image_id in listed:
+            continue
+        seen.add(image_id)
+        found.append(
+            {
+                "kind": "catalog_current",
+                "ref": image_id,
+                "id": image_id,
+                "size": image.get("Size", "?"),
             }
-    return None
+        )
+    return found
 
 
 def totals(found) -> dict:
@@ -245,9 +261,7 @@ def remove(found, docker=_docker) -> list[tuple[str, str | None]]:
     [(ref, why)] when Docker refused it."""
     done = []
     for item in found:
-        if item["kind"] == "build_cache":
-            command = ("builder", "prune", "--all", "--force")
-        elif item["kind"] == "container":
+        if item["kind"] == "container":
             command = ("rm", item["id"])
         else:
             command = ("image", "rm", item["ref"])
@@ -264,23 +278,28 @@ def remove(found, docker=_docker) -> list[tuple[str, str | None]]:
 def main(argv=None, docker=_docker) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
-        "command", choices=("list", "remove", "cache-list", "cache-remove")
+        "command", choices=("list", "remove", "catalog-list", "catalog-remove")
     )
     parser.add_argument("--state-dir", type=Path, required=True)
     parser.add_argument("--repo", type=Path, required=True)
     args = parser.parse_args(argv)
-    if args.command in ("cache-list", "cache-remove"):
-        item = build_cache(docker)
-        if item is None:
+    if args.command in ("catalog-list", "catalog-remove"):
+        current = current_catalog(args.state_dir, args.repo, docker)
+        if args.command == "catalog-list":
+            if current:
+                total = sum(size_bytes(item["size"]) for item in current)
+                print(
+                    f"  {CURRENT_CATALOG_WORDS}: {len(current)}, frees about {human(total)}"
+                )
             return 0
-        if args.command == "cache-list":
-            print(
-                f"  {BUILD_CACHE_WORDS}: frees about {human(size_bytes(item['size']))}"
-            )
-            return 0
-        ref, why = remove([item], docker)[0]
-        print(f"  removed {ref}" if why is None else f"  kept {ref}: {why}")
-        return 0 if why is None else 1
+        refused = 0
+        for ref, why in remove(current, docker):
+            if why is None:
+                print(f"  removed {ref}")
+            else:
+                refused += 1
+                print(f"  kept {ref}: {why}")
+        return 1 if refused else 0
     found = superseded(args.state_dir, args.repo, docker)
     if args.command == "list":
         for item in found:
