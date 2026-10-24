@@ -69,14 +69,14 @@ FREEZE_MOVED = {
 #: OWNER-SANDBOX-REBUILD-WALL-01.
 NEW_KITS = {
     ("chip-cold-plate", "1.4"): (
-        "19ef124c22c8533d781ac9add9527e911e534ebe322f64fd4ca23e93f639932c"
+        "bf94ffc1d6008c5abb81203c3bd54c232f3b3a923e3ef93a19e9a8d57a0c547d"
     ),
     ("electric-motor-magnetics", "1.4"): (
-        "43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0"
+        "3c3a854f4e035b70b542d91222b83d4bb3fcb674c60526f00bf51c3e3d3c4b78"
     ),
-    ("f02", "2.4"): "827e396bfe19d2ee162482f48d22150ee2894af1622d5778a55630644594e5f1",
+    ("f02", "2.4"): "10836cbdd3a266cd73152c27e980e8f2e7db191bd3077b8b0bcd06321c34c281",
     ("f08-ribbed-bracket", "1.5"): (
-        "9ada93ee419c2adbe91e7e8aae8176f35e2d60b11484ad9e9814b772ae4cf63b"
+        "2c54ee8493a87bb2f04bf6deabf85d18f865a917165f8df92943c90d24f698cf"
     ),
 }
 #: The shared C-03 profiles (CPU build, G5 compile) at rc8 1ea4c49ad.
@@ -114,13 +114,18 @@ def test_exactly_the_graph_route_v2_versions_declare_the_wall():
 
 
 @pytest.mark.parametrize("key", NEW)
-def test_a_new_version_moves_only_by_its_two_wall_fields(key):
-    document = _limits(*key)
-    policy = document["reconstruction_resource_policy"]
-    assert [policy[name] for name in WALLS] == [REBUILD_LIMIT_SECONDS] * 2
+def test_a_new_version_moves_only_by_its_two_wall_fields(key, monkeypatch):
+    from carbon.challenge_kit import served_versions
+
     assert physical_material.construction_kit(*key)["construction_limits_digest"] == (
         "sha256:" + NEW_KITS[key]
     )
+    # The rc8 document predates the large-profile publication (a separate move,
+    # pinned by test_published_policy_is_enforced): the wall is checked before it.
+    monkeypatch.setattr(served_versions, "worker_resources", lambda *_: None)
+    document = _limits(*key)
+    policy = document["reconstruction_resource_policy"]
+    assert [policy[name] for name in WALLS] == [REBUILD_LIMIT_SECONDS] * 2
     at_600 = {
         **document,
         "reconstruction_resource_policy": {**policy, **dict.fromkeys(WALLS, 600)},

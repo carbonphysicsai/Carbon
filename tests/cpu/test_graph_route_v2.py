@@ -147,14 +147,20 @@ MOVED_KITS = {
 
 
 @pytest.mark.parametrize("key", sorted(BASE_KITS))
-def test_every_existing_version_s_kit_is_byte_identical(key):
+def test_every_existing_version_s_kit_is_byte_identical(key, monkeypatch):
     """Every existing version keeps its kit bytes, except the six whose catalog
     digest moved: for those only `backbone_catalog.digest` differs, and putting
     the old catalog digest back reproduces the old limits digest exactly."""
     from carbon.backbone_catalog import listing
+    from carbon.challenge_kit import served_versions
     from carbon.development_session.profile import canonical, digest
 
-    kit = physical_material.construction_kit(*key)
+    # These kits predate the large-profile publication (a separate move, pinned
+    # by test_published_policy_is_enforced): their bytes are checked before it.
+    with monkeypatch.context() as before:
+        before.setattr(served_versions, "worker_resources", lambda *_: None)
+        kit = physical_material.construction_kit(*key)
+        document = physical_material._public(key[0]).construction_limits_document(*key)
     if key not in MOVED_KITS:
         # A version with no catalog entries cannot move with the catalog.
         assert listing.entries(*key) == []
@@ -163,7 +169,6 @@ def test_every_existing_version_s_kit_is_byte_identical(key):
     _cause, old_catalog, new_kit = MOVED_KITS[key]
     assert kit["construction_limits_digest"] == "sha256:" + new_kit
     assert new_kit != BASE_KITS[key]
-    document = physical_material._public(key[0]).construction_limits_document(*key)
     assert document["backbone_catalog"]["digest"] != old_catalog
     restored = {
         **document,

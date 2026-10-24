@@ -105,6 +105,12 @@ def test_the_build_child_and_programs_are_the_golden_ones(key, tmp_path, monkeyp
         ),
     )
 
+    # The recorded runs predate the large-profile publication (a separate move,
+    # pinned by test_published_policy_is_enforced): the kit, its check and the
+    # runner argument are put back on the earlier profile together.
+    from carbon.challenge_kit import served_versions
+
+    monkeypatch.setattr(served_versions, "worker_resources", lambda *_: None)
     golden = _evidence()["before"]["runs"]["@".join(key)]["children"]
     recipe, raw_manifest, files, staging = _case(key, {"steps": 16})
     material = physical_material.bundle_material(*key)

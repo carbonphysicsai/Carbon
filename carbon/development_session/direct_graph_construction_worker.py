@@ -29,6 +29,7 @@ from .bundle_construction_worker import (
     _trusted_allowlist,
     direct_child_identity,
     rebuild_wall_kwargs,
+    resources_kwargs,
     verify_direct_resource_policy,
 )
 from .bundle_graph_state import MAX_BYTES as MAX_STATE_BYTES
@@ -810,6 +811,7 @@ def reconstruct_public_graph(
         ),
         output_validator=checked,
         **rebuild_wall_kwargs(limits_document),
+        **resources_kwargs(binding),
     )
     snapshot = ledger.root / worker["operation"] / "snapshot"
     result = checked(snapshot)

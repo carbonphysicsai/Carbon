@@ -678,10 +678,46 @@ def _checked_binding(recipe: ConstructionRecipe, binding: dict) -> dict:
 
 
 _ANY_SERVED = object()
+#: The default of `verify_direct_resource_policy`: the version's own profile.
+_DERIVE = object()
+
+
+def binding_resources_version(binding: dict):
+    """The worker resources version a served version's kit publishes and its
+    runs get (`worker_resources_version` of its served allowlist), from the
+    binding's Challenge and version; None (today's profile) for a version the
+    registry does not know. The one mapping every route uses, so the published
+    policy is the enforced one on admission, bundle, graph, paired inference,
+    calibration and retention."""
+    from carbon.challenge_kit import served_versions
+    from carbon.challenge_kit.version_registry import find
+
+    if type(binding) is not dict:
+        return None
+    challenge_id = binding.get("challenge_id", binding.get("id"))
+    version = binding.get("challenge_version", binding.get("version"))
+    if (
+        type(challenge_id) is not str
+        or type(version) is not str
+        or find(challenge_id, version) is None
+    ):
+        return None
+    return served_versions.worker_resources(challenge_id, version)
+
+
+def resources_kwargs(binding: dict) -> dict:
+    """The runner argument that gives a run its version's worker resources
+    (nothing for today's profile, so every older identity is unchanged)."""
+    resources_version = binding_resources_version(binding)
+    return (
+        {}
+        if resources_version is None
+        else {"worker_resources_version": resources_version}
+    )
 
 
 def verify_direct_resource_policy(
-    binding: dict, limits_document: dict, worker_resources_version=None
+    binding: dict, limits_document: dict, worker_resources_version=_DERIVE
 ) -> str:
     """Check a registered Challenge policy against the actual C-03 lane.
 
@@ -693,6 +729,7 @@ def verify_direct_resource_policy(
 
     ``worker_resources_version`` names the profile the run uses (a next
     version's larger worker resources, from the allowlist it builds under);
+    left out, it is the version's own (`binding_resources_version`);
     `_ANY_SERVED`, for a step that runs at today's resources whatever the
     version (dependency preparation), accepts the policy of either profile.
     """
@@ -726,6 +763,8 @@ def verify_direct_resource_policy(
         )
     ):
         raise RecipeRefused("construction_resource_policy_binding_invalid")
+    if worker_resources_version is _DERIVE:
+        worker_resources_version = binding_resources_version(binding)
     expected_scope = "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
     resource_schema = "carbon.synthetic-linear-field-2d.reconstruction-resources.v1"
     from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE

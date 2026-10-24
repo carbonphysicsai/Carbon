@@ -167,6 +167,32 @@ def _version(version: str) -> str:
     return version
 
 
+def _larger_resources(document: dict, version: str) -> None:
+    """A v7 version publishes the larger worker resources its runs get (the
+    same profile every other kit publishes: `worker_resources`); other
+    versions keep their bytes."""
+    from carbon.challenge_kit.served_versions import worker_resources
+    from carbon.development_session.research_carrier import (
+        LIBRARY_BUILD_PROVENANCE,
+        _worker_profile,
+    )
+
+    resources_version = worker_resources(challenge.CHALLENGE.challenge_id, version)
+    if resources_version is None:
+        return
+    profile = _worker_profile(None, LIBRARY_BUILD_PROVENANCE, resources_version).body
+    policy = document["reconstruction_resource_policy"]
+    policy["cpu_count_max"] = profile["cpu"]["count"]
+    policy["memory_bytes_max"] = profile["memory"]["bytes"]
+    policy["scratch_bytes_max"] = profile["scratch"]["bytes"]
+    policy["scratch_inodes_max"] = profile["scratch"]["inodes"]
+    policy["pids_max"] = profile["pids"]
+    policy["nofile_max"] = profile["nofile_per_process"]
+    policy["swap_bytes_max"] = profile["memory"]["swap_bytes"]
+    policy["build_wall_seconds_max"] = profile["deadline_seconds"]
+    policy["inference_wall_seconds_max"] = profile["deadline_seconds"]
+
+
 def construction_limits_document_for(version: str, rows: int | None = None) -> dict:
     """A version's limits: 1.0's bytes as above; 2.0 with no fixed training-step
     cap, the build wall time its only training limit (OWNER-REBUILD-TIME-
@@ -185,6 +211,7 @@ def construction_limits_document_for(version: str, rows: int | None = None) -> d
             f"Battery {version} limits need the bank's row count"
         )
     document = construction_limits_document()
+    _larger_resources(document, version)
     document["schema"] = LIMITS_SCHEMA_V2
     document["challenge"] = {"id": challenge.CHALLENGE.challenge_id, "version": version}
     document["practice_cases"] = rows
