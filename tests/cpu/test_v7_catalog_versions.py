@@ -178,6 +178,10 @@ def test_motor_and_cooling_catalog_kits_differ_only_in_their_version(key):
     new.pop("backbone_catalog", None)
     old.pop("backbone_catalog", None)
     new["challenge"]["version"] = before
+    # A v7 version publishes the larger worker resources (pinned by
+    # test_published_policy_is_enforced); apart from that it differs only in its version.
+    assert new.pop("reconstruction_resource_policy")["cpu_count_max"] == 4
+    old.pop("reconstruction_resource_policy")
     assert new == old
     assert physical_material.is_registered(*key)
     material = physical_material.bundle_material(*key)
@@ -202,6 +206,10 @@ def test_f08_and_f02_catalog_kits_serve_their_predecessors_train(public, train, 
     old = public.construction_limits_document(key[0], before)
     assert new["training_step_cap"] is None
     new["challenge"]["version"] = before
+    # The v7 version publishes the larger worker resources (pinned by
+    # test_published_policy_is_enforced); apart from that it differs only in its version.
+    assert new.pop("reconstruction_resource_policy")["cpu_count_max"] == 4
+    old.pop("reconstruction_resource_policy")
     assert new == old
     kit = public.construction_kit(*key)
     assert kit["version"] == key[1]
@@ -277,6 +285,11 @@ def test_battery_2_1_serves_its_own_bank_label_with_v7(bank):
     assert old["construction_limits_document"]["challenge"]["version"] == "2.0"
     old_limits = dict(old["construction_limits_document"])
     old_limits["challenge"] = {**old_limits["challenge"], "version": "2.1"}
+    # 2.1 is v7: it publishes the larger worker resources (pinned by
+    # test_published_policy_is_enforced); apart from that it is 2.0 relabelled.
+    limits = dict(limits)
+    assert limits.pop("reconstruction_resource_policy")["cpu_count_max"] == 4
+    old_limits.pop("reconstruction_resource_policy")
     assert old_limits == limits
 
 

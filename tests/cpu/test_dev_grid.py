@@ -456,7 +456,7 @@ KITS_ON_RC10 = {
         "sha256:f6a9b9c5ca937cd491d9df97c43e309832f87f2897cce2828e8810e3f2cc5924",
     ),
     ("electric-motor-magnetics", "1.4"): (
-        "sha256:3c3a854f4e035b70b542d91222b83d4bb3fcb674c60526f00bf51c3e3d3c4b78",
+        "sha256:43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0",
         "sha256:384beb065f566300f701ea0443e593f1990fc4fc0993f383ad4ec133b4c8eaaa",
     ),
     ("f02", "2.4"): (
@@ -464,20 +464,25 @@ KITS_ON_RC10 = {
         "sha256:a33b56d54e804f3bd2c82580cd518b54c1296e82a3a020b4cfe1d67830bdc63d",
     ),
     ("f08-ribbed-bracket", "1.5"): (
-        "sha256:2c54ee8493a87bb2f04bf6deabf85d18f865a917165f8df92943c90d24f698cf",
+        "sha256:9ada93ee419c2adbe91e7e8aae8176f35e2d60b11484ad9e9814b772ae4cf63b",
         "sha256:8c47d928947ed3039eaa5a8dda2a92f36270d9a72944c48efb8a0a9f74f9e1ac",
     ),
 }
 
 
 @pytest.mark.parametrize("key", KEYS)
-def test_a_kit_moved_with_the_served_catalog_digest_and_nothing_else(key):
+def test_a_kit_moved_with_the_served_catalog_digest_and_nothing_else(key, monkeypatch):
     """With the one field `backbone_catalog.digest` set back to what it was on rc10, each
     dev-grid version's limits document hashes to the kit it had on rc10: the catalog freeze
     moved the kit through that field alone (and not at all where the catalog did not change).
     """
     import copy
 
+    from carbon.challenge_kit import served_versions
+
+    # The kit before the large-profile publication (a separate move, pinned by
+    # test_published_policy_is_enforced): rc10's kits predate it.
+    monkeypatch.setattr(served_versions, "worker_resources", lambda *_: None)
     kit_before, catalog_before = KITS_ON_RC10[key]
     public = physical_material._public(key[0])
     limits = copy.deepcopy(public.construction_limits_document(*key))

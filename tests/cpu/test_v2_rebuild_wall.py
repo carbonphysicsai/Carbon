@@ -114,13 +114,18 @@ def test_exactly_the_graph_route_v2_versions_declare_the_wall():
 
 
 @pytest.mark.parametrize("key", NEW)
-def test_a_new_version_moves_only_by_its_two_wall_fields(key):
-    document = _limits(*key)
-    policy = document["reconstruction_resource_policy"]
-    assert [policy[name] for name in WALLS] == [REBUILD_LIMIT_SECONDS] * 2
+def test_a_new_version_moves_only_by_its_two_wall_fields(key, monkeypatch):
+    from carbon.challenge_kit import served_versions
+
     assert physical_material.construction_kit(*key)["construction_limits_digest"] == (
         "sha256:" + NEW_KITS[key]
     )
+    # The rc8 document predates the large-profile publication (a separate move,
+    # pinned by test_published_policy_is_enforced): the wall is checked before it.
+    monkeypatch.setattr(served_versions, "worker_resources", lambda *_: None)
+    document = _limits(*key)
+    policy = document["reconstruction_resource_policy"]
+    assert [policy[name] for name in WALLS] == [REBUILD_LIMIT_SECONDS] * 2
     at_600 = {
         **document,
         "reconstruction_resource_policy": {**policy, **dict.fromkeys(WALLS, 600)},

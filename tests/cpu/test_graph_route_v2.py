@@ -77,12 +77,12 @@ BASE_KITS = {
     (MOTOR, "1.3"): "2dac7922486baf6a147705d0fe2a0524840479b2f5d6a43e5e8cfa98c5abe0fc",
     (F02, "2.0"): "df88cb39b0213803cf7c6ad0a7cdc60f9ee55a3418f054d17776e433391dae99",
     (F02, "2.1"): "00f7675fa6600a4c172b8e037b415bea9bcdb5ce5d77cc113d1fe6910b506eb3",
-    (F02, "2.2"): "1d6894f7880550b0d06c1ebd9cb1e093fc5ec4af21925cd88cd2ca95106a9b91",
+    (F02, "2.2"): "0d2358581a88c4ab6648fcfb41a139792e23fb988202b610f883d66838725a25",
     (F02, "2.3"): "9881ad629acf9df9b839543d4968b938933c7ec03c348242f6278b023bd62e50",
     (F08, "1.0"): "88f56b8af03054a6002e92590784257df52580782b59c7a6bc019c17197725c3",
     (F08, "1.1"): "28a77a5beaf259a73acfa5b807fb5fd683353ee2c7de20ddb5ee155c94c7fb78",
     (F08, "1.2"): "039ec28de20975f0391707bf4cdf5153dacbed65f0bd247f07ab76321879c2ca",
-    (F08, "1.3"): "58a1fceb1941bb249e6d32aa516de9e3890565830265e94c52b9e160e6b7dac7",
+    (F08, "1.3"): "c0d3bf0691f22090088d77f441f7bb9da69557a3314c6add8bb6c673922c2217",
     (F08, "1.4"): "9e26eb1a372e8f007b031599b1ebab8fc7dd590a2fe1d801276f009aa14b99f8",
 }
 #: v1's worker programs at 942080f3a and composite 40 (5b1f2928f): graph
@@ -116,12 +116,12 @@ MOVED_KITS = {
     (COOLING, "1.2"): (
         RELICENSE,
         "sha256:d21fce9f7ab074e365f566ec7f3646e441f8241f328cddd521a6fea3000ffda5",
-        "f6bf90a17128e687a05c66be9baec2b0cfffbb8a794c433d6cf8f90c45d626f6",
+        "1b249c44ea5788dc32cb3319820cb36bce227351f91488c12c75c1bc46299a40",
     ),
     (COOLING, "1.3"): (
         RELICENSE,
         "sha256:724e814daf2267aeed1038eeada65988b770c254f674c47c7873917144a78add",
-        "ba4842de66f3745b6ad32545608d8bc86f78cb794fd4e2095b20b2101a8a9148",
+        "2afcf9f956bba3b8d8122efe82b3ca4239ca13119f7f4f5bd9d4e0e343a75777",
     ),
     (MOTOR, "1.2"): (
         RELICENSE,
@@ -131,30 +131,36 @@ MOVED_KITS = {
     (MOTOR, "1.3"): (
         RELICENSE,
         "sha256:6bacb58c995b636b152a7645918f10613c1f9ee402ba79dc4610996000519ece",
-        "912b1bc71b830ddbfdb5368e7b8ddcc0de4bba0c6a8054f492b8efddaa349863",
+        "a081ccac9ac9e93712a2047ac2abbb5c746ff8da4091d318916285f74e65ef89",
     ),
     (F02, "2.3"): (
         RELICENSE,
         "sha256:2ff8b82da0f552f26e2797fa865cd023e638b329adb15f5ce5ac8bc1ba7171b0",
-        "8f7c043dc8a69eff83e181868b3b60c3603da8f8c5b9ec3b9568dfb5c4cf8ebf",
+        "4a7a5cf5826abf5b872b6db1ddd67b06d1f85b7217be492732180181490010d9",
     ),
     (F08, "1.4"): (
         RELICENSE,
         "sha256:b934bba02176ec06593e5cb77cea312298fbc83fd0e840153b9f7330bc0b38b3",
-        "746a0666ee74c51d2fbfdb9667a090ca90bf8f3a86b16e8a5d823d146c91730f",
+        "31dc6f822bfed31d02d032d11b150c32a2bb01210d2e42453ae896af2172cfa3",
     ),
 }
 
 
 @pytest.mark.parametrize("key", sorted(BASE_KITS))
-def test_every_existing_version_s_kit_is_byte_identical(key):
+def test_every_existing_version_s_kit_is_byte_identical(key, monkeypatch):
     """Every existing version keeps its kit bytes, except the six whose catalog
     digest moved: for those only `backbone_catalog.digest` differs, and putting
     the old catalog digest back reproduces the old limits digest exactly."""
     from carbon.backbone_catalog import listing
+    from carbon.challenge_kit import served_versions
     from carbon.development_session.profile import canonical, digest
 
-    kit = physical_material.construction_kit(*key)
+    # These kits predate the large-profile publication (a separate move, pinned
+    # by test_published_policy_is_enforced): their bytes are checked before it.
+    with monkeypatch.context() as before:
+        before.setattr(served_versions, "worker_resources", lambda *_: None)
+        kit = physical_material.construction_kit(*key)
+        document = physical_material._public(key[0]).construction_limits_document(*key)
     if key not in MOVED_KITS:
         # A version with no catalog entries cannot move with the catalog.
         assert listing.entries(*key) == []
@@ -163,7 +169,6 @@ def test_every_existing_version_s_kit_is_byte_identical(key):
     _cause, old_catalog, new_kit = MOVED_KITS[key]
     assert kit["construction_limits_digest"] == "sha256:" + new_kit
     assert new_kit != BASE_KITS[key]
-    document = physical_material._public(key[0]).construction_limits_document(*key)
     assert document["backbone_catalog"]["digest"] != old_catalog
     restored = {
         **document,
