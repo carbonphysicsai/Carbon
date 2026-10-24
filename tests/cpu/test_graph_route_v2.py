@@ -105,10 +105,81 @@ def _sha(raw: bytes) -> str:
 # ---- Replay and lineage ---------------------------------------------------
 
 
+#: The six existing versions whose served catalog digest the catalog freeze
+#: moved (frozen catalog 0530c1d41; codex-queue/reports/
+#: SERVED_DIGESTS_RC6_FINAL_20261023.json). Each: the cause, the catalog digest
+#: it served at rc6 a454e75e5, and its construction limits digest now. The
+#: limits document differs from the old one in `backbone_catalog.digest` only
+#: (asserted below), and the digest of a catalog that did not move stays.
+RELICENSE = "OWNER-CATALOG-LICENCES-01 relicense (08c1465a9)"
+MOVED_KITS = {
+    (COOLING, "1.2"): (
+        RELICENSE,
+        "sha256:d21fce9f7ab074e365f566ec7f3646e441f8241f328cddd521a6fea3000ffda5",
+        "1b249c44ea5788dc32cb3319820cb36bce227351f91488c12c75c1bc46299a40",
+    ),
+    (COOLING, "1.3"): (
+        RELICENSE,
+        "sha256:724e814daf2267aeed1038eeada65988b770c254f674c47c7873917144a78add",
+        "2afcf9f956bba3b8d8122efe82b3ca4239ca13119f7f4f5bd9d4e0e343a75777",
+    ),
+    (MOTOR, "1.2"): (
+        RELICENSE,
+        "sha256:3d43a9bb19473f866a193404ab2f339e3ffeae66b7fbbac6ea6164ed9e3e5710",
+        "4f92627d50ab071d29828e7172c63f00a2d25bd312587745b7f2dfdadd228653",
+    ),
+    (MOTOR, "1.3"): (
+        RELICENSE,
+        "sha256:6bacb58c995b636b152a7645918f10613c1f9ee402ba79dc4610996000519ece",
+        "a081ccac9ac9e93712a2047ac2abbb5c746ff8da4091d318916285f74e65ef89",
+    ),
+    (F02, "2.3"): (
+        RELICENSE,
+        "sha256:2ff8b82da0f552f26e2797fa865cd023e638b329adb15f5ce5ac8bc1ba7171b0",
+        "4a7a5cf5826abf5b872b6db1ddd67b06d1f85b7217be492732180181490010d9",
+    ),
+    (F08, "1.4"): (
+        RELICENSE,
+        "sha256:b934bba02176ec06593e5cb77cea312298fbc83fd0e840153b9f7330bc0b38b3",
+        "31dc6f822bfed31d02d032d11b150c32a2bb01210d2e42453ae896af2172cfa3",
+    ),
+}
+
+
 @pytest.mark.parametrize("key", sorted(BASE_KITS))
 def test_every_existing_version_s_kit_is_byte_identical(key):
+    """Every existing version keeps its kit bytes, except the six whose catalog
+    digest moved: for those only `backbone_catalog.digest` differs, and putting
+    the old catalog digest back reproduces the old limits digest exactly."""
+    from carbon.backbone_catalog import listing
+    from carbon.development_session.profile import canonical, digest
+
     kit = physical_material.construction_kit(*key)
-    assert kit["construction_limits_digest"] == "sha256:" + BASE_KITS[key]
+    if key not in MOVED_KITS:
+        # A version with no catalog entries cannot move with the catalog.
+        assert listing.entries(*key) == []
+        assert kit["construction_limits_digest"] == "sha256:" + BASE_KITS[key]
+        return
+    _cause, old_catalog, new_kit = MOVED_KITS[key]
+    assert kit["construction_limits_digest"] == "sha256:" + new_kit
+    assert new_kit != BASE_KITS[key]
+    document = physical_material._public(key[0]).construction_limits_document(*key)
+    assert document["backbone_catalog"]["digest"] != old_catalog
+    restored = {
+        **document,
+        "backbone_catalog": {**document["backbone_catalog"], "digest": old_catalog},
+    }
+    assert digest(canonical(restored)) == "sha256:" + BASE_KITS[key]
+
+
+def test_the_catalog_freeze_moved_exactly_the_versions_it_names():
+    """Zero-entry versions are unmoved; the six existing versions with entries
+    moved; the four graph route v2 versions are new (their pins are in
+    test_v2_rebuild_wall)."""
+    from carbon.backbone_catalog import listing
+
+    with_entries = {key for key in BASE_KITS if listing.entries(*key)}
+    assert with_entries == set(MOVED_KITS)
 
 
 def test_v1_worker_programs_and_staged_modules_keep_their_bytes():
@@ -347,7 +418,7 @@ CATALOG_COUNTS = {
     (MOTOR, "1.4"): (78, 46),
     (COOLING, "1.4"): (50, 45),
     (F08, "1.5"): (44, 44),
-    (F02, "2.4"): (5, 5),
+    (F02, "2.4"): (45, 45),
 }
 
 

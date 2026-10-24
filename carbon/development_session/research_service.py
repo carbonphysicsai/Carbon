@@ -456,6 +456,8 @@ class DirectFixtureDiscovery:
             and declared.train == version_registry.BATTERY_TRAIN_V2
         )
         present = material.get("reference_present") if battery_v2 else None
+        from carbon.scoring import dev_grid
+
         physical = physical_material.is_registered(key.challenge_id, key.version)
         # F08 and F02 are float32 numeric interfaces; Motor, Cooling and Battery are float64.
         expected_dtype = (
@@ -499,7 +501,17 @@ class DirectFixtureDiscovery:
                     for p, row in zip(present, reference, strict=True)
                 )
                 if battery_v2
-                else np.isfinite(reference).all()
+                else (
+                    # A dev-grid version's practice bank also carries probe
+                    # rows, which have no reference: a probe row is wholly NaN,
+                    # a referenced row wholly finite.
+                    all(
+                        np.isfinite(row).all() or np.isnan(row).all()
+                        for row in reference
+                    )
+                    if dev_grid.kind(key.challenge_id, key.version) is not None
+                    else np.isfinite(reference).all()
+                )
             )
             or type(train_ids) is not tuple
             or type(practice_ids) is not tuple
@@ -557,7 +569,10 @@ class DirectFixtureDiscovery:
             # Battery 2.0's absent references are NaN in the same rows, under
             # the same authoritative mask.
             or not np.array_equal(
-                reference, registered["practice_reference"], equal_nan=battery_v2
+                reference,
+                registered["practice_reference"],
+                equal_nan=battery_v2
+                or dev_grid.kind(key.challenge_id, key.version) is not None,
             )
             or (
                 battery_v2
