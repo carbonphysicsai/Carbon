@@ -282,8 +282,47 @@ def _pick_wrong_margins(rows, bank, params):
     return out
 
 
+def _train_mean(rows, bank, params):
+    """The floor: every row (probes included) is the public TRAIN mean of the outputs, a
+    deterministic constant. The model's predictions are not read at all, only the shape
+    of the query. The mean is over the output columns the grader MEASURES: for an
+    interface whose rows are encoded and decoded by the adapter (Cooling 1.3/1.4), it
+    is the native TRAIN mean, encoded so that the adapter's decode returns exactly that
+    mean; for any other interface it is the public TRAIN's own column mean. A TRAIN
+    whose width differs from the rows refuses (fail closed, never approximated)."""
+    import io
+
+    import numpy as np
+
+    raw = params.get("_train_raw")
+    _require(type(raw) is bytes, "control_train_required")
+    native = getattr(params.get("_adapter"), "_native_train", None)
+    if native is not None:
+        raw = native()
+        _require(type(raw) is bytes, "control_train_required")
+    with np.load(io.BytesIO(raw), allow_pickle=False) as data:
+        targets = np.asarray(data["targets"], dtype=float)
+    _require(targets.ndim == 2 and len(targets) > 0, "control_train_shape")
+    mean = targets.mean(axis=0)
+    _require(bool(np.all(np.isfinite(mean))), "control_train_finite")
+    if native is not None:
+        from carbon.cold_plate import output_encoding
+
+        try:
+            mean = output_encoding.encode_targets(mean[None, :])[0]
+        except ValueError as exc:
+            raise CalibrationRefused("control_train_encode") from exc
+    mean = [float(v) for v in mean]
+    _require(all(len(row) == len(mean) for row in rows), "control_train_width")
+    return [list(mean) for _ in rows]
+
+
+#: Controls that read the public TRAIN (passed by the tool, never by the caller).
+TRAIN_CONTROLS = frozenset({"ctrl.train_mean"})
+
 #: name -> (the leg it moves, challenges it applies to, transform, required params).
 CONTROLS = {
+    "ctrl.train_mean": ("total", None, _train_mean, ()),
     "ctrl.invert_response": ("A_response", None, _invert_response, ()),
     "ctrl.pick_wrong_margins": ("D", None, _pick_wrong_margins, ("errors",)),
     "ctrl.zeta_independent": ("A_law", ("f08",), _zeta_independent, ("relative",)),
@@ -343,7 +382,7 @@ def _require_config(control, run_config, digest):
     )
 
 
-def apply_control(control, rows, bank, challenge):
+def apply_control(control, rows, bank, challenge, train_raw=None, adapter=None):
     """``rows`` (a list of rows, probes included) transformed by one registered
     control: ``{"name": ..., "params": {...}}``."""
     _require(type(control) is dict and set(control) <= {"name", "params"}, "control")
@@ -356,6 +395,8 @@ def apply_control(control, rows, bank, challenge):
         type(params) is dict and all(k in params for k in required),
         "control_params:" + name,
     )
+    if name in TRAIN_CONTROLS:
+        params = {**params, "_train_raw": train_raw, "_adapter": adapter}
     out = transform(rows, bank, params)
     _require(
         len(out) == len(rows) and all(len(a) == len(b) for a, b in zip(out, rows)),
@@ -482,7 +523,12 @@ def grade(
     inputs = np.array(bank["inputs"])
     runs = [infer(inputs) for _ in range(3)]
     if control is not None:
-        runs = [apply_control(control, r, bank, challenge) for r in runs]
+        runs = [
+            apply_control(
+                control, r, bank, challenge, train_raw=train_raw, adapter=adapter
+            )
+            for r in runs
+        ]
     graded, repeats = runs[0], runs[1:]
     try:
         measured = adapter.measure(
