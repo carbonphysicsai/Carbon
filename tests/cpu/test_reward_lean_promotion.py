@@ -26,6 +26,10 @@ class _Store:
         self._events = list(events)
         self._submissions = submissions or {}
         self.set_calls = []
+        self.baselines = []
+
+    def record_baseline(self, challenge, key, total):
+        self.baselines.append((challenge, key, total))
 
     def incumbent(self):
         return self._incumbent
@@ -118,5 +122,12 @@ def test_the_crown_carries_the_reason_of_the_pack_it_was_won_on(
         "compare_private_pair",
         lambda pair, comparator: {"outcome": bp.FIRST_INCUMBENT},
     )
-    promotion.consider_private("m1", "key", object(), sealed=sealed)
+    comparator = {
+        "challenge": CHALLENGE,
+        "score_pack_digest": "sha256:" + "ab" * 32,
+        "baseline_total": 0.4,
+    }
+    promotion.consider_private("m1", "key", comparator, sealed=sealed)
     assert store.set_calls == [("m1", reason, None)]
+    # the comparator's own aggregate is what gets registered for its exam set
+    assert store.baselines == [(CHALLENGE, comparator["score_pack_digest"], 0.4)]
