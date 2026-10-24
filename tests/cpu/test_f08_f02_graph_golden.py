@@ -32,6 +32,19 @@ EVIDENCE = (
     / "f08-f02-graph-golden.json"
 )
 CHANGED = "carbon.development_session.build_refusal.py"
+#: The served backbone catalog digest the recorded runs were made under (rc6
+#: a454e75e5). The catalog freeze moved it for these two versions
+#: (OWNER-CATALOG-LICENCES-01 relicense, 08c1465a9), which moves the kit's
+#: construction limits digest and so the staged recipe and control files. The
+#: test puts the old catalog digest back: everything else must be byte-identical.
+RC6_CATALOG = {
+    ("f08-ribbed-bracket", "1.4"): (
+        "sha256:b934bba02176ec06593e5cb77cea312298fbc83fd0e840153b9f7330bc0b38b3"
+    ),
+    ("f02", "2.3"): (
+        "sha256:2ff8b82da0f552f26e2797fa865cd023e638b329adb15f5ce5ac8bc1ba7171b0"
+    ),
+}
 #: The inference child's one staged difference on the round 11b line: the TRAIN
 #: codec accepts every served Battery version (it decodes Battery TRAIN only).
 INFER_CHANGED = "carbon.development_session.construction_tensor_codec.py"
@@ -77,8 +90,20 @@ class _Captured(Exception):
 
 @posix
 @pytest.mark.parametrize("key", [("f08-ribbed-bracket", "1.4"), ("f02", "2.3")])
-def test_the_build_child_and_programs_are_the_golden_ones(key, tmp_path):
+def test_the_build_child_and_programs_are_the_golden_ones(key, tmp_path, monkeypatch):
     from test_f08_f02_graph_adapters import PUBLIC, _binding, _case, _image, adapter
+
+    from carbon.backbone_catalog import served
+
+    served_digest = served.digest
+    assert served_digest(*key) != RC6_CATALOG[key]  # the freeze moved it
+    monkeypatch.setattr(
+        served,
+        "digest",
+        lambda cid, version: (
+            RC6_CATALOG[key] if (cid, version) == key else served_digest(cid, version)
+        ),
+    )
 
     golden = _evidence()["before"]["runs"]["@".join(key)]["children"]
     recipe, raw_manifest, files, staging = _case(key, {"steps": 16})

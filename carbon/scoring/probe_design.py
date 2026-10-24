@@ -23,6 +23,15 @@ import hashlib
 import json
 
 PROBE_COHORT = "probe_response"
+#: Every probe row's case id starts with this (the ids built below).
+PROBE_ID_PREFIX = "probe-"
+
+
+def is_probe_id(case_id):
+    """Whether `case_id` names a probe row (a row of the probe cohort)."""
+    return type(case_id) is str and case_id.startswith(PROBE_ID_PREFIX)
+
+
 DELTA = 0.01
 #: Each probe base point draws its own step, a fraction of every input span
 #: (Validator condition on receipt 615327e56: no fixed step to learn).
