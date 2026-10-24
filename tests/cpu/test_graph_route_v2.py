@@ -282,6 +282,10 @@ def test_the_registry_declares_each_new_version_in_full():
         own_here = own | (
             {"development_evaluation"} if dev_grid.kind(cid, version) else set()
         )
+        # F08 1.5 and F02 2.4 carry their own approved facts: their predecessor's with the exam-safety
+        # edits (OWNER-PUBLISH-WHAT-IS-TESTED-01).
+        if (cid, version) in ((F08, "1.5"), (F02, "2.4")):
+            own_here = own_here | {"facts"}
         for field in new.__dataclass_fields__:
             if field not in own_here:
                 assert getattr(new, field) == getattr(old, field), (cid, field)

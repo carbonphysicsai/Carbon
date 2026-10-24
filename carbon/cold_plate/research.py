@@ -381,6 +381,20 @@ class ColdPlatePublicMaterial:
         }
 
 
+#: What a catalog version says of neural operators: only Carbon-tested ones are
+#: served, by catalog id (Validator, 2026-10-20, Motor's rule). The served
+#: description and the capabilities document use these one texts.
+NEURAL_OPERATOR_BLOCKER = (
+    "only Carbon-tested ones, by catalog id; miner-authored neural operators "
+    "are not rebuildable"
+)
+NEURAL_OPERATOR_SUMMARY = (
+    "Carbon-tested PyTorch neural operators are served by catalog id and "
+    "rebuilt in the pinned PyTorch CPU worker; a miner-authored neural "
+    "operator is not rebuildable"
+)
+
+
 class CoolingCatalogMaterial(ColdPlatePublicMaterial):
     """Cooling's catalog-version public material: 1.0's, plus the backbone
     catalog it serves (each entry and its settings, with a ready recipe) and
@@ -401,7 +415,43 @@ class CoolingCatalogMaterial(ColdPlatePublicMaterial):
         super().__init__(root)
         self.VERSION = version
 
+    def _versioned(self, name):
+        """The objective and capabilities for this version: the objective names
+        the served version (from the registry, never typed), and the
+        capabilities say what the catalog serves for neural operators."""
+        if name == "objective":
+            value = objective()
+            return {
+                **value,
+                "challenge": {**value["challenge"], "version": self.VERSION},
+            }
+        registry = public_registry(COLD_PLATE_CHALLENGE)
+        return {
+            **registry,
+            "capabilities": [
+                (
+                    {
+                        **row,
+                        "blocker": NEURAL_OPERATOR_BLOCKER,
+                        "summary": NEURAL_OPERATOR_SUMMARY,
+                    }
+                    if row["id"] == "model_family.neural_operator"
+                    else row
+                )
+                for row in registry["capabilities"]
+            ],
+        }
+
     def __call__(self, name, workspace):
+        if name in ("objective", "capabilities"):
+            value = self._versioned(name)
+            body = canonical(value)
+            workspace.put("cold-plate-" + name + ".json", body)
+            return {
+                "document": value,
+                "file": "cold-plate-" + name + ".json",
+                "digest": digest(body),
+            }
         if name not in ("catalog", "construction_kit", "scaffold_recipe"):
             return super().__call__(name, workspace)
         from carbon.backbone_catalog import served
