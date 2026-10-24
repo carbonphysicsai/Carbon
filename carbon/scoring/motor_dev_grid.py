@@ -1,7 +1,7 @@
 """Motor 1.4's dev-pack v2 (Validator 2026-10-23, M2): the practice grid plus the PRACTICE cohort.
 
 The development bank of a Motor dev-grid version is the 30 public PRACTICE cases (cohort
-``practice``, unchanged: the miner's practice view of those 30 cases and its scorer read them) followed by
+``practice``, unchanged: the miner's view of the 30 PRACTICE cases and its scorer read them) followed by
 the practice grid (`practice_grid.practice_bank`: the 8 x 6 decision cells plus public-seeded
 probes, interleaved). One inference query covers both. The sealed v2 grader sees exactly the
 grid cells and probes: this adapter selects the PRACTICE rows out BY COHORT NAME, never by
