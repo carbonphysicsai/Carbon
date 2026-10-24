@@ -69,6 +69,11 @@ def test_every_scorer_verdict_reads_as_graded_in_words(challenge, verdict):
         assert latest["words"] == projection.NOT_SCORED_WORDS[reason].format(
             leg=document.get("leg")
         )
+    elif verdict == "MANDATORY_GATE_FAILED":
+        # A failed gate is named in the words (Ship condition 1's caveat).
+        assert latest["words"] == (
+            "graded: not admitted: failed the mandatory gate native motor valid"
+        )
     else:
         assert latest["words"] == projection.GRADE_WORDS[document["status"]]
     if verdict == "MANDATORY_GATE_FAILED":

@@ -392,6 +392,13 @@ def _grade(ladder, submission=None, epoch=None, also=()):
             shown["gate_names"] = [
                 n[:64] for n in names[:16] if type(n) is str and _GATE.fullmatch(n)
             ]
+            if shown["gate_names"]:
+                # A result that does not count says which gate (Ship condition 1).
+                shown["words"] = (
+                    "graded: not admitted: failed the mandatory gate"
+                    + ("s " if len(shown["gate_names"]) > 1 else " ")
+                    + ", ".join(n.replace("_", " ") for n in shown["gate_names"])
+                )
         reason = document.get("reason")
         if document["status"] == "NOT_SCORED" and reason in NOT_SCORED_WORDS:
             leg = document.get("leg")
