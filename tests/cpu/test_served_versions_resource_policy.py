@@ -27,6 +27,15 @@ BINDING_KEYS = (
 )
 
 
+def _material(challenge_id, version):
+    """Battery builds its kit in its own module; the others share one."""
+    if challenge_id == served_versions.BATTERY:
+        from carbon.battery import construction_bundle_material
+
+        return construction_bundle_material.versioned_material(version)
+    return physical_material.bundle_material(challenge_id, version)
+
+
 # Fails today for every launch version (the culprit of the 2026-10-24 proof-run
 # UNRESOLVED); strict, so it must be un-marked in the change that fixes it.
 @pytest.mark.xfail(
@@ -39,7 +48,7 @@ BINDING_KEYS = (
 def test_the_kits_published_policy_is_the_one_the_executor_demands(
     challenge_id, version
 ):
-    material = physical_material.bundle_material(challenge_id, version)
+    material = _material(challenge_id, version)
     kit = material["construction_kit"]
     binding = {
         "challenge_id": kit["id"],
