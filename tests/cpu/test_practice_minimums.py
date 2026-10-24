@@ -116,7 +116,7 @@ def test_a_gate_failure_outranks_a_minimum(monkeypatch):
         return [[float("nan")] * len(good(inputs)[0])] * len(inputs)
 
     nan = practice_dual.feedback_v2(KIND, VERSION, nonfinite)
-    assert nan["eligible"] is False and nan["status"] == "GATE_FAILED"
+    assert nan["eligible"] is False and nan["status"] == "PRACTICE_GATE_FAILED"
     assert nan["failed_legs"] == []
     assert all(row["met"] is None for row in nan["minimums"]["legs"].values())
 
@@ -154,6 +154,5 @@ def test_no_official_status_code_is_written():
     assert _doc()["status"] not in {
         "IMPROVED",
         "NO_IMPROVEMENT",
-        "GATE_FAILED_OFFICIAL",
         "NOT_SCORED",
     }

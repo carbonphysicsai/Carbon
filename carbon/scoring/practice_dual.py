@@ -363,7 +363,7 @@ def feedback_v2(kind, version, predict):
         # Practice status: the gates first (a gate failure outranks a minimum), then the
         # version's registered leg minimums (OWNER-PRACTICE-SHOWS-MINIMUMS-01).
         "status": (
-            "GATE_FAILED"
+            "PRACTICE_GATE_FAILED"
             if not eligible
             else "PRACTICE_BELOW_MINIMUM" if below else "PRACTICE_SCORED"
         ),
