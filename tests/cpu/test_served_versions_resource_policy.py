@@ -31,13 +31,6 @@ BINDING_KEYS = (
 )
 
 
-# Fails today for every launch version (the culprit of the 2026-10-24 proof-run
-# UNRESOLVED); strict, so it must be un-marked in the change that fixes it.
-@pytest.mark.xfail(
-    strict=True,
-    reason="kit limits documents publish the pre-large-model profile; "
-    "see codex-queue/reports/PROOF_RUN_UNRESOLVED_CULPRIT_20261024.md",
-)
 @pytest.mark.parametrize(("challenge_id", "version"), SERVED)
 def test_the_kits_published_policy_is_the_one_the_executor_demands(
     challenge_id, version

@@ -20,28 +20,28 @@ MOTOR = "electric-motor-magnetics"
 #: calibration artifact bound to them stays valid only while these do not move.
 KITS = {
     ("f08-ribbed-bracket", "1.5"): {
-        "construction_limits_digest": "sha256:9ada93ee419c2adbe91e7e8aae8176f35e2d60b11484ad9e9814b772ae4cf63b",
+        "construction_limits_digest": "sha256:2c54ee8493a87bb2f04bf6deabf85d18f865a917165f8df92943c90d24f698cf",
         "id": "f08-ribbed-bracket",
         "interface_digest": "sha256:42e64c6800368f2b364bbc6e70e34814401e3e38b6a9ff7dcfec70c7b1818eba",
         "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
         "version": "1.5",
     },
     ("f02", "2.4"): {
-        "construction_limits_digest": "sha256:827e396bfe19d2ee162482f48d22150ee2894af1622d5778a55630644594e5f1",
+        "construction_limits_digest": "sha256:10836cbdd3a266cd73152c27e980e8f2e7db191bd3077b8b0bcd06321c34c281",
         "id": "f02",
         "interface_digest": "sha256:3a9c2f8bd2fdaeeca65e060d32f17a60cba06c16b837d6be185a95cdfa9e011e",
         "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
         "version": "2.4",
     },
     ("electric-motor-magnetics", "1.4"): {
-        "construction_limits_digest": "sha256:43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0",
+        "construction_limits_digest": "sha256:3c3a854f4e035b70b542d91222b83d4bb3fcb674c60526f00bf51c3e3d3c4b78",
         "id": "electric-motor-magnetics",
         "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
         "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
         "version": "1.4",
     },
     ("chip-cold-plate", "1.4"): {
-        "construction_limits_digest": "sha256:19ef124c22c8533d781ac9add9527e911e534ebe322f64fd4ca23e93f639932c",
+        "construction_limits_digest": "sha256:bf94ffc1d6008c5abb81203c3bd54c232f3b3a923e3ef93a19e9a8d57a0c547d",
         "id": "chip-cold-plate",
         "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
         "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
@@ -456,7 +456,7 @@ KITS_ON_RC10 = {
         "sha256:f6a9b9c5ca937cd491d9df97c43e309832f87f2897cce2828e8810e3f2cc5924",
     ),
     ("electric-motor-magnetics", "1.4"): (
-        "sha256:43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0",
+        "sha256:3c3a854f4e035b70b542d91222b83d4bb3fcb674c60526f00bf51c3e3d3c4b78",
         "sha256:384beb065f566300f701ea0443e593f1990fc4fc0993f383ad4ec133b4c8eaaa",
     ),
     ("f02", "2.4"): (
@@ -464,7 +464,7 @@ KITS_ON_RC10 = {
         "sha256:a33b56d54e804f3bd2c82580cd518b54c1296e82a3a020b4cfe1d67830bdc63d",
     ),
     ("f08-ribbed-bracket", "1.5"): (
-        "sha256:9ada93ee419c2adbe91e7e8aae8176f35e2d60b11484ad9e9814b772ae4cf63b",
+        "sha256:2c54ee8493a87bb2f04bf6deabf85d18f865a917165f8df92943c90d24f698cf",
         "sha256:8c47d928947ed3039eaa5a8dda2a92f36270d9a72944c48efb8a0a9f74f9e1ac",
     ),
 }

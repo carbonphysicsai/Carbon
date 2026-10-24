@@ -67,15 +67,18 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
         _worker_profile,
     )
 
-    from .served_versions import step_caps
+    from .served_versions import step_caps, worker_resources
     from .version_registry import entry as _registered
 
     _, _, count = _identity(challenge_id, version)
     # A graph route v2 version's rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01)
-    # moves only the two wall fields; every other version keeps its bytes.
+    # moves only the two wall fields; a v7 version also publishes the larger
+    # worker resources the executor demands (pre-publish move, the culprit of
+    # PROOF_RUN_UNRESOLVED_CULPRIT_20261024); every older version keeps its bytes.
     profile = _worker_profile(
         None,
         LIBRARY_BUILD_PROVENANCE,
+        worker_resources(challenge_id, version),
         rebuild_wall_seconds=_registered(challenge_id, version).rebuild_wall_seconds,
     ).body
     document = {
