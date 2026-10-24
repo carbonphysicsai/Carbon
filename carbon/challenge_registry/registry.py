@@ -838,6 +838,7 @@ def catalog(host=None):
 def describe(challenge_id, version, *, host=None):
     """One Challenge's full description, or a typed refusal."""
     from carbon.challenge_kit.standard import public_provisions
+    from carbon.challenge_registry import published_exam
 
     entry = _find(challenge_id, version)
     host = host if host is not None else HostFacts.observe()
@@ -847,6 +848,9 @@ def describe(challenge_id, version, *, host=None):
             **entry.summary(host),
             **entry.describe(),
             "provisions": public_provisions(entry.challenge_id),
+            "published_exam": published_exam.for_version(
+                entry.challenge_id, entry.version
+            ),
             "how_to_request_unsupported": CAPABILITY_REQUEST,
         }
     )

@@ -295,6 +295,11 @@ def describe_catalog(version):
 
     contract = registered(COLD_PLATE_CHALLENGE, version)
     catalog = served.document(COLD_PLATE_CHALLENGE, version)
+    from carbon.cold_plate.research import (
+        NEURAL_OPERATOR_BLOCKER,
+        NEURAL_OPERATOR_SUMMARY,
+    )
+
     capabilities = public_registry(COLD_PLATE_CHALLENGE)["capabilities"]
     # The Level 0 registry's unrebuildable capabilities. Neural operators
     # stay listed: only Carbon-tested ones are served, by catalog id
@@ -304,12 +309,15 @@ def describe_catalog(version):
             "id": value["id"],
             "status": value["status"],
             "blocker": (
-                "only Carbon-tested ones, by catalog id; miner-authored "
-                "neural operators are not rebuildable"
+                NEURAL_OPERATOR_BLOCKER
                 if value["id"] == "model_family.neural_operator"
                 else value["blocker"]
             ),
-            "summary": value["summary"],
+            "summary": (
+                NEURAL_OPERATOR_SUMMARY
+                if value["id"] == "model_family.neural_operator"
+                else value["summary"]
+            ),
         }
         for value in capabilities
         if value["status"] != "rebuildable_development"

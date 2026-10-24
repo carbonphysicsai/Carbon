@@ -111,6 +111,96 @@ With Graphite you set your limits up front: how many model calls, how many dolla
 
 Your **grade** runs from 0 to 1, and **higher is better**. Half of it is accuracy and half is design value: how well the model supports real design decisions. You can make at most one graded submission per Challenge per round (one epoch, about 72 minutes; the page says round), up to a daily allowance per Challenge that depends on validator capacity (at least one a day). Resubmitting the same recipe returns its earlier grade; a failed build or an infrastructure failure doesn't use your allowance. A graded submission reads one of four ways: a new best, did not improve on your best, **not eligible** (it names the mandatory gate that failed), or **does not count**, which shows no total and says why: **not admitted** (an invalid result, an ineligible design decision, or a named score part below its required minimum) or **not graded** (an infrastructure problem or indeterminate evidence, which doesn't use your allowance).
 
+## What the exam tests
+
+The exam is not a surprise: you can read what it measures and what passes. What stays private is where its cases are and how they were chosen. The same text is served as structured fields by the describe tool (`published_exam`); each value below is Carbon's registered value for that version (scoring v2) at the time of writing, and where a value is not registered yet this page says **not yet registered**.
+
+**The score** is `TOTAL = 0.5 * A + 0.5 * D`.
+
+- **A** (accuracy and physics) is the mean of four legs: *A_acc* (accuracy on the exam's cases), *A_robust* (the same accuracy on the worse of two groups of cases: nearer the main limit and further from it), *A_law* (how far your model's outputs break the measured physics laws, as an equivalent normalised output error) and *A_response* (how far your model's sensitivity to each input departs from the slope fitted on public TRAIN, in the same units).
+- **D** (design value) is `min(V, C)`. *V* is the mean of *V_pair* (design pairs ordered correctly), *V_feas* (cost of wrongly accepting or rejecting a design) and *V_var* (how good your model's pick is for the main limit and for that limit moved down and up by 5 %). *C* is how well your model predicts the decision margins of every candidate design. A pick the references do not verify as feasible gets D = 0.
+- **Minimums.** No leg minimum is registered in the sealed pack. Each batch takes its minimums from Carbon's baseline run on that batch; a result below a minimum is *not eligible* (equal passes).
+- **Gates come before the score.** A failed gate is never made up for by a good score. Physics laws marked *gated* below fail a model; laws marked *measured* count in *A_law* but are **not yet registered as gate margins**.
+- **Practice and exam.** Practice uses the public bank, with public-seeded probes; its totals are not exam totals. The exam uses private cases, drawn near the design limit inside the published validity region, so that some designs pass and some fail. Exams rotate at most every 90 days, with a weekly overfit check.
+- **King of the hill.** The best total wins. A challenger must beat the king by the registered margin, a tie keeps the king, and the first king must beat Carbon's baseline by the margin. The margin is **not yet registered**, so takeovers are paused.
+
+### Ribbed Bracket 1.5
+
+Scoring `f08-dual-sealed-grid-8x1-v2`. Exam: 8 cells (8 designs x 1 condition); probes are random points inside the validity region with a step of 0.005 to 0.015 of each input's span.
+
+- **Hard gates:**
+  - `finite_native_summary`: the graded rows and both repeats are finite and non-negative, and the three peak frequencies lie in the band (frequency band 80 to 600 Hz)
+  - `paired_repeat`: the graded run and the two fresh repeats are identical, per case (rule exact_equality)
+  - `complete_accepted_reference`: the exam's references are complete and accepted
+  - `verified_pick_feasible`: the model's pick is feasible by the references; otherwise D = 0 (mass at most 0.45 kg, static tip compliance at most 0.03 mm/N, dynamic tip compliance at most 0.15 mm/N)
+  - `physics_laws`: no gated law is violated, no sign law fails, and the probe predictions are usable
+- **Physics laws (gated):** `peak_not_below_static`: the peak dynamic compliance is at least the static compliance at every damping level; `peaks_ordered_by_damping`: the peak at zeta 0.005 is at least the peak at 0.01, which is at least the peak at 0.02
+- **Physics laws (measured, not yet gate margins):** damping_scaling_005_010 (peak at 0.005 = 2 x peak at 0.01, the 1/zeta peak scaling); damping_scaling_010_020 (peak at 0.01 = 2 x peak at 0.02); frequency_independence_005_010 (peak frequency at 0.005 = at 0.01); frequency_independence_010_020 (peak frequency at 0.01 = at 0.02)
+- **Sign laws:** static tip compliance rises with length and falls with width, thickness, rib height and rib thickness; peak frequency falls with length and rises with rib height
+- **Design-value scales:** static margin 0.003 mm/N, dynamic margin 0.015 mm/N, resonance 10.0 Hz, objective D scale 0.01 mm/N
+- **Limits:** `mass_kg_max` = 0.45, `static_tip_mm_per_n_max` = 0.03, `dynamic_tip_mm_per_n_max` = 0.15
+- **Input ranges:** length 180–260, width 60–100, thickness 4–8, rib_height 8–16, rib_thickness 3–5, relief_length 20–60
+- **Registered measurement uncertainty U:** static_tip_mm_per_n = 6.7e-07, worst_dynamic_mm_per_n = 3.9e-05, mass = not yet registered
+
+### Burst Thermal 2.4
+
+Scoring `f02-dual-sealed-grid-8x1-v2`. Exam: 8 cells (8 designs x 1 condition); probes are random points inside the validity region with a step of 0.005 to 0.015 of each input's span.
+
+- **Hard gates:**
+  - `finite_peak`: every predicted peak is a finite number
+  - `paired_repeat`: both fresh repeats equal the graded outputs exactly, per case (tolerance ulp 0)
+  - `reference_acceptance`: the exam holds only accepted references that were compared across solver rungs
+  - `verified_pick`: the model's pick is feasible by the references (peak top c max 95.0)
+  - `physics_laws`: no gated law is violated, no sign law fails, and the probe predictions are usable
+- **Physics laws (gated):** `peak_not_below_initial`: every predicted peak is at least the initial temperature
+- **Physics laws (measured, not yet gate margins):** affine_in_power (the peak is affine in power at fixed on-time)
+- **Sign laws:** the temperature rise over the initial rises with peak power and with on-time
+- **Design-value scales:** value scale 100.0 J, margin scale 1.0 degC
+- **Limits:** `peak_top_c_max` = 95.0
+- **Input ranges:** peak_w 70.0–100.0, on_time_s 4.0–6.0
+- **Registered measurement uncertainty U:** peak_top_c = 0.012
+
+### Motor 1.4
+
+Scoring `motor-dual-sealed-batch-30-v2`. Exam: 30 cells (5 designs x 6 conditions); probes are random points inside the validity region with a step of 0.005 to 0.015 of each input's span.
+
+- **Hard gates:**
+  - `native_motor_valid`: no cell fails a native gate against either fresh repeat or between the repeats, and every cell is scorable
+  - `complete_fixed_coverage`: all 30 cells are scored (cells 30)
+  - `physics_laws`: no gated law is violated, no sign law fails, and the probe predictions are usable
+  - `schema_finite`: the torque curve is present with 60 finite values (angle steps 60)
+  - `motoring_mean_nonnegative`: mean(torque) is at least -(1e-3 x max|torque| + 1e-3 N.m) (relative 0.001, floor nm 0.001)
+  - `paired_repeat`: a duplicate's prediction equals the original's within 32 float32 ulp (ulp 32)
+- **Physics laws (gated):** `mean_torque_positive`: the mean torque of the predicted curve is positive wherever the current density exceeds 1 A/mm^2
+- **Physics laws (measured, not yet gate margins):** linear_in_current (mean torque scales with current density, K = 1.5); zero_current_torque (mean torque tends to 0 as current density tends to 0)
+- **Sign laws:** mean torque rises with current density and falls with current angle
+- **Design-value scales:** torque margin 0.1 N.m, ripple margin 0.01 ripple fraction, objective D scale 0.01 ripple fraction
+- **Limits:** `min_mean_torque_nm` = 4.0, `max_ripple_fraction` = 0.3
+- **Input ranges:** magnet_mm 1.5–4.0, embrace 0.55–0.95, airgap_mm 0.3–1.0, slot_open_deg 1.0–6.0, tooth_mm 2.5–5.0, slot_bottom_mm 34.0–42.0, current_density_a_mm2 0.0–15.0, current_angle_deg 0.0–60.0
+- **Registered measurement uncertainty U:** mean_torque_nm = 0.0052, ripple_fraction = 0.026
+
+### Cooling 1.4
+
+Scoring `cooling-dual-sealed-batch-16-v2`. Exam: 16 cells (4 designs x 4 conditions); probes are random points inside the validity region with a step of 0.005 to 0.015 of each input's span.
+
+- **Hard gates:**
+  - `native_cold_plate`: every cell is scorable against both fresh repeats and the two repeats agree
+  - `complete_grid_common_mask`: the grid is a complete 4 x 4 cross
+  - `selected_design_verified_feasible`: the model's pick is feasible by the references at every condition (die peak c max 100.0, hydraulic power w max 0.25)
+  - `physics_laws`: no gated law is violated, no sign law fails, and the probe predictions are usable
+  - `schema_finite`: peak, the 30-value profile and the pressure drop are present and finite (profile values 30)
+  - `face_above_inlet`: the lowest profile value is above the inlet
+  - `peak_bounds_profile`: the peak is at least the highest profile value less 32 float32 ulp (ulp 32)
+  - `pressure_drop_positive`: the pressure drop is above zero
+  - `paired_repeat`: a duplicate's prediction equals the original's within 32 float32 ulp (ulp 32)
+- **Physics laws (gated):** `peak_above_profile`: the peak is at least the highest profile value; `profile_above_inlet`: the lowest profile value is at least the inlet; `pressure_positive`: the pressure drop is above zero
+- **Physics laws (measured, not yet gate margins):** inlet_shift_temperatures (moving only the inlet by 5 degC moves the peak and every profile segment by the same amount); pressure_ignores_hotspot (mirroring only the hotspot inputs leaves the pressure drop unchanged)
+- **Sign laws:** the temperature rise falls with flow and rises with heat load and hotspot ratio; the pressure drop rises with flow and falls with channel width and depth
+- **Design-value scales:** die margin 1.0 degC, hydraulic margin 0.025 W, objective D scale 0.025 W
+- **Limits:** `die_peak_c_max` = 100.0, `hydraulic_power_w_max` = 0.25
+- **Input ranges:** channel_width_mm 0.2–0.5, fin_width_mm 0.2–0.5, channel_depth_mm 1.0–3.0, flow_lpm_per_kw 1.25–2.0, inlet_c 30.0–45.0, heat_load_w 500.0–1500.0, hotspot_ratio 1.0–3.0, hotspot_center_mm 3.0–27.0, hotspot_width_mm 1.5–3.5
+- **Registered measurement uncertainty U:** die_peak_c = 0.037, hydraulic_w = 3 % of the cell's value
+
 **Current kings** (Overview): for each Challenge whose grader you use, who holds it now (their mining key address and score on this exam version), and the **score to beat**: the king's score plus the registered margin. With no king yet, you need to beat Carbon's baseline. Until the margin has been measured, the card says **Takeovers paused** and shows no score to beat. The card never shows anyone's recipe.
 
 ---
