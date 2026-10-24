@@ -63,6 +63,8 @@ class Docker:
         self.containers = [
             json.dumps({"ID": "c" * 64, "Names": "carbon-d4-old", "Size": "12MB"})
         ]
+        # `docker system df`: Docker's own build cache, reclaimable (none unless a test sets it).
+        self.df = []
 
     def __call__(self, *argv):
         self.calls.append(argv)
@@ -81,6 +83,11 @@ class Docker:
             return ok("\n".join(self.images))
         if argv[:2] == ("image", "inspect"):
             return ok(json.dumps(self.labels.get(argv[-1], {})))
+        if argv[:2] == ("system", "df"):
+            return ok("\n".join(self.df))
+        if argv[:2] == ("builder", "prune"):
+            assert argv == ("builder", "prune", "--all", "--force")
+            return ok("Total reclaimed space: 3.2GB")
         if argv[0] == "rm" or argv[:2] == ("image", "rm"):
             target = argv[-1]
             if target in self.refuse:
@@ -176,3 +183,38 @@ def test_sizes_read_as_docker_prints_them():
     assert superseded_images.size_bytes("12MB (virtual 3GB)") == 12_000_000
     assert superseded_images.size_bytes("?") == 0
     assert superseded_images.human(8_400_000_000) == "8.4GB"
+
+
+CACHE = json.dumps({"Type": "Build Cache", "Size": "9GB", "Reclaimable": "3.2GB (35%)"})
+
+
+def test_docker_build_cache_is_listed_last_with_its_reclaimable_size_and_only_when_there_is_some(
+    tmp_path,
+):
+    state, repo = install(tmp_path)
+    docker = Docker()
+    assert "build_cache" not in {
+        item["kind"] for item in superseded_images.superseded(state, repo, docker)
+    }
+    docker.df = [
+        json.dumps({"Type": "Images", "Reclaimable": "1GB (10%)"}),
+        CACHE,
+    ]
+    found = superseded_images.superseded(state, repo, docker)
+    assert found[-1]["kind"] == "build_cache"
+    assert superseded_images.totals(found)["build_cache"] == (1, 3_200_000_000)
+    docker.df = [json.dumps({"Type": "Build Cache", "Reclaimable": "0B (0%)"})]
+    assert "build_cache" not in {
+        item["kind"] for item in superseded_images.superseded(state, repo, docker)
+    }
+
+
+def test_removal_prunes_the_build_cache_last_with_the_exact_prune_command(tmp_path):
+    state, repo = install(tmp_path)
+    docker = Docker()
+    docker.df = [CACHE]
+    found = superseded_images.superseded(state, repo, docker)
+    docker.calls.clear()
+    done = superseded_images.remove(found, docker)
+    assert done[-1] == ("Docker build cache", None)
+    assert docker.calls[-1] == ("builder", "prune", "--all", "--force")

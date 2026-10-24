@@ -21,6 +21,14 @@ What counts, and nothing else:
 Another program's image or container is never listed. Each is removed
 without force: Docker refuses an image a container still uses, and that
 refusal is reported, not overridden. A running container is never listed.
+
+Docker's unused build cache is listed last, by the size Docker reports as
+reclaimable. Every Carbon build leaves cache, and an update stopped at its own
+space check after the images were removed because the cache was not. The cache
+is Docker's, shared with any other builds on this machine, and is only made
+again when needed; it is listed and pruned only on the miner's yes (or
+`--remove-old-images`), and `docker builder prune` never removes cache an
+active build uses.
 """
 
 from __future__ import annotations
@@ -60,6 +68,7 @@ KINDS = {
     "container": "practice job containers that finished",
     "catalog": "catalog images built over an earlier worker",
     "image": "Carbon images from earlier installs",
+    "build_cache": "Docker's unused build cache (shared with any other builds on this machine; made again when needed)",
 }
 _IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}")
 _SIZE = re.compile(r"([0-9.]+)\s*([kKMGT]?B)")
@@ -203,6 +212,16 @@ def superseded(state_dir, repo, docker=_docker) -> list[dict]:
                 "size": image.get("Size", "?"),
             }
         )
+    for usage in _lines(docker("system", "df", "--format", "{{json .}}")):
+        if usage.get("Type") == "Build Cache" and size_bytes(usage.get("Reclaimable")):
+            found.append(
+                {
+                    "kind": "build_cache",
+                    "ref": "Docker build cache",
+                    "id": "build-cache",
+                    "size": usage.get("Reclaimable"),
+                }
+            )
     return found
 
 
@@ -220,15 +239,12 @@ def remove(found, docker=_docker) -> list[tuple[str, str | None]]:
     [(ref, why)] when Docker refused it."""
     done = []
     for item in found:
-        command = (
-            ("rm", item["id"])
-            if item["kind"] == "container"
-            else (
-                "image",
-                "rm",
-                item["ref"],
-            )
-        )
+        if item["kind"] == "build_cache":
+            command = ("builder", "prune", "--all", "--force")
+        elif item["kind"] == "container":
+            command = ("rm", item["id"])
+        else:
+            command = ("image", "rm", item["ref"])
         result = docker(*command)
         done.append(
             (
