@@ -294,7 +294,7 @@ def test_motor_dev_pack_writes_with_the_sealed_rule_and_its_own_identity(tmp_pat
 
 
 def test_the_practice_30_total_is_unchanged_by_the_re_layout(tmp_path, monkeypatch):
-    """Same predictions, same PRACTICE-30 summary: the catalog practice with the
+    """Same predictions, same 30-case practice summary: the catalog practice with the
     receiver's worker stubbed, 1.3 (old layout) against 1.4 (dev-grid layout)."""
     from types import SimpleNamespace
 
