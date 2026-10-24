@@ -25,3 +25,6 @@ So the push and publish in item 2 above also require **all** of the following, v
 4. **Only miners set limits:** the no-Carbon-limits versions have landed. Only exam protection and cited external facts remain.
 5. **Every avenue works:** the Launchpad page with Graphite; the headless CLI/MCP route; the miner's own agent; local GPU and remote GPU (PyTorch and JAX).
 6. **Scored correctly:** the final scoring is live (D = min(V, C) with decision fidelity, the physics half, and the KOTH margin rules) and has been checked on each Challenge.
+
+## Further owner condition (same day, directly to the Lead)
+"don't ship anything that could benefit from a pending update". The release head must already contain every in-flight update that would improve what ships. Examples are catalog v2 entries, priors, the GPU fixes, Graphite fixes, and the no-Carbon-limits v2 versions. No push or publish while such an update is still pending. Updates parked as POST-TESTNET under the scope freeze are not "pending" for this rule.
