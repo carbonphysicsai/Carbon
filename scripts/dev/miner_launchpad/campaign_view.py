@@ -393,19 +393,21 @@ PRACTICE_BASELINES: dict = {
     # sha256:12dd3aafe21c814d05f9c9a543fd8e2af40fd22fefd0f2d4d77f40b4163b27e3
     # (Linux, torch 2.13.0+cpu).
     ("chip-cold-plate", "1.3"): {
-        # Measured by the earlier practice dual (v1); not shown while practice
-        # reports the exam's v2 legs (`baseline`).
-        "dual_schema": DUAL_FEEDBACK_SCHEMA,
-        "score": 0.9137914131624103,
+        # Re-measured by the practice dual v2 (the exam's own v2 legs on the practice
+        # grid) at the cited code head: record
+        # docs/development/evidence/cooling13-native-krr-baseline-v1/
+        # cooling13-krr-practice-baseline-v2.json (the earlier v1 record is kept beside it).
+        "dual_schema": DUAL_FEEDBACK_SCHEMA_V2,
+        "score": 0.5223425998136159,
         "strategy_digest": (
             "sha256:ffde968a02665765afb346307b9ce1935bde838d67a3c2ace5273521778629d1"
         ),
         "bank_digest": (
-            "sha256:80a60bbe615ef21d13ea2a45a5baa21693abe0da3c8ff5812f39ce816a2a9792"
+            "sha256:71eeaf107616a7c7c95e8ade3803c7093944a26bc784bdee96bbb8bc344e83ae"
         ),
-        "code_head": "abbdc3eb8b7b9c69d1b892cbcb7462ef19aa65c1",
+        "code_head": "a5a3154fd3e26929ee894df082ccc2818eb436ec",
         "record_digest": (
-            "sha256:12dd3aafe21c814d05f9c9a543fd8e2af40fd22fefd0f2d4d77f40b4163b27e3"
+            "sha256:832837f96b16818a5e10cca2fe579f3689d26641671b5f838b8b4b96e6924a76"
         ),
     },
 }
