@@ -2,6 +2,7 @@
 
 Date: 2026-10-23 (US Central; 2026-10-24 UTC)
 Status: **APPROVED by the owner, directly.** The owner typed, in lp-u45's session (local_fc5334bb, the U45 session; Claude Code transcript `bbc8bae7-037e-4994-8f8d-50f30791cc42`): "approve LARGE_MODEL_PROFILE_APPLIED for testnet only". The owner then confirmed it to the Lead directly in chat ("already did both").
+Confirmed directly to the Validator, 2026-10-24.
 Signed: lp-u45 (received the owner's words first-hand); the Lead (co-signs; the owner confirmed to the Lead directly).
 Applies: OWNER-WORKER-RESOURCES-LARGE-MODELS-01, whose condition is met (below).
 
