@@ -301,6 +301,42 @@ DUAL_FEEDBACK_SCHEMAS = (DUAL_FEEDBACK_SCHEMA, DUAL_FEEDBACK_SCHEMA_V2)
 NOT_TESTED_ON_PRACTICE = "NOT_TESTED_ON_PRACTICE"
 
 
+#: The practice statuses the doc may carry (always practice, never an exam
+#: status).
+PRACTICE_STATUSES = (
+    "PRACTICE_GATE_FAILED",
+    "PRACTICE_BELOW_MINIMUM",
+    "PRACTICE_SCORED",
+)
+
+
+def _minimums(block):
+    """The practice doc's `minimums` block, allow-listed: its source, version and
+    status (SET or NOT_YET_SET), and each leg's minimum, practice value and
+    whether it is met. None when the doc carries none."""
+    if type(block) is not dict:
+        return None
+    legs = block.get("legs") if type(block.get("legs")) is dict else {}
+    return {
+        "source": _str(block.get("source"), 32),
+        "version": _str(block.get("version"), 64),
+        "status": (
+            block.get("status")
+            if block.get("status") in ("SET", "NOT_YET_SET")
+            else None
+        ),
+        "legs": {
+            str(leg)[:32]: {
+                "minimum": finite(row.get("minimum")),
+                "value": finite(row.get("value")),
+                "met": row.get("met") if type(row.get("met")) is bool else None,
+            }
+            for leg, row in list(legs.items())[:8]
+            if type(row) is dict
+        },
+    }
+
+
 def dual_feedback(experiment):
     """A practice run's dual-feedback block, allow-listed, wherever the run's
     record carries it (beside its summary or inside it); None when absent.
@@ -371,6 +407,19 @@ def dual_feedback(experiment):
                     _str(name, 64)
                     for name in (found.get("gates_failed_laws") or [])[:16]
                 ],
+                # OWNER-PRACTICE-SHOWS-MINIMUMS-01: the practice status, the
+                # legs below their published minimum, and each leg's minimum
+                # beside its practice value, read as the doc carries them. The
+                # page computes no minimum.
+                "practice_status": (
+                    found.get("status")
+                    if found.get("status") in PRACTICE_STATUSES
+                    else None
+                ),
+                "failed_legs": [
+                    _str(leg, 32) for leg in (found.get("failed_legs") or [])[:8]
+                ],
+                "minimums": _minimums(found.get("minimums")),
             }
             if found.get("schema") == DUAL_FEEDBACK_SCHEMA_V2
             else {}
