@@ -389,11 +389,11 @@ offer_old_images() {
   listing="$(cd "${repo_root}" && PYTHONDONTWRITEBYTECODE=1 "${py}" -B -m scripts.dev.miner_launchpad.superseded_images \
     list --state-dir "${STATE_DIR}" --repo "${repo_root}" 2>/dev/null)" || return 0
   [[ -n "${listing}" ]] || return 0
-  echo "Space is short. These are Carbon's own images and finished practice-job containers from earlier installs, which this install does not use (the catalog images are built again over the new worker):"
+  echo "Space is short. These are Carbon's own images and finished practice-job containers from earlier installs, which this install does not use; Docker's unused build cache is listed too (it is shared with any other builds on this machine and is made again when needed) (the catalog images are built again over the new worker):"
   echo "${listing}"
   if [[ "${REMOVE_OLD_IMAGES}" == 0 ]]; then
     if [[ -t 0 ]]; then
-      read -r -p "Remove them? No other image or container is touched. [y/N] " answer || answer=""
+      read -r -p "Remove them? No other image or container is touched; Docker only drops build cache nothing is using. [y/N] " answer || answer=""
     fi
     if [[ "${answer}" != [yY]* ]]; then
       echo "Kept them. To remove them, answer y, or run this again with --remove-old-images."
