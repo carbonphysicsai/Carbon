@@ -297,7 +297,24 @@ DUAL_FEEDBACK_SCHEMA = "carbon.practice.dual-feedback.v1"
 #: v2: the exam's own v2 legs on the full public bank as a grid with public
 #: probes ("practice (public bank)"; never comparable with a sealed grade).
 DUAL_FEEDBACK_SCHEMA_V2 = "carbon.practice.dual-feedback.v2"
-DUAL_FEEDBACK_SCHEMAS = (DUAL_FEEDBACK_SCHEMA, DUAL_FEEDBACK_SCHEMA_V2)
+#: v3: v2 plus `pool_grade`, the pool grader's practice result on a PUBLIC pool
+#: (`carbon.pool-grade.practice.v1`; Validator spec
+#: POOL_GRADER_AND_PROOF_SUITE_SPEC_20261024 section 4). Practice only.
+DUAL_FEEDBACK_SCHEMA_V3 = "carbon.practice.dual-feedback.v3"
+DUAL_FEEDBACK_SCHEMAS = (
+    DUAL_FEEDBACK_SCHEMA,
+    DUAL_FEEDBACK_SCHEMA_V2,
+    DUAL_FEEDBACK_SCHEMA_V3,
+)
+POOL_GRADE_SCHEMA = "carbon.pool-grade.practice.v1"
+#: The closed per-target reasons of the pool grader (`reason`).
+POOL_TARGET_REASONS = (
+    "graded",
+    "no_predicted_feasible_pick",
+    "pick_infeasible",
+    "prediction_invalid",
+)
+POOL_LEGS = ("A", "A_gen", "A_combined", "D_opt", "C")
 NOT_TESTED_ON_PRACTICE = "NOT_TESTED_ON_PRACTICE"
 
 
@@ -334,6 +351,61 @@ def _minimums(block):
             for leg, row in list(legs.items())[:8]
             if type(row) is dict
         },
+    }
+
+
+def pool_grade(block):
+    """The pool grader's practice result on a public pool, allow-listed field by
+    field; None unless it carries the schema. Practice only: it is read from the
+    practice doc, computes nothing, and a sealed result never takes this path
+    (the exam discloses the set D and closed reason codes only)."""
+    if type(block) is not dict or block.get("schema") != POOL_GRADE_SCHEMA:
+        return None
+    legs = block.get("legs") if type(block.get("legs")) is dict else {}
+    targets = []
+    for row in (block.get("targets") if type(block.get("targets")) is list else [])[:16]:
+        if type(row) is not dict:
+            continue
+        targets.append(
+            {
+                "target_id": _str(row.get("target_id"), 64),
+                "d": finite(row.get("d")),
+                "closeness": finite(row.get("closeness")),
+                "honesty": finite(row.get("honesty")),
+                "error_in_u": finite(row.get("error_in_u")),
+                "feasible": (
+                    row.get("feasible") if type(row.get("feasible")) is bool else None
+                ),
+                "queries": (
+                    row["queries"]
+                    if type(row.get("queries")) is int and row["queries"] >= 0
+                    else None
+                ),
+                "reached_reference": (
+                    row.get("reached_reference")
+                    if type(row.get("reached_reference")) is bool
+                    else None
+                ),
+                "reason": (
+                    row.get("reason")
+                    if row.get("reason") in POOL_TARGET_REASONS
+                    else None
+                ),
+            }
+        )
+    return {
+        "scope": "practice (public pool)",
+        "pool_digests": [
+            _str(digest, 80)
+            for digest in (
+                block.get("pool_digests")
+                if type(block.get("pool_digests")) is list
+                else []
+            )[:16]
+        ],
+        "legs": {name: finite(legs.get(name)) for name in POOL_LEGS if name in legs},
+        "total": finite(block.get("total")),
+        "targets": targets,
     }
 
 
@@ -420,8 +492,13 @@ def dual_feedback(experiment):
                     _str(leg, 32) for leg in (found.get("failed_legs") or [])[:8]
                 ],
                 "minimums": _minimums(found.get("minimums")),
+                **(
+                    {"pool_grade": pool_grade(found.get("pool_grade"))}
+                    if found.get("schema") == DUAL_FEEDBACK_SCHEMA_V3
+                    else {}
+                ),
             }
-            if found.get("schema") == DUAL_FEEDBACK_SCHEMA_V2
+            if found.get("schema") in (DUAL_FEEDBACK_SCHEMA_V2, DUAL_FEEDBACK_SCHEMA_V3)
             else {}
         ),
     }

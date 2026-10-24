@@ -3235,6 +3235,16 @@
     const below = Array.isArray(dual.failed_legs) ? dual.failed_legs : [];
     return " Practice minimums: " + rows.join("; ") + "." + (dual.practice_status === "PRACTICE_BELOW_MINIMUM" && below.length ? " practice: below the required minimum for " + below.map(legName).join(", ") + "." : "");
   }
+  // Pool grader practice (Validator spec section 4): the design search on the
+  // PUBLIC practice targets, one line per target, always labelled practice. The
+  // exam shows none of this; it shows the rounded total and a closed reason.
+  function practicePoolLines(dual) {
+    const pool = dual && dual.pool_grade;
+    if (!pool || !Array.isArray(pool.targets) || !pool.targets.length) return [];
+    const feasible = pool.targets.filter(t => t.feasible === true).length;
+    const said = (t) => (t.target_id || "target") + ": " + (t.feasible === true ? "feasible pick, design score " + (typeof t.d === "number" ? t.d.toFixed(3) : "n/a") + (typeof t.closeness === "number" ? " (closeness " + t.closeness.toFixed(3) + (typeof t.honesty === "number" ? ", honesty " + t.honesty.toFixed(3) : "") + ")" : "") : "no feasible pick (" + words(t.reason || "not graded") + ")");
+    return ["Practice design search (public targets, not the exam): " + feasible + " of " + pool.targets.length + " picks feasible. " + pool.targets.map(said).join("; ") + ". The exam uses hidden targets and shows only the total."];
+  }
   // M1 E2E R5-1: `latest` is this submission's grade only when the receiver
   // names this submission; the mining key's latest grade on the exam
   // (`other_submission_latest`) is shown apart, never as this submit's, and "not graded
@@ -3280,6 +3290,7 @@
       // is not eligible; none yet until the receiver grades it.
       ...(o.grade !== undefined ? [gradeLine(o.grade, o.state)] : []),
       ...(o.practice_dual ? [practiceDualLine(o.practice_dual)] : []),
+      ...(o.practice_dual ? practicePoolLines(o.practice_dual) : []),
       (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",
     ];
     for (const line of lines) researchNote(panel, line, "development-result");
