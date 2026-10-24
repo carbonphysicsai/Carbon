@@ -130,7 +130,17 @@ def test_compact_is_a_small_projection_of_the_full_answer(
     assert compact["ready_recipe"] == document
     catalog = full["models"].get("catalog")
     if catalog is not None:
-        assert compact["catalog_ids"] == sorted(catalog["entries"])
+        every = sorted(catalog["entries"])
+        if len(every) > mcp_challenges.COMPACT_CATALOG_IDS_MAX:
+            # A large catalog is summarised: the ready recipe's id, the count
+            # and the per-family counts, with the reason naming the full list.
+            assert compact["catalog_count"] == len(every)
+            assert sum(compact["catalog_families"].values()) == len(every)
+            assert set(compact["catalog_ids"]) <= set(every)
+            assert "compact=false" in reasons["catalog_ids"]
+        else:
+            assert compact["catalog_ids"] == every
+            assert "catalog_count" not in compact
         assert document["source"]["catalog_id"] in compact["catalog_ids"]
         assert document["source"]["kind"] in compact["source_kinds"]
     else:

@@ -340,22 +340,41 @@ def test_f08_train_is_an_explicit_table_that_refuses_unknown_versions():
         f08_train.load_public_train("1.6")
 
 
-def test_motor_and_cooling_1_4_inherit_their_predecessor_s_receipted_entries():
-    """A catalog entry's receipt binds TRAIN and interface digests; 1.4's equal
-    1.3's, so 1.3's entries are offered on 1.4. F08 1.5 and F02 2.4 name
-    their version in the interface, so they offer none until receipted."""
+#: The catalog's entry counts per graph route v2 version, exact: moved only by
+#: the catalog freeze's single re-pin (Validator 2026-10-23). `v2.*` ids exist
+#: only on these versions.
+CATALOG_COUNTS = {
+    (MOTOR, "1.4"): (78, 46),
+    (COOLING, "1.4"): (49, 44),
+    (F08, "1.5"): (44, 44),
+    (F02, "2.4"): (5, 5),
+}
+
+
+def test_graph_route_v2_versions_offer_their_predecessor_s_entries_and_their_own_v2_entries():
+    """A catalog entry's receipt binds TRAIN and interface digests; Motor and
+    Cooling 1.4's equal 1.3's, so 1.3's entries are offered on 1.4, plus the
+    version's own `v2.*` entries. F08 1.5 and F02 2.4 name their version in the
+    interface, so they offer only `v2.*` entries. No older version offers one."""
     from carbon.backbone_catalog import listing
 
     for cid in (MOTOR, COOLING):
         ids = {e["catalog_id"] for e in listing.entries(cid, "1.4")}
-        assert ids == {e["catalog_id"] for e in listing.entries(cid, "1.3")}
-        assert ids
+        inherited = {e["catalog_id"] for e in listing.entries(cid, "1.3")}
+        assert {i for i in ids if not i.startswith("v2.")} == inherited
+        assert inherited
         kit = physical_material.construction_kit(cid, "1.4")
         old = physical_material.construction_kit(cid, "1.3")
         assert kit["train_digest"] == old["train_digest"]
         assert kit["interface_digest"] == old["interface_digest"]
-    assert listing.entries(F08, "1.5") == []
-    assert listing.entries(F02, "2.4") == []
+    for (cid, version), (total, v2) in CATALOG_COUNTS.items():
+        ids = [e["catalog_id"] for e in listing.entries(cid, version)]
+        assert (len(ids), sum(i.startswith("v2.") for i in ids)) == (total, v2)
+    for cid, version in _offered():
+        if (cid, version) not in CATALOG_COUNTS:
+            assert not any(
+                e["catalog_id"].startswith("v2.") for e in listing.entries(cid, version)
+            ), (cid, version)
 
 
 # ---- Settings ------------------------------------------------------------
@@ -837,8 +856,8 @@ def test_each_offered_version_lists_the_routes_it_serves():
     route v2 versions serve their own graph and their catalog (Motor and
     Cooling inherit 1.3's entries); Level 0 is listed where it is reachable."""
     routes = {key: _routes(*key) for key in _offered()}
-    assert routes[(F08, "1.5")] == {"recipe.graph", "graph.v2"}
-    assert routes[(F02, "2.4")] == {"recipe.graph", "graph.v2"}
+    assert routes[(F08, "1.5")] == {"recipe.graph", "recipe.catalog", "graph.v2"}
+    assert routes[(F02, "2.4")] == {"recipe.graph", "recipe.catalog", "graph.v2"}
     assert routes[(MOTOR, "1.4")] == {"recipe.graph", "recipe.catalog", "graph.v2"}
     assert routes[(COOLING, "1.4")] == {"recipe.graph", "recipe.catalog", "graph.v2"}
     assert routes[(F08, "1.4")] >= {"recipe.graph", "graph.v1"}
