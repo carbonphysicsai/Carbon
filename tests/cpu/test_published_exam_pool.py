@@ -98,16 +98,21 @@ def test_the_pool_block_survives_json_and_is_small(pool_version):
     assert len(json.dumps(pool_version, sort_keys=True)) < 16000
 
 
-def test_every_constant_the_spec_leaves_to_the_owner_is_not_yet_registered(
+def test_owner_constants_are_not_yet_registered_and_the_registered_ones_are_exact(
     pool_version,
 ):
     search = pool_version["design_search"]
     assert search["search"]["query_budget"] == pe.NOT_REGISTERED
     assert search["per_target_score"]["honesty_scale"] == pe.NOT_REGISTERED
-    assert search["targets_and_pools"] == pe.NOT_REGISTERED
+    assert search["targets_and_pools"] == (
+        "6 targets per set, 2 sets; 100 solved designs per target"
+    )
     rule = pool_version["score"]["rule"]
     assert pe.NOT_REGISTERED in rule["A"]
-    assert pe.NOT_REGISTERED in rule["D"]
+    assert rule["D"] == (
+        "D = min(mean of the per-target scores of a set, C); see design_search"
+    )
+    assert pe.NOT_REGISTERED not in rule["D"]
 
 
 def test_the_design_search_publishes_no_number_the_spec_does_not_fix(pool_version):

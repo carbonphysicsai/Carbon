@@ -167,11 +167,10 @@ _POPULATION = (
 #: The pool-graded exam (Validator spec POOL_GRADER_AND_PROOF_SUITE_SPEC_20261024,
 #: OWNER-INVERSE-DESIGN-PROOF-01). Challenge-neutral
 #: text only. Every constant the spec leaves to the owner (query budget, honesty
-#: scale, A_gen scale and how A_gen enters A, the safety-floor threshold) is the
-#: words "not yet registered" until the owner registers it with the grader
-#: module; nothing here is a number the spec does not fix. The target and pool
-#: counts are withheld until the Validator rules them exam-safe to publish
-#: (default: withhold).
+#: scale, A_gen scale and how A_gen enters A) is the words "not yet registered"
+#: until the owner registers it with the grader module; nothing here is a number
+#: the spec does not fix. The target and pool counts are the Validator-registered
+#: ones (receipt on 3b2b3fcac).
 _POOL_SOURCE = "codex-queue/reports/POOL_GRADER_AND_PROOF_SUITE_SPEC_20261024.md"
 
 
@@ -209,9 +208,8 @@ def pool_score(a_acc):
         "rule": {
             "A": "A = mean(A_acc, A_robust, A_law, A_response); how A_gen "
             "enters A is " + NOT_REGISTERED,
-            "D": "D = the mean of the per-target scores of a set (see "
-            "design_search); C stays as a safety-floor gate with its "
-            "threshold " + NOT_REGISTERED,
+            "D": "D = min(mean of the per-target scores of a set, C); see "
+            "design_search",
             "decision": "a pick that is not feasible by the known true "
             "outputs gets 0 for that target",
         },
@@ -254,7 +252,7 @@ _DESIGN_SEARCH = {
         "honesty_scale": NOT_REGISTERED,
     },
     "set_score": "The design score of a set is the mean over its targets.",
-    "targets_and_pools": NOT_REGISTERED,
+    "targets_and_pools": "6 targets per set, 2 sets; 100 solved designs per " "target",
     "deterministic": "The same model gives the same score, so the paired "
     "repeat check holds.",
     "disclosure": "You see the rounded total and a closed reason code, as "
