@@ -41,7 +41,7 @@ KITS = {
         "version": "1.4",
     },
     ("chip-cold-plate", "1.4"): {
-        "construction_limits_digest": "sha256:7fa9d2c89326b8fbf82e0500b49c139fa35790cbd91ec0029f119dbd3751876c",
+        "construction_limits_digest": "sha256:6db34335c03c3b1bd8bbd55de89a38e3cd44026f47bd227a9be4c522266b3334",
         "id": "chip-cold-plate",
         "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
         "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
@@ -294,7 +294,7 @@ def test_motor_dev_pack_writes_with_the_sealed_rule_and_its_own_identity(tmp_pat
 
 
 def test_the_practice_30_total_is_unchanged_by_the_re_layout(tmp_path, monkeypatch):
-    """Same predictions, same PRACTICE-30 summary: the catalog practice with the
+    """Same predictions, same summary on the 30 PRACTICE cases: the catalog practice with the
     receiver's worker stubbed, 1.3 (old layout) against 1.4 (dev-grid layout)."""
     from types import SimpleNamespace
 
@@ -444,3 +444,28 @@ def test_cooling_dev_pack_writes_and_practice_still_reads_its_own_cases(tmp_path
     assert len(material["practice_inputs"]) == len(
         physical_pack.development_bank(COOLING, "1.4")["case_ids"]
     )
+
+
+# --- the catalog freeze moved Cooling 1.4's kit by its backbone-catalog digest only -----
+
+#: Cooling 1.4's kit on rc9 (before the Cooling catalog entries changed) and the served
+#: catalog digest its limits document carried then.
+COOLING_KIT_ON_RC9 = (
+    "sha256:7fa9d2c89326b8fbf82e0500b49c139fa35790cbd91ec0029f119dbd3751876c"
+)
+COOLING_CATALOG_ON_RC9 = (
+    "sha256:3c6e10921cebb3173b1bc6470473d5e8c405eadbf23b5e86297465f85eba3726"
+)
+
+
+def test_cooling_1_4_moved_with_the_served_catalog_digest_and_nothing_else():
+    """New version, pre-publish: the catalog freeze changed Cooling 1.4's served backbone
+    catalog digest, which its limits document carries; with that one field set back, the
+    limits document hashes to the kit it had on rc9."""
+    import copy
+
+    public = physical_material._public(COOLING)
+    limits = copy.deepcopy(public.construction_limits_document(COOLING, "1.4"))
+    assert limits["backbone_catalog"]["digest"] != COOLING_CATALOG_ON_RC9
+    limits["backbone_catalog"]["digest"] = COOLING_CATALOG_ON_RC9
+    assert public._digest(limits) == COOLING_KIT_ON_RC9
