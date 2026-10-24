@@ -111,6 +111,33 @@ def test_an_unresolved_task_records_where_the_exception_was_raised(
         tasks.close()
 
 
+def test_a_refused_resource_policy_check_is_diagnosed_not_blank(tmp_path, monkeypatch):
+    """The 2026-10-24 proof-run branch exactly: `RecipeRefused` from the
+    resource-policy check, no failed child, not provisioning."""
+    from carbon.development_session.construction_recipe import RecipeRefused
+
+    try:
+        raise RecipeRefused("construction_resource_policy_unserved")
+    except RecipeRefused as raised:
+        error = raised
+    tasks, task_id, view, _provider = _run_failing(
+        tmp_path, monkeypatch, error, child_states=(None, None)
+    )
+    try:
+        assert view.state is research.DirectTaskStateV3.UNRESOLVED
+        record = tasks.private_infra_diagnosis(task_id)
+        assert record is not None
+        assert record["failed_stage"] == "orchestration"
+        assert record["child_states"] == [None, None]
+        assert "RecipeRefused" in record["tail"]
+        assert "construction_resource_policy_unserved" in record["traceback"]
+        assert record["raised_at"].endswith(
+            ":test_a_refused_resource_policy_check_is_diagnosed_not_blank"
+        )
+    finally:
+        tasks.close()
+
+
 def test_a_failed_build_child_names_the_build_stage(tmp_path, monkeypatch):
     tasks, task_id, view, _provider = _run_failing(
         tmp_path, monkeypatch, OSError("host doctor failed")

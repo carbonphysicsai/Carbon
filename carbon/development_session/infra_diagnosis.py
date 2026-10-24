@@ -103,9 +103,10 @@ def raised_at(error) -> str:
     if not frames:
         return ""
     last = frames[-1]
-    return sanitize_tail(
-        f"{os.path.basename(last.filename)}:{last.lineno}:{last.name}"
-    )[:160]
+    # Carbon's own file and function names, not data: keep them readable
+    # (a long snake_case name must not be masked as base64-looking).
+    place = f"{os.path.basename(last.filename)}:{last.lineno}:{last.name}"
+    return "".join(c if 32 <= ord(c) < 127 else "?" for c in place)[:160]
 
 
 def diagnosis(
