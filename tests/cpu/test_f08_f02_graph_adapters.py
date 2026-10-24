@@ -53,10 +53,10 @@ EARLIER = {
     (F08, "1.0"): "88f56b8af03054a6002e92590784257df52580782b59c7a6bc019c17197725c3",
     (F08, "1.1"): "28a77a5beaf259a73acfa5b807fb5fd683353ee2c7de20ddb5ee155c94c7fb78",
     (F08, "1.2"): "039ec28de20975f0391707bf4cdf5153dacbed65f0bd247f07ab76321879c2ca",
-    (F08, "1.3"): "c0d3bf0691f22090088d77f441f7bb9da69557a3314c6add8bb6c673922c2217",
+    (F08, "1.3"): "58a1fceb1941bb249e6d32aa516de9e3890565830265e94c52b9e160e6b7dac7",
     (F02, "2.0"): "df88cb39b0213803cf7c6ad0a7cdc60f9ee55a3418f054d17776e433391dae99",
     (F02, "2.1"): "00f7675fa6600a4c172b8e037b415bea9bcdb5ce5d77cc113d1fe6910b506eb3",
-    (F02, "2.2"): "0d2358581a88c4ab6648fcfb41a139792e23fb988202b610f883d66838725a25",
+    (F02, "2.2"): "1d6894f7880550b0d06c1ebd9cb1e093fc5ec4af21925cd88cd2ca95106a9b91",
 }
 #: The synthetic 1.3 adapter's build program and the plain inference program,
 #: recorded before this change: they keep their bytes.

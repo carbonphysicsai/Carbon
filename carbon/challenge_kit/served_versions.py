@@ -81,6 +81,21 @@ def material_allowlist_bytes(challenge_id: str, version: str) -> bytes:
     return served_bytes() if is_step2(challenge_id, version) else allowlist_v5_bytes()
 
 
+def worker_resources(challenge_id: str, version: str):
+    """The worker resources version a version's construction limits publish
+    (`worker_resources_version` of its served allowlist): the allowlist's
+    version string when it gets the larger worker resources, else None
+    (today's profile, unchanged). The kit builders pass it into the worker
+    profile so the published `reconstruction_resource_policy` is the one the
+    executor demands (`verify_direct_resource_policy`)."""
+    from carbon.level4.allowlist import Allowlist
+    from carbon.reconstruction.worker.model import worker_resources_version
+
+    return worker_resources_version(
+        Allowlist(material_allowlist_bytes(challenge_id, version)).version
+    )
+
+
 def graph_allowlist_bytes(challenge_id: str, version: str) -> bytes:
     """The allowlist a version's direct graph recipes validate against: its
     material's, except Battery 1.0, whose graph path has always used v1."""

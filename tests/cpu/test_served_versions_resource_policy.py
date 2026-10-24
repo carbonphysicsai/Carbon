@@ -15,7 +15,6 @@ import pytest
 
 from carbon.challenge_kit import physical_material, served_versions
 from carbon.development_session import bundle_construction_worker as worker
-from carbon.development_session.construction_recipe import RecipeRefused
 from carbon.reconstruction.worker.model import worker_resources_version
 
 # Read from the registry, so a new v7 version cannot slip past this check.
@@ -36,14 +35,6 @@ def _material(challenge_id, version):
     return physical_material.bundle_material(challenge_id, version)
 
 
-# Fails today for every launch version (the culprit of the 2026-10-24 proof-run
-# UNRESOLVED); strict, so it must be un-marked in the change that fixes it.
-@pytest.mark.xfail(
-    strict=True,
-    raises=RecipeRefused,
-    reason="kit limits documents publish the pre-large-model profile; "
-    "see codex-queue/reports/PROOF_RUN_UNRESOLVED_CULPRIT_20261024.md",
-)
 @pytest.mark.parametrize(("challenge_id", "version"), SERVED)
 def test_the_kits_published_policy_is_the_one_the_executor_demands(
     challenge_id, version
