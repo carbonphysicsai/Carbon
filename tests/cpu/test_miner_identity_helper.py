@@ -369,7 +369,7 @@ def test_a_failing_key_tool_says_nothing_it_was_told(monkeypatch):
 
 # ---- the real SDK ------------------------------------------------------------------------------------
 def _phrase_in(words, text, run=3):
-    """Whether `run` consecutive words of the phrase appear in `text`, separated by anything but letters.
+    """Whether `run` consecutive words of the phrase appear in `text`, separated by zero or more non-letters (so zoo_wrap_tent, zoowraptent and ZooWrapTent all count).
 
     A single word is not a leak: the recovery phrase is drawn from the 2048-word BIP39 list, and the public keyfile
     (`coldkeypub.txt`) names its own fields "accountId", "publicKey", "secretPhrase", "ss58Address", which contain
@@ -380,7 +380,9 @@ def _phrase_in(words, text, run=3):
     import re
 
     for start in range(len(words) - run + 1):
-        pattern = r"\W+".join(re.escape(word) for word in words[start : start + run])
+        pattern = "[^A-Za-z]*".join(
+            re.escape(word) for word in words[start : start + run]
+        )
         if re.search(pattern, text, re.IGNORECASE):
             return True
     return False
@@ -401,6 +403,13 @@ def test_a_phrase_check_ignores_bip39_words_that_are_also_keyfile_field_names_bu
     ]
     assert not _phrase_in(unlucky, public_keyfile)
     assert _phrase_in(unlucky, "oops " + " ".join(unlucky[3:7]) + " leaked")
+    # Joined without spaces, with an underscore, or in camelCase, a run is still a leak.
+    assert _phrase_in(unlucky, "x" + "".join(unlucky[3:6]) + "y")
+    assert _phrase_in(unlucky, "x_" + "_".join(unlucky[6:9]) + "_y")
+    assert _phrase_in(unlucky, "".join(word.capitalize() for word in unlucky[9:12]))
+    assert _phrase_in([word.upper() for word in unlucky], " ".join(unlucky[:3]))
+    # The keyfile's own field names do not form a run of the phrase's words in the phrase's own order.
+    assert not _phrase_in(["account", "public", "secret"], public_keyfile)
     assert _phrase_in(unlucky, "\n".join(unlucky[:3]) + "\n")
 
 
