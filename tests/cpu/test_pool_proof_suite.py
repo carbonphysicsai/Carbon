@@ -30,6 +30,7 @@ POLICIES = suite.Policies(
     c_rule={"kind": "min"},
 )
 PARAMS = suite.SuiteParams(
+    oracle_tolerance=1e-9,
     k_grid=(0.0, 1.0, 2.0, 4.0, 8.0),
     monotone_tolerance=0.02,
     optimism_k=30.0,
@@ -170,7 +171,7 @@ def build_plugin(noise_k=2.0):
 
 
 def test_an_oracle_is_perfect_on_every_leg_and_reaches_every_reference():
-    result = suite.check_oracle_is_perfect(build_plugin(), POLICIES)
+    result = suite.check_oracle_is_perfect(build_plugin(), POLICIES, PARAMS)
     assert result["verdict"] == "PASS", result
     assert result["numbers"]["reached"] == result["numbers"]["targets"] == 6
     assert all(t == pytest.approx(1.0) for t in result["numbers"]["totals"])
@@ -184,7 +185,7 @@ def test_an_oracle_that_cannot_reach_the_reference_within_the_budget_fails_and_s
         a_rule=POLICIES.a_rule,
         c_rule=POLICIES.c_rule,
     )
-    result = suite.check_oracle_is_perfect(build_plugin(), tiny)
+    result = suite.check_oracle_is_perfect(build_plugin(), tiny, PARAMS)
     assert result["verdict"] == "FAIL" and "too small" in result["numbers"]["note"]
 
 

@@ -62,6 +62,7 @@ class Policies:
 
 @dataclass(frozen=True)
 class SuiteParams:
+    oracle_tolerance: float  # how close to 1.0 the oracle must score (a real grader's reference uncertainty keeps it just under)
     k_grid: tuple  # strictness curve: injected error in multiples of U
     monotone_tolerance: float
     optimism_k: float  # gaming control: every limit margin this many U safer than truth
@@ -227,6 +228,9 @@ def score_specs(plugin, specs, descriptor, policies, all_specs):
     legs = plugin.legs(descriptor, specs)
     a_gen = pool_grader.agen_accuracy(specs, predict, policies.agen_scales)
     a = pool_grader.combine_a(legs["A"], a_gen, policies.a_rule)
+    # A failed mandatory gate gives no score (the plugin reports `gates_ok`; absent means no gate to fail).
+    if legs.get("gates_ok") is False:
+        return 0.0, grade, a_gen, legs
     return pool_grader.total(a, grade.d, legs["C"], policies.c_rule), grade, a_gen, legs
 
 
@@ -243,7 +247,7 @@ def _verdict(passed, numbers):
     return {"verdict": "PASS" if passed else "FAIL", "numbers": numbers}
 
 
-def check_oracle_is_perfect(plugin, policies):
+def check_oracle_is_perfect(plugin, policies, params):
     """1. A model returning the pool truths exactly scores 1.0 on every leg and reaches every target's reference."""
     all_specs = [spec for specs in plugin.sets for spec in specs]
     oracle = {"kind": "oracle"}
@@ -260,11 +264,17 @@ def check_oracle_is_perfect(plugin, policies):
         queries.update({t.target_id: t.queries for t in grade.targets})
         reached += sum(t.reached_reference for t in grade.targets)
         targets += len(grade.targets)
-        legs_ok &= legs["A"] == 1.0 and legs["C"] == 1.0 and a_gen in (None, 1.0)
+        tol = params.oracle_tolerance
+        legs_ok &= (
+            math.isclose(legs["A"], 1.0, abs_tol=tol)
+            and math.isclose(legs["C"], 1.0, abs_tol=tol)
+            and (a_gen is None or math.isclose(a_gen, 1.0, abs_tol=tol))
+            and legs.get("gates_ok") is not False
+        )
     passed = (
         legs_ok
         and reached == targets
-        and all(math.isclose(t, 1.0, abs_tol=1e-12) for t in totals)
+        and all(math.isclose(t, 1.0, abs_tol=params.oracle_tolerance) for t in totals)
     )
     note = (
         None
@@ -485,7 +495,7 @@ def separation(good_total, default_total, *, target, koth_margin):
 def run_suite(plugin, policies, params):
     """All six tests. Returns {name: {"verdict", "numbers"}}; nothing in it is a pool point, a pick or a truth."""
     pool_grader._check_policies(policies.optimizer, policies.honesty)
-    oracle = check_oracle_is_perfect(plugin, policies)
+    oracle = check_oracle_is_perfect(plugin, policies, params)
     queries = oracle["numbers"]["queries"]
     report = {
         "1_oracle": oracle,
