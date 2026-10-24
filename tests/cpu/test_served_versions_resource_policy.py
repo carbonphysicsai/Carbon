@@ -13,17 +13,13 @@ from __future__ import annotations
 
 import pytest
 
-from carbon.challenge_kit import physical_material
+from carbon.challenge_kit import physical_material, served_versions
 from carbon.development_session import bundle_construction_worker as worker
+from carbon.development_session.construction_recipe import RecipeRefused
 from carbon.reconstruction.worker.model import worker_resources_version
 
-SERVED = [
-    ("chip-cold-plate", "1.3"),
-    ("chip-cold-plate", "1.4"),
-    ("electric-motor-magnetics", "1.4"),
-    ("f08-ribbed-bracket", "1.5"),
-    ("f02", "2.4"),
-]
+# Read from the registry, so a new v7 version cannot slip past this check.
+SERVED = sorted(served_versions.V7)
 BINDING_KEYS = (
     "train_digest",
     "interface_digest",
@@ -35,6 +31,7 @@ BINDING_KEYS = (
 # UNRESOLVED); strict, so it must be un-marked in the change that fixes it.
 @pytest.mark.xfail(
     strict=True,
+    raises=RecipeRefused,
     reason="kit limits documents publish the pre-large-model profile; "
     "see codex-queue/reports/PROOF_RUN_UNRESOLVED_CULPRIT_20261024.md",
 )
