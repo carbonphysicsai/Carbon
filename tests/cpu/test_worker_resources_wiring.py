@@ -357,7 +357,7 @@ def test_battery_graph_intake_follows_the_versions_allowlist():
         direct_graph.submission_bytes("2.1")
         == intake.CONTAINMENT_BOUNDS["submission_bytes"]
     )
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match="version_unregistered"):
         direct_graph.submission_bytes("9.9")
 
 

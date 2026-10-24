@@ -1,7 +1,8 @@
 # OWNER-LARGE-MODEL-PROFILE-APPLIED-TESTNET-01: the larger worker resources are switched on, testnet only
 
-Date: 2026-10-23
-Status: **APPROVED by the owner, directly** (in the Launchpad engineer's session): "approve LARGE_MODEL_PROFILE_APPLIED for testnet only".
+Date: 2026-10-23 (US Central; 2026-10-24 UTC)
+Status: **APPROVED by the owner, directly.** The owner typed, in lp-u45's session (local_fc5334bb, the U45 session; Claude Code transcript `bbc8bae7-037e-4994-8f8d-50f30791cc42`): "approve LARGE_MODEL_PROFILE_APPLIED for testnet only". The owner then confirmed it to the Lead directly in chat ("already did both").
+Signed: lp-u45 (received the owner's words first-hand); the Lead (co-signs; the owner confirmed to the Lead directly).
 Applies: OWNER-WORKER-RESOURCES-LARGE-MODELS-01, whose condition is met (below).
 
 ## Decided (testnet 567 and rehearsals only)
@@ -12,11 +13,17 @@ Applies: OWNER-WORKER-RESOURCES-LARGE-MODELS-01, whose condition is met (below).
 - Versions on allowlists v1, v5 and v6 keep today's C-03 envelope, and the C-03 CPU profile digest is unchanged.
 - Unchanged: pids, nofile, network none, read-only root, capabilities, and the rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01 is separate).
 
+## Testnet-only scoping (the Lead's option (a))
+
+- The flag is a module constant with no network condition in code: any image built from a tree where it is True serves the larger resources.
+- **Release rule (LANDING_QUEUE, item 13): no mainnet image from a tree where `LARGE_MODEL_PROFILE_APPLIED` is True.** The mainnet image is built from a later commit with the flag False (owner-held).
+- The invariant test `tests/invariants/test_large_model_profile_testnet_only.py` fails if a mainnet profile is built in a tree with the flag on: the registered validator host class scoped MAINNET, or a validator GPU device class accepted for a network other than testnet.
+
 ## The condition it rests on
 
 OWNER-WORKER-RESOURCES-LARGE-MODELS-01 required a real-lane containment run at the new profile before any version serves it. Containment Run F at `c21e69062f1afd54f5405d661c0a8ea498808bff` (`codex-queue/reports/CONTAINMENT_RUN_F_c21e69062_20261022.md`) passed: every part rc 0, no skips, C-03 8/8, and `tests/service/test_c03_worker_resources_service.py` 2/2 on real Docker, the first C-03 v7 launch on the real daemon.
 
 ## Not covered
 
-- **Mainnet.** The flag has no network switch in code, so before mainnet serves anything this flag must be re-accepted on the mainnet validator class (TBD until launch), or set back to False.
+- **Mainnet.** It needs its own acceptance of this profile on the mainnet validator class (TBD until launch), or the gate set back to False, before mainnet serves.
 - The rows OWNER-CONTAINMENT-ACCEPT-TESTNET-01 left open, and any later change to the sandbox, images or these values.
