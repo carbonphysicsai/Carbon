@@ -1457,6 +1457,11 @@ def _king_view(intake, pool_store):
         epoch_of=epoch_of,
         exam_version_label=label if type(label) is str and label else "exam",
         rebuild_noise_of=lambda: koth_registry.rebuild_noise(challenge.challenge_id),
+        # The comparator's baseline total, registered when the comparator was built for
+        # the exam set (`BankPromotion.consider_private`): never the private score pack.
+        baseline=lambda: _open_pool_store(pool_store).latest_baseline(
+            challenge.challenge_id
+        ),
     )
 
 

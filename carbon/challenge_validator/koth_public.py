@@ -109,6 +109,8 @@ def document(
         baseline = None
     else:
         baseline = _unit(baseline_total, "koth_baseline", nullable=True)
+        if baseline is not None:
+            baseline = gf.floor_to_step(baseline, noise)
         base = baseline
     to_beat = None
     if margin is not None and base is not None:
