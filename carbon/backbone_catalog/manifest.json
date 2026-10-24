@@ -3459,7 +3459,7 @@
   {
    "backbone": "krr",
    "bundle_ref": {
-    "bundle_digest": "sha256:499926443a7198780dccd8332d8a0441ec4e6eefd5df6a06837b192ab5faa58a",
+    "bundle_digest": "sha256:55e1425eac391bf93a0c698fe3a14498324ee1d37b920b2a5d99eb8dae07a703",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3794,7 +3794,7 @@
   {
    "backbone": "bcat",
    "bundle_ref": {
-    "bundle_digest": "sha256:a9a1d47fece448ad75e3d86f336ecf56e7c0888f03589b4b04d9306e6d9a5e9f",
+    "bundle_digest": "sha256:a8931c2b7540fc8593ad749a4a4f2d3774a004a5004d2a6e4b47e9e5a60728f5",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3824,7 +3824,7 @@
   {
    "backbone": "cno2d",
    "bundle_ref": {
-    "bundle_digest": "sha256:c3fbcdcd0e0f7495b8a7baa1376018602b3f8acbccd4fc784110afc1dcf64a74",
+    "bundle_digest": "sha256:89ba115323e92ec90e7e04c2fe3ff76a9c8fb0b703f7b0f2b718db5cc21ba443",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -3884,7 +3884,7 @@
   {
    "backbone": "dpot",
    "bundle_ref": {
-    "bundle_digest": "sha256:05981db8514fa2f8f0868f1736d4eede27b4eb65df83d29eeeb5d2410424d2fe",
+    "bundle_digest": "sha256:cf5b385d06a5dd09f4643a6a0ac0b5864e420151344884a8b9304631ea4d12eb",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4034,7 +4034,7 @@
   {
    "backbone": "gnot",
    "bundle_ref": {
-    "bundle_digest": "sha256:d55c028cd4916b14a9985979c81e44c09f8c8098f63ae858c6569501656da680",
+    "bundle_digest": "sha256:da370e2d0a32f72e753a093e01285dfc7c300f075cd785abc0112179feaba6b7",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4184,7 +4184,7 @@
   {
    "backbone": "moegptno",
    "bundle_ref": {
-    "bundle_digest": "sha256:6313c402a035e89bdf4ae3c327ffd3e2446babc1ca4e524883db45b57bbfb6a9",
+    "bundle_digest": "sha256:a84832cc1eed29f98ec9fa17d28d92c118e46a37ad09f8d526658d3fce3aa08c",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4214,7 +4214,7 @@
   {
    "backbone": "morph",
    "bundle_ref": {
-    "bundle_digest": "sha256:2aa30305a4441036cc483d4486390487052bf64b1c22c39f2627f8783d67b356",
+    "bundle_digest": "sha256:12381c56455591ad61d741b6419cd48a236f9cfe18b7e3ab0f5a8aed752b4a4e",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4244,7 +4244,7 @@
   {
    "backbone": "mpp",
    "bundle_ref": {
-    "bundle_digest": "sha256:f8d06334aeb5e2b7a9c2aecf8e84255dbc9d27ac1b6011e6991f58748787364c",
+    "bundle_digest": "sha256:210c04b79affec6e527509ba0c29f81b296974509801672fe7e317837f9f82e7",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4274,7 +4274,7 @@
   {
    "backbone": "pcno",
    "bundle_ref": {
-    "bundle_digest": "sha256:9c33dc356922cf9428c68cefb15fe1bbffee7dd2f090f7b33b36709cb8417ebd",
+    "bundle_digest": "sha256:bd98671f4c7fb484c04c4462a86d781c95f75bd58c0ca38c22ed92debc135814",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4304,7 +4304,7 @@
   {
    "backbone": "pdeformer2",
    "bundle_ref": {
-    "bundle_digest": "sha256:e50455c07e858624387def3dbba9dad01eb9de71a83e74bcc58158e7e5967d93",
+    "bundle_digest": "sha256:ab5c3525723685e9065d72ac68f3d897833916973c6d9bbd2c801d5a35b165ef",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4334,7 +4334,7 @@
   {
    "backbone": "pit",
    "bundle_ref": {
-    "bundle_digest": "sha256:571af2679838be255eaca5944185d58cda25c6ceb6ed00eec1b32e56da067120",
+    "bundle_digest": "sha256:7a429e5603901293c8681fe398e029f95b9eb6a1ae71ece04a1ba50b7f311f0f",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4364,7 +4364,7 @@
   {
    "backbone": "transformer",
    "bundle_ref": {
-    "bundle_digest": "sha256:d4f5dd13d1ee2e74807e513767b559fe4a9120066172b5e25dbc301e7ec79a12",
+    "bundle_digest": "sha256:2e6ac0ece3c05f7f4e95d1fa6542995dcd9885690a957ac7f350d059bef695a3",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4490,7 +4490,7 @@
   {
    "backbone": "unet3d",
    "bundle_ref": {
-    "bundle_digest": "sha256:6fbc46d1432b672c1656e66c765da6b24dcf755e2ef7e35c8728cd9fe445c22e",
+    "bundle_digest": "sha256:81af85b581ef38900a75a4a26e7ffb319085c3b0dccb9c8f1c86c6df8014b7fa",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
@@ -4520,7 +4520,7 @@
   {
    "backbone": "walrus",
    "bundle_ref": {
-    "bundle_digest": "sha256:1fd9852063016ce6daf76d3bf4fcef3adc2f31410b39946a72ba4d23b64d4ea6",
+    "bundle_digest": "sha256:22cf0cc2d26718406107b6441e21cb275c8534490a998f040aa2809d434e84b9",
     "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
