@@ -39,6 +39,8 @@ from pathlib import Path
 
 from carbon.challenge_validator import calibration_grade as cg
 
+CALIBRATION_OWNER = "calibration"
+
 
 def _digest(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
@@ -134,7 +136,23 @@ def stub_runner(predictions_of):
     under ``ledger.root/<operation>/snapshot`` and returns the worker's record, exactly the
     shape ``_infer_state`` reads back and re-checks."""
 
-    def runner(ledger, *, identity, files, **_kwargs):
+    def runner(ledger, *, owner, identity, files, **_kwargs):
+        # Only the container launch is stubbed: the ledger discipline is the carrier's own
+        # (`research_carrier._run_locked`): reserve first, which refuses an unfrozen
+        # campaign ("freeze before dispatch"), and a terminal record last.
+        resources = {"numerical_milliseconds": 0, "retained_bytes": 0}
+        admission = ledger.reserve(
+            identity,
+            owner=owner,
+            phase="research",
+            request={"calibration_stub": identity},
+            resources=resources,
+        )
+        if not admission["dispatch"]:
+            # A replay of a settled operation returns its record, as the carrier does.
+            if admission["state"] != "SUCCEEDED":
+                raise ValueError("calibration operation ambiguous")
+            return admission["result"]
         control = json.loads(files["control.json"])
         rows = predictions_of(files["inputs.npz"], control)
         predictions = _canonical(rows)
@@ -152,13 +170,21 @@ def stub_runner(predictions_of):
         snapshot.mkdir(parents=True, exist_ok=True)
         (snapshot / "predictions.json").write_bytes(predictions)
         (snapshot / "receipt.json").write_bytes(receipt)
-        return {
+        record = {
             "operation": operation,
             "files": {
                 "predictions.json": _digest(predictions),
                 "receipt.json": _digest(receipt),
             },
         }
+        ledger.finish(
+            identity,
+            owner=owner,
+            state="SUCCEEDED",
+            actual=resources,
+            result=record,
+        )
+        return record
 
     return runner
 
@@ -176,6 +202,28 @@ def _stand_in_rows(bank):
 
 
 # ------------------------------------------------------------------------ run
+
+
+def freeze_campaign(ledger):
+    """Freeze the calibration store's campaign before any dispatch, as the receiver path
+    freezes its own: an uncapped development campaign owned by ``calibration`` (the
+    calibration store is separate from the official ledger and holds no grant)."""
+    from carbon.development_session.research_ledger import VERSION
+
+    ledger.freeze(
+        {
+            "schema": VERSION,
+            "campaign_id": "calibration-grade",
+            "implementation": "calibration-grade",
+            "objective": "calibration-grade-only",
+            "sampling": "none",
+            "control": "calibration-grade-only",
+            "selection": "calibration-grade-only",
+            "replica_policy": "none",
+            "provider": "none",
+            "owner": CALIBRATION_OWNER,
+        }
+    )
 
 
 def run(
@@ -243,6 +291,7 @@ def run(
     work_root = Path(work_root)
     work_root.mkdir(mode=0o700, parents=True, exist_ok=True)
     ledger = CampaignLedger(work_root / "ledger")
+    freeze_campaign(ledger)
     if fake:
         rows = (
             json.loads(Path(fake_predictions).read_bytes())
@@ -258,7 +307,7 @@ def run(
     output_shape = (len(bank["inputs"]), *tuple(material["expected_output_shape"])[1:])
     infer = cg.worker_infer(
         ledger=ledger,
-        owner="calibration",
+        owner=CALIBRATION_OWNER,
         identity="calibration-" + artifact.calibration_entry_id[7:23],
         inference_image=image,
         recipe=recipe,
