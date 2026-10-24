@@ -1565,6 +1565,47 @@ class PoolStore:
         key = canonical([submission_id, version]).encode()
         return kind + ":" + hashlib.sha256(key).hexdigest()
 
+    # --- the registered KOTH baseline (public king route) --------------------------
+
+    def record_baseline(self, challenge, key, total):
+        """Register Carbon's baseline total for an exam set, as the KOTH comparator
+        computed it (`koth_registry.baseline_total`, from the private score pack) when it
+        was built for ``key`` (the comparator's score-pack digest). The public king route
+        reads this stored aggregate and never the score pack. Idempotent for the same
+        ``(challenge, key)``; a different total for the same key refuses."""
+        if total is not None and (
+            type(total) not in (int, float) or not 0 <= total <= 1 or total != total
+        ):
+            raise StateError("koth_baseline_invalid")
+        op = self._bank_operation("koth_baseline.v1", challenge, key)
+        body = canonical({"challenge": challenge, "key": key, "total": total})
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is not None:
+                if row[0] != body:
+                    raise StateError("koth_baseline_changed")
+                return
+            db.execute(
+                "INSERT INTO operations VALUES(?,?,?,?)",
+                (op, "koth_baseline.v1", "RECORDED", body),
+            )
+
+    def latest_baseline(self, challenge):
+        """The most recently registered baseline total for ``challenge``, or None (no
+        baseline registered, or the exam set has none). Read only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='koth_baseline.v1' "
+                "ORDER BY rowid DESC"
+            ).fetchall()
+        for (raw,) in rows:
+            found = json.loads(raw)
+            if found.get("challenge") == challenge:
+                return found["total"]
+        return None
+
     def bank_result(self, submission_id, version):
         """Read immutable evidence, including historical bank versions."""
         op = self._bank_operation("bank_result", submission_id, version)

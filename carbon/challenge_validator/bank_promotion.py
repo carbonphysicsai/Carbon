@@ -573,6 +573,13 @@ class BankPromotion:
         VALIDATOR-KOTH-CARRY-SCOPE-01).
         """
         reason = SEALED_TESTNET_PROMOTION if sealed else DEVELOPMENT_PROMOTION
+        # The comparator is built per exam set: register its baseline total, so the public
+        # king route reads this stored aggregate and never the private score pack.
+        self.store.record_baseline(
+            comparator["challenge"],
+            comparator["score_pack_digest"],
+            comparator.get("baseline_total"),
+        )
         try:
             pair = self.private_pair(submission_id, evaluation_key)
         except StateError as refused:

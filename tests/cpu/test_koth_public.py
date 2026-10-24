@@ -42,8 +42,9 @@ def test_a_king_is_shown_at_the_ladder_step_with_the_score_to_beat():
 
 def test_without_a_king_the_baseline_is_the_starting_bar():
     doc = _doc(king=None, baseline_total=0.4)
-    assert doc["king"] is None and doc["baseline_total"] == 0.4
-    assert doc["to_beat"] == pytest.approx(0.43)
+    # stepped to the Ladder grid (noise 0.03), like every total on this page
+    assert doc["king"] is None and doc["baseline_total"] == pytest.approx(0.39)
+    assert doc["to_beat"] == pytest.approx(0.42)
 
 
 def test_no_registered_noise_means_no_margin_and_no_to_beat():
@@ -224,3 +225,97 @@ def test_the_real_pool_store_reports_the_incumbents_latest_scored_evaluation(tmp
     assert store.incumbent_standing("a")["total"] == 0.7
     file("4", "FAILED_INFRA", None)  # the latest says nothing: no total shown
     assert store.incumbent_standing("a") is None
+
+
+def test_the_baseline_is_the_registered_comparators_and_only_without_a_king(tmp_path):
+    """The king route's baseline is the aggregate registered when the KOTH comparator was
+    built for the exam set (`PoolStore.record_baseline`, by `BankPromotion.consider_private`),
+    shown only while there is no king; the intake never reads the private score pack."""
+    from carbon.battery.pool_store import PoolStore, StateError
+
+    store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: 0.0)
+    assert store.latest_baseline("c") is None
+    store.record_baseline("c", "sha256:" + "1" * 64, 0.5)
+    store.record_baseline("c", "sha256:" + "1" * 64, 0.5)  # idempotent
+    with pytest.raises(StateError):
+        store.record_baseline(
+            "c", "sha256:" + "1" * 64, 0.6
+        )  # a pack's baseline is fixed
+    store.record_baseline("other", "sha256:" + "2" * 64, 0.2)
+    assert store.latest_baseline("c") == 0.5
+    store.record_baseline("c", "sha256:" + "3" * 64, 0.45)  # the current exam set
+    assert store.latest_baseline("c") == 0.45
+
+    class View:
+        exam_version_label = "exam-1"
+        rebuild_noise = NOISE
+        baseline_total = store.latest_baseline("c")
+
+        def __init__(self, king):
+            self._king = king
+
+        def king(self):
+            return self._king
+
+    none = kp.serve(View(None), KEY)[1]
+    assert none["king"] is None and none["baseline_total"] == pytest.approx(0.45)
+    assert none["to_beat"] == pytest.approx(0.48)
+    held = kp.serve(View({"hotkey": HOTKEY, "total": 0.8, "since_epoch": 1}), KEY)[1]
+    assert held["baseline_total"] is None and held["king"] is not None
+
+
+def test_consider_private_registers_the_comparators_baseline(tmp_path):
+    from carbon.battery.pool_store import PoolStore
+    from carbon.challenge_validator import bank_promotion as bp
+    from carbon.challenge_validator.interface import digest
+
+    store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: 0.0)
+    flow = bp.BankPromotion(store, registered_source_receipt_sha256=digest("pin"))
+    comparator = {
+        "schema": bp.COMPARATOR_SCHEMA,
+        "scope": "DEVELOPMENT",
+        "challenge": "electric-motor-magnetics",
+        "score_pack_digest": digest("pack"),
+        "rebuild_noise": None,
+        "ties": "incumbent_keeps",
+        "minimum_source_entry_ids": [],
+        "baseline_total": 0.37,
+    }
+    try:
+        flow.consider_private("missing", digest("key"), comparator)
+    except Exception:  # noqa: BLE001 - the pair is not filed; registration comes first
+        pass
+    assert store.latest_baseline("electric-motor-magnetics") == 0.37
+
+
+def test_the_intake_side_reads_no_score_pack():
+    """The king view and the route import and call nothing that reads the private
+    score pack: the baseline comes from the registered aggregate."""
+    import ast
+    from pathlib import Path
+
+    for module in ("koth_public.py",):
+        path = Path(kp.__file__).with_name(module)
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        names = {
+            getattr(n, "module", None) or ""
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Import | ast.ImportFrom)
+        } | {
+            alias.name
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Import | ast.ImportFrom)
+            for alias in n.names
+        }
+        assert not [m for m in names if "koth_registry" in m or "score_pack" in m]
+        calls = {
+            getattr(n.func, "attr", getattr(n.func, "id", ""))
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Call)
+        }
+        assert "baseline_total" not in calls
+    from carbon.challenge_validator import direct_receiver
+
+    source = __import__("inspect").getsource(direct_receiver._king_view)
+    assert "baseline_total(" not in source and "read_json_role" not in source
+    assert "latest_baseline" in source
