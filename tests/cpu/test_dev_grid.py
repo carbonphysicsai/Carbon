@@ -27,7 +27,7 @@ KITS = {
         "version": "1.5",
     },
     ("f02", "2.4"): {
-        "construction_limits_digest": "sha256:5e1bf1057bbbaad62b223e748b54dd92ec94c384020c63778228789967feaf1f",
+        "construction_limits_digest": "sha256:827e396bfe19d2ee162482f48d22150ee2894af1622d5778a55630644594e5f1",
         "id": "f02",
         "interface_digest": "sha256:3a9c2f8bd2fdaeeca65e060d32f17a60cba06c16b837d6be185a95cdfa9e011e",
         "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
@@ -41,7 +41,7 @@ KITS = {
         "version": "1.4",
     },
     ("chip-cold-plate", "1.4"): {
-        "construction_limits_digest": "sha256:6db34335c03c3b1bd8bbd55de89a38e3cd44026f47bd227a9be4c522266b3334",
+        "construction_limits_digest": "sha256:19ef124c22c8533d781ac9add9527e911e534ebe322f64fd4ca23e93f639932c",
         "id": "chip-cold-plate",
         "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
         "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
@@ -446,26 +446,40 @@ def test_cooling_dev_pack_writes_and_practice_still_reads_its_own_cases(tmp_path
     )
 
 
-# --- the catalog freeze moved Cooling 1.4's kit by its backbone-catalog digest only -----
+# --- the catalog freeze moves a kit by its served backbone-catalog digest and nothing else ---
 
-#: Cooling 1.4's kit on rc9 (before the Cooling catalog entries changed) and the served
-#: catalog digest its limits document carried then.
-COOLING_KIT_ON_RC9 = (
-    "sha256:7fa9d2c89326b8fbf82e0500b49c139fa35790cbd91ec0029f119dbd3751876c"
-)
-COOLING_CATALOG_ON_RC9 = (
-    "sha256:3c6e10921cebb3173b1bc6470473d5e8c405eadbf23b5e86297465f85eba3726"
-)
+#: Each dev-grid version's kit and the served backbone-catalog digest its limits document carried on
+#: rc10 (385bc1279), before the frozen catalog (0530c1d41). New versions, pre-publish.
+KITS_ON_RC10 = {
+    ("chip-cold-plate", "1.4"): (
+        "sha256:6db34335c03c3b1bd8bbd55de89a38e3cd44026f47bd227a9be4c522266b3334",
+        "sha256:f6a9b9c5ca937cd491d9df97c43e309832f87f2897cce2828e8810e3f2cc5924",
+    ),
+    ("electric-motor-magnetics", "1.4"): (
+        "sha256:43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0",
+        "sha256:384beb065f566300f701ea0443e593f1990fc4fc0993f383ad4ec133b4c8eaaa",
+    ),
+    ("f02", "2.4"): (
+        "sha256:5e1bf1057bbbaad62b223e748b54dd92ec94c384020c63778228789967feaf1f",
+        "sha256:a33b56d54e804f3bd2c82580cd518b54c1296e82a3a020b4cfe1d67830bdc63d",
+    ),
+    ("f08-ribbed-bracket", "1.5"): (
+        "sha256:9ada93ee419c2adbe91e7e8aae8176f35e2d60b11484ad9e9814b772ae4cf63b",
+        "sha256:8c47d928947ed3039eaa5a8dda2a92f36270d9a72944c48efb8a0a9f74f9e1ac",
+    ),
+}
 
 
-def test_cooling_1_4_moved_with_the_served_catalog_digest_and_nothing_else():
-    """New version, pre-publish: the catalog freeze changed Cooling 1.4's served backbone
-    catalog digest, which its limits document carries; with that one field set back, the
-    limits document hashes to the kit it had on rc9."""
+@pytest.mark.parametrize("key", KEYS)
+def test_a_kit_moved_with_the_served_catalog_digest_and_nothing_else(key):
+    """With the one field `backbone_catalog.digest` set back to what it was on rc10, each
+    dev-grid version's limits document hashes to the kit it had on rc10: the catalog freeze
+    moved the kit through that field alone (and not at all where the catalog did not change).
+    """
     import copy
 
-    public = physical_material._public(COOLING)
-    limits = copy.deepcopy(public.construction_limits_document(COOLING, "1.4"))
-    assert limits["backbone_catalog"]["digest"] != COOLING_CATALOG_ON_RC9
-    limits["backbone_catalog"]["digest"] = COOLING_CATALOG_ON_RC9
-    assert public._digest(limits) == COOLING_KIT_ON_RC9
+    kit_before, catalog_before = KITS_ON_RC10[key]
+    public = physical_material._public(key[0])
+    limits = copy.deepcopy(public.construction_limits_document(*key))
+    limits["backbone_catalog"]["digest"] = catalog_before
+    assert public._digest(limits) == kit_before
