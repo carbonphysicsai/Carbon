@@ -346,6 +346,16 @@ def test_sync_runs_through_the_real_signer_and_verifier(tmp_path, published):
         assert refused.value.refusal == "NOT_A_CARBON_REQUEST"
 
 
+def _wait_until(condition, *, seconds=60.0):
+    """Poll ``condition`` until true or ``seconds`` pass (then fail with the state)."""
+    import time
+
+    deadline = time.monotonic() + seconds
+    while not condition():
+        assert time.monotonic() < deadline, "the host did not settle"
+        time.sleep(0.01)
+
+
 def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monkeypatch):
     """3a, 2026-10-08: the host's first listener ran every TLS handshake
     inside `accept`, so one client that connected and sent nothing froze it
@@ -416,13 +426,24 @@ def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monke
                 with pytest.raises(BlockingIOError):
                     connection.recv(1)
                 connection.setblocking(True)
-            # A fifth connection from this peer, with four open, is refused.
+            # A fifth connection from this peer, with four open, is refused. The slot
+            # count is the host's own: the fetch's connection is released by its handler
+            # thread AFTER the client has its answer, so wait until only the three silent
+            # connections hold slots before counting a fourth and a fifth (on a loaded box
+            # a late release would leave the count off by one).
+            _wait_until(lambda: server.slots.open() == len(silent))
             asker_slot = socket.create_connection(("127.0.0.1", port))
+            _wait_until(lambda: server.slots.open() == len(silent) + 1)
             extra = socket.create_connection(("127.0.0.1", port))
             # The host closes it at once; the bound is only the failure path, generous like the
             # timed-out connection below, because a loaded box can delay the close by seconds.
             extra.settimeout(60.0)
-            assert extra.recv(1) == b""
+            # "Closed by the host" is an orderly close or, on a loaded box, a reset.
+            try:
+                assert extra.recv(1) == b""
+            except ConnectionResetError:
+                pass
+            assert server.slots.open() == len(silent) + 1  # it never held a slot
             extra.close()
             asker_slot.close()
         # A connection opened under a short timeout is closed by the host
@@ -580,3 +601,102 @@ def test_a_chain_failure_is_infrastructure():
 
     with pytest.raises(PermitUnavailable):
         ValidatorPermitReader(CONTEXT, fetch=fetch).read("5Any")
+
+
+def _host(tmp_path, published, monkeypatch):
+    """The answer-key host on a TLS listener, as `test_silent_clients_never_freeze_the_host`
+    builds it; returns ``(server, port, cert, validator, receiver)``."""
+    import threading
+
+    from bittensor.keyfiles import Keypair
+    from test_battery_validator_service import self_signed
+
+    from carbon.battery import intake as ib
+    from carbon.chain.auth import BittensorHotkeyVerifier
+
+    monkeypatch.setattr(ib.LoggedHandler, "timeout", 120.0)
+    validator = Keypair.create_from_uri("//carbon-answer-key-validator")
+    receiver = Keypair.create_from_uri("//carbon-answer-key-host").ss58_address
+    inbox = tmp_path / "inbox"
+    inbox.mkdir(mode=0o700)
+    (inbox / published["path"].name).write_text(json.dumps(published["value"]))
+    (inbox / published["path"].name).chmod(0o600)
+    service = dist.DistributionService(
+        dist.Inbox(inbox, published["key"].public_key),
+        receiver=receiver,
+        verifier=BittensorHotkeyVerifier(),
+        permits=Permits({validator.ss58_address: True}),
+        nonces=dist.NonceStore(tmp_path / "nonces.sqlite3"),
+        log=dist.FetchLog(tmp_path / "fetch.jsonl"),
+    )
+    tls = tmp_path / "tls"
+    tls.mkdir(mode=0o700)
+    cert, key = self_signed(tls)
+    server = dist.make_server(
+        service,
+        {"host": "127.0.0.1", "port": 0, "tls_cert": str(cert), "tls_key": str(key)},
+    )
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, server.server_address[1], cert, validator, receiver
+
+
+def test_a_refused_connection_sees_eof_at_once_and_a_valid_fetch_still_answers_under_load(
+    tmp_path, published, monkeypatch
+):
+    """Validator (2026-10-23): with the per-peer cap of silent sockets held, a refused
+    connection must see EOF within a second (the host closes it in the accept loop, not
+    behind the held sockets), and once a slot is free a valid signed fetch still answers
+    promptly, both while a busy thread competes for the interpreter. The accept loop is
+    never blocked by a silent TLS socket (the handshake runs in the connection's own
+    thread)."""
+    import socket
+    import threading
+    import time
+
+    from _signer_harness import in_thread_signer
+
+    server, port, cert, validator, receiver = _host(tmp_path, published, monkeypatch)
+    stop = threading.Event()
+
+    def spin():
+        while not stop.is_set():
+            sum(i * i for i in range(2000))
+
+    burners = [threading.Thread(target=spin, daemon=True) for _ in range(4)]
+    silent = []
+    try:
+        for burner in burners:
+            burner.start()
+        silent = [socket.create_connection(("127.0.0.1", port)) for _ in range(4)]
+        _wait_until(lambda: server.slots.open() == 4)
+        # The cap is full: the next connection is refused and closed by the host.
+        started = time.monotonic()
+        refused = socket.create_connection(("127.0.0.1", port))
+        refused.settimeout(1.0)
+        assert refused.recv(1) == b""  # EOF, not a timeout
+        refused_after = time.monotonic() - started
+        refused.close()
+        assert refused_after < 1.0
+        assert server.slots.open() == 4  # the refused connection never held a slot
+        # One silent socket goes away; a valid signed fetch is answered promptly.
+        silent.pop().close()
+        _wait_until(lambda: server.slots.open() == 3)
+        with in_thread_signer(
+            validator, receivers=[receiver], requests=["answer-key"]
+        ) as signer:
+            asker = ak.Fetcher(
+                f"https://127.0.0.1:{port}", signer, receiver, ca=str(cert)
+            )
+            began = time.monotonic()
+            listing = asker.ask(published["source"].challenge_id)
+            fetched_after = time.monotonic() - began
+        assert listing["packages"]
+        assert (
+            fetched_after < 5.0
+        )  # generous: the point is that it never waited on the silent ones
+    finally:
+        stop.set()
+        for connection in silent:
+            connection.close()
+        server.shutdown()
+        server.server_close()

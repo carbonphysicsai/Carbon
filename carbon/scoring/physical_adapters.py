@@ -34,15 +34,19 @@ def _static():
     # Exactly the registered version, never a default (an unknown version is
     # None: the evaluation is unavailable).
     return {
-        motor_dual_pack.CHALLENGE: lambda version: physical.versioned(
-            motor_dual_pack, version
+        motor_dual_pack.CHALLENGE: lambda version: (
+            dev_grid.adapter(motor_dual_pack.CHALLENGE, version)
+            or physical.versioned(motor_dual_pack, version)
         ),
         # Cooling 1.3's law-safe encoding has its own adapter module, so the
         # 1.0-1.2 producer identity (and every pack bound to it) is unchanged.
         cooling_dual_pack.CHALLENGE: lambda version: (
-            physical.versioned(cooling_encoded_dual_pack, version)
-            if version in cooling_encoded_dual_pack.VERSIONS
-            else physical.versioned(cooling_dual_pack, version)
+            dev_grid.adapter(cooling_dual_pack.CHALLENGE, version)
+            or (
+                physical.versioned(cooling_encoded_dual_pack, version)
+                if version in cooling_encoded_dual_pack.VERSIONS
+                else physical.versioned(cooling_dual_pack, version)
+            )
         ),
         # Dev-pack v2: a dev-grid version's development adapter is the sealed v2 grader
         # (`dev_grid`); every other version keeps its own.
