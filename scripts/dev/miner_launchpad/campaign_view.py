@@ -303,7 +303,11 @@ NOT_TESTED_ON_PRACTICE = "NOT_TESTED_ON_PRACTICE"
 
 #: The practice statuses the doc may carry (always practice, never an exam
 #: status).
-PRACTICE_STATUSES = ("GATE_FAILED", "PRACTICE_BELOW_MINIMUM", "PRACTICE_SCORED")
+PRACTICE_STATUSES = (
+    "PRACTICE_GATE_FAILED",
+    "PRACTICE_BELOW_MINIMUM",
+    "PRACTICE_SCORED",
+)
 
 
 def _minimums(block):

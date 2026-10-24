@@ -207,3 +207,10 @@ def test_the_page_words_are_practice_labelled_and_compute_no_minimum():
     # It reads the doc's numbers and never derives or compares one.
     assert "row.minimum" in body and "row.value" in body
     assert " < " not in body and " >= " not in body and "Math." not in body
+
+
+def test_the_practice_gate_status_never_shares_the_ladders_name():
+    shown = dual_feedback({"x": _v2(status="PRACTICE_GATE_FAILED")})
+    assert shown["practice_status"] == "PRACTICE_GATE_FAILED"
+    # The Ladder's official status is not a practice status: refused.
+    assert dual_feedback({"x": _v2(status="GATE_FAILED")})["practice_status"] is None
