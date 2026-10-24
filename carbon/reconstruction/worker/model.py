@@ -45,13 +45,12 @@ OUTPUT_MEMBERS = 1024
 #: only after a real-lane containment run at that profile (a new containment
 #: acceptance, OWNER-CONTAINMENT-ACCEPT-TESTNET-01).
 LARGE_MODEL_ALLOWLIST_VERSIONS = frozenset({"level4-allowlist-v7"})
-#: The gate: no served version resolves to the larger resources until the
-#: Test Lead's real-lane containment run at this profile (Run F) has passed and
-#: the acceptance for it is recorded. The commit that sets this True is the
-#: only change that applies the profile; every constant justified by it (the
-#: launch values, the output bound, the custody read) moves with it and not
-#: before.
-LARGE_MODEL_PROFILE_APPLIED = False
+#: The gate. On: the real-lane containment run at this profile passed (Run F
+#: at c21e69062, the C-03 v7 launch on real Docker included) and the owner
+#: approved applying it, testnet 567 and rehearsals only
+#: (OWNER-LARGE-MODEL-PROFILE-APPLIED-TESTNET-01). Mainnet needs its own
+#: acceptance on the mainnet validator class before it serves there.
+LARGE_MODEL_PROFILE_APPLIED = True
 
 
 def _large_applies(allowlist_version):

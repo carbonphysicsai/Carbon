@@ -345,7 +345,7 @@ def test_f08_train_is_an_explicit_table_that_refuses_unknown_versions():
 #: only on these versions.
 CATALOG_COUNTS = {
     (MOTOR, "1.4"): (78, 46),
-    (COOLING, "1.4"): (49, 44),
+    (COOLING, "1.4"): (50, 45),
     (F08, "1.5"): (44, 44),
     (F02, "2.4"): (5, 5),
 }
