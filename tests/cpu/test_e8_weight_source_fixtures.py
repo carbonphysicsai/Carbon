@@ -74,14 +74,15 @@ def _set_body(model, comparator, total):
     return found
 
 
-def _crown(tmp_path, monkeypatch, registry, *, sealed):
+def _crown(tmp_path, monkeypatch, registry, *, sealed, total=0.9):
+    tmp_path.mkdir(parents=True, exist_ok=True)
     store = _store(tmp_path, [0.0])
     flow = bp.BankPromotion(store, registered_source_receipt_sha256=digest("pin"))
     comparator = _set_comparator(registry)
     monkeypatch.setattr(
         store,
         "private_evaluation_pair",
-        _Pairs(store, {"a": pair(_set_body("a", comparator, 0.9), None)}),
+        _Pairs(store, {"a": pair(_set_body("a", comparator, total), None)}),
     )
     outcome = flow.consider_private("a", KEY, comparator, sealed=sealed)
     return store, outcome
@@ -223,3 +224,41 @@ def test_no_crown_while_the_rebuild_noise_registry_is_empty(tmp_path, monkeypatc
     assert store.incumbent() is None
     assert we.lean_promotion(store) is None
     assert wd.epoch_targets(POLICY, {}, T0) == {"winners": {}, "burn": Q12}
+
+
+def test_the_first_crown_must_beat_the_baseline_by_the_margin_end_to_end(
+    tmp_path, monkeypatch
+):
+    """OWNER-FIRST-CROWN-BEATS-BASELINE-01, through the whole chain with a comparator
+    carrying a non-null baseline_total (here 0.4, from the packs' leg minimums) and the
+    registered margin (0.05): a first contender at or below baseline + margin is held back
+    (no incumbent, every epoch target burns); one above it is crowned and paid on testnet.
+    """
+    registry = _registry(tmp_path, NOISE)
+    comparator = _set_comparator(registry)
+    assert comparator["baseline_total"] == pytest.approx(0.4)
+    floor = comparator["baseline_total"] + NOISE["value"]
+    # at the floor exactly, and below it: held back
+    for total in (floor, floor - 0.01, 0.1):
+        store, outcome = _crown(
+            tmp_path / f"held-{total:.3f}".replace(".", "_"),
+            monkeypatch,
+            registry,
+            sealed=True,
+            total=total,
+        )
+        assert outcome["outcome"] == bp.NO_WINNER, total
+        assert outcome["reason"] == "within_baseline_floor"
+        assert store.incumbent() is None
+        assert we.lean_promotion(store) is None
+        assert wd.epoch_targets(POLICY, {}, T0) == {"winners": {}, "burn": Q12}
+    # just above it: crowned, eligible on testnet, and paid
+    store, outcome = _crown(
+        tmp_path / "crowned", monkeypatch, registry, sealed=True, total=floor + 0.01
+    )
+    assert outcome["outcome"] == bp.FIRST_INCUMBENT
+    assert store.incumbent()["reason"] == bp.SEALED_TESTNET_PROMOTION
+    targets, record = _weight(store, POLICY, tmp_path)
+    assert record["eligible"] is True
+    assert targets["winners"] == {"fixture-a": POLICY.share}
+    assert targets["burn"] == Q12 - POLICY.share
