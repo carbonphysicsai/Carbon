@@ -427,14 +427,51 @@ class DockerCLI:
             ) from None
 
 
+def _image_by_recorded_tag(cli, store_fingerprint, store_tag):
+    """The inspect document of the image under `store_tag` when its store-neutral fingerprint equals the recorded one
+    exactly, else None. One fingerprint format and function with the remote worker check (image_fingerprint).
+    """
+    import hmac
+
+    from carbon.reconstruction.worker.image_fingerprint import (
+        FINGERPRINT_FORMAT,
+        PARENT_TAG,
+        fingerprint_of_output,
+    )
+
+    if (
+        type(store_fingerprint) is not str
+        or type(store_tag) is not str
+        or not PARENT_TAG.fullmatch(store_tag)
+    ):
+        return None
+    try:
+        printed = cli.run(
+            ["image", "inspect", "--format", FINGERPRINT_FORMAT, store_tag]
+        ).stdout
+        if not printed.strip() or not hmac.compare_digest(
+            fingerprint_of_output(printed), store_fingerprint
+        ):
+            return None
+        document = cli.json(["image", "inspect", store_tag, "--format", "{{json .}}"])
+    except WorkerFailure:
+        return None
+    return document if type(document) is dict else None
+
+
 def doctor(
     *,
     image_id: str | None = None,
     image_identity: WorkerImageIdentity | None = None,
     cli: DockerCLI | None = None,
     worker_profile: DevelopmentWorkerProfile | None = None,
+    store_fingerprint: str | None = None,
+    store_tag: str | None = None,
 ) -> DockerDoctor:
     """Read-only eligibility check; never changes daemon or host configuration.
+
+    `store_fingerprint` and `store_tag` (recorded at install, see image_fingerprint) let the same image be found by its
+    exact tag when the daemon's image store does not answer to `image_id`; without them an unanswered id fails closed.
 
     Capacity and the cpuset are sized for ``worker_profile`` when given (a next
     version's larger resources), else for today's C-03 profile."""
@@ -461,9 +498,13 @@ def doctor(
         return DockerDoctor(False, "worker.doctor.runtime_unknown", {}, None)
     ncpu = info.get("NCPU")
     memory = info.get("MemTotal")
-    cpu_count = CPU_COUNT if worker_profile is None else worker_profile.effective_cpu_count
+    cpu_count = (
+        CPU_COUNT if worker_profile is None else worker_profile.effective_cpu_count
+    )
     memory_bytes = (
-        MEMORY_BYTES if worker_profile is None else worker_profile.effective_memory_bytes
+        MEMORY_BYTES
+        if worker_profile is None
+        else worker_profile.effective_memory_bytes
     )
     cgroup_version = str(info.get("CgroupVersion", ""))
     security = info.get("SecurityOptions")
@@ -488,16 +529,23 @@ def doctor(
             False, "worker.doctor.engine_mode_unsupported", {"info": info}, None
         )
     if image_id is not None:
+        by_tag = False
         try:
             exact_digest(image_id)
             image = cli.json(["image", "inspect", image_id, "--format", "{{json .}}"])
         except WorkerFailure:
-            return DockerDoctor(
-                False, "worker.doctor.image_unavailable", {"info": info}, None
-            )
+            # A containerd image store (Docker 29) does not answer to the config digest. Only with the fingerprint
+            # recorded at install, and only by the exact tag, is the same image accepted: its layers and run
+            # configuration must equal the record exactly. No record, no fallback (fails closed, as before).
+            image = _image_by_recorded_tag(cli, store_fingerprint, store_tag)
+            by_tag = image is not None
+            if image is None:
+                return DockerDoctor(
+                    False, "worker.doctor.image_unavailable", {"info": info}, None
+                )
         if (
             type(image) is not dict
-            or image.get("Id") != image_id
+            or (not by_tag and image.get("Id") != image_id)
             or image.get("Os") != "linux"
             or image.get("Architecture") != "amd64"
             or image.get("Config", {}).get("User") != f"{WORKER_UID}:{WORKER_GID}"
@@ -918,7 +966,8 @@ def inspect_effective_controls(
                     ("CPUSET", lambda: host.get("CpusetCpus") != cpuset),
                     (
                         "SHM",
-                        lambda: host.get("ShmSize") != worker_profile.effective_shm_bytes,
+                        lambda: host.get("ShmSize")
+                        != worker_profile.effective_shm_bytes,
                     ),
                     ("CAP_ADD", lambda: bool(host.get("CapAdd"))),
                     ("CAP_DROP", lambda: sorted(host.get("CapDrop") or []) != ["ALL"]),

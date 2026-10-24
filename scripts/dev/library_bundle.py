@@ -103,7 +103,17 @@ def _checked_cpu_parent(profile, manifest):
         if primary.image_id != runtime["images"][0]:
             raise ValueError("installed Torch CPU parent differs from profile")
         parent = derived_cpu_parent(primary)
-        if not doctor(image_id=parent.image_id, image_identity=parent).eligible:
+        # The install's record of the parent's store-neutral fingerprint lets a containerd store (Docker 29) find the
+        # same image by its exact tag; with no record the strict check stands.
+        from carbon.reconstruction.worker.image_fingerprint import read_sidecar
+
+        recorded = read_sidecar(Path(paths["image_manifest"]), parent.image_id)
+        if not doctor(
+            image_id=parent.image_id,
+            image_identity=parent,
+            store_tag=recorded[0] if recorded else None,
+            store_fingerprint=recorded[1] if recorded else None,
+        ).eligible:
             raise ValueError("installed CPU parent unavailable")
     else:
         parent = primary

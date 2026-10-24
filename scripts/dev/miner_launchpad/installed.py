@@ -96,9 +96,51 @@ def write(
         raise ValueError("development candidate record is a link")
     if clear_development_candidate:
         candidate.unlink(missing_ok=True)
-    return write_private(
+    written = write_private(
         Path(state_dir) / FILE, json.dumps(record, sort_keys=True).encode()
     )
+    record_parent_fingerprint(image_manifest)
+    return written
+
+
+def record_parent_fingerprint(image_manifest, *, docker="docker") -> bool:
+    """Record, at install, the store-neutral fingerprint of the C-03 parent a Torch CPU image was built from, found by
+    its exact tag, beside the manifest (never inside it). A containerd image store (Docker 29) does not answer to the
+    parent's recorded config digest, so the doctor later accepts the same image by that tag only if its layers and run
+    configuration still equal this record. Nothing is written when the parent cannot be read: an absent record keeps the
+    strict check (image_unavailable). Returns whether a record was written."""
+    if image_manifest is None:
+        return False
+    try:
+        from carbon.development_session.gpu_practice import (
+            derived_cpu_parent,
+            direct_parent_backend,
+        )
+        from carbon.reconstruction.worker.docker_runtime import load_image_identity
+        from carbon.reconstruction.worker.image_fingerprint import (
+            fingerprint,
+            write_sidecar,
+        )
+
+        identity = load_image_identity(Path(image_manifest))
+        if direct_parent_backend(identity) != "torch_cpu":
+            return False
+        parent = derived_cpu_parent(identity)
+        tag = "carbon-c03-worker:" + identity.source_tree_digest[7:23]
+        value = fingerprint(tag, docker=docker)
+        if value is None:
+            return False
+        write_sidecar(
+            Path(image_manifest),
+            parent_image_id=parent.image_id,
+            tag=tag,
+            value=value,
+        )
+        return True
+    except (
+        Exception
+    ):  # noqa: BLE001 - a record that cannot be made leaves the strict check in force
+        return False
 
 
 def candidate_implementation(state_dir, *, repository=None) -> dict | None:

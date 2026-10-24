@@ -503,11 +503,12 @@ def _bounded_read(stream, deadline: float) -> bytes:
 #: all. Both give these, read from the same config: every layer's content
 #: digest, and the configuration a job runs with. Their sha256 identifies the
 #: image's bytes and its run configuration exactly.
-FINGERPRINT_FORMAT = (
-    "{{json .RootFS.Layers}} {{json .Config.Env}} {{json .Config.Labels}} "
-    "{{json .Config.Entrypoint}} {{json .Config.Cmd}} {{json .Config.User}} "
-    "{{json .Config.WorkingDir}} {{.Os}} {{.Architecture}} {{.Created}}"
+# One format and one function, shared with the local parent check (carbon/reconstruction/worker/image_fingerprint.py).
+from carbon.reconstruction.worker.image_fingerprint import (  # noqa: E402
+    FINGERPRINT_FORMAT,
+    fingerprint as _fingerprint,
 )
+
 #: The tag the pinned worker travels under (`docker save` by ID drops every
 #: tag), named by the controller's own image ID.
 WORKER_REPOSITORY = "carbon-gpu-worker"
@@ -522,25 +523,7 @@ def worker_reference(image_id: str) -> str:
 def local_fingerprint(image_id: str, *, docker: str = "docker") -> str | None:
     """The store-neutral fingerprint of `image_id` in this controller's own
     Docker, or None when it cannot be read here (then only the ID counts)."""
-    try:
-        completed = subprocess.run(  # fixed argv, no shell
-            [
-                docker,
-                "image",
-                "inspect",
-                "--format",
-                FINGERPRINT_FORMAT,
-                _checked_image(image_id),
-            ],
-            capture_output=True,
-            timeout=60,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if completed.returncode != 0 or not completed.stdout.strip():
-        return None
-    return hashlib.sha256(completed.stdout).hexdigest()
+    return _fingerprint(_checked_image(image_id), docker=docker)
 
 
 def _image_lines(image_id: str, fingerprint: str | None) -> str:
