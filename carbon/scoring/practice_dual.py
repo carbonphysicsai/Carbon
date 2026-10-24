@@ -248,6 +248,37 @@ def from_rows_v2(kind, version, rows):
     return feedback_v2(kind, version, predict)
 
 
+def _minimums_block(adapter, version, values, pack_kwargs):
+    """The version's registered leg minimums beside the practice leg values. They come
+    ONLY from the registered score pack (``adapter.applied_pack``, the constant the
+    published exam block reads): no default is ever supplied. A leg whose minimum is not
+    registered is absent; with none registered the status is NOT_YET_SET. A leg is met
+    when its value reaches the minimum (equality passes); an unscored value (a gate
+    failed) is neither met nor unmet. This is practice only: it never names an official
+    status and the document stays a public-bank practice."""
+    try:
+        pack_legs = adapter.applied_pack(**pack_kwargs)["legs"]
+    except (KeyError, TypeError, ValueError):
+        pack_legs = {}
+    legs = {}
+    for leg in ("A", "D"):
+        minimum = (pack_legs.get(leg) or {}).get("minimum")
+        if type(minimum) not in (int, float) or not math.isfinite(minimum):
+            continue
+        value = values.get(leg)
+        legs[leg] = {
+            "minimum": minimum,
+            "value": value,
+            "met": None if value is None else value >= minimum,
+        }
+    return {
+        "source": "published_exam",
+        "version": version,
+        "status": "SET" if legs else "NOT_YET_SET",
+        "legs": legs,
+    }
+
+
 def feedback_v2(kind, version, predict):
     """The practice dual document on the v2 legs: the exam own sealed grader
     (D = min(V, C) with V three decision measures, A its four legs, the law
@@ -308,6 +339,20 @@ def feedback_v2(kind, version, predict):
     def number(x):
         return x if type(x) in (int, float) and math.isfinite(x) else None
 
+    minimums = _minimums_block(
+        adapter,
+        version,
+        {"A": a if scored else None, "D": d if scored else None},
+        {
+            "bank_rows": rows,
+            "definition": definition,
+            "limits": _json(public["important_limit_definition"]),
+            "objective": _json(public["design_objective"]),
+            "train_raw": public["train"],
+            "names": names,
+        },
+    )
+    below = [leg for leg, row in minimums["legs"].items() if row["met"] is False]
     return {
         "schema": SCHEMA_V2,
         "scope": SCOPE,
@@ -315,6 +360,15 @@ def feedback_v2(kind, version, predict):
         "challenge": {"kind": kind, "version": version},
         "available": True,
         "n_cases": len(rows),
+        # Practice status: the gates first (a gate failure outranks a minimum), then the
+        # version's registered leg minimums (OWNER-PRACTICE-SHOWS-MINIMUMS-01).
+        "status": (
+            "PRACTICE_GATE_FAILED"
+            if not eligible
+            else "PRACTICE_BELOW_MINIMUM" if below else "PRACTICE_SCORED"
+        ),
+        "failed_legs": below if eligible else [],
+        "minimums": minimums,
         "gates": gates,
         "gates_failed_laws": list(physics.get("gate_failed_laws", [])),
         "eligible": eligible,
