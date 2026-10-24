@@ -21,6 +21,7 @@ import math
 import os
 import re
 import sqlite3
+import sys
 import threading
 import time
 from pathlib import Path
@@ -65,6 +66,7 @@ from carbon.research.records import (
     RetentionReuseBinding,
 )
 
+from . import infra_diagnosis as infra_diagnosis_module
 from .construction_recipe import ConstructionRecipe
 from .profile import canonical, digest
 from .research_carrier import (
@@ -330,6 +332,9 @@ class DirectDevelopmentTasksV3:
                         id TEXT PRIMARY KEY, request BLOB NOT NULL,
                         view BLOB NOT NULL, cancellation TEXT);
                     CREATE TABLE IF NOT EXISTS direct_evidence (
+                        id TEXT PRIMARY KEY REFERENCES direct_tasks(id),
+                        body BLOB NOT NULL);
+                    CREATE TABLE IF NOT EXISTS direct_infra_diagnosis (
                         id TEXT PRIMARY KEY REFERENCES direct_tasks(id),
                         body BLOB NOT NULL);
                     CREATE TABLE IF NOT EXISTS direct_task_images (
@@ -914,6 +919,7 @@ class DirectDevelopmentTasksV3:
         failure_evidence: dict | None = None,
         source_envelope: bytes | None = None,
         measure_query: bool = False,
+        infra_diagnosis: dict | None = None,
     ) -> None:
         if cancellation is None:
             cancellation = self._cancellations.get(view.task_id.value)
@@ -950,6 +956,11 @@ class DirectDevelopmentTasksV3:
                 db.execute(
                     "INSERT INTO direct_evidence VALUES(?,?)",
                     (view.task_id.value, canonical(failure_evidence)),
+                )
+            if infra_diagnosis is not None:
+                db.execute(
+                    "INSERT OR REPLACE INTO direct_infra_diagnosis VALUES(?,?)",
+                    (view.task_id.value, canonical(infra_diagnosis)),
                 )
         self._views[view.task_id.value] = view
         if image_binding is not None:
@@ -1426,8 +1437,24 @@ class DirectDevelopmentTasksV3:
         cancellation=None,
         export_gap=None,
         build_refusal=None,
+        infra=None,
     ):
         from dataclasses import replace
+
+        if state in (DirectTaskStateV3.FAILED_INFRA, DirectTaskStateV3.UNRESOLVED):
+            # Every infrastructure failure and every task left UNRESOLVED
+            # carries its stage, a closed reason code, where it was raised and
+            # a sanitized tail (operator-only), or it is not recorded.
+            if receipt is None or type(infra) is not dict:
+                raise ValueError("infrastructure failure requires a diagnosis")
+            infra_diagnosis_module.diagnosis(
+                infra.get("failed_stage"),
+                infra.get("reason_code"),
+                infra.get("tail", ""),
+                infra.get("child_states", ()),
+            )
+        elif infra is not None:
+            raise ValueError("a diagnosis belongs to an infrastructure failure")
 
         now = max(time.time_ns() // 1000, view.updated_at_micros)
         updated = replace(
@@ -1471,6 +1498,24 @@ class DirectDevelopmentTasksV3:
             updated,
             cancellation,
             failure_evidence=failure_evidence,
+            infra_diagnosis=(
+                {
+                    "schema": infra_diagnosis_module.SCHEMA,
+                    "task_id": view.task_id.value,
+                    "receipt_digest": digest(canonical_bytes(receipt)),
+                    **infra_diagnosis_module.diagnosis(
+                        infra["failed_stage"],
+                        infra["reason_code"],
+                        infra.get("tail", ""),
+                        infra.get("child_states", ()),
+                    ),
+                    "raised_at": infra.get("raised_at", ""),
+                    "traceback": infra.get("traceback", ""),
+                    "official_eligible": False,
+                }
+                if infra is not None
+                else None
+            ),
         )
         return updated
 
@@ -1611,7 +1656,25 @@ class DirectDevelopmentTasksV3:
                     else None
                 ),
             )
-            self._transition(view, state, receipt=receipt)
+            self._transition(
+                view,
+                state,
+                receipt=receipt,
+                infra=(
+                    infra_diagnosis_module.diagnosis(
+                        "restart_reconcile",
+                        (
+                            "child_infrastructure_failed"
+                            if "FAILED_INFRA" in child_states
+                            else "worker_lost"
+                        ),
+                        "",
+                        child_states,
+                    )
+                    if state is DirectTaskStateV3.FAILED_INFRA
+                    else None
+                ),
+            )
 
     def run_queued_task(self, task_id):
         """Run one admitted task. An overlay it was given stays leased against cache
@@ -1709,7 +1772,15 @@ class DirectDevelopmentTasksV3:
                     failure=InfrastructureFailureClass.DEPENDENCY_UNAVAILABLE,
                 )
                 return self._transition(
-                    view, DirectTaskStateV3.FAILED_INFRA, receipt=receipt
+                    view,
+                    DirectTaskStateV3.FAILED_INFRA,
+                    receipt=receipt,
+                    infra=infra_diagnosis_module.diagnosis(
+                        "dependency_check",
+                        "dependency_unavailable",
+                        infra_diagnosis_module.tail_for(sys.exc_info()[1]),
+                        error=sys.exc_info()[1],
+                    ),
                 )
             view = self._transition(view, DirectTaskStateV3.RUNNING)
         provisioning = False
@@ -2127,6 +2198,31 @@ class DirectDevelopmentTasksV3:
                     view,
                     state,
                     receipt=receipt,
+                    infra=(
+                        infra_diagnosis_module.diagnosis(
+                            infra_diagnosis_module.stage_of(child_states, provisioning),
+                            (
+                                "graph_decision"
+                                if graph_decision is not None
+                                else infra_diagnosis_module.reason_for(exc)
+                            ),
+                            (
+                                infra_diagnosis_module.sanitize_tail(
+                                    graph_decision.reason_code
+                                )
+                                if graph_decision is not None
+                                else infra_diagnosis_module.tail_for(exc)
+                            ),
+                            child_states,
+                            error=exc,
+                        )
+                        if state
+                        in (
+                            DirectTaskStateV3.FAILED_INFRA,
+                            DirectTaskStateV3.UNRESOLVED,
+                        )
+                        else None
+                    ),
                     export_gap=(
                         self._reported_export_gap(exc, child_states)
                         if state is DirectTaskStateV3.FAILED_INFRA
@@ -2139,6 +2235,36 @@ class DirectDevelopmentTasksV3:
                         else None
                     ),
                 )
+
+    def private_infra_diagnosis(self, task_id):
+        """Trusted inspection only: the stage, closed reason code and sanitized
+        tail of a FAILED_INFRA task, or None. The public service never returns
+        this record."""
+        view = self._views.get(task_id.value)
+        if (
+            view is None
+            or view.state
+            not in (DirectTaskStateV3.FAILED_INFRA, DirectTaskStateV3.UNRESOLVED)
+            or view.terminal_receipt is None
+        ):
+            return None
+        with self._db() as db:
+            row = db.execute(
+                "SELECT body FROM direct_infra_diagnosis WHERE id=?",
+                (task_id.value,),
+            ).fetchone()
+        if row is None:
+            return None  # a failure recorded before diagnoses existed
+        record = json.loads(row[0])
+        if (
+            type(record) is not dict
+            or record.get("schema") != infra_diagnosis_module.SCHEMA
+            or record.get("task_id") != task_id.value
+            or record.get("receipt_digest")
+            != digest(canonical_bytes(view.terminal_receipt))
+        ):
+            raise ValueError("retained infrastructure diagnosis custody differs")
+        return record
 
     def private_refusal(self, task_id):
         """The classified build refusal of a REFUSED task (outcome, code, operation),
