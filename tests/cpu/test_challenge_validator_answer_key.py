@@ -346,6 +346,16 @@ def test_sync_runs_through_the_real_signer_and_verifier(tmp_path, published):
         assert refused.value.refusal == "NOT_A_CARBON_REQUEST"
 
 
+def _wait_until(condition, *, seconds=60.0):
+    """Poll ``condition`` until true or ``seconds`` pass (then fail with the state)."""
+    import time
+
+    deadline = time.monotonic() + seconds
+    while not condition():
+        assert time.monotonic() < deadline, "the host did not settle"
+        time.sleep(0.01)
+
+
 def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monkeypatch):
     """3a, 2026-10-08: the host's first listener ran every TLS handshake
     inside `accept`, so one client that connected and sent nothing froze it
@@ -416,13 +426,24 @@ def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monke
                 with pytest.raises(BlockingIOError):
                     connection.recv(1)
                 connection.setblocking(True)
-            # A fifth connection from this peer, with four open, is refused.
+            # A fifth connection from this peer, with four open, is refused. The slot
+            # count is the host's own: the fetch's connection is released by its handler
+            # thread AFTER the client has its answer, so wait until only the three silent
+            # connections hold slots before counting a fourth and a fifth (on a loaded box
+            # a late release would leave the count off by one).
+            _wait_until(lambda: server.slots.open() == len(silent))
             asker_slot = socket.create_connection(("127.0.0.1", port))
+            _wait_until(lambda: server.slots.open() == len(silent) + 1)
             extra = socket.create_connection(("127.0.0.1", port))
             # The host closes it at once; the bound is only the failure path, generous like the
             # timed-out connection below, because a loaded box can delay the close by seconds.
             extra.settimeout(60.0)
-            assert extra.recv(1) == b""
+            # "Closed by the host" is an orderly close or, on a loaded box, a reset.
+            try:
+                assert extra.recv(1) == b""
+            except ConnectionResetError:
+                pass
+            assert server.slots.open() == len(silent) + 1  # it never held a slot
             extra.close()
             asker_slot.close()
         # A connection opened under a short timeout is closed by the host
