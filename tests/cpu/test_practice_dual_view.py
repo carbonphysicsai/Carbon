@@ -123,3 +123,87 @@ def test_a_gate_practice_cannot_test_is_kept_as_not_tested():
         "native_shape": True,
         "paired_repeat": "NOT_TESTED_ON_PRACTICE",
     }
+
+
+# ---- practice shows the exam's minimums (OWNER-PRACTICE-SHOWS-MINIMUMS-01) ----
+
+SCHEMA_V2 = "carbon.practice.dual-feedback.v2"
+
+
+def _v2(**overrides):
+    fields = {
+        "schema": SCHEMA_V2,
+        "bank": "public",
+        "accuracy_legs": {"A_acc": 0.5},
+        "design_parts": {"V": 0.6},
+        "status": "PRACTICE_SCORED",
+        "failed_legs": [],
+        "minimums": {
+            "source": "published_exam",
+            "version": "f08-dual-sealed-grid-8x1-v2",
+            "status": "NOT_YET_SET",
+            "legs": {},
+        },
+        **overrides,
+    }
+    return _block(**fields)
+
+
+def test_minimums_not_yet_set_reach_the_page_as_the_doc_carries_them():
+    shown = dual_feedback({"x": _v2()})
+    assert shown["practice_status"] == "PRACTICE_SCORED"
+    assert shown["failed_legs"] == []
+    assert shown["minimums"]["status"] == "NOT_YET_SET"
+    assert shown["minimums"]["legs"] == {}
+
+
+def test_a_leg_below_its_minimum_is_named_with_its_minimum_and_value():
+    shown = dual_feedback(
+        {
+            "x": _v2(
+                status="PRACTICE_BELOW_MINIMUM",
+                failed_legs=["D"],
+                minimums={
+                    "source": "published_exam",
+                    "version": "v",
+                    "status": "SET",
+                    "legs": {
+                        "A": {"minimum": 0.3, "value": 0.5, "met": True},
+                        "D": {"minimum": 0.4, "value": 0.2, "met": False},
+                    },
+                },
+            )
+        }
+    )
+    assert shown["practice_status"] == "PRACTICE_BELOW_MINIMUM"
+    assert shown["failed_legs"] == ["D"]
+    assert shown["minimums"]["legs"]["D"] == {
+        "minimum": 0.4,
+        "value": 0.2,
+        "met": False,
+    }
+    assert shown["minimums"]["legs"]["A"]["met"] is True
+
+
+def test_an_unknown_status_or_junk_minimums_do_not_reach_the_page():
+    shown = dual_feedback(
+        {"x": _v2(status="EXAM_PASSED", minimums={"status": "ok", "legs": {"A": 3}})}
+    )
+    assert shown["practice_status"] is None
+    assert shown["minimums"]["status"] is None and shown["minimums"]["legs"] == {}
+    assert dual_feedback({"x": _v2(minimums=None)})["minimums"] is None
+
+
+def test_the_page_words_are_practice_labelled_and_compute_no_minimum():
+    from pathlib import Path
+
+    text = (
+        Path(__file__).resolve().parents[2] / "scripts/dev/miner_launchpad/app.js"
+    ).read_text(encoding="utf-8")
+    assert "practice: below the required minimum for " in text
+    assert "Practice: minimums not yet set." in text
+    start = text.index("function practiceMinimumsText")
+    body = text[start : text.index("\n  }\n", start)]
+    # It reads the doc's numbers and never derives or compares one.
+    assert "row.minimum" in body and "row.value" in body
+    assert " < " not in body and " >= " not in body and "Math." not in body

@@ -3221,7 +3221,19 @@
     if (!dual.available) return "Practice graded total: unavailable" + (dual.reason ? " (" + words(dual.reason) + ")" : "") + ".";
     if (!dual.eligible) return "Practice graded total: not eligible (" + (Object.entries(dual.gates || {}).filter(([, ok]) => ok === false).map(([name]) => words(name)).join(", ") || "a mandatory gate failed") + ").";
     if (typeof dual.total !== "number") return "Practice graded total: not scored.";
-    return "Practice graded total: " + dual.total.toFixed(4) + " (0 to 1, higher is better" + (typeof dual.accuracy === "number" ? "; A " + dual.accuracy.toFixed(3) : "") + (typeof dual.design_value === "number" ? ", D " + dual.design_value.toFixed(3) : "") + "), on the public practice bank" + (Number.isInteger(dual.n_cases) ? " (" + dual.n_cases + " cases)" : "") + "; compares within this Challenge version only." + (Object.values(dual.gates || {}).includes("NOT_TESTED_ON_PRACTICE") ? " Not tested on practice: " + Object.entries(dual.gates).filter(([, ok]) => ok === "NOT_TESTED_ON_PRACTICE").map(([name]) => words(name)).join(", ") + "." : "");
+    return "Practice graded total: " + dual.total.toFixed(4) + " (0 to 1, higher is better" + (typeof dual.accuracy === "number" ? "; A " + dual.accuracy.toFixed(3) : "") + (typeof dual.design_value === "number" ? ", D " + dual.design_value.toFixed(3) : "") + "), on the public practice bank" + (Number.isInteger(dual.n_cases) ? " (" + dual.n_cases + " cases)" : "") + "; compares within this Challenge version only." + (Object.values(dual.gates || {}).includes("NOT_TESTED_ON_PRACTICE") ? " Not tested on practice: " + Object.entries(dual.gates).filter(([, ok]) => ok === "NOT_TESTED_ON_PRACTICE").map(([name]) => words(name)).join(", ") + "." : "") + practiceMinimumsText(dual);
+  }
+  // OWNER-PRACTICE-SHOWS-MINIMUMS-01: each leg's published minimum beside its
+  // practice value, read from the practice doc (the page computes none), always
+  // labelled practice and never an exam status or grade.
+  function practiceMinimumsText(dual) {
+    const minimums = dual.minimums;
+    if (!minimums) return "";
+    if (minimums.status !== "SET") return " Practice: minimums not yet set.";
+    const legName = (leg) => leg === "A" ? "accuracy (A)" : leg === "D" ? "design value (D)" : leg;
+    const rows = Object.entries(minimums.legs || {}).map(([leg, row]) => legName(leg) + ": required at least " + (typeof row.minimum === "number" ? row.minimum.toFixed(3) : "not set") + ", this practice run " + (typeof row.value === "number" ? row.value.toFixed(3) : "not scored"));
+    const below = Array.isArray(dual.failed_legs) ? dual.failed_legs : [];
+    return " Practice minimums: " + rows.join("; ") + "." + (dual.practice_status === "PRACTICE_BELOW_MINIMUM" && below.length ? " practice: below the required minimum for " + below.map(legName).join(", ") + "." : "");
   }
   // M1 E2E R5-1: `latest` is this submission's grade only when the receiver
   // names this submission; the mining key's latest grade on the exam
