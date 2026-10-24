@@ -5,6 +5,7 @@ registered"), reveals nothing the exam-safety ruling withholds, and leaves every
 version served today unchanged."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -97,7 +98,9 @@ def test_the_pool_block_survives_json_and_is_small(pool_version):
     assert len(json.dumps(pool_version, sort_keys=True)) < 16000
 
 
-def test_every_constant_the_spec_leaves_to_the_owner_is_not_yet_registered(pool_version):
+def test_every_constant_the_spec_leaves_to_the_owner_is_not_yet_registered(
+    pool_version,
+):
     search = pool_version["design_search"]
     assert search["search"]["query_budget"] == pe.NOT_REGISTERED
     assert search["per_target_score"]["honesty_scale"] == pe.NOT_REGISTERED
@@ -137,6 +140,6 @@ def test_the_pool_text_says_the_extended_region_is_never_practice():
 
 def test_the_grader_is_not_imported_by_the_published_data_module():
     # Data only: the miner door carries no exam code.
-    source = open(pe.__file__, encoding="utf-8").read()
+    source = Path(pe.__file__).read_text(encoding="utf-8")
     assert "import carbon.scoring" not in source
     assert "from carbon.scoring" not in source

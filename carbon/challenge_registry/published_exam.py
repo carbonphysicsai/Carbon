@@ -165,7 +165,7 @@ _POPULATION = (
     "region, so that some designs pass and some fail."
 )
 #: The pool-graded exam (Validator spec POOL_GRADER_AND_PROOF_SUITE_SPEC_20261024,
-#: OWNER-INVERSE-DESIGN-PROOF-01, OWNER-HEADROOM-REGIONS-01). Challenge-neutral
+#: OWNER-INVERSE-DESIGN-PROOF-01). Challenge-neutral
 #: text only. Every constant the spec leaves to the owner (query budget, honesty
 #: scale, A_gen scale and how A_gen enters A, the safety-floor threshold) is the
 #: words "not yet registered" until the owner registers it with the grader
