@@ -6,7 +6,7 @@ measured by the first practice dual (the development bank, v1 legs); practice no
 exam's own v2 legs on the practice grid (`practice_dual.feedback_v2`), so the "beat this"
 line is re-measured by exactly that code and the record rewritten:
 
-    python scripts/dev/remeasure_cooling13_krr.py --out RECORD.json
+    python scripts/dev/remeasure_cooling13_krr.py --out RECORD.json --code-head COMMIT
 
 Needs torch (the bundle trains a torch KRR on CPU). The record cites the code head it ran
 at (the commit that holds this script), the environment, the strategy (the recipe digest)
@@ -22,7 +22,6 @@ import importlib.util
 import io
 import json
 import platform
-import subprocess
 import sys
 import tarfile
 import tempfile
@@ -98,6 +97,11 @@ def measure():
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--code-head",
+        required=True,
+        help="the commit holding this script (git does not run inside the venv)",
+    )
     args = parser.parse_args(argv)
     sys.path.insert(0, str(ROOT))
     document, bank_digest = measure()
@@ -105,12 +109,7 @@ def main(argv=None):
         raise SystemExit("the baseline did not score: " + json.dumps(document)[:300])
     import torch
 
-    head = subprocess.run(
-        ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
+    head = args.code_head
     record = {
         "schema": SCHEMA,
         "evidence": "DEVELOPMENT",
