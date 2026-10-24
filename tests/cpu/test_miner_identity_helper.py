@@ -368,6 +368,42 @@ def test_a_failing_key_tool_says_nothing_it_was_told(monkeypatch):
 
 
 # ---- the real SDK ------------------------------------------------------------------------------------
+def _phrase_in(words, text, run=3):
+    """Whether `run` consecutive words of the phrase appear in `text`, separated by anything but letters.
+
+    A single word is not a leak: the recovery phrase is drawn from the 2048-word BIP39 list, and the public keyfile
+    (`coldkeypub.txt`) names its own fields "accountId", "publicKey", "secretPhrase", "ss58Address", which contain
+    BIP39 words (account, public, secret, phrase, address, seed, ...). About 4 % of random phrases hold one of them,
+    so a per-word check failed that often under any load and passed on a rerun with a new phrase: a false positive,
+    not shared state. Three words in a row in order is what a phrase in the clear looks like.
+    """
+    import re
+
+    for start in range(len(words) - run + 1):
+        pattern = r"\W+".join(re.escape(word) for word in words[start : start + run])
+        if re.search(pattern, text, re.IGNORECASE):
+            return True
+    return False
+
+
+def test_a_phrase_check_ignores_bip39_words_that_are_also_keyfile_field_names_but_not_a_real_phrase():
+    public_keyfile = (
+        '{"accountId": "0xab", "publicKey": "0xab", "privateKey": null, '
+        '"secretPhrase": null, "secretSeed": null, "ss58Address": "5Fxyz"}'
+    )
+    unlucky = ["account", "public", "secret", "phrase", "address", "seed"] + [
+        "zoo",
+        "wrap",
+        "tent",
+        "oval",
+        "lake",
+        "iron",
+    ]
+    assert not _phrase_in(unlucky, public_keyfile)
+    assert _phrase_in(unlucky, "oops " + " ".join(unlucky[3:7]) + " leaked")
+    assert _phrase_in(unlucky, "\n".join(unlucky[:3]) + "\n")
+
+
 def test_the_sdk_writes_encrypted_owner_only_keys_and_prints_no_phrase(tmp_path, capfd):
     pytest.importorskip("bittensor")
     backend = SdkBackend(wallet_path=str(tmp_path))
@@ -386,9 +422,7 @@ def test_the_sdk_writes_encrypted_owner_only_keys_and_prints_no_phrase(tmp_path,
     for path in files:
         text = path.read_bytes().decode("latin-1")
         assert PASSWORD not in text and HOT_PASSWORD not in text
-        assert not any(word in text for word in words if len(word) > 3), (
-            "no phrase in the clear in " + path.name
-        )
+        assert not _phrase_in(words, text), "no phrase in the clear in " + path.name
         if os.name == "posix" and path.name in ("coldkey", "default"):
             assert stat.S_IMODE(path.stat().st_mode) & 0o077 == 0, (
                 path.name + " is readable by others"
@@ -418,8 +452,8 @@ def test_the_sdk_writes_encrypted_owner_only_keys_and_prints_no_phrase(tmp_path,
             opened.get_keypair(password=wrong)
     assert saved["folder"] == str(tmp_path / "realwallet")
     captured = capfd.readouterr()
-    assert not any(
-        word in captured.out + captured.err for word in words
+    assert not _phrase_in(
+        words, captured.out + captured.err
     ), "the SDK printed the phrase"
     assert PASSWORD not in captured.out + captured.err
     assert HOT_PASSWORD not in captured.out + captured.err
