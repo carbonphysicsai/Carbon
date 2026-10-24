@@ -329,7 +329,7 @@ VERSIONS = dict(
             catalog=True,
             graph_adapter="v2",
             catalog_entries_from=("1.5",),
-            facts="1.4",
+            facts="1.5",
             predecessor="1.4",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),

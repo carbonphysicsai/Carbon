@@ -159,6 +159,11 @@ def compact_description(described):
         "refusal_hints": _refusal_hints(kind),
         "full_answer": "describe with compact=false gives every field",
     }
+    published = described.get("published_exam")
+    if isinstance(published, dict):
+        # The score and the gate names; every value is in the full answer.
+        compact["score_formula"] = published["score"]["formula"]
+        compact["hard_gates"] = [gate["id"] for gate in published["gates"]]
     reasons = {}
     if catalog_families is not None:
         total = len(catalog_ids)

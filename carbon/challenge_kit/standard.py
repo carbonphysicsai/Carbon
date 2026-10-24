@@ -267,8 +267,11 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "The Gaussian kernel-ridge reconstruction (learned_baseline.py, "
             "domain.py, recipes.py) is published and staged byte-identical in "
             "practice, with the pinned public TRAIN bytes, in the pinned NumPy "
-            "CPU isolated carrier. It is a closed-form fit; there is no JAX or "
-            "PyTorch trainer for this Challenge.",
+            "CPU isolated carrier; it is a closed-form fit. Carbon-tested "
+            "PyTorch neural operators and the catalog's other backbones are "
+            "served by catalog id and rebuilt in the pinned PyTorch CPU "
+            "worker (the construction recipe's catalog source), so there is "
+            "a PyTorch route for this Challenge.",
         ),
         "generate": Gap(
             reason=(

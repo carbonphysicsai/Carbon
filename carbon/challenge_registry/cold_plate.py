@@ -309,7 +309,13 @@ def describe_catalog(version):
                 if value["id"] == "model_family.neural_operator"
                 else value["blocker"]
             ),
-            "summary": value["summary"],
+            "summary": (
+                "Carbon-tested PyTorch neural operators are served by catalog "
+                "id and rebuilt in the pinned PyTorch CPU worker; a "
+                "miner-authored neural operator is not rebuildable"
+                if value["id"] == "model_family.neural_operator"
+                else value["summary"]
+            ),
         }
         for value in capabilities
         if value["status"] != "rebuildable_development"

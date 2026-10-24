@@ -141,6 +141,28 @@ EXAMPLE_NOTE = (
 )
 
 
+def _exam(challenge_id, version):
+    """The exam block: from the published block where the Validator's
+    exam-safety ruling published this version's gates and score
+    (OWNER-PUBLISH-WHAT-IS-TESTED-01), otherwise `HUMAN_INPUT`."""
+    from carbon.challenge_registry import published_exam
+
+    published = published_exam.for_version(challenge_id, version)
+    if published is None:
+        return {
+            "gates": HUMAN_INPUT,
+            "components": HUMAN_INPUT,
+            "rule": HUMAN_INPUT,
+            "qualification": False,
+        }
+    return {
+        "gates": [gate["id"] for gate in published["gates"]],
+        "components": [leg["id"] for leg in published["score"]["legs"]],
+        "rule": published["score"]["formula"],
+        "qualification": False,
+    }
+
+
 def describe(spec, version):
     """The direct version's description, from its registrations only."""
     from carbon.backbone_catalog import served
@@ -240,12 +262,7 @@ def describe(spec, version):
             "freeze": "the campaign freezes one practised recipe",
             "submit": "the signed construction receiver rebuilds and judges it",
         },
-        "exam": {
-            "gates": HUMAN_INPUT,
-            "components": HUMAN_INPUT,
-            "rule": HUMAN_INPUT,
-            "qualification": False,
-        },
+        "exam": _exam(spec.challenge_id, version),
         "feedback": {
             # Validator, 2026-10-21: aggregate errors on the registered scale
             # (`direct_campaign.practice.error_scale`), no per-case value.

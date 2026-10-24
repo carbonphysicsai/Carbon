@@ -209,6 +209,38 @@ LABELS = {
 }
 
 
+def _f08_15():
+    """F08 1.5's facts: 1.4's, with the exam-safety edits the Validator ruled
+    (OWNER-PUBLISH-WHAT-IS-TESTED-01, 2026-10-24): the sampling law says the
+    exam's cases are drawn privately by a different rule, and the reference
+    method names the practice ladder (the public development bank) without the
+    ladder's mesh sizes. Older versions stay as served."""
+    facts = dict(FACTS[("f08-ribbed-bracket", "1.4")])
+    law = facts["sampling_law"]
+    assert law.endswith("not an independent population.")
+    facts["sampling_law"] = (
+        law + " The exam's cases are drawn privately by a different rule; they are"
+        " not these."
+    )
+    method = facts["reference_method"]
+    old = (
+        "exam ladder solved natively by ccx sha256 "
+        "21edfdcb18568f42cdde46a06583247616121a2724f4cd68e10fe0239829645b at "
+        "h = 3 / 2.25 / 1.7 mm (1.7 is the reference)."
+    )
+    assert old in method
+    facts["reference_method"] = method.replace(
+        old,
+        "practice ladder (the public development bank) solved natively by ccx "
+        "sha256 21edfdcb18568f42cdde46a06583247616121a2724f4cd68e10fe0239829645b.",
+    )
+    return facts
+
+
+FACTS[("f08-ribbed-bracket", "1.5")] = _f08_15()
+LABELS[("f08-ribbed-bracket", "1.5")] = dict(LABELS[("f08-ribbed-bracket", "1.4")])
+
+
 def value(spec, version, name):
     """The approved value of `name` at exactly `version`, or HUMAN_INPUT. A
     version uses the facts key it declares in the version registry (graph
