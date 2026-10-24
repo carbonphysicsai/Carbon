@@ -1799,5 +1799,99 @@
   }
  ],
  "rule": "carries only if the source archives have the same member list with every member's sha256 equal except the root LICENSE, and requirements, lock, wheels, environment digest and every other manifest field are byte-identical; otherwise re-paired",
- "schema": "carbon.backbone-catalog.relicense-derivations.v1"
+ "schema": "carbon.backbone-catalog.relicense-derivations.v1",
+ "second_pass_after_f02_additions": {
+  "all_carry": true,
+  "check": "codex-queue/inputs/prior_catalog/carry_check.py",
+  "check_output_sha256": "sha256:1501f3901129aad5f311377683e8765dffa550fa2480ed1fdbbc74781de9fe7b",
+  "entries_compared": 241,
+  "old_commit": "bcab29eee (F02 additions added)",
+  "rows": [
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.cooling.prior_krr",
+    "new_bundle_digest": "sha256:55e1425eac391bf93a0c698fe3a14498324ee1d37b920b2a5d99eb8dae07a703",
+    "old_bundle_digest": "sha256:499926443a7198780dccd8332d8a0441ec4e6eefd5df6a06837b192ab5faa58a"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.bcat",
+    "new_bundle_digest": "sha256:a8931c2b7540fc8593ad749a4a4f2d3774a004a5004d2a6e4b47e9e5a60728f5",
+    "old_bundle_digest": "sha256:a9a1d47fece448ad75e3d86f336ecf56e7c0888f03589b4b04d9306e6d9a5e9f"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.cno2d",
+    "new_bundle_digest": "sha256:89ba115323e92ec90e7e04c2fe3ff76a9c8fb0b703f7b0f2b718db5cc21ba443",
+    "old_bundle_digest": "sha256:c3fbcdcd0e0f7495b8a7baa1376018602b3f8acbccd4fc784110afc1dcf64a74"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.dpot",
+    "new_bundle_digest": "sha256:cf5b385d06a5dd09f4643a6a0ac0b5864e420151344884a8b9304631ea4d12eb",
+    "old_bundle_digest": "sha256:05981db8514fa2f8f0868f1736d4eede27b4eb65df83d29eeeb5d2410424d2fe"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.gnot",
+    "new_bundle_digest": "sha256:da370e2d0a32f72e753a093e01285dfc7c300f075cd785abc0112179feaba6b7",
+    "old_bundle_digest": "sha256:d55c028cd4916b14a9985979c81e44c09f8c8098f63ae858c6569501656da680"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.moegptno",
+    "new_bundle_digest": "sha256:a84832cc1eed29f98ec9fa17d28d92c118e46a37ad09f8d526658d3fce3aa08c",
+    "old_bundle_digest": "sha256:6313c402a035e89bdf4ae3c327ffd3e2446babc1ca4e524883db45b57bbfb6a9"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.morph",
+    "new_bundle_digest": "sha256:12381c56455591ad61d741b6419cd48a236f9cfe18b7e3ab0f5a8aed752b4a4e",
+    "old_bundle_digest": "sha256:2aa30305a4441036cc483d4486390487052bf64b1c22c39f2627f8783d67b356"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.mpp",
+    "new_bundle_digest": "sha256:210c04b79affec6e527509ba0c29f81b296974509801672fe7e317837f9f82e7",
+    "old_bundle_digest": "sha256:f8d06334aeb5e2b7a9c2aecf8e84255dbc9d27ac1b6011e6991f58748787364c"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.pcno",
+    "new_bundle_digest": "sha256:bd98671f4c7fb484c04c4462a86d781c95f75bd58c0ca38c22ed92debc135814",
+    "old_bundle_digest": "sha256:9c33dc356922cf9428c68cefb15fe1bbffee7dd2f090f7b33b36709cb8417ebd"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.pdeformer2",
+    "new_bundle_digest": "sha256:ab5c3525723685e9065d72ac68f3d897833916973c6d9bbd2c801d5a35b165ef",
+    "old_bundle_digest": "sha256:e50455c07e858624387def3dbba9dad01eb9de71a83e74bcc58158e7e5967d93"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.pit",
+    "new_bundle_digest": "sha256:7a429e5603901293c8681fe398e029f95b9eb6a1ae71ece04a1ba50b7f311f0f",
+    "old_bundle_digest": "sha256:571af2679838be255eaca5944185d58cda25c6ceb6ed00eec1b32e56da067120"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.transformer",
+    "new_bundle_digest": "sha256:2e6ac0ece3c05f7f4e95d1fa6542995dcd9885690a957ac7f350d059bef695a3",
+    "old_bundle_digest": "sha256:d4f5dd13d1ee2e74807e513767b559fe4a9120066172b5e25dbc301e7ec79a12"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.unet3d",
+    "new_bundle_digest": "sha256:81af85b581ef38900a75a4a26e7ffb319085c3b0dccb9c8f1c86c6df8014b7fa",
+    "old_bundle_digest": "sha256:6fbc46d1432b672c1656e66c765da6b24dcf755e2ef7e35c8728cd9fe445c22e"
+   },
+   {
+    "carries_pair_receipt": true,
+    "catalog_id": "v2.f02.jno.walrus",
+    "new_bundle_digest": "sha256:22cf0cc2d26718406107b6441e21cb275c8534490a998f040aa2809d434e84b9",
+    "old_bundle_digest": "sha256:1fd9852063016ce6daf76d3bf4fcef3adc2f31410b39946a72ba4d23b64d4ea6"
+   }
+  ],
+  "why": "13 F02 jNO entries (hard-remainder packets) and v2.cooling.prior_krr entered with the placeholder LICENSE; relicensed with the same script"
+ }
 }
