@@ -707,6 +707,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "module_name",
         ),
         (
+            "tests/cpu/test_published_exam.py",
+            "_module",
+            "importlib.import_module",
+            "name",
+        ),
+        (
             "tests/cpu/test_research_environment_standard.py",
             "test_provided_evidence_imports_and_gaps_are_named",
             "import_module",
