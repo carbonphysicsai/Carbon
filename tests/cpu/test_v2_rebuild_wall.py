@@ -40,26 +40,41 @@ WALLS = ("build_wall_seconds_max", "inference_wall_seconds_max")
 #: document its 600-second form must reproduce.
 AT_600 = {
     ("chip-cold-plate", "1.4"): (
-        "35f7a59244dc715b62915758b9896c6069d1169c5ac244595db4e8b9d5ec9e60"
+        "203847f2cdd826190a1a2b607f5d9fd750e7e76882d9b103942ac7545906ac29"
     ),
     ("electric-motor-magnetics", "1.4"): (
         "07d08ec38eda6f78b34880846e3dc9cbbf840b2f732cd5517b77373a6fe71d45"
     ),
-    ("f02", "2.4"): "a6195b4ea335306f10ad647caf9d9f51748b9ca0339916ac69ddb5c0ebd2c50c",
+    ("f02", "2.4"): "639c1bfb05965cde5bab24e1e95271dbc6df8de4d48a57068cbb9ff18c5dc3eb",
     ("f08-ribbed-bracket", "1.5"): (
         "ae6be62f31881aa2ce41e5dd631349672d101fdb4b351e9a3260f4bf0e8e3650"
+    ),
+}
+#: The two new versions whose served catalog the catalog freeze moved (frozen
+#: catalog 0530c1d41, "catalog v2 entries"): the catalog digest served at rc10
+#: 385bc1279 and the 600-second limits digest then. Their documents differ now
+#: in `backbone_catalog.digest` only (asserted below). Motor 1.4 and Ribbed
+#: Bracket 1.5 did not move.
+FREEZE_MOVED = {
+    ("chip-cold-plate", "1.4"): (
+        "sha256:f6a9b9c5ca937cd491d9df97c43e309832f87f2897cce2828e8810e3f2cc5924",
+        "35f7a59244dc715b62915758b9896c6069d1169c5ac244595db4e8b9d5ec9e60",
+    ),
+    ("f02", "2.4"): (
+        "sha256:a33b56d54e804f3bd2c82580cd518b54c1296e82a3a020b4cfe1d67830bdc63d",
+        "a6195b4ea335306f10ad647caf9d9f51748b9ca0339916ac69ddb5c0ebd2c50c",
     ),
 }
 #: The new versions' kits, re-pinned once: new version, pre-publish,
 #: OWNER-SANDBOX-REBUILD-WALL-01.
 NEW_KITS = {
     ("chip-cold-plate", "1.4"): (
-        "6db34335c03c3b1bd8bbd55de89a38e3cd44026f47bd227a9be4c522266b3334"
+        "19ef124c22c8533d781ac9add9527e911e534ebe322f64fd4ca23e93f639932c"
     ),
     ("electric-motor-magnetics", "1.4"): (
         "43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0"
     ),
-    ("f02", "2.4"): "5e1bf1057bbbaad62b223e748b54dd92ec94c384020c63778228789967feaf1f",
+    ("f02", "2.4"): "827e396bfe19d2ee162482f48d22150ee2894af1622d5778a55630644594e5f1",
     ("f08-ribbed-bracket", "1.5"): (
         "9ada93ee419c2adbe91e7e8aae8176f35e2d60b11484ad9e9814b772ae4cf63b"
     ),
@@ -111,6 +126,14 @@ def test_a_new_version_moves_only_by_its_two_wall_fields(key):
         "reconstruction_resource_policy": {**policy, **dict.fromkeys(WALLS, 600)},
     }
     assert digest(canonical(at_600)) == "sha256:" + AT_600[key]
+    if key in FREEZE_MOVED:
+        old_catalog, old_at_600 = FREEZE_MOVED[key]
+        assert document["backbone_catalog"]["digest"] != old_catalog
+        restored = {
+            **at_600,
+            "backbone_catalog": {**at_600["backbone_catalog"], "digest": old_catalog},
+        }
+        assert digest(canonical(restored)) == "sha256:" + old_at_600
 
 
 @pytest.mark.parametrize("key", sorted(BASE_KITS))
