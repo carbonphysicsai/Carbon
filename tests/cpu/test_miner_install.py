@@ -464,6 +464,8 @@ case "$2" in
     fi
     case "$3" in
       list) [ -z "${CARBON_TEST_OLD_IMAGES:-}" ] || echo "  ${CARBON_TEST_OLD_IMAGES}  (1.2GB)" ;;
+      catalog-list) [ -z "${CARBON_TEST_CATALOG_IMAGES:-}" ] || echo "  catalog images this update builds again: ${CARBON_TEST_CATALOG_IMAGES}, frees about 4.0GB" ;;
+      catalog-remove) echo "  removed catalog images" ;;
       remove)
         echo "  removed ${CARBON_TEST_OLD_IMAGES}"
         # The space the removal frees, for a df that reads it (gate1).
@@ -1036,6 +1038,83 @@ def test_old_images_are_removed_before_the_free_space_check_they_would_fail(
     )
     removals = [line for line in sandbox.logged() if "superseded_images remove" in line]
     assert len(removals) == 1  # offered once, never again at a later check
+
+
+def test_an_update_still_short_after_the_old_images_offers_the_current_catalog_on_its_own_yes(
+    sandbox,
+):
+    """M1 check (3): after the old images (none left) the update still stopped at 39/41 GiB with nothing else offered,
+    while the catalog's own images, which the update builds again, held the space. They are now offered after the old
+    images and only if still short, on their own flag and yes; a first install and a roomy update never list them.
+    """
+    sandbox._executable(sandbox.clone / ".venv" / "bin" / "python", FAKE_PYTHON)
+    assert sandbox.run("--no-start").returncode == 0
+    sandbox.publish("a newer main")
+    fake_df(sandbox, 13 * 1048576)
+    sandbox.log.unlink(missing_ok=True)
+    asked = sandbox.run(
+        "--update",
+        "--no-start",
+        CARBON_TEST_CATALOG_IMAGES="166",
+        CARBON_TEST_OLD_IMAGES="",
+    )
+    assert asked.returncode == 2  # nothing was removed without a yes
+    assert "builds Carbon's catalog images again over the new worker" in asked.stdout
+    assert "catalog images this update builds again: 166" in asked.stdout
+    assert "Kept them" in asked.stdout and "--remove-catalog-images" in asked.stdout
+    assert not any("catalog-remove" in line for line in sandbox.logged())
+    # The refusal says how much is still needed and what frees it, never a command that clears other people's data.
+    assert "4 GiB more are needed" in asked.stderr
+    assert (
+        "--remove-old-images" in asked.stderr
+        and "--remove-catalog-images" in asked.stderr
+    )
+    assert "docker system df" in asked.stderr and "docker builder" not in asked.stderr
+    sandbox.log.unlink(missing_ok=True)
+    removed = sandbox.run(
+        "--update",
+        "--no-start",
+        "--remove-catalog-images",
+        CARBON_TEST_CATALOG_IMAGES="166",
+    )
+    assert "removed catalog images" in removed.stdout
+    assert any("catalog-remove" in line for line in sandbox.logged())
+    # Not on a first install, which has no catalog from this install to rebuild.
+    sandbox.log.unlink(missing_ok=True)
+    first = sandbox.run("--no-start", CARBON_TEST_CATALOG_IMAGES="166")
+    assert "catalog images this update builds again" not in first.stdout
+    assert "--remove-catalog-images" not in first.stderr
+    assert not any("catalog-list" in line for line in sandbox.logged())
+
+
+def test_the_current_catalog_is_not_offered_when_the_old_images_were_enough(
+    sandbox, tmp_path
+):
+    old = "carbon-c03-worker:0123456789abcdef"
+    freed = tmp_path / "freed"
+    sandbox._executable(sandbox.clone / ".venv" / "bin" / "python", FAKE_PYTHON)
+    assert sandbox.run("--no-start").returncode == 0
+    sandbox.publish("a newer main")
+    df = sandbox.tools / "df"
+    df.write_text(
+        "#!/bin/sh\necho 'Filesystem 1024-blocks Used Available Capacity Mounted on'\n"
+        f"if [ -f '{freed}' ]; then free={1024 * 1048576}; else free={3 * 1048576}; fi\n"
+        'echo "fixture $((free * 2)) $free $free 50% /"\n'
+    )
+    df.chmod(0o755)
+    sandbox.log.unlink(missing_ok=True)
+    done = sandbox.run(
+        "--update",
+        "--no-start",
+        "--remove-old-images",
+        CARBON_TEST_OLD_IMAGES=old,
+        CARBON_TEST_FREED=str(freed),
+        CARBON_TEST_CATALOG_IMAGES="166",
+    )
+    assert done.returncode == 0, done.stderr
+    assert "removed " + old in done.stdout
+    assert "catalog images this update builds again" not in done.stdout
+    assert not any("catalog-list" in line for line in sandbox.logged())
 
 
 def test_an_install_starts_the_catalog_in_the_background_when_entries_are_missing(

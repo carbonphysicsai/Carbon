@@ -71,7 +71,7 @@ START=1
 UPDATE=0
 SERVICE=0
 REMOVE_OLD_IMAGES=0
-PRUNE_BUILD_CACHE=0
+REMOVE_CATALOG_IMAGES=0
 REF_GIVEN=0
 RELEASE=""
 DEVELOPMENT_REVISION=""
@@ -137,12 +137,13 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                installs that this install no longer records without asking
                (otherwise it lists them and asks first). No other image is
                touched, and one a container still uses is kept
-  --prune-build-cache
-               when space is short, also prune Docker's unused build cache
-               without asking (otherwise it asks first, separately). That
-               cache is shared by EVERY Docker build on this machine, not only
-               Carbon's, so other projects' builds will be slower the next
-               time. Never done by default or by --remove-old-images
+  --remove-catalog-images
+               with --update, when space is still short after the old images,
+               remove the catalog images this install names, without asking
+               (otherwise it lists them and asks first, separately). The update
+               builds them again over the new worker, which takes time; one a
+               container still uses is kept. Never done by default or by
+               --remove-old-images
   --service    run the Control Center as a systemd user service, so this
                terminal stays free: carbon-control-center for the default
                state directory, and carbon-control-center-NAME-HASH for any
@@ -168,7 +169,7 @@ while [[ $# -gt 0 ]]; do
     --no-start) START=0 ;;
     --service) SERVICE=1 ;;
     --remove-old-images) REMOVE_OLD_IMAGES=1 ;;
-    --prune-build-cache) PRUNE_BUILD_CACHE=1 ;;
+    --remove-catalog-images) REMOVE_CATALOG_IMAGES=1 ;;
     --port) PORT="${2:?--port needs a value}"; PORT_GIVEN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
@@ -306,7 +307,20 @@ need_space() {
     return 0
   fi
   (( free >= $2 )) \
-    || fail "$3 need $2 GiB free on the filesystem holding $1, and ${free} GiB are free. See what Docker keeps with: docker system df"
+    || fail "$3 need $2 GiB free on the filesystem holding $1, and ${free} GiB are free: $(( $2 - free )) GiB more are needed. $(space_hint)"
+}
+#: space_hint: what else frees room, in order. Carbon removes only its own images, and only on the miner's yes; Docker's
+#: build cache and other projects' images are the miner's to judge.
+space_hint() {
+  local hint="Free that much, then run this again."
+  if [[ "${REMOVE_OLD_IMAGES}" == 0 ]]; then
+    hint+=" Carbon's own images from earlier installs: add --remove-old-images."
+  fi
+  if [[ "${UPDATE}" == 1 && "${REMOVE_CATALOG_IMAGES}" == 0 ]]; then
+    hint+=" Catalog images the update builds again anyway: add --remove-catalog-images."
+  fi
+  hint+=" Carbon never removes anything else: docker system df shows what Docker keeps (its build cache and other projects' images included), and what to clear there is your call."
+  echo "${hint}"
 }
 
 step "1/6 Checking this machine"
@@ -384,31 +398,33 @@ docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
 #: repositories are listed (scripts/dev/miner_launchpad/superseded_images.py);
 #: Docker keeps any image a container still uses. A first install, with no
 #: environment yet, has none.
-#: offer_build_cache: Docker's unused build cache, on its own flag (--prune-build-cache) and its own yes. It is shared by
-#: every Docker build on this machine, so it is never done with Carbon's images and never by default.
-build_cache_offered=0
-offer_build_cache() {
+#: offer_current_catalog: with --update, the catalog images this install still names, which the update builds again over the
+#: new worker. Their own flag (--remove-catalog-images) and their own yes: removing them costs a rebuild. Only Carbon's own
+#: catalog images (by their label) are listed, and Docker keeps one a container still uses. Docker's build cache and every
+#: other project's images are never touched.
+catalog_offered=0
+offer_current_catalog() {
   local py="${repo_root}/.venv/bin/python" listing answer=""
-  [[ "${build_cache_offered}" == 0 ]] || return 0
-  build_cache_offered=1
+  [[ "${UPDATE}" == 1 && "${catalog_offered}" == 0 ]] || return 0
+  catalog_offered=1
   [[ -x "${py}" ]] || return 0
   listing="$(cd "${repo_root}" && PYTHONDONTWRITEBYTECODE=1 "${py}" -B -m scripts.dev.miner_launchpad.superseded_images \
-    cache-list --state-dir "${STATE_DIR}" --repo "${repo_root}" 2>/dev/null)" || return 0
+    catalog-list --state-dir "${STATE_DIR}" --repo "${repo_root}" 2>/dev/null)" || return 0
   [[ -n "${listing}" ]] || return 0
-  echo "Space is still short. Docker keeps unused build cache:"
+  echo "Space is still short. This update builds Carbon's catalog images again over the new worker, so the ones it has now can go first:"
   echo "${listing}"
-  if [[ "${PRUNE_BUILD_CACHE}" == 0 ]]; then
+  if [[ "${REMOVE_CATALOG_IMAGES}" == 0 ]]; then
     if [[ -t 0 ]]; then
-      read -r -p "Prune it? This affects EVERY Docker build on this machine, not only Carbon's: other projects' builds will be slower the next time. [y/N] " answer || answer=""
+      read -r -p "Remove them now? The update builds them again afterwards (about as long as the first catalog install). No other image is touched. [y/N] " answer || answer=""
     fi
     if [[ "${answer}" != [yY]* ]]; then
-      echo "Kept it. To prune it, answer y, or run this again with --prune-build-cache."
+      echo "Kept them. To remove them, answer y, or run this again with --remove-catalog-images."
       return 0
     fi
   fi
   (cd "${repo_root}" && PYTHONDONTWRITEBYTECODE=1 "${py}" -B -m scripts.dev.miner_launchpad.superseded_images \
-    cache-remove --state-dir "${STATE_DIR}" --repo "${repo_root}") \
-    || echo "Docker kept the build cache an active build uses."
+    catalog-remove --state-dir "${STATE_DIR}" --repo "${repo_root}") \
+    || echo "Docker kept the catalog images above that a container still uses."
 }
 old_images_offered=0
 offer_old_images() {
@@ -450,9 +466,15 @@ short_of() {
 # cleanup was offered, so a disk those images filled was refused by the very
 # check their removal would have passed. Offered (or, with
 # --remove-old-images, done) now, then every check reads the space again.
-if short_of "${repo_root}" "${CHECKOUT_GIB}"   || { [[ -n "${docker_root}" && -d "${docker_root}" ]]     && short_of "${docker_root}" "$(( IMAGES_GIB + gpu_space * GPU_GIB ))"; }; then
+space_short_now() {
+  short_of "${repo_root}" "${CHECKOUT_GIB}" || { [[ -n "${docker_root}" && -d "${docker_root}" ]] && short_of "${docker_root}" "$(( IMAGES_GIB + gpu_space * GPU_GIB ))"; }
+}
+if space_short_now; then
   offer_old_images
-  offer_build_cache
+  # Only when the old images were not enough.
+  if space_short_now; then
+    offer_current_catalog
+  fi
 fi
 need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 check_image_space() {
@@ -466,6 +488,9 @@ check_image_space() {
     fi
     if short_of "${docker_root}" "${needed}"; then
       offer_old_images
+      if short_of "${docker_root}" "${needed}"; then
+        offer_current_catalog
+      fi
     fi
     if [[ -n "${checkout_mount}" && "${checkout_mount}" == "${docker_mount}" ]]; then
       # One filesystem holds both (WSL's default): it needs room for both.
