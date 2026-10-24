@@ -363,7 +363,9 @@ def pool_grade(block):
         return None
     legs = block.get("legs") if type(block.get("legs")) is dict else {}
     targets = []
-    for row in (block.get("targets") if type(block.get("targets")) is list else [])[:16]:
+    for row in (block.get("targets") if type(block.get("targets")) is list else [])[
+        :16
+    ]:
         if type(row) is not dict:
             continue
         targets.append(

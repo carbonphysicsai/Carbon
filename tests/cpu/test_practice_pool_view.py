@@ -103,9 +103,10 @@ def test_older_schemas_never_gain_a_pool_grade():
 
 
 def test_a_pool_grade_with_the_wrong_schema_is_dropped():
-    assert _view(_doc(pool_grade=_pool(schema="carbon.pool-grade.exam.v1")))[
-        "pool_grade"
-    ] is None
+    assert (
+        _view(_doc(pool_grade=_pool(schema="carbon.pool-grade.exam.v1")))["pool_grade"]
+        is None
+    )
     assert _view(_doc(pool_grade="not a dict"))["pool_grade"] is None
 
 
@@ -121,7 +122,10 @@ def test_the_reason_is_a_closed_code_and_bad_types_become_none():
 
 
 def test_every_closed_reason_passes_through():
-    rows = [_target(target_id=f"t{i}", reason=r) for i, r in enumerate(cv.POOL_TARGET_REASONS)]
+    rows = [
+        _target(target_id=f"t{i}", reason=r)
+        for i, r in enumerate(cv.POOL_TARGET_REASONS)
+    ]
     out = _view(_doc(pool_grade=_pool(targets=rows)))["pool_grade"]["targets"]
     assert [row["reason"] for row in out] == list(cv.POOL_TARGET_REASONS)
 
@@ -136,5 +140,7 @@ def test_targets_and_digests_are_capped():
 
 
 def test_an_unavailable_doc_shows_no_pool_grade():
-    view = _view({"schema": cv.DUAL_FEEDBACK_SCHEMA_V3, "available": False, "reason": "x"})
+    view = _view(
+        {"schema": cv.DUAL_FEEDBACK_SCHEMA_V3, "available": False, "reason": "x"}
+    )
     assert view == {"available": False, "reason": "x"}
