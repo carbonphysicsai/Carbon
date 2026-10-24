@@ -17,6 +17,9 @@ door carries no exam code.
 from __future__ import annotations
 
 SCHEMA = "carbon.published-exam.v1"
+#: The block of a pool-graded version (design search over solved designs, no
+#: solver at grade time). Older versions keep v1 byte for byte.
+SCHEMA_POOL = "carbon.published-exam.v2"
 NOT_REGISTERED = "not yet registered"
 
 #: The Validator's allow-list: the only top-level sections the published block
@@ -42,6 +45,7 @@ ALLOWED_FIELDS = frozenset(
         "grade_statuses",
         "practice_vs_exam",
         "rotation",
+        "design_search",
     }
 )
 
@@ -160,6 +164,110 @@ _POPULATION = (
     "Cases are drawn near the design limit, inside the published validity "
     "region, so that some designs pass and some fail."
 )
+#: The pool-graded exam (Validator spec POOL_GRADER_AND_PROOF_SUITE_SPEC_20261024,
+#: OWNER-INVERSE-DESIGN-PROOF-01). Challenge-neutral
+#: text only. Every constant the spec leaves to the owner (query budget, honesty
+#: scale, A_gen scale and how A_gen enters A) is the words "not yet registered"
+#: until the owner registers it with the grader module; nothing here is a number
+#: the spec does not fix. The target and pool counts are the Validator-registered
+#: ones (receipt on 3b2b3fcac).
+_POOL_SOURCE = "codex-queue/reports/POOL_GRADER_AND_PROOF_SUITE_SPEC_20261024.md"
+
+
+def pool_score(a_acc):
+    """The score section of a pool-graded version (legs A and D as the spec fixes them)."""
+    legs = [dict(leg) for leg in _SCORE_LEGS[:4]]
+    legs[0] = {"id": "A_acc", "measures": a_acc}
+    legs.append(
+        {
+            "id": "A_gen",
+            "measures": "the same accuracy on a fixed slice of the extended "
+            "validity region, with its own scale; the design search is never "
+            "allowed to ask your model about those points",
+        }
+    )
+    legs.append(
+        {
+            "id": "D_opt",
+            "measures": "how well Carbon's fixed search designs with your "
+            "model on hidden targets: 0 for a target whose pick is not "
+            "feasible, otherwise closeness to the best known design times "
+            "honesty",
+        }
+    )
+    legs.append(
+        {
+            "id": "C",
+            "measures": "how well the model predicts the decision margins of "
+            "every candidate design it is asked about",
+        }
+    )
+    return {
+        "formula": "TOTAL = 0.5 * A + 0.5 * D",
+        "weights": {"A": 0.5, "D": 0.5},
+        "rule": {
+            "A": "A = mean(A_acc, A_robust, A_law, A_response); how A_gen "
+            "enters A is " + NOT_REGISTERED,
+            "D": "D = min(mean of the per-target scores of a set, C); see "
+            "design_search",
+            "decision": "a pick that is not feasible by the known true "
+            "outputs gets 0 for that target",
+        },
+        "legs": legs,
+        "source": _POOL_SOURCE,
+    }
+
+
+_DESIGN_SEARCH = {
+    "what": "Design value is inverse design: Carbon's own fixed optimizer "
+    "(CMA-ES, deterministic for a given model) uses your model to find a "
+    "design that meets each hidden target's limits. A target is one design "
+    "problem: an objective to maximise or minimise, the registered limits "
+    "and fixed conditions. Some targets are the base problem and some are "
+    "variants of it inside the extended validity region.",
+    "search": {
+        "optimizer": "CMA-ES in the target's normalised design box; you "
+        "cannot choose or change the search",
+        "query_budget": NOT_REGISTERED,
+        "step": "each proposal snaps to the nearest unqueried design of a set "
+        "of already-solved designs; your model predicts that design's outputs",
+        "internal_objective": "your model's predicted objective, with a "
+        "penalty for predicted limit violations",
+        "final_pick": "the best predicted-feasible design among those queried",
+    },
+    "truth": "The pick's true outputs are looked up, not solved: nothing is "
+    "solved at grade time. Solved designs whose true margin is within the "
+    "registered measurement uncertainty of a limit are left out, so every "
+    "remaining design is clearly feasible or clearly infeasible.",
+    "per_target_score": {
+        "infeasible": 0,
+        "feasible": "closeness * honesty",
+        "closeness": "(objective of your pick - the median feasible objective) "
+        "/ (the best known objective - the median feasible objective), "
+        "clipped to 0..1, so a typical feasible design scores 0 and only "
+        "near-best designs score well",
+        "honesty": "exp(-e / s), where e is your model's uncertainty-normalised "
+        "error at its pick; a model that steers the search with optimistic "
+        "predictions loses here",
+        "honesty_scale": NOT_REGISTERED,
+    },
+    "set_score": "The design score of a set is the mean over its targets.",
+    "targets_and_pools": "6 targets per set, 2 sets; 100 solved designs per " "target",
+    "deterministic": "The same model gives the same score, so the paired "
+    "repeat check holds.",
+    "disclosure": "You see the rounded total and a closed reason code, as "
+    "before. Per-target values, picks and the solved designs stay private.",
+    "source": _POOL_SOURCE,
+}
+
+_PRACTICE_POOL = (
+    "Practice runs the same search and the same legs on public targets with a "
+    "public set of solved designs drawn from the training region, and applies "
+    "the exam's published minimums per score part (or says minimums are not "
+    "yet set). The extended-region designs are never practice material, so a "
+    "practice total is not an exam total."
+)
+
 _SPAN_STEP = {
     "step": {
         "value": "0.005 to 0.015",
@@ -589,6 +697,11 @@ _COOLING = {
     },
 }
 
+#: Versions graded by the pool grader (their `_BY_VERSION` entry must carry a
+#: `pool_score(...)` score). Empty until the Test Engineer registers the new
+#: evaluation versions; the block of every other version is unchanged.
+_POOL_VERSIONS = frozenset()
+
 _BY_VERSION = {
     ("f08-ribbed-bracket", "1.5"): _F08,
     ("f02", "2.4"): _F02,
@@ -602,15 +715,19 @@ def for_version(challenge_id, version):
     own = _BY_VERSION.get((challenge_id, version))
     if own is None:
         return None
-    return {
-        "schema": SCHEMA,
+    pool = (challenge_id, version) in _POOL_VERSIONS
+    block = {
+        "schema": SCHEMA_POOL if pool else SCHEMA,
         **own,
         "population": _POPULATION,
         "koth": _KOTH,
         "grade_statuses": _GRADE,
-        "practice_vs_exam": _PRACTICE,
+        "practice_vs_exam": _PRACTICE_POOL if pool else _PRACTICE,
         "rotation": _ROTATION,
     }
+    if pool:
+        block["design_search"] = _DESIGN_SEARCH
+    return block
 
 
 def served():
