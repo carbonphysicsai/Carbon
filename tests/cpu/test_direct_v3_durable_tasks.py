@@ -619,7 +619,12 @@ def test_direct_cancel_preserves_terminal_refusal_or_unresolved_receipt(
     try:
         started = tasks.start_research_task(request).task
         receipt = tasks._receipt(started, state, refusal_code=refusal_code)
-        terminal = tasks._transition(started, state, receipt=receipt)
+        infra = (
+            {"failed_stage": "orchestration", "reason_code": "unclassified_internal"}
+            if state is research.DirectTaskStateV3.UNRESOLVED
+            else None
+        )
+        terminal = tasks._transition(started, state, receipt=receipt, infra=infra)
         cancellation = research.DirectCancelTaskRequestV3(
             request.challenge_key, terminal.task_id, "terminal-cancel-001"
         )

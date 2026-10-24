@@ -12,7 +12,9 @@ failed step: printable ASCII, long hex or base64-looking runs masked, the last
 
 from __future__ import annotations
 
+import os
 import re
+import traceback
 
 from carbon.reconstruction.worker.model import WorkerFailure
 
@@ -40,6 +42,7 @@ REASONS = frozenset(
         "child_infrastructure_failed",
         "worker_lost",
         "unclassified_internal",
+        "graph_decision",  # a Carbon graph decision, not an exception
     }
 )
 _MASKS = (
@@ -84,8 +87,36 @@ def tail_for(error) -> str:
     return sanitize_tail(f"{type(error).__name__}: {error}")
 
 
-def diagnosis(stage, reason, tail="", child_states=()) -> dict:
-    """A validated diagnosis, or ValueError: stage and reason are closed."""
+def traceback_for(error) -> str:
+    """The sanitized tail of ``error``'s formatted traceback (frames, source
+    lines and the final message): the step it was raised in."""
+    if error is None or getattr(error, "__traceback__", None) is None:
+        return ""
+    return sanitize_tail(
+        "".join(traceback.format_exception(type(error), error, error.__traceback__))
+    )
+
+
+def raised_at(error) -> str:
+    """``file:line:function`` of the innermost frame, or an empty string."""
+    frames = traceback.extract_tb(getattr(error, "__traceback__", None))
+    if not frames:
+        return ""
+    last = frames[-1]
+    return sanitize_tail(
+        f"{os.path.basename(last.filename)}:{last.lineno}:{last.name}"
+    )[:160]
+
+
+def diagnosis(
+    stage,
+    reason,
+    tail="",
+    child_states=(),
+    error=None,
+) -> dict:
+    """A validated diagnosis, or ValueError: stage and reason are closed.
+    ``error`` adds where it was raised and the sanitized traceback tail."""
     states = [s for s in child_states]
     if (
         stage not in STAGES
@@ -100,6 +131,8 @@ def diagnosis(stage, reason, tail="", child_states=()) -> dict:
         "reason_code": reason,
         "child_states": states,
         "tail": tail,
+        "raised_at": raised_at(error),
+        "traceback": traceback_for(error),
     }
 
 

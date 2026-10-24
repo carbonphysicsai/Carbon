@@ -79,6 +79,38 @@ def test_a_worker_failure_records_its_code_and_a_sanitized_tail(tmp_path, monkey
         tasks.close()
 
 
+def test_an_unresolved_task_records_where_the_exception_was_raised(
+    tmp_path, monkeypatch
+):
+    """The proof-run failure: an exception outside any worker settles the task
+    UNRESOLVED (shown to a miner like infrastructure) with nothing to read.
+    It now names the class, the step and the traceback tail."""
+
+    def culprit():
+        raise AttributeError("'NoneType' object has no attribute 'bundle'")
+
+    try:
+        culprit()
+    except AttributeError as raised:
+        error = raised
+    tasks, task_id, view, _provider = _run_failing(
+        tmp_path, monkeypatch, error, child_states=(None, None)
+    )
+    try:
+        assert view.state is research.DirectTaskStateV3.UNRESOLVED
+        record = tasks.private_infra_diagnosis(task_id)
+        assert record["failed_stage"] == "orchestration"
+        assert record["reason_code"] == "unclassified_internal"
+        assert record["raised_at"].endswith(":culprit")
+        assert "test_direct_v3_infra_diagnosis.py" in record["raised_at"]
+        assert "AttributeError" in record["traceback"]
+        assert "culprit" in record["traceback"]
+        assert "AttributeError" in record["tail"]
+        assert tasks.public_result(view) is None
+    finally:
+        tasks.close()
+
+
 def test_a_failed_build_child_names_the_build_stage(tmp_path, monkeypatch):
     tasks, task_id, view, _provider = _run_failing(
         tmp_path, monkeypatch, OSError("host doctor failed")
@@ -89,7 +121,8 @@ def test_a_failed_build_child_names_the_build_stage(tmp_path, monkeypatch):
         assert record["failed_stage"] == "build"
         assert record["reason_code"] == "host_io_error"
         assert record["child_states"] == ["FAILED_INFRA", None]
-        assert "OSError" in record["tail"]
+        assert "OSError" in record["tail"] and "OSError" in record["traceback"]
+        assert record["raised_at"].endswith(":failing")
     finally:
         tasks.close()
 

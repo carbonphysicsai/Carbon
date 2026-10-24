@@ -1441,9 +1441,10 @@ class DirectDevelopmentTasksV3:
     ):
         from dataclasses import replace
 
-        if state is DirectTaskStateV3.FAILED_INFRA:
-            # Every infrastructure failure carries its stage, a closed reason
-            # code and a sanitized tail (operator-only), or it is not recorded.
+        if state in (DirectTaskStateV3.FAILED_INFRA, DirectTaskStateV3.UNRESOLVED):
+            # Every infrastructure failure and every task left UNRESOLVED
+            # carries its stage, a closed reason code, where it was raised and
+            # a sanitized tail (operator-only), or it is not recorded.
             if receipt is None or type(infra) is not dict:
                 raise ValueError("infrastructure failure requires a diagnosis")
             infra_diagnosis_module.diagnosis(
@@ -1508,6 +1509,8 @@ class DirectDevelopmentTasksV3:
                         infra.get("tail", ""),
                         infra.get("child_states", ()),
                     ),
+                    "raised_at": infra.get("raised_at", ""),
+                    "traceback": infra.get("traceback", ""),
                     "official_eligible": False,
                 }
                 if infra is not None
@@ -1776,6 +1779,7 @@ class DirectDevelopmentTasksV3:
                         "dependency_check",
                         "dependency_unavailable",
                         infra_diagnosis_module.tail_for(sys.exc_info()[1]),
+                        error=sys.exc_info()[1],
                     ),
                 )
             view = self._transition(view, DirectTaskStateV3.RUNNING)
@@ -2197,11 +2201,26 @@ class DirectDevelopmentTasksV3:
                     infra=(
                         infra_diagnosis_module.diagnosis(
                             infra_diagnosis_module.stage_of(child_states, provisioning),
-                            infra_diagnosis_module.reason_for(exc),
-                            infra_diagnosis_module.tail_for(exc),
+                            (
+                                "graph_decision"
+                                if graph_decision is not None
+                                else infra_diagnosis_module.reason_for(exc)
+                            ),
+                            (
+                                infra_diagnosis_module.sanitize_tail(
+                                    graph_decision.reason_code
+                                )
+                                if graph_decision is not None
+                                else infra_diagnosis_module.tail_for(exc)
+                            ),
                             child_states,
+                            error=exc,
                         )
-                        if state is DirectTaskStateV3.FAILED_INFRA
+                        if state
+                        in (
+                            DirectTaskStateV3.FAILED_INFRA,
+                            DirectTaskStateV3.UNRESOLVED,
+                        )
                         else None
                     ),
                     export_gap=(
@@ -2224,7 +2243,8 @@ class DirectDevelopmentTasksV3:
         view = self._views.get(task_id.value)
         if (
             view is None
-            or view.state is not DirectTaskStateV3.FAILED_INFRA
+            or view.state
+            not in (DirectTaskStateV3.FAILED_INFRA, DirectTaskStateV3.UNRESOLVED)
             or view.terminal_receipt is None
         ):
             return None
