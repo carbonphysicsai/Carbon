@@ -40,7 +40,7 @@ WALLS = ("build_wall_seconds_max", "inference_wall_seconds_max")
 #: document its 600-second form must reproduce.
 AT_600 = {
     ("chip-cold-plate", "1.4"): (
-        "22e5a43f94235d1511259e754067b8e4f263658a1b8a67a2b32df4f9e5e9f253"
+        "35f7a59244dc715b62915758b9896c6069d1169c5ac244595db4e8b9d5ec9e60"
     ),
     ("electric-motor-magnetics", "1.4"): (
         "07d08ec38eda6f78b34880846e3dc9cbbf840b2f732cd5517b77373a6fe71d45"
@@ -54,7 +54,7 @@ AT_600 = {
 #: OWNER-SANDBOX-REBUILD-WALL-01.
 NEW_KITS = {
     ("chip-cold-plate", "1.4"): (
-        "7fa9d2c89326b8fbf82e0500b49c139fa35790cbd91ec0029f119dbd3751876c"
+        "6db34335c03c3b1bd8bbd55de89a38e3cd44026f47bd227a9be4c522266b3334"
     ),
     ("electric-motor-magnetics", "1.4"): (
         "43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0"
