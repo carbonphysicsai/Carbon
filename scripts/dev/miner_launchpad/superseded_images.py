@@ -22,13 +22,10 @@ Another program's image or container is never listed. Each is removed
 without force: Docker refuses an image a container still uses, and that
 refusal is reported, not overridden. A running container is never listed.
 
-Docker's unused build cache is listed last, by the size Docker reports as
-reclaimable. Every Carbon build leaves cache, and an update stopped at its own
-space check after the images were removed because the cache was not. The cache
-is Docker's, shared with any other builds on this machine, and is only made
-again when needed; it is listed and pruned only on the miner's yes (or
-`--remove-old-images`), and `docker builder prune` never removes cache an
-active build uses.
+Docker's unused build cache is separate (`build_cache`, `--prune-build-cache`): every
+Carbon build leaves cache, and an update stopped at its own space check after the images
+were removed because the cache was not. It is Docker's, shared with every build on this
+machine, so it has its own flag and its own yes, and is never done with the images.
 """
 
 from __future__ import annotations
@@ -68,8 +65,13 @@ KINDS = {
     "container": "practice job containers that finished",
     "catalog": "catalog images built over an earlier worker",
     "image": "Carbon images from earlier installs",
-    "build_cache": "Docker's unused build cache (shared with any other builds on this machine; made again when needed)",
 }
+#: Docker's unused build cache is not one of these kinds: `docker builder prune --all` touches the miner's non-Carbon
+#: build cache too, so it has its own flag (`--prune-build-cache`) and its own prompt in the installer, and is never
+#: listed or removed with Carbon's own images.
+BUILD_CACHE_WORDS = (
+    "Docker's unused build cache, shared with every Docker build on this machine"
+)
 _IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}")
 _SIZE = re.compile(r"([0-9.]+)\s*([kKMGT]?B)")
 _UNITS = {"B": 1, "kB": 1e3, "KB": 1e3, "MB": 1e6, "GB": 1e9, "TB": 1e12}
@@ -212,17 +214,21 @@ def superseded(state_dir, repo, docker=_docker) -> list[dict]:
                 "size": image.get("Size", "?"),
             }
         )
+    return found
+
+
+def build_cache(docker=_docker) -> dict | None:
+    """Docker's unused build cache as {kind, ref, id, size}, by the size Docker reports as reclaimable; None when there
+    is none. Never part of `superseded`."""
     for usage in _lines(docker("system", "df", "--format", "{{json .}}")):
         if usage.get("Type") == "Build Cache" and size_bytes(usage.get("Reclaimable")):
-            found.append(
-                {
-                    "kind": "build_cache",
-                    "ref": "Docker build cache",
-                    "id": "build-cache",
-                    "size": usage.get("Reclaimable"),
-                }
-            )
-    return found
+            return {
+                "kind": "build_cache",
+                "ref": "Docker build cache",
+                "id": "build-cache",
+                "size": usage.get("Reclaimable"),
+            }
+    return None
 
 
 def totals(found) -> dict:
@@ -257,10 +263,24 @@ def remove(found, docker=_docker) -> list[tuple[str, str | None]]:
 
 def main(argv=None, docker=_docker) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=("list", "remove"))
+    parser.add_argument(
+        "command", choices=("list", "remove", "cache-list", "cache-remove")
+    )
     parser.add_argument("--state-dir", type=Path, required=True)
     parser.add_argument("--repo", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command in ("cache-list", "cache-remove"):
+        item = build_cache(docker)
+        if item is None:
+            return 0
+        if args.command == "cache-list":
+            print(
+                f"  {BUILD_CACHE_WORDS}: frees about {human(size_bytes(item['size']))}"
+            )
+            return 0
+        ref, why = remove([item], docker)[0]
+        print(f"  removed {ref}" if why is None else f"  kept {ref}: {why}")
+        return 0 if why is None else 1
     found = superseded(args.state_dir, args.repo, docker)
     if args.command == "list":
         for item in found:

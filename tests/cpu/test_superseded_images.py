@@ -16,6 +16,7 @@ Docker is a stand-in: no engine is reached. The rules held here:
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import subprocess
 
 from scripts.dev.miner_launchpad import installed, superseded_images
@@ -188,33 +189,52 @@ def test_sizes_read_as_docker_prints_them():
 CACHE = json.dumps({"Type": "Build Cache", "Size": "9GB", "Reclaimable": "3.2GB (35%)"})
 
 
-def test_docker_build_cache_is_listed_last_with_its_reclaimable_size_and_only_when_there_is_some(
+def test_docker_build_cache_is_never_listed_with_carbons_images_and_has_its_own_listing(
     tmp_path,
 ):
     state, repo = install(tmp_path)
     docker = Docker()
+    docker.df = [json.dumps({"Type": "Images", "Reclaimable": "1GB (10%)"}), CACHE]
     assert "build_cache" not in {
         item["kind"] for item in superseded_images.superseded(state, repo, docker)
     }
-    docker.df = [
-        json.dumps({"Type": "Images", "Reclaimable": "1GB (10%)"}),
-        CACHE,
-    ]
-    found = superseded_images.superseded(state, repo, docker)
-    assert found[-1]["kind"] == "build_cache"
-    assert superseded_images.totals(found)["build_cache"] == (1, 3_200_000_000)
+    item = superseded_images.build_cache(docker)
+    assert item["kind"] == "build_cache"
+    assert superseded_images.size_bytes(item["size"]) == 3_200_000_000
     docker.df = [json.dumps({"Type": "Build Cache", "Reclaimable": "0B (0%)"})]
-    assert "build_cache" not in {
-        item["kind"] for item in superseded_images.superseded(state, repo, docker)
-    }
+    assert superseded_images.build_cache(docker) is None
 
 
-def test_removal_prunes_the_build_cache_last_with_the_exact_prune_command(tmp_path):
+def test_the_cache_commands_prune_only_the_cache_with_the_exact_command(
+    tmp_path, capsys
+):
     state, repo = install(tmp_path)
     docker = Docker()
     docker.df = [CACHE]
-    found = superseded_images.superseded(state, repo, docker)
+    args = ["--state-dir", str(state), "--repo", str(repo)]
+    assert superseded_images.main(["cache-list", *args], docker) == 0
+    assert "shared with every Docker build on this machine" in capsys.readouterr().out
     docker.calls.clear()
-    done = superseded_images.remove(found, docker)
-    assert done[-1] == ("Docker build cache", None)
+    assert superseded_images.main(["cache-remove", *args], docker) == 0
     assert docker.calls[-1] == ("builder", "prune", "--all", "--force")
+    assert not any(
+        call[0] in ("rm",) or call[:2] == ("image", "rm") for call in docker.calls
+    )
+    # The ordinary removal never touches the cache.
+    docker.calls.clear()
+    superseded_images.remove(superseded_images.superseded(state, repo, docker), docker)
+    assert ("builder", "prune", "--all", "--force") not in docker.calls
+
+
+def test_the_installer_has_its_own_flag_and_prompt_and_never_prunes_by_default_or_with_the_images():
+    script = (
+        Path(__file__).resolve().parents[2] / "scripts/install_miner.sh"
+    ).read_text(encoding="utf-8")
+    assert "--prune-build-cache) PRUNE_BUILD_CACHE=1" in script
+    assert "PRUNE_BUILD_CACHE=0" in script
+    assert (
+        "REMOVE_OLD_IMAGES"
+        not in script.split("offer_build_cache() {")[1].split("old_images_offered=0")[0]
+    )
+    assert "affects EVERY Docker build on this machine" in script
+    assert "cache-remove" in script

@@ -8,6 +8,9 @@ containerd store does not (it knows the image by its index digest) but answers b
 import dataclasses
 import hashlib
 import json
+import os
+import shutil
+import stat
 from subprocess import CompletedProcess
 
 import pytest
@@ -156,25 +159,62 @@ def test_the_tag_must_be_the_exact_parent_tag_shape():
         assert verdict.code == "worker.doctor.image_unavailable"
 
 
-def test_the_sidecar_round_trips_and_refuses_another_image_or_a_malformed_record(
+def test_the_sidecar_round_trips_is_owner_only_and_refuses_another_image_or_a_malformed_record(
     tmp_path,
 ):
     manifest = tmp_path / "torch-worker-image.json"
     manifest.write_text("{}", encoding="utf-8")
     assert image_fingerprint.read_sidecar(manifest, IMAGE_ID) is None
-    image_fingerprint.write_sidecar(
+    path = image_fingerprint.write_sidecar(
         manifest, parent_image_id=IMAGE_ID, tag=TAG, value=_recorded()
     )
+    if os.name == "posix":
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
     assert image_fingerprint.read_sidecar(manifest, IMAGE_ID) == (TAG, _recorded())
     assert image_fingerprint.read_sidecar(manifest, INDEX_ID) is None
-    image_fingerprint.sidecar_path(manifest).write_text(
-        '{"schema": "x"}', encoding="utf-8"
-    )
+    path.write_text('{"schema": "x"}', encoding="utf-8")
     assert image_fingerprint.read_sidecar(manifest, IMAGE_ID) is None
     with pytest.raises(ValueError):
         image_fingerprint.write_sidecar(
             manifest, parent_image_id=IMAGE_ID, tag="latest", value="short"
         )
+
+
+def test_a_sidecar_from_another_manifest_vouches_for_nothing(tmp_path):
+    """Bound to the sha256 of the manifest it was written for: copied beside another manifest, or left behind when the
+    manifest changed, it is refused, so the doctor falls back to image_unavailable."""
+    first = tmp_path / "a" / "torch-worker-image.json"
+    second = tmp_path / "b" / "torch-worker-image.json"
+    for manifest, text in ((first, '{"image":1}'), (second, '{"image":2}')):
+        manifest.parent.mkdir()
+        manifest.write_text(text, encoding="utf-8")
+    image_fingerprint.write_sidecar(
+        first, parent_image_id=IMAGE_ID, tag=TAG, value=_recorded()
+    )
+    shutil.copy(
+        image_fingerprint.sidecar_path(first), image_fingerprint.sidecar_path(second)
+    )
+    assert image_fingerprint.read_sidecar(first, IMAGE_ID) == (TAG, _recorded())
+    assert image_fingerprint.read_sidecar(second, IMAGE_ID) is None
+    first.write_text(
+        '{"image":3}', encoding="utf-8"
+    )  # the manifest changed after install
+    assert image_fingerprint.read_sidecar(first, IMAGE_ID) is None
+
+
+def test_the_right_manifest_but_a_retagged_image_with_other_layers_refuses_through_the_doctor(
+    tmp_path,
+):
+    identity = _identity()
+    manifest = tmp_path / "torch-worker-image.json"
+    manifest.write_text("{}", encoding="utf-8")
+    image_fingerprint.write_sidecar(
+        manifest, parent_image_id=IMAGE_ID, tag=TAG, value=_recorded()
+    )
+    tag, recorded = image_fingerprint.read_sidecar(manifest, IMAGE_ID)
+    cli = Cli("containerd", identity, layers=("l1", "someone-retagged"))
+    verdict = _doctor(cli, identity, store_tag=tag, store_fingerprint=recorded)
+    assert not verdict.eligible and verdict.code == "worker.doctor.image_unavailable"
 
 
 def test_the_remote_check_and_the_local_check_share_one_fingerprint_format():
