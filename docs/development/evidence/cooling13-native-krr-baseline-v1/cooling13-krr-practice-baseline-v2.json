@@ -1,0 +1,60 @@
+{
+ "bank_digest": "sha256:71eeaf107616a7c7c95e8ade3803c7093944a26bc784bdee96bbb8bc344e83ae",
+ "bundle_digest": "sha256:2c918acd1432b3920fa673e8d0097882ed016eed8d9bd91b23a87415da849d67",
+ "challenge": {
+  "id": "chip-cold-plate",
+  "version": "1.3"
+ },
+ "code_head": "a5a3154fd3e26929ee894df082ccc2818eb436ec",
+ "environment": {
+  "numpy": "2.4.6",
+  "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "3.11.16",
+  "torch": "2.13.0+cpu"
+ },
+ "evidence": "DEVELOPMENT",
+ "label": "practice baseline on the public bank",
+ "measurement": "carbon.scoring.cooling_encoded_dual_pack via practice_dual.feedback_v2",
+ "model": "learned-krr-v1 (1.3-native bundle)",
+ "n_cases": 132,
+ "practice_dual": {
+  "accuracy": 0.8976324325792784,
+  "accuracy_legs": {
+   "A_acc": 0.8523878239188881,
+   "A_law": 0.9702407032399892,
+   "A_response": 0.9728509087656276,
+   "A_robust": 0.7950502943926083
+  },
+  "available": true,
+  "bank": "practice (public bank)",
+  "challenge": {
+   "kind": "cooling",
+   "version": "1.3"
+  },
+  "decision_outcome": "VERIFIED_FEASIBLE",
+  "design_parts": {
+   "C": 0.1470527670479533,
+   "V_feas": 1.0,
+   "V_pair": 1.0,
+   "V_var": 1.0
+  },
+  "design_value": 0.1470527670479533,
+  "eligible": true,
+  "gates": {
+   "complete_grid_common_mask": true,
+   "native_cold_plate": true,
+   "physics_laws": true,
+   "selected_design_verified_feasible": true
+  },
+  "gates_failed_laws": [],
+  "n_cases": 132,
+  "note": "Computed on the full public bank with public probes, by the exam own v2 grader; compares only within this Challenge version; not the exam grade and not comparable with a sealed grade.",
+  "schema": "carbon.practice.dual-feedback.v2",
+  "scope": "PUBLIC_PRACTICE_FEEDBACK",
+  "total": 0.5223425998136159
+ },
+ "qualification": false,
+ "schema": "carbon.practice-baseline-record.v1",
+ "score": 0.5223425998136159,
+ "strategy_digest": "sha256:ffde968a02665765afb346307b9ce1935bde838d67a3c2ace5273521778629d1"
+}

@@ -114,25 +114,58 @@ def test_its_practice_dual_total_equals_the_1_2_krr_total(tmp_path):
     assert abs(after["total"] - before["total"]) <= TOTAL_TOLERANCE
 
 
-def test_the_practice_baseline_entry_is_the_recorded_run():
-    # Validator, 2026-10-23: the "beat this" score is the recorded
-    # practice-dual run's total, cited by the record's sha256.
+def test_the_practice_baseline_entry_is_the_recorded_v2_run():
+    # Validator, 2026-10-23: the "beat this" score is the recorded practice-dual
+    # run's total, cited by the record's sha256; re-measured by the practice dual v2
+    # (the exam's own v2 legs on the practice grid) at the code head the record cites.
     from scripts.dev.miner_launchpad import campaign_view
 
-    raw = (PACKET / "cooling13-krr-practice-baseline.json").read_bytes()
+    raw = (PACKET / "cooling13-krr-practice-baseline-v2.json").read_bytes()
     record = json.loads(raw)
     entry = campaign_view.PRACTICE_BASELINES[("chip-cold-plate", "1.3")]
     assert entry["record_digest"] == _sha(raw)
     assert entry["score"] == record["score"] == record["practice_dual"]["total"]
     assert entry["strategy_digest"] == record["strategy_digest"] == RECIPE_DIGEST
+    assert record["bundle_digest"] == BUNDLE_DIGEST
     assert entry["bank_digest"] == record["bank_digest"]
     assert entry["code_head"] == record["code_head"]
-    assert record["n_cases"] == 48 and record["practice_dual"]["eligible"] is True
+    assert entry["dual_schema"] == campaign_view.DUAL_FEEDBACK_SCHEMA_V2
+    dual = record["practice_dual"]
+    assert dual["schema"] == campaign_view.DUAL_FEEDBACK_SCHEMA_V2
+    assert dual["bank"] == "practice (public bank)" and dual["eligible"] is True
+    assert set(dual["accuracy_legs"]) == {"A_acc", "A_robust", "A_law", "A_response"}
+    assert set(dual["design_parts"]) == {"C", "V_feas", "V_pair", "V_var"}
+    assert dual["design_value"] == dual["design_parts"]["C"]  # D = min(V, C), C binds
     assert record["environment"]["platform"].startswith("Linux")
-    # The record was measured by the earlier practice dual (v1 legs on the dev
-    # measure); practice now reports the exam's v2 legs on the practice grid, so
-    # it is not shown as the "beat this" line until re-measured by the same code.
-    assert entry["dual_schema"] == campaign_view.DUAL_FEEDBACK_SCHEMA
+    assert record["evidence"] == "DEVELOPMENT" and record["qualification"] is False
+    # Aggregates only: no per-case value or id in the record.
+    assert "case" not in json.dumps(dual).replace("n_cases", "")
     shown = campaign_view.baseline({"id": "chip-cold-plate", "version": "1.3"})
+    # the page rounds the shown value (campaign_view.finite)
+    assert shown["score"] == pytest.approx(record["score"], abs=1e-6)
+    assert shown["reason"] is None
+    assert shown["record"]["record_digest"] == _sha(raw)
+
+
+def test_the_earlier_v1_record_is_kept_and_is_not_the_beat_this_line():
+    raw = (PACKET / "cooling13-krr-practice-baseline.json").read_bytes()
+    old = json.loads(raw)
+    assert old["practice_dual"]["schema"] == "carbon.practice.dual-feedback.v1"
+    assert (
+        old["code_head"]
+        != json.loads(
+            (PACKET / "cooling13-krr-practice-baseline-v2.json").read_bytes()
+        )["code_head"]
+    )
+
+
+def test_a_baseline_measured_by_the_earlier_dual_is_still_withheld(monkeypatch):
+    from scripts.dev.miner_launchpad import campaign_view
+
+    key = ("chip-cold-plate", "1.3")
+    entry = {**campaign_view.PRACTICE_BASELINES[key]}
+    entry["dual_schema"] = campaign_view.DUAL_FEEDBACK_SCHEMA
+    monkeypatch.setitem(campaign_view.PRACTICE_BASELINES, key, entry)
+    shown = campaign_view.baseline({"id": key[0], "version": key[1]})
     assert shown["score"] is None
     assert shown["reason"] == "baseline_predates_practice_dual_v2"
