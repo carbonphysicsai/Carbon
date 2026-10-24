@@ -1,0 +1,20 @@
+{
+ "bundle_ref": {
+  "bundle_digest": "sha256:a7aa62dc68e0e00dfa86e1c21384d3ea0a514e70fc1447e78b35d7362c3aa756",
+  "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+  "language": "python",
+  "runtime_profile_id": "torch-cpu-py311",
+  "schema": "carbon.library-bundle-ref.v1"
+ },
+ "configuration": {
+  "backbone": "thuml.Transolver",
+  "learning_rate": 0.001
+ },
+ "entrypoint": {
+  "module": "carbon_candidate.build",
+  "name": "build"
+ },
+ "output_format": "carbon.numeric-graph.v1",
+ "packet": "t_f02x_thuml_transolver_baseline",
+ "train_use": {}
+}

@@ -1,0 +1,17 @@
+{
+ "accelerator": "cpu",
+ "architecture": "amd64",
+ "base_environment_digest": "sha256:5dd9a364333ca3ec56383a36c0b3edefad817be93a2f30c49f775af00cd094a4",
+ "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+ "language": "python",
+ "license_sha256": "sha256:edb620ce5938f7ca2895696b7681244a7f67dbe3deceb05863c665b96041ac88",
+ "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+ "name": "f02x-catalog-jno-pit-baseline-v2",
+ "os": "linux",
+ "python_abi": "cp311",
+ "runtime_profile_id": "python-cpu-py311",
+ "schema": "carbon.development.library-bundle.v1",
+ "source_bytes": 18687,
+ "source_sha256": "sha256:0683da13e59e37dc532f89cd908ad85cf130074738eddf3aae0d03688a0960be",
+ "wheels": {}
+}

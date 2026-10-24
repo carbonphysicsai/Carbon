@@ -1,0 +1,20 @@
+{
+ "bundle_ref": {
+  "bundle_digest": "sha256:2130f9e94ee9c75fb224ca9d2507c7f6a58f1ff6431df787e407a6c780d44024",
+  "environment_digest": "sha256:0a313185d40515172cd71c18383598ae8d6f52e5540569dc51c385fa570f7f96",
+  "language": "python",
+  "runtime_profile_id": "torch-cpu-py311",
+  "schema": "carbon.library-bundle-ref.v1"
+ },
+ "configuration": {
+  "backbone": "physicsnemo.MeshGraphNet",
+  "learning_rate": 0.001
+ },
+ "entrypoint": {
+  "module": "carbon_candidate.build",
+  "name": "build"
+ },
+ "output_format": "carbon.numeric-graph.v1",
+ "packet": "t_f02x_physicsnemo_meshgraphnet_baseline",
+ "train_use": {}
+}
