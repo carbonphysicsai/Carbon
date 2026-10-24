@@ -1,0 +1,18 @@
+{
+ "catalog_id": "f08.oformer.Encoder1D_PointWiseDecoder1D",
+ "differ": [],
+ "environment": "image built from the new cu130 lock (repo recipe scripts/dev/torch_gpu_worker_image.sh, lock ae8ec3ab\u2026, built on the pod, not pushed); torch 2.13.0+cu130; NVIDIA_TF32_OVERRIDE=0, CUBLAS_WORKSPACE_CONFIG=:4096:8 (the pinned GPU determinism environment); 20 steps, two container processes then compare",
+ "gpu_used": true,
+ "identical": 1,
+ "image_digest": "sha256:696354a1f663864e74c3883efdcc698cacf7733afd230f11b35fb1c2f119ad9a",
+ "kind": "repeat",
+ "pairs": 1,
+ "runtime_profile_id": "torch-cu130-py311",
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "smoke_ok": true,
+ "source_report": {
+  "file": "GPU_TWIN_RECEIPTS_TORCH_LOCKFIX_20261023.json",
+  "sha256": "sha256:defd6e72a862623ae65e1e55b02bf2728322f6167b784d9bec4304966fb77cd7"
+ },
+ "tested_on": "1x NVIDIA GeForce RTX 3090, driver 595.58.03"
+}

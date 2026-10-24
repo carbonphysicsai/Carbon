@@ -1,8 +1,38 @@
 {
  "check": "codex-queue/inputs/prior_catalog/carry_check.py",
  "check_output_sha256": "sha256:89c2f19e6e2e19597f230f7f9865bcf327767091e3acb225ebdee02896e6f21a",
+ "cooling_prior_entry": {
+  "key": "cooling_prior_krr",
+  "report": "PAIR_IDENTITY_PRIORS.json",
+  "result": "PASS, retain accepted (split-free bundle sha256:49992644\u202658a)",
+  "sha256": "sha256:8f88f84bd3736fef2b1c0f4e2c09c7cff282726edfe0826823e7a1064bea4ab8"
+ },
  "decision": "OWNER-CATALOG-LICENCES-01",
+ "gpu_carry_withdrawn": {
+  "ruling": "Validator, 2026-10-23: the earlier GPU receipts ran on an ad-hoc venv, not the pinned image, so the GPU carries in `rows[].gpu_twins` are withdrawn for every twin (CPU carries unaffected); all GPU twins are re-receipted on the image built from the final cu130 lock (option A)",
+  "status_column": "codex-queue/reports/CATALOG_S3_GPU_COLUMN_20261023.json"
+ },
+ "gpu_twins_withdrawn": {
+  "ids": [
+   "f08.thuml.FNO",
+   "f08.thuml.F_FNO",
+   "f08.thuml.Factformer",
+   "f08.thuml.Galerkin_Transformer",
+   "f08.thuml.Transolver",
+   "thuml.FNO",
+   "thuml.F_FNO",
+   "thuml.Factformer",
+   "thuml.Galerkin_Transformer",
+   "thuml.Transolver"
+  ],
+  "reason": "the relicensed twins fail under the pinned cu130 lock (timm and einops are not in it; GPU_TWIN_RECEIPTS_RELICENSED_20261023.json, 0/10); by Graphite Test's direction the pinned GPU lock is not changed for testnet, so these 10 are not offered on GPU: refs, twin directories and the 5 stale GPU receipts removed; CPU entries unchanged"
+ },
  "old_commit": "03b05614e",
+ "re_paired": {
+  "report": "PAIR_IDENTITY_RELICENSED.json",
+  "result": "25/25 Torch PASS (RL-001..025); their receipts replaced by `pipeline add` from those packets",
+  "sha256": "sha256:2e697fbb2aa43e3d899882e19656d999f3a7916c39a3eb05345d60f8930f98d6"
+ },
  "rows": [
   {
    "carries_pair_receipt": true,

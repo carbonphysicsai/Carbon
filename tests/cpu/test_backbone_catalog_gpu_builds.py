@@ -22,12 +22,40 @@ def torch_entries():
     ]
 
 
+def withdrawn_twins():
+    """The 10 relicensed THUML twins withdrawn from GPU (the pinned lock lacked timm; OWNER-CATALOG-LICENCES-01 record)."""
+    derivation = json.loads(
+        (
+            pipeline.BUNDLES.parent / "derivations/OWNER-CATALOG-LICENCES-01.json"
+        ).read_bytes()
+    )
+    return set(derivation["gpu_twins_withdrawn"]["ids"])
+
+
+def has_no_twin_by_design(item):
+    """No GPU twin yet or any more: the named CPU-only entries, the v2 entries (their twins come with the GPU line), and the
+    withdrawn ones."""
+    return (
+        item["catalog_id"] in gpu_build.NO_GPU_TWIN
+        or item["catalog_id"].startswith("v2.")
+        or item["catalog_id"] in withdrawn_twins()
+    )
+
+
+def twinned_torch():
+    return [e for e in torch_entries() if "bundle_refs" in e]
+
+
 def test_every_torch_entry_lists_a_gpu_build_and_keeps_its_cpu_ref():
     entries = torch_entries()
     assert entries
+    assert twinned_torch()
     for item in entries:
-        if item["catalog_id"] in gpu_build.NO_GPU_TWIN:
+        if has_no_twin_by_design(item):
             assert "bundle_refs" not in item
+            assert not (
+                pipeline.BUNDLES / item["catalog_id"] / "torch-cu130-py311"
+            ).exists()
             continue
         assert set(item["bundle_refs"]) == {"torch-cu130-py311"}
         assert item["bundle_ref"]["runtime_profile_id"] == "torch-cpu-py311"
@@ -55,7 +83,11 @@ def test_every_jax_entry_lists_a_jax_cuda13_build_with_the_cpu_source_unchanged(
 
     entries = jax_entries()
     assert entries
+    assert any("bundle_refs" in e for e in entries)
     for item in entries:
+        if has_no_twin_by_design(item):
+            assert "bundle_refs" not in item
+            continue
         assert set(item["bundle_refs"]) == {"jax-cuda13-py311"}
         root = pipeline.BUNDLES / item["catalog_id"]
         gpu = json.loads((root / "jax-cuda13-py311" / "bundle.json").read_bytes())
@@ -75,14 +107,14 @@ def test_no_other_runtime_has_a_gpu_build():
 
 
 def test_a_jax_entry_cannot_list_the_torch_build():
-    item = copy.deepcopy(jax_entries()[0])
+    item = copy.deepcopy([e for e in jax_entries() if "bundle_refs" in e][0])
     item["bundle_refs"] = {"torch-cu130-py311": item["bundle_refs"]["jax-cuda13-py311"]}
     with pytest.raises(pipeline.CatalogBroken, match="no GPU build is registered"):
         pipeline.verify(item)
 
 
 def test_the_gpu_source_differs_from_the_cpu_source_by_one_block_only():
-    item = torch_entries()[0]
+    item = twinned_torch()[0]
     root = pipeline.BUNDLES / item["catalog_id"]
 
     def build_text(path):
@@ -104,7 +136,7 @@ def test_the_gpu_source_differs_from_the_cpu_source_by_one_block_only():
 def test_the_gpu_manifest_binds_the_cu130_lock_not_an_image():
     from carbon.reconstruction import torch_profile
 
-    item = torch_entries()[0]
+    item = twinned_torch()[0]
     manifest = json.loads(
         (
             pipeline.BUNDLES / item["catalog_id"] / "torch-cu130-py311" / "bundle.json"
@@ -503,7 +535,7 @@ def test_the_warn_only_exception_is_exactly_the_smoke_only_list():
 
 def test_only_the_named_gpu_twin_relaxes_determinism_and_the_cpu_builds_never_do():
     for item in torch_entries():
-        if item["catalog_id"] in gpu_build.NO_GPU_TWIN:
+        if has_no_twin_by_design(item):
             continue
         root = pipeline.BUNDLES / item["catalog_id"]
         cpu, gpu = _common(root / "source.tar.gz"), _common(

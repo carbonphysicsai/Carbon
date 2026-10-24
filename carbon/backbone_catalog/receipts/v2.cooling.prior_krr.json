@@ -1,0 +1,17 @@
+{
+ "catalog_id": "v2.cooling.prior_krr",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:e297aeab7f55904a4b607ed7ee6a0c69b500c18fd827704f5b6ff7564375ab0e",
+ "key": "cooling_prior_krr",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_PRIORS.json",
+ "source_report_sha256": "sha256:8f88f84bd3736fef2b1c0f4e2c09c7cff282726edfe0826823e7a1064bea4ab8",
+ "tested_interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+ "tested_on": "chip-cold-plate@1.3",
+ "tested_train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+ "unpaired": 0
+}
