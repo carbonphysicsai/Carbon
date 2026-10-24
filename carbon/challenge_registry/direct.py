@@ -141,6 +141,17 @@ EXAMPLE_NOTE = (
 )
 
 
+def _practice_labels(challenge_id, version):
+    """The practice labels' miner-facing text: "not yet registered" where the
+    Validator published this version's exam (never `HUMAN_INPUT`, ruling §3);
+    the value itself stays unset internally."""
+    from carbon.challenge_registry import published_exam
+
+    if published_exam.for_version(challenge_id, version) is None:
+        return HUMAN_INPUT
+    return published_exam.NOT_REGISTERED
+
+
 def _exam(challenge_id, version):
     """The exam block: from the published block where the Validator's
     exam-safety ruling published this version's gates and score
@@ -224,7 +235,10 @@ def describe(spec, version):
                     "train_digest"
                 ],
             },
-            "practice": {"labels": HUMAN_INPUT, "adaptively_seen": True},
+            "practice": {
+                "labels": _practice_labels(spec.challenge_id, version),
+                "adaptively_seen": True,
+            },
         },
         "models": {
             "rebuildable": [

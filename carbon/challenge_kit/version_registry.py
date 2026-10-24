@@ -395,7 +395,7 @@ VERSIONS = dict(
             catalog=True,
             graph_adapter="v2",
             catalog_entries_from=("2.4",),
-            facts="2.3",
+            facts="2.4",
             predecessor="2.3",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),

@@ -209,12 +209,17 @@ LABELS = {
 }
 
 
+def _replaced(text, old, new):
+    assert old in text, old
+    return text.replace(old, new)
+
+
 def _f08_15():
     """F08 1.5's facts: 1.4's, with the exam-safety edits the Validator ruled
     (OWNER-PUBLISH-WHAT-IS-TESTED-01, 2026-10-24): the sampling law says the
-    exam's cases are drawn privately by a different rule, and the reference
-    method names the practice ladder (the public development bank) without the
-    ladder's mesh sizes. Older versions stay as served."""
+    exam's cases are drawn privately by a different rule; the reference method
+    names the practice ladder (the public development bank); and no mesh size
+    of the reference appears anywhere. Older versions stay as served."""
     facts = dict(FACTS[("f08-ribbed-bracket", "1.4")])
     law = facts["sampling_law"]
     assert law.endswith("not an independent population.")
@@ -222,23 +227,59 @@ def _f08_15():
         law + " The exam's cases are drawn privately by a different rule; they are"
         " not these."
     )
-    method = facts["reference_method"]
-    old = (
+    facts["reference_method"] = _replaced(
+        facts["reference_method"],
         "exam ladder solved natively by ccx sha256 "
         "21edfdcb18568f42cdde46a06583247616121a2724f4cd68e10fe0239829645b at "
-        "h = 3 / 2.25 / 1.7 mm (1.7 is the reference)."
-    )
-    assert old in method
-    facts["reference_method"] = method.replace(
-        old,
+        "h = 3 / 2.25 / 1.7 mm (1.7 is the reference).",
         "practice ladder (the public development bank) solved natively by ccx "
         "sha256 21edfdcb18568f42cdde46a06583247616121a2724f4cd68e10fe0239829645b.",
+    )
+    facts["physical_support"] = _replaced(
+        facts["physical_support"],
+        "C3D10 meshes (Gmsh 4.15.2; h = 1.7 mm exam truth, h = 3 mm TRAIN) and",
+        "C3D10 meshes (Gmsh 4.15.2; the reference is the converged solve, see "
+        "the verification status) and",
+    )
+    facts["reference_fidelity"] = (
+        "The reference is the converged solve; see the verification status. "
+        "TRAIN is solved on a coarser mesh than the practice bank's references; "
+        "at the 0.15 mm/N limit the coarser TRAIN reads about 0.07 % (about "
+        "1e-4 mm/N) lower (16 cases at both meshes: worst dynamic difference "
+        "-0.000131 to -0.000090 mm/N). The practice bank's references are the "
+        "converged solves."
+    )
+    facts["known_limitation"] = _replaced(
+        facts["known_limitation"],
+        "TRAIN at h = 3 mm (exam 1.7 mm);",
+        "TRAIN on a coarser mesh than the references;",
+    )
+    return facts
+
+
+def _f02_24():
+    """F02 2.4's facts: 2.3's, without the reference's mesh sizes (the element
+    type, an 8-node hexahedron, stays). Older versions stay as served."""
+    facts = dict(FACTS[("f02", "2.3")])
+    facts["reference_method"] = _replaced(
+        facts["reference_method"],
+        "primary rung plus mesh2 and dt0.5 convergence rungs.",
+        "a primary solve with refined-mesh and refined-step convergence checks.",
+    )
+    facts["reference_fidelity"] = (
+        "Each reference is a primary solve with a refined-mesh and a "
+        "refined-step solve per case; a case is accepted only if B1-B5 pass at "
+        "both and they agree on the 95 C side. Measured on the 8 bank actions: "
+        "the refined mesh shifts -0.0052 to -0.0114 C, the refined step at most "
+        "0.000201 C, no label flips."
     )
     return facts
 
 
 FACTS[("f08-ribbed-bracket", "1.5")] = _f08_15()
 LABELS[("f08-ribbed-bracket", "1.5")] = dict(LABELS[("f08-ribbed-bracket", "1.4")])
+FACTS[("f02", "2.4")] = _f02_24()
+LABELS[("f02", "2.4")] = dict(LABELS[("f02", "2.3")])
 
 
 def value(spec, version, name):

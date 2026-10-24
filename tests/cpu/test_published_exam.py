@@ -5,6 +5,7 @@ withholds is in the answer."""
 
 import importlib
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -232,3 +233,75 @@ def test_exam_shapes_match_the_sealed_packs():
         assert shape["cells"] == pack.CASES
     cooling = shapes[COOLING]
     assert cooling["cells"] == cooling["designs"] * cooling["conditions"] == 16
+
+
+# ---- the Validator's follow-up edits (2026-10-24) --------------------------
+
+_MESH_SIZE = re.compile(
+    r"\bh\s*=\s*\d|\d(\.\d+)?\s*mm\s+in-plane|z-cells|2\.25|mesh2|dt0\.5",
+    re.IGNORECASE,
+)
+
+
+@pytest.mark.parametrize("key", [F08, F02])
+def test_no_reference_mesh_size_is_in_the_new_versions_facts(key):
+    from carbon.direct_campaign import facts
+
+    # The reference's own description (the sampling law keeps TRAIN's mesh, a
+    # public fact: Validator 2026-10-24).
+    for name in (
+        "reference_method",
+        "physical_support",
+        "reference_fidelity",
+        "known_limitation",
+    ):
+        assert not _MESH_SIZE.search(str(facts.FACTS[key].get(name, ""))), (key, name)
+    # The element type may stay; older versions stay as served.
+    assert "hex808" in facts.FACTS[F02]["reference_method"]
+    assert _MESH_SIZE.search(
+        facts.FACTS[("f08-ribbed-bracket", "1.4")]["reference_fidelity"]
+    )
+
+
+def test_the_f08_sampling_law_says_the_exam_is_drawn_privately():
+    from carbon.direct_campaign import facts
+
+    law = facts.FACTS[F08]["sampling_law"]
+    assert law.endswith(
+        "The exam's cases are drawn privately by a different rule; they are not these."
+    )
+    assert (
+        "practice ladder (the public development bank)"
+        in facts.FACTS[F08]["reference_method"]
+    )
+
+
+def test_the_cooling_objective_names_the_served_version_from_the_registry():
+    from carbon.cold_plate import research
+    from carbon.cold_plate.campaign import CATALOG_VERSIONS
+
+    class Workspace:
+        def __init__(self):
+            self.files = {}
+
+        def put(self, name, body):
+            self.files[name] = body
+
+    for version in sorted(CATALOG_VERSIONS):
+        material = research.CoolingCatalogMaterial(".", version)
+        objective = material("objective", Workspace())["document"]
+        assert objective["challenge"] == {"id": COOLING[0], "version": version}
+        capabilities = material("capabilities", Workspace())["document"]
+        row = next(
+            c
+            for c in capabilities["capabilities"]
+            if c["id"] == "model_family.neural_operator"
+        )
+        assert row["summary"] == research.NEURAL_OPERATOR_SUMMARY
+        assert "no registered reconstruction recipe" not in row["summary"]
+
+
+@pytest.mark.parametrize("key", SERVED)
+def test_a_launch_version_never_serves_human_input(key):
+    text = json.dumps(_described(key), sort_keys=True)
+    assert "HUMAN_INPUT" not in text, key
