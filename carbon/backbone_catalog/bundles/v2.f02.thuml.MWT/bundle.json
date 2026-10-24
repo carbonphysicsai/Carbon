@@ -1,0 +1,17 @@
+{
+ "accelerator": "cpu",
+ "architecture": "amd64",
+ "base_environment_digest": "sha256:dda045756e7c600e94c02b697a004e2c35020b9a87aca2d860f62b3f174b36ce",
+ "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+ "language": "python",
+ "license_sha256": "sha256:66520b9093771f13051668ff2ee44a58efe972b16ab14fabbed2fc8723d71449",
+ "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+ "name": "f02x-catalog-thuml-mwt-baseline-v2",
+ "os": "linux",
+ "python_abi": "cp311",
+ "runtime_profile_id": "torch-cpu-py311",
+ "schema": "carbon.development.library-bundle.v1",
+ "source_bytes": 69696,
+ "source_sha256": "sha256:7253866b5c627f16f79300bd63def93c3f9a67e0065e26150562548a94bc8cb1",
+ "wheels": {}
+}

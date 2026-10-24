@@ -1,0 +1,17 @@
+{
+ "catalog_id": "v2.f02.thuml.LSM",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:08475c8a5c6fa0d66a6e910e0b9f875d115b0f4169faacb29996248f3b87599f",
+ "key": "f02x_thuml_lsm",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_F02X.json",
+ "source_report_sha256": "sha256:a06bde26fc941e516f581e4d1a5a837a688d6fcd4fa1367ee67270a42d135a15",
+ "tested_interface_digest": "sha256:3a9c2f8bd2fdaeeca65e060d32f17a60cba06c16b837d6be185a95cdfa9e011e",
+ "tested_on": "f02@2.4",
+ "tested_train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
+ "unpaired": 0
+}
