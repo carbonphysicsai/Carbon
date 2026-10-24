@@ -249,10 +249,18 @@ def _f08_15():
         "-0.000131 to -0.000090 mm/N). The practice bank's references are the "
         "converged solves."
     )
-    facts["known_limitation"] = _replaced(
+    limitation = _replaced(
         facts["known_limitation"],
         "TRAIN at h = 3 mm (exam 1.7 mm);",
         "TRAIN on a coarser mesh than the references;",
+    )
+    # On 1.5 the exam is the private sealed batches; the public ladder is the
+    # practice bank (Validator, 2026-10-24).
+    facts["known_limitation"] = _replaced(
+        limitation,
+        "the exam is a public, non-independent 8-case ladder;",
+        "the practice bank is a public, non-independent 8-case ladder; the "
+        "exam's cases are private;",
     )
     return facts
 

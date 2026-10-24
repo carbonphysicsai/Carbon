@@ -290,8 +290,9 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
         ),
         "evaluate": Provided(
             ("carbon.cold_plate.practice:score_practice",),
-            "Exam gates and components (carbon.cold_plate.exam) on the 100 "
-            "public PRACTICE cases; labels stay host-side. Scoring "
+            "The exam's gates and components (carbon.cold_plate.exam) applied "
+            "to the 100 public PRACTICE cases (practice, not the exam: the "
+            "exam's cases are private); labels stay host-side. Scoring "
             "miner-generated cases is not wired.",
         ),
         "compute": Gap(
@@ -378,8 +379,9 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
         ),
         "evaluate": Provided(
             ("carbon.motor.practice:score_practice",),
-            "Exam gates and components (carbon.motor.exam) on the 30 public "
-            "PRACTICE cases; labels stay host-side. Scoring miner-generated "
+            "The exam's gates and components (carbon.motor.exam) applied to the "
+            "30 public PRACTICE cases (practice, not the exam: the exam's cases "
+            "are private); labels stay host-side. Scoring miner-generated "
             "cases is not wired.",
         ),
         "compute": Gap(

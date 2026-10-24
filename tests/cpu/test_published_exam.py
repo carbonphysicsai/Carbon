@@ -305,3 +305,23 @@ def test_the_cooling_objective_names_the_served_version_from_the_registry():
 def test_a_launch_version_never_serves_human_input(key):
     text = json.dumps(_described(key), sort_keys=True)
     assert "HUMAN_INPUT" not in text, key
+
+
+_PUBLIC_EXAM = re.compile(
+    r"\bthe exam (is|uses|runs)\b[^.;]{0,60}\b(public|practice|ladder|PRACTICE)\b"
+    r"|exam gates and components[^.;]{0,80}\bon the\b[^.;]{0,30}public",
+    re.IGNORECASE,
+)
+
+
+@pytest.mark.parametrize("key", SERVED)
+def test_no_launch_version_calls_the_public_bank_the_exam(key):
+    """The public bank is practice; the exam's cases are private (Validator,
+    2026-10-24)."""
+    text = json.dumps(_described(key), sort_keys=True)
+    assert not _PUBLIC_EXAM.search(text), (key, _PUBLIC_EXAM.search(text).group(0))
+    from carbon.direct_campaign import facts
+
+    if key in facts.FACTS:
+        for name, value in facts.FACTS[key].items():
+            assert not _PUBLIC_EXAM.search(str(value)), (key, name)
