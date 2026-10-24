@@ -17,6 +17,9 @@ from typing import Annotated
 PREFIX = "carbon_challenges_v1__"
 CATALOG_URI = "carbon://challenges/v1/catalog"
 COMPACT_SCHEMA = "carbon.challenge-description.compact.v1"
+#: A catalog with more entries than this is summarised, not listed, so the
+#: compact answer stays small as the catalog grows.
+COMPACT_CATALOG_IDS_MAX = 32
 
 #: The practice-call corrections an agent meets first while sending a recipe,
 #: by their registered `research_tools.TASK_CORRECTIONS` codes.
@@ -114,6 +117,12 @@ def compact_description(described):
 
     entries = catalog.get("entries") if isinstance(catalog, dict) else None
     catalog_ids = sorted(entries) if isinstance(entries, dict) else None
+    catalog_families = None
+    if catalog_ids is not None and len(catalog_ids) > COMPACT_CATALOG_IDS_MAX:
+        catalog_families = {}
+        for catalog_id in catalog_ids:
+            family = catalog_id.rsplit(".", 1)[0]
+            catalog_families[family] = catalog_families.get(family, 0) + 1
 
     kinds = []
     for holder in (catalog, adapter):
@@ -151,6 +160,22 @@ def compact_description(described):
         "full_answer": "describe with compact=false gives every field",
     }
     reasons = {}
+    if catalog_families is not None:
+        total = len(catalog_ids)
+        shown = (
+            [ready["source"]["catalog_id"]]
+            if kind == "recipe"
+            and isinstance(ready, dict)
+            and isinstance((ready.get("source") or {}).get("catalog_id"), str)
+            else []
+        )
+        compact["catalog_ids"] = shown
+        compact["catalog_count"] = total
+        compact["catalog_families"] = catalog_families
+        reasons["catalog_ids"] = (
+            f"{total} catalog entries: only the ready recipe's is listed here; "
+            "describe with compact=false lists every entry"
+        )
     if catalog_ids is None:
         reasons["catalog_ids"] = "this version serves no backbone catalog"
     if ready is None:
