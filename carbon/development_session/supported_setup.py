@@ -22,7 +22,12 @@ import subprocess
 SUPPORTED_UBUNTU = ("22.04", "24.04")
 SUPPORTED_ARCH = "x86_64"
 SUPPORTED_DOCKER_MAJOR = 29
-MIN_RAM_GIB = 16
+#: Practice's worker runs under a 16 GiB limit and Docker must see that plus 1 GiB
+#: (`docker_runtime.doctor`: MemTotal >= memory_bytes + 1 GiB, NCPU >= 4), so a
+#: "16 GB" machine, which Docker reports as about 15.6 GiB, cannot run it.
+MIN_DOCKER_MEMORY_GIB = 17
+MIN_CPUS = 4
+RECOMMENDED_RAM_GB = 32
 DISK_GIB = 150
 
 #: The oldest NVIDIA Linux driver that runs Carbon's GPU builds. Both GPU
@@ -42,10 +47,27 @@ NOT_SUPPORTED = (
     "for a guaranteed run."
 )
 SUPPORTED_SUMMARY = (
-    "Ubuntu 22.04 or 24.04 (x86-64), Docker 29, at least 16 GB of RAM and about "
-    "150 GB of free disk; a GPU is optional (any NVIDIA GPU with driver "
-    f"{MIN_NVIDIA_DRIVER} or newer)."
+    f"Ubuntu 22.04 or 24.04 (x86-64), Docker 29, {RECOMMENDED_RAM_GB} GB of RAM "
+    f"(practice needs Docker to see {MIN_DOCKER_MEMORY_GIB} GiB; a 16 GB machine "
+    f"reports about 15.6 GiB), {MIN_CPUS} CPUs and about {DISK_GIB} GB of free disk; "
+    f"a GPU is optional (any NVIDIA GPU with driver {MIN_NVIDIA_DRIVER} or newer)."
 )
+
+
+#: The facts a miner can act on when they cannot be read, by their `facts` key. The
+#: GPU driver is left out: a machine with no NVIDIA tool is a normal CPU machine.
+CHECKED = {
+    "os_id": "operating system",
+    "docker_version": "Docker version",
+    "ram_gib": "memory",
+    "cpus": "CPU count",
+    "disk_free_gib": "free disk",
+}
+
+
+def unchecked(facts: dict) -> list[str]:
+    """What this machine could not be asked about, in words ("Docker version")."""
+    return [label for key, label in CHECKED.items() if facts.get(key) is None]
 
 
 def _numbers(version) -> tuple[int, ...] | None:
@@ -56,8 +78,9 @@ def _numbers(version) -> tuple[int, ...] | None:
 def assess(facts: dict) -> list[dict]:
     """Every way this machine differs from the supported setup, as
     `{"check", "found", "supported"}` rows (empty = supported). A fact that is
-    absent (`None`) could not be read and is not warned about. Never raises and
-    never blocks: the caller prints `NOT_SUPPORTED` with the rows."""
+    absent (`None`) could not be read: it is not a difference, and `unchecked`
+    names it. Never raises and never blocks: the caller prints `NOT_SUPPORTED`
+    with the rows."""
     rows = []
 
     def add(check, found, supported):
@@ -79,8 +102,16 @@ def assess(facts: dict) -> list[dict]:
     if docker is not None and docker[0] != SUPPORTED_DOCKER_MAJOR:
         add("docker", str(facts["docker_version"]), f"Docker {SUPPORTED_DOCKER_MAJOR}")
     ram = facts.get("ram_gib")
-    if ram is not None and ram < MIN_RAM_GIB:
-        add("memory", f"{ram:.0f} GB", f"{MIN_RAM_GIB} GB or more")
+    if ram is not None and ram < MIN_DOCKER_MEMORY_GIB:
+        add(
+            "memory",
+            f"{ram:.1f} GiB seen",
+            f"{RECOMMENDED_RAM_GB} GB of RAM (Docker must see {MIN_DOCKER_MEMORY_GIB} GiB: "
+            "the practice worker runs under a 16 GiB limit plus 1 GiB)",
+        )
+    cpus = facts.get("cpus")
+    if cpus is not None and cpus < MIN_CPUS:
+        add("cpus", f"{cpus}", f"{MIN_CPUS} or more (the practice worker uses {MIN_CPUS})")
     disk = facts.get("disk_free_gib")
     if disk is not None and disk < DISK_GIB:
         add("disk", f"{disk:.0f} GB free", f"about {DISK_GIB} GB free")
@@ -114,14 +145,24 @@ def host_facts(path=".") -> dict:
         os_version = release.get("VERSION_ID", "").strip('"') or None
     except OSError:
         pass
-    ram = None
+    ram = cpus = None
+    # What Docker sees is what practice is held to (`docker info`: MemTotal, NCPU).
+    seen = _run(["docker", "info", "--format", "{{.MemTotal}} {{.NCPU}}"])
     try:
-        with open("/proc/meminfo", encoding="ascii") as stream:
-            for line in stream:
-                if line.startswith("MemTotal:"):
-                    ram = int(line.split()[1]) / (1024 * 1024)
-    except (OSError, ValueError, IndexError):
+        total, count = (seen or "").split()
+        ram, cpus = int(total) / 2**30, int(count)
+    except ValueError:
         pass
+    if ram is None:
+        try:
+            with open("/proc/meminfo", encoding="ascii") as stream:
+                for line in stream:
+                    if line.startswith("MemTotal:"):
+                        ram = int(line.split()[1]) / (1024 * 1024)
+        except (OSError, ValueError, IndexError):
+            pass
+    if cpus is None:
+        cpus = os.cpu_count()
     try:
         disk = shutil.disk_usage(os.path.abspath(path)).free / 2**30
     except OSError:
@@ -135,22 +176,28 @@ def host_facts(path=".") -> dict:
             ["docker", "version", "--format", "{{.Server.Version}}"]
         ),
         "ram_gib": ram,
+        "cpus": cpus,
         "disk_free_gib": disk,
         "nvidia_driver": driver.splitlines()[0] if driver else None,
     }
 
 
 def warning(facts: dict | None = None) -> dict | None:
-    """The warning for this machine, or None when it is the supported setup:
-    `{"result": "not_a_supported_setup_yet", "differences": [...], "message",
-    "supported"}`."""
-    rows = assess(facts if facts is not None else host_facts())
-    if not rows:
+    """The note for this machine, or None when it is the supported setup and every
+    fact could be read: `{"result": "not_a_supported_setup_yet" | "setup_not_fully_checked",
+    "differences": [...], "could_not_check": [...], "message", "supported"}`."""
+    facts = facts if facts is not None else host_facts()
+    rows, missing = assess(facts), unchecked(facts)
+    if not rows and not missing:
         return None
+    message = NOT_SUPPORTED if rows else "Could not check this machine fully."
+    if missing:
+        message += " Could not check: " + ", ".join(missing) + "."
     return {
-        "result": "not_a_supported_setup_yet",
+        "result": "not_a_supported_setup_yet" if rows else "setup_not_fully_checked",
         "differences": rows,
-        "message": NOT_SUPPORTED,
+        "could_not_check": missing,
+        "message": message,
         "supported": SUPPORTED_SUMMARY,
     }
 

@@ -16,7 +16,7 @@ This guide gets you from a clean machine to your first graded model.
 
 ## What you need
 
-- **A Linux machine** (x86-64), or Windows with WSL2. It needs Docker ([install Docker Engine](https://docs.docker.com/engine/install/), start it, add yourself to the `docker` group) and free disk for Carbon's images; the installer checks the space first and says how much it needs. A GPU is optional; to practise on this machine's GPU, install the [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), then install with `--gpu`.
+- **A Linux machine** (x86-64; see [Supported setup](#supported-setup): 32 GB of RAM and 4 CPUs), or Windows with WSL2. It needs Docker ([install Docker Engine](https://docs.docker.com/engine/install/), start it, add yourself to the `docker` group) and free disk for Carbon's images; the installer checks the space first and says how much it needs. A GPU is optional; to practise on this machine's GPU, install the [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), then install with `--gpu`.
 - **To practise: nothing to register.** You can run your agent and practise on any Challenge without a wallet, a registration or a signer (see **Just want to practise?** in step 4).
 - **To freeze and submit: a Bittensor wallet with a hotkey registered on subnet 567.** Carbon never asks for your keys or seed phrase. Your hotkey stays in your own wallet.
 - **A model key from a provider**, if you want Carbon's agent (Graphite) or Hermes to do the research. Setup lists the providers each agent can use. Save the key in a file only you can read; Carbon reads it from that file. Skip this if you bring your own agent, e.g. Claude Code, which uses its own model.
@@ -31,15 +31,14 @@ Carbon's launch supports **one** setup, and a run on it is guaranteed:
 |---|---|
 | Operating system | Ubuntu 22.04 or 24.04, x86-64 |
 | Docker | Docker 29 (the installer may install it) |
-| Memory | at least 16 GB of RAM |
+| Memory | **32 GB of RAM**. Practice runs its worker with a 16 GiB limit and needs Docker to see at least 17 GiB, so a 16 GB machine (about 15.6 GiB) cannot run it |
+| CPUs | at least 4 |
 | Disk | about 150 GB free |
 | GPU | optional; any NVIDIA GPU with driver **580.65.06 or newer** |
 
 **Minimum NVIDIA driver.** Carbon's GPU builds (the PyTorch and JAX runtimes) are built on CUDA 13.0, and NVIDIA's table of the driver each toolkit needs gives CUDA 13.0 on Linux x86-64 as 580.65.06 or newer (later CUDA 13.x runs on any 580 driver). Source: [NVIDIA CUDA Toolkit 13.0 release notes](https://docs.nvidia.com/cuda/archive/13.0.0/cuda-toolkit-release-notes/index.html). An older driver is not blocked; a GPU practice that cannot start on it says "driver too old" and practises on CPU.
 
-**Any other setup gets a warning, not a block.** The installer, and a note at the top of the Control Center, say: *this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run*, and list what differs (system, Docker, memory, disk, driver). Other Docker versions and other Linux distributions are planned after launch.
-
----
+**Any other setup gets a warning, not a block.** The installer, and a note at the top of the Control Center, say: *this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run*, and list what differs (system, Docker, memory, CPUs, disk, driver) and anything it could not check. Other Docker versions and other Linux distributions are planned after launch.
 
 ---
 
