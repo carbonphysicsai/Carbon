@@ -224,6 +224,17 @@ def _f02(version):
 # -- F08 ------------------------------------------------------------------------------------------
 
 
+def f08_mass_kg(design):
+    """F08's exact synthetic CAD mass: `OPTIMIZER_F08_SUMMARY_DUAL_PACKET_20261018.mass` (two full ribs, a
+    rounded rectangular relief; aluminium 2.7e-6 kg/mm^3). `design` is in `f08_public` input order. It
+    reproduces the recorded `cad_mass_kg` of all 8 RR-07 ladder cases to 1e-9 relative (a test pins that),
+    so the mass output is exact (u = 0, the Validator's ruling)."""
+    length, width, thick, height, rib, relief = design
+    volume = length * width * thick + 2 * length * height * rib
+    volume -= (20 * relief - (4 - math.pi) * 3**2) * thick
+    return volume * 2.7e-6
+
+
 def _f08(version, mass_of):
     from carbon.scoring import f08_dual_pack
 
@@ -238,9 +249,7 @@ def _f08(version, mass_of):
     tips = [targets.index(name) for name in f08_dual_pack._TIPS]
     static = targets.index("static_tip_mm_per_n")
     if mass_of is None:
-        # The CAD mass is a solver-side number, not a model output and not in this repository: the caller
-        # supplies the same source the pool truths use, or no adapter is built.
-        raise PoolAdapterRefused("f08_mass_source_required")
+        mass_of = f08_mass_kg
 
     def derive(inputs, raw):
         row = _finite_row(raw)
@@ -396,7 +405,31 @@ def train_box(kind, version, design_names, input_names):
     )
 
 
-def binding(kind, version, *, u, serve_good, serve_train, mass_of=None):
+def _to_model_space(kind, version):
+    """Cooling 1.4's model answers in the encoded 32-value space; the bank's references and a solver's truths
+    are native, so they are encoded before they stand in for a model's answer. Every other row is already
+    in the model's space."""
+    if (kind, version) != ("cooling", "1.4"):
+        return None
+
+    def convert(reference_row):
+        import numpy as np
+
+        from carbon.cold_plate import output_encoding
+
+        return [
+            float(v)
+            for v in output_encoding.encode_targets(
+                np.asarray([reference_row], dtype=float)
+            )[0]
+        ]
+
+    return convert
+
+
+def binding(
+    kind, version, *, u, serve_good, serve_train, mass_of=None, probe_truth=None
+):
     """The `pool_plugin.ChallengeBinding` of one Challenge version.
 
     `u` is the DECISION record's U per derived output (the pools' own); `serve_good` and `serve_train`
@@ -418,4 +451,60 @@ def binding(kind, version, *, u, serve_good, serve_train, mass_of=None):
         serve_good=serve_good,
         serve_train=serve_train,
         train_box=lambda _spec: box,
+        probe_truth=probe_truth,
+        to_model_space=_to_model_space(kind, version),
+    )
+
+
+CONFIG_ENV = "CARBON_POOL_BINDING_CONFIG"
+
+
+def binding_for(kind, version):
+    """The binding `scripts/dev/pool_proof_grid.py --binding carbon.scoring.pool_adapters:binding_for` takes.
+
+    Everything the grid run needs from outside the repository comes from one JSON file named by the
+    environment variable `CARBON_POOL_BINDING_CONFIG`; there is no default for any of it:
+      {"decision": path to the DECISION record (its "u" per derived output is the pools' own),
+       "good_table": path to the good model's prediction table (`pool_serving.write_table`),
+       "train_table": optional path for the TRAIN-fit model (default: the good table, the suite clamps the
+                      designs to the TRAIN box for the in-distribution control)}
+    The solver truths of the probe rows come in through the script's own `--probe-truth-file`.
+    """
+    import os
+
+    from carbon.scoring import pool_serving
+
+    path = os.environ.get(CONFIG_ENV)
+    if not path:
+        raise PoolAdapterRefused("pool_binding_config_missing")
+    with open(path, encoding="utf-8") as handle:
+        config = json.load(handle)
+    if type(config) is not dict or set(config) - {
+        "decision",
+        "good_table",
+        "train_table",
+    }:
+        raise PoolAdapterRefused("pool_binding_config_malformed")
+    for key in ("decision", "good_table"):
+        if type(config.get(key)) is not str:
+            raise PoolAdapterRefused("pool_binding_config_lacks_" + key)
+    with open(config["decision"], encoding="utf-8") as handle:
+        decision = json.load(handle)
+    if type(decision) is not dict or type(decision.get("u")) is not dict:
+        raise PoolAdapterRefused("decision_record_lacks_u")
+    names = adapter(kind, version).input_names
+    good = pool_serving.TableServer(
+        pool_serving.load_table(config["good_table"]), names
+    )
+    train = (
+        pool_serving.TableServer(pool_serving.load_table(config["train_table"]), names)
+        if config.get("train_table")
+        else good
+    )
+    return binding(
+        kind,
+        version,
+        u=decision["u"],
+        serve_good=good,
+        serve_train=train,
     )

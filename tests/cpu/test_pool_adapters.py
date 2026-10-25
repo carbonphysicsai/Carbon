@@ -152,12 +152,74 @@ def test_f08_derive_takes_the_worst_tip_and_the_supplied_mass():
     assert chosen.derive(inputs, raw[:-1]) is None
 
 
-def test_f08_needs_a_mass_source_and_no_challenge_is_guessed():
-    with pytest.raises(pa.PoolAdapterRefused) as raised:
-        pa.adapter("f08", "1.5")
-    assert raised.value.code == "f08_mass_source_required"
+def test_f08_mass_formula_reproduces_the_recorded_ladder_masses_to_1e_9():
+    rows = _reference_rows("f08")
+    assert len(rows) == 8
+    chosen = pa.adapter("f08", "1.5")
+    for row in rows:
+        design = [row["inputs"][n] for n in chosen.design_names]
+        recorded = row["record"]["cad_mass_kg"]
+        assert abs(pa.f08_mass_kg(design) - recorded) / recorded < 1e-9
+
+
+def test_no_challenge_is_guessed():
     with pytest.raises(pa.PoolAdapterRefused):
         pa.adapter("battery", "2.1")
+
+
+def test_cooling_1_4_converts_native_references_to_the_model_space_and_no_other_does():
+    from carbon.cold_plate import output_encoding
+
+    bound = _binding("cooling")
+    row = _reference_rows("cooling")[0]
+    native = [float(v) for v in row["reference"]]
+    converted = bound.to_model_space(native)
+    assert converted == [
+        float(v) for v in output_encoding.encode_targets(np.asarray([native]))[0]
+    ]
+    assert converted != native
+    for kind in ("motor", "f02", "f08"):
+        assert _binding(kind).to_model_space is None
+
+
+def test_binding_for_reads_one_config_and_has_no_defaults(tmp_path, monkeypatch):
+    from carbon.scoring import pool_serving
+
+    monkeypatch.delenv(pa.CONFIG_ENV, raising=False)
+    with pytest.raises(pa.PoolAdapterRefused) as raised:
+        pa.binding_for("f02", "2.4")
+    assert raised.value.code == "pool_binding_config_missing"
+    chosen = _adapter("f02")
+    table = tmp_path / "good.json"
+    pool_serving.write_table(
+        table,
+        kind="f02",
+        version="2.4",
+        input_names=chosen.input_names,
+        rows=[[90.0, 4.0]],
+        raw=[[93.0]],
+        state_digest="sha256:" + "e" * 64,
+        recipe="sha256:" + "f" * 64,
+    )
+    decision = tmp_path / "decision.json"
+    decision.write_text(json.dumps({"u": {"peak_top_c": 0.02, "extra_energy_j": 0.0}}))
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({"decision": str(decision), "good_table": str(table)}))
+    monkeypatch.setenv(pa.CONFIG_ENV, str(config))
+    bound = pa.binding_for("f02", "2.4")
+    row = {"peak_w": 90.0, "on_time_s": 4.0}
+    assert bound.serve_good([row]) == [[93.0]] == bound.serve_train([row])
+    assert bound.derive(row, [93.0]) == {"peak_top_c": 93.0, "extra_energy_j": 280.0}
+    assert bound.raw_u(row, [93.0]) == [0.02]
+    config.write_text(json.dumps({"decision": str(decision)}))
+    with pytest.raises(pa.PoolAdapterRefused) as raised:
+        pa.binding_for("f02", "2.4")
+    assert raised.value.code == "pool_binding_config_lacks_good_table"
+    config.write_text(
+        json.dumps({"decision": str(decision), "good_table": str(table), "x": 1})
+    )
+    with pytest.raises(pa.PoolAdapterRefused):
+        pa.binding_for("f02", "2.4")
 
 
 def test_the_limits_build_pool_grader_limits():
