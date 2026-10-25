@@ -444,3 +444,93 @@ def test_the_derived_output_names_are_the_decision_records():
     }
     for kind, expected in names.items():
         assert set(_adapter(kind).outputs) == set(expected)
+
+
+# -- the physics-contract gates on every pool answer ---------------------------------------------------
+
+
+def _gates(kind):
+    return pa.physics_gates(kind, VERSIONS[kind])
+
+
+def _raw_of(kind, row):
+    """A reference row in the space the model answers in."""
+    native = [float(v) for v in row["reference"]]
+    return _binding(kind).to_model_space(native) if kind == "cooling" else native
+
+
+@pytest.mark.parametrize("kind", ["motor", "cooling", "f08"])
+def test_every_real_reference_row_passes_the_gates(kind):
+    gates = _gates(kind)
+    rows = _reference_rows(kind)
+    assert rows
+    for row in rows:
+        assert gates.failed(row["inputs"], _raw_of(kind, row)) == ()
+    assert gates.gate_names and "paired_repeat" not in gates.gate_names
+
+
+def test_f02_gates_pass_a_physical_peak_and_name_the_failure():
+    gates = _gates("f02")
+    assert gates.failed({}, [93.5]) == ()
+    assert gates.failed({}, [39.9]) == ("peak_not_below_initial",)
+    assert gates.failed({}, [math.nan]) == ("finite_peak",)
+    assert gates.failed({}, [1.0, 2.0]) == ("finite_peak",)
+    assert gates.failed({}, "x") == ("finite_peak",)
+
+
+def test_motor_gates_name_a_malformed_or_negative_mean_curve():
+    gates = _gates("motor")
+    row = _reference_rows("motor")[0]
+    curve = list(row["reference"])
+    assert gates.failed(row["inputs"], [-abs(v) - 1.0 for v in curve]) == (
+        "motoring_mean_nonnegative",
+    )
+    assert gates.failed(row["inputs"], curve[:-1]) == ("schema_finite",)
+    assert gates.failed(row["inputs"], [math.nan] * 60) == ("schema_finite",)
+
+
+def test_cooling_gates_name_the_violated_physics_in_the_decoded_answer():
+    from carbon.cold_plate import output_encoding
+
+    gates = _gates("cooling")
+    row = _reference_rows("cooling")[0]
+    native = [float(v) for v in row["reference"]]
+    encode = lambda values: list(
+        output_encoding.encode_targets(np.asarray([values]))[0]
+    )
+    inlet = row["inputs"]["inlet_c"]
+    # a profile that dips to the inlet or below fails face_above_inlet
+    cold = list(native)
+    cold[1] = inlet - 1.0
+    assert "face_above_inlet" in gates.failed(row["inputs"], encode(cold))
+    assert gates.failed(row["inputs"], [1.0] * 31) == ("schema_finite",)
+    assert gates.failed(row["inputs"], [math.nan] * 32) == ("schema_finite",)
+
+
+def test_f08_gates_name_unordered_peaks_and_an_out_of_band_summary():
+    from carbon.scoring import f08_dual_pack
+
+    gates = _gates("f08")
+    row = _reference_rows("f08")[0]
+    targets = list(f08_dual_pack._targets("1.5"))
+    good = [float(v) for v in row["reference"]]
+    assert gates.failed(row["inputs"], good) == ()
+    swapped = list(good)
+    a, b = targets.index("peak_tip_z005_mm_per_n"), targets.index(
+        "peak_tip_z020_mm_per_n"
+    )
+    swapped[a], swapped[b] = swapped[b], swapped[a]
+    assert "peaks_ordered_by_damping" in gates.failed(row["inputs"], swapped)
+    below = list(good)
+    for name in f08_dual_pack._TIPS:
+        below[targets.index(name)] = good[targets.index("static_tip_mm_per_n")] / 2
+    assert "peak_not_below_static" in gates.failed(row["inputs"], below)
+    out_of_band = list(good)
+    out_of_band[targets.index("peak_frequency_z005_hz")] = 5000.0
+    assert gates.failed(row["inputs"], out_of_band) == ("finite_native_summary",)
+    assert gates.failed(row["inputs"], good[:-1]) == ("finite_native_summary",)
+
+
+def test_a_kind_without_gates_is_refused():
+    with pytest.raises(pa.PoolAdapterRefused):
+        pa.physics_gates("battery", "2.1")

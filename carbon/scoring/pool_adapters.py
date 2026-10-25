@@ -313,6 +313,111 @@ def pool_limits(chosen):
     return tuple(pool_grader.Limit(o, k, b) for o, k, b in chosen.limits)
 
 
+# -- The physics-contract gates, per pool answer ----------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class PhysicsGates:
+    """The Challenge's registered per-answer physics gates, for the grader to run on EVERY pool answer
+    (OWNER-GATES-ON-POOL-3A-01). ``failed(inputs_row, raw_row)`` returns the sorted NAMES of the gates the answer
+    fails (an empty tuple passes; a malformed or non-finite row fails its schema gate). Names only, never a value
+    or a target. Each gate is one the Challenge already registers with its own tolerance (its `exam.gates`, F02's
+    and F08's gated laws); a law whose gate margin is still None is measured elsewhere and is not a gate here.
+    """
+
+    kind: str
+    version: str
+    gate_names: tuple
+    failed: object
+
+
+def _motor_gates(version):
+    from carbon.motor import exam
+
+    names = tuple(g.gate_id for g in exam.GATES if g.gate_id != "paired_repeat")
+
+    def failed(_inputs, raw):
+        verdicts = exam.gates({"torque_nm": raw})
+        return tuple(sorted(n for n, v in verdicts.items() if v == exam.FAIL))
+
+    return PhysicsGates("motor", version, names, failed)
+
+
+def _cooling_gates(version):
+    from carbon.cold_plate import exam, output_encoding
+
+    names = tuple(g.gate_id for g in exam.GATES if g.gate_id != "paired_repeat")
+    encoded = version == "1.4"
+
+    def failed(inputs, raw):
+        row = _finite_row(raw)
+        if row is None or len(row) != 32:
+            return ("schema_finite",)
+        native = output_encoding.decode_flat(row) if encoded else row
+        prediction = {
+            "peak_c": native[0],
+            "profile_c": list(native[1:31]),
+            "pressure_drop_pa": native[31],
+        }
+        verdicts = exam.gates(prediction, dict(inputs))
+        return tuple(sorted(n for n, v in verdicts.items() if v == exam.FAIL))
+
+    return PhysicsGates("cooling", version, names, failed)
+
+
+def _f02_gates(version):
+    from carbon.scoring import f02_physics
+
+    names = ("finite_peak", "peak_not_below_initial")
+
+    def failed(_inputs, raw):
+        row = _finite_row(raw)
+        if row is None or len(row) != 1:
+            return ("finite_peak",)
+        return () if row[0] >= f02_physics.INITIAL_C else ("peak_not_below_initial",)
+
+    return PhysicsGates("f02", version, names, failed)
+
+
+def _f08_gates(version):
+    from carbon.scoring import f08_dual_pack, f08_physics
+
+    targets = list(f08_dual_pack._targets(version))
+    low, high = f08_dual_pack._MEASUREMENT["frequency_band_hz"]
+    frequencies = [targets.index(t) for t in f08_dual_pack._FREQUENCIES]
+    names = (
+        "finite_native_summary",
+        *sorted(("peak_not_below_static", "peaks_ordered_by_damping")),
+    )
+
+    def failed(_inputs, raw):
+        row = _finite_row(raw)
+        if (
+            row is None
+            or len(row) != len(targets)
+            or any(v < 0 for v in row)
+            or any(not low <= row[j] <= high for j in frequencies)
+        ):
+            return ("finite_native_summary",)
+        laws = f08_physics._logical(dict(zip(targets, row, strict=True)))
+        return tuple(sorted(n for n, ok in laws.items() if not ok))
+
+    return PhysicsGates("f08", version, names, failed)
+
+
+def physics_gates(kind, version):
+    """The `PhysicsGates` of one Challenge version (static dispatch, as `adapter`)."""
+    if kind == "motor":
+        return _motor_gates(version)
+    if kind == "cooling":
+        return _cooling_gates(version)
+    if kind == "f02":
+        return _f02_gates(version)
+    if kind == "f08":
+        return _f08_gates(version)
+    raise PoolAdapterRefused("pool_adapter_kind_unregistered")
+
+
 # -- The binding the pool plugin takes ---------------------------------------------------------------
 
 #: Which derived output's U applies to each raw output element (the rest get 0: a noisy oracle must not
