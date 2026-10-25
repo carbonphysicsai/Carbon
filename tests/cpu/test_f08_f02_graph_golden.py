@@ -45,6 +45,9 @@ V8_MOVED = {
     "carbon.level4.interpret.py",
     "carbon.level4.params.py",
     "carbon.level4.tooling.lower_jax.py",
+    "carbon.level4.tooling.lower_torch.py",
+    "carbon.level4.train.py",
+    "carbon.level4.loss.py",
     "carbon.level4.validate.py",
 }
 #: The served backbone catalog digest the recorded runs were made under (rc6
