@@ -45,6 +45,12 @@ CONTAINMENT = {"document_bytes": 64 * 1024**2, "call_depth": graph.MAX_CALL_DEPT
 #: The training resource limits bind instead. Every earlier version keeps CAPS.
 UNCAPPED_VERSIONS = frozenset({"level4-allowlist-v7", "level4-allowlist-v8"})
 UNCAPPED_CAPS = {"constant_bytes": CAPS["constant_bytes"], **CONTAINMENT}
+#: Versions whose init graphs may build structured tables from `iota` arithmetic
+#: (identity, DFT, orthogonal bases): the keyed-or-uniform-fill rule is removed
+#: (Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025, row 2). Under accounting v4 the
+#: constants cap already bounds the information an init can carry; the from-scratch
+#: rule (no pretrained `initial_state`) and "an init never returns a key" stay.
+OPEN_INIT_VERSIONS = frozenset({"level4-allowlist-v8"})
 
 
 def caps_for(allowlist):

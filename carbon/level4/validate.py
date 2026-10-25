@@ -181,6 +181,8 @@ def check_init(doc, allowlist):
             values[value_id]["shape"],
         ) == ("uint32", [2]):
             raise graph.GraphRefused("init_returns_key", f"output {k}")
+    if allowlist.version in allowlist_module.OPEN_INIT_VERSIONS:
+        return
     for k, (keyed, fill) in enumerate(
         _init_flow(doc, allowlist, doc["entry"], [(True, False)])
     ):
