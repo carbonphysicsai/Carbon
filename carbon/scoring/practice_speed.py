@@ -69,13 +69,38 @@ def measure(runner) -> bool:
     return runner is None
 
 
-def from_result(kind, result, *, designs):
+NOT_MEASURED_NOTE = (
+    "speed not measured: the timing run did not finish; "
+    "the practice result itself is unaffected"
+)
+
+
+def not_measured(kind):
+    """The speed result of a practice whose timing run failed or ran out of time.
+    The timing run is best-effort and never fails the practice: the result returns
+    as usual and says, in words, that its speed was not measured."""
+    return {
+        "schema": SCHEMA,
+        "measured": False,
+        "note": NOT_MEASURED_NOTE,
+        "label": LABEL,
+    }
+
+
+def from_result(kind, result, *, designs, requested=False):
     """The speed result from a reconstruction result that carried a timed query
-    (`result.timed`), or None when the run was not timed."""
+    (`result.timed`). None when the run was not timed; when timing was `requested`
+    but the result carries none (the timing run failed or timed out), the named
+    `not_measured` block instead."""
     timed = getattr(result, "timed", None)
-    if timed is None:
-        return None
-    return from_receipt(kind, timed.receipt, designs=designs)
+    block = (
+        from_receipt(kind, timed.receipt, designs=designs)
+        if timed is not None
+        else None
+    )
+    if block is None and requested:
+        return not_measured(kind)
+    return block
 
 
 def from_receipt(kind, receipt, *, designs):

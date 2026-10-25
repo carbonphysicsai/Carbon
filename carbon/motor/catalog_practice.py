@@ -262,6 +262,7 @@ class MotorCatalogPractice:
                     material=material,
                     identity=identity,
                     measure_query=practice_speed.measure(self.runner),
+                    timing_optional=True,
                 )
             except graph_adapters.GraphAdapterUnregistered:
                 raise ValueError("motor_catalog_recipe_required") from None
@@ -305,6 +306,7 @@ class MotorCatalogPractice:
                     expected_output_dtype=output_dtype(material["interface_document"]),
                     accelerator=device,
                     measure_query=practice_speed.measure(self.runner),
+                    timing_optional=True,
                     runner=self.runner,
                 )
 
@@ -376,7 +378,10 @@ class MotorCatalogPractice:
                     self.version,
                     grid_rows,
                     speed=practice_speed.from_result(
-                        "motor", result, designs=len(all_rows)
+                        "motor",
+                        result,
+                        designs=len(all_rows),
+                        requested=practice_speed.measure(self.runner),
                     ),
                 )
                 if v2

@@ -424,7 +424,10 @@ class DirectPractice:
                 self.version,
                 rows,
                 speed=practice_speed.from_result(
-                    self.spec.prefix, result, designs=len(rows)
+                    self.spec.prefix,
+                    result,
+                    designs=len(rows),
+                    requested=practice_speed.measure(self.runner),
                 ),
             ),
         }
@@ -502,6 +505,7 @@ class DirectPractice:
                 expected_output_dtype=dtype,
                 accelerator=device,
                 measure_query=practice_speed.measure(self.runner),
+                timing_optional=True,
                 runner=self.runner,
             )
 
@@ -577,6 +581,7 @@ class DirectPractice:
             allowlist_bytes=material["allowlist_bytes"],
             seed=0,
             measure_query=practice_speed.measure(self.runner),
+            timing_optional=True,
             runner=self.runner,
             adapter_id=spec.adapter_id,
         )

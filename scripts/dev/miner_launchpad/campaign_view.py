@@ -420,6 +420,13 @@ def speed_result(block):
 
     if type(block) is not dict or block.get("schema") != practice_speed.SCHEMA:
         return None
+    if block.get("measured") is False:
+        return {
+            "scope": "practice (this machine)",
+            "measured": False,
+            "note": practice_speed.NOT_MEASURED_NOTE,
+            "label": practice_speed.LABEL,
+        }
     per_design = finite(block.get("seconds_per_design"))
     ceiling = finite(block.get("ceiling_seconds_per_design"))
     if per_design is None or ceiling is None:

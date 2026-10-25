@@ -174,3 +174,48 @@ def test_the_page_reader_allow_lists_the_speed_result():
         is None
     )
     assert campaign_view.dual_feedback(_doc(None))["speed"] is None
+
+
+def test_a_timing_run_that_did_not_finish_is_named_not_measured():
+    timed_out = SimpleNamespace(timed=None)
+    block = practice_speed.from_result("f02", timed_out, designs=5, requested=True)
+    assert block["schema"] == practice_speed.SCHEMA
+    assert block["measured"] is False
+    assert "not measured" in block["note"]
+    assert block["label"] == practice_speed.LABEL
+    # Not asked for (a test runner stands in for the worker): no speed at all.
+    assert practice_speed.from_result("f02", timed_out, designs=5) is None
+    # A timing receipt with no usable measurement is the same named state.
+    empty = SimpleNamespace(timed=SimpleNamespace(receipt={}))
+    assert (
+        practice_speed.from_result("f02", empty, designs=5, requested=True)["measured"]
+        is False
+    )
+
+
+def test_the_page_shows_a_speed_that_was_not_measured_in_words():
+    block = practice_speed.not_measured("f02")
+    shown = campaign_view.dual_feedback(_doc(block))["speed"]
+    assert shown["measured"] is False
+    assert "not measured" in shown["note"]
+    assert shown["label"] == practice_speed.LABEL
+    assert "seconds_per_design" not in shown
+
+
+def test_optional_timed_swallows_only_a_failed_timing_run():
+    from carbon.development_session.bundle_construction_worker import optional_timed
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    def raising(error):
+        def run():
+            raise error
+
+        return run
+
+    assert optional_timed(lambda: "timed") == "timed"
+    for code in (WorkerCode.RUNTIME, WorkerCode.DEADLINE, WorkerCode.UNAVAILABLE):
+        assert optional_timed(raising(WorkerFailure(code))) is None
+    assert optional_timed(raising(TimeoutError())) is None
+    for code in (WorkerCode.CLEANUP, WorkerCode.QUARANTINED, WorkerCode.CANCELLED):
+        with pytest.raises(WorkerFailure):
+            optional_timed(raising(WorkerFailure(code)))

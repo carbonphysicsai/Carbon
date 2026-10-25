@@ -22,7 +22,11 @@ from pathlib import Path
 import numpy as np
 
 from carbon.challenge_validator.strict_json import MalformedStrategy, parse_strategy
-from carbon.reconstruction.worker.model import worker_resources_version
+from carbon.reconstruction.worker.model import (
+    WorkerCode,
+    WorkerFailure,
+    worker_resources_version,
+)
 
 from .bundle_graph_state import MAX_BYTES as MAX_STATE_BYTES
 from .bundle_graph_state import state_fits, state_limit
@@ -1764,6 +1768,28 @@ def direct_child_identity(identity: str, phase: str) -> str:
     )
 
 
+#: Failures of an optional timing run that are never swallowed: an uncertain cleanup keeps
+#: capacity reserved, and a cancellation is the miner's.
+_TIMING_MUST_RAISE = frozenset(
+    {WorkerCode.CLEANUP, WorkerCode.QUARANTINED, WorkerCode.CANCELLED}
+)
+
+
+def optional_timed(run):
+    """The result of an OPTIONAL timing run (the practice speed result), or None
+    when it failed or ran out of time: the practice that asked for it must still
+    return its result, with its speed named as not measured. Cleanup uncertainty and
+    cancellation still raise."""
+    try:
+        return run()
+    except WorkerFailure as failure:
+        if failure.code in _TIMING_MUST_RAISE:
+            raise
+        return None
+    except (RecipeRefused, ValueError, OSError, TimeoutError):
+        return None
+
+
 def reconstruct_and_infer_public(
     ledger,
     *,
@@ -1783,6 +1809,7 @@ def reconstruct_and_infer_public(
     allowlist_bytes: bytes,
     expected_output_dtype: str | None = None,
     measure_query: bool = False,
+    timing_optional: bool = False,
     total_deadline_started: float | None = None,
     accelerator: str | None = None,
     inference_accelerator: str | None = None,
@@ -1856,8 +1883,9 @@ def reconstruct_and_infer_public(
         **_accelerator_kwargs(inference_accelerator),
         runner=runner,
     )
-    timed = (
-        infer_public(
+
+    def timed_query():
+        return infer_public(
             ledger,
             owner=owner,
             identity=direct_child_identity(identity, "timed"),
@@ -1876,10 +1904,26 @@ def reconstruct_and_infer_public(
             **_accelerator_kwargs(inference_accelerator),
             runner=runner,
         )
-        if measure_query
-        else None
-    )
+
+    before_timing = time.monotonic() - started
+    timed = None
+    if measure_query:
+        timed = optional_timed(timed_query) if timing_optional else timed_query()
     elapsed = time.monotonic() - started
+    if (
+        timing_optional
+        and timed is not None
+        and elapsed > policy["total_reconstruction_wall_seconds_max"] >= before_timing
+    ):
+        # The timing run is only for the speed result: past the aggregate allowance it
+        # is dropped, the practice itself is not failed for it.
+        timed, elapsed = None, before_timing
+    if (
+        timing_optional
+        and timed is not None
+        and timed.state_digest != build.state_digest
+    ):
+        timed = None
     if elapsed > policy["total_reconstruction_wall_seconds_max"]:
         raise RecipeRefused("construction_total_deadline_reached")
     if build.state_digest != inference.state_digest or (

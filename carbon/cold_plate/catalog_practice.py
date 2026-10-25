@@ -259,6 +259,7 @@ class CoolingCatalogPractice:
                     inputs=query,
                     expected_output_shape=(len(query), width),
                     measure_query=practice_speed.measure(self.runner),
+                    timing_optional=True,
                 )
             except graph_adapters.GraphAdapterUnregistered:
                 raise ValueError("cooling_catalog_recipe_required") from None
@@ -302,6 +303,7 @@ class CoolingCatalogPractice:
                     expected_output_dtype=output_dtype(interface),
                     accelerator=device,
                     measure_query=practice_speed.measure(self.runner),
+                    timing_optional=True,
                     runner=self.runner,
                 )
 
@@ -378,7 +380,10 @@ class CoolingCatalogPractice:
                     self.version,
                     grid_rows,
                     speed=practice_speed.from_result(
-                        "cooling", result, designs=len(all_rows)
+                        "cooling",
+                        result,
+                        designs=len(all_rows),
+                        requested=practice_speed.measure(self.runner),
                     ),
                 )
                 if v2
