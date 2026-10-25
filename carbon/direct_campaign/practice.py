@@ -176,6 +176,14 @@ def summary(spec, version, interface, rows, material):
     names = list(interface["output"]["names"])
     case_ids = list(material["practice_case_ids"])
     values = [[float(v) for v in row] for row in rows]
+    # A dev-grid version's practice bank carries public-seeded probe rows, which have no
+    # reference: the error is reported on the exposed cells only (the probes still reach the
+    # dual feedback, which grades them as the exam does).
+    from carbon.scoring import probe_design
+
+    scored = [
+        i for i, case_id in enumerate(case_ids) if not probe_design.is_probe_id(case_id)
+    ]
     if spec.prefix == "f02":
         from carbon.challenge_kit import physical_pack
 
@@ -185,16 +193,21 @@ def summary(spec, version, interface, rows, material):
         # The registered measurement's reference: each action's primary rung
         # (f02_dual_pack.reference, `rungs["primary"]`).
         references = [
-            float(record["rung_peaks_c"]["primary"])
-            for record in bank["reference_records"]
+            float(bank["reference_records"][i]["rung_peaks_c"]["primary"])
+            for i in scored
         ]
+        values = [values[i] for i in scored]
+        case_ids = [case_ids[i] for i in scored]
         aggregate, components = _f02_aggregate(
             values, references, case_ids, _f02_scale(version)
         )
     elif spec.prefix == "f08":
         if set(names) != set(F08_SCALES):
             raise ValueError("f08_practice_outputs_unscaled")
-        references = [[float(v) for v in row] for row in material["practice_reference"]]
+        references = [
+            [float(v) for v in material["practice_reference"][i]] for i in scored
+        ]
+        values = [values[i] for i in scored]
         aggregate, components = _f08_aggregate(values, references, names)
     else:
         raise ValueError(spec.prefix + "_practice_error_scale_unregistered")
@@ -207,7 +220,7 @@ def summary(spec, version, interface, rows, material):
         "outputs": names,
         "dtype": OUTPUT_DTYPE,
         "n_cases": len(rows),
-        "n_scored": len(rows),
+        "n_scored": len(scored),
         "score": aggregate,
         "aggregate_error": aggregate,
         "components": {k: components[k] for k in COMPONENTS[spec.prefix]},
