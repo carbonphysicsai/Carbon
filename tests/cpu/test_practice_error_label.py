@@ -63,4 +63,4 @@ def test_the_miner_guide_explains_the_number():
     section = text.split("## 6. Practise, freeze, submit", 1)[1].split("\n## ", 1)[0]
     assert "What the practice number is" in section
     assert "0 means the model matches the reference exactly" in section
-    assert "not an exam score" in section
+    assert "never an exam score" in section
