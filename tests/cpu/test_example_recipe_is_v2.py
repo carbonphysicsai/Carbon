@@ -80,11 +80,19 @@ def test_a_legacy_entry_refuses_a_v2_only_setting_and_lists_what_it_takes():
     import types
 
     recipe = motor.catalog_recipe("neuralop.FNO", version="1.4")
-    recipe["procedure"]["train_use"] = {"optimizer": "nadam"}
+    recipe["procedure"]["configuration"] = {"loss_weights": [1.0]}
     key = types.SimpleNamespace(challenge_id=MOTOR, version="1.4")
     issues = research_service.construction_recipe_issues(recipe, key)
     assert issues[0].code == "catalog_setting_unknown"
     assert issues[0].allowed  # what the entry DOES take is named
+    # A value the legacy schema does not take is refused too, with the same advice.
+    legacy_value = motor.catalog_recipe("neuralop.FNO", version="1.4")
+    legacy_value["procedure"]["train_use"] = {"optimizer": "nadam"}
+    assert (
+        research_service.construction_recipe_issues(legacy_value, key)[0].code
+        == "catalog_setting_invalid"
+    )
+    assert "v2.*" in research_service.RECIPE_ISSUE_TEXT["catalog_setting_invalid"]
     # The same setting on the example (a v2.* entry) is accepted.
     example = motor.catalog_recipe(version="1.4")
     example["procedure"]["train_use"] = {"optimizer": "nadam"}
