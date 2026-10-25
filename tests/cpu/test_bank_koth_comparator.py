@@ -81,31 +81,31 @@ ZERO = {"value": 0, "measurement_digest": digest("rebuild noise record")}
             (bp.NO_WINNER, "candidate_not_scored"),
         ),
         (
-            body("c", total=2.0),
-            body("k"),
+            body("c", total=0.95),
+            body("k", total=0.5),
             NOISE,
             (bp.CHALLENGER, "exceeds_incumbent_beyond_rebuild_noise"),
         ),
         (
-            body("c", total=1.1),
-            body("k"),
+            body("c", total=0.6),
+            body("k", total=0.5),
             NOISE,
             (bp.INCUMBENT_KEEPS, "within_rebuild_noise_or_tie"),
         ),
         (
-            body("c", total=1.0),
-            body("k"),
+            body("c", total=0.5),
+            body("k", total=0.5),
             ZERO,
             (bp.INCUMBENT_KEEPS, "within_rebuild_noise_or_tie"),
         ),
         (
-            body("c", total=1.01),
-            body("k"),
+            body("c", total=0.51),
+            body("k", total=0.5),
             ZERO,
             (bp.CHALLENGER, "exceeds_incumbent_beyond_rebuild_noise"),
         ),
         (
-            body("c", total=9.0),
+            body("c", total=0.95),
             body("k"),
             None,
             (bp.UNAVAILABLE, "rebuild_noise_unregistered"),
@@ -117,7 +117,7 @@ ZERO = {"value": 0, "measurement_digest": digest("rebuild noise record")}
             (bp.INCUMBENT_KEEPS, "candidate_not_scored"),
         ),
         (
-            body("c", total=9.0),
+            body("c", total=0.95),
             body("k", "FAILED_INFRA"),
             NOISE,
             (bp.UNAVAILABLE, "incumbent_evidence_unavailable"),
@@ -151,7 +151,7 @@ ZERO = {"value": 0, "measurement_digest": digest("rebuild noise record")}
         ),
         # Other ineligible statuses are not gate failures: nothing changes.
         (
-            body("c", total=9.0),
+            body("c", total=0.95),
             body("k", "REQUIRED_LEG_MINIMUM_FAILED"),
             NOISE,
             (bp.UNAVAILABLE, "incumbent_not_scored"),
@@ -162,6 +162,37 @@ def test_comparator_outcomes(candidate, incumbent, noise, expected):
     outcome = bp.compare_private_pair(pair(candidate, incumbent), comparator(noise))
     assert (outcome["outcome"], outcome["reason"]) == expected
     assert outcome["evaluation_key"] == KEY
+
+
+@pytest.mark.parametrize("total", [1.5, 1.000001, -0.2, 9.0, 1e308])
+def test_a_scored_total_outside_zero_to_one_is_refused_for_the_candidate_and_the_incumbent(
+    total,
+):
+    """Attack test G1g: a total is 0..1 by construction, so one outside it is a bug upstream, and an unbounded one
+    would crown. Fail closed, whichever side carries it."""
+    for candidate, incumbent in (
+        (body("c", total=total), body("k", total=0.4)),
+        (body("c", total=0.9), body("k", total=total)),
+        (body("c", total=total), None),
+    ):
+        with pytest.raises(StateError, match="private_evaluation_invalid"):
+            bp.compare_private_pair(pair(candidate, incumbent), comparator(NOISE))
+
+
+@pytest.mark.parametrize("total", [0.0, 1.0, 1.0 + 1e-12, -1e-12])
+def test_the_range_check_allows_the_ends_and_float_rounding(total):
+    outcome = bp.compare_private_pair(
+        pair(body("c", total=total), body("k", total=0.4)), comparator(NOISE)
+    )
+    assert outcome["outcome"] in (bp.CHALLENGER, bp.INCUMBENT_KEEPS)
+
+
+def test_an_unscored_status_carries_no_total_to_check():
+    outcome = bp.compare_private_pair(
+        pair(body("c", "FAILED_INFRA", total=9.0), body("k", total=0.4)),
+        comparator(NOISE),
+    )
+    assert outcome["outcome"] == bp.INCUMBENT_KEEPS
 
 
 @pytest.mark.parametrize(
@@ -225,7 +256,7 @@ def test_scored_results_drive_a_development_king_and_its_halving(tmp_path, monke
     clock = [0.0]
     store = _store(tmp_path, clock)
     flow = bp.BankPromotion(store, registered_source_receipt_sha256=digest("pin"))
-    a, b, c = body("a", total=1.0), body("b", total=1.05), body("c", total=1.5)
+    a, b, c = body("a", total=0.7), body("b", total=0.75), body("c", total=0.95)
     monkeypatch.setattr(
         store,
         "private_evaluation_pair",
@@ -270,8 +301,8 @@ def test_a_lost_race_does_not_move_the_incumbent(tmp_path, monkeypatch):
     store = _store(tmp_path, clock)
     store.set_incumbent("a", "fixture")
     flow = bp.BankPromotion(store, registered_source_receipt_sha256=digest("pin"))
-    candidate = body("b", total=9.0)
-    moved = pair(candidate, body("a"))
+    candidate = body("b", total=0.95)
+    moved = pair(candidate, body("a", total=0.5))
     moved["expected_incumbent"] = "c"  # the incumbent changed after pairing
     monkeypatch.setattr(store, "private_evaluation_pair", _Pairs(store, {"b": moved}))
     with pytest.raises(StateError, match="incumbent_moved"):
@@ -281,7 +312,7 @@ def test_a_lost_race_does_not_move_the_incumbent(tmp_path, monkeypatch):
     monkeypatch.setattr(
         store,
         "private_evaluation_pair",
-        _Pairs(store, {"b": pair(candidate, body("a"))}),
+        _Pairs(store, {"b": pair(candidate, body("a", total=0.5))}),
     )
     assert (
         flow.consider_private("b", KEY, comparator(None))["outcome"] == bp.UNAVAILABLE
@@ -320,7 +351,7 @@ def test_an_unmeasured_gate_does_not_dethrone(tmp_path, monkeypatch):
         monkeypatch.setattr(
             store,
             "private_evaluation_pair",
-            _Pairs(store, {"b": pair(body("b", total=9.0), body("a", status))}),
+            _Pairs(store, {"b": pair(body("b", total=0.95), body("a", status))}),
         )
         assert (
             flow.consider_private("b", KEY, comparator(NOISE))["outcome"]
@@ -332,7 +363,7 @@ def test_an_unmeasured_gate_does_not_dethrone(tmp_path, monkeypatch):
 def test_the_leg_minimum_source_never_contends():
     """The baseline run whose legs set the pack's minimums sets the bar; it can
     neither take an empty throne nor beat a king, however it scores."""
-    baseline = body("base", total=99.0)
+    baseline = body("base", total=1.0)
     baseline["evidence"]["entry_id"] = BASELINE_ENTRY
     for incumbent, expected in ((None, bp.NO_WINNER), (body("k"), bp.INCUMBENT_KEEPS)):
         outcome = bp.compare_private_pair(pair(baseline, incumbent), comparator(NOISE))
