@@ -59,7 +59,7 @@ _TOP_KEYS = {"schema", "allowlist", "role", "entry", "graphs"}
 
 
 #: Ops whose parameter of kind "graph" names a nested graph, run inline.
-CALL_OPS = ("jit", "closed_call", "custom_jvp_call", "remat2")
+CALL_OPS = ("jit", "closed_call", "remat2")
 
 
 class GraphRefused(ValueError):

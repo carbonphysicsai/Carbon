@@ -65,6 +65,38 @@ def _dtype_name(x):
     return str(x.dtype)
 
 
+def _custom_jvp(run, bound, ins):
+    """`jax.custom_jvp` over two nested graphs: the function, and its derivative
+    rule (primals then tangents in, primal outputs then the non-zero tangent
+    outputs out), so a rule the miner wrote differentiates as it did for them
+    while Carbon has validated every op in it."""
+    import jax
+    import jax.numpy as jnp
+
+    consts = bound["num_consts"]
+    function = bound["call_jaxpr"]["graph"]
+    rule = bound["jvp_jaxpr"]["graph"]
+    zeros = bound["out_zeros"]
+    if consts < 0 or consts > len(ins):
+        raise graph.GraphRefused("parameter_kind_mismatch")
+
+    @jax.custom_jvp
+    def call(*args):
+        return tuple(run(function, list(args)))
+
+    @call.defjvp
+    def derivative(primals, tangents):
+        outs = run(rule, [*primals[consts:], *tangents[consts:]])
+        out_primals, nonzero = outs[: len(zeros)], iter(outs[len(zeros) :])
+        out_tangents = [
+            jnp.zeros_like(p) if zero else next(nonzero)
+            for p, zero in zip(out_primals, zeros)
+        ]
+        return tuple(out_primals), tuple(out_tangents)
+
+    return list(call(*ins))
+
+
 def _scan(run, bound, ins):
     """`lax.scan` over a nested body graph (inputs: consts, carry, x slices;
     outputs: new carry, y slices). Static length; the body runs once per step."""
@@ -211,6 +243,8 @@ def rebuild(doc, allowlist):
                 outs = named.call(bound["name"], ins)
             elif node["op"] == "custom_linear_solve":
                 outs = _linear_solve(run, bound, ins)
+            elif node["op"] == "custom_jvp_call":
+                outs = _custom_jvp(run, bound, ins)
             elif node["op"] == "scan":
                 outs = _scan(run, bound, ins)
             elif node["op"] == "cond":

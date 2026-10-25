@@ -441,6 +441,80 @@ def test_a_malformed_nested_solve_reference_is_refused():
         allowlist.check(doc)
 
 
+@jax.custom_jvp
+def _straight_through(x):
+    return jnp.round(x * 4.0) / 4.0
+
+
+@_straight_through.defjvp
+def _straight_through_jvp(primals, tangents):
+    (x,), (t,) = primals, tangents
+    return _straight_through(x), t  # the rule: pass the gradient straight through
+
+
+@jax.custom_jvp
+def _safe_sqrt(x):
+    return jnp.sqrt(jnp.maximum(x, 0.0))
+
+
+@_safe_sqrt.defjvp
+def _safe_sqrt_jvp(primals, tangents):
+    (x,), (t,) = primals, tangents
+    y = _safe_sqrt(x)
+    return y, t * jnp.where(y > 1e-3, 0.5 / jnp.maximum(y, 1e-3), 0.0)
+
+
+CUSTOM_RULES = {
+    "straight_through": lambda x: _straight_through(x) * jnp.arange(1.0, 5.0),
+    "safe_sqrt": lambda x: _safe_sqrt(x - 0.5),
+    "zeta_special": lambda x: jax.scipy.special.zeta(x + 2.0, x + 1.0),
+    "sinc": lambda x: jnp.sinc(x),
+}
+
+
+@pytest.mark.parametrize("name", sorted(CUSTOM_RULES))
+def test_a_custom_derivative_rule_is_carried_as_nested_graphs(name):
+    """The rule the miner wrote differentiates the rebuild as it did for them: the
+    straight-through estimator's gradient is 1, not the 0 of round()."""
+    fn = CUSTOM_RULES[name]
+    args = (_positive(),)
+    doc, run = _rebuilt(fn, args)
+    ops = _ops(doc)
+    assert "custom_jvp_call" in ops or "named_function" in ops, ops
+    np.testing.assert_allclose(np.asarray(run(*args)[0]), np.asarray(fn(*args)), rtol=1e-6)
+    want = jax.grad(lambda *a: jnp.sum(fn(*a) * 1.5))(*args)
+    got = jax.grad(lambda *a: jnp.sum(run(*a)[0] * 1.5))(*args)
+    np.testing.assert_allclose(np.asarray(got), np.asarray(want), rtol=1e-5, atol=1e-6)
+    if name == "straight_through":
+        assert np.abs(np.asarray(got)).min() > 0.5  # the rule, not round()'s zero
+
+
+def test_a_carried_rule_is_checked_like_any_other_graph():
+    """An op that is refused is refused inside a derivative rule too."""
+    allowlist = allowlist_module.load(V8)
+
+    @jax.custom_jvp
+    def f(x):
+        return x * 2.0
+
+    @f.defjvp
+    def f_jvp(primals, tangents):
+        (x,), (t,) = primals, tangents
+        callback = jax.pure_callback(
+            lambda v: np.asarray(v), jax.ShapeDtypeStruct(x.shape, x.dtype), x
+        )
+        return f(x), t * callback
+
+    with pytest.raises(graph.GraphRefused) as refused:
+        lower_jax.lower(
+            lower_jax.trace(f, jax.ShapeDtypeStruct((3,), jnp.float32)),
+            role="forward",
+            allowlist=allowlist,
+            input_names=["x"],
+        )
+    assert refused.value.code in {"op_refused", "op_not_allowlisted"}
+
+
 def test_containment_is_unchanged():
     """Escapes, callbacks and unseeded generators stay refused in v7."""
     ops = allowlist_module.load(V8).ops

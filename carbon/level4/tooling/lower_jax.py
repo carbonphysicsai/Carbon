@@ -163,6 +163,23 @@ def lower(closed, *, role, allowlist, input_names):
             else:
                 spec = allowlist.admit(op, role, where)
                 eqn_params = eqn.params
+                if op == "custom_jvp_call":
+                    # A derivative rule JAX holds as a Python callable is traced to a
+                    # jaxpr here, on the miner's machine, and carried as a nested
+                    # graph that Carbon validates like any other (pure ops only).
+                    import jax.extend.core as jex_core
+
+                    n_args = len(eqn.invars) - eqn.params["num_consts"]
+                    jvp_jaxpr, jvp_consts, out_zeros = eqn.params[
+                        "jvp_jaxpr_fun"
+                    ].call_wrapped(*([False] * n_args))
+                    eqn_params = {
+                        "call_jaxpr": eqn.params["call_jaxpr"],
+                        "jvp_jaxpr": jex_core.ClosedJaxpr(jvp_jaxpr, jvp_consts),
+                        "num_consts": eqn.params["num_consts"],
+                        "out_zeros": tuple(bool(z) for z in out_zeros),
+                        "symbolic_zeros": eqn.params["symbolic_zeros"],
+                    }
                 if op == "custom_linear_solve":
                     # jnp.linalg.solve / inv: the four callables of the solve, each
                     # a nested graph, beside the lengths of their closed-over values.

@@ -1067,11 +1067,21 @@
   },
   "custom_jvp_call": {
    "category": "custom_differentiation",
-   "default": "refuse",
-   "note": "an unregistered custom derivative rule cannot be carried; registered kernels lower to named_function instead",
-   "params": {},
-   "roles": [],
-   "v0_interpreter": false
+   "default": "allow",
+   "note": "a derivative rule the miner wrote, traced to a jaxpr at lowering and carried as a nested graph beside the function (registered kernels still lower to named_function); every op in both graphs is checked like any other.",
+   "params": {
+    "call_jaxpr": "graph",
+    "jvp_jaxpr": "graph",
+    "num_consts": "int",
+    "out_zeros": "bool_tuple",
+    "symbolic_zeros": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
   },
   "custom_linear_solve": {
    "category": "linear_algebra",
