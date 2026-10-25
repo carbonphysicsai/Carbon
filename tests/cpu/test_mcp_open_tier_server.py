@@ -40,7 +40,9 @@ ONBOARDING = {
     ONBOARDING_PREFIX + name
     for name in ("requirements", "status", "prepare", "confirm")
 }
-CHALLENGE_DISCOVERY = {CHALLENGE_PREFIX + name for name in ("list", "describe")}
+CHALLENGE_DISCOVERY = {
+    CHALLENGE_PREFIX + name for name in ("list", "describe", "scoring_rules")
+}
 
 
 def names(server):
@@ -60,8 +62,9 @@ def test_the_server_starts_with_no_profile_campaign_or_ledger():
     how to register were reachable only once they no longer needed them.
     """
     server = create_open_tier_server()
-    # Onboarding, plus Challenge discovery: reading which Challenges exist
-    # needs no campaign either, and grants nothing.
+    # Onboarding, plus Challenge discovery: reading which Challenges exist and
+    # how a version is scored (its published exam rules, an allow-list cut of
+    # what `describe` serves) needs no campaign either, and grants nothing.
     assert names(server) == ONBOARDING | CHALLENGE_DISCOVERY
 
 

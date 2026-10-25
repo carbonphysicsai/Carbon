@@ -1014,6 +1014,12 @@ def uv_references():
     return (UV_IMAGE, name.rsplit(":", 1)[0] + "@" + digest, digest)
 
 
+#: The reason when the pinned uv image is not on this machine: the installer pulls it by digest.
+UV_GAP = (
+    "required local image absent: the pinned uv image is not on this machine; run: docker pull "
+    + UV_IMAGE
+)
+
 #: The reason when the installed parent cannot be found: a plain gap, with the next step.
 PARENT_GAP = (
     "required local image absent: this Docker does not answer to the installed worker's recorded id and "
@@ -1105,7 +1111,7 @@ def build_offline_bundle(
         except ValueError:
             continue
     if uv is None:
-        raise ValueError("required local image absent")
+        raise ValueError(UV_GAP)
     uv_name, _, uv_digest = UV_IMAGE.partition("@")
     uv_repo_digest = uv_name.rsplit(":", 1)[0] + "@" + uv_digest
     if type(uv.get("RepoDigests")) is not list or not any(

@@ -253,3 +253,21 @@ class _UvOnly(StoreCli):
                 raise WorkerFailure(docker_runtime.WorkerCode.RUNTIME)
             return {"Id": "sha256:" + "d" * 64, "RepoDigests": [UV_IMAGE]}
         return super().json(arguments, **kwargs)
+
+
+def test_a_missing_uv_image_says_what_to_pull(tmp_path):
+    from test_library_bundles import fixture
+
+    from carbon.development_session.library_bundles import (
+        UV_GAP,
+        UV_IMAGE,
+        build_offline_bundle,
+        prepare_offline_context,
+    )
+
+    context, bundle, seal = prepare_offline_context(tmp_path, *fixture(), IMAGE_ID)
+    cli = _UvOnly("ghcr.io/astral-sh/uv:latest", "classic", bundle)
+    with pytest.raises(ValueError) as refused:
+        build_offline_bundle(context, bundle, IMAGE_ID, seal, cli=cli)
+    assert str(refused.value) == UV_GAP
+    assert "docker pull " + UV_IMAGE in UV_GAP
