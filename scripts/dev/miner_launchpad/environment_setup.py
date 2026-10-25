@@ -528,6 +528,12 @@ GPU_TEST_FAILED_STEP = (
 )
 
 
+def _supported_setup_warning():
+    from carbon.development_session import supported_setup
+
+    return supported_setup.cached_warning()
+
+
 def driver_warning(image, driver):
     """A plain warning when the GPU machine's driver runs an older CUDA than
     `image`'s GPU runtime is built for (M1 S5: the JAX cuda13 worker failed
@@ -2594,6 +2600,9 @@ class EnvironmentSetup:
         return {
             "schema": SETUP_SCHEMA,
             "registered_hotkey": record.get("hotkey"),
+            # Warned about, never blocked: this machine is not the one launch
+            # setup (OWNER-LAUNCH-SUPPORTED-MACHINE-01); None when it is.
+            "supported_setup": _supported_setup_warning(),
             # "Test my GPU"'s last verdicts, per framework (never a score).
             "gpu_test": record.get("gpu_test"),
             # Setup's "Practise without registering": chosen, and no
@@ -4745,6 +4754,18 @@ def describe_install(report: dict) -> list[str]:
                 + (", unchanged" if image["from"] else "")
             )
     lines.append("Your setup:")
+    unsupported = _supported_setup_warning()
+    if unsupported:
+        lines.append(
+            "  Machine: "
+            + unsupported["message"]
+            + " It differs in: "
+            + "; ".join(
+                f"{row['check']} ({row['found']}, supported: {row['supported']})"
+                for row in unsupported["differences"]
+            )
+            + "."
+        )
     compute = report.get("compute")
     if compute == "not set up yet":
         lines.append(

@@ -330,6 +330,74 @@ install_hint() {
   esac
 }
 
+#: The one supported setup (OWNER-LAUNCH-SUPPORTED-MACHINE-01; the same numbers as
+#: carbon/development_session/supported_setup.py, held together by a test). Any other
+#: machine gets a WARNING, never a stop. Practice's worker runs under a 16 GiB limit and
+#: Docker must see 17 GiB (docker_runtime.doctor), so a "16 GB" machine (about 15.6 GiB)
+#: cannot run it: 32 GB is the supported size.
+SUPPORTED_UBUNTU="22.04 24.04"
+SUPPORTED_DOCKER_MAJOR=29
+SUPPORTED_DOCKER_MEMORY_GIB=17
+SUPPORTED_RAM_GB=32
+SUPPORTED_CPUS=4
+SUPPORTED_DISK_GIB=150
+SUPPORTED_NVIDIA_DRIVER="580.65.06"
+supported_setup_warning() {
+  local os_id="" os_version="" docker_version major seen mem_bytes="" cpus="" free driver
+  local differs=() unchecked=()
+  if [[ -r /etc/os-release ]]; then
+    os_id="$(. /etc/os-release && printf '%s' "${ID:-}")"
+    os_version="$(. /etc/os-release && printf '%s' "${VERSION_ID:-}")"
+  fi
+  if [[ -z "${os_id}" ]]; then
+    unchecked+=("operating system")
+  elif [[ "${os_id}" != "ubuntu" ]] || [[ " ${SUPPORTED_UBUNTU} " != *" ${os_version} "* ]]; then
+    differs+=("operating system ${os_id} ${os_version} (supported: Ubuntu 22.04 or 24.04)")
+  fi
+  docker_version="$(docker version --format '{{.Server.Version}}' 2>/dev/null || true)"
+  major="${docker_version%%.*}"
+  if [[ ! "${major}" =~ ^[0-9]+$ ]]; then
+    unchecked+=("Docker version")
+  elif (( major != SUPPORTED_DOCKER_MAJOR )); then
+    differs+=("Docker ${docker_version} (supported: Docker ${SUPPORTED_DOCKER_MAJOR})")
+  fi
+  seen="$(docker info --format '{{.MemTotal}} {{.NCPU}}' 2>/dev/null || true)"
+  mem_bytes="${seen%% *}"
+  cpus="${seen##* }"
+  if [[ "${mem_bytes}" =~ ^[0-9]+$ ]]; then
+    if (( mem_bytes < SUPPORTED_DOCKER_MEMORY_GIB * 1073741824 )); then
+      differs+=("memory: Docker sees $(( mem_bytes / 1073741824 )) GiB (supported: ${SUPPORTED_RAM_GB} GB of RAM; practice needs Docker to see ${SUPPORTED_DOCKER_MEMORY_GIB} GiB, its worker runs under a 16 GiB limit plus 1 GiB)")
+    fi
+  else
+    unchecked+=("memory")
+  fi
+  if [[ "${cpus}" =~ ^[0-9]+$ ]]; then
+    if (( cpus < SUPPORTED_CPUS )); then
+      differs+=("${cpus} CPUs (supported: ${SUPPORTED_CPUS} or more; the practice worker uses ${SUPPORTED_CPUS})")
+    fi
+  else
+    unchecked+=("CPU count")
+  fi
+  free="$(free_gib "${repo_root}" || true)"
+  if [[ ! "${free}" =~ ^[0-9]+$ ]]; then
+    unchecked+=("free disk")
+  elif (( free < SUPPORTED_DISK_GIB )); then
+    differs+=("${free} GB of free disk (supported: about ${SUPPORTED_DISK_GIB} GB free)")
+  fi
+  driver="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n 1 || true)"
+  if [[ -n "${driver}" ]] \
+    && [[ "$(printf '%s\n%s\n' "${SUPPORTED_NVIDIA_DRIVER}" "${driver}" | sort -V | head -n 1)" != "${SUPPORTED_NVIDIA_DRIVER}" ]]; then
+    differs+=("NVIDIA driver ${driver} (supported: ${SUPPORTED_NVIDIA_DRIVER} or newer)")
+  fi
+  if (( ${#differs[@]} )); then
+    echo "WARNING: this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run: Ubuntu 22.04 or 24.04 (x86-64), Docker ${SUPPORTED_DOCKER_MAJOR}, ${SUPPORTED_RAM_GB} GB of RAM (a 16 GB machine reports about 15.6 GiB and cannot run practice), ${SUPPORTED_CPUS} CPUs and about ${SUPPORTED_DISK_GIB} GB of free disk; a GPU is optional (any NVIDIA GPU with driver ${SUPPORTED_NVIDIA_DRIVER} or newer)." >&2
+    printf '  Differs: %s\n' "${differs[@]}" >&2
+  fi
+  if (( ${#unchecked[@]} )); then
+    printf 'Could not check: %s.\n' "$(IFS=,; printf '%s' "${unchecked[*]}" | sed 's/,/, /g')" >&2
+  fi
+}
+
 step "1/6 Checking this machine"
 [[ "$(uname -s)" == "Linux" ]] || fail "Linux is required (Windows: use WSL2)."
 [[ "$(uname -m)" == "x86_64" ]] || fail "x86-64 is required."
@@ -338,6 +406,7 @@ for tool in git curl docker; do
 done
 docker info >/dev/null 2>&1 \
   || fail "Docker is installed but not reachable; start it, or add yourself to the docker group."
+supported_setup_warning
 # The service, and every unit Carbon's runs start, run under the systemd user
 # manager, not this shell (LA-F6). A docker group added after the manager
 # started is in a new shell's groups but not the manager's, so Docker answers
