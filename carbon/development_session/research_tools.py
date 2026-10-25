@@ -90,7 +90,10 @@ TASK_CORRECTIONS = {
         "not a setting this catalog entry takes. Keep only the settings listed "
         "under Allowed here (any not listed are left at the entry's default). "
         "A catalog recipe names its model in source.catalog_id, never in "
-        "configuration: there is no backbone setting."
+        "configuration: there is no backbone setting. An entry whose id does not "
+        "start with v2. is a legacy entry with fewer settings; the v2.* entries "
+        "(the version's example is one) take every setting, so to set more, change "
+        "source.catalog_id to a v2.* entry."
     ),
     "direct_recipe_required": (
         "This campaign practises construction recipes (every new Launchpad "

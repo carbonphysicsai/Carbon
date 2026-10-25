@@ -39,7 +39,11 @@ def catalog_recipe(spec, catalog_id=None, *, version):
     kit = _kit(spec, version)
     if catalog_id is None:
         offered = listing.entries(spec.challenge_id, version)
-        item = offered[0] if offered else None
+        # A v2.* entry first (every setting is the miner's), else the first offered.
+        wanted = listing.preferred(spec.challenge_id, version)
+        item = next((e for e in offered if e["catalog_id"] == wanted), None) or (
+            offered[0] if offered else None
+        )
     else:
         item = listing.entry(catalog_id, spec.challenge_id, version)
         if item is None:
@@ -176,6 +180,7 @@ def _exam(challenge_id, version):
 
 def describe(spec, version):
     """The direct version's description, from its registrations only."""
+    from carbon.backbone_catalog import listing as catalog_listing
     from carbon.backbone_catalog import served
     from carbon.direct_campaign import facts
     from carbon.direct_campaign.contracts import train_facts
@@ -245,7 +250,9 @@ def describe(spec, version):
                 {
                     "id": "catalog." + catalog_id,
                     "selector": catalog_id,
-                    "summary": "Carbon's tested " + entry["backbone"] + " bundle",
+                    "summary": catalog_listing.summary(
+                        catalog_id, entry["backbone"], key.challenge_id, key.version
+                    ),
                 }
                 for catalog_id, entry in catalog["entries"].items()
             ],
