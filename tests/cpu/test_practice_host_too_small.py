@@ -34,7 +34,9 @@ def test_a_host_under_the_worker_s_need_is_too_small_with_both_sets_of_numbers()
     shortfall = carrier._host_capacity_shortfall(
         _verdict(6.8, 4), {"worker_profile": _large_profile()}
     )
-    assert isinstance(shortfall, carrier.HostTooSmall) and isinstance(shortfall, ValueError)
+    assert isinstance(shortfall, carrier.HostTooSmall) and isinstance(
+        shortfall, ValueError
+    )
     assert shortfall.capacity == {
         "memory_gib": 6.8,
         "cpus": 4,
@@ -45,15 +47,24 @@ def test_a_host_under_the_worker_s_need_is_too_small_with_both_sets_of_numbers()
 
 def test_too_few_cpus_alone_is_too_small_and_exactly_enough_is_not():
     profile = {"worker_profile": _large_profile()}
-    assert carrier._host_capacity_shortfall(_verdict(32, 2), profile).capacity["cpus"] == 2
-    assert carrier._host_capacity_shortfall(_verdict(17, 4, cgroup="1"), profile) is None
+    assert (
+        carrier._host_capacity_shortfall(_verdict(32, 2), profile).capacity["cpus"] == 2
+    )
+    assert (
+        carrier._host_capacity_shortfall(_verdict(17, 4, cgroup="1"), profile) is None
+    )
     assert carrier._host_capacity_shortfall(_verdict(31.2, 8), profile) is None
 
 
 def test_other_ineligibility_is_not_called_too_small():
     profile = {"worker_profile": _large_profile()}
     # A different doctor code, or a verdict with no host facts, is the generic failure.
-    assert carrier._host_capacity_shortfall(_verdict(4, 2, code="worker.doctor.x"), profile) is None
+    assert (
+        carrier._host_capacity_shortfall(
+            _verdict(4, 2, code="worker.doctor.x"), profile
+        )
+        is None
+    )
     assert (
         carrier._host_capacity_shortfall(
             SimpleNamespace(eligible=False, code=CAPACITY_CODE, host={}), profile
@@ -64,7 +75,10 @@ def test_other_ineligibility_is_not_called_too_small():
 
 def test_without_a_worker_profile_the_c03_default_is_the_need():
     shortfall = carrier._host_capacity_shortfall(_verdict(1, 1), {})
-    assert shortfall.capacity["needs_memory_gib"] > 1 and shortfall.capacity["needs_cpus"] >= 1
+    assert (
+        shortfall.capacity["needs_memory_gib"] > 1
+        and shortfall.capacity["needs_cpus"] >= 1
+    )
 
 
 def test_the_failure_file_records_the_closed_reason_and_only_numbers(tmp_path):
@@ -78,7 +92,9 @@ def test_the_failure_file_records_the_closed_reason_and_only_numbers(tmp_path):
         "needs_memory_gib": 17.0,
         "needs_cpus": 4,
     }
-    assert "research host" not in json.dumps(written)  # the message text is never stored
+    assert "research host" not in json.dumps(
+        written
+    )  # the message text is never stored
 
 
 def _run(tmp_path, state="FAILED_INFRA", capacity=None):
@@ -93,9 +109,7 @@ def _run(tmp_path, state="FAILED_INFRA", capacity=None):
             carrier._retain_practice_failure(
                 operation,
                 "HOST_READINESS",
-                carrier.HostTooSmall(
-                    int(capacity[0] * GIB), capacity[1], 17 * GIB, 4
-                ),
+                carrier.HostTooSmall(int(capacity[0] * GIB), capacity[1], 17 * GIB, 4),
             )
         return {"terminal_task": {"state": state}}
 
@@ -114,7 +128,11 @@ def test_a_practice_that_failed_on_capacity_is_refused_with_the_hosts_numbers(tm
     assert refused.value.code == "practice_host_too_small"
     step = refused.value.next_step
     assert "7.0 GiB of memory and 4 CPUs" in step and "17.0 GiB" in step
-    assert "32 GB" in step and "docker info" in step and "nothing counts against you" in step
+    assert (
+        "32 GB" in step
+        and "docker info" in step
+        and "nothing counts against you" in step
+    )
 
 
 def test_a_failure_with_no_capacity_record_stays_practice_could_not_run(tmp_path):
@@ -126,7 +144,7 @@ def test_a_failure_with_no_capacity_record_stays_practice_could_not_run(tmp_path
 
 def test_an_old_failure_file_is_not_blamed_on_a_new_practice(tmp_path):
     """Only a failure written since this practice started counts."""
-    ledger, manifest = ledger_at(tmp_path)
+    ledger, _manifest = ledger_at(tmp_path)
     operation = ledger.root / ("operation-" + "cd" * 32)
     operation.mkdir()
     carrier._retain_practice_failure(
@@ -184,7 +202,9 @@ def test_the_real_doctor_verdict_on_a_given_host_is_read_as_too_small_or_not(
     from carbon.reconstruction.worker import docker_runtime
 
     profile = carrier._worker_profile(None, None, "level4-allowlist-v7")
-    verdict = docker_runtime.doctor(cli=_DockerSeeing(memory_gib, cpus), worker_profile=profile)
+    verdict = docker_runtime.doctor(
+        cli=_DockerSeeing(memory_gib, cpus), worker_profile=profile
+    )
     shortfall = carrier._host_capacity_shortfall(verdict, {"worker_profile": profile})
     if small:
         assert not verdict.eligible
