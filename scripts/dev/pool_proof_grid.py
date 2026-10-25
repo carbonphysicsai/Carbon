@@ -4,7 +4,8 @@
     python scripts/dev/pool_proof_grid.py --kind KIND --version V \
         --binding carbon.scoring.pool_adapters:binding_for \
         --pools-dir CUSTODY/pools --sets SETS.json --grid GRID.json --out-dir OUT \
-        --truth-probe-rule perfect --response-leg A_response --ignored-gates physics_laws
+        --truth-probe-rule perfect --response-leg A_response --ignored-gates physics_laws \
+        --truth-tolerance 1e-5
 
 `--binding` names a `module:function` returning a `pool_plugin.ChallengeBinding` for (kind, version): the
 Challenge's adapter and model servers, supplied by its lane. `--sets` maps set names to target ids
@@ -41,6 +42,7 @@ def main(argv=None):
         "--truth-probe-rule", required=True, choices=("perfect", "measured")
     )
     parser.add_argument("--response-leg", required=True)
+    parser.add_argument("--truth-tolerance", required=True, type=float)
     parser.add_argument(
         "--ignored-gates", required=True, help="comma separated; may be empty"
     )
@@ -74,7 +76,15 @@ def main(argv=None):
         truth_probe_rule=args.truth_probe_rule,
         response_leg=args.response_leg,
         ignored_gates=tuple(g for g in args.ignored_gates.split(",") if g),
+        truth_tolerance=args.truth_tolerance,
     )
+    if args.truth_probe_rule == "perfect":
+        try:
+            record = bank_legs.verify_truth_rows()
+        except pool_plugin.TruthCheckStop as stop:
+            print(f"STOP, back to the Validator: {stop}", file=sys.stderr)
+            return 3
+        print(f"truth-row check passed: {record}")
 
     def no_fresh_set(draw):
         raise SystemExit("the grid run needs no fresh set")

@@ -80,6 +80,7 @@ def binding(serve_good=good_serve):
         serve_good=serve_good,
         serve_train=good_serve,
         train_box=lambda spec: ((0.0, 0.5), (0.0, 0.5)),
+        probe_truth=lambda rows: [truth(r) for r in rows],
     )
 
 
@@ -134,8 +135,8 @@ def bank_rows():
     return rows
 
 
-def bank_legs(rule="perfect", the_binding=None):
-    return pp.BankLegs(
+def bank_legs(rule="perfect", the_binding=None, verified=True):
+    legs = pp.BankLegs(
         binding=the_binding or binding(),
         measure=fake_measure,
         rows=bank_rows(),
@@ -149,7 +150,12 @@ def bank_legs(rule="perfect", the_binding=None):
         truth_probe_rule=rule,
         response_leg="A_response",
         ignored_gates=("physics_laws",),
+        truth_tolerance=1e-5,
+        state={},
     )
+    if rule == "perfect" and verified:
+        legs.verify_truth_rows()
+    return legs
 
 
 def test_a_model_input_row_is_fixed_conditions_plus_the_design_and_must_match_the_interface():
@@ -474,32 +480,33 @@ def test_the_grid_script_writes_an_owner_sheet_from_custody_documents(
     monkeypatch.setattr(
         pp,
         "practice_bank_legs",
-        lambda bound, **kw: bank_legs(kw["truth_probe_rule"], bound),
+        lambda bound, **kw: bank_legs(kw["truth_probe_rule"], bound, verified=False),
     )
-    code = script.main(
-        [
-            "--kind",
-            "toy",
-            "--version",
-            "1",
-            "--binding",
-            "x:y",
-            "--pools-dir",
-            str(pools),
-            "--sets",
-            str(tmp_path / "sets.json"),
-            "--grid",
-            str(tmp_path / "grid.json"),
-            "--out-dir",
-            str(tmp_path / "out"),
-            "--truth-probe-rule",
-            "perfect",
-            "--response-leg",
-            "A_response",
-            "--ignored-gates",
-            "physics_laws",
-        ]
-    )
+    args = [
+        "--kind",
+        "toy",
+        "--version",
+        "1",
+        "--binding",
+        "x:y",
+        "--pools-dir",
+        str(pools),
+        "--sets",
+        str(tmp_path / "sets.json"),
+        "--grid",
+        str(tmp_path / "grid.json"),
+        "--out-dir",
+        str(tmp_path / "out"),
+        "--truth-probe-rule",
+        "perfect",
+        "--response-leg",
+        "A_response",
+        "--ignored-gates",
+        "physics_laws",
+        "--truth-tolerance",
+        "1e-5",
+    ]
+    code = script.main(args)
     assert code == 0
     result = json.loads((tmp_path / "out/owner-sheet-toy-1.json").read_text())
     assert result["meta"]["rows"] == 2 and len(result["rows"]) == 2
@@ -508,3 +515,53 @@ def test_the_grid_script_writes_an_owner_sheet_from_custody_documents(
         .read_text()
         .startswith("# toy 1: the owner's scoring sheet")
     )
+    # A binding that cannot supply true probe outputs STOPS the run, back to the Validator, with no sheet.
+    none = pp.ChallengeBinding(**{**b.__dict__, "probe_truth": None})
+    monkeypatch.setattr(script, "_binding", lambda path, kind, version: none)
+    monkeypatch.setattr(
+        pp,
+        "practice_bank_legs",
+        lambda bound, **kw: bank_legs(kw["truth_probe_rule"], bound, verified=False),
+    )
+    stop_args = list(args)
+    stop_args[stop_args.index(str(tmp_path / "out"))] = str(tmp_path / "out2")
+    assert script.main(stop_args) == 3
+    assert not (tmp_path / "out2").exists()
+
+
+def test_the_perfect_rule_needs_the_truth_row_check_and_the_check_stops_on_failure():
+    unchecked = bank_legs("perfect", verified=False)
+    with pytest.raises(pp.PluginRefused, match="truth_row_check_required"):
+        unchecked.legs({"kind": "oracle"})
+    # Models that are not truth models never need it (and never get the rule).
+    assert unchecked.legs({"kind": "good"})["gates_ok"] is True
+    record = unchecked.verify_truth_rows()
+    assert record["response_leg"] == pytest.approx(1.0)
+    assert unchecked.legs({"kind": "oracle"})["gates_ok"] is True
+    # Truth that breaks the law (probe answers not rising) is a STOP, not a pass.
+    wrong = pp.ChallengeBinding(
+        **{**binding().__dict__, "probe_truth": lambda rows: [[0.5, 0.5]] * len(rows)}
+    )
+    with pytest.raises(pp.TruthCheckStop, match="fail_the_checks"):
+        bank_legs("perfect", wrong, verified=False).verify_truth_rows()
+    none = pp.ChallengeBinding(**{**binding().__dict__, "probe_truth": None})
+    with pytest.raises(pp.TruthCheckStop, match="supplies_no_probe_truth"):
+        bank_legs("perfect", none, verified=False).verify_truth_rows()
+    short = pp.ChallengeBinding(
+        **{**binding().__dict__, "probe_truth": lambda rows: []}
+    )
+    with pytest.raises(pp.TruthCheckStop, match="one_row_per_probe"):
+        bank_legs("perfect", short, verified=False).verify_truth_rows()
+
+
+def test_a_submitted_model_cannot_use_the_perfect_rule_even_when_built_on_the_oracle():
+    b = bank_legs("perfect")
+    oracle = b.legs({"kind": "oracle"})
+    assert oracle["gates_ok"] is True and oracle["A"] == pytest.approx(1.0)
+    # A perturbed model (what a miner submits) is graded as it stands on the probe rows, never credited.
+    layered = b.legs(
+        {"kind": "perturbed", "base": {"kind": "oracle"}, "layers": [[1, 0.0]]}
+    )
+    assert layered["gates_ok"] is False and layered["A"] < 0.95
+    for kind in ("good", "default", "in_distribution"):
+        assert b.legs({"kind": kind})["A_legs"]["A_response"] in (0.2, 1.0)

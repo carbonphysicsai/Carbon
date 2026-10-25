@@ -36,6 +36,11 @@ class PluginRefused(ValueError):
     """The binding or the bank cannot give a sound leg: the Challenge's wiring, not a candidate's failure."""
 
 
+class TruthCheckStop(PluginRefused):
+    """STOP, back to the Validator: truth outputs do not pass the law gates or the response leg, so the gate or
+    the leg is miscalibrated against reality (or the check cannot run)."""
+
+
 def _require(condition, reason):
     if not condition:
         raise PluginRefused(reason)
@@ -57,6 +62,9 @@ class ChallengeBinding:
     serve_good: object  # (rows) -> raw output rows
     serve_train: object  # (rows) -> raw output rows, the TRAIN-fit model
     train_box: object  # (spec) -> ((lo, hi), ...) in design units
+    # (rows) -> TRUE raw outputs for the bank rows that carry no reference (the probe rows), from the Challenge's
+    # reference solver. Needed only for the truth-row check the perfect rule depends on (Validator, section 8).
+    probe_truth: object = None
 
 
 def model_input_row(binding, conditions, design):
@@ -127,6 +135,10 @@ class BankLegs:
     truth_probe_rule: str
     response_leg: str  # the A leg graded on probe rows
     ignored_gates: tuple  # the gates that grade probe responses (ignored for a truth model under "perfect")
+    truth_tolerance: (
+        float  # the oracle tolerance the truth-row check holds A_response to
+    )
+    state: dict  # {"truth_check": record} once `verify_truth_rows` has passed
 
     def outputs_for(self, descriptor):
         """Raw output rows on every bank row for a model descriptor."""
@@ -177,6 +189,49 @@ class BankLegs:
             ]
         raise PluginRefused("unknown_model_descriptor")
 
+    def verify_truth_rows(self):
+        """The Validator's check behind the perfect rule: with TRUE outputs on every row (the references, and the
+        reference solver's on the probe rows), every law gate must pass and the response leg score within
+        `truth_tolerance` of 1. Records the result; raises `TruthCheckStop` otherwise.
+        """
+        probe_truth = self.binding.probe_truth
+        if probe_truth is None:
+            raise TruthCheckStop(
+                "truth_check_cannot_run_the_binding_supplies_no_probe_truth"
+            )
+        missing = [i for i, r in enumerate(self.rows) if r.get("reference") is None]
+        supplied = (
+            probe_truth([self.rows[i]["inputs"] for i in missing]) if missing else []
+        )
+        if type(supplied) is not list or len(supplied) != len(missing):
+            raise TruthCheckStop("probe_truth_must_return_one_row_per_probe")
+        outputs = [
+            list(r["reference"]) if r.get("reference") is not None else None
+            for r in self.rows
+        ]
+        for i, row in zip(missing, supplied, strict=True):
+            outputs[i] = list(row)
+        measured = self.measure(
+            bank_rows=self.rows,
+            outputs=outputs,
+            repeats=[outputs, outputs],
+            **self.arguments,
+        )
+        legs = measured.get("A_legs") or {}
+        gates = measured.get("gates") or {}
+        failed = sorted(name for name, ok in gates.items() if not ok)
+        response = legs.get(self.response_leg)
+        if (
+            failed
+            or type(response) not in (int, float)
+            or response < 1.0 - self.truth_tolerance
+        ):
+            raise TruthCheckStop(
+                f"truth_outputs_fail_the_checks: gates {failed}, response leg {response}"
+            )
+        self.state["truth_check"] = {"gates": sorted(gates), "response_leg": response}
+        return self.state["truth_check"]
+
     def _u(self, row, out):
         reference = row.get("reference")
         u = self.binding.raw_u(
@@ -194,6 +249,15 @@ class BankLegs:
             self.truth_probe_rule in ("perfect", "measured"),
             "truth_probe_rule_must_be_perfect_or_measured",
         )
+        # The perfect rule is for synthetic truth models only, and only after the truth-row check passed.
+        perfect = (
+            self.truth_probe_rule == "perfect"
+            and descriptor.get("kind") in TRUTH_MODELS
+        )
+        _require(
+            not perfect or "truth_check" in self.state,
+            "truth_row_check_required_before_the_perfect_rule",
+        )
         outputs = self.outputs_for(descriptor)
         measured = self.measure(
             bank_rows=self.rows,
@@ -205,10 +269,7 @@ class BankLegs:
         c = (measured.get("design_fidelity") or {}).get("C")
         gates = measured.get("gates") or {}
         a_legs_out = dict(measured.get("A_legs") or {})
-        if (
-            self.truth_probe_rule == "perfect"
-            and descriptor.get("kind") in TRUTH_MODELS
-        ):
+        if perfect:
             a_legs = measured.get("A_legs")
             _require(
                 type(a_legs) is dict
@@ -241,7 +302,9 @@ def _checked(raw, rows):
     return [list(r) for r in raw]
 
 
-def practice_bank_legs(binding, *, truth_probe_rule, response_leg, ignored_gates):
+def practice_bank_legs(
+    binding, *, truth_probe_rule, response_leg, ignored_gates, truth_tolerance
+):
     """`BankLegs` on the Challenge version's PUBLIC practice grid, the exam's own v2 grader (Phase 1: the sealed A
     cases stay in custody for the final run). Registry-driven: nothing here names a Challenge.
     """
@@ -278,6 +341,8 @@ def practice_bank_legs(binding, *, truth_probe_rule, response_leg, ignored_gates
         truth_probe_rule=truth_probe_rule,
         response_leg=response_leg,
         ignored_gates=tuple(ignored_gates),
+        truth_tolerance=truth_tolerance,
+        state={},
     )
 
 
