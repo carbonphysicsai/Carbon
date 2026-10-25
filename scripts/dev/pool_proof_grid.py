@@ -45,6 +45,13 @@ def main(argv=None):
     parser.add_argument("--response-leg", required=True)
     parser.add_argument("--truth-tolerance", required=True, type=float)
     parser.add_argument(
+        "--pool-gates",
+        required=True,
+        choices=("required", "off"),
+        help="physics gates on every pool answer (OWNER-GATES-ON-POOL-3A-01): required needs the binding's "
+        "physics_gates and the pools' raw truths (pool-raw-<tid>.json) and runs the truths-pass-gates check first",
+    )
+    parser.add_argument(
         "--in-distribution",
         required=True,
         choices=("reported", "pass"),
@@ -62,7 +69,7 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    from carbon.scoring import pool_plugin, pool_proof_grid
+    from carbon.scoring import pool_gates, pool_grader, pool_plugin, pool_proof_grid
 
     binding = _binding(args.binding, args.kind, args.version)
     pools = Path(args.pools_dir)
@@ -141,6 +148,23 @@ def main(argv=None):
             return 3
         print(f"truth-row check passed: {record}")
 
+    if args.pool_gates == "required":
+        try:
+            if binding.physics_gates is None:
+                raise pool_plugin.TruthCheckStop(
+                    "the_binding_supplies_no_physics_gates"
+                )
+            for tid, spec in list(specs.items()):
+                raw = json.loads(
+                    (pools / f"pool-raw-{tid}.json").read_text(encoding="utf-8")
+                )
+                specs[tid] = pool_grader.attach_raw(spec, raw)
+            record = pool_gates.check_truths_pass_gates(binding, list(specs.values()))
+        except pool_plugin.TruthCheckStop as stop:
+            print(f"STOP, back to the Validator: {stop}", file=sys.stderr)
+            return 3
+        print(f"pool truths pass every gate on every row: {record}")
+
     def no_fresh_set(draw):
         raise SystemExit("the grid run needs no fresh set")
 
@@ -149,6 +173,7 @@ def main(argv=None):
         bank_legs,
         [[specs[t] for t in names] for names in sets.values()],
         no_fresh_set,
+        pool_gates=args.pool_gates == "required",
     )
     result = pool_proof_grid.run_grid(plugin, grid)
     out = Path(args.out_dir)

@@ -633,6 +633,7 @@ def binding(
         probe_truth=probe_truth,
         to_model_space=_to_model_space(kind, version),
         train_spread=lambda: train_spread(kind, version, chosen),
+        physics_gates=physics_gates(kind, version),
     )
 
 

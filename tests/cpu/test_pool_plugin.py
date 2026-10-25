@@ -283,7 +283,9 @@ def test_the_plugin_runs_the_proof_suite_end_to_end_and_a_failed_gate_gives_no_s
     )
     fresh = tuple(toy_target(f"f{t}", 900 + t) for t in range(3))
     b = binding()
-    plugin = pp.make_plugin(b, bank_legs("perfect", b), sets, lambda draw: fresh)
+    plugin = pp.make_plugin(
+        b, bank_legs("perfect", b), sets, lambda draw: fresh, pool_gates=False
+    )
     policies = suite.Policies(
         optimizer=OptimizerPolicy(budget=90, sigma0=0.3, population=None),
         honesty=HonestyPolicy(scale=5.0, reduction="max"),
@@ -327,7 +329,9 @@ def _grid_plugin():
         tuple(toy_target(f"s{s}t{t}", 10 * s + t) for t in range(3)) for s in range(2)
     )
     b = binding()
-    return pp.make_plugin(b, bank_legs("perfect", b), sets, lambda draw: ())
+    return pp.make_plugin(
+        b, bank_legs("perfect", b), sets, lambda draw: (), pool_gates=False
+    )
 
 
 def _grid_spec(**changes):
@@ -378,6 +382,8 @@ def test_the_owner_sheet_sweeps_every_constant_and_reports_aggregates_only():
         "registered",
         "extended",
         "in_distribution_ood_margin",
+        "pool_gate_failures",
+        "speed_gate_failed",
         "meets_all",
     }
     assert all(set(r) == keys for r in rows)
@@ -531,6 +537,8 @@ def test_the_grid_script_writes_an_owner_sheet_from_custody_documents(
         "physics_laws",
         "--truth-tolerance",
         "1e-5",
+        "--pool-gates",
+        "off",
         "--in-distribution",
         "reported",
     ]
@@ -694,6 +702,8 @@ def test_the_grid_script_expands_a_gen_fractions_of_the_train_spread_and_logs_it
         "physics_laws",
         "--truth-tolerance",
         "1e-5",
+        "--pool-gates",
+        "off",
         "--in-distribution",
         "reported",
         "--probe-truth-file",
@@ -750,7 +760,9 @@ def _mixed_plugin(train_serve, train_box=None):
     if train_box is not None:
         changes["train_box"] = train_box
     b = pp.ChallengeBinding(**{**binding().__dict__, **changes})
-    return pp.make_plugin(b, bank_legs("perfect", b), sets, lambda draw: ())
+    return pp.make_plugin(
+        b, bank_legs("perfect", b), sets, lambda draw: (), pool_gates=False
+    )
 
 
 def test_extended_targets_are_reported_apart_and_the_train_fit_row_must_lose_on_them():
@@ -804,7 +816,9 @@ def test_the_suite_judges_the_clamp_on_the_extended_targets():
         for s in range(2)
     )
     b = binding()
-    plugin = pp.make_plugin(b, bank_legs("perfect", b), sets, lambda draw: ())
+    plugin = pp.make_plugin(
+        b, bank_legs("perfect", b), sets, lambda draw: (), pool_gates=False
+    )
     policies = suite.Policies(
         optimizer=OptimizerPolicy(budget=90, sigma0=0.3, population=None),
         honesty=HonestyPolicy(scale=5.0, reduction="max"),
@@ -846,3 +860,220 @@ def test_the_suite_judges_the_clamp_on_the_extended_targets():
         suite.SuiteParams(in_distribution_is_pass_criterion=False, **fields),
     )
     assert reported["numbers"]["in_distribution_judged"] is False
+
+
+class ToyGates:
+    """A toy physics contract: the first raw output (f) must be positive."""
+
+    gate_names = ("positive_f",)
+
+    @staticmethod
+    def failed(inputs_row, raw_row):
+        return ("positive_f",) if raw_row[0] < 0 else ()
+
+
+def raw_in_original_order(spec, raw_of=None):
+    """The runner's raw rows in the ORIGINAL pool order: kept rows at their origin, excluded rows any filler."""
+    raw_of = raw_of or (lambda d: truth({"x": d[0], "y": d[1]}))
+    rows = [[0.0, 0.0] for _ in range(spec.pool_size)]
+    for origin, design in zip(spec.origin, spec.designs, strict=True):
+        rows[origin] = raw_of(design)
+    return rows
+
+
+def gated_binding(serve_good=good_serve):
+    return pp.ChallengeBinding(
+        **{**binding(serve_good).__dict__, "physics_gates": ToyGates()}
+    )
+
+
+def _raw_truths(spec, raw_of):
+    """Raw rows in the ORIGINAL pool order, as the runner writes them, for a toy spec built without exclusion."""
+    return [raw_of(d) for d in spec.designs]
+
+
+def test_every_pool_answer_is_gated_and_a_violation_gives_names_only():
+    from carbon.scoring import pool_gates
+
+    specs = [toy_target("g1", 1), toy_target("g2", 2)]
+    b = gated_binding()
+    rows = pool_gates.pool_rows(b, specs)
+    assert len(rows) == sum(
+        len(s.designs) for s in specs
+    ), "queryable and A_gen rows alike"
+    ok = pool_gates.pool_gate_result(b, specs, {"kind": "good"})
+    assert ok == {"status": "PASSED", "gates": []}
+
+    def one_bad_row(rows_in):
+        out = good_serve(rows_in)
+        out[3] = [
+            -1.0,
+            out[3][1],
+        ]  # a single violated answer anywhere breaks the whole submission
+        return out
+
+    broken = pool_gates.pool_gate_result(
+        gated_binding(one_bad_row), specs, {"kind": "good"}
+    )
+    assert broken == {"status": "GATE_FAILED", "gates": ["positive_f"]}
+    text = repr(broken)
+    assert (
+        "g1" not in text
+        and "g2" not in text
+        and "3" not in text.replace("GATE_FAILED", "")
+    )
+    with pytest.raises(pp.PluginRefused, match="no_physics_gates"):
+        pool_gates.pool_gate_result(binding(), specs, {"kind": "good"})
+
+
+def test_the_truths_must_pass_every_gate_on_every_pool_row_or_it_is_a_stop():
+    from carbon.scoring import pool_gates
+    from carbon.scoring.pool_grader import attach_raw
+
+    spec = toy_target("t", 5)
+    raw_ok = raw_in_original_order(spec)
+    assert spec.pool_size == 100 and len(spec.origin) == len(spec.designs)
+    attached = attach_raw(spec, raw_ok)
+    assert pool_gates.check_truths_pass_gates(gated_binding(), [attached])[
+        "rows"
+    ] == len(spec.designs)
+    # raw rows attach by ORIGIN: a pool whose exclusion dropped rows still lines up with the runner's order.
+    assert attached.raw[0] == tuple(raw_ok[spec.origin[0]])
+    assert attached.raw[0] == tuple(
+        truth({"x": spec.designs[0][0], "y": spec.designs[0][1]})
+    )
+    with pytest.raises(pp.TruthCheckStop, match="needs_the_raw_truths"):
+        pool_gates.check_truths_pass_gates(gated_binding(), [spec])
+    bad = [list(r) for r in raw_ok]
+    bad[spec.origin[7]] = [-0.5, 0.0]
+    with pytest.raises(pp.TruthCheckStop, match="pool_truths_fail_gates"):
+        pool_gates.check_truths_pass_gates(gated_binding(), [attach_raw(spec, bad)])
+    with pytest.raises(pool_grader.PoolRefused, match="raw_rows_must_match"):
+        attach_raw(spec, raw_ok[:-1])
+
+
+def test_a_gate_failure_on_any_pool_answer_gives_the_model_no_score_in_the_suite_and_the_grid():
+    from carbon.scoring import pool_proof_grid as grid
+    from carbon.scoring.pool_grader import attach_raw
+
+    def with_raw(spec):
+        return attach_raw(spec, raw_in_original_order(spec))
+
+    sets = tuple(
+        (
+            with_raw(toy_target(f"w{s}a", 10 * s + 1)),
+            with_raw(toy_target(f"w{s}b", 10 * s + 2)),
+        )
+        for s in range(2)
+    )
+
+    def good_with_bad_row(rows_in):
+        out = good_serve(rows_in)
+        out[0] = [-1.0, out[0][1]]
+        return out
+
+    clean = gated_binding()
+    plugin_clean = pp.make_plugin(
+        clean, bank_legs("perfect", clean), sets, lambda draw: (), pool_gates=True
+    )
+    broken = gated_binding(good_with_bad_row)
+    plugin_broken = pp.make_plugin(
+        broken, bank_legs("perfect", broken), sets, lambda draw: (), pool_gates=True
+    )
+    policies = suite.Policies(
+        optimizer=OptimizerPolicy(budget=90, sigma0=0.3, population=None),
+        honesty=HonestyPolicy(scale=5.0, reduction="max"),
+        agen_scales={"f": 0.1, "g": 0.1},
+        a_rule={"kind": "min"},
+        c_rule={"kind": "min"},
+    )
+    assert suite.version_total(plugin_clean, {"kind": "good"}, policies) > 0.0
+    assert suite.version_total(plugin_broken, {"kind": "good"}, policies) == 0.0
+    result = grid.run_grid(plugin_broken, _grid_spec())
+    assert result["meta"]["pool_gates"] == "checked"
+    # (other synthetic models, such as the large-noise optimist, may also break the toy gate: names only)
+    assert all(
+        r["pool_gate_failures"].get("good") == ["positive_f"] for r in result["rows"]
+    )
+    assert all(r["good"] == 0.0 for r in result["rows"])
+    # No physics gates in the binding with pool gates required is refused at build time.
+    with pytest.raises(pp.PluginRefused, match="no_physics_gates"):
+        pp.make_plugin(
+            binding(), bank_legs("perfect"), sets, lambda draw: (), pool_gates=True
+        )
+    assert (
+        grid.run_grid(_grid_plugin(), _grid_spec())["meta"]["pool_gates"]
+        == "not checked"
+    )
+
+
+def test_the_speed_gate_is_a_pass_fail_on_seconds_per_design_against_the_solver_over_the_factor():
+    from carbon.scoring import pool_gates
+
+    # 190 s per design (a recorded solver time) over 500 = 0.38 s per design.
+    ok = pool_gates.speed_gate(
+        300.0, 1000, solver_seconds_per_design=190.0, factor=500.0
+    )
+    assert ok["passed"] and ok["code"] is None
+    assert ok["seconds_per_design"] == pytest.approx(0.3)
+    assert ok["ceiling_seconds_per_design"] == pytest.approx(0.38)
+    slow = pool_gates.speed_gate(
+        500.0, 1000, solver_seconds_per_design=190.0, factor=500.0
+    )
+    assert not slow["passed"] and slow["code"] == "GATE_FAILED (speed)"
+    edge = pool_gates.speed_gate(
+        380.0, 1000, solver_seconds_per_design=190.0, factor=500.0
+    )
+    assert edge["passed"], "exactly at the ceiling passes"
+    for bad in (
+        {"measured_seconds": 0.0},
+        {"measured_seconds": float("nan")},
+        {"solver_seconds_per_design": -1.0},
+        {"factor": 0.0},
+        {"rows": 0},
+    ):
+        kwargs = {
+            "measured_seconds": 1.0,
+            "rows": 10,
+            "solver_seconds_per_design": 190.0,
+            "factor": 500.0,
+            **bad,
+        }
+        with pytest.raises(pp.PluginRefused):
+            pool_gates.speed_gate(
+                kwargs["measured_seconds"],
+                kwargs["rows"],
+                solver_seconds_per_design=kwargs["solver_seconds_per_design"],
+                factor=kwargs["factor"],
+            )
+    # In the plugin: a model that fails the speed gate scores nothing, one that passes scores as before.
+    sets = ((toy_target("sp1", 1), toy_target("sp2", 2)),)
+    b = binding()
+    policies = suite.Policies(
+        optimizer=OptimizerPolicy(budget=90, sigma0=0.3, population=None),
+        honesty=HonestyPolicy(scale=5.0, reduction="max"),
+        agen_scales={"f": 0.1, "g": 0.1},
+        a_rule={"kind": "min"},
+        c_rule={"kind": "min"},
+    )
+
+    def plugin_with_speed(seconds):
+        return pp.make_plugin(
+            b,
+            bank_legs("perfect", b),
+            sets,
+            lambda draw: (),
+            pool_gates=False,
+            speed={
+                "measured": lambda descriptor: (
+                    seconds if descriptor["kind"] == "good" else None
+                ),
+                "solver_seconds_per_design": 190.0,
+                "factor": 500.0,
+            },
+        )
+
+    assert suite.version_total(plugin_with_speed(1.0), {"kind": "good"}, policies) > 0.0
+    assert (
+        suite.version_total(plugin_with_speed(1e6), {"kind": "good"}, policies) == 0.0
+    )

@@ -137,6 +137,19 @@ def _valid_u(value):
     return _is_relative(value) or (_finite(value) and value >= 0)
 
 
+def attach_raw(spec, raw_rows):
+    """The spec with the runner's raw output rows attached, given in the ORIGINAL pool order (`pool-raw-<tid>.json`):
+    each kept point takes the row of its origin. Refused when the count is not the original pool's. The rows are
+    custody only: they feed the physics gates and the truths-pass-gates check, never a score or a public field.
+    """
+    _require(
+        len(raw_rows) == spec.pool_size and spec.pool_size > 0,
+        "raw_rows_must_match_the_original_pool",
+    )
+    rows = tuple(tuple(float(v) for v in raw_rows[i]) for i in spec.origin)
+    return replace(spec, raw=rows)
+
+
 def u_value(u, true_value):
     """A U at one row: a number as it is, or {"relative": r} as r x |true_value|."""
     return u["relative"] * abs(true_value) if type(u) is dict else u
@@ -245,6 +258,13 @@ class TargetSpec:
     # "designs": every queryable point (the reference included) has an input in the OUTER half of that input's
     # extension, else the target STOPS. "conditions": the fixed conditions are checked once.
     shell: object = None
+    # Where each kept point came from in the ORIGINAL pool (the exclusion drops some), and the original size: how the
+    # runner's raw outputs per design (same order as the original designs) attach to the kept rows (`attach_raw`).
+    origin: tuple = ()
+    pool_size: int = 0
+    raw: object = (
+        None  # the kept rows' raw output rows, once attached (custody only, never in the digest)
+    )
 
     @property
     def extended(self):
@@ -434,6 +454,8 @@ def build_target(
         digest=_digest(body),
         public=public,
         shell=shell,
+        origin=tuple(keep),
+        pool_size=len(designs),
     )
 
 
@@ -706,6 +728,8 @@ def dump_pool(spec):
         "seed": spec.seed,
         "excluded": spec.excluded,
         "shell": _shell_json(spec.shell),
+        "origin": list(spec.origin),
+        "pool_size": spec.pool_size,
     }
 
 
@@ -731,6 +755,11 @@ def load_pool(document):
         seed=document["seed"],
         public=document["public"],
         shell=document.get("shell"),
+    )
+    spec = replace(
+        spec,
+        origin=tuple(document.get("origin", spec.origin)),
+        pool_size=document.get("pool_size", spec.pool_size),
     )
     _require(
         spec.digest == document["digest"] and spec.excluded == 0,

@@ -75,6 +75,9 @@ class ChallengeBinding:
     # () -> {derived output: spread of that output over the TRAIN rows (the population standard deviation)}. Used
     # only to expand an A_gen scale set given as fractions of the TRAIN spread into explicit per-output scales.
     train_spread: object = None
+    # The registered per-answer physics gates (pool_adapters.physics_gates): an object with `.gate_names` and
+    # `.failed(inputs_row, raw_row)` -> sorted failed gate NAMES (empty = pass). None = no gates supplied.
+    physics_gates: object = None
 
 
 def model_input_row(binding, conditions, design):
@@ -131,6 +134,82 @@ def cached(predict):
     return predict_cached, stats
 
 
+def _model_space_of(binding, row):
+    convert = binding.to_model_space
+    return list(convert(list(row))) if convert is not None else list(row)
+
+
+def _row_u(binding, row, out):
+    reference = row.get("reference")
+    u = binding.raw_u(
+        row["inputs"],
+        _model_space_of(binding, reference) if reference is not None else list(out),
+    )
+    _require(
+        len(u) == len(out) and all(math.isfinite(x) and x >= 0 for x in u),
+        "raw_u_must_match_the_outputs",
+    )
+    return u
+
+
+def model_outputs(binding, rows, descriptor):
+    """Raw output rows for a model descriptor on any rows {"case_id", "inputs": {name: value}, "reference": raw
+    truth row | None}: the bank's rows, or every pool row (reference = the pool's raw truth where attached).
+    `oracle`, `noisy` and `wrong_near_optimum` need the references; a row without one is answered by the floor.
+    """
+    kind = descriptor.get("kind")
+    floor = [list(binding.train_mean_row()) for _ in rows]
+    if kind == "floor":
+        return floor
+    if kind == "default":
+        return _checked(binding.serve_default([r["inputs"] for r in rows]), rows)
+    if kind == "good":
+        return _checked(binding.serve_good([r["inputs"] for r in rows]), rows)
+    if kind == "in_distribution":
+        return _checked(binding.serve_train([r["inputs"] for r in rows]), rows)
+    if kind == "perturbed":
+        base = model_outputs(binding, rows, descriptor["base"])
+        return [
+            [
+                value
+                + sum(
+                    step * u * suite._sign(seed, "bank", row["case_id"], index)
+                    for seed, step in descriptor["layers"]
+                )
+                for index, (value, u) in enumerate(
+                    zip(out, _row_u(binding, row, out), strict=True)
+                )
+            ]
+            for row, out in zip(rows, base, strict=True)
+        ]
+    reference = [
+        (
+            _model_space_of(binding, r["reference"])
+            if r.get("reference") is not None
+            else list(d)
+        )
+        for r, d in zip(rows, floor, strict=True)
+    ]
+    if kind in ("oracle", "wrong_near_optimum"):
+        return reference
+    if kind == "noisy":
+        k, seed = descriptor["k"], descriptor.get("seed", 0)
+        return [
+            [
+                (
+                    value + k * u * suite._sign(seed, "bank", row["case_id"], index)
+                    if row.get("reference") is not None
+                    else value
+                )
+                for index, (value, u) in enumerate(
+                    zip(out, _row_u(binding, row, out), strict=True)
+                )
+            ]
+            for row, out in zip(rows, reference, strict=True)
+        ]
+    raise PluginRefused("unknown_model_descriptor")
+
+
 @dataclass(frozen=True)
 class BankLegs:
     """The sealed v2 grader on a bank of cases: `measure` is the adapter's, the rest its arguments."""
@@ -152,60 +231,7 @@ class BankLegs:
 
     def outputs_for(self, descriptor):
         """Raw output rows on every bank row for a model descriptor."""
-        binding, rows = self.binding, self.rows
-        kind = descriptor.get("kind")
-        default = [
-            list(binding.train_mean_row()) for _ in rows
-        ]  # the floor: also fills probe rows of a truth model
-        if kind == "floor":
-            return default
-        if kind == "default":
-            return _checked(binding.serve_default([r["inputs"] for r in rows]), rows)
-        if kind == "good":
-            return _checked(binding.serve_good([r["inputs"] for r in rows]), rows)
-        if kind == "in_distribution":
-            return _checked(binding.serve_train([r["inputs"] for r in rows]), rows)
-        if kind == "perturbed":
-            base = self.outputs_for(descriptor["base"])
-            return [
-                [
-                    value
-                    + sum(
-                        step * u * suite._sign(seed, "bank", row["case_id"], index)
-                        for seed, step in descriptor["layers"]
-                    )
-                    for index, (value, u) in enumerate(
-                        zip(out, self._u(row, out), strict=True)
-                    )
-                ]
-                for row, out in zip(rows, base, strict=True)
-            ]
-        reference = [
-            (
-                self._model_space(r["reference"])
-                if r.get("reference") is not None
-                else list(d)
-            )
-            for r, d in zip(rows, default, strict=True)
-        ]
-        if kind in ("oracle", "wrong_near_optimum"):
-            return reference
-        if kind == "noisy":
-            k, seed = descriptor["k"], descriptor.get("seed", 0)
-            return [
-                [
-                    (
-                        value + k * u * suite._sign(seed, "bank", row["case_id"], index)
-                        if row.get("reference") is not None
-                        else value
-                    )
-                    for index, (value, u) in enumerate(
-                        zip(out, self._u(row, out), strict=True)
-                    )
-                ]
-                for row, out in zip(rows, reference, strict=True)
-            ]
-        raise PluginRefused("unknown_model_descriptor")
+        return model_outputs(self.binding, self.rows, descriptor)
 
     def verify_truth_rows(self):
         """The Validator's check behind the perfect rule: with TRUE outputs on every row (the references, and the
@@ -255,20 +281,7 @@ class BankLegs:
         return self.state["truth_check"]
 
     def _model_space(self, row):
-        convert = self.binding.to_model_space
-        return list(convert(list(row))) if convert is not None else list(row)
-
-    def _u(self, row, out):
-        reference = row.get("reference")
-        u = self.binding.raw_u(
-            row["inputs"],
-            self._model_space(reference) if reference is not None else list(out),
-        )
-        _require(
-            len(u) == len(out) and all(math.isfinite(x) and x >= 0 for x in u),
-            "raw_u_must_match_the_outputs",
-        )
-        return u
+        return _model_space_of(self.binding, row)
 
     def legs(self, descriptor):
         """{"A", "C", "gates_ok"} for the descriptor's model on the bank, by the sealed v2 grader."""
@@ -373,7 +386,7 @@ def practice_bank_legs(
     )
 
 
-def make_plugin(binding, bank_legs, sets, fresh_set):
+def make_plugin(binding, bank_legs, sets, fresh_set, *, pool_gates, speed=None):
     """The `ProofPlugin` for one Challenge version. `sets` are pool_grader.TargetSpec tuples (the Challenge's
     pools); `fresh_set(draw_seed)` draws a fresh set from the same region."""
     memo = {}
@@ -392,6 +405,38 @@ def make_plugin(binding, bank_legs, sets, fresh_set):
     default_model, _ = cached(pool_predictor(binding, binding.serve_default))
     floor_model, _ = cached(pool_predictor(binding, floor_serve))
     good_model, _ = cached(pool_predictor(binding, binding.serve_good))
+    gates_hook = speed_hook = None
+    if pool_gates:
+        from carbon.scoring import pool_gates as gates_mod
+
+        if binding.physics_gates is None:
+            raise PluginRefused("binding_supplies_no_physics_gates")
+        gate_memo = {}
+
+        def gates_hook(descriptor, specs):
+            key = json.dumps([descriptor, [s.digest for s in specs]], sort_keys=True)
+            if key not in gate_memo:
+                gate_memo[key] = gates_mod.pool_gate_result(binding, specs, descriptor)[
+                    "gates"
+                ]
+            return gate_memo[key]
+
+    if speed is not None:
+        from carbon.scoring import pool_gates as gates_mod
+
+        total = gates_mod.total_rows([s for group in sets for s in group])
+
+        def speed_hook(descriptor):
+            seconds = speed["measured"](descriptor)
+            if seconds is None:
+                return None
+            return gates_mod.speed_gate(
+                seconds,
+                total,
+                solver_seconds_per_design=speed["solver_seconds_per_design"],
+                factor=speed["factor"],
+            )
+
     return suite.ProofPlugin(
         sets=tuple(tuple(s) for s in sets),
         fresh_set=fresh_set,
@@ -401,6 +446,8 @@ def make_plugin(binding, bank_legs, sets, fresh_set):
         floor_model=floor_model,
         good_model=good_model,
         legs=legs,
+        pool_gates=gates_hook,
+        speed_gate=speed_hook,
     )
 
 

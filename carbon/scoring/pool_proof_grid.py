@@ -104,6 +104,19 @@ def run_grid(plugin, grid):
         name: suite.pool_predictor(plugin, d, all_specs) for name, d in named.items()
     }
     legs_by_model = {name: plugin.legs(d, plugin.sets[0]) for name, d in named.items()}
+    # Physics gates on EVERY pool answer and the speed gate: a failure gives the model no score (names only).
+    gate_failures = {
+        name: list(plugin.pool_gates(d, all_specs)) if plugin.pool_gates else []
+        for name, d in named.items()
+    }
+    speed_failed = {
+        name: bool(
+            plugin.speed_gate
+            and (result := plugin.speed_gate(d)) is not None
+            and not result["passed"]
+        )
+        for name, d in named.items()
+    }
     rows = []
     d_cache = {}
     extended_ids = {s.target_id for s in all_specs if s.extended}
@@ -176,6 +189,8 @@ def run_grid(plugin, grid):
             totals[name] = (
                 0.0
                 if legs.get("gates_ok") is False
+                or gate_failures[name]
+                or speed_failed[name]
                 else pool_grader.total(a_all, d, legs["C"], grid.c_rule)
             )
         good, default = totals["good"], totals["default"]
@@ -230,6 +245,8 @@ def run_grid(plugin, grid):
                 "registered": split["registered"],
                 "extended": split["extended"] if has_extended else None,
                 "in_distribution_ood_margin": ood_margin,
+                "pool_gate_failures": {k: v for k, v in gate_failures.items() if v},
+                "speed_gate_failed": sorted(k for k, v in speed_failed.items() if v),
                 "meets_all": bool(
                     good <= grid.good_target
                     and good - default >= needed_gap
@@ -250,6 +267,8 @@ def run_grid(plugin, grid):
         },
         "agen_scale_sets": [dict(s) for s in grid.agen_scale_sets],
         "extended_targets": len(extended_ids),
+        "pool_gates": "checked" if plugin.pool_gates else "not checked",
+        "speed_gate": "checked" if plugin.speed_gate else "not checked",
         "rows": len(rows),
         "rows_meeting_all": sum(r["meets_all"] for r in rows),
     }

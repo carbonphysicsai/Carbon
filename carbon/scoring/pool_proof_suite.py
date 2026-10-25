@@ -102,6 +102,10 @@ class ProofPlugin:
     floor_model: object  # the TRAIN-mean floor: its own control row
     good_model: object
     legs: object  # callable(descriptor, specs) -> {"A": a, "C": c} (optionally "A_se")
+    # Optional hooks (None = not applied): the physics gates on EVERY pool answer, callable(descriptor, specs) ->
+    # failed gate NAMES; and the speed gate, callable(descriptor) -> {"passed": bool, ...} or None when unmeasured.
+    pool_gates: object = None
+    speed_gate: object = None
 
 
 def _key(conditions):
@@ -232,6 +236,13 @@ def _mean_over_sets(sets, fn):
     return statistics.fmean(fn(specs) for specs in sets)
 
 
+def _speed_failed(plugin, descriptor):
+    if plugin.speed_gate is None:
+        return False
+    result = plugin.speed_gate(descriptor)
+    return result is not None and not result["passed"]
+
+
 def score_specs(plugin, specs, descriptor, policies, all_specs):
     """TOP for one set of targets: 0.5 A + 0.5 D with the C rule, A_gen entering A by the owner's rule."""
     predict = pool_predictor(plugin, descriptor, all_specs)
@@ -239,8 +250,13 @@ def score_specs(plugin, specs, descriptor, policies, all_specs):
     legs = plugin.legs(descriptor, specs)
     a_gen = pool_grader.agen_accuracy(specs, predict, policies.agen_scales)
     a = pool_grader.combine_a(legs["A"], a_gen, policies.a_rule)
-    # A failed mandatory gate gives no score (the plugin reports `gates_ok`; absent means no gate to fail).
-    if legs.get("gates_ok") is False:
+    # A failed mandatory gate gives no score (the plugin reports `gates_ok`; absent means no gate to fail), and so
+    # does a physics gate violated on any pool answer, or the speed gate (GATE_FAILED, names only).
+    if (
+        legs.get("gates_ok") is False
+        or (plugin.pool_gates is not None and plugin.pool_gates(descriptor, all_specs))
+        or _speed_failed(plugin, descriptor)
+    ):
         return 0.0, grade, a_gen, legs
     return pool_grader.total(a, grade.d, legs["C"], policies.c_rule), grade, a_gen, legs
 
