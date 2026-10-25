@@ -915,7 +915,9 @@ def host(monkeypatch):
     monkeypatch.setattr(runtime, "miner_device_lease", lambda uuid: held("device"))
     monkeypatch.setattr(runtime, "shared_host_lease", lambda: held("slot"))
     monkeypatch.setattr(
-        runtime, "reject_existing_device_containers", lambda cli: events.append("check")
+        runtime,
+        "reject_existing_device_containers",
+        lambda cli, device_uuid=None: events.append("check"),
     )
     monkeypatch.setattr(runtime, "mark_device_allocation", mark)
     monkeypatch.setattr(

@@ -36,7 +36,10 @@ from carbon.reconstruction.host_inventory import (
     DeviceChoiceRequired,
     HostDeviceRecord,
     HostRecordRefused,
+    MinerHostDeviceRecord,
+    load_miner_lane_record,
     require_host_device,
+    require_miner_host_device,
 )
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
@@ -105,6 +108,7 @@ _NEXT = {
         "this-machine --provider own-machine --container-runtime DOCKER_ENGINE` "
         "(on a machine with several GPUs it asks for --device GPU-<uuid>)"
     ),
+    "host_device_record_strict": _NOT_FOR_MINERS,
     "installed_authority": _NOT_FOR_MINERS,
     "compute_process_enumeration": _NOT_FOR_MINERS,
     "display_output": _NOT_FOR_MINERS,
@@ -228,9 +232,13 @@ def observe_local_device(*, binary: str | None = None, timeout: float = 15.0) ->
     rows = result.stdout.decode("ascii", "replace").strip().splitlines()
     devices = []
     for row in rows:
-        parts = [part.strip() for part in row.split(",")]
-        if len(parts) != 7:
+        raw = row.split(",")
+        if len(raw) < 7:
             raise WorkerFailure(WorkerCode.UNAVAILABLE)
+        # The marketed name may itself contain a comma: the uuid leads and the
+        # last five fields are fixed, so the name is whatever lies between.
+        parts = [raw[0].strip(), ",".join(raw[1:-5]).strip()]
+        parts += [part.strip() for part in raw[-5:]]
         devices.append(
             {
                 "device_uuid": parts[0],
@@ -307,11 +315,18 @@ def build_host_record(
     container_runtime: str | None = None,
     provenance: str,
     now: float | None = None,
+    miner_lane: bool = False,
 ) -> dict:
     """Turn one observation into a record document, without judging the host.
 
     When the host exposes several devices, `device_uuid` selects which one this
     record describes; the workload profile still names exactly one device.
+
+    ``miner_lane``: a descriptive field the vendor tool cannot report (`[N/A]`,
+    `[Not Supported]`, an unfamiliar form) makes this a miner record
+    (`carbon.host-device.miner.v1`) with that field `unknown`, instead of
+    refusing. Only the device identity must be usable. A host whose fields all
+    read well still gets the strict record, unchanged.
     """
     devices = observed.get("devices") or []
     listed = [
@@ -331,7 +346,9 @@ def build_host_record(
     try:
         memory = int(str(chosen["device_memory_mib"]).split()[0])
     except (KeyError, ValueError, IndexError):
-        raise WorkerFailure(WorkerCode.INVALID) from None
+        if not miner_lane:
+            raise WorkerFailure(WorkerCode.INVALID) from None
+        memory = "unreadable"  # becomes `unknown` in the miner record
     moment = float(time.time() if now is None else now)
     if not math.isfinite(moment) or moment <= 0:
         raise WorkerFailure(WorkerCode.INVALID)
@@ -356,9 +373,36 @@ def build_host_record(
     # Validate before anything is written, so a bad observation never lands on
     # disk where a later command would read it back as installed evidence.
     problems = HostDeviceRecord(document, "sha256:" + "0" * 64).problems()
+    if problems and miner_lane:
+        return _miner_document(document, profile)
     if problems:
         raise HostRecordRefused(problems)
     require_host_device(HostDeviceRecord(document, "sha256:" + "0" * 64), profile)
+    return document
+
+
+def _miner_document(strict_shape: dict, profile) -> dict:
+    """The miner record for a strict-shaped document some field of which does
+    not read: each unreadable descriptive field becomes `unknown`; the identity
+    and the record's own bookkeeping must still be sound."""
+    from carbon.reconstruction.host_inventory import (
+        MINER_DESCRIPTIVE_FIELDS,
+        MINER_DEVICE_SCHEMA,
+        UNKNOWN_FIELD,
+        MinerHostDeviceRecord,
+        _descriptive_ok,
+    )
+
+    document = dict(strict_shape)
+    document["schema"] = MINER_DEVICE_SCHEMA
+    for field in MINER_DESCRIPTIVE_FIELDS:
+        if not _descriptive_ok(field, document[field]):
+            document[field] = UNKNOWN_FIELD
+    record = MinerHostDeviceRecord(document, "sha256:" + "0" * 64)
+    problems = record.problems()
+    if problems:
+        raise HostRecordRefused(problems)
+    require_miner_host_device(record, profile)
     return document
 
 
@@ -466,18 +510,47 @@ def doctor_report(*, root: Path, profile=GPU_PROFILE, cli=None, image=None) -> d
 
     record = None
     try:
-        record = require_host_device(HostDeviceRecord.load(root), profile)
+        record = load_miner_lane_record(root)
+        if type(record) is MinerHostDeviceRecord:
+            require_miner_host_device(record, profile)
+        else:
+            require_host_device(record, profile)
+        nameless = (
+            type(record) is MinerHostDeviceRecord and record.device_kind == "unknown"
+        )
         findings.append(
             _finding(
                 "host_device_record",
-                READY,
-                "a host device record is installed and bound to this workload",
+                BLOCKED if nameless else READY,
+                (
+                    "the GPU's name is unknown, and the worker binds to the "
+                    "GPU by its name"
+                    if nameless
+                    else "a host device record is installed and bound to this workload"
+                ),
                 record_digest=record.digest,
                 device_kind=record.device_kind,
                 platform=record.platform,
                 provider=record.provider,
+                lane="MINER" if type(record) is MinerHostDeviceRecord else "STRICT",
+                **(
+                    {"unknown_fields": list(record.unknown_fields)}
+                    if type(record) is MinerHostDeviceRecord
+                    else {}
+                ),
             )
         )
+        if type(record) is MinerHostDeviceRecord:
+            # Your own practice runs on this record; an owner-authorised or
+            # validator run never does, so the strict readiness stays blocked.
+            findings.append(
+                _finding(
+                    "host_device_record_strict",
+                    BLOCKED,
+                    "this host has a miner-lane record (some GPU fields are "
+                    "unknown); it serves your own practice only",
+                )
+            )
     except WorkerFailure as failure:
         findings.append(
             _finding(

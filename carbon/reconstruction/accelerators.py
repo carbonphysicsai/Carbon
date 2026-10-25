@@ -476,9 +476,22 @@ def worker_environment(
         "JAX_COMPILATION_CACHE_DIR": f"/scratch/{role.value.lower()}/jax-cache",
     }
     if profile.backend is Backend.NVIDIA:
-        from carbon.reconstruction.host_inventory import require_host_device
+        from carbon.reconstruction.host_inventory import (
+            MinerHostDeviceRecord,
+            require_host_device,
+            require_miner_host_device,
+        )
 
-        require_host_device(host_device, profile)
+        if type(host_device) is MinerHostDeviceRecord:
+            # A miner-lane record serves a miner run and nothing else; the worker
+            # also needs the device kind to bind to, so an unknown one refuses.
+            if role is not AcceleratorRole.MINER_RESEARCH:
+                raise ValueError("a miner-lane host record serves a miner run only")
+            require_miner_host_device(host_device, profile)
+            if host_device.device_kind == "unknown":
+                raise ValueError("the worker needs the GPU's name to bind to")
+        else:
+            require_host_device(host_device, profile)
         result.update(
             {
                 "CUDA_VISIBLE_DEVICES": host_device.device_uuid,

@@ -1424,7 +1424,7 @@ class LiveChecks:
         from carbon.reconstruction import onboarding
         from carbon.reconstruction.host_inventory import (
             HOST_DEVICE_RECORD,
-            HostDeviceRecord,
+            load_miner_lane_record,
         )
         from carbon.reconstruction.worker.accelerator_runtime import (
             HOST_ROOT,
@@ -1486,6 +1486,9 @@ class LiveChecks:
             "container_runtime": None if runtime == onboarding.UNKNOWN else runtime,
             "provenance": "detected by Launchpad setup with "
             + str(observed.get("source")),
+            # Your own practice host: a field the GPU cannot report is recorded
+            # as unknown instead of refusing the machine.
+            "miner_lane": True,
         }
         # Several GPUs: the first usable one, in the vendor tool's order; a missing
         # choice never refuses (your own practice host). The choice is reported.
@@ -1540,11 +1543,23 @@ class LiveChecks:
                 )
                 + " (it names the field it refuses and what it must be)",
             ) from None
+        if info is None:
+            # Docker is the one thing the GPU practice cannot do without: say so
+            # plainly rather than recording a machine that cannot start a worker.
+            raise SetupRefused(
+                "gpu",
+                "gpu_container_runtime_unavailable",
+                next_step=GPU_DOCKER_UNREACHABLE_STEP,
+            )
         try:
-            installed = HostDeviceRecord.load(root)
+            installed = load_miner_lane_record(root)
         except WorkerFailure:
             installed = None
-        if installed is None or installed.device_uuid != document["device_uuid"]:
+        if (
+            installed is None
+            or installed.device_uuid != document["device_uuid"]
+            or installed.document.get("schema") != document["schema"]
+        ):
             try:
                 onboarding.install_record(root, document, name=HOST_DEVICE_RECORD)
             except WorkerFailure:
@@ -1589,7 +1604,7 @@ class LiveChecks:
                 + ("; ".join(causes) if causes else ", ".join(blockers))
                 + "; until then this framework practises on CPU",
             )
-        record = HostDeviceRecord.load(root)
+        record = load_miner_lane_record(root)
         if scope is None:
             raise SetupRefused("challenge", "field_required")
         return {

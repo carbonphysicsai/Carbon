@@ -257,6 +257,193 @@ def require_host_device(record: HostDeviceRecord, profile) -> HostDeviceRecord:
     return record
 
 
+#: The miner lane's own record (Validator ruling 2026-10-25 on GPU_ANY_HOST,
+#: question 1). It describes a machine the miner practises on, whatever GPU it
+#: has: the device identity is always known, and every descriptive field is
+#: either valid by the strict record's rules or the word `unknown`. It is a
+#: different schema, never a `HostDeviceRecord`: the strict loader (and so every
+#: validator, official or owner-authorised path) refuses it, and nothing here
+#: converts one into the other.
+MINER_DEVICE_SCHEMA = "carbon.host-device.miner.v1"
+UNKNOWN_FIELD = "unknown"
+#: The fields the miner record may mark `unknown`.
+MINER_DESCRIPTIVE_FIELDS = (
+    "device_kind",
+    "driver_version",
+    "driver_model",
+    "compute_capability",
+    "device_memory_mib",
+    "display_active",
+    "platform",
+    "container_runtime",
+)
+
+
+def _descriptive_ok(field: str, value: object) -> bool:
+    """Whether `value` is valid for `field` by the strict record's own rules."""
+    if field == "device_kind":
+        return _matches(_DEVICE_KIND, value)
+    if field == "driver_version":
+        return _matches(_DRIVER_VERSION, value)
+    if field == "driver_model":
+        return value in DRIVER_MODELS
+    if field == "compute_capability":
+        return _matches(_COMPUTE_CAPABILITY, value)
+    if field == "device_memory_mib":
+        return type(value) is int and 0 < value <= 1 << 24
+    if field == "display_active":
+        return value in DISPLAY_STATES
+    if field == "platform":
+        return value in PLATFORMS
+    if field == "container_runtime":
+        return value in CONTAINER_RUNTIMES
+    return False
+
+
+@dataclass(frozen=True, slots=True)
+class MinerHostDeviceRecord:
+    """The miner lane's description of one GPU on the miner's own machine."""
+
+    document: dict[str, object]
+    digest: str
+
+    @classmethod
+    def load(cls, root: Path) -> MinerHostDeviceRecord:
+        """Read the miner record under `root`, or fail closed (a strict record
+        is not a miner record: use `HostDeviceRecord.load` for that)."""
+        from carbon.development_session.profile import canonical
+        from carbon.development_session.research_admission import private_json
+
+        try:
+            document = private_json(Path(root) / HOST_DEVICE_RECORD)
+        except (OSError, ValueError):
+            raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
+        record = cls(document, tagged_sha256(canonical(document)))
+        record.validate()
+        return record
+
+    def problems(self) -> tuple[str, ...]:
+        """Names of the fields that fail, never their values."""
+        doc = self.document
+        if type(doc) is not dict or set(doc) != REQUIRED_FIELDS:
+            return ("record",)
+        failed = []
+        checks = (
+            ("schema", doc["schema"] == MINER_DEVICE_SCHEMA),
+            (
+                "observation_authority",
+                doc["observation_authority"] == HOST_DEVICE_AUTHORITY,
+            ),
+            ("record_id", _matches(_TOKEN, doc["record_id"])),
+            ("workload_profile_id", _matches(_TOKEN, doc["workload_profile_id"])),
+            # The one identity the launch pins into the container: always known,
+            # and a plain token so it can never carry anything into a command.
+            ("device_uuid", _matches(_DEVICE_IDENTIFIER, doc["device_uuid"])),
+            ("provider", _matches(_TOKEN, doc["provider"])),
+            (
+                "observation_provenance",
+                _matches(_PROVENANCE, doc["observation_provenance"]),
+            ),
+        )
+        failed.extend(name for name, ok in checks if not ok)
+        for field in MINER_DESCRIPTIVE_FIELDS:
+            value = doc[field]
+            if value != UNKNOWN_FIELD and not _descriptive_ok(field, value):
+                failed.append(field)
+        observed = doc["observed_at_unix"]
+        if (
+            type(observed) not in (float, int)
+            or not math.isfinite(observed)
+            or observed <= 0
+        ):
+            failed.append("observed_at_unix")
+        return tuple(failed)
+
+    def validate(self) -> None:
+        if self.problems():
+            raise WorkerFailure(WorkerCode.POLICY)
+
+    @property
+    def unknown_fields(self) -> tuple[str, ...]:
+        return tuple(
+            f for f in MINER_DESCRIPTIVE_FIELDS if self.document[f] == UNKNOWN_FIELD
+        )
+
+    # The same accessors as the strict record; a field the host could not report
+    # reads as the word `unknown` (memory as None).
+    @property
+    def device_uuid(self) -> str:
+        return str(self.document["device_uuid"])
+
+    @property
+    def device_kind(self) -> str:
+        return str(self.document["device_kind"])
+
+    @property
+    def driver_version(self) -> str:
+        return str(self.document["driver_version"])
+
+    @property
+    def driver_model(self) -> str:
+        return str(self.document["driver_model"])
+
+    @property
+    def device_memory_mib(self) -> int | None:
+        value = self.document["device_memory_mib"]
+        return None if value == UNKNOWN_FIELD else int(value)
+
+    @property
+    def display_active(self) -> str:
+        return str(self.document["display_active"])
+
+    @property
+    def platform(self) -> str:
+        return str(self.document["platform"])
+
+    @property
+    def container_runtime(self) -> str:
+        return str(self.document["container_runtime"])
+
+    @property
+    def provider(self) -> str:
+        return str(self.document["provider"])
+
+    @property
+    def workload_profile_id(self) -> str:
+        return str(self.document["workload_profile_id"])
+
+
+def require_miner_host_device(
+    record: MinerHostDeviceRecord, profile
+) -> MinerHostDeviceRecord:
+    """Bind a miner record to the workload profile it serves (the identity is a
+    plain token here; the NVIDIA uuid shape is the strict record's rule)."""
+    from carbon.reconstruction.accelerators import AcceleratorProfile
+
+    if type(record) is not MinerHostDeviceRecord:
+        raise WorkerFailure(WorkerCode.POLICY)
+    if type(profile) is not AcceleratorProfile:
+        raise WorkerFailure(WorkerCode.POLICY)
+    record.validate()
+    if record.workload_profile_id != profile.profile_id:
+        raise WorkerFailure(WorkerCode.POLICY)
+    return record
+
+
+def load_miner_lane_record(root: Path):
+    """The record installed under `root` for a miner-lane reader: the strict
+    record when that is what is installed, else the miner record. Only
+    miner-lane code calls this; every validator, official and owner-authorised
+    path calls `HostDeviceRecord.load`, which refuses a miner record."""
+    try:
+        return HostDeviceRecord.load(root)
+    except WorkerFailure as strict_failure:
+        try:
+            return MinerHostDeviceRecord.load(root)
+        except WorkerFailure:
+            raise strict_failure from None
+
+
 class HostRecordRefused(WorkerFailure):
     """A host record that failed its own shape, naming the failing fields (never
     their values). Still the stable `policy.mismatch` failure to every caller
@@ -286,12 +473,18 @@ __all__ = [
     "HOST_DEVICE_AUTHORITY",
     "HOST_DEVICE_RECORD",
     "HOST_DEVICE_SCHEMA",
+    "MINER_DESCRIPTIVE_FIELDS",
+    "MINER_DEVICE_SCHEMA",
     "NVIDIA_DEVICE_UUID",
     "PLATFORMS",
+    "UNKNOWN_FIELD",
     "DeviceChoiceRequired",
     "HostDeviceRecord",
     "HostRecordRefused",
+    "MinerHostDeviceRecord",
+    "load_miner_lane_record",
     "require_host_device",
+    "require_miner_host_device",
 ]
 
 # Exposed so the worker profile can hold a device binding to the same rule.

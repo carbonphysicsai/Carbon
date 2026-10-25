@@ -1225,7 +1225,9 @@ def _run_locked(
                 # Serialize only check/record/create against Carbon's own
                 # launches. This is not an exclusive GPU lease or assurance.
                 slot.enter_context(shared_host_lease())
-                reject_existing_device_containers(cli=cli)
+                reject_existing_device_containers(
+                    cli=cli, device_uuid=device.device_uuid
+                )
         with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
             _check_cancel(ledger, owner, identity)
         with _fixed_practice_stage(operation, provenance, "CREATE"):
@@ -1550,10 +1552,12 @@ def _gpu_profile_id():
 
 def _gpu_device():
     """The installed host device record; fails closed when absent."""
-    from carbon.reconstruction.worker.accelerator_runtime import host_device
+    from carbon.reconstruction.worker.accelerator_runtime import (
+        miner_host_device,
+    )
 
     try:
-        return host_device()
+        return miner_host_device()
     except WorkerFailure:
         raise ValueError(
             "no GPU device record is installed on this host; run setup's GPU "
@@ -1845,7 +1849,7 @@ def _run_miner_lane(
             # its check while the other is between check and create. Once
             # created, this run's device label is what the other side sees.
             slot.enter_context(shared_host_lease())
-            reject_existing_device_containers(cli=cli)
+            reject_existing_device_containers(cli=cli, device_uuid=device.device_uuid)
         _check_cancel(ledger, owner, identity)
         create_attempted = True
         try:
