@@ -510,6 +510,14 @@ NEXT_ACTIONS = {
         "then practise again; if it repeats, the campaign's operation folder holds a "
         "failure file naming the stage."
     ),
+    # The practice's host check failed on capacity; the refusal carries the numbers
+    # itself (research_campaign.PracticeNotRun.next_step), this is the fixed fallback.
+    "practice_host_too_small": (
+        "This machine is too small for the practice worker: Docker must see at least "
+        "17 GiB of memory and 4 CPUs (the supported machine has 32 GB of RAM). Nothing "
+        "ran and nothing counts against you. Practise on a bigger machine. `docker info` "
+        "shows what Docker sees (MemTotal, NCPU)."
+    ),
     "smoke_practice_unavailable": (
         "This Challenge offers no smoke practice. Practise the recipe in full "
         "(omit mode), or lighten it so its full practice fits the budget."

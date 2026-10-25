@@ -5363,11 +5363,15 @@ class RunnerAdapter:
                     prepared.close()
 
             refused = None
+            refused_step = None
             signed_before = signatures_obtained()
             try:
                 result = asyncio.run(run())
             except OperationRefused as exc:
                 refused = exc.code
+                # A refusal that knows its own next step (the practice's host is too
+                # small: the numbers) sends it; otherwise the catalog's by code.
+                refused_step = getattr(exc, "next_step", None)
             except SignerFailure as exc:
                 # A signer that is not running, refuses, holds another hotkey
                 # or times out sent nothing - but only if no earlier request of
@@ -5386,7 +5390,10 @@ class RunnerAdapter:
             )
             self._state(row["id"], state)
         if refused is not None:
-            raise Rejected(refused, 409)
+            rejection = Rejected(refused, 409)
+            if type(refused_step) is str:
+                rejection.next_step = refused_step
+            raise rejection
         return result
 
     @staticmethod
