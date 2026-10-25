@@ -42,9 +42,13 @@ from carbon.reconstruction import onboarding
 from carbon.reconstruction.host_inventory import (
     CONTAINER_RUNTIMES,
     HOST_DEVICE_RECORD,
+    MINER_DEVICE_SCHEMA,
     PLATFORMS,
     HostDeviceRecord,
+    MinerHostDeviceRecord,
+    load_miner_lane_record,
     require_host_device,
+    require_miner_host_device,
 )
 from carbon.reconstruction.worker.model import WorkerFailure
 
@@ -91,7 +95,12 @@ def command_inspect(args) -> int:
     profile = onboarding.resolve_workload(args.profile)
     root = _host_root(args)
     try:
-        record = require_host_device(HostDeviceRecord.load(root), profile)
+        # A read-only view: a miner-lane record is shown as what it is.
+        record = load_miner_lane_record(root)
+        if type(record) is HostDeviceRecord:
+            require_host_device(record, profile)
+        else:
+            require_miner_host_device(record, profile)
         installed = {"digest": record.digest, **record.document}
     except WorkerFailure:
         installed = None
@@ -196,7 +205,7 @@ def command_prepare(args) -> int:
                 "how": "the first usable GPU; use --device to choose another",
             }
     document = onboarding.build_host_record(
-        observed=observed, device_uuid=device, **record
+        observed=observed, device_uuid=device, miner_lane=args.miner_lane, **record
     )
     if args.dry_run:
         return _emit(
@@ -207,12 +216,20 @@ def command_prepare(args) -> int:
             }
         )
     path = onboarding.install_record(root, document, name=HOST_DEVICE_RECORD)
-    record = require_host_device(HostDeviceRecord.load(root), profile)
+    if document["schema"] == MINER_DEVICE_SCHEMA:
+        record = require_miner_host_device(MinerHostDeviceRecord.load(root), profile)
+    else:
+        record = require_host_device(HostDeviceRecord.load(root), profile)
     return _emit(
         {
             "status": "INSTALLED",
             "path": str(path),
             "record_digest": record.digest,
+            **(
+                {"lane": "MINER", "unknown_fields": list(record.unknown_fields)}
+                if document["schema"] == MINER_DEVICE_SCHEMA
+                else {}
+            ),
             "authority": "HOST_OBSERVATION_ONLY_NOT_QUALIFICATION",
             "next": "run `doctor` to see what still blocks this host",
             **({"chosen": chosen} if chosen else {}),

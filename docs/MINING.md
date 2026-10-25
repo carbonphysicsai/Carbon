@@ -30,7 +30,7 @@ git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon
 ~/carbon/scripts/install_miner.sh --pytorch --service
 ```
 
-Add `--gpu` if the machine has an NVIDIA GPU.
+Add `--gpu` if the machine has an NVIDIA GPU. Any NVIDIA GPU works, whatever the model, driver string or count: a field the GPU does not report (a virtual GPU's capability, for one) is recorded as unknown and never refuses the machine; with several GPUs setup uses the first usable one, prints which, and `--device` picks another.
 
 The installer checks your machine, sets up Carbon's environment, builds the images your practice runs use, and starts the **Control Center**, the web page where you run everything. It never asks for a key or password.
 
