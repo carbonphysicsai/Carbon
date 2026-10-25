@@ -274,6 +274,9 @@ def test_the_registry_declares_each_new_version_in_full():
         "graph_adapter",
         "catalog_entries_from",
         "predecessor",
+        # Served allowlist v8 (OWNER-GRAPH-OPS-OPEN-01): the predecessor's v7 plus
+        # every pure op, a new file (v7's bytes stay).
+        "allowlist",
         # Its 30-minute rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01).
         "rebuild_wall_seconds",
     }
@@ -296,7 +299,8 @@ def test_the_registry_declares_each_new_version_in_full():
                 assert getattr(new, field) == getattr(old, field), (cid, field)
         assert new.graph_adapter == "v2" and new.pack_version != old.pack_version
         assert served_versions.serves_catalog(cid, version)
-        assert served_versions.serves_v7(cid, version)
+        assert served_versions.serves_v8(cid, version)
+        assert new.allowlist == "v8" and old.allowlist == "v7"
         assert physical_material.is_registered(cid, version)
     with pytest.raises(version_registry.UnregisteredVersion):
         version_registry.entry(F08, "1.6")
