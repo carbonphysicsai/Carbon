@@ -69,6 +69,36 @@ def main(argv=None):
             )
             specs[tid] = pool_plugin.spec_from_source(document, binding)
     grid_doc = json.loads(Path(args.grid).read_text(encoding="utf-8"))
+    grid_doc = {k: v for k, v in grid_doc.items() if not k.startswith("_")}
+    out = Path(args.out_dir)
+    fractions = grid_doc.pop("agen_scale_sets_train_spread_fractions", None)
+    if fractions is not None:
+        if "agen_scale_sets" in grid_doc:
+            raise SystemExit(
+                "give agen_scale_sets or its TRAIN-spread fractions, not both"
+            )
+        if binding.train_spread is None:
+            raise SystemExit(
+                "the binding supplies no train_spread to expand the A_gen fractions"
+            )
+        spread = binding.train_spread()
+        grid_doc["agen_scale_sets"] = [
+            {name: fraction * value for name, value in spread.items()}
+            for fraction in fractions
+        ]
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f"agen-expansion-{args.kind}-{args.version}.json").write_text(
+            json.dumps(
+                {
+                    "train_spread": spread,
+                    "fractions": fractions,
+                    "scale_sets": grid_doc["agen_scale_sets"],
+                },
+                indent=2,
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
     for key in (
         "budgets",
         "honesty_scales",

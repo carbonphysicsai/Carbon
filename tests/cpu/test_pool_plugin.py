@@ -590,3 +590,92 @@ def test_the_model_space_hook_converts_the_references_the_truth_models_use():
         if ref["reference"] is not None:
             assert model_row == pytest.approx([v * 10.0 for v in ref["reference"]])
             assert native_row == pytest.approx(ref["reference"])
+
+
+def test_the_grid_script_expands_a_gen_fractions_of_the_train_spread_and_logs_it(
+    tmp_path, monkeypatch
+):
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    path = Path(pp.__file__).resolve().parents[2] / "scripts/dev/pool_proof_grid.py"
+    loaded = importlib.util.spec_from_file_location("pool_proof_grid_script2", path)
+    script = importlib.util.module_from_spec(loaded)
+    loaded.loader.exec_module(script)
+    pools = tmp_path / "pools"
+    pools.mkdir()
+    for i, tid in enumerate(("a1", "b1")):
+        (pools / f"pool-source-{tid}.json").write_text(
+            json.dumps(_source_document(tid, i))
+        )
+    (tmp_path / "sets.json").write_text(json.dumps({"A": ["a1"], "B": ["b1"]}))
+    grid_doc = {
+        "_note": "ignored",
+        "budgets": [60],
+        "honesty_scales": [3.0],
+        "honesty_reduction": "max",
+        "a_multipliers": [1.0],
+        "agen_scale_sets_train_spread_fractions": [1.0, 0.1],
+        "a_rules": [{"kind": "min"}],
+        "c_rule": {"kind": "min"},
+        "sigma0": 0.25,
+        "population": None,
+        "good_target": 0.75,
+        "koth_margin": 0.01,
+        "optimism_k": 3.0,
+        "wrong_radius": 0.1,
+        "wrong_k": 10.0,
+        "oracle_tolerance": 1e-5,
+        "seed": 1,
+    }
+    (tmp_path / "grid.json").write_text(json.dumps(grid_doc))
+    b = pp.ChallengeBinding(
+        **{**binding().__dict__, "train_spread": lambda: {"f": 1.0, "g": 4.0}}
+    )
+    monkeypatch.setattr(script, "_binding", lambda path, kind, version: b)
+    monkeypatch.setattr(
+        pp,
+        "practice_bank_legs",
+        lambda bound, **kw: bank_legs(kw["truth_probe_rule"], bound, verified=False),
+    )
+    probe = {
+        r["case_id"]: truth(r["inputs"]) for r in bank_rows() if r["reference"] is None
+    }
+    (tmp_path / "probe.json").write_text(json.dumps(probe))
+    args = [
+        "--kind",
+        "toy",
+        "--version",
+        "1",
+        "--binding",
+        "x:y",
+        "--pools-dir",
+        str(pools),
+        "--sets",
+        str(tmp_path / "sets.json"),
+        "--grid",
+        str(tmp_path / "grid.json"),
+        "--out-dir",
+        str(tmp_path / "out"),
+        "--truth-probe-rule",
+        "perfect",
+        "--response-leg",
+        "A_response",
+        "--ignored-gates",
+        "physics_laws",
+        "--truth-tolerance",
+        "1e-5",
+        "--probe-truth-file",
+        str(tmp_path / "probe.json"),
+    ]
+    assert script.main(args) == 0
+    log = json.loads((tmp_path / "out/agen-expansion-toy-1.json").read_text())
+    assert log["scale_sets"] == [{"f": 1.0, "g": 4.0}, {"f": 0.1, "g": 0.4}]
+    sheet = json.loads((tmp_path / "out/owner-sheet-toy-1.json").read_text())
+    assert len(sheet["meta"]["agen_scale_sets"]) == 2
+    # No spread supplied, or both forms given: refused.
+    bare = pp.ChallengeBinding(**{**binding().__dict__, "train_spread": None})
+    monkeypatch.setattr(script, "_binding", lambda path, kind, version: bare)
+    with pytest.raises(SystemExit, match="train_spread"):
+        script.main(args)

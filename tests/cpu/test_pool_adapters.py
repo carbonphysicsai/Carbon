@@ -317,3 +317,11 @@ def test_f08_raw_u_is_zero_on_the_frequency_elements():
             assert value == 1e-5
         else:
             assert value == 0.0
+
+
+@pytest.mark.parametrize(("kind", "version"), [("f02", "2.4"), ("f08", "1.5")])
+def test_train_spread_is_the_population_std_of_each_derived_output(kind, version):
+    chosen = pa.adapter(kind, version, mass_of=pa.f08_mass_kg)
+    spread = pa.train_spread(kind, version, chosen)
+    assert set(spread) == set(chosen.outputs)
+    assert all(v > 0.0 for v in spread.values())

@@ -405,6 +405,31 @@ def train_box(kind, version, design_names, input_names):
     )
 
 
+def train_spread(kind, version, chosen):
+    """{derived output: population standard deviation over the TRAIN rows}, the derived outputs of
+    `chosen.derive` in the grader's model space (Cooling 1.4's rows encoded as `train_mean_row` does). A row
+    `derive` refuses (None) is skipped; an output with no spread at all is refused, not silently scaled by 0.
+    """
+    import numpy as np
+
+    encoded, inputs, targets = _train_arrays(kind, version)
+    if encoded:
+        from carbon.cold_plate import output_encoding
+
+        targets = output_encoding.encode_targets(targets)
+    rows = []
+    for row, raw in zip(inputs, targets, strict=True):
+        derived = chosen.derive_row([float(v) for v in row], [float(v) for v in raw])
+        if derived is not None:
+            rows.append(derived)
+    if not rows:
+        raise PoolAdapterRefused("no_train_row_derives")
+    spread = {name: float(np.std([r[name] for r in rows])) for name in chosen.outputs}
+    if not all(v > 0.0 for v in spread.values()):
+        raise PoolAdapterRefused("a_derived_output_has_no_train_spread")
+    return spread
+
+
 def _to_model_space(kind, version):
     """Cooling 1.4's model answers in the encoded 32-value space; the bank's references and a solver's truths
     are native, so they are encoded before they stand in for a model's answer. Every other row is already
@@ -453,6 +478,7 @@ def binding(
         train_box=lambda _spec: box,
         probe_truth=probe_truth,
         to_model_space=_to_model_space(kind, version),
+        train_spread=lambda: train_spread(kind, version, chosen),
     )
 
 

@@ -69,6 +69,9 @@ class ChallengeBinding:
     # speaks another encoding (an encoded model space). Applied to the references the oracle, the noisy models and
     # the truth-row check use; the TRAIN-mean row must already be in model space. None = the same space.
     to_model_space: object = None
+    # () -> {derived output: spread of that output over the TRAIN rows (the population standard deviation)}. Used
+    # only to expand an A_gen scale set given as fractions of the TRAIN spread into explicit per-output scales.
+    train_spread: object = None
 
 
 def model_input_row(binding, conditions, design):
