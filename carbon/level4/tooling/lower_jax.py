@@ -214,6 +214,64 @@ def lower(closed, *, role, allowlist, input_names):
                             "symbolic_zeros": eqn.params["symbolic_zeros"],
                         }
                         guard = key
+                if op == "custom_vjp_call":
+                    # The forward and backward rules JAX holds as Python callables are
+                    # traced to jaxprs here and carried as nested graphs (reverse mode
+                    # only, as the rule is). A rule that calls its own function ends the
+                    # tower of rules, as for custom_jvp_call.
+                    import jax
+                    import jax.extend.core as jex_core
+                    from jax._src.interpreters import ad
+
+                    key = ("vjp", str(eqn.params["call_jaxpr"].jaxpr))
+                    if key in in_rules:
+                        op = "closed_call"
+                        eqn_params = {"call_jaxpr": eqn.params["call_jaxpr"]}
+                    else:
+                        p = eqn.params
+                        n_args = len(eqn.invars) - p["num_consts"]
+                        fwd_jaxpr, fwd_consts = p["fwd_jaxpr_thunk"].call_wrapped(
+                            *([True] * n_args)
+                        )
+                        out_tree, res_tree, fwds = p["out_trees"]()
+                        n_res = res_tree.num_leaves
+                        n_out = out_tree.num_leaves
+                        in_avals = [v.aval for v in eqn.invars]
+                        pruned = [v.aval for v in fwd_jaxpr.outvars][: len(fwd_jaxpr.outvars) - n_out]
+                        pruned_iter = iter(pruned)
+                        res_avals = [
+                            in_avals[p["num_consts"] + f] if f is not None else next(pruned_iter)
+                            for f in fwds
+                        ]
+                        out_avals = [v.aval for v in p["call_jaxpr"].jaxpr.outvars]
+                        structs = [
+                            jax.ShapeDtypeStruct(a.shape, a.dtype)
+                            for a in res_avals + out_avals
+                        ]
+                        bwd = p["bwd"]
+                        n_in = len(in_avals) - p["num_consts"]
+
+                        def backward(*args, bwd=bwd, avals=in_avals[p["num_consts"] :]):
+                            cts = bwd.call_wrapped(*args)
+                            return [
+                                ad.instantiate_zeros(c)
+                                if not hasattr(c, "shape")
+                                else c
+                                for c in cts
+                            ]
+
+                        bwd_jaxpr = jax.make_jaxpr(backward)(*structs)
+                        assert len(bwd_jaxpr.out_avals) == n_in, "custom_vjp bwd arity"
+                        eqn_params = {
+                            "call_jaxpr": p["call_jaxpr"],
+                            "fwd_jaxpr": jex_core.ClosedJaxpr(fwd_jaxpr, fwd_consts),
+                            "bwd_jaxpr": bwd_jaxpr,
+                            "num_consts": p["num_consts"],
+                            "fwds": tuple(fwds),
+                            "n_out": n_out,
+                            "symbolic_zeros": p["symbolic_zeros"],
+                        }
+                        guard = key
                 spec = allowlist.admit(op, role, where)
                 if op == "custom_linear_solve":
                     # jnp.linalg.solve / inv: the four callables of the solve, each

@@ -265,6 +265,12 @@ def _encode(kind, value, lower_graph, name=None):
         if type(value) not in (tuple, list) or not all(type(v) is bool for v in value):
             raise GraphRefused("parameter_kind_mismatch")
         return list(value)
+    if kind == "index_tuple_or_none":
+        if type(value) not in (tuple, list) or not all(
+            v is None or (type(v) is int and v >= 0) for v in value
+        ):
+            raise GraphRefused("parameter_kind_mismatch")
+        return list(value)
     if kind.startswith("update_jaxpr_"):
         # A scatter's combiner: exactly the one binary primitive the op names.
         expected = kind.removeprefix("update_jaxpr_")
@@ -327,6 +333,12 @@ def _decode(kind, value):
         return [_nested(item) for item in value]
     if kind == "bool_tuple":
         if type(value) is not list or not all(type(v) is bool for v in value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return tuple(value)
+    if kind == "index_tuple_or_none":
+        if type(value) is not list or not all(
+            v is None or (type(v) is int and v >= 0) for v in value
+        ):
             raise GraphRefused("parameter_kind_mismatch")
         return tuple(value)
     if kind in (

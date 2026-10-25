@@ -44,7 +44,7 @@ zeros_like""".split()
 #: Pure ops still to admit: each needs a parameter codec (a nested body, a recall target)
 #: that this head does not carry. Not a policy refusal.
 PENDING = """approx_top_k ragged_dot_general reduce reduce_window select_and_scatter
-symmetric_product scaled_dot custom_vjp_call""".split()
+symmetric_product scaled_dot""".split()
 
 NOT_ADMITTED = {
     **{n: "collective or placement: containment" for n in COLLECTIVES},

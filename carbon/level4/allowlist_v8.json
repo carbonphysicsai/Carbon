@@ -1103,15 +1103,23 @@
   },
   "custom_vjp_call": {
    "category": "custom_differentiation",
-   "default": "review",
-   "note": "forward and backward are Python callables; v0 cannot carry them",
-   "params": {},
+   "default": "allow",
+   "note": "a reverse-mode derivative rule the miner wrote (forward and backward), traced to jaxprs at lowering and carried as nested graphs beside the function; every op in all three graphs is checked like any other.",
+   "params": {
+    "bwd_jaxpr": "graph",
+    "call_jaxpr": "graph",
+    "fwd_jaxpr": "graph",
+    "fwds": "index_tuple_or_none",
+    "n_out": "int",
+    "num_consts": "int",
+    "symbolic_zeros": "bool"
+   },
    "roles": [
     "forward",
     "init",
     "loss"
    ],
-   "v0_interpreter": false
+   "v0_interpreter": true
   },
   "debug_callback": {
    "category": "escape",

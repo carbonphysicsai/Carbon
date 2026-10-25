@@ -65,6 +65,45 @@ def _dtype_name(x):
     return str(x.dtype)
 
 
+def _custom_vjp(run, bound, ins):
+    """`jax.custom_vjp` over three nested graphs: the function, its forward rule
+    (arguments in; the residuals JAX did not simply forward, then the primal outputs,
+    out) and its backward rule (residuals then output cotangents in; one cotangent per
+    argument out). Reverse mode only, as the rule is."""
+    import jax
+    import jax.numpy as jnp
+
+    consts = bound["num_consts"]
+    function = bound["call_jaxpr"]["graph"]
+    forward = bound["fwd_jaxpr"]["graph"]
+    backward = bound["bwd_jaxpr"]["graph"]
+    fwds, n_out = bound["fwds"], bound["n_out"]
+    if consts < 0 or consts > len(ins) or n_out < 0:
+        raise graph.GraphRefused("parameter_kind_mismatch")
+
+    @jax.custom_vjp
+    def call(*args):
+        return tuple(run(function, list(args)))
+
+    def fwd(*args):
+        outs = run(forward, list(args[consts:]))
+        if n_out > len(outs):
+            raise graph.GraphRefused("result_count_mismatch")
+        pruned, primals = iter(outs[: len(outs) - n_out]), outs[len(outs) - n_out :]
+        residuals = tuple(
+            args[consts + index] if index is not None else next(pruned)
+            for index in fwds
+        )
+        return tuple(primals), residuals
+
+    def bwd(residuals, cotangents):
+        cts = run(backward, [*residuals, *cotangents])
+        return tuple(jnp.zeros_like(a) for a in ins[:consts]) + tuple(cts)
+
+    call.defvjp(fwd, bwd)
+    return list(call(*ins))
+
+
 def _custom_jvp(run, bound, ins):
     """`jax.custom_jvp` over two nested graphs: the function, and its derivative
     rule (primals then tangents in, primal outputs then the non-zero tangent
@@ -245,6 +284,8 @@ def rebuild(doc, allowlist):
                 outs = _linear_solve(run, bound, ins)
             elif node["op"] == "custom_jvp_call":
                 outs = _custom_jvp(run, bound, ins)
+            elif node["op"] == "custom_vjp_call":
+                outs = _custom_vjp(run, bound, ins)
             elif node["op"] == "scan":
                 outs = _scan(run, bound, ins)
             elif node["op"] == "cond":

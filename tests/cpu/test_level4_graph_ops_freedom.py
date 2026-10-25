@@ -489,6 +489,66 @@ def test_a_custom_derivative_rule_is_carried_as_nested_graphs(name):
         assert np.abs(np.asarray(got)).min() > 0.5  # the rule, not round()'s zero
 
 
+@jax.custom_vjp
+def _clipped_gradient(x):
+    return jnp.tanh(x)
+
+
+def _clipped_fwd(x):
+    return _clipped_gradient(x), x
+
+
+def _clipped_bwd(x, ct):
+    # The miner's rule: the true gradient, clipped to [-0.5, 0.5].
+    return (jnp.clip(ct * (1.0 - jnp.tanh(x) ** 2), -0.5, 0.5),)
+
+
+_clipped_gradient.defvjp(_clipped_fwd, _clipped_bwd)
+
+
+@jax.custom_vjp
+def _scaled_product(a, b):
+    return a * b
+
+
+def _scaled_fwd(a, b):
+    return _scaled_product(a, b), (a, b)
+
+
+def _scaled_bwd(res, ct):
+    a, b = res
+    return (3.0 * ct * b, 5.0 * ct * a)  # deliberately not the true gradient
+
+
+_scaled_product.defvjp(_scaled_fwd, _scaled_bwd)
+
+
+def test_a_custom_vjp_rule_is_carried_and_used_in_reverse_mode():
+    """The backward rule the miner wrote runs when the rebuild is differentiated."""
+    fn = lambda x: _clipped_gradient(x * 4.0)  # noqa: E731
+    args = (_signed(),)
+    doc, run = _rebuilt(fn, args)
+    assert "custom_vjp_call" in _ops(doc)
+    np.testing.assert_allclose(np.asarray(run(*args)[0]), np.asarray(fn(*args)), rtol=1e-6)
+    want = jax.grad(lambda a: jnp.sum(fn(a) * 2.0))(*args)
+    got = jax.grad(lambda a: jnp.sum(run(a)[0] * 2.0))(*args)
+    np.testing.assert_allclose(np.asarray(got), np.asarray(want), rtol=1e-5, atol=1e-6)
+    assert np.abs(np.asarray(got)).max() <= 4.0 * 2.0 * 0.5 + 1e-6  # clipped, not tanh'
+
+
+def test_a_custom_vjp_with_two_arguments_and_saved_residuals():
+    fn = lambda a, b: _scaled_product(a, b) + 1.0  # noqa: E731
+    args = (_signed(), _signed())
+    doc, run = _rebuilt(fn, args)
+    want = jax.grad(lambda a, b: jnp.sum(fn(a, b)), argnums=(0, 1))(*args)
+    got = jax.grad(lambda a, b: jnp.sum(run(a, b)[0]), argnums=(0, 1))(*args)
+    for g, w in zip(got, want):
+        np.testing.assert_allclose(np.asarray(g), np.asarray(w), rtol=1e-5, atol=1e-6)
+    # The rule's factors (3 and 5) are in the gradient, not the product rule's 1.
+    np.testing.assert_allclose(np.asarray(got[0]), 3.0 * np.asarray(args[1]), rtol=1e-5)
+    np.testing.assert_allclose(np.asarray(got[1]), 5.0 * np.asarray(args[0]), rtol=1e-5)
+
+
 def test_a_carried_rule_is_checked_like_any_other_graph():
     """An op that is refused is refused inside a derivative rule too."""
     allowlist = allowlist_module.load(V8)
