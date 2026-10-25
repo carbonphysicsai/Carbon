@@ -73,7 +73,10 @@ def preferred(challenge_id, version):
 
 def is_legacy(catalog_id, challenge_id, version):
     """Whether ``catalog_id`` is a pre-v2 entry on a version that also offers v2.* ones."""
-    return not catalog_id.startswith(V2_PREFIX) and preferred(challenge_id, version) is not None
+    return (
+        not catalog_id.startswith(V2_PREFIX)
+        and preferred(challenge_id, version) is not None
+    )
 
 
 def summary(catalog_id, backbone, challenge_id, version):

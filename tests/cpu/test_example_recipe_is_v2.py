@@ -11,8 +11,8 @@ import pytest
 
 from carbon.backbone_catalog import listing
 from carbon.challenge_registry import cold_plate, direct, motor
-from carbon.direct_campaign.spec import SPECS
 from carbon.development_session import research_service, research_tools
+from carbon.direct_campaign.spec import SPECS
 
 MOTOR, COOLING = "electric-motor-magnetics", "chip-cold-plate"
 F08, F02 = "f08-ribbed-bracket", "f02"
@@ -23,14 +23,18 @@ def _example_id(challenge, version):
         return motor.catalog_recipe(version=version)["source"]["catalog_id"]
     if challenge == COOLING:
         return cold_plate.catalog_recipe(version=version)["source"]["catalog_id"]
-    return direct.catalog_recipe(SPECS[challenge], version=version)["source"]["catalog_id"]
+    return direct.catalog_recipe(SPECS[challenge], version=version)["source"][
+        "catalog_id"
+    ]
 
 
 @pytest.mark.parametrize(
     ("challenge", "version"),
     [(MOTOR, "1.4"), (COOLING, "1.4"), (F08, "1.5"), (F02, "2.4")],
 )
-def test_the_served_example_is_a_v2_entry_where_a_version_offers_them(challenge, version):
+def test_the_served_example_is_a_v2_entry_where_a_version_offers_them(
+    challenge, version
+):
     assert listing.preferred(challenge, version) is not None
     assert _example_id(challenge, version).startswith("v2.")
 
@@ -41,15 +45,25 @@ def test_a_version_with_no_v2_entries_keeps_its_old_default():
 
 
 def test_the_legacy_entries_are_labelled_and_the_v2_ones_are_not():
-    legacy = [e for e in listing.entries(MOTOR, "1.4") if not e["catalog_id"].startswith("v2.")]
-    modern = [e for e in listing.entries(MOTOR, "1.4") if e["catalog_id"].startswith("v2.")]
+    legacy = [
+        e
+        for e in listing.entries(MOTOR, "1.4")
+        if not e["catalog_id"].startswith("v2.")
+    ]
+    modern = [
+        e for e in listing.entries(MOTOR, "1.4") if e["catalog_id"].startswith("v2.")
+    ]
     assert legacy and modern
     for e in legacy:
         assert listing.is_legacy(e["catalog_id"], MOTOR, "1.4")
-        assert "legacy entry" in listing.summary(e["catalog_id"], e["backbone"], MOTOR, "1.4")
+        assert "legacy entry" in listing.summary(
+            e["catalog_id"], e["backbone"], MOTOR, "1.4"
+        )
     for e in modern:
         assert not listing.is_legacy(e["catalog_id"], MOTOR, "1.4")
-        assert "legacy" not in listing.summary(e["catalog_id"], e["backbone"], MOTOR, "1.4")
+        assert "legacy" not in listing.summary(
+            e["catalog_id"], e["backbone"], MOTOR, "1.4"
+        )
     # A version that offers no v2 entries has no legacy ones.
     assert not listing.is_legacy("neuralop.FNO", MOTOR, "1.3")
 
@@ -58,7 +72,9 @@ def test_the_describe_text_labels_legacy_entries():
     shown = motor.describe_catalog("1.4")["models"]["rebuildable"]
     by_id = {item["selector"]: item["summary"] for item in shown}
     assert "legacy entry" in by_id["neuralop.FNO"]
-    assert all("legacy" not in text for sel, text in by_id.items() if sel.startswith("v2."))
+    assert all(
+        "legacy" not in text for sel, text in by_id.items() if sel.startswith("v2.")
+    )
 
 
 def test_the_picker_flags_legacy_entries():
