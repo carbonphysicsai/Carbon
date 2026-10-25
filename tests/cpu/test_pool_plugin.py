@@ -32,7 +32,7 @@ def derive(row, raw):
     return {"f": raw[0], "g": raw[1]}
 
 
-def toy_target(name, seed):
+def toy_target(name, seed, shell=None):
     import random
 
     rng = random.Random(seed)
@@ -56,6 +56,7 @@ def toy_target(name, seed):
         agen=range(92, 100),
         start=(0.5, 0.5),
         seed=seed,
+        shell=shell,
     )
 
 
@@ -368,6 +369,9 @@ def test_the_owner_sheet_sweeps_every_constant_and_reports_aggregates_only():
         "controls_margin",
         "oracle_reaches_all_references",
         "oracle_total",
+        "registered",
+        "extended",
+        "in_distribution_ood_margin",
         "meets_all",
     }
     assert all(set(r) == keys for r in rows)
@@ -722,3 +726,117 @@ def test_the_default_is_the_bound_pick_the_floor_is_its_own_row_and_serve_defaul
         r["controls_margin"] >= j["controls_margin"]
         for r, j in zip(reported, judged, strict=True)
     )
+
+
+# TRAIN edges 0.1..0.2 on both toy inputs and an approved extension of 0.8 above: the shell is x or y in 0.6..1.0.
+SHELL = ((0.1, 0.2, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8))
+
+
+def _mixed_plugin(train_serve, train_box=None):
+    sets = tuple(
+        (
+            toy_target(f"s{s}r", 10 * s + 1),
+            toy_target(f"s{s}x", 10 * s + 2, shell=SHELL),
+        )
+        for s in range(2)
+    )
+    changes = {"serve_train": train_serve}
+    if train_box is not None:
+        changes["train_box"] = train_box
+    b = pp.ChallengeBinding(**{**binding().__dict__, **changes})
+    return pp.make_plugin(b, bank_legs("perfect", b), sets, lambda draw: ())
+
+
+def test_extended_targets_are_reported_apart_and_the_train_fit_row_must_lose_on_them():
+    from carbon.scoring import pool_proof_grid as grid
+
+    # A TRAIN-fit model as good as the good model does not lose out of range: the criterion fails.
+    def wide_box(spec):
+        return ((0.0, 1.0), (0.0, 1.0))  # the clamp changes nothing
+
+    same = grid.run_grid(
+        _mixed_plugin(good_serve, wide_box),
+        _grid_spec(in_distribution_is_pass_criterion=True),
+    )
+    assert same["meta"]["extended_targets"] == 2
+    row = same["rows"][0]
+    assert set(row["registered"]) == set(row["extended"]) == set(grid.SPLIT_MODELS)
+    assert all({"D", "A_gen"} == set(v) for v in row["extended"].values())
+    assert row["in_distribution_ood_margin"] == pytest.approx(0.0)
+    assert not any(r["meets_all"] for r in same["rows"])
+
+    def clamped_badly(rows):
+        return [
+            [v + 40 * U for v in truth(r)] for r in rows
+        ]  # a TRAIN-fit model that is wrong far from TRAIN
+
+    worse = grid.run_grid(
+        _mixed_plugin(clamped_badly), _grid_spec(in_distribution_is_pass_criterion=True)
+    )
+    assert all(r["in_distribution_ood_margin"] > 0.0 for r in worse["rows"])
+    # Reported only (Phase 1): the margin is shown but never judged.
+    reported = grid.run_grid(
+        _mixed_plugin(good_serve, wide_box),
+        _grid_spec(in_distribution_is_pass_criterion=False),
+    )
+    assert reported["rows"][0]["in_distribution_ood_margin"] == pytest.approx(0.0)
+    # With no extended target the sheet has no extended block.
+    plain = grid.run_grid(_grid_plugin(), _grid_spec())
+    assert (
+        plain["meta"]["extended_targets"] == 0 and plain["rows"][0]["extended"] is None
+    )
+    assert "T5/T6 TRAIN-fit margin" in grid.sheet_markdown("Toy", worse)
+    assert "T5/T6" not in grid.sheet_markdown("Toy", plain)
+
+
+def test_the_suite_judges_the_clamp_on_the_extended_targets():
+    sets = tuple(
+        (
+            toy_target(f"q{s}r", 10 * s + 1),
+            toy_target(f"q{s}x", 10 * s + 2, shell=SHELL),
+        )
+        for s in range(2)
+    )
+    b = binding()
+    plugin = pp.make_plugin(b, bank_legs("perfect", b), sets, lambda draw: ())
+    policies = suite.Policies(
+        optimizer=OptimizerPolicy(budget=90, sigma0=0.3, population=None),
+        honesty=HonestyPolicy(scale=5.0, reduction="max"),
+        agen_scales={"f": 0.1, "g": 0.1},
+        a_rule={"kind": "min"},
+        c_rule={"kind": "min"},
+    )
+    fields = {
+        "oracle_tolerance": 1e-9,
+        "k_grid": (0.0,),
+        "monotone_tolerance": 0.05,
+        "optimism_k": 30.0,
+        "wrong_radius": 0.15,
+        "wrong_k": 12.0,
+        "leak_rounds": 1,
+        "leak_step": 1.0,
+        "ladder_decimals": 2,
+        "koth_margin": 0.02,
+        "near_optimum_radius": 0.15,
+        "near_limit_u": 10.0,
+        "bins": 5,
+        "separation_target": 0.95,
+        "seed": 7,
+        "resamples": 10,
+    }
+    judged = suite.check_gaming_controls_lose(
+        plugin,
+        policies,
+        suite.SuiteParams(in_distribution_is_pass_criterion=True, **fields),
+    )
+    numbers = judged["numbers"]["in_distribution_on_extended_targets"]
+    assert set(numbers) == {"good_D", "in_distribution_D"}
+    # The suite's in-distribution control clamps designs into the TRAIN box, so out of range it loses.
+    assert judged["verdict"] == "PASS", judged
+    assert numbers["in_distribution_D"] < numbers["good_D"]
+    reported = suite.check_gaming_controls_lose(
+        plugin,
+        policies,
+        suite.SuiteParams(in_distribution_is_pass_criterion=False, **fields),
+    )
+    assert reported["numbers"]["in_distribution_judged"] is False

@@ -50,6 +50,33 @@ REASONS = (
 )
 
 
+def _valid_shell(shell, inputs):
+    rows = tuple(tuple(float(x) for x in row) for row in shell)
+    _require(len(rows) == inputs, "shell_needs_one_row_per_design_input")
+    for lo, hi, ext_lo, ext_hi in rows:
+        _require(
+            all(math.isfinite(v) for v in (lo, hi, ext_lo, ext_hi))
+            and lo < hi
+            and ext_lo >= 0.0
+            and ext_hi >= 0.0,
+            "shell_rows_are_train_lo_hi_and_non_negative_extensions",
+        )
+    return rows
+
+
+def in_ood_shell(design, shell):
+    """Whether a design has at least one input in the OUTER half of that input's approved extension: beyond the TRAIN
+    edge by at least half the extension and at most all of it. An input with no approved extension counts for
+    nothing; a point inside the TRAIN box is never in the shell."""
+    for x, (lo, hi, ext_lo, ext_hi) in zip(design, shell, strict=True):
+        tol = 1e-9 * max(1.0, hi - lo)
+        if ext_hi > 0.0 and hi + 0.5 * ext_hi - tol <= x <= hi + ext_hi + tol:
+            return True
+        if ext_lo > 0.0 and lo - ext_lo - tol <= x <= lo - 0.5 * ext_lo + tol:
+            return True
+    return False
+
+
 def _is_relative(value):
     return (
         type(value) is dict
@@ -165,6 +192,18 @@ class TargetSpec:
     excluded: int  # pool points dropped at build time for a margin within U of a limit
     digest: str
     public: bool  # a PUBLIC practice pool: its per-target values may be shown; a sealed pool's never are
+    # The OOD shell of an EXTENDED target (T5/T6): per design input (train_lo, train_hi, ext_lo, ext_hi), the TRAIN
+    # edges and the extension the edge sign-off approved beyond each (design units; 0 = none approved). None for a
+    # registered-condition target. Phase 2 rule: every queryable point has an input in the OUTER half of that
+    # input's approved extension; the reference is checked here, the others counted in `outside_shell`.
+    shell: object = None
+    outside_shell: int = (
+        0  # queryable points with no input in the shell (an extended target; 0 otherwise)
+    )
+
+    @property
+    def extended(self):
+        return self.shell is not None
 
 
 def _digest(value):
@@ -188,6 +227,7 @@ def build_target(
     start,
     seed,
     public=False,
+    shell=None,
 ):
     """Validate a target's sealed material and derive its reference.
 
@@ -288,6 +328,16 @@ def build_target(
         len(scores) >= 2, "degenerate_reference_needs_two_feasible_queryable_points"
     )
     reference = min(scores, key=lambda n: (-scores[n], n))
+    outside_shell = 0
+    if shell is not None:
+        shell = _valid_shell(shell, len(box))
+        _require(
+            in_ood_shell(kept_designs[reference], shell),
+            "reference_not_in_the_ood_shell",
+        )
+        outside_shell = sum(
+            1 for n in queryable if not in_ood_shell(kept_designs[n], shell)
+        )
     s_ref, s_low = scores[reference], statistics.median(scores.values())
     _require(s_ref > s_low, "degenerate_reference_best_feasible_must_beat_the_median")
     body = {
@@ -305,6 +355,7 @@ def build_target(
         "start": list(start),
         "seed": seed,
         "public": public,  # visibility is part of the identity: a sealed pool cannot be relabelled public
+        "shell": [list(row) for row in shell] if shell is not None else None,
     }
     _require(type(public) is bool, "public_must_be_a_bool")
     return TargetSpec(
@@ -330,6 +381,8 @@ def build_target(
         excluded=excluded,
         digest=_digest(body),
         public=public,
+        shell=shell,
+        outside_shell=outside_shell,
     )
 
 
@@ -601,6 +654,7 @@ def dump_pool(spec):
         "start": list(spec.start),
         "seed": spec.seed,
         "excluded": spec.excluded,
+        "shell": [list(row) for row in spec.shell] if spec.shell is not None else None,
     }
 
 
@@ -625,6 +679,7 @@ def load_pool(document):
         start=document["start"],
         seed=document["seed"],
         public=document["public"],
+        shell=document.get("shell"),
     )
     _require(
         spec.digest == document["digest"] and spec.excluded == 0,

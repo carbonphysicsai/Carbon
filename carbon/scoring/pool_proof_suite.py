@@ -328,6 +328,19 @@ def check_strictness_curve(plugin, policies, params):
     return _verdict(passed, {"curves": curves})
 
 
+def extended_d(plugin, descriptor, policies):
+    """The mean D over the version's EXTENDED targets (T5/T6) for a model, or None when it has none."""
+    specs = [s for group in plugin.sets for s in group]
+    extended = [s for s in specs if s.extended]
+    if not extended:
+        return None
+    predict = pool_predictor(plugin, descriptor, specs)
+    return statistics.fmean(
+        pool_grader.grade_target(s, predict, policies.optimizer, policies.honesty).d
+        for s in extended
+    )
+
+
 def check_gaming_controls_lose(plugin, policies, params):
     """3. Each gaming control scores below the good model."""
     controls = {
@@ -351,17 +364,31 @@ def check_gaming_controls_lose(plugin, policies, params):
     scores = {name: version_total(plugin, d, policies) for name, d in controls.items()}
     # The in-distribution control is REPORTED, not a pass criterion, unless the version's pools reach outside the
     # TRAIN box (Phase 2): `params.in_distribution_is_pass_criterion` says which.
+    # With extended targets (T5/T6, out of range by construction) the clamp is judged on their D alone, where it
+    # must lose; the whole-total comparison would hide it behind the registered targets (Phase 2).
+    ext_good = extended_d(plugin, {"kind": "good"}, policies)
+    ext_in = extended_d(plugin, {"kind": "in_distribution"}, policies)
+    on_extended = params.in_distribution_is_pass_criterion and ext_good is not None
     judged = {
         name: s
         for name, s in scores.items()
-        if name != "in_distribution_only" or params.in_distribution_is_pass_criterion
+        if name != "in_distribution_only"
+        or (params.in_distribution_is_pass_criterion and not on_extended)
     }
+    passed = all(s < good for s in judged.values())
+    if on_extended:
+        passed = passed and ext_in < ext_good
     return _verdict(
-        all(s < good for s in judged.values()),
+        passed,
         {
             "good": good,
             "controls": scores,
             "in_distribution_judged": params.in_distribution_is_pass_criterion,
+            "in_distribution_on_extended_targets": (
+                None
+                if ext_good is None
+                else {"good_D": ext_good, "in_distribution_D": ext_in}
+            ),
         },
     )
 
@@ -402,6 +429,8 @@ def check_coverage(plugin, params, queries_per_target=None):
                     "target": spec.target_id,
                     "pool": len(spec.designs),
                     "excluded_for_u": spec.excluded,
+                    "extended": spec.extended,
+                    "outside_shell": spec.outside_shell,
                     "near_optimum": near_optimum,
                     "near_limit": near_limit,
                     "box_share": _bin_share(

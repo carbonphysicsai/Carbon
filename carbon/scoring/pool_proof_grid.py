@@ -38,6 +38,8 @@ CONTROLS = (
     "floor",
 )
 REPORTED = ("in_distribution_only",)
+#: The models whose registered-target and extended-target (T5/T6) D and A_gen the sheet reports separately.
+SPLIT_MODELS = ("good", "default", "floor", "in_distribution_only")
 
 
 @dataclass(frozen=True)
@@ -104,6 +106,8 @@ def run_grid(plugin, grid):
     legs_by_model = {name: plugin.legs(d, plugin.sets[0]) for name, d in named.items()}
     rows = []
     d_cache = {}
+    extended_ids = {s.target_id for s in all_specs if s.extended}
+    has_extended = bool(extended_ids)
     for budget, s_h in itertools.product(grid.budgets, grid.honesty_scales):
         optimizer = pool_grader.OptimizerPolicy(
             budget=budget, sigma0=grid.sigma0, population=grid.population
@@ -114,9 +118,14 @@ def run_grid(plugin, grid):
                 pool_grader.grade_set(specs, predictors[name], optimizer, honesty)
                 for specs in plugin.sets
             ]
+            grades = [t for g in per_set for t in g.targets]
+            registered = [t.d for t in grades if t.target_id not in extended_ids]
+            extended = [t.d for t in grades if t.target_id in extended_ids]
             d_cache[(budget, s_h, name)] = (
                 statistics.fmean(g.d for g in per_set),
-                all(t.reached_reference for g in per_set for t in g.targets),
+                all(t.reached_reference for t in grades),
+                statistics.fmean(registered) if registered else None,
+                statistics.fmean(extended) if extended else None,
             )
     agen_cache = {}
     has_slice = any(spec.agen for specs in plugin.sets for spec in specs)
@@ -132,6 +141,20 @@ def run_grid(plugin, grid):
             )
             values = [v for v in values if v is not None]
             agen_cache[(index, name)] = statistics.fmean(values) if values else None
+            for label, want in (("registered", False), ("extended", True)):
+                parts = [
+                    pool_grader.agen_accuracy(
+                        [s for s in specs if s.extended is want],
+                        predictors[name],
+                        scales,
+                    )
+                    for specs in plugin.sets
+                    if any(s.extended is want for s in specs)
+                ]
+                parts = [v for v in parts if v is not None]
+                agen_cache[(index, name, label)] = (
+                    statistics.fmean(parts) if parts else None
+                )
     needed_gap = max(0.10, 5.0 * grid.koth_margin)
     for (budget, s_h), m, (agen_index, _), a_rule in itertools.product(
         itertools.product(grid.budgets, grid.honesty_scales),
@@ -149,7 +172,7 @@ def run_grid(plugin, grid):
                 else tighten(legs["A"], m)
             )
             a_all = pool_grader.combine_a(a, agen_cache[(agen_index, name)], a_rule)
-            d, _ = d_cache[(budget, s_h, name)]
+            d = d_cache[(budget, s_h, name)][0]
             totals[name] = (
                 0.0
                 if legs.get("gates_ok") is False
@@ -157,8 +180,35 @@ def run_grid(plugin, grid):
             )
         good, default = totals["good"], totals["default"]
         controls = {c: totals[c] for c in CONTROLS + REPORTED}
-        judged = CONTROLS + (REPORTED if grid.in_distribution_is_pass_criterion else ())
+        # The in-distribution control is judged on the whole total when there is no extended target; on the
+        # extended targets (T5/T6, out of range by construction) it is judged on their D alone: the clamp must lose
+        # there (Phase 2, Validator PHASE2_FAST_PATH section 1).
+        judged = CONTROLS + (
+            REPORTED
+            if grid.in_distribution_is_pass_criterion and not has_extended
+            else ()
+        )
         margin = good - max(totals[c] for c in judged)
+        good_ext = d_cache[(budget, s_h, "good")][3]
+        in_ext = d_cache[(budget, s_h, "in_distribution_only")][3]
+        ood_margin = (
+            good_ext - in_ext if has_extended and good_ext is not None else None
+        )
+        ood_ok = not (grid.in_distribution_is_pass_criterion and has_extended) or (
+            ood_margin is not None and ood_margin > 0.0
+        )
+        split = {
+            label: {
+                name: {
+                    "D": d_cache[(budget, s_h, name)][
+                        2 if label == "registered" else 3
+                    ],
+                    "A_gen": agen_cache[(agen_index, name, label)],
+                }
+                for name in SPLIT_MODELS
+            }
+            for label in ("registered", "extended")
+        }
         oracle_ok = d_cache[(budget, s_h, "oracle")][1] and math.isclose(
             totals["oracle"], 1.0, abs_tol=grid.oracle_tolerance
         )
@@ -177,10 +227,14 @@ def run_grid(plugin, grid):
                 "controls_margin": margin,
                 "oracle_reaches_all_references": d_cache[(budget, s_h, "oracle")][1],
                 "oracle_total": totals["oracle"],
+                "registered": split["registered"],
+                "extended": split["extended"] if has_extended else None,
+                "in_distribution_ood_margin": ood_margin,
                 "meets_all": bool(
                     good <= grid.good_target
                     and good - default >= needed_gap
                     and margin > 0.0
+                    and ood_ok
                     and oracle_ok
                 ),
             }
@@ -195,6 +249,7 @@ def run_grid(plugin, grid):
             "wrong_k": grid.wrong_k,
         },
         "agen_scale_sets": [dict(s) for s in grid.agen_scale_sets],
+        "extended_targets": len(extended_ids),
         "rows": len(rows),
         "rows_meeting_all": sum(r["meets_all"] for r in rows),
     }
@@ -208,6 +263,7 @@ def index_label(index):
 def sheet_markdown(title, result):
     """One owner sheet: the rows that meet every condition first, then the rest by the controls' margin."""
     meta, rows = result["meta"], result["rows"]
+    extended = bool(meta.get("extended_targets"))
     order = sorted(
         rows,
         key=lambda r: (not r["meets_all"], -r["controls_margin"], r["B"], r["s_h"]),
@@ -222,8 +278,14 @@ def sheet_markdown(title, result):
         ),
         f"{meta['rows_meeting_all']} of {meta['rows']} grid points meet every condition. The owner picks one row.",
         "",
-        "| meets | B | s_h | A mult | A_gen scales | A_gen rule | good | default | floor | H | S | controls margin | oracle ok |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "| meets | B | s_h | A mult | A_gen scales | A_gen rule | good | default | floor | H | S | controls margin | oracle ok |"
+        + (
+            " T1-T4 D good | T5/T6 D good | T5/T6 A_gen good | T5/T6 TRAIN-fit margin |"
+            if extended
+            else ""
+        ),
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|"
+        + ("---|---|---|---|" if extended else ""),
     ]
     for r in order:
         rule = r["A_gen_rule"]["kind"] + (
@@ -235,8 +297,21 @@ def sheet_markdown(title, result):
             f"| {'YES' if r['meets_all'] else 'no'} | {r['B']} | {r['s_h']} | {r['A_multiplier']} | "
             f"{r['A_gen_scales']} | {rule} | {r['good']:.3f} | {r['default']:.3f} | {r['controls']['floor']:.3f} | {r['H']:.3f} | {r['S']:.3f} | "
             f"{r['controls_margin']:.3f} | {'yes' if r['oracle_reaches_all_references'] else 'NO'} |"
+            + (_extended_cells(r) if extended else "")
         )
     return "\n".join(lines) + "\n"
+
+
+def _number(value):
+    return "-" if value is None else f"{value:.3f}"
+
+
+def _extended_cells(row):
+    registered, extended = row["registered"]["good"], row["extended"]["good"]
+    return (
+        f" {_number(registered['D'])} | {_number(extended['D'])} | {_number(extended['A_gen'])} | "
+        f"{_number(row['in_distribution_ood_margin'])} |"
+    )
 
 
 def dump(result):

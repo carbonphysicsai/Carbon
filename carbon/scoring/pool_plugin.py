@@ -446,4 +446,5 @@ def spec_from_source(document, binding):
         start=document["start"],
         seed=document["seed"],
         public=bool(document.get("public", False)),
+        shell=document.get("shell"),
     )

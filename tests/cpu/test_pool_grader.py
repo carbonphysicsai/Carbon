@@ -655,3 +655,77 @@ def test_relative_u_drives_the_grader_and_is_refused_when_malformed():
             build_target(**kwargs, u={"f": U, "h": bad})
     # A custody document with a relative U loads through spec_from_source-style kwargs unchanged.
     assert pool_grader.dump_pool(spec)["u"]["h"] == {"relative": 0.03}
+
+
+def test_the_ood_shell_is_the_outer_half_of_the_approved_extension_and_inside_train_is_never_in_it():
+    from carbon.scoring.pool_grader import in_ood_shell
+
+    # TRAIN 0.2..0.8; approved extension 0.25 above (shell 0.925..1.05) and 0.1 below (shell 0.1..0.15).
+    shell = ((0.2, 0.8, 0.1, 0.25),)
+    inside = [0.5, 0.2, 0.8]
+    inner_half = [0.9, 0.17, 0.925 - 1e-3]
+    shell_points = [0.93, 1.05, 0.1, 0.15, 0.925]
+    beyond = [1.06, 0.09]
+    assert not any(in_ood_shell([x], shell) for x in inside + inner_half + beyond)
+    assert all(in_ood_shell([x], shell) for x in shell_points)
+    # An input with no approved extension contributes nothing; the 12.5 % fallback halves the shell.
+    assert not in_ood_shell([1.5], ((0.2, 0.8, 0.0, 0.0),))
+    assert in_ood_shell([0.8 + 0.07], ((0.2, 0.8, 0.0, 0.125),))
+    assert not in_ood_shell([0.8 + 0.06], ((0.2, 0.8, 0.0, 0.125),))
+    # One input in the shell is enough.
+    assert in_ood_shell([0.5, 0.93], ((0.2, 0.8, 0.1, 0.25), (0.2, 0.8, 0.1, 0.25)))
+
+
+def _shelled(shell, seed=3):
+    rng = random.Random(seed)
+    points = [(rng.random(), rng.random()) for _ in range(60)]
+    points += [
+        (0.63 + rng.uniform(-0.12, 0.12), 0.63 + rng.uniform(-0.12, 0.12))
+        for _ in range(40)
+    ]
+    return build_target(
+        target_id="x",
+        conditions={"case": "x"},
+        outputs=("f", "g"),
+        objective="f",
+        sense="max",
+        limits=(Limit("g", "<=", 0.8),),
+        u={"f": U, "g": U},
+        box=((0.0, 1.0), (0.0, 1.0)),
+        designs=[list(p) for p in points],
+        truths=[outputs_of(*p) for p in points],
+        agen=(),
+        start=(0.5, 0.5),
+        seed=seed,
+        shell=shell,
+    )
+
+
+def test_an_extended_target_stops_when_its_reference_is_not_in_the_shell():
+    registered = _shelled(None)
+    assert (
+        not registered.extended
+        and registered.shell is None
+        and registered.outside_shell == 0
+    )
+    # TRAIN 0.1..0.2, extension 0.8 above: the shell is 0.6..1.0 in either input.
+    extended = _shelled(((0.1, 0.2, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8)))
+    assert extended.extended and extended.outside_shell > 0
+    assert (
+        extended.digest != registered.digest
+    ), "the shell is part of the pool's identity"
+    # The best feasible queryable point sits near (0.63, 0.63): a shell that excludes it is a STOP.
+    with pytest.raises(PoolRefused, match="reference_not_in_the_ood_shell"):
+        _shelled(((0.1, 0.2, 0.0, 0.2), (0.1, 0.2, 0.0, 0.2)))
+    with pytest.raises(PoolRefused, match="shell_needs_one_row_per_design_input"):
+        _shelled(((0.1, 0.2, 0.0, 0.8),))
+    with pytest.raises(PoolRefused, match="shell_rows_are"):
+        _shelled(((0.2, 0.1, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8)))
+    # The shell survives the pool document round trip and a tampered shell fails the digest.
+    import json
+
+    document = json.loads(json.dumps(pool_grader.dump_pool(extended)))
+    assert pool_grader.load_pool(document).shell == extended.shell
+    document["shell"][0][3] = 0.9
+    with pytest.raises(PoolRefused, match="digest"):
+        pool_grader.load_pool(document)
