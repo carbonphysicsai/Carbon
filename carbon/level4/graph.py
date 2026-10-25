@@ -37,8 +37,11 @@ ROLES = ("forward", "init", "loss")
 DTYPES = {
     "bool": 1,
     "uint8": 1,
+    "uint16": 2,
     "uint32": 4,
     "uint64": 8,
+    "int8": 1,
+    "int16": 2,
     "int32": 4,
     "int64": 8,
     "bfloat16": 2,
@@ -127,6 +130,39 @@ VALUE_BYTES = 4
 def unique_constant_values(constants):
     """Embedded constant values, identical copies counted once (accounting v3)."""
     return sum(math.prod(c["shape"]) for c in _unique_constants(constants))
+
+
+#: Accounting v4 (B', owner pick, Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025
+#: section 3): an integer constant is charged the bits its actual range needs, a
+#: bool one bit, a fitted float `VALUE_BYTES` per value. The cap total is the same
+#: 16 KiB, so the information a graph can carry in constants is bounded as before;
+#: a small-range structure table (exponents, connectivity, one-hot indices) simply
+#: costs what it holds. The range is read from the values, never from the declared
+#: dtype: an int32 table of wide numbers counts at its full width.
+INTEGER_DTYPES = frozenset(
+    {"uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64"}
+)
+
+
+def constant_info_bytes(constants):
+    """Embedded constant information in bytes under accounting v4, identical
+    copies counted once."""
+    total = 0
+    for c in _unique_constants(constants):
+        count = math.prod(c["shape"])
+        if c["dtype"] == "bool":
+            bits = count
+        elif c["dtype"] in INTEGER_DTYPES:
+            if count == 0:
+                continue
+            array = decode_array(c)
+            span = int(array.max()) - int(array.min())
+            bits = count * max(1, span.bit_length())
+        else:
+            total += VALUE_BYTES * count
+            continue
+        total += -(-bits // 8)
+    return total
 
 
 def decode_array(entry, where=""):
@@ -382,6 +418,7 @@ def measure(doc):
         "unique_constant_bytes": unique_constant_bytes(constants),
         "unique_constant_values": unique_constant_values(constants),
         "constant_value_bytes": VALUE_BYTES * unique_constant_values(constants),
+        "constant_info_bytes": constant_info_bytes(constants),
         "largest_constant_bytes": max((c["bytes"] for c in constants), default=0),
         "input_bytes": sum(nbytes(i) for i in entry["inputs"]),
         "largest_intermediate_bytes": largest,

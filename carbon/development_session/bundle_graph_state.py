@@ -159,7 +159,9 @@ def _checked_graph(doc: dict, allowlist) -> bytes:
     caps = allowlist_module.caps_for(allowlist)
     if any(
         verdict != "pass"
-        for verdict in allowlist_module.check_caps(graph.measure(doc), caps).values()
+        for verdict in allowlist_module.check_caps(
+            graph.measure(doc), caps, allowlist_module.accounting_for(allowlist)[1]
+        ).values()
     ):
         raise RecipeRefused("bundle_graph_caps_refused")
     return raw

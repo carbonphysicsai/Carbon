@@ -199,16 +199,37 @@ def v8_bytes():
 CONSTANT_ACCOUNTING = "level4-constant-accounting-v3"
 #: The measurement each cap reads under the current accounting.
 MEASURED_AS = {"constant_bytes": "constant_value_bytes"}
+#: Accounting v4 (B', Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025 section 3):
+#: integer constants count by the bits their actual range needs, floats keep four
+#: bytes a value; the cap is the same 16 KiB. Served with allowlist v8 only; every
+#: earlier version keeps v3 and no recorded verdict is re-measured.
+CONSTANT_ACCOUNTING_V4 = "level4-constant-accounting-v4"
+ACCOUNTING_V4_VERSIONS = frozenset({"level4-allowlist-v8"})
+MEASURED_AS_V4 = {"constant_bytes": "constant_info_bytes"}
 
 
-def check_caps(measurements, caps=None):
-    """Each cap's verdict: `blocked_human_input` while unset, else pass/refuse."""
+def accounting_for(allowlist):
+    """(accounting name, cap -> measurement map) for ``allowlist`` (an
+    `Allowlist` or its version string): v4 for v8, else v3."""
+    version = (
+        allowlist if type(allowlist) is str else getattr(allowlist, "version", None)
+    )
+    if version in ACCOUNTING_V4_VERSIONS:
+        return CONSTANT_ACCOUNTING_V4, MEASURED_AS_V4
+    return CONSTANT_ACCOUNTING, MEASURED_AS
+
+
+def check_caps(measurements, caps=None, measured_as=None):
+    """Each cap's verdict: `blocked_human_input` while unset, else pass/refuse.
+    ``measured_as`` is the accounting's cap -> measurement map (`accounting_for`);
+    the default is v3."""
     caps = CAPS if caps is None else caps
+    measured_as = MEASURED_AS if measured_as is None else measured_as
     out = {}
     for name, cap in caps.items():
         if cap == HUMAN_INPUT or cap is None:
             out[name] = "blocked_human_input"
         else:
-            measured = measurements[MEASURED_AS.get(name, name)]
+            measured = measurements[measured_as.get(name, name)]
             out[name] = "pass" if measured <= cap else "refuse"
     return out

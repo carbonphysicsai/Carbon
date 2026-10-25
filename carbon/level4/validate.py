@@ -233,8 +233,11 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
     # (`allowlist.caps_for`: the owner's CAPS, or for an uncapped version only
     # the constants cap and containment); one a caller sets to HUMAN_INPUT
     # blocks, it never passes.
+    accounting, measured_as = allowlist_module.accounting_for(allowlist)
     verdicts = allowlist_module.check_caps(
-        measurements, {**allowlist_module.caps_for(allowlist), **(caps or {})}
+        measurements,
+        {**allowlist_module.caps_for(allowlist), **(caps or {})},
+        measured_as,
     )
     exceeded = sorted(name for name, v in verdicts.items() if v == "refuse")
     if exceeded:
@@ -267,7 +270,7 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
         "review_flags": flags,
         "measurements": measurements,
         "caps": verdicts,
-        "constant_accounting": allowlist_module.CONSTANT_ACCOUNTING,
+        "constant_accounting": accounting,
         "kit": kit_inputs(doc, interface),
     }
 
