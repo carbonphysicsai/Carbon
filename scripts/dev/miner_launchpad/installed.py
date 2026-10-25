@@ -99,11 +99,13 @@ def write(
     written = write_private(
         Path(state_dir) / FILE, json.dumps(record, sort_keys=True).encode()
     )
-    record_parent_fingerprint(image_manifest)
+    record_parent_fingerprint(image_manifest, state_dir=state_dir)
     return written
 
 
-def record_parent_fingerprint(image_manifest, *, docker="docker") -> bool:
+def record_parent_fingerprint(
+    image_manifest, *, docker="docker", state_dir=None
+) -> bool:
     """Record, at install, the store-neutral fingerprint of the C-03 parent a Torch CPU image was built from, found by
     its exact tag, beside the manifest (never inside it). A containerd image store (Docker 29) does not answer to the
     parent's recorded config digest, so the doctor later accepts the same image by that tag only if its layers and run
@@ -119,13 +121,19 @@ def record_parent_fingerprint(image_manifest, *, docker="docker") -> bool:
         from carbon.reconstruction.worker.docker_runtime import load_image_identity
         from carbon.reconstruction.worker.image_fingerprint import (
             fingerprint,
+            write_alias,
             write_sidecar,
         )
 
         identity = load_image_identity(Path(image_manifest))
-        if direct_parent_backend(identity) != "torch_cpu":
+        backend = direct_parent_backend(identity)
+        if backend == "torch_cpu":
+            parent = derived_cpu_parent(identity)
+        elif backend is None:
+            # The JAX CPU C-03 worker is itself the parent its catalog entries build FROM.
+            parent = identity
+        else:
             return False
-        parent = derived_cpu_parent(identity)
         tag = "carbon-c03-worker:" + identity.source_tree_digest[7:23]
         value = fingerprint(tag, docker=docker)
         if value is None:
@@ -136,6 +144,10 @@ def record_parent_fingerprint(image_manifest, *, docker="docker") -> bool:
             tag=tag,
             value=value,
         )
+        if state_dir is not None:
+            write_alias(
+                state_dir, parent_image_id=parent.image_id, tag=tag, value=value
+            )
         return True
     except (
         Exception

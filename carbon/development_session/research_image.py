@@ -242,15 +242,18 @@ def verify_library_worker_image(image, cli=None):
         or image.provisioned.parent_image != image.parent.image_id
     ):
         raise ValueError("library worker identity differs")
-    cli = cli or DockerCLI()
+    # A containerd store (Docker 29) finds the parent by the install's recorded tag and fingerprint, never
+    # by the tag alone; with no record the strict lookup stands.
+    cli = cli or DockerCLI.from_installed()
     if not doctor(
         image_id=image.parent.image_id, image_identity=image.parent, cli=cli
     ).eligible:
         raise ValueError("pinned library parent ineligible")
+    from carbon.reconstruction.worker.docker_runtime import inspect_image
+
     child = cli.json(["image", "inspect", image.image_id, "--format", "{{json .}}"])
-    parent = cli.json(
-        ["image", "inspect", image.parent.image_id, "--format", "{{json .}}"]
-    )
+    # The parent by its recorded id, or by the install's verified alias on a containerd store (Docker 29).
+    parent, _ = inspect_image(cli, image.parent.image_id)
     config = child.get("Config", {})
     labels = config.get("Labels") or {}
     layers = parent.get("RootFS", {}).get("Layers", [])

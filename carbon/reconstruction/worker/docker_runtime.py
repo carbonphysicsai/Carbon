@@ -281,6 +281,52 @@ class DockerCLI:
         if executable != "docker":
             raise WorkerFailure(WorkerCode.INVALID)
         self.executable = executable
+        # Recorded image id -> (exact tag, store-neutral fingerprint), only for a parent a containerd store (Docker 29)
+        # does not answer to by its recorded config digest and whose fingerprint was verified (register_parent_alias).
+        self._aliases: dict[str, tuple[str, str]] = {}
+        # Aliases the install recorded, not yet checked against the live store: each is verified (the tag's
+        # image must have exactly the recorded fingerprint) the first time the id's direct lookup fails.
+        self._candidates: dict[str, tuple[str, str]] = {}
+
+    def register_parent_alias(
+        self, image_id: str, store_tag: str | None, store_fingerprint: str | None
+    ) -> bool:
+        """Let `inspect_image` find `image_id` by its recorded exact tag, but only when the daemon does not answer to
+        the id AND the tag's image has exactly the recorded fingerprint (layers and run configuration). Returns True
+        when an alias is in force; False (and nothing changes) when the id answers directly or there is no matching
+        record: the strict lookup then stands (fails closed, as before)."""
+        try:
+            self.json(["image", "inspect", image_id, "--format", "{{json .}}"])
+            return False
+        except WorkerFailure:
+            pass
+        if _image_by_recorded_tag(self, store_fingerprint, store_tag) is None:
+            return False
+        self._aliases[image_id] = (store_tag, store_fingerprint)
+        return True
+
+    @classmethod
+    def from_installed(cls, state_dir=None) -> DockerCLI:
+        """A CLI that knows this install's recorded parent aliases (`parent-aliases.json` in the state
+        directory). Each alias is checked against the live store only when the id's own lookup fails, and
+        only by exact tag and fingerprint: with no record the strict lookup stands."""
+        cli = cls()
+        cli.load_installed_aliases(state_dir)
+        return cli
+
+    def load_installed_aliases(self, state_dir=None) -> None:
+        """Read the install's recorded aliases (see `from_installed`)."""
+        from carbon.reconstruction.worker.image_fingerprint import read_aliases
+
+        self._candidates = read_aliases(state_dir)
+
+    def alias_of(self, image_id: str) -> tuple[str, str] | None:
+        recorded = self._aliases.get(image_id)
+        if recorded is None and image_id in self._candidates:
+            tag, value = self._candidates[image_id]
+            if _image_by_recorded_tag(self, value, tag) is not None:
+                recorded = self._aliases[image_id] = (tag, value)
+        return recorded
 
     def run(
         self,
@@ -459,6 +505,24 @@ def _image_by_recorded_tag(cli, store_fingerprint, store_tag):
     return document if type(document) is dict else None
 
 
+def inspect_image(cli, image_id):
+    """(inspect document, answered_by_alias) of an image by its recorded id; on a store that does not answer to the id,
+    the verified alias of `register_parent_alias` is used (and the document's own Id is then the store's). Raises
+    WorkerFailure when neither finds it."""
+    try:
+        return cli.json(["image", "inspect", image_id, "--format", "{{json .}}"]), False
+    except Exception:
+        recorded = getattr(cli, "alias_of", lambda _id: None)(image_id)
+        document = (
+            _image_by_recorded_tag(cli, recorded[1], recorded[0])
+            if recorded is not None
+            else None
+        )
+        if type(document) is not dict:
+            raise
+        return document, True
+
+
 def doctor(
     *,
     image_id: str | None = None,
@@ -537,6 +601,10 @@ def doctor(
             # A containerd image store (Docker 29) does not answer to the config digest. Only with the fingerprint
             # recorded at install, and only by the exact tag, is the same image accepted: its layers and run
             # configuration must equal the record exactly. No record, no fallback (fails closed, as before).
+            if store_tag is None and store_fingerprint is None:
+                recorded = getattr(cli, "alias_of", lambda _id: None)(image_id)
+                if recorded is not None:
+                    store_tag, store_fingerprint = recorded
             image = _image_by_recorded_tag(cli, store_fingerprint, store_tag)
             by_tag = image is not None
             if image is None:

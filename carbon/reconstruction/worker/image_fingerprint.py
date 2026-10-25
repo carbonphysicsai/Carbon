@@ -24,6 +24,12 @@ FINGERPRINT_FORMAT = (
 PARENT_TAG = re.compile(r"^carbon-c03-worker:[0-9a-f]{16}$")
 SIDECAR_NAME = "store-fingerprint.json"
 SIDECAR_SCHEMA = "carbon.worker-store-fingerprint.v2"
+#: The install's parent aliases, readable at dispatch without the manifest's path: recorded image id ->
+#: (exact tag, store-neutral fingerprint). Owner-only; it vouches for nothing by itself (the live image must
+#: still have exactly the recorded fingerprint).
+ALIASES_NAME = "parent-aliases.json"
+ALIASES_SCHEMA = "carbon.worker-parent-aliases.v1"
+_IMAGE_ID = re.compile(r"^sha256:[0-9a-f]{64}$")
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -117,3 +123,73 @@ def read_sidecar(manifest: Path, parent_image_id: str) -> tuple[str, str] | None
     ):
         return None
     return value["tag"], value["fingerprint"]
+
+
+def default_state_dir() -> Path:
+    """The miner's Launchpad state directory (the one Setup and the installer share)."""
+    return Path.home() / ".carbon" / "development-launchpad"
+
+
+def read_aliases(state_dir=None) -> dict[str, tuple[str, str]]:
+    """Every recorded parent alias that is well formed: {image id: (tag, fingerprint)}. Anything absent, malformed or
+    not owner-only is dropped (an alias nobody can vouch for is no alias)."""
+    path = Path(state_dir or default_state_dir()) / ALIASES_NAME
+    try:
+        if path.is_symlink() or path.stat().st_mode & 0o077:
+            return {}
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError):
+        return {}
+    if (
+        type(value) is not dict
+        or value.get("schema") != ALIASES_SCHEMA
+        or type(value.get("aliases")) is not dict
+    ):
+        return {}
+    found = {}
+    for image_id, entry in value["aliases"].items():
+        if (
+            type(image_id) is str
+            and _IMAGE_ID.fullmatch(image_id)
+            and type(entry) is dict
+            and set(entry) == {"tag", "fingerprint"}
+            and type(entry["tag"]) is str
+            and PARENT_TAG.fullmatch(entry["tag"])
+            and type(entry["fingerprint"]) is str
+            and _HEX64.fullmatch(entry["fingerprint"])
+        ):
+            found[image_id] = (entry["tag"], entry["fingerprint"])
+    return found
+
+
+def write_alias(state_dir, *, parent_image_id: str, tag: str, value: str) -> Path:
+    """Record one parent alias (merging the others already recorded), owner-only (0600)."""
+    if (
+        not _IMAGE_ID.fullmatch(parent_image_id)
+        or not PARENT_TAG.fullmatch(tag)
+        or not _HEX64.fullmatch(value)
+    ):
+        raise ValueError(
+            "an image id, a parent tag and a sha256 fingerprint are required"
+        )
+    directory = Path(state_dir)
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    aliases = {
+        image_id: {"tag": recorded[0], "fingerprint": recorded[1]}
+        for image_id, recorded in read_aliases(directory).items()
+    }
+    aliases[parent_image_id] = {"tag": tag, "fingerprint": value}
+    path = directory / ALIASES_NAME
+    document = (
+        json.dumps(
+            {"schema": ALIASES_SCHEMA, "aliases": aliases},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    ).encode("utf-8")
+    path.unlink(missing_ok=True)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(document)
+    return path

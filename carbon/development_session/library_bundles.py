@@ -1006,6 +1006,21 @@ if build.get('schema') != 'carbon.c03.worker-image-build.v1' or build.get('lock_
     return root, bundle_digest, _context_digest(root)
 
 
+def uv_references():
+    """The forms a Docker image store may know the pinned uv image by: name:tag@digest, name@digest (a containerd
+    store keeps a digest-pulled image with no tag) and the bare digest. Each names the same pinned bytes; the
+    RepoDigests check on the answer stays."""
+    name, _, digest = UV_IMAGE.partition("@")
+    return (UV_IMAGE, name.rsplit(":", 1)[0] + "@" + digest, digest)
+
+
+#: The reason when the installed parent cannot be found: a plain gap, with the next step.
+PARENT_GAP = (
+    "required local image absent: this Docker does not answer to the installed worker's recorded id and "
+    "the install has no matching record of it; run the installer again with --update"
+)
+
+
 def build_offline_bundle(
     context, bundle_digest, parent_image, context_digest, *, cli=None
 ):
@@ -1055,10 +1070,42 @@ def build_offline_bundle(
             raise ValueError("required local image identity invalid")
         return image
 
-    parent = local_image(parent_image)
-    if parent["Id"] != parent_image:
+    parent_by_alias = False
+    try:
+        parent = local_image(parent_image)
+    except ValueError:
+        # A containerd store (Docker 29) does not answer to the recorded config digest. Only the verified alias of the
+        # install (recorded tag + store-neutral fingerprint, `DockerCLI.register_parent_alias`) finds the same image.
+        from carbon.reconstruction.worker.docker_runtime import (
+            WorkerFailure,
+            inspect_image,
+        )
+
+        try:
+            parent, parent_by_alias = inspect_image(cli, parent_image)
+        except (WorkerFailure, ValueError, OSError):
+            raise ValueError(PARENT_GAP) from None
+        if (
+            not parent_by_alias
+            or type(parent) is not dict
+            or type(parent.get("Id")) is not str
+            or not SHA256.fullmatch(parent["Id"])
+        ):
+            raise ValueError(PARENT_GAP)
+    # The image the build tags and builds FROM: the recorded id on a store that answers to it, the store's own id for
+    # the alias-verified same image (its recorded id still labels the child, which is the identity the receipt binds).
+    parent_local_id = parent["Id"]
+    if not parent_by_alias and parent_local_id != parent_image:
         raise ValueError("local parent image differs")
-    uv = local_image(UV_IMAGE)
+    uv = None
+    for reference in uv_references():
+        try:
+            uv = local_image(reference)
+            break
+        except ValueError:
+            continue
+    if uv is None:
+        raise ValueError("required local image absent")
     uv_name, _, uv_digest = UV_IMAGE.partition("@")
     uv_repo_digest = uv_name.rsplit(":", 1)[0] + "@" + uv_digest
     if type(uv.get("RepoDigests")) is not list or not any(
@@ -1067,10 +1114,10 @@ def build_offline_bundle(
         raise ValueError("pinned local uv image differs")
     parent_tag = parent_stage_tag(bundle_digest, parent_image)
     uv_tag = uv_stage_tag(bundle_digest)
-    cli.run(["tag", parent_image, parent_tag])
+    cli.run(["tag", parent_local_id, parent_tag])
     cli.run(["tag", uv["Id"], uv_tag])
     if (
-        local_image(parent_tag)["Id"] != parent_image
+        local_image(parent_tag)["Id"] != parent_local_id
         or local_image(uv_tag)["Id"] != uv["Id"]
     ):
         raise ValueError("local build stage tag differs")

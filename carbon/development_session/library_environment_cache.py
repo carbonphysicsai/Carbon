@@ -34,6 +34,7 @@ from carbon.development_session.library_bundles import (
     load_pinned_bundle_directory,
     prepare_offline_context,
     provision_offline_bundle,
+    uv_references,
 )
 from carbon.development_session.research_image import (
     LibraryWorkerImage,
@@ -170,10 +171,16 @@ def pinned_uv_bytes(
             raise TimeoutError("pinned uv copy deadline exceeded")
         return min(maximum, left)
 
-    image = cli.json(
-        ["image", "inspect", UV_IMAGE, "--format", "{{json .}}"],
-        timeout=remaining(30),
-    )
+    image = None
+    for reference in uv_references():
+        try:
+            image = cli.json(
+                ["image", "inspect", reference, "--format", "{{json .}}"],
+                timeout=remaining(30),
+            )
+            break
+        except WorkerFailure:
+            continue
     uv_name, _, uv_digest = UV_IMAGE.partition("@")
     repository_digest = uv_name.rsplit(":", 1)[0] + "@" + uv_digest
     if (

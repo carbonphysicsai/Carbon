@@ -137,6 +137,22 @@ def _checked_cpu_parent(profile, manifest):
     return parent
 
 
+def _register_parent_alias(cli, profile, parent):
+    """On a containerd image store (Docker 29) the C-03 parent does not answer to its recorded config digest. The
+    install's record (the exact tag and the store-neutral fingerprint, bound to the manifest it vouches for) lets the
+    build and its verification find the same image; with no record, or a fingerprint that differs, nothing changes
+    and the strict lookup stands (fails closed)."""
+    from carbon.reconstruction.worker.image_fingerprint import read_sidecar
+
+    manifest = (profile.get("paths") or {}).get("image_manifest")
+    if type(manifest) is not str or not hasattr(cli, "register_parent_alias"):
+        return False
+    recorded = read_sidecar(Path(manifest), parent.image_id)
+    if not recorded:
+        return False
+    return cli.register_parent_alias(parent.image_id, recorded[0], recorded[1])
+
+
 def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
     """Owner-initiated install using checked local setup, never MCP preflight.
 
@@ -191,12 +207,18 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
     campaigns = Path(profile["campaigns_root"])
     owner_root = _private_dir(campaigns / ".direct-development")
     cache_root = _private_dir(owner_root / "library-cache")
+    cli = DockerCLI()
+    load_aliases = getattr(cli, "load_installed_aliases", None)
+    if load_aliases is not None:
+        load_aliases(state_dir)
+    if selected.runtime_profile_id == "python-cpu-py311":
+        _register_parent_alias(cli, profile, parent)
     image = install_pinned_library_worker_image(
         directory,
         cache_root,
         parent,
         expected_bundle=selected,
-        cli=DockerCLI(),
+        cli=cli,
     )
     # The exact material too, where admission inspects it (F4, M1 2026-10-22:
     # an installed image without staged material resolves nothing, and every
