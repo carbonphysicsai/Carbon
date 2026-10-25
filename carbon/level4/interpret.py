@@ -136,6 +136,52 @@ def _custom_jvp(run, bound, ins):
     return list(call(*ins))
 
 
+def _reducer(run, body, count):
+    """A reduction's computation as JAX's `lax.reduce` wants it: two operands
+    (tuples when there are several), the nested graph run for both."""
+
+    def computation(x, y):
+        flat = [*(x if count > 1 else [x]), *(y if count > 1 else [y])]
+        result = run(body, flat)
+        return tuple(result) if count > 1 else result[0]
+
+    return computation
+
+
+def _reduce(run, bound, ins):
+    """`lax.reduce` with a computation that is a nested graph."""
+    from jax import lax
+
+    count = len(ins) // 2
+    operands, inits = tuple(ins[:count]), tuple(ins[count:])
+    out = lax.reduce(
+        operands if count > 1 else operands[0],
+        inits if count > 1 else inits[0],
+        _reducer(run, bound["jaxpr"]["graph"], count),
+        tuple(bound["dimensions"]),
+    )
+    return list(out) if count > 1 else [out]
+
+
+def _reduce_window(run, bound, ins):
+    """`lax.reduce_window` with a computation that is a nested graph."""
+    from jax import lax
+
+    count = len(ins) // 2
+    operands, inits = tuple(ins[:count]), tuple(ins[count:])
+    out = lax.reduce_window(
+        operands if count > 1 else operands[0],
+        inits if count > 1 else inits[0],
+        _reducer(run, bound["jaxpr"]["graph"], count),
+        tuple(bound["window_dimensions"]),
+        tuple(bound["window_strides"]),
+        tuple(tuple(pair) for pair in bound["padding"]),
+        base_dilation=tuple(bound["base_dilation"]),
+        window_dilation=tuple(bound["window_dilation"]),
+    )
+    return list(out) if count > 1 else [out]
+
+
 def _while(run, bound, ins):
     """`lax.while_loop` over a condition graph and a body graph. The trip count is
     the data's, so the build and inference walls bound it; a loop that never ends is
@@ -309,6 +355,10 @@ def rebuild(doc, allowlist):
                 outs = _custom_jvp(run, bound, ins)
             elif node["op"] == "custom_vjp_call":
                 outs = _custom_vjp(run, bound, ins)
+            elif node["op"] == "reduce":
+                outs = _reduce(run, bound, ins)
+            elif node["op"] == "reduce_window":
+                outs = _reduce_window(run, bound, ins)
             elif node["op"] == "while":
                 outs = _while(run, bound, ins)
             elif node["op"] == "scan":

@@ -100,12 +100,8 @@ INTERNAL = [
 #: Pure ops still to admit: each needs a parameter codec (a nested body, a recall target)
 #: that this head does not carry. Not a policy refusal.
 PENDING = [
-    "ragged_dot_general",
-    "reduce",
-    "reduce_window",
-    "select_and_scatter",
-    "symmetric_product",
-    "scaled_dot",
+    "select_and_scatter",  # no public API binds it; jax.grad emits select_and_scatter_add
+    "scaled_dot",  # jax.nn.scaled_matmul lowers through dot_general and a jit
 ]
 
 NOT_ADMITTED = {

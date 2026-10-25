@@ -2589,6 +2589,7 @@
    },
    "roles": [
     "forward",
+    "init",
     "loss"
    ],
    "v0_interpreter": true
@@ -2783,6 +2784,24 @@
    ],
    "v0_interpreter": true
   },
+  "ragged_dot_general": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "grouped matrix product (jax.lax.ragged_dot); pure and deterministic; no randomness, state or host access",
+   "params": {
+    "group_offset": "none",
+    "out_sharding": "none",
+    "precision": "precision",
+    "preferred_element_type": "dtype_or_none",
+    "ragged_dot_dimension_numbers": "ragged_dot_dnums"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "random_bits": {
    "category": "rng",
    "default": "allow",
@@ -2852,6 +2871,22 @@
    "category": "elementwise",
    "default": "allow",
    "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "lax.reduce with your own computation: the computation is a nested graph run inline (checked op by op); pure and deterministic; no randomness, state or host access",
+   "params": {
+    "computation": "callable_ignored",
+    "dimensions": "int_tuple",
+    "jaxpr": "graph"
+   },
    "roles": [
     "forward",
     "init",
@@ -2951,6 +2986,26 @@
    "params": {
     "axes": "int_tuple",
     "out_sharding": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_window": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "lax.reduce_window with your own computation: a nested graph run inline; pure and deterministic; no randomness, state or host access",
+   "params": {
+    "base_dilation": "int_tuple",
+    "consts": "empty_tuple",
+    "jaxpr": "graph",
+    "padding": "int_pairs",
+    "window_dilation": "int_tuple",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
    },
    "roles": [
     "forward",
@@ -3551,6 +3606,21 @@
    ],
    "v0_interpreter": true
   },
+  "symmetric_product": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "alpha * a a^T + beta * c on the lower triangle; pure and deterministic; no randomness, state or host access",
+   "params": {
+    "alpha": "float",
+    "beta": "float"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "tan": {
    "category": "elementwise",
    "default": "allow",
@@ -3762,6 +3832,7 @@
    "reference": "jax.scipy.special.exp1",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3786,6 +3857,7 @@
    "reference": "jax.numpy.i0",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3796,6 +3868,7 @@
    "reference": "jax.nn.log1mexp",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3806,6 +3879,7 @@
    "reference": "jax.scipy.special.log_ndtr",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3816,6 +3890,7 @@
    "reference": "jax.numpy.logaddexp",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3826,6 +3901,7 @@
    "reference": "jax.numpy.logaddexp2",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3836,6 +3912,7 @@
    "reference": "jax.scipy.special.logit",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3853,6 +3930,7 @@
    "reference": "jax.scipy.special.poch",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3863,6 +3941,7 @@
    "reference": "jax.nn.relu",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3873,6 +3952,7 @@
    "reference": "jax.nn.relu6",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3883,6 +3963,7 @@
    "reference": "jax.scipy.special.sici",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3893,6 +3974,7 @@
    "reference": "jax.scipy.special.xlog1py",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3903,6 +3985,7 @@
    "reference": "jax.scipy.special.xlogy",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   },
@@ -3913,6 +3996,7 @@
    "reference": "jax.scipy.special.zeta",
    "roles": [
     "forward",
+    "init",
     "loss"
    ]
   }

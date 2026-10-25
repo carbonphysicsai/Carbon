@@ -296,6 +296,21 @@ def _encode(kind, value, lower_graph, name=None):
         return {"graph": lower_graph(value)}
     if kind == "graph_or_none":
         return None if value is None else {"graph": lower_graph(value)}
+    if kind == "callable_ignored":
+        # The traced computation is carried as the nested graph beside it; the
+        # Python callable JAX keeps next to it is never carried.
+        if not callable(value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return None
+    if kind == "ragged_dot_dnums":
+        return {
+            "dot_dimension_numbers": [
+                [_trace_ints(d) for d in pair]
+                for pair in value.dot_dimension_numbers
+            ],
+            "lhs_ragged_dimensions": _trace_ints(value.lhs_ragged_dimensions),
+            "rhs_group_dimensions": _trace_ints(value.rhs_group_dimensions),
+        }
     if kind == "platforms":
         return _platforms(value)
     if kind == "float":
@@ -372,6 +387,31 @@ def _decode(kind, value):
         if type(value) is not int or value < 1:
             raise GraphRefused("parameter_kind_mismatch")
         return value
+    if kind == "callable_ignored":
+        if value is not None:
+            raise GraphRefused("parameter_kind_mismatch")
+        return None
+    if kind == "ragged_dot_dnums":
+        from jax.lax import RaggedDotDimensionNumbers
+
+        if type(value) is not dict or set(value) != {
+            "dot_dimension_numbers",
+            "lhs_ragged_dimensions",
+            "rhs_group_dimensions",
+        }:
+            raise GraphRefused("parameter_kind_mismatch")
+        pairs = value["dot_dimension_numbers"]
+        if type(pairs) is not list or len(pairs) != 2:
+            raise GraphRefused("parameter_kind_mismatch")
+        (lc, rc), (lb, rb) = pairs
+        return RaggedDotDimensionNumbers(
+            dot_dimension_numbers=(
+                (tuple(_ints(lc)), tuple(_ints(rc))),
+                (tuple(_ints(lb)), tuple(_ints(rb))),
+            ),
+            lhs_ragged_dimensions=tuple(_ints(value["lhs_ragged_dimensions"])),
+            rhs_group_dimensions=tuple(_ints(value["rhs_group_dimensions"])),
+        )
     if kind == "platforms":
         return _platforms_decode(value)
     if kind == "float":
