@@ -30,10 +30,17 @@ def test_the_summary_carries_the_meaning_beside_the_number():
     from carbon.direct_campaign.spec import SPECS
 
     challenge, version = "f02", "2.4"
-    material = {**physical_material.bundle_material(challenge, version), "version": version}
+    material = {
+        **physical_material.bundle_material(challenge, version),
+        "version": version,
+    }
     spec = SPECS[challenge]
     out = practice_module.summary(
-        spec, version, material["interface_document"], np.asarray(_rows(material, spec)), material
+        spec,
+        version,
+        material["interface_document"],
+        np.asarray(_rows(material, spec)),
+        material,
     )
     assert out["score_meaning"] == practice_module.SCORE_MEANING
     assert out["aggregate_error"] == out["score"]
@@ -53,7 +60,9 @@ def test_the_comparison_and_the_chart_call_it_an_error_not_a_score():
 def test_the_page_never_shows_a_bare_practice_score_for_a_direct_practice():
     page = (ROOT / "scripts/dev/miner_launchpad/app.js").read_text("utf-8")
     assert 'researchNote(section, "Practice error: " + num(s.score)' in page
-    assert "0 = exact, 1 = an error as large as the Challenge's registered scale" in page
+    assert (
+        "0 = exact, 1 = an error as large as the Challenge's registered scale" in page
+    )
     assert 'Descriptive practice score: " + num(s.score)' not in page
     assert "Practice errors, lower is better, 0 = exact" in page
 
