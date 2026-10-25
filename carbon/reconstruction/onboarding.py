@@ -119,6 +119,74 @@ def _next_step(finding: dict) -> str:
     return _NEXT.get(finding["check"], "see `detail`")
 
 
+# --- any NVIDIA GPU, any host (GPU_ANY_HOST_20261025.md, step 2) ---------------
+
+
+def probe_vendors() -> dict:
+    """What this machine says about its GPU vendor, without running anything but
+    a PATH lookup: which vendor query tools exist, the operating system, and the
+    PCI vendor ids of the display adapters the kernel lists. The shape of
+    `tests/fixtures/gpu_hosts/<host>/vendor-probe.json`."""
+    import platform
+
+    ids = set()
+    try:
+        for path in sorted(Path("/sys/class/drm").glob("card[0-9]*/device/vendor")):
+            ids.add(path.read_text(encoding="ascii").strip().lower().removeprefix("0x"))
+    except OSError:
+        pass
+    return {
+        "nvidia_smi": shutil.which("nvidia-smi") is not None,
+        "rocm_smi": shutil.which("rocm-smi") is not None,
+        "uname_s": platform.system(),
+        "uname_m": platform.machine(),
+        "lspci_gpu_vendor_ids": ",".join(sorted(ids)),
+    }
+
+
+NOT_NVIDIA_REASON = (
+    "This machine's GPU is not an NVIDIA GPU: GPU practice supports NVIDIA only "
+    "for now."
+)
+NOT_NVIDIA_NEXT = (
+    "Practise on CPU (Compute: this machine's CPU), or rent an NVIDIA GPU "
+    "machine and use the remote route."
+)
+
+
+def not_nvidia(probe=None) -> bool:
+    """True when the machine has a GPU that is not NVIDIA's (AMD with ROCm, an
+    AMD adapter, or Apple silicon) and no NVIDIA tool: a gap with a CPU next
+    step, never a driver problem."""
+    probe = probe if probe is not None else probe_vendors()
+    if probe.get("nvidia_smi"):
+        return False
+    ids = set(str(probe.get("lspci_gpu_vendor_ids", "")).split(","))
+    if "10de" in ids:
+        return False
+    return bool(
+        probe.get("rocm_smi")
+        or "1002" in ids
+        or (probe.get("uname_s") == "Darwin" and probe.get("uname_m") == "arm64")
+    )
+
+
+def first_usable_device(observed: dict, **record) -> tuple[int, str] | None:
+    """(index, uuid) of the first observed GPU whose host record is well formed,
+    in the order the vendor tool listed them, or None. The miner lane's default
+    on a machine with several GPUs: deterministic, printed, and overridden by
+    naming a device. ``record`` is `build_host_record`'s other arguments."""
+    for index, device in enumerate(observed.get("devices") or []):
+        try:
+            build_host_record(
+                observed=observed, device_uuid=device.get("device_uuid"), **record
+            )
+        except WorkerFailure:
+            continue
+        return index, device["device_uuid"]
+    return None
+
+
 def _finding(check: str, state: str, detail: str, **extra) -> dict:
     return {"check": check, "state": state, "detail": detail, **extra}
 

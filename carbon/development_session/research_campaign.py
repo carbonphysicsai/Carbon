@@ -1900,6 +1900,61 @@ async def freeze_candidate(
 #: A practice task that ended in one of these states ran no training and made no experiment.
 PRACTICE_NOT_RUN_STATES = ("FAILED_INFRA", "UNRESOLVED")
 PRACTICE_COULD_NOT_RUN = "practice_could_not_run"
+#: The practice's host check failed on capacity: this machine is too small for the worker.
+PRACTICE_HOST_TOO_SMALL = "practice_host_too_small"
+
+
+class PracticeNotRun(OperationRefused):
+    """A practice that ran nothing, with the next step that fits why (`next_step`)."""
+
+    def __init__(self, code, next_step=None):
+        super().__init__(code)
+        self.next_step = next_step
+
+
+def _host_too_small_step(capacity):
+    """The miner's next step for a host that failed on capacity: its own numbers, and the
+    worker's. Only closed numeric fields of the retained failure file are read."""
+    seen = capacity.get("memory_gib")
+    cpus = capacity.get("cpus")
+    needs = capacity.get("needs_memory_gib")
+    needs_cpus = capacity.get("needs_cpus")
+    numbers = (seen, cpus, needs, needs_cpus)
+    if not all(type(value) in (int, float) for value in numbers):
+        return None
+    return (
+        f"This machine is too small for the practice: Docker sees {seen} GiB of memory "
+        f"and {cpus} CPUs, and the practice worker needs {needs} GiB and "
+        f"{needs_cpus} CPUs (it runs under a {needs - 1:g} GiB limit, and Docker must see 1 GiB "
+        "more). Nothing ran and nothing counts against you. The supported machine has 32 GB of "
+        "RAM and 4 or more CPUs (docs/MINING.md, Supported setup); on a smaller machine, "
+        "run the practice on a bigger one (a rented CPU machine is enough) or use a "
+        "Challenge version that fits. `docker info` shows what Docker sees (MemTotal, NCPU)."
+    )
+
+
+def _retained_capacity_shortfall(ledger_root, since_unix):
+    """The `capacity` numbers of the newest retained host-readiness failure written
+    since ``since_unix``, or None. Reads closed fields of our own failure file only."""
+    newest = None
+    try:
+        for path in ledger_root.glob("operation-*/failure-HOST_READINESS.json"):
+            if path.is_symlink() or path.stat().st_mtime < since_unix - 1:
+                continue
+            if newest is None or path.stat().st_mtime > newest.stat().st_mtime:
+                newest = path
+        if newest is None:
+            return None
+        document = json.loads(newest.read_bytes())
+    except (OSError, ValueError):
+        return None
+    if (
+        type(document) is not dict
+        or document.get("reason") != "HOST_TOO_SMALL"
+        or type(document.get("capacity")) is not dict
+    ):
+        return None
+    return document["capacity"]
 
 
 async def practice_recipe(
@@ -1948,6 +2003,7 @@ async def practice_recipe(
         None,
     )
     started = time.monotonic()
+    started_unix = time.time()
     answer = await prepared.sdk.call(
         PREFIX + "start_research_task",
         {
@@ -1969,6 +2025,10 @@ async def practice_recipe(
     # stage was written to a private file and every door read READY, no refusal).
     task = answer.get("terminal_task") if isinstance(answer, dict) else None
     if isinstance(task, dict) and task.get("state") in PRACTICE_NOT_RUN_STATES:
+        capacity = _retained_capacity_shortfall(prepared.ledger.root, started_unix)
+        step = None if capacity is None else _host_too_small_step(capacity)
+        if step is not None:
+            raise PracticeNotRun(PRACTICE_HOST_TOO_SMALL, step)
         raise OperationRefused(PRACTICE_COULD_NOT_RUN)
     return answer
 

@@ -1,0 +1,8 @@
+{
+ "docker_nvidia_runtime": false,
+ "prepare": {
+  "next_contains": "CPU",
+  "reason_contains": "not an NVIDIA GPU",
+  "status": "REFUSED"
+ }
+}

@@ -1,0 +1,5 @@
+{
+ "platform": "LINUX_BARE_METAL",
+ "provenance": "synthetic",
+ "source": "an AMD GPU with rocm-smi"
+}

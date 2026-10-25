@@ -119,6 +119,30 @@ def test_the_check_is_due_once_a_week_per_sealed_exam(tmp_path):
     assert exam_rotation.FRESH_DRAW_PERIOD_BLOCKS == 7 * 7200
 
 
+def test_the_weekly_check_is_scheduled_and_an_overdue_one_stays_due_until_it_runs(
+    tmp_path,
+):
+    """G5b pin (pre-mainnet attack tests): the weekly incumbent regrade is what bounds a lucky king's ratchet, so
+    its schedule is pinned: seven days of blocks, due the first time, still due however late, and quiet for a week
+    only once a check is logged. The operator runs `exam_rotation due` and `check` on this schedule.
+    """
+    assert exam_rotation.FRESH_DRAW_PERIOD_BLOCKS == 7 * exam_cap.DAY_BLOCKS == 50_400
+    assert exam_rotation.FRESH_DRAW_PERIOD_BLOCKS < exam_cap.MAX_EXAM_AGE_BLOCKS
+    log = _log(tmp_path)
+    due = lambda block: log.due(
+        challenge_id="electric-motor-magnetics", sealed_key=SEALED, block=block
+    )
+    assert due(0)  # a king never checked is due at once
+    _record(log, 1_000)
+    week = exam_rotation.FRESH_DRAW_PERIOD_BLOCKS
+    assert not due(1_000 + week - 1)
+    for late in (week, week + 1, 3 * week, 12 * week):
+        assert due(late + 1_000)  # a missed check never lapses
+    _record(log, 1_000 + 3 * week)  # running it late restarts the week from that block
+    assert not due(1_000 + 4 * week - 1)
+    assert due(1_000 + 4 * week)
+
+
 def test_both_totals_and_the_decision_are_logged_operator_side(tmp_path):
     log = _log(tmp_path)
     _record(log, 7, outcome="ROTATE")

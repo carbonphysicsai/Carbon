@@ -296,8 +296,10 @@ class FakeIndex:
     def __init__(self, built, sdist=None):
         self.built, self.sdist, self.calls = built, sdist or _sdist(), []
 
-    def run(self, command, check, env=None):
+    def run(self, command, check, env=None, preexec_fn=None):
         self.calls.append((command, env))
+        self.preexec = getattr(self, "preexec", {})
+        self.preexec["wheel" if "wheel" in command else "other"] = preexec_fn
         if "--only-binary=:all:" in command and "download" in command:
             raise subprocess.CalledProcessError(1, command)
         if "--require-hashes" in command:
@@ -409,3 +411,22 @@ def test_the_torch_harmonics_source_pin_names_every_build_requirement():
     }
     for _, version, digest in pin["build"]:
         assert version and wheelhouse.SHA256.fullmatch(digest)
+
+
+def test_the_rebuild_does_not_depend_on_the_owners_umask(index, tmp_path):
+    """M1 rc26: the same pinned source built to a different wheel under an owner umask of 077 (0e2437f8...) than
+    under 022 (the pin, 326941e1...): the zip's file modes follow what pip extracted. The build child now runs with
+    umask 022, whatever the host's."""
+    import os
+
+    pinned = b"reproducible wheel bytes"
+    fake = index(pinned)
+    wheelhouse._fetch(NAME, _digest(pinned), tmp_path)
+    child = fake.preexec["wheel"]
+    assert child is wheelhouse._build_umask
+    ambient = os.umask(0o077)
+    try:
+        child()  # what the forked build process does before pip runs
+        assert os.umask(0o077) == 0o022
+    finally:
+        os.umask(ambient)

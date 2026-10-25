@@ -528,6 +528,12 @@ GPU_TEST_FAILED_STEP = (
 )
 
 
+def _supported_setup_warning():
+    from carbon.development_session import supported_setup
+
+    return supported_setup.cached_warning()
+
+
 def driver_warning(image, driver):
     """A plain warning when the GPU machine's driver runs an older CUDA than
     `image`'s GPU runtime is built for (M1 S5: the JAX cuda13 worker failed
@@ -1454,6 +1460,15 @@ class LiveChecks:
         try:
             observed = onboarding.observe_local_device()
         except WorkerFailure:
+            if onboarding.not_nvidia(onboarding.probe_vendors()):
+                # AMD and Apple GPUs: a gap with a CPU next step, not a driver problem.
+                raise SetupRefused(
+                    "gpu",
+                    "gpu_not_detected",
+                    next_step=onboarding.NOT_NVIDIA_REASON
+                    + " "
+                    + onboarding.NOT_NVIDIA_NEXT,
+                ) from None
             raise SetupRefused(
                 "gpu",
                 "gpu_not_detected",
@@ -1465,14 +1480,31 @@ class LiveChecks:
         except WorkerFailure:
             info = None
         runtime = onboarding._detect_container_runtime(info)
+        record_arguments = {
+            "record_id": GPU_RECORD_ID,
+            "provider": GPU_PROVIDER,
+            "container_runtime": None if runtime == onboarding.UNKNOWN else runtime,
+            "provenance": "detected by Launchpad setup with "
+            + str(observed.get("source")),
+        }
+        # Several GPUs: the first usable one, in the vendor tool's order; a missing
+        # choice never refuses (your own practice host). The choice is reported.
+        chosen = None
+        device_uuid = None
+        if len(observed.get("devices") or []) > 1:
+            found = onboarding.first_usable_device(observed, **record_arguments)
+            if found is not None:
+                device_uuid = found[1]
+                chosen = {
+                    "index": found[0],
+                    "device_kind": observed["devices"][found[0]].get("device_kind"),
+                    "how": "the first usable GPU of "
+                    + str(len(observed["devices"]))
+                    + "; run carbon_accelerator.py prepare --miner-lane --device GPU-<uuid> to use another",
+                }
         try:
             document = onboarding.build_host_record(
-                observed=observed,
-                record_id=GPU_RECORD_ID,
-                provider=GPU_PROVIDER,
-                container_runtime=None if runtime == onboarding.UNKNOWN else runtime,
-                provenance="detected by Launchpad setup with "
-                + str(observed.get("source")),
+                observed=observed, device_uuid=device_uuid, **record_arguments
             )
         except WorkerFailure as failure:
             # A container GPU host (a hosted instance running Docker) is
@@ -1565,6 +1597,7 @@ class LiveChecks:
             "scope": scope,
             "device_kind": record.device_kind,
             "record_digest": record.digest,
+            **({"chosen_gpu": chosen} if chosen else {}),
         }
 
     def _remote(self, gpu_manifest: Path, machine):
@@ -2567,6 +2600,9 @@ class EnvironmentSetup:
         return {
             "schema": SETUP_SCHEMA,
             "registered_hotkey": record.get("hotkey"),
+            # Warned about, never blocked: this machine is not the one launch
+            # setup (OWNER-LAUNCH-SUPPORTED-MACHINE-01); None when it is.
+            "supported_setup": _supported_setup_warning(),
             # "Test my GPU"'s last verdicts, per framework (never a score).
             "gpu_test": record.get("gpu_test"),
             # Setup's "Practise without registering": chosen, and no
@@ -4718,6 +4754,18 @@ def describe_install(report: dict) -> list[str]:
                 + (", unchanged" if image["from"] else "")
             )
     lines.append("Your setup:")
+    unsupported = _supported_setup_warning()
+    if unsupported:
+        lines.append(
+            "  Machine: "
+            + unsupported["message"]
+            + " It differs in: "
+            + "; ".join(
+                f"{row['check']} ({row['found']}, supported: {row['supported']})"
+                for row in unsupported["differences"]
+            )
+            + "."
+        )
     compute = report.get("compute")
     if compute == "not set up yet":
         lines.append(

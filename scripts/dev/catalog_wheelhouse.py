@@ -235,6 +235,14 @@ def _build_requirements(archive):
     return list((document.get("build-system") or {}).get("requires") or [])
 
 
+def _build_umask():
+    """Runs in the build's child process: the wheel's bytes carry the file modes of what pip extracted from the
+    source distribution, so they must not depend on the host owner's umask (M1 rc26: an owner umask of 077 built a
+    different wheel, sha256 0e2437f8..., than the pinned 326941e1..., and the wheelhouse refused it).
+    """
+    os.umask(0o022)
+
+
 def _rebuild(name, work):
     """`name` built from its pinned source distribution (`SOURCE_PINS`):
     the sdist is fetched and its sha256 checked before anything of it runs;
@@ -305,6 +313,7 @@ def _rebuild(name, work):
             ],
             check=True,
             env=variables,
+            preexec_fn=_build_umask,
         )
     except subprocess.CalledProcessError:
         raise WheelhouseRefused(

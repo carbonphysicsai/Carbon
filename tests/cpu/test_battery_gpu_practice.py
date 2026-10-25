@@ -745,15 +745,53 @@ def test_a_blocked_miner_lane_check_says_why_in_plain_words(live, monkeypatch):
     )
 
 
-def test_a_multi_gpu_machine_is_asked_to_choose_not_picked_for(live, monkeypatch):
+def test_a_multi_gpu_machine_uses_its_first_usable_gpu_and_says_so(live, monkeypatch):
+    """Your own practice host: a missing choice never refuses (GPU_ANY_HOST_20261025 rule 3)."""
     second = {
         **OBSERVED["devices"][0],
         "device_uuid": "GPU-41e88d04-75ff-89b2-9160-4b923dd7eb81",
     }
     two = {**OBSERVED, "devices": [OBSERVED["devices"][0], second]}
     monkeypatch.setattr(onboarding, "observe_local_device", lambda **_: two)
+    found = live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert found["chosen_gpu"]["index"] == 0
+    assert "use another" in found["chosen_gpu"]["how"]
+    assert HostDeviceRecord.load(live.root).device_uuid == UUID
+
+
+def test_the_first_gpu_whose_record_is_well_formed_is_used(live, monkeypatch):
+    broken = {**OBSERVED["devices"][0], "display_active": "[N/A]"}
+    good = {
+        **OBSERVED["devices"][0],
+        "device_uuid": "GPU-41e88d04-75ff-89b2-9160-4b923dd7eb81",
+    }
+    monkeypatch.setattr(
+        onboarding,
+        "observe_local_device",
+        lambda **_: {**OBSERVED, "devices": [broken, good]},
+    )
+    found = live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert found["chosen_gpu"]["index"] == 1
+
+
+def test_an_amd_or_apple_machine_gets_a_gap_with_the_cpu_next_step(live, monkeypatch):
+    def no_nvidia(**_):
+        raise WorkerFailure(WorkerCode.UNAVAILABLE)
+
+    monkeypatch.setattr(onboarding, "observe_local_device", no_nvidia)
+    monkeypatch.setattr(
+        onboarding,
+        "probe_vendors",
+        lambda: {
+            "nvidia_smi": False,
+            "rocm_smi": True,
+            "uname_s": "Linux",
+            "uname_m": "x86_64",
+            "lspci_gpu_vendor_ids": "1002",
+        },
+    )
     with pytest.raises(SetupRefused) as refused:
         live.checks.gpu(live.manifest, campaign=battery_campaign())
-    assert refused.value.code == "gpu_record_needs_your_choice"
-    assert "--device GPU-<uuid>" in refused.value.next_step
-    assert "nvidia-smi -L" in refused.value.next_step
+    assert (refused.value.field, refused.value.code) == ("gpu", "gpu_not_detected")
+    assert "not an NVIDIA GPU" in refused.value.next_step
+    assert "Practise on CPU" in refused.value.next_step

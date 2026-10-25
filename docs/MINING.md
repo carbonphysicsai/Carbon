@@ -16,10 +16,29 @@ This guide gets you from a clean machine to your first graded model.
 
 ## What you need
 
-- **A Linux machine** (x86-64), or Windows with WSL2. It needs Docker ([install Docker Engine](https://docs.docker.com/engine/install/), start it, add yourself to the `docker` group) and free disk for Carbon's images; the installer checks the space first and says how much it needs. A GPU is optional; to practise on this machine's GPU, install the [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), then install with `--gpu`.
+- **A Linux machine** (x86-64; see [Supported setup](#supported-setup): 32 GB of RAM and 4 CPUs), or Windows with WSL2. It needs Docker ([install Docker Engine](https://docs.docker.com/engine/install/), start it, add yourself to the `docker` group) and free disk for Carbon's images; the installer checks the space first and says how much it needs. A GPU is optional; to practise on this machine's GPU, install the [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), then install with `--gpu`.
 - **To practise: nothing to register.** You can run your agent and practise on any Challenge without a wallet, a registration or a signer (see **Just want to practise?** in step 4).
 - **To freeze and submit: a Bittensor wallet with a hotkey registered on subnet 567.** Carbon never asks for your keys or seed phrase. Your hotkey stays in your own wallet.
 - **A model key from a provider**, if you want Carbon's agent (Graphite) or Hermes to do the research. Setup lists the providers each agent can use. Save the key in a file only you can read; Carbon reads it from that file. Skip this if you bring your own agent, e.g. Claude Code, which uses its own model.
+
+---
+
+## Supported setup
+
+Carbon's launch supports **one** setup, and a run on it is guaranteed:
+
+| | Supported |
+|---|---|
+| Operating system | Ubuntu 22.04 or 24.04, x86-64 |
+| Docker | Docker 29 (the installer may install it) |
+| Memory | **32 GB of RAM**. Practice runs its worker with a 16 GiB limit and needs Docker to see at least 17 GiB, so a 16 GB machine (about 15.6 GiB) cannot run it |
+| CPUs | at least 4 |
+| Disk | about 150 GB free |
+| GPU | optional; any NVIDIA GPU with driver **580.65.06 or newer** |
+
+**Minimum NVIDIA driver.** Carbon's GPU builds (the PyTorch and JAX runtimes) are built on CUDA 13.0, and NVIDIA's table of the driver each toolkit needs gives CUDA 13.0 on Linux x86-64 as 580.65.06 or newer (later CUDA 13.x runs on any 580 driver). Source: [NVIDIA CUDA Toolkit 13.0 release notes](https://docs.nvidia.com/cuda/archive/13.0.0/cuda-toolkit-release-notes/index.html). An older driver is not blocked; a GPU practice that cannot start on it says "driver too old" and practises on CPU.
+
+**Any other setup gets a warning, not a block.** The installer, and a note at the top of the Control Center, say: *this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run*, and list what differs (system, Docker, memory, CPUs, disk, driver) and anything it could not check. Other Docker versions and other Linux distributions are planned after launch.
 
 ---
 
@@ -259,6 +278,7 @@ Hermes asks you before each action that changes something (launch, practise, fre
 | A practice says it **needs more time than the campaign has left** (time limit reached) | It is your own time limit, not a failure: each practice reserves its whole build-and-run allowance before it starts. Launch a new campaign with a larger time limit (`budget.elapsed_seconds`, or leave it out), or leave more of the time for practice (a long planning stage uses it up). |
 | Setup or a practice says your GPU machine's **NVIDIA driver is older** than a GPU worker's CUDA runtime | Update the driver on your GPU machine (`nvidia-smi` shows the newest CUDA it runs), then check Compute again. Until then that backend practises on CPU; the other backend's GPU worker may still run. |
 | A practice ends **practice_could_not_run** (no result, nothing counts against you) | An infrastructure problem before any training: its build or host check failed. Check Setup (`carbon_setup_status`) and that Docker and the worker images are present, then practise again. The campaign's operation folder holds a `failure-<stage>.json` naming the stage (and, for a known cause, a closed reason such as `REQUIRED_LOCAL_IMAGE_ABSENT`). |
+| A practice ends **practice_host_too_small** (it names the memory and CPUs Docker sees and the worker needs) | This machine is too small for the practice worker: Docker must see at least 17 GiB of memory and 4 CPUs (a 16 GB machine shows about 15.6 GiB). Nothing ran and nothing counts against you. Use the [supported setup](#supported-setup) (32 GB of RAM), or practise on a bigger machine. `docker info` shows what Docker sees (MemTotal, NCPU). |
 | A practice says it **could not run on this machine** (a catalog entry with no CPU build here, whose GPU build did not run) | Fix the reason it names: update an NVIDIA driver that is too old for the worker, or pull the pinned uv image GPU builds prepare with (the command is in the message; the installer pulls it with `--gpu`). Or choose a catalog entry that has a CPU build. Nothing was scored. |
 | A practice says **not eligible** | It broke a physics rule; the card says which one. Try another recipe. |
 | Freeze, submit, commit or check for result says **registration required** | You set up to practise without registering. Register, then follow the four steps under **Just want to practise?**. |

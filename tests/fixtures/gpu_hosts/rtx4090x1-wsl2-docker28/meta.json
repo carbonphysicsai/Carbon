@@ -1,0 +1,5 @@
+{
+ "platform": "WSL2",
+ "provenance": "synthetic",
+ "source": "values of the OBSERVED fixture in test_battery_gpu_practice.py"
+}

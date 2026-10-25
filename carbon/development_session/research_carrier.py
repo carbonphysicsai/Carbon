@@ -369,6 +369,47 @@ _FIXED_DIAGNOSTIC_PROVENANCES = frozenset(
 )
 
 
+class HostTooSmall(ValueError):
+    """The host's Docker sees less memory or fewer CPUs than the practice worker needs
+    (the worker runs under a memory limit and Docker must see that plus 1 GiB, and the
+    worker's CPUs). The numbers are the miner's own machine's and the worker profile's,
+    so they are safe to record and to say."""
+
+    def __init__(self, seen_memory_bytes, seen_cpus, needs_memory_bytes, needs_cpus):
+        super().__init__("research host too small")
+        self.capacity = {
+            "memory_gib": round(seen_memory_bytes / 1024**3, 1),
+            "cpus": seen_cpus,
+            "needs_memory_gib": round(needs_memory_bytes / 1024**3, 1),
+            "needs_cpus": needs_cpus,
+        }
+
+
+def _host_capacity_shortfall(checked, sizing):
+    """`HostTooSmall` for a doctor verdict that failed on capacity, else None."""
+    from carbon.reconstruction.worker.docker_runtime import (
+        CPU_COUNT,
+        MEMORY_BYTES,
+    )
+
+    if checked.code != "worker.doctor.capacity_or_cgroup_ineligible":
+        return None
+    info = checked.host.get("info") if isinstance(checked.host, dict) else None
+    if not isinstance(info, dict):
+        return None
+    profile = sizing.get("worker_profile")
+    needs_memory = (
+        MEMORY_BYTES if profile is None else profile.effective_memory_bytes
+    ) + 1024**3
+    needs_cpus = CPU_COUNT if profile is None else profile.effective_cpu_count
+    memory, cpus = info.get("MemTotal"), info.get("NCPU")
+    if type(memory) is not int or type(cpus) is not int:
+        return None
+    if memory >= needs_memory and cpus >= needs_cpus:
+        return None  # capacity is fine: the cgroup version or the engine mode is not
+    return HostTooSmall(memory, cpus, needs_memory, needs_cpus)
+
+
 _PRACTICE_FAILURE_STAGES = frozenset(
     {
         "STAGING",
@@ -415,6 +456,7 @@ _PRACTICE_FAILURE_REASONS = (
     ("library worker child binding differs", "LIBRARY_CHILD_BINDING_DIFFERS"),
     ("pinned local uv image differs", "UV_IMAGE_DIFFERS"),
     ("required local image absent", "REQUIRED_LOCAL_IMAGE_ABSENT"),
+    ("research host too small", "HOST_TOO_SMALL"),
 )
 
 
@@ -476,6 +518,11 @@ def _retain_practice_failure(operation, stage, error):
                     "worker_code": code.value if type(code) is WorkerCode else None,
                     "diagnostic_markers": markers,
                     **({} if reason is None else {"reason": reason}),
+                    **(
+                        {"capacity": error.capacity}
+                        if isinstance(error, HostTooSmall)
+                        else {}
+                    ),
                     **({} if controls is None else {"controls_predicate": controls}),
                 }
             ),
@@ -1116,7 +1163,10 @@ def _run_locked(
                     _check_gpu_host(cli, image, device, _gpu_pins(image, accelerator))
             if not checked.eligible:
                 # No attempt is automatically retried and its reservation remains
-                # visible.
+                # visible. A host that is simply too small says so, with its numbers.
+                shortfall = _host_capacity_shortfall(checked, sizing)
+                if shortfall is not None:
+                    raise shortfall
                 raise ValueError("research host ineligible")
     except Exception:
         _settle_nothing_created(

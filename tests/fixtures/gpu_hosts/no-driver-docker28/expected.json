@@ -1,0 +1,10 @@
+{
+ "docker_nvidia_runtime": false,
+ "prepare": {
+  "fields": [
+   "nvidia_smi"
+  ],
+  "next_contains": "NVIDIA driver",
+  "status": "REFUSED"
+ }
+}
