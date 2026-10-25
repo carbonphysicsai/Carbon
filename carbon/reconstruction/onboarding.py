@@ -34,6 +34,7 @@ from carbon.reconstruction.host_inventory import (
     HOST_DEVICE_RECORD,
     HOST_DEVICE_SCHEMA,
     HostDeviceRecord,
+    HostRecordRefused,
     require_host_device,
 )
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
@@ -53,6 +54,13 @@ _SMI_QUERY = (
     "uuid,name,driver_version,driver_model.current,"
     "compute_cap,memory.total,display_active"
 )
+
+
+def _driver_model(raw: str) -> str:
+    """The vendor tool's driver model as the record names it: an empty or
+    bracketed not-applicable marker is "N/A"; anything else is passed through
+    for the record's own check to judge."""
+    return "N/A" if raw in ("", "[N/A]", "[n/a]", "n/a", "N/A") else raw
 
 
 def _finding(check: str, state: str, detail: str, **extra) -> dict:
@@ -104,7 +112,9 @@ def observe_local_device(*, binary: str | None = None, timeout: float = 15.0) ->
                 "device_uuid": parts[0],
                 "device_kind": parts[1],
                 "driver_version": parts[2],
-                "driver_model": parts[3] if parts[3] else "N/A",
+                # The vendor tool prints [N/A] where a field does not apply (on
+                # Linux the driver model); that is the record's "N/A".
+                "driver_model": _driver_model(parts[3]),
                 "compute_capability": parts[4],
                 "device_memory_mib": parts[5],
                 "display_active": parts[6].capitalize(),
@@ -217,7 +227,9 @@ def build_host_record(
     }
     # Validate before anything is written, so a bad observation never lands on
     # disk where a later command would read it back as installed evidence.
-    HostDeviceRecord(document, "sha256:" + "0" * 64).validate()
+    problems = HostDeviceRecord(document, "sha256:" + "0" * 64).problems()
+    if problems:
+        raise HostRecordRefused(problems)
     require_host_device(HostDeviceRecord(document, "sha256:" + "0" * 64), profile)
     return document
 
