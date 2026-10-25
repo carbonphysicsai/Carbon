@@ -355,19 +355,35 @@ def test_train_spread_is_the_population_std_of_each_derived_output(kind, version
     assert all(v > 0.0 for v in spread.values())
 
 
-def test_cooling_element_32_u_is_three_percent_of_that_rows_own_pressure_drop():
+def test_cooling_1_4_raw_u_moves_the_decoded_peak_by_u_die_and_the_decoded_dp_by_three_percent():
+    from carbon.cold_plate import output_encoding
+
     bound = _binding("cooling")
-    rows = _reference_rows("cooling")[:6]
+    rows = _reference_rows("cooling")[:8]
     seen = set()
     for row in rows:
         native = [float(v) for v in row["reference"]]
-        model_row = bound.to_model_space(native)
-        u = bound.raw_u(row["inputs"], model_row)
-        assert len(u) == 32 and u[:31] == [0.05] * 31
-        # 3 % of the row's own dp (the encoded element decodes back to the native dp), never an absolute value
-        assert math.isclose(u[31], 0.03 * native[31], rel_tol=1e-9)
+        encoded = bound.to_model_space(native)
+        u = bound.raw_u(row["inputs"], encoded)
+        assert len(u) == 32 and u[1:31] == [0.05] * 30
+        base = output_encoding.decode_flat(encoded)
+        for slot, decoded_index, want in ((0, 0, 0.05), (31, 31, 0.03 * native[31])):
+            stepped = list(encoded)
+            stepped[slot] += u[slot]
+            moved = (
+                output_encoding.decode_flat(stepped)[decoded_index]
+                - base[decoded_index]
+            )
+            assert math.isclose(moved, want, rel_tol=0.01), (slot, moved, want)
+            # a step down never moves the decoded value by more than U
+            down = list(encoded)
+            down[slot] -= u[slot]
+            back = (
+                output_encoding.decode_flat(down)[decoded_index] - base[decoded_index]
+            )
+            assert -want * 1.01 <= back <= 0.0, (slot, back, want)
         seen.add(round(u[31], 9))
-    assert len(seen) > 1  # it varies with the row
+    assert len(seen) > 1  # it varies with the row, never an absolute number
 
 
 def test_cooling_1_3_native_rows_use_the_same_three_percent_rule():
@@ -380,7 +396,9 @@ def test_cooling_1_3_native_rows_use_the_same_three_percent_rule():
         serve_default=lambda rows: [],
     )
     native = [float(v) for v in _reference_rows("cooling")[0]["reference"]]
-    assert math.isclose(bound.raw_u({}, native)[31], 0.03 * native[31], rel_tol=1e-12)
+    got = bound.raw_u({}, native)
+    assert math.isclose(got[31], 0.03 * native[31], rel_tol=1e-12)
+    assert got[0] == 0.05 and got[1:31] == [0.05] * 30
 
 
 @pytest.mark.parametrize(

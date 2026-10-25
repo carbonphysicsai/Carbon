@@ -367,11 +367,28 @@ def _raw_u_of(kind, version, u):
         def cooling_raw_u(_inputs, reference_row):
             if len(reference_row) != 32:
                 raise PoolAdapterRefused("raw_row_width_is_not_the_interface_width")
+            die, profile = float(u["die_peak_c"]), [float(u["die_peak_c"])] * 30
+            first, last = float(reference_row[0]), float(reference_row[31])
+            if not encoded:
+                # Cooling 1.3: the row is native (peak, 30 profile values, dp).
+                return [die, *profile, share * abs(last)]
+            # Cooling 1.4: the row is the encoded one. The peak is the profile maximum plus softplus(e) and the
+            # pressure drop is softplus(q). The step that moves the DECODED quantity by U at this row's own
+            # reference is exact, not the first-order U / sigmoid (which overshoots where softplus is curved,
+            # i.e. a peak close to the profile maximum): U_e = softplus^-1(softplus(e) + U_die) - e and
+            # U_q = softplus^-1((1 + r) softplus(q)) - q. They equal U / sigmoid where the encoding is locally
+            # linear; a step down moves the decoded value by no more than U (softplus is convex).
             from carbon.cold_plate import output_encoding
 
-            last = float(reference_row[31])
-            dp = output_encoding._softplus(last) if encoded else last
-            return [float(u["die_peak_c"])] * 31 + [share * abs(float(dp))]
+            def step(x, increase):
+                y = float(output_encoding._softplus(x))
+                return float(output_encoding._inverse_softplus([y + increase])[0]) - x
+
+            return [
+                step(first, die),
+                *profile,
+                step(last, share * float(output_encoding._softplus(last))),
+            ]
 
         return cooling_raw_u
 
