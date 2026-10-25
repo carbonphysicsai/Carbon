@@ -313,6 +313,27 @@ HOW_TESTED_LINES = (
         ),
     ),
     (
+        "optimizer",
+        "The search, to copy",
+        (
+            "You may copy this search for your own practice; it never enters "
+            "the grade. In each target, CMA-ES proposes points in the "
+            "normalised design box and each proposal snaps to the nearest "
+            "solved design not yet queried; your model predicts that design's "
+            "outputs; designs are ranked first by whether they are predicted to "
+            "meet the limits and then by the predicted objective. After the "
+            "fixed number of queries the pick is the best predicted-feasible "
+            "design among those queried, and its true outputs are looked up. A "
+            "pick that is not feasible scores 0. Otherwise the target scores "
+            "closeness times honesty, where closeness = (objective of the pick "
+            "- median feasible objective) / (best known objective - median "
+            "feasible objective), clipped to 0..1, and honesty = exp(-e / s), "
+            "with e your model's uncertainty-normalised error at the pick. D is "
+            "the mean over the targets, limited by C. The query budget, the "
+            "step size and s are not yet registered."
+        ),
+    ),
+    (
         "variants",
         "Tighter and looser limits",
         (

@@ -160,7 +160,6 @@ HIDDEN_IN_HOW = (
     "start point",
     "starting point",
     "pool",
-    "median",
     "cma-es seed",
     "extended region",
     "25 %",
@@ -178,6 +177,7 @@ def test_a_pool_version_serves_the_how_you_are_tested_lines(pool_version):
     assert [line["id"] for line in lines] == [
         "score",
         "inverse_design",
+        "optimizer",
         "variants",
         "out_of_range",
         "gates",
