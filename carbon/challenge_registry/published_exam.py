@@ -354,9 +354,10 @@ HOW_TESTED_LINES = (
         "gates",
         "Physics gates",
         (
-            "The physics gates run on every answer your model gives, inside and "
-            "outside the range. Failing any gate means no score at all, however "
-            "good the rest. You are told which gate failed, never which design."
+            "The physics gates that check a single answer run on every answer "
+            "your model gives, inside and outside the range. Failing any gate "
+            "means no score at all, however good the rest. You are told which "
+            "gate failed, never which design."
         ),
     ),
     ("speed", "Speed", SPEED_LINE),
