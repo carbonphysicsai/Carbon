@@ -351,13 +351,20 @@ def server(controller):
     thread.join(timeout=3)
 
 
+REQUEST_TIMEOUT_SECONDS = float(os.environ.get("CARBON_TEST_REQUEST_TIMEOUT", "30"))
+
+
 def request(server, path, method="GET", body=None, headers=None, raw=False):
     headers = dict(headers or {})
     if body is not None:
         headers.setdefault("Content-Type", "application/json")
         if not raw:
             body = json.dumps(body)
-    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+    # A cold first request (capabilities, setup) takes seconds on a 4-core host (gate rc38, 4 vCPU / 8 GB:
+    # a 3 s read timeout failed test_capture_release_door_surfaces on rc26 too). A hang still fails here.
+    connection = http.client.HTTPConnection(
+        "127.0.0.1", server.server_port, timeout=REQUEST_TIMEOUT_SECONDS
+    )
     connection.request(method, path, body, headers)
     response = connection.getresponse()
     content = response.read()
