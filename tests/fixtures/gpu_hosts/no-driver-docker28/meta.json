@@ -1,0 +1,5 @@
+{
+ "platform": "LINUX_BARE_METAL",
+ "provenance": "synthetic",
+ "source": "a machine with an NVIDIA card and no driver installed"
+}

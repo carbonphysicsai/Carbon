@@ -1,0 +1,9 @@
+{
+ "currently_fails": "descriptive fields the tool cannot read refuse the record today (step 2: unknown, not invalid)",
+ "docker_nvidia_runtime": true,
+ "prepare": {
+  "chosen_index": 0,
+  "gpus": 1,
+  "status": "NOT_WRITTEN"
+ }
+}

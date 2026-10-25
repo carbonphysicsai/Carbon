@@ -1,0 +1,7 @@
+{
+ "prepare": {
+  "next_contains": "CPU",
+  "reason_contains": "not an NVIDIA GPU",
+  "status": "REFUSED"
+ }
+}

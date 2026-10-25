@@ -1,0 +1,1 @@
+{"CgroupDriver": "systemd", "CgroupVersion": "2", "Driver": "overlayfs", "MemTotal": 270000000000, "NCPU": 32, "OperatingSystem": "Ubuntu 24.04.3 LTS", "Runtimes": {"io.containerd.runc.v2": {}, "nvidia": {"path": "nvidia-container-runtime"}, "runc": {}}, "SecurityOptions": ["name=apparmor", "name=seccomp,profile=builtin", "name=cgroupns"], "ServerVersion": "29.1.3"}
