@@ -173,3 +173,107 @@ def test_every_record_field_has_a_hint():
     from carbon.reconstruction.host_inventory import REQUIRED_FIELDS
 
     assert set(carbon_accelerator.FIELD_HINTS) >= REQUIRED_FIELDS
+
+
+def test_a_multi_device_host_names_the_choice_and_lists_the_devices():
+    from carbon.reconstruction.host_inventory import DeviceChoiceRequired
+
+    second = {
+        **OBSERVED_DEVICE,
+        "device_uuid": "GPU-1f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0",
+    }
+    observed = {"devices": [OBSERVED_DEVICE, second]}
+    with pytest.raises(DeviceChoiceRequired) as refused:
+        onboarding.build_host_record(
+            observed=observed,
+            device_uuid=None,
+            profile=GPU_PROFILE,
+            record_id="this-machine",
+            provider="own-machine",
+            platform="LINUX_BARE_METAL",
+            container_runtime="DOCKER_ENGINE",
+            provenance="recorded observation from a test file",
+        )
+    assert refused.value.fields == ("device",)
+    assert [c["device_uuid"] for c in refused.value.choices] == [
+        OBSERVED_DEVICE["device_uuid"],
+        second["device_uuid"],
+    ]
+    assert refused.value.code is WorkerCode.INVALID
+    # Naming one of them works; naming one that is not there lists the choices again.
+    document = onboarding.build_host_record(
+        observed=observed,
+        device_uuid=second["device_uuid"],
+        profile=GPU_PROFILE,
+        record_id="this-machine",
+        provider="own-machine",
+        platform="LINUX_BARE_METAL",
+        container_runtime="DOCKER_ENGINE",
+        provenance="recorded observation from a test file",
+    )
+    assert document["device_uuid"] == second["device_uuid"]
+    with pytest.raises(DeviceChoiceRequired):
+        onboarding.build_host_record(
+            observed=observed,
+            device_uuid="GPU-00000000-0000-0000-0000-000000000000",
+            profile=GPU_PROFILE,
+            record_id="this-machine",
+            provider="own-machine",
+            platform="LINUX_BARE_METAL",
+            container_runtime="DOCKER_ENGINE",
+            provenance="recorded observation from a test file",
+        )
+
+
+def test_the_command_line_lists_the_choices_for_a_multi_gpu_host(tmp_path, capsys):
+    second = {
+        **OBSERVED_DEVICE,
+        "device_uuid": "GPU-1f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0",
+    }
+    source = tmp_path / "observed.json"
+    source.write_text(json.dumps({"devices": [OBSERVED_DEVICE, second]}))
+    code = carbon_accelerator.main(
+        [
+            "--host-root",
+            str(tmp_path / "root"),
+            "prepare",
+            "--record-id",
+            "this-machine",
+            "--provider",
+            "own-machine",
+            "--platform",
+            "LINUX_BARE_METAL",
+            "--container-runtime",
+            "DOCKER_ENGINE",
+            "--from",
+            str(source),
+        ]
+    )
+    out = json.loads(capsys.readouterr().out)
+    assert code == 2
+    assert out["code"] == "reconstruction.worker.request.invalid"
+    assert out["fields"] == ["device"]
+    assert "--device" in out["reasons"]["device"]
+    assert [c["device_uuid"] for c in out["choices"]] == [
+        OBSERVED_DEVICE["device_uuid"],
+        second["device_uuid"],
+    ]
+
+
+def test_the_doctor_says_whether_your_own_practice_is_blocked():
+    findings = [
+        {"check": "installed_authority", "state": "BLOCKED"},
+        {"check": "host_device_record", "state": "READY"},
+    ]
+    assert onboarding.miner_lane_blockers({"findings": findings}) == []
+    findings.append({"check": "container_daemon", "state": "BLOCKED"})
+    assert onboarding.miner_lane_blockers({"findings": findings}) == [
+        "container_daemon"
+    ]
+
+
+def test_the_installer_says_how_to_get_what_is_missing():
+    script = (ROOT / "scripts" / "install_miner.sh").read_text(encoding="utf-8")
+    assert 'is not installed. $(install_hint "${tool}")' in script
+    assert "https://docs.docker.com/engine/install/" in script
+    assert "NVIDIA Container Toolkit" in script

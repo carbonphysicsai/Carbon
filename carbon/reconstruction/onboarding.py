@@ -33,6 +33,7 @@ from carbon.reconstruction.host_inventory import (
     HOST_DEVICE_AUTHORITY,
     HOST_DEVICE_RECORD,
     HOST_DEVICE_SCHEMA,
+    DeviceChoiceRequired,
     HostDeviceRecord,
     HostRecordRefused,
     require_host_device,
@@ -190,16 +191,20 @@ def build_host_record(
     record describes; the workload profile still names exactly one device.
     """
     devices = observed.get("devices") or []
+    listed = [
+        {"device_uuid": d.get("device_uuid"), "device_kind": d.get("device_kind")}
+        for d in devices
+    ]
     if device_uuid is None:
         if len(devices) != 1:
             # Ambiguous on a multi-device host: the operator must choose rather
             # than have Carbon pick one for them.
-            raise WorkerFailure(WorkerCode.INVALID)
+            raise DeviceChoiceRequired(listed)
         chosen = devices[0]
     else:
         chosen = next((d for d in devices if d["device_uuid"] == device_uuid), None)
         if chosen is None:
-            raise WorkerFailure(WorkerCode.INVALID)
+            raise DeviceChoiceRequired(listed)
     try:
         memory = int(str(chosen["device_memory_mib"]).split()[0])
     except (KeyError, ValueError, IndexError):
@@ -420,6 +425,11 @@ def doctor_report(*, root: Path, profile=GPU_PROFILE, cli=None, image=None) -> d
         "findings": findings,
         "blocked": [f["check"] for f in blocked],
         "unknown": [f["check"] for f in unknown],
+        # Your own practice (the miner lane) needs only these checks; a
+        # grant or approval, display routing, enumeration and the attempt
+        # journal are for owner-authorised runs, not for you.
+        "miner_lane_blockers": miner_lane_blockers({"findings": findings}),
+        "miner_lane_ready": not miner_lane_blockers({"findings": findings}),
         # Deliberately not "ready to run": this reports the checks this command
         # can make. It is not an acceptance, a qualification, or a statement
         # that a run on this host would produce comparable science.

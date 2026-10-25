@@ -267,6 +267,19 @@ class HostRecordRefused(WorkerFailure):
         self.fields = tuple(fields)
 
 
+class DeviceChoiceRequired(HostRecordRefused):
+    """The host exposes several devices (or the named one is not among them): the
+    operator chooses which this record describes. `choices` lists the devices the
+    vendor tool reported (id and name), for the operator's own screen."""
+
+    def __init__(self, choices) -> None:
+        # Still `request.invalid`, the code a multi-device host has always been
+        # refused with; only the operator's `prepare` reads `fields`/`choices`.
+        WorkerFailure.__init__(self, WorkerCode.INVALID)
+        self.fields = ("device",)
+        self.choices = tuple(choices)
+
+
 __all__ = [
     "CONTAINER_RUNTIMES",
     "DRIVER_MODELS",
@@ -275,6 +288,7 @@ __all__ = [
     "HOST_DEVICE_SCHEMA",
     "NVIDIA_DEVICE_UUID",
     "PLATFORMS",
+    "DeviceChoiceRequired",
     "HostDeviceRecord",
     "HostRecordRefused",
     "require_host_device",

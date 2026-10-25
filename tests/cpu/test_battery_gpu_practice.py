@@ -743,3 +743,17 @@ def test_a_blocked_miner_lane_check_says_why_in_plain_words(live, monkeypatch):
     assert refused.value.next_step.startswith(
         "this host can't start Carbon's worker containers: no nvidia container runtime"
     )
+
+
+def test_a_multi_gpu_machine_is_asked_to_choose_not_picked_for(live, monkeypatch):
+    second = {
+        **OBSERVED["devices"][0],
+        "device_uuid": "GPU-41e88d04-75ff-89b2-9160-4b923dd7eb81",
+    }
+    two = {**OBSERVED, "devices": [OBSERVED["devices"][0], second]}
+    monkeypatch.setattr(onboarding, "observe_local_device", lambda **_: two)
+    with pytest.raises(SetupRefused) as refused:
+        live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert refused.value.code == "gpu_record_needs_your_choice"
+    assert "--device GPU-<uuid>" in refused.value.next_step
+    assert "nvidia-smi -L" in refused.value.next_step

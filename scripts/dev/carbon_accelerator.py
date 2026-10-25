@@ -51,6 +51,7 @@ from carbon.reconstruction.worker.model import WorkerFailure
 #: What a host-record field must be, in plain words, for a refusal that names
 #: it. Facts about the record's shape only; nothing read from the host.
 FIELD_HINTS = {
+    "device": "this host has several GPUs (or the one named is not among them): pass --device GPU-<uuid>, one of `choices`",
     "record": "the record is missing or has unexpected fields",
     "schema": "the record's schema is not the host device record's",
     "observation_authority": "the record must say it is a host observation only",
@@ -336,6 +337,8 @@ def main(argv=None) -> int:
                 name: FIELD_HINTS.get(name, "does not match the record's shape")
                 for name in fields
             }
+            if getattr(failure, "choices", None):
+                refusal["choices"] = list(failure.choices)
             refusal["next"] = (
                 "fix the named fields: record them with `prepare --from <file>` after checking them with `observe`; if the vendor tool itself reports a value the record does not accept, report the field name to Carbon (this host class may not be supported yet)"
             )

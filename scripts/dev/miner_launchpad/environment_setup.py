@@ -1499,6 +1499,11 @@ class LiveChecks:
                     else ""
                 )
                 + GPU_RECORD_STEP
+                + (
+                    " --device GPU-<uuid> (this machine has several GPUs: `nvidia-smi -L` lists them)"
+                    if "device" in fields
+                    else ""
+                )
                 + " (it names the field it refuses and what it must be)",
             ) from None
         try:
