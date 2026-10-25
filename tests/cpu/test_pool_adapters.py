@@ -145,7 +145,7 @@ def test_f08_derive_takes_the_worst_tip_and_the_supplied_mass():
     assert derived == {
         "static_tip_mm_per_n": raw[targets.index("static_tip_mm_per_n")],
         "worst_dynamic_mm_per_n": max(tips),
-        "mass_kg": 0.31,
+        "cad_mass_kg": 0.31,
     }
     assert seen == [[float(i + 1) for i in range(len(chosen.input_names))]]
     assert chosen.registered_u == {"worst_dynamic_mm_per_n": 3.9e-05}
@@ -283,7 +283,7 @@ def test_the_limits_build_pool_grader_limits():
 
 _U = {
     "motor": {"mean_torque_nm": 0.01},
-    "cooling": {"die_peak_c": 0.05, "pressure_drop_pa": 0.5},
+    "cooling": {"die_peak_c": 0.05, "hydraulic_w": {"relative": 0.03}},
     "f02": {"peak_top_c": 0.02},
     "f08": {"static_tip_mm_per_n": 1e-5, "worst_dynamic_mm_per_n": 3.9e-05},
 }
@@ -353,3 +353,76 @@ def test_train_spread_is_the_population_std_of_each_derived_output(kind, version
     spread = pa.train_spread(kind, version, chosen)
     assert set(spread) == set(chosen.outputs)
     assert all(v > 0.0 for v in spread.values())
+
+
+def test_cooling_element_32_u_is_three_percent_of_that_rows_own_pressure_drop():
+    bound = _binding("cooling")
+    rows = _reference_rows("cooling")[:6]
+    seen = set()
+    for row in rows:
+        native = [float(v) for v in row["reference"]]
+        model_row = bound.to_model_space(native)
+        u = bound.raw_u(row["inputs"], model_row)
+        assert len(u) == 32 and u[:31] == [0.05] * 31
+        # 3 % of the row's own dp (the encoded element decodes back to the native dp), never an absolute value
+        assert math.isclose(u[31], 0.03 * native[31], rel_tol=1e-9)
+        seen.add(round(u[31], 9))
+    assert len(seen) > 1  # it varies with the row
+
+
+def test_cooling_1_3_native_rows_use_the_same_three_percent_rule():
+    bound = pa.binding(
+        "cooling",
+        "1.3",
+        u=_U["cooling"],
+        serve_good=lambda rows: [],
+        serve_train=lambda rows: [],
+        serve_default=lambda rows: [],
+    )
+    native = [float(v) for v in _reference_rows("cooling")[0]["reference"]]
+    assert math.isclose(bound.raw_u({}, native)[31], 0.03 * native[31], rel_tol=1e-12)
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        0.0075,
+        {"absolute": 0.0075},
+        {"relative": 0.03, "x": 1},
+        {"relative": 0},
+        {"relative": 1.5},
+        3,
+    ],
+)
+def test_a_hydraulic_u_that_is_not_relative_is_refused_never_read_as_absolute(bad):
+    with pytest.raises(pa.PoolAdapterRefused) as raised:
+        pa.binding(
+            "cooling",
+            "1.4",
+            u={"die_peak_c": 0.05, "hydraulic_w": bad},
+            serve_good=lambda rows: [],
+            serve_train=lambda rows: [],
+            serve_default=lambda rows: [],
+        )
+    assert raised.value.code == "hydraulic_w_u_must_be_relative"
+    with pytest.raises(pa.PoolAdapterRefused) as raised:
+        pa.binding(
+            "cooling",
+            "1.4",
+            u={"die_peak_c": 0.05},
+            serve_good=lambda rows: [],
+            serve_train=lambda rows: [],
+            serve_default=lambda rows: [],
+        )
+    assert raised.value.code == "u_missing:hydraulic_w"
+
+
+def test_the_derived_output_names_are_the_decision_records():
+    names = {
+        "motor": ("mean_torque_nm", "ripple_fraction"),
+        "cooling": ("die_peak_c", "hydraulic_w"),
+        "f02": ("peak_top_c", "extra_energy_j"),
+        "f08": ("static_tip_mm_per_n", "worst_dynamic_mm_per_n", "cad_mass_kg"),
+    }
+    for kind, expected in names.items():
+        assert set(_adapter(kind).outputs) == set(expected)

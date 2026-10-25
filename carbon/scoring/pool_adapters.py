@@ -164,7 +164,6 @@ def _cooling(version):
         return {
             "die_peak_c": quantities["die_peak_c"],
             "hydraulic_w": quantities["hydraulic_w"],
-            "pressure_drop_pa": outputs["pressure_drop_pa"],
         }
 
     return PoolAdapter(
@@ -173,7 +172,7 @@ def _cooling(version):
         input_names=tuple(names),
         design_names=tuple(decision.DESIGN_VARIABLES),
         condition_names=tuple(decision.CONDITION_VARIABLES),
-        outputs=("die_peak_c", "hydraulic_w", "pressure_drop_pa"),
+        outputs=("die_peak_c", "hydraulic_w"),
         objective="hydraulic_w",
         sense="min",
         limits=(
@@ -259,7 +258,7 @@ def _f08(version, mass_of):
         return {
             "static_tip_mm_per_n": row[static],
             "worst_dynamic_mm_per_n": max(row[j] for j in tips),
-            "mass_kg": float(mass_of(design)),
+            "cad_mass_kg": float(mass_of(design)),
         }
 
     return PoolAdapter(
@@ -268,7 +267,7 @@ def _f08(version, mass_of):
         input_names=tuple(names),
         design_names=tuple(names),
         condition_names=(),
-        outputs=("static_tip_mm_per_n", "worst_dynamic_mm_per_n", "mass_kg"),
+        outputs=("static_tip_mm_per_n", "worst_dynamic_mm_per_n", "cad_mass_kg"),
         objective="worst_dynamic_mm_per_n",
         sense="min",
         limits=(
@@ -282,7 +281,7 @@ def _f08(version, mass_of):
                 "<=",
                 float(constraints["dynamic_tip_mm_per_n_max"]),
             ),
-            ("mass_kg", "<=", float(constraints["mass_kg_max"])),
+            ("cad_mass_kg", "<=", float(constraints["mass_kg_max"])),
         ),
         derive=derive,
         registered_u={
@@ -321,7 +320,7 @@ def pool_limits(chosen):
 #: not a registered rule: the U VALUES are the DECISION record's (`pool_plan.py targets`), never defaults.
 _RAW_U_NEEDS = {
     "motor": ("mean_torque_nm",),
-    "cooling": ("die_peak_c", "pressure_drop_pa"),
+    "cooling": ("die_peak_c", "hydraulic_w"),
     "f02": ("peak_top_c",),
     "f08": ("static_tip_mm_per_n", "worst_dynamic_mm_per_n"),
 }
@@ -350,7 +349,31 @@ def _raw_u_of(kind, version, u):
             None  # every one of the 60 torque elements carries the mean-torque U
         )
     else:
-        by_element = [u["die_peak_c"]] * 31 + [u["pressure_drop_pa"]]
+        # Elements 1-31 (the peak and the 30 profile values) carry the die peak's absolute U. Element 32 is the
+        # pressure drop: hydraulic power is dp x Q with Q fixed by the inputs, so the decision's RELATIVE U on
+        # hydraulic_w carries over unchanged: r x |that row's own dp|, never an absolute number (Validator).
+        relative = u["hydraulic_w"]
+        if (
+            type(relative) is not dict
+            or set(relative) != {"relative"}
+            or type(relative["relative"]) not in (int, float)
+            or not 0 < relative["relative"] < 1
+        ):
+            raise PoolAdapterRefused("hydraulic_w_u_must_be_relative")
+        by_element = None
+        share = float(relative["relative"])
+        encoded = version == "1.4"
+
+        def cooling_raw_u(_inputs, reference_row):
+            if len(reference_row) != 32:
+                raise PoolAdapterRefused("raw_row_width_is_not_the_interface_width")
+            from carbon.cold_plate import output_encoding
+
+            last = float(reference_row[31])
+            dp = output_encoding._softplus(last) if encoded else last
+            return [float(u["die_peak_c"])] * 31 + [share * abs(float(dp))]
+
+        return cooling_raw_u
 
     def raw_u(_inputs, reference_row):
         if by_element is None:
