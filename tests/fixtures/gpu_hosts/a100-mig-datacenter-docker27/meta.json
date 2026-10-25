@@ -1,0 +1,5 @@
+{
+ "platform": "LINUX_BARE_METAL",
+ "provenance": "synthetic",
+ "source": "typical A100-SXM4-80GB output; MIG listing format of nvidia-smi -L"
+}

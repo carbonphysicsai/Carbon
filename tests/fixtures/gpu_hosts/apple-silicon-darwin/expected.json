@@ -1,0 +1,8 @@
+{
+ "currently_fails": "Apple gets the NVIDIA-driver message today (step 2: a GAP reason with the CPU next step)",
+ "prepare": {
+  "next_contains": "CPU",
+  "reason_contains": "not an NVIDIA GPU",
+  "status": "REFUSED"
+ }
+}

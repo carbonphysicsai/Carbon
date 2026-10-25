@@ -1,0 +1,5 @@
+{
+ "platform": "LINUX_VIRTUAL_MACHINE",
+ "provenance": "synthetic",
+ "source": "an NVIDIA vGPU guest prints [Not Supported] and [N/A] for fields it cannot read"
+}

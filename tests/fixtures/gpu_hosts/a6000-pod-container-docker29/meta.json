@@ -1,0 +1,5 @@
+{
+ "platform": "HOSTED_COMPUTE_INSTANCE",
+ "provenance": "described",
+ "source": "Test Runner message 10-24 (driver 580.126.09, A6000 pod); capability and memory are the A6000's published values"
+}
