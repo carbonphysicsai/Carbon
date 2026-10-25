@@ -28,6 +28,9 @@ def _primitives():
             table[primitive.name] = primitive
     # `lax.split` has no public primitive handle in the pinned JAX either.
     table["split"] = lax_internal.split_p
+    # `jnp.stack` / `jnp.unstack` bind these; no public handle either.
+    table["stack"] = lax_internal.stack_p
+    table["unstack"] = lax_internal.unstack_p
     # The allowlist names ops with underscores where JAX hyphenates (scatter-add):
     # every hyphenated primitive is also bound under its underscore name.
     for name, primitive in list(table.items()):

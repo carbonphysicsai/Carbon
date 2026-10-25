@@ -236,6 +236,8 @@ def _encode(kind, value, lower_graph, name=None):
         return value.name
     if kind == "fft_type":
         return value.name
+    if kind == "rounding_method":
+        return value.name
     if kind == "prng_impl":
         if str(value) != "fry":
             raise GraphRefused("prng_impl_not_allowed")
@@ -335,6 +337,12 @@ def _decode(kind, value):
         if value not in ("FFT", "IFFT", "RFFT", "IRFFT"):
             raise GraphRefused("parameter_kind_mismatch")
         return FftType[value]
+    if kind == "rounding_method":
+        from jax.lax import RoundingMethod
+
+        if value not in ("AWAY_FROM_ZERO", "TO_NEAREST_EVEN"):
+            raise GraphRefused("parameter_kind_mismatch")
+        return RoundingMethod[value]
     if kind == "prng_impl":
         if value != "threefry2x32":
             raise GraphRefused("prng_impl_not_allowed")
