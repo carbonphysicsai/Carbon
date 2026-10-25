@@ -150,3 +150,46 @@ def test_the_catalog_has_a_fixed_fallback_that_names_the_requirement():
 def test_a_non_numeric_record_says_nothing_rather_than_something_wrong():
     assert rc._host_too_small_step({"memory_gib": "x", "cpus": 4}) is None
     assert rc._host_too_small_step({}) is None
+
+
+class _DockerSeeing:
+    """A Docker that answers the doctor's two questions with a given host size."""
+
+    def __init__(self, memory_gib, cpus, cgroup="2"):
+        self.info = {
+            "NCPU": cpus,
+            "MemTotal": int(memory_gib * GIB),
+            "CgroupVersion": cgroup,
+            "SecurityOptions": ["name=seccomp,profile=builtin", "name=cgroupns"],
+        }
+
+    def json(self, arguments, **_):
+        if arguments[0] == "version":
+            return {"Version": "29.1.3", "ApiVersion": "1.52"}
+        if arguments[0] == "info":
+            return self.info
+        raise AssertionError(arguments)
+
+
+@pytest.mark.parametrize(
+    ("memory_gib", "cpus", "small"),
+    [(7, 4, True), (15.6, 8, True), (31, 2, True), (17, 4, False), (31.2, 8, False)],
+)
+def test_the_real_doctor_verdict_on_a_given_host_is_read_as_too_small_or_not(
+    memory_gib, cpus, small
+):
+    """M1's case through the real `docker_runtime.doctor` and the real large-model worker
+    profile, not a stand-in: the carrier turns the verdict into HostTooSmall exactly when
+    capacity is what failed."""
+    from carbon.reconstruction.worker import docker_runtime
+
+    profile = carrier._worker_profile(None, None, "level4-allowlist-v7")
+    verdict = docker_runtime.doctor(cli=_DockerSeeing(memory_gib, cpus), worker_profile=profile)
+    shortfall = carrier._host_capacity_shortfall(verdict, {"worker_profile": profile})
+    if small:
+        assert not verdict.eligible
+        assert shortfall.capacity["needs_memory_gib"] == 17.0
+        assert shortfall.capacity["needs_cpus"] == 4
+        assert shortfall.capacity["memory_gib"] == round(memory_gib, 1)
+    else:
+        assert shortfall is None
