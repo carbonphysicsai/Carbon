@@ -16,6 +16,8 @@ door carries no exam code.
 
 from __future__ import annotations
 
+from carbon.challenge_registry import speed_gate
+
 SCHEMA = "carbon.published-exam.v1"
 #: The block of a pool-graded version (design search over solved designs, no
 #: solver at grade time). Older versions keep v1 byte for byte.
@@ -47,6 +49,7 @@ ALLOWED_FIELDS = frozenset(
         "rotation",
         "design_search",
         "how_you_are_tested",
+        "speed_gate",
     }
 )
 
@@ -273,15 +276,9 @@ _PRACTICE_POOL = (
 #: page and docs/MINING.md ("How you're tested"); a test holds the three equal.
 #: Nothing hidden is named: not the targets, the extended region's bounds, the
 #: limit shifts, the optimizer's starting points or seeds, or the solved designs.
-_SPEED_SOURCE = "codex-queue/reports/EXAM_ADDITIONS_20261025.md"
-#: The speed gate's ceiling per design: the recorded solver time per design
-#: divided by 500, per Challenge (the owner's registered values).
-_SPEED_CEILING_SECONDS = {
-    "f02": 0.38,
-    "f08-ribbed-bracket": 2.08,
-    "chip-cold-plate": 2.84,
-    "electric-motor-magnetics": 3.3,
-}
+#: The speed gate's ceiling per design, per Challenge: one registered module
+#: (`speed_gate`), read by the grader, this block and the scoring-rules tool.
+_SPEED_CEILING_SECONDS = speed_gate.ceilings()
 SPEED_LINE = (
     "Your model must answer each design in at most 1/500 of the time the "
     "reference solver needs for one design. The time is measured on the "
@@ -858,6 +855,17 @@ def for_version(challenge_id, version):
     if pool:
         block["design_search"] = _DESIGN_SEARCH
         block["how_you_are_tested"] = how_you_are_tested(challenge_id)
+        block["speed_gate"] = {
+            "ratio": speed_gate.RATIO,
+            "rule": "seconds per design <= the reference solver's seconds "
+            "per design / ratio",
+            "solver_seconds_per_design": speed_gate.SOLVER_SECONDS_PER_DESIGN[
+                challenge_id
+            ],
+            "ceiling_seconds_per_design": speed_gate.ceiling_seconds(challenge_id),
+            "failure": "GATE_FAILED (speed)",
+            "source": "carbon/challenge_registry/speed_gate.py",
+        }
     return block
 
 
