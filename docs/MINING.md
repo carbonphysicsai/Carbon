@@ -205,6 +205,22 @@ Scoring `cooling-dual-sealed-batch-16-v2`. Exam: 16 cells (4 designs x 4 conditi
 
 ---
 
+## How you're tested
+
+This is how a version graded by the new exam is tested; `describe` serves the same lines as `published_exam.how_you_are_tested`, and the Launchpad page shows them under the Challenge's **How you're tested**. Nothing hidden is listed here: not the targets, where the extended range ends, how far the limits move, or the optimizer's starting points.
+
+- **The grade.** Your grade is 0.5 x A + 0.5 x D, from 0 to 1, higher is better. A is accuracy and physics. D is design value.
+- **Inverse design.** Design value is inverse design. Carbon's own fixed optimizer (CMA-ES) uses your model to search for designs that meet each hidden target's limits, within a fixed number of model queries, and picks one design from a set Carbon has already solved. A pick that does not meet the limits scores 0 for that target; otherwise it scores how close it is to the best known design, times how honest your model's prediction was at that pick. You cannot change the search. The query budget is not yet registered.
+- **The search, to copy.** You may copy this search for your own practice; it never enters the grade. In each target, CMA-ES proposes points in the normalised design box and each proposal snaps to the nearest solved design not yet queried; your model predicts that design's outputs; designs are ranked first by whether they are predicted to meet the limits and then by the predicted objective. After the fixed number of queries the pick is the best predicted-feasible design among those queried, and its true outputs are looked up. A pick that is not feasible scores 0. Otherwise the target scores closeness times honesty, where closeness = (objective of the pick - median feasible objective) / (best known objective - median feasible objective), clipped to 0..1, and honesty = exp(-e / s), with e your model's uncertainty-normalised error at the pick. D is the mean over the targets, limited by C. The query budget, the step size and s are not yet registered.
+- **Tighter and looser limits.** Some targets are tighter or looser versions of the base problem: the same design question with its limits moved. A model that only works for the base limits loses there. How far the limits move is not published.
+- **Outside the training range.** Some exam questions lie just outside the range your training data covers. They count: accuracy there, inverse-design picks there, and the physics gates there. How far that range extends, and where its questions are, is not published.
+- **Physics gates.** The physics gates that check a single answer run on every answer your model gives, inside and outside the range. Failing any gate means no score at all, however good the rest. You are told which gate failed, never which design.
+- **Speed.** Your model must answer each design in at most 1/500 of the time the reference solver needs for one design. The time is measured on the validator's machine, for the whole batch of exam designs with the model's loading included, divided by the number of designs. Failing it is a failed gate (speed), and no score. The ceilings per design are: Burst Thermal 0.38 s, Ribbed Bracket 2.08 s, Cooling 2.84 s, Motor 3.3 s.
+- **Minimums.** Each score part also has a minimum, set from Carbon's own baseline on the exam. A part below its minimum makes the submission not eligible, and the part is named. Until a version's minimums are registered, the page says minimums are not yet set.
+- **Practice.** Practice runs on the public bank and shows what it can of A, the gates and the minimums. It never touches the exam's hidden targets or its out-of-range questions, and a practice total is not an exam total.
+
+Your agent can read these rules as data: `carbon_challenges_v1__scoring_rules` with the Challenge id and version returns the formula, the legs, the gate names, the minimums (or "not yet registered"), the speed gate's ceiling per design, and the lines above, from the same published block `describe` serves. It refuses a version that publishes no exam rules, with the next step.
+
 ## Bring your own agent
 
 Any agent that speaks MCP can drive Carbon with the same tools the page uses: launch, practise, freeze, submit and check your result. The page shows everything your agent does, live, and you can message it from the campaign's Conversation box.

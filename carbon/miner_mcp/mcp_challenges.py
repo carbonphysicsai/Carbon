@@ -104,6 +104,40 @@ def _refusal_hints(kind):
     return [{"codes": codes, "fix": text} for text, codes in grouped.items()]
 
 
+#: What `scoring_rules` returns from a version's published block: exactly
+#: these sections, nothing else (an allow-list; a new section needs the
+#: Validator's ruling like every published_exam section).
+SCORING_RULES_SCHEMA = "carbon.scoring-rules.v1"
+SCORING_RULES_SECTIONS = (
+    "scoring_version",
+    "score",
+    "minimums",
+    "gates",
+    "physics_laws",
+    "speed_gate",
+    "design_search",
+    "how_you_are_tested",
+    "grade_statuses",
+    "practice_vs_exam",
+    "koth",
+)
+
+
+def scoring_rules_view(described):
+    """The scoring rules of a described version: its published block, cut to
+    `SCORING_RULES_SECTIONS`; None when the version publishes none."""
+    published = described.get("published_exam")
+    if not isinstance(published, dict):
+        return None
+    return {
+        "schema": SCORING_RULES_SCHEMA,
+        "challenge_id": described.get("challenge_id"),
+        "version": described.get("version"),
+        "published_exam_schema": published.get("schema"),
+        **{k: published[k] for k in SCORING_RULES_SECTIONS if k in published},
+    }
+
+
 def compact_description(described):
     """The essentials for building one recipe, projected from the full public
     description `described` (so it adds nothing hidden): interface names,
@@ -298,6 +332,32 @@ def make_challenge_tools(*, guard=None, host_facts=None):
         ),
     )
 
+    scoring_model = create_model(
+        "challenges_scoring_rules",
+        __base__=StrictArguments,
+        challenge_id=(identifier, Field(..., description="The exact Challenge id.")),
+        version=(
+            Annotated[str, Field(min_length=1, max_length=32)],
+            Field(..., description="The exact version."),
+        ),
+    )
+
+    async def scoring_rules(challenge_id, version):
+        if guard is not None:
+            guard()
+        try:
+            payload = challenges.describe(challenge_id, version, host=facts())
+        except challenges.ResolutionError as refused:
+            raise ToolError(
+                f"{refused.code}; next_action={refused.next_action}"
+            ) from None
+        rules = scoring_rules_view(payload)
+        if rules is None:
+            raise ToolError(
+                "no_published_exam_for_version; next_action=use carbon_challenges_v1__describe for this version's description"
+            )
+        return ChallengeResult(operation="scoring_rules", payload=rules)
+
     async def list_challenges():
         if guard is not None:
             guard()
@@ -339,6 +399,12 @@ def make_challenge_tools(*, guard=None, host_facts=None):
             "Every Carbon Challenge: implemented, reserved or deferred, with each "
             "execution profile's requirements and whether it is usable on this "
             "host now. Reads only; grants nothing.",
+        ),
+        tool(
+            scoring_rules,
+            "scoring_rules",
+            scoring_model,
+            "The scoring rules of one registered Challenge version, machine-readable, read from the same published block `describe` serves (one source, nothing hand-copied): the formula 0.5*A + 0.5*D, the legs, the physics gates, the minimums (or 'not yet registered'), the speed gate and its ceiling per design, the optimizer's published description, the tighter/looser and out-of-range rules in words, and what practice shows. Never a hidden target, region bound, seed or start. Reads only.",
         ),
         tool(
             describe,

@@ -2841,6 +2841,12 @@
         const description = details(box, "Description", []);
         renderDescription(description.querySelector(".detail-body"), entry);
       }
+      // A pool-graded version tells the miner, in plain words, how it is tested
+      // (the Challenge's own published_exam; nothing is added here).
+      const tested = entry.description?.published_exam?.how_you_are_tested;
+      if (Array.isArray(tested) && tested.length) {
+        details(box, "How you're tested", tested.map(line => el("p", line.title + ": " + line.text)));
+      }
       details(box, "Details", [
         entry.challenge_id + (entry.version ? " · version " + entry.version : "") + " · " + portfolioLabel(entry.portfolio) + (entry.tracking ? " · " + entry.tracking : ""),
         "Status: " + challengeStatus(entry),

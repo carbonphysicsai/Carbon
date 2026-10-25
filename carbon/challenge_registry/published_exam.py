@@ -16,6 +16,8 @@ door carries no exam code.
 
 from __future__ import annotations
 
+from carbon.challenge_registry import speed_gate
+
 SCHEMA = "carbon.published-exam.v1"
 #: The block of a pool-graded version (design search over solved designs, no
 #: solver at grade time). Older versions keep v1 byte for byte.
@@ -46,6 +48,8 @@ ALLOWED_FIELDS = frozenset(
         "practice_vs_exam",
         "rotation",
         "design_search",
+        "how_you_are_tested",
+        "speed_gate",
     }
 )
 
@@ -261,12 +265,136 @@ _DESIGN_SEARCH = {
 }
 
 _PRACTICE_POOL = (
-    "Practice runs the same search and the same legs on public targets with a "
-    "public set of solved designs drawn from the training region, and applies "
-    "the exam's published minimums per score part (or says minimums are not "
-    "yet set). The extended-region designs are never practice material, so a "
-    "practice total is not an exam total."
+    "Practice runs on the public bank and shows what it can of A, the gates "
+    "and the minimums. It never touches the exam's hidden targets or its "
+    "out-of-range questions, and a practice total is not an exam total."
 )
+
+#: "How you are tested": the plain-words page for a pool-graded version (owner,
+#: 2026-10-25: "for out of range, robustness, and inverse design we just tell
+#: them how it will be tested"). One list feeds the describe tool, the Launchpad
+#: page and docs/MINING.md ("How you're tested"); a test holds the three equal.
+#: Nothing hidden is named: not the targets, the extended region's bounds, the
+#: limit shifts, the optimizer's starting points or seeds, or the solved designs.
+#: The speed gate's ceiling per design, per Challenge: one registered module
+#: (`speed_gate`), read by the grader, this block and the scoring-rules tool.
+_SPEED_CEILING_SECONDS = speed_gate.ceilings()
+SPEED_LINE = (
+    "Your model must answer each design in at most 1/500 of the time the "
+    "reference solver needs for one design. The time is measured on the "
+    "validator's machine, for the whole batch of exam designs with the model's "
+    "loading included, divided by the number of designs. Failing it is a failed "
+    "gate (speed), and no score."
+)
+HOW_TESTED_LINES = (
+    (
+        "score",
+        "The grade",
+        (
+            "Your grade is 0.5 x A + 0.5 x D, from 0 to 1, higher is better. A is "
+            "accuracy and physics. D is design value."
+        ),
+    ),
+    (
+        "inverse_design",
+        "Inverse design",
+        (
+            "Design value is inverse design. Carbon's own fixed optimizer (CMA-ES) "
+            "uses your model to search for designs that meet each hidden target's "
+            "limits, within a fixed number of model queries, and picks one design "
+            "from a set Carbon has already solved. A pick that does not meet the "
+            "limits scores 0 for that target; otherwise it scores how close it is "
+            "to the best known design, times how honest your model's prediction "
+            "was at that pick. You cannot change the search. The query budget is "
+            "not yet registered."
+        ),
+    ),
+    (
+        "optimizer",
+        "The search, to copy",
+        (
+            "You may copy this search for your own practice; it never enters "
+            "the grade. In each target, CMA-ES proposes points in the "
+            "normalised design box and each proposal snaps to the nearest "
+            "solved design not yet queried; your model predicts that design's "
+            "outputs; designs are ranked first by whether they are predicted to "
+            "meet the limits and then by the predicted objective. After the "
+            "fixed number of queries the pick is the best predicted-feasible "
+            "design among those queried, and its true outputs are looked up. A "
+            "pick that is not feasible scores 0. Otherwise the target scores "
+            "closeness times honesty, where closeness = (objective of the pick "
+            "- median feasible objective) / (best known objective - median "
+            "feasible objective), clipped to 0..1, and honesty = exp(-e / s), "
+            "with e your model's uncertainty-normalised error at the pick. D is "
+            "the mean over the targets, limited by C. The query budget, the "
+            "step size and s are not yet registered."
+        ),
+    ),
+    (
+        "variants",
+        "Tighter and looser limits",
+        (
+            "Some targets are tighter or looser versions of the base problem: the "
+            "same design question with its limits moved. A model that only works "
+            "for the base limits loses there. How far the limits move is not "
+            "published."
+        ),
+    ),
+    (
+        "out_of_range",
+        "Outside the training range",
+        (
+            "Some exam questions lie just outside the range your training data "
+            "covers. They count: accuracy there, inverse-design picks there, and "
+            "the physics gates there. How far that range extends, and where its "
+            "questions are, is not published."
+        ),
+    ),
+    (
+        "gates",
+        "Physics gates",
+        (
+            "The physics gates that check a single answer run on every answer "
+            "your model gives, inside and outside the range. Failing any gate "
+            "means no score at all, however good the rest. You are told which "
+            "gate failed, never which design."
+        ),
+    ),
+    ("speed", "Speed", SPEED_LINE),
+    (
+        "minimums",
+        "Minimums",
+        (
+            "Each score part also has a minimum, set from Carbon's own baseline on "
+            "the exam. A part below its minimum makes the submission not eligible, "
+            "and the part is named. Until a version's minimums are registered, the "
+            "page says minimums are not yet set."
+        ),
+    ),
+    (
+        "practice",
+        "Practice",
+        (
+            "Practice runs on the public bank and shows what it can of A, the "
+            "gates and the minimums. It never touches the exam's hidden targets or "
+            "its out-of-range questions, and a practice total is not an exam total."
+        ),
+    ),
+)
+
+
+def how_you_are_tested(challenge_id):
+    """The "How you are tested" lines of a pool-graded version of
+    ``challenge_id``: id, title and text each; the speed line also names this
+    Challenge's ceiling per design."""
+    ceiling = _SPEED_CEILING_SECONDS[challenge_id]
+    lines = []
+    for line_id, title, text in HOW_TESTED_LINES:
+        if line_id == "speed":
+            text = text + f" The ceiling for this Challenge is {ceiling} s per design."
+        lines.append({"id": line_id, "title": title, "text": text})
+    return lines
+
 
 _SPAN_STEP = {
     "step": {
@@ -727,6 +855,18 @@ def for_version(challenge_id, version):
     }
     if pool:
         block["design_search"] = _DESIGN_SEARCH
+        block["how_you_are_tested"] = how_you_are_tested(challenge_id)
+        block["speed_gate"] = {
+            "ratio": speed_gate.RATIO,
+            "rule": "seconds per design <= the reference solver's seconds "
+            "per design / ratio",
+            "solver_seconds_per_design": speed_gate.SOLVER_SECONDS_PER_DESIGN[
+                challenge_id
+            ],
+            "ceiling_seconds_per_design": speed_gate.ceiling_seconds(challenge_id),
+            "failure": "GATE_FAILED (speed)",
+            "source": "carbon/challenge_registry/speed_gate.py",
+        }
     return block
 
 
