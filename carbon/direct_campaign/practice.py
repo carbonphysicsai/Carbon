@@ -58,6 +58,8 @@ import json
 import math
 from pathlib import Path
 
+from carbon.scoring import practice_speed
+
 from .spec import key_for
 
 OUTPUT_DTYPE = "<f4"
@@ -417,7 +419,14 @@ class DirectPractice:
             # bank, which is exactly the query above. Feedback only: public,
             # not the exam, and labelled practice. The model is queried once,
             # so the paired repeat is the same rows.
-            "practice_dual": _dual_feedback(self.spec, self.version, rows),
+            "practice_dual": _dual_feedback(
+                self.spec,
+                self.version,
+                rows,
+                speed=practice_speed.from_result(
+                    self.spec.prefix, result, designs=len(rows)
+                ),
+            ),
         }
         if source["kind"] == "catalog":
             plain = json.loads(canonical(strategy))["source"]
@@ -492,6 +501,7 @@ class DirectPractice:
                 allowlist_bytes=material["allowlist_bytes"],
                 expected_output_dtype=dtype,
                 accelerator=device,
+                measure_query=practice_speed.measure(self.runner),
                 runner=self.runner,
             )
 
@@ -566,6 +576,7 @@ class DirectPractice:
             expected_output_shape=material["expected_output_shape"],
             allowlist_bytes=material["allowlist_bytes"],
             seed=0,
+            measure_query=practice_speed.measure(self.runner),
             runner=self.runner,
             adapter_id=spec.adapter_id,
         )
@@ -573,7 +584,7 @@ class DirectPractice:
         return result, backend, recipe
 
 
-def _dual_feedback(spec, version, rows):
+def _dual_feedback(spec, version, rows, speed=None):
     """The shared practice dual block for the rows of the exposed bank."""
     from carbon.scoring import practice_dual, practice_grid
 
@@ -583,7 +594,7 @@ def _dual_feedback(spec, version, rows):
         spec.prefix in ("f08", "f02")
         and practice_grid.adapter(spec.prefix, version) is not None
     ):
-        return practice_dual.from_rows_v2(spec.prefix, version, rows)
+        return practice_dual.from_rows_v2(spec.prefix, version, rows, speed=speed)
 
     # A static dispatch: the code-authority inventory forbids a computed import.
     if spec.prefix == "f08":

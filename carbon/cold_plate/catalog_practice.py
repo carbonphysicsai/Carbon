@@ -33,6 +33,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from carbon.scoring import practice_speed
+
 from .challenge import CHALLENGE, PUBLIC_OUTPUTS
 from .practice import PROVENANCE
 
@@ -256,6 +258,7 @@ class CoolingCatalogPractice:
                     identity=identity,
                     inputs=query,
                     expected_output_shape=(len(query), width),
+                    measure_query=practice_speed.measure(self.runner),
                 )
             except graph_adapters.GraphAdapterUnregistered:
                 raise ValueError("cooling_catalog_recipe_required") from None
@@ -298,6 +301,7 @@ class CoolingCatalogPractice:
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=output_dtype(interface),
                     accelerator=device,
+                    measure_query=practice_speed.measure(self.runner),
                     runner=self.runner,
                 )
 
@@ -369,7 +373,14 @@ class CoolingCatalogPractice:
             # module). Until the bank has a public mirror and a public decision
             # module (the Validator's ruling), practice says so, never silently.
             "practice_dual": (
-                practice_dual.from_rows_v2("cooling", self.version, grid_rows)
+                practice_dual.from_rows_v2(
+                    "cooling",
+                    self.version,
+                    grid_rows,
+                    speed=practice_speed.from_result(
+                        "cooling", result, designs=len(all_rows)
+                    ),
+                )
                 if v2
                 else {
                     "schema": "carbon.practice.dual-feedback.v1",
