@@ -194,9 +194,14 @@ def build_target(
         "limits_must_name_outputs_with_a_kind_and_a_finite_bound",
     )
     _require(set(u) == set(outputs), "u_must_cover_exactly_the_outputs")
+    # U = 0 marks an output Carbon computes exactly (an analytic quantity such as an energy or a mass formula),
+    # never predicted by the model: it is held to equality, not to a tolerance, and does not enter the honesty
+    # scale. At least one output must carry a real U or there is nothing for honesty to measure.
     _require(
-        all(_finite(v) and v > 0 for v in u.values()), "u_must_be_positive_and_finite"
+        all(_finite(v) and v >= 0 for v in u.values()),
+        "u_must_be_non_negative_and_finite",
     )
+    _require(any(v > 0 for v in u.values()), "u_needs_one_predicted_output")
     box = tuple((float(lo), float(hi)) for lo, hi in box)
     _require(
         box
@@ -360,13 +365,20 @@ def grade_target(spec, predict, optimizer, honesty):
 
     def key(index):
         prediction = predictions[index]
-        violation = 0.0
+        violation = exact = 0.0
         for limit in spec.limits:
             margin = limit.margin(prediction[limit.output])
             if margin < 0.0:
-                violation += -margin / spec.u[limit.output]
+                if spec.u[limit.output] > 0.0:
+                    violation += -margin / spec.u[limit.output]
+                else:
+                    exact += (
+                        -margin
+                    )  # an exactly computed quantity: its raw excess ranks first
         loss = -spec.sign * prediction[spec.objective]
-        return (0, loss) if violation == 0.0 else (1, violation, loss)
+        if violation == 0.0 and exact == 0.0:
+            return (0, loss)
+        return (1, exact, violation, loss)
 
     while len(predictions) < optimizer.budget and len(taken) < len(spec.queryable):
         samples = es.ask()
@@ -431,9 +443,17 @@ def grade_target(spec, predict, optimizer, honesty):
 
 
 def _error(spec, index, prediction, honesty):
-    ratios = [
-        abs(prediction[k] - spec.truths[index][k]) / spec.u[k] for k in spec.outputs
-    ]
+    ratios = []
+    for k in spec.outputs:
+        difference = abs(prediction[k] - spec.truths[index][k])
+        if spec.u[k] > 0.0:
+            ratios.append(difference / spec.u[k])
+        elif not math.isclose(
+            prediction[k], spec.truths[index][k], rel_tol=1e-9, abs_tol=1e-12
+        ):
+            return (
+                math.inf
+            )  # an exact output that does not match is a wiring fault: honesty 0
     if honesty.reduction == "max":
         return max(ratios)
     return math.sqrt(sum(r * r for r in ratios) / len(ratios))

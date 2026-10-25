@@ -574,3 +574,19 @@ def test_a_submitted_model_cannot_use_the_perfect_rule_even_when_built_on_the_or
     assert layered["gates_ok"] is False and layered["A"] < 0.95
     for kind in ("good", "default", "in_distribution"):
         assert b.legs({"kind": kind})["A_legs"]["A_response"] in (0.2, 1.0)
+
+
+def test_the_model_space_hook_converts_the_references_the_truth_models_use():
+    converted = pp.ChallengeBinding(
+        **{**binding().__dict__, "to_model_space": lambda row: [v * 10.0 for v in row]}
+    )
+    plain = bank_legs("measured", binding(), verified=False)
+    scaled = pp.BankLegs(**{**plain.__dict__, "binding": converted})
+    native = plain.outputs_for({"kind": "oracle"})
+    modelled = scaled.outputs_for({"kind": "oracle"})
+    for row, ref, native_row, model_row in zip(
+        plain.rows, plain.rows, native, modelled, strict=True
+    ):
+        if ref["reference"] is not None:
+            assert model_row == pytest.approx([v * 10.0 for v in ref["reference"]])
+            assert native_row == pytest.approx(ref["reference"])

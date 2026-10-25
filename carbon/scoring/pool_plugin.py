@@ -65,6 +65,10 @@ class ChallengeBinding:
     # (rows) -> TRUE raw outputs for the bank rows that carry no reference (the probe rows), from the Challenge's
     # reference solver. Needed only for the truth-row check the perfect rule depends on (Validator, section 8).
     probe_truth: object = None
+    # (reference_row) -> the row in the MODEL's output space, where the bank's references are native but the model
+    # speaks another encoding (an encoded model space). Applied to the references the oracle, the noisy models and
+    # the truth-row check use; the TRAIN-mean row must already be in model space. None = the same space.
+    to_model_space: object = None
 
 
 def model_input_row(binding, conditions, design):
@@ -167,7 +171,11 @@ class BankLegs:
                 for row, out in zip(rows, base, strict=True)
             ]
         reference = [
-            list(r["reference"]) if r.get("reference") is not None else list(d)
+            (
+                self._model_space(r["reference"])
+                if r.get("reference") is not None
+                else list(d)
+            )
             for r, d in zip(rows, default, strict=True)
         ]
         if kind in ("oracle", "wrong_near_optimum"):
@@ -206,11 +214,15 @@ class BankLegs:
         if type(supplied) is not list or len(supplied) != len(missing):
             raise TruthCheckStop("probe_truth_must_return_one_row_per_probe")
         outputs = [
-            list(r["reference"]) if r.get("reference") is not None else None
+            (
+                self._model_space(r["reference"])
+                if r.get("reference") is not None
+                else None
+            )
             for r in self.rows
         ]
         for i, row in zip(missing, supplied, strict=True):
-            outputs[i] = list(row)
+            outputs[i] = self._model_space(row)
         measured = self.measure(
             bank_rows=self.rows,
             outputs=outputs,
@@ -232,10 +244,15 @@ class BankLegs:
         self.state["truth_check"] = {"gates": sorted(gates), "response_leg": response}
         return self.state["truth_check"]
 
+    def _model_space(self, row):
+        convert = self.binding.to_model_space
+        return list(convert(list(row))) if convert is not None else list(row)
+
     def _u(self, row, out):
         reference = row.get("reference")
         u = self.binding.raw_u(
-            row["inputs"], list(reference) if reference is not None else list(out)
+            row["inputs"],
+            self._model_space(reference) if reference is not None else list(out),
         )
         _require(
             len(u) == len(out) and all(math.isfinite(x) and x >= 0 for x in u),

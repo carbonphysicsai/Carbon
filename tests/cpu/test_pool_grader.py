@@ -443,3 +443,90 @@ def test_the_practice_report_needs_a_public_pool_and_gives_legs_gates_and_every_
     assert (
         failed["total"] == 0.0 and failed["legs"]["D_opt"] == 1.0
     ), "a failed mandatory gate gives no score"
+
+
+def exact_target(u_e=0.0, bound_e=0.35, seed=3):
+    """The toy plus an exactly computed output e = x * y (an analytic quantity: U = 0) with its own limit."""
+    rng = random.Random(seed)
+    points = [(rng.random(), rng.random()) for _ in range(60)]
+    points += [
+        (0.6 + rng.uniform(-0.1, 0.1), 0.6 + rng.uniform(-0.1, 0.1)) for _ in range(40)
+    ]
+    truths = [{**outputs_of(x, y), "e": x * y} for x, y in points]
+    return build_target(
+        target_id="ex",
+        conditions={"case": "ex"},
+        outputs=("f", "g", "e"),
+        objective="f",
+        sense="max",
+        limits=(Limit("g", "<=", 0.8), Limit("e", "<=", bound_e)),
+        u={"f": U, "g": U, "e": u_e},
+        box=((0.0, 1.0), (0.0, 1.0)),
+        designs=[list(p) for p in points],
+        truths=truths,
+        agen=(),
+        start=(0.5, 0.5),
+        seed=seed,
+    )
+
+
+def test_an_exactly_computed_output_has_u_zero_and_is_held_to_equality():
+    spec = exact_target()
+    table = {(spec.conditions["case"], d): t for d, t in zip(spec.designs, spec.truths)}
+
+    def model(shift=0.0):
+        def predict(conditions, designs):
+            return [
+                {
+                    **table[(conditions["case"], tuple(d))],
+                    "e": table[(conditions["case"], tuple(d))]["e"] + shift,
+                }
+                for d in designs
+            ]
+
+        return predict
+
+    wide = OptimizerPolicy(budget=90, sigma0=0.3, population=None)
+    good = grade_target(spec, model(), wide, HONESTY)
+    assert good.reason == "graded" and good.h == 1.0 and good.e == 0.0
+    # The exact output does not enter the honesty scale when it matches; a mismatch is a wiring fault: h = 0.
+    broken = grade_target(spec, model(0.001), wide, HONESTY)
+    assert broken.h == 0.0 and broken.d == 0.0
+    # U = 0 everywhere, or a negative U, is refused.
+    with pytest.raises(PoolRefused, match="u_needs_one_predicted_output"):
+        build_target(**{**_exact_kwargs(), "u": {"f": 0.0, "g": 0.0, "e": 0.0}})
+    with pytest.raises(PoolRefused, match="u_must_be_non_negative"):
+        build_target(**{**_exact_kwargs(), "u": {"f": U, "g": U, "e": -1.0}})
+
+
+def _exact_kwargs():
+    spec = exact_target()
+    return {
+        "target_id": "ex",
+        "conditions": {"case": "ex"},
+        "outputs": ("f", "g", "e"),
+        "objective": "f",
+        "sense": "max",
+        "limits": spec.limits,
+        "u": spec.u,
+        "box": ((0.0, 1.0), (0.0, 1.0)),
+        "designs": [list(d) for d in spec.designs],
+        "truths": list(spec.truths),
+        "agen": (),
+        "start": (0.5, 0.5),
+        "seed": 3,
+    }
+
+
+def test_a_predicted_violation_of_an_exact_limit_ranks_before_a_u_normalised_one():
+    spec = exact_target(bound_e=0.30)
+    base = {(d,): t for d, t in zip(map(tuple, spec.designs), spec.truths)}
+
+    def optimistic_on_g(conditions, designs):
+        # claims g is safe everywhere but reports the exact output truthfully: only e can make a point infeasible
+        return [{**base[(tuple(d),)], "g": 0.0} for d in designs]
+
+    wide = OptimizerPolicy(budget=90, sigma0=0.3, population=None)
+    grade = grade_target(spec, optimistic_on_g, wide, HONESTY)
+    # Every pick must respect the exact limit e <= 0.30 (the model reports e exactly): it is never infeasible on e.
+    assert grade.pick is None or spec.truths[grade.pick]["e"] <= 0.30
