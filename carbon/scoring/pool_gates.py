@@ -115,6 +115,25 @@ def speed_gate(measured_seconds, rows, *, solver_seconds_per_design, factor):
     }
 
 
+def registered_speed_params(challenge_id):
+    """The speed gate's registered numbers for a Challenge, from the ONE source the exam page, the published scoring
+    rules tool and this gate all read (`carbon.challenge_registry.speed_gate`: RATIO and the recorded solver seconds
+    per design): {"solver_seconds_per_design", "factor"}, ready for `speed_gate` or `make_plugin(speed=...)`.
+    """
+    from carbon.challenge_registry import speed_gate as registered
+
+    try:
+        solver = registered.SOLVER_SECONDS_PER_DESIGN[challenge_id]
+    except KeyError:
+        raise pool_plugin.PluginRefused("speed_gate_challenge_not_registered") from None
+    return {"solver_seconds_per_design": solver, "factor": registered.RATIO}
+
+
+def registered_speed_gate(challenge_id, measured_seconds, rows):
+    """`speed_gate` with the registered ratio and solver time of `challenge_id` (never retyped here)."""
+    return speed_gate(measured_seconds, rows, **registered_speed_params(challenge_id))
+
+
 def total_rows(specs):
     return sum(len(spec.designs) for spec in specs)
 
@@ -126,6 +145,8 @@ __all__ = [
     "failed_gates",
     "pool_gate_result",
     "pool_rows",
+    "registered_speed_gate",
+    "registered_speed_params",
     "speed_gate",
     "total_rows",
 ]

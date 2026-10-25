@@ -1077,3 +1077,56 @@ def test_the_speed_gate_is_a_pass_fail_on_seconds_per_design_against_the_solver_
     assert (
         suite.version_total(plugin_with_speed(1e6), {"kind": "good"}, policies) == 0.0
     )
+
+
+def _fake_registry(monkeypatch):
+    """A stand-in with the published module's API (carbon.challenge_registry.speed_gate), for a branch that lacks it."""
+    import sys
+    import types
+
+    module = types.ModuleType("carbon.challenge_registry.speed_gate")
+    module.RATIO = 500
+    module.SOLVER_SECONDS_PER_DESIGN = {"f02": 190, "chip-cold-plate": 1420}
+    monkeypatch.setitem(sys.modules, "carbon.challenge_registry.speed_gate", module)
+    import carbon.challenge_registry as package
+
+    monkeypatch.setattr(package, "speed_gate", module, raising=False)
+
+
+def test_the_grader_reads_the_registered_speed_numbers_from_the_one_source(monkeypatch):
+    from carbon.scoring import pool_gates
+
+    _fake_registry(monkeypatch)
+    assert pool_gates.registered_speed_params("f02") == {
+        "solver_seconds_per_design": 190,
+        "factor": 500,
+    }
+    ok = pool_gates.registered_speed_gate(
+        "f02", 300.0, 1000
+    )  # 0.30 s per design <= 0.38 s
+    assert ok["passed"] and ok["ceiling_seconds_per_design"] == pytest.approx(0.38)
+    slow = pool_gates.registered_speed_gate(
+        "chip-cold-plate", 4000.0, 1000
+    )  # 4 s > 2.84 s
+    assert not slow["passed"] and slow["code"] == "GATE_FAILED (speed)"
+    with pytest.raises(pp.PluginRefused, match="speed_gate_challenge_not_registered"):
+        pool_gates.registered_speed_params("not-a-challenge")
+
+
+def test_the_published_speed_module_carries_the_owners_table_when_it_is_present():
+    pytest.importorskip("carbon.challenge_registry.speed_gate")
+    from carbon.challenge_registry import speed_gate as registered
+    from carbon.scoring import pool_gates
+
+    assert registered.RATIO == 500
+    for challenge_id, ceiling in {
+        "f02": 0.38,
+        "f08-ribbed-bracket": 2.08,
+        "chip-cold-plate": 2.84,
+        "electric-motor-magnetics": 3.3,
+    }.items():
+        params = pool_gates.registered_speed_params(challenge_id)
+        assert params["solver_seconds_per_design"] / params["factor"] == pytest.approx(
+            ceiling
+        )
+        assert registered.ceiling_seconds(challenge_id) == pytest.approx(ceiling)
