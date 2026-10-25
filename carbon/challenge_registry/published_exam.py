@@ -46,6 +46,7 @@ ALLOWED_FIELDS = frozenset(
         "practice_vs_exam",
         "rotation",
         "design_search",
+        "how_you_are_tested",
     }
 )
 
@@ -261,12 +262,120 @@ _DESIGN_SEARCH = {
 }
 
 _PRACTICE_POOL = (
-    "Practice runs the same search and the same legs on public targets with a "
-    "public set of solved designs drawn from the training region, and applies "
-    "the exam's published minimums per score part (or says minimums are not "
-    "yet set). The extended-region designs are never practice material, so a "
-    "practice total is not an exam total."
+    "Practice runs on the public bank and shows what it can of A, the gates "
+    "and the minimums. It never touches the exam's hidden targets or its "
+    "out-of-range questions, and a practice total is not an exam total."
 )
+
+#: "How you are tested": the plain-words page for a pool-graded version (owner,
+#: 2026-10-25: "for out of range, robustness, and inverse design we just tell
+#: them how it will be tested"). One list feeds the describe tool, the Launchpad
+#: page and docs/MINING.md ("How you're tested"); a test holds the three equal.
+#: Nothing hidden is named: not the targets, the extended region's bounds, the
+#: limit shifts, the optimizer's starting points or seeds, or the solved designs.
+_SPEED_SOURCE = "codex-queue/reports/EXAM_ADDITIONS_20261025.md"
+#: The speed gate's ceiling per design: the recorded solver time per design
+#: divided by 500, per Challenge (the owner's registered values).
+_SPEED_CEILING_SECONDS = {
+    "f02": 0.38,
+    "f08-ribbed-bracket": 2.08,
+    "chip-cold-plate": 2.84,
+    "electric-motor-magnetics": 3.3,
+}
+SPEED_LINE = (
+    "Your model must answer each design in at most 1/500 of the time the "
+    "reference solver needs for one design. The time is measured on the "
+    "validator's machine, for the whole batch of exam designs with the model's "
+    "loading included, divided by the number of designs. Failing it is a failed "
+    "gate (speed), and no score."
+)
+HOW_TESTED_LINES = (
+    (
+        "score",
+        "The grade",
+        (
+            "Your grade is 0.5 x A + 0.5 x D, from 0 to 1, higher is better. A is "
+            "accuracy and physics. D is design value."
+        ),
+    ),
+    (
+        "inverse_design",
+        "Inverse design",
+        (
+            "Design value is inverse design. Carbon's own fixed optimizer (CMA-ES) "
+            "uses your model to search for designs that meet each hidden target's "
+            "limits, within a fixed number of model queries, and picks one design "
+            "from a set Carbon has already solved. A pick that does not meet the "
+            "limits scores 0 for that target; otherwise it scores how close it is "
+            "to the best known design, times how honest your model's prediction "
+            "was at that pick. You cannot change the search. The query budget is "
+            "not yet registered."
+        ),
+    ),
+    (
+        "variants",
+        "Tighter and looser limits",
+        (
+            "Some targets are tighter or looser versions of the base problem: the "
+            "same design question with its limits moved. A model that only works "
+            "for the base limits loses there. How far the limits move is not "
+            "published."
+        ),
+    ),
+    (
+        "out_of_range",
+        "Outside the training range",
+        (
+            "Some exam questions lie just outside the range your training data "
+            "covers. They count: accuracy there, inverse-design picks there, and "
+            "the physics gates there. How far that range extends, and where its "
+            "questions are, is not published."
+        ),
+    ),
+    (
+        "gates",
+        "Physics gates",
+        (
+            "The physics gates run on every answer your model gives, inside and "
+            "outside the range. Failing any gate means no score at all, however "
+            "good the rest. You are told which gate failed, never which design."
+        ),
+    ),
+    ("speed", "Speed", SPEED_LINE),
+    (
+        "minimums",
+        "Minimums",
+        (
+            "Each score part also has a minimum, set from Carbon's own baseline on "
+            "the exam. A part below its minimum makes the submission not eligible, "
+            "and the part is named. Until a version's minimums are registered, the "
+            "page says minimums are not yet set."
+        ),
+    ),
+    (
+        "practice",
+        "Practice",
+        (
+            "Practice runs on the public bank and shows what it can of A, the "
+            "gates and the minimums. It never touches the exam's hidden targets or "
+            "its out-of-range questions, and a practice total is not an exam total."
+        ),
+    ),
+)
+
+
+def how_you_are_tested(challenge_id):
+    """The "How you are tested" lines of a pool-graded version of
+    ``challenge_id``: id, title and text each; the speed line also names this
+    Challenge's ceiling per design."""
+    ceiling = _SPEED_CEILING_SECONDS[challenge_id]
+    lines = []
+    for line_id, title, text in HOW_TESTED_LINES:
+        if line_id == "speed":
+            text = text + f" The ceiling for this Challenge is {ceiling} s per design."
+        lines.append({"id": line_id, "title": title, "text": text})
+    return lines
+
 
 _SPAN_STEP = {
     "step": {
@@ -727,6 +836,7 @@ def for_version(challenge_id, version):
     }
     if pool:
         block["design_search"] = _DESIGN_SEARCH
+        block["how_you_are_tested"] = how_you_are_tested(challenge_id)
     return block
 
 

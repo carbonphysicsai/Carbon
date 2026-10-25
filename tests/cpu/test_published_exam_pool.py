@@ -31,6 +31,7 @@ WITHHELD = (
     "start point",
     "starting point",
 )
+ROOT = Path(__file__).resolve().parents[2]
 SERVED = pe.served()
 SOME = ("f08-ribbed-bracket", "1.5")
 NEW = ("f08-ribbed-bracket", "9.9")  # synthetic: a version the registry does not serve
@@ -138,8 +139,9 @@ def test_the_pool_score_keeps_the_formula_and_drops_the_old_design_legs():
     assert not {"V_pair", "V_feas", "V_var"} & set(ids)
 
 
-def test_the_pool_text_says_the_extended_region_is_never_practice():
-    assert "never practice material" in pe._PRACTICE_POOL
+def test_the_practice_text_says_practice_never_touches_the_exam_s_hidden_questions():
+    assert "public bank" in pe._PRACTICE_POOL
+    assert "never touches the exam's hidden targets" in pe._PRACTICE_POOL
     assert "not an exam total" in pe._PRACTICE_POOL
 
 
@@ -148,3 +150,88 @@ def test_the_grader_is_not_imported_by_the_published_data_module():
     source = Path(pe.__file__).read_text(encoding="utf-8")
     assert "import carbon.scoring" not in source
     assert "from carbon.scoring" not in source
+
+
+# --- "How you're tested" (owner, 2026-10-25) ---------------------------------
+
+MINING = ROOT / "docs" / "MINING.md"
+HIDDEN_IN_HOW = (
+    "seed",
+    "start point",
+    "starting point",
+    "pool",
+    "median",
+    "cma-es seed",
+    "extended region",
+    "25 %",
+)
+
+
+def _how_section():
+    text = MINING.read_text(encoding="utf-8")
+    start = text.index("## How you're tested")
+    return text[start : text.index("\n## ", start + 5)]
+
+
+def test_a_pool_version_serves_the_how_you_are_tested_lines(pool_version):
+    lines = pool_version["how_you_are_tested"]
+    assert [line["id"] for line in lines] == [
+        "score",
+        "inverse_design",
+        "variants",
+        "out_of_range",
+        "gates",
+        "speed",
+        "minimums",
+        "practice",
+    ]
+    assert all(set(line) == {"id", "title", "text"} for line in lines)
+
+
+def test_no_version_served_today_carries_them():
+    for key in SERVED:
+        assert "how_you_are_tested" not in pe.for_version(*key)
+
+
+def test_nothing_hidden_is_on_the_how_you_are_tested_lines():
+    for challenge_id in pe._SPEED_CEILING_SECONDS:
+        text = " ".join(
+            line["title"] + " " + line["text"]
+            for line in pe.how_you_are_tested(challenge_id)
+        ).lower()
+        for word in HIDDEN_IN_HOW:
+            assert word not in text, (challenge_id, word)
+
+
+def test_mining_md_says_exactly_what_the_block_says():
+    section = _how_section()
+    for _id, _title, text in pe.HOW_TESTED_LINES:
+        assert text in section, _id
+    for challenge_id, ceiling in pe._SPEED_CEILING_SECONDS.items():
+        assert f"{ceiling} s" in section, challenge_id
+        speed = next(
+            line
+            for line in pe.how_you_are_tested(challenge_id)
+            if line["id"] == "speed"
+        )
+        assert speed["text"].startswith(pe.SPEED_LINE)
+        assert f"{ceiling} s per design" in speed["text"]
+
+
+def test_the_ceilings_are_the_solver_time_over_500():
+    solver_seconds = {
+        "f02": 190,
+        "f08-ribbed-bracket": 1040,
+        "chip-cold-plate": 1420,
+        "electric-motor-magnetics": 1650,
+    }
+    for challenge_id, seconds in solver_seconds.items():
+        assert pe._SPEED_CEILING_SECONDS[challenge_id] == round(seconds / 500, 2)
+
+
+def test_the_launchpad_page_shows_the_lines_from_the_challenge_s_own_block():
+    source = (ROOT / "scripts" / "dev" / "miner_launchpad" / "app.js").read_text(
+        encoding="utf-8"
+    )
+    assert "published_exam?.how_you_are_tested" in source
+    assert "How you're tested" in source
