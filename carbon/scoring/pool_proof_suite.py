@@ -154,13 +154,13 @@ def pool_predictor(plugin, descriptor, specs):
         def perturbed(conditions, designs):
             out = []
             for design, prediction in zip(designs, base(conditions, designs)):
-                spec, _ = universe.lookup(conditions, design)
+                spec, row = universe.lookup(conditions, design)
                 out.append(
                     {
                         name: value
                         + sum(
                             step
-                            * spec.u[name]
+                            * spec.u_at(row, name)
                             * _sign(seed, "layer", _key(conditions), list(design), name)
                             for seed, step in layers
                         )
@@ -196,16 +196,18 @@ def pool_predictor(plugin, descriptor, specs):
                 out.append(truth)
             elif kind == "noisy" and descriptor["mode"] == "feasible_bias":
                 for limit in spec.limits:
-                    shift = k * spec.u[limit.output]
+                    shift = k * spec.u_at(index, limit.output)
                     truth[limit.output] += shift if limit.kind == ">=" else -shift
                 out.append(truth)
             elif kind == "noisy" and descriptor["mode"] == "random":
-                out.append(_random_error(spec, conditions, design, truth, k, seed))
+                out.append(
+                    _random_error(spec, index, conditions, design, truth, k, seed)
+                )
             elif kind == "wrong_near_optimum":
                 reference = spec.norm[spec.reference]
                 distance = math.dist(reference, spec.norm[index])
                 out.append(
-                    _random_error(spec, conditions, design, truth, k, seed)
+                    _random_error(spec, index, conditions, design, truth, k, seed)
                     if distance <= descriptor["radius"]
                     else truth
                 )
@@ -216,10 +218,12 @@ def pool_predictor(plugin, descriptor, specs):
     return truth_based
 
 
-def _random_error(spec, conditions, design, truth, k, seed):
+def _random_error(spec, index, conditions, design, truth, k, seed):
     return {
         name: value
-        + k * spec.u[name] * _sign(seed, "noise", _key(conditions), list(design), name)
+        + k
+        * spec.u_at(index, name)
+        * _sign(seed, "noise", _key(conditions), list(design), name)
         for name, value in truth.items()
     }
 
@@ -388,10 +392,10 @@ def check_coverage(plugin, params, queries_per_target=None):
             for limit in spec.limits:
                 near_limit[f"{limit.output}{limit.kind}"] = sum(
                     1
-                    for t in spec.truths
+                    for row, t in enumerate(spec.truths)
                     if 0.0
                     <= limit.margin(t[limit.output])
-                    <= params.near_limit_u * spec.u[limit.output]
+                    <= params.near_limit_u * spec.u_at(row, limit.output)
                 )
             rows.append(
                 {

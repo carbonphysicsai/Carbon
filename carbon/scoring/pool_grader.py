@@ -50,6 +50,24 @@ REASONS = (
 )
 
 
+def _is_relative(value):
+    return (
+        type(value) is dict
+        and set(value) == {"relative"}
+        and _finite(value["relative"])
+        and value["relative"] > 0
+    )
+
+
+def _valid_u(value):
+    return _is_relative(value) or (_finite(value) and value >= 0)
+
+
+def u_value(u, true_value):
+    """A U at one row: a number as it is, or {"relative": r} as r x |true_value|."""
+    return u["relative"] * abs(true_value) if type(u) is dict else u
+
+
 class PoolRefused(ValueError):
     """The pool or its policy cannot give a sound grade: the Challenge's material, not a candidate's failure."""
 
@@ -118,6 +136,10 @@ def _check_policies(optimizer, honesty):
 @dataclass(frozen=True)
 class TargetSpec:
     """One sealed optimisation problem with its pre-solved pool. Build it with `build_target`."""
+
+    def u_at(self, index, name):
+        """The U of output `name` at pool row `index`: the number, or r x |that row's true value|."""
+        return u_value(self.u[name], self.truths[index][name])
 
     target_id: str
     conditions: dict
@@ -194,14 +216,19 @@ def build_target(
         "limits_must_name_outputs_with_a_kind_and_a_finite_bound",
     )
     _require(set(u) == set(outputs), "u_must_cover_exactly_the_outputs")
+    # A U is a number >= 0, or {"relative": r} (r > 0): r times the ABSOLUTE true value of that output in that
+    # pool row, as the exam applies it (e.g. a hydraulic power, r = 0.03). A relative U is never a scalar.
     # U = 0 marks an output Carbon computes exactly (an analytic quantity such as an energy or a mass formula),
     # never predicted by the model: it is held to equality, not to a tolerance, and does not enter the honesty
     # scale. At least one output must carry a real U or there is nothing for honesty to measure.
     _require(
-        all(_finite(v) and v >= 0 for v in u.values()),
-        "u_must_be_non_negative_and_finite",
+        all(_valid_u(v) for v in u.values()),
+        "u_must_be_non_negative_and_finite_or_relative",
     )
-    _require(any(v > 0 for v in u.values()), "u_needs_one_predicted_output")
+    _require(
+        any(_is_relative(v) or v > 0 for v in u.values()),
+        "u_needs_one_predicted_output",
+    )
     box = tuple((float(lo), float(hi)) for lo, hi in box)
     _require(
         box
@@ -236,7 +263,8 @@ def build_target(
     keep, excluded = [], 0
     for index, truth in enumerate(truths):
         if any(
-            abs(limit.margin(truth[limit.output])) <= u[limit.output]
+            abs(limit.margin(truth[limit.output]))
+            <= u_value(u[limit.output], truth[limit.output])
             for limit in limits
         ):
             excluded += 1
@@ -369,8 +397,9 @@ def grade_target(spec, predict, optimizer, honesty):
         for limit in spec.limits:
             margin = limit.margin(prediction[limit.output])
             if margin < 0.0:
-                if spec.u[limit.output] > 0.0:
-                    violation += -margin / spec.u[limit.output]
+                scale = spec.u_at(index, limit.output)
+                if scale > 0.0:
+                    violation += -margin / scale
                 else:
                     exact += (
                         -margin
@@ -446,8 +475,9 @@ def _error(spec, index, prediction, honesty):
     ratios = []
     for k in spec.outputs:
         difference = abs(prediction[k] - spec.truths[index][k])
-        if spec.u[k] > 0.0:
-            ratios.append(difference / spec.u[k])
+        scale = spec.u_at(index, k)
+        if scale > 0.0:
+            ratios.append(difference / scale)
         elif not math.isclose(
             prediction[k], spec.truths[index][k], rel_tol=1e-9, abs_tol=1e-12
         ):

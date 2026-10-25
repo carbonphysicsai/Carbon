@@ -530,3 +530,128 @@ def test_a_predicted_violation_of_an_exact_limit_ranks_before_a_u_normalised_one
     grade = grade_target(spec, optimistic_on_g, wide, HONESTY)
     # Every pick must respect the exact limit e <= 0.30 (the model reports e exactly): it is never infeasible on e.
     assert grade.pick is None or spec.truths[grade.pick]["e"] <= 0.30
+
+
+def relative_target(rel=0.03, extra=(), seed=3):
+    """A Cooling-like target: output h (like hydraulic power, limit h <= 0.25) with U = 3 % of each row's own h."""
+    rng = random.Random(seed)
+    points = [(rng.random(), rng.random()) for _ in range(60)]
+    points += [
+        (0.6 + rng.uniform(-0.1, 0.1), 0.6 + rng.uniform(-0.1, 0.1)) for _ in range(40)
+    ]
+    points += list(extra)
+    truths = [{"f": x + y, "h": 0.1 + 0.2 * (x * x + y * y) / 2.0} for x, y in points]
+    return build_target(
+        target_id="rel",
+        conditions={"case": "rel"},
+        outputs=("f", "h"),
+        objective="f",
+        sense="max",
+        limits=(Limit("h", "<=", 0.25),),
+        u={"f": U, "h": {"relative": rel}},
+        box=((0.0, 1.0), (0.0, 1.0)),
+        designs=[list(p) for p in points],
+        truths=truths,
+        agen=(),
+        start=(0.5, 0.5),
+        seed=seed,
+    )
+
+
+def test_a_relative_u_is_r_times_each_rows_own_value_and_is_never_a_scalar():
+    spec = relative_target()
+    assert spec.u["h"] == {
+        "relative": 0.03
+    }, "kept as a relative U, never turned into a number"
+    for index in (0, 5, 40):
+        assert spec.u_at(index, "h") == pytest.approx(
+            0.03 * abs(spec.truths[index]["h"])
+        )
+        assert spec.u_at(index, "f") == U
+    # Never read as an absolute 0.03 W: a row near h = 0.25 has U about 0.0075, a row near 0.1 about 0.003.
+    assert pool_grader.u_value({"relative": 0.03}, 0.25) == pytest.approx(0.0075)
+    assert pool_grader.u_value({"relative": 0.03}, 0.1) == pytest.approx(0.003)
+    assert pool_grader.u_value(0.03, 0.25) == 0.03
+
+
+def _with_extra_row(h, u_h):
+    rng = random.Random(3)
+    points = [(rng.random(), rng.random()) for _ in range(60)]
+    points += [
+        (0.6 + rng.uniform(-0.1, 0.1), 0.6 + rng.uniform(-0.1, 0.1)) for _ in range(40)
+    ]
+    truths = [{"f": x + y, "h": 0.1 + 0.2 * (x * x + y * y) / 2.0} for x, y in points]
+
+    def build(extra):
+        return build_target(
+            target_id="rel",
+            conditions={"case": "rel"},
+            outputs=("f", "h"),
+            objective="f",
+            sense="max",
+            limits=(Limit("h", "<=", 0.25),),
+            u={"f": U, "h": u_h},
+            box=((0.0, 1.0), (0.0, 1.0)),
+            designs=[list(p) for p in points] + ([[0.5, 0.5]] if extra else []),
+            truths=[*truths, {"f": 1.0, "h": h}] if extra else truths,
+            agen=(),
+            start=(0.5, 0.5),
+            seed=3,
+        )
+
+    return build(True).excluded - build(False).excluded
+
+
+def test_the_exclusion_uses_three_percent_of_the_rows_own_value():
+    relative = {"relative": 0.03}
+    # h = 0.2425: margin 0.0075 > 3 % of its own value (0.007275): just OUTSIDE, kept.
+    assert _with_extra_row(0.2425, relative) == 0
+    # h = 0.2428: margin 0.0072 <= 3 % of its own value (0.007284): just INSIDE, excluded.
+    assert _with_extra_row(0.2428, relative) == 1
+    # Read as an absolute 0.0075 (3 % of the limit, the wrong rule) the row h = 0.2426 would be excluded:
+    # a relative U is never a scalar.
+    assert _with_extra_row(0.2426, relative) == 0
+    assert _with_extra_row(0.2426, 0.0075) == 1
+
+
+def test_relative_u_drives_the_grader_and_is_refused_when_malformed():
+    spec = relative_target()
+    table = {(spec.conditions["case"], d): t for d, t in zip(spec.designs, spec.truths)}
+
+    def model(conditions, designs):
+        return [dict(table[(conditions["case"], tuple(d))]) for d in designs]
+
+    wide = OptimizerPolicy(budget=90, sigma0=0.3, population=None)
+    good = grade_target(spec, model, wide, HONESTY)
+    assert good.reason == "graded" and good.h == 1.0 and good.d == pytest.approx(1.0)
+
+    def off(conditions, designs):
+        # an error of 3 % of the row's own h (one U) on h only
+        return [{**t, "h": t["h"] * 1.03} for t in model(conditions, designs)]
+
+    shifted = grade_target(spec, off, wide, HONESTY)
+    assert shifted.e == pytest.approx(1.0, rel=1e-6) or shifted.reason != "graded"
+    kwargs = {
+        "target_id": "rel",
+        "conditions": {"case": "rel"},
+        "outputs": ("f", "h"),
+        "objective": "f",
+        "sense": "max",
+        "limits": spec.limits,
+        "box": ((0.0, 1.0), (0.0, 1.0)),
+        "designs": [list(d) for d in spec.designs],
+        "truths": list(spec.truths),
+        "agen": (),
+        "start": (0.5, 0.5),
+        "seed": 3,
+    }
+    for bad in (
+        {"relative": 0.0},
+        {"relative": -1.0},
+        {"relative": 0.03, "extra": 1},
+        {"rel": 0.03},
+    ):
+        with pytest.raises(PoolRefused, match="u_must_be_non_negative"):
+            build_target(**kwargs, u={"f": U, "h": bad})
+    # A custody document with a relative U loads through spec_from_source-style kwargs unchanged.
+    assert pool_grader.dump_pool(spec)["u"]["h"] == {"relative": 0.03}
