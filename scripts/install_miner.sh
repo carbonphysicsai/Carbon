@@ -323,11 +323,18 @@ space_hint() {
   echo "${hint}"
 }
 
+install_hint() {
+  case "$1" in
+    docker) echo "Install Docker Engine (https://docs.docker.com/engine/install/), start it, and add yourself to the docker group; then run this again." ;;
+    *) echo "Install it from your OS packages (for example: sudo apt-get install $1); then run this again." ;;
+  esac
+}
+
 step "1/6 Checking this machine"
 [[ "$(uname -s)" == "Linux" ]] || fail "Linux is required (Windows: use WSL2)."
 [[ "$(uname -m)" == "x86_64" ]] || fail "x86-64 is required."
 for tool in git curl docker; do
-  command -v "${tool}" >/dev/null 2>&1 || fail "${tool} is not installed."
+  command -v "${tool}" >/dev/null 2>&1 || fail "${tool} is not installed. $(install_hint "${tool}")"
 done
 docker info >/dev/null 2>&1 \
   || fail "Docker is installed but not reachable; start it, or add yourself to the docker group."
@@ -358,7 +365,7 @@ if [[ "${GPU}" == 1 ]]; then
   # refused by setup's own driver check (M1 E2E S4: a CPU-only controller
   # driving a rented GPU).
   if ! command -v nvidia-smi >/dev/null 2>&1; then
-    echo "No NVIDIA driver here (nvidia-smi was not found): the GPU worker(s) are built for your own remote GPU and will not run on this machine."
+    echo "No NVIDIA driver here (nvidia-smi was not found): the GPU worker(s) are built for your own remote GPU and will not run on this machine. To practise on this machine's GPU, install the NVIDIA driver (https://www.nvidia.com/en-us/drivers/) and the NVIDIA Container Toolkit (https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), then run this again with --update --gpu."
   fi
 fi
 if [[ "${UPDATE}" == 1 && ! -d "${STATE_DIR}" ]]; then

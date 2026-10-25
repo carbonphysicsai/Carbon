@@ -48,6 +48,30 @@ from carbon.reconstruction.host_inventory import (
 )
 from carbon.reconstruction.worker.model import WorkerFailure
 
+#: What a host-record field must be, in plain words, for a refusal that names
+#: it. Facts about the record's shape only; nothing read from the host.
+FIELD_HINTS = {
+    "nvidia_smi": "the NVIDIA query tool (nvidia-smi) was not found or could not talk to the driver",
+    "device": "this host has several GPUs (or the one named is not among them): pass --device GPU-<uuid>, one of `choices`",
+    "record": "the record is missing or has unexpected fields",
+    "schema": "the record's schema is not the host device record's",
+    "observation_authority": "the record must say it is a host observation only",
+    "record_id": "letters, digits, '-' and '_' only, up to 64 characters",
+    "workload_profile_id": "the workload profile this record serves (leave --profile unset)",
+    "device_uuid": "the vendor's device id (NVIDIA: GPU-<uuid> or MIG-<uuid>, lowercase hex)",
+    "device_kind": "the device's marketed name (letters, digits, spaces, '_', '.', '-')",
+    "driver_version": "digits and dots only, up to 16 characters",
+    "driver_model": "must be WDDM, TCC or N/A",
+    "compute_capability": "like 8.6",
+    "device_memory_mib": "a whole number of MiB above 0",
+    "display_active": "must be Enabled or Disabled (the vendor tool printed something else)",
+    "platform": "must be WSL2, LINUX_BARE_METAL, LINUX_VIRTUAL_MACHINE or HOSTED_COMPUTE_INSTANCE",
+    "container_runtime": "must be DOCKER_ENGINE or DOCKER_DESKTOP",
+    "provider": "letters, digits, '-' and '_' only, up to 64 characters",
+    "observed_at_unix": "a positive time in seconds",
+    "observation_provenance": "a sentence of letters, digits and simple punctuation",
+}
+
 
 def _emit(value: object) -> int:
     print(json.dumps(value, sort_keys=True, indent=2))
@@ -116,7 +140,21 @@ def command_prepare(args) -> int:
         observed = onboarding.load_document(Path(args.source))
         provenance = args.provenance or f"recorded observation from {args.source}"
     else:
-        observed = onboarding.observe_local_device(binary=args.smi)
+        try:
+            observed = onboarding.observe_local_device(binary=args.smi)
+        except WorkerFailure as failure:
+            return (
+                _emit(
+                    {
+                        "status": "REFUSED",
+                        "code": failure.code.value,
+                        "fields": ["nvidia_smi"],
+                        "reasons": {"nvidia_smi": FIELD_HINTS["nvidia_smi"]},
+                        "next": "install the NVIDIA driver (https://www.nvidia.com/en-us/drivers/) and reboot, then check that `nvidia-smi` lists your GPU; or pass --smi with the path to nvidia-smi, or --from with a recorded observation file",
+                    }
+                )
+                or 2
+            )
         provenance = args.provenance or (
             f"vendor query tool at {observed.get('source')}, run by the operator"
         )
@@ -166,7 +204,12 @@ def command_doctor(args) -> int:
     profile = onboarding.resolve_workload(args.profile)
     report = onboarding.doctor_report(root=_host_root(args), profile=profile)
     _emit(report)
-    return 0 if report["checks_passed"] else 1
+    # The strict exit is the default: a validator or owner-authorised host must
+    # pass every check (a grant or approval, display routing, the attempt journal).
+    # Your own practice asks explicitly with `--miner-lane`, which needs only the
+    # miner lane's checks.
+    ready = report["miner_lane_ready"] if args.miner_lane else report["checks_passed"]
+    return 0 if ready else 1
 
 
 def command_status(args) -> int:
@@ -268,7 +311,13 @@ def build_parser() -> argparse.ArgumentParser:
     authorize.add_argument("record", help="the owner-authored grant or approval")
     authorize.set_defaults(handler=command_authorize)
 
-    subparsers.add_parser("doctor").set_defaults(handler=command_doctor)
+    doctor = subparsers.add_parser("doctor")
+    doctor.add_argument(
+        "--miner-lane",
+        action="store_true",
+        help="exit on your own practice's checks only (no owner grant needed)",
+    )
+    doctor.set_defaults(handler=command_doctor)
 
     status = subparsers.add_parser("status")
     status.add_argument("--state-root", help="the controller state directory")
@@ -304,7 +353,22 @@ def main(argv=None) -> int:
     try:
         return args.handler(args)
     except WorkerFailure as failure:
-        return _emit({"status": "REFUSED", "code": failure.code.value}) or 2
+        refusal = {"status": "REFUSED", "code": failure.code.value}
+        fields = getattr(failure, "fields", None)
+        if fields:
+            # Which fields of the host record failed, and what each must
+            # be. Names only; the values stay on the host.
+            refusal["fields"] = list(fields)
+            refusal["reasons"] = {
+                name: FIELD_HINTS.get(name, "does not match the record's shape")
+                for name in fields
+            }
+            if getattr(failure, "choices", None):
+                refusal["choices"] = list(failure.choices)
+            refusal["next"] = (
+                "fix the named fields: record them with `prepare --from <file>` after checking them with `observe`; if the vendor tool itself reports a value the record does not accept, report the field name to Carbon (this host class may not be supported yet)"
+            )
+        return _emit(refusal) or 2
     except ValueError as error:
         return _emit({"status": "REFUSED", "detail": str(error)}) or 2
 

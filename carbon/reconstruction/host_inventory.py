@@ -137,35 +137,55 @@ class HostDeviceRecord:
         record.validate()
         return record
 
-    def validate(self) -> None:
-        """Check the record's own shape. This authorizes nothing."""
+    def problems(self) -> tuple[str, ...]:
+        """The names of the fields that fail the record's own shape, in a fixed
+        order; empty when it is well formed. Names only, never values, so a
+        refusal can say which field to fix without echoing what was read. A
+        document that is not a record at all names `record`."""
         doc = self.document
         if type(doc) is not dict or set(doc) != REQUIRED_FIELDS:
-            raise WorkerFailure(WorkerCode.POLICY)
-        if (
-            doc["schema"] != HOST_DEVICE_SCHEMA
-            or doc["observation_authority"] != HOST_DEVICE_AUTHORITY
-            or not _matches(_TOKEN, doc["record_id"])
-            or not _matches(_TOKEN, doc["workload_profile_id"])
-            or not _matches(_DEVICE_IDENTIFIER, doc["device_uuid"])
-            or not _matches(_DEVICE_KIND, doc["device_kind"])
-            or not _matches(_DRIVER_VERSION, doc["driver_version"])
-            or doc["driver_model"] not in DRIVER_MODELS
-            or not _matches(_COMPUTE_CAPABILITY, doc["compute_capability"])
-            or doc["display_active"] not in DISPLAY_STATES
-            or doc["platform"] not in PLATFORMS
-            or doc["container_runtime"] not in CONTAINER_RUNTIMES
-            or not _matches(_TOKEN, doc["provider"])
-            or not _matches(_PROVENANCE, doc["observation_provenance"])
-        ):
-            raise WorkerFailure(WorkerCode.POLICY)
+            return ("record",)
+        checks = (
+            ("schema", doc["schema"] == HOST_DEVICE_SCHEMA),
+            (
+                "observation_authority",
+                doc["observation_authority"] == HOST_DEVICE_AUTHORITY,
+            ),
+            ("record_id", _matches(_TOKEN, doc["record_id"])),
+            ("workload_profile_id", _matches(_TOKEN, doc["workload_profile_id"])),
+            ("device_uuid", _matches(_DEVICE_IDENTIFIER, doc["device_uuid"])),
+            ("device_kind", _matches(_DEVICE_KIND, doc["device_kind"])),
+            ("driver_version", _matches(_DRIVER_VERSION, doc["driver_version"])),
+            ("driver_model", doc["driver_model"] in DRIVER_MODELS),
+            (
+                "compute_capability",
+                _matches(_COMPUTE_CAPABILITY, doc["compute_capability"]),
+            ),
+            ("display_active", doc["display_active"] in DISPLAY_STATES),
+            ("platform", doc["platform"] in PLATFORMS),
+            ("container_runtime", doc["container_runtime"] in CONTAINER_RUNTIMES),
+            ("provider", _matches(_TOKEN, doc["provider"])),
+            (
+                "observation_provenance",
+                _matches(_PROVENANCE, doc["observation_provenance"]),
+            ),
+        )
+        failed = [name for name, ok in checks if not ok]
         memory = doc["device_memory_mib"]
         if type(memory) is not int or memory <= 0 or memory > 1 << 24:
-            raise WorkerFailure(WorkerCode.POLICY)
+            failed.append("device_memory_mib")
         observed = doc["observed_at_unix"]
-        if type(observed) not in (float, int) or not math.isfinite(observed):
-            raise WorkerFailure(WorkerCode.POLICY)
-        if observed <= 0:
+        if (
+            type(observed) not in (float, int)
+            or not math.isfinite(observed)
+            or observed <= 0
+        ):
+            failed.append("observed_at_unix")
+        return tuple(failed)
+
+    def validate(self) -> None:
+        """Check the record's own shape. This authorizes nothing."""
+        if self.problems():
             raise WorkerFailure(WorkerCode.POLICY)
 
     # --- accessors, so callers never index the raw document ------------------
@@ -237,6 +257,29 @@ def require_host_device(record: HostDeviceRecord, profile) -> HostDeviceRecord:
     return record
 
 
+class HostRecordRefused(WorkerFailure):
+    """A host record that failed its own shape, naming the failing fields (never
+    their values). Still the stable `policy.mismatch` failure to every caller
+    that catches `WorkerFailure`; only the operator's `prepare` reads `fields`."""
+
+    def __init__(self, fields) -> None:
+        super().__init__(WorkerCode.POLICY)
+        self.fields = tuple(fields)
+
+
+class DeviceChoiceRequired(HostRecordRefused):
+    """The host exposes several devices (or the named one is not among them): the
+    operator chooses which this record describes. `choices` lists the devices the
+    vendor tool reported (id and name), for the operator's own screen."""
+
+    def __init__(self, choices) -> None:
+        # Still `request.invalid`, the code a multi-device host has always been
+        # refused with; only the operator's `prepare` reads `fields`/`choices`.
+        WorkerFailure.__init__(self, WorkerCode.INVALID)
+        self.fields = ("device",)
+        self.choices = tuple(choices)
+
+
 __all__ = [
     "CONTAINER_RUNTIMES",
     "DRIVER_MODELS",
@@ -245,7 +288,9 @@ __all__ = [
     "HOST_DEVICE_SCHEMA",
     "NVIDIA_DEVICE_UUID",
     "PLATFORMS",
+    "DeviceChoiceRequired",
     "HostDeviceRecord",
+    "HostRecordRefused",
     "require_host_device",
 ]
 
