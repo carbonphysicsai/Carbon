@@ -54,6 +54,37 @@ def entries(challenge_id=None, version=None):
     ]
 
 
+#: The prefix of the v2 entries (graph route v2's catalog: every setting a miner may set).
+V2_PREFIX = "v2."
+LEGACY_NOTE = (
+    " (legacy entry: some settings stay Carbon-limited here; the v2.* entries take "
+    "every setting, so start from one of those)"
+)
+
+
+def preferred(challenge_id, version):
+    """The catalog id a ready example should use on (challenge_id, version): its first
+    v2.* entry when it offers any, else None (the caller's own default stands)."""
+    for item in entries(challenge_id, version):
+        if item["catalog_id"].startswith(V2_PREFIX):
+            return item["catalog_id"]
+    return None
+
+
+def is_legacy(catalog_id, challenge_id, version):
+    """Whether ``catalog_id`` is a pre-v2 entry on a version that also offers v2.* ones."""
+    return (
+        not catalog_id.startswith(V2_PREFIX)
+        and preferred(challenge_id, version) is not None
+    )
+
+
+def summary(catalog_id, backbone, challenge_id, version):
+    """The miner-facing line for a catalog entry, labelled when it is a legacy one."""
+    text = "Carbon's tested " + backbone + " bundle"
+    return text + (LEGACY_NOTE if is_legacy(catalog_id, challenge_id, version) else "")
+
+
 def entry(catalog_id, challenge_id=None, version=None):
     for item in entries(challenge_id, version):
         if item["catalog_id"] == catalog_id:

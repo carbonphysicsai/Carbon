@@ -645,6 +645,11 @@ def run_eligible(experiment, dual=None):
     return None
 
 
+#: What a practice "score" is, on every Challenge (owner, 2026-10-25: "what the heck is with those
+#: high scores"): a normalised error on the Challenge's registered scale, never a grade.
+PRACTICE_ERROR_LABEL = "Practice error (lower is better; 0 = exact)"
+
+
 def experiment_rows(own, view):
     keys = [k for k, _ in view.components] if view is not None else None
     rows = []
@@ -847,7 +852,7 @@ def comparison(rows, view):
     current = rows[-1]
     previous = rows[-2] if len(rows) > 1 else None
     lower = view is None or view.direction == "lower_is_better"
-    metrics = [("score", "Practice score", lambda r: r["score"])]
+    metrics = [("score", PRACTICE_ERROR_LABEL, lambda r: r["score"])]
     labels = dict(view.components) if view is not None else {}
     for key in current["components"]:
         metrics.append(
@@ -915,9 +920,9 @@ def charts(rows, own, view):
         found.append(
             series_chart(
                 "trend_score",
-                "Practice score by run",
+                "Practice error by run (lower is better)",
                 runs,
-                [("Score", "current", [r["score"] for r in rows])],
+                [("Error", "current", [r["score"] for r in rows])],
             )
         )
         if view is not None and view.components:

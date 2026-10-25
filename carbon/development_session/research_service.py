@@ -124,11 +124,13 @@ RECIPE_ISSUE_TEXT = {
     ),
     "catalog_setting_unknown": (
         "A procedure setting is not one the chosen catalog entry's settings "
-        "schema has."
+        "schema has. A legacy entry (an id not starting with v2.) takes fewer "
+        "settings than the v2.* entries; choose a v2.* entry to set more."
     ),
     "catalog_setting_invalid": (
         "A procedure setting's value is outside what the chosen catalog entry's "
-        "settings schema takes."
+        "settings schema takes. A legacy entry (an id not starting with v2.) takes "
+        "fewer values than the v2.* entries; choose a v2.* entry to set more."
     ),
     "catalog_settings_inconsistent": (
         "output.format must be the chosen catalog entry's output format."

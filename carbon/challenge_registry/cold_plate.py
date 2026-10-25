@@ -245,7 +245,11 @@ def catalog_recipe(catalog_id=None, *, version):
     kit = physical_public.construction_kit(COLD_PLATE_CHALLENGE, version)
     if catalog_id is None:
         offered = listing.entries(COLD_PLATE_CHALLENGE, version)
-        item = offered[0] if offered else None
+        # A v2.* entry first (every setting is the miner's), else the first offered.
+        wanted = listing.preferred(COLD_PLATE_CHALLENGE, version)
+        item = next((e for e in offered if e["catalog_id"] == wanted), None) or (
+            offered[0] if offered else None
+        )
     else:
         item = listing.entry(catalog_id, COLD_PLATE_CHALLENGE, version)
         if item is None:
@@ -278,6 +282,7 @@ def describe_catalog(version):
     """Cooling's catalog version: Carbon's tested backbones by catalog id,
     built and judged as the Carbon bundle each names, on the direct recipe
     path (as Motor's `describe_catalog`)."""
+    from carbon.backbone_catalog import listing as catalog_listing
     from carbon.backbone_catalog import served
     from carbon.cold_plate import domain, exam
     from carbon.cold_plate.challenge import (
@@ -366,7 +371,9 @@ def describe_catalog(version):
                 {
                     "id": "catalog." + catalog_id,
                     "selector": catalog_id,
-                    "summary": "Carbon's tested " + entry["backbone"] + " bundle",
+                    "summary": catalog_listing.summary(
+                        catalog_id, entry["backbone"], COLD_PLATE_CHALLENGE, version
+                    ),
                 }
                 for catalog_id, entry in catalog["entries"].items()
             ],

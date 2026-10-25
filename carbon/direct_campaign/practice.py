@@ -98,6 +98,9 @@ def _f02_scale(version):
     return f02_train.load_public_train(version)["train_peak_std_c"]
 
 
+SCORE_MEANING = "Practice error on the Challenge's registered scale: lower is better; 0 means the model matches the reference exactly on every scored case, and 1 means an error as large as that scale (a spread taken from the public TRAIN data). It is an error, not a grade, and not an exam score."
+
+
 def error_scale(spec, version):
     """The registered practice error scale this Challenge reports on, and the
     record's error and aggregation (no value is chosen here)."""
@@ -224,6 +227,9 @@ def summary(spec, version, interface, rows, material):
         "n_cases": len(rows),
         "n_scored": len(scored),
         "score": aggregate,
+        # `score` is this error, not a grade (owner, 2026-10-25: "what the heck is with those
+        # high scores"): said beside the number wherever the summary is shown.
+        "score_meaning": SCORE_MEANING,
         "aggregate_error": aggregate,
         "components": {k: components[k] for k in COMPONENTS[spec.prefix]},
         "error_scale": error_scale(spec, version),

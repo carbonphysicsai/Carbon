@@ -153,6 +153,12 @@ def _catalog_recipes(challenge_id, version):
                     if item["catalog_id"] in ENTRY_VARIANTS
                     else {}
                 ),
+                # A pre-v2 entry on a version that offers v2.* ones: said so beside the entry.
+                **(
+                    {"legacy": listing.LEGACY_NOTE.strip(" ()")}
+                    if listing.is_legacy(item["catalog_id"], challenge_id, version)
+                    else {}
+                ),
             }
             for item in listing.entries(challenge_id, version)
         ]
