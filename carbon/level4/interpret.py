@@ -31,6 +31,14 @@ def _primitives():
     # `jnp.stack` / `jnp.unstack` bind these; no public handle either.
     table["stack"] = lax_internal.stack_p
     table["unstack"] = lax_internal.unstack_p
+    # The linear-algebra primitives not re-exported publicly (e.g. the pivot
+    # permutation); every handle is a plain pure JAX primitive.
+    from jax._src.lax import linalg as linalg_internal
+
+    for name in dir(linalg_internal):
+        if name.endswith("_p"):
+            primitive = getattr(linalg_internal, name)
+            table.setdefault(primitive.name, primitive)
     # The allowlist names ops with underscores where JAX hyphenates (scatter-add):
     # every hyphenated primitive is also bound under its underscore name.
     for name, primitive in list(table.items()):
