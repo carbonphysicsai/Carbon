@@ -219,6 +219,8 @@ This is how a version graded by the new exam is tested; `describe` serves the sa
 - **Minimums.** Each score part also has a minimum, set from Carbon's own baseline on the exam. A part below its minimum makes the submission not eligible, and the part is named. Until a version's minimums are registered, the page says minimums are not yet set.
 - **Practice.** Practice runs on the public bank and shows what it can of A, the gates and the minimums. It never touches the exam's hidden targets or its out-of-range questions, and a practice total is not an exam total.
 
+Your agent can read these rules as data: `carbon_challenges_v1__scoring_rules` with the Challenge id and version returns the formula, the legs, the gate names, the minimums (or "not yet registered"), the speed gate's ceiling per design, and the lines above, from the same published block `describe` serves. It refuses a version that publishes no exam rules, with the next step.
+
 ## Bring your own agent
 
 Any agent that speaks MCP can drive Carbon with the same tools the page uses: launch, practise, freeze, submit and check your result. The page shows everything your agent does, live, and you can message it from the campaign's Conversation box.
