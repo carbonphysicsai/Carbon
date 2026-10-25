@@ -68,6 +68,11 @@ def default_row():
     return [0.9, 0.5]
 
 
+def default_serve(rows):
+    # the bound default pick: a rising but much weaker model (half the truth)
+    return [[0.5 * v for v in truth(r)] for r in rows]
+
+
 def binding(serve_good=good_serve):
     return pp.ChallengeBinding(
         kind="toy",
@@ -79,6 +84,7 @@ def binding(serve_good=good_serve):
         train_mean_row=default_row,
         serve_good=serve_good,
         serve_train=good_serve,
+        serve_default=default_serve,
         train_box=lambda spec: ((0.0, 0.5), (0.0, 0.5)),
         probe_truth=lambda rows: [truth(r) for r in rows],
     )
@@ -223,7 +229,14 @@ def test_the_descriptor_models_order_as_the_suite_expects_on_the_bank():
     default = b.legs({"kind": "default"})
     good = b.legs({"kind": "good"})
     assert oracle >= small >= large
-    assert default["A"] < good["A"] <= oracle and default["gates_ok"] is False
+    floor = b.legs({"kind": "floor"})
+    assert default["A"] < good["A"] <= oracle
+    assert (
+        floor["gates_ok"] is False
+    ), "the TRAIN-mean floor fails the law gate on the bank"
+    assert (
+        floor["A"] < default["A"]
+    ), "the floor is its own, lower row, never the default"
     layered = b.legs(
         {"kind": "perturbed", "base": {"kind": "good"}, "layers": [[1, 5.0]]}
     )
@@ -272,6 +285,7 @@ def test_the_plugin_runs_the_proof_suite_end_to_end_and_a_failed_gate_gives_no_s
         c_rule={"kind": "min"},
     )
     params = suite.SuiteParams(
+        in_distribution_is_pass_criterion=False,
         oracle_tolerance=1e-9,
         k_grid=(0.0, 2.0, 6.0),
         monotone_tolerance=0.05,
@@ -291,8 +305,9 @@ def test_the_plugin_runs_the_proof_suite_end_to_end_and_a_failed_gate_gives_no_s
     )
     oracle = suite.check_oracle_is_perfect(plugin, policies, params)
     assert oracle["verdict"] == "PASS", oracle
-    # The default model's gate fails on the bank (law gate), so its total is exactly 0.
-    assert suite.version_total(plugin, {"kind": "default"}, policies) == 0.0
+    # The floor's law gate fails on the bank, so its total is exactly 0; the bound default pick is a real model.
+    assert suite.version_total(plugin, {"kind": "floor"}, policies) == 0.0
+    assert 0.0 < suite.version_total(plugin, {"kind": "default"}, policies)
     good = suite.version_total(plugin, {"kind": "good"}, policies)
     assert 0.0 < good < 1.0
     report = suite.run_suite(plugin, policies, params)
@@ -312,6 +327,7 @@ def _grid_spec(**changes):
     from carbon.scoring import pool_proof_grid as grid
 
     base = {
+        "in_distribution_is_pass_criterion": False,
         "budgets": (60, 90),
         "honesty_scales": (2.0, 10.0),
         "honesty_reduction": "max",
@@ -505,6 +521,8 @@ def test_the_grid_script_writes_an_owner_sheet_from_custody_documents(
         "physics_laws",
         "--truth-tolerance",
         "1e-5",
+        "--in-distribution",
+        "reported",
     ]
     code = script.main(args)
     assert code == 0
@@ -666,6 +684,8 @@ def test_the_grid_script_expands_a_gen_fractions_of_the_train_spread_and_logs_it
         "physics_laws",
         "--truth-tolerance",
         "1e-5",
+        "--in-distribution",
+        "reported",
         "--probe-truth-file",
         str(tmp_path / "probe.json"),
     ]
@@ -679,3 +699,26 @@ def test_the_grid_script_expands_a_gen_fractions_of_the_train_spread_and_logs_it
     monkeypatch.setattr(script, "_binding", lambda path, kind, version: bare)
     with pytest.raises(SystemExit, match="train_spread"):
         script.main(args)
+
+
+def test_the_default_is_the_bound_pick_the_floor_is_its_own_row_and_serve_default_is_required():
+    from carbon.scoring import pool_proof_grid as grid
+
+    with pytest.raises(TypeError):
+        pp.ChallengeBinding(
+            **{k: v for k, v in binding().__dict__.items() if k != "serve_default"}
+        )
+    result = grid.run_grid(_grid_plugin(), _grid_spec())
+    row = result["rows"][0]
+    assert {"floor", "default_model", "in_distribution_only"} <= set(row["controls"])
+    # S uses the bound default pick, not the floor; the floor is a separate (lower) control.
+    assert row["default"] > row["controls"]["floor"] == 0.0
+    # The in-distribution control is reported, and judged only when the spec says so.
+    reported = grid.run_grid(_grid_plugin(), _grid_spec())["rows"]
+    judged = grid.run_grid(
+        _grid_plugin(), _grid_spec(in_distribution_is_pass_criterion=True)
+    )["rows"]
+    assert all(
+        r["controls_margin"] >= j["controls_margin"]
+        for r, j in zip(reported, judged, strict=True)
+    )

@@ -221,6 +221,17 @@ def test_binding_for_reads_one_config_and_has_no_defaults(tmp_path, monkeypatch)
     with pytest.raises(pa.PoolAdapterRefused) as raised:
         pa.binding_for("f02", "2.4")
     assert raised.value.code == "pool_binding_config_lacks_train_table"
+    default = tmp_path / "default.json"
+    pool_serving.write_table(
+        default,
+        kind="f02",
+        version="2.4",
+        input_names=chosen.input_names,
+        rows=[[90.0, 4.0]],
+        raw=[[95.5]],
+        state_digest="sha256:" + "3" * 64,
+        recipe="sha256:" + "4" * 64,
+    )
     config.write_text(
         json.dumps(
             {
@@ -230,10 +241,25 @@ def test_binding_for_reads_one_config_and_has_no_defaults(tmp_path, monkeypatch)
             }
         )
     )
+    # No fallback for the default pick either: it is never read from the floor or the good table.
+    with pytest.raises(pa.PoolAdapterRefused) as raised:
+        pa.binding_for("f02", "2.4")
+    assert raised.value.code == "pool_binding_config_lacks_default_table"
+    config.write_text(
+        json.dumps(
+            {
+                "decision": str(decision),
+                "good_table": str(table),
+                "train_table": str(train),
+                "default_table": str(default),
+            }
+        )
+    )
     bound = pa.binding_for("f02", "2.4")
     row = {"peak_w": 90.0, "on_time_s": 4.0}
     assert bound.serve_good([row]) == [[93.0]]
     assert bound.serve_train([row]) == [[94.5]]
+    assert bound.serve_default([row]) == [[95.5]]
     assert bound.derive(row, [93.0]) == {"peak_top_c": 93.0, "extra_energy_j": 280.0}
     assert bound.raw_u(row, [93.0]) == [0.02]
     config.write_text(json.dumps({"decision": str(decision)}))
@@ -270,6 +296,7 @@ def _binding(kind):
         u=_U[kind],
         serve_good=lambda rows: [],
         serve_train=lambda rows: [],
+        serve_default=lambda rows: [],
         mass_of=lambda design: 0.3,
     )
 
@@ -300,6 +327,7 @@ def test_a_binding_without_the_decisions_u_is_refused():
             u={},
             serve_good=lambda rows: [],
             serve_train=lambda rows: [],
+            serve_default=lambda rows: [],
         )
     assert raised.value.code == "u_missing:peak_top_c"
 

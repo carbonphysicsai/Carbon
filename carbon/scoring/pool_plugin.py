@@ -16,7 +16,7 @@ A model input row is the target's fixed condition values plus the pool design:
 
 Everything numeric the owner picks stays an argument of the suite, never here. The descriptor models for
 the A and C legs follow the suite's names: the oracle returns the bank's references, `noisy` adds k times
-the raw reference uncertainty with a seeded sign, `default` is the TRAIN-mean row, `in_distribution` and
+the raw reference uncertainty with a seeded sign, `default` is the bound default pick, `floor` the TRAIN-mean row, `in_distribution` and
 `good` are the Challenge's real models, `perturbed` adds seeded layers, and `wrong_near_optimum` is the
 oracle (its error lives only at pool designs, which the D leg grades).
 """
@@ -61,6 +61,9 @@ class ChallengeBinding:
     )
     serve_good: object  # (rows) -> raw output rows
     serve_train: object  # (rows) -> raw output rows, the TRAIN-fit model
+    # (rows) -> raw output rows of the bound DEFAULT pick (the registered default recipe, served from its own
+    # table). Required, with no fallback to the TRAIN-mean floor (Validator, spec section 9).
+    serve_default: object
     train_box: object  # (spec) -> ((lo, hi), ...) in design units
     # (rows) -> TRUE raw outputs for the bank rows that carry no reference (the probe rows), from the Challenge's
     # reference solver. Needed only for the truth-row check the perfect rule depends on (Validator, section 8).
@@ -151,9 +154,13 @@ class BankLegs:
         """Raw output rows on every bank row for a model descriptor."""
         binding, rows = self.binding, self.rows
         kind = descriptor.get("kind")
-        default = [list(binding.train_mean_row()) for _ in rows]
-        if kind == "default":
+        default = [
+            list(binding.train_mean_row()) for _ in rows
+        ]  # the floor: also fills probe rows of a truth model
+        if kind == "floor":
             return default
+        if kind == "default":
+            return _checked(binding.serve_default([r["inputs"] for r in rows]), rows)
         if kind == "good":
             return _checked(binding.serve_good([r["inputs"] for r in rows]), rows)
         if kind == "in_distribution":
@@ -377,12 +384,13 @@ def make_plugin(binding, bank_legs, sets, fresh_set):
             memo[key] = bank_legs.legs(descriptor)
         return memo[key]
 
-    def default_serve(rows):
+    def floor_serve(rows):
         return [list(binding.train_mean_row()) for _ in rows]
 
     # Each real model's answer at a pool point never changes: ask once, reuse across the whole grid of settings.
     train_model, _ = cached(pool_predictor(binding, binding.serve_train))
-    default_model, _ = cached(pool_predictor(binding, default_serve))
+    default_model, _ = cached(pool_predictor(binding, binding.serve_default))
+    floor_model, _ = cached(pool_predictor(binding, floor_serve))
     good_model, _ = cached(pool_predictor(binding, binding.serve_good))
     return suite.ProofPlugin(
         sets=tuple(tuple(s) for s in sets),
@@ -390,6 +398,7 @@ def make_plugin(binding, bank_legs, sets, fresh_set):
         train_box=binding.train_box,
         train_model=train_model,
         default_model=default_model,
+        floor_model=floor_model,
         good_model=good_model,
         legs=legs,
     )

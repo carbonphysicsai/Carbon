@@ -44,6 +44,7 @@ DESCRIPTOR_KINDS = (
     "in_distribution",
     "wrong_near_optimum",
     "default",
+    "floor",
     "good",
     "perturbed",
 )
@@ -62,6 +63,9 @@ class Policies:
 
 @dataclass(frozen=True)
 class SuiteParams:
+    in_distribution_is_pass_criterion: (
+        bool  # False in Phase 1 (the pools are inside the TRAIN box)
+    )
     oracle_tolerance: float  # how close to 1.0 the oracle must score (a real grader's reference uncertainty keeps it just under)
     k_grid: tuple  # strictness curve: injected error in multiples of U
     monotone_tolerance: float
@@ -94,7 +98,8 @@ class ProofPlugin:
     )
     train_box: object  # callable(spec) -> ((lo, hi), ...) in design units
     train_model: object  # predict(conditions, designs), fit on TRAIN
-    default_model: object
+    default_model: object  # the bound DEFAULT pick, served from its own table
+    floor_model: object  # the TRAIN-mean floor: its own control row
     good_model: object
     legs: object  # callable(descriptor, specs) -> {"A": a, "C": c} (optionally "A_se")
 
@@ -138,6 +143,8 @@ def pool_predictor(plugin, descriptor, specs):
     universe = _Universe(specs)
     if kind == "default":
         return plugin.default_model
+    if kind == "floor":
+        return plugin.floor_model
     if kind == "good":
         return plugin.good_model
     if kind == "perturbed":
@@ -334,11 +341,24 @@ def check_gaming_controls_lose(plugin, policies, params):
             "seed": params.seed,
         },
         "default_model": {"kind": "default"},
+        "floor": {"kind": "floor"},
     }
     good = version_total(plugin, {"kind": "good"}, policies)
     scores = {name: version_total(plugin, d, policies) for name, d in controls.items()}
+    # The in-distribution control is REPORTED, not a pass criterion, unless the version's pools reach outside the
+    # TRAIN box (Phase 2): `params.in_distribution_is_pass_criterion` says which.
+    judged = {
+        name: s
+        for name, s in scores.items()
+        if name != "in_distribution_only" or params.in_distribution_is_pass_criterion
+    }
     return _verdict(
-        all(s < good for s in scores.values()), {"good": good, "controls": scores}
+        all(s < good for s in judged.values()),
+        {
+            "good": good,
+            "controls": scores,
+            "in_distribution_judged": params.in_distribution_is_pass_criterion,
+        },
     )
 
 

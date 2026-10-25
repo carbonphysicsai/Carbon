@@ -30,6 +30,7 @@ POLICIES = suite.Policies(
     c_rule={"kind": "min"},
 )
 PARAMS = suite.SuiteParams(
+    in_distribution_is_pass_criterion=False,
     oracle_tolerance=1e-9,
     k_grid=(0.0, 1.0, 2.0, 4.0, 8.0),
     monotone_tolerance=0.02,
@@ -124,6 +125,7 @@ def plugin_with(sets, good, fresh_sets=None):
         "oracle": (1.0, 1.0),
         "good": (0.9, 0.95),
         "default": (0.5, 0.6),
+        "floor": (0.4, 0.5),
         "in_distribution": (0.6, 0.7),
     }
 
@@ -156,6 +158,7 @@ def plugin_with(sets, good, fresh_sets=None):
         train_box=lambda spec: ((0.0, 0.5), (0.0, 0.5)),
         train_model=lambda conditions, designs: [outputs_of(*d) for d in designs],
         default_model=default_model,
+        floor_model=default_model,
         good_model=good,
         legs=legs,
     )

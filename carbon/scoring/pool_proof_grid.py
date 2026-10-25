@@ -29,16 +29,20 @@ from dataclasses import dataclass
 from carbon.scoring import pool_grader
 from carbon.scoring import pool_proof_suite as suite
 
+#: The controls every row must beat. The in-distribution control is shown on every row; it is a pass criterion
+#: only when `GridSpec.in_distribution_is_pass_criterion` (Phase 2: the extended targets).
 CONTROLS = (
     "optimistic_near_limits",
-    "in_distribution_only",
     "wrong_near_the_optimum",
     "default_model",
+    "floor",
 )
+REPORTED = ("in_distribution_only",)
 
 
 @dataclass(frozen=True)
 class GridSpec:
+    in_distribution_is_pass_criterion: bool
     budgets: tuple
     honesty_scales: tuple
     honesty_reduction: str
@@ -84,6 +88,7 @@ def descriptors(grid):
             "seed": grid.seed,
         },
         "default_model": {"kind": "default"},
+        "floor": {"kind": "floor"},
     }
 
 
@@ -151,8 +156,9 @@ def run_grid(plugin, grid):
                 else pool_grader.total(a_all, d, legs["C"], grid.c_rule)
             )
         good, default = totals["good"], totals["default"]
-        controls = {c: totals[c] for c in CONTROLS}
-        margin = good - max(controls.values())
+        controls = {c: totals[c] for c in CONTROLS + REPORTED}
+        judged = CONTROLS + (REPORTED if grid.in_distribution_is_pass_criterion else ())
+        margin = good - max(totals[c] for c in judged)
         oracle_ok = d_cache[(budget, s_h, "oracle")][1] and math.isclose(
             totals["oracle"], 1.0, abs_tol=grid.oracle_tolerance
         )
@@ -216,8 +222,8 @@ def sheet_markdown(title, result):
         ),
         f"{meta['rows_meeting_all']} of {meta['rows']} grid points meet every condition. The owner picks one row.",
         "",
-        "| meets | B | s_h | A mult | A_gen scales | A_gen rule | good | default | H | S | controls margin | oracle ok |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "| meets | B | s_h | A mult | A_gen scales | A_gen rule | good | default | floor | H | S | controls margin | oracle ok |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in order:
         rule = r["A_gen_rule"]["kind"] + (
@@ -227,7 +233,7 @@ def sheet_markdown(title, result):
         )
         lines.append(
             f"| {'YES' if r['meets_all'] else 'no'} | {r['B']} | {r['s_h']} | {r['A_multiplier']} | "
-            f"{r['A_gen_scales']} | {rule} | {r['good']:.3f} | {r['default']:.3f} | {r['H']:.3f} | {r['S']:.3f} | "
+            f"{r['A_gen_scales']} | {rule} | {r['good']:.3f} | {r['default']:.3f} | {r['controls']['floor']:.3f} | {r['H']:.3f} | {r['S']:.3f} | "
             f"{r['controls_margin']:.3f} | {'yes' if r['oracle_reaches_all_references'] else 'NO'} |"
         )
     return "\n".join(lines) + "\n"

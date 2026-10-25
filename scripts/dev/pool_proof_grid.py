@@ -45,6 +45,12 @@ def main(argv=None):
     parser.add_argument("--response-leg", required=True)
     parser.add_argument("--truth-tolerance", required=True, type=float)
     parser.add_argument(
+        "--in-distribution",
+        required=True,
+        choices=("reported", "pass"),
+        help="the in-distribution control: reported only (Phase 1, pools inside the TRAIN box) or a pass criterion",
+    )
+    parser.add_argument(
         "--ignored-gates", required=True, help="comma separated; may be empty"
     )
     parser.add_argument("--title", default=None)
@@ -70,6 +76,7 @@ def main(argv=None):
             specs[tid] = pool_plugin.spec_from_source(document, binding)
     grid_doc = json.loads(Path(args.grid).read_text(encoding="utf-8"))
     grid_doc = {k: v for k, v in grid_doc.items() if not k.startswith("_")}
+    grid_doc["in_distribution_is_pass_criterion"] = args.in_distribution == "pass"
     out = Path(args.out_dir)
     fractions = grid_doc.pop("agen_scale_sets_train_spread_fractions", None)
     if fractions is not None:

@@ -453,7 +453,15 @@ def _to_model_space(kind, version):
 
 
 def binding(
-    kind, version, *, u, serve_good, serve_train, mass_of=None, probe_truth=None
+    kind,
+    version,
+    *,
+    u,
+    serve_good,
+    serve_train,
+    serve_default,
+    mass_of=None,
+    probe_truth=None,
 ):
     """The `pool_plugin.ChallengeBinding` of one Challenge version.
 
@@ -475,6 +483,7 @@ def binding(
         train_mean_row=lambda: list(mean_row),
         serve_good=serve_good,
         serve_train=serve_train,
+        serve_default=serve_default,
         train_box=lambda _spec: box,
         probe_truth=probe_truth,
         to_model_space=_to_model_space(kind, version),
@@ -509,9 +518,10 @@ def binding_for(kind, version):
         "decision",
         "good_table",
         "train_table",
+        "default_table",
     }:
         raise PoolAdapterRefused("pool_binding_config_malformed")
-    for key in ("decision", "good_table", "train_table"):
+    for key in ("decision", "good_table", "train_table", "default_table"):
         if type(config.get(key)) is not str:
             raise PoolAdapterRefused("pool_binding_config_lacks_" + key)
     with open(config["decision"], encoding="utf-8") as handle:
@@ -525,10 +535,14 @@ def binding_for(kind, version):
     train = pool_serving.TableServer(
         pool_serving.load_table(config["train_table"]), names
     )
+    default = pool_serving.TableServer(
+        pool_serving.load_table(config["default_table"]), names
+    )
     return binding(
         kind,
         version,
         u=decision["u"],
         serve_good=good,
         serve_train=train,
+        serve_default=default,
     )
