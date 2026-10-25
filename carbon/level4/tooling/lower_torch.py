@@ -26,6 +26,7 @@ Limits a miner may meet (allowlist v6):
 from __future__ import annotations
 
 import collections
+import contextvars
 import math
 import operator
 
@@ -46,6 +47,21 @@ _DTYPES = {
 }
 #: Carbon dtypes the floating-only emitters (floor, fmod) admit.
 _FLOATS = frozenset({"float32", "float64"})
+#: Dtypes only the allowlist versions in `_WIDE_VERSIONS` admit (v8): the
+#: narrow storage types graph.py carries. Older versions keep refusing them.
+_WIDE_DTYPES = {
+    "torch.float16": "float16",
+    "torch.bfloat16": "bfloat16",
+    "torch.int8": "int8",
+    "torch.int16": "int16",
+    "torch.uint8": "uint8",
+}
+_WIDE_VERSIONS = frozenset({"level4-allowlist-v8"})
+#: Whether the program being lowered is for a version in `_WIDE_VERSIONS`;
+#: set by `lower` for the span of one lowering.
+_WIDE = contextvars.ContextVar("carbon_lower_torch_wide", default=False)
+_HALVES = frozenset({"float16", "bfloat16"})
+_INTS = frozenset({"int8", "int16", "int32", "uint8"})
 
 
 def export(apply, params, example):
@@ -76,6 +92,8 @@ def inventory(program):
 
 def _dtype(value):
     name = _DTYPES.get(str(value))
+    if name is None and _WIDE.get():
+        name = _WIDE_DTYPES.get(str(value))
     if name is None:
         raise graph.GraphRefused("dtype_not_allowed")
     return name
@@ -131,6 +149,23 @@ class _Builder:
             }
         )
         return value
+
+    def emit_many(self, op, ins, outs, /, **params):
+        """One node with several results, `outs` a list of (dtype, shape)."""
+        self.allowlist.admit(op, "forward", f"aten->{op}")
+        values = [self._id(dtype, shape) for dtype, shape in outs]
+        self.nodes.append(
+            {
+                "op": op,
+                "in": list(ins),
+                "out": [
+                    {"value": value, "dtype": dtype, "shape": list(shape)}
+                    for value, (dtype, shape) in zip(values, outs)
+                ],
+                "params": params,
+            }
+        )
+        return values
 
     # -- helpers ---------------------------------------------------------
     def scalar(self, value, dtype):
@@ -390,6 +425,10 @@ def _max_pool2d(b, node, env):
         or ceil_mode
         or any(type(k) is not int or k < 1 for k in kernel)
     ):
+        if _v8(b):
+            # v8: any window (stride, padding, dilation, ceil mode) is a
+            # reduce_window_max; the indices output stays refused.
+            return _max_pool_window(b, node, env, 2)
         raise graph.GraphRefused("aten_arguments_not_supported", target)
     (n, c, h, w), (kh, kw_) = shape, kernel
     oh, ow = h // kh, w // kw_
@@ -1105,6 +1144,13 @@ def _scatter_add_static(b, node, env):
     if _aval(node) != (dtype, shape):
         raise graph.GraphRefused("aten_result_metadata_not_supported", target)
     index = _static_array(b, index_value)
+    if index is None and _v8(b):
+        # v8: indices that are an input run through the scatter_add primitive
+        # (deterministic under the pinned GPU flags); one outside the tensor
+        # is dropped, where torch raises.
+        coords = _coordinates(b, index_value, dim, rank)
+        dnums = _scatter_dnums([], range(rank), range(rank))
+        return _scatter(b, "scatter_add", base, coords, source, dnums)
     if index is None:
         raise graph.GraphRefused("aten_scatter_index_not_static", target)
     if (index < 0).any() or (index >= shape[dim]).any():
@@ -1400,6 +1446,2676 @@ def _take_runs(b, target, x, dim, index, expected):
     return b.emit("concatenate", pieces, dtype, expected, dimension=dim)
 
 
+# -- allowlist v8: the Core ATen forms the PyTorch route was missing ------------
+#
+# Every lowering below is reached only through an `aten_core` entry of an
+# allowlist that lists the target (`_emit` refuses an unlisted one first), so
+# v6 and v7, which list none of these targets, keep refusing them. Each is
+# written in the Carbon ops the JAX route already uses; none adds a primitive.
+
+#: Lowerings registered by `@_lowers`, keyed by ATen target.
+_V8_LOWERINGS = {}
+
+
+def _lowers(*targets):
+    def register(function):
+        for target in targets:
+            _V8_LOWERINGS[target] = function
+        return function
+
+    return register
+
+
+def _v8(b):
+    """Whether `b`'s allowlist is one of the versions that widen the route."""
+    return b.allowlist.version in _WIDE_VERSIONS
+
+
+def _refuse(target, code="aten_arguments_not_supported"):
+    raise graph.GraphRefused(code, target)
+
+
+def _isfloat(dtype):
+    return dtype in _FLOATS or (_WIDE.get() and dtype in _HALVES)
+
+
+def _isint(dtype):
+    return dtype in _INTS
+
+
+def _arg(node, index, name, default=None):
+    """Positional argument `index`, else keyword `name`, else `default`."""
+    if len(node.args) > index:
+        return node.args[index]
+    return node.kwargs.get(name, default)
+
+
+def _tensor(b, env, arg, target):
+    if not hasattr(arg, "op"):
+        _refuse(target)
+    return env[arg]
+
+
+def _avals(node):
+    """(dtype, shape) of each result of `node` (a tuple result has several)."""
+    val = node.meta["val"]
+    items = val if isinstance(val, (tuple, list)) else (val,)
+    return [(_dtype(v.dtype), [int(d) for d in v.shape]) for v in items]
+
+
+#: Parameter kinds whose only value is the framework default.
+_NULL_KINDS = frozenset({"none", "owned_single_device_sharding", "precision"})
+
+
+def _fill_params(b, op, params):
+    spec = b.allowlist.admit(op, "forward", f"aten->{op}")
+    full = {name: None for name, kind in spec.items() if kind in _NULL_KINDS}
+    full.update(params)
+    return full
+
+
+def _op(b, op, ins, dtype, shape, /, **params):
+    """One node, with the op's inert defaults (sharding, accuracy) filled in."""
+    return b.emit(op, ins, dtype, shape, **_fill_params(b, op, params))
+
+
+def _op_many(b, op, ins, outs, /, **params):
+    return b.emit_many(op, ins, outs, **_fill_params(b, op, params))
+
+
+def _shape(b, value):
+    return b.avals[value][1]
+
+
+def _dt(b, value):
+    return b.avals[value][0]
+
+
+def _reshape(b, x, shape):
+    dtype, have = b.avals[x]
+    shape = [int(d) for d in shape]
+    if have == shape:
+        return x
+    return _op(b, "reshape", [x], dtype, shape, dimensions=None, new_sizes=shape)
+
+
+def _fill(b, value, dtype, shape):
+    return b.broadcast(b.scalar(value, dtype), shape)
+
+
+def _like(b, value, x):
+    """A constant `value` in `x`'s dtype and shape."""
+    dtype, shape = b.avals[x]
+    return _fill(b, value, dtype, shape)
+
+
+def _cmp(b, op, x, y):
+    return _op(b, op, [x, y], "bool", _shape(b, x))
+
+
+def _where(b, pred, yes, no):
+    """`select_n` in torch's argument order (condition, true branch, false)."""
+    return _op(b, "select_n", [pred, no, yes], _dt(b, yes), _shape(b, yes))
+
+
+def _arith(b, op, x, y):
+    return _op(b, op, [x, y], _dt(b, x), _shape(b, x))
+
+
+def _times(b, x, y):
+    return _op(b, "mul", [x, y], _dt(b, x), _shape(b, x))
+
+
+def _iota(b, dtype, shape, dim):
+    return _op(
+        b, "iota", [], dtype, shape, dimension=dim, dtype=dtype, shape=list(shape)
+    )
+
+
+def _reduce(b, op, x, axes, keepdim=False):
+    """`op` (reduce_sum, reduce_max, ...) over `axes`, optionally kept as 1."""
+    dtype, shape = b.avals[x]
+    axes = sorted(axes)
+    kept = [d for i, d in enumerate(shape) if i not in axes]
+    out = _op(b, op, [x], dtype, kept, axes=axes)
+    if keepdim:
+        out = _reshape(b, out, [1 if i in axes else d for i, d in enumerate(shape)])
+    return out
+
+
+def _slice(b, x, begin, end, strides=None):
+    dtype, shape = b.avals[x]
+    step = strides or [1] * len(shape)
+    out = [max(0, -(-(e - s) // k)) for s, e, k in zip(begin, end, step)]
+    return _op(
+        b,
+        "slice",
+        [x],
+        dtype,
+        out,
+        start_indices=list(begin),
+        limit_indices=list(end),
+        strides=None if strides is None else list(strides),
+    )
+
+
+def _slice_axis(b, x, axis, start, stop, step=1):
+    shape = _shape(b, x)
+    begin, end = [0] * len(shape), list(shape)
+    begin[axis], end[axis] = start, stop
+    strides = None
+    if step != 1:
+        strides = [1] * len(shape)
+        strides[axis] = step
+    return _slice(b, x, begin, end, strides)
+
+
+def _concat(b, parts, axis):
+    if len(parts) == 1:
+        return parts[0]
+    dtype, shape = b.avals[parts[0]]
+    total = sum(_shape(b, p)[axis] for p in parts)
+    out = list(shape)
+    out[axis] = total
+    return _op(b, "concatenate", parts, dtype, out, dimension=axis)
+
+
+def _transpose(b, x, perm):
+    dtype, shape = b.avals[x]
+    if list(perm) == list(range(len(shape))):
+        return x
+    return _op(
+        b, "transpose", [x], dtype, [shape[i] for i in perm], permutation=list(perm)
+    )
+
+
+def _bcast_dims(b, x, shape, dims):
+    """`broadcast_in_dim` of `x` into `shape`, its axes landing on `dims`."""
+    dtype, _ = b.avals[x]
+    return _op(
+        b,
+        "broadcast_in_dim",
+        [x],
+        dtype,
+        list(shape),
+        broadcast_dimensions=list(dims),
+        shape=list(shape),
+    )
+
+
+def _convert(b, x, dtype):
+    return b.to(x, dtype)
+
+
+def _dims_arg(dims, rank, target):
+    """Normalized, distinct reduction axes (`None` or empty means all)."""
+    if dims is None or isinstance(dims, int):
+        dims = [] if dims is None else [dims]
+    dims = list(dims)
+    if any(type(d) is not int for d in dims):
+        _refuse(target)
+    if not dims:
+        return list(range(rank))
+    axes = [_norm(d, rank or 1) for d in dims]
+    if any(not 0 <= a < max(rank, 1) for a in axes) or len(set(axes)) != len(axes):
+        _refuse(target)
+    return sorted(axes)
+
+
+#: Order of dtypes for torch's result-type promotion of two tensors.
+_RANK = {
+    "bool": 0,
+    "uint8": 1,
+    "int8": 1,
+    "int16": 2,
+    "int32": 3,
+    "float16": 4,
+    "bfloat16": 4,
+    "float32": 5,
+    "float64": 6,
+    "complex64": 7,
+    "complex128": 8,
+}
+
+
+def _promote(*dtypes):
+    best = dtypes[0]
+    for dtype in dtypes[1:]:
+        if _RANK[dtype] > _RANK[best]:
+            best = dtype
+        elif _RANK[dtype] == _RANK[best] and dtype != best:
+            best = "float32" if dtype in _HALVES else "int16"
+    return best
+
+
+def _with_scalar(dtype, scalar, target):
+    """The dtype torch compares or computes in when a Python scalar meets a
+    tensor of `dtype`: the tensor's, unless the scalar is of a higher category."""
+    if isinstance(scalar, bool):
+        return dtype
+    if isinstance(scalar, int):
+        return dtype if dtype != "bool" else "int32"
+    if isinstance(scalar, float):
+        return dtype if _RANK[dtype] >= 4 else "float32"
+    _refuse(target)
+
+
+# -- elementwise ----------------------------------------------------------------
+
+_UNARY_FLOAT = {
+    "aten.erf.default": "erf",
+    "aten.expm1.default": "expm1",
+    "aten.rsqrt.default": "rsqrt",
+    "aten.tan.default": "tan",
+    "aten.asin.default": "asin",
+    "aten.acos.default": "acos",
+    "aten.atan.default": "atan",
+    "aten.asinh.default": "asinh",
+    "aten.acosh.default": "acosh",
+    "aten.atanh.default": "atanh",
+    "aten.sinh.default": "sinh",
+    "aten.cosh.default": "cosh",
+}
+
+
+@_lowers(*_UNARY_FLOAT)
+def _unary_float(b, node, env):
+    """A floating elementwise function Carbon already has as one primitive
+    (an integer input is promoted to the result's float dtype, as torch does)."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    if not _isfloat(dtype) or not hasattr(node.args[0], "op"):
+        _refuse(target)
+    x = b.to(env[node.args[0]], dtype)
+    return _op(b, _UNARY_FLOAT[target], [x], dtype, shape)
+
+
+@_lowers("aten.log2.default", "aten.log10.default")
+def _log_base(b, node, env):
+    """log(x) / log(base). torch's log2/log10 are their own kernels, so the
+    last bits may differ (a few ulp)."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    if not _isfloat(dtype) or not hasattr(node.args[0], "op"):
+        _refuse(target)
+    x = b.to(env[node.args[0]], dtype)
+    natural = _op(b, "log", [x], dtype, shape)
+    base = 2.0 if target == "aten.log2.default" else 10.0
+    return _arith(b, "div", natural, _fill(b, math.log(base), dtype, shape))
+
+
+@_lowers("aten.atan2.default")
+def _atan2(b, node, env):
+    dtype, _ = _aval(node)
+    if not _isfloat(dtype):
+        _refuse(str(node.target))
+    return b.binary("atan2", node.args[0], node.args[1], env, node)
+
+
+@_lowers("aten.maximum.default", "aten.minimum.default")
+def _maximum_minimum(b, node, env):
+    """max / min: both propagate NaN, and a tie splits the gradient in half, as
+    torch's maximum and minimum do."""
+    target = str(node.target)
+    dtype, _ = _aval(node)
+    if dtype == "bool" or not all(hasattr(a, "op") for a in node.args[:2]):
+        _refuse(target)
+    op = "max" if target == "aten.maximum.default" else "min"
+    return b.binary(op, node.args[0], node.args[1], env, node)
+
+
+@_lowers("aten.ceil.default", "aten.trunc.default", "aten.round.default")
+def _round_family(b, node, env):
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    arg = node.args[0]
+    if not hasattr(arg, "op"):
+        _refuse(target)
+    x = env[arg]
+    if _isint(dtype) and b.avals[x][0] == dtype:
+        return x  # integers are already whole
+    if not _isfloat(dtype) or b.avals[x][0] != dtype:
+        _refuse(target)
+    if target == "aten.ceil.default":
+        return _op(b, "ceil", [x], dtype, shape)
+    if target == "aten.round.default":
+        return _op(b, "round", [x], dtype, shape, rounding_method="TO_NEAREST_EVEN")
+    below = _cmp(b, "lt", x, _like(b, 0, x))
+    # trunc: toward zero, as floor for x >= 0 and ceil for x < 0 (-0.0 stays).
+    return _where(
+        b,
+        below,
+        _op(b, "ceil", [x], dtype, shape),
+        _op(b, "floor", [x], dtype, shape),
+    )
+
+
+@_lowers("aten.round.decimals")
+def _round_decimals(b, node, env):
+    """torch's own rule: round(x * 10**d) / 10**d, or for d < 0 the same with
+    the scale on the other side, rounding half to even."""
+    import numpy as np
+
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    decimals = _arg(node, 1, "decimals")
+    if (
+        not _isfloat(dtype)
+        or not hasattr(node.args[0], "op")
+        or type(decimals) is not int
+        or b.avals[env[node.args[0]]][0] != dtype
+    ):
+        _refuse(target)
+    x = env[node.args[0]]
+    scale = float(np.power(np.dtype(dtype).type(10), abs(decimals)))
+    k = _fill(b, scale, dtype, shape)
+    if decimals < 0:
+        scaled = _op(b, "div", [x, k], dtype, shape)
+    else:
+        scaled = _times(b, x, k)
+    rounded = _op(b, "round", [scaled], dtype, shape, rounding_method="TO_NEAREST_EVEN")
+    if decimals < 0:
+        return _times(b, rounded, k)
+    return _op(b, "div", [rounded, k], dtype, shape)
+
+
+@_lowers("aten.isnan.default", "aten.isinf.default")
+def _isnan_isinf(b, node, env):
+    target = str(node.target)
+    _, shape = _aval(node)
+    arg = node.args[0]
+    if not hasattr(arg, "op"):
+        _refuse(target)
+    x = env[arg]
+    dtype = _dt(b, x)
+    if dtype.startswith("complex"):
+        _refuse(target)
+    if not _isfloat(dtype):
+        return _fill(b, False, "bool", shape)
+    if target == "aten.isnan.default":
+        return _cmp(b, "ne", x, x)
+    magnitude = _op(b, "abs", [x], dtype, shape)
+    return _cmp(b, "eq", magnitude, _like(b, math.inf, x))
+
+
+@_lowers("aten.eq.Tensor", "aten.ne.Scalar", "aten.ne.Tensor")
+def _compare(b, node, env):
+    target = str(node.target)
+    op = target.split(".")[1]
+    x_arg, y_arg = node.args[:2]
+    if not hasattr(x_arg, "op"):
+        _refuse(target)
+    first = _dt(b, env[x_arg])
+    if hasattr(y_arg, "op"):
+        operand = _promote(first, _dt(b, env[y_arg]))
+    else:
+        operand = _with_scalar(first, y_arg, target)
+    return b.binary(op, x_arg, y_arg, env, node, out_dtype=operand)
+
+
+def _bool_mask(b, x):
+    """`x != 0` (a bool tensor is its own mask)."""
+    if _dt(b, x) == "bool":
+        return x
+    return _cmp(b, "ne", x, _like(b, 0, x))
+
+
+@_lowers(
+    "aten.logical_and.default", "aten.logical_or.default", "aten.logical_xor.default"
+)
+def _logical(b, node, env):
+    target = str(node.target)
+    _, shape = _aval(node)
+    if not all(hasattr(a, "op") for a in node.args[:2]):
+        _refuse(target)
+    op = target.split(".")[1].split("_")[1]  # logical_and -> and
+    x, y = (_bool_mask(b, b.broadcast(env[a], shape)) for a in node.args[:2])
+    return _op(b, op, [x, y], "bool", shape)
+
+
+@_lowers(
+    "aten.bitwise_and.Scalar",
+    "aten.bitwise_or.Tensor",
+    "aten.bitwise_or.Scalar",
+    "aten.bitwise_xor.Tensor",
+    "aten.bitwise_xor.Scalar",
+)
+def _bitwise_binary(b, node, env):
+    return _bitwise(b, node, env, str(node.target).split(".")[1].split("_")[1])
+
+
+def _bitwise(b, node, env, name):
+    """`and`, `or`, `xor` of two integer or boolean operands."""
+    target = str(node.target)
+    dtype, _ = _aval(node)
+    if (dtype != "bool" and not _isint(dtype)) or not hasattr(node.args[0], "op"):
+        _refuse(target)
+    first = _dt(b, env[node.args[0]])
+    if first != dtype:
+        _refuse(target)
+    return b.binary(name, node.args[0], node.args[1], env, node)
+
+
+@_lowers("aten.bitwise_not.default")
+def _bitwise_not(b, node, env):
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    if (dtype != "bool" and not _isint(dtype)) or not hasattr(node.args[0], "op"):
+        _refuse(target)
+    return _op(b, "not", [env[node.args[0]]], dtype, shape)
+
+
+@_lowers(
+    "aten.__lshift__.Scalar",
+    "aten.__lshift__.Tensor",
+    "aten.__rshift__.Scalar",
+    "aten.__rshift__.Tensor",
+)
+def _shifts(b, node, env):
+    """Left shift, and right shift that keeps the sign (logical on unsigned);
+    a count beyond the width gives 0 (or the sign fill), as in torch."""
+    target = str(node.target)
+    dtype, _ = _aval(node)
+    if not _isint(dtype) or not hasattr(node.args[0], "op"):
+        _refuse(target)
+    if "lshift" in target:
+        op = "shift_left"
+    else:
+        op = (
+            "shift_right_logical"
+            if dtype.startswith("uint")
+            else "shift_right_arithmetic"
+        )
+    return b.binary(op, node.args[0], node.args[1], env, node)
+
+
+@_lowers("aten.clamp.Tensor")
+def _clamp_tensor(b, node, env):
+    """clamp with tensor bounds: selects, not max/min, so the gradient reaches
+    x where low <= x <= high (torch's rule); the bounds get theirs where they
+    clamp."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    low, high = _arg(node, 1, "min"), _arg(node, 2, "max")
+    if (low is None and high is None) or not hasattr(node.args[0], "op"):
+        _refuse(target)
+    out = b.operand(node.args[0], env, dtype, shape)
+    for bound, op in ((low, "lt"), (high, "gt")):
+        if bound is None:
+            continue
+        limit = b.operand(bound, env, dtype, shape)
+        out = _where(b, _cmp(b, op, out, limit), limit, out)
+    return out
+
+
+@_lowers("aten.hardtanh.default")
+def _hardtanh(b, node, env):
+    """clamp(x, low, high) whose gradient is 0 at the bounds (torch's
+    hardtanh backward is strict), so relu6 and hardtanh agree with torch."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    low, high = _arg(node, 1, "min_val", -1.0), _arg(node, 2, "max_val", 1.0)
+    if (
+        not _isfloat(dtype)
+        or not hasattr(node.args[0], "op")
+        or any(
+            isinstance(v, bool) or not isinstance(v, (int, float)) for v in (low, high)
+        )
+    ):
+        _refuse(target)
+    out = b.to(env[node.args[0]], dtype)
+    for bound, op in ((low, "le"), (high, "ge")):
+        out = _where(
+            b,
+            _cmp(b, op, out, _fill(b, bound, dtype, shape)),
+            _fill(b, bound, dtype, shape),
+            out,
+        )
+    return out
+
+
+@_lowers("aten.fill.Scalar")
+def _fill_scalar(b, node, env):
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    value = node.args[1]
+    if isinstance(value, bool) is False and not isinstance(value, (int, float)):
+        _refuse(target)
+    return _fill(b, value, dtype, shape)
+
+
+@_lowers("aten.scalar_tensor.default")
+def _scalar_tensor(b, node, env):
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    value = node.args[0]
+    if shape or not isinstance(value, (bool, int, float)):
+        _refuse(target)
+    return b.scalar(value, dtype)
+
+
+@_lowers(
+    "aten.remainder.Scalar", "aten.remainder.Tensor", "aten.remainder.Scalar_Tensor"
+)
+def _remainder(b, node, env):
+    """Python-style modulo (the divisor's sign): C-style `rem`, plus the
+    divisor where the remainder is nonzero and its sign differs from the
+    divisor's. d/dx = 1; d/dy = -floor(x / y), as torch's."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    if dtype == "bool" or not (_isfloat(dtype) or _isint(dtype)):
+        _refuse(target)
+    x = b.operand(node.args[0], env, dtype, shape)
+    y = b.operand(node.args[1], env, dtype, shape)
+    mod = _arith(b, "rem", x, y)
+    zero = _fill(b, 0, dtype, shape)
+    differ = _cmp(b, "ne", _cmp(b, "lt", y, zero), _cmp(b, "lt", mod, zero))
+    fix = _op(b, "and", [_cmp(b, "ne", mod, zero), differ], "bool", shape)
+    return _where(b, fix, _arith(b, "add", mod, y), mod)
+
+
+@_lowers("aten.div.Tensor_mode", "aten.div.Scalar_mode")
+def _div_mode(b, node, env):
+    """Division rounded toward zero (`trunc`) or down (`floor`). Float floor
+    follows c10's own sequence (fmod, then a correction), not floor(x / y),
+    which can round the quotient across an integer. An integer divisor of 0 is
+    not checked (XLA gives -1; torch raises)."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    mode = node.kwargs.get(
+        "rounding_mode", node.args[2] if len(node.args) > 2 else None
+    )
+    if mode not in ("floor", "trunc") or not (_isfloat(dtype) or _isint(dtype)):
+        _refuse(target)
+    x = b.operand(node.args[0], env, dtype, shape)
+    y = b.operand(node.args[1], env, dtype, shape)
+    quotient = _arith(b, "div", x, y)
+    zero = _fill(b, 0, dtype, shape)
+    if _isint(dtype):
+        if mode == "trunc":
+            return quotient
+        remainder = _arith(b, "rem", x, y)
+        differ = _cmp(b, "ne", _cmp(b, "lt", remainder, zero), _cmp(b, "lt", y, zero))
+        adjust = _op(b, "and", [_cmp(b, "ne", remainder, zero), differ], "bool", shape)
+        return _where(
+            b, adjust, _arith(b, "sub", quotient, _fill(b, 1, dtype, shape)), quotient
+        )
+    if mode == "trunc":
+        return _where(
+            b,
+            _cmp(b, "lt", quotient, zero),
+            _op(b, "ceil", [quotient], dtype, shape),
+            _op(b, "floor", [quotient], dtype, shape),
+        )
+    one = _fill(b, 1, dtype, shape)
+    mod = _arith(b, "rem", x, y)
+    div = _arith(b, "div", _arith(b, "sub", x, mod), y)
+    differ = _cmp(b, "ne", _cmp(b, "lt", y, zero), _cmp(b, "lt", mod, zero))
+    fix = _op(b, "and", [_cmp(b, "ne", mod, zero), differ], "bool", shape)
+    div = _where(b, fix, _arith(b, "sub", div, one), div)
+    floored = _op(b, "floor", [div], dtype, shape)
+    up = _cmp(b, "gt", _arith(b, "sub", div, floored), _fill(b, 0.5, dtype, shape))
+    floored = _where(b, up, _arith(b, "add", floored, one), floored)
+    signed_zero = _times(b, quotient, zero)  # copysign(0, x / y)
+    result = _where(b, _cmp(b, "ne", div, zero), floored, signed_zero)
+    return _where(b, _cmp(b, "eq", y, zero), quotient, result)
+
+
+@_lowers("aten.pow.Tensor_Scalar", "aten.pow.Scalar", "aten.pow.Tensor_Tensor")
+def _pow(b, node, env):
+    """x ** y. A whole-number exponent of a float is `integer_pow` (torch
+    multiplies for 2 and 3 too); any other exponent is the `pow` primitive, so
+    a negative base with a fractional exponent is NaN in both."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    base, exponent = node.args[:2]
+    if not (_isfloat(dtype) or _isint(dtype)):
+        _refuse(target)
+    if target == "aten.pow.Tensor_Scalar":
+        if isinstance(exponent, bool) or not isinstance(exponent, (int, float)):
+            _refuse(target)
+        x = b.operand(base, env, dtype, shape)
+        whole = float(exponent).is_integer() and abs(exponent) <= 16
+        if whole and (_isfloat(dtype) or exponent >= 0):
+            return _op(b, "integer_pow", [x], dtype, shape, y=int(exponent))
+        if not _isfloat(dtype):
+            _refuse(target)
+        return _arith(b, "pow", x, _fill(b, exponent, dtype, shape))
+    if not _isfloat(dtype):
+        _refuse(target)
+    return _arith(
+        b,
+        "pow",
+        b.operand(base, env, dtype, shape),
+        b.operand(exponent, env, dtype, shape),
+    )
+
+
+@_lowers("aten.elu.default")
+def _elu(b, node, env):
+    """scale * x for x > 0, else scale * alpha * expm1(input_scale * x); the
+    gradient at 0 takes the negative branch, as torch's."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    alpha = _arg(node, 1, "alpha", 1.0)
+    scale = _arg(node, 2, "scale", 1.0)
+    input_scale = _arg(node, 3, "input_scale", 1.0)
+    if (
+        not _isfloat(dtype)
+        or not hasattr(node.args[0], "op")
+        or any(
+            not isinstance(v, (int, float)) or isinstance(v, bool)
+            for v in (alpha, scale, input_scale)
+        )
+    ):
+        _refuse(target)
+    x = b.to(env[node.args[0]], dtype)
+
+    def scaled(value, factor):
+        return (
+            value if factor == 1 else _times(b, value, _fill(b, factor, dtype, shape))
+        )
+
+    negative = scaled(
+        _op(b, "expm1", [scaled(x, input_scale)], dtype, shape), alpha * scale
+    )
+    return _where(b, _cmp(b, "gt", x, _like(b, 0, x)), scaled(x, scale), negative)
+
+
+# -- reductions ---------------------------------------------------------------
+
+
+@_lowers("aten.amax.default", "aten.amin.default")
+def _amax_amin(b, node, env):
+    """reduce_max / reduce_min; a tie shares the gradient evenly (torch's amax
+    rule). An empty `dim` reduces every axis."""
+    target = str(node.target)
+    dtype, _ = _aval(node)
+    arg = node.args[0]
+    if not hasattr(arg, "op") or dtype == "bool" or dtype.startswith("complex"):
+        _refuse(target)
+    x = env[arg]
+    rank = len(_shape(b, x))
+    keepdim = _arg(node, 2, "keepdim", False)
+    if type(keepdim) is not bool or rank == 0:
+        _refuse(target)
+    axes = _dims_arg(_arg(node, 1, "dim", []), rank, target)
+    op = "reduce_max" if target == "aten.amax.default" else "reduce_min"
+    return _reduce(b, op, x, axes, keepdim)
+
+
+@_lowers("aten.max.default", "aten.min.default")
+def _max_min_all(b, node, env):
+    target = str(node.target)
+    arg = node.args[0]
+    if (
+        not hasattr(arg, "op")
+        or _dt(b, env[arg]) in ("bool",)
+        or node.meta["val"].shape != ()
+    ):
+        _refuse(target)
+    x = env[arg]
+    op = "reduce_max" if target == "aten.max.default" else "reduce_min"
+    return _reduce(b, op, x, list(range(len(_shape(b, x)))))
+
+
+@_lowers("aten.any.default", "aten.any.dims")
+def _any(b, node, env):
+    """Any nonzero element: reduce_or of the mask."""
+    target = str(node.target)
+    dtype, _ = _aval(node)
+    arg = node.args[0]
+    if not hasattr(arg, "op"):
+        _refuse(target)
+    x = env[arg]
+    rank = len(_shape(b, x))
+    keepdim = _arg(node, 2, "keepdim", False) if target.endswith("dims") else False
+    if type(keepdim) is not bool or rank == 0:
+        _refuse(target)
+    dims = _arg(node, 1, "dim", None) if target.endswith("dims") else None
+    axes = _dims_arg(dims, rank, target)
+    out = _reduce(b, "reduce_or", _bool_mask(b, x), axes, keepdim)
+    return b.to(out, dtype)
+
+
+@_lowers("aten.argmax.default", "aten.argmin.default")
+def _argmax_argmin(b, node, env):
+    """Index of the first extreme (a NaN is the largest, as in torch). `dim`
+    None looks at the flattened tensor."""
+    target = str(node.target)
+    _, shape = _aval(node)
+    arg = node.args[0]
+    if not hasattr(arg, "op"):
+        _refuse(target)
+    x = env[arg]
+    xd, have = b.avals[x]
+    keepdim = _arg(node, 2, "keepdim", False)
+    dim = _arg(node, 1, "dim", None)
+    if type(keepdim) is not bool or not (_isfloat(xd) or _isint(xd)) or 0 in have:
+        _refuse(target)
+    if dim is None:
+        x, axis = _reshape(b, x, [math.prod(have)]), 0
+    elif type(dim) is int and have and -len(have) <= dim < len(have):
+        axis = _norm(dim, len(have))
+    else:
+        _refuse(target)
+    op = "argmax" if target == "aten.argmax.default" else "argmin"
+    kept = [d for i, d in enumerate(_shape(b, x)) if i != axis]
+    out = _op(b, op, [x], "int32", kept, axes=[axis], index_dtype="int32")
+    return _reshape(b, out, shape)
+
+
+@_lowers("aten.max.dim", "aten.min.dim")
+def _max_min_dim(b, node, env):
+    """(values, indices) along one dim. The values are reduce_max/min, so a
+    tie shares the gradient (torch gives it to the chosen index)."""
+    target = str(node.target)
+    arg = node.args[0]
+    if not hasattr(arg, "op") or type(node.args[1]) is not int:
+        _refuse(target)
+    x = env[arg]
+    xd, have = b.avals[x]
+    keepdim = _arg(node, 2, "keepdim", False)
+    if (
+        type(keepdim) is not bool
+        or not have
+        or xd == "bool"
+        or xd.startswith("complex")
+    ):
+        _refuse(target)
+    if not -len(have) <= node.args[1] < len(have) or 0 in have:
+        _refuse(target)
+    axis = _norm(node.args[1], len(have))
+    op = "reduce_max" if target == "aten.max.dim" else "reduce_min"
+    values = _reduce(b, op, x, [axis], keepdim)
+    arg_op = "argmax" if target == "aten.max.dim" else "argmin"
+    kept = [d for i, d in enumerate(have) if i != axis]
+    index = _op(b, arg_op, [x], "int32", kept, axes=[axis], index_dtype="int32")
+    if keepdim:
+        index = _reshape(b, index, [1 if i == axis else d for i, d in enumerate(have)])
+    return (values, index)
+
+
+@_lowers("aten.prod.default", "aten.prod.dim_int")
+def _prod(b, node, env):
+    """reduce_prod; a zero in the product keeps a finite gradient, as torch's."""
+    target = str(node.target)
+    dtype, _ = _aval(node)
+    arg = node.args[0]
+    if not hasattr(arg, "op"):
+        _refuse(target)
+    x = b.to(env[arg], dtype)
+    rank = len(_shape(b, x))
+    if dtype.startswith("complex") or dtype == "bool" or rank == 0:
+        _refuse(target)
+    keepdim = False
+    axes = list(range(rank))
+    if target.endswith("dim_int"):
+        keepdim = _arg(node, 2, "keepdim", False)
+        dim = node.args[1]
+        if type(keepdim) is not bool or type(dim) is not int or not -rank <= dim < rank:
+            _refuse(target)
+        axes = [_norm(dim, rank)]
+    return _reduce(b, "reduce_prod", x, axes, keepdim)
+
+
+@_lowers("aten.cumsum.default", "aten.cumprod.default", "aten.logcumsumexp.default")
+def _cumulative(b, node, env):
+    """A running sum / product / log-sum-exp along one dim, in the result's
+    dtype (an integer or boolean input becomes int, as torch's)."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    arg = node.args[0]
+    dim = node.args[1] if len(node.args) > 1 else node.kwargs.get("dim")
+    if not hasattr(arg, "op") or type(dim) is not int or dtype.startswith("complex"):
+        _refuse(target)
+    x = b.to(env[arg], dtype)
+    rank = len(shape)
+    if rank == 0:
+        return x
+    if not -rank <= dim < rank:
+        _refuse(target)
+    op = {"cumsum": "cumsum", "cumprod": "cumprod", "logcumsumexp": "cumlogsumexp"}[
+        target.split(".")[1]
+    ]
+    return _op(b, op, [x], dtype, shape, axis=_norm(dim, rank), reverse=False)
+
+
+@_lowers("aten.var.dim")
+def _var_dim(b, node, env):
+    """var(x, dim, unbiased, keepdim): the correction form's arithmetic."""
+    target = str(node.target)
+    dtype, _ = _aval(node)
+    arg = node.args[0]
+    unbiased = _arg(node, 2, "unbiased", True)
+    keepdim = _arg(node, 3, "keepdim", False)
+    if (
+        not hasattr(arg, "op")
+        or type(unbiased) is not bool
+        or type(keepdim) is not bool
+        or not _isfloat(dtype)
+    ):
+        _refuse(target)
+    x = env[arg]
+    rank = len(_shape(b, x))
+    axes = _dims_arg(_arg(node, 1, "dim", None), rank, target)
+    count = math.prod(_shape(b, x)[a] for a in axes)
+    centred = _arith(b, "sub", x, b.broadcast(_mean_kept(b, x, axes), _shape(b, x)))
+    squares = _op(b, "integer_pow", [centred], dtype, _shape(b, x), y=2)
+    total = _reduce(b, "reduce_sum", squares, axes, keepdim)
+    divisor = count - (1 if unbiased else 0)
+    return _arith(b, "div", total, _fill(b, divisor, dtype, _shape(b, total)))
+
+
+def _mean_kept(b, x, axes):
+    dtype = _dt(b, x)
+    total = _reduce(b, "reduce_sum", x, axes, keepdim=True)
+    count = math.prod(_shape(b, x)[a] for a in axes)
+    return _arith(b, "div", total, _fill(b, count, dtype, _shape(b, total)))
+
+
+# -- shapes, selection and indexing ---------------------------------------------
+
+
+@_lowers("aten.flip.default")
+def _flip(b, node, env):
+    target = str(node.target)
+    arg = node.args[0]
+    if not hasattr(arg, "op"):
+        _refuse(target)
+    x = env[arg]
+    dtype, shape = b.avals[x]
+    dims = _dims_arg(list(node.args[1]), len(shape), target) if node.args[1] else []
+    if not dims:
+        return x
+    return _op(b, "rev", [x], dtype, shape, dimensions=dims)
+
+
+@_lowers("aten.diagonal.default")
+def _diagonal(b, node, env):
+    """The diagonal as the last axis: transpose the two dims last, flatten
+    them, and take one strided slice (stride width + 1) from the offset."""
+    target = str(node.target)
+    _, shape = _aval(node)
+    arg = node.args[0]
+    offset = _arg(node, 1, "offset", 0)
+    if not hasattr(arg, "op") or type(offset) is not int:
+        _refuse(target)
+    x = env[arg]
+    have = _shape(b, x)
+    rank = len(have)
+    d1, d2 = _arg(node, 2, "dim1", 0), _arg(node, 3, "dim2", 1)
+    if rank < 2 or any(type(d) is not int or not -rank <= d < rank for d in (d1, d2)):
+        _refuse(target)
+    d1, d2 = _norm(d1, rank), _norm(d2, rank)
+    if d1 == d2 or not shape or shape[-1] < 1:
+        _refuse(target)
+    rest = [i for i in range(rank) if i not in (d1, d2)]
+    moved = _transpose(b, x, rest + [d1, d2])
+    rows, cols = have[d1], have[d2]
+    batch = [have[i] for i in rest]
+    flat = _reshape(b, moved, batch + [rows * cols])
+    start = offset if offset >= 0 else -offset * cols
+    length = shape[-1]
+    last = start + (length - 1) * (cols + 1) + 1
+    if last > rows * cols:
+        _refuse(target)
+    axis = len(batch)
+    out = _slice_axis(b, flat, axis, start, last, cols + 1)
+    return _reshape(b, out, shape)
+
+
+@_lowers("aten.select_scatter.default")
+def _select_scatter(b, node, env):
+    """`base` with the slice at `index` of `dim` replaced by `src`."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    base, src, dim, index = node.args[:4]
+    if not (hasattr(base, "op") and hasattr(src, "op")) or type(dim) is not int:
+        _refuse(target)
+    rank = len(shape)
+    if not -rank <= dim < rank or type(index) is not int:
+        _refuse(target)
+    dim = _norm(dim, rank)
+    if not -shape[dim] <= index < shape[dim]:
+        _refuse(target)
+    index = index % shape[dim]
+    mask = _cmp(
+        b,
+        "eq",
+        _iota(b, "int32", shape, dim),
+        _fill(b, index, "int32", shape),
+    )
+    kept = [i for i in range(rank) if i != dim]
+    placed = _bcast_dims(b, b.to(env[src], dtype), shape, kept)
+    return _where(b, mask, placed, b.to(env[base], dtype))
+
+
+def _coordinates(b, index, dim, rank):
+    """int32 `index.shape + [rank]`: each element's position in a tensor of
+    `rank` axes whose `dim` coordinate is the element itself (torch's
+    gather/scatter addressing)."""
+    shape = _shape(b, index)
+    parts = []
+    for axis in range(rank):
+        piece = index if axis == dim else _iota(b, "int32", shape, axis)
+        parts.append(_reshape(b, piece, shape + [1]))
+    return _concat(b, parts, rank)
+
+
+def _gather_dnums(offset, collapsed, start_map, operand_batch=(), indices_batch=()):
+    return {
+        "offset_dims": list(offset),
+        "collapsed_slice_dims": list(collapsed),
+        "start_index_map": list(start_map),
+        "operand_batching_dims": list(operand_batch),
+        "start_indices_batching_dims": list(indices_batch),
+    }
+
+
+def _scatter_dnums(window, inserted, to_operand):
+    return {
+        "update_window_dims": list(window),
+        "inserted_window_dims": list(inserted),
+        "scatter_dims_to_operand_dims": list(to_operand),
+        "operand_batching_dims": [],
+        "scatter_indices_batching_dims": [],
+    }
+
+
+def _fill_for(dtype):
+    """What an out-of-range gather reads in FILL_OR_DROP mode: NaN for a float,
+    the minimum for an integer (JAX's own default, which the primitive needs
+    spelled out)."""
+    import numpy as np
+
+    if dtype in _FLOATS or dtype in _HALVES:
+        return "nan"
+    if dtype in ("bool", "complex64", "complex128"):
+        _refuse("aten.gather")
+    return int(np.iinfo(dtype).min)
+
+
+def _gather(b, operand, indices, dnums, slice_sizes, out_shape, mode):
+    dtype = _dt(b, operand)
+    return _op(
+        b,
+        "gather",
+        [operand, indices],
+        dtype,
+        out_shape,
+        dimension_numbers=dnums,
+        fill_value=_fill_for(dtype) if mode == "FILL_OR_DROP" else None,
+        indices_are_sorted=False,
+        mode=mode,
+        slice_sizes=list(slice_sizes),
+        unique_indices=False,
+    )
+
+
+def _scatter(b, op, operand, indices, updates, dnums, mode="FILL_OR_DROP"):
+    params = {
+        "dimension_numbers": dnums,
+        "indices_are_sorted": False,
+        "mode": mode,
+        "unique_indices": False,
+        "update_consts": [],
+        "update_jaxpr": None,
+    }
+    dtype, shape = b.avals[operand]
+    return _op(b, op, [operand, indices, updates], dtype, shape, **params)
+
+
+def _index_arg(b, env, arg, target):
+    """An int index tensor (torch's int64 is int32 here)."""
+    value = _tensor(b, env, arg, target)
+    if _dt(b, value) != "int32":
+        _refuse(target)
+    return value
+
+
+def _element_scatter(b, node, env, op, source):
+    """The scatter/gather of `dim` addressing: `self[index] = source` (source
+    given as updates already shaped like `index`). An index outside the
+    tensor is dropped, never wrapped; torch raises."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    rank = len(shape)
+    dim = node.args[1]
+    if type(dim) is not int or rank == 0 or not -rank <= dim < rank:
+        _refuse(target)
+    dim = _norm(dim, rank)
+    index = _index_arg(b, env, node.args[2], target)
+    ishape = _shape(b, index)
+    if len(ishape) != rank or any(
+        ishape[a] > shape[a] for a in range(rank) if a != dim
+    ):
+        _refuse(target)
+    updates = source(ishape)
+    coords = _coordinates(b, index, dim, rank)
+    dnums = _scatter_dnums([], range(rank), range(rank))
+    base = b.to(env[node.args[0]], dtype)
+    return _scatter(b, op, base, coords, updates, dnums)
+
+
+@_lowers("aten.scatter.src")
+def _scatter_src(b, node, env):
+    target = str(node.target)
+    dtype, _ = _aval(node)
+    if not hasattr(node.args[3], "op") or not hasattr(node.args[0], "op"):
+        _refuse(target)
+    src = b.to(env[node.args[3]], dtype)
+
+    def updates(ishape):
+        have = _shape(b, src)
+        if len(have) != len(ishape) or any(h < i for h, i in zip(have, ishape)):
+            _refuse(target)
+        return _slice(b, src, [0] * len(ishape), ishape) if have != ishape else src
+
+    return _element_scatter(b, node, env, "scatter", updates)
+
+
+@_lowers("aten.scatter.value")
+def _scatter_value(b, node, env):
+    target = str(node.target)
+    dtype, _ = _aval(node)
+    value = node.args[3]
+    if not hasattr(node.args[0], "op") or not isinstance(value, (bool, int, float)):
+        _refuse(target)
+    return _element_scatter(
+        b, node, env, "scatter", lambda ishape: _fill(b, value, dtype, ishape)
+    )
+
+
+@_lowers("aten.gather.default")
+def _gather_element(b, node, env):
+    """`out[i][j][k] = self[index[i][j][k]][j][k]` (for dim 0). An index
+    outside the tensor reads NaN (integers: the minimum), never wraps; torch
+    raises."""
+    target = str(node.target)
+    _, shape = _aval(node)
+    arg = node.args[0]
+    dim = node.args[1]
+    if not hasattr(arg, "op") or type(dim) is not int:
+        _refuse(target)
+    x = env[arg]
+    have = _shape(b, x)
+    rank = len(have)
+    if rank == 0 or not -rank <= dim < rank:
+        _refuse(target)
+    index = _index_arg(b, env, node.args[2], target)
+    dim = _norm(dim, rank)
+    if len(_shape(b, index)) != rank or any(
+        i > h for a, (i, h) in enumerate(zip(_shape(b, index), have)) if a != dim
+    ):
+        _refuse(target)
+    coords = _coordinates(b, index, dim, rank)
+    dnums = _gather_dnums([], range(rank), range(rank))
+    return _gather(b, x, coords, dnums, [1] * rank, shape, "FILL_OR_DROP")
+
+
+def _take_axis(b, x, axis, index, mode="PROMISE_IN_BOUNDS"):
+    """`x` indexed by the 1-D int32 `index` along `axis`."""
+    _, have = b.avals[x]
+    count = _shape(b, index)[0]
+    out = list(have)
+    out[axis] = count
+    sizes = list(have)
+    sizes[axis] = 1
+    dnums = _gather_dnums([i for i in range(len(have)) if i != axis], [axis], [axis])
+    return _gather(b, x, _reshape(b, index, [count, 1]), dnums, sizes, out, mode)
+
+
+@_lowers("aten.embedding.default")
+def _embedding(b, node, env):
+    """Rows of `weight` for each index. An index outside the table reads NaN
+    rows; a `padding_idx` row gets no gradient, as torch's."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    weight = _tensor(b, env, node.args[0], target)
+    index = _index_arg(b, env, node.args[1], target)
+    padding = _arg(node, 2, "padding_idx", -1)
+    wshape = _shape(b, weight)
+    if len(wshape) != 2 or type(padding) is not int or not _isfloat(dtype):
+        _refuse(target)
+    ishape = _shape(b, index)
+    dnums = _gather_dnums([len(ishape)], [0], [0])
+    rows = _gather(
+        b,
+        weight,
+        _reshape(b, index, ishape + [1]),
+        dnums,
+        [1, wshape[1]],
+        ishape + [wshape[1]],
+        "FILL_OR_DROP",
+    )
+    if padding < 0:
+        return rows
+    hit = _cmp(
+        b,
+        "eq",
+        _bcast_dims(b, index, shape, range(len(ishape))),
+        _fill(b, padding, "int32", shape),
+    )
+    return _where(b, hit, _op(b, "stop_gradient", [rows], dtype, shape), rows)
+
+
+@_lowers("aten.index_put.default")
+def _index_put(b, node, env):
+    """`self[i0, i1, ...] = values` (or `+=` with accumulate) for index tensors
+    on adjacent dims. Negative indices wrap; one outside the tensor is dropped.
+    Repeated indices without accumulate leave the winner unspecified, as in
+    torch."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    base_arg, indices, values = node.args[:3]
+    accumulate = _arg(node, 3, "accumulate", False)
+    if (
+        not hasattr(base_arg, "op")
+        or not hasattr(values, "op")
+        or not isinstance(indices, (list, tuple))
+        or type(accumulate) is not bool
+    ):
+        _refuse(target)
+    given = [(d, i) for d, i in enumerate(indices) if i is not None]
+    dims = [d for d, _ in given]
+    if not given or dims != list(range(dims[0], dims[0] + len(dims))):
+        _refuse(target)
+    base = b.to(env[base_arg], dtype)
+    arrays = []
+    for dim, arg in given:
+        value = _index_arg(b, env, arg, target)
+        size = shape[dim]
+        negative = _cmp(b, "lt", value, _like(b, 0, value))
+        arrays.append(
+            _where(b, negative, _arith(b, "add", value, _like(b, size, value)), value)
+        )
+    broadcast = []
+    for array in arrays:
+        broadcast = _broadcast_shapes(broadcast, _shape(b, array), target)
+    parts = [_reshape(b, b.broadcast(a, broadcast), broadcast + [1]) for a in arrays]
+    coords = _concat(b, parts, len(broadcast))
+    first = dims[0]
+    updates_shape = shape[:first] + broadcast + shape[first + len(dims) :]
+    updates = b.broadcast(b.to(env[values], dtype), updates_shape)
+    window = list(range(first)) + list(
+        range(first + len(broadcast), len(updates_shape))
+    )
+    dnums = _scatter_dnums(window, dims, dims)
+    return _scatter(
+        b, "scatter_add" if accumulate else "scatter", base, coords, updates, dnums
+    )
+
+
+def _broadcast_shapes(a, c, target):
+    """The numpy-style broadcast of two shapes, or a refusal."""
+    n = max(len(a), len(c))
+    a, c = [1] * (n - len(a)) + list(a), [1] * (n - len(c)) + list(c)
+    out = []
+    for x, y in zip(a, c):
+        if x != y and 1 not in (x, y):
+            _refuse(target)
+        out.append(y if x == 1 else x)
+    return out
+
+
+@_lowers("aten.as_strided.default")
+def _as_strided(b, node, env):
+    """A strided view of a contiguous tensor read by static arithmetic: the
+    flat element each output takes is offset + sum(i_k * stride_k), computed in
+    the graph and gathered. A tensor that is not contiguous in storage order
+    is refused (its logical layout is not the storage the view addresses)."""
+    target = str(node.target)
+    _, shape = _aval(node)
+    arg = node.args[0]
+    size, stride = node.args[1], node.args[2]
+    offset = _arg(node, 3, "storage_offset", None) or 0
+    if not hasattr(arg, "op"):
+        _refuse(target)
+    val = arg.meta.get("val")
+    if (
+        val is None
+        or not val.is_contiguous()
+        or val.storage_offset() != 0
+        or [int(s) for s in size] != shape
+        or any(type(v) is not int or v < 0 for v in [*stride, offset])
+        or len(size) != len(stride)
+        or not shape
+        or 0 in shape
+    ):
+        _refuse(target)
+    x = env[arg]
+    flat_size = math.prod(_shape(b, x))
+    if offset + sum((n - 1) * s for n, s in zip(shape, stride)) >= flat_size:
+        _refuse(target, "aten_as_strided_out_of_bounds")
+    index = _fill(b, offset, "int32", shape)
+    for axis, step in enumerate(stride):
+        if step and shape[axis] > 1:
+            ramp = _times(
+                b, _iota(b, "int32", shape, axis), _fill(b, step, "int32", shape)
+            )
+            index = _arith(b, "add", index, ramp)
+    flat = _reshape(b, x, [flat_size])
+    dnums = _gather_dnums([], [0], [0])
+    return _gather(
+        b, flat, _reshape(b, index, shape + [1]), dnums, [1], shape, "PROMISE_IN_BOUNDS"
+    )
+
+
+def _edge_pad(b, x, axis, low, high, mode, target):
+    """`x` extended by `low` / `high` entries along `axis`: the reflection of
+    the interior (edge not repeated) or the repeated edge."""
+    size = _shape(b, x)[axis]
+    if low < 0 or high < 0 or (mode == "reflect" and (low >= size or high >= size)):
+        _refuse(target)
+    parts = []
+    _, _ = b.avals[x]
+    if low:
+        if mode == "reflect":
+            edge = _op_rev(b, _slice_axis(b, x, axis, 1, low + 1), axis)
+        else:
+            edge = _repeat_edge(b, _slice_axis(b, x, axis, 0, 1), axis, low)
+        parts.append(edge)
+    parts.append(x)
+    if high:
+        if mode == "reflect":
+            edge = _op_rev(b, _slice_axis(b, x, axis, size - 1 - high, size - 1), axis)
+        else:
+            edge = _repeat_edge(b, _slice_axis(b, x, axis, size - 1, size), axis, high)
+        parts.append(edge)
+    return _concat(b, parts, axis)
+
+
+def _op_rev(b, x, axis):
+    dtype, shape = b.avals[x]
+    if shape[axis] == 1:
+        return x
+    return _op(b, "rev", [x], dtype, shape, dimensions=[axis])
+
+
+def _repeat_edge(b, x, axis, count):
+    _, shape = b.avals[x]
+    out = list(shape)
+    out[axis] = count
+    return _bcast_dims(b, x, out, range(len(shape)))
+
+
+@_lowers(
+    "aten.reflection_pad1d.default",
+    "aten.reflection_pad2d.default",
+    "aten.reflection_pad3d.default",
+    "aten.replication_pad1d.default",
+    "aten.replication_pad2d.default",
+    "aten.replication_pad3d.default",
+)
+def _padding_modes(b, node, env):
+    target = str(node.target)
+    arg = node.args[0]
+    padding = list(node.args[1])
+    spatial = int(target.split("_pad")[1][0])
+    mode = "reflect" if "reflection" in target else "edge"
+    if (
+        not hasattr(arg, "op")
+        or len(padding) != 2 * spatial
+        or any(type(p) is not int for p in padding)
+    ):
+        _refuse(target)
+    out = env[arg]
+    rank = len(_shape(b, out))
+    if rank not in (spatial + 1, spatial + 2):
+        _refuse(target)
+    for i in range(spatial):
+        out = _edge_pad(
+            b, out, rank - 1 - i, padding[2 * i], padding[2 * i + 1], mode, target
+        )
+    return out
+
+
+@_lowers("aten.upsample_nearest2d.vec")
+def _upsample_nearest2d(b, node, env):
+    """Nearest-neighbour resize of (N, C, H, W): source = min(floor(i * scale),
+    in - 1) in float32, as torch's, per axis by a gather."""
+    import numpy as np
+
+    target = str(node.target)
+    _, shape = _aval(node)
+    arg = node.args[0]
+    scale_factors = _arg(node, 2, "scale_factors", None)
+    if not hasattr(arg, "op") or len(shape) != 4:
+        _refuse(target)
+    out = env[arg]
+    have = _shape(b, out)
+    scales = list(scale_factors) if scale_factors is not None else [None, None]
+    if len(scales) != 2:
+        _refuse(target)
+    for axis, given in ((2, scales[0]), (3, scales[1])):
+        size_in, size_out = have[axis], shape[axis]
+        if size_in == size_out:
+            continue
+        scale = _area_scale(np.float32, size_in, size_out, False, given)
+        ramp = _iota(b, "float32", [size_out], 0)
+        source = _times(b, ramp, _fill(b, float(scale), "float32", [size_out]))
+        floor = _op(b, "floor", [source], "float32", [size_out])
+        index = _op(
+            b,
+            "min",
+            [b.to(floor, "int32"), _fill(b, size_in - 1, "int32", [size_out])],
+            "int32",
+            [size_out],
+        )
+        out = _take_axis(b, out, axis, index)
+    return out
+
+
+# -- ordering, scatter-reduce and norms ---------------------------------------------
+
+
+@_lowers("aten.sort.default", "aten.sort.stable")
+def _sort(b, node, env):
+    """(values, indices) sorted along `dim`, ties in index order, NaN last
+    (largest). Descending sorts on (value, -index) and reverses, so ties keep
+    their index order there too. Gradients follow the returned indices."""
+    target = str(node.target)
+    arg = node.args[0]
+    if not hasattr(arg, "op"):
+        _refuse(target)
+    if target.endswith("stable"):
+        dim, descending = node.kwargs.get("dim", -1), node.kwargs.get(
+            "descending", False
+        )
+    else:
+        dim, descending = _arg(node, 1, "dim", -1), _arg(node, 2, "descending", False)
+    x = env[arg]
+    dtype, shape = b.avals[x]
+    rank = len(shape)
+    if (
+        type(dim) is not int
+        or type(descending) is not bool
+        or dtype.startswith("complex")
+    ):
+        _refuse(target)
+    if rank == 0:
+        return (x, _fill(b, 0, "int32", []))
+    if not -rank <= dim < rank:
+        _refuse(target)
+    dim = _norm(dim, rank)
+    ramp = _iota(b, "int32", shape, dim)
+    outs = [(dtype, shape), ("int32", shape)]
+    if not descending:
+        values, index = _op_many(
+            b, "sort", [x, ramp], outs, dimension=dim, is_stable=True, num_keys=1
+        )
+        return (values, index)
+    values, minus = _op_many(
+        b,
+        "sort",
+        [x, _op(b, "neg", [ramp], "int32", shape)],
+        outs,
+        dimension=dim,
+        is_stable=True,
+        num_keys=2,
+    )
+    values = _op(b, "rev", [values], dtype, shape, dimensions=[dim])
+    minus = _op(b, "rev", [minus], "int32", shape, dimensions=[dim])
+    return (values, _op(b, "neg", [minus], "int32", shape))
+
+
+@_lowers("aten.topk.default")
+def _topk(b, node, env):
+    """The k largest (or smallest) along `dim`, sorted: values and indices.
+    Largest is the `top_k` primitive; smallest is a stable ascending sort cut
+    at k, so a NaN is never among the smallest."""
+    target = str(node.target)
+    arg = node.args[0]
+    k = node.args[1]
+    dim, largest = _arg(node, 2, "dim", -1), _arg(node, 3, "largest", True)
+    if not hasattr(arg, "op") or type(k) is not int or type(dim) is not int:
+        _refuse(target)
+    x = env[arg]
+    dtype, shape = b.avals[x]
+    rank = len(shape)
+    if rank == 0 or not -rank <= dim < rank or type(largest) is not bool:
+        _refuse(target)
+    dim = _norm(dim, rank)
+    if not 0 < k <= shape[dim] or dtype == "bool" or dtype.startswith("complex"):
+        _refuse(target)
+    out_shape = list(shape)
+    out_shape[dim] = k
+    if largest:
+        # JAX's top_k works on the last axis: move `dim` there and back.
+        order = [i for i in range(rank) if i != dim] + [dim]
+        moved = _transpose(b, x, order)
+        mshape = [shape[i] for i in order]
+        mout = mshape[:-1] + [k]
+        values, index = _op_many(
+            b, "top_k", [moved], [(dtype, mout), ("int32", mout)], k=k, axis=rank - 1
+        )
+        back = [order.index(i) for i in range(rank)]
+        return (_transpose(b, values, back), _transpose(b, index, back))
+    values, index = _op_many(
+        b,
+        "sort",
+        [x, _iota(b, "int32", shape, dim)],
+        [(dtype, shape), ("int32", shape)],
+        dimension=dim,
+        is_stable=True,
+        num_keys=1,
+    )
+    return (_slice_axis(b, values, dim, 0, k), _slice_axis(b, index, dim, 0, k))
+
+
+@_lowers("aten.scatter_reduce.two")
+def _scatter_reduce(b, node, env):
+    """`self[index] <reduce>= src` along `dim` (sum, prod, mean, amax, amin),
+    with or without `self` in each reduction. An index outside the tensor is
+    dropped; torch raises. prod has a gradient for src only when the indices do
+    not repeat (JAX's rule), the others always."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    reduce_name = node.args[4]
+    include_self = _arg(node, 5, "include_self", True)
+    if (
+        not _isfloat(dtype)
+        or reduce_name not in ("sum", "prod", "mean", "amax", "amin")
+        or type(include_self) is not bool
+        or not hasattr(node.args[0], "op")
+        or not hasattr(node.args[3], "op")
+    ):
+        _refuse(target)
+    rank = len(shape)
+    dim = node.args[1]
+    if type(dim) is not int or rank == 0 or not -rank <= dim < rank:
+        _refuse(target)
+    dim = _norm(dim, rank)
+    index = _index_arg(b, env, node.args[2], target)
+    ishape = _shape(b, index)
+    src = b.to(env[node.args[3]], dtype)
+    have = _shape(b, src)
+    if len(ishape) != rank or any(
+        i > s for a, (i, s) in enumerate(zip(ishape, shape)) if a != dim
+    ):
+        _refuse(target)
+    if len(have) != rank or any(h < i for h, i in zip(have, ishape)):
+        _refuse(target)
+    if have != ishape:
+        src = _slice(b, src, [0] * rank, ishape)
+    coords = _coordinates(b, index, dim, rank)
+    dnums = _scatter_dnums([], range(rank), range(rank))
+    base = b.to(env[node.args[0]], dtype)
+    original = base
+    identity = {
+        "sum": 0.0,
+        "mean": 0.0,
+        "prod": 1.0,
+        "amax": -math.inf,
+        "amin": math.inf,
+    }[reduce_name]
+    if not include_self:
+        # Each touched position starts from the reduction's identity.
+        base = _scatter(
+            b, "scatter", base, coords, _fill(b, identity, dtype, ishape), dnums
+        )
+    op = {
+        "sum": "scatter_add",
+        "mean": "scatter_add",
+        "prod": "scatter_mul",
+        "amax": "scatter_max",
+        "amin": "scatter_min",
+    }[reduce_name]
+    total = _scatter(b, op, base, coords, src, dnums)
+    if reduce_name != "mean":
+        return total
+    ones = _fill(b, 1, dtype, ishape)
+    start = _fill(b, 1 if include_self else 0, dtype, shape)
+    count = _scatter(b, "scatter_add", start, coords, ones, dnums)
+    safe = _where(
+        b, _cmp(b, "eq", count, _like(b, 0, count)), _like(b, 1, count), count
+    )
+    mean = _arith(b, "div", total, safe)
+    # An untouched position keeps `self` exactly (with self excluded).
+    return _where(b, _cmp(b, "eq", count, _like(b, 0, count)), original, mean)
+
+
+@_lowers("aten._log_softmax.default")
+def _log_softmax(b, node, env):
+    """x - max - log(sum(exp(x - max))), the shift outside the derivative."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    arg, dim, half = node.args[:3]
+    if (
+        not hasattr(arg, "op")
+        or type(dim) is not int
+        or half is not False
+        or not _isfloat(dtype)
+        or not shape
+        or not -len(shape) <= dim < len(shape)
+    ):
+        _refuse(target)
+    x = env[arg]
+    axis = _norm(dim, len(shape))
+    peak = _reduce(
+        b, "reduce_max", _op(b, "stop_gradient", [x], dtype, shape), [axis], True
+    )
+    shifted = _arith(b, "sub", x, b.broadcast(peak, shape))
+    total = _reduce(
+        b, "reduce_sum", _op(b, "exp", [shifted], dtype, shape), [axis], True
+    )
+    logged = _op(b, "log", [total], dtype, _shape(b, total))
+    return _arith(b, "sub", shifted, b.broadcast(logged, shape))
+
+
+@_lowers("aten.native_group_norm.default")
+def _native_group_norm(b, node, env):
+    """Group norm over (N, C, ...): statistics per (sample, group), then the
+    per-channel weight and bias. Outputs the normalized result, the mean and
+    the reciprocal standard deviation (both without gradient, as torch's)."""
+    target = str(node.target)
+    arg, weight_arg, bias_arg, n, c, hxw, groups, epsilon = node.args[:8]
+    if not hasattr(arg, "op") or any(type(v) is not int for v in (n, c, hxw, groups)):
+        _refuse(target)
+    x = env[arg]
+    dtype, shape = b.avals[x]
+    if (
+        not _isfloat(dtype)
+        or len(shape) < 2
+        or shape[0] != n
+        or shape[1] != c
+        or math.prod(shape[2:]) != hxw
+        or groups < 1
+        or c % groups
+        or type(epsilon) not in (int, float)
+        or not math.isfinite(epsilon)
+        or epsilon < 0
+    ):
+        _refuse(target)
+    grouped = [n, groups, (c // groups) * hxw]
+    xg = _reshape(b, x, grouped)
+    count = grouped[2]
+    mean = _arith(
+        b,
+        "div",
+        _reduce(b, "reduce_sum", xg, [2], True),
+        _fill(b, count, dtype, [n, groups, 1]),
+    )
+    centred = _arith(b, "sub", xg, b.broadcast(mean, grouped))
+    squares = _op(b, "integer_pow", [centred], dtype, grouped, y=2)
+    variance = _arith(
+        b,
+        "div",
+        _reduce(b, "reduce_sum", squares, [2], True),
+        _fill(b, count, dtype, [n, groups, 1]),
+    )
+    variance = _arith(b, "add", variance, _fill(b, epsilon, dtype, [n, groups, 1]))
+    rstd = _op(b, "rsqrt", [variance], dtype, [n, groups, 1])
+    result = _reshape(b, _times(b, centred, b.broadcast(rstd, grouped)), shape)
+    for affine, op in ((weight_arg, "mul"), (bias_arg, "add")):
+        if affine is None:
+            continue
+        if not hasattr(affine, "op") or b.avals[env[affine]] != (dtype, [c]):
+            _refuse(target)
+        per_channel = _bcast_dims(b, env[affine], shape, [1])
+        result = _arith(b, op, result, per_channel)
+    stats = [n, groups]
+    return (
+        result,
+        _reshape(b, _op(b, "stop_gradient", [mean], dtype, [n, groups, 1]), stats),
+        _reshape(b, _op(b, "stop_gradient", [rstd], dtype, [n, groups, 1]), stats),
+    )
+
+
+class _Unselectable:
+    """A result of a multi-result op that Carbon does not produce; selecting it
+    refuses with `code` (a named reason rather than a missing value)."""
+
+    def __init__(self, code):
+        self.code = code
+
+
+@_lowers("aten._native_batch_norm_legit_functional.default")
+def _batch_norm_functional(b, node, env):
+    """Training batch norm with running statistics, functional form: only the
+    statistics-only part lowers (the normalized result and the batch's own
+    mean and reciprocal std). The updated running statistics are a state
+    update, not a pure value, so selecting them refuses by name."""
+    target = str(node.target)
+    args = node.args
+    x_arg, weight_arg, bias_arg = args[:3]
+    training, epsilon = args[5], args[7]
+    if (
+        len(args) != 8
+        or node.kwargs
+        or not hasattr(x_arg, "op")
+        or training is not True
+        or type(epsilon) not in (int, float)
+    ):
+        _refuse(target)
+    x = env[x_arg]
+    dtype, shape = b.avals[x]
+    if (
+        not _isfloat(dtype)
+        or len(shape) < 2
+        or not math.isfinite(epsilon)
+        or epsilon < 0
+    ):
+        _refuse(target)
+    channels = shape[1]
+    axes = [0] + list(range(2, len(shape)))
+    kept = [1, channels] + [1] * (len(shape) - 2)
+    count = math.prod(shape) // channels
+    total = _reduce(b, "reduce_sum", x, axes)
+    mean = _arith(b, "div", total, _fill(b, count, dtype, [channels]))
+    mean_k = _reshape(b, mean, kept)
+    centred = _arith(b, "sub", x, b.broadcast(mean_k, shape))
+    squares = _op(b, "integer_pow", [centred], dtype, shape, y=2)
+    variance = _arith(
+        b,
+        "div",
+        _reduce(b, "reduce_sum", squares, axes),
+        _fill(b, count, dtype, [channels]),
+    )
+    variance = _arith(b, "add", variance, _fill(b, epsilon, dtype, [channels]))
+    rstd = _op(b, "rsqrt", [variance], dtype, [channels])
+    result = _times(b, centred, b.broadcast(_reshape(b, rstd, kept), shape))
+    for affine, op in ((weight_arg, "mul"), (bias_arg, "add")):
+        if affine is None:
+            continue
+        if not hasattr(affine, "op") or b.avals[env[affine]] != (dtype, [channels]):
+            _refuse(target)
+        result = _arith(b, op, result, _bcast_dims(b, env[affine], shape, [1]))
+    marker = _Unselectable("aten_batch_norm_running_stats_update")
+    return (
+        result,
+        _op(b, "stop_gradient", [mean], dtype, [channels]),
+        _op(b, "stop_gradient", [rstd], dtype, [channels]),
+        marker,
+        marker,
+    )
+
+
+# -- distances ------------------------------------------------------------------
+
+
+def _pairwise(b, x1, x2, p, target):
+    """||x1_i - x2_j||_p for rows of (..., P, M) against (..., R, M): the
+    direct difference form (torch switches to a matmul form past 25 rows, which
+    differs by rounding). A zero distance has gradient 0, as torch's."""
+    dtype, s1 = b.avals[x1]
+    s2 = _shape(b, x2)
+    if len(s1) < 2 or len(s2) < 2 or s1[-1] != s2[-1] or not _isfloat(dtype):
+        _refuse(target)
+    batch = _broadcast_shapes(s1[:-2], s2[:-2], target)
+    rows, cols, width = s1[-2], s2[-2], s1[-1]
+    full = batch + [rows, cols, width]
+    nb = len(batch)
+    a = _bcast_dims(b, x1, full, list(range(nb - (len(s1) - 2), nb)) + [nb, nb + 2])
+    c = _bcast_dims(b, x2, full, list(range(nb - (len(s2) - 2), nb)) + [nb + 1, nb + 2])
+    diff = _arith(b, "sub", a, c)
+    axis = [nb + 2]
+    out = batch + [rows, cols]
+    if p == 0:
+        mask = b.to(_cmp(b, "ne", diff, _like(b, 0, diff)), dtype)
+        return _reduce(b, "reduce_sum", mask, axis)
+    magnitude = _op(b, "abs", [diff], dtype, full)
+    if p == 1:
+        return _reduce(b, "reduce_sum", magnitude, axis)
+    if p == math.inf:
+        return _reduce(b, "reduce_max", magnitude, axis)
+    if p == 2:
+        squares = _op(b, "integer_pow", [diff], dtype, full, y=2)
+        total = _reduce(b, "reduce_sum", squares, axis)
+    else:
+        total = _reduce(
+            b, "reduce_sum", _arith(b, "pow", magnitude, _fill(b, p, dtype, full)), axis
+        )
+    zero = _cmp(b, "eq", total, _like(b, 0, total))
+    safe = _where(b, zero, _like(b, 1, total), total)
+    if p == 2:
+        root = _op(b, "sqrt", [safe], dtype, out)
+    else:
+        root = _arith(b, "pow", safe, _fill(b, 1.0 / p, dtype, out))
+    return _where(b, zero, _like(b, 0, total), root)
+
+
+@_lowers("aten._cdist_forward.default")
+def _cdist_forward(b, node, env):
+    target = str(node.target)
+    x1, x2 = node.args[:2]
+    p = _arg(node, 2, "p", 2.0)
+    if not (hasattr(x1, "op") and hasattr(x2, "op")) or not isinstance(p, (int, float)):
+        _refuse(target)
+    if isinstance(p, bool) or p < 0 or (p != math.inf and not math.isfinite(p)):
+        _refuse(target)
+    out = _pairwise(b, env[x1], env[x2], float(p), target)
+    if b.avals[out] != _aval(node):
+        raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+    return out
+
+
+@_lowers("aten._pdist_forward.default")
+def _pdist_forward(b, node, env):
+    """Distances between the rows i < j of (N, M), row-major: slices of the
+    pairwise matrix, one per row."""
+    target = str(node.target)
+    arg = node.args[0]
+    p = _arg(node, 1, "p", 2.0)
+    if not hasattr(arg, "op") or isinstance(p, bool) or not isinstance(p, (int, float)):
+        _refuse(target)
+    if p < 0 or (p != math.inf and not math.isfinite(p)):
+        _refuse(target)
+    x = env[arg]
+    shape = _shape(b, x)
+    if len(shape) != 2 or not 2 <= shape[0] <= 512:
+        _refuse(target)
+    full = _pairwise(b, x, x, float(p), target)
+    n = shape[0]
+    rows = []
+    for i in range(n - 1):
+        piece = _slice(b, full, [i, i + 1], [i + 1, n])
+        rows.append(_reshape(b, piece, [n - 1 - i]))
+    return _concat(b, rows, 0)
+
+
+# -- pooling and resizing -----------------------------------------------------------
+
+
+def _pool_vector(value, nd, default, target):
+    value = list(value) if isinstance(value, (list, tuple)) else [value]
+    if not value:
+        value = list(default)
+    if len(value) == 1:
+        value = value * nd
+    if len(value) != nd or any(type(v) is not int for v in value):
+        _refuse(target)
+    return value
+
+
+def _pool_geometry(sizes, kernel, stride, padding, dilation, ceil_mode, target):
+    """Output sizes and (low, high) padding of torch's pooling windows."""
+    out, pads = [], []
+    for n, k, s, p, d in zip(sizes, kernel, stride, padding, dilation):
+        span = d * (k - 1) + 1
+        if k < 1 or s < 1 or d < 1 or p < 0:
+            _refuse(target)
+        numerator = n + 2 * p - span
+        if numerator < 0:
+            _refuse(target)
+        o = (numerator + (s - 1 if ceil_mode else 0)) // s + 1
+        if ceil_mode and (o - 1) * s >= n + p:
+            o -= 1
+        hi = max((o - 1) * s + span - n - p, 0) if ceil_mode else p
+        if (n + p + hi - span) // s + 1 != o:
+            _refuse(target)
+        out.append(o)
+        pads.append((p, hi))
+    return out, pads
+
+
+def _window_reduce(b, op, x, nd, kernel, stride, pads, dilation, out_sizes):
+    dtype, shape = b.avals[x]
+    lead = len(shape) - nd
+    return _op(
+        b,
+        op,
+        [x],
+        dtype,
+        shape[:lead] + out_sizes,
+        window_dimensions=[1] * lead + kernel,
+        window_strides=[1] * lead + stride,
+        padding=[[0, 0]] * lead + [list(p) for p in pads],
+        base_dilation=[1] * len(shape),
+        window_dilation=[1] * lead + dilation,
+    )
+
+
+@_lowers("aten.avg_pool2d.default", "aten.avg_pool3d.default")
+def _avg_pool(b, node, env):
+    """Window sums (zero padding) divided by each window's own count: the
+    window clipped to the padded extent when padding counts, to the input when
+    it does not. A ceil_mode window that runs past the padding is shortened
+    the same way as torch's."""
+    target = str(node.target)
+    nd = 2 if "2d" in target else 3
+    dtype, shape = _aval(node)
+    arg = node.args[0]
+    kernel_arg = node.args[1]
+    stride_arg = _arg(node, 2, "stride", [])
+    padding_arg = _arg(node, 3, "padding", 0)
+    ceil_mode = _arg(node, 4, "ceil_mode", False)
+    include_pad = _arg(node, 5, "count_include_pad", True)
+    override = _arg(node, 6, "divisor_override", None)
+    if (
+        not hasattr(arg, "op")
+        or not _isfloat(dtype)
+        or type(ceil_mode) is not bool
+        or type(include_pad) is not bool
+        or (override is not None and (type(override) is not int or override == 0))
+    ):
+        _refuse(target)
+    x = env[arg]
+    have = _shape(b, x)
+    if len(have) not in (nd + 1, nd + 2):
+        _refuse(target)
+    sizes = have[-nd:]
+    kernel = _pool_vector(kernel_arg, nd, [], target)
+    stride = _pool_vector(stride_arg, nd, kernel, target)
+    padding = _pool_vector(padding_arg, nd, [0] * nd, target)
+    if any(2 * p > k for p, k in zip(padding, kernel)):
+        _refuse(target)
+    out_sizes, pads = _pool_geometry(
+        sizes, kernel, stride, padding, [1] * nd, ceil_mode, target
+    )
+    if shape[-nd:] != out_sizes:
+        raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+    total = _window_reduce(
+        b, "reduce_window_sum", x, nd, kernel, stride, pads, [1] * nd, out_sizes
+    )
+    if override is not None:
+        return _arith(b, "div", total, _like(b, override, total))
+    if all(p == 0 for p in padding) and not ceil_mode:
+        return _arith(b, "div", total, _like(b, math.prod(kernel), total))
+    # Per-window element counts from a tensor of ones in the same windows.
+    if include_pad:
+        extent = [n + p + min(hi, p) for n, (p, hi) in zip(sizes, pads)]
+        spill = [(0, max(hi - p, 0)) for p, hi in pads]
+    else:
+        extent = list(sizes)
+        spill = list(pads)
+    ones = _fill(b, 1, dtype, [1] * (len(have) - nd) + extent)
+    counts = _window_reduce(
+        b, "reduce_window_sum", ones, nd, kernel, stride, spill, [1] * nd, out_sizes
+    )
+    counts = b.broadcast(counts, shape)
+    return _arith(b, "div", total, counts)
+
+
+def _max_pool_window(b, node, env, nd):
+    """Max pooling over arbitrary windows (reduce_window_max, -inf padding).
+    Only the values are selectable: the indices output is refused."""
+    target = str(node.target)
+    arg = node.args[0]
+    dtype, shape = _avals(node)[0]
+    kernel_arg = node.args[1]
+    stride_arg = _arg(node, 2, "stride", [])
+    padding_arg = _arg(node, 3, "padding", 0)
+    dilation_arg = _arg(node, 4, "dilation", 1)
+    ceil_mode = _arg(node, 5, "ceil_mode", False)
+    if not hasattr(arg, "op") or not _isfloat(dtype) or type(ceil_mode) is not bool:
+        _refuse(target)
+    x = env[arg]
+    have = _shape(b, x)
+    if len(have) not in (nd + 1, nd + 2):
+        _refuse(target)
+    kernel = _pool_vector(kernel_arg, nd, [], target)
+    stride = _pool_vector(stride_arg, nd, kernel, target)
+    padding = _pool_vector(padding_arg, nd, [0] * nd, target)
+    dilation = _pool_vector(dilation_arg, nd, [1] * nd, target)
+    if any(2 * p > k for p, k in zip(padding, kernel)) or any(d != 1 for d in dilation):
+        # JAX has no derivative for a dilated window (select_and_gather_add),
+        # so a dilated max pool could not be trained: refused up front.
+        _refuse(target)
+    out_sizes, pads = _pool_geometry(
+        have[-nd:], kernel, stride, padding, dilation, ceil_mode, target
+    )
+    if shape[-nd:] != out_sizes:
+        raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+    values = _window_reduce(
+        b, "reduce_window_max", x, nd, kernel, stride, pads, dilation, out_sizes
+    )
+    return (values, None)
+
+
+@_lowers("aten.max_pool3d_with_indices.default")
+def _max_pool3d(b, node, env):
+    return _max_pool_window(b, node, env, 3)
+
+
+def _adaptive_sum(b, x, axis, n_out, target):
+    """Window sums along `axis` for torch's adaptive windows [floor(o * n / m),
+    ceil((o + 1) * n / m)), and each window's length."""
+    shape = _shape(b, x)
+    n_in = shape[axis]
+    if n_out < 1 or n_in < 1:
+        _refuse(target)
+    if n_in == n_out:
+        return x, [1] * n_out
+    if n_in % n_out == 0:
+        k = n_in // n_out
+        split = shape[:axis] + [n_out, k] + shape[axis + 1 :]
+        return _reduce(b, "reduce_sum", _reshape(b, x, split), [axis + 1]), [k] * n_out
+    if n_out > 256:
+        _refuse(target, "aten_lowering_expansion_bound")
+    pieces, lengths = [], []
+    for o in range(n_out):
+        start = (o * n_in) // n_out
+        end = -(-((o + 1) * n_in) // n_out)
+        pieces.append(
+            _reduce(b, "reduce_sum", _slice_axis(b, x, axis, start, end), [axis], True)
+        )
+        lengths.append(end - start)
+    return _concat(b, pieces, axis), lengths
+
+
+@_lowers("aten._adaptive_avg_pool2d.default", "aten._adaptive_avg_pool3d.default")
+def _adaptive_avg_pool(b, node, env):
+    """Mean over each adaptive window, one axis at a time (a mean of means,
+    which equals the window mean; the rounding order differs from torch's)."""
+    import numpy as np
+
+    target = str(node.target)
+    nd = 2 if "2d" in target else 3
+    dtype, _ = _aval(node)
+    arg = node.args[0]
+    size = list(node.args[1])
+    if (
+        not hasattr(arg, "op")
+        or not _isfloat(dtype)
+        or len(size) != nd
+        or any(type(s) is not int for s in size)
+    ):
+        _refuse(target)
+    out = env[arg]
+    rank = len(_shape(b, out))
+    if rank not in (nd + 1, nd + 2):
+        _refuse(target)
+    for i in range(nd):
+        axis = rank - nd + i
+        summed, lengths = _adaptive_sum(b, out, axis, size[i], target)
+        have = _shape(b, summed)
+        if len(set(lengths)) == 1:
+            divisor = _fill(b, lengths[0], dtype, have)
+        else:
+            vector = b.const(np.asarray(lengths, dtype=dtype))
+            divisor = _bcast_dims(b, vector, have, [axis])
+        out = _arith(b, "div", summed, divisor)
+    return out
+
+
+def _lerp_axis(b, x, axis, size_out, align_corners, given):
+    """Linear interpolation along `axis`, torch's source index and weight in
+    the data's own float type: i0 = min(floor(src), n - 1), i1 = i0 + (i0 <
+    n - 1), lambda = clamp(src - i0, 0, 1)."""
+    import numpy as np
+
+    dtype, have = b.avals[x]
+    size_in = have[axis]
+    np_type = np.dtype(dtype).type
+    scale = _area_scale(np_type, size_in, size_out, align_corners, given)
+    ramp = _iota(b, dtype, [size_out], 0)
+    if align_corners:
+        source = _times(b, ramp, _fill(b, float(scale), dtype, [size_out]))
+    else:
+        half = _arith(b, "add", ramp, _fill(b, 0.5, dtype, [size_out]))
+        shifted = _arith(
+            b,
+            "sub",
+            _times(b, half, _fill(b, float(scale), dtype, [size_out])),
+            _fill(b, 0.5, dtype, [size_out]),
+        )
+        zero = _fill(b, 0.0, dtype, [size_out])
+        source = _where(b, _cmp(b, "lt", shifted, zero), zero, shifted)
+    last = _fill(b, size_in - 1, "int32", [size_out])
+    lower = _op(
+        b,
+        "min",
+        [b.to(_op(b, "floor", [source], dtype, [size_out]), "int32"), last],
+        "int32",
+        [size_out],
+    )
+    more = b.to(_cmp(b, "lt", lower, last), "int32")
+    upper = _arith(b, "add", lower, more)
+    frac = _arith(b, "sub", source, b.to(lower, dtype))
+    zero, one = _fill(b, 0.0, dtype, [size_out]), _fill(b, 1.0, dtype, [size_out])
+    frac = _where(b, _cmp(b, "lt", frac, zero), zero, frac)
+    frac = _where(b, _cmp(b, "gt", frac, one), one, frac)
+    rest = _arith(b, "sub", one, frac)
+    shape = _shape(b, x)
+    out_shape = list(shape)
+    out_shape[axis] = size_out
+    w_hi = _bcast_dims(b, frac, out_shape, [axis])
+    w_lo = _bcast_dims(b, rest, out_shape, [axis])
+    low = _take_axis(b, x, axis, lower)
+    high = _take_axis(b, x, axis, upper)
+    return _arith(b, "add", _times(b, low, w_lo), _times(b, high, w_hi))
+
+
+@_lowers("aten.upsample_bilinear2d.vec")
+def _upsample_bilinear2d(b, node, env):
+    """Bilinear resize of (N, C, H, W): width first, then height (torch's
+    order), each by two gathers and torch's own source index and weights. The
+    arithmetic order differs from torch's fused kernel by rounding."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    arg = node.args[0]
+    align_corners = _arg(node, 2, "align_corners", None)
+    scale_factors = _arg(node, 3, "scale_factors", None)
+    if (
+        not hasattr(arg, "op")
+        or not _isfloat(dtype)
+        or len(shape) != 4
+        or type(align_corners) is not bool
+    ):
+        _refuse(target)
+    scales = list(scale_factors) if scale_factors is not None else [None, None]
+    if len(scales) != 2:
+        _refuse(target)
+    out = b.to(env[arg], dtype)
+    have = _shape(b, out)
+    for axis, given in ((3, scales[1]), (2, scales[0])):
+        if have[axis] != shape[axis]:
+            out = _lerp_axis(b, out, axis, shape[axis], align_corners, given)
+    return out
+
+
+@_lowers("aten.col2im.default")
+def _col2im(b, node, env):
+    """Fold sliding-window columns back into an image, summing overlaps: each
+    kernel offset's block is placed by one `pad` (interior padding = stride,
+    negative low/high = the image padding cropped) and the blocks are added."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    arg = node.args[0]
+    size, kernel, dilation, padding, stride = (list(v) for v in node.args[1:6])
+    if (
+        not hasattr(arg, "op")
+        or not _isfloat(dtype)
+        or any(
+            len(v) != 2 or any(type(i) is not int for i in v)
+            for v in (size, kernel, dilation, padding, stride)
+        )
+        or any(s < 1 for s in stride)
+        or any(d < 1 for d in dilation)
+        or any(p < 0 for p in padding)
+    ):
+        _refuse(target)
+    x = env[arg]
+    have = _shape(b, x)
+    if len(have) not in (2, 3):
+        _refuse(target)
+    batched = len(have) == 3
+    kh, kw = kernel
+    positions = [
+        (n + 2 * p - d * (k - 1) - 1) // s + 1
+        for n, p, d, k, s in zip(size, padding, dilation, kernel, stride)
+    ]
+    lh, lw = positions
+    c, rows = (shape[1], have[1]) if batched else (shape[0], have[0])
+    if rows != c * kh * kw or have[-1] != lh * lw or lh < 1 or lw < 1:
+        _refuse(target)
+    if kh * kw > 1024:
+        _refuse(target, "aten_lowering_expansion_bound")
+    n = have[0] if batched else 1
+    blocks = _reshape(b, x, [n, c, kh, kw, lh, lw])
+    out_shape = [n, c, size[0], size[1]]
+    total = None
+    for i in range(kh):
+        for j in range(kw):
+            piece = _slice(b, blocks, [0, 0, i, j, 0, 0], [n, c, i + 1, j + 1, lh, lw])
+            piece = _reshape(b, piece, [n, c, lh, lw])
+            config = [[0, 0, 0], [0, 0, 0]]
+            for axis, (offset, extent, stride_, pad, dil, count) in enumerate(
+                zip((i, j), size, stride, padding, dilation, (lh, lw))
+            ):
+                low = offset * dil - pad
+                high = extent - low - ((count - 1) * stride_ + 1)
+                config.append([low, high, stride_ - 1])
+            placed = _op(
+                b,
+                "pad",
+                [piece, b.scalar(0, dtype)],
+                dtype,
+                out_shape,
+                padding_config=config,
+            )
+            total = placed if total is None else _arith(b, "add", total, placed)
+    return _reshape(b, total, shape)
+
+
+@_lowers("aten.masked_scatter.default")
+def _masked_scatter(b, node, env):
+    """Fill the true positions of `mask` (row-major) with consecutive elements
+    of `source`. A source shorter than the true count reads NaN; torch raises."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    base_arg, mask_arg, source_arg = node.args[:3]
+    if not (
+        hasattr(base_arg, "op")
+        and hasattr(mask_arg, "op")
+        and hasattr(source_arg, "op")
+    ):
+        _refuse(target)
+    base = b.to(env[base_arg], dtype)
+    mask = b.broadcast(env[mask_arg], shape)
+    if _dt(b, mask) != "bool" or not shape:
+        _refuse(target)
+    source = env[source_arg]
+    flat_source = _reshape(b, b.to(source, dtype), [math.prod(_shape(b, source))])
+    total = math.prod(shape)
+    counts = _op(
+        b,
+        "cumsum",
+        [b.to(_reshape(b, mask, [total]), "int32")],
+        "int32",
+        [total],
+        axis=0,
+        reverse=False,
+    )
+    position = _arith(b, "sub", counts, _fill(b, 1, "int32", [total]))
+    dnums = _gather_dnums([], [0], [0])
+    taken = _gather(
+        b,
+        flat_source,
+        _reshape(b, position, [total, 1]),
+        dnums,
+        [1],
+        [total],
+        "FILL_OR_DROP",
+    )
+    return _where(b, mask, _reshape(b, taken, shape), base)
+
+
+# -- sampling and bags --------------------------------------------------------------
+
+
+def _clip_open(b, v, size):
+    """min(size - 1, max(v, 0)) whose gradient is 0 at and beyond the bounds
+    (torch's clip_coordinates), by selects."""
+    dtype, shape = b.avals[v]
+    low = _fill(b, 0, dtype, shape)
+    high = _fill(b, size - 1, dtype, shape)
+    v = _where(b, _cmp(b, "le", v, low), low, v)
+    return _where(b, _cmp(b, "ge", v, high), high, v)
+
+
+@_lowers("aten.grid_sampler_2d.default")
+def _grid_sampler_2d(b, node, env):
+    """F.grid_sample on (N, C, H, W) with a (N, Ho, Wo, 2) grid: bilinear or
+    nearest, zeros or border padding. Bicubic and reflection padding are
+    refused. The four taps are gathered with in-bounds indices and masked by
+    selects (a masked NaN does not leak); the gradient reaches the grid
+    through the bilinear weights, as torch's."""
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    arg, grid_arg, mode, padding_mode, align = node.args[:5]
+    if (
+        not (hasattr(arg, "op") and hasattr(grid_arg, "op"))
+        or mode not in (0, 1)
+        or padding_mode not in (0, 1)
+        or type(align) is not bool
+        or not _isfloat(dtype)
+    ):
+        _refuse(target)
+    x, grid = env[arg], b.to(env[grid_arg], dtype)
+    n, c, h, w = _shape(b, x)
+    gshape = _shape(b, grid)
+    if len(gshape) != 4 or gshape[3] != 2 or gshape[0] != n:
+        _refuse(target)
+    ho, wo = gshape[1], gshape[2]
+    plane = [n, ho, wo]
+
+    def channel(k):
+        part = _slice(b, grid, [0, 0, 0, k], [n, ho, wo, k + 1])
+        return _reshape(b, part, plane)
+
+    def source(coord, size):
+        one = _fill(b, 1, dtype, plane)
+        if align:
+            value = _times(
+                b,
+                _arith(
+                    b, "div", _arith(b, "add", coord, one), _fill(b, 2, dtype, plane)
+                ),
+                _fill(b, size - 1, dtype, plane),
+            )
+        else:
+            scaled = _arith(
+                b,
+                "sub",
+                _times(b, _arith(b, "add", coord, one), _fill(b, size, dtype, plane)),
+                one,
+            )
+            value = _arith(b, "div", scaled, _fill(b, 2, dtype, plane))
+        return _clip_open(b, value, size) if padding_mode == 1 else value
+
+    ix, iy = source(channel(0), w), source(channel(1), h)
+    dnums = _gather_dnums([1], [2, 3], [2, 3], [0], [0])
+
+    def tap(yi, xi):
+        """Pixel values at integer (yi, xi) (float tensors), zero outside."""
+        inside = _op(
+            b,
+            "and",
+            [
+                _op(
+                    b,
+                    "and",
+                    [
+                        _cmp(b, "ge", xi, _fill(b, 0, dtype, plane)),
+                        _cmp(b, "le", xi, _fill(b, w - 1, dtype, plane)),
+                    ],
+                    "bool",
+                    plane,
+                ),
+                _op(
+                    b,
+                    "and",
+                    [
+                        _cmp(b, "ge", yi, _fill(b, 0, dtype, plane)),
+                        _cmp(b, "le", yi, _fill(b, h - 1, dtype, plane)),
+                    ],
+                    "bool",
+                    plane,
+                ),
+            ],
+            "bool",
+            plane,
+        )
+        xs = _op(
+            b,
+            "min",
+            [
+                _op(
+                    b,
+                    "max",
+                    [b.to(xi, "int32"), _fill(b, 0, "int32", plane)],
+                    "int32",
+                    plane,
+                ),
+                _fill(b, w - 1, "int32", plane),
+            ],
+            "int32",
+            plane,
+        )
+        ys = _op(
+            b,
+            "min",
+            [
+                _op(
+                    b,
+                    "max",
+                    [b.to(yi, "int32"), _fill(b, 0, "int32", plane)],
+                    "int32",
+                    plane,
+                ),
+                _fill(b, h - 1, "int32", plane),
+            ],
+            "int32",
+            plane,
+        )
+        coords = _concat(
+            b, [_reshape(b, ys, plane + [1]), _reshape(b, xs, plane + [1])], 3
+        )
+        values = _gather(
+            b, x, coords, dnums, [1, c, 1, 1], [n, c, ho, wo], "PROMISE_IN_BOUNDS"
+        )
+        keep = _bcast_dims(b, inside, shape, [0, 2, 3])
+        return _where(b, keep, values, _fill(b, 0, dtype, shape))
+
+    def weight_of(value):
+        return _bcast_dims(b, value, shape, [0, 2, 3])
+
+    if mode == 1:
+        nearest_x = _op(
+            b, "round", [ix], dtype, plane, rounding_method="TO_NEAREST_EVEN"
+        )
+        nearest_y = _op(
+            b, "round", [iy], dtype, plane, rounding_method="TO_NEAREST_EVEN"
+        )
+        return tap(nearest_y, nearest_x)
+    x0 = _op(b, "floor", [ix], dtype, plane)
+    y0 = _op(b, "floor", [iy], dtype, plane)
+    one = _fill(b, 1, dtype, plane)
+    x1, y1 = _arith(b, "add", x0, one), _arith(b, "add", y0, one)
+    wx0, wx1 = _arith(b, "sub", x1, ix), _arith(b, "sub", ix, x0)
+    wy0, wy1 = _arith(b, "sub", y1, iy), _arith(b, "sub", iy, y0)
+    out = None
+    for yi, xi, wy, wx in (
+        (y0, x0, wy0, wx0),
+        (y0, x1, wy0, wx1),
+        (y1, x0, wy1, wx0),
+        (y1, x1, wy1, wx1),
+    ):
+        term = _times(b, tap(yi, xi), weight_of(_times(b, wx, wy)))
+        out = term if out is None else _arith(b, "add", out, term)
+    return out
+
+
+@_lowers("aten._embedding_bag.default", "aten._embedding_bag_forward_only.default")
+def _embedding_bag(b, node, env):
+    """Sum, mean or max of the rows of `weight` in each bag. Bag membership is
+    read from `offsets` in the graph (an offset compared with each position),
+    so the offsets may be an input. Only the pooled result is selectable (the
+    auxiliary outputs refuse by name). An index outside the table reads NaN
+    rows; padding_idx rows are left out."""
+    target = str(node.target)
+    dtype, shape = _avals(node)[0]
+    weight_arg, index_arg, offsets_arg = node.args[:3]
+    mode = _arg(node, 4, "mode", 0)
+    weights_arg = _arg(node, 6, "per_sample_weights", None)
+    last = _arg(node, 7, "include_last_offset", False)
+    padding = _arg(node, 8, "padding_idx", -1)
+    if (
+        not all(hasattr(a, "op") for a in (weight_arg, index_arg, offsets_arg))
+        or mode not in (0, 1, 2)
+        or type(last) is not bool
+        or (padding is not None and type(padding) is not int)
+        or not _isfloat(dtype)
+        or (weights_arg is not None and (mode != 0 or not hasattr(weights_arg, "op")))
+    ):
+        _refuse(target)
+    weight = env[weight_arg]
+    index = _index_arg(b, env, index_arg, target)
+    offsets = _index_arg(b, env, offsets_arg, target)
+    wshape, ishape, oshape = _shape(b, weight), _shape(b, index), _shape(b, offsets)
+    if len(wshape) != 2 or len(ishape) != 1 or len(oshape) != 1:
+        _refuse(target)
+    length, bags, width = ishape[0], oshape[0] - (1 if last else 0), wshape[1]
+    if bags < 1 or length < 1 or shape != [bags, width]:
+        _refuse(target)
+    starts = _slice(b, offsets, [0], [bags]) if last else offsets
+    grid = [length, bags]
+    started = _cmp(
+        b, "le", _bcast_dims(b, starts, grid, [1]), _iota(b, "int32", grid, 0)
+    )
+    bag = _arith(
+        b,
+        "sub",
+        _reduce(b, "reduce_sum", b.to(started, "int32"), [1]),
+        _fill(b, 1, "int32", [length]),
+    )
+    rows = _gather(
+        b,
+        weight,
+        _reshape(b, index, [length, 1]),
+        _gather_dnums([1], [0], [0]),
+        [1, width],
+        [length, width],
+        "FILL_OR_DROP",
+    )
+    live = (
+        _cmp(b, "ne", index, _fill(b, padding, "int32", [length]))
+        if padding is not None and padding >= 0
+        else _fill(b, True, "bool", [length])
+    )
+    live_rows = _bcast_dims(b, live, [length, width], [0])
+    where_bag = _reshape(b, bag, [length, 1])
+    into_rows = _scatter_dnums([1], [0], [0])
+    into_bags = _scatter_dnums([], [0], [0])
+    if mode == 2:
+        low = _fill(b, -math.inf, dtype, [length, width])
+        out = _scatter(
+            b,
+            "scatter_max",
+            _fill(b, -math.inf, dtype, [bags, width]),
+            where_bag,
+            _where(b, live_rows, rows, low),
+            into_rows,
+        )
+    else:
+        if weights_arg is not None:
+            rows = _times(
+                b,
+                rows,
+                _bcast_dims(b, b.to(env[weights_arg], dtype), [length, width], [0]),
+            )
+        out = _scatter(
+            b,
+            "scatter_add",
+            _fill(b, 0, dtype, [bags, width]),
+            where_bag,
+            _where(b, live_rows, rows, _fill(b, 0, dtype, [length, width])),
+            into_rows,
+        )
+    counts = _scatter(
+        b,
+        "scatter_add",
+        _fill(b, 0, dtype, [bags]),
+        where_bag,
+        b.to(live, dtype),
+        into_bags,
+    )
+    empty = _cmp(b, "eq", counts, _like(b, 0, counts))
+    empty_rows = _bcast_dims(b, empty, shape, [0])
+    if mode == 1:
+        safe = _where(b, empty, _like(b, 1, counts), counts)
+        out = _arith(b, "div", out, _bcast_dims(b, safe, shape, [0]))
+    elif mode == 2:
+        out = _where(b, empty_rows, _fill(b, 0, dtype, shape), out)
+    marker = _Unselectable("aten_embedding_bag_auxiliary_output")
+    return (out, marker, marker, marker)
+
+
+# -- linear algebra ---------------------------------------------------------------------
+
+
+def _batch_matrix(b, node, value, target, square=True):
+    dtype, shape = b.avals[value]
+    if len(shape) < 2 or not _isfloat(dtype) or (square and shape[-1] != shape[-2]):
+        _refuse(target)
+    return dtype, shape
+
+
+def _triangle_mask(b, shape, lower, strict=False):
+    rows = _iota(b, "int32", shape, len(shape) - 2)
+    cols = _iota(b, "int32", shape, len(shape) - 1)
+    op = ("gt" if strict else "ge") if lower else ("lt" if strict else "le")
+    return _cmp(b, op, rows, cols)
+
+
+def _symmetrized(b, x, lower):
+    """The symmetric matrix read from one triangle of `x`, as LAPACK does."""
+    dtype, shape = b.avals[x]
+    rank = len(shape)
+    perm = list(range(rank - 2)) + [rank - 1, rank - 2]
+    zero = _fill(b, 0, dtype, shape)
+    kept = _where(b, _triangle_mask(b, shape, lower), x, zero)
+    strict = _where(b, _triangle_mask(b, shape, lower, True), x, zero)
+    return _arith(b, "add", kept, _transpose(b, strict, perm))
+
+
+@_lowers("aten.linalg_cholesky_ex.default")
+def _cholesky_ex(b, node, env):
+    """The Cholesky factor of the symmetric matrix read from one triangle of A
+    (lower by default). A matrix that is not positive definite gives NaN; the
+    `info` output is not computed (selecting it refuses by name)."""
+    target = str(node.target)
+    upper = node.kwargs.get("upper", False)
+    arg = node.args[0]
+    if not hasattr(arg, "op") or type(upper) is not bool or len(node.args) != 1:
+        _refuse(target)
+    x = env[arg]
+    dtype, shape = _batch_matrix(b, node, x, target)
+    sym = _symmetrized(b, x, lower=not upper)
+    if upper:
+        rank = len(shape)
+        sym = _transpose(b, sym, list(range(rank - 2)) + [rank - 1, rank - 2])
+    factor = _op(b, "cholesky", [sym], dtype, shape)
+    zero = _fill(b, 0, dtype, shape)
+    factor = _where(b, _triangle_mask(b, shape, True), factor, zero)
+    if upper:
+        rank = len(shape)
+        factor = _transpose(b, factor, list(range(rank - 2)) + [rank - 1, rank - 2])
+    return (factor, _Unselectable("aten_linalg_info_not_computed"))
+
+
+@_lowers("aten.linalg_solve_triangular.default")
+def _solve_triangular(b, node, env):
+    target = str(node.target)
+    dtype, shape = _aval(node)
+    a_arg, b_arg = node.args[:2]
+    upper = node.kwargs.get("upper")
+    left = node.kwargs.get("left", True)
+    unit = node.kwargs.get("unitriangular", False)
+    if (
+        not (hasattr(a_arg, "op") and hasattr(b_arg, "op"))
+        or type(upper) is not bool
+        or type(left) is not bool
+        or type(unit) is not bool
+        or not _isfloat(dtype)
+    ):
+        _refuse(target)
+    a, rhs = b.to(env[a_arg], dtype), b.to(env[b_arg], dtype)
+    sa, sb = _shape(b, a), _shape(b, rhs)
+    if len(sa) < 2 or len(sb) < 2 or sa[-1] != sa[-2]:
+        _refuse(target)
+    batch = _broadcast_shapes(sa[:-2], sb[:-2], target)
+    a = b.broadcast(a, batch + sa[-2:])
+    rhs = b.broadcast(rhs, batch + sb[-2:])
+    return _op(
+        b,
+        "triangular_solve",
+        [a, rhs],
+        dtype,
+        shape,
+        left_side=left,
+        lower=not upper,
+        transpose_a=False,
+        conjugate_a=False,
+        unit_diagonal=unit,
+    )
+
+
+@_lowers("aten._linalg_eigh.default")
+def _linalg_eigh(b, node, env):
+    """Eigenvalues (ascending) and eigenvectors of the symmetric matrix read
+    from one triangle (UPLO). Eigenvector signs are a gauge: compare
+    reconstructions, not vectors."""
+    target = str(node.target)
+    arg = node.args[0]
+    uplo = _arg(node, 1, "UPLO", "L")
+    compute_v = _arg(node, 2, "compute_v", True)
+    if not hasattr(arg, "op") or uplo not in ("L", "U") or compute_v is not True:
+        _refuse(target)
+    x = env[arg]
+    dtype, shape = _batch_matrix(b, node, x, target)
+    sym = _symmetrized(b, x, lower=uplo == "L")
+    vectors, values = _op_many(
+        b,
+        "eigh",
+        [sym],
+        [(dtype, shape), (dtype, shape[:-1])],
+        lower=True,
+        sort_eigenvalues=True,
+    )
+    return (values, vectors)
+
+
+@_lowers("aten.linalg_qr.default")
+def _linalg_qr(b, node, env):
+    """Householder QR: (Q, R) with R's signs as LAPACK leaves them (a gauge:
+    compare Q @ R and Q^T Q)."""
+    target = str(node.target)
+    arg = node.args[0]
+    mode = _arg(node, 1, "mode", "reduced")
+    if not hasattr(arg, "op") or mode not in ("reduced", "complete"):
+        _refuse(target)
+    x = env[arg]
+    _, _ = _batch_matrix(b, node, x, target, square=False)
+    (qd, qs), (rd, rs) = _avals(node)
+    q, r = _op_many(
+        b,
+        "qr",
+        [x],
+        [(qd, qs), (rd, rs)],
+        full_matrices=mode == "complete",
+        pivoting=False,
+    )
+    return (q, r)
+
+
+@_lowers("aten._linalg_svd.default")
+def _linalg_svd(b, node, env):
+    """Singular values (descending) and, when asked, U and Vh (signs are a
+    gauge: compare reconstructions)."""
+    target = str(node.target)
+    arg = node.args[0]
+    full = _arg(node, 1, "full_matrices", False)
+    compute_uv = _arg(node, 2, "compute_uv", True)
+    if not hasattr(arg, "op") or type(full) is not bool or type(compute_uv) is not bool:
+        _refuse(target)
+    x = env[arg]
+    _batch_matrix(b, node, x, target, square=False)
+    (ud, us), (sd, ss), (vd, vs) = _avals(node)
+    if compute_uv:
+        s, u, vh = _op_many(
+            b,
+            "svd",
+            [x],
+            [(sd, ss), (ud, us), (vd, vs)],
+            full_matrices=full,
+            compute_uv=True,
+        )
+        return (u, s, vh)
+    (s,) = _op_many(b, "svd", [x], [(sd, ss)], full_matrices=full, compute_uv=False)
+    marker = _Unselectable("aten_linalg_svd_vectors_not_computed")
+    return (marker, s, marker)
+
+
+@_lowers("aten._linalg_solve_ex.default")
+def _linalg_solve_ex(b, node, env):
+    """Solve A X = B by LU with partial pivoting: X = U^-1 L^-1 P B. The packed
+    LU, pivots and `info` outputs are not computed (selecting them refuses by
+    name); a singular A gives inf or NaN."""
+    target = str(node.target)
+    dtype, _ = _avals(node)[0]
+    a_arg, b_arg = node.args[:2]
+    left = _arg(node, 2, "left", True)
+    if not (hasattr(a_arg, "op") and hasattr(b_arg, "op")) or left is not True:
+        _refuse(target)
+    a, rhs = env[a_arg], env[b_arg]
+    sa, sb = _batch_matrix(b, node, a, target)[1], _shape(b, rhs)
+    if (
+        len(sb) != len(sa)
+        or sb[:-2] != sa[:-2]
+        or sb[-2] != sa[-1]
+        or not _isfloat(dtype)
+    ):
+        _refuse(target)
+    lu, _, perm = _op_many(
+        b,
+        "lu",
+        [a],
+        [(dtype, sa), ("int32", sa[:-1]), ("int32", sa[:-1])],
+    )
+    batch = len(sa) - 2
+    n = sa[-1]
+    # Rows of B in the pivoted order: one gather with the batch dims batched.
+    dnums = _gather_dnums(
+        [batch + 1], [batch], [batch], list(range(batch)), list(range(batch))
+    )
+    permuted = _gather(
+        b,
+        rhs,
+        _reshape(b, perm, sa[:-2] + [n, 1]),
+        dnums,
+        [1] * batch + [1, sb[-1]],
+        sb,
+        "PROMISE_IN_BOUNDS",
+    )
+    common = {"left_side": True, "transpose_a": False, "conjugate_a": False}
+    forward = _op(
+        b,
+        "triangular_solve",
+        [lu, permuted],
+        dtype,
+        sb,
+        lower=True,
+        unit_diagonal=True,
+        **common,
+    )
+    result = _op(
+        b,
+        "triangular_solve",
+        [lu, forward],
+        dtype,
+        sb,
+        lower=False,
+        unit_diagonal=False,
+        **common,
+    )
+    marker = _Unselectable("aten_linalg_solve_auxiliary_output")
+    return (result, marker, marker, marker)
+
+
 def _emit(b, node, env):
     """The Carbon value for one Core ATen call, or `GraphRefused`."""
     target = str(node.target)
@@ -1412,10 +4128,13 @@ def _emit(b, node, env):
             or not isinstance(env.get(args[0]), tuple)
             or type(args[1]) is not int
             or not 0 <= args[1] < len(env[args[0]])
-            or env[args[0]][args[1]] is None
         ):
             raise graph.GraphRefused("aten_tuple_index_not_supported", target)
         selected = env[args[0]][args[1]]
+        if isinstance(selected, _Unselectable):
+            raise graph.GraphRefused(selected.code, target)
+        if selected is None:
+            raise graph.GraphRefused("aten_tuple_index_not_supported", target)
         if b.avals[selected] != _aval(node):
             raise graph.GraphRefused("aten_result_metadata_not_supported", target)
         return selected
@@ -1431,6 +4150,8 @@ def _emit(b, node, env):
         return _native_batch_norm(b, node, env)
     if target == "aten._softmax.default":
         return _softmax(b, node, env)
+    if target in _V8_LOWERINGS:
+        return _V8_LOWERINGS[target](b, node, env)
     if target == "aten.sum.dim_IntList":
         return _sum_dim(b, node, env)
     if target == "aten.scatter_add.default":
@@ -1455,10 +4176,15 @@ def _emit(b, node, env):
     rank = len(shape) if shape is not None else 0
     x = env.get(args[0]) if args and hasattr(args[0], "op") else None
 
-    if target in ("aten.add.Tensor", "aten.sub.Tensor"):
+    if target in (
+        "aten.add.Tensor",
+        "aten.sub.Tensor",
+        "aten.add.Scalar",
+        "aten.sub.Scalar",
+    ):
         other = args[1]
-        alpha = kw.get("alpha", 1)
-        op = "add" if target == "aten.add.Tensor" else "sub"
+        alpha = args[2] if len(args) > 2 else kw.get("alpha", 1)
+        op = "add" if target.startswith("aten.add") else "sub"
         if alpha != 1:
             y = b.operand(other, env, dtype, shape)
             other_scaled = b.emit(
@@ -1476,7 +4202,7 @@ def _emit(b, node, env):
         return b.binary("mul", args[0], args[1], env, node)
     if target == "aten.reciprocal.default":
         return b.binary("div", 1, args[0], env, node)
-    if target == "aten.div.Tensor":
+    if target in ("aten.div.Tensor", "aten.div.Scalar"):
         return b.binary("div", args[0], args[1], env, node)
     if target in (
         "aten.lt.Scalar",
@@ -1498,6 +4224,8 @@ def _emit(b, node, env):
         no = b.operand(args[2], env, dtype, shape)
         return b.emit("select_n", [cond, no, yes], dtype, shape)
     if target == "aten.bitwise_and.Tensor":
+        if _v8(b):
+            return _bitwise(b, node, env, "and")  # integers too (v8)
         # Boolean masks only (KAN's spline interval test): Carbon's `and`.
         if dtype != "bool" or any(b.avals[env[a]][0] != "bool" for a in args[:2]):
             raise graph.GraphRefused("aten_arguments_not_supported", target)
@@ -1609,7 +4337,7 @@ def _emit(b, node, env):
         return b.unary("logistic", x, accuracy=None)
     if target in ("aten.exp.default", "aten.log1p.default", "aten.sqrt.default"):
         return b.unary(target.split(".")[1], x, accuracy=None)
-    if target in ("aten.mean.dim", "aten.var.correction"):
+    if target in ("aten.mean.dim", "aten.mean.default", "aten.var.correction"):
         have = b.avals[x][1]
         dims = args[1] if len(args) > 1 and args[1] is not None else kw.get("dim")
         dims = (
@@ -1641,7 +4369,7 @@ def _emit(b, node, env):
                 sharding=None,
             )
 
-        if target == "aten.mean.dim":
+        if target in ("aten.mean.dim", "aten.mean.default"):
             out = mean_kept(x)
         else:
             correction = kw.get("correction", 1)
@@ -2053,6 +4781,14 @@ def lower(program, *, allowlist):
     """The Carbon forward-graph document for a Core ATen program, and what
     lowering dropped (assertions with no result) and pruned (values no output
     depends on, such as constants that only those assertions read)."""
+    token = _WIDE.set(allowlist.version in _WIDE_VERSIONS)
+    try:
+        return _lower(program, allowlist)
+    finally:
+        _WIDE.reset(token)
+
+
+def _lower(program, allowlist):
     import numpy as np
     from torch.export.graph_signature import InputKind
 
