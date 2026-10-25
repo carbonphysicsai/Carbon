@@ -629,6 +629,8 @@ CHALLENGER = "CHALLENGER"
 INCUMBENT_KEEPS = "INCUMBENT_KEEPS"
 NO_WINNER = "NO_WINNER"
 UNAVAILABLE = "UNAVAILABLE"
+#: Float rounding allowed around the 0..1 range of a total (a weighted mean of two legs of exactly 1 can round above 1).
+TOTAL_SLACK = 1e-9
 
 
 def _comparator(comparator, evidence):
@@ -697,7 +699,11 @@ def _scored(body):
         raise StateError("private_evaluation_invalid")
     total = model.get("total_score")
     if status == SCORED and (
-        type(total) not in (int, float) or not math.isfinite(total)
+        type(total) not in (int, float)
+        or not math.isfinite(total)
+        # A total is 0..1 by construction (dual_score bounds both legs); one outside it can only be a bug
+        # upstream, and an unbounded one would crown (attack test G1g). The slack is float rounding only.
+        or not -TOTAL_SLACK <= total <= 1 + TOTAL_SLACK
     ):
         raise StateError("private_evaluation_invalid")
     return status, total
