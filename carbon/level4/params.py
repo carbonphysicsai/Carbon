@@ -406,9 +406,8 @@ def decode(spec, params):
     return {
         name: (
             _nested(params[name])
-            if spec[name] == "graph_or_none" and params[name] is not None
-            else params[name]
             if spec[name] == "graph"
+            or (spec[name] == "graph_or_none" and params[name] is not None)
             else _decode(spec[name], params[name])
         )
         for name in spec
