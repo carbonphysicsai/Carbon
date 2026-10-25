@@ -1537,6 +1537,14 @@ class LiveChecks:
                 )
                 + " (it names the field it refuses and what it must be)",
             ) from None
+        if info is None:
+            # Docker is the one thing the GPU practice cannot do without: say so
+            # plainly rather than recording a machine that cannot start a worker.
+            raise SetupRefused(
+                "gpu",
+                "gpu_container_runtime_unavailable",
+                next_step=GPU_DOCKER_UNREACHABLE_STEP,
+            )
         try:
             installed = load_miner_lane_record(root)
         except WorkerFailure:

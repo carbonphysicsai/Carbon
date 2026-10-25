@@ -495,12 +495,16 @@ class IsolatedReconstructionController:
         `compare_r1` still returns BACKEND_UNSUPPORTED while the backend profile
         is not SUPPORTED, and MQ-008 at G4 owns that.
         """
-        from carbon.reconstruction.accelerators import GPU_PROFILE
+        # The device comes from the operator-installed record, which fails
+        # closed when it is missing or malformed. Carbon never infers a host's
+        # hardware from whatever happens to be visible at dispatch time.
+        from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
         from carbon.reconstruction.onboarding import doctor_report, miner_lane_blockers
         from carbon.reconstruction.worker.accelerator_runtime import (
             HOST_ROOT,
             host_device,
             miner_device_lease,
+            miner_host_device,
             reject_existing_device_containers,
             verify_image_and_toolkit,
         )
@@ -509,10 +513,11 @@ class IsolatedReconstructionController:
             registered_run_controls,
         )
 
-        # The device comes from the operator-installed record, which fails
-        # closed when it is missing or malformed. Carbon never infers a host's
-        # hardware from whatever happens to be visible at dispatch time.
-        device = host_device()
+        device = (
+            miner_host_device()
+            if accelerator_role is AcceleratorRole.MINER_RESEARCH
+            else host_device()
+        )
 
         # Readiness is checked, not assumed, and it is the same read-only report
         # the operator runs. Only the findings this admission actually requires
@@ -546,7 +551,9 @@ class IsolatedReconstructionController:
             verify_image_and_toolkit(cli=self.cli, image=self.image)
             # Retained Carbon work on this device still blocks, by Carbon's own
             # label. Other work on the GPU is the operator's business.
-            reject_existing_device_containers(cli=self.cli)
+            reject_existing_device_containers(
+                cli=self.cli, device_uuid=device.device_uuid
+            )
             return self._execute_bound(
                 **options,
                 worker_profile=worker_profile,

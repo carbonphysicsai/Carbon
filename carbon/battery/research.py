@@ -1052,11 +1052,13 @@ def _battery_dual_feedback(adapter, bank_cases, predictions):
 
 def _installed_device():
     """The host's installed GPU device record, read for this trial."""
-    from carbon.reconstruction.worker.accelerator_runtime import host_device
+    from carbon.reconstruction.worker.accelerator_runtime import (
+        miner_host_device,
+    )
     from carbon.reconstruction.worker.model import WorkerFailure
 
     try:
-        return host_device()
+        return miner_host_device()
     except WorkerFailure:
         raise ValueError(
             "no GPU device record is installed on this host; run setup's GPU check"

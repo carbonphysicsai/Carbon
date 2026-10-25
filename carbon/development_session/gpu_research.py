@@ -404,13 +404,15 @@ class PublicGPUPractice:
         It asserts nothing about what else is using that device, and the lane
         makes no claim that would need it to.
         """
-        from carbon.reconstruction.worker.accelerator_runtime import host_device
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            miner_host_device,
+        )
 
         if self.inspection is None:
             raise ValueError(
                 "resolved research resource inspection required before GPU dispatch"
             )
-        return host_device()
+        return miner_host_device()
 
     def __call__(self, identity, strategy):
         if self.cleanup_only or ACTIVE_TASK.get() != identity:

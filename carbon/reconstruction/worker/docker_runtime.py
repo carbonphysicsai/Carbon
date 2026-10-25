@@ -139,6 +139,20 @@ def _policy_refusal(diagnose: bool, name: str) -> WorkerFailure:
     )
 
 
+def _installed_device_uuid(host_device) -> str:
+    """The device identity of whichever record is installed, strict or the
+    miner lane's. Used only to match a container being cleaned up to this host's
+    device; it grants nothing."""
+    try:
+        return host_device().device_uuid
+    except WorkerFailure:
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            miner_host_device,
+        )
+
+        return miner_host_device().device_uuid
+
+
 def _diagnose_policy_recheck(
     check: Callable[[], _T], *, diagnose: bool, name: str
 ) -> _T:
@@ -824,18 +838,26 @@ def create_arguments(
             AcceleratorRole,
             worker_environment,
         )
-        from carbon.reconstruction.worker.accelerator_runtime import host_device
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            host_device,
+            miner_host_device,
+        )
 
         # The device comes from the launch's own profile, which the controller
         # filled from the installed host record. Nothing here reads a device
         # identity compiled into Carbon.
         device = worker_profile.accelerator_device_uuid
-        if device != host_device().device_uuid:
+        record = (
+            miner_host_device()
+            if worker_profile.accelerator_role == AcceleratorRole.MINER_RESEARCH.value
+            else host_device()
+        )
+        if device != record.device_uuid:
             raise WorkerFailure(WorkerCode.POLICY)
         replacements = worker_environment(
             GPU_PROFILE,
             AcceleratorRole(worker_profile.accelerator_role),
-            host_device=host_device(),
+            host_device=record,
         )
         for index, value in enumerate(arguments):
             if index and arguments[index - 1] == "--env":
@@ -1095,10 +1117,16 @@ def inspect_effective_controls(
         from carbon.reconstruction.worker.accelerator_runtime import (
             host_device,
             inspect_gpu_device,
+            miner_host_device,
         )
 
         record = _diagnose_policy_recheck(
-            host_device,
+            (
+                miner_host_device
+                if worker_profile.accelerator_role
+                == AcceleratorRole.MINER_RESEARCH.value
+                else host_device
+            ),
             diagnose=diagnose_policy,
             name="GPU_HOST_RECORD_RECHECK",
         )
@@ -1558,7 +1586,7 @@ def remove_exact_container(
                     host_device,
                 )
 
-                if accelerator != host_device().device_uuid:
+                if accelerator != _installed_device_uuid(host_device):
                     raise WorkerFailure(WorkerCode.CLEANUP)
                 finish_allocation()
             return

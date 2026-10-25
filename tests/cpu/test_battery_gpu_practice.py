@@ -709,18 +709,36 @@ def test_docker_not_reachable_is_a_plain_gap_not_a_choice_for_the_miner(
     assert "Docker is not reachable" in refused.value.next_step
 
 
-def test_a_record_the_vendor_tool_cannot_fill_names_its_fields(live, monkeypatch):
-    bad = {
+def test_a_field_the_vendor_tool_cannot_fill_is_recorded_unknown_not_refused(
+    live, monkeypatch
+):
+    """GPU_ANY_HOST_20261025 rule 2: a descriptive field the GPU does not report
+    never refuses the machine; the miner-lane record names it `unknown`."""
+    from carbon.reconstruction.host_inventory import MinerHostDeviceRecord
+
+    odd = {
         **OBSERVED,
         "devices": [{**OBSERVED["devices"][0], "display_active": "[N/A]"}],
+    }
+    monkeypatch.setattr(onboarding, "observe_local_device", lambda **_: odd)
+    found = live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert found["device_kind"] == OBSERVED["devices"][0]["device_kind"]
+    record = MinerHostDeviceRecord.load(live.root)
+    assert record.unknown_fields == ("display_active",)
+
+
+def test_an_unusable_device_identity_still_names_its_field(live, monkeypatch):
+    bad = {
+        **OBSERVED,
+        "devices": [{**OBSERVED["devices"][0], "device_uuid": "GPU-1; reboot"}],
     }
     monkeypatch.setattr(onboarding, "observe_local_device", lambda **_: bad)
     with pytest.raises(SetupRefused) as refused:
         live.checks.gpu(live.manifest, campaign=battery_campaign())
     assert refused.value.code == "gpu_record_needs_your_choice"
-    assert "display_active" in refused.value.next_step
+    assert "device_uuid" in refused.value.next_step
     assert "carbon_accelerator.py prepare" in refused.value.next_step
-    assert "[N/A]" not in refused.value.next_step
+    assert "reboot" not in refused.value.next_step
 
 
 def test_a_blocked_miner_lane_check_says_why_in_plain_words(live, monkeypatch):
@@ -760,7 +778,7 @@ def test_a_multi_gpu_machine_uses_its_first_usable_gpu_and_says_so(live, monkeyp
 
 
 def test_the_first_gpu_whose_record_is_well_formed_is_used(live, monkeypatch):
-    broken = {**OBSERVED["devices"][0], "display_active": "[N/A]"}
+    broken = {**OBSERVED["devices"][0], "device_uuid": "not a usable id"}
     good = {
         **OBSERVED["devices"][0],
         "device_uuid": "GPU-41e88d04-75ff-89b2-9160-4b923dd7eb81",

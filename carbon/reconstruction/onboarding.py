@@ -515,11 +515,19 @@ def doctor_report(*, root: Path, profile=GPU_PROFILE, cli=None, image=None) -> d
             require_miner_host_device(record, profile)
         else:
             require_host_device(record, profile)
+        nameless = (
+            type(record) is MinerHostDeviceRecord and record.device_kind == "unknown"
+        )
         findings.append(
             _finding(
                 "host_device_record",
-                READY,
-                "a host device record is installed and bound to this workload",
+                BLOCKED if nameless else READY,
+                (
+                    "the GPU's name is unknown, and the worker binds to the "
+                    "GPU by its name"
+                    if nameless
+                    else "a host device record is installed and bound to this workload"
+                ),
                 record_digest=record.digest,
                 device_kind=record.device_kind,
                 platform=record.platform,

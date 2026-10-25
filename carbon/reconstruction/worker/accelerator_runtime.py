@@ -43,6 +43,10 @@ def host_device():
     hardware from whatever happens to be visible at dispatch time, and it never
     falls back to a device identity compiled into the source tree - there is no
     longer one to fall back to.
+
+    This is the strict record only: every validator, official and
+    owner-authorised path reads it, and a miner-lane record (another schema)
+    fails here.
     """
     from carbon.reconstruction.host_inventory import (
         HostDeviceRecord,
@@ -50,6 +54,28 @@ def host_device():
     )
 
     return require_host_device(HostDeviceRecord.load(HOST_ROOT), GPU_PROFILE)
+
+
+def miner_host_device():
+    """The record a miner's own practice runs on: the strict record when it is
+    installed and sound, else the miner-lane record (some GPU fields unknown).
+    Only code that runs for the miner role calls this, and it states that from
+    the run's own role, never from the record."""
+    from carbon.reconstruction.host_inventory import (
+        MinerHostDeviceRecord,
+        require_miner_host_device,
+    )
+    from carbon.reconstruction.worker.model import WorkerFailure
+
+    try:
+        return host_device()
+    except WorkerFailure as strict_failure:
+        try:
+            return require_miner_host_device(
+                MinerHostDeviceRecord.load(HOST_ROOT), GPU_PROFILE
+            )
+        except WorkerFailure:
+            raise strict_failure from None
 
 
 @dataclass(frozen=True, slots=True)
@@ -260,11 +286,22 @@ def verify_image_and_toolkit(
         raise WorkerFailure(WorkerCode.POLICY)
 
 
-def device_request() -> dict[str, object]:
+def _installed_device():
+    """Whichever host record is installed (strict, else the miner lane's): the
+    device a container's request names. Admission has already bound the run to
+    the record its own role may use, so a validator run never gets here with
+    only a miner record."""
+    try:
+        return host_device()
+    except WorkerFailure:
+        return miner_host_device()
+
+
+def device_request(record=None) -> dict[str, object]:
     return {
         "Driver": "nvidia",
         "Count": 0,
-        "DeviceIDs": [host_device().device_uuid],
+        "DeviceIDs": [(record or _installed_device()).device_uuid],
         "Capabilities": [["gpu"]],
         "Options": {},
     }
@@ -493,7 +530,8 @@ def inspect_self_service_device(*, cli, container_name: str, worker_profile):
         )
     ):
         raise WorkerFailure(WorkerCode.POLICY)
-    record = host_device()
+    miner = worker_profile.accelerator_role == AcceleratorRole.MINER_RESEARCH.value
+    record = miner_host_device() if miner else host_device()
     if (
         worker_profile.accelerator_device_uuid != record.device_uuid
         or worker_profile.accelerator_grant_digest != record.digest
@@ -512,18 +550,20 @@ def inspect_self_service_device(*, cli, container_name: str, worker_profile):
     try:
         rows = result.stdout.decode("ascii", "strict").strip().splitlines()
         values = [part.strip() for part in rows[0].split(",")]
-        if (
-            len(rows) != 1
-            or len(values) != 5
-            or values[:4]
-            != [
-                record.device_uuid,
-                record.device_kind,
-                record.driver_version,
-                str(record.device_memory_mib),
-            ]
-        ):
+        # The identity must match; every other field only when the record
+        # knows it (a miner record's `unknown` matches anything, and is
+        # reported, never silently taken as a match for a different GPU).
+        recorded = [
+            record.device_uuid,
+            record.device_kind,
+            record.driver_version,
+            record.device_memory_mib,
+        ]
+        if len(rows) != 1 or len(values) != 5 or values[0] != recorded[0]:
             raise ValueError()
+        for seen, known in zip(values[1:4], recorded[1:]):
+            if known not in (None, "unknown") and seen != str(known):
+                raise ValueError()
     except (UnicodeError, ValueError, IndexError):
         raise WorkerFailure(WorkerCode.POLICY) from None
     miner = worker_profile.accelerator_role == AcceleratorRole.MINER_RESEARCH.value
@@ -537,6 +577,12 @@ def inspect_self_service_device(*, cli, container_name: str, worker_profile):
         "name": values[1],
         "driver": values[2],
         "memory_capacity_mib": record.device_memory_mib,
+        # What the record could not report, said so (a miner record only).
+        **(
+            {"unknown_record_fields": list(record.unknown_fields)}
+            if miner and hasattr(record, "unknown_fields")
+            else {}
+        ),
         "display_active": {"enabled": True, "disabled": False}.get(values[4].lower()),
         "other_compute_processes": None,
         "exclusivity": "UNESTABLISHED_SELF_SERVICE_OBSERVATION",
@@ -567,7 +613,7 @@ def require_strict_observation(observation: object) -> dict[str, object]:
     return observation
 
 
-def reject_existing_device_containers(*, cli) -> None:
+def reject_existing_device_containers(*, cli, device_uuid: str | None = None) -> None:
     """After controller loss, a released flock cannot duplicate a live allocation.
 
     Retained containers block admission until the existing watchdog/reconciliation
@@ -580,7 +626,7 @@ def reject_existing_device_containers(*, cli) -> None:
             "ps",
             "--all",
             "--filter",
-            f"label=carbon.accelerator.device={host_device().device_uuid}",
+            f"label=carbon.accelerator.device={device_uuid or host_device().device_uuid}",
             "--format",
             "{{json .ID}}",
         ],
