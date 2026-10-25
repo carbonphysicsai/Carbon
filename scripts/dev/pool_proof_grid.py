@@ -20,6 +20,7 @@ import argparse
 import importlib
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,6 +48,12 @@ def main(argv=None):
         "--ignored-gates", required=True, help="comma separated; may be empty"
     )
     parser.add_argument("--title", default=None)
+    parser.add_argument(
+        "--probe-truth-file",
+        default=None,
+        help="JSON {case_id: [true raw output row]} for the practice bank's probe rows (Data Collection's solves); "
+        "used when the binding supplies no probe_truth",
+    )
     args = parser.parse_args(argv)
 
     from carbon.scoring import pool_plugin, pool_proof_grid
@@ -78,6 +85,17 @@ def main(argv=None):
         ignored_gates=tuple(g for g in args.ignored_gates.split(",") if g),
         truth_tolerance=args.truth_tolerance,
     )
+    if args.probe_truth_file and binding.probe_truth is None:
+        by_case = json.loads(Path(args.probe_truth_file).read_text(encoding="utf-8"))
+        by_inputs = {
+            tuple(sorted(r["inputs"].items())): r["case_id"] for r in bank_legs.rows
+        }
+
+        def from_file(rows):
+            return [by_case[by_inputs[tuple(sorted(r.items()))]] for r in rows]
+
+        bank_legs = replace(bank_legs, binding=replace(binding, probe_truth=from_file))
+        binding = bank_legs.binding
     if args.truth_probe_rule == "perfect":
         try:
             record = bank_legs.verify_truth_rows()

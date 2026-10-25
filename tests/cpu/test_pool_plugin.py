@@ -527,6 +527,15 @@ def test_the_grid_script_writes_an_owner_sheet_from_custody_documents(
     stop_args[stop_args.index(str(tmp_path / "out"))] = str(tmp_path / "out2")
     assert script.main(stop_args) == 3
     assert not (tmp_path / "out2").exists()
+    # Data Collection's solved probe truths, by case id, unblock it (here the toy truth at each probe).
+    solved = {
+        r["case_id"]: truth(r["inputs"]) for r in bank_rows() if r["reference"] is None
+    }
+    (tmp_path / "probe.json").write_text(json.dumps(solved))
+    with_file = [*stop_args, "--probe-truth-file", str(tmp_path / "probe.json")]
+    with_file[with_file.index(str(tmp_path / "out2"))] = str(tmp_path / "out3")
+    assert script.main(with_file) == 0
+    assert (tmp_path / "out3/owner-sheet-toy-1.json").exists()
 
 
 def test_the_perfect_rule_needs_the_truth_row_check_and_the_check_stops_on_failure():
