@@ -63,7 +63,6 @@ def test_each_difference_is_a_warning_naming_the_check(change, check):
     assert "Ubuntu 22.04 or 24.04" in warning["supported"]
 
 
-
 def test_17_gib_and_4_cpus_are_enough_and_16_gb_is_not():
     assert ss.assess({**SUPPORTED, "ram_gib": 17.0, "cpus": 4}) == []
     (row,) = ss.assess({**SUPPORTED, "ram_gib": 15.6})
@@ -161,7 +160,11 @@ def _run_installer_function(tmp_path, docker_script, free_gib_body):
         tool.write_text(text)
         tool.chmod(tool.stat().st_mode | stat.S_IXUSR)
     script = (
-        "free_gib() { " + free_gib_body + " }\nrepo_root=/\n" + INSTALLER[start:end] + "\n"
+        "free_gib() { "
+        + free_gib_body
+        + " }\nrepo_root=/\n"
+        + INSTALLER[start:end]
+        + "\n"
         "supported_setup_warning\necho done-$?\n"
     )
     return subprocess.run(  # fixed argv

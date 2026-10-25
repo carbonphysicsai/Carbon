@@ -111,7 +111,11 @@ def assess(facts: dict) -> list[dict]:
         )
     cpus = facts.get("cpus")
     if cpus is not None and cpus < MIN_CPUS:
-        add("cpus", f"{cpus}", f"{MIN_CPUS} or more (the practice worker uses {MIN_CPUS})")
+        add(
+            "cpus",
+            f"{cpus}",
+            f"{MIN_CPUS} or more (the practice worker uses {MIN_CPUS})",
+        )
     disk = facts.get("disk_free_gib")
     if disk is not None and disk < DISK_GIB:
         add("disk", f"{disk:.0f} GB free", f"about {DISK_GIB} GB free")
