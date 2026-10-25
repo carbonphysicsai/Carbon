@@ -36,11 +36,17 @@ def toy_target(name, seed, shell=None):
     import random
 
     rng = random.Random(seed)
-    pts = [(rng.random(), rng.random()) for _ in range(60)]
-    pts += [
-        (0.63 + rng.uniform(-0.12, 0.12), 0.63 + rng.uniform(-0.12, 0.12))
-        for _ in range(40)
-    ]
+    if shell is None:
+        pts = [(rng.random(), rng.random()) for _ in range(60)]
+        pts += [
+            (0.63 + rng.uniform(-0.12, 0.12), 0.63 + rng.uniform(-0.12, 0.12))
+            for _ in range(40)
+        ]
+        bound = 0.8
+    else:
+        # an extended target: every point lies in the shell (x or y in 0.6..1.0), with its own looser limit
+        pts = [(rng.uniform(0.6, 1.0), rng.uniform(0.6, 1.0)) for _ in range(100)]
+        bound = 1.2
     rows = [{"cond": 1.0, "x": x, "y": y} for x, y in pts]
     return build_target(
         target_id=name,
@@ -48,7 +54,7 @@ def toy_target(name, seed, shell=None):
         outputs=("f", "g"),
         objective="f",
         sense="max",
-        limits=(Limit("g", "<=", 0.8),),
+        limits=(Limit("g", "<=", bound),),
         u={"f": U, "g": U},
         box=((0.0, 1.0), (0.0, 1.0)),
         designs=[[x, y] for x, y in pts],
@@ -729,7 +735,7 @@ def test_the_default_is_the_bound_pick_the_floor_is_its_own_row_and_serve_defaul
 
 
 # TRAIN edges 0.1..0.2 on both toy inputs and an approved extension of 0.8 above: the shell is x or y in 0.6..1.0.
-SHELL = ((0.1, 0.2, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8))
+SHELL = {"mode": "designs", "inputs": ((0.1, 0.2, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8))}
 
 
 def _mixed_plugin(train_serve, train_box=None):

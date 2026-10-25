@@ -676,20 +676,19 @@ def test_the_ood_shell_is_the_outer_half_of_the_approved_extension_and_inside_tr
     assert in_ood_shell([0.5, 0.93], ((0.2, 0.8, 0.1, 0.25), (0.2, 0.8, 0.1, 0.25)))
 
 
-def _shelled(shell, seed=3):
+def _shelled(shell, seed=3, in_shell=True, fixed=None):
     rng = random.Random(seed)
-    points = [(rng.random(), rng.random()) for _ in range(60)]
-    points += [
-        (0.63 + rng.uniform(-0.12, 0.12), 0.63 + rng.uniform(-0.12, 0.12))
-        for _ in range(40)
-    ]
+    if in_shell:
+        points = [(rng.uniform(0.6, 1.0), rng.uniform(0.6, 1.0)) for _ in range(100)]
+    else:
+        points = [(rng.random(), rng.random()) for _ in range(100)]
     return build_target(
         target_id="x",
-        conditions={"case": "x"},
+        conditions={"case": "x", "fixed": fixed if fixed is not None else {}},
         outputs=("f", "g"),
         objective="f",
         sense="max",
-        limits=(Limit("g", "<=", 0.8),),
+        limits=(Limit("g", "<=", 1.2),),
         u={"f": U, "g": U},
         box=((0.0, 1.0), (0.0, 1.0)),
         designs=[list(p) for p in points],
@@ -701,31 +700,62 @@ def _shelled(shell, seed=3):
     )
 
 
-def test_an_extended_target_stops_when_its_reference_is_not_in_the_shell():
-    registered = _shelled(None)
+DESIGN_SHELL = {
+    "mode": "designs",
+    "inputs": ((0.1, 0.2, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8)),
+}
+
+
+def test_an_extended_target_stops_unless_every_queryable_point_is_in_its_shell():
+    registered = _shelled(None, in_shell=False)
+    assert not registered.extended and registered.shell is None
+    extended = _shelled(DESIGN_SHELL)
+    assert extended.extended and extended.shell["mode"] == "designs"
     assert (
-        not registered.extended
-        and registered.shell is None
-        and registered.outside_shell == 0
-    )
-    # TRAIN 0.1..0.2, extension 0.8 above: the shell is 0.6..1.0 in either input.
-    extended = _shelled(((0.1, 0.2, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8)))
-    assert extended.extended and extended.outside_shell > 0
-    assert (
-        extended.digest != registered.digest
+        extended.digest != _shelled(None).digest
     ), "the shell is part of the pool's identity"
-    # The best feasible queryable point sits near (0.63, 0.63): a shell that excludes it is a STOP.
+    # A pool that spreads over the whole box has points inside TRAIN: the payload and the grader disagree: STOP.
+    with pytest.raises(PoolRefused, match="outside_the_ood_shell|reference_not_in"):
+        _shelled(DESIGN_SHELL, in_shell=False)
+    # A shell the reference is not in (here the extension is too short for any point) is a STOP.
+    short = {"mode": "designs", "inputs": ((0.1, 0.2, 0.0, 0.2), (0.1, 0.2, 0.0, 0.2))}
     with pytest.raises(PoolRefused, match="reference_not_in_the_ood_shell"):
-        _shelled(((0.1, 0.2, 0.0, 0.2), (0.1, 0.2, 0.0, 0.2)))
+        _shelled(short)
+    # The mode is explicit, never inferred: a bare list, a bad mode, a wrong width or a bad row are refused.
+    with pytest.raises(PoolRefused, match="shell_must_be_a_mode"):
+        _shelled(((0.1, 0.2, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8)))
+    with pytest.raises(PoolRefused, match="shell_mode_must_be"):
+        _shelled({"mode": "inferred", "inputs": ()})
     with pytest.raises(PoolRefused, match="shell_needs_one_row_per_design_input"):
-        _shelled(((0.1, 0.2, 0.0, 0.8),))
+        _shelled({"mode": "designs", "inputs": ((0.1, 0.2, 0.0, 0.8),)})
     with pytest.raises(PoolRefused, match="shell_rows_are"):
-        _shelled(((0.2, 0.1, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8)))
+        _shelled(
+            {"mode": "designs", "inputs": ((0.2, 0.1, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8))}
+        )
     # The shell survives the pool document round trip and a tampered shell fails the digest.
     import json
 
     document = json.loads(json.dumps(pool_grader.dump_pool(extended)))
     assert pool_grader.load_pool(document).shell == extended.shell
-    document["shell"][0][3] = 0.9
+    document["shell"]["inputs"][0][3] = 0.9
     with pytest.raises(PoolRefused, match="digest"):
         pool_grader.load_pool(document)
+
+
+def test_a_conditions_shell_checks_the_fixed_conditions_once_and_leaves_the_design_free():
+    # TRAIN 0.0..0.5 on the condition `cond`, extension 1.0 above: its shell is 1.0..1.5.
+    shell = {"mode": "conditions", "inputs": {"cond": (0.0, 0.5, 0.0, 1.0)}}
+    in_range = _shelled(shell, in_shell=False, fixed={"cond": 1.2})
+    assert in_range.extended and in_range.shell["mode"] == "conditions"
+    with pytest.raises(PoolRefused, match="conditions_not_in_the_ood_shell"):
+        _shelled(shell, in_shell=False, fixed={"cond": 0.7})
+    with pytest.raises(PoolRefused, match="names_must_be_fixed_conditions"):
+        _shelled(shell, in_shell=False, fixed={"other": 1.2})
+    with pytest.raises(PoolRefused, match="needs_a_row_per_condition_name"):
+        _shelled(
+            {"mode": "conditions", "inputs": {}}, in_shell=False, fixed={"cond": 1.2}
+        )
+    import json
+
+    document = json.loads(json.dumps(pool_grader.dump_pool(in_range)))
+    assert pool_grader.load_pool(document).shell == in_range.shell

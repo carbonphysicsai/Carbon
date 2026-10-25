@@ -50,31 +50,78 @@ REASONS = (
 )
 
 
-def _valid_shell(shell, inputs):
-    rows = tuple(tuple(float(x) for x in row) for row in shell)
-    _require(len(rows) == inputs, "shell_needs_one_row_per_design_input")
-    for lo, hi, ext_lo, ext_hi in rows:
-        _require(
-            all(math.isfinite(v) for v in (lo, hi, ext_lo, ext_hi))
-            and lo < hi
-            and ext_lo >= 0.0
-            and ext_hi >= 0.0,
-            "shell_rows_are_train_lo_hi_and_non_negative_extensions",
-        )
-    return rows
+SHELL_MODES = ("designs", "conditions")
+
+
+def _shell_row(row):
+    lo, hi, ext_lo, ext_hi = (float(x) for x in row)
+    _require(
+        all(math.isfinite(v) for v in (lo, hi, ext_lo, ext_hi))
+        and lo < hi
+        and ext_lo >= 0.0
+        and ext_hi >= 0.0,
+        "shell_rows_are_train_lo_hi_and_non_negative_extensions",
+    )
+    return (lo, hi, ext_lo, ext_hi)
+
+
+def _valid_shell(shell, design_inputs, fixed):
+    """The explicit shell of an extended target: {"mode": "designs" | "conditions", "inputs": ...}. The MODE comes
+    from the pool source, never inferred. "designs": one (train_lo, train_hi, ext_lo, ext_hi) row per design input
+    in box order, and every queryable point (the reference included) must lie in the shell. "conditions" (a
+    condition input extends): a row per condition input NAME, and the target's fixed conditions must lie in the
+    shell once; the design box is then not constrained."""
+    _require(
+        type(shell) is dict and set(shell) == {"mode", "inputs"},
+        "shell_must_be_a_mode_and_its_inputs",
+    )
+    mode = shell["mode"]
+    _require(mode in SHELL_MODES, "shell_mode_must_be_designs_or_conditions")
+    if mode == "designs":
+        rows = tuple(_shell_row(r) for r in shell["inputs"])
+        _require(len(rows) == design_inputs, "shell_needs_one_row_per_design_input")
+        return {"mode": mode, "inputs": rows}
+    _require(
+        type(shell["inputs"]) is dict and shell["inputs"],
+        "conditions_shell_needs_a_row_per_condition_name",
+    )
+    named = {str(name): _shell_row(r) for name, r in shell["inputs"].items()}
+    _require(
+        set(named) <= set(fixed), "conditions_shell_names_must_be_fixed_conditions"
+    )
+    return {"mode": mode, "inputs": named}
+
+
+def _shell_json(shell):
+    if shell is None:
+        return None
+    if shell["mode"] == "designs":
+        return {"mode": "designs", "inputs": [list(r) for r in shell["inputs"]]}
+    return {
+        "mode": "conditions",
+        "inputs": {name: list(r) for name, r in sorted(shell["inputs"].items())},
+    }
+
+
+def _in_row(x, row):
+    lo, hi, ext_lo, ext_hi = row
+    tol = 1e-9 * max(1.0, hi - lo)
+    return (ext_hi > 0.0 and hi + 0.5 * ext_hi - tol <= x <= hi + ext_hi + tol) or (
+        ext_lo > 0.0 and lo - ext_lo - tol <= x <= lo - 0.5 * ext_lo + tol
+    )
+
+
+def conditions_in_ood_shell(fixed, shell):
+    """Whether a target's fixed conditions have at least one input in the outer half of its approved extension."""
+    return any(_in_row(fixed[name], row) for name, row in shell["inputs"].items())
 
 
 def in_ood_shell(design, shell):
     """Whether a design has at least one input in the OUTER half of that input's approved extension: beyond the TRAIN
     edge by at least half the extension and at most all of it. An input with no approved extension counts for
-    nothing; a point inside the TRAIN box is never in the shell."""
-    for x, (lo, hi, ext_lo, ext_hi) in zip(design, shell, strict=True):
-        tol = 1e-9 * max(1.0, hi - lo)
-        if ext_hi > 0.0 and hi + 0.5 * ext_hi - tol <= x <= hi + ext_hi + tol:
-            return True
-        if ext_lo > 0.0 and lo - ext_lo - tol <= x <= lo - 0.5 * ext_lo + tol:
-            return True
-    return False
+    nothing; a point inside the TRAIN box is never in the shell. `shell` is the rows of a "designs" shell.
+    """
+    return any(_in_row(x, row) for x, row in zip(design, shell, strict=True))
 
 
 def _is_relative(value):
@@ -192,14 +239,12 @@ class TargetSpec:
     excluded: int  # pool points dropped at build time for a margin within U of a limit
     digest: str
     public: bool  # a PUBLIC practice pool: its per-target values may be shown; a sealed pool's never are
-    # The OOD shell of an EXTENDED target (T5/T6): per design input (train_lo, train_hi, ext_lo, ext_hi), the TRAIN
-    # edges and the extension the edge sign-off approved beyond each (design units; 0 = none approved). None for a
-    # registered-condition target. Phase 2 rule: every queryable point has an input in the OUTER half of that
-    # input's approved extension; the reference is checked here, the others counted in `outside_shell`.
+    # The OOD shell of an EXTENDED target (T5/T6): {"mode": "designs" | "conditions", "inputs": ...} with rows
+    # (train_lo, train_hi, ext_lo, ext_hi) = the TRAIN edges and the extension AMOUNTS the edge sign-off approved
+    # beyond each (non-negative, design units; 0 = none approved). None for a registered-condition target.
+    # "designs": every queryable point (the reference included) has an input in the OUTER half of that input's
+    # extension, else the target STOPS. "conditions": the fixed conditions are checked once.
     shell: object = None
-    outside_shell: int = (
-        0  # queryable points with no input in the shell (an extended target; 0 otherwise)
-    )
 
     @property
     def extended(self):
@@ -328,16 +373,23 @@ def build_target(
         len(scores) >= 2, "degenerate_reference_needs_two_feasible_queryable_points"
     )
     reference = min(scores, key=lambda n: (-scores[n], n))
-    outside_shell = 0
     if shell is not None:
-        shell = _valid_shell(shell, len(box))
-        _require(
-            in_ood_shell(kept_designs[reference], shell),
-            "reference_not_in_the_ood_shell",
-        )
-        outside_shell = sum(
-            1 for n in queryable if not in_ood_shell(kept_designs[n], shell)
-        )
+        shell = _valid_shell(shell, len(box), conditions.get("fixed", {}))
+        if shell["mode"] == "designs":
+            _require(
+                in_ood_shell(kept_designs[reference], shell["inputs"]),
+                "reference_not_in_the_ood_shell",
+            )
+            # The sampler guarantees it; a point outside means the payload and the grader disagree: STOP.
+            _require(
+                all(in_ood_shell(kept_designs[n], shell["inputs"]) for n in queryable),
+                "queryable_point_outside_the_ood_shell",
+            )
+        else:
+            _require(
+                conditions_in_ood_shell(conditions["fixed"], shell),
+                "conditions_not_in_the_ood_shell",
+            )
     s_ref, s_low = scores[reference], statistics.median(scores.values())
     _require(s_ref > s_low, "degenerate_reference_best_feasible_must_beat_the_median")
     body = {
@@ -355,7 +407,7 @@ def build_target(
         "start": list(start),
         "seed": seed,
         "public": public,  # visibility is part of the identity: a sealed pool cannot be relabelled public
-        "shell": [list(row) for row in shell] if shell is not None else None,
+        "shell": _shell_json(shell),
     }
     _require(type(public) is bool, "public_must_be_a_bool")
     return TargetSpec(
@@ -382,7 +434,6 @@ def build_target(
         digest=_digest(body),
         public=public,
         shell=shell,
-        outside_shell=outside_shell,
     )
 
 
@@ -654,7 +705,7 @@ def dump_pool(spec):
         "start": list(spec.start),
         "seed": spec.seed,
         "excluded": spec.excluded,
-        "shell": [list(row) for row in spec.shell] if spec.shell is not None else None,
+        "shell": _shell_json(spec.shell),
     }
 
 

@@ -430,7 +430,7 @@ def check_coverage(plugin, params, queries_per_target=None):
                     "pool": len(spec.designs),
                     "excluded_for_u": spec.excluded,
                     "extended": spec.extended,
-                    "outside_shell": spec.outside_shell,
+                    "shell_mode": None if spec.shell is None else spec.shell["mode"],
                     "near_optimum": near_optimum,
                     "near_limit": near_limit,
                     "box_share": _bin_share(
