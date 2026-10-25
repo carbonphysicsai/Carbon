@@ -502,6 +502,14 @@ NEXT_ACTIONS = {
         "truncated to fit the budget, and a PASSED smoke practice lets that "
         "exact recipe be frozen. The validator still rebuilds it in full."
     ),
+    "practice_could_not_run": (
+        "The practice could not run on this machine: its build or host check failed "
+        "before any training (an infrastructure problem, not your recipe), so no "
+        "result was made and nothing counts against you. Check Setup "
+        "(carbon_setup_status) and that Docker and the worker images are present, "
+        "then practise again; if it repeats, the campaign's operation folder holds a "
+        "failure file naming the stage."
+    ),
     "smoke_practice_unavailable": (
         "This Challenge offers no smoke practice. Practise the recipe in full "
         "(omit mode), or lighten it so its full practice fits the budget."

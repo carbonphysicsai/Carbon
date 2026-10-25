@@ -407,6 +407,17 @@ _PRACTICE_FAILURE_MARKERS = {
 }
 
 
+#: Product-raised ValueError messages a failed practice stage may name, as closed codes (matched by
+#: prefix, so a message's trailing detail is never recorded). Anything else records no reason.
+_PRACTICE_FAILURE_REASONS = (
+    ("pinned library parent ineligible", "LIBRARY_PARENT_INELIGIBLE"),
+    ("library worker identity differs", "LIBRARY_WORKER_IDENTITY_DIFFERS"),
+    ("library worker child binding differs", "LIBRARY_CHILD_BINDING_DIFFERS"),
+    ("pinned local uv image differs", "UV_IMAGE_DIFFERS"),
+    ("required local image absent", "REQUIRED_LOCAL_IMAGE_ABSENT"),
+)
+
+
 def _retain_practice_failure(operation, stage, error):
     """Best-effort closed metadata, never exception text or a result artifact."""
     try:
@@ -447,6 +458,14 @@ def _retain_practice_failure(operation, stage, error):
             and error.code is WorkerCode.POLICY
             else None
         )
+        reason = next(
+            (
+                name
+                for prefix, name in _PRACTICE_FAILURE_REASONS
+                if isinstance(error, ValueError) and str(error).startswith(prefix)
+            ),
+            None,
+        )
         write_once(
             operation / ("failure-" + stage + ".json"),
             canonical(
@@ -456,6 +475,7 @@ def _retain_practice_failure(operation, stage, error):
                     "exception_class": category,
                     "worker_code": code.value if type(code) is WorkerCode else None,
                     "diagnostic_markers": markers,
+                    **({} if reason is None else {"reason": reason}),
                     **({} if controls is None else {"controls_predicate": controls}),
                 }
             ),
