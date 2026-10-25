@@ -503,8 +503,8 @@ NEXT_ACTIONS = {
         "exact recipe be frozen. The validator still rebuilds it in full."
     ),
     "practice_could_not_run": (
-        "The practice could not run on this machine: its build or host check failed "
-        "before any training (an infrastructure problem, not your recipe), so no "
+        "The practice did not finish on this machine: it stopped on an infrastructure "
+        "problem (a host check, the build, or a step after it; not your recipe), so no "
         "result was made and nothing counts against you. Check Setup "
         "(carbon_setup_status) and that Docker and the worker images are present, "
         "then practise again; if it repeats, the campaign's operation folder holds a "
