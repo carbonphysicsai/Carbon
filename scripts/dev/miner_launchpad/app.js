@@ -531,6 +531,7 @@
     renderDevelopment();
     renderOverview();
     renderSetupBanner();
+    renderSupportedSetupNote();
     renderCatalogs();
     renderCampaigns();
     renderWizard();
@@ -2601,6 +2602,14 @@
   }
   // One banner for the cause that is holding up the rest, on every page: the
   // same missing thing used to turn into a red message on each of them.
+  // Warned about, never blocked: this machine is not the one launch setup.
+  function renderSupportedSetupNote() {
+    const note = $("supported-setup-note");
+    const found = connected ? setupState?.supported_setup : null;
+    if (!found) { note.hidden = true; note.textContent = ""; return; }
+    note.hidden = false;
+    note.textContent = found.message + " Differs: " + found.differences.map(row => row.check + " (" + row.found + ", supported: " + row.supported + ")").join("; ") + ". Supported: " + found.supported;
+  }
   function renderSetupBanner() {
     const box = $("setup-banner");
     const items = connected && caps ? prerequisites().filter(item => item.ok === false) : [];

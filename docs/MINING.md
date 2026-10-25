@@ -23,6 +23,26 @@ This guide gets you from a clean machine to your first graded model.
 
 ---
 
+## Supported setup
+
+Carbon's launch supports **one** setup, and a run on it is guaranteed:
+
+| | Supported |
+|---|---|
+| Operating system | Ubuntu 22.04 or 24.04, x86-64 |
+| Docker | Docker 29 (the installer may install it) |
+| Memory | at least 16 GB of RAM |
+| Disk | about 150 GB free |
+| GPU | optional; any NVIDIA GPU with driver **580.65.06 or newer** |
+
+**Minimum NVIDIA driver.** Carbon's GPU builds (the PyTorch and JAX runtimes) are built on CUDA 13.0, and NVIDIA's table of the driver each toolkit needs gives CUDA 13.0 on Linux x86-64 as 580.65.06 or newer (later CUDA 13.x runs on any 580 driver). Source: [NVIDIA CUDA Toolkit 13.0 release notes](https://docs.nvidia.com/cuda/archive/13.0.0/cuda-toolkit-release-notes/index.html). An older driver is not blocked; a GPU practice that cannot start on it says "driver too old" and practises on CPU.
+
+**Any other setup gets a warning, not a block.** The installer, and a note at the top of the Control Center, say: *this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run*, and list what differs (system, Docker, memory, disk, driver). Other Docker versions and other Linux distributions are planned after launch.
+
+---
+
+---
+
 ## 1. Install
 
 ```bash

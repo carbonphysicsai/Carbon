@@ -330,6 +330,47 @@ install_hint() {
   esac
 }
 
+#: The one supported setup (OWNER-LAUNCH-SUPPORTED-MACHINE-01; the same numbers as
+#: carbon/development_session/supported_setup.py, held together by a test). Any other
+#: machine gets a WARNING, never a stop.
+SUPPORTED_UBUNTU="22.04 24.04"
+SUPPORTED_DOCKER_MAJOR=29
+SUPPORTED_RAM_GIB=16
+SUPPORTED_DISK_GIB=150
+SUPPORTED_NVIDIA_DRIVER="580.65.06"
+supported_setup_warning() {
+  local os_id="" os_version="" docker_version ram_gib="" free="" driver differs=() major
+  if [[ -r /etc/os-release ]]; then
+    os_id="$(. /etc/os-release && printf '%s' "${ID:-}")"
+    os_version="$(. /etc/os-release && printf '%s' "${VERSION_ID:-}")"
+  fi
+  if [[ "${os_id}" != "ubuntu" ]] || [[ " ${SUPPORTED_UBUNTU} " != *" ${os_version} "* ]]; then
+    differs+=("operating system ${os_id:-unknown} ${os_version} (supported: Ubuntu 22.04 or 24.04)")
+  fi
+  docker_version="$(docker version --format '{{.Server.Version}}' 2>/dev/null || true)"
+  major="${docker_version%%.*}"
+  if [[ "${major}" =~ ^[0-9]+$ ]] && (( major != SUPPORTED_DOCKER_MAJOR )); then
+    differs+=("Docker ${docker_version} (supported: Docker ${SUPPORTED_DOCKER_MAJOR})")
+  fi
+  ram_gib="$(awk '/^MemTotal:/ { printf "%d", $2 / 1048576 }' /proc/meminfo 2>/dev/null || true)"
+  if [[ "${ram_gib}" =~ ^[0-9]+$ ]] && (( ram_gib < SUPPORTED_RAM_GIB )); then
+    differs+=("${ram_gib} GB of RAM (supported: ${SUPPORTED_RAM_GIB} GB or more)")
+  fi
+  free="$(free_gib "${repo_root}" || true)"
+  if [[ "${free}" =~ ^[0-9]+$ ]] && (( free < SUPPORTED_DISK_GIB )); then
+    differs+=("${free} GB of free disk (supported: about ${SUPPORTED_DISK_GIB} GB free)")
+  fi
+  driver="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n 1 || true)"
+  if [[ -n "${driver}" ]] \
+    && [[ "$(printf '%s\n%s\n' "${SUPPORTED_NVIDIA_DRIVER}" "${driver}" | sort -V | head -n 1)" != "${SUPPORTED_NVIDIA_DRIVER}" ]]; then
+    differs+=("NVIDIA driver ${driver} (supported: ${SUPPORTED_NVIDIA_DRIVER} or newer)")
+  fi
+  if (( ${#differs[@]} )); then
+    echo "WARNING: this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run: Ubuntu 22.04 or 24.04 (x86-64), Docker ${SUPPORTED_DOCKER_MAJOR}, at least ${SUPPORTED_RAM_GIB} GB of RAM and about ${SUPPORTED_DISK_GIB} GB of free disk; a GPU is optional (any NVIDIA GPU with driver ${SUPPORTED_NVIDIA_DRIVER} or newer)." >&2
+    printf '  Differs: %s\n' "${differs[@]}" >&2
+  fi
+}
+
 step "1/6 Checking this machine"
 [[ "$(uname -s)" == "Linux" ]] || fail "Linux is required (Windows: use WSL2)."
 [[ "$(uname -m)" == "x86_64" ]] || fail "x86-64 is required."
@@ -338,6 +379,7 @@ for tool in git curl docker; do
 done
 docker info >/dev/null 2>&1 \
   || fail "Docker is installed but not reachable; start it, or add yourself to the docker group."
+supported_setup_warning
 # The service, and every unit Carbon's runs start, run under the systemd user
 # manager, not this shell (LA-F6). A docker group added after the manager
 # started is in a new shell's groups but not the manager's, so Docker answers
