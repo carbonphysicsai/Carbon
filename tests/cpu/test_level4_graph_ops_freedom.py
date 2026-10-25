@@ -209,7 +209,10 @@ def test_the_op_lowers_rebuilds_and_matches_jax(name):
     if differentiable:
         want_grad = jax.grad(lambda *a: jnp.sum(fn(*a) * 1.5), argnums=0)(*args)
         got_grad = jax.grad(lambda *a: jnp.sum(run(*a)[0] * 1.5), argnums=0)(*args)
-        np.testing.assert_array_equal(np.asarray(got_grad), np.asarray(want_grad))
+        # Gradients come from the same rules; XLA fusion may move the last bit.
+        np.testing.assert_allclose(
+            np.asarray(got_grad), np.asarray(want_grad), rtol=1e-5, atol=1e-6
+        )
 
 
 @pytest.mark.parametrize("name", sorted(CASES))
