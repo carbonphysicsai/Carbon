@@ -496,6 +496,8 @@ def test_the_default_recipe_is_one_member_on_every_output():
 OPENED = [
     ("batch_size", 128),
     ("learning_rate", 0.5),
+    ("learning_rate", 0.0),
+    ("learning_rate", -0.01),
     ("weight_decay", 0.5),
     ("adam_epsilon", 0.1),
     ("optimizer_family", "lion"),
@@ -524,7 +526,7 @@ def test_a_range_v1_refused_is_accepted(name, value):
 
 KEEP = [
     ({"training": {"batch_size": 288}}, "graph_route_batch_exceeds_train"),
-    ({"training": {"learning_rate": 0}}, "graph_route_training_value_invalid"),
+    ({"training": {"learning_rate": "fast"}}, "graph_route_training_value_invalid"),
     ({"training": {"beta1": 1.0}}, "graph_route_training_value_invalid"),
     ({"training": {"loss": "made_up"}}, "graph_route_training_value_invalid"),
     (

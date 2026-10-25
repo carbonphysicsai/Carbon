@@ -104,7 +104,12 @@ def _owned_single_device_sharding(value):
 
     if (
         type(value) is not NamedSharding
-        or value.mesh.size != 1
+        or (
+            value.mesh.size != 1
+            # An empty abstract mesh (a trace under no mesh, as jax.hessian's)
+            # places nothing.
+            and not (type(value.mesh) is AbstractMesh and not value.mesh.axis_names)
+        )
         or not value.is_fully_replicated
         or any(axis is not None for axis in value.spec)
     ):
@@ -157,6 +162,40 @@ def _default_call_metadata(name, value):
     if name == "name":
         return type(value) is str and len(value) <= 128
     return False
+
+
+def _platforms(value):
+    """`platform_index`'s platform groups: a tuple of tuples of names, or
+    None for the default branch."""
+    if type(value) not in (tuple, list):
+        raise GraphRefused("parameter_kind_mismatch")
+    out = []
+    for group in value:
+        if group is None:
+            out.append(None)
+        elif type(group) in (tuple, list) and all(
+            type(item) is str and _NAME.match(item) for item in group
+        ):
+            out.append(list(group))
+        else:
+            raise GraphRefused("parameter_kind_mismatch")
+    return out
+
+
+def _platforms_decode(value):
+    if type(value) is not list:
+        raise GraphRefused("parameter_kind_mismatch")
+    out = []
+    for group in value:
+        if group is None:
+            out.append(None)
+        elif type(group) is list and all(
+            type(item) is str and _NAME.match(item) for item in group
+        ):
+            out.append(tuple(group))
+        else:
+            raise GraphRefused("parameter_kind_mismatch")
+    return tuple(out)
 
 
 def _encode(kind, value, lower_graph, name=None):
@@ -257,6 +296,12 @@ def _encode(kind, value, lower_graph, name=None):
         return {"graph": lower_graph(value)}
     if kind == "graph_or_none":
         return None if value is None else {"graph": lower_graph(value)}
+    if kind == "platforms":
+        return _platforms(value)
+    if kind == "float":
+        if type(value) is not float or not math.isfinite(value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return value
     if kind == "graph_tuple":
         if type(value) not in (tuple, list) or not value:
             raise GraphRefused("parameter_kind_mismatch")
@@ -327,6 +372,12 @@ def _decode(kind, value):
         if type(value) is not int or value < 1:
             raise GraphRefused("parameter_kind_mismatch")
         return value
+    if kind == "platforms":
+        return _platforms_decode(value)
+    if kind == "float":
+        if type(value) not in (int, float) or not math.isfinite(value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return float(value)
     if kind == "graph_tuple":
         if type(value) is not list or not value:
             raise GraphRefused("parameter_kind_mismatch")
@@ -450,14 +501,23 @@ def _decode(kind, value):
     raise GraphRefused("parameter_kind_unknown")
 
 
+def _split(spec):
+    """`(kinds by name, required names)`: a kind written with a trailing `?`
+    names a parameter JAX binds only on some equations (`cond`'s platform
+    table), which a document may omit."""
+    kinds = {name: kind.rstrip("?") for name, kind in spec.items()}
+    return kinds, {name for name, kind in spec.items() if not kind.endswith("?")}
+
+
 def encode(spec, params, lower_graph):
     """JSON parameters for an op whose allowlist entry declares `spec`."""
-    if set(params) != set(spec):
+    kinds, required = _split(spec)
+    if not required <= set(params) <= set(kinds):
         raise GraphRefused("parameters_not_allowlisted")
     out = {}
-    for name in sorted(spec):
+    for name in sorted(params):
         try:
-            out[name] = _encode(spec[name], params[name], lower_graph, name)
+            out[name] = _encode(kinds[name], params[name], lower_graph, name)
         except GraphRefused as refused:
             if refused.where:
                 raise
@@ -468,21 +528,26 @@ def encode(spec, params, lower_graph):
 
 def _nested(value):
     """A nested-graph reference, exactly `{"graph": "<name>"}`."""
-    if type(value) is not dict or set(value) != {"graph"} or type(value["graph"]) is not str:
+    if (
+        type(value) is not dict
+        or set(value) != {"graph"}
+        or type(value["graph"]) is not str
+    ):
         raise GraphRefused("parameter_kind_mismatch")
     return value
 
 
 def decode(spec, params):
     """Bind-ready parameters; graph references are left to the interpreter."""
-    if type(params) is not dict or set(params) != set(spec):
+    kinds, required = _split(spec)
+    if type(params) is not dict or not required <= set(params) <= set(kinds):
         raise GraphRefused("parameters_not_allowlisted")
     return {
         name: (
             _nested(params[name])
-            if spec[name] == "graph"
-            or (spec[name] == "graph_or_none" and params[name] is not None)
-            else _decode(spec[name], params[name])
+            if kinds[name] == "graph"
+            or (kinds[name] == "graph_or_none" and params[name] is not None)
+            else _decode(kinds[name], params[name])
         )
-        for name in spec
+        for name in params
     }

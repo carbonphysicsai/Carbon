@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 
 import pytest
+import rc43_surfaces
 
 from carbon.challenge_kit import physical_material, physical_pack, version_registry
 from carbon.scoring import dev_grid, practice_grid
@@ -20,28 +21,28 @@ MOTOR = "electric-motor-magnetics"
 #: calibration artifact bound to them stays valid only while these do not move.
 KITS = {
     ("f08-ribbed-bracket", "1.5"): {
-        "construction_limits_digest": "sha256:2c54ee8493a87bb2f04bf6deabf85d18f865a917165f8df92943c90d24f698cf",
+        "construction_limits_digest": "sha256:ae87b953e553191d0f859b24bdf157c18f80892f49b57ccc8bece5f510d184c0",
         "id": "f08-ribbed-bracket",
         "interface_digest": "sha256:42e64c6800368f2b364bbc6e70e34814401e3e38b6a9ff7dcfec70c7b1818eba",
         "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
         "version": "1.5",
     },
     ("f02", "2.4"): {
-        "construction_limits_digest": "sha256:10836cbdd3a266cd73152c27e980e8f2e7db191bd3077b8b0bcd06321c34c281",
+        "construction_limits_digest": "sha256:eaf740b0d515f71676cf47a45f1509c6e04b0b7608c4ea55f2b70664c9c055b7",
         "id": "f02",
         "interface_digest": "sha256:3a9c2f8bd2fdaeeca65e060d32f17a60cba06c16b837d6be185a95cdfa9e011e",
         "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
         "version": "2.4",
     },
     ("electric-motor-magnetics", "1.4"): {
-        "construction_limits_digest": "sha256:3c3a854f4e035b70b542d91222b83d4bb3fcb674c60526f00bf51c3e3d3c4b78",
+        "construction_limits_digest": "sha256:e3109015a1b2b895cf1469ece5563d1f34278099073baa480ded1e65358d40cb",
         "id": "electric-motor-magnetics",
         "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
         "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
         "version": "1.4",
     },
     ("chip-cold-plate", "1.4"): {
-        "construction_limits_digest": "sha256:bf94ffc1d6008c5abb81203c3bd54c232f3b3a923e3ef93a19e9a8d57a0c547d",
+        "construction_limits_digest": "sha256:9d32687bbaea70f361143d92d800a9f13759b7d3620a6b90bc929429496aff1a",
         "id": "chip-cold-plate",
         "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
         "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
@@ -483,6 +484,7 @@ def test_a_kit_moved_with_the_served_catalog_digest_and_nothing_else(key, monkey
     # The kit before the large-profile publication (a separate move, pinned by
     # test_published_policy_is_enforced): rc10's kits predate it.
     monkeypatch.setattr(served_versions, "worker_resources", lambda *_: None)
+    rc43_surfaces.learning_rate_as_in_rc43(monkeypatch)
     kit_before, catalog_before = KITS_ON_RC10[key]
     public = physical_material._public(key[0])
     limits = copy.deepcopy(public.construction_limits_document(*key))

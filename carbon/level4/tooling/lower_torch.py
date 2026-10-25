@@ -1035,6 +1035,25 @@ def _over(b, cap, value):
     return type(limit) is int and value > limit
 
 
+def _constants_over(b, emitted_values, *, bits):
+    """Whether the constants so far plus ``emitted_values`` more integers of
+    ``bits`` bits each exceed the version's constants cap, measured as the
+    validator will measure (`allowlist.accounting_for`): by information under
+    accounting v4 (the emitted indices are below the scattered dimension's
+    size), by value count under v3."""
+    limit = allowlist_module.caps_for(b.allowlist).get("constant_bytes")
+    if type(limit) is not int:
+        return False
+    accounting, _ = allowlist_module.accounting_for(b.allowlist)
+    if accounting == allowlist_module.CONSTANT_ACCOUNTING_V4:
+        extra = -(-emitted_values * bits // 8)
+        return graph.constant_info_bytes(b.constants) + extra > limit
+    return (
+        graph.VALUE_BYTES * (graph.unique_constant_values(b.constants) + emitted_values)
+        > limit
+    )
+
+
 def _forms(b, target):
     """The argument forms `b`'s allowlist admits for `target` (v7 on)."""
     return frozenset((b.allowlist.aten.get(target) or {}).get("forms", ()))
@@ -1172,16 +1191,13 @@ def _scatter_add_static(b, node, env):
     # per ordered update. The byte cap measures one emitted output, not the
     # sum of all outputs; graph.measure applies that same registered meaning.
     nodes = 2 + 7 * count
-    bytes_per_result = math.prod(shape) * max(graph.itemsize(dtype), 4)
+    bytes_per_result = math.prod(shape) * graph.itemsize(dtype)
     # The miner's own tensor first (a candidate refusal), then what only Carbon's
     # unrolling adds (a Carbon capability gap; Validator classes, 5cc80cbe8).
     if _over(b, "largest_intermediate_bytes", bytes_per_result):
         raise graph.GraphRefused("aten_scatter_registered_resource_bound", target)
-    if _over(b, "nodes_executed", len(b.nodes) + nodes) or _over(
-        b,
-        "constant_bytes",
-        graph.VALUE_BYTES
-        * (graph.unique_constant_values(b.constants) + emitted_values),
+    if _over(b, "nodes_executed", len(b.nodes) + nodes) or _constants_over(
+        b, emitted_values, bits=max(1, (shape[dim] - 1).bit_length())
     ):
         raise graph.GraphRefused("aten_scatter_lowering_expansion_bound", target)
 
@@ -1408,7 +1424,7 @@ def _take_runs(b, target, x, dim, index, expected):
             runs[-1][1] += 1
         else:
             runs.append([i, i + 1])
-    bytes_per_result = math.prod(expected) * max(graph.itemsize(dtype), 4)
+    bytes_per_result = math.prod(expected) * graph.itemsize(dtype)
     if _over(b, "largest_intermediate_bytes", bytes_per_result):
         raise graph.GraphRefused("aten_index_registered_resource_bound", target)
     if "static_outer" in _forms(b, "aten.index.Tensor"):

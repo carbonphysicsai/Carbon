@@ -23,34 +23,99 @@ from carbon.level4 import allowlist as allowlist_module
 V8 = Path(allowlist_module.__file__).with_name("allowlist_v8.json")
 
 #: Containment: device meshes, placement and cross-device traffic belong to Carbon.
-COLLECTIVES = """all_gather_done all_gather_invariant all_gather_reduced
-all_gather_reduced_start all_gather_start all_to_all_done all_to_all_start pbroadcast
-pbroadcast_done pbroadcast_start pmax pmin ppermute_done ppermute_start precv preduced
-psend psum_done psum_invariant psum_invariant_start psum_start pvary ragged_all_to_all
-reduce_scatter reduce_scatter_done reduce_scatter_start reduced_vary_cast_p
-unreduced_psum unreduced_psum_start unreduced_reduce_scatter
-unreduced_reduce_scatter_start vary_unreduced_cast_p shard_map reshard""".split()
+COLLECTIVES = [
+    "all_gather_done",
+    "all_gather_invariant",
+    "all_gather_reduced",
+    "all_gather_reduced_start",
+    "all_gather_start",
+    "all_to_all_done",
+    "all_to_all_start",
+    "pbroadcast",
+    "pbroadcast_done",
+    "pbroadcast_start",
+    "pmax",
+    "pmin",
+    "ppermute_done",
+    "ppermute_start",
+    "precv",
+    "preduced",
+    "psend",
+    "psum_done",
+    "psum_invariant",
+    "psum_invariant_start",
+    "psum_start",
+    "pvary",
+    "ragged_all_to_all",
+    "reduce_scatter",
+    "reduce_scatter_done",
+    "reduce_scatter_start",
+    "reduced_vary_cast_p",
+    "unreduced_psum",
+    "unreduced_psum_start",
+    "unreduced_reduce_scatter",
+    "unreduced_reduce_scatter_start",
+    "vary_unreduced_cast_p",
+    "shard_map",
+    "reshard",
+]
 #: Side effects: mutable references are state, and the format is pure.
-MUTABLE_STATE = """get swap addupdate new_ref empty_ref free_ref freeze accum_grad_in_ref
-pin unpin broadcast_to create_linear""".split()
-#: Not reproducible: uninitialised memory, or a choice that depends on the platform.
-NOT_REPRODUCIBLE = "empty empty2 platform_index".split()
+MUTABLE_STATE = [
+    "get",
+    "swap",
+    "addupdate",
+    "new_ref",
+    "empty_ref",
+    "free_ref",
+    "freeze",
+    "accum_grad_in_ref",
+    "pin",
+    "unpin",
+    "broadcast_to",
+    "create_linear",
+]
+#: Not reproducible: uninitialised memory. (`platform_index` is admitted: JAX's platform
+#: dispatch, whose branches compute the same values.)
+NOT_REPRODUCIBLE = ["empty", "empty2"]
 #: Typed PRNG keys convert only through Carbon's keyed `random_*` ops, in init graphs.
-KEY_CONVERSIONS = "to_edtype from_edtype random_gamma random_clone".split()
+KEY_CONVERSIONS = ["to_edtype", "from_edtype", "random_gamma", "random_clone"]
 #: Autodiff and compiler plumbing: never part of a traced forward a miner writes.
-INTERNAL = """call call_hi_primitive composite custom_lin custom_jvp_call_jaxpr
-linear_call remat_opt eval_jaxpr unreachable dce_sink stage tie name inspect_sharding
-zeros_like""".split()
+INTERNAL = [
+    "call",
+    "call_hi_primitive",
+    "composite",
+    "custom_lin",
+    "custom_jvp_call_jaxpr",
+    "linear_call",
+    "remat_opt",
+    "eval_jaxpr",
+    "unreachable",
+    "dce_sink",
+    "stage",
+    "tie",
+    "name",
+    "inspect_sharding",
+    "zeros_like",
+]
 #: Pure ops still to admit: each needs a parameter codec (a nested body, a recall target)
 #: that this head does not carry. Not a policy refusal.
-PENDING = """approx_top_k ragged_dot_general reduce reduce_window select_and_scatter
-symmetric_product scaled_dot""".split()
+PENDING = [
+    "ragged_dot_general",
+    "reduce",
+    "reduce_window",
+    "select_and_scatter",
+    "symmetric_product",
+    "scaled_dot",
+]
 
 NOT_ADMITTED = {
     **{n: "collective or placement: containment" for n in COLLECTIVES},
     **{n: "mutable reference: a side effect" for n in MUTABLE_STATE},
     **{n: "not reproducible" for n in NOT_REPRODUCIBLE},
-    **{n: "typed key conversion: Carbon's keyed random ops only" for n in KEY_CONVERSIONS},
+    **{
+        n: "typed key conversion: Carbon's keyed random ops only"
+        for n in KEY_CONVERSIONS
+    },
     **{n: "internal plumbing" for n in INTERNAL},
     **{n: "pending: pure, needs a parameter codec" for n in PENDING},
 }
@@ -114,9 +179,7 @@ def test_the_not_admitted_list_does_not_rot():
             and entry["default"] not in ("refuse", "strip")
             and entry["v0_interpreter"]
         )
-        assert not usable, (
-            f"{name} is admitted by v8 but still listed as not admitted"
-        )
+        assert not usable, f"{name} is admitted by v8 but still listed as not admitted"
 
 
 def test_the_refused_ops_name_their_reason():

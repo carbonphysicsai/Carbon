@@ -13,7 +13,7 @@ registered in `SPECS`:
    settings, combined per output (`configuration.ensemble`);
 3. any number of members: only the build's registered resource limits (wall
    time, memory) bound them;
-4. training settings bounded only by structure: a positive rate, betas below
+4. training settings bounded only by structure: a finite rate, betas below
    one, a batch no larger than the selected TRAIN rows, a train fraction
    above zero, and the loss, optimizer and learning-rate curve the trainer
    implements.
@@ -57,6 +57,8 @@ CODE = "graph_route_"
 
 #: Each surface's (kind, default): the structural bound is the kind's.
 #:   uint     an integer, at least `low` (steps 1, warmup 0, batch 1)
+#:   finite   a finite number of either sign (a rate: zero or below harms no exam
+#:            and no grade, only the miner's own result; Validator 2026-10-25)
 #:   positive a finite number above zero
 #:   nonneg   a finite number, zero or more
 #:   below1   a finite number in [0, 1)
@@ -68,7 +70,7 @@ CODE = "graph_route_"
 TRAIN_SURFACES = {
     "steps": ("uint", 1, 512),
     "batch_size": ("uint", 1, 8),
-    "learning_rate": ("positive", None, 0.002),
+    "learning_rate": ("finite", None, 0.002),
     "weight_decay": ("nonneg", None, 0.0001),
     "beta1": ("below1", None, 0.9),
     "beta2": ("below1", None, 0.999),
@@ -225,6 +227,8 @@ def _admitted(value, surface) -> bool:
     kind, low, _default = surface
     if kind == "uint":
         return type(value) is int and low <= value < 2**63
+    if kind == "finite":
+        return _number(value)
     if kind == "positive":
         return _number(value) and value > 0
     if kind == "nonneg":

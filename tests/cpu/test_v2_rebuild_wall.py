@@ -19,6 +19,7 @@ byte for byte at 600 s. Claims tested:
 from __future__ import annotations
 
 import pytest
+import rc43_surfaces
 from test_graph_route_v2 import BASE_KITS
 
 from carbon.challenge_kit import physical_material, version_registry
@@ -69,14 +70,14 @@ FREEZE_MOVED = {
 #: OWNER-SANDBOX-REBUILD-WALL-01.
 NEW_KITS = {
     ("chip-cold-plate", "1.4"): (
-        "bf94ffc1d6008c5abb81203c3bd54c232f3b3a923e3ef93a19e9a8d57a0c547d"
+        "9d32687bbaea70f361143d92d800a9f13759b7d3620a6b90bc929429496aff1a"
     ),
     ("electric-motor-magnetics", "1.4"): (
-        "3c3a854f4e035b70b542d91222b83d4bb3fcb674c60526f00bf51c3e3d3c4b78"
+        "e3109015a1b2b895cf1469ece5563d1f34278099073baa480ded1e65358d40cb"
     ),
-    ("f02", "2.4"): "10836cbdd3a266cd73152c27e980e8f2e7db191bd3077b8b0bcd06321c34c281",
+    ("f02", "2.4"): "eaf740b0d515f71676cf47a45f1509c6e04b0b7608c4ea55f2b70664c9c055b7",
     ("f08-ribbed-bracket", "1.5"): (
-        "2c54ee8493a87bb2f04bf6deabf85d18f865a917165f8df92943c90d24f698cf"
+        "ae87b953e553191d0f859b24bdf157c18f80892f49b57ccc8bece5f510d184c0"
     ),
 }
 #: The shared C-03 profiles (CPU build, G5 compile) at rc8 1ea4c49ad.
@@ -123,6 +124,7 @@ def test_a_new_version_moves_only_by_its_two_wall_fields(key, monkeypatch):
     # The rc8 document predates the large-profile publication (a separate move,
     # pinned by test_published_policy_is_enforced): the wall is checked before it.
     monkeypatch.setattr(served_versions, "worker_resources", lambda *_: None)
+    rc43_surfaces.learning_rate_as_in_rc43(monkeypatch)
     document = _limits(*key)
     policy = document["reconstruction_resource_policy"]
     assert [policy[name] for name in WALLS] == [REBUILD_LIMIT_SECONDS] * 2

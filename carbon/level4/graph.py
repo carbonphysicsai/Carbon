@@ -133,15 +133,45 @@ def unique_constant_values(constants):
 
 
 #: Accounting v4 (B', owner pick, Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025
-#: section 3): an integer constant is charged the bits its actual range needs, a
-#: bool one bit, a fitted float `VALUE_BYTES` per value. The cap total is the same
-#: 16 KiB, so the information a graph can carry in constants is bounded as before;
-#: a small-range structure table (exponents, connectivity, one-hot indices) simply
-#: costs what it holds. The range is read from the values, never from the declared
-#: dtype: an int32 table of wide numbers counts at its full width.
+#: section 3; owner 2026-10-25: count by real storage, never more than the value
+#: holds): every constant is charged what it actually carries. An integer is
+#: charged the bits its actual range needs and a bool one bit; a float its real
+#: item size capped at `VALUE_BYTES` (float16 and bfloat16 two bytes, float32 four,
+#: float64 four as in v3); a complex number its two components. The cap total is
+#: the same 16 KiB, so the information a graph can carry in constants is bounded
+#: as before; a small-range structure table (exponents, connectivity, one-hot
+#: indices) or a half-precision table simply costs what it holds. The range is
+#: read from the values, never from the declared dtype: an int32 table of wide
+#: numbers counts at its full width (an int64 table of 40-bit numbers at 40 bits).
 INTEGER_DTYPES = frozenset(
     {"uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64"}
 )
+COMPLEX_DTYPES = frozenset({"complex64", "complex128"})
+
+
+def float_value_bits(dtype):
+    """Bits one value of a floating dtype is charged under accounting v4: its
+    real storage, never more than `VALUE_BYTES`. A complex dtype is charged for
+    its two components."""
+    if dtype in COMPLEX_DTYPES:
+        return 2 * float_value_bits("float" + str(8 * DTYPES[dtype] // 2))
+    return 8 * min(DTYPES[dtype], VALUE_BYTES)
+
+
+def array_info_bits(array):
+    """Bits an in-memory constant is charged under accounting v4 (the same rule
+    as `constant_info_bytes`, for a tooling pre-check)."""
+
+    dtype = str(array.dtype)
+    count = int(array.size)
+    if dtype == "bool":
+        return count
+    if dtype in INTEGER_DTYPES:
+        if count == 0:
+            return 0
+        span = int(array.max()) - int(array.min())
+        return count * max(1, span.bit_length())
+    return count * float_value_bits(dtype)
 
 
 def constant_info_bytes(constants):
@@ -159,8 +189,7 @@ def constant_info_bytes(constants):
             span = int(array.max()) - int(array.min())
             bits = count * max(1, span.bit_length())
         else:
-            total += VALUE_BYTES * count
-            continue
+            bits = count * float_value_bits(c["dtype"])
         total += -(-bits // 8)
     return total
 

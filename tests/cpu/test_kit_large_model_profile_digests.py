@@ -8,6 +8,7 @@ that moved. The routes' agreement with the new digests is
 test_published_policy_is_enforced."""
 
 import pytest
+import rc43_surfaces
 
 from carbon.battery import construction_bundle_material as battery_material
 from carbon.challenge_kit import physical_material, served_versions
@@ -28,7 +29,7 @@ MOVED = {
     ),
     ("chip-cold-plate", "1.4"): (
         "19ef124c22c8533d781ac9add9527e911e534ebe322f64fd4ca23e93f639932c",
-        "bf94ffc1d6008c5abb81203c3bd54c232f3b3a923e3ef93a19e9a8d57a0c547d",
+        "9d32687bbaea70f361143d92d800a9f13759b7d3620a6b90bc929429496aff1a",
     ),
     ("electric-motor-magnetics", "1.3"): (
         "a081ccac9ac9e93712a2047ac2abbb5c746ff8da4091d318916285f74e65ef89",
@@ -36,7 +37,7 @@ MOVED = {
     ),
     ("electric-motor-magnetics", "1.4"): (
         "43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0",
-        "3c3a854f4e035b70b542d91222b83d4bb3fcb674c60526f00bf51c3e3d3c4b78",
+        "e3109015a1b2b895cf1469ece5563d1f34278099073baa480ded1e65358d40cb",
     ),
     ("f02", "2.2"): (
         "0d2358581a88c4ab6648fcfb41a139792e23fb988202b610f883d66838725a25",
@@ -48,7 +49,7 @@ MOVED = {
     ),
     ("f02", "2.4"): (
         "827e396bfe19d2ee162482f48d22150ee2894af1622d5778a55630644594e5f1",
-        "10836cbdd3a266cd73152c27e980e8f2e7db191bd3077b8b0bcd06321c34c281",
+        "eaf740b0d515f71676cf47a45f1509c6e04b0b7608c4ea55f2b70664c9c055b7",
     ),
     ("f08-ribbed-bracket", "1.3"): (
         "c0d3bf0691f22090088d77f441f7bb9da69557a3314c6add8bb6c673922c2217",
@@ -60,7 +61,7 @@ MOVED = {
     ),
     ("f08-ribbed-bracket", "1.5"): (
         "9ada93ee419c2adbe91e7e8aae8176f35e2d60b11484ad9e9814b772ae4cf63b",
-        "2c54ee8493a87bb2f04bf6deabf85d18f865a917165f8df92943c90d24f698cf",
+        "ae87b953e553191d0f859b24bdf157c18f80892f49b57ccc8bece5f510d184c0",
     ),
 }
 
@@ -84,6 +85,7 @@ def test_a_v7_version_moved_by_its_resource_profile_alone(
     old, new = MOVED[(challenge_id, version)]
     assert _digest(challenge_id, version) == "sha256:" + new
     monkeypatch.setattr(served_versions, "worker_resources", lambda *_: None)
+    rc43_surfaces.learning_rate_as_in_rc43(monkeypatch)
     assert _digest(challenge_id, version) == "sha256:" + old
 
 

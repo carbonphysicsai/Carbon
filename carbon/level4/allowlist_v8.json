@@ -1394,6 +1394,25 @@
    ],
    "v0_interpreter": true
   },
+  "approx_top_k": {
+   "category": "reduction",
+   "default": "review",
+   "note": "approximate on some accelerators by design; exact where the backend has no approximate kernel.",
+   "params": {
+    "aggregate_to_topk": "bool",
+    "is_max_k": "bool",
+    "k": "int",
+    "recall_target": "float",
+    "reduction_dimension": "int",
+    "reduction_input_size_override": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "argmax": {
    "category": "reduction",
    "default": "allow",
@@ -1659,7 +1678,8 @@
    "default": "allow",
    "note": "lax.cond/switch: the first operand is the integer branch index; every branch is a nested graph.",
    "params": {
-    "branches": "graph_tuple"
+    "branches": "graph_tuple",
+    "branches_platforms": "platforms?"
    },
    "roles": [
     "forward",
@@ -1708,7 +1728,7 @@
    "default": "allow",
    "params": {
     "new_dtype": "dtype",
-    "sharding": "none",
+    "sharding": "owned_single_device_sharding",
     "weak_type": "bool"
    },
    "roles": [
@@ -2337,7 +2357,7 @@
     "dimension": "int",
     "dtype": "dtype",
     "shape": "int_tuple",
-    "sharding": "none"
+    "sharding": "owned_single_device_sharding"
    },
    "roles": [
     "forward",
@@ -2668,6 +2688,20 @@
    "default": "allow",
    "params": {
     "padding_config": "padding_config"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "platform_index": {
+   "category": "control_flow",
+   "default": "allow",
+   "note": "JAX's platform dispatch (jnp.diag, jnp.diagonal, corrcoef, a larger jnp.linalg.det): the index of the rebuild's platform, whose branches compute the same values.",
+   "params": {
+    "platforms": "platforms"
    },
    "roles": [
     "forward",
@@ -3040,7 +3074,7 @@
    "params": {
     "dimensions": "int_tuple_or_none",
     "new_sizes": "int_tuple",
-    "sharding": "none"
+    "sharding": "owned_single_device_sharding"
    },
    "roles": [
     "forward",

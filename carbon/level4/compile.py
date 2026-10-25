@@ -37,9 +37,12 @@ from pathlib import Path
 
 from .allowlist import HUMAN_INPUT
 
-#: Approved as proposed (`LEVEL4_VALUES_PROPOSAL.md` §4, OWNER-L4-VALUES-01).
-#: The C-03 lane admits Carbon's own runs only between 40 and 600 s.
-DEADLINE_SECONDS = 120
+#: The compile runs in its own isolated lane, which admits Carbon's own runs only
+#: between 40 and 600 s. Its reason is lane throughput, not escape, so the interim
+#: value is the lane's own ceiling (Validator, OWNER-SEVEN-LIMITS-APPROVED-01,
+#: 2026-10-25; was 120 s, OWNER-L4-VALUES-01). After measurement it becomes 4x the
+#: measured compile time of a 64 MiB worst-case document, capped at the ceiling.
+DEADLINE_SECONDS = 600
 PROVENANCE = "LEVEL4_G5_COMPILE_DEVELOPMENT"
 PROFILE_STATUS = "ACCEPTED_DEVELOPMENT_AND_TESTNET_ONLY"
 PROFILE_DECISION = "OWNER-L4-G5-COMPILE-ISOLATION-01"

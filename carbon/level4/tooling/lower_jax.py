@@ -125,7 +125,11 @@ def lower(closed, *, role, allowlist, input_names):
     in_rules = set()  # custom-rule functions whose rule is being lowered
 
     def lower_graph(sub, entry_names=None):
-        key = id(sub)
+        # A body is lowered once per set of rules being lowered around it: inside
+        # a derivative rule, a call to the rule's own function is a plain call
+        # (see below), so the same jaxpr reached there is another graph than the
+        # one reached outside (else the rule's graph would call itself).
+        key = (id(sub), frozenset(in_rules))
         if key in names:
             return names[key]
         name = "main" if not graphs and entry_names is not None else f"g{len(graphs)}"
@@ -233,14 +237,19 @@ def lower(closed, *, role, allowlist, input_names):
                         fwd_jaxpr, fwd_consts = p["fwd_jaxpr_thunk"].call_wrapped(
                             *([True] * n_args)
                         )
-                        out_tree, res_tree, fwds = p["out_trees"]()
-                        n_res = res_tree.num_leaves
+                        out_tree, _res_tree, fwds = p["out_trees"]()
                         n_out = out_tree.num_leaves
                         in_avals = [v.aval for v in eqn.invars]
-                        pruned = [v.aval for v in fwd_jaxpr.outvars][: len(fwd_jaxpr.outvars) - n_out]
+                        pruned = [v.aval for v in fwd_jaxpr.outvars][
+                            : len(fwd_jaxpr.outvars) - n_out
+                        ]
                         pruned_iter = iter(pruned)
                         res_avals = [
-                            in_avals[p["num_consts"] + f] if f is not None else next(pruned_iter)
+                            (
+                                in_avals[p["num_consts"] + f]
+                                if f is not None
+                                else next(pruned_iter)
+                            )
                             for f in fwds
                         ]
                         out_avals = [v.aval for v in p["call_jaxpr"].jaxpr.outvars]
@@ -254,9 +263,11 @@ def lower(closed, *, role, allowlist, input_names):
                         def backward(*args, bwd=bwd, avals=in_avals[p["num_consts"] :]):
                             cts = bwd.call_wrapped(*args)
                             return [
-                                ad.instantiate_zeros(c)
-                                if not hasattr(c, "shape")
-                                else c
+                                (
+                                    ad.instantiate_zeros(c)
+                                    if not hasattr(c, "shape")
+                                    else c
+                                )
                                 for c in cts
                             ]
 
