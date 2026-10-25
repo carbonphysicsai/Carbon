@@ -41,6 +41,10 @@ STEP2 = _registry.keys(allowlist="v6", step_caps=False, catalog=False)
 CATALOG = _registry.keys(catalog=True)
 #: The versions serving allowlist v7 (the Validator, 2026-10-20).
 V7 = _registry.keys(allowlist="v7")
+#: The pre-publish graph-route-v2 versions serving allowlist v8 (OWNER-GRAPH-OPS-OPEN-01;
+#: Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025): F08 1.5, F02 2.4, Motor 1.4 and
+#: Cooling 1.4. Battery 2.2 keeps its base version's v7 until its own table moves.
+V8 = _registry.keys(allowlist="v8")
 #: Versions registered before step 2: served v5 and their step caps, unchanged.
 EXISTING = _registry.keys(step_caps=True)
 
@@ -56,7 +60,7 @@ def is_step2(challenge_id: str, version: str) -> bool:
     """True for a step-2 version (v6, no step caps), catalog versions included;
     False for an existing one."""
     key = _known(challenge_id, version)
-    return key in STEP2 or key in CATALOG or key in V7
+    return key in STEP2 or key in CATALOG or key in V7 or key in V8
 
 
 def serves_catalog(challenge_id: str, version: str) -> bool:
@@ -69,13 +73,25 @@ def serves_v7(challenge_id: str, version: str) -> bool:
     return _known(challenge_id, version) in V7
 
 
+def serves_v8(challenge_id: str, version: str) -> bool:
+    """Whether a version serves allowlist v8."""
+    return _known(challenge_id, version) in V8
+
+
+def serves_uncapped(challenge_id: str, version: str) -> bool:
+    """Whether a version serves an allowlist without model-size caps (v7 or v8)."""
+    return _known(challenge_id, version) in V7 or _known(challenge_id, version) in V8
+
+
 def material_allowlist_bytes(challenge_id: str, version: str) -> bytes:
     """The allowlist a version's served construction material carries: v7 on
     the v7 catalog versions, v6 on the other step-2 and catalog versions, v5
     on the versions registered before step 2."""
     from carbon.challenge_kit.synthetic_linear_field_2d import allowlist_v5_bytes
-    from carbon.level4.allowlist import served_bytes, v7_bytes
+    from carbon.level4.allowlist import served_bytes, v7_bytes, v8_bytes
 
+    if serves_v8(challenge_id, version):
+        return v8_bytes()
     if serves_v7(challenge_id, version):
         return v7_bytes()
     return served_bytes() if is_step2(challenge_id, version) else allowlist_v5_bytes()

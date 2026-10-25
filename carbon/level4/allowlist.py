@@ -184,7 +184,7 @@ def v7_bytes():
 #: VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025). A new file, served only by new
 #: versions: v7's bytes and digests stay. Frozen by its sha once the head is done.
 V8_PATH = Path(__file__).with_name("allowlist_v8.json")
-V8_SHA256 = "PENDING"
+V8_SHA256 = "7ca88818a3ab96b89cae64d6ef9177aee4479875243599c9bec52125e1482039"
 
 
 def v8_bytes():

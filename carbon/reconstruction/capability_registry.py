@@ -1602,10 +1602,13 @@ ROW_MAXIMA = {
 
 
 def _serves_v7(challenge, version):
-    from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_v7
+    from carbon.challenge_kit.served_versions import (
+        UnregisteredVersion,
+        serves_uncapped,
+    )
 
     try:
-        return serves_v7(challenge, version)
+        return serves_uncapped(challenge, version)
     except UnregisteredVersion:
         return False
 
