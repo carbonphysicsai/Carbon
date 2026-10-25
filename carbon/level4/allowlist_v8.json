@@ -570,6 +570,18 @@
    ],
    "v0_interpreter": true
   },
+  "add_any": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "autodiff's accumulation add: a model that takes jax.grad inside its forward holds it.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "after_all": {
    "category": "host_or_sharding",
    "default": "refuse",
@@ -780,6 +792,18 @@
    "category": "linear_algebra",
    "default": "allow",
    "note": "lower-triangular Cholesky factor; NaN where the matrix is not positive definite, as JAX.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cholesky_update": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "rank-1 Cholesky update.",
    "params": {},
    "roles": [
     "forward",
@@ -1221,6 +1245,18 @@
    ],
    "v0_interpreter": true
   },
+  "eq_to": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "total-order comparison eq_to: NaN and signed zero ordered.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "erf": {
    "category": "elementwise",
    "default": "allow",
@@ -1352,6 +1388,20 @@
    "category": "elementwise",
    "default": "allow",
    "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "geqp3": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "column-pivoted QR.",
+   "params": {
+    "use_magma": "none"
+   },
    "roles": [
     "forward",
     "init",
@@ -1544,6 +1594,18 @@
    ],
    "v0_interpreter": true
   },
+  "le_to": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "total-order comparison le_to: NaN and signed zero ordered.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "lgamma": {
    "category": "elementwise",
    "default": "allow",
@@ -1598,6 +1660,18 @@
   "lt": {
    "category": "elementwise",
    "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "lt_to": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "total-order comparison lt_to: NaN and signed zero ordered.",
    "params": {},
    "roles": [
     "forward",
@@ -1667,6 +1741,18 @@
    ],
    "v0_interpreter": true
   },
+  "mulhi": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "high half of an integer product.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "named_function": {
    "category": "custom_differentiation",
    "default": "allow",
@@ -1725,10 +1811,37 @@
    ],
    "v0_interpreter": true
   },
+  "optimization_barrier": {
+   "category": "shape",
+   "default": "allow",
+   "note": "identity: a scheduling hint for the compiler.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "or": {
    "category": "elementwise",
    "default": "allow",
    "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ormqr": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "multiply by Q from Householder reflectors.",
+   "params": {
+    "left": "bool",
+    "transpose": "bool"
+   },
    "roles": [
     "forward",
     "init",
@@ -2299,6 +2412,25 @@
    ],
    "v0_interpreter": true
   },
+  "scatter_sub": {
+   "category": "array_update",
+   "default": "allow",
+   "note": "x.at[idx].subtract: the combiner is JAX's own.",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "update_jaxpr_sub"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "schur": {
    "category": "linear_algebra",
    "default": "allow",
@@ -2307,6 +2439,42 @@
     "compute_schur_vectors": "bool",
     "select_callable": "none",
     "sort_eig_vals": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "select_and_gather_add": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "the tangent of max/min pooling.",
+   "params": {
+    "base_dilation": "int_tuple",
+    "padding": "int_pairs",
+    "select_prim": "select_prim",
+    "window_dilation": "int_tuple",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "select_and_scatter_add": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "the gradient of max/min pooling.",
+   "params": {
+    "padding": "int_pairs",
+    "select_prim": "select_prim",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
    },
    "roles": [
     "forward",
@@ -2577,6 +2745,20 @@
    ],
    "v0_interpreter": true
   },
+  "tile": {
+   "category": "shape",
+   "default": "allow",
+   "note": "jnp.tile.",
+   "params": {
+    "reps": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "top_k": {
    "category": "reduction",
    "default": "allow",
@@ -2677,6 +2859,18 @@
    "category": "bitwise",
    "default": "allow",
    "note": "integer or boolean xor.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "zeta": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "Hurwitz zeta(x, q), the JAX primitive.",
    "params": {},
    "roles": [
     "forward",

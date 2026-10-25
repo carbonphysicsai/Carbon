@@ -21,6 +21,7 @@ import jax.numpy as jnp
 import jax.scipy.linalg as jsl
 import numpy as np
 from jax import lax
+from jax._src.lax import lax as lax_internal
 from jax._src.lax import linalg as linalg_internal
 
 from carbon.level4 import allowlist as allowlist_module
@@ -283,6 +284,61 @@ CASES = {
     "eigvals": (("eig",), lambda a: jnp.sort(jnp.abs(jnp.linalg.eigvals(a))), (_spd(),), False),
     "hessenberg": (("hessenberg",), lambda a: jax.scipy.linalg.hessenberg(a)[0], (_spd(),), False),
     "schur": (("schur",), lambda a: jax.scipy.linalg.schur(a)[0], (_spd(),), False),
+    # ---- what a model that differentiates inside its own forward holds
+    "add_any_from_grad": (
+        ("add_any",),
+        lambda x: jax.grad(lambda y: (jnp.sin(y) * y).sum() + jnp.sin(y).sum())(x),
+        (_signed(),),
+        True,
+    ),
+    "select_and_scatter_add": (
+        ("select_and_scatter_add",),
+        lambda x: jax.grad(
+            lambda y: lax.reduce_window(y, -jnp.inf, lax.max, (2, 2), (1, 1), "VALID").sum()
+        )(x),
+        (_signed(),),
+        False,
+    ),
+    "lt_to": (("lt_to",), lambda x, y: jnp.where(lax_internal.lt_to_p.bind(x, y), x, y), (_signed(), _signed()), True),
+    "eq_to_le_to": (
+        ("eq_to", "le_to"),
+        lambda x, y: jnp.where(lax_internal.eq_to_p.bind(x, y) | lax_internal.le_to_p.bind(x, y), x, y),
+        (_signed(), _signed()),
+        True,
+    ),
+    "mulhi": (
+        ("mulhi",),
+        lambda i: lax_internal.mulhi(i.astype(jnp.uint32), i.astype(jnp.uint32) + 7),
+        (_ints(),),
+        False,
+    ),
+    "tile": (("tile",), lambda x: jnp.tile(x, (2, 1)), (_signed(),), True),
+    "optimization_barrier": (
+        ("optimization_barrier",),
+        lambda x: lax.optimization_barrier(x) * 2.0,
+        (_signed(),),
+        True,
+    ),
+    "scatter_sub": (
+        ("scatter_sub",),
+        lambda x, u: x.at[jnp.array([0, 2, 0])].subtract(u),
+        (_signed(), _signed((3, 4))),
+        True,
+    ),
+    "cholesky_update": (
+        ("cholesky_update",),
+        lambda a, v: linalg_internal.cholesky_update(jnp.linalg.cholesky(a).T, v),
+        (_spd(), _signed((3,))),
+        False,
+    ),
+    "ormqr": (
+        ("ormqr", "geqrf"),
+        lambda a: (lambda f, t: linalg_internal.ormqr(f, t, jnp.eye(3, dtype=jnp.float32)))(
+            *linalg_internal.geqrf(a)
+        ),
+        (_spd(),),
+        False,
+    ),
 }
 
 

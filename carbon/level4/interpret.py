@@ -31,14 +31,23 @@ def _primitives():
     # `jnp.stack` / `jnp.unstack` bind these; no public handle either.
     table["stack"] = lax_internal.stack_p
     table["unstack"] = lax_internal.unstack_p
-    # The linear-algebra primitives not re-exported publicly (e.g. the pivot
-    # permutation); every handle is a plain pure JAX primitive.
-    from jax._src.lax import linalg as linalg_internal
+    # Primitives JAX does not re-export publicly (the pivot permutation, tile, ...):
+    # a lookup only; what a graph may bind is the allowlist's decision.
+    import importlib
+    import pkgutil
 
-    for name in dir(linalg_internal):
-        if name.endswith("_p"):
-            primitive = getattr(linalg_internal, name)
-            table.setdefault(primitive.name, primitive)
+    from jax._src import lax as lax_package
+    from jax.extend.core import Primitive
+
+    for info in pkgutil.walk_packages(lax_package.__path__, "jax._src.lax."):
+        try:
+            module = importlib.import_module(info.name)
+        except ImportError:
+            continue
+        for name in dir(module):
+            value = getattr(module, name, None)
+            if name.endswith("_p") and isinstance(value, Primitive):
+                table.setdefault(value.name, value)
     # The allowlist names ops with underscores where JAX hyphenates (scatter-add):
     # every hyphenated primitive is also bound under its underscore name.
     for name, primitive in list(table.items()):
@@ -96,7 +105,9 @@ def _cond(run, bound, ins):
     return list(jax.lax.switch(index, branches, *operands))
 
 
-_SCATTERS = frozenset({"scatter_add", "scatter_mul", "scatter_min", "scatter_max"})
+_SCATTERS = frozenset(
+    {"scatter_add", "scatter_sub", "scatter_mul", "scatter_min", "scatter_max"}
+)
 
 
 def _scatter(op, bound, ins):

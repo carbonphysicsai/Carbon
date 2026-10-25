@@ -273,6 +273,12 @@ def _encode(kind, value, lower_graph, name=None):
         ):
             raise GraphRefused("parameter_not_default")
         return None
+    if kind == "select_prim":
+        # The comparison a pooling gradient selects with.
+        name = getattr(value, "name", None)
+        if name not in ("ge", "le"):
+            raise GraphRefused("parameter_not_default")
+        return name
     if kind == "put_default":
         # device_put with no device, source or copy request: an identity.
         if type(value) is not tuple or not value:
@@ -301,6 +307,12 @@ def _decode(kind, value):
         if value is not None:
             raise GraphRefused("parameter_not_default")
         return None
+    if kind == "select_prim":
+        if value not in ("ge", "le"):
+            raise GraphRefused("parameter_kind_mismatch")
+        import jax.extend.core.primitives as public
+
+        return public.ge_p if value == "ge" else public.le_p
     if kind == "put_default":
         if type(value) is not int or value < 1:
             raise GraphRefused("parameter_kind_mismatch")
