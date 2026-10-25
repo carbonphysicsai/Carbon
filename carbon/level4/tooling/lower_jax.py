@@ -107,6 +107,7 @@ def lower(closed, *, role, allowlist, input_names):
     if role not in graph.ROLES:
         raise graph.GraphRefused("role_unknown")
     graphs, names = {}, {}
+    in_rules = set()  # custom-rule functions whose rule is being lowered
 
     def lower_graph(sub, entry_names=None):
         key = id(sub)
@@ -161,25 +162,36 @@ def lower(closed, *, role, allowlist, input_names):
                 allowlist.admit_named(kernel, role, where)
                 op, encoded = "named_function", {"name": kernel}
             else:
-                spec = allowlist.admit(op, role, where)
                 eqn_params = eqn.params
+                guard = None
                 if op == "custom_jvp_call":
                     # A derivative rule JAX holds as a Python callable is traced to a
                     # jaxpr here, on the miner's machine, and carried as a nested
                     # graph that Carbon validates like any other (pure ops only).
-                    import jax.extend.core as jex_core
+                    key = str(eqn.params["call_jaxpr"].jaxpr)
+                    if key in in_rules:
+                        # The rule calls its own function (the usual shape): the call
+                        # inside the rule is the plain function, so the tower of
+                        # derivatives of derivatives ends here and a second
+                        # derivative differentiates the function's body.
+                        op = "closed_call"
+                        eqn_params = {"call_jaxpr": eqn.params["call_jaxpr"]}
+                    else:
+                        import jax.extend.core as jex_core
 
-                    n_args = len(eqn.invars) - eqn.params["num_consts"]
-                    jvp_jaxpr, jvp_consts, out_zeros = eqn.params[
-                        "jvp_jaxpr_fun"
-                    ].call_wrapped(*([False] * n_args))
-                    eqn_params = {
-                        "call_jaxpr": eqn.params["call_jaxpr"],
-                        "jvp_jaxpr": jex_core.ClosedJaxpr(jvp_jaxpr, jvp_consts),
-                        "num_consts": eqn.params["num_consts"],
-                        "out_zeros": tuple(bool(z) for z in out_zeros),
-                        "symbolic_zeros": eqn.params["symbolic_zeros"],
-                    }
+                        n_args = len(eqn.invars) - eqn.params["num_consts"]
+                        jvp_jaxpr, jvp_consts, out_zeros = eqn.params[
+                            "jvp_jaxpr_fun"
+                        ].call_wrapped(*([False] * n_args))
+                        eqn_params = {
+                            "call_jaxpr": eqn.params["call_jaxpr"],
+                            "jvp_jaxpr": jex_core.ClosedJaxpr(jvp_jaxpr, jvp_consts),
+                            "num_consts": eqn.params["num_consts"],
+                            "out_zeros": tuple(bool(z) for z in out_zeros),
+                            "symbolic_zeros": eqn.params["symbolic_zeros"],
+                        }
+                        guard = key
+                spec = allowlist.admit(op, role, where)
                 if op == "custom_linear_solve":
                     # jnp.linalg.solve / inv: the four callables of the solve, each
                     # a nested graph, beside the lengths of their closed-over values.
@@ -192,6 +204,8 @@ def lower(closed, *, role, allowlist, input_names):
                         "transpose_solve": jaxprs.transpose_solve,
                     }
                 try:
+                    if guard is not None:
+                        in_rules.add(guard)
                     encoded = params.encode(spec, eqn_params, lower_graph)
                 except graph.GraphRefused as refused:
                     if (
@@ -206,6 +220,9 @@ def lower(closed, *, role, allowlist, input_names):
                             f"{where} op {op} parameter sharding type {label}",
                         ) from None
                     raise
+                finally:
+                    if guard is not None:
+                        in_rules.discard(guard)
             ins = [use(a) for a in eqn.invars]
             outs = [{"value": new(v), **_aval(v.aval, where)} for v in eqn.outvars]
             nodes.append({"op": op, "in": ins, "out": outs, "params": encoded})
