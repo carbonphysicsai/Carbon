@@ -1,10 +1,70 @@
 {
  "aten_core": {
+  "aten.__lshift__.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "shift_left; a count at or past the width gives 0."
+  },
+  "aten.__lshift__.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "shift_left; a count at or past the width gives 0."
+  },
+  "aten.__rshift__.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "arithmetic shift for signed integers (logical for unsigned)."
+  },
+  "aten.__rshift__.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "arithmetic shift for signed integers (logical for unsigned)."
+  },
+  "aten._adaptive_avg_pool2d.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "mean over torch's adaptive windows, one axis at a time (a mean of means); the rounding order differs from torch's."
+  },
+  "aten._adaptive_avg_pool2d_backward.default": {
+   "category": "reduction",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten._adaptive_avg_pool3d.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "mean over torch's adaptive windows, one axis at a time (a mean of means); the rounding order differs from torch's."
+  },
   "aten._assert_tensor_metadata.default": {
    "category": "debug",
    "default": "review",
    "lowering": "dropped",
    "note": "a trace-time metadata assertion with no result; dropped by lowering"
+  },
+  "aten._cdist_forward.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the direct difference form for every p (torch uses a matmul form past 25 rows when p = 2, which differs by rounding); a zero distance has gradient 0, as torch's."
+  },
+  "aten._embedding_bag.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "sum, mean or max of embedding rows per bag, the bags read from the offsets in the graph; only the pooled result is selectable (offset2bag, bag_size, max_indices refuse by name)."
+  },
+  "aten._embedding_bag_forward_only.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "as _embedding_bag."
   },
   "aten._fft_c2r.default": {
    "category": "spectral",
@@ -18,11 +78,41 @@
    "lowering": "emitted",
    "note": "trailing dims, onesided only; torch normalization mapped explicitly"
   },
+  "aten._linalg_eigh.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's eigh on the symmetric matrix read from one triangle; eigenvalues ascending; eigenvector signs are a gauge (compare reconstructions); compute_v False refuses."
+  },
+  "aten._linalg_solve_ex.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "LU with partial pivoting then two triangular solves, left=True and matrix right-hand sides; the packed LU, pivots and info outputs are not computed (aten_linalg_solve_auxiliary_output)."
+  },
+  "aten._linalg_svd.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's svd; singular values descending; U and Vh signs are a gauge (compare reconstructions); with compute_uv False the vectors are not selectable."
+  },
   "aten._local_scalar_dense.default": {
    "category": "host_or_dynamic",
    "default": "refuse",
    "lowering": "refused",
    "note": "host synchronization or a data-dependent shape"
+  },
+  "aten._log_softmax.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "x - max - log(sum(exp(x - max))), the shift outside the derivative; float32 or float64, half_to_float refused; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten._native_batch_norm_legit.default": {
+   "category": "normalization",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "training batch norm that updates its running statistics in place is a state update, not a pure function of its inputs; the functional form's statistics-only part lowers (aten._native_batch_norm_legit_functional.default)."
   },
   "aten._native_batch_norm_legit.no_stats": {
    "category": "normalization",
@@ -30,11 +120,23 @@
    "lowering": "emitted",
    "note": "batch statistics without running ones: instance norm (CODANO)."
   },
+  "aten._native_batch_norm_legit_functional.default": {
+   "category": "normalization",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "training batch norm, statistics-only part: the normalized result and the batch's own mean and reciprocal std. The updated running statistics are a state update, so selecting them refuses (aten_batch_norm_running_stats_update)."
+  },
   "aten._native_batch_norm_legit_no_training.default": {
    "category": "normalization",
    "default": "allow",
    "lowering": "emitted",
    "note": "inference batch norm with running statistics (U-FNO, U-NO, U-Net); saved statistics not selectable."
+  },
+  "aten._pdist_forward.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "slices of the pairwise matrix, one per row, upper triangle row-major; a zero distance has gradient 0, as torch's."
   },
   "aten._softmax.default": {
    "category": "reduction",
@@ -64,6 +166,24 @@
    "lowering": "emitted",
    "note": "Carbon's abs (AFNO softshrink)."
   },
+  "aten.acos.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's acos; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.acosh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's acosh; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.add.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "as add.Tensor with a Python scalar."
+  },
   "aten.add.Tensor": {
    "category": "elementwise",
    "default": "allow",
@@ -79,16 +199,112 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.amax.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_max; a tie shares the gradient evenly, as torch's amax."
+  },
+  "aten.amin.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_min; a tie shares the gradient evenly, as torch's amin."
+  },
+  "aten.any.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_or of the nonzero mask over every element."
+  },
   "aten.any.dim": {
    "category": "reduction",
    "default": "allow",
    "lowering": "emitted",
    "note": "boolean masks only: reduce_max of the mask as int32, then > 0 (Transformer attention masks)."
   },
+  "aten.any.dims": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_or of the nonzero mask over the given dims."
+  },
   "aten.arange.start_step": {
    "category": "shape",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.argmax.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the first extreme, a NaN counting as largest, as torch's; dim None flattens; integer result."
+  },
+  "aten.argmin.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the first extreme, a NaN counting as smallest, as torch's; dim None flattens; integer result."
+  },
+  "aten.as_strided.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "static size, stride and offset over a contiguous input: the flat index is computed in the graph and gathered; out-of-range or non-contiguous inputs refuse."
+  },
+  "aten.asin.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's asin; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.asinh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's asinh; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.atan.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's atan; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.atan2.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's atan2; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.atan2.out": {
+   "category": "elementwise",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "an out= alias writes into a caller's buffer; use aten.atan2.default."
+  },
+  "aten.atanh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's atanh; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.avg_pool2d.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_window_sum divided by torch's per-window counts (ceil_mode, count_include_pad, divisor_override); may differ from torch's kernel in the last bits (stated tolerance in the test) (summation order)."
+  },
+  "aten.avg_pool2d_backward.default": {
+   "category": "reduction",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten.avg_pool3d.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_window_sum divided by torch's per-window counts (ceil_mode, count_include_pad, divisor_override); may differ from torch's kernel in the last bits (stated tolerance in the test) (summation order)."
   },
   "aten.bernoulli.p": {
    "category": "rng",
@@ -96,11 +312,47 @@
    "lowering": "refused",
    "note": "RNG in inference is refused"
   },
+  "aten.bitwise_and.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operands, Carbon's and."
+  },
   "aten.bitwise_and.Tensor": {
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted",
    "note": "boolean masks only, as Carbon's and."
+  },
+  "aten.bitwise_not.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operand, Carbon's not."
+  },
+  "aten.bitwise_or.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operands, Carbon's or."
+  },
+  "aten.bitwise_or.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operands, Carbon's or."
+  },
+  "aten.bitwise_xor.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operands, Carbon's xor."
+  },
+  "aten.bitwise_xor.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operands, Carbon's xor."
   },
   "aten.bmm.default": {
    "category": "linear_algebra",
@@ -112,6 +364,18 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.ceil.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's ceil; integers pass through."
+  },
+  "aten.clamp.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "tensor bounds as selects; the gradient passes where low <= x <= high, as torch's."
+  },
   "aten.clamp.default": {
    "category": "elementwise",
    "default": "allow",
@@ -122,6 +386,12 @@
    "category": "shape",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.col2im.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "each kernel offset's block placed by one pad (interior padding = stride, negative low/high = the cropped image padding) and the blocks added; no scatter."
   },
   "aten.constant_pad_nd.default": {
    "category": "shape",
@@ -138,6 +408,12 @@
    "lowering": "emitted",
    "note": "v7 form transposed: conv_general_dilated with lhs_dilation = stride, the kernel flipped and its channels swapped per group (WNO-style)."
   },
+  "aten.convolution_backward.default": {
+   "category": "linear_algebra",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
   "aten.copy.default": {
    "category": "shape",
    "default": "allow",
@@ -149,16 +425,100 @@
    "lowering": "emitted",
    "note": "Carbon's cos (OFormer positional encodings)."
   },
+  "aten.cosh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cosh; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.cumprod.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cumprod in the result's dtype; may differ from torch's kernel in the last bits (stated tolerance in the test) (product order)."
+  },
+  "aten.cumsum.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cumsum in the result's dtype; may differ from torch's kernel in the last bits (stated tolerance in the test) (summation order)."
+  },
+  "aten.diagonal.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "transpose the two dims last, flatten, one strided slice; the diagonal is the last axis."
+  },
+  "aten.div.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "true division by a Python scalar."
+  },
+  "aten.div.Scalar_mode": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "as div.Tensor_mode with a Python scalar divisor."
+  },
   "aten.div.Tensor": {
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.div.Tensor_mode": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "rounding_mode floor or trunc; float floor follows c10's fmod sequence, not floor(x / y); integer division by 0 is not checked."
+  },
+  "aten.elu.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "scale * x for x > 0, else scale * alpha * expm1(input_scale * x); the gradient at 0 takes the negative branch, as torch's."
+  },
+  "aten.embedding.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "rows of the weight by gather; an index outside the table reads NaN rows; a padding_idx row gets no gradient, as torch's."
+  },
+  "aten.embedding_dense_backward.default": {
+   "category": "shape",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten.empty.memory_format": {
+   "category": "shape",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "uninitialised memory is not reproducible."
+  },
+  "aten.empty_strided.default": {
+   "category": "shape",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "uninitialised memory is not reproducible."
   },
   "aten.eq.Scalar": {
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted",
    "note": "comparison with a scalar, boolean result."
+  },
+  "aten.eq.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result."
+  },
+  "aten.erf.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's erf; may differ from torch's kernel in the last bits (stated tolerance in the test)."
   },
   "aten.exp.default": {
    "category": "elementwise",
@@ -169,6 +529,24 @@
    "category": "shape",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.expm1.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's expm1; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.fill.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "a constant fill at the result's dtype and shape."
+  },
+  "aten.flip.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's rev."
   },
   "aten.floor.default": {
    "category": "elementwise",
@@ -202,6 +580,12 @@
    "lowering": "emitted",
    "note": "A constant fill at the result's own declared dtype and shape (torch.zeros_like/ones_like/full_like)."
   },
+  "aten.gather.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the gather primitive with torch's addressing; an index outside the tensor reads NaN (integers: the minimum), where torch raises."
+  },
   "aten.ge.Scalar": {
    "category": "elementwise",
    "default": "allow",
@@ -219,6 +603,12 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.grid_sampler_2d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "bilinear or nearest, zeros or border padding (bicubic and reflection refuse); taps gathered in bounds and masked by selects; the gradient reaches the grid through the bilinear weights, as torch's."
+  },
   "aten.gt.Scalar": {
    "category": "elementwise",
    "default": "allow",
@@ -229,6 +619,12 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.hardtanh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "clamp whose gradient is 0 at the bounds (torch's hardtanh backward is strict); relu6 is hardtanh(0, 6)."
+  },
   "aten.index.Tensor": {
    "category": "shape",
    "default": "allow",
@@ -238,11 +634,29 @@
    "lowering": "emitted",
    "note": "Static int64 index on one dimension only; lowered to slices of consecutive index runs and one concatenate (no gather primitive, so no scatter-add gradient); dynamic or multi-dimensional indices refuse. v7 form static_outer: several static indices on adjacent dims that broadcast as an outer product (neuralop's grid interpolation, CODANO) lower as one static take per dim; floor joins the static-index folding."
   },
+  "aten.index_put.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "index tensors on adjacent dims, as the scatter or scatter_add primitive (accumulate); negative indices wrap, one outside the tensor is dropped; repeated indices without accumulate leave the winner unspecified, as in torch."
+  },
   "aten.index_select.default": {
    "category": "shape",
    "default": "allow",
    "lowering": "emitted",
    "note": "one static int64 index on one dimension (CODANO), as aten.index.Tensor: slices + concatenate, never a gather primitive; bounds-checked."
+  },
+  "aten.isinf.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "abs(x) == inf; integers give all False."
+  },
+  "aten.isnan.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "x != x; integers give all False."
   },
   "aten.item.default": {
    "category": "host_or_dynamic",
@@ -268,22 +682,76 @@
    "lowering": "emitted",
    "note": "select_n(x > 0, slope * x, x) (CNO1d); the gradient at 0 is the slope, as torch's."
   },
+  "aten.linalg_cholesky_ex.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cholesky on the symmetric matrix read from one triangle; not positive definite gives NaN; the info output is not computed (aten_linalg_info_not_computed)."
+  },
+  "aten.linalg_qr.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's qr, reduced or complete; the signs of Q and R are a gauge (compare Q @ R); mode r refuses."
+  },
+  "aten.linalg_solve_triangular.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's triangular_solve (left or right, upper or lower, unit diagonal)."
+  },
   "aten.log.default": {
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted",
    "note": "Carbon's log; floating inputs only."
   },
+  "aten.log10.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "log(x) / log(10): torch's log10 is its own kernel, so the last bits differ (a few ulp)."
+  },
   "aten.log1p.default": {
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.log2.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "log(x) / log(2): torch's log2 is its own kernel, so the last bits differ (a few ulp)."
+  },
+  "aten.logcumsumexp.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cumlogsumexp; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.logical_and.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "operands compared with 0 first; boolean result."
   },
   "aten.logical_not.default": {
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted",
    "note": "boolean masks only, as Carbon's not."
+  },
+  "aten.logical_or.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "operands compared with 0 first; boolean result."
+  },
+  "aten.logical_xor.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "operands compared with 0 first; boolean result."
   },
   "aten.lt.Scalar": {
    "category": "elementwise",
@@ -295,16 +763,76 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.masked_scatter.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "positions by a running count of the mask and a gather from the source; a source shorter than the true count reads NaN, where torch raises."
+  },
+  "aten.max.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_max over every element."
+  },
+  "aten.max.dim": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "(values, indices): reduce_max and argmax. A tie shares the values' gradient (torch gives it to the chosen index)."
+  },
   "aten.max_pool2d_with_indices.default": {
    "category": "reduction",
    "default": "allow",
    "lowering": "emitted",
    "note": "non-overlapping windows (kernel = stride, no padding): reshape + reduce_max; the indices output is refused."
   },
+  "aten.max_pool2d_with_indices_backward.default": {
+   "category": "reduction",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten.max_pool3d_with_indices.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_window_max over any window (stride, padding, dilation, ceil_mode); the indices output is refused. With v8, max_pool2d_with_indices takes the same path for windows other than non-overlapping ones."
+  },
+  "aten.maximum.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's max; NaN propagates and a tie splits the gradient in half, as torch's."
+  },
+  "aten.mean.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "mean over every element: reduce_sum divided by the count."
+  },
   "aten.mean.dim": {
    "category": "reduction",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.min.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_min over every element."
+  },
+  "aten.min.dim": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "(values, indices): reduce_min and argmin. A tie shares the values' gradient (torch gives it to the chosen index)."
+  },
+  "aten.minimum.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's min; NaN propagates and a tie splits the gradient in half, as torch's."
   },
   "aten.mm.default": {
    "category": "linear_algebra",
@@ -328,11 +856,41 @@
    "lowering": "refused",
    "note": "RNG in inference is refused"
   },
+  "aten.native_group_norm.default": {
+   "category": "normalization",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "statistics per (sample, group), then the per-channel weight and bias; the mean and reciprocal std outputs carry no gradient, as torch's; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.native_group_norm_backward.default": {
+   "category": "normalization",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
   "aten.native_layer_norm.default": {
    "category": "normalization",
    "default": "allow",
    "lowering": "emitted",
    "note": "Trailing normalized axes only; output, mean and reciprocal standard deviation are retained as separate graph values."
+  },
+  "aten.native_layer_norm_backward.default": {
+   "category": "normalization",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten.ne.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison with a scalar, boolean result."
+  },
+  "aten.ne.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result."
   },
   "aten.neg.default": {
    "category": "elementwise",
@@ -357,6 +915,36 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.pow.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "pow(scalar, tensor) as the pow primitive; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.pow.Tensor_Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "a whole-number exponent up to 16 is integer_pow, any other the pow primitive; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.pow.Tensor_Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the pow primitive; a negative base with a fractional exponent is NaN, as torch's; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.prod.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_prod over every element; a zero in the product keeps a finite gradient."
+  },
+  "aten.prod.dim_int": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_prod along one dim; a zero in the product keeps a finite gradient."
+  },
   "aten.rand.default": {
    "category": "rng",
    "default": "refuse",
@@ -375,11 +963,35 @@
    "lowering": "refused",
    "note": "RNG in inference is refused"
   },
+  "aten.randperm.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused: a permutation drawn from a generator breaks paired-repeat exactness and graded-vs-timed agreement; a fixed permutation can be a constant."
+  },
   "aten.reciprocal.default": {
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted",
    "note": "1 / x as Carbon's div (THUML GNOT)."
+  },
+  "aten.reflection_pad1d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "slices, rev and concatenate; pad must be less than the size, as torch's."
+  },
+  "aten.reflection_pad2d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "slices, rev and concatenate; pad must be less than the size, as torch's."
+  },
+  "aten.reflection_pad3d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "slices, rev and concatenate; pad must be less than the size, as torch's."
   },
   "aten.relu.default": {
    "category": "elementwise",
@@ -387,15 +999,87 @@
    "lowering": "emitted",
    "note": "lowers to named_function relu"
   },
+  "aten.remainder.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Python-style modulo: rem plus the divisor where the signs differ; d/dy = -floor(x / y), as torch's."
+  },
+  "aten.remainder.Scalar_Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Python-style modulo with a scalar dividend."
+  },
+  "aten.remainder.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Python-style modulo: rem plus the divisor where the signs differ; d/dy = -floor(x / y), as torch's."
+  },
   "aten.repeat.default": {
    "category": "shape",
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.replication_pad1d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the edge value repeated, by broadcast and concatenate."
+  },
+  "aten.replication_pad2d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the edge value repeated, by broadcast and concatenate."
+  },
+  "aten.replication_pad3d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the edge value repeated, by broadcast and concatenate."
+  },
   "aten.reshape.default": {
    "category": "shape",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.round.decimals": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "torch's own sequence: round(x * 10**d) / 10**d, the scale on the other side for d < 0."
+  },
+  "aten.round.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "round half to even (torch's rule), Carbon's round with TO_NEAREST_EVEN; gradient 0."
+  },
+  "aten.rsqrt.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's rsqrt; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.scalar_tensor.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "a scalar constant at the result's dtype."
+  },
+  "aten.scatter.src": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the scatter primitive with torch's gather/scatter addressing; an index outside the tensor is dropped, where torch raises; repeated indices leave the winner unspecified, as in torch."
+  },
+  "aten.scatter.value": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the scatter primitive with a constant update; an index outside the tensor is dropped, where torch raises."
   },
   "aten.scatter_add.default": {
    "category": "shape",
@@ -403,10 +1087,22 @@
    "lowering": "emitted",
    "note": "Static int64 indices only; ordered non-atomic expansion into existing primitives; dynamic indices refuse."
   },
+  "aten.scatter_reduce.two": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "sum, mean, prod, amax, amin by the scatter_* primitives, with or without self; an index outside the tensor is dropped, where torch raises; prod has a gradient for src only for non-repeating indices (JAX's rule)."
+  },
   "aten.select.int": {
    "category": "shape",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.select_scatter.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "a mask from an iota and a select; no scatter primitive."
   },
   "aten.sigmoid.default": {
    "category": "elementwise",
@@ -425,6 +1121,12 @@
    "lowering": "emitted",
    "note": "Carbon's sin."
   },
+  "aten.sinh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's sinh; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
   "aten.slice.Tensor": {
    "category": "shape",
    "default": "allow",
@@ -438,6 +1140,18 @@
    ],
    "lowering": "emitted",
    "note": "v7 form strided: a step > 1 lowers as an interior pad of the source and a select (MWT)."
+  },
+  "aten.sort.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "(values, indices) by the sort primitive, ties in index order, NaN last as in torch; descending sorts on (value, -index) and reverses."
+  },
+  "aten.sort.stable": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "as sort.default (the sort is always stable)."
   },
   "aten.split_with_sizes.default": {
    "category": "shape",
@@ -460,6 +1174,12 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.sub.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "as sub.Tensor with a Python scalar."
+  },
   "aten.sub.Tensor": {
    "category": "elementwise",
    "default": "allow",
@@ -474,15 +1194,57 @@
    "lowering": "emitted",
    "note": "Static dimension-list reduction for float32/float64 tensors; unsupported arguments and dtypes are refused. v7 form complex: a complex sum in its own dtype (CODANO's spectral contraction)."
   },
+  "aten.sym_numel.default": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "symbolic shape operations: shapes must be static."
+  },
+  "aten.sym_size.int": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "symbolic shape operations: shapes must be static."
+  },
+  "aten.sym_storage_offset.default": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "symbolic shape operations: shapes must be static."
+  },
+  "aten.sym_stride.int": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "symbolic shape operations: shapes must be static."
+  },
   "aten.t.default": {
    "category": "linear_algebra",
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.tan.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's tan; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
   "aten.tanh.default": {
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.topk.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "largest: the top_k primitive; smallest: a stable sort cut at k (a NaN is never among the smallest). Values are sorted; tied indices are in index order."
+  },
+  "aten.trunc.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "floor for x >= 0 and ceil for x < 0; integers pass through."
   },
   "aten.uniform.default": {
    "category": "rng",
@@ -495,10 +1257,28 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.upsample_bilinear2d.vec": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "two gathers per axis with torch's source index and weights, width then height; the arithmetic order differs from torch's fused kernel by rounding (stated tolerance in the test)."
+  },
+  "aten.upsample_nearest2d.vec": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "source = min(floor(i * scale), in - 1) in float32 as torch's, per axis by a gather."
+  },
   "aten.var.correction": {
    "category": "reduction",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.var.dim": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "variance with unbiased / biased by the flag, the correction form's arithmetic."
   },
   "aten.view.default": {
    "category": "shape",
