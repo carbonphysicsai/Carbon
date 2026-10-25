@@ -75,7 +75,7 @@ def test_motor_derive_matches_the_registered_decision_quantities():
         )
         want = decision.quantities(contract, {"torque_nm": list(row["reference"])})
         assert derived == {
-            "mean_nm": want["mean_nm"],
+            "mean_torque_nm": want["mean_nm"],
             "ripple_fraction": want["ripple_fraction"],
         }
         ok = all(
@@ -166,3 +166,67 @@ def test_the_limits_build_pool_grader_limits():
     limits = pa.pool_limits(_adapter("cooling"))
     assert all(isinstance(limit, pool_grader.Limit) for limit in limits)
     assert [limit.output for limit in limits] == ["die_peak_c", "hydraulic_w"]
+
+
+_U = {
+    "motor": {"mean_torque_nm": 0.01},
+    "cooling": {"die_peak_c": 0.05, "pressure_drop_pa": 0.5},
+    "f02": {"peak_top_c": 0.02},
+    "f08": {"static_tip_mm_per_n": 1e-5, "worst_dynamic_mm_per_n": 3.9e-05},
+}
+
+
+def _binding(kind):
+    return pa.binding(
+        kind,
+        VERSIONS[kind],
+        u=_U[kind],
+        serve_good=lambda rows: [],
+        serve_train=lambda rows: [],
+        mass_of=lambda design: 0.3,
+    )
+
+
+@pytest.mark.parametrize("kind", sorted(VERSIONS))
+def test_the_binding_carries_the_adapter_the_train_floor_and_a_small_raw_u(kind):
+    bound = _binding(kind)
+    chosen = _adapter(kind)
+    assert bound.input_names == chosen.input_names
+    assert bound.design_names == chosen.design_names
+    rows = _reference_rows(kind)
+    row = rows[0]
+    reference = list(row["reference"])
+    u = bound.raw_u(row["inputs"], reference)
+    assert len(u) == len(reference) and all(math.isfinite(x) and x >= 0 for x in u)
+    mean = bound.train_mean_row()
+    assert len(mean) == len(reference) and all(math.isfinite(x) for x in mean)
+    box = bound.train_box(None)
+    assert len(box) == len(bound.design_names)
+    assert all(hi > lo for lo, hi in box)
+
+
+def test_a_binding_without_the_decisions_u_is_refused():
+    with pytest.raises(pa.PoolAdapterRefused) as raised:
+        pa.binding(
+            "f02",
+            "2.4",
+            u={},
+            serve_good=lambda rows: [],
+            serve_train=lambda rows: [],
+        )
+    assert raised.value.code == "u_missing:peak_top_c"
+
+
+def test_f08_raw_u_is_zero_on_the_frequency_elements():
+    from carbon.scoring import f08_dual_pack
+
+    bound = _binding("f08")
+    targets = list(f08_dual_pack._targets("1.5"))
+    u = bound.raw_u({}, [1.0] * len(targets))
+    for name, value in zip(targets, u, strict=True):
+        if name in f08_dual_pack._TIPS:
+            assert value == 3.9e-05
+        elif name == "static_tip_mm_per_n":
+            assert value == 1e-5
+        else:
+            assert value == 0.0

@@ -107,7 +107,7 @@ def _motor(version):
         except decision.DecisionError:
             return None
         return {
-            "mean_nm": quantities["mean_nm"],
+            "mean_torque_nm": quantities["mean_nm"],
             "ripple_fraction": quantities["ripple_fraction"],
         }
 
@@ -117,11 +117,11 @@ def _motor(version):
         input_names=tuple(names),
         design_names=tuple(decision.DESIGN_VARIABLES),
         condition_names=tuple(decision.CONDITION_VARIABLES),
-        outputs=("mean_nm", "ripple_fraction"),
+        outputs=("mean_torque_nm", "ripple_fraction"),
         objective="ripple_fraction",
         sense="min",
         limits=(
-            ("mean_nm", ">=", float(constraints["min_mean_torque_nm"])),
+            ("mean_torque_nm", ">=", float(constraints["min_mean_torque_nm"])),
             ("ripple_fraction", "<=", float(constraints["max_ripple_fraction"])),
         ),
         derive=derive,
@@ -164,6 +164,7 @@ def _cooling(version):
         return {
             "die_peak_c": quantities["die_peak_c"],
             "hydraulic_w": quantities["hydraulic_w"],
+            "pressure_drop_pa": outputs["pressure_drop_pa"],
         }
 
     return PoolAdapter(
@@ -172,7 +173,7 @@ def _cooling(version):
         input_names=tuple(names),
         design_names=tuple(decision.DESIGN_VARIABLES),
         condition_names=tuple(decision.CONDITION_VARIABLES),
-        outputs=("die_peak_c", "hydraulic_w"),
+        outputs=("die_peak_c", "hydraulic_w", "pressure_drop_pa"),
         objective="hydraulic_w",
         sense="min",
         limits=(
@@ -302,3 +303,119 @@ def pool_limits(chosen):
     from carbon.scoring import pool_grader
 
     return tuple(pool_grader.Limit(o, k, b) for o, k, b in chosen.limits)
+
+
+# -- The binding the pool plugin takes ---------------------------------------------------------------
+
+#: Which derived output's U applies to each raw output element (the rest get 0: a noisy oracle must not
+#: push an element that feeds no decision quantity out of its native range). A proposal for the Validator,
+#: not a registered rule: the U VALUES are the DECISION record's (`pool_plan.py targets`), never defaults.
+_RAW_U_NEEDS = {
+    "motor": ("mean_torque_nm",),
+    "cooling": ("die_peak_c", "pressure_drop_pa"),
+    "f02": ("peak_top_c",),
+    "f08": ("static_tip_mm_per_n", "worst_dynamic_mm_per_n"),
+}
+
+
+def _raw_u_of(kind, version, u):
+    missing = [name for name in _RAW_U_NEEDS[kind] if name not in u]
+    if missing:
+        raise PoolAdapterRefused("u_missing:" + ",".join(missing))
+    if kind == "f08":
+        from carbon.scoring import f08_dual_pack
+
+        targets = list(f08_dual_pack._targets(version))
+        by_element = [
+            (
+                u["static_tip_mm_per_n"]
+                if name == "static_tip_mm_per_n"
+                else u["worst_dynamic_mm_per_n"] if name in f08_dual_pack._TIPS else 0.0
+            )
+            for name in targets
+        ]
+    elif kind == "f02":
+        by_element = [u["peak_top_c"]]
+    elif kind == "motor":
+        by_element = (
+            None  # every one of the 60 torque elements carries the mean-torque U
+        )
+    else:
+        by_element = [u["die_peak_c"]] * 31 + [u["pressure_drop_pa"]]
+
+    def raw_u(_inputs, reference_row):
+        if by_element is None:
+            return [float(u["mean_torque_nm"])] * len(reference_row)
+        if len(by_element) != len(reference_row):
+            raise PoolAdapterRefused("raw_row_width_is_not_the_interface_width")
+        return list(by_element)
+
+    return raw_u
+
+
+def _train_arrays(kind, version):
+    import io
+
+    from carbon.challenge_kit import physical_pack
+    from carbon.scoring import practice_grid
+
+    chosen = practice_grid.adapter(kind, version)
+    public = physical_pack.public_roles(chosen.CHALLENGE, version)
+    native = getattr(chosen, "_native_train", None)
+    raw = native() if native is not None else public["train"]
+    import numpy as np
+
+    with np.load(io.BytesIO(raw), allow_pickle=False) as data:
+        inputs = np.asarray(data["inputs"], dtype=float)
+        targets = np.asarray(data["targets"], dtype=float)
+    return native is not None, inputs, targets
+
+
+def train_mean_row(kind, version):
+    """The TRAIN-mean raw output row in the space the grader measures (the default model's answer): the
+    floor `ctrl.train_mean` of `calibration_grade`, as `practice_v2_curves.train_mean_row` computes it.
+    """
+    encoded, _inputs, targets = _train_arrays(kind, version)
+    mean = targets.mean(axis=0)
+    if encoded:
+        from carbon.cold_plate import output_encoding
+
+        mean = output_encoding.encode_targets(mean[None, :])[0]
+    return [float(v) for v in mean]
+
+
+def train_box(kind, version, design_names, input_names):
+    """The TRAIN box over the design variables, ((lo, hi), ...) in design units."""
+    _encoded, inputs, _targets = _train_arrays(kind, version)
+    if inputs.shape[1] != len(input_names):
+        raise PoolAdapterRefused("train_inputs_do_not_match_the_interface")
+    column = {name: i for i, name in enumerate(input_names)}
+    return tuple(
+        (float(inputs[:, column[n]].min()), float(inputs[:, column[n]].max()))
+        for n in design_names
+    )
+
+
+def binding(kind, version, *, u, serve_good, serve_train, mass_of=None):
+    """The `pool_plugin.ChallengeBinding` of one Challenge version.
+
+    `u` is the DECISION record's U per derived output (the pools' own); `serve_good` and `serve_train`
+    are the real models' raw-output servers (`rows -> raw output rows`), which run on the build host.
+    Nothing here has a default for any of them."""
+    from carbon.scoring import pool_plugin
+
+    chosen = adapter(kind, version, mass_of=mass_of)
+    box = train_box(kind, version, chosen.design_names, chosen.input_names)
+    mean_row = train_mean_row(kind, version)
+    return pool_plugin.ChallengeBinding(
+        kind=kind,
+        version=version,
+        input_names=chosen.input_names,
+        design_names=chosen.design_names,
+        derive=chosen.derive,
+        raw_u=_raw_u_of(kind, version, dict(u)),
+        train_mean_row=lambda: list(mean_row),
+        serve_good=serve_good,
+        serve_train=serve_train,
+        train_box=lambda _spec: box,
+    )
