@@ -82,7 +82,7 @@ def test_the_driver_figure_comes_from_the_gpu_builds_and_cites_its_source():
 
 def test_the_installer_and_the_python_check_hold_the_same_numbers():
     def value(name):
-        return re.search(rf'^{name}="?([^"\n]+)"?$', INSTALLER, re.M).group(1)
+        return re.search(rf'^{name}="?([^"\n]+)"?$', INSTALLER, re.MULTILINE).group(1)
 
     assert value("SUPPORTED_UBUNTU").split() == list(ss.SUPPORTED_UBUNTU)
     assert int(value("SUPPORTED_DOCKER_MAJOR")) == ss.SUPPORTED_DOCKER_MAJOR
