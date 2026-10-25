@@ -3566,13 +3566,13 @@
     const known = id => catalog.some(item => item.catalog_id === id);
     const start = known(idOf(raw.value)) ? idOf(raw.value) : catalog[0].catalog_id;
     const pickLabel = el("label", "Backbone"); const pick = document.createElement("select"); pick.id = "journey-backbone-" + run.id; pickLabel.htmlFor = pick.id;
-    for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "")); option.value = item.catalog_id; pick.append(option); }
+    for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "") + (item.legacy ? " (legacy)" : "")); option.value = item.catalog_id; pick.append(option); }
     pick.value = start; pick.dataset.draft = "1";
     const about = el("p", undefined, "hint"); about.id = "journey-backbone-about-" + run.id;
     const stepsLabel = el("label", "Training steps (empty keeps the tested default)"); const steps = document.createElement("input"); steps.type = "number"; steps.min = "1"; steps.step = "1"; steps.id = "journey-steps-" + run.id; stepsLabel.htmlFor = steps.id; steps.dataset.draft = "1";
     const rateLabel = el("label", "Learning rate (empty keeps the tested default)"); const rate = document.createElement("input"); rate.type = "number"; rate.min = "0"; rate.step = "any"; rate.id = "journey-rate-" + run.id; rateLabel.htmlFor = rate.id; rate.dataset.draft = "1";
     const current = () => catalog.find(item => item.catalog_id === pick.value) || catalog[0];
-    const describe = () => { about.textContent = current().variant ? current().variant : "A backbone Carbon has tested on this Challenge. Its tested settings are the starting point."; };
+    const describe = () => { about.textContent = current().variant ? current().variant : current().legacy ? "A legacy entry: " + current().legacy : "A backbone Carbon has tested on this Challenge. Its tested settings are the starting point."; };
     try { const kept = JSON.parse(raw.value); const s = kept?.procedure?.train_use?.steps, r = kept?.procedure?.configuration?.learning_rate; if (known(idOf(raw.value))) { if (Number.isFinite(s)) steps.value = String(s); if (Number.isFinite(r)) rate.value = String(r); } } catch (_) { /* kept as typed */ }
     const write = () => {
       const recipe = JSON.parse(JSON.stringify(current().recipe));
