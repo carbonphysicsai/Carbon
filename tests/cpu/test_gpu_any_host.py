@@ -83,6 +83,7 @@ def _prepare(tmp_path, capsys, host, monkeypatch):
             "--container-runtime",
             "DOCKER_ENGINE",
             "--dry-run",
+            "--miner-lane",
             "--smi",
             str(_smi(tmp_path, host)),
         ]

@@ -51,6 +51,7 @@ from carbon.reconstruction.worker.model import WorkerFailure
 #: What a host-record field must be, in plain words, for a refusal that names
 #: it. Facts about the record's shape only; nothing read from the host.
 FIELD_HINTS = {
+    "gpu_vendor": "this machine's GPU is not an NVIDIA GPU (GPU practice supports NVIDIA only for now)",
     "nvidia_smi": "the NVIDIA query tool (nvidia-smi) was not found or could not talk to the driver",
     "device": "this host has several GPUs (or the one named is not among them): pass --device GPU-<uuid>, one of `choices`",
     "record": "the record is missing or has unexpected fields",
@@ -143,6 +144,19 @@ def command_prepare(args) -> int:
         try:
             observed = onboarding.observe_local_device(binary=args.smi)
         except WorkerFailure as failure:
+            if onboarding.not_nvidia(onboarding.probe_vendors()):
+                return (
+                    _emit(
+                        {
+                            "status": "REFUSED",
+                            "code": failure.code.value,
+                            "fields": ["gpu_vendor"],
+                            "reasons": {"gpu_vendor": onboarding.NOT_NVIDIA_REASON},
+                            "next": onboarding.NOT_NVIDIA_NEXT,
+                        }
+                    )
+                    or 2
+                )
             return (
                 _emit(
                     {
@@ -158,18 +172,40 @@ def command_prepare(args) -> int:
         provenance = args.provenance or (
             f"vendor query tool at {observed.get('source')}, run by the operator"
         )
+    record = {
+        "profile": profile,
+        "record_id": onboarding.valid_record_id(args.record_id),
+        "provider": args.provider,
+        "platform": args.platform,
+        "container_runtime": args.container_runtime,
+        "provenance": provenance,
+    }
+    chosen = None
+    device = args.device
+    if args.miner_lane and device is None and len(observed.get("devices") or []) > 1:
+        # Your own practice on a machine with several GPUs: the first usable one,
+        # in the vendor tool's order, printed; `--device` picks another. A missing
+        # choice never refuses here (validator hosts still choose explicitly).
+        found = onboarding.first_usable_device(observed, **record)
+        if found is not None:
+            device = found[1]
+            chosen = {
+                "index": found[0],
+                "device_uuid": found[1],
+                "device_kind": observed["devices"][found[0]].get("device_kind"),
+                "how": "the first usable GPU; use --device to choose another",
+            }
     document = onboarding.build_host_record(
-        observed=observed,
-        device_uuid=args.device,
-        profile=profile,
-        record_id=onboarding.valid_record_id(args.record_id),
-        provider=args.provider,
-        platform=args.platform,
-        container_runtime=args.container_runtime,
-        provenance=provenance,
+        observed=observed, device_uuid=device, **record
     )
     if args.dry_run:
-        return _emit({"status": "NOT_WRITTEN", "document": document})
+        return _emit(
+            {
+                "status": "NOT_WRITTEN",
+                "document": document,
+                **({"chosen": chosen} if chosen else {}),
+            }
+        )
     path = onboarding.install_record(root, document, name=HOST_DEVICE_RECORD)
     record = require_host_device(HostDeviceRecord.load(root), profile)
     return _emit(
@@ -179,6 +215,7 @@ def command_prepare(args) -> int:
             "record_digest": record.digest,
             "authority": "HOST_OBSERVATION_ONLY_NOT_QUALIFICATION",
             "next": "run `doctor` to see what still blocks this host",
+            **({"chosen": chosen} if chosen else {}),
         }
     )
 
@@ -298,6 +335,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     prepare.add_argument(
         "--device", help="which device this record describes, on a multi-device host"
+    )
+    prepare.add_argument(
+        "--miner-lane",
+        action="store_true",
+        help="your own practice host: on a machine with several GPUs use the first usable one (printed)",
     )
     prepare.add_argument("--platform", choices=sorted(PLATFORMS))
     prepare.add_argument("--container-runtime", choices=sorted(CONTAINER_RUNTIMES))

@@ -1,5 +1,4 @@
 {
- "currently_fails": "AMD gets the NVIDIA-driver message today (step 2: a GAP reason with the CPU next step)",
  "docker_nvidia_runtime": false,
  "prepare": {
   "next_contains": "CPU",

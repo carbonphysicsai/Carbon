@@ -1,5 +1,4 @@
 {
- "currently_fails": "multi-GPU needs --device today (step 2: first healthy GPU by default)",
  "docker_nvidia_runtime": true,
  "prepare": {
   "chosen_index": 0,
