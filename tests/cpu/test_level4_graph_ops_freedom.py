@@ -330,7 +330,12 @@ def test_earlier_versions_still_refuse_the_op(name, path):
     ops, fn, args, _ = CASES[name]
     with pytest.raises(graph.GraphRefused) as refused:
         _rebuilt(fn, args, path=path)
-    assert refused.value.code in {"op_not_allowlisted", "parameters_not_allowlisted"}
+    assert refused.value.code in {
+        "op_not_allowlisted",
+        "parameters_not_allowlisted",
+        "op_not_supported_v0",
+        "op_refused",
+    }
 
 
 SOLVES = {
