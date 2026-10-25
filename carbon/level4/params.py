@@ -244,6 +244,8 @@ def _encode(kind, value, lower_graph, name=None):
         return "threefry2x32"
     if kind == "graph":
         return {"graph": lower_graph(value)}
+    if kind == "graph_or_none":
+        return None if value is None else {"graph": lower_graph(value)}
     raise GraphRefused("parameter_kind_unknown")
 
 
@@ -256,6 +258,7 @@ def _decode(kind, value):
         return float(value)
     if kind in (
         "none",
+        "graph_or_none",
         "call_metadata",
         "custom_rule_dropped",
         "owned_single_device_sharding",
@@ -368,13 +371,24 @@ def encode(spec, params, lower_graph):
     return out
 
 
+def _nested(value):
+    """A nested-graph reference, exactly `{"graph": "<name>"}`."""
+    if type(value) is not dict or set(value) != {"graph"} or type(value["graph"]) is not str:
+        raise GraphRefused("parameter_kind_mismatch")
+    return value
+
+
 def decode(spec, params):
     """Bind-ready parameters; graph references are left to the interpreter."""
     if type(params) is not dict or set(params) != set(spec):
         raise GraphRefused("parameters_not_allowlisted")
     return {
         name: (
-            params[name] if spec[name] == "graph" else _decode(spec[name], params[name])
+            _nested(params[name])
+            if spec[name] == "graph_or_none" and params[name] is not None
+            else params[name]
+            if spec[name] == "graph"
+            else _decode(spec[name], params[name])
         )
         for name in spec
     }

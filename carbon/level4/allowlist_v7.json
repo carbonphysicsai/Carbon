@@ -1045,6 +1045,24 @@
    "roles": [],
    "v0_interpreter": false
   },
+  "custom_linear_solve": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "jnp.linalg.solve / inv / scipy.linalg.solve: a linear solve with JAX's implicit-differentiation rule; its matvec, vecmat, solve and transpose_solve callables are nested graphs.",
+   "params": {
+    "const_lengths": "int_tuple",
+    "matvec": "graph",
+    "solve": "graph",
+    "transpose_solve": "graph_or_none",
+    "vecmat": "graph_or_none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "custom_vjp_call": {
    "category": "custom_differentiation",
    "default": "review",

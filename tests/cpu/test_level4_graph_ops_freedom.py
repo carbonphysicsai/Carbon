@@ -223,6 +223,52 @@ def test_v6_still_refuses_the_op(name):
     assert refused.value.code in {"op_not_allowlisted", "parameters_not_allowlisted"}
 
 
+SOLVES = {
+    "solve_matrix": lambda a, b: jnp.linalg.solve(a, b),
+    "solve_vector": lambda a, b: jnp.linalg.solve(a, b[:, 0]),
+    "inv": lambda a, b: jnp.linalg.inv(a) @ b,
+    "scipy_solve": lambda a, b: jsl.solve(a, b),
+    "scipy_solve_spd": lambda a, b: jsl.solve(a, b, assume_a="pos"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(SOLVES))
+def test_a_linear_solve_keeps_its_gradient_in_the_matrix_and_the_right_side(name):
+    """jnp.linalg.solve lowers through custom_linear_solve; inlining its stop-gradient
+    factorization would lose the gradient in the matrix, so the rule is kept."""
+    fn = SOLVES[name]
+    args = (_spd(), _signed((3, 2)))
+    doc, run = _rebuilt(fn, args)
+    assert "custom_linear_solve" in _ops(doc)
+    np.testing.assert_allclose(
+        np.asarray(run(*args)[0]), np.asarray(fn(*args)), rtol=1e-6, atol=1e-6
+    )
+    assert np.asarray(run(*args)[0]).tobytes() == np.asarray(run(*args)[0]).tobytes()
+    probe = jnp.linspace(-1.0, 2.0, int(np.prod(np.asarray(fn(*args)).shape))).reshape(
+        np.asarray(fn(*args)).shape
+    )
+    want = jax.grad(lambda a, b: jnp.sum(fn(a, b) * probe), argnums=(0, 1))(*args)
+    got = jax.grad(lambda a, b: jnp.sum(run(a, b)[0] * probe), argnums=(0, 1))(*args)
+    for g, w in zip(got, want):
+        assert np.abs(np.asarray(w)).max() > 1e-3  # the gradient is not trivially zero
+        np.testing.assert_allclose(np.asarray(g), np.asarray(w), rtol=1e-4, atol=1e-5)
+
+
+def test_a_malformed_nested_solve_reference_is_refused():
+    allowlist = allowlist_module.load(V7)
+    args = (_spd(), _signed((3, 2)))
+    doc, _ = _rebuilt(SOLVES["solve_matrix"], args)
+    node = next(
+        n
+        for g in doc["graphs"].values()
+        for n in g["nodes"]
+        if n["op"] == "custom_linear_solve"
+    )
+    node["params"]["solve"] = "not-a-reference"
+    with pytest.raises(graph.GraphRefused):
+        allowlist.check(doc)
+
+
 def test_containment_is_unchanged():
     """Escapes, callbacks and unseeded generators stay refused in v7."""
     ops = allowlist_module.load(V7).ops

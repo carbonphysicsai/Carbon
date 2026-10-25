@@ -160,8 +160,20 @@ def lower(closed, *, role, allowlist, input_names):
                 op, encoded = "named_function", {"name": kernel}
             else:
                 spec = allowlist.admit(op, role, where)
+                eqn_params = eqn.params
+                if op == "custom_linear_solve":
+                    # jnp.linalg.solve / inv: the four callables of the solve, each
+                    # a nested graph, beside the lengths of their closed-over values.
+                    jaxprs = eqn_params["jaxprs"]
+                    eqn_params = {
+                        "const_lengths": tuple(eqn_params["const_lengths"]),
+                        "matvec": jaxprs.matvec,
+                        "vecmat": jaxprs.vecmat,
+                        "solve": jaxprs.solve,
+                        "transpose_solve": jaxprs.transpose_solve,
+                    }
                 try:
-                    encoded = params.encode(spec, eqn.params, lower_graph)
+                    encoded = params.encode(spec, eqn_params, lower_graph)
                 except graph.GraphRefused as refused:
                     if (
                         refused.code == "parameter_not_default"

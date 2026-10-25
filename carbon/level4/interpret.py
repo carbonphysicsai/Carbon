@@ -48,6 +48,46 @@ def _dtype_name(x):
     return str(x.dtype)
 
 
+def _linear_solve(run, bound, ins):
+    """`jax.lax.custom_linear_solve` over the node's four nested graphs, so the
+    solve keeps the implicit-differentiation rule JAX gives it (a solve through
+    an inlined, stop-gradient factorization would lose the gradient in the matrix)."""
+    import jax
+
+    lengths = bound["const_lengths"]
+    if len(lengths) != 4 or any(n < 0 for n in lengths):
+        raise graph.GraphRefused("parameter_kind_mismatch")
+    consts, at = [], 0
+    for n in lengths:
+        consts.append(list(ins[at : at + n]))
+        at += n
+    b = list(ins[at:])
+    matvec_c, vecmat_c, solve_c, transpose_c = consts
+
+    def ref(name):
+        return None if bound[name] is None else bound[name]["graph"]
+
+    def callable_of(name, held):
+        target = ref(name)
+        if target is None:
+            return None
+        return lambda *x: run(target, [*held, *x])
+
+    matvec = callable_of("matvec", matvec_c)
+    solve_g = callable_of("solve", solve_c)
+    transpose_g = callable_of("transpose_solve", transpose_c)
+    if matvec is None or solve_g is None:
+        raise graph.GraphRefused("parameter_kind_mismatch")
+    return list(
+        jax.lax.custom_linear_solve(
+            lambda x: matvec(*x),
+            b,
+            lambda _matvec, rhs: solve_g(*rhs),
+            None if transpose_g is None else (lambda _vecmat, rhs: transpose_g(*rhs)),
+        )
+    )
+
+
 def rebuild(doc, allowlist):
     """`fn(*inputs) -> list of outputs` for a validated document.
 
@@ -89,6 +129,8 @@ def rebuild(doc, allowlist):
                 outs = run(ref, ins)
             elif node["op"] == "named_function":
                 outs = named.call(bound["name"], ins)
+            elif node["op"] == "custom_linear_solve":
+                outs = _linear_solve(run, bound, ins)
             else:
                 primitive = _PRIMITIVES.get(node["op"])
                 if primitive is None:
