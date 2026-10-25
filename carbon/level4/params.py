@@ -238,6 +238,17 @@ def _encode(kind, value, lower_graph, name=None):
         return value.name
     if kind == "rounding_method":
         return value.name
+    if kind == "precision":
+        # None, or the (lhs, rhs) pair of matmul precisions JAX records.
+        if value is None:
+            return None
+        if (
+            type(value) is not tuple
+            or len(value) != 2
+            or any(type(v).__name__ != "Precision" for v in value)
+        ):
+            raise GraphRefused("parameter_not_default")
+        return [v.name for v in value]
     if kind == "prng_impl":
         if str(value) != "fry":
             raise GraphRefused("prng_impl_not_allowed")
@@ -340,6 +351,16 @@ def _decode(kind, value):
         if value not in ("FFT", "IFFT", "RFFT", "IRFFT"):
             raise GraphRefused("parameter_kind_mismatch")
         return FftType[value]
+    if kind == "precision":
+        if value is None:
+            return None
+        if type(value) is not list or len(value) != 2:
+            raise GraphRefused("parameter_kind_mismatch")
+        from jax.lax import Precision
+
+        if any(v not in ("DEFAULT", "HIGH", "HIGHEST") for v in value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return tuple(Precision[v] for v in value)
     if kind == "rounding_method":
         from jax.lax import RoundingMethod
 

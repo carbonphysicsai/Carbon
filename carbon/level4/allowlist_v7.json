@@ -1123,10 +1123,11 @@
   "dot_general": {
    "category": "linear_algebra",
    "default": "allow",
+   "note": "The matmul precision is admitted (default or the DEFAULT/HIGH/HIGHEST pair JAX records): jnp.linalg.solve multiplies at HIGHEST.",
    "params": {
     "dimension_numbers": "dot_dimension_numbers",
     "out_sharding": "none",
-    "precision": "none",
+    "precision": "precision",
     "preferred_element_type": "dtype_or_none"
    },
    "roles": [
