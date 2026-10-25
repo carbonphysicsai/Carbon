@@ -158,6 +158,41 @@ def predict_command(args, *, binder=None, curves=None):
     return 0
 
 
+def train_command(args):
+    """The TRAIN-fit model's table: learned-krr-v1 on TRAIN only (Validator spec section 9.2). No Docker, $0."""
+    from carbon.scoring import pool_baseline, pool_serving
+
+    rows_document = json.loads(Path(args.rows).read_text(encoding="utf-8"))
+    if rows_document.get("schema") != ROWS_SCHEMA or rows_document["kind"] != args.kind:
+        raise Stop("the rows file is not this Challenge's")
+    predict, choice = pool_baseline.fit(args.kind, rows_document["version"])
+    raw = predict(rows_document["rows"])
+    pool_serving.write_table(
+        args.out,
+        kind=args.kind,
+        version=rows_document["version"],
+        input_names=rows_document["input_names"],
+        rows=rows_document["rows"],
+        raw=raw,
+        state_digest="learned-krr-v1:"
+        + json.dumps([choice["length"], choice["ridge"]]),
+        recipe="learned-krr-v1",
+    )
+    print(json.dumps({"role": "train", "rows": len(raw), **choice}))
+    if choice.get("gate_failed_on_practice"):
+        print(
+            "FLAG: even the chosen values fail a practice gate (ranked by accuracy)",
+            file=sys.stderr,
+        )
+    if choice["at_edge"]:
+        print(
+            "FLAG: the choice lands on the grid edge for "
+            + ", ".join(choice["at_edge"]),
+            file=sys.stderr,
+        )
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -176,10 +211,18 @@ def main(argv=None):
         "cache-root",
     ):
         predict.add_argument("--" + flag, required=True)
+    train = sub.add_parser("train")
+    for flag in ("kind", "rows", "out"):
+        train.add_argument("--" + flag, required=True)
     args = parser.parse_args(argv)
     sys.path.insert(0, str(ROOT))
+    commands = {
+        "rows": rows_command,
+        "predict": predict_command,
+        "train": train_command,
+    }
     try:
-        return rows_command(args) if args.command == "rows" else predict_command(args)
+        return commands[args.command](args)
     except Stop as stop:
         print(f"STOP, back to the Validator: {stop}", file=sys.stderr)
         return 3
