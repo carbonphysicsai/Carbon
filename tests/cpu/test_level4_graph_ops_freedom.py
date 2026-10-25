@@ -21,6 +21,7 @@ import jax.numpy as jnp
 import jax.scipy.linalg as jsl
 import numpy as np
 from jax import lax
+from jax._src.lax import linalg as linalg_internal
 
 from carbon.level4 import allowlist as allowlist_module
 from carbon.level4 import graph, interpret
@@ -267,7 +268,7 @@ CASES = {
     "device_put": (("device_put",), lambda x: jax.device_put(x) * 2.0, (_signed(),), True),
     "householder": (
         ("geqrf", "householder_product"),
-        lambda a: (lambda f, t: jax.lax.linalg.householder_product(f, t))(*jax.lax.linalg.geqrf(a)),
+        lambda a: (lambda f, t: linalg_internal.householder_product(f, t))(*linalg_internal.geqrf(a)),
         (_spd(),),
         False,
     ),
