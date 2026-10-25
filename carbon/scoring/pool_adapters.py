@@ -466,8 +466,8 @@ def binding_for(kind, version):
     environment variable `CARBON_POOL_BINDING_CONFIG`; there is no default for any of it:
       {"decision": path to the DECISION record (its "u" per derived output is the pools' own),
        "good_table": path to the good model's prediction table (`pool_serving.write_table`),
-       "train_table": optional path for the TRAIN-fit model (default: the good table, the suite clamps the
-                      designs to the TRAIN box for the in-distribution control)}
+       "train_table": path to the TRAIN-fit model's prediction table (required: it is never inferred from
+                      the good table, so the in-distribution control cannot silently grade the wrong model)}
     The solver truths of the probe rows come in through the script's own `--probe-truth-file`.
     """
     import os
@@ -485,7 +485,7 @@ def binding_for(kind, version):
         "train_table",
     }:
         raise PoolAdapterRefused("pool_binding_config_malformed")
-    for key in ("decision", "good_table"):
+    for key in ("decision", "good_table", "train_table"):
         if type(config.get(key)) is not str:
             raise PoolAdapterRefused("pool_binding_config_lacks_" + key)
     with open(config["decision"], encoding="utf-8") as handle:
@@ -496,10 +496,8 @@ def binding_for(kind, version):
     good = pool_serving.TableServer(
         pool_serving.load_table(config["good_table"]), names
     )
-    train = (
-        pool_serving.TableServer(pool_serving.load_table(config["train_table"]), names)
-        if config.get("train_table")
-        else good
+    train = pool_serving.TableServer(
+        pool_serving.load_table(config["train_table"]), names
     )
     return binding(
         kind,
