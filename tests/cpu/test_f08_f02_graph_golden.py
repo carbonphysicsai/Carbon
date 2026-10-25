@@ -32,6 +32,21 @@ EVIDENCE = (
     / "f08-f02-graph-golden.json"
 )
 CHANGED = "carbon.development_session.build_refusal.py"
+#: The shared Level 4 modules allowlist v8 moved (OWNER-GRAPH-OPS-OPEN-01): new op kinds,
+#: nested control-flow graphs, constant accounting v4, stripped debug ops and the
+#: init rule, every one gated on a v8 document or allowlist. F08 1.4 and F02 2.3 serve v7
+#: and behave exactly as recorded (the byte-identity of the recorded runs' states,
+#: predictions and grades above); their staged copies of these files are newer. A
+#: pre-publish move, named here so the next unintended one still fails.
+V8_MOVED = {
+    "carbon.development_session.bundle_graph_state.py",
+    "carbon.level4.allowlist.py",
+    "carbon.level4.graph.py",
+    "carbon.level4.interpret.py",
+    "carbon.level4.params.py",
+    "carbon.level4.tooling.lower_jax.py",
+    "carbon.level4.validate.py",
+}
 #: The served backbone catalog digest the recorded runs were made under (rc6
 #: a454e75e5). The catalog freeze moved it for these two versions
 #: (OWNER-CATALOG-LICENCES-01 relicense, 08c1465a9), which moves the kit's
@@ -142,7 +157,13 @@ def test_the_build_child_and_programs_are_the_golden_ones(key, tmp_path, monkeyp
             adapter_id=adapter.SPECS[key].adapter_id,
         )
     assert captured["source"] == golden[0]["source"]
-    assert {n: d for n, d in captured["files"].items() if n != CHANGED} == {
-        n: d for n, d in golden[0]["files"].items() if n != CHANGED
+    unchanged = lambda files: {  # noqa: E731
+        n: d for n, d in files.items() if n != CHANGED and n not in V8_MOVED
     }
+    assert unchanged(captured["files"]) == unchanged(golden[0]["files"])
+    assert V8_MOVED >= {
+        n
+        for n in set(captured["files"]) | set(golden[0]["files"])
+        if captured["files"].get(n) != golden[0]["files"].get(n)
+    } - {CHANGED}
     assert _sha(worker.PHYSICAL_INFER_PROGRAM.encode()) == golden[1]["source"]
