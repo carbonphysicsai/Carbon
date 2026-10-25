@@ -88,6 +88,21 @@ def inventory(closed):
     }
 
 
+#: Primitives that only observe or annotate, and so never reach the graph
+#: (OWNER-GRAPH-OPS-OPEN-01): printing and callbacks for debugging run on the
+#: miner's machine only; a sharding or layout constraint is an identity here
+#: (placement belongs to Carbon). Their values, if any, are the inputs themselves.
+#: Only an allowlist that marks the op `"default": "strip"` (v8) lets lowering drop
+#: it; a document that carries one is refused.
+_EFFECT_ONLY = frozenset({"debug_callback", "debug_print"})
+_IDENTITY = frozenset({"sharding_constraint", "layout_constraint"})
+
+
+def _debug_only(effect):
+    """Whether a jaxpr effect is only a debug print or callback."""
+    return type(effect).__name__ in ("DebugEffect", "OrderedDebugEffect")
+
+
 def _aval(aval, where):
     shape = []
     for d in aval.shape:
@@ -122,7 +137,8 @@ def lower(closed, *, role, allowlist, input_names):
             jaxpr, consts = sub, []
             if jaxpr.constvars:
                 raise graph.GraphRefused("open_constants", name)
-        if jaxpr.effects:
+        strips = allowlist.ops.get("debug_callback", {}).get("default") == "strip"
+        if any(not (strips and _debug_only(effect)) for effect in jaxpr.effects):
             raise graph.GraphRefused("op_refused", name)
         ids = {}
         counter = iter(range(1 << 62))
@@ -153,6 +169,13 @@ def lower(closed, *, role, allowlist, input_names):
             # JAX hyphenates some primitive names (scatter-add); the allowlist
             # names them with underscores.
             op = eqn.primitive.name.replace("-", "_")
+            stripped = allowlist.ops.get(op, {}).get("default") == "strip"
+            if stripped and op in _EFFECT_ONLY and not eqn.outvars:
+                continue  # observation only: nothing to carry
+            if stripped and op in _IDENTITY and len(eqn.invars) == len(eqn.outvars):
+                for source, target in zip(eqn.invars, eqn.outvars):
+                    ids[target] = use(source)
+                continue
             kernel = None
             if op == "custom_jvp_call" and allowlist.named:
                 kernel = named.recognize(eqn, allowlist)

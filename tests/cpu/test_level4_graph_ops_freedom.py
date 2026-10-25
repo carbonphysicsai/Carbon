@@ -515,6 +515,37 @@ def test_a_carried_rule_is_checked_like_any_other_graph():
     assert refused.value.code in {"op_refused", "op_not_allowlisted"}
 
 
+def test_debug_prints_and_callbacks_are_dropped_not_carried():
+    """A jax.debug.print left in a model stops nothing: it runs for the miner, and the
+    graph is the same graph without it."""
+
+    def noisy(x):
+        jax.debug.print("x0 = {}", x[0, 0])
+        jax.debug.callback(lambda v: None, x)
+        return jnp.sin(x) * 2.0
+
+    clean = lambda x: jnp.sin(x) * 2.0  # noqa: E731
+    args = (_signed(),)
+    doc, run = _rebuilt(noisy, args)
+    clean_doc, _ = _rebuilt(clean, args)
+    assert _ops(doc) == _ops(clean_doc)
+    assert "debug_callback" not in _ops(doc) and "debug_print" not in _ops(doc)
+    np.testing.assert_array_equal(np.asarray(run(*args)[0]), np.asarray(clean(*args)))
+    # An allowlist that does not mark them "strip" still refuses the effect.
+    with pytest.raises(graph.GraphRefused):
+        _rebuilt(noisy, args, path=V7)
+
+
+def test_a_document_that_carries_a_stripped_op_is_refused():
+    allowlist = allowlist_module.load(V8)
+    doc, _ = _rebuilt(lambda x: jnp.sin(x), (_signed(),))
+    doc["graphs"]["main"]["nodes"].append(
+        {"op": "debug_print", "in": [], "out": [], "params": {}}
+    )
+    with pytest.raises(graph.GraphRefused):
+        allowlist.check(doc)
+
+
 def test_containment_is_unchanged():
     """Escapes, callbacks and unseeded generators stay refused in v7."""
     ops = allowlist_module.load(V8).ops

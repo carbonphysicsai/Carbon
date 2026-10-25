@@ -100,7 +100,9 @@ class Allowlist:
         entry = self.ops.get(op)
         if entry is None:
             raise _refusal("op_not_allowlisted", where, op)
-        if entry["default"] == "refuse":
+        if entry["default"] in ("refuse", "strip"):
+            # "strip": lowering drops the op on the miner's machine; a document that
+            # carries it is refused.
             raise _refusal("op_refused", where, op)
         if role not in entry["roles"]:
             raise _refusal("op_not_allowed_in_role", where, op)
@@ -184,7 +186,7 @@ def v7_bytes():
 #: VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025). A new file, served only by new
 #: versions: v7's bytes and digests stay. Frozen by its sha once the head is done.
 V8_PATH = Path(__file__).with_name("allowlist_v8.json")
-V8_SHA256 = "7ca88818a3ab96b89cae64d6ef9177aee4479875243599c9bec52125e1482039"
+V8_SHA256 = "7491bffa83c6a65bb3e9f07d29a18ffc321c5143d64ae7dc6221fdc03524d01d"
 
 
 def v8_bytes():

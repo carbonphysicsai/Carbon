@@ -1115,15 +1115,16 @@
   },
   "debug_callback": {
    "category": "escape",
-   "default": "refuse",
-   "note": "escape to Python or native code",
+   "default": "strip",
+   "note": "a debugging callback runs on the miner's machine only; lowering drops it",
    "params": {},
    "roles": [],
    "v0_interpreter": false
   },
   "debug_print": {
    "category": "debug",
-   "default": "refuse",
+   "default": "strip",
+   "note": "a debug print runs on the miner's machine only; lowering drops it",
    "params": {},
    "roles": [],
    "v0_interpreter": false
@@ -1592,6 +1593,14 @@
     "loss"
    ],
    "v0_interpreter": true
+  },
+  "layout_constraint": {
+   "category": "host_or_sharding",
+   "default": "strip",
+   "note": "an identity here (layout belongs to Carbon); lowering replaces it by its input",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
   },
   "le": {
    "category": "elementwise",
@@ -2506,7 +2515,8 @@
   },
   "sharding_constraint": {
    "category": "host_or_sharding",
-   "default": "refuse",
+   "default": "strip",
+   "note": "an identity here (placement belongs to Carbon); lowering replaces it by its input",
    "params": {},
    "roles": [],
    "v0_interpreter": false
