@@ -141,11 +141,11 @@ def prepare(parsed, allowlist, *, verdict, kit=None, loss_override=None):
     if "loss" in parsed:
         # G4 admitted it (`validate_submission` with the Challenge's
         # `loss_override`); Carbon maps it per case and owns the mean.
-        rebuilt = interpret.rebuild(parsed["loss"], allowlist)
+        loss_graph = interpret.rebuild(parsed["loss"], allowlist)
         loss = (
-            loss_slot.batch_loss(rebuilt)
+            loss_slot.batch_loss(loss_graph)
             if loss_override == loss_slot.BATCH
-            else loss_slot.per_case_mean(rebuilt)
+            else loss_slot.per_case_mean(loss_graph)
         )
     return Prepared(
         init=init,

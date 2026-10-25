@@ -52,7 +52,7 @@ TRAINER_MODULE = "carbon.development_session.physical_graph_trainer_v2"
 TRAINER_PATH = "carbon/development_session/physical_graph_trainer_v2.py"
 #: The v2 trainer's source sha256 (a test re-hashes it). A change to the
 #: trainer is a new digest, so a new version.
-TRAINER_SHA256 = "e60abb521b3555b44fce22d5212e8dcf54275bb96a0e99f125d3e785825a4921"
+TRAINER_SHA256 = "8379cbc3b876ed9bc33624ff54a52f26459a34a4791c258c1fa377048e07f543"
 TRAINER_PIN = (TRAINER_PATH, TRAINER_SHA256)
 CODE = "graph_route_"
 #: A graph recipe may carry a loss graph over the whole training batch with the
