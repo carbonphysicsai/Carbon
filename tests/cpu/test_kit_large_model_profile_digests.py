@@ -74,7 +74,7 @@ def _digest(challenge_id, version):
 
 
 def test_exactly_the_v7_versions_moved():
-    assert set(MOVED) == registry.keys(allowlist="v7")
+    assert set(MOVED) == registry.keys(allowlist="v7") | registry.keys(allowlist="v8")
 
 
 @pytest.mark.parametrize(("challenge_id", "version"), sorted(MOVED))

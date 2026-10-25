@@ -62,15 +62,20 @@ def _digest(raw):
 
 def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
     v7 = allowlist_module.v7_bytes()
+    v8 = allowlist_module.v8_bytes()
+    # The four pre-publish graph-route-v2 versions serve the NEW v8 file (v7's bytes
+    # and digest stay); every other v7 version is unchanged.
+    assert sv.V8 == frozenset(GRAPH_V2)
     assert sv.V7 == (
-        frozenset(PREDECESSOR)
-        | frozenset(GRAPH)
-        | frozenset(CATALOG_ONLY)
-        | frozenset(GRAPH_V2)
+        frozenset(PREDECESSOR) | frozenset(GRAPH) | frozenset(CATALOG_ONLY)
     )
-    for key, before in (GRAPH | CATALOG_ONLY | GRAPH_V2).items():
+    for key, before in (GRAPH | CATALOG_ONLY).items():
         assert sv.material_allowlist_bytes(*key) == v7
         assert sv.material_allowlist_bytes(key[0], before) == v7
+    for key, before in GRAPH_V2.items():
+        assert sv.material_allowlist_bytes(*key) == v8
+        assert sv.serves_v8(*key) and sv.serves_uncapped(*key) and not sv.serves_v7(*key)
+        assert sv.material_allowlist_bytes(key[0], before) == v7  # its predecessor
     for key, before in PREDECESSOR.items():
         assert sv.material_allowlist_bytes(*key) == v7
         assert sv.is_step2(*key) and not sv.step_caps(*key)
@@ -84,7 +89,7 @@ def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
 
 
 def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
-    assert {key for key in sv.V7 if sv.serves_catalog(*key)} == {
+    assert {key for key in sv.V7 | sv.V8 if sv.serves_catalog(*key)} == {
         (MOTOR, "1.3"),
         (COOLING, "1.2"),
         *GRAPH,
