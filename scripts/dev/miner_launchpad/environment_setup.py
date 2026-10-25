@@ -515,6 +515,12 @@ GPU_DRIVER_ADVICE = (
     "runtime: update the driver (nvidia-smi shows the newest CUDA it runs), "
     "then test again; until then this framework practises on CPU"
 )
+GPU_DOCKER_UNREACHABLE_STEP = (
+    "this host can't start Carbon's worker containers: Docker is not reachable "
+    "here (`docker info` failed), so Carbon cannot start its sandbox; start "
+    "Docker (a container GPU host is fine if Docker runs inside it and sees the "
+    "GPU), then test again; until then this framework practises on CPU"
+)
 GPU_TEST_FAILED_STEP = (
     "this GPU worker could not use your GPU in its test run: check nvidia-smi "
     "and the NVIDIA Container Toolkit on that machine, then test again; until "
@@ -1466,11 +1472,34 @@ class LiveChecks:
                 provenance="detected by Launchpad setup with "
                 + str(observed.get("source")),
             )
-        except WorkerFailure:
-            # Several GPUs, an unknown platform or container runtime: the
-            # miner names them; Carbon does not pick for them.
+        except WorkerFailure as failure:
+            # A container GPU host (a hosted instance running Docker) is
+            # supported for a miner's own practice; the platform alone never
+            # refuses it. What refuses it is a worker that cannot start there.
+            if info is None:
+                raise SetupRefused(
+                    "gpu",
+                    "gpu_container_runtime_unavailable",
+                    next_step=GPU_DOCKER_UNREACHABLE_STEP,
+                ) from None
+            # Several GPUs, an unknown platform or container runtime, or a
+            # field the vendor tool reported in a form the record does not
+            # take: the miner names them; Carbon does not pick for them.
+            fields = getattr(failure, "fields", ())
             raise SetupRefused(
-                "gpu", "gpu_record_needs_your_choice", next_step=GPU_RECORD_STEP
+                "gpu",
+                "gpu_record_needs_your_choice",
+                next_step=(
+                    (
+                        "the GPU record needs your choice for: "
+                        + ", ".join(fields)
+                        + "; "
+                    )
+                    if fields
+                    else ""
+                )
+                + GPU_RECORD_STEP
+                + " (it names the field it refuses and what it must be)",
             ) from None
         try:
             installed = HostDeviceRecord.load(root)
@@ -1506,11 +1535,21 @@ class LiveChecks:
                     "worker: ./scripts/dev/accelerator_worker_image.sh"
                 ),
             ) from None
-        blockers = onboarding.miner_lane_blockers(
-            onboarding.doctor_report(root=root, cli=cli, image=image)
-        )
+        report = onboarding.doctor_report(root=root, cli=cli, image=image)
+        blockers = onboarding.miner_lane_blockers(report)
         if blockers:
-            raise SetupRefused("gpu", "gpu_host_not_ready:" + ",".join(blockers))
+            causes = [
+                str(finding.get("detail"))
+                for finding in report["findings"]
+                if finding["check"] in blockers and finding.get("detail")
+            ]
+            raise SetupRefused(
+                "gpu",
+                "gpu_host_not_ready:" + ",".join(blockers),
+                next_step="this host can't start Carbon's worker containers: "
+                + ("; ".join(causes) if causes else ", ".join(blockers))
+                + "; until then this framework practises on CPU",
+            )
         record = HostDeviceRecord.load(root)
         if scope is None:
             raise SetupRefused("challenge", "field_required")
