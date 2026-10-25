@@ -257,6 +257,29 @@ def _encode(kind, value, lower_graph, name=None):
         return {"graph": lower_graph(value)}
     if kind == "graph_or_none":
         return None if value is None else {"graph": lower_graph(value)}
+    if kind == "graph_tuple":
+        if type(value) not in (tuple, list) or not value:
+            raise GraphRefused("parameter_kind_mismatch")
+        return [{"graph": lower_graph(branch)} for branch in value]
+    if kind.startswith("update_jaxpr_"):
+        # A scatter's combiner: exactly the one binary primitive the op names.
+        expected = kind.removeprefix("update_jaxpr_")
+        eqns = getattr(value, "eqns", None)
+        if (
+            eqns is None
+            or len(eqns) != 1
+            or eqns[0].primitive.name != expected
+            or len(value.invars) != 2
+        ):
+            raise GraphRefused("parameter_not_default")
+        return None
+    if kind == "put_default":
+        # device_put with no device, source or copy request: an identity.
+        if type(value) is not tuple or not value:
+            raise GraphRefused("parameter_not_default")
+        if any(v is not None and type(v).__name__ != "CopySemantics" for v in value):
+            raise GraphRefused("parameter_not_default")
+        return len(value)
     raise GraphRefused("parameter_kind_unknown")
 
 
@@ -267,6 +290,18 @@ def _decode(kind, value):
         if type(value) not in (int, float):
             raise GraphRefused("parameter_kind_mismatch")
         return float(value)
+    if kind.startswith("update_jaxpr_"):
+        if value is not None:
+            raise GraphRefused("parameter_not_default")
+        return None
+    if kind == "put_default":
+        if type(value) is not int or value < 1:
+            raise GraphRefused("parameter_kind_mismatch")
+        return value
+    if kind == "graph_tuple":
+        if type(value) is not list or not value:
+            raise GraphRefused("parameter_kind_mismatch")
+        return [_nested(item) for item in value]
     if kind in (
         "none",
         "graph_or_none",

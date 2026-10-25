@@ -59,7 +59,7 @@ _TOP_KEYS = {"schema", "allowlist", "role", "entry", "graphs"}
 
 
 #: Ops whose parameter of kind "graph" names a nested graph, run inline.
-CALL_OPS = ("jit", "closed_call", "custom_jvp_call")
+CALL_OPS = ("jit", "closed_call", "custom_jvp_call", "remat2")
 
 
 class GraphRefused(ValueError):
@@ -192,12 +192,21 @@ def _aval(value, where):
 
 
 def graph_refs(params):
-    """Names of the graphs a node's parameters call."""
-    return [
-        v["graph"]
-        for v in params.values()
-        if type(v) is dict and set(v) == {"graph"} and type(v["graph"]) is str
-    ]
+    """Names of the graphs a node's parameters call: a `{"graph": name}`
+    parameter, or a non-empty list of them (the branches of a `cond`)."""
+    refs = []
+    for v in params.values():
+        if is_graph_ref(v):
+            refs.append(v["graph"])
+        elif type(v) is list and v and all(is_graph_ref(item) for item in v):
+            refs.extend(item["graph"] for item in v)
+    return refs
+
+
+def is_graph_ref(value):
+    return (
+        type(value) is dict and set(value) == {"graph"} and type(value["graph"]) is str
+    )
 
 
 def check_structure(doc):
@@ -344,7 +353,10 @@ def measure(doc):
             total = 0
             for node in graphs[name]["nodes"]:
                 refs = graph_refs(node["params"])
-                total += 1 + sum(expanded(r) for r in refs)
+                # A scan runs its body once per step.
+                steps = node["params"].get("length") if node["op"] == "scan" else 1
+                steps = steps if type(steps) is int and steps > 0 else 1
+                total += 1 + steps * sum(expanded(r) for r in refs)
             sizes[name] = total
         return sizes[name]
 

@@ -56,6 +56,67 @@ def _dtype_name(x):
     return str(x.dtype)
 
 
+def _scan(run, bound, ins):
+    """`lax.scan` over a nested body graph (inputs: consts, carry, x slices;
+    outputs: new carry, y slices). Static length; the body runs once per step."""
+    import jax
+
+    consts = bound["num_consts"]
+    carry = bound["num_carry"]
+    if consts < 0 or carry < 0 or consts + carry > len(ins):
+        raise graph.GraphRefused("parameter_kind_mismatch")
+    held, init, xs = ins[:consts], ins[consts : consts + carry], ins[consts + carry :]
+    body = bound["jaxpr"]["graph"]
+
+    def step(state, x):
+        outs = run(body, [*held, *state, *x])
+        return tuple(outs[:carry]), tuple(outs[carry:])
+
+    state, ys = jax.lax.scan(
+        step,
+        tuple(init),
+        tuple(xs),
+        length=bound["length"],
+        reverse=bound["reverse"],
+        unroll=bound["unroll"],
+    )
+    return [*state, *ys]
+
+
+def _cond(run, bound, ins):
+    """`lax.switch` over the branch graphs: the first operand is the integer
+    index, the rest go to the chosen branch."""
+    import jax
+
+    refs = [item["graph"] for item in bound["branches"]]
+    index, operands = ins[0], list(ins[1:])
+    branches = [
+        (lambda *ops, target=target: tuple(run(target, list(ops)))) for target in refs
+    ]
+    return list(jax.lax.switch(index, branches, *operands))
+
+
+_SCATTERS = frozenset({"scatter_add", "scatter_mul", "scatter_min", "scatter_max"})
+
+
+def _scatter(op, bound, ins):
+    """A combining scatter through JAX's own function, so the combiner jaxpr is
+    JAX's and never the document's."""
+    import jax
+
+    operand, indices, updates = ins
+    function = getattr(jax.lax, op)
+    return function(
+        operand,
+        indices,
+        updates,
+        bound["dimension_numbers"],
+        indices_are_sorted=bound["indices_are_sorted"],
+        unique_indices=bound["unique_indices"],
+        mode=bound["mode"],
+    )
+
+
 def _linear_solve(run, bound, ins):
     """`jax.lax.custom_linear_solve` over the node's four nested graphs, so the
     solve keeps the implicit-differentiation rule JAX gives it (a solve through
@@ -139,6 +200,14 @@ def rebuild(doc, allowlist):
                 outs = named.call(bound["name"], ins)
             elif node["op"] == "custom_linear_solve":
                 outs = _linear_solve(run, bound, ins)
+            elif node["op"] == "scan":
+                outs = _scan(run, bound, ins)
+            elif node["op"] == "cond":
+                outs = _cond(run, bound, ins)
+            elif node["op"] in _SCATTERS:
+                outs = [_scatter(node["op"], bound, ins)]
+            elif node["op"] == "device_put":
+                outs = list(ins)  # no placement requested: the same values
             else:
                 primitive = _PRIMITIVES.get(node["op"])
                 if primitive is None:

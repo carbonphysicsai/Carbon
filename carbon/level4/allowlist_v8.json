@@ -729,7 +729,9 @@
     "new_dtype": "dtype"
    },
    "roles": [
-    "init"
+    "forward",
+    "init",
+    "loss"
    ],
    "v0_interpreter": true
   },
@@ -851,14 +853,16 @@
   "cond": {
    "category": "control_flow",
    "default": "allow",
-   "note": "needed by no family traced in Phase 0; not yet in the v0 interpreter",
-   "params": {},
+   "note": "lax.cond/switch: the first operand is the integer branch index; every branch is a nested graph.",
+   "params": {
+    "branches": "graph_tuple"
+   },
    "roles": [
     "forward",
     "init",
     "loss"
    ],
-   "v0_interpreter": false
+   "v0_interpreter": true
   },
   "conj": {
    "category": "elementwise",
@@ -1091,11 +1095,20 @@
    "v0_interpreter": false
   },
   "device_put": {
-   "category": "host_or_sharding",
-   "default": "refuse",
-   "params": {},
-   "roles": [],
-   "v0_interpreter": false
+   "category": "shape",
+   "default": "allow",
+   "note": "identity: a device_put that names no device or source places nothing.",
+   "params": {
+    "copy_semantics": "put_default",
+    "devices": "put_default",
+    "srcs": "put_default"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
   },
   "digamma": {
    "category": "elementwise",
@@ -1156,6 +1169,23 @@
    "default": "allow",
    "note": "start indices are clamped into range by XLA",
    "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "eig": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "general eigendecomposition; XLA runs it on CPU only (a GPU host will say so).",
+   "params": {
+    "compute_left_eigenvectors": "bool",
+    "compute_right_eigenvectors": "bool",
+    "enable_eigvec_derivs": "bool",
+    "implementation": "none"
+   },
    "roles": [
     "forward",
     "init",
@@ -1329,9 +1359,45 @@
    ],
    "v0_interpreter": true
   },
+  "geqrf": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "Householder QR factorisation, packed (a, taus).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "gt": {
    "category": "elementwise",
    "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "hessenberg": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "Hessenberg reduction; CPU only in XLA.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "householder_product": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "Q from Householder reflectors.",
    "params": {},
    "roles": [
     "forward",
@@ -1690,6 +1756,18 @@
    ],
    "v0_interpreter": true
   },
+  "polygamma": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "polygamma(m, x), the JAX primitive.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "population_count": {
    "category": "bitwise",
    "default": "allow",
@@ -1772,7 +1850,7 @@
    "roles": [
     "init"
    ],
-   "v0_interpreter": false
+   "v0_interpreter": true
   },
   "random_seed": {
    "category": "rng",
@@ -1883,6 +1961,21 @@
    ],
    "v0_interpreter": true
   },
+  "reduce_precision": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "exact rounding to a narrower float format.",
+   "params": {
+    "exponent_bits": "int",
+    "mantissa_bits": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "reduce_prod": {
    "category": "reduction",
    "default": "review",
@@ -1891,7 +1984,9 @@
     "axes": "int_tuple"
    },
    "roles": [
-    "forward"
+    "forward",
+    "init",
+    "loss"
    ],
    "v0_interpreter": true
   },
@@ -1902,6 +1997,60 @@
    "params": {
     "axes": "int_tuple",
     "out_sharding": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_window_max": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "max pooling window (lax.reduce_window).",
+   "params": {
+    "base_dilation": "int_tuple",
+    "padding": "int_pairs",
+    "window_dilation": "int_tuple",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_window_min": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "min pooling window (lax.reduce_window).",
+   "params": {
+    "base_dilation": "int_tuple",
+    "padding": "int_pairs",
+    "window_dilation": "int_tuple",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_window_sum": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "sum pooling window (lax.reduce_window).",
+   "params": {
+    "base_dilation": "int_tuple",
+    "padding": "int_pairs",
+    "window_dilation": "int_tuple",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
    },
    "roles": [
     "forward",
@@ -1924,6 +2073,18 @@
    ],
    "v0_interpreter": true
   },
+  "regularized_incomplete_beta": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "betainc(a, b, x), the JAX primitive.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "rem": {
    "category": "elementwise",
    "default": "allow",
@@ -1938,15 +2099,20 @@
   },
   "remat2": {
    "category": "nested_call",
-   "default": "review",
-   "note": "checkpointing is a training-memory choice Carbon owns",
-   "params": {},
+   "default": "allow",
+   "note": "jax.checkpoint: the body runs inline; recomputation is a training-memory choice Carbon owns.",
+   "params": {
+    "differentiated": "bool",
+    "jaxpr": "graph",
+    "policy": "none",
+    "prevent_cse": "bool"
+   },
    "roles": [
     "forward",
     "init",
     "loss"
    ],
-   "v0_interpreter": false
+   "v0_interpreter": true
   },
   "reshape": {
    "category": "shape",
@@ -2022,14 +2188,21 @@
   "scan": {
    "category": "control_flow",
    "default": "allow",
-   "note": "static length only; needed by no family traced in Phase 0; not yet in the v0 interpreter",
-   "params": {},
+   "note": "static length; the body is a nested graph run once per step (lax.scan), counted length times by the measure.",
+   "params": {
+    "jaxpr": "graph",
+    "length": "int",
+    "num_carry": "int",
+    "num_consts": "int",
+    "reverse": "bool",
+    "unroll": "int"
+   },
    "roles": [
     "forward",
     "init",
     "loss"
    ],
-   "v0_interpreter": false
+   "v0_interpreter": true
   },
   "scatter": {
    "category": "array_update",
@@ -2044,21 +2217,103 @@
     "update_jaxpr": "none"
    },
    "roles": [
-    "forward"
+    "forward",
+    "init",
+    "loss"
    ],
    "v0_interpreter": true
   },
   "scatter_add": {
-   "category": "shape",
+   "category": "array_update",
    "default": "review",
-   "note": "nondeterministic on GPU; needed by no forward or loss graph traced in Phase 0",
-   "params": {},
+   "note": "x.at[idx].add: the combiner is JAX's own; float order with duplicate indices is deterministic under the pinned GPU flags (xla_gpu_deterministic_ops), else the op is CPU-only.",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "update_jaxpr_add"
+   },
    "roles": [
     "forward",
     "init",
     "loss"
    ],
-   "v0_interpreter": false
+   "v0_interpreter": true
+  },
+  "scatter_max": {
+   "category": "array_update",
+   "default": "allow",
+   "note": "x.at[idx].max: the combiner is JAX's own; float order with duplicate indices is deterministic under the pinned GPU flags (xla_gpu_deterministic_ops), else the op is CPU-only.",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "update_jaxpr_max"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "scatter_min": {
+   "category": "array_update",
+   "default": "allow",
+   "note": "x.at[idx].min: the combiner is JAX's own; float order with duplicate indices is deterministic under the pinned GPU flags (xla_gpu_deterministic_ops), else the op is CPU-only.",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "update_jaxpr_min"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "scatter_mul": {
+   "category": "array_update",
+   "default": "review",
+   "note": "x.at[idx].mul: the combiner is JAX's own; float order with duplicate indices is deterministic under the pinned GPU flags (xla_gpu_deterministic_ops), else the op is CPU-only.",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "update_jaxpr_mul"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "schur": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "Schur decomposition; CPU only in XLA.",
+   "params": {
+    "compute_schur_vectors": "bool",
+    "select_callable": "none",
+    "sort_eig_vals": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
   },
   "select_n": {
    "category": "elementwise",
@@ -2108,7 +2363,9 @@
    "note": "threefry uniform sampling; init only",
    "params": {},
    "roles": [
-    "init"
+    "forward",
+    "init",
+    "loss"
    ],
    "v0_interpreter": true
   },
@@ -2318,18 +2575,22 @@
    "roles": [
     "init"
    ],
-   "v0_interpreter": false
+   "v0_interpreter": true
   },
   "top_k": {
    "category": "reduction",
-   "default": "review",
-   "params": {},
+   "default": "allow",
+   "note": "top-k along an axis; ties follow XLA (lower index first).",
+   "params": {
+    "axis": "int",
+    "k": "int"
+   },
    "roles": [
     "forward",
     "init",
     "loss"
    ],
-   "v0_interpreter": false
+   "v0_interpreter": true
   },
   "transpose": {
    "category": "linear_algebra",
@@ -2354,6 +2615,34 @@
     "lower": "bool",
     "transpose_a": "bool",
     "unit_diagonal": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "tridiagonal": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "tridiagonal reduction of a symmetric matrix.",
+   "params": {
+    "lower": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "tridiagonal_solve": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "tridiagonal linear solve.",
+   "params": {
+    "perturb_singular": "bool"
    },
    "roles": [
     "forward",

@@ -175,6 +175,113 @@ CASES = {
         (_spd(),),
         True,
     ),
+    # ---- control flow, as nested graphs
+    "scan": (
+        ("scan",),
+        lambda x: lax.scan(lambda c, v: (c * 0.9 + v, jnp.tanh(c)), jnp.zeros((4,), jnp.float32), x)[1],
+        (_signed((5, 4)),),
+        True,
+    ),
+    "scan_reverse_carry": (
+        ("scan",),
+        lambda x: lax.scan(lambda c, v: (c + v, c * v), jnp.ones((4,), jnp.float32), x, reverse=True)[0],
+        (_signed((5, 4)),),
+        True,
+    ),
+    "fori_loop": (
+        ("scan",),
+        lambda x: lax.fori_loop(0, 4, lambda i, c: c * 1.1 + jnp.sin(c), x),
+        (_signed(),),
+        True,
+    ),
+    "cond": (
+        ("cond",),
+        lambda x: lax.cond(x[0, 0] > 0, lambda v: v * 2.0, lambda v: v + 1.0, x),
+        (_signed(),),
+        True,
+    ),
+    "switch": (
+        ("cond",),
+        lambda x, i: lax.switch(i, [lambda v: v, lambda v: v * 2.0, lambda v: v * v], x),
+        (_signed(), jnp.int32(2)),
+        True,
+    ),
+    "remat": (("remat2",), lambda x: jax.checkpoint(lambda v: jnp.sin(v) * v)(x), (_signed(),), True),
+    # ---- scatters, windows, top_k, the rest
+    "scatter_add": (
+        ("scatter_add",),
+        lambda x, u: x.at[jnp.array([0, 2, 0])].add(u),
+        (_signed(), _signed((3, 4))),
+        True,
+    ),
+    "scatter_mul": (
+        ("scatter_mul",),
+        lambda x, u: x.at[jnp.array([1, 1, 0])].multiply(u),
+        (_signed(), _positive()),
+        True,
+    ),
+    "scatter_min": (
+        ("scatter_min",),
+        lambda x, u: x.at[jnp.array([1, 1, 0])].min(u),
+        (_signed(), _signed()),
+        True,
+    ),
+    "scatter_max": (
+        ("scatter_max",),
+        lambda x, u: x.at[jnp.array([1, 1, 0])].max(u),
+        (_signed(), _signed()),
+        True,
+    ),
+    "top_k": (("top_k",), lambda x: lax.top_k(x, 2)[0], (_signed(),), True),
+    "reduce_window_sum": (
+        ("reduce_window_sum",),
+        lambda x: lax.reduce_window(x, 0.0, lax.add, (1, 2), (1, 1), "VALID"),
+        (_signed(),),
+        True,
+    ),
+    "reduce_window_max": (
+        ("reduce_window_max",),
+        lambda x: lax.reduce_window(x, -jnp.inf, lax.max, (2, 2), (1, 1), "SAME"),
+        (_signed(),),
+        True,
+    ),
+    "reduce_window_min": (
+        ("reduce_window_min",),
+        lambda x: lax.reduce_window(x, jnp.inf, lax.min, (1, 2), (1, 2), "VALID"),
+        (_signed(),),
+        True,
+    ),
+    "reduce_precision": (
+        ("reduce_precision",),
+        lambda x: lax.reduce_precision(x, 5, 10),
+        (_signed(),),
+        False,
+    ),
+    "polygamma": (("polygamma",), lambda x: jax.scipy.special.polygamma(1, x), (_positive(),), False),
+    "betainc": (
+        ("regularized_incomplete_beta",),
+        lambda x: jax.scipy.special.betainc(x, x + 0.5, jnp.clip(x * 0.3, 0.01, 0.99)),
+        (_positive(),),
+        False,
+    ),
+    "device_put": (("device_put",), lambda x: jax.device_put(x) * 2.0, (_signed(),), True),
+    "householder": (
+        ("geqrf", "householder_product"),
+        lambda a: (lambda f, t: jax.lax.linalg.householder_product(f, t))(*jax.lax.linalg.geqrf(a)),
+        (_spd(),),
+        False,
+    ),
+    "tridiagonal_solve": (
+        ("tridiagonal_solve",),
+        lambda d, b: jax.lax.linalg.tridiagonal_solve(
+            jnp.ones(3, jnp.float32).at[0].set(0.0), d + 4.0, jnp.ones(3, jnp.float32).at[2].set(0.0), b
+        ),
+        (_signed((3,)), _signed((3, 2))),
+        True,
+    ),
+    "eigvals": (("eig",), lambda a: jnp.sort(jnp.abs(jnp.linalg.eigvals(a))), (_spd(),), False),
+    "hessenberg": (("hessenberg",), lambda a: jax.scipy.linalg.hessenberg(a)[0], (_spd(),), False),
+    "schur": (("schur",), lambda a: jax.scipy.linalg.schur(a)[0], (_spd(),), False),
 }
 
 

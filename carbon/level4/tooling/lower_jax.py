@@ -149,7 +149,9 @@ def lower(closed, *, role, allowlist, input_names):
 
         for i, eqn in enumerate(jaxpr.eqns):
             where = f"{name}.nodes[{i}]"
-            op = eqn.primitive.name
+            # JAX hyphenates some primitive names (scatter-add); the allowlist
+            # names them with underscores.
+            op = eqn.primitive.name.replace("-", "_")
             kernel = None
             if op == "custom_jvp_call" and allowlist.named:
                 kernel = named.recognize(eqn, allowlist)
