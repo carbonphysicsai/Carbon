@@ -204,6 +204,7 @@ class BankLegs:
         a = measured.get("A")
         c = (measured.get("design_fidelity") or {}).get("C")
         gates = measured.get("gates") or {}
+        a_legs_out = dict(measured.get("A_legs") or {})
         if (
             self.truth_probe_rule == "perfect"
             and descriptor.get("kind") in TRUTH_MODELS
@@ -220,6 +221,7 @@ class BankLegs:
                 "A_is_not_the_mean_of_its_legs",
             )
             a = (sum(a_legs.values()) - a_legs[self.response_leg] + 1.0) / len(a_legs)
+            a_legs_out = {**a_legs, self.response_leg: 1.0}
             gates = {
                 name: ok for name, ok in gates.items() if name not in self.ignored_gates
             }
@@ -228,7 +230,7 @@ class BankLegs:
             all(type(v) in (int, float) and math.isfinite(v) for v in (a, c)),
             "measure_gave_no_finite_A_and_C",
         )
-        return {"A": a, "C": c, "gates_ok": gates_ok}
+        return {"A": a, "C": c, "gates_ok": gates_ok, "A_legs": a_legs_out}
 
 
 def _checked(raw, rows):
@@ -305,4 +307,49 @@ def make_plugin(binding, bank_legs, sets, fresh_set):
         default_model=default_model,
         good_model=good_model,
         legs=legs,
+    )
+
+
+def spec_from_source(document, binding):
+    """A `pool_grader.TargetSpec` from Data Collection's custody document (`pool-source-<tid>.json`): the
+    `build_target` inputs plus `design_names`. `limits` may be [output, kind, bound] rows or dicts. The design
+    names must be the binding's, in the same order, so the box, the designs and the model rows line up.
+    """
+    from carbon.scoring import pool_grader
+
+    _require(type(document) is dict, "pool_source_must_be_a_dict")
+    _require(
+        tuple(document.get("design_names", ())) == tuple(binding.design_names),
+        "design_names_differ_from_the_binding",
+    )
+    conditions = document["conditions"]
+    _require(
+        type(conditions) is dict
+        and type(conditions.get("fixed")) is dict
+        and conditions.get("target_id")
+        == document.get("target_id", conditions.get("target_id")),
+        "conditions_must_be_target_id_and_fixed",
+    )
+    limits = []
+    for row in document["limits"]:
+        output, kind, bound = (
+            (row["output"], row["kind"], row["bound"]) if isinstance(row, dict) else row
+        )
+        limits.append(pool_grader.Limit(output, kind, bound))
+    outputs = document.get("outputs") or tuple(document["truths"][0])
+    return pool_grader.build_target(
+        target_id=conditions["target_id"],
+        conditions=conditions,
+        outputs=outputs,
+        objective=document["objective"],
+        sense=document["sense"],
+        limits=limits,
+        u=document["u"],
+        box=document["box"],
+        designs=document["designs"],
+        truths=document["truths"],
+        agen=document["agen"],
+        start=document["start"],
+        seed=document["seed"],
+        public=bool(document.get("public", False)),
     )
