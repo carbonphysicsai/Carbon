@@ -208,14 +208,15 @@ def test_a_newcomer_without_an_owner_grant_is_not_blocked(
         f for f in report["findings"] if f["check"] != "host_device_record"
     ]
     assert onboarding.miner_lane_blockers(report) == []
-    # The command exits 0 for the miner lane and 1 only when the owner asks.
+    # The bare command stays strict (a validator or owner-authorised host must pass
+    # every check); the miner lane asks explicitly.
     ready = {
         "checks_passed": False,
         "miner_lane_ready": True,
         "findings": [],
     }
     monkeypatch.setattr(onboarding, "doctor_report", lambda **_: ready)
-    for flag, expected in (([], 0), (["--owner"], 1)):
+    for flag, expected in (([], 1), (["--miner-lane"], 0)):
         code = carbon_accelerator.main(
             ["--host-root", str(tmp_path / "root"), "doctor", *flag]
         )

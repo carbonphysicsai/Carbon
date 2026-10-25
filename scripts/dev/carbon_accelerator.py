@@ -204,9 +204,11 @@ def command_doctor(args) -> int:
     profile = onboarding.resolve_workload(args.profile)
     report = onboarding.doctor_report(root=_host_root(args), profile=profile)
     _emit(report)
-    # Your own practice needs only the miner lane's checks; `--owner` asks for
-    # every check (a grant or approval, display routing, the attempt journal).
-    ready = report["checks_passed"] if args.owner else report["miner_lane_ready"]
+    # The strict exit is the default: a validator or owner-authorised host must
+    # pass every check (a grant or approval, display routing, the attempt journal).
+    # Your own practice asks explicitly with `--miner-lane`, which needs only the
+    # miner lane's checks.
+    ready = report["miner_lane_ready"] if args.miner_lane else report["checks_passed"]
     return 0 if ready else 1
 
 
@@ -311,9 +313,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     doctor = subparsers.add_parser("doctor")
     doctor.add_argument(
-        "--owner",
+        "--miner-lane",
         action="store_true",
-        help="require every check, including an owner-supplied grant or approval",
+        help="exit on your own practice's checks only (no owner grant needed)",
     )
     doctor.set_defaults(handler=command_doctor)
 
