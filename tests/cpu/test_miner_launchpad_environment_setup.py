@@ -1020,3 +1020,30 @@ def test_an_intake_for_a_challenge_without_one_is_refused_in_plain_words(
         )
     assert refused.value.code == "challenge_has_no_intake"
     assert "Where your recipe is checked" in refused.value.next_step
+
+
+@pytest.mark.parametrize(
+    ("message", "needle"),
+    [
+        ("accepted revision is not in fetched main", "not in the fetched main"),
+        ("campaign requires the exact clean accepted revision", "local changes"),
+        ("something else", "could not read this checkout"),
+    ],
+)
+def test_a_refused_checkout_names_why_and_the_next_step(
+    tmp_path, monkeypatch, message, needle
+):
+    """do-app1 rc38: clean_accepted_checkout_required with no reason. The refusal now
+    says whether the revision is not in the fetched main or the tree is not clean."""
+    from carbon.development_session import research_campaign
+
+    monkeypatch.setattr(
+        research_campaign,
+        "accepted_implementation",
+        lambda _revision: (_ for _ in ()).throw(ValueError(message)),
+    )
+    checks = LiveChecks(repo=Path(__file__).resolve().parents[2])
+    with pytest.raises(SetupRefused) as refused:
+        checks.revision()
+    assert refused.value.code == "clean_accepted_checkout_required"
+    assert needle in refused.value.next_step

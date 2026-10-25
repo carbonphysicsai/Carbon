@@ -530,3 +530,31 @@ def test_prep_program_diagnostic_is_private_bounded_and_best_effort(
     assert caught.value is original
     assert (tmp_path / "failure-PROGRAM.json").read_bytes() == record
     assert private_path.read_bytes() == original.private_diagnostic[:65536]
+
+
+@pytest.mark.parametrize(
+    ("message", "reason"),
+    [
+        ("pinned library parent ineligible", "LIBRARY_PARENT_INELIGIBLE"),
+        ("library worker child binding differs", "LIBRARY_CHILD_BINDING_DIFFERS"),
+        (
+            "required local image absent: the pinned uv image is not here; /home/x",
+            "REQUIRED_LOCAL_IMAGE_ABSENT",
+        ),
+    ],
+)
+def test_a_known_product_message_is_recorded_as_a_closed_reason_never_as_text(
+    tmp_path, message, reason
+):
+    carrier._retain_practice_failure(tmp_path, "HOST_READINESS", ValueError(message))
+    written = json.loads((tmp_path / "failure-HOST_READINESS.json").read_text())
+    assert written["reason"] == reason
+    assert "/home" not in json.dumps(written) and "uv image" not in json.dumps(written)
+
+
+def test_an_unknown_message_records_no_reason(tmp_path):
+    carrier._retain_practice_failure(
+        tmp_path, "HOST_READINESS", ValueError("secret path /x")
+    )
+    written = json.loads((tmp_path / "failure-HOST_READINESS.json").read_text())
+    assert "reason" not in written and "secret" not in json.dumps(written)

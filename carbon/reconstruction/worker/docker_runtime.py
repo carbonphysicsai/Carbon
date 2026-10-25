@@ -287,6 +287,10 @@ class DockerCLI:
         # Aliases the install recorded, not yet checked against the live store: each is verified (the tag's
         # image must have exactly the recorded fingerprint) the first time the id's direct lookup fails.
         self._candidates: dict[str, tuple[str, str]] = {}
+        # Every Docker call in this product sees this install's recorded aliases, so a check that is handed a plain
+        # `DockerCLI()` (the carrier's host-readiness check among them) finds a parent a containerd store never knew
+        # by its recorded id. A lookup only: each alias still needs the live image's exact fingerprint.
+        self.load_installed_aliases()
 
     def register_parent_alias(
         self, image_id: str, store_tag: str | None, store_fingerprint: str | None

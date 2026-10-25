@@ -1344,9 +1344,11 @@ class LiveChecks:
                 ["git", "rev-parse", "HEAD"], cwd=self.repo, text=True, timeout=30
             ).strip()
             return accepted_implementation(head)
-        except (OSError, ValueError, subprocess.SubprocessError):
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
             raise SetupRefused(
-                "accepted_revision", "clean_accepted_checkout_required"
+                "accepted_revision",
+                "clean_accepted_checkout_required",
+                next_step=_accepted_checkout_step(error),
             ) from None
 
     def compute(self, image_manifest: Path, analysis_manifest: Path) -> dict:
@@ -2114,6 +2116,29 @@ def extra_gpu_manifest(state_dir, offered) -> str | None:
     if jax_gpu is not None and Path(str(offered)).resolve() == Path(jax_gpu).resolve():
         return torch_gpu
     return None
+
+
+#: What to do when setup refuses the checkout, by the reason `accepted_implementation` gave
+#: (a closed pair of messages; anything else gets the general step).
+ACCEPTED_CHECKOUT_STEPS = {
+    "accepted revision is not in fetched main": (
+        "This checkout's revision is not in the fetched main, and setup accepts only a "
+        "revision in main: run git fetch origin main in the checkout, or install a "
+        "revision that is in main. A development host may pin its exact revision as a "
+        "development candidate instead."
+    ),
+    "campaign requires the exact clean accepted revision": (
+        "This checkout has local changes to tracked files, or its HEAD changed since "
+        "setup read it: restore it (git status shows what), then check this step again."
+    ),
+}
+ACCEPTED_CHECKOUT_GENERAL_STEP = (
+    "Setup could not read this checkout as a clean accepted revision: " + REINSTALL_STEP
+)
+
+
+def _accepted_checkout_step(error) -> str:
+    return ACCEPTED_CHECKOUT_STEPS.get(str(error), ACCEPTED_CHECKOUT_GENERAL_STEP)
 
 
 def checkout_revision(repo=REPO):

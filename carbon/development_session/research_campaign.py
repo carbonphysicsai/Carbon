@@ -1897,6 +1897,11 @@ async def freeze_candidate(
     return {"epoch": epoch, "selection": record}
 
 
+#: A practice task that ended in one of these states ran no training and made no experiment.
+PRACTICE_NOT_RUN_STATES = ("FAILED_INFRA", "UNRESOLVED")
+PRACTICE_COULD_NOT_RUN = "practice_could_not_run"
+
+
 async def practice_recipe(
     prepared, *, strategy, hypothesis, expected_effect, identity, mode=None
 ):
@@ -1959,6 +1964,12 @@ async def practice_recipe(
         answer, time.monotonic() - started, seconds
     ):
         raise OperationRefused(smoke.TIME_BUDGET_REACHED)
+    # A practice whose task ended FAILED_INFRA or UNRESOLVED produced no experiment: said to the
+    # miner with a code and a next step, never READY with nothing (M1 rc38: a failed host-readiness
+    # stage was written to a private file and every door read READY, no refusal).
+    task = answer.get("terminal_task") if isinstance(answer, dict) else None
+    if isinstance(task, dict) and task.get("state") in PRACTICE_NOT_RUN_STATES:
+        raise OperationRefused(PRACTICE_COULD_NOT_RUN)
     return answer
 
 

@@ -271,3 +271,18 @@ def test_a_missing_uv_image_says_what_to_pull(tmp_path):
         build_offline_bundle(context, bundle, IMAGE_ID, seal, cli=cli)
     assert str(refused.value) == UV_GAP
     assert "docker pull " + UV_IMAGE in UV_GAP
+
+
+def test_a_plain_docker_cli_sees_the_installs_aliases_by_default(tmp_path, monkeypatch):
+    """The carrier's host-readiness check is handed a plain DockerCLI(): on Docker 29 it must
+    still find the installed parent by the install's record (M1 rc38: practice READY with
+    nothing, a ValueError at HOST_READINESS)."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    state = image_fingerprint.default_state_dir()
+    assert state == tmp_path / ".carbon" / "development-launchpad"
+    image_fingerprint.write_alias(state, **GOOD)
+    cli = DockerCLI()
+    assert cli._candidates == {IMAGE_ID: (TAG, _fingerprint())}
+    # No record at all: nothing is loaded and the strict lookup stands.
+    monkeypatch.setenv("HOME", str(tmp_path / "other"))
+    assert DockerCLI()._candidates == {}

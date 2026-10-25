@@ -481,9 +481,11 @@ def test_the_launchpad_door_refuses_smoke_where_there_is_no_hook(tmp_path):
 @pytest.mark.parametrize(
     ("mode", "state", "refused"),
     [
-        (None, "FAILED_INFRA", True),
-        (None, "SUCCEEDED", False),
-        ("smoke", "FAILED_INFRA", False),
+        (None, "FAILED_INFRA", "practice_time_budget_reached"),
+        (None, "SUCCEEDED", None),
+        # A smoke practice never reaches the budget refusal; its infrastructure failure
+        # is said as practice_could_not_run.
+        ("smoke", "FAILED_INFRA", "practice_could_not_run"),
     ],
 )
 def test_a_full_practice_at_its_budget_names_smoke_as_its_next_step(
@@ -508,7 +510,7 @@ def test_a_full_practice_at_its_budget_names_smoke_as_its_next_step(
         mode=mode,
     )
     if refused:
-        with pytest.raises(rc.OperationRefused, match="practice_time_budget_reached"):
+        with pytest.raises(rc.OperationRefused, match=refused):
             asyncio.run(run)
     else:
         assert asyncio.run(run)["terminal_task"]["state"] == state
@@ -588,3 +590,62 @@ def test_observe_lists_a_smoke_result_apart_with_its_own_fields():
     view = smoke.public_view("rtsk_1", result)
     assert view["id"] == "rtsk_1" and "summary" not in view
     assert set(view) - {"id"} <= smoke.RESULT_FIELDS
+
+
+@pytest.mark.parametrize("state", ["FAILED_INFRA", "UNRESOLVED"])
+@pytest.mark.parametrize("mode", [None, "smoke"])
+def test_a_practice_that_ran_nothing_says_so_with_a_code_and_a_next_step(
+    tmp_path, mode, state
+):
+    """M1 rc38: a practice whose host-readiness stage failed was answered READY with no
+    experiment and no refusal. A task that ended FAILED_INFRA or UNRESOLVED is now refused
+    practice_could_not_run, whose next step is plain."""
+    ledger, manifest = ledger_at(tmp_path)
+    practice = FixturePractice(ledger)
+    practice.seconds = 10**6  # well inside the budget: not the time-budget refusal
+
+    async def call(name, args, identity):
+        return {"terminal_task": {"state": state}}
+
+    value = prepared(ledger, manifest, practice)
+    value.sdk = SimpleNamespace(call=call)
+    with pytest.raises(rc.OperationRefused, match="practice_could_not_run"):
+        asyncio.run(
+            rc.practice_recipe(
+                value,
+                strategy=HEAVY,
+                hypothesis="h",
+                expected_effect="e",
+                identity="nothing-" + str(mode) + state,
+                mode=mode,
+            )
+        )
+    step = supervisor.next_action("practice_could_not_run")
+    assert "infrastructure problem" in step and "carbon_setup_status" in step
+    assert "practice_could_not_run" in supervisor.NEXT_ACTIONS
+
+
+def test_a_practice_that_produced_a_result_is_returned_unchanged(tmp_path):
+    ledger, manifest = ledger_at(tmp_path)
+    practice = FixturePractice(ledger)
+    practice.seconds = 10**6
+    answer = {"terminal_task": {"state": "SUCCEEDED"}, "experiments": [1]}
+
+    async def call(name, args, identity):
+        return answer
+
+    value = prepared(ledger, manifest, practice)
+    value.sdk = SimpleNamespace(call=call)
+    assert (
+        asyncio.run(
+            rc.practice_recipe(
+                value,
+                strategy=HEAVY,
+                hypothesis="h",
+                expected_effect="e",
+                identity="ok-run",
+                mode=None,
+            )
+        )
+        is answer
+    )
