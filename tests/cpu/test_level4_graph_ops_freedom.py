@@ -28,6 +28,7 @@ from carbon.level4.tooling import lower_jax
 
 V6 = Path(allowlist_module.__file__).with_name("allowlist_v6.json")
 V7 = Path(allowlist_module.__file__).with_name("allowlist_v7.json")
+V8 = Path(allowlist_module.__file__).with_name("allowlist_v8.json")
 
 
 def _spd(n=3):
@@ -177,7 +178,7 @@ CASES = {
 }
 
 
-def _rebuilt(fn, args, path=V7):
+def _rebuilt(fn, args, path=V8):
     allowlist = allowlist_module.load(path)
     closed = lower_jax.trace(fn, *[jax.ShapeDtypeStruct(a.shape, a.dtype) for a in args])
     doc = lower_jax.lower(
@@ -215,11 +216,13 @@ def test_the_op_lowers_rebuilds_and_matches_jax(name):
         )
 
 
+@pytest.mark.parametrize("path", [V6, V7], ids=["v6", "v7"])
 @pytest.mark.parametrize("name", sorted(CASES))
-def test_v6_still_refuses_the_op(name):
+def test_earlier_versions_still_refuse_the_op(name, path):
+    """v8 is a new file: v6 and v7 keep refusing what they always refused."""
     ops, fn, args, _ = CASES[name]
     with pytest.raises(graph.GraphRefused) as refused:
-        _rebuilt(fn, args, path=V6)
+        _rebuilt(fn, args, path=path)
     assert refused.value.code in {"op_not_allowlisted", "parameters_not_allowlisted"}
 
 
@@ -255,7 +258,7 @@ def test_a_linear_solve_keeps_its_gradient_in_the_matrix_and_the_right_side(name
 
 
 def test_a_malformed_nested_solve_reference_is_refused():
-    allowlist = allowlist_module.load(V7)
+    allowlist = allowlist_module.load(V8)
     args = (_spd(), _signed((3, 2)))
     doc, _ = _rebuilt(SOLVES["solve_matrix"], args)
     node = next(
@@ -271,7 +274,7 @@ def test_a_malformed_nested_solve_reference_is_refused():
 
 def test_containment_is_unchanged():
     """Escapes, callbacks and unseeded generators stay refused in v7."""
-    ops = allowlist_module.load(V7).ops
+    ops = allowlist_module.load(V8).ops
     for name in (
         "custom_call",
         "ffi_call",

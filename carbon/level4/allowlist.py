@@ -43,7 +43,7 @@ CONTAINMENT = {"document_bytes": 64 * 1024**2, "call_depth": graph.MAX_CALL_DEPT
 #: cap. Only cap should be if it fits the training resource limit"): only the
 #: constants cap, which enforces from-scratch (owner: kept), and containment.
 #: The training resource limits bind instead. Every earlier version keeps CAPS.
-UNCAPPED_VERSIONS = frozenset({"level4-allowlist-v7"})
+UNCAPPED_VERSIONS = frozenset({"level4-allowlist-v7", "level4-allowlist-v8"})
 UNCAPPED_CAPS = {"constant_bytes": CAPS["constant_bytes"], **CONTAINMENT}
 
 
@@ -170,6 +170,22 @@ def v7_bytes():
     raw = V7_PATH.read_bytes()
     if hashlib.sha256(raw).hexdigest() != V7_SHA256:
         raise ValueError("allowlist v7 bytes differ")
+    return raw
+
+
+#: Allowlist v8 (prospective, not yet served): v7 plus every pure, deterministic
+#: array op the graph route can run (OWNER-GRAPH-OPS-OPEN-01; Validator
+#: VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025). A new file, served only by new
+#: versions: v7's bytes and digests stay. Frozen by its sha once the head is done.
+V8_PATH = Path(__file__).with_name("allowlist_v8.json")
+V8_SHA256 = "PENDING"
+
+
+def v8_bytes():
+    """Allowlist v8's exact frozen bytes, or ValueError."""
+    raw = V8_PATH.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != V8_SHA256:
+        raise ValueError("allowlist v8 bytes differ")
     return raw
 
 
