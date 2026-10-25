@@ -554,7 +554,6 @@ def test_containment_is_unchanged():
         "ffi_call",
         "pure_callback",
         "io_callback",
-        "debug_callback",
         "infeed",
         "outfeed",
         "rng_bit_generator",
@@ -563,3 +562,6 @@ def test_containment_is_unchanged():
         "while",
     ):
         assert ops[name]["default"] == "refuse", name
+    # Observation-only ops never reach a graph: lowering drops them.
+    for name in ("debug_callback", "debug_print", "sharding_constraint"):
+        assert ops[name]["default"] == "strip", name
