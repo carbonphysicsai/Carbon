@@ -77,3 +77,5 @@ carbon/scoring/physics_half.py -text
 carbon/scoring/probe_design.py -text
 carbon/scoring/sealed_grid_common.py -text
 carbon/scoring/sealed_pack_writer.py -text
+# Recorded host fixtures are LF (they were written CRLF on Windows once: git diff --check failed).
+tests/fixtures/gpu_hosts/** text eol=lf
