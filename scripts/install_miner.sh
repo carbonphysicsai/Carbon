@@ -841,18 +841,19 @@ else
   fi
 fi
 
-# GPU catalog practice prepares each build's overlay with the pinned uv image
-# (carbon/development_session/library_bundles.py, UV_IMAGE): pulled here by
-# digest when a GPU worker is installed and Docker lacks it (gate2c: its
-# absence read only as a silent CPU fallback). Never fatal: GPU practice then
-# says it is missing, with this command.
-if [[ "${gpu_build}" == 1 ]]; then
+# Every catalog entry's library image (CPU as well as GPU) is built offline with
+# the pinned uv image (carbon/development_session/library_bundles.py, UV_IMAGE):
+# pulled here by digest when Docker lacks it. It was pulled only for a GPU
+# install, so a CPU-only install built 0 of 241 catalog entries ('required local
+# image absent', M1 rc37 on a fresh Docker 28 host). Never fatal: the catalog
+# build and GPU practice then say it is missing, with this command.
+if true; then
   uv_image="$(grep -o 'UV_IMAGE = "[^"]*"' "${repo_root}/carbon/development_session/library_bundles.py" 2>/dev/null | head -n1 | cut -d'"' -f2 || true)"
   if [[ -n "${uv_image}" ]] && ! docker image inspect "${uv_image}" >/dev/null 2>&1; then
     if docker pull "${uv_image}" >/dev/null 2>&1; then
-      echo "Pulled the pinned uv image GPU builds prepare with."
+      echo "Pulled the pinned uv image the catalog and GPU builds prepare with."
     else
-      echo "Could not pull the pinned uv image GPU builds prepare with; GPU catalog practice says so until it is here. Run: docker pull ${uv_image}"
+      echo "Could not pull the pinned uv image the catalog and GPU builds prepare with; catalog installs and GPU practice say so until it is here. Run: docker pull ${uv_image}"
     fi
   fi
 fi

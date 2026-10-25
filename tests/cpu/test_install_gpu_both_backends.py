@@ -379,3 +379,29 @@ def test_a_gpu_install_pulls_the_pinned_uv_image_its_builds_prepare_with(sandbox
     failed = sandbox.run("--gpu", "--no-start", CARBON_TEST_UV_PULL="no")
     assert failed.returncode == 0, failed.stderr
     assert f"Run: docker pull {UV}" in failed.stdout
+
+
+def test_a_cpu_only_install_pulls_the_pinned_uv_image_the_catalog_builds_with(sandbox):
+    """M1 rc37, a fresh Docker 28 host installed with --pytorch only: the catalog build
+    installed 0 of 241 ('required local image absent') because the pinned uv image was
+    pulled only for a GPU install. Every library image is built with it, so every install
+    pulls it by digest when Docker lacks it."""
+    bundles = sandbox.work / "carbon/development_session/library_bundles.py"
+    bundles.parent.mkdir(parents=True, exist_ok=True)
+    bundles.write_text(f'UV_IMAGE = "{UV}"\n')
+    sandbox.publish("fixture pinned uv image")
+    sandbox._executable(
+        sandbox.tools / "docker",
+        "#!/bin/sh\n"
+        'echo "docker $*" >> "$CARBON_TEST_LOG"\n'
+        'if [ "$*" = "info --format {{.DockerRootDir}}" ]; then\n'
+        '  echo "$CARBON_TEST_DOCKER_ROOT"\nfi\n'
+        'case "$*" in\n'
+        '  "image inspect ghcr.io/astral-sh/uv"*) exit 1 ;;\n'
+        "esac\n"
+        "exit 0\n",
+    )
+    result = sandbox.run("--pytorch", "--no-start")
+    assert result.returncode == 0, result.stderr
+    assert f"docker pull {UV}" in sandbox.logged()
+    assert "Pulled the pinned uv image" in result.stdout
