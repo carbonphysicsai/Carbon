@@ -23,7 +23,8 @@ F02, `<f8` on Motor and Cooling) - the graph's own computation precision is
 the miner's (Validator, 2026-10-23); batch at most the
 selected TRAIN rows; train_fraction above zero; containment and constant
 bytes (the allowlist); no pretrained state (the recipe); identity bindings.
-A loss inside the graph is still refused (`graph_route_loss_unsupported`).
+A loss graph over the training batch, with the model's parameters as inputs, may ride
+with the forward graph and replaces the menu loss (`level4.loss.check_batch`).
 
 It runs inside the isolated build worker with only its staged modules, so the
 Challenge constants are kept here, not imported (a test holds them equal to
@@ -51,9 +52,20 @@ TRAINER_MODULE = "carbon.development_session.physical_graph_trainer_v2"
 TRAINER_PATH = "carbon/development_session/physical_graph_trainer_v2.py"
 #: The v2 trainer's source sha256 (a test re-hashes it). A change to the
 #: trainer is a new digest, so a new version.
-TRAINER_SHA256 = "54152a38628862cad0f94314b830130fc6e3d39480a41be94af85eca669a517d"
+TRAINER_SHA256 = "e60abb521b3555b44fce22d5212e8dcf54275bb96a0e99f125d3e785825a4921"
 TRAINER_PIN = (TRAINER_PATH, TRAINER_SHA256)
 CODE = "graph_route_"
+#: A graph recipe may carry a loss graph over the whole training batch with the
+#: model's parameters as inputs (`carbon.level4.loss.check_batch`); it replaces the
+#: menu loss (OWNER-GRAPH-OPS-OPEN-01, Validator row 3: the loss trains on TRAIN
+#: only and the grade uses the Challenge's own metric).
+LOSS_OVERRIDE = "batch"
+#: What the limits say about the trainer's loss.
+TRAINER_LOSS_TEXT = (
+    "per-output weighted, over the member's outputs, or the recipe's own loss graph "
+    "over the training batch (outputs and targets in standardised units, the "
+    "batch's inputs, the parameters)"
+)
 
 #: Each surface's (kind, default): the structural bound is the kind's.
 #:   uint     an integer, at least `low` (steps 1, warmup 0, batch 1)
@@ -541,24 +553,22 @@ def build_validated_graph(
         allowlist=allowed,
         challenge=spec.challenge_id,
         interface=interface.digest(),
-        loss_override="none",
+        loss_override=LOSS_OVERRIDE,
     )
     verdict = validate.validate_submission(
         parsed,
         allowed,
         interface=interface,
         batch=settings["batch_size"],
-        loss_override="none",
+        loss_override=LOSS_OVERRIDE,
     )
     if verdict["status"] != "admitted":
         raise intake.IntakeBlocked("graph validation did not admit")
-    if "loss" in parsed:
-        raise RecipeRefused(CODE + "loss_unsupported")
     return EnsembleGraphModel(
         recipe,
         spec,
         parsed["forward"],
-        prepare(parsed, allowed, verdict=verdict),
+        prepare(parsed, allowed, verdict=verdict, loss_override=LOSS_OVERRIDE),
         allowed,
         settings,
     )
@@ -640,7 +650,7 @@ def adapter_block(challenge_id: str, version: str) -> dict:
             "module": TRAINER_MODULE,
             "sha256": "sha256:" + TRAINER_SHA256,
             "target_standardisation": "per_column_selected_train_rows",
-            "loss": "per-output weighted, over the member's outputs",
+            "loss": TRAINER_LOSS_TEXT,
             "seed": "carbon.level4.train.keys",
         },
         "predecessor": spec.predecessor,

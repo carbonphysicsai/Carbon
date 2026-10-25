@@ -320,11 +320,19 @@ def validate_submission(
     if "loss" in parsed:
         loss_slot.gate(parsed, loss_override)
         verdicts["loss"] = validate(parsed["loss"], allowlist, role="loss", caps=caps)
-        loss_slot.check(
-            parsed["loss"],
-            interface,
-            loss_slot.aux_outputs(parsed["forward"], interface),
-        )
+        if loss_override == loss_slot.BATCH:
+            loss_slot.check_batch(
+                parsed["loss"],
+                interface,
+                verdicts["forward"]["batch"],
+                parameters(parsed["forward"]),
+            )
+        else:
+            loss_slot.check(
+                parsed["loss"],
+                interface,
+                loss_slot.aux_outputs(parsed["forward"], interface),
+            )
     wanted = [(d, s) for _, d, s in parameters(parsed["forward"])]
     if "init" in parsed:
         verdicts["init"] = validate(parsed["init"], allowlist, role="init", caps=caps)

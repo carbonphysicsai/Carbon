@@ -11,7 +11,9 @@ defines:
 * `INPUTS`: `{"inputs/<name>": (per-case shape tuple, dtype name)}`, the
   Challenge interface's inputs in order;
 * JAX: `forward(params, *inputs)` and `init(key) -> params` (parameters
-  only; Carbon supplies the key);
+  only; Carbon supplies the key), and optionally `loss(params, pred, target,
+  *inputs) -> scalar`: a loss over the whole training batch that replaces the
+  menu loss (pred and target in the trainer's standardised units);
 * PyTorch: `build() -> (params, apply)` with `apply(params, *inputs)`, and
   `INIT_SPEC`: one `{"initializer", "fan_in_axes", "fan_out_axes"}` per
   parameter (Carbon initializes PyTorch graphs itself, `initializers`).
@@ -78,7 +80,45 @@ def _jax_documents_at(module, batch, allowlist, max_bytes):
         input_names=["carbon/key"],
         max_bytes=max_bytes,
     )
-    return {"forward": forward, "init": init}
+    documents = {"forward": forward, "init": init}
+    if hasattr(module, "loss"):
+        documents["loss"] = _jax_loss_document(
+            module, example, inputs, allowlist, max_bytes
+        )
+    return documents
+
+
+def _jax_loss_document(module, example, inputs, allowlist, max_bytes):
+    """The batch loss graph of a spec that defines `loss(params, pred, target,
+    *inputs) -> scalar`: pred and target are the model's outputs and the TRAIN
+    targets for the batch in the trainer's (standardised) units, inputs are the
+    batch's, params the model's parameters (`carbon.level4.loss.check_batch`)."""
+    import jax
+
+    from . import through_bprime
+
+    out = jax.eval_shape(module.forward, example, *inputs)
+    struct = jax.tree_util.tree_structure(example)
+    leaves = jax.tree_util.tree_leaves(example)
+
+    def flat(pred, target, *rest):
+        xs, ps = rest[: len(inputs)], rest[len(inputs) :]
+        return module.loss(jax.tree_util.tree_unflatten(struct, ps), pred, target, *xs)
+
+    names = (
+        ["loss/pred/0", "loss/target/0"]
+        + ["loss/x/" + name.split("/", 1)[1] for name in module.INPUTS]
+        + [f"loss/param/{i}" for i in range(len(leaves))]
+    )
+    _, document, _ = through_bprime(
+        flat,
+        (out, out, *inputs, *leaves),
+        role="loss",
+        allowlist=allowlist,
+        input_names=names,
+        max_bytes=max_bytes,
+    )
+    return document
 
 
 def _torch_documents(module, batch, allowlist):

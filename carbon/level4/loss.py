@@ -29,8 +29,13 @@ from __future__ import annotations
 from . import graph
 from .allowlist import HUMAN_INPUT
 
-OVERRIDES = ("none", "terms", "graph")
+OVERRIDES = ("none", "terms", "graph", "batch")
+#: The batch slot (graph route v2): one loss graph over the whole training batch,
+#: with the model's parameters as inputs, so it may weigh cases against each
+#: other and regularise (`check_batch`). The per-case slot above is unchanged.
+BATCH = "batch"
 PRED, TARGET, X, AUX = "loss/pred/", "loss/target/", "loss/x/", "loss/aux/"
+PARAM = "loss/param/"
 #: The most auxiliary outputs a forward graph may declare for the loss.
 AUX_LIMIT = HUMAN_INPUT
 _FLOATS = ("float32", "float64")
@@ -40,7 +45,7 @@ def gate(slots, loss_override):
     """Refuse a loss document unless the Challenge declares `graph`."""
     if "loss" not in slots:
         return
-    if loss_override not in OVERRIDES or loss_override != "graph":
+    if loss_override not in ("graph", BATCH):
         raise graph.GraphRefused("loss_not_permitted", str(loss_override))
 
 
@@ -120,5 +125,64 @@ def per_case_mean(rebuilt):
     def loss(pred, target, x, aux=()):
         flat = [*pred, *target, *x, *aux]
         return jnp.mean(jax.vmap(one)(*flat))
+
+    return loss
+
+
+def expected_inputs_batch(interface, batch, parameters):
+    """`[(name, dtype, shape)]` the batch loss graph must take: the model's
+    outputs and the TRAIN targets for the batch (in the units the trainer
+    uses), the batch's inputs, then every model parameter in order, each with
+    the shape the forward graph declares."""
+    out = []
+    for k, (dtype, case) in enumerate(interface.outputs):
+        out.append((f"{PRED}{k}", dtype, [batch, *case]))
+    for k, (dtype, case) in enumerate(interface.outputs):
+        out.append((f"{TARGET}{k}", dtype, [batch, *case]))
+    for name, dtype, case in interface.inputs:
+        out.append((X + name.split("/", 1)[1], dtype, [batch, *case]))
+    for k, (_name, dtype, shape) in enumerate(parameters):
+        out.append((f"{PARAM}{k}", dtype, list(shape)))
+    return out
+
+
+def check_batch(doc, interface, batch, parameters):
+    """The batch loss graph's slot contract, or `GraphRefused`: exactly the
+    inputs `expected_inputs_batch` names, in that order and with those shapes,
+    and one floating scalar out."""
+    if doc["role"] != "loss":
+        raise graph.GraphRefused("role_mismatch")
+    entry = doc["graphs"][doc["entry"]]
+    got = [(i["name"], i["dtype"], list(i["shape"])) for i in entry["inputs"]]
+    wanted = expected_inputs_batch(interface, batch, parameters)
+    names = {n for n, _, _ in wanted}
+    for name, _, _ in got:
+        if name not in names:
+            raise graph.GraphRefused("loss_input_unexpected", name)
+    if [n for n, _, _ in got] != [n for n, _, _ in wanted]:
+        raise graph.GraphRefused("loss_input_missing")
+    for (name, dtype, shape), (_, want_dtype, want_shape) in zip(got, wanted):
+        if (dtype, shape) != (want_dtype, want_shape):
+            raise graph.GraphRefused("loss_input_shape", name)
+    values = {}
+    for node in entry["nodes"]:
+        for out in node["out"]:
+            values[out["value"]] = out
+    for item in entry["inputs"] + entry["constants"]:
+        values[item["value"]] = item
+    if len(entry["outputs"]) != 1:
+        raise graph.GraphRefused("loss_output")
+    out = values[entry["outputs"][0]]
+    if out["dtype"] not in _FLOATS or list(out["shape"]) != []:
+        raise graph.GraphRefused("loss_output")
+
+
+def batch_loss(rebuilt):
+    """`loss(pred, target, x, params) -> scalar`: the rebuilt batch graph, whole.
+    Each of `pred`, `target`, `x` and `params` is a list of arrays."""
+
+    def loss(pred, target, x, params):
+        (value,) = rebuilt(*pred, *target, *x, *params)
+        return value
 
     return loss

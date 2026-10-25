@@ -21,28 +21,28 @@ MOTOR = "electric-motor-magnetics"
 #: calibration artifact bound to them stays valid only while these do not move.
 KITS = {
     ("f08-ribbed-bracket", "1.5"): {
-        "construction_limits_digest": "sha256:ae87b953e553191d0f859b24bdf157c18f80892f49b57ccc8bece5f510d184c0",
+        "construction_limits_digest": "sha256:e459ca1c720d824be456794d753e913718ff8758ad4b900062c77b7ed7c93284",
         "id": "f08-ribbed-bracket",
         "interface_digest": "sha256:42e64c6800368f2b364bbc6e70e34814401e3e38b6a9ff7dcfec70c7b1818eba",
         "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
         "version": "1.5",
     },
     ("f02", "2.4"): {
-        "construction_limits_digest": "sha256:eaf740b0d515f71676cf47a45f1509c6e04b0b7608c4ea55f2b70664c9c055b7",
+        "construction_limits_digest": "sha256:0b56823b6699bca5c3fc3c142573f96428be0f522a144955bfab624e8b91c841",
         "id": "f02",
         "interface_digest": "sha256:3a9c2f8bd2fdaeeca65e060d32f17a60cba06c16b837d6be185a95cdfa9e011e",
         "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
         "version": "2.4",
     },
     ("electric-motor-magnetics", "1.4"): {
-        "construction_limits_digest": "sha256:e3109015a1b2b895cf1469ece5563d1f34278099073baa480ded1e65358d40cb",
+        "construction_limits_digest": "sha256:fd7e2f54f3d1f844a984bec2f0bbc8e783c6b27eab443bc4ea21c68ef15e235a",
         "id": "electric-motor-magnetics",
         "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
         "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
         "version": "1.4",
     },
     ("chip-cold-plate", "1.4"): {
-        "construction_limits_digest": "sha256:9d32687bbaea70f361143d92d800a9f13759b7d3620a6b90bc929429496aff1a",
+        "construction_limits_digest": "sha256:0d4764d6134b655fa1be5c19f84670245eaf4963e594c0c5a1f90a5af8b67410",
         "id": "chip-cold-plate",
         "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
         "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",

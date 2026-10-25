@@ -70,14 +70,14 @@ FREEZE_MOVED = {
 #: OWNER-SANDBOX-REBUILD-WALL-01.
 NEW_KITS = {
     ("chip-cold-plate", "1.4"): (
-        "9d32687bbaea70f361143d92d800a9f13759b7d3620a6b90bc929429496aff1a"
+        "0d4764d6134b655fa1be5c19f84670245eaf4963e594c0c5a1f90a5af8b67410"
     ),
     ("electric-motor-magnetics", "1.4"): (
-        "e3109015a1b2b895cf1469ece5563d1f34278099073baa480ded1e65358d40cb"
+        "fd7e2f54f3d1f844a984bec2f0bbc8e783c6b27eab443bc4ea21c68ef15e235a"
     ),
-    ("f02", "2.4"): "eaf740b0d515f71676cf47a45f1509c6e04b0b7608c4ea55f2b70664c9c055b7",
+    ("f02", "2.4"): "0b56823b6699bca5c3fc3c142573f96428be0f522a144955bfab624e8b91c841",
     ("f08-ribbed-bracket", "1.5"): (
-        "ae87b953e553191d0f859b24bdf157c18f80892f49b57ccc8bece5f510d184c0"
+        "e459ca1c720d824be456794d753e913718ff8758ad4b900062c77b7ed7c93284"
     ),
 }
 #: The shared C-03 profiles (CPU build, G5 compile) at rc8 1ea4c49ad.

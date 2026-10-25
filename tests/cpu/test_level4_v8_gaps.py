@@ -124,11 +124,11 @@ def test_approx_top_k_matches_jax():
 
 
 def test_a_reduction_with_your_own_computation_lowers_and_matches_jax():
-    fn = lambda a: lax.reduce(a, 0.0, lambda x, y: x + y * y, (0,))  # noqa: E731
+    fn = lambda a: lax.reduce(a, 0.0, lambda x, y: x + y * y, (0,))
     doc, run = _lower(fn, (V,))
     assert "reduce" in {n["op"] for n in _nodes(doc)}
     np.testing.assert_allclose(run(V)[0], fn(V), rtol=1e-6)
-    two = lambda a: lax.reduce(  # noqa: E731
+    two = lambda a: lax.reduce(
         (a, a * 2), (0.0, 1.0), lambda x, y: (x[0] + y[0], x[1] * y[1]), (0,)
     )
     _, run = _lower(two, (V,))
@@ -137,7 +137,7 @@ def test_a_reduction_with_your_own_computation_lowers_and_matches_jax():
 
 
 def test_a_window_reduction_with_your_own_computation_matches_jax():
-    fn = lambda a: lax.reduce_window(  # noqa: E731
+    fn = lambda a: lax.reduce_window(
         a, 0.0, lambda x, y: x + y * y, (2,), (1,), "VALID"
     )
     doc, run = _lower(fn, (V,))
@@ -149,13 +149,13 @@ def test_ragged_dot_and_symmetric_product_match_jax():
     lhs = jnp.arange(16.0, dtype=jnp.float32).reshape(4, 4) / 10
     rhs = jnp.arange(24.0, dtype=jnp.float32).reshape(2, 4, 3) / 10
     sizes = jnp.array([1, 3], jnp.int32)
-    fn = lambda a, b, g: lax.ragged_dot(a, b, g)  # noqa: E731
+    fn = lambda a, b, g: lax.ragged_dot(a, b, g)
     doc, run = _lower(fn, (lhs, rhs, sizes))
     assert "ragged_dot_general" in {n["op"] for n in _nodes(doc)}
     np.testing.assert_allclose(run(lhs, rhs, sizes)[0], fn(lhs, rhs, sizes), rtol=1e-5)
     from jax._src.lax import linalg
 
-    sym = lambda a, c: linalg.symmetric_product_p.bind(a, c, alpha=2.0, beta=0.5)  # noqa: E731
+    sym = lambda a, c: linalg.symmetric_product_p.bind(a, c, alpha=2.0, beta=0.5)
     _, run = _lower(sym, (lhs, jnp.zeros((4, 4), jnp.float32)))
     np.testing.assert_allclose(
         run(lhs, jnp.zeros((4, 4), jnp.float32))[0],

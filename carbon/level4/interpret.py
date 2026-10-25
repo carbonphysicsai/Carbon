@@ -282,7 +282,7 @@ def _linear_solve(run, bound, ins):
         consts.append(list(ins[at : at + n]))
         at += n
     b = list(ins[at:])
-    matvec_c, vecmat_c, solve_c, transpose_c = consts
+    matvec_c, _vecmat_c, solve_c, transpose_c = consts
 
     def ref(name):
         return None if bound[name] is None else bound[name]["graph"]

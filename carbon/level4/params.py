@@ -305,8 +305,7 @@ def _encode(kind, value, lower_graph, name=None):
     if kind == "ragged_dot_dnums":
         return {
             "dot_dimension_numbers": [
-                [_trace_ints(d) for d in pair]
-                for pair in value.dot_dimension_numbers
+                [_trace_ints(d) for d in pair] for pair in value.dot_dimension_numbers
             ],
             "lhs_ragged_dimensions": _trace_ints(value.lhs_ragged_dimensions),
             "rhs_group_dimensions": _trace_ints(value.rhs_group_dimensions),
