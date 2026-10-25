@@ -67,7 +67,11 @@ def assess(facts: dict) -> list[dict]:
     if os_id is not None and not (
         os_id == "ubuntu" and str(os_version) in SUPPORTED_UBUNTU
     ):
-        add("operating_system", f"{os_id} {os_version or ''}".strip(), "Ubuntu 22.04 or 24.04")
+        add(
+            "operating_system",
+            f"{os_id} {os_version or ''}".strip(),
+            "Ubuntu 22.04 or 24.04",
+        )
     arch = facts.get("arch")
     if arch is not None and arch != SUPPORTED_ARCH:
         add("architecture", arch, "x86-64")
@@ -122,14 +126,14 @@ def host_facts(path=".") -> dict:
         disk = shutil.disk_usage(os.path.abspath(path)).free / 2**30
     except OSError:
         disk = None
-    driver = _run(
-        ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"]
-    )
+    driver = _run(["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"])
     return {
         "os_id": os_id,
         "os_version": os_version,
         "arch": platform.machine() or None,
-        "docker_version": _run(["docker", "version", "--format", "{{.Server.Version}}"]),
+        "docker_version": _run(
+            ["docker", "version", "--format", "{{.Server.Version}}"]
+        ),
         "ram_gib": ram,
         "disk_free_gib": disk,
         "nvidia_driver": driver.splitlines()[0] if driver else None,
