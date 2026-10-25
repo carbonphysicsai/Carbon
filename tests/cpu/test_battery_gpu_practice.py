@@ -676,3 +676,84 @@ def test_a_host_the_miner_lane_cannot_use_is_refused_with_its_blockers(
         live.checks.gpu(live.manifest, campaign=battery_campaign())
     # Only what the miner lane requires blocks; a display on the GPU does not.
     assert refused.value.code == "gpu_host_not_ready:container_device_runtime"
+
+
+def test_a_container_gpu_host_is_not_refused_for_its_platform(live, monkeypatch):
+    """A hosted instance running Docker is a supported practice host: the
+    platform never refuses it, a worker that cannot start there does."""
+    monkeypatch.setattr(
+        onboarding, "detect_platform", lambda: "HOSTED_COMPUTE_INSTANCE"
+    )
+    found = live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert found["device_kind"] == "NVIDIA GeForce RTX 4090"
+    assert HostDeviceRecord.load(live.root).platform == "HOSTED_COMPUTE_INSTANCE"
+
+
+def test_docker_not_reachable_is_a_plain_gap_not_a_choice_for_the_miner(
+    live, monkeypatch
+):
+    from carbon.reconstruction.worker import docker_runtime
+
+    class Unreachable:
+        def json(self, arguments):
+            raise WorkerFailure(WorkerCode.UNAVAILABLE)
+
+    monkeypatch.setattr(docker_runtime, "DockerCLI", Unreachable)
+    with pytest.raises(SetupRefused) as refused:
+        live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert (refused.value.field, refused.value.code) == (
+        "gpu",
+        "gpu_container_runtime_unavailable",
+    )
+    assert "can't start Carbon's worker containers" in refused.value.next_step
+    assert "Docker is not reachable" in refused.value.next_step
+
+
+def test_a_record_the_vendor_tool_cannot_fill_names_its_fields(live, monkeypatch):
+    bad = {
+        **OBSERVED,
+        "devices": [{**OBSERVED["devices"][0], "display_active": "[N/A]"}],
+    }
+    monkeypatch.setattr(onboarding, "observe_local_device", lambda **_: bad)
+    with pytest.raises(SetupRefused) as refused:
+        live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert refused.value.code == "gpu_record_needs_your_choice"
+    assert "display_active" in refused.value.next_step
+    assert "carbon_accelerator.py prepare" in refused.value.next_step
+    assert "[N/A]" not in refused.value.next_step
+
+
+def test_a_blocked_miner_lane_check_says_why_in_plain_words(live, monkeypatch):
+    monkeypatch.setattr(
+        onboarding,
+        "doctor_report",
+        lambda **_: {
+            "findings": [
+                {
+                    "check": "container_device_runtime",
+                    "state": "BLOCKED",
+                    "detail": "no nvidia container runtime is registered with the daemon",
+                }
+            ]
+        },
+    )
+    with pytest.raises(SetupRefused) as refused:
+        live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert refused.value.code == "gpu_host_not_ready:container_device_runtime"
+    assert refused.value.next_step.startswith(
+        "this host can't start Carbon's worker containers: no nvidia container runtime"
+    )
+
+
+def test_a_multi_gpu_machine_is_asked_to_choose_not_picked_for(live, monkeypatch):
+    second = {
+        **OBSERVED["devices"][0],
+        "device_uuid": "GPU-41e88d04-75ff-89b2-9160-4b923dd7eb81",
+    }
+    two = {**OBSERVED, "devices": [OBSERVED["devices"][0], second]}
+    monkeypatch.setattr(onboarding, "observe_local_device", lambda **_: two)
+    with pytest.raises(SetupRefused) as refused:
+        live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert refused.value.code == "gpu_record_needs_your_choice"
+    assert "--device GPU-<uuid>" in refused.value.next_step
+    assert "nvidia-smi -L" in refused.value.next_step

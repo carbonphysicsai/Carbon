@@ -33,7 +33,9 @@ from carbon.reconstruction.host_inventory import (
     HOST_DEVICE_AUTHORITY,
     HOST_DEVICE_RECORD,
     HOST_DEVICE_SCHEMA,
+    DeviceChoiceRequired,
     HostDeviceRecord,
+    HostRecordRefused,
     require_host_device,
 )
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
@@ -53,6 +55,13 @@ _SMI_QUERY = (
     "uuid,name,driver_version,driver_model.current,"
     "compute_cap,memory.total,display_active"
 )
+
+
+def _driver_model(raw: str) -> str:
+    """The vendor tool's driver model as the record names it: an empty or
+    bracketed not-applicable marker is "N/A"; anything else is passed through
+    for the record's own check to judge."""
+    return "N/A" if raw in ("", "[N/A]", "[n/a]", "n/a", "N/A") else raw
 
 
 def _finding(check: str, state: str, detail: str, **extra) -> dict:
@@ -104,7 +113,9 @@ def observe_local_device(*, binary: str | None = None, timeout: float = 15.0) ->
                 "device_uuid": parts[0],
                 "device_kind": parts[1],
                 "driver_version": parts[2],
-                "driver_model": parts[3] if parts[3] else "N/A",
+                # The vendor tool prints [N/A] where a field does not apply (on
+                # Linux the driver model); that is the record's "N/A".
+                "driver_model": _driver_model(parts[3]),
                 "compute_capability": parts[4],
                 "device_memory_mib": parts[5],
                 "display_active": parts[6].capitalize(),
@@ -180,16 +191,20 @@ def build_host_record(
     record describes; the workload profile still names exactly one device.
     """
     devices = observed.get("devices") or []
+    listed = [
+        {"device_uuid": d.get("device_uuid"), "device_kind": d.get("device_kind")}
+        for d in devices
+    ]
     if device_uuid is None:
         if len(devices) != 1:
             # Ambiguous on a multi-device host: the operator must choose rather
             # than have Carbon pick one for them.
-            raise WorkerFailure(WorkerCode.INVALID)
+            raise DeviceChoiceRequired(listed)
         chosen = devices[0]
     else:
         chosen = next((d for d in devices if d["device_uuid"] == device_uuid), None)
         if chosen is None:
-            raise WorkerFailure(WorkerCode.INVALID)
+            raise DeviceChoiceRequired(listed)
     try:
         memory = int(str(chosen["device_memory_mib"]).split()[0])
     except (KeyError, ValueError, IndexError):
@@ -217,7 +232,9 @@ def build_host_record(
     }
     # Validate before anything is written, so a bad observation never lands on
     # disk where a later command would read it back as installed evidence.
-    HostDeviceRecord(document, "sha256:" + "0" * 64).validate()
+    problems = HostDeviceRecord(document, "sha256:" + "0" * 64).problems()
+    if problems:
+        raise HostRecordRefused(problems)
     require_host_device(HostDeviceRecord(document, "sha256:" + "0" * 64), profile)
     return document
 
@@ -408,6 +425,11 @@ def doctor_report(*, root: Path, profile=GPU_PROFILE, cli=None, image=None) -> d
         "findings": findings,
         "blocked": [f["check"] for f in blocked],
         "unknown": [f["check"] for f in unknown],
+        # Your own practice (the miner lane) needs only these checks; a
+        # grant or approval, display routing, enumeration and the attempt
+        # journal are for owner-authorised runs, not for you.
+        "miner_lane_blockers": miner_lane_blockers({"findings": findings}),
+        "miner_lane_ready": not miner_lane_blockers({"findings": findings}),
         # Deliberately not "ready to run": this reports the checks this command
         # can make. It is not an acceptance, a qualification, or a statement
         # that a run on this host would produce comparable science.

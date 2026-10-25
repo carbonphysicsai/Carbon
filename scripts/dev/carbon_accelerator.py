@@ -48,6 +48,29 @@ from carbon.reconstruction.host_inventory import (
 )
 from carbon.reconstruction.worker.model import WorkerFailure
 
+#: What a host-record field must be, in plain words, for a refusal that names
+#: it. Facts about the record's shape only; nothing read from the host.
+FIELD_HINTS = {
+    "device": "this host has several GPUs (or the one named is not among them): pass --device GPU-<uuid>, one of `choices`",
+    "record": "the record is missing or has unexpected fields",
+    "schema": "the record's schema is not the host device record's",
+    "observation_authority": "the record must say it is a host observation only",
+    "record_id": "letters, digits, '-' and '_' only, up to 64 characters",
+    "workload_profile_id": "the workload profile this record serves (leave --profile unset)",
+    "device_uuid": "the vendor's device id (NVIDIA: GPU-<uuid> or MIG-<uuid>, lowercase hex)",
+    "device_kind": "the device's marketed name (letters, digits, spaces, '_', '.', '-')",
+    "driver_version": "digits and dots only, up to 16 characters",
+    "driver_model": "must be WDDM, TCC or N/A",
+    "compute_capability": "like 8.6",
+    "device_memory_mib": "a whole number of MiB above 0",
+    "display_active": "must be Enabled or Disabled (the vendor tool printed something else)",
+    "platform": "must be WSL2, LINUX_BARE_METAL, LINUX_VIRTUAL_MACHINE or HOSTED_COMPUTE_INSTANCE",
+    "container_runtime": "must be DOCKER_ENGINE or DOCKER_DESKTOP",
+    "provider": "letters, digits, '-' and '_' only, up to 64 characters",
+    "observed_at_unix": "a positive time in seconds",
+    "observation_provenance": "a sentence of letters, digits and simple punctuation",
+}
+
 
 def _emit(value: object) -> int:
     print(json.dumps(value, sort_keys=True, indent=2))
@@ -304,7 +327,22 @@ def main(argv=None) -> int:
     try:
         return args.handler(args)
     except WorkerFailure as failure:
-        return _emit({"status": "REFUSED", "code": failure.code.value}) or 2
+        refusal = {"status": "REFUSED", "code": failure.code.value}
+        fields = getattr(failure, "fields", None)
+        if fields:
+            # Which fields of the host record failed, and what each must
+            # be. Names only; the values stay on the host.
+            refusal["fields"] = list(fields)
+            refusal["reasons"] = {
+                name: FIELD_HINTS.get(name, "does not match the record's shape")
+                for name in fields
+            }
+            if getattr(failure, "choices", None):
+                refusal["choices"] = list(failure.choices)
+            refusal["next"] = (
+                "fix the named fields: record them with `prepare --from <file>` after checking them with `observe`; if the vendor tool itself reports a value the record does not accept, report the field name to Carbon (this host class may not be supported yet)"
+            )
+        return _emit(refusal) or 2
     except ValueError as error:
         return _emit({"status": "REFUSED", "detail": str(error)}) or 2
 
