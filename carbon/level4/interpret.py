@@ -136,6 +136,29 @@ def _custom_jvp(run, bound, ins):
     return list(call(*ins))
 
 
+def _while(run, bound, ins):
+    """`lax.while_loop` over a condition graph and a body graph. The trip count is
+    the data's, so the build and inference walls bound it; a loop that never ends is
+    the candidate's failure (Validator ruling 2(b): served only once both walls end
+    in a typed candidate failure)."""
+    import jax
+
+    cond_n, body_n = bound["cond_nconsts"], bound["body_nconsts"]
+    if cond_n < 0 or body_n < 0 or cond_n + body_n > len(ins):
+        raise graph.GraphRefused("parameter_kind_mismatch")
+    cond_consts = list(ins[:cond_n])
+    body_consts = list(ins[cond_n : cond_n + body_n])
+    init = tuple(ins[cond_n + body_n :])
+    cond_ref, body_ref = bound["cond_jaxpr"]["graph"], bound["body_jaxpr"]["graph"]
+    return list(
+        jax.lax.while_loop(
+            lambda state: run(cond_ref, [*cond_consts, *state])[0],
+            lambda state: tuple(run(body_ref, [*body_consts, *state])),
+            init,
+        )
+    )
+
+
 def _scan(run, bound, ins):
     """`lax.scan` over a nested body graph (inputs: consts, carry, x slices;
     outputs: new carry, y slices). Static length; the body runs once per step."""
@@ -286,6 +309,8 @@ def rebuild(doc, allowlist):
                 outs = _custom_jvp(run, bound, ins)
             elif node["op"] == "custom_vjp_call":
                 outs = _custom_vjp(run, bound, ins)
+            elif node["op"] == "while":
+                outs = _while(run, bound, ins)
             elif node["op"] == "scan":
                 outs = _scan(run, bound, ins)
             elif node["op"] == "cond":

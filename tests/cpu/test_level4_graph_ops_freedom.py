@@ -9,6 +9,7 @@ loops stay refused (last test).
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -604,6 +605,32 @@ def test_a_document_that_carries_a_stripped_op_is_refused():
     )
     with pytest.raises(graph.GraphRefused):
         allowlist.check(doc)
+
+
+def _with_while_admitted():
+    raw = json.loads(V8.read_bytes())
+    raw["carbon_ops"]["while"]["default"] = "allow"
+    return allowlist_module.Allowlist(json.dumps(raw).encode())
+
+
+def test_while_is_implemented_but_withheld_until_both_walls_are_shown():
+    """Served `while` needs the walls' typed-candidate-failure evidence (Validator 2(b)):
+    v8 refuses it today, and the day its entry says allow it runs and differentiates
+    forward (its trip count is the data's, so reverse mode is JAX's own error)."""
+    fn = lambda x: lax.while_loop(lambda c: c[0, 0] < 8.0, lambda c: c * 1.5 + 0.5, x)  # noqa: E731
+    args = (_positive(),)
+    closed = lower_jax.trace(fn, jax.ShapeDtypeStruct(args[0].shape, args[0].dtype))
+    with pytest.raises(graph.GraphRefused) as refused:
+        lower_jax.lower(closed, role="forward", allowlist=allowlist_module.load(V8), input_names=["x"])
+    assert refused.value.code == "op_refused"
+    admitted = _with_while_admitted()
+    doc = lower_jax.lower(closed, role="forward", allowlist=admitted, input_names=["x"])
+    assert "while" in _ops(doc)
+    run = interpret.rebuild(
+        graph.parse(graph.dumps(doc), max_bytes=allowlist_module.CAPS["document_bytes"]),
+        admitted,
+    )
+    np.testing.assert_array_equal(np.asarray(run(*args)[0]), np.asarray(fn(*args)))
 
 
 def test_containment_is_unchanged():

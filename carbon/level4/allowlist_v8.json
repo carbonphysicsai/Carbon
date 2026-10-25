@@ -2876,12 +2876,21 @@
    "v0_interpreter": true
   },
   "while": {
-   "category": "unbounded_loop",
+   "category": "control_flow",
    "default": "refuse",
-   "note": "data-dependent trip count: compute cannot be counted statically",
-   "params": {},
-   "roles": [],
-   "v0_interpreter": false
+   "note": "implemented and tested; withheld until both the build wall and the inference wall end a never-ending loop as a typed candidate failure, never FAILED_INFRA (Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025, 2(b)); then this entry's default becomes allow.",
+   "params": {
+    "body_jaxpr": "graph",
+    "body_nconsts": "int",
+    "cond_jaxpr": "graph",
+    "cond_nconsts": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
   },
   "xor": {
    "category": "bitwise",
