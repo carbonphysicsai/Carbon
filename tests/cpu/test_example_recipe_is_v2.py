@@ -87,7 +87,7 @@ def test_a_legacy_entry_refuses_a_v2_only_setting_and_lists_what_it_takes():
     assert issues[0].allowed  # what the entry DOES take is named
     # A value the legacy schema does not take is refused too, with the same advice.
     legacy_value = motor.catalog_recipe("neuralop.FNO", version="1.4")
-    legacy_value["procedure"]["train_use"] = {"optimizer": "nadam"}
+    legacy_value["procedure"]["train_use"] = {"optimizer": {"name": "nadam"}}
     assert (
         research_service.construction_recipe_issues(legacy_value, key)[0].code
         == "catalog_setting_invalid"
@@ -95,6 +95,6 @@ def test_a_legacy_entry_refuses_a_v2_only_setting_and_lists_what_it_takes():
     assert "v2.*" in research_service.RECIPE_ISSUE_TEXT["catalog_setting_invalid"]
     # The same setting on the example (a v2.* entry) is accepted.
     example = motor.catalog_recipe(version="1.4")
-    example["procedure"]["train_use"] = {"optimizer": "nadam"}
+    example["procedure"]["train_use"] = {"optimizer": {"name": "nadam"}}
     assert not research_service.construction_recipe_issues(example, key)
     json.dumps(example)
