@@ -51,6 +51,7 @@ from carbon.reconstruction.worker.model import WorkerFailure
 #: What a host-record field must be, in plain words, for a refusal that names
 #: it. Facts about the record's shape only; nothing read from the host.
 FIELD_HINTS = {
+    "nvidia_smi": "the NVIDIA query tool (nvidia-smi) was not found or could not talk to the driver",
     "device": "this host has several GPUs (or the one named is not among them): pass --device GPU-<uuid>, one of `choices`",
     "record": "the record is missing or has unexpected fields",
     "schema": "the record's schema is not the host device record's",
@@ -139,7 +140,21 @@ def command_prepare(args) -> int:
         observed = onboarding.load_document(Path(args.source))
         provenance = args.provenance or f"recorded observation from {args.source}"
     else:
-        observed = onboarding.observe_local_device(binary=args.smi)
+        try:
+            observed = onboarding.observe_local_device(binary=args.smi)
+        except WorkerFailure as failure:
+            return (
+                _emit(
+                    {
+                        "status": "REFUSED",
+                        "code": failure.code.value,
+                        "fields": ["nvidia_smi"],
+                        "reasons": {"nvidia_smi": FIELD_HINTS["nvidia_smi"]},
+                        "next": "install the NVIDIA driver (https://www.nvidia.com/en-us/drivers/) and reboot, then check that `nvidia-smi` lists your GPU; or pass --smi with the path to nvidia-smi, or --from with a recorded observation file",
+                    }
+                )
+                or 2
+            )
         provenance = args.provenance or (
             f"vendor query tool at {observed.get('source')}, run by the operator"
         )
@@ -189,7 +204,10 @@ def command_doctor(args) -> int:
     profile = onboarding.resolve_workload(args.profile)
     report = onboarding.doctor_report(root=_host_root(args), profile=profile)
     _emit(report)
-    return 0 if report["checks_passed"] else 1
+    # Your own practice needs only the miner lane's checks; `--owner` asks for
+    # every check (a grant or approval, display routing, the attempt journal).
+    ready = report["checks_passed"] if args.owner else report["miner_lane_ready"]
+    return 0 if ready else 1
 
 
 def command_status(args) -> int:
@@ -291,7 +309,13 @@ def build_parser() -> argparse.ArgumentParser:
     authorize.add_argument("record", help="the owner-authored grant or approval")
     authorize.set_defaults(handler=command_authorize)
 
-    subparsers.add_parser("doctor").set_defaults(handler=command_doctor)
+    doctor = subparsers.add_parser("doctor")
+    doctor.add_argument(
+        "--owner",
+        action="store_true",
+        help="require every check, including an owner-supplied grant or approval",
+    )
+    doctor.set_defaults(handler=command_doctor)
 
     status = subparsers.add_parser("status")
     status.add_argument("--state-root", help="the controller state directory")

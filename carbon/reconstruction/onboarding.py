@@ -64,6 +64,61 @@ def _driver_model(raw: str) -> str:
     return "N/A" if raw in ("", "[N/A]", "[n/a]", "n/a", "N/A") else raw
 
 
+#: What to do about a doctor finding that is not READY, in plain words. Fixed
+#: text: nothing read from the host is echoed. Findings the miner lane does not
+#: require say so, so a newcomer is never sent to fetch an owner's grant.
+_NOT_FOR_MINERS = (
+    "not needed for your own practice; it matters only for owner-authorised runs"
+)
+_DAEMON_NEXT = {
+    "worker.doctor.docker_unavailable": (
+        "Docker is not reachable here: install Docker Engine "
+        "(https://docs.docker.com/engine/install/), start it, and add yourself to "
+        "the docker group; then run this again"
+    ),
+    "worker.doctor.unauthenticated_remote_daemon": (
+        "DOCKER_HOST points at a remote Docker without TLS: unset DOCKER_HOST, or "
+        "enable TLS (DOCKER_TLS_VERIFY=1)"
+    ),
+    "worker.doctor.image_unavailable": (
+        "Docker cannot find the GPU worker image under its recorded id (Docker 29 "
+        "names images differently from Docker 28): run the installer again with "
+        "--update --gpu, which rebuilds and re-records it"
+    ),
+}
+_NEXT = {
+    "container_runtime": (
+        "Docker did not say whether it is Docker Engine or Docker Desktop: pass "
+        "--container-runtime DOCKER_ENGINE (or DOCKER_DESKTOP) to prepare"
+    ),
+    "container_device_runtime": (
+        "install the NVIDIA Container Toolkit (https://docs.nvidia.com/datacenter/"
+        "cloud-native/container-toolkit/latest/install-guide.html) and restart "
+        "Docker; then run this again"
+    ),
+    "container_daemon": (
+        "run the installer again with --update --gpu; if this persists, report "
+        "the code in `detail`"
+    ),
+    "host_device_record": (
+        "run `python scripts/dev/carbon_accelerator.py prepare --record-id "
+        "this-machine --provider own-machine --container-runtime DOCKER_ENGINE` "
+        "(on a machine with several GPUs it asks for --device GPU-<uuid>)"
+    ),
+    "installed_authority": _NOT_FOR_MINERS,
+    "compute_process_enumeration": _NOT_FOR_MINERS,
+    "display_output": _NOT_FOR_MINERS,
+    "device_quarantine": _NOT_FOR_MINERS,
+    "attempt_accounting": _NOT_FOR_MINERS,
+}
+
+
+def _next_step(finding: dict) -> str:
+    if finding["check"] == "container_daemon":
+        return _DAEMON_NEXT.get(finding.get("detail"), _NEXT["container_daemon"])
+    return _NEXT.get(finding["check"], "see `detail`")
+
+
 def _finding(check: str, state: str, detail: str, **extra) -> dict:
     return {"check": check, "state": state, "detail": detail, **extra}
 
@@ -415,8 +470,12 @@ def doctor_report(*, root: Path, profile=GPU_PROFILE, cli=None, image=None) -> d
     findings.append(_authority_finding(root))
     findings.append(_attempt_finding(root))
 
+    for finding in findings:
+        if finding["state"] != READY:
+            finding["next"] = _next_step(finding)
     blocked = [f for f in findings if f["state"] == BLOCKED]
     unknown = [f for f in findings if f["state"] == UNKNOWN]
+    blockers = miner_lane_blockers({"findings": findings})
     return {
         "schema": "carbon.accelerator-host-doctor.v1",
         "workload_profile_id": profile.profile_id,
@@ -428,8 +487,12 @@ def doctor_report(*, root: Path, profile=GPU_PROFILE, cli=None, image=None) -> d
         # Your own practice (the miner lane) needs only these checks; a
         # grant or approval, display routing, enumeration and the attempt
         # journal are for owner-authorised runs, not for you.
-        "miner_lane_blockers": miner_lane_blockers({"findings": findings}),
-        "miner_lane_ready": not miner_lane_blockers({"findings": findings}),
+        "miner_lane_blockers": blockers,
+        "miner_lane_ready": not blockers,
+        # What to do about each thing that stops your own practice, in order.
+        "miner_next": [
+            f["next"] for f in findings if f["check"] in blockers and "next" in f
+        ],
         # Deliberately not "ready to run": this reports the checks this command
         # can make. It is not an acceptance, a qualification, or a statement
         # that a run on this host would produce comparable science.
