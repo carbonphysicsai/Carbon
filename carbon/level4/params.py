@@ -277,7 +277,14 @@ def _encode(kind, value, lower_graph, name=None):
         # device_put with no device, source or copy request: an identity.
         if type(value) is not tuple or not value:
             raise GraphRefused("parameter_not_default")
-        if any(v is not None and type(v).__name__ != "CopySemantics" for v in value):
+        if any(
+            v is not None
+            and not (
+                type(v).__name__.endswith("CopySemantics")
+                and type(v).__module__.startswith(("jax.", "jaxlib."))
+            )
+            for v in value
+        ):
             raise GraphRefused("parameter_not_default")
         return len(value)
     raise GraphRefused("parameter_kind_unknown")
