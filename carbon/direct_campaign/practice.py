@@ -181,7 +181,9 @@ def summary(spec, version, interface, rows, material):
     # dual feedback, which grades them as the exam does).
     from carbon.scoring import probe_design
 
-    scored = [i for i, case_id in enumerate(case_ids) if not probe_design.is_probe_id(case_id)]
+    scored = [
+        i for i, case_id in enumerate(case_ids) if not probe_design.is_probe_id(case_id)
+    ]
     if spec.prefix == "f02":
         from carbon.challenge_kit import physical_pack
 
