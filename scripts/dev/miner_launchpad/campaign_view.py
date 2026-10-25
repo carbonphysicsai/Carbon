@@ -411,6 +411,50 @@ def pool_grade(block):
     }
 
 
+def speed_result(block):
+    """The practice speed result, allow-listed field by field; None unless it
+    carries the schema. Practice only, on the miner's own machine: the label is
+    Carbon's own text, never read from the document, and the exam measures on
+    the validator class."""
+    from carbon.scoring import practice_speed
+
+    if type(block) is not dict or block.get("schema") != practice_speed.SCHEMA:
+        return None
+    if block.get("measured") is False:
+        return {
+            "scope": "practice (this machine)",
+            "measured": False,
+            "note": practice_speed.NOT_MEASURED_NOTE,
+            "label": practice_speed.LABEL,
+        }
+    per_design = finite(block.get("seconds_per_design"))
+    ceiling = finite(block.get("ceiling_seconds_per_design"))
+    if per_design is None or ceiling is None:
+        return None
+    return {
+        "scope": "practice (this machine)",
+        "seconds_per_design": per_design,
+        "ceiling_seconds_per_design": ceiling,
+        "within_ceiling": (
+            block["within_ceiling"]
+            if type(block.get("within_ceiling")) is bool
+            else None
+        ),
+        "times_faster_than_solver": finite(block.get("times_faster_than_solver")),
+        "ratio_required": (
+            block["ratio_required"]
+            if type(block.get("ratio_required")) is int
+            else None
+        ),
+        "designs": (
+            block["designs"]
+            if type(block.get("designs")) is int and block["designs"] > 0
+            else None
+        ),
+        "label": practice_speed.LABEL,
+    }
+
+
 def dual_feedback(experiment):
     """A practice run's dual-feedback block, allow-listed, wherever the run's
     record carries it (beside its summary or inside it); None when absent.
@@ -499,6 +543,9 @@ def dual_feedback(experiment):
                     if found.get("schema") == DUAL_FEEDBACK_SCHEMA_V3
                     else {}
                 ),
+                # The speed result, when the run was timed: seconds per design
+                # against the published ceiling, labelled "on your machine".
+                "speed": speed_result(found.get("speed")),
             }
             if found.get("schema") in (DUAL_FEEDBACK_SCHEMA_V2, DUAL_FEEDBACK_SCHEMA_V3)
             else {}

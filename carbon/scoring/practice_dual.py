@@ -234,10 +234,12 @@ def query_inputs_v2(kind, version, like=None):
     return inputs if like is None else inputs.astype(like.dtype)
 
 
-def from_rows_v2(kind, version, rows):
+def from_rows_v2(kind, version, rows, speed=None):
     """The v2 dual block for ``rows``: the model flat outputs on exactly
     `query_inputs_v2`, in its order. The model is queried once, so the paired
-    repeat is the same rows."""
+    repeat is the same rows. ``speed`` is the practice speed result
+    (`practice_speed.speed_block`), carried beside the legs when the run was
+    timed."""
     values = [[float(v) for v in row] for row in rows]
 
     def predict(cases):
@@ -245,7 +247,10 @@ def from_rows_v2(kind, version, rows):
             raise ValueError("practice rows differ from the practice grid query")
         return values
 
-    return feedback_v2(kind, version, predict)
+    document = feedback_v2(kind, version, predict)
+    if speed is not None and document.get("available") is True:
+        document = {**document, "speed": speed}
+    return document
 
 
 def _minimums_block(adapter, version, values, pack_kwargs):

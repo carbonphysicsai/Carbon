@@ -28,6 +28,7 @@ from .bundle_construction_worker import (
     _stage_modules,
     _trusted_allowlist,
     direct_child_identity,
+    optional_timed,
     rebuild_wall_kwargs,
     resources_kwargs,
     verify_direct_resource_policy,
@@ -854,6 +855,7 @@ def reconstruct_and_infer_graph_public(
     allowlist_bytes: bytes,
     seed: int,
     measure_query: bool = False,
+    timing_optional: bool = False,
     runner=None,
     adapter_id: str = SYNTHETIC_ADAPTER_ID,
 ) -> DirectReconstructionResult:
@@ -948,18 +950,34 @@ def reconstruct_and_infer_graph_public(
         per_case=True,
         seconds=phase_seconds("inference_wall_seconds_max"),
     )
-    timed = (
-        _infer_state(
+
+    def timed_query():
+        return _infer_state(
             **query,
             identity=direct_child_identity(identity, "timed"),
             measure_query=True,
             per_case=False,
             seconds=phase_seconds("inference_wall_seconds_max"),
         )
-        if measure_query
-        else None
-    )
+
+    before_timing = time.monotonic() - started
+    timed = None
+    if measure_query:
+        timed = optional_timed(timed_query) if timing_optional else timed_query()
     elapsed = time.monotonic() - started
+    if (
+        timing_optional
+        and timed is not None
+        and elapsed > policy["total_reconstruction_wall_seconds_max"] >= before_timing
+    ):
+        # Only for the speed result: past the aggregate allowance it is dropped.
+        timed, elapsed = None, before_timing
+    if (
+        timing_optional
+        and timed is not None
+        and timed.state_digest != build.state_digest
+    ):
+        timed = None
     if elapsed > policy["total_reconstruction_wall_seconds_max"]:
         raise RecipeRefused("construction_total_deadline_reached")
     if build.state_digest != inference.state_digest or (

@@ -41,6 +41,7 @@ from carbon.development_session.construction_recipe import (
     RecipeRefused,
 )
 from carbon.level4 import allowlist as allowlist_module
+from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
 ROOT = Path(__file__).resolve().parents[2]
 F08, F02 = sv.F08, sv.F02
@@ -777,6 +778,88 @@ def test_the_receiver_rebuilds_then_infers_one_isolated_case_per_call(key, tmp_p
             recipe,
             allowlist_module.Allowlist(allowlist_module.v7_bytes()),
         )
+
+
+def _practice_with_failing_timing(key, tmp_path, failure, *, timing_optional):
+    """A graph practice whose timing child (`measure_query`) raises `failure`."""
+    from carbon.development_session.bundle_construction_worker import (
+        direct_child_identity,
+    )
+    from carbon.development_session.profile import canonical
+
+    recipe, raw_manifest, files, staging = _case(key, {"steps": 16})
+    raw_train, inputs, _targets = _train(key)
+    query = np.ascontiguousarray(inputs[:3])
+    spec = adapter.SPECS[key]
+    local = _local_runner()
+    timed_identity = direct_child_identity("test", "timed")
+
+    def runner(ledger, *, identity, **kwargs):
+        if identity == timed_identity:
+            raise failure
+        return local(ledger, identity=identity, **kwargs)
+
+    result = direct_graph_construction_worker.reconstruct_and_infer_graph_public(
+        SimpleNamespace(root=tmp_path),
+        owner="test",
+        identity="test",
+        image=_image(),
+        recipe=recipe,
+        challenge_binding=_binding(key),
+        limits_document=PUBLIC[key[0]].construction_limits_document(*key),
+        source_envelope=canonical(staging.envelope(raw_manifest, files)),
+        train=raw_train,
+        inputs=query,
+        expected_output_shape=(3, spec.outputs),
+        allowlist_bytes=adapter.served_allowlist_bytes(*key),
+        seed=0,
+        measure_query=True,
+        timing_optional=timing_optional,
+        runner=runner,
+        adapter_id=spec.adapter_id,
+    )
+    return result, spec
+
+
+@posix
+@pytest.mark.parametrize(
+    "failure",
+    [
+        WorkerFailure(WorkerCode.RUNTIME),
+        WorkerFailure(WorkerCode.DEADLINE),
+        RecipeRefused("construction_total_deadline_reached"),
+    ],
+)
+def test_a_failed_or_timed_out_timing_run_never_fails_the_practice(failure, tmp_path):
+    from carbon.scoring import practice_speed
+
+    key = SERVED[0]
+    result, spec = _practice_with_failing_timing(
+        key, tmp_path, failure, timing_optional=True
+    )
+    assert result.timed is None
+    assert np.asarray(result.inference.predictions).shape == (3, spec.outputs)
+    # The result returns as usual; its speed is named, in words, as not measured.
+    block = practice_speed.from_result("f02", result, designs=3, requested=True)
+    assert block["measured"] is False
+    assert "not measured" in block["note"]
+
+
+@posix
+def test_the_timing_run_is_optional_only_when_asked_and_never_hides_cleanup(tmp_path):
+    key = SERVED[0]
+    with pytest.raises(WorkerFailure):
+        _practice_with_failing_timing(
+            key,
+            tmp_path / "a",
+            WorkerFailure(WorkerCode.RUNTIME),
+            timing_optional=False,
+        )
+    for code in (WorkerCode.CLEANUP, WorkerCode.QUARANTINED, WorkerCode.CANCELLED):
+        with pytest.raises(WorkerFailure):
+            _practice_with_failing_timing(
+                key, tmp_path / code.name, WorkerFailure(code), timing_optional=True
+            )
 
 
 @posix

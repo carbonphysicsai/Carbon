@@ -27,6 +27,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from carbon.scoring import practice_speed
+
 from .challenge import CHALLENGE
 
 VERSION = "1.2"
@@ -259,6 +261,8 @@ class MotorCatalogPractice:
                     },
                     material=material,
                     identity=identity,
+                    measure_query=practice_speed.measure(self.runner),
+                    timing_optional=True,
                 )
             except graph_adapters.GraphAdapterUnregistered:
                 raise ValueError("motor_catalog_recipe_required") from None
@@ -301,6 +305,8 @@ class MotorCatalogPractice:
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=output_dtype(material["interface_document"]),
                     accelerator=device,
+                    measure_query=practice_speed.measure(self.runner),
+                    timing_optional=True,
                     runner=self.runner,
                 )
 
@@ -367,7 +373,17 @@ class MotorCatalogPractice:
             "recipe": strategy,
             # C13: the exam's dual measurement on the public development bank.
             "practice_dual": (
-                practice_dual.from_rows_v2("motor", self.version, grid_rows)
+                practice_dual.from_rows_v2(
+                    "motor",
+                    self.version,
+                    grid_rows,
+                    speed=practice_speed.from_result(
+                        "motor",
+                        result,
+                        designs=len(all_rows),
+                        requested=practice_speed.measure(self.runner),
+                    ),
+                )
                 if v2
                 else (
                     practice_dual.unavailable(

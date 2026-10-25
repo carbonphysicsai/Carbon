@@ -165,6 +165,8 @@ def practise(
     identity,
     inputs=None,
     expected_output_shape=None,
+    measure_query=False,
+    timing_optional=False,
 ):
     """Practise a graph recipe on the version's graph training adapter, one
     path for every Challenge: the limits must carry the adapter's exact block,
@@ -205,6 +207,8 @@ def practise(
         ),
         allowlist_bytes=material["allowlist_bytes"],
         seed=0,
+        measure_query=measure_query,
+        timing_optional=timing_optional,
         runner=runner,
         adapter_id=spec.adapter_id,
     )
