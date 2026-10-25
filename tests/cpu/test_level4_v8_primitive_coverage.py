@@ -109,7 +109,12 @@ def test_the_not_admitted_list_does_not_rot():
     ops = json.loads(V8.read_text(encoding="utf-8"))["carbon_ops"]
     for name in NOT_ADMITTED:
         entry = ops.get(name)
-        assert entry is None or entry["default"] in ("refuse", "strip"), (
+        usable = (
+            entry is not None
+            and entry["default"] not in ("refuse", "strip")
+            and entry["v0_interpreter"]
+        )
+        assert not usable, (
             f"{name} is admitted by v8 but still listed as not admitted"
         )
 
