@@ -115,6 +115,34 @@ def _construction_parent(provider, bundle):
     return parents.for_bundle(bundle)
 
 
+def _fixture_tensors(material) -> bytes:
+    """The public fixture: the practice inputs and their reference targets.
+
+    A development-grid version's practice query interleaves public-seeded probe rows that carry no reference
+    (their reference rows are all NaN); the fixture keeps only the rows that have one, so it holds finite
+    numbers only. A version whose references are all present gets exactly the bytes it always had. A row that
+    is only partly finite is a broken reference, never silently dropped."""
+    import numpy as np
+
+    from carbon.development_session.bundle_construction_worker import _tensors
+
+    inputs, targets = material["practice_inputs"], material["practice_reference"]
+    if (
+        type(inputs) is not np.ndarray
+        or type(targets) is not np.ndarray
+        or targets.ndim != 2
+        or len(targets) != len(inputs)
+    ):
+        return _tensors(inputs=inputs, targets=targets)
+    finite = np.isfinite(targets)
+    if finite.all():
+        return _tensors(inputs=inputs, targets=targets)
+    present = finite.all(axis=1)
+    if (finite.any(axis=1) != present).any() or not present.any():
+        raise RetentionUnavailable("practice_reference_partly_missing")
+    return _tensors(inputs=inputs[present], targets=targets[present])
+
+
 def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, material):
     """Gather only the graph task's original, verified DEVELOPMENT bytes."""
     from carbon.development_session.bundle_construction_worker import _tensors
@@ -266,10 +294,7 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     if "practice_inputs" not in material or "practice_reference" not in material:
         raise RetentionUnavailable("public_input_target_unavailable")
     inputs = _tensors(inputs=material["practice_inputs"])
-    fixture = _tensors(
-        inputs=material["practice_inputs"],
-        targets=material["practice_reference"],
-    )
+    fixture = _fixture_tensors(material)
     if evidence["inference_receipt"].get("inputs_digest") != _sha(inputs):
         raise RetentionUnavailable("practice_inputs_changed")
     worker = dict(evidence)
@@ -1499,10 +1524,7 @@ def retain_served_result(
     if "practice_inputs" not in material or "practice_reference" not in material:
         raise RetentionUnavailable("public_input_target_unavailable")
     inputs = _tensors(inputs=material["practice_inputs"])
-    fixture = _tensors(
-        inputs=material["practice_inputs"],
-        targets=material["practice_reference"],
-    )
+    fixture = _fixture_tensors(material)
     if evidence["inference_receipt"]["inputs_digest"] != _sha(inputs):
         raise RetentionUnavailable("practice_inputs_changed")
 
