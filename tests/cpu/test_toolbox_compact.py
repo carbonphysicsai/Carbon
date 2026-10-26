@@ -1,6 +1,7 @@
 """Test Runner 03:20Z, RED A: carbon_toolbox for Motor 1.4 was 173,751 bytes on rc50 (the catalog
 half of it), so an agent that cannot read a spilled file (Hermes) could not use it. The default
-answer now summarises the long catalog and family lists; `include` brings them back whole."""
+answer now summarises the long catalog and family lists; `include` brings them back whole.
+"""
 
 from __future__ import annotations
 
@@ -45,7 +46,9 @@ def test_the_default_answer_is_small_enough_for_any_agent(challenge, version):
 def test_include_brings_the_full_lists_back(challenge, version):
     whole = _ask(challenge, version, include="catalog,families")
     assert type(whole["catalog"]) is list and type(whole["families"]) is list
-    assert _size(whole) > 4 * toolbox.COMPACT_TARGET_BYTES  # the long lists really are long
+    assert (
+        _size(whole) > 4 * toolbox.COMPACT_TARGET_BYTES
+    )  # the long lists really are long
     only_catalog = _ask(challenge, version, include="catalog")
     assert type(only_catalog["catalog"]) is list
     assert only_catalog["families"]["summary"] is True

@@ -281,7 +281,7 @@ def configured_host_facts(profile=None):
 
                 if direct_parent_backend(image) == "torch_cpu":
                     configured.add(TORCH_CPU_WORKER)
-        except Exception:  # noqa: BLE001 - an unusable image is a missing fact
+        except Exception:
             # Said, not hidden: the fact stays missing, and the log names why.
             logging.getLogger(__name__).warning(
                 "trusted worker image fact unavailable", exc_info=True

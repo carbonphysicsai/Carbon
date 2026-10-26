@@ -270,7 +270,8 @@ def _included(value):
 def compact(box, include=frozenset()):
     """The toolbox with its long lists summarised: `catalog` becomes counts, the family
     counts and the ready recipe's id; `families` becomes counts by backend. A list named in
-    `include` stays whole. The summary says how to get the full list, so nothing is hidden."""
+    `include` stays whole. The summary says how to get the full list, so nothing is hidden.
+    """
     result = dict(box)
     catalog = box.get("catalog")
     if "catalog" not in include and type(catalog) is list:
