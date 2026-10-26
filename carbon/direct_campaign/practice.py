@@ -585,26 +585,43 @@ class DirectPractice:
         # Refused here, with the adapter's own closed code, before anything runs.
         adapter.training_settings(recipe)
         envelope = graph_envelope_from_workspace(self.ledger, self.owner, recipe)
-        result = reconstruct_and_infer_graph_public(
-            self.ledger,
-            owner=self.owner,
-            identity=identity,
-            image=self.parent,
-            recipe=recipe,
-            challenge_binding=dict(binding),
-            limits_document=limits,
-            source_envelope=envelope,
-            train=material["train"],
-            inputs=material["practice_inputs"],
-            expected_output_shape=material["expected_output_shape"],
-            allowlist_bytes=material["allowlist_bytes"],
-            seed=0,
-            measure_query=practice_speed.measure(self.runner),
-            timing_optional=True,
-            runner=self.runner,
-            adapter_id=spec.adapter_id,
+        from carbon.development_session.catalog_gpu import backend_record
+        from carbon.development_session.gpu_practice import run_graph_on_device
+
+        def graph_run(trial, image, device):
+            return reconstruct_and_infer_graph_public(
+                self.ledger,
+                owner=self.owner,
+                identity=trial,
+                image=image,
+                recipe=recipe,
+                challenge_binding=dict(binding),
+                limits_document=limits,
+                source_envelope=envelope,
+                train=material["train"],
+                inputs=material["practice_inputs"],
+                expected_output_shape=material["expected_output_shape"],
+                allowlist_bytes=material["allowlist_bytes"],
+                seed=0,
+                measure_query=practice_speed.measure(self.runner),
+                timing_optional=True,
+                runner=self.runner,
+                adapter_id=spec.adapter_id,
+                # A host with a JAX GPU worker practises the graph on it.
+                **({} if device is None else {"accelerator": device}),
+            )
+
+        result, image, accelerator, gpu_note = run_graph_on_device(
+            self, identity, graph_run
         )
-        backend = {"kind": "C03_DOCKER", "adapter": spec.adapter_id}
+        backend = (
+            {"kind": "C03_DOCKER", "adapter": spec.adapter_id}
+            if accelerator is None and gpu_note is None
+            else {
+                **backend_record(accelerator, image, gpu_note, self.runner),
+                "adapter": spec.adapter_id,
+            }
+        )
         return result, backend, recipe
 
 

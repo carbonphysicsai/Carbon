@@ -167,6 +167,7 @@ def practise(
     expected_output_shape=None,
     measure_query=False,
     timing_optional=False,
+    accelerator=None,
 ):
     """Practise a graph recipe on the version's graph training adapter, one
     path for every Challenge: the limits must carry the adapter's exact block,
@@ -211,5 +212,7 @@ def practise(
         timing_optional=timing_optional,
         runner=runner,
         adapter_id=spec.adapter_id,
+        # Only a GPU practice names one; a CPU call is byte-for-byte as before.
+        **({} if accelerator is None else {"accelerator": accelerator}),
     )
     return result, {"kind": "C03_DOCKER", "adapter": spec.adapter_id}
