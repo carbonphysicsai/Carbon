@@ -392,9 +392,10 @@ def _host_capacity_shortfall(checked, sizing):
         MEMORY_BYTES,
     )
 
-    if checked.code != "worker.doctor.capacity_or_cgroup_ineligible":
+    if getattr(checked, "code", None) != "worker.doctor.capacity_or_cgroup_ineligible":
         return None
-    info = checked.host.get("info") if isinstance(checked.host, dict) else None
+    host = getattr(checked, "host", None)
+    info = host.get("info") if isinstance(host, dict) else None
     if not isinstance(info, dict):
         return None
     profile = sizing.get("worker_profile")
