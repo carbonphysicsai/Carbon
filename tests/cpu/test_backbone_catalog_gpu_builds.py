@@ -32,12 +32,30 @@ def withdrawn_twins():
     return set(derivation["gpu_twins_withdrawn"]["ids"])
 
 
+#: The v2 entries that have their GPU twin so far (GPU-2, 2026-10-26: the served Motor and Cooling examples); the
+#: other v2 entries come with the rest of the GPU line.
+V2_TWINNED = {
+    "v2.motor.cno.CNO1d",
+    "v2.cooling.cno.CNO1d",
+    "v2.motor.jno.bcat",
+    "v2.cooling.jno.bcat",
+}
+#: The CNO1d build under every id it is served as: the one explicit warn-only / smoke-only entry.
+CNO1D_IDS = {
+    "cno.CNO1d",
+    "v2.motor.cno.CNO1d",
+    "v2.cooling.cno.CNO1d",
+    "v2.f08.cno.CNO1d",
+    "v2.f02.cno.CNO1d",
+}
+
+
 def has_no_twin_by_design(item):
-    """No GPU twin yet or any more: the named CPU-only entries, the v2 entries (their twins come with the GPU line), and the
+    """No GPU twin yet or any more: the named CPU-only entries, the v2 entries still waiting for theirs, and the
     withdrawn ones."""
     return (
         item["catalog_id"] in gpu_build.NO_GPU_TWIN
-        or item["catalog_id"].startswith("v2.")
+        or (item["catalog_id"].startswith("v2.") and item["catalog_id"] not in V2_TWINNED)
         or item["catalog_id"] in withdrawn_twins()
     )
 
@@ -213,7 +231,7 @@ IMAGE = "sha256:" + "a" * 64
 def test_the_smoke_only_list_is_the_two_named_entries_and_nothing_else():
     from carbon.backbone_catalog import gpu_receipt
 
-    assert set(gpu_receipt.SMOKE_ONLY) == {"cno.CNO1d"}
+    assert set(gpu_receipt.SMOKE_ONLY) == CNO1D_IDS
     assert gpu_receipt.required_kind("cno.CNO1d") == "smoke"
     assert gpu_receipt.required_kind("neuralop.FNO") == "repeat"
     assert "not bit-reproducible on GPU" in gpu_receipt.SMOKE_NOTE
@@ -529,7 +547,7 @@ def test_the_warn_only_exception_is_exactly_the_smoke_only_list():
     assert (
         set(gpu_build.WARN_ONLY_DETERMINISM)
         == set(gpu_receipt.SMOKE_ONLY)
-        == {"cno.CNO1d"}
+        == CNO1D_IDS
     )
 
 
