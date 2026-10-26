@@ -289,3 +289,15 @@ Hermes asks you before each action that changes something (launch, practise, fre
 | Submit says the validator doesn't serve this Challenge | No validator grades that Challenge yet. Practise it now; submit when one appears. |
 
 **Need help?** Ask in Carbon's Discord: <DISCORD_INVITE_URL>. Miners and the Carbon team answer there.
+
+---
+
+## Questions miners ask
+
+**Can I carry what I learn from my own data into my recipe, and hardcode fitted constants or tables in a Level 4 graph?**
+
+Yes to design choices, and yes to a small amount of fitted numbers; no to a trained starting point.
+
+- **Design choices: yes.** What you learn from your own data can shape the recipe: the structure of the model, your own loss, the hyperparameters, the priors you build in. The validator rebuilds your recipe and trains it from scratch with Carbon's trainer, so whatever you carry in has to be in the recipe.
+- **Fitted constants and small tables inside the graph: yes, inside the 16 KiB constants budget.** Numbers written into the graph count by their real size (see **Constants** under *Writing a graph*): a float by its size, an integer by the bits its range needs, a boolean one bit, identical copies once. Build structure in the graph (`iota`, comparisons, one-hot products) rather than pasting float tables; a table of small integers is cheap, a table of fitted floats is not.
+- **A pretrained starting state: no.** A recipe cannot carry trained weights or an `initial_state`; the validator starts from scratch every time.
