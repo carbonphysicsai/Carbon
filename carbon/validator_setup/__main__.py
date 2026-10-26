@@ -127,6 +127,12 @@ def main(argv=None):
             for flag in ("standing", "journal", "ledger"):
                 command.add_argument("--" + flag, required=True)
             command.add_argument("--battery-deployment")
+            command.add_argument(
+                "--lean-pool",
+                action="append",
+                metavar="CHALLENGE_ID=PATH",
+                help="a direct-receiver Challenge's pool store (repeatable)",
+            )
             command.add_argument("--policy-version")
         if name == "runtime":
             command.add_argument(
