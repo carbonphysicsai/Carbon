@@ -2903,9 +2903,7 @@ def miner_failure_correction(failure):
     elif kind == "wall":
         seconds = limit.get("seconds")
         has = (
-            f" the {seconds} s"
-            if type(seconds) is int and seconds > 0
-            else " the time"
+            f" the {seconds} s" if type(seconds) is int and seconds > 0 else " the time"
         )
         reached = (
             f"Your graph or recipe ran past{has} the practice worker allows for "

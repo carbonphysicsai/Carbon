@@ -157,8 +157,14 @@ XLA = (
     "text,expected",
     [
         (XLA, 34359738368),
-        (b"RESOURCE_EXHAUSTED: Failed to allocate request for 32.00GiB (34359738368B)", 34359738368),
-        (b"numpy._ArrayMemoryError: Unable to allocate 32.0 GiB for an array", 32 * GIB),
+        (
+            b"RESOURCE_EXHAUSTED: Failed to allocate request for 32.00GiB (34359738368B)",
+            34359738368,
+        ),
+        (
+            b"numpy._ArrayMemoryError: Unable to allocate 32.0 GiB for an array",
+            32 * GIB,
+        ),
         (b"MemoryError", None),
         (b"RESOURCE_EXHAUSTED: Out of memory allocating 1048576 bytes.", 1048576),
         (b"", None),
@@ -172,7 +178,9 @@ def _stop(diagnostic, *, observation=None, accelerated=False, limit=LIMIT):
     error = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=diagnostic)
     return carrier._candidate_resource_stop(
         SimpleNamespace(
-            json=lambda *a, **k: (_ for _ in ()).throw(WorkerFailure(WorkerCode.RUNTIME))
+            json=lambda *a, **k: (_ for _ in ()).throw(
+                WorkerFailure(WorkerCode.RUNTIME)
+            )
         ),
         error,
         container_name="carbon-d4-" + "1" * 24,
@@ -183,8 +191,7 @@ def _stop(diagnostic, *, observation=None, accelerated=False, limit=LIMIT):
         setup_seconds=1,
         memory_limit_bytes=limit,
         deadline=1e18,
-        observation=observation
-        or {"status": "UNKNOWN", "state": None, "memory": None},
+        observation=observation or {"status": "UNKNOWN", "state": None, "memory": None},
         accelerated=accelerated,
     )
 
