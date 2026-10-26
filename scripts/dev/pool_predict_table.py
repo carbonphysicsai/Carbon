@@ -46,8 +46,25 @@ def _sibling(name):
     return module
 
 
-def build_rows(kind, version, documents):
-    """The deduplicated, sorted model input rows of the pool-source ``documents``."""
+def bank_input_rows(kind, version):
+    """The model input rows of the version's public practice bank (its cells and probes, inputs only, in the
+    interface's input order): what the grid's bank leg asks the tables about, beside the pool rows.
+    """
+    from carbon.scoring import physical_dual_pack as physical
+    from carbon.scoring import practice_grid
+
+    bank = practice_grid.practice_bank(kind, version)
+    names = practice_grid.input_names(kind, version)
+    return [
+        [float(row["inputs"][name]) for name in names]
+        for row in physical.bank_rows(bank, names)
+    ]
+
+
+def build_rows(kind, version, documents, bank_rows=None):
+    """The deduplicated, sorted model input rows of the pool-source ``documents`` and, when given, the
+    ``bank_rows`` (inputs only); one list, so the file carries no grouping into targets or into pool and bank.
+    """
     from carbon.scoring import pool_adapters
 
     chosen = pool_adapters.adapter(kind, version)
@@ -59,6 +76,10 @@ def build_rows(kind, version, documents):
         for design in document["designs"]:
             row = tuple(chosen.model_row(fixed, design))
             seen[row] = None
+    for row in bank_rows or ():
+        if len(row) != len(chosen.input_names):
+            raise Stop("a bank row's width differs from the adapter's input names")
+        seen[tuple(float(v) for v in row)] = None
     return {
         "schema": ROWS_SCHEMA,
         "kind": kind,
@@ -76,7 +97,12 @@ def rows_command(args):
         for names in sets.values()
         for tid in names
     ]
-    document = build_rows(args.kind, args.version, documents)
+    bank = (
+        bank_input_rows(args.kind, args.version)
+        if getattr(args, "with_bank", False)
+        else None
+    )
+    document = build_rows(args.kind, args.version, documents, bank)
     Path(args.out).write_text(
         json.dumps(document, sort_keys=True, separators=(",", ":")) + "\n",
         encoding="utf-8",
@@ -197,6 +223,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
     rows = sub.add_parser("rows")
+    rows.add_argument(
+        "--with-bank",
+        action="store_true",
+        help="also the version's public practice bank rows (cells and probes): the grid's bank leg asks for them",
+    )
     for flag in ("kind", "version", "pools-dir", "sets", "out"):
         rows.add_argument("--" + flag, required=True)
     predict = sub.add_parser("predict")
