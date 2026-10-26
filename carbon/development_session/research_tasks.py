@@ -2877,6 +2877,67 @@ def practice_unavailable_result(error):
     }
 
 
+def miner_failure_correction(failure):
+    """What a candidate's own program failure means to the miner, in words: the
+    limit it reached (with its value), that it is the recipe's and not an
+    infrastructure problem, and that the attempt's reservation is used. Over
+    Carbon-written values only (the closed limit kind, its number)."""
+    limit = failure.result.get("limit")
+    limit = limit if type(limit) is dict else {}
+    kind = limit.get("kind")
+    if kind == "memory":
+        size = limit.get("bytes")
+        has = (
+            f" of the {size / 1024**3:g} GiB of memory"
+            if type(size) is int and size > 0
+            else " of the memory"
+        )
+        reached = (
+            f"Your graph or recipe used all{has} the practice worker is given "
+            "(for example one array or step asked for more than fits)."
+        )
+        fix = (
+            "Make it use less memory (a smaller batch, width or intermediate "
+            "tensor), then practise again."
+        )
+    elif kind == "wall":
+        seconds = limit.get("seconds")
+        has = (
+            f" the {seconds} s" if type(seconds) is int and seconds > 0 else " the time"
+        )
+        reached = (
+            f"Your graph or recipe ran past{has} the practice worker allows for "
+            "this step."
+        )
+        fix = "Make it cheaper to run (fewer or lighter steps), then practise again."
+    else:
+        reached = "Your graph or recipe's own program failed while it ran."
+        fix = "Fix the program and practise again."
+    return (
+        f"{reached} This is the recipe's own limit, not an infrastructure "
+        "problem: the attempt's reservation is used (the trial counts) and "
+        f"nothing was scored. {fix}"
+    )
+
+
+def miner_failure_result(failure):
+    """The task result for a practice whose candidate program failed on its own
+    account (a limit it reached, or its own error): typed, never an
+    infrastructure failure."""
+    result = failure.result
+    limit = result.get("limit")
+    return {
+        "outcome": "MINER_PROGRAM_FAILED",
+        "failure_code": result.get("failure_code"),
+        "observation": result.get("observation"),
+        **({"limit": limit} if type(limit) is dict else {}),
+        "reservation_used": True,
+        "nothing_scored": True,
+        "correction": miner_failure_correction(failure),
+        "authority_granted": False,
+    }
+
+
 def ceiling_result(refusal):
     """The task result for work the campaign's own ceiling refused.
 
@@ -3280,6 +3341,16 @@ class PublicResearchExecutor:
             return self._complete(
                 attempt.task_id.value,
                 practice_unavailable_result(error),
+                ResearchEvidenceClass.STRUCTURAL_ONLY,
+            )
+        if type(error) is MinerProgramFailure:
+            # The candidate's own graph or recipe stopped at a limit (memory,
+            # wall) or failed on its own: observed, cleanup observed, the
+            # reservation kept. The task completes with that typed outcome;
+            # it is never told to the miner as an infrastructure problem.
+            return self._complete(
+                attempt.task_id.value,
+                miner_failure_result(error),
                 ResearchEvidenceClass.STRUCTURAL_ONLY,
             )
         if type(error) is CampaignDeadlineReached:

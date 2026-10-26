@@ -513,6 +513,15 @@ NEXT_ACTIONS = {
         "then practise again; if it repeats, the campaign's operation folder holds a "
         "failure file naming the stage."
     ),
+    # The practice's own graph or recipe hit a limit (memory or time) or failed on
+    # its own account; the refusal carries the limit itself
+    # (research_campaign.PracticeNotRun.next_step), this is the fixed fallback.
+    "practice_candidate_failed": (
+        "Your graph or recipe reached a limit of the practice worker (its memory or "
+        "its time) or failed while it ran. This is the recipe's own limit, not an "
+        "infrastructure problem: the attempt's reservation is used (the trial counts) "
+        "and nothing was scored. Make it lighter and practise again."
+    ),
     # The practice's host check failed on capacity; the refusal carries the numbers
     # itself (research_campaign.PracticeNotRun.next_step), this is the fixed fallback.
     "practice_host_too_small": (

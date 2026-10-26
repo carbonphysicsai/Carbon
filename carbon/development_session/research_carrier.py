@@ -871,6 +871,35 @@ _MEMORY_EXHAUSTED_MARKERS = (
 )
 
 
+_ALLOCATION_BYTES = (
+    re.compile(rb"allocat\w*[^\n]{0,80}?(\d{4,})\s*bytes", re.IGNORECASE),
+    re.compile(rb"\((\d{4,})\s*B\)"),
+)
+_ALLOCATION_UNITS = re.compile(
+    rb"allocat\w*\s+([0-9]+(?:\.[0-9]+)?)\s*([KMGT])i?B\b", re.IGNORECASE
+)
+_UNIT_BYTES = {b"K": 1024, b"M": 1024**2, b"G": 1024**3, b"T": 1024**4}
+
+
+def requested_allocation_bytes(diagnostic):
+    """The largest allocation a worker's own memory error says it asked for, in
+    bytes (XLA's "allocate N bytes" / "(NB)" and NumPy's "allocate 32.0 GiB"),
+    or None when the diagnostic names none. Read from the private diagnostic
+    only; nothing of it is stored or shown."""
+    if type(diagnostic) is not bytes:
+        return None
+    found = [
+        int(match.group(1))
+        for pattern in _ALLOCATION_BYTES
+        for match in pattern.finditer(diagnostic)
+    ]
+    found += [
+        int(float(match.group(1)) * _UNIT_BYTES[match.group(2).upper()])
+        for match in _ALLOCATION_UNITS.finditer(diagnostic)
+    ]
+    return max(found) if found else None
+
+
 class _CandidateResourceStop(Exception):
     """A fixed program stopped at the memory or wall limit its candidate set off.
 
@@ -878,10 +907,11 @@ class _CandidateResourceStop(Exception):
     its absence observed; the run then settles FAILED_MINER, typed.
     """
 
-    def __init__(self, code, observation, original):
+    def __init__(self, code, observation, limit, original):
         super().__init__(observation)
         self.code = code
         self.observation = observation
+        self.limit = limit
         self.original = original
 
 
@@ -898,15 +928,24 @@ def _candidate_resource_stop(
     memory_limit_bytes,
     deadline,
     observation=None,
+    accelerated=False,
 ):
-    """``(WorkerCode, observation)`` when the kernel or the clock stopped the program.
+    """``(WorkerCode, observation, limit)`` when the kernel or the clock stopped the program.
 
     Observed evidence only: the engine's OOM-kill flag or the cgroup's
     ``oom_kill`` count for memory (or the worker's own memory exception with
-    the cgroup peak at its limit), and the program stage's own allowance
-    elapsing for the wall. Anything else, and any program stage that started
-    late, stays an infrastructure failure.
+    the cgroup peak at its limit, or asking for more than the limit in one
+    allocation: XLA refuses that before the kernel ever kills anything), and
+    the program stage's own allowance elapsing for the wall. An allocation
+    failure that asks for less than the limit stays infrastructure (host
+    pressure), as does anything else, and any program stage that started
+    late. ``limit`` names what was reached, for the miner's message.
     """
+    memory_limit = (
+        {"kind": "memory", "bytes": memory_limit_bytes}
+        if type(memory_limit_bytes) is int
+        else {"kind": "memory"}
+    )
     diagnostic = error.private_diagnostic if isinstance(error, WorkerFailure) else b""
     if type(diagnostic) is not bytes:
         diagnostic = b""
@@ -919,25 +958,42 @@ def _candidate_resource_stop(
             image_id=image_id,
             deadline=deadline,
         )
+    exhausted = any(marker in diagnostic for marker in _MEMORY_EXHAUSTED_MARKERS)
+    requested = requested_allocation_bytes(diagnostic) if exhausted else None
+    if (
+        exhausted
+        and not accelerated
+        and type(memory_limit_bytes) is int
+        and requested is not None
+        and requested > memory_limit_bytes
+    ):
+        # A request larger than memory.max can never be served, whatever the
+        # host is doing: the candidate's own allocation (a GPU run's device
+        # memory is another limit and is not judged here).
+        return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT, memory_limit
     if observation["status"] == "OBSERVED":
         if observation["state"]["oom_killed"] is True:
-            return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT
+            return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT, memory_limit
         memory = observation["memory"]
         if memory is not None:
             if memory["events"].get("oom_kill", 0) >= 1:
-                return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT
+                return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT, memory_limit
             if (
                 type(memory_limit_bytes) is int
                 and memory["peak_bytes"] >= memory_limit_bytes
-                and any(marker in diagnostic for marker in _MEMORY_EXHAUSTED_MARKERS)
+                and exhausted
             ):
-                return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT
+                return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT, memory_limit
     if (
         b"stream command timed out" in diagnostic
         and setup_seconds <= _PROGRAM_SETUP_BUDGET_SECONDS
         and time.monotonic() >= program_started + program_timeout - 1
     ):
-        return WorkerCode.DEADLINE, CANDIDATE_WALL_LIMIT
+        return (
+            WorkerCode.DEADLINE,
+            CANDIDATE_WALL_LIMIT,
+            {"kind": "wall", "seconds": int(program_timeout)},
+        )
     return None
 
 
@@ -1581,6 +1637,7 @@ def _run_locked(
                         memory_limit_bytes=getattr(
                             worker, "effective_memory_bytes", None
                         ),
+                        accelerated=device is not None,
                     )
                     if stop is not None:
                         raise _CandidateResourceStop(*stop, error) from error
@@ -1708,6 +1765,7 @@ def _run_locked(
             resources=resources,
             started=started,
             failure=(candidate_stop.code, candidate_stop.observation),
+            limit=candidate_stop.limit,
             before_finish=before_finish,
         )
     with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
@@ -2501,7 +2559,16 @@ def _observed_miner_failure(cli, name, error, seconds, started):
 
 
 def _settle_miner_failure(
-    ledger, *, owner, identity, operation, resources, started, failure, before_finish
+    ledger,
+    *,
+    owner,
+    identity,
+    operation,
+    resources,
+    started,
+    failure,
+    before_finish,
+    limit=None,
 ):
     """Settle an observed miner-caused failure and raise it, typed.
 
@@ -2521,6 +2588,8 @@ def _settle_miner_failure(
         "retry_dispatched": False,
         "scientific_qualification": False,
         "official_eligible": False,
+        # The limit that was reached (kind and value), for the miner's message.
+        **({} if limit is None else {"limit": limit}),
     }
     elapsed = math.ceil((time.monotonic() - started) * 1000)
     retained = sum(p.stat().st_size for p in operation.rglob("*") if p.is_file())

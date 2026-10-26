@@ -113,4 +113,23 @@ def from_receipt(kind, receipt, *, designs):
     parts = [timing.get(name) for name in MODEL_PARTS]
     if not all(type(part) in (int, float) and math.isfinite(part) for part in parts):
         return None
-    return speed_block(kind, seconds=sum(parts), designs=designs)
+    # A static-batch graph is timed on the first designs of the query (its
+    # declared batch), not all of them: the result says how many.
+    shape = measured.get("input_shape")
+    timed_designs = (
+        shape[0]
+        if type(shape) is list
+        and shape
+        and type(shape[0]) is int
+        and 0 < shape[0] <= designs
+        else designs
+    )
+    block = speed_block(kind, seconds=sum(parts), designs=timed_designs)
+    if block is not None and timed_designs < designs:
+        block["designs_total"] = designs
+        block["scope"] = (
+            "cold query: model load, compile and one inference over the first "
+            f"{timed_designs} practice designs"
+        )
+        block["label"] = f"measured on the first {timed_designs} designs; {LABEL}"
+    return block
