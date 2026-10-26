@@ -50,7 +50,15 @@ _CLEAR = (
 #: Entries with no GPU twin at all (Validator ruling, 2026-10-22): thuml.LSM stays CPU-only and officially gradable
 #: with its CPU receipt (its GPU build would need `timm`, which the cu130 lock does not carry, and its upsample backward
 #: has no deterministic CUDA kernel).
-NO_GPU_TWIN = ("thuml.LSM", "f08.thuml.LSM")
+NO_GPU_TWIN = (
+    "thuml.LSM",
+    "f08.thuml.LSM",
+    # The same entry under its v2 ids (it still needs `timm`).
+    "v2.motor.thuml.LSM",
+    "v2.cooling.thuml.LSM",
+    "v2.f08.thuml.LSM",
+    "v2.f02.thuml.LSM",
+)
 #: The second registered change, on an explicit one-entry list and never a general rule (owner, 2026-10-22): the CNO1d
 #: build's upsample backward has no deterministic CUDA kernel, so its GPU twin relaxes
 #: `use_deterministic_algorithms(True)` to `warn_only=True`. The twin is therefore not a pure derivation of the CPU build
