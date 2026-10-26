@@ -13,8 +13,12 @@
 export const SCHEMA = "carbon.validator.score-feed.v1";
 export const BOARD_SCHEMA = "carbon.dashboard.board.v1";
 export const DOMAIN = "carbon.validator.score-feed.v1\u0000";
+// The launch Challenges' signed standing (OWNER-DASHBOARD-01): its own schema and signing
+// domain, never the feed's or the network snapshot's (carbon/dashboard/launch.py).
+export const LAUNCH_SCHEMA = "carbon.validator.launch-board.v1";
+export const LAUNCH_DOMAIN = "carbon.validator.launch-board.v1\u0000";
 export const FIXTURE_PUBLIC_KEY = "d55fec2a82d5280786d8282263c8f324f43166eb036d38fb64bce7469d742cc8";
-const NUMERIC_SECTIONS = ["accuracy", "design_q", "near_limit"];
+const NUMERIC_SECTIONS = ["accuracy", "design_q", "near_limit", "total"];
 const SENSES = ["lower_is_better", "higher_is_better"];
 const GATE_VALUES = ["PASS", "FAIL"];
 const LABELS = ["DEVELOPMENT", "TESTNET"];
@@ -187,10 +191,10 @@ export function canonical(value) {
   const keys = Object.keys(value).sort(codePointCompare);
   return "{" + keys.map(k => pyString(k) + ":" + canonical(value[k])).join(",") + "}";
 }
-export function canonicalBytes(document) {
+export function canonicalBytes(document, domain = DOMAIN) {
   const body = {};
   for (const k of Object.keys(document)) if (k !== "signature") body[k] = document[k];
-  return new TextEncoder().encode(DOMAIN + canonical(body));
+  return new TextEncoder().encode(domain + canonical(body));
 }
 
 const hexBytes = hex => Uint8Array.from(hex.match(/../g).map(h => parseInt(h, 16)));
@@ -206,11 +210,11 @@ export function trust(keys, {fixture = false} = {}) {
   return Object.freeze({keys: [...set].sort(), fixture});
 }
 
-export async function verify(document, pinned) {
-  if (!isDict(document) || get(document, "schema") !== SCHEMA) throw new FeedRefused("schema_unsupported");
+export async function verify(document, pinned, domain = DOMAIN, schema = SCHEMA) {
+  if (!isDict(document) || get(document, "schema") !== schema) throw new FeedRefused("schema_unsupported");
   const signature = get(document, "signature");
   if (typeof signature !== "string" || !HEX_SIGNATURE.test(signature)) throw new FeedRefused("signature_missing");
-  const message = canonicalBytes(document);
+  const message = canonicalBytes(document, domain);
   for (const pub of pinned.keys) {
     const key = await crypto.subtle.importKey("raw", hexBytes(pub), {name: "Ed25519"}, false, ["verify"]);
     if (await crypto.subtle.verify({name: "Ed25519"}, key, hexBytes(signature), message)) return pub;
@@ -581,7 +585,153 @@ export function boardSlug(challengeId, deviceClass) {
 const keyOf = (blockOrNull, id) => [blockOrNull || 0, id];
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
+// ---- The launch board (OWNER-DASHBOARD-01): a port of carbon/dashboard/launch.py ----
+const LAUNCH_STATUSES = ["IMPROVED", "NO_IMPROVEMENT", "GATE_FAILED", "NOT_SCORED"];
+const LAUNCH_NETWORK_LABELS = {testnet: ["DEVELOPMENT", "TESTNET"], mainnet: ["DEVELOPMENT"]};
+const LAUNCH_MAX_LADDER = 512;
+const LAUNCH_MAX_GATES = 16;
+const LAUNCH_FIELDS = ["challenge", "counts", "generated_at", "king", "labels", "ladder", "network", "schema", "signature", "validator", "version"];
+const LAUNCH_KING_FIELDS = ["baseline_total", "king", "margin", "to_beat"];
+const LAUNCH_KING_ROW = ["hotkey", "since_epoch", "total"];
+const LAUNCH_LADDER_FIELDS = ["gate_names", "hotkey", "rank", "status", "total"];
+const LAUNCH_SS58 = /^[1-9A-HJ-NP-Za-km-z]{47,48}$/u;
+const LAUNCH_NAME = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
+const LAUNCH_LABEL = /^[A-Za-z0-9][A-Za-z0-9 ._:+-]{0,63}$/u;
+const LAUNCH_GATE = /^[a-z][a-z0-9_.-]{0,63}$/u;
+const LAUNCH_UTC = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/u;
+const LAUNCH_ID = /^[^\u0000-\u001f\u007f<>]{1,200}$/u;
+const sameKeys = (o, names) => isDict(o) && Object.keys(o).length === names.length && Object.keys(o).sort().join("\u0000") === [...names].sort().join("\u0000");
+const launchUnit = (value, code, nullable = false) => {
+  if (value === null && nullable) return null;
+  if (!isNum(value) || !Number.isFinite(value.value) || value.value < 0 || value.value > 1) throw new FeedRefused(code);
+  return value.value;
+};
+const launchInt = value => isNum(value) && value.isInt;
+// The fewest decimal places (at least 3) that hold every value exactly: a display parameter.
+function launchDigits(values) {
+  for (let d = 3; d < 10; d += 1) if (values.every(v => Number(v.toFixed(d)) === v)) return d;
+  throw new FeedRefused("total_unrounded");
+}
+function launchCheck(document) {
+  if (!sameKeys(document, LAUNCH_FIELDS)) throw new FeedRefused("board_fields");
+  const network = get(document, "network");
+  const labels = get(document, "labels");
+  if (typeof network !== "string" || !own(LAUNCH_NETWORK_LABELS, network) || !Array.isArray(labels)
+      || labels.length !== LAUNCH_NETWORK_LABELS[network].length || labels.some((l, i) => l !== LAUNCH_NETWORK_LABELS[network][i])) throw new FeedRefused("labels_invalid");
+  const version = get(document, "version");
+  if (!launchInt(version) || version.value < 1) throw new FeedRefused("version_invalid");
+  const generated = get(document, "generated_at");
+  if (typeof generated !== "string" || !LAUNCH_UTC.test(generated)) throw new FeedRefused("generated_at_invalid");
+  const challenge = get(document, "challenge");
+  if (!sameKeys(challenge, ["exam_version_label", "id", "version"])
+      || ["id", "version", "exam_version_label"].some(k => typeof challenge[k] !== "string" || !LAUNCH_ID.test(challenge[k]))
+      || !LAUNCH_NAME.test(challenge.version) || !LAUNCH_LABEL.test(challenge.exam_version_label)) throw new FeedRefused("challenge_invalid");
+  const validator = get(document, "validator");
+  if (!sameKeys(validator, ["feed_key"]) || typeof validator.feed_key !== "string" || !HEX_KEY.test(validator.feed_key)) throw new FeedRefused("validator_invalid");
+  const king = get(document, "king");
+  if (!sameKeys(king, LAUNCH_KING_FIELDS)) throw new FeedRefused("king_invalid");
+  const row = king.king;
+  if (row !== null) {
+    if (!sameKeys(row, LAUNCH_KING_ROW) || typeof row.hotkey !== "string" || !LAUNCH_SS58.test(row.hotkey)
+        || !launchInt(row.since_epoch) || row.since_epoch.value < 0) throw new FeedRefused("king_invalid");
+    launchUnit(row.total, "king_invalid");
+  }
+  for (const name of ["margin", "to_beat", "baseline_total"]) launchUnit(king[name], "king_invalid", true);
+  const ladder = get(document, "ladder");
+  if (!Array.isArray(ladder) || ladder.length > LAUNCH_MAX_LADDER) throw new FeedRefused("ladder_invalid");
+  const seen = new Set();
+  const tally = {};
+  for (const status of LAUNCH_STATUSES) tally[status] = 0;
+  for (const entry of ladder) {
+    if (!sameKeys(entry, LAUNCH_LADDER_FIELDS) || !launchInt(entry.rank) || entry.rank.value < 1
+        || typeof entry.hotkey !== "string" || !LAUNCH_SS58.test(entry.hotkey) || seen.has(entry.hotkey)
+        || typeof entry.status !== "string" || !LAUNCH_STATUSES.includes(entry.status)) throw new FeedRefused("ladder_invalid");
+    seen.add(entry.hotkey);
+    launchUnit(entry.total, "ladder_invalid", true);
+    const gates = entry.gate_names;
+    if (gates !== null && (entry.status !== "GATE_FAILED" || !Array.isArray(gates) || gates.length > LAUNCH_MAX_GATES
+        || gates.some(g => typeof g !== "string" || !LAUNCH_GATE.test(g)))) throw new FeedRefused("ladder_invalid");
+    tally[entry.status] += 1;
+  }
+  const counts = {
+    graded: ladder.length,
+    scored: tally.IMPROVED + tally.NO_IMPROVEMENT,
+    gate_failed: tally.GATE_FAILED,
+    not_scored: tally.NOT_SCORED,
+  };
+  const given = get(document, "counts");
+  if (!sameKeys(given, Object.keys(counts)) || Object.keys(counts).some(k => !launchInt(given[k]) || given[k].value !== counts[k])) throw new FeedRefused("counts_invalid");
+  return counts;
+}
+async function projectLaunch(document, pinned) {
+  if (pinned.fixture) throw new FeedRefused("fixture_launch_board");
+  const signer = await verify(document, pinned, LAUNCH_DOMAIN, LAUNCH_SCHEMA);
+  const counts = launchCheck(document);
+  const ladder = document.ladder;
+  const king = document.king;
+  const totals = ladder.filter(e => e.total !== null).map(e => e.total.value);
+  if (king.king !== null) totals.push(king.king.total.value);
+  for (const k of ["margin", "to_beat", "baseline_total"]) if (king[k] !== null) totals.push(king[k].value);
+  const digits = launchDigits(totals);
+  const challenge = document.challenge;
+  const standing = ladder.filter(e => e.total !== null).map(e => ({
+    rank: e.rank.value, hotkey: e.hotkey, best: {total: e.total.value}, best_at_block: null,
+  })).sort((a, b) => a.rank - b.rank || cmp(a.hotkey, b.hotkey));
+  const incumbent = king.king === null ? null : {
+    hotkey: king.king.hotkey, submission_id: null, since_block: null, sections: {total: king.king.total.value},
+  };
+  const gateNames = {};
+  for (const e of ladder) if (e.gate_names !== null && e.gate_names.length) gateNames[e.hotkey] = [...e.gate_names];
+  const bytes = canonicalBytes(document, LAUNCH_DOMAIN);
+  return {
+    schema: BOARD_SCHEMA,
+    source_schema: LAUNCH_SCHEMA,
+    fixture: false,
+    labels: [...document.labels],
+    challenge: {id: challenge.id, version: challenge.version, rule_digest: "exam:" + challenge.exam_version_label, rule: null},
+    device_class: null,
+    slug: boardSlug(challenge.id, "no-class"),
+    version: document.version.value,
+    released_through_block: null,
+    generated_at: document.generated_at,
+    values: {precision: 10 ** -digits, digits, display_threshold: null, registered: "launch board: the Ladder's own rounding"},
+    section_meta: {total: {display: "Total score", unit: "0 to 1, rounded down to the Ladder step", sense: "higher_is_better"}},
+    release: null,
+    as_of_block: null,
+    king: null,
+    handovers: null,
+    target_to_beat: null,
+    released_windows: [],
+    // Graded hotkeys stand in for released windows: PRE_FIRST_RELEASE until one has a result.
+    released_count: counts.graded,
+    incumbent,
+    challengers: ladder.map(e => ({hotkey: e.hotkey, state: e.status})),
+    standing,
+    ladder: null,
+    history: {},
+    miners: {},
+    excluded_canaries: 0,
+    showcase_panel: null,
+    launch: {
+      counts,
+      margin: king.margin === null ? null : king.margin.value,
+      to_beat: king.to_beat === null ? null : king.to_beat.value,
+      baseline_total: king.baseline_total === null ? null : king.baseline_total.value,
+      king_since_epoch: king.king === null ? null : king.king.since_epoch.value,
+      exam_version_label: challenge.exam_version_label,
+      network: document.network,
+      gate_names: gateNames,
+    },
+    feed: {
+      key_id: "feed-" + (await sha256Hex(hexBytes(signer))).slice(0, 16),
+      public_key: signer,
+      digest: "sha256:" + (await sha256Hex(bytes)),
+    },
+  };
+}
+
 export async function project(document, pinned) {
+  if (isDict(document) && get(document, "schema") === LAUNCH_SCHEMA) return projectLaunch(document, pinned);
   const signer = await verify(document, pinned);
   if (own(document, "live")) throw new FeedRefused("live_not_authorized");
   const vals = values(get(document, "values"));
@@ -754,6 +904,7 @@ export const BLOCK_SECONDS = 12;
 export const STALE_AFTER_SECONDS = 2 * 60 * 60;
 const UTC = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/u;
 export const ELIGIBLE_LABEL = "Eligible for the championship";
+export const LAUNCH_LADDER_LABEL = "Ladder: best total per hotkey";
 const CARD_DIGEST = /^sha256:[0-9a-f]{64}$/u;
 // The rules card is the only source of a rule statement (board_v2._rules).
 function rulesStatus(board, card) {
@@ -949,7 +1100,7 @@ function leaderboard(board, section, challengers, lag, gate) {
     ),
     is_king: row.hotkey === kingKey,
   }));
-  return {...fields(["section", name, "no_ranking_section"], ["release_lag", ...lag], ["coldkeys", coldkeys(board), "not_in_feed"], ["grain_pct", ...grainPct(board, gate)]), label: ELIGIBLE_LABEL, entries};
+  return {...fields(["section", name, "no_ranking_section"], ["release_lag", ...lag], ["coldkeys", coldkeys(board), "not_in_feed"], ["grain_pct", ...grainPct(board, gate)]), label: has(board, "launch") ? LAUNCH_LADDER_LABEL : ELIGIBLE_LABEL, entries};
 }
 function historyV2(board, section) {
   const name = section === null ? null : section.name;
@@ -1017,7 +1168,8 @@ export function projectV2(board, now, rulesCard = null) {
   if (board.schema !== BOARD_SCHEMA) throw new Error("board.v2 is projected from a verified board.v1 model");
   const rel = board.release || {};
   const relGet = k => (own(rel, k) ? rel[k] : null);
-  const released = board.released_windows.length;
+  // A launch board has no windows: its graded hotkeys stand in (launchProject).
+  const released = has(board, "released_count") ? board.released_count : board.released_windows.length;
   const asOf = pick(board, "as_of_block");
   const [phase, fresh] = freshness(board.generated_at, released, now, asOf === null ? null : Math.floor(asOf.timestamp_ms / 1000));
   const [nextBlock, nextUtc] = nextReleaseTime(board, relGet);
@@ -1078,7 +1230,27 @@ export function projectV2(board, now, rulesCard = null) {
     },
     gates: gatesV2(board, kingView),
     excluded_canaries: board.excluded_canaries,
+    ...launchV2(board),
   };
+}
+// The launch board's standing as the validator signed it (board_v2._launch); absent for a score feed.
+function launchV2(board) {
+  const launch = pick(board, "launch");
+  if (launch === null) return {};
+  const gateNames = {};
+  for (const k of Object.keys(launch.gate_names)) gateNames[k] = [...launch.gate_names[k]];
+  return {launch: {
+    counts: {...launch.counts},
+    ...fields(
+      ["margin", launch.margin, "no_registered_noise"],
+      ["to_beat", launch.to_beat, "no_registered_noise"],
+      ["baseline_total", launch.baseline_total, "a_king_is_crowned"],
+      ["king_since_epoch", launch.king_since_epoch, "no_king"],
+    ),
+    exam_version_label: launch.exam_version_label,
+    network: launch.network,
+    gate_names: gateNames,
+  }};
 }
 
 // Sent with every server-side fetch of a feed or snapshot. Cloudflare can

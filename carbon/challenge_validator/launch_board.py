@@ -377,6 +377,32 @@ def _config(path):
     return raw
 
 
+def build_from_ledger(
+    *, ledger, challenge, exam_key, king_document, network, key, version
+):
+    """The signed board for ``challenge`` (an object with `challenge_id` and `version`)
+    from the receiver's ledger file (read-only) and its king document. ``exam_key``
+    is the sealed pack digest, or "latest" for the exam of the most recent graded
+    result (an empty ladder when nothing is graded yet)."""
+    from .ladder_store import board_rows, latest_exam_key
+
+    if exam_key == "latest":
+        exam_key = latest_exam_key(ledger, challenge)
+    rows = [] if exam_key is None else board_rows(ledger, challenge, exam_key)
+    return build(
+        king_document=king_document,
+        rows=rows,
+        network=network,
+        key=key,
+        version=version,
+    )
+
+
+def now_version():
+    """A whole number that grows with every build: seconds since the epoch."""
+    return int(datetime.datetime.now(datetime.UTC).timestamp())
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="launch_board")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -386,8 +412,6 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         config = _config(args.config)
-        from .ladder_store import board_rows
-
         challenge = type(
             "Challenge",
             (),
@@ -397,19 +421,18 @@ def main(argv=None):
             },
         )()
         king = json.loads(Path(config["koth"]).read_text(encoding="utf-8"))
-        rows = board_rows(config["ledger"], challenge, config["exam_key"])
         key = LaunchBoardKey.load(config["key"])
         version = config.get("version")
-        if version is None:
-            version = int(datetime.datetime.now(datetime.UTC).timestamp())
         write_feed(
             args.out,
-            build(
+            build_from_ledger(
+                ledger=config["ledger"],
+                challenge=challenge,
+                exam_key=config["exam_key"],
                 king_document=king,
-                rows=rows,
                 network=config["network"],
                 key=key,
-                version=version,
+                version=now_version() if version is None else version,
             ),
         )
     except (BoardRefused, FeedRefused, OSError, ValueError, KeyError) as error:

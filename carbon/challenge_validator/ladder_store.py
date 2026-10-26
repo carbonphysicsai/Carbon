@@ -36,6 +36,7 @@ or rescored.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 
 from carbon.scoring import grade_feedback as gf
@@ -260,20 +261,67 @@ class LadderStore:
         return {"best": best, "latest": latest}
 
 
-def board_rows(path, challenge, exam_key):
-    """``[(hotkey, best, latest)]`` for every hotkey graded on this exam, each
-    document exactly as the Ladder serves it (`checked`), read from the receiver's
-    ledger file *read-only* (the public launch board's source; it never opens the
-    ledger for writing and never creates it). A v1 row, which showed A and D, is
-    skipped, as `LadderStore.served` skips it."""
+def _readonly(path):
+    """A read-only connection to the receiver's ledger file, or None when there is no
+    ledger yet. Never opens it for writing and never creates it."""
+    if not os.path.exists(path):
+        return None
+    return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+
+
+def _identity(challenge):
     from carbon.scoring.sealed_versions import ladder_key
 
     challenge_id = _text(getattr(challenge, "challenge_id", None), "ladder_challenge")
     evaluation = ladder_key(
         challenge_id, _text(getattr(challenge, "version", None), "ladder_challenge")
     )
+    return challenge_id, evaluation, ladder_key
+
+
+def latest_exam_key(path, challenge):
+    """The exam key (sealed evaluation pack digest) of the exam this Challenge's most
+    recent graded result was recorded on, or None when nothing is graded yet: the
+    operator's default for `board_rows`, so a rotated bank moves the board to its new
+    exam (a fresh ladder) without a config change."""
+    challenge_id, evaluation, ladder_key = _identity(challenge)
+    db = _readonly(path)
+    if db is None:
+        return None
+    try:
+        candidates = db.execute(
+            "SELECT exam_key, updated_ns FROM ladder_feedback_v2"
+            " WHERE challenge_id=? AND evaluation_version=?",
+            (challenge_id, evaluation),
+        ).fetchall()
+        candidates += [
+            (exam_key, updated_ns)
+            for exam_key, version, updated_ns in db.execute(
+                "SELECT exam_key, challenge_version, updated_ns FROM ladder_feedback"
+                " WHERE challenge_id=?",
+                (challenge_id,),
+            ).fetchall()
+            if ladder_key(challenge_id, version) == evaluation
+        ]
+    except sqlite3.OperationalError:
+        return None  # the receiver has not created the Ladder's tables yet
+    finally:
+        db.close()
+    return max(candidates, key=lambda row: row[1])[0] if candidates else None
+
+
+def board_rows(path, challenge, exam_key):
+    """``[(hotkey, best, latest)]`` for every hotkey graded on this exam, each
+    document exactly as the Ladder serves it (`checked`), read from the receiver's
+    ledger file *read-only* (the public launch board's source; it never opens the
+    ledger for writing and never creates it). No ledger or no Ladder tables yet is
+    an empty list. A v1 row, which showed A and D, is skipped, as
+    `LadderStore.served` skips it."""
+    challenge_id, evaluation, ladder_key = _identity(challenge)
     exam_key = _text(exam_key, "ladder_exam_key")
-    db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    db = _readonly(path)
+    if db is None:
+        return []
     try:
         rows = db.execute(
             "SELECT hotkey, best, latest FROM ladder_feedback_v2"
@@ -289,6 +337,8 @@ def board_rows(path, challenge, exam_key):
             if hotkey not in known and ladder_key(challenge_id, version) == evaluation:
                 known.add(hotkey)
                 rows.append((hotkey, best, latest))
+    except sqlite3.OperationalError:
+        return []  # the receiver has not created the Ladder's tables yet
     finally:
         db.close()
     out = []

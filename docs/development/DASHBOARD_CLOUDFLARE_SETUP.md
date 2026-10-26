@@ -178,6 +178,66 @@ Expect every snapshot `"state": "ACCEPTED"` with labels `DEVELOPMENT` and
 `TESTNET`. A `REFUSED` `snapshot_stale` means the timer stopped. Any other
 code, send it to the Carbon Validator session.
 
+## 7. The launch boards (OWNER-DASHBOARD-01; the Test Engineer's valV3 step 6)
+
+The four launch Challenges are graded on sealed exams and have no score feed. Their
+standing is one signed **launch board** each (`carbon.validator.launch-board.v1`, its own
+signing domain): the king (exactly the receiver's `GET /carbon/v1/koth/<id>` answer), the
+Ladder's best total per graded hotkey (rounded to the Ladder step), and counts. Nothing
+finer. The same **feed key** signs it, so the key the Worker pins (`FEED_KEYS`) does not
+change; this repository never reads that key.
+
+**On the validator host (the operator).** Write
+`~/.config/carbon/launch-boards.json` (mode 600, never committed):
+
+```json
+{"schema": "carbon.launch-board.operator.config.v1",
+ "network": "testnet",
+ "ledger": "<the receiver's attempt-ledger file>",
+ "receiver_url": "http://127.0.0.1:<receiver port>",
+ "key": "<the feed key file>",
+ "out": "<feed directory>/launch",
+ "upload_command": ["npx", "wrangler@4", "r2", "object", "put", "<feed bucket>/valv3/{name}",
+                    "--file", "{file}", "--content-type", "application/json", "--remote"],
+ "challenges": [
+  {"id": "electric-motor-magnetics", "version": "1.4", "exam_version_label": "<label>"},
+  {"id": "chip-cold-plate", "version": "1.4", "exam_version_label": "<label>"},
+  {"id": "f08-ribbed-bracket", "version": "1.5", "exam_version_label": "<label>"},
+  {"id": "f02", "version": "2.4", "exam_version_label": "<label>"}]}
+```
+
+`exam_version_label` is only used while the receiver publishes no king document yet.
+The exam is the one of each Challenge's most recent graded result (a rotated bank moves
+the board to a fresh ladder by itself); set `"exam_key"` on a Challenge to pin one.
+
+Run it once, then on a timer:
+
+```bash
+python scripts/dev/launch_board_operator.py run --config ~/.config/carbon/launch-boards.json
+```
+
+```bash
+python scripts/dev/launch_board_operator.py systemd --config ~/.config/carbon/launch-boards.json
+```
+
+The first command prints one row per Challenge: `UPLOADED` (or `WROTE` without an
+`upload_command`), or `REFUSED` with a closed code and exit code 2. Before any result is
+recorded every board is the empty state ("No hotkey has a graded result yet"); the next
+run after the first grade shows it. `receiver_unavailable` leaves the last board in place
+(the dashboard marks it STALE by its own age): restart the receiver and run again. The
+second command prints a oneshot service and a 5-minute timer to install.
+
+**On the Worker (the owner).** Add each board's public URL, `https://<public bucket
+host>/valv3/<slug>.json` (slugs: `electric-motor-magnetics--no-class`,
+`chip-cold-plate--no-class`, `f08-ribbed-bracket--no-class`, `f02--no-class`), to the
+`FEED_URLS` list of step 1 and set it again as the secret. The Worker reads launch boards
+as the static build does (`feed.mjs`, held equal to `launch.py` by
+`tests/cpu/test_dashboard_launch_worker.py`).
+
+**Check it:** `curl -s https://dashboard.carbonphysics.ai/data/index.json` lists each
+launch board `"state": "ACCEPTED"` with labels `DEVELOPMENT` and `TESTNET`. A `REFUSED`
+code names what the Worker's checks found; send it to the Carbon Validator session.
+
 ## Afterwards
 
 - **The leaderboard** updates by itself, within about 60 s of a new feed
