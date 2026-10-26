@@ -245,11 +245,13 @@ class MotorCatalogPractice:
                 interface_digest=kit["interface_digest"],
                 construction_limits_digest=kit["construction_limits_digest"],
             )
-            try:
-                result, _backend = graph_adapters.practise(
+            from carbon.development_session.gpu_practice import run_graph_on_device
+
+            def graph_run(trial, image, device):
+                return graph_adapters.practise(
                     self.ledger,
                     owner=self.owner,
-                    parent=self.parent,
+                    parent=image,
                     runner=self.runner,
                     recipe=bound,
                     binding={
@@ -260,16 +262,25 @@ class MotorCatalogPractice:
                         "construction_limits_digest": kit["construction_limits_digest"],
                     },
                     material=material,
-                    identity=identity,
+                    identity=trial,
                     measure_query=practice_speed.measure(self.runner),
                     timing_optional=True,
+                    # A host with a JAX GPU worker practises the graph on it.
+                    **({} if device is None else {"accelerator": device}),
+                )[0]
+
+            try:
+                result, construction_parent, accelerator, gpu_note = (
+                    run_graph_on_device(self, identity, graph_run)
                 )
             except graph_adapters.GraphAdapterUnregistered:
                 raise ValueError("motor_catalog_recipe_required") from None
+            if accelerator is None:
+                # A CPU graph practice records no GPU parent, as before.
+                construction_parent = None
             recipe = bound
             catalog_source = {"catalog_id": None, "catalog_digest": None}
             bundle_recipe_digest = None
-            accelerator = construction_parent = gpu_note = None
         else:
             from carbon.development_session.gpu_practice import (
                 gpu_overlay,

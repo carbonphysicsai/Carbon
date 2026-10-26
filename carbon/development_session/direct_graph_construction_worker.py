@@ -22,6 +22,7 @@ from .bundle_construction_worker import (
     TIMING_WALL_SECONDS_MAX,
     BundleBuildResult,
     DirectReconstructionResult,
+    _accelerator_kwargs,
     _checked_binding,
     _digest,
     _infer_state,
@@ -632,6 +633,7 @@ def reconstruct_public_graph(
     seconds: int,
     runner=None,
     adapter_id: str = SYNTHETIC_ADAPTER_ID,
+    accelerator: str | None = None,
 ) -> BundleBuildResult:
     """Rebuild the actual graph in a fresh isolated C-03 construction child.
 
@@ -828,6 +830,7 @@ def reconstruct_public_graph(
             {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
         ),
         output_validator=checked,
+        **_accelerator_kwargs(accelerator),
         **rebuild_wall_kwargs(limits_document),
         **resources_kwargs(binding),
     )
@@ -875,6 +878,7 @@ def reconstruct_and_infer_graph_public(
     timing_optional: bool = False,
     runner=None,
     adapter_id: str = SYNTHETIC_ADAPTER_ID,
+    accelerator: str | None = None,
 ) -> DirectReconstructionResult:
     """Use the normal two-child budget and source-free inference boundary."""
     binding = _checked_binding(recipe, challenge_binding)
@@ -906,6 +910,7 @@ def reconstruct_and_infer_graph_public(
         seconds=phase_seconds("build_wall_seconds_max"),
         runner=runner,
         adapter_id=adapter_id,
+        **({} if accelerator is None else {"accelerator": accelerator}),
     )
     expected = ledger.root / build.worker_operation / "snapshot" / "state.npz"
     if build.state_path != expected or expected.is_symlink() or not expected.is_file():
@@ -929,6 +934,9 @@ def reconstruct_and_infer_graph_public(
         "provenance": INFERENCE_PROVENANCE,
         "runner": runner,
         **rebuild_wall_kwargs(limits_document),
+        # The miner's own GPU for both children (practice only): absent for
+        # every CPU run, so their calls and identities are unchanged.
+        **_accelerator_kwargs(accelerator),
     }
     from . import battery_graph_adapter
 

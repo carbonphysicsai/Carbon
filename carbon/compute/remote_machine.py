@@ -46,7 +46,6 @@ has its own scripts in `remote_container` (LINKONLY-D5).
 
 from __future__ import annotations
 
-import hashlib
 import ipaddress
 import os
 import re
@@ -504,8 +503,10 @@ def _bounded_read(stream, deadline: float) -> bytes:
 #: digest, and the configuration a job runs with. Their sha256 identifies the
 #: image's bytes and its run configuration exactly.
 # One format and one function, shared with the local parent check (carbon/reconstruction/worker/image_fingerprint.py).
-from carbon.reconstruction.worker.image_fingerprint import (  # noqa: E402
+from carbon.reconstruction.worker.image_fingerprint import (
     FINGERPRINT_FORMAT,
+)
+from carbon.reconstruction.worker.image_fingerprint import (
     fingerprint as _fingerprint,
 )
 
@@ -618,7 +619,11 @@ def gpu_test_script(image_id: str, backend: str, fingerprint: str | None = None)
     no capabilities, no new privileges, a bounded time - on
     `GPU_TEST_PROGRAMS[backend]`. Exit 0 when it worked; a driver older than
     the worker's CUDA runtime is GPU_TEST_DRIVER_TOO_OLD, anything else
-    GPU_TEST_FAILED. Prints the newest CUDA the driver runs. Writes nothing."""
+    GPU_TEST_FAILED. Prints the newest CUDA the driver runs. Writes nothing.
+
+    The worker image bakes `JAX_PLATFORMS=cpu` and its root is read-only, so
+    the test names the real run's device and a writable TMPDIR itself: JAX
+    otherwise reports the GPU as absent on a machine whose GPU works."""
     program = shlex.quote(GPU_TEST_PROGRAMS[backend])
     return f"""set -u
 command -v docker >/dev/null 2>&1 || exit {NO_DOCKER}
@@ -632,6 +637,7 @@ carbon_gpu="${{carbon_gpu//[[:space:]]/}}"
 carbon_out="$(timeout {GPU_TEST_SECONDS} docker run --rm --network none --read-only \\
     --tmpfs /scratch:rw,nosuid,nodev,exec,uid={WORKER_USER},gid={WORKER_USER},mode=0700 \\
     --env HOME=/scratch --env XDG_CACHE_HOME=/scratch/cache \\
+    --env TMPDIR=/scratch --env JAX_PLATFORMS=cuda \\
     --cap-drop ALL --security-opt no-new-privileges \\
     --gpus "driver=nvidia,device=$carbon_gpu" \\
     --entrypoint {WORKER_PYTHON} "$carbon_image" -I -c {program} 2>&1)" || {{

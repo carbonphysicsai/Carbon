@@ -241,6 +241,10 @@ FALLBACK_WORDS = {
     "catalog_gpu_build_not_offered": "the entry's GPU build has no GPU receipt yet",
     "gpu_overlay_not_installed": "the entry's GPU build is not installed here",
     "gpu_build_failed": "the entry's GPU build failed",
+    "graph_gpu_worker_missing": (
+        "your graph practises on the JAX GPU worker and only the PyTorch one is "
+        "installed here; install the JAX GPU worker, then practise again"
+    ),
     "gpu_uv_image_missing": (
         "the pinned uv image GPU builds prepare with is not on this machine; "
         "run: docker pull "

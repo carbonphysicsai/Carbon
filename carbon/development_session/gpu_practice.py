@@ -374,6 +374,73 @@ def campaign_limits():
     return (LedgerRefusal, DispatchStopped, DispatchPaused)
 
 
+#: Why a GPU host practised a graph on the CPU (the graph route's own notes,
+#: beside `device_build`'s). Never a score input.
+GRAPH_GPU_WORKER_MISSING = "graph_gpu_worker_missing"
+
+
+def graph_device(practice):
+    """The device a graph-route practice (the miner's own graph) runs on, the
+    same for every Challenge: ``(image, accelerator, note)``. The graph route
+    is JAX, so a host that declares GPU practice runs it on its JAX GPU worker;
+    otherwise the CPU parent, with `graph_gpu_worker_missing` when GPU was
+    declared but no JAX GPU worker is installed (a PyTorch-only host). A host
+    declaring no GPU has no note."""
+    from .research_carrier import MINER_GPU
+
+    try:
+        images = gpu_images(getattr(practice, "gpu_image", None))
+    except ValueError:  # no registered GPU worker: CPU, as before
+        images = ()
+    if not images:
+        return practice.parent, None, None
+    for image in images:
+        if gpu_image_backend(image) == "jax":
+            return image, MINER_GPU, None
+    return practice.parent, None, GRAPH_GPU_WORKER_MISSING
+
+
+def run_graph_on_device(practice, identity, run):
+    """One graph-route practice on the device `graph_device` picks:
+    ``run(identity, image, accelerator)`` rebuilds and infers it. When the GPU
+    attempt fails for a device or infrastructure reason, the practice runs
+    again on the CPU under its own identity and says why, as a catalog
+    practice does (`run_on_device`). The campaign's own limits and a failure
+    of the miner's own graph are never retried. Returns
+    ``(result, image, accelerator, note)``."""
+    from .construction_recipe import RecipeRefused
+    from .direct_graph_construction_worker import GraphConstructionDecision
+    from .research_carrier import MinerProgramFailure
+
+    image, accelerator, note = graph_device(practice)
+    if accelerator is None:
+        return run(identity, image, None), image, None, note
+    try:
+        return run(identity, image, accelerator), image, accelerator, None
+    except (
+        *campaign_limits(),
+        MinerProgramFailure,
+        GraphConstructionDecision,
+        RecipeRefused,
+    ):
+        raise
+    except (
+        Exception
+    ) as failure:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "graph GPU practice failed; practising on the CPU", exc_info=True
+        )
+        note = _gpu_failure_note(failure)
+        return (
+            run(identity + "-cpu", practice.parent, None),
+            practice.parent,
+            None,
+            note,
+        )
+
+
 class PracticeUnavailable(Exception):
     """A catalog practice this host cannot run at all: its GPU build did not
     run (`note`, the GPU attempt's reason) and the entry has no CPU build

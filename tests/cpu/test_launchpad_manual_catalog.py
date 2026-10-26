@@ -434,8 +434,11 @@ def test_the_toolbox_serves_the_version_asked_for():
 
     host = None
     document = toolbox.for_request(
-        host, {"challenge": MOTOR, "challenge_version": "1.3"}, lanes={}
+        host,
+        {"challenge": MOTOR, "challenge_version": "1.3", "include": "catalog"},
+        lanes={},
     )
+    # The default answer is compact; `include` brings the full list back.
     assert document["catalog"] == toolbox.catalog_recipes(MOTOR, "1.3")
     with pytest.raises(Rejected) as refused:
         toolbox.for_request(
