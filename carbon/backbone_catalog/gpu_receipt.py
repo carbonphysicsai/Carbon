@@ -26,6 +26,11 @@ SMOKE_NOTE = "smoke only: not bit-reproducible on GPU (no deterministic CUDA imp
 #: The entries that get the smoke receipt instead of repeat identity: a short explicit list, not a skip.
 SMOKE_ONLY = {
     "cno.CNO1d": SMOKE_NOTE,
+    # The same entry under its v2 ids (see `gpu_build.WARN_ONLY_DETERMINISM`).
+    "v2.motor.cno.CNO1d": SMOKE_NOTE,
+    "v2.cooling.cno.CNO1d": SMOKE_NOTE,
+    "v2.f08.cno.CNO1d": SMOKE_NOTE,
+    "v2.f02.cno.CNO1d": SMOKE_NOTE,
 }
 
 
