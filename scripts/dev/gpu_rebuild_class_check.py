@@ -221,6 +221,49 @@ def _case(route, key, name, steps):
     return recipe, raw_manifest, files, staging
 
 
+def _route():
+    """What a rebuild needs from the repository, with no test framework: the v2 adapter, the
+    allowlist module, a recipe builder, TRAIN, and the 64-bit context an interface may need.
+    """
+    import contextlib
+    import io
+    from types import SimpleNamespace
+
+    import numpy as np
+
+    sys.path.insert(0, str(ROOT))
+    from carbon.challenge_kit import physical_material
+    from carbon.development_session import graph_adapters
+    from carbon.development_session import physical_graph_adapter_v2 as adapter
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.level4 import allowlist as allowlist_module
+
+    def x64(key):
+        if adapter.SPECS[key].dtype != "float64":
+            return contextlib.nullcontext()
+        import jax
+
+        return jax.enable_x64(True)
+
+    def recipe(key, configuration, *, digest):
+        value = graph_adapters.graph_recipe(*key, digest, configuration=configuration)
+        value["procedure"]["train_use"]["train_fraction"] = 1.0
+        return ConstructionRecipe.from_dict(value)
+
+    def train(key):
+        raw = physical_material.bundle_material(*key)["train"]
+        with np.load(io.BytesIO(raw), allow_pickle=False) as archive:
+            return raw, archive["inputs"].copy(), archive["targets"].copy()
+
+    return SimpleNamespace(
+        adapter=adapter,
+        allowlist_module=allowlist_module,
+        _x64=x64,
+        _recipe=recipe,
+        _train=train,
+    )
+
+
 def _graph_child(args) -> dict:
     """One rebuild in this process: fit a fixed graph, hash the frozen state."""
     import numpy as np
@@ -229,10 +272,7 @@ def _graph_child(args) -> dict:
     # the default `precision` parameter); the worker's "highest" is set once it is built, as the
     # worker applies it to a graph it rebuilds.
     precision = os.environ.pop("JAX_DEFAULT_MATMUL_PRECISION", None)
-    sys.path.insert(0, str(ROOT))
-    sys.path.insert(0, str(ROOT / "tests" / "cpu"))
-    import test_graph_route_v2 as route
-
+    route = _route()
     from carbon.development_session import graph_gpu_lane
     from carbon.development_session.profile import canonical
 
