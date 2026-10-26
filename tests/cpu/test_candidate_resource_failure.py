@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import pytest
 from test_direct_v3_durable_tasks import _fixture
 from test_fixed_practice_failure_diagnostics import harness as _runner_harness
+from test_fixed_program_failure_evidence import _overlay_arguments
 
 from carbon import research
 from carbon.development_session import bundle_construction_worker
@@ -62,7 +63,26 @@ def _run_failing(harness, error, **overrides):
     return harness.run(**overrides)
 
 
-@pytest.mark.parametrize("provenance", sorted(carrier._CANDIDATE_RESOURCE_PROVENANCES))
+def test_every_candidate_build_and_inference_provenance_is_covered():
+    assert carrier._CANDIDATE_RESOURCE_PROVENANCES == {
+        carrier.LIBRARY_BUILD_PROVENANCE,
+        carrier.LIBRARY_OVERLAY_BUILD_PROVENANCE,
+        "DIRECT_BUNDLE_PUBLIC_INFERENCE",
+        GRAPH_BUILD,
+        GRAPH_INFERENCE,
+    }
+    # The dependency install is Carbon's own work, not the candidate's.
+    assert (
+        carrier.LIBRARY_PREP_PROVENANCE not in carrier._CANDIDATE_RESOURCE_PROVENANCES
+    )
+
+
+# The bundle build and inference programs need a verified library image to
+# reach this stage; the graph and overlay programs run the same carrier path.
+@pytest.mark.parametrize(
+    "provenance",
+    [GRAPH_BUILD, GRAPH_INFERENCE, carrier.LIBRARY_OVERLAY_BUILD_PROVENANCE],
+)
 @pytest.mark.parametrize(
     "observation",
     [
@@ -79,7 +99,12 @@ def test_oom_at_the_worker_limit_is_a_typed_candidate_failure(
     _observe(monkeypatch, observation)
     original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"exit=137\n")
     with pytest.raises(carrier.MinerProgramFailure) as caught:
-        _run_failing(harness, original, provenance=provenance)
+        _run_failing(
+            harness,
+            original,
+            provenance=provenance,
+            **_overlay_arguments(harness, provenance),
+        )
     assert caught.value.code is WorkerCode.RUNTIME
     assert caught.value.result["observation"] == carrier.CANDIDATE_MEMORY_LIMIT
     assert caught.value.result["state"] == "FAILED_MINER"
@@ -188,6 +213,7 @@ def test_a_wall_after_a_slow_start_is_the_hosts_not_the_candidates(monkeypatch):
             program_timeout=10,
             setup_seconds=setup_seconds,
             memory_limit_bytes=LIMIT,
+            deadline=time.monotonic() + 1,
         )
 
     assert stop(5) == (WorkerCode.DEADLINE, carrier.CANDIDATE_WALL_LIMIT)

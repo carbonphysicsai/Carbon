@@ -895,6 +895,8 @@ def _candidate_resource_stop(
     program_timeout,
     setup_seconds,
     memory_limit_bytes,
+    deadline,
+    observation=None,
 ):
     """``(WorkerCode, observation)`` when the kernel or the clock stopped the program.
 
@@ -907,13 +909,15 @@ def _candidate_resource_stop(
     diagnostic = error.private_diagnostic if isinstance(error, WorkerFailure) else b""
     if type(diagnostic) is not bytes:
         diagnostic = b""
-    observation = _fixed_program_container_observation(
-        cli,
-        container_name=container_name,
-        launch_digest=launch_digest,
-        image_id=image_id,
-        deadline=time.monotonic() + 3,
-    )
+    if observation is None:
+        # The failure evidence of an evidence provenance already took this read.
+        observation = _fixed_program_container_observation(
+            cli,
+            container_name=container_name,
+            launch_digest=launch_digest,
+            image_id=image_id,
+            deadline=deadline,
+        )
     if observation["status"] == "OBSERVED":
         if observation["state"]["oom_killed"] is True:
             return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT
@@ -1501,6 +1505,7 @@ def _run_locked(
                     timeout=program_timeout,
                 )
             except Exception as error:
+                failure_observation = None
                 if provenance in _PROGRAM_EVIDENCE_PROVENANCES:
                     try:
                         diagnostic = (
@@ -1516,6 +1521,13 @@ def _run_locked(
                         observed_exit = None if exited is None else int(exited.group(1))
                         if observed_exit is not None and observed_exit > 255:
                             observed_exit = None
+                        failure_observation = _fixed_program_container_observation(
+                            cli,
+                            container_name=name,
+                            launch_digest=launch,
+                            image_id=image.image_id,
+                            deadline=min(time.monotonic() + 1, started + seconds - 30),
+                        )
                         _retain_fixed_program_evidence(
                             operation,
                             "private-program-failure-evidence.json",
@@ -1537,15 +1549,7 @@ def _run_locked(
                                     ledger, owner, identity
                                 ).exists(),
                                 "observed_exec_exit": observed_exit,
-                                "observation": _fixed_program_container_observation(
-                                    cli,
-                                    container_name=name,
-                                    launch_digest=launch,
-                                    image_id=image.image_id,
-                                    deadline=min(
-                                        time.monotonic() + 1, started + seconds - 30
-                                    ),
-                                ),
+                                "observation": failure_observation,
                                 "interpretation": "Observations only; no inferred kill cause.",
                             },
                         )
@@ -1571,6 +1575,8 @@ def _run_locked(
                         program_started=program_started,
                         program_timeout=program_timeout,
                         setup_seconds=program_started - started,
+                        observation=failure_observation,
+                        deadline=min(time.monotonic() + 1, started + seconds - 30),
                         memory_limit_bytes=getattr(
                             worker, "effective_memory_bytes", None
                         ),
