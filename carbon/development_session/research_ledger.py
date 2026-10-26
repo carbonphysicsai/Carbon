@@ -495,7 +495,8 @@ class CampaignLedger:
 
     def practice_only(self) -> bool:
         """Whether this campaign was admitted as a practice-only one (Setup's "Practise without
-        registering"): it may reserve research and report work and nothing else. Read only."""
+        registering"): it may reserve research and report work and nothing else. Read only.
+        """
         with self.db() as db:
             frozen = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
         if frozen is None:

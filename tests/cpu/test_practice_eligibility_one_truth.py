@@ -20,7 +20,8 @@ def _dual(eligible, available=True):
 
 
 @pytest.mark.parametrize(
-    ("summary_says", "dual_says"), [(False, True), (True, False), (True, True), (False, False)]
+    ("summary_says", "dual_says"),
+    [(False, True), (True, False), (True, True), (False, False)],
 )
 def test_the_dual_verdict_is_the_practices_eligible(summary_says, dual_says):
     out = practice_dual.reconcile_eligibility(
@@ -58,12 +59,15 @@ def test_the_page_reader_prefers_the_dual_verdict_too():
 
 
 @pytest.mark.parametrize(
-    "path", ["carbon/motor/catalog_practice.py", "carbon/cold_plate/catalog_practice.py"]
+    "path",
+    ["carbon/motor/catalog_practice.py", "carbon/cold_plate/catalog_practice.py"],
 )
 def test_motor_and_cooling_practice_write_the_reconciled_summary(path):
     source = (ROOT / path).read_text(encoding="utf-8")
     assert "reconcile_eligibility" in source
-    assert source.index("reconcile_eligibility") < source.index("ResearchWorkspace(self.ledger, self.owner).put")
+    assert source.index("reconcile_eligibility") < source.index(
+        "ResearchWorkspace(self.ledger, self.owner).put"
+    )
 
 
 def test_campaign_busy_tells_a_new_launch_to_wait():

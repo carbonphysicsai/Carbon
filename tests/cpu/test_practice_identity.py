@@ -566,8 +566,10 @@ def test_a_practice_ledger_knows_it_is_practice_only_and_starts_a_session_under_
     # ...and what it did before is still refused there.
     with pytest.raises(RegistrationRequired):
         ledger.reserve("research-old", phase="selection", request={"n": 2}, **work)
-    source = Path(research_campaign.__file__).with_name("research_loop.py").read_text(
-        encoding="utf-8"
+    source = (
+        Path(research_campaign.__file__)
+        .with_name("research_loop.py")
+        .read_text(encoding="utf-8")
     )
     assert 'start_phase = "research" if practice_only else "selection"' in source
     assert "practice_only = ledger.practice_only()" in source

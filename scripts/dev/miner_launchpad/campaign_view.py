@@ -593,7 +593,11 @@ def run_eligible(experiment, dual=None):
         dual = dual_feedback(experiment)
     # One truth (Lead 02:13Z): the exam's own gate verdict on the practice grid wins over the
     # summary's own count, which can disagree (Motor and Cooling v2).
-    if type(dual) is dict and dual.get("available") is not False and type(dual.get("eligible")) is bool:
+    if (
+        type(dual) is dict
+        and dual.get("available") is not False
+        and type(dual.get("eligible")) is bool
+    ):
         return dual["eligible"]
     if type(summary) is dict and type(summary.get("eligible")) is bool:
         return summary["eligible"]
