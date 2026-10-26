@@ -123,6 +123,27 @@ def load_table(path):
     return document
 
 
+class LiveServer:
+    """``serve(rows)`` for a `ChallengeBinding` from a model that is cheap to evaluate where it is needed (the
+    TRAIN-fit baseline, `pool_baseline.fit`): ``predict`` takes rows as lists in the interface's input order and
+    returns the raw output rows. It answers any row, so a control that moves rows (the in-distribution clamp) needs
+    no table that holds them.
+    """
+
+    def __init__(self, predict, input_names):
+        self._predict = predict
+        self.input_names = tuple(input_names)
+        self.state_digest = "live"
+
+    def __call__(self, rows):
+        out = self._predict(
+            [[float(row[name]) for name in self.input_names] for row in rows]
+        )
+        if len(out) != len(rows):
+            raise PoolServingRefused("live_model_returned_the_wrong_number_of_rows")
+        return [[float(v) for v in row] for row in out]
+
+
 class TableServer:
     """``serve(rows)`` for a `ChallengeBinding`: each row is a dict {input_name: value}; the answer is the
     table's raw row at exactly that input. A row the table does not hold is refused, never guessed.

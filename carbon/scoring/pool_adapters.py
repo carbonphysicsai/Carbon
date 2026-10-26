@@ -686,8 +686,10 @@ def binding_for(kind, version):
     environment variable `CARBON_POOL_BINDING_CONFIG`; there is no default for any of it:
       {"decision": path to the DECISION record (its "u" per derived output is the pools' own),
        "good_table": path to the good model's prediction table (`pool_serving.write_table`),
-       "train_table": path to the TRAIN-fit model's prediction table (required: it is never inferred from
-                      the good table, so the in-distribution control cannot silently grade the wrong model)}
+       "train_table": path to the TRAIN-fit model's prediction table (it is never inferred from the good table,
+                      so the in-distribution control cannot silently grade the wrong model),
+       "train_live": true, instead of "train_table": serve the TRAIN-fit model live (`pool_baseline.fit`, cheap),
+                      so the in-distribution control's clamped rows need no table that holds them (V8_RULINGS 14)}
     The solver truths of the probe rows come in through the script's own `--probe-truth-file`.
     """
     import os
@@ -703,10 +705,16 @@ def binding_for(kind, version):
         "decision",
         "good_table",
         "train_table",
+        "train_live",
         "default_table",
     }:
         raise PoolAdapterRefused("pool_binding_config_malformed")
+    live = config.get("train_live")
+    if live is not None and (live is not True or "train_table" in config):
+        raise PoolAdapterRefused("pool_binding_config_malformed")
     for key in ("decision", "good_table", "train_table", "default_table"):
+        if live and key == "train_table":
+            continue
         if type(config.get(key)) is not str:
             raise PoolAdapterRefused("pool_binding_config_lacks_" + key)
     with open(config["decision"], encoding="utf-8") as handle:
@@ -717,9 +725,15 @@ def binding_for(kind, version):
     good = pool_serving.TableServer(
         pool_serving.load_table(config["good_table"]), names
     )
-    train = pool_serving.TableServer(
-        pool_serving.load_table(config["train_table"]), names
-    )
+    if live:
+        from carbon.scoring import pool_baseline
+
+        predict, _choice = pool_baseline.fit(kind, version)
+        train = pool_serving.LiveServer(predict, names)
+    else:
+        train = pool_serving.TableServer(
+            pool_serving.load_table(config["train_table"]), names
+        )
     default = pool_serving.TableServer(
         pool_serving.load_table(config["default_table"]), names
     )

@@ -17,6 +17,7 @@ aggregates only; run it in custody, it reads sealed pool material.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
 import json
 import sys
@@ -64,6 +65,60 @@ def _raw_rows(document, target_id, binding):
         raise pool_plugin.TruthCheckStop(str(refused)) from None
 
 
+EXCLUDED_SCHEMA = "carbon.probe-truth-exclusions.v1"
+
+
+def _sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _bare(digest):
+    return digest[len("sha256:") :] if str(digest).startswith("sha256:") else digest
+
+
+def excluded_ids(
+    excluded_path, excluded_sha, closed_path, closed_sha, kind, version, stop
+):
+    """The probe case ids the probe-truth file leaves out, after checking them against the CLOSED exclusion file
+    (V8_RULINGS 14): the `.excluded.json` and the closed file match their pinned digests, the former names this
+    kind and version and the closed file's digest, and every id it lists is one the closed file's rules name
+    (`derivation.family_ids`). Anything else is a STOP (`stop` builds the exception), never a skipped probe.
+    """
+    excluded_raw = Path(excluded_path).read_bytes()
+    closed_raw = Path(closed_path).read_bytes()
+    if _sha(excluded_raw) != _bare(excluded_sha):
+        raise stop("probe_truth_excluded_digest_differs")
+    if _sha(closed_raw) != _bare(closed_sha):
+        raise stop("closed_exclusion_digest_differs")
+    document, closed = json.loads(excluded_raw), json.loads(closed_raw)
+    if (
+        type(document) is not dict
+        or document.get("schema") != EXCLUDED_SCHEMA
+        or (document.get("kind"), document.get("version")) != (kind, version)
+        or _bare(document.get("exclusions_file_sha256", "")) != _bare(closed_sha)
+        or type(document.get("excluded")) is not list
+    ):
+        raise stop("probe_truth_excluded_is_not_this_versions_or_exclusion_file")
+    named = {
+        case_id
+        for rule in closed.get("rules", ())
+        for case_id in rule.get("derivation", {}).get("family_ids", ())
+    }
+    ids = [item["case_id"] for item in document["excluded"]]
+    if len(set(ids)) != len(ids) or not set(ids) <= named:
+        raise stop("probe_truth_excludes_an_id_the_closed_exclusion_does_not_name")
+    return set(ids)
+
+
+def probe_ids_covered(rows, by_case, excluded, stop):
+    """Every probe row of the bank has a solver truth or a closed-exclusion id, never both, never neither."""
+    probes = {r["case_id"] for r in rows if r.get("reference") is None}
+    if set(by_case) & excluded:
+        raise stop("probe_truth_holds_an_excluded_id")
+    if set(by_case) | excluded != probes:
+        raise stop("probe_truth_does_not_cover_every_probe_or_exclude_a_closed_one")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     for flag in ("kind", "version", "binding", "pools-dir", "sets", "grid", "out-dir"):
@@ -95,6 +150,14 @@ def main(argv=None):
         default=None,
         help="JSON {case_id: [true raw output row]} for the practice bank's probe rows (Data Collection's solves); "
         "used when the binding supplies no probe_truth",
+    )
+    parser.add_argument(
+        "--probe-truth-excluded",
+        nargs=4,
+        default=None,
+        metavar=("EXCLUDED_JSON", "EXCLUDED_SHA256", "CLOSED_JSON", "CLOSED_SHA256"),
+        help="the probe-truth file's .excluded.json, its sha256, the CLOSED exclusion file it cites and that "
+        "file's sha256: the truth check then skips exactly those probe cases (and no others)",
     )
     args = parser.parse_args(argv)
 
@@ -158,8 +221,28 @@ def main(argv=None):
         ignored_gates=tuple(g for g in args.ignored_gates.split(",") if g),
         truth_tolerance=args.truth_tolerance,
     )
+    skipped = set()
+    if args.probe_truth_excluded:
+        try:
+            skipped = excluded_ids(
+                *args.probe_truth_excluded,
+                args.kind,
+                args.version,
+                pool_plugin.TruthCheckStop,
+            )
+        except pool_plugin.TruthCheckStop as stop:
+            print(f"STOP, back to the Validator: {stop}", file=sys.stderr)
+            return 3
     if args.probe_truth_file and binding.probe_truth is None:
         by_case = json.loads(Path(args.probe_truth_file).read_text(encoding="utf-8"))
+        if skipped or args.probe_truth_excluded:
+            try:
+                probe_ids_covered(
+                    bank_legs.rows, by_case, skipped, pool_plugin.TruthCheckStop
+                )
+            except pool_plugin.TruthCheckStop as stop:
+                print(f"STOP, back to the Validator: {stop}", file=sys.stderr)
+                return 3
         by_inputs = {
             tuple(sorted(r["inputs"].items())): r["case_id"] for r in bank_legs.rows
         }
@@ -171,7 +254,17 @@ def main(argv=None):
         binding = bank_legs.binding
     if args.truth_probe_rule == "perfect":
         try:
-            record = bank_legs.verify_truth_rows()
+            # The truth check runs on the bank without the closed-exclusion probes (their whole response group:
+            # they carry no truth, V8_RULINGS 14); every model in the grid is graded on the full bank.
+            checked = (
+                replace(
+                    bank_legs,
+                    rows=[r for r in bank_legs.rows if r["case_id"] not in skipped],
+                )
+                if skipped
+                else bank_legs
+            )
+            record = checked.verify_truth_rows()
         except pool_plugin.TruthCheckStop as stop:
             print(f"STOP, back to the Validator: {stop}", file=sys.stderr)
             return 3

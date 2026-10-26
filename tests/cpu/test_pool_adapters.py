@@ -273,6 +273,63 @@ def test_binding_for_reads_one_config_and_has_no_defaults(tmp_path, monkeypatch)
         pa.binding_for("f02", "2.4")
 
 
+def test_train_live_serves_the_train_fit_model_for_rows_no_table_holds(
+    tmp_path, monkeypatch
+):
+    """V8_RULINGS 14: the in-distribution control asks the TRAIN model for CLAMPED rows no rows file holds, so
+    the TRAIN model is served live (`pool_baseline.fit`) instead of from a table."""
+    from carbon.scoring import pool_baseline, pool_serving
+
+    chosen = pa.adapter("f02", "2.4")
+    table = tmp_path / "good.json"
+    for name, raw in (("good", 93.0), ("default", 95.5)):
+        pool_serving.write_table(
+            tmp_path / f"{name}.json",
+            kind="f02",
+            version="2.4",
+            input_names=chosen.input_names,
+            rows=[[90.0, 4.0]],
+            raw=[[raw]],
+            state_digest="sha256:" + "e" * 64,
+            recipe="sha256:" + "f" * 64,
+        )
+    decision = tmp_path / "decision.json"
+    decision.write_text(json.dumps({"u": {"peak_top_c": 0.02, "extra_energy_j": 0.0}}))
+    calls = []
+
+    def fake_fit(kind, version):
+        def predict(rows):
+            calls.append(rows)
+            return [[40.0 + r[0] / 10 + r[1]] for r in rows]
+
+        return predict, {"length": 1.0, "ridge": 1e-6}
+
+    monkeypatch.setattr(pool_baseline, "fit", fake_fit)
+    config = tmp_path / "config.json"
+    base = {
+        "decision": str(decision),
+        "good_table": str(tmp_path / "good.json"),
+        "default_table": str(tmp_path / "default.json"),
+    }
+    monkeypatch.setenv(pa.CONFIG_ENV, str(config))
+    config.write_text(json.dumps({**base, "train_live": True}))
+    bound = pa.binding_for("f02", "2.4")
+    clamped = {"peak_w": 70.0, "on_time_s": 5.5}  # in no table
+    assert bound.serve_train([clamped, clamped]) == [[52.5], [52.5]]
+    assert calls[-1] == [[70.0, 5.5], [70.0, 5.5]]
+    # the good table still refuses a row it does not hold: only the TRAIN model is live
+    with pytest.raises(pool_serving.PoolServingRefused):
+        bound.serve_good([clamped])
+    for bad in (
+        {**base, "train_live": True, "train_table": str(table)},
+        {**base, "train_live": False},
+        {**base, "train_live": "yes"},
+    ):
+        config.write_text(json.dumps(bad))
+        with pytest.raises(pa.PoolAdapterRefused):
+            pa.binding_for("f02", "2.4")
+
+
 def test_the_limits_build_pool_grader_limits():
     from carbon.scoring import pool_grader
 

@@ -573,6 +573,91 @@ def test_the_grid_script_writes_an_owner_sheet_from_custody_documents(
     assert script.main(with_file) == 0
     assert (tmp_path / "out3/owner-sheet-toy-1.json").exists()
 
+    # A probe-truth file that leaves out a CLOSED-exclusion family (V8_RULINGS 14): the grid honours the
+    # .excluded.json, digest-checked, and skips exactly those ids in the truth check.
+    import hashlib
+
+    def sha(path):
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    partial = {k: v for k, v in solved.items() if k != "p2"}
+    (tmp_path / "partial.json").write_text(json.dumps(partial))
+    closed = tmp_path / "closed.json"
+    closed.write_text(
+        json.dumps(
+            {
+                "challenge": "toy",
+                "rules": [{"name": "r", "derivation": {"family_ids": ["p2"]}}],
+            }
+        )
+    )
+
+    def excluded_file(name, ids, closed_sha=None):
+        path = tmp_path / name
+        path.write_text(
+            json.dumps(
+                {
+                    "schema": "carbon.probe-truth-exclusions.v1",
+                    "kind": "toy",
+                    "version": "1",
+                    "exclusions_file_sha256": closed_sha or sha(closed),
+                    "excluded": [{"case_id": i, "rule": "r"} for i in ids],
+                }
+            )
+        )
+        return path
+
+    def run(out, truth_file, excluded=None, **change):
+        argv = list(stop_args)
+        argv[argv.index(str(tmp_path / "out2"))] = str(tmp_path / out)
+        argv += ["--probe-truth-file", str(truth_file)]
+        if excluded is not None:
+            e, e_sha, c, c_sha = excluded
+            argv += [
+                "--probe-truth-excluded",
+                str(e),
+                change.get("e_sha", e_sha),
+                str(c),
+                change.get("c_sha", c_sha),
+            ]
+        return script.main(argv)
+
+    good = excluded_file("excluded.json", ["p2"])
+    ok = (good, sha(good), closed, sha(closed))
+    assert run("out4", tmp_path / "partial.json", ok) == 0
+    assert (tmp_path / "out4/owner-sheet-toy-1.json").exists()
+    # without the option a probe with no truth is still a KeyError-free STOP/crash path of its own: the
+    # option is what makes the gap legitimate, so a wrong digest or an unnamed id stops the run
+    assert run("out5", tmp_path / "partial.json", ok, e_sha="0" * 64) == 3
+    assert run("out6", tmp_path / "partial.json", ok, c_sha="0" * 64) == 3
+    other = excluded_file("other.json", ["p1", "p2"])
+    assert (
+        run("out7", tmp_path / "partial.json", (other, sha(other), closed, sha(closed)))
+        == 3
+    )
+    wrong_closed = excluded_file("wrong.json", ["p2"], closed_sha="a" * 64)
+    assert (
+        run(
+            "out8",
+            tmp_path / "partial.json",
+            (wrong_closed, sha(wrong_closed), closed, sha(closed)),
+        )
+        == 3
+    )
+    # an excluded id the truth file also holds, and a probe in neither, are STOPs
+    assert run("out9", tmp_path / "probe.json", ok) == 3
+    none_excluded = excluded_file("none.json", [])
+    assert (
+        run(
+            "out10",
+            tmp_path / "partial.json",
+            (none_excluded, sha(none_excluded), closed, sha(closed)),
+        )
+        == 3
+    )
+    for name in ("out5", "out6", "out7", "out8", "out9", "out10"):
+        assert not (tmp_path / name).exists()
+
 
 def test_the_perfect_rule_needs_the_truth_row_check_and_the_check_stops_on_failure():
     unchecked = bank_legs("perfect", verified=False)
