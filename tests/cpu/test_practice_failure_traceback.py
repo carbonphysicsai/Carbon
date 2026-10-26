@@ -39,9 +39,13 @@ def test_no_traceback_no_summary():
 
 
 def test_a_chained_exception_reports_the_last_one():
-    chained = TRACE + b"\nDuring handling of the above exception, another exception occurred:\n" + (
-        b'Traceback (most recent call last):\n  File "/w/a.py", line 3, in f\n    g()\n'
-        b"ValueError: boom\n"
+    chained = (
+        TRACE
+        + b"\nDuring handling of the above exception, another exception occurred:\n"
+        + (
+            b'Traceback (most recent call last):\n  File "/w/a.py", line 3, in f\n    g()\n'
+            b"ValueError: boom\n"
+        )
     )
     found = carrier._traceback_summary(chained)
     assert found["worker_exception_class"] == "ValueError"
@@ -52,9 +56,10 @@ def test_the_failure_file_carries_it(tmp_path):
     error = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=TRACE)
     carrier._retain_practice_failure(tmp_path, "PROGRAM", error)
     written = json.loads((tmp_path / "failure-PROGRAM.json").read_text())
-    assert written["diagnostic_markers"] == ["PYTHON_TRACEBACK"] or "PYTHON_TRACEBACK" in written[
-        "diagnostic_markers"
-    ]
+    assert (
+        written["diagnostic_markers"] == ["PYTHON_TRACEBACK"]
+        or "PYTHON_TRACEBACK" in written["diagnostic_markers"]
+    )
     assert written["worker_exception_class"] == "KeyError"
     assert written["worker_traceback_frames"][-1] == "core.py:99:bind"
     assert "private/path" not in json.dumps(written)
