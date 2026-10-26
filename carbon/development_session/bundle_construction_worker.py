@@ -1488,6 +1488,21 @@ def _exact_numeric_dtype(actual, expected: str) -> bool:
         return False
 
 
+def _per_call_ok(value, rows: int) -> bool:
+    """Absent, or the timed child's single-design seconds: at most one finite
+    positive number per practice row."""
+    if value is None:
+        return True
+    return (
+        type(value) is list
+        and len(value) <= rows
+        and all(
+            type(item) in (int, float) and math.isfinite(item) and item > 0
+            for item in value
+        )
+    )
+
+
 def _infer_state(
     ledger,
     *,
@@ -1602,8 +1617,7 @@ def _infer_state(
             measured = receipt.get("measurement")
             if (
                 type(measured) is not dict
-                or set(measured)
-                != {
+                or not {
                     "scope",
                     "timing_s",
                     "input_shape",
@@ -1611,6 +1625,17 @@ def _infer_state(
                     "output_shape",
                     "output_dtype",
                 }
+                <= set(measured)
+                <= {
+                    "scope",
+                    "timing_s",
+                    "input_shape",
+                    "input_dtype",
+                    "output_shape",
+                    "output_dtype",
+                    "per_call_s",
+                }
+                or not _per_call_ok(measured.get("per_call_s"), len(inputs))
                 or measured["scope"]
                 != "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
                 or measured["input_shape"] != list(inputs.shape)
@@ -1640,7 +1665,11 @@ def _infer_state(
         ledger,
         owner=owner,
         identity=identity,
-        source=INFER_PROGRAM if program is None else program,
+        source=(
+            timed_program(INFER_PROGRAM if program is None else program)
+            if measure_query
+            else (INFER_PROGRAM if program is None else program)
+        ),
         files=files,
         image=inference_image,
         seconds=seconds,
@@ -1777,6 +1806,61 @@ TIMING_WALL_SECONDS_MAX = 600
 _TIMING_MUST_RAISE = frozenset(
     {WorkerCode.CLEANUP, WorkerCode.QUARANTINED, WorkerCode.CANCELLED}
 )
+
+
+#: The most seconds the timed child spends on single-design calls.
+PER_CALL_BUDGET_SECONDS = 30
+_PER_CALL_HEAD = """    export_end = time.perf_counter()
+    receipt["measurement"] = {
+"""
+_PER_CALL_TAIL = """        "output_dtype": str(result.dtype),
+    }
+"""
+_PER_CALL_LOOP = """    export_end = time.perf_counter()
+    # Single-design calls (the graded path's shape: the design is row 0, the
+    # other batch rows are the public zero filler), after one warm-up call on
+    # row 0 that is not timed: the practice figure beside the batched average.
+    per_call = []
+    try:
+        def one_design(index):
+            part = jnp.pad(input_array[index:index + 1],
+                           [(0, batch - 1)] + [(0, 0)] * (input_array.ndim - 1))
+            began = time.perf_counter()
+            produced = forward(*parameter_arrays, part)
+            np.asarray(produced[0])
+            return time.perf_counter() - began
+        one_design(0)
+        per_call_limit = time.perf_counter() + __PER_CALL_BUDGET__
+        for index in range(len(input_array)):
+            if time.perf_counter() > per_call_limit:
+                break
+            per_call.append(one_design(index))
+    except Exception:
+        per_call = []
+    receipt["measurement"] = {
+"""
+_PER_CALL_KEY = """        "output_dtype": str(result.dtype),
+        "per_call_s": per_call,
+    }
+"""
+
+
+def timed_program(program: str) -> str:
+    """The timed child's program: `program` plus, after its batched cold
+    query, one timed single-design call per practice row (`per_call_s`). A
+    separate derived program (the inference programs stay frozen); a program
+    without the measurement anchors (Battery's own) is returned unchanged and
+    reports no per-call figure."""
+    if (
+        program.count(_PER_CALL_HEAD) != 1
+        or program.count(_PER_CALL_TAIL) != 1
+        or "batch = declared[-1][" not in program
+    ):
+        return program
+    return program.replace(
+        _PER_CALL_HEAD,
+        _PER_CALL_LOOP.replace("__PER_CALL_BUDGET__", str(PER_CALL_BUDGET_SECONDS)),
+    ).replace(_PER_CALL_TAIL, _PER_CALL_KEY)
 
 
 def optional_timed(run):
