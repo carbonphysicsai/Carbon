@@ -589,12 +589,14 @@ def run_eligible(experiment, dual=None):
     "eligible: null" though its exam gate failed). One reader for the view
     and the projection the MCP tools return (R11e)."""
     summary = experiment.get("summary") if type(experiment) is dict else None
-    if type(summary) is dict and type(summary.get("eligible")) is bool:
-        return summary["eligible"]
     if dual is None and type(experiment) is dict:
         dual = dual_feedback(experiment)
-    if type(dual) is dict and type(dual.get("eligible")) is bool:
+    # One truth (Lead 02:13Z): the exam's own gate verdict on the practice grid wins over the
+    # summary's own count, which can disagree (Motor and Cooling v2).
+    if type(dual) is dict and dual.get("available") is not False and type(dual.get("eligible")) is bool:
         return dual["eligible"]
+    if type(summary) is dict and type(summary.get("eligible")) is bool:
+        return summary["eligible"]
     return None
 
 

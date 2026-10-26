@@ -380,6 +380,13 @@ class CoolingCatalogPractice:
                 }
             ),
         }
+        # One truth for "eligible": the exam's own gate verdict (practice_dual) wins over the
+        # summary's, which stays beside it (Lead 02:13Z).
+        from carbon.scoring import practice_dual as _practice_dual
+
+        out["summary"] = _practice_dual.reconcile_eligibility(
+            out["summary"], out["practice_dual"]
+        )
         ResearchWorkspace(self.ledger, self.owner).put(
             "trial-"
             + digest(identity.encode())[7:23]
