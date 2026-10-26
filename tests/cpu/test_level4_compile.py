@@ -217,7 +217,9 @@ def test_a_loss_graph_is_the_train_steps_loss(parsed, allowlist, tmp_path):
 
 
 def test_the_deadline_is_the_owners():
-    assert g5.DEADLINE_SECONDS == 120  # OWNER-L4-VALUES-01; the lane admits 40-600 s
+    assert (
+        g5.DEADLINE_SECONDS == 600
+    )  # the lane ceiling (7-limits ruling); the lane admits 40-600 s
 
 
 def test_unset_deadline_blocks(parsed, allowlist, tmp_path):

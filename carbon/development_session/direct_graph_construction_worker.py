@@ -525,6 +525,19 @@ def _v2_adapter_ids() -> frozenset:
     return physical_graph_adapter_v2.ADAPTER_IDS
 
 
+_WIDE_DTYPES = (b'"float64"', b'"int64"', b'"uint64"', b'"complex128"')
+
+
+def _envelope_has_wide_values(source_envelope: bytes) -> bool:
+    """Whether a checked graph source envelope's documents name a 64-bit dtype.
+    A conservative text scan: a false positive turns 64-bit mode on while every
+    array keeps its declared dtype; it never changes a result."""
+    from carbon.level4 import staging
+
+    _, _, files = staging.from_envelope(json.loads(source_envelope))
+    return any(wide in raw for raw in files.values() for wide in _WIDE_DTYPES)
+
+
 def _v2_stage(binding: dict, limits_document: dict, allowlist_bytes: bytes):
     """Check a graph route v2 adapter's served identity; return its staged
     files (as `_physical_stage` does for v1)."""
@@ -670,7 +683,10 @@ def reconstruct_public_graph(
         files = _stage_modules()
         files.update(physical_files)
         program = PHYSICAL_V2_BUILD_PROGRAM
-        x64 = spec.dtype == "float64"
+        # JAX's 64-bit mode is on when the interface is float64, and also whenever the
+        # miner's graph holds a 64-bit value (OWNER-GRAPH-OPS-OPEN-01, Validator row 7):
+        # TRAIN, the decoder and the outputs keep the interface dtype either way.
+        x64 = spec.dtype == "float64" or _envelope_has_wide_values(source_envelope)
 
         def load_built(state):
             physical_graph_state_v2.load(state, recipe, allowed)

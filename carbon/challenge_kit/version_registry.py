@@ -54,7 +54,7 @@ class Version:
     version: str
     #: The TRAIN artifact's name (above).
     train: str
-    #: The served Level 4 allowlist: "v5", "v6" or "v7".
+    #: The served Level 4 allowlist: "v5", "v6", "v7" or "v8".
     allowlist: str
     #: Whether the construction limits keep fixed training-step caps.
     step_caps: bool
@@ -174,7 +174,7 @@ VERSIONS = dict(
             MOTOR,
             "1.4",
             MOTOR_TRAIN,
-            "v7",
+            "v8",
             False,
             "motor-normal-construction-development-5",
             _MOTOR_DEV_GRID,
@@ -241,7 +241,7 @@ VERSIONS = dict(
             COOLING,
             "1.4",
             COOLING_TRAIN_ENCODED,
-            "v7",
+            "v8",
             False,
             "cooling-normal-construction-development-5",
             _COOLING_DEV_GRID,
@@ -320,7 +320,7 @@ VERSIONS = dict(
             F08,
             "1.5",
             F08_TRAIN_V2,
-            "v7",
+            "v8",
             False,
             "f08-normal-construction-development-6",
             _F08_DEV_GRID,
@@ -386,7 +386,7 @@ VERSIONS = dict(
             F02,
             "2.4",
             F02_TRAIN,
-            "v7",
+            "v8",
             False,
             "f02-normal-construction-development-6",
             _F02_DEV_GRID,

@@ -181,6 +181,8 @@ def check_init(doc, allowlist):
             values[value_id]["shape"],
         ) == ("uint32", [2]):
             raise graph.GraphRefused("init_returns_key", f"output {k}")
+    if allowlist.version in allowlist_module.OPEN_INIT_VERSIONS:
+        return
     for k, (keyed, fill) in enumerate(
         _init_flow(doc, allowlist, doc["entry"], [(True, False)])
     ):
@@ -233,8 +235,11 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
     # (`allowlist.caps_for`: the owner's CAPS, or for an uncapped version only
     # the constants cap and containment); one a caller sets to HUMAN_INPUT
     # blocks, it never passes.
+    accounting, measured_as = allowlist_module.accounting_for(allowlist)
     verdicts = allowlist_module.check_caps(
-        measurements, {**allowlist_module.caps_for(allowlist), **(caps or {})}
+        measurements,
+        {**allowlist_module.caps_for(allowlist), **(caps or {})},
+        measured_as,
     )
     exceeded = sorted(name for name, v in verdicts.items() if v == "refuse")
     if exceeded:
@@ -267,7 +272,7 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
         "review_flags": flags,
         "measurements": measurements,
         "caps": verdicts,
-        "constant_accounting": allowlist_module.CONSTANT_ACCOUNTING,
+        "constant_accounting": accounting,
         "kit": kit_inputs(doc, interface),
     }
 
@@ -315,11 +320,19 @@ def validate_submission(
     if "loss" in parsed:
         loss_slot.gate(parsed, loss_override)
         verdicts["loss"] = validate(parsed["loss"], allowlist, role="loss", caps=caps)
-        loss_slot.check(
-            parsed["loss"],
-            interface,
-            loss_slot.aux_outputs(parsed["forward"], interface),
-        )
+        if loss_override == loss_slot.BATCH:
+            loss_slot.check_batch(
+                parsed["loss"],
+                interface,
+                verdicts["forward"]["batch"],
+                parameters(parsed["forward"]),
+            )
+        else:
+            loss_slot.check(
+                parsed["loss"],
+                interface,
+                loss_slot.aux_outputs(parsed["forward"], interface),
+            )
     wanted = [(d, s) for _, d, s in parameters(parsed["forward"])]
     if "init" in parsed:
         verdicts["init"] = validate(parsed["init"], allowlist, role="init", caps=caps)

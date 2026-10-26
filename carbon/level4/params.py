@@ -104,7 +104,12 @@ def _owned_single_device_sharding(value):
 
     if (
         type(value) is not NamedSharding
-        or value.mesh.size != 1
+        or (
+            value.mesh.size != 1
+            # An empty abstract mesh (a trace under no mesh, as jax.hessian's)
+            # places nothing.
+            and not (type(value.mesh) is AbstractMesh and not value.mesh.axis_names)
+        )
         or not value.is_fully_replicated
         or any(axis is not None for axis in value.spec)
     ):
@@ -157,6 +162,40 @@ def _default_call_metadata(name, value):
     if name == "name":
         return type(value) is str and len(value) <= 128
     return False
+
+
+def _platforms(value):
+    """`platform_index`'s platform groups: a tuple of tuples of names, or
+    None for the default branch."""
+    if type(value) not in (tuple, list):
+        raise GraphRefused("parameter_kind_mismatch")
+    out = []
+    for group in value:
+        if group is None:
+            out.append(None)
+        elif type(group) in (tuple, list) and all(
+            type(item) is str and _NAME.match(item) for item in group
+        ):
+            out.append(list(group))
+        else:
+            raise GraphRefused("parameter_kind_mismatch")
+    return out
+
+
+def _platforms_decode(value):
+    if type(value) is not list:
+        raise GraphRefused("parameter_kind_mismatch")
+    out = []
+    for group in value:
+        if group is None:
+            out.append(None)
+        elif type(group) is list and all(
+            type(item) is str and _NAME.match(item) for item in group
+        ):
+            out.append(tuple(group))
+        else:
+            raise GraphRefused("parameter_kind_mismatch")
+    return tuple(out)
 
 
 def _encode(kind, value, lower_graph, name=None):
@@ -236,12 +275,93 @@ def _encode(kind, value, lower_graph, name=None):
         return value.name
     if kind == "fft_type":
         return value.name
+    if kind == "rounding_method":
+        return value.name
+    if kind == "precision":
+        # None, or the (lhs, rhs) pair of matmul precisions JAX records.
+        if value is None:
+            return None
+        if (
+            type(value) is not tuple
+            or len(value) != 2
+            or any(type(v).__name__ != "Precision" for v in value)
+        ):
+            raise GraphRefused("parameter_not_default")
+        return [v.name for v in value]
     if kind == "prng_impl":
         if str(value) != "fry":
             raise GraphRefused("prng_impl_not_allowed")
         return "threefry2x32"
     if kind == "graph":
         return {"graph": lower_graph(value)}
+    if kind == "graph_or_none":
+        return None if value is None else {"graph": lower_graph(value)}
+    if kind == "callable_ignored":
+        # The traced computation is carried as the nested graph beside it; the
+        # Python callable JAX keeps next to it is never carried.
+        if not callable(value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return None
+    if kind == "ragged_dot_dnums":
+        return {
+            "dot_dimension_numbers": [
+                [_trace_ints(d) for d in pair] for pair in value.dot_dimension_numbers
+            ],
+            "lhs_ragged_dimensions": _trace_ints(value.lhs_ragged_dimensions),
+            "rhs_group_dimensions": _trace_ints(value.rhs_group_dimensions),
+        }
+    if kind == "platforms":
+        return _platforms(value)
+    if kind == "float":
+        if type(value) is not float or not math.isfinite(value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return value
+    if kind == "graph_tuple":
+        if type(value) not in (tuple, list) or not value:
+            raise GraphRefused("parameter_kind_mismatch")
+        return [{"graph": lower_graph(branch)} for branch in value]
+    if kind == "bool_tuple":
+        if type(value) not in (tuple, list) or not all(type(v) is bool for v in value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return list(value)
+    if kind == "index_tuple_or_none":
+        if type(value) not in (tuple, list) or not all(
+            v is None or (type(v) is int and v >= 0) for v in value
+        ):
+            raise GraphRefused("parameter_kind_mismatch")
+        return list(value)
+    if kind.startswith("update_jaxpr_"):
+        # A scatter's combiner: exactly the one binary primitive the op names.
+        expected = kind.removeprefix("update_jaxpr_")
+        eqns = getattr(value, "eqns", None)
+        if (
+            eqns is None
+            or len(eqns) != 1
+            or eqns[0].primitive.name != expected
+            or len(value.invars) != 2
+        ):
+            raise GraphRefused("parameter_not_default")
+        return None
+    if kind == "select_prim":
+        # The comparison a pooling gradient selects with.
+        name = getattr(value, "name", None)
+        if name not in ("ge", "le"):
+            raise GraphRefused("parameter_not_default")
+        return name
+    if kind == "put_default":
+        # device_put with no device, source or copy request: an identity.
+        if type(value) is not tuple or not value:
+            raise GraphRefused("parameter_not_default")
+        if any(
+            v is not None
+            and not (
+                type(v).__name__.endswith("CopySemantics")
+                and type(v).__module__.startswith(("jax.", "jaxlib."))
+            )
+            for v in value
+        ):
+            raise GraphRefused("parameter_not_default")
+        return len(value)
     raise GraphRefused("parameter_kind_unknown")
 
 
@@ -252,8 +372,68 @@ def _decode(kind, value):
         if type(value) not in (int, float):
             raise GraphRefused("parameter_kind_mismatch")
         return float(value)
+    if kind.startswith("update_jaxpr_"):
+        if value is not None:
+            raise GraphRefused("parameter_not_default")
+        return None
+    if kind == "select_prim":
+        if value not in ("ge", "le"):
+            raise GraphRefused("parameter_kind_mismatch")
+        import jax.extend.core.primitives as public
+
+        return public.ge_p if value == "ge" else public.le_p
+    if kind == "put_default":
+        if type(value) is not int or value < 1:
+            raise GraphRefused("parameter_kind_mismatch")
+        return value
+    if kind == "callable_ignored":
+        if value is not None:
+            raise GraphRefused("parameter_kind_mismatch")
+        return None
+    if kind == "ragged_dot_dnums":
+        from jax.lax import RaggedDotDimensionNumbers
+
+        if type(value) is not dict or set(value) != {
+            "dot_dimension_numbers",
+            "lhs_ragged_dimensions",
+            "rhs_group_dimensions",
+        }:
+            raise GraphRefused("parameter_kind_mismatch")
+        pairs = value["dot_dimension_numbers"]
+        if type(pairs) is not list or len(pairs) != 2:
+            raise GraphRefused("parameter_kind_mismatch")
+        (lc, rc), (lb, rb) = pairs
+        return RaggedDotDimensionNumbers(
+            dot_dimension_numbers=(
+                (tuple(_ints(lc)), tuple(_ints(rc))),
+                (tuple(_ints(lb)), tuple(_ints(rb))),
+            ),
+            lhs_ragged_dimensions=tuple(_ints(value["lhs_ragged_dimensions"])),
+            rhs_group_dimensions=tuple(_ints(value["rhs_group_dimensions"])),
+        )
+    if kind == "platforms":
+        return _platforms_decode(value)
+    if kind == "float":
+        if type(value) not in (int, float) or not math.isfinite(value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return float(value)
+    if kind == "graph_tuple":
+        if type(value) is not list or not value:
+            raise GraphRefused("parameter_kind_mismatch")
+        return [_nested(item) for item in value]
+    if kind == "bool_tuple":
+        if type(value) is not list or not all(type(v) is bool for v in value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return tuple(value)
+    if kind == "index_tuple_or_none":
+        if type(value) is not list or not all(
+            v is None or (type(v) is int and v >= 0) for v in value
+        ):
+            raise GraphRefused("parameter_kind_mismatch")
+        return tuple(value)
     if kind in (
         "none",
+        "graph_or_none",
         "call_metadata",
         "custom_rule_dropped",
         "owned_single_device_sharding",
@@ -335,6 +515,22 @@ def _decode(kind, value):
         if value not in ("FFT", "IFFT", "RFFT", "IRFFT"):
             raise GraphRefused("parameter_kind_mismatch")
         return FftType[value]
+    if kind == "precision":
+        if value is None:
+            return None
+        if type(value) is not list or len(value) != 2:
+            raise GraphRefused("parameter_kind_mismatch")
+        from jax.lax import Precision
+
+        if any(v not in ("DEFAULT", "HIGH", "HIGHEST") for v in value):
+            raise GraphRefused("parameter_kind_mismatch")
+        return tuple(Precision[v] for v in value)
+    if kind == "rounding_method":
+        from jax.lax import RoundingMethod
+
+        if value not in ("AWAY_FROM_ZERO", "TO_NEAREST_EVEN"):
+            raise GraphRefused("parameter_kind_mismatch")
+        return RoundingMethod[value]
     if kind == "prng_impl":
         if value != "threefry2x32":
             raise GraphRefused("prng_impl_not_allowed")
@@ -344,14 +540,23 @@ def _decode(kind, value):
     raise GraphRefused("parameter_kind_unknown")
 
 
+def _split(spec):
+    """`(kinds by name, required names)`: a kind written with a trailing `?`
+    names a parameter JAX binds only on some equations (`cond`'s platform
+    table), which a document may omit."""
+    kinds = {name: kind.rstrip("?") for name, kind in spec.items()}
+    return kinds, {name for name, kind in spec.items() if not kind.endswith("?")}
+
+
 def encode(spec, params, lower_graph):
     """JSON parameters for an op whose allowlist entry declares `spec`."""
-    if set(params) != set(spec):
+    kinds, required = _split(spec)
+    if not required <= set(params) <= set(kinds):
         raise GraphRefused("parameters_not_allowlisted")
     out = {}
-    for name in sorted(spec):
+    for name in sorted(params):
         try:
-            out[name] = _encode(spec[name], params[name], lower_graph, name)
+            out[name] = _encode(kinds[name], params[name], lower_graph, name)
         except GraphRefused as refused:
             if refused.where:
                 raise
@@ -360,13 +565,28 @@ def encode(spec, params, lower_graph):
     return out
 
 
+def _nested(value):
+    """A nested-graph reference, exactly `{"graph": "<name>"}`."""
+    if (
+        type(value) is not dict
+        or set(value) != {"graph"}
+        or type(value["graph"]) is not str
+    ):
+        raise GraphRefused("parameter_kind_mismatch")
+    return value
+
+
 def decode(spec, params):
     """Bind-ready parameters; graph references are left to the interpreter."""
-    if type(params) is not dict or set(params) != set(spec):
+    kinds, required = _split(spec)
+    if type(params) is not dict or not required <= set(params) <= set(kinds):
         raise GraphRefused("parameters_not_allowlisted")
     return {
         name: (
-            params[name] if spec[name] == "graph" else _decode(spec[name], params[name])
+            _nested(params[name])
+            if kinds[name] == "graph"
+            or (kinds[name] == "graph_or_none" and params[name] is not None)
+            else _decode(kinds[name], params[name])
         )
-        for name in spec
+        for name in params
     }

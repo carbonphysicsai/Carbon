@@ -93,7 +93,7 @@ class Prepared:
         return [jnp.concatenate([b[k] for b in blocks]) for k in range(len(blocks[0]))]
 
 
-def prepare(parsed, allowlist, *, verdict, kit=None):
+def prepare(parsed, allowlist, *, verdict, kit=None, loss_override=None):
     """G6's inputs from a verified (`submission.verify`) and validated
     (`validate.validate_submission`) submission.
 
@@ -141,7 +141,12 @@ def prepare(parsed, allowlist, *, verdict, kit=None):
     if "loss" in parsed:
         # G4 admitted it (`validate_submission` with the Challenge's
         # `loss_override`); Carbon maps it per case and owns the mean.
-        loss = loss_slot.per_case_mean(interpret.rebuild(parsed["loss"], allowlist))
+        loss_graph = interpret.rebuild(parsed["loss"], allowlist)
+        loss = (
+            loss_slot.batch_loss(loss_graph)
+            if loss_override == loss_slot.BATCH
+            else loss_slot.per_case_mean(loss_graph)
+        )
     return Prepared(
         init=init,
         apply=apply,

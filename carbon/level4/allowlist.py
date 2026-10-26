@@ -43,8 +43,14 @@ CONTAINMENT = {"document_bytes": 64 * 1024**2, "call_depth": graph.MAX_CALL_DEPT
 #: cap. Only cap should be if it fits the training resource limit"): only the
 #: constants cap, which enforces from-scratch (owner: kept), and containment.
 #: The training resource limits bind instead. Every earlier version keeps CAPS.
-UNCAPPED_VERSIONS = frozenset({"level4-allowlist-v7"})
+UNCAPPED_VERSIONS = frozenset({"level4-allowlist-v7", "level4-allowlist-v8"})
 UNCAPPED_CAPS = {"constant_bytes": CAPS["constant_bytes"], **CONTAINMENT}
+#: Versions whose init graphs may build structured tables from `iota` arithmetic
+#: (identity, DFT, orthogonal bases): the keyed-or-uniform-fill rule is removed
+#: (Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025, row 2). Under accounting v4 the
+#: constants cap already bounds the information an init can carry; the from-scratch
+#: rule (no pretrained `initial_state`) and "an init never returns a key" stay.
+OPEN_INIT_VERSIONS = frozenset({"level4-allowlist-v8"})
 
 
 def caps_for(allowlist):
@@ -94,7 +100,9 @@ class Allowlist:
         entry = self.ops.get(op)
         if entry is None:
             raise _refusal("op_not_allowlisted", where, op)
-        if entry["default"] == "refuse":
+        if entry["default"] in ("refuse", "strip"):
+            # "strip": lowering drops the op on the miner's machine; a document that
+            # carries it is refused.
             raise _refusal("op_refused", where, op)
         if role not in entry["roles"]:
             raise _refusal("op_not_allowed_in_role", where, op)
@@ -173,6 +181,22 @@ def v7_bytes():
     return raw
 
 
+#: Allowlist v8 (prospective, not yet served): v7 plus every pure, deterministic
+#: array op the graph route can run (OWNER-GRAPH-OPS-OPEN-01; Validator
+#: VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025). A new file, served only by new
+#: versions: v7's bytes and digests stay. Frozen by its sha once the head is done.
+V8_PATH = Path(__file__).with_name("allowlist_v8.json")
+V8_SHA256 = "a873632fe0c6d7f5dbbfde1e2b62535847b48b07194a11418eea6fdcc2a6fe64"
+
+
+def v8_bytes():
+    """Allowlist v8's exact frozen bytes, or ValueError."""
+    raw = V8_PATH.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != V8_SHA256:
+        raise ValueError("allowlist v8 bytes differ")
+    return raw
+
+
 #: How the `constant_bytes` cap is measured, versioned prospectively:
 #: v1 summed every embedded constant's bytes; v2 (OWNER-L4-CONSTANT-
 #: ACCOUNTING-02) counted identical constants once; v3 (OWNER-L4-CONSTANT-
@@ -183,16 +207,37 @@ def v7_bytes():
 CONSTANT_ACCOUNTING = "level4-constant-accounting-v3"
 #: The measurement each cap reads under the current accounting.
 MEASURED_AS = {"constant_bytes": "constant_value_bytes"}
+#: Accounting v4 (B', Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025 section 3):
+#: integer constants count by the bits their actual range needs, floats keep four
+#: bytes a value; the cap is the same 16 KiB. Served with allowlist v8 only; every
+#: earlier version keeps v3 and no recorded verdict is re-measured.
+CONSTANT_ACCOUNTING_V4 = "level4-constant-accounting-v4"
+ACCOUNTING_V4_VERSIONS = frozenset({"level4-allowlist-v8"})
+MEASURED_AS_V4 = {"constant_bytes": "constant_info_bytes"}
 
 
-def check_caps(measurements, caps=None):
-    """Each cap's verdict: `blocked_human_input` while unset, else pass/refuse."""
+def accounting_for(allowlist):
+    """(accounting name, cap -> measurement map) for ``allowlist`` (an
+    `Allowlist` or its version string): v4 for v8, else v3."""
+    version = (
+        allowlist if type(allowlist) is str else getattr(allowlist, "version", None)
+    )
+    if version in ACCOUNTING_V4_VERSIONS:
+        return CONSTANT_ACCOUNTING_V4, MEASURED_AS_V4
+    return CONSTANT_ACCOUNTING, MEASURED_AS
+
+
+def check_caps(measurements, caps=None, measured_as=None):
+    """Each cap's verdict: `blocked_human_input` while unset, else pass/refuse.
+    ``measured_as`` is the accounting's cap -> measurement map (`accounting_for`);
+    the default is v3."""
     caps = CAPS if caps is None else caps
+    measured_as = MEASURED_AS if measured_as is None else measured_as
     out = {}
     for name, cap in caps.items():
         if cap == HUMAN_INPUT or cap is None:
             out[name] = "blocked_human_input"
         else:
-            measured = measurements[MEASURED_AS.get(name, name)]
+            measured = measurements[measured_as.get(name, name)]
             out[name] = "pass" if measured <= cap else "refuse"
     return out

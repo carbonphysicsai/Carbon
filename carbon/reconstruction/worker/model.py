@@ -44,7 +44,9 @@ OUTPUT_MEMBERS = 1024
 #: launch takes them only through a profile Launchpad binds, and they serve
 #: only after a real-lane containment run at that profile (a new containment
 #: acceptance, OWNER-CONTAINMENT-ACCEPT-TESTNET-01).
-LARGE_MODEL_ALLOWLIST_VERSIONS = frozenset({"level4-allowlist-v7"})
+LARGE_MODEL_ALLOWLIST_VERSIONS = frozenset(
+    {"level4-allowlist-v7", "level4-allowlist-v8"}
+)
 #: The gate. On: the real-lane containment run at this profile passed (Run F
 #: at c21e69062, the C-03 v7 launch on real Docker included) and the owner
 #: approved applying it, testnet 567 and rehearsals only

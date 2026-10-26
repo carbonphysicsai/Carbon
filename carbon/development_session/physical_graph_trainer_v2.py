@@ -17,7 +17,10 @@ the Challenge's fixed TRAIN:
 - the member's loss on its own output subset, each output weighted by the
   recipe's per-output weight: `mse`, `mae` or `huber` per case and output in
   standardised units, averaged over cases, then the weighted mean over the
-  member's outputs (weights renormalised over them);
+  member's outputs (weights renormalised over them); or, when the recipe
+  carries a loss graph, that graph over the training batch (the model's outputs
+  and the targets in standardised units, the batch's inputs, the parameters),
+  which replaces the menu loss, its loss kind and output weights;
 - the member's optimizer (`adamw`, `adam`, `sgd` with momentum, `lion`), its
   rate, an optional linear warmup and a `constant`, `cosine` or `linear`
   curve down to `min_learning_rate_ratio` of the rate, and optional global
@@ -171,7 +174,16 @@ def train_member(
             delta * (magnitude - 0.5 * delta),
         )
 
+    custom = getattr(prepared, "loss", None)
+
     def loss(values, idx):
+        if custom is not None:
+            # The miner's loss graph over this batch (standardised units), with
+            # the model's parameters as inputs: it replaces the menu loss.
+            batch_x = fx[idx]
+            return custom(
+                [prepared.apply(values, batch_x)[0]], [fz[idx]], [batch_x], values
+            )
         error = prepared.apply(values, fx[idx])[0] - fz[idx]
         return jnp.sum(jnp.mean(per_output(error), axis=0) * fw)
 

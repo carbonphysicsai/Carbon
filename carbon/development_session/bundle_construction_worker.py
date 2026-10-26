@@ -959,11 +959,11 @@ def _trusted_allowlist(raw: bytes):
     prospective = getattr(synthetic_linear_field_2d, "allowlist_v5_bytes", None)
     if callable(prospective):
         trusted += (prospective(),)
-    from carbon.level4.allowlist import served_bytes, v7_bytes
+    from carbon.level4.allowlist import served_bytes, v7_bytes, v8_bytes
 
     # The served allowlists: v6, and v7 on the catalog versions that serve it
     # (`served_versions.V7`); v1-v5 stay trusted for historical builds.
-    trusted += (served_bytes(), v7_bytes())
+    trusted += (served_bytes(), v7_bytes(), v8_bytes())
     if raw not in trusted:
         raise RecipeRefused("bundle_allowlist_unregistered")
     return Allowlist(raw)

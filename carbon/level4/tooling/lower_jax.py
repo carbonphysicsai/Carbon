@@ -88,6 +88,21 @@ def inventory(closed):
     }
 
 
+#: Primitives that only observe or annotate, and so never reach the graph
+#: (OWNER-GRAPH-OPS-OPEN-01): printing and callbacks for debugging run on the
+#: miner's machine only; a sharding or layout constraint is an identity here
+#: (placement belongs to Carbon). Their values, if any, are the inputs themselves.
+#: Only an allowlist that marks the op `"default": "strip"` (v8) lets lowering drop
+#: it; a document that carries one is refused.
+_EFFECT_ONLY = frozenset({"debug_callback", "debug_print"})
+_IDENTITY = frozenset({"sharding_constraint", "layout_constraint"})
+
+
+def _debug_only(effect):
+    """Whether a jaxpr effect is only a debug print or callback."""
+    return type(effect).__name__ in ("DebugEffect", "OrderedDebugEffect")
+
+
 def _aval(aval, where):
     shape = []
     for d in aval.shape:
@@ -107,9 +122,14 @@ def lower(closed, *, role, allowlist, input_names):
     if role not in graph.ROLES:
         raise graph.GraphRefused("role_unknown")
     graphs, names = {}, {}
+    in_rules = set()  # custom-rule functions whose rule is being lowered
 
     def lower_graph(sub, entry_names=None):
-        key = id(sub)
+        # A body is lowered once per set of rules being lowered around it: inside
+        # a derivative rule, a call to the rule's own function is a plain call
+        # (see below), so the same jaxpr reached there is another graph than the
+        # one reached outside (else the rule's graph would call itself).
+        key = (id(sub), frozenset(in_rules))
         if key in names:
             return names[key]
         name = "main" if not graphs and entry_names is not None else f"g{len(graphs)}"
@@ -121,7 +141,8 @@ def lower(closed, *, role, allowlist, input_names):
             jaxpr, consts = sub, []
             if jaxpr.constvars:
                 raise graph.GraphRefused("open_constants", name)
-        if jaxpr.effects:
+        strips = allowlist.ops.get("debug_callback", {}).get("default") == "strip"
+        if any(not (strips and _debug_only(effect)) for effect in jaxpr.effects):
             raise graph.GraphRefused("op_refused", name)
         ids = {}
         counter = iter(range(1 << 62))
@@ -149,7 +170,16 @@ def lower(closed, *, role, allowlist, input_names):
 
         for i, eqn in enumerate(jaxpr.eqns):
             where = f"{name}.nodes[{i}]"
-            op = eqn.primitive.name
+            # JAX hyphenates some primitive names (scatter-add); the allowlist
+            # names them with underscores.
+            op = eqn.primitive.name.replace("-", "_")
+            stripped = allowlist.ops.get(op, {}).get("default") == "strip"
+            if stripped and op in _EFFECT_ONLY and not eqn.outvars:
+                continue  # observation only: nothing to carry
+            if stripped and op in _IDENTITY and len(eqn.invars) == len(eqn.outvars):
+                for source, target in zip(eqn.invars, eqn.outvars):
+                    ids[target] = use(source)
+                continue
             kernel = None
             if op == "custom_jvp_call" and allowlist.named:
                 kernel = named.recognize(eqn, allowlist)
@@ -159,9 +189,116 @@ def lower(closed, *, role, allowlist, input_names):
                 allowlist.admit_named(kernel, role, where)
                 op, encoded = "named_function", {"name": kernel}
             else:
+                eqn_params = eqn.params
+                guard = None
+                if op == "custom_jvp_call":
+                    # A derivative rule JAX holds as a Python callable is traced to a
+                    # jaxpr here, on the miner's machine, and carried as a nested
+                    # graph that Carbon validates like any other (pure ops only).
+                    key = str(eqn.params["call_jaxpr"].jaxpr)
+                    if key in in_rules:
+                        # The rule calls its own function (the usual shape): the call
+                        # inside the rule is the plain function, so the tower of
+                        # derivatives of derivatives ends here and a second
+                        # derivative differentiates the function's body.
+                        op = "closed_call"
+                        eqn_params = {"call_jaxpr": eqn.params["call_jaxpr"]}
+                    else:
+                        import jax.extend.core as jex_core
+
+                        n_args = len(eqn.invars) - eqn.params["num_consts"]
+                        jvp_jaxpr, jvp_consts, out_zeros = eqn.params[
+                            "jvp_jaxpr_fun"
+                        ].call_wrapped(*([False] * n_args))
+                        eqn_params = {
+                            "call_jaxpr": eqn.params["call_jaxpr"],
+                            "jvp_jaxpr": jex_core.ClosedJaxpr(jvp_jaxpr, jvp_consts),
+                            "num_consts": eqn.params["num_consts"],
+                            "out_zeros": tuple(bool(z) for z in out_zeros),
+                            "symbolic_zeros": eqn.params["symbolic_zeros"],
+                        }
+                        guard = key
+                if op == "custom_vjp_call":
+                    # The forward and backward rules JAX holds as Python callables are
+                    # traced to jaxprs here and carried as nested graphs (reverse mode
+                    # only, as the rule is). A rule that calls its own function ends the
+                    # tower of rules, as for custom_jvp_call.
+                    import jax
+                    import jax.extend.core as jex_core
+                    from jax._src.interpreters import ad
+
+                    key = ("vjp", str(eqn.params["call_jaxpr"].jaxpr))
+                    if key in in_rules:
+                        op = "closed_call"
+                        eqn_params = {"call_jaxpr": eqn.params["call_jaxpr"]}
+                    else:
+                        p = eqn.params
+                        n_args = len(eqn.invars) - p["num_consts"]
+                        fwd_jaxpr, fwd_consts = p["fwd_jaxpr_thunk"].call_wrapped(
+                            *([True] * n_args)
+                        )
+                        out_tree, _res_tree, fwds = p["out_trees"]()
+                        n_out = out_tree.num_leaves
+                        in_avals = [v.aval for v in eqn.invars]
+                        pruned = [v.aval for v in fwd_jaxpr.outvars][
+                            : len(fwd_jaxpr.outvars) - n_out
+                        ]
+                        pruned_iter = iter(pruned)
+                        res_avals = [
+                            (
+                                in_avals[p["num_consts"] + f]
+                                if f is not None
+                                else next(pruned_iter)
+                            )
+                            for f in fwds
+                        ]
+                        out_avals = [v.aval for v in p["call_jaxpr"].jaxpr.outvars]
+                        structs = [
+                            jax.ShapeDtypeStruct(a.shape, a.dtype)
+                            for a in res_avals + out_avals
+                        ]
+                        bwd = p["bwd"]
+                        n_in = len(in_avals) - p["num_consts"]
+
+                        def backward(*args, bwd=bwd, avals=in_avals[p["num_consts"] :]):
+                            cts = bwd.call_wrapped(*args)
+                            return [
+                                (
+                                    ad.instantiate_zeros(c)
+                                    if not hasattr(c, "shape")
+                                    else c
+                                )
+                                for c in cts
+                            ]
+
+                        bwd_jaxpr = jax.make_jaxpr(backward)(*structs)
+                        assert len(bwd_jaxpr.out_avals) == n_in, "custom_vjp bwd arity"
+                        eqn_params = {
+                            "call_jaxpr": p["call_jaxpr"],
+                            "fwd_jaxpr": jex_core.ClosedJaxpr(fwd_jaxpr, fwd_consts),
+                            "bwd_jaxpr": bwd_jaxpr,
+                            "num_consts": p["num_consts"],
+                            "fwds": tuple(fwds),
+                            "n_out": n_out,
+                            "symbolic_zeros": p["symbolic_zeros"],
+                        }
+                        guard = key
                 spec = allowlist.admit(op, role, where)
+                if op == "custom_linear_solve":
+                    # jnp.linalg.solve / inv: the four callables of the solve, each
+                    # a nested graph, beside the lengths of their closed-over values.
+                    jaxprs = eqn_params["jaxprs"]
+                    eqn_params = {
+                        "const_lengths": tuple(eqn_params["const_lengths"]),
+                        "matvec": jaxprs.matvec,
+                        "vecmat": jaxprs.vecmat,
+                        "solve": jaxprs.solve,
+                        "transpose_solve": jaxprs.transpose_solve,
+                    }
                 try:
-                    encoded = params.encode(spec, eqn.params, lower_graph)
+                    if guard is not None:
+                        in_rules.add(guard)
+                    encoded = params.encode(spec, eqn_params, lower_graph)
                 except graph.GraphRefused as refused:
                     if (
                         refused.code == "parameter_not_default"
@@ -175,6 +312,9 @@ def lower(closed, *, role, allowlist, input_names):
                             f"{where} op {op} parameter sharding type {label}",
                         ) from None
                     raise
+                finally:
+                    if guard is not None:
+                        in_rules.discard(guard)
             ins = [use(a) for a in eqn.invars]
             outs = [{"value": new(v), **_aval(v.aval, where)} for v in eqn.outvars]
             nodes.append({"op": op, "in": ins, "out": outs, "params": encoded})

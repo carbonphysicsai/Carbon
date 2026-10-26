@@ -38,8 +38,9 @@ CHAIN = 50_000
 
 
 def test_every_registered_version_reads_its_graph_allowlists_bounds():
-    for key in sorted(sv.STEP2 | sv.EXISTING | sv.CATALOG | sv.V7):
-        expected = intake.CONTAINMENT_BOUNDS if key in sv.V7 else intake.BOUNDS
+    for key in sorted(sv.STEP2 | sv.EXISTING | sv.CATALOG | sv.V7 | sv.V8):
+        uncapped = key in sv.V7 or key in sv.V8
+        expected = intake.CONTAINMENT_BOUNDS if uncapped else intake.BOUNDS
         assert sv.graph_intake_bounds(*key) == expected, key
     for key in (("synthetic-linear-field-2d", "1.3"), (F08, "9.9"), ("x", "1.0")):
         assert sv.graph_intake_bounds(*key) == intake.BOUNDS

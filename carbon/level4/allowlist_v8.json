@@ -1,0 +1,4009 @@
+{
+ "aten_core": {
+  "aten.__lshift__.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "shift_left; a count at or past the width gives 0."
+  },
+  "aten.__lshift__.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "shift_left; a count at or past the width gives 0."
+  },
+  "aten.__rshift__.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "arithmetic shift for signed integers (logical for unsigned)."
+  },
+  "aten.__rshift__.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "arithmetic shift for signed integers (logical for unsigned)."
+  },
+  "aten._adaptive_avg_pool2d.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "mean over torch's adaptive windows, one axis at a time (a mean of means); the rounding order differs from torch's."
+  },
+  "aten._adaptive_avg_pool2d_backward.default": {
+   "category": "reduction",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten._adaptive_avg_pool3d.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "mean over torch's adaptive windows, one axis at a time (a mean of means); the rounding order differs from torch's."
+  },
+  "aten._assert_tensor_metadata.default": {
+   "category": "debug",
+   "default": "review",
+   "lowering": "dropped",
+   "note": "a trace-time metadata assertion with no result; dropped by lowering"
+  },
+  "aten._cdist_forward.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the direct difference form for every p (torch uses a matmul form past 25 rows when p = 2, which differs by rounding); a zero distance has gradient 0, as torch's."
+  },
+  "aten._embedding_bag.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "sum, mean or max of embedding rows per bag, the bags read from the offsets in the graph; only the pooled result is selectable (offset2bag, bag_size, max_indices refuse by name)."
+  },
+  "aten._embedding_bag_forward_only.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "as _embedding_bag."
+  },
+  "aten._fft_c2r.default": {
+   "category": "spectral",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "trailing dims only; XLA's 1/n convention undone explicitly"
+  },
+  "aten._fft_r2c.default": {
+   "category": "spectral",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "trailing dims, onesided only; torch normalization mapped explicitly"
+  },
+  "aten._linalg_eigh.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's eigh on the symmetric matrix read from one triangle; eigenvalues ascending; eigenvector signs are a gauge (compare reconstructions); compute_v False refuses."
+  },
+  "aten._linalg_solve_ex.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "LU with partial pivoting then two triangular solves, left=True and matrix right-hand sides; the packed LU, pivots and info outputs are not computed (aten_linalg_solve_auxiliary_output)."
+  },
+  "aten._linalg_svd.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's svd; singular values descending; U and Vh signs are a gauge (compare reconstructions); with compute_uv False the vectors are not selectable."
+  },
+  "aten._local_scalar_dense.default": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "host synchronization or a data-dependent shape"
+  },
+  "aten._log_softmax.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "x - max - log(sum(exp(x - max))), the shift outside the derivative; float32 or float64, half_to_float refused; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten._native_batch_norm_legit.default": {
+   "category": "normalization",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "training batch norm that updates its running statistics in place is a state update, not a pure function of its inputs; the functional form's statistics-only part lowers (aten._native_batch_norm_legit_functional.default)."
+  },
+  "aten._native_batch_norm_legit.no_stats": {
+   "category": "normalization",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "batch statistics without running ones: instance norm (CODANO)."
+  },
+  "aten._native_batch_norm_legit_functional.default": {
+   "category": "normalization",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "training batch norm, statistics-only part: the normalized result and the batch's own mean and reciprocal std. The updated running statistics are a state update, so selecting them refuses (aten_batch_norm_running_stats_update)."
+  },
+  "aten._native_batch_norm_legit_no_training.default": {
+   "category": "normalization",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "inference batch norm with running statistics (U-FNO, U-NO, U-Net); saved statistics not selectable."
+  },
+  "aten._pdist_forward.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "slices of the pairwise matrix, one per row, upper triangle row-major; a zero distance has gradient 0, as torch's."
+  },
+  "aten._softmax.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Stable reduction lowering for float32/float64 tensors; half_to_float is refused."
+  },
+  "aten._to_copy.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten._unsafe_view.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten._upsample_bicubic2d_aa.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "antialiased bicubic resize (CNO1d): torch's separable Keys a = -0.5 weights, built in the graph from iota (no weight constants), applied by dot_general over H then W."
+  },
+  "aten.abs.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's abs (AFNO softshrink)."
+  },
+  "aten.acos.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's acos; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.acosh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's acosh; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.add.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "as add.Tensor with a Python scalar."
+  },
+  "aten.add.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.addmm.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.alias.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.amax.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_max; a tie shares the gradient evenly, as torch's amax."
+  },
+  "aten.amin.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_min; a tie shares the gradient evenly, as torch's amin."
+  },
+  "aten.any.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_or of the nonzero mask over every element."
+  },
+  "aten.any.dim": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "boolean masks only: reduce_max of the mask as int32, then > 0 (Transformer attention masks)."
+  },
+  "aten.any.dims": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_or of the nonzero mask over the given dims."
+  },
+  "aten.arange.start_step": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.argmax.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the first extreme, a NaN counting as largest, as torch's; dim None flattens; integer result."
+  },
+  "aten.argmin.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the first extreme, a NaN counting as smallest, as torch's; dim None flattens; integer result."
+  },
+  "aten.as_strided.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "static size, stride and offset over a contiguous input: the flat index is computed in the graph and gathered; out-of-range or non-contiguous inputs refuse."
+  },
+  "aten.asin.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's asin; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.asinh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's asinh; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.atan.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's atan; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.atan2.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's atan2; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.atan2.out": {
+   "category": "elementwise",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "an out= alias writes into a caller's buffer; use aten.atan2.default."
+  },
+  "aten.atanh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's atanh; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.avg_pool2d.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_window_sum divided by torch's per-window counts (ceil_mode, count_include_pad, divisor_override); may differ from torch's kernel in the last bits (stated tolerance in the test) (summation order)."
+  },
+  "aten.avg_pool2d_backward.default": {
+   "category": "reduction",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten.avg_pool3d.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_window_sum divided by torch's per-window counts (ceil_mode, count_include_pad, divisor_override); may differ from torch's kernel in the last bits (stated tolerance in the test) (summation order)."
+  },
+  "aten.bernoulli.p": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.bitwise_and.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operands, Carbon's and."
+  },
+  "aten.bitwise_and.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "boolean masks only, as Carbon's and."
+  },
+  "aten.bitwise_not.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operand, Carbon's not."
+  },
+  "aten.bitwise_or.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operands, Carbon's or."
+  },
+  "aten.bitwise_or.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operands, Carbon's or."
+  },
+  "aten.bitwise_xor.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operands, Carbon's xor."
+  },
+  "aten.bitwise_xor.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "integer or boolean operands, Carbon's xor."
+  },
+  "aten.bmm.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.cat.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.ceil.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's ceil; integers pass through."
+  },
+  "aten.clamp.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "tensor bounds as selects; the gradient passes where low <= x <= high, as torch's."
+  },
+  "aten.clamp.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "scalar bounds as selects; gradient passes where low <= x <= high, as torch."
+  },
+  "aten.clone.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.col2im.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "each kernel offset's block placed by one pad (interior padding = stride, negative low/high = the cropped image padding) and the blocks added; no scatter."
+  },
+  "aten.constant_pad_nd.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "F.pad with a constant value: Carbon's pad op; negative widths crop."
+  },
+  "aten.convolution.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "forms": [
+    "transposed"
+   ],
+   "lowering": "emitted",
+   "note": "v7 form transposed: conv_general_dilated with lhs_dilation = stride, the kernel flipped and its channels swapped per group (WNO-style)."
+  },
+  "aten.convolution_backward.default": {
+   "category": "linear_algebra",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten.copy.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.cos.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cos (OFormer positional encodings)."
+  },
+  "aten.cosh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cosh; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.cumprod.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cumprod in the result's dtype; may differ from torch's kernel in the last bits (stated tolerance in the test) (product order)."
+  },
+  "aten.cumsum.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cumsum in the result's dtype; may differ from torch's kernel in the last bits (stated tolerance in the test) (summation order)."
+  },
+  "aten.diagonal.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "transpose the two dims last, flatten, one strided slice; the diagonal is the last axis."
+  },
+  "aten.div.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "true division by a Python scalar."
+  },
+  "aten.div.Scalar_mode": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "as div.Tensor_mode with a Python scalar divisor."
+  },
+  "aten.div.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.div.Tensor_mode": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "rounding_mode floor or trunc; float floor follows c10's fmod sequence, not floor(x / y); integer division by 0 is not checked."
+  },
+  "aten.elu.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "scale * x for x > 0, else scale * alpha * expm1(input_scale * x); the gradient at 0 takes the negative branch, as torch's."
+  },
+  "aten.embedding.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "rows of the weight by gather; an index outside the table reads NaN rows; a padding_idx row gets no gradient, as torch's."
+  },
+  "aten.embedding_dense_backward.default": {
+   "category": "shape",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten.empty.memory_format": {
+   "category": "shape",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "uninitialised memory is not reproducible."
+  },
+  "aten.empty_strided.default": {
+   "category": "shape",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "uninitialised memory is not reproducible."
+  },
+  "aten.eq.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison with a scalar, boolean result."
+  },
+  "aten.eq.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result."
+  },
+  "aten.erf.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's erf; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.exp.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.expand.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.expm1.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's expm1; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.fill.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "a constant fill at the result's dtype and shape."
+  },
+  "aten.flip.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's rev."
+  },
+  "aten.floor.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's floor (CODANO); floating inputs only."
+  },
+  "aten.fmod.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "forms": [
+    "integer"
+   ],
+   "lowering": "emitted",
+   "note": "Carbon's rem, C-style as torch.fmod (CODANO); aten.remainder stays refused. v7 form integer: int operands with a nonzero int divisor (CODANO's roll index), C-style; folded into static indices."
+  },
+  "aten.fmod.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's rem, C-style as torch.fmod; aten.remainder stays refused."
+  },
+  "aten.full.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.full_like.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "A constant fill at the result's own declared dtype and shape (torch.zeros_like/ones_like/full_like)."
+  },
+  "aten.gather.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the gather primitive with torch's addressing; an index outside the tensor reads NaN (integers: the minimum), where torch raises."
+  },
+  "aten.ge.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result (KAN spline intervals)."
+  },
+  "aten.ge.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result (KAN spline intervals)."
+  },
+  "aten.gelu.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.grid_sampler_2d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "bilinear or nearest, zeros or border padding (bicubic and reflection refuse); taps gathered in bounds and masked by selects; the gradient reaches the grid through the bilinear weights, as torch's."
+  },
+  "aten.gt.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.gt.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.hardtanh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "clamp whose gradient is 0 at the bounds (torch's hardtanh backward is strict); relu6 is hardtanh(0, 6)."
+  },
+  "aten.index.Tensor": {
+   "category": "shape",
+   "default": "allow",
+   "forms": [
+    "static_outer"
+   ],
+   "lowering": "emitted",
+   "note": "Static int64 index on one dimension only; lowered to slices of consecutive index runs and one concatenate (no gather primitive, so no scatter-add gradient); dynamic or multi-dimensional indices refuse. v7 form static_outer: several static indices on adjacent dims that broadcast as an outer product (neuralop's grid interpolation, CODANO) lower as one static take per dim; floor joins the static-index folding."
+  },
+  "aten.index_put.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "index tensors on adjacent dims, as the scatter or scatter_add primitive (accumulate); negative indices wrap, one outside the tensor is dropped; repeated indices without accumulate leave the winner unspecified, as in torch."
+  },
+  "aten.index_select.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "one static int64 index on one dimension (CODANO), as aten.index.Tensor: slices + concatenate, never a gather primitive; bounds-checked."
+  },
+  "aten.isinf.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "abs(x) == inf; integers give all False."
+  },
+  "aten.isnan.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "x != x; integers give all False."
+  },
+  "aten.item.default": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "host synchronization or a data-dependent shape"
+  },
+  "aten.le.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result (KAN spline intervals)."
+  },
+  "aten.le.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result (KAN spline intervals)."
+  },
+  "aten.leaky_relu.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "select_n(x > 0, slope * x, x) (CNO1d); the gradient at 0 is the slope, as torch's."
+  },
+  "aten.linalg_cholesky_ex.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cholesky on the symmetric matrix read from one triangle; not positive definite gives NaN; the info output is not computed (aten_linalg_info_not_computed)."
+  },
+  "aten.linalg_qr.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's qr, reduced or complete; the signs of Q and R are a gauge (compare Q @ R); mode r refuses."
+  },
+  "aten.linalg_solve_triangular.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's triangular_solve (left or right, upper or lower, unit diagonal)."
+  },
+  "aten.log.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's log; floating inputs only."
+  },
+  "aten.log10.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "log(x) / log(10): torch's log10 is its own kernel, so the last bits differ (a few ulp)."
+  },
+  "aten.log1p.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.log2.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "log(x) / log(2): torch's log2 is its own kernel, so the last bits differ (a few ulp)."
+  },
+  "aten.logcumsumexp.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cumlogsumexp; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.logical_and.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "operands compared with 0 first; boolean result."
+  },
+  "aten.logical_not.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "boolean masks only, as Carbon's not."
+  },
+  "aten.logical_or.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "operands compared with 0 first; boolean result."
+  },
+  "aten.logical_xor.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "operands compared with 0 first; boolean result."
+  },
+  "aten.lt.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.lt.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.masked_scatter.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "positions by a running count of the mask and a gather from the source; a source shorter than the true count reads NaN, where torch raises."
+  },
+  "aten.max.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_max over every element."
+  },
+  "aten.max.dim": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "(values, indices): reduce_max and argmax. A tie shares the values' gradient (torch gives it to the chosen index)."
+  },
+  "aten.max_pool2d_with_indices.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "non-overlapping windows (kernel = stride, no padding): reshape + reduce_max; the indices output is refused."
+  },
+  "aten.max_pool2d_with_indices_backward.default": {
+   "category": "reduction",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten.max_pool3d_with_indices.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_window_max over any window (stride, padding, dilation, ceil_mode); the indices output is refused. With v8, max_pool2d_with_indices takes the same path for windows other than non-overlapping ones."
+  },
+  "aten.maximum.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's max; NaN propagates and a tie splits the gradient in half, as torch's."
+  },
+  "aten.mean.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "mean over every element: reduce_sum divided by the count."
+  },
+  "aten.mean.dim": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.min.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_min over every element."
+  },
+  "aten.min.dim": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "(values, indices): reduce_min and argmin. A tie shares the values' gradient (torch gives it to the chosen index)."
+  },
+  "aten.minimum.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's min; NaN propagates and a tie splits the gradient in half, as torch's."
+  },
+  "aten.mm.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.mul.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "multiply by a Python scalar (THUML Transformer)."
+  },
+  "aten.mul.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.native_dropout.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.native_group_norm.default": {
+   "category": "normalization",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "statistics per (sample, group), then the per-channel weight and bias; the mean and reciprocal std outputs carry no gradient, as torch's; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.native_group_norm_backward.default": {
+   "category": "normalization",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten.native_layer_norm.default": {
+   "category": "normalization",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Trailing normalized axes only; output, mean and reciprocal standard deviation are retained as separate graph values."
+  },
+  "aten.native_layer_norm_backward.default": {
+   "category": "normalization",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "backward ops are Carbon's autodiff, never a graph op."
+  },
+  "aten.ne.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison with a scalar, boolean result."
+  },
+  "aten.ne.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result."
+  },
+  "aten.neg.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's neg (OFormer, Transolver_plus)."
+  },
+  "aten.nonzero.default": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "host synchronization or a data-dependent shape"
+  },
+  "aten.normal.Tensor_float": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.permute.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.pow.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "pow(scalar, tensor) as the pow primitive; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.pow.Tensor_Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "a whole-number exponent up to 16 is integer_pow, any other the pow primitive; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.pow.Tensor_Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the pow primitive; a negative base with a fractional exponent is NaN, as torch's; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.prod.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_prod over every element; a zero in the product keeps a finite gradient."
+  },
+  "aten.prod.dim_int": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "reduce_prod along one dim; a zero in the product keeps a finite gradient."
+  },
+  "aten.rand.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.rand_like.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "inference randomness breaks paired-repeat exactness and graded-vs-timed agreement, and a per-row key still varies with batch layout (Validator, 2026-10-20); drop inference noise (e.g. Transolver_plus's Gumbel slice noise) to lower."
+  },
+  "aten.randn.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.randperm.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused: a permutation drawn from a generator breaks paired-repeat exactness and graded-vs-timed agreement; a fixed permutation can be a constant."
+  },
+  "aten.reciprocal.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "1 / x as Carbon's div (THUML GNOT)."
+  },
+  "aten.reflection_pad1d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "slices, rev and concatenate; pad must be less than the size, as torch's."
+  },
+  "aten.reflection_pad2d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "slices, rev and concatenate; pad must be less than the size, as torch's."
+  },
+  "aten.reflection_pad3d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "slices, rev and concatenate; pad must be less than the size, as torch's."
+  },
+  "aten.relu.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "lowers to named_function relu"
+  },
+  "aten.remainder.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Python-style modulo: rem plus the divisor where the signs differ; d/dy = -floor(x / y), as torch's."
+  },
+  "aten.remainder.Scalar_Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Python-style modulo with a scalar dividend."
+  },
+  "aten.remainder.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Python-style modulo: rem plus the divisor where the signs differ; d/dy = -floor(x / y), as torch's."
+  },
+  "aten.repeat.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.replication_pad1d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the edge value repeated, by broadcast and concatenate."
+  },
+  "aten.replication_pad2d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the edge value repeated, by broadcast and concatenate."
+  },
+  "aten.replication_pad3d.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the edge value repeated, by broadcast and concatenate."
+  },
+  "aten.reshape.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.round.decimals": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "torch's own sequence: round(x * 10**d) / 10**d, the scale on the other side for d < 0."
+  },
+  "aten.round.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "round half to even (torch's rule), Carbon's round with TO_NEAREST_EVEN; gradient 0."
+  },
+  "aten.rsqrt.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's rsqrt; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.scalar_tensor.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "a scalar constant at the result's dtype."
+  },
+  "aten.scatter.src": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the scatter primitive with torch's gather/scatter addressing; an index outside the tensor is dropped, where torch raises; repeated indices leave the winner unspecified, as in torch."
+  },
+  "aten.scatter.value": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "the scatter primitive with a constant update; an index outside the tensor is dropped, where torch raises."
+  },
+  "aten.scatter_add.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Static int64 indices only; ordered non-atomic expansion into existing primitives; dynamic indices refuse."
+  },
+  "aten.scatter_reduce.two": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "sum, mean, prod, amax, amin by the scatter_* primitives, with or without self; an index outside the tensor is dropped, where torch raises; prod has a gradient for src only for non-repeating indices (JAX's rule)."
+  },
+  "aten.select.int": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.select_scatter.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "a mask from an iota and a select; no scatter primitive."
+  },
+  "aten.sigmoid.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.sign.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's sign (AFNO softshrink)."
+  },
+  "aten.sin.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's sin."
+  },
+  "aten.sinh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's sinh; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.slice.Tensor": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.slice_scatter.default": {
+   "category": "shape",
+   "default": "allow",
+   "forms": [
+    "strided"
+   ],
+   "lowering": "emitted",
+   "note": "v7 form strided: a step > 1 lowers as an interior pad of the source and a select (MWT)."
+  },
+  "aten.sort.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "(values, indices) by the sort primitive, ties in index order, NaN last as in torch; descending sorts on (value, -index) and reverses."
+  },
+  "aten.sort.stable": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "as sort.default (the sort is always stable)."
+  },
+  "aten.split_with_sizes.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "static sizes along one dim: one slice per part (OFormer)."
+  },
+  "aten.sqrt.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.squeeze.dim": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.squeeze.dims": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.sub.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "as sub.Tensor with a Python scalar."
+  },
+  "aten.sub.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.sum.dim_IntList": {
+   "category": "reduction",
+   "default": "allow",
+   "forms": [
+    "complex"
+   ],
+   "lowering": "emitted",
+   "note": "Static dimension-list reduction for float32/float64 tensors; unsupported arguments and dtypes are refused. v7 form complex: a complex sum in its own dtype (CODANO's spectral contraction)."
+  },
+  "aten.sym_numel.default": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "symbolic shape operations: shapes must be static."
+  },
+  "aten.sym_size.int": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "symbolic shape operations: shapes must be static."
+  },
+  "aten.sym_storage_offset.default": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "symbolic shape operations: shapes must be static."
+  },
+  "aten.sym_stride.int": {
+   "category": "host_or_dynamic",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "symbolic shape operations: shapes must be static."
+  },
+  "aten.t.default": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.tan.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's tan; may differ from torch's kernel in the last bits (stated tolerance in the test)."
+  },
+  "aten.tanh.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.topk.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "largest: the top_k primitive; smallest: a stable sort cut at k (a NaN is never among the smallest). Values are sorted; tied indices are in index order."
+  },
+  "aten.trunc.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "floor for x >= 0 and ceil for x < 0; integers pass through."
+  },
+  "aten.uniform.default": {
+   "category": "rng",
+   "default": "refuse",
+   "lowering": "refused",
+   "note": "RNG in inference is refused"
+  },
+  "aten.unsqueeze.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.upsample_bilinear2d.vec": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "two gathers per axis with torch's source index and weights, width then height; the arithmetic order differs from torch's fused kernel by rounding (stated tolerance in the test)."
+  },
+  "aten.upsample_nearest2d.vec": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "source = min(floor(i * scale), in - 1) in float32 as torch's, per axis by a gather."
+  },
+  "aten.var.correction": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.var.dim": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "variance with unbiased / biased by the flag, the correction form's arithmetic."
+  },
+  "aten.view.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted"
+  },
+  "aten.view_as_complex.default": {
+   "category": "elementwise",
+   "default": "review",
+   "lowering": "emitted",
+   "note": "complex64 weights (FNO spectral layers)"
+  },
+  "aten.view_as_real.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "complex to (..., 2) real/imag pairs (AFNO spectral blocks): real, imag, concatenate."
+  },
+  "aten.where.self": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted"
+  }
+ },
+ "carbon_ops": {
+  "abs": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "acos": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise acos; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "acosh": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise acosh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "add": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "add_any": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "autodiff's accumulation add: a model that takes jax.grad inside its forward holds it.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "after_all": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "all_gather": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "all_to_all": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "and": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "approx_top_k": {
+   "category": "reduction",
+   "default": "review",
+   "note": "approximate on some accelerators by design; exact where the backend has no approximate kernel.",
+   "params": {
+    "aggregate_to_topk": "bool",
+    "is_max_k": "bool",
+    "k": "int",
+    "recall_target": "float",
+    "reduction_dimension": "int",
+    "reduction_input_size_override": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "argmax": {
+   "category": "reduction",
+   "default": "allow",
+   "params": {
+    "axes": "int_tuple",
+    "index_dtype": "dtype"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "argmin": {
+   "category": "reduction",
+   "default": "allow",
+   "params": {
+    "axes": "int_tuple",
+    "index_dtype": "dtype"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "asin": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise asin; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "asinh": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise asinh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "atan": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise atan; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "atan2": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise atan2(y, x).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "atanh": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise atanh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "axis_index": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "bessel_i0e": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure special function bessel_i0e (the JAX primitive).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "bessel_i1e": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure special function bessel_i1e (the JAX primitive).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "bitcast_convert_type": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "threefry uniform sampling; init only",
+   "params": {
+    "new_dtype": "dtype"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "broadcast_in_dim": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "broadcast_dimensions": "int_tuple",
+    "shape": "int_tuple",
+    "sharding": "owned_single_device_sharding"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cbrt": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise cbrt; the accuracy hint stays at the framework default.",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ceil": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "floating operands only; gradient 0 everywhere, as floor's.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cholesky": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "lower-triangular Cholesky factor; NaN where the matrix is not positive definite, as JAX.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cholesky_update": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "rank-1 Cholesky update.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "clamp": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "lax.clamp(min, x, max): scalar or same-shape bounds.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "closed_call": {
+   "category": "nested_call",
+   "default": "allow",
+   "note": "validated recursively",
+   "params": {
+    "call_jaxpr": "graph"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "clz": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "integer clz.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "complex": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "concatenate": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "dimension": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cond": {
+   "category": "control_flow",
+   "default": "allow",
+   "note": "lax.cond/switch: the first operand is the integer branch index; every branch is a nested graph.",
+   "params": {
+    "branches": "graph_tuple",
+    "branches_platforms": "platforms?"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "conj": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "input_dtype": "dtype"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "conv_general_dilated": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "params": {
+    "batch_group_count": "int",
+    "dimension_numbers": "conv_dimension_numbers",
+    "feature_group_count": "int",
+    "lhs_dilation": "int_tuple",
+    "out_sharding": "none",
+    "padding": "int_pairs",
+    "precision": "none",
+    "preferred_element_type": "dtype_or_none",
+    "rhs_dilation": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "convert_element_type": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "new_dtype": "dtype",
+    "sharding": "owned_single_device_sharding",
+    "weak_type": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "copy": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "identity copy; JAX emits it around some linear-algebra calls.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cos": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cosh": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise cosh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "create_token": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "cumlogsumexp": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "cumulative logsumexp along one axis; deterministic scan order.",
+   "params": {
+    "axis": "int",
+    "reverse": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cummax": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "cumulative max along one axis; deterministic scan order.",
+   "params": {
+    "axis": "int",
+    "reverse": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cummin": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "cumulative min along one axis; deterministic scan order.",
+   "params": {
+    "axis": "int",
+    "reverse": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cumprod": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "cumulative prod along one axis; deterministic scan order.",
+   "params": {
+    "axis": "int",
+    "reverse": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "cumsum": {
+   "category": "reduction",
+   "default": "review",
+   "note": "check GPU determinism (R1)",
+   "params": {
+    "axis": "int",
+    "reverse": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "custom_call": {
+   "category": "escape",
+   "default": "refuse",
+   "note": "escape to Python or native code",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "custom_jvp_call": {
+   "category": "custom_differentiation",
+   "default": "allow",
+   "note": "a derivative rule the miner wrote, traced to a jaxpr at lowering and carried as a nested graph beside the function (registered kernels still lower to named_function); every op in both graphs is checked like any other.",
+   "params": {
+    "call_jaxpr": "graph",
+    "jvp_jaxpr": "graph",
+    "num_consts": "int",
+    "out_zeros": "bool_tuple",
+    "symbolic_zeros": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "custom_linear_solve": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "jnp.linalg.solve / inv / scipy.linalg.solve: a linear solve with JAX's implicit-differentiation rule; its matvec, vecmat, solve and transpose_solve callables are nested graphs.",
+   "params": {
+    "const_lengths": "int_tuple",
+    "matvec": "graph",
+    "solve": "graph",
+    "transpose_solve": "graph_or_none",
+    "vecmat": "graph_or_none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "custom_vjp_call": {
+   "category": "custom_differentiation",
+   "default": "allow",
+   "note": "a reverse-mode derivative rule the miner wrote (forward and backward), traced to jaxprs at lowering and carried as nested graphs beside the function; every op in all three graphs is checked like any other.",
+   "params": {
+    "bwd_jaxpr": "graph",
+    "call_jaxpr": "graph",
+    "fwd_jaxpr": "graph",
+    "fwds": "index_tuple_or_none",
+    "n_out": "int",
+    "num_consts": "int",
+    "symbolic_zeros": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "debug_callback": {
+   "category": "escape",
+   "default": "strip",
+   "note": "a debugging callback runs on the miner's machine only; lowering drops it",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "debug_print": {
+   "category": "debug",
+   "default": "strip",
+   "note": "a debug print runs on the miner's machine only; lowering drops it",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "device_put": {
+   "category": "shape",
+   "default": "allow",
+   "note": "identity: a device_put that names no device or source places nothing.",
+   "params": {
+    "copy_semantics": "put_default",
+    "devices": "put_default",
+    "srcs": "put_default"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "digamma": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure special function digamma (the JAX primitive).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "div": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "dot_general": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "The matmul precision is admitted (default or the DEFAULT/HIGH/HIGHEST pair JAX records): jnp.linalg.solve multiplies at HIGHEST.",
+   "params": {
+    "dimension_numbers": "dot_dimension_numbers",
+    "out_sharding": "none",
+    "precision": "precision",
+    "preferred_element_type": "dtype_or_none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "dynamic_slice": {
+   "category": "shape",
+   "default": "allow",
+   "note": "start indices are clamped into range by XLA",
+   "params": {
+    "slice_sizes": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "dynamic_update_slice": {
+   "category": "shape",
+   "default": "allow",
+   "note": "start indices are clamped into range by XLA",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "eig": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "general eigendecomposition; XLA runs it on CPU only (a GPU host will say so).",
+   "params": {
+    "compute_left_eigenvectors": "bool",
+    "compute_right_eigenvectors": "bool",
+    "enable_eigvec_derivs": "bool",
+    "implementation": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "eigh": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "symmetric/Hermitian eigendecomposition; eigenvalues are the contract, eigenvector signs are library-defined.",
+   "params": {
+    "algorithm": "none",
+    "lower": "bool",
+    "sort_eigenvalues": "bool",
+    "subset_by_index": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "eq": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "eq_to": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "total-order comparison eq_to: NaN and signed zero ordered.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "erf": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "erf_inv": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "erfc": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "exp": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "exp2": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise exp2; the accuracy hint stays at the framework default.",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "expm1": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ffi_call": {
+   "category": "escape",
+   "default": "refuse",
+   "note": "escape to Python or native code",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "fft": {
+   "category": "spectral",
+   "default": "allow",
+   "note": "FNO layers and spectral loss terms",
+   "params": {
+    "fft_lengths": "int_tuple",
+    "fft_type": "fft_type"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "floor": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "floating operands only; gradient 0 everywhere, as torch's.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "gather": {
+   "category": "shape",
+   "default": "review",
+   "note": "bounded by slice_sizes; its gradient is a scatter-add, nondeterministic on GPU (R1)",
+   "params": {
+    "dimension_numbers": "gather_dimension_numbers",
+    "fill_value": "fill_value",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "slice_sizes": "int_tuple",
+    "unique_indices": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ge": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "geqp3": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "column-pivoted QR.",
+   "params": {
+    "use_magma": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "geqrf": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "Householder QR factorisation, packed (a, taus).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "gt": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "hessenberg": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "Hessenberg reduction; CPU only in XLA.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "householder_product": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "Q from Householder reflectors.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "igamma": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "regularized incomplete gamma family igamma (the JAX primitive).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "igamma_grad_a": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "regularized incomplete gamma family igamma_grad_a (the JAX primitive).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "igammac": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "regularized incomplete gamma family igammac (the JAX primitive).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "imag": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "infeed": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "integer_pow": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "y": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "io_callback": {
+   "category": "escape",
+   "default": "refuse",
+   "note": "escape to Python or native code",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "iota": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "dimension": "int",
+    "dtype": "dtype",
+    "shape": "int_tuple",
+    "sharding": "owned_single_device_sharding"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "is_finite": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "boolean result; no gradient.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "jit": {
+   "category": "nested_call",
+   "default": "allow",
+   "note": "validated recursively and evaluated inline; metadata must be default (no donation, no compiler options, no mesh)",
+   "params": {
+    "compiler_options_kvs": "call_metadata",
+    "ctx_mesh": "call_metadata",
+    "donated_invars": "call_metadata",
+    "in_layouts": "call_metadata",
+    "in_shardings": "call_metadata",
+    "inline": "call_metadata",
+    "jaxpr": "graph",
+    "keep_unused": "call_metadata",
+    "name": "call_metadata",
+    "out_layouts": "call_metadata",
+    "out_shardings": "call_metadata"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "layout_constraint": {
+   "category": "host_or_sharding",
+   "default": "strip",
+   "note": "an identity here (layout belongs to Carbon); lowering replaces it by its input",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "le": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "le_to": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "total-order comparison le_to: NaN and signed zero ordered.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "lgamma": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure special function lgamma (the JAX primitive).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "log": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "log1p": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "logistic": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "lt": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "lt_to": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "total-order comparison lt_to: NaN and signed zero ordered.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "lu": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "LU with partial pivoting: lu, pivots, permutation.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "lu_pivots_to_permutation": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "pivot rows to a permutation vector.",
+   "params": {
+    "permutation_size": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "max": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "min": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "mul": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "out_dtype": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "mulhi": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "high half of an integer product.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "named_function": {
+   "category": "custom_differentiation",
+   "default": "allow",
+   "note": "a registered kernel from named_functions; Carbon runs its own implementation and derivative rule",
+   "params": {
+    "name": "name"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ne": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "neg": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "nextafter": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "next representable value toward y, bit exact.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "not": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "optimization_barrier": {
+   "category": "shape",
+   "default": "allow",
+   "note": "identity: a scheduling hint for the compiler.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "or": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ormqr": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "multiply by Q from Householder reflectors.",
+   "params": {
+    "left": "bool",
+    "transpose": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "outfeed": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "pad": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "padding_config": "padding_config"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "platform_index": {
+   "category": "control_flow",
+   "default": "allow",
+   "note": "JAX's platform dispatch (jnp.diag, jnp.diagonal, corrcoef, a larger jnp.linalg.det): the index of the rebuild's platform, whose branches compute the same values.",
+   "params": {
+    "platforms": "platforms"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "polygamma": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "polygamma(m, x), the JAX primitive.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "population_count": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "integer population_count.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "pow": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ppermute": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "psum": {
+   "category": "host_or_sharding",
+   "default": "refuse",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "pure_callback": {
+   "category": "escape",
+   "default": "refuse",
+   "note": "escape to Python or native code",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "qr": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "QR factorization (Householder); signs are library-defined.",
+   "params": {
+    "full_matrices": "bool",
+    "pivoting": "bool",
+    "use_magma": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "ragged_dot_general": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "grouped matrix product (jax.lax.ragged_dot); pure and deterministic; no randomness, state or host access",
+   "params": {
+    "group_offset": "none",
+    "out_sharding": "none",
+    "precision": "precision",
+    "preferred_element_type": "dtype_or_none",
+    "ragged_dot_dimension_numbers": "ragged_dot_dnums"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "random_bits": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {
+    "bit_width": "int",
+    "shape": "int_tuple"
+   },
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "random_fold_in": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {},
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "random_seed": {
+   "category": "rng",
+   "default": "refuse",
+   "note": "not keyed by Carbon",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "random_split": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {
+    "shape": "int_tuple"
+   },
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "random_unwrap": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {},
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "random_wrap": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {
+    "impl": "prng_impl"
+   },
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "real": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "lax.reduce with your own computation: the computation is a nested graph run inline (checked op by op); pure and deterministic; no randomness, state or host access",
+   "params": {
+    "computation": "callable_ignored",
+    "dimensions": "int_tuple",
+    "jaxpr": "graph"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_and": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "boolean or integer reduce_and over the listed axes.",
+   "params": {
+    "axes": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_max": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "JAX 0.10.2 binds axes only; its JVP rule rejects out_sharding.",
+   "params": {
+    "axes": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_min": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "JAX 0.10.2 binds axes only; its JVP rule rejects out_sharding.",
+   "params": {
+    "axes": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_or": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "boolean or integer reduce_or over the listed axes.",
+   "params": {
+    "axes": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_precision": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "exact rounding to a narrower float format.",
+   "params": {
+    "exponent_bits": "int",
+    "mantissa_bits": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_prod": {
+   "category": "reduction",
+   "default": "review",
+   "note": "FNO orthonormal FFT normalization in pinned JAX 0.10.2; review numerical behavior before qualification",
+   "params": {
+    "axes": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_sum": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "check GPU determinism (R1)",
+   "params": {
+    "axes": "int_tuple",
+    "out_sharding": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_window": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "lax.reduce_window with your own computation: a nested graph run inline; pure and deterministic; no randomness, state or host access",
+   "params": {
+    "base_dilation": "int_tuple",
+    "consts": "empty_tuple",
+    "jaxpr": "graph",
+    "padding": "int_pairs",
+    "window_dilation": "int_tuple",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_window_max": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "max pooling window (lax.reduce_window).",
+   "params": {
+    "base_dilation": "int_tuple",
+    "padding": "int_pairs",
+    "window_dilation": "int_tuple",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_window_min": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "min pooling window (lax.reduce_window).",
+   "params": {
+    "base_dilation": "int_tuple",
+    "padding": "int_pairs",
+    "window_dilation": "int_tuple",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_window_sum": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "sum pooling window (lax.reduce_window).",
+   "params": {
+    "base_dilation": "int_tuple",
+    "padding": "int_pairs",
+    "window_dilation": "int_tuple",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reduce_xor": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "boolean or integer reduce_xor over the listed axes.",
+   "params": {
+    "axes": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "regularized_incomplete_beta": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "betainc(a, b, x), the JAX primitive.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "rem": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "C-style remainder (lax.rem): the result takes the dividend's sign, as aten.fmod; never Python-style aten.remainder. Floating operands only; a zero divisor gives NaN, which the finite-output checks refuse. Gradients: d/dx = 1, d/dy = -trunc(x / y), as torch's.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "remat2": {
+   "category": "nested_call",
+   "default": "allow",
+   "note": "jax.checkpoint: the body runs inline; recomputation is a training-memory choice Carbon owns.",
+   "params": {
+    "differentiated": "bool",
+    "jaxpr": "graph",
+    "policy": "none",
+    "prevent_cse": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "reshape": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "dimensions": "int_tuple_or_none",
+    "new_sizes": "int_tuple",
+    "sharding": "owned_single_device_sharding"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "rev": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "dimensions": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "rng_bit_generator": {
+   "category": "rng",
+   "default": "refuse",
+   "note": "not keyed by Carbon",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "rng_uniform": {
+   "category": "rng",
+   "default": "refuse",
+   "note": "not keyed by Carbon",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "round": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "round half away from zero or to nearest even (torch.round is nearest even); gradient 0 everywhere.",
+   "params": {
+    "rounding_method": "rounding_method"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "rsqrt": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "scan": {
+   "category": "control_flow",
+   "default": "allow",
+   "note": "static length; the body is a nested graph run once per step (lax.scan), counted length times by the measure.",
+   "params": {
+    "jaxpr": "graph",
+    "length": "int",
+    "num_carry": "int",
+    "num_consts": "int",
+    "reverse": "bool",
+    "unroll": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "scatter": {
+   "category": "array_update",
+   "default": "review",
+   "note": "FNO spectral frequency placement only: replacement update, no custom update jaxpr or captured constants",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "scatter_add": {
+   "category": "array_update",
+   "default": "review",
+   "note": "x.at[idx].add: the combiner is JAX's own; float order with duplicate indices is deterministic under the pinned GPU flags (xla_gpu_deterministic_ops), else the op is CPU-only.",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "update_jaxpr_add"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "scatter_max": {
+   "category": "array_update",
+   "default": "allow",
+   "note": "x.at[idx].max: the combiner is JAX's own; float order with duplicate indices is deterministic under the pinned GPU flags (xla_gpu_deterministic_ops), else the op is CPU-only.",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "update_jaxpr_max"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "scatter_min": {
+   "category": "array_update",
+   "default": "allow",
+   "note": "x.at[idx].min: the combiner is JAX's own; float order with duplicate indices is deterministic under the pinned GPU flags (xla_gpu_deterministic_ops), else the op is CPU-only.",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "update_jaxpr_min"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "scatter_mul": {
+   "category": "array_update",
+   "default": "review",
+   "note": "x.at[idx].mul: the combiner is JAX's own; float order with duplicate indices is deterministic under the pinned GPU flags (xla_gpu_deterministic_ops), else the op is CPU-only.",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "update_jaxpr_mul"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "scatter_sub": {
+   "category": "array_update",
+   "default": "allow",
+   "note": "x.at[idx].subtract: the combiner is JAX's own.",
+   "params": {
+    "dimension_numbers": "scatter_dimension_numbers",
+    "indices_are_sorted": "bool",
+    "mode": "gather_mode",
+    "unique_indices": "bool",
+    "update_consts": "empty_tuple",
+    "update_jaxpr": "update_jaxpr_sub"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "schur": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "Schur decomposition; CPU only in XLA.",
+   "params": {
+    "compute_schur_vectors": "bool",
+    "select_callable": "none",
+    "sort_eig_vals": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "select_and_gather_add": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "the tangent of max/min pooling.",
+   "params": {
+    "base_dilation": "int_tuple",
+    "padding": "int_pairs",
+    "select_prim": "select_prim",
+    "window_dilation": "int_tuple",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "select_and_scatter_add": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "the gradient of max/min pooling.",
+   "params": {
+    "padding": "int_pairs",
+    "select_prim": "select_prim",
+    "window_dimensions": "int_tuple",
+    "window_strides": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "select_n": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sharding_constraint": {
+   "category": "host_or_sharding",
+   "default": "strip",
+   "note": "an identity here (placement belongs to Carbon); lowering replaces it by its input",
+   "params": {},
+   "roles": [],
+   "v0_interpreter": false
+  },
+  "shift_left": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "integer or boolean shift_left.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "shift_right_arithmetic": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "integer or boolean shift_right_arithmetic.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "shift_right_logical": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "threefry uniform sampling; init only",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sign": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sin": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sinh": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "pure elementwise sinh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "slice": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "limit_indices": "int_tuple",
+    "start_indices": "int_tuple",
+    "strides": "int_tuple_or_none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sort": {
+   "category": "reduction",
+   "default": "review",
+   "note": "kNN only",
+   "params": {
+    "dimension": "int",
+    "is_stable": "bool",
+    "num_keys": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "split": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "axis": "int",
+    "sizes": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sqrt": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "square": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "squeeze": {
+   "category": "shape",
+   "default": "allow",
+   "params": {
+    "dimensions": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "stack": {
+   "category": "shape",
+   "default": "allow",
+   "note": "jnp.stack: operands of one shape joined along a new axis.",
+   "params": {
+    "axis": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "stop_gradient": {
+   "category": "custom_differentiation",
+   "default": "allow",
+   "note": "Core ATen native_layer_norm auxiliary mean and rstd outputs are nondifferentiable; the internal normalization path remains differentiable",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "sub": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "svd": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "singular value decomposition; singular values are the contract, vector signs are library-defined.",
+   "params": {
+    "algorithm": "none",
+    "compute_uv": "bool",
+    "full_matrices": "bool",
+    "subset_by_index": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "symmetric_product": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "alpha * a a^T + beta * c on the lower triangle; pure and deterministic; no randomness, state or host access",
+   "params": {
+    "alpha": "float",
+    "beta": "float"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "tan": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "tanh": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "threefry2x32": {
+   "category": "rng",
+   "default": "allow",
+   "note": "init graph only, from Carbon's key; refused in forward and loss",
+   "params": {},
+   "roles": [
+    "init"
+   ],
+   "v0_interpreter": true
+  },
+  "tile": {
+   "category": "shape",
+   "default": "allow",
+   "note": "jnp.tile.",
+   "params": {
+    "reps": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "top_k": {
+   "category": "reduction",
+   "default": "allow",
+   "note": "top-k along an axis; ties follow XLA (lower index first).",
+   "params": {
+    "axis": "int",
+    "k": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "transpose": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "params": {
+    "permutation": "int_tuple"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "triangular_solve": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "solves op(a) x = b or x op(a) = b for triangular a.",
+   "params": {
+    "conjugate_a": "bool",
+    "left_side": "bool",
+    "lower": "bool",
+    "transpose_a": "bool",
+    "unit_diagonal": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "tridiagonal": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "tridiagonal reduction of a symmetric matrix.",
+   "params": {
+    "lower": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "tridiagonal_solve": {
+   "category": "linear_algebra",
+   "default": "allow",
+   "note": "tridiagonal linear solve.",
+   "params": {
+    "perturb_singular": "bool"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "unstack": {
+   "category": "shape",
+   "default": "allow",
+   "note": "jnp.unstack: one array split along an axis into its slices.",
+   "params": {
+    "axis": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "while": {
+   "category": "control_flow",
+   "default": "refuse",
+   "note": "implemented and tested; withheld until both the build wall and the inference wall end a never-ending loop as a typed candidate failure, never FAILED_INFRA (Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025, 2(b)); then this entry's default becomes allow.",
+   "params": {
+    "body_jaxpr": "graph",
+    "body_nconsts": "int",
+    "cond_jaxpr": "graph",
+    "cond_nconsts": "int"
+   },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "xor": {
+   "category": "bitwise",
+   "default": "allow",
+   "note": "integer or boolean xor.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "zeta": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "Hurwitz zeta(x, q), the JAX primitive.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  }
+ },
+ "changes_from_v0": "Adds named_function and the named_functions registry (custom derivative kernels rebuilt with Carbon's own rule); custom_jvp_call is refused unless lowering recognizes it as a registered kernel; aten.relu lowers to the named relu.",
+ "changes_from_v6": "Adds aten.neg, aten.log, aten.leaky_relu, aten.any.dim and aten._upsample_bicubic2d_aa; admits argument forms named by an aten entry's `forms`: strided slice_scatter, transposed convolution, static_outer aten.index.Tensor (several static indices broadcasting as an outer product), integer aten.fmod.Scalar and complex aten.sum.dim_IntList, with floor and integer rem folded into static indices (CODANO); records aten.rand_like as refused. Carbon ops, named functions and caps are unchanged.",
+ "changes_from_v7": "OWNER-GRAPH-OPS-FREEDOM-01 (2026-10-25): every pure, deterministic array op is admitted: inverse and hyperbolic trigonometry, atan2, cbrt, exp2, ceil, round, clamp, is_finite, the gamma/Bessel special functions, bitwise shifts, boolean and cumulative reductions, stack/unstack, and the linear-algebra primitives (cholesky, triangular_solve, eigh, lu, qr, svd; jnp.linalg.solve and inv lower through lu and triangular_solve). Containment is unchanged: custom_call, callbacks, infeed/outfeed, unseeded RNG, sharding and unbounded loops stay refused.",
+ "framework_pins": {
+  "jax": "0.10.2",
+  "jaxlib": "0.10.2",
+  "neuraloperator": "2.0.0",
+  "torch": "2.13.0"
+ },
+ "named_functions": {
+  "dawsn": {
+   "arity": 1,
+   "default": "refuse",
+   "note": "its rule closes over constants; v1 carries none",
+   "reference": "jax.scipy.special.dawsn",
+   "roles": []
+  },
+  "erfcx": {
+   "arity": 1,
+   "default": "refuse",
+   "note": "its rule closes over constants; v1 carries none",
+   "reference": "jax.scipy.special.erfcx",
+   "roles": []
+  },
+  "exp1": {
+   "arity": 1,
+   "default": "review",
+   "note": "special function; review its rule and accuracy before v1",
+   "reference": "jax.scipy.special.exp1",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "fresnel": {
+   "arity": 1,
+   "default": "refuse",
+   "note": "its rule closes over constants; v1 carries none",
+   "reference": "jax.scipy.special.fresnel",
+   "roles": []
+  },
+  "frexp": {
+   "arity": 1,
+   "default": "refuse",
+   "note": "integer exponent output; no gradient use",
+   "reference": "jax.numpy.frexp",
+   "roles": []
+  },
+  "i0": {
+   "arity": 1,
+   "default": "review",
+   "note": "special function; review its rule and accuracy before v1",
+   "reference": "jax.numpy.i0",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "log1mexp": {
+   "arity": 1,
+   "default": "allow",
+   "note": "elementwise math kernel with its own derivative rule",
+   "reference": "jax.nn.log1mexp",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "log_ndtr": {
+   "arity": 1,
+   "default": "allow",
+   "note": "elementwise math kernel with its own derivative rule",
+   "reference": "jax.scipy.special.log_ndtr",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "logaddexp": {
+   "arity": 2,
+   "default": "allow",
+   "note": "elementwise math kernel with its own derivative rule; jax.nn.softplus is logaddexp(x, 0), so softplus, mish and log_sigmoid lower to it",
+   "reference": "jax.numpy.logaddexp",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "logaddexp2": {
+   "arity": 2,
+   "default": "allow",
+   "note": "elementwise math kernel with its own derivative rule",
+   "reference": "jax.numpy.logaddexp2",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "logit": {
+   "arity": 1,
+   "default": "allow",
+   "note": "elementwise math kernel with its own derivative rule",
+   "reference": "jax.scipy.special.logit",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "owens_t": {
+   "arity": 2,
+   "default": "refuse",
+   "note": "its rule closes over constants; v1 carries none",
+   "reference": "jax.scipy.special.owens_t",
+   "roles": []
+  },
+  "poch": {
+   "arity": 2,
+   "default": "review",
+   "note": "special function; review its rule and accuracy before v1",
+   "reference": "jax.scipy.special.poch",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "relu": {
+   "arity": 1,
+   "default": "allow",
+   "note": "activation kernel with its own derivative rule",
+   "reference": "jax.nn.relu",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "relu6": {
+   "arity": 1,
+   "default": "allow",
+   "note": "activation kernel with its own derivative rule (hard_sigmoid, hard_silu)",
+   "reference": "jax.nn.relu6",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "sici": {
+   "arity": 1,
+   "default": "review",
+   "note": "special function; review its rule and accuracy before v1",
+   "reference": "jax.scipy.special.sici",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "xlog1py": {
+   "arity": 2,
+   "default": "allow",
+   "note": "elementwise math kernel with its own derivative rule",
+   "reference": "jax.scipy.special.xlog1py",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "xlogy": {
+   "arity": 2,
+   "default": "allow",
+   "note": "elementwise math kernel with its own derivative rule",
+   "reference": "jax.scipy.special.xlogy",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  },
+  "zeta": {
+   "arity": 2,
+   "default": "review",
+   "note": "special function; review its rule and accuracy before v1",
+   "reference": "jax.scipy.special.zeta",
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ]
+  }
+ },
+ "named_functions_scan": "Pinned JAX 0.10.2: every public function in jax.nn, jax.numpy and jax.scipy.special was traced; 32 contain a custom_jvp_call. A kernel is a function whose trace is one custom_jvp_call: 19 distinct kernels (softplus is logaddexp). The rest call a kernel (hard_sigmoid, hard_silu, hard_swish, mish, log_sigmoid) or hold several or an internal one (sinc, entr, expi, expn, kl_div, rel_entr, wofz) and lower through their kernels or are refused.",
+ "rule": "Any op not listed is refused. Refused entries are listed to record the decision. Review entries are admitted for development only and flagged; each needs a decision before Level 4 v1. Roles: forward (inference graph), init (parameter construction from Carbon's key), loss.",
+ "schema": "carbon.development.level4-allowlist.v5",
+ "status": "DEVELOPMENT prospective v8: v7 plus every pure, deterministic array op the graph route can run (OWNER-GRAPH-OPS-OPEN-01, Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025); v0-v7 bytes and historical graph interpretation remain unchanged.",
+ "version": "level4-allowlist-v8"
+}

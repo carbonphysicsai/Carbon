@@ -57,6 +57,7 @@ def large_profile_applied(monkeypatch):
 
 V6 = "level4-allowlist-v6"
 V7 = "level4-allowlist-v7"
+V8 = "level4-allowlist-v8"
 #: The C-03 CPU profile's digest before this change (pinned elsewhere too).
 C03_CPU_DIGEST = (
     "sha256:0d1168fb5bbffde24617c54df2cedfcb092d73b97f88fa8aae400f430869347f"
@@ -377,7 +378,7 @@ def test_exactly_the_v7_versions_resolve_to_the_larger_resources():
             sv.graph_allowlist_bytes(challenge_id, version),
         ):
             served = Allowlist(raw).version
-            expected = V7 if served == V7 else None
+            expected = served if served in (V7, V8) else None
             assert worker_resources_version(served) == expected, (
                 challenge_id,
                 version,
@@ -385,7 +386,7 @@ def test_exactly_the_v7_versions_resolve_to_the_larger_resources():
             )
         if worker_resources_version(served) is not None:
             large.append((challenge_id, version))
-    assert set(large) == set(sv.V7)
+    assert set(large) == set(sv.V7) | set(sv.V8)
     assert large and len(large) < len(vr.VERSIONS)
 
 
