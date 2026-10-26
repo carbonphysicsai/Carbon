@@ -28,7 +28,7 @@ shell, at the repository root, with the repository's Python environment.
 The first way is browser sign-in, which writes no token file:
 
 ```bash
-npx wrangler@4 login
+npx wrangler@4.151.3 login
 ```
 
 The second way is an API token read from a file. Create the token in the
@@ -78,7 +78,7 @@ and send the code to the Carbon Validator session.
 ## 3. Deploy
 
 ```bash
-npx wrangler@4 deploy --config carbon/dashboard/wrangler.dashboard.toml --assets ~/carbon-dashboard-site
+npx wrangler@4.151.3 deploy --config carbon/dashboard/wrangler.dashboard.toml --assets ~/carbon-dashboard-site
 ```
 
 Then give the Worker its feed settings as secrets. This takes effect at once.
@@ -88,7 +88,7 @@ python -c "import json,pathlib; h=pathlib.Path.home()/'.config/carbon'; print(js
 ```
 
 ```bash
-npx wrangler@4 secret bulk ~/.config/carbon/dashboard-secrets.json --config carbon/dashboard/wrangler.dashboard.toml
+npx wrangler@4.151.3 secret bulk ~/.config/carbon/dashboard-secrets.json --config carbon/dashboard/wrangler.dashboard.toml
 ```
 
 ## 4. The custom domain (one-time)
@@ -147,7 +147,7 @@ python -m carbon.challenge_validator.network_snapshot build --config ~/.config/c
 ```
 
 ```bash
-npx wrangler@4 r2 object put "<feed bucket>/valv2/network.json" --file <feed directory>/network.json --content-type application/json --remote
+npx wrangler@4.151.3 r2 object put "<feed bucket>/valv2/network.json" --file <feed directory>/network.json --content-type application/json --remote
 ```
 
 A systemd timer does it. Make the service `Type=oneshot` with those two
@@ -161,7 +161,7 @@ next run retries.
 `~/.config/carbon/dashboard-snapshot-urls`, then set it as a secret:
 
 ```bash
-npx wrangler@4 secret put SNAPSHOT_URLS --config carbon/dashboard/wrangler.dashboard.toml < ~/.config/carbon/dashboard-snapshot-urls
+npx wrangler@4.151.3 secret put SNAPSHOT_URLS --config carbon/dashboard/wrangler.dashboard.toml < ~/.config/carbon/dashboard-snapshot-urls
 ```
 
 A snapshot older than 30 minutes, by its block's chain timestamp, is refused
@@ -248,7 +248,7 @@ code names what the Worker's checks found; send it to the Carbon Validator sessi
 - **Roll back:**
 
   ```bash
-  npx wrangler@4 rollback --config carbon/dashboard/wrangler.dashboard.toml
+  npx wrangler@4.151.3 rollback --config carbon/dashboard/wrangler.dashboard.toml
   ```
 
 - **Cost.** Static asset requests are free on the Workers Free plan. Requests
