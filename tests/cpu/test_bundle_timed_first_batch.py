@@ -51,7 +51,9 @@ def _run(monkeypatch, *, rows, batch):
     )
     monkeypatch.setattr(worker, "reconstruct_public", lambda *a, **k: built)
     monkeypatch.setattr(worker, "infer_public", infer)
-    monkeypatch.setattr(worker, "compare_build_inference_predictions", lambda *a, **k: None)
+    monkeypatch.setattr(
+        worker, "compare_build_inference_predictions", lambda *a, **k: None
+    )
     worker.reconstruct_and_infer_public(
         None,
         owner="o",

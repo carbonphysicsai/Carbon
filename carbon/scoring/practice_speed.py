@@ -131,7 +131,5 @@ def from_receipt(kind, receipt, *, designs):
             "cold query: model load, compile and one inference over the first "
             f"{timed_designs} practice designs"
         )
-        block["label"] = (
-            f"measured on the first {timed_designs} designs; {LABEL}"
-        )
+        block["label"] = f"measured on the first {timed_designs} designs; {LABEL}"
     return block

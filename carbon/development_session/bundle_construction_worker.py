@@ -1901,7 +1901,7 @@ def reconstruct_and_infer_public(
     # graph refuses (`input_aval_mismatch`; Cooling 1.4 '-timed'). A query larger
     # than that batch is therefore timed on its first `len(example)` rows - never
     # by changing the frozen inference program - and the speed result says so.
-    timed_rows = len(example) if len(inputs) > len(example) else len(inputs)
+    timed_rows = min(len(inputs), len(example))
 
     def timed_query():
         return infer_public(
