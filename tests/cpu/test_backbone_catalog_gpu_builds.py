@@ -638,7 +638,11 @@ def _relax(source):
 def test_lsm_has_no_gpu_twin_and_a_gpu_ref_for_it_is_refused(tmp_path, monkeypatch):
     from carbon.backbone_catalog import gpu_receipt
 
-    assert gpu_build.NO_GPU_TWIN == ("thuml.LSM", "f08.thuml.LSM")
+    assert gpu_build.NO_GPU_TWIN[:2] == ("thuml.LSM", "f08.thuml.LSM")
+    # ... and the same entry under its v2 ids.
+    assert {n for n in gpu_build.NO_GPU_TWIN[2:]} == {
+        f"v2.{c}.thuml.LSM" for c in ("motor", "cooling", "f08", "f02")
+    }
     assert "thuml.LSM" not in gpu_receipt.SMOKE_ONLY
     lsm = next(e for e in pipeline.load()["entries"] if e["catalog_id"] == "thuml.LSM")
     assert "bundle_refs" not in lsm

@@ -46,6 +46,7 @@ def test_a_twin_is_not_offered_without_a_gpu_receipt(catalog_id, runtime):
     item = listing.entry(catalog_id)
     assert runtime not in gpu_receipt.offered_runtimes(item)
     recipe = {
+        "schema": "carbon.construction-recipe.v1",
         "challenge": {
             "id": item["challenges"][0]["id"],
             "version": item["challenges"][0]["version"],
