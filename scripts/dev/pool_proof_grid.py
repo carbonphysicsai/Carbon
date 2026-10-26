@@ -35,6 +35,25 @@ def _binding(path, kind, version):
     return getattr(importlib.import_module(module), name)(kind, version)
 
 
+def _raw_rows(document, target_id, binding):
+    """The original-order raw output rows of one target's `pool-raw-<tid>.json`
+    (`{"target_id", "design_names", "raw_outputs"}`, the pool merge's own document), after checking
+    that it is this target's and names the binding's design variables in the same order. A document
+    that is not is a STOP (the truths belong to another target or interface), never a guess.
+    """
+    from carbon.scoring import pool_plugin
+
+    if (
+        type(document) is not dict
+        or set(document) != {"target_id", "design_names", "raw_outputs"}
+        or document["target_id"] != target_id
+        or list(document["design_names"]) != list(binding.design_names)
+        or type(document["raw_outputs"]) is not list
+    ):
+        raise pool_plugin.TruthCheckStop("pool_raw_document_is_not_this_targets")
+    return document["raw_outputs"]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     for flag in ("kind", "version", "binding", "pools-dir", "sets", "grid", "out-dir"):
@@ -158,7 +177,7 @@ def main(argv=None):
                 raw = json.loads(
                     (pools / f"pool-raw-{tid}.json").read_text(encoding="utf-8")
                 )
-                specs[tid] = pool_grader.attach_raw(spec, raw)
+                specs[tid] = pool_grader.attach_raw(spec, _raw_rows(raw, tid, binding))
             record = pool_gates.check_truths_pass_gates(binding, list(specs.values()))
         except pool_plugin.TruthCheckStop as stop:
             print(f"STOP, back to the Validator: {stop}", file=sys.stderr)
