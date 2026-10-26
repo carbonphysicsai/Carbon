@@ -386,10 +386,13 @@ def test_cooling_1_4_raw_u_moves_the_decoded_peak_by_u_die_and_the_decoded_dp_by
     assert len(seen) > 1  # it varies with the row, never an absolute number
 
 
-def test_cooling_1_3_native_rows_use_the_same_three_percent_rule():
+def test_cooling_native_rows_use_the_same_three_percent_rule():
+    """A Cooling version with no output encoding in the registry (1.2) answers in the native row; 1.3 and later are
+    encoded (`version_registry`), so the rule on a native row is read only where the registry says native.
+    """
     bound = pa.binding(
         "cooling",
-        "1.3",
+        "1.2",
         u=_U["cooling"],
         serve_good=lambda rows: [],
         serve_train=lambda rows: [],

@@ -160,8 +160,8 @@ def test_f08_1_4_and_f02_2_3_register_as_v7_catalog_versions():
     assert f02_train.load_public_train("2.3")["train"] == (
         f02_train.load_public_train("2.2")["train"]
     )
-    # 1.5 / 2.4 are graph route v2 (`version_registry`); 1.6 / 2.5 are not.
-    for key in ((F08, "1.6"), (F02, "2.5")):
+    # 1.5 / 2.4 and the pool versions 1.6 / 2.5 are graph route v2 (`version_registry`); 1.7 / 2.6 are not.
+    for key in ((F08, "1.7"), (F02, "2.6")):
         with pytest.raises(sv.UnregisteredVersion):
             sv.graph_allowlist_bytes(*key)
 

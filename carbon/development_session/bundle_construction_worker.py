@@ -1533,10 +1533,16 @@ def _infer_state(
     staged_files: dict[str, bytes] | None = None,
     rebuild_wall_seconds: int | None = None,
     practice_timing: bool = False,
+    single_call: dict | None = None,
 ) -> BundleInferenceResult:
     """`program` and `staged_files` serve a graph adapter's own inference
     program and its extra trusted modules (`direct_graph_construction_worker`).
-    Omitted, this is the plain inference program."""
+    Omitted, this is the plain inference program.
+
+    `single_call` (`{"indices": [...], "warmup": array}`) is the pool versions' speed
+    stage (`single_call_timing`): it needs the matching derived `program`, runs the
+    sampled rows one call each after one public warm-up call, and the receipt carries
+    the per-call seconds. Omitted, nothing changes."""
     if provenance not in (
         "DIRECT_BUNDLE_PUBLIC_INFERENCE",
         "DIRECT_GRAPH_PUBLIC_INFERENCE",
@@ -1570,6 +1576,16 @@ def _infer_state(
         if input_name not in ("inputs/forcing", "inputs/features"):
             raise RecipeRefused("direct_inference_input_name_invalid")
         control["input_name"] = input_name
+    if single_call is not None:
+        from . import single_call_timing
+
+        if program is None or measure_query or not per_case:
+            raise RecipeRefused("single_call_needs_its_own_program")
+        warmup_bytes = _tensors(inputs=single_call["warmup"])
+        control["single_call"] = single_call_timing.control_block(
+            single_call["indices"], _digest(warmup_bytes), rows=len(inputs)
+        )
+        files[single_call_timing.WARMUP_FILE] = warmup_bytes
     files.update(
         {
             "recipe.json": recipe.canonical_bytes,
@@ -1610,9 +1626,13 @@ def _infer_state(
             raise ValueError("bundle inference output malformed") from None
         expected_receipt = {
             "schema": (
-                "carbon.development.bundle-inference.v2"
-                if measure_query
-                else "carbon.development.bundle-inference.v1"
+                "carbon.development.bundle-inference.v3"
+                if single_call is not None
+                else (
+                    "carbon.development.bundle-inference.v2"
+                    if measure_query
+                    else "carbon.development.bundle-inference.v1"
+                )
             ),
             "recipe_digest": recipe.digest,
             "state_digest": state_digest,
@@ -1663,6 +1683,16 @@ def _infer_state(
             ):
                 raise ValueError("bundle inference measurement differs")
             expected_receipt["measurement"] = measured
+        if single_call is not None:
+            from . import single_call_timing
+
+            try:
+                single_call_timing.check_receipt_block(
+                    receipt.get("single_call"), control=control["single_call"]
+                )
+            except single_call_timing.SingleCallRefused:
+                raise ValueError("bundle inference single-call differs") from None
+            expected_receipt["single_call"] = receipt["single_call"]
         if type(predictions) is not list or receipt != expected_receipt:
             raise ValueError("bundle inference output identity differs")
         return raw, predictions, receipt

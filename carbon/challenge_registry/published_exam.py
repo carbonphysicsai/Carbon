@@ -825,13 +825,56 @@ _COOLING = {
     },
 }
 
+_POOL_GATES = [
+    _gate(
+        "physics_pool",
+        "the Challenge's physics gates hold on every design your model answers in the "
+        "exam, in range and out of range; a violation fails the whole submission and "
+        "names only the gate",
+    ),
+    _gate(
+        "speed",
+        "the median seconds of single-design calls on 20 sealed designs is at most "
+        "the ceiling",
+    ),
+]
+
+
+def _pool_block(own, scope, scoring_version):
+    """The pool-graded successor of a launch version: the same material and gates, the pool score and its gates."""
+    return {
+        **own,
+        "scope": scope,
+        "scoring_version": scoring_version,
+        "score": pool_score(own["score"]["legs"][0]["measures"]),
+        "gates": [*own["gates"], *_POOL_GATES],
+    }
+
+
+_F08_POOL = _pool_block(_F08, "f08-ribbed-bracket 1.6", "f08-pool-sealed-v1")
+_F02_POOL = _pool_block(_F02, "f02 2.5", "f02-pool-sealed-v1")
+_MOTOR_POOL = _pool_block(
+    _MOTOR, "electric-motor-magnetics 1.5", "motor-pool-sealed-v1"
+)
+_COOLING_POOL = _pool_block(_COOLING, "chip-cold-plate 1.5", "cooling-pool-sealed-v1")
+
 #: Versions graded by the pool grader (their `_BY_VERSION` entry must carry a
-#: `pool_score(...)` score). Empty until the Test Engineer registers the new
-#: evaluation versions; the block of every other version is unchanged.
-_POOL_VERSIONS = frozenset()
+#: `pool_score(...)` score); the block of every other version is unchanged.
+_POOL_VERSIONS = frozenset(
+    {
+        ("f08-ribbed-bracket", "1.6"),
+        ("f02", "2.5"),
+        ("electric-motor-magnetics", "1.5"),
+        ("chip-cold-plate", "1.5"),
+    }
+)
 
 _BY_VERSION = {
     ("f08-ribbed-bracket", "1.5"): _F08,
+    ("f08-ribbed-bracket", "1.6"): _F08_POOL,
+    ("f02", "2.5"): _F02_POOL,
+    ("electric-motor-magnetics", "1.5"): _MOTOR_POOL,
+    ("chip-cold-plate", "1.5"): _COOLING_POOL,
     ("f02", "2.4"): _F02,
     ("electric-motor-magnetics", "1.4"): _MOTOR,
     ("chip-cold-plate", "1.4"): _COOLING,

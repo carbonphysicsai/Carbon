@@ -101,7 +101,7 @@ def _valid_geometry(x) -> bool:
     return width / 4 - rib / 2 > 10 and min((length - relief) / 2, width / 2 - 10) >= 6
 
 
-def _with_probes(bank, cases, names, dtype, challenge="f08"):
+def _with_probes(bank, cases, names, dtype, challenge="f08", pool=None):
     """``bank`` with the private response probes appended as unreferenced rows.
     The seed is the batch input content (never its ids or order), so every
     validator copy of one exam gets the same probes."""
@@ -118,11 +118,12 @@ def _with_probes(bank, cases, names, dtype, challenge="f08"):
         valid=_valid_geometry,
         bases=PROBE_BASES,
         dtype=dtype,
+        pool=pool,
     )
 
 
 def sealed_bank(
-    document, records, *, version="1.2", rule=PACK_RULE, probes=True
+    document, records, *, version="1.2", rule=PACK_RULE, probes=True, pool=None
 ) -> dict:
     """The sealed batch as a bank in ``physical_pack.development_bank``'s format,
     with (default) the private response probes of physics half v1 appended."""
@@ -233,7 +234,9 @@ def sealed_bank(
         "decision_coverage": DECISION_COVERAGE,
         "population": POPULATION,
     }
-    return _with_probes(bank, cases, names, dtype) if probes else bank
+    if pool is not None and not probes:
+        raise SealedPackRefused("f08_sealed_pool_needs_probes")
+    return _with_probes(bank, cases, names, dtype, pool=pool) if probes else bank
 
 
 def private_roles(bank) -> dict[str, bytes]:

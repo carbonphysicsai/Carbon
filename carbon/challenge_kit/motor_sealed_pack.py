@@ -119,7 +119,7 @@ GRID_EVIDENCE_SCHEMA = "carbon.motor.sealed-grid-batch-evidence.v1"
 PROBE_BASES = 4
 
 
-def _with_probes(bank, cases, dtype, challenge="motor"):
+def _with_probes(bank, cases, dtype, challenge="motor", pool=None):
     """``bank`` with the private probes appended as unreferenced rows, seeded by
     the batch input content (never ids or order) inside the buildable region."""
     from carbon.scoring import motor_physics, probe_design
@@ -132,11 +132,12 @@ def _with_probes(bank, cases, dtype, challenge="motor"):
         valid=motor_physics.valid_geometry,
         bases=PROBE_BASES,
         dtype=dtype,
+        pool=pool,
         extra=motor_physics.probe_extra(),
     )
 
 
-def grid_bank(document, records, *, version="1.1", probes=True) -> dict:
+def grid_bank(document, records, *, version="1.1", probes=True, pool=None) -> dict:
     """A sealed grid batch (OWNER-MOTOR-EXAM-GRID-01) as a bank: the placed
     bank's checks and shape, one cohort `decision_sealed_grid` for all 30 cells
     and each record naming its grid cell, `design_id` (`design-0..4`) and
@@ -182,7 +183,9 @@ def grid_bank(document, records, *, version="1.1", probes=True) -> dict:
         "reference_records": out_records,
         "solver_evidence": evidence,
     }
-    return _with_probes(grid, cases, "<f8") if probes else grid
+    if pool is not None and not probes:
+        raise SealedPackRefused("motor_sealed_pool_needs_probes")
+    return _with_probes(grid, cases, "<f8", pool=pool) if probes else grid
 
 
 def private_roles(bank) -> dict[str, bytes]:

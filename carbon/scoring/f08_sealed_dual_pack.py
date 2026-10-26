@@ -44,8 +44,14 @@ VERSION = "1.2"
 #: alone and stays as history under its own evaluation version, never re-scored.
 EVALUATION_VERSION = "f08-dual-sealed-grid-8x1-v2"
 CASE_ID = "f08-sealed-batch-8"
+#: Pool-graded versions: the sealed grader's cells and probes plus the pool set (`pool_exam`).
+POOL_VERSIONS = {"1.6": ("f08-pool-sealed-v1", "f08-sealed-pool-set")}
 VERSIONS = {
-    version: (EVALUATION_VERSION, CASE_ID) for version in ("1.2", "1.3", "1.4", "1.5")
+    **{
+        version: (EVALUATION_VERSION, CASE_ID)
+        for version in ("1.2", "1.3", "1.4", "1.5")
+    },
+    **POOL_VERSIONS,
 }
 OUTPUT = _f08.OUTPUT
 FILES = (
@@ -264,14 +270,34 @@ def is_sealed_bank(bank) -> bool:
     )
 
 
+def is_pool_bank(bank) -> bool:
+    """Whether a bank is a pool version's: the sealed grid (and its probes) plus at least one pool row
+    (cohort `pool_design`, inputs only), nothing else."""
+    from carbon.scoring import pool_version
+
+    return pool_version.is_pool_bank(bank, is_sealed_bank)
+
+
 def adapter(version):
-    """The sealed adapter for exactly ``version``, or None."""
+    """The sealed adapter for exactly ``version``, or None. A pool-graded version's is the
+    `pool_version.PoolVariant` (this module's measure plus the pool exam)."""
+    if version in POOL_VERSIONS:
+        from carbon.scoring import pool_version
+
+        evaluation, case_id = POOL_VERSIONS[version]
+        return pool_version.variant(
+            _ADAPTER, version, evaluation, case_id, challenge_id=CHALLENGE
+        )
     return physical.versioned(_ADAPTER, version)
 
 
 def adapter_for_bank(bank, version):
     """Dispatch by the bank's declared population: a sealed grid bank gets this adapter, a development bank F08's
     own, the previous flat sealed format F08's own sealed adapter, any other refuses."""
+    if version in POOL_VERSIONS:
+        if is_pool_bank(bank):
+            return adapter(version)
+        raise Refused("f08_bank_population")
     if is_sealed_bank(bank):
         return adapter(version)
     cohorts = set(bank.get("cohorts", ())) if type(bank) is dict else set()
@@ -305,7 +331,7 @@ def write_sealed_pack(root, bank, *, version=VERSION, **platform):
         bank,
         challenge=CHALLENGE,
         version=version,
-        is_sealed_bank=is_sealed_bank,
+        is_sealed_bank=is_pool_bank if version in POOL_VERSIONS else is_sealed_bank,
         refusal=Refused("f08_bank_population"),
         pack_suffix=PACK_SUFFIX,
         **platform,
@@ -320,6 +346,7 @@ __all__ = [
     "adapter",
     "adapter_for_bank",
     "definition",
+    "is_pool_bank",
     "is_sealed_bank",
     "measure",
     "producer_digest",

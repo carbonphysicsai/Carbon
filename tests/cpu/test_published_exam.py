@@ -16,7 +16,9 @@ from carbon.challenge_registry import published_exam as pe
 EVERYTHING = challenges.HostFacts(
     frozenset({"docker_cli", "trusted_worker_image", "jax", "optax"})
 )
-SERVED = pe.served()
+#: The pool-graded versions serve the v2 block (tests/cpu/test_published_exam_pool.py); the v1 block's tests
+#: below run over the four classic launch versions.
+SERVED = [key for key in pe.served() if key not in pe._POOL_VERSIONS]
 F08, F02 = ("f08-ribbed-bracket", "1.5"), ("f02", "2.4")
 MOTOR, COOLING = ("electric-motor-magnetics", "1.4"), ("chip-cold-plate", "1.4")
 ROOT = Path(__file__).resolve().parents[2]
@@ -72,6 +74,13 @@ def _module(name):
 
 def test_the_four_launch_versions_serve_a_block_and_others_serve_none():
     assert SERVED == sorted([F08, F02, MOTOR, COOLING])
+    assert sorted(pe._POOL_VERSIONS) == [
+        ("chip-cold-plate", "1.5"),
+        ("electric-motor-magnetics", "1.5"),
+        ("f02", "2.5"),
+        ("f08-ribbed-bracket", "1.6"),
+    ]
+    assert pe.served() == sorted([*SERVED, *pe._POOL_VERSIONS])
     for key in SERVED:
         assert _block(key)["schema"] == pe.SCHEMA
         assert _block(key)["scope"].startswith(key[0])

@@ -38,7 +38,8 @@ CHALLENGE_VERSION = "1.1"
 #: batches: 1.1, the backbone catalog 1.2 and the v7 catalog 1.3, which change
 #: only the construction source (Validator, 2026-10-20). The batches stay 1.1's.
 #: 1.4 (graph route v2) changes construction only, as 1.2 and 1.3 did.
-SERVED_VERSIONS = (CHALLENGE_VERSION, "1.2", "1.3", "1.4")
+#: 1.5 (pool grade) adds its pool rows to the same sealed cells (`pool_version`).
+SERVED_VERSIONS = (CHALLENGE_VERSION, "1.2", "1.3", "1.4", "1.5")
 RULE_SCHEMA = "carbon.motor.sealed-batch-rule.v1"
 DOCUMENT_SCHEMA = "carbon.motor.sealed-batch.v1"
 DEPLOYMENT_SCHEMA = "carbon.motor.sealed-deployment.v1"

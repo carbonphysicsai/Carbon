@@ -51,6 +51,17 @@ AT_600 = {
     ("f08-ribbed-bracket", "1.5"): (
         "ae6be62f31881aa2ce41e5dd631349672d101fdb4b351e9a3260f4bf0e8e3650"
     ),
+    # the pool-graded versions (M2/M3; new, pre-publish): the same form, computed at their registration
+    ("chip-cold-plate", "1.5"): (
+        "b38c41dab4e087f54602a4a581658044976035bc0edb5782129a770424c1ab5c"
+    ),
+    ("electric-motor-magnetics", "1.5"): (
+        "24040368eb188187769166a542af6a47d94069da218ccc00c9fad0577a1e171c"
+    ),
+    ("f02", "2.5"): "d846146d851e09ca0091ba1cb4a23a253cd5355cff396c44a3e6bb6bfed9cfb5",
+    ("f08-ribbed-bracket", "1.6"): (
+        "56e2cf8577153a9e15c460a0a846c87ed70fc54c8792fbe1141cf9377fa0d175"
+    ),
 }
 #: The two new versions whose served catalog the catalog freeze moved (frozen
 #: catalog 0530c1d41, "catalog v2 entries"): the catalog digest served at rc10
@@ -79,6 +90,16 @@ NEW_KITS = {
     ("f02", "2.4"): "eec25b85d0cd31b5b35db0eb6441cb8428b2c2f874de7c9c6512c16807071dfa",
     ("f08-ribbed-bracket", "1.5"): (
         "c50a11fd96f410b633ddf9440b760667a8da5dc2ad38808986dadf14d2e22afc"
+    ),
+    ("chip-cold-plate", "1.5"): (
+        "7bfb4366cba785d11546aa6882ae13c3a457cba6e88df02b662becf61d68ee72"
+    ),
+    ("electric-motor-magnetics", "1.5"): (
+        "391dbddcf047326654b172f3e8b34cd6fa10070cbdec071981867e8b4e0f186f"
+    ),
+    ("f02", "2.5"): "567f31adcab3cb3ab0b7385eb2c1a89f63016a61fa130489c6ea3b5eb87e04e1",
+    ("f08-ribbed-bracket", "1.6"): (
+        "44a9dbf57444cdf6b484fe9b76aa690c3acb7bf24667060dc2971f6b3220d4d8"
     ),
 }
 #: The shared C-03 profiles (CPU build, G5 compile) at rc8 1ea4c49ad.

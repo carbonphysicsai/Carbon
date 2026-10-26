@@ -64,6 +64,23 @@ MOVED = {
         "91413de3c6663533f004ff72398b0d122057b4b1dfde4250125e8eb17ba88b2b",
         "c50a11fd96f410b633ddf9440b760667a8da5dc2ad38808986dadf14d2e22afc",
     ),
+    # The pool-graded versions (M2/M3; new, pre-publish): old = the kit with the pre-publication profile put back.
+    ("f08-ribbed-bracket", "1.6"): (
+        "00e33107ce20ae438172c13ef52a168b3324c95999909c4ff388b0277157dba8",
+        "44a9dbf57444cdf6b484fe9b76aa690c3acb7bf24667060dc2971f6b3220d4d8",
+    ),
+    ("f02", "2.5"): (
+        "3b069925092b317c2a6cb56c5e6e249cfd3992821d9d4f1571720f2167350caa",
+        "567f31adcab3cb3ab0b7385eb2c1a89f63016a61fa130489c6ea3b5eb87e04e1",
+    ),
+    ("electric-motor-magnetics", "1.5"): (
+        "2c6257bbb147e832eb4ff788a83f7aa9f9749417c1cf6cf3a2da0a6678b30378",
+        "391dbddcf047326654b172f3e8b34cd6fa10070cbdec071981867e8b4e0f186f",
+    ),
+    ("chip-cold-plate", "1.5"): (
+        "645a2b205484bfae21f0bd2c765e5c47f7b99cf9ebf47c61894f45af97b58a78",
+        "7bfb4366cba785d11546aa6882ae13c3a457cba6e88df02b662becf61d68ee72",
+    ),
 }
 
 

@@ -32,6 +32,9 @@ OPAQUE = ("case_id", "design_id", "condition_id")
 #: The cohort of the private physics probes (probe_design.PROBE_COHORT): rows that
 #: follow the exam cells and carry no design or condition.
 PROBE_COHORT = "probe_response"
+#: The cohort of a pool-graded exam's design-search rows (`probe_design.POOL_COHORT`): derived from the
+#: batch's pool material, never batch cells; they follow the probes in canonical order.
+POOL_COHORT = "pool_design"
 #: The bank's per-row lists.
 PER_ROW = (
     "case_ids",
@@ -306,7 +309,10 @@ def canonicalize(bank, *, opaque=OPAQUE, objective=None):
     def is_probe(i):
         return bank["cohorts"][i] == PROBE_COHORT
 
-    cells = [i for i in range(n) if not is_probe(i)]
+    def is_pool(i):
+        return bank["cohorts"][i] == POOL_COHORT
+
+    cells = [i for i in range(n) if not is_probe(i) and not is_pool(i)]
     design_rank = condition_rank = None
     if "design_id" in opaque and any("design_id" in records[i] for i in cells):
         design_rank = _group_ranks(
@@ -330,6 +336,8 @@ def canonicalize(bank, *, opaque=OPAQUE, objective=None):
         # canonical batch rebuilt); every other row orders by content.
         if is_probe(i):
             return (1, 0, 0, _probe_key(records[i]))
+        if is_pool(i):
+            return (2, 0, 0, keys[i])
         return (
             0,
             design_rank[record["design_id"]] if design_rank else 0,
@@ -343,7 +351,11 @@ def canonicalize(bank, *, opaque=OPAQUE, objective=None):
         order = sorted(
             range(n),
             key=lambda i: (
-                (1, _probe_key(records[i])) if is_probe(i) else (0, bank["case_ids"][i])
+                (1, _probe_key(records[i]))
+                if is_probe(i)
+                else (
+                    (2, bank["case_ids"][i]) if is_pool(i) else (0, bank["case_ids"][i])
+                )
             ),
         )
     bank_records_in_order = [bank["reference_records"][i] for i in order]
@@ -369,7 +381,7 @@ def canonicalize(bank, *, opaque=OPAQUE, objective=None):
         for name in opaque:
             if name in old_record and name in new_record:
                 mapping[old_record[name]] = new_record[name]
-    if any(is_probe(i) for i in range(n)):
+    if any(is_probe(i) or is_pool(i) for i in range(n)):
         # The delivered query holds the probes among the cells in a seeded
         # content order (probe_design.permutation), never as a suffix. Ids were
         # assigned above, before the interleaving, as the batch rebuild assigns them.
@@ -378,7 +390,7 @@ def canonicalize(bank, *, opaque=OPAQUE, objective=None):
         cell_inputs = [
             derived["inputs"][r]
             for r in range(n)
-            if derived["cohorts"][r] != PROBE_COHORT
+            if derived["cohorts"][r] not in (PROBE_COHORT, POOL_COHORT)
         ]
         order = probe_design.permutation(n, probe_design.shuffle_seed(cell_inputs))
         derived = {

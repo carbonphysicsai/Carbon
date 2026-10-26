@@ -24,7 +24,11 @@ EVALUATION_VERSION = "cooling-dual-development-bank-48-v4"
 CASE_ID = _cooling.CASE_ID
 #: 1.4 is graph route v2 (`challenge_kit.version_registry`): 1.3's encoded
 #: TRAIN, bank and measurement under 1.3's evaluation version.
-VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in (VERSION, "1.4")}
+VERSIONS = {
+    version: (EVALUATION_VERSION, CASE_ID) for version in (VERSION, "1.4", "1.5")
+}
+#: Pool-graded: the sealed grader's cells and probes plus the pool set (`pool_exam`).
+POOL_VERSIONS = {"1.5": ("cooling-pool-sealed-v1", "cooling-sealed-pool-set")}
 FILES = (*_cooling.FILES, "cooling_encoded_dual_pack.py")
 
 
@@ -99,6 +103,13 @@ def sealed_adapter(version):
     same way, from 1.3's sealed batches. None for any other version."""
     if version not in VERSIONS:
         return None
+    if version in POOL_VERSIONS:
+        from carbon.scoring import pool_version
+
+        evaluation, case_id = POOL_VERSIONS[version]
+        return pool_version.variant(
+            _SELF, version, evaluation, case_id, challenge_id=CHALLENGE
+        )
     from carbon.scoring import physical_dual_pack as physical
 
     return physical.Variant(

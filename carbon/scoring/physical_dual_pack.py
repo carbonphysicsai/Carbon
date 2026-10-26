@@ -769,6 +769,11 @@ def _inputs(
     except ValueError as exc:
         raise refused("dual_native_role_unavailable:train_or_case_bank") from exc
     definition = roles["accuracy_definition"]
+    if getattr(adapter, "POOL_GRADED", False):
+        # The pool's truths ride in the carried batch, never in the public accuracy definition.
+        if type(bank.get("pool")) is not dict:
+            raise refused("dual_native_pool_material_missing")
+        definition = {**definition, "pool": bank["pool"]}
     identity = producer_digest(adapter)
     try:
         adapter.validate_definition(definition)
@@ -942,6 +947,12 @@ def produce(
 
     pack = roles["score_pack"]
     gates = list(pack.get("hard_gates", []))
+    # A pool-graded version's measure also takes the receipt's 20 single-call seconds (`pool_exam`).
+    pool_arguments = (
+        {"speed_call_seconds": originals.get("single_call_seconds")}
+        if getattr(adapter, "POOL_GRADED", False)
+        else {}
+    )
 
     def leg(value):
         if value is None:
@@ -961,6 +972,7 @@ def produce(
                 objective=roles["design_objective"],
                 train_raw=train_raw,
                 names=interface_names,
+                **pool_arguments,
             )
         except adapter.Refused as exc:
             raise refused("dual_native_" + exc.code) from exc
@@ -1063,6 +1075,9 @@ def bootstrap_total_se(
     )
     refused, definition, source = ctx["refused"], ctx["definition"], ctx["source"]
     roles, n, width = ctx["roles"], ctx["n"], ctx["width"]
+    if getattr(adapter, "POOL_GRADED", False):
+        # The pool grade has no case bootstrap: the weekly check is UNAVAILABLE for pool versions.
+        raise refused("bootstrap_pool_graded_unavailable")
     if type(exam_key) is not str or not exam_key.startswith("sha256:"):
         raise refused("bootstrap_exam_key_invalid")
     try:

@@ -132,6 +132,16 @@ def _motor(version):
 # -- Cooling --------------------------------------------------------------------------------------
 
 
+def _cooling_encoded(version):
+    """Whether the Cooling version answers in the law-safe encoded 32-value space: the version registry's
+    `output_encoding`, never a list of versions here."""
+    from carbon.challenge_kit import version_registry
+
+    return (
+        version_registry.entry("chip-cold-plate", version).output_encoding is not None
+    )
+
+
 def _cooling(version):
     from carbon.cold_plate import customer_decision as decision
     from carbon.cold_plate import output_encoding
@@ -145,7 +155,7 @@ def _cooling(version):
     ):
         raise PoolAdapterRefused("cooling_objective_is_not_the_registered_one")
     # Cooling 1.4 (graph route v2) returns the encoded 32-value row; 1.3 the native one.
-    encoded = version == "1.4"
+    encoded = _cooling_encoded(version)
 
     def derive(inputs, raw):
         row = _finite_row(raw)
@@ -347,7 +357,7 @@ def _cooling_gates(version):
     from carbon.cold_plate import exam, output_encoding
 
     names = tuple(g.gate_id for g in exam.GATES if g.gate_id != "paired_repeat")
-    encoded = version == "1.4"
+    encoded = _cooling_encoded(version)
 
     def failed(inputs, raw):
         row = _finite_row(raw)
@@ -467,7 +477,7 @@ def _raw_u_of(kind, version, u):
             raise PoolAdapterRefused("hydraulic_w_u_must_be_relative")
         by_element = None
         share = float(relative["relative"])
-        encoded = version == "1.4"
+        encoded = _cooling_encoded(version)
 
         def cooling_raw_u(_inputs, reference_row):
             if len(reference_row) != 32:
@@ -579,7 +589,7 @@ def _to_model_space(kind, version):
     """Cooling 1.4's model answers in the encoded 32-value space; the bank's references and a solver's truths
     are native, so they are encoded before they stand in for a model's answer. Every other row is already
     in the model's space."""
-    if (kind, version) != ("cooling", "1.4"):
+    if kind != "cooling" or not _cooling_encoded(version):
         return None
 
     def convert(reference_row):
@@ -633,6 +643,35 @@ def binding(
         probe_truth=probe_truth,
         to_model_space=_to_model_space(kind, version),
         train_spread=lambda: train_spread(kind, version, chosen),
+        physics_gates=physics_gates(kind, version),
+    )
+
+
+def official_binding(kind, version):
+    """The binding of the OFFICIAL grade of one submitted model (`pool_exam`): the Challenge's derive, its physics
+    gates and its design order, and nothing from the proof suite. The proof suite's controls (the TRAIN fit, the
+    default, the floor, the truth models' U) are not part of the official grade, so each refuses if asked.
+    """
+    from carbon.scoring import pool_plugin
+
+    chosen = adapter(kind, version)
+
+    def not_official(*_args, **_kwargs):
+        raise PoolAdapterRefused("proof_suite_input_is_not_part_of_the_official_grade")
+
+    return pool_plugin.ChallengeBinding(
+        kind=kind,
+        version=version,
+        input_names=chosen.input_names,
+        design_names=chosen.design_names,
+        derive=chosen.derive,
+        raw_u=not_official,
+        train_mean_row=not_official,
+        serve_good=not_official,
+        serve_train=not_official,
+        serve_default=not_official,
+        train_box=not_official,
+        to_model_space=_to_model_space(kind, version),
         physics_gates=physics_gates(kind, version),
     )
 

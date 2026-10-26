@@ -286,8 +286,14 @@ def _f02_24():
 
 FACTS[("f08-ribbed-bracket", "1.5")] = _f08_15()
 LABELS[("f08-ribbed-bracket", "1.5")] = dict(LABELS[("f08-ribbed-bracket", "1.4")])
+# 1.6 (pool grade) changes only the exam: the approved facts are 1.5's.
+FACTS[("f08-ribbed-bracket", "1.6")] = dict(FACTS[("f08-ribbed-bracket", "1.5")])
+LABELS[("f08-ribbed-bracket", "1.6")] = dict(LABELS[("f08-ribbed-bracket", "1.5")])
 FACTS[("f02", "2.4")] = _f02_24()
 LABELS[("f02", "2.4")] = dict(LABELS[("f02", "2.3")])
+# 2.5 (pool grade) changes only the exam: the approved facts are 2.4's.
+FACTS[("f02", "2.5")] = dict(FACTS[("f02", "2.4")])
+LABELS[("f02", "2.5")] = dict(LABELS[("f02", "2.4")])
 
 
 def value(spec, version, name):

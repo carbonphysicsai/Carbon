@@ -46,6 +46,11 @@ def entries(challenge_id=None, version=None):
 
     declared = find(challenge_id, version)
     named = declared.catalog_entries_from if declared is not None else ()
+    if named:
+        # Entries named for another version carry only under the cross-version pair rule.
+        from . import carries
+
+        carries.require_identity_only(challenge_id, version)
     offered = [{"id": challenge_id, "version": each} for each in (version, *named)]
     return [
         e

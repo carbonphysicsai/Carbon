@@ -61,10 +61,15 @@ VERSION = "1.1"
 #: alone and stays as history under its own evaluation version, never re-scored.
 EVALUATION_VERSION = "motor-dual-sealed-batch-30-v2"
 CASE_ID = "motor-sealed-batch-30"
+#: Pool-graded versions: the sealed grader's cells and probes plus the pool set (`pool_exam`).
+POOL_VERSIONS = {"1.5": ("motor-pool-sealed-v1", "motor-sealed-pool-set")}
 VERSIONS = {
     # 1.4 is graph route v2: construction only, 1.3's sealed batches.
-    version: (EVALUATION_VERSION, CASE_ID)
-    for version in ("1.1", "1.2", "1.3", "1.4")
+    **{
+        version: (EVALUATION_VERSION, CASE_ID)
+        for version in ("1.1", "1.2", "1.3", "1.4")
+    },
+    **POOL_VERSIONS,
 }
 OUTPUT = _motor.OUTPUT
 FILES = (
@@ -549,14 +554,34 @@ def is_sealed_bank(bank) -> bool:
     )
 
 
+def is_pool_bank(bank) -> bool:
+    """Whether a bank is a pool version's: the sealed grid (and its probes) plus at least one pool row
+    (cohort `pool_design`, inputs only), nothing else."""
+    from carbon.scoring import pool_version
+
+    return pool_version.is_pool_bank(bank, is_sealed_bank)
+
+
 def adapter(version):
-    """The sealed adapter for exactly ``version``, or None."""
+    """The sealed adapter for exactly ``version``, or None. A pool-graded version's is the
+    `pool_version.PoolVariant` (this module's measure plus the pool exam)."""
+    if version in POOL_VERSIONS:
+        from carbon.scoring import pool_version
+
+        evaluation, case_id = POOL_VERSIONS[version]
+        return pool_version.variant(
+            _ADAPTER, version, evaluation, case_id, challenge_id=CHALLENGE
+        )
     return physical.versioned(_ADAPTER, version)
 
 
 def adapter_for_bank(bank, version):
     """Dispatch by the bank's declared population: a sealed grid bank gets the
     sealed adapter, a development bank Motor's own, any other refuses."""
+    if version in POOL_VERSIONS:
+        if is_pool_bank(bank):
+            return adapter(version)
+        raise Refused("motor_bank_population")
     if is_sealed_bank(bank):
         return adapter(version)
     cohorts = bank.get("cohorts") if type(bank) is dict else None
@@ -612,7 +637,7 @@ def write_sealed_pack(
     chosen = adapter(version)
     if chosen is None:
         raise ValueError("no sealed Motor adapter for this Challenge version")
-    if not is_sealed_bank(bank):
+    if not (is_pool_bank(bank) if version in POOL_VERSIONS else is_sealed_bank(bank)):
         raise Refused("motor_bank_population")
     physics = physical_pack.physics_contract(CHALLENGE, version)
     if type(physics) is not dict or set(physics) != {"version", "definition"}:
@@ -683,6 +708,7 @@ __all__ = [
     "adapter",
     "adapter_for_bank",
     "definition",
+    "is_pool_bank",
     "is_sealed_bank",
     "measure",
     "producer_digest",
