@@ -64,3 +64,13 @@ def test_motor_and_cooling_practice_write_the_reconciled_summary(path):
     source = (ROOT / path).read_text(encoding="utf-8")
     assert "reconcile_eligibility" in source
     assert source.index("reconcile_eligibility") < source.index("ResearchWorkspace(self.ledger, self.owner).put")
+
+
+def test_campaign_busy_tells_a_new_launch_to_wait():
+    """Test Runner 01:57Z: the first practice call right after a launch got campaign_busy while
+    the launch run was still queued; the next step now says to wait."""
+    from scripts.dev.miner_launchpad import supervisor
+
+    step = supervisor.NEXT_ACTIONS["campaign_busy"]
+    assert "carbon_wait" in step and "QUEUED" in step and "READY" in step
+    assert "carbon_detach_campaign" in step  # the other cause is still named
