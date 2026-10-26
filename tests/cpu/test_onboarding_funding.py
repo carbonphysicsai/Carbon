@@ -27,9 +27,9 @@ def NO_PRICE():  # a stand-in for a failed price fetch
     return None
 
 
-def _context():
+def _context(network=CARBON_NETWORK):
     return ChainContext(
-        network=CARBON_NETWORK,
+        network=network,
         endpoint="wss://entrypoint-finney.opentensor.ai:443",
         provider="test",
         genesis_hash="0x" + "ab" * 32,
@@ -58,6 +58,7 @@ def test_a_funded_coldkey_reads_enough_at_its_block_before_fees():
     assert shown == {
         "schema": "carbon.onboarding.funding.v1",
         "network": CARBON_NETWORK,
+        "test_network": True,
         "netuid": CARBON_NETUID,
         "address": COLDKEY,
         "balance_rao": 1_988_319_933,
@@ -87,11 +88,9 @@ def test_usd_is_approximate_and_timed_beside_the_authoritative_tao():
             "fetched_at": "2026-10-23T19:00:00+00:00",
         }
 
-    shown = funding.funding(
-        _context(), COLDKEY, fetch=_fetch(2_000_000_000, 500_000), price=price
-    )
-    assert shown["balance_tao"] == "2.000000000"
-    assert shown["usd"] == {
+    # A real-money network has no chain context yet (`ChainContext` is the testnet's only), so
+    # the price block is checked where it is built.
+    assert funding._usd(2_000_000_000, 500_000, price) == {
         "balance": "about $601.00",
         "joining_cost": "about $0.15",
         "usd_per_tao": "300.5",
@@ -99,6 +98,23 @@ def test_usd_is_approximate_and_timed_beside_the_authoritative_tao():
         "source": "CoinGecko",
         "label": "approximate",
     }
+
+
+def test_test_tao_has_no_price_and_no_price_is_fetched_for_it():
+    """On a test network the coin is free test TAO: no dollar figure is fetched or shown,
+    even when a price source is available, and the reply says it is a test network."""
+
+    def price():
+        raise AssertionError("a test network's TAO has no price to fetch")
+
+    shown = funding.funding(
+        _context(), COLDKEY, fetch=_fetch(2_000_000_000, 500_000), price=price
+    )
+    assert shown["usd"] is None
+    assert shown["test_network"] is True
+    assert shown["balance_tao"] == "2.000000000"
+    assert funding.is_test_network("testnet") and funding.is_test_network("localnet")
+    assert not funding.is_test_network("mainnet") and not funding.is_test_network(None)
 
 
 def test_a_price_fetch_failure_shows_tao_only_and_the_request_carries_no_address():

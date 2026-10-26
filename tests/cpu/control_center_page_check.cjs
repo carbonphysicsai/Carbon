@@ -425,9 +425,11 @@ scenario("Review shows a recipe receiver the miner set as the grader for the Cha
 
 // The Fund-your-wallet step: the money-key address with copy and a local QR, a balance check, how to buy, Ready to join.
 const MONEY_KEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
-async function fundingPage(answer) {
+async function fundingPage(answer, network) {
   const state = launchable(world({setup: {...copy(fx.setups.none), registered_hotkey: null}}));
   state.script.push({match: r => r.path === "/api/v1/onboarding/funding", answer});
+  // A real-money network, for the wording that differs from the test network's (the default).
+  if (network) state.script.push({keep: true, match: r => r.path === "/api/v1/onboarding/requirements", answer: {body: {...fx.onboarding, network, netuid: 1}}});
   const page = await open(state);
   page.go("#setup/register");
   await page.advance(0);
@@ -449,7 +451,7 @@ scenario("the funding step rejects a non-address, then shows the address with co
   clean(page);
 });
 const FUNDING_NOTE = "Read at block 123. Your wallet shows the cost again when you sign; that figure is the one that counts.";
-const funded = extra => ({schema: "carbon.onboarding.funding.v1", network: "testnet", netuid: 567, address: MONEY_KEY, balance_rao: 1500000000, balance_tao: "1.500000000", joining_cost_rao: 500000, joining_cost_tao: "0.000500000", enough: true, label: "current estimate; your wallet confirms the exact amount when you sign", usd: null, enough_words: "Enough to join, at block 123, before transaction fees.", read_at_block: 123, note: FUNDING_NOTE, ...extra});
+const funded = extra => ({schema: "carbon.onboarding.funding.v1", network: "testnet", test_network: true, netuid: 567, address: MONEY_KEY, balance_rao: 1500000000, balance_tao: "1.500000000", joining_cost_rao: 500000, joining_cost_tao: "0.000500000", enough: true, label: "current estimate; your wallet confirms the exact amount when you sign", usd: null, enough_words: "Enough to join, at block 123, before transaction fees.", read_at_block: 123, note: FUNDING_NOTE, ...extra});
 scenario("the balance check says Ready to join before transaction fees, shows the block and the note word for word, and never puts the address in a URL", async () => {
   const enough = await fundingPage({body: funded({})});
   await enough.page.type(one(enough.page, "#setup-fund-address"), MONEY_KEY);
@@ -458,7 +460,7 @@ scenario("the balance check says Ready to join before transaction fees, shows th
   assert.deepEqual(post.body, {address: MONEY_KEY});
   assert.ok(!post.path.includes(MONEY_KEY) && !String(enough.page.window.location.href).includes(MONEY_KEY), "the address is in the POST body only");
   const text = enough.page.text("setup-fund-result");
-  assert.match(text, /holds 1\.5 TAO\. Joining costs 0\.0005 TAO\./);
+  assert.match(text, /holds 1\.5 test TAO\. Joining costs 0\.0005 test TAO\./);
   assert.ok(text.includes("Current estimate; your wallet confirms the exact amount when you sign."));
   assert.ok(text.includes("Enough to join, at block 123, before transaction fees."));
   assert.ok(text.includes(FUNDING_NOTE), "the note, word for word");
@@ -469,11 +471,26 @@ scenario("the balance check says Ready to join before transaction fees, shows th
   await short.page.type(one(short.page, "#setup-fund-address"), MONEY_KEY);
   await short.page.press(one(short.page, "#setup-fund-check"));
   assert.equal(all(short.page, "#setup-fund-ready").length, 0);
-  assert.match(short.page.text("setup-fund-result"), /Not enough to join, at block 123, before transaction fees\. You need about 0\.0003 more TAO/);
+  assert.match(short.page.text("setup-fund-result"), /Not enough to join, at block 123, before transaction fees\. You need about 0\.0003 more test TAO/);
   clean(short.page);
 });
-scenario("the funding check shows the controller's dollar strings only when it sends a price, labelled approximate with source and time", async () => {
-  const priced = await fundingPage({body: funded({usd: {balance: "about $450.00", joining_cost: "about $0.15", usd_per_tao: "300", fetched_at: "2026-10-23T18:00:00Z", source: "CoinGecko", label: "approximate"}})});
+scenario("on the test network the funding step speaks of free test TAO and shows no dollar figure even if a price is sent", async () => {
+  const {page} = await fundingPage({body: funded({usd: {balance: "about $450.00", joining_cost: "about $0.15", usd_per_tao: "300", fetched_at: "2026-10-23T18:00:00Z", source: "CoinGecko", label: "approximate"}})});
+  const lede = page.text("setup-fund");
+  assert.match(lede, /Get some test TAO/);
+  assert.match(lede, /free, it has no money value and it is not bought: it comes from the test network's faucet or from the Carbon team/);
+  assert.match(lede, /How do I get test TAO\?/);
+  assert.doesNotMatch(lede, /How do I buy TAO|exchange|Coinbase|Kraken/);
+  assert.equal(all(page, "#setup-fund .fund-links a").length, 0, "no exchange links on the test network");
+  await page.type(one(page, "#setup-fund-address"), MONEY_KEY);
+  await page.press(one(page, "#setup-fund-check"));
+  const text = page.text("setup-fund-result");
+  assert.match(text, /holds 1\.5 test TAO\. Joining costs 0\.0005 test TAO\./);
+  assert.doesNotMatch(text, /\$|Dollar amounts/, "no price for test TAO");
+  clean(page);
+});
+scenario("on a real-money network the funding check shows the controller's dollar strings only when it sends a price, labelled approximate with source and time", async () => {
+  const priced = await fundingPage({body: funded({network: "mainnet", test_network: false, usd: {balance: "about $450.00", joining_cost: "about $0.15", usd_per_tao: "300", fetched_at: "2026-10-23T18:00:00Z", source: "CoinGecko", label: "approximate"}})}, "mainnet");
   await priced.page.type(one(priced.page, "#setup-fund-address"), MONEY_KEY);
   await priced.page.press(one(priced.page, "#setup-fund-check"));
   const text = priced.page.text("setup-fund-result");
@@ -489,8 +506,8 @@ scenario("a failed balance read says why and what to do, and offers the read aga
   assert.equal(one(down.page, "#setup-fund-check").disabled, false, "the read can be made again");
   clean(down.page);
 });
-scenario("the how-to-buy guide names two exchanges as plain links with no affiliate or tracking", async () => {
-  const {page} = await fundingPage({body: {}});
+scenario("on a real-money network the how-to-buy guide names two exchanges as plain links with no affiliate or tracking", async () => {
+  const {page} = await fundingPage({body: {}}, "mainnet");
   const links = [...all(page, "#setup-fund .fund-links a")];
   assert.deepEqual(links.map(a => a.href), ["https://www.coinbase.com/", "https://www.kraken.com/"]);
   for (const a of links) assert.match(a.rel, /noopener/);
@@ -3192,8 +3209,8 @@ scenario("Setup: a miner with no wallet is pointed at the identity helper, in pl
   assert.match(text, /Both are public/);
   // Funding comes before joining, in plain words, with no balance or price claimed until the miner checks.
   const fund = one(page, "#setup-fund").textContent;
-  assert.match(fund, /2\. Put some TAO in your wallet/);
-  assert.match(fund, /How do I buy TAO\?/);
+  assert.match(fund, /2\. Get some test TAO/);
+  assert.match(fund, /How do I get test TAO\?/);
   assert.match(fund, /Paste your money-key address/);
   assert.doesNotMatch(fund, /\d{2,}|\$/);
   const folds = [...card.querySelectorAll("details > summary")].map(node => node.textContent);
@@ -3236,7 +3253,7 @@ scenario("setup starts with keys, funding and joining, then the signer (Dana 1)"
   assert.match(page.text("setup-next-reason"), /Confirm you have joined first/);
   // The three parts are in order: make keys, fund, join.
   const body = page.text(one(page, "[data-step-panel=register]"));
-  assert.ok(body.indexOf("1. Make your keys") < body.indexOf("2. Put some TAO in your wallet") && body.indexOf("2. Put some TAO") < body.indexOf("3. Join"));
+  assert.ok(body.indexOf("1. Make your keys") < body.indexOf("2. Get some test TAO") && body.indexOf("2. Get some test TAO") < body.indexOf("3. Join"));
   // The technical terms appear once, in brackets beside the plain ones, never as the label.
   assert.doesNotMatch(body, /ss58|hotkey address|recycle/i);
   assert.equal(one(page, "label[for=setup-register-address]").textContent, "Your mining-key address");

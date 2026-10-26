@@ -693,6 +693,7 @@
       const stale = $("onboarding-result");
       if (stale.dataset.key === "disconnected") { stale.replaceChildren(); stale.dataset.key = ""; }
       // The network this controller registers on, always in view.
+      knownNetwork = String(value.network);
       $("network-pill").textContent = (String(value.network).includes("test") ? "Testnet" : words(value.network)) + " · network " + value.netuid;
       const facts = $("onboarding-facts");
       facts.replaceChildren();
@@ -1272,6 +1273,10 @@
   }
   // The money-key address the miner pasted, kept in this tab only (never stored, never sent anywhere but the check).
   let fundAddress = "";
+  // The network this controller registers on, once the requirements are read. Until then (and on the test network
+  // Carbon launches on) the funding step speaks of test TAO: free, from the faucet or from Carbon, never bought.
+  let knownNetwork = null;
+  const testNetwork = () => knownNetwork === null || /test|local/i.test(knownNetwork);
   const SS58 = /^5[1-9A-HJ-NP-Za-km-z]{46,47}$/;
   // A 9-decimal TAO string as sent, without trailing zeros (never rounded to a smaller figure, never a float of rao).
   const tao = value => typeof value === "string" && /^\d+(\.\d+)?$/.test(value) ? value.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "") : String(Number.isFinite(Number(value)) ? Number(Number(value).toFixed(9)) : value);
@@ -1292,8 +1297,11 @@
   }
   function fundYourWallet() {
     const fund = el("div", undefined, "identity-fund"); fund.id = "setup-fund";
-    fund.append(el("p", "2. Put some TAO in your wallet", "eyebrow"));
-    fund.append(el("p", "Joining is paid in TAO from your money key. Paste your money-key address (the helper shows it; it is public), send TAO to it, then check your balance here. Carbon only reads the balance; it never moves it.", "step-lede"));
+    const test = testNetwork();
+    fund.append(el("p", test ? "2. Get some test TAO" : "2. Put some TAO in your wallet", "eyebrow"));
+    fund.append(el("p", test
+      ? "On the test network, joining is paid in test TAO. It is free, it has no money value and it is not bought: it comes from the test network's faucet or from the Carbon team. Paste your money-key address (the helper shows it; it is public), have test TAO sent to it, then check your balance here. Carbon only reads the balance; it never moves it."
+      : "Joining is paid in TAO from your money key. Paste your money-key address (the helper shows it; it is public), send TAO to it, then check your balance here. Carbon only reads the balance; it never moves it.", "step-lede"));
     const label = el("label", "Your money-key address"); label.htmlFor = "setup-fund-address";
     const input = el("input"); input.id = "setup-fund-address"; input.type = "text"; input.autocomplete = "off"; input.spellcheck = false; input.placeholder = "5...";
     input.value = fundAddress;
@@ -1307,7 +1315,7 @@
       check.disabled = !ok;
       if (!address) return;
       if (!ok) { shown.append(el("p", "That does not look like a wallet address. It starts with 5 and is 48 characters. Never paste a key, password or phrase here.", "reason")); return; }
-      copyRow(shown, "Send TAO to this address", address, "setup-fund-copy");
+      copyRow(shown, test ? "Ask for test TAO at this address" : "Send TAO to this address", address, "setup-fund-copy");
       if (window.CarbonQr) { const qr = el("div", undefined, "fund-qr"); qr.id = "setup-fund-qr"; try { qr.append(qrImage(address)); shown.append(qr); } catch (_) { /* the copy line stays */ } }
     };
     input.addEventListener("input", () => { fundAddress = input.value.trim(); result.replaceChildren(); draw(); });
@@ -1319,18 +1327,21 @@
         // The address goes only in the POST body, never a URL; the read is made again on every press, never kept.
         const value = await api("/api/v1/onboarding/funding", {address});
         const balance = tao(value.balance_tao), cost = tao(value.joining_cost_tao);
+        // A test network's coin has no price: whatever the controller sent, no dollar figure is drawn for it.
+        const isTest = value.test_network === true || (value.test_network !== false && test);
+        const unit = isTest ? "test TAO" : "TAO";
         // Display only (OWNER-TAO-USD-PRICE-SOURCE-01): the controller's own "about $X" strings, beside the TAO amounts, with
         // the source and time; null means TAO alone (never an old price). The page asks no price service anything.
-        const quote = value.usd && typeof value.usd === "object" ? value.usd : null;
+        const quote = !isTest && value.usd && typeof value.usd === "object" ? value.usd : null;
         const usd = key => quote && typeof quote[key] === "string" && quote[key] ? " (" + quote[key] + ")" : "";
-        const lines = [el("p", "Your money key holds " + balance + " TAO" + usd("balance") + ". Joining costs " + cost + " TAO" + usd("joining_cost") + ".", "status-line")];
+        const lines = [el("p", "Your money key holds " + balance + " " + unit + usd("balance") + ". Joining costs " + cost + " " + unit + usd("joining_cost") + ".", "status-line")];
         if (typeof value.label === "string" && value.label) lines.push(el("p", value.label[0].toUpperCase() + value.label.slice(1) + ".", "hint"));
         if (quote) lines.push(el("p", "Dollar amounts are " + (quote.label || "approximate") + ", from " + (quote.source || "a public price") + (quote.fetched_at ? " at " + new Date(quote.fetched_at).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "") + ". They are for orientation only; the joining cost is set in TAO.", "hint"));
         // The controller's own sentence says whether it is enough, "before transaction fees" (Validator condition), and its note
         // says where it was read: both shown as sent.
         const sentence = typeof value.enough_words === "string" && value.enough_words ? value.enough_words : (value.enough === true ? "Enough to join" : "Not enough to join") + (value.read_at_block ? ", at block " + value.read_at_block : "") + ", before transaction fees.";
         if (value.enough === true) { const ready = el("p", undefined, "step-done"); ready.id = "setup-fund-ready"; ready.append(pill("Ready to join", "pill-done"), el("span", " " + sentence + " Continue to step 3.")); lines.push(ready); }
-        else lines.push(el("p", sentence + " You need about " + tao(Number(value.joining_cost_tao) - Number(value.balance_tao)) + " more TAO.", "reason"));
+        else lines.push(el("p", sentence + " You need about " + tao(Number(value.joining_cost_tao) - Number(value.balance_tao)) + " more " + unit + ".", "reason"));
         if (typeof value.note === "string" && value.note) lines.push(el("p", value.note, "hint"));
         result.replaceChildren(...lines);
       } catch (error) {
@@ -1340,16 +1351,24 @@
     const action = el("div", undefined, "step-action"); action.append(check);
     fund.append(label, input, shown, action, result);
     draw();
-    const how = details(fund, "How do I buy TAO?", [
-      "TAO is the coin the network is paid in. You buy it on an exchange that lists it, then send it from the exchange to the money-key address above.",
-      "1. Make an account on an exchange that lists TAO (Bittensor) where you live, and finish its identity check. 2. Buy TAO. 3. Use the exchange's Withdraw or Send for TAO, paste your money-key address, and check the first and last characters twice. 4. Wait until it arrives, then press Check my balance.",
-      "Start with a small test amount. Carbon has no link or share in any exchange, and these two are only examples.",
-    ]);
-    const links = el("p", undefined, "fund-links");
-    for (const [name, href] of [["Coinbase", "https://www.coinbase.com/"], ["Kraken", "https://www.kraken.com/"]]) {
-      const anchor = el("a", name, "link"); anchor.href = href; anchor.target = "_blank"; anchor.rel = "noopener noreferrer"; links.append(anchor, " ");
+    const how = test
+      ? details(fund, "How do I get test TAO?", [
+        "Test TAO is the coin of the test network. It is free and has no money value, so there is nothing to buy and no price to pay.",
+        "Ask for it from the test network's faucet, or from the Carbon team, and give them your money-key address (the public one shown above, never a key, password or recovery phrase). When it arrives, press Check my balance.",
+        "Nobody from Carbon will ever ask for your keys, passwords or recovery words, and test TAO is never worth paying for.",
+      ])
+      : details(fund, "How do I buy TAO?", [
+        "TAO is the coin the network is paid in. You buy it on an exchange that lists it, then send it from the exchange to the money-key address above.",
+        "1. Make an account on an exchange that lists TAO (Bittensor) where you live, and finish its identity check. 2. Buy TAO. 3. Use the exchange's Withdraw or Send for TAO, paste your money-key address, and check the first and last characters twice. 4. Wait until it arrives, then press Check my balance.",
+        "Start with a small test amount. Carbon has no link or share in any exchange, and these two are only examples.",
+      ]);
+    if (!test) {
+      const links = el("p", undefined, "fund-links");
+      for (const [name, href] of [["Coinbase", "https://www.coinbase.com/"], ["Kraken", "https://www.kraken.com/"]]) {
+        const anchor = el("a", name, "link"); anchor.href = href; anchor.target = "_blank"; anchor.rel = "noopener noreferrer"; links.append(anchor, " ");
+      }
+      how.append(links);
     }
-    how.append(links);
     return fund;
   }
   // "Test my GPU" (OWNER-TEST-MY-GPU-01): shown only when setup's status offers it. Each worker command is shown first, and

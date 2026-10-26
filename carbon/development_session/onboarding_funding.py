@@ -14,6 +14,9 @@ page shows whether the miner's coldkey holds enough to register. Conditions:
   absent when the price can't be fetched;
 - the address travels only in the request body to the configured chain
   reader: never in a URL, a log or to anyone else;
+- on a test network (testnet, localnet) the coin is test TAO: it is free, comes from
+  the faucet or from Carbon, has no price, and no dollar figure is fetched or shown
+  (`test_network` in the reply tells the page which wording to use);
 - the miner's local Launchpad serves it, never Carbon's public intake;
 - no score, weight, KOTH, Ladder or receiver code imports this
   (`tests/invariants/test_funding_unreachable.py`).
@@ -73,6 +76,13 @@ def tao(rao):
     return f"{whole}.{part:09d}"
 
 
+def is_test_network(network):
+    """Whether ``network`` is a test network, whose TAO has no price."""
+    return type(network) is str and (
+        "test" in network.lower() or network.lower() == "localnet"
+    )
+
+
 def funding(context, address, *, fetch=None, price=None):
     """The reply for `address` on `context`'s subnet, or `FundingRefused`."""
     from carbon.chain.models import ChainContext
@@ -97,6 +107,7 @@ def funding(context, address, *, fetch=None, price=None):
     return {
         "schema": SCHEMA,
         "network": context.network,
+        "test_network": is_test_network(context.network),
         "netuid": context.netuid,
         "address": address,
         "balance_rao": balance,
@@ -111,7 +122,7 @@ def funding(context, address, *, fetch=None, price=None):
         "read_at_block": block,
         "label": LABEL,
         "note": NOTE.format(block=block),
-        "usd": _usd(balance, cost, price),
+        "usd": None if is_test_network(context.network) else _usd(balance, cost, price),
     }
 
 
