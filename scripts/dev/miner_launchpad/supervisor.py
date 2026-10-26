@@ -1652,6 +1652,10 @@ NEXT_ACTIONS = {
         "Challenge list gives it (carbon_challenges_v1__list)."
     ),
     "card_limit_out_of_bounds": "Send card_limit from 1 to 50, or omit it for 10.",
+    "toolbox_include_invalid": (
+        "Send include as catalog, families, or catalog,families for those lists in full, "
+        "or omit it for the compact answer."
+    ),
     "card_not_found": (
         "No card in the shared pack or your library has that id. Search for "
         "it (carbon_library_search) and send an id it returns."

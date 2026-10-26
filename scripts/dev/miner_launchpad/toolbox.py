@@ -238,10 +238,69 @@ def for_request(host, request, lanes=None):
         ref = {**ref, "version": version}
     if ref["version"] is None:
         raise Rejected("challenge_unknown", 404)
+    include = _included(request.get("include"))
     try:
-        return build(ref, lanes=host_lanes(host) if lanes is None else lanes)
+        box = build(ref, lanes=host_lanes(host) if lanes is None else lanes)
     except Exception:  # noqa: BLE001 - a Challenge with no description has no toolbox
         raise Rejected("challenge_has_no_toolbox", 404) from None
+    return compact(box, include)
+
+
+#: The long lists a toolbox answer summarises unless asked for in full.
+LONG_LISTS = ("catalog", "families")
+#: Over this many bytes an agent that cannot read a file (Hermes) cannot use the answer
+#: (Test Runner 03:20Z: Motor 1.4's was 173,751 bytes, the catalog half of it).
+COMPACT_TARGET_BYTES = 20_000
+
+
+def _included(value):
+    """The long lists asked for in full: `include` as a comma separated string."""
+    from scripts.dev.miner_launchpad.controller import Rejected
+
+    if value is None:
+        return frozenset()
+    if type(value) is not str:
+        raise Rejected("toolbox_include_invalid")
+    names = {part.strip() for part in value.split(",") if part.strip()}
+    if not names <= set(LONG_LISTS):
+        raise Rejected("toolbox_include_invalid")
+    return frozenset(names)
+
+
+def compact(box, include=frozenset()):
+    """The toolbox with its long lists summarised: `catalog` becomes counts, the family
+    counts and the ready recipe's id; `families` becomes counts by backend. A list named in
+    `include` stays whole. The summary says how to get the full list, so nothing is hidden."""
+    result = dict(box)
+    catalog = box.get("catalog")
+    if "catalog" not in include and type(catalog) is list:
+        counts = {}
+        for item in catalog:
+            family = str(item.get("catalog_id", "")).rsplit(".", 1)[0]
+            counts[family] = counts.get(family, 0) + 1
+        example = None
+        for each in box.get("examples") or []:
+            source = (each.get("source") or {}) if type(each) is dict else {}
+            if type(source.get("catalog_id")) is str:
+                example = source["catalog_id"]
+                break
+        result["catalog"] = {
+            "summary": True,
+            "entries": len(catalog),
+            "ready_example": example,
+            "by_family": dict(sorted(counts.items())),
+            "legacy_entries": sum(1 for item in catalog if "legacy" in item),
+            "full": "ask for them: include=catalog (each entry with its ready recipe)",
+        }
+    families = box.get("families")
+    if "families" not in include and type(families) is list:
+        result["families"] = {
+            "summary": True,
+            "count": len(families),
+            "selectors": [f.get("selector") for f in families][:40],
+            "full": "ask for them: include=families",
+        }
+    return result
 
 
 #: Where the validator rebuilds, said plainly beside any GPU (RSURF-D19).
