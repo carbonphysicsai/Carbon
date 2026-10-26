@@ -50,13 +50,29 @@ _CLEAR = (
 #: Entries with no GPU twin at all (Validator ruling, 2026-10-22): thuml.LSM stays CPU-only and officially gradable
 #: with its CPU receipt (its GPU build would need `timm`, which the cu130 lock does not carry, and its upsample backward
 #: has no deterministic CUDA kernel).
-NO_GPU_TWIN = ("thuml.LSM", "f08.thuml.LSM")
+NO_GPU_TWIN = (
+    "thuml.LSM",
+    "f08.thuml.LSM",
+    # The same entry under its v2 ids (it still needs `timm`).
+    "v2.motor.thuml.LSM",
+    "v2.cooling.thuml.LSM",
+    "v2.f08.thuml.LSM",
+    "v2.f02.thuml.LSM",
+)
 #: The second registered change, on an explicit one-entry list and never a general rule (owner, 2026-10-22): the CNO1d
 #: build's upsample backward has no deterministic CUDA kernel, so its GPU twin relaxes
 #: `use_deterministic_algorithms(True)` to `warn_only=True`. The twin is therefore not a pure derivation of the CPU build
 #: by the first change alone; the CPU build is untouched, and its receipt claims smoke only
 #: (`gpu_receipt.SMOKE_ONLY`, the same entry).
-WARN_ONLY_DETERMINISM = ("cno.CNO1d",)
+WARN_ONLY_DETERMINISM = (
+    "cno.CNO1d",
+    # The same CNO1d build served on the launch versions (Lead GPU-2, 2026-10-26): the upsample backward is the
+    # same op, so the owner's decision applies to the same entry under its v2 ids. Validator to confirm.
+    "v2.motor.cno.CNO1d",
+    "v2.cooling.cno.CNO1d",
+    "v2.f08.cno.CNO1d",
+    "v2.f02.cno.CNO1d",
+)
 COMMON_MEMBER = "carbon_candidate/common.py"
 DETERMINISM = "torch.use_deterministic_algorithms(True)"
 WARN_ONLY = "torch.use_deterministic_algorithms(True, warn_only=True)  # GPU twin of this entry only"

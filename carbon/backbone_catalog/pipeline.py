@@ -459,6 +459,61 @@ def add(packet, *, challenges, receipt, receipt_key, image_digest, catalog_id=No
     return item
 
 
+def add_twin(catalog_id):
+    """Derive `catalog_id`'s GPU twin from its CPU build, write its files under
+    `bundles/<id>/<twin runtime>/` and list its ref under `bundle_refs`.
+
+    The one deterministic transform of `gpu_build` and nothing per entry:
+    `verify` re-derives the files and refuses any difference. The twin is not
+    offered until a GPU receipt exists (`gpu_receipt`): a practice on a GPU host
+    says so and runs the CPU build. The served document names only the CPU
+    `bundle_ref`, so the catalog digest does not move. Returns the entry."""
+    from . import gpu_build
+
+    manifest = load()
+    matches = [e for e in manifest["entries"] if e["catalog_id"] == catalog_id]
+    if len(matches) != 1:
+        raise CatalogBroken(f"{catalog_id}: not in the catalog")
+    item = matches[0]
+    if catalog_id in gpu_build.NO_GPU_TWIN:
+        raise CatalogBroken(f"{catalog_id}: it has no GPU twin (CPU only)")
+    cpu_files = bundle_files(item)
+    cpu_manifest = json.loads(cpu_files["bundle.json"])
+    twin = gpu_build.TWINS.get(cpu_manifest["runtime_profile_id"])
+    if twin is None:
+        raise CatalogBroken(
+            f"{catalog_id}: only a torch-cpu-py311 or python-cpu-py311 build has a GPU twin"
+        )
+    try:
+        source = gpu_build.derived_source(
+            cpu_manifest["runtime_profile_id"],
+            cpu_files["source.tar.gz"],
+            catalog_id,
+        )
+        expected = gpu_build.gpu_manifest(
+            cpu_manifest, source, gpu_build.base_lock(twin)
+        )
+    except gpu_build.GpuBuildRefused as refused:
+        raise CatalogBroken(f"{catalog_id}: {refused}") from None
+    root = BUNDLES / catalog_id / twin
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "source.tar.gz").write_bytes(source)
+    (root / "LICENSE").write_bytes(cpu_files["LICENSE"])
+    (root / "requirements.txt").write_bytes(cpu_files["requirements.txt"])
+    (root / "bundle.json").write_bytes(
+        (json.dumps(expected, sort_keys=True, indent=1) + "\n").encode()
+    )
+    item["bundle_refs"] = {
+        **(item.get("bundle_refs") or {}),
+        twin: gpu_build.bundle_ref(expected),
+    }
+    verify(item)
+    MANIFEST.write_bytes(
+        (json.dumps(manifest, sort_keys=True, indent=1) + "\n").encode()
+    )
+    return item
+
+
 def bundle_directory(item, target, *, wheelhouse=None):
     """Write `item`'s pinned bundle as the directory the owner installer reads
     (bundle.json, source.tar.gz, requirements.txt, LICENSE, wheels/). Wheels
@@ -567,6 +622,8 @@ def main(argv=None):
     grow.add_argument("--receipt-key", required=True)
     grow.add_argument("--catalog-id")
     grow.add_argument("--image-digest", required=True)
+    twin = commands.add_parser("twin")
+    twin.add_argument("catalog_id", nargs="+")
     tie = commands.add_parser("bind")
     tie.add_argument("catalog_id")
     tie.add_argument("--tested-on", required=True)
@@ -589,6 +646,18 @@ def main(argv=None):
             print(
                 json.dumps(
                     {"verified": verify_all(wheelhouse=args.wheelhouse)}, indent=1
+                )
+            )
+        elif args.command == "twin":
+            print(
+                json.dumps(
+                    {
+                        "twinned": [
+                            add_twin(catalog_id)["catalog_id"]
+                            for catalog_id in args.catalog_id
+                        ]
+                    },
+                    indent=1,
                 )
             )
         elif args.command == "bind":
