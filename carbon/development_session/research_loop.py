@@ -2147,7 +2147,8 @@ async def run_epoch(
     # campaign (no registration) admits only research and report work, so its session starts
     # under "research" (a Graphite practice-only launch was interrupted here with
     # registration_required, TR/Graphite Test 02:20Z). Every other campaign is unchanged.
-    start_phase = "research" if ledger.practice_only() else "selection"
+    practice_only = ledger.practice_only()
+    start_phase = "research" if practice_only else "selection"
     admitted = ledger.reserve(
         start_id, owner=owner, phase=start_phase, request=plan, resources=started
     )
@@ -2682,8 +2683,11 @@ async def run_epoch(
                 else MAX_RESEARCH_TRIALS
             )
         call_id = f"{prefix}-provider-{index:03d}"
+        # A practice-only campaign has no selection phase to move to: its calls stay research.
         phase = (
-            "research" if trial_limit is None or trials < trial_limit else "selection"
+            "research"
+            if practice_only or trial_limit is None or trials < trial_limit
+            else "selection"
         )
         pending = None
         if miner_guidance is not None:

@@ -571,6 +571,8 @@ def test_a_practice_ledger_knows_it_is_practice_only_and_starts_a_session_under_
     )
     assert 'start_phase = "research" if ledger.practice_only() else "selection"' in source
     assert "phase=start_phase" in source
+    # And its model calls stay research once the trial limit is reached.
+    assert "if practice_only or trial_limit is None or trials < trial_limit" in source
 
 
 def test_a_registered_campaign_is_not_practice_only(tmp_path, identity):
