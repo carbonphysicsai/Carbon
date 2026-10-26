@@ -74,6 +74,8 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   assert.ok(text.includes("Design showcase") && hasClass(tree, "teaser"), where + ": the public design showcase is offered");
   assert.ok(!text.includes("Rules unavailable") && !text.includes("More coming"), where + ": no filler lines");
   assert.ok(board.labels.includes("DEVELOPMENT") && board.labels.every(l => l !== "FIXTURE"), where + ": labels");
+  // Before the margin is registered the page says so in words and shows no placeholder number.
+  if (board.launch.margin === null) assert.ok(/not yet registered/i.test(text), where + ": an unregistered margin is named");
   if (board.phase === "PRE_FIRST_RELEASE") {
     assert.equal(board.launch.counts.graded, 0, where + ": no grade yet");
     assert.ok(hasClass(tree, "hero"), where + ": hero state");
