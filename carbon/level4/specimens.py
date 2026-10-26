@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import json
 
+from . import allowlist as allowlist_module
 from . import graph, interpret
 from .tooling import lower_jax
 
@@ -382,7 +383,7 @@ def _recorded(owner):
     return ("recorded", owner)
 
 
-def _attack_rows():
+def _attack_rows(allowlist=None):
     import jax
     import jax.numpy as jnp
     import numpy as np
@@ -393,6 +394,15 @@ def _attack_rows():
     asset = np.linspace(0.0, 1.0, 4096, dtype=np.float32)  # 16 KB "weights file"
     pieces = [np.float32(i) for i in range(2048)]
     wrapped = jnp.zeros(2, jnp.uint32)
+    version = getattr(allowlist, "version", None)
+    # Allowlist v8 removed the init rule (the constants cap bounds an init) and counts
+    # static parameters under accounting v5: its expectations differ from v6 and v7's.
+    open_init = version in allowlist_module.OPEN_INIT_VERSIONS
+    counted_params = (
+        allowlist_module.accounting_for(allowlist)[0]
+        == allowlist_module.CONSTANT_ACCOUNTING_V5
+    )
+    init_expected = "not_refused" if open_init else "init_output_not_keyed"
 
     def callback(v):
         return jax.pure_callback(lambda a: a, shape, v)
@@ -426,6 +436,24 @@ def _attack_rows():
 
     def fixed_weights(key):
         return [jax.random.normal(key, (2,)), jnp.cos(jnp.arange(8.0))]
+
+    def over_cap_init(key):
+        return [
+            jax.random.normal(key, (2,)),
+            jnp.asarray(np.linspace(0.0, 1.0, 5000, dtype=np.float32)),
+        ]
+
+    index_rng = np.random.default_rng(7)
+    index_values = index_rng.integers(0, 4095, size=6000)
+
+    def index_table(v):
+        parts = [lax.slice(v, (int(i),), (int(i) + 1,)) for i in index_values]
+        return jnp.concatenate(parts)
+
+    def index_table_init(key):
+        base = jnp.arange(4096.0)
+        parts = [lax.slice(base, (int(i),), (int(i) + 1,)) for i in index_values]
+        return [jax.random.normal(key, (2,)), jnp.concatenate(parts)]
 
     def widened(v):
         return jnp.concatenate([v, v[:, :1] * 1e-7], axis=1)
@@ -468,7 +496,7 @@ def _attack_rows():
             "Caches, checkpoints, cross-attempt residue",
             "init returning a stored table",
             _program(residue, (jax.random.PRNGKey(0),), "init"),
-            "init_output_not_keyed",
+            init_expected,
         ),
         (
             "8.1",
@@ -602,7 +630,34 @@ def _attack_rows():
             "Initializer abuse",
             "init building fixed weights without the key",
             _program(fixed_weights, (jax.random.PRNGKey(0),), "init"),
-            "init_output_not_keyed",
+            init_expected,
+        ),
+        *(
+            [
+                (
+                    "8.1",
+                    "Embedded weights or tables",
+                    "init returning a table over the cap",
+                    _program(over_cap_init, (jax.random.PRNGKey(0),), "init"),
+                    "cap_exceeded:constant_bytes",
+                ),
+                (
+                    "8.1",
+                    "Embedded weights or tables",
+                    "a table carried in 6,000 slice start indices",
+                    _program(index_table, (jnp.zeros(4096),)),
+                    "cap_exceeded:constant_bytes",
+                ),
+                (
+                    "8.1",
+                    "Embedded weights or tables",
+                    "an init building the same index table without the key",
+                    _program(index_table_init, (jax.random.PRNGKey(0),), "init"),
+                    "cap_exceeded:constant_bytes",
+                ),
+            ]
+            if counted_params
+            else []
         ),
         (
             "control",
@@ -678,7 +733,7 @@ def attack_suite(allowlist, *, max_bytes):
     """One row per attack family: what was tried, the gate, the code seen.
     `recorded` rows name the owner of a family no graph gate can test."""
     rows = []
-    for section, family, specimen, (kind, payload), expected in _attack_rows():
+    for section, family, specimen, (kind, payload), expected in _attack_rows(allowlist):
         if kind == "recorded":
             rows.append(
                 {

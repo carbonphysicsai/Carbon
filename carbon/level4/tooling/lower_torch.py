@@ -1039,13 +1039,13 @@ def _constants_over(b, emitted_values, *, bits):
     """Whether the constants so far plus ``emitted_values`` more integers of
     ``bits`` bits each exceed the version's constants cap, measured as the
     validator will measure (`allowlist.accounting_for`): by information under
-    accounting v4 (the emitted indices are below the scattered dimension's
+    accounting v5 (the emitted indices are below the scattered dimension's
     size), by value count under v3."""
     limit = allowlist_module.caps_for(b.allowlist).get("constant_bytes")
     if type(limit) is not int:
         return False
     accounting, _ = allowlist_module.accounting_for(b.allowlist)
-    if accounting == allowlist_module.CONSTANT_ACCOUNTING_V4:
+    if accounting == allowlist_module.CONSTANT_ACCOUNTING_V5:
         extra = -(-emitted_values * bits // 8)
         return graph.constant_info_bytes(b.constants) + extra > limit
     return (

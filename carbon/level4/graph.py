@@ -132,17 +132,25 @@ def unique_constant_values(constants):
     return sum(math.prod(c["shape"]) for c in _unique_constants(constants))
 
 
-#: Accounting v4 (B', owner pick, Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025
-#: section 3; owner 2026-10-25: count by real storage, never more than the value
-#: holds): every constant is charged what it actually carries. An integer is
-#: charged the bits its actual range needs and a bool one bit; a float its real
-#: item size capped at `VALUE_BYTES` (float16 and bfloat16 two bytes, float32 four,
-#: float64 four as in v3); a complex number its two components. The cap total is
-#: the same 16 KiB, so the information a graph can carry in constants is bounded
-#: as before; a small-range structure table (exponents, connectivity, one-hot
-#: indices) or a half-precision table simply costs what it holds. The range is
-#: read from the values, never from the declared dtype: an int32 table of wide
-#: numbers counts at its full width (an int64 table of 40-bit numbers at 40 bits).
+#: Accounting v5 (Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025 sections 3 and 7,
+#: after Graphite's v8 attacks V5a, V5b and V8): everything that can carry a fitted
+#: value into the rebuilt model counts toward the one 16 KiB cap, by what it really
+#: stores. `fitted_info_bytes` is the sum of
+#: - the constants (`constant_info_bytes`): an integer by the bits its range needs
+#:   plus the bits of the range's offset (so a scalar costs the bits of its value, not
+#:   one bit), a bool one bit, a float its real size (float16 and bfloat16 two bytes,
+#:   float32 four, float64 eight), a complex number its two components (complex64
+#:   eight bytes, complex128 sixteen); identical copies count once;
+#: - the static parameters (`param_info_bytes`): every integer, bool and float a node
+#:   carries in its parameters (slice, gather and padding indices, strides, shapes,
+#:   permutations, dimension lists, a scan's length), each occurrence by the bits it
+#:   needs (an integer by its own magnitude, a bool one bit, a float 64 bits), the
+#:   same way as an integer constant. Names, enumerations and graph references carry
+#:   no fitted value and are not counted.
+#: The range is read from the values, never from the declared dtype: an int32 table
+#: of wide numbers counts at its full width. Honest graphs cost very little (a few
+#: hundred bytes for a dozen conv or attention blocks), so the cap holds the
+#: information a graph can carry through any value channel, as before.
 INTEGER_DTYPES = frozenset(
     {"uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64"}
 )
@@ -150,16 +158,26 @@ COMPLEX_DTYPES = frozenset({"complex64", "complex128"})
 
 
 def float_value_bits(dtype):
-    """Bits one value of a floating dtype is charged under accounting v4: its
-    real storage, never more than `VALUE_BYTES`. A complex dtype is charged for
-    its two components."""
+    """Bits one value of a floating dtype is charged under accounting v5: its real
+    storage. A complex dtype is charged for its two components."""
     if dtype in COMPLEX_DTYPES:
         return 2 * float_value_bits("float" + str(8 * DTYPES[dtype] // 2))
-    return 8 * min(DTYPES[dtype], VALUE_BYTES)
+    return 8 * DTYPES[dtype]
+
+
+def _int_bits(value):
+    """Bits one integer needs: its magnitude, and a sign bit when negative."""
+    return max(1, abs(int(value)).bit_length()) + (1 if value < 0 else 0)
+
+
+def _integer_array_bits(count, low, high):
+    """Bits an integer constant of ``count`` values in ``[low, high]`` is charged:
+    each value the bits the span needs, plus the range's offset once."""
+    return count * max(1, (int(high) - int(low)).bit_length()) + _int_bits(low)
 
 
 def array_info_bits(array):
-    """Bits an in-memory constant is charged under accounting v4 (the same rule
+    """Bits an in-memory constant is charged under accounting v5 (the same rule
     as `constant_info_bytes`, for a tooling pre-check)."""
 
     dtype = str(array.dtype)
@@ -169,13 +187,12 @@ def array_info_bits(array):
     if dtype in INTEGER_DTYPES:
         if count == 0:
             return 0
-        span = int(array.max()) - int(array.min())
-        return count * max(1, span.bit_length())
+        return _integer_array_bits(count, array.min(), array.max())
     return count * float_value_bits(dtype)
 
 
 def constant_info_bytes(constants):
-    """Embedded constant information in bytes under accounting v4, identical
+    """Embedded constant information in bytes under accounting v5, identical
     copies counted once."""
     total = 0
     for c in _unique_constants(constants):
@@ -186,12 +203,42 @@ def constant_info_bytes(constants):
             if count == 0:
                 continue
             array = decode_array(c)
-            span = int(array.max()) - int(array.min())
-            bits = count * max(1, span.bit_length())
+            bits = _integer_array_bits(count, array.min(), array.max())
         else:
             bits = count * float_value_bits(c["dtype"])
         total += -(-bits // 8)
     return total
+
+
+def param_value_bits(value):
+    """Bits the static values inside one node parameter are charged under
+    accounting v5: every integer by its magnitude, every bool one bit, every
+    float 64 bits, through lists and objects; strings, nulls and graph
+    references carry no fitted value."""
+    if type(value) is bool:
+        return 1
+    if type(value) is int:
+        return _int_bits(value)
+    if type(value) is float:
+        return 64
+    if type(value) is list:
+        return sum(param_value_bits(item) for item in value)
+    if type(value) is dict:
+        if is_graph_ref(value):
+            return 0
+        return sum(param_value_bits(item) for item in value.values())
+    return 0
+
+
+def param_info_bytes(doc):
+    """Static parameter information in bytes under accounting v5, every
+    occurrence in every graph of the document."""
+    bits = 0
+    for g in doc["graphs"].values():
+        for node in g["nodes"]:
+            for value in node["params"].values():
+                bits += param_value_bits(value)
+    return -(-bits // 8)
 
 
 def decode_array(entry, where=""):
@@ -448,6 +495,8 @@ def measure(doc):
         "unique_constant_values": unique_constant_values(constants),
         "constant_value_bytes": VALUE_BYTES * unique_constant_values(constants),
         "constant_info_bytes": constant_info_bytes(constants),
+        "param_info_bytes": param_info_bytes(doc),
+        "fitted_info_bytes": constant_info_bytes(constants) + param_info_bytes(doc),
         "largest_constant_bytes": max((c["bytes"] for c in constants), default=0),
         "input_bytes": sum(nbytes(i) for i in entry["inputs"]),
         "largest_intermediate_bytes": largest,
