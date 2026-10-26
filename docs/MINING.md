@@ -40,6 +40,14 @@ Carbon's launch supports **one** setup, and a run on it is guaranteed:
 
 **Any other setup gets a warning, not a block.** The installer, and a note at the top of the Control Center, say: *this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run*, and list what differs (system, Docker, memory, CPUs, disk, driver) and anything it could not check. Other Docker versions and other Linux distributions are planned after launch.
 
+**A rented GPU pod (for example Lium).** Measured on three different pods (RTX 3090, RTX 5070 Ti, RTX 6000 Ada), which all behave the same way:
+- A "PyTorch (CUDA + DinD)" pod runs Docker inside a container and cannot bind-mount anything under `/root` (even a plain `docker run -v /root/x:/input:ro` fails with a `runc` "change mount propagation" error); `/tmp`, `/mnt`, `/run` and `/dev/shm` work. Carbon stages each worker's input under its state directory, so install with the state directory off `/root`, for example `CARBON_STATE_DIR=/mnt/carbon ~/carbon/scripts/install_miner.sh --gpu ...`. Otherwise every practice ends "practice could not run" with a worker start failure.
+- Such a pod shows Docker 27, so setup prints the "not a supported setup yet" warning. It is a warning, not a block: everything else works.
+- A pod has no systemd, so there is no `--service`; the Control Center runs in the foreground of the install command.
+- The GPU check is per Challenge: when setup is driven through the page's door, name the Challenge with the compute choice.
+- A catalog practice still runs on the CPU on a GPU machine (see What runs on the GPU, in Set up): the GPU speeds up your own graph's practice, not the catalog entries.
+- A 16 GB machine cannot run practice; Docker must see at least 17 GiB (see above).
+
 ---
 
 ## 1. Install
