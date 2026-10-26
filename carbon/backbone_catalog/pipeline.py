@@ -490,7 +490,9 @@ def add_twin(catalog_id):
             cpu_files["source.tar.gz"],
             catalog_id,
         )
-        expected = gpu_build.gpu_manifest(cpu_manifest, source, gpu_build.base_lock(twin))
+        expected = gpu_build.gpu_manifest(
+            cpu_manifest, source, gpu_build.base_lock(twin)
+        )
     except gpu_build.GpuBuildRefused as refused:
         raise CatalogBroken(f"{catalog_id}: {refused}") from None
     root = BUNDLES / catalog_id / twin

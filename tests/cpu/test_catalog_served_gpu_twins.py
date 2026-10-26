@@ -32,7 +32,9 @@ def _item(catalog_id):
 def test_each_served_example_lists_its_twin_and_verifies(catalog_id, runtime):
     item = _item(catalog_id)
     assert set(item["bundle_refs"]) == {runtime}
-    pipeline.verify(item)  # re-derives the files from the CPU build; refuses any difference
+    pipeline.verify(
+        item
+    )  # re-derives the files from the CPU build; refuses any difference
 
 
 def test_the_whole_catalog_still_verifies():
@@ -44,7 +46,10 @@ def test_a_twin_is_not_offered_without_a_gpu_receipt(catalog_id, runtime):
     item = listing.entry(catalog_id)
     assert runtime not in gpu_receipt.offered_runtimes(item)
     recipe = {
-        "challenge": {"id": item["challenges"][0]["id"], "version": item["challenges"][0]["version"]},
+        "challenge": {
+            "id": item["challenges"][0]["id"],
+            "version": item["challenges"][0]["version"],
+        },
         "source": {
             "kind": "catalog",
             "catalog_id": catalog_id,
@@ -61,9 +66,14 @@ def test_a_twin_is_not_offered_without_a_gpu_receipt(catalog_id, runtime):
 
 
 def test_the_served_document_does_not_name_the_gpu_builds():
-    for challenge, version in (("electric-motor-magnetics", "1.4"), ("chip-cold-plate", "1.4")):
+    for challenge, version in (
+        ("electric-motor-magnetics", "1.4"),
+        ("chip-cold-plate", "1.4"),
+    ):
         text = json.dumps(served.document(challenge, version))
-        assert "bundle_refs" not in text and "cu130" not in text and "cuda13" not in text
+        assert (
+            "bundle_refs" not in text and "cu130" not in text and "cuda13" not in text
+        )
 
 
 def test_the_cno1d_twins_carry_the_one_warn_only_change_and_the_jax_twins_none():
@@ -76,7 +86,9 @@ def test_the_cno1d_twins_carry_the_one_warn_only_change_and_the_jax_twins_none()
         root = pipeline.BUNDLES / catalog_id
         twin = root / gpu_build.JAX_PROFILE
         # JAX runs on the GPU by default: the source is byte-identical.
-        assert (twin / "source.tar.gz").read_bytes() == (root / "source.tar.gz").read_bytes()
+        assert (twin / "source.tar.gz").read_bytes() == (
+            root / "source.tar.gz"
+        ).read_bytes()
 
 
 def test_lsm_has_no_twin_under_its_v2_ids_either():

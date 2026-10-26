@@ -55,7 +55,10 @@ def has_no_twin_by_design(item):
     withdrawn ones."""
     return (
         item["catalog_id"] in gpu_build.NO_GPU_TWIN
-        or (item["catalog_id"].startswith("v2.") and item["catalog_id"] not in V2_TWINNED)
+        or (
+            item["catalog_id"].startswith("v2.")
+            and item["catalog_id"] not in V2_TWINNED
+        )
         or item["catalog_id"] in withdrawn_twins()
     )
 
@@ -545,9 +548,7 @@ def test_the_warn_only_exception_is_exactly_the_smoke_only_list():
     from carbon.backbone_catalog import gpu_receipt
 
     assert (
-        set(gpu_build.WARN_ONLY_DETERMINISM)
-        == set(gpu_receipt.SMOKE_ONLY)
-        == CNO1D_IDS
+        set(gpu_build.WARN_ONLY_DETERMINISM) == set(gpu_receipt.SMOKE_ONLY) == CNO1D_IDS
     )
 
 
