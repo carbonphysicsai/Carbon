@@ -21,28 +21,28 @@ MOTOR = "electric-motor-magnetics"
 #: calibration artifact bound to them stays valid only while these do not move.
 KITS = {
     ("f08-ribbed-bracket", "1.5"): {
-        "construction_limits_digest": "sha256:b72695c3080e8243e173b0c6d7adc80cd8aa3831b5a2c3623511049500d751f5",
+        "construction_limits_digest": "sha256:c50a11fd96f410b633ddf9440b760667a8da5dc2ad38808986dadf14d2e22afc",
         "id": "f08-ribbed-bracket",
         "interface_digest": "sha256:42e64c6800368f2b364bbc6e70e34814401e3e38b6a9ff7dcfec70c7b1818eba",
         "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
         "version": "1.5",
     },
     ("f02", "2.4"): {
-        "construction_limits_digest": "sha256:7b1ba4031cf45e0c8cbe794ca1c7b99b8794c5f6730aa85f142751288f88848f",
+        "construction_limits_digest": "sha256:eec25b85d0cd31b5b35db0eb6441cb8428b2c2f874de7c9c6512c16807071dfa",
         "id": "f02",
         "interface_digest": "sha256:3a9c2f8bd2fdaeeca65e060d32f17a60cba06c16b837d6be185a95cdfa9e011e",
         "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
         "version": "2.4",
     },
     ("electric-motor-magnetics", "1.4"): {
-        "construction_limits_digest": "sha256:7c217224cc697ee2737d8c0e86812fb2991e953d29669f33558eed9791014dce",
+        "construction_limits_digest": "sha256:a6c1c9f13bed863ae427caaf6898c311dbda59f4f654184fea87c2ce8f37a40d",
         "id": "electric-motor-magnetics",
         "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
         "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
         "version": "1.4",
     },
     ("chip-cold-plate", "1.4"): {
-        "construction_limits_digest": "sha256:0202306f29fe65e4467839f828e74242e616dd9c556b7e6ad8594e5bcd401b3d",
+        "construction_limits_digest": "sha256:afd16c41239081cef4a4447b6fc725d3506c72fb489ad79b13ffe0c7a7c930a0",
         "id": "chip-cold-plate",
         "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
         "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
@@ -489,4 +489,11 @@ def test_a_kit_moved_with_the_served_catalog_digest_and_nothing_else(key, monkey
     public = physical_material._public(key[0])
     limits = copy.deepcopy(public.construction_limits_document(*key))
     limits["backbone_catalog"]["digest"] = catalog_before
+    # rc10 predates the 648/947 wall (OWNER-REBUILD-WALL-11MIN-01): it published 1800 s.
+    policy = limits["reconstruction_resource_policy"]
+    policy.update(
+        build_wall_seconds_max=1800,
+        inference_wall_seconds_max=1800,
+        total_reconstruction_wall_seconds_max=1800,
+    )
     assert public._digest(limits) == kit_before

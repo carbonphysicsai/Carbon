@@ -1,16 +1,17 @@
-"""The graph route v2 versions' 30-minute rebuild wall
-(OWNER-SANDBOX-REBUILD-WALL-01, testnet; the Validator's design and
-conditions, 2026-10-23).
+"""The graph route v2 versions' rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01, testnet,
+reset to 648 s by OWNER-REBUILD-WALL-11MIN-01; the Validator's design and conditions,
+2026-10-23).
 
-Motor 1.4, Cooling 1.4, F08 1.5 and F02 2.4 build and infer under an 1800 s
-wall, in their limits document and in the launch; every older version stays
+Motor 1.4, Cooling 1.4, F08 1.5 and F02 2.4 build and infer under a 648 s
+wall (947 s for the whole task), in their limits document and in the launch; every older version stays
 byte for byte at 600 s. Claims tested:
 
-- each new version's limits document moves only by its two wall fields:
-  set back to 600 they reproduce the document served before this change;
+- each new version's limits document moves only by its wall fields (build,
+  inference, whole task): set back to 600/600/1800 they reproduce the document served
+  before this change;
 - the older versions' kits are unchanged (`test_graph_route_v2.BASE_KITS`)
   and the shared C-03 profiles keep their digests;
-- the sandbox enforces the wall: a new version's launch runs under 1800 s
+- the sandbox enforces the wall: a new version's launch runs under 648 s
   (its profile states it), an older one is refused beyond 600 s, and the
   longer wall is never available to the miner lane, the G5 lane or
   dependency preparation.
@@ -70,14 +71,14 @@ FREEZE_MOVED = {
 #: OWNER-SANDBOX-REBUILD-WALL-01.
 NEW_KITS = {
     ("chip-cold-plate", "1.4"): (
-        "0202306f29fe65e4467839f828e74242e616dd9c556b7e6ad8594e5bcd401b3d"
+        "afd16c41239081cef4a4447b6fc725d3506c72fb489ad79b13ffe0c7a7c930a0"
     ),
     ("electric-motor-magnetics", "1.4"): (
-        "7c217224cc697ee2737d8c0e86812fb2991e953d29669f33558eed9791014dce"
+        "a6c1c9f13bed863ae427caaf6898c311dbda59f4f654184fea87c2ce8f37a40d"
     ),
-    ("f02", "2.4"): "7b1ba4031cf45e0c8cbe794ca1c7b99b8794c5f6730aa85f142751288f88848f",
+    ("f02", "2.4"): "eec25b85d0cd31b5b35db0eb6441cb8428b2c2f874de7c9c6512c16807071dfa",
     ("f08-ribbed-bracket", "1.5"): (
-        "b72695c3080e8243e173b0c6d7adc80cd8aa3831b5a2c3623511049500d751f5"
+        "c50a11fd96f410b633ddf9440b760667a8da5dc2ad38808986dadf14d2e22afc"
     ),
 }
 #: The shared C-03 profiles (CPU build, G5 compile) at rc8 1ea4c49ad.
@@ -107,7 +108,7 @@ def _binding(cid, version):
 
 
 def test_exactly_the_graph_route_v2_versions_declare_the_wall():
-    assert REBUILD_LIMIT_SECONDS == 1800
+    assert REBUILD_LIMIT_SECONDS == 648
     assert NEW == sorted(NEW_KITS) == sorted(AT_600)
     for key, entry in version_registry.VERSIONS.items():
         expected = REBUILD_LIMIT_SECONDS if key in NEW_KITS else None
@@ -115,7 +116,7 @@ def test_exactly_the_graph_route_v2_versions_declare_the_wall():
 
 
 @pytest.mark.parametrize("key", NEW)
-def test_a_new_version_moves_only_by_its_two_wall_fields(key, monkeypatch):
+def test_a_new_version_moves_only_by_its_wall_fields(key, monkeypatch):
     from carbon.challenge_kit import served_versions
 
     assert physical_material.construction_kit(*key)["construction_limits_digest"] == (
@@ -128,9 +129,14 @@ def test_a_new_version_moves_only_by_its_two_wall_fields(key, monkeypatch):
     document = _limits(*key)
     policy = document["reconstruction_resource_policy"]
     assert [policy[name] for name in WALLS] == [REBUILD_LIMIT_SECONDS] * 2
+    assert policy["total_reconstruction_wall_seconds_max"] == 947
     at_600 = {
         **document,
-        "reconstruction_resource_policy": {**policy, **dict.fromkeys(WALLS, 600)},
+        "reconstruction_resource_policy": {
+            **policy,
+            **dict.fromkeys(WALLS, 600),
+            "total_reconstruction_wall_seconds_max": 1800,
+        },
     }
     assert digest(canonical(at_600)) == "sha256:" + AT_600[key]
     if key in FREEZE_MOVED:
@@ -147,6 +153,7 @@ def test_a_new_version_moves_only_by_its_two_wall_fields(key, monkeypatch):
 def test_an_older_version_keeps_600_seconds(key):
     policy = _limits(*key)["reconstruction_resource_policy"]
     assert [policy[name] for name in WALLS] == [600, 600]
+    assert policy["total_reconstruction_wall_seconds_max"] == 1800
     assert worker.rebuild_wall_kwargs(_limits(*key)) == {}
 
 
@@ -160,9 +167,10 @@ def test_the_rebuild_profile_differs_only_in_its_wall_and_resource_class():
     wall = _worker_profile(
         None, LIBRARY_BUILD_PROVENANCE, rebuild_wall_seconds=REBUILD_LIMIT_SECONDS
     ).body
-    assert wall["deadline_seconds"] == 1800 and base["deadline_seconds"] == 600
+    assert wall["deadline_seconds"] == REBUILD_LIMIT_SECONDS
+    assert base["deadline_seconds"] == 600
     assert wall["b02c"]["resource_class_digest"] == digest(
-        b"2cpu-4gib-noswap-1800seconds"
+        f"2cpu-4gib-noswap-{REBUILD_LIMIT_SECONDS}seconds".encode()
     )
     assert base["b02c"]["resource_class_digest"] == digest(
         b"2cpu-4gib-noswap-600seconds"
@@ -171,7 +179,7 @@ def test_the_rebuild_profile_differs_only_in_its_wall_and_resource_class():
     assert rest == {
         k: v for k, v in base.items() if k not in ("deadline_seconds", "b02c")
     }
-    for refused in (600, 1799, 3600):
+    for refused in (600, 647, 649, 1800, 3600):
         with pytest.raises(ValueError, match="unsupported rebuild wall"):
             _worker_profile(
                 None, LIBRARY_BUILD_PROVENANCE, rebuild_wall_seconds=refused
@@ -211,15 +219,15 @@ def _launch(seconds, provenance=LIBRARY_BUILD_PROVENANCE, **kwargs):
     )
 
 
-def test_the_sandbox_enforces_1800_for_a_new_version_and_600_otherwise():
+def test_the_sandbox_enforces_648_for_a_new_version_and_600_otherwise():
     wall = {"rebuild_wall_seconds": REBUILD_LIMIT_SECONDS}
     # Within its wall a new version's launch passes the wall check (and stops
     # at the next one); beyond it, refused.
-    for seconds in (40, 600, 601, 1800):
+    for seconds in (40, 600, 601, REBUILD_LIMIT_SECONDS):
         with pytest.raises(ValueError, match="closed stage required"):
             _launch(seconds, **wall)
     with pytest.raises(ValueError, match="bounded worker wall allowance"):
-        _launch(1801, **wall)
+        _launch(REBUILD_LIMIT_SECONDS + 1, **wall)
     # An older version's launch is refused beyond 600 s.
     with pytest.raises(ValueError, match="closed stage required"):
         _launch(600)
@@ -236,3 +244,36 @@ def test_the_longer_wall_is_never_another_lane_s(provenance):
         _launch(600, provenance, rebuild_wall_seconds=REBUILD_LIMIT_SECONDS)
     with pytest.raises(ValueError, match="unsupported rebuild wall"):
         _launch(600, rebuild_wall_seconds=1200)
+
+
+def test_the_owner_wall_is_648_per_part_and_947_for_the_whole_task():
+    """OWNER-REBUILD-WALL-11MIN-01: 2 x the slowest served entry (323.8 s) per part; the
+    task wall adds twice the measured 149.5 s non-build part. A version without a rebuild
+    wall keeps the legacy 1800 s task wall, so its published kit bytes do not move."""
+    from carbon.challenge_kit.version_registry import (
+        REBUILD_TASK_WALL_SECONDS,
+        task_wall_seconds,
+    )
+    from carbon.development_session.local_diagnostic_plan import (
+        MAX_PROCESS_WALL_SECONDS,
+        MAX_TASK_WALL_SECONDS,
+    )
+
+    assert (REBUILD_LIMIT_SECONDS, REBUILD_TASK_WALL_SECONDS) == (648, 947)
+    assert REBUILD_LIMIT_SECONDS == -(-2 * 323.8 // 1)
+    assert REBUILD_TASK_WALL_SECONDS == REBUILD_LIMIT_SECONDS + 2 * 149.5
+    assert MAX_PROCESS_WALL_SECONDS <= REBUILD_TASK_WALL_SECONDS
+    assert task_wall_seconds(REBUILD_LIMIT_SECONDS) == 947
+    assert task_wall_seconds(None) == MAX_TASK_WALL_SECONDS == 1800
+
+
+def test_the_mining_guide_states_the_same_two_numbers():
+    from pathlib import Path
+
+    from carbon.challenge_kit.version_registry import REBUILD_TASK_WALL_SECONDS
+
+    text = (Path(__file__).resolve().parents[2] / "docs" / "MINING.md").read_text()
+    line = next(row for row in text.splitlines() if "**Build time limit.**" in row)
+    assert f"{REBUILD_LIMIT_SECONDS} seconds" in line
+    assert f"{REBUILD_TASK_WALL_SECONDS} seconds" in line
+    assert "30 minutes" not in line
