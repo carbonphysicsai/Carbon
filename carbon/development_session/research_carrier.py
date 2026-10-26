@@ -840,11 +840,111 @@ def _retain_container_end(cli, operation, *, container_name, launch_digest, dead
         )
 
 
+#: Fixed build and inference programs whose body is the candidate's own graph
+#: or recipe. Their memory and wall are the candidate's to stay within, so a
+#: stop at either limit is a candidate resource failure, never an infrastructure
+#: failure that refunds or retries (otherwise a memory bomb is a free retry).
+#: The dependency-install prep and every Carbon-only program stay infrastructure.
+_CANDIDATE_RESOURCE_PROVENANCES = frozenset(
+    {
+        LIBRARY_BUILD_PROVENANCE,
+        LIBRARY_OVERLAY_BUILD_PROVENANCE,
+        "DIRECT_BUNDLE_PUBLIC_INFERENCE",
+        "DIRECT_GRAPH_PUBLIC_RECONSTRUCTION",
+        "DIRECT_GRAPH_PUBLIC_INFERENCE",
+    }
+)
+#: Closed observations of a candidate resource stop (the typed failure's
+#: `observation`); the worker code is RUNTIME for memory and DEADLINE for the wall.
+CANDIDATE_MEMORY_LIMIT = "WORKER_MEMORY_LIMIT_REACHED"
+CANDIDATE_WALL_LIMIT = "WORKER_WALL_LIMIT_REACHED"
+#: Slow staging or container start is the host's, not the candidate's: the wall
+#: counts as the candidate's only when the program stage started this soon.
+_PROGRAM_SETUP_BUDGET_SECONDS = 60
+#: What a worker that ran out of memory inside its own limit prints last.
+_MEMORY_EXHAUSTED_MARKERS = (
+    b"MemoryError",
+    b"Cannot allocate memory",
+    b"RESOURCE_EXHAUSTED",
+    b"Out of memory",
+)
+
+
+class _CandidateResourceStop(Exception):
+    """A fixed program stopped at the memory or wall limit its candidate set off.
+
+    Raised inside the program stage so the container is still cleaned up and
+    its absence observed; the run then settles FAILED_MINER, typed.
+    """
+
+    def __init__(self, code, observation, original):
+        super().__init__(observation)
+        self.code = code
+        self.observation = observation
+        self.original = original
+
+
+def _candidate_resource_stop(
+    cli,
+    error,
+    *,
+    container_name,
+    launch_digest,
+    image_id,
+    program_started,
+    program_timeout,
+    setup_seconds,
+    memory_limit_bytes,
+):
+    """``(WorkerCode, observation)`` when the kernel or the clock stopped the program.
+
+    Observed evidence only: the engine's OOM-kill flag or the cgroup's
+    ``oom_kill`` count for memory (or the worker's own memory exception with
+    the cgroup peak at its limit), and the program stage's own allowance
+    elapsing for the wall. Anything else, and any program stage that started
+    late, stays an infrastructure failure.
+    """
+    diagnostic = error.private_diagnostic if isinstance(error, WorkerFailure) else b""
+    if type(diagnostic) is not bytes:
+        diagnostic = b""
+    observation = _fixed_program_container_observation(
+        cli,
+        container_name=container_name,
+        launch_digest=launch_digest,
+        image_id=image_id,
+        deadline=time.monotonic() + 3,
+    )
+    if observation["status"] == "OBSERVED":
+        if observation["state"]["oom_killed"] is True:
+            return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT
+        memory = observation["memory"]
+        if memory is not None:
+            if memory["events"].get("oom_kill", 0) >= 1:
+                return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT
+            if (
+                type(memory_limit_bytes) is int
+                and memory["peak_bytes"] >= memory_limit_bytes
+                and any(marker in diagnostic for marker in _MEMORY_EXHAUSTED_MARKERS)
+            ):
+                return WorkerCode.RUNTIME, CANDIDATE_MEMORY_LIMIT
+    if (
+        b"stream command timed out" in diagnostic
+        and setup_seconds <= _PROGRAM_SETUP_BUDGET_SECONDS
+        and time.monotonic() >= program_started + program_timeout - 1
+    ):
+        return WorkerCode.DEADLINE, CANDIDATE_WALL_LIMIT
+    return None
+
+
 @contextmanager
 def _fixed_practice_stage(operation, provenance, stage):
     try:
         yield
-    except Exception as error:
+    except Exception as raised:
+        # A candidate resource stop keeps the original failure's diagnostics.
+        error = (
+            raised.original if isinstance(raised, _CandidateResourceStop) else raised
+        )
         if provenance in _FIXED_DIAGNOSTIC_PROVENANCES:
             _retain_practice_failure(operation, stage, error)
         if (
@@ -1282,6 +1382,7 @@ def _run_locked(
             device, provenance, worker_resources_version, rebuild_wall_seconds
         )
     create_attempted = False
+    candidate_stop = None
     output = operation / "export.stream"
     lease = ExitStack()
     slot = ExitStack()
@@ -1457,6 +1558,25 @@ def _run_locked(
                         )
                     except Exception:  # noqa: BLE001, S110 - preserve original failure
                         pass
+                if (
+                    provenance in _CANDIDATE_RESOURCE_PROVENANCES
+                    and not _cancel_path(ledger, owner, identity).exists()
+                ):
+                    stop = _candidate_resource_stop(
+                        cli,
+                        error,
+                        container_name=name,
+                        launch_digest=launch,
+                        image_id=image.image_id,
+                        program_started=program_started,
+                        program_timeout=program_timeout,
+                        setup_seconds=program_started - started,
+                        memory_limit_bytes=getattr(
+                            worker, "effective_memory_bytes", None
+                        ),
+                    )
+                    if stop is not None:
+                        raise _CandidateResourceStop(*stop, error) from error
                 raise
         with _fixed_practice_stage(operation, provenance, "OBSERVE"):
             observed = observe_effective_resources(cli=cli, container_name=name)
@@ -1540,6 +1660,9 @@ def _run_locked(
                     }
                 ),
             )
+    except _CandidateResourceStop as stop:
+        # Settled below, once cleanup of this exact container is observed.
+        candidate_stop = stop
     finally:
         try:
             with _fixed_practice_stage(operation, provenance, "CLEANUP"):
@@ -1566,6 +1689,20 @@ def _run_locked(
                     slot.close()
                 finally:
                     lease.close()
+    if candidate_stop is not None:
+        # The candidate's own graph or recipe hit the worker's memory or wall
+        # limit. The full reservation is kept and nothing is retried or
+        # refunded: a typed candidate failure, never FAILED_INFRA.
+        _settle_miner_failure(
+            ledger,
+            owner=owner,
+            identity=identity,
+            operation=operation,
+            resources=resources,
+            started=started,
+            failure=(candidate_stop.code, candidate_stop.observation),
+            before_finish=before_finish,
+        )
     with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
         _check_cancel(ledger, owner, identity)
     snapshot = operation / "snapshot"
