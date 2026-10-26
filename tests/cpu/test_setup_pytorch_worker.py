@@ -127,7 +127,7 @@ def test_a_runner_profile_s_string_manifest_path_reaches_the_loader_as_a_path(mo
     )
     monkeypatch.setattr(gpu_practice, "direct_parent_backend", lambda found: "torch_cpu")
     facts = configured_host_facts({"paths": {"image_manifest": "/w.json"}}).facts
-    assert seen == [Path("/w.json")] and type(seen[0]) is Path
+    assert seen == [Path("/w.json")] and isinstance(seen[0], Path)
     assert "trusted_worker_image" in facts and TORCH_CPU_WORKER in facts
 
 
