@@ -41,13 +41,23 @@ def _motor():
         "population": population.POPULATION_VERSION,
         "cases": [{"case_id": f"g{i:02d}", "inputs": c} for i, c in enumerate(cases)],
     }
-    return doc, motor_family.records_for(doc)
+    # a measured solve time, as real solver records carry (the grader's reference rows)
+    return doc, [{**r, "wall_s": 1.0} for r in motor_family.records_for(doc)]
 
 
 def _cooling():
     cases = cooling_family.population.draw(random.Random(2), 16)[0]
     doc = cooling_family.document(cases)
-    return doc, cooling_family.records_for(doc)
+    # feasible references (a lower peak than the family's default) with a measured solve
+    # time, as real solver records carry: the grader's pack documents need both
+    records = [
+        {
+            **cooling_family.ok_record(c["case_id"], c["inputs"], peak=60.0),
+            "wall_s": 1.0,
+        }
+        for c in doc["cases"]
+    ]
+    return doc, records
 
 
 def _battery():

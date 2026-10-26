@@ -42,7 +42,9 @@ def _batch(seed):
         "population": population.POPULATION_VERSION,
         "cases": [{"case_id": f"g{i:02d}", "inputs": c} for i, c in enumerate(cases)],
     }
-    return document, cpt.motor_family.records_for(document)
+    # a measured solve time, as real solver records carry (the grader's reference rows)
+    records = [{**r, "wall_s": 1.0} for r in cpt.motor_family.records_for(document)]
+    return document, records
 
 
 def _issued(producer, document, records, hotkey):
@@ -61,7 +63,7 @@ def _issued(producer, document, records, hotkey):
         carried["records"],
         version,
     )
-    roles = source._kit(challenge).private_roles(bank)
+    roles = cdt._grader_roles(challenge, version, source._kit(challenge), bank)
     pack_manifest = json.loads(manifest)
     for role in delivery.COPY_ROLES:
         pack_manifest["private"][role]["sha256"] = cdt._sha(roles[role])

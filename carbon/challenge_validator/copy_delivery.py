@@ -121,7 +121,7 @@ def issue_copy(
     copy_bank = source._build(
         challenge, kit, carried["document"], carried["records"], version
     )
-    roles = kit.private_roles(copy_bank)
+    roles = expected_roles(challenge, version, kit, copy_bank)
     canonical_body = json.loads(canonical_manifest)
     paths = _role_paths(canonical_body)
     manifest_h, _ = _manifest_with(canonical_manifest, roles)
@@ -152,6 +152,44 @@ def issue_copy(
 
 def _fail(code):
     raise AnswerKeyRefused(code)
+
+
+#: A placeholder image digest: the two bank roles do not depend on the grading platform
+#: (tested: another image gives the same bytes), but the grader requires one.
+_ROLE_IMAGE = "sha256:" + "0" * 64
+
+
+def expected_roles(challenge, version, kit, bank):
+    """The COPY_ROLES' bytes a real sealed grader pack carries for ``bank``, recomputed
+    with the SAME function the pack writer uses (`physical.pack_documents`): case_bank
+    from the kit, reference_rows and solver_evidence from the grader's own documents.
+    Never the kit's private_roles for those two (the kit's bytes differ from the
+    grader's), and never read from a pack's own bytes. Raises AnswerKeyRefused when the
+    Challenge has no sealed grader."""
+    from carbon.challenge_kit import physical_pack
+    from carbon.scoring import physical_dual_pack as physical
+
+    roles = dict(kit.private_roles(bank))
+    adapter = source._adapter(challenge, bank, version, None)
+    if adapter is None:
+        _fail("copy_grader_unavailable")
+    public = physical_pack.public_roles(challenge, version)
+    # reference_rows and solver_evidence do not depend on the leg-minimum platform or
+    # the minimums: the calibration form on the default platform yields the same bytes.
+    documents = physical.pack_documents(
+        adapter,
+        bank=bank,
+        physics=physical_pack.physics_contract(challenge, version),
+        interface_raw=public["interface"],
+        train_raw=public["train"],
+        limits_raw=public["important_limit_definition"],
+        objective_raw=public["design_objective"],
+        platform=physical.leg_minimum_platform(_ROLE_IMAGE, physical.DEVICE_CLASS),
+        minimums="calibration",
+    )
+    for role in ("reference_rows", "solver_evidence"):
+        roles[role] = documents[role]
+    return roles
 
 
 def verify_copy(commitment, payload, copy, *, hotkey):
@@ -208,7 +246,10 @@ def verify_copy(commitment, payload, copy, *, hotkey):
         canonical_bank = cd.canonicalize(copy_bank, opaque=opaque)
     except (ValueError, KeyError, TypeError, cd.CopyRefused):
         _fail("copy_batch_malformed")
-    copy_roles = kit.private_roles(copy_bank)
+    try:
+        copy_roles = expected_roles(challenge, version, kit, copy_bank)
+    except (ValueError, KeyError, TypeError):
+        _fail("copy_batch_malformed")
     body_h = json.loads(manifest_h)
     paths = _role_paths(body_h)
     for role in COPY_ROLES:
@@ -224,14 +265,17 @@ def verify_copy(commitment, payload, copy, *, hotkey):
             challenge, version, carried["document"], carried["records"]
         )
         canonical_carried = json.loads(canonical_raw)
-        canonical_roles = kit.private_roles(
+        canonical_roles = expected_roles(
+            challenge,
+            version,
+            kit,
             source._build(
                 challenge,
                 kit,
                 canonical_carried["document"],
                 canonical_carried["records"],
                 version,
-            )
+            ),
         )
     except (ValueError, KeyError, TypeError, cp.CopyPackageRefused):
         _fail("copy_batch_malformed")

@@ -38,7 +38,36 @@ def _sha(raw):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
-def _canonical_pack(name):
+_IMAGE = "sha256:" + "0" * 64
+
+
+def _grader_roles(challenge, version, kit, bank):
+    """The COPY_ROLES' bytes of a REAL grader pack: case_bank from the kit,
+    reference_rows and solver_evidence from the grader's own `pack_documents` (what
+    `write_sealed_pack` writes), computed here directly, not through copy_delivery."""
+    from carbon.challenge_kit import physical_pack
+    from carbon.scoring import physical_dual_pack as physical
+
+    adapter = source._adapter(challenge, bank, version, None)
+    public = physical_pack.public_roles(challenge, version)
+    documents = physical.pack_documents(
+        adapter,
+        bank=bank,
+        physics=physical_pack.physics_contract(challenge, version),
+        interface_raw=public["interface"],
+        train_raw=public["train"],
+        limits_raw=public["important_limit_definition"],
+        objective_raw=public["design_objective"],
+        platform=physical.leg_minimum_platform(_IMAGE, physical.DEVICE_CLASS),
+        minimums="calibration",
+    )
+    roles = dict(kit.private_roles(bank))
+    roles["reference_rows"] = documents["reference_rows"]
+    roles["solver_evidence"] = documents["solver_evidence"]
+    return roles
+
+
+def _canonical_pack(name, *, kit_roles=False):
     """(challenge, version, canonical manifest, canonical files, canonical batch)."""
     challenge, version, build, _builder, kit = FORMATS[name]
     document, records = build()
@@ -47,7 +76,11 @@ def _canonical_pack(name):
     bank = source._build(
         challenge, kit, carried["document"], carried["records"], version
     )
-    roles = kit.private_roles(bank)
+    roles = (
+        kit.private_roles(bank)
+        if kit_roles
+        else _grader_roles(challenge, version, kit, bank)
+    )
     files = {"public/interface.json": b'{"interface":1}'}
     manifest = {
         "schema": SCHEMA,
