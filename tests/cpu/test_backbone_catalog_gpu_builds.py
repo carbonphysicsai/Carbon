@@ -32,13 +32,17 @@ def withdrawn_twins():
     return set(derivation["gpu_twins_withdrawn"]["ids"])
 
 
-#: The v2 entries that have their GPU twin so far (GPU-2, 2026-10-26: the served Motor and Cooling examples); the
+#: The v2 entries that have their GPU twin so far (GPU-2/GPU-3, 2026-10-26: the served Motor, Cooling, F08 and F02 examples); the
 #: other v2 entries come with the rest of the GPU line.
 V2_TWINNED = {
     "v2.motor.cno.CNO1d",
     "v2.cooling.cno.CNO1d",
     "v2.motor.jno.bcat",
     "v2.cooling.jno.bcat",
+    "v2.f08.cno.CNO1d",
+    "v2.f02.cno.CNO1d",
+    "v2.f08.jno.bcat",
+    "v2.f02.jno.bcat",
 }
 #: The CNO1d build under every id it is served as: the one explicit warn-only / smoke-only entry.
 CNO1D_IDS = {

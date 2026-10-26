@@ -1,0 +1,17 @@
+{
+ "accelerator": "cuda13",
+ "architecture": "amd64",
+ "base_environment_digest": "sha256:ae8ec3abbced4fafcce090947808c329b9bf73061f45650bf531c4a8a0e23e7d",
+ "environment_digest": "sha256:4edad0a6e6f4f6eaf1110146674a6849f41b9b4340f0fc079fa021a85b89ae67",
+ "language": "python",
+ "license_sha256": "sha256:66520b9093771f13051668ff2ee44a58efe972b16ab14fabbed2fc8723d71449",
+ "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+ "name": "f08-catalog-cno-cno1d-baseline-v2",
+ "os": "linux",
+ "python_abi": "cp311",
+ "runtime_profile_id": "torch-cu130-py311",
+ "schema": "carbon.development.library-bundle.v1",
+ "source_bytes": 69594,
+ "source_sha256": "sha256:62289463e4f96d6c9712d931b386de71111106d77510fc6b85dde1a8fc63bf1f",
+ "wheels": {}
+}
