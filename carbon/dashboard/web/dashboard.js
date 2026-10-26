@@ -315,7 +315,10 @@
         isNum(age) ? read + (isNum(after) ? " (stale after " + span(after) + "). " : ". ") : "",
         "Values may be out of date."));
     }
-    if (ctx.eraBefore && ctx.eraBefore !== board.era) {
+    if (ctx.eraBefore && ctx.eraBefore !== board.era && board.launch) {
+      out.push(h("div", {class: "alert alert-era", role: "note"}, h("strong", null, "New exam. "),
+        "This board moved to " + board.launch.exam_version_label + " since your last visit. The ladder starts fresh in each exam."));
+    } else if (ctx.eraBefore && ctx.eraBefore !== board.era) {
       out.push(h("div", {class: "alert alert-era", role: "note"}, h("strong", null, "New rule era. "),
         "This board moved from rule " + shortDigest(ctx.eraBefore) + " to " + shortDigest(board.era) + " since your last visit. History starts fresh in each era."));
     }
@@ -333,7 +336,7 @@
       h("div", {class: "chips"},
         chip(phase[0], phase[1]),
         board.device_class ? chip(board.device_class, "chip-plain") : null,
-        chip("Era " + shortDigest(board.era), "chip-plain"),
+        board.launch ? chip("Exam " + board.launch.exam_version_label, "chip-plain") : chip("Era " + shortDigest(board.era), "chip-plain"),
         ok && board.challenge.rule ? chip("Rule " + board.challenge.rule, "chip-plain") : null,
         chip("Version " + board.challenge.version, "chip-plain")),
       // The one place rule text would go while the rules card is not OK.
@@ -533,9 +536,9 @@
         h("td", null, h("a", {href: minerHref(board.slug, r.hotkey), class: "key", title: r.hotkey}, shortKey(r.hotkey)), r.is_king ? h("span", {class: "crown-tag"}, "king") : null,
           isNum(r.uid) ? h("span", {class: "uid"}, "UID " + r.uid) : null),
         h("td", {class: "num"}, isNum(r.screening_value) ? fmt(r.screening_value, digits) : ""),
-        board.launch ? null : h("td", {class: "num opt"}, isNum(r.best_at_block) ? block(r.best_at_block) : ""),
+        board.launch ? h("td", {class: "bar-col opt"}, isNum(r.screening_value) ? miniBar(r.screening_value) : null) : h("td", {class: "num opt"}, isNum(r.best_at_block) ? block(r.best_at_block) : ""),
         h("td", {class: "opt"}, r.challenger_state ? chip(words(r.challenger_state), "chip-muted") : "")));
-      parts.push(finder("ladder"), table((lb.label || ELIGIBLE) + ", per hotkey", [["Rank", "num"], ["Hotkey"], [sectionShort(board), "num"], board.launch ? null : ["Best at block", "num opt"], [board.launch ? "Latest result" : "Challenge", "opt"]].filter(Boolean), rows, {id: "ladder"}));
+      parts.push(finder("ladder"), table((lb.label || ELIGIBLE) + ", per hotkey", [["Rank", "num"], ["Hotkey"], [sectionShort(board), "num"], board.launch ? ["", "bar-col opt"] : ["Best at block", "num opt"], [board.launch ? "Latest result" : "Challenge", "opt"]].filter(Boolean), rows, {id: "ladder"}));
     } else {
       parts.push(h("p", {class: "empty"}, "No eligible entries in this release yet."));
     }
@@ -651,31 +654,52 @@
   // OWNER-DASHBOARD-01: a launch Challenge is graded on a sealed exam, so its board
   // shows the validator's rounded totals and counts only. Nothing finer than the
   // Ladder step, no case, target or pool; every number is the validator's.
-  const LAUNCH_COUNTS = [["graded", "Hotkeys graded"], ["scored", "With a score"], ["gate_failed", "Failed a gate"], ["not_scored", "Not scored"]];
-  const GATE_WORDS = "Failed gates are named, never scored.";
+  // One page per Challenge: the leader first, then the ladder, then the showcase.
+  const LAUNCH_COUNTS = [["graded", "Graded"], ["scored", "Scored"], ["gate_failed", "Failed a gate"], ["not_scored", "Not scored"]];
+  const GATE_WORDS = "A failed gate is named, never scored.";
   function launchHero(board) {
     const l = board.launch;
-    return h("section", {class: "hero", "aria-labelledby": "hero-title"},
+    return h("section", {class: "hero launch-hero", "aria-labelledby": "hero-title"},
       eyebrow("First grade"),
       h("h2", {id: "hero-title"}, "No hotkey has a graded result yet"),
       h("p", {class: "lede"}, "A score appears here the moment the validator grades a submission on the sealed exam. Totals are rounded down to the Ladder step.",
         isNum(l.baseline_total) ? " Carbon's baseline to beat: " + fmt(l.baseline_total) + (isNum(l.margin) ? " plus a margin of " + fmt(l.margin) + "." : ".") : ""),
-      h("div", {class: "chips hero-labels"}, labelsOf(board).map(x => chip(x, x === "FIXTURE" ? "chip-warn" : "chip-label"))),
       h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), h("a", {class: "btn", href: LINKS.launchpad}, "Launchpad docs")));
   }
-  function launchCard(board) {
+  function leaderCard(board) {
     const l = board.launch;
-    const digits = places([l.to_beat, l.margin, l.baseline_total]);
-    const stats = [
-      isNum(l.to_beat) ? stat("To beat", fmt(l.to_beat, digits), isNum(l.margin) ? "king's total plus a margin of " + fmt(l.margin, digits) : null) : null,
-      !isNum(l.to_beat) && isNum(l.baseline_total) ? stat("Carbon baseline", fmt(l.baseline_total, digits), "no king yet") : null,
-      ...LAUNCH_COUNTS.map(([key, label]) => stat(label, String(l.counts[key]))),
-      l.exam_version_label ? stat("Exam", l.exam_version_label) : null,
-    ].filter(Boolean);
-    return section("launch", {class: "card", "aria-labelledby": "launch-title"},
-      h("div", {class: "card-top"}, h("h2", {id: "launch-title", class: "card-title"}, "Standing")),
-      h("dl", {class: "stats"}, stats),
-      Object.keys(l.gate_names || {}).length ? h("p", {class: "hint"}, GATE_WORDS) : null);
+    const k = board.king;
+    const digits = places([k && k.value, l.to_beat, l.margin, l.baseline_total]);
+    const beat = isNum(l.to_beat) ? stat("To beat", fmt(l.to_beat, digits), isNum(l.margin) ? "the leader's total plus " + fmt(l.margin, digits) : null) : null;
+    const gap = k && isNum(k.margin) ? stat("Lead over the runner-up", signed(k.margin, digits), k.runner_up ? shortKey(k.runner_up) : null) : null;
+    const held = isNum(l.king_since_epoch) ? stat("Leader since", "epoch " + l.king_since_epoch) : null;
+    const stats = [beat, gap, held].filter(Boolean);
+    return section("leader", {class: "card leader", "aria-labelledby": "leader-title"},
+      h("div", {class: "card-top"}, crown(), h("h2", {id: "leader-title", class: "card-title"}, "Current leader")),
+      k ? h("p", {class: "leader-key"}, hotkey(k.hotkey, {copy: true, href: minerHref(board.slug, k.hotkey)})) : h("p", {class: "leader-key"}, "No leader yet"),
+      k && isNum(k.value) ? h("div", {class: "metric leader-metric"}, h("span", {class: "metric-value"}, fmt(k.value, digits)), h("span", {class: "metric-label"}, "total score · higher is better")) : null,
+      stats.length ? h("dl", {class: "stats leader-stats"}, stats) : null);
+  }
+  function countsStrip(board) {
+    const l = board.launch;
+    return h("dl", {class: "counts-strip", "aria-label": "Standing"},
+      LAUNCH_COUNTS.map(([key, label]) => h("div", {class: "count-cell"}, h("dt", null, label), h("dd", null, String(l.counts[key])))));
+  }
+  function showcaseCard() {
+    return section("showcase-teaser", {class: "card teaser", "aria-labelledby": "teaser-title"},
+      eyebrow("Design showcase"),
+      h("h2", {id: "teaser-title"}, "See a model drive the design optimizer"),
+      h("p", {class: "lede"}, "A replay on a public task only: public cases and public reference solves, never a sealed exam or a miner's model."),
+      h("div", {class: "actions"}, h("a", {class: "btn", href: "#/showcase"}, "Open the showcase")));
+  }
+  function miniBar(v) {
+    return h("svg", {viewBox: "0 0 100 8", class: "minibar", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false"},
+      h("rect", {x: 0, y: 0, width: 100, height: 8, class: "track"}),
+      h("rect", {x: 0, y: 0, width: (Math.max(0, Math.min(1, v)) * 100).toFixed(1), height: 8, class: "fill"}));
+  }
+  function examLine(board) {
+    const l = board.launch;
+    return h("p", {class: "hint exam-line"}, "Exam " + l.exam_version_label + " · totals rounded down to the Ladder step · " + GATE_WORDS);
   }
 
   function boardPage(board, ctx) {
@@ -683,10 +707,10 @@
     if (board.launch) {
       const pre = board.phase === "PRE_FIRST_RELEASE";
       const parts = [boardHead(board, true), boardBanners(board, c)];
-      if (pre) parts.push(launchHero(board), launchCard(board), scoredBlock(board));
-      else parts.push(h("div", {class: "duo"}, kingCard(board, c), launchCard(board)), leaderboard(board), scoredBlock(board));
-      parts.push(feedBlock(board));
-      return h("div", {class: "page"}, parts);
+      if (pre) parts.push(launchHero(board), countsStrip(board));
+      else parts.push(leaderCard(board), countsStrip(board), leaderboard(board));
+      parts.push(showcaseCard(), examLine(board), feedBlock(board));
+      return h("div", {class: "page launch-page"}, parts);
     }
     const preRelease = board.phase === "PRE_FIRST_RELEASE" || (board.next_release && board.next_release.released_windows === 0);
     // A live board's one rules line sits in the target panel, where the bars would be.
@@ -932,6 +956,23 @@
       app.removeAttribute("aria-busy");
     }
   }
+  // Light and dark themes: the stored choice, else the system's (style.css).
+  const themeRoot = document.documentElement;
+  function storedTheme() { try { const t = localStorage.getItem("carbon.theme"); return t === "light" || t === "dark" ? t : null; } catch { return null; } }
+  function systemDark() { return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches); }
+  function paintTheme(forced) {
+    const chosen = forced || storedTheme();
+    if (chosen) themeRoot.setAttribute("data-theme", chosen); else themeRoot.removeAttribute("data-theme");
+    const button = document.getElementById("theme");
+    if (button) { const dark = (chosen || (systemDark() ? "dark" : "light")) === "dark"; button.setAttribute("aria-pressed", dark ? "true" : "false"); button.textContent = dark ? "Light" : "Dark"; }
+  }
+  const themeButton = document.getElementById("theme");
+  if (themeButton) themeButton.addEventListener("click", () => {
+    const next = (themeRoot.getAttribute("data-theme") || (systemDark() ? "dark" : "light")) === "dark" ? "light" : "dark";
+    try { localStorage.setItem("carbon.theme", next); } catch { /* the choice then lasts for this view only */ }
+    paintTheme(next);
+  });
+  paintTheme();
   window.addEventListener("hashchange", () => { render().then(() => { window.scrollTo(0, 0); app.focus({preventScroll: true}); }); });
   if (!ticker) ticker = setInterval(tick, 1000);
   render();

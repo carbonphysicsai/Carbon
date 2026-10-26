@@ -68,19 +68,21 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   const text = check(tree, where);
   assert.ok(text.includes(board.challenge.id), where + ": title");
   assert.ok(hasClass(tree, "card") || hasClass(tree, "hero"), where + ": a standing is drawn");
-  assert.ok(text.includes("Hotkeys graded") && text.includes(String(board.launch.counts.graded)), where + ": the counts");
+  assert.ok(text.includes("Graded") && text.includes("Failed a gate") && text.includes(String(board.launch.counts.graded)), where + ": the counts");
   assert.ok(!text.includes("Eligible for the championship"), where + ": a launch board is not a championship");
   assert.ok(!text.includes("Rules unavailable"), where + ": no rules line on a launch board");
-  assert.ok(text.includes("Total score"), where + ": the one scored section");
+  assert.ok(text.includes("Design showcase") && hasClass(tree, "teaser"), where + ": the public design showcase is offered");
+  assert.ok(!text.includes("Rules unavailable") && !text.includes("More coming"), where + ": no filler lines");
   assert.ok(board.labels.includes("DEVELOPMENT") && board.labels.every(l => l !== "FIXTURE"), where + ": labels");
   if (board.phase === "PRE_FIRST_RELEASE") {
-    for (const l of board.labels) assert.ok(text.includes(l), where + ": label " + l);
     assert.equal(board.launch.counts.graded, 0, where + ": no grade yet");
     assert.ok(hasClass(tree, "hero"), where + ": hero state");
     assert.ok(text.includes("No hotkey has a graded result yet"), where + ": the empty state says so");
     assert.equal(nodes(tree, "table").length, 0, where + ": no table before the first grade");
     assert.ok(text.includes("How to mine"), where + ": call to action");
   } else {
+    assert.ok(hasClass(tree, "leader"), where + ": the leader card comes first");
+    assert.ok(text.includes("total score") && text.includes("higher is better"), where + ": the one scored section, in words");
     assert.ok(text.includes(board.eligible_leaderboard.label), where + ": the ladder is named");
     assert.ok(board.king === null || text.includes(D.shortKey(board.king.hotkey)), where + ": king shown");
     const table = nodes(tree, "table").find(t => t.attrs.id === "ladder");

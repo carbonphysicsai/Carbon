@@ -6,7 +6,9 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Carbon subnet leaderboard: the king, the target to beat and the eligible ladder for each Challenge, from the Carbon Validator's signed score feed.">
-<meta name="theme-color" content="#f5f5f0">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f5f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0e10" media="(prefers-color-scheme: dark)">
 <title>Carbon Leaderboard</title>
 <link rel="preload" href="fonts/neue-0.otf" as="font" type="font/otf" crossorigin>
 <link rel="stylesheet" href="style.css">
@@ -17,12 +19,12 @@
   <a class="wordmark" href="#/"><img src="brand/brand-2.svg" alt="Carbon" width="96" height="22"><span class="eyebrow">Leaderboard</span></a>
   <nav class="topnav" aria-label="Sections"><a href="#/" data-view="board">Leaders</a><a href="#/mine" data-view="mine">How to mine</a><a href="#/showcase" data-view="showcase">Design showcase</a></nav>
   <div class="labels" id="labels" aria-label="Labels"></div>
+  <button type="button" class="theme" id="theme" aria-pressed="false" aria-label="Switch between light and dark">Dark</button>
 </header>
 <div class="banner" role="note">
-  <strong>Development display.</strong> Scores are rounded down (to the Ladder
-  step on a launch board, with counts only; lagged to released windows on an
-  older feed) and carry no qualification. They do not show that any model or
-  design is correct in practice.
+  <strong>Development display.</strong> Scores are rounded and carry no
+  qualification. They do not show that any model or design is correct in
+  practice.
 </div>
 <main id="app" tabindex="-1">
   <noscript><p class="notice">The leaderboard draws its pages with JavaScript.</p></noscript>
