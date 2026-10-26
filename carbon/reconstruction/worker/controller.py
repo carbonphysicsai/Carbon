@@ -41,6 +41,7 @@ from carbon.reconstruction.worker.docker_runtime import (
 )
 from carbon.reconstruction.worker.model import (
     CONTROL_BYTES,
+    DIAGNOSTIC_BYTES,
     OUTPUT_MEMBERS,
     DevelopmentWorkerProfile,
     WorkerCode,
@@ -1042,9 +1043,39 @@ class IsolatedReconstructionController:
                 ["inspect", container_name, "--format", "{{json .State}}"]
             )
             if type(state) is not dict or state.get("Running") is not True:
-                raise WorkerFailure(WorkerCode.RUNTIME)
+                raise WorkerFailure(
+                    WorkerCode.RUNTIME,
+                    private_diagnostic=self._stopped_diagnostic(container_name, state),
+                )
             time.sleep(0.1)
         raise WorkerFailure(WorkerCode.DEADLINE)
+
+    def _stopped_diagnostic(self, container_name: str, state: object) -> bytes:
+        """What the container left when it stopped before its done-file: the exit
+        code and kernel-kill flags the engine recorded, and the tail of what the
+        program printed. Private bytes only; a failed read never replaces the
+        failure it describes."""
+        parts = [b"container stopped before its done-file\n"]
+        if type(state) is dict:
+            facts = {
+                name: state.get(name)
+                for name in ("Status", "ExitCode", "OOMKilled", "Dead", "Error")
+                if type(state.get(name)) in (str, int, bool)
+            }
+            parts.append(
+                b"state:" + json.dumps(facts, sort_keys=True).encode("ascii") + b"\n"
+            )
+        try:
+            logs = self.cli.run(
+                ["logs", "--tail", "200", container_name],
+                timeout=10,
+                accepted=(0, 1),
+            )
+            parts.append(b"stdout:\n" + logs.stdout[-16384:])
+            parts.append(b"\nstderr:\n" + logs.stderr[-16384:])
+        except WorkerFailure:
+            parts.append(b"logs unavailable\n")
+        return b"".join(parts)[:DIAGNOSTIC_BYTES]
 
 
 __all__ = ["IsolatedReconstructionController", "WorkerRunResult"]

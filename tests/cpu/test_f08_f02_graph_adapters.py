@@ -780,6 +780,10 @@ def test_the_receiver_rebuilds_then_infers_one_isolated_case_per_call(key, tmp_p
         )
 
 
+#: The `seconds` allowance each timing child was launched with.
+TIMED_SECONDS: list = []
+
+
 def _practice_with_failing_timing(key, tmp_path, failure, *, timing_optional):
     """A graph practice whose timing child (`measure_query`) raises `failure`."""
     from carbon.development_session.bundle_construction_worker import (
@@ -796,6 +800,7 @@ def _practice_with_failing_timing(key, tmp_path, failure, *, timing_optional):
 
     def runner(ledger, *, identity, **kwargs):
         if identity == timed_identity:
+            TIMED_SECONDS.append(kwargs["seconds"])
             raise failure
         return local(ledger, identity=identity, **kwargs)
 
@@ -903,3 +908,25 @@ def test_the_build_program_settles_refusals_and_gaps_by_their_class(tmp_path):
             if state == "REFUSED"
             else "carbon_graph_adapter_unavailable"
         )
+
+
+@posix
+def test_the_timing_run_has_its_own_capped_allowance(tmp_path):
+    """A practice that used most of its aggregate wall in the build must still give the
+    speed result's cold query a full allowance: the watchdog stops a container left
+    with a few seconds and the run fails as runtime.failed (Cooling 1.4 '-timed')."""
+    from carbon.development_session.bundle_construction_worker import (
+        TIMING_WALL_SECONDS_MAX,
+    )
+
+    key = SERVED[0]
+    TIMED_SECONDS.clear()
+    _practice_with_failing_timing(
+        key, tmp_path, WorkerFailure(WorkerCode.RUNTIME), timing_optional=True
+    )
+    policy = PUBLIC[key[0]].construction_limits_document(*key)[
+        "reconstruction_resource_policy"
+    ]
+    assert TIMED_SECONDS == [
+        min(policy["inference_wall_seconds_max"], TIMING_WALL_SECONDS_MAX)
+    ]

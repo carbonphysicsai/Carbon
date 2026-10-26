@@ -1768,6 +1768,10 @@ def direct_child_identity(identity: str, phase: str) -> str:
     )
 
 
+#: The most wall seconds the optional timing run (the practice speed result) may use,
+#: on top of the practice's own allowance.
+TIMING_WALL_SECONDS_MAX = 600
+
 #: Failures of an optional timing run that are never swallowed: an uncertain cleanup keeps
 #: capacity reserved, and a cancellation is the miner's.
 _TIMING_MUST_RAISE = frozenset(
@@ -1884,6 +1888,14 @@ def reconstruct_and_infer_public(
         runner=runner,
     )
 
+    def timing_seconds() -> int:
+        # The speed result's cold query gets its own capped allowance (a practice that
+        # used most of the aggregate wall in the build would otherwise leave it too few
+        # seconds, and the watchdog would stop its container: Cooling 1.4 '-timed').
+        if not timing_optional:
+            return phase_seconds("inference_wall_seconds_max")
+        return min(policy["inference_wall_seconds_max"], TIMING_WALL_SECONDS_MAX)
+
     def timed_query():
         return infer_public(
             ledger,
@@ -1900,7 +1912,7 @@ def reconstruct_and_infer_public(
             measure_query=True,
             allowlist_bytes=allowlist_bytes,
             limits_document=limits_document,
-            seconds=phase_seconds("inference_wall_seconds_max"),
+            seconds=timing_seconds(),
             **_accelerator_kwargs(inference_accelerator),
             runner=runner,
         )
@@ -1910,14 +1922,9 @@ def reconstruct_and_infer_public(
     if measure_query:
         timed = optional_timed(timed_query) if timing_optional else timed_query()
     elapsed = time.monotonic() - started
-    if (
-        timing_optional
-        and timed is not None
-        and elapsed > policy["total_reconstruction_wall_seconds_max"] >= before_timing
-    ):
-        # The timing run is only for the speed result: past the aggregate allowance it
-        # is dropped, the practice itself is not failed for it.
-        timed, elapsed = None, before_timing
+    if timing_optional:
+        # Only for the speed result: it is not part of the practice's aggregate wall.
+        elapsed = before_timing
     if (
         timing_optional
         and timed is not None
