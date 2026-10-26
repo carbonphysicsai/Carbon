@@ -497,6 +497,44 @@ _PRACTICE_FAILURE_REASONS = (
 )
 
 
+_TRACEBACK_FRAME = re.compile(
+    rb'^\s*File "(?P<path>[^"
+]{1,300})", line (?P<line>\d{1,6}), in (?P<name>[A-Za-z_<][A-Za-z0-9_<>]{0,80})\s*$'
+)
+_EXCEPTION_LINE = re.compile(rb"^(?P<name>[A-Za-z_][A-Za-z0-9_.]{0,80})(?::|$)")
+
+
+def _traceback_summary(diagnostic):
+    """Where a program that stopped on a Python exception stopped, without any message text:
+    the exception's class name and its last frames as `file.py:line:function` (file base names
+    and function names are code, never data). Nothing when the diagnostic holds no traceback
+    (Test Runner 11:13Z: Cooling 1.4's timed run died with only the PYTHON_TRACEBACK marker
+    recorded, and the cause was unrecoverable from the record)."""
+    start = diagnostic.rfind(b"Traceback (most recent call last)")
+    if start < 0:
+        return {}
+    lines = diagnostic[start:].split(b"
+")
+    frames = []
+    for row in lines[1:]:
+        found = _TRACEBACK_FRAME.match(row)
+        if found:
+            base = found["path"].rsplit(b"/", 1)[-1].decode("ascii", "replace")
+            name = found["name"].decode("ascii", "replace")
+            frames.append(f"{base}:{int(found['line'])}:{name}"[:160])
+    last = next(
+        (row for row in reversed(lines) if row.strip() and not row.startswith(b" ")),
+        b"",
+    )
+    named = _EXCEPTION_LINE.match(last)
+    summary = {}
+    if named is not None and not named["name"].startswith(b"Traceback"):
+        summary["worker_exception_class"] = named["name"].decode("ascii", "replace")
+    if frames:
+        summary["worker_traceback_frames"] = frames[-8:]
+    return summary
+
+
 def _retain_practice_failure(operation, stage, error):
     """Best-effort closed metadata, never exception text or a result artifact."""
     try:
@@ -555,6 +593,7 @@ def _retain_practice_failure(operation, stage, error):
                     "worker_code": code.value if type(code) is WorkerCode else None,
                     "diagnostic_markers": markers,
                     **_stopped_container_facts(diagnostic),
+                    **_traceback_summary(diagnostic),
                     **({} if reason is None else {"reason": reason}),
                     **(
                         {"capacity": error.capacity}
