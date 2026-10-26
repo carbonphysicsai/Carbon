@@ -533,9 +533,9 @@
         h("td", null, h("a", {href: minerHref(board.slug, r.hotkey), class: "key", title: r.hotkey}, shortKey(r.hotkey)), r.is_king ? h("span", {class: "crown-tag"}, "king") : null,
           isNum(r.uid) ? h("span", {class: "uid"}, "UID " + r.uid) : null),
         h("td", {class: "num"}, isNum(r.screening_value) ? fmt(r.screening_value, digits) : ""),
-        h("td", {class: "num opt"}, isNum(r.best_at_block) ? block(r.best_at_block) : ""),
+        board.launch ? null : h("td", {class: "num opt"}, isNum(r.best_at_block) ? block(r.best_at_block) : ""),
         h("td", {class: "opt"}, r.challenger_state ? chip(words(r.challenger_state), "chip-muted") : "")));
-      parts.push(finder("ladder"), table(ELIGIBLE + ", per hotkey", [["Rank", "num"], ["Hotkey"], [sectionShort(board), "num"], ["Best at block", "num opt"], ["Challenge", "opt"]], rows, {id: "ladder"}));
+      parts.push(finder("ladder"), table((lb.label || ELIGIBLE) + ", per hotkey", [["Rank", "num"], ["Hotkey"], [sectionShort(board), "num"], board.launch ? null : ["Best at block", "num opt"], [board.launch ? "Latest result" : "Challenge", "opt"]].filter(Boolean), rows, {id: "ladder"}));
     } else {
       parts.push(h("p", {class: "empty"}, "No eligible entries in this release yet."));
     }
@@ -648,8 +648,46 @@
         rulesOk(board) ? stat("Rules card", shortDigest(board.rules.card_digest)) : null));
   }
 
+  // OWNER-DASHBOARD-01: a launch Challenge is graded on a sealed exam, so its board
+  // shows the validator's rounded totals and counts only. Nothing finer than the
+  // Ladder step, no case, target or pool; every number is the validator's.
+  const LAUNCH_COUNTS = [["graded", "Hotkeys graded"], ["scored", "With a score"], ["gate_failed", "Failed a gate"], ["not_scored", "Not scored"]];
+  const GATE_WORDS = "Failed gates are named, never scored.";
+  function launchHero(board) {
+    const l = board.launch;
+    return h("section", {class: "hero", "aria-labelledby": "hero-title"},
+      eyebrow("First grade"),
+      h("h2", {id: "hero-title"}, "No hotkey has a graded result yet"),
+      h("p", {class: "lede"}, "A score appears here the moment the validator grades a submission on the sealed exam. Totals are rounded down to the Ladder step.",
+        isNum(l.baseline_total) ? " Carbon's baseline to beat: " + fmt(l.baseline_total) + (isNum(l.margin) ? " plus a margin of " + fmt(l.margin) + "." : ".") : ""),
+      h("div", {class: "chips hero-labels"}, labelsOf(board).map(x => chip(x, x === "FIXTURE" ? "chip-warn" : "chip-label"))),
+      h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), h("a", {class: "btn", href: LINKS.launchpad}, "Launchpad docs")));
+  }
+  function launchCard(board) {
+    const l = board.launch;
+    const digits = places([l.to_beat, l.margin, l.baseline_total]);
+    const stats = [
+      isNum(l.to_beat) ? stat("To beat", fmt(l.to_beat, digits), isNum(l.margin) ? "king's total plus a margin of " + fmt(l.margin, digits) : null) : null,
+      !isNum(l.to_beat) && isNum(l.baseline_total) ? stat("Carbon baseline", fmt(l.baseline_total, digits), "no king yet") : null,
+      ...LAUNCH_COUNTS.map(([key, label]) => stat(label, String(l.counts[key]))),
+      l.exam_version_label ? stat("Exam", l.exam_version_label) : null,
+    ].filter(Boolean);
+    return section("launch", {class: "card", "aria-labelledby": "launch-title"},
+      h("div", {class: "card-top"}, h("h2", {id: "launch-title", class: "card-title"}, "Standing")),
+      h("dl", {class: "stats"}, stats),
+      Object.keys(l.gate_names || {}).length ? h("p", {class: "hint"}, GATE_WORDS) : null);
+  }
+
   function boardPage(board, ctx) {
     const c = ctx || {now: Math.floor(Date.now() / 1000)};
+    if (board.launch) {
+      const pre = board.phase === "PRE_FIRST_RELEASE";
+      const parts = [boardHead(board, true), boardBanners(board, c)];
+      if (pre) parts.push(launchHero(board), launchCard(board), scoredBlock(board));
+      else parts.push(h("div", {class: "duo"}, kingCard(board, c), launchCard(board)), leaderboard(board), scoredBlock(board));
+      parts.push(feedBlock(board));
+      return h("div", {class: "page"}, parts);
+    }
     const preRelease = board.phase === "PRE_FIRST_RELEASE" || (board.next_release && board.next_release.released_windows === 0);
     // A live board's one rules line sits in the target panel, where the bars would be.
     const out = [boardHead(board, !preRelease), boardBanners(board, c)];
@@ -729,7 +767,7 @@
       king ? h("div", {class: "board-card-king"},
         h("span", {class: "eyebrow"}, "King"), h("span", {class: "key"}, shortKey(king.hotkey)),
         isNum(king.value) ? h("span", {class: "board-card-value"}, fmt(king.value), h("small", null, " " + sectionLabel(board))) : null)
-        : board && board.phase === "PRE_FIRST_RELEASE" ? h("p", {class: "hint"}, "First scores after the first release") : null,
+        : board && board.phase === "PRE_FIRST_RELEASE" ? h("p", {class: "hint"}, board.launch ? "No hotkey graded yet" : "First scores after the first release") : null,
       entry.state !== "ACCEPTED" ? h("p", {class: "fail"}, "Newest feed refused: " + words(entry.code)) : null);
   }
 

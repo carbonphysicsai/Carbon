@@ -41,12 +41,14 @@ import math
 import re
 from dataclasses import dataclass
 
+from carbon.dashboard import launch
+
 SCHEMA = "carbon.validator.score-feed.v1"
 BOARD_SCHEMA = "carbon.dashboard.board.v1"
 # VALIDATOR-29's signed bytes (score_feed.FeedKey.sign): this prefix, then
 # json.dumps(sort_keys=True, separators=(",", ":"), allow_nan=False), ASCII.
 DOMAIN = b"carbon.validator.score-feed.v1\x00"
-NUMERIC_SECTIONS = ("accuracy", "design_q", "near_limit")
+NUMERIC_SECTIONS = ("accuracy", "design_q", "near_limit", "total")
 SENSES = ("lower_is_better", "higher_is_better")
 GATE_VALUES = ("PASS", "FAIL")
 LABELS = ("DEVELOPMENT", "TESTNET")
@@ -762,6 +764,13 @@ def project(document, trust):
 
     Raises FeedRefused with a reason code; never returns a partial board.
     """
+    if type(document) is dict and document.get("schema") == launch.SCHEMA:
+        # The launch Challenges' standing (OWNER-DASHBOARD-01): its own schema and
+        # signing domain, projected to the same board model.
+        try:
+            return launch.project(document, trust)
+        except launch.LaunchRefused as refusal:
+            raise FeedRefused(refusal.code) from None
     signer = verify(document, trust)
     if "live" in document:
         raise FeedRefused("live_not_authorized")

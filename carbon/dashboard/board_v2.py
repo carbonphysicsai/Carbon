@@ -57,6 +57,7 @@ STALE_AFTER_SECONDS = 2 * 60 * 60
 PHASES = ("PRE_FIRST_RELEASE", "LIVE", "STALE")
 #: The feed's standing holds only eligible entries (each `gates.eligible` PASS).
 ELIGIBLE_LABEL = "Eligible for the championship"
+LAUNCH_LADDER_LABEL = "Ladder: best total per hotkey"
 REASONS = (
     "not_in_feed",
     "no_released_incumbent",
@@ -132,7 +133,7 @@ def utc_seconds(text):
     if y < 1970:
         return None
     try:
-        moment = datetime.datetime(y, mo, d, h, mi, s, tzinfo=datetime.timezone.utc)
+        moment = datetime.datetime(y, mo, d, h, mi, s, tzinfo=datetime.UTC)
     except ValueError:
         return None
     return int(moment.timestamp())
@@ -147,7 +148,7 @@ def utc_text(seconds):
     out of range."""
     if seconds is None or not 0 <= seconds <= _MAX_UTC_SECONDS:
         return None
-    d = datetime.datetime.fromtimestamp(seconds, tz=datetime.timezone.utc)
+    d = datetime.datetime.fromtimestamp(seconds, tz=datetime.UTC)
     return (
         f"{d.year:04d}-{d.month:02d}-{d.day:02d}"
         f"T{d.hour:02d}:{d.minute:02d}:{d.second:02d}Z"
@@ -512,7 +513,8 @@ def _leaderboard(board, section, challengers, lag, gate):
             ("coldkeys", _coldkeys(board), "not_in_feed"),
             ("grain_pct", *_grain_pct(board, gate)),
         ),
-        "label": ELIGIBLE_LABEL,
+        # A launch board's ladder is the Ladder's own best totals, not a championship.
+        "label": LAUNCH_LADDER_LABEL if board.get("launch") else ELIGIBLE_LABEL,
         "entries": entries,
     }
 
@@ -598,6 +600,30 @@ def _gates(board, king):
     }
 
 
+def _launch(board):
+    """The launch board's standing, as the validator signed it (OWNER-DASHBOARD-01):
+    the counts, the king's margin and the score to beat, the exam label, and the
+    closed gate names of a hotkey whose latest result failed a gate. Absent for a
+    score feed."""
+    launch = board.get("launch")
+    if launch is None:
+        return {}
+    return {
+        "launch": {
+            "counts": dict(launch["counts"]),
+            **_fields(
+                ("margin", launch["margin"], "no_registered_noise"),
+                ("to_beat", launch["to_beat"], "no_registered_noise"),
+                ("baseline_total", launch["baseline_total"], "a_king_is_crowned"),
+                ("king_since_epoch", launch["king_since_epoch"], "no_king"),
+            ),
+            "exam_version_label": launch["exam_version_label"],
+            "network": launch["network"],
+            "gate_names": {k: list(v) for k, v in launch["gate_names"].items()},
+        }
+    }
+
+
 def project(board, now, rules_card=None):
     """The v2 board for a `feed.project` board model, at `now` (whole seconds
     since the epoch, for the phase only), with a verified rules card summary
@@ -605,7 +631,8 @@ def project(board, now, rules_card=None):
     if board.get("schema") != feed.BOARD_SCHEMA:
         raise ValueError("board.v2 is projected from a verified board.v1 model")
     release = board["release"] or {}
-    released = len(board["released_windows"])
+    # A launch board has no windows: its graded hotkeys stand in (launch.project).
+    released = board.get("released_count", len(board["released_windows"]))
     as_of = board.get("as_of_block")
     phase, fresh = freshness(
         board["generated_at"],
@@ -720,4 +747,5 @@ def project(board, now, rules_card=None):
         },
         "gates": _gates(board, king),
         "excluded_canaries": board["excluded_canaries"],
+        **_launch(board),
     }
