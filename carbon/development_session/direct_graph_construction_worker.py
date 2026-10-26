@@ -879,8 +879,17 @@ def reconstruct_and_infer_graph_public(
     runner=None,
     adapter_id: str = SYNTHETIC_ADAPTER_ID,
     accelerator: str | None = None,
+    inference_image: WorkerImageIdentity | None = None,
+    inference_accelerator: str | None = None,
 ) -> DirectReconstructionResult:
-    """Use the normal two-child budget and source-free inference boundary."""
+    """Use the normal two-child budget and source-free inference boundary.
+
+    `accelerator` is the GPU for the build and, as practice runs it, for the inference too. A
+    validator that rebuilds on its GPU and grades on its CPU names `inference_image` (its own
+    worker) and `inference_accelerator` (None = the CPU): the build keeps `image` and
+    `accelerator`, the inference child takes the pair given. Absent, nothing changes."""
+    if inference_image is None and inference_accelerator is not None:
+        raise RecipeRefused("direct_graph_build_binding_invalid")
     binding = _checked_binding(recipe, challenge_binding)
     policy_digest = verify_direct_resource_policy(binding, limits_document)
     policy = limits_document["reconstruction_resource_policy"]
@@ -921,7 +930,7 @@ def reconstruct_and_infer_graph_public(
     query = {
         "ledger": ledger,
         "owner": owner,
-        "inference_image": image,
+        "inference_image": image if inference_image is None else inference_image,
         "recipe": recipe,
         "binding": binding,
         "state": state,
@@ -936,7 +945,9 @@ def reconstruct_and_infer_graph_public(
         **rebuild_wall_kwargs(limits_document),
         # The miner's own GPU for both children (practice only): absent for
         # every CPU run, so their calls and identities are unchanged.
-        **_accelerator_kwargs(accelerator),
+        **_accelerator_kwargs(
+            accelerator if inference_image is None else inference_accelerator
+        ),
     }
     from . import battery_graph_adapter
 

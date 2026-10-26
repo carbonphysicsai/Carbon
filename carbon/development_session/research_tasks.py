@@ -252,8 +252,10 @@ class DirectDevelopmentTasksV3:
         construction_parent=None,
         construction_parents=None,
         evaluation_pack_digest=None,
+        graph_gpu_image=None,
+        graph_gpu_ops=None,
     ) -> None:
-        from .gpu_practice import DirectParents
+        from .gpu_practice import DirectParents, gpu_image_backend
 
         # Two CPU construction parents (OWNER-BACKBONE-CATALOG-01): each bundle
         # task builds on its pinned runtime's parent, never a miner's choice.
@@ -265,6 +267,20 @@ class DirectDevelopmentTasksV3:
             or image_resolver is None
         ):
             raise ValueError("per-runtime parents need the per-recipe resolver")
+        # The graph route's own GPU lane (GPU-1): a JAX GPU worker plus the record of ops
+        # the hardware class repeats bit for bit; both or neither.
+        if (graph_gpu_image is None) != (graph_gpu_ops is None) or (
+            graph_gpu_image is not None
+            and (
+                gpu_image_backend(graph_gpu_image) != "jax"
+                or type(graph_gpu_ops) is not frozenset
+                or not graph_gpu_ops
+                or any(type(op) is not str for op in graph_gpu_ops)
+            )
+        ):
+            raise ValueError(
+                "graph GPU lane needs a JAX GPU worker and a GPU ops record"
+            )
         if (
             not isinstance(root, Path)
             or not root.is_absolute()
@@ -303,6 +319,7 @@ class DirectDevelopmentTasksV3:
         self.discovery = discovery
         self.evaluation_pack_digest = evaluation_pack_digest
         self.image, self.inference_image = image, inference_image
+        self.graph_gpu_image, self.graph_gpu_ops = graph_gpu_image, graph_gpu_ops
         self.image_resolver = image_resolver
         self.construction_parents = construction_parents
         self.construction_parent = (
@@ -378,6 +395,7 @@ class DirectDevelopmentTasksV3:
                                 if evaluation_pack_digest is not None
                                 else []
                             ),
+                            *self._graph_gpu_binding(),
                         ],
                         separators=(",", ":"),
                     )
@@ -395,6 +413,7 @@ class DirectDevelopmentTasksV3:
                                 if evaluation_pack_digest is not None
                                 else []
                             ),
+                            *self._graph_gpu_binding(),
                         ],
                         sort_keys=True,
                         separators=(",", ":"),
@@ -479,6 +498,34 @@ class DirectDevelopmentTasksV3:
     def close(self) -> None:
         if not self._lease.closed:
             self._lease.close()
+
+    def _graph_lane(self, source_envelope, image):
+        """`(device, call arguments)` for one graph rebuild.
+
+        On the CPU image unless every op of the graph repeats on the GPU class: then the build
+        takes the GPU worker and the grade stays on `image`, the CPU inference image (the owner:
+        rebuild on the GPU, grade on the CPU)."""
+        from .graph_gpu_lane import device_for
+
+        device = device_for(
+            source_envelope, gpu_image=self.graph_gpu_image, gpu_ops=self.graph_gpu_ops
+        )
+        if device is None:
+            return None, {"image": image}
+        return device, {
+            "image": self.graph_gpu_image,
+            "accelerator": device,
+            "inference_image": image,
+            "inference_accelerator": None,
+        }
+
+    def _graph_gpu_binding(self) -> list:
+        """The graph GPU lane's part of the provider binding: absent without a lane, so every
+        existing deployment's binding is what it was."""
+        if self.graph_gpu_image is None:
+            return []
+        ops = hashlib.sha256(",".join(sorted(self.graph_gpu_ops)).encode()).hexdigest()
+        return ["GRAPH_GPU_LANE", self.graph_gpu_image.image_id, "sha256:" + ops]
 
     def _check_image_identity(self) -> None:
         from carbon.reconstruction.worker.model import WorkerImageIdentity
@@ -1730,10 +1777,11 @@ class DirectDevelopmentTasksV3:
             try:
                 recipe = ConstructionRecipe.from_dict(request.recipe)
                 source_kind = recipe.to_dict()["source"]["kind"]
-                if source_kind == "graph" and (
-                    self.build_accelerator is not None
-                    or self.inference_accelerator is not None
-                ):
+                # The graph is graded on the receiver's inference image; a GPU one has no CPU
+                # lane for a graph, so it stays unserved. A GPU CONSTRUCTION parent alone is the
+                # bundle runtimes' and leaves the graph route on the CPU image (or its own
+                # GPU lane: `graph_gpu_image`).
+                if source_kind == "graph" and self.inference_accelerator is not None:
                     raise ValueError("direct graph GPU construction is unavailable")
                 retained_image = self._task_image_bindings.get(task_id.value)
                 retained_binding = (
@@ -1841,12 +1889,14 @@ class DirectDevelopmentTasksV3:
                 "interface_digest": kit["interface_digest"],
                 "construction_limits_digest": kit["construction_limits_digest"],
             }
+            graph_gpu = None
             if source_kind == "graph":
+                graph_gpu, graph_lane = self._graph_lane(source_envelope, image)
                 result = reconstruct_and_infer_graph_public(
                     self.ledger,
                     owner=self.owner,
                     identity=task_id.value,
-                    image=image,
+                    **graph_lane,
                     recipe=recipe,
                     challenge_binding=binding,
                     limits_document=material["construction_limits_document"],
@@ -2053,6 +2103,10 @@ class DirectDevelopmentTasksV3:
                 private["submission_digest"] = recipe.to_dict()["source"][
                     "submission_digest"
                 ]
+                if graph_gpu is not None:
+                    # Said only when it happened: a CPU rebuild's evidence is what it was.
+                    private["build_device"] = "GPU"
+                    private["build_image_id"] = self.graph_gpu_image.image_id
             elif overlay_run:
                 private.update(
                     {
