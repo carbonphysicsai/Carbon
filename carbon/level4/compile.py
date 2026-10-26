@@ -44,7 +44,7 @@ from .allowlist import HUMAN_INPUT
 #: measured compile time of a 64 MiB worst-case document, capped at the ceiling.
 DEADLINE_SECONDS = 600
 #: Every allowlist before v8 keeps its published 120 s (OWNER-L4-VALUES-01): the
-#: Battery 1.0/2.0 kits publish it in their limits digests, which do not move.
+#: graph kits publish it in their limits digests, which do not move.
 LEGACY_DEADLINE_SECONDS = 120
 LONG_DEADLINE_VERSIONS = frozenset({"level4-allowlist-v8"})
 

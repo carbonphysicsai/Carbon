@@ -343,9 +343,26 @@ def validate_submission(
             raise graph.GraphRefused("init_outputs_mismatch")
     else:
         initializers.build(parsed["init_spec"], parsed["forward"])
+    check_submission_budget(verdicts, allowlist, caps)
     statuses = {v["status"] for v in verdicts.values()}
     return {
         "status": "admitted" if statuses == {"admitted"} else "blocked_human_input",
         "batch": verdicts["forward"]["batch"],
         "documents": verdicts,
     }
+
+
+def check_submission_budget(verdicts, allowlist, caps=None):
+    """Under accounting v5 the fitted-value cap is the submission's, not each
+    document's: the forward, init and loss graphs together may carry at most one cap's
+    worth (a table split across the three would otherwise pass three times over). The
+    earlier accountings measure and cap each document alone, as they always did."""
+    accounting, _ = allowlist_module.accounting_for(allowlist)
+    if accounting != allowlist_module.CONSTANT_ACCOUNTING_V5:
+        return
+    cap = {**allowlist_module.caps_for(allowlist), **(caps or {})}.get("constant_bytes")
+    if type(cap) is not int:
+        return
+    total = sum(v["measurements"]["fitted_info_bytes"] for v in verdicts.values())
+    if total > cap:
+        raise graph.GraphRefused("cap_exceeded", "constant_bytes")

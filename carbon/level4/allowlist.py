@@ -47,7 +47,7 @@ UNCAPPED_VERSIONS = frozenset({"level4-allowlist-v7", "level4-allowlist-v8"})
 UNCAPPED_CAPS = {"constant_bytes": CAPS["constant_bytes"], **CONTAINMENT}
 #: Versions whose init graphs may build structured tables from `iota` arithmetic
 #: (identity, DFT, orthogonal bases): the keyed-or-uniform-fill rule is removed
-#: (Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025, row 2). Under accounting v4 the
+#: (Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025, row 2). Under accounting v5 the
 #: constants cap already bounds the information an init can carry; the from-scratch
 #: rule (no pretrained `initial_state`) and "an init never returns a key" stay.
 OPEN_INIT_VERSIONS = frozenset({"level4-allowlist-v8"})
@@ -207,23 +207,26 @@ def v8_bytes():
 CONSTANT_ACCOUNTING = "level4-constant-accounting-v3"
 #: The measurement each cap reads under the current accounting.
 MEASURED_AS = {"constant_bytes": "constant_value_bytes"}
-#: Accounting v4 (B', Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025 section 3):
-#: integer constants count by the bits their actual range needs, floats keep four
-#: bytes a value; the cap is the same 16 KiB. Served with allowlist v8 only; every
+#: Accounting v5 (Validator VALIDATOR_GRAPH_OPS_V8_RULINGS_20261025 sections 3
+#: and 7): the 16 KiB cap bounds every channel that carries a fitted value into the
+#: rebuilt model, counted by what it really stores: the constants (an integer by the
+#: bits its range and offset need, floats at their real size, float64 eight bytes) and
+#: the static integer, bool and float parameters of every node (`graph.measure`:
+#: `fitted_info_bytes`). Served with allowlist v8 only (not yet published); every
 #: earlier version keeps v3 and no recorded verdict is re-measured.
-CONSTANT_ACCOUNTING_V4 = "level4-constant-accounting-v4"
-ACCOUNTING_V4_VERSIONS = frozenset({"level4-allowlist-v8"})
-MEASURED_AS_V4 = {"constant_bytes": "constant_info_bytes"}
+CONSTANT_ACCOUNTING_V5 = "level4-constant-accounting-v5"
+ACCOUNTING_V5_VERSIONS = frozenset({"level4-allowlist-v8"})
+MEASURED_AS_V5 = {"constant_bytes": "fitted_info_bytes"}
 
 
 def accounting_for(allowlist):
     """(accounting name, cap -> measurement map) for ``allowlist`` (an
-    `Allowlist` or its version string): v4 for v8, else v3."""
+    `Allowlist` or its version string): v5 for v8, else v3."""
     version = (
         allowlist if type(allowlist) is str else getattr(allowlist, "version", None)
     )
-    if version in ACCOUNTING_V4_VERSIONS:
-        return CONSTANT_ACCOUNTING_V4, MEASURED_AS_V4
+    if version in ACCOUNTING_V5_VERSIONS:
+        return CONSTANT_ACCOUNTING_V5, MEASURED_AS_V5
     return CONSTANT_ACCOUNTING, MEASURED_AS
 
 

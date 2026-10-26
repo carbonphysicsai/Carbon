@@ -33,7 +33,7 @@ EVIDENCE = (
 )
 CHANGED = "carbon.development_session.build_refusal.py"
 #: The shared Level 4 modules allowlist v8 moved (OWNER-GRAPH-OPS-OPEN-01): new op kinds,
-#: nested control-flow graphs, constant accounting v4, stripped debug ops and the
+#: nested control-flow graphs, constant accounting v5, stripped debug ops and the
 #: init rule, every one gated on a v8 document or allowlist. F08 1.4 and F02 2.3 serve v7
 #: and behave exactly as recorded (the byte-identity of the recorded runs' states,
 #: predictions and grades above); their staged copies of these files are newer. A
