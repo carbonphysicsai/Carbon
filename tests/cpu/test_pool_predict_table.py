@@ -81,6 +81,44 @@ def test_rows_command_reads_the_sets_and_writes_one_file(tmp_path, capsys):
     assert written["rows"] == [[80.0, 3.0], [90.0, 4.0]]
 
 
+def test_rows_with_the_bank_add_the_practice_cells_and_probes_without_grouping(
+    tmp_path,
+):
+    """The grid's bank leg asks the tables about the bank rows beside the pool rows (grid crash 3)."""
+    from carbon.scoring import pool_adapters
+
+    chosen = pool_adapters.adapter("f02", "2.4")
+    names = list(chosen.design_names)
+    pools = tmp_path / "pools"
+    pools.mkdir()
+    (pools / "pool-source-a.json").write_text(
+        json.dumps(_document("a", {}, [[90.0, 4.0], [80.0, 3.0]], names))
+    )
+    (tmp_path / "sets.json").write_text(json.dumps({"A": ["a"]}))
+    args = SimpleNamespace(
+        kind="f02",
+        version="2.4",
+        pools_dir=str(pools),
+        sets=str(tmp_path / "sets.json"),
+        out=str(tmp_path / "rows.json"),
+        with_bank=True,
+    )
+    assert tool.rows_command(args) == 0
+    written = json.loads((tmp_path / "rows.json").read_text())
+    bank = tool.bank_input_rows("f02", "2.4")
+    assert len(bank) > 2 and all(len(r) == len(chosen.input_names) for r in bank)
+    rows = written["rows"]
+    assert rows == sorted(rows) and len(rows) == len({tuple(r) for r in rows})
+    for row in [[80.0, 3.0], [90.0, 4.0], *bank]:
+        assert row in rows
+    assert len(rows) == len({tuple(r) for r in [[80.0, 3.0], [90.0, 4.0], *bank]})
+    text = json.dumps(written)
+    for forbidden in ("truth", "cohort", "case_id", "probe", "reference"):
+        assert forbidden not in text
+    with pytest.raises(tool.Stop):
+        tool.build_rows("f02", "2.4", [], bank_rows=[[1.0]])
+
+
 class _Binder:
     def __init__(self, drift=None):
         self.drift = drift
