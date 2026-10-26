@@ -28,8 +28,8 @@ from carbon.development_session.bundle_construction_worker import (
     _tensors,
     timed_program,
 )
-from carbon.scoring import practice_speed
 from carbon.level4 import allowlist
+from carbon.scoring import practice_speed
 
 
 def _build(tmp_path, x):
@@ -192,7 +192,10 @@ def test_the_figure_is_relabelled_and_carries_the_median_and_the_max():
     assert block["per_call_max_seconds"] == 5.0 and block["per_call_rows"] == 4
     # A fast batched average does not hide a slow single call.
     assert block["within_ceiling"] is True
-    assert block["per_call_within_ceiling"] is False or block["per_call_median_seconds"] <= block["ceiling_seconds_per_design"]
+    assert (
+        block["per_call_within_ceiling"] is False
+        or block["per_call_median_seconds"] <= block["ceiling_seconds_per_design"]
+    )
 
 
 def test_no_per_call_timings_leave_the_batched_figure_as_it_was():
