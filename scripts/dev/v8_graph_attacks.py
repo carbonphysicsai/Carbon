@@ -547,6 +547,89 @@ def s8_init_misuse(lab):
     )
 
 
+def s11_structure_only_capacity(lab):
+    """The smallest graph that carries a 1,000-float table through structure alone (no constant, no static parameter):
+    measured as op-and-wiring chains of N nodes, with the information each node can carry and what N it takes.
+    """
+    import math
+    import random
+
+    import jax.numpy as jnp
+    from jax import lax
+
+    ops = (jnp.add, jnp.subtract, jnp.multiply, jnp.maximum, jnp.minimum)
+    rows = []
+    for n in (1000, 4000, 16000):
+        rng = random.Random(n)
+        plan = [
+            (rng.randrange(len(ops)), rng.randrange(max(1, k + 1))) for k in range(n)
+        ]
+
+        def forward(v, plan=plan):
+            vals = [lax.iota(jnp.float32, 1000) / 1000.0]
+            for op_index, wire in plan:
+                vals.append(ops[op_index](vals[-1], vals[wire]))
+            return v * vals[-1][None, :]
+
+        x = jnp.ones((2, 1000), jnp.float32)
+        t0 = time.perf_counter()
+        status, verdict, nbytes, doc = lab.check(forward, (x,))
+        t_check = time.perf_counter() - t0
+        compile_s = None
+        if doc is not None:
+            rebuilt = lab.interpret.rebuild(doc, lab.al)
+            t1 = time.perf_counter()
+            rebuilt(x)[0].block_until_ready()
+            compile_s = time.perf_counter() - t1
+        m = _measure(verdict)
+        bits_per_node = math.log2(len(ops)) + math.log2(
+            max(2, n / 2)
+        )  # op choice plus a wiring choice into the earlier nodes
+        rows.append(
+            {
+                "nodes": n,
+                "status": status,
+                "document_bytes": nbytes,
+                "bytes_per_node": round(nbytes / n, 1) if nbytes else None,
+                "constant_info_bytes": m.get("constant_info_bytes"),
+                "lower_and_validate_s": round(t_check, 1),
+                "first_call_compile_s": (
+                    None if compile_s is None else round(compile_s, 1)
+                ),
+                "info_bits_per_node_upper": round(bits_per_node, 1),
+            }
+        )
+    last = rows[-1]
+    need_bits = 1000 * 24
+    nodes_needed = (
+        int(need_bits / last["info_bits_per_node_upper"])
+        if last["info_bits_per_node_upper"]
+        else None
+    )
+    doc_estimate = (
+        None
+        if not last["bytes_per_node"]
+        else int(nodes_needed * last["bytes_per_node"])
+    )
+    return Result(
+        "V11",
+        "constant smuggling",
+        "Structure-only capacity: op-and-wiring chains with no constant and no static parameter; how big a graph carries a 1,000-float table",
+        "recorded (accounting v5 charges constants and static parameters, not topology)",
+        "; ".join(
+            f"{r['nodes']} nodes: {r['status']}, {r['document_bytes']} B ({r['bytes_per_node']} B/node), compile {r['first_call_compile_s']} s, constants charged {r['constant_info_bytes']} B"
+            for r in rows
+        )
+        + f". Capacity bound, not a constructed decoder: 1,000 floats at 24 bits need at least {nodes_needed} nodes, about {doc_estimate} document bytes",
+        "INFO",
+        {
+            "rows": rows,
+            "assumption": "each node carries at most log2(ops) + log2(wiring choices) bits; a decoder that reaches an arbitrary table needs more nodes, never fewer",
+            "reading": "the structure channel is not closed by accounting v5; it is made expensive: a 16 KiB table costs this many nodes of document and compile time",
+        },
+    )
+
+
 # ------------------------------------------------------------------------------------------------ scenario 4/9/10 (static)
 
 CODE = re.compile(r'GraphRefused\(\s*"([a-z0-9_]+)"')
@@ -616,6 +699,7 @@ def run(fast=False):
         s6_identical_copies,
         s7_nondeterministic_ops,
         s8_init_misuse,
+        s11_structure_only_capacity,
         s10_timing_run_static,
     ]
     results = []
