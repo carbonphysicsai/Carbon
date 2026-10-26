@@ -50,6 +50,111 @@ REASONS = (
 )
 
 
+SHELL_MODES = ("designs", "conditions")
+
+
+def _shell_row(row):
+    lo, hi, ext_lo, ext_hi = (float(x) for x in row)
+    _require(
+        all(math.isfinite(v) for v in (lo, hi, ext_lo, ext_hi))
+        and lo < hi
+        and ext_lo >= 0.0
+        and ext_hi >= 0.0,
+        "shell_rows_are_train_lo_hi_and_non_negative_extensions",
+    )
+    return (lo, hi, ext_lo, ext_hi)
+
+
+def _valid_shell(shell, design_inputs, fixed):
+    """The explicit shell of an extended target: {"mode": "designs" | "conditions", "inputs": ...}. The MODE comes
+    from the pool source, never inferred. "designs": one (train_lo, train_hi, ext_lo, ext_hi) row per design input
+    in box order, and every queryable point (the reference included) must lie in the shell. "conditions" (a
+    condition input extends): a row per condition input NAME, and the target's fixed conditions must lie in the
+    shell once; the design box is then not constrained."""
+    _require(
+        type(shell) is dict and set(shell) == {"mode", "inputs"},
+        "shell_must_be_a_mode_and_its_inputs",
+    )
+    mode = shell["mode"]
+    _require(mode in SHELL_MODES, "shell_mode_must_be_designs_or_conditions")
+    if mode == "designs":
+        rows = tuple(_shell_row(r) for r in shell["inputs"])
+        _require(len(rows) == design_inputs, "shell_needs_one_row_per_design_input")
+        return {"mode": mode, "inputs": rows}
+    _require(
+        type(shell["inputs"]) is dict and shell["inputs"],
+        "conditions_shell_needs_a_row_per_condition_name",
+    )
+    named = {str(name): _shell_row(r) for name, r in shell["inputs"].items()}
+    _require(
+        set(named) <= set(fixed), "conditions_shell_names_must_be_fixed_conditions"
+    )
+    return {"mode": mode, "inputs": named}
+
+
+def _shell_json(shell):
+    if shell is None:
+        return None
+    if shell["mode"] == "designs":
+        return {"mode": "designs", "inputs": [list(r) for r in shell["inputs"]]}
+    return {
+        "mode": "conditions",
+        "inputs": {name: list(r) for name, r in sorted(shell["inputs"].items())},
+    }
+
+
+def _in_row(x, row):
+    lo, hi, ext_lo, ext_hi = row
+    tol = 1e-9 * max(1.0, hi - lo)
+    return (ext_hi > 0.0 and hi + 0.5 * ext_hi - tol <= x <= hi + ext_hi + tol) or (
+        ext_lo > 0.0 and lo - ext_lo - tol <= x <= lo - 0.5 * ext_lo + tol
+    )
+
+
+def conditions_in_ood_shell(fixed, shell):
+    """Whether a target's fixed conditions have at least one input in the outer half of its approved extension."""
+    return any(_in_row(fixed[name], row) for name, row in shell["inputs"].items())
+
+
+def in_ood_shell(design, shell):
+    """Whether a design has at least one input in the OUTER half of that input's approved extension: beyond the TRAIN
+    edge by at least half the extension and at most all of it. An input with no approved extension counts for
+    nothing; a point inside the TRAIN box is never in the shell. `shell` is the rows of a "designs" shell.
+    """
+    return any(_in_row(x, row) for x, row in zip(design, shell, strict=True))
+
+
+def _is_relative(value):
+    return (
+        type(value) is dict
+        and set(value) == {"relative"}
+        and _finite(value["relative"])
+        and value["relative"] > 0
+    )
+
+
+def _valid_u(value):
+    return _is_relative(value) or (_finite(value) and value >= 0)
+
+
+def attach_raw(spec, raw_rows):
+    """The spec with the runner's raw output rows attached, given in the ORIGINAL pool order (`pool-raw-<tid>.json`):
+    each kept point takes the row of its origin. Refused when the count is not the original pool's. The rows are
+    custody only: they feed the physics gates and the truths-pass-gates check, never a score or a public field.
+    """
+    _require(
+        len(raw_rows) == spec.pool_size and spec.pool_size > 0,
+        "raw_rows_must_match_the_original_pool",
+    )
+    rows = tuple(tuple(float(v) for v in raw_rows[i]) for i in spec.origin)
+    return replace(spec, raw=rows)
+
+
+def u_value(u, true_value):
+    """A U at one row: a number as it is, or {"relative": r} as r x |true_value|."""
+    return u["relative"] * abs(true_value) if type(u) is dict else u
+
+
 class PoolRefused(ValueError):
     """The pool or its policy cannot give a sound grade: the Challenge's material, not a candidate's failure."""
 
@@ -119,6 +224,10 @@ def _check_policies(optimizer, honesty):
 class TargetSpec:
     """One sealed optimisation problem with its pre-solved pool. Build it with `build_target`."""
 
+    def u_at(self, index, name):
+        """The U of output `name` at pool row `index`: the number, or r x |that row's true value|."""
+        return u_value(self.u[name], self.truths[index][name])
+
     target_id: str
     conditions: dict
     outputs: tuple
@@ -143,6 +252,23 @@ class TargetSpec:
     excluded: int  # pool points dropped at build time for a margin within U of a limit
     digest: str
     public: bool  # a PUBLIC practice pool: its per-target values may be shown; a sealed pool's never are
+    # The OOD shell of an EXTENDED target (T5/T6): {"mode": "designs" | "conditions", "inputs": ...} with rows
+    # (train_lo, train_hi, ext_lo, ext_hi) = the TRAIN edges and the extension AMOUNTS the edge sign-off approved
+    # beyond each (non-negative, design units; 0 = none approved). None for a registered-condition target.
+    # "designs": every queryable point (the reference included) has an input in the OUTER half of that input's
+    # extension, else the target STOPS. "conditions": the fixed conditions are checked once.
+    shell: object = None
+    # Where each kept point came from in the ORIGINAL pool (the exclusion drops some), and the original size: how the
+    # runner's raw outputs per design (same order as the original designs) attach to the kept rows (`attach_raw`).
+    origin: tuple = ()
+    pool_size: int = 0
+    raw: object = (
+        None  # the kept rows' raw output rows, once attached (custody only, never in the digest)
+    )
+
+    @property
+    def extended(self):
+        return self.shell is not None
 
 
 def _digest(value):
@@ -166,6 +292,7 @@ def build_target(
     start,
     seed,
     public=False,
+    shell=None,
 ):
     """Validate a target's sealed material and derive its reference.
 
@@ -194,8 +321,18 @@ def build_target(
         "limits_must_name_outputs_with_a_kind_and_a_finite_bound",
     )
     _require(set(u) == set(outputs), "u_must_cover_exactly_the_outputs")
+    # A U is a number >= 0, or {"relative": r} (r > 0): r times the ABSOLUTE true value of that output in that
+    # pool row, as the exam applies it (e.g. a hydraulic power, r = 0.03). A relative U is never a scalar.
+    # U = 0 marks an output Carbon computes exactly (an analytic quantity such as an energy or a mass formula),
+    # never predicted by the model: it is held to equality, not to a tolerance, and does not enter the honesty
+    # scale. At least one output must carry a real U or there is nothing for honesty to measure.
     _require(
-        all(_finite(v) and v > 0 for v in u.values()), "u_must_be_positive_and_finite"
+        all(_valid_u(v) for v in u.values()),
+        "u_must_be_non_negative_and_finite_or_relative",
+    )
+    _require(
+        any(_is_relative(v) or v > 0 for v in u.values()),
+        "u_needs_one_predicted_output",
     )
     box = tuple((float(lo), float(hi)) for lo, hi in box)
     _require(
@@ -231,7 +368,8 @@ def build_target(
     keep, excluded = [], 0
     for index, truth in enumerate(truths):
         if any(
-            abs(limit.margin(truth[limit.output])) <= u[limit.output]
+            abs(limit.margin(truth[limit.output]))
+            <= u_value(u[limit.output], truth[limit.output])
             for limit in limits
         ):
             excluded += 1
@@ -255,6 +393,23 @@ def build_target(
         len(scores) >= 2, "degenerate_reference_needs_two_feasible_queryable_points"
     )
     reference = min(scores, key=lambda n: (-scores[n], n))
+    if shell is not None:
+        shell = _valid_shell(shell, len(box), conditions.get("fixed", {}))
+        if shell["mode"] == "designs":
+            _require(
+                in_ood_shell(kept_designs[reference], shell["inputs"]),
+                "reference_not_in_the_ood_shell",
+            )
+            # The sampler guarantees it; a point outside means the payload and the grader disagree: STOP.
+            _require(
+                all(in_ood_shell(kept_designs[n], shell["inputs"]) for n in queryable),
+                "queryable_point_outside_the_ood_shell",
+            )
+        else:
+            _require(
+                conditions_in_ood_shell(conditions["fixed"], shell),
+                "conditions_not_in_the_ood_shell",
+            )
     s_ref, s_low = scores[reference], statistics.median(scores.values())
     _require(s_ref > s_low, "degenerate_reference_best_feasible_must_beat_the_median")
     body = {
@@ -272,6 +427,7 @@ def build_target(
         "start": list(start),
         "seed": seed,
         "public": public,  # visibility is part of the identity: a sealed pool cannot be relabelled public
+        "shell": _shell_json(shell),
     }
     _require(type(public) is bool, "public_must_be_a_bool")
     return TargetSpec(
@@ -297,6 +453,9 @@ def build_target(
         excluded=excluded,
         digest=_digest(body),
         public=public,
+        shell=shell,
+        origin=tuple(keep),
+        pool_size=len(designs),
     )
 
 
@@ -360,13 +519,21 @@ def grade_target(spec, predict, optimizer, honesty):
 
     def key(index):
         prediction = predictions[index]
-        violation = 0.0
+        violation = exact = 0.0
         for limit in spec.limits:
             margin = limit.margin(prediction[limit.output])
             if margin < 0.0:
-                violation += -margin / spec.u[limit.output]
+                scale = spec.u_at(index, limit.output)
+                if scale > 0.0:
+                    violation += -margin / scale
+                else:
+                    exact += (
+                        -margin
+                    )  # an exactly computed quantity: its raw excess ranks first
         loss = -spec.sign * prediction[spec.objective]
-        return (0, loss) if violation == 0.0 else (1, violation, loss)
+        if violation == 0.0 and exact == 0.0:
+            return (0, loss)
+        return (1, exact, violation, loss)
 
     while len(predictions) < optimizer.budget and len(taken) < len(spec.queryable):
         samples = es.ask()
@@ -431,9 +598,18 @@ def grade_target(spec, predict, optimizer, honesty):
 
 
 def _error(spec, index, prediction, honesty):
-    ratios = [
-        abs(prediction[k] - spec.truths[index][k]) / spec.u[k] for k in spec.outputs
-    ]
+    ratios = []
+    for k in spec.outputs:
+        difference = abs(prediction[k] - spec.truths[index][k])
+        scale = spec.u_at(index, k)
+        if scale > 0.0:
+            ratios.append(difference / scale)
+        elif not math.isclose(
+            prediction[k], spec.truths[index][k], rel_tol=1e-9, abs_tol=1e-12
+        ):
+            return (
+                math.inf
+            )  # an exact output that does not match is a wiring fault: honesty 0
     if honesty.reduction == "max":
         return max(ratios)
     return math.sqrt(sum(r * r for r in ratios) / len(ratios))
@@ -551,6 +727,9 @@ def dump_pool(spec):
         "start": list(spec.start),
         "seed": spec.seed,
         "excluded": spec.excluded,
+        "shell": _shell_json(spec.shell),
+        "origin": list(spec.origin),
+        "pool_size": spec.pool_size,
     }
 
 
@@ -575,6 +754,12 @@ def load_pool(document):
         start=document["start"],
         seed=document["seed"],
         public=document["public"],
+        shell=document.get("shell"),
+    )
+    spec = replace(
+        spec,
+        origin=tuple(document.get("origin", spec.origin)),
+        pool_size=document.get("pool_size", spec.pool_size),
     )
     _require(
         spec.digest == document["digest"] and spec.excluded == 0,

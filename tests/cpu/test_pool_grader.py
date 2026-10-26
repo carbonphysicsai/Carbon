@@ -443,3 +443,319 @@ def test_the_practice_report_needs_a_public_pool_and_gives_legs_gates_and_every_
     assert (
         failed["total"] == 0.0 and failed["legs"]["D_opt"] == 1.0
     ), "a failed mandatory gate gives no score"
+
+
+def exact_target(u_e=0.0, bound_e=0.35, seed=3):
+    """The toy plus an exactly computed output e = x * y (an analytic quantity: U = 0) with its own limit."""
+    rng = random.Random(seed)
+    points = [(rng.random(), rng.random()) for _ in range(60)]
+    points += [
+        (0.6 + rng.uniform(-0.1, 0.1), 0.6 + rng.uniform(-0.1, 0.1)) for _ in range(40)
+    ]
+    truths = [{**outputs_of(x, y), "e": x * y} for x, y in points]
+    return build_target(
+        target_id="ex",
+        conditions={"case": "ex"},
+        outputs=("f", "g", "e"),
+        objective="f",
+        sense="max",
+        limits=(Limit("g", "<=", 0.8), Limit("e", "<=", bound_e)),
+        u={"f": U, "g": U, "e": u_e},
+        box=((0.0, 1.0), (0.0, 1.0)),
+        designs=[list(p) for p in points],
+        truths=truths,
+        agen=(),
+        start=(0.5, 0.5),
+        seed=seed,
+    )
+
+
+def test_an_exactly_computed_output_has_u_zero_and_is_held_to_equality():
+    spec = exact_target()
+    table = {(spec.conditions["case"], d): t for d, t in zip(spec.designs, spec.truths)}
+
+    def model(shift=0.0):
+        def predict(conditions, designs):
+            return [
+                {
+                    **table[(conditions["case"], tuple(d))],
+                    "e": table[(conditions["case"], tuple(d))]["e"] + shift,
+                }
+                for d in designs
+            ]
+
+        return predict
+
+    wide = OptimizerPolicy(budget=90, sigma0=0.3, population=None)
+    good = grade_target(spec, model(), wide, HONESTY)
+    assert good.reason == "graded" and good.h == 1.0 and good.e == 0.0
+    # The exact output does not enter the honesty scale when it matches; a mismatch is a wiring fault: h = 0.
+    broken = grade_target(spec, model(0.001), wide, HONESTY)
+    assert broken.h == 0.0 and broken.d == 0.0
+    # U = 0 everywhere, or a negative U, is refused.
+    with pytest.raises(PoolRefused, match="u_needs_one_predicted_output"):
+        build_target(**{**_exact_kwargs(), "u": {"f": 0.0, "g": 0.0, "e": 0.0}})
+    with pytest.raises(PoolRefused, match="u_must_be_non_negative"):
+        build_target(**{**_exact_kwargs(), "u": {"f": U, "g": U, "e": -1.0}})
+
+
+def _exact_kwargs():
+    spec = exact_target()
+    return {
+        "target_id": "ex",
+        "conditions": {"case": "ex"},
+        "outputs": ("f", "g", "e"),
+        "objective": "f",
+        "sense": "max",
+        "limits": spec.limits,
+        "u": spec.u,
+        "box": ((0.0, 1.0), (0.0, 1.0)),
+        "designs": [list(d) for d in spec.designs],
+        "truths": list(spec.truths),
+        "agen": (),
+        "start": (0.5, 0.5),
+        "seed": 3,
+    }
+
+
+def test_a_predicted_violation_of_an_exact_limit_ranks_before_a_u_normalised_one():
+    spec = exact_target(bound_e=0.30)
+    base = {(d,): t for d, t in zip(map(tuple, spec.designs), spec.truths)}
+
+    def optimistic_on_g(conditions, designs):
+        # claims g is safe everywhere but reports the exact output truthfully: only e can make a point infeasible
+        return [{**base[(tuple(d),)], "g": 0.0} for d in designs]
+
+    wide = OptimizerPolicy(budget=90, sigma0=0.3, population=None)
+    grade = grade_target(spec, optimistic_on_g, wide, HONESTY)
+    # Every pick must respect the exact limit e <= 0.30 (the model reports e exactly): it is never infeasible on e.
+    assert grade.pick is None or spec.truths[grade.pick]["e"] <= 0.30
+
+
+def relative_target(rel=0.03, extra=(), seed=3):
+    """A Cooling-like target: output h (like hydraulic power, limit h <= 0.25) with U = 3 % of each row's own h."""
+    rng = random.Random(seed)
+    points = [(rng.random(), rng.random()) for _ in range(60)]
+    points += [
+        (0.6 + rng.uniform(-0.1, 0.1), 0.6 + rng.uniform(-0.1, 0.1)) for _ in range(40)
+    ]
+    points += list(extra)
+    truths = [{"f": x + y, "h": 0.1 + 0.2 * (x * x + y * y) / 2.0} for x, y in points]
+    return build_target(
+        target_id="rel",
+        conditions={"case": "rel"},
+        outputs=("f", "h"),
+        objective="f",
+        sense="max",
+        limits=(Limit("h", "<=", 0.25),),
+        u={"f": U, "h": {"relative": rel}},
+        box=((0.0, 1.0), (0.0, 1.0)),
+        designs=[list(p) for p in points],
+        truths=truths,
+        agen=(),
+        start=(0.5, 0.5),
+        seed=seed,
+    )
+
+
+def test_a_relative_u_is_r_times_each_rows_own_value_and_is_never_a_scalar():
+    spec = relative_target()
+    assert spec.u["h"] == {
+        "relative": 0.03
+    }, "kept as a relative U, never turned into a number"
+    for index in (0, 5, 40):
+        assert spec.u_at(index, "h") == pytest.approx(
+            0.03 * abs(spec.truths[index]["h"])
+        )
+        assert spec.u_at(index, "f") == U
+    # Never read as an absolute 0.03 W: a row near h = 0.25 has U about 0.0075, a row near 0.1 about 0.003.
+    assert pool_grader.u_value({"relative": 0.03}, 0.25) == pytest.approx(0.0075)
+    assert pool_grader.u_value({"relative": 0.03}, 0.1) == pytest.approx(0.003)
+    assert pool_grader.u_value(0.03, 0.25) == 0.03
+
+
+def _with_extra_row(h, u_h):
+    rng = random.Random(3)
+    points = [(rng.random(), rng.random()) for _ in range(60)]
+    points += [
+        (0.6 + rng.uniform(-0.1, 0.1), 0.6 + rng.uniform(-0.1, 0.1)) for _ in range(40)
+    ]
+    truths = [{"f": x + y, "h": 0.1 + 0.2 * (x * x + y * y) / 2.0} for x, y in points]
+
+    def build(extra):
+        return build_target(
+            target_id="rel",
+            conditions={"case": "rel"},
+            outputs=("f", "h"),
+            objective="f",
+            sense="max",
+            limits=(Limit("h", "<=", 0.25),),
+            u={"f": U, "h": u_h},
+            box=((0.0, 1.0), (0.0, 1.0)),
+            designs=[list(p) for p in points] + ([[0.5, 0.5]] if extra else []),
+            truths=[*truths, {"f": 1.0, "h": h}] if extra else truths,
+            agen=(),
+            start=(0.5, 0.5),
+            seed=3,
+        )
+
+    return build(True).excluded - build(False).excluded
+
+
+def test_the_exclusion_uses_three_percent_of_the_rows_own_value():
+    relative = {"relative": 0.03}
+    # h = 0.2425: margin 0.0075 > 3 % of its own value (0.007275): just OUTSIDE, kept.
+    assert _with_extra_row(0.2425, relative) == 0
+    # h = 0.2428: margin 0.0072 <= 3 % of its own value (0.007284): just INSIDE, excluded.
+    assert _with_extra_row(0.2428, relative) == 1
+    # Read as an absolute 0.0075 (3 % of the limit, the wrong rule) the row h = 0.2426 would be excluded:
+    # a relative U is never a scalar.
+    assert _with_extra_row(0.2426, relative) == 0
+    assert _with_extra_row(0.2426, 0.0075) == 1
+
+
+def test_relative_u_drives_the_grader_and_is_refused_when_malformed():
+    spec = relative_target()
+    table = {(spec.conditions["case"], d): t for d, t in zip(spec.designs, spec.truths)}
+
+    def model(conditions, designs):
+        return [dict(table[(conditions["case"], tuple(d))]) for d in designs]
+
+    wide = OptimizerPolicy(budget=90, sigma0=0.3, population=None)
+    good = grade_target(spec, model, wide, HONESTY)
+    assert good.reason == "graded" and good.h == 1.0 and good.d == pytest.approx(1.0)
+
+    def off(conditions, designs):
+        # an error of 3 % of the row's own h (one U) on h only
+        return [{**t, "h": t["h"] * 1.03} for t in model(conditions, designs)]
+
+    shifted = grade_target(spec, off, wide, HONESTY)
+    assert shifted.e == pytest.approx(1.0, rel=1e-6) or shifted.reason != "graded"
+    kwargs = {
+        "target_id": "rel",
+        "conditions": {"case": "rel"},
+        "outputs": ("f", "h"),
+        "objective": "f",
+        "sense": "max",
+        "limits": spec.limits,
+        "box": ((0.0, 1.0), (0.0, 1.0)),
+        "designs": [list(d) for d in spec.designs],
+        "truths": list(spec.truths),
+        "agen": (),
+        "start": (0.5, 0.5),
+        "seed": 3,
+    }
+    for bad in (
+        {"relative": 0.0},
+        {"relative": -1.0},
+        {"relative": 0.03, "extra": 1},
+        {"rel": 0.03},
+    ):
+        with pytest.raises(PoolRefused, match="u_must_be_non_negative"):
+            build_target(**kwargs, u={"f": U, "h": bad})
+    # A custody document with a relative U loads through spec_from_source-style kwargs unchanged.
+    assert pool_grader.dump_pool(spec)["u"]["h"] == {"relative": 0.03}
+
+
+def test_the_ood_shell_is_the_outer_half_of_the_approved_extension_and_inside_train_is_never_in_it():
+    from carbon.scoring.pool_grader import in_ood_shell
+
+    # TRAIN 0.2..0.8; approved extension 0.25 above (shell 0.925..1.05) and 0.1 below (shell 0.1..0.15).
+    shell = ((0.2, 0.8, 0.1, 0.25),)
+    inside = [0.5, 0.2, 0.8]
+    inner_half = [0.9, 0.17, 0.925 - 1e-3]
+    shell_points = [0.93, 1.05, 0.1, 0.15, 0.925]
+    beyond = [1.06, 0.09]
+    assert not any(in_ood_shell([x], shell) for x in inside + inner_half + beyond)
+    assert all(in_ood_shell([x], shell) for x in shell_points)
+    # An input with no approved extension contributes nothing; the 12.5 % fallback halves the shell.
+    assert not in_ood_shell([1.5], ((0.2, 0.8, 0.0, 0.0),))
+    assert in_ood_shell([0.8 + 0.07], ((0.2, 0.8, 0.0, 0.125),))
+    assert not in_ood_shell([0.8 + 0.06], ((0.2, 0.8, 0.0, 0.125),))
+    # One input in the shell is enough.
+    assert in_ood_shell([0.5, 0.93], ((0.2, 0.8, 0.1, 0.25), (0.2, 0.8, 0.1, 0.25)))
+
+
+def _shelled(shell, seed=3, in_shell=True, fixed=None):
+    rng = random.Random(seed)
+    if in_shell:
+        points = [(rng.uniform(0.6, 1.0), rng.uniform(0.6, 1.0)) for _ in range(100)]
+    else:
+        points = [(rng.random(), rng.random()) for _ in range(100)]
+    return build_target(
+        target_id="x",
+        conditions={"case": "x", "fixed": fixed if fixed is not None else {}},
+        outputs=("f", "g"),
+        objective="f",
+        sense="max",
+        limits=(Limit("g", "<=", 1.2),),
+        u={"f": U, "g": U},
+        box=((0.0, 1.0), (0.0, 1.0)),
+        designs=[list(p) for p in points],
+        truths=[outputs_of(*p) for p in points],
+        agen=(),
+        start=(0.5, 0.5),
+        seed=seed,
+        shell=shell,
+    )
+
+
+DESIGN_SHELL = {
+    "mode": "designs",
+    "inputs": ((0.1, 0.2, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8)),
+}
+
+
+def test_an_extended_target_stops_unless_every_queryable_point_is_in_its_shell():
+    registered = _shelled(None, in_shell=False)
+    assert not registered.extended and registered.shell is None
+    extended = _shelled(DESIGN_SHELL)
+    assert extended.extended and extended.shell["mode"] == "designs"
+    assert (
+        extended.digest != _shelled(None).digest
+    ), "the shell is part of the pool's identity"
+    # A pool that spreads over the whole box has points inside TRAIN: the payload and the grader disagree: STOP.
+    with pytest.raises(PoolRefused, match="outside_the_ood_shell|reference_not_in"):
+        _shelled(DESIGN_SHELL, in_shell=False)
+    # A shell the reference is not in (here the extension is too short for any point) is a STOP.
+    short = {"mode": "designs", "inputs": ((0.1, 0.2, 0.0, 0.2), (0.1, 0.2, 0.0, 0.2))}
+    with pytest.raises(PoolRefused, match="reference_not_in_the_ood_shell"):
+        _shelled(short)
+    # The mode is explicit, never inferred: a bare list, a bad mode, a wrong width or a bad row are refused.
+    with pytest.raises(PoolRefused, match="shell_must_be_a_mode"):
+        _shelled(((0.1, 0.2, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8)))
+    with pytest.raises(PoolRefused, match="shell_mode_must_be"):
+        _shelled({"mode": "inferred", "inputs": ()})
+    with pytest.raises(PoolRefused, match="shell_needs_one_row_per_design_input"):
+        _shelled({"mode": "designs", "inputs": ((0.1, 0.2, 0.0, 0.8),)})
+    with pytest.raises(PoolRefused, match="shell_rows_are"):
+        _shelled(
+            {"mode": "designs", "inputs": ((0.2, 0.1, 0.0, 0.8), (0.1, 0.2, 0.0, 0.8))}
+        )
+    # The shell survives the pool document round trip and a tampered shell fails the digest.
+    import json
+
+    document = json.loads(json.dumps(pool_grader.dump_pool(extended)))
+    assert pool_grader.load_pool(document).shell == extended.shell
+    document["shell"]["inputs"][0][3] = 0.9
+    with pytest.raises(PoolRefused, match="digest"):
+        pool_grader.load_pool(document)
+
+
+def test_a_conditions_shell_checks_the_fixed_conditions_once_and_leaves_the_design_free():
+    # TRAIN 0.0..0.5 on the condition `cond`, extension 1.0 above: its shell is 1.0..1.5.
+    shell = {"mode": "conditions", "inputs": {"cond": (0.0, 0.5, 0.0, 1.0)}}
+    in_range = _shelled(shell, in_shell=False, fixed={"cond": 1.2})
+    assert in_range.extended and in_range.shell["mode"] == "conditions"
+    with pytest.raises(PoolRefused, match="conditions_not_in_the_ood_shell"):
+        _shelled(shell, in_shell=False, fixed={"cond": 0.7})
+    with pytest.raises(PoolRefused, match="names_must_be_fixed_conditions"):
+        _shelled(shell, in_shell=False, fixed={"other": 1.2})
+    with pytest.raises(PoolRefused, match="needs_a_row_per_condition_name"):
+        _shelled(
+            {"mode": "conditions", "inputs": {}}, in_shell=False, fixed={"cond": 1.2}
+        )
+    import json
+
+    document = json.loads(json.dumps(pool_grader.dump_pool(in_range)))
+    assert pool_grader.load_pool(document).shell == in_range.shell

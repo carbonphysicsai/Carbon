@@ -44,6 +44,7 @@ DESCRIPTOR_KINDS = (
     "in_distribution",
     "wrong_near_optimum",
     "default",
+    "floor",
     "good",
     "perturbed",
 )
@@ -62,6 +63,10 @@ class Policies:
 
 @dataclass(frozen=True)
 class SuiteParams:
+    in_distribution_is_pass_criterion: (
+        bool  # False in Phase 1 (the pools are inside the TRAIN box)
+    )
+    oracle_tolerance: float  # how close to 1.0 the oracle must score (a real grader's reference uncertainty keeps it just under)
     k_grid: tuple  # strictness curve: injected error in multiples of U
     monotone_tolerance: float
     optimism_k: float  # gaming control: every limit margin this many U safer than truth
@@ -93,9 +98,14 @@ class ProofPlugin:
     )
     train_box: object  # callable(spec) -> ((lo, hi), ...) in design units
     train_model: object  # predict(conditions, designs), fit on TRAIN
-    default_model: object
+    default_model: object  # the bound DEFAULT pick, served from its own table
+    floor_model: object  # the TRAIN-mean floor: its own control row
     good_model: object
     legs: object  # callable(descriptor, specs) -> {"A": a, "C": c} (optionally "A_se")
+    # Optional hooks (None = not applied): the physics gates on EVERY pool answer, callable(descriptor, specs) ->
+    # failed gate NAMES; and the speed gate, callable(descriptor) -> {"passed": bool, ...} or None when unmeasured.
+    pool_gates: object = None
+    speed_gate: object = None
 
 
 def _key(conditions):
@@ -137,6 +147,8 @@ def pool_predictor(plugin, descriptor, specs):
     universe = _Universe(specs)
     if kind == "default":
         return plugin.default_model
+    if kind == "floor":
+        return plugin.floor_model
     if kind == "good":
         return plugin.good_model
     if kind == "perturbed":
@@ -146,13 +158,13 @@ def pool_predictor(plugin, descriptor, specs):
         def perturbed(conditions, designs):
             out = []
             for design, prediction in zip(designs, base(conditions, designs)):
-                spec, _ = universe.lookup(conditions, design)
+                spec, row = universe.lookup(conditions, design)
                 out.append(
                     {
                         name: value
                         + sum(
                             step
-                            * spec.u[name]
+                            * spec.u_at(row, name)
                             * _sign(seed, "layer", _key(conditions), list(design), name)
                             for seed, step in layers
                         )
@@ -188,16 +200,18 @@ def pool_predictor(plugin, descriptor, specs):
                 out.append(truth)
             elif kind == "noisy" and descriptor["mode"] == "feasible_bias":
                 for limit in spec.limits:
-                    shift = k * spec.u[limit.output]
+                    shift = k * spec.u_at(index, limit.output)
                     truth[limit.output] += shift if limit.kind == ">=" else -shift
                 out.append(truth)
             elif kind == "noisy" and descriptor["mode"] == "random":
-                out.append(_random_error(spec, conditions, design, truth, k, seed))
+                out.append(
+                    _random_error(spec, index, conditions, design, truth, k, seed)
+                )
             elif kind == "wrong_near_optimum":
                 reference = spec.norm[spec.reference]
                 distance = math.dist(reference, spec.norm[index])
                 out.append(
-                    _random_error(spec, conditions, design, truth, k, seed)
+                    _random_error(spec, index, conditions, design, truth, k, seed)
                     if distance <= descriptor["radius"]
                     else truth
                 )
@@ -208,16 +222,25 @@ def pool_predictor(plugin, descriptor, specs):
     return truth_based
 
 
-def _random_error(spec, conditions, design, truth, k, seed):
+def _random_error(spec, index, conditions, design, truth, k, seed):
     return {
         name: value
-        + k * spec.u[name] * _sign(seed, "noise", _key(conditions), list(design), name)
+        + k
+        * spec.u_at(index, name)
+        * _sign(seed, "noise", _key(conditions), list(design), name)
         for name, value in truth.items()
     }
 
 
 def _mean_over_sets(sets, fn):
     return statistics.fmean(fn(specs) for specs in sets)
+
+
+def _speed_failed(plugin, descriptor):
+    if plugin.speed_gate is None:
+        return False
+    result = plugin.speed_gate(descriptor)
+    return result is not None and not result["passed"]
 
 
 def score_specs(plugin, specs, descriptor, policies, all_specs):
@@ -227,6 +250,14 @@ def score_specs(plugin, specs, descriptor, policies, all_specs):
     legs = plugin.legs(descriptor, specs)
     a_gen = pool_grader.agen_accuracy(specs, predict, policies.agen_scales)
     a = pool_grader.combine_a(legs["A"], a_gen, policies.a_rule)
+    # A failed mandatory gate gives no score (the plugin reports `gates_ok`; absent means no gate to fail), and so
+    # does a physics gate violated on any pool answer, or the speed gate (GATE_FAILED, names only).
+    if (
+        legs.get("gates_ok") is False
+        or (plugin.pool_gates is not None and plugin.pool_gates(descriptor, all_specs))
+        or _speed_failed(plugin, descriptor)
+    ):
+        return 0.0, grade, a_gen, legs
     return pool_grader.total(a, grade.d, legs["C"], policies.c_rule), grade, a_gen, legs
 
 
@@ -243,7 +274,7 @@ def _verdict(passed, numbers):
     return {"verdict": "PASS" if passed else "FAIL", "numbers": numbers}
 
 
-def check_oracle_is_perfect(plugin, policies):
+def check_oracle_is_perfect(plugin, policies, params):
     """1. A model returning the pool truths exactly scores 1.0 on every leg and reaches every target's reference."""
     all_specs = [spec for specs in plugin.sets for spec in specs]
     oracle = {"kind": "oracle"}
@@ -260,11 +291,17 @@ def check_oracle_is_perfect(plugin, policies):
         queries.update({t.target_id: t.queries for t in grade.targets})
         reached += sum(t.reached_reference for t in grade.targets)
         targets += len(grade.targets)
-        legs_ok &= legs["A"] == 1.0 and legs["C"] == 1.0 and a_gen in (None, 1.0)
+        tol = params.oracle_tolerance
+        legs_ok &= (
+            math.isclose(legs["A"], 1.0, abs_tol=tol)
+            and math.isclose(legs["C"], 1.0, abs_tol=tol)
+            and (a_gen is None or math.isclose(a_gen, 1.0, abs_tol=tol))
+            and legs.get("gates_ok") is not False
+        )
     passed = (
         legs_ok
         and reached == targets
-        and all(math.isclose(t, 1.0, abs_tol=1e-12) for t in totals)
+        and all(math.isclose(t, 1.0, abs_tol=params.oracle_tolerance) for t in totals)
     )
     note = (
         None
@@ -307,6 +344,19 @@ def check_strictness_curve(plugin, policies, params):
     return _verdict(passed, {"curves": curves})
 
 
+def extended_d(plugin, descriptor, policies):
+    """The mean D over the version's EXTENDED targets (T5/T6) for a model, or None when it has none."""
+    specs = [s for group in plugin.sets for s in group]
+    extended = [s for s in specs if s.extended]
+    if not extended:
+        return None
+    predict = pool_predictor(plugin, descriptor, specs)
+    return statistics.fmean(
+        pool_grader.grade_target(s, predict, policies.optimizer, policies.honesty).d
+        for s in extended
+    )
+
+
 def check_gaming_controls_lose(plugin, policies, params):
     """3. Each gaming control scores below the good model."""
     controls = {
@@ -324,11 +374,38 @@ def check_gaming_controls_lose(plugin, policies, params):
             "seed": params.seed,
         },
         "default_model": {"kind": "default"},
+        "floor": {"kind": "floor"},
     }
     good = version_total(plugin, {"kind": "good"}, policies)
     scores = {name: version_total(plugin, d, policies) for name, d in controls.items()}
+    # The in-distribution control is REPORTED, not a pass criterion, unless the version's pools reach outside the
+    # TRAIN box (Phase 2): `params.in_distribution_is_pass_criterion` says which.
+    # With extended targets (T5/T6, out of range by construction) the clamp is judged on their D alone, where it
+    # must lose; the whole-total comparison would hide it behind the registered targets (Phase 2).
+    ext_good = extended_d(plugin, {"kind": "good"}, policies)
+    ext_in = extended_d(plugin, {"kind": "in_distribution"}, policies)
+    on_extended = params.in_distribution_is_pass_criterion and ext_good is not None
+    judged = {
+        name: s
+        for name, s in scores.items()
+        if name != "in_distribution_only"
+        or (params.in_distribution_is_pass_criterion and not on_extended)
+    }
+    passed = all(s < good for s in judged.values())
+    if on_extended:
+        passed = passed and ext_in < ext_good
     return _verdict(
-        all(s < good for s in scores.values()), {"good": good, "controls": scores}
+        passed,
+        {
+            "good": good,
+            "controls": scores,
+            "in_distribution_judged": params.in_distribution_is_pass_criterion,
+            "in_distribution_on_extended_targets": (
+                None
+                if ext_good is None
+                else {"good_D": ext_good, "in_distribution_D": ext_in}
+            ),
+        },
     )
 
 
@@ -358,16 +435,18 @@ def check_coverage(plugin, params, queries_per_target=None):
             for limit in spec.limits:
                 near_limit[f"{limit.output}{limit.kind}"] = sum(
                     1
-                    for t in spec.truths
+                    for row, t in enumerate(spec.truths)
                     if 0.0
                     <= limit.margin(t[limit.output])
-                    <= params.near_limit_u * spec.u[limit.output]
+                    <= params.near_limit_u * spec.u_at(row, limit.output)
                 )
             rows.append(
                 {
                     "target": spec.target_id,
                     "pool": len(spec.designs),
                     "excluded_for_u": spec.excluded,
+                    "extended": spec.extended,
+                    "shell_mode": None if spec.shell is None else spec.shell["mode"],
                     "near_optimum": near_optimum,
                     "near_limit": near_limit,
                     "box_share": _bin_share(
@@ -485,7 +564,7 @@ def separation(good_total, default_total, *, target, koth_margin):
 def run_suite(plugin, policies, params):
     """All six tests. Returns {name: {"verdict", "numbers"}}; nothing in it is a pool point, a pick or a truth."""
     pool_grader._check_policies(policies.optimizer, policies.honesty)
-    oracle = check_oracle_is_perfect(plugin, policies)
+    oracle = check_oracle_is_perfect(plugin, policies, params)
     queries = oracle["numbers"]["queries"]
     report = {
         "1_oracle": oracle,
