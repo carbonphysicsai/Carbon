@@ -425,6 +425,12 @@ def _check_case(kind, key, arch, args, tmp):
         entry["cpu_state_digest"] = cpu.get("state_digest")
         entry["parity_vs_cpu"] = _parity(runs[0], cpu)
         entry["cpu_error"] = cpu.get("error")
+        # Whether the GPU is worth it for this graph at all: an interface in float64 runs at a
+        # fraction of the card's float32 rate, and a tiny graph is bound by dispatch, not math.
+        entry["seconds"] = {
+            "gpu_first_rebuild": runs[0].get("seconds"),
+            "cpu_rebuild": cpu.get("seconds"),
+        }
     return entry
 
 
