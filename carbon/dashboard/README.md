@@ -78,6 +78,43 @@ How the key and the feed are handled:
   marked with the reason.
 - `--no-showcase` skips the showcase replays (about 10 s).
 
+## Launch board (OWNER-DASHBOARD-01)
+
+The launch Challenges (Motor, Cooling, F08, F02) are graded on sealed exams: no
+released windows, so no score feed. Their standing reaches the dashboard as
+`carbon.validator.launch-board.v1`, one signed document per Challenge
+(`carbon/challenge_validator/launch_board.py`), under its own signing domain.
+
+What it holds, closed field by field and checked again by the reader
+(`carbon/dashboard/launch.py`): the king (exactly the receiver's
+`GET /carbon/v1/koth/<id>` document: hotkey, Ladder-stepped total, margin, score
+to beat, Carbon's baseline), the Ladder's best total per graded hotkey
+(rounded down to the Ladder step, "the total alone") with the status of its
+latest result and the closed gate names only when it failed a gate, and counts.
+Never a per-case or per-leg value, a section below the total, a target, pool,
+seed, recipe or model. The design showcase stays the public EV4 synthetic task.
+
+The validator operator builds and signs it on the validator host, with the
+validator's existing feed key (this repository never reads the key):
+
+```bash
+python -m carbon.challenge_validator.launch_board build --config BOARD.json --out board.json
+```
+
+`BOARD.json` (`carbon.validator.launch-board.config.v1`) names the network, the
+receiver's attempt-ledger file (read-only), the Challenge, the exam key, the
+king document fetched from the receiver, and the key file. The dashboard builds
+it like any feed, against the same pinned key:
+
+```bash
+python -m carbon.dashboard build --feed board-motor.json --feed board-cooling.json     --trust-key <feed public key hex> --out site/
+```
+
+Before the first graded hotkey a board shows "No hotkey has a graded result yet"
+(phase `PRE_FIRST_RELEASE`); after it the king, the standing counts, the score
+to beat and the ladder. The Worker's live path (`worker/feed.mjs`) does not read
+launch boards yet; a public deploy waits for that port and the owner's go.
+
 ## The pages (DASHBOARD-02 S2)
 
 `web/` draws every Challenge page from `data/v2/<slug>.json` only: the king,

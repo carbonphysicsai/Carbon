@@ -101,6 +101,8 @@ let count = 0;
 for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   const board = read(path.join(site, "data", "v2", name));
   assert.equal(board.schema, "carbon.dashboard.board.v2");
+  // A launch board (OWNER-DASHBOARD-01) has its own checker: dashboard_launch_check.cjs.
+  if (board.launch) continue;
   boards[board.slug] = board;
   phases.add(board.phase);
   const where = board.slug + " (" + board.phase + ")";

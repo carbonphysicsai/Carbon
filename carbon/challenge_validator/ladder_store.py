@@ -258,3 +258,48 @@ class LadderStore:
         a builder document or None."""
         best, latest = self._documents(self._key(hotkey, challenge, exam_key)[0])
         return {"best": best, "latest": latest}
+
+
+def board_rows(path, challenge, exam_key):
+    """``[(hotkey, best, latest)]`` for every hotkey graded on this exam, each
+    document exactly as the Ladder serves it (`checked`), read from the receiver's
+    ledger file *read-only* (the public launch board's source; it never opens the
+    ledger for writing and never creates it). A v1 row, which showed A and D, is
+    skipped, as `LadderStore.served` skips it."""
+    from carbon.scoring.sealed_versions import ladder_key
+
+    challenge_id = _text(getattr(challenge, "challenge_id", None), "ladder_challenge")
+    evaluation = ladder_key(
+        challenge_id, _text(getattr(challenge, "version", None), "ladder_challenge")
+    )
+    exam_key = _text(exam_key, "ladder_exam_key")
+    db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        rows = db.execute(
+            "SELECT hotkey, best, latest FROM ladder_feedback_v2"
+            " WHERE challenge_id=? AND evaluation_version=? AND exam_key=?",
+            (challenge_id, evaluation, exam_key),
+        ).fetchall()
+        known = {hotkey for hotkey, _, _ in rows}
+        for hotkey, version, best, latest in db.execute(
+            "SELECT hotkey, challenge_version, best, latest FROM ladder_feedback"
+            " WHERE challenge_id=? AND exam_key=? ORDER BY updated_ns DESC",
+            (challenge_id, exam_key),
+        ).fetchall():
+            if hotkey not in known and ladder_key(challenge_id, version) == evaluation:
+                known.add(hotkey)
+                rows.append((hotkey, best, latest))
+    finally:
+        db.close()
+    out = []
+    for hotkey, best, latest in sorted(rows):
+        if _is_v1(latest):
+            continue
+        out.append(
+            (
+                hotkey,
+                None if best is None else checked(json.loads(best)),
+                checked(json.loads(latest), latest=True),
+            )
+        )
+    return out
