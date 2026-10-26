@@ -67,7 +67,6 @@ def interface_document(challenge_id: str, version: str) -> dict:
 
 def construction_limits_document(challenge_id: str, version: str) -> dict:
     """Partial TRAIN status and the currently enforced finite C-03 envelope."""
-    from carbon.development_session.local_diagnostic_plan import MAX_TASK_WALL_SECONDS
     from carbon.development_session.research_carrier import (
         LIBRARY_BUILD_PROVENANCE,
         _worker_profile,
@@ -118,7 +117,9 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
             "scratch_inodes_max": profile["scratch"]["inodes"],
             "build_wall_seconds_max": profile["deadline_seconds"],
             "inference_wall_seconds_max": profile["deadline_seconds"],
-            "total_reconstruction_wall_seconds_max": MAX_TASK_WALL_SECONDS,
+            "total_reconstruction_wall_seconds_max": version_registry.task_wall_seconds(
+                version_registry.entry(challenge_id, version).rebuild_wall_seconds
+            ),
             "network": profile["security"]["network"],
             "cleanup_required": True,
         },

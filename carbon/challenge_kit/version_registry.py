@@ -38,10 +38,26 @@ BATTERY_TRAIN_V1 = "battery-public-train-v1"
 BATTERY_TRAIN_V2 = "battery-public-train-v2"
 #: Cooling 1.3's law-safe output encoding (`cold_plate.output_encoding`).
 COOLING_LAW_SAFE = "cooling-law-safe-output-encoding"
-#: The rebuild wall of the graph route v2 versions, in seconds: 30 minutes
-#: for the build and for inference (OWNER-SANDBOX-REBUILD-WALL-01, testnet).
-#: Every other version keeps the C-03 600 seconds.
-REBUILD_LIMIT_SECONDS = 1800
+#: The rebuild wall of the graph route v2 versions, in seconds, for the build and
+#: for inference each: twice the slowest served entry (323.8 s), rounded up
+#: (OWNER-REBUILD-WALL-11MIN-01, testnet; supersedes OWNER-SANDBOX-REBUILD-WALL-01's
+#: 30 minutes). Every other version keeps the C-03 600 seconds.
+REBUILD_LIMIT_SECONDS = 648
+#: The whole-task wall of those versions: REBUILD_LIMIT_SECONDS plus twice the measured
+#: 149.5 s non-build part. Every other version keeps `MAX_TASK_WALL_SECONDS` (1800), so
+#: its published kit bytes do not move.
+REBUILD_TASK_WALL_SECONDS = 947
+
+
+def task_wall_seconds(rebuild_wall_seconds):
+    """The published whole-task wall for a version with this rebuild wall (None: legacy)."""
+    from carbon.development_session.local_diagnostic_plan import MAX_TASK_WALL_SECONDS
+
+    return (
+        MAX_TASK_WALL_SECONDS
+        if rebuild_wall_seconds is None
+        else REBUILD_TASK_WALL_SECONDS
+    )
 
 
 class UnregisteredVersion(ValueError):

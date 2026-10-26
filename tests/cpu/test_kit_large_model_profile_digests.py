@@ -2,7 +2,8 @@
 allowlist-v7 version, and of no other (Validator ruling A+ on
 PROOF_RUN_UNRESOLVED_CULPRIT_20261024.md; a pre-publish move, no new kit versions).
 
-Old = rc22 8c90c831c, where the kits published today's profile. Putting that
+Old = rc22 8c90c831c, where the kits published today's profile (the four graph route v2
+versions re-pinned at the 648/947 wall, OWNER-REBUILD-WALL-11MIN-01). Putting that
 profile back reproduces the old digest exactly, so the profile is the only field
 that moved. The routes' agreement with the new digests is
 test_published_policy_is_enforced."""
@@ -28,16 +29,16 @@ MOVED = {
         "ba4842de66f3745b6ad32545608d8bc86f78cb794fd4e2095b20b2101a8a9148",
     ),
     ("chip-cold-plate", "1.4"): (
-        "19ef124c22c8533d781ac9add9527e911e534ebe322f64fd4ca23e93f639932c",
-        "0202306f29fe65e4467839f828e74242e616dd9c556b7e6ad8594e5bcd401b3d",
+        "a44c6b5a8ccceb41431adb73b7eedc3a9378df6f57e4c59c73e9bc1a103be2df",
+        "afd16c41239081cef4a4447b6fc725d3506c72fb489ad79b13ffe0c7a7c930a0",
     ),
     ("electric-motor-magnetics", "1.3"): (
         "a081ccac9ac9e93712a2047ac2abbb5c746ff8da4091d318916285f74e65ef89",
         "912b1bc71b830ddbfdb5368e7b8ddcc0de4bba0c6a8054f492b8efddaa349863",
     ),
     ("electric-motor-magnetics", "1.4"): (
-        "43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0",
-        "7c217224cc697ee2737d8c0e86812fb2991e953d29669f33558eed9791014dce",
+        "e15f5610fd997f7f43d3021281be22d39183a4575c71684d5804edff53663a1d",
+        "a6c1c9f13bed863ae427caaf6898c311dbda59f4f654184fea87c2ce8f37a40d",
     ),
     ("f02", "2.2"): (
         "0d2358581a88c4ab6648fcfb41a139792e23fb988202b610f883d66838725a25",
@@ -48,8 +49,8 @@ MOVED = {
         "8f7c043dc8a69eff83e181868b3b60c3603da8f8c5b9ec3b9568dfb5c4cf8ebf",
     ),
     ("f02", "2.4"): (
-        "827e396bfe19d2ee162482f48d22150ee2894af1622d5778a55630644594e5f1",
-        "7b1ba4031cf45e0c8cbe794ca1c7b99b8794c5f6730aa85f142751288f88848f",
+        "a458fc6e76e6aea6fb404a9297f25dcb95f66c99a677a99ddc81e711bcbf3c46",
+        "eec25b85d0cd31b5b35db0eb6441cb8428b2c2f874de7c9c6512c16807071dfa",
     ),
     ("f08-ribbed-bracket", "1.3"): (
         "c0d3bf0691f22090088d77f441f7bb9da69557a3314c6add8bb6c673922c2217",
@@ -60,8 +61,8 @@ MOVED = {
         "746a0666ee74c51d2fbfdb9667a090ca90bf8f3a86b16e8a5d823d146c91730f",
     ),
     ("f08-ribbed-bracket", "1.5"): (
-        "9ada93ee419c2adbe91e7e8aae8176f35e2d60b11484ad9e9814b772ae4cf63b",
-        "b72695c3080e8243e173b0c6d7adc80cd8aa3831b5a2c3623511049500d751f5",
+        "91413de3c6663533f004ff72398b0d122057b4b1dfde4250125e8eb17ba88b2b",
+        "c50a11fd96f410b633ddf9440b760667a8da5dc2ad38808986dadf14d2e22afc",
     ),
 }
 

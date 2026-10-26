@@ -61,7 +61,6 @@ def output_encoding(challenge_id: str, version: str):
 
 def construction_limits_document(challenge_id: str, version: str) -> dict:
     """Exact current C-03 bounds, with no inferred scientific limits."""
-    from carbon.development_session.local_diagnostic_plan import MAX_TASK_WALL_SECONDS
     from carbon.development_session.research_carrier import (
         LIBRARY_BUILD_PROVENANCE,
         _worker_profile,
@@ -69,6 +68,7 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
 
     from .served_versions import step_caps, worker_resources
     from .version_registry import entry as _registered
+    from .version_registry import task_wall_seconds
 
     _, _, count = _identity(challenge_id, version)
     # A graph route v2 version's rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01)
@@ -98,7 +98,9 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
             "scratch_inodes_max": profile["scratch"]["inodes"],
             "build_wall_seconds_max": profile["deadline_seconds"],
             "inference_wall_seconds_max": profile["deadline_seconds"],
-            "total_reconstruction_wall_seconds_max": MAX_TASK_WALL_SECONDS,
+            "total_reconstruction_wall_seconds_max": task_wall_seconds(
+                _registered(challenge_id, version).rebuild_wall_seconds
+            ),
             "network": profile["security"]["network"],
             "cleanup_required": True,
         },
