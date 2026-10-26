@@ -67,8 +67,19 @@ def adapter(kind, version):
             from carbon.scoring import cooling_encoded_dual_pack
 
             chosen = cooling_encoded_dual_pack.sealed_adapter(version)
+        return _native(chosen)
+    return _native(sealed.adapter(version))
+
+
+def _native(chosen):
+    """A pool-graded version's practice grid has no pool: its native grader, same versions."""
+    if not getattr(chosen, "POOL_GRADED", False):
         return chosen
-    return sealed.adapter(version)
+    from carbon.scoring import physical_dual_pack as physical
+
+    return physical.Variant(
+        chosen._module, chosen.VERSION, chosen.EVALUATION_VERSION, chosen.CASE_ID
+    )
 
 
 def _canonical(value) -> bytes:

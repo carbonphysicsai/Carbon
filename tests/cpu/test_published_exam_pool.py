@@ -70,10 +70,25 @@ def pool_version(monkeypatch):
     return pe.for_version(*NEW)
 
 
-def test_no_version_served_today_is_pool_graded():
-    assert pe._POOL_VERSIONS == frozenset()
+#: The pool-graded versions (M2/M3; new, pre-publish): the only versions that serve the v2 block.
+POOL_KEYS = frozenset(
+    {
+        ("f08-ribbed-bracket", "1.6"),
+        ("f02", "2.5"),
+        ("electric-motor-magnetics", "1.5"),
+        ("chip-cold-plate", "1.5"),
+    }
+)
+
+
+def test_only_the_pool_versions_are_pool_graded():
+    assert pe._POOL_VERSIONS == POOL_KEYS
     for key in SERVED:
         block = pe.for_version(*key)
+        if key in POOL_KEYS:
+            assert block["schema"] == pe.SCHEMA_POOL
+            assert block["design_search"] is pe._DESIGN_SEARCH
+            continue
         assert block["schema"] == pe.SCHEMA
         assert "design_search" not in block
         assert block["practice_vs_exam"] == pe._PRACTICE
@@ -188,9 +203,9 @@ def test_a_pool_version_serves_the_how_you_are_tested_lines(pool_version):
     assert all(set(line) == {"id", "title", "text"} for line in lines)
 
 
-def test_no_version_served_today_carries_them():
+def test_only_the_pool_versions_carry_them():
     for key in SERVED:
-        assert "how_you_are_tested" not in pe.for_version(*key)
+        assert ("how_you_are_tested" in pe.for_version(*key)) == (key in POOL_KEYS)
 
 
 def test_nothing_hidden_is_on_the_how_you_are_tested_lines():

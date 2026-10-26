@@ -51,6 +51,14 @@ posix = pytest.mark.skipif(os.name != "posix", reason="isolated build programs")
 F08, F02 = "f08-ribbed-bracket", "f02"
 MOTOR, COOLING = "electric-motor-magnetics", "chip-cold-plate"
 NEW = sorted(version_registry.keys(graph_adapter="v2"))
+#: The pool-graded versions (M2/M3, new, pre-publish): the predecessor's exam plus a pool of pre-solved designs,
+#: each under its own sealed evaluation version.
+POOL = {
+    (F08, "1.6"): "f08-pool-sealed-v1",
+    (F02, "2.5"): "f02-pool-sealed-v1",
+    (MOTOR, "1.5"): "motor-pool-sealed-v1",
+    (COOLING, "1.5"): "cooling-pool-sealed-v1",
+}
 
 #: Every existing version's construction limits digest, as served at
 #: composite 40 (5b1f2928f), before graph route v2.
@@ -218,9 +226,12 @@ def test_a_new_version_is_its_predecessor_s_material(key):
     from carbon.scoring import dev_grid
 
     grid = dev_grid.kind(cid, version) is not None
-    if not grid:
+    if not grid or key in POOL:
+        # a pool version's practice grid is its predecessor's (the pool is sealed-only)
         assert np.array_equal(new["practice_inputs"], old["practice_inputs"])
-        assert np.array_equal(new["practice_reference"], old["practice_reference"])
+        assert np.array_equal(
+            new["practice_reference"], old["practice_reference"], equal_nan=True
+        )
     else:
         # New version, pre-publish, dev-pack v2 (Validator 2026-10-23): the
         # development bank is the predecessor's cells plus interleaved public probes.
@@ -249,9 +260,12 @@ def test_a_new_version_is_its_predecessor_s_material(key):
         )
     else:
         assert new_adapter.EVALUATION_VERSION == old_adapter.EVALUATION_VERSION
-    assert sealed_versions.evaluation_version(cid, version) == (
-        sealed_versions.evaluation_version(cid, previous)
-    )
+    if key in POOL:
+        assert sealed_versions.evaluation_version(cid, version) == POOL[key]
+    else:
+        assert sealed_versions.evaluation_version(cid, version) == (
+            sealed_versions.evaluation_version(cid, previous)
+        )
     # Only the construction limits differ: the graph adapter v2.
     limits = new["construction_limits_document"]
     assert limits["graph_training_adapter"]["schema"] == adapter.ADAPTER_SCHEMA
@@ -267,6 +281,10 @@ def test_the_registry_declares_each_new_version_in_full():
         (F02, "2.4"): "2.3",
         (F08, "1.5"): "1.4",
         (MOTOR, "1.4"): "1.3",
+        (COOLING, "1.5"): "1.4",
+        (F02, "2.5"): "2.4",
+        (F08, "1.6"): "1.5",
+        (MOTOR, "1.5"): "1.4",
     }
     own = {
         "version",
@@ -294,17 +312,22 @@ def test_the_registry_declares_each_new_version_in_full():
         # edits (OWNER-PUBLISH-WHAT-IS-TESTED-01).
         if (cid, version) in ((F08, "1.5"), (F02, "2.4")):
             own_here = own_here | {"facts"}
+        if (cid, version) in POOL:
+            # a pool version grades under its own sealed evaluation and publishes its own facts
+            own_here = own_here | {"sealed_evaluation", "facts"}
         for field in new.__dataclass_fields__:
             if field not in own_here:
                 assert getattr(new, field) == getattr(old, field), (cid, field)
         assert new.graph_adapter == "v2" and new.pack_version != old.pack_version
         assert served_versions.serves_catalog(cid, version)
         assert served_versions.serves_v8(cid, version)
-        assert new.allowlist == "v8" and old.allowlist == "v7"
+        # a pool version's predecessor is itself a graph route v2 version (v8)
+        assert new.allowlist == "v8"
+        assert old.allowlist == ("v8" if (cid, version) in POOL else "v7")
         assert physical_material.is_registered(cid, version)
     with pytest.raises(version_registry.UnregisteredVersion):
-        version_registry.entry(F08, "1.6")
-    assert version_registry.find(F08, "1.6") is None
+        version_registry.entry(F08, "1.7")
+    assert version_registry.find(F08, "1.7") is None
 
 
 def _scorer_tables():
@@ -421,7 +444,7 @@ def test_f08_train_is_an_explicit_table_that_refuses_unknown_versions():
         )
         assert loaded["provenance"]["train_sha256"] == "sha256:" + expected, version
     with pytest.raises(ValueError):
-        f08_train.load_public_train("1.6")
+        f08_train.load_public_train("1.7")
 
 
 #: The catalog's entry counts per graph route v2 version, exact: moved only by
@@ -432,6 +455,11 @@ CATALOG_COUNTS = {
     (COOLING, "1.4"): (50, 45),
     (F08, "1.5"): (44, 44),
     (F02, "2.4"): (45, 45),
+    # the pool versions carry their predecessor's catalog, the identity-only diff (`backbone_catalog.carries`)
+    (MOTOR, "1.5"): (78, 46),
+    (COOLING, "1.5"): (50, 45),
+    (F08, "1.6"): (44, 44),
+    (F02, "2.5"): (45, 45),
 }
 
 
@@ -1240,6 +1268,11 @@ def test_every_served_launch_version_is_sealed_graded_on_v2_never_v1():
         if cid not in SEALED_V2 or entry.sealed_evaluation is None:
             continue
         checked.append((cid, version))
+        if (cid, version) in POOL:
+            # a pool version's own sealed evaluation, never v1 (the pool-graded exam of the v2 grid grader)
+            assert entry.sealed_evaluation == POOL[(cid, version)], (cid, version)
+            assert sealed[(cid, version)] == POOL[(cid, version)], (cid, version)
+            continue
         assert entry.sealed_evaluation == SEALED_V2[cid], (cid, version)
         assert sealed[(cid, version)] == SEALED_V2[cid], (cid, version)
         if cid in graders:

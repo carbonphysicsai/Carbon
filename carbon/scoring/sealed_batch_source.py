@@ -109,20 +109,49 @@ def _kit(challenge):
     return kit
 
 
+def _pool_graded(challenge, version):
+    """Whether ``version`` is graded by the pool grader (`pool_version`): static dispatch."""
+    if challenge == MOTOR:
+        from carbon.scoring import motor_sealed_dual_pack as sealed
+    elif challenge == F08:
+        from carbon.scoring import f08_sealed_dual_pack as sealed
+    elif challenge == F02:
+        from carbon.scoring import f02_sealed_dual_pack as sealed
+    elif challenge == COOLING:
+        from carbon.scoring import cooling_encoded_dual_pack as sealed
+    else:
+        return False
+    return version in sealed.POOL_VERSIONS
+
+
 def _build(challenge, kit, document, records, version):
+    """The sealed bank of a carried batch. A pool-graded version's batch document carries its pool material
+    under ``"pool"`` (private custody; the signed copy carries it unchanged); the bank then holds the pool rows
+    (cohort `pool_design`, inputs only) among the cells and probes, in the one seeded interleaving, and keeps
+    the material as ``bank["pool"]``. A version that is not pool-graded refuses a pool, and a pool version
+    refuses a batch without one."""
+    pool = None
+    if type(document) is dict and "pool" in document:
+        pool = document["pool"]
+        document = {k: v for k, v in document.items() if k != "pool"}
+    if (pool is not None) != _pool_graded(challenge, version):
+        raise SealedBankRefused("sealed_pool_material_mismatch")
+    extra = {} if pool is None else {"pool": pool}
     if challenge == MOTOR:
         from carbon.challenge_validator import motor_sealed_grid as grid
 
         try:
             grid.check_document(document)
         except ValueError:
+            if pool is not None:
+                raise SealedBankRefused("sealed_pool_needs_the_grid") from None
             return kit.sealed_bank(document, records, version=version)
-        return kit.grid_bank(document, records, version=version)
+        return kit.grid_bank(document, records, version=version, **extra)
     if challenge in (BATTERY, COOLING):
         # One sealed grid family and bank format, graded under every served
         # version of the same exam (Cooling 1.1-1.3): the family's own version.
-        return kit.sealed_bank(document, records)
-    return kit.sealed_bank(document, records, version=version)
+        return kit.sealed_bank(document, records, **extra)
+    return kit.sealed_bank(document, records, version=version, **extra)
 
 
 def _adapter(challenge, bank, version, development_adapter):

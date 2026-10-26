@@ -106,7 +106,7 @@ PEAK_W = (70.0, 100.0)
 ON_TIME_S = (4.0, 6.0)
 
 
-def _with_probes(bank, cases, names, dtype, challenge="f02"):
+def _with_probes(bank, cases, names, dtype, challenge="f02", pool=None):
     """``bank`` with the private probes appended as unreferenced rows, seeded by
     the batch input content (never ids or order) inside the S1 law's region."""
     from carbon.scoring import probe_design
@@ -122,6 +122,7 @@ def _with_probes(bank, cases, names, dtype, challenge="f02"):
         valid=lambda x: True,
         bases=PROBE_BASES,
         dtype=dtype,
+        pool=pool,
         margin=LAW_STEP,
         extra=(
             ("affine_up", lambda x: [x[0] + step, x[1]]),
@@ -130,7 +131,7 @@ def _with_probes(bank, cases, names, dtype, challenge="f02"):
     )
 
 
-def sealed_bank(document, records, *, version="2.1", probes=True) -> dict:
+def sealed_bank(document, records, *, version="2.1", probes=True, pool=None) -> dict:
     """The sealed batch as a bank in ``physical_pack.development_bank``'s format.
 
     ``document`` is the sealed batch document; ``records`` its terminal
@@ -220,7 +221,9 @@ def sealed_bank(document, records, *, version="2.1", probes=True) -> dict:
         "decision_coverage": DECISION_COVERAGE,
         "population": POPULATION,
     }
-    return _with_probes(bank, cases, names, dtype) if probes else bank
+    if pool is not None and not probes:
+        raise SealedPackRefused("f02_sealed_pool_needs_probes")
+    return _with_probes(bank, cases, names, dtype, pool=pool) if probes else bank
 
 
 def private_roles(bank) -> dict[str, bytes]:

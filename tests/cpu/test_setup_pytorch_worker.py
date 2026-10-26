@@ -41,6 +41,11 @@ TORCH = {
     ("chip-cold-plate", "1.4"),
     ("f08-ribbed-bracket", "1.5"),
     ("f02", "2.4"),
+    # The pool-graded versions: the same practice workers (the pool is sealed-only).
+    ("electric-motor-magnetics", "1.5"),
+    ("chip-cold-plate", "1.5"),
+    ("f08-ribbed-bracket", "1.6"),
+    ("f02", "2.5"),
 }
 
 

@@ -553,6 +553,29 @@ def _entries():
             _graph_route(_motor_describe_catalog, MOTOR_CHALLENGE, "1.4"),
             None,
         ),
+        # Pool grade (`scoring.pool_exam`): 1.4's construction and kit material; the exam is the pool grader's.
+        Entry(
+            MOTOR_CHALLENGE,
+            "1.5",
+            "Electric-motor magnetics (DEVELOPMENT periodic cross-section, pool-graded exam, backbone catalog and graph training adapter v2, allowlist v8)",
+            IMPLEMENTED,
+            "launch",
+            "carbonphysicsai/Carbon#344",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(_motor_describe_catalog, MOTOR_CHALLENGE, "1.5"),
+            None,
+        ),
         # Cooling 1.2, Cooling's catalog version (allowlist v7 and the backbone
         # catalog, as Motor 1.2/1.3): Carbon's tested backbones by catalog id
         # on the direct recipe path; the Level 0 strategy compiler stays 1.0's.
@@ -630,6 +653,29 @@ def _entries():
             _graph_route(_cold_plate_describe_catalog, COLD_PLATE_CHALLENGE, "1.4"),
             None,
         ),
+        # Pool grade (`scoring.pool_exam`): 1.4's construction and kit material; the exam is the pool grader's.
+        Entry(
+            COLD_PLATE_CHALLENGE,
+            "1.5",
+            "AI-chip liquid cold plate (DEVELOPMENT periodic cell, pool-graded exam, backbone catalog, graph training adapter v2, allowlist v8, law-safe output encoding)",
+            IMPLEMENTED,
+            "launch",
+            "carbonphysicsai/Carbon#342",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(_cold_plate_describe_catalog, COLD_PLATE_CHALLENGE, "1.5"),
+            None,
+        ),
         # F08 (Ribbed Bracket) 1.4 and F02 (Burst Thermal) 2.3, direct-recipe
         # only (`carbon.direct_campaign`): Carbon's tested backbones by catalog
         # id, or a graph trained by Carbon's registered graph training adapter;
@@ -684,6 +730,33 @@ def _entries():
             ),
             None,
         ),
+        # Pool grade (`scoring.pool_exam`): 1.5's construction and kit material; the
+        # exam is the pool grader's. Its constants are not yet registered (HUMAN_INPUT).
+        Entry(
+            "f08-ribbed-bracket",
+            "1.6",
+            "Ribbed Bracket (F08, DEVELOPMENT, pool-graded exam, backbone catalog and "
+            "graph training adapter v2, allowlist v8)",
+            IMPLEMENTED,
+            LAUNCH_PENDING_READINESS,
+            None,
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(
+                _direct_describe("f08-ribbed-bracket"), "f08-ribbed-bracket", "1.6"
+            ),
+            None,
+        ),
         Entry(
             "f02",
             "2.3",
@@ -730,6 +803,29 @@ def _entries():
                 catalog_gpu,
             ),
             _graph_route(_direct_describe("f02"), "f02", "2.4"),
+            None,
+        ),
+        # Pool grade (`scoring.pool_exam`): 2.4's construction; the exam is the pool grader's.
+        Entry(
+            "f02",
+            "2.5",
+            "Burst Thermal (F02, DEVELOPMENT, pool-graded exam, backbone catalog and graph training adapter v2, allowlist v8)",
+            IMPLEMENTED,
+            LAUNCH_PENDING_READINESS,
+            None,
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(_direct_describe("f02"), "f02", "2.5"),
             None,
         ),
         Entry(

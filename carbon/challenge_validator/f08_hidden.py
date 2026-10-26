@@ -37,7 +37,8 @@ CHALLENGE_VERSION = "1.2"
 #: changes only the construction kit (Validator, 2026-10-20: one rule, a catalog version is graded from its
 #: predecessor's sealed batches). The batches stay 1.2's.
 #: 1.5 (graph route v2) changes construction only, as 1.3 and 1.4 did.
-SERVED_VERSIONS = (CHALLENGE_VERSION, "1.3", "1.4", "1.5")
+#: 1.6 (pool grade) adds its pool rows to the same sealed cells (`pool_version`).
+SERVED_VERSIONS = (CHALLENGE_VERSION, "1.3", "1.4", "1.5", "1.6")
 RULE_SCHEMA = "carbon.f08.hidden-pool-rule.v1"
 DOCUMENT_SCHEMA = "carbon.f08.hidden-batch.v1"
 DEPLOYMENT_SCHEMA = "carbon.f08.hidden-deployment.v1"

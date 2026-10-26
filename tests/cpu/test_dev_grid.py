@@ -48,6 +48,35 @@ KITS = {
         "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
         "version": "1.4",
     },
+    # the pool-graded versions (M2/M3; new, pre-publish): the predecessor's kit by its own train and interface
+    ("f08-ribbed-bracket", "1.6"): {
+        "construction_limits_digest": "sha256:44a9dbf57444cdf6b484fe9b76aa690c3acb7bf24667060dc2971f6b3220d4d8",
+        "id": "f08-ribbed-bracket",
+        "interface_digest": "sha256:203e2e79b46f26bcc98b2c5807039159038f356c95eaa783be6e8c3c376e1cdb",
+        "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+        "version": "1.6",
+    },
+    ("f02", "2.5"): {
+        "construction_limits_digest": "sha256:567f31adcab3cb3ab0b7385eb2c1a89f63016a61fa130489c6ea3b5eb87e04e1",
+        "id": "f02",
+        "interface_digest": "sha256:928e4eedd9ed6b31ef75268726c5130e916c74a1b0c7afc989e7d1ff6f22da5d",
+        "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
+        "version": "2.5",
+    },
+    ("electric-motor-magnetics", "1.5"): {
+        "construction_limits_digest": "sha256:391dbddcf047326654b172f3e8b34cd6fa10070cbdec071981867e8b4e0f186f",
+        "id": "electric-motor-magnetics",
+        "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+        "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+        "version": "1.5",
+    },
+    ("chip-cold-plate", "1.5"): {
+        "construction_limits_digest": "sha256:7bfb4366cba785d11546aa6882ae13c3a457cba6e88df02b662becf61d68ee72",
+        "id": "chip-cold-plate",
+        "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+        "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+        "version": "1.5",
+    },
 }  # fmt: skip
 
 
@@ -450,7 +479,8 @@ def test_cooling_dev_pack_writes_and_practice_still_reads_its_own_cases(tmp_path
 # --- the catalog freeze moves a kit by its served backbone-catalog digest and nothing else ---
 
 #: Each dev-grid version's kit and the served backbone-catalog digest its limits document carried on
-#: rc10 (385bc1279), before the frozen catalog (0530c1d41). New versions, pre-publish.
+#: rc10 (385bc1279), before the frozen catalog (0530c1d41). New versions, pre-publish (the pool versions
+#: did not exist on rc10 and are not in this table).
 KITS_ON_RC10 = {
     ("chip-cold-plate", "1.4"): (
         "sha256:6db34335c03c3b1bd8bbd55de89a38e3cd44026f47bd227a9be4c522266b3334",
@@ -471,7 +501,7 @@ KITS_ON_RC10 = {
 }
 
 
-@pytest.mark.parametrize("key", KEYS)
+@pytest.mark.parametrize("key", sorted(KITS_ON_RC10))
 def test_a_kit_moved_with_the_served_catalog_digest_and_nothing_else(key, monkeypatch):
     """With the one field `backbone_catalog.digest` set back to what it was on rc10, each
     dev-grid version's limits document hashes to the kit it had on rc10: the catalog freeze

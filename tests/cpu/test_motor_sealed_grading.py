@@ -35,9 +35,12 @@ MOTOR = "electric-motor-magnetics"
 #: 1.4 joins `VERSIONS` under 1.3's evaluation version), then scoring v2's
 #: modules beside it (rc3, graph route v2 on scoring v2), then the sealed-pack
 #: fail-closed fix (Validator P0, 2026-10-23; was
-#: sha256:2c7023be118193685c3fb4f71fa656e51865f7e15be3fc14b13a8da19919e5e9).
+#: sha256:2c7023be118193685c3fb4f71fa656e51865f7e15be3fc14b13a8da19919e5e9),
+#: then the pool-graded versions' one shared-producer move (M2/M3: the pool path in `physical_dual_pack`,
+#: `sealed_batch_source` and `copy_derivation`, pre-publish; was
+#: sha256:6b72a0162a5b691b2f44613523e453a61ccf235a35ff8bc6fdec5ffdbf4537ab).
 DEV_PRODUCER_DIGEST = (
-    "sha256:6b72a0162a5b691b2f44613523e453a61ccf235a35ff8bc6fdec5ffdbf4537ab"
+    "sha256:d802eebd03590c158b3225eac7e30b0c404c476de6408eb1e0454d347097fd56"
 )
 DESIGNS, CONDITIONS = 5, 6
 
@@ -326,7 +329,9 @@ def test_dispatch_is_by_the_banks_declared_population(case):
         chosen = sealed.adapter_for_bank(case["bank"], version)
         assert chosen.EVALUATION_VERSION == "motor-dual-sealed-batch-30-v2"
         assert chosen.VERSION == version and chosen.CASE_ID == sealed.CASE_ID
-    assert sealed.adapter("1.0") is None and sealed.adapter("1.5") is None
+    assert sealed.adapter("1.0") is None and sealed.adapter("1.6") is None
+    # Motor 1.5 is the pool-graded version: a pool adapter, never the plain grid grader
+    assert sealed.adapter("1.5").POOL_GRADED
     development = physical_pack.development_bank(MOTOR, "1.3")
     chosen = sealed.adapter_for_bank(development, "1.3")
     assert chosen.EVALUATION_VERSION == dev.VERSIONS["1.3"][0]

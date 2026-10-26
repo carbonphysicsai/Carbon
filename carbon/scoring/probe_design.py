@@ -169,6 +169,10 @@ def content_bytes(cases) -> bytes:
     ).encode()
 
 
+#: The cohort of a pool-graded exam's design-search rows (`pool_exam.POOL_COHORT`).
+POOL_COHORT = "pool_design"
+
+
 def with_probes(
     bank,
     cases,
@@ -181,10 +185,15 @@ def with_probes(
     extra=(),
     step_range=DELTA_RANGE,
     margin=0.0,
+    pool=None,
 ):
     """``bank`` (a sealed bank in the development bank format) with the private
     probes appended as unreferenced rows (``reference_present`` False, NaN
-    references), seeded by the batch input content ``cases`` (input dicts)."""
+    references), seeded by the batch input content ``cases`` (input dicts).
+
+    ``pool`` (a pool-graded version's `pool_version` material) adds the exam's design-search rows the same way,
+    after the probes and in their canonical order, in the SAME single seeded interleaving; the bank then carries
+    the material as ``bank["pool"]``."""
     import numpy as np
 
     drawn = seed(content_bytes(cases), challenge)
@@ -199,11 +208,29 @@ def with_probes(
         key=lambda row: row_key(row[1]["probe"]),
     )
     width = bank["references"].shape[1]
+    pool_rows = []
+    if pool is not None:
+        from carbon.scoring import pool_version
+
+        pool_rows = pool_version.rows_from_material(
+            pool, dtype=dtype, challenge=challenge
+        )
+        if not pool_rows or len(pool_rows[0][2]) != bank["inputs"].shape[1]:
+            raise ValueError("pool rows do not match the bank's input width")
     inputs = np.concatenate(
-        [bank["inputs"], np.asarray([x for _, _, x in rows], dtype=dtype)]
+        [
+            bank["inputs"],
+            np.asarray([x for _, _, x in rows], dtype=dtype),
+            np.asarray([x for _, _, x in pool_rows], dtype=dtype).reshape(
+                (len(pool_rows), bank["inputs"].shape[1])
+            ),
+        ]
     )
     references = np.concatenate(
-        [bank["references"], np.full((len(rows), width), np.nan, dtype=dtype)]
+        [
+            bank["references"],
+            np.full((len(rows) + len(pool_rows), width), np.nan, dtype=dtype),
+        ]
     )
     order = permutation(len(inputs), shuffle_seed(bank["inputs"]))
     inputs, references = inputs[order], references[order]
@@ -213,19 +240,45 @@ def with_probes(
     def mixed(values):
         return [values[i] for i in order]
 
-    return {
+    extended = {
         **bank,
-        "case_ids": tuple(mixed([*bank["case_ids"], *[c for c, _, _ in rows]])),
-        "cohorts": tuple(mixed([*bank["cohorts"], *[PROBE_COHORT] * len(rows)])),
+        "case_ids": tuple(
+            mixed(
+                [
+                    *bank["case_ids"],
+                    *[c for c, _, _ in rows],
+                    *[c for c, _, _ in pool_rows],
+                ]
+            )
+        ),
+        "cohorts": tuple(
+            mixed(
+                [
+                    *bank["cohorts"],
+                    *[PROBE_COHORT] * len(rows),
+                    *[POOL_COHORT] * len(pool_rows),
+                ]
+            )
+        ),
         "inputs": inputs,
         "references": references,
         "reference_records": mixed(
-            [*bank["reference_records"], *[r for _, r, _ in rows]]
+            [
+                *bank["reference_records"],
+                *[r for _, r, _ in rows],
+                *[r for _, r, _ in pool_rows],
+            ]
         ),
         "reference_present": tuple(
-            mixed((True,) * len(bank["case_ids"]) + (False,) * len(rows))
+            mixed(
+                (True,) * len(bank["case_ids"])
+                + (False,) * (len(rows) + len(pool_rows))
+            )
         ),
     }
+    if pool is not None:
+        extended["pool"] = pool
+    return extended
 
 
 def shuffle_seed(cell_inputs) -> bytes:

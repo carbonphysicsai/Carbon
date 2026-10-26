@@ -208,6 +208,16 @@ _F08_EXAMS = {
         F08_LADDER_POPULATION,
         "f08-normal-construction-development-6",
     ),
+    # 1.6 (pool grade): 1.5's ladder bank and TRAIN v2; the exam material is the pool set.
+    "1.6": (
+        _F08_LADDER_OBSERVED,
+        _F08_LADDER_ENVIRONMENT,
+        "ladder",
+        "decision_near_limit",
+        F08_LADDER_DECISION_COVERAGE,
+        F08_LADDER_POPULATION,
+        "f08-normal-construction-development-7",
+    ),
 }
 _F08_BRIEF = (
     "docs/development/challenge_pipeline/onboarding-runs/generated/f08/brief.json",

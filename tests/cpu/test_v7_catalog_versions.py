@@ -54,6 +54,14 @@ GRAPH_V2 = {
     (MOTOR, "1.4"): "1.3",
     (COOLING, "1.4"): "1.3",
 }
+#: The pool-graded versions (M2/M3): each a graph route v2 version plus a sealed pool of pre-solved designs;
+#: the predecessor is itself a v8 version.
+POOL_V2 = {
+    (F08, "1.6"): "1.5",
+    (F02, "2.5"): "2.4",
+    (MOTOR, "1.5"): "1.4",
+    (COOLING, "1.5"): "1.4",
+}
 
 
 def _digest(raw):
@@ -65,7 +73,7 @@ def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
     v8 = allowlist_module.v8_bytes()
     # The four pre-publish graph-route-v2 versions serve the NEW v8 file (v7's bytes
     # and digest stay); every other v7 version is unchanged.
-    assert sv.V8 == frozenset(GRAPH_V2)
+    assert sv.V8 == frozenset(GRAPH_V2) | frozenset(POOL_V2)
     assert sv.V7 == (
         frozenset(PREDECESSOR) | frozenset(GRAPH) | frozenset(CATALOG_ONLY)
     )
@@ -76,6 +84,10 @@ def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
         assert sv.material_allowlist_bytes(*key) == v8
         assert sv.serves_v8(*key) and sv.serves_uncapped(*key) and not sv.serves_v7(*key)
         assert sv.material_allowlist_bytes(key[0], before) == v7  # its predecessor
+    for key, before in POOL_V2.items():
+        assert sv.material_allowlist_bytes(*key) == v8
+        assert sv.serves_v8(*key) and sv.serves_uncapped(*key) and not sv.serves_v7(*key)
+        assert sv.material_allowlist_bytes(key[0], before) == v8  # its predecessor
     for key, before in PREDECESSOR.items():
         assert sv.material_allowlist_bytes(*key) == v7
         assert sv.is_step2(*key) and not sv.step_caps(*key)
@@ -95,6 +107,7 @@ def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
         *GRAPH,
         *CATALOG_ONLY,
         *GRAPH_V2,
+        *POOL_V2,
     }
     assert (BATTERY, "2.2") not in sv.V7  # not served (OWNER-BATTERY-OUT-OF-LAUNCH-01)
     for key in ((MOTOR, "1.3"), (COOLING, "1.2")):
@@ -338,14 +351,19 @@ def test_motor_1_3_is_its_own_catalog_campaign():
     from carbon.challenge_registry.motor import catalog_recipe
     from carbon.motor import campaign
 
-    assert campaign.CATALOG_VERSIONS == ("1.2", "1.3", "1.4")
+    assert campaign.CATALOG_VERSIONS == ("1.2", "1.3", "1.4", "1.5")
     document = describe(MOTOR, "1.3")
     assert document["identity"] == "carbon.electric-motor-magnetics-catalog.1.3"
     recipe = catalog_recipe(version="1.3")
     assert recipe["challenge"] == physical_public.construction_kit(MOTOR, "1.3")
     assert recipe["source"]["catalog_digest"] == served.digest(MOTOR, "1.3")
     built = campaigns._versioned_campaigns()
-    assert {key[1] for key in built if key[0] == MOTOR} == {"1.2", "1.3", "1.4"}
+    assert {key[1] for key in built if key[0] == MOTOR} == {
+        "1.2",
+        "1.3",
+        "1.4",
+        "1.5",
+    }
     assert built[(MOTOR, "1.3")]().key.version == "1.3"
     assert built[(MOTOR, "1.2")]().key.version == "1.2"
     with pytest.raises(ValueError, match="motor catalog version"):

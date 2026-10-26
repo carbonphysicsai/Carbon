@@ -37,11 +37,17 @@ import random
 import statistics
 from dataclasses import replace
 
-from carbon.scoring import pool_gates, pool_grader, pool_plugin, pool_serving
+from carbon.scoring import (
+    pool_gates,
+    pool_grader,
+    pool_plugin,
+    pool_serving,
+    probe_design,
+)
 from carbon.scoring import pool_proof_suite as suite
 
 #: The bank-row cohort of a pool row (queryable or A_gen); every other row is the sealed grader's.
-POOL_COHORT = "pool_design"
+POOL_COHORT = probe_design.POOL_COHORT
 #: The mandatory gates this module adds to the sealed grader's native ones.
 PHYSICS_GATE = "physics_pool"
 SPEED_GATE = "speed"
@@ -143,6 +149,7 @@ def measure_pool(
     base_arguments,
     speed_call_seconds,
     ceiling_seconds,
+    input_dtype=None,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
 
@@ -156,6 +163,9 @@ def measure_pool(
         and all(len(r) == len(bank_rows) for r in repeats),
         "one_answer_per_exam_row",
     )
+    # The delivered query holds the pool rows quantised to the bank's dtype (`pool_version.rows_from_material`);
+    # the grader asks the model's table about the same rounded rows, never about the unrounded designs.
+    quantize = _quantizer(input_dtype)
     sealed, pool = split_rows(bank_rows)
     sealed_rows = [bank_rows[i] for i in sealed]
     base = base_measure(
@@ -175,11 +185,16 @@ def measure_pool(
     # The owner's C rule is `min` (D = min(D, C)); the dual pack's own total then equals each set's TOP.
     _require(policies.c_rule.get("kind") == "min", "official_c_rule_must_be_min")
     # The model's one table over EVERY exam row; every lookup below is a read of it.
-    serve = table_server([r["inputs"] for r in bank_rows], outputs, binding.input_names)
+    table = table_server([r["inputs"] for r in bank_rows], outputs, binding.input_names)
+
+    def serve(rows):
+        return table([quantize(row) for row in rows])
+
     submitted = replace(binding, serve_good=serve)
     pool_row_dicts = pool_gates.pool_rows(submitted, all_specs)
     answered = {
-        tuple(r["inputs"][n] for n in binding.input_names) for r in pool_row_dicts
+        tuple(quantize(r["inputs"])[n] for n in binding.input_names)
+        for r in pool_row_dicts
     }
     held = {tuple(bank_rows[i]["inputs"][n] for n in binding.input_names) for i in pool}
     _require(answered == held, "exam_pool_rows_differ_from_the_targets_pools")
@@ -247,6 +262,16 @@ def measure_pool(
             "set_totals": [t for t, _g, _a, _l in per_set],
         },
     }
+
+
+def _quantizer(input_dtype):
+    """``row -> row`` rounded to ``input_dtype`` (None: unchanged)."""
+    if input_dtype is None:
+        return lambda row: row
+    import numpy as np
+
+    kind = np.dtype(input_dtype)
+    return lambda row: {name: float(kind.type(value)) for name, value in row.items()}
 
 
 def _refused(name):

@@ -114,6 +114,12 @@ _F08_DEV_V1 = ("f08-dual-accepted-bank-8-v1", "f08-accepted-bank-8")
 _F08_DEV_NL1 = ("f08-dual-near-limit-bank-8-v1", "f08-near-limit-bank-8")
 _F08_DEV_NL2 = ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8")
 _F08_SEALED = "f08-dual-sealed-grid-8x1-v2"
+#: Pool-graded sealed evaluation names (V8_RULINGS section 11; the Validator names them): a new
+#: evaluation is a new exam key, so no king carries over.
+_F08_POOL_SEALED = "f08-pool-sealed-v1"
+_F02_POOL_SEALED = "f02-pool-sealed-v1"
+_MOTOR_POOL_SEALED = "motor-pool-sealed-v1"
+_COOLING_POOL_SEALED = "cooling-pool-sealed-v1"
 _F02_DEV_1 = ("f02-dual-development-bank-8-v1", "f02-development-bank-8")
 _F02_DEV_2 = ("f02-dual-development-bank-8-v2", "f02-development-bank-8")
 #: Dev-pack v2 (Validator 2026-10-23): the new graph-route-v2 versions' development pack is
@@ -202,6 +208,23 @@ VERSIONS = dict(
             predecessor="1.3",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
+        # Pool grade: 1.4's construction, TRAIN and interface, graded by the pool grader.
+        _v(
+            MOTOR,
+            "1.5",
+            MOTOR_TRAIN,
+            "v8",
+            False,
+            "motor-normal-construction-development-6",
+            _MOTOR_DEV_GRID,
+            _MOTOR_POOL_SEALED,
+            "catalog",
+            catalog=True,
+            graph_adapter="v2",
+            catalog_entries_from=("1.4", "1.3"),
+            predecessor="1.4",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
+        ),
         # --- Cooling ------------------------------------------------------
         _v(
             COOLING,
@@ -268,6 +291,24 @@ VERSIONS = dict(
             output_encoding=COOLING_LAW_SAFE,
             catalog_entries_from=("1.4", "1.3"),
             predecessor="1.3",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
+        ),
+        # Pool grade: 1.4's construction, TRAIN and interface, graded by the pool grader.
+        _v(
+            COOLING,
+            "1.5",
+            COOLING_TRAIN_ENCODED,
+            "v8",
+            False,
+            "cooling-normal-construction-development-6",
+            _COOLING_DEV_GRID,
+            _COOLING_POOL_SEALED,
+            "catalog",
+            catalog=True,
+            graph_adapter="v2",
+            output_encoding=COOLING_LAW_SAFE,
+            catalog_entries_from=("1.4", "1.3"),
+            predecessor="1.4",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
         # --- F08 (Ribbed Bracket) -----------------------------------------
@@ -349,6 +390,27 @@ VERSIONS = dict(
             predecessor="1.4",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
+        # Pool grade: 1.5's construction, graded by the pool grader
+        # (`scoring.pool_exam`). Its interface document names its version, so it offers
+        # 1.5's receipted entries only under the cross-version pair rule: the interface
+        # documents differ in identity fields only (`backbone_catalog.carries`).
+        _v(
+            F08,
+            "1.6",
+            F08_TRAIN_V2,
+            "v8",
+            False,
+            "f08-normal-construction-development-7",
+            _F08_DEV_GRID,
+            _F08_POOL_SEALED,
+            "direct",
+            catalog=True,
+            graph_adapter="v2",
+            catalog_entries_from=("1.5",),
+            facts="1.6",
+            predecessor="1.5",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
+        ),
         # --- F02 (Burst Thermal) ------------------------------------------
         _v(
             F02,
@@ -413,6 +475,25 @@ VERSIONS = dict(
             catalog_entries_from=("2.4",),
             facts="2.4",
             predecessor="2.3",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
+        ),
+        # Pool grade: 2.4's construction, graded by the pool grader (`scoring.pool_exam`);
+        # it offers 2.4's entries under the cross-version pair rule (`backbone_catalog.carries`).
+        _v(
+            F02,
+            "2.5",
+            F02_TRAIN,
+            "v8",
+            False,
+            "f02-normal-construction-development-7",
+            _F02_DEV_GRID,
+            _F02_POOL_SEALED,
+            "direct",
+            catalog=True,
+            graph_adapter="v2",
+            catalog_entries_from=("2.4",),
+            facts="2.5",
+            predecessor="2.4",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
         # --- Battery (2.3 joins after pack-set-canonical lands) -----------

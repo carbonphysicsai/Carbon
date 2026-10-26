@@ -49,7 +49,7 @@ def _canonical(value) -> bytes:
 PROBE_BASES = 4
 
 
-def _with_probes(bank, cases, challenge="cooling"):
+def _with_probes(bank, cases, challenge="cooling", pool=None):
     """``bank`` with the private probes appended as unreferenced rows, seeded by
     the batch input content (never ids or order) inside the registered ranges."""
     from carbon.scoring import cooling_physics, probe_design
@@ -62,11 +62,12 @@ def _with_probes(bank, cases, challenge="cooling"):
         valid=lambda x: True,
         bases=PROBE_BASES,
         dtype="<f8",
+        pool=pool,
         extra=cooling_physics.probe_extra(),
     )
 
 
-def sealed_bank(document, records, *, version="1.1", probes=True) -> dict:
+def sealed_bank(document, records, *, version="1.1", probes=True, pool=None) -> dict:
     """The sealed grid as a bank in Cooling's ``development_bank`` format."""
     from carbon.challenge_kit import physical_public_train
     from carbon.challenge_validator import cooling_hidden as hidden
@@ -143,7 +144,9 @@ def sealed_bank(document, records, *, version="1.1", probes=True) -> dict:
         "reference_records": out_records,
         "solver_evidence": evidence,
     }
-    return _with_probes(bank, cases) if probes else bank
+    if pool is not None and not probes:
+        raise SealedPackRefused("cooling_sealed_pool_needs_probes")
+    return _with_probes(bank, cases, pool=pool) if probes else bank
 
 
 def private_roles(bank) -> dict[str, bytes]:
