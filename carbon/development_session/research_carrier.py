@@ -498,8 +498,7 @@ _PRACTICE_FAILURE_REASONS = (
 
 
 _TRACEBACK_FRAME = re.compile(
-    rb'^\s*File "(?P<path>[^"
-]{1,300})", line (?P<line>\d{1,6}), in (?P<name>[A-Za-z_<][A-Za-z0-9_<>]{0,80})\s*$'
+    rb'^\s*File "(?P<path>[^"\n]{1,300})", line (?P<line>\d{1,6}), in (?P<name>[A-Za-z_<][A-Za-z0-9_<>]{0,80})\s*$'
 )
 _EXCEPTION_LINE = re.compile(rb"^(?P<name>[A-Za-z_][A-Za-z0-9_.]{0,80})(?::|$)")
 
@@ -513,8 +512,7 @@ def _traceback_summary(diagnostic):
     start = diagnostic.rfind(b"Traceback (most recent call last)")
     if start < 0:
         return {}
-    lines = diagnostic[start:].split(b"
-")
+    lines = diagnostic[start:].split(b"\n")
     frames = []
     for row in lines[1:]:
         found = _TRACEBACK_FRAME.match(row)
