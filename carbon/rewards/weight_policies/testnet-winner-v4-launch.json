@@ -1,0 +1,27 @@
+{
+  "authority": "OWNER-TESTNET-WEIGHTS-01",
+  "baselines": {
+    "chip-cold-plate": null,
+    "electric-motor-magnetics": null,
+    "f02": null,
+    "f08-ribbed-bracket": null
+  },
+  "burn_uid": 0,
+  "cadence_blocks": 360,
+  "challenges": [
+    "electric-motor-magnetics",
+    "chip-cold-plate",
+    "f08-ribbed-bracket",
+    "f02"
+  ],
+  "decay": {
+    "full_ms": 86400000,
+    "halving_ms": 86400000
+  },
+  "membership_note": "LAUNCH policy for the four launch Challenges, named by the validator's own Challenge ids (electric-motor-magnetics, chip-cold-plate, f08-ribbed-bracket, f02), N = 4, 1/N each, remainder to burn UID 0, netuid 567. v2 and v3 name Ribbed Bracket 'f08', which the validator never emits, so a pool store registered under its real id is SOURCE_OUTSIDE_POLICY there; this version fixes the id and changes nothing else (decay, cadence, burn, baselines null / first-incumbent rule, self_improvement_factor null). Not the registry's current policy; the standing authorization names its digest only when the owner approves it. A crown still needs a registered rebuild noise (koth_rebuild_noise.json); until then every epoch burns to UID 0.",
+  "netuid": 567,
+  "network": "testnet",
+  "schema": "carbon.rewards.testnet-winner-policy.v1",
+  "self_improvement_factor": null,
+  "version": "testnet-winner-v4-launch"
+}

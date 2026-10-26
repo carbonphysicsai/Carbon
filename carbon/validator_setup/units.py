@@ -152,15 +152,44 @@ def render(profile):
     ):
         raise SetupRefused("EXPLICIT_HOST_LISTENER_PROXY_BINDING_REQUIRED")
     w = raw["weights"]
-    if type(w) is not dict or set(w) != {
+    weights_keys = {
         "config",
         "standing",
         "journal",
         "ledger",
         "deployment",
         "policy_version",
-    }:
+    }
+    # A direct-receiver (lean) Challenge's pool store is a weight source beside, or
+    # instead of, the Battery deployment: both keys are given together or neither.
+    optional_sources = {"lean_pools", "battery_source"}
+    if type(w) is not dict or set(w) not in (
+        weights_keys,
+        weights_keys | optional_sources,
+    ):
         raise SetupRefused("EXACT_OPERATOR_UNIT_PROFILE_REQUIRED")
+    lean_pools = w.get("lean_pools", [])
+    battery_source = w.get("battery_source", True)
+    pool_ids = (
+        [str(item).partition("=")[0] for item in lean_pools]
+        if (type(lean_pools) is list)
+        else []
+    )
+    if (
+        type(lean_pools) is not list
+        or type(battery_source) is not bool
+        or not all(
+            type(item) is str
+            and "=" in item
+            and item.partition("=")[0]
+            and Path(item.partition("=")[2]).is_absolute()
+            and "," not in item
+            for item in lean_pools
+        )
+        or len(set(pool_ids)) != len(pool_ids)
+        or not (battery_source or lean_pools)
+    ):
+        raise SetupRefused("EXACT_OPERATOR_WEIGHT_SOURCES_REQUIRED")
     weights = load_weights(w["config"])
     if (
         fetch.get("hotkey") != weights.publisher_hotkey
@@ -205,6 +234,7 @@ def render(profile):
         *(Path(p) for p in service.config.get("practice_images", {}).values()),
         weights.wallet_path,
         *(Path(w[k]) for k in ("config", "standing", "journal", "ledger")),
+        *(Path(item.partition("=")[2]) for item in lean_pools),
     ]
     signer = fetch.get("signer_socket")
     if type(signer) is not str or not signer:
@@ -297,8 +327,8 @@ def render(profile):
             w["journal"],
             "--ledger",
             w["ledger"],
-            "--battery-deployment",
-            w["deployment"],
+            *(["--battery-deployment", w["deployment"]] if battery_source else []),
+            *(arg for item in lean_pools for arg in ("--lean-pool", item)),
         ],
     }
     if w["policy_version"] is not None:
