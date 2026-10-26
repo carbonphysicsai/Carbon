@@ -108,6 +108,7 @@ def test_oom_at_the_worker_limit_is_a_typed_candidate_failure(
     assert caught.value.code is WorkerCode.RUNTIME
     assert caught.value.result["observation"] == carrier.CANDIDATE_MEMORY_LIMIT
     assert caught.value.result["state"] == "FAILED_MINER"
+    assert caught.value.result["limit"]["kind"] == "memory"
     assert caught.value.result["retry_dispatched"] is False
     assert _state(harness) == "FAILED_MINER"
     # Cleanup of the exact container ran before the failure was settled.
@@ -216,7 +217,11 @@ def test_a_wall_after_a_slow_start_is_the_hosts_not_the_candidates(monkeypatch):
             deadline=time.monotonic() + 1,
         )
 
-    assert stop(5) == (WorkerCode.DEADLINE, carrier.CANDIDATE_WALL_LIMIT)
+    assert stop(5) == (
+        WorkerCode.DEADLINE,
+        carrier.CANDIDATE_WALL_LIMIT,
+        {"kind": "wall", "seconds": 10},
+    )
     assert stop(carrier._PROGRAM_SETUP_BUDGET_SECONDS + 1) is None
 
 

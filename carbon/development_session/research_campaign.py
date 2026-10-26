@@ -1902,6 +1902,8 @@ PRACTICE_NOT_RUN_STATES = ("FAILED_INFRA", "UNRESOLVED")
 PRACTICE_COULD_NOT_RUN = "practice_could_not_run"
 #: The practice's host check failed on capacity: this machine is too small for the worker.
 PRACTICE_HOST_TOO_SMALL = "practice_host_too_small"
+#: The practice's own graph or recipe reached a limit or failed on its own account.
+PRACTICE_CANDIDATE_FAILED = "practice_candidate_failed"
 
 
 class PracticeNotRun(OperationRefused):
@@ -1955,6 +1957,22 @@ def _retained_capacity_shortfall(ledger_root, since_unix):
     ):
         return None
     return document["capacity"]
+
+
+def _candidate_failure_correction(answer):
+    """The miner-fault message of a practice whose task completed with the
+    candidate's own program failure (`research_tasks.miner_failure_result`), or
+    None. Read from Carbon's own typed result only."""
+    result = answer.get("public_result") if isinstance(answer, dict) else None
+    if isinstance(result, dict) and isinstance(result.get("result"), dict):
+        result = result["result"]
+    if (
+        not isinstance(result, dict)
+        or result.get("outcome") != "MINER_PROGRAM_FAILED"
+        or type(result.get("correction")) is not str
+    ):
+        return None
+    return result["correction"]
 
 
 async def practice_recipe(
@@ -2030,6 +2048,9 @@ async def practice_recipe(
         if step is not None:
             raise PracticeNotRun(PRACTICE_HOST_TOO_SMALL, step)
         raise OperationRefused(PRACTICE_COULD_NOT_RUN)
+    failed = _candidate_failure_correction(answer)
+    if failed is not None:
+        raise PracticeNotRun(PRACTICE_CANDIDATE_FAILED, failed)
     return answer
 
 
