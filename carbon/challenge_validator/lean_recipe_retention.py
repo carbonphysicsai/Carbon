@@ -143,6 +143,32 @@ def _fixture_tensors(material) -> bytes:
     return _tensors(inputs=inputs[present], targets=targets[present])
 
 
+#: Why a configured graph GPU lane rebuilt a graph on the CPU (`research_tasks`).
+GRAPH_LANE_NOTES = frozenset(
+    {"graph_gpu_rebuild_not_repeatable", "graph_gpu_attempt_failed"}
+)
+
+
+def _graph_lane_evidence_ok(provider, evidence) -> bool:
+    """The graph lane's evidence fields, when present, are exactly what this receiver's lane
+    writes: a GPU build names the receiver's own GPU worker and no note; a CPU build names a
+    registered reason. No lane fields: a receiver without a lane."""
+    if type(evidence) is not dict or "build_device" not in evidence:
+        return "build_image_id" not in evidence and "gpu_lane_note" not in evidence
+    if evidence["build_device"] == "GPU":
+        gpu_image = getattr(provider, "graph_gpu_image", None)
+        return (
+            gpu_image is not None
+            and evidence.get("build_image_id") == gpu_image.image_id
+            and "gpu_lane_note" not in evidence
+        )
+    return (
+        evidence["build_device"] == "CPU"
+        and "build_image_id" not in evidence
+        and evidence.get("gpu_lane_note") in GRAPH_LANE_NOTES
+    )
+
+
 def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, material):
     """Gather only the graph task's original, verified DEVELOPMENT bytes."""
     from carbon.development_session.bundle_construction_worker import _tensors
@@ -172,9 +198,19 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         if type(evidence) is dict and "timed_receipt" in evidence
         else set()
     )
+    # A receiver with a graph GPU lane says which device built the graph (and why the CPU did,
+    # when a configured lane fell back); a receiver without one writes none of it.
+    lane_fields = set()
+    if type(evidence) is dict and "build_device" in evidence:
+        lane_fields = {"build_device"}
+        if evidence["build_device"] == "GPU":
+            lane_fields.add("build_image_id")
+        if "gpu_lane_note" in evidence:
+            lane_fields.add("gpu_lane_note")
     if (
         type(evidence) is not dict
-        or set(evidence) != worker_fields | timed_fields | {"predictions"}
+        or set(evidence) != worker_fields | timed_fields | lane_fields | {"predictions"}
+        or not _graph_lane_evidence_ok(provider, evidence)
         or type(evidence["build_receipt"]) is not dict
         or type(evidence["inference_receipt"]) is not dict
         or any(

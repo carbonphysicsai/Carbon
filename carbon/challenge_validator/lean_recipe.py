@@ -204,13 +204,22 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
             refuse_unreproducible_runtime(recipe.to_dict()["source"]["bundle_ref"])
         if recipe.to_dict()["source"]["kind"] == "catalog":
-            from carbon.backbone_catalog.served import expand
+            from carbon.backbone_catalog.served import expand_official
             from carbon.development_session.construction_recipe import (
                 ConstructionRecipe,
             )
 
-            return ConstructionRecipe.from_dict(expand(recipe.to_dict()))
+            # The grading rebuild: the entry's official-grade GPU twin where this receiver holds
+            # that GPU worker, else its CPU build (OWNER-NO-LAUNCH-WITHOUT-GPU-REBUILD-01).
+            expanded, _runtime = expand_official(recipe.to_dict(), self._gpu_runtimes())
+            return ConstructionRecipe.from_dict(expanded)
         return recipe
+
+    def _gpu_runtimes(self):
+        """The GPU build runtimes this receiver's construction parents serve (none for a CPU
+        receiver, and for a provider source that does not say)."""
+        found = getattr(self.provider_for, "gpu_runtimes", None)
+        return tuple(found()) if callable(found) else ()
 
     def _provider(self, hotkey):
         from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
