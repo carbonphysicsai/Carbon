@@ -38,8 +38,9 @@ def _binding(path, kind, version):
 def _raw_rows(document, target_id, binding):
     """The original-order raw output rows of one target's `pool-raw-<tid>.json`
     (`{"target_id", "design_names", "raw_outputs"}`, the pool merge's own document), after checking
-    that it is this target's and names the binding's design variables in the same order. A document
-    that is not is a STOP (the truths belong to another target or interface), never a guess.
+    that it is this target's and names the binding's design variables in the same order, each laid out as the
+    bank's flat output row (`pool_raw.flat_row`). A document that is not, or an item that cannot be laid out,
+    is a STOP (the truths belong to another target or interface), never a guess.
     """
     from carbon.scoring import pool_plugin
 
@@ -51,7 +52,16 @@ def _raw_rows(document, target_id, binding):
         or type(document["raw_outputs"]) is not list
     ):
         raise pool_plugin.TruthCheckStop("pool_raw_document_is_not_this_targets")
-    return document["raw_outputs"]
+    from carbon.scoring import pool_raw
+
+    try:
+        # each item is the runner's raw output dict (or already a flat row): the bank's native flat row
+        return [
+            pool_raw.flat_row(binding.kind, binding.version, item)
+            for item in document["raw_outputs"]
+        ]
+    except pool_raw.PoolRawRefused as refused:
+        raise pool_plugin.TruthCheckStop(str(refused)) from None
 
 
 def main(argv=None):
