@@ -663,14 +663,17 @@
       eyebrow("First grade"),
       h("h2", {id: "hero-title"}, "No hotkey has a graded result yet"),
       h("p", {class: "lede"}, "A score appears here the moment the validator grades a submission on the sealed exam. Totals are rounded down to the Ladder step.",
-        isNum(l.baseline_total) ? " Carbon's baseline to beat: " + fmt(l.baseline_total) + (isNum(l.margin) ? " plus a margin of " + fmt(l.margin) + "." : ".") : ""),
+        isNum(l.baseline_total) ? " Carbon's baseline to beat: " + fmt(l.baseline_total) + (isNum(l.margin) ? " plus a margin of " + fmt(l.margin) + "." : ".") : "",
+        // The Validator's ruling: before the margin is registered, say so; never a placeholder number.
+        isNum(l.margin) ? "" : " The margin a challenger must clear is not yet registered, so no crown is possible yet."),
       h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), h("a", {class: "btn", href: LINKS.launchpad}, "Launchpad docs")));
   }
   function leaderCard(board) {
     const l = board.launch;
     const k = board.king;
     const digits = places([k && k.value, l.to_beat, l.margin, l.baseline_total]);
-    const beat = isNum(l.to_beat) ? stat("To beat", fmt(l.to_beat, digits), isNum(l.margin) ? "the leader's total plus " + fmt(l.margin, digits) : null) : null;
+    const beat = isNum(l.to_beat) ? stat("To beat", fmt(l.to_beat, digits), isNum(l.margin) ? "the leader's total plus " + fmt(l.margin, digits) : null)
+      : stat("To beat", "Not yet registered", "no crown is possible yet");
     const gap = k && isNum(k.margin) ? stat("Lead over the runner-up", signed(k.margin, digits), k.runner_up ? shortKey(k.runner_up) : null) : null;
     const held = isNum(l.king_since_epoch) ? stat("Leader since", "epoch " + l.king_since_epoch) : null;
     const stats = [beat, gap, held].filter(Boolean);
