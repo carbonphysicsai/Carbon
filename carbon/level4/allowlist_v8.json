@@ -1318,7 +1318,7 @@
   "acos": {
    "category": "elementwise",
    "default": "allow",
-   "note": "pure elementwise acos; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "note": "pure elementwise acos; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-OPEN-01).",
    "params": {},
    "roles": [
     "forward",
@@ -1330,7 +1330,7 @@
   "acosh": {
    "category": "elementwise",
    "default": "allow",
-   "note": "pure elementwise acosh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "note": "pure elementwise acosh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-OPEN-01).",
    "params": {},
    "roles": [
     "forward",
@@ -1444,7 +1444,7 @@
   "asin": {
    "category": "elementwise",
    "default": "allow",
-   "note": "pure elementwise asin; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "note": "pure elementwise asin; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-OPEN-01).",
    "params": {},
    "roles": [
     "forward",
@@ -1456,7 +1456,7 @@
   "asinh": {
    "category": "elementwise",
    "default": "allow",
-   "note": "pure elementwise asinh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "note": "pure elementwise asinh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-OPEN-01).",
    "params": {},
    "roles": [
     "forward",
@@ -1468,7 +1468,7 @@
   "atan": {
    "category": "elementwise",
    "default": "allow",
-   "note": "pure elementwise atan; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "note": "pure elementwise atan; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-OPEN-01).",
    "params": {},
    "roles": [
     "forward",
@@ -1492,7 +1492,7 @@
   "atanh": {
    "category": "elementwise",
    "default": "allow",
-   "note": "pure elementwise atanh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "note": "pure elementwise atanh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-OPEN-01).",
    "params": {},
    "roles": [
     "forward",
@@ -1766,7 +1766,7 @@
   "cosh": {
    "category": "elementwise",
    "default": "allow",
-   "note": "pure elementwise cosh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "note": "pure elementwise cosh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-OPEN-01).",
    "params": {},
    "roles": [
     "forward",
@@ -3461,7 +3461,7 @@
   "sinh": {
    "category": "elementwise",
    "default": "allow",
-   "note": "pure elementwise sinh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-FREEDOM-01).",
+   "note": "pure elementwise sinh; the same JAX primitive on CPU and GPU, repeats bit for bit on one host (OWNER-GRAPH-OPS-OPEN-01).",
    "params": {},
    "roles": [
     "forward",
@@ -3803,7 +3803,7 @@
  },
  "changes_from_v0": "Adds named_function and the named_functions registry (custom derivative kernels rebuilt with Carbon's own rule); custom_jvp_call is refused unless lowering recognizes it as a registered kernel; aten.relu lowers to the named relu.",
  "changes_from_v6": "Adds aten.neg, aten.log, aten.leaky_relu, aten.any.dim and aten._upsample_bicubic2d_aa; admits argument forms named by an aten entry's `forms`: strided slice_scatter, transposed convolution, static_outer aten.index.Tensor (several static indices broadcasting as an outer product), integer aten.fmod.Scalar and complex aten.sum.dim_IntList, with floor and integer rem folded into static indices (CODANO); records aten.rand_like as refused. Carbon ops, named functions and caps are unchanged.",
- "changes_from_v7": "OWNER-GRAPH-OPS-FREEDOM-01 (2026-10-25): every pure, deterministic array op is admitted: inverse and hyperbolic trigonometry, atan2, cbrt, exp2, ceil, round, clamp, is_finite, the gamma/Bessel special functions, bitwise shifts, boolean and cumulative reductions, stack/unstack, and the linear-algebra primitives (cholesky, triangular_solve, eigh, lu, qr, svd; jnp.linalg.solve and inv lower through lu and triangular_solve). Containment is unchanged: custom_call, callbacks, infeed/outfeed, unseeded RNG, sharding and unbounded loops stay refused.",
+ "changes_from_v7": "OWNER-GRAPH-OPS-OPEN-01 (2026-10-25): every pure, deterministic array op is admitted: inverse and hyperbolic trigonometry, atan2, cbrt, exp2, ceil, round, clamp, is_finite, the gamma/Bessel special functions, bitwise shifts, boolean and cumulative reductions, stack/unstack, and the linear-algebra primitives (cholesky, triangular_solve, eigh, lu, qr, svd; jnp.linalg.solve and inv lower through lu and triangular_solve). Containment is unchanged: custom_call, callbacks, infeed/outfeed, unseeded RNG, sharding and unbounded loops stay refused.",
  "framework_pins": {
   "jax": "0.10.2",
   "jaxlib": "0.10.2",

@@ -1,4 +1,4 @@
-"""OWNER-GRAPH-OPS-FREEDOM-01 (2026-10-25, miner feedback): the graph route admits
+"""OWNER-GRAPH-OPS-OPEN-01 (2026-10-25, miner feedback): the graph route admits
 every pure, deterministic array op. This file covers the JAX route: a function using
 the op traces, lowers to a Carbon graph under allowlist v7, rebuilds on Carbon's side
 and returns exactly what the same JAX call returns (values and, where the op is
