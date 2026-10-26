@@ -46,7 +46,6 @@ has its own scripts in `remote_container` (LINKONLY-D5).
 
 from __future__ import annotations
 
-import hashlib
 import ipaddress
 import os
 import re
@@ -504,8 +503,10 @@ def _bounded_read(stream, deadline: float) -> bytes:
 #: digest, and the configuration a job runs with. Their sha256 identifies the
 #: image's bytes and its run configuration exactly.
 # One format and one function, shared with the local parent check (carbon/reconstruction/worker/image_fingerprint.py).
-from carbon.reconstruction.worker.image_fingerprint import (  # noqa: E402
+from carbon.reconstruction.worker.image_fingerprint import (
     FINGERPRINT_FORMAT,
+)
+from carbon.reconstruction.worker.image_fingerprint import (
     fingerprint as _fingerprint,
 )
 

@@ -424,14 +424,21 @@ def run_graph_on_device(practice, identity, run):
         RecipeRefused,
     ):
         raise
-    except Exception as failure:  # noqa: BLE001 - a GPU attempt never fails the practice
+    except (
+        Exception
+    ) as failure:
         import logging
 
         logging.getLogger(__name__).warning(
             "graph GPU practice failed; practising on the CPU", exc_info=True
         )
         note = _gpu_failure_note(failure)
-        return run(identity + "-cpu", practice.parent, None), practice.parent, None, note
+        return (
+            run(identity + "-cpu", practice.parent, None),
+            practice.parent,
+            None,
+            note,
+        )
 
 
 class PracticeUnavailable(Exception):

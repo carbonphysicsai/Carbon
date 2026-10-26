@@ -100,7 +100,9 @@ def test_a_cpu_host_runs_once_as_before():
     assert calls == [("t1", CPU, None)]
 
 
-@pytest.mark.parametrize("failure", [RuntimeError("gpu"), OSError("gpu"), ValueError("x")])
+@pytest.mark.parametrize(
+    "failure", [RuntimeError("gpu"), OSError("gpu"), ValueError("x")]
+)
 def test_a_device_failure_practises_on_the_cpu_under_its_own_identity(
     failure, monkeypatch
 ):
@@ -125,7 +127,11 @@ def test_the_miners_own_failure_or_the_campaigns_limit_is_never_retried():
             "observation": "WORKER_MEMORY_LIMIT_REACHED",
         }
     )
-    for failure in (typed, RecipeRefused("graph_invalid"), LedgerRefusal.__new__(LedgerRefusal)):
+    for failure in (
+        typed,
+        RecipeRefused("graph_invalid"),
+        LedgerRefusal.__new__(LedgerRefusal),
+    ):
         calls = []
         with pytest.raises(type(failure)):
             gpu_practice.run_graph_on_device(Practice(JAX), "t1", _run(calls, failure))
