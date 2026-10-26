@@ -389,3 +389,123 @@ def test_a_wrong_worker_record_or_host_is_refused(tmp_path, monkeypatch):
     receiver, cfg, _ = _lane_setup(monkeypatch, tmp_path)
     with pytest.raises(ValueError, match="graph-route version"):
         receiver.graph_gpu_lane(cfg, {}, None)
+
+
+# ---- the repeat check: two more GPU rebuilds must match before the GPU serves ------------
+
+
+class _Ledger:
+    def __init__(self, states=None):
+        self.states = states or {}
+        self.root = Path("/nonexistent")
+
+    def operation_state(self, identity, *, owner):
+        return self.states.get(identity)
+
+
+def _repeat_provider(ledger=None):
+    provider = SimpleNamespace(
+        graph_gpu_image=JAX,
+        graph_gpu_ops=frozenset({"tanh"}),
+        ledger=ledger or _Ledger(),
+        owner="miner",
+        discovery=SimpleNamespace(
+            _material={
+                "construction_limits_document": {
+                    "reconstruction_resource_policy": {"build_wall_seconds_max": 321}
+                },
+                "train": b"train",
+                "allowlist_bytes": b"allow",
+            },
+            graph_adapter_for=lambda _key: "adapter",
+        ),
+    )
+    provider._probe_children = lambda task: DirectDevelopmentTasksV3._probe_children(
+        provider, task
+    )
+    provider._reconcile_probes = (
+        lambda task: DirectDevelopmentTasksV3._reconcile_probes(provider, task)
+    )
+    return provider
+
+
+def _check(provider, monkeypatch, builds):
+    from carbon.development_session.research_carrier import PRECHARGED_TRIAL
+
+    calls = []
+
+    def fake(ledger, **kwargs):
+        calls.append((kwargs["identity"], kwargs["image"], kwargs["accelerator"]))
+        assert PRECHARGED_TRIAL.get() is not None  # not a trial of the miner's
+        outcome = builds[len(calls) - 1]
+        if isinstance(outcome, Exception):
+            raise outcome
+        return SimpleNamespace(state_digest=outcome)
+
+    monkeypatch.setattr(graph_worker, "reconstruct_public_graph", fake)
+    task = SimpleNamespace(value="direct-task")
+    result = DirectDevelopmentTasksV3._graph_gpu_repeats(
+        provider,
+        task,
+        SimpleNamespace(challenge_key="k"),
+        object(),
+        {"challenge_id": "c"},
+        b"envelope",
+        MINER_GPU,
+    )
+    assert PRECHARGED_TRIAL.get() is None
+    return result, calls
+
+
+def test_two_matching_gpu_rebuilds_let_the_gpu_serve(monkeypatch):
+    result, calls = _check(_repeat_provider(), monkeypatch, ["sha256:a", "sha256:a"])
+    assert result == (True, None)
+    assert calls == [
+        ("direct-task~gpu1", JAX, MINER_GPU),
+        ("direct-task~gpu2", JAX, MINER_GPU),
+    ]
+
+
+def test_two_rebuilds_that_differ_send_the_graph_to_the_cpu(monkeypatch):
+    result, _ = _check(_repeat_provider(), monkeypatch, ["sha256:a", "sha256:b"])
+    assert result == (False, "graph_gpu_rebuild_not_repeatable")
+
+
+def test_a_device_failure_is_a_cpu_rebuild_and_settles_what_it_held(monkeypatch):
+    from carbon.development_session import research_carrier
+
+    settled = []
+    monkeypatch.setattr(
+        research_carrier,
+        "reconcile_worker",
+        lambda ledger, *, owner, identity: settled.append(identity),
+    )
+    ledger = _Ledger({"direct-task~gpu1": "RESERVED"})
+    result, calls = _check(
+        _repeat_provider(ledger), monkeypatch, [RuntimeError("no device")]
+    )
+    assert result == (False, "graph_gpu_attempt_failed")
+    assert len(calls) == 1 and settled == ["direct-task~gpu1"]
+
+
+def test_the_campaigns_own_limits_are_never_swallowed(monkeypatch):
+    from carbon.development_session.research_ledger import (
+        MINER_CEILING_REACHED,
+        LedgerRefusal,
+    )
+
+    refusal = LedgerRefusal(
+        "budget", code=MINER_CEILING_REACHED, dimension="elapsed_seconds"
+    )
+    with pytest.raises(LedgerRefusal):
+        _check(_repeat_provider(), monkeypatch, [refusal])
+
+
+def test_there_are_no_probes_without_a_lane():
+    provider = SimpleNamespace(graph_gpu_image=None)
+    assert (
+        DirectDevelopmentTasksV3._probe_children(
+            provider, SimpleNamespace(value="direct-task")
+        )
+        == ()
+    )

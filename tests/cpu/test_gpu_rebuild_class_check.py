@@ -24,6 +24,7 @@ spec.loader.exec_module(check)
 def _args(**changes):
     values = {
         "keys": ["f08"],
+        "archs": ["mlp"],
         "rebuilds": 2,
         "steps": 2,
         "seed": 0,
@@ -40,13 +41,14 @@ def _args(**changes):
 def _fake(monkeypatch, digests, backend="gpu"):
     calls = iter(digests)
 
-    def run(kind, key, args, *, cpu, tmp, index):
+    def run(kind, key, arch, args, *, cpu, tmp, index):
         digest = next(calls)
         if digest is None:
             return {"error": "boom", "predictions": None}
         return {
             "state_digest": digest,
             "backend": "cpu" if cpu else backend,
+            "ops": ["dot_general", "tanh"],
             "predictions": None,
         }
 
@@ -64,7 +66,7 @@ def test_a_differing_digest_puts_the_case_on_the_cpu_lane(monkeypatch):
     _fake(monkeypatch, ["sha256:a", "sha256:b"])
     record = check.class_record(_args())
     assert record["verdict"] == "NOT_REPEATABLE_OR_NOT_GPU"
-    assert record["cpu_lane"] == ["graph:f08"]
+    assert record["cpu_lane"] == ["graph:f08/mlp"]
     assert record["cases"][0]["state_digest"] is None
 
 
@@ -116,5 +118,64 @@ def test_one_real_cpu_rebuild_repeats_in_fresh_processes(tmp_path):
     )
     record = json.loads(out.read_text(encoding="utf-8"))
     assert code == 0 and record["verdict"] == "REPEATS_ON_CPU_DRY_RUN"
-    (case,) = record["cases"]
-    assert case["bit_identical"] and len(case["rebuilds"]) == 2
+    assert [c["arch"] for c in record["cases"]] == list(check.ARCHITECTURES)
+    for case in record["cases"]:
+        assert case["bit_identical"] and len(case["rebuilds"]) == 2
+        assert case["ops"], case["arch"]
+
+
+def _case(arch, identical, ops, on_gpu=True):
+    return {
+        "kind": "graph",
+        "key": "f08",
+        "arch": arch,
+        "bit_identical": identical,
+        "ran_on_gpu": on_gpu,
+        "ops": ops,
+    }
+
+
+def test_the_ops_record_admits_only_ops_no_failing_graph_used():
+    record = {
+        "cases": [
+            _case("mlp", True, ["dot_general", "tanh"]),
+            _case("norm", True, ["dot_general", "erf", "rsqrt"]),
+            _case("conv", False, ["conv_general_dilated", "dot_general"]),
+            {
+                "kind": "torch",
+                "key": "probe",
+                "arch": "spectral",
+                "bit_identical": False,
+            },
+        ]
+    }
+    written = check.ops_record(record, "sha256:" + "1" * 64)
+    assert written["ops"] == ["erf", "rsqrt", "tanh"]
+    assert written["schema"] == "carbon.graph-gpu-ops.v1"
+    assert written["allowlist_digest"] == "sha256:" + "1" * 64
+    assert written["class_record_digest"].startswith("sha256:")
+
+
+def test_the_ops_record_needs_a_gpu_run_that_repeated_something():
+    with pytest.raises(ValueError):
+        check.ops_record(
+            {"cases": [_case("mlp", True, ["tanh"], on_gpu=False)]},
+            "sha256:" + "1" * 64,
+        )
+    with pytest.raises(ValueError):
+        check.ops_record(
+            {"cases": [_case("mlp", False, ["tanh"])]}, "sha256:" + "1" * 64
+        )
+
+
+def test_a_written_record_loads_in_the_lane():
+    from carbon.development_session import graph_gpu_lane
+
+    written = check.ops_record(
+        {"cases": [_case("mlp", True, ["dot_general", "tanh"])]}, "sha256:" + "1" * 64
+    )
+    raw = json.dumps(written, sort_keys=True, separators=(",", ":")).encode()
+    assert graph_gpu_lane.load_record(raw, allowlist_digest="sha256:" + "1" * 64) == {
+        "dot_general",
+        "tanh",
+    }

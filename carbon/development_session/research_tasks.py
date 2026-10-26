@@ -519,6 +519,79 @@ class DirectDevelopmentTasksV3:
             "inference_accelerator": None,
         }
 
+    def _probe_children(self, task_id):
+        """The GPU repeat check's two rebuild identities for a graph task (none without a lane).
+        Their own names: the served build and inference keep theirs, whichever lane serves.
+        """
+        if self.graph_gpu_image is None:
+            return ()
+        return tuple(f"{task_id.value}~gpu{n}" for n in (1, 2))
+
+    def _reconcile_probes(self, task_id):
+        """Settle a probe a crash or an exception left reserved, so a held reservation never
+        outlives its task."""
+        from .research_carrier import reconcile_worker
+
+        for child in self._probe_children(task_id):
+            if self.ledger.operation_state(child, owner=self.owner) == "RESERVED":
+                reconcile_worker(self.ledger, owner=self.owner, identity=child)
+
+    def _graph_gpu_repeats(
+        self, task_id, request, recipe, binding, source_envelope, device
+    ):
+        """Whether two more GPU rebuilds of this graph, each in its own isolated child, give a
+        bit-identical state (GPU_REBUILD_RULINGS rule 1: two independent rebuilds must match or
+        the CPU rebuilds it). Returns ``(repeats, note)``; the note says why not.
+
+        An attempt that fails for a device or infrastructure reason is a CPU rebuild too - the
+        CPU run then reports the graph's own outcome; the campaign's own limits and controls
+        are never swallowed."""
+        import logging
+
+        from .direct_graph_construction_worker import reconstruct_public_graph
+        from .gpu_practice import campaign_limits
+        from .research_carrier import PRECHARGED_TRIAL
+
+        material = self.discovery._material
+        limits = material["construction_limits_document"]
+        # The served task charged its one trial; the check is not a trial of the miner's.
+        token = PRECHARGED_TRIAL.set("graph-gpu-repeat")
+        digests = []
+        try:
+            for identity in self._probe_children(task_id):
+                built = reconstruct_public_graph(
+                    self.ledger,
+                    owner=self.owner,
+                    identity=identity,
+                    image=self.graph_gpu_image,
+                    recipe=recipe,
+                    challenge_binding=binding,
+                    limits_document=limits,
+                    source_envelope=source_envelope,
+                    train=material["train"],
+                    allowlist_bytes=material["allowlist_bytes"],
+                    seed=0,
+                    seconds=limits["reconstruction_resource_policy"][
+                        "build_wall_seconds_max"
+                    ],
+                    adapter_id=self.discovery.graph_adapter_for(request.challenge_key),
+                    accelerator=device,
+                )
+                digests.append(built.state_digest)
+        except campaign_limits():
+            raise
+        except Exception:
+            logging.getLogger(__name__).warning(
+                "graph GPU repeat check failed; rebuilding on the CPU", exc_info=True
+            )
+            self._reconcile_probes(task_id)
+            return False, "graph_gpu_attempt_failed"
+        finally:
+            PRECHARGED_TRIAL.reset(token)
+        if len(set(digests)) != 1:
+            return False, "graph_gpu_rebuild_not_repeatable"
+        return True, None
+
     def _graph_gpu_binding(self) -> list:
         """The graph GPU lane's part of the provider binding: absent without a lane, so every
         existing deployment's binding is what it was."""
@@ -1189,7 +1262,7 @@ class DirectDevelopmentTasksV3:
                 return True
         return any(
             self.ledger.operation_state(child, owner=self.owner) == "RESERVED"
-            for child in self._all_children(task_id)
+            for child in (*self._all_children(task_id), *self._probe_children(task_id))
         )
 
     def public_result(self, task):
@@ -1625,7 +1698,10 @@ class DirectDevelopmentTasksV3:
                     raise ResearchTaskProviderError(
                         ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
                     )
-                for child in self._all_children(view.task_id):
+                for child in (
+                    *self._all_children(view.task_id),
+                    *self._probe_children(view.task_id),
+                ):
                     request_cancel(self.ledger, owner=self.owner, identity=child)
                 return DirectCancelTaskResultV3(
                     view, CancellationDisposition.ALREADY_ACCEPTED
@@ -1644,7 +1720,10 @@ class DirectDevelopmentTasksV3:
                     DirectTaskStateV3.CANCEL_REQUESTED,
                     cancellation=request.cancellation_id,
                 )
-                for child in self._all_children(view.task_id):
+                for child in (
+                    *self._all_children(view.task_id),
+                    *self._probe_children(view.task_id),
+                ):
                     request_cancel(self.ledger, owner=self.owner, identity=child)
             return DirectCancelTaskResultV3(view, CancellationDisposition.ACCEPTED)
 
@@ -1658,8 +1737,12 @@ class DirectDevelopmentTasksV3:
             ):
                 continue
             if view.state is DirectTaskStateV3.CANCEL_REQUESTED:
-                for child in self._all_children(view.task_id):
+                for child in (
+                    *self._all_children(view.task_id),
+                    *self._probe_children(view.task_id),
+                ):
                     request_cancel(self.ledger, owner=self.owner, identity=child)
+            self._reconcile_probes(view.task_id)
             child_states = []
             for child in self._all_children(view.task_id):
                 state = self.ledger.operation_state(child, owner=self.owner)
@@ -1889,9 +1972,15 @@ class DirectDevelopmentTasksV3:
                 "interface_digest": kit["interface_digest"],
                 "construction_limits_digest": kit["construction_limits_digest"],
             }
-            graph_gpu = None
+            graph_gpu, graph_note = None, None
             if source_kind == "graph":
                 graph_gpu, graph_lane = self._graph_lane(source_envelope, image)
+                if graph_gpu is not None:
+                    repeats, graph_note = self._graph_gpu_repeats(
+                        task_id, request, recipe, binding, source_envelope, graph_gpu
+                    )
+                    if not repeats:
+                        graph_gpu, graph_lane = None, {"image": image}
                 result = reconstruct_and_infer_graph_public(
                     self.ledger,
                     owner=self.owner,
@@ -2107,6 +2196,9 @@ class DirectDevelopmentTasksV3:
                     # Said only when it happened: a CPU rebuild's evidence is what it was.
                     private["build_device"] = "GPU"
                     private["build_image_id"] = self.graph_gpu_image.image_id
+                elif graph_note is not None:
+                    private["build_device"] = "CPU"
+                    private["gpu_lane_note"] = graph_note
             elif overlay_run:
                 private.update(
                     {
@@ -2160,6 +2252,7 @@ class DirectDevelopmentTasksV3:
             from .research_carrier import reconcile_worker
 
             child_states = []
+            self._reconcile_probes(task_id)
             for child in self._all_children(task_id):
                 child_state = self.ledger.operation_state(child, owner=self.owner)
                 if child_state == "RESERVED":

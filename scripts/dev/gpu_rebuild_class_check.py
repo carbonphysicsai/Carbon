@@ -6,7 +6,9 @@ The first evidence the GPU rebuild path needs (Validator GPU_REBUILD_RULINGS_202
 parameters-only state hash; otherwise it rebuilds on CPU"; owner parity tolerance 0.01).
 
 For each launch Challenge's graph-route version (F08 1.5, F02 2.4, Motor 1.4, Cooling 1.4) it
-rebuilds the same fixed MLP graph from the version's own TRAIN, in a FRESH process each time
+rebuilds four fixed graphs (dense+tanh, layer norm+gelu+sigmoid gate, 1-d convolutions,
+softmax gating: the op families miners' graphs use) from the version's own TRAIN, each in a
+FRESH process each time
 (as the isolated worker does), under Carbon's pinned determinism flags
 (`carbon.reconstruction.accelerators.GPU_DETERMINISM_XLA_FLAGS` / `GPU_DETERMINISM_ENVIRONMENT`),
 and compares the sha256 of the frozen parameters-only state (`model.frozen_state()`, the same
@@ -14,6 +16,9 @@ bytes the worker's build program writes as `state.npz`). One further rebuild on 
 GPU-versus-CPU prediction difference. A small torch probe (conv + spectral layer, the pinned
 torch settings) says whether the torch lane can repeat. It prints one JSON class record
 (GPU, driver, library versions, flags, per-case digests and verdicts) and writes it to `--out`.
+`--ops-record` also writes the `carbon.graph-gpu-ops.v1` record the validator's graph GPU lane
+reads (`carbon.development_session.graph_gpu_lane`): the ops of every graph that repeated on the
+GPU and of none that did not.
 
 Needs a Carbon checkout with its dev environment, and for a real class check an NVIDIA machine
 with a CUDA-enabled jaxlib (and torch) - the jax-cuda13 worker image or an environment from
@@ -78,22 +83,173 @@ def _sha(body: bytes) -> str:
 # ---- the child: one fresh rebuild ------------------------------------------------------
 
 
+#: The fixed graphs the check rebuilds, each exercising a family of ops a miner's graph uses:
+#: dense + tanh, layer norm + erf-gelu + sigmoid gate, 1-d convolutions, softmax gating.
+ARCHITECTURES = ("mlp", "norm", "conv", "softmax")
+WIDTH = 16
+CHANNELS = 4
+KERNEL = 3
+
+
+def _architecture(name, inputs, outputs):
+    """`(forward, parameters)` of one fixed graph: parameters are
+    ``(shape, initializer, fan_in_axes, fan_out_axes)``; the forward takes them in order, then x.
+    """
+    import jax
+    import jax.numpy as jnp
+    from jax import lax
+
+    glorot, zeros = "glorot_normal", "zeros"
+    dense = ([0], [1])
+    none = ([], [])
+    if name == "mlp":
+        parameters = [
+            ((inputs, WIDTH), glorot, *dense),
+            ((WIDTH,), zeros, *none),
+            ((WIDTH, outputs), glorot, *dense),
+            ((outputs,), zeros, *none),
+        ]
+
+        def forward(w1, b1, w2, b2, x):
+            return jnp.tanh(x @ w1 + b1) @ w2 + b2
+
+    elif name == "norm":
+        parameters = [
+            ((inputs, WIDTH), glorot, *dense),
+            ((WIDTH,), zeros, *none),
+            ((WIDTH,), zeros, *none),
+            ((WIDTH,), zeros, *none),
+            ((WIDTH, outputs), glorot, *dense),
+            ((outputs,), zeros, *none),
+            ((WIDTH, outputs), glorot, *dense),
+        ]
+
+        def forward(w1, b1, g, be, w2, b2, w3, x):
+            h = x @ w1 + b1
+            m = jnp.mean(h, axis=-1, keepdims=True)
+            v = jnp.mean((h - m) ** 2, axis=-1, keepdims=True)
+            h = (h - m) * lax.rsqrt(v + 1e-5) * (1.0 + g) + be
+            h = jax.nn.gelu(h, approximate=False)
+            return (h @ w2 + b2) * jax.nn.sigmoid(h @ w3)
+
+    elif name == "conv":
+        parameters = [
+            ((CHANNELS, 1, KERNEL), glorot, [1, 2], [0]),
+            ((CHANNELS, CHANNELS, KERNEL), glorot, [1, 2], [0]),
+            ((CHANNELS * inputs, outputs), glorot, *dense),
+            ((outputs,), zeros, *none),
+        ]
+
+        def forward(k1, k2, w, b, x):
+            def conv(z, k):
+                return lax.conv_general_dilated(
+                    z, k, (1,), "SAME", dimension_numbers=("NCH", "OIH", "NCH")
+                )
+
+            z = jnp.maximum(conv(x[:, None, :], k1), 0.0)
+            z = jnp.tanh(conv(z, k2))
+            return z.reshape(z.shape[0], -1) @ w + b
+
+    elif name == "softmax":
+        parameters = [
+            ((inputs, WIDTH), glorot, *dense),
+            ((WIDTH,), zeros, *none),
+            ((WIDTH, WIDTH), glorot, *dense),
+            ((WIDTH, outputs), glorot, *dense),
+            ((outputs,), zeros, *none),
+        ]
+
+        def forward(w1, b1, wq, w2, b2, x):
+            h = jnp.tanh(x @ w1 + b1)
+            p = jax.nn.softmax(h @ wq, axis=-1)
+            return (p * h) @ w2 + b2
+
+    else:
+        raise ValueError("unknown architecture")
+    return forward, parameters
+
+
+def _case(route, key, name, steps):
+    """`(recipe, raw manifest, files, staging)` of architecture `name` on the version `key`."""
+    import jax.numpy as jnp
+
+    from carbon.level4 import graph, initializers, intake, staging, submission
+    from carbon.level4.tooling import through_bprime
+
+    spec = route.adapter.SPECS[key]
+    dtype = jnp.float64 if spec.dtype == "float64" else jnp.float32
+    configuration = {"training": {"steps": steps}}
+    batch = configuration["training"].get("batch_size", 8)
+    allowed = route.allowlist_module.Allowlist(
+        route.adapter.served_allowlist_bytes(*key)
+    )
+    forward, parameters = _architecture(name, spec.inputs, spec.outputs)
+    _, document, _ = through_bprime(
+        forward,
+        (
+            *[jnp.zeros(shape, dtype) for shape, *_ in parameters],
+            jnp.ones((batch, spec.inputs), dtype),
+        ),
+        role="forward",
+        allowlist=allowed,
+        input_names=[f"params/{i}" for i in range(len(parameters))]
+        + [route.adapter.INPUT_NAME],
+        max_bytes=intake.BOUNDS["document_bytes"],
+    )
+    init_spec = {
+        "schema": initializers.SCHEMA,
+        "graph": graph.digest(document),
+        "parameters": [
+            {
+                "input": f"params/{i}",
+                "initializer": initializer,
+                "fan_in_axes": fan_in,
+                "fan_out_axes": fan_out,
+            }
+            for i, (_shape, initializer, fan_in, fan_out) in enumerate(parameters)
+        ],
+    }
+    manifest, files = submission.build(
+        challenge=spec.challenge_id,
+        interface=route.adapter.graph_interface(spec).digest(),
+        allowlist=allowed,
+        forward=document,
+        init_spec=init_spec,
+    )
+    raw_manifest = submission.canonical(manifest)
+    recipe = route._recipe(key, configuration, digest=submission.digest(manifest))
+    return recipe, raw_manifest, files, staging
+
+
 def _graph_child(args) -> dict:
-    """One rebuild in this process: fit the fixed MLP graph, hash the frozen state."""
+    """One rebuild in this process: fit a fixed graph, hash the frozen state."""
     import numpy as np
 
+    # A graph is lowered under JAX's default precision (a lowered matmul or convolution must carry
+    # the default `precision` parameter); the worker's "highest" is set once it is built, as the
+    # worker applies it to a graph it rebuilds.
+    precision = os.environ.pop("JAX_DEFAULT_MATMUL_PRECISION", None)
     sys.path.insert(0, str(ROOT))
     sys.path.insert(0, str(ROOT / "tests" / "cpu"))
     import test_graph_route_v2 as route
+
+    from carbon.development_session import graph_gpu_lane
+    from carbon.development_session.profile import canonical
 
     key = KEYS[args.key]
     import jax
 
     started = time.monotonic()
     with route._x64(key):
-        recipe, raw_manifest, files, _staging = route._case(
-            key, {"training": {"steps": args.steps}}
+        recipe, raw_manifest, files, staging = _case(route, key, args.arch, args.steps)
+        ops = sorted(
+            graph_gpu_lane.submission_ops(
+                canonical(staging.envelope(raw_manifest, files))
+            )
+            or ()
         )
+        if precision is not None:
+            jax.config.update("jax_default_matmul_precision", precision)
         _raw, inputs, targets = route._train(key)
         model = route.adapter.build_validated_graph(
             recipe,
@@ -114,6 +270,7 @@ def _graph_child(args) -> dict:
         "device": str(jax.devices()[0]),
         "seconds": round(time.monotonic() - started, 3),
         "fit_keys": sorted(fit) if isinstance(fit, dict) else None,
+        "ops": ops,
     }
 
 
@@ -195,8 +352,9 @@ def _torch_child(args) -> dict:
 # ---- the parent: fresh children, verdicts -------------------------------------------
 
 
-def _run_child(kind, key, args, *, cpu, tmp, index):
-    predictions = Path(tmp) / f"{kind}-{key}-{'cpu' if cpu else 'dev'}-{index}.npy"
+def _run_child(kind, key, arch, args, *, cpu, tmp, index):
+    where = "cpu" if cpu else "dev"
+    predictions = Path(tmp) / f"{kind}-{key}-{arch}-{where}-{index}.npy"
     env = {**os.environ, **_pinned_environment()}
     if cpu:
         env["JAX_PLATFORMS"] = "cpu"
@@ -208,6 +366,8 @@ def _run_child(kind, key, args, *, cpu, tmp, index):
         kind,
         "--key",
         key,
+        "--arch",
+        arch,
         "--steps",
         str(args.steps),
         "--seed",
@@ -245,12 +405,12 @@ def _parity(device_run, cpu_run):
     }
 
 
-def _case(kind, key, args, tmp):
+def _check_case(kind, key, arch, args, tmp):
     runs = [
-        _run_child(kind, key, args, cpu=args.device == "cpu", tmp=tmp, index=i)
+        _run_child(kind, key, arch, args, cpu=args.device == "cpu", tmp=tmp, index=i)
         for i in range(args.rebuilds)
     ]
-    entry = {"kind": kind, "key": key, "rebuilds": []}
+    entry = {"kind": kind, "key": key, "arch": arch, "rebuilds": []}
     for run in runs:
         entry["rebuilds"].append({k: v for k, v in run.items() if k != "predictions"})
     digests = [r.get("state_digest") for r in runs]
@@ -259,8 +419,9 @@ def _case(kind, key, args, tmp):
     )
     entry["state_digest"] = digests[0] if entry["bit_identical"] else None
     entry["ran_on_gpu"] = all(r.get("backend") == "gpu" for r in runs)
+    entry["ops"] = runs[0].get("ops")
     if args.device != "cpu" and not args.skip_cpu_parity:
-        cpu = _run_child(kind, key, args, cpu=True, tmp=tmp, index=99)
+        cpu = _run_child(kind, key, arch, args, cpu=True, tmp=tmp, index=99)
         entry["cpu_state_digest"] = cpu.get("state_digest")
         entry["parity_vs_cpu"] = _parity(runs[0], cpu)
         entry["cpu_error"] = cpu.get("error")
@@ -320,14 +481,17 @@ def class_record(args) -> dict:
     }
     with tempfile.TemporaryDirectory() as tmp:
         for name in args.keys:
-            record["cases"].append(_case("graph", name, args, tmp))
+            for arch in args.archs:
+                record["cases"].append(_check_case("graph", name, arch, args, tmp))
         if not args.no_torch:
-            record["cases"].append(_case("torch", "probe", args, tmp))
+            record["cases"].append(_check_case("torch", "probe", "spectral", args, tmp))
     gpu_needed = args.device != "cpu"
     record["all_bit_identical"] = all(c["bit_identical"] for c in record["cases"])
     record["all_on_gpu"] = all(c["ran_on_gpu"] for c in record["cases"])
     record["cpu_lane"] = sorted(
-        f'{c["kind"]}:{c["key"]}' for c in record["cases"] if not c["bit_identical"]
+        f'{c["kind"]}:{c["key"]}/{c["arch"]}'
+        for c in record["cases"]
+        if not c["bit_identical"]
     )
     if not (record["all_bit_identical"] and (record["all_on_gpu"] or not gpu_needed)):
         record["verdict"] = "NOT_REPEATABLE_OR_NOT_GPU"
@@ -336,10 +500,55 @@ def class_record(args) -> dict:
     return record
 
 
+def ops_record(record, allowlist_digest) -> dict:
+    """The `carbon.graph-gpu-ops.v1` record this class check supports.
+
+    An op is admitted when it appears in at least one graph that rebuilt bit-identically on a
+    GPU and in NO graph that did not: absent evidence is not eligibility, and one failing graph
+    keeps every op it used on the CPU until a narrower specimen clears it. Only a real GPU run
+    can write one."""
+    passed, failed = set(), set()
+    for case in record["cases"]:
+        if case["kind"] != "graph":
+            continue
+        (passed if case["bit_identical"] and case["ran_on_gpu"] else failed).update(
+            case.get("ops") or ()
+        )
+    if not passed:
+        raise ValueError("no graph rebuilt bit-identically on a GPU: nothing to admit")
+    return {
+        "schema": "carbon.graph-gpu-ops.v1",
+        "allowlist_digest": allowlist_digest,
+        "class_record_digest": _sha(json.dumps(record, sort_keys=True).encode()),
+        "ops": sorted(passed - failed),
+    }
+
+
+def _served_allowlist_digest(keys) -> str:
+    sys.path.insert(0, str(ROOT))
+    from carbon.development_session import physical_graph_adapter_v2 as adapter
+    from carbon.level4.allowlist import Allowlist
+
+    digests = {
+        Allowlist(adapter.served_allowlist_bytes(*KEYS[name])).digest for name in keys
+    }
+    if len(digests) != 1:
+        raise ValueError("the versions checked serve different allowlists")
+    return digests.pop()
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--out", help="also write the JSON record here")
     parser.add_argument("--keys", nargs="+", choices=sorted(KEYS), default=sorted(KEYS))
+    parser.add_argument(
+        "--archs", nargs="+", choices=ARCHITECTURES, default=list(ARCHITECTURES)
+    )
+    parser.add_argument(
+        "--ops-record",
+        help="write the carbon.graph-gpu-ops.v1 record (the ops of every graph that "
+        "rebuilt bit-identically on a GPU) here; refused for a CPU dry run",
+    )
     parser.add_argument("--rebuilds", type=int, default=2)
     parser.add_argument("--steps", type=int, default=200)
     parser.add_argument("--seed", type=int, default=0)
@@ -351,6 +560,7 @@ def main(argv=None) -> int:
     parser.add_argument("--no-torch", action="store_true")
     parser.add_argument("--child", choices=("graph", "torch"), help=argparse.SUPPRESS)
     parser.add_argument("--key", help=argparse.SUPPRESS)
+    parser.add_argument("--arch", help=argparse.SUPPRESS)
     parser.add_argument("--predictions", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.rebuilds < 2:
@@ -364,6 +574,13 @@ def main(argv=None) -> int:
     print(text)
     if args.out:
         Path(args.out).write_text(text + "\n", encoding="utf-8")
+    if args.ops_record:
+        if args.device == "cpu":
+            parser.error("--ops-record needs a GPU run, not --device cpu")
+        written = ops_record(record, _served_allowlist_digest(args.keys))
+        Path(args.ops_record).write_text(
+            json.dumps(written, sort_keys=True, separators=(",", ":")), encoding="utf-8"
+        )
     return 0 if record["verdict"] != "NOT_REPEATABLE_OR_NOT_GPU" else 1
 
 
