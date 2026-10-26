@@ -395,7 +395,7 @@
     const top = h("div", {class: "card-top"}, crown(), h("h2", {id: "king-title", class: "card-title"}, "King"),
       k && isNum(k.uid) ? chip("UID " + k.uid, "chip-plain") : null,
       k && k.challenger_state ? chip(words(k.challenger_state), "chip-muted") : null);
-    if (!k) return section("king", {class: "card king", "aria-labelledby": "king-title"}, top, moreLine(true));
+    if (!k) return section("king", {class: "card king", "aria-labelledby": "king-title"}, top, board.launch ? h("p", {class: "hint"}, "No king yet") : moreLine(true));
     const digits = places([k.value, k.margin]);
     const since = utcSeconds(k.since_utc);
     const crowned = utcSeconds(k.crowned_utc);
@@ -416,7 +416,7 @@
       h("p", {class: "king-key"}, hotkey(k.hotkey, {copy: true, href: minerHref(board.slug, k.hotkey)})),
       isNum(k.value) ? h("div", {class: "metric"}, h("span", {class: "metric-value"}, fmt(k.value, digits)), h("span", {class: "metric-label"}, sectionLabel(board))) : null,
       stats.length ? h("dl", {class: "stats"}, stats) : null,
-      moreLine(kingMissing(k)));
+      moreLine(!board.launch && kingMissing(k)));
   }
 
   // The target's margins, noise guard, kind, registered score and gate list
