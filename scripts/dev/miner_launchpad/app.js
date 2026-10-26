@@ -1806,7 +1806,7 @@
       }
       if (!card.guide) {
         wherePanel.append(el("h3", card.title + " · " + card.sub));
-        wherePanel.append(el("p", choice.needs_gpu_image ? "Practice runs on your own GPU, for speed only." : "Practice runs in an isolated container on this machine. Nothing is rented."));
+        wherePanel.append(el("p", choice.needs_gpu_image ? "Practice runs on your own GPU, for speed only. Your own graph uses it; a catalog entry has no GPU build yet, runs on the CPU, and its result says so." : "Practice runs in an isolated container on this machine. Nothing is rented."));
         details(wherePanel, "About this choice", ["Cost: " + choice.cost_basis, "Live check: " + choice.live_check, choice.note]);
         return;
       }
