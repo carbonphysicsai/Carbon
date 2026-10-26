@@ -128,9 +128,7 @@ def test_the_timed_program_is_derived_and_the_frozen_one_is_untouched():
     assert "per_call_s" not in INFER_PROGRAM
     compile(derived, "timed", "exec")
     # A program without the measurement anchors (Battery's own) is unchanged.
-    assert timed_program("print(1)
-") == "print(1)
-"
+    assert timed_program("print(1)") == "print(1)"
 
 
 @pytest.mark.parametrize("count", [2, 5])
