@@ -67,9 +67,26 @@ LEGACY_NOTE = (
 )
 
 
+#: Versions whose served example is a named entry rather than the first v2.* one. Motor 1.4 and Cooling 1.4
+#: serve the jNO bcat entry (Lead, 2026-10-26): it is the tested v2.* entry whose GPU rebuild is bit-identical
+#: across runs (13/13 on the dev 4090, official determinism environment), where the CNO1d entries differ
+#: (`upsample_bicubic2d_aa` backward has no deterministic CUDA kernel) and so rebuild on the CPU on a GPU host.
+#: The CNO entries stay in the catalog.
+SERVED_EXAMPLE = {
+    ("electric-motor-magnetics", "1.4"): "v2.motor.jno.bcat",
+    ("chip-cold-plate", "1.4"): "v2.cooling.jno.bcat",
+}
+
+
 def preferred(challenge_id, version):
-    """The catalog id a ready example should use on (challenge_id, version): its first
-    v2.* entry when it offers any, else None (the caller's own default stands)."""
+    """The catalog id a ready example should use on (challenge_id, version): the named
+    served example where one is registered (`SERVED_EXAMPLE`), else its first v2.* entry
+    when it offers any, else None (the caller's own default stands)."""
+    named = SERVED_EXAMPLE.get((challenge_id, version))
+    if named is not None and any(
+        item["catalog_id"] == named for item in entries(challenge_id, version)
+    ):
+        return named
     for item in entries(challenge_id, version):
         if item["catalog_id"].startswith(V2_PREFIX):
             return item["catalog_id"]

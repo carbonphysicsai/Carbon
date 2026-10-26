@@ -114,3 +114,28 @@ def test_a_legacy_entry_refuses_a_v2_only_setting_and_lists_what_it_takes():
     example["procedure"]["train_use"] = {"optimizer": {"name": "nadam"}}
     assert not research_service.construction_recipe_issues(example, key)
     json.dumps(example)
+
+
+@pytest.mark.parametrize(
+    ("challenge", "version", "expected"),
+    [
+        (MOTOR, "1.4", "v2.motor.jno.bcat"),
+        (COOLING, "1.4", "v2.cooling.jno.bcat"),
+    ],
+)
+def test_motor_and_cooling_serve_the_gpu_repeatable_bcat_example(
+    challenge, version, expected
+):
+    """Lead, 2026-10-26: the CNO1d GPU rebuild is not repeatable, so the served example is the
+    tested JAX bcat entry; CNO1d stays in the catalog."""
+    assert listing.preferred(challenge, version) == expected
+    assert _example_id(challenge, version) == expected
+    cno = expected.replace("jno.bcat", "cno.CNO1d")
+    assert listing.entry(cno) is not None
+    assert not listing.is_legacy(expected, challenge, version)
+    assert not expected.startswith("v2.f0")
+
+
+def test_f08_and_f02_keep_their_first_v2_example():
+    for challenge, version in ((F08, "1.5"), (F02, "2.4")):
+        assert (challenge, version) not in listing.SERVED_EXAMPLE
