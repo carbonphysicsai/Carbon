@@ -19,6 +19,7 @@ from carbon.level4 import staging
 from carbon.reconstruction.worker.model import WorkerImageIdentity
 
 from .bundle_construction_worker import (
+    TIMING_WALL_SECONDS_MAX,
     BundleBuildResult,
     DirectReconstructionResult,
     _checked_binding,
@@ -967,13 +968,21 @@ def reconstruct_and_infer_graph_public(
         seconds=phase_seconds("inference_wall_seconds_max"),
     )
 
+    def timing_seconds() -> int:
+        # The speed result's cold query gets its own capped allowance (a practice that
+        # used most of the aggregate wall in the build would otherwise leave it too few
+        # seconds, and the watchdog would stop its container: Cooling 1.4 '-timed').
+        if not timing_optional:
+            return phase_seconds("inference_wall_seconds_max")
+        return min(policy["inference_wall_seconds_max"], TIMING_WALL_SECONDS_MAX)
+
     def timed_query():
         return _infer_state(
             **query,
             identity=direct_child_identity(identity, "timed"),
             measure_query=True,
             per_case=False,
-            seconds=phase_seconds("inference_wall_seconds_max"),
+            seconds=timing_seconds(),
         )
 
     before_timing = time.monotonic() - started
@@ -981,13 +990,9 @@ def reconstruct_and_infer_graph_public(
     if measure_query:
         timed = optional_timed(timed_query) if timing_optional else timed_query()
     elapsed = time.monotonic() - started
-    if (
-        timing_optional
-        and timed is not None
-        and elapsed > policy["total_reconstruction_wall_seconds_max"] >= before_timing
-    ):
-        # Only for the speed result: past the aggregate allowance it is dropped.
-        timed, elapsed = None, before_timing
+    if timing_optional:
+        # Only for the speed result: it is not part of the practice's aggregate wall.
+        elapsed = before_timing
     if (
         timing_optional
         and timed is not None
