@@ -445,7 +445,44 @@ _PRACTICE_FAILURE_MARKERS = {
     b"unsatisfied condition: cuda": "NVIDIA_CUDA_REQUIREMENT_UNSATISFIED",
     b"stream command timed out": "STREAM_TIMEOUT",
     b"stream output exceeded cap": "STREAM_OUTPUT_CAP",
+    # What a program that stopped on its own printed last (the closed names of the
+    # Python and XLA exceptions a model run raises, and Carbon's own output checks).
+    b"MemoryError": "PYTHON_MEMORY_ERROR",
+    b"Cannot allocate memory": "CANNOT_ALLOCATE_MEMORY",
+    b"RESOURCE_EXHAUSTED": "XLA_RESOURCE_EXHAUSTED",
+    b"Out of memory": "OUT_OF_MEMORY",
+    b"FloatingPointError": "FLOATING_POINT_ERROR",
+    b"bundle inference output contract differs": "OUTPUT_CONTRACT_DIFFERS",
+    b"bundle inference input binding differs": "INPUT_BINDING_DIFFERS",
+    b"graph inference output arity differs": "OUTPUT_ARITY_DIFFERS",
+    b"XlaRuntimeError": "XLA_RUNTIME_ERROR",
+    b"Traceback (most recent call last)": "PYTHON_TRACEBACK",
+    b"ValueError": "PYTHON_VALUE_ERROR",
+    b"container stopped before its done-file": "CONTAINER_STOPPED_EARLY",
 }
+
+
+def _stopped_container_facts(diagnostic):
+    """The engine's recorded exit code and kernel-kill flag of a container that stopped
+    before its done-file (`controller._stopped_diagnostic`): two closed values (an
+    integer and a boolean), or {}."""
+    try:
+        line = next(
+            row
+            for row in diagnostic.split(b"\n")
+            if row.startswith(b"state:{") and len(row) < 512
+        )
+        state = json.loads(line[len(b"state:") :])
+    except (StopIteration, ValueError):
+        return {}
+    facts = {}
+    if type(state) is dict:
+        code = state.get("ExitCode")
+        if type(code) is int and -256 <= code <= 255:
+            facts["container_exit_code"] = code
+        if type(state.get("OOMKilled")) is bool:
+            facts["container_oom_killed"] = state["OOMKilled"]
+    return facts
 
 
 #: Product-raised ValueError messages a failed practice stage may name, as closed codes (matched by
@@ -517,6 +554,7 @@ def _retain_practice_failure(operation, stage, error):
                     "exception_class": category,
                     "worker_code": code.value if type(code) is WorkerCode else None,
                     "diagnostic_markers": markers,
+                    **_stopped_container_facts(diagnostic),
                     **({} if reason is None else {"reason": reason}),
                     **(
                         {"capacity": error.capacity}

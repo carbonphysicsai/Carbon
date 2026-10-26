@@ -558,3 +558,67 @@ def test_an_unknown_message_records_no_reason(tmp_path):
     )
     written = json.loads((tmp_path / "failure-HOST_READINESS.json").read_text())
     assert "reason" not in written and "secret" not in json.dumps(written)
+
+
+def test_a_container_that_stopped_before_its_done_file_names_exit_code_and_cause(
+    tmp_path,
+):
+    """The Cooling '-timed' FAILED_INFRA left only worker_code runtime.failed and no
+    markers: the record now carries the engine's exit code and kernel-kill flag and
+    the closed name of what the program printed last, never the text itself."""
+    from carbon.reconstruction.worker.controller import IsolatedReconstructionController
+
+    class Cli:
+        def run(self, arguments, *, timeout=30, accepted=(0,)):
+            assert arguments[:3] == ["logs", "--tail", "200"]
+            return SimpleNamespace(
+                stdout=b"",
+                stderr=b"Traceback (most recent call last):\n  File x\nMemoryError\n"
+                + SECRET,
+            )
+
+    controller = IsolatedReconstructionController.__new__(
+        IsolatedReconstructionController
+    )
+    controller.cli = Cli()
+    state = {"Status": "exited", "ExitCode": 137, "OOMKilled": True, "Running": False}
+    diagnostic = controller._stopped_diagnostic("carbon-d4-x", state)
+    assert SECRET in diagnostic  # private bytes keep the tail; the record never does
+    carrier._retain_practice_failure(
+        tmp_path,
+        "PROGRAM",
+        WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=diagnostic),
+    )
+    record = json.loads((tmp_path / "failure-PROGRAM.json").read_bytes())
+    assert record["worker_code"] == WorkerCode.RUNTIME.value
+    assert record["container_exit_code"] == 137
+    assert record["container_oom_killed"] is True
+    assert record["diagnostic_markers"] == [
+        "CONTAINER_STOPPED_EARLY",
+        "PYTHON_MEMORY_ERROR",
+        "PYTHON_TRACEBACK",
+    ]
+    assert SECRET not in (tmp_path / "failure-PROGRAM.json").read_bytes()
+
+
+def test_unreadable_container_logs_never_replace_the_failure(tmp_path):
+    from carbon.reconstruction.worker.controller import IsolatedReconstructionController
+
+    class Cli:
+        def run(self, *args, **kwargs):
+            raise WorkerFailure(WorkerCode.RUNTIME)
+
+    controller = IsolatedReconstructionController.__new__(
+        IsolatedReconstructionController
+    )
+    controller.cli = Cli()
+    diagnostic = controller._stopped_diagnostic("carbon-d4-x", {"ExitCode": 1})
+    assert b"logs unavailable" in diagnostic
+    carrier._retain_practice_failure(
+        tmp_path,
+        "PROGRAM",
+        WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=diagnostic),
+    )
+    record = json.loads((tmp_path / "failure-PROGRAM.json").read_bytes())
+    assert record["container_exit_code"] == 1
+    assert "container_oom_killed" not in record
