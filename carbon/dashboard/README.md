@@ -112,8 +112,11 @@ python -m carbon.dashboard build --feed board-motor.json --feed board-cooling.js
 
 Before the first graded hotkey a board shows "No hotkey has a graded result yet"
 (phase `PRE_FIRST_RELEASE`); after it the king, the standing counts, the score
-to beat and the ladder. The Worker's live path (`worker/feed.mjs`) does not read
-launch boards yet; a public deploy waits for that port and the owner's go.
+to beat and the ladder. The Worker's live path (`worker/feed.mjs`, `projectLaunch`) reads
+launch boards too, held equal to `launch.py` by `tests/cpu/test_dashboard_launch_worker.py`;
+the operator script that builds, signs and uploads them on the validator host is
+`scripts/dev/launch_board_operator.py` (`docs/development/DASHBOARD_CLOUDFLARE_SETUP.md`
+section 7). A public deploy still waits for the owner's go.
 
 ## The pages (DASHBOARD-02 S2)
 
