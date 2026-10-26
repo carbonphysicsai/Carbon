@@ -991,6 +991,7 @@ def reconstruct_and_infer_graph_public(
             measure_query=True,
             per_case=False,
             seconds=timing_seconds(),
+            practice_timing=True,
         )
 
     before_timing = time.monotonic() - started

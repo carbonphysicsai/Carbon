@@ -452,6 +452,38 @@ def speed_result(block):
             else None
         ),
         "label": practice_speed.LABEL,
+        # Carbon's own text, never read from the document (V8_RULINGS section 10).
+        "figure": practice_speed.FIGURE,
+        # The median and the largest single-design call over the timed practice
+        # rows, beside the batched average.
+        **{
+            key: value
+            for key, value in (
+                (
+                    "per_call_median_seconds",
+                    finite(block.get("per_call_median_seconds")),
+                ),
+                ("per_call_max_seconds", finite(block.get("per_call_max_seconds"))),
+                (
+                    "per_call_rows",
+                    (
+                        block["per_call_rows"]
+                        if type(block.get("per_call_rows")) is int
+                        and block["per_call_rows"] > 0
+                        else None
+                    ),
+                ),
+                (
+                    "per_call_within_ceiling",
+                    (
+                        block["per_call_within_ceiling"]
+                        if type(block.get("per_call_within_ceiling")) is bool
+                        else None
+                    ),
+                ),
+            )
+            if value is not None
+        },
     }
 
 

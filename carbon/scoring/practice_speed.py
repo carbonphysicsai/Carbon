@@ -30,6 +30,10 @@ GATE_IDS = {
 }
 #: The receipt's timing parts that are the model's time (not the export).
 MODEL_PARTS = ("preprocess", "inference", "postprocess")
+#: What the batched figure is (Validator V8_RULINGS section 10): an average over one
+#: batched query of the public practice rows, which a per-call fixed cost or a
+#: recognised row can flatter. The exam times single-design calls instead.
+FIGURE = "batched average over the public practice rows (not the exam's measure)"
 
 
 def _positive(value):
@@ -58,6 +62,7 @@ def speed_block(kind, *, seconds, designs):
         "times_faster_than_solver": solver / per_design,
         "designs": designs,
         "scope": "cold query: model load, compile and one inference over all practice designs",
+        "figure": FIGURE,
         "label": LABEL,
     }
 
@@ -84,6 +89,34 @@ def not_measured(kind):
         "measured": False,
         "note": NOT_MEASURED_NOTE,
         "label": LABEL,
+    }
+
+
+def per_call_figures(kind, per_call):
+    """The median and the largest single-design call over the timed practice
+    rows, beside the batched average, and whether the median meets the speed
+    gate's ceiling (the exam's gate compares a median of single-design calls).
+    Nothing when the timing run reported none."""
+    if (
+        type(per_call) is not list
+        or not per_call
+        or not all(_positive(item) for item in per_call)
+    ):
+        return {}
+    ordered = sorted(per_call)
+    middle = len(ordered) // 2
+    median = (
+        ordered[middle]
+        if len(ordered) % 2
+        else (ordered[middle - 1] + ordered[middle]) / 2
+    )
+    gate_id = GATE_IDS.get(kind)
+    ceiling = speed_gate.ceiling_seconds(gate_id) if gate_id is not None else None
+    return {
+        "per_call_median_seconds": median,
+        "per_call_max_seconds": ordered[-1],
+        "per_call_rows": len(ordered),
+        "per_call_within_ceiling": None if ceiling is None else median <= ceiling,
     }
 
 
@@ -125,6 +158,8 @@ def from_receipt(kind, receipt, *, designs):
         else designs
     )
     block = speed_block(kind, seconds=sum(parts), designs=timed_designs)
+    if block is not None:
+        block.update(per_call_figures(kind, measured.get("per_call_s")))
     if block is not None and timed_designs < designs:
         block["designs_total"] = designs
         block["scope"] = (

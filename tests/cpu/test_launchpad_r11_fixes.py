@@ -34,9 +34,17 @@ def test_a_direct_run_s_eligibility_is_its_dual_block_s_when_the_summary_has_non
     assert row["eligible"] is True
 
 
-def test_a_summary_verdict_still_wins_and_no_verdict_stays_unknown():
+def test_the_exam_s_dual_verdict_wins_a_summary_verdict_stands_alone_and_none_is_unknown():
+    # One truth (Lead 02:13Z, 4ea26a459): when the practice carries the exam's own
+    # dual block, its gate verdict IS the run's eligibility, even over a summary
+    # count that disagrees.
     (row,) = campaign_view.experiment_rows(
         {"experiments": [_run({"eligible": True}, False)]}, None
+    )
+    assert row["eligible"] is False
+    # With no dual block the summary's verdict stands.
+    (row,) = campaign_view.experiment_rows(
+        {"experiments": [{"id": "trial-3", "summary": {"eligible": True}}]}, None
     )
     assert row["eligible"] is True
     (row,) = campaign_view.experiment_rows(
