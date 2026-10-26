@@ -12,7 +12,10 @@ import hashlib
 import json
 import os
 import sqlite3
+import time
+import traceback
 from contextlib import contextmanager
+from pathlib import Path
 
 from .canonical import canonical_bytes, load_canonical
 from .errors import ResearchServiceErrorCode
@@ -50,9 +53,47 @@ def _typed_refusal(executor, attempt, error):
         return None
 
 
+EXECUTOR_FAILURES = "executor-failures.jsonl"
+
+
+def record_executor_failure(root, attempt, error):
+    """Best effort: where an executor exception that ended a task as an
+    infrastructure failure happened. One private line per failure under the
+    provider's private root: the task, the exception's class and its last frames
+    (`file.py:line:function`). Never the exception's message or arguments, which
+    can hold private values. A failure to write is ignored: this is a trace, not
+    a result."""
+    try:
+        frames = [
+            f"{os.path.basename(frame.filename)}:{frame.lineno}:{frame.name}"[:160]
+            for frame in traceback.extract_tb(error.__traceback__)[-8:]
+        ]
+        line = json.dumps(
+            {
+                "schema": "carbon.research.executor-failure.v1",
+                "observed_unix": round(time.time(), 3),
+                "task": getattr(getattr(attempt, "task_id", None), "value", None),
+                "exception_class": f"{type(error).__module__}.{type(error).__qualname__}"[
+                    :200
+                ],
+                "frames": frames,
+            },
+            sort_keys=True,
+        )
+        path = Path(root) / EXECUTOR_FAILURES
+        descriptor = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        try:
+            os.write(descriptor, (line + "\n").encode())
+        finally:
+            os.close(descriptor)
+    except Exception:  # noqa: BLE001, S110 - a trace never changes the outcome
+        pass
+
+
 class _NoRetry:
-    def __init__(self, executor):
+    def __init__(self, executor, root=None):
         self.executor = executor
+        self.root = root
 
     def execute(self, attempt):
         # The real controller owns metering/reconciliation. B-07's fixture retry
@@ -62,6 +103,8 @@ class _NoRetry:
         except Exception as error:  # noqa: BLE001
             outcome = _typed_refusal(self.executor, attempt, error)
             if outcome is None:
+                if self.root is not None:
+                    record_executor_failure(self.root, attempt, error)
                 return InfrastructureExecutionFailure(
                     InfrastructureFailureClass.INTERNAL, False
                 )
@@ -108,7 +151,7 @@ class DurableResearchTaskProvider(InMemoryResearchTaskProvider):
                 queue.enqueue(task_id)
 
         kwargs["task_queue"] = DurableQueue()
-        kwargs["executor"] = _NoRetry(kwargs["executor"])
+        kwargs["executor"] = _NoRetry(kwargs["executor"], root)
         try:
             super().__init__(**kwargs)
             binding = json.dumps(
