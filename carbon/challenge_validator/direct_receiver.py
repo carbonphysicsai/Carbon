@@ -46,6 +46,10 @@ _OPTIONAL_FIELDS = {
     "challenge",
     "construction_runtimes",
     "auto_grade",
+    # The graph route's GPU lane (GPU-1): a JAX GPU worker and the record of ops its hardware
+    # class repeats bit for bit. Both or neither.
+    "graph_gpu_image_manifest",
+    "graph_gpu_ops",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -136,7 +140,14 @@ def load_config(path: Path) -> dict:
         selected = Path(value[name])
         if not selected.is_absolute() or selected.resolve() != selected:
             raise ValueError("exact private operator path required")
-    for field in ("construction_image_manifest", "inference_image_manifest"):
+    if ("graph_gpu_image_manifest" in value) != ("graph_gpu_ops" in value):
+        raise ValueError("the graph GPU lane needs both its worker and its ops record")
+    for field in (
+        "construction_image_manifest",
+        "inference_image_manifest",
+        "graph_gpu_image_manifest",
+        "graph_gpu_ops",
+    ):
         if field not in value:
             continue
         selected = value[field]
@@ -713,6 +724,51 @@ def construction_parents(parent, implementation):
     return DirectParents({"torch-cpu-py311": parent, "python-cpu-py311": cpu})
 
 
+def graph_gpu_lane(cfg, implementation, allowlist_bytes, chain_network):
+    """The validator's graph GPU lane for an operator that configures one:
+    ``(worker image, ops frozenset, ops record digest, host device record)``, else four Nones.
+
+    The worker is the registered JAX GPU worker, verified as the receiver's other workers are;
+    the ops are the record the hardware class check wrote, valid for the served graph allowlist
+    only. Rebuild on the GPU, grade on the CPU: the lane changes where a graph is built, never
+    how it is graded."""
+    if "graph_gpu_image_manifest" not in cfg:
+        return None, None, None, None
+    from carbon.development_session.gpu_practice import gpu_image_backend
+    from carbon.development_session.graph_gpu_lane import load_record
+    from carbon.development_session.research_campaign import (
+        verify_current_worker,
+        verify_direct_v13_worker,
+    )
+    from carbon.level4.allowlist import Allowlist
+    from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
+
+    if allowlist_bytes is None:
+        raise ValueError("the graph GPU lane needs a graph-route version")
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction.hardware_acceptance import require_accepted
+
+    # The host's installed GPU record, and the owner's hardware acceptance for its class on
+    # this chain network: a validator scores only on an accepted class, and refuses at start
+    # otherwise (hardware_acceptance.py; the same gate the Battery GPU validator applies).
+    device = research_carrier._gpu_device()
+    require_accepted(
+        device.device_kind, research_carrier._gpu_profile_id(), chain_network
+    )
+    image = load_image_identity(Path(cfg["graph_gpu_image_manifest"]))
+    if gpu_image_backend(image) != "jax":
+        raise ValueError("the graph GPU lane needs the JAX GPU worker")
+    try:
+        verify_current_worker(image, implementation)
+    except ValueError:
+        verify_direct_v13_worker(image, implementation, role="jax_gpu")
+    if not doctor(image_id=image.image_id, image_identity=image).eligible:
+        raise ReceiverUnavailable("installed_graph_gpu_worker_unavailable")
+    raw = canonical(private_json(Path(cfg["graph_gpu_ops"])))
+    ops = load_record(raw, allowlist_digest=Allowlist(allowlist_bytes).digest)
+    return image, ops, digest(raw), device
+
+
 class OwnerProviders:
     """One maintained task supervisor and ledger per authenticated hotkey."""
 
@@ -731,6 +787,8 @@ class OwnerProviders:
         receiver=None,
         evaluation_pack_digest=None,
         parents=None,
+        graph_gpu_image=None,
+        graph_gpu_ops=None,
     ):
         from carbon.development_session.gpu_practice import DirectParents
 
@@ -740,6 +798,7 @@ class OwnerProviders:
         ):
             raise ValueError("per-runtime parents must include the receiver parent")
         self.parents = parents
+        self.graph_gpu_image, self.graph_gpu_ops = graph_gpu_image, graph_gpu_ops
         self.root, self.discovery = root, discovery
         self.parent, self.cache_root = parent, cache_root
         self.inference_image = parent if inference_image is None else inference_image
@@ -950,6 +1009,14 @@ class OwnerProviders:
                         else {"construction_parents": self.parents}
                     ),
                     evaluation_pack_digest=self.evaluation_pack_digest,
+                    **(
+                        {}
+                        if self.graph_gpu_image is None
+                        else {
+                            "graph_gpu_image": self.graph_gpu_image,
+                            "graph_gpu_ops": self.graph_gpu_ops,
+                        }
+                    ),
                     image_resolver=DirectOwnerImageResolver(
                         self.cache_root,
                         **(
@@ -1214,6 +1281,14 @@ def serve(
                 else None
             ),
         )
+        graph_gpu_image, graph_gpu_ops, graph_gpu_ops_digest, graph_gpu_device = (
+            graph_gpu_lane(
+                cfg,
+                implementation,
+                material.get("allowlist_bytes"),
+                network.context.network,
+            )
+        )
         immutable = {
             "schema": SCHEMA,
             "implementation": implementation,
@@ -1234,6 +1309,14 @@ def serve(
             immutable["material_cache_bytes"] = cfg["material_cache_bytes"]
         if pack_digest is not None:
             immutable["evaluation_pack_digest"] = pack_digest
+        if graph_gpu_image is not None:
+            # Said only when configured: a CPU receiver's binding is what it was.
+            immutable["graph_gpu_image"] = asdict(graph_gpu_image)
+            immutable["graph_gpu_ops_digest"] = graph_gpu_ops_digest
+            immutable["graph_gpu_device"] = {
+                "kind": graph_gpu_device.device_kind,
+                "record": graph_gpu_device.digest,
+            }
         write_once(root / "receiver-binding.json", canonical(immutable))
         window = ReceiverSnapshotWindow(root, network.context, cfg["receiver_hotkey"])
         window.add(snapshot)
@@ -1250,6 +1333,8 @@ def serve(
             receiver=cfg["receiver_hotkey"],
             evaluation_pack_digest=pack_digest,
             parents=parents,
+            graph_gpu_image=graph_gpu_image,
+            graph_gpu_ops=graph_gpu_ops,
         )
         # A service (no lifetime) runs until it is stopped.
         timer = (
