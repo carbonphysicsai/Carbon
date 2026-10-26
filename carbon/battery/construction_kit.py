@@ -76,7 +76,7 @@ def construction_limits_document() -> dict:
         "train_surfaces": surfaces,
         "graph_intake": dict(intake.BOUNDS),
         "graph_caps": dict(allowlist.CAPS),
-        "graph_compile_deadline_seconds": graph_compile.DEADLINE_SECONDS,
+        "graph_compile_deadline_seconds": graph_compile.LEGACY_DEADLINE_SECONDS,
         "worker": {
             "profile_id": worker.PROFILE_ID,
             "profile_version": worker.PROFILE_VERSION,
@@ -141,6 +141,7 @@ def construction_limits_document_for(version: str) -> dict:
     if _version(version) == "1.0":
         return construction_limits_document()
     from carbon.level4 import allowlist, intake
+    from carbon.level4 import compile as graph_compile
 
     from .direct_graph import graph_allowlist
 
@@ -154,6 +155,7 @@ def construction_limits_document_for(version: str) -> dict:
     served = graph_allowlist(version)
     document["graph_caps"] = allowlist.caps_for(served)
     document["graph_intake"] = intake.bounds_for(served)
+    document["graph_compile_deadline_seconds"] = graph_compile.deadline_for(served)
     for name in STEP_SURFACES:
         document["train_surfaces"][name]["high"] = None
     document["training_step_cap"] = None

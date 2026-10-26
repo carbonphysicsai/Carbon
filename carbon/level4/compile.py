@@ -43,6 +43,25 @@ from .allowlist import HUMAN_INPUT
 #: 2026-10-25; was 120 s, OWNER-L4-VALUES-01). After measurement it becomes 4x the
 #: measured compile time of a 64 MiB worst-case document, capped at the ceiling.
 DEADLINE_SECONDS = 600
+#: Every allowlist before v8 keeps its published 120 s (OWNER-L4-VALUES-01): the
+#: Battery 1.0/2.0 kits publish it in their limits digests, which do not move.
+LEGACY_DEADLINE_SECONDS = 120
+LONG_DEADLINE_VERSIONS = frozenset({"level4-allowlist-v8"})
+
+
+def deadline_for(allowlist):
+    """The compile deadline of ``allowlist`` (an `Allowlist` or its version string)."""
+    version = (
+        allowlist if type(allowlist) is str else getattr(allowlist, "version", None)
+    )
+    return (
+        DEADLINE_SECONDS
+        if version in LONG_DEADLINE_VERSIONS
+        else LEGACY_DEADLINE_SECONDS
+    )
+
+
+_PER_ALLOWLIST = object()
 PROVENANCE = "LEVEL4_G5_COMPILE_DEVELOPMENT"
 PROFILE_STATUS = "ACCEPTED_DEVELOPMENT_AND_TESTNET_ONLY"
 PROFILE_DECISION = "OWNER-L4-G5-COMPILE-ISOLATION-01"
@@ -177,7 +196,7 @@ def compile_in_isolation(
     ledger,
     owner,
     image,
-    deadline_seconds=DEADLINE_SECONDS,
+    deadline_seconds=_PER_ALLOWLIST,
     max_bytes,
     scope,
     runner=None,
@@ -190,6 +209,8 @@ def compile_in_isolation(
 
     if scope not in SCOPES:
         raise CompileBlocked(MAINNET_BLOCKED)
+    if deadline_seconds is _PER_ALLOWLIST:
+        deadline_seconds = deadline_for(allowlist)
     if deadline_seconds == HUMAN_INPUT or deadline_seconds is None:
         raise CompileBlocked("the G5 deadline is unset")
     if runner is None:
