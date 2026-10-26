@@ -216,3 +216,45 @@ def test_the_page_projection_passes_the_new_fields_with_carbons_own_text():
     assert shown["per_call_median_seconds"] == pytest.approx(0.25)
     assert shown["per_call_max_seconds"] == 0.4 and shown["per_call_rows"] == 4
     assert type(shown["per_call_within_ceiling"]) is bool
+
+
+@pytest.mark.parametrize(
+    "measure,practice,derived",
+    [(False, False, False), (True, False, False), (True, True, True)],
+)
+def test_only_a_practice_timed_child_gets_the_derived_program(
+    measure, practice, derived
+):
+    """The paired / saved-bundle measured queries keep the frozen program."""
+    from test_bundle_construction_worker import _recipe
+
+    from carbon.development_session.bundle_construction_worker import _infer_state
+
+    seen = []
+
+    def runner(ledger, **kwargs):
+        seen.append(kwargs["source"])
+        raise RuntimeError("stop after the program is chosen")
+
+    recipe = _recipe("sha256:" + "a" * 64)
+    allowed = allowlist.load(Path(allowlist.PATH).with_name("allowlist_v2.json"))
+    with pytest.raises(RuntimeError):
+        _infer_state(
+            None,
+            owner="o",
+            identity="i",
+            inference_image=None,
+            recipe=recipe,
+            binding=_binding(recipe),
+            state=b"state",
+            state_digest="sha256:" + "b" * 64,
+            inputs=np.zeros((2, 2), dtype=np.float32),
+            expected_output_shape=(2, 2),
+            allowlist_bytes=allowed.raw,
+            measure_query=measure,
+            per_case=not measure,
+            runner=runner,
+            **({"practice_timing": True} if practice else {}),
+        )
+    assert (seen[0] != INFER_PROGRAM) is derived
+    assert (seen[0] == timed_program(INFER_PROGRAM)) is derived

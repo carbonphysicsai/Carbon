@@ -1323,8 +1323,12 @@ def infer_public(
     seconds: int = 600,
     accelerator: str | None = None,
     runner=None,
+    practice_timing: bool = False,
 ) -> BundleInferenceResult:
-    """Reopen inert state in the base C-03 image with input-only tensors."""
+    """Reopen inert state in the base C-03 image with input-only tensors.
+
+    `practice_timing` (a practice's timed child only) runs the derived timed
+    program that also reports single-design call seconds."""
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
     if measure_query and (
@@ -1385,6 +1389,7 @@ def infer_public(
         seconds=seconds,
         **_accelerator_kwargs(accelerator),
         **rebuild_wall_kwargs(limits_document),
+        **({"practice_timing": True} if practice_timing else {}),
         runner=runner,
     )
 
@@ -1527,6 +1532,7 @@ def _infer_state(
     program: str | None = None,
     staged_files: dict[str, bytes] | None = None,
     rebuild_wall_seconds: int | None = None,
+    practice_timing: bool = False,
 ) -> BundleInferenceResult:
     """`program` and `staged_files` serve a graph adapter's own inference
     program and its extra trusted modules (`direct_graph_construction_worker`).
@@ -1667,7 +1673,7 @@ def _infer_state(
         identity=identity,
         source=(
             timed_program(INFER_PROGRAM if program is None else program)
-            if measure_query
+            if measure_query and practice_timing
             else (INFER_PROGRAM if program is None else program)
         ),
         files=files,
@@ -2005,6 +2011,7 @@ def reconstruct_and_infer_public(
             limits_document=limits_document,
             seconds=timing_seconds(),
             **_accelerator_kwargs(inference_accelerator),
+            practice_timing=True,
             runner=runner,
         )
 
