@@ -1896,6 +1896,13 @@ def reconstruct_and_infer_public(
             return phase_seconds("inference_wall_seconds_max")
         return min(policy["inference_wall_seconds_max"], TIMING_WALL_SECONDS_MAX)
 
+    # The graph is declared on the example's rows, and the fixed inference
+    # program hands a measured (batched) query to it whole, which a static-batch
+    # graph refuses (`input_aval_mismatch`; Cooling 1.4 '-timed'). A query larger
+    # than that batch is therefore timed on its first `len(example)` rows - never
+    # by changing the frozen inference program - and the speed result says so.
+    timed_rows = len(example) if len(inputs) > len(example) else len(inputs)
+
     def timed_query():
         return infer_public(
             ledger,
@@ -1906,8 +1913,8 @@ def reconstruct_and_infer_public(
             recipe=recipe,
             challenge_binding=binding,
             build=build,
-            inputs=inputs,
-            expected_output_shape=expected_output_shape,
+            inputs=inputs[:timed_rows],
+            expected_output_shape=(timed_rows, *expected_output_shape[1:]),
             expected_output_dtype=expected_output_dtype,
             measure_query=True,
             allowlist_bytes=allowlist_bytes,
