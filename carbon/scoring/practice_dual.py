@@ -49,6 +49,33 @@ def _unavailable(adapter, reason):
     }
 
 
+ELIGIBLE_BASIS = (
+    "the exam's own gates on the practice grid (practice_dual); the summary's own count of "
+    "failed gates stays beside it as summary_gate_eligible"
+)
+
+
+def reconcile_eligibility(summary, dual):
+    """One truth for "eligible" (Test Runner 01:57Z, Lead 02:13Z: an agent read summary
+    eligible=false and practice_dual eligible=true on Motor, the reverse on Cooling): when the
+    practice carries the exam's dual measurement, its gate verdict is the practice's
+    `eligible`. The summary's own verdict is kept as `summary_gate_eligible`, never dropped.
+    Without a usable dual block the summary is returned unchanged."""
+    if (
+        type(summary) is not dict
+        or type(dual) is not dict
+        or dual.get("available") is not True
+        or type(dual.get("eligible")) is not bool
+    ):
+        return summary
+    merged = dict(summary)
+    if type(summary.get("eligible")) is bool:
+        merged["summary_gate_eligible"] = summary["eligible"]
+    merged["eligible"] = dual["eligible"]
+    merged["eligible_basis"] = ELIGIBLE_BASIS
+    return merged
+
+
 def unavailable(adapter, reason):
     """The explicit "unavailable" document (never a silent omission)."""
     return _unavailable(adapter, reason)

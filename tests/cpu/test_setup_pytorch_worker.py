@@ -103,6 +103,55 @@ def test_the_configured_worker_counts_as_pytorch_only_when_it_is(
     assert (TORCH_CPU_WORKER in facts) is expected
 
 
+def test_a_runner_profile_s_string_manifest_path_reaches_the_loader_as_a_path(
+    monkeypatch,
+):
+    """Test Runner 03:20Z: configured_host_facts passed the profile's STRING path to a loader
+    that reads `path.read_text`, the AttributeError was swallowed, and no host whose profile came
+    from JSON ever reported a trusted worker image (every agent was told the Challenge was
+    unusable here). The loader now gets a Path, like the real one needs."""
+    from pathlib import Path
+
+    from carbon.development_session import gpu_practice
+    from carbon.miner_mcp.mcp_challenges import configured_host_facts
+    from carbon.reconstruction.worker import docker_runtime
+
+    seen = []
+
+    def strict_loader(path):
+        seen.append(path)
+        path.read_text  # noqa: B018 - a str has no read_text, as the real loader needs
+        return SimpleNamespace(image_id="sha256:" + "d" * 64)
+
+    monkeypatch.setattr(docker_runtime, "load_image_identity", strict_loader)
+    monkeypatch.setattr(
+        docker_runtime, "doctor", lambda **kw: SimpleNamespace(eligible=True)
+    )
+    monkeypatch.setattr(
+        gpu_practice, "direct_parent_backend", lambda found: "torch_cpu"
+    )
+    facts = configured_host_facts({"paths": {"image_manifest": "/w.json"}}).facts
+    assert seen == [Path("/w.json")] and isinstance(seen[0], Path)
+    assert "trusted_worker_image" in facts and TORCH_CPU_WORKER in facts
+
+
+def test_an_unusable_image_is_a_missing_fact_and_the_log_says_why(monkeypatch, caplog):
+    from carbon.miner_mcp.mcp_challenges import configured_host_facts
+    from carbon.reconstruction.worker import docker_runtime
+
+    def broken(path):
+        raise ValueError("manifest unreadable")
+
+    monkeypatch.setattr(docker_runtime, "load_image_identity", broken)
+    with caplog.at_level("WARNING"):
+        facts = configured_host_facts({"paths": {"image_manifest": "/w.json"}}).facts
+    assert "trusted_worker_image" not in facts
+    assert any(
+        "trusted worker image fact unavailable" in r.message for r in caplog.records
+    )
+    assert any(r.exc_info for r in caplog.records)
+
+
 class WorkerChecks(Checks):
     def __init__(self, parent):
         super().__init__()

@@ -180,8 +180,11 @@ NEXT_ACTIONS = {
     # The campaign's own lock and state.
     "campaign_busy": (
         "Another session holds this campaign: an attached agent, the "
-        "Control Center's tools, or an operation still running. Detach it "
-        "(carbon_detach_campaign) or close the tools, then try again."
+        "Control Center's tools, or an operation still running. Right after a "
+        "launch the campaign is busy until its launch run finishes (state QUEUED, "
+        "then READY): wait for it (carbon_wait with the campaign, or watch the "
+        "page) and try again. Otherwise detach it (carbon_detach_campaign) or "
+        "close the tools, then try again."
     ),
     "campaign_stopped": "This campaign is stopped. Launch a new one to continue.",
     "campaign_paused": "This campaign is paused. Resume it, then try again.",
@@ -1649,6 +1652,10 @@ NEXT_ACTIONS = {
         "Challenge list gives it (carbon_challenges_v1__list)."
     ),
     "card_limit_out_of_bounds": "Send card_limit from 1 to 50, or omit it for 10.",
+    "toolbox_include_invalid": (
+        "Send include as catalog, families, or catalog,families for those lists in full, "
+        "or omit it for the compact answer."
+    ),
     "card_not_found": (
         "No card in the shared pack or your library has that id. Search for "
         "it (carbon_library_search) and send an id it returns."

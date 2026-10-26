@@ -195,7 +195,15 @@ def test_the_columns_map_back_to_coolings_outputs_in_the_interfaces_order(practi
     _rows, summary = score_practice(
         direct, PracticeSet.load(ROOT), PublicMaterial.load(ROOT)
     )
-    assert result["summary"] == summary
+    # The practice's `eligible` is the exam's own gate verdict (practice_dual) when it has one;
+    # the scorer's own stays beside it as summary_gate_eligible. Everything else is the scorer's.
+    reconciled = {"eligible", "eligible_basis", "summary_gate_eligible"}
+    assert {k: v for k, v in result["summary"].items() if k not in reconciled} == {
+        k: v for k, v in summary.items() if k not in reconciled
+    }
+    assert result["summary"].get("summary_gate_eligible", summary["eligible"]) == (
+        summary["eligible"]
+    )
     assert summary["n_gate_failed"] == 0 and summary["score"] == pytest.approx(0.0)
 
 

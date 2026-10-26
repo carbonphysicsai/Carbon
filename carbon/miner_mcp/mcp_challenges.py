@@ -12,6 +12,8 @@ served by that Challenge's composition. There is no default and no fallback.
 
 from __future__ import annotations
 
+import logging
+from pathlib import Path
 from typing import Annotated
 
 PREFIX = "carbon_challenges_v1__"
@@ -266,7 +268,10 @@ def configured_host_facts(profile=None):
                 load_image_identity,
             )
 
-            image = load_image_identity(manifest)
+            # A runner profile read from JSON holds the manifest path as a string; the loader
+            # takes a Path (Test Runner 03:20Z: a str raised AttributeError here, swallowed
+            # below, so no host that came from a profile ever reported a trusted worker image).
+            image = load_image_identity(Path(manifest))
             if doctor(image_id=image.image_id, image_identity=image).eligible:
                 configured.add("trusted_worker_image")
                 from carbon.challenge_registry.registry import TORCH_CPU_WORKER
@@ -276,8 +281,11 @@ def configured_host_facts(profile=None):
 
                 if direct_parent_backend(image) == "torch_cpu":
                     configured.add(TORCH_CPU_WORKER)
-        except Exception:  # noqa: BLE001, S110 - an unusable image is a missing fact
-            pass
+        except Exception:
+            # Said, not hidden: the fact stays missing, and the log names why.
+            logging.getLogger(__name__).warning(
+                "trusted worker image fact unavailable", exc_info=True
+            )
     return HostFacts.observe(configured)
 
 

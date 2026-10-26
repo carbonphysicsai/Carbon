@@ -370,6 +370,15 @@ FIELDS = {
         "Words to search your literature for: 1 to 200 characters of text.",
     ),
     "card_limit": ("integer", "At most this many cards, 1 to 50. Omitted: 10."),
+    "include": (
+        "string",
+        (
+            "toolbox only: which long lists to include in full, comma separated, from "
+            "catalog (every backbone entry with its ready recipe) and families (every "
+            "rebuildable family). Omitted: a compact answer with their counts, the "
+            "ready recipe and the examples in full, small enough for any agent to read."
+        ),
+    ),
     "card_id": (
         "string",
         "A card id, as library_search or a plan's cites give it.",
@@ -577,6 +586,7 @@ REFUSAL_FIELDS = {
     # The library and plans (S4).
     "library_query_invalid": "query",
     "card_limit_out_of_bounds": "card_limit",
+    "toolbox_include_invalid": "include",
     "card_not_found": "card_id",
     "card_banned": "card_id",
     "import_invalid": "text",
@@ -804,9 +814,11 @@ OPERATIONS = {
             "its records: JAX and PyTorch runtimes, Julia (research only), "
             "workspace and workflow tools with their MCP names, rebuildable "
             "families, what the validator rebuilds with, and this host's "
-            "lanes. Reads only.",
+            "lanes. Reads only. By default the long catalog and family lists are "
+            "summarised (counts, the ready example in full); name them in include "
+            "for the full lists.",
             frozenset({"challenge"}),
-            frozenset({"challenge_version"}),
+            frozenset({"challenge_version", "include"}),
             ("request", "profile"),
             admits_work=False,
         ),
