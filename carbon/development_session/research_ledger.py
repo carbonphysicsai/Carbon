@@ -493,6 +493,20 @@ class CampaignLedger:
             return {"kind": PRODUCT_ADMISSION, "expires_unix": None}
         raise ValueError("controlled campaign authority required")
 
+    def practice_only(self) -> bool:
+        """Whether this campaign was admitted as a practice-only one (Setup's "Practise without
+        registering"): it may reserve research and report work and nothing else. Read only."""
+        with self.db() as db:
+            frozen = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+        if frozen is None:
+            return False
+        manifest = json.loads(frozen[0])
+        return (
+            manifest.get("schema") == PRODUCT
+            and type(manifest.get("admission")) is dict
+            and manifest["admission"].get("admission") == PRACTICE_ADMISSION
+        )
+
     def retained_owner(self, owner, *, db=None):
         """Prove retained ownership for cleanup, admitting no further work.
 

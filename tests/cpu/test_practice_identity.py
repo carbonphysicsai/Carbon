@@ -540,3 +540,39 @@ def test_registering_keeps_practice_campaigns_readable_and_takes_no_work(
         assert refused.value.code == "practice_campaign_read_only"
     finally:
         registered.close()
+
+
+def test_a_practice_ledger_knows_it_is_practice_only_and_starts_a_session_under_research(
+    tmp_path, identity
+):
+    """Graphite Test 02:20Z: every Graphite campaign on a practice-only profile was interrupted at
+    its first stage with registration_required: the research session's start reserved its epochs
+    unit under the "selection" phase, which a practice-only campaign refuses. A practice-only
+    session now starts under "research"; every other campaign keeps "selection"."""
+    from pathlib import Path
+
+    from carbon.development_session.research_control import CampaignControl
+
+    ledger = CampaignLedger(tmp_path / "campaign", clock=lambda: 1000)
+    ledger.generation = CampaignControl(ledger).acquire()
+    assert ledger.practice_only() is False  # nothing frozen yet
+    ledger.freeze(_practice_manifest(identity))
+    assert ledger.practice_only() is True
+    work = {"owner": "practice-owner", "resources": {"epochs": 1}}
+    # What the loop now reserves for a session start on a practice-only campaign...
+    assert ledger.reserve("research-start", phase="research", request={"n": 1}, **work)[
+        "dispatch"
+    ]
+    # ...and what it did before is still refused there.
+    with pytest.raises(RegistrationRequired):
+        ledger.reserve("research-old", phase="selection", request={"n": 2}, **work)
+    source = Path(research_campaign.__file__).with_name("research_loop.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'start_phase = "research" if ledger.practice_only() else "selection"' in source
+    assert "phase=start_phase" in source
+
+
+def test_a_registered_campaign_is_not_practice_only(tmp_path, identity):
+    ledger = CampaignLedger(tmp_path / "plain", clock=lambda: 1000)
+    assert ledger.practice_only() is False

@@ -2143,8 +2143,13 @@ async def run_epoch(
     # The unstaged epoch's start spends its epochs unit; a stage shares it.
     started = {"epochs": 1} if stage is None else {}
     start_id = "research-" + prefix
+    # The session's start spends its epochs unit under the "selection" phase; a practice-only
+    # campaign (no registration) admits only research and report work, so its session starts
+    # under "research" (a Graphite practice-only launch was interrupted here with
+    # registration_required, TR/Graphite Test 02:20Z). Every other campaign is unchanged.
+    start_phase = "research" if ledger.practice_only() else "selection"
     admitted = ledger.reserve(
-        start_id, owner=owner, phase="selection", request=plan, resources=started
+        start_id, owner=owner, phase=start_phase, request=plan, resources=started
     )
     if admitted["dispatch"]:
         ledger.finish(
