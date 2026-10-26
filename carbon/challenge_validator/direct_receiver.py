@@ -724,16 +724,16 @@ def construction_parents(parent, implementation):
     return DirectParents({"torch-cpu-py311": parent, "python-cpu-py311": cpu})
 
 
-def graph_gpu_lane(cfg, implementation, allowlist_bytes):
+def graph_gpu_lane(cfg, implementation, allowlist_bytes, chain_network):
     """The validator's graph GPU lane for an operator that configures one:
-    ``(worker image, ops frozenset, ops record digest)``, else three Nones.
+    ``(worker image, ops frozenset, ops record digest, host device record)``, else four Nones.
 
     The worker is the registered JAX GPU worker, verified as the receiver's other workers are;
     the ops are the record the hardware class check wrote, valid for the served graph allowlist
     only. Rebuild on the GPU, grade on the CPU: the lane changes where a graph is built, never
     how it is graded."""
     if "graph_gpu_image_manifest" not in cfg:
-        return None, None, None
+        return None, None, None, None
     from carbon.development_session.gpu_practice import gpu_image_backend
     from carbon.development_session.graph_gpu_lane import load_record
     from carbon.development_session.research_campaign import (
@@ -745,6 +745,16 @@ def graph_gpu_lane(cfg, implementation, allowlist_bytes):
 
     if allowlist_bytes is None:
         raise ValueError("the graph GPU lane needs a graph-route version")
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction.hardware_acceptance import require_accepted
+
+    # The host's installed GPU record, and the owner's hardware acceptance for its class on
+    # this chain network: a validator scores only on an accepted class, and refuses at start
+    # otherwise (hardware_acceptance.py; the same gate the Battery GPU validator applies).
+    device = research_carrier._gpu_device()
+    require_accepted(
+        device.device_kind, research_carrier._gpu_profile_id(), chain_network
+    )
     image = load_image_identity(Path(cfg["graph_gpu_image_manifest"]))
     if gpu_image_backend(image) != "jax":
         raise ValueError("the graph GPU lane needs the JAX GPU worker")
@@ -756,7 +766,7 @@ def graph_gpu_lane(cfg, implementation, allowlist_bytes):
         raise ReceiverUnavailable("installed_graph_gpu_worker_unavailable")
     raw = canonical(private_json(Path(cfg["graph_gpu_ops"])))
     ops = load_record(raw, allowlist_digest=Allowlist(allowlist_bytes).digest)
-    return image, ops, digest(raw)
+    return image, ops, digest(raw), device
 
 
 class OwnerProviders:
@@ -1271,8 +1281,13 @@ def serve(
                 else None
             ),
         )
-        graph_gpu_image, graph_gpu_ops, graph_gpu_ops_digest = graph_gpu_lane(
-            cfg, implementation, material.get("allowlist_bytes")
+        graph_gpu_image, graph_gpu_ops, graph_gpu_ops_digest, graph_gpu_device = (
+            graph_gpu_lane(
+                cfg,
+                implementation,
+                material.get("allowlist_bytes"),
+                network.context.network,
+            )
         )
         immutable = {
             "schema": SCHEMA,
@@ -1298,6 +1313,10 @@ def serve(
             # Said only when configured: a CPU receiver's binding is what it was.
             immutable["graph_gpu_image"] = asdict(graph_gpu_image)
             immutable["graph_gpu_ops_digest"] = graph_gpu_ops_digest
+            immutable["graph_gpu_device"] = {
+                "kind": graph_gpu_device.device_kind,
+                "record": graph_gpu_device.digest,
+            }
         write_once(root / "receiver-binding.json", canonical(immutable))
         window = ReceiverSnapshotWindow(root, network.context, cfg["receiver_hotkey"])
         window.add(snapshot)

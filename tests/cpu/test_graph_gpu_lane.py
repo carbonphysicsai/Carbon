@@ -329,7 +329,15 @@ def _other_allowlist():
     raise AssertionError("no other allowlist")
 
 
-def _lane_setup(monkeypatch, tmp_path, *, image=JAX, eligible=True, allowlist=None):
+def _lane_setup(
+    monkeypatch,
+    tmp_path,
+    *,
+    image=JAX,
+    eligible=True,
+    allowlist=None,
+    device_kind="NVIDIA GeForce RTX 4090",
+):
     from carbon.challenge_validator import direct_receiver as receiver
     from carbon.development_session import research_campaign
     from carbon.level4.allowlist import Allowlist
@@ -343,6 +351,13 @@ def _lane_setup(monkeypatch, tmp_path, *, image=JAX, eligible=True, allowlist=No
         "ops": ["dot_general", "tanh"],
     }
     monkeypatch.setattr(receiver, "private_json", lambda _: record)
+    from carbon.development_session import research_carrier
+
+    monkeypatch.setattr(
+        research_carrier,
+        "_gpu_device",
+        lambda: SimpleNamespace(device_kind=device_kind, digest="sha256:" + "4" * 64),
+    )
     monkeypatch.setattr(docker_runtime, "load_image_identity", lambda _path: image)
     monkeypatch.setattr(
         docker_runtime, "doctor", lambda **_: SimpleNamespace(eligible=eligible)
@@ -362,14 +377,22 @@ def test_a_configured_lane_yields_its_worker_ops_and_record_digest(
     tmp_path, monkeypatch
 ):
     receiver, cfg, allowlist_bytes = _lane_setup(monkeypatch, tmp_path)
-    image, ops, record_digest = receiver.graph_gpu_lane(cfg, {}, allowlist_bytes)
+    image, ops, record_digest, device = receiver.graph_gpu_lane(
+        cfg, {}, allowlist_bytes, "testnet"
+    )
+    assert device.device_kind == "NVIDIA GeForce RTX 4090"
     assert image == JAX and ops == {"dot_general", "tanh"}
     assert record_digest.startswith("sha256:")
 
 
 def test_no_lane_configured_is_no_lane(tmp_path, monkeypatch):
     receiver, _cfg, allowlist_bytes = _lane_setup(monkeypatch, tmp_path)
-    assert receiver.graph_gpu_lane({}, {}, allowlist_bytes) == (None, None, None)
+    assert receiver.graph_gpu_lane({}, {}, allowlist_bytes, "testnet") == (
+        None,
+        None,
+        None,
+        None,
+    )
 
 
 def test_a_wrong_worker_record_or_host_is_refused(tmp_path, monkeypatch):
@@ -377,18 +400,18 @@ def test_a_wrong_worker_record_or_host_is_refused(tmp_path, monkeypatch):
 
     receiver, cfg, allowlist_bytes = _lane_setup(monkeypatch, tmp_path, image=TORCH)
     with pytest.raises(ValueError, match="JAX GPU worker"):
-        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes)
+        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, "testnet")
     receiver, cfg, allowlist_bytes = _lane_setup(monkeypatch, tmp_path, eligible=False)
     with pytest.raises(ReceiverUnavailable):
-        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes)
+        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, "testnet")
     receiver, cfg, allowlist_bytes = _lane_setup(
         monkeypatch, tmp_path, allowlist=_other_allowlist()
     )
     with pytest.raises(lane.GpuOpsRecordInvalid):
-        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes)
+        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, "testnet")
     receiver, cfg, _ = _lane_setup(monkeypatch, tmp_path)
     with pytest.raises(ValueError, match="graph-route version"):
-        receiver.graph_gpu_lane(cfg, {}, None)
+        receiver.graph_gpu_lane(cfg, {}, None, "testnet")
 
 
 # ---- the repeat check: two more GPU rebuilds must match before the GPU serves ------------
@@ -509,3 +532,34 @@ def test_there_are_no_probes_without_a_lane():
         )
         == ()
     )
+
+
+def test_a_device_class_without_the_owners_acceptance_never_starts_the_lane(
+    tmp_path, monkeypatch
+):
+    from carbon.reconstruction.hardware_acceptance import DeviceClassNotAccepted
+
+    receiver, cfg, allowlist_bytes = _lane_setup(
+        monkeypatch, tmp_path, device_kind="NVIDIA H100 PCIe"
+    )
+    with pytest.raises(DeviceClassNotAccepted):
+        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, "testnet")
+    # An acceptance names its network: the testnet record admits no other.
+    receiver, cfg, allowlist_bytes = _lane_setup(monkeypatch, tmp_path)
+    with pytest.raises(DeviceClassNotAccepted):
+        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, "mainnet")
+    with pytest.raises(DeviceClassNotAccepted):
+        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, None)
+
+
+def test_a_host_without_a_gpu_record_refuses_the_lane(tmp_path, monkeypatch):
+    from carbon.development_session import research_carrier
+
+    receiver, cfg, allowlist_bytes = _lane_setup(monkeypatch, tmp_path)
+
+    def absent():
+        raise ValueError("no GPU device record is installed on this host")
+
+    monkeypatch.setattr(research_carrier, "_gpu_device", absent)
+    with pytest.raises(ValueError, match="no GPU device record"):
+        receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, "testnet")
