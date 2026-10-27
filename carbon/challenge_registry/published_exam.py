@@ -16,6 +16,8 @@ door carries no exam code.
 
 from __future__ import annotations
 
+import copy
+
 from carbon.challenge_registry import speed_gate
 
 SCHEMA = "carbon.published-exam.v1"
@@ -383,16 +385,106 @@ HOW_TESTED_LINES = (
 )
 
 
-def how_you_are_tested(challenge_id):
+#: The owner constants a pool version has registered, copied from
+#: `carbon/scoring/pool_constants.json` (a test holds the two equal). A version
+#: absent here keeps the words "not yet registered". Motor 1.5:
+#: OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01 (owner "1 and a", 2026-10-26). The A_gen
+#: scales are 0.03 x the TRAIN spread of each output, which is public TRAIN data;
+#: no target, pool, region bound or seed is named.
+_REGISTERED_POOL = {
+    ("electric-motor-magnetics", "1.5"): {
+        "query_budget": 60,
+        "initial_step": 0.25,
+        "honesty_scale": 1.0,
+        "honesty_reduction": "max",
+        "a_multiplier": 3.0,
+        "a_gen_rule": "mean",
+        "a_gen_scales": {
+            "mean_torque_nm": 0.07433812816092869,
+            "ripple_fraction": 0.08677790679238961,
+        },
+        "c_rule": "min",
+        "source": "carbon/scoring/pool_constants.json (OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01)",
+    }
+}
+
+
+def registered_pool(challenge_id, version):
+    """The registered owner constants of a pool version, or None."""
+    own = _REGISTERED_POOL.get((challenge_id, version))
+    return None if own is None else copy.deepcopy(own)
+
+
+def _registered_text(own):
+    scales = ", ".join(
+        f"{name} {value:.4f}" for name, value in own["a_gen_scales"].items()
+    )
+    return (
+        f"The search asks the model {own['query_budget']} times per target, from "
+        f"a first step of {own['initial_step']:g} of the normalised design box. "
+        f"Honesty is exp(-e / s) with s = {own['honesty_scale']:g}, and e is the "
+        "largest uncertainty-normalised error over the outputs at the pick. Each "
+        "of the four accuracy parts of A is tightened as 1 / (1 + "
+        f"{own['a_multiplier']:g} x) of its normalised error x. A_gen is scored "
+        "the same way on its own slice with a scale of 0.03 x the training "
+        f"spread of each output ({scales}), and the final A is the mean of A and "
+        "A_gen. D is limited by C: it is the smaller of the two."
+    )
+
+
+def _with_registered_design_search(base, own):
+    search = copy.deepcopy(base)
+    search["search"]["query_budget"] = own["query_budget"]
+    search["search"]["initial_step"] = own["initial_step"]
+    per_target = search["per_target_score"]
+    per_target["honesty_scale"] = own["honesty_scale"]
+    per_target["honesty"] += (
+        " (e is the largest of the per-output errors at the pick)"
+    )
+    search["source"] = own["source"]
+    return search
+
+
+def _with_registered_score(score, own):
+    score = copy.deepcopy(score)
+    score["rule"]["A"] = (
+        "A = mean(A_acc, A_robust, A_law, A_response), each tightened as "
+        f"1 / (1 + {own['a_multiplier']:g} x); the final A is the mean of that A "
+        "and A_gen"
+    )
+    return score
+
+
+def how_you_are_tested(challenge_id, version=None):
     """The "How you are tested" lines of a pool-graded version of
     ``challenge_id``: id, title and text each; the speed line also names this
     Challenge's ceiling per design."""
     ceiling = _SPEED_CEILING_SECONDS[challenge_id]
+    registered = registered_pool(challenge_id, version)
     lines = []
     for line_id, title, text in HOW_TESTED_LINES:
         if line_id == "speed":
             text = text + f" The ceiling for this Challenge is {ceiling} s per design."
+        if registered is not None and line_id == "inverse_design":
+            text = text.replace(
+                "The query budget is not yet registered.",
+                f"The query budget is {registered['query_budget']}.",
+            )
+        if registered is not None and line_id == "optimizer":
+            text = text.replace(
+                "The query budget, the step size and s are not yet registered.",
+                f"The query budget is {registered['query_budget']}, the first step "
+                f"{registered['initial_step']:g} and s {registered['honesty_scale']:g}.",
+            )
         lines.append({"id": line_id, "title": title, "text": text})
+    if registered is not None:
+        lines.append(
+            {
+                "id": "registered_values",
+                "title": "This version's registered values",
+                "text": _registered_text(registered),
+            }
+        )
     return lines
 
 
@@ -898,7 +990,13 @@ def for_version(challenge_id, version):
     }
     if pool:
         block["design_search"] = _DESIGN_SEARCH
-        block["how_you_are_tested"] = how_you_are_tested(challenge_id)
+        block["how_you_are_tested"] = how_you_are_tested(challenge_id, version)
+        registered = registered_pool(challenge_id, version)
+        if registered is not None:
+            block["design_search"] = _with_registered_design_search(
+                _DESIGN_SEARCH, registered
+            )
+            block["score"] = _with_registered_score(block["score"], registered)
         block["speed_gate"] = {
             "ratio": speed_gate.RATIO,
             "rule": "seconds per design <= the reference solver's seconds "
