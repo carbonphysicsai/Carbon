@@ -41,12 +41,28 @@ TORCH = {
     ("chip-cold-plate", "1.4"),
     ("f08-ribbed-bracket", "1.5"),
     ("f02", "2.4"),
-    # The pool-graded versions: the same practice workers (the pool is sealed-only).
+}
+#: The pool-graded versions practise on the same workers (the pool is sealed-only), but a version is offered only
+#: once its owner constants are registered (RESERVED until then; tests/cpu/test_pool_reserved_status.py).
+POOL_TORCH = {
     ("electric-motor-magnetics", "1.5"),
     ("chip-cold-plate", "1.5"),
     ("f08-ribbed-bracket", "1.6"),
     ("f02", "2.5"),
 }
+
+
+def _offered_pool_versions():
+    from carbon.challenge_registry import registry
+
+    return {
+        (e.challenge_id, e.version)
+        for e in registry.entries()
+        if (e.challenge_id, e.version) in POOL_TORCH and e.status == IMPLEMENTED
+    }
+
+
+TORCH |= _offered_pool_versions()
 
 
 def _implemented():

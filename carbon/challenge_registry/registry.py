@@ -371,6 +371,17 @@ def _compile_motor(strategy):
     return compile_recipe(strategy)
 
 
+def _pool_status(challenge_id, version):
+    """A pool-graded version is offered (IMPLEMENTED) only once its owner constants are registered and published;
+    until then it is RESERVED, and the page, which offers by status only, does not offer it. Each version flips in
+    the same change that registers its constants (`scoring/pool_constants.json`, `published_exam._REGISTERED_POOL`;
+    tests/cpu/test_pool_reserved_status.py ties the two)."""
+    from . import published_exam
+
+    registered = published_exam.registered_pool(challenge_id, version) is not None
+    return IMPLEMENTED if registered else RESERVED
+
+
 def _entries():
     from carbon.reconstruction.capability_registry import (
         BATTERY_CHALLENGE,
@@ -558,7 +569,7 @@ def _entries():
             MOTOR_CHALLENGE,
             "1.5",
             "Electric-motor magnetics (DEVELOPMENT periodic cross-section, pool-graded exam, backbone catalog and graph training adapter v2, allowlist v8)",
-            IMPLEMENTED,
+            _pool_status(MOTOR_CHALLENGE, "1.5"),
             "launch",
             "carbonphysicsai/Carbon#344",
             (
@@ -658,7 +669,7 @@ def _entries():
             COLD_PLATE_CHALLENGE,
             "1.5",
             "AI-chip liquid cold plate (DEVELOPMENT periodic cell, pool-graded exam, backbone catalog, graph training adapter v2, allowlist v8, law-safe output encoding)",
-            IMPLEMENTED,
+            _pool_status(COLD_PLATE_CHALLENGE, "1.5"),
             "launch",
             "carbonphysicsai/Carbon#342",
             (
@@ -737,7 +748,7 @@ def _entries():
             "1.6",
             "Ribbed Bracket (F08, DEVELOPMENT, pool-graded exam, backbone catalog and "
             "graph training adapter v2, allowlist v8)",
-            IMPLEMENTED,
+            _pool_status("f08-ribbed-bracket", "1.6"),
             LAUNCH_PENDING_READINESS,
             None,
             (
@@ -810,7 +821,7 @@ def _entries():
             "f02",
             "2.5",
             "Burst Thermal (F02, DEVELOPMENT, pool-graded exam, backbone catalog and graph training adapter v2, allowlist v8)",
-            IMPLEMENTED,
+            _pool_status("f02", "2.5"),
             LAUNCH_PENDING_READINESS,
             None,
             (

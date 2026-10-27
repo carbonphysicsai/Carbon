@@ -29,6 +29,18 @@ EVERYTHING = challenges.HostFacts(
 NOTHING = challenges.HostFacts(frozenset())
 
 
+def _expected_status(challenge_id, version):
+    """A pool-graded version is RESERVED until its owner constants are registered and published (Validator
+    06:55Z; tests/cpu/test_pool_reserved_status.py); every other version of these Challenges is implemented.
+    """
+    from carbon.challenge_registry import published_exam
+
+    if (challenge_id, version) in published_exam._POOL_VERSIONS:
+        registered = published_exam.registered_pool(challenge_id, version) is not None
+        return "IMPLEMENTED" if registered else "RESERVED"
+    return "IMPLEMENTED"
+
+
 def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     listed = {c["challenge_id"]: c for c in challenges.catalog(NOTHING)["challenges"]}
     assert {k for k, c in listed.items() if c["portfolio"] == "launch"} == {
@@ -62,7 +74,7 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     # Cooling 1.5: pool-graded (1.4's construction, the pool grader's exam).
     assert set(cooling) == {"1.0", "1.2", "1.3", "1.4", "1.5"}
     for entry in cooling.values():
-        assert entry["status"] == "IMPLEMENTED"
+        assert entry["status"] == _expected_status(COLD_PLATE, entry["version"])
         # A catalog version adds the one shared GPU practice profile.
         assert {p["profile"] for p in entry["profiles"]} == (
             {"cpu_research"}
@@ -79,7 +91,7 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     # Motor 1.4: graph route v2; Motor 1.5: pool-graded.
     assert set(motor) == {"1.0", "1.2", "1.3", "1.4", "1.5"}
     for entry in motor.values():
-        assert entry["status"] == "IMPLEMENTED"
+        assert entry["status"] == _expected_status(MOTOR, entry["version"])
         # A catalog version adds the one shared GPU practice profile.
         assert {p["profile"] for p in entry["profiles"]} == (
             {"cpu_research"}
