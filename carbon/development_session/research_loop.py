@@ -49,6 +49,7 @@ import asyncio
 import itertools
 import json
 import re
+from pathlib import Path
 
 from carbon.reconstruction.capability_registry import contract_digest
 
@@ -1777,6 +1778,57 @@ def _epoch_paths(ledger, epoch, stage=None):
         root = root / stage
         root.mkdir(mode=0o700, exist_ok=True)
     return root
+
+
+#: What the agent reads for a tool call that was interrupted before its result was
+#: recorded and that Carbon will not repeat (`settle_interrupted_tool_calls`).
+INTERRUPTED_TOOL_RESULT = {
+    "status": "INTERRUPTED",
+    "outcome": "UNKNOWN",
+    "reason": "dispatch_interrupted",
+    "note": (
+        "Carbon stopped while this tool call was running, before its result was "
+        "recorded, and did not run it again. It may or may not have taken effect: "
+        "read the campaign's experiments and results before asking for it again."
+    ),
+    "authority_granted": False,
+}
+
+
+def settle_interrupted_tool_calls(root):
+    """The reconcile action's settlement of tool calls that were interrupted.
+
+    A tool call that leaves the epoch folder is journalled intent first, result
+    after; one with an intent and no result stops a resume ("tool dispatch
+    incomplete; reconcile without duplication"), because running it again could
+    repeat its effect. Reconcile now ends that: each such call (a dispatched
+    research tool; selections, stops and finishes are recomputed by the loop
+    itself) is answered `INTERRUPTED_TOOL_RESULT` and nothing is run, so the
+    resumed loop replays the answer and the agent decides what to do. Returns how
+    many were settled; a call already answered is never touched."""
+    settled = 0
+    for intent_file in sorted(Path(root).glob("epoch-*/**/*-intent.json")):
+        if intent_file.is_symlink() or not intent_file.is_file():
+            continue
+        try:
+            intent = json.loads(intent_file.read_bytes())
+        except (OSError, ValueError):
+            continue
+        if (
+            type(intent) is not dict
+            or set(intent) != {"name", "arguments", "call_id"}
+            or type(intent["name"]) is not str
+            or not intent["name"].startswith(PREFIX)
+        ):
+            continue
+        result_file = intent_file.with_name(
+            intent_file.name[: -len("-intent.json")] + "-result.json"
+        )
+        if result_file.exists():
+            continue
+        write_once(result_file, canonical(INTERRUPTED_TOOL_RESULT))
+        settled += 1
+    return settled
 
 
 async def run_epoch(
