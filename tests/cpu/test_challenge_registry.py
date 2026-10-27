@@ -43,8 +43,9 @@ def _expected_status(challenge_id, version):
 
 def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     listed = {c["challenge_id"]: c for c in challenges.catalog(NOTHING)["challenges"]}
+    # Battery is out of the launch set (OWNER-BATTERY-OUT-OF-LAUNCH-01): implemented and kept,
+    # in the historical portfolio, and not offered to a miner (see test_battery_is_not_offered).
     assert {k for k, c in listed.items() if c["portfolio"] == "launch"} == {
-        BATTERY,
         "chip-cold-plate",
         "electric-motor-magnetics",
         "photonic-coupler",
@@ -59,6 +60,7 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
         "airfoil",
     }
     assert listed[BATTERY]["status"] == "IMPLEMENTED"
+    assert listed[BATTERY]["portfolio"] == "historical_development"
     # Retired from the research path: still listed, never selectable.
     assert listed[r.BURGERS_CHALLENGE]["status"] == "RETIRED"
     assert all(not p["implemented"] for p in listed[r.BURGERS_CHALLENGE]["profiles"])
@@ -305,7 +307,9 @@ def test_discovery_is_on_the_open_tier_and_grants_nothing(tmp_path, monkeypatch)
         return result.structured_content["payload"]
 
     listed = payload(asyncio.run(server.call_tool(PREFIX + "list", {})))
-    assert BATTERY in {c["challenge_id"] for c in listed["challenges"]}
+    # Battery is implemented and kept, but NOT offered: the MCP list follows the one rule.
+    offered = {c["challenge_id"] for c in listed["challenges"]}
+    assert BATTERY not in offered and COLD_PLATE in offered and MOTOR in offered
     described = payload(
         asyncio.run(
             server.call_tool(
@@ -410,3 +414,29 @@ def test_no_code_reads_a_portfolio_prefix_as_launch():
         and loose.search(path.read_text(encoding="utf-8", errors="replace"))
     ]
     assert offenders == []
+
+
+def test_battery_is_not_offered_by_the_one_rule_the_page_the_wizard_and_the_mcp_list_share():
+    """Owner (OWNER-BATTERY-OUT-OF-LAUNCH-01; Lead 2026-10-27): Battery is not offered at launch.
+    The registry's offered rule is the one source: the MCP list and the catalog resource use it,
+    and the Challenges page and the launch wizard filter by the same portfolio."""
+    from pathlib import Path
+
+    full = {c["challenge_id"] for c in challenges.catalog(NOTHING)["challenges"]}
+    offered = challenges.offered_catalog(NOTHING)["challenges"]
+    assert (
+        BATTERY in full
+    )  # still registered, resolvable and described (history, tests)
+    assert BATTERY not in {c["challenge_id"] for c in offered}
+    for item in offered:
+        assert challenges.is_offered(item)
+    # Everything that is not implemented stays listed with its status: it never reads as READY.
+    by_status = {c["status"] for c in offered}
+    assert {"RESERVED", "DEFERRED", "RETIRED"} <= by_status
+    assert challenges.resolve(BATTERY, "1.0", "cpu_research") is not None
+    # The page and the wizard filter by the same portfolio token.
+    app = (
+        Path(__file__).resolve().parents[2] / "scripts/dev/miner_launchpad/app.js"
+    ).read_text(encoding="utf-8")
+    start = app.index("function offeredChallenges()")
+    assert "historical_development" in app[start : app.index("}", start)]
