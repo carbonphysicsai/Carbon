@@ -160,3 +160,17 @@ def test_the_copy_repro_points_the_config_at_the_copy_and_chooses_the_auto_grade
     # the live pool store is never reachable from the copy
     assert "/var/lib/carbon-val/pools" not in json.dumps(grade)
     assert config["port"] == 8769  # the live config is untouched
+
+
+def test_only_reserved_operations_are_listed_for_reconciliation():
+    reconcile = _script("reconcile_dead_operation")
+    listing = [
+        {"id": "regrade-graded-1", "state": "FINISHED", "created": 1.0},
+        {"id": "regrade-timed-9", "state": "RESERVED", "created": 3.0},
+        {"id": "regrade-timed-2", "state": "RESERVED", "created": 2.0},
+        {"id": "seq", "state": "HELD", "created": 0.5},
+    ]
+    assert [op["id"] for op in reconcile.open_operations(listing)] == [
+        "regrade-timed-2",
+        "regrade-timed-9",
+    ]
