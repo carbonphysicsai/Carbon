@@ -38,6 +38,9 @@ _BUNDLE_ORIGINALS = frozenset(
     {"inference_receipt_raw", "predictions_raw", "bundle_evidence_raw"}
 )
 _PAIR_ORIGINALS = frozenset({"inference_pair_raw", "inference_pair_sha256"})
+#: The score pack's hard-gate name of a pool-graded version's single-call speed gate
+#: (`pool_exam.SPEED_GATE`; a test pins the two together, this module must not import the grader).
+POOL_SPEED_GATE = "speed"
 _DUAL_MEASUREMENT_FIELDS = {
     "schema",
     "source_receipt_sha256",
@@ -227,6 +230,7 @@ def _rederive_bundle_measurement(entry, registration, originals, measured_model)
             inference,
             gates=gates,
             timed_query=originals.get("timed_query"),
+            single_call_raw=originals.get("single_call_raw"),
         )
     except (
         source.PrivateEvaluationSourceRefused,
@@ -318,15 +322,32 @@ def _bind_dual_evaluation(
         if type(graph_originals) is dict and "timed_query" in graph_originals
         else set()
     )
+    # A POOL-GRADED version (its score pack carries the speed gate) has no batched timed query: its speed
+    # is the median of the single-design calls, whose host-private evidence rides beside the graded
+    # originals (GPU_REBUILD_RULINGS section 13). Both directions are enforced: a pool pack needs that
+    # evidence and no timed query, and any other pack takes neither.
+    pooled = (
+        {"single_call_raw"}
+        if type(graph_originals) is dict and "single_call_raw" in graph_originals
+        else set()
+    )
+    pool_pack = POOL_SPEED_GATE in (
+        score_pack.get("hard_gates", ()) if type(score_pack) is dict else ()
+    )
+    if (pool_pack and (timed or not pooled)) or (not pool_pack and pooled):
+        raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
     if (
         type(entry) is not dict
         or type(registration) is not dict
         or type(registration.get("cases")) is not list
         or len(registration["cases"]) != 1
         or type(graph_originals) is not dict
-        or set(graph_originals) - _PAIR_ORIGINALS - timed != graded_keys
-        or (paired and set(graph_originals) != graded_keys | _PAIR_ORIGINALS | timed)
-        or any(type(graph_originals[k]) is not bytes for k in graded_keys)
+        or set(graph_originals) - _PAIR_ORIGINALS - timed - pooled != graded_keys
+        or (
+            paired
+            and set(graph_originals) != graded_keys | _PAIR_ORIGINALS | timed | pooled
+        )
+        or any(type(graph_originals[k]) is not bytes for k in graded_keys | pooled)
         or (
             paired
             and (
@@ -368,6 +389,11 @@ def _bind_dual_evaluation(
         {
             **{k: graph_originals[k] for k in _GRADED_ORIGINALS},
             **({"timed_query": graph_originals["timed_query"]} if timed else {}),
+            **(
+                {"single_call_raw": graph_originals["single_call_raw"]}
+                if pooled
+                else {}
+            ),
         }
         if graph
         else None

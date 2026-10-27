@@ -207,11 +207,16 @@ def _graph_saved_inference_binding(entry, inference):
 
 
 def _graph_measurement_binding(measurement, entry, originals, registration):
-    if type(originals) is not dict or set(originals) - {"timed_query"} != {
+    if type(originals) is not dict or set(originals) - {
+        "timed_query",
+        "single_call_raw",
+    } != {
         "inference_receipt_raw",
         "worker_evidence_raw",
     }:
         raise BundleBenchmarkRefused("graph_measurement_originals")
+    if "timed_query" in originals and "single_call_raw" in originals:
+        raise BundleBenchmarkRefused("pool_has_no_timed_query")
     graded = {k: originals[k] for k in ("inference_receipt_raw", "worker_evidence_raw")}
     receipt, worker = _graph_saved_inference_binding(
         entry,
@@ -240,7 +245,12 @@ def _graph_measurement_binding(measurement, entry, originals, registration):
         predictions_raw, "graph_predictions", object_required=False
     )
     source_measurement = receipt.get("measurement")
-    if "timed_query" in originals:
+    if "single_call_raw" in originals:
+        # A pool-graded version: its speed is the single-call median, not a batched query.
+        source_measurement = pool_speed_measurement(
+            registration, originals["single_call_raw"]
+        )
+    elif "timed_query" in originals:
         # Speed's own query, not the graded one (see measurement_from_saved_inference).
         source_measurement = timed_query_receipt(
             entry, registration, originals["timed_query"]
@@ -526,9 +536,46 @@ def _flat_tensor(value, shape):
 
 #: The one timed query v3 speed is read from: a whole registered batch, cold.
 TIMED_SCOPE = "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
+#: A POOL-GRADED version's speed (GPU_REBUILD_RULINGS section 13): the median of the 20
+#: single-design calls on the grading class, the only source of its speed. Such a version has no
+#: batched timed query (a pool bank is larger than any exported graph's declared batch).
+POOL_SPEED_SCOPE = "SINGLE_CALL_MEDIAN_OF_20_ON_THE_GRADING_CLASS"
 _RECEIPT_FIELDS = frozenset(
     {"schema", "recipe_digest", "state_digest", "inputs_digest", "predictions_digest"}
 )
+
+
+def pool_speed_measurement(registration, single_call_raw):
+    """The timing basis of a POOL-GRADED version's measured model, from the receiver's
+    host-private single-call evidence alone (no batched timed query exists for such a version).
+
+    Its speed field is the MEDIAN of the 20 single-design call seconds; the batch shapes are the
+    registration's (the whole bank, the graded query). Missing or malformed evidence is a typed
+    refusal, never an invented figure.
+    """
+    import statistics
+
+    from carbon.development_session import single_call_timing
+
+    try:
+        call_s, _outputs_match = single_call_timing.read_side_file(single_call_raw)
+    except single_call_timing.SingleCallRefused as refused:
+        raise BundleBenchmarkRefused("pool_single_call_evidence") from refused
+    median = statistics.median(call_s)
+    profile = registration["timing_profile"]
+    if not (type(median) in (int, float) and math.isfinite(median) and median > 0):
+        raise BundleBenchmarkRefused("pool_single_call_evidence")
+    return {
+        "scope": POOL_SPEED_SCOPE,
+        "timing_s": {
+            "preprocess": 0.0,
+            "inference": float(median),
+            "postprocess": 0.0,
+            "export": 0.0,
+        },
+        "input_shape": profile["input_shape"],
+        "output_shape": registration["output"]["shape"],
+    }
 
 
 def timed_query_receipt(entry, registration, timed_query):
@@ -609,7 +656,14 @@ def _timed_measurement(measured, registration):
 
 
 def measurement_from_saved_inference(
-    entry, registration, inference, *, gates, build_seconds=None, timed_query=None
+    entry,
+    registration,
+    inference,
+    *,
+    gates,
+    build_seconds=None,
+    timed_query=None,
+    single_call_raw=None,
 ):
     """Map one trusted, measured v2 worker receipt to one v3 batch query.
 
@@ -623,7 +677,13 @@ def measurement_from_saved_inference(
     the graded receipt must itself be that query (unchanged historical v3
     semantics). With it, the graded receipt supplies predictions only and may
     use another query form (per-case grading); its timing is never read.
+
+    A POOL-GRADED version passes `single_call_raw` instead (GPU_REBUILD_RULINGS section 13): its
+    speed is the single-call median, there is no batched timed query, and the graded per-case
+    receipt supplies predictions only. Giving both is refused.
     """
+    if single_call_raw is not None and timed_query is not None:
+        raise BundleBenchmarkRefused("pool_has_no_timed_query")
     if is_dataclass(inference) and not isinstance(inference, type):
         inference = asdict(inference)
     required = {
@@ -677,7 +737,7 @@ def measurement_from_saved_inference(
             and receipt["schema"] == "carbon.development.bundle-inference.v2"
             # An unmeasured per-case graded receipt is valid only beside its
             # pinned timed query, the sole source of timing and shapes.
-            or timed_query is not None
+            or (timed_query is not None or single_call_raw is not None)
             and set(receipt) == _RECEIPT_FIELDS
             and receipt["schema"] == "carbon.development.bundle-inference.v1"
         )
@@ -696,7 +756,9 @@ def measurement_from_saved_inference(
         )
     ):
         raise BundleBenchmarkRefused("saved_inference_binding")
-    if timed_query is None:
+    if single_call_raw is not None:
+        measured = pool_speed_measurement(registration, single_call_raw)
+    elif timed_query is None:
         _timed_measurement(receipt["measurement"], registration)
         measured = receipt["measurement"]
     else:

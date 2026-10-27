@@ -127,7 +127,9 @@ def produce_dual_benchmark_input(
             registration=registration,
             references=references,
             # A pool-graded version's single-design call timing rides beside the graded originals (host-private
-            # side file, `single_call_timing`); it is read by the producer only, never pinned into the receipt.
+            # side file, `single_call_timing`): its speed is the median of those calls and the only speed it
+            # has (GPU_REBUILD_RULINGS section 13), so the binding re-derives the measured model from the same
+            # bytes. The side file itself is never copied into the receipt.
             originals=(
                 graph_originals
                 if single_call_raw is None
@@ -971,8 +973,10 @@ def _authenticated_graph_outputs(entry, registration, originals):
             registration,
             inference,
             gates={name: False for name in registration["mandatory_gates"]},
-            # A per-case graded graph reads timing only from its timed query.
+            # A per-case graded graph reads timing only from its timed query; a pool-graded
+            # version has none and reads its speed from the single-call evidence instead.
             timed_query=originals.get("timed_query"),
+            single_call_raw=originals.get("single_call_raw"),
         )
     except (
         bundle.BundleBenchmarkRefused,
@@ -1035,6 +1039,7 @@ def _authenticated_bundle_outputs(entry, registration, originals):
             inference,
             gates={name: False for name in registration["mandatory_gates"]},
             timed_query=originals.get("timed_query"),
+            single_call_raw=originals.get("single_call_raw"),
         )
     except (
         bundle.BundleBenchmarkRefused,
