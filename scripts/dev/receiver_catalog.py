@@ -80,7 +80,7 @@ def served_runtimes(config) -> dict:
         if "construction_runtimes" in config:
             try:
                 found["python-cpu-py311"] = derived_cpu_parent(primary).image_id
-            except Exception:  # noqa: BLE001 - its CPU parent is then not served
+            except Exception:  # noqa: BLE001, S110 - its CPU parent is then not served
                 pass
     else:
         found["python-cpu-py311"] = primary.image_id
@@ -215,9 +215,7 @@ def install(config, config_path, *, wheelhouse=None) -> dict:
                     receiver_config=Path(config_path),
                     skipped=skipped,
                 )
-            except (
-                Exception
-            ) as failure:
+            except Exception as failure:  # noqa: BLE001 - one entry never stops the rest
                 skipped.append(
                     {
                         **row,
