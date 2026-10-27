@@ -217,7 +217,7 @@ def _availability(lane):
 def for_request(host, request, lanes=None):
     """`toolbox`: one Challenge's toolbox on this host, by its registered id.
     `lanes` overrides the host's (the demo fixture's own)."""
-    from carbon.challenge_registry.campaigns import challenge_ref
+    from carbon.challenge_registry.campaigns import latest_ref
     from scripts.dev.miner_launchpad.controller import Rejected
 
     challenge_id, version = request["challenge"], request.get("challenge_version")
@@ -225,7 +225,9 @@ def for_request(host, request, lanes=None):
         version is not None and type(version) is not str
     ):
         raise Rejected("challenge_required")
-    ref = challenge_ref(challenge_id)
+    # No version named: the SERVED version, the newest open one (not the first
+    # registered, which for Motor and Cooling is the Level-0 1.0 example).
+    ref = latest_ref(challenge_id)
     if version is not None and version != ref["version"]:
         # H6: any registered version of the Challenge, as launch takes it
         # (a toolbox for Motor 1.3 or Cooling 1.2 read challenge_unknown).
