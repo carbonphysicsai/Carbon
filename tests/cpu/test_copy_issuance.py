@@ -3,9 +3,12 @@ create-only owner-only packages, and prints counts and digests only."""
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import stat
+
+from pathlib import Path
 
 import pytest
 from test_copy_delivery import FORMATS, WINDOW, _canonical_pack
@@ -268,3 +271,96 @@ def test_a_batch_without_a_pool_gets_no_speed_key(job):
     summary = issuance.issue(job["config"])
     assert "speed_keys" not in summary
     assert not list((job["tmp"] / "copies").rglob("*.speed-key"))
+
+
+# --- scripts/dev/sealed_exam/import_copy.py: a delivered copy into a validator's pack store ---------
+
+
+def _tool():
+    path = (
+        Path(__file__).resolve().parents[2] / "scripts/dev/sealed_exam/import_copy.py"
+    )
+    spec = importlib.util.spec_from_file_location("import_copy_script", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _copy_file(job, hotkey):
+    canonical = delivery._sha(job["manifest"]).removeprefix("sha256:")
+    return job["tmp"] / "copies" / hotkey / (canonical + ".json")
+
+
+def test_a_hotkeys_copy_imports_to_the_canonical_digest_and_repeats_are_harmless(
+    job, tmp_path, capsys
+):
+    issuance.issue(job["config"])
+    tool = _tool()
+    store = tmp_path / "store"
+    digest = tool.import_one(store, _copy_file(job, ONE), ONE, job["key"].public_key)
+    assert digest == delivery._sha(job["manifest"])
+    assert os.stat(store).st_mode & 0o077 == 0
+    before = sorted(p.name for p in store.iterdir())
+    assert (
+        tool.import_one(store, _copy_file(job, ONE), ONE, job["key"].public_key)
+        == digest
+    )
+    assert sorted(p.name for p in store.iterdir()) == before
+    # the command prints the digest only
+    argv = [
+        "--store",
+        str(tmp_path / "store2"),
+        "--copy",
+        str(_copy_file(job, TWO)),
+        "--hotkey",
+        TWO,
+        "--producer-public-key",
+        job["key"].public_key,
+    ]
+    assert tool.main(argv) == 0
+    out = capsys.readouterr().out
+    assert json.loads(out) == {"canonical_digest": digest}
+
+
+def test_another_hotkeys_copy_or_a_wrong_producer_key_is_refused_and_stores_nothing(
+    job, tmp_path, capsys
+):
+    issuance.issue(job["config"])
+    tool = _tool()
+    store = tmp_path / "store"
+    argv = [
+        "--store",
+        str(store),
+        "--copy",
+        str(_copy_file(job, TWO)),
+        "--hotkey",
+        ONE,  # TWO's copy presented as ONE's
+        "--producer-public-key",
+        job["key"].public_key,
+    ]
+    assert tool.main(argv) == 2
+    assert "refused" in json.loads(capsys.readouterr().err)
+    wrong_key = "00" * 32
+    argv[argv.index(ONE)] = TWO
+    argv[-1] = wrong_key
+    assert tool.main(argv) == 2
+    assert not store.exists() or not [
+        p for p in store.iterdir() if not p.name.startswith(".")
+    ]
+
+
+def test_a_copy_file_that_is_not_json_is_refused(job, tmp_path, capsys):
+    bad = tmp_path / "bad.json"
+    bad.write_text("not json")
+    argv = [
+        "--store",
+        str(tmp_path / "s"),
+        "--copy",
+        str(bad),
+        "--hotkey",
+        ONE,
+        "--producer-public-key",
+        job["key"].public_key,
+    ]
+    assert _tool().main(argv) == 2
+    assert "refused" in json.loads(capsys.readouterr().err)

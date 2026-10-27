@@ -439,3 +439,39 @@ def test_status_shows_auto_grade_failures_to_the_operator(
     shown = receiver_setup.status(state, run=Run(), fetch=lambda url: {})
     assert shown["auto_grade_failed"] == 1
     assert shown["auto_grade_last_failure"] == "x_code"
+
+
+def test_prepare_records_the_speed_sample_key_file_and_refuses_a_bad_one(
+    tmp_path, installed_state, faked
+):
+    """The pool versions' K_speed (written beside the signed copy by the issuance job) is recorded in the
+    configuration; it must be an exact private file, and nothing but its path is stored.
+    """
+    key = tmp_path / "k.speed-key"
+    key.write_bytes(bytes(range(32)))
+    key.chmod(0o600)
+    open_key = tmp_path / "open.speed-key"
+    open_key.write_bytes(bytes(range(32)))
+    open_key.chmod(0o644)
+    for bad in (open_key, tmp_path / "missing.speed-key"):
+        with pytest.raises(
+            receiver_setup.SetupRefused, match="speed_sample_key_file_invalid"
+        ):
+            _prepare(tmp_path, installed_state, speed_sample_key_file=bad)
+        assert not (tmp_path / "receiver-state").exists()
+    done = _prepare(tmp_path, installed_state, speed_sample_key_file=key)
+    assert done["status"] == "RECEIVER_PROFILE_READY"
+    path = tmp_path / "receiver-state/receiver/receiver.json"
+    config = json.loads(path.read_bytes())
+    assert config["speed_sample_key_file"] == str(key)
+    assert bytes(range(32)).hex() not in path.read_text()
+    assert direct_receiver._speed_key(config) == bytes(range(32))
+
+
+def test_prepare_without_the_key_file_records_none(tmp_path, installed_state, faked):
+    _prepare(tmp_path, installed_state)
+    config = json.loads(
+        (tmp_path / "receiver-state/receiver/receiver.json").read_bytes()
+    )
+    assert "speed_sample_key_file" not in config
+    assert direct_receiver._speed_key(config) is None
