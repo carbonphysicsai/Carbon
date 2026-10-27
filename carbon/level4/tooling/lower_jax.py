@@ -47,10 +47,17 @@ def trace(fn, *args):
     caller's own x64 setting is left as it is."""
     import jax
 
-    if wide(args):
-        with jax.enable_x64(True):
-            return jax.make_jaxpr(fn)(*args)
-    return jax.make_jaxpr(fn)(*args)
+    # A graph is traced at JAX's default matmul precision, whatever the process pins: a validator
+    # GPU worker runs with JAX_DEFAULT_MATMUL_PRECISION=highest, which JAX writes into every traced
+    # dot/conv as an explicit precision, and Level-4 intake admits only the default (precision is
+    # a `none` parameter). The graph's meaning is then the same on every device; the pin still
+    # decides the arithmetic when the rebuilt graph RUNS. An explicit precision in the author's own
+    # code is not overridden here and is refused as before.
+    with jax.default_matmul_precision(None):
+        if wide(args):
+            with jax.enable_x64(True):
+                return jax.make_jaxpr(fn)(*args)
+        return jax.make_jaxpr(fn)(*args)
 
 
 def _subjaxprs(value):
