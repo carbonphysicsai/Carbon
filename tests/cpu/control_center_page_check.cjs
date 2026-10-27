@@ -2400,6 +2400,37 @@ scenario("Graphite: the edition is chosen from the controller's list, v1 by defa
   clean(olderPage);
 });
 
+scenario("Graphite: a first launch works by default (practice-only retains; the share fits one call at the ceiling)", async () => {
+  // Test Runner's filming run: without 'retain before submit' a practice-only Graphite launch
+  // was refused 'registration required', and 10% of a 1.5 USD ceiling cannot pay one reserved call.
+  const state = graphiteWorld({setup: practisingSetup()});
+  state.operations = state.operations.map(op => op.operation === "launch" ? {...op, optional: [...op.optional, "submission_policy"]} : op);
+  const page = await open(state);
+  await wizardTo(page, "agent", "graphite");
+  assert.equal(page.$("wizard-retain-before-submit").checked, true, "a miner practising without registering retains by default");
+  assert.equal(page.$("wizard-research-share").value, "10", "with no model-spend ceiling set the share is the controller's default");
+  page.window.CarbonControlCenter.goWizard("limits");
+  await page.advance(0);
+  await page.press(page.$("path-advanced"));
+  await page.type(page.$("ceiling-provider_attempts"), "200");
+  await page.type(page.$("ceiling-provider_nanodollars"), "1.5");
+  page.$("ceiling-provider_nanodollars").blur();
+  await toAgentStep(page);
+  const perCall = state.options.graphite.input_window.launch_default.per_call_reservation_nanodollars;
+  const shown = Number(page.$("wizard-research-share").value);
+  assert.ok(shown > 10, "the default share is raised above 10% so one call fits a 1.5 USD ceiling: " + shown);
+  assert.ok(perCall <= 1.5e9 * shown / 100, "one reserved call fits the share of the ceiling");
+  const body = await launchNow(page, state);
+  assert.equal(body.submission_policy, "retain_only_v1");
+  assert.ok(body.research_share * 1.5e9 >= perCall, "the launch's share pays one call");
+  // A share the miner types is never overridden.
+  await toAgentStep(page);
+  await page.type(page.$("wizard-research-share"), "10");
+  page.$("wizard-research-share").blur();
+  const typed = await launchNow(page, state, "h".repeat(32));
+  assert.equal(typed.research_share, 0.1);
+  clean(page);
+});
 scenario("Graphite: retain before submit is visible, opt-in, and sent only when declared", async () => {
   const state = graphiteWorld();
   state.operations = state.operations.map(op => op.operation === "launch" ? {...op, optional: [...op.optional, "submission_policy"]} : op);

@@ -4428,7 +4428,7 @@
     const retainLabel = el("label", undefined, "check");
     const retainCheck = el("input"); retainCheck.type = "checkbox"; retainCheck.id = "wizard-retain-before-submit";
     retainCheck.addEventListener("change", () => setGraphite({retain: retainCheck.checked}));
-    retainLabel.append(retainCheck, " Retain the selected candidate for review before submit (no commitment or validator submission; off by default)");
+    retainLabel.append(retainCheck, " Retain the selected candidate for review before submit (no commitment or validator submission; off by default, on when you practise without registering)");
     retain.append(retainLabel); box.append(retain);
     // Full: how much of the budget research may use.
     const share = el("div", undefined, "graphite-field"); share.id = "wizard-graphite-share";
