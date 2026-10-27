@@ -71,6 +71,11 @@ SOURCE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
 class DirectRecipeIntake(BatteryIntake):
     """One trusted, registered synthetic DEVELOPMENT contract per listener."""
 
+    #: Reached through a local hop (an ssh forward, the operator's tools): the listener shares one
+    #: loopback address across its clients and answers past capacity with a typed 503; reads
+    #: are not charged to a peer bucket (`battery.intake`, GPU_REBUILD_RULINGS section 12).
+    local_hop = True
+
     def __init__(
         self,
         *,
@@ -112,6 +117,11 @@ class DirectRecipeIntake(BatteryIntake):
         self.adapter = adapter
         #: The receiver's public king view (`koth_public`); None until it publishes one.
         self.koth_view = None
+        #: One writer at a time for the calls that change state (an admission or a source
+        #: stage): the cap, idempotency and the once-per-epoch rule hold exactly under any
+        #: number of concurrent clients (GPU_REBUILD_RULINGS section 12). Reads (the public
+        #: facts, status, the Ladder) never take it.
+        self._write = threading.Lock()
 
     def public(self):
         snapshot = self.window.latest()
@@ -230,7 +240,8 @@ class DirectRecipeIntake(BatteryIntake):
         except AuthFailure as failure:
             return _refused(401, failure.code.value)
         if received.call.tool == RESEARCH_NAMESPACE:
-            return self._stage_source(received)
+            with self._write:
+                return self._stage_source(received)
         fields = {field.name: field.value for field in received.call.fields}
         if received.call.tool == SUBMIT_TOOL:
             if set(fields) != {"strategy_json", "contract_digest"}:
@@ -248,7 +259,7 @@ class DirectRecipeIntake(BatteryIntake):
                 strategy_json=fields["strategy_json"],
                 contract_digest=fields["contract_digest"],
             )
-            result = self.door.evaluate(submitted)
+            result = self._admit(submitted)
             if result["kind"] == "OUTCOME":
                 return Answer(202, result)
             return Answer(
@@ -274,6 +285,11 @@ class DirectRecipeIntake(BatteryIntake):
                 return _refused(400, "feedback_fields")
             return self._feedback(received.receipt.hotkey)
         return _refused(400, "tool")
+
+    def _admit(self, submitted):
+        """The one admission path: a single writer, so a duplicate is admitted once."""
+        with self._write:
+            return self.door.evaluate(submitted)
 
     def _feedback(self, hotkey):
         """The caller's own best and latest Ladder documents for the active exam
@@ -438,7 +454,10 @@ def serve_loopback(
     if config.get("exposure") is not None:
         raise IntakeUnavailable("direct_intake_exposure_unserved")
     httpd = hardened_listener(
-        config, _header_bounded_handler(intake), service="construction-intake"
+        config,
+        _header_bounded_handler(intake),
+        service="construction-intake",
+        local_hop=True,
     )
     # Join already-authenticated bounded handlers before taking the final
     # cancellation snapshot. Otherwise a submit may queue after cancellation.
