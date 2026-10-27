@@ -1018,6 +1018,12 @@ def produce(
     measured, benchmark = benchmark_of(graded_rows, [rows_of(r) for r in repeats])
     graded_total = score(benchmark, pack)["models"][0]["score"]
     timed_query = originals.get("timed_query")
+    pooled = getattr(adapter, "POOL_GRADED", False)
+    if pooled and timed_query is not None:
+        # GPU_REBUILD_RULINGS section 13: a pool-graded version has no batched timed query (its
+        # bank is larger than any exported graph's declared batch); its speed is the single-call
+        # median alone and its timing agreement is `outputs_match_graded`.
+        raise refused("dual_native_pool_has_no_timed_query")
     if timed_query is not None:
         _timed_agreement(
             timed_query,
@@ -1035,7 +1041,11 @@ def produce(
         registration,
         inference,
         gates={k: measured["gates"][k] for k in gates},
-        timed_query=originals.get("timed_query"),
+        **(
+            {"single_call_raw": originals["single_call_raw"]}
+            if pooled
+            else {"timed_query": originals.get("timed_query")}
+        ),
     )
     return model, benchmark, identity
 

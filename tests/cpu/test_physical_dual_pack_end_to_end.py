@@ -524,6 +524,16 @@ def test_unretained_bundle_originals_are_refused(case):
         _produce(case, {**case["originals"], "bundle_evidence_raw": reused})
 
 
+def test_single_call_evidence_is_only_for_a_pool_graded_pack(case):
+    """GPU_REBUILD_RULINGS section 13: a pack without the speed gate takes its batched timed query and
+    refuses a single-call side file (a pool pack takes the side file and refuses a timed query).
+    """
+    with pytest.raises(source.PrivateEvaluationSourceRefused):
+        _produce(
+            case, {**case["originals"], "single_call_raw": b'{"schema":"single-call"}'}
+        )
+
+
 def test_a_pinned_measurement_must_be_what_the_retained_originals_reduce_to(case):
     """A consistent, newly pinned receipt cannot carry a faster timing than the
     retained timed query: the binder recomputes a bundle's measured model."""

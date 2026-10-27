@@ -264,3 +264,21 @@ def test_every_pool_versions_inference_wall_fits_the_carriers_allowance_check(
     seconds = limits["reconstruction_resource_policy"]["inference_wall_seconds_max"]
     wall = rebuild_wall_kwargs(limits).get("rebuild_wall_seconds")
     assert 40 <= seconds <= (wall or 600)
+
+
+@pytest.mark.parametrize(
+    "challenge, version, pool",
+    [
+        ("electric-motor-magnetics", "1.5", True),
+        ("f08-ribbed-bracket", "1.6", True),
+        ("electric-motor-magnetics", "1.4", False),
+        ("battery-aging", "1.0", False),
+    ],
+)
+def test_the_no_timed_query_rule_follows_the_registrys_pool_kind(
+    challenge, version, pool
+):
+    """GPU_REBUILD_RULINGS section 13: only a pool-graded version drops the batched timed query;
+    the registry (never a caller flag) names which versions are pool-graded."""
+    adapter = SimpleNamespace(challenge_id=challenge, challenge_version=version)
+    assert retention._pool_graded_version(adapter) is pool

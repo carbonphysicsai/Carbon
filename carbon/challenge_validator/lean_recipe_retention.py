@@ -1001,6 +1001,11 @@ def _retain_selected_pack_evaluation(
             if pool_exam.SPEED_GATE in score_document.get("hard_gates", ())
             else None
         )
+        if single_call is not None:
+            if "timed_query" in originals:
+                raise RetentionUnavailable("pool_has_no_timed_query")
+            # The binding re-derives the model's speed (the single-call median) from the same bytes.
+            originals["single_call_raw"] = single_call
         prepared = produce_registered_dual_measurement(
             selected_pack=snapshot,
             public_root=discovery.evaluation_pack_public_root,
@@ -1437,6 +1442,16 @@ def _record_ladder(
     except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
         return "UNAVAILABLE: " + str(getattr(exc, "code", type(exc).__name__))
     return "RECORDED"
+
+
+def _pool_graded_version(adapter) -> bool:
+    """Whether the receiver serves a POOL-GRADED version (the registry's pool kind, never a
+    caller flag): Motor 1.5, Cooling 1.5, F08 1.6, F02 2.5."""
+    from carbon.challenge_registry import published_exam
+
+    return (adapter.challenge_id, adapter.challenge_version) in (
+        published_exam._POOL_VERSIONS
+    )
 
 
 def _pack_is_sealed_bank(adapter) -> bool:
@@ -2252,8 +2267,12 @@ def regrade_retained_entry(
     task_root = base / regrade_id
     operations_path = base / (regrade_id + ".regrade-operation.json")
     # Like the origin: the graded query runs one case at a time (v1 receipt, a bank role);
-    # a task that kept the batched cold query for timing gets the same on the new bank.
-    timed = "timed-query-receipt.json" in files
+    # a task that kept the batched cold query for timing gets the same on the new bank,
+    # EXCEPT on a pool-graded version (GPU_REBUILD_RULINGS section 13): its bank is larger
+    # than any exported graph's declared batch, a batched query over it is refused, and its
+    # speed is the single-call median alone, so no batched timed query is run or kept.
+    pool = _pool_graded_version(adapter)
+    timed = "timed-query-receipt.json" in files and not pool
     if (task_root / "inference-receipt.json").exists():
         # A retry reads the retained bytes and never replays an identity.
         task_root = _owner_directory(task_root, "task_artifacts")
@@ -2381,6 +2400,10 @@ def regrade_retained_entry(
     operation = operations["inference_operation"]
 
     artifacts = dict(files)
+    if pool:
+        # The origin task's practice timed query is not a measurement of this bank.
+        artifacts.pop("timed-query-receipt.json", None)
+        artifacts.pop("timed-query-predictions.json", None)
     artifacts["inputs.npz"] = bank_raw
     artifacts["predictions.json"] = predictions
     artifacts["inference-receipt.json"] = receipt_raw
@@ -2547,10 +2570,15 @@ def _graph_regrade_worker_evidence(
             provenance=worker.INFERENCE_PROVENANCE,
         )
     if "timed_receipt" in evidence:
-        evidence.update(
-            timed_operation=timed_result.worker_operation,
-            timed_receipt=json.loads(timed_raw),
-        )
+        if timed_result is None:
+            # No batched timed query on this bank (a pool-graded version): none is claimed.
+            del evidence["timed_receipt"]
+            evidence.pop("timed_operation", None)
+        else:
+            evidence.update(
+                timed_operation=timed_result.worker_operation,
+                timed_receipt=json.loads(timed_raw),
+            )
     return _json(evidence)
 
 

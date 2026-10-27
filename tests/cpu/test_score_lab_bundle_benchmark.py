@@ -785,3 +785,95 @@ def test_graph_v3_original_worker_measurement_reaches_same_unready_engine(tmp_pa
     assert role["status"] == "FAILED_INFRA"
     assert role["counts"]["reference_infra"] == 1
     assert role["counts"]["candidate_invalid"] == 0
+
+
+def _pool_side_file(call_s=None):
+    import json
+
+    from carbon.development_session import single_call_timing
+
+    document = single_call_timing.side_file(
+        indices=list(range(single_call_timing.SAMPLE)),
+        warmup_digest="sha256:" + "8" * 64,
+        call_s=call_s or [0.02 + 0.001 * n for n in range(single_call_timing.SAMPLE)],
+        outputs_match=True,
+        operation="operation-" + "9" * 64,
+    )
+    return json.dumps(document).encode()
+
+
+def _v1_graded(entry):
+    """A per-case graded receipt: no measurement, the v1 form."""
+    inference, receipt = _v2_query(entry, TIMED)
+    receipt = {k: v for k, v in receipt.items() if k != "measurement"}
+    receipt["schema"] = "carbon.development.bundle-inference.v1"
+    return {**inference, "receipt": receipt}
+
+
+def test_a_pool_versions_speed_is_the_single_call_median_with_no_batched_query():
+    """GPU_REBUILD_RULINGS section 13 (valV3, 2026-10-27): a pool bank is larger than any exported
+    graph's declared batch, so a pool-graded version has no batched timed query; its measured model
+    reads its speed from the single-call median alone."""
+    import statistics
+
+    entry, *_rest = fixture()
+    registration = _v2_registration(_rest[2])
+    raw = _pool_side_file()
+    graded = _v1_graded(entry)
+    measured = core_bundle.measurement_from_saved_inference(
+        entry, registration, graded, gates={"toy_gate": True}, single_call_raw=raw
+    )
+    median = statistics.median([0.02 + 0.001 * n for n in range(20)])
+    assert measured["cases"][0]["timing_s"] == {
+        "preprocess": 0.0,
+        "inference": median,
+        "postprocess": 0.0,
+        "export": 0.0,
+    }
+    # The shapes are the registration's: the whole bank, the graded query.
+    assert measured["input_shape"] == registration["timing_profile"]["input_shape"]
+    assert measured["output_shape"] == registration["output"]["shape"]
+    assert measured["cases"][0]["outputs"] == [1.1] * 128
+    assert (
+        core_bundle.pool_speed_measurement(registration, raw)["scope"]
+        == core_bundle.POOL_SPEED_SCOPE
+    )
+
+
+def test_a_pool_version_refuses_a_timed_query_and_missing_or_bad_evidence():
+    entry, *_rest = fixture()
+    registration = _v2_registration(_rest[2])
+    graded = _v1_graded(entry)
+    _, timed_receipt = _v2_query(entry, TIMED)
+    with pytest.raises(bundle.BundleBenchmarkRefused, match="pool_has_no_timed_query"):
+        core_bundle.measurement_from_saved_inference(
+            entry,
+            registration,
+            graded,
+            gates={"toy_gate": True},
+            timed_query=_pinned(timed_receipt),
+            single_call_raw=_pool_side_file(),
+        )
+    for bad in (b"", b"{}", b"not json", _pool_side_file([0.0] * 20)):
+        with pytest.raises(
+            bundle.BundleBenchmarkRefused, match="pool_single_call_evidence"
+        ):
+            core_bundle.measurement_from_saved_inference(
+                entry,
+                registration,
+                graded,
+                gates={"toy_gate": True},
+                single_call_raw=bad,
+            )
+    # Without the evidence a per-case receipt is still refused, as before.
+    with pytest.raises(bundle.BundleBenchmarkRefused):
+        core_bundle.measurement_from_saved_inference(
+            entry, registration, graded, gates={"toy_gate": True}
+        )
+
+
+def test_the_binding_pins_the_pool_speed_gate_name_to_the_graders():
+    from carbon.scoring import pool_exam
+    from carbon.scoring.private_evaluation_evidence import POOL_SPEED_GATE
+
+    assert POOL_SPEED_GATE == pool_exam.SPEED_GATE
