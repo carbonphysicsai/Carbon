@@ -534,6 +534,37 @@ def _traceback_summary(diagnostic):
     return summary
 
 
+def _retain_stage_traceback(operation, stage, error):
+    """The bounded, private traceback of a failure before the fixed program ran.
+
+    `failure-<STAGE>.json` is closed metadata and names no text, so a STAGING, CREATE or START failure
+    (a Docker, filesystem or device fault on this host) gave no way to tell which call failed (a GPU
+    prep that fell back to CPU on a fresh 4090 VM with only `worker_code runtime.failed`). This keeps,
+    beside the operation, the exception chain with its traceback and the controller's own private
+    diagnostic bytes. It is the owner's host's private file, like `private-prep-program-diagnostic.bin`:
+    never part of a public result or a model snapshot. Best effort; it never gates the failure.
+    """
+    try:
+        import traceback
+
+        if stage in ("PROGRAM", "EXPORT") or stage not in _PRACTICE_FAILURE_STAGES:
+            return  # those keep the controller's stderr (`private-*-program-diagnostic.bin`)
+        text = "".join(
+            traceback.format_exception(type(error), error, error.__traceback__)
+        )
+        diagnostic = getattr(error, "private_diagnostic", b"")
+        if type(diagnostic) is bytes and diagnostic:
+            text += "\n-- controller diagnostic --\n" + diagnostic[:16384].decode(
+                "utf-8", "replace"
+            )
+        write_once(
+            operation / ("private-" + stage.lower() + "-traceback.txt"),
+            text.encode("utf-8", "replace")[:32768],
+        )
+    except Exception:  # noqa: BLE001, S110 - diagnostics never gate work
+        pass
+
+
 def _retain_practice_failure(operation, stage, error):
     """Best-effort closed metadata, never exception text or a result artifact."""
     try:
@@ -1008,6 +1039,7 @@ def _fixed_practice_stage(operation, provenance, stage):
         )
         if provenance in _FIXED_DIAGNOSTIC_PROVENANCES:
             _retain_practice_failure(operation, stage, error)
+            _retain_stage_traceback(operation, stage, error)
         if (
             (
                 provenance
