@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import traceback
 from pathlib import Path
 
 SCHEMA = "carbon.challenge-validator.auto-grade-marker.v1"
@@ -44,7 +45,8 @@ class AutoGrader:
         self.entries = base / "entries"
         self.markers = base / "markers"
         self.pool_store = pool_store
-        for directory in (self.artifacts, self.entries, self.markers):
+        self.failures = base / "failures"
+        for directory in (self.artifacts, self.entries, self.markers, self.failures):
             directory.mkdir(mode=0o700, parents=True, exist_ok=True)
 
     def _marker(self, submission_id):
@@ -92,9 +94,11 @@ class AutoGrader:
                 code = getattr(unavailable, "code", None) or str(unavailable)
                 if code in _PENDING or code in _NOT_YET:
                     continue
+                self._keep(submission_id, unavailable)
                 self._fail(submission_id, _code(code))
                 return submission_id, "FAILED"
             except Exception as failure:  # noqa: BLE001 - typed, no private content
+                self._keep(submission_id, failure)
                 self._fail(submission_id, type(failure).__name__)
                 return submission_id, "FAILED"
             entry = result.get("entry_id") if type(result) is dict else None
@@ -105,6 +109,30 @@ class AutoGrader:
             )
             return submission_id, "GRADED"
         return None
+
+    def _keep(self, submission_id, failure):
+        """The full traceback of a failed grade, and a worker failure's closed code and
+        private diagnostic, in this receiver's PRIVATE evidence (``auto-grade/failures/``,
+        owner-only, create-only, one file per task). The marker and the log carry the
+        failure's type or code only; this is where an operator reads WHY (valV3 2026-10-27:
+        a marker said only 'WorkerFailure'). Best effort: it never changes the outcome.
+        """
+        try:
+            path = self.failures / (submission_id + ".txt")
+            diagnostic = getattr(failure, "private_diagnostic", None)
+            code = getattr(failure, "code", None)
+            lines = ["".join(traceback.format_exception(failure))]
+            if code is not None:
+                lines.append(f"code: {getattr(code, 'value', code)}")
+            if type(diagnostic) is bytes and diagnostic:
+                lines.append("private diagnostic (worker output, truncated):")
+                lines.append(diagnostic[:16384].decode("utf-8", "replace"))
+            text = chr(10).join(lines) + chr(10)
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as out:
+                out.write(text)
+        except Exception:  # noqa: BLE001, S110 - evidence is best effort
+            pass
 
     def _fail(self, submission_id, code):
         """Mark the failure and give the grading back on our infrastructure
