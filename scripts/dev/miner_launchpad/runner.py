@@ -5877,6 +5877,16 @@ class RunnerAdapter:
             if reconciling:
                 try:
                     settlement = self._settle_model_calls(ledger)
+                    # Tool calls interrupted before their result was recorded are
+                    # answered "outcome unknown", never run again, so Resume can
+                    # replay them (otherwise it stops: "tool dispatch incomplete").
+                    from carbon.development_session.research_loop import (
+                        settle_interrupted_tool_calls,
+                    )
+
+                    answered = settle_interrupted_tool_calls(root)
+                    if answered and isinstance(settlement, dict):
+                        settlement = {**settlement, "tool_calls_answered": answered}
                 except Exception:  # noqa: BLE001 - settled as it stands, by code
                     settlement = Rejected("operation_not_completed", 409)
             completed = (root / "campaign-complete.json").exists()
