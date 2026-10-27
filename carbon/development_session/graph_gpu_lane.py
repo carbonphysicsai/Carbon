@@ -1,4 +1,4 @@
-"""Which device the validator's graph-route rebuild runs on (GPU-1, GPU_REBUILD_RULINGS_20261026).
+"""Which device the validator's graph-route rebuild runs on (OWNER-GPU-REBUILD-RENTED-4090-01; GPU_REBUILD_RULINGS_20261026).
 
 The graph route is JAX. A validator that holds a JAX GPU worker rebuilds a graph on it only when
 EVERY op of the graph (forward, and so its gradient) is one the hardware class has shown to repeat

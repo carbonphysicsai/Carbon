@@ -1,4 +1,4 @@
-"""The validator's graph-route GPU lane (GPU-1, GPU_REBUILD_RULINGS_20261026).
+"""The validator's graph-route GPU lane (OWNER-GPU-REBUILD-RENTED-4090-01; GPU_REBUILD_RULINGS_20261026).
 
 Claims: a graph rebuilds on the GPU only when the deployment holds a JAX GPU worker and a record of
 ops the hardware class repeats bit for bit, and every op of THAT graph is in it - otherwise it

@@ -267,7 +267,7 @@ class DirectDevelopmentTasksV3:
             or image_resolver is None
         ):
             raise ValueError("per-runtime parents need the per-recipe resolver")
-        # The graph route's own GPU lane (GPU-1): a JAX GPU worker plus the record of ops
+        # The graph route's own GPU lane (OWNER-GPU-REBUILD-RENTED-4090-01): a JAX GPU worker plus the record of ops
         # the hardware class repeats bit for bit; both or neither.
         if (graph_gpu_image is None) != (graph_gpu_ops is None) or (
             graph_gpu_image is not None

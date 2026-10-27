@@ -46,7 +46,7 @@ _OPTIONAL_FIELDS = {
     "challenge",
     "construction_runtimes",
     "auto_grade",
-    # The graph route's GPU lane (GPU-1): a JAX GPU worker and the record of ops its hardware
+    # The graph route's GPU lane (OWNER-GPU-REBUILD-RENTED-4090-01): a JAX GPU worker and the record of ops its hardware
     # class repeats bit for bit. Both or neither.
     "graph_gpu_image_manifest",
     "graph_gpu_ops",

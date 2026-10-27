@@ -1,4 +1,4 @@
-"""GPU-4 findings A, B and C (Validator, 2026-10-26): a GPU harness takes its environment from
+"""The GPU repeat-harness findings A, B and C (Validator, 2026-10-26): a GPU harness takes its environment from
 `accelerators.pinned_environment` alone, names its backend explicitly and refuses a non-GPU one by
 a typed code, and does not compare allocator bookkeeping."""
 
