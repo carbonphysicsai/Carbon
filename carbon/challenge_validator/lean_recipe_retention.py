@@ -727,6 +727,7 @@ def _single_call_raw(
     from carbon.development_session.bundle_construction_worker import (
         INFER_PROGRAM,
         _infer_state,
+        rebuild_wall_kwargs,
     )
     from carbon.development_session.construction_recipe import (
         ConstructionRecipe,
@@ -817,6 +818,10 @@ def _single_call_raw(
             accelerator=getattr(provider, "inference_accelerator", None),
             runner=runner,
             single_call={"indices": indices, "warmup": public},
+            # The version's registered rebuild wall (a graph-route-v2 / pool version's is
+            # longer than the carrier's default 600 s): without it the carrier refuses the
+            # allowance ('bounded worker wall allowance required', valV3 2026-10-27).
+            **rebuild_wall_kwargs(limits),
             **{**graph_query, "program": derived},
         )
         call_s = stage.receipt["single_call"]["call_s"]
@@ -1489,7 +1494,14 @@ def _grade_selected_pack(
 
 
 def _counted_bank_grade(
-    adapter, submission_id, bound, *, pool_store, artifact_directory, entry_directory
+    adapter,
+    submission_id,
+    bound,
+    *,
+    pool_store,
+    artifact_directory,
+    entry_directory,
+    runner=None,
 ):
     """Retain, then grade the retained state over the pack's canonical bank, COUNTED.
 
@@ -1533,6 +1545,7 @@ def _counted_bank_grade(
             entry_directory=entry_directory,
             pool_store=pool_store,
             counted=True,
+            runner=runner,
         )
     except Exception:
         # The grading did not complete: the slot goes back (it is not the miner's result).
@@ -2160,6 +2173,7 @@ def regrade_retained_entry(
         _checked_binding,
         _infer_state,
         _tensors,
+        rebuild_wall_kwargs,
         verify_direct_resource_policy,
     )
     from carbon.development_session.construction_recipe import RecipeRefused
@@ -2316,6 +2330,8 @@ def regrade_retained_entry(
                     seconds=policy["inference_wall_seconds_max"],
                     accelerator=getattr(provider, "inference_accelerator", None),
                     runner=runner,
+                    # The registered rebuild wall, as the ordinary path threads it.
+                    **rebuild_wall_kwargs(limits),
                     **graph_query,
                 )
 

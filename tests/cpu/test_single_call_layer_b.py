@@ -500,3 +500,25 @@ def test_prepare_records_the_graph_gpu_lane_or_refuses_half_of_it(tmp_path):
         "graph_gpu_image_manifest",
         "graph_gpu_ops",
     } <= direct_receiver._OPTIONAL_FIELDS
+
+
+def test_the_stage_carries_the_versions_registered_rebuild_wall(stage):
+    """valV3, 2026-10-27: the single-call stage ran with the policy's inference seconds but
+    not the version's rebuild wall, so a version whose wall exceeds the carrier's 600 s
+    default was refused ('bounded worker wall allowance required')."""
+    from carbon.challenge_kit.version_registry import REBUILD_LIMIT_SECONDS
+
+    policy = stage.adapter.discovery._material["construction_limits_document"][
+        "reconstruction_resource_policy"
+    ]
+    _run(stage)
+    assert "rebuild_wall_seconds" not in stage.calls[-1]  # a 600 s version is unchanged
+    policy.update(
+        build_wall_seconds_max=REBUILD_LIMIT_SECONDS,
+        inference_wall_seconds_max=REBUILD_LIMIT_SECONDS,
+    )
+    (stage.private_dir / "single-call.json").unlink()
+    _run(stage)
+    sent = stage.calls[-1]
+    assert sent["rebuild_wall_seconds"] == REBUILD_LIMIT_SECONDS
+    assert sent["seconds"] == REBUILD_LIMIT_SECONDS

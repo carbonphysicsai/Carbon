@@ -235,3 +235,32 @@ def test_an_exhausted_allowance_is_refused_before_inference_for_the_counted_flow
     adapter = _adapter(cap, CONTRACT)
     result = _counted(adapter, "rtsk_a", monkeypatch, pytest.fail)
     assert result["private_evaluation_reason"] == "epoch_limit_reached"
+
+
+@pytest.mark.parametrize(
+    ("challenge", "version"),
+    [
+        ("electric-motor-magnetics", "1.5"),
+        ("chip-cold-plate", "1.5"),
+        ("f08-ribbed-bracket", "1.6"),
+        ("f02", "2.5"),
+    ],
+)
+def test_every_pool_versions_inference_wall_fits_the_carriers_allowance_check(
+    challenge, version
+):
+    """The carrier accepts `40 <= seconds <= rebuild wall (default 600)`. Each pool version's
+    registered inference wall must pass it once the version's rebuild wall is threaded (the
+    bank inference, the single-call stage and the repeat pair all run under it)."""
+    from carbon.challenge_kit import f02_public, f08_public, physical_public
+    from carbon.development_session.bundle_construction_worker import (
+        rebuild_wall_kwargs,
+    )
+
+    source = {"f08-ribbed-bracket": f08_public, "f02": f02_public}.get(
+        challenge, physical_public
+    )
+    limits = source.construction_limits_document(challenge, version)
+    seconds = limits["reconstruction_resource_policy"]["inference_wall_seconds_max"]
+    wall = rebuild_wall_kwargs(limits).get("rebuild_wall_seconds")
+    assert 40 <= seconds <= (wall or 600)
