@@ -1467,7 +1467,7 @@ class DirectDevelopmentTasksV3:
         ):
             raise ValueError("retained direct result custody differs")
         if measured:
-            from .bundle_construction_worker import _tensors
+            from .bundle_construction_worker import _per_call_ok, _tensors
 
             # The graded query runs one case at a time; the measurement belongs
             # to the separate batched cold query kept only for timing.
@@ -1492,6 +1492,33 @@ class DirectDevelopmentTasksV3:
             # The program reports the canonical name ("float64"); registered
             # interfaces may spell the same dtype "<f8" (F08: "<f4").
             expected_dtype = str(np.dtype(output_dtype(material["interface_document"])))
+            practice = material["practice_inputs"]
+            # The timed child runs the first `rows` practice rows when the
+            # exported graph's declared batch is smaller than the practice query
+            # (a static-batch graph refuses a larger one), so its receipt
+            # describes that prefix of the practice inputs, bound exactly by the
+            # prefix's digest. A full-size query is the `rows == len(practice)`
+            # case. The derived timed program also reports `per_call_s`.
+            shape = (
+                measurement.get("input_shape") if type(measurement) is dict else None
+            )
+            rows = (
+                shape[0]
+                if type(shape) is list
+                and shape
+                and type(shape[0]) is int
+                and 0 < shape[0] <= len(practice)
+                else len(practice)
+            )
+            prefix = practice[:rows]
+            fields = {
+                "scope",
+                "timing_s",
+                "input_shape",
+                "input_dtype",
+                "output_shape",
+                "output_dtype",
+            }
             if (
                 set(inference)
                 != {
@@ -1503,23 +1530,15 @@ class DirectDevelopmentTasksV3:
                     "measurement",
                 }
                 or type(measurement) is not dict
-                or set(measurement)
-                != {
-                    "scope",
-                    "timing_s",
-                    "input_shape",
-                    "input_dtype",
-                    "output_shape",
-                    "output_dtype",
-                }
+                or not fields <= set(measurement) <= fields | {"per_call_s"}
+                or not _per_call_ok(measurement.get("per_call_s"), rows)
                 or measurement["scope"]
                 != "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
-                or inference["inputs_digest"]
-                != digest(_tensors(inputs=material["practice_inputs"]))
-                or measurement["input_shape"] != list(material["practice_inputs"].shape)
-                or measurement["input_dtype"] != str(material["practice_inputs"].dtype)
+                or inference["inputs_digest"] != digest(_tensors(inputs=prefix))
+                or measurement["input_shape"] != list(prefix.shape)
+                or measurement["input_dtype"] != str(prefix.dtype)
                 or measurement["output_shape"]
-                != list(material["expected_output_shape"])
+                != [rows, *list(material["expected_output_shape"])[1:]]
                 or measurement["output_dtype"] != expected_dtype
                 or type(measurement["timing_s"]) is not dict
                 or set(measurement["timing_s"])

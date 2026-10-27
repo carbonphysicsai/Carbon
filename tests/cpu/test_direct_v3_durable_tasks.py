@@ -1092,6 +1092,165 @@ def test_retained_v2_measurement_is_bound_to_profile_and_shape(tmp_path, monkeyp
         reopened.close()
 
 
+def _measured_success(tmp_path, monkeypatch, *, rows, per_call, corrupt=None):
+    """A reopened provider whose retained SUCCESS evidence carries a timed
+    receipt for the first `rows` practice rows (None: all of them) and the given
+    `per_call_s`; `corrupt` edits the measurement or the receipt first."""
+    from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
+
+    material = bundle_material_v5()
+    request, provider, _ = _fixture(tmp_path, monkeypatch, material=material)
+    tasks = provider()
+    started = tasks.start_research_task(request, measure_query=True)
+    raw = json.dumps(
+        material["practice_reference"].tolist(), separators=(",", ":")
+    ).encode()
+    prediction_digest = digest(raw)
+    state_digest = "sha256:" + "a" * 64
+    now = started.task.updated_at_micros + 1
+    terminal = research.DirectTaskReceiptV3(
+        started.task.task_id,
+        research.DirectTaskStateV3.SUCCEEDED,
+        started.task.immutable_bindings,
+        state_digest,
+        prediction_digest,
+        None,
+        None,
+        now,
+        ("PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY",),
+    )
+    succeeded = replace(
+        started.task,
+        state=research.DirectTaskStateV3.SUCCEEDED,
+        revision=1,
+        updated_at_micros=now,
+        terminal_receipt=terminal,
+    )
+    practice = material["practice_inputs"]
+    count = len(practice) if rows is None else rows
+    prefix = practice[:count]
+    recipe_digest = ConstructionRecipe.from_dict(request.recipe).digest
+    measurement = {
+        "scope": "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE",
+        "timing_s": {
+            "preprocess": 0.1,
+            "inference": 0.2,
+            "postprocess": 0.1,
+            "export": 0.1,
+        },
+        "input_shape": list(prefix.shape),
+        "input_dtype": str(prefix.dtype),
+        "output_shape": [count, *list(material["expected_output_shape"])[1:]],
+        "output_dtype": material["interface_document"]["outputs"]["dtype"],
+    }
+    if per_call is not None:
+        measurement["per_call_s"] = per_call
+    timed = {
+        "schema": "carbon.development.bundle-inference.v2",
+        "recipe_digest": recipe_digest,
+        "state_digest": state_digest,
+        "inputs_digest": digest(bundle_construction_worker._tensors(inputs=prefix)),
+        "predictions_digest": prediction_digest,
+        "measurement": measurement,
+    }
+    if corrupt is not None:
+        corrupt(timed)
+    private = {
+        "state_digest": state_digest,
+        "predictions_digest": prediction_digest,
+        "predictions_raw_base64": base64.b64encode(raw).decode("ascii"),
+        "inference_receipt": {
+            "schema": "carbon.development.bundle-inference.v1",
+            "recipe_digest": recipe_digest,
+            "state_digest": state_digest,
+            "inputs_digest": digest(
+                bundle_construction_worker._tensors(inputs=practice)
+            ),
+            "predictions_digest": prediction_digest,
+        },
+        "timed_operation": "operation-" + "9" * 64,
+        "timed_receipt": timed,
+    }
+    with tasks._db() as db:
+        db.execute(
+            "INSERT INTO direct_evidence VALUES(?,?)",
+            (started.task.task_id.value, canonical(private)),
+        )
+        db.execute(
+            "UPDATE direct_tasks SET view=? WHERE id=?",
+            (research.canonical_bytes(succeeded), started.task.task_id.value),
+        )
+    tasks._views[started.task.task_id.value] = succeeded
+    tasks.close()
+    return provider, started.task.task_id
+
+
+def _practice_rows():
+    from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
+
+    return len(bundle_material_v5()["practice_inputs"])
+
+
+@pytest.mark.parametrize("shape", ["full", "prefix"])
+@pytest.mark.parametrize("per_call", [None, "figures"])
+def test_retained_measurement_accepts_a_practice_prefix_and_per_call_figures(
+    tmp_path, monkeypatch, shape, per_call
+):
+    """valV3 2026-10-27: the timed child runs the first rows of the practice query
+    when the exported graph's batch is smaller, and the derived timed program adds
+    `per_call_s`; the reopened provider refused both ('retained direct measurement
+    differs') and the receiver failed every second. Both are now accepted, bound
+    to the exact practice rows."""
+    total = _practice_rows()
+    rows = None if shape == "full" else max(1, total // 2)
+    figures = None if per_call is None else [0.01] * (rows or total)
+    provider, task_id = _measured_success(
+        tmp_path, monkeypatch, rows=rows, per_call=figures
+    )
+    reopened = provider()  # restoring verifies the retained evidence
+    try:
+        assert reopened.public_result(reopened._views[task_id.value]) is not None
+    finally:
+        reopened.close()
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "more_per_call_than_rows",
+        "bad_per_call_value",
+        "wrong_prefix_digest",
+        "rows_over_practice",
+        "other_key",
+    ],
+)
+def test_retained_measurement_still_refuses_what_it_does_not_describe(
+    tmp_path, monkeypatch, case
+):
+    total = _practice_rows()
+    half = max(1, total // 2)
+
+    def corrupt(timed):
+        measurement = timed["measurement"]
+        if case == "wrong_prefix_digest":
+            timed["inputs_digest"] = "sha256:" + "d" * 64
+        elif case == "rows_over_practice":
+            measurement["input_shape"][0] = total + 1
+            measurement["output_shape"][0] = total + 1
+        elif case == "other_key":
+            measurement["note"] = "x"
+
+    per_call = {
+        "more_per_call_than_rows": [0.01] * (half + 1),
+        "bad_per_call_value": [0.01] * (half - 1) + [0.0],
+    }.get(case)
+    provider, _ = _measured_success(
+        tmp_path, monkeypatch, rows=half, per_call=per_call, corrupt=corrupt
+    )
+    with pytest.raises(ValueError, match="retained direct measurement differs"):
+        provider()  # restoring verifies the retained evidence
+
+
 def test_direct_v3_forged_c03_result_without_ledger_controls_is_unresolved(
     tmp_path, monkeypatch
 ):
