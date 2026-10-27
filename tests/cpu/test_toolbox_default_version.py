@@ -22,7 +22,9 @@ CHALLENGES = (
 def test_no_version_is_the_newest_open_version_not_the_first_registered(challenge):
     from carbon.challenge_registry.registry import entries
 
-    versions = [e.version for e in entries() if e.challenge_id == challenge and e.version]
+    versions = [
+        e.version for e in entries() if e.challenge_id == challenge and e.version
+    ]
     served = latest_ref(challenge)["version"]
     assert served == max(versions, key=lambda v: tuple(map(int, v.split("."))))
     document = toolbox.for_request(None, {"challenge": challenge}, lanes={})
