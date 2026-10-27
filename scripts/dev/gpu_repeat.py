@@ -51,15 +51,18 @@ def stable(run_record):
     return {k: v for k, v in run_record.items() if k not in NOT_COMPARED}
 
 
-def pinned(repo, allow_cpu):
-    """Set Carbon's pinned environment in this process, before any framework loads; return it."""
+def pinned(repo, allow_cpu, environ=None):
+    """Set Carbon's pinned environment in `environ` (this process's, when omitted), before any
+    framework loads; return it. A caller that is not the harness's own process passes its own
+    mapping: the pinned `JAX_DEFAULT_MATMUL_PRECISION` makes a graph lowered afterwards in the
+    same process carry a non-default `precision`, which graph intake refuses."""
     sys.path.insert(0, str(repo))
     from carbon.reconstruction.accelerators import GPU_PROFILE, pinned_environment
 
     environment = pinned_environment(GPU_PROFILE)
     if allow_cpu:
         environment = {**environment, "JAX_PLATFORMS": "cpu"}
-    os.environ.update(environment)
+    (os.environ if environ is None else environ).update(environment)
     return environment
 
 
