@@ -3758,6 +3758,15 @@
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
+   "bundle_refs": {
+    "torch-cu130-py311": {
+     "bundle_digest": "sha256:ac932f87f4790a94a2165a19bc9a53f8f88e062b02f1dcd07737252d4d3fa32b",
+     "environment_digest": "sha256:4edad0a6e6f4f6eaf1110146674a6849f41b9b4340f0fc079fa021a85b89ae67",
+     "language": "python",
+     "runtime_profile_id": "torch-cu130-py311",
+     "schema": "carbon.library-bundle-ref.v1"
+    }
+   },
    "catalog_id": "v2.f02.cno.CNO1d",
    "challenges": [
     {
@@ -3817,6 +3826,15 @@
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
+   },
+   "bundle_refs": {
+    "jax-cuda13-py311": {
+     "bundle_digest": "sha256:c0af0cf5c442cdd6ede976014a8b1986f576b6021298dda3d0273fd3b779f5a5",
+     "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
+     "language": "python",
+     "runtime_profile_id": "jax-cuda13-py311",
+     "schema": "carbon.library-bundle-ref.v1"
+    }
    },
    "catalog_id": "v2.f02.jno.bcat",
    "challenges": [
@@ -5128,6 +5146,15 @@
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
+   "bundle_refs": {
+    "torch-cu130-py311": {
+     "bundle_digest": "sha256:c4911eaf9aac084a8d47eb89da40130f2cdf451526643f3b37c1383e2a1ceac4",
+     "environment_digest": "sha256:4edad0a6e6f4f6eaf1110146674a6849f41b9b4340f0fc079fa021a85b89ae67",
+     "language": "python",
+     "runtime_profile_id": "torch-cu130-py311",
+     "schema": "carbon.library-bundle-ref.v1"
+    }
+   },
    "catalog_id": "v2.f08.cno.CNO1d",
    "challenges": [
     {
@@ -5187,6 +5214,15 @@
     "language": "python",
     "runtime_profile_id": "python-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
+   },
+   "bundle_refs": {
+    "jax-cuda13-py311": {
+     "bundle_digest": "sha256:cf0740627597fe4d743bcc15cca34a0feeca50cc6942e4cec9868a049b17317e",
+     "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
+     "language": "python",
+     "runtime_profile_id": "jax-cuda13-py311",
+     "schema": "carbon.library-bundle-ref.v1"
+    }
    },
    "catalog_id": "v2.f08.jno.bcat",
    "challenges": [

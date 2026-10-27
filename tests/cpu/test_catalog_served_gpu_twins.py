@@ -1,4 +1,4 @@
-"""GPU-2: the GPU twins of the served v2 examples (Motor, Cooling), from the existing transform.
+"""GPU-2/GPU-3: the GPU twins of the served v2 examples (Motor, Cooling, F08, F02), from the existing transform.
 
 The twin is the CPU build plus the registered change and nothing else
 (`pipeline.verify` re-derives it). It is listed under `bundle_refs`, so the
@@ -20,6 +20,10 @@ TWINS = {
     "v2.cooling.cno.CNO1d": gpu_build.PROFILE,
     "v2.motor.jno.bcat": gpu_build.JAX_PROFILE,
     "v2.cooling.jno.bcat": gpu_build.JAX_PROFILE,
+    "v2.f08.cno.CNO1d": gpu_build.PROFILE,
+    "v2.f02.cno.CNO1d": gpu_build.PROFILE,
+    "v2.f08.jno.bcat": gpu_build.JAX_PROFILE,
+    "v2.f02.jno.bcat": gpu_build.JAX_PROFILE,
 }
 
 
@@ -70,6 +74,8 @@ def test_the_served_document_does_not_name_the_gpu_builds():
     for challenge, version in (
         ("electric-motor-magnetics", "1.4"),
         ("chip-cold-plate", "1.4"),
+        ("f08-ribbed-bracket", "1.5"),
+        ("f02", "2.4"),
     ):
         text = json.dumps(served.document(challenge, version))
         assert (
@@ -78,10 +84,20 @@ def test_the_served_document_does_not_name_the_gpu_builds():
 
 
 def test_the_cno1d_twins_carry_the_one_warn_only_change_and_the_jax_twins_none():
-    for catalog_id in ("v2.motor.cno.CNO1d", "v2.cooling.cno.CNO1d"):
+    for catalog_id in (
+        "v2.motor.cno.CNO1d",
+        "v2.cooling.cno.CNO1d",
+        "v2.f08.cno.CNO1d",
+        "v2.f02.cno.CNO1d",
+    ):
         assert catalog_id in gpu_build.WARN_ONLY_DETERMINISM
         assert gpu_receipt.required_kind(catalog_id) == "smoke"
-    for catalog_id in ("v2.motor.jno.bcat", "v2.cooling.jno.bcat"):
+    for catalog_id in (
+        "v2.motor.jno.bcat",
+        "v2.cooling.jno.bcat",
+        "v2.f08.jno.bcat",
+        "v2.f02.jno.bcat",
+    ):
         assert catalog_id not in gpu_build.WARN_ONLY_DETERMINISM
         assert gpu_receipt.required_kind(catalog_id) == "repeat"
         root = pipeline.BUNDLES / catalog_id
