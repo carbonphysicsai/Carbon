@@ -654,3 +654,52 @@ def test_gpu_check_names_a_missing_device_record_and_an_empty_request(
         )
     with pytest.raises(receiver_setup.SetupRefused, match="no_gpu_lane_named"):
         receiver_setup.gpu_check(checks=_TestnetChecks(), device=_Device())
+
+
+def test_prepare_writes_auto_grade_only_when_asked(tmp_path, installed_state, faked):
+    """valV3, 2026-10-27: prepare never wrote auto_grade, so every miner task waited for a manual
+    operator step. `auto_grade` is opt-in, with an optional existing pool store."""
+    path = tmp_path / "receiver-state/receiver/receiver.json"
+    _prepare(tmp_path, installed_state)
+    assert "auto_grade" not in json.loads(path.read_bytes())
+    path.unlink()
+    (tmp_path / "receiver-state").rename(tmp_path / "first")
+    store = tmp_path / "pool.sqlite3"
+    _prepare(tmp_path, installed_state, auto_grade=True)
+    assert json.loads(path.read_bytes())["auto_grade"] == {}
+    (tmp_path / "receiver-state").rename(tmp_path / "second")
+    _prepare(tmp_path, installed_state, auto_grade=True, auto_grade_pool_store=store)
+    assert json.loads(path.read_bytes())["auto_grade"] == {"pool_store": str(store)}
+
+
+@pytest.mark.parametrize(
+    ("extra", "code"),
+    [
+        (
+            {"auto_grade_pool_store": "/abs/pool.sqlite3"},
+            "auto_grade_pool_store_without_auto_grade",
+        ),
+        (
+            {"auto_grade": True, "auto_grade_pool_store": Path("relative.sqlite3")},
+            "auto_grade_pool_store_invalid",
+        ),
+        (
+            {"auto_grade": True, "pack_set_key": "set-key"},
+            "auto_grade_pack_set_unsupported",
+        ),
+    ],
+)
+def test_prepare_refuses_inconsistent_auto_grade_options(
+    tmp_path, installed_state, faked, extra, code
+):
+    extra = {
+        key: (
+            Path(value)
+            if key == "auto_grade_pool_store" and isinstance(value, str)
+            else value
+        )
+        for key, value in extra.items()
+    }
+    with pytest.raises(receiver_setup.SetupRefused, match=code):
+        _prepare(tmp_path, installed_state, **extra)
+    assert not (tmp_path / "receiver-state").exists()

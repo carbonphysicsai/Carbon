@@ -298,6 +298,8 @@ def prepare(
     checks=None,
     permits=None,
     speed_sample_key_file: Path | None = None,
+    auto_grade: bool = False,
+    auto_grade_pool_store: Path | None = None,
     graph_gpu_image_manifest: Path | None = None,
     graph_gpu_ops: Path | None = None,
     gpu_construction_images: tuple = (),
@@ -334,6 +336,25 @@ def prepare(
     )
     from scripts.dev.miner_launchpad.runner import PROFILE_SCHEMA, validated_profile
 
+    if auto_grade_pool_store is not None and not auto_grade:
+        raise SetupRefused(
+            "auto_grade_pool_store_without_auto_grade",
+            "--auto-grade-pool-store only applies together with --auto-grade.",
+        )
+    if auto_grade and pack_set_key is not None:
+        # the receiver refuses this pair at start-up (auto_grade_pack_set_unsupported)
+        raise SetupRefused(
+            "auto_grade_pack_set_unsupported",
+            "a pack-set receiver is graded by the operator step, not by auto-grade.",
+        )
+    if (
+        auto_grade_pool_store is not None
+        and not Path(auto_grade_pool_store).is_absolute()
+    ):
+        raise SetupRefused(
+            "auto_grade_pool_store_invalid",
+            "give the exact absolute path of the existing pool store.",
+        )
     if speed_sample_key_file is not None:
         # validated before anything is written, so a refusal leaves no half-prepared state
         try:
@@ -499,6 +520,13 @@ def prepare(
         config["evaluation_pack_set"] = pack_set
     if speed_sample_key_file is not None:
         config["speed_sample_key_file"] = str(speed_sample_key_file)
+    if auto_grade:
+        # The serving process retains and grades each SUCCEEDED task itself (auto_grade.py).
+        config["auto_grade"] = (
+            {}
+            if auto_grade_pool_store is None
+            else {"pool_store": str(auto_grade_pool_store)}
+        )
     config.update(gpu_keys)
     write_private(config_path, canonical(config))
     load_config(config_path)
@@ -877,6 +905,17 @@ def main(argv=None) -> int:
         help="the pool versions' K_speed file (written beside the signed copy by the issuance job)",
     )
     prep.add_argument(
+        "--auto-grade",
+        action="store_true",
+        help="write auto_grade into the receiver configuration: the serving process retains and grades "
+        "each task that reaches SUCCEEDED, so no operator step is needed per miner task",
+    )
+    prep.add_argument(
+        "--auto-grade-pool-store",
+        type=Path,
+        help="with --auto-grade: the existing pool store (absolute path) the grade is recorded in",
+    )
+    prep.add_argument(
         "--graph-gpu-image-manifest",
         type=Path,
         help="the registered JAX GPU worker's image manifest (graph GPU lane; with --graph-gpu-ops)",
@@ -940,6 +979,8 @@ def main(argv=None) -> int:
                 port=args.port,
                 lifetime_seconds=args.lifetime_seconds,
                 speed_sample_key_file=args.speed_sample_key_file,
+                auto_grade=args.auto_grade,
+                auto_grade_pool_store=args.auto_grade_pool_store,
                 graph_gpu_image_manifest=args.graph_gpu_image_manifest,
                 graph_gpu_ops=args.graph_gpu_ops,
                 gpu_construction_images=tuple(args.gpu_construction_image),
