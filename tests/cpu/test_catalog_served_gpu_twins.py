@@ -1,4 +1,4 @@
-"""GPU-2/GPU-3: the GPU twins of the served v2 examples (Motor, Cooling, F08, F02), from the existing transform.
+"""The GPU twins of the served v2 examples (Motor, Cooling, F08, F02), from the existing transform.
 
 The twin is the CPU build plus the registered change and nothing else
 (`pipeline.verify` re-derives it). It is listed under `bundle_refs`, so the

@@ -32,7 +32,7 @@ def withdrawn_twins():
     return set(derivation["gpu_twins_withdrawn"]["ids"])
 
 
-#: The v2 entries that have their GPU twin so far (GPU-2/GPU-3, 2026-10-26: the served Motor, Cooling, F08 and F02 examples); the
+#: The v2 entries that have their GPU twin so far (2026-10-26, the served-example twins: the served Motor, Cooling, F08 and F02 examples); the
 #: other v2 entries come with the rest of the GPU line.
 V2_TWINNED = {
     "v2.motor.cno.CNO1d",
