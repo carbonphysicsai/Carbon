@@ -468,17 +468,33 @@ def test_prepare_records_the_graph_gpu_lane_or_refuses_half_of_it(tmp_path):
                 **kwargs,
             )
         assert refused.value.code == "graph_gpu_lane_incomplete"
-    with pytest.raises(receiver_setup.SetupRefused) as refused:
-        receiver_setup.prepare(
-            installed_state=tmp_path / "i",
-            receiver_state=tmp_path / "r",
-            challenge={"id": "x", "version": "1"},
-            hotkey="h",
-            graph_gpu_image_manifest=tmp_path / "missing.json",
-            graph_gpu_ops=ops,
-        )
-    assert refused.value.code == "graph_gpu_lane_file_invalid"
-    assert not (tmp_path / "r").exists()
+    # one code per field (GPU-8's receipted codes): the field that is not an exact existing file
+    for kwargs, code in (
+        (
+            {
+                "graph_gpu_image_manifest": tmp_path / "missing.json",
+                "graph_gpu_ops": ops,
+            },
+            "graph_gpu_image_manifest_invalid",
+        ),
+        (
+            {
+                "graph_gpu_image_manifest": manifest,
+                "graph_gpu_ops": tmp_path / "missing.json",
+            },
+            "graph_gpu_ops_invalid",
+        ),
+    ):
+        with pytest.raises(receiver_setup.SetupRefused) as refused:
+            receiver_setup.prepare(
+                installed_state=tmp_path / "i",
+                receiver_state=tmp_path / "r",
+                challenge={"id": "x", "version": "1"},
+                hotkey="h",
+                **kwargs,
+            )
+        assert refused.value.code == code
+        assert not (tmp_path / "r").exists()
     # the receiver accepts exactly the two fields together
     assert {
         "graph_gpu_image_manifest",
