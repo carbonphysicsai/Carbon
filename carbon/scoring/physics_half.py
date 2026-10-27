@@ -194,11 +194,18 @@ def law_benefit(residuals):
     return 1.0 / (1.0 + r), {"mean_residual_by_law": means, "mean_residual": r}
 
 
-def response_benefit(groups, inputs_of, outputs_of, spec, spread):
+def response_benefit(
+    groups, inputs_of, outputs_of, spec, spread, exponent_override=None
+):
     """``(A_response, record)``. ``groups``: `probe_design.groups` output over
     probe-row indices; ``inputs_of(i)``/``outputs_of(i)`` give a probe row inputs
     and predicted outputs (lists of floats); ``spread`` is per output. Returns
-    ``(None, record)`` when a probe prediction is unusable (a candidate fault)."""
+    ``(None, record)`` when a probe prediction is unusable (a candidate fault).
+
+    ``exponent_override(group, j, d, registered)`` (optional) gives the reference exponent of one probe group
+    for output ``j`` and input ``d`` (the registered one is passed in; the band stays the registered band): a
+    Challenge whose sensitivity is not one power law across its box anchors the reference on the solver's local
+    slope per group. Omitted, every group is held to the registered exponent."""
     validate_response(spec)
     n_in, n_out = len(spec["inputs"]), len(spec["outputs"])
     errors, slopes = [], {}
@@ -216,12 +223,12 @@ def response_benefit(groups, inputs_of, outputs_of, spec, spread):
             for j in range(n_out):
                 slope = ((yp[j] - ym[j]) / y0[j]) / dx
                 slopes.setdefault((j, d), []).append(slope)
-                if spec["exponent"][j][d] is None:
+                reference = spec["exponent"][j][d]
+                if reference is None:
                     continue  # a sign-gate-only pair: no registered size
-                gap = max(
-                    0.0,
-                    abs(slope - spec["exponent"][j][d]) - spec["band"][j][d],
-                )
+                if exponent_override is not None:
+                    reference = exponent_override(group, j, d, reference)
+                gap = max(0.0, abs(slope - reference) - spec["band"][j][d])
                 errors.append(gap * abs(y0[j]) * (spec["span"][d] / x0[d]) / spread[j])
     mean_slope = {key: fmean(values) for key, values in slopes.items()}
     failed = []

@@ -30,6 +30,8 @@ CONSTANTS = Path(__file__).with_name("pool_constants.json")
 SCHEMA = "carbon.pool.constants.v1"
 HUMAN_INPUT = "HUMAN_INPUT"
 POOL_KEY = "pool"
+#: Optional material field: per-probe-group reference slopes a version anchors one response input on (F02 2.5).
+RESPONSE_REFERENCE = "response_reference"
 MATERIAL_SCHEMA = "carbon.pool.sealed-material.v1"
 _MATERIAL_KEYS = {
     "schema",
@@ -185,7 +187,14 @@ class PoolVariant(physical.Variant):
             repeats=repeats,
             base_measure=self._module.measure,
             base_arguments={
-                "definition": self._without_pool(definition),
+                "definition": {
+                    **self._without_pool(definition),
+                    **(
+                        {"group_response_reference": material[RESPONSE_REFERENCE]}
+                        if material.get(RESPONSE_REFERENCE) is not None
+                        else {}
+                    ),
+                },
                 "limits": limits,
                 "objective": objective,
                 "train_raw": train_raw,
@@ -213,10 +222,25 @@ def case_id_of(values) -> str:
     )
 
 
+def _reference_ok(value):
+    return value is None or (
+        type(value) is dict
+        and set(value) == {"input", "by_base"}
+        and type(value["input"]) is str
+        and type(value["by_base"]) is dict
+        and bool(value["by_base"])
+        and all(
+            type(k) is str and type(v) in (int, float) and math.isfinite(v)
+            for k, v in value["by_base"].items()
+        )
+    )
+
+
 def check_material(material):
     if (
         type(material) is not dict
-        or set(material) != _MATERIAL_KEYS
+        or set(material) - {RESPONSE_REFERENCE} != _MATERIAL_KEYS
+        or not _reference_ok(material.get(RESPONSE_REFERENCE))
         or material["schema"] != MATERIAL_SCHEMA
         or type(material["input_names"]) is not list
         or type(material["design_names"]) is not list
