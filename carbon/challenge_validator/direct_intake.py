@@ -10,9 +10,13 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import hashlib
+import os
 import socket
 import threading
 import time
+import traceback
+from pathlib import Path
 
 from carbon.battery.intake import (
     SNAPSHOT_MAX_AGE_S,
@@ -487,25 +491,90 @@ def serve_loopback(
                     serving.join(5)
 
 
+#: Seconds a background loop waits after its nth consecutive failure: a bounded
+#: exponential backoff (an operational bound, not a scientific value). A loop
+#: that keeps failing is never a once-a-second hot loop, and a success resets it.
+FAILURE_BACKOFF_S = (1, 2, 4, 8, 15, 30, 60, 120, 300)
+
+
+def _backoff_s(failures):
+    return FAILURE_BACKOFF_S[min(failures, len(FAILURE_BACKOFF_S)) - 1]
+
+
+def _keep_failure(subject, loop, failure):
+    """Keep a failure's full traceback in the receiver's PRIVATE evidence
+    directory, one file per distinct failure site, and return the site's short
+    id for the log line. The log carries the exception type and this id only:
+    a traceback can hold private paths and content. Best effort: a subject
+    without a ledger, or an unwritable directory, keeps nothing."""
+    try:
+        ledger = getattr(getattr(subject, "adapter", subject), "ledger", None)
+        path = getattr(ledger, "path", None)
+        frames = traceback.extract_tb(failure.__traceback__)
+        site = hashlib.sha256(
+            "|".join(
+                [type(failure).__name__]
+                + [f"{Path(f.filename).name}:{f.name}:{f.lineno}" for f in frames]
+            ).encode()
+        ).hexdigest()[:16]
+        if path is None:
+            return site
+        directory = Path(path).parent / "worker-failures"
+        directory.mkdir(mode=0o700, exist_ok=True)
+        record = directory / f"{loop}-{site}.txt"
+        if not record.exists():
+            text = "".join(traceback.format_exception(failure))
+            fd = os.open(record, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as out:
+                out.write(time.strftime("%Y-%m-%dT%H:%M:%SZ\n", time.gmtime()))
+                out.write(text)
+        return site
+    except Exception:  # noqa: BLE001 - evidence is best effort
+        return None
+
+
 def _advance_loop(intake, stop, work=None):
     work = work or threading.Lock()
+    failures = 0
     while not stop.is_set():
+        wait = 1
         try:
             with work:
                 intake.advance()
+            failures = 0
         except Exception as failure:  # noqa: BLE001 - no private content in log
-            log("direct_worker_failure", type=type(failure).__name__)
-        stop.wait(1)
+            failures += 1
+            wait = _backoff_s(failures)
+            log(
+                "direct_worker_failure",
+                type=type(failure).__name__,
+                consecutive=failures,
+                retry_s=wait,
+                site=_keep_failure(intake, "advance", failure),
+            )
+        stop.wait(wait)
 
 
 def _grade_loop(grader, stop, work):
+    failures = 0
     while not stop.is_set():
         graded = None
+        wait = 5
         try:
             with work:
                 graded = grader.run_once()
+            failures = 0
         except Exception as failure:  # noqa: BLE001 - no private content in log
-            log("direct_grade_failure", type=type(failure).__name__)
+            failures += 1
+            wait = max(5, _backoff_s(failures))
+            log(
+                "direct_grade_failure",
+                type=type(failure).__name__,
+                consecutive=failures,
+                retry_s=wait,
+                site=_keep_failure(grader, "grade", failure),
+            )
         if graded is not None:
             log("direct_grade", state=graded[1])
-        stop.wait(2 if graded is not None else 5)
+            wait = 2
+        stop.wait(wait)
