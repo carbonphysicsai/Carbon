@@ -32,7 +32,9 @@ def test_no_version_is_the_newest_open_gradeable_version_not_the_first_registere
 ):
     from carbon.challenge_registry.registry import entries
 
-    versions = [e.version for e in entries() if e.challenge_id == challenge and e.version]
+    versions = [
+        e.version for e in entries() if e.challenge_id == challenge and e.version
+    ]
     served = latest_ref(challenge)["version"]
     gradeable = [v for v in versions if _gradeable(challenge, v)]
     assert served == max(gradeable, key=lambda v: tuple(map(int, v.split("."))))
