@@ -221,6 +221,9 @@ def test_the_custody_builder_writes_the_cooling_pool_pack_and_a_digest_only_reco
     assert record["rows"]["cells"] == 16 and record["rows"]["pool"] > 0
     assert record["rows"]["probes"] > 0
     assert (tmp_path / "out/pack/evaluation-pack.json").is_file()
-    assert "truths" not in json.dumps(record) and "designs" not in json.dumps(record)
+    # digests and counts only: no truths, no design list (the count key designs_total is a number)
+    text = json.dumps(record)
+    assert '"truths"' not in text and '"designs"' not in text
+    assert type(record["pool_accounting"]["designs_total"]) is int
     carried = source.read_batch(tmp_path / "out/pack")
     assert carried is not None and carried[0]["pool"] == material()
