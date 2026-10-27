@@ -114,7 +114,10 @@ def _containerd(cli: DockerCLI) -> None:
     from carbon.reconstruction import host_stack
 
     # The store is read the way the validator's host check reads it, not by one release's exact row.
-    if host_stack.image_store(cli.json(["info", "--format", "{{json .}}"])) != "containerd":
+    if (
+        host_stack.image_store(cli.json(["info", "--format", "{{json .}}"]))
+        != "containerd"
+    ):
         raise Refused("containerd_image_store_required")
 
 
