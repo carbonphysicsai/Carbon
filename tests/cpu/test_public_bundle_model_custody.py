@@ -911,3 +911,36 @@ def test_bundle_cli_keeps_receipt_and_index_outside_originals(tmp_path):
         entry.EntryRefused, match="entry_directory_inside_original_artifacts"
     ):
         entry.create_entry_v5(root, manifest_path, receipt_path, inside)
+
+
+def test_graph_timed_prefix_rows_are_bound_to_the_retained_inputs():
+    """The per-case timed receipt may cover the first rows of the practice
+    inputs (valV3, 2026-10-27): the prefix digest is the worker's own
+    serialization of exactly those retained rows, and nothing else is a prefix."""
+    import numpy as np
+
+    from carbon.development_session.bundle_construction_worker import _tensors
+
+    inputs = np.arange(12, dtype=np.float64).reshape(6, 2)
+    stored = _tensors(inputs=inputs)
+    assert custody._prefix_inputs_digest(stored, 4) == _sha(_tensors(inputs=inputs[:4]))
+    assert custody._prefix_inputs_digest(stored, 4) != _sha(stored)
+    with pytest.raises(custody.CustodyRefused, match="graph_timed_prefix_inputs"):
+        custody._prefix_inputs_digest(b"not an archive", 4)
+
+    full = [6, 2]
+    measured = {"input_shape": [4, 2]}
+    assert custody._timed_prefix_rows(True, measured, full) == 4
+    assert custody._timed_prefix_rows(True, {"input_shape": [6, 2]}, full) == 6
+    # Not a prefix: more rows than exist, other row width, no per-case form.
+    for bad in ([7, 2], [4, 3], [0, 2], [4], [True, 2]):
+        assert custody._timed_prefix_rows(True, {"input_shape": bad}, full) is None
+    assert custody._timed_prefix_rows(False, measured, full) is None
+    assert custody._timed_prefix_rows(True, None, full) is None
+
+
+def test_graph_per_call_figures_are_bounded_by_the_covered_rows():
+    assert custody._graph_per_call_ok(None, 3)
+    assert custody._graph_per_call_ok([0.1, 0.2, 0.3], 3)
+    for bad in ([0.1] * 4, [0.0], [-1.0], [float("nan")], ["x"], (0.1,), 0.1):
+        assert not custody._graph_per_call_ok(bad, 3)

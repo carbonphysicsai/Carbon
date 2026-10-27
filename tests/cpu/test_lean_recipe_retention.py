@@ -385,8 +385,9 @@ def test_real_local_result_enters_existing_pending_bank_create_only(
         provider.close()
 
 
+@pytest.mark.parametrize("timed_shape", ["full", "prefix_with_per_call"])
 def test_graph_collector_uses_admitted_source_and_measured_originals_without_worker(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, timed_shape
 ):
     material = bundle_material_v5()
     _, _, old_recipe, raw_manifest, graph_files = _graph_case()
@@ -492,11 +493,20 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
             "inputs_digest": _digest(inputs),
             "predictions_digest": _digest(predictions),
         }
+        # The timed child runs the first rows of the practice query when the
+        # exported graph's batch is smaller, and the derived timed program adds
+        # `per_call_s` (valV3, 2026-10-27): custody binds both.
+        timed_rows = (
+            len(material["practice_inputs"])
+            if timed_shape == "full"
+            else max(1, len(material["practice_inputs"]) // 2)
+        )
+        timed_inputs = _tensors(inputs=material["practice_inputs"][:timed_rows])
         timed_receipt = {
             "schema": "carbon.development.bundle-inference.v2",
             "recipe_digest": recipe.digest,
             "state_digest": _digest(state),
-            "inputs_digest": _digest(inputs),
+            "inputs_digest": _digest(timed_inputs),
             "predictions_digest": _digest(predictions),
             "measurement": {
                 "scope": "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE",
@@ -506,10 +516,16 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
                     "postprocess": 0.1,
                     "export": 0.1,
                 },
-                "input_shape": list(material["practice_inputs"].shape),
+                "input_shape": [timed_rows, *material["practice_inputs"].shape[1:]],
                 "input_dtype": str(material["practice_inputs"].dtype),
-                "output_shape": list(material["expected_output_shape"]),
+                "output_shape": [
+                    timed_rows,
+                    *list(material["expected_output_shape"])[1:],
+                ],
                 "output_dtype": material["interface_document"]["outputs"]["dtype"],
+                **(
+                    {} if timed_shape == "full" else {"per_call_s": [0.01] * timed_rows}
+                ),
             },
         }
         (build / "state.npz").write_bytes(state)
@@ -684,6 +700,14 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
             assert first["status"] == "CREATED"
             assert first["score_state"] == "NOT_COMPUTED"
             assert first["official_eligible"] is False
+            if timed_shape != "full":
+                # Custody accepted the practice prefix and `per_call_s`; the
+                # registered benchmark keeps its exact form at its registered
+                # timing batch (tests/cpu/test_timed_receipt_pins.py), so a
+                # practice-form receipt gives no public speed measurement: a
+                # typed UNAVAILABLE, never a crash or a fabricated figure.
+                assert first["measurement_state"] == "UNAVAILABLE"
+                return
             assert first["measurement_state"] == "DEVELOPMENT_UNRANKED"
             measured = json.loads(first["measurement_path"].read_bytes())
             assert measured["task_id"] == task_id
