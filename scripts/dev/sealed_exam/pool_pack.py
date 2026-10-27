@@ -59,6 +59,7 @@ def build(
     set_digest=None,
     material=None,
     calibration=False,
+    response_reference=None,
 ):
     """The pool pack and its record. ``material`` (a ready `pool_version` material) replaces ``--set-dir``."""
     from carbon.challenge_kit.version_registry import find
@@ -84,6 +85,11 @@ def build(
             version=version,
             input_dtype=plain["inputs"].dtype.str,
             set_digest=set_digest,
+        )
+    if response_reference is not None:
+        # F02 2.5: the solver's local slope per sealed probe group (`f02_response_reference.py`), in the material
+        material = pool_version.check_material(
+            {**material, pool_version.RESPONSE_REFERENCE: response_reference}
         )
     with_pool = {**document, "pool": material}
     raw, source_fp, canonical_fp = copy_package.canonical_batch(
@@ -137,6 +143,10 @@ def main(argv=None):
         one.add_argument("--" + flag, required=True)
     one.add_argument("--inference-image-id", required=True)
     one.add_argument("--set-digest")
+    one.add_argument(
+        "--response-reference",
+        help="F02 2.5: the f02_response_reference.py build output (JSON), carried in the pool material",
+    )
     one.add_argument("--calibration", action="store_true")
     args = parser.parse_args(argv)
     record = build(
@@ -148,6 +158,11 @@ def main(argv=None):
         set_dir=args.set_dir,
         set_digest=args.set_digest,
         calibration=args.calibration,
+        response_reference=(
+            json.loads(Path(args.response_reference).read_text(encoding="utf-8"))
+            if args.response_reference
+            else None
+        ),
     )
     print(json.dumps(record, sort_keys=True, indent=2))
     return 0

@@ -60,6 +60,64 @@ def block(train):
     return physics_half.block(LAWS, response_registration(train))
 
 
+def local_slopes(probe_rows, peaks, input_name="on_time_s"):
+    """``{str(probe base): the solver's local log-log slope of the rise over ``input_name``}`` per probe group.
+
+    ``probe_rows`` are the bank's probe rows (inputs and ``record["probe"]``) and ``peaks`` the solver's peak at
+    each; the slope is the one the response leg measures (finite difference over the +/- pair, normalised by the
+    group's base rise and input), so a model equal to the solver scores zero error on that input. Custody-side:
+    the peaks are truth at the sealed probes."""
+    indexed = [(i, row["record"]["probe"]) for i, row in enumerate(probe_rows)]
+    column = INPUTS.index(input_name)
+    inputs = [[float(row["inputs"][n]) for n in INPUTS] for row in probe_rows]
+    out = {}
+    for group in probe_design.groups(indexed):
+        plus, minus = group["dims"][column]
+        base = group["base"]
+        rise = float(peaks[base]) - INITIAL_C
+        physics_half._require(rise > 0, "f02_local_slope_needs_a_positive_rise")
+        dx = (inputs[plus][column] - inputs[minus][column]) / inputs[base][column]
+        slope = ((float(peaks[plus]) - float(peaks[minus])) / rise) / dx
+        out[str(indexed[base][1]["base"])] = slope
+    return out
+
+
+def _group_reference(definition, response, indexed):
+    """The reference exponent override of a version that anchors one input's exponent on the solver's local
+    slope per probe group (F02 2.5, OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01), or None (the registered exponents).
+
+    ``definition["group_response_reference"]`` is ``{"input": name, "by_base": {probe base: slope}}``, set by the
+    pool material of the sealed batch (custody; never in a public file). A group with no reference is a gap of
+    Carbon's, a refusal, never the registered exponent in its place."""
+    reference = definition.get("group_response_reference")
+    if reference is None:
+        return None
+    physics_half._require(
+        type(reference) is dict
+        and set(reference) == {"input", "by_base"}
+        and reference["input"] in response["inputs"]
+        and type(reference["by_base"]) is dict
+        and all(
+            type(k) is str and physics_half._number(v)
+            for k, v in reference["by_base"].items()
+        ),
+        "f02_group_response_reference_malformed",
+    )
+    column = response["inputs"].index(reference["input"])
+    base_of = {i: record["base"] for i, record in indexed}
+
+    def override(group, _j, d, registered):
+        if d != column:
+            return registered
+        key = str(base_of[group["base"]])
+        physics_half._require(
+            key in reference["by_base"], "f02_group_response_reference_missing"
+        )
+        return reference["by_base"][key]
+
+    return override
+
+
 def apply(
     measured,
     *,
@@ -109,6 +167,7 @@ def apply(
         lambda i: [probes[i] - INITIAL_C],
         response,
         [train_std],
+        _group_reference(definition, response, indexed),
     )
     invalid = a_response is None
     a, legs = physics_half.combine(
