@@ -60,20 +60,13 @@ PARITY_ROWS = 64
 
 
 def _pinned_environment() -> dict[str, str]:
-    """The determinism environment of a GPU rebuild, from Carbon's one definition."""
+    """The environment of a GPU rebuild, from `accelerators.pinned_environment` and nowhere else:
+    explicit `JAX_PLATFORMS`, the allocator, the determinism flags, cuBLAS and TF32. Nothing here
+    relies on what the image or the caller exports."""
     sys.path.insert(0, str(ROOT))
-    from carbon.reconstruction.accelerators import (
-        GPU_DETERMINISM_ENVIRONMENT,
-        GPU_DETERMINISM_XLA_FLAGS,
-    )
+    from carbon.reconstruction.accelerators import GPU_PROFILE, pinned_environment
 
-    return {
-        "XLA_FLAGS": " ".join(GPU_DETERMINISM_XLA_FLAGS),
-        "JAX_DEFAULT_MATMUL_PRECISION": "highest",
-        "JAX_ENABLE_COMPILATION_CACHE": "false",
-        "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
-        **GPU_DETERMINISM_ENVIRONMENT,
-    }
+    return pinned_environment(GPU_PROFILE)
 
 
 def _sha(body: bytes) -> str:
@@ -279,6 +272,15 @@ def _graph_child(args) -> dict:
     key = KEYS[args.key]
     import jax
 
+    # A GPU lane that is not on the GPU is a typed refusal, never a CPU result under a GPU name.
+    if os.environ.get("JAX_PLATFORMS") == "cuda":
+        try:
+            backend = jax.default_backend()
+        except Exception:  # noqa: BLE001 - no CUDA backend at all is the same refusal
+            backend = "unavailable"
+        if backend != "gpu":
+            print(json.dumps({"error": "backend_not_gpu", "backend": backend}))
+            raise SystemExit(3)
     started = time.monotonic()
     with route._x64(key):
         recipe, raw_manifest, files, staging = _case(route, key, args.arch, args.steps)
@@ -330,6 +332,9 @@ def _torch_child(args) -> dict:
         elif name == "cudnn_benchmark":
             torch.backends.cudnn.benchmark = value
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    if os.environ.get("JAX_PLATFORMS") == "cuda" and device != "cuda":
+        print(json.dumps({"error": "backend_not_gpu", "backend": device}))
+        raise SystemExit(3)
     started = time.monotonic()
     torch.manual_seed(args.seed)
     generator = torch.Generator().manual_seed(args.seed)
@@ -424,7 +429,9 @@ def _run_child(kind, key, arch, args, *, cpu, tmp, index):
         check=False,
     )
     if done.returncode != 0:
-        return {"error": (done.stderr or done.stdout)[-600:], "predictions": None}
+        typed = [ln for ln in done.stdout.splitlines() if ln.startswith('{"error"')]
+        text = typed[-1] if typed else (done.stderr or done.stdout)[-600:]
+        return {"error": text, "predictions": None}
     line = [ln for ln in done.stdout.splitlines() if ln.startswith("{")][-1]
     return {**json.loads(line), "predictions": str(predictions)}
 

@@ -451,6 +451,32 @@ GPU_DETERMINISM_TORCH = (
 )
 
 
+def pinned_environment(profile: AcceleratorProfile) -> dict[str, str]:
+    """The part of a worker's environment that names no device and no scratch path: the one
+    definition of how Carbon pins JAX (and, on NVIDIA, the allocator and the determinism
+    configuration) for a rebuild. `worker_environment` builds on it, and every harness that
+    claims to run "as the controller does" (class checks, receipt repeats) takes its
+    environment from here and from nowhere else. `JAX_PLATFORMS` is explicit, so an image's
+    own default can never decide which backend a rebuild ran on."""
+    _registered(profile)
+    result = {
+        "JAX_PLATFORMS": profile.backend.value,
+        "JAX_ENABLE_X64": "false",
+        "JAX_DEFAULT_MATMUL_PRECISION": "highest",
+        "JAX_ENABLE_COMPILATION_CACHE": "false",
+    }
+    if profile.backend is Backend.NVIDIA:
+        result.update(
+            {
+                "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+                "XLA_PYTHON_CLIENT_ALLOCATOR": "platform",
+                "XLA_FLAGS": " ".join(GPU_DETERMINISM_XLA_FLAGS),
+                **GPU_DETERMINISM_ENVIRONMENT,
+            }
+        )
+    return result
+
+
 def worker_environment(
     profile: AcceleratorProfile, role: AcceleratorRole, *, host_device=None
 ) -> dict[str, str]:
@@ -469,10 +495,7 @@ def worker_environment(
     if type(role) is not AcceleratorRole:
         raise ValueError("exact execution role required")
     result = {
-        "JAX_PLATFORMS": profile.backend.value,
-        "JAX_ENABLE_X64": "false",
-        "JAX_DEFAULT_MATMUL_PRECISION": "highest",
-        "JAX_ENABLE_COMPILATION_CACHE": "false",
+        **pinned_environment(profile),
         "JAX_COMPILATION_CACHE_DIR": f"/scratch/{role.value.lower()}/jax-cache",
     }
     if profile.backend is Backend.NVIDIA:
@@ -501,16 +524,12 @@ def worker_environment(
                 # the numerical backend reports against this, and refuses if the
                 # variable is missing rather than skipping the check.
                 "CARBON_ACCELERATOR_DEVICE_KIND": host_device.device_kind,
-                "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
-                "XLA_PYTHON_CLIENT_ALLOCATOR": "platform",
-                # Pinned, not left to the machine. An unpinned GPU may not
-                # reproduce its own run - same host, same seed, same plan - and
-                # R1 asks precisely whether a repeat execution reproduces the
-                # numbers. No tolerance rescues that, so the configuration is
-                # part of the environment rather than an optimisation applied
-                # later.
-                "XLA_FLAGS": " ".join(GPU_DETERMINISM_XLA_FLAGS),
-                **GPU_DETERMINISM_ENVIRONMENT,
+                # The allocator and the determinism configuration (XLA_FLAGS, cuBLAS, TF32)
+                # are `pinned_environment`'s: pinned, not left to the machine. An unpinned
+                # GPU may not reproduce its own run - same host, same seed, same plan - and
+                # R1 asks precisely whether a repeat execution reproduces the numbers. No
+                # tolerance rescues that, so the configuration is part of the environment
+                # rather than an optimisation applied later.
             }
         )
     return result
