@@ -436,3 +436,147 @@ def test_the_grading_core_hands_the_binding_inputs_to_the_promotion(
         )
         == written
     )
+
+
+def test_the_bank_inference_carries_the_versions_registered_rebuild_wall(
+    tmp_path, monkeypatch
+):
+    """valV3, 2026-10-27: the regrade's inference over a pool pack's bank passed the policy's
+    inference seconds without the version's rebuild wall, and the carrier refused
+    'bounded worker wall allowance required'. The counted bank grade runs the same inference.
+    """
+    from carbon.challenge_kit.version_registry import REBUILD_LIMIT_SECONDS
+    from carbon.development_session import bundle_construction_worker as worker
+    from carbon.development_session.construction_recipe import RecipeRefused
+
+    fixture = _retained(tmp_path, monkeypatch)
+    try:
+        _rotate(fixture, monkeypatch, tmp_path)
+        policy = fixture.material["construction_limits_document"][
+            "reconstruction_resource_policy"
+        ]
+        policy.update(
+            build_wall_seconds_max=REBUILD_LIMIT_SECONDS,
+            inference_wall_seconds_max=REBUILD_LIMIT_SECONDS,
+        )
+        seen = []
+
+        def record(ledger, **kwargs):
+            seen.append(kwargs)
+            raise RecipeRefused("recorded")
+
+        monkeypatch.setattr(worker, "_infer_state", record)
+        monkeypatch.setattr(worker, "verify_direct_resource_policy", lambda *_: None)
+        with pytest.raises(retention.RetentionUnavailable, match="regrade_inference_"):
+            _regrade(fixture)
+        assert seen[0]["seconds"] == REBUILD_LIMIT_SECONDS
+        assert seen[0]["rebuild_wall_seconds"] == REBUILD_LIMIT_SECONDS
+        # The counted flow runs this same inference.
+        seen.clear()
+        with pytest.raises(retention.RetentionUnavailable, match="regrade_inference_"):
+            retention.regrade_retained_entry(
+                fixture.adapter,
+                fixture.first["entry_id"],
+                artifact_directory=fixture.artifacts,
+                entry_directory=fixture.entries,
+                runner=fixture.runner,
+                counted=True,
+            )
+        assert seen[0]["rebuild_wall_seconds"] == REBUILD_LIMIT_SECONDS
+    finally:
+        fixture.provider.close()
+
+
+def test_a_counted_bank_grade_runs_the_retained_state_on_the_bank_and_takes_the_miners_slot(
+    tmp_path, monkeypatch
+):
+    """End to end up to the grading core (stubbed, as in the regrade tests above): the real
+    retained state is run over the pack's bank by the real local runner, a new bank entry is
+    created, and the grade is filed as the miner's COUNTED one - the slot is a GRADED one
+    under the miner's own submission id and signed epoch, not a REGRADE."""
+    from carbon.challenge_validator import exam_cap
+
+    fixture = _retained(tmp_path, monkeypatch)
+    try:
+        bank_raw, graded = _rotate(fixture, monkeypatch, tmp_path)
+        pools = []
+
+        def grade(
+            adapter,
+            submission_id,
+            result,
+            artifacts,
+            evidence=None,
+            regrade=None,
+            pool_store=None,
+        ):
+            graded.append((submission_id, result, artifacts, evidence, regrade))
+            pools.append(pool_store)
+            return {**result, "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY"}
+
+        monkeypatch.setattr(retention, "_retain_selected_pack_evaluation", grade)
+        adapter = fixture.adapter
+        # the rotated-pack stand-in discovery has no `info`, which the real owner lookup reads
+        adapter.owner = lambda _task: "miner"
+        adapter.exam_cadence = {
+            "capacity_cpu_hours_per_day": 270.0,
+            "rebuild_cpu_hours_placeholder": {adapter.challenge_id: 1.0},
+        }
+        adapter.ledger.record(
+            SimpleNamespace(
+                hotkey="miner",
+                receipt={"sequence": 1, "digest": "d", "block": 360 * 7 + 5},
+                contract_digest=adapter.contract_digest,
+            ),
+            kind="OUTCOME",
+            submission_id=fixture.task_id,
+        )
+        result = retention._counted_bank_grade(
+            adapter,
+            fixture.task_id,
+            fixture.first,
+            pool_store="STORE",
+            artifact_directory=fixture.artifacts,
+            entry_directory=fixture.entries,
+            runner=fixture.runner,
+        )
+        assert (
+            result["entry_id"] == fixture.first["entry_id"]
+        )  # the retained origin entry
+        assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY"
+        bank_entry = json.loads(
+            next(
+                path
+                for path in fixture.entries.iterdir()
+                if path.name != fixture.first["entry_path"].name
+            ).read_bytes()
+        )
+        assert result["bank_grade_entry_id"] == bank_entry["entry_id"]
+        assert (
+            bank_entry["state_digest"]
+            == json.loads(fixture.first["entry_path"].read_bytes())["state_digest"]
+        )
+        # The grading core got a COUNTED identity, keyed by the miner's own submission.
+        ((regrade_id, _, artifacts, _, regrade),) = graded
+        assert regrade.counted is True and regrade.origin_task_id == fixture.task_id
+        assert pools == ["STORE"]  # KOTH is filed in the pool store under the origin id
+        assert (
+            artifacts["inputs.npz"] == bank_raw
+        )  # the pack's bank, not the practice query
+        assert regrade_id != fixture.task_id
+        with adapter.ledger._db() as db:
+            rows = db.execute(
+                "SELECT submission_id, kind, state, hotkey, epoch FROM exam_graded"
+            ).fetchall()
+        assert rows == [(fixture.task_id, "GRADED", "RESERVED", "miner", 7)]
+        provenance = json.loads(
+            (
+                fixture.artifacts
+                / (regrade_id + ".evaluation")
+                / "regrade-provenance.json"
+            ).read_bytes()
+        )
+        assert provenance["kind"] == "COUNTED_GRADE"
+        assert exam_cap.EPOCH_BLOCKS == 360
+    finally:
+        fixture.provider.close()

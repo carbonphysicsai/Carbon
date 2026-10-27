@@ -208,6 +208,34 @@ def _pinned_case_bank(selected_pack):
     return digest if type(digest) is str else None
 
 
+def is_sealed(*, challenge, version, selected_pack) -> bool:
+    """Whether the selected pack is a SEALED/POOL pack rather than the development pack,
+    decided from the pack manifest alone (its pinned case-bank digest against the
+    development bank's), never from a caller flag. Fails closed like `resolve`: a pack
+    that pins no case bank is `SealedBankRefused`, never read as the development pack.
+    A Challenge with no sealed kit has none."""
+    kit = _kit(challenge)
+    if kit is None:
+        return False
+    from carbon.challenge_kit import physical_pack
+
+    pinned = _pinned_case_bank(selected_pack)
+    if pinned is None:
+        raise SealedBankRefused("sealed_pack_unresolved")
+    try:
+        development = physical_pack.development_bank(challenge, version)
+    except ValueError as exc:
+        if "unknown public physical Challenge version" not in str(exc):
+            raise
+        development = None
+    return not (
+        development is not None
+        and "sha256:"
+        + hashlib.sha256(kit.private_roles(development)["case_bank"]).hexdigest()
+        == pinned
+    )
+
+
 def resolve(
     *,
     challenge,

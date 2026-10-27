@@ -727,6 +727,7 @@ def _single_call_raw(
     from carbon.development_session.bundle_construction_worker import (
         INFER_PROGRAM,
         _infer_state,
+        rebuild_wall_kwargs,
     )
     from carbon.development_session.construction_recipe import (
         ConstructionRecipe,
@@ -817,6 +818,10 @@ def _single_call_raw(
             accelerator=getattr(provider, "inference_accelerator", None),
             runner=runner,
             single_call={"indices": indices, "warmup": public},
+            # The version's registered rebuild wall (a graph-route-v2 / pool version's is
+            # longer than the carrier's default 600 s): without it the carrier refuses the
+            # allowance ('bounded worker wall allowance required', valV3 2026-10-27).
+            **rebuild_wall_kwargs(limits),
             **{**graph_query, "program": derived},
         )
         call_s = stage.receipt["single_call"]["call_s"]
@@ -903,6 +908,14 @@ def _retain_selected_pack_evaluation(
         cap = exam_cap.ExamCap(
             adapter.ledger, cadence=getattr(adapter, "exam_cadence", None)
         )
+        # An uncounted REGRADE (operator, rehearsal) bypasses the cap; a COUNTED bank grade and an
+        # ordinary retention take a GRADED slot for the miner's own submission id.
+        uncounted = regrade is not None and not regrade.counted
+        record_id = (
+            regrade.origin_task_id
+            if regrade is not None and regrade.counted
+            else submission_id
+        )
         reservation = cap.reserve(
             hotkey=adapter.owner(submission_id) if regrade is None else regrade.owner,
             challenge_id=adapter.challenge_id,
@@ -910,15 +923,15 @@ def _retain_selected_pack_evaluation(
             # The sealed exam's identity: the pack digest binds the case bank, so a
             # rotation that changes the bank starts new counts.
             exam_key=snapshot.manifest_digest,
-            submission_id=submission_id,
+            submission_id=record_id,
             block=(
                 exam_cap.submission_block(
-                    adapter.ledger, adapter.contract_digest, submission_id
+                    adapter.ledger, adapter.contract_digest, record_id
                 )
-                if regrade is None
+                if not uncounted
                 else None
             ),
-            regrade=regrade is not None,
+            regrade=uncounted,
         )
         queries = [artifacts["inputs.npz"]]
         registered = _register_retained_pack_source(
@@ -1039,9 +1052,9 @@ def _retain_selected_pack_evaluation(
             scoring["models"][0]["status"],
             cpu_seconds=(
                 None
-                if regrade is not None
+                if uncounted
                 else _rebuild_cpu_seconds(
-                    adapter, submission_id, evidence, snapshot.manifest_digest
+                    adapter, record_id, evidence, snapshot.manifest_digest
                 )
             ),
         )
@@ -1082,7 +1095,7 @@ def _retain_selected_pack_evaluation(
         )
         binding_path = directory / "private-evaluation-binding.json"
         write_once(binding_path, _json(binding))
-        if regrade is not None and regrade.promotion is not None:
+        if uncounted and regrade.promotion is not None:
             _record_regraded_evidence(regrade, bind_inputs, source_pin)
         if regrade is not None and regrade.exam_se:
             _write_exam_se(
@@ -1095,11 +1108,11 @@ def _retain_selected_pack_evaluation(
                 scoring,
             )
         koth = None
-        if pool_store is not None and regrade is None:
+        if pool_store is not None and not uncounted:
             koth = _contend(
                 adapter,
                 pool_store,
-                submission_id,
+                record_id,
                 artifacts,
                 bind_inputs,
                 source_pin,
@@ -1138,17 +1151,17 @@ def _retain_selected_pack_evaluation(
                 # grade files its KOTH evaluation under the same one).
                 "registered_source_receipt_sha256": source_pin,
             }
-            if regrade is not None
+            if uncounted
             else {}
         ),
-        # A regrade is not a graded submission of the miner: it never feeds the Ladder.
+        # An uncounted regrade is not a graded submission of the miner: it never feeds the Ladder.
         **(
             {}
-            if regrade is not None
+            if uncounted
             else {
                 "ladder_feedback_state": _record_ladder(
                     adapter,
-                    submission_id,
+                    record_id,
                     exam_key=snapshot.manifest_digest,
                     exam_version=source["evaluation_version"],
                     gates=registered["score_pack"]["hard_gates"],
@@ -1426,6 +1439,129 @@ def _record_ladder(
     return "RECORDED"
 
 
+def _pack_is_sealed_bank(adapter) -> bool:
+    """Whether the receiver's selected pack is a SEALED/POOL pack, from its manifest."""
+    from carbon.scoring import sealed_batch_source
+
+    snapshot = adapter.discovery.evaluation_pack_snapshot
+    if snapshot is None:
+        return False
+    try:
+        return sealed_batch_source.is_sealed(
+            challenge=adapter.challenge_id,
+            version=adapter.challenge_version,
+            selected_pack=snapshot,
+        )
+    except sealed_batch_source.SealedBankRefused as refused:
+        raise RetentionUnavailable(refused.code) from refused
+
+
+def _grade_selected_pack(
+    adapter,
+    submission_id,
+    bound,
+    artifacts,
+    evidence,
+    *,
+    pool_store,
+    artifact_directory,
+    entry_directory,
+):
+    """The selected pack's private evaluation of one retained task.
+
+    A development pack is graded on the task's own (practice) query, as always. A SEALED/POOL
+    pack's case bank is its own canonical bank, not the task's practice query, so its counted
+    grade is `_counted_bank_grade` (GPU_REBUILD_RULINGS section 11). The branch is chosen by the
+    pack's manifest, never by a caller flag.
+    """
+    if bound.get("evaluation_pack_digest") is None or not _pack_is_sealed_bank(adapter):
+        return _retain_selected_pack_evaluation(
+            adapter,
+            submission_id,
+            bound,
+            artifacts,
+            evidence,
+            pool_store=pool_store,
+        )
+    return _counted_bank_grade(
+        adapter,
+        submission_id,
+        bound,
+        pool_store=pool_store,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+    )
+
+
+def _counted_bank_grade(
+    adapter,
+    submission_id,
+    bound,
+    *,
+    pool_store,
+    artifact_directory,
+    entry_directory,
+    runner=None,
+):
+    """Retain, then grade the retained state over the pack's canonical bank, COUNTED.
+
+    The retain step has bound the trained state (and checked the practice inputs). Here the
+    exam-cap slot is reserved first (refused before any inference, so nothing is spent on a
+    refused attempt), then the same bank inference, single-call stage, dual measurement, pool
+    grade and KOTH as a regrade run, with the slot consumed by the grade: a typed
+    infrastructure failure gives it back, a candidate outcome keeps it.
+    """
+    from carbon.challenge_validator import exam_cap
+
+    snapshot = adapter.discovery.evaluation_pack_snapshot
+    owner = adapter.owner(submission_id)
+    if owner is None:
+        raise RetentionUnavailable("owned_task_unavailable")
+    cap = exam_cap.ExamCap(
+        adapter.ledger, cadence=getattr(adapter, "exam_cadence", None)
+    )
+    try:
+        reservation = cap.reserve(
+            hotkey=owner,
+            challenge_id=adapter.challenge_id,
+            challenge_version=adapter.challenge_version,
+            exam_key=snapshot.manifest_digest,
+            submission_id=submission_id,
+            block=exam_cap.submission_block(
+                adapter.ledger, adapter.contract_digest, submission_id
+            ),
+        )
+    except exam_cap.ExamCapRefused as refused:
+        return {
+            **bound,
+            "private_evaluation_state": "UNAVAILABLE",
+            "private_evaluation_reason": getattr(refused, "code", str(refused)),
+        }
+    try:
+        graded = regrade_retained_entry(
+            adapter,
+            bound["entry_id"],
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+            pool_store=pool_store,
+            counted=True,
+            runner=runner,
+        )
+    except Exception:
+        # The grading did not complete: the slot goes back (it is not the miner's result).
+        try:
+            cap.settle(reservation, "UNAVAILABLE")
+        except ValueError:
+            pass
+        raise
+    kept = {
+        key: value
+        for key, value in graded.items()
+        if key.startswith(("private_evaluation", "ladder_feedback", "koth_"))
+    }
+    return {**bound, **kept, "bank_grade_entry_id": graded["entry_id"]}
+
+
 def retain_served_result(
     adapter,
     submission_id: str,
@@ -1491,13 +1627,15 @@ def retain_served_result(
         bound = _retain_private_pack_binding(
             adapter, provider, submission_id, task, result
         )
-        bound = _retain_selected_pack_evaluation(
+        bound = _grade_selected_pack(
             adapter,
             submission_id,
             bound,
             artifacts,
             evidence,
             pool_store=pool_store,
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
         )
         return _retain_public_synthetic_measurement(
             bound, artifacts, submission_id, evidence
@@ -1875,13 +2013,15 @@ def retain_served_result(
         "official_eligible": False,
     }
     bound = _retain_private_pack_binding(adapter, provider, submission_id, task, result)
-    bound = _retain_selected_pack_evaluation(
+    bound = _grade_selected_pack(
         adapter,
         submission_id,
         bound,
         artifacts,
         evidence,
         pool_store=pool_store,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
     )
     return _retain_public_synthetic_measurement(
         bound, artifacts, submission_id, evidence
@@ -1919,6 +2059,11 @@ class _Regrade:
     promotion: object = None
     #: Also compute the exam-total standard error (case bootstrap) into a sidecar.
     exam_se: bool = False
+    #: The COUNTED grade of a miner's own submission on a sealed/pool pack (GPU_REBUILD_RULINGS
+    #: section 11): the state runs over the pack's canonical bank like a regrade, but the exam-cap
+    #: slot is a GRADED one taken for the origin submission (its signed block), and the Ladder,
+    #: the pool admission and KOTH are filed under the origin submission id.
+    counted: bool = False
 
 
 def _record_regraded_evidence(regrade, bind_inputs, pin=None):
@@ -1997,8 +2142,16 @@ def regrade_retained_entry(
     runner=None,
     promotion=None,
     exam_se: bool = False,
+    counted: bool = False,
+    pool_store=None,
 ) -> dict:
     """Regrade a retained model on the receiver's selected (rotated) evaluation pack.
+
+    ``counted`` is the COUNTED grade of a miner's own submission on a sealed/pool pack
+    (GPU_REBUILD_RULINGS section 11; `retain_served_result` calls it, never an operator
+    flag): the same inference over the pack's canonical bank, but the cap slot is a GRADED one
+    for the origin submission and the Ladder, the pool admission and KOTH are filed under the
+    origin submission id (``pool_store``). A plain regrade stays uncounted.
 
     Operator-only, like retention. The retained frozen state runs again on the pack's own
     case bank, becoming a new bank entry (the same state, new inputs and predictions), and
@@ -2020,6 +2173,7 @@ def regrade_retained_entry(
         _checked_binding,
         _infer_state,
         _tensors,
+        rebuild_wall_kwargs,
         verify_direct_resource_policy,
     )
     from carbon.development_session.construction_recipe import RecipeRefused
@@ -2176,6 +2330,8 @@ def regrade_retained_entry(
                     seconds=policy["inference_wall_seconds_max"],
                     accelerator=getattr(provider, "inference_accelerator", None),
                     runner=runner,
+                    # The registered rebuild wall, as the ordinary path threads it.
+                    **rebuild_wall_kwargs(limits),
                     **graph_query,
                 )
 
@@ -2295,7 +2451,7 @@ def regrade_retained_entry(
         _json(
             {
                 "schema": "carbon.lean-recipe.regrade-provenance.v1",
-                "kind": "REGRADE",
+                "kind": "COUNTED_GRADE" if counted else "REGRADE",
                 "regrade_task_id": regrade_id,
                 "origin_task_id": origin,
                 "origin_entry_id": entry_id,
@@ -2316,7 +2472,8 @@ def regrade_retained_entry(
         bound,
         artifacts,
         evidence,
-        _Regrade(owner, recipe, origin, entry_id, promotion, exam_se),
+        _Regrade(owner, recipe, origin, entry_id, promotion, exam_se, counted),
+        **({"pool_store": pool_store} if counted else {}),
     )
     return {**regraded, "regrade_of": entry_id, "regrade_task_id": regrade_id}
 
