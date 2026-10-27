@@ -110,6 +110,7 @@ def build(
     )
     (pack_root / source.SEALED_BATCH_FILE).write_bytes(raw)
     cohorts = list(bank["cohorts"])
+    accounting = pool_version.row_accounting(material, dtype=material["input_dtype"])
     record = {
         "schema": "carbon.pool-pack.record.v1",
         "challenge": challenge,
@@ -120,6 +121,7 @@ def build(
         "batch_canonical_fingerprint": canonical_fp,
         "set_digest": material["set_digest"],
         "input_dtype": material["input_dtype"],
+        "pool_accounting": accounting,
         "rows": {
             "total": len(cohorts),
             "pool": cohorts.count(pool_exam.POOL_COHORT),
@@ -148,7 +150,29 @@ def main(argv=None):
         help="F02 2.5: the f02_response_reference.py build output (JSON), carried in the pool material",
     )
     one.add_argument("--calibration", action="store_true")
+    acc = sub.add_parser("accounting")
+    for flag in ("challenge", "version", "set-dir", "input-dtype"):
+        acc.add_argument("--" + flag, required=True)
+    acc.add_argument("--set-digest")
     args = parser.parse_args(argv)
+    if args.command == "accounting":
+        from carbon.scoring import pool_version
+
+        material = pool_version.material_from_set_dir(
+            args.set_dir,
+            kind=pool_version.KINDS[args.challenge],
+            version=args.version,
+            input_dtype=args.input_dtype,
+            set_digest=args.set_digest,
+        )
+        print(
+            json.dumps(
+                pool_version.row_accounting(material, dtype=args.input_dtype),
+                sort_keys=True,
+                indent=2,
+            )
+        )
+        return 0
     record = build(
         challenge=args.challenge,
         version=args.version,
