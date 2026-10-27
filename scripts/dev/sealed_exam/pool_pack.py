@@ -41,10 +41,10 @@ def _writer(challenge):
         from carbon.scoring import f08_sealed_dual_pack as module
     elif challenge == "f02":
         from carbon.scoring import f02_sealed_dual_pack as module
+    elif challenge == "chip-cold-plate":
+        from carbon.scoring import cooling_encoded_dual_pack as module
     else:
-        raise SystemExit(
-            "no pool pack writer for this Challenge yet (Cooling's sealed pack writer is not built)"
-        )
+        raise SystemExit("no pool pack writer for this Challenge")
     return module
 
 

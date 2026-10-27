@@ -117,6 +117,66 @@ def sealed_adapter(version):
     )
 
 
+#: The sealed pack's version suffix and grid (16 cells: 4 designs x 4 conditions).
+PACK_SUFFIX = "-sealed-batch-16"
+GRID = 4
+
+
+def is_sealed_bank(bank) -> bool:
+    """Whether a bank declares Cooling's sealed grid: 16 cells, every cohort ``decision_sealed_grid`` (private
+    probes aside), each a distinct design x condition cell of the 4 x 4 grid."""
+    from carbon.scoring import probe_design
+    from carbon.scoring import sealed_grid_common as grid_common
+
+    if type(bank) is not dict:
+        return False
+    cohorts, records = bank.get("cohorts"), bank.get("reference_records")
+    if (
+        type(cohorts) not in (tuple, list)
+        or type(records) not in (tuple, list)
+        or len(cohorts) != len(records)
+    ):
+        return False
+    keep = [i for i, c in enumerate(cohorts) if c != probe_design.PROBE_COHORT]
+    return grid_common.is_grid_bank(
+        [cohorts[i] for i in keep],
+        [records[i] for i in keep],
+        shape=(GRID, GRID),
+        design_of=lambda r: r.get("design_id"),
+        condition_of=lambda r: r.get("condition_id"),
+    )
+
+
+def is_pool_bank(bank) -> bool:
+    """Whether a bank is a pool version's: the sealed grid (and its probes) plus at least one pool row
+    (cohort `pool_design`, inputs only), nothing else."""
+    from carbon.scoring import pool_version
+
+    return pool_version.is_pool_bank(bank, is_sealed_bank)
+
+
+def write_sealed_pack(root, bank, *, version="1.5", **platform):
+    """Write a Cooling sealed batch's complete receiver pack (see `sealed_pack_writer.write`): the sealed grid
+    with its private probes and, for a pool version, the pool rows. The model answers in the encoded space, so
+    the pack's adapter is this module's sealed adapter (decoded, then Cooling's own measurement).
+    """
+    from carbon.challenge_kit import cooling_sealed_pack
+    from carbon.scoring import sealed_pack_writer
+
+    return sealed_pack_writer.write(
+        sealed_adapter(version),
+        cooling_sealed_pack,
+        root,
+        bank,
+        challenge=CHALLENGE,
+        version=version,
+        is_sealed_bank=is_pool_bank if version in POOL_VERSIONS else is_sealed_bank,
+        refusal=_cooling.Refused("cooling_bank_population"),
+        pack_suffix=PACK_SUFFIX,
+        **platform,
+    )
+
+
 def adapter(rule="baseline_legs"):
     """This adapter; 1.3 serves the default leg-minimum rule only."""
     if rule != "baseline_legs":
