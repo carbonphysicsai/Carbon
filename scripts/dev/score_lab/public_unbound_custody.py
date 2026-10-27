@@ -1843,6 +1843,58 @@ def _graph_prediction_shape(value, shape, dtype):
     )
 
 
+def _graph_per_call_ok(value, rows):
+    """Absent, or the timed child's single-design seconds: at most one finite
+    positive number per covered practice row (the worker's own rule)."""
+    if value is None:
+        return True
+    return (
+        type(value) is list
+        and len(value) <= rows
+        and all(
+            type(item) in (int, float) and math.isfinite(item) and item > 0
+            for item in value
+        )
+    )
+
+
+def _timed_prefix_rows(per_case, measured, full_shape):
+    """How many leading practice rows a per-case timed query covers, or None.
+
+    The timed child runs the first `len(example)` practice rows when the
+    exported graph's declared batch is smaller than the practice query, so its
+    receipt describes that prefix (valV3, 2026-10-27; the receiver's own check
+    in `research_tasks` has the same rule). Only the per-case timed receipt may
+    say so; a full-size query is the same as no prefix.
+    """
+    shape = measured.get("input_shape") if type(measured) is dict else None
+    if (
+        per_case
+        and type(shape) is list
+        and type(full_shape) is list
+        and shape
+        and full_shape
+        and type(shape[0]) is int
+        and 0 < shape[0] <= full_shape[0]
+        and shape[1:] == full_shape[1:]
+    ):
+        return shape[0]
+    return None
+
+
+def _prefix_inputs_digest(inputs_npz, rows):
+    """Digest of the worker's serialization of the first `rows` retained inputs."""
+    try:
+        import numpy as np
+
+        from carbon.development_session.bundle_construction_worker import _tensors
+
+        with np.load(io.BytesIO(inputs_npz), allow_pickle=False) as archive:
+            return _sha(_tensors(inputs=np.ascontiguousarray(archive["inputs"][:rows])))
+    except Exception as exc:  # any failure is one refusal
+        raise CustodyRefused("graph_timed_prefix_inputs") from exc
+
+
 def _train_codec_matches(role, codec, expected):
     return codec == expected or role == "train" and codec == "raw_bytes"
 
@@ -2160,6 +2212,9 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
             timed = _graph_json(by_role["timed_receipt"], "timed_receipt")
     measured_receipt = timed if per_case else inference
     measured = None if measured_receipt is None else measured_receipt.get("measurement")
+    full_shape = None if input_arrays is None else input_arrays["inputs"]["shape"]
+    prefix_rows = _timed_prefix_rows(per_case, measured, full_shape)
+    is_prefix = prefix_rows is not None and prefix_rows < full_shape[0]
     if measured_receipt is not None and (
         set(measured_receipt)
         != {
@@ -2173,14 +2228,18 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         or measured_receipt["schema"] != "carbon.development.bundle-inference.v2"
         or measured_receipt["recipe_digest"] != recipe_digest
         or measured_receipt["state_digest"] != _sha(by_role["state"])
-        or measured_receipt["inputs_digest"] != _sha(by_role["inputs"])
+        or measured_receipt["inputs_digest"]
+        != (
+            _prefix_inputs_digest(by_role["inputs"], prefix_rows)
+            if is_prefix
+            else _sha(by_role["inputs"])
+        )
         or (
             not per_case
             and measured_receipt["predictions_digest"] != _sha(by_role["predictions"])
         )
         or type(measured) is not dict
-        or set(measured)
-        != {
+        or not {
             "scope",
             "timing_s",
             "input_shape",
@@ -2188,6 +2247,20 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
             "output_shape",
             "output_dtype",
         }
+        <= set(measured)
+        <= {
+            "scope",
+            "timing_s",
+            "input_shape",
+            "input_dtype",
+            "output_shape",
+            "output_dtype",
+        }
+        | ({"per_call_s"} if per_case else set())
+        or not _graph_per_call_ok(
+            measured.get("per_call_s"),
+            full_shape[0] if prefix_rows is None else prefix_rows,
+        )
         or measured["scope"]
         != "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
         or type(measured["timing_s"]) is not dict
@@ -2218,9 +2291,15 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
             "uint64",
         }
         or measured["input_dtype"] != input_arrays["inputs"]["dtype"]
-        or measured["input_shape"] != input_arrays["inputs"]["shape"]
+        or (measured["input_shape"] != full_shape and prefix_rows is None)
         or not _graph_prediction_shape(
-            predictions, measured["output_shape"], measured["output_dtype"]
+            (
+                predictions[:prefix_rows]
+                if is_prefix and type(predictions) is list
+                else predictions
+            ),
+            measured["output_shape"],
+            measured["output_dtype"],
         )
     ):
         raise CustodyRefused("graph_measured_inference_receipt")
