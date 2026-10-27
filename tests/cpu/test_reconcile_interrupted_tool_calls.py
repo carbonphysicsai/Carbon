@@ -19,6 +19,7 @@ from test_parallel_tool_calls_v2 import (
     epoch,
     folder,
     never,
+    outputs,
     scripted,
     text,
 )
@@ -30,36 +31,44 @@ from carbon.development_session.research_loop import (
 )
 
 
+class Interrupted(SDK):
+    """The dispatch dies mid-call (a Docker command returned a failure), after the
+    intent was journalled and before any result."""
+
+    async def call(self, name, arguments, identity):
+        raise RuntimeError("docker command failed")
+
+
 def _interrupt(meter, transport):
-    """One epoch with a dispatched call, then the result and outcome removed as an
-    interruption would leave them."""
-    sdk = SDK(meter)
-    epoch(meter, sdk, transport)
-    (folder(meter) / "epoch-1-tool-000-result.json").unlink()
-    (folder(meter) / "outcome.json").unlink()
-    return sdk
+    """A first epoch whose only tool call is interrupted mid-dispatch."""
+    with pytest.raises(RuntimeError):
+        epoch(meter, Interrupted(meter), transport)
+    assert (folder(meter) / "epoch-1-tool-000-intent.json").is_file()
+    assert not (folder(meter) / "epoch-1-tool-000-result.json").exists()
 
 
 def test_an_interrupted_dispatch_is_answered_and_the_campaign_resumes(tmp_path):
     meter = ledger(tmp_path)
-    transport, _ = scripted([[call("a", LIST)], [text()]])
+    transport, _ = scripted([[call("a", LIST)]])
     _interrupt(meter, transport)
     with pytest.raises(ValueError, match="tool dispatch incomplete"):
         epoch(meter, SDK(meter), never)
     assert settle_interrupted_tool_calls(meter.root) == 1
     sdk = SDK(meter)
-    result = epoch(meter, sdk, never)
+    transport, requests = scripted([[text()]])
+    result = epoch(meter, sdk, transport)
     assert result["status"] == "STOPPED"
-    # Nothing was run again: the answer was replayed.
+    # Nothing was run again: the answer was replayed, and the agent saw it.
     assert sdk.dispatched == []
     answer = json.loads((folder(meter) / "epoch-1-tool-000-result.json").read_bytes())
     assert answer == INTERRUPTED_TOOL_RESULT
     assert answer["outcome"] == "UNKNOWN" and answer["authority_granted"] is False
+    assert outputs(requests[0]) == [("a", INTERRUPTED_TOOL_RESULT)]
 
 
 def test_settling_twice_changes_nothing(tmp_path):
     meter = ledger(tmp_path)
-    transport, _ = scripted([[call("a", LIST)], [text()]])
+    transport, _ = scripted([[call("a", LIST)]])
     _interrupt(meter, transport)
     assert settle_interrupted_tool_calls(meter.root) == 1
     retained = (folder(meter) / "epoch-1-tool-000-result.json").read_bytes()
@@ -81,8 +90,8 @@ def test_only_dispatched_research_tools_are_settled(tmp_path):
     """A selection, stop or finish is recomputed by the loop itself; settling it as
     'unknown' would lose it."""
     meter = ledger(tmp_path)
-    folder(meter)  # the epoch folder
     root = meter.root / "epoch-1"
+    root.mkdir(parents=True)
     local = {
         "name": research_loop.SELECT,
         "arguments": {},
