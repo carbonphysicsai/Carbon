@@ -635,6 +635,13 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "f'carbon.{adapter_name}.level4'",
         ),
         (
+            # The proof grid's `--binding module:function` names the lane's binding factory (reviewed).
+            "scripts/dev/pool_proof_grid.py",
+            "_binding",
+            "importlib.import_module",
+            "module",
+        ),
+        (
             "tests/cpu/test_attack_authoritative_boundary.py",
             "test_every_adapter_reads_a_null_workspace_strategy_as_the_design",
             "importlib.import_module",

@@ -679,8 +679,8 @@ def _single_call_raw(
 
     After the graded inference, the same inference container runs Carbon's derived single-call program over
     `SAMPLE` pool rows, one call each after one public warm-up call. The rows are drawn from the canonical bank's
-    pool rows by HMAC-SHA256 under the receiver's speed-sample key over the domain tag, the pool set id and the
-    submission id (`single_call_timing.sample_seed`): only the indices cross into the container, as host-private
+    pool rows by HMAC-SHA256 under the receiver's K_speed (derived per pool set on the custody host; never the
+    copy key) over the domain tag and the submission id (`single_call_timing.sample_seed`): only the indices cross into the container, as host-private
     control. The 20 outputs must equal the graded run's on the same rows (a graph that answers differently when
     timed is the candidate's, recorded in the file); anything that stops the stage leaves the grade UNAVAILABLE
     with a typed reason (Carbon's gap), never a pass and never a candidate failure. A retry reads the retained
@@ -728,9 +728,7 @@ def _single_call_raw(
             raise RetentionUnavailable("single_call_pack_is_not_pool_graded")
         bank = sealed[0]
         delivered = np.asarray(material["practice_inputs"])
-        seed = single_call_timing.sample_seed(
-            key, bank["pool"]["set_digest"], submission_id
-        )
+        seed = single_call_timing.sample_seed(key, submission_id)
         indices = single_call_timing.delivered_indices(bank, delivered, seed)
         # The warm-up row is PUBLIC: the first row of the version's public development bank.
         public = np.asarray(

@@ -42,29 +42,37 @@ def _bank():
 # --- the seed and the draw ----------------------------------------------------------------------
 
 
-def test_the_seed_is_hmac_under_the_custody_key_with_the_domain_tag():
-    expected = hmac.new(
-        KEY,
-        b"\x00".join([b"carbon.speed-sample/1", SET_ID.encode(), SUBMISSION.encode()]),
+def test_the_grading_host_holds_k_speed_and_the_seed_derives_from_it():
+    """K_speed = HMAC(copy key, 'carbon.speed-key/1' 0x00 set id); seed = HMAC(K_speed, 'carbon.speed-sample/1'
+    0x00 submission id): the grading host never holds the copy key, and one grade's seed reveals neither key.
+    """
+    copy_key = bytes(range(32, 64))
+    k_speed = hmac.new(
+        copy_key,
+        b"\x00".join([b"carbon.speed-key/1", SET_ID.encode()]),
         hashlib.sha256,
     ).digest()
-    assert single_call_timing.sample_seed(KEY, SET_ID, SUBMISSION) == expected
-    # another submission, set or key draws another seed: no reuse across grades
-    assert expected != single_call_timing.sample_seed(KEY, SET_ID, "task-0002")
-    assert expected != single_call_timing.sample_seed(
-        KEY, "sha256:" + "6" * 64, SUBMISSION
-    )
-    assert expected != single_call_timing.sample_seed(bytes(32), SET_ID, SUBMISSION)
+    assert single_call_timing.speed_key(copy_key, SET_ID) == k_speed
+    expected = hmac.new(
+        k_speed,
+        b"\x00".join([b"carbon.speed-sample/1", SUBMISSION.encode()]),
+        hashlib.sha256,
+    ).digest()
+    assert single_call_timing.sample_seed(k_speed, SUBMISSION) == expected
+    # another set, copy key or submission draws another key or seed: no reuse across grades
+    assert single_call_timing.speed_key(copy_key, "sha256:" + "6" * 64) != k_speed
+    assert single_call_timing.speed_key(bytes(32), SET_ID) != k_speed
+    assert single_call_timing.sample_seed(k_speed, "task-0002") != expected
+    assert single_call_timing.sample_seed(bytes(32), SUBMISSION) != expected
 
 
 @pytest.mark.parametrize(
     "args",
     [
-        (b"short", SET_ID, SUBMISSION),
-        ("not bytes", SET_ID, SUBMISSION),
-        (KEY, "", SUBMISSION),
-        (KEY, SET_ID, ""),
-        (KEY, 3, SUBMISSION),
+        (b"short", SUBMISSION),
+        ("not bytes", SUBMISSION),
+        (KEY, ""),
+        (KEY, 3),
     ],
 )
 def test_a_weak_or_malformed_seed_input_is_refused(args):
@@ -72,9 +80,17 @@ def test_a_weak_or_malformed_seed_input_is_refused(args):
         single_call_timing.sample_seed(*args)
 
 
+@pytest.mark.parametrize(
+    "args", [(b"short", SET_ID), (KEY[:8], SET_ID), (KEY, ""), (KEY, 3), ("k", SET_ID)]
+)
+def test_a_weak_or_malformed_key_derivation_input_is_refused(args):
+    with pytest.raises(single_call_timing.SingleCallRefused):
+        single_call_timing.speed_key(*args)
+
+
 def test_the_draw_is_over_the_pool_rows_and_survives_a_copy_reorder():
     bank = _bank()
-    seed = single_call_timing.sample_seed(KEY, SET_ID, SUBMISSION)
+    seed = single_call_timing.sample_seed(KEY, SUBMISSION)
     canonical_order = single_call_timing.delivered_indices(bank, bank["inputs"], seed)
     pool = {i for i, c in enumerate(bank["cohorts"]) if c == pool_exam.POOL_COHORT}
     assert len(canonical_order) == single_call_timing.SAMPLE
@@ -88,14 +104,14 @@ def test_the_draw_is_over_the_pool_rows_and_survives_a_copy_reorder():
     }
     # another submission draws other rows
     other = single_call_timing.delivered_indices(
-        bank, bank["inputs"], single_call_timing.sample_seed(KEY, SET_ID, "task-0002")
+        bank, bank["inputs"], single_call_timing.sample_seed(KEY, "task-0002")
     )
     assert other != canonical_order
 
 
 def test_a_drawn_row_missing_or_repeated_in_the_delivered_query_is_refused():
     bank = _bank()
-    seed = single_call_timing.sample_seed(KEY, SET_ID, SUBMISSION)
+    seed = single_call_timing.sample_seed(KEY, SUBMISSION)
     wanted = single_call_timing.delivered_indices(bank, bank["inputs"], seed)
     missing = np.delete(bank["inputs"], wanted[0], axis=0)
     with pytest.raises(
@@ -185,7 +201,7 @@ def stage(tmp_path, monkeypatch):
     delivered = bank["inputs"][
         np.random.default_rng(11).permutation(len(bank["inputs"]))
     ]
-    seed = single_call_timing.sample_seed(KEY, SET_ID, SUBMISSION)
+    seed = single_call_timing.sample_seed(KEY, SUBMISSION)
     indices = single_call_timing.delivered_indices(bank, delivered, seed)
     material = {
         "construction_kit": {

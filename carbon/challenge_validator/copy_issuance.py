@@ -96,6 +96,24 @@ def _write_once(path, value):
     return True
 
 
+def _write_speed_key(folder, canonical, master, hotkey, set_id):
+    """K_speed of this hotkey's copy and this pool set, beside the signed copy: raw bytes, create-only, 0600
+    (GPU_REBUILD_RULINGS end). The grading host gets this and never the copy key; it is never printed.
+    """
+    from carbon.development_session import single_call_timing
+
+    path = folder / (canonical.removeprefix("sha256:") + ".speed-key")
+    if path.exists():
+        return False
+    key = single_call_timing.speed_key(
+        copy_delivery.validator_key(master, hotkey), set_id
+    )
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "wb") as handle:
+        handle.write(key)
+    return True
+
+
 def issue(config, *, hotkeys=None):
     """Issue every permitted hotkey's copy; returns counts and digests only."""
     if (
@@ -124,9 +142,16 @@ def issue(config, *, hotkeys=None):
     copies.mkdir(mode=0o700, parents=True, exist_ok=True)
     canonical = copy_delivery._sha(manifest)
     written, held = [], []
+    pool = (
+        carried["document"].get("pool") if type(carried["document"]) is dict else None
+    )
+    set_id = pool.get("set_digest") if type(pool) is dict else None
+    speed_keys = 0
     for hotkey in hotkeys:
         folder = copies / hotkey
         folder.mkdir(mode=0o700, exist_ok=True)
+        if set_id is not None:
+            speed_keys += _write_speed_key(folder, canonical, master, hotkey, set_id)
         path = folder / (canonical.removeprefix("sha256:") + ".json")
         if path.exists():
             held.append(hotkey)
@@ -154,6 +179,8 @@ def issue(config, *, hotkeys=None):
         "hotkeys": len(hotkeys),
         "challenge": challenge,
         "challenge_version": version,
+        # A pool batch also gets each hotkey's K_speed beside its copy (counts only, never the key).
+        **({"speed_keys": speed_keys} if set_id is not None else {}),
     }
 
 
