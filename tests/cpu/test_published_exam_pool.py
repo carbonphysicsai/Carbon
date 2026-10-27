@@ -87,7 +87,10 @@ def test_only_the_pool_versions_are_pool_graded():
         block = pe.for_version(*key)
         if key in POOL_KEYS:
             assert block["schema"] == pe.SCHEMA_POOL
-            assert block["design_search"] is pe._DESIGN_SEARCH
+            if key in pe._REGISTERED_POOL:
+                assert block["design_search"] != pe._DESIGN_SEARCH
+            else:
+                assert block["design_search"] is pe._DESIGN_SEARCH
             continue
         assert block["schema"] == pe.SCHEMA
         assert "design_search" not in block
@@ -250,3 +253,74 @@ def test_the_launchpad_page_shows_the_lines_from_the_challenge_s_own_block():
     )
     assert "published_exam?.how_you_are_tested" in source
     assert "How you're tested" in source
+
+
+# --- Motor 1.5: the owner's registered values are published (Validator 00:26Z) ----------------------------
+
+MOTOR_15 = ("electric-motor-magnetics", "1.5")
+
+
+def test_the_registered_values_equal_the_constants_file():
+    document = json.loads((ROOT / "carbon/scoring/pool_constants.json").read_bytes())
+    row = document["versions"]["electric-motor-magnetics 1.5"]
+    own = pe.registered_pool(*MOTOR_15)
+    assert own["query_budget"] == row["optimizer"]["budget"]
+    assert own["initial_step"] == row["optimizer"]["sigma0"]
+    assert own["honesty_scale"] == row["honesty"]["scale"]
+    assert own["honesty_reduction"] == row["honesty"]["reduction"]
+    assert own["a_multiplier"] == row["a_multiplier"]
+    assert own["a_gen_rule"] == row["a_rule"]["kind"]
+    assert own["a_gen_scales"] == row["agen_scales"]
+    assert own["c_rule"] == row["c_rule"]["kind"]
+
+
+def test_only_a_fully_registered_version_publishes_numbers():
+    document = json.loads((ROOT / "carbon/scoring/pool_constants.json").read_bytes())
+    for key in POOL_KEYS:
+        row = document["versions"][f"{key[0]} {key[1]}"]
+        registered = "HUMAN_INPUT" not in json.dumps(row)
+        assert (key in pe._REGISTERED_POOL) == registered, key
+
+
+def test_motor_15_publishes_its_registered_rules():
+    block = pe.for_version(*MOTOR_15)
+    search = block["design_search"]
+    assert search["search"]["query_budget"] == 60
+    assert search["search"]["initial_step"] == 0.25
+    assert search["per_target_score"]["honesty_scale"] == 1.0
+    rule = block["score"]["rule"]
+    assert "1 / (1 + 3 x)" in rule["A"] and "A_gen" in rule["A"]
+    assert pe.NOT_REGISTERED not in rule["A"]
+    assert pe.NOT_REGISTERED not in json.dumps(search)
+    lines = {line["id"]: line["text"] for line in block["how_you_are_tested"]}
+    assert "registered_values" in lines
+    assert "The query budget is 60." in lines["inverse_design"]
+    assert "not yet registered" not in lines["inverse_design"] + lines["optimizer"]
+    text = lines["registered_values"]
+    for needle in ("60 times", "0.25", "s = 1", "3 x", "0.0743", "0.0868", "smaller"):
+        assert needle in text, needle
+
+
+def test_every_other_pool_version_still_says_not_yet_registered():
+    for key in POOL_KEYS - {MOTOR_15}:
+        block = pe.for_version(*key)
+        assert block["design_search"] is pe._DESIGN_SEARCH
+        assert block["design_search"]["search"]["query_budget"] == pe.NOT_REGISTERED
+        assert "registered_values" not in [
+            line["id"] for line in block["how_you_are_tested"]
+        ]
+
+
+def test_motor_15_s_published_block_names_nothing_the_ruling_withholds():
+    block = pe.for_version(*MOTOR_15)
+    words = " ".join(_walk(block)).lower()
+    for word in WITHHELD:
+        assert word not in words, word
+    assert set(block) <= pe.ALLOWED_FIELDS
+    assert len(json.dumps(block, sort_keys=True)) < 16000
+
+
+def test_mining_md_carries_motor_15_s_registered_values():
+    section = _how_section()
+    own = pe.registered_pool(*MOTOR_15)
+    assert pe._registered_text(own) in section

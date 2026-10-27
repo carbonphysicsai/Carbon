@@ -28,6 +28,7 @@ def _entry(**overrides):
         "agen_scales": {"x": 1.0},
         "a_rule": {"kind": "test_fixture"},
         "c_rule": {"kind": "min"},
+        "a_multiplier": 3.0,
     }
     entry.update(overrides)
     return entry
@@ -39,18 +40,46 @@ def _file(tmp_path, versions, schema=pool_version.SCHEMA):
     return path
 
 
-@pytest.mark.parametrize(("challenge_id", "version"), POOL)
-def test_the_shipped_file_registers_no_owner_constant_so_every_pool_version_refuses(
+UNREGISTERED = [key for key in POOL if key != ("electric-motor-magnetics", "1.5")]
+
+
+@pytest.mark.parametrize(("challenge_id", "version"), UNREGISTERED)
+def test_the_shipped_file_registers_no_owner_constant_for_the_other_pool_versions(
     challenge_id, version
 ):
     document = json.loads(pool_version.CONSTANTS.read_bytes())
     entry = document["versions"][f"{challenge_id} {version}"]
     assert entry["c_rule"] == {"kind": "min"}
     assert pool_version.HUMAN_INPUT in json.dumps(entry)
-    with pytest.raises(pool_version.PoolConstantsNotRegistered) as refused:
-        pool_version.registered_policies(challenge_id, version)
-    assert str(refused.value) == "pool_constants_not_registered"
-    assert isinstance(refused.value, pool_exam.ExamRefused)
+    for call in (
+        pool_version.registered_policies,
+        pool_version.registered_a_multiplier,
+    ):
+        with pytest.raises(pool_version.PoolConstantsNotRegistered) as refused:
+            call(challenge_id, version)
+        assert str(refused.value) == "pool_constants_not_registered"
+        assert isinstance(refused.value, pool_exam.ExamRefused)
+
+
+def test_motor_1_5_carries_exactly_the_owners_recorded_picks():
+    """OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01 (owner '1 and a'): B 60, s_h 1.0, A multiplier 3, A_gen scales
+    set-3 (0.03 x the TRAIN spread), rule mean; sigma0 0.25, population None, reduction max are the grid's.
+    """
+    policies = pool_version.registered_policies("electric-motor-magnetics", "1.5")
+    assert policies.optimizer.budget == 60
+    assert policies.optimizer.sigma0 == 0.25 and policies.optimizer.population is None
+    assert policies.honesty.scale == 1.0 and policies.honesty.reduction == "max"
+    assert policies.a_rule == {"kind": "mean"} and policies.c_rule == {"kind": "min"}
+    assert (
+        pool_version.registered_a_multiplier("electric-motor-magnetics", "1.5") == 3.0
+    )
+    from carbon.scoring import pool_adapters
+
+    chosen = pool_adapters.adapter("motor", "1.5")
+    spread = pool_adapters.train_spread("motor", "1.5", chosen)
+    assert set(policies.agen_scales) == set(spread)
+    for name, scale in policies.agen_scales.items():
+        assert scale == pytest.approx(0.03 * spread[name], rel=1e-12)
 
 
 def test_a_fully_registered_version_returns_its_policies(tmp_path):
@@ -99,6 +128,17 @@ def test_a_malformed_constant_is_refused_not_clamped(tmp_path, bad):
     path = _file(tmp_path, {"f02 2.5": entry})
     with pytest.raises(pool_exam.ExamRefused):
         pool_version.registered_policies("f02", "2.5", path=path)
+
+
+@pytest.mark.parametrize(
+    "bad", [pool_version.HUMAN_INPUT, 0, -1.0, float("inf"), "3", None]
+)
+def test_the_a_multiplier_is_a_positive_number_the_owner_picked(tmp_path, bad):
+    path = _file(tmp_path, {"f02 2.5": _entry(a_multiplier=bad)})
+    with pytest.raises(pool_version.PoolConstantsNotRegistered):
+        pool_version.registered_a_multiplier("f02", "2.5", path=path)
+    ok = _file(tmp_path, {"f02 2.5": _entry(a_multiplier=3)})
+    assert pool_version.registered_a_multiplier("f02", "2.5", path=ok) == 3.0
 
 
 # --- the cross-version pair rule ------------------------------------------------------------------------

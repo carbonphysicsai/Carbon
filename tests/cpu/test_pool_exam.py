@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import dataclasses
 import math
+import statistics
 import sys
 from pathlib import Path
 
@@ -103,6 +104,7 @@ def grade(
     speed=FAST,
     policies=POLICIES,
     mutate_rows=None,
+    a_multiplier=None,
 ):
     the_sets = the_sets or sets()
     rows = exam_rows(the_sets)
@@ -120,6 +122,7 @@ def grade(
         base_arguments=ARGUMENTS,
         speed_call_seconds=speed,
         ceiling_seconds=CEILING,
+        **({} if a_multiplier is None else {"a_multiplier": a_multiplier}),
     )
 
 
@@ -208,6 +211,36 @@ def test_the_official_grade_equals_the_proof_suites_for_the_same_model():
     assert total_of(measured) == pytest.approx(proof_total, abs=1e-12)
     assert 0.0 < total_of(measured) < 1.0
     assert measured["pool"]["sets"] == 2 and measured["pool"]["reasons"] == []
+
+
+def test_the_a_multiplier_tightens_each_a_leg_as_the_proof_grid_scored_the_row():
+    """The sheet's A multiplier m maps each A leg 1 / (1 + x) to 1 / (1 + m x) before averaging; m = 1 is the
+    sealed grader's registered scale (the default), a perfect model is unmoved, a bad one loses.
+    """
+    from carbon.scoring.pool_proof_grid import tighten
+
+    # A_gen weight 0: the bank's A alone shows the tightening (under `min` the generalisation term may dominate)
+    BANK_ONLY = dataclasses.replace(
+        POLICIES, a_rule={"kind": "weighted", "weight": 0.0}
+    )
+
+    worse_serve = lambda rows: [[v + 3 * U for v in truth(r)] for r in rows]
+    base = grade(serve=worse_serve, policies=BANK_ONLY)
+    assert (
+        grade(serve=worse_serve, policies=BANK_ONLY, a_multiplier=1.0)["A"] == base["A"]
+    )
+    tight = grade(serve=worse_serve, policies=BANK_ONLY, a_multiplier=3.0)
+    assert tight["A"] < base["A"]
+    perfect = lambda rows: [truth(r) for r in rows]
+    assert grade(serve=perfect, policies=BANK_ONLY, a_multiplier=3.0)[
+        "A"
+    ] == pytest.approx(grade(serve=perfect, policies=BANK_ONLY)["A"], abs=1e-12)
+    legs = base["A_legs"]
+    bank_mean = statistics.fmean(tighten(v, 3.0) for v in legs.values())
+    assert bank_mean < statistics.fmean(legs.values())
+    for bad in (0, -1.0, float("nan"), "3"):
+        with pytest.raises(exam.ExamRefused, match="a_multiplier_must_be_positive"):
+            grade(policies=BANK_ONLY, a_multiplier=bad)
 
 
 def test_the_grade_is_deterministic_and_a_better_model_scores_higher():
