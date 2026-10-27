@@ -526,13 +526,17 @@ def gpu_check(
     gpu_construction_images: tuple = (),
     checks=None,
     device=None,
+    stack_facts=None,
 ) -> dict:
     """Is this host ready to serve the GPU lane? Reads only; nothing is written or started.
 
     Order: the files named (same rules as ``prepare``), this host's installed GPU device record
     (``scripts/dev/carbon_accelerator.py prepare``), and the owner's hardware acceptance for that
-    device class on this chain network. The receiver re-checks all of it, and the worker images and
-    the ops record's allowlist, when it starts; this is the early, readable refusal."""
+    device class on this chain network, and last the host's software stack: the Docker engine
+    version and image store and the NVIDIA driver and container toolkit must be the registered, tested
+    ones (`carbon.reconstruction.host_stack`), never whatever the box shipped. The receiver re-checks
+    the files, the worker images and the ops record's allowlist when it starts; this is the early,
+    readable refusal."""
     from carbon.development_session import research_carrier
     from carbon.reconstruction.hardware_acceptance import (
         DeviceClassNotAccepted,
@@ -579,6 +583,20 @@ def gpu_check(
             "the owner's hardware acceptance does not name this GPU class for this chain network; "
             "this host cannot score on it.",
         ) from None
+    from carbon.reconstruction import host_stack
+
+    facts = host_stack.read_facts() if stack_facts is None else stack_facts
+    differences = host_stack.problems(facts)
+    if differences:
+        raise SetupRefused(
+            "host_stack_not_tested",
+            "this host's software is not the tested stack: "
+            + "; ".join(
+                f"{row['check']} is {row['found']!r}, needs {row['required']}"
+                for row in differences
+            )
+            + ". Install the registered versions (docs/development/DAY_ONE step 1) and run this again.",
+        )
     return {
         "status": "GPU_HOST_READY",
         "device_kind": device.device_kind,
@@ -586,6 +604,7 @@ def gpu_check(
         "chain_network": chain,
         "graph_gpu_lane": "graph_gpu_image_manifest" in keys,
         "gpu_construction_images": len(keys.get("gpu_construction_images", ())),
+        "host_stack": facts,
     }
 
 

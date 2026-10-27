@@ -598,6 +598,14 @@ def _accept(monkeypatch, networks=("testnet",)):
     )
 
 
+TESTED_STACK = {
+    "docker_engine": "29.1.3",
+    "image_store": "containerd",
+    "nvidia_driver": "580.159.03",
+    "nvidia_toolkit": "1.17.8",
+}
+
+
 def test_gpu_check_passes_on_an_accepted_class_and_writes_nothing(
     tmp_path, monkeypatch
 ):
@@ -608,6 +616,7 @@ def test_gpu_check_passes_on_an_accepted_class_and_writes_nothing(
         graph_gpu_ops=ops,
         checks=_TestnetChecks(),
         device=_Device(),
+        stack_facts=TESTED_STACK,
     )
     assert done == {
         "status": "GPU_HOST_READY",
@@ -616,6 +625,7 @@ def test_gpu_check_passes_on_an_accepted_class_and_writes_nothing(
         "chain_network": "testnet",
         "graph_gpu_lane": True,
         "gpu_construction_images": 0,
+        "host_stack": TESTED_STACK,
     }
     assert sorted(path.name for path in tmp_path.iterdir()) == [
         "jax-gpu.json",
@@ -634,6 +644,7 @@ def test_gpu_check_refuses_a_class_the_owner_has_not_accepted_for_this_network(
             graph_gpu_ops=ops,
             checks=_TestnetChecks(),
             device=_Device(),
+            stack_facts=TESTED_STACK,
         )
 
 
