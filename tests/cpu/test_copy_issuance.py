@@ -225,3 +225,46 @@ def test_the_pack_set_is_signed_published_once_and_imports_on_a_validator(job):
     assert store.holds_set(commitment)
     with pytest.raises(ak.AnswerKeyRefused, match="copy_issuance_config_malformed"):
         issuance.publish_set({"schema": "x"})
+
+
+def test_a_pool_batch_also_gets_each_hotkeys_k_speed_beside_its_copy(
+    job, monkeypatch, capsys
+):
+    """GPU_REBUILD_RULINGS end: the grading host gets K_speed = HMAC(copy key, domain || set id), never the copy key."""
+    from carbon.development_session import single_call_timing
+
+    set_id = "sha256:" + "5" * 64
+    carried = json.loads((job["tmp"] / "batch.json").read_bytes())
+    carried["document"]["pool"] = {"set_digest": set_id}
+    (job["tmp"] / "batch.json").write_text(json.dumps(carried))
+    monkeypatch.setattr(delivery, "issue_copy", lambda *a, **k: {"stub": k["hotkey"]})
+    monkeypatch.setattr(copy_route, "verify_package", lambda *a, **k: None)
+    summary = issuance.issue(job["config"])
+    assert summary["speed_keys"] == 2 and summary["written"] == 2
+    canonical = delivery._sha(job["manifest"]).removeprefix("sha256:")
+    master = (job["tmp"] / "master.key").read_bytes()
+    keys = {}
+    for hotkey in (ONE, TWO):
+        path = job["tmp"] / "copies" / hotkey / (canonical + ".speed-key")
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
+        keys[hotkey] = path.read_bytes()
+        assert keys[hotkey] == single_call_timing.speed_key(
+            delivery.validator_key(master, hotkey), set_id
+        )
+        # never the copy key itself
+        assert keys[hotkey] != delivery.validator_key(master, hotkey)
+    assert keys[ONE] != keys[TWO]
+    # create-only: a second run keeps them and writes none
+    before = dict(keys)
+    again = issuance.issue(job["config"])
+    assert again["speed_keys"] == 0 and again["held"] == 2
+    assert keys == before
+    # the summary and the CLI never carry a key
+    out = json.dumps(summary)
+    assert all(k.hex() not in out for k in keys.values())
+
+
+def test_a_batch_without_a_pool_gets_no_speed_key(job):
+    summary = issuance.issue(job["config"])
+    assert "speed_keys" not in summary
+    assert not list((job["tmp"] / "copies").rglob("*.speed-key"))

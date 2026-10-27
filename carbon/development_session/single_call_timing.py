@@ -28,8 +28,10 @@ import json
 import math
 
 SIDE_FILE_SCHEMA = "carbon.lean-recipe.single-call.v1"
-#: The domain tag of the per-grade sample seed (GPU_REBUILD_RULINGS section 8): HMAC-SHA256 under the pack's custody
-#: copy key over this tag, the pool set id and the submission id.
+#: The grading host never holds a validator's copy key: it holds K_speed, derived per pool set on the custody host
+#: (GPU_REBUILD_RULINGS end): K_speed = HMAC-SHA256(copy key, KEY_DOMAIN || 0x00 || pool set id). The per-grade seed is
+#: HMAC-SHA256(K_speed, SEED_DOMAIN || 0x00 || submission id), so one grade's seed reveals neither key.
+KEY_DOMAIN = b"carbon.speed-key/1"
 SEED_DOMAIN = b"carbon.speed-sample/1"
 SCHEMA = "carbon.development.bundle-inference.v3"
 SCOPE = "SINGLE_DESIGN_CALLS_ONE_PUBLIC_WARMUP_EXCLUDED_MONOTONIC_CLOCK"
@@ -131,21 +133,31 @@ def program(base_program: str) -> str:
     return result
 
 
-def sample_seed(key: bytes, set_id: str, submission_id: str) -> bytes:
-    """The per-grade seed that picks the timed rows: custody's, never the miner's, never reused across grades."""
+def speed_key(copy_key: bytes, set_id: str) -> bytes:
+    """K_speed of one pool set for one validator copy: derived on the custody host and streamed beside the signed
+    copy, so the grading host holds this and never the copy key."""
     if (
-        type(key) is not bytes
-        or len(key) < 32
+        type(copy_key) is not bytes
+        or len(copy_key) < 16
         or type(set_id) is not str
         or not set_id
+    ):
+        raise SingleCallRefused("single_call_key_input_invalid")
+    message = b"\x00".join([KEY_DOMAIN, set_id.encode("utf-8")])
+    return hmac.new(copy_key, message, hashlib.sha256).digest()
+
+
+def sample_seed(k_speed: bytes, submission_id: str) -> bytes:
+    """The per-grade seed that picks the timed rows: custody's, never the miner's, never reused across grades."""
+    if (
+        type(k_speed) is not bytes
+        or len(k_speed) < 32
         or type(submission_id) is not str
         or not submission_id
     ):
         raise SingleCallRefused("single_call_seed_input_invalid")
-    message = b"\x00".join(
-        [SEED_DOMAIN, set_id.encode("utf-8"), submission_id.encode("utf-8")]
-    )
-    return hmac.new(key, message, hashlib.sha256).digest()
+    message = b"\x00".join([SEED_DOMAIN, submission_id.encode("utf-8")])
+    return hmac.new(k_speed, message, hashlib.sha256).digest()
 
 
 def delivered_indices(bank, delivered_inputs, seed: bytes) -> list:
@@ -270,6 +282,7 @@ def outputs_match_graded(single_outputs, graded_outputs, indices) -> bool:
 
 
 __all__ = [
+    "KEY_DOMAIN",
     "SAMPLE",
     "SCHEMA",
     "SCOPE",
@@ -285,4 +298,5 @@ __all__ = [
     "read_side_file",
     "sample_seed",
     "side_file",
+    "speed_key",
 ]
