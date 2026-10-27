@@ -240,9 +240,19 @@ def prepare(
     repository: Path = REPO,
     checks=None,
     permits=None,
+    speed_sample_key_file: Path | None = None,
 ) -> dict:
-    """Write the runner profile and receiver configuration; return public facts."""
-    from carbon.challenge_validator.direct_receiver import installed_source, load_config
+    """Write the runner profile and receiver configuration; return public facts.
+
+    ``speed_sample_key_file`` is the pool versions' K_speed (the custody job writes it beside the signed copy,
+    `copy_issuance`): an exact private file, recorded in the configuration so the receiver times single-design
+    calls under it; without it a pool grade has no speed evidence (typed unavailable).
+    """
+    from carbon.challenge_validator.direct_receiver import (
+        installed_source,
+        load_config,
+        read_speed_sample_key,
+    )
     from carbon.development_session.profile import canonical
     from scripts.dev.miner_launchpad import installed
     from scripts.dev.miner_launchpad.environment_setup import (
@@ -256,6 +266,15 @@ def prepare(
     )
     from scripts.dev.miner_launchpad.runner import PROFILE_SCHEMA, validated_profile
 
+    if speed_sample_key_file is not None:
+        # validated before anything is written, so a refusal leaves no half-prepared state
+        try:
+            read_speed_sample_key(str(speed_sample_key_file))
+        except ValueError:
+            raise SetupRefused(
+                "speed_sample_key_file_invalid",
+                "give the exact absolute path of an owner-only (0600) K_speed file of 32 to 4096 bytes.",
+            ) from None
     for name, path in (
         ("installed_state", installed_state),
         ("receiver_state", receiver_state),
@@ -404,6 +423,8 @@ def prepare(
         config["evaluation_pack"] = selection
     if pack_set is not None:
         config["evaluation_pack_set"] = pack_set
+    if speed_sample_key_file is not None:
+        config["speed_sample_key_file"] = str(speed_sample_key_file)
     write_private(config_path, canonical(config))
     load_config(config_path)
     return {
@@ -703,6 +724,11 @@ def main(argv=None) -> int:
     prep.add_argument("--pack-store", type=Path)
     prep.add_argument("--pack-digest")
     prep.add_argument("--pack-set-key")
+    prep.add_argument(
+        "--speed-sample-key-file",
+        type=Path,
+        help="the pool versions' K_speed file (written beside the signed copy by the issuance job)",
+    )
     prep.add_argument("--port", type=int, default=DEFAULT_PORT)
     prep.add_argument("--lifetime-seconds", type=int, default=DEFAULT_LIFETIME_SECONDS)
     run = sub.add_parser("start")
@@ -734,6 +760,7 @@ def main(argv=None) -> int:
                 pack_set_key=args.pack_set_key,
                 port=args.port,
                 lifetime_seconds=args.lifetime_seconds,
+                speed_sample_key_file=args.speed_sample_key_file,
             )
     except SetupRefused as refusal:
         print(
