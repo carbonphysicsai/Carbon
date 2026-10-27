@@ -8,12 +8,11 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
@@ -611,6 +610,20 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "module_name",
         ),
         (
+            # GPU lane tools (reviewed): the class check imports the version modules it reports on by name, and the
+            # repeat tool imports an entry's declared module.
+            "scripts/dev/gpu_rebuild_class_check.py",
+            "_versions",
+            "__import__",
+            "name",
+        ),
+        (
+            "scripts/dev/gpu_repeat.py",
+            "one_run",
+            "importlib.import_module",
+            "entry['entrypoint']['module']",
+        ),
+        (
             "scripts/dev/level4_spike/g3_memory_probe.py",
             "main",
             "importlib.import_module",
@@ -652,6 +665,18 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "_research",
             "importlib.import_module",
             "campaign.compose.__module__.rsplit('.', 1)[0] + '.research'",
+        ),
+        (
+            "tests/cpu/test_level4_v8_primitive_coverage.py",
+            "_primitives",
+            "importlib.import_module",
+            "extra",
+        ),
+        (
+            "tests/cpu/test_level4_v8_primitive_coverage.py",
+            "_primitives",
+            "importlib.import_module",
+            "info.name",
         ),
         (
             "tests/cpu/test_package_installation.py",
