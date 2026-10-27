@@ -59,7 +59,9 @@ def _entries():
 
 
 def _twins(config):
-    return [r for r in receiver_catalog.served_bundles(config) if r["kind"] == "gpu_twin"]
+    return [
+        r for r in receiver_catalog.served_bundles(config) if r["kind"] == "gpu_twin"
+    ]
 
 
 def _official_bcat(monkeypatch):
@@ -271,7 +273,9 @@ def test_a_receiver_whose_parents_cannot_be_read_is_unverified_not_blocked(
     }
 
 
-def test_the_commands_exit_non_zero_until_ready(receiver, monkeypatch, tmp_path, capsys):
+def test_the_commands_exit_non_zero_until_ready(
+    receiver, monkeypatch, tmp_path, capsys
+):
     config, root = receiver
     state = tmp_path / "receiver-state"
     (state / "receiver").mkdir(parents=True)

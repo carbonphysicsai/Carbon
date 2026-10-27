@@ -68,7 +68,9 @@ def served_runtimes(config) -> dict:
     profile = _read_profile(config)
     paths = profile.get("paths") if isinstance(profile.get("paths"), dict) else {}
     found = {}
-    primary_path = config.get("construction_image_manifest") or paths.get("image_manifest")
+    primary_path = config.get("construction_image_manifest") or paths.get(
+        "image_manifest"
+    )
     try:
         primary = load_image_identity(Path(primary_path))
     except Exception:  # noqa: BLE001 - an unreadable record serves nothing
@@ -213,7 +215,9 @@ def install(config, config_path, *, wheelhouse=None) -> dict:
                     receiver_config=Path(config_path),
                     skipped=skipped,
                 )
-            except Exception as failure:  # noqa: BLE001 - one entry never stops the rest
+            except (
+                Exception
+            ) as failure:
                 skipped.append(
                     {
                         **row,
