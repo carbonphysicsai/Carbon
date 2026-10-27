@@ -215,7 +215,8 @@ def install(config, config_path, *, wheelhouse=None) -> dict:
                     receiver_config=Path(config_path),
                     skipped=skipped,
                 )
-            except Exception as failure:  # noqa: BLE001 - one entry never stops the rest
+            # One entry's failure never stops the rest.
+            except Exception as failure:  # noqa: BLE001
                 skipped.append(
                     {
                         **row,
