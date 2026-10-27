@@ -18,18 +18,40 @@ CHALLENGES = (
 )
 
 
+def _gradeable(challenge, version):
+    from carbon.challenge_registry import published_exam
+
+    return (challenge, version) not in published_exam._POOL_VERSIONS or (
+        published_exam.registered_pool(challenge, version) is not None
+    )
+
+
 @pytest.mark.parametrize("challenge", CHALLENGES)
-def test_no_version_is_the_newest_open_version_not_the_first_registered(challenge):
+def test_no_version_is_the_newest_open_gradeable_version_not_the_first_registered(
+    challenge,
+):
     from carbon.challenge_registry.registry import entries
 
-    versions = [
-        e.version for e in entries() if e.challenge_id == challenge and e.version
-    ]
+    versions = [e.version for e in entries() if e.challenge_id == challenge and e.version]
     served = latest_ref(challenge)["version"]
-    assert served == max(versions, key=lambda v: tuple(map(int, v.split("."))))
+    gradeable = [v for v in versions if _gradeable(challenge, v)]
+    assert served == max(gradeable, key=lambda v: tuple(map(int, v.split("."))))
     document = toolbox.for_request(None, {"challenge": challenge}, lanes={})
     assert document["challenge"]["version"] == served
     assert served != versions[0] or len(versions) == 1
+
+
+def test_the_default_never_lands_on_a_pool_version_whose_constants_are_unregistered():
+    from carbon.challenge_registry import published_exam
+
+    for challenge in CHALLENGES:
+        served = latest_ref(challenge)["version"]
+        if (challenge, served) in published_exam._POOL_VERSIONS:
+            assert published_exam.registered_pool(challenge, served) is not None
+    # Cooling 1.5, F08 1.6 and F02 2.5 are pool versions with HUMAN_INPUT constants today.
+    registered = set(published_exam._REGISTERED_POOL)
+    for key in published_exam._POOL_VERSIONS - registered:
+        assert latest_ref(key[0])["version"] != key[1], key
 
 
 @pytest.mark.parametrize("challenge", ("electric-motor-magnetics", "chip-cold-plate"))
