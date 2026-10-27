@@ -43,8 +43,11 @@ DECISION_REFERENCES = (
 #: then the pool-graded versions' one shared-producer move (the pool path in `physical_dual_pack`,
 #: `sealed_batch_source` and `copy_derivation`, which every physical producer hashes; Battery is not
 #: served; was sha256:9ce2c2eaf26dd87149b0821f5081751bcf7c554527e86ea86d5ffd73848e93d0).
+#: then the pool-graded versions' no-timed-query rule (GPU_REBUILD_RULINGS section 13: `physical_dual_pack`
+#: and `bundle_benchmark_core`, which every physical producer hashes; Battery is not served; was
+#: sha256:e17b7039abea87717124ab27f815dc18ebc1f0a66f83d2cd858bb1c71eba113a).
 DEV_PRODUCER_DIGEST = (
-    "sha256:e17b7039abea87717124ab27f815dc18ebc1f0a66f83d2cd858bb1c71eba113a"
+    "sha256:e3c00db96f139e397613d8e7cb4da6a6883252b115f3bb20468298f2be2e5d46"
 )
 
 

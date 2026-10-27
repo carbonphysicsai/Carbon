@@ -39,8 +39,11 @@ MOTOR = "electric-motor-magnetics"
 #: then the pool-graded versions' one shared-producer move (M2/M3: the pool path in `physical_dual_pack`,
 #: `sealed_batch_source` and `copy_derivation`, pre-publish; was
 #: sha256:6b72a0162a5b691b2f44613523e453a61ccf235a35ff8bc6fdec5ffdbf4537ab).
+#: then the pool-graded versions' no-timed-query rule (GPU_REBUILD_RULINGS section 13: `physical_dual_pack`
+#: and `bundle_benchmark_core`; pre-publish; was
+#: sha256:d802eebd03590c158b3225eac7e30b0c404c476de6408eb1e0454d347097fd56).
 DEV_PRODUCER_DIGEST = (
-    "sha256:d802eebd03590c158b3225eac7e30b0c404c476de6408eb1e0454d347097fd56"
+    "sha256:d31b710243539886d45806c982061f444f4a4d4bfcdaf15c748c377fc100dec1"
 )
 DESIGNS, CONDITIONS = 5, 6
 
