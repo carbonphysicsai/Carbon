@@ -61,22 +61,40 @@ def test_both_harnesses_take_their_environment_from_it():
     assert check._pinned_environment() == pinned
 
 
-def test_the_repeat_harness_sets_it_over_whatever_the_image_exports(
-    tmp_path, monkeypatch
-):
-    monkeypatch.setenv("JAX_PLATFORMS", "cpu")  # what the worker image bakes
-    monkeypatch.setenv("XLA_FLAGS", "--something_else")
-    environment = repeat.pinned(Path(__file__).resolve().parents[2], allow_cpu=False)
-    import os
+def test_the_repeat_harness_sets_it_over_whatever_the_image_exports():
+    repo = Path(__file__).resolve().parents[2]
+    # a private mapping: setting the pinned matmul precision in THIS process would make every
+    # graph a later test lowers carry a non-default `precision`, which graph intake refuses
+    exported = {"JAX_PLATFORMS": "cpu", "XLA_FLAGS": "--something_else"}  # the image's
+    environment = repeat.pinned(repo, allow_cpu=False, environ=exported)
+    assert exported["JAX_PLATFORMS"] == "cuda"
+    assert exported["XLA_FLAGS"] == environment["XLA_FLAGS"]
+    assert repeat.pinned(repo, allow_cpu=True, environ={})["JAX_PLATFORMS"] == "cpu"
 
-    assert os.environ["JAX_PLATFORMS"] == "cuda"
-    assert os.environ["XLA_FLAGS"] == environment["XLA_FLAGS"]
-    assert (
-        repeat.pinned(Path(__file__).resolve().parents[2], allow_cpu=True)[
-            "JAX_PLATFORMS"
-        ]
-        == "cpu"
+
+def test_graph_tests_that_run_after_the_harness_tests_still_lower_graphs():
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[2]
+    done = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-q",
+            "-p",
+            "no:cacheprovider",
+            "tests/cpu/test_gpu_harness_pinned_env.py::test_the_repeat_harness_sets_it_over_whatever_the_image_exports",
+            "tests/cpu/test_graph_gpu_lane.py::test_a_graph_whose_every_op_repeats_rebuilds_on_the_gpu",
+        ],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=900,
     )
+    assert done.returncode == 0, done.stdout[-1500:]
 
 
 def _report(path, **entry):
