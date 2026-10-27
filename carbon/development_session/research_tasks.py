@@ -630,9 +630,24 @@ class DirectDevelopmentTasksV3:
             direct_bundle_accelerators(parent, self.inference_image)
             for parent in parents
         }
-        if len(accelerators) != 1:
+        # One inference image grades every task, so its accelerator is one. The BUILD
+        # accelerator is the bundle's own parent's: a receiver may hold CPU parents beside
+        # GPU ones (the GPU lane for entries with an official-grade GPU twin, the CPU lane
+        # for the rest), so it is chosen per bundle (`_build_accelerator_for`).
+        if len({inference for _, inference in accelerators}) != 1:
             raise ValueError("construction parents differ in accelerator")
-        self.build_accelerator, self.inference_accelerator = accelerators.pop()
+        builds = {build for build, _ in accelerators}
+        self.inference_accelerator = next(iter(accelerators))[1]
+        #: The one build accelerator of a single-lane provider; None for a mixed one.
+        self.build_accelerator = next(iter(builds)) if len(builds) == 1 else None
+
+    def _build_accelerator_for(self, bundle):
+        """The GPU a bundle's build runs on: `MINER_GPU` when its runtime's parent is a
+        registered GPU worker, else None (its CPU parent)."""
+        from .gpu_practice import gpu_image_backend
+        from .research_carrier import MINER_GPU
+
+        return MINER_GPU if gpu_image_backend(self._parent_for(bundle)) else None
 
     def _parent_for(self, bundle):
         """The construction parent for `bundle`: its pinned runtime's alone.
@@ -747,7 +762,8 @@ class DirectDevelopmentTasksV3:
         # bundle must use the checked parent plus a verified source overlay,
         # even when a CPU-style child image happens to be cached.
         image = None
-        if self.build_accelerator is None:
+        build_accelerator = self._build_accelerator_for(bundle)
+        if build_accelerator is None:
             try:
                 image = self.image_resolver.provision_admitted(
                     bundle, parent=parent, cli=DockerCLI()
@@ -793,11 +809,7 @@ class DirectDevelopmentTasksV3:
             seconds=min(600, remaining),
             deadline=deadline,
             cancel=check_cancel,
-            **(
-                {}
-                if self.build_accelerator is None
-                else {"accelerator": self.build_accelerator}
-            ),
+            **({} if build_accelerator is None else {"accelerator": build_accelerator}),
         )
         if prep.controls_digest is None:
             raise ValueError("completed C03 preparation controls unavailable")
@@ -1999,6 +2011,9 @@ class DirectDevelopmentTasksV3:
                     adapter_id=self.discovery.graph_adapter_for(request.challenge_key),
                 )
             else:
+                bundle_accelerator = self._build_accelerator_for(
+                    LibraryBundleRef.from_dict(request.recipe["source"]["bundle_ref"])
+                )
                 result = reconstruct_and_infer_public(
                     self.ledger,
                     owner=self.owner,
@@ -2036,8 +2051,8 @@ class DirectDevelopmentTasksV3:
                     total_deadline_started=total_deadline_started,
                     **(
                         {}
-                        if self.build_accelerator is None
-                        else {"accelerator": self.build_accelerator}
+                        if bundle_accelerator is None
+                        else {"accelerator": bundle_accelerator}
                     ),
                     **(
                         {}

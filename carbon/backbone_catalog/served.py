@@ -204,6 +204,28 @@ def expand(recipe, runtime=None):
     }
 
 
+def expand_official(recipe, gpu_runtimes=()):
+    """`expand(recipe)` as the GRADING rebuild runs it: ``(bundle recipe, runtime)``.
+
+    On the entry's GPU build for the first of `gpu_runtimes` (the GPU workers the receiver
+    holds) that has an OFFICIAL-GRADE one - a `repeat` receipt on the pinned GPU worker image,
+    the full determinism environment, a registered host class (`gpu_receipt.official_grade_problem`,
+    through `runtime_bundle_ref(..., official=True)`) - else the entry's CPU build, which is always
+    official. `runtime` is that GPU runtime, or None for the CPU build. A smoke-only twin is never
+    chosen: it is practice only. Raises `CatalogRefused` exactly as `expand` does."""
+    expanded = expand(recipe)
+    source, challenge = recipe["source"], recipe["challenge"]
+    item = listing.entry(source["catalog_id"], challenge["id"], challenge["version"])
+    for runtime in gpu_runtimes:
+        try:
+            reference = runtime_bundle_ref(item, runtime, official=True)
+        except CatalogRefused:
+            continue
+        expanded["source"]["bundle_ref"] = dict(reference)
+        return expanded, runtime
+    return expanded, None
+
+
 def _bundle_ref(item, runtime):
     if runtime is None:
         return item["bundle_ref"]

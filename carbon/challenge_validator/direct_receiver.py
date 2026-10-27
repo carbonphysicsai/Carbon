@@ -50,6 +50,9 @@ _OPTIONAL_FIELDS = {
     # class repeats bit for bit. Both or neither.
     "graph_gpu_image_manifest",
     "graph_gpu_ops",
+    # The GPU workers a receiver rebuilds catalog entries on (their official-grade GPU
+    # twins), beside its CPU construction pair, which stays the lane for every other entry.
+    "gpu_construction_images",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -140,6 +143,26 @@ def load_config(path: Path) -> dict:
         selected = Path(value[name])
         if not selected.is_absolute() or selected.resolve() != selected:
             raise ValueError("exact private operator path required")
+    if "gpu_construction_images" in value:
+        images = value["gpu_construction_images"]
+        if (
+            type(images) is not list
+            or not 1 <= len(images) <= 2
+            or "construction_runtimes" not in value
+            or any(type(item) is not str for item in images)
+        ):
+            raise ValueError(
+                "gpu construction images need the construction runtimes and one or two manifests"
+            )
+        for item in images:
+            selected = Path(item)
+            if (
+                not selected.is_absolute()
+                or selected.is_symlink()
+                or not selected.is_file()
+                or selected.resolve() != selected
+            ):
+                raise ValueError("exact gpu construction image manifest required")
     if ("graph_gpu_image_manifest" in value) != ("graph_gpu_ops" in value):
         raise ValueError("the graph GPU lane needs both its worker and its ops record")
     for field in (
@@ -724,6 +747,56 @@ def construction_parents(parent, implementation):
     return DirectParents({"torch-cpu-py311": parent, "python-cpu-py311": cpu})
 
 
+def gpu_construction_parents(cfg, implementation, parents, chain_network):
+    """`parents` plus the configured GPU workers as the parents of their GPU build runtimes
+    (``jax-cuda13-py311`` / ``torch-cu130-py311``): ``(DirectParents, host device record)``.
+
+    The CPU pair stays: an entry with no official-grade GPU twin (a smoke-only or
+    non-repeating build) rebuilds on the CPU parent of its own runtime. Each worker is
+    verified as the receiver's other workers are, must be eligible on this host, and its
+    backend's accelerator profile must have the owner's hardware acceptance for the host's
+    GPU class on this chain network, or the receiver refuses to start."""
+    from carbon.development_session import research_carrier
+    from carbon.development_session.gpu_practice import (
+        gpu_image_backend,
+        gpu_images,
+        with_gpu_parent,
+    )
+    from carbon.development_session.research_campaign import (
+        verify_current_worker,
+        verify_direct_v13_worker,
+    )
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.hardware_acceptance import require_accepted
+    from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
+
+    images = tuple(
+        load_image_identity(Path(item)) for item in cfg["gpu_construction_images"]
+    )
+    gpu_images(images)  # one registered GPU worker per backend
+    device = research_carrier._gpu_device()
+    profiles = {
+        "jax": research_carrier._gpu_profile_id(),
+        "pytorch": torch_profile.GPU_PROFILE_ID,
+    }
+    for image in images:
+        backend = gpu_image_backend(image)
+        if backend not in profiles:
+            raise ValueError("a gpu construction image is a registered GPU worker")
+        require_accepted(device.device_kind, profiles[backend], chain_network)
+        try:
+            verify_current_worker(image, implementation)
+        except ValueError:
+            verify_direct_v13_worker(
+                image,
+                implementation,
+                role="jax_gpu" if backend == "jax" else "torch_gpu",
+            )
+        if not doctor(image_id=image.image_id, image_identity=image).eligible:
+            raise ReceiverUnavailable("installed_gpu_construction_worker_unavailable")
+    return with_gpu_parent(parents, images), device
+
+
 def graph_gpu_lane(cfg, implementation, allowlist_bytes, chain_network):
     """The validator's graph GPU lane for an operator that configures one:
     ``(worker image, ops frozenset, ops record digest, host device record)``, else four Nones.
@@ -815,6 +888,20 @@ class OwnerProviders:
         self._controls = {}
         self._admissions = {}
         self._closing = False
+
+    def gpu_runtimes(self):
+        """The GPU build runtimes this receiver holds a worker for, in a stable order: what its
+        grading rebuild may expand a catalog entry to (`served.expand_official`)."""
+        from carbon.development_session.gpu_practice import gpu_runtime
+
+        images = (
+            [self.parent]
+            if self.parents is None
+            else [self.parents.for_runtime(r) for r in self.parents.runtimes()]
+        )
+        return tuple(
+            sorted({runtime for runtime in map(gpu_runtime, images) if runtime})
+        )
 
     def _admission(self, hotkey):
         """Recheck registration against the current finalized receiver window."""
@@ -1216,7 +1303,14 @@ def serve(
         if "construction_runtimes" in cfg
         else None
     )
-    if build_accelerator is not None and "material_cache_bytes" not in cfg:
+    gpu_device = None
+    if "gpu_construction_images" in cfg:
+        parents, gpu_device = gpu_construction_parents(
+            cfg, implementation, parents, network.context.network
+        )
+    if (
+        build_accelerator is not None or gpu_device is not None
+    ) and "material_cache_bytes" not in cfg:
         raise ReceiverUnavailable("gpu_overlay_cache_unconfigured")
     if not doctor(
         image_id=inference_image.image_id, image_identity=inference_image
@@ -1305,6 +1399,11 @@ def serve(
             immutable["inference_image"] = asdict(inference_image)
         if parents is not None:
             immutable["construction_parents"] = parents.identities()
+        if gpu_device is not None:
+            immutable["gpu_construction_device"] = {
+                "kind": gpu_device.device_kind,
+                "record": gpu_device.digest,
+            }
         if "material_cache_bytes" in cfg:
             immutable["material_cache_bytes"] = cfg["material_cache_bytes"]
         if pack_digest is not None:

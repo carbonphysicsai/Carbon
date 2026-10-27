@@ -563,3 +563,52 @@ def test_a_host_without_a_gpu_record_refuses_the_lane(tmp_path, monkeypatch):
     monkeypatch.setattr(research_carrier, "_gpu_device", absent)
     with pytest.raises(ValueError, match="no GPU device record"):
         receiver.graph_gpu_lane(cfg, {}, allowlist_bytes, "testnet")
+
+
+# ---- retention: the lane's evidence fields are known to the bank ------------------------
+
+
+def test_the_banks_graph_evidence_check_knows_the_lane_fields():
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    lane = SimpleNamespace(graph_gpu_image=JAX)
+    plain = SimpleNamespace()
+    ok = retention._graph_lane_evidence_ok
+    # a receiver without a lane writes none of it
+    assert ok(plain, {})
+    assert not ok(plain, {"build_image_id": "x"}) and not ok(
+        plain, {"gpu_lane_note": "x"}
+    )
+    # the GPU served: its own worker, no note
+    gpu = {"build_device": "GPU", "build_image_id": JAX.image_id}
+    assert ok(lane, gpu)
+    assert not ok(plain, gpu)  # a receiver with no lane never wrote this
+    assert not ok(lane, {**gpu, "build_image_id": "sha256:" + "0" * 64})
+    assert not ok(lane, {**gpu, "gpu_lane_note": "graph_gpu_attempt_failed"})
+    # the CPU served under a configured lane: a registered reason
+    for note in retention.GRAPH_LANE_NOTES:
+        assert ok(lane, {"build_device": "CPU", "gpu_lane_note": note})
+    assert not ok(lane, {"build_device": "CPU"})
+    assert not ok(lane, {"build_device": "CPU", "gpu_lane_note": "anything"})
+    assert not ok(
+        lane, {"build_device": "TPU", "gpu_lane_note": "graph_gpu_attempt_failed"}
+    )
+    assert not ok(
+        lane,
+        {
+            "build_device": "CPU",
+            "build_image_id": JAX.image_id,
+            "gpu_lane_note": "graph_gpu_attempt_failed",
+        },
+    )
+
+
+def test_an_unknown_evidence_field_still_stops_the_bank():
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    evidence = {"build_device": "GPU", "build_image_id": JAX.image_id, "surprise": 1}
+    with pytest.raises(retention.RetentionUnavailable) as stopped:
+        retention._collect_graph_artifacts(
+            SimpleNamespace(graph_gpu_image=JAX), "task", None, evidence, None, None
+        )
+    assert "graph_worker_evidence_unavailable" in str(stopped.value)
