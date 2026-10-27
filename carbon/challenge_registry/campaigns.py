@@ -672,6 +672,28 @@ def challenge_ref(challenge_id):
     return {"id": challenge_id, "version": None}
 
 
+def _version_key(version):
+    return tuple(int(part) if part.isdigit() else 0 for part in str(version).split("."))
+
+
+def latest_ref(challenge_id):
+    """`{id, version}` at the NEWEST registered version of ``challenge_id`` that is
+    open to a miner (not reserved, retired or deferred): what a caller that names no
+    version is served, as the Launchpad page offers it (owner decision U-f: the
+    latest version of each Challenge). ``version`` is None for an id with none."""
+    from .registry import entries
+
+    open_versions = [
+        entry.version
+        for entry in entries()
+        if entry.challenge_id == challenge_id
+        and entry.version is not None
+        and entry.status not in ("RESERVED", "RETIRED", "DEFERRED")
+    ]
+    newest = max(open_versions, key=_version_key, default=None)
+    return {"id": challenge_id, "version": newest}
+
+
 def campaign_for_id(challenge_id):
     return campaign_for(challenge_ref(challenge_id))
 
