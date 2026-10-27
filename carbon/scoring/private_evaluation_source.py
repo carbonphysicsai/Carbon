@@ -73,6 +73,7 @@ def produce_dual_benchmark_input(
     evaluation_source_receipt_raw: bytes,
     timing_step: float,
     copy_hotkey: str | None = None,
+    single_call_raw: bytes | None = None,
 ) -> tuple[dict, dict, str]:
     """Run the fixed DEVELOPMENT cold-eight producer, or refuse unavailable roles.
 
@@ -125,7 +126,13 @@ def produce_dual_benchmark_input(
             job=trusted_job,
             registration=registration,
             references=references,
-            originals=graph_originals,
+            # A pool-graded version's single-design call timing rides beside the graded originals (host-private
+            # side file, `single_call_timing`); it is read by the producer only, never pinned into the receipt.
+            originals=(
+                graph_originals
+                if single_call_raw is None
+                else {**graph_originals, "single_call_raw": single_call_raw}
+            ),
             source_raw=evaluation_source_receipt_raw,
             bank=bank,
             interface_names=names,
@@ -167,6 +174,7 @@ def produce_registered_dual_measurement(
     evaluation_source_receipt_raw: bytes,
     timing_step: float,
     copy_hotkey: str | None = None,
+    single_call_raw: bytes | None = None,
 ) -> PreparedPrivateDualMeasurement:
     """Bind a fixed producer's output with the real source/pack receipt checks.
 
@@ -185,6 +193,7 @@ def produce_registered_dual_measurement(
         evaluation_source_receipt_raw=evaluation_source_receipt_raw,
         timing_step=timing_step,
         copy_hotkey=copy_hotkey,
+        single_call_raw=single_call_raw,
     )
     return build_dual_measurement_receipt(
         selected_pack=selected_pack,

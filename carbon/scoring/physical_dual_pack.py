@@ -947,12 +947,23 @@ def produce(
 
     pack = roles["score_pack"]
     gates = list(pack.get("hard_gates", []))
-    # A pool-graded version's measure also takes the receipt's 20 single-call seconds (`pool_exam`).
-    pool_arguments = (
-        {"speed_call_seconds": originals.get("single_call_seconds")}
-        if getattr(adapter, "POOL_GRADED", False)
-        else {}
-    )
+    # A pool-graded version's measure also takes the 20 single-call seconds of the receiver's host-private side
+    # file (`single_call_timing`, `pool_exam`). Missing or malformed is Carbon's gap (typed unavailable), never a
+    # score and never a candidate failure.
+    pool_arguments = {}
+    if getattr(adapter, "POOL_GRADED", False):
+        from carbon.development_session import single_call_timing
+
+        try:
+            call_s, outputs_match = single_call_timing.read_side_file(
+                originals.get("single_call_raw")
+            )
+        except single_call_timing.SingleCallRefused as exc:
+            raise refused("single_call_evidence_unavailable") from exc
+        pool_arguments = {
+            "speed_call_seconds": call_s,
+            "speed_outputs_match": outputs_match,
+        }
 
     def leg(value):
         if value is None:

@@ -186,11 +186,19 @@ def test_each_batch_gets_its_own_adapter_and_the_primary_keeps_its_discovery(
 
     class Adapter:
         def __init__(
-            self, discovery, providers, ledger, *, measure_query, copy_hotkey=None
+            self,
+            discovery,
+            providers,
+            ledger,
+            *,
+            measure_query,
+            copy_hotkey=None,
+            speed_sample_key=None,
         ):
             self.discovery, self.providers = discovery, providers
             self.ledger, self.measure_query = ledger, measure_query
             self.copy_hotkey = copy_hotkey
+            self.speed_sample_key = speed_sample_key
 
     monkeypatch.setattr(direct_receiver, "_sealed_pack", fake_sealed)
     monkeypatch.setattr(direct_receiver, "_delivered_sealed", lambda *_a: True)
@@ -231,6 +239,8 @@ def test_each_batch_gets_its_own_adapter_and_the_primary_keeps_its_discovery(
     assert all(a.measure_query is True for a in adapters.values())
     # Every batch adapter requires the traceable copy for this receiver.
     assert all(a.copy_hotkey == HOTKEY for a in adapters.values())
+    # No speed-sample key configured: a pool grade has no speed evidence (typed unavailable), never a default key.
+    assert all(a.speed_sample_key is None for a in adapters.values())
     # Only the non-primary batch is prepared, and never from the binding's digest.
     assert prepared == [
         (digests[1], False, str(store.pack_directory(digests[1], CHALLENGE, VERSION)))

@@ -151,6 +151,7 @@ def measure_pool(
     ceiling_seconds,
     input_dtype=None,
     a_multiplier=1.0,
+    speed_outputs_match=True,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
 
@@ -202,6 +203,15 @@ def measure_pool(
     raw_pool = serve([r["inputs"] for r in pool_row_dicts])
     physics_failed = pool_gates.failed_gates(submitted, pool_row_dicts, raw_pool)
     speed = single_call_speed_gate(speed_call_seconds, ceiling_seconds=ceiling_seconds)
+    if speed_outputs_match is not True:
+        # The timed calls answered differently from the graded run on the same rows: a graph that does other
+        # work when timed. That is the candidate's, so the speed gate fails (never a pass on odd timings).
+        speed = {
+            **speed,
+            "passed": False,
+            "code": pool_gates.SPEED_CODE,
+            "outputs_differ": True,
+        }
     gates = {
         **base_gates,
         PHYSICS_GATE: not physics_failed,

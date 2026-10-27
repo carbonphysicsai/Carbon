@@ -117,6 +117,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
         *,
         measure_query: bool = False,
         copy_hotkey: str | None = None,
+        speed_sample_key: bytes | None = None,
     ):
         from carbon.challenge_validator.ledger import AttemptLedger
         from carbon.development_session.research_service import DirectFixtureDiscovery
@@ -144,6 +145,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
         # This validator's hotkey: a sealed pack is accepted only as its copy for
         # this hotkey (traceable copies; None = no copy header required).
         self.copy_hotkey = copy_hotkey
+        # The custody copy key the speed-sample seed is derived under (pool versions' single-design call timing,
+        # `single_call_timing.sample_seed`); None = a pool grade has no speed evidence (typed unavailable).
+        self.speed_sample_key = speed_sample_key
         self.challenge_id = contract.challenge_id
         self.challenge_version = contract.version
         self.contract_digest = contract.digest
