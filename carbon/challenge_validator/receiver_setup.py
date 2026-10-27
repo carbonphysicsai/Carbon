@@ -807,6 +807,10 @@ def catalog_state(config: dict) -> dict:
     try:
         from scripts.dev import receiver_catalog
 
+        if not receiver_catalog.served_runtimes(config):
+            # No construction parent can be read from its records: nothing here
+            # can say what it would install.
+            return {"status": "UNVERIFIED", "ready": None}
         found = receiver_catalog.verify(config)
     except (OSError, ValueError, KeyError, ImportError):
         return {"status": "UNVERIFIED", "ready": None}
