@@ -438,9 +438,7 @@ def _with_registered_design_search(base, own):
     search["search"]["initial_step"] = own["initial_step"]
     per_target = search["per_target_score"]
     per_target["honesty_scale"] = own["honesty_scale"]
-    per_target["honesty"] += (
-        " (e is the largest of the per-output errors at the pick)"
-    )
+    per_target["honesty"] += " (e is the largest of the per-output errors at the pick)"
     search["source"] = own["source"]
     return search
 
