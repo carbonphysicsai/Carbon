@@ -6,6 +6,7 @@ import json
 import tarfile
 import time
 from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -188,6 +189,7 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(
     uv = b"synthetic-uv-binary"
     container = "a" * 64
     calls = []
+    copies = []
     timeouts = []
 
     class Docker:
@@ -233,6 +235,16 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(
 
         def run(self, arguments, *, timeout=30):
             timeouts.append((arguments[0], timeout))
+            if arguments[0] == "cp":
+                # a file copy to an absolute path in a private directory, never to "-" (a Docker CLI
+                # resolves "-" against its working directory)
+                assert arguments[1] == f"{container}:/uv"
+                assert arguments[2] != "-" and Path(arguments[2]).is_absolute()
+                if self.slow_copy:
+                    time.sleep(0.04)
+                Path(arguments[2]).write_bytes(uv)
+                copies.append(arguments)
+                return SimpleNamespace(stdout=b"")
             calls.append(arguments)
             if arguments[0] == "create":
                 self.create = arguments
@@ -242,20 +254,8 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(
             assert arguments == ["rm", "--force", container]
             return SimpleNamespace(stdout=b"")
 
-        def stream_to_file(self, arguments, destination, **bounds):
-            assert arguments == ["cp", f"{container}:/uv", "-"]
-            assert bounds["maximum"] <= 65 * 1024**2
-            timeouts.append(("cp", bounds["timeout"]))
-            if self.slow_copy:
-                time.sleep(0.04)
-            with tarfile.open(
-                destination, mode="w", format=tarfile.USTAR_FORMAT
-            ) as archive:
-                member = tarfile.TarInfo("uv")
-                member.size = len(uv)
-                archive.addfile(member, io.BytesIO(uv))
-
     assert cache.pinned_uv_bytes(Docker()) == uv
+    assert len(copies) == 1
     assert calls[0][:2] == ["create", "--name"]
     assert calls[0][3] == "--label"
     assert calls[0][-5:] == [

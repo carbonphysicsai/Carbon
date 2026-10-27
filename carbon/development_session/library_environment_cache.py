@@ -152,7 +152,7 @@ def pinned_uv_bytes(
     cancel: Callable[[], None] | None = None,
 ) -> bytes:
     """Copy /uv from the exact locally pinned image without starting it."""
-    if not all(hasattr(cli, name) for name in ("json", "run", "stream_to_file")):
+    if not all(hasattr(cli, name) for name in ("json", "run")):
         raise ValueError("trusted Docker adapter required")
     if deadline is not None and (
         type(deadline) not in (int, float) or not math.isfinite(deadline)
@@ -239,31 +239,24 @@ def pinned_uv_bytes(
         if not owned(held) or held["Id"] != container:
             raise ValueError("pinned uv container identity differs")
         with tempfile.TemporaryDirectory(prefix="carbon-uv-copy-") as temporary:
-            archive_path = Path(temporary) / "uv.tar"
-            cli.stream_to_file(
-                ["cp", f"{container}:/uv", "-"],
-                archive_path,
-                maximum=64 * 1024**2 + 1024**2,
+            # Copy to a file in a private directory by its absolute path, never to `-`: a Docker CLI
+            # resolves `-` against its working directory (29.6.1: `stat -: permission denied` when
+            # that directory is unreadable), and a file copy needs no tar framing to parse.
+            copied = Path(temporary) / "uv"
+            cli.run(
+                ["cp", f"{container}:/uv", str(copied)],
                 timeout=remaining(120),
             )
             remaining(120)
-            with tarfile.open(archive_path, mode="r:") as archive:
-                members = archive.getmembers()
-                if (
-                    len(members) != 1
-                    or members[0].name not in {"uv", "./uv"}
-                    or not members[0].isfile()
-                    or not 0 < members[0].size <= 64 * 1024**2
-                ):
-                    raise ValueError("pinned uv archive differs")
-                stream = archive.extractfile(members[0])
-                if stream is None:
-                    raise ValueError("pinned uv bytes unavailable")
-                body = stream.read(64 * 1024**2 + 1)
-                if len(body) != members[0].size:
-                    raise ValueError("pinned uv bytes changed")
-                remaining(120)
-                return body
+            if (
+                copied.is_symlink()
+                or not copied.is_file()
+                or not 0 < copied.stat().st_size <= 64 * 1024**2
+            ):
+                raise ValueError("pinned uv copy differs")
+            body = copied.read_bytes()
+            remaining(120)
+            return body
     finally:
         try:
             held = cli.json(

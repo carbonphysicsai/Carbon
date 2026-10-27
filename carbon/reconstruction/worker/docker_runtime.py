@@ -194,6 +194,13 @@ def _stop_process(process: subprocess.Popen[bytes]) -> None:
         pass
 
 
+#: The directory every Docker CLI call runs in. A Docker CLI (29.6.1) resolves some arguments against its
+#: working directory (`docker cp CONTAINER:/x -` stats `./-`), so a controller whose own cwd is unreadable
+#: (a service started from a private directory) failed with `stat -: permission denied`. The root is readable
+#: by every user, and no controller call names a relative path.
+DOCKER_CWD = Path(os.sep)
+
+
 def _bounded_capture(
     command: list[str],
     *,
@@ -367,6 +374,7 @@ class DockerCLI:
             environment=environment,
             timeout=timeout,
             maximum=DIAGNOSTIC_BYTES,
+            cwd=DOCKER_CWD,
         )
         private_diagnostic = (
             f"exit={result.returncode}\nstdout:\n".encode("ascii")
@@ -428,6 +436,7 @@ class DockerCLI:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 env=environment,
+                cwd=DOCKER_CWD,
             )
             if process.stdout is None or process.stderr is None:
                 raise WorkerFailure(WorkerCode.RUNTIME)

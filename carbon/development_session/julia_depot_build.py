@@ -72,6 +72,7 @@ def tree_digest(cli, image, path):
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             env={"PATH": "/usr/local/bin:/usr/bin:/bin"},
+            cwd="/",  # a Docker CLI resolves some arguments against its cwd
         )
         expired = threading.Event()
 
