@@ -111,12 +111,10 @@ def _manifests(c03_path: Path, analysis_path: Path, implementation: dict):
 
 
 def _containerd(cli: DockerCLI) -> None:
-    info = cli.json(["info", "--format", "{{json .}}"])
-    status = info.get("DriverStatus") if type(info) is dict else None
-    if (
-        not isinstance(status, list)
-        or ["driver-type", "io.containerd.snapshotter.v1"] not in status
-    ):
+    from carbon.reconstruction import host_stack
+
+    # The store is read the way the validator's host check reads it, not by one release's exact row.
+    if host_stack.image_store(cli.json(["info", "--format", "{{json .}}"])) != "containerd":
         raise Refused("containerd_image_store_required")
 
 
