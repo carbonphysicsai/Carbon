@@ -359,7 +359,9 @@ def test_the_custody_builder_writes_the_pool_pack_and_a_digest_only_record(
     assert record["rows"]["cells"] == len(document["cases"])
     assert json.loads((out / "record.json").read_text()) == record
     # the record names digests and counts only: no truths, designs or inputs
-    assert "truths" not in json.dumps(record) and "designs" not in json.dumps(record)
+    text = json.dumps(record)
+    # no truth or design list: the key "designs" (a list), unlike the count "designs_total"
+    assert '"truths"' not in text and '"designs"' not in text
     # the carried batch beside the roles is the canonical one and resolves to the pool bank
     carried = source.read_batch(out / "pack")
     assert carried is not None and carried[0]["pool"] == material()
@@ -383,3 +385,97 @@ def test_the_custody_builder_refuses_a_batch_that_already_carries_a_pool(
             inference_image_id="sha256:" + "1" * 64,
             material=material(),
         )
+
+
+# --- how the pool designs become the exam pool rows (counts only) --------------------------------------
+
+
+def _dup_target(target_id, seed, fixed, designs):
+    n = len(DESIGN_INPUTS)
+    return pool_grader.build_target(
+        target_id=target_id,
+        conditions={"target_id": target_id, "fixed": fixed},
+        outputs=("f", "g"),
+        objective="f",
+        sense="max",
+        limits=(Limit("g", "<=", n * 0.45),),
+        u={"f": 0.001, "g": 0.001},
+        box=tuple((0.0, 1.0) for _ in range(n)),
+        designs=designs,
+        truths=[{"f": sum(d), "g": sum(x * x for x in d)} for d in designs],
+        agen=range(len(designs) - 8, len(designs)),
+        start=tuple(0.5 for _ in range(n)),
+        seed=seed,
+    )
+
+
+def _pool_material(targets, dtype="<f8"):
+    return {
+        "schema": pool_version.MATERIAL_SCHEMA,
+        "kind": "motor",
+        "version": POOL_VERSION,
+        "input_names": list(NAMES),
+        "design_names": list(DESIGN_INPUTS),
+        "input_dtype": dtype,
+        "set_digest": "sha256:" + "5" * 64,
+        "sets": [[pool_grader.dump_pool(t) for t in targets]],
+    }
+
+
+def test_the_row_accounting_matches_the_rows_and_names_each_kind_of_duplicate():
+    n = len(DESIGN_INPUTS)
+    rng = random.Random(8)
+    base = [[rng.random() for _ in range(n)] for _ in range(20)]
+    fixed = _fixed(0.0)
+    # A2 repeats A1's first 3 designs (same fixed conditions: cross-target duplicates); A3 holds one design twice,
+    # 1e-12 apart (distinct as float64, equal as float32: made equal by the quantisation)
+    a1 = _dup_target("A1", 1, fixed, base)
+    fresh = [[rng.random() for _ in range(n)] for _ in range(17)]
+    a2 = _dup_target("A2", 2, fixed, base[:3] + fresh)
+    near = [[v + 1e-12 for v in base[5]]]
+    more = [[rng.random() for _ in range(n)] for _ in range(18)]
+    a3 = _dup_target("A3", 3, _fixed(1.0), [base[5]] + near + more)
+    material = _pool_material([a1, a2, a3], dtype="<f4")
+    counts = pool_version.row_accounting(material, dtype="<f4")
+    rows = pool_version.rows_from_material(material, dtype="<f4", challenge=MOTOR)
+    assert counts["targets"] == 3 and counts["designs_total"] == 60
+    assert counts["unique_rows"] == len(rows)
+    assert counts["designs_total"] - counts["unique_rows"] == (
+        counts["dup_within_target"] + counts["dup_across_targets"]
+    )
+    assert counts["dup_across_targets"] == 3
+    assert counts["dup_within_target"] == 1
+    assert counts["dup_created_by_quantisation"] == 1
+    # in float64 the near pair stays two rows
+    exact = pool_version.row_accounting(material, dtype="<f8")
+    assert exact["dup_within_target"] == 0 and exact["unique_rows"] == len(rows) + 1
+    # counts only
+    assert all(type(v) is int for v in counts.values())
+
+
+def test_the_builder_record_carries_the_accounting(batch, tmp_path):
+    import importlib.util
+
+    path = REPOSITORY / "scripts/dev/sealed_exam/pool_pack.py"
+    spec = importlib.util.spec_from_file_location("pool_pack_accounting", path)
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    document, records = batch
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    (plain / source.SEALED_BATCH_FILE).write_bytes(
+        source.batch_bytes(document, records)
+    )
+    record = builder.build(
+        challenge=MOTOR,
+        version=POOL_VERSION,
+        batch_dir=plain,
+        out_dir=tmp_path / "out",
+        inference_image_id="sha256:" + "1" * 64,
+        material=material(),
+    )
+    accounting = record["pool_accounting"]
+    assert accounting["unique_rows"] == record["rows"]["pool"]
+    assert accounting["designs_total"] - accounting["unique_rows"] == (
+        accounting["dup_within_target"] + accounting["dup_across_targets"]
+    )

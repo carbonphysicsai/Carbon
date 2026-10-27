@@ -151,3 +151,91 @@ def test_the_command_prints_the_record_and_exits_nonzero_when_inconsistent(
     bad = _evidence(tmp_path / "b", bound=False)
     argv[2], argv[4] = str(bad[0]), str(bad[1])
     assert tool.main(argv) == 3
+
+
+# --- the rebuild facts: which device built the state, and that the grade ran on the CPU image ----------------
+
+
+def _artifacts(tmp_path, **change):
+    folder = tmp_path / "artifacts"
+    folder.mkdir()
+    evidence = {
+        "build_device": "GPU",
+        "build_image_id": "sha256:" + "6" * 64,
+        "inference_image_id": "sha256:" + "7" * 64,
+        "state_digest": "sha256:" + "8" * 64,
+    }
+    evidence.update(change)
+    evidence = {k: v for k, v in evidence.items() if v is not None}
+    (folder / "worker-evidence.json").write_text(json.dumps(evidence))
+    return folder
+
+
+def _with_state(eval_dir, image="sha256:" + "7" * 64, state="sha256:" + "8" * 64):
+    measurement = json.loads((eval_dir / "dual-measurement.json").read_text())
+    measurement["state_digest"] = state
+    (eval_dir / "dual-measurement.json").write_text(json.dumps(measurement))
+    (eval_dir / "inference-pair.json").write_text(
+        json.dumps({"inference_image_id": image})
+    )
+
+
+def test_a_gpu_rebuilt_state_graded_on_the_cpu_image_is_consistent(tmp_path):
+    eval_dir, pack = _evidence(tmp_path)
+    _with_state(eval_dir)
+    record = _tool().verify(
+        eval_dir, pack, MOTOR, "1.5", _artifacts(tmp_path), expect_gpu=True
+    )
+    assert record["verdict"] == "CONSISTENT", record["problems"]
+    assert record["rebuild"]["build_device"] == "GPU"
+    assert (
+        record["rebuild"]["build_image_id"] != record["rebuild"]["inference_image_id"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("change", "problem"),
+    [
+        (
+            {
+                "build_device": "CPU",
+                "build_image_id": None,
+                "gpu_lane_note": "graph_gpu_rebuild_not_repeatable",
+            },
+            "rebuild_not_on_the_gpu:graph_gpu_rebuild_not_repeatable",
+        ),
+        (
+            {"inference_image_id": "sha256:" + "6" * 64},
+            "the_grade_ran_on_the_gpu_build_image",
+        ),
+        (
+            {"state_digest": "sha256:" + "9" * 64},
+            "state_digest_differs_between_the_build_and_the_grade",
+        ),
+    ],
+)
+def test_each_break_in_the_gpu_rebuild_chain_is_named(tmp_path, change, problem):
+    eval_dir, pack = _evidence(tmp_path)
+    _with_state(eval_dir, image=change.get("inference_image_id", "sha256:" + "7" * 64))
+    record = _tool().verify(
+        eval_dir, pack, MOTOR, "1.5", _artifacts(tmp_path, **change), expect_gpu=True
+    )
+    assert problem in record["problems"] and record["verdict"] == "INCONSISTENT"
+
+
+def test_a_repeat_pair_on_another_image_and_a_missing_artifact_are_named(tmp_path):
+    eval_dir, pack = _evidence(tmp_path / "a")
+    _with_state(eval_dir, image="sha256:" + "5" * 64)
+    record = _tool().verify(eval_dir, pack, MOTOR, "1.5", _artifacts(tmp_path / "a"))
+    assert "repeat_pair_ran_on_another_image_than_the_grade" in record["problems"]
+    eval_dir, pack = _evidence(tmp_path / "b")
+    empty = tmp_path / "b" / "none"
+    empty.mkdir()
+    record = _tool().verify(eval_dir, pack, MOTOR, "1.5", empty)
+    assert "missing:worker-evidence.json" in record["problems"]
+    # without the artifacts dir nothing changes; asking for the GPU without it is a named problem
+    eval_dir, pack = _evidence(tmp_path / "c")
+    plain = _tool().verify(eval_dir, pack, MOTOR, "1.5")
+    assert "rebuild" not in plain and plain["verdict"] == "CONSISTENT"
+    asked = _tool().verify(eval_dir, pack, MOTOR, "1.5", expect_gpu=True)
+    assert "expect_gpu_needs_the_artifacts_dir" in asked["problems"]

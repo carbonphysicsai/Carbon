@@ -405,3 +405,82 @@ def test_the_speed_key_file_is_an_exact_private_regular_file_of_enough_bytes(tmp
     assert direct_receiver._speed_key({}) is None
     assert direct_receiver._speed_key({"speed_sample_key_file": str(good)}) == KEY
     assert "speed_sample_key_file" in direct_receiver._OPTIONAL_FIELDS
+
+
+# --- GPU-5: the sealed path with a GPU rebuild (rebuild on the GPU, grade on the CPU) ------------------------
+
+
+def _gpu_lane_provider(stage):
+    """The stage fixture's provider, now with a graph GPU lane configured (a GPU-built state)."""
+    provider = stage.adapter._provider("owner")
+    provider.graph_gpu_image = SimpleNamespace(image_id="sha256:" + "6" * 64)
+    provider.graph_gpu_ops = frozenset({"matmul"})
+    return provider
+
+
+def test_a_gpu_built_state_is_timed_and_graded_on_the_cpu_inference_image(
+    stage, monkeypatch
+):
+    """The single-call stage of a pool grade runs in the receiver's CPU inference image with no accelerator even
+    when the graph lane builds on a GPU worker: the state passes by digest and the speed is the grading CPU's.
+    """
+    provider = _gpu_lane_provider(stage)
+    monkeypatch.setattr(stage.adapter, "_provider", lambda _owner: provider)
+    _run(stage)
+    sent = stage.calls[0]
+    assert sent["inference_image"] is provider.inference_image
+    assert sent["inference_image"] is not provider.graph_gpu_image
+    assert sent["accelerator"] is None
+    assert sent["state_digest"] == "sha256:" + "a" * 64
+
+
+def test_a_receiver_whose_inference_image_is_a_gpu_worker_has_no_official_pool_speed(
+    stage, monkeypatch
+):
+    provider = stage.adapter._provider("owner")
+    provider.inference_accelerator = "MINER_GPU"
+    monkeypatch.setattr(stage.adapter, "_provider", lambda _owner: provider)
+    with pytest.raises(
+        retention.RetentionUnavailable, match="single_call_needs_the_cpu_grading_image"
+    ):
+        _run(stage)
+    assert stage.calls == [] and not (stage.private_dir / "single-call.json").exists()
+
+
+def test_prepare_records_the_graph_gpu_lane_or_refuses_half_of_it(tmp_path):
+    from carbon.challenge_validator import direct_receiver, receiver_setup
+
+    manifest = tmp_path / "gpu-image.json"
+    ops = tmp_path / "gpu-ops.json"
+    manifest.write_text("{}")
+    ops.write_text("{}")
+    # the argument pair is validated before anything is written
+    for kwargs in (
+        {"graph_gpu_image_manifest": manifest},
+        {"graph_gpu_ops": ops},
+    ):
+        with pytest.raises(receiver_setup.SetupRefused) as refused:
+            receiver_setup.prepare(
+                installed_state=tmp_path / "i",
+                receiver_state=tmp_path / "r",
+                challenge={"id": "x", "version": "1"},
+                hotkey="h",
+                **kwargs,
+            )
+        assert refused.value.code == "graph_gpu_lane_incomplete"
+    with pytest.raises(receiver_setup.SetupRefused) as refused:
+        receiver_setup.prepare(
+            installed_state=tmp_path / "i",
+            receiver_state=tmp_path / "r",
+            challenge={"id": "x", "version": "1"},
+            hotkey="h",
+            graph_gpu_image_manifest=tmp_path / "missing.json",
+            graph_gpu_ops=ops,
+        )
+    assert refused.value.code == "graph_gpu_lane_file_invalid"
+    assert not (tmp_path / "r").exists()
+    # the receiver accepts exactly the two fields together
+    assert {
+        "graph_gpu_image_manifest",
+        "graph_gpu_ops",
+    } <= direct_receiver._OPTIONAL_FIELDS

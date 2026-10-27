@@ -307,6 +307,56 @@ def rows_from_material(material, *, dtype, challenge):
     return sorted(rows, key=key)
 
 
+def row_accounting(material, *, dtype):
+    """Counts only: how the pool's designs become the exam's pool rows (no input, truth or id leaves).
+
+    ``designs_total`` is every design of every target; ``unique_rows`` the distinct model queries after quantising to the
+    bank's ``dtype`` (what `rows_from_material` returns); the difference is the duplicates, split into those inside
+    one target and those across targets (a Challenge whose model input is the design alone, such as F02, has no
+    condition to tell two targets' equal designs apart), and into those that were distinct designs before the
+    quantisation made them equal. ``designs_total - unique_rows == dup_within_target + dup_across_targets``.
+    """
+    import numpy as np
+
+    check_material(material)
+    names, design_names = material["input_names"], material["design_names"]
+    kind = np.dtype(material["input_dtype"] if dtype is None else dtype)
+    first = {}  # quantised row -> (target index, raw row)
+    counts = {
+        "designs_total": 0,
+        "unique_rows": 0,
+        "dup_within_target": 0,
+        "dup_across_targets": 0,
+        "dup_created_by_quantisation": 0,
+        "targets": 0,
+    }
+    for group in material["sets"]:
+        for document in group:
+            spec = pool_grader.load_pool(document)
+            target = counts["targets"]
+            counts["targets"] += 1
+            fixed = spec.conditions["fixed"]
+            for design in spec.designs:
+                row = {**fixed, **dict(zip(design_names, design, strict=True))}
+                raw = tuple(float(row[name]) for name in names)
+                values = tuple(float(kind.type(row[name])) for name in names)
+                counts["designs_total"] += 1
+                if values not in first:
+                    first[values] = (target, raw)
+                    counts["unique_rows"] += 1
+                    continue
+                seen_target, seen_raw = first[values]
+                counts[
+                    (
+                        "dup_within_target"
+                        if seen_target == target
+                        else "dup_across_targets"
+                    )
+                ] += 1
+                counts["dup_created_by_quantisation"] += raw != seen_raw
+    return counts
+
+
 def strip_pool(bank):
     """The bank without its pool rows and material: the Challenge's own sealed bank."""
     import numpy as np
@@ -417,6 +467,7 @@ __all__ = [
     "is_pool_bank",
     "material_from_set_dir",
     "registered_policies",
+    "row_accounting",
     "rows_from_material",
     "strip_pool",
     "variant",

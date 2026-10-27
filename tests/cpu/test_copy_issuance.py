@@ -7,7 +7,6 @@ import importlib.util
 import json
 import os
 import stat
-
 from pathlib import Path
 
 import pytest
@@ -364,3 +363,99 @@ def test_a_copy_file_that_is_not_json_is_refused(job, tmp_path, capsys):
     ]
     assert _tool().main(argv) == 2
     assert "refused" in json.loads(capsys.readouterr().err)
+
+
+# --- scripts/dev/sealed_exam/diagnose_copy.py: which role of a refused copy differs, and how -----------
+
+
+def _diagnose_tool():
+    path = (
+        Path(__file__).resolve().parents[2] / "scripts/dev/sealed_exam/diagnose_copy.py"
+    )
+    spec = importlib.util.spec_from_file_location("diagnose_copy_script", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_a_good_copy_reports_every_role_matching_and_the_host_facts(job, capsys):
+    issuance.issue(job["config"])
+    tool = _diagnose_tool()
+    copy = _copy_file(job, ONE)
+    report = tool.diagnose(copy, ONE, job["key"].public_key)
+    assert report["all_roles_match"] and report["copy_hotkey_matches"]
+    assert set(report["roles"]) == {"case_bank", "reference_rows", "solver_evidence"}
+    assert all(
+        r["match"] and r["pack_sha256"] == r["recomputed_sha256"]
+        for r in report["roles"].values()
+    )
+    assert {"python", "numpy", "platform", "machine", "cpu_count"} <= set(
+        report["host"]
+    )
+    argv = [
+        "--copy",
+        str(copy),
+        "--hotkey",
+        ONE,
+        "--producer-public-key",
+        job["key"].public_key,
+    ]
+    assert tool.main(argv) == 0
+    assert json.loads(capsys.readouterr().out)["all_roles_match"] is True
+
+
+def test_a_differing_role_is_named_with_where_and_how_much_never_a_value(
+    job, monkeypatch, capsys
+):
+    import io
+
+    import numpy as np
+
+    from carbon.challenge_validator import copy_delivery as cdl
+
+    issuance.issue(job["config"])
+    tool = _diagnose_tool()
+    real = cdl.expected_roles
+
+    def drifted(challenge, version, kit, bank):
+        roles = dict(real(challenge, version, kit, bank))
+        rows = json.loads(roles["reference_rows"])
+        rows[0]["marker_field"] = 12.5
+        roles["reference_rows"] = json.dumps(
+            rows, sort_keys=True, separators=(",", ":")
+        ).encode()
+        roles["solver_evidence"] = roles["solver_evidence"] + b" "
+        return roles
+
+    monkeypatch.setattr(cdl, "expected_roles", drifted)
+    copy = _copy_file(job, ONE)
+    report = tool.diagnose(copy, ONE, job["key"].public_key)
+    assert not report["all_roles_match"]
+    assert report["roles"]["case_bank"]["match"] is True
+    ref = report["roles"]["reference_rows"]
+    assert ref["match"] is False and ref["difference"]["kind"] == "keys"
+    assert "marker_field" in ref["difference"]["only_recomputed"]
+    assert ref["difference"]["path"] == "$[0]"
+    assert report["roles"]["solver_evidence"]["first_differing_byte"] > 0
+    argv = [
+        "--copy",
+        str(copy),
+        "--hotkey",
+        ONE,
+        "--producer-public-key",
+        job["key"].public_key,
+    ]
+    assert tool.main(argv) == 3
+    assert "12.5" not in capsys.readouterr().out
+    # numeric drift of an array and of a float is named by size, not content
+    left = np.array([[1.0, 2.0]])
+
+    def npz(array):
+        buffer = io.BytesIO()
+        np.savez(buffer, inputs=array)
+        return buffer.getvalue()
+
+    detail = tool._array_difference(npz(left), npz(left + 1e-9))
+    assert detail["kind"] == "elements" and detail["different"] == 2
+    assert detail["max_relative_difference"] < 1e-8
+    assert tool._json_difference({"a": [1.0]}, {"a": [1.0 + 1e-15]})["kind"] == "float"

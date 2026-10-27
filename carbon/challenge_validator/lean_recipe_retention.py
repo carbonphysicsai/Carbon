@@ -742,6 +742,11 @@ def _single_call_raw(
         raise RetentionUnavailable("single_call_key_unavailable")
     owner = adapter.owner(submission_id) if regrade is None else regrade.owner
     provider = adapter._provider(owner)
+    if getattr(provider, "inference_accelerator", None) is not None:
+        # The official grade, its repeat pair and its speed all run on the grading CPU (GPU_REBUILD_RULINGS 1-3:
+        # rebuild on the GPU, grade on the CPU; the speed ceiling is the grading CPU's). A receiver whose
+        # inference image is a GPU worker is a practice host: its pool grade is unavailable, never a GPU timing.
+        raise RetentionUnavailable("single_call_needs_the_cpu_grading_image")
     material = adapter.discovery._material
     kit = material["construction_kit"]
     limits = material["construction_limits_document"]

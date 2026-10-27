@@ -1006,11 +1006,18 @@ def test_every_new_version_passes_each_registration_point(key):
     assert (cid, version) in physical_pack.PACK_VERSIONS
     assert physical_pack.development_bank(cid, version)["inputs"].size
     assert (cid, version) in campaigns._versioned_campaigns()
-    described = registry.describe(cid, version)
-    example = described["graph_route"]["example"]["recipe"]
-    assert example["source"]["kind"] == "graph"
-    assert example["procedure"]["configuration"]["ensemble"]["members"]
-    assert {"recipe": example} in described["examples"]
+    status = {(e.challenge_id, e.version): e.status for e in registry.entries()}[key]
+    if status == registry.RESERVED:
+        # A pool version whose owner constants are not registered is not offered (Validator 06:55Z): described
+        # as reserved, never selectable; the rest of its registrations are checked below.
+        with pytest.raises(registry.ChallengeNotImplemented):
+            registry.describe(cid, version)
+    else:
+        described = registry.describe(cid, version)
+        example = described["graph_route"]["example"]["recipe"]
+        assert example["source"]["kind"] == "graph"
+        assert example["procedure"]["configuration"]["ensemble"]["members"]
+        assert {"recipe": example} in described["examples"]
     recipe = graph_adapters.graph_recipe(cid, version, "sha256:" + "a" * 64)
     assert model._registered_train_use(ChallengeKeyOf(cid, version), recipe) == (
         adapter.SPECS[key].train_use
