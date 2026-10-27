@@ -75,6 +75,16 @@ def check(receipt, catalog_id: str, runtime: str) -> None:
         raise GpuReceiptBroken(f"{where}: not a run on a GPU")
     if not receipt.get("smoke_ok"):
         raise GpuReceiptBroken(f"{where}: the GPU smoke did not pass")
+    # The official-route fields, when a receipt carries them, are well formed (their absence is a
+    # practice-grade receipt, judged by `official_grade_problem`, not broken).
+    if "host_class" in receipt and (
+        type(receipt["host_class"]) is not str or not receipt["host_class"]
+    ):
+        raise GpuReceiptBroken(f"{where}: host_class is a non-empty name")
+    if "determinism" in receipt and type(receipt["determinism"]) not in (dict, list):
+        raise GpuReceiptBroken(
+            f"{where}: determinism is the environment the run carried"
+        )
     if kind == "smoke":
         if receipt.get("note") != SMOKE_ONLY[catalog_id]:
             raise GpuReceiptBroken(
@@ -122,12 +132,20 @@ def make(
     tested_on,
     gpu_used,
     smoke_ok,
+    determinism,
+    host_class,
     pairs=0,
     identical=0,
     differ=(),
     environment=None,
 ):
-    """A receipt from a Test Lead GPU run (`gpu_repeat.py compare`): `pairs`/`identical` count the cross-run repeat."""
+    """A receipt from a Test Lead GPU run (`gpu_repeat.py compare`): `pairs`/`identical` count the cross-run repeat.
+
+    `determinism` and `host_class` are what the official check reads (`official_grade_problem`) and have
+    no default: pass what the run really carried - `required_determinism(runtime)` when it ran under the
+    official environment, the registered host class name when it ran on one - or `None`, which records
+    nothing (a venv-grade practice receipt, never officially gradable). A smoke receipt records neither.
+    """
     kind = required_kind(catalog_id)
     receipt = {
         "schema": SCHEMA,
@@ -142,9 +160,17 @@ def make(
     if environment is not None:
         receipt["environment"] = environment
     if kind == "smoke":
+        if determinism is not None or host_class is not None:
+            raise GpuReceiptBroken(
+                f"{catalog_id} {runtime}: a smoke receipt records no determinism or host class"
+            )
         receipt["note"] = SMOKE_ONLY[catalog_id]
     else:
         receipt.update(pairs=pairs, identical=identical, differ=sorted(differ))
+        if determinism is not None:
+            receipt["determinism"] = determinism
+        if host_class is not None:
+            receipt["host_class"] = host_class
     check(receipt, catalog_id, runtime)
     return receipt
 

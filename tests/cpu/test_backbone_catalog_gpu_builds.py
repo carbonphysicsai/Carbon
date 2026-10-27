@@ -254,6 +254,8 @@ def test_a_repeat_receipt_needs_a_byte_identical_gpu_repeat():
         tested_on="RTX 4090 / 595.91",
         gpu_used=True,
         smoke_ok=True,
+        determinism=None,
+        host_class=None,
         pairs=2,
         identical=2,
     )
@@ -281,6 +283,8 @@ def test_a_smoke_entry_takes_the_smoke_receipt_with_its_fixed_note_and_no_repeat
             tested_on="RTX 4090 / 595.91",
             gpu_used=True,
             smoke_ok=True,
+            determinism=None,
+            host_class=None,
         )
         assert smoke["kind"] == "smoke" and "pairs" not in smoke
         gpu_receipt.check(smoke, catalog_id, "torch-cu130-py311")
@@ -337,6 +341,8 @@ def _with_receipt(monkeypatch, tmp_path, catalog_id, **kwargs):
         tested_on="RTX 4090 / 595.91",
         gpu_used=True,
         smoke_ok=True,
+        determinism=None,
+        host_class=None,
         **kwargs,
     )
     (tmp_path / f"{catalog_id}.torch-cu130-py311.json").write_text(json.dumps(receipt))
@@ -416,11 +422,10 @@ def test_only_a_receipt_with_the_pinned_image_the_full_determinism_environment_a
         tested_on="RTX 4090 / 595.91",
         gpu_used=True,
         smoke_ok=True,
+        determinism=gpu_receipt.required_determinism(runtime),
+        host_class="rtx4090-v1",
         pairs=2,
         identical=2,
-    )
-    receipt.update(
-        determinism=gpu_receipt.required_determinism(runtime), host_class="rtx4090-v1"
     )
     target = tmp_path / f"neuralop.FNO.{runtime}.json"
 
@@ -511,6 +516,8 @@ def test_a_receipt_without_an_image_must_name_its_environment():
         tested_on="RTX 4090 / 595.71",
         gpu_used=True,
         smoke_ok=True,
+        determinism=None,
+        host_class=None,
         pairs=1,
         identical=1,
     )
@@ -720,3 +727,112 @@ def test_the_catalog_constants_equal_the_accelerator_profile():
         gpu_receipt.JAX_DETERMINISM_ENVIRONMENT
         == accelerators.GPU_DETERMINISM_ENVIRONMENT
     )
+
+
+def test_a_made_receipt_passes_the_official_check_when_the_run_carried_what_it_reads(
+    monkeypatch,
+):
+    """Day-one: `make` could not write `determinism` and `host_class`, so no official receipt could be made."""
+    from carbon.backbone_catalog import gpu_receipt
+
+    for runtime, entry in (
+        ("torch-cu130-py311", "neuralop.FNO"),
+        ("jax-cuda13-py311", "jno.fno1d"),
+    ):
+        monkeypatch.setattr(gpu_receipt, "PINNED_GPU_IMAGES", {runtime: (IMAGE,)})
+        monkeypatch.setattr(
+            gpu_receipt, "REGISTERED_HOST_CLASSES", frozenset({"rtx4090-v1"})
+        )
+        made = gpu_receipt.make(
+            entry,
+            runtime,
+            image_digest=IMAGE,
+            tested_on="RTX 4090 / 580.178",
+            gpu_used=True,
+            smoke_ok=True,
+            determinism=gpu_receipt.required_determinism(runtime),
+            host_class="rtx4090-v1",
+            pairs=2,
+            identical=2,
+        )
+        assert gpu_receipt.official_grade_problem(made, runtime) is None
+        # the receipt is what the official check reads, byte for byte after a JSON round trip
+        assert (
+            gpu_receipt.official_grade_problem(json.loads(json.dumps(made)), runtime)
+            is None
+        )
+        # a run that did not carry the official environment is recorded as it was, and is refused
+        other = gpu_receipt.make(
+            entry,
+            runtime,
+            image_digest=IMAGE,
+            tested_on="RTX 4090 / 580.178",
+            gpu_used=True,
+            smoke_ok=True,
+            determinism={"XLA_FLAGS": ""} if runtime.startswith("jax") else [],
+            host_class="rtx4090-v1",
+            pairs=2,
+            identical=2,
+        )
+        assert "determinism environment" in gpu_receipt.official_grade_problem(
+            other, runtime
+        )
+        unregistered = gpu_receipt.make(
+            entry,
+            runtime,
+            image_digest=IMAGE,
+            tested_on="RTX 4090 / 580.178",
+            gpu_used=True,
+            smoke_ok=True,
+            determinism=gpu_receipt.required_determinism(runtime),
+            host_class="somewhere-else",
+            pairs=2,
+            identical=2,
+        )
+        assert "host class" in gpu_receipt.official_grade_problem(unregistered, runtime)
+
+
+def test_make_has_no_silent_defaults_for_the_official_fields():
+    from carbon.backbone_catalog import gpu_receipt
+
+    common = {
+        "image_digest": IMAGE,
+        "tested_on": "RTX 4090 / 580.178",
+        "gpu_used": True,
+        "smoke_ok": True,
+        "pairs": 2,
+        "identical": 2,
+    }
+    with pytest.raises(TypeError):
+        gpu_receipt.make("neuralop.FNO", "torch-cu130-py311", host_class=None, **common)
+    with pytest.raises(TypeError):
+        gpu_receipt.make(
+            "neuralop.FNO", "torch-cu130-py311", determinism=None, **common
+        )
+    # None is an explicit "not recorded": a practice-grade receipt that official grading refuses
+    practice = gpu_receipt.make(
+        "neuralop.FNO",
+        "torch-cu130-py311",
+        determinism=None,
+        host_class=None,
+        **common,
+    )
+    assert "determinism" not in practice and "host_class" not in practice
+    assert gpu_receipt.official_grade_problem(practice, "torch-cu130-py311")
+    # malformed values are refused when made
+    for bad in ({"host_class": ""}, {"host_class": 3}, {"determinism": "yes"}):
+        arguments = {"determinism": None, "host_class": None, **bad}
+        with pytest.raises(gpu_receipt.GpuReceiptBroken):
+            gpu_receipt.make("neuralop.FNO", "torch-cu130-py311", **arguments, **common)
+    # a smoke receipt (CNO1d) records neither
+    with pytest.raises(gpu_receipt.GpuReceiptBroken):
+        gpu_receipt.make(
+            "cno.CNO1d",
+            "torch-cu130-py311",
+            determinism=[],
+            host_class="rtx4090-v1",
+            image_digest=IMAGE,
+            tested_on="RTX 4090 / 580.178",
+            gpu_used=True,
+            smoke_ok=True,
+        )
