@@ -225,6 +225,63 @@ def development_install(installed_state: Path, *, repository: Path = REPO) -> bo
     )
 
 
+def _gpu_file(name: str, value) -> str:
+    """An exact absolute regular file (no symlink): the receiver's own rule for a GPU lane file."""
+    selected = Path(value) if isinstance(value, (str, Path)) else None
+    if (
+        selected is None
+        or not selected.is_absolute()
+        or selected.is_symlink()
+        or not selected.is_file()
+        or selected.resolve() != selected
+    ):
+        raise SetupRefused(
+            f"{name}_invalid",
+            "give the exact absolute path of an existing regular file (no symlink).",
+        )
+    return str(selected)
+
+
+def _gpu_lane_keys(
+    graph_gpu_image_manifest,
+    graph_gpu_ops,
+    gpu_construction_images,
+    construction_runtimes,
+) -> dict:
+    """The receiver-config keys of the GPU lane, validated before anything is written; ``{}`` when none."""
+    from carbon.challenge_validator.direct_receiver import CONSTRUCTION_RUNTIMES
+
+    keys: dict = {}
+    if (graph_gpu_image_manifest is None) != (graph_gpu_ops is None):
+        raise SetupRefused(
+            "graph_gpu_lane_incomplete",
+            "give both --graph-gpu-image-manifest and --graph-gpu-ops, or neither.",
+        )
+    if graph_gpu_image_manifest is not None:
+        keys["graph_gpu_image_manifest"] = _gpu_file(
+            "graph_gpu_image_manifest", graph_gpu_image_manifest
+        )
+        keys["graph_gpu_ops"] = _gpu_file("graph_gpu_ops", graph_gpu_ops)
+    images = tuple(gpu_construction_images)
+    if images:
+        if len(images) > 2:
+            raise SetupRefused(
+                "gpu_construction_images_invalid",
+                "give one or two GPU worker manifests (one per backend).",
+            )
+        if not construction_runtimes:
+            raise SetupRefused(
+                "construction_runtimes_needed",
+                "GPU construction images ride the per-runtime construction set; add --construction-runtimes.",
+            )
+        keys["gpu_construction_images"] = [
+            _gpu_file("gpu_construction_image", item) for item in images
+        ]
+    if construction_runtimes:
+        keys["construction_runtimes"] = list(CONSTRUCTION_RUNTIMES)
+    return keys
+
+
 def prepare(
     *,
     installed_state: Path,
@@ -241,8 +298,19 @@ def prepare(
     checks=None,
     permits=None,
     speed_sample_key_file: Path | None = None,
+    graph_gpu_image_manifest: Path | None = None,
+    graph_gpu_ops: Path | None = None,
+    gpu_construction_images: tuple = (),
+    construction_runtimes: bool = False,
 ) -> dict:
     """Write the runner profile and receiver configuration; return public facts.
+
+    The GPU lane (a dedicated GPU validator host) is opt-in: ``graph_gpu_image_manifest`` and
+    ``graph_gpu_ops`` (both or neither) name the registered JAX GPU worker and the ops record the
+    hardware class check wrote; ``gpu_construction_images`` (one or two GPU worker manifests) rebuild
+    catalog entries on their GPU twins and need ``construction_runtimes`` (the explicit opt-in to the
+    per-runtime CPU construction pair). Paths are checked here; the receiver re-checks the images, the
+    ops record and the owner's hardware acceptance at start.
 
     ``speed_sample_key_file`` is the pool versions' K_speed (the custody job writes it beside the signed copy,
     `copy_issuance`): an exact private file, recorded in the configuration so the receiver times single-design
@@ -275,6 +343,12 @@ def prepare(
                 "speed_sample_key_file_invalid",
                 "give the exact absolute path of an owner-only (0600) K_speed file of 32 to 4096 bytes.",
             ) from None
+    gpu_keys = _gpu_lane_keys(
+        graph_gpu_image_manifest,
+        graph_gpu_ops,
+        gpu_construction_images,
+        construction_runtimes,
+    )
     for name, path in (
         ("installed_state", installed_state),
         ("receiver_state", receiver_state),
@@ -425,6 +499,7 @@ def prepare(
         config["evaluation_pack_set"] = pack_set
     if speed_sample_key_file is not None:
         config["speed_sample_key_file"] = str(speed_sample_key_file)
+    config.update(gpu_keys)
     write_private(config_path, canonical(config))
     load_config(config_path)
     return {
@@ -435,10 +510,82 @@ def prepare(
         "port": port,
         "evaluation_pack": selection is not None,
         "evaluation_pack_set": pack_set is not None,
+        "graph_gpu_lane": "graph_gpu_image_manifest" in gpu_keys,
+        "gpu_construction_images": len(gpu_keys.get("gpu_construction_images", ())),
         "network_block": block,
         "profile_sha256": _sha(profile_path.read_bytes()),
         "config_sha256": _sha(config_path.read_bytes()),
         "config": str(config_path),
+    }
+
+
+def gpu_check(
+    *,
+    graph_gpu_image_manifest: Path | None = None,
+    graph_gpu_ops: Path | None = None,
+    gpu_construction_images: tuple = (),
+    checks=None,
+    device=None,
+) -> dict:
+    """Is this host ready to serve the GPU lane? Reads only; nothing is written or started.
+
+    Order: the files named (same rules as ``prepare``), this host's installed GPU device record
+    (``scripts/dev/carbon_accelerator.py prepare``), and the owner's hardware acceptance for that
+    device class on this chain network. The receiver re-checks all of it, and the worker images and
+    the ops record's allowlist, when it starts; this is the early, readable refusal."""
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction.hardware_acceptance import (
+        DeviceClassNotAccepted,
+        require_accepted,
+    )
+    from scripts.dev.miner_launchpad.environment_setup import LiveChecks
+    from scripts.dev.miner_launchpad.environment_setup import (
+        SetupRefused as EnvironmentRefused,
+    )
+
+    keys = _gpu_lane_keys(
+        graph_gpu_image_manifest,
+        graph_gpu_ops,
+        gpu_construction_images,
+        bool(gpu_construction_images),
+    )
+    if "graph_gpu_image_manifest" not in keys and "gpu_construction_images" not in keys:
+        raise SetupRefused(
+            "no_gpu_lane_named",
+            "name the graph GPU lane (--graph-gpu-image-manifest and --graph-gpu-ops) "
+            "and/or --gpu-construction-image.",
+        )
+    if device is None:
+        try:
+            device = research_carrier._gpu_device()
+        except ValueError:
+            raise SetupRefused(
+                "gpu_device_record_missing",
+                "run scripts/dev/carbon_accelerator.py prepare on this host first.",
+            ) from None
+    try:
+        network, _ = (checks or LiveChecks(repo=REPO)).network()
+    except EnvironmentRefused as refusal:
+        raise SetupRefused(
+            f"{refusal.field}_{refusal}",
+            refusal.next_step or "fix the named check and run this again.",
+        ) from None
+    chain = network.get("context", {}).get("network")
+    try:
+        require_accepted(device.device_kind, research_carrier._gpu_profile_id(), chain)
+    except DeviceClassNotAccepted:
+        raise SetupRefused(
+            "gpu_class_not_accepted",
+            "the owner's hardware acceptance does not name this GPU class for this chain network; "
+            "this host cannot score on it.",
+        ) from None
+    return {
+        "status": "GPU_HOST_READY",
+        "device_kind": device.device_kind,
+        "device_record": device.digest,
+        "chain_network": chain,
+        "graph_gpu_lane": "graph_gpu_image_manifest" in keys,
+        "gpu_construction_images": len(keys.get("gpu_construction_images", ())),
     }
 
 
@@ -729,8 +876,34 @@ def main(argv=None) -> int:
         type=Path,
         help="the pool versions' K_speed file (written beside the signed copy by the issuance job)",
     )
+    prep.add_argument(
+        "--graph-gpu-image-manifest",
+        type=Path,
+        help="the registered JAX GPU worker's image manifest (graph GPU lane; with --graph-gpu-ops)",
+    )
+    prep.add_argument(
+        "--graph-gpu-ops",
+        type=Path,
+        help="the ops record gpu_rebuild_class_check.py --ops-record wrote on this GPU host",
+    )
+    prep.add_argument(
+        "--gpu-construction-image",
+        type=Path,
+        action="append",
+        default=[],
+        help="a GPU worker image manifest catalog entries rebuild on (repeat once per backend)",
+    )
+    prep.add_argument(
+        "--construction-runtimes",
+        action="store_true",
+        help="opt in to the per-runtime CPU construction set (needed by --gpu-construction-image)",
+    )
     prep.add_argument("--port", type=int, default=DEFAULT_PORT)
     prep.add_argument("--lifetime-seconds", type=int, default=DEFAULT_LIFETIME_SECONDS)
+    gpu = sub.add_parser("gpu-check")
+    gpu.add_argument("--graph-gpu-image-manifest", type=Path)
+    gpu.add_argument("--graph-gpu-ops", type=Path)
+    gpu.add_argument("--gpu-construction-image", type=Path, action="append", default=[])
     run = sub.add_parser("start")
     run.add_argument("--receiver-state", type=Path, required=True)
     run.add_argument("--detach", action="store_true")
@@ -742,6 +915,12 @@ def main(argv=None) -> int:
             return start(args.receiver_state, detach=args.detach)
         if args.command == "challenges":
             result = {"served": list(served()), "current": list(current())}
+        elif args.command == "gpu-check":
+            result = gpu_check(
+                graph_gpu_image_manifest=args.graph_gpu_image_manifest,
+                graph_gpu_ops=args.graph_gpu_ops,
+                gpu_construction_images=tuple(args.gpu_construction_image),
+            )
         elif args.command == "service":
             result = service(args.receiver_state)
         elif args.command == "status":
@@ -761,6 +940,10 @@ def main(argv=None) -> int:
                 port=args.port,
                 lifetime_seconds=args.lifetime_seconds,
                 speed_sample_key_file=args.speed_sample_key_file,
+                graph_gpu_image_manifest=args.graph_gpu_image_manifest,
+                graph_gpu_ops=args.graph_gpu_ops,
+                gpu_construction_images=tuple(args.gpu_construction_image),
+                construction_runtimes=args.construction_runtimes,
             )
     except SetupRefused as refusal:
         print(

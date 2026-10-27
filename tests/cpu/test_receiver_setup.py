@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import stat
+from pathlib import Path
 
 import pytest
 
@@ -475,3 +476,181 @@ def test_prepare_without_the_key_file_records_none(tmp_path, installed_state, fa
     )
     assert "speed_sample_key_file" not in config
     assert direct_receiver._speed_key(config) is None
+
+
+# ---- the GPU lane (a dedicated GPU validator host) --------------------------------------
+
+
+def _gpu_files(tmp_path, *names):
+    paths = []
+    for name in names:
+        path = tmp_path / name
+        path.write_text("{}")
+        paths.append(path)
+    return paths
+
+
+def _config(tmp_path):
+    return json.loads((tmp_path / "receiver-state/receiver/receiver.json").read_bytes())
+
+
+def test_prepare_writes_the_graph_gpu_lane_keys_both_or_neither(
+    tmp_path, installed_state, faked
+):
+    image, ops = _gpu_files(tmp_path, "jax-gpu.json", "ops.json")
+    done = _prepare(
+        tmp_path, installed_state, graph_gpu_image_manifest=image, graph_gpu_ops=ops
+    )
+    assert done["graph_gpu_lane"] is True and done["gpu_construction_images"] == 0
+    config = _config(tmp_path)
+    assert config["graph_gpu_image_manifest"] == str(image)
+    assert config["graph_gpu_ops"] == str(ops)
+    assert "gpu_construction_images" not in config
+    assert "construction_runtimes" not in config
+
+
+def test_a_half_graph_gpu_lane_is_refused_before_anything_is_written(
+    tmp_path, installed_state, faked
+):
+    (image,) = _gpu_files(tmp_path, "jax-gpu.json")
+    with pytest.raises(receiver_setup.SetupRefused, match="graph_gpu_lane_incomplete"):
+        _prepare(tmp_path, installed_state, graph_gpu_image_manifest=image)
+    assert not (tmp_path / "receiver-state").exists()
+
+
+@pytest.mark.parametrize("kind", ["relative", "missing", "symlink", "directory"])
+def test_a_gpu_lane_file_must_be_an_exact_absolute_regular_file(
+    tmp_path, installed_state, faked, kind
+):
+    image, ops = _gpu_files(tmp_path, "jax-gpu.json", "ops.json")
+    if kind == "relative":
+        bad = Path("ops.json")
+    elif kind == "missing":
+        bad = tmp_path / "gone.json"
+    elif kind == "symlink":
+        bad = tmp_path / "link.json"
+        bad.symlink_to(ops)
+    else:
+        bad = tmp_path / "dir"
+        bad.mkdir()
+    with pytest.raises(receiver_setup.SetupRefused, match="graph_gpu_ops_invalid"):
+        _prepare(
+            tmp_path, installed_state, graph_gpu_image_manifest=image, graph_gpu_ops=bad
+        )
+    assert not (tmp_path / "receiver-state").exists()
+
+
+def test_gpu_construction_images_need_the_explicit_construction_runtimes_opt_in(
+    tmp_path, installed_state, faked
+):
+    (torch,) = _gpu_files(tmp_path, "torch-gpu.json")
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="construction_runtimes_needed"
+    ):
+        _prepare(tmp_path, installed_state, gpu_construction_images=(torch,))
+    done = _prepare(
+        tmp_path,
+        installed_state,
+        gpu_construction_images=(torch,),
+        construction_runtimes=True,
+    )
+    assert done["gpu_construction_images"] == 1 and done["graph_gpu_lane"] is False
+    config = _config(tmp_path)
+    assert config["gpu_construction_images"] == [str(torch)]
+    assert config["construction_runtimes"] == direct_receiver.CONSTRUCTION_RUNTIMES
+
+
+def test_at_most_two_gpu_construction_images(tmp_path, installed_state, faked):
+    three = tuple(_gpu_files(tmp_path, "a.json", "b.json", "c.json"))
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="gpu_construction_images_invalid"
+    ):
+        _prepare(
+            tmp_path,
+            installed_state,
+            gpu_construction_images=three,
+            construction_runtimes=True,
+        )
+
+
+class _Device:
+    device_kind = "nvidia-rtx-4090"
+    digest = "d" * 64
+
+
+class _TestnetChecks:
+    def network(self):
+        return {"context": {"network": "testnet", "netuid": 567}}, 7
+
+
+def _accept(monkeypatch, networks=("testnet",)):
+    from carbon.development_session import research_carrier
+    from carbon.reconstruction import hardware_acceptance
+
+    monkeypatch.setattr(
+        hardware_acceptance,
+        "ACCEPTED_DEVICE_CLASSES",
+        {
+            _Device.device_kind: {
+                research_carrier._gpu_profile_id(): {"networks": networks}
+            }
+        },
+    )
+
+
+def test_gpu_check_passes_on_an_accepted_class_and_writes_nothing(
+    tmp_path, monkeypatch
+):
+    image, ops = _gpu_files(tmp_path, "jax-gpu.json", "ops.json")
+    _accept(monkeypatch)
+    done = receiver_setup.gpu_check(
+        graph_gpu_image_manifest=image,
+        graph_gpu_ops=ops,
+        checks=_TestnetChecks(),
+        device=_Device(),
+    )
+    assert done == {
+        "status": "GPU_HOST_READY",
+        "device_kind": "nvidia-rtx-4090",
+        "device_record": "d" * 64,
+        "chain_network": "testnet",
+        "graph_gpu_lane": True,
+        "gpu_construction_images": 0,
+    }
+    assert sorted(path.name for path in tmp_path.iterdir()) == [
+        "jax-gpu.json",
+        "ops.json",
+    ]
+
+
+def test_gpu_check_refuses_a_class_the_owner_has_not_accepted_for_this_network(
+    tmp_path, monkeypatch
+):
+    image, ops = _gpu_files(tmp_path, "jax-gpu.json", "ops.json")
+    _accept(monkeypatch, networks=("finney",))
+    with pytest.raises(receiver_setup.SetupRefused, match="gpu_class_not_accepted"):
+        receiver_setup.gpu_check(
+            graph_gpu_image_manifest=image,
+            graph_gpu_ops=ops,
+            checks=_TestnetChecks(),
+            device=_Device(),
+        )
+
+
+def test_gpu_check_names_a_missing_device_record_and_an_empty_request(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import research_carrier
+
+    image, ops = _gpu_files(tmp_path, "jax-gpu.json", "ops.json")
+
+    def absent():
+        raise ValueError("no GPU device record is installed on this host")
+
+    monkeypatch.setattr(research_carrier, "_gpu_device", absent)
+    with pytest.raises(receiver_setup.SetupRefused, match="gpu_device_record_missing"):
+        receiver_setup.gpu_check(
+            graph_gpu_image_manifest=image, graph_gpu_ops=ops, checks=_TestnetChecks()
+        )
+    with pytest.raises(receiver_setup.SetupRefused, match="no_gpu_lane_named"):
+        receiver_setup.gpu_check(checks=_TestnetChecks(), device=_Device())
