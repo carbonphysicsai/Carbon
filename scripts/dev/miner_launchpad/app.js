@@ -3887,7 +3887,6 @@
     const info = byModel || graphiteOffer().input_window?.launch_default;
     const minimum = info?.full_launch_minimum_provider_nanodollars?.without_hunt;
     const base = info?.research_share;
-    window.__fit = {ceiling, chosen: Boolean(chosen), byModel: Boolean(byModel), info: Boolean(info), minimum, base};
     if (!Number.isSafeInteger(minimum) || minimum <= 0 || typeof base !== "number" || !(base > 0)) return null;
     // One call's reservation is about base x minimum; a whole percent above it, plus one.
     const needed = Math.ceil(base * minimum / ceiling * 100) / 100 + 0.01;

@@ -2405,6 +2405,10 @@ scenario("Graphite: a first launch works by default (practice-only retains; the 
   // was refused 'registration required', and 10% of a 1.5 USD ceiling cannot pay one reserved call.
   const state = graphiteWorld({setup: practisingSetup()});
   state.operations = state.operations.map(op => op.operation === "launch" ? {...op, optional: [...op.optional, "submission_policy"]} : op);
+  // The miner's chosen model is a priced one: each call holds spend (an unpriced model holds none).
+  const chosen = state.caps.model.setup_choice;
+  const defaults = (state.caps.model.input_window.graphite_defaults ||= {});
+  (defaults[chosen.provider_id] ||= {})[chosen.model_id] = copy(state.options.graphite.input_window.launch_default);
   const page = await open(state);
   await wizardTo(page, "agent", "graphite");
   assert.equal(page.$("wizard-retain-before-submit").checked, true, "a miner practising without registering retains by default");
@@ -2418,7 +2422,7 @@ scenario("Graphite: a first launch works by default (practice-only retains; the 
   await toAgentStep(page);
   const perCall = state.options.graphite.input_window.launch_default.per_call_reservation_nanodollars;
   const shown = Number(page.$("wizard-research-share").value);
-  assert.ok(shown > 10, "RAISE: " + shown + " fit=" + JSON.stringify(page.window.__fit));
+  assert.ok(shown > 10, "the default share is raised above 10% so one call fits a 1.5 USD ceiling: " + shown);
   assert.ok(perCall <= 1.5e9 * shown / 100, "one reserved call fits the share of the ceiling");
   const body = await launchNow(page, state);
   assert.equal(body.submission_policy, "retain_only_v1");
