@@ -51,7 +51,48 @@ def _json(path):
     return json.loads(Path(path).read_bytes())
 
 
-def verify(eval_dir, pack_root, challenge_id, version):
+def rebuild_facts(artifacts_dir, measurement, pair, expect_gpu, problems):
+    """Which device built the graded state and that the grade ran on the CPU image (GPU_REBUILD_RULINGS 1-3).
+
+    ``worker-evidence.json`` (the retained task artifacts) names the graph lane's ``build_device`` (GPU / CPU) and,
+    for a GPU build, the GPU worker image and, for a CPU fallback, why. The state passes to the grade by digest
+    (the same in the evidence and in the dual measurement); the grade, its repeat pair and the speed run on the
+    inference image, which is never the GPU build worker. A catalog entry has no graph lane fields (its GPU build
+    is the official-grade twin): ``build_device`` is then None. ``expect_gpu`` makes a CPU build a problem.
+    """
+    path = Path(artifacts_dir) / "worker-evidence.json"
+    facts = {"build_device": None, "build_image_id": None, "gpu_lane_note": None}
+    if not path.is_file():
+        problems.append("missing:worker-evidence.json")
+        return facts
+    evidence = _json(path)
+    facts.update(
+        build_device=evidence.get("build_device"),
+        build_image_id=evidence.get("build_image_id"),
+        gpu_lane_note=evidence.get("gpu_lane_note"),
+        inference_image_id=evidence.get("inference_image_id"),
+        state_digest=evidence.get("state_digest"),
+    )
+    if measurement is not None and evidence.get("state_digest") != measurement.get(
+        "state_digest"
+    ):
+        problems.append("state_digest_differs_between_the_build_and_the_grade")
+    if pair is not None and pair.get("inference_image_id") != evidence.get(
+        "inference_image_id"
+    ):
+        problems.append("repeat_pair_ran_on_another_image_than_the_grade")
+    if facts["build_device"] == "GPU" and facts["build_image_id"] == evidence.get(
+        "inference_image_id"
+    ):
+        problems.append("the_grade_ran_on_the_gpu_build_image")
+    if expect_gpu and facts["build_device"] != "GPU":
+        problems.append("rebuild_not_on_the_gpu:" + str(facts["gpu_lane_note"]))
+    return facts
+
+
+def verify(
+    eval_dir, pack_root, challenge_id, version, artifacts_dir=None, expect_gpu=False
+):
     """The evidence record (digests and verdicts only) of one graded submission."""
     from carbon.challenge_registry import speed_gate
     from carbon.development_session import single_call_timing
@@ -146,6 +187,22 @@ def verify(eval_dir, pack_root, challenge_id, version):
             if verdict != expected:
                 problems.append("speed_verdict_differs_from_the_side_file")
 
+    if artifacts_dir is not None:
+        measurement_doc = (
+            _json(present["dual-measurement.json"])
+            if "dual-measurement.json" in present
+            else None
+        )
+        pair_doc = (
+            _json(present["inference-pair.json"])
+            if "inference-pair.json" in present
+            else None
+        )
+        record["rebuild"] = rebuild_facts(
+            artifacts_dir, measurement_doc, pair_doc, expect_gpu, problems
+        )
+    elif expect_gpu:
+        problems.append("expect_gpu_needs_the_artifacts_dir")
     record["problems"] = problems
     record["verdict"] = "CONSISTENT" if not problems else "INCONSISTENT"
     record["next"] = (
@@ -161,8 +218,24 @@ def main(argv=None):
     one = sub.add_parser("verify")
     for flag in ("eval-dir", "pack-root", "challenge-id", "version"):
         one.add_argument("--" + flag, required=True)
+    one.add_argument(
+        "--artifacts-dir",
+        help="the retained task artifacts (worker-evidence.json): adds the rebuild device and image facts",
+    )
+    one.add_argument(
+        "--expect-gpu-rebuild",
+        action="store_true",
+        help="a CPU build is a problem (the dedicated 4090 day-one run); needs --artifacts-dir",
+    )
     args = parser.parse_args(argv)
-    record = verify(args.eval_dir, args.pack_root, args.challenge_id, args.version)
+    record = verify(
+        args.eval_dir,
+        args.pack_root,
+        args.challenge_id,
+        args.version,
+        args.artifacts_dir,
+        args.expect_gpu_rebuild,
+    )
     print(json.dumps(record, sort_keys=True, indent=2))
     return 0 if record["verdict"] == "CONSISTENT" else 3
 
