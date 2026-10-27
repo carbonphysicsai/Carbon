@@ -166,6 +166,7 @@ class PoolVariant(physical.Variant):
         train_raw,
         names,
         speed_call_seconds=None,
+        speed_outputs_match=True,
     ):
         from carbon.challenge_registry import speed_gate
 
@@ -204,6 +205,7 @@ class PoolVariant(physical.Variant):
             ceiling_seconds=speed_gate.ceiling_seconds(self._challenge_id),
             input_dtype=check_material(material)["input_dtype"],
             a_multiplier=registered_a_multiplier(self._challenge_id, self.VERSION),
+            speed_outputs_match=speed_outputs_match,
         )
 
 

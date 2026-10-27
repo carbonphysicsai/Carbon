@@ -22,8 +22,15 @@ What the host holds and the container never gets:
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
 import math
 
+SIDE_FILE_SCHEMA = "carbon.lean-recipe.single-call.v1"
+#: The domain tag of the per-grade sample seed (GPU_REBUILD_RULINGS section 8): HMAC-SHA256 under the pack's custody
+#: copy key over this tag, the pool set id and the submission id.
+SEED_DOMAIN = b"carbon.speed-sample/1"
 SCHEMA = "carbon.development.bundle-inference.v3"
 SCOPE = "SINGLE_DESIGN_CALLS_ONE_PUBLIC_WARMUP_EXCLUDED_MONOTONIC_CLOCK"
 SAMPLE = 20
@@ -124,6 +131,98 @@ def program(base_program: str) -> str:
     return result
 
 
+def sample_seed(key: bytes, set_id: str, submission_id: str) -> bytes:
+    """The per-grade seed that picks the timed rows: custody's, never the miner's, never reused across grades."""
+    if (
+        type(key) is not bytes
+        or len(key) < 32
+        or type(set_id) is not str
+        or not set_id
+        or type(submission_id) is not str
+        or not submission_id
+    ):
+        raise SingleCallRefused("single_call_seed_input_invalid")
+    message = b"\x00".join(
+        [SEED_DOMAIN, set_id.encode("utf-8"), submission_id.encode("utf-8")]
+    )
+    return hmac.new(key, message, hashlib.sha256).digest()
+
+
+def delivered_indices(bank, delivered_inputs, seed: bytes) -> list:
+    """The row indices, into the DELIVERED query (the validator copy order), of the `SAMPLE` pool rows timed.
+
+    The draw is over the canonical bank's pool rows (`pool_exam.speed_sample`), so it is the same for every
+    validator copy of one exam; each drawn row is then found in the delivered rows by exact value (pool rows are
+    unique inputs). A row that is absent or ambiguous is a refusal, never a different row.
+    """
+    import numpy as np
+
+    from carbon.scoring import pool_exam
+
+    pool = [i for i, c in enumerate(bank["cohorts"]) if c == pool_exam.POOL_COHORT]
+    if len(pool) < SAMPLE:
+        raise SingleCallRefused("single_call_pool_smaller_than_the_sample")
+    canonical = np.asarray(bank["inputs"])
+    delivered = np.asarray(delivered_inputs)
+    if delivered.ndim != 2 or delivered.shape[1:] != canonical.shape[1:]:
+        raise SingleCallRefused("single_call_delivered_rows_differ")
+    out = []
+    for position in pool_exam.speed_sample(len(pool), seed=seed, count=SAMPLE):
+        row = canonical[pool[position]]
+        found = np.flatnonzero((delivered == row).all(axis=1))
+        if len(found) != 1:
+            raise SingleCallRefused("single_call_row_not_in_the_delivered_query")
+        out.append(int(found[0]))
+    return sorted(out)
+
+
+def side_file(*, indices, warmup_digest, call_s, outputs_match, operation) -> dict:
+    """The host-private evidence the receiver keeps beside the dual measurement."""
+    return {
+        "schema": SIDE_FILE_SCHEMA,
+        "scope": SCOPE,
+        "indices": list(indices),
+        "warmup_digest": warmup_digest,
+        "call_s": list(call_s),
+        "outputs_match_graded": bool(outputs_match),
+        "operation": operation,
+    }
+
+
+def read_side_file(raw) -> tuple:
+    """``(per-call seconds, outputs_match_graded)`` of a retained side file, or a refusal."""
+    try:
+        document = json.loads(raw)
+    except (TypeError, ValueError):
+        raise SingleCallRefused("single_call_evidence_malformed") from None
+    if (
+        type(document) is not dict
+        or set(document)
+        != {
+            "schema",
+            "scope",
+            "indices",
+            "warmup_digest",
+            "call_s",
+            "outputs_match_graded",
+            "operation",
+        }
+        or document["schema"] != SIDE_FILE_SCHEMA
+        or document["scope"] != SCOPE
+        or type(document["outputs_match_graded"]) is not bool
+        or type(document["indices"]) is not list
+        or len(document["indices"]) != SAMPLE
+        or type(document["call_s"]) is not list
+        or len(document["call_s"]) != SAMPLE
+        or any(
+            type(s) not in (int, float) or not math.isfinite(s) or s <= 0
+            for s in document["call_s"]
+        )
+    ):
+        raise SingleCallRefused("single_call_evidence_malformed")
+    return list(document["call_s"]), document["outputs_match_graded"]
+
+
 def control_block(indices, warmup_digest: str, *, rows: int) -> dict:
     """The host-private `single_call` control: the sampled row indices (into the graded `inputs.npz`) and the
     digest of the public warm-up file. Never the seed."""
@@ -174,10 +273,16 @@ __all__ = [
     "SAMPLE",
     "SCHEMA",
     "SCOPE",
+    "SEED_DOMAIN",
+    "SIDE_FILE_SCHEMA",
     "WARMUP_FILE",
     "SingleCallRefused",
     "check_receipt_block",
     "control_block",
+    "delivered_indices",
     "outputs_match_graded",
     "program",
+    "read_side_file",
+    "sample_seed",
+    "side_file",
 ]

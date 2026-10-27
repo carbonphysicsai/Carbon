@@ -46,6 +46,9 @@ _OPTIONAL_FIELDS = {
     "challenge",
     "construction_runtimes",
     "auto_grade",
+    # A private file (>= 32 bytes) holding the pack's custody copy key: the speed-sample seed of the pool
+    # versions' single-design call timing is derived under it (`single_call_timing.sample_seed`).
+    "speed_sample_key_file",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -100,6 +103,23 @@ class ReceiverUnavailable(RuntimeError):
         super().__init__(code)
 
 
+def read_speed_sample_key(name) -> bytes:
+    """The speed-sample key of a configured private file: an exact absolute regular file, owner-private, 32 to
+    4096 bytes. It is held by the receiver only and never leaves it."""
+    selected = Path(name) if type(name) is str else None
+    if (
+        selected is None
+        or not selected.is_absolute()
+        or selected.is_symlink()
+        or not selected.is_file()
+        or selected.resolve() != selected
+        or (selected.stat().st_mode & 0o077)
+        or not 32 <= selected.stat().st_size <= 4096
+    ):
+        raise ValueError("exact private speed sample key file required")
+    return selected.read_bytes()
+
+
 def load_config(path: Path) -> dict:
     """Read the closed bounded private record; miner calls select no paths."""
     value = private_json(path)
@@ -151,6 +171,8 @@ def load_config(path: Path) -> dict:
             or selected.resolve() != selected
         ):
             raise ValueError(refusal)
+    if "speed_sample_key_file" in value:
+        read_speed_sample_key(value["speed_sample_key_file"])
     if "challenge" in value:
         selected = value["challenge"]
         if type(selected) is not dict or selected not in served_challenges():
@@ -401,8 +423,15 @@ def _set_batch_adapters(cfg, root, challenge, material, discovery, providers, le
             ledger,
             measure_query=cfg["measure_query"],
             copy_hotkey=cfg["receiver_hotkey"],
+            speed_sample_key=_speed_key(cfg),
         )
     return adapters
+
+
+def _speed_key(cfg):
+    """The configured speed-sample key, or None (a pool grade then has no speed evidence: typed unavailable)."""
+    name = cfg.get("speed_sample_key_file")
+    return None if name is None else read_speed_sample_key(name)
 
 
 class ReceiverSnapshotWindow:
@@ -1293,6 +1322,7 @@ def serve(
                 attempt_ledger=ledger,
                 measure_query=cfg["measure_query"],
                 copy_hotkey=cfg["receiver_hotkey"],
+                speed_sample_key=_speed_key(cfg),
             )
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention

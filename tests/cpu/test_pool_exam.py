@@ -105,6 +105,7 @@ def grade(
     policies=POLICIES,
     mutate_rows=None,
     a_multiplier=None,
+    speed_outputs_match=None,
 ):
     the_sets = the_sets or sets()
     rows = exam_rows(the_sets)
@@ -123,6 +124,11 @@ def grade(
         speed_call_seconds=speed,
         ceiling_seconds=CEILING,
         **({} if a_multiplier is None else {"a_multiplier": a_multiplier}),
+        **(
+            {}
+            if speed_outputs_match is None
+            else {"speed_outputs_match": speed_outputs_match}
+        ),
     )
 
 

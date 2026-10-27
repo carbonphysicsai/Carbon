@@ -671,6 +671,138 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
     return raw
 
 
+def _single_call_raw(
+    adapter, submission_id, result, artifacts, entry, regrade=None, runner=None
+):
+    """The pool versions' speed evidence (M4 Layer B; GPU_REBUILD_RULINGS section 8), kept write-once beside the
+    dual measurement as a host-private side file (never a ScoreLab role, never a public byte).
+
+    After the graded inference, the same inference container runs Carbon's derived single-call program over
+    `SAMPLE` pool rows, one call each after one public warm-up call. The rows are drawn from the canonical bank's
+    pool rows by HMAC-SHA256 under the receiver's speed-sample key over the domain tag, the pool set id and the
+    submission id (`single_call_timing.sample_seed`): only the indices cross into the container, as host-private
+    control. The 20 outputs must equal the graded run's on the same rows (a graph that answers differently when
+    timed is the candidate's, recorded in the file); anything that stops the stage leaves the grade UNAVAILABLE
+    with a typed reason (Carbon's gap), never a pass and never a candidate failure. A retry reads the retained
+    bytes and never replays an identity."""
+    import numpy as np
+
+    from carbon.development_session import single_call_timing
+    from carbon.development_session.bundle_construction_worker import (
+        INFER_PROGRAM,
+        _infer_state,
+    )
+    from carbon.development_session.construction_recipe import (
+        ConstructionRecipe,
+        RecipeRefused,
+    )
+    from carbon.development_session.data import write_once
+
+    path = _private_evaluation_directory(result, submission_id) / "single-call.json"
+    if path.exists() or path.is_symlink():
+        return _private_measurement_bytes(path, 1024**2)
+    key = getattr(adapter, "speed_sample_key", None)
+    if type(key) is not bytes or len(key) < 32:
+        raise RetentionUnavailable("single_call_key_unavailable")
+    owner = adapter.owner(submission_id) if regrade is None else regrade.owner
+    provider = adapter._provider(owner)
+    material = adapter.discovery._material
+    kit = material["construction_kit"]
+    limits = material["construction_limits_document"]
+    policy = limits["reconstruction_resource_policy"]
+    interface = material["interface_document"]
+    snapshot = adapter.discovery.evaluation_pack_snapshot
+    try:
+        from carbon.challenge_kit import physical_pack
+        from carbon.scoring import sealed_batch_source
+
+        sealed = sealed_batch_source.resolve(
+            challenge=adapter.challenge_id,
+            version=adapter.challenge_version,
+            selected_pack=snapshot,
+            private_root=adapter.discovery.evaluation_pack_private_root,
+            development_adapter=None,
+            copy_hotkey=getattr(adapter, "copy_hotkey", None),
+        )
+        if sealed is None or not getattr(sealed[1], "POOL_GRADED", False):
+            raise RetentionUnavailable("single_call_pack_is_not_pool_graded")
+        bank = sealed[0]
+        delivered = np.asarray(material["practice_inputs"])
+        seed = single_call_timing.sample_seed(
+            key, bank["pool"]["set_digest"], submission_id
+        )
+        indices = single_call_timing.delivered_indices(bank, delivered, seed)
+        # The warm-up row is PUBLIC: the first row of the version's public development bank.
+        public = np.asarray(
+            physical_pack.development_bank(
+                adapter.challenge_id, adapter.challenge_version
+            )["inputs"]
+        )[0:1].astype(delivered.dtype)
+        graded = json.loads(artifacts["predictions.json"])
+        graph_query = (
+            _graph_regrade_query(adapter.discovery, material)
+            if "worker-evidence.json" in artifacts
+            else {}
+        )
+        derived = single_call_timing.program(graph_query.get("program", INFER_PROGRAM))
+        stage = _infer_state(
+            provider.ledger,
+            owner=owner,
+            identity="single-call-"
+            + hashlib.sha256(
+                (snapshot.manifest_digest + "|" + submission_id).encode()
+            ).hexdigest(),
+            inference_image=provider.inference_image,
+            recipe=(
+                ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
+                if regrade is None
+                else regrade.recipe
+            ),
+            binding={
+                "challenge_id": kit["id"],
+                "challenge_version": kit["version"],
+                "train_digest": kit["train_digest"],
+                "interface_digest": kit["interface_digest"],
+                "construction_limits_digest": kit["construction_limits_digest"],
+            },
+            state=artifacts["state.npz"],
+            state_digest=entry["state_digest"],
+            inputs=delivered,
+            expected_output_shape=(
+                single_call_timing.SAMPLE,
+                *tuple(material["expected_output_shape"])[1:],
+            ),
+            expected_output_dtype=output_dtype(interface),
+            allowlist_bytes=material["allowlist_bytes"],
+            seconds=policy["inference_wall_seconds_max"],
+            accelerator=getattr(provider, "inference_accelerator", None),
+            runner=runner,
+            single_call={"indices": indices, "warmup": public},
+            **{**graph_query, "program": derived},
+        )
+        call_s = stage.receipt["single_call"]["call_s"]
+        match = single_call_timing.outputs_match_graded(
+            stage.predictions, graded, indices
+        )
+        document = single_call_timing.side_file(
+            indices=indices,
+            warmup_digest=stage.receipt["single_call"]["warmup_digest"],
+            call_s=call_s,
+            outputs_match=match,
+            operation=stage.worker_operation,
+        )
+        single_call_timing.read_side_file(_json(document))  # the reader's own check
+    except RetentionUnavailable:
+        raise
+    except single_call_timing.SingleCallRefused as refused:
+        raise RetentionUnavailable(refused.code) from refused
+    except (RecipeRefused, ValueError, KeyError, TypeError) as failure:
+        raise RetentionUnavailable("single_call_stage_incomplete") from failure
+    raw = _json(document)
+    write_once(path, raw)
+    return raw
+
+
 def _retain_selected_pack_evaluation(
     adapter,
     submission_id,
@@ -805,6 +937,18 @@ def _retain_selected_pack_evaluation(
         )
         originals["inference_pair_raw"] = pair_raw
         originals["inference_pair_sha256"] = _sha(pair_raw)
+        # A pool-graded pack also grades the SPEED of single-design calls: its evidence is the receiver's own
+        # side file, kept beside the dual measurement and read by the producer only (a missing one leaves the
+        # evaluation UNAVAILABLE, typed).
+        from carbon.scoring import pool_exam
+
+        single_call = (
+            _single_call_raw(
+                adapter, submission_id, result, artifacts, registered["entry"], regrade
+            )
+            if pool_exam.SPEED_GATE in score_document.get("hard_gates", ())
+            else None
+        )
         prepared = produce_registered_dual_measurement(
             selected_pack=snapshot,
             public_root=discovery.evaluation_pack_public_root,
@@ -817,6 +961,7 @@ def _retain_selected_pack_evaluation(
             evaluation_source_receipt_raw=registered["evaluation_source_receipt_raw"],
             timing_step=_timing_step(adapter),
             copy_hotkey=getattr(adapter, "copy_hotkey", None),
+            single_call_raw=single_call,
         )
         directory = _private_evaluation_directory(result, submission_id)
         measurement_path = directory / "dual-measurement.json"
