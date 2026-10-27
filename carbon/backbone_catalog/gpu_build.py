@@ -66,7 +66,7 @@ NO_GPU_TWIN = (
 #: (`gpu_receipt.SMOKE_ONLY`, the same entry).
 WARN_ONLY_DETERMINISM = (
     "cno.CNO1d",
-    # The same CNO1d build served on the launch versions (Lead GPU-2, 2026-10-26): the upsample backward is the
+    # The same CNO1d build served on the launch versions (Lead, 2026-10-26: twins for the served v2 examples): the upsample backward is the
     # same op, so the owner's decision applies to the same entry under its v2 ids. Validator to confirm.
     "v2.motor.cno.CNO1d",
     "v2.cooling.cno.CNO1d",
