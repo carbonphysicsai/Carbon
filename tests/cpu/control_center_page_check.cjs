@@ -2418,7 +2418,7 @@ scenario("Graphite: a first launch works by default (practice-only retains; the 
   await toAgentStep(page);
   const perCall = state.options.graphite.input_window.launch_default.per_call_reservation_nanodollars;
   const shown = Number(page.$("wizard-research-share").value);
-  const sc = state.caps.model.setup_choice; const gd = state.caps.model.input_window && state.caps.model.input_window.graphite_defaults; assert.ok(shown > 10, "RAISE: " + shown + " setup=" + sc.provider_id + "/" + sc.model_id + " gd=" + JSON.stringify(gd && gd[sc.provider_id] && gd[sc.provider_id][sc.model_id] && gd[sc.provider_id][sc.model_id].full_launch_minimum_provider_nanodollars));
+  assert.ok(shown > 10, "RAISE: " + shown + " fit=" + JSON.stringify(page.window.__fit));
   assert.ok(perCall <= 1.5e9 * shown / 100, "one reserved call fits the share of the ceiling");
   const body = await launchNow(page, state);
   assert.equal(body.submission_policy, "retain_only_v1");
