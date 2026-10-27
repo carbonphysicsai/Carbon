@@ -1,8 +1,9 @@
 {
   "schema": "carbon.pool.constants.v1",
-  "source": "HUMAN_INPUT: the owner's picks from the per-Challenge owner sheets (the proof grid on the final pools); V8_RULINGS section 11. Nothing here is a default: a version with any HUMAN_INPUT refuses to grade (pool_constants_not_registered).",
+  "source": "Owner picks from the per-Challenge owner sheets (the proof grid on the final pools); V8_RULINGS sections 11, 15. Motor 1.5: OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01 (.agent/decisions, 39f1ee4b4; owner '1 and a', reports/OWNER_SCORING_SHEET_MOTOR_20261026.md row B 60 / s_h 1.0 / A multiplier 3 / A_gen scales set-3 (0.03 x the TRAIN spread, expanded by pool_adapters.train_spread) / rule mean; sigma0 0.25, population None and honesty reduction max are the grid spec's fixed values). Every other entry: HUMAN_INPUT, a version with any HUMAN_INPUT refuses to grade (pool_constants_not_registered).",
   "versions": {
     "chip-cold-plate 1.5": {
+      "a_multiplier": "HUMAN_INPUT",
       "a_rule": "HUMAN_INPUT",
       "agen_scales": "HUMAN_INPUT",
       "c_rule": {
@@ -19,22 +20,29 @@
       }
     },
     "electric-motor-magnetics 1.5": {
-      "a_rule": "HUMAN_INPUT",
-      "agen_scales": "HUMAN_INPUT",
+      "a_multiplier": 3.0,
+      "a_rule": {
+        "kind": "mean"
+      },
+      "agen_scales": {
+        "mean_torque_nm": 0.07433812816092869,
+        "ripple_fraction": 0.08677790679238961
+      },
       "c_rule": {
         "kind": "min"
       },
       "honesty": {
-        "reduction": "HUMAN_INPUT",
-        "scale": "HUMAN_INPUT"
+        "reduction": "max",
+        "scale": 1.0
       },
       "optimizer": {
-        "budget": "HUMAN_INPUT",
-        "population": "HUMAN_INPUT",
-        "sigma0": "HUMAN_INPUT"
+        "budget": 60,
+        "population": null,
+        "sigma0": 0.25
       }
     },
     "f02 2.5": {
+      "a_multiplier": "HUMAN_INPUT",
       "a_rule": "HUMAN_INPUT",
       "agen_scales": "HUMAN_INPUT",
       "c_rule": {
@@ -51,6 +59,7 @@
       }
     },
     "f08-ribbed-bracket 1.6": {
+      "a_multiplier": "HUMAN_INPUT",
       "a_rule": "HUMAN_INPUT",
       "agen_scales": "HUMAN_INPUT",
       "c_rule": {

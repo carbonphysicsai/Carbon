@@ -150,6 +150,7 @@ def measure_pool(
     speed_call_seconds,
     ceiling_seconds,
     input_dtype=None,
+    a_multiplier=1.0,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
 
@@ -236,6 +237,22 @@ def measure_pool(
         good_model=pool_plugin.pool_predictor(submitted, serve),
         legs=lambda descriptor, specs: legs,
     )
+    # The owner's A-leg tightening (the sheet's A multiplier; 1 = the sealed grader's registered scale): each A leg
+    # 1 / (1 + x) becomes 1 / (1 + m x) before the legs are averaged, exactly as the proof grid scored the row.
+    _require(
+        type(a_multiplier) in (int, float)
+        and math.isfinite(a_multiplier)
+        and a_multiplier > 0,
+        "a_multiplier_must_be_positive",
+    )
+    from carbon.scoring.pool_proof_grid import tighten
+
+    a_legs = legs["A_legs"]
+    a_bank = (
+        statistics.fmean(tighten(v, a_multiplier) for v in a_legs.values())
+        if a_legs
+        else tighten(legs["A"], a_multiplier)
+    )
     descriptor = {"kind": "good"}
     per_set = [
         suite.score_specs(plugin, specs, descriptor, policies, all_specs)
@@ -244,7 +261,7 @@ def measure_pool(
     a_values, d_values, reasons, a_gen = [], [], set(), []
     for _total, grade, gen, _legs in per_set:
         a_gen.append(gen)
-        a_values.append(pool_grader.combine_a(legs["A"], gen, policies.a_rule))
+        a_values.append(pool_grader.combine_a(a_bank, gen, policies.a_rule))
         # D as the total sees it: capped by C, so the dual pack's own 0.5 A + 0.5 D is each set's TOP.
         d_values.append(min(grade.d, legs["C"]))
         reasons.update(grade.public()["reasons"])

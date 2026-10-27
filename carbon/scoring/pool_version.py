@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 
 from carbon.scoring import physical_dual_pack as physical
@@ -59,6 +60,28 @@ def _picked(value):
     if value == HUMAN_INPUT:
         raise PoolConstantsNotRegistered("pool_constants_not_registered")
     return value
+
+
+def registered_a_multiplier(challenge_id, version, *, path=CONSTANTS):
+    """The owner's A-leg tightening m of the version (1 = the sealed grader's registered scale; the sheet's
+    ``A multiplier``), or `PoolConstantsNotRegistered`. A positive finite number, never defaulted.
+    """
+    try:
+        document = json.loads(Path(path).read_bytes())
+        if document["schema"] != SCHEMA:
+            raise ValueError
+        value = _picked(
+            document["versions"][f"{challenge_id} {version}"]["a_multiplier"]
+        )
+    except pool_exam.ExamRefused:
+        raise
+    except (OSError, ValueError, KeyError, TypeError):
+        raise PoolConstantsNotRegistered(
+            "pool_constants_unregistered_version"
+        ) from None
+    if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    return float(value)
 
 
 def registered_policies(challenge_id, version, *, path=CONSTANTS):
@@ -171,6 +194,7 @@ class PoolVariant(physical.Variant):
             speed_call_seconds=speed_call_seconds,
             ceiling_seconds=speed_gate.ceiling_seconds(self._challenge_id),
             input_dtype=check_material(material)["input_dtype"],
+            a_multiplier=registered_a_multiplier(self._challenge_id, self.VERSION),
         )
 
 
