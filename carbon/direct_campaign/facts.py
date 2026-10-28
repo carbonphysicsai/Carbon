@@ -314,5 +314,6 @@ def label(spec, version, name):
         name
     )
 
+
 FACTS[("f08-ribbed-bracket", "1.7")] = dict(FACTS[("f08-ribbed-bracket", "1.6")])
 LABELS[("f08-ribbed-bracket", "1.7")] = dict(LABELS[("f08-ribbed-bracket", "1.6")])
