@@ -853,8 +853,8 @@ def catalog_state(config: dict) -> dict:
     """The receiver's catalog for `status`: how many served bundles it holds and
     which it lacks (`scripts.dev.receiver_catalog.verify`, read-only). The
     receiver is not healthy while any served bundle is missing. A receiver whose
-    records cannot be read here reports ``UNVERIFIED`` and is not blocked by it:
-    it could not start without them."""
+    records cannot be read here reports ``UNVERIFIED``; that unknown inventory
+    cannot establish receiver health."""
     try:
         from scripts.dev import receiver_catalog
 
@@ -863,7 +863,7 @@ def catalog_state(config: dict) -> dict:
             # can say what it would install.
             return {"status": "UNVERIFIED", "ready": None}
         found = receiver_catalog.verify(config)
-    except (OSError, ValueError, KeyError, ImportError):
+    except (OSError, ValueError, KeyError, TypeError, ImportError):
         return {"status": "UNVERIFIED", "ready": None}
     return {
         "status": "COMPLETE" if found["ready"] else "INCOMPLETE",
@@ -951,7 +951,7 @@ def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
         service_state == "active"
         and intake == "LISTENING"
         and "evaluation_pack" in config
-        and catalog.get("ready") is not False
+        and catalog.get("ready") is True
     )
     return {
         "status": "RECEIVER_HEALTHY" if healthy else "RECEIVER_NOT_HEALTHY",

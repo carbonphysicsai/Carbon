@@ -339,10 +339,15 @@ def test_service_refuses_a_finite_receiver_no_linger_or_a_failed_enable(
 
 
 def test_status_reports_service_intake_exam_and_last_graded(
-    tmp_path, installed_state, faked
+    tmp_path, installed_state, faked, monkeypatch
 ):
     # E7: read-only; healthy only when the service is active, the intake
-    # answers and the receiver holds its exam.
+    # answers, the receiver holds its exam, and catalog inventory is complete.
+    monkeypatch.setattr(
+        receiver_setup,
+        "catalog_state",
+        lambda config: {"status": "COMPLETE", "ready": True},
+    )
     _prepare(tmp_path, installed_state, pack=_pack(tmp_path))
     state = tmp_path / "receiver-state"
     healthy = receiver_setup.status(
@@ -361,6 +366,40 @@ def test_status_reports_service_intake_exam_and_last_graded(
     down = receiver_setup.status(state, run=Run(active="inactive"), fetch=unreachable)
     assert down["status"] == "RECEIVER_NOT_HEALTHY"
     assert (down["service"], down["intake"]) == ("inactive", "UNREACHABLE")
+
+
+def test_status_cannot_be_healthy_when_its_catalog_inventory_is_unverified(
+    tmp_path, installed_state, faked
+):
+    # These setup fixtures have unreadable image records. Listening service and
+    # a selected exam cannot turn unknown catalog inventory into health.
+    _prepare(tmp_path, installed_state, pack=_pack(tmp_path))
+    found = receiver_setup.status(
+        tmp_path / "receiver-state", run=Run(), fetch=lambda url: {"schema": "intake"}
+    )
+    assert (found["service"], found["intake"], found["exam"]) == (
+        "active",
+        "LISTENING",
+        "SELECTED",
+    )
+    assert found["catalog"] == {"status": "UNVERIFIED", "ready": None}
+    assert found["status"] == "RECEIVER_NOT_HEALTHY"
+
+
+def test_status_cannot_be_healthy_while_any_served_catalog_entry_is_missing(
+    tmp_path, installed_state, faked, monkeypatch
+):
+    _prepare(tmp_path, installed_state, pack=_pack(tmp_path))
+    monkeypatch.setattr(
+        receiver_setup,
+        "catalog_state",
+        lambda config: {"status": "INCOMPLETE", "ready": False},
+    )
+    found = receiver_setup.status(
+        tmp_path / "receiver-state", run=Run(), fetch=lambda url: {"schema": "intake"}
+    )
+    assert found["status"] == "RECEIVER_NOT_HEALTHY"
+    assert found["catalog"]["ready"] is False
 
 
 def test_status_counts_graded_submissions_from_the_receivers_own_ledger(

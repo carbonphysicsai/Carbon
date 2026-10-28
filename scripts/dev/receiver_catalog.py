@@ -44,7 +44,10 @@ GPU_MATERIAL_NOT_STAGED = "gpu_material_not_staged"
 
 def _read_profile(config):
     path = Path(config["runner_profile"])
-    return json.loads(path.read_bytes())
+    profile = json.loads(path.read_bytes())
+    if type(profile) is not dict:
+        raise ValueError("receiver runner profile must be an object")
+    return profile
 
 
 def cache_root(config) -> Path:
@@ -54,12 +57,10 @@ def cache_root(config) -> Path:
     return Path(profile["campaigns_root"]) / ".direct-development" / "library-cache"
 
 
-def served_runtimes(config) -> dict:
-    """{bundle runtime: construction parent image id} this receiver builds, from
-    its records alone (no Docker): the primary PyTorch CPU parent, and with the
-    per-runtime construction set (`construction_runtimes`) the C-03 CPU parent it
-    was built from."""
+def _served_parents(config) -> dict:
+    """The exact CPU construction identities selected by the receiver's records."""
     from carbon.development_session.gpu_practice import (
+        DirectParents,
         derived_cpu_parent,
         direct_parent_backend,
     )
@@ -76,15 +77,30 @@ def served_runtimes(config) -> dict:
     except Exception:  # noqa: BLE001 - an unreadable record serves nothing
         return found
     if direct_parent_backend(primary) == "torch_cpu":
-        found["torch-cpu-py311"] = primary.image_id
+        found["torch-cpu-py311"] = primary
         if "construction_runtimes" in config:
             try:
-                found["python-cpu-py311"] = derived_cpu_parent(primary).image_id
+                found["python-cpu-py311"] = derived_cpu_parent(primary)
             except Exception:  # noqa: BLE001, S110 - its CPU parent is then not served
                 pass
     else:
-        found["python-cpu-py311"] = primary.image_id
+        found["python-cpu-py311"] = primary
+    try:
+        DirectParents(found)
+    except ValueError:
+        return {}
     return found
+
+
+def served_runtimes(config) -> dict:
+    """{bundle runtime: construction parent image id}, from records alone.
+
+    The full CPU mode includes the C-03 parent derived from the PyTorch CPU
+    worker. Reading these identities neither inspects nor builds Docker images.
+    """
+    return {
+        runtime: parent.image_id for runtime, parent in _served_parents(config).items()
+    }
 
 
 def gpu_runtimes(config) -> list:
@@ -143,26 +159,56 @@ def served_bundles(config) -> list:
     return rows
 
 
-def _missing(row, root, parents):
+def _missing(row, root, parents, items):
+    from carbon.development_session import library_environment_cache as cache
+    from carbon.development_session.library_bundles import LibraryBundleRef
+
     if row["kind"] == "cpu":
         parent = parents.get(row["runtime"])
         if parent is None:
             return RUNTIME_NOT_SERVED
-        done = root / row["digest"][7:] / (parent[7:] + ".image.json")
-        return None if done.is_file() else NOT_INSTALLED
-    staged = root / "materials" / row["digest"][7:]
-    return None if staged.is_dir() else GPU_MATERIAL_NOT_STAGED
+    item = items[row["catalog_id"]]
+    selected = LibraryBundleRef.from_dict(
+        item["bundle_ref"]
+        if row["kind"] == "cpu"
+        else item["bundle_refs"][row["runtime"]]
+    )
+    try:
+        if row["kind"] == "cpu":
+            receipt, context = cache.library_image_cache_paths(root, selected, parent)
+            image = cache.load_cached_library_worker_image(
+                receipt,
+                expected_bundle=selected,
+                expected_parent=parent,
+                context_root=context.parent,
+            )
+            if image.provisioned.context != context:
+                return NOT_INSTALLED
+        cache.inspect_staged_bundle_material(root, selected)
+    except (OSError, ValueError):
+        return NOT_INSTALLED if row["kind"] == "cpu" else GPU_MATERIAL_NOT_STAGED
+    return None
 
 
 def verify(config) -> dict:
     """Read-only: every served bundle, which are installed, which are missing and
-    why. ``ready`` only when none is missing (and there is something to serve)."""
+    why. ``ready`` requires bound cache records, sealed contexts and complete
+    staged material for every entry. Runtime image verification remains separate;
+    this check never calls Docker."""
+    from carbon.backbone_catalog import listing
+
     root = cache_root(config)
-    parents = served_runtimes(config)
+    parents = _served_parents(config)
     rows = served_bundles(config)
+    items = {
+        item["catalog_id"]: item
+        for item in listing.entries(
+            config["challenge"]["id"], config["challenge"]["version"]
+        )
+    }
     missing, bundles = [], []
     for row in rows:
-        reason = _missing(row, root, parents)
+        reason = _missing(row, root, parents, items)
         if reason is not None:
             missing.append({**row, "reason": reason})
         bundles.append(
@@ -193,7 +239,7 @@ def install(config, config_path, *, wheelhouse=None) -> dict:
     from scripts.dev import catalog_install, library_bundle
 
     root = cache_root(config)
-    parents = served_runtimes(config)
+    parents = _served_parents(config)
     skipped = []
     items = {
         item["catalog_id"]: item
@@ -202,7 +248,7 @@ def install(config, config_path, *, wheelhouse=None) -> dict:
         )
     }
     for row in served_bundles(config):
-        if _missing(row, root, parents) is None:
+        if _missing(row, root, parents, items) is None:
             continue
         if row["kind"] == "cpu":
             if row["runtime"] not in parents:
