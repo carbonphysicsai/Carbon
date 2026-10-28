@@ -124,7 +124,9 @@ def test_published_metadata_preserves_development_identity_refusal(key, monkeypa
     from carbon.challenge_registry import registry
 
     monkeypatch.setattr(
-        registry, "is_development_variant", lambda value: value == "fixture-development-only"
+        registry,
+        "is_development_variant",
+        lambda value: value == "fixture-development-only",
     )
     with pytest.raises(ToolError, match="development_variant_not_served"):
         _call({"challenge_id": key[0], "version": key[1]})
