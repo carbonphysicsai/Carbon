@@ -82,9 +82,7 @@ def parents(cfg) -> dict:
             source = implementation["source_tree_digest"]
             if type(source) is not str or SHA256.fullmatch(source) is None:
                 raise ValueError("configured catalog source identity is invalid")
-            verify_direct_v13_worker(
-                primary, implementation, role="cpu"
-            )
+            verify_direct_v13_worker(primary, implementation, role="cpu")
             found["python-cpu-py311"] = primary
     for field in ("gpu_image", "extra_gpu_image"):
         gpu = identity(cfg.get(field))
