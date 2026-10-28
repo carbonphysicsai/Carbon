@@ -543,7 +543,7 @@ def create_entry_v5(
         "receiver_ack_state": "RECEIVER_ACK_PENDING",
         "official_eligible": False,
     }
-    if expected["source_schema"] == custody.GRAPH_SOURCE_STATE_SCHEMA:
+    if expected["source_schema"] in custody.GRAPH_SOURCE_STATE_SCHEMAS:
         core.update(
             source_kind=expected["source_kind"],
             role_schema=expected["role_schema"],

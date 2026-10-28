@@ -36,7 +36,9 @@ from .construction_recipe import ConstructionRecipe, RecipeRefused
 from .physical_graph_state import DECODER_SCHEMA, _width
 
 ENSEMBLE_SCHEMA = "carbon.development.graph-ensemble-state.v1"
-__all__ = ("DECODER_SCHEMA", "ENSEMBLE_SCHEMA", "GRAPH_SCHEMA", "freeze", "load")
+__all__ = (
+    "DECODER_SCHEMA", "ENSEMBLE_SCHEMA", "GRAPH_SCHEMA", "freeze", "load", "validate"
+)
 
 
 #: The interface dtypes a graph route v2 output, decoder and combination take.
@@ -163,9 +165,7 @@ def freeze(
     return body
 
 
-def load(raw: bytes, recipe: ConstructionRecipe, allowlist):
-    """Recheck every inert byte; returns (graph, members, mean, deviation,
-    combination), `members` one parameter list per member."""
+def _load(raw: bytes, recipe: ConstructionRecipe, allowlist, *, materialize):
     if type(allowlist) is not allowlist_module.Allowlist:
         raise RecipeRefused("bundle_state_invalid")
     state_bytes, graph_bytes, parameter_limit = _limits(allowlist)
@@ -225,7 +225,8 @@ def load(raw: bytes, recipe: ConstructionRecipe, allowlist):
             ):
                 raise RecipeRefused("bundle_state_header_invalid")
             expected = {"__header__", "graph", "decoder_mu", "decoder_sd", "combine"}
-            expected |= {_name(m, i) for m in range(members) for i in range(count)}
+            if count:
+                expected |= {_name(m, i) for m in range(members) for i in range(count)}
             if (
                 set(state.files) != expected
                 or {name.removesuffix(".npy") for name in names} != expected
@@ -242,19 +243,42 @@ def load(raw: bytes, recipe: ConstructionRecipe, allowlist):
             entries = _param_inputs(doc)
             if [i["name"] for i in entries] != [f"params/{i}" for i in range(count)]:
                 raise RecipeRefused("bundle_state_parameter_count_invalid")
-            loaded = [
-                [
-                    array.copy()
-                    for array in _checked_parameters(
-                        entries, [state[_name(m, i)] for i in range(count)]
-                    )
+            if materialize:
+                loaded = [
+                    [
+                        array.copy()
+                        for array in _checked_parameters(
+                            entries, [state[_name(m, i)] for i in range(count)]
+                        )
+                    ]
+                    for m in range(members)
                 ]
-                for m in range(members)
-            ]
+            elif count:
+                for member in range(members):
+                    _checked_parameters(
+                        entries, [state[_name(member, i)] for i in range(count)]
+                    )
             mu, sd = _decoder(state["decoder_mu"], state["decoder_sd"], width)
             combine = _combine(state["combine"], members, width, mu.dtype)
+            if not materialize:
+                return None
             return doc, loaded, mu.copy(), sd.copy(), combine.copy()
     except (OSError, ValueError, zipfile.BadZipFile, UnicodeError, KeyError) as error:
         if type(error) is RecipeRefused:
             raise
         raise RecipeRefused("bundle_state_archive_invalid") from None
+
+
+def load(raw: bytes, recipe: ConstructionRecipe, allowlist):
+    """Recheck every inert byte; returns (graph, members, mean, deviation,
+    combination), `members` one parameter list per member."""
+    return _load(raw, recipe, allowlist, materialize=True)
+
+
+def validate(raw: bytes, recipe: ConstructionRecipe, allowlist) -> None:
+    """Apply exactly load's checks without retaining parameter/member copies.
+
+    Custody needs validation, not a model. In particular, a zero-parameter
+    ensemble must not allocate an otherwise unnecessary empty list per member.
+    """
+    _load(raw, recipe, allowlist, materialize=False)

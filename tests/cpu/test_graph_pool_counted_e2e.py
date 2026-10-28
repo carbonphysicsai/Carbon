@@ -46,7 +46,7 @@ TASK = "rtsk_" + "4" * 64
 CONTRACT = "sha256:" + "c" * 64
 
 
-def _graph_originals(case, outputs):
+def _graph_originals(case, outputs, *, ensemble=False):
     """Original-byte fixture at the graph worker boundary, never a model claim."""
     material = physical_material.bundle_material(MOTOR, VERSION)
     kit = material["construction_kit"]
@@ -87,6 +87,15 @@ def _graph_originals(case, outputs):
         __header__=("|u1", header_raw, (len(header_raw),)),
         graph=("|u1", graph, (len(graph),)),
     )
+    fit = {"synthetic_fixture_only": True}
+    if ensemble:
+        from test_graph_state_custody import producer_fixture
+
+        producer = producer_fixture(key=(MOTOR, VERSION))
+        material = producer["material"]
+        recipe = producer["recipe"].to_dict()
+        recipe_raw = producer["recipe"].canonical_bytes
+        envelope, state, fit = producer["source"], producer["state"], producer["fit"]
     predictions = _json(outputs)
     build = {
         "schema": "carbon.development.graph-build.v1",
@@ -96,7 +105,7 @@ def _graph_originals(case, outputs):
         "state_digest": _sha(state),
         "allowlist_digest": header["allowlist_digest"],
         "framework": "jax",
-        "fit": {"synthetic_fixture_only": True},
+        "fit": fit,
     }
     inferred = {
         "schema": "carbon.development.bundle-inference.v1",
@@ -121,6 +130,28 @@ def _graph_originals(case, outputs):
         "predictions_raw_base64": base64.b64encode(predictions).decode("ascii"),
         "submission_digest": envelope["submission"],
     }
+    if ensemble:
+        timed = {
+            **inferred,
+            "schema": "carbon.development.bundle-inference.v2",
+            "measurement": {
+                "scope": "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE",
+                "timing_s": dict.fromkeys(
+                    ("preprocess", "inference", "postprocess", "export"), 0.1
+                ),
+                "input_shape": list(case["bank"]["inputs"].shape),
+                "input_dtype": str(case["bank"]["inputs"].dtype),
+                "output_shape": [len(outputs), len(outputs[0])],
+                "output_dtype": "float64",
+            },
+        }
+        worker.update(
+            build_device="GPU",  # synthetic declaration; never execution evidence
+            build_image_id=_sha(b"synthetic-separate-gpu-build-image"),
+            timed_operation="operation-" + "c" * 64,
+            timed_controls_digest=_sha(b"synthetic-timed-controls"),
+            timed_receipt=timed,
+        )
     artifacts = {
         "recipe.json": recipe_raw,
         "construction-kit.json": _json(kit),
@@ -138,18 +169,21 @@ def _graph_originals(case, outputs):
         "inference-receipt.json": _json(inferred),
         "worker-evidence.json": _json(worker),
         "task-receipt.json": b"synthetic graph worker terminal; never network evidence",
+        **(
+            {"timed-query-receipt.json": _json(timed)} if ensemble else {}
+        ),
     }
     return material, recipe, artifacts, worker
 
 
-def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False):
+def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False, ensemble=False):
     outputs = copy.deepcopy(case["outputs"])
     if candidate_failure:
         row = next(
             i for i, r in enumerate(case["rows"]) if r["cohort"] == "pool_design"
         )
         outputs[row] = [-1.0] * len(outputs[row])
-    material, recipe, artifacts, worker = _graph_originals(case, outputs)
+    material, recipe, artifacts, worker = _graph_originals(case, outputs, ensemble=ensemble)
     base, entries = tmp_path / "graph-artifacts", tmp_path / "graph-entries"
     base.mkdir(mode=0o700)
     entries.mkdir(mode=0o700)
@@ -373,6 +407,68 @@ def test_graph_pool_physics_failure_counts_as_a_candidate_result(
     assert _cap_rows(fixture)[0][2:4] == ("COUNTED", "MANDATORY_GATE_FAILED")
     assert fixture.store.incumbent() is None
     assert "evaluation_key" in result["koth_comparison"]
+
+
+def test_actual_ensemble_freeze_reaches_counted_grade_with_separate_build_identity(
+    case, tmp_path, monkeypatch
+):
+    fixture = _setup(case, tmp_path, monkeypatch, ensemble=True)
+    manifest = json.loads((fixture.base / (TASK + ".roles.json")).read_bytes())
+    assert manifest["source_schema"] == custody.GRAPH_ENSEMBLE_STATE_SCHEMA
+    saved = json.loads(fixture.retained["entry_path"].read_bytes())
+    assert saved["source_kind"] == "graph"
+    assert saved["source_schema"] == custody.GRAPH_ENSEMBLE_STATE_SCHEMA
+    assert fixture.worker["build_image_id"] != fixture.worker["inference_image_id"]
+    original_state = fixture.artifacts["state.npz"]
+    result = _grade(fixture, counted=True)
+    assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY", result
+    assert fixture.calls == ["bank", "pair", "single"]
+    assert _cap_rows(fixture) == [
+        (TASK, "GRADED", "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE", OWNER, 7)
+    ]
+    assert fixture.artifacts["state.npz"] == original_state
+    assert (fixture.retained["artifact_path"] / "state.npz").read_bytes() == original_state
+    assert result["koth_comparison"]["outcome"] == "UNAVAILABLE"
+    assert fixture.store.incumbent() is None
+    assert result["official_eligible"] is False
+
+
+@pytest.mark.parametrize("mutation", [
+    "fit_members", "fit_steps", "fit_overflow", "missing_gpu_image",
+    "unknown_device", "wrong_inference_image", "bad_timed_controls",
+])
+def test_actual_ensemble_receipt_contract_refuses_malformed_declarations(
+    case, tmp_path, mutation
+):
+    _material, _recipe, artifacts, worker = _graph_originals(
+        case, copy.deepcopy(case["outputs"]), ensemble=True
+    )
+    if mutation.startswith("fit_"):
+        fit = worker["build_receipt"]["fit"]
+        if mutation == "fit_members":
+            fit["members"] += 1
+        elif mutation == "fit_steps":
+            fit["steps"] = ["1", "1"]
+        else:
+            fit["member_losses"][0] = 10**400
+        artifacts["build-receipt.json"] = _json(worker["build_receipt"])
+    elif mutation == "missing_gpu_image":
+        del worker["build_image_id"]
+    elif mutation == "unknown_device":
+        worker["build_device"] = "unknown"
+    elif mutation == "wrong_inference_image":
+        worker["inference_image_id"] = worker["build_image_id"]
+    else:
+        worker["timed_controls_digest"] = "unbound-controls"
+    artifacts["worker-evidence.json"] = _json(worker)
+    base, entries = tmp_path / "artifacts", tmp_path / "entries"
+    base.mkdir(mode=0o700)
+    entries.mkdir(mode=0o700)
+    with pytest.raises(retention.RetentionUnavailable, match="operator_bank_custody_unavailable"):
+        retention._retain_graph_artifacts(
+            artifacts, TASK, artifact_directory=base, entry_directory=entries
+        )
+    assert list(entries.iterdir()) == []
 
 
 def test_graph_original_mismatch_is_unavailable_and_releases_the_slot(
