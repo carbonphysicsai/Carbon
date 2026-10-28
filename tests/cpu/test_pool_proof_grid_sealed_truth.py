@@ -14,9 +14,14 @@ from test_f02_group_response_reference import _truth
 from test_f02_sealed_pack import batch
 from test_pool_plugin import _grid_spec
 
-from carbon.scoring import f02_physics
+from carbon.scoring import (
+    f02_physics,
+    pool_adapters,
+    pool_grader,
+    pool_plugin,
+    pool_version,
+)
 from carbon.scoring import physical_dual_pack as physical
-from carbon.scoring import pool_adapters, pool_grader, pool_plugin, pool_version
 from carbon.scoring import sealed_batch_source as source
 from scripts.dev import pool_proof_grid as script
 
@@ -171,7 +176,9 @@ def test_incompatible_or_incomplete_material_stops_before_authorizing_perfect_ru
     if fault == "nonfinite_anchor":
         # Deliberately malformed bytes: the normal writer refuses NaN before this loader ever sees it.
         (root / source.SEALED_BATCH_FILE).write_text(
-            json.dumps({"schema": source.SCHEMA, "document": carried, "records": records}),
+            json.dumps(
+                {"schema": source.SCHEMA, "document": carried, "records": records}
+            ),
             encoding="utf-8",
         )
     else:
@@ -237,9 +244,13 @@ def test_cli_routes_only_the_truth_check_and_reports_aggregates(
 ):
     root, truth_file, _, _, truths, legs, _ = sealed_case
     monkeypatch.setattr(script, "_binding", lambda *_: legs.binding)
-    monkeypatch.setattr(pool_plugin, "practice_bank_legs", lambda *_args, **_kwargs: legs)
     monkeypatch.setattr(
-        pool_plugin, "make_plugin", lambda binding, bank, *_args, **_kwargs: (binding, bank)
+        pool_plugin, "practice_bank_legs", lambda *_args, **_kwargs: legs
+    )
+    monkeypatch.setattr(
+        pool_plugin,
+        "make_plugin",
+        lambda binding, bank, *_args, **_kwargs: (binding, bank),
     )
 
     def run_grid(plugin, _grid):
@@ -250,7 +261,9 @@ def test_cli_routes_only_the_truth_check_and_reports_aggregates(
     from carbon.scoring import pool_proof_grid
 
     monkeypatch.setattr(pool_proof_grid, "run_grid", run_grid)
-    monkeypatch.setattr(pool_proof_grid, "sheet_markdown", lambda *_: "synthetic wiring test\n")
+    monkeypatch.setattr(
+        pool_proof_grid, "sheet_markdown", lambda *_: "synthetic wiring test\n"
+    )
     (root / "sets.json").write_text(json.dumps({"A": []}), encoding="utf-8")
     (root / "grid.json").write_text(json.dumps(asdict(_grid_spec())), encoding="utf-8")
     argv = [
@@ -286,7 +299,9 @@ def test_cli_routes_only_the_truth_check_and_reports_aggregates(
         str(truth_file),
     ]
     assert script.main(argv) == 0
-    result = json.loads((root / "out/owner-sheet-f02-2.5.json").read_text(encoding="utf-8"))
+    result = json.loads(
+        (root / "out/owner-sheet-f02-2.5.json").read_text(encoding="utf-8")
+    )
     assert result["meta"]["truth_row_check"] == {
         "source": "sealed_native",
         **legs.state["truth_check"],

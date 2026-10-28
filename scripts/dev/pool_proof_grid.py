@@ -404,7 +404,9 @@ def main(argv=None):
                 )
             else:
                 checked = (
-                    without_excluded_probes(bank_legs, skipped) if skipped else bank_legs
+                    without_excluded_probes(bank_legs, skipped)
+                    if skipped
+                    else bank_legs
                 )
             truth_record = checked.verify_truth_rows()
         except pool_plugin.TruthCheckStop as stop:
