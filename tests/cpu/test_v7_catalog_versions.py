@@ -29,6 +29,7 @@ from carbon.challenge_kit import (
     physical_public,
 )
 from carbon.challenge_kit import served_versions as sv
+from carbon.challenge_kit import version_registry as registry
 from carbon.level4 import allowlist as allowlist_module
 
 MOTOR, COOLING, F08, F02, BATTERY = sv.MOTOR, sv.COOLING, sv.F08, sv.F02, sv.BATTERY
@@ -62,6 +63,16 @@ POOL_V2 = {
     (MOTOR, "1.5"): "1.4",
     (COOLING, "1.5"): "1.4",
 }
+# Current pool registrations include prospective scoring successors. Keep the
+# original predecessor rows above as history; derive current coverage from the
+# registry so new registered pool versions cannot silently miss these checks.
+CURRENT_POOL_V2 = {
+    key: declaration.predecessor
+    for key, declaration in registry.VERSIONS.items()
+    if declaration.graph_adapter == "v2"
+    and declaration.sealed_evaluation is not None
+    and "-pool-sealed-" in declaration.sealed_evaluation
+}
 
 
 def _digest(raw):
@@ -73,7 +84,8 @@ def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
     v8 = allowlist_module.v8_bytes()
     # The four pre-publish graph-route-v2 versions serve the NEW v8 file (v7's bytes
     # and digest stay); every other v7 version is unchanged.
-    assert sv.V8 == frozenset(GRAPH_V2) | frozenset(POOL_V2)
+    assert {key: CURRENT_POOL_V2[key] for key in POOL_V2} == POOL_V2
+    assert sv.V8 == frozenset(GRAPH_V2) | frozenset(CURRENT_POOL_V2)
     assert sv.V7 == (
         frozenset(PREDECESSOR) | frozenset(GRAPH) | frozenset(CATALOG_ONLY)
     )
@@ -84,7 +96,7 @@ def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
         assert sv.material_allowlist_bytes(*key) == v8
         assert sv.serves_v8(*key) and sv.serves_uncapped(*key) and not sv.serves_v7(*key)
         assert sv.material_allowlist_bytes(key[0], before) == v7  # its predecessor
-    for key, before in POOL_V2.items():
+    for key, before in CURRENT_POOL_V2.items():
         assert sv.material_allowlist_bytes(*key) == v8
         assert sv.serves_v8(*key) and sv.serves_uncapped(*key) and not sv.serves_v7(*key)
         assert sv.material_allowlist_bytes(key[0], before) == v8  # its predecessor
@@ -107,7 +119,7 @@ def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
         *GRAPH,
         *CATALOG_ONLY,
         *GRAPH_V2,
-        *POOL_V2,
+        *CURRENT_POOL_V2,
     }
     assert (BATTERY, "2.2") not in sv.V7  # not served (OWNER-BATTERY-OUT-OF-LAUNCH-01)
     for key in ((MOTOR, "1.3"), (COOLING, "1.2")):
