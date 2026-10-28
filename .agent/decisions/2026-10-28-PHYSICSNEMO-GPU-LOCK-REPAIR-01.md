@@ -107,3 +107,32 @@ those baselines are not acceptance of this successor. The independent source
 review must cover the complete branch and generated assets. The active real
 graph full-flow proof and catalog review/QA callbacks retain priority; only
 the designated operators may stage or run remote acceptance.
+
+## Complete lock regeneration command
+
+The measured uv 0.12.7 output header omits the explicit extra-index argument.
+The test's `HEADER` pins that actual tool emission; that comment alone is not
+the complete runnable regeneration command. The generated lock was not edited
+to add or remove an index. The actual trusted compile invocation, from the
+repository root with the exact CPU constraint file and uv 0.12.7, was:
+
+```bash
+uv pip compile .devcontainer/torch/torch-cu130-py311.in \
+  --python-version 3.11.16 --python-platform x86_64-manylinux_2_31 \
+  --generate-hashes --only-binary=:all: --no-binary antlr4-python3-runtime \
+  --extra-index-url https://download.pytorch.org/whl/cu130 \
+  --index-strategy unsafe-best-match \
+  --constraint .devcontainer/torch/torch-cu130-py311.constraints.txt \
+  --output-file .devcontainer/torch/torch-cu130-py311.txt
+```
+
+The saved execution helper SHA256 is
+`3ff0fd3ffab4641dbf15e9b771754be8e0e5d53f83d6084fafcc2cdf1af564ae`;
+its lines 40-46 supply the cu130 index as a command argument, rather than
+relying on an environment-only index. The operator wrapper checked that
+helper hash before execution and extracted uv 0.12.7 from the already pinned
+`ghcr.io/astral-sh/uv` image. Actual compile stderr recorded 124 packages
+resolved in 1.24 seconds. The resulting lock SHA256 remains
+`9b947608d31daccdb2230d6d64a04893253064b89328eaeda8098b75b9d18400`.
+This documentation correction does not regenerate or alter the lock,
+dependency profile, bundle assets or test assertions.

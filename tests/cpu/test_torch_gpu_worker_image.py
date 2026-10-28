@@ -37,6 +37,9 @@ LOCK = REPOSITORY / torch_profile.GPU_REQUIREMENTS_PATH
 RECIPE = REPOSITORY / ".devcontainer" / "torch" / "Dockerfile.gpu"
 SCRIPT = REPOSITORY / "scripts" / "dev" / "torch_gpu_worker_image.sh"
 ACCELERATOR_LOCK = REPOSITORY / ".devcontainer" / "accelerators" / "cuda13-py311.txt"
+# Exact measured uv 0.12.7 header emission, not the complete regeneration
+# command: uv omitted the explicit cu130 index argument from this comment.
+# The actual invocation and its provenance are in the PhysicsNeMo decision.
 HEADER = (
     "#    uv pip compile .devcontainer/torch/torch-cu130-py311.in "
     "--python-version 3.11.16 --python-platform x86_64-manylinux_2_31 "
