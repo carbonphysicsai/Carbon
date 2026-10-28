@@ -58,3 +58,52 @@ Earlier venv receipts remain historical/withdrawn. This decision creates no
 official receipt, image hash, host class, scientific threshold, security
 acceptance, dedicated-4090 qualification, calibration, LIVE/mainnet eligibility
 or launch authority. CNO1d and DeepXDE restrictions remain in force.
+
+## Measured trusted derivation, 28 October
+
+The sole GPU operator ran only the bounded pure derivation on exact source
+`17b9a6ebd468958215c784a5ebe1a5b800ee3714`, tree
+`864a29f91ca4cd14d559881894015cca6b62d6f1`, in a separate no-Git archive.
+The frozen proof checkout, index, refs, images and failed task state were not
+modified. The source archive SHA256 was
+`68ef7a3bdfc42fc3f1b4c34e5c9b7ba07d665c814da17ddca9bed91bad531363`.
+The maintained derivation helper SHA256 was
+`a286a86a9e2cb854e1dbe735c0486262ebea08dbb99aec7d8a54b7873281de8b`,
+with its exact nine-input manifest SHA256
+`f4fd054ae1c0e57a18ece748c38f332692b477f7df758b369a76cd48ea574d93`.
+These identify the derivation preimage, not the generated successor tree.
+
+Actual result: EXIT 0 within the 180-second bound; all nine critical input
+checks passed and existing `pipeline.verify_all()` returned all 241 entries.
+The generated report has 50 Torch twins (42 previous plus eight new registered
+v2 FullyConnected/MeshGraphNet wrappers), 15 unchanged JAX refs and preserved
+legacy MeshGraphNet GPU source bytes. All CPU refs remain unchanged. No image
+build, model training, numerical constructor run or GPU qualification ran.
+
+The operator fetched and independently verified all 78 generated files.
+The author checked every destination file against that closed path/hash
+inventory before committing it, checked 241 catalog entries and unchanged
+non-GPU fields/CPU refs, 15 JAX refs and the historical Mesh source archive.
+Only `manifest.json` and registered `torch-cu130-py311` bundle assets are
+generated outputs. Existing Torch environment identities all move; the three
+shared dense-aggregation GPU source archives also change through the maintained
+tensor-placement implementation. No CPU archive or JAX ref is regenerated.
+Exact fetched evidence SHA256 values:
+
+- generated archive
+  `833dd7fe9a33cf1e87e9e33df4b6e0955f910d1c21d40dc0b96f960134a9d1dd`;
+- 78-file path/hash inventory
+  `108ee4e585bb63f5f19dd9e5d86a12011da7bfc4a9be14646922fba7bc9c7285`;
+- derivation report
+  `bf84003a5085300426fc36fffc3d56d7c5f7687913000570c1c8dd673fc32c44`.
+
+This is a prospective generated-source checkpoint. Canonical format and the
+four focused CPU modules, real CPU/CUDA tensor semantics, a genuine new-source
+C03 parent and locked Torch image, dependency imports/parity, all affected
+constructors and two-process GPU repeats remain pending. The completed frozen77
+canonical modules had 20 PASS in test_torch_gpu_worker_image, 30 PASS in
+test_backbone_catalog_gpu_builds and 21 PASS in test_catalog_served_gpu_twins;
+those baselines are not acceptance of this successor. The independent source
+review must cover the complete branch and generated assets. The active real
+graph full-flow proof and catalog review/QA callbacks retain priority; only
+the designated operators may stage or run remote acceptance.
