@@ -7,7 +7,8 @@ official-grade GPU twins' material), and `catalog-status` / `status` list every
 served bundle, how many are missing and why, and are not "ready" / "healthy"
 while any is missing. Synthetic closures and sealed contexts use the real pure
 validators; only the image-build verification boundary is replaced. These
-fixtures establish no runtime image eligibility or production qualification.
+fixtures model daemon metadata explicitly and establish no actual host image
+eligibility or production qualification.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from carbon.development_session.library_bundles import (
     prepare_pinned_bundle_directory,
 )
 from carbon.development_session.research_image import LibraryWorkerImage
+from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 from scripts.dev import catalog_install, library_bundle, receiver_catalog
 
 MOTOR = {"id": "electric-motor-magnetics", "version": "1.4"}
@@ -60,7 +62,40 @@ def _write_material(root, material):
 
 
 @pytest.fixture
-def receiver(tmp_path, monkeypatch):
+def daemon(monkeypatch):
+    from types import SimpleNamespace
+
+    from carbon.reconstruction.worker import docker_runtime
+
+    state = {"images": set(), "calls": [], "fault": None}
+
+    class MetadataCLI:
+        def run(self, arguments):
+            state["calls"].append(arguments)
+            if state["fault"] == "unreachable":
+                raise WorkerFailure(WorkerCode.RUNTIME)
+            if arguments == ["image", "ls", "--no-trunc", "--quiet"]:
+                body = "\n".join(sorted(state["images"]))
+                if state["fault"] == "malformed_listing":
+                    body = "a-tag-is-not-an-immutable-image-id"
+            else:
+                assert arguments[:2] == ["image", "inspect"]
+                assert arguments[-2:] == ["--format", "{{json .Id}}"]
+                ids = arguments[2:-2]
+                assert len(ids) == len(set(ids)) and set(ids) <= state["images"]
+                if state["fault"] == "partial_inspection":
+                    ids = ids[:-1]
+                elif state["fault"] == "wrong_inspected_id":
+                    ids = ["a-tag-is-not-an-immutable-image-id"]
+                body = "\n".join(json.dumps(value) for value in ids)
+            return SimpleNamespace(stdout=body.encode("ascii"))
+
+    monkeypatch.setattr(docker_runtime, "DockerCLI", MetadataCLI)
+    return state
+
+
+@pytest.fixture
+def receiver(tmp_path, monkeypatch, daemon):
     campaigns = tmp_path / "campaigns"
     campaigns.mkdir()
     profile = tmp_path / "runner-profile.json"
@@ -88,7 +123,12 @@ def receiver(tmp_path, monkeypatch):
         "torch-cu130-py311": _write_material(material_root, fixture())
     }
     monkeypatch.setattr(listing, "entries", lambda *args: items)
-    monkeypatch.setattr(cache, "verify_library_worker_image", lambda image, cli: image)
+
+    def verified_build(image, cli):
+        daemon["images"].add(image.image_id)
+        return image
+
+    monkeypatch.setattr(cache, "verify_library_worker_image", verified_build)
     return config, root
 
 
@@ -112,7 +152,7 @@ def _install(root, row):
     )
     image = LibraryWorkerImage(
         ProvisionedLibraryEnvironment(
-            selected, parent.image_id, context, seal, "sha256:" + "4" * 64
+            selected, parent.image_id, context, seal, selected.bundle_digest
         ),
         parent,
         selected.to_dict(),
@@ -257,20 +297,66 @@ def test_a_marker_cannot_prove_a_corrupt_or_incomplete_installation(receiver, da
     ]
 
 
-def test_readiness_uses_pure_validators_without_docker(receiver, monkeypatch):
+def test_readiness_only_reads_deduplicated_image_metadata(receiver, monkeypatch, daemon):
     from carbon.reconstruction.worker import docker_runtime
 
     config, root = receiver
     for row in receiver_catalog.served_bundles(config):
         _install(root, row)
 
-    def no_docker(*args, **kwargs):
-        pytest.fail("readiness attempted runtime image verification or a Docker call")
+    def no_execution(*args, **kwargs):
+        pytest.fail("readiness attempted a build, download or full runtime doctor")
 
-    monkeypatch.setattr(cache, "verify_library_worker_image", no_docker)
-    monkeypatch.setattr(cache, "DockerCLI", no_docker)
-    monkeypatch.setattr(docker_runtime, "DockerCLI", no_docker)
-    assert receiver_catalog.verify(config)["ready"] is True
+    monkeypatch.setattr(cache, "verify_library_worker_image", no_execution)
+    monkeypatch.setattr(cache, "DockerCLI", no_execution)
+    monkeypatch.setattr(docker_runtime, "doctor", no_execution)
+    items = _entries()
+    monkeypatch.setattr(
+        listing,
+        "entries",
+        lambda *args: [*items, {**items[0], "catalog_id": "synthetic.receiver.alias"}],
+    )
+    daemon["calls"].clear()
+    found = receiver_catalog.verify(config)
+    assert found["ready"] is True and found["image_inventory"] == "VERIFIED"
+    assert len(daemon["calls"]) == 2
+    assert len(daemon["calls"][1][2:-2]) == len(items)
+    assert found["served"] == len(items) + 1
+
+
+def test_an_intact_cache_cannot_hide_a_removed_daemon_image(receiver, daemon):
+    config, root = receiver
+    rows = receiver_catalog.served_bundles(config)
+    for row in rows:
+        _install(root, row)
+    row = rows[0]
+    marker = _marker(root, row)
+    original = marker.read_bytes()
+    daemon["images"].remove(json.loads(original)["provisioned"]["image_id"])
+    found = receiver_catalog.verify(config)
+    assert found["ready"] is False and found["installed"] == len(rows) - 1
+    assert found["image_inventory"] == "VERIFIED"
+    assert [(m["catalog_id"], m["reason"]) for m in found["missing"]] == [
+        (row["catalog_id"], receiver_catalog.NOT_INSTALLED)
+    ]
+    assert marker.read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    "fault", ["unreachable", "malformed_listing", "partial_inspection", "wrong_inspected_id"]
+)
+def test_unverified_daemon_inventory_cannot_report_ready(receiver, daemon, fault):
+    config, root = receiver
+    for row in receiver_catalog.served_bundles(config):
+        _install(root, row)
+    daemon["fault"] = fault
+    found = receiver_catalog.verify(config)
+    assert found["ready"] is False and found["image_inventory"] == "UNVERIFIED"
+    assert {m["reason"] for m in found["missing"]} == {
+        receiver_catalog.IMAGE_INVENTORY_UNVERIFIED
+    }
+    shown = receiver_setup.catalog_state(config)
+    assert shown["status"] == "UNVERIFIED" and shown["ready"] is False
 
 
 def test_runtime_inventory_preserves_cpu_identities_and_does_not_label_a_gpu_cpu(
@@ -508,6 +594,38 @@ def test_install_builds_every_missing_entry_and_reports_ready(
     # Idempotent: a second run builds nothing.
     again = receiver_catalog.install(config, tmp_path / "receiver.json")
     assert again["ready"] is True and len(calls) == len(_entries())
+
+
+def test_install_does_not_skip_an_intact_cache_with_a_missing_image(
+    receiver, monkeypatch, tmp_path, daemon
+):
+    config, root = receiver
+    for row in receiver_catalog.served_bundles(config):
+        _install(root, row)
+    row = receiver_catalog.served_bundles(config)[0]
+    record = json.loads(_marker(root, row).read_bytes())
+    daemon["images"].remove(record["provisioned"]["image_id"])
+    fake, calls = _fake_install(root, config)
+    monkeypatch.setattr(catalog_install, "install", fake)
+    found = receiver_catalog.install(config, tmp_path / "receiver.json")
+    assert found["ready"] is True and calls == [row["catalog_id"]]
+
+
+def test_install_does_not_build_when_daemon_inventory_is_unknown(
+    receiver, monkeypatch, tmp_path, daemon
+):
+    config, _root = receiver
+    daemon["fault"] = "unreachable"
+
+    def no_install(*args, **kwargs):
+        pytest.fail("unreachable Docker cannot authorize an image rebuild")
+
+    monkeypatch.setattr(catalog_install, "install", no_install)
+    found = receiver_catalog.install(config, tmp_path / "receiver.json")
+    assert found["ready"] is False and found["image_inventory"] == "UNVERIFIED"
+    assert {row["reason"] for row in found["skipped"]} == {
+        receiver_catalog.IMAGE_INVENTORY_UNVERIFIED
+    }
 
 
 def test_one_failing_entry_never_stops_the_rest_and_is_not_ready(

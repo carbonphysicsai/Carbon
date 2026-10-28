@@ -685,7 +685,10 @@ def test_a_prepared_receiver_serves_a_python_catalog_entry_by_default(
     )
     monkeypatch.setattr(direct_receiver, "construction_parents", lambda *a: parents)
 
-    def install(directory, cache_root, selected_parent, *, expected_bundle, cli):
+    def install(
+        directory, cache_root, selected_parent, *, expected_bundle, cli, rebuild_missing
+    ):
+        assert rebuild_missing is True
         installed_bundles.append((selected_parent, expected_bundle))
         return SimpleNamespace(bundle_ref=expected_bundle.to_dict())
 

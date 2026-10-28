@@ -640,6 +640,28 @@ def _digest(value: object) -> str:
     return value
 
 
+def present_library_worker_images(image_ids, *, cli: object) -> frozenset[str]:
+    """Read exact local child-image presence in at most two bounded CLI calls.
+
+    The immutable ids come from admitted cache records. A tag, malformed output
+    or partial inspection cannot establish presence. This neither builds nor
+    downloads an image and does not replace runtime image/host verification.
+    """
+    wanted = frozenset(_digest(value) for value in image_ids)
+    listed = cli.run(["image", "ls", "--no-trunc", "--quiet"]).stdout
+    available = frozenset(_digest(line) for line in listed.decode("ascii").splitlines())
+    selected = wanted & available
+    if not selected:
+        return frozenset()
+    printed = cli.run(
+        ["image", "inspect", *sorted(selected), "--format", "{{json .Id}}"]
+    ).stdout
+    inspected = [_digest(json.loads(line)) for line in printed.splitlines()]
+    if len(inspected) != len(selected) or frozenset(inspected) != selected:
+        raise ValueError("local library image inspection differs from admitted ids")
+    return selected
+
+
 def library_image_cache_paths(
     cache_root: Path,
     expected_bundle: LibraryBundleRef,
@@ -821,12 +843,15 @@ def install_pinned_library_worker_image(
     *,
     expected_bundle: LibraryBundleRef,
     cli: object,
+    rebuild_missing: bool = False,
 ) -> LibraryWorkerImage:
     """Install or reuse one verified child during an admitted owner setup step.
 
     This operation can build an image and must not be called from MCP preflight
     or miner-controlled recipe handling. The caller selects the trusted parent
-    from maintained installed state and performs host admission first.
+    from maintained installed state and performs host admission first. The
+    receiver's explicit owner installer may rebuild a missing daemon image from
+    its exact closure; the old receipt stays until verified replacement.
     """
     if type(trusted_parent) is not WorkerImageIdentity:
         raise ValueError("trusted installed parent identity required")
@@ -857,7 +882,10 @@ def install_pinned_library_worker_image(
             or image.provisioned.context_digest != context_digest
         ):
             raise ValueError("cached library context differs from selected closure")
-        return verify_library_worker_image(image, cli)
+        if not rebuild_missing or image.image_id in present_library_worker_images(
+            (image.image_id,), cli=cli
+        ):
+            return verify_library_worker_image(image, cli)
     provisioned = provision_offline_bundle(
         cache_root,
         selected.to_dict(),
