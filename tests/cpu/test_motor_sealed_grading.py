@@ -21,10 +21,9 @@ from carbon.challenge_kit import motor_sealed_pack as pack
 from carbon.challenge_kit import physical_pack
 from carbon.motor import customer_decision as decision
 from carbon.motor.domain import ANGLE_STEPS
-from carbon.scoring import dual_score
+from carbon.scoring import dual_score, motor_physics
 from carbon.scoring import motor_dual_measurement as mdm
 from carbon.scoring import motor_dual_pack as dev
-from carbon.scoring import motor_physics
 from carbon.scoring import motor_sealed_dual_pack as sealed
 from carbon.scoring import physical_dual_pack as physical
 
