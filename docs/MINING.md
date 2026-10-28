@@ -126,6 +126,12 @@ cd ~/carbon && .venv/bin/python -B -m scripts.dev.catalog_install --state-dir ~/
 
 A **Challenge** is a physics task, e.g. motor magnetics, a chip cold plate or a ribbed bracket. Open **Challenges**, read one, and click **Start a campaign**.
 
+Cooling 1.6 is a prospective pool-exam version. It removes the temperature-rise
+sign check against hotspot ratio and that sensitivity's fitted exponent; the
+other checks and ordinary output accuracy still apply. Older versions keep
+their original rules. The new version remains reserved until its scoring
+constants are registered, so it is not offered for campaigns yet.
+
 With Graphite you set your limits up front: how many model calls, how many dollars, how much time. Graphite uses them to the end: near your money or time limit it shortens its last calls to fit what is left, and stops only when not even one short call fits (about 2 minutes, or a 512-token reply). The page then says which limit stopped it (money, model calls, practice runs or time) and what to raise next time. Graphite plans, builds models, practises them, and picks the best.
 
 ## 6. Practise, freeze, submit

@@ -18,6 +18,7 @@ POOL = [
     ("f02", "2.5"),
     ("electric-motor-magnetics", "1.5"),
     ("chip-cold-plate", "1.5"),
+    ("chip-cold-plate", "1.6"),
 ]
 
 

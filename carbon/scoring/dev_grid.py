@@ -23,6 +23,7 @@ GRID_KINDS = {
     ("electric-motor-magnetics", "1.5"): "motor",
     ("chip-cold-plate", "1.4"): "cooling",
     ("chip-cold-plate", "1.5"): "cooling",
+    ("chip-cold-plate", "1.6"): "cooling",
 }
 
 

@@ -94,6 +94,9 @@ NEW_KITS = {
     ("chip-cold-plate", "1.5"): (
         "7bfb4366cba785d11546aa6882ae13c3a457cba6e88df02b662becf61d68ee72"
     ),
+    ("chip-cold-plate", "1.6"): (
+        "39a7b6fe1c19274382097a0d41bc0b20ca18a4b0b2be9ba411b0986d29017215"
+    ),
     ("electric-motor-magnetics", "1.5"): (
         "391dbddcf047326654b172f3e8b34cd6fa10070cbdec071981867e8b4e0f186f"
     ),
@@ -130,7 +133,8 @@ def _binding(cid, version):
 
 def test_exactly_the_graph_route_v2_versions_declare_the_wall():
     assert REBUILD_LIMIT_SECONDS == 648
-    assert NEW == sorted(NEW_KITS) == sorted(AT_600)
+    assert NEW == sorted(NEW_KITS)
+    assert set(AT_600) == set(NEW_KITS) - {("chip-cold-plate", "1.6")}
     for key, entry in version_registry.VERSIONS.items():
         expected = REBUILD_LIMIT_SECONDS if key in NEW_KITS else None
         assert entry.rebuild_wall_seconds == expected, key
@@ -159,7 +163,13 @@ def test_a_new_version_moves_only_by_its_wall_fields(key, monkeypatch):
             "total_reconstruction_wall_seconds_max": 1800,
         },
     }
-    assert digest(canonical(at_600)) == "sha256:" + AT_600[key]
+    key_600 = key
+    if key == ("chip-cold-plate", "1.6"):
+        # This scoring successor changes no construction setting. Restore only
+        # its identity as well and require the existing 1.5 document's pin.
+        key_600 = ("chip-cold-plate", "1.5")
+        at_600["challenge"] = {"id": key_600[0], "version": key_600[1]}
+    assert digest(canonical(at_600)) == "sha256:" + AT_600[key_600]
     if key in FREEZE_MOVED:
         old_catalog, old_at_600 = FREEZE_MOVED[key]
         assert document["backbone_catalog"]["digest"] != old_catalog
