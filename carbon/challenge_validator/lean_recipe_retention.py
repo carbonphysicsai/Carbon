@@ -828,7 +828,14 @@ def _single_call_raw(
         )[0:1].astype(delivered.dtype)
         graded = json.loads(artifacts["predictions.json"])
         graph_query = (
-            _graph_regrade_query(adapter.discovery, material)
+            _graph_regrade_query(
+                adapter.discovery,
+                material,
+                recipe=(
+                    ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
+                    if regrade is None else regrade.recipe
+                ),
+            )
             if "worker-evidence.json" in artifacts
             else {}
         )
@@ -2368,7 +2375,8 @@ def regrade_retained_entry(
             verify_direct_resource_policy(binding, limits)
 
             graph_query = (
-                _graph_regrade_query(discovery, material) if kind == "graph" else {}
+                _graph_regrade_query(discovery, material, recipe=recipe)
+                if kind == "graph" else {}
             )
 
             def infer_identity(label):
@@ -2553,32 +2561,34 @@ def regrade_retained_entry(
     return {**regraded, "regrade_of": entry_id, "regrade_task_id": regrade_id}
 
 
-def _graph_regrade_query(discovery, material):
+def _graph_regrade_query(discovery, material, *, recipe=None):
     """The extra `_infer_state` arguments of a graph's source-free inference, the
     same as `reconstruct_and_infer_graph_public` builds them for the version's
     registered graph adapter (a test pins the two together)."""
-    from pathlib import Path as _Path
-
     from carbon.development_session import direct_graph_construction_worker as worker
 
     adapter_id = discovery.graph_adapter_for(discovery.info.challenge_key)
     if adapter_id is None:
         raise RetentionUnavailable("regrade_graph_adapter_unavailable")
-    query = {
-        "input_name": "inputs/forcing",
-        "provenance": worker.INFERENCE_PROVENANCE,
+    kit = material["construction_kit"]
+    binding = {
+        "challenge_id": kit["id"], "challenge_version": kit["version"],
+        **{field: kit[field] for field in (
+            "train_digest", "interface_digest", "construction_limits_digest"
+        )},
     }
-    if adapter_id in worker._v2_adapter_ids():
-        key = discovery.info.challenge_key
-        query.update(worker.v2_infer_query(key.challenge_id, key.version))
-    elif adapter_id != worker.SYNTHETIC_ADAPTER_ID:
-        root = _Path(worker.__file__).resolve().parents[2]
-        name = "carbon.development_session.physical_graph_state"
-        query["input_name"] = "inputs/features"
-        query["program"] = worker.PHYSICAL_INFER_PROGRAM
-        query["staged_files"] = {
-            name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
-        }
+    limits = material["construction_limits_document"]
+    block = limits.get("graph_training_adapter")
+    if type(block) is not dict or block.get("id") != adapter_id:
+        raise RetentionUnavailable("regrade_graph_adapter_unavailable")
+    try:
+        _loader, query, dtype = worker.registered_inference_contract(
+            binding, limits, recipe=recipe
+        )
+    except ValueError as exc:
+        raise RetentionUnavailable("regrade_graph_adapter_unavailable") from exc
+    if dtype != output_dtype(material["interface_document"]):
+        raise RetentionUnavailable("regrade_graph_adapter_unavailable")
     return query
 
 

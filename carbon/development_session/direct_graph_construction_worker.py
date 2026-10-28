@@ -527,6 +527,88 @@ def _v2_adapter_ids() -> frozenset:
     return physical_graph_adapter_v2.ADAPTER_IDS
 
 
+def registered_inference_contract(binding, limits_document, *, recipe=None):
+    """The strict state loader, fixed query and output dtype of one adapter.
+
+    Select by the version's registered adapter declaration, never by a state
+    header, device or a caller-supplied program. The caller first authenticates
+    the recipe/binding and published limits through the ordinary policy check.
+    """
+    from . import (
+        battery_graph_adapter,
+        graph_adapters,
+        physical_graph_state,
+        physical_graph_state_v2,
+    )
+
+    if (
+        type(binding) is not dict
+        or type(limits_document) is not dict
+        or any(type(binding.get(key)) is not str or not binding[key] for key in (
+            "challenge_id", "challenge_version"
+        ))
+    ):
+        raise RecipeRefused("direct_graph_adapter_identity_invalid")
+    challenge_id, version = binding["challenge_id"], binding["challenge_version"]
+    block = limits_document.get("graph_training_adapter")
+    if type(block) is not dict:
+        raise RecipeRefused("direct_graph_adapter_identity_invalid")
+    adapter_id = block.get("id")
+    module = graph_adapters.for_version(challenge_id, version)
+    if module is None:
+        from carbon.challenge_kit.synthetic_linear_field_2d import (
+            construction_limits_document_v3,
+        )
+
+        if (
+            adapter_id != SYNTHETIC_ADAPTER_ID
+            or block != construction_limits_document_v3()["graph_training_adapter"]
+        ):
+            raise RecipeRefused("direct_graph_adapter_identity_invalid")
+        return (
+            load_state,
+            {"input_name": "inputs/forcing", "provenance": INFERENCE_PROVENANCE},
+            "float32",
+        )
+    if block != module.adapter_block(challenge_id, version):
+        raise RecipeRefused("direct_graph_adapter_identity_invalid")
+    query = {"provenance": INFERENCE_PROVENANCE}
+    if adapter_id in battery_graph_adapter.ADAPTER_IDS:
+        if type(recipe) is not ConstructionRecipe:
+            raise RecipeRefused("direct_graph_adapter_identity_invalid")
+
+        def load_battery(state, bound_recipe, _allowlist):
+            battery_graph_adapter.check_state(state, bound_recipe)
+
+        query.update(
+            input_name=battery_graph_adapter.INPUT_NAME,
+            program=battery_graph_adapter.infer_program(),
+            staged_files=battery_graph_adapter.inference_files(binding, recipe),
+        )
+        return load_battery, query, battery_graph_adapter.OUTPUT_DTYPE
+    if adapter_id in _v2_adapter_ids():
+        query.update(v2_infer_query(challenge_id, version))
+        return (
+            physical_graph_state_v2.load,
+            query,
+            module.spec_for(challenge_id, version).dtype,
+        )
+    from . import physical_graph_adapter
+
+    if adapter_id not in physical_graph_adapter.ADAPTER_IDS:
+        raise RecipeRefused("direct_graph_adapter_identity_invalid")
+    root = Path(__file__).resolve().parents[2]
+    name = "carbon.development_session.physical_graph_state"
+    query.update(
+        input_name="inputs/features",
+        program=PHYSICAL_INFER_PROGRAM,
+        staged_files={
+            name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
+        },
+    )
+    return physical_graph_state.load, query, "float32"
+
+
 _WIDE_DTYPES = (b'"float64"', b'"int64"', b'"uint64"', b'"complex128"')
 
 
@@ -949,33 +1031,13 @@ def reconstruct_and_infer_graph_public(
             accelerator if inference_image is None else inference_accelerator
         ),
     }
-    from . import battery_graph_adapter
-
-    if adapter_id in battery_graph_adapter.ADAPTER_IDS:
-        # Battery's adapter: its inert state reopened by Battery's registered
-        # graph code, one isolated case per call, float64 rows.
-        query["input_name"] = battery_graph_adapter.INPUT_NAME
-        query["expected_output_dtype"] = battery_graph_adapter.OUTPUT_DTYPE
-        query["program"] = battery_graph_adapter.infer_program()
-        query["staged_files"] = battery_graph_adapter.inference_files(binding, recipe)
-    elif adapter_id in _v2_adapter_ids():
-        from . import physical_graph_adapter_v2
-
-        query.update(
-            v2_infer_query(binding["challenge_id"], binding["challenge_version"])
-        )
-        query["expected_output_dtype"] = physical_graph_adapter_v2.spec_for(
-            binding["challenge_id"], binding["challenge_version"]
-        ).dtype
-    elif adapter_id != SYNTHETIC_ADAPTER_ID:
-        # The F08/F02 adapter: its decoded state, applied by its own program.
-        root = Path(__file__).resolve().parents[2]
-        name = "carbon.development_session.physical_graph_state"
-        query["input_name"] = "inputs/features"
-        query["program"] = PHYSICAL_INFER_PROGRAM
-        query["staged_files"] = {
-            name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
-        }
+    _loader, registered_query, dtype = registered_inference_contract(
+        binding, limits_document, recipe=recipe
+    )
+    if limits_document["graph_training_adapter"]["id"] != adapter_id:
+        raise RecipeRefused("direct_graph_adapter_identity_invalid")
+    query.update(registered_query)
+    query["expected_output_dtype"] = dtype
     # Graded one case at a time, as a bundle is (row 0 plus zero filler), so no
     # output can depend on its batch; the batched cold query is kept only for
     # timing when the task is measured, never graded.
