@@ -1,4 +1,4 @@
-"""M3 for Cooling 1.5: the pool-graded sealed pack is written, sealed by the receiver's loader and resolved back to
+"""M3 for Cooling 1.5 and 1.6: the pool-graded sealed pack is written, sealed by the receiver's loader and resolved back to
 the same pool bank (the same route as Motor's, tests/cpu/test_pool_pack.py). Synthetic pools on Cooling's real
 interface and a synthetic sealed grid: nothing here is a production value."""
 
@@ -56,11 +56,11 @@ def _fixed(offset):
     return {name: 1.0 + offset + i / 10 for i, name in enumerate(CONDITION_INPUTS)}
 
 
-def material():
+def material(version=VERSION):
     return {
         "schema": pool_version.MATERIAL_SCHEMA,
         "kind": "cooling",
-        "version": VERSION,
+        "version": version,
         "input_names": list(NAMES),
         "design_names": list(DESIGN_INPUTS),
         "input_dtype": "<f8",
@@ -86,6 +86,11 @@ def batch():
     return doc, records
 
 
+@pytest.fixture(params=("1.5", "1.6"))
+def version(request):
+    return request.param
+
+
 def _bank(batch, pool=None, version=VERSION):
     document, records = batch
     if pool is not None:
@@ -93,8 +98,10 @@ def _bank(batch, pool=None, version=VERSION):
     return source._build(COOLING, pack, document, records, version)
 
 
-def test_the_cooling_pool_bank_holds_the_pool_rows_among_the_cells_and_probes(batch):
-    bank = _bank(batch, material())
+def test_the_cooling_pool_bank_holds_the_pool_rows_among_the_cells_and_probes(
+    batch, version
+):
+    bank = _bank(batch, material(version), version)
     cohorts = list(bank["cohorts"])
     pool_rows = cohorts.count(pool_exam.POOL_COHORT)
     assert pool_rows > 0 and cohorts.count("probe_response") > 0
@@ -103,7 +110,7 @@ def test_the_cooling_pool_bank_holds_the_pool_rows_among_the_cells_and_probes(ba
     # the plain grid is a sealed bank but not a pool bank
     plain = _bank(batch, None, "1.4")
     assert sealed.is_sealed_bank(plain) and not sealed.is_pool_bank(plain)
-    assert bank["pool"] == material()
+    assert bank["pool"] == material(version)
 
 
 def test_the_sealed_bank_test_refuses_other_populations(batch):
@@ -116,16 +123,16 @@ def test_the_sealed_bank_test_refuses_other_populations(batch):
 
 
 def test_the_cooling_pool_pack_is_written_sealed_and_resolves_back_to_the_same_bank(
-    batch, tmp_path
+    batch, version, tmp_path
 ):
     from carbon.challenge_validator.evaluation_pack import prepare_pack
 
     document, records = batch
-    carried = {**document, "pool": material()}
-    bank = _bank(batch, material())
+    carried = {**document, "pool": material(version)}
+    bank = _bank(batch, material(version), version)
     root = tmp_path / "pack"
     manifest_path = sealed.write_sealed_pack(
-        root, bank, version=VERSION, inference_image_id="sha256:" + "1" * 64
+        root, bank, version=version, inference_image_id="sha256:" + "1" * 64
     )
     manifest = json.loads(manifest_path.read_bytes())
     assert manifest["pack_version"].endswith(sealed.PACK_SUFFIX)
@@ -146,28 +153,45 @@ def test_the_cooling_pool_pack_is_written_sealed_and_resolves_back_to_the_same_b
         public_root=root,
         private_root=root,
         challenge_id=COOLING,
-        challenge_version=VERSION,
+        challenge_version=version,
     )
     (root / source.SEALED_BATCH_FILE).write_bytes(source.batch_bytes(carried, records))
     resolved_bank, adapter = source.resolve(
         challenge=COOLING,
-        version=VERSION,
+        version=version,
         selected_pack=prepared.snapshot,
         private_root=root,
         development_adapter=None,
     )
-    assert adapter.POOL_GRADED and adapter.VERSION == VERSION
+    assert adapter.POOL_GRADED and adapter.VERSION == version
+    from carbon.scoring import cooling_hotspot_dual_pack
+
+    expected = cooling_hotspot_dual_pack if version == "1.6" else sealed
+    assert adapter._module is expected
+    assert adapter.EVALUATION_VERSION == sealed.POOL_VERSIONS[version][0]
+    definition = json.loads(public_text)
+    response = definition["physics"]["response"]
+    pair = ("rise_c", "hotspot_ratio")
+    assert any((g["output"], g["input"]) == pair for g in response["sign_gates"]) == (
+        version == "1.5"
+    )
+    assert (
+        response["exponent"][response["outputs"].index(pair[0])][
+            response["inputs"].index(pair[1])
+        ]
+        is None
+    ) == (version == "1.6")
     assert list(resolved_bank["case_ids"]) == list(bank["case_ids"])
-    assert resolved_bank["pool"] == material()
+    assert resolved_bank["pool"] == material(version)
 
 
 def test_a_plain_grid_bank_cannot_be_written_as_a_pool_pack_and_a_pool_bank_not_as_plain(
-    batch, tmp_path
+    batch, version, tmp_path
 ):
     plain = _bank(batch, None, "1.4")
     with pytest.raises(Exception, match="cooling_bank_population"):
-        sealed.write_sealed_pack(tmp_path / "a", plain, version=VERSION)
-    with_pool = _bank(batch, material())
+        sealed.write_sealed_pack(tmp_path / "a", plain, version=version)
+    with_pool = _bank(batch, material(version), version)
     with pytest.raises(Exception, match="cooling_bank_population"):
         sealed.write_sealed_pack(tmp_path / "b", with_pool, version="1.3")
     with pytest.raises(ValueError):
@@ -176,27 +200,28 @@ def test_a_plain_grid_bank_cannot_be_written_as_a_pool_pack_and_a_pool_bank_not_
 
 def test_a_validator_copy_of_the_cooling_pool_exam_canonicalises_to_the_same_exam(
     batch,
+    version,
 ):
-    document = {**batch[0], "pool": material()}
+    document = {**batch[0], "pool": material(version)}
     raw, _header = copy_package.make_copy(
-        COOLING, VERSION, document, batch[1], key=b"k" * 32, hotkey="valV3-hotkey"
+        COOLING, version, document, batch[1], key=b"k" * 32, hotkey="valV3-hotkey"
     )
     carried = json.loads(raw)
-    assert carried["document"]["pool"] == material()
+    assert carried["document"]["pool"] == material(version)
     canonical_raw, _source_fp, canonical_fp = copy_package.canonical_batch(
-        COOLING, VERSION, document, batch[1]
+        COOLING, version, document, batch[1]
     )
     copied = source._build(
-        COOLING, pack, carried["document"], carried["records"], VERSION
+        COOLING, pack, carried["document"], carried["records"], version
     )
-    original = source._build(COOLING, pack, document, batch[1], VERSION)
+    original = source._build(COOLING, pack, document, batch[1], version)
     assert len(copied["case_ids"]) == len(original["case_ids"])
-    assert json.loads(canonical_raw)["document"]["pool"] == material()
+    assert json.loads(canonical_raw)["document"]["pool"] == material(version)
     assert canonical_fp.startswith("sha256:")
 
 
 def test_the_custody_builder_writes_the_cooling_pool_pack_and_a_digest_only_record(
-    batch, tmp_path
+    batch, version, tmp_path
 ):
     import importlib.util
 
@@ -212,11 +237,11 @@ def test_the_custody_builder_writes_the_cooling_pool_pack_and_a_digest_only_reco
     )
     record = builder.build(
         challenge=COOLING,
-        version=VERSION,
+        version=version,
         batch_dir=plain,
         out_dir=tmp_path / "out",
         inference_image_id="sha256:" + "1" * 64,
-        material=material(),
+        material=material(version),
     )
     assert record["rows"]["cells"] == 16 and record["rows"]["pool"] > 0
     assert record["rows"]["probes"] > 0
@@ -226,4 +251,4 @@ def test_the_custody_builder_writes_the_cooling_pool_pack_and_a_digest_only_reco
     assert '"truths"' not in text and '"designs"' not in text
     assert type(record["pool_accounting"]["designs_total"]) is int
     carried = source.read_batch(tmp_path / "out/pack")
-    assert carried is not None and carried[0]["pool"] == material()
+    assert carried is not None and carried[0]["pool"] == material(version)

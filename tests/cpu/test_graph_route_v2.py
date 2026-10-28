@@ -58,6 +58,7 @@ POOL = {
     (F02, "2.5"): "f02-pool-sealed-v1",
     (MOTOR, "1.5"): "motor-pool-sealed-v1",
     (COOLING, "1.5"): "cooling-pool-sealed-v1",
+    (COOLING, "1.6"): "cooling-pool-sealed-v2",
 }
 
 #: Every existing version's construction limits digest, as served at
@@ -255,9 +256,12 @@ def test_a_new_version_is_its_predecessor_s_material(key):
     old_adapter = physical_adapters.adapter(cid, previous)
     assert new_adapter is not None and old_adapter is not None
     if grid:
-        assert new_adapter.EVALUATION_VERSION == (
-            f"{dev_grid.kind(cid, version)}-dual-development-grid-v2"
+        expected = (
+            "cooling-dual-development-grid-v3"
+            if key == (COOLING, "1.6")
+            else f"{dev_grid.kind(cid, version)}-dual-development-grid-v2"
         )
+        assert new_adapter.EVALUATION_VERSION == expected
     else:
         assert new_adapter.EVALUATION_VERSION == old_adapter.EVALUATION_VERSION
     if key in POOL:
@@ -282,6 +286,7 @@ def test_the_registry_declares_each_new_version_in_full():
         (F08, "1.5"): "1.4",
         (MOTOR, "1.4"): "1.3",
         (COOLING, "1.5"): "1.4",
+        (COOLING, "1.6"): "1.5",
         (F02, "2.5"): "2.4",
         (F08, "1.6"): "1.5",
         (MOTOR, "1.5"): "1.4",
@@ -373,7 +378,10 @@ def _scorer_tables():
     )
     for version, value in cooling_dual_pack.SEALED_VERSIONS.items():
         sealed[(cooling_dual_pack.CHALLENGE, version)] = value
-    for version in cooling_encoded_dual_pack.VERSIONS:
+    for version in (
+        cooling_encoded_dual_pack.VERSIONS.keys()
+        | cooling_encoded_dual_pack.POOL_VERSIONS.keys()
+    ):
         variant = cooling_encoded_dual_pack.sealed_adapter(version)
         if variant is not None:
             sealed[(cooling_dual_pack.CHALLENGE, version)] = variant.EVALUATION_VERSION
@@ -406,11 +414,16 @@ def test_every_served_version_resolves_through_the_registry():
             assert (adapter_ is not None) == (entry.development_evaluation is not None)
             # The cooling encoded scorer exactly where rows are encoded.
             if key[0] == COOLING:
-                from carbon.scoring import cooling_encoded_dual_pack
-
-                assert (key[1] in cooling_encoded_dual_pack.VERSIONS) == (
-                    entry.output_encoding is not None
+                from carbon.scoring import (
+                    cooling_encoded_dual_pack,
+                    cooling_hotspot_dual_pack,
                 )
+
+                assert (
+                    key[1]
+                    in cooling_encoded_dual_pack.VERSIONS.keys()
+                    | cooling_hotspot_dual_pack.VERSIONS.keys()
+                ) == (entry.output_encoding is not None)
         assert graph_adapters.serves_graph(*key) == (entry.graph_adapter is not None)
     # Development and sealed tables name no version the registry does not.
     # Battery 2.2 stays in its pinned scorer and is not served

@@ -72,7 +72,8 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     # Cooling 1.3: 1.2 with the law-safe output encoding (Validator ruling G1).
     # Cooling 1.4: graph route v2 (1.3 plus Carbon's graph training adapter v2).
     # Cooling 1.5: pool-graded (1.4's construction, the pool grader's exam).
-    assert set(cooling) == {"1.0", "1.2", "1.3", "1.4", "1.5"}
+    # Cooling 1.6: prospective hotspot-response correction, still reserved.
+    assert set(cooling) == {"1.0", "1.2", "1.3", "1.4", "1.5", "1.6"}
     for entry in cooling.values():
         assert entry["status"] == _expected_status(COLD_PLATE, entry["version"])
         # A catalog version adds the one shared GPU practice profile.

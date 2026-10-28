@@ -19,6 +19,23 @@
         "sigma0": "HUMAN_INPUT"
       }
     },
+    "chip-cold-plate 1.6": {
+      "a_multiplier": "HUMAN_INPUT",
+      "a_rule": "HUMAN_INPUT",
+      "agen_scales": "HUMAN_INPUT",
+      "c_rule": {
+        "kind": "min"
+      },
+      "honesty": {
+        "reduction": "HUMAN_INPUT",
+        "scale": "HUMAN_INPUT"
+      },
+      "optimizer": {
+        "budget": "HUMAN_INPUT",
+        "population": "HUMAN_INPUT",
+        "sigma0": "HUMAN_INPUT"
+      }
+    },
     "electric-motor-magnetics 1.5": {
       "a_multiplier": 3.0,
       "a_rule": {

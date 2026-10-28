@@ -76,6 +76,7 @@ def test_the_four_launch_versions_serve_a_block_and_others_serve_none():
     assert SERVED == sorted([F08, F02, MOTOR, COOLING])
     assert sorted(pe._POOL_VERSIONS) == [
         ("chip-cold-plate", "1.5"),
+        ("chip-cold-plate", "1.6"),
         ("electric-motor-magnetics", "1.5"),
         ("f02", "2.5"),
         ("f08-ribbed-bracket", "1.6"),

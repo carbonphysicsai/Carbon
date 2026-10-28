@@ -15,6 +15,7 @@ from carbon.scoring import pool_version
 POOL = [
     ("electric-motor-magnetics", "1.5"),
     ("chip-cold-plate", "1.5"),
+    ("chip-cold-plate", "1.6"),
     ("f08-ribbed-bracket", "1.6"),
     ("f02", "2.5"),
 ]

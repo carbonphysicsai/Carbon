@@ -311,6 +311,25 @@ VERSIONS = dict(
             predecessor="1.4",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
+        # OWNER-COOLING-HOTSPOT-GATE-DROP-01: a prospective response contract.
+        # Construction/TRAIN are unchanged; no constants are adopted here.
+        _v(
+            COOLING,
+            "1.6",
+            COOLING_TRAIN_ENCODED,
+            "v8",
+            False,
+            "cooling-normal-construction-development-7",
+            ("cooling-dual-development-grid-v3", "cooling-development-grid-8x6"),
+            "cooling-pool-sealed-v2",
+            "catalog",
+            catalog=True,
+            graph_adapter="v2",
+            output_encoding=COOLING_LAW_SAFE,
+            catalog_entries_from=("1.4", "1.3"),
+            predecessor="1.5",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
+        ),
         # --- F08 (Ribbed Bracket) -----------------------------------------
         _v(
             F08,
