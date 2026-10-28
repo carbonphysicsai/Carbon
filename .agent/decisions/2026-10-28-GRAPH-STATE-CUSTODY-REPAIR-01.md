@@ -111,3 +111,25 @@ mailbox record this repair, with no new tracker or generated Hub output.
 Completion predicate: independent source review, required remote tests/quality,
 the actual fresh-task target replay and the designated integration/owner gates.
 Current maturity is implemented source pending validation, never qualified.
+
+## Actual runtime follow-up
+
+The first canonical new-fixture run stopped at a missing required parse bound;
+the fixture now uses the existing allowlist-selected codec graph byte bound.
+The next exact run passed Black/Ruff/diff and 336 tests, with one known
+plain-path validator-copy skip, but the two positive ensemble pool cases
+failed later during source-free regrade. Initial original custody had passed.
+The existing regrade helper removed the origin's timed receipt/operation for
+a pool bank while leaving `timed_controls_digest`, a stale orphan claim that
+strict custody correctly refused. Actual saved GPU worker evidence carries
+this field, so this is a real coupled-field integration defect.
+
+The bounded repair removes all timed claims when no timed query runs. When a
+non-pool regrade performs a real timed query, its controls are authenticated
+from that new operation/identity through the existing private-controls helper.
+An explicit synthetic runner never retains the origin's controls as the new
+operation's. Original build/image/state/submission evidence is preserved, and
+custody's strict field/binding guards remain unchanged. Added tests assert the
+pool cleanup and original preservation, plus control-helper wiring for actual
+and synthetic runner branches. These additions remain pending exact remote
+validation and do not qualify a worker or a scientific result.

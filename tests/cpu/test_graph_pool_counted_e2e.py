@@ -433,6 +433,24 @@ def test_actual_ensemble_freeze_reaches_counted_grade_with_separate_build_identi
     assert result["koth_comparison"]["outcome"] == "UNAVAILABLE"
     assert fixture.store.incumbent() is None
     assert result["official_eligible"] is False
+    regrades = [
+        path
+        for path in fixture.base.iterdir()
+        if path.is_dir() and path.name != TASK and not path.name.endswith(".evaluation")
+    ]
+    assert len(regrades) == 1
+    bank_worker = json.loads((regrades[0] / "worker-evidence.json").read_bytes())
+    assert not {
+        "timed_operation",
+        "timed_receipt",
+        "timed_controls_digest",
+    } & bank_worker.keys()
+    assert bank_worker["build_image_id"] == fixture.worker["build_image_id"]
+    assert bank_worker["build_receipt"] == fixture.worker["build_receipt"]
+    origin = json.loads(
+        (fixture.retained["artifact_path"] / "worker-evidence.json").read_bytes()
+    )
+    assert origin["timed_controls_digest"] == fixture.worker["timed_controls_digest"]
 
 
 @pytest.mark.parametrize(
@@ -481,6 +499,79 @@ def test_actual_ensemble_receipt_contract_refuses_malformed_declarations(
             artifacts, TASK, artifact_directory=base, entry_directory=entries
         )
     assert list(entries.iterdir()) == []
+
+
+@pytest.mark.parametrize("mode", ["pool", "real_timed", "fixture_timed"])
+def test_regrade_controls_name_only_the_new_timed_operation(mode, monkeypatch):
+    from carbon.development_session import (
+        direct_graph_construction_worker as graph_worker,
+    )
+
+    # Synthetic control-helper wiring only; no private worker or grade runs.
+    origin = {
+        "timed_operation": "operation-" + "0" * 64,
+        "timed_receipt": {"synthetic": "origin timed query"},
+        "timed_controls_digest": _sha(b"origin timed controls"),
+        "build_device": "GPU",
+        "build_image_id": _sha(b"origin build image"),
+        "build_receipt": {"synthetic": "origin build receipt"},
+    }
+    graded = SimpleNamespace(
+        worker_operation="operation-" + "1" * 64,
+        predictions_digest=_sha(b"new synthetic predictions"),
+    )
+    timed = SimpleNamespace(worker_operation="operation-" + "2" * 64)
+    calls = []
+    ledger = object()
+
+    def controls(observed_ledger, **kwargs):
+        assert observed_ledger is ledger
+        assert kwargs["owner"] == OWNER
+        assert kwargs["provenance"] == graph_worker.INFERENCE_PROVENANCE
+        calls.append((kwargs["identity"], kwargs["operation"]))
+        return _sha(kwargs["operation"].encode())
+
+    monkeypatch.setattr(
+        bundle_construction_worker, "_private_controls_digest", controls
+    )
+    evidence = json.loads(
+        retention._graph_regrade_worker_evidence(
+            _json(origin),
+            provider=SimpleNamespace(ledger=ledger),
+            owner=OWNER,
+            identity="new-graded-identity",
+            runner=object() if mode == "fixture_timed" else None,
+            graded=graded,
+            receipt_raw=_json({"synthetic": "new graded receipt"}),
+            predictions=b"new synthetic predictions",
+            timed_result=None if mode == "pool" else timed,
+            timed_raw=None if mode == "pool" else _json({"synthetic": "new timed receipt"}),
+            timed_identity="new-timed-identity",
+        )
+    )
+    assert evidence["build_image_id"] == origin["build_image_id"]
+    assert evidence["build_receipt"] == origin["build_receipt"]
+    if mode == "pool":
+        assert not {
+            "timed_operation",
+            "timed_receipt",
+            "timed_controls_digest",
+        } & evidence.keys()
+        assert calls == [("new-graded-identity", graded.worker_operation)]
+    else:
+        assert evidence["timed_operation"] == timed.worker_operation
+        if mode == "real_timed":
+            assert evidence["timed_controls_digest"] == _sha(
+                timed.worker_operation.encode()
+            )
+            assert evidence["timed_controls_digest"] != origin["timed_controls_digest"]
+            assert calls == [
+                ("new-graded-identity", graded.worker_operation),
+                ("new-timed-identity", timed.worker_operation),
+            ]
+        else:
+            assert "timed_controls_digest" not in evidence
+            assert calls == []
 
 
 def test_graph_original_mismatch_is_unavailable_and_releases_the_slot(
