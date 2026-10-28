@@ -60,8 +60,12 @@ def test_the_tool_is_listed_and_read_only():
 
 @pytest.mark.parametrize("key", SERVED)
 def test_the_rules_are_the_published_block_cut_to_the_allow_list(key):
-    rules = _call({"challenge_id": key[0], "version": key[1]})
     block = pe.for_version(*key)
+    # A published block is readable data even while its version is reserved.
+    # The MCP availability gate is exercised separately for every same row.
+    rules = mcp_challenges.scoring_rules_view(
+        {"challenge_id": key[0], "version": key[1], "published_exam": block}
+    )
     assert rules["schema"] == mcp_challenges.SCORING_RULES_SCHEMA
     assert (rules["challenge_id"], rules["version"]) == key
     assert rules["published_exam_schema"] == block["schema"]
@@ -78,6 +82,24 @@ def test_the_rules_are_the_published_block_cut_to_the_allow_list(key):
     # The formula, the legs, the gates and the minimums are all there.
     assert rules["score"]["formula"] == "TOTAL = 0.5 * A + 0.5 * D"
     assert rules["gates"] and rules["minimums"]
+
+
+@pytest.mark.parametrize("key", SERVED)
+def test_mcp_rules_follow_the_registered_version_availability(key):
+    catalog = challenges.catalog(EVERYTHING)
+    statuses = {
+        (row["challenge_id"], row["version"]): row["status"]
+        for row in catalog["challenges"]
+    }
+    arguments = {"challenge_id": key[0], "version": key[1]}
+    if statuses[key] == "RESERVED":
+        with pytest.raises(ToolError, match="challenge_not_implemented") as refused:
+            asyncio.run(_server().call_tool(PREFIX + "scoring_rules", arguments))
+        assert "next_action=" in str(refused.value)
+        return
+    assert statuses[key] == "IMPLEMENTED"
+    described = challenges.describe(*key, host=EVERYTHING)
+    assert _call(arguments) == mcp_challenges.scoring_rules_view(described)
 
 
 def test_a_version_with_no_published_block_is_refused_with_a_next_step():
