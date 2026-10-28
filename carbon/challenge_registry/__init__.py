@@ -22,6 +22,7 @@ from .registry import (
     entries,
     is_offered,
     offered_catalog,
+    published_description,
     resolve,
 )
 
@@ -41,5 +42,6 @@ __all__ = [
     "entries",
     "is_offered",
     "offered_catalog",
+    "published_description",
     "resolve",
 ]

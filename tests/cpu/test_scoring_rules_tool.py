@@ -95,14 +95,73 @@ def test_a_version_with_no_published_block_is_refused_with_a_next_step():
     assert "next_action=" in str(refused.value)
 
 
-def test_an_unknown_version_is_refused_by_code():
-    with pytest.raises(ToolError):
+@pytest.mark.parametrize(
+    ("challenge_id", "version", "code"),
+    [
+        ("no-such", "0.0", "challenge_unknown"),
+        ("electric-motor-magnetics", "9.9", "challenge_version_unsupported"),
+        ("chip-cold-plate", "9.9", "challenge_version_unsupported"),
+    ],
+)
+def test_an_unknown_version_is_refused_by_code(challenge_id, version, code):
+    with pytest.raises(ToolError, match=code):
         asyncio.run(
             _server().call_tool(
                 PREFIX + "scoring_rules",
-                {"challenge_id": "no-such", "version": "0.0"},
+                {"challenge_id": challenge_id, "version": version},
             )
         )
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        ("fixture-development-only", "1.5"),
+        ("chip-cold-plate", "fixture-development-only"),
+    ],
+)
+def test_published_metadata_preserves_development_identity_refusal(key, monkeypatch):
+    from carbon.challenge_registry import registry
+
+    monkeypatch.setattr(
+        registry, "is_development_variant", lambda value: value == "fixture-development-only"
+    )
+    with pytest.raises(ToolError, match="development_variant_not_served"):
+        _call({"challenge_id": key[0], "version": key[1]})
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        ("chip-cold-plate", "1.5"),
+        ("chip-cold-plate", "1.6"),
+        ("f02", "2.5"),
+        ("f08-ribbed-bracket", "1.6"),
+        ("f08-ribbed-bracket", "1.7"),
+    ],
+)
+def test_published_rules_are_readable_without_admitting_reserved_versions(key):
+    from carbon.miner_mcp.open_tier import create_open_tier_server
+
+    def no_host_observation():
+        raise AssertionError("published metadata needs no runtime host facts")
+
+    server = create_open_tier_server(host_facts=no_host_observation)
+    result = asyncio.run(
+        server.call_tool(
+            PREFIX + "scoring_rules", {"challenge_id": key[0], "version": key[1]}
+        )
+    )
+    assert not result.is_error
+    rules = result.structured_content["payload"]
+    assert rules == mcp_challenges.scoring_rules_view(
+        challenges.published_description(*key)
+    )
+    assert result.structured_content["official_eligible"] is False
+    with pytest.raises(challenges.ChallengeNotImplemented):
+        challenges.describe(*key, host=EVERYTHING)
+    with pytest.raises(challenges.ChallengeNotImplemented):
+        challenges.resolve(*key, "cpu_research", host=EVERYTHING)
 
 
 def test_a_pool_graded_version_carries_the_speed_gate_and_the_search(monkeypatch):
