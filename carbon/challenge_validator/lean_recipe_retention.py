@@ -8,6 +8,7 @@ not replay a worker, grade predictions, or grant receiver/official authority.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import re
@@ -637,6 +638,35 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
     }
 
 
+def _graded_query(material, artifacts):
+    """``(inputs, expected output shape)`` of the query the graded inference ACTUALLY ran: the retained
+    ``inputs.npz``. Everything that repeats or times that inference (the repeat pair, the single-call
+    stage) must run on these rows and no others. On a task's own grade they are its practice query; on a
+    counted grade of a sealed/pool pack they are the pack's bank (646 rows against a 154-row practice
+    query, valV3 2026-10-27: ``single_call_row_not_in_the_delivered_query``)."""
+    import numpy as np
+
+    raw = artifacts.get("inputs.npz")
+    if type(raw) is not bytes:
+        raise RetentionUnavailable("graded_query_unavailable")
+    try:
+        with np.load(io.BytesIO(raw), allow_pickle=False) as loaded:
+            if list(loaded.files) != ["inputs"]:
+                raise ValueError("graded query members differ")
+            inputs = loaded["inputs"]
+    except (OSError, ValueError, KeyError) as exc:
+        raise RetentionUnavailable("graded_query_unreadable") from exc
+    practice = material["practice_inputs"]
+    if (
+        inputs.dtype != practice.dtype
+        or inputs.ndim != practice.ndim
+        or inputs.shape[1:] != practice.shape[1:]
+        or not len(inputs)
+    ):
+        raise RetentionUnavailable("graded_query_contract_changed")
+    return inputs, (len(inputs), *tuple(material["expected_output_shape"])[1:])
+
+
 def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
     """The two fresh repeat queries of the retained model, kept write-once beside
     the dual measurement. Two new carrier operations with new identities; a
@@ -667,6 +697,7 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
     )
     if type(accuracy) is not dict:
         raise RetentionUnavailable("inference_pair_procedure_unreadable")
+    inputs, output_shape = _graded_query(material, artifacts)
     try:
         pair = infer_frozen_pair(
             provider.ledger,
@@ -691,8 +722,8 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
             limits_document=limits,
             state_bytes=artifacts["state.npz"],
             expected_state_digest=entry["state_digest"],
-            inputs=material["practice_inputs"],
-            expected_output_shape=tuple(material["expected_output_shape"]),
+            inputs=inputs,
+            expected_output_shape=output_shape,
             expected_output_dtype=output_dtype(interface),
             allowlist_bytes=material["allowlist_bytes"],
             seconds=policy["inference_wall_seconds_max"],
@@ -769,7 +800,7 @@ def _single_call_raw(
         if sealed is None or not getattr(sealed[1], "POOL_GRADED", False):
             raise RetentionUnavailable("single_call_pack_is_not_pool_graded")
         bank = sealed[0]
-        delivered = np.asarray(material["practice_inputs"])
+        delivered, _shape = _graded_query(material, artifacts)
         seed = single_call_timing.sample_seed(key, submission_id)
         indices = single_call_timing.delivered_indices(bank, delivered, seed)
         # The warm-up row is PUBLIC: the first row of the version's public development bank.
