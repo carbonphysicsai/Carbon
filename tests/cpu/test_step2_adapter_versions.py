@@ -32,6 +32,11 @@ EVALUATION_VERSIONS = {
     (f08.CHALLENGE, "1.4"): "f08-dual-near-limit-bank-8-v2",
     (f02.CHALLENGE, "2.3"): "f02-dual-development-bank-8-v2",
     (battery.CHALLENGE, "2.1"): "battery-dual-development-bank-v2",
+    # The pool-graded versions (GPU_REBUILD_RULINGS section 11): each its own grid-graded evaluation.
+    (motor.CHALLENGE, "1.5"): "motor-dual-development-grid-v2",
+    (cooling.CHALLENGE, "1.5"): "cooling-dual-development-grid-v2",
+    (f08.CHALLENGE, "1.6"): "f08-dual-development-grid-v2",
+    (f02.CHALLENGE, "2.5"): "f02-dual-development-grid-v2",
 }
 
 
@@ -77,10 +82,8 @@ def test_motor_1_2_is_1_1s_measurement():
 @pytest.mark.parametrize(
     "challenge, version",
     [
-        (motor.CHALLENGE, "1.5"),
         (motor.CHALLENGE, None),
         (cooling.CHALLENGE, "2.0"),
-        (f08.CHALLENGE, "1.6"),
         (f02.CHALLENGE, "1.0"),
         (battery.CHALLENGE, "1.0"),
         ("unregistered-challenge", "1.0"),
