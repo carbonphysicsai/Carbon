@@ -140,7 +140,7 @@ def test_no_other_runtime_has_a_gpu_build():
 
 
 def test_a_jax_entry_cannot_list_the_torch_build():
-    item = copy.deepcopy([e for e in jax_entries() if "bundle_refs" in e][0])
+    item = copy.deepcopy(next(e for e in jax_entries() if "bundle_refs" in e))
     item["bundle_refs"] = {"torch-cu130-py311": item["bundle_refs"]["jax-cuda13-py311"]}
     with pytest.raises(pipeline.CatalogBroken, match="no GPU build is registered"):
         pipeline.verify(item)
@@ -152,11 +152,11 @@ def test_the_gpu_source_differs_from_the_cpu_source_by_one_block_only():
 
     def build_text(path):
         with tarfile.open(path) as archive:
-            member = [
+            member = next(
                 m
                 for m in archive.getmembers()
                 if m.isfile() and m.name.endswith(gpu_build.BUILD_MEMBER)
-            ][0]
+            )
             return archive.extractfile(member).read().decode()
 
     cpu = build_text(root / "source.tar.gz").split("\n")
@@ -555,11 +555,11 @@ def test_every_listed_gpu_build_with_a_receipt_has_a_valid_one():
 
 def _common(path):
     with tarfile.open(path) as archive:
-        member = [
+        member = next(
             m
             for m in archive.getmembers()
             if m.isfile() and m.name.endswith(gpu_build.COMMON_MEMBER)
-        ][0]
+        )
         return archive.extractfile(member).read().decode()
 
 
@@ -718,16 +718,16 @@ def test_an_unlisted_entry_gets_no_device_fix_and_a_listed_one_missing_its_ancho
         gpu_build.derived_source("torch-cpu-py311", raw, "neuralop.GINO")
 
 
-@pytest.mark.parametrize("wrapper_id", [None, "another-wrapper", "future.challenge.rev"])
+@pytest.mark.parametrize(
+    "wrapper_id", [None, "another-wrapper", "future.challenge.rev"]
+)
 def test_constant_graph_device_placement_follows_source_and_preserves_legacy_bytes(
     wrapper_id,
 ):
     base = pipeline.BUNDLES / "physicsnemo.MeshGraphNet"
     cpu = (base / "source.tar.gz").read_bytes()
     expected = (base / gpu_build.PROFILE / "source.tar.gz").read_bytes()
-    assert (
-        gpu_build.derived_source(gpu_build.CPU_PROFILE, cpu, wrapper_id) == expected
-    )
+    assert gpu_build.derived_source(gpu_build.CPU_PROFILE, cpu, wrapper_id) == expected
 
 
 @pytest.mark.parametrize(
@@ -742,9 +742,7 @@ def test_constant_graph_wrappers_keep_their_shape_and_strict_cpu_source(catalog_
     after = gpu[gpu_build.BACKBONES_MEMBER].decode()
     assert next(
         line for line in before.splitlines() if line.startswith("POINTS =")
-    ) == next(
-        line for line in after.splitlines() if line.startswith("POINTS =")
-    )
+    ) == next(line for line in after.splitlines() if line.startswith("POINTS ="))
     from carbon.backbone_catalog.gpu_tensor_placement import rewrite
 
     assert rewrite(cpu[gpu_build.BACKBONES_MEMBER]) == gpu[gpu_build.BACKBONES_MEMBER]
@@ -767,12 +765,16 @@ def test_an_unknown_device_placement_form_is_refused():
     before = files[gpu_build.BACKBONES_MEMBER]
     fragment = b"device=src_feat.device"
     assert before.count(fragment) == 1
-    files[gpu_build.BACKBONES_MEMBER] = before.replace(fragment, b"device=unknown.device")
+    files[gpu_build.BACKBONES_MEMBER] = before.replace(
+        fragment, b"device=unknown.device"
+    )
     with pytest.raises(gpu_build.GpuBuildRefused, match="device capability"):
         gpu_build._device_fixes(files, "another-wrapper")
 
 
-@pytest.mark.parametrize("keywords", [b"**options", b"device=src_feat.device, **options"])
+@pytest.mark.parametrize(
+    "keywords", [b"**options", b"device=src_feat.device, **options"]
+)
 def test_unresolved_device_arguments_are_refused(keywords):
     source = pipeline.BUNDLES / "v2.motor.physicsnemo.MeshGraphNet" / "source.tar.gz"
     files = _members(source)
@@ -787,17 +789,22 @@ def test_unresolved_device_arguments_are_refused(keywords):
 @pytest.mark.parametrize("duplicate", [False, True])
 @pytest.mark.parametrize(
     "fragments",
-    [(marker,) for marker in (
-        "def _torch_scatter_standin():",
-        "def _constant_graph_helpers():",
-        "graph.cases, graph.nodes_per_case, graph.dst_local = n, POINTS, self.edges_np[1]",
-    )]
+    [
+        (marker,)
+        for marker in (
+            "def _torch_scatter_standin():",
+            "def _constant_graph_helpers():",
+            "graph.cases, graph.nodes_per_case, graph.dst_local = n, POINTS, self.edges_np[1]",
+        )
+    ]
     + [(before,) for _, before, _ in gpu_build.CONSTANT_GRAPH_DEVICE_FIXES]
-    + [(
-        "def _torch_scatter_standin():",
-        "def _constant_graph_helpers():",
-        "graph.cases, graph.nodes_per_case, graph.dst_local = n, POINTS, self.edges_np[1]",
-    )]
+    + [
+        (
+            "def _torch_scatter_standin():",
+            "def _constant_graph_helpers():",
+            "graph.cases, graph.nodes_per_case, graph.dst_local = n, POINTS, self.edges_np[1]",
+        )
+    ]
     + [tuple(before for _, before, _ in gpu_build.CONSTANT_GRAPH_DEVICE_FIXES)],
     ids=[
         "scatter-helper",
@@ -825,9 +832,7 @@ def test_constant_graph_capability_requires_every_anchor_once(fragments, duplica
                 for fragment in fragments:
                     old = fragment.encode()
                     assert body.count(old) == 1
-                    replacement = (
-                        old + b"\n" + old if duplicate else b"missing_anchor"
-                    )
+                    replacement = old + b"\n" + old if duplicate else b"missing_anchor"
                     body = body.replace(old, replacement)
                 member.size = len(body)
             out.addfile(member, io.BytesIO(body) if body is not None else None)

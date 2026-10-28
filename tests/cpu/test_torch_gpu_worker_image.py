@@ -294,9 +294,7 @@ def test_the_gpu_bootstrap_builds_only_the_cpu_locks_exact_source_exception():
     listed = set(re.findall(r"--no-binary ([A-Za-z0-9._-]+)", recipe))
     assert listed == set(source_only)
     assert "--no-binary=:all:" not in recipe
-    overlay = (
-        REPOSITORY / "carbon/development_session/library_bundles.py"
-    ).read_text()
+    overlay = (REPOSITORY / "carbon/development_session/library_bundles.py").read_text()
     assert (
         "--no-index --find-links=/tmp/wheels --require-hashes --no-deps --only-binary=:all:"
         in overlay

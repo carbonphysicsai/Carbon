@@ -26,7 +26,11 @@ else:
 def _functions(catalog_id):
     path = pipeline.BUNDLES / catalog_id / "source.tar.gz"
     with tarfile.open(path) as archive:
-        (member,) = [m for m in archive.getmembers() if m.name.endswith(gpu_build.BACKBONES_MEMBER)]
+        (member,) = [
+            m
+            for m in archive.getmembers()
+            if m.name.endswith(gpu_build.BACKBONES_MEMBER)
+        ]
         source = archive.extractfile(member).read()
     transformed = rewrite(source)
     assert transformed is not None
@@ -34,33 +38,51 @@ def _functions(catalog_id):
     functions = []
     for node in tree.body:
         if isinstance(node, ast.FunctionDef) and node.name in (
-            "_torch_scatter_standin", "_constant_graph_helpers"
+            "_torch_scatter_standin",
+            "_constant_graph_helpers",
         ):
             functions.extend(
-                child for child in node.body
+                child
+                for child in node.body
                 if isinstance(child, ast.FunctionDef)
                 and child.name in ("scatter", "concat_efeat", "aggregate_and_concat")
             )
-    assert {node.name for node in functions} == {"scatter", "concat_efeat", "aggregate_and_concat"}
+    assert {node.name for node in functions} == {
+        "scatter",
+        "concat_efeat",
+        "aggregate_and_concat",
+    }
     namespace = {"torch": torch, "np": np}
     # Execute only these source-owned helper definitions, with real tensors;
     # no library imports, model construction or scientific grading is mocked.
-    exec(compile(ast.Module(body=functions, type_ignores=[]), "catalog-device-helpers", "exec"), namespace)
+    exec(  # noqa: S102 - only repository-owned helper definitions selected above
+        compile(
+            ast.Module(body=functions, type_ignores=[]),
+            "catalog-device-helpers",
+            "exec",
+        ),
+        namespace,
+    )
     return namespace
 
 
-@pytest.mark.parametrize("catalog_id", [
-    "physicsnemo.MeshGraphNet",
-    "v2.motor.physicsnemo.MeshGraphNet",
-    "v2.cooling.physicsnemo.MeshGraphNet",
-    "v2.f08.physicsnemo.MeshGraphNet",
-    "v2.f02.physicsnemo.MeshGraphNet",
-    "neuralop.LocalNO",
-])
+@pytest.mark.parametrize(
+    "catalog_id",
+    [
+        "physicsnemo.MeshGraphNet",
+        "v2.motor.physicsnemo.MeshGraphNet",
+        "v2.cooling.physicsnemo.MeshGraphNet",
+        "v2.f08.physicsnemo.MeshGraphNet",
+        "v2.f02.physicsnemo.MeshGraphNet",
+        "neuralop.LocalNO",
+    ],
+)
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
 @pytest.mark.parametrize("dtype_name", ["float32", "float64"])
 @pytest.mark.parametrize("nodes", [3, 5])
-def test_scatter_gather_and_aggregation_follow_tensor_device(catalog_id, device, dtype_name, nodes):
+def test_scatter_gather_and_aggregation_follow_tensor_device(
+    catalog_id, device, dtype_name, nodes
+):
     if device == "cuda" and not torch.cuda.is_available():
         if os.environ.get("CARBON_REQUIRE_CUDA") == "1":
             pytest.fail("CUDA tensor semantics required; CPU fallback is not evidence")
@@ -83,7 +105,9 @@ def test_scatter_gather_and_aggregation_follow_tensor_device(catalog_id, device,
     efeat = torch.tensor(edge_values, device=device, dtype=dtype)
     nfeat = torch.tensor(node_values, device=device, dtype=dtype)
     indices = torch.tensor(graph.dst_np, device=device, dtype=torch.int64)
-    expected_concat = np.concatenate((edge_values, node_values[graph.src_np], node_values[graph.dst_np]), axis=1)
+    expected_concat = np.concatenate(
+        (edge_values, node_values[graph.src_np], node_values[graph.dst_np]), axis=1
+    )
     concatenated = functions["concat_efeat"](efeat, nfeat, graph)
     assert concatenated.device == efeat.device
     assert concatenated.dtype == dtype

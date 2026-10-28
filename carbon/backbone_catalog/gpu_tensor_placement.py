@@ -52,11 +52,14 @@ def rewrite(source: bytes) -> bytes | None:
             "constant graph device capability: invalid Python source"
         ) from error
     names = (
-        "_torch_scatter_standin", "_constant_graph_helpers", "_MeshGraphNetOnCurve"
+        "_torch_scatter_standin",
+        "_constant_graph_helpers",
+        "_MeshGraphNetOnCurve",
     )
     roots = [
         [
-            node for node in tree.body
+            node
+            for node in tree.body
             if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name == name
         ]
         for name in names
@@ -112,12 +115,10 @@ def rewrite(source: bytes) -> bytes | None:
                 _fail()
             return
         end = offsets[node.end_lineno - 1] + node.end_col_offset
-        if source[end - 1:end] != b")":
+        if source[end - 1 : end] != b")":
             _fail()
         position = end if transfer else end - 1
-        addition = (
-            f".to({owner}.device)" if transfer else f", device={owner}.device"
-        )
+        addition = f".to({owner}.device)" if transfer else f", device={owner}.device"
         if position in edits:
             _fail()
         edits[position] = addition.encode()
@@ -151,7 +152,8 @@ def rewrite(source: bytes) -> bytes | None:
         _fail()
 
     factories = [
-        node for node in ast.walk(scatter)
+        node
+        for node in ast.walk(scatter)
         if _call(node, "zeros") or _call(node, "ones")
     ]
     if (
@@ -160,9 +162,7 @@ def rewrite(source: bytes) -> bytes | None:
     ):
         _fail()
     for node in factories:
-        dtype = [
-            keyword.value for keyword in node.keywords if keyword.arg == "dtype"
-        ]
+        dtype = [keyword.value for keyword in node.keywords if keyword.arg == "dtype"]
         if len(dtype) != 1 or not _attribute(dtype[0], "src", "dtype"):
             _fail()
         device(node, "src", with_dtype=True)
@@ -172,7 +172,8 @@ def rewrite(source: bytes) -> bytes | None:
         _fail()
     for field, alias in (("src_np", "src_feat"), ("dst_np", "dst_feat")):
         found = [
-            node for node in gathers
+            node
+            for node in gathers
             if len(node.args) == 1 and _attribute(node.args[0], "graph", field)
         ]
         if len(found) != 1:
@@ -180,14 +181,13 @@ def rewrite(source: bytes) -> bytes | None:
         device(found[0], "efeat", transfer=True, aliases=(alias,))
 
     indices = [
-        node for node in ast.walk(aggregate)
+        node
+        for node in ast.walk(aggregate)
         if _call(node, "arange") or _call(node, "as_tensor")
     ]
     if len(indices) == 1:
         node = indices[0]
-        dtype = [
-            keyword.value for keyword in node.keywords if keyword.arg == "dtype"
-        ]
+        dtype = [keyword.value for keyword in node.keywords if keyword.arg == "dtype"]
         if (
             not _call(node, "as_tensor")
             or len(node.args) != 1
@@ -201,7 +201,8 @@ def rewrite(source: bytes) -> bytes | None:
     elif len(indices) == 2:
         for name, argument in (("arange", "nodes"), ("as_tensor", "local")):
             found = [
-                node for node in indices
+                node
+                for node in indices
                 if _call(node, name)
                 and len(node.args) == 1
                 and isinstance(node.args[0], ast.Name)
