@@ -440,11 +440,14 @@ def test_actual_ensemble_freeze_reaches_counted_grade_with_separate_build_identi
     ]
     assert len(regrades) == 1
     bank_worker = json.loads((regrades[0] / "worker-evidence.json").read_bytes())
-    assert not {
-        "timed_operation",
-        "timed_receipt",
-        "timed_controls_digest",
-    } & bank_worker.keys()
+    assert (
+        not {
+            "timed_operation",
+            "timed_receipt",
+            "timed_controls_digest",
+        }
+        & bank_worker.keys()
+    )
     assert bank_worker["build_image_id"] == fixture.worker["build_image_id"]
     assert bank_worker["build_receipt"] == fixture.worker["build_receipt"]
     origin = json.loads(
@@ -545,18 +548,23 @@ def test_regrade_controls_name_only_the_new_timed_operation(mode, monkeypatch):
             receipt_raw=_json({"synthetic": "new graded receipt"}),
             predictions=b"new synthetic predictions",
             timed_result=None if mode == "pool" else timed,
-            timed_raw=None if mode == "pool" else _json({"synthetic": "new timed receipt"}),
+            timed_raw=(
+                None if mode == "pool" else _json({"synthetic": "new timed receipt"})
+            ),
             timed_identity="new-timed-identity",
         )
     )
     assert evidence["build_image_id"] == origin["build_image_id"]
     assert evidence["build_receipt"] == origin["build_receipt"]
     if mode == "pool":
-        assert not {
-            "timed_operation",
-            "timed_receipt",
-            "timed_controls_digest",
-        } & evidence.keys()
+        assert (
+            not {
+                "timed_operation",
+                "timed_receipt",
+                "timed_controls_digest",
+            }
+            & evidence.keys()
+        )
         assert calls == [("new-graded-identity", graded.worker_operation)]
     else:
         assert evidence["timed_operation"] == timed.worker_operation
