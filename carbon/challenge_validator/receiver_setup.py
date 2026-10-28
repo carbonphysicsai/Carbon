@@ -5,7 +5,7 @@
         --installed-state STATE --receiver-state DIR --hotkey SS58 \\
         --challenge ID VERSION \\
         [--pack DIR | --pack-store DIR (--pack-digest sha256:... | --pack-set-key KEY)] \\
-        [--port N] [--lifetime-seconds N]
+        [--port N] [--lifetime-seconds N] [--no-construction-runtimes]
     .venv/bin/python -B -m carbon.challenge_validator.receiver_setup start \\
         --receiver-state DIR [--detach]
     .venv/bin/python -B -m carbon.challenge_validator.receiver_setup service \\
@@ -272,7 +272,7 @@ def _gpu_lane_keys(
         if not construction_runtimes:
             raise SetupRefused(
                 "construction_runtimes_needed",
-                "GPU construction images ride the per-runtime construction set; add --construction-runtimes.",
+                "GPU construction images need the full CPU construction set; enable --construction-runtimes.",
             )
         keys["gpu_construction_images"] = [
             _gpu_file("gpu_construction_image", item) for item in images
@@ -303,15 +303,16 @@ def prepare(
     graph_gpu_image_manifest: Path | None = None,
     graph_gpu_ops: Path | None = None,
     gpu_construction_images: tuple = (),
-    construction_runtimes: bool = False,
+    construction_runtimes: bool = True,
 ) -> dict:
     """Write the runner profile and receiver configuration; return public facts.
 
     The GPU lane (a dedicated GPU validator host) is opt-in: ``graph_gpu_image_manifest`` and
     ``graph_gpu_ops`` (both or neither) name the registered JAX GPU worker and the ops record the
     hardware class check wrote; ``gpu_construction_images`` (one or two GPU worker manifests) rebuild
-    catalog entries on their GPU twins and need ``construction_runtimes`` (the explicit opt-in to the
-    per-runtime CPU construction pair). Paths are checked here; the receiver re-checks the images, the
+    catalog entries on their GPU twins and need ``construction_runtimes`` (the default full CPU
+    construction pair). An explicit false opts out and retains only the installed worker; the returned
+    mode and subsequent status report that choice. Paths are checked here; the receiver re-checks the images, the
     ops record and the owner's hardware acceptance at start.
 
     ``speed_sample_key_file`` is the pool versions' K_speed (the custody job writes it beside the signed copy,
@@ -540,6 +541,9 @@ def prepare(
         "evaluation_pack_set": pack_set is not None,
         "graph_gpu_lane": "graph_gpu_image_manifest" in gpu_keys,
         "gpu_construction_images": len(gpu_keys.get("gpu_construction_images", ())),
+        "construction_runtime_mode": (
+            "full_cpu" if construction_runtimes else "installed_worker_only"
+        ),
         "network_block": block,
         "profile_sha256": _sha(profile_path.read_bytes()),
         "config_sha256": _sha(config_path.read_bytes()),
@@ -891,6 +895,9 @@ def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
         "challenge": config.get("challenge"),
         "receiver_hotkey": config["receiver_hotkey"],
         "unit": unit,
+        "construction_runtime_mode": (
+            "full_cpu" if "construction_runtimes" in config else "installed_worker_only"
+        ),
         "service": service_state,
         "intake": intake,
         "port": config["port"],
@@ -953,8 +960,9 @@ def main(argv=None) -> int:
     )
     prep.add_argument(
         "--construction-runtimes",
-        action="store_true",
-        help="opt in to the per-runtime CPU construction set (needed by --gpu-construction-image)",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="serve both CPU construction runtimes (default); --no-construction-runtimes explicitly narrows to the installed worker",
     )
     prep.add_argument("--port", type=int, default=DEFAULT_PORT)
     prep.add_argument("--lifetime-seconds", type=int, default=DEFAULT_LIFETIME_SECONDS)
