@@ -366,11 +366,7 @@ def test_truth_preflight_uses_a_declared_conversion_without_a_challenge_dispatch
         return [value + 10.0 for value in row]
 
     def failed(_inputs, row):
-        return (
-            ()
-            if all(value == 10.5 for value in row)
-            else ("synthetic_model_space",)
-        )
+        return () if all(value == 10.5 for value in row) else ("synthetic_model_space",)
 
     chosen = replace(
         binding(),

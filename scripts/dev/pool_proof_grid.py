@@ -80,15 +80,17 @@ def _check_pool_truths(binding, specs):
 
     try:
         checked = [
-            replace(
-                spec,
-                raw=tuple(
-                    tuple(pool_plugin._model_space_of(binding, row))
-                    for row in spec.raw
-                ),
+            (
+                replace(
+                    spec,
+                    raw=tuple(
+                        tuple(pool_plugin._model_space_of(binding, row))
+                        for row in spec.raw
+                    ),
+                )
+                if spec.raw is not None
+                else spec
             )
-            if spec.raw is not None
-            else spec
             for spec in specs
         ]
     except (TypeError, ValueError, OverflowError):
