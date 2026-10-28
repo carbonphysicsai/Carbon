@@ -638,6 +638,13 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
     }
 
 
+#: The most a retained inference pair is read back at on a retry. The pair holds both phases' full predictions
+#: (base64), about 1.9 MB for the 646-row Motor 1.5 bank: a 1 MiB read cap refused every retry with the generic
+#: `public_measurement_bytes_unavailable` and hid the first attempt's reason (valV3 2026-10-28). The scoring
+#: reader holds its own ceiling (`inference_pair_evidence._MAX_BYTES`), typed.
+PAIR_READ_BYTES = 8 * 1024**2
+
+
 def _graded_query(material, artifacts):
     """``(inputs, expected output shape)`` of the query the graded inference ACTUALLY ran: the retained
     ``inputs.npz``. Everything that repeats or times that inference (the repeat pair, the single-call
@@ -679,8 +686,9 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
     )
 
     path = _private_evaluation_directory(result, submission_id) / "inference-pair.json"
+    # (a retry reads it back: it holds both phases' predictions, ~1.9 MB at 646 rows)
     if path.exists() or path.is_symlink():
-        return _private_measurement_bytes(path, 1024**2)
+        return _private_measurement_bytes(path, PAIR_READ_BYTES)
     owner = adapter.owner(submission_id) if regrade is None else regrade.owner
     provider = adapter._provider(owner)
     material = adapter.discovery._material
