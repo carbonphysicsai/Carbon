@@ -176,8 +176,11 @@ def delivered_indices(bank, delivered_inputs, seed: bytes) -> list:
         raise SingleCallRefused("single_call_pool_smaller_than_the_sample")
     canonical = np.asarray(bank["inputs"])
     delivered = np.asarray(delivered_inputs)
-    if delivered.ndim != 2 or delivered.shape[1:] != canonical.shape[1:]:
+    if delivered.ndim < 2 or delivered.shape[1:] != canonical.shape[1:]:
         raise SingleCallRefused("single_call_delivered_rows_differ")
+    # rows are compared whole, whatever their rank (tabular rows are 1-D)
+    canonical = canonical.reshape(len(canonical), -1)
+    delivered = delivered.reshape(len(delivered), -1)
     out = []
     for position in pool_exam.speed_sample(len(pool), seed=seed, count=SAMPLE):
         row = canonical[pool[position]]

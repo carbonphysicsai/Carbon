@@ -170,10 +170,19 @@ def _retained(tmp_path, monkeypatch):
     )
 
 
-def _rotate(fixture, monkeypatch, tmp_path, *, scale=0.5):
-    """Select a rotated pack: a new case bank, same shape and dtype."""
+def _rotate(fixture, monkeypatch, tmp_path, *, scale=0.5, copies=1):
+    """Select a rotated pack: a new case bank, same shape and dtype. With ``copies`` > 1 the bank is
+    larger than the task's practice query (distinct rows), as a sealed/pool pack's bank is.
+    """
+    import numpy as np
+
     practice = fixture.material["practice_inputs"]
-    bank = (practice * scale).astype(practice.dtype)
+    bank = np.concatenate(
+        [
+            (practice * scale * (1 + 0.1 * k)).astype(practice.dtype)
+            for k in range(copies)
+        ]
+    )
     bank_raw = _tensors(inputs=bank)
     snapshot = SimpleNamespace(
         manifest_digest=PACK, read_role=lambda *_args, **_kwargs: bank_raw
@@ -578,5 +587,143 @@ def test_a_counted_bank_grade_runs_the_retained_state_on_the_bank_and_takes_the_
         )
         assert provenance["kind"] == "COUNTED_GRADE"
         assert exam_cap.EPOCH_BLOCKS == 360
+    finally:
+        fixture.provider.close()
+
+
+def test_a_counted_pool_grade_repeats_and_times_the_bank_it_graded(
+    tmp_path, monkeypatch
+):
+    """valV3 2026-10-27 (single_call_row_not_in_the_delivered_query): the pack's bank is larger than the
+    task's practice query. The REAL counted regrade infers over the bank, and then the REAL repeat-pair and
+    single-call stages (the real local runner, the real derived program) run on that same bank: the 20 timed
+    rows are drawn from the bank's pool rows, found in the delivered rows, and their answers equal the
+    graded run's."""
+    import numpy as np
+
+    from carbon.development_session import bundle_construction_worker as worker
+    from carbon.development_session import paired_inference, single_call_timing
+    from carbon.scoring import pool_exam, sealed_batch_source
+
+    fixture = _retained(tmp_path, monkeypatch)
+    try:
+        bank_raw, _ = _rotate(fixture, monkeypatch, tmp_path, copies=13)
+        adapter = fixture.adapter
+        practice_rows = len(fixture.material["practice_inputs"])
+        bank = np.load(__import__("io").BytesIO(bank_raw))["inputs"]
+        assert len(bank) == 13 * practice_rows
+        pool_rows = len(bank) - practice_rows
+        assert pool_rows >= single_call_timing.SAMPLE
+        cohorts = ["cell"] * practice_rows + [pool_exam.POOL_COHORT] * pool_rows
+        # the synthetic fixture stands in for a registered pool version
+        monkeypatch.setattr(retention, "_pool_graded_version", lambda _adapter: True)
+        adapter.discovery.evaluation_pack_public_root = Path(tmp_path)
+        key = bytes(range(32))
+        adapter.speed_sample_key = key
+        adapter.copy_hotkey = None
+        adapter.owner = lambda _task: "miner"
+        adapter.exam_cadence = {
+            "capacity_cpu_hours_per_day": 270.0,
+            "rebuild_cpu_hours_placeholder": {adapter.challenge_id: 1.0},
+        }
+        adapter.ledger.record(
+            SimpleNamespace(
+                hotkey="miner",
+                receipt={"sequence": 1, "digest": "d", "block": 360 * 7 + 5},
+                contract_digest=adapter.contract_digest,
+            ),
+            kind="OUTCOME",
+            submission_id=fixture.task_id,
+        )
+        monkeypatch.setattr(
+            sealed_batch_source,
+            "resolve",
+            lambda **_: (
+                {"inputs": bank, "cohorts": cohorts},
+                SimpleNamespace(POOL_GRADED=True),
+            ),
+        )
+        from carbon.challenge_kit import physical_pack
+
+        monkeypatch.setattr(
+            physical_pack,
+            "development_bank",
+            lambda *_: {"inputs": fixture.material["practice_inputs"]},
+        )
+        # the stages run on the real local runner (the receiver's carrier is not available here)
+        real_infer_state = worker._infer_state
+        monkeypatch.setattr(
+            worker,
+            "_infer_state",
+            lambda ledger, **kw: real_infer_state(
+                ledger, **{**kw, "runner": fixture.runner}
+            ),
+        )
+        # the repeat pair needs the carrier's own accounting rows, which the local runner does not write:
+        # record what it is asked to run instead
+        pairs = []
+
+        def pair(ledger, **kw):
+            pairs.append(kw)
+            return paired_inference.InferencePairResult({"recorded": True})
+
+        monkeypatch.setattr(paired_inference, "infer_frozen_pair", pair)
+        monkeypatch.setattr(
+            adapter.discovery.evaluation_pack_snapshot,
+            "read_json_role",
+            lambda *_a, **_k: {"paired_repeat_procedure": "per_case"},
+            raising=False,
+        )
+        seen = {}
+
+        def grade(
+            adapter,
+            submission_id,
+            result,
+            artifacts,
+            evidence=None,
+            regrade=None,
+            pool_store=None,
+        ):
+            entry = json.loads(result["entry_path"].read_bytes())
+            seen["pair"] = retention._inference_pair_raw(
+                adapter, submission_id, result, artifacts, entry, regrade
+            )
+            # the local runner runs the fixed programs only: admit Carbon's derived single-call program
+            import test_direct_clean_rebuild_acceptance as local
+
+            monkeypatch.setattr(
+                local,
+                "INFER_PROGRAM",
+                single_call_timing.program(worker.INFER_PROGRAM),
+            )
+            seen["single"] = retention._single_call_raw(
+                adapter, submission_id, result, artifacts, entry, regrade
+            )
+            seen["artifacts"] = artifacts
+            return {**result, "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY"}
+
+        monkeypatch.setattr(retention, "_retain_selected_pack_evaluation", grade)
+        retention._counted_bank_grade(
+            adapter,
+            fixture.task_id,
+            fixture.first,
+            pool_store="STORE",
+            artifact_directory=fixture.artifacts,
+            entry_directory=fixture.entries,
+            runner=fixture.runner,
+        )
+        assert (
+            seen["artifacts"]["inputs.npz"] == bank_raw
+        )  # the graded query is the bank
+        # the repeat pair is asked to run over the bank's rows and their output shape, not the practice query
+        assert len(pairs) == 1 and len(pairs[0]["inputs"]) == len(bank)
+        assert pairs[0]["expected_output_shape"][0] == len(bank)
+        document = json.loads(seen["single"])
+        seconds, matched = single_call_timing.read_side_file(seen["single"])
+        assert len(seconds) == single_call_timing.SAMPLE
+        assert matched is True  # the timed calls answered what the graded run did
+        # every timed row is a pool row of the BANK, none is a practice row
+        assert all(practice_rows <= i for i in document["indices"])
     finally:
         fixture.provider.close()

@@ -834,7 +834,14 @@ def test_pair_procedure_is_the_selected_packs_registered_form(
         ),
     )
     raw = retention._inference_pair_raw(
-        adapter, "rtsk_x", {}, {"state.npz": b"s"}, {"state_digest": "sd"}
+        adapter,
+        "rtsk_x",
+        {},
+        {
+            "state.npz": b"s",
+            "inputs.npz": _tensors(inputs=material["practice_inputs"]),
+        },
+        {"state_digest": "sd"},
     )
     assert seen["procedure"] == expected
     assert roles == [("public", "accuracy_definition")]

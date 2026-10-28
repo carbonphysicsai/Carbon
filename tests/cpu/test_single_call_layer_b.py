@@ -285,6 +285,7 @@ def stage(tmp_path, monkeypatch):
     graded = [[float(i)] for i in range(len(delivered))]
     artifacts = {
         "state.npz": b"state",
+        "inputs.npz": bundle_construction_worker._tensors(inputs=delivered),
         "predictions.json": json.dumps(graded).encode(),
     }
     return SimpleNamespace(
@@ -522,3 +523,66 @@ def test_the_stage_carries_the_versions_registered_rebuild_wall(stage):
     sent = stage.calls[-1]
     assert sent["rebuild_wall_seconds"] == REBUILD_LIMIT_SECONDS
     assert sent["seconds"] == REBUILD_LIMIT_SECONDS
+
+
+def test_a_counted_grades_stage_runs_on_the_bank_it_graded_not_the_practice_query(
+    stage, monkeypatch
+):
+    """valV3 2026-10-27: on a counted grade of a pool pack the graded inference ran over the pack's
+    bank, a query larger than the task's practice query. The drawn pool rows are in that bank (not the
+    practice rows), and the stage is told the bank and its output shape."""
+    bank_inputs = stage.bank["inputs"]
+    practice = bank_inputs[: len(bank_inputs) // 3]  # the task's smaller practice query
+    stage.adapter.discovery._material["practice_inputs"] = practice
+    stage.adapter.discovery._material["expected_output_shape"] = (len(practice), 1)
+    stage.artifacts["inputs.npz"] = bundle_construction_worker._tensors(
+        inputs=bank_inputs
+    )
+    stage.artifacts["predictions.json"] = json.dumps(
+        [[float(i)] for i in range(len(bank_inputs))]
+    ).encode()
+    seen = []
+
+    def infer(ledger, **kwargs):
+        seen.append(kwargs)
+        control = kwargs["single_call"]
+        return SimpleNamespace(
+            receipt={
+                "single_call": {
+                    "scope": single_call_timing.SCOPE,
+                    "indices": control["indices"],
+                    "warmup_digest": "sha256:" + "8" * 64,
+                    "call_s": [0.02] * single_call_timing.SAMPLE,
+                }
+            },
+            predictions=[[float(i)] for i in control["indices"]],
+            worker_operation="operation-" + "9" * 64,
+        )
+
+    monkeypatch.setattr(bundle_construction_worker, "_infer_state", infer)
+    _, match = single_call_timing.read_side_file(_run(stage))
+    sent = seen[0]
+    assert len(sent["inputs"]) == len(bank_inputs) > len(practice)
+    assert np.array_equal(sent["inputs"], bank_inputs)
+    drawn = single_call_timing.delivered_indices(
+        stage.bank, bank_inputs, single_call_timing.sample_seed(KEY, SUBMISSION)
+    )
+    assert sent["single_call"]["indices"] == drawn and match is True
+
+
+def test_the_stage_refuses_when_the_graded_query_is_missing_or_changed(stage):
+    del stage.artifacts["inputs.npz"]
+    with pytest.raises(
+        retention.RetentionUnavailable, match="graded_query_unavailable"
+    ):
+        _run(stage)
+    stage.artifacts["inputs.npz"] = b"not an npz"
+    with pytest.raises(retention.RetentionUnavailable, match="graded_query_unreadable"):
+        _run(stage)
+    stage.artifacts["inputs.npz"] = bundle_construction_worker._tensors(
+        inputs=stage.bank["inputs"][:, :2]
+    )
+    with pytest.raises(
+        retention.RetentionUnavailable, match="graded_query_contract_changed"
+    ):
+        _run(stage)
