@@ -136,3 +136,15 @@ resolved in 1.24 seconds. The resulting lock SHA256 remains
 `9b947608d31daccdb2230d6d64a04893253064b89328eaeda8098b75b9d18400`.
 This documentation correction does not regenerate or alter the lock,
 dependency profile, bundle assets or test assertions.
+
+The first canonical fast quality pass on the prospective composition stopped
+before runtime: Black required four layouts and Ruff reported three existing
+single-element-list selections plus the deliberate trusted-source AST `exec`
+in the new semantic test. The successor applies only the exact measured Black
+diff, conventional `next(...)` fixture selections, and a single-line S102
+exception documenting execution of repository-owned helper definitions.
+No global lint rule is disabled; actual transformed helper execution and all
+tensor/value assertions remain. The generated lock/profile/assets are unchanged.
+Actual quality log SHA256:
+`75e6856e1b4aa2dbb5068e197f39d6e92d3d1aba6b71af5fbed643439716ffcf`.
+Exact successor quality and runtime remain pending.
