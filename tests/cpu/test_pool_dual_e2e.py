@@ -375,3 +375,31 @@ def test_the_declared_dtypes_the_pair_is_read_against_are_the_banks_and_the_inte
         == case["registration"]["timing_profile"]["input_shape"]
     )
     assert CONDITION_INPUTS  # the version's condition inputs are part of the real interface
+
+
+def test_only_the_pool_exam_emits_the_pool_graded_outcome():
+    """Validator ruling (2026-10-28): `POOL_GRADED` has no policy entry (no cap), so nothing but the
+    pool exam may emit it; a non-pool adapter's measure never returns it."""
+    import pathlib
+    import re
+
+    from carbon.scoring import pool_exam
+
+    assert pool_exam.OUTCOME_POOL == "POOL_GRADED"
+    root = pathlib.Path(pool_exam.__file__).parent
+    uses, literals = set(), set()
+    for path in root.glob("*.py"):
+        code = [
+            line
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if not line.lstrip().startswith("#")
+        ]
+        text = chr(10).join(code)
+        if "OUTCOME_POOL" in text:
+            uses.add(path.name)
+        # the outcome as a string value (a getattr(x, "POOL_GRADED") flag read is not one)
+        flag_reads_removed = re.sub(r'getattr\(\w+, "POOL_GRADED"', "", text)
+        if '"POOL_GRADED"' in flag_reads_removed:
+            literals.add(path.name)
+    assert uses == {"pool_exam.py"}
+    assert literals == {"pool_exam.py", "dual_score.py"}
