@@ -14,6 +14,11 @@ background loops with ONE call, and prints what it raised. The live state is onl
     python -B scripts/dev/sealed_exam/receiver_copy_repro.py grade \
         --config <live receiver.json> --scratch /tmp/repro-grade --task rtsk_<64 hex>
 
+Grade mode also records every failed PRODUCER check and goes on past it (a later step may then fail for the same
+root cause; the first listed is the root), and prints the values behind the producer / train / bank binding of the
+selected pack (digests only) with this host's per-file producer hashes (``grade_explain.py``; ``--no-explain`` turns
+it off). Nothing it patches is written; the grade it drives still decides only what the receiver's code decides.
+
 Run it as the receiver's own user with the receiver's checkout. ``--dry-run`` prints what would be
 copied and the config paths OUTSIDE the state directory (shared with the live receiver; only read)
 and exits. The grade mode really runs the grade's inference on this host (it needs the same
@@ -30,6 +35,11 @@ import sys
 import threading
 import traceback
 from pathlib import Path
+
+try:  # run as a script (this directory is on the path) or imported from the repository root
+    import grade_explain
+except ImportError:  # pragma: no cover - the import style differs, not the code
+    from scripts.dev.sealed_exam import grade_explain
 
 REPRO_PORT = 18799
 TASK = re.compile(r"rtsk_[0-9a-f]{64}\Z")
@@ -94,6 +104,11 @@ def main(argv=None):
     parser.add_argument("--scratch", type=Path, required=True)
     parser.add_argument("--task")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--no-explain",
+        action="store_true",
+        help="grade mode: do not record-and-continue past failed producer checks or print the binding values",
+    )
     args = parser.parse_args(argv)
     if args.mode == "grade" and (args.task is None or TASK.match(args.task) is None):
         parser.error("grade needs --task rtsk_<64 hex>")
@@ -161,12 +176,19 @@ def main(argv=None):
                 pool_store=grader._pool(),
             )
             print("retain_result returned (keys only):", sorted(result))
+            for key in ("private_evaluation_state", "private_evaluation_reason"):
+                if key in result:
+                    print(f"{key}: {result[key]}")
         except Exception as failure:  # noqa: BLE001 - this is the diagnostic
             print("retain_result RAISED:")
             _print_failure(failure)
         finally:
+            if args.mode == "grade" and not args.no_explain:
+                grade_explain.report()
             stop_event.set()
 
+    if args.mode == "grade" and not args.no_explain:
+        grade_explain.install()
     if args.mode == "advance":
         direct_intake._advance_loop = one_advance
         direct_intake._grade_loop = lambda *a, **k: None

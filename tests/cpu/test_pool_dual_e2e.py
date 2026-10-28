@@ -403,3 +403,48 @@ def test_only_the_pool_exam_emits_the_pool_graded_outcome():
             literals.add(path.name)
     assert uses == {"pool_exam.py"}
     assert literals == {"pool_exam.py", "dual_score.py"}
+
+
+def _explained(case, monkeypatch, *, producer_differs=False):
+    """Run the producer with the grade explainer installed; return (printed lines, failed checks)."""
+    from scripts.dev.sealed_exam import grade_explain
+
+    lines = []
+    monkeypatch.setattr(physical, "_inputs", physical._inputs)
+    monkeypatch.setattr(source, "_producer_require", source._producer_require)
+    grade_explain.install(print_=lines.append)
+    if producer_differs:
+        monkeypatch.setattr(
+            physical, "producer_digest", lambda _adapter: "sha256:" + "0" * 64
+        )
+    try:
+        _produce(case)
+    except source.PrivateEvaluationSourceRefused:
+        pass  # a later step may fail for the same root cause: the explainer reports, it does not decide
+    return lines, list(grade_explain.FAILED)
+
+
+def test_the_grade_explainer_is_silent_about_failures_when_every_check_passes(
+    case, monkeypatch
+):
+    lines, failed = _explained(case, monkeypatch)
+    text = chr(10).join(lines)
+    assert failed == []
+    assert "binding  PRODUCER ok" in text and "binding  TRAIN ok" in text
+    assert "binding  BANK ok" in text
+
+
+def test_the_grade_explainer_names_which_binding_differs_and_lists_the_failed_check(
+    case, monkeypatch
+):
+    """valV3 2026-10-28: 'dual_native_producer_or_train_binding' stands for the producer digest, the train and
+    the bank at once; the explainer says which, with this host's per-file hashes for the producer.
+    """
+    lines, failed = _explained(case, monkeypatch, producer_differs=True)
+    text = chr(10).join(lines)
+    assert failed and failed[0] == "dual_native_producer_or_train_binding"
+    assert "binding  PRODUCER DIFFERS" in text
+    assert "binding  TRAIN ok" in text and "binding  BANK ok" in text
+    assert (
+        "physical_dual_pack.py  sha256:" in text
+    )  # this host's files, to compare with the build host
