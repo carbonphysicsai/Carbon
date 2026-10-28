@@ -12,6 +12,10 @@ Challenge's adapter and model servers, supplied by its lane. `--sets` maps set n
 ({"A": ["t1", ...], "B": [...]}); `--pools-dir` holds Data Collection's `pool-source-<tid>.json` documents (custody).
 `--grid` is a JSON file with every `pool_proof_grid.GridSpec` field (none has a default). The sheet is
 aggregates only; run it in custody, it reads sealed pool material.
+
+For F02 2.5, `--truth-row-sealed-batch-dir` selects the carried pool batch's native sealed cells/probes and
+its own `response_reference` for the truth check only. `--probe-truth-file` then holds exactly those probes'
+truths. The grid's practice/model bank and scoring remain unchanged; the option grants no custody authority.
 """
 
 from __future__ import annotations
@@ -20,6 +24,7 @@ import argparse
 import hashlib
 import importlib
 import json
+import math
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -142,6 +147,98 @@ def without_excluded_probes(bank_legs, skipped):
     return replace(bank_legs, rows=rows, arguments=arguments)
 
 
+def sealed_truth_bank_legs(bank_legs, batch_dir, truth_file):
+    """F02 2.5's custody-only truth check on its own sealed cells, probes and carried anchor.
+
+    This operator input grants no official evidence authority. Only the successful aggregate check state is
+    shared with the grid; its practice rows, model binding and measurement arguments are unchanged.
+    """
+    from carbon.challenge_kit import physical_pack
+    from carbon.scoring import f02_sealed_dual_pack as sealed
+    from carbon.scoring import physical_dual_pack as physical
+    from carbon.scoring import pool_plugin, pool_version, probe_design
+    from carbon.scoring import sealed_batch_source as source
+
+    stop = pool_plugin.TruthCheckStop
+    binding = bank_legs.binding
+    if (binding.kind, binding.version) != ("f02", "2.5"):
+        raise stop("sealed_truth_check_is_only_registered_for_f02_2_5")
+    try:
+        carried = source.read_batch(batch_dir)
+        if carried is None:
+            raise stop("sealed_truth_check_batch_missing")
+        document, records = carried
+        material = pool_version.check_material(document["pool"])
+        if (
+            material["kind"] != binding.kind
+            or material["version"] != binding.version
+            or material["input_names"] != list(binding.input_names)
+            or material["design_names"] != list(binding.design_names)
+        ):
+            raise stop("sealed_truth_check_material_differs_from_binding")
+        reference = material.get(pool_version.RESPONSE_REFERENCE)
+        if reference is None or reference["input"] != "on_time_s":
+            raise stop("sealed_truth_check_needs_its_carried_on_time_anchor")
+        bank = pool_version.strip_pool(
+            source._build(
+                source.F02, source._kit(source.F02), document, records, binding.version
+            )
+        )
+        if not sealed.is_sealed_bank(bank):
+            raise stop("sealed_truth_check_needs_the_full_native_grid")
+        rows = physical.bank_rows(bank, binding.input_names)
+        probes = [r for r in rows if r["cohort"] == probe_design.PROBE_COHORT]
+        indexed = [(i, r["record"]["probe"]) for i, r in enumerate(probes)]
+        groups = probe_design.groups(indexed)
+        bases = {str(indexed[g["base"]][1]["base"]) for g in groups}
+        if not bases or set(reference["by_base"]) != bases:
+            raise stop("sealed_truth_check_anchor_does_not_cover_its_groups")
+        by_case = json.loads(Path(truth_file).read_text(encoding="utf-8"))
+        if type(by_case) is not dict or set(by_case) != {r["case_id"] for r in probes}:
+            raise stop("sealed_truth_check_truth_must_cover_exactly_its_probes")
+        if any(
+            type(row) is not list
+            or len(row) != 1
+            or type(row[0]) not in (int, float)
+            or not math.isfinite(row[0])
+            for row in by_case.values()
+        ):
+            raise stop("sealed_truth_check_truth_must_be_finite_width_one")
+        by_inputs = {
+            tuple(r["inputs"][n] for n in binding.input_names): by_case[r["case_id"]]
+            for r in probes
+        }
+        if len(by_inputs) != len(probes):
+            raise stop("sealed_truth_check_probe_inputs_are_not_distinct")
+        public = physical_pack.public_roles(source.F02, binding.version)
+        definition = {
+            **sealed.definition(bank=bank, train_raw=public["train"]),
+            "group_response_reference": reference,
+        }
+    except stop:
+        raise
+    except (KeyError, TypeError, ValueError, OSError, UnicodeError):
+        # Custody row ids, inputs and anchor values must not enter the operator's diagnostic output.
+        raise stop("sealed_truth_check_material_or_truth_malformed") from None
+
+    def from_file(inputs):
+        return [by_inputs[tuple(row[n] for n in binding.input_names)] for row in inputs]
+
+    return replace(
+        bank_legs,
+        binding=replace(binding, probe_truth=from_file),
+        measure=sealed.measure,
+        rows=rows,
+        arguments={
+            "definition": definition,
+            "limits": json.loads(public["important_limit_definition"]),
+            "objective": json.loads(public["design_objective"]),
+            "train_raw": public["train"],
+            "names": binding.input_names,
+        },
+    )
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     for flag in ("kind", "version", "binding", "pools-dir", "sets", "grid", "out-dir"):
@@ -171,8 +268,15 @@ def main(argv=None):
     parser.add_argument(
         "--probe-truth-file",
         default=None,
-        help="JSON {case_id: [true raw output row]} for the practice bank's probe rows (Data Collection's solves); "
-        "used when the binding supplies no probe_truth",
+        help="JSON {case_id: [true raw output row]} for the practice bank's probes, or the sealed probes with "
+        "--truth-row-sealed-batch-dir. The default practice route uses it when the binding supplies no probe_truth",
+    )
+    parser.add_argument(
+        "--truth-row-sealed-batch-dir",
+        default=None,
+        help="F02 2.5 custody-only: check truths on this carried pool batch's full native sealed grid, probes "
+        "and response_reference instead of the practice bank; --probe-truth-file must cover its probes exactly. "
+        "Does not change model grading or grant official evidence authority",
     )
     parser.add_argument(
         "--probe-truth-excluded",
@@ -186,6 +290,17 @@ def main(argv=None):
 
     from carbon.scoring import pool_gates, pool_grader, pool_plugin, pool_proof_grid
 
+    if args.truth_row_sealed_batch_dir and (
+        (args.kind, args.version) != ("f02", "2.5")
+        or args.truth_probe_rule != "perfect"
+        or not args.probe_truth_file
+        or args.probe_truth_excluded
+    ):
+        print(
+            "STOP, back to the Validator: sealed_truth_check_options_incompatible",
+            file=sys.stderr,
+        )
+        return 3
     binding = _binding(args.binding, args.kind, args.version)
     pools = Path(args.pools_dir)
     sets = json.loads(Path(args.sets).read_text(encoding="utf-8"))
@@ -256,7 +371,11 @@ def main(argv=None):
         except pool_plugin.TruthCheckStop as stop:
             print(f"STOP, back to the Validator: {stop}", file=sys.stderr)
             return 3
-    if args.probe_truth_file and binding.probe_truth is None:
+    if (
+        args.probe_truth_file
+        and binding.probe_truth is None
+        and not args.truth_row_sealed_batch_dir
+    ):
         by_case = json.loads(Path(args.probe_truth_file).read_text(encoding="utf-8"))
         if skipped or args.probe_truth_excluded:
             try:
@@ -279,14 +398,20 @@ def main(argv=None):
         try:
             # The truth check runs on the bank without the closed-exclusion probes (their whole response group:
             # they carry no truth, V8_RULINGS 14); every model in the grid is graded on the full bank.
-            checked = (
-                without_excluded_probes(bank_legs, skipped) if skipped else bank_legs
-            )
-            record = checked.verify_truth_rows()
+            if args.truth_row_sealed_batch_dir:
+                checked = sealed_truth_bank_legs(
+                    bank_legs, args.truth_row_sealed_batch_dir, args.probe_truth_file
+                )
+            else:
+                checked = (
+                    without_excluded_probes(bank_legs, skipped) if skipped else bank_legs
+                )
+            truth_record = checked.verify_truth_rows()
         except pool_plugin.TruthCheckStop as stop:
             print(f"STOP, back to the Validator: {stop}", file=sys.stderr)
             return 3
-        print(f"truth-row check passed: {record}")
+        source_label = " (sealed bank)" if args.truth_row_sealed_batch_dir else ""
+        print(f"truth-row check passed{source_label}: {truth_record}")
 
     if args.pool_gates == "required":
         try:
@@ -316,6 +441,8 @@ def main(argv=None):
         pool_gates=args.pool_gates == "required",
     )
     result = pool_proof_grid.run_grid(plugin, grid)
+    if args.truth_row_sealed_batch_dir:
+        result["meta"]["truth_row_check"] = {"source": "sealed_native", **truth_record}
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     stem = f"owner-sheet-{args.kind}-{args.version}"
