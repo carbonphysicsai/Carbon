@@ -217,7 +217,7 @@ def sealed_truth_bank_legs(bank_legs, batch_dir, truth_file):
         }
     except stop:
         raise
-    except (KeyError, TypeError, ValueError, OSError, UnicodeError):
+    except (KeyError, TypeError, ValueError, OSError, UnicodeError, OverflowError):
         # Custody row ids, inputs and anchor values must not enter the operator's diagnostic output.
         raise stop("sealed_truth_check_material_or_truth_malformed") from None
 

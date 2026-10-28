@@ -208,6 +208,18 @@ def test_probe_truth_must_match_the_sealed_probes_exactly_and_be_finite_width_on
     assert legs.state == {}
 
 
+def test_a_huge_json_integer_truth_is_sanitized_before_the_perfect_rule(sealed_case):
+    root, truth_file, _, _, truths, legs, _ = sealed_case
+    truths[next(iter(truths))] = [10**400]
+    truth_file.write_text(json.dumps(truths), encoding="utf-8")
+    with pytest.raises(
+        pool_plugin.TruthCheckStop,
+        match="^sealed_truth_check_material_or_truth_malformed$",
+    ):
+        script.sealed_truth_bank_legs(legs, root, truth_file)
+    assert legs.state == {}
+
+
 def test_a_remaining_real_native_gate_failure_still_stops_the_sealed_truth_check(
     sealed_case,
 ):
