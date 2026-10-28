@@ -282,11 +282,15 @@ def test_runtime_inventory_preserves_cpu_identities_and_does_not_label_a_gpu_cpu
     config, _root = receiver
     profile_path = Path(config["runner_profile"])
     profile = json.loads(profile_path.read_bytes())
-    profile["runtime"] = {"implementation": {"source_tree_digest": "sha256:" + "e" * 64}}
+    profile["runtime"] = {
+        "implementation": {"source_tree_digest": "sha256:" + "e" * 64}
+    }
     profile_path.write_text(json.dumps(profile))
     config["construction_image_manifest"] = "/synthetic/torch-worker.json"
     monkeypatch.setattr(receiver_catalog, "_served_parents", READ_PARENTS)
-    monkeypatch.setattr(docker_runtime, "load_image_identity", lambda path: torch_image())
+    monkeypatch.setattr(
+        docker_runtime, "load_image_identity", lambda path: torch_image()
+    )
     assert receiver_catalog.served_runtimes(config) == {
         "torch-cpu-py311": CPU_PARENTS["torch-cpu-py311"].image_id
     }
@@ -315,24 +319,32 @@ def test_runtime_inventory_preserves_cpu_identities_and_does_not_label_a_gpu_cpu
 @pytest.mark.parametrize(
     "field", ["lock_digest", "entrypoint_digest", "build_recipe_digest"]
 )
-def test_an_unknown_cpu_identity_cannot_establish_inventory(receiver, monkeypatch, field):
+def test_an_unknown_cpu_identity_cannot_establish_inventory(
+    receiver, monkeypatch, field
+):
     from carbon.reconstruction.worker import docker_runtime
 
     config, _root = receiver
     profile_path = Path(config["runner_profile"])
     profile = json.loads(profile_path.read_bytes())
-    profile["runtime"] = {"implementation": {"source_tree_digest": "sha256:" + "e" * 64}}
+    profile["runtime"] = {
+        "implementation": {"source_tree_digest": "sha256:" + "e" * 64}
+    }
     profile_path.write_text(json.dumps(profile))
     config["construction_image_manifest"] = "/synthetic/unknown-cpu.json"
     monkeypatch.setattr(receiver_catalog, "_served_parents", READ_PARENTS)
     parent = replace(CPU_PARENTS["python-cpu-py311"], **{field: "sha256:" + "9" * 64})
     monkeypatch.setattr(docker_runtime, "load_image_identity", lambda path: parent)
     assert receiver_catalog.served_runtimes(config) == {}
-    assert receiver_setup.catalog_state(config) == {"status": "UNVERIFIED", "ready": None}
+    assert receiver_setup.catalog_state(config) == {
+        "status": "UNVERIFIED",
+        "ready": None,
+    }
 
 
 @pytest.mark.parametrize(
-    "implementation", [None, {}, {"source_tree_digest": None}, {"source_tree_digest": "unknown"}]
+    "implementation",
+    [None, {}, {"source_tree_digest": None}, {"source_tree_digest": "unknown"}],
 )
 def test_a_cpu_parent_with_unreadable_implementation_inventory_is_unverified(
     receiver, monkeypatch, implementation
@@ -347,13 +359,19 @@ def test_a_cpu_parent_with_unreadable_implementation_inventory_is_unverified(
     config["construction_image_manifest"] = "/synthetic/cpu.json"
     monkeypatch.setattr(receiver_catalog, "_served_parents", READ_PARENTS)
     monkeypatch.setattr(
-        docker_runtime, "load_image_identity", lambda path: CPU_PARENTS["python-cpu-py311"]
+        docker_runtime,
+        "load_image_identity",
+        lambda path: CPU_PARENTS["python-cpu-py311"],
     )
-    assert receiver_setup.catalog_state(config) == {"status": "UNVERIFIED", "ready": None}
+    assert receiver_setup.catalog_state(config) == {
+        "status": "UNVERIFIED",
+        "ready": None,
+    }
 
 
 @pytest.mark.parametrize(
-    "inventory", ["absent", "empty", "valid", "unreadable", "unknown", "wrong_type", "duplicate"]
+    "inventory",
+    ["absent", "empty", "valid", "unreadable", "unknown", "wrong_type", "duplicate"],
 )
 def test_declared_gpu_inventory_cannot_disappear_when_unreadable(
     receiver, monkeypatch, inventory
