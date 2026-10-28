@@ -37,6 +37,52 @@ def producer_files(adapter) -> dict:
     }
 
 
+def bank_field_digests(bank) -> dict:
+    """Per-field digests of the parts ``bank_digest`` pins, each as the bank lists them and in ``case_id`` order.
+
+    ``{field: {"as_listed": sha, "by_case_id": sha}}`` for case_ids, cohorts, inputs, records and (when the bank
+    is masked) reference_present, plus ``records.<key>`` for each native record key. Equal ``by_case_id`` with
+    different ``as_listed`` is an ORDER-only difference; a different ``by_case_id`` is a CONTENT difference.
+    Digests only: no row value is printed."""
+    from carbon.scoring import physical_dual_pack as pdp
+
+    ids = list(bank["case_ids"])
+    order = sorted(range(len(ids)), key=lambda i: ids[i])
+    columns = {
+        "case_ids": ids,
+        "cohorts": list(bank["cohorts"]),
+        "inputs": [[float(v) for v in row] for row in bank["inputs"]],
+        "records": list(bank["reference_records"]),
+    }
+    if "reference_present" in bank:
+        columns["reference_present"] = list(pdp.reference_mask(bank))
+    keys = sorted({k for r in columns["records"] if type(r) is dict for k in r})
+    for key in keys:
+        columns["records." + key] = [
+            r.get(key) if type(r) is dict else None for r in columns["records"]
+        ]
+
+    def digest(rows):
+        return pdp.sha(pdp.canonical(rows))
+
+    return {
+        name: {
+            "as_listed": digest(rows),
+            "by_case_id": digest([rows[i] for i in order]),
+        }
+        for name, rows in columns.items()
+    }
+
+
+def field_lines(bank, label) -> list:
+    lines = [f"bank fields ({label}; {len(bank['case_ids'])} rows):"]
+    for name, pair in bank_field_digests(bank).items():
+        lines.append(
+            f"   {name:<28} as listed {pair['as_listed'][7:23]}…  by case_id {pair['by_case_id'][7:23]}…"
+        )
+    return lines
+
+
 def binding_lines(adapter, definition, entry, train_raw, bank) -> list:
     """The three conditions of the binding check, each with both sides, as printable lines."""
     from carbon.scoring import physical_dual_pack as pdp
@@ -66,6 +112,11 @@ def binding_lines(adapter, definition, entry, train_raw, bank) -> list:
         f"           pack definition {definition.get('bank_digest')}",
         f"           resolved bank   {bank_now}  ({len(bank['case_ids'])} rows)",
     ]
+    if not bank_ok:
+        lines += field_lines(bank, "the bank this host resolved")
+        lines.append(
+            "           (run bank_fields.py on the build host's canonical batch and compare field by field)"
+        )
     return lines
 
 

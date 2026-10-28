@@ -448,3 +448,62 @@ def test_the_grade_explainer_names_which_binding_differs_and_lists_the_failed_ch
     assert (
         "physical_dual_pack.py  sha256:" in text
     )  # this host's files, to compare with the build host
+
+
+def test_the_bank_field_digests_tell_an_order_only_difference_from_a_content_one(case):
+    """Validator ruling (2026-10-28) on 'binding  BANK DIFFERS': which field differs, and is it only the order."""
+    import copy
+
+    from scripts.dev.sealed_exam import grade_explain
+
+    bank = case["bank"]
+    same = grade_explain.bank_field_digests(bank)
+    assert {"case_ids", "cohorts", "inputs", "records"} <= set(same)
+    assert any(name.startswith("records.") for name in same)
+    # the same rows listed in another order: every field's by_case_id agrees, the listed order does not
+    order = list(reversed(range(len(bank["case_ids"]))))
+    shuffled = copy.deepcopy(bank)
+    shuffled["case_ids"] = [bank["case_ids"][i] for i in order]
+    shuffled["cohorts"] = [bank["cohorts"][i] for i in order]
+    shuffled["inputs"] = np.asarray(bank["inputs"])[order]
+    shuffled["reference_records"] = [bank["reference_records"][i] for i in order]
+    shuffled["references"] = np.asarray(bank["references"])[order]
+    if "reference_present" in bank:
+        shuffled["reference_present"] = [bank["reference_present"][i] for i in order]
+    moved = grade_explain.bank_field_digests(shuffled)
+    for name in ("case_ids", "cohorts", "inputs", "records"):
+        assert moved[name]["by_case_id"] == same[name]["by_case_id"], name
+        assert moved[name]["as_listed"] != same[name]["as_listed"], name
+    # one native record changed: that field and its key differ by case_id too (a CONTENT difference)
+    changed = copy.deepcopy(bank)
+    record = changed["reference_records"][0]
+    key = min(k for k in record if k != "case_id")
+    record[key] = "changed"
+    edited = grade_explain.bank_field_digests(changed)
+    assert edited["records"]["by_case_id"] != same["records"]["by_case_id"]
+    assert edited["inputs"] == same["inputs"] and edited["case_ids"] == same["case_ids"]
+
+
+def test_bank_fields_builds_the_same_bank_from_the_pack_directorys_sealed_batch(
+    case, capsys
+):
+    from scripts.dev.sealed_exam import bank_fields
+
+    bank = bank_fields.bank_of(MOTOR, VERSION, case["root"])
+    assert physical.bank_digest(bank) == physical.bank_digest(case["bank"])
+    assert (
+        bank_fields.main(
+            [
+                "--private-root",
+                str(case["root"]),
+                "--challenge",
+                MOTOR,
+                "--version",
+                VERSION,
+            ]
+        )
+        == 0
+    )
+    out = capsys.readouterr().out
+    assert out.startswith("bank_digest " + physical.bank_digest(bank))
+    assert "records.wall_s" in out or "records." in out
