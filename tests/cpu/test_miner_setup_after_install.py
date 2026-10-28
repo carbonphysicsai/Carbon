@@ -763,7 +763,12 @@ def test_a_stale_check_that_blocks_nothing_reads_done_on_the_step_and_the_list(
         assert row["stale"] == ["the worker image was rebuilt since the check"]
         assert "launches work" in row["note"]
         assert row["recheck"] == setup_operations.call("recheck", door)
-        assert view["next"]["step"] == "launch"
+        # These compute-only manifests establish no ready catalog. Its
+        # separate reminder stays truthful without holding up launch.
+        assert view["next"]["step"] == "catalog"
+        assert view["next"]["blocks_launch"] is False
+        assert view["next"]["then"]["step"] == "launch"
+        assert "catalog" not in view["done"]
         # The step and the list agree, row by row.
         assert view["done"] == [
             r["id"]
