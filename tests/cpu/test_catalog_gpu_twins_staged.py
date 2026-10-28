@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 
 import pytest
+import test_receiver_catalog as receiver_fixtures
 
 from carbon.backbone_catalog import pipeline
 from scripts.dev import catalog_install
@@ -100,24 +101,22 @@ def test_the_install_stages_each_served_twin_and_names_one_it_cannot(
 
 
 def test_an_unstaged_served_twin_reads_not_installed(tmp_path, monkeypatch):
-    item = with_twin(TORCH)
+    daemon = receiver_fixtures.daemon.__wrapped__(monkeypatch)
+    _config, root = receiver_fixtures.receiver.__wrapped__(tmp_path, monkeypatch, daemon)
+    item = receiver_fixtures._entries()[0]
     cpu = item["bundle_ref"]
-    parent = "sha256:" + "2" * 64
-    cfg = {"campaigns_root": str(tmp_path / "campaigns")}
-    root = catalog_state.cache_root(cfg)
-    receipt = root / cpu["bundle_digest"][7:] / (parent[7:] + ".image.json")
-    receipt.parent.mkdir(parents=True)
-    receipt.write_text("{}")
+    cfg = {"campaigns_root": str(root.parent.parent)}
+    receiver_fixtures._install(root, {"runtime": cpu["runtime_profile_id"], "digest": cpu["bundle_digest"]})
     from carbon.backbone_catalog import listing
 
     monkeypatch.setattr(listing, "load", lambda: {"entries": [item]})
-    served = {cpu["runtime_profile_id"]: parent}
+    served = dict(receiver_fixtures.CPU_PARENTS)
     monkeypatch.setattr(catalog_state, "parents", lambda _: dict(served))
     assert catalog_state.state(cfg)["missing"] == []  # no GPU worker
-    served[TORCH] = "sha256:" + "3" * 64
+    served[TORCH] = object()  # only the configured runtime's material is read here
     assert catalog_state.state(cfg)["missing"] == [item["catalog_id"]]
     twin = item["bundle_refs"][TORCH]["bundle_digest"]
-    (root / "materials" / twin[7:]).mkdir(parents=True)
+    receiver_fixtures._stage(root, {"digest": twin})
     assert catalog_state.state(cfg)["missing"] == []
     assert catalog_state.progress(cfg)["installed"] == 1
 

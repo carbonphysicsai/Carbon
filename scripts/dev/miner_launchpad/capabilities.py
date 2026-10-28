@@ -260,6 +260,9 @@ def _challenges(profile_state, host, cfg=None):
         ChallengeNotImplemented,
     )
 
+    from scripts.dev.miner_launchpad.catalog_state import readiness
+
+    installed_catalog = readiness(cfg) or {}
     result = []
     for entry in catalog(host)["challenges"]:
         profiles = [p for p in entry["profiles"] if p["profile"] == LAUNCH_PROFILE]
@@ -289,7 +292,9 @@ def _challenges(profile_state, host, cfg=None):
             ],
             "provisions": _provisions(entry["challenge_id"]),
             "known_limitations": _known_limitations(entry),
-            "catalog_install": _catalog_install(entry, cfg),
+            "catalog_install": _catalog_install(
+                entry, cfg, readiness_state=installed_catalog
+            ),
             "setup_offers": _setup_offers(entry),
         }
         refusal = None
@@ -410,7 +415,7 @@ def _mcp_connection(profile_path):
     }
 
 
-def _catalog_install(entry, cfg):
+def _catalog_install(entry, cfg, *, readiness_state=None):
     """How many of the version's backbone catalog entries are installed on
     this host (their pinned material staged where practice and admission
     look, `library_bundle.install_bundle`), or None where the version serves
@@ -423,20 +428,16 @@ def _catalog_install(entry, cfg):
         return None
     if not entries:
         return None
-    root = None
-    if type(cfg) is dict and type(cfg.get("campaigns_root")) is str:
-        root = (
-            Path(cfg["campaigns_root"])
-            / ".direct-development"
-            / "library-cache"
-            / "materials"
-        )
-    installed = 0
-    for item in entries:
-        digest = (item.get("bundle_ref") or {}).get("bundle_digest")
-        if root is not None and type(digest) is str and (root / digest[7:]).is_dir():
-            installed += 1
-    return {"entries": len(entries), "installed": installed}
+    from scripts.dev.miner_launchpad.catalog_state import readiness
+
+    if readiness_state is None:
+        found = readiness(cfg, entries) or {}
+    else:
+        found = readiness_state
+    return {
+        "entries": len(entries),
+        "installed": sum(found.get(item["catalog_id"], False) for item in entries),
+    }
 
 
 def _known_limitations(entry):
