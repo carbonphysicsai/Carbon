@@ -930,7 +930,7 @@ def compiler_for(challenge_id):
     return matches[0].compile_strategy
 
 
-def _find(challenge_id, version):
+def _matching_entries(challenge_id, version):
     if type(challenge_id) is not str:
         raise UnknownChallenge("a challenge id string is required")
     if is_development_variant(challenge_id) or is_development_variant(version):
@@ -938,6 +938,42 @@ def _find(challenge_id, version):
     matches = [e for e in _entries() if e.challenge_id == challenge_id]
     if not matches:
         raise UnknownChallenge(f"no Challenge {challenge_id!r} is registered")
+    return matches
+
+
+def _unsupported_version(challenge_id, version, matches):
+    versions = ", ".join(str(e.version) for e in matches)
+    return UnsupportedVersion(
+        f"{challenge_id} is registered at version {versions}, not {version!r}"
+    )
+
+
+def published_description(challenge_id, version):
+    """The existing public exam block for an exact registered identity.
+
+    Publication is independent of execution readiness. This metadata supplies
+    no profile, host capability or admission; `_find` still owns those refusals.
+    """
+    from carbon.challenge_registry import published_exam
+
+    matches = _matching_entries(challenge_id, version)
+    exact = [e for e in matches if e.version == version]
+    if not exact:
+        raise _unsupported_version(challenge_id, version, matches)
+    entry = exact[0]
+    return _json(
+        {
+            "challenge_id": entry.challenge_id,
+            "version": entry.version,
+            "published_exam": published_exam.for_version(
+                entry.challenge_id, entry.version
+            ),
+        }
+    )
+
+
+def _find(challenge_id, version):
+    matches = _matching_entries(challenge_id, version)
     # A Challenge may register several versions; the exact one is served.
     exact = [e for e in matches if e.version == version]
     entry = exact[0] if exact else matches[0]
@@ -950,10 +986,7 @@ def _find(challenge_id, version):
             f"{challenge_id} is a reserved launch Challenge ({entry.tracking})"
         )
     if version != entry.version:
-        versions = ", ".join(str(e.version) for e in matches)
-        raise UnsupportedVersion(
-            f"{challenge_id} is registered at version {versions}, not {version!r}"
-        )
+        raise _unsupported_version(challenge_id, version, matches)
     return entry
 
 

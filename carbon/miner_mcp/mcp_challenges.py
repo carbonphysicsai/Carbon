@@ -354,7 +354,7 @@ def make_challenge_tools(*, guard=None, host_facts=None):
         if guard is not None:
             guard()
         try:
-            payload = challenges.describe(challenge_id, version, host=facts())
+            payload = challenges.published_description(challenge_id, version)
         except challenges.ResolutionError as refused:
             raise ToolError(
                 f"{refused.code}; next_action={refused.next_action}"
