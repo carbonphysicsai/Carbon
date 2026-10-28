@@ -22,7 +22,7 @@ from pathlib import Path
 #: Each GPU parent's backend and the bundle runtime it serves
 #: (`library_bundle.install_bundle`).
 GPU_RUNTIMES = {"jax": "jax-cuda13-py311", "pytorch": "torch-cu130-py311"}
-#: What the miner runs to install it (owner-run; never from MCP).
+#: The explicit manual retry for the owner-run background installer.
 INSTALL_COMMAND = "python -m scripts.dev.catalog_install --state-dir {state_dir}"
 
 

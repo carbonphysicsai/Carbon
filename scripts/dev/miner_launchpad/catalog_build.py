@@ -6,11 +6,12 @@ A newcomer's first practice waited about 40 minutes for a separate
 started for them, in the background, and runs once:
 - by the installer, after an update whose runner profile it rewrote, when
   entries are missing for the current construction parents (R7-1);
-- by the Control Center page, once Review writes the runner profile there,
-  and on the page's own one-click retry (`POST /api/v1/page/catalog_install`).
-Never from an MCP tool or a setup operation: the catalog installer is
-owner-run (`scripts/dev/catalog_install.py`), and no miner path imports it;
-this module only starts it as a separate process.
+- by the shared setup operation, once a confirmed Review or recheck leaves
+  a usable runner profile, through either MCP or the Control Center page;
+- on the page's own one-click retry (`POST /api/v1/page/catalog_install`).
+The catalog installer is owner-run (`scripts/dev/catalog_install.py`), and
+no miner path imports it; this module only starts it as a separate process.
+Reading status or choosing compute does not start an install.
 
 **One at a time.** The job holds an exclusive lock on `catalog-build.lock`
 in setup's owner-only directory while it runs, so a second start, from the
@@ -59,6 +60,18 @@ DURATION = (
     "Challenge can practise a catalog backbone as soon as its entry is ready"
 )
 REPOSITORY = Path(__file__).resolve().parents[3]
+
+
+def start_or_status(state_dir) -> dict:
+    """Try the maintained background start; a launch failure keeps setup saved.
+
+    Status remains measured from the job and catalog. It never reports a
+    successful start solely because Review persisted the profile.
+    """
+    try:
+        return start(state_dir)
+    except (OSError, ValueError):
+        return status(state_dir)
 
 
 def _setup_dir(state_dir) -> Path:
