@@ -53,7 +53,7 @@ def _number(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
-def validate_definition(definition):
+def validate_definition(definition, *, native_summary_rule=None):
     """The registered A/D definition document, checked for every field used."""
     targets = definition.get("targets") if type(definition) is dict else None
     _require(
@@ -72,7 +72,8 @@ def validate_definition(definition):
         and type(definition.get("frequency_band_hz")) is list
         and len(definition["frequency_band_hz"]) == 2
         and all(_number(v) for v in definition["frequency_band_hz"])
-        and definition.get("native_summary_rule") in (None, SANITY_RULE)
+        and native_summary_rule in (None, SANITY_RULE)
+        and definition.get("native_summary_rule") == native_summary_rule
         and definition.get("paired_repeat_rule") == "exact_equality"
         and type(definition.get("geometry_count")) is int,
         "f08_definition",
@@ -113,7 +114,9 @@ def _limits(limits):
     return constraints
 
 
-def measure(*, bank, outputs, repeats, definition, limits, train):
+def measure(
+    *, bank, outputs, repeats, definition, limits, train, native_summary_rule=None
+):
     """A, D, native gates and the decision outcome for one model.
 
     ``bank`` rows carry ``case_id``, ``inputs``, ``reference`` (the seven
@@ -121,7 +124,7 @@ def measure(*, bank, outputs, repeats, definition, limits, train):
     ``cad_mass_kg``); ``outputs`` and the two ``repeats`` are that many
     seven-value rows. ``train`` is TRAIN's target rows in the same order.
     """
-    validate_definition(definition)
+    validate_definition(definition, native_summary_rule=native_summary_rule)
     constraints = _limits(limits)
     targets = definition["targets"]
     n = len(bank)
@@ -151,7 +154,9 @@ def measure(*, bank, outputs, repeats, definition, limits, train):
     tips = [index[name] for name in definition["tip_targets"]]
     static = index[definition["static_target"]]
 
-    rule = definition.get("native_summary_rule")
+    # Policy is selected by the trusted version adapter. Serialized fields bind
+    # that selection but cannot grant an older adapter the prospective rule.
+    rule = native_summary_rule
     if rule == SANITY_RULE:
         # Malformed new-version answers fail the native gate, rather than
         # escaping as a float-conversion exception. Historical readers stay exact.

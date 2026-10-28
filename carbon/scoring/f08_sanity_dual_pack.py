@@ -8,8 +8,11 @@ The band remains recorded as historical/design context, never a widened gate.
 
 from __future__ import annotations
 
+import sys
+
 from carbon.scoring import f08_dual_measurement as fdm
 from carbon.scoring import f08_sealed_dual_pack as sealed
+from carbon.scoring import physical_dual_pack as physical
 
 FILES = (*sealed.FILES, "f08_sanity_dual_pack.py", "pool_adapters.py")
 
@@ -22,14 +25,18 @@ def definition(*, bank, train_raw):
 
 
 def validate_definition(value):
-    sealed.validate_definition(value)
-    fdm._require(value.get("native_summary_rule") == fdm.SANITY_RULE, "f08_definition")
+    sealed.validate_definition(value, native_summary_rule=fdm.SANITY_RULE)
     return value
 
 
 def measure(**kwargs):
     validate_definition(kwargs["definition"])
-    return sealed.measure(**kwargs)
+    return sealed.measure(**kwargs, native_summary_rule=fdm.SANITY_RULE)
+
+
+def producer_digest():
+    """The prospective adapter's identity, including its wrapper and pool hook."""
+    return physical.producer_digest(sys.modules[__name__])
 
 
 def __getattr__(name):

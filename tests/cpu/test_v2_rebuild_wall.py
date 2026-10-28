@@ -62,6 +62,8 @@ AT_600 = {
     ("f08-ribbed-bracket", "1.6"): (
         "56e2cf8577153a9e15c460a0a846c87ed70fc54c8792fbe1141cf9377fa0d175"
     ),
+    # Prospective identity: measured remotely before acceptance; no old pin changes.
+    ("f08-ribbed-bracket", "1.7"): "REMOTE_MEASUREMENT_PENDING",
 }
 #: The two new versions whose served catalog the catalog freeze moved (frozen
 #: catalog 0530c1d41, "catalog v2 entries"): the catalog digest served at rc10
@@ -101,6 +103,7 @@ NEW_KITS = {
     ("f08-ribbed-bracket", "1.6"): (
         "44a9dbf57444cdf6b484fe9b76aa690c3acb7bf24667060dc2971f6b3220d4d8"
     ),
+    ("f08-ribbed-bracket", "1.7"): "REMOTE_MEASUREMENT_PENDING",
 }
 #: The shared C-03 profiles (CPU build, G5 compile) at rc8 1ea4c49ad.
 C03_PROFILES = {

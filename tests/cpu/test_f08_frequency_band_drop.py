@@ -124,6 +124,8 @@ def test_new_version_has_distinct_identities_and_reuses_the_same_scorer(case):
     assert physical.producer_digest(pool) != physical.producer_digest(
         sealed.adapter("1.6")
     )
+    for chosen in (pool, practice, development):
+        assert chosen.producer_digest() == physical.producer_digest(chosen)
     # The owner did not change design feasibility or construction data.
     new_public = physical_pack.public_roles(*KEY)
     old_public = physical_pack.public_roles(CHALLENGE, "1.6")
@@ -135,6 +137,32 @@ def test_new_version_has_distinct_identities_and_reuses_the_same_scorer(case):
         new.pop("challenge")
         old.pop("challenge")
         assert new == old
+
+
+def test_serialized_policy_cannot_change_an_older_adapters_semantics(case):
+    outputs = _full(case, case["truth"])
+    historical = sealed.adapter("1.6")
+    definition = historical.definition(
+        bank=case["bank"], train_raw=case["public"]["train"]
+    )
+    definition["native_summary_rule"] = fdm.SANITY_RULE
+    with pytest.raises(fdm.F08MeasurementRefused, match="f08_definition"):
+        historical.validate_definition(definition)
+    with pytest.raises(fdm.F08MeasurementRefused, match="f08_definition"):
+        historical.measure(
+            bank_rows=case["rows"],
+            outputs=outputs,
+            repeats=[outputs, outputs],
+            definition=definition,
+            limits=case["limits"],
+            objective=None,
+            train_raw=case["public"]["train"],
+            names=case["names"],
+        )
+    prospective = practice_grid.adapter("f08", "1.7")
+    definition.pop("native_summary_rule")
+    with pytest.raises(fdm.F08MeasurementRefused, match="f08_definition"):
+        prospective.validate_definition(definition)
 
 
 def test_reserved_version_refuses_grading_until_owner_picks(case):

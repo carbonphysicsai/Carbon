@@ -55,6 +55,7 @@ NEW = sorted(version_registry.keys(graph_adapter="v2"))
 #: each under its own sealed evaluation version.
 POOL = {
     (F08, "1.6"): "f08-pool-sealed-v1",
+    (F08, "1.7"): "f08-pool-sealed-v2",
     (F02, "2.5"): "f02-pool-sealed-v1",
     (MOTOR, "1.5"): "motor-pool-sealed-v1",
     (COOLING, "1.5"): "cooling-pool-sealed-v1",
@@ -255,8 +256,9 @@ def test_a_new_version_is_its_predecessor_s_material(key):
     old_adapter = physical_adapters.adapter(cid, previous)
     assert new_adapter is not None and old_adapter is not None
     if grid:
+        revision = "v3" if key == (F08, "1.7") else "v2"
         assert new_adapter.EVALUATION_VERSION == (
-            f"{dev_grid.kind(cid, version)}-dual-development-grid-v2"
+            f"{dev_grid.kind(cid, version)}-dual-development-grid-{revision}"
         )
     else:
         assert new_adapter.EVALUATION_VERSION == old_adapter.EVALUATION_VERSION
@@ -284,6 +286,7 @@ def test_the_registry_declares_each_new_version_in_full():
         (COOLING, "1.5"): "1.4",
         (F02, "2.5"): "2.4",
         (F08, "1.6"): "1.5",
+        (F08, "1.7"): "1.6",
         (MOTOR, "1.5"): "1.4",
     }
     own = {
@@ -326,8 +329,8 @@ def test_the_registry_declares_each_new_version_in_full():
         assert old.allowlist == ("v8" if (cid, version) in POOL else "v7")
         assert physical_material.is_registered(cid, version)
     with pytest.raises(version_registry.UnregisteredVersion):
-        version_registry.entry(F08, "1.7")
-    assert version_registry.find(F08, "1.7") is None
+        version_registry.entry(F08, "1.8")
+    assert version_registry.find(F08, "1.8") is None
 
 
 def _scorer_tables():
@@ -459,6 +462,7 @@ CATALOG_COUNTS = {
     (MOTOR, "1.5"): (78, 46),
     (COOLING, "1.5"): (50, 45),
     (F08, "1.6"): (44, 44),
+    (F08, "1.7"): (44, 44),
     (F02, "2.5"): (45, 45),
 }
 

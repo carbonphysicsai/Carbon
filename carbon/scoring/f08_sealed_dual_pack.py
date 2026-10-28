@@ -125,9 +125,9 @@ def definition(*, bank, train_raw):
     }
 
 
-def validate_definition(definition):
+def validate_definition(definition, *, native_summary_rule=None):
     """The sealed grid definition, checked for every field used (F08's own checks, then the grid's)."""
-    fdm.validate_definition(definition)
+    fdm.validate_definition(definition, native_summary_rule=native_summary_rule)
     fdm._require(
         definition.get("sealed_method") == METHOD
         and definition.get("geometry_count") == CASES
@@ -196,11 +196,20 @@ def _layout(bank_rows):
 
 
 def measure(
-    *, bank_rows, outputs, repeats, definition, limits, objective, train_raw, names
+    *,
+    bank_rows,
+    outputs,
+    repeats,
+    definition,
+    limits,
+    objective,
+    train_raw,
+    names,
+    native_summary_rule=None,
 ):
     """A, D, native gates and the decision outcome for one model on a sealed grid, by F08's registered dual
     measurement (see the module docstring)."""
-    validate_definition(definition)
+    validate_definition(definition, native_summary_rule=native_summary_rule)
     cells = [i for i, row in enumerate(bank_rows) if row.get("cohort") == COHORT]
     probes = [
         i
@@ -230,6 +239,7 @@ def measure(
         objective=objective,
         train_raw=train_raw,
         names=names,
+        native_summary_rule=native_summary_rule,
     )
     constraints = fdm._limits(limits)
     measured = f08_critical.apply(
