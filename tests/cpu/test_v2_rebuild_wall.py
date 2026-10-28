@@ -165,10 +165,22 @@ def test_a_new_version_moves_only_by_its_wall_fields(key, monkeypatch):
     }
     key_600 = key
     if key == ("chip-cold-plate", "1.6"):
-        # This scoring successor changes no construction setting. Restore only
-        # its identity as well and require the existing 1.5 document's pin.
+        # This scoring successor changes no construction setting. Restore its
+        # identity and lineage, then require the existing 1.5 document's pin.
+        from carbon.backbone_catalog import served
+
         key_600 = ("chip-cold-plate", "1.5")
         at_600["challenge"] = {"id": key_600[0], "version": key_600[1]}
+        new_catalog, old_catalog = served.document(*key), served.document(*key_600)
+        assert {**new_catalog, "challenge": old_catalog["challenge"]} == old_catalog
+        at_600["backbone_catalog"] = {
+            **at_600["backbone_catalog"],
+            "digest": served.digest(*key_600),
+        }
+        at_600["graph_training_adapter"] = {
+            **at_600["graph_training_adapter"],
+            "predecessor": version_registry.entry(*key_600).predecessor,
+        }
     assert digest(canonical(at_600)) == "sha256:" + AT_600[key_600]
     if key in FREEZE_MOVED:
         old_catalog, old_at_600 = FREEZE_MOVED[key]
