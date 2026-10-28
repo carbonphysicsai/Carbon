@@ -2570,6 +2570,9 @@ def _graph_regrade_query(discovery, material, *, recipe=None):
     same as `reconstruct_and_infer_graph_public` builds them for the version's
     registered graph adapter (a test pins the two together)."""
     from carbon.development_session import direct_graph_construction_worker as worker
+    from carbon.development_session.bundle_construction_worker import (
+        _exact_numeric_dtype,
+    )
 
     adapter_id = discovery.graph_adapter_for(discovery.info.challenge_key)
     if adapter_id is None:
@@ -2597,7 +2600,11 @@ def _graph_regrade_query(discovery, material, *, recipe=None):
         )
     except ValueError as exc:
         raise RetentionUnavailable("regrade_graph_adapter_unavailable") from exc
-    if dtype != output_dtype(material["interface_document"]):
+    try:
+        declared_dtype = output_dtype(material["interface_document"])
+    except ValueError as exc:
+        raise RetentionUnavailable("regrade_graph_adapter_unavailable") from exc
+    if type(dtype) is not str or not _exact_numeric_dtype(dtype, declared_dtype):
         raise RetentionUnavailable("regrade_graph_adapter_unavailable")
     return query
 

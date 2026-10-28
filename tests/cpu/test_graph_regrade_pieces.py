@@ -113,6 +113,31 @@ def test_an_unregistered_graph_adapter_is_typed_unavailable():
         retention._graph_regrade_query(_discovery(None), {})
 
 
+@pytest.mark.parametrize(
+    "declared,accepted",
+    [
+        ("<f4", True),
+        ("float32", True),
+        ("<f8", False),
+        ("float64", False),
+        ("invalid", False),
+        (None, False),
+    ],
+)
+def test_regrade_dtype_uses_the_existing_exact_numeric_contract(declared, accepted):
+    adapter_id = min(physical.ADAPTER_IDS)
+    material = _material(adapter_id)
+    # Synthetic interface metadata around an actual registered v1 adapter.
+    # Equivalent spelling is accepted; a different precision still refuses.
+    material["interface_document"] = {"outputs": {"dtype": declared}}
+    if accepted:
+        query = retention._graph_regrade_query(_discovery(adapter_id), material)
+        assert query["program"] == worker.PHYSICAL_INFER_PROGRAM
+    else:
+        with pytest.raises(retention.RetentionUnavailable, match="graph_adapter"):
+            retention._graph_regrade_query(_discovery(adapter_id), material)
+
+
 def test_the_regrade_worker_evidence_is_the_origins_with_the_regrades_inference():
     origin = {
         "schema": "carbon.direct-private-attempt.graph.v1",

@@ -103,3 +103,15 @@ This corrects its existing adapter-to-evaluator dependency; the Hub remains
 frozen under current delivery instructions. Existing LEAD/PROGRESS logs carry
 milestones, with no new tracker. Current maturity is implemented source pending
 review/validation, not tested or qualified.
+
+The first exact canonical execution run passed all 19 new codec/program cases
+(12 real subprocess prediction stages plus corrupt-state/declaration guards)
+but failed seven existing regrade/pool cases at the new regrade dtype check.
+The defect was literal string comparison of `float32`/`float64` with the
+registered interfaces' equivalent `<f4`/`<f8` spellings. Regrade now uses the
+existing `_exact_numeric_dtype` contract already used by pair/inference,
+with alias-positive and genuine-precision/invalid-dtype negative regressions.
+No numerical tolerance or supported dtype set is broadened. Full acceptance
+remains pending the exact successor's canonical rerun; the observed run was
+545 passes, 7 failures and 8 known skips (7 unserved Battery2.2 and 1 plain
+delivery validator-copy guard), not an accepted full-flow result.
