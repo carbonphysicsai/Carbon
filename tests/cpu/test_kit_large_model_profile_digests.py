@@ -5,8 +5,10 @@ PROOF_RUN_UNRESOLVED_CULPRIT_20261024.md; a pre-publish move, no new kit version
 Old = rc22 8c90c831c, where the kits published today's profile (the four graph route v2
 versions re-pinned at the 648/947 wall, OWNER-REBUILD-WALL-11MIN-01). Putting that
 profile back reproduces the old digest exactly, so the profile is the only field
-that moved. The routes' agreement with the new digests is
-test_published_policy_is_enforced."""
+that moved. MOVED is frozen publication history, not a list of all future
+registrations. Later approved versions have a separate current-profile contract
+below, with no invented rc22 identity. The routes' agreement with the new
+digests is test_published_policy_is_enforced."""
 
 import pytest
 import rc43_surfaces
@@ -14,6 +16,7 @@ import rc43_surfaces
 from carbon.battery import construction_bundle_material as battery_material
 from carbon.challenge_kit import physical_material, served_versions
 from carbon.challenge_kit import version_registry as registry
+from carbon.development_session import bundle_construction_worker as bundle
 
 MOVED = {
     ("battery-fastcharge-ageing-development-v1", "2.1"): (
@@ -83,6 +86,14 @@ MOVED = {
     ),
 }
 
+# These registrations did not exist at rc22. Their owner-approved construction
+# predecessor is a current contract, not a counterfactual historical digest.
+NEW_REGISTRATIONS = {
+    (registry.COOLING, "1.6"): "1.5",
+    (registry.F08, "1.7"): "1.6",
+}
+CURRENT_PROFILE_VERSIONS = registry.keys(allowlist="v7") | registry.keys(allowlist="v8")
+
 
 def _digest(challenge_id, version):
     if challenge_id == battery_material.challenge.CHALLENGE.challenge_id:
@@ -93,7 +104,8 @@ def _digest(challenge_id, version):
 
 
 def test_exactly_the_v7_versions_moved():
-    assert set(MOVED) == registry.keys(allowlist="v7") | registry.keys(allowlist="v8")
+    assert not set(MOVED) & set(NEW_REGISTRATIONS)
+    assert set(MOVED) | set(NEW_REGISTRATIONS) == CURRENT_PROFILE_VERSIONS
 
 
 @pytest.mark.parametrize(("challenge_id", "version"), sorted(MOVED))
@@ -109,7 +121,46 @@ def test_a_v7_version_moved_by_its_resource_profile_alone(
 
 def test_every_other_version_keeps_its_bytes(monkeypatch):
     current = {
-        key: _digest(*key) for key in sorted(registry.VERSIONS) if key not in MOVED
+        key: _digest(*key)
+        for key in sorted(registry.VERSIONS)
+        if key not in CURRENT_PROFILE_VERSIONS
     }
     monkeypatch.setattr(served_versions, "worker_resources", lambda *_: None)
     assert current == {key: _digest(*key) for key in current}
+
+
+@pytest.mark.parametrize("key", sorted(NEW_REGISTRATIONS))
+def test_new_registrations_publish_and_enforce_their_current_profile(key, monkeypatch):
+    before = NEW_REGISTRATIONS[key]
+    assert registry.VERSIONS[key].predecessor == before
+    material = physical_material.bundle_material(*key)
+    predecessor = physical_material.bundle_material(key[0], before)
+    assert material["train"] == predecessor["train"]
+    assert material["allowlist_bytes"] == predecessor["allowlist_bytes"]
+    limits = material["construction_limits_document"]
+    assert limits["reconstruction_resource_policy"] == (
+        predecessor["construction_limits_document"]["reconstruction_resource_policy"]
+    )
+    kit = material["construction_kit"]
+    binding = {
+        "challenge_id": key[0],
+        "challenge_version": key[1],
+        **{
+            field: kit[field]
+            for field in (
+                "train_digest",
+                "interface_digest",
+                "construction_limits_digest",
+            )
+        },
+    }
+    declared = served_versions.worker_resources(*key)
+    assert declared is not None
+    assert bundle.verify_direct_resource_policy(binding, limits, declared) == (
+        kit["construction_limits_digest"]
+    )
+    # A prospective change detector only: this alternate digest is never
+    # recorded as a historical rc22 pin or used to reinterpret old evidence.
+    current = _digest(*key)
+    monkeypatch.setattr(served_versions, "worker_resources", lambda *_: None)
+    assert _digest(*key) != current
