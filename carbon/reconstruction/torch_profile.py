@@ -142,14 +142,15 @@ CPU_DETERMINISM_DIGEST = determinism_digest(CPU_DETERMINISM, CPU_DETERMINISM_SCH
 # cuDNN 9.12.0.46, so the two do not resolve together. The exact-hashed lock is
 # `GPU_REQUIREMENTS_PATH` (`uv pip compile` against PyPI plus the PyTorch cu130
 # index); its sha256 is the PyTorch GPU worker image's `lock_digest`. It
-# carries the PyTorch backend's battery stack (torch, neuraloperator, numpy) and
-# not torchvision or nvidia-physicsnemo, which the battery backend never
-# imports. The CPU constants above are untouched by it.
+# carries the PyTorch backend and the catalog's PhysicsNeMo constructors at
+# the CPU environment's exact versions, with CUDA builds of torch and
+# torchvision. The CPU constants above are untouched by it.
 GPU_ENVIRONMENT_ID = "carbon_torch_linux_x86_64_py311_cuda13"
 GPU_ENVIRONMENT_VERSION = "1.0"
 GPU_PINS = (
     ("torch", "2.13.0", "pytorch-cu130:torch==2.13.0+cu130"),
     ("neuraloperator", "2.0.0", "pypi:neuraloperator==2.0.0"),
+    ("nvidia-physicsnemo", "2.2.0", "pypi:nvidia-physicsnemo==2.2.0"),
     ("numpy", "2.4.6", "pypi:numpy==2.4.6"),
 )
 

@@ -22,10 +22,14 @@ COPY --from=uv /uv /tmp/uv
 COPY .devcontainer/torch/torch-cu130-py311.txt /opt/carbon/torch-gpu-requirements.txt
 # Every distribution already in the C-03 image, before the install.
 RUN /opt/carbon-worker/bin/python -I -c "import importlib.metadata as m, json; print(json.dumps({d.metadata['Name'].lower().replace('_', '-'): d.version for d in m.distributions()}, sort_keys=True))" > /tmp/before.json
+# The CPU lock's one sdist-only package, at its exact version and source hash.
+# This exception belongs to the trusted worker-image bootstrap; miner library
+# overlays keep their offline, wheels-only install policy.
 RUN test "sha256:$(sha256sum /opt/carbon/torch-gpu-requirements.txt | cut -d' ' -f1)" = "${TORCH_GPU_LOCK_DIGEST}" \
     && chmod -R u+w /opt/carbon-worker \
     && TMPDIR=/tmp /tmp/uv --no-cache pip install --python /opt/carbon-worker/bin/python \
        --require-hashes --only-binary=:all: --no-deps \
+       --no-binary antlr4-python3-runtime \
        --extra-index-url https://download.pytorch.org/whl/cu130 --index-strategy unsafe-best-match \
        -r /opt/carbon/torch-gpu-requirements.txt \
     && rm /tmp/uv \

@@ -40,7 +40,7 @@ ACCELERATOR_LOCK = REPOSITORY / ".devcontainer" / "accelerators" / "cuda13-py311
 HEADER = (
     "#    uv pip compile .devcontainer/torch/torch-cu130-py311.in "
     "--python-version 3.11.16 --python-platform x86_64-manylinux_2_31 "
-    "--generate-hashes --only-binary=:all: "
+    "--generate-hashes --only-binary=:all: --no-binary antlr4-python3-runtime "
     "--extra-index-url https://download.pytorch.org/whl/cu130 "
     "--index-strategy unsafe-best-match "
     "--constraint .devcontainer/torch/torch-cu130-py311.constraints.txt "
@@ -52,6 +52,7 @@ CONSTRAINTS = REPOSITORY / ".devcontainer/torch/torch-cu130-py311.constraints.tx
 GUARDS = {
     "lock_digest": 'test "sha256:$(sha256sum /opt/carbon/torch-gpu-requirements.txt',
     "hashes_only": "--require-hashes --only-binary=:all: --no-deps",
+    "locked_source_exception": "--no-binary antlr4-python3-runtime",
     "c03_unchanged": "the cu130 lock changed the C-03 environment",
     "pins": "is not the pinned {expected}",
     "profile_check": "the accelerator profile label is not the installed source's profile",
@@ -247,56 +248,6 @@ def test_the_cpu_recipe_builds_from_source_exactly_the_exports_without_wheels():
     assert without and listed == without
 
 
-#: nvidia-physicsnemo and everything only it pulls in: DEFERRED to post-testnet
-#: (Validator 2026-10-23, the Lead's scope): its dependency antlr4-python3-runtime
-#: ships only as a source distribution, which the wheels-only GPU lock cannot
-#: take. The PhysicsNeMo GPU twins stay FAILED_UNDER_PINNED_GPU_LOCK until then.
-PHYSICSNEMO_DEFERRED = [
-    "aiobotocore",
-    "aiohappyeyeballs",
-    "aiohttp",
-    "aioitertools",
-    "aiosignal",
-    "antlr4-python3-runtime",
-    "attrs",
-    "botocore",
-    "cftime",
-    "cloudpickle",
-    "donfig",
-    "frozenlist",
-    "gitdb",
-    "gitpython",
-    "google-crc32c",
-    "hydra-core",
-    "importlib-metadata",
-    "jaxtyping",
-    "jmespath",
-    "ml-dtypes",
-    "multidict",
-    "numcodecs",
-    "nvidia-physicsnemo",
-    "nvtx",
-    "omegaconf",
-    "onnx",
-    "orjson",
-    "pandas",
-    "propcache",
-    "psutil",
-    "pyvers",
-    "s3fs",
-    "smmap",
-    "tensordict",
-    "termcolor",
-    "treelib",
-    "wadler-lindig",
-    "warp-lang",
-    "wrapt",
-    "yarl",
-    "zarr",
-    "zipp",
-]
-
-
 def _lock_names(path):
     names = set()
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -305,13 +256,58 @@ def _lock_names(path):
     return names
 
 
-def test_every_package_the_cpu_lock_pins_is_in_the_gpu_lock_but_the_deferred_physicsnemo_set():
+def test_every_package_the_cpu_lock_pins_is_in_the_gpu_lock():
     """The catalog backbones import timm, einops and the rest on both images, so a
-    CPU pin the GPU lock lacks makes that twin fail ModuleNotFoundError. The only
-    pins allowed to be missing are the named deferred set, and nothing else."""
+    CPU pin the GPU lock lacks makes that twin fail ModuleNotFoundError. The
+    complete CPU dependency closure must be present, including PhysicsNeMo."""
     cpu = _lock_names(CPU_EXPORT)
     gpu = _lock_names(REPOSITORY / torch_profile.GPU_REQUIREMENTS_PATH)
-    assert {"timm", "einops", "torchvision"} <= gpu
-    assert sorted(cpu - gpu) == sorted(PHYSICSNEMO_DEFERRED)
-    assert "nvidia-physicsnemo" in PHYSICSNEMO_DEFERRED
-    assert not (set(PHYSICSNEMO_DEFERRED) & gpu)
+    assert {"timm", "einops", "torchvision", "nvidia-physicsnemo"} <= gpu
+    assert cpu <= gpu
+
+
+def test_the_gpu_bootstrap_builds_only_the_cpu_locks_exact_source_exception():
+    """An image-supplied dependency may build from pinned source; a miner overlay may not."""
+    import tomllib
+
+    lock = tomllib.loads((REPOSITORY / "uv.lock").read_text())
+    exported = requirements(CPU_EXPORT)
+    source_only = {
+        package["name"]: package
+        for package in lock["package"]
+        if package["name"] in exported and not package.get("wheels")
+    }
+    assert set(source_only) == {"antlr4-python3-runtime"}
+    antlr = source_only["antlr4-python3-runtime"]
+    assert antlr["version"] == "4.9.3"
+    assert antlr["sdist"]["hash"] == (
+        "sha256:f224469b4168294902bb1efa80a8bf7855f24c99aef99cbefc1bcd3cce77881b"
+    )
+    cuda = requirements(LOCK)
+    assert cuda["antlr4-python3-runtime"] == antlr["version"]
+    blocks = re.split(r"\n(?=[a-z0-9])", LOCK.read_text())
+    (block,) = [b for b in blocks if b.startswith("antlr4-python3-runtime==")]
+    assert "--hash=" + antlr["sdist"]["hash"] in block
+    recipe = RECIPE.read_text()
+    listed = set(re.findall(r"--no-binary ([A-Za-z0-9._-]+)", recipe))
+    assert listed == set(source_only)
+    assert "--no-binary=:all:" not in recipe
+    overlay = (
+        REPOSITORY / "carbon/development_session/library_bundles.py"
+    ).read_text()
+    assert (
+        "--no-index --find-links=/tmp/wheels --require-hashes --no-deps --only-binary=:all:"
+        in overlay
+    )
+    assert "--no-binary" not in overlay
+
+
+def test_physicsnemo_is_an_image_supplied_pin_at_the_cpu_version():
+    cpu = requirements(CPU_EXPORT)
+    cuda = requirements(LOCK)
+    assert cuda["nvidia-physicsnemo"] == cpu["nvidia-physicsnemo"] == "2.2.0"
+    assert (
+        "nvidia-physicsnemo",
+        "2.2.0",
+        "pypi:nvidia-physicsnemo==2.2.0",
+    ) in torch_profile.GPU_PINS

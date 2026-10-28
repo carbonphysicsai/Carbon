@@ -8,6 +8,9 @@ torch==2.13.0+cu130
 # timm needs torchvision: the cu130 build that goes with torch 2.13.0 (the CPU lock has 0.28.0+cpu).
 torchvision==0.28.0+cu130
 neuraloperator==2.0.0
+# The same PhysicsNeMo release as the CPU worker. Its hash-pinned ANTLR
+# dependency is built only during the trusted image bootstrap.
+nvidia-physicsnemo==2.2.0
 # The catalog backbones' other imports, at the CPU lock's exact versions (THUML,
 # OFormer and Transolver twins fail ModuleNotFoundError without them).
 timm==1.0.29

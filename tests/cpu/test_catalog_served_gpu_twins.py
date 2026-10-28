@@ -1,4 +1,4 @@
-"""The GPU twins of the served v2 examples (Motor, Cooling, F08, F02), from the existing transform.
+"""The v2 example and PhysicsNeMo FC GPU twins, from the existing transform.
 
 The twin is the CPU build plus the registered change and nothing else
 (`pipeline.verify` re-derives it). It is listed under `bundle_refs`, so the
@@ -24,6 +24,10 @@ TWINS = {
     "v2.f02.cno.CNO1d": gpu_build.PROFILE,
     "v2.f08.jno.bcat": gpu_build.JAX_PROFILE,
     "v2.f02.jno.bcat": gpu_build.JAX_PROFILE,
+    "v2.motor.physicsnemo.FullyConnected": gpu_build.PROFILE,
+    "v2.cooling.physicsnemo.FullyConnected": gpu_build.PROFILE,
+    "v2.f08.physicsnemo.FullyConnected": gpu_build.PROFILE,
+    "v2.f02.physicsnemo.FullyConnected": gpu_build.PROFILE,
 }
 
 

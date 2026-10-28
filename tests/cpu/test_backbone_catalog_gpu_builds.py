@@ -32,8 +32,8 @@ def withdrawn_twins():
     return set(derivation["gpu_twins_withdrawn"]["ids"])
 
 
-#: The v2 entries that have their GPU twin so far (2026-10-26, the served-example twins: the served Motor, Cooling, F08 and F02 examples); the
-#: other v2 entries come with the rest of the GPU line.
+#: The served-example twins and the mechanically derived PhysicsNeMo FC twins.
+#: Other v2 entries still wait for their own derivation and actual GPU evidence.
 V2_TWINNED = {
     "v2.motor.cno.CNO1d",
     "v2.cooling.cno.CNO1d",
@@ -43,6 +43,10 @@ V2_TWINNED = {
     "v2.f02.cno.CNO1d",
     "v2.f08.jno.bcat",
     "v2.f02.jno.bcat",
+    "v2.motor.physicsnemo.FullyConnected",
+    "v2.cooling.physicsnemo.FullyConnected",
+    "v2.f08.physicsnemo.FullyConnected",
+    "v2.f02.physicsnemo.FullyConnected",
 }
 #: The CNO1d build under every id it is served as: the one explicit warn-only / smoke-only entry.
 CNO1D_IDS = {
