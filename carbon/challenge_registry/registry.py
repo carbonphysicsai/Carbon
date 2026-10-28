@@ -431,9 +431,13 @@ def _entries():
         Entry(
             BATTERY_CHALLENGE,
             BATTERY_CONTRACT.version,
-            "Battery fast charge and ageing (DEVELOPMENT)",
+            "Battery fast charge and ageing (DEVELOPMENT, out of the launch set)",
             IMPLEMENTED,
-            "launch",
+            # Not a launch Challenge (OWNER-BATTERY-OUT-OF-LAUNCH-01, 2026-10-23; services wound
+            # down by OWNER-WIND-DOWN-BATTERY-01): its code, tests and recorded campaigns stay,
+            # and a miner is NOT offered it (see OFFERED_PORTFOLIOS). Returning it to the launch
+            # portfolio is a new owner decision.
+            "historical_development",
             "carbonphysicsai/Carbon#341",
             (
                 ExecutionProfile(
@@ -972,6 +976,30 @@ def resolve(challenge_id, version, profile, *, host=None):
                 + " missing"
             )
     return entry, chosen[0]
+
+
+#: The portfolios whose IMPLEMENTED Challenges a miner is offered: the Challenges page, the launch
+#: wizard and the MCP list all follow this one rule. Anything else that is implemented (Battery,
+#: out of the launch set) is kept for history and reference and is not offered.
+OFFERED_PORTFOLIOS = ("launch", LAUNCH_PENDING_READINESS)
+
+
+def is_offered(summary) -> bool:
+    """Whether a catalog entry (an `Entry.summary` dict) is OFFERED to a miner.
+
+    An implemented Challenge outside the offered portfolios is not offered; one that is not
+    implemented (RESERVED, DEFERRED, RETIRED) is listed with its status and never reads as READY.
+    """
+    return (
+        summary["status"] != IMPLEMENTED or summary["portfolio"] in OFFERED_PORTFOLIOS
+    )
+
+
+def offered_catalog(host=None):
+    """`catalog` for a miner's eyes: the entries `is_offered` refuses are left out."""
+    document = catalog(host)
+    document["challenges"] = [c for c in document["challenges"] if is_offered(c)]
+    return document
 
 
 def catalog(host=None):
