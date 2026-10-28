@@ -256,3 +256,139 @@ def test_the_truth_check_bank_counts_the_probe_rows_that_remain_after_the_closed
         replace(legs, arguments={"definition": {}}), {"p1"}
     )
     assert plain.arguments == {"definition": {}} and len(plain.rows) == 8
+
+
+def _cooling_versions(encoded):
+    from carbon.challenge_kit import version_registry
+
+    return tuple(
+        version
+        for (challenge, version), entry in version_registry.VERSIONS.items()
+        if challenge == version_registry.COOLING
+        and (entry.output_encoding is not None) == encoded
+    )
+
+
+def _cooling_truth_spec(version, native):
+    """Synthetic pool geometry; actual registered Cooling encoding and gates."""
+    from dataclasses import replace
+
+    from carbon.scoring import pool_adapters
+
+    chosen = binding()
+    chosen = replace(
+        chosen,
+        kind="cooling",
+        version=version,
+        input_names=(*chosen.input_names, "inlet_c"),
+        to_model_space=pool_adapters._to_model_space("cooling", version),
+        physics_gates=pool_adapters.physics_gates("cooling", version),
+    )
+    spec = toy_target("synthetic-cooling-truth", 5)
+    spec = replace(
+        spec,
+        conditions={
+            **spec.conditions,
+            "fixed": {**spec.conditions["fixed"], "inlet_c": 20.0},
+        },
+    )
+    return chosen, pool_grader.attach_raw(spec, [native] * spec.pool_size)
+
+
+@pytest.mark.parametrize("version", _cooling_versions(True))
+@pytest.mark.parametrize("invalid", ["peak", "zero_pressure", "negative_pressure"])
+def test_native_truth_violations_cannot_be_hidden_by_decoding_as_a_model(
+    version, invalid
+):
+    from carbon.cold_plate import exam
+
+    native = _reference_layout("cooling", version, _record("cooling"))
+    if invalid == "peak":
+        native[0] = 60.0
+    else:
+        native[-1] = 0.0 if invalid == "zero_pressure" else -1.0
+    chosen, spec = _cooling_truth_spec(version, native)
+    prediction = {
+        "peak_c": native[0],
+        "profile_c": native[1:31],
+        "pressure_drop_pa": native[31],
+    }
+    assert exam.FAIL in exam.gates(prediction, {"inlet_c": 20.0}).values()
+    # The old preflight treated this native reference as encoded model output,
+    # concealing the invalid native peak/pressure with the decoder's softplus.
+    assert chosen.physics_gates.failed({"inlet_c": 20.0}, native) == ()
+    with pytest.raises(
+        pool_plugin.TruthCheckStop, match="^pool_truth_reference_encoding_invalid$"
+    ):
+        grid_script._check_pool_truths(chosen, [spec])
+
+
+@pytest.mark.parametrize("version", _cooling_versions(True) + _cooling_versions(False))
+def test_truth_preflight_preserves_native_references_and_the_oracles_single_conversion(
+    version,
+):
+    from carbon.scoring import pool_gates
+
+    native = _reference_layout("cooling", version, _record("cooling"))
+    chosen, spec = _cooling_truth_spec(version, native)
+    original = spec.raw
+    record = grid_script._check_pool_truths(chosen, [spec])
+    assert record == {
+        "rows": len(spec.designs),
+        "gates": sorted(chosen.physics_gates.gate_names),
+    }
+    assert spec.raw == original
+    rows = pool_gates.pool_rows(chosen, [spec])
+    oracle = pool_plugin.model_outputs(chosen, rows, {"kind": "oracle"})
+    expected = (
+        chosen.to_model_space(native) if chosen.to_model_space is not None else native
+    )
+    assert oracle == [expected] * len(rows)
+    assert spec.raw == original
+
+
+@pytest.mark.parametrize("version", _cooling_versions(False))
+def test_native_gate_contracts_still_refuse_invalid_native_truth(version):
+    native = _reference_layout("cooling", version, _record("cooling"))
+    native[-1] = -1.0
+    chosen, spec = _cooling_truth_spec(version, native)
+    assert chosen.to_model_space is None
+    with pytest.raises(pool_plugin.TruthCheckStop, match="pool_truths_fail_gates"):
+        grid_script._check_pool_truths(chosen, [spec])
+
+
+def test_truth_preflight_uses_a_declared_conversion_without_a_challenge_dispatch():
+    from dataclasses import replace
+
+    from carbon.scoring import pool_adapters, pool_gates
+
+    def model_space(row):
+        return [value + 10.0 for value in row]
+
+    def failed(_inputs, row):
+        return (
+            ()
+            if all(value == 10.5 for value in row)
+            else ("synthetic_model_space",)
+        )
+
+    chosen = replace(
+        binding(),
+        to_model_space=model_space,
+        physics_gates=pool_adapters.PhysicsGates(
+            "toy", "1", ("synthetic_model_space",), failed
+        ),
+    )
+    spec = toy_target("synthetic-conversion", 5)
+    spec = pool_grader.attach_raw(spec, [[0.5, 0.5]] * spec.pool_size)
+    original = spec.raw
+    assert grid_script._check_pool_truths(chosen, [spec])["rows"] == len(spec.designs)
+    assert spec.raw == original
+    rows = pool_gates.pool_rows(chosen, [spec])
+    assert pool_plugin.model_outputs(chosen, rows, {"kind": "oracle"}) == [
+        [10.5, 10.5]
+    ] * len(rows)
+    with pytest.raises(
+        pool_plugin.TruthCheckStop, match="truths_gate_check_needs_the_raw_truths"
+    ):
+        grid_script._check_pool_truths(chosen, [replace(spec, raw=None)])

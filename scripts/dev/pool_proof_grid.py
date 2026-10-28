@@ -70,6 +70,34 @@ def _raw_rows(document, target_id, binding):
         raise pool_plugin.TruthCheckStop(str(refused)) from None
 
 
+def _check_pool_truths(binding, specs):
+    """Check native references in the gate reader's registered model space.
+
+    Only these preflight copies are converted. The grid and oracle retain the
+    original native references and their existing model-space conversion.
+    """
+    from carbon.scoring import pool_gates, pool_plugin
+
+    try:
+        checked = [
+            replace(
+                spec,
+                raw=tuple(
+                    tuple(pool_plugin._model_space_of(binding, row))
+                    for row in spec.raw
+                ),
+            )
+            if spec.raw is not None
+            else spec
+            for spec in specs
+        ]
+    except (TypeError, ValueError, OverflowError):
+        raise pool_plugin.TruthCheckStop(
+            "pool_truth_reference_encoding_invalid"
+        ) from None
+    return pool_gates.check_truths_pass_gates(binding, checked)
+
+
 EXCLUDED_SCHEMA = "carbon.probe-truth-exclusions.v1"
 
 
@@ -288,7 +316,7 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    from carbon.scoring import pool_gates, pool_grader, pool_plugin, pool_proof_grid
+    from carbon.scoring import pool_grader, pool_plugin, pool_proof_grid
 
     if args.truth_row_sealed_batch_dir and (
         (args.kind, args.version) != ("f02", "2.5")
@@ -426,7 +454,7 @@ def main(argv=None):
                     (pools / f"pool-raw-{tid}.json").read_text(encoding="utf-8")
                 )
                 specs[tid] = pool_grader.attach_raw(spec, _raw_rows(raw, tid, binding))
-            record = pool_gates.check_truths_pass_gates(binding, list(specs.values()))
+            record = _check_pool_truths(binding, list(specs.values()))
         except pool_plugin.TruthCheckStop as stop:
             print(f"STOP, back to the Validator: {stop}", file=sys.stderr)
             return 3
