@@ -141,11 +141,13 @@ def test_new_version_has_distinct_identities_and_reuses_the_same_scorer(case):
 
 def test_serialized_policy_cannot_change_an_older_adapters_semantics(case):
     outputs = _full(case, case["truth"])
-    historical = sealed.adapter("1.6")
+    historical = practice_grid.adapter("f08", "1.6")
     definition = historical.definition(
         bank=case["bank"], train_raw=case["public"]["train"]
     )
     definition["native_summary_rule"] = fdm.SANITY_RULE
+    with pytest.raises(fdm.F08MeasurementRefused, match="f08_definition"):
+        sealed.adapter("1.6").validate_definition(definition)
     with pytest.raises(fdm.F08MeasurementRefused, match="f08_definition"):
         historical.validate_definition(definition)
     with pytest.raises(fdm.F08MeasurementRefused, match="f08_definition"):
