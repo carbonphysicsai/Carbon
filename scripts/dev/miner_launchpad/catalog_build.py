@@ -151,7 +151,7 @@ def status(state_dir, clock=time.time) -> dict:
         state = "NO_PROFILE"
     elif active:
         state = "RUNNING"
-    elif found["installed"] >= found["total"]:
+    elif found["total"] > 0 and found["installed"] >= found["total"]:
         state = "COMPLETE"
     elif record.get("exit_code") not in (None, 0):
         state = "STOPPED"

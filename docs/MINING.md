@@ -118,6 +118,12 @@ The other steps you checked are kept. Your practice campaigns stay on the page a
 
 Once you save your settings through the page or your connected agent, the model catalog (the ready-made model types you can build from) installs itself in the background, and setup shows how far it has got. A Challenge can practise a catalog model as soon as that entry is installed. If it stops or could not start, setup offers a retry and its log says what the job recorded; you can also install it yourself:
 
+Installed counts require intact pinned material, a receipt for the current
+construction parent, and that exact child image in Docker. If an image was
+removed, the entry reads missing again; retrying the catalog install rebuilds
+it from the pinned material. An unreachable Docker engine cannot establish
+readiness. Reading setup or catalog status never starts a build.
+
 ```bash
 cd ~/carbon && .venv/bin/python -B -m scripts.dev.catalog_install --state-dir ~/.carbon/development-launchpad
 ```

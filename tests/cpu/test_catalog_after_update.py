@@ -23,8 +23,10 @@ from __future__ import annotations
 import json
 import os
 import threading
+from dataclasses import replace
 
 import pytest
+import test_receiver_catalog as receiver_fixtures
 from test_miner_launchpad_environment_setup import Checks, Onboarding, completed
 
 from carbon.backbone_catalog import listing, pipeline
@@ -40,6 +42,50 @@ from scripts.dev.miner_launchpad.environment_setup import EnvironmentSetup
 OLD = "sha256:" + "1" * 64
 NEW = "sha256:" + "2" * 64
 TOKEN = "t" * 43
+MATERIALS = {}
+
+
+def _parent(identity):
+    return replace(receiver_fixtures.CPU_PARENTS["torch-cpu-py311"], image_id=identity)
+
+
+@pytest.fixture(autouse=True)
+def catalog_inventory(tmp_path, monkeypatch):
+    """Real synthetic closures/receipts; only the image verification is simulated.
+
+    Lifecycle tests must not make an empty JSON marker prove installation.
+    The dedicated readiness tests exercise missing/unknown daemon observations.
+    """
+    from carbon.development_session import library_environment_cache as cache
+
+    template = torch_entries()[0]
+    items = []
+    MATERIALS.clear()
+    for index in range(3):
+        material = receiver_fixtures.torch_cpu_fixture()
+        material[0]["name"] = f"synthetic-miner-lifecycle-{index}"
+        reference = receiver_fixtures._write_material(tmp_path / "material", material)
+        MATERIALS[reference["bundle_digest"]] = (
+            tmp_path / "material" / reference["bundle_digest"][7:]
+        )
+        items.append(
+            {
+                **template,
+                "catalog_id": f"synthetic.miner.{index}",
+                "bundle_ref": reference,
+                "bundle_refs": {},
+                "challenges": [receiver_fixtures.MOTOR],
+            }
+        )
+    monkeypatch.setattr(listing, "load", lambda: {"entries": items})
+    monkeypatch.setattr(pipeline, "load", lambda: {"entries": items})
+    monkeypatch.setattr(
+        catalog_state, "parents", lambda _: {"torch-cpu-py311": _parent(NEW)}
+    )
+    monkeypatch.setattr(cache, "verify_library_worker_image", lambda image, cli: image)
+    monkeypatch.setattr(
+        cache, "present_library_worker_images", lambda ids, cli: frozenset(ids)
+    )
 
 
 def torch_entries():
@@ -50,12 +96,35 @@ def torch_entries():
     ]
 
 
-def stage(root, items, parent):
-    """A child receipt over `parent` for each item, as the install leaves."""
+def stage(root, items, parent_id):
+    """Write bound cache/context/material through the maintained pure writers."""
+    from carbon.development_session import library_environment_cache as cache
+    from carbon.development_session.library_bundles import (
+        ProvisionedLibraryEnvironment,
+        prepare_pinned_bundle_directory,
+    )
+    from carbon.development_session.research_image import LibraryWorkerImage
+
+    identity = _parent(parent_id)
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    root.chmod(0o700)
     for item in items:
-        digest = item["bundle_ref"]["bundle_digest"][7:]
-        (root / digest).mkdir(parents=True, exist_ok=True)
-        (root / digest / (parent[7:] + ".image.json")).write_text("{}")
+        directory = MATERIALS[item["bundle_ref"]["bundle_digest"]]
+        selected, context, seal = prepare_pinned_bundle_directory(
+            directory, root, identity.image_id
+        )
+        image = LibraryWorkerImage(
+            ProvisionedLibraryEnvironment(
+                selected, identity.image_id, context, seal, selected.bundle_digest
+            ),
+            identity,
+            selected.to_dict(),
+        )
+        receipt, _ = cache.library_image_cache_paths(root, selected, identity)
+        cache.store_verified_library_worker_image(
+            receipt, image, context_root=context.parent, cli=object()
+        )
+        cache.stage_pinned_bundle_material(directory, root)
 
 
 @pytest.fixture
@@ -67,13 +136,17 @@ def test_the_catalog_is_judged_for_the_current_parent(cfg, monkeypatch):
     root = catalog_state.cache_root(cfg)
     items = torch_entries()
     ids = [item["catalog_id"] for item in items]
-    monkeypatch.setattr(catalog_state, "parents", lambda _: {"torch-cpu-py311": OLD})
+    monkeypatch.setattr(
+        catalog_state, "parents", lambda _: {"torch-cpu-py311": _parent(OLD)}
+    )
     # Never installed: every entry this install serves is missing.
     assert catalog_state.state(cfg) == {"entries": len(items), "missing": ids}
     stage(root, items, OLD)
     assert catalog_state.state(cfg) == {"entries": len(items), "missing": []}
     # The update rebuilt the parent: no child exists over the new one.
-    monkeypatch.setattr(catalog_state, "parents", lambda _: {"torch-cpu-py311": NEW})
+    monkeypatch.setattr(
+        catalog_state, "parents", lambda _: {"torch-cpu-py311": _parent(NEW)}
+    )
     assert catalog_state.state(cfg)["missing"] == ids
     stage(root, items[:1], NEW)
     assert catalog_state.state(cfg)["missing"] == ids[1:]
@@ -111,8 +184,8 @@ def test_status_lists_a_missing_catalog_and_never_reads_all_done(
 ):
     setup = ready(tmp_path, state)
     view = operations.status(setup, door=operations.MCP)
-    assert view["next"]["step"] == "launch"
-    assert all(row["id"] != "catalog" for row in view["steps"])
+    assert view["next"]["step"] == "catalog"
+    assert any(row["id"] == "catalog" for row in view["steps"])
     monkeypatch.setattr(
         setup, "catalog", lambda: {"entries": 3, "missing": ["a", "b", "c"]}
     )
@@ -161,7 +234,7 @@ def test_the_background_install_runs_once_and_reports_progress(
     monkeypatch.setattr(
         catalog_state,
         "parents",
-        lambda _: {"torch-cpu-py311": NEW},
+        lambda _: {"torch-cpu-py311": _parent(NEW)},
     )
     # Miner paths read the catalog through `listing` (the import-closure cut).
     monkeypatch.setattr(listing, "load", lambda: {"entries": items})
@@ -232,7 +305,9 @@ def test_the_background_install_runs_once_and_reports_progress(
 
 def test_a_failed_install_reads_stopped(tmp_path, state, monkeypatch):
     setup = ready(tmp_path, state)
-    monkeypatch.setattr(catalog_state, "parents", lambda _: {"torch-cpu-py311": NEW})
+    monkeypatch.setattr(
+        catalog_state, "parents", lambda _: {"torch-cpu-py311": _parent(NEW)}
+    )
     assert (
         catalog_build.run(
             state, install=lambda _: 2, fetch=lambda _: True, clock=lambda: 5.0
@@ -251,7 +326,9 @@ def test_wheels_that_cannot_be_fetched_are_said_and_the_rest_install(
     """Offline, or a file that differs from its pin: one plain line, and the
     install still runs (M1 E2E R10-1)."""
     ready(tmp_path, state)
-    monkeypatch.setattr(catalog_state, "parents", lambda _: {"torch-cpu-py311": NEW})
+    monkeypatch.setattr(
+        catalog_state, "parents", lambda _: {"torch-cpu-py311": _parent(NEW)}
+    )
     installed = []
     assert (
         catalog_build.run(
@@ -436,7 +513,9 @@ def test_own_agent_mcp_review_starts_only_after_the_profile_is_saved(
     )
     assert calls == [] and not setup.profile_path.exists()
     items = torch_entries()[:1]
-    monkeypatch.setattr(catalog_state, "parents", lambda _: {"torch-cpu-py311": NEW})
+    monkeypatch.setattr(
+        catalog_state, "parents", lambda _: {"torch-cpu-py311": _parent(NEW)}
+    )
     monkeypatch.setattr(listing, "load", lambda: {"entries": items})
     try:
         reviewed = call(server, "carbon_setup_review", {"confirm": True})["payload"]
@@ -479,7 +558,9 @@ def test_a_start_failure_preserves_review_and_offers_an_honest_retry(
 ):
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Checks())
     completed(tmp_path, setup)
-    monkeypatch.setattr(catalog_state, "parents", lambda _: {"torch-cpu-py311": NEW})
+    monkeypatch.setattr(
+        catalog_state, "parents", lambda _: {"torch-cpu-py311": _parent(NEW)}
+    )
 
     def failed(_state):
         raise OSError("synthetic background spawn failure")
@@ -500,7 +581,9 @@ def test_catalog_needed_counts_what_to_install(tmp_path, state, monkeypatch, cap
     assert environment_setup.main(["catalog-needed", "--state-dir", str(state)]) == 0
     assert capsys.readouterr().out == "no\n"  # no profile
     ready(tmp_path, state)
-    monkeypatch.setattr(catalog_state, "parents", lambda _: {"torch-cpu-py311": NEW})
+    monkeypatch.setattr(
+        catalog_state, "parents", lambda _: {"torch-cpu-py311": _parent(NEW)}
+    )
     assert environment_setup.main(["catalog-needed", "--state-dir", str(state)]) == 0
     assert capsys.readouterr().out == str(len(torch_entries())) + "\n"
 
