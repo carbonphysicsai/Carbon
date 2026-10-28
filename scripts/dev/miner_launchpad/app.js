@@ -3871,6 +3871,29 @@
   // reads by default); the design's otherwise (Full, a 10% research share,
   // 200 papers a hunt). The hunt is off until the miner turns it on: it
   // spends their money, and the launch takes none unless asked.
+  // A miner who practises without registering has nothing to submit to: the default
+  // is then to retain the candidate (retain_only_v1), so the first launch is not
+  // refused "registration required" (Test Runner's filming run, 2026-10-27).
+  function practisingOnly() {
+    return !setupState?.registered_hotkey && Boolean(setupState?.status?.practice_only || setupState?.practice_only);
+  }
+  // The least research share, as a fraction, at which one reserved research call fits
+  // the miner's model-spend ceiling, from what the controller states about the chosen
+  // model's call (the options' input window), or null when it states none. A share
+  // below it is refused research_share_too_small, so the default never lands there.
+  function fittingShare() {
+    const ceiling = composition.budget?.ceilings?.provider_nanodollars;
+    if (!Number.isSafeInteger(ceiling) || ceiling <= 0) return null;
+    const chosen = launchModel();
+    const byModel = chosen ? caps?.model?.input_window?.graphite_defaults?.[chosen.provider.id]?.[chosen.model] : null;
+    const info = byModel || graphiteOffer().input_window?.launch_default;
+    const minimum = info?.full_launch_minimum_provider_nanodollars?.without_hunt;
+    const base = info?.research_share;
+    if (!Number.isSafeInteger(minimum) || minimum <= 0 || typeof base !== "number" || !(base > 0)) return null;
+    // One call's reservation is about base x minimum; a whole percent above it, plus one.
+    const needed = Math.ceil(base * minimum / ceiling * 100) / 100 + 0.01;
+    return needed <= 1 ? needed : null;
+  }
   function graphiteDefaults() {
     const offered = graphiteOffer();
     const modes = Array.isArray(offered.modes) ? offered.modes : [];
@@ -3883,9 +3906,9 @@
     return {
       mode: GRAPHITE_MODE_LABEL[mode] ? mode : "FULL",
       edition,
-      share: percentText(typeof share === "number" && share >= 0 && share <= 1 ? share : 0.10),
+      share: percentText(Math.max(typeof share === "number" && share >= 0 && share <= 1 ? share : 0.10, fittingShare() ?? 0)),
       plan: "", hunt: false,
-      retain: false,
+      retain: practisingOnly(),
       records: String(Number.isSafeInteger(records) && records >= 1 && records <= huntBounds().maxRecords ? records : Math.min(HUNT.records, huntBounds().maxRecords)),
       queries: "", limits: {},
     };
@@ -4407,7 +4430,7 @@
     const retainLabel = el("label", undefined, "check");
     const retainCheck = el("input"); retainCheck.type = "checkbox"; retainCheck.id = "wizard-retain-before-submit";
     retainCheck.addEventListener("change", () => setGraphite({retain: retainCheck.checked}));
-    retainLabel.append(retainCheck, " Retain the selected candidate for review before submit (no commitment or validator submission; off by default)");
+    retainLabel.append(retainCheck, " Retain the selected candidate for review before submit (no commitment or validator submission; off by default, on when you practise without registering)");
     retain.append(retainLabel); box.append(retain);
     // Full: how much of the budget research may use.
     const share = el("div", undefined, "graphite-field"); share.id = "wizard-graphite-share";
