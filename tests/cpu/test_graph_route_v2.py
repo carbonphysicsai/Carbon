@@ -447,7 +447,7 @@ def test_f08_train_is_an_explicit_table_that_refuses_unknown_versions():
         )
         assert loaded["provenance"]["train_sha256"] == "sha256:" + expected, version
     with pytest.raises(ValueError):
-        f08_train.load_public_train("1.7")
+        f08_train.load_public_train("1.8")
 
 
 #: The catalog's entry counts per graph route v2 version, exact: moved only by
