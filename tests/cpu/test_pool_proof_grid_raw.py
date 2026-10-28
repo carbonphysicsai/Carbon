@@ -213,3 +213,46 @@ def test_the_grid_script_flattens_every_item_of_a_pool_raw_document(kind):
     bad = {**document, "raw_outputs": [item, "not outputs"]}
     with pytest.raises(pool_plugin.TruthCheckStop):
         grid_script._raw_rows(bad, "t1", shape)
+
+
+def test_the_truth_check_bank_counts_the_probe_rows_that_remain_after_the_closed_exclusion():
+    """Pool operator, grid stop 5 (2026-10-27): F08's measure refuses a bank whose probe cohort differs from
+    its definition's registered probe count (`f08_bank_cohort`); the exclusion removed 13 of 39 probe rows.
+    """
+    from dataclasses import replace
+
+    rows = [{"case_id": f"c{i}", "reference": [1.0]} for i in range(4)] + [
+        {"case_id": f"p{i}", "reference": None} for i in range(5)
+    ]
+    legs = pool_plugin.BankLegs(
+        binding=binding(),
+        measure=lambda **_: {},
+        rows=rows,
+        arguments={"definition": {"probes": {"cohort": "probe", "rows": 5}, "x": 1}},
+        truth_probe_rule="perfect",
+        response_leg="A_response",
+        ignored_gates=(),
+        truth_tolerance=0.01,
+        state={},
+    )
+    checked = grid_script.without_excluded_probes(legs, {"p1", "p4"})
+    assert [r["case_id"] for r in checked.rows] == [
+        "c0",
+        "c1",
+        "c2",
+        "c3",
+        "p0",
+        "p2",
+        "p3",
+    ]
+    assert checked.arguments["definition"]["probes"] == {"cohort": "probe", "rows": 3}
+    assert checked.arguments["definition"]["x"] == 1
+    # the grid's own bank and definition are untouched: every model is still graded on the full bank
+    assert len(legs.rows) == 9 and legs.arguments["definition"]["probes"]["rows"] == 5
+    # no exclusion, or a definition with no probe count: unchanged
+    same = grid_script.without_excluded_probes(legs, set())
+    assert same.rows == rows and same.arguments == legs.arguments
+    plain = grid_script.without_excluded_probes(
+        replace(legs, arguments={"definition": {}}), {"p1"}
+    )
+    assert plain.arguments == {"definition": {}} and len(plain.rows) == 8
