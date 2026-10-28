@@ -46,7 +46,11 @@ MATERIALS = {}
 
 
 def _parent(identity):
-    return replace(receiver_fixtures.CPU_PARENTS["torch-cpu-py311"], image_id=identity)
+    return replace(
+        receiver_fixtures.CPU_PARENTS["torch-cpu-py311"],
+        image_id=identity,
+        config_digest=identity,
+    )
 
 
 @pytest.fixture(autouse=True)
