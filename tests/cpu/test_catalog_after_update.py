@@ -188,7 +188,7 @@ def test_status_lists_a_missing_catalog_and_never_reads_all_done(
 ):
     setup = ready(tmp_path, state)
     view = operations.status(setup, door=operations.MCP)
-    assert view["next"]["step"] == "catalog"
+    assert view["next"]["step"] == "launch"
     assert any(row["id"] == "catalog" for row in view["steps"])
     monkeypatch.setattr(
         setup, "catalog", lambda: {"entries": 3, "missing": ["a", "b", "c"]}
@@ -196,7 +196,7 @@ def test_status_lists_a_missing_catalog_and_never_reads_all_done(
     for door in (operations.MCP, operations.HTTP):
         view = operations.status(setup, door=door)
         row = next(r for r in view["steps"] if r["id"] == "catalog")
-        assert row["state"] == "next" and row["blocks_launch"] is False
+        assert row["state"] == "open" and row["blocks_launch"] is False
         assert row["missing"] == ["catalog_not_installed_for_this_install"]
         assert row["not_installed"] == ["a", "b", "c"] and row["entries"] == 3
         assert row["install"]["schema"] == catalog_build.SCHEMA
@@ -204,11 +204,11 @@ def test_status_lists_a_missing_catalog_and_never_reads_all_done(
         assert "catalog" not in view["done"]
         assert len(view["done"]) < len(view["steps"])
         nxt = view["next"]
-        assert nxt["step"] == "catalog" and nxt["blocks_launch"] is False
-        assert nxt["human_action_required"]["command"] == (
+        assert nxt["step"] == "launch" and nxt["done"] is False
+        assert nxt["call"]["tool"] == "carbon_launch"
+        assert row["human_action_required"]["command"] == (
             "python -m scripts.dev.catalog_install --state-dir " + str(state)
         )
-        assert nxt["then"]["step"] == "launch"
     # While it installs, the step shows its progress and asks nothing.
     monkeypatch.setattr(
         catalog_build,
@@ -575,8 +575,11 @@ def test_a_start_failure_preserves_review_and_offers_an_honest_retry(
     assert json.loads(setup.profile_path.read_bytes())["campaigns_root"]
     job = catalog_build.status(state)
     assert job["state"] == "INCOMPLETE" and job["started_at"] is None
-    retry = operations.status(setup, door=door)["next"]
-    assert retry["step"] == "catalog" and retry["install"] == job
+    view = operations.status(setup, door=door)
+    assert view["next"]["step"] == "launch"
+    retry = next(row for row in view["steps"] if row["id"] == "catalog")
+    assert retry["state"] == "open" and retry["blocks_launch"] is False
+    assert retry["install"] == job
     assert "could not start" in retry["human_action_required"]["why"]
     assert "never start" not in retry["human_action_required"]["why"]
 

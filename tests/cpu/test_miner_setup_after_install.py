@@ -765,9 +765,10 @@ def test_a_stale_check_that_blocks_nothing_reads_done_on_the_step_and_the_list(
         assert row["recheck"] == setup_operations.call("recheck", door)
         # These compute-only manifests establish no ready catalog. Its
         # separate reminder stays truthful without holding up launch.
-        assert view["next"]["step"] == "catalog"
-        assert view["next"]["blocks_launch"] is False
-        assert view["next"]["then"]["step"] == "launch"
+        catalog = next(r for r in view["steps"] if r["id"] == "catalog")
+        assert catalog["state"] == "open" and catalog["blocks_launch"] is False
+        assert view["next"]["step"] == "launch"
+        assert view["next"]["call"]["tool"] == "carbon_launch"
         assert "catalog" not in view["done"]
         # The step and the list agree, row by row.
         assert view["done"] == [

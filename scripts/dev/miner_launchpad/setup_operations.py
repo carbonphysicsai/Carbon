@@ -628,7 +628,16 @@ def status(
     catalog_row = _catalog_row(setup)
     if catalog_row is not None:
         rows.append(catalog_row)
-    nxt = next((row for row in rows if row["state"] == "open"), None)
+    # A nonblocking reminder stays visible on its row. It cannot replace
+    # the executable next call that drives setup through to launch.
+    nxt = next(
+        (
+            row
+            for row in rows
+            if row["state"] == "open" and row["blocks_launch"] is True
+        ),
+        None,
+    )
     if nxt is not None:
         nxt["state"] = "next"
     result = {
@@ -691,29 +700,6 @@ def status(
                 "next_step": probe.get("next_step"),
             }
         )
-    if nxt is not None and nxt["id"] == "catalog":
-        launched = campaigns is not None and campaigns > 0
-        result["next"] = {
-            "step": "catalog",
-            "title": nxt["title"],
-            "missing": nxt["missing"],
-            "blocks_launch": False,
-            "install": nxt.get("install"),
-            **(
-                {"human_action_required": nxt["human_action_required"]}
-                if "human_action_required" in nxt
-                else {}
-            ),
-            # Launch is not held up by it.
-            "then": {
-                "step": "launch",
-                "done": launched,
-                "call": _launch_call(
-                    setup, door, launch_available, profile_unusable=profile_unusable
-                ),
-            },
-        }
-        return result
     if nxt is None:
         launched = campaigns is not None and campaigns > 0
         result["next"] = {
