@@ -411,6 +411,25 @@ VERSIONS = dict(
             predecessor="1.5",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
+        # OWNER-F08-FREQUENCY-BAND-DROP-01: prospective answer sanity only;
+        # construction and design feasibility retain 1.6's registered material.
+        _v(
+            F08,
+            "1.7",
+            F08_TRAIN_V2,
+            "v8",
+            False,
+            "f08-normal-construction-development-8",
+            ("f08-dual-development-grid-v3", "f08-development-grid-8x1"),
+            "f08-pool-sealed-v2",
+            "direct",
+            catalog=True,
+            graph_adapter="v2",
+            catalog_entries_from=("1.5",),
+            facts="1.7",
+            predecessor="1.6",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
+        ),
         # --- F02 (Burst Thermal) ------------------------------------------
         _v(
             F02,

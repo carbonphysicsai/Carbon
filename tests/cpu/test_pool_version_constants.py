@@ -15,6 +15,7 @@ from carbon.scoring import pool_exam, pool_version
 
 POOL = [
     ("f08-ribbed-bracket", "1.6"),
+    ("f08-ribbed-bracket", "1.7"),
     ("f02", "2.5"),
     ("electric-motor-magnetics", "1.5"),
     ("chip-cold-plate", "1.5"),
@@ -49,7 +50,9 @@ def test_the_shipped_file_registers_no_owner_constant_for_the_other_pool_version
 ):
     document = json.loads(pool_version.CONSTANTS.read_bytes())
     entry = document["versions"][f"{challenge_id} {version}"]
-    assert entry["c_rule"] == {"kind": "min"}
+    assert entry["c_rule"] == (
+        pool_version.HUMAN_INPUT if version == "1.7" else {"kind": "min"}
+    )
     assert pool_version.HUMAN_INPUT in json.dumps(entry)
     for call in (
         pool_version.registered_policies,

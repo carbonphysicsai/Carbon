@@ -79,6 +79,7 @@ def test_the_four_launch_versions_serve_a_block_and_others_serve_none():
         ("electric-motor-magnetics", "1.5"),
         ("f02", "2.5"),
         ("f08-ribbed-bracket", "1.6"),
+        ("f08-ribbed-bracket", "1.7"),
     ]
     assert pe.served() == sorted([*SERVED, *pe._POOL_VERSIONS])
     for key in SERVED:

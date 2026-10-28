@@ -74,6 +74,7 @@ def pool_version(monkeypatch):
 POOL_KEYS = frozenset(
     {
         ("f08-ribbed-bracket", "1.6"),
+        ("f08-ribbed-bracket", "1.7"),
         ("f02", "2.5"),
         ("electric-motor-magnetics", "1.5"),
         ("chip-cold-plate", "1.5"),

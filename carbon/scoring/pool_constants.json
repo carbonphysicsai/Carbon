@@ -58,6 +58,21 @@
         "sigma0": "HUMAN_INPUT"
       }
     },
+    "f08-ribbed-bracket 1.7": {
+      "a_multiplier": "HUMAN_INPUT",
+      "a_rule": "HUMAN_INPUT",
+      "agen_scales": "HUMAN_INPUT",
+      "c_rule": "HUMAN_INPUT",
+      "honesty": {
+        "reduction": "HUMAN_INPUT",
+        "scale": "HUMAN_INPUT"
+      },
+      "optimizer": {
+        "budget": "HUMAN_INPUT",
+        "population": "HUMAN_INPUT",
+        "sigma0": "HUMAN_INPUT"
+      }
+    },
     "f08-ribbed-bracket 1.6": {
       "a_multiplier": "HUMAN_INPUT",
       "a_rule": "HUMAN_INPUT",

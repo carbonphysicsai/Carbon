@@ -169,6 +169,18 @@ SPECS = {
         "float32",
         "1.5",
     ),
+    ("f08-ribbed-bracket", "1.7"): Spec(
+        "f08-ribbed-bracket",
+        "1.7",
+        "f08-ribbed-bracket-public-jax-graph-v2",
+        "f08-pinned-train-v2",
+        "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+        287,
+        6,
+        7,
+        "float32",
+        "1.6",
+    ),
     ("f02", "2.4"): Spec(
         "f02",
         "2.4",

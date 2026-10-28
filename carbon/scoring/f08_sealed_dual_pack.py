@@ -45,7 +45,10 @@ VERSION = "1.2"
 EVALUATION_VERSION = "f08-dual-sealed-grid-8x1-v2"
 CASE_ID = "f08-sealed-batch-8"
 #: Pool-graded versions: the sealed grader's cells and probes plus the pool set (`pool_exam`).
-POOL_VERSIONS = {"1.6": ("f08-pool-sealed-v1", "f08-sealed-pool-set")}
+POOL_VERSIONS = {
+    "1.6": ("f08-pool-sealed-v1", "f08-sealed-pool-set"),
+    "1.7": ("f08-pool-sealed-v2", "f08-sealed-pool-set"),
+}
 VERSIONS = {
     **{
         version: (EVALUATION_VERSION, CASE_ID)
@@ -285,8 +288,13 @@ def adapter(version):
         from carbon.scoring import pool_version
 
         evaluation, case_id = POOL_VERSIONS[version]
+        module = _ADAPTER
+        if version == "1.7":
+            from carbon.scoring import f08_sanity_dual_pack
+
+            module = f08_sanity_dual_pack
         return pool_version.variant(
-            _ADAPTER, version, evaluation, case_id, challenge_id=CHALLENGE
+            module, version, evaluation, case_id, challenge_id=CHALLENGE
         )
     return physical.versioned(_ADAPTER, version)
 
