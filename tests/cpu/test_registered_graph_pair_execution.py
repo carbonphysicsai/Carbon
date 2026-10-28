@@ -216,7 +216,7 @@ def test_derived_single_call_executes_the_same_registered_graph(artifact, tmp_pa
             ledger, owner="fixture-owner", identity="real-single-call",
             inference_image=_image(), recipe=artifact["recipe"], binding=artifact["binding"],
             state=artifact["state"], state_digest=paired_inference._digest(artifact["state"]),
-            inputs=bank, expected_output_shape=(len(bank), artifact["width"]),
+            inputs=bank, expected_output_shape=(single_call_timing.SAMPLE, artifact["width"]),
             expected_output_dtype=artifact["dtype"],
             allowlist_bytes=artifact["material"]["allowlist_bytes"],
             single_call={"indices": indices, "warmup": artifact["inputs"][:1]},
