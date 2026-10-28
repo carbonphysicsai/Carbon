@@ -156,6 +156,42 @@ def test_unknown_configured_gpu_inventory_cannot_disappear(
     }
 
 
+@pytest.mark.parametrize(
+    "implementation",
+    [
+        {"source_tree_digest": "sha256:" + "e" * 64},
+        None,
+        {},
+        {"source_tree_digest": None},
+        {"source_tree_digest": "unknown"},
+    ],
+)
+def test_actual_cpu_parent_selector_requires_a_valid_source_identity(
+    miner, monkeypatch, implementation
+):
+    cfg, root, items, state = miner
+    for item in items:
+        install(root, item)
+    parent = receiver_fixtures.CPU_PARENTS["python-cpu-py311"]
+    cfg.update(
+        paths={"image_manifest": "/synthetic/canonical-cpu.json"},
+        runtime={"implementation": implementation},
+    )
+    (state / "environment/runner-profile.json").write_text(json.dumps(cfg))
+    monkeypatch.setattr(docker_runtime, "load_image_identity", lambda path: parent)
+    monkeypatch.setattr(catalog_state, "parents", READ_PARENTS)
+    if implementation == {"source_tree_digest": "sha256:" + "e" * 64}:
+        assert READ_PARENTS(cfg) == {"python-cpu-py311": parent}
+        assert catalog_state.progress(cfg)["installed"] > 0
+        assert catalog_state.state(cfg)["missing"] == []
+    else:
+        assert catalog_state.progress(cfg)["installed"] == 0
+        assert catalog_build.status(state)["state"] == "INCOMPLETE"
+        assert set(catalog_state.state(cfg)["missing"]) == {
+            item["catalog_id"] for item in items
+        }
+
+
 def test_owner_catalog_retry_rebuilds_missing_child_then_reuses_it(
     miner, daemon, monkeypatch
 ):

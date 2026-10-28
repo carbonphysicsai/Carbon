@@ -65,6 +65,7 @@ def parents(cfg) -> dict:
             if cpu is not None:
                 found["python-cpu-py311"] = cpu
         else:
+            from carbon.development_session.library_bundles import SHA256
             from carbon.development_session.research_campaign import (
                 digest,
                 verify_direct_v13_worker,
@@ -73,8 +74,12 @@ def parents(cfg) -> dict:
             repository = Path(__file__).resolve().parents[3]
             if primary.lock_digest != digest((repository / "uv.lock").read_bytes()):
                 raise ValueError("configured catalog CPU parent is unknown")
+            implementation = cfg["runtime"]["implementation"]
+            source = implementation["source_tree_digest"]
+            if type(source) is not str or SHA256.fullmatch(source) is None:
+                raise ValueError("configured catalog source identity is invalid")
             verify_direct_v13_worker(
-                primary, cfg["runtime"]["implementation"], role="cpu"
+                primary, implementation, role="cpu"
             )
             found["python-cpu-py311"] = primary
     for field in ("gpu_image", "extra_gpu_image"):
