@@ -45,7 +45,10 @@ VERSION = "1.2"
 EVALUATION_VERSION = "f08-dual-sealed-grid-8x1-v2"
 CASE_ID = "f08-sealed-batch-8"
 #: Pool-graded versions: the sealed grader's cells and probes plus the pool set (`pool_exam`).
-POOL_VERSIONS = {"1.6": ("f08-pool-sealed-v1", "f08-sealed-pool-set")}
+POOL_VERSIONS = {
+    "1.6": ("f08-pool-sealed-v1", "f08-sealed-pool-set"),
+    "1.7": ("f08-pool-sealed-v2", "f08-sealed-pool-set"),
+}
 VERSIONS = {
     **{
         version: (EVALUATION_VERSION, CASE_ID)
@@ -122,9 +125,9 @@ def definition(*, bank, train_raw):
     }
 
 
-def validate_definition(definition):
+def validate_definition(definition, *, native_summary_rule=None):
     """The sealed grid definition, checked for every field used (F08's own checks, then the grid's)."""
-    fdm.validate_definition(definition)
+    fdm.validate_definition(definition, native_summary_rule=native_summary_rule)
     fdm._require(
         definition.get("sealed_method") == METHOD
         and definition.get("geometry_count") == CASES
@@ -193,11 +196,20 @@ def _layout(bank_rows):
 
 
 def measure(
-    *, bank_rows, outputs, repeats, definition, limits, objective, train_raw, names
+    *,
+    bank_rows,
+    outputs,
+    repeats,
+    definition,
+    limits,
+    objective,
+    train_raw,
+    names,
+    native_summary_rule=None,
 ):
     """A, D, native gates and the decision outcome for one model on a sealed grid, by F08's registered dual
     measurement (see the module docstring)."""
-    validate_definition(definition)
+    validate_definition(definition, native_summary_rule=native_summary_rule)
     cells = [i for i, row in enumerate(bank_rows) if row.get("cohort") == COHORT]
     probes = [
         i
@@ -227,6 +239,7 @@ def measure(
         objective=objective,
         train_raw=train_raw,
         names=names,
+        native_summary_rule=native_summary_rule,
     )
     constraints = fdm._limits(limits)
     measured = f08_critical.apply(
@@ -285,8 +298,13 @@ def adapter(version):
         from carbon.scoring import pool_version
 
         evaluation, case_id = POOL_VERSIONS[version]
+        module = _ADAPTER
+        if version == "1.7":
+            from carbon.scoring import f08_sanity_dual_pack
+
+            module = f08_sanity_dual_pack
         return pool_version.variant(
-            _ADAPTER, version, evaluation, case_id, challenge_id=CHALLENGE
+            module, version, evaluation, case_id, challenge_id=CHALLENGE
         )
     return physical.versioned(_ADAPTER, version)
 

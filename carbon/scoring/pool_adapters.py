@@ -390,11 +390,10 @@ def _f02_gates(version):
 
 
 def _f08_gates(version):
-    from carbon.scoring import f08_dual_pack, f08_physics
+    from carbon.scoring import f08_dual_measurement, f08_dual_pack, f08_physics
 
     targets = list(f08_dual_pack._targets(version))
-    low, high = f08_dual_pack._MEASUREMENT["frequency_band_hz"]
-    frequencies = [targets.index(t) for t in f08_dual_pack._FREQUENCIES]
+    rule = f08_dual_measurement.SANITY_RULE if version == "1.7" else None
     names = (
         "finite_native_summary",
         *sorted(("peak_not_below_static", "peaks_ordered_by_damping")),
@@ -404,9 +403,13 @@ def _f08_gates(version):
         row = _finite_row(raw)
         if (
             row is None
-            or len(row) != len(targets)
-            or any(v < 0 for v in row)
-            or any(not low <= row[j] <= high for j in frequencies)
+            or not f08_dual_measurement.native_summary(
+                row,
+                targets=targets,
+                frequency_targets=f08_dual_pack._FREQUENCIES,
+                frequency_band_hz=f08_dual_pack._MEASUREMENT["frequency_band_hz"],
+                rule=rule,
+            )
         ):
             return ("finite_native_summary",)
         laws = f08_physics._logical(dict(zip(targets, row, strict=True)))

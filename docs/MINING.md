@@ -159,6 +159,20 @@ The exam is not a surprise: you can read what it measures and what passes. What 
 - **Practice and exam.** Practice uses the public bank, with public-seeded probes; its totals are not exam totals. The exam uses private cases, drawn near the design limit inside the published validity region, so that some designs pass and some fail. Exams rotate at most every 90 days, with a weekly overfit check.
 - **King of the hill.** The best total wins. A challenger must beat the king by the registered margin, a tie keeps the king, and the first king must beat Carbon's baseline by the margin. The margin is **not yet registered**, so takeovers are paused.
 
+### Ribbed Bracket 1.7 (reserved)
+
+Scoring `f08-pool-sealed-v2`, with development scoring
+`f08-dual-development-grid-v3`. This prospective version applies the owner's
+frequency-band correction: answers must have the correct seven-value width,
+finite values, non-negative compliance and strictly positive peak frequencies.
+The 80–600 Hz band no longer gates individual answers. A frequency overshoot
+is an accuracy error in A. Dynamic peaks must still be at least the static
+compliance and ordered by damping; design feasibility limits are unchanged.
+Practice and pool answers use the same rule. Pool constants remain **not yet
+registered**, so 1.7 remains **RESERVED** and refuses official grading until
+the owner selects them. Versions through 1.6 keep their original band gate
+and evaluation identities; historical grades retain their meaning.
+
 ### Ribbed Bracket 1.5
 
 Scoring `f08-dual-sealed-grid-8x1-v2`. Exam: 8 cells (8 designs x 1 condition); probes are random points inside the validity region with a step of 0.005 to 0.015 of each input's span.

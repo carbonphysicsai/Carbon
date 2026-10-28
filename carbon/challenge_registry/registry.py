@@ -792,6 +792,31 @@ def _entries():
             None,
         ),
         Entry(
+            "f08-ribbed-bracket",
+            "1.7",
+            "Ribbed Bracket (F08, DEVELOPMENT, pool-graded exam, backbone catalog and "
+            "graph training adapter v2, allowlist v8)",
+            _pool_status("f08-ribbed-bracket", "1.7"),
+            LAUNCH_PENDING_READINESS,
+            None,
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(
+                _direct_describe("f08-ribbed-bracket"), "f08-ribbed-bracket", "1.7"
+            ),
+            None,
+        ),
+        Entry(
             "f02",
             "2.3",
             "Burst Thermal (F02, DEVELOPMENT, backbone catalog and graph training "
