@@ -33,6 +33,26 @@ normal external signer and must authenticate as registered participants.
 
 ## Finite Product command
 
+For operator setup with `python -B -m carbon.challenge_validator.receiver_setup prepare`,
+the default is the full CPU construction set: `python-cpu-py311` and
+`torch-cpu-py311`. This lets Python/JAX and PyTorch catalog recipes each select
+their own installed parent. Both pinned parent images must be installed and
+pass the receiver's existing checks; setup does not build them.
+
+`--construction-runtimes` remains accepted for existing scripts. An operator
+can deliberately narrow a new receiver to its primary installed worker with
+`--no-construction-runtimes`. The private configuration then omits the optional
+`construction_runtimes` pair, preserving the historical single-parent contract.
+Both `prepare` and `status` report `construction_runtime_mode` as `full_cpu` or
+`installed_worker_only`, so the opt-out is visible. A narrow receiver cannot
+install catalog entries for the other runtime; GPU catalog construction also
+requires the full CPU pair. These choices apply to every served Challenge.
+
+Existing receiver configurations keep their recorded runtime selection. Prepare
+a fresh receiver state to change it; do not relabel a running receiver or its
+retained tasks. Full runtime selection alone does not establish that every
+served catalog entry is installed or that the host passes the launch checks.
+
 Product runs this only under the current host TEST admission, actual summed
 resource reservations, finite process/cleanup deadline and existing SSH guard.
 The command is Linux/POSIX because the maintained durable provider and owner

@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import stat
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -88,6 +89,8 @@ def test_prepare_writes_a_private_closed_configuration(
     config = json.loads(config_path.read_bytes())
     assert config["host"] == "127.0.0.1" and config["challenge"] == MOTOR
     assert config["receiver_hotkey"] == HOTKEY
+    assert config["construction_runtimes"] == direct_receiver.CONSTRUCTION_RUNTIMES
+    assert done["construction_runtime_mode"] == "full_cpu"
     assert "evaluation_pack" not in config
     for path in (
         config_path,
@@ -350,6 +353,7 @@ def test_status_reports_service_intake_exam_and_last_graded(
     assert healthy["challenge"] == MOTOR and healthy["receiver_hotkey"] == HOTKEY
     assert (healthy["graded"], healthy["last_graded_unix"]) == (0, None)
     assert healthy["exam"] == "SELECTED"
+    assert healthy["construction_runtime_mode"] == "full_cpu"
 
     def unreachable(url):
         raise OSError("refused")
@@ -506,7 +510,7 @@ def test_prepare_writes_the_graph_gpu_lane_keys_both_or_neither(
     assert config["graph_gpu_image_manifest"] == str(image)
     assert config["graph_gpu_ops"] == str(ops)
     assert "gpu_construction_images" not in config
-    assert "construction_runtimes" not in config
+    assert config["construction_runtimes"] == direct_receiver.CONSTRUCTION_RUNTIMES
 
 
 def test_a_half_graph_gpu_lane_is_refused_before_anything_is_written(
@@ -540,24 +544,124 @@ def test_a_gpu_lane_file_must_be_an_exact_absolute_regular_file(
     assert not (tmp_path / "receiver-state").exists()
 
 
-def test_gpu_construction_images_need_the_explicit_construction_runtimes_opt_in(
+def test_gpu_construction_images_use_the_full_cpu_default_and_refuse_an_opt_out(
     tmp_path, installed_state, faked
 ):
     (torch,) = _gpu_files(tmp_path, "torch-gpu.json")
     with pytest.raises(
         receiver_setup.SetupRefused, match="construction_runtimes_needed"
     ):
-        _prepare(tmp_path, installed_state, gpu_construction_images=(torch,))
+        _prepare(
+            tmp_path,
+            installed_state,
+            gpu_construction_images=(torch,),
+            construction_runtimes=False,
+        )
+    assert not (tmp_path / "receiver-state").exists()
     done = _prepare(
         tmp_path,
         installed_state,
         gpu_construction_images=(torch,),
-        construction_runtimes=True,
     )
     assert done["gpu_construction_images"] == 1 and done["graph_gpu_lane"] is False
     config = _config(tmp_path)
     assert config["gpu_construction_images"] == [str(torch)]
     assert config["construction_runtimes"] == direct_receiver.CONSTRUCTION_RUNTIMES
+
+
+def test_the_explicit_runtime_opt_out_is_reported_by_prepare_and_status(
+    tmp_path, installed_state, faked
+):
+    done = _prepare(tmp_path, installed_state, construction_runtimes=False)
+    assert "construction_runtimes" not in _config(tmp_path)
+    assert done["construction_runtime_mode"] == "installed_worker_only"
+    shown = receiver_setup.status(
+        tmp_path / "receiver-state", run=Run(), fetch=lambda url: {}
+    )
+    assert shown["construction_runtime_mode"] == "installed_worker_only"
+
+
+@pytest.mark.parametrize(
+    ("flags", "expected"),
+    [
+        ([], True),
+        (["--construction-runtimes"], True),
+        (["--no-construction-runtimes"], False),
+    ],
+)
+def test_cli_defaults_to_full_cpu_with_a_compatible_explicit_opt_out(
+    tmp_path, monkeypatch, flags, expected
+):
+    captured = {}
+
+    def prepare(**kwargs):
+        captured.update(kwargs)
+        return {"status": "RECEIVER_PROFILE_READY"}
+
+    monkeypatch.setattr(receiver_setup, "prepare", prepare)
+    assert (
+        receiver_setup.main(
+            [
+                "prepare",
+                "--installed-state",
+                str(tmp_path / "installed"),
+                "--receiver-state",
+                str(tmp_path / "receiver"),
+                "--hotkey",
+                HOTKEY,
+                "--challenge",
+                MOTOR["id"],
+                MOTOR["version"],
+                *flags,
+            ]
+        )
+        == 0
+    )
+    assert captured["construction_runtimes"] is expected
+
+
+@pytest.mark.parametrize("opt_out", [False, True])
+def test_a_prepared_receiver_serves_a_python_catalog_entry_by_default(
+    tmp_path, installed_state, faked, monkeypatch, opt_out
+):
+    from test_backbone_catalog_receiver_install import torch_parent
+
+    from carbon.development_session.gpu_practice import DirectParents
+    from scripts.dev import catalog_install, library_bundle
+
+    _prepare(
+        tmp_path,
+        installed_state,
+        **({"construction_runtimes": False} if opt_out else {}),
+    )
+    config_path = tmp_path / "receiver-state/receiver/receiver.json"
+    config = direct_receiver.load_config(config_path)
+    profile = json.loads(Path(config["runner_profile"]).read_bytes())
+    cache = Path(profile["campaigns_root"]) / ".direct-development/library-cache"
+    parent = torch_parent()
+    parents = DirectParents.from_torch(parent)
+    installed_bundles = []
+    monkeypatch.setattr(
+        direct_receiver, "installed_source", lambda *a, **k: ({}, parent, None, cache)
+    )
+    monkeypatch.setattr(direct_receiver, "construction_parents", lambda *a: parents)
+
+    def install(directory, cache_root, selected_parent, *, expected_bundle, cli):
+        installed_bundles.append((selected_parent, expected_bundle))
+        return SimpleNamespace(bundle_ref=expected_bundle.to_dict())
+
+    monkeypatch.setattr(library_bundle, "install_pinned_library_worker_image", install)
+    monkeypatch.setattr(library_bundle, "DockerCLI", lambda: object())
+    if opt_out:
+        with pytest.raises(ValueError, match="backend_not_served"):
+            catalog_install.install(["jno.fno1d"], receiver_config=config_path)
+        assert installed_bundles == []
+    else:
+        result = catalog_install.install(["jno.fno1d"], receiver_config=config_path)
+        assert result[0]["status"] == "INSTALLED_VERIFIED"
+        [(selected_parent, bundle)] = installed_bundles
+        assert selected_parent == parents.for_runtime("python-cpu-py311")
+        assert bundle.runtime_profile_id == "python-cpu-py311"
 
 
 def test_at_most_two_gpu_construction_images(tmp_path, installed_state, faked):
