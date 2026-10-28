@@ -79,9 +79,9 @@ const plain = text => String(text).replace(/\bevaluation endpoints\b/g, "grading
 function selectable() { return fx.caps.challenges.find(entry => entry.selectable); }
 // The first Challenge the wizard lists (its newest version) that can be launched and practised: a
 // Challenge that cannot practise is Coming soon (Battery is out of launch), so no wizard scenario picks it.
-function listedChallenge() {
+function listedChallenge(capabilities = fx.caps) {
   const newer = (x, y) => { const a = String(x || "").split(".").map(Number), b = String(y || "").split(".").map(Number); for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); return false; };
-  const open = fx.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+  const open = capabilities.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development");
   const listed = open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newer(other.version, entry.version)));
   return listed.find(entry => entry.selectable && entry.practise?.ready !== false);
 }
@@ -255,7 +255,8 @@ scenario("a Challenge pending readiness reads planned for launch, never Launch",
   // Validator, 2026-10-21: launch_pending_readiness shows "Planned for
   // launch · readiness not yet confirmed" and never the bare word Launch.
   const state = world();
-  const entry = state.caps.challenges.find(item => item.implemented);
+  const entry = listedChallenge(state.caps);
+  assert.ok(entry, "an offered Challenge in this scenario");
   entry.portfolio = "launch_pending_readiness";
   const page = await open(state);
   page.go("#challenges");
@@ -272,8 +273,8 @@ scenario("an exam Carbon has not set yet renders and the page stays connected", 
   // gates as HUMAN_INPUT until the owner sets them: the catalog says so, and
   // every refresh still connects (the 2026-10-21 M1 interruption).
   const state = world();
-  const entry = state.caps.challenges.find(item => item.implemented);
-  assert.ok(entry, "an implemented Challenge");
+  const entry = listedChallenge(state.caps);
+  assert.ok(entry, "an offered Challenge in this scenario");
   entry.description = {...(entry.description || {}), exam: {components: "HUMAN_INPUT", gates: "HUMAN_INPUT", rule: "HUMAN_INPUT", qualification: false}};
   const page = await open(state);
   for (const route of ["#challenges", "#setup", "#overview"]) {
@@ -3295,10 +3296,12 @@ scenario("setup starts with keys, funding and joining, then the signer (Dana 1)"
   clean(page);
 });
 
-scenario("miners are offered only the latest version of each Challenge, and no reserved, retired or deferred one (owner U-f)", async () => {
+scenario("miners are offered only the latest version of each Challenge, and no reserved, retired, deferred or historical one (owner U-f)", async () => {
   const state = world();
   const page = await open(state);
-  const offered = fx.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+  const historical = new Set(state.caps.challenges.filter(entry => entry.portfolio === "historical_development").map(entry => entry.challenge_id));
+  assert.ok(historical.size, "the fixture retains historical Challenge records");
+  const offered = state.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development");
   const latest = id => offered.filter(entry => entry.challenge_id === id).map(entry => entry.version).sort((a, b) => parseFloat(b) - parseFloat(a))[0];
   assert.ok(offered.filter(entry => entry.challenge_id === "electric-motor-magnetics").length > 1, "the fixture has several Motor versions");
   page.go("#launch");
@@ -3308,9 +3311,11 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   assert.equal(new Set(inputs.map(input => input.dataset.challenge)).size, inputs.length, "one entry per Challenge: " + pairs);
   for (const input of inputs) assert.equal(input.dataset.version, latest(input.dataset.challenge) || "", "the latest version of " + input.value);
   assert.ok(!pairs.some(pair => /photonic|power-magnetics|airfoil|burgers-dynamics/.test(pair)), "no reserved, deferred or retired entry: " + pairs);
+  assert.ok(inputs.every(input => !historical.has(input.dataset.challenge)), "historical Challenges are absent from the wizard");
   page.go("#challenges");
   await page.advance(0);
   const text = page.text("challenge-catalog");
+  assert.ok(all(page, "#challenge-catalog [data-challenge]").every(card => !historical.has(card.dataset.challenge)), "historical Challenges are absent from the catalog DOM");
   assert.doesNotMatch(text, /Reserved|Deferred|Retired/);
   assert.doesNotMatch(text, /electric-motor-magnetics · version 1\.(0|2)/);
   assert.ok(text.includes("electric-motor-magnetics · version " + latest("electric-motor-magnetics")), "Motor is listed at its latest version");
