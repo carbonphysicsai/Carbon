@@ -64,6 +64,11 @@ def _served_parents(config) -> dict:
         derived_cpu_parent,
         direct_parent_backend,
     )
+    from carbon.development_session.library_bundles import SHA256
+    from carbon.development_session.research_campaign import (
+        digest,
+        verify_direct_v13_worker,
+    )
     from carbon.reconstruction.worker.docker_runtime import load_image_identity
 
     profile = _read_profile(config)
@@ -84,6 +89,18 @@ def _served_parents(config) -> dict:
             except Exception:  # noqa: BLE001, S110 - its CPU parent is then not served
                 pass
     else:
+        # None is also the backend of an unknown record. Only the existing
+        # canonical CPU lock/worker rules can identify the C-03 CPU parent.
+        try:
+            if primary.lock_digest != digest((REPOSITORY / "uv.lock").read_bytes()):
+                return {}
+            implementation = profile["runtime"]["implementation"]
+            source = implementation["source_tree_digest"]
+            if type(source) is not str or SHA256.fullmatch(source) is None:
+                return {}
+            verify_direct_v13_worker(primary, implementation, role="cpu")
+        except (OSError, ValueError, KeyError, TypeError):
+            return {}
         found["python-cpu-py311"] = primary
     try:
         DirectParents(found)
@@ -108,14 +125,20 @@ def gpu_runtimes(config) -> list:
     from carbon.development_session.gpu_practice import gpu_runtime
     from carbon.reconstruction.worker.docker_runtime import load_image_identity
 
+    if "gpu_construction_images" not in config:
+        return []
+    declared = config["gpu_construction_images"]
+    if type(declared) is not list:
+        raise ValueError("configured GPU inventory must be a list")
     runtimes = []
-    for path in config.get("gpu_construction_images") or ():
+    for path in declared:
         try:
             runtime = gpu_runtime(load_image_identity(Path(path)))
-        except Exception:  # noqa: BLE001 - a record that cannot be read serves none
-            runtime = None
-        if runtime is not None and runtime not in runtimes:
-            runtimes.append(runtime)
+        except Exception as error:  # noqa: BLE001 - unknown inventory cannot prove ready
+            raise ValueError("configured GPU inventory is unreadable") from error
+        if runtime is None or runtime in runtimes:
+            raise ValueError("configured GPU inventory is unregistered or duplicated")
+        runtimes.append(runtime)
     return runtimes
 
 

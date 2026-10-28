@@ -40,6 +40,7 @@ CPU_PARENTS = {
 }
 REAL_ENTRIES = listing.entries
 READ_PARENTS = receiver_catalog._served_parents
+READ_GPU_RUNTIMES = receiver_catalog.gpu_runtimes
 
 
 def _write_material(root, material):
@@ -279,6 +280,10 @@ def test_runtime_inventory_preserves_cpu_identities_and_does_not_label_a_gpu_cpu
     from carbon.reconstruction.worker import docker_runtime
 
     config, _root = receiver
+    profile_path = Path(config["runner_profile"])
+    profile = json.loads(profile_path.read_bytes())
+    profile["runtime"] = {"implementation": {"source_tree_digest": "sha256:" + "e" * 64}}
+    profile_path.write_text(json.dumps(profile))
     config["construction_image_manifest"] = "/synthetic/torch-worker.json"
     monkeypatch.setattr(receiver_catalog, "_served_parents", READ_PARENTS)
     monkeypatch.setattr(docker_runtime, "load_image_identity", lambda path: torch_image())
@@ -305,6 +310,93 @@ def test_runtime_inventory_preserves_cpu_identities_and_does_not_label_a_gpu_cpu
         ),
     )
     assert receiver_catalog.served_runtimes(config) == {}
+
+
+@pytest.mark.parametrize(
+    "field", ["lock_digest", "entrypoint_digest", "build_recipe_digest"]
+)
+def test_an_unknown_cpu_identity_cannot_establish_inventory(receiver, monkeypatch, field):
+    from carbon.reconstruction.worker import docker_runtime
+
+    config, _root = receiver
+    profile_path = Path(config["runner_profile"])
+    profile = json.loads(profile_path.read_bytes())
+    profile["runtime"] = {"implementation": {"source_tree_digest": "sha256:" + "e" * 64}}
+    profile_path.write_text(json.dumps(profile))
+    config["construction_image_manifest"] = "/synthetic/unknown-cpu.json"
+    monkeypatch.setattr(receiver_catalog, "_served_parents", READ_PARENTS)
+    parent = replace(CPU_PARENTS["python-cpu-py311"], **{field: "sha256:" + "9" * 64})
+    monkeypatch.setattr(docker_runtime, "load_image_identity", lambda path: parent)
+    assert receiver_catalog.served_runtimes(config) == {}
+    assert receiver_setup.catalog_state(config) == {"status": "UNVERIFIED", "ready": None}
+
+
+@pytest.mark.parametrize(
+    "implementation", [None, {}, {"source_tree_digest": None}, {"source_tree_digest": "unknown"}]
+)
+def test_a_cpu_parent_with_unreadable_implementation_inventory_is_unverified(
+    receiver, monkeypatch, implementation
+):
+    from carbon.reconstruction.worker import docker_runtime
+
+    config, _root = receiver
+    profile_path = Path(config["runner_profile"])
+    profile = json.loads(profile_path.read_bytes())
+    profile["runtime"] = {"implementation": implementation}
+    profile_path.write_text(json.dumps(profile))
+    config["construction_image_manifest"] = "/synthetic/cpu.json"
+    monkeypatch.setattr(receiver_catalog, "_served_parents", READ_PARENTS)
+    monkeypatch.setattr(
+        docker_runtime, "load_image_identity", lambda path: CPU_PARENTS["python-cpu-py311"]
+    )
+    assert receiver_setup.catalog_state(config) == {"status": "UNVERIFIED", "ready": None}
+
+
+@pytest.mark.parametrize(
+    "inventory", ["absent", "empty", "valid", "unreadable", "unknown", "wrong_type", "duplicate"]
+)
+def test_declared_gpu_inventory_cannot_disappear_when_unreadable(
+    receiver, monkeypatch, inventory
+):
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.worker import docker_runtime
+
+    config, root = receiver
+    for row in receiver_catalog.served_bundles(config):
+        _install(root, row)
+    monkeypatch.setattr(receiver_catalog, "gpu_runtimes", READ_GPU_RUNTIMES)
+    if inventory != "absent":
+        config["gpu_construction_images"] = (
+            [] if inventory == "empty" else ["/synthetic/gpu-worker.json"]
+        )
+        if inventory == "wrong_type":
+            config["gpu_construction_images"] = None
+        elif inventory == "duplicate":
+            config["gpu_construction_images"] *= 2
+
+    def read(path):
+        if inventory == "unreadable":
+            raise OSError("synthetic GPU record unavailable")
+        return replace(
+            torch_image(),
+            lock_digest=(
+                torch_profile.GPU_LOCK_DIGEST
+                if inventory in {"valid", "duplicate"}
+                else "sha256:" + "9" * 64
+            ),
+        )
+
+    monkeypatch.setattr(docker_runtime, "load_image_identity", read)
+    shown = receiver_setup.catalog_state(config)
+    if inventory in {"unreadable", "unknown", "wrong_type", "duplicate"}:
+        assert shown == {"status": "UNVERIFIED", "ready": None}
+        with pytest.raises(ValueError, match="configured GPU inventory"):
+            receiver_catalog.verify(config)
+    else:
+        assert shown["status"] == "COMPLETE" and shown["ready"] is True
+        assert receiver_catalog.gpu_runtimes(config) == (
+            ["torch-cu130-py311"] if inventory == "valid" else []
+        )
 
 
 # --- official-grade GPU twins ---------------------------------------------------
