@@ -832,8 +832,11 @@ def _single_call_raw(
                 adapter.discovery,
                 material,
                 recipe=(
-                    ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
-                    if regrade is None else regrade.recipe
+                    ConstructionRecipe.from_dict(
+                        provider._requests[submission_id].recipe
+                    )
+                    if regrade is None
+                    else regrade.recipe
                 ),
             )
             if "worker-evidence.json" in artifacts
@@ -2376,7 +2379,8 @@ def regrade_retained_entry(
 
             graph_query = (
                 _graph_regrade_query(discovery, material, recipe=recipe)
-                if kind == "graph" else {}
+                if kind == "graph"
+                else {}
             )
 
             def infer_identity(label):
@@ -2566,16 +2570,25 @@ def _graph_regrade_query(discovery, material, *, recipe=None):
     same as `reconstruct_and_infer_graph_public` builds them for the version's
     registered graph adapter (a test pins the two together)."""
     from carbon.development_session import direct_graph_construction_worker as worker
+    from carbon.development_session.bundle_construction_worker import (
+        _exact_numeric_dtype,
+    )
 
     adapter_id = discovery.graph_adapter_for(discovery.info.challenge_key)
     if adapter_id is None:
         raise RetentionUnavailable("regrade_graph_adapter_unavailable")
     kit = material["construction_kit"]
     binding = {
-        "challenge_id": kit["id"], "challenge_version": kit["version"],
-        **{field: kit[field] for field in (
-            "train_digest", "interface_digest", "construction_limits_digest"
-        )},
+        "challenge_id": kit["id"],
+        "challenge_version": kit["version"],
+        **{
+            field: kit[field]
+            for field in (
+                "train_digest",
+                "interface_digest",
+                "construction_limits_digest",
+            )
+        },
     }
     limits = material["construction_limits_document"]
     block = limits.get("graph_training_adapter")
@@ -2587,7 +2600,11 @@ def _graph_regrade_query(discovery, material, *, recipe=None):
         )
     except ValueError as exc:
         raise RetentionUnavailable("regrade_graph_adapter_unavailable") from exc
-    if dtype != output_dtype(material["interface_document"]):
+    try:
+        declared_dtype = output_dtype(material["interface_document"])
+    except ValueError as exc:
+        raise RetentionUnavailable("regrade_graph_adapter_unavailable") from exc
+    if type(dtype) is not str or not _exact_numeric_dtype(dtype, declared_dtype):
         raise RetentionUnavailable("regrade_graph_adapter_unavailable")
     return query
 

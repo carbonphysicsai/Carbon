@@ -9,7 +9,6 @@ needs a retained graph fixture with a runner and is not run here."""
 
 import base64
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -22,7 +21,7 @@ from carbon.development_session import physical_graph_adapter as physical
 
 
 def _adapter_ids():
-    return [worker.SYNTHETIC_ADAPTER_ID, sorted(physical.ADAPTER_IDS)[0]]
+    return [worker.SYNTHETIC_ADAPTER_ID, min(physical.ADAPTER_IDS)]
 
 
 def _discovery(adapter_id):
@@ -35,7 +34,9 @@ def _discovery(adapter_id):
 def _material(adapter_id):
     if adapter_id == worker.SYNTHETIC_ADAPTER_ID:
         return synthetic_linear_field_2d.bundle_material_v5()
-    key = next(key for key, spec in physical.SPECS.items() if spec.adapter_id == adapter_id)
+    key = next(
+        key for key, spec in physical.SPECS.items() if spec.adapter_id == adapter_id
+    )
     return physical_material.bundle_material(*key)
 
 
@@ -75,7 +76,8 @@ def _workers_query(monkeypatch, tmp_path, adapter_id):
         image="image",
         recipe=SimpleNamespace(digest="d"),
         challenge_binding={
-            "challenge_id": kit["id"], "challenge_version": kit["version"],
+            "challenge_id": kit["id"],
+            "challenge_version": kit["version"],
         },
         limits_document={
             **material["construction_limits_document"],
@@ -109,6 +111,31 @@ def test_the_regrade_query_is_the_workers_own_for_each_graph_adapter(
 def test_an_unregistered_graph_adapter_is_typed_unavailable():
     with pytest.raises(retention.RetentionUnavailable, match="graph_adapter"):
         retention._graph_regrade_query(_discovery(None), {})
+
+
+@pytest.mark.parametrize(
+    "declared,accepted",
+    [
+        ("<f4", True),
+        ("float32", True),
+        ("<f8", False),
+        ("float64", False),
+        ("invalid", False),
+        (None, False),
+    ],
+)
+def test_regrade_dtype_uses_the_existing_exact_numeric_contract(declared, accepted):
+    adapter_id = min(physical.ADAPTER_IDS)
+    material = _material(adapter_id)
+    # Synthetic interface metadata around an actual registered v1 adapter.
+    # Equivalent spelling is accepted; a different precision still refuses.
+    material["interface_document"] = {"outputs": {"dtype": declared}}
+    if accepted:
+        query = retention._graph_regrade_query(_discovery(adapter_id), material)
+        assert query["program"] == worker.PHYSICAL_INFER_PROGRAM
+    else:
+        with pytest.raises(retention.RetentionUnavailable, match="graph_adapter"):
+            retention._graph_regrade_query(_discovery(adapter_id), material)
 
 
 def test_the_regrade_worker_evidence_is_the_origins_with_the_regrades_inference():
