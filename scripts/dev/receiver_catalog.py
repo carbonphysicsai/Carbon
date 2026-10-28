@@ -40,6 +40,7 @@ SCHEMA = "carbon.receiver-catalog.v1"
 NOT_INSTALLED = "not_installed"
 RUNTIME_NOT_SERVED = "runtime_not_served"
 GPU_MATERIAL_NOT_STAGED = "gpu_material_not_staged"
+IMAGE_INVENTORY_UNVERIFIED = "image_inventory_unverified"
 
 
 def _read_profile(config):
@@ -182,7 +183,7 @@ def served_bundles(config) -> list:
     return rows
 
 
-def _missing(row, root, parents, items):
+def _missing(row, root, parents, items, images):
     from carbon.development_session import library_environment_cache as cache
     from carbon.development_session.library_bundles import LibraryBundleRef
 
@@ -210,15 +211,23 @@ def _missing(row, root, parents, items):
         cache.inspect_staged_bundle_material(root, selected)
     except (OSError, ValueError):
         return NOT_INSTALLED if row["kind"] == "cpu" else GPU_MATERIAL_NOT_STAGED
+    if row["kind"] == "cpu":
+        images[(row["catalog_id"], row["runtime"])] = image.image_id
     return None
 
 
 def verify(config) -> dict:
     """Read-only: every served bundle, which are installed, which are missing and
-    why. ``ready`` requires bound cache records, sealed contexts and complete
-    staged material for every entry. Runtime image verification remains separate;
-    this check never calls Docker."""
+    why. ``ready`` requires bound cache records, sealed contexts, complete staged
+    material and the exact local child images. Docker is queried for bounded
+    metadata only; runtime image/host eligibility remains separate. Nothing is
+    built, downloaded or started here."""
     from carbon.backbone_catalog import listing
+    from carbon.development_session.library_environment_cache import (
+        present_library_worker_images,
+    )
+    from carbon.reconstruction.worker.docker_runtime import DockerCLI
+    from carbon.reconstruction.worker.model import WorkerFailure
 
     root = cache_root(config)
     parents = _served_parents(config)
@@ -229,9 +238,21 @@ def verify(config) -> dict:
             config["challenge"]["id"], config["challenge"]["version"]
         )
     }
+    images = {}
+    reasons = [_missing(row, root, parents, items, images) for row in rows]
+    try:
+        present = present_library_worker_images(images.values(), cli=DockerCLI())
+        image_inventory = "VERIFIED"
+    except (OSError, ValueError, WorkerFailure):
+        present = frozenset()
+        image_inventory = "UNVERIFIED"
     missing, bundles = [], []
-    for row in rows:
-        reason = _missing(row, root, parents, items)
+    for row, reason in zip(rows, reasons, strict=True):
+        if reason is None and row["kind"] == "cpu":
+            if image_inventory == "UNVERIFIED":
+                reason = IMAGE_INVENTORY_UNVERIFIED
+            elif images[(row["catalog_id"], row["runtime"])] not in present:
+                reason = NOT_INSTALLED
         if reason is not None:
             missing.append({**row, "reason": reason})
         bundles.append(
@@ -248,7 +269,8 @@ def verify(config) -> dict:
         "served": len(rows),
         "installed": len(rows) - len(missing),
         "missing": missing,
-        "ready": bool(rows) and not missing,
+        "ready": bool(rows) and not missing and image_inventory == "VERIFIED",
+        "image_inventory": image_inventory,
         "bundles": bundles,
     }
 
@@ -264,6 +286,11 @@ def install(config, config_path, *, wheelhouse=None) -> dict:
     root = cache_root(config)
     parents = _served_parents(config)
     skipped = []
+    before = verify(config)
+    missing = {
+        (row["catalog_id"], row["runtime"], row["kind"])
+        for row in before["missing"]
+    }
     items = {
         item["catalog_id"]: item
         for item in listing.entries(
@@ -271,9 +298,12 @@ def install(config, config_path, *, wheelhouse=None) -> dict:
         )
     }
     for row in served_bundles(config):
-        if _missing(row, root, parents, items) is None:
+        if (row["catalog_id"], row["runtime"], row["kind"]) not in missing:
             continue
         if row["kind"] == "cpu":
+            if before["image_inventory"] == "UNVERIFIED":
+                skipped.append({**row, "reason": IMAGE_INVENTORY_UNVERIFIED})
+                continue
             if row["runtime"] not in parents:
                 skipped.append({**row, "reason": RUNTIME_NOT_SERVED})
                 continue

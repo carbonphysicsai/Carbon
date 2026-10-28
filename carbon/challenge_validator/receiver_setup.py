@@ -865,9 +865,13 @@ def catalog_state(config: dict) -> dict:
         found = receiver_catalog.verify(config)
     except (OSError, ValueError, KeyError, TypeError, ImportError):
         return {"status": "UNVERIFIED", "ready": None}
+    inventory_status = "COMPLETE" if found["ready"] else "INCOMPLETE"
+    if found["image_inventory"] == "UNVERIFIED":
+        inventory_status = "UNVERIFIED"
     return {
-        "status": "COMPLETE" if found["ready"] else "INCOMPLETE",
+        "status": inventory_status,
         "ready": found["ready"],
+        "image_inventory": found["image_inventory"],
         "served": found["served"],
         "installed": found["installed"],
         "missing_count": len(found["missing"]),

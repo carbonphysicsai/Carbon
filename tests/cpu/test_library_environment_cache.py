@@ -19,7 +19,11 @@ from carbon.development_session.library_bundles import (
     ProvisionedLibraryEnvironment,
 )
 from carbon.development_session.research_image import LibraryWorkerImage
-from carbon.reconstruction.worker.model import WorkerImageIdentity
+from carbon.reconstruction.worker.model import (
+    WorkerCode,
+    WorkerFailure,
+    WorkerImageIdentity,
+)
 
 
 def _sha(char):
@@ -48,6 +52,150 @@ def _image(context):
         bundle, parent.image_id, context, _sha("3"), _sha("4")
     )
     return LibraryWorkerImage(environment, parent, bundle.to_dict())
+
+
+def test_presence_batches_exact_immutable_ids_without_building():
+    calls = []
+
+    class CLI:
+        def run(self, arguments):
+            calls.append(arguments)
+            if arguments == ["image", "ls", "--no-trunc", "--quiet"]:
+                return SimpleNamespace(stdout=(_sha("4") + "\n").encode())
+            assert arguments == [
+                "image", "inspect", _sha("4"), "--format", "{{json .Id}}"
+            ]
+            return SimpleNamespace(stdout=json.dumps(_sha("4")).encode())
+
+    assert cache.present_library_worker_images(
+        [_sha("4"), _sha("4"), _sha("5")], cli=CLI()
+    ) == frozenset({_sha("4")})
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize(
+    "fault", ["unreachable", "tag", "partial", "wrong_id", "duplicate"]
+)
+def test_image_presence_never_accepts_unknown_or_partial_metadata(fault):
+    class CLI:
+        def run(self, arguments):
+            if fault == "unreachable":
+                raise WorkerFailure(WorkerCode.RUNTIME)
+            if arguments[:2] == ["image", "ls"]:
+                body = (
+                    "not-an-image-id"
+                    if fault == "tag"
+                    else _sha("4") + "\n" + _sha("5")
+                )
+                return SimpleNamespace(stdout=body.encode())
+            values = {
+                "partial": [_sha("4")],
+                "wrong_id": [_sha("4"), _sha("9")],
+                "duplicate": [_sha("4"), _sha("4")],
+            }[fault]
+            return SimpleNamespace(
+                stdout="\n".join(json.dumps(v) for v in values).encode()
+            )
+
+    with pytest.raises((ValueError, WorkerFailure)):
+        cache.present_library_worker_images([_sha("4"), _sha("5")], cli=CLI())
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [None, "build_failure", "verification_failure", "unreachable", "corrupt_cache"],
+)
+def test_receiver_opt_in_rebuilds_only_a_missing_child_and_preserves_failed_receipts(
+    tmp_path, monkeypatch, fault
+):
+    root = tmp_path / "private-cache"
+    context = root / _sha("1")[7:] / _sha("a")[7:]
+    context.mkdir(parents=True, mode=0o700)
+    root.chmod(0o700)
+    context.parent.chmod(0o700)
+    image = _image(context)
+    selected = image.provisioned.bundle
+    receipt, _ = cache.library_image_cache_paths(root, selected, image.parent)
+    state = {"images": {image.image_id}, "provisions": [], "queries": []}
+    monkeypatch.setattr(cache, "_context_digest", lambda _: _sha("3"))
+
+    def verify(candidate, cli):
+        if candidate.image_id not in state["images"] or (
+            fault == "verification_failure" and candidate.image_id == _sha("5")
+        ):
+            raise ValueError("synthetic child verification failed")
+        return candidate
+
+    monkeypatch.setattr(cache, "verify_library_worker_image", verify)
+    cache.store_verified_library_worker_image(
+        receipt, image, context_root=context.parent, cli=object()
+    )
+    if fault == "corrupt_cache":
+        record = json.loads(receipt.read_bytes())
+        record["parent"]["image_id"] = _sha("9")
+        receipt.write_text(json.dumps(record))
+    original = receipt.read_bytes()
+    state["images"].clear()
+    monkeypatch.setattr(cache, "load_pinned_bundle_directory", lambda _: (None,))
+    monkeypatch.setattr(cache, "bundle_ref", lambda *args: selected)
+    monkeypatch.setattr(
+        cache,
+        "prepare_offline_context",
+        lambda *args: (context, selected.bundle_digest, _sha("3")),
+    )
+
+    class CLI:
+        def run(self, arguments):
+            state["queries"].append(arguments)
+            if fault == "unreachable":
+                raise WorkerFailure(WorkerCode.RUNTIME)
+            if arguments == ["image", "ls", "--no-trunc", "--quiet"]:
+                return SimpleNamespace(
+                    stdout="\n".join(sorted(state["images"])).encode()
+                )
+            assert arguments == [
+                "image", "inspect", _sha("5"), "--format", "{{json .Id}}"
+            ]
+            return SimpleNamespace(stdout=json.dumps(_sha("5")).encode())
+
+    def provision(*args, cli):
+        assert receipt.read_bytes() == original
+        state["provisions"].append(args)
+        if fault == "build_failure":
+            raise ValueError("synthetic build failed")
+        state["images"].add(_sha("5"))
+        return replace(image.provisioned, image_id=_sha("5"))
+
+    monkeypatch.setattr(cache, "provision_offline_bundle", provision)
+
+    def install():
+        return cache.install_pinned_library_worker_image(
+            tmp_path / "synthetic-source",
+            root,
+            image.parent,
+            expected_bundle=selected,
+            cli=CLI(),
+            rebuild_missing=True,
+        )
+
+    if fault is not None:
+        with pytest.raises((ValueError, WorkerFailure)):
+            install()
+        assert receipt.read_bytes() == original
+        if fault in {"unreachable", "corrupt_cache"}:
+            assert state["provisions"] == []
+        if fault == "corrupt_cache":
+            assert state["queries"] == []
+    else:
+        repaired = install()
+        assert repaired.image_id == _sha("5") and len(state["provisions"]) == 1
+        assert cache.load_cached_library_worker_image(
+            receipt,
+            expected_bundle=selected,
+            expected_parent=image.parent,
+            context_root=context.parent,
+        ) == repaired
+        assert install() == repaired and len(state["provisions"]) == 1
 
 
 def test_verified_overlay_seals_exact_archive_and_rejects_changed_cache(

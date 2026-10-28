@@ -284,6 +284,7 @@ def install_receiver_bundle(directory, receiver_config):
         parent,
         expected_bundle=selected,
         cli=DockerCLI(),
+        rebuild_missing=True,
     )
     # The exact material too, where admission inspects it (F4, M1 2026-10-22:
     # an installed image without staged material resolves nothing, and every
