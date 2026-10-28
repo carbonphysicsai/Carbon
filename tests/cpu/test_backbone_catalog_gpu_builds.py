@@ -32,8 +32,8 @@ def withdrawn_twins():
     return set(derivation["gpu_twins_withdrawn"]["ids"])
 
 
-#: The v2 entries that have their GPU twin so far (2026-10-26, the served-example twins: the served Motor, Cooling, F08 and F02 examples); the
-#: other v2 entries come with the rest of the GPU line.
+#: The served-example twins and the mechanically derived PhysicsNeMo FC twins.
+#: Other v2 entries still wait for their own derivation and actual GPU evidence.
 V2_TWINNED = {
     "v2.motor.cno.CNO1d",
     "v2.cooling.cno.CNO1d",
@@ -43,6 +43,14 @@ V2_TWINNED = {
     "v2.f02.cno.CNO1d",
     "v2.f08.jno.bcat",
     "v2.f02.jno.bcat",
+    "v2.motor.physicsnemo.FullyConnected",
+    "v2.cooling.physicsnemo.FullyConnected",
+    "v2.f08.physicsnemo.FullyConnected",
+    "v2.f02.physicsnemo.FullyConnected",
+    "v2.motor.physicsnemo.MeshGraphNet",
+    "v2.cooling.physicsnemo.MeshGraphNet",
+    "v2.f08.physicsnemo.MeshGraphNet",
+    "v2.f02.physicsnemo.MeshGraphNet",
 }
 #: The CNO1d build under every id it is served as: the one explicit warn-only / smoke-only entry.
 CNO1D_IDS = {
@@ -681,7 +689,8 @@ def _members(path):
 
 def test_the_three_device_fixed_twins_differ_from_their_cpu_build_by_the_registered_fixes_only():
     """RTX 4090 repeat (2026-10-22): helper tensors made on the CPU inside `forward` move to the input's device in the
-    GPU twin; the CPU build's bytes are untouched and no other entry carries a device fix.
+    GPU twin; the CPU build's bytes are untouched. The same constant-graph
+    implementation also carries its repair under newer catalog wrappers.
     """
     assert set(gpu_build.DEVICE_FIXES) == set(DEVICE_FIXED)
     for catalog_id in DEVICE_FIXED:
@@ -707,6 +716,127 @@ def test_an_unlisted_entry_gets_no_device_fix_and_a_listed_one_missing_its_ancho
     # A listed entry whose build lacks the anchor exactly once is refused, never skipped.
     with pytest.raises(gpu_build.GpuBuildRefused, match="device fix anchor found 0"):
         gpu_build.derived_source("torch-cpu-py311", raw, "neuralop.GINO")
+
+
+@pytest.mark.parametrize("wrapper_id", [None, "another-wrapper", "future.challenge.rev"])
+def test_constant_graph_device_placement_follows_source_and_preserves_legacy_bytes(
+    wrapper_id,
+):
+    base = pipeline.BUNDLES / "physicsnemo.MeshGraphNet"
+    cpu = (base / "source.tar.gz").read_bytes()
+    expected = (base / gpu_build.PROFILE / "source.tar.gz").read_bytes()
+    assert (
+        gpu_build.derived_source(gpu_build.CPU_PROFILE, cpu, wrapper_id) == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "catalog_id",
+    sorted(name for name in V2_TWINNED if name.endswith(".physicsnemo.MeshGraphNet")),
+)
+def test_constant_graph_wrappers_keep_their_shape_and_strict_cpu_source(catalog_id):
+    base = pipeline.BUNDLES / catalog_id
+    cpu = _members(base / "source.tar.gz")
+    gpu = _members(base / gpu_build.PROFILE / "source.tar.gz")
+    before = cpu[gpu_build.BACKBONES_MEMBER].decode()
+    after = gpu[gpu_build.BACKBONES_MEMBER].decode()
+    assert next(
+        line for line in before.splitlines() if line.startswith("POINTS =")
+    ) == next(
+        line for line in after.splitlines() if line.startswith("POINTS =")
+    )
+    from carbon.backbone_catalog.gpu_tensor_placement import rewrite
+
+    assert rewrite(cpu[gpu_build.BACKBONES_MEMBER]) == gpu[gpu_build.BACKBONES_MEMBER]
+    assert rewrite(gpu[gpu_build.BACKBONES_MEMBER]) == gpu[gpu_build.BACKBONES_MEMBER]
+    assert cpu[gpu_build.COMMON_MEMBER] == gpu[gpu_build.COMMON_MEMBER]
+    assert "warn_only" not in gpu[gpu_build.COMMON_MEMBER].decode()
+    item = next(e for e in pipeline.load()["entries"] if e["catalog_id"] == catalog_id)
+    pipeline.verify(item)
+
+
+def test_an_already_device_placed_constant_graph_needs_no_further_transform():
+    base = pipeline.BUNDLES / "physicsnemo.MeshGraphNet" / gpu_build.PROFILE
+    files = _members(base / "source.tar.gz")
+    assert gpu_build._device_fixes(files, "another-wrapper") == ()
+
+
+def test_an_unknown_device_placement_form_is_refused():
+    source = pipeline.BUNDLES / "v2.motor.physicsnemo.MeshGraphNet" / "source.tar.gz"
+    files = _members(source)
+    before = files[gpu_build.BACKBONES_MEMBER]
+    fragment = b"device=src_feat.device"
+    assert before.count(fragment) == 1
+    files[gpu_build.BACKBONES_MEMBER] = before.replace(fragment, b"device=unknown.device")
+    with pytest.raises(gpu_build.GpuBuildRefused, match="device capability"):
+        gpu_build._device_fixes(files, "another-wrapper")
+
+
+@pytest.mark.parametrize("keywords", [b"**options", b"device=src_feat.device, **options"])
+def test_unresolved_device_arguments_are_refused(keywords):
+    source = pipeline.BUNDLES / "v2.motor.physicsnemo.MeshGraphNet" / "source.tar.gz"
+    files = _members(source)
+    before = files[gpu_build.BACKBONES_MEMBER]
+    fragment = b"device=src_feat.device"
+    assert before.count(fragment) == 1
+    files[gpu_build.BACKBONES_MEMBER] = before.replace(fragment, keywords)
+    with pytest.raises(gpu_build.GpuBuildRefused, match="device capability"):
+        gpu_build._device_fixes(files, "another-wrapper")
+
+
+@pytest.mark.parametrize("duplicate", [False, True])
+@pytest.mark.parametrize(
+    "fragments",
+    [(marker,) for marker in (
+        "def _torch_scatter_standin():",
+        "def _constant_graph_helpers():",
+        "graph.cases, graph.nodes_per_case, graph.dst_local = n, POINTS, self.edges_np[1]",
+    )]
+    + [(before,) for _, before, _ in gpu_build.CONSTANT_GRAPH_DEVICE_FIXES]
+    + [(
+        "def _torch_scatter_standin():",
+        "def _constant_graph_helpers():",
+        "graph.cases, graph.nodes_per_case, graph.dst_local = n, POINTS, self.edges_np[1]",
+    )]
+    + [tuple(before for _, before, _ in gpu_build.CONSTANT_GRAPH_DEVICE_FIXES)],
+    ids=[
+        "scatter-helper",
+        "graph-helpers",
+        "graph-layout",
+        "sum",
+        "count",
+        "indices",
+        "owners",
+        "edges",
+        "all-capability-markers",
+        "all-placement-anchors",
+    ],
+)
+def test_constant_graph_capability_requires_every_anchor_once(fragments, duplicate):
+    source = pipeline.BUNDLES / "physicsnemo.MeshGraphNet" / "source.tar.gz"
+    packed = io.BytesIO()
+    with (
+        tarfile.open(source) as archive,
+        tarfile.open(fileobj=packed, mode="w:gz") as out,
+    ):
+        for member in archive.getmembers():
+            body = archive.extractfile(member).read() if member.isfile() else None
+            if member.name.endswith(gpu_build.BACKBONES_MEMBER):
+                for fragment in fragments:
+                    old = fragment.encode()
+                    assert body.count(old) == 1
+                    replacement = (
+                        old + b"\n" + old if duplicate else b"missing_anchor"
+                    )
+                    body = body.replace(old, replacement)
+                member.size = len(body)
+            out.addfile(member, io.BytesIO(body) if body is not None else None)
+    with pytest.raises(
+        gpu_build.GpuBuildRefused, match="device capability|device fix anchor"
+    ):
+        gpu_build.derived_source(
+            gpu_build.CPU_PROFILE, packed.getvalue(), "another-wrapper"
+        )
 
 
 def test_the_catalog_constants_equal_the_accelerator_profile():

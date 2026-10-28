@@ -79,11 +79,13 @@ WARN_ONLY = "torch.use_deterministic_algorithms(True, warn_only=True)  # GPU twi
 
 
 BACKBONES_MEMBER = "carbon_candidate/backbones.py"
-#: The third registered change, on an explicit three-entry list (RTX 4090 repeat, 2026-10-22): these builds make helper
+#: The third registered change (RTX 4090 repeat, 2026-10-22): these builds make helper
 #: tensors (DFT matrices, graph index/one-hot matrices) on the CPU inside `forward`, which only works while the model
 #: runs on the CPU. Each pair below makes the tensor on the input's (or its owner buffer's) device instead; the values
 #: are the same (computed on the CPU, then moved), so the CPU build is untouched and only the GPU twin carries it. Every
-#: `old` must occur exactly once in the member.
+#: `old` must occur exactly once in the member. The shared constant-graph
+#: implementation is also recognized by source capability below, independently
+#: of the original catalog id (owner portability direction, 2026-10-28).
 DEVICE_FIXES = {
     "lno.LNO1d": (
         (
@@ -144,6 +146,10 @@ DEVICE_FIXES = {
     ),
 }
 
+# Historical data for the original derived bytes. The shared implementation's
+# active device-placement pass is semantic, in gpu_tensor_placement.
+CONSTANT_GRAPH_DEVICE_FIXES = DEVICE_FIXES["physicsnemo.MeshGraphNet"]
+
 
 class GpuBuildRefused(ValueError):
     """The CPU build cannot be turned into a GPU build by this transform."""
@@ -162,6 +168,28 @@ def environment_digest(base: str, lock: str) -> str:
     return digest(
         canonical({"base_environment_digest": base, "overlay_lock_sha256": lock})
     )
+
+
+def _device_fixes(files, catalog_id):
+    """The registered constant-graph transform follows its source implementation.
+
+    This runs only while deriving a tested catalog bundle, never miner-supplied
+    code. A partial or ambiguous capability is refused before a twin is written.
+    Other historical registered transforms retain their existing selection.
+    """
+    from .gpu_tensor_placement import PlacementRefused, rewrite
+
+    try:
+        repaired = rewrite(files.get(BACKBONES_MEMBER, b""))
+    except PlacementRefused as error:
+        raise GpuBuildRefused(str(error)) from error
+    if repaired is not None:
+        files[BACKBONES_MEMBER] = repaired
+        return ()
+    historical = DEVICE_FIXES.get(catalog_id, ())
+    if historical == CONSTANT_GRAPH_DEVICE_FIXES:
+        raise GpuBuildRefused("constant graph device capability is missing")
+    return historical
 
 
 def patched_source(raw: bytes, catalog_id: str | None = None) -> bytes:
@@ -194,7 +222,7 @@ def patched_source(raw: bytes, catalog_id: str | None = None) -> bytes:
                 f"{COMMON_MEMBER}: determinism call found {common.count(DETERMINISM)} times, expected once"
             )
         files[COMMON_MEMBER] = common.replace(DETERMINISM, WARN_ONLY).encode("utf-8")
-    for member, before, after in DEVICE_FIXES.get(catalog_id, ()):
+    for member, before, after in _device_fixes(files, catalog_id):
         body = files[member].decode("utf-8")
         if body.count(before) != 1:
             raise GpuBuildRefused(
