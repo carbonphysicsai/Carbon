@@ -37,7 +37,12 @@ from .physical_graph_state import DECODER_SCHEMA, _width
 
 ENSEMBLE_SCHEMA = "carbon.development.graph-ensemble-state.v1"
 __all__ = (
-    "DECODER_SCHEMA", "ENSEMBLE_SCHEMA", "GRAPH_SCHEMA", "freeze", "load", "validate"
+    "DECODER_SCHEMA",
+    "ENSEMBLE_SCHEMA",
+    "GRAPH_SCHEMA",
+    "freeze",
+    "load",
+    "validate",
 )
 
 

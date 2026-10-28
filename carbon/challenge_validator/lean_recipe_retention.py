@@ -407,7 +407,9 @@ def _retain_graph_artifacts(
     }
     try:
         state_schema = graph_state_schema(
-            artifacts["state.npz"], artifacts["recipe.json"], artifacts["allowlist.json"]
+            artifacts["state.npz"],
+            artifacts["recipe.json"],
+            artifacts["allowlist.json"],
         )
     except ValueError as exc:
         raise RetentionUnavailable("operator_bank_custody_unavailable") from exc
