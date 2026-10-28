@@ -15,6 +15,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from carbon.challenge_kit import physical_material, synthetic_linear_field_2d
 from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.development_session import direct_graph_construction_worker as worker
 from carbon.development_session import physical_graph_adapter as physical
@@ -31,10 +32,19 @@ def _discovery(adapter_id):
     )
 
 
+def _material(adapter_id):
+    if adapter_id == worker.SYNTHETIC_ADAPTER_ID:
+        return synthetic_linear_field_2d.bundle_material_v5()
+    key = next(key for key, spec in physical.SPECS.items() if spec.adapter_id == adapter_id)
+    return physical_material.bundle_material(*key)
+
+
 def _workers_query(monkeypatch, tmp_path, adapter_id):
     """The query arguments `reconstruct_and_infer_graph_public` hands to the
     inference call, captured with the heavy parts stubbed."""
     captured = []
+    material = _material(adapter_id)
+    kit = material["construction_kit"]
     state = b"state-bytes"
     digest = worker._digest(state)
     operation = "operation-" + "1" * 64
@@ -64,8 +74,13 @@ def _workers_query(monkeypatch, tmp_path, adapter_id):
         identity="i",
         image="image",
         recipe=SimpleNamespace(digest="d"),
-        challenge_binding={},
-        limits_document={"reconstruction_resource_policy": policy},
+        challenge_binding={
+            "challenge_id": kit["id"], "challenge_version": kit["version"],
+        },
+        limits_document={
+            **material["construction_limits_document"],
+            "reconstruction_resource_policy": policy,
+        },
         source_envelope=b"",
         train=b"",
         inputs=np.zeros((1, 1), dtype=np.float32),
@@ -84,7 +99,7 @@ def test_the_regrade_query_is_the_workers_own_for_each_graph_adapter(
     monkeypatch, tmp_path, adapter_id
 ):
     expected = _workers_query(monkeypatch, tmp_path, adapter_id)
-    got = retention._graph_regrade_query(_discovery(adapter_id), {})
+    got = retention._graph_regrade_query(_discovery(adapter_id), _material(adapter_id))
     for name in ("input_name", "provenance", "program", "staged_files"):
         assert got.get(name) == expected.get(name), name
     # No other argument: the caller supplies the rest, as for a bundle.
