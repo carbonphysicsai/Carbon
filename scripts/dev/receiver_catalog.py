@@ -134,7 +134,7 @@ def gpu_runtimes(config) -> list:
     for path in declared:
         try:
             runtime = gpu_runtime(load_image_identity(Path(path)))
-        except Exception as error:  # noqa: BLE001 - unknown inventory cannot prove ready
+        except Exception as error:
             raise ValueError("configured GPU inventory is unreadable") from error
         if runtime is None or runtime in runtimes:
             raise ValueError("configured GPU inventory is unregistered or duplicated")
