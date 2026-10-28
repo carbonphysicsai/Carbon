@@ -9,7 +9,6 @@ needs a retained graph fixture with a runner and is not run here."""
 
 import base64
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -22,7 +21,7 @@ from carbon.development_session import physical_graph_adapter as physical
 
 
 def _adapter_ids():
-    return [worker.SYNTHETIC_ADAPTER_ID, sorted(physical.ADAPTER_IDS)[0]]
+    return [worker.SYNTHETIC_ADAPTER_ID, min(physical.ADAPTER_IDS)]
 
 
 def _discovery(adapter_id):
@@ -35,7 +34,9 @@ def _discovery(adapter_id):
 def _material(adapter_id):
     if adapter_id == worker.SYNTHETIC_ADAPTER_ID:
         return synthetic_linear_field_2d.bundle_material_v5()
-    key = next(key for key, spec in physical.SPECS.items() if spec.adapter_id == adapter_id)
+    key = next(
+        key for key, spec in physical.SPECS.items() if spec.adapter_id == adapter_id
+    )
     return physical_material.bundle_material(*key)
 
 
@@ -75,7 +76,8 @@ def _workers_query(monkeypatch, tmp_path, adapter_id):
         image="image",
         recipe=SimpleNamespace(digest="d"),
         challenge_binding={
-            "challenge_id": kit["id"], "challenge_version": kit["version"],
+            "challenge_id": kit["id"],
+            "challenge_version": kit["version"],
         },
         limits_document={
             **material["construction_limits_document"],

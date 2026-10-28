@@ -31,7 +31,10 @@ from carbon.development_session import (
     physical_graph_state_v2,
     single_call_timing,
 )
-from carbon.development_session.construction_recipe import ConstructionRecipe, RecipeRefused
+from carbon.development_session.construction_recipe import (
+    ConstructionRecipe,
+    RecipeRefused,
+)
 from carbon.level4 import allowlist as allowlist_module
 from carbon.level4 import graph, interpret
 
@@ -68,7 +71,8 @@ def artifact(request):
     entries = doc["graphs"][doc["entry"]]["inputs"]
     parameters = [
         np.zeros(entry["shape"], entry["dtype"])
-        for entry in entries if entry["name"].startswith("params/")
+        for entry in entries
+        if entry["name"].startswith("params/")
     ]
     width = physical_graph_state._width(doc)
     dtype = parameters[0].dtype
@@ -97,17 +101,32 @@ def artifact(request):
         loader = physical_graph_state_v2.load
     kit = material["construction_kit"]
     binding = {
-        "challenge_id": key[0], "challenge_version": key[1],
-        **{field: kit[field] for field in (
-            "train_digest", "interface_digest", "construction_limits_digest"
-        )},
+        "challenge_id": key[0],
+        "challenge_version": key[1],
+        **{
+            field: kit[field]
+            for field in (
+                "train_digest",
+                "interface_digest",
+                "construction_limits_digest",
+            )
+        },
     }
     inputs = np.ascontiguousarray(material["practice_inputs"][:8], dtype=dtype)
     return {
-        "kind": kind, "key": key, "recipe": recipe, "state": state,
-        "material": material, "allowlist": permitted, "binding": binding,
-        "inputs": inputs, "dtype": str(dtype), "width": width,
-        "policy": material["construction_limits_document"]["reconstruction_resource_policy"],
+        "kind": kind,
+        "key": key,
+        "recipe": recipe,
+        "state": state,
+        "material": material,
+        "allowlist": permitted,
+        "binding": binding,
+        "inputs": inputs,
+        "dtype": str(dtype),
+        "width": width,
+        "policy": material["construction_limits_document"][
+            "reconstruction_resource_policy"
+        ],
         "loaded": loader(state, recipe, permitted),
     }
 
@@ -132,11 +151,17 @@ def _expected(artifact, *, per_case):
         fn = interpret.rebuild(doc, artifact["allowlist"])
 
         def predict(inputs):
-            return sum(
-                np.asarray(fn(*[jnp.asarray(p) for p in params], jnp.asarray(inputs))[0])
-                * combine[index]
-                for index, params in enumerate(members)
-            ) * sd + mu
+            return (
+                sum(
+                    np.asarray(
+                        fn(*[jnp.asarray(p) for p in params], jnp.asarray(inputs))[0]
+                    )
+                    * combine[index]
+                    for index, params in enumerate(members)
+                )
+                * sd
+                + mu
+            )
 
         if not per_case:
             return predict(artifact["inputs"])
@@ -170,13 +195,17 @@ def test_pair_executes_the_registered_codec_and_program(artifact, procedure, tmp
     ledger, seen = FixtureLedger(tmp_path), []
     try:
         result = paired_inference.infer_frozen_pair(
-            ledger, owner="fixture-owner", identity="real-program-pair",
-            inference_image=_image(), recipe=artifact["recipe"],
+            ledger,
+            owner="fixture-owner",
+            identity="real-program-pair",
+            inference_image=_image(),
+            recipe=artifact["recipe"],
             challenge_binding=artifact["binding"],
             limits_document=artifact["material"]["construction_limits_document"],
             state_bytes=artifact["state"],
             expected_state_digest=paired_inference._digest(artifact["state"]),
-            inputs=artifact["inputs"], expected_output_shape=(8, artifact["width"]),
+            inputs=artifact["inputs"],
+            expected_output_shape=(8, artifact["width"]),
             expected_output_dtype=artifact["dtype"],
             allowlist_bytes=artifact["material"]["allowlist_bytes"],
             seconds=artifact["policy"]["inference_wall_seconds_max"],
@@ -187,11 +216,16 @@ def test_pair_executes_the_registered_codec_and_program(artifact, procedure, tmp
         expected = _expected(artifact, per_case=procedure == "per_case")
         assert len(seen) == 2
         for phase in ("primary", "repeat"):
-            raw = base64.b64decode(result[phase]["originals"]["predictions.json"]["raw_base64"])
+            raw = base64.b64decode(
+                result[phase]["originals"]["predictions.json"]["raw_base64"]
+            )
             np.testing.assert_array_equal(np.asarray(json.loads(raw)), expected)
         assert result["execution_boundary"] == "TEST_ONLY_LOCAL_RUNNER"
         assert result["official_eligible"] is False
-        assert result["primary"]["worker_operation"] != result["repeat"]["worker_operation"]
+        assert (
+            result["primary"]["worker_operation"]
+            != result["repeat"]["worker_operation"]
+        )
         assert seen[0]["files"]["state.npz"] == artifact["state"]
     finally:
         ledger.connection.close()
@@ -201,28 +235,43 @@ def test_derived_single_call_executes_the_same_registered_graph(artifact, tmp_pa
     ledger, seen = FixtureLedger(tmp_path), []
     try:
         limits = artifact["material"]["construction_limits_document"]
-        bundle_construction_worker.verify_direct_resource_policy(artifact["binding"], limits)
+        bundle_construction_worker.verify_direct_resource_policy(
+            artifact["binding"], limits
+        )
         query = {}
         if artifact["kind"] != "bundle":
-            _loader, query, dtype = direct_graph_construction_worker.registered_inference_contract(
-                artifact["binding"], artifact["material"]["construction_limits_document"],
-                recipe=artifact["recipe"],
+            _loader, query, dtype = (
+                direct_graph_construction_worker.registered_inference_contract(
+                    artifact["binding"],
+                    artifact["material"]["construction_limits_document"],
+                    recipe=artifact["recipe"],
+                )
             )
             assert dtype == artifact["dtype"]
-        program = single_call_timing.program(query.pop("program", bundle_construction_worker.INFER_PROGRAM))
+        program = single_call_timing.program(
+            query.pop("program", bundle_construction_worker.INFER_PROGRAM)
+        )
         bank = np.tile(artifact["inputs"], (4, 1))
         indices = list(range(single_call_timing.SAMPLE))
         result = bundle_construction_worker._infer_state(
-            ledger, owner="fixture-owner", identity="real-single-call",
-            inference_image=_image(), recipe=artifact["recipe"], binding=artifact["binding"],
-            state=artifact["state"], state_digest=paired_inference._digest(artifact["state"]),
-            inputs=bank, expected_output_shape=(single_call_timing.SAMPLE, artifact["width"]),
+            ledger,
+            owner="fixture-owner",
+            identity="real-single-call",
+            inference_image=_image(),
+            recipe=artifact["recipe"],
+            binding=artifact["binding"],
+            state=artifact["state"],
+            state_digest=paired_inference._digest(artifact["state"]),
+            inputs=bank,
+            expected_output_shape=(single_call_timing.SAMPLE, artifact["width"]),
             expected_output_dtype=artifact["dtype"],
             allowlist_bytes=artifact["material"]["allowlist_bytes"],
             single_call={"indices": indices, "warmup": artifact["inputs"][:1]},
-            program=program, runner=_runner(ledger, seen),
+            program=program,
+            runner=_runner(ledger, seen),
             seconds=artifact["policy"]["inference_wall_seconds_max"],
-            **bundle_construction_worker.rebuild_wall_kwargs(limits), **query,
+            **bundle_construction_worker.rebuild_wall_kwargs(limits),
+            **query,
         )
         expected = np.tile(_expected(artifact, per_case=True), (4, 1))[indices]
         np.testing.assert_array_equal(np.asarray(result.predictions), expected)
@@ -231,11 +280,14 @@ def test_derived_single_call_executes_the_same_registered_graph(artifact, tmp_pa
         ledger.connection.close()
 
 
-@pytest.mark.parametrize("field,value", [
-    ("id", "unregistered-fixture-adapter"),
-    ("state_schema", "unregistered-fixture-state"),
-    ("program", "unregistered-fixture-code"),
-])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("id", "unregistered-fixture-adapter"),
+        ("state_schema", "unregistered-fixture-state"),
+        ("program", "unregistered-fixture-code"),
+    ],
+)
 def test_unknown_adapter_declaration_refuses_before_state_or_execution(field, value):
     from carbon.development_session import graph_adapters
 
@@ -263,18 +315,28 @@ def test_corrupt_state_refuses_before_dispatch_for_every_codec(artifact, tmp_pat
     try:
         with pytest.raises(RecipeRefused):
             paired_inference.infer_frozen_pair(
-                ledger, owner="fixture-owner", identity="bad-state-pair",
-                inference_image=_image(), recipe=artifact["recipe"],
+                ledger,
+                owner="fixture-owner",
+                identity="bad-state-pair",
+                inference_image=_image(),
+                recipe=artifact["recipe"],
                 challenge_binding=artifact["binding"],
                 limits_document=artifact["material"]["construction_limits_document"],
-                state_bytes=state, expected_state_digest=paired_inference._digest(state),
-                inputs=artifact["inputs"], expected_output_shape=(8, artifact["width"]),
+                state_bytes=state,
+                expected_state_digest=paired_inference._digest(state),
+                inputs=artifact["inputs"],
+                expected_output_shape=(8, artifact["width"]),
                 expected_output_dtype=artifact["dtype"],
                 allowlist_bytes=artifact["material"]["allowlist_bytes"],
                 seconds=artifact["policy"]["inference_wall_seconds_max"],
-                total_seconds=artifact["policy"]["total_reconstruction_wall_seconds_max"],
+                total_seconds=artifact["policy"][
+                    "total_reconstruction_wall_seconds_max"
+                ],
                 runner=unexpected_runner,
             )
-        assert ledger.connection.execute("SELECT COUNT(*) FROM operations").fetchone()[0] == 0
+        assert (
+            ledger.connection.execute("SELECT COUNT(*) FROM operations").fetchone()[0]
+            == 0
+        )
     finally:
         ledger.connection.close()

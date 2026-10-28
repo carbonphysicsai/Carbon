@@ -832,8 +832,11 @@ def _single_call_raw(
                 adapter.discovery,
                 material,
                 recipe=(
-                    ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
-                    if regrade is None else regrade.recipe
+                    ConstructionRecipe.from_dict(
+                        provider._requests[submission_id].recipe
+                    )
+                    if regrade is None
+                    else regrade.recipe
                 ),
             )
             if "worker-evidence.json" in artifacts
@@ -2376,7 +2379,8 @@ def regrade_retained_entry(
 
             graph_query = (
                 _graph_regrade_query(discovery, material, recipe=recipe)
-                if kind == "graph" else {}
+                if kind == "graph"
+                else {}
             )
 
             def infer_identity(label):
@@ -2572,10 +2576,16 @@ def _graph_regrade_query(discovery, material, *, recipe=None):
         raise RetentionUnavailable("regrade_graph_adapter_unavailable")
     kit = material["construction_kit"]
     binding = {
-        "challenge_id": kit["id"], "challenge_version": kit["version"],
-        **{field: kit[field] for field in (
-            "train_digest", "interface_digest", "construction_limits_digest"
-        )},
+        "challenge_id": kit["id"],
+        "challenge_version": kit["version"],
+        **{
+            field: kit[field]
+            for field in (
+                "train_digest",
+                "interface_digest",
+                "construction_limits_digest",
+            )
+        },
     }
     limits = material["construction_limits_document"]
     block = limits.get("graph_training_adapter")

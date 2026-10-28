@@ -544,9 +544,10 @@ def registered_inference_contract(binding, limits_document, *, recipe=None):
     if (
         type(binding) is not dict
         or type(limits_document) is not dict
-        or any(type(binding.get(key)) is not str or not binding[key] for key in (
-            "challenge_id", "challenge_version"
-        ))
+        or any(
+            type(binding.get(key)) is not str or not binding[key]
+            for key in ("challenge_id", "challenge_version")
+        )
     ):
         raise RecipeRefused("direct_graph_adapter_identity_invalid")
     challenge_id, version = binding["challenge_id"], binding["challenge_version"]
