@@ -169,9 +169,7 @@ def _graph_originals(case, outputs, *, ensemble=False):
         "inference-receipt.json": _json(inferred),
         "worker-evidence.json": _json(worker),
         "task-receipt.json": b"synthetic graph worker terminal; never network evidence",
-        **(
-            {"timed-query-receipt.json": _json(timed)} if ensemble else {}
-        ),
+        **({"timed-query-receipt.json": _json(timed)} if ensemble else {}),
     }
     return material, recipe, artifacts, worker
 
@@ -183,7 +181,9 @@ def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False, ensemble=Fal
             i for i, r in enumerate(case["rows"]) if r["cohort"] == "pool_design"
         )
         outputs[row] = [-1.0] * len(outputs[row])
-    material, recipe, artifacts, worker = _graph_originals(case, outputs, ensemble=ensemble)
+    material, recipe, artifacts, worker = _graph_originals(
+        case, outputs, ensemble=ensemble
+    )
     base, entries = tmp_path / "graph-artifacts", tmp_path / "graph-entries"
     base.mkdir(mode=0o700)
     entries.mkdir(mode=0o700)
@@ -427,16 +427,26 @@ def test_actual_ensemble_freeze_reaches_counted_grade_with_separate_build_identi
         (TASK, "GRADED", "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE", OWNER, 7)
     ]
     assert fixture.artifacts["state.npz"] == original_state
-    assert (fixture.retained["artifact_path"] / "state.npz").read_bytes() == original_state
+    assert (
+        fixture.retained["artifact_path"] / "state.npz"
+    ).read_bytes() == original_state
     assert result["koth_comparison"]["outcome"] == "UNAVAILABLE"
     assert fixture.store.incumbent() is None
     assert result["official_eligible"] is False
 
 
-@pytest.mark.parametrize("mutation", [
-    "fit_members", "fit_steps", "fit_overflow", "missing_gpu_image",
-    "unknown_device", "wrong_inference_image", "bad_timed_controls",
-])
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "fit_members",
+        "fit_steps",
+        "fit_overflow",
+        "missing_gpu_image",
+        "unknown_device",
+        "wrong_inference_image",
+        "bad_timed_controls",
+    ],
+)
 def test_actual_ensemble_receipt_contract_refuses_malformed_declarations(
     case, tmp_path, mutation
 ):
@@ -464,7 +474,9 @@ def test_actual_ensemble_receipt_contract_refuses_malformed_declarations(
     base, entries = tmp_path / "artifacts", tmp_path / "entries"
     base.mkdir(mode=0o700)
     entries.mkdir(mode=0o700)
-    with pytest.raises(retention.RetentionUnavailable, match="operator_bank_custody_unavailable"):
+    with pytest.raises(
+        retention.RetentionUnavailable, match="operator_bank_custody_unavailable"
+    ):
         retention._retain_graph_artifacts(
             artifacts, TASK, artifact_directory=base, entry_directory=entries
         )

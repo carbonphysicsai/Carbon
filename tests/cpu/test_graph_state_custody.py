@@ -34,14 +34,17 @@ def producer_fixture(kind="ensemble", key=(F08, "1.6")):
             key, {"training": {"steps": 1}}
         )
     manifest = json.loads(manifest_raw)
-    forward = graph.parse(documents[manifest["documents"]["forward"]])
+    permitted = allowlist_module.Allowlist(material["allowlist_bytes"])
+    forward = graph.parse(
+        documents[manifest["documents"]["forward"]],
+        max_bytes=bundle_graph_state._limits(permitted)[1],
+    )
     inputs = forward["graphs"][forward["entry"]]["inputs"]
     parameters = [
         np.zeros(entry["shape"], dtype=entry["dtype"])
         for entry in inputs
         if entry["name"].startswith("params/")
     ]
-    permitted = allowlist_module.Allowlist(material["allowlist_bytes"])
     width = physical_graph_state._width(forward)
     dtype = parameters[0].dtype
     mu, sd = np.zeros(width, dtype), np.ones(width, dtype)
@@ -54,7 +57,12 @@ def producer_fixture(kind="ensemble", key=(F08, "1.6")):
     else:
         assert kind == "ensemble"
         state = physical_graph_state_v2.freeze(
-            recipe, forward, [parameters, parameters], permitted, mu, sd,
+            recipe,
+            forward,
+            [parameters, parameters],
+            permitted,
+            mu,
+            sd,
             np.full((2, width), 0.5, dtype),
         )
     fit = {
@@ -111,7 +119,8 @@ def test_actual_freeze_formats_retain_exact_originals(kind):
     header, arrays = _inspect(fixture)
     expected = (
         physical_graph_state_v2.ENSEMBLE_SCHEMA
-        if kind == "ensemble" else bundle_graph_state.GRAPH_SCHEMA
+        if kind == "ensemble"
+        else bundle_graph_state.GRAPH_SCHEMA
     )
     assert header["schema"] == expected
     assert header["recipe_digest"] == fixture["recipe"].digest
@@ -119,28 +128,45 @@ def test_actual_freeze_formats_retain_exact_originals(kind):
     assert fixture["state"] == before
     assert ("decoder_mu" in arrays) == (kind != "plain")
     assert ("combine" in arrays) == (kind == "ensemble")
-    assert custody.graph_state_schema(
-        before, fixture["recipe"].canonical_bytes,
-        fixture["material"]["allowlist_bytes"],
-    ) == expected
+    assert (
+        custody.graph_state_schema(
+            before,
+            fixture["recipe"].canonical_bytes,
+            fixture["material"]["allowlist_bytes"],
+        )
+        == expected
+    )
 
 
 def test_actual_float64_ensemble_and_native_allowlist_resolution():
     fixture = producer_fixture(key=(MOTOR, "1.5"))
     header, arrays = custody._bundle_header(
-        fixture["state"], graph_source=True,
+        fixture["state"],
+        graph_source=True,
         recipe=fixture["recipe"].canonical_bytes,
     )
     assert header["decoder"]["width"] == 60
     assert arrays["decoder_sd"]["dtype"] == "float64"
 
 
-@pytest.mark.parametrize("mutation", [
-    "zero_sd", "nonfinite_mu", "bad_combine_sum", "negative_combine",
-    "nonfinite_parameter", "wrong_parameter_shape", "missing_member",
-    "extra_member", "wrong_decoder_dtype", "wrong_header_identity",
-    "wrong_decoder_width", "extra_header_field", "huge_empty_ensemble",
-])
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "zero_sd",
+        "nonfinite_mu",
+        "bad_combine_sum",
+        "negative_combine",
+        "nonfinite_parameter",
+        "wrong_parameter_shape",
+        "missing_member",
+        "extra_member",
+        "wrong_decoder_dtype",
+        "wrong_header_identity",
+        "wrong_decoder_width",
+        "extra_header_field",
+        "huge_empty_ensemble",
+    ],
+)
 def test_malformed_actual_ensemble_output_refuses(ensemble, mutation):
     def change(arrays):
         parameter = "member000000_parameter0000"
@@ -178,7 +204,9 @@ def test_malformed_actual_ensemble_output_refuses(ensemble, mutation):
         _inspect(ensemble, _rewrite(ensemble["state"], change))
 
 
-def test_decoder_needs_bound_recipe_and_allowlist_and_old_bundle_cannot_read_it(ensemble):
+def test_decoder_needs_bound_recipe_and_allowlist_and_old_bundle_cannot_read_it(
+    ensemble,
+):
     with pytest.raises(custody.CustodyRefused, match="graph_state_codec"):
         custody._bundle_header(ensemble["state"], graph_source=True)
     with pytest.raises(custody.CustodyRefused, match="bundle_state_header"):
@@ -193,17 +221,32 @@ def test_zero_parameter_validation_has_no_member_list_allocation(ensemble, monke
         "allowlist": permitted.version,
         "role": "forward",
         "entry": "main",
-        "graphs": {"main": {
-            "inputs": [{"value": 0, "name": "inputs/x", "dtype": "float32", "shape": [1, 7]}],
-            "constants": [], "nodes": [], "outputs": [0],
-        }},
+        "graphs": {
+            "main": {
+                "inputs": [
+                    {
+                        "value": 0,
+                        "name": "inputs/x",
+                        "dtype": "float32",
+                        "shape": [1, 7],
+                    }
+                ],
+                "constants": [],
+                "nodes": [],
+                "outputs": [0],
+            }
+        },
     }
     members = 5000  # synthetic resource regression, not a model policy
     combine = np.zeros((members, 7), np.float32)
     combine[0] = 1
     state = physical_graph_state_v2.freeze(
-        recipe, forward, [[]] * members, permitted,
-        np.zeros(7, np.float32), np.ones(7, np.float32),
+        recipe,
+        forward,
+        [[]] * members,
+        permitted,
+        np.zeros(7, np.float32),
+        np.ones(7, np.float32),
         combine,
     )
     loaded = physical_graph_state_v2.load(state, recipe, permitted)
@@ -213,7 +256,9 @@ def test_zero_parameter_validation_has_no_member_list_allocation(ensemble, monke
         raise AssertionError("zero-parameter custody must not allocate per member")
 
     monkeypatch.setattr(
-        physical_graph_state_v2, "_checked_parameters", unexpected_parameter_materialization
+        physical_graph_state_v2,
+        "_checked_parameters",
+        unexpected_parameter_materialization,
     )
     header, arrays = _inspect(ensemble, state)
     assert header["members"] == members

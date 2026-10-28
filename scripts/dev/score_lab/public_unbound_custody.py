@@ -21,9 +21,9 @@ import zipfile
 from pathlib import Path
 
 from carbon.development_session.graph_state_contract import (
-    GRAPH_ENSEMBLE_STATE_SCHEMA as GRAPH_ENSEMBLE_STATE_SCHEMA,
-    GRAPH_SOURCE_STATE_SCHEMA as GRAPH_SOURCE_STATE_SCHEMA,
-    GRAPH_SOURCE_STATE_SCHEMAS as GRAPH_SOURCE_STATE_SCHEMAS,
+    GRAPH_ENSEMBLE_STATE_SCHEMA,
+    GRAPH_SOURCE_STATE_SCHEMA,
+    GRAPH_SOURCE_STATE_SCHEMAS,
 )
 
 SCHEMA = "carbon.scorelab.public-unbound-native-custody.v1"
@@ -1784,7 +1784,8 @@ def _bundle_header(
             "graph_digest",
             "allowlist_digest",
             "parameter_count",
-        } | extra_fields
+        }
+        | extra_fields
         or header["schema"]
         != (GRAPH_ENSEMBLE_STATE_SCHEMA if ensemble else source_schema)
         or (ensemble and not decoded)
@@ -1807,15 +1808,20 @@ def _bundle_header(
         if (
             type(width) is not int
             or width < 1
-            or any(arrays[name]["shape"] != [width] for name in ("decoder_mu", "decoder_sd"))
+            or any(
+                arrays[name]["shape"] != [width]
+                for name in ("decoder_mu", "decoder_sd")
+            )
             or (ensemble and arrays["combine"]["shape"] != [members, width])
         ):
             raise CustodyRefused("bundle_state_header")
         # These registered representations contain decoder/combine values,
         # not just descriptors. Reuse their inert codecs; never rebuild or
         # execute the graph, and never duplicate their numeric tolerances.
-        from carbon.development_session import physical_graph_state
-        from carbon.development_session import physical_graph_state_v2
+        from carbon.development_session import (
+            physical_graph_state,
+            physical_graph_state_v2,
+        )
         from carbon.development_session.construction_recipe import ConstructionRecipe
         from carbon.level4.allowlist import Allowlist
 
@@ -1831,7 +1837,8 @@ def _bundle_header(
             permitted = Allowlist(allowlist)
             loader = (
                 physical_graph_state_v2.validate
-                if ensemble else physical_graph_state.load
+                if ensemble
+                else physical_graph_state.load
             )
             loader(state, bound_recipe, permitted)
         except (ValueError, TypeError, KeyError, OverflowError) as exc:
@@ -1870,7 +1877,8 @@ def _graph_fit_ok(fit, header, recipe_digest):
                 and (
                     _graph_finite_number(value)
                     or type(value) is bool
-                    or type(value) is str and _SHA.fullmatch(value)
+                    or type(value) is str
+                    and _SHA.fullmatch(value)
                 )
                 for key, value in fit.items()
             )
@@ -1879,8 +1887,13 @@ def _graph_fit_ok(fit, header, recipe_digest):
     # bound producer declarations, not a scientific acceptance or score.
     ensemble = header["schema"] == GRAPH_ENSEMBLE_STATE_SCHEMA
     fields = {
-        "adapter_id", "trainer_sha256", "steps", "train_cases", "train_loss",
-        "params_sha256", "recipe_digest",
+        "adapter_id",
+        "trainer_sha256",
+        "steps",
+        "train_cases",
+        "train_loss",
+        "params_sha256",
+        "recipe_digest",
     } | ({"members", "member_losses"} if ensemble else set())
     return (
         type(fit) is dict
@@ -1899,11 +1912,13 @@ def _graph_fit_ok(fit, header, recipe_digest):
             and type(fit["member_losses"]) is list
             and len(fit["member_losses"]) == fit["members"]
             and all(_graph_finite_number(value) for value in fit["member_losses"])
-            if ensemble else type(fit["steps"]) is int and fit["steps"] >= 0
+            if ensemble
+            else type(fit["steps"]) is int and fit["steps"] >= 0
         )
-        and all(type(fit[key]) is str and _SHA.fullmatch(fit[key]) for key in (
-            "trainer_sha256", "params_sha256", "recipe_digest"
-        ))
+        and all(
+            type(fit[key]) is str and _SHA.fullmatch(fit[key])
+            for key in ("trainer_sha256", "params_sha256", "recipe_digest")
+        )
         and fit["recipe_digest"] == recipe_digest
     )
 
@@ -1921,7 +1936,8 @@ def _graph_worker_lane_fields(worker):
         _digest(worker.get("build_image_id"), "graph_build_image")
         return {"build_device", "build_image_id"}
     if worker["build_device"] == "CPU" and worker.get("gpu_lane_note") in (
-        "graph_gpu_rebuild_not_repeatable", "graph_gpu_attempt_failed"
+        "graph_gpu_rebuild_not_repeatable",
+        "graph_gpu_attempt_failed",
     ):
         return {"build_device", "gpu_lane_note"}
     raise CustodyRefused("graph_worker_lineage")
@@ -2272,8 +2288,10 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     ):
         raise CustodyRefused("graph_source_identity")
     header, state_arrays = _bundle_header(
-        by_role["state"], graph_source=True,
-        recipe=by_role["recipe"], allowlist=by_role["allowlist"],
+        by_role["state"],
+        graph_source=True,
+        recipe=by_role["recipe"],
+        allowlist=by_role["allowlist"],
     )
     if header["schema"] != manifest["source_schema"]:
         raise CustodyRefused("graph_role_scope")
@@ -2456,26 +2474,35 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     ):
         raise CustodyRefused("graph_measured_inference_receipt")
     worker = _graph_json(by_role["worker_evidence"], "worker_evidence")
-    worker_fields = {
-        "schema",
-        "image_id",
-        "parent_image_id",
-        "inference_image_id",
-        "build_operation",
-        "inference_operation",
-        "build_controls_digest",
-        "inference_controls_digest",
-        "state_digest",
-        "predictions_digest",
-        "build_receipt",
-        "inference_receipt",
-        "predictions_raw_base64",
-        "submission_digest",
-    } | (
-        {"timed_operation", "timed_receipt"}
-        | ({"timed_controls_digest"} if "timed_controls_digest" in worker else set())
-        if timed is not None else set()
-    ) | _graph_worker_lane_fields(worker)
+    worker_fields = (
+        {
+            "schema",
+            "image_id",
+            "parent_image_id",
+            "inference_image_id",
+            "build_operation",
+            "inference_operation",
+            "build_controls_digest",
+            "inference_controls_digest",
+            "state_digest",
+            "predictions_digest",
+            "build_receipt",
+            "inference_receipt",
+            "predictions_raw_base64",
+            "submission_digest",
+        }
+        | (
+            {"timed_operation", "timed_receipt"}
+            | (
+                {"timed_controls_digest"}
+                if "timed_controls_digest" in worker
+                else set()
+            )
+            if timed is not None
+            else set()
+        )
+        | _graph_worker_lane_fields(worker)
+    )
     if timed is not None and (
         worker.get("timed_receipt") != timed
         or type(worker.get("timed_operation")) is not str
