@@ -73,16 +73,20 @@ def test_deleted_child_cannot_leave_complete_progress_or_picker(miner, daemon):
     assert catalog_state.state(cfg)["missing"] == [missing["catalog_id"]]
     assert catalog_state.progress(cfg)["installed"] == len(items) - 1
     assert catalog_build.status(state)["state"] == "INCOMPLETE"
-    assert capabilities._catalog_install(
-        {"challenge_id": "electric-motor-magnetics", "version": "1.4"}, cfg
-    )["installed"] == len(items) - 1
+    assert (
+        capabilities._catalog_install(
+            {"challenge_id": "electric-motor-magnetics", "version": "1.4"}, cfg
+        )["installed"]
+        == len(items) - 1
+    )
     spawned = []
     catalog_build.start(state, spawn=lambda *args, **kwargs: spawned.append(args))
     assert len(spawned) == 1
 
 
 @pytest.mark.parametrize(
-    "fault", ["unreachable", "malformed_listing", "partial_inspection", "wrong_inspected_id"]
+    "fault",
+    ["unreachable", "malformed_listing", "partial_inspection", "wrong_inspected_id"],
 )
 def test_unknown_image_observation_never_proves_ready(miner, daemon, fault):
     cfg, root, items, state = miner
@@ -91,7 +95,9 @@ def test_unknown_image_observation_never_proves_ready(miner, daemon, fault):
     daemon["fault"] = fault
     assert catalog_state.progress(cfg)["installed"] == 0
     assert catalog_build.status(state)["state"] == "INCOMPLETE"
-    assert set(catalog_state.state(cfg)["missing"]) == {item["catalog_id"] for item in items}
+    assert set(catalog_state.state(cfg)["missing"]) == {
+        item["catalog_id"] for item in items
+    }
 
 
 @pytest.mark.parametrize("fault", ["receipt", "context", "material"])
@@ -120,13 +126,15 @@ def test_corrupt_cache_never_proves_installed(miner, fault):
 def test_metadata_queries_are_deduplicated_and_status_never_starts_work(
     miner, daemon, monkeypatch
 ):
-    cfg, root, items, state = miner
+    _cfg, root, items, state = miner
     install(root, items[0])
     duplicate = {**items[0], "catalog_id": "synthetic.same.child"}
     monkeypatch.setattr(listing, "load", lambda: {"entries": [items[0], duplicate]})
     daemon["calls"].clear()
     monkeypatch.setattr(
-        catalog_build, "start", lambda *args, **kwargs: pytest.fail("status started work")
+        catalog_build,
+        "start",
+        lambda *args, **kwargs: pytest.fail("status started work"),
     )
     assert catalog_build.status(state)["state"] == "COMPLETE"
     assert len(daemon["calls"]) == 2
@@ -235,7 +243,9 @@ def test_owner_catalog_retry_rebuilds_missing_child_then_reuses_it(
         "runtime": {"images": [parent.image_id]},
     }
     monkeypatch.setattr(
-        library_bundle, "EnvironmentSetup", lambda *a, **k: SimpleNamespace(profile=lambda: profile)
+        library_bundle,
+        "EnvironmentSetup",
+        lambda *a, **k: SimpleNamespace(profile=lambda: profile),
     )
     monkeypatch.setattr(library_bundle, "load_image_identity", lambda path: parent)
     monkeypatch.setattr(library_bundle, "DockerCLI", docker_runtime.DockerCLI)
@@ -257,10 +267,16 @@ def test_owner_catalog_retry_rebuilds_missing_child_then_reuses_it(
 
     monkeypatch.setattr(cache, "provision_offline_bundle", provision)
     directory = receiver_fixtures._material_directory(root, row)
-    assert library_bundle.install_bundle(directory, state)["status"] == "INSTALLED_VERIFIED"
+    assert (
+        library_bundle.install_bundle(directory, state)["status"]
+        == "INSTALLED_VERIFIED"
+    )
     assert len(builds) == 1
     assert item["catalog_id"] not in catalog_state.state(cfg)["missing"]
-    assert library_bundle.install_bundle(directory, state)["status"] == "INSTALLED_VERIFIED"
+    assert (
+        library_bundle.install_bundle(directory, state)["status"]
+        == "INSTALLED_VERIFIED"
+    )
     assert len(builds) == 1
     receipt.write_text("{}")
     with pytest.raises(ValueError):

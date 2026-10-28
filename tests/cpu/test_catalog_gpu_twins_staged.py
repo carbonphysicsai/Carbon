@@ -102,11 +102,15 @@ def test_the_install_stages_each_served_twin_and_names_one_it_cannot(
 
 def test_an_unstaged_served_twin_reads_not_installed(tmp_path, monkeypatch):
     daemon = receiver_fixtures.daemon.__wrapped__(monkeypatch)
-    _config, root = receiver_fixtures.receiver.__wrapped__(tmp_path, monkeypatch, daemon)
+    _config, root = receiver_fixtures.receiver.__wrapped__(
+        tmp_path, monkeypatch, daemon
+    )
     item = receiver_fixtures._entries()[0]
     cpu = item["bundle_ref"]
     cfg = {"campaigns_root": str(root.parent.parent)}
-    receiver_fixtures._install(root, {"runtime": cpu["runtime_profile_id"], "digest": cpu["bundle_digest"]})
+    receiver_fixtures._install(
+        root, {"runtime": cpu["runtime_profile_id"], "digest": cpu["bundle_digest"]}
+    )
     from carbon.backbone_catalog import listing
 
     monkeypatch.setattr(listing, "load", lambda: {"entries": [item]})

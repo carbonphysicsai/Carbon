@@ -259,7 +259,6 @@ def _challenges(profile_state, host, cfg=None):
         ChallengeDeferred,
         ChallengeNotImplemented,
     )
-
     from scripts.dev.miner_launchpad.catalog_state import readiness
 
     installed_catalog = readiness(cfg) or {}

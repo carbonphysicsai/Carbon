@@ -156,7 +156,9 @@ def readiness(cfg, items=None) -> dict | None:
         if (item.get("bundle_ref") or {}).get("runtime_profile_id") in served
     ]
     images = {}
-    found = {item["catalog_id"]: _ready(root, item, served, images) for item in selected}
+    found = {
+        item["catalog_id"]: _ready(root, item, served, images) for item in selected
+    }
     if not images:
         return found
     try:
