@@ -2626,11 +2626,22 @@ def _graph_regrade_worker_evidence(
             # No batched timed query on this bank (a pool-graded version): none is claimed.
             del evidence["timed_receipt"]
             evidence.pop("timed_operation", None)
+            evidence.pop("timed_controls_digest", None)
         else:
             evidence.update(
                 timed_operation=timed_result.worker_operation,
                 timed_receipt=json.loads(timed_raw),
             )
+            # Controls belong to this new query, never the origin's operation.
+            evidence.pop("timed_controls_digest", None)
+            if runner is None:
+                evidence["timed_controls_digest"] = _private_controls_digest(
+                    provider.ledger,
+                    owner=owner,
+                    identity=timed_identity,
+                    operation=timed_result.worker_operation,
+                    provenance=worker.INFERENCE_PROVENANCE,
+                )
     return _json(evidence)
 
 
