@@ -471,6 +471,7 @@ CATALOG_COUNTS = {
     # the pool versions carry their predecessor's catalog, the identity-only diff (`backbone_catalog.carries`)
     (MOTOR, "1.5"): (78, 46),
     (COOLING, "1.5"): (50, 45),
+    (COOLING, "1.6"): (50, 45),
     (F08, "1.6"): (44, 44),
     (F02, "2.5"): (45, 45),
 }
