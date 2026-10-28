@@ -37,6 +37,10 @@ _DECISIONS = {
     "NONE_FEASIBLE",
     "REFERENCE_UNRESOLVED",
     "NOT_MEASURED",
+    # A pool-graded version's outcome (`pool_exam.OUTCOME_POOL`): its D is the pool exam's own min(V, C), final
+    # before this reduction, so the pack's decision policy names no cap for it (a missing policy entry is neither
+    # a cap nor an ineligibility).
+    "POOL_GRADED",
 }
 
 

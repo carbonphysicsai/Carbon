@@ -46,8 +46,11 @@ DECISION_REFERENCES = (
 #: then the pool-graded versions' no-timed-query rule (GPU_REBUILD_RULINGS section 13: `physical_dual_pack`
 #: and `bundle_benchmark_core`, which every physical producer hashes; Battery is not served; was
 #: sha256:e17b7039abea87717124ab27f815dc18ebc1f0a66f83d2cd858bb1c71eba113a).
+#: then the pool grade's end-to-end seams (originals keys, query dtypes, accepted outcome: `physical_dual_pack`
+#: and `private_evaluation_source`; Battery is not served; was
+#: sha256:e3c00db96f139e397613d8e7cb4da6a6883252b115f3bb20468298f2be2e5d46).
 DEV_PRODUCER_DIGEST = (
-    "sha256:e3c00db96f139e397613d8e7cb4da6a6883252b115f3bb20468298f2be2e5d46"
+    "sha256:feb02ae1a814c4b882422593d94d7f6d3d8a44408290f8c95068440010de3198"
 )
 
 

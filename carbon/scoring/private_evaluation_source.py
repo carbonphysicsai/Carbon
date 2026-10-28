@@ -619,7 +619,8 @@ def graded_original_keys(originals):
     """The graded run's original key set (graph or bundle), or None."""
     if type(originals) is not dict:
         return None
-    keys = set(originals) - _PAIR_ORIGINALS - {"timed_query"}
+    # (a pool-graded version's single-call side file rides beside the graded originals)
+    keys = set(originals) - _PAIR_ORIGINALS - {"timed_query", "single_call_raw"}
     for graded in (_GRADED_ORIGINALS, _BUNDLE_ORIGINALS):
         if keys == graded:
             return graded

@@ -21,10 +21,9 @@ from carbon.challenge_kit import motor_sealed_pack as pack
 from carbon.challenge_kit import physical_pack
 from carbon.motor import customer_decision as decision
 from carbon.motor.domain import ANGLE_STEPS
-from carbon.scoring import dual_score
+from carbon.scoring import dual_score, motor_physics
 from carbon.scoring import motor_dual_measurement as mdm
 from carbon.scoring import motor_dual_pack as dev
-from carbon.scoring import motor_physics
 from carbon.scoring import motor_sealed_dual_pack as sealed
 from carbon.scoring import physical_dual_pack as physical
 
@@ -42,8 +41,11 @@ MOTOR = "electric-motor-magnetics"
 #: then the pool-graded versions' no-timed-query rule (GPU_REBUILD_RULINGS section 13: `physical_dual_pack`
 #: and `bundle_benchmark_core`; pre-publish; was
 #: sha256:d802eebd03590c158b3225eac7e30b0c404c476de6408eb1e0454d347097fd56).
+#: then the pool grade's end-to-end seams (originals keys, query dtypes, accepted outcome: `physical_dual_pack`
+#: and `private_evaluation_source`; pre-publish; was
+#: sha256:d31b710243539886d45806c982061f444f4a4d4bfcdaf15c748c377fc100dec1).
 DEV_PRODUCER_DIGEST = (
-    "sha256:d31b710243539886d45806c982061f444f4a4d4bfcdaf15c748c377fc100dec1"
+    "sha256:5c516d6e9dbf9e4081838b6c83e2e11ae618eb4d4a808e68273f5cd0942e1089"
 )
 DESIGNS, CONDITIONS = 5, 6
 
