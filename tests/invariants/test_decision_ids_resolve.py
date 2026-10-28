@@ -10,6 +10,8 @@ a GPU model (`A100-SXM4-80`) is not. Its boundaries are whitelists (space,
 quotes, brackets, punctuation, `/`), so a prefix never matches inside a
 longer id (`GATE-DESIGN-01` in `FEASIBILITY-GATE-DESIGN-01`), a ticket path's
 `_slug` or a file label (`R4.L4-G-CONSTRUCTOR-3.json`).
+An id may wrap after a hyphen, including onto the next Python comment line;
+only complete matched ids are unwrapped, never arbitrary preceding text.
 
 Cited ids are scanned in tracked files under `carbon/`, `scripts/` and
 `docs/development/evidence/`. An id resolves when it is
@@ -42,6 +44,7 @@ HISTORY = ROOT / ".agent" / "DECISIONS.md"
 TICKETS = ROOT / ".agent" / "tickets"
 SCANNED = ("carbon", "scripts", "docs/development/evidence")
 _DATE = re.compile(r"\A\d{4}-\d{2}-\d{2}-")
+_WRAPPED_LINE = re.compile(r"[ \t]*\r?\n[ \t]*(?:#[ \t]*)?")
 #: What may stand next to an id (the text's edge always may): a whitelist,
 #: not a blacklist, since `-`, `_` and `.` each once let a non-id through.
 _BEFORE = r"\s\"'`(\[{<,;:=/*|>"
@@ -97,9 +100,15 @@ def _pattern():
     alternation = "|".join(
         re.escape(p) for p in sorted(prefixes, key=len, reverse=True)
     )
+    separator = r"-(?:[ \t]*\r?\n[ \t]*(?:#[ \t]*)?)?"
     return prefixes, re.compile(
-        rf"(?<![^{_BEFORE}])(?:{alternation})(?:-[A-Z0-9_]+)*-\d+(?![^{_AFTER}])"
+        rf"(?<![^{_BEFORE}])(?:{alternation})"
+        rf"(?:{separator}[A-Z0-9_]+)*{separator}\d+(?![^{_AFTER}])"
     )
+
+
+def _ids(pattern, text):
+    return [_WRAPPED_LINE.sub("", found) for found in pattern.findall(text)]
 
 
 def _text(path):
@@ -113,9 +122,9 @@ def _resolved(pattern):
     declared = set()
     for path in _records():
         declared.add(_stem(path))
-        declared.update(pattern.findall(_text(path)))
+        declared.update(_ids(pattern, _text(path)))
     if HISTORY.is_file():
-        declared.update(pattern.findall(_text(HISTORY)))
+        declared.update(_ids(pattern, _text(HISTORY)))
     if TICKETS.is_dir():
         declared.update(re.split(r"[_.]", p.name)[0] for p in TICKETS.iterdir())
     return declared
@@ -132,7 +141,7 @@ def _cited(pattern):
     cited = {}
     for name in filter(None, tracked):
         relative = name.decode("utf-8")
-        for found in set(pattern.findall(_text(ROOT / relative))):
+        for found in set(_ids(pattern, _text(ROOT / relative))):
             cited.setdefault(found, []).append(relative)
     return cited
 
@@ -187,4 +196,93 @@ def test_the_id_boundaries(text, found):
     prefixes, pattern = _pattern()
     if "FEASIBILITY" in prefixes or "A100" in prefixes:
         pytest.fail("a fixture prefix became a record family; update this test")
-    assert pattern.findall(text) == found
+    assert _ids(pattern, text) == found
+
+
+@pytest.mark.parametrize(
+    "text, expected, unresolved",
+    [
+        (
+            "# See OWNER-BACKBONE-\n# CATALOG-01.",
+            {"OWNER-BACKBONE-CATALOG-01"},
+            set(),
+        ),
+        (
+            "(OWNER-BACKBONE-\r\n    # CATALOG-01).",
+            {"OWNER-BACKBONE-CATALOG-01"},
+            set(),
+        ),
+        (
+            "OWNER-\n    BACKBONE-\n    CATALOG-01",
+            {"OWNER-BACKBONE-CATALOG-01"},
+            set(),
+        ),
+        (
+            "OWNER-HISTORICAL-\n# RECORD-01",
+            {"OWNER-HISTORICAL-RECORD-01"},
+            set(),
+        ),
+        (
+            "OWNER-BACKBONE-\n# MISSING-01",
+            {"OWNER-BACKBONE-MISSING-01"},
+            {"OWNER-BACKBONE-MISSING-01"},
+        ),
+        ("CATALOG-01", {"CATALOG-01"}, {"CATALOG-01"}),
+        (
+            "# An unrelated NOTE-\n# CATALOG-01.",
+            {"CATALOG-01"},
+            {"CATALOG-01"},
+        ),
+        (
+            "OWNER-BACKBONE-CATALOG-01\n# CATALOG-01",
+            {"OWNER-BACKBONE-CATALOG-01", "CATALOG-01"},
+            {"CATALOG-01"},
+        ),
+        (
+            "OWNER-BACKBONE-\n\n# CATALOG-01",
+            {"CATALOG-01"},
+            {"CATALOG-01"},
+        ),
+    ],
+)
+def test_wrapped_ids_preserve_full_resolution_checks(
+    tmp_path, monkeypatch, text, expected, unresolved
+):
+    decisions = tmp_path / "decisions"
+    decisions.mkdir()
+    for identity in ("OWNER-BACKBONE-CATALOG-01", "CATALOG-READINESS-01"):
+        (decisions / f"2026-10-28-{identity}.md").write_text(f"# {identity}\n")
+    monkeypatch.setitem(globals(), "ROOT", tmp_path)
+    monkeypatch.setitem(globals(), "DECISIONS", decisions)
+    monkeypatch.setitem(globals(), "HISTORY", tmp_path / "history.md")
+    monkeypatch.setitem(globals(), "TICKETS", tmp_path / "tickets")
+    HISTORY.write_text("OWNER-HISTORICAL-\nRECORD-01\n")
+    source = tmp_path / "carbon" / "citation.py"
+    source.parent.mkdir()
+    source.write_text(text)
+
+    def tracked_files(arguments, **kwargs):
+        assert arguments == [
+            "git",
+            "-C",
+            str(tmp_path),
+            "ls-files",
+            "-z",
+            "--",
+            *SCANNED,
+        ]
+        assert kwargs == {"capture_output": True, "check": True}
+        return subprocess.CompletedProcess(arguments, 0, stdout=b"carbon/citation.py\0")
+
+    monkeypatch.setattr(subprocess, "run", tracked_files)
+    prefixes, pattern = _pattern()
+    assert {"OWNER", "CATALOG"} <= prefixes
+    declared, cited = _resolved(pattern), _cited(pattern)
+    assert set(cited) == expected
+    assert set(cited) - declared == unresolved
+    scan = {"declared": declared, "cited": cited}
+    if unresolved:
+        with pytest.raises(AssertionError, match="cited ids with no decision"):
+            test_every_cited_id_resolves_or_is_listed(scan)
+    else:
+        test_every_cited_id_resolves_or_is_listed(scan)
