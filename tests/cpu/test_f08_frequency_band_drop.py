@@ -190,7 +190,8 @@ def test_new_development_pack_binds_and_writes_the_registered_rule(tmp_path):
     accuracy = json.loads(
         (tmp_path / document["public"]["accuracy_definition"]["path"]).read_bytes()
     )
-    assert accuracy["definition"]["native_summary_rule"] == fdm.SANITY_RULE
+    assert accuracy["native_summary_rule"] == fdm.SANITY_RULE
+    assert accuracy["challenge"] == {"id": CHALLENGE, "version": "1.7"}
     # Exercise the real public kit/pack path, not a standalone definition only.
     kit = physical_material.construction_kit(*KEY)
     assert kit["version"] == "1.7"

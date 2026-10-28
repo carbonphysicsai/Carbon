@@ -16,6 +16,7 @@ POOL = [
     ("electric-motor-magnetics", "1.5"),
     ("chip-cold-plate", "1.5"),
     ("f08-ribbed-bracket", "1.6"),
+    ("f08-ribbed-bracket", "1.7"),
     ("f02", "2.5"),
 ]
 NOTHING = challenges.HostFacts(frozenset())
