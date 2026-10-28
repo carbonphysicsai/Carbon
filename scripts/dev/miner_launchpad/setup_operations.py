@@ -163,7 +163,9 @@ SETUP_OPERATIONS = {
             "review",
             "review",
             REGISTERED,
-            "Write your runner profile and load it. Nothing is launched or spent.",
+            "Write your runner profile and load it. Start the missing model "
+            "catalog installation in the background after saving a usable "
+            "profile. No research agent is launched and no paid model is called.",
             {"confirm"},
             {
                 "intakes",
@@ -180,8 +182,9 @@ SETUP_OPERATIONS = {
             REGISTERED,
             "After an update: check Compute again with your last choice and "
             "write your runner profile again with your own intakes, in one "
-            "call. Your remote setup stays yours to check. Nothing is "
-            "launched or spent.",
+            "call. Your remote setup stays yours to check. With a usable saved "
+            "profile, start the missing model catalog installation in the "
+            "background. No research agent is launched and no paid model is called.",
             {"confirm"},
         ),
     )
@@ -236,7 +239,9 @@ FIELDS = {
         (
             "Must be true: you confirm this step writes (review) or rewrites"
             " (recheck) your runner profile and loads it, or that you practise"
-            " without registering (practice). Nothing is launched or spent."
+            " without registering (practice). Review/recheck starts the missing "
+            "model catalog installation in the background with a usable saved "
+            "profile. No research agent is launched and no paid model is called."
         ),
     ),
     "intakes": ("object", "Challenge id to validator intake URL (optional)."),
@@ -420,7 +425,7 @@ def perform(setup, name: str, request, *, door: str):
                 next_step=NEXT_STEPS["key_must_be_a_file_on_this_door"],
             )
     try:
-        return getattr(setup, name)(request)
+        result = getattr(setup, name)(request)
     except SetupRefused as refused:
         if refused.code in SIGNER_CODES and name in ("signer", "agent"):
             return human_action("signer", refused.code)
@@ -429,6 +434,17 @@ def perform(setup, name: str, request, *, door: str):
         if refused.next_step is None and refused.code in NEXT_STEPS:
             refused.next_step = NEXT_STEPS[refused.code]
         raise
+    if (
+        name in ("review", "recheck")
+        and result.get("steps", {}).get("review", {}).get("profile_written") is True
+        and getattr(setup, "root", None) is not None
+    ):
+        from scripts.dev.miner_launchpad import catalog_build
+
+        # Both doors saved a usable runner profile. The existing starter
+        # checks for a running job or a complete catalog before spawning.
+        catalog_build.start_or_status(Path(setup.root).parent)
+    return result
 
 
 def _reconnect_command(setup):
@@ -800,8 +816,9 @@ def _catalog_row(setup):
             "command": INSTALL_COMMAND.format(state_dir=state_dir),
             "why": (
                 "practice on a catalog backbone needs its image built over "
-                "this install's construction parent; Carbon's agents never "
-                "start this"
+                "this install's construction parent; saving your settings "
+                "starts the install in the background. If it has stopped "
+                "or could not start, retry here or use the command"
             ),
         }
     return row
