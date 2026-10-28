@@ -91,3 +91,11 @@ idempotence and start failure with truthful retry. The actual target proof
 is a new fresh-install stdio MCP Review followed by observed background
 job start/progress without a separate manual start. Fixture subprocess
 spies and class tests do not establish that real proof or full installation.
+
+Independent source review found that the generated Review/recheck summaries
+and shared confirmation field still promised that nothing was launched or
+spent. Those three descriptions now disclose the background catalog installer
+while preserving the distinct guarantee that no research agent is launched
+and no paid model is called. This correction changes no runtime or request
+schema. Canonical validation and the actual automatic-start proof remain
+pending; the primary real GPU task diagnostic takes priority.

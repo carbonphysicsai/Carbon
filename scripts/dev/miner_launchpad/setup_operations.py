@@ -163,7 +163,9 @@ SETUP_OPERATIONS = {
             "review",
             "review",
             REGISTERED,
-            "Write your runner profile and load it. Nothing is launched or spent.",
+            "Write your runner profile and load it. Start the missing model "
+            "catalog installation in the background after saving a usable "
+            "profile. No research agent is launched and no paid model is called.",
             {"confirm"},
             {
                 "intakes",
@@ -180,8 +182,9 @@ SETUP_OPERATIONS = {
             REGISTERED,
             "After an update: check Compute again with your last choice and "
             "write your runner profile again with your own intakes, in one "
-            "call. Your remote setup stays yours to check. Nothing is "
-            "launched or spent.",
+            "call. Your remote setup stays yours to check. With a usable saved "
+            "profile, start the missing model catalog installation in the "
+            "background. No research agent is launched and no paid model is called.",
             {"confirm"},
         ),
     )
@@ -236,7 +239,9 @@ FIELDS = {
         (
             "Must be true: you confirm this step writes (review) or rewrites"
             " (recheck) your runner profile and loads it, or that you practise"
-            " without registering (practice). Nothing is launched or spent."
+            " without registering (practice). Review/recheck starts the missing "
+            "model catalog installation in the background with a usable saved "
+            "profile. No research agent is launched and no paid model is called."
         ),
     ),
     "intakes": ("object", "Challenge id to validator intake URL (optional)."),
