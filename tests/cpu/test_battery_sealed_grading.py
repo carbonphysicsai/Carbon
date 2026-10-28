@@ -49,8 +49,10 @@ DECISION_REFERENCES = (
 #: then the pool grade's end-to-end seams (originals keys, query dtypes, accepted outcome: `physical_dual_pack`
 #: and `private_evaluation_source`; Battery is not served; was
 #: sha256:e3c00db96f139e397613d8e7cb4da6a6883252b115f3bb20468298f2be2e5d46).
+#: then the copy's graded canonical form (`copy_package.receive` grades the canonical BATCH's bank; Battery is not
+#: served; was sha256:feb02ae1a814c4b882422593d94d7f6d3d8a44408290f8c95068440010de3198).
 DEV_PRODUCER_DIGEST = (
-    "sha256:feb02ae1a814c4b882422593d94d7f6d3d8a44408290f8c95068440010de3198"
+    "sha256:852fb21427ba7fec8c635fc588834455f1d55e91f3b4dfa5b925bea2b7924e22"
 )
 
 

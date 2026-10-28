@@ -44,8 +44,10 @@ MOTOR = "electric-motor-magnetics"
 #: then the pool grade's end-to-end seams (originals keys, query dtypes, accepted outcome: `physical_dual_pack`
 #: and `private_evaluation_source`; pre-publish; was
 #: sha256:d31b710243539886d45806c982061f444f4a4d4bfcdaf15c748c377fc100dec1).
+#: then the copy's graded canonical form (`copy_package.receive` grades the canonical BATCH's bank; pre-publish; was
+#: sha256:5c516d6e9dbf9e4081838b6c83e2e11ae618eb4d4a808e68273f5cd0942e1089).
 DEV_PRODUCER_DIGEST = (
-    "sha256:5c516d6e9dbf9e4081838b6c83e2e11ae618eb4d4a808e68273f5cd0942e1089"
+    "sha256:3089b982651cd1b158affd8e145ad544a80d6be26d1e6ba01e9323bc502762b9"
 )
 DESIGNS, CONDITIONS = 5, 6
 

@@ -42,6 +42,7 @@ from carbon.motor.domain import ANGLE_STEPS
 from carbon.motor_grid_exam import population
 from carbon.motor_grid_exam.domain import CONDITION_INPUTS, DESIGN_INPUTS
 from carbon.scoring import (
+    copy_package,
     grade_feedback,
     motor_physics,
     pool_adapters,
@@ -115,8 +116,11 @@ def _targets(chosen, box, names, train_inputs):
     return curve_of, [target("A1", 1, 0.0), target("A2", 2, 0.02)]
 
 
-@pytest.fixture(scope="module")
-def case(tmp_path_factory):
+HOTKEY = "5ValidatorHotkeyForTheCopy"
+
+
+@pytest.fixture(scope="module", params=["plain", "validator_copy"])
+def case(tmp_path_factory, request):
     tmp = tmp_path_factory.mktemp("pool-dual-e2e")
     names = physical_public_train.numeric_interface_document(MOTOR)["input_names"]
     chosen = pool_adapters.adapter("motor", VERSION)
@@ -150,7 +154,18 @@ def case(tmp_path_factory):
         dict(r, wall_s=1.5)
         for r in records_for({k: v for k, v in document.items() if k != "pool"})
     ]
-    bank = sealed_batch_source._build(MOTOR, pack, document, records, VERSION)
+    copy_mode = request.param == "validator_copy"
+    if copy_mode:
+        # As the custody builder does (pool_pack.build): the pack is built from the CANONICAL batch
+        canonical_raw, _source_fp, _canonical_fp = copy_package.canonical_batch(
+            MOTOR, VERSION, document, records
+        )
+        canonical = json.loads(canonical_raw)
+        bank = sealed_batch_source._build(
+            MOTOR, pack, canonical["document"], canonical["records"], VERSION
+        )
+    else:
+        bank = sealed_batch_source._build(MOTOR, pack, document, records, VERSION)
     adapter = sealed.adapter(VERSION)
     assert adapter.POOL_GRADED and sealed.is_pool_bank(bank)
     root = tmp / "pack"
@@ -159,8 +174,19 @@ def case(tmp_path_factory):
     )
     # the sealed batch the pack carries (private custody): the receiver resolves the bank from it
     (root / sealed_batch_source.SEALED_BATCH_FILE).write_bytes(
-        sealed_batch_source.batch_bytes(document, records)
+        canonical_raw
+        if copy_mode
+        else sealed_batch_source.batch_bytes(document, records)
     )
+    if copy_mode:
+        # ... and the validator's own copy sits beside the canonical pack, as the store keeps it
+        copy_raw, header_raw = copy_package.make_copy(
+            MOTOR, VERSION, document, records, key=bytes(range(32)), hotkey=HOTKEY
+        )
+        copies = root.parent / ".copies" / root.name
+        copies.mkdir(parents=True)
+        (copies / sealed_batch_source.SEALED_BATCH_FILE).write_bytes(copy_raw)
+        (copies / copy_package.HEADER_FILE).write_bytes(header_raw)
     prepared = prepare_pack(
         root,
         manifest_path.name,
@@ -253,6 +279,7 @@ def case(tmp_path_factory):
         "rows": rows,
         "indices": indices,
         "artifacts": artifacts,
+        "copy_hotkey": HOTKEY if copy_mode else None,
     }
 
 
@@ -278,6 +305,7 @@ def _produce(case, originals=None):
         evaluation_source_receipt_raw=prepared_source.raw,
         timing_step=grade_feedback.step(None),
         single_call_raw=(originals or case["originals"]).get("single_call_raw"),
+        copy_hotkey=case["copy_hotkey"],
     )
     return prepared_source, measured
 
@@ -507,3 +535,22 @@ def test_bank_fields_builds_the_same_bank_from_the_pack_directorys_sealed_batch(
     out = capsys.readouterr().out
     assert out.startswith("bank_digest " + physical.bank_digest(bank))
     assert "records.wall_s" in out or "records." in out
+
+
+def test_a_validators_copy_is_graded_in_the_packs_own_canonical_form(case):
+    """valV3, Motor 1.5, 2026-10-28 ('binding  BANK DIFFERS': case_ids, design_id, condition_id): the pack's
+    definition pins the bank rebuilt from the canonical BATCH; the receiver must grade that same form of the
+    validator's copy, not another canonical form of the ids (`cd.canonicalize` renames every row by rank).
+    """
+    if case["copy_hotkey"] is None:
+        pytest.skip("the plain path has no validator copy")
+    resolved, _adapter = sealed_batch_source.resolve(
+        challenge=MOTOR,
+        version=VERSION,
+        selected_pack=case["snapshot"],
+        private_root=case["root"],
+        development_adapter=None,
+        copy_hotkey=case["copy_hotkey"],
+    )
+    assert physical.bank_digest(resolved) == physical.bank_digest(case["bank"])
+    assert list(resolved["case_ids"]) == list(case["bank"]["case_ids"])

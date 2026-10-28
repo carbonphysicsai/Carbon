@@ -190,4 +190,16 @@ def receive(challenge, version, private_root, *, hotkey, copies_root=None):
     canonical = cd.canonicalize(bank, opaque=opaque)
     if cd.content_digest(canonical, opaque=opaque) != header["canonical_digest"]:
         raise CopyPackageRefused("canonical_digest_mismatch")
-    return bank, canonical
+    # The bank that is GRADED is the canonical BATCH's bank: the form every pack's definition is built from
+    # (`canonical_batch`, which the custody builder rebuilds the bank from). `cd.canonicalize` renames every id
+    # by rank, `canonical_batch` renames the batch's cases and keeps the ids the bank derives itself, so the two
+    # agree in content (the digest above) and not in the ids `bank_digest` pins (valV3, Motor 1.5, 2026-10-28:
+    # case_ids, design_id and condition_id differed, nothing else). It must be the same exam as the header names.
+    raw, _source_fp, _canonical_fp = canonical_batch(
+        challenge, version, carried[0], carried[1]
+    )
+    rebuilt = json.loads(raw)
+    _kit, graded = _build(challenge, version, rebuilt["document"], rebuilt["records"])
+    if cd.content_digest(graded, opaque=opaque) != header["canonical_digest"]:
+        raise CopyPackageRefused("canonical_digest_mismatch")
+    return bank, graded
