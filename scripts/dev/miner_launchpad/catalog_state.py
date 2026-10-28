@@ -56,6 +56,10 @@ def parents(cfg) -> dict:
     paths = cfg.get("paths") if type(cfg.get("paths")) is dict else {}
     primary = identity(paths.get("image_manifest"))
     if primary is not None:
+        runtime = cfg.get("runtime")
+        images = runtime.get("images") if type(runtime) is dict else None
+        if type(images) is not list or not images or images[0] != primary.image_id:
+            raise ValueError("configured catalog parent differs from runner profile")
         if direct_parent_backend(primary) == "torch_cpu":
             found["torch-cpu-py311"] = primary
             try:

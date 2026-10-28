@@ -175,7 +175,7 @@ def test_actual_cpu_parent_selector_requires_a_valid_source_identity(
     parent = receiver_fixtures.CPU_PARENTS["python-cpu-py311"]
     cfg.update(
         paths={"image_manifest": "/synthetic/canonical-cpu.json"},
-        runtime={"implementation": implementation},
+        runtime={"implementation": implementation, "images": [parent.image_id]},
     )
     (state / "environment/runner-profile.json").write_text(json.dumps(cfg))
     monkeypatch.setattr(docker_runtime, "load_image_identity", lambda path: parent)
@@ -190,6 +190,36 @@ def test_actual_cpu_parent_selector_requires_a_valid_source_identity(
         assert set(catalog_state.state(cfg)["missing"]) == {
             item["catalog_id"] for item in items
         }
+
+
+@pytest.mark.parametrize("kind", ["torch-cpu-py311", "python-cpu-py311"])
+@pytest.mark.parametrize("binding", ["match", "mismatch", "missing", "empty", "not_list"])
+def test_actual_parent_selector_matches_the_owner_install_profile(
+    miner, monkeypatch, kind, binding
+):
+    cfg, root, items, _state = miner
+    parent = receiver_fixtures.CPU_PARENTS[kind]
+    item = next(item for item in items if item["bundle_ref"]["runtime_profile_id"] == kind)
+    install(root, item)
+    runtime = {"implementation": {"source_tree_digest": "sha256:" + "e" * 64}}
+    if binding != "missing":
+        runtime["images"] = {
+            "match": [parent.image_id],
+            "mismatch": ["sha256:" + "9" * 64],
+            "empty": [],
+            "not_list": parent.image_id,
+        }[binding]
+    cfg.update(paths={"image_manifest": "/synthetic/parent.json"}, runtime=runtime)
+    monkeypatch.setattr(docker_runtime, "load_image_identity", lambda path: parent)
+    monkeypatch.setattr(catalog_state, "parents", READ_PARENTS)
+    if binding == "match":
+        found = READ_PARENTS(cfg)
+        assert found[kind] == parent
+        assert catalog_state.readiness(cfg)[item["catalog_id"]] is True
+    else:
+        with pytest.raises(ValueError, match="differs from runner profile"):
+            READ_PARENTS(cfg)
+        assert catalog_state.readiness(cfg)[item["catalog_id"]] is False
 
 
 def test_owner_catalog_retry_rebuilds_missing_child_then_reuses_it(
