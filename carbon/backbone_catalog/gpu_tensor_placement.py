@@ -79,8 +79,13 @@ def rewrite(source: bytes) -> bytes | None:
         total += len(line)
     edits = {}
 
-    def device(node, owner, *, transfer=False, aliases=()):
+    def device(node, owner, *, transfer=False, aliases=(), with_dtype=False):
         allowed = (owner, *aliases)
+        keywords = {"device", "dtype"} if with_dtype else {"device"}
+        if len(node.args) != 1 or any(
+            keyword.arg not in keywords for keyword in node.keywords
+        ):
+            _fail()
         supplied = [
             keyword.value for keyword in node.keywords if keyword.arg == "device"
         ]
@@ -160,7 +165,7 @@ def rewrite(source: bytes) -> bytes | None:
         ]
         if len(dtype) != 1 or not _attribute(dtype[0], "src", "dtype"):
             _fail()
-        device(node, "src")
+        device(node, "src", with_dtype=True)
 
     gathers = [node for node in ast.walk(concat) if _call(node, "as_tensor")]
     if len(gathers) != 2:
@@ -192,7 +197,7 @@ def rewrite(source: bytes) -> bytes | None:
             or not _attribute(dtype[0], "efeat", "dtype")
         ):
             _fail()
-        device(node, "efeat")
+        device(node, "efeat", with_dtype=True)
     elif len(indices) == 2:
         for name, argument in (("arange", "nodes"), ("as_tensor", "local")):
             found = [

@@ -772,6 +772,18 @@ def test_an_unknown_device_placement_form_is_refused():
         gpu_build._device_fixes(files, "another-wrapper")
 
 
+@pytest.mark.parametrize("keywords", [b"**options", b"device=src_feat.device, **options"])
+def test_unresolved_device_arguments_are_refused(keywords):
+    source = pipeline.BUNDLES / "v2.motor.physicsnemo.MeshGraphNet" / "source.tar.gz"
+    files = _members(source)
+    before = files[gpu_build.BACKBONES_MEMBER]
+    fragment = b"device=src_feat.device"
+    assert before.count(fragment) == 1
+    files[gpu_build.BACKBONES_MEMBER] = before.replace(fragment, keywords)
+    with pytest.raises(gpu_build.GpuBuildRefused, match="device capability"):
+        gpu_build._device_fixes(files, "another-wrapper")
+
+
 @pytest.mark.parametrize("duplicate", [False, True])
 @pytest.mark.parametrize(
     "fragments",
