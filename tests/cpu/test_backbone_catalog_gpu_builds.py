@@ -745,15 +745,10 @@ def test_constant_graph_wrappers_keep_their_shape_and_strict_cpu_source(catalog_
     ) == next(
         line for line in after.splitlines() if line.startswith("POINTS =")
     )
-    for role in gpu_build.CONSTANT_GRAPH_DEVICE_ROLES:
-        safe_forms = {new for _, _, new in role}
-        assert sum(after.count(form) for form in safe_forms) == 1
-    # Already-device-aware helpers retain their exact source, rather than
-    # gaining a wrapper-specific replacement or a second device transfer.
-    for role in gpu_build.CONSTANT_GRAPH_DEVICE_ROLES:
-        for _, old, new in role:
-            if old == new and old in before:
-                assert after.count(old) == before.count(old) == 1
+    from carbon.backbone_catalog.gpu_tensor_placement import rewrite
+
+    assert rewrite(cpu[gpu_build.BACKBONES_MEMBER]) == gpu[gpu_build.BACKBONES_MEMBER]
+    assert rewrite(gpu[gpu_build.BACKBONES_MEMBER]) == gpu[gpu_build.BACKBONES_MEMBER]
     assert cpu[gpu_build.COMMON_MEMBER] == gpu[gpu_build.COMMON_MEMBER]
     assert "warn_only" not in gpu[gpu_build.COMMON_MEMBER].decode()
     item = next(e for e in pipeline.load()["entries"] if e["catalog_id"] == catalog_id)
@@ -780,9 +775,17 @@ def test_an_unknown_device_placement_form_is_refused():
 @pytest.mark.parametrize("duplicate", [False, True])
 @pytest.mark.parametrize(
     "fragments",
-    [(marker,) for marker in gpu_build.CONSTANT_GRAPH_CAPABILITY]
+    [(marker,) for marker in (
+        "def _torch_scatter_standin():",
+        "def _constant_graph_helpers():",
+        "graph.cases, graph.nodes_per_case, graph.dst_local = n, POINTS, self.edges_np[1]",
+    )]
     + [(before,) for _, before, _ in gpu_build.CONSTANT_GRAPH_DEVICE_FIXES]
-    + [gpu_build.CONSTANT_GRAPH_CAPABILITY]
+    + [(
+        "def _torch_scatter_standin():",
+        "def _constant_graph_helpers():",
+        "graph.cases, graph.nodes_per_case, graph.dst_local = n, POINTS, self.edges_np[1]",
+    )]
     + [tuple(before for _, before, _ in gpu_build.CONSTANT_GRAPH_DEVICE_FIXES)],
     ids=[
         "scatter-helper",

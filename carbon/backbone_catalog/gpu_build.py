@@ -146,44 +146,9 @@ DEVICE_FIXES = {
     ),
 }
 
-# The constant-graph implementation is shared by catalog wrappers with different
-# Challenge shapes and identities. Recognize its complete source capability,
-# rather than selecting a device-placement repair by wrapper id or hardware.
+# Historical data for the original derived bytes. The shared implementation's
+# active device-placement pass is semantic, in gpu_tensor_placement.
 CONSTANT_GRAPH_DEVICE_FIXES = DEVICE_FIXES["physicsnemo.MeshGraphNet"]
-CONSTANT_GRAPH_CAPABILITY = (
-    "def _torch_scatter_standin():",
-    "def _constant_graph_helpers():",
-    "graph.cases, graph.nodes_per_case, graph.dst_local = n, POINTS, self.edges_np[1]",
-)
-# One source form per semantic role. A role may already place its tensors on
-# the owner device; preserve that form. These alternatives occur in the same
-# maintained constructor implementation, independently of wrapper identity.
-CONSTANT_GRAPH_DEVICE_ROLES = (
-    (CONSTANT_GRAPH_DEVICE_FIXES[0],),
-    (CONSTANT_GRAPH_DEVICE_FIXES[1],),
-    (
-        CONSTANT_GRAPH_DEVICE_FIXES[2],
-        (
-            BACKBONES_MEMBER,
-            "        src = torch.as_tensor(graph.src_np, device=src_feat.device)\n        dst = torch.as_tensor(graph.dst_np, device=dst_feat.device)",
-            "        src = torch.as_tensor(graph.src_np, device=src_feat.device)\n        dst = torch.as_tensor(graph.dst_np, device=dst_feat.device)",
-        ),
-    ),
-    (
-        CONSTANT_GRAPH_DEVICE_FIXES[3],
-        (
-            BACKBONES_MEMBER,
-            "rows, owner = torch.arange(nodes, device=efeat.device).view(-1, 1), torch.as_tensor(local, device=efeat.device).view(1, -1)",
-            "rows, owner = torch.arange(nodes, device=efeat.device).view(-1, 1), torch.as_tensor(local, device=efeat.device).view(1, -1)",
-        ),
-        (
-            BACKBONES_MEMBER,
-            "torch.as_tensor(matrix, dtype=efeat.dtype)",
-            "torch.as_tensor(matrix, dtype=efeat.dtype, device=efeat.device)",
-        ),
-    ),
-    (CONSTANT_GRAPH_DEVICE_FIXES[4],),
-)
 
 
 class GpuBuildRefused(ValueError):
@@ -212,25 +177,19 @@ def _device_fixes(files, catalog_id):
     code. A partial or ambiguous capability is refused before a twin is written.
     Other historical registered transforms retain their existing selection.
     """
-    text = files.get(BACKBONES_MEMBER, b"").decode("utf-8")
-    markers = [text.count(marker) for marker in CONSTANT_GRAPH_CAPABILITY]
-    role_forms = [
-        {form for _, before, after in role for form in (before, after)}
-        for role in CONSTANT_GRAPH_DEVICE_ROLES
-    ]
-    counts = [sum(text.count(form) for form in forms) for forms in role_forms]
-    if any(markers) or any(counts):
-        if any(count != 1 for count in (*markers, *counts)):
-            raise GpuBuildRefused(
-                "constant graph device capability is partial or ambiguous"
-            )
-        return tuple(
-            (member, before, after)
-            for role in CONSTANT_GRAPH_DEVICE_ROLES
-            for member, before, after in role
-            if before != after and text.count(before) == 1
-        )
-    return DEVICE_FIXES.get(catalog_id, ())
+    from .gpu_tensor_placement import PlacementRefused, rewrite
+
+    try:
+        repaired = rewrite(files.get(BACKBONES_MEMBER, b""))
+    except PlacementRefused as error:
+        raise GpuBuildRefused(str(error)) from error
+    if repaired is not None:
+        files[BACKBONES_MEMBER] = repaired
+        return ()
+    historical = DEVICE_FIXES.get(catalog_id, ())
+    if historical == CONSTANT_GRAPH_DEVICE_FIXES:
+        raise GpuBuildRefused("constant graph device capability is missing")
+    return historical
 
 
 def patched_source(raw: bytes, catalog_id: str | None = None) -> bytes:
