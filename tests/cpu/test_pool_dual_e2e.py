@@ -42,6 +42,7 @@ from carbon.motor.domain import ANGLE_STEPS
 from carbon.motor_grid_exam import population
 from carbon.motor_grid_exam.domain import CONDITION_INPUTS, DESIGN_INPUTS
 from carbon.scoring import (
+    copy_package,
     grade_feedback,
     motor_physics,
     pool_adapters,
@@ -115,8 +116,11 @@ def _targets(chosen, box, names, train_inputs):
     return curve_of, [target("A1", 1, 0.0), target("A2", 2, 0.02)]
 
 
-@pytest.fixture(scope="module")
-def case(tmp_path_factory):
+HOTKEY = "5ValidatorHotkeyForTheCopy"
+
+
+@pytest.fixture(scope="module", params=["plain", "validator_copy"])
+def case(tmp_path_factory, request):
     tmp = tmp_path_factory.mktemp("pool-dual-e2e")
     names = physical_public_train.numeric_interface_document(MOTOR)["input_names"]
     chosen = pool_adapters.adapter("motor", VERSION)
@@ -150,7 +154,18 @@ def case(tmp_path_factory):
         dict(r, wall_s=1.5)
         for r in records_for({k: v for k, v in document.items() if k != "pool"})
     ]
-    bank = sealed_batch_source._build(MOTOR, pack, document, records, VERSION)
+    copy_mode = request.param == "validator_copy"
+    if copy_mode:
+        # As the custody builder does (pool_pack.build): the pack is built from the CANONICAL batch
+        canonical_raw, _source_fp, _canonical_fp = copy_package.canonical_batch(
+            MOTOR, VERSION, document, records
+        )
+        canonical = json.loads(canonical_raw)
+        bank = sealed_batch_source._build(
+            MOTOR, pack, canonical["document"], canonical["records"], VERSION
+        )
+    else:
+        bank = sealed_batch_source._build(MOTOR, pack, document, records, VERSION)
     adapter = sealed.adapter(VERSION)
     assert adapter.POOL_GRADED and sealed.is_pool_bank(bank)
     root = tmp / "pack"
@@ -159,8 +174,19 @@ def case(tmp_path_factory):
     )
     # the sealed batch the pack carries (private custody): the receiver resolves the bank from it
     (root / sealed_batch_source.SEALED_BATCH_FILE).write_bytes(
-        sealed_batch_source.batch_bytes(document, records)
+        canonical_raw
+        if copy_mode
+        else sealed_batch_source.batch_bytes(document, records)
     )
+    if copy_mode:
+        # ... and the validator's own copy sits beside the canonical pack, as the store keeps it
+        copy_raw, header_raw = copy_package.make_copy(
+            MOTOR, VERSION, document, records, key=bytes(range(32)), hotkey=HOTKEY
+        )
+        copies = root.parent / ".copies" / root.name
+        copies.mkdir(parents=True)
+        (copies / sealed_batch_source.SEALED_BATCH_FILE).write_bytes(copy_raw)
+        (copies / copy_package.HEADER_FILE).write_bytes(header_raw)
     prepared = prepare_pack(
         root,
         manifest_path.name,
@@ -253,6 +279,7 @@ def case(tmp_path_factory):
         "rows": rows,
         "indices": indices,
         "artifacts": artifacts,
+        "copy_hotkey": HOTKEY if copy_mode else None,
     }
 
 
@@ -278,6 +305,7 @@ def _produce(case, originals=None):
         evaluation_source_receipt_raw=prepared_source.raw,
         timing_step=grade_feedback.step(None),
         single_call_raw=(originals or case["originals"]).get("single_call_raw"),
+        copy_hotkey=case["copy_hotkey"],
     )
     return prepared_source, measured
 
@@ -403,3 +431,126 @@ def test_only_the_pool_exam_emits_the_pool_graded_outcome():
             literals.add(path.name)
     assert uses == {"pool_exam.py"}
     assert literals == {"pool_exam.py", "dual_score.py"}
+
+
+def _explained(case, monkeypatch, *, producer_differs=False):
+    """Run the producer with the grade explainer installed; return (printed lines, failed checks)."""
+    from scripts.dev.sealed_exam import grade_explain
+
+    lines = []
+    monkeypatch.setattr(physical, "_inputs", physical._inputs)
+    monkeypatch.setattr(source, "_producer_require", source._producer_require)
+    grade_explain.install(print_=lines.append)
+    if producer_differs:
+        monkeypatch.setattr(
+            physical, "producer_digest", lambda _adapter: "sha256:" + "0" * 64
+        )
+    try:
+        _produce(case)
+    except source.PrivateEvaluationSourceRefused:
+        pass  # a later step may fail for the same root cause: the explainer reports, it does not decide
+    return lines, list(grade_explain.FAILED)
+
+
+def test_the_grade_explainer_is_silent_about_failures_when_every_check_passes(
+    case, monkeypatch
+):
+    lines, failed = _explained(case, monkeypatch)
+    text = chr(10).join(lines)
+    assert failed == []
+    assert "binding  PRODUCER ok" in text and "binding  TRAIN ok" in text
+    assert "binding  BANK ok" in text
+
+
+def test_the_grade_explainer_names_which_binding_differs_and_lists_the_failed_check(
+    case, monkeypatch
+):
+    """valV3 2026-10-28: 'dual_native_producer_or_train_binding' stands for the producer digest, the train and
+    the bank at once; the explainer says which, with this host's per-file hashes for the producer.
+    """
+    lines, failed = _explained(case, monkeypatch, producer_differs=True)
+    text = chr(10).join(lines)
+    assert failed and failed[0] == "dual_native_producer_or_train_binding"
+    assert "binding  PRODUCER DIFFERS" in text
+    assert "binding  TRAIN ok" in text and "binding  BANK ok" in text
+    assert (
+        "physical_dual_pack.py  sha256:" in text
+    )  # this host's files, to compare with the build host
+
+
+def test_the_bank_field_digests_tell_an_order_only_difference_from_a_content_one(case):
+    """Validator ruling (2026-10-28) on 'binding  BANK DIFFERS': which field differs, and is it only the order."""
+    import copy
+
+    from scripts.dev.sealed_exam import grade_explain
+
+    bank = case["bank"]
+    same = grade_explain.bank_field_digests(bank)
+    assert {"case_ids", "cohorts", "inputs", "records"} <= set(same)
+    assert any(name.startswith("records.") for name in same)
+    # the same rows listed in another order: every field's by_case_id agrees, the listed order does not
+    order = list(reversed(range(len(bank["case_ids"]))))
+    shuffled = copy.deepcopy(bank)
+    shuffled["case_ids"] = [bank["case_ids"][i] for i in order]
+    shuffled["cohorts"] = [bank["cohorts"][i] for i in order]
+    shuffled["inputs"] = np.asarray(bank["inputs"])[order]
+    shuffled["reference_records"] = [bank["reference_records"][i] for i in order]
+    shuffled["references"] = np.asarray(bank["references"])[order]
+    if "reference_present" in bank:
+        shuffled["reference_present"] = [bank["reference_present"][i] for i in order]
+    moved = grade_explain.bank_field_digests(shuffled)
+    for name in ("case_ids", "cohorts", "inputs", "records"):
+        assert moved[name]["by_case_id"] == same[name]["by_case_id"], name
+        assert moved[name]["as_listed"] != same[name]["as_listed"], name
+    # one native record changed: that field and its key differ by case_id too (a CONTENT difference)
+    changed = copy.deepcopy(bank)
+    record = changed["reference_records"][0]
+    key = min(k for k in record if k != "case_id")
+    record[key] = "changed"
+    edited = grade_explain.bank_field_digests(changed)
+    assert edited["records"]["by_case_id"] != same["records"]["by_case_id"]
+    assert edited["inputs"] == same["inputs"] and edited["case_ids"] == same["case_ids"]
+
+
+def test_bank_fields_builds_the_same_bank_from_the_pack_directorys_sealed_batch(
+    case, capsys
+):
+    from scripts.dev.sealed_exam import bank_fields
+
+    bank = bank_fields.bank_of(MOTOR, VERSION, case["root"])
+    assert physical.bank_digest(bank) == physical.bank_digest(case["bank"])
+    assert (
+        bank_fields.main(
+            [
+                "--private-root",
+                str(case["root"]),
+                "--challenge",
+                MOTOR,
+                "--version",
+                VERSION,
+            ]
+        )
+        == 0
+    )
+    out = capsys.readouterr().out
+    assert out.startswith("bank_digest " + physical.bank_digest(bank))
+    assert "records.wall_s" in out or "records." in out
+
+
+def test_a_validators_copy_is_graded_in_the_packs_own_canonical_form(case):
+    """valV3, Motor 1.5, 2026-10-28 ('binding  BANK DIFFERS': case_ids, design_id, condition_id): the pack's
+    definition pins the bank rebuilt from the canonical BATCH; the receiver must grade that same form of the
+    validator's copy, not another canonical form of the ids (`cd.canonicalize` renames every row by rank).
+    """
+    if case["copy_hotkey"] is None:
+        pytest.skip("the plain path has no validator copy")
+    resolved, _adapter = sealed_batch_source.resolve(
+        challenge=MOTOR,
+        version=VERSION,
+        selected_pack=case["snapshot"],
+        private_root=case["root"],
+        development_adapter=None,
+        copy_hotkey=case["copy_hotkey"],
+    )
+    assert physical.bank_digest(resolved) == physical.bank_digest(case["bank"])
+    assert list(resolved["case_ids"]) == list(case["bank"]["case_ids"])
