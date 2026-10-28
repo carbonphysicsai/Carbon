@@ -31,7 +31,11 @@ capability and all registered device-placement anchors, independent of catalog
 wrapper identity, Challenge/version or GPU model. A partial/ambiguous match is
 refused; the legacy MeshGraphNet derived bytes must stay identical. This is the
 existing constructor/transform, not a new family or a transform for arbitrary
-miner code. There will be 50 prospective Torch GPU twins in total. The 15
+miner code. Each of the five placement roles accepts exactly one existing CPU
+or device-aware source form; already-correct placements are preserved. The
+shared registry's dense aggregation constant receives the same owner-device
+placement as its index-based variant. Unknown/duplicate roles are refused.
+There will be 50 prospective Torch GPU twins in total. The 15
 JAX bundle/lock refs and CPU bundle semantics stay unchanged. Changed source
 archive identities still require fresh worker image artifacts and any affected
 packs/copies through their normal authority; no historical artifact is relabelled.

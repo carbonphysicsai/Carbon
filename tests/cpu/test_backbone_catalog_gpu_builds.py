@@ -719,11 +719,15 @@ def test_an_unlisted_entry_gets_no_device_fix_and_a_listed_one_missing_its_ancho
 
 
 @pytest.mark.parametrize("wrapper_id", [None, "another-wrapper", "future.challenge.rev"])
-def test_constant_graph_device_placement_follows_source_and_preserves_legacy_bytes(wrapper_id):
+def test_constant_graph_device_placement_follows_source_and_preserves_legacy_bytes(
+    wrapper_id,
+):
     base = pipeline.BUNDLES / "physicsnemo.MeshGraphNet"
     cpu = (base / "source.tar.gz").read_bytes()
     expected = (base / gpu_build.PROFILE / "source.tar.gz").read_bytes()
-    assert gpu_build.derived_source(gpu_build.CPU_PROFILE, cpu, wrapper_id) == expected
+    assert (
+        gpu_build.derived_source(gpu_build.CPU_PROFILE, cpu, wrapper_id) == expected
+    )
 
 
 @pytest.mark.parametrize(
@@ -736,14 +740,41 @@ def test_constant_graph_wrappers_keep_their_shape_and_strict_cpu_source(catalog_
     gpu = _members(base / gpu_build.PROFILE / "source.tar.gz")
     before = cpu[gpu_build.BACKBONES_MEMBER].decode()
     after = gpu[gpu_build.BACKBONES_MEMBER].decode()
-    for _, old, new in gpu_build.CONSTANT_GRAPH_DEVICE_FIXES:
-        assert before.count(old) == 1
-        before = before.replace(old, new)
-    assert after == before
+    assert next(
+        line for line in before.splitlines() if line.startswith("POINTS =")
+    ) == next(
+        line for line in after.splitlines() if line.startswith("POINTS =")
+    )
+    for role in gpu_build.CONSTANT_GRAPH_DEVICE_ROLES:
+        safe_forms = {new for _, _, new in role}
+        assert sum(after.count(form) for form in safe_forms) == 1
+    # Already-device-aware helpers retain their exact source, rather than
+    # gaining a wrapper-specific replacement or a second device transfer.
+    for role in gpu_build.CONSTANT_GRAPH_DEVICE_ROLES:
+        for _, old, new in role:
+            if old == new and old in before:
+                assert after.count(old) == before.count(old) == 1
     assert cpu[gpu_build.COMMON_MEMBER] == gpu[gpu_build.COMMON_MEMBER]
     assert "warn_only" not in gpu[gpu_build.COMMON_MEMBER].decode()
     item = next(e for e in pipeline.load()["entries"] if e["catalog_id"] == catalog_id)
     pipeline.verify(item)
+
+
+def test_an_already_device_placed_constant_graph_needs_no_further_transform():
+    base = pipeline.BUNDLES / "physicsnemo.MeshGraphNet" / gpu_build.PROFILE
+    files = _members(base / "source.tar.gz")
+    assert gpu_build._device_fixes(files, "another-wrapper") == ()
+
+
+def test_an_unknown_device_placement_form_is_refused():
+    source = pipeline.BUNDLES / "v2.motor.physicsnemo.MeshGraphNet" / "source.tar.gz"
+    files = _members(source)
+    before = files[gpu_build.BACKBONES_MEMBER]
+    fragment = b"device=src_feat.device"
+    assert before.count(fragment) == 1
+    files[gpu_build.BACKBONES_MEMBER] = before.replace(fragment, b"device=unknown.device")
+    with pytest.raises(gpu_build.GpuBuildRefused, match="device capability"):
+        gpu_build._device_fixes(files, "another-wrapper")
 
 
 @pytest.mark.parametrize("duplicate", [False, True])
@@ -754,26 +785,43 @@ def test_constant_graph_wrappers_keep_their_shape_and_strict_cpu_source(catalog_
     + [gpu_build.CONSTANT_GRAPH_CAPABILITY]
     + [tuple(before for _, before, _ in gpu_build.CONSTANT_GRAPH_DEVICE_FIXES)],
     ids=[
-        "scatter-helper", "graph-helpers", "graph-layout", "sum", "count",
-        "indices", "owners", "edges", "all-capability-markers", "all-placement-anchors",
+        "scatter-helper",
+        "graph-helpers",
+        "graph-layout",
+        "sum",
+        "count",
+        "indices",
+        "owners",
+        "edges",
+        "all-capability-markers",
+        "all-placement-anchors",
     ],
 )
 def test_constant_graph_capability_requires_every_anchor_once(fragments, duplicate):
     source = pipeline.BUNDLES / "physicsnemo.MeshGraphNet" / "source.tar.gz"
     packed = io.BytesIO()
-    with tarfile.open(source) as archive, tarfile.open(fileobj=packed, mode="w:gz") as out:
+    with (
+        tarfile.open(source) as archive,
+        tarfile.open(fileobj=packed, mode="w:gz") as out,
+    ):
         for member in archive.getmembers():
             body = archive.extractfile(member).read() if member.isfile() else None
             if member.name.endswith(gpu_build.BACKBONES_MEMBER):
                 for fragment in fragments:
                     old = fragment.encode()
                     assert body.count(old) == 1
-                    replacement = old + b"\n" + old if duplicate else b"missing_anchor"
+                    replacement = (
+                        old + b"\n" + old if duplicate else b"missing_anchor"
+                    )
                     body = body.replace(old, replacement)
                 member.size = len(body)
             out.addfile(member, io.BytesIO(body) if body is not None else None)
-    with pytest.raises(gpu_build.GpuBuildRefused, match="device capability|device fix anchor"):
-        gpu_build.derived_source(gpu_build.CPU_PROFILE, packed.getvalue(), "another-wrapper")
+    with pytest.raises(
+        gpu_build.GpuBuildRefused, match="device capability|device fix anchor"
+    ):
+        gpu_build.derived_source(
+            gpu_build.CPU_PROFILE, packed.getvalue(), "another-wrapper"
+        )
 
 
 def test_the_catalog_constants_equal_the_accelerator_profile():

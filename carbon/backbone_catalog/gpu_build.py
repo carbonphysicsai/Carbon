@@ -155,6 +155,35 @@ CONSTANT_GRAPH_CAPABILITY = (
     "def _constant_graph_helpers():",
     "graph.cases, graph.nodes_per_case, graph.dst_local = n, POINTS, self.edges_np[1]",
 )
+# One source form per semantic role. A role may already place its tensors on
+# the owner device; preserve that form. These alternatives occur in the same
+# maintained constructor implementation, independently of wrapper identity.
+CONSTANT_GRAPH_DEVICE_ROLES = (
+    (CONSTANT_GRAPH_DEVICE_FIXES[0],),
+    (CONSTANT_GRAPH_DEVICE_FIXES[1],),
+    (
+        CONSTANT_GRAPH_DEVICE_FIXES[2],
+        (
+            BACKBONES_MEMBER,
+            "        src = torch.as_tensor(graph.src_np, device=src_feat.device)\n        dst = torch.as_tensor(graph.dst_np, device=dst_feat.device)",
+            "        src = torch.as_tensor(graph.src_np, device=src_feat.device)\n        dst = torch.as_tensor(graph.dst_np, device=dst_feat.device)",
+        ),
+    ),
+    (
+        CONSTANT_GRAPH_DEVICE_FIXES[3],
+        (
+            BACKBONES_MEMBER,
+            "rows, owner = torch.arange(nodes, device=efeat.device).view(-1, 1), torch.as_tensor(local, device=efeat.device).view(1, -1)",
+            "rows, owner = torch.arange(nodes, device=efeat.device).view(-1, 1), torch.as_tensor(local, device=efeat.device).view(1, -1)",
+        ),
+        (
+            BACKBONES_MEMBER,
+            "torch.as_tensor(matrix, dtype=efeat.dtype)",
+            "torch.as_tensor(matrix, dtype=efeat.dtype, device=efeat.device)",
+        ),
+    ),
+    (CONSTANT_GRAPH_DEVICE_FIXES[4],),
+)
 
 
 class GpuBuildRefused(ValueError):
@@ -184,14 +213,23 @@ def _device_fixes(files, catalog_id):
     Other historical registered transforms retain their existing selection.
     """
     text = files.get(BACKBONES_MEMBER, b"").decode("utf-8")
-    counts = [text.count(marker) for marker in CONSTANT_GRAPH_CAPABILITY]
-    counts.extend(text.count(before) for _, before, _ in CONSTANT_GRAPH_DEVICE_FIXES)
-    if any(counts):
-        if any(count != 1 for count in counts):
+    markers = [text.count(marker) for marker in CONSTANT_GRAPH_CAPABILITY]
+    role_forms = [
+        {form for _, before, after in role for form in (before, after)}
+        for role in CONSTANT_GRAPH_DEVICE_ROLES
+    ]
+    counts = [sum(text.count(form) for form in forms) for forms in role_forms]
+    if any(markers) or any(counts):
+        if any(count != 1 for count in (*markers, *counts)):
             raise GpuBuildRefused(
                 "constant graph device capability is partial or ambiguous"
             )
-        return CONSTANT_GRAPH_DEVICE_FIXES
+        return tuple(
+            (member, before, after)
+            for role in CONSTANT_GRAPH_DEVICE_ROLES
+            for member, before, after in role
+            if before != after and text.count(before) == 1
+        )
     return DEVICE_FIXES.get(catalog_id, ())
 
 
