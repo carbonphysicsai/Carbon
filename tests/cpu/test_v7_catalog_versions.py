@@ -94,11 +94,15 @@ def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
         assert sv.material_allowlist_bytes(key[0], before) == v7
     for key, before in GRAPH_V2.items():
         assert sv.material_allowlist_bytes(*key) == v8
-        assert sv.serves_v8(*key) and sv.serves_uncapped(*key) and not sv.serves_v7(*key)
+        assert (
+            sv.serves_v8(*key) and sv.serves_uncapped(*key) and not sv.serves_v7(*key)
+        )
         assert sv.material_allowlist_bytes(key[0], before) == v7  # its predecessor
     for key, before in CURRENT_POOL_V2.items():
         assert sv.material_allowlist_bytes(*key) == v8
-        assert sv.serves_v8(*key) and sv.serves_uncapped(*key) and not sv.serves_v7(*key)
+        assert (
+            sv.serves_v8(*key) and sv.serves_uncapped(*key) and not sv.serves_v7(*key)
+        )
         assert sv.material_allowlist_bytes(key[0], before) == v8  # its predecessor
     for key, before in PREDECESSOR.items():
         assert sv.material_allowlist_bytes(*key) == v7
