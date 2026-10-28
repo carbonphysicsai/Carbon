@@ -10,7 +10,8 @@ import copy
 import json
 
 import pytest
-from test_f08_sealed_grid_grading import _full, case  # noqa: F401
+import test_f08_sealed_grid_grading as sealed_grid
+from test_f08_sealed_grid_grading import _full
 
 from carbon.challenge_kit import physical_material, physical_pack, version_registry
 from carbon.challenge_registry import published_exam, registry
@@ -23,11 +24,14 @@ CHALLENGE = "f08-ribbed-bracket"
 KEY = (CHALLENGE, "1.7")
 
 
+@pytest.fixture(scope="module")
+def case():
+    return sealed_grid.case.__wrapped__()
+
+
 def _measure(case, outputs, *, version, repeats=None):
     chosen = practice_grid.adapter("f08", version)
-    definition = chosen.definition(
-        bank=case["bank"], train_raw=case["public"]["train"]
-    )
+    definition = chosen.definition(bank=case["bank"], train_raw=case["public"]["train"])
     return chosen.measure(
         bank_rows=case["rows"],
         outputs=outputs,

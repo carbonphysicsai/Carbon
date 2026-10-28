@@ -401,15 +401,12 @@ def _f08_gates(version):
 
     def failed(_inputs, raw):
         row = _finite_row(raw)
-        if (
-            row is None
-            or not f08_dual_measurement.native_summary(
-                row,
-                targets=targets,
-                frequency_targets=f08_dual_pack._FREQUENCIES,
-                frequency_band_hz=f08_dual_pack._MEASUREMENT["frequency_band_hz"],
-                rule=rule,
-            )
+        if row is None or not f08_dual_measurement.native_summary(
+            row,
+            targets=targets,
+            frequency_targets=f08_dual_pack._FREQUENCIES,
+            frequency_band_hz=f08_dual_pack._MEASUREMENT["frequency_band_hz"],
+            rule=rule,
         ):
             return ("finite_native_summary",)
         laws = f08_physics._logical(dict(zip(targets, row, strict=True)))

@@ -29,13 +29,11 @@ import hashlib
 import sys
 
 from carbon.scoring import critical_fidelity as critical
-from carbon.scoring import f08_critical
+from carbon.scoring import f08_critical, f08_physics, probe_design, sealed_pack_writer
 from carbon.scoring import f08_dual_measurement as fdm
 from carbon.scoring import f08_dual_pack as _f08
-from carbon.scoring import f08_physics, probe_design
 from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import sealed_grid_common as grid_common
-from carbon.scoring import sealed_pack_writer
 
 CHALLENGE = _f08.CHALLENGE
 #: The first sealed Challenge version; 1.3 and 1.4 grade the same batches (they change only the construction source).
