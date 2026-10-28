@@ -836,9 +836,14 @@ def _inputs(
     ):
         raise refused("leg_minimum_platform_mismatch")
     n, width = len(bank["case_ids"]), len(bank["references"][0])
-    measurement = source_module.query_measurement(
-        entry, registration, originals, receipt
-    )
+    if getattr(adapter, "POOL_GRADED", False):
+        measurement = _pool_query_measurement(
+            selected, public_root, registration, originals, bank, refused
+        )
+    else:
+        measurement = source_module.query_measurement(
+            entry, registration, originals, receipt
+        )
     require(
         len(values) == n * width and measurement["output_shape"] == [n, width],
         "dual_native_tensor_shape",
@@ -866,6 +871,39 @@ def _inputs(
         "width": width,
         "identity": identity,
     }
+
+
+def _pool_query_measurement(
+    selected, public_root, registration, originals, bank, refused
+):
+    """The graded query's shapes and dtypes for a POOL-GRADED version, which has no batched timed query to
+    read them from (GPU_REBUILD_RULINGS section 13): the shapes are the registration's (the whole bank, the
+    graded query), the input dtype is the sealed bank's, and the output dtype is the one the pack's public
+    interface registers (the dtype the graded worker was held to)."""
+    import numpy as np
+
+    from carbon.challenge_kit.interface_dtype import output_dtype
+    from carbon.scoring import bundle_benchmark_core as bundle
+
+    try:
+        interface = selected.read_json_role(
+            public_root, "public", "interface", max_bytes=1024 * 1024
+        )
+        measurement = bundle.pool_speed_measurement(
+            registration, originals.get("single_call_raw")
+        )
+        return {
+            **measurement,
+            "input_dtype": str(np.asarray(bank["inputs"]).dtype),
+            "output_dtype": str(np.dtype(output_dtype(interface))),
+        }
+    except (
+        bundle.BundleBenchmarkRefused,
+        ValueError,
+        KeyError,
+        TypeError,
+    ) as exc:
+        raise refused("dual_native_inference_binding") from exc
 
 
 def _timed_agreement(timed_query, graded_total, step, total_of, rows_of, size, refused):
