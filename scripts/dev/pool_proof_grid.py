@@ -119,6 +119,29 @@ def probe_ids_covered(rows, by_case, excluded, stop):
         raise stop("probe_truth_does_not_cover_every_probe_or_exclude_a_closed_one")
 
 
+def without_excluded_probes(bank_legs, skipped):
+    """The bank the truth check runs on: the grid's bank without the closed-exclusion probe rows.
+
+    A sealed definition registers its probe-row count (F08: ``definition["probes"]["rows"]``) and its measure
+    refuses a bank whose probe cohort differs (``f08_bank_cohort``). So the definition handed to the check
+    counts the rows that remain; nothing else of it changes, and every model in the grid is still graded on the
+    full bank with the full definition."""
+    rows = [r for r in bank_legs.rows if r["case_id"] not in skipped]
+    removed = len(bank_legs.rows) - len(rows)
+    arguments = bank_legs.arguments
+    definition = arguments.get("definition")
+    probes = definition.get("probes") if type(definition) is dict else None
+    if removed and type(probes) is dict and type(probes.get("rows")) is int:
+        arguments = {
+            **arguments,
+            "definition": {
+                **definition,
+                "probes": {**probes, "rows": probes["rows"] - removed},
+            },
+        }
+    return replace(bank_legs, rows=rows, arguments=arguments)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     for flag in ("kind", "version", "binding", "pools-dir", "sets", "grid", "out-dir"):
@@ -257,12 +280,7 @@ def main(argv=None):
             # The truth check runs on the bank without the closed-exclusion probes (their whole response group:
             # they carry no truth, V8_RULINGS 14); every model in the grid is graded on the full bank.
             checked = (
-                replace(
-                    bank_legs,
-                    rows=[r for r in bank_legs.rows if r["case_id"] not in skipped],
-                )
-                if skipped
-                else bank_legs
+                without_excluded_probes(bank_legs, skipped) if skipped else bank_legs
             )
             record = checked.verify_truth_rows()
         except pool_plugin.TruthCheckStop as stop:
