@@ -3,14 +3,14 @@
 This uses the real Motor 1.5 sealed-pool fixture in plain and validator-copy
 delivery modes, real v5 GRAPH custody, source registration, dual producer,
 score engine, evidence binding, ExamCap, Ladder and PoolStore orchestration.
-Only graph worker originals and repeat/single-call execution are synthetic.
+Only graph worker originals and inference/repeat/single-call execution are synthetic.
 No worker, solver, graph training, network or containment claim is made here.
 The registered missing KOTH inputs remain missing: no fixture earns a crown,
 LIVE eligibility, official qualification, weights or settlement authority.
 
-The fresh-inference outer regrade runner is covered separately; this test
-connects its graph custody output to the actual counted grading core instead
-of stubbing that core or manufacturing a private database outcome.
+The counted entrypoint and source-free regrade orchestration run as well, with
+synthetic worker outputs. Scoring, custody and database state transitions are
+never stubbed or manufactured.
 """
 
 # ruff: noqa: F811 (the imported case fixture is received by tests)
@@ -34,6 +34,7 @@ from carbon.challenge_validator.bank_promotion import BankPromotion
 from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
 from carbon.development_session import bundle_construction_worker, paired_inference
 from carbon.development_session.construction_recipe import ConstructionRecipe
+from carbon.development_session.research_ledger import VERSION as CAMPAIGN_SCHEMA
 from carbon.development_session.research_ledger import CampaignLedger
 from carbon.level4 import staging
 from carbon.reconstruction.worker.model import WorkerImageIdentity
@@ -177,10 +178,30 @@ def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False):
     )
     ledger.record_recipe_task_intent(CONTRACT, TASK, OWNER, _sha(b"synthetic-request"))
     campaign = CampaignLedger(tmp_path / "worker-ledger")
+    campaign.freeze(
+        {
+            "schema": CAMPAIGN_SCHEMA,
+            "ceilings": {},
+            "elapsed_seconds": None,
+            "campaign_id": "synthetic-graph-pool-counted",
+            "implementation": "fixture",
+            "objective": "fixture",
+            "sampling": "fixture",
+            "control": "none",
+            "selection": "none",
+            "replica_policy": "fixture",
+            "provider": "none",
+            "owner": OWNER,
+            "receiver_binding": {
+                "evaluation_pack_digest": case["snapshot"].manifest_digest
+            },
+        }
+    )
     provider = SimpleNamespace(
         ledger=campaign,
         inference_image=WorkerImageIdentity(*([IMAGE] * 8)),
         inference_accelerator=None,
+        evaluation_pack_digest=case["snapshot"].manifest_digest,
     )
     adapter = object.__new__(LeanRecipeAdapter)
     adapter.challenge_id, adapter.challenge_version = MOTOR, VERSION
@@ -198,6 +219,7 @@ def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False):
         evaluation_pack_private_root=case["root"],
         evaluation_pack_sealed=False,  # fixture did not arrive through answer-key custody
         graph_adapter_for=lambda _key: "electric-motor-magnetics-public-jax-graph-v2",
+        _checked=lambda _key: (None, None),
     )
     calls = []
 
@@ -214,6 +236,28 @@ def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False):
     def single_worker(_ledger, **kwargs):
         assert kwargs["state_digest"] == _sha(artifacts["state.npz"])
         assert kwargs["inputs"].shape == case["bank"]["inputs"].shape
+        if "single_call" not in kwargs:
+            # A fresh source-free bank inference. The real caller snapshots and
+            # authenticates these originals, and regenerates graph evidence.
+            calls.append("bank")
+            operation = "operation-" + "c" * 64
+            snapshot = campaign.root / operation / "snapshot"
+            snapshot.mkdir(parents=True)
+            raw = artifacts["predictions.json"]
+            receipt = {
+                **worker["inference_receipt"],
+                "inputs_digest": _sha(
+                    bundle_construction_worker._tensors(inputs=kwargs["inputs"])
+                ),
+            }
+            (snapshot / "predictions.json").write_bytes(raw)
+            (snapshot / "receipt.json").write_bytes(_json(receipt))
+            return SimpleNamespace(
+                receipt=receipt,
+                predictions=outputs,
+                predictions_digest=_sha(raw),
+                worker_operation=operation,
+            )
         indices = kwargs["single_call"]["indices"]
         calls.append("single")
         return SimpleNamespace(
@@ -235,6 +279,8 @@ def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False):
         artifacts=artifacts,
         worker=worker,
         calls=calls,
+        base=base,
+        entries=entries,
         regrade=retention._Regrade(
             OWNER,
             ConstructionRecipe.from_dict(recipe),
@@ -246,7 +292,17 @@ def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False):
     )
 
 
-def _grade(fixture):
+def _grade(fixture, *, counted=False):
+    if counted:
+        return retention._counted_bank_grade(
+            fixture.adapter,
+            TASK,
+            fixture.retained,
+            artifact_directory=fixture.base,
+            entry_directory=fixture.entries,
+            pool_store=fixture.store,
+            runner=object(),  # existing fixture runner hook; never a live worker
+        )
     return retention._retain_selected_pack_evaluation(
         fixture.adapter,
         TASK,
@@ -269,9 +325,23 @@ def test_graph_custody_pool_grade_is_counted_and_filed_without_a_crown(
     case, tmp_path, monkeypatch
 ):
     fixture = _setup(case, tmp_path, monkeypatch)
-    result = _grade(fixture)
+    assert "lineage.json" not in fixture.artifacts
+    result = _grade(fixture, counted=True)
     assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY", result
-    assert fixture.calls == ["pair", "single"]
+    assert fixture.calls == ["bank", "pair", "single"]
+    assert result["entry_id"] == fixture.retained["entry_id"]
+    assert result["bank_grade_entry_id"] != result["entry_id"]
+    regrade_roots = [
+        p
+        for p in fixture.base.iterdir()
+        if p.is_dir() and p.name != TASK and not p.name.endswith(".evaluation")
+    ]
+    assert len(regrade_roots) == 1
+    assert not (regrade_roots[0] / "lineage.json").exists()
+    evaluation = fixture.base / (regrade_roots[0].name + ".evaluation")
+    provenance = json.loads((evaluation / "regrade-provenance.json").read_bytes())
+    assert provenance["kind"] == "COUNTED_GRADE"
+    assert provenance["origin_task_id"] == TASK
     assert _cap_rows(fixture) == [
         (TASK, "GRADED", "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE", OWNER, 7)
     ]
@@ -280,7 +350,7 @@ def test_graph_custody_pool_grade_is_counted_and_filed_without_a_crown(
     assert fixture.store.incumbent() is None
     # A real v4 sidecar, filed under the origin submission, not a manufactured king row.
     key = result["koth_comparison"]["evaluation_key"]
-    pin = json.loads(result["private_evaluation_path"].read_bytes())[
+    pin = json.loads((evaluation / "private-evaluation-binding.json").read_bytes())[
         "source_receipt_sha256"
     ]
     pair = BankPromotion(
@@ -290,9 +360,9 @@ def test_graph_custody_pool_grade_is_counted_and_filed_without_a_crown(
     assert fixture.store.submission(TASK)["state"] == "RECONSTRUCTED"
     assert result["official_eligible"] is False
     # Retry reads create-only evidence and cannot run another worker or consume another slot.
-    again = _grade(fixture)
+    again = _grade(fixture, counted=True)
     assert again["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY", again
-    assert fixture.calls == ["pair", "single"]
+    assert fixture.calls == ["bank", "pair", "single"]
     assert len(_cap_rows(fixture)) == 1
 
 
@@ -300,7 +370,7 @@ def test_graph_pool_physics_failure_counts_as_a_candidate_result(
     case, tmp_path, monkeypatch
 ):
     fixture = _setup(case, tmp_path, monkeypatch, candidate_failure=True)
-    result = _grade(fixture)
+    result = _grade(fixture, counted=True)
     assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY", result
     assert _cap_rows(fixture)[0][2:4] == ("COUNTED", "MANDATORY_GATE_FAILED")
     assert fixture.store.incumbent() is None

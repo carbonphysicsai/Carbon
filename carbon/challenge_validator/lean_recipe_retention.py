@@ -2451,13 +2451,17 @@ def regrade_retained_entry(
     if timed:
         artifacts["timed-query-receipt.json"] = timed_raw
         artifacts["timed-query-predictions.json"] = timed_predictions
-    lineage = json.loads(artifacts["lineage.json"])
-    lineage.update(
-        task_id=regrade_id,
-        prediction_digest=_sha(predictions),
-        inference_operation=operation,
-    )
-    artifacts["lineage.json"] = _json(lineage)
+    if kind == "bundle":
+        # Bundle lineage belongs to its source archive. Graph custody instead
+        # authenticates the source envelope and worker evidence above, and has
+        # no lineage.json role. Its regrade provenance is recorded below.
+        lineage = json.loads(artifacts["lineage.json"])
+        lineage.update(
+            task_id=regrade_id,
+            prediction_digest=_sha(predictions),
+            inference_operation=operation,
+        )
+        artifacts["lineage.json"] = _json(lineage)
     new_manifest = dict(manifest)
     new_manifest["roles"] = {
         role: spec
