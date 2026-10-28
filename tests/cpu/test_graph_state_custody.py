@@ -34,14 +34,17 @@ def producer_fixture(kind="ensemble", key=(F08, "1.6")):
             key, {"training": {"steps": 1}}
         )
     manifest = json.loads(manifest_raw)
-    forward = graph.parse(documents[manifest["documents"]["forward"]])
+    permitted = allowlist_module.Allowlist(material["allowlist_bytes"])
+    forward = graph.parse(
+        documents[manifest["documents"]["forward"]],
+        max_bytes=bundle_graph_state._limits(permitted)[1],
+    )
     inputs = forward["graphs"][forward["entry"]]["inputs"]
     parameters = [
         np.zeros(entry["shape"], dtype=entry["dtype"])
         for entry in inputs
         if entry["name"].startswith("params/")
     ]
-    permitted = allowlist_module.Allowlist(material["allowlist_bytes"])
     width = physical_graph_state._width(forward)
     dtype = parameters[0].dtype
     mu, sd = np.zeros(width, dtype), np.ones(width, dtype)
