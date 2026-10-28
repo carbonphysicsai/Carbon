@@ -41,7 +41,6 @@ HEADER = (
     "#    uv pip compile .devcontainer/torch/torch-cu130-py311.in "
     "--python-version 3.11.16 --python-platform x86_64-manylinux_2_31 "
     "--generate-hashes --only-binary=:all: --no-binary antlr4-python3-runtime "
-    "--extra-index-url https://download.pytorch.org/whl/cu130 "
     "--index-strategy unsafe-best-match "
     "--constraint .devcontainer/torch/torch-cu130-py311.constraints.txt "
     "--output-file .devcontainer/torch/torch-cu130-py311.txt"

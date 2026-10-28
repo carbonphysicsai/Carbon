@@ -28,6 +28,10 @@ TWINS = {
     "v2.cooling.physicsnemo.FullyConnected": gpu_build.PROFILE,
     "v2.f08.physicsnemo.FullyConnected": gpu_build.PROFILE,
     "v2.f02.physicsnemo.FullyConnected": gpu_build.PROFILE,
+    "v2.motor.physicsnemo.MeshGraphNet": gpu_build.PROFILE,
+    "v2.cooling.physicsnemo.MeshGraphNet": gpu_build.PROFILE,
+    "v2.f08.physicsnemo.MeshGraphNet": gpu_build.PROFILE,
+    "v2.f02.physicsnemo.MeshGraphNet": gpu_build.PROFILE,
 }
 
 

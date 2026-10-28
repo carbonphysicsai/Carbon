@@ -22,11 +22,16 @@ The hostile library overlay remains offline, hashes required and wheels only.
 No general source-package install or compiler permission is introduced there.
 
 The CUDA lock/profile and all 42 existing Torch GPU twin environment/ref
-identities must move through the existing derivation. Four v2 FullyConnected
-twins use the same mechanical transform and receive prospective refs only;
-they remain unoffered without actual GPU receipts. The four v2 MeshGraphNet
-entries require a separate decision on applying the existing device-placement
-transform under their v2 ids; no incomplete GPU config is added here. The 15
+identities must move through the existing derivation. Eight v2 FullyConnected
+and MeshGraphNet twins receive prospective refs only; they remain unoffered
+without actual GPU receipts. The owner explicitly requires portability:
+"Be careful making anything device/verision specific that's how we keep failing!!"
+The shared constant-graph constructor is recognized by its complete source
+capability and all registered device-placement anchors, independent of catalog
+wrapper identity, Challenge/version or GPU model. A partial/ambiguous match is
+refused; the legacy MeshGraphNet derived bytes must stay identical. This is the
+existing constructor/transform, not a new family or a transform for arbitrary
+miner code. There will be 50 prospective Torch GPU twins in total. The 15
 JAX bundle/lock refs and CPU bundle semantics stay unchanged. Changed source
 archive identities still require fresh worker image artifacts and any affected
 packs/copies through their normal authority; no historical artifact is relabelled.
@@ -35,7 +40,7 @@ All lock generation, derived output, formatting, tests and image/GPU work run on
 the assigned remote host through its sole operator. A source preparation
 checkpoint is not an accepted lock/image. Acceptance requires actual locked
 image build/imports, exact package parity, all six historical constructors plus
-the new prospective FC twins on public synthetic inputs, two-process repeats,
+the eight prospective wrappers on public synthetic inputs, two-process repeats,
 the full existing Torch twin regression and relevant canonical boundary tests.
 
 Earlier venv receipts remain historical/withdrawn. This decision creates no

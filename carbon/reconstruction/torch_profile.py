@@ -186,7 +186,7 @@ def gpu_requirements_digest(root) -> str:
 # so no JAX identity moves.
 #: The cu130 lock's sha256, pinned as JAX's profile pins its lock.
 GPU_LOCK_DIGEST = (
-    "sha256:ae8ec3abbced4fafcce090947808c329b9bf73061f45650bf531c4a8a0e23e7d"
+    "sha256:9b947608d31daccdb2230d6d64a04893253064b89328eaeda8098b75b9d18400"
 )
 GPU_PROFILE_ID = "carbon_torch_cuda13_nvidia_development_v1"
 ACCELERATOR_LABELS = (
