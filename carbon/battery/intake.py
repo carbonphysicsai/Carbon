@@ -1360,9 +1360,23 @@ def _handler(intake):
             self.send_response(answer.status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(payload)))
+            if answer.status in (429, 503):
+                self.send_header("Retry-After", "1")
             self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(payload)
+
+        def _drain(self, length):
+            """Read what an unread request body can still hold, once and briefly, so a
+            refusal sent before the body is read arrives as a response and not as a reset.
+            """
+            try:
+                self.connection.settimeout(0.5)
+                self.rfile.read1(min(length, 65536))
+            except (TimeoutError, ConnectionError, OSError):
+                pass
+            finally:
+                self.connection.settimeout(SOCKET_TIMEOUT_S)
 
         def _dispatch(self, method):
             # The declared length is checked and the peer's bucket charged
@@ -1389,9 +1403,17 @@ def _handler(intake):
                 length = int(declared)
             if intake.proxy_header is not None:
                 if not intake.client_connections.acquire(peer):
+                    self._drain(length)
                     return self._answer(_refused(503, "capacity"))
                 self._client_slot = peer
+            if method == "GET" and getattr(intake, "local_hop", False):
+                # Reads (the public facts, the king view) are cheap and carry no body: they run
+                # in parallel, charge no peer bucket and take no in-flight slot, so clients
+                # behind one local forward all probe freely (GPU_REBUILD_RULINGS section 12).
+                body = read_body(self.connection, self.rfile, length, BODY_DEADLINE_S)
+                return self._answer(intake.route(method, self.path, headers, body))
             if not intake.limits.allow(peer):
+                self._drain(length)
                 return self._answer(_refused(429, "rate"))
             try:
                 body = read_body(self.connection, self.rfile, length, BODY_DEADLINE_S)
@@ -1478,6 +1500,21 @@ class ConnectionSlots:
 #: socketserver default of 5 is a full queue at the sixth waiting client.
 LISTEN_BACKLOG = 128
 
+#: What a connection over the cap is told (typed, with Retry-After), never silence.
+_BUSY_BODY = b'{"refused": "intake_busy"}'
+_CRLF = bytes((13, 10))
+BUSY_REPLY = _CRLF.join(
+    (
+        b"HTTP/1.1 503 Service Unavailable",
+        b"Content-Type: application/json",
+        b"Content-Length: " + str(len(_BUSY_BODY)).encode(),
+        b"Retry-After: 1",
+        b"Connection: close",
+        b"",
+        _BUSY_BODY,
+    )
+)
+
 
 class LoggedHandler(BaseHTTPRequestHandler):
     """The base of every Carbon public door's handler: each read or write
@@ -1504,10 +1541,21 @@ class _Server(ThreadingHTTPServer):
     daemon_threads = True
     request_queue_size = LISTEN_BACKLOG
 
-    def __init__(self, address, handler, *, service=SERVICE, trusted_proxy=False):
+    def __init__(
+        self,
+        address,
+        handler,
+        *,
+        service=SERVICE,
+        trusted_proxy=False,
+        local_hop=False,
+    ):
         self.slots = ConnectionSlots()
         self.service = service
         self.trusted_proxy = trusted_proxy
+        #: A door reached only through a local hop (an ssh forward, the operator's tools): see
+        #: `process_request`. Off for every other door, which keeps its per-address cap.
+        self.local_hop = local_hop
         try:
             if ipaddress.ip_address(address[0]).version == 6:
                 self.address_family = socket.AF_INET6
@@ -1516,12 +1564,19 @@ class _Server(ThreadingHTTPServer):
         super().__init__(address, handler)
 
     def process_request(self, request, client_address):
+        # On a local-hop door a loopback peer is the hop itself (an ssh forward, a reverse proxy,
+        # the operator's own tools): every client behind it shares that one address, so it
+        # counts against the global cap only, never a per-address one.
         if not self.slots.acquire(
             client_address[0],
-            shared_proxy=self.trusted_proxy and trusted_proxy_peer(client_address[0]),
+            shared_proxy=(self.trusted_proxy and trusted_proxy_peer(client_address[0]))
+            or (self.local_hop and is_loopback(client_address[0])),
         ):
             log("connection_refused", service=self.service, reason="busy")
-            self.shutdown_request(request)
+            if self.local_hop:
+                self._busy(request)
+            else:
+                self.shutdown_request(request)
             return
         try:
             super().process_request(request, client_address)
@@ -1535,6 +1590,24 @@ class _Server(ThreadingHTTPServer):
         finally:
             self.slots.release(client_address[0])
 
+    def _busy(self, request):
+        """Past capacity a client gets a typed 503 with Retry-After, never a dropped
+        connection (GPU_REBUILD_RULINGS section 12). Best effort and bounded: one short
+        write on a fresh socket, whatever it has already sent drained once so the close is not
+        a reset. A TLS socket that has not handshaken cannot be answered in plain HTTP; it is
+        closed as before."""
+        try:
+            request.settimeout(0.5)
+            request.sendall(BUSY_REPLY)
+            try:
+                request.recv(65536)
+            except OSError:
+                pass
+        except OSError:
+            pass
+        finally:
+            self.shutdown_request(request)
+
     def handle_error(self, request, client_address):
         log(
             "connection_failed",
@@ -1543,7 +1616,9 @@ class _Server(ThreadingHTTPServer):
         )
 
 
-def hardened_listener(config, handler, *, service=SERVICE, trusted_proxy=False):
+def hardened_listener(
+    config, handler, *, service=SERVICE, trusted_proxy=False, local_hop=False
+):
     """Bind the configured address for `handler` (a `LoggedHandler`); with
     TLS, wrap it so each connection's handshake runs in that connection's own
     thread, under its socket timeout.
@@ -1562,6 +1637,7 @@ def hardened_listener(config, handler, *, service=SERVICE, trusted_proxy=False):
         handler,
         service=service,
         trusted_proxy=trusted_proxy,
+        local_hop=local_hop,
     )
     if tls is not None:
         httpd.socket = tls.wrap_socket(
@@ -1575,7 +1651,10 @@ def listener(config, intake):
     if intake.proxy_header != proxy_header(config):
         raise IntakeUnavailable("intake_proxy_mismatch")
     return hardened_listener(
-        config, _handler(intake), trusted_proxy=intake.proxy_header is not None
+        config,
+        _handler(intake),
+        trusted_proxy=intake.proxy_header is not None,
+        local_hop=getattr(intake, "local_hop", False),
     )
 
 
