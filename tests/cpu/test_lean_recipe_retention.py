@@ -846,3 +846,26 @@ def test_pair_procedure_is_the_selected_packs_registered_form(
     assert seen["procedure"] == expected
     assert roles == [("public", "accuracy_definition")]
     assert json.loads(raw) == {"fixture": True}
+
+
+def test_a_retained_inference_pair_larger_than_a_mebibyte_is_read_back(
+    tmp_path, monkeypatch
+):
+    """valV3 2026-10-28: the pair holds both phases' predictions (~1.9 MB at 646 rows); a retry reads the
+    retained bytes, and a 1 MiB read cap refused it with the generic `public_measurement_bytes_unavailable`.
+    """
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    private = tmp_path / "private"
+    private.mkdir(mode=0o700)
+    big = b"x" * (2 * 1024**2)
+    (private / "inference-pair.json").write_bytes(big)
+    monkeypatch.setattr(retention, "_private_evaluation_directory", lambda *_: private)
+    assert retention._inference_pair_raw(None, "rtsk_x", {}, {}, {}) == big
+    (private / "inference-pair.json").write_bytes(
+        b"x" * (retention.PAIR_READ_BYTES + 1)
+    )
+    with pytest.raises(
+        retention.RetentionUnavailable, match="public_measurement_bytes_unavailable"
+    ):
+        retention._inference_pair_raw(None, "rtsk_x", {}, {}, {})

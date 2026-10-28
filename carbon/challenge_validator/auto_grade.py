@@ -102,9 +102,17 @@ class AutoGrader:
                 self._fail(submission_id, type(failure).__name__)
                 return submission_id, "FAILED"
             entry = result.get("entry_id") if type(result) is dict else None
+            # A grade that could not be computed keeps ITS reason in the marker (a typed code): an operator's
+            # idempotent re-retention reports whatever it meets on the retry, which can hide the first reason.
+            reason = (
+                result.get("private_evaluation_reason")
+                if type(result) is dict
+                else None
+            )
             self._write(
                 submission_id,
                 "GRADED",
+                code=_code(reason) if type(reason) is str and reason else None,
                 entry_id=entry if type(entry) is str else None,
             )
             return submission_id, "GRADED"

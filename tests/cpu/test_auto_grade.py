@@ -31,7 +31,7 @@ class FakeIntake:
         outcome = self.behaviour[submission_id]
         if isinstance(outcome, Exception):
             raise outcome
-        return {"entry_id": outcome}
+        return outcome if isinstance(outcome, dict) else {"entry_id": outcome}
 
 
 def _grader(tmp_path, tasks, behaviour):
@@ -337,3 +337,20 @@ def test_an_incomplete_inference_pair_reaches_only_the_operator_never_a_miner(tm
     for path in tmp_path.rglob("*"):
         if path.is_file() and "markers" not in path.parts and path.suffix == ".json":
             assert "inference_pair" not in path.read_text()
+
+
+def test_a_grade_that_could_not_be_computed_keeps_its_own_reason_in_the_marker(
+    tmp_path,
+):
+    """valV3 2026-10-28: an operator's idempotent re-retention reported a different, secondary reason than the
+    first attempt's; the marker now carries the first attempt's typed reason."""
+    unavailable = {
+        "entry_id": "sha256:" + "1" * 64,
+        "private_evaluation_state": "UNAVAILABLE",
+        "private_evaluation_reason": "single_call_row_not_in_the_delivered_query",
+    }
+    grader, _ = _grader(tmp_path, [A, B], {A: unavailable, B: "sha256:" + "2" * 64})
+    assert grader.run_once() == (A, "GRADED")
+    assert grader.run_once() == (B, "GRADED")
+    assert _marker(tmp_path, A)["code"] == "single_call_row_not_in_the_delivered_query"
+    assert _marker(tmp_path, B)["code"] is None
