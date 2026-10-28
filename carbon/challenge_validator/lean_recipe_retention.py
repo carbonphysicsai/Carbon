@@ -371,6 +371,7 @@ def _retain_graph_artifacts(
     try:
         from scripts.dev.score_lab.public_unbound_custody import (
             GRAPH_ROLE_SCHEMA_V5,
+            graph_state_schema,
             prepare_custody_v5,
         )
         from scripts.dev.score_lab.public_unbound_entry import create_entry_v5
@@ -404,10 +405,16 @@ def _retain_graph_artifacts(
             else {}
         ),
     }
+    try:
+        state_schema = graph_state_schema(
+            artifacts["state.npz"], artifacts["recipe.json"], artifacts["allowlist.json"]
+        )
+    except ValueError as exc:
+        raise RetentionUnavailable("operator_bank_custody_unavailable") from exc
     role_manifest = {
         "schema": GRAPH_ROLE_SCHEMA_V5,
         "scope": "PUBLIC_DEVELOPMENT_BUNDLE_MODEL",
-        "source_schema": "carbon.development.graph-source-state.v1",
+        "source_schema": state_schema,
         "roles": {
             role: {"file": name, "codec": codec}
             for role, (name, codec) in sorted(roles.items())

@@ -20,6 +20,12 @@ import sys
 import zipfile
 from pathlib import Path
 
+from carbon.development_session.graph_state_contract import (
+    GRAPH_ENSEMBLE_STATE_SCHEMA as GRAPH_ENSEMBLE_STATE_SCHEMA,
+    GRAPH_SOURCE_STATE_SCHEMA as GRAPH_SOURCE_STATE_SCHEMA,
+    GRAPH_SOURCE_STATE_SCHEMAS as GRAPH_SOURCE_STATE_SCHEMAS,
+)
+
 SCHEMA = "carbon.scorelab.public-unbound-native-custody.v1"
 SCHEMA_V2 = "carbon.scorelab.public-unbound-native-custody.v2"
 FIXTURE_SCHEMA = "carbon.development.library-public-fixture.v1"
@@ -1624,7 +1630,6 @@ GRAPH_ROLE_SCHEMA_V4 = "carbon.scorelab.public-model-artifact-roles.v4"
 GRAPH_ROLE_SCHEMA_V5 = "carbon.scorelab.public-model-artifact-roles.v5"
 BUNDLE_CUSTODY_SCHEMA_V5 = "carbon.scorelab.public-model-custody-receipt.v5"
 BUNDLE_STATE_SCHEMA = "carbon.development.bundle-graph-state.v1"
-GRAPH_SOURCE_STATE_SCHEMA = "carbon.development.graph-source-state.v1"
 BUNDLE_SCOPE = "PUBLIC_DEVELOPMENT_BUNDLE_MODEL"
 _BUNDLE_ROLE_CODECS = {
     "recipe": "json",
@@ -1696,12 +1701,14 @@ _NATIVE_GRAPH_ROLE_CODECS = {
 }
 
 
-def _bundle_header(state: bytes, *, graph_source: bool = False) -> tuple[dict, dict]:
+def _bundle_header(
+    state: bytes, *, graph_source: bool = False, recipe=None, allowlist=None
+) -> tuple[dict, dict]:
     """Inspect the producer's inert graph NPZ without loading or executing it."""
     arrays = inspect_numeric_npz(
         state,
         max_bytes=64 * 1024 * 1024,
-        max_member_count=4098,
+        max_member_count=4101 if graph_source else 4098,
         max_directory_bytes=512 * 1024,
         allow_graph_header=True,
     )
@@ -1736,6 +1743,36 @@ def _bundle_header(state: bytes, *, graph_source: bool = False) -> tuple[dict, d
     header = _graph_json(header_raw, "bundle_header")
     source_field = "submission_digest" if graph_source else "bundle_digest"
     source_schema = GRAPH_SOURCE_STATE_SCHEMA if graph_source else BUNDLE_STATE_SCHEMA
+    decoded = graph_source and "decoder" in header
+    ensemble = graph_source and header.get("schema") == GRAPH_ENSEMBLE_STATE_SCHEMA
+    extra_fields = ({"decoder"} if decoded else set()) | (
+        {"members"} if ensemble else set()
+    )
+    count = header.get("parameter_count")
+    members = header.get("members", 1)
+    # Preserve the existing parameter-array envelope. The ensemble codec's
+    # validation path does not allocate empty member lists when count is zero.
+    if (
+        type(count) is not int
+        or not 0 <= count <= 4096
+        or type(members) is not int
+        or members < 1
+        or members * count > 4096
+    ):
+        raise CustodyRefused("bundle_state_header")
+    expected_arrays = {"__header__", "graph"}
+    if decoded:
+        expected_arrays |= {"decoder_mu", "decoder_sd"}
+    if ensemble:
+        expected_arrays.add("combine")
+        if count:
+            expected_arrays |= {
+                f"member{member:06d}_parameter{index:04d}"
+                for member in range(members)
+                for index in range(count)
+            }
+    else:
+        expected_arrays |= {f"parameter{index:04d}" for index in range(count)}
     if (
         set(header)
         != {
@@ -1747,13 +1784,11 @@ def _bundle_header(state: bytes, *, graph_source: bool = False) -> tuple[dict, d
             "graph_digest",
             "allowlist_digest",
             "parameter_count",
-        }
-        or header["schema"] != source_schema
-        or type(header["parameter_count"]) is not int
-        or not 0 <= header["parameter_count"] <= 4096
-        or set(arrays)
-        != {"__header__", "graph"}
-        | {f"parameter{index:04d}" for index in range(header["parameter_count"])}
+        } | extra_fields
+        or header["schema"]
+        != (GRAPH_ENSEMBLE_STATE_SCHEMA if ensemble else source_schema)
+        or (ensemble and not decoded)
+        or set(arrays) != expected_arrays
     ):
         raise CustodyRefused("bundle_state_header")
     for field in (
@@ -1766,7 +1801,130 @@ def _bundle_header(state: bytes, *, graph_source: bool = False) -> tuple[dict, d
     ):
         _digest(header[field], f"bundle_{field}")
     _graph_digest_equal(_sha(graph_raw), header["graph_digest"], "bundle_graph")
+    if decoded:
+        decoder = header["decoder"]
+        width = decoder.get("width") if type(decoder) is dict else None
+        if (
+            type(width) is not int
+            or width < 1
+            or any(arrays[name]["shape"] != [width] for name in ("decoder_mu", "decoder_sd"))
+            or (ensemble and arrays["combine"]["shape"] != [members, width])
+        ):
+            raise CustodyRefused("bundle_state_header")
+        # These registered representations contain decoder/combine values,
+        # not just descriptors. Reuse their inert codecs; never rebuild or
+        # execute the graph, and never duplicate their numeric tolerances.
+        from carbon.development_session import physical_graph_state
+        from carbon.development_session import physical_graph_state_v2
+        from carbon.development_session.construction_recipe import ConstructionRecipe
+        from carbon.level4.allowlist import Allowlist
+
+        try:
+            bound_recipe = ConstructionRecipe.from_bytes(recipe)
+            if allowlist is None:
+                # Native local originals predate the retained allowlist role.
+                # Only the exact registered Challenge version can supply it.
+                from carbon.challenge_kit.served_versions import graph_allowlist_bytes
+
+                challenge = bound_recipe.to_dict()["challenge"]
+                allowlist = graph_allowlist_bytes(challenge["id"], challenge["version"])
+            permitted = Allowlist(allowlist)
+            loader = (
+                physical_graph_state_v2.validate
+                if ensemble else physical_graph_state.load
+            )
+            loader(state, bound_recipe, permitted)
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
+            raise CustodyRefused("graph_state_codec") from exc
     return header, arrays
+
+
+def graph_state_schema(state: bytes, recipe: bytes, allowlist: bytes) -> str:
+    """The verified serialization schema of original inert graph bytes."""
+    header, _arrays = _bundle_header(
+        state, graph_source=True, recipe=recipe, allowlist=allowlist
+    )
+    return header["schema"]
+
+
+def _graph_state_source_binding(header, manifest_raw, documents):
+    if "decoder" not in header:
+        return  # Historical descriptor-only custody remains readable.
+    manifest = _graph_json(manifest_raw, "graph_source_manifest")
+    slots = manifest.get("documents")
+    forward = slots.get("forward") if type(slots) is dict else None
+    _digest(forward, "graph_source_forward")
+    if forward not in documents:
+        raise CustodyRefused("graph_source_forward")
+    _graph_digest_equal(header["graph_digest"], forward, "graph_source_forward")
+
+
+def _graph_fit_ok(fit, header, recipe_digest):
+    if "decoder" not in header:
+        return (
+            type(fit) is dict
+            and 1 <= len(fit) <= 32
+            and all(
+                type(key) is str
+                and re.fullmatch(r"[a-z][a-z0-9_]{0,63}", key) is not None
+                and (
+                    _graph_finite_number(value)
+                    or type(value) is bool
+                    or type(value) is str and _SHA.fullmatch(value)
+                )
+                for key, value in fit.items()
+            )
+        )
+    # The exact receipts emitted by physical_graph_adapter(.v2).fit. These are
+    # bound producer declarations, not a scientific acceptance or score.
+    ensemble = header["schema"] == GRAPH_ENSEMBLE_STATE_SCHEMA
+    fields = {
+        "adapter_id", "trainer_sha256", "steps", "train_cases", "train_loss",
+        "params_sha256", "recipe_digest",
+    } | ({"members", "member_losses"} if ensemble else set())
+    return (
+        type(fit) is dict
+        and set(fit) == fields
+        and type(fit["adapter_id"]) is str
+        and bool(fit["adapter_id"])
+        and type(fit["train_cases"]) is int
+        and fit["train_cases"] > 0
+        and _graph_finite_number(fit["train_loss"])
+        and (
+            type(fit["members"]) is int
+            and fit["members"] == header["members"]
+            and type(fit["steps"]) is list
+            and len(fit["steps"]) == fit["members"]
+            and all(type(value) is int and value >= 0 for value in fit["steps"])
+            and type(fit["member_losses"]) is list
+            and len(fit["member_losses"]) == fit["members"]
+            and all(_graph_finite_number(value) for value in fit["member_losses"])
+            if ensemble else type(fit["steps"]) is int and fit["steps"] >= 0
+        )
+        and all(type(fit[key]) is str and _SHA.fullmatch(fit[key]) for key in (
+            "trainer_sha256", "params_sha256", "recipe_digest"
+        ))
+        and fit["recipe_digest"] == recipe_digest
+    )
+
+
+def _graph_worker_lane_fields(worker):
+    """The optional device declarations written by research_tasks, inert only.
+
+    Retention already checks the GPU image against the admitted receiver's
+    lane. Custody binds that original declaration without claiming admission.
+    The image role continues to name the separate CPU inference image.
+    """
+    if "build_device" not in worker:
+        return set()
+    if worker["build_device"] == "GPU":
+        _digest(worker.get("build_image_id"), "graph_build_image")
+        return {"build_device", "build_image_id"}
+    if worker["build_device"] == "CPU" and worker.get("gpu_lane_note") in (
+        "graph_gpu_rebuild_not_repeatable", "graph_gpu_attempt_failed"
+    ):
+        return {"build_device", "gpu_lane_note"}
+    raise CustodyRefused("graph_worker_lineage")
 
 
 def _bundle_json(raw: bytes, label: str):
@@ -2002,7 +2160,7 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     from carbon.level4 import staging
     from carbon.level4.graph import GraphRefused
 
-    if manifest["source_schema"] != GRAPH_SOURCE_STATE_SCHEMA:
+    if manifest["source_schema"] not in GRAPH_SOURCE_STATE_SCHEMAS:
         raise CustodyRefused("graph_role_scope")
     per_case = manifest["schema"] == GRAPH_ROLE_SCHEMA_V5
     roles = manifest["roles"]
@@ -2113,7 +2271,13 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         or by_role["source"] != canonical_envelope
     ):
         raise CustodyRefused("graph_source_identity")
-    header, state_arrays = _bundle_header(by_role["state"], graph_source=True)
+    header, state_arrays = _bundle_header(
+        by_role["state"], graph_source=True,
+        recipe=by_role["recipe"], allowlist=by_role["allowlist"],
+    )
+    if header["schema"] != manifest["source_schema"]:
+        raise CustodyRefused("graph_role_scope")
+    _graph_state_source_binding(header, manifest_bytes, documents)
     for value, expected, label in (
         (header["recipe_digest"], recipe_digest, "recipe"),
         (header["submission_digest"], submission_digest, "submission"),
@@ -2172,19 +2336,7 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         or build["state_digest"] != _sha(by_role["state"])
         or build["allowlist_digest"] != _sha(by_role["allowlist"])
         or build["framework"] != "jax"
-        or type(fit) is not dict
-        or not 1 <= len(fit) <= 32
-        or any(
-            type(key) is not str
-            or re.fullmatch(r"[a-z][a-z0-9_]{0,63}", key) is None
-            or not (
-                _graph_finite_number(value)
-                or type(value) is bool
-                or type(value) is str
-                and _SHA.fullmatch(value)
-            )
-            for key, value in fit.items()
-        )
+        or not _graph_fit_ok(fit, header, recipe_digest)
     ):
         raise CustodyRefused("graph_build_receipt")
     inference = _graph_json(by_role["inference_receipt"], "inference_receipt")
@@ -2319,7 +2471,11 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         "inference_receipt",
         "predictions_raw_base64",
         "submission_digest",
-    } | ({"timed_operation", "timed_receipt"} if timed is not None else set())
+    } | (
+        {"timed_operation", "timed_receipt"}
+        | ({"timed_controls_digest"} if "timed_controls_digest" in worker else set())
+        if timed is not None else set()
+    ) | _graph_worker_lane_fields(worker)
     if timed is not None and (
         worker.get("timed_receipt") != timed
         or type(worker.get("timed_operation")) is not str
@@ -2350,6 +2506,8 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         raise CustodyRefused("graph_worker_lineage")
     for field in ("build_controls_digest", "inference_controls_digest"):
         _digest(worker[field], f"graph_{field}")
+    if "timed_controls_digest" in worker:
+        _digest(worker["timed_controls_digest"], "graph_timed_controls_digest")
     try:
         encoded = worker["predictions_raw_base64"].encode("ascii")
         worker_predictions = base64.b64decode(encoded, validate=True)
@@ -2396,7 +2554,7 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         "schema": BUNDLE_CUSTODY_SCHEMA_V5,
         "source_kind": "graph",
         "role_schema": GRAPH_ROLE_SCHEMA_V5 if per_case else GRAPH_ROLE_SCHEMA_V3,
-        "source_schema": GRAPH_SOURCE_STATE_SCHEMA,
+        "source_schema": header["schema"],
         "scope": BUNDLE_SCOPE,
         "challenge": challenge["id"],
         "challenge_version": challenge["version"],
@@ -2447,7 +2605,7 @@ def _prepare_native_graph_custody_v5(root, manifest_raw, manifest):
     from carbon.level4 import staging
     from carbon.level4.graph import GraphRefused
 
-    if manifest["source_schema"] != GRAPH_SOURCE_STATE_SCHEMA:
+    if manifest["source_schema"] not in GRAPH_SOURCE_STATE_SCHEMAS:
         raise CustodyRefused("native_graph_source_schema")
     if manifest["physics_contract"] is not None:
         raise CustodyRefused("native_graph_physics_unregistered")
@@ -2546,7 +2704,12 @@ def _prepare_native_graph_custody_v5(root, manifest_raw, manifest):
     ):
         raise CustodyRefused("native_graph_source_identity")
 
-    header, state_arrays = _bundle_header(by_role["state"], graph_source=True)
+    header, state_arrays = _bundle_header(
+        by_role["state"], graph_source=True, recipe=by_role["recipe"]
+    )
+    if header["schema"] != manifest["source_schema"]:
+        raise CustodyRefused("native_graph_source_schema")
+    _graph_state_source_binding(header, manifest_bytes, documents)
     for value, expected, label in (
         (header["recipe_digest"], recipe_digest, "recipe"),
         (header["submission_digest"], submission_digest, "submission"),
@@ -2586,6 +2749,10 @@ def _prepare_native_graph_custody_v5(root, manifest_raw, manifest):
         or build["framework"] != "jax"
         or type(build["fit"]) is not dict
         or not build["fit"]
+        or (
+            "decoder" in header
+            and not _graph_fit_ok(build["fit"], header, recipe_digest)
+        )
     ):
         raise CustodyRefused("native_graph_build_receipt")
     _graph_digest_equal(
@@ -2622,7 +2789,7 @@ def _prepare_native_graph_custody_v5(root, manifest_raw, manifest):
         "schema": BUNDLE_CUSTODY_SCHEMA_V5,
         "source_kind": "graph",
         "role_schema": GRAPH_ROLE_SCHEMA_V4,
-        "source_schema": GRAPH_SOURCE_STATE_SCHEMA,
+        "source_schema": header["schema"],
         "scope": BUNDLE_SCOPE,
         "challenge": challenge["id"],
         "challenge_version": challenge["version"],
