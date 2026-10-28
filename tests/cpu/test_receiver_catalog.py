@@ -297,7 +297,9 @@ def test_a_marker_cannot_prove_a_corrupt_or_incomplete_installation(receiver, da
     ]
 
 
-def test_readiness_only_reads_deduplicated_image_metadata(receiver, monkeypatch, daemon):
+def test_readiness_only_reads_deduplicated_image_metadata(
+    receiver, monkeypatch, daemon
+):
     from carbon.reconstruction.worker import docker_runtime
 
     config, root = receiver
@@ -343,7 +345,8 @@ def test_an_intact_cache_cannot_hide_a_removed_daemon_image(receiver, daemon):
 
 
 @pytest.mark.parametrize(
-    "fault", ["unreachable", "malformed_listing", "partial_inspection", "wrong_inspected_id"]
+    "fault",
+    ["unreachable", "malformed_listing", "partial_inspection", "wrong_inspected_id"],
 )
 def test_unverified_daemon_inventory_cannot_report_ready(receiver, daemon, fault):
     config, root = receiver

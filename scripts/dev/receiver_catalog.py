@@ -288,8 +288,7 @@ def install(config, config_path, *, wheelhouse=None) -> dict:
     skipped = []
     before = verify(config)
     missing = {
-        (row["catalog_id"], row["runtime"], row["kind"])
-        for row in before["missing"]
+        (row["catalog_id"], row["runtime"], row["kind"]) for row in before["missing"]
     }
     items = {
         item["catalog_id"]: item

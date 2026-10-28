@@ -63,7 +63,11 @@ def test_presence_batches_exact_immutable_ids_without_building():
             if arguments == ["image", "ls", "--no-trunc", "--quiet"]:
                 return SimpleNamespace(stdout=(_sha("4") + "\n").encode())
             assert arguments == [
-                "image", "inspect", _sha("4"), "--format", "{{json .Id}}"
+                "image",
+                "inspect",
+                _sha("4"),
+                "--format",
+                "{{json .Id}}",
             ]
             return SimpleNamespace(stdout=json.dumps(_sha("4")).encode())
 
@@ -154,7 +158,11 @@ def test_receiver_opt_in_rebuilds_only_a_missing_child_and_preserves_failed_rece
                     stdout="\n".join(sorted(state["images"])).encode()
                 )
             assert arguments == [
-                "image", "inspect", _sha("5"), "--format", "{{json .Id}}"
+                "image",
+                "inspect",
+                _sha("5"),
+                "--format",
+                "{{json .Id}}",
             ]
             return SimpleNamespace(stdout=json.dumps(_sha("5")).encode())
 
@@ -189,12 +197,15 @@ def test_receiver_opt_in_rebuilds_only_a_missing_child_and_preserves_failed_rece
     else:
         repaired = install()
         assert repaired.image_id == _sha("5") and len(state["provisions"]) == 1
-        assert cache.load_cached_library_worker_image(
-            receipt,
-            expected_bundle=selected,
-            expected_parent=image.parent,
-            context_root=context.parent,
-        ) == repaired
+        assert (
+            cache.load_cached_library_worker_image(
+                receipt,
+                expected_bundle=selected,
+                expected_parent=image.parent,
+                context_root=context.parent,
+            )
+            == repaired
+        )
         assert install() == repaired and len(state["provisions"]) == 1
 
 
