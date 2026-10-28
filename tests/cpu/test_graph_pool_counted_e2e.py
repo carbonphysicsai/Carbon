@@ -228,9 +228,7 @@ def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False):
         assert kwargs["inputs"].shape == case["bank"]["inputs"].shape
         calls.append("pair")
         return SimpleNamespace(
-            evidence=json.loads(
-                _pair(worker["inference_receipt"], [outputs, outputs])
-            )
+            evidence=json.loads(_pair(worker["inference_receipt"], [outputs, outputs]))
         )
 
     def single_worker(_ledger, **kwargs):
