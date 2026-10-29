@@ -2,14 +2,18 @@
 
 **Cadence.** A miner may make ``a = max(1, floor(R / (M * sum_t)))`` graded submissions per
 Challenge per rolling day, and at most one per 360-block epoch. ``R`` is the validator's
-registered rebuild capacity in CPU-hours a day, ``M`` the number of distinct hotkeys with a
-graded submission in the rolling day (over all Challenges, plus the requester), and ``sum_t``
-the sum over the registered Challenges of the mean rebuild CPU-hours per graded submission,
-measured from the receiver's own receipts (a Challenge with no sample yet uses its
-registered placeholder). A day is 20 epochs (7200 blocks); the block always comes from the
-signed receipt, never from the miner. The registry (``exam_cadence.json``) holds R and the
-placeholders; it is changed only by review, and when it is absent or malformed grading
-refuses (``exam_cadence_unregistered``): no default, fail closed.
+registered rebuild capacity in GPU-lane-hours a day (``R = L x 24 x 0.7``, ``L`` the measured
+official GPU lanes), ``M`` the number of distinct hotkeys with a graded submission in the
+rolling day (over all Challenges, plus the requester), and ``sum_t`` the sum over the
+registered Challenges of the mean GPU-lane-hours per graded submission (lane start to
+release), measured from the receiver's own receipts (a Challenge with no sample yet uses its
+registered measured value). A day is 20 epochs (7200 blocks); the block always comes from the
+signed receipt, never from the miner. The registry (``exam_cadence.json``, schema v2) holds
+R, the per-Challenge lane-hours, the lane count and the digests of the measurement and of the
+host-class record they came from; the recalibration writes it and it is changed only by
+review. When it is absent, malformed, unvalued or inconsistent grading refuses
+(``exam_cadence_unregistered``); a v1 (CPU-hours) file is refused as
+``exam_cadence_schema_unsupported``: no default, fail closed.
 
 **No per-version cap.** The earlier per-exam-version C = 20 is gone; cadence already bounds
 every miner.
@@ -29,7 +33,8 @@ never counted.
 
 Refusals, all before grading, so none consumes exam wear and none writes an attempt row:
 ``exam_daily_allowance_reached``, ``epoch_limit_reached``, ``exam_key_expired``,
-``exam_cap_unregistered`` (a Challenge not registered) and ``exam_cadence_unregistered``.
+``exam_cap_unregistered`` (a Challenge not registered), ``exam_cadence_unregistered`` and
+``exam_cadence_schema_unsupported``.
 
 **Same recipe, same pack set.** A submission is hotkey + contract + recipe + evaluation
 pack (the receiver's task identity), so a resubmit of a graded recipe on the same pack set
@@ -48,6 +53,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sys
 import time
 from pathlib import Path
@@ -59,7 +65,9 @@ DAY_BLOCKS = DAY_EPOCHS * EPOCH_BLOCKS
 #: An exam key's maximum age, in blocks (90 days).
 MAX_EXAM_AGE_BLOCKS = 90 * DAY_BLOCKS
 REGISTRY = Path(__file__).with_name("exam_cadence.json")
-REGISTRY_SCHEMA = "carbon.exam.cadence-registry.v1"
+REGISTRY_SCHEMA = "carbon.exam.cadence-registry.v2"
+#: The retired CPU-hours schema: refused, never read.
+REGISTRY_SCHEMA_V1 = "carbon.exam.cadence-registry.v1"
 _LEAN_CHALLENGES = (
     "electric-motor-magnetics",
     "chip-cold-plate",
@@ -105,6 +113,7 @@ CREATE TABLE IF NOT EXISTS exam_graded(
     reserved_ns INTEGER NOT NULL,
     settled_ns INTEGER,
     cpu_seconds REAL,
+    lane_seconds REAL,
     UNIQUE(challenge_id, challenge_version, exam_key, submission_id)
 );
 CREATE INDEX IF NOT EXISTS exam_graded_miner
@@ -134,42 +143,67 @@ def registered_challenges() -> tuple:
     return (*_LEAN_CHALLENGES, battery.CHALLENGE.challenge_id)
 
 
+_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+_V2_KEYS = {
+    "schema",
+    "source",
+    "capacity_gpu_lane_hours_per_day",
+    "rebuild_gpu_lane_hours",
+    "lanes",
+    "measurement_digest",
+    "class_record_digest",
+}
+
+
+def _positive(value) -> bool:
+    return type(value) in (int, float) and math.isfinite(value) and value > 0
+
+
 def registered_cadence(path=None) -> dict:
-    """The registered capacity and placeholders, or ``exam_cadence_unregistered``."""
+    """The registered capacity and per-Challenge lane-hours (schema v2), or a typed refusal.
+
+    ``exam_cadence_schema_unsupported`` for the retired v1 (CPU-hours) file; ``exam_cadence_unregistered`` for a file
+    that is absent, malformed, carries no values yet (the recalibration writes them) or is not exactly v2.
+    """
     try:
         document = json.loads(Path(REGISTRY if path is None else path).read_bytes())
-        capacity = document["capacity_cpu_hours_per_day"]
-        placeholders = document["rebuild_cpu_hours_placeholder"]
+    except (OSError, ValueError):
+        raise ExamCapRefused("exam_cadence_unregistered") from None
+    if type(document) is dict and document.get("schema") == REGISTRY_SCHEMA_V1:
+        raise ExamCapRefused("exam_cadence_schema_unsupported")
+    try:
         if (
             type(document) is not dict
-            or set(document)
-            != {
-                "schema",
-                "source",
-                "capacity_cpu_hours_per_day",
-                "rebuild_cpu_hours_placeholder",
-            }
+            or set(document) != _V2_KEYS
             or document["schema"] != REGISTRY_SCHEMA
             or type(document["source"]) is not str
             or not document["source"]
-            or type(capacity) not in (int, float)
-            or not math.isfinite(capacity)
-            or capacity <= 0
-            or type(placeholders) is not dict
+            or not _positive(document["capacity_gpu_lane_hours_per_day"])
+            or type(document["lanes"]) is not int
+            or document["lanes"] < 1
+            or type(document["rebuild_gpu_lane_hours"]) is not dict
+            or not document["rebuild_gpu_lane_hours"]
             or any(
-                type(name) is not str
-                or type(value) not in (int, float)
-                or not math.isfinite(value)
-                or value <= 0
-                for name, value in placeholders.items()
+                type(name) is not str or not _positive(value)
+                for name, value in document["rebuild_gpu_lane_hours"].items()
+            )
+            or any(
+                type(document[key]) is not str
+                or _DIGEST.fullmatch(document[key]) is None
+                for key in ("measurement_digest", "class_record_digest")
             )
         ):
             raise ValueError("cadence registry malformed")
-    except (OSError, ValueError, KeyError, TypeError):
+    except (ValueError, KeyError, TypeError):
         raise ExamCapRefused("exam_cadence_unregistered") from None
     return {
-        "capacity_cpu_hours_per_day": float(capacity),
-        "rebuild_cpu_hours_placeholder": dict(placeholders),
+        "capacity_gpu_lane_hours_per_day": float(
+            document["capacity_gpu_lane_hours_per_day"]
+        ),
+        "rebuild_gpu_lane_hours": dict(document["rebuild_gpu_lane_hours"]),
+        "lanes": document["lanes"],
+        "measurement_digest": document["measurement_digest"],
+        "class_record_digest": document["class_record_digest"],
     }
 
 
@@ -231,6 +265,9 @@ def _prepare(db):
     columns = {row[1] for row in db.execute("PRAGMA table_info(exam_graded)")}
     if "cpu_seconds" not in columns:
         db.execute("ALTER TABLE exam_graded ADD COLUMN cpu_seconds REAL")
+    if "lane_seconds" not in columns:
+        # The cadence's rolling mean reads lane_seconds only: older cpu_seconds rows are CPU time, a different unit.
+        db.execute("ALTER TABLE exam_graded ADD COLUMN lane_seconds REAL")
 
 
 class ExamCap:
@@ -287,26 +324,26 @@ class ExamCap:
             (low, high),
         ).fetchall()
         active = {row[0] for row in rows} | {hotkey}
-        placeholders = cadence["rebuild_cpu_hours_placeholder"]
+        measured = cadence["rebuild_gpu_lane_hours"]
         total = 0.0
-        for challenge_id in placeholders:
+        for challenge_id in measured:
             mean = db.execute(
-                "SELECT AVG(cpu_seconds) FROM exam_graded WHERE kind='GRADED' AND "
-                "state='COUNTED' AND cpu_seconds IS NOT NULL AND challenge_id=? AND "
+                "SELECT AVG(lane_seconds) FROM exam_graded WHERE kind='GRADED' AND "
+                "state='COUNTED' AND lane_seconds IS NOT NULL AND challenge_id=? AND "
                 "epoch>? AND epoch<=?",
                 (challenge_id, low, high),
             ).fetchone()[0]
             if mean is not None:
                 total += mean / 3600.0
             else:
-                total += placeholders[challenge_id]
-        capacity = cadence["capacity_cpu_hours_per_day"]
+                total += measured[challenge_id]
+        capacity = cadence["capacity_gpu_lane_hours_per_day"]
         allowed = max(1, math.floor(capacity / (len(active) * total)))
         return {
             "allowance": allowed,
             "active_miners": len(active),
-            "sum_rebuild_cpu_hours": total,
-            "capacity_cpu_hours_per_day": capacity,
+            "sum_rebuild_gpu_lane_hours": total,
+            "capacity_gpu_lane_hours_per_day": capacity,
         }
 
     def allowance(self, *, hotkey: str, block: int) -> dict:
@@ -332,7 +369,7 @@ class ExamCap:
             raise ExamCapRefused("exam_cap_identity_unavailable")
         cadence = self.cadence()
         # The registry's Challenges are the registered set: anything else fails closed.
-        if challenge_id not in cadence["rebuild_cpu_hours_placeholder"]:
+        if challenge_id not in cadence["rebuild_gpu_lane_hours"]:
             raise ExamCapRefused("exam_cap_unregistered")
         # A regrade is never counted and has no signed receipt block; its epoch is inert.
         epoch = 0 if regrade and block is None else epoch_of(block)
@@ -379,7 +416,9 @@ class ExamCap:
                     refusal = (
                         "exam_daily_allowance_reached"
                         if used >= allowed
-                        else "epoch_limit_reached" if in_epoch >= 1 else None
+                        else "epoch_limit_reached"
+                        if in_epoch >= 1
+                        else None
                     )
             if refusal is None:
                 now = int(self.clock())
@@ -387,7 +426,7 @@ class ExamCap:
                     db.execute(
                         "UPDATE exam_graded SET state='RESERVED', status=NULL, "
                         "epoch=?, kind=?, reserved_ns=?, settled_ns=NULL, "
-                        "cpu_seconds=NULL WHERE id=?",
+                        "lane_seconds=NULL WHERE id=?",
                         (epoch, kind, now, row[0]),
                     )
                     return row[0]
@@ -417,11 +456,11 @@ class ExamCap:
             )
         raise ExamCapRefused(refusal)
 
-    def settle(self, reservation: int, status: str, *, cpu_seconds=None) -> str:
+    def settle(self, reservation: int, status: str, *, lane_seconds=None) -> str:
         """Keep the slot for a graded outcome, give it back otherwise; closed vocabulary.
 
-        ``cpu_seconds`` is the allocated rebuild CPU of this submission (wall x cpu count,
-        from the receipts); it feeds the rolling mean that sets the cadence.
+        ``lane_seconds`` is the GPU-lane time of this submission (lane start to release, from
+        the receipts); it feeds the rolling mean that sets the cadence.
         """
         if status in COUNTED:
             state = "COUNTED"
@@ -429,17 +468,19 @@ class ExamCap:
             state = "RELEASED"
         else:
             raise ValueError("exam cap outcome is not classified")
-        if cpu_seconds is not None and (
-            type(cpu_seconds) not in (int, float)
-            or not math.isfinite(cpu_seconds)
-            or cpu_seconds < 0
+        if lane_seconds is not None and (
+            type(lane_seconds) not in (int, float)
+            or not math.isfinite(lane_seconds)
+            or lane_seconds < 0
         ):
-            raise ValueError("rebuild cpu seconds must be a finite non-negative number")
+            raise ValueError(
+                "rebuild lane seconds must be a finite non-negative number"
+            )
         with self.ledger._db() as db:
             changed = db.execute(
-                "UPDATE exam_graded SET state=?, status=?, settled_ns=?, cpu_seconds=? "
+                "UPDATE exam_graded SET state=?, status=?, settled_ns=?, lane_seconds=? "
                 "WHERE id=? AND state='RESERVED'",
-                (state, status, int(self.clock()), cpu_seconds, reservation),
+                (state, status, int(self.clock()), lane_seconds, reservation),
             ).rowcount
             if changed != 1:
                 row = db.execute(

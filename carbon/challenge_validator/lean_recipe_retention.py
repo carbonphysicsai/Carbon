@@ -1117,10 +1117,10 @@ def _retain_selected_pack_evaluation(
         cap.settle(
             reservation,
             scoring["models"][0]["status"],
-            cpu_seconds=(
+            lane_seconds=(
                 None
                 if uncounted
-                else _rebuild_cpu_seconds(
+                else _rebuild_lane_seconds(
                     adapter, record_id, evidence, snapshot.manifest_digest
                 )
             ),
@@ -1352,18 +1352,13 @@ def _write_exam_se(
     write_once(directory / exam_rotation.SE_SIDECAR, _json(document))
 
 
-def _rebuild_cpu_seconds(adapter, submission_id, evidence, exam_key):
-    """Allocated CPU-seconds of one graded submission's rebuild, from the ledger's receipts:
-    the metered compute time of its worker operations (build, graded inference, timed
-    query, repeat pair) times the policy's CPU count. None when the receipts carry none,
-    so the registered placeholder keeps standing in for it."""
+def _rebuild_lane_seconds(adapter, submission_id, evidence, exam_key):
+    """GPU-lane seconds of one graded submission's rebuild, from the ledger's receipts: the metered compute time
+    of its worker operations (build, graded inference, timed query, repeat pair), one official lane. None when the
+    receipts carry none, so the registered measured value keeps standing in for it."""
     try:
         from carbon.development_session.paired_inference import pair_identities
 
-        policy = adapter.discovery._material["construction_limits_document"][
-            "reconstruction_resource_policy"
-        ]
-        cpus = policy["cpu_count_max"]
         provider = adapter._provider(adapter.owner(submission_id))
         operations = [
             evidence.get(name)
@@ -1380,10 +1375,10 @@ def _rebuild_cpu_seconds(adapter, submission_id, evidence, exam_key):
                 ).fetchone()
                 if row is not None and row[0]:
                     milliseconds += json.loads(row[0]).get("numerical_milliseconds", 0)
-        if type(cpus) is not int or cpus < 1 or milliseconds <= 0:
+        if milliseconds <= 0:
             return None
-        return milliseconds / 1000.0 * cpus
-    # A missing receipt only leaves the registered placeholder in force.
+        return milliseconds / 1000.0
+    # A missing receipt only leaves the registered measured value in force.
     except Exception:  # noqa: BLE001
         return None
 
@@ -2568,7 +2563,9 @@ def regrade_retained_entry(
         )
         operations = json.loads(_private_measurement_bytes(operations_path, 65536))
         worker_evidence = (
-            _private_measurement_bytes(task_root / "worker-evidence.json", 16 * 1024**2)
+            _private_measurement_bytes(
+                task_root / "worker-evidence.json", 16 * 1024**2
+            )
             if kind == "graph"
             else None
         )

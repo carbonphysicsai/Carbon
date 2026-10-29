@@ -209,8 +209,11 @@ def _fixture(tmp_path, monkeypatch, *, gate_minimum=0.0):
     adapter.ledger = AttemptLedger(ledger_directory / "attempts.sqlite3")
     adapter.contract_digest = "sha256:" + "c" * 64
     adapter.exam_cadence = {
-        "capacity_cpu_hours_per_day": 270.0,
-        "rebuild_cpu_hours_placeholder": {key.challenge_id: 1.0},
+        "capacity_gpu_lane_hours_per_day": 270.0,
+        "rebuild_gpu_lane_hours": {key.challenge_id: 1.0},
+        "lanes": 1,
+        "measurement_digest": "sha256:" + "a" * 64,
+        "class_record_digest": "sha256:" + "b" * 64,
     }
     adapter.ledger.record(
         SimpleNamespace(
@@ -257,9 +260,9 @@ def _fixture(tmp_path, monkeypatch, *, gate_minimum=0.0):
     artifacts["inference-receipt.json"] = _raw(graded)
     artifacts["timed-query-receipt.json"] = _raw(measured)
     artifacts["worker-evidence.json"] = _raw(worker)
-    artifacts["task-receipt.json"] = (
-        b"inert fixture terminal receipt; never network evidence"
-    )
+    artifacts[
+        "task-receipt.json"
+    ] = b"inert fixture terminal receipt; never network evidence"
     monkeypatch.setattr(retention, "_collect_graph_artifacts", lambda *_args: artifacts)
     # The paired repeat a graph recipe now carries too (the inert producer ignores it).
     monkeypatch.setattr(

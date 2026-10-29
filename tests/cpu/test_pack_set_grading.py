@@ -82,10 +82,15 @@ def _batch_adapters(fixture, tmp_path, scales):
         )
         adapter._provider = lambda _owner: fixture.provider
         adapter.exam_cadence = {
-            "capacity_cpu_hours_per_day": 270.0,
-            "rebuild_cpu_hours_placeholder": {adapter.challenge_id: 1.0},
+            "capacity_gpu_lane_hours_per_day": 270.0,
+            "rebuild_gpu_lane_hours": {adapter.challenge_id: 1.0},
+            "lanes": 1,
+            "measurement_digest": "sha256:" + "a" * 64,
+            "class_record_digest": "sha256:" + "b" * 64,
         }
         adapters[digest] = adapter
+    # the primary adapter is the fixture's own: it grades under the same registered cadence
+    fixture.adapter.exam_cadence = adapter.exam_cadence
     return adapters
 
 
@@ -117,7 +122,14 @@ def _world(tmp_path):
     directory = tmp_path / "set-ledger"
     directory.mkdir(mode=0o700)
     ledger = AttemptLedger(directory / "attempts.sqlite3")
-    return exam_cap.ExamCap(ledger), psr.SetResultStore(ledger)
+    cadence = {  # fixture numbers for every registered Challenge (the committed registry carries none)
+        "capacity_gpu_lane_hours_per_day": 270.0,
+        "rebuild_gpu_lane_hours": dict.fromkeys(exam_cap.registered_challenges(), 1.0),
+        "lanes": 1,
+        "measurement_digest": "sha256:" + "a" * 64,
+        "class_record_digest": "sha256:" + "b" * 64,
+    }
+    return exam_cap.ExamCap(ledger, cadence=cadence), psr.SetResultStore(ledger)
 
 
 def _run(fixture, adapters, world, set_key, *, submission="rtsk_1", block=360):
