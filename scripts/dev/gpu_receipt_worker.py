@@ -802,6 +802,21 @@ REQUIRED_RUN = (
 )
 
 
+def grading_dir_problem(store_dir, grading_state_dir):
+    """The typed refusal when `--grading-state-dir` is not exactly the PARENT of the store path, or None. The receiver
+    holds `official-grading.lock` in the parent of its configured official_gpu_receipts path; any other directory would
+    silently stop the worker yielding."""
+    if grading_state_dir is None:
+        return None
+    parent = Path(store_dir).resolve().parent
+    if Path(grading_state_dir).resolve() != parent:
+        return (
+            "grading_state_dir_not_store_parent: --grading-state-dir must be exactly the parent of --store-dir "
+            f"({parent}), where the receiver holds official-grading.lock"
+        )
+    return None
+
+
 def wheels_problem(wheels):
     """Why the wheelhouse cannot be read by the container (it runs as a non-root user), or None: the directory and every
     wheel must be world-readable (a 0700 copy made every MeshGraphNet entry fail with PermissionError on the box).
@@ -893,7 +908,9 @@ def main(argv=None):
         return 2
     if args.command == "units":
         return _units(args)
-    problem = wheels_problem(args.wheels)
+    problem = grading_dir_problem(
+        args.store_dir, args.grading_state_dir
+    ) or wheels_problem(args.wheels)
     if problem:
         print(problem, file=sys.stderr)
         return 2

@@ -608,3 +608,39 @@ def test_the_worker_starts_no_lane_while_a_grade_holds_the_lock_then_starts_one(
             lock.__exit__(None, None, None)
     assert released and counts["PASS"] == 1
     assert len(started) == 1 and started[0] > 3  # started only after the release
+
+
+def test_the_worker_refuses_a_grading_dir_that_is_not_the_parent_of_the_store(
+    tmp_path, capsys, monkeypatch
+):
+    monkeypatch.setattr(gpu_receipt, "REGISTERED_HOST_CLASSES", frozenset({HOST}))
+    state = tmp_path / "state"
+    store = state / "gpu-receipts"
+    assert w.grading_dir_problem(store, state) is None
+    assert w.grading_dir_problem(store, None) is None  # another yield mode chosen
+    for wrong in (tmp_path, store, state / "other", tmp_path / "elsewhere"):
+        assert "grading_state_dir_not_store_parent" in w.grading_dir_problem(
+            store, wrong
+        )
+    wheels = tmp_path / "wheels"
+    wheels.mkdir()
+    wheels.chmod(0o755)
+    flags = []
+    for name, value in (
+        ("checkout", tmp_path),
+        ("gpu-uuid", "u"),
+        ("host-class", HOST),
+        ("wheels", wheels),
+        ("store-dir", store),
+        ("operator-state-dir", state),
+        ("grading-state-dir", tmp_path / "elsewhere"),
+        ("max-attempts", 2),
+        ("entry-timeout-s", 9),
+        ("lane-vram-bytes", 1),
+        ("lane-cpus", 1),
+        ("lane-memory-bytes", 1),
+        ("max-lanes", 1),
+    ):
+        flags += [f"--{name}", str(value)]
+    assert w.main(["run", "--state-dir", str(tmp_path / "s"), *flags]) == 2
+    assert "grading_state_dir_not_store_parent" in capsys.readouterr().err
