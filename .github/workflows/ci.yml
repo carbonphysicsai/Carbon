@@ -11,6 +11,11 @@ permissions:
   # Read-only: pull the published authored-Julia depot (julia_depot.lock.json).
   packages: read
 
+# The CPU-dispatch pin (carbon/challenge_validator/cpu_pin.py): the same float bytes on every x86-64-v3 host.
+env:
+  OPENBLAS_CORETYPE: Haswell
+  NPY_DISABLE_CPU_FEATURES: X86_V4,AVX512_ICL,AVX512_SPR
+
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

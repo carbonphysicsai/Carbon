@@ -1278,6 +1278,9 @@ def serve(
     """Run the same signed intake/task loop with finite admission and owned stop.
 
     ``permits`` replaces the chain's validator-permit read (tests only)."""
+    from carbon.challenge_validator import cpu_pin
+
+    cpu_pin.require()  # fail closed: never score on unpinned CPU kernels
     from carbon.battery import challenge as battery_challenge
     from carbon.battery.construction_bundle_material import (
         versioned_material as battery_versioned_material,
@@ -1441,13 +1444,16 @@ def serve(
                 else None
             ),
         )
-        graph_gpu_image, graph_gpu_ops, graph_gpu_ops_digest, graph_gpu_device = (
-            graph_gpu_lane(
-                cfg,
-                implementation,
-                material.get("allowlist_bytes"),
-                network.context.network,
-            )
+        (
+            graph_gpu_image,
+            graph_gpu_ops,
+            graph_gpu_ops_digest,
+            graph_gpu_device,
+        ) = graph_gpu_lane(
+            cfg,
+            implementation,
+            material.get("allowlist_bytes"),
+            network.context.network,
         )
         immutable = {
             "schema": SCHEMA,
@@ -1784,6 +1790,15 @@ def main(argv=None):
     parser.add_argument("--artifact-directory", type=Path)
     parser.add_argument("--entry-directory", type=Path)
     args = parser.parse_args(argv)
+    import sys
+
+    from carbon.challenge_validator import cpu_pin
+
+    try:
+        cpu_pin.require()  # every scoring mode of this program (serve, retain, regrade, set) runs pinned
+    except cpu_pin.CpuPinRefused as refused:
+        print(f"refused: {refused}", file=sys.stderr)
+        return 2
     if (
         sum(
             value is not None
@@ -1807,7 +1822,9 @@ def main(argv=None):
         (
             args.grade_set_entry
             if args.grade_set_entry is not None
-            else args.retain_task if args.regrade_entry is None else args.regrade_entry
+            else args.retain_task
+            if args.regrade_entry is None
+            else args.regrade_entry
         ),
         args.artifact_directory,
         args.entry_directory,

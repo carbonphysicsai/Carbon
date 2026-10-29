@@ -58,6 +58,10 @@ RUN printf '%s\n' \
     && test -s /opt/carbon/native-mesh-packages.lock \
     && rm /tmp/install-worker-native-mesh.sh
 
+# The CPU-dispatch pin (carbon/challenge_validator/cpu_pin.py): the same float bytes on every x86-64-v3 host.
+ENV OPENBLAS_CORETYPE=Haswell \
+    NPY_DISABLE_CPU_FEATURES=X86_V4,AVX512_ICL,AVX512_SPR
+
 ENV HOME=/scratch/home \
     TMPDIR=/scratch/tmp \
     XDG_CACHE_HOME=/scratch/cache \
