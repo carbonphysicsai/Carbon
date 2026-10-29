@@ -243,7 +243,7 @@ def marker_state(tmp_path):
 
 
 def test_a_paused_crown_is_marked_paused_not_graded(tmp_path):
-    auto, intake, state = grader(tmp_path)
+    auto, _intake, state = grader(tmp_path)
     flag(state, {"crowns_paused": True})
     assert auto.run_once() == (TASK, "GRADED")
     assert marker_state(tmp_path) == "PAUSED"
