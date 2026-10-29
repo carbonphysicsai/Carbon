@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 import tempfile
 import time
@@ -36,6 +35,7 @@ if str(REPOSITORY) not in sys.path:
 
 from carbon.backbone_catalog import pipeline
 from scripts.dev import catalog_wheelhouse, library_bundle
+from scripts.dev.miner_launchpad.failure_words import diagnostic as _diagnostic
 
 #: What a skipped wheel entry tells the owner to run first.
 WHEELHOUSE_STEP = "python -m scripts.dev.catalog_wheelhouse"
@@ -50,31 +50,6 @@ def _transient(failure):
     from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
     return isinstance(failure, WorkerFailure) and failure.code == WorkerCode.UNAVAILABLE
-
-
-#: A word of a daemon line that could name a path, an address, a host:port or a token.
-_SENSITIVE = re.compile(
-    r"[/\\]|\d{1,3}(?:\.\d{1,3}){3}|:\d+[.,;]?$|[A-Za-z0-9+=_-]{24,}"
-)
-
-
-def _diagnostic(failure, suffix=""):
-    """A short, path-safe cause for a skipped entry: the failure type, its stable code and, for a worker failure, the
-    last line of its private diagnostic with every path-like or long token removed. Nothing else leaves the host.
-    """
-    text = f"{type(failure).__name__}: {failure}"
-    code = getattr(failure, "code", None)
-    if code is not None:
-        text += f" [{getattr(code, 'value', code)}]"
-    raw = getattr(failure, "private_diagnostic", b"")
-    lines = raw.decode("utf-8", "replace").strip().splitlines() if raw else []
-    if lines:
-        line = lines[-1]  # the daemon's own last word, not the exit-code header
-        words = [
-            "<redacted>" if _SENSITIVE.search(word) else word for word in line.split()
-        ]
-        text += " (" + " ".join(words)[:120] + ")"
-    return re.sub(r"[^ -~]", "?", text)[: 300 - len(suffix)] + suffix
 
 
 def _declares_wheels(item):

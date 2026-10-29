@@ -131,8 +131,10 @@ def _ready(root, item, served, images) -> bool:
     return True
 
 
-def readiness(cfg, items=None) -> dict | None:
-    """One read-only inventory shared by setup and the Challenge picker."""
+def readiness(cfg, items=None, progress=None) -> dict | None:
+    """One read-only inventory shared by setup and the Challenge picker. `progress(checked, total)`, when given, is
+    called as each entry is checked (and once more when the daemon's images are read); it changes no result.
+    """
     from carbon.backbone_catalog import listing
     from carbon.development_session.library_environment_cache import (
         present_library_worker_images,
@@ -154,15 +156,20 @@ def readiness(cfg, items=None) -> dict | None:
         if (item.get("bundle_ref") or {}).get("runtime_profile_id") in served
     ]
     images = {}
-    found = {
-        item["catalog_id"]: _ready(root, item, served, images) for item in selected
-    }
+    found = {}
+    total = len(selected) + 1
+    for number, item in enumerate(selected, 1):
+        found[item["catalog_id"]] = _ready(root, item, served, images)
+        if progress is not None:
+            progress(number, total)
     if not images:
         return found
     try:
         present = present_library_worker_images(images.values(), cli=DockerCLI())
     except (OSError, ValueError, WorkerFailure):
         present = frozenset()
+    if progress is not None:
+        progress(total, total)
     return {
         identity: ready and images[identity] in present
         for identity, ready in found.items()
