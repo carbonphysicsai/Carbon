@@ -189,11 +189,29 @@ V8_PATH = Path(__file__).with_name("allowlist_v8.json")
 V8_SHA256 = "12513d71056a19b5432ac151835f0e2e585dd1f14845e9c67ed1428640e824e0"
 
 
+_V8_CHECKED = {}
+
+
 def v8_bytes():
-    """Allowlist v8's exact frozen bytes, or ValueError."""
+    """Allowlist v8's exact frozen bytes, or ValueError. Read and hashed once per state of the file: kept under
+    its path, expected sha and stat seal (size, mtime, ctime, inode), so a changed file or a changed pin is
+    checked again."""
+    stat = V8_PATH.stat()
+    seal = (
+        str(V8_PATH),
+        V8_SHA256,
+        stat.st_size,
+        stat.st_mtime_ns,
+        stat.st_ctime_ns,
+        stat.st_ino,
+    )
+    if seal in _V8_CHECKED:
+        return _V8_CHECKED[seal]
     raw = V8_PATH.read_bytes()
     if hashlib.sha256(raw).hexdigest() != V8_SHA256:
         raise ValueError("allowlist v8 bytes differ")
+    _V8_CHECKED.clear()
+    _V8_CHECKED[seal] = raw
     return raw
 
 

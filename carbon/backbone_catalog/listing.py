@@ -9,6 +9,7 @@ may import (`tests/invariants/test_attack_store_unreachable.py`).
 from __future__ import annotations
 
 import json
+import threading
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -24,13 +25,41 @@ def _json(path):
     return json.loads(Path(path).read_bytes())
 
 
+_LOADED = {"seal": None, "manifest": None}
+_LOADED_LOCK = threading.Lock()
+
+
+def _seal(path):
+    """What a file is at this moment: path, size, mtime, ctime and inode. A rewrite changes it (ctime moves even
+    when a writer restores the mtime), so a parse kept under it is never stale."""
+    stat = Path(path).stat()
+    return (
+        str(path),
+        stat.st_size,
+        stat.st_mtime_ns,
+        stat.st_ctime_ns,
+        stat.st_ino,
+    )
+
+
 def load():
-    """The manifest: {"schema", "entries": [...]}, ordered by catalog id."""
+    """The manifest: {"schema", "entries": [...]}, ordered by catalog id.
+
+    Parsed once per process and served again until the file changes (a full catalog is hundreds of entries and
+    this is read for every entry of every Challenge). The returned object is shared: callers read it and never
+    change it; copy before editing."""
     if not MANIFEST.exists():
         return {"schema": SCHEMA, "entries": []}
+    seal = _seal(MANIFEST)
+    with _LOADED_LOCK:
+        if _LOADED["seal"] == seal:
+            return _LOADED["manifest"]
     manifest = _json(MANIFEST)
     if type(manifest) is not dict or manifest.get("schema") != SCHEMA:
         raise CatalogBroken("catalog manifest schema differs")
+    if _seal(MANIFEST) == seal:  # unchanged while it was read: safe to keep
+        with _LOADED_LOCK:
+            _LOADED["seal"], _LOADED["manifest"] = seal, manifest
     return manifest
 
 
