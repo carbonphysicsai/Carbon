@@ -654,6 +654,10 @@ _NO_SUCH_IMAGE = re.compile(
 )
 
 
+#: An id no daemon can hold (the all-zero digest), used to check the daemon still answers exact queries correctly.
+_ABSENT_CANARY = "sha256:" + "0" * 64
+
+
 def _inspect_exact(cli: object, ids: list[str]) -> frozenset[str]:
     """The ids of `ids` that exist, from one exact `docker image inspect`.
 
@@ -693,6 +697,10 @@ def present_library_worker_images(image_ids, *, cli: object) -> frozenset[str]:
     """
     selected = sorted({_digest(value) for value in image_ids})
     if not selected:
+        # Nothing to look for, but an unreachable or changed daemon must still not read as verified: one exact
+        # inspect of an id no daemon holds must be answered with exactly its own "No such image" line.
+        if _inspect_exact(cli, [_ABSENT_CANARY]):
+            raise ValueError("local library image inspection found an impossible id")
         return frozenset()
     chunks = [
         selected[start : start + INSPECT_CHUNK]

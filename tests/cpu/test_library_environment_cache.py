@@ -131,7 +131,16 @@ def test_presence_of_only_missing_children_reads_absence_from_the_daemons_own_li
         == frozenset()
     )
     assert len(daemon.calls) == 1
-    assert cache.present_library_worker_images([], cli=_Inspector(set())) == frozenset()
+    nothing = _Inspector(set())
+    assert cache.present_library_worker_images([], cli=nothing) == frozenset()
+    # With nothing to find it still checks the daemon answers an exact query (an id none can hold).
+    assert nothing.calls == [
+        ["image", "inspect", "sha256:" + "0" * 64, "--format", "{{json .Id}}"]
+    ]
+    with pytest.raises(WorkerFailure):
+        cache.present_library_worker_images(
+            [], cli=_Inspector(set(), raise_on="sha256:" + "0" * 64)
+        )
 
 
 @pytest.mark.parametrize(
