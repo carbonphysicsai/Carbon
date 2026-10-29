@@ -355,11 +355,15 @@ def test_the_committed_class_is_registered_and_well_formed():
         "CARBON_VALIDATOR_ASSUME_MACHINE",
         "CARBON_VALIDATOR_HOST_CLASS_FILE",
         "CARBON_VALIDATOR_MEMINFO_FILE",
+        # Swaps the interpreter that runs the recorded-image check: a real install must not accept it.
+        "CARBON_IMAGE_CHECK_PYTHON",
     ],
 )
 def test_a_test_knob_never_admits_an_install(tmp_path, machine, knob):
     """The knobs make a check result possible, never an install: with any set, a real run refuses."""
-    extra = {knob: "host"} if knob == "CARBON_VALIDATOR_ASSUME_MACHINE" else {}
+    # The fixture already sets the class file and the meminfo file; the other knobs are set here.
+    own = ("CARBON_VALIDATOR_HOST_CLASS_FILE", "CARBON_VALIDATOR_MEMINFO_FILE")
+    extra = {} if knob in own else {knob: "host"}
     done = machine("--install", **extra)
     assert done.returncode == 2
     assert "V_TEST_OVERRIDE" in done.stderr and knob in done.stderr
@@ -368,4 +372,9 @@ def test_a_test_knob_never_admits_an_install(tmp_path, machine, knob):
 
 def test_a_check_only_run_with_the_knobs_still_works(machine):
     done = machine()
+    assert done.returncode == 0 and "V_TEST_OVERRIDE" not in done.stderr
+
+
+def test_a_check_only_run_may_set_the_image_check_interpreter(machine):
+    done = machine(CARBON_IMAGE_CHECK_PYTHON="/usr/bin/python3")
     assert done.returncode == 0 and "V_TEST_OVERRIDE" not in done.stderr

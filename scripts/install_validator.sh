@@ -140,7 +140,10 @@ repo_root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 write_host_role_marker() {
   local dir="${CARBON_HOST_ROLE_DIR:-${HOME}/.carbon}"
   mkdir -p "${dir}" && chmod 700 "${dir}"
-  python3 - "${dir}/validator-host.json" "$(realpath -m -- "${STATE_DIR}")" "$@" <<'PY'
+  local marker_python
+  marker_python="$(bash "${repo_root}/scripts/dev/resolve_python.sh")" \
+    || { printf 'Carbon validator install stopped: python_not_found: no Python interpreter to write the host marker with.\n' >&2; exit 3; }
+  "${marker_python}" - "${dir}/validator-host.json" "$(realpath -m -- "${STATE_DIR}")" "$@" <<'PY'
 import json
 import os
 import sys
@@ -344,7 +347,7 @@ fi
 # The test knobs can only produce a check result, never an install: a validator cannot use them to
 # pass as another host class.
 overrides=()
-for knob in CARBON_VALIDATOR_ASSUME_MACHINE CARBON_VALIDATOR_HOST_CLASS_FILE CARBON_VALIDATOR_MEMINFO_FILE; do
+for knob in CARBON_VALIDATOR_ASSUME_MACHINE CARBON_VALIDATOR_HOST_CLASS_FILE CARBON_VALIDATOR_MEMINFO_FILE CARBON_IMAGE_CHECK_PYTHON; do
   if [[ -n "${!knob:-}" ]]; then overrides+=("${knob}"); fi
 done
 if (( ${#overrides[@]} > 0 && check_only == 0 )); then

@@ -13,6 +13,8 @@ fail() {
 command -v docker >/dev/null 2>&1 || fail "Docker is unavailable."
 
 script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+# No script assumes a system python3 (resolve_python.sh): the checkout's venv python, else python3, else python.
+PYTHON="$(bash "${script_dir}/resolve_python.sh")" || exit 2
 repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
 output="${1:-${repo_root}/.carbon-artifacts/c03-worker-image.json}"
 dockerfile="${repo_root}/.devcontainer/Dockerfile.reconstruction-worker"
@@ -55,7 +57,7 @@ cleanup_manifest_container() {
 trap 'cleanup_manifest_container; rm -rf "${temporary}"' EXIT
 docker cp "${manifest_container}:/opt/carbon/worker-image-build.json" "${temporary}/build.json"
 
-python3 - "${temporary}/inspect.json" "${temporary}/build.json" "${output}" <<'PY'
+"${PYTHON}" - "${temporary}/inspect.json" "${temporary}/build.json" "${output}" <<'PY'
 import json
 import pathlib
 import sys

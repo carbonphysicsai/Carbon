@@ -24,6 +24,8 @@ fail() {
 }
 
 script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+# No script assumes a system python3 (resolve_python.sh): the checkout's venv python, else python3, else python.
+PYTHON="$(bash "${script_dir}/resolve_python.sh")" || exit 2
 [[ "$#" -eq 1 && -n "$1" ]] || fail "usage: worker_parent_manifest.sh OUT"
 out="$1"
 released="${CARBON_WORKER_PARENT_MANIFEST:-}"
@@ -34,7 +36,7 @@ fi
 [[ -n "${released}" && -n "${repository}" ]] \
   || fail "a release sets CARBON_WORKER_PARENT_MANIFEST and CARBON_WORKER_PARENT_REPOSITORY together"
 [[ -f "${released}" && ! -L "${released}" ]] || fail "CARBON_WORKER_PARENT_MANIFEST is not a regular file"
-python3 - "${released}" <<'PY' || fail "CARBON_WORKER_PARENT_MANIFEST is not a C-03 worker manifest"
+"${PYTHON}" - "${released}" <<'PY' || fail "CARBON_WORKER_PARENT_MANIFEST is not a C-03 worker manifest"
 import json
 import re
 import sys
