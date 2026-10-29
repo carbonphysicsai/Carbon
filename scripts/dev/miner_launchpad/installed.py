@@ -134,7 +134,7 @@ def record_parent_fingerprint(
             parent = identity
         else:
             return False
-        tag = "carbon-c03-worker:" + identity.source_tree_digest[7:23]
+        tag = parent_tag(identity.source_tree_digest)
         value = fingerprint(tag, docker=docker)
         if value is None:
             return False
@@ -390,6 +390,29 @@ def found(state_dir, repo) -> dict:
 #: was built from (`.devcontainer/Dockerfile.reconstruction-worker`). The GPU
 #: worker inherits it from its parent.
 SOURCE_TREE_LABEL = "org.opencontainers.image.carbon.c03.source-tree"
+
+
+def parent_tag(
+    source_tree_digest, *, role=None, repository="carbon-c03-worker", variant="cpu"
+):
+    """The local tag of a source-tree-derived worker image, the same as `scripts/dev/worker_tag.sh` (a test holds the two
+    equal). A validator install keeps the names it has always used; a miner install's carry its role, so the two never
+    share a name on one daemon."""
+    import hashlib
+    import os
+
+    role = role or os.environ.get("CARBON_INSTALL_ROLE", "miner")
+    if role not in ("miner", "validator"):
+        raise ValueError("CARBON_INSTALL_ROLE is miner or validator")
+    if role == "validator":
+        if repository != "carbon-c03-worker" or variant == "cpu":
+            return f"{repository}:{source_tree_digest[7:23]}"
+        text = f"{variant}\n{source_tree_digest}"
+    else:
+        text = f"miner\n{variant}\n{repository}\n{source_tree_digest}"
+    return f"{repository}:{hashlib.sha256(text.encode()).hexdigest()[:16]}"
+
+
 #: A worker built FROM a C-03 parent (the CPU Torch worker, the JAX accelerator worker, the PyTorch GPU worker) and the
 #: manifest of the parent the same install recorded for it. The C-03 worker itself has no such parent: its base is the
 #: OS image it was built on.
@@ -421,7 +444,8 @@ def worker_parent_stale(manifest, image, cli) -> str | None:
         return "base_is_not_the_recorded_parent"
     try:
         held = cli.json(["image", "inspect", base, "--format", "{{json .}}"])
-    except Exception:  # noqa: BLE001 - Docker not holding the image is the answer, however it says so
+    except Exception:  # noqa: BLE001
+        # Docker not holding the image is the answer, however it says so.
         return "parent_image_absent"
     if held.get("Id") != base:
         return "parent_image_absent"

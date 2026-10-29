@@ -18,6 +18,8 @@ set -euo pipefail
 # and fingerprints name. Every other variant gets its own tag, the first 16 hex
 # of sha256("<variant>\n<source digest>"), so no build retags another's image.
 # Both forms match carbon.reconstruction.worker.image_fingerprint.PARENT_TAG.
+# The tag also carries the install ROLE (CARBON_INSTALL_ROLE, worker_tag.sh): a miner and a validator install of the
+# same tree never share a name.
 
 fail() {
   echo "worker_parent_tag: $*" >&2
@@ -25,14 +27,4 @@ fail() {
 }
 
 [[ "$#" -eq 2 ]] || fail "usage: worker_parent_tag.sh VARIANT SOURCE_TREE_DIGEST"
-variant="$1"
-source_digest="$2"
-[[ "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "SOURCE_TREE_DIGEST is sha256:<64 hex>"
-case "${variant}" in
-  cpu) printf 'carbon-c03-worker:%s\n' "${source_digest:7:16}" ;;
-  accelerator | torch-gpu)
-    hashed="$(printf '%s\n%s' "${variant}" "${source_digest}" | sha256sum | cut -c1-16)"
-    printf 'carbon-c03-worker:%s\n' "${hashed}"
-    ;;
-  *) fail "variant must be cpu, accelerator or torch-gpu" ;;
-esac
+exec bash "$(dirname -- "${BASH_SOURCE[0]}")/worker_tag.sh" carbon-c03-worker "$1" "$2"

@@ -191,6 +191,16 @@ fi
 step() { printf '\n== %s\n' "$*"; }
 fail() { printf 'Carbon install stopped: %s\n' "$*" >&2; exit 2; }
 
+# One role per Docker daemon. The local image tags are derived from the source tree, so a miner install of the same
+# tree as a validator install retags the validator's parent and worker images (val4090, 2026-10-29). The tags now carry
+# the role (worker_tag.sh) AND a miner install refuses outright while a validator install lives on this host.
+INSTALL_ROLE="${CARBON_INSTALL_ROLE:-miner}"
+case "${INSTALL_ROLE}" in miner | validator) ;; *) fail "installer_role_invalid: CARBON_INSTALL_ROLE is miner or validator." ;; esac
+HOST_ROLE_MARKER="${CARBON_HOST_ROLE_DIR:-${HOME}/.carbon}/validator-host.json"
+if [[ "${INSTALL_ROLE}" == miner && -e "${HOST_ROLE_MARKER}" ]]; then
+  fail "installer_role_conflict: this host holds a validator install (${HOST_ROLE_MARKER}). A miner install on the same Docker daemon can retag the validator's images. Use another machine for mining. Nothing was changed."
+fi
+
 repo_root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 self="${repo_root}/scripts/install_miner.sh"
 self_digest="$(sha256sum < "${self}" | cut -d' ' -f1)"

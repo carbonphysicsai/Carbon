@@ -22,12 +22,13 @@ PARENT_TAG = re.compile(
 VARIANTS = ("cpu", "accelerator", "torch-gpu")
 
 
-def tag(variant, source=SOURCE):
+def tag(variant, source=SOURCE, role="validator"):
     done = subprocess.run(
         ["bash", str(SCRIPTS / "worker_parent_tag.sh"), variant, source],
         capture_output=True,
         text=True,
         check=False,
+        env={"PATH": "/usr/bin:/bin", "CARBON_INSTALL_ROLE": role},
     )
     assert done.returncode == 0, done.stderr
     return done.stdout.strip()
@@ -41,7 +42,7 @@ def ref(source=SOURCE, kind=None, **env):
         capture_output=True,
         text=True,
         check=False,
-        env={"PATH": "/usr/bin:/bin", **env},
+        env={"PATH": "/usr/bin:/bin", "CARBON_INSTALL_ROLE": "validator", **env},
     )
     assert done.returncode == 0, done.stderr
     return done.stdout.strip()
@@ -66,6 +67,7 @@ def test_the_tag_helper_refuses_an_unknown_variant_and_a_malformed_digest():
             capture_output=True,
             text=True,
             check=False,
+            env={"PATH": "/usr/bin:/bin"},
         )
         assert done.returncode == 2
 

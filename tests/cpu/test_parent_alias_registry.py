@@ -163,6 +163,8 @@ def test_the_install_records_the_jax_cpu_parent_and_the_registry(tmp_path, monke
         image_fingerprint, "fingerprint", lambda _ref, **_: _fingerprint()
     )
     state = tmp_path / "state"
+    # A validator install records the names it has always used; a miner's carry its role (installed.parent_tag).
+    monkeypatch.setenv("CARBON_INSTALL_ROLE", "validator")
     assert installed.record_parent_fingerprint(manifest, state_dir=state) is True
     tag = "carbon-c03-worker:" + identity.source_tree_digest[7:23]
     assert image_fingerprint.read_sidecar(manifest, identity.image_id) == (

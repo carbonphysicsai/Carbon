@@ -52,7 +52,7 @@ docker build --platform linux/amd64 --file "${recipe}" \
   --build-arg "TORCH_GPU_LOCK_DIGEST=${lock_digest}" \
   --build-arg "TORCH_GPU_PROFILE_DIGEST=${profile_digest}" \
   --iidfile "${temporary}/iid" \
-  --tag "carbon-torch-gpu-worker:${source_digest:7:16}" "${repo_root}"
+  --tag "$(bash "${script_dir}/worker_tag.sh" carbon-torch-gpu-worker torch-gpu "${source_digest}")" "${repo_root}"
 image="$(tr -d '[:space:]' < "${temporary}/iid")"
 [[ "${image}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
 container="$(docker create "${image}")"
