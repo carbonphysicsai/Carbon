@@ -948,20 +948,43 @@ for name in (
     document = load(pathlib.Path(artifacts) / name)
     if document is not None and current is not None and document.get("source_tree_digest") == current:
         paths.append(str(pathlib.Path(artifacts) / name))
+
+def present(image):
+    return (
+        subprocess.run(
+            ["docker", "image", "inspect", image], capture_output=True, check=False
+        ).returncode
+        == 0
+    )
+
+
+CHILDREN = {
+    "torch-worker-image.json": "torch-parent-worker-image.json",
+    "accelerator-worker-image.json": "accelerator-parent-worker-image.json",
+    "torch-gpu-worker-image.json": "torch-gpu-parent-worker-image.json",
+}
 for path in paths:
     document = load(path) if path else None
     image = (document or {}).get("image_id")
     if not isinstance(image, str) or not IMAGE.fullmatch(image):
         continue
-    found = subprocess.run(
-        ["docker", "image", "inspect", image], capture_output=True, check=False
-    )
-    if found.returncode != 0:
-        print(pathlib.Path(path).name + " " + image)
+    if not present(image):
+        print("installed_image_missing " + pathlib.Path(path).name + " " + image)
+        continue
+    # A child worker is only as good as the parent it was built FROM: its base must be the parent this install
+    # recorded for it, and Docker must hold that image.
+    parent_name = CHILDREN.get(pathlib.Path(path).name)
+    parent = load(pathlib.Path(path).with_name(parent_name)) if parent_name else None
+    if parent is not None and parent.get("source_tree_digest") != document.get(
+        "source_tree_digest"
+    ):
+        parent = None  # an earlier tree's parent manifest is not this worker's parent
+    base = (document or {}).get("base_image_digest")
+    if parent is not None and (parent.get("image_id") != base or not present(base)):
+        print("installed_worker_parent_stale " + pathlib.Path(path).name + " " + str(base))
 PY
   )" || fail "installed_image_check_failed: could not read the recorded image manifests. Nothing was recorded."
-  [[ -z "${missing}" ]] \
-    || fail "installed_image_missing: Docker no longer holds an image this install recorded (${missing//$'\n'/; }). A build removed or retagged it. Nothing was recorded; run the installer again."
+  [[ -z "${missing}" ]] || fail "${missing//$'\n'/; }. Docker no longer holds an image this install recorded, or a recorded worker was built FROM a parent that is not the recorded one (installed_image_missing / installed_worker_parent_stale). Nothing was recorded; run the installer again."
 }
 verify_recorded_images_present
 

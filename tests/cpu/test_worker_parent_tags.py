@@ -145,7 +145,8 @@ def _stage(sandbox, *, parents):
     sandbox._executable(
         sandbox.work / "scripts/dev/torch_worker_image.sh",
         '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
-        f'echo \'{{"image_id":"{WORKER}","source_tree_digest":"{SOURCE}"}}\' > "$1"\n'
+        f'echo \'{{"image_id":"{WORKER}","source_tree_digest":"{SOURCE}",'
+        f'"base_image_digest":"{PARENTS["torch-parent-worker-image.json"]}"}}\' > "$1"\n'
         + writes
         + 'echo "torch worker" >> "$CARBON_TEST_LOG"\n',
     )
@@ -199,3 +200,121 @@ def test_a_parent_manifest_of_an_earlier_source_tree_is_not_checked(sandbox):
         CARBON_TEST_GONE=PARENTS["torch-parent-worker-image.json"],
     )
     assert done.returncode == 0, done.stderr
+
+
+# --- a child worker is reused or accepted only if its base is the current recorded parent ---------
+
+
+def _manifests(sandbox, *, base):
+    """The Torch builder leaves a worker built FROM `base` and the parent it recorded beside it."""
+    parent = PARENTS["torch-parent-worker-image.json"]
+    sandbox._executable(
+        sandbox.work / "scripts/dev/torch_worker_image.sh",
+        '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
+        f'echo \'{{"image_id":"{WORKER}","source_tree_digest":"{SOURCE}",'
+        f'"base_image_digest":"{base}"}}\' > "$1"\n'
+        f'echo \'{{"image_id":"{parent}","source_tree_digest":"{SOURCE}"}}\' '
+        '> "$(dirname "$1")/torch-parent-worker-image.json"\n'
+        'echo "torch worker" >> "$CARBON_TEST_LOG"\n',
+    )
+    sandbox._executable(
+        sandbox.tools / "docker",
+        "#!/bin/sh\n"
+        'if [ "$*" = "info --format {{.DockerRootDir}}" ]; then echo "$CARBON_TEST_DOCKER_ROOT"; fi\n'
+        'if [ "$1 $2" = "image inspect" ] && [ "$3" = "$CARBON_TEST_GONE" ]; then exit 1; fi\n'
+        "exit 0\n",
+    )
+    sandbox.publish("fixture Torch builder with a worker base")
+
+
+def test_a_worker_built_from_the_recorded_parent_passes(sandbox):
+    _manifests(sandbox, base=PARENTS["torch-parent-worker-image.json"])
+    done = sandbox.run("--pytorch", "--no-start", CARBON_TEST_GONE="none")
+    assert done.returncode == 0, done.stderr
+
+
+def test_a_worker_whose_base_is_not_the_recorded_parent_is_refused(sandbox):
+    """val4090: the Torch CPU worker survived but its base (93fa1967) was a parent that no longer existed."""
+    _manifests(sandbox, base="sha256:" + "7" * 64)
+    done = sandbox.run("--pytorch", "--no-start", CARBON_TEST_GONE="none")
+    assert done.returncode == 2
+    assert "installed_worker_parent_stale" in done.stderr
+    assert "torch-worker-image.json" in done.stderr
+    assert not any("installed write" in line for line in sandbox.logged())
+
+
+def test_a_worker_whose_base_is_the_recorded_parent_but_gone_is_refused(sandbox):
+    parent = PARENTS["torch-parent-worker-image.json"]
+    _manifests(sandbox, base=parent)
+    done = sandbox.run("--pytorch", "--no-start", CARBON_TEST_GONE=parent)
+    assert done.returncode == 2
+    assert "installed_image_missing" in done.stderr or (
+        "installed_worker_parent_stale" in done.stderr
+    )
+
+
+class _Docker:
+    """`docker image inspect` over a set of image ids Docker still holds."""
+
+    def __init__(self, held):
+        self.held = set(held)
+
+    def json(self, arguments):
+        image = arguments[2]
+        if image not in self.held:
+            raise ValueError("No such image")
+        return {"Id": image}
+
+
+def _identity(base):
+    return type("Identity", (), {"base_image_digest": base})()
+
+
+@pytest.mark.parametrize(
+    "name, base, held, parent_present, reason",
+    [
+        # reusable: the base is the recorded parent and Docker holds it
+        (
+            "torch-worker-image.json",
+            "sha256:" + "2" * 64,
+            {"sha256:" + "2" * 64},
+            True,
+            None,
+        ),
+        # the parent was rebuilt (a new id): the old worker's base is stale
+        (
+            "torch-worker-image.json",
+            "sha256:" + "8" * 64,
+            {"sha256:" + "8" * 64},
+            True,
+            "base_is_not_the_recorded_parent",
+        ),
+        # the recorded parent is gone from Docker
+        (
+            "accelerator-worker-image.json",
+            "sha256:" + "2" * 64,
+            set(),
+            True,
+            "parent_image_absent",
+        ),
+        # the C-03 worker itself, and a release install with no parent manifest, have no parent to compare
+        ("c03-worker-image.json", "sha256:" + "5" * 64, set(), True, None),
+        ("torch-gpu-worker-image.json", "sha256:" + "5" * 64, set(), False, None),
+    ],
+)
+def test_installed_current_reuses_a_child_worker_only_when_its_parent_is_current(
+    tmp_path, name, base, held, parent_present, reason
+):
+    from scripts.dev.miner_launchpad import installed
+
+    manifest = tmp_path / name
+    manifest.write_text("{}")
+    parent_name = installed.CHILD_PARENT_MANIFEST.get(name)
+    if parent_present and parent_name:
+        (tmp_path / parent_name).write_text(
+            f'{{"image_id":"{PARENTS["torch-parent-worker-image.json"]}"}}'
+        )
+    assert (
+        installed.worker_parent_stale(manifest, _identity(base), _Docker(held))
+        == reason
+    )

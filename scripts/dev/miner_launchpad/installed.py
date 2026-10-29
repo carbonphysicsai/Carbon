@@ -390,6 +390,42 @@ def found(state_dir, repo) -> dict:
 #: was built from (`.devcontainer/Dockerfile.reconstruction-worker`). The GPU
 #: worker inherits it from its parent.
 SOURCE_TREE_LABEL = "org.opencontainers.image.carbon.c03.source-tree"
+#: A worker built FROM a C-03 parent (the CPU Torch worker, the JAX accelerator worker, the PyTorch GPU worker) and the
+#: manifest of the parent the same install recorded for it. The C-03 worker itself has no such parent: its base is the
+#: OS image it was built on.
+CHILD_PARENT_MANIFEST = {
+    "torch-worker-image.json": "torch-parent-worker-image.json",
+    "accelerator-worker-image.json": "accelerator-parent-worker-image.json",
+    "torch-gpu-worker-image.json": "torch-gpu-parent-worker-image.json",
+}
+
+
+def worker_parent_stale(manifest, image, cli) -> str | None:
+    """Why a child worker's parent is not the one this install recorded, or None.
+
+    A child is only as good as the parent it was built FROM: its `base_image_digest` must be the image id of the
+    parent manifest recorded beside it AND Docker must still hold that image. A parent that was rebuilt (a new id) or
+    lost (retagged away, pruned) leaves a worker the receiver cannot derive its CPU construction parent from
+    (installed_cpu_construction_worker_unavailable; val4090, 2026-10-29). The caller rebuilds such a worker, or stops
+    with `installed_worker_parent_stale`."""
+    name = Path(manifest).name
+    parent_name = CHILD_PARENT_MANIFEST.get(name)
+    if parent_name is None:
+        return None
+    parent_path = Path(manifest).with_name(parent_name)
+    if not parent_path.is_file():
+        return None  # a release install records no parent manifest: the digest pins it
+    parent = json.loads(parent_path.read_text(encoding="utf-8"))
+    base = image.base_image_digest
+    if parent.get("image_id") != base:
+        return "base_is_not_the_recorded_parent"
+    try:
+        held = cli.json(["image", "inspect", base, "--format", "{{json .}}"])
+    except Exception:  # noqa: BLE001 - Docker not holding the image is the answer, however it says so
+        return "parent_image_absent"
+    if held.get("Id") != base:
+        return "parent_image_absent"
+    return None
 
 
 def current(manifest, *, implementation=None, cli=None) -> bool:
@@ -434,10 +470,13 @@ def current(manifest, *, implementation=None, cli=None) -> bool:
             ["image", "inspect", image.image_id, "--format", "{{json .}}"]
         )
         labels = (metadata.get("Config") or {}).get("Labels") or {}
-        return (
+        if not (
             metadata.get("Id") == image.image_id
             and labels.get(SOURCE_TREE_LABEL) == image.source_tree_digest
-        )
+        ):
+            return False
+        # Reuse a child worker only if its parent is the current recorded one and still present.
+        return worker_parent_stale(path, image, cli or DockerCLI()) is None
     except Exception:  # noqa: BLE001 - any doubt builds the image again.
         return False
 
