@@ -801,6 +801,21 @@ REQUIRED_RUN = (
 )
 
 
+def wheels_problem(wheels):
+    """Why the wheelhouse cannot be read by the container (it runs as a non-root user), or None: the directory and every
+    wheel must be world-readable (a 0700 copy made every MeshGraphNet entry fail with PermissionError on the box).
+    """
+    root = Path(wheels)
+    if not root.is_dir():
+        return f"wheels_dir_missing: {root}"
+    for path in [root, *sorted(root.rglob("*"))]:
+        mode = path.stat().st_mode
+        need = 0o005 if path.is_dir() else 0o004
+        if (mode & need) != need:
+            return f"wheels_not_world_readable: {path} (the container runs as non-root; chmod -R a+rX the wheelhouse)"
+    return None
+
+
 def image_ids(args):
     from carbon.reconstruction.worker.docker_runtime import load_image_identity
 
@@ -877,6 +892,10 @@ def main(argv=None):
         return 2
     if args.command == "units":
         return _units(args)
+    problem = wheels_problem(args.wheels)
+    if problem:
+        print(problem, file=sys.stderr)
+        return 2
     from carbon.backbone_catalog.receipt_store import ReceiptStore
 
     queue = Queue(":memory:" if args.dry_run else args.state_dir / "queue.sqlite3")

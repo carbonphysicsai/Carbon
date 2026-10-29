@@ -545,3 +545,20 @@ def test_units_write_a_user_service_that_is_not_installed(tmp_path, monkeypatch)
         and "gpu_receipt_worker.py" in text
         and "--no-yield" in text
     )
+
+
+def test_a_wheelhouse_the_container_cannot_read_is_refused_before_any_run(tmp_path):
+    wheels = tmp_path / "wheels"
+    wheels.mkdir()
+    wheel = wheels / "a-1-py3-none-any.whl"
+    wheel.write_bytes(b"x")
+    wheels.chmod(0o755)
+    wheel.chmod(0o644)
+    assert w.wheels_problem(wheels) is None
+    if os.name == "posix":
+        wheel.chmod(0o600)
+        assert "wheels_not_world_readable" in w.wheels_problem(wheels)
+        wheel.chmod(0o644)
+        wheels.chmod(0o700)
+        assert "wheels_not_world_readable" in w.wheels_problem(wheels)
+    assert "wheels_dir_missing" in w.wheels_problem(tmp_path / "nope")
