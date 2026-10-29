@@ -56,6 +56,10 @@ _OPTIONAL_FIELDS = {
     # A private file (>= 32 bytes) holding the pack's custody copy key: the speed-sample seed of the pool
     # versions' single-design call timing is derived under it (`single_call_timing.sample_seed`).
     "speed_sample_key_file",
+    # The on-box store of OFFICIAL GPU receipts (`backbone_catalog.receipt_store`, OWNER-GPU-OPEN-WITH-READY-01):
+    # an exact absolute operator path in the validator state, written only by the standing receipt worker. Without
+    # it no catalog entry is officially gradable (the official route never falls back to a CPU rebuild).
+    "official_gpu_receipts",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -127,6 +131,29 @@ def read_speed_sample_key(name) -> bytes:
     return selected.read_bytes()
 
 
+def install_official_receipt_store(cfg) -> None:
+    """Point the official route at the configured on-box receipt store, or at none.
+
+    The Challenge's registered rebuild noise is the only tolerance a within-noise receipt may carry
+    (`koth_registry.rebuild_noise`, the registry itself, never a typed value). A receiver with no
+    ``official_gpu_receipts`` has no official GPU receipt, so every catalog entry is refused for official
+    grading with `catalog_gpu_receipt_pending`."""
+    from carbon.backbone_catalog import gpu_receipt, receipt_store
+    from carbon.challenge_validator import koth_registry
+
+    path = cfg.get("official_gpu_receipts")
+    gpu_receipt.OFFICIAL_STORE = (
+        None
+        if path is None
+        else receipt_store.ReceiptStore(
+            Path(path),
+            registered_noise=lambda challenge: (
+                koth_registry.rebuild_noise(challenge) or {}
+            ).get("value"),
+        )
+    )
+
+
 def load_config(path: Path) -> dict:
     """Read the closed bounded private record; miner calls select no paths."""
     value = private_json(path)
@@ -163,6 +190,15 @@ def load_config(path: Path) -> dict:
         selected = Path(value[name])
         if not selected.is_absolute() or selected.resolve() != selected:
             raise ValueError("exact private operator path required")
+    if "official_gpu_receipts" in value:
+        store = value["official_gpu_receipts"]
+        if (
+            type(store) is not str
+            or not Path(store).is_absolute()
+            or Path(store).is_symlink()
+            or Path(store).resolve() != Path(store)
+        ):
+            raise ValueError("exact official gpu receipts path required")
     if "gpu_construction_images" in value:
         images = value["gpu_construction_images"]
         if (
@@ -1260,6 +1296,7 @@ def serve(
     from scripts.dev.miner_launchpad.controller import owner_lock
 
     cfg = load_config(config_path)
+    install_official_receipt_store(cfg)
     selected_parent = (
         {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
         if "construction_image_manifest" in cfg
