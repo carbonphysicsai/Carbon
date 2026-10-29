@@ -12,6 +12,8 @@ This guide gets you from a clean machine to your first graded model.
 
 > **Testnet only, for now.** Everything here runs on Carbon's test network (subnet 567). Nothing is paid yet.
 
+> **Mainnet starts clean.** Nothing from testnet carries over to mainnet: not registrations, scores, submissions, frontier standing or any other record. Plan to register and submit again.
+
 ---
 
 ## What you need
@@ -35,6 +37,7 @@ Carbon's launch supports **one** setup, and a run on it is guaranteed:
 | CPUs | at least 4 |
 | Disk | about 150 GiB free |
 | GPU | optional; any NVIDIA GPU with driver **580.65.06 or newer** |
+| Validator GPU | Carbon's validator grades on an **RTX 4090**. Speed gates are measured on it; your own GPU does not change the grade |
 
 **Minimum NVIDIA driver.** Carbon's GPU builds (the PyTorch and JAX runtimes) are built on CUDA 13.0, and NVIDIA's table of the driver each toolkit needs gives CUDA 13.0 on Linux x86-64 as 580.65.06 or newer (later CUDA 13.x runs on any 580 driver). Source: [NVIDIA CUDA Toolkit 13.0 release notes](https://docs.nvidia.com/cuda/archive/13.0.0/cuda-toolkit-release-notes/index.html). An older driver is not blocked; a GPU practice that cannot start on it says "driver too old" and practises on CPU.
 
@@ -62,6 +65,8 @@ Add `--gpu` if the machine has an NVIDIA GPU. Any NVIDIA GPU works, whatever the
 The installer checks your machine, sets up Carbon's environment, builds the images your practice runs use, and starts the **Control Center**, the web page where you run everything. It never asks for a key or password.
 
 **Updating.** Run `~/carbon/scripts/install_miner.sh --update --pytorch`, repeating the other options you installed with (e.g. `--gpu`). If the disk is short, it lists Carbon's own images from earlier installs that this install no longer uses, and asks before removing them; nothing else is touched. To say yes up front, add `--remove-old-images`. If the disk is still short, an update then offers the catalog images it has now, which it builds again over the new worker (that rebuild takes about as long as the first catalog install); it asks its own yes, and `--remove-catalog-images` says yes up front. If the disk is still short after that, the message says how many GiB more are needed and what frees them. Carbon removes only its own images, never Docker's build cache or another project's images; `docker system df` shows what Docker keeps, and what to clear there is your call. An update checks your setup's compute again, rewrites your runner profile, and says what changed. If it can't (for example, it rebuilt images your compute check named), it sets the check and your runner profile aside and says so in its **Next** lines: check Compute again on the page, or from your agent or `carbon-mcp` with `carbon_setup_recheck {confirm: true}`, then review.
+
+**btcli version.** If you use `btcli` for registration, pin **bittensor-cli 9.23.2**: it is the version registration on subnet 567 was run with. In a fresh install, `btcli subnets show` and `btcli subnets metagraph` fail on the test network **and on mainnet**, on every release we tried (9.8.7 to 9.23.2), so this is btcli's own problem and not the test network's: 9.21.0 and newer stop with "storage function SubtensorModule.RootClaimType not found", and 9.20.1 and older stop with "int() argument ... not 'list'" and then wrongly say the subnet does not exist. Neither command is part of the register step.
 
 ## 2. Start your signer
 
@@ -271,6 +276,16 @@ This is how a version graded by the new exam is tested; `describe` serves the sa
 - **Outside the training range.** Some exam questions lie just outside the range your training data covers. They count: accuracy there, inverse-design picks there, and the physics gates there. How far that range extends, and where its questions are, is not published.
 - **Physics gates.** The physics gates that check a single answer run on every answer your model gives, inside and outside the range. Failing any gate means no score at all, however good the rest. You are told which gate failed, never which design.
 - **Speed.** Your model must answer each design in at most 1/500 of the time the reference solver needs for one design. The time is measured on the validator's machine, for the whole batch of exam designs with the model's loading included, divided by the number of designs. Failing it is a failed gate (speed), and no score. The ceilings per design are: Burst Thermal 0.38 s, Ribbed Bracket 2.08 s, Cooling 2.84 s, Motor 3.3 s.
+- **Repeat tolerance.** The tolerance a repeated run must match within is published per Challenge **after the production validator's registered recalibration**. No values are published yet.
+
+  | Challenge | Repeat tolerance |
+  |---|---|
+  | Motor | not yet published |
+  | Cooling | not yet published |
+  | Battery | not yet published |
+  | Ribbed Bracket | not yet published |
+  | Burst Thermal | not yet published |
+
 - **Minimums.** Each score part also has a minimum, set from Carbon's own baseline on the exam. A part below its minimum makes the submission not eligible, and the part is named. Until a version's minimums are registered, the page says minimums are not yet set.
 - **Practice.** Practice runs on the public bank and shows what it can of A, the gates and the minimums. It never touches the exam's hidden targets or its out-of-range questions, and a practice total is not an exam total.
 
