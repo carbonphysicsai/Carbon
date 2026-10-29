@@ -913,8 +913,12 @@ def _retain_selected_pack_evaluation(
     evidence=None,
     regrade=None,
     pool_store=None,
+    repeat=None,
 ):
-    """Apply only trusted, versioned measurement evidence after bank custody."""
+    """Apply only trusted, versioned measurement evidence after bank custody.
+
+    ``repeat`` is the crown decision's second grade of an ordinary retention (a regrade carries its own).
+    """
     if result.get("evaluation_pack_digest") is None:
         return result
     cap = reservation = None
@@ -1179,6 +1183,7 @@ def _retain_selected_pack_evaluation(
                 artifacts,
                 bind_inputs,
                 source_pin,
+                regrade.repeat if regrade is not None else repeat,
             )
     except (
         ImportError,
@@ -1435,7 +1440,9 @@ def _pool_admit(store, adapter, submission_id, entry, artifacts):
     store.mark(submission_id, "RECONSTRUCTED")
 
 
-def _contend(adapter, pool_store, submission_id, artifacts, bind_inputs, pin):
+def _contend(
+    adapter, pool_store, submission_id, artifacts, bind_inputs, pin, repeat=None
+):
     """File the bound evaluation in the pool store and let it meet the incumbent
     (DEVELOPMENT king of the hill). Its own failure never unbinds the evaluation: the
     result names the outcome and reason, or the refusal."""
@@ -1469,6 +1476,7 @@ def _contend(adapter, pool_store, submission_id, artifacts, bind_inputs, pin):
             # Delivery provenance, never the pack's shape: only a pack that
             # arrived through the answer-key route into the sealed store.
             sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
+            repeat=repeat,
         )
     # A pool refusal, whatever its type, never unbinds the evaluation.
     except Exception as exc:  # noqa: BLE001
@@ -1622,6 +1630,17 @@ def _grade_selected_pack(
             artifacts,
             evidence,
             pool_store=pool_store,
+            repeat=(
+                _repeat_of(
+                    adapter,
+                    submission_id,
+                    bound.get("entry_id"),
+                    artifact_directory=artifact_directory,
+                    entry_directory=entry_directory,
+                )
+                if pool_store is not None
+                else None
+            ),
         )
     return _counted_bank_grade(
         adapter,
@@ -2204,6 +2223,9 @@ class _Regrade:
     #: slot is a GRADED one taken for the origin submission (its signed block), and the Ladder,
     #: the pool admission and KOTH are filed under the origin submission id.
     counted: bool = False
+    #: ``repeat(submission_id)``: a second, independent grade of the same state for the crown decision
+    #: (OWNER-CROWN-GRADE-REPEAT-01); None gives none, so no crown moves.
+    repeat: object = None
 
 
 def _record_regraded_evidence(regrade, bind_inputs, pin=None):
@@ -2273,6 +2295,53 @@ def _regrade_origin(adapter, base, entries, entry_id):
     return entry, origin, owner, manifest, files, recipe
 
 
+def repeat_grade(
+    adapter,
+    entry_id,
+    *,
+    artifact_directory,
+    entry_directory,
+    runner=None,
+    index=1,
+):
+    """A second, independent grade of a retained state, as the evidence a crown decision compares:
+    the same regrade on the same pack and class, under its own task (`repeat_index`), uncounted and filed
+    nowhere. Returns that regrade's bound private evaluation evidence, or raises `RetentionUnavailable`.
+    """
+    again = regrade_retained_entry(
+        adapter,
+        entry_id,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+        runner=runner,
+        repeat_index=index,
+    )
+    if again.get("private_evaluation_state") != "BOUND_DEVELOPMENT_ONLY":
+        raise RetentionUnavailable(
+            "repeat_grade_" + str(again.get("private_evaluation_reason", "unbound"))
+        )
+    try:
+        return json.loads(Path(again["private_evaluation_path"]).read_bytes())
+    except (OSError, ValueError, KeyError) as error:
+        raise RetentionUnavailable("repeat_grade_evidence_unavailable") from error
+
+
+def _repeat_of(adapter, origin, entry_id, **custody):
+    """`repeat` for `BankPromotion.consider_private`: the second grade of the one state this task retains. Another
+    state (an incumbent without a repeat mark) is not retained here, so it gives none and no crown moves.
+    """
+
+    def repeat(submission_id):
+        if submission_id != origin:
+            raise RetentionUnavailable("repeat_state_not_retained_here")
+        return {
+            "submission_id": origin,
+            "evidence": repeat_grade(adapter, entry_id, **custody),
+        }
+
+    return repeat
+
+
 def regrade_retained_entry(
     adapter,
     entry_id: str,
@@ -2284,8 +2353,12 @@ def regrade_retained_entry(
     exam_se: bool = False,
     counted: bool = False,
     pool_store=None,
+    repeat_index: int = 0,
 ) -> dict:
     """Regrade a retained model on the receiver's selected (rotated) evaluation pack.
+
+    ``repeat_index`` > 0 is an independent repeat of the same grade for a crown decision (`repeat_grade`): its own
+    task, custody and entry, uncounted, and filed nowhere (no Ladder, no KOTH, no pool evaluation).
 
     ``counted`` is the COUNTED grade of a miner's own submission on a sealed/pool pack
     (GPU_REBUILD_RULINGS section 11; `retain_served_result` calls it, never an operator
@@ -2341,7 +2414,12 @@ def regrade_retained_entry(
     regrade_id = (
         "rtsk_"
         + hashlib.sha256(
-            (origin + "\0REGRADE\0" + snapshot.manifest_digest).encode()
+            (
+                origin
+                + "\0REGRADE\0"
+                + snapshot.manifest_digest
+                + (f"\0REPEAT\0{repeat_index}" if repeat_index else "")
+            ).encode()
         ).hexdigest()
     )
     material = discovery._material
@@ -2628,7 +2706,27 @@ def regrade_retained_entry(
         bound,
         artifacts,
         evidence,
-        _Regrade(owner, recipe, origin, entry_id, promotion, exam_se, counted),
+        _Regrade(
+            owner,
+            recipe,
+            origin,
+            entry_id,
+            promotion,
+            exam_se,
+            counted,
+            (
+                _repeat_of(
+                    adapter,
+                    origin,
+                    entry_id,
+                    artifact_directory=artifact_directory,
+                    entry_directory=entry_directory,
+                    runner=runner,
+                )
+                if counted and pool_store is not None
+                else None
+            ),
+        ),
         **({"pool_store": pool_store} if counted else {}),
     )
     return {**regraded, "regrade_of": entry_id, "regrade_task_id": regrade_id}

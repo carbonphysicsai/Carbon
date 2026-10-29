@@ -45,6 +45,7 @@ from carbon.scoring import pool_exam as exam
 from carbon.scoring import pool_gates, pool_plugin
 from carbon.scoring import pool_proof_suite as suite
 from carbon.scoring.pool_grader import HonestyPolicy, OptimizerPolicy
+from tests.cpu._crown_repeat import identical_repeat
 
 POLICIES = suite.Policies(
     optimizer=OptimizerPolicy(budget=90, sigma0=0.3, population=None),
@@ -343,7 +344,13 @@ def _crown(tmp_path, monkeypatch, measured, *, noise=NOISE):
             store, {"a": pair(_set_body("a", comparator, total_of(measured)), None)}
         ),
     )
-    return store, flow.consider_private("a", KEY, comparator, sealed=True)
+    return store, flow.consider_private(
+        "a",
+        KEY,
+        comparator,
+        sealed=True,
+        repeat=identical_repeat(store, KEY, digest("pin")),
+    )
 
 
 def _weights(store, tmp_path):

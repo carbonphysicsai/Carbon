@@ -317,8 +317,9 @@ class _Promotion:
         self.calls.append(("retain_set", submission_id, set_key, list(pack_digests)))
         return {"evaluation_key": "sha256:" + "c" * 64}
 
-    def consider_private(self, submission_id, key, comparator, *, sealed):
+    def consider_private(self, submission_id, key, comparator, *, sealed, repeat=None):
         self.calls.append(("consider_private", submission_id, key, comparator, sealed))
+        self.repeat = repeat
         return {"outcome": "FIRST_INCUMBENT"}
 
 
@@ -402,3 +403,54 @@ def test_a_pool_refusal_never_unbinds_the_set_result(tmp_path, monkeypatch):
         assert result["koth_comparison"] == {"error": "set_batch_evaluation_missing"}
     finally:
         fixture.provider.close()
+
+
+def test_the_set_repeat_regrades_every_batch_again_and_derives_the_set_from_the_repeats(
+    monkeypatch,
+):
+    """OWNER-CROWN-GRADE-REPEAT-01: the second set grade is each batch graded again, the set evidence derived from
+    those, and it exists only for the state this task retained."""
+    from carbon.challenge_validator import bank_promotion, pack_set_grading
+
+    graded = []
+
+    def repeat_grade(adapter, entry_id, **custody):
+        graded.append((adapter, entry_id, sorted(custody)))
+        return {"batch": adapter}
+
+    monkeypatch.setattr(retention, "repeat_grade", repeat_grade)
+    monkeypatch.setattr(
+        bank_promotion,
+        "private_evaluation_key",
+        lambda evidence: "key-" + evidence["batch"],
+    )
+    seen = []
+    monkeypatch.setattr(
+        bank_promotion,
+        "build_set_evidence",
+        lambda set_key, bodies: seen.append((set_key, bodies)) or {"set": set_key},
+    )
+    repeat = pack_set_grading._set_repeat(
+        {"d1": "A1", "d2": "A2"},
+        ["d1", "d2"],
+        "set-key",
+        "origin",
+        "entry-1",
+        artifact_directory="art",
+        entry_directory="ent",
+        runner=None,
+    )
+    row = repeat("origin")
+    assert row == {"submission_id": "origin", "evidence": {"set": "set-key"}}
+    assert [g[:2] for g in graded] == [("A1", "entry-1"), ("A2", "entry-1")]
+    assert seen == [
+        (
+            "set-key",
+            [
+                {"evidence": {"batch": "A1"}, "evaluation_key": "key-A1"},
+                {"evidence": {"batch": "A2"}, "evaluation_key": "key-A2"},
+            ],
+        )
+    ]
+    with pytest.raises(psr.SetResultRefused, match="repeat_state_not_retained_here"):
+        repeat("another-submission")

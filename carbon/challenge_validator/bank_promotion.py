@@ -552,7 +552,7 @@ class BankPromotion:
         raise StateError("evaluation_binding_unavailable")
 
     def consider_private(
-        self, submission_id, evaluation_key, comparator, *, sealed=False
+        self, submission_id, evaluation_key, comparator, *, sealed=False, repeat=None
     ):
         """King of the hill on one shared evaluation key, DEVELOPMENT only.
 
@@ -566,6 +566,12 @@ class BankPromotion:
         the receiver; never the pack's shape). Its win
         then carries `bank_comparison_sealed_testnet`, which the reward layer
         pays only under a testnet policy (Workstream I5).
+
+        A crown change (first crown, takeover, dethrone) applies only after
+        ``repeat`` produced a second, independent grade of every state the
+        decision read, bit-identical to the first (`repeat_gate`,
+        OWNER-CROWN-GRADE-REPEAT-01): the contender's always, the incumbent's
+        only when it has no repeat mark. Without ``repeat`` no crown changes.
 
         An incumbent not yet regraded on this key (a rotation, or a carried
         king whose regrade is unavailable) gives UNAVAILABLE with nothing
@@ -593,6 +599,26 @@ class BankPromotion:
                 "incumbent": (self.store.incumbent() or {}).get("model_id"),
             }
         outcome = compare_private_pair(pair, comparator)
+        if outcome["outcome"] in CROWN_CHANGING:
+            # A mark belongs to the grade's own evaluation key: a carried king's grade is filed under his old key.
+            own_key = lambda row: row.get(
+                "evaluation_key", evaluation_key
+            )  # noqa: E731
+            marked = {
+                row["submission_id"]: self.store.repeat_verified(
+                    row["submission_id"], own_key(row)
+                )
+                for row in (pair["candidate"], pair["incumbent"])
+                if row
+            }
+            gated = repeat_gate(pair, outcome, repeat, marked)
+            if gated is outcome:
+                # Verified: file the marks, so the next decision repeats only what is unmarked.
+                for row in states_to_repeat(pair, marked):
+                    self.store.record_repeat_verified(
+                        row["submission_id"], own_key(row), grade_fingerprint(row)
+                    )
+            outcome = gated
         if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):
             self.store.set_incumbent(
                 submission_id,
@@ -707,6 +733,105 @@ def _scored(body):
     ):
         raise StateError("private_evaluation_invalid")
     return status, total
+
+
+#: Outcomes that change who holds the crown.
+CROWN_CHANGING = frozenset({FIRST_INCUMBENT, CHALLENGER, DETHRONED})
+#: A repeat grade that differs, or cannot run, is the host's fault, never the
+#: miner's: no crown change, a typed alert, a re-check of the host.
+FAILED_INFRA = "FAILED_INFRA"
+REPEAT_MISMATCH = "crown_repeat_grade_mismatch"
+REPEAT_UNAVAILABLE = "crown_repeat_grade_unavailable"
+ALERT_SCHEMA = "carbon.challenge-validator.crown-grade-alert.v1"
+
+
+def _exact(value):
+    """`value` with every float as its exact bits, so equality is bit equality
+    (0.0 and -0.0 differ; a non-finite number is refused)."""
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise StateError("private_evaluation_invalid")
+        return {"float": value.hex()}
+    if type(value) is dict:
+        return {k: _exact(v) for k, v in sorted(value.items())}
+    if type(value) in (list, tuple):
+        return [_exact(v) for v in value]
+    return value
+
+
+def grade_fingerprint(body):
+    """What a second grade of the same state must reproduce bit for bit: the
+    scored model's result and the score compatibility it was graded under. Entry
+    and task identities differ between two grades and stay out."""
+    evidence = body["evidence"]
+    return digest(
+        _exact(
+            {
+                "model_p": evidence.get("model_p"),
+                "score_compatibility": evidence.get("score_compatibility"),
+            }
+        )
+    )
+
+
+def states_to_repeat(pair, marked):
+    """The grades a crown change read that still need their second grade: the
+    contender's fresh grade always, the incumbent's only when it carries no mark
+    for exactly its current grade (it was verified when it took the crown; a
+    regrade after a rotation or on a new pack is not). ``marked`` maps a
+    submission id to the fingerprint it was repeat-verified with."""
+    states = [pair["candidate"]]
+    incumbent = pair["incumbent"]
+    if incumbent and marked.get(incumbent["submission_id"]) != grade_fingerprint(
+        incumbent
+    ):
+        states.append(incumbent)
+    return states
+
+
+def repeat_gate(pair, outcome, repeat, marked=None):
+    """Let a crown change stand only if every grade it read has been repeat-
+    verified: a second, independent grade of the same state on the registered
+    class, bit-identical to the first (OWNER-CROWN-GRADE-REPEAT-01).
+
+    ``repeat(submission_id)`` returns that state's second grade, shaped like
+    `PoolStore.private_evaluation_pair` rows, on the same evaluation key. Which
+    states it repeats is `states_to_repeat`. Unchanged outcomes pass through; a
+    mismatch is FAILED_INFRA with a typed alert (private: ids only, no grade
+    values), and an absent or failing ``repeat`` is UNAVAILABLE. Neither moves
+    the crown."""
+    states = states_to_repeat(pair, marked or {})
+
+    def held(code, kind, alert=None):
+        out = {**outcome, "outcome": kind, "reason": code}
+        if alert is not None:
+            out["alert"] = alert
+        return out
+
+    if repeat is None:
+        return held(REPEAT_UNAVAILABLE, UNAVAILABLE)
+    differing = []
+    for first in states:
+        try:
+            second = repeat(first["submission_id"])
+            same = grade_fingerprint(first) == grade_fingerprint(second)
+        except Exception:  # noqa: BLE001 - a repeat that cannot run is not a grade
+            return held(REPEAT_UNAVAILABLE, UNAVAILABLE)
+        if not same:
+            differing.append(first["submission_id"])
+    if not differing:
+        return outcome
+    return held(
+        REPEAT_MISMATCH,
+        FAILED_INFRA,
+        {
+            "schema": ALERT_SCHEMA,
+            "code": REPEAT_MISMATCH,
+            "evaluation_key": pair["evaluation_key"],
+            "states": differing,
+            "action": "recheck_validator_host",
+        },
+    )
 
 
 def compare_private_pair(pair, comparator):

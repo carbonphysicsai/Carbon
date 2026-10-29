@@ -27,6 +27,7 @@ from carbon.challenge_validator.interface import digest
 from carbon.rewards import winner_decay as wd
 from carbon.rewards import winner_eligibility as we
 from carbon.rewards.core import DAY_MS, Q12, RewardFailure
+from tests.cpu._crown_repeat import identical_repeat
 
 CHALLENGE = "electric-motor-magnetics"
 POLICY = wd.load_policy("testnet-winner-v2-four-challenge-dev")
@@ -84,7 +85,13 @@ def _crown(tmp_path, monkeypatch, registry, *, sealed, total=0.9):
         "private_evaluation_pair",
         _Pairs(store, {"a": pair(_set_body("a", comparator, total), None)}),
     )
-    outcome = flow.consider_private("a", KEY, comparator, sealed=sealed)
+    outcome = flow.consider_private(
+        "a",
+        KEY,
+        comparator,
+        sealed=sealed,
+        repeat=identical_repeat(store, KEY, digest("pin")),
+    )
     return store, outcome
 
 

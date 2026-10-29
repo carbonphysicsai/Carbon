@@ -27,9 +27,11 @@ from carbon.challenge_validator.bank_promotion import (
     UNAVAILABLE,
     BankPromotion,
     carry_identity,
+    grade_fingerprint,
     private_evaluation_key,
 )
 from carbon.rewards.winner_eligibility import WinnerLedger, lean_promotion
+from tests.cpu._crown_repeat import identical_repeat
 
 F08 = "f08-ribbed-bracket"
 SEALED = "f08-dual-sealed-grid-8x1-v2"
@@ -152,6 +154,11 @@ def _old_deployment(tmp_path, total=0.80):
     store = PoolStore(tmp_path / "f08-1.4.sqlite", clock=lambda: 100.0)
     store.king_key = _file(store, "king", "king-hotkey", "1.4", total, pin=OLD_PIN)
     store.set_incumbent("king", SEALED_TESTNET_PROMOTION)
+    # He was repeat-verified when he took the crown; the mark travels with him in the carry.
+    graded = store.private_evaluation_body(
+        "king", store.king_key, registered_source_receipt_sha256=OLD_PIN
+    )
+    store.record_repeat_verified("king", store.king_key, grade_fingerprint(graded))
     return store
 
 
@@ -184,7 +191,13 @@ def _challenge(new, submission_id, total, *, queries="1"):
     )
     return BankPromotion(
         new, registered_source_receipt_sha256=NEW_PIN
-    ).consider_private(submission_id, key, _comparator(), sealed=True)
+    ).consider_private(
+        submission_id,
+        key,
+        _comparator(),
+        sealed=True,
+        repeat=identical_repeat(new, key, NEW_PIN),
+    )
 
 
 def test_a_14_king_survives_the_bump_and_meets_15_challengers_under_the_rule(
@@ -284,7 +297,11 @@ def _consider(store, submission_id, version, total, *, pin, queries):
         queries=queries,
     )
     return BankPromotion(store, registered_source_receipt_sha256=pin).consider_private(
-        submission_id, key, _comparator(), sealed=True
+        submission_id,
+        key,
+        _comparator(),
+        sealed=True,
+        repeat=identical_repeat(store, key, pin),
     )
 
 

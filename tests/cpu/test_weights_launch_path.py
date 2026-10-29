@@ -37,6 +37,7 @@ from carbon.rewards import winner_decay as wd
 from carbon.rewards import winner_eligibility as we
 from carbon.rewards.core import DAY_MS, Q12
 from carbon.validator_setup import __main__ as wrapper
+from tests.cpu._crown_repeat import identical_repeat
 
 LAUNCH = ("electric-motor-magnetics", "chip-cold-plate", "f08-ribbed-bracket", "f02")
 CROWNED = "electric-motor-magnetics"
@@ -134,7 +135,13 @@ def _pool(tmp_path, monkeypatch, name, *, registry=None):
         "private_evaluation_pair",
         _Pairs(store, {"a": pair(_set_body("a", comparator, 0.9), None)}),
     )
-    return store, flow.consider_private("a", KEY, comparator, sealed=True)
+    return store, flow.consider_private(
+        "a",
+        KEY,
+        comparator,
+        sealed=True,
+        repeat=identical_repeat(store, KEY, digest("pin")),
+    )
 
 
 def _wrapper_args(monkeypatch, tmp_path, standing, pools):

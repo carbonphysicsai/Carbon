@@ -727,3 +727,98 @@ def test_a_counted_pool_grade_repeats_and_times_the_bank_it_graded(
         assert all(practice_rows <= i for i in document["indices"])
     finally:
         fixture.provider.close()
+
+
+def test_a_repeat_regrade_is_its_own_task_and_runs_the_inference_again(
+    tmp_path, monkeypatch
+):
+    """OWNER-CROWN-GRADE-REPEAT-01: the second grade of a crown decision must not read the first one's retained bytes."""
+    fixture = _retained(tmp_path, monkeypatch)
+    try:
+        _, graded = _rotate(fixture, monkeypatch, tmp_path)
+        first = _regrade(fixture)
+        calls = len(fixture.runner.calls)
+        again = retention.regrade_retained_entry(
+            fixture.adapter,
+            fixture.first["entry_id"],
+            artifact_directory=fixture.artifacts,
+            entry_directory=fixture.entries,
+            runner=fixture.runner,
+            repeat_index=1,
+        )
+        assert again["regrade_task_id"] != first["regrade_task_id"]
+        assert again["status"] == "CREATED"
+        assert (
+            len(fixture.runner.calls) > calls
+        )  # a fresh inference, not retained bytes
+        # Asking for the same repeat again is a retry of that repeat, as for any regrade.
+        replay = retention.regrade_retained_entry(
+            fixture.adapter,
+            fixture.first["entry_id"],
+            artifact_directory=fixture.artifacts,
+            entry_directory=fixture.entries,
+            runner=fixture.runner,
+            repeat_index=1,
+        )
+        assert replay["regrade_task_id"] == again["regrade_task_id"]
+        # Each repeat is uncounted and files nothing: no pool store, no promotion, no repeat of its own.
+        assert all(
+            entry[4].counted is False and entry[4].repeat is None for entry in graded
+        )
+    finally:
+        fixture.provider.close()
+
+
+def test_repeat_grade_returns_the_bound_evidence_of_the_repeat_or_a_typed_refusal(
+    tmp_path, monkeypatch
+):
+    fixture = _retained(tmp_path, monkeypatch)
+    try:
+        _rotate(fixture, monkeypatch, tmp_path)
+        custody = dict(
+            artifact_directory=fixture.artifacts,
+            entry_directory=fixture.entries,
+            runner=fixture.runner,
+        )
+        # The stubbed grading core reports no evidence file: the repeat is unavailable, never a pass.
+        with pytest.raises(retention.RetentionUnavailable) as refused:
+            retention.repeat_grade(
+                fixture.adapter, fixture.first["entry_id"], **custody
+            )
+        assert str(refused.value) == "repeat_grade_evidence_unavailable"
+        written = tmp_path / "binding.json"
+        written.write_bytes(b'{"model_p": {"score_status": "SCORED"}}')
+
+        def grade(
+            adapter, submission_id, result, artifacts, evidence=None, regrade=None
+        ):
+            return {
+                **result,
+                "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
+                "private_evaluation_path": written,
+            }
+
+        monkeypatch.setattr(retention, "_retain_selected_pack_evaluation", grade)
+        evidence = retention.repeat_grade(
+            fixture.adapter, fixture.first["entry_id"], index=2, **custody
+        )
+        assert evidence == {"model_p": {"score_status": "SCORED"}}
+
+        def unavailable(
+            adapter, submission_id, result, artifacts, evidence=None, regrade=None
+        ):
+            return {
+                **result,
+                "private_evaluation_state": "UNAVAILABLE",
+                "private_evaluation_reason": "cap_refused",
+            }
+
+        monkeypatch.setattr(retention, "_retain_selected_pack_evaluation", unavailable)
+        with pytest.raises(
+            retention.RetentionUnavailable, match="repeat_grade_cap_refused"
+        ):
+            retention.repeat_grade(
+                fixture.adapter, fixture.first["entry_id"], index=3, **custody
+            )
+    finally:
+        fixture.provider.close()
