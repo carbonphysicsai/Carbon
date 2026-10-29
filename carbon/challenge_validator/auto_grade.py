@@ -11,6 +11,11 @@ Safety properties:
 - **Once.** A create-only marker per task. Retention consumes a task's single inference
   pair, so a failed attempt is never retried by itself: its marker records the typed
   code, and an operator deletes the marker to retry.
+- **Paused crowns resume by themselves.** A grade whose crown decision the operator paused
+  (`operator_pause`, UNAVAILABLE ``crowns_paused``) is marked PAUSED, not GRADED. Once the flag is
+  gone its marker is removed and the task is retained again: re-retention is idempotent (retained
+  bytes, the same exam-cap row), so the contender is considered again, with its repeat grade as
+  normal. While the flag stands nothing is retried.
 - **Not while building.** Grading and the construction `advance` pass share one lock, so
   a grade never competes with a reconstruction for the host.
 - **Never a candidate failure.** An unavailable retention is recorded as infrastructure
@@ -82,6 +87,7 @@ class AutoGrader:
         ``state`` is GRADED, FAILED or PENDING (nothing written for PENDING)."""
         from .lean_recipe_retention import RetentionUnavailable
 
+        self._resume_paused()
         for submission_id in self.pending():
             try:
                 result = self.intake.retain_result(
@@ -111,12 +117,29 @@ class AutoGrader:
             )
             self._write(
                 submission_id,
-                "GRADED",
+                "PAUSED" if _crowns_paused(result) else "GRADED",
                 code=_code(reason) if type(reason) is str and reason else None,
                 entry_id=entry if type(entry) is str else None,
             )
             return submission_id, "GRADED"
         return None
+
+    def _resume_paused(self):
+        """Remove the PAUSED markers once crowns are no longer paused, so those tasks are retained again."""
+        from . import operator_pause
+
+        paused = []
+        for path in sorted(self.markers.glob("*.json")):
+            try:
+                if json.loads(path.read_text()).get("state") == "PAUSED":
+                    paused.append(path)
+            except (OSError, ValueError):
+                continue
+        pool = self._pool() if paused else None
+        if pool is None or operator_pause.crowns_paused(Path(pool.path).parent):
+            return
+        for path in paused:
+            path.unlink(missing_ok=True)
 
     def _keep(self, submission_id, failure):
         """The full traceback of a failed grade, and a worker failure's closed code and
@@ -196,6 +219,14 @@ class AutoGrader:
         from .direct_receiver import _open_pool_store
 
         return _open_pool_store(self.pool_store)
+
+
+def _crowns_paused(result):
+    """Whether this grade's crown decision was withheld by the operator's pause."""
+    from .bank_promotion import CROWNS_PAUSED
+
+    comparison = result.get("koth_comparison") if type(result) is dict else None
+    return type(comparison) is dict and comparison.get("reason") == CROWNS_PAUSED
 
 
 def _code(value):

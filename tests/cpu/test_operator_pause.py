@@ -198,3 +198,84 @@ def test_the_crowns_flag_alone_does_not_refuse_the_weights_run(tmp_path, monkeyp
     )
     with pytest.raises(Reached):
         asyncio.run(weights.execute(args))
+
+
+TASK = "rtsk_" + "a" * 64
+
+
+class FakeIntake:
+    """Stands for the receiver: retains a task and reports its crown decision, which the operator's pause withholds."""
+
+    def __init__(self, directory):
+        self.directory = directory
+        self.calls = 0
+        self.adapter = SimpleNamespace(
+            contract_digest="c",
+            ledger=SimpleNamespace(submitted_outcomes=lambda digest: [TASK]),
+        )
+
+    def retain_result(self, submission_id, **kwargs):
+        self.calls += 1
+        paused = operator_pause.crowns_paused(self.directory)
+        outcome = (
+            {"outcome": bp.UNAVAILABLE, "reason": "crowns_paused"}
+            if paused
+            else {"outcome": bp.CHALLENGER, "reason": "bank_comparison_development"}
+        )
+        return {"entry_id": "sha256:" + "b" * 64, "koth_comparison": outcome}
+
+
+def grader(tmp_path):
+    from carbon.challenge_validator.auto_grade import AutoGrader
+
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700, exist_ok=True)
+    intake = FakeIntake(state)
+    auto = AutoGrader(intake, tmp_path)
+    auto._pool = lambda: SimpleNamespace(path=state / "pool.sqlite3")
+    return auto, intake, state
+
+
+def marker_state(tmp_path):
+    return json.loads((tmp_path / "auto-grade/markers" / (TASK + ".json")).read_text())[
+        "state"
+    ]
+
+
+def test_a_paused_crown_is_marked_paused_not_graded(tmp_path):
+    auto, intake, state = grader(tmp_path)
+    flag(state, {"crowns_paused": True})
+    assert auto.run_once() == (TASK, "GRADED")
+    assert marker_state(tmp_path) == "PAUSED"
+
+
+def test_nothing_is_retried_while_the_flag_stands(tmp_path):
+    auto, intake, state = grader(tmp_path)
+    flag(state, {"crowns_paused": True})
+    auto.run_once()
+    for _ in range(3):
+        assert auto.run_once() is None
+    assert intake.calls == 1 and marker_state(tmp_path) == "PAUSED"
+
+
+def test_clearing_the_flag_considers_the_contender_again_without_manual_action(
+    tmp_path,
+):
+    auto, intake, state = grader(tmp_path)
+    path = flag(state, {"crowns_paused": True})
+    auto.run_once()
+    path.unlink()
+    assert auto.run_once() == (TASK, "GRADED")
+    assert intake.calls == 2
+    assert marker_state(tmp_path) == "GRADED"
+    # Once graded it is not retained again.
+    assert auto.run_once() is None and intake.calls == 2
+
+
+def test_a_graded_task_is_never_retried_by_the_resume(tmp_path):
+    auto, intake, state = grader(tmp_path)
+    assert auto.run_once() == (TASK, "GRADED") and marker_state(tmp_path) == "GRADED"
+    flag(state, {"crowns_paused": True})
+    assert auto.run_once() is None
+    operator_pause.flag_path(state).unlink()
+    assert auto.run_once() is None and intake.calls == 1
