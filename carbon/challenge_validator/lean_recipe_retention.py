@@ -1624,6 +1624,9 @@ def _contend(
         comparator = koth_registry.comparator(
             adapter.challenge_id, bind_inputs["score_pack"], accuracy
         )
+        control = _control_check(
+            repeat, koth_registry.control(adapter.challenge_id), comparator
+        )
         outcome = promotion.consider_private(
             submission_id,
             filed["evaluation_key"],
@@ -1632,9 +1635,8 @@ def _contend(
             # arrived through the answer-key route into the sealed store.
             sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
             repeat=repeat,
-            control=_control_check(
-                repeat, koth_registry.control(adapter.challenge_id), comparator
-            ),
+            # Only a registered control is passed: a promotion that takes none is called as before.
+            **({} if control is None else {"control": control}),
         )
         _watch_repeat_miss(promotion.store, adapter, submission_id, outcome)
         _file_if_paused(

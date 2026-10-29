@@ -379,6 +379,11 @@ def _contend_set(
         comparator = koth_registry.comparator_for_set(
             batch_adapters[batches[0]].challenge_id, packs, accuracies
         )
+        control = _set_control_check(
+            repeat,
+            koth_registry.control(batch_adapters[batches[0]].challenge_id),
+            comparator,
+        )
         outcome = promotion.consider_private(
             origin,
             filed["evaluation_key"],
@@ -387,11 +392,8 @@ def _contend_set(
                 getattr(d, "evaluation_pack_sealed", False) is True for d in discoveries
             ),
             repeat=repeat,
-            control=_set_control_check(
-                repeat,
-                koth_registry.control(batch_adapters[batches[0]].challenge_id),
-                comparator,
-            ),
+            # Only a registered control is passed: a promotion that takes none is called as before.
+            **({} if control is None else {"control": control}),
         )
         retention._watch_repeat_miss(
             promotion.store, batch_adapters[batches[0]], origin, outcome
