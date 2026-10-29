@@ -570,7 +570,8 @@ class BankPromotion:
         A crown change (first crown, takeover, dethrone) applies only after
         ``repeat`` produced a second, independent grade of every state the
         decision read, bit-identical to the first (`repeat_gate`,
-        OWNER-CROWN-GRADE-REPEAT-01). Without ``repeat`` no crown changes.
+        OWNER-CROWN-GRADE-REPEAT-01): the contender's always, the incumbent's
+        only when it has no repeat mark. Without ``repeat`` no crown changes.
 
         An incumbent not yet regraded on this key (a rotation, or a carried
         king whose regrade is unavailable) gives UNAVAILABLE with nothing
@@ -599,7 +600,21 @@ class BankPromotion:
             }
         outcome = compare_private_pair(pair, comparator)
         if outcome["outcome"] in CROWN_CHANGING:
-            outcome = repeat_gate(pair, outcome, repeat)
+            marked = {
+                row["submission_id"]: self.store.repeat_verified(
+                    row["submission_id"], evaluation_key
+                )
+                for row in (pair["candidate"], pair["incumbent"])
+                if row
+            }
+            gated = repeat_gate(pair, outcome, repeat, marked)
+            if gated is outcome:
+                # Verified: file the marks, so the next decision repeats only what is unmarked.
+                for row in states_to_repeat(pair, marked):
+                    self.store.record_repeat_verified(
+                        row["submission_id"], evaluation_key, grade_fingerprint(row)
+                    )
+            outcome = gated
         if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):
             self.store.set_incumbent(
                 submission_id,
@@ -755,17 +770,33 @@ def grade_fingerprint(body):
     )
 
 
-def repeat_gate(pair, outcome, repeat):
-    """Let a crown change stand only if a second, independent grade of the same
-    states on the registered class is bit-identical to the first.
+def states_to_repeat(pair, marked):
+    """The grades a crown change read that still need their second grade: the
+    contender's fresh grade always, the incumbent's only when it carries no mark
+    for exactly its current grade (it was verified when it took the crown; a
+    regrade after a rotation or on a new pack is not). ``marked`` maps a
+    submission id to the fingerprint it was repeat-verified with."""
+    states = [pair["candidate"]]
+    incumbent = pair["incumbent"]
+    if incumbent and marked.get(incumbent["submission_id"]) != grade_fingerprint(
+        incumbent
+    ):
+        states.append(incumbent)
+    return states
+
+
+def repeat_gate(pair, outcome, repeat, marked=None):
+    """Let a crown change stand only if every grade it read has been repeat-
+    verified: a second, independent grade of the same state on the registered
+    class, bit-identical to the first (OWNER-CROWN-GRADE-REPEAT-01).
 
     ``repeat(submission_id)`` returns that state's second grade, shaped like
-    `PoolStore.private_evaluation_pair` rows, on the same evaluation key. Every
-    state whose evidence the decision read is repeated: the contender, and the
-    incumbent when there is one. Unchanged outcomes pass through; a mismatch is
-    FAILED_INFRA with a typed alert (private: ids only, no grade values), and an
-    absent or failing ``repeat`` is UNAVAILABLE. Neither moves the crown."""
-    states = [pair["candidate"]] + ([pair["incumbent"]] if pair["incumbent"] else [])
+    `PoolStore.private_evaluation_pair` rows, on the same evaluation key. Which
+    states it repeats is `states_to_repeat`. Unchanged outcomes pass through; a
+    mismatch is FAILED_INFRA with a typed alert (private: ids only, no grade
+    values), and an absent or failing ``repeat`` is UNAVAILABLE. Neither moves
+    the crown."""
+    states = states_to_repeat(pair, marked or {})
 
     def held(code, kind, alert=None):
         out = {**outcome, "outcome": kind, "reason": code}

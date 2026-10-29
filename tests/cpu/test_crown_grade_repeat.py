@@ -54,9 +54,10 @@ def comparator():
 
 
 class Store:
-    def __init__(self, fixed):
+    def __init__(self, fixed, marks=None):
         self.fixed = fixed
         self.moves = []
+        self.marks = dict(marks or {})
 
     def record_baseline(self, *args):
         pass
@@ -67,6 +68,12 @@ class Store:
     def private_evaluation_pair(self, *args, **kwargs):
         return self.fixed
 
+    def repeat_verified(self, submission_id, key):
+        return self.marks.get((submission_id, key))
+
+    def record_repeat_verified(self, submission_id, key, fingerprint):
+        self.marks[(submission_id, key)] = fingerprint
+
     def set_incumbent(self, model_id, reason, *, expected):
         self.moves.append(("set", model_id, expected))
 
@@ -74,8 +81,8 @@ class Store:
         self.moves.append(("vacate", expected))
 
 
-def consider(fixed, repeat):
-    store = Store(fixed)
+def consider(fixed, repeat, marks=None, store=None):
+    store = store or Store(fixed, marks)
     # The constructor wants a real PoolStore; the stub keeps the question to the gate.
     promotion = bp.BankPromotion.__new__(bp.BankPromotion)
     promotion.store = store
@@ -211,3 +218,60 @@ def test_the_repeat_reads_the_grade_not_the_identity():
     other = deepcopy(fixed["candidate"])
     other["evidence"]["score_compatibility"] = {"score_pack_digest": digest("other")}
     assert bp.grade_fingerprint(other) != bp.grade_fingerprint(fixed["candidate"])
+
+
+def test_a_marked_incumbent_is_not_regraded_only_the_contender_is():
+    fixed = CASES["takeover"]
+    asked = []
+    again = same_again(fixed)
+
+    def repeat(model):
+        asked.append(model)
+        return again(model)
+
+    marks = {("k", KEY): bp.grade_fingerprint(fixed["incumbent"])}
+    outcome, moves = consider(fixed, repeat, marks)
+    assert outcome["outcome"] == bp.CHALLENGER and moves == [("set", "c", "k")]
+    assert asked == ["c"]
+
+
+def test_a_mark_for_another_grade_does_not_count():
+    # The incumbent was regraded since (new pack, rotation): its old mark names a different grade.
+    fixed = CASES["takeover"]
+    asked = []
+    again = same_again(fixed)
+
+    def repeat(model):
+        asked.append(model)
+        return again(model)
+
+    stale = {("k", KEY): digest("the incumbent's earlier grade")}
+    outcome, _moves = consider(fixed, repeat, stale)
+    assert outcome["outcome"] == bp.CHALLENGER and asked == ["c", "k"]
+
+
+def test_a_passed_change_files_a_mark_for_each_repeated_grade_and_a_failed_one_none():
+    fixed = CASES["takeover"]
+    store = Store(fixed)
+    consider(fixed, same_again(fixed), store=store)
+    assert store.marks == {
+        ("c", KEY): bp.grade_fingerprint(fixed["candidate"]),
+        ("k", KEY): bp.grade_fingerprint(fixed["incumbent"]),
+    }
+    again = same_again(fixed)
+
+    def flipped(model):
+        row = again(model)
+        row["evidence"]["model_p"]["total_score"] += 2**-52
+        return row
+
+    failed = Store(fixed)
+    consider(fixed, flipped, store=failed)
+    assert failed.marks == {}
+
+
+def test_an_unchanged_outcome_files_no_mark():
+    fixed = pair(body("c", total=0.55), body("k", total=0.5))
+    store = Store(fixed)
+    consider(fixed, lambda model: 1 / 0, store=store)
+    assert store.marks == {}

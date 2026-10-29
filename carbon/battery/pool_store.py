@@ -1565,6 +1565,50 @@ class PoolStore:
         key = canonical([submission_id, version]).encode()
         return kind + ":" + hashlib.sha256(key).hexdigest()
 
+    # --- repeat-verified grades (OWNER-CROWN-GRADE-REPEAT-01) ----------------------
+    # A grade a crown change read stands only once a second, independent grade of the
+    # same state was bit-identical. The mark (the grade's fingerprint) is stored beside
+    # the grade, so a later decision repeats only a grade that has no mark.
+
+    def record_repeat_verified(self, submission_id, key, fingerprint):
+        """Mark the stored evaluation of ``submission_id`` under ``key`` as repeat-verified.
+        Idempotent for the same fingerprint; a different one for the same grade refuses.
+        """
+        from carbon.challenge_validator.interface import is_digest
+
+        if not is_digest(key) or not is_digest(fingerprint):
+            raise StateError("repeat_mark_invalid")
+        op = self._bank_operation("repeat_verified.v1", submission_id, key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.repeat-verified.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "fingerprint": fingerprint,
+            }
+        )
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT kind,state,body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is None:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (op, "repeat_verified.v1", "REPEAT_VERIFIED", body),
+                )
+            elif row != ("repeat_verified.v1", "REPEAT_VERIFIED", body):
+                raise StateError("repeat_mark_changed")
+
+    def repeat_verified(self, submission_id, key):
+        """The fingerprint ``submission_id``'s grade under ``key`` was repeat-verified with, or None."""
+        op = self._bank_operation("repeat_verified.v1", submission_id, key)
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=? AND kind='repeat_verified.v1'",
+                (op,),
+            ).fetchone()
+        return None if row is None else json.loads(row[0])["fingerprint"]
+
     # --- the registered KOTH baseline (public king route) --------------------------
 
     def record_baseline(self, challenge, key, total):
@@ -2005,15 +2049,18 @@ class PoolStore:
             ).fetchone()
             operations = old.execute(
                 "SELECT op_id, kind, state, body FROM operations "
-                "WHERE kind='private_evaluation.v1' ORDER BY op_id"
+                "WHERE kind IN ('private_evaluation.v1','repeat_verified.v1') ORDER BY op_id"
             ).fetchall()
         if submission is None or model is None:
             raise StateError("koth_carry_king_unretained")
         if submission[2] != record["king"]["hotkey"]:
             raise StateError("koth_carry_king_moved")
-        carried = []
+        carried, marks = [], []
         for op_id, kind, state, raw in operations:
             body = json.loads(raw)
+            if kind == "repeat_verified.v1":
+                marks.append((op_id, kind, state, raw, body))
+                continue
             evidence = body.get("evidence") or {}
             if (
                 body.get("submission_id") == king
@@ -2023,9 +2070,20 @@ class PoolStore:
                 carried.append((op_id, kind, state, raw, body["evaluation_key"]))
         if not carried:
             raise StateError("koth_carry_king_evaluation_unavailable")
+        # The king's repeat marks travel with the grades they verify, so his carried evidence stays verified.
+        wanted = {key for *_, key in carried}
+        carried += [
+            (op_id, kind, state, raw, body["evaluation_key"])
+            for op_id, kind, state, raw, body in marks
+            if body["submission_id"] == king and body["evaluation_key"] in wanted
+        ]
         stored = {
             **record,
-            "carried_evaluations": sorted(key for *_, key in carried),
+            "carried_evaluations": sorted(
+                key
+                for op_id, kind, _s, _r, key in carried
+                if kind == "private_evaluation.v1"
+            ),
             "carried_at": self.clock(),
         }
         with self.transaction() as db:
