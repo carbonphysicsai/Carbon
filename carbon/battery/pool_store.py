@@ -1599,6 +1599,100 @@ class PoolStore:
             elif row != ("repeat_verified.v1", "REPEAT_VERIFIED", body):
                 raise StateError("repeat_mark_changed")
 
+    # --- crowns paused by the operator (OWNER-CROWN-PAUSE) -------------------------------------
+    # A contender whose crown decision the operator's pause withheld is filed here, so it is
+    # considered again, oldest first, once the flag is gone. The resolution is write-once.
+
+    def record_crown_paused(self, submission_id, key, *, kind, exam, entry_id, pin):
+        """File a paused contender: its evaluation key, the exam it was graded on (a pack digest, or a set key),
+        the retained entry its repeat grade is run from, and the source pin. Idempotent.
+        """
+        from carbon.challenge_validator.interface import is_digest
+
+        if (
+            kind not in ("pack", "set")
+            or not is_digest(key)
+            or not is_digest(exam)
+            or not is_digest(entry_id)
+            or not is_digest(pin)
+        ):
+            raise StateError("crown_paused_invalid")
+        op = self._bank_operation("crown_paused.v1", submission_id, key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.crown-paused.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "kind": kind,
+                "exam": exam,
+                "entry_id": entry_id,
+                "pin": pin,
+            }
+        )
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is None:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (op, "crown_paused.v1", "PAUSED", body),
+                )
+            elif row[0] != body:
+                raise StateError("crown_paused_changed")
+
+    def paused_crowns(self, kind=None):
+        """The unresolved paused contenders in filing order (oldest first), optionally of one kind."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_paused.v1' ORDER BY rowid"
+            ).fetchall()
+        records = [json.loads(raw) for (raw,) in rows]
+        return [
+            record
+            for record in records
+            if (kind is None or record["kind"] == kind)
+            and self.crown_pause_resolved(
+                record["submission_id"], record["evaluation_key"]
+            )
+            is None
+        ]
+
+    def resolve_crown_pause(self, submission_id, key, code):
+        """Resolve a paused contender once; the same code again is a no-op, another refuses."""
+        if type(code) is not str or not code:
+            raise StateError("crown_pause_resolution_invalid")
+        op = self._bank_operation("crown_pause_resolved.v1", submission_id, key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.crown-pause-resolved.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "code": code,
+            }
+        )
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is None:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (op, "crown_pause_resolved.v1", "RESOLVED", body),
+                )
+            elif row[0] != body:
+                raise StateError("crown_pause_resolution_changed")
+
+    def crown_pause_resolved(self, submission_id, key):
+        """The code a paused contender was resolved with, or None."""
+        op = self._bank_operation("crown_pause_resolved.v1", submission_id, key)
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=? AND kind='crown_pause_resolved.v1'",
+                (op,),
+            ).fetchone()
+        return None if row is None else json.loads(row[0])["code"]
+
     def repeat_verified(self, submission_id, key):
         """The fingerprint ``submission_id``'s grade under ``key`` was repeat-verified with, or None."""
         op = self._bank_operation("repeat_verified.v1", submission_id, key)

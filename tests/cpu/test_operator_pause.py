@@ -200,82 +200,332 @@ def test_the_crowns_flag_alone_does_not_refuse_the_weights_run(tmp_path, monkeyp
         asyncio.run(weights.execute(args))
 
 
-TASK = "rtsk_" + "a" * 64
+# --- the resume sweep: a paused contender is decided again once the flag is gone ----------------------------------
 
 
-class FakeIntake:
-    """Stands for the receiver: retains a task and reports its crown decision, which the operator's pause withholds."""
-
-    def __init__(self, directory):
-        self.directory = directory
-        self.calls = 0
-        self.adapter = SimpleNamespace(
-            contract_digest="c",
-            ledger=SimpleNamespace(submitted_outcomes=lambda digest: [TASK]),
-        )
-
-    def retain_result(self, submission_id, **kwargs):
-        self.calls += 1
-        paused = operator_pause.crowns_paused(self.directory)
-        outcome = (
-            {"outcome": bp.UNAVAILABLE, "reason": "crowns_paused"}
-            if paused
-            else {"outcome": bp.CHALLENGER, "reason": "bank_comparison_development"}
-        )
-        return {"entry_id": "sha256:" + "b" * 64, "koth_comparison": outcome}
+def digest(name):
+    return base.digest(name)
 
 
-def grader(tmp_path):
-    from carbon.challenge_validator.auto_grade import AutoGrader
+KEY_A, KEY_B, KEY_C = digest("key a"), digest("key b"), digest("key c")
+EXAM, OTHER_EXAM = digest("exam"), digest("another exam")
+ENTRY, PIN = digest("entry"), digest("pin")
+
+
+def pool(tmp_path):
+    from carbon.battery.pool_store import PoolStore
 
     state = tmp_path / "state"
     state.mkdir(mode=0o700, exist_ok=True)
-    intake = FakeIntake(state)
-    auto = AutoGrader(intake, tmp_path)
-    auto._pool = lambda: SimpleNamespace(path=state / "pool.sqlite3")
-    return auto, intake, state
+    return PoolStore(state / "pool.sqlite3")
 
 
-def marker_state(tmp_path):
-    return json.loads((tmp_path / "auto-grade/markers" / (TASK + ".json")).read_text())[
-        "state"
-    ]
+def file_paused(store, submission_id, key, kind="pack", exam=EXAM):
+    store.record_crown_paused(
+        submission_id, key, kind=kind, exam=exam, entry_id=ENTRY, pin=PIN
+    )
 
 
-def test_a_paused_crown_is_marked_paused_not_graded(tmp_path):
-    auto, _intake, state = grader(tmp_path)
-    flag(state, {"crowns_paused": True})
-    assert auto.run_once() == (TASK, "GRADED")
-    assert marker_state(tmp_path) == "PAUSED"
+def decided(outcome=bp.CHALLENGER, reason="bank_comparison_development"):
+    return {"outcome": outcome, "reason": reason}
 
 
-def test_nothing_is_retried_while_the_flag_stands(tmp_path):
-    auto, intake, state = grader(tmp_path)
-    flag(state, {"crowns_paused": True})
-    auto.run_once()
-    for _ in range(3):
-        assert auto.run_once() is None
-    assert intake.calls == 1 and marker_state(tmp_path) == "PAUSED"
+def test_paused_contenders_are_filed_once_and_listed_oldest_first(tmp_path):
+    store = pool(tmp_path)
+    for name, key in (("a", KEY_A), ("b", KEY_B), ("c", KEY_C)):
+        file_paused(store, name, key)
+    file_paused(store, "a", KEY_A)  # idempotent
+    assert [r["submission_id"] for r in store.paused_crowns()] == ["a", "b", "c"]
+    assert store.paused_crowns("set") == []
 
 
-def test_clearing_the_flag_considers_the_contender_again_without_manual_action(
+def test_a_resolution_is_write_once(tmp_path):
+    from carbon.battery.pool_store import StateError
+
+    store = pool(tmp_path)
+    file_paused(store, "a", KEY_A)
+    store.resolve_crown_pause("a", KEY_A, "CHALLENGER:x")
+    store.resolve_crown_pause("a", KEY_A, "CHALLENGER:x")
+    with pytest.raises(StateError, match="crown_pause_resolution_changed"):
+        store.resolve_crown_pause("a", KEY_A, "INCUMBENT_KEEPS:y")
+    assert store.crown_pause_resolved("a", KEY_A) == "CHALLENGER:x"
+    assert store.paused_crowns() == []
+
+
+def sweep(store, reconsider, kind="pack", exam=EXAM):
+    from carbon.challenge_validator import crown_pause_sweep
+
+    return crown_pause_sweep.sweep(store, reconsider, kind=kind, current_exam=exam)
+
+
+def test_oldest_first_each_against_the_incumbent_of_that_moment(tmp_path):
+    store = pool(tmp_path)
+    for name, key in (("a", KEY_A), ("b", KEY_B), ("c", KEY_C)):
+        file_paused(store, name, key)
+    incumbent = [None]
+    seen = []
+    store.incumbent = lambda: (
+        None if incumbent[0] is None else {"model_id": incumbent[0]}
+    )
+
+    def reconsider(record):
+        seen.append((record["submission_id"], incumbent[0]))
+        incumbent[0] = record["submission_id"]
+        return decided()
+
+    done = sweep(store, reconsider)
+    assert seen == [("a", None), ("b", "a"), ("c", "b")]
+    assert [name for name, _code in done] == ["a", "b", "c"]
+
+
+def test_a_crash_mid_sweep_resumes_where_it_stopped_and_decides_nobody_twice(
     tmp_path,
 ):
-    auto, intake, state = grader(tmp_path)
-    path = flag(state, {"crowns_paused": True})
-    auto.run_once()
+    store = pool(tmp_path)
+    for name, key in (("a", KEY_A), ("b", KEY_B), ("c", KEY_C)):
+        file_paused(store, name, key)
+    calls = []
+
+    def flaky(record):
+        calls.append(record["submission_id"])
+        if record["submission_id"] == "b" and calls.count("b") == 1:
+            raise RuntimeError("host went away")
+        return decided()
+
+    assert [n for n, _ in sweep(store, flaky)] == [
+        "a"
+    ]  # stopped at b: c not decided ahead of it
+    assert [r["submission_id"] for r in store.paused_crowns()] == ["b", "c"]
+    assert [n for n, _ in sweep(store, flaky)] == ["b", "c"]
+    assert calls == ["a", "b", "b", "c"]
+    assert sweep(store, flaky) == []
+    assert calls == ["a", "b", "b", "c"]
+
+
+def test_a_contender_that_is_already_the_incumbent_is_not_decided_again(tmp_path):
+    store = pool(tmp_path)
+    file_paused(store, "a", KEY_A)
+    store.incumbent = lambda: {"model_id": "a"}
+
+    def never(record):
+        raise AssertionError("already crowned")
+
+    assert sweep(store, never) == [("a", "already_incumbent")]
+
+
+def test_a_rotation_during_the_pause_never_crowns(tmp_path):
+    store = pool(tmp_path)
+    file_paused(store, "a", KEY_A, exam=OTHER_EXAM)
+
+    def never(record):
+        raise AssertionError("the exam is no longer the active one")
+
+    assert sweep(store, never) == [("a", "UNAVAILABLE:exam_rotated_during_pause")]
+    assert store.paused_crowns() == []
+
+
+def test_nothing_is_decided_while_the_flag_stands_or_when_it_returns(tmp_path):
+    store = pool(tmp_path)
+    file_paused(store, "a", KEY_A)
+    file_paused(store, "b", KEY_B)
+    path = flag(store.path.parent, {"crowns_paused": True})
+
+    def never(record):
+        raise AssertionError("paused")
+
+    assert sweep(store, never) == []
     path.unlink()
-    assert auto.run_once() == (TASK, "GRADED")
-    assert intake.calls == 2
-    assert marker_state(tmp_path) == "GRADED"
-    # Once graded it is not retained again.
-    assert auto.run_once() is None and intake.calls == 2
+    again = [decided(reason="crowns_paused")]
+    assert sweep(store, lambda record: again[0]) == []  # paused again mid-sweep
+    assert [r["submission_id"] for r in store.paused_crowns()] == ["a", "b"]
+    assert [n for n, _ in sweep(store, lambda record: decided())] == ["a", "b"]
 
 
-def test_a_graded_task_is_never_retried_by_the_resume(tmp_path):
-    auto, intake, state = grader(tmp_path)
-    assert auto.run_once() == (TASK, "GRADED") and marker_state(tmp_path) == "GRADED"
-    flag(state, {"crowns_paused": True})
+def test_a_refusal_is_not_a_decision_and_stays_unresolved(tmp_path):
+    store = pool(tmp_path)
+    file_paused(store, "a", KEY_A)
+    assert sweep(store, lambda record: {"error": "pool_refused"}) == []
+    assert [r["submission_id"] for r in store.paused_crowns()] == ["a"]
+
+
+def test_a_paused_decision_is_filed_by_the_path_and_nothing_else_is(tmp_path):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    store = pool(tmp_path)
+
+    def repeat(model):
+        raise AssertionError("not run")
+
+    repeat.entry_id = ENTRY
+    paused = {
+        "outcome": bp.UNAVAILABLE,
+        "reason": "crowns_paused",
+        "evaluation_key": KEY_A,
+    }
+    retention._file_if_paused(store, paused, "pack", "a", EXAM, repeat, PIN)
+    retention._file_if_paused(
+        store, decided() | {"evaluation_key": KEY_B}, "pack", "b", EXAM, repeat, PIN
+    )
+    assert [r["submission_id"] for r in store.paused_crowns()] == ["a"]
+    record = store.paused_crowns()[0]
+    assert (record["kind"], record["exam"], record["entry_id"], record["pin"]) == (
+        "pack",
+        EXAM,
+        ENTRY,
+        PIN,
+    )
+
+    def bare(model):
+        return None
+
+    with pytest.raises(retention.RetentionUnavailable, match="entry_unavailable"):
+        retention._file_if_paused(store, paused, "pack", "c", EXAM, bare, PIN)
+
+
+def test_the_pack_decision_is_made_from_the_filed_evaluation_with_no_regrade(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import koth_registry
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    store = pool(tmp_path)
+    file_paused(store, "a", KEY_A)
+    (record,) = store.paused_crowns()
+    taken = {}
+
+    def consider(self, submission_id, key, comparator, *, sealed, repeat):
+        taken.update(
+            submission_id=submission_id,
+            key=key,
+            pin=self.registered_source_receipt_sha256,
+            repeat_entry=repeat.entry_id,
+            sealed=sealed,
+        )
+        return decided()
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("a resumed decision takes no regrade, slot or Ladder")
+
+    monkeypatch.setattr(bp.BankPromotion, "consider_private", consider)
+    monkeypatch.setattr(koth_registry, "comparator", lambda *a: {"c": 1})
+    monkeypatch.setattr(retention, "regrade_retained_entry", forbidden)
+    monkeypatch.setattr(retention, "_record_ladder", forbidden)
+    snapshot = SimpleNamespace(read_json_role=lambda *a, **k: {})
+    adapter = SimpleNamespace(
+        challenge_id="chip-cold-plate",
+        discovery=SimpleNamespace(
+            evaluation_pack_snapshot=snapshot,
+            evaluation_pack_private_root="p",
+            evaluation_pack_public_root="q",
+            evaluation_pack_sealed=True,
+        ),
+    )
+    out = retention.reconsider_paused_pack(
+        adapter, store, record, artifact_directory=tmp_path, entry_directory=tmp_path
+    )
+    assert out == decided()
+    assert taken == {
+        "submission_id": "a",
+        "key": KEY_A,
+        "pin": PIN,
+        "repeat_entry": ENTRY,
+        "sealed": True,
+    }
+
+
+def test_the_set_decision_is_made_again_under_the_set_key_with_no_regrade(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+    from carbon.challenge_validator import pack_set_grading as grading
+
+    store = pool(tmp_path)
+    file_paused(store, "a", KEY_A, kind="set", exam=EXAM)
+    (record,) = store.paused_crowns("set")
+    taken = {}
+
+    def contend(promotion, adapters, batches, set_key, origin, pins, repeat):
+        taken.update(
+            set_key=set_key,
+            origin=origin,
+            pins=pins,
+            repeat_entry=repeat.entry_id,
+            batches=batches,
+        )
+        return decided()
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("a resumed decision takes no regrade, slot or Ladder")
+
+    monkeypatch.setattr(grading, "_contend_set", contend)
+    monkeypatch.setattr(retention, "regrade_retained_entry", forbidden)
+    monkeypatch.setattr(retention, "_record_ladder", forbidden)
+    done = grading.resume_paused_sets(
+        store,
+        {"d1": object(), "d2": object()},
+        ["d1", "d2"],
+        EXAM,
+        artifact_directory=tmp_path,
+        entry_directory=tmp_path,
+    )
+    assert done == [("a", "CHALLENGER:bank_comparison_development")]
+    assert taken == {
+        "set_key": EXAM,
+        "origin": "a",
+        "pins": {PIN},
+        "repeat_entry": ENTRY,
+        "batches": ["d1", "d2"],
+    }
+    assert record["kind"] == "set"
+
+
+def test_a_set_rotation_during_the_pause_never_crowns(tmp_path, monkeypatch):
+    from carbon.challenge_validator import pack_set_grading as grading
+
+    store = pool(tmp_path)
+    file_paused(store, "a", KEY_A, kind="set", exam=OTHER_EXAM)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("rotated")
+
+    monkeypatch.setattr(grading, "_contend_set", forbidden)
+    done = grading.resume_paused_sets(
+        store,
+        {},
+        ["d1"],
+        EXAM,
+        artifact_directory=tmp_path,
+        entry_directory=tmp_path,
+    )
+    assert done == [("a", "UNAVAILABLE:exam_rotated_during_pause")]
+
+
+def test_the_auto_grade_tick_resumes_pack_decisions_before_new_grades(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+    from carbon.challenge_validator.auto_grade import AutoGrader
+
+    store = pool(tmp_path)
+    file_paused(store, "a", KEY_A)
+    calls = []
+    monkeypatch.setattr(
+        retention,
+        "reconsider_paused_pack",
+        lambda adapter, pool_store, record, **kw: calls.append(record) or decided(),
+    )
+    intake = SimpleNamespace(
+        adapter=SimpleNamespace(
+            contract_digest="c",
+            ledger=SimpleNamespace(submitted_outcomes=lambda digest: []),
+            discovery=SimpleNamespace(evaluation_pack_digest=EXAM),
+        )
+    )
+    auto = AutoGrader(intake, tmp_path)
+    auto._pool = lambda: store
+    flag(store.path.parent, {"crowns_paused": True})
+    assert auto.run_once() is None and calls == []
+    operator_pause.flag_path(store.path.parent).unlink()
     assert auto.run_once() is None
-    operator_pause.flag_path(state).unlink()
-    assert auto.run_once() is None and intake.calls == 1
+    assert [r["submission_id"] for r in calls] == ["a"]
+    assert store.paused_crowns() == []
