@@ -9,6 +9,8 @@ script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
 [[ "$#" -le 1 ]] || { echo 'usage: accelerator_worker_image.sh [output-manifest]' >&2; exit 2; }
 output="${1:-${repo_root}/.carbon-artifacts/accelerator-worker-image.json}"
+# This build's C-03 parent has its own local tag (worker_parent_tag.sh), so it never retags the CPU parent.
+export CARBON_WORKER_PARENT_VARIANT=accelerator
 parent_manifest="${repo_root}/.carbon-artifacts/accelerator-parent-worker-image.json"
 bash "${script_dir}/worker_parent_manifest.sh" "${parent_manifest}"
 parent="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image_id"])' "${parent_manifest}")"

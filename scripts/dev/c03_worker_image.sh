@@ -29,7 +29,7 @@ source_tree_digest="sha256:$(git -C "${repo_root}" archive --format=tar HEAD | s
 lock_digest="sha256:$(shasum -a 256 "${repo_root}/uv.lock" | cut -d' ' -f1)"
 recipe_digest="sha256:$(shasum -a 256 "${dockerfile}" | cut -d' ' -f1)"
 entrypoint_digest="sha256:$(shasum -a 256 "${repo_root}/carbon/reconstruction/worker/entrypoint.py" | cut -d' ' -f1)"
-tag="carbon-c03-worker:${source_tree_digest:7:16}"
+tag="$(bash "$(dirname -- "${BASH_SOURCE[0]}")/worker_parent_tag.sh" "${CARBON_WORKER_PARENT_VARIANT:-cpu}" "${source_tree_digest}")"
 
 docker build \
   --platform linux/amd64 \

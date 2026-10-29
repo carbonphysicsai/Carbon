@@ -38,7 +38,12 @@ esac
 [[ "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "SOURCE_TREE_DIGEST is sha256:<64 hex>"
 repository="${CARBON_WORKER_PARENT_REPOSITORY:-}"
 if [[ -z "${repository}" ]]; then
-  printf '%s:%s\n' "${name}" "${source_digest:7:16}"
+  if [[ "${name}" == carbon-c03-worker ]]; then
+    # One tag per parent variant (worker_parent_tag.sh): a build never retags another's image.
+    bash "$(dirname -- "${BASH_SOURCE[0]}")/worker_parent_tag.sh" "${CARBON_WORKER_PARENT_VARIANT:-cpu}" "${source_digest}"
+  else
+    printf '%s:%s\n' "${name}" "${source_digest:7:16}"
+  fi
   exit 0
 fi
 component='[a-z0-9]+([._-][a-z0-9]+)*'

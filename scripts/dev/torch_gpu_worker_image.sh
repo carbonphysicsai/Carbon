@@ -19,6 +19,8 @@ repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
 [[ "$#" -le 1 ]] || { echo 'usage: torch_gpu_worker_image.sh [output-manifest]' >&2; exit 2; }
 command -v docker >/dev/null 2>&1 || { echo 'Docker is unavailable.' >&2; exit 2; }
 output="${1:-${repo_root}/.carbon-artifacts/torch-gpu-worker-image.json}"
+# This build's C-03 parent has its own local tag (worker_parent_tag.sh), so it never retags the CPU parent.
+export CARBON_WORKER_PARENT_VARIANT=torch-gpu
 parent_manifest="${repo_root}/.carbon-artifacts/torch-gpu-parent-worker-image.json"
 bash "${script_dir}/worker_parent_manifest.sh" "${parent_manifest}"
 parent="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image_id"])' "${parent_manifest}")"
