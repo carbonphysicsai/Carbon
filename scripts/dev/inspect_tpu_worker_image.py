@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import subprocess
 import uuid
 from pathlib import Path
 
 from carbon.reconstruction.accelerators import TPU_PROFILE
+from carbon.reconstruction.worker import build_inputs
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
     doctor,
@@ -71,14 +70,8 @@ def inspect(root: Path) -> dict:
     checked = doctor(image_id=identity.image_id, image_identity=identity, cli=cli)
     if not checked.eligible:
         raise ValueError(f"base container doctor rejected: {checked.code}")
-    source = subprocess.run(
-        ["git", "-C", str(root), "archive", "--format=tar", "HEAD"],
-        check=True,
-        capture_output=True,
-        timeout=30,
-    ).stdout
     if (
-        identity.source_tree_digest != "sha256:" + hashlib.sha256(source).hexdigest()
+        identity.source_tree_digest != build_inputs.digest(root)
         or identity.lock_digest != TPU_PROFILE.environment_lock_digest
     ):
         raise ValueError("source or TPU environment identity mismatch")

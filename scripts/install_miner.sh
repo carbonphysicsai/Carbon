@@ -10,7 +10,7 @@
 #   CARBON_STATE_DIR=~/.carbon/s5-candidate ~/carbon/scripts/install_miner.sh \
 #     --development-candidate "$(git -C ~/carbon rev-parse HEAD)" \
 #     "$(git -C ~/carbon rev-parse 'HEAD^{tree}')" \
-#     "sha256:$(git -C ~/carbon archive --format=tar HEAD | sha256sum | cut -d' ' -f1)" \
+#     "$(python3 ~/carbon/carbon/reconstruction/worker/build_inputs.py digest ~/carbon)" \
 #     --no-start                                # local DEVELOPMENT only
 #
 # What it does, in order, and nothing else:
@@ -704,7 +704,8 @@ if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
     || fail "local DEVELOPMENT source revision differs before bootstrap."
   [[ "$(git rev-parse 'HEAD^{tree}')" == "${DEVELOPMENT_TREE}" ]] \
     || fail "local DEVELOPMENT source tree differs before bootstrap."
-  source_digest="sha256:$(git archive --format=tar HEAD | sha256sum | cut -d' ' -f1)"
+  source_digest="$("$(bash "${repo_root}/scripts/dev/resolve_python.sh")" "${repo_root}/carbon/reconstruction/worker/build_inputs.py" digest "${repo_root}")" \
+    || fail "could not compute the worker build-inputs digest (no Python interpreter?)."
   [[ "${source_digest}" == "${DEVELOPMENT_SOURCE_TREE_DIGEST}" ]] \
     || fail "local DEVELOPMENT source archive differs before bootstrap."
   [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]] \

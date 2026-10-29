@@ -1,0 +1,13 @@
+# The worker image's build inputs: every path a worker Dockerfile COPYs, the Dockerfile itself, and the derived images'
+# input directories (OWNER ruling IMAGE_DIGEST_SCOPE_AND_M9PRIME_RULING_20261029). One path per line, relative to the
+# repository root. `source_tree_digest` of a worker-image-build.v2 record is the digest of the git tree listing (modes and blob ids) of these paths at HEAD.
+# Adding a COPY to a worker Dockerfile from a path not listed here fails tests/cpu/test_worker_build_inputs.py.
+pyproject.toml
+uv.lock
+README.md
+carbon
+.devcontainer/Dockerfile.reconstruction-worker
+.devcontainer/worker-native-mesh.lock
+.devcontainer/install-worker-native-mesh.sh
+.devcontainer/accelerators
+.devcontainer/torch

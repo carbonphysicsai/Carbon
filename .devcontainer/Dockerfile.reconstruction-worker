@@ -30,7 +30,7 @@ RUN uv python install "${PYTHON_VERSION}" \
     && wheel_path="$(find /dist -maxdepth 1 -type f -name 'carbon-*.whl' -print -quit)" \
     && wheel_digest="$(sha256sum "${wheel_path}" | cut -d' ' -f1)" \
     && mkdir -p /opt/carbon \
-    && printf '{"schema":"carbon.c03.worker-image-build.v1","source_tree_digest":"%s","wheel_digest":"sha256:%s","lock_digest":"%s","base_image_digest":"%s","build_recipe_digest":"%s","entrypoint_digest":"%s"}\n' \
+    && printf '{"schema":"carbon.c03.worker-image-build.v2","source_tree_digest":"%s","wheel_digest":"sha256:%s","lock_digest":"%s","base_image_digest":"%s","build_recipe_digest":"%s","entrypoint_digest":"%s"}\n' \
        "${SOURCE_TREE_DIGEST}" "${wheel_digest}" "${LOCK_DIGEST}" "${BASE_IMAGE_DIGEST}" "${BUILD_RECIPE_DIGEST}" "${ENTRYPOINT_DIGEST}" \
        > /opt/carbon/worker-image-build.json \
     && chmod -R a-w /opt/carbon-worker /opt/carbon /opt/uv-python

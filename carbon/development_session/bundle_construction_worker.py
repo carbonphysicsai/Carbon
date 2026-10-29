@@ -559,7 +559,7 @@ def prepare_library_overlay(
     manifest, source, wheels, lock, license_text = material
     verify_bundle_parent_environment(manifest, parent)
     parent_build = {
-        "schema": "carbon.c03.worker-image-build.v1",
+        "schema": "carbon.c03.worker-image-build.v2",
         "source_tree_digest": parent.source_tree_digest,
         "wheel_digest": parent.wheel_digest,
         "lock_digest": parent.lock_digest,
