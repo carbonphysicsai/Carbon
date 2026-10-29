@@ -116,16 +116,17 @@ def test_the_cno1d_twins_carry_the_one_warn_only_change_and_the_jax_twins_none()
         ).read_bytes()
 
 
-def test_lsm_has_no_twin_under_its_v2_ids_either():
+def test_lsm_has_a_warn_only_twin_under_its_v2_ids_too():
     for catalog_id in (
         "v2.motor.thuml.LSM",
         "v2.cooling.thuml.LSM",
         "v2.f08.thuml.LSM",
         "v2.f02.thuml.LSM",
     ):
-        assert catalog_id in gpu_build.NO_GPU_TWIN
-    with pytest.raises(pipeline.CatalogBroken):
-        pipeline.add_twin("v2.motor.thuml.LSM")
+        assert catalog_id not in gpu_build.NO_GPU_TWIN
+        assert catalog_id in gpu_build.WARN_ONLY_DETERMINISM
+        assert gpu_receipt.required_kind(catalog_id) == "smoke"
+        assert "torch-cu130-py311" in _item(catalog_id)["bundle_refs"]
 
 
 def test_an_unknown_entry_is_refused():

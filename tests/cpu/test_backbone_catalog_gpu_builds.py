@@ -654,25 +654,43 @@ def _relax(source):
     return zipped.getvalue()
 
 
-def test_lsm_has_no_gpu_twin_and_a_gpu_ref_for_it_is_refused(tmp_path, monkeypatch):
-    from carbon.backbone_catalog import gpu_receipt
+LSM_IDS = (
+    "thuml.LSM",
+    "f08.thuml.LSM",
+    "v2.motor.thuml.LSM",
+    "v2.cooling.thuml.LSM",
+    "v2.f08.thuml.LSM",
+    "v2.f02.thuml.LSM",
+)
 
-    assert gpu_build.NO_GPU_TWIN[:2] == ("thuml.LSM", "f08.thuml.LSM")
-    # ... and the same entry under its v2 ids.
-    assert {n for n in gpu_build.NO_GPU_TWIN[2:]} == {
-        f"v2.{c}.thuml.LSM" for c in ("motor", "cooling", "f08", "f02")
-    }
-    assert "thuml.LSM" not in gpu_receipt.SMOKE_ONLY
-    lsm = next(e for e in pipeline.load()["entries"] if e["catalog_id"] == "thuml.LSM")
-    assert "bundle_refs" not in lsm
-    assert not (pipeline.BUNDLES / "thuml.LSM" / "torch-cu130-py311").exists()
-    assert not gpu_receipt.path("thuml.LSM", "torch-cu130-py311").exists()
-    with pytest.raises(gpu_build.GpuBuildRefused, match="no GPU twin"):
-        gpu_build.derived_source("torch-cpu-py311", b"", "thuml.LSM")
-    fake = copy.deepcopy(lsm)
-    fake["bundle_refs"] = {"torch-cu130-py311": lsm["bundle_ref"]}
-    with pytest.raises(pipeline.CatalogBroken, match="no GPU twin"):
-        pipeline.verify(fake)
+
+def test_lsm_is_twinned_warn_only_and_smoke_only_like_cno1d_and_the_official_route_refuses_it():
+    # Nothing trains on a CPU (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01) and the cu130 lock pins timm, so LSM has a twin; its
+    # U-Net upsample backward has no deterministic CUDA kernel, so it is on the explicit warn-only and smoke-only lists
+    # until its tolerance receipt.
+    from carbon.backbone_catalog import gpu_receipt
+    from carbon.backbone_catalog.served import (
+        CatalogRefused,
+        refuse_unreproducible_runtime,
+    )
+
+    assert gpu_build.NO_GPU_TWIN == ()
+    assert set(LSM_IDS) <= set(gpu_build.WARN_ONLY_DETERMINISM)
+    assert set(LSM_IDS) <= set(gpu_receipt.SMOKE_ONLY)
+    entries = {e["catalog_id"]: e for e in pipeline.load()["entries"]}
+    for catalog_id in LSM_IDS:
+        item = entries[catalog_id]
+        assert set(item["bundle_refs"]) == {"torch-cu130-py311"}
+        assert gpu_receipt.required_kind(catalog_id) == "smoke"
+        assert not gpu_receipt.path(catalog_id, "torch-cu130-py311").exists()
+        twin = _members(
+            pipeline.BUNDLES / catalog_id / "torch-cu130-py311" / "source.tar.gz"
+        )
+        assert gpu_build.WARN_ONLY in twin[gpu_build.COMMON_MEMBER].decode()
+        pipeline.verify(item)
+        with pytest.raises(CatalogRefused) as refused:
+            refuse_unreproducible_runtime(item["bundle_refs"]["torch-cu130-py311"])
+        assert refused.value.code == "catalog_runtime_not_reproducible"
 
 
 DEVICE_FIXED = ("lno.LNO1d", "neuralop.GINO", "physicsnemo.MeshGraphNet")

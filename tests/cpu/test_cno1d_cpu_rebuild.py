@@ -32,14 +32,23 @@ def _manifest_cno1d():
     }
 
 
+LSM = {
+    "thuml.LSM",
+    "f08.thuml.LSM",
+    "v2.motor.thuml.LSM",
+    "v2.cooling.thuml.LSM",
+    "v2.f08.thuml.LSM",
+    "v2.f02.thuml.LSM",
+}
 ALL = CNO1D | listing.LEGACY_CPU_REBUILD
 
 
 def test_the_cno1d_list_is_every_cno1d_entry_in_the_catalog():
     # A new CNO1d entry cannot join the catalog without joining the CPU-only list.
     assert set(_manifest_cno1d()) == ALL
-    assert set(gpu_receipt.SMOKE_ONLY) == CNO1D
-    assert set(gpu_build.WARN_ONLY_DETERMINISM) == CNO1D
+    # CNO1d, plus thuml.LSM (same decision, same lists): a short explicit list, never a skip.
+    assert set(gpu_receipt.SMOKE_ONLY) == CNO1D | LSM
+    assert set(gpu_build.WARN_ONLY_DETERMINISM) == CNO1D | LSM
 
 
 @pytest.mark.parametrize("catalog_id", sorted(ALL))
@@ -60,6 +69,7 @@ def test_miners_see_the_cpu_rebuild_on_cno1d_and_only_there():
     seen = 0
     for e in listing.load()["entries"]:
         text = listing.summary(e["catalog_id"], e["backbone"], None, None)
-        assert (note in text) == (e["catalog_id"] in ALL), e["catalog_id"]
-        seen += e["catalog_id"] in ALL
-    assert seen == len(ALL)
+        labelled = e["catalog_id"] in ALL | LSM
+        assert (note in text) == labelled, e["catalog_id"]
+        seen += labelled
+    assert seen == len(ALL | LSM)

@@ -47,18 +47,10 @@ _CLEAR = (
 )
 
 
-#: Entries with no GPU twin at all (Validator ruling, 2026-10-22): thuml.LSM stays CPU-only and officially gradable
-#: with its CPU receipt (its GPU build would need `timm`, which the cu130 lock does not carry, and its upsample backward
-#: has no deterministic CUDA kernel).
-NO_GPU_TWIN = (
-    "thuml.LSM",
-    "f08.thuml.LSM",
-    # The same entry under its v2 ids (it still needs `timm`).
-    "v2.motor.thuml.LSM",
-    "v2.cooling.thuml.LSM",
-    "v2.f08.thuml.LSM",
-    "v2.f02.thuml.LSM",
-)
+#: Entries with no GPU twin at all. None: thuml.LSM had none (Validator ruling, 2026-10-22: it needs `timm`, which
+#: the cu130 lock did not carry), but the lock now pins timm and the owner's rule is that nothing trains on a CPU
+#: (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01), so it is twinned under its warn-only list below.
+NO_GPU_TWIN = ()
 #: The second registered change, on an explicit one-entry list and never a general rule (owner, 2026-10-22): the CNO1d
 #: build's upsample backward has no deterministic CUDA kernel, so its GPU twin relaxes
 #: `use_deterministic_algorithms(True)` to `warn_only=True`. The twin is therefore not a pure derivation of the CPU build
@@ -72,6 +64,15 @@ WARN_ONLY_DETERMINISM = (
     "v2.cooling.cno.CNO1d",
     "v2.f08.cno.CNO1d",
     "v2.f02.cno.CNO1d",
+    # thuml.LSM's U-Net blocks upsample with `nn.Upsample(mode='linear')`, whose backward has no deterministic CUDA
+    # kernel either (the original reason it had no twin). Same decision, same explicit list: a warn-only twin that
+    # is smoke-only until its tolerance receipt (`gpu_receipt.SMOKE_ONLY`).
+    "thuml.LSM",
+    "f08.thuml.LSM",
+    "v2.motor.thuml.LSM",
+    "v2.cooling.thuml.LSM",
+    "v2.f08.thuml.LSM",
+    "v2.f02.thuml.LSM",
 )
 #: The fourth registered change, on an explicit list (Lead, 2026-10-29): the kernel-ridge fit of the physics-prior
 #: entries solves its Cholesky system in float64 on the CPU (NumPy), so its GPU twin would train on the CPU. The twin
