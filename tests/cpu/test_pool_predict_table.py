@@ -268,3 +268,30 @@ def test_predict_builds_for_the_rows_files_own_version_not_the_launch_version(
     (tmp_path / "bound.json").write_text(json.dumps(_bound()))
     with pytest.raises(tool.Stop):
         tool.predict_command(args, binder=_Binder(), curves=curves)
+
+
+def test_a_rows_file_without_a_version_is_a_stop(tmp_path):
+    (tmp_path / "bound.json").write_text(json.dumps(_bound()))
+    for version in (None, "", 2.4):
+        (tmp_path / "rows.json").write_text(
+            json.dumps(
+                {
+                    "schema": tool.ROWS_SCHEMA,
+                    "kind": "f02",
+                    "version": version,
+                    "input_names": [],
+                    "rows": [],
+                }
+            )
+        )
+        args = SimpleNamespace(
+            kind="f02",
+            role="good",
+            bound=str(tmp_path / "bound.json"),
+            rows=str(tmp_path / "rows.json"),
+            out=str(tmp_path / "t.json"),
+            work_dir=str(tmp_path / "w"),
+        )
+        curves = SimpleNamespace(TARGETS={"f02": ("f02", "2.4")}, practice_for=None)
+        with pytest.raises(tool.Stop):
+            tool.predict_command(args, binder=_Binder(), curves=curves)

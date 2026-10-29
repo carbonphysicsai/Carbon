@@ -152,7 +152,9 @@ def predict_command(args, *, binder=None, curves=None):
     # The version is the rows file's own, never the curves job's hard-coded launch version
     # (a pool version's table is built for ITS version). The bound table must hold a pick for
     # exactly this version (check_pick), so a version nobody bound is a STOP.
-    version = rows_document["version"]
+    version = rows_document.get("version")
+    if type(version) is not str or not version:
+        raise Stop("the rows file names no version")
     bound = json.loads(Path(args.bound).read_text(encoding="utf-8"))
     pick = check_pick(binder, bound, args.role, challenge_id, version)
     curves.TARGETS[args.kind] = (challenge_id, version)  # the practice builder reads it
