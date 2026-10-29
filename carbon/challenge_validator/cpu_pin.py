@@ -20,10 +20,11 @@ from __future__ import annotations
 import os
 
 OPENBLAS_CORETYPE = "Haswell"
-#: The AVX-512 feature names NumPy may dispatch on (comma separated: no quoting needed in ENV, Environment= or YAML).
-NPY_DISABLE_CPU_FEATURES = (
-    "AVX512F,AVX512CD,AVX512_SKX,AVX512_CLX,AVX512_CNL,AVX512_ICL,AVX512_SPR"
-)
+#: The AVX-512 DISPATCH TARGETS of the pinned NumPy (2.4.6: ``__cpu_dispatch__`` = X86_V3, X86_V4, AVX512_ICL,
+#: AVX512_SPR; X86_V4 is the group carrying AVX512F/CD/SKX/CLX/CNL). Only a dispatch target can be disabled: naming the
+#: raw features (AVX512F ...) did nothing on the pinned build (measured on runner2, EPYC Genoa). X86_V3 (AVX2) stays.
+#: Comma separated: no quoting needed in ENV, Environment= or YAML.
+NPY_DISABLE_CPU_FEATURES = "X86_V4,AVX512_ICL,AVX512_SPR"
 PIN = {
     "OPENBLAS_CORETYPE": OPENBLAS_CORETYPE,
     "NPY_DISABLE_CPU_FEATURES": NPY_DISABLE_CPU_FEATURES,

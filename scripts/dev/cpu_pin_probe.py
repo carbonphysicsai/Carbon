@@ -27,6 +27,7 @@ info = {
     "dispatch": list(__cpu_dispatch__),
     "features_on": sorted(k for k, v in __cpu_features__.items() if v),
     "features_avx512_known": sorted(k for k in __cpu_features__ if k.startswith("AVX512")),
+    "dispatch_targets_on": sorted(t for t in __cpu_dispatch__ if __cpu_features__.get(t)),
     "env": {k: os.environ.get(k) for k in ("OPENBLAS_CORETYPE", "NPY_DISABLE_CPU_FEATURES", "OPENBLAS_NUM_THREADS")},
 }
 try:
@@ -38,8 +39,8 @@ print(json.dumps(info, sort_keys=True))
 """
 
 
-def _run(extra_env):
-    env = {k: v for k, v in os.environ.items() if k not in extra_env}
+def _run(extra_env, drop=()):
+    env = {k: v for k, v in os.environ.items() if k not in extra_env and k not in drop}
     env.update(extra_env)
     env.setdefault("OPENBLAS_NUM_THREADS", "1")
     done = subprocess.run(
@@ -62,7 +63,8 @@ def main(argv=None):
     parser.add_argument("--disable", default="")
     parser.add_argument("--coretype", default="Haswell")
     args = parser.parse_args(argv)
-    out = {"unpinned": _run({})}
+    # the unpinned child has the pin variables REMOVED even when this process (e.g. canonical.sh) exports them
+    out = {"unpinned": _run({}, drop=("OPENBLAS_CORETYPE", "NPY_DISABLE_CPU_FEATURES"))}
     pin = {"OPENBLAS_CORETYPE": args.coretype}
     if args.disable:
         pin["NPY_DISABLE_CPU_FEATURES"] = args.disable

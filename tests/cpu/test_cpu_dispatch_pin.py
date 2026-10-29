@@ -17,15 +17,8 @@ NPY = cpu_pin.NPY_DISABLE_CPU_FEATURES
 def test_the_constants_are_the_ruled_ones():
     assert BLAS == "Haswell"
     names = set(NPY.split(","))
-    assert names == {
-        "AVX512F",
-        "AVX512CD",
-        "AVX512_SKX",
-        "AVX512_CLX",
-        "AVX512_CNL",
-        "AVX512_ICL",
-        "AVX512_SPR",
-    }
+    # the AVX-512 dispatch targets of numpy 2.4.6 (X86_V3, the AVX2 loops, stays on)
+    assert names == {"X86_V4", "AVX512_ICL", "AVX512_SPR"}
     assert " " not in NPY and cpu_pin.PIN == {
         "OPENBLAS_CORETYPE": BLAS,
         "NPY_DISABLE_CPU_FEATURES": NPY,
