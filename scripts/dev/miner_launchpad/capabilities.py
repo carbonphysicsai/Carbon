@@ -250,8 +250,44 @@ def _setup_offers(entry):
     }
 
 
+#: A version's description and what is derived from it, kept for the life of this
+#: process: they are a function of the registry, the repository's pinned catalog and
+#: TRAIN files and the host's facts, none of which change while the Control Center
+#: runs (a code or catalog update restarts it). Rebuilding them on every capabilities
+#: read took tens of seconds on a quiet miner machine, past the page's deadline
+#: (M3b Test Runner). Each use gets its own copy, so nothing a caller changes leaks
+#: into the next read.
+_STATIC = {}
+
+
+def _static_description(challenge_id, version, host):
+    import copy
+
+    from carbon.challenge_registry import describe
+    from scripts.dev.miner_launchpad.toolbox import catalog_recipes
+
+    key = (challenge_id, version, host)
+    if key not in _STATIC:
+        description = describe(challenge_id, version, host=host)
+        examples = description.get("examples") or []
+        _STATIC[key] = {
+            "description": description,
+            "tools": _tools(description),
+            # A Level 0 example is a strategy; a direct version's is a recipe.
+            "example_strategy": (
+                examples[0].get("strategy", examples[0].get("recipe"))
+                if examples
+                else None
+            ),
+            # A catalog version's backbone picker: each entry and its ready
+            # recipe, from the version's catalog (S22); [] elsewhere.
+            "catalog_recipes": catalog_recipes(challenge_id, version),
+        }
+    return copy.deepcopy(_STATIC[key])
+
+
 def _challenges(profile_state, host, cfg=None):
-    from carbon.challenge_registry import catalog, describe
+    from carbon.challenge_registry import catalog
     from carbon.challenge_registry.registry import (
         DEFERRED,
         IMPLEMENTED,
@@ -315,23 +351,12 @@ def _challenges(profile_state, host, cfg=None):
         else:
             refusal = _composed(entry["challenge_id"], entry["version"])
         if item["implemented"]:
-            description = describe(entry["challenge_id"], entry["version"], host=host)
+            static = _static_description(entry["challenge_id"], entry["version"], host)
+            description = static["description"]
             item["description"] = description
-            item["tools"] = _tools(description)
-            examples = description.get("examples") or []
-            # A Level 0 example is a strategy; a direct version's is a recipe.
-            item["example_strategy"] = (
-                examples[0].get("strategy", examples[0].get("recipe"))
-                if examples
-                else None
-            )
-            # A catalog version's backbone picker: each entry and its ready
-            # recipe, from the version's catalog (S22); [] elsewhere.
-            from scripts.dev.miner_launchpad.toolbox import catalog_recipes
-
-            item["catalog_recipes"] = catalog_recipes(
-                entry["challenge_id"], entry["version"]
-            )
+            item["tools"] = static["tools"]
+            item["example_strategy"] = static["example_strategy"]
+            item["catalog_recipes"] = static["catalog_recipes"]
             # E11 (newcomer list): a Challenge with no ready recipe and no
             # installable backbone cannot be practised from the page; say so
             # rather than offer it as if it could (Battery 2.2 until its
