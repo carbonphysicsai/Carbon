@@ -284,7 +284,8 @@ def test_a_marker_cannot_prove_a_corrupt_or_incomplete_installation(receiver, da
             record["parent"]["source_tree_digest"] = "sha256:" + "9" * 64
         marker.write_text(json.dumps(record))
     elif damage in {"changed_context", "missing_context_file"}:
-        source = Path(record["provisioned"]["context"]) / "source.tar.gz"
+        # Records name the context relative to the context root (the marker's directory).
+        source = marker.parent / record["provisioned"]["context"] / "source.tar.gz"
         if damage == "changed_context":
             source.chmod(0o600)
             source.write_bytes(b"changed synthetic context")

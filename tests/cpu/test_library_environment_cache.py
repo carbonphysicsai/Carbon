@@ -621,6 +621,66 @@ def test_cache_round_trip_requires_verification_and_trusted_bindings(
         )
 
 
+def test_a_record_is_host_portable_and_still_refuses_a_tampered_one(
+    tmp_path, monkeypatch
+):
+    """A record names its context relative to the context root, so it loads on a host whose state sits under
+    another path; the digests and bindings still decide, and nothing escapes the new root.
+    """
+    old_root = tmp_path / "host-a" / "contexts"
+    (old_root / "checked").mkdir(parents=True)
+    image = _image(old_root / "checked")
+    monkeypatch.setattr(cache, "_context_digest", lambda _: _sha("3"))
+    monkeypatch.setattr(cache, "verify_library_worker_image", lambda *_: None)
+    path = tmp_path / "image.json"
+    cache.store_verified_library_worker_image(
+        path, image, context_root=old_root, cli=object()
+    )
+    record = json.loads(path.read_text(encoding="utf-8"))
+    assert record["provisioned"]["context"] == "checked"  # no host path in the record
+
+    new_root = tmp_path / "host-b" / "state" / "contexts"
+    (new_root / "checked").mkdir(parents=True)
+    loaded = cache.load_cached_library_worker_image(
+        path,
+        expected_bundle=image.provisioned.bundle,
+        expected_parent=image.parent,
+        context_root=new_root,
+    )
+    assert loaded.provisioned.context == new_root / "checked"
+    assert loaded.provisioned.context_digest == image.provisioned.context_digest
+    assert loaded.provisioned.image_id == image.provisioned.image_id
+
+    def tampered(change):
+        edited = json.loads(path.read_text(encoding="utf-8"))
+        change(edited["provisioned"])
+        other = tmp_path / "tampered.json"
+        other.write_text(json.dumps(edited), encoding="utf-8")
+        other.chmod(0o600)
+        return other
+
+    def refused(record_path, root=new_root):
+        with pytest.raises(ValueError, match="invalid cached library worker image"):
+            cache.load_cached_library_worker_image(
+                record_path,
+                expected_bundle=image.provisioned.bundle,
+                expected_parent=image.parent,
+                context_root=root,
+            )
+
+    monkeypatch.setattr(cache, "_context_digest", lambda _: _sha("8"))
+    refused(path)  # the directory's content no longer matches the recorded digest
+    monkeypatch.setattr(cache, "_context_digest", lambda _: _sha("3"))
+    for escape in ("../checked", "/etc", "checked/../../x", "", "a\b"):
+        refused(tampered(lambda p, e=escape: p.update(context=e)))
+    refused(tampered(lambda p: p.update(context_digest=_sha("9"))))  # digest differs
+    (tmp_path / "elsewhere").mkdir()
+    (new_root / "link").symlink_to(tmp_path / "elsewhere", target_is_directory=True)
+    refused(tampered(lambda p: p.update(context="link")))
+    (new_root / "file").write_text("x")
+    refused(tampered(lambda p: p.update(context="file")))
+
+
 def test_cache_refuses_changed_context_and_unverified_write(tmp_path, monkeypatch):
     contexts = tmp_path / "contexts"
     context = contexts / "checked"
