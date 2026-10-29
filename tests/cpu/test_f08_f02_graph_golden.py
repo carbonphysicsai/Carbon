@@ -50,6 +50,9 @@ V8_MOVED = {
     "carbon.level4.loss.py",
     "carbon.level4.validate.py",
 }
+#: Comment-only GiB wording ("2.5 GB" -> "2.5 GiB"), 312162cca, MINER_FREEDOM_RULINGS section 4: no executable
+#: line moved, and the recorded evidence JSON is not touched. Named here, beside V8_MOVED, so the next move fails.
+COMMENT_ONLY_MOVED = {"carbon.level4.intake.py"}
 #: The served backbone catalog digest the recorded runs were made under (rc6
 #: a454e75e5). The catalog freeze moved it for these two versions
 #: (OWNER-CATALOG-LICENCES-01 relicense, 08c1465a9), which moves the kit's
@@ -161,10 +164,12 @@ def test_the_build_child_and_programs_are_the_golden_ones(key, tmp_path, monkeyp
         )
     assert captured["source"] == golden[0]["source"]
     unchanged = lambda files: {  # noqa: E731
-        n: d for n, d in files.items() if n != CHANGED and n not in V8_MOVED
+        n: d
+        for n, d in files.items()
+        if n != CHANGED and n not in V8_MOVED | COMMENT_ONLY_MOVED
     }
     assert unchanged(captured["files"]) == unchanged(golden[0]["files"])
-    assert V8_MOVED >= {
+    assert V8_MOVED | COMMENT_ONLY_MOVED >= {
         n
         for n in set(captured["files"]) | set(golden[0]["files"])
         if captured["files"].get(n) != golden[0]["files"].get(n)
