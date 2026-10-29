@@ -50,21 +50,50 @@ def _load(path=REGISTRY):
             # A plain lookup would silently ignore a misspelled id: refuse it.
             challenge not in known
             or type(noise) is not dict
-            or set(noise) != {"value", "measurement_digest"}
+            or set(noise) - {"control"} != {"value", "measurement_digest"}
             or type(noise["value"]) not in (int, float)
             or not math.isfinite(noise["value"])
             # Never 0: an all-equal measurement registers the total's resolution.
             or not noise["value"] > 0
             or not is_digest(noise["measurement_digest"])
+            or ("control" in noise and not _control_ok(noise["control"]))
         ):
             raise RegistryInvalid("koth_registry_invalid")
     return document["challenges"]
 
 
+CONTROL_BASES = ("bit_identical", "within_noise")
+
+
+def _control_ok(control):
+    """The control the recal registered beside a Challenge's noise (Validator V7 rulings, codex-queue/reports/VALIDATOR_V7_RULINGS_20261029.md): a panel
+    member that trains on the GPU, its reference total and grade fingerprint, and how it is compared.
+    """
+    return (
+        type(control) is dict
+        and set(control)
+        == {"entry_id", "reference_total", "reference_fingerprint", "control_basis"}
+        and is_digest(control["entry_id"])
+        and type(control["reference_total"]) in (int, float)
+        and math.isfinite(control["reference_total"])
+        and is_digest(control["reference_fingerprint"])
+        and control["control_basis"] in CONTROL_BASES
+    )
+
+
 def rebuild_noise(challenge_id, *, path=REGISTRY):
     """The Challenge's registered `{value, measurement_digest}`, or None."""
     noise = _load(path).get(challenge_id)
-    return None if noise is None else dict(noise)
+    return None if noise is None else {k: v for k, v in noise.items() if k != "control"}
+
+
+def control(challenge_id, *, path=REGISTRY):
+    """The Challenge's registered control `{entry_id, reference_total, reference_fingerprint, control_basis}`, or
+    None: with none, a beyond-tolerance repeat is FAILED_INFRA, as before (fail closed).
+    """
+    noise = _load(path).get(challenge_id)
+    found = None if noise is None else noise.get("control")
+    return None if found is None else dict(found)
 
 
 def _refuse_practice(*documents):

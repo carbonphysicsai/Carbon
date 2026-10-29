@@ -312,7 +312,35 @@ def _set_repeat(batch_adapters, batches, set_key, origin, entry_id, **custody):
         }
 
     repeat.entry_id = entry_id
+    repeat.batch_adapters, repeat.batches, repeat.custody = (
+        batch_adapters,
+        batches,
+        custody,
+    )
+    repeat.set_key = set_key
     return repeat
+
+
+def _set_control_check(repeat, control, comparator):
+    """``control()`` for the set's `repeat_gate`: the registered control graded on every batch like the contender's
+    repeat (`_set_repeat`), its set evidence compared as `lean_recipe_retention._control_check` does.
+    """
+    if control is None or getattr(repeat, "custody", None) is None:
+        return None
+
+    def check():
+        entry = control["entry_id"]
+        again = _set_repeat(
+            repeat.batch_adapters,
+            repeat.batches,
+            repeat.set_key,
+            entry,
+            entry,
+            **repeat.custody,
+        )(entry)
+        return retention._control_reproduced(control, again["evidence"], comparator)
+
+    return check
 
 
 def _contend_set(
@@ -359,6 +387,14 @@ def _contend_set(
                 getattr(d, "evaluation_pack_sealed", False) is True for d in discoveries
             ),
             repeat=repeat,
+            control=_set_control_check(
+                repeat,
+                koth_registry.control(batch_adapters[batches[0]].challenge_id),
+                comparator,
+            ),
+        )
+        retention._watch_repeat_miss(
+            promotion.store, batch_adapters[batches[0]], origin, outcome
         )
         retention._file_if_paused(
             promotion.store, outcome, "set", origin, set_key, repeat, pin

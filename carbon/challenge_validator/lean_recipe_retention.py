@@ -1621,17 +1621,22 @@ def _contend(
             "accuracy_definition",
             max_bytes=65536,
         )
+        comparator = koth_registry.comparator(
+            adapter.challenge_id, bind_inputs["score_pack"], accuracy
+        )
         outcome = promotion.consider_private(
             submission_id,
             filed["evaluation_key"],
-            koth_registry.comparator(
-                adapter.challenge_id, bind_inputs["score_pack"], accuracy
-            ),
+            comparator,
             # Delivery provenance, never the pack's shape: only a pack that
             # arrived through the answer-key route into the sealed store.
             sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
             repeat=repeat,
+            control=_control_check(
+                repeat, koth_registry.control(adapter.challenge_id), comparator
+            ),
         )
+        _watch_repeat_miss(promotion.store, adapter, submission_id, outcome)
         _file_if_paused(
             promotion.store,
             outcome,
@@ -1655,6 +1660,47 @@ def _contend(
         "reason": outcome["reason"],
         "evaluation_key": outcome["evaluation_key"],
     }
+
+
+def _control_check(repeat, control, comparator):
+    """``control()`` for `repeat_gate`: rebuild the Challenge's registered control (`koth_registry.control`, picked by
+    the recal) on this host through the same uncounted `repeat_grade`, and say whether it reproduced: its exact grade
+    fingerprint (`bit_identical`), or its total within the registered noise (`within_noise`). None when no control
+    is registered or this repeat has no custody to rebuild with (then a miss stays FAILED_INFRA).
+    """
+    if control is None or getattr(repeat, "custody", None) is None:
+        return None
+
+    def check():
+
+        evidence = repeat_grade(repeat.adapter, control["entry_id"], **repeat.custody)
+        return _control_reproduced(control, evidence, comparator)
+
+    return check
+
+
+def _control_reproduced(control, evidence, comparator):
+    from carbon.challenge_validator.bank_promotion import grade_fingerprint
+
+    if control["control_basis"] == "bit_identical":
+        return (
+            grade_fingerprint({"evidence": evidence})
+            == control["reference_fingerprint"]
+        )
+    noise = (comparator.get("rebuild_noise") or {}).get("value")
+    total = (evidence.get("model_p") or {}).get("total_score")
+    return (
+        noise is not None
+        and type(total) in (int, float)
+        and abs(total - control["reference_total"]) <= noise
+    )
+
+
+def _watch_repeat_miss(store, adapter, submission_id, outcome):
+    """File a crown repeat miss against its hotkey and alert the operator on a pattern (`repeat_miss_watch`)."""
+    from carbon.challenge_validator import repeat_miss_watch
+
+    repeat_miss_watch.watch(store, adapter, submission_id, outcome)
 
 
 def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
@@ -2727,6 +2773,8 @@ def _repeat_of(adapter, origin, entry_id, **custody):
     repeat.rebuild_at = rebuild_at
     # The host-fault pair's second build of the same seed: a different derived task, so a real second build.
     repeat.rebuild_again_at = lambda seed: rebuild_at(seed, 1)
+    # What a control rebuild on this host needs: the same adapter and custody (`_control_check`).
+    repeat.adapter, repeat.custody = adapter, custody
     return repeat
 
 

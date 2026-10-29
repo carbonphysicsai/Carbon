@@ -580,6 +580,7 @@ class BankPromotion:
         sealed=False,
         repeat=None,
         average=None,
+        control=None,
     ):
         """King of the hill on one shared evaluation key, DEVELOPMENT only.
 
@@ -704,6 +705,7 @@ class BankPromotion:
                 repeat,
                 marked,
                 (comparator.get("rebuild_noise") or {}).get("value"),
+                control,
             )
             if gated is outcome:
                 # Verified: file the marks, so the next decision repeats only what is unmarked.
@@ -848,6 +850,11 @@ CROWNS_PAUSED = "crowns_paused"
 #: behind it, filed like a paused one and decided by `crown_pause_sweep` in admission order, never ahead of it.
 CROWN_QUEUED = "queued_behind_undecided_crown"
 ALERT_SCHEMA = "carbon.challenge-validator.crown-grade-alert.v1"
+#: A crown-changing repeat beyond tolerance while a Carbon control rebuild on the same host reproduced: the
+#: candidate is the unstable one, not the machine (OWNER-ATTACK-RISKS-V7-G4B-01). No crown, the attempt stays
+#: counted, no host alert.
+CANDIDATE_NOT_REPRODUCIBLE = "candidate_not_reproducible"
+CONTROL_REPRODUCED = "crown_repeat_control_reproduced"
 
 
 def _exact(value):
@@ -934,7 +941,7 @@ def _flipped_gates(first, second):
     return sorted(str(name) for name in set(a) | set(b) if a.get(name) != b.get(name))
 
 
-def repeat_gate(pair, outcome, repeat, marked=None, tolerance=None):
+def repeat_gate(pair, outcome, repeat, marked=None, tolerance=None, control=None):
     """Let a crown change stand only if every grade it read has been repeat-
     verified: a second, independent grade of the same state on the registered
     class, agreeing with the first within ``tolerance``, the Challenge's registered
@@ -974,6 +981,19 @@ def repeat_gate(pair, outcome, repeat, marked=None, tolerance=None):
                 flipped[first["submission_id"]] = names
     if not differing:
         return outcome
+    # Only the contender's own miss can be put down to the contender: if the control reproduces on this host,
+    # the machine is sound and the candidate is not reproducible (V7). An incumbent's miss, a missing control or
+    # a control that misses or cannot run stays FAILED_INFRA with the host alert.
+    control_state = "none_registered"
+    if control is not None and differing == [pair["candidate"]["submission_id"]]:
+        try:
+            control_state = "reproduced" if control() is True else "missed"
+        except Exception:  # noqa: BLE001 - no reproduction
+            control_state = "unavailable"
+        if control_state == "reproduced":
+            return held(CONTROL_REPRODUCED, CANDIDATE_NOT_REPRODUCIBLE)
+    elif control is not None:
+        control_state = "not_applicable"
     return held(
         REPEAT_MISMATCH,
         FAILED_INFRA,
@@ -984,6 +1004,7 @@ def repeat_gate(pair, outcome, repeat, marked=None, tolerance=None):
             "states": differing,
             # The gates whose verdict differed between the two grades, by name: gate-unstable states.
             "flipped_gates": flipped,
+            "control": control_state,
             "action": "recheck_validator_host",
         },
     )

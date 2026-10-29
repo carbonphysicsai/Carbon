@@ -1854,6 +1854,93 @@ class PoolStore:
             ).fetchone()
         return None if row is None else json.loads(row[0])["code"]
 
+    # --- crown repeat misses and the per-hotkey watch (Validator V7 rulings, codex-queue/reports/VALIDATOR_V7_RULINGS_20261029.md) ---------
+    # Operator-side only: nothing here reaches a miner.
+
+    def record_repeat_miss(
+        self, submission_id, key, *, hotkey, challenge_id, block, kind
+    ):
+        """Record that this submission's crown repeat missed (idempotent per grade)."""
+        if (
+            type(hotkey) is not str
+            or not hotkey
+            or type(challenge_id) is not str
+            or not challenge_id
+            or type(block) is not int
+            or block < 0
+            or kind not in ("FAILED_INFRA", "candidate_not_reproducible")
+        ):
+            raise StateError("repeat_miss_invalid")
+        op = self._bank_operation("repeat_miss.v1", submission_id, key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.repeat-miss.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "hotkey": hotkey,
+                "challenge_id": challenge_id,
+                "block": block,
+                "kind": kind,
+            }
+        )
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is None:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (op, "repeat_miss.v1", "MISS", body),
+                )
+            elif row[0] != body:
+                raise StateError("repeat_miss_changed")
+
+    def repeat_miss_blocks(self, hotkey, challenge_id):
+        """The chain blocks of this hotkey's crown repeat misses on this Challenge, ascending."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='repeat_miss.v1'"
+            ).fetchall()
+        found = [json.loads(raw) for (raw,) in rows]
+        return sorted(
+            m["block"]
+            for m in found
+            if m["hotkey"] == hotkey and m["challenge_id"] == challenge_id
+        )
+
+    def record_repeat_miss_alert(self, hotkey, challenge_id, window, count):
+        """File an operator alert for ``hotkey`` on ``challenge_id`` in window number ``window`` (idempotent: one per
+        window); returns True when it is new."""
+        op = self._bank_operation(
+            "repeat_miss_alert.v1", hotkey + "|" + challenge_id, str(window)
+        )
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.repeat-miss-alert.v1",
+                "hotkey": hotkey,
+                "challenge_id": challenge_id,
+                "window": window,
+                "count": count,
+                "status": "PROVISIONAL",
+            }
+        )
+        with self.transaction() as db:
+            if db.execute("SELECT 1 FROM operations WHERE op_id=?", (op,)).fetchone():
+                return False
+            db.execute(
+                "INSERT INTO operations VALUES(?,?,?,?)",
+                (op, "repeat_miss_alert.v1", "ALERT", body),
+            )
+        return True
+
+    def repeat_miss_alerts(self):
+        """Every repeat-miss alert filed, oldest first (for the operator)."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='repeat_miss_alert.v1' ORDER BY rowid"
+            ).fetchall()
+        return [json.loads(raw) for (raw,) in rows]
+
     def repeat_verified(self, submission_id, key):
         """The fingerprint ``submission_id``'s grade under ``key`` was repeat-verified with, or None."""
         op = self._bank_operation("repeat_verified.v1", submission_id, key)
