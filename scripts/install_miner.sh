@@ -704,8 +704,14 @@ if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
     || fail "local DEVELOPMENT source revision differs before bootstrap."
   [[ "$(git rev-parse 'HEAD^{tree}')" == "${DEVELOPMENT_TREE}" ]] \
     || fail "local DEVELOPMENT source tree differs before bootstrap."
-  source_digest="$("$(bash "${repo_root}/scripts/dev/resolve_python.sh")" "${repo_root}/carbon/reconstruction/worker/build_inputs.py" digest "${repo_root}")" \
-    || fail "could not compute the worker build-inputs digest (no Python interpreter?)."
+  # The worker build inputs only (carbon/reconstruction/worker/build_inputs.txt), in plain shell: this runs before the
+  # environment exists, so it needs only git and sha256sum. It prints the same bytes build_inputs.py hashes.
+  build_inputs="$(git show HEAD:carbon/reconstruction/worker/build_inputs.txt \
+    | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^#/d' -e '/^$/d')" \
+    || fail "could not read the worker build inputs file."
+  [[ -n "${build_inputs}" ]] || fail "the worker build inputs file is empty."
+  mapfile -t build_input_paths <<< "${build_inputs}"
+  source_digest="sha256:$(git ls-tree -r --full-tree HEAD -- "${build_input_paths[@]}" | sha256sum | cut -d' ' -f1)"
   [[ "${source_digest}" == "${DEVELOPMENT_SOURCE_TREE_DIGEST}" ]] \
     || fail "local DEVELOPMENT source archive differs before bootstrap."
   [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]] \

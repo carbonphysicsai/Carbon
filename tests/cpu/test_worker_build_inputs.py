@@ -228,3 +228,31 @@ def test_no_verifier_still_hashes_the_whole_tree():
     assert "build_inputs.py" in build_script
     campaign = (ROOT / "carbon/development_session/research_campaign.py").read_text()
     assert campaign.count("build_inputs.digest(") == 2
+
+
+def test_the_installers_shell_digest_equals_the_python_digest(tmp_path):
+    """install_miner.sh computes the digest in plain shell (no interpreter before the environment exists): the same
+    bytes build_inputs.py hashes."""
+    import shutil
+
+    if shutil.which("bash") is None or shutil.which("sha256sum") is None:
+        pytest.skip("needs bash and sha256sum")
+    text = (ROOT / "scripts/install_miner.sh").read_text(encoding="utf-8")
+    start = text.index('build_inputs="$(git show HEAD:')
+    end = text.index('source_digest="sha256:$(git ls-tree', start)
+    end = text.index("\n", end) + 1
+    snippet = text[start:end]
+    repo = _repo(tmp_path)
+    script = (
+        'set -euo pipefail\nfail() { echo "$*" >&2; exit 2; }\n'
+        + snippet.replace("  ", "", 1)
+        + 'printf "%s" "${source_digest}"\n'
+    )
+    done = subprocess.run(
+        ["bash", "-c", script],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert done.stdout == build_inputs.digest(repo)
