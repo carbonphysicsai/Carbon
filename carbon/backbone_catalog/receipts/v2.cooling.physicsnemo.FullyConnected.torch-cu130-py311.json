@@ -1,0 +1,14 @@
+{
+ "catalog_id": "v2.cooling.physicsnemo.FullyConnected",
+ "differ": [],
+ "gpu_used": true,
+ "host_class": "VALIDATOR-HOST-CLASS-7950X-01",
+ "identical": 1,
+ "image_digest": "sha256:548473aec3c21712ba98daa854f579431c6b749b57acd37b972356153e1645cc",
+ "kind": "repeat",
+ "pairs": 1,
+ "runtime_profile_id": "torch-cu130-py311",
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "smoke_ok": true,
+ "tested_on": "1x NVIDIA GeForce RTX 4090, driver 580.178.04, CUDA 13.0 (torch 2.13.0+cu130)"
+}
