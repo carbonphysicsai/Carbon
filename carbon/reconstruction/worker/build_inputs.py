@@ -12,6 +12,7 @@ set moves the digest). Python reads it here; shell scripts run this file as a pr
 
     python carbon/reconstruction/worker/build_inputs.py digest [REPO]   # sha256:<hex>
     python carbon/reconstruction/worker/build_inputs.py paths           # one repo-relative path per line
+    python carbon/reconstruction/worker/build_inputs.py ignored [REPO]  # git-ignored files under the inputs; exit 1 if any
 
 Standard library only, so any script can run it before the package is importable.
 """
@@ -80,9 +81,43 @@ def listing(repo, *, revision="HEAD") -> bytes:
         ],
         timeout=60,
     )
-    if not found:
-        raise ValueError("none of the worker build inputs exists at this revision")
+    listed_paths = [
+        line.split(b"\t", 1)[1].decode("utf-8") for line in found.splitlines()
+    ]
+    missing = [
+        path
+        for path in inputs
+        if not any(
+            listed == path or listed.startswith(path + "/") for listed in listed_paths
+        )
+    ]
+    if missing:
+        raise ValueError(
+            "worker build inputs missing at this revision: " + ", ".join(missing)
+        )
     return found
+
+
+def ignored_files(repo) -> list:
+    """Git-IGNORED files under the build inputs of the working tree. They would enter the Docker build context (and
+    the wheel) without being bound by the digest, so a build refuses while any exists.
+    """
+    repo = Path(repo)
+    out = subprocess.check_output(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "ls-files",
+            "-o",
+            "-i",
+            "--exclude-standard",
+            "--",
+            *paths(repo / INPUTS_FILE_IN_REPO),
+        ],
+        timeout=60,
+    ).decode("utf-8")
+    return [line for line in out.splitlines() if line]
 
 
 def digest(repo, *, revision="HEAD") -> str:
@@ -99,7 +134,14 @@ def main(argv=None) -> int:
     if args == ["paths"]:
         print("\n".join(paths()))
         return 0
-    print("usage: build_inputs.py digest [REPO] | paths", file=sys.stderr)
+    if args[:1] == ["ignored"] and len(args) in (1, 2):
+        repo = args[1] if len(args) == 2 else Path(__file__).resolve().parents[3]
+        found = ignored_files(repo)
+        print("\n".join(found))
+        return 1 if found else 0
+    print(
+        "usage: build_inputs.py digest [REPO] | paths | ignored [REPO]", file=sys.stderr
+    )
     return 2
 
 

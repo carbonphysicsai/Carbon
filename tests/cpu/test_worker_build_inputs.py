@@ -256,3 +256,68 @@ def test_the_installers_shell_digest_equals_the_python_digest(tmp_path):
         text=True,
     )
     assert done.stdout == build_inputs.digest(repo)
+
+
+def test_a_build_input_that_matches_nothing_is_refused_not_just_all_of_them(tmp_path):
+    repo = _repo(tmp_path)
+    assert build_inputs.digest(repo)  # all present
+    _git(repo, "rm", "-r", "-q", ".devcontainer/torch")
+    _git(repo, "commit", "-q", "-m", "drop one input")
+    with pytest.raises(ValueError, match=r"missing.*\.devcontainer/torch"):
+        build_inputs.digest(repo)
+
+
+def test_the_installers_shell_digest_refuses_a_missing_input_too(tmp_path):
+    import shutil
+
+    if shutil.which("bash") is None or shutil.which("sha256sum") is None:
+        pytest.skip("needs bash and sha256sum")
+    text = (ROOT / "scripts/install_miner.sh").read_text(encoding="utf-8")
+    start = text.index('build_inputs="$(git show HEAD:')
+    end = text.index('source_digest="sha256:$(git ls-tree', start)
+    end = text.index("\n", end) + 1
+    repo = _repo(tmp_path)
+    _git(repo, "rm", "-r", "-q", ".devcontainer/torch")
+    _git(repo, "commit", "-q", "-m", "drop one input")
+    script = 'set -euo pipefail\nfail() { echo "$*" >&2; exit 2; }\n' + text[
+        start:end
+    ].replace("  ", "", 1)
+    done = subprocess.run(
+        ["bash", "-c", script], cwd=repo, capture_output=True, text=True, check=False
+    )
+    assert done.returncode == 2 and "build input missing" in done.stderr
+
+
+def test_git_ignored_files_under_the_inputs_are_found_and_refused(tmp_path):
+    repo = _repo(tmp_path)
+    assert build_inputs.ignored_files(repo) == []
+    (repo / ".gitignore").write_text("*.so\n__pycache__/\n")
+    _git(repo, "add", ".gitignore")
+    _git(repo, "commit", "-q", "-m", "ignore")
+    (repo / "carbon" / "native.so").write_bytes(b"x")  # inside the inputs, ignored
+    (repo / "scripts" / "tool.so").write_bytes(b"y")  # ignored but outside the inputs
+    assert build_inputs.ignored_files(repo) == ["carbon/native.so"]
+    program = ROOT / build_inputs.INPUTS_FILE_IN_REPO.replace(".txt", ".py")
+    done = subprocess.run(
+        [sys.executable, "-I", str(program), "ignored", str(repo)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 1 and done.stdout.strip() == "carbon/native.so"
+    (repo / "carbon" / "native.so").unlink()
+    done = subprocess.run(
+        [sys.executable, "-I", str(program), "ignored", str(repo)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 0 and done.stdout.strip() == ""
+
+
+def test_the_image_build_script_refuses_ignored_inputs_before_the_digest():
+    text = (ROOT / "scripts/dev/c03_worker_image.sh").read_text(encoding="utf-8")
+    assert text.index('build_inputs.py" ignored') < text.index(
+        'build_inputs.py" digest'
+    )
+    assert "unbound by its digest" in text

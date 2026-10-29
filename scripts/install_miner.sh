@@ -711,6 +711,13 @@ if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
     || fail "could not read the worker build inputs file."
   [[ -n "${build_inputs}" ]] || fail "the worker build inputs file is empty."
   mapfile -t build_input_paths <<< "${build_inputs}"
+  build_listing="$(git ls-tree -r --full-tree HEAD -- "${build_input_paths[@]}")" \
+    || fail "could not list the worker build inputs."
+  for build_input in "${build_input_paths[@]}"; do
+    printf '%s\n' "${build_listing}" | cut -f2- | awk -v p="${build_input}" \
+      'index($0, p) == 1 && (length($0) == length(p) || substr($0, length(p) + 1, 1) == "/") { found = 1 } END { exit !found }' \
+      || fail "worker build input missing at this revision: ${build_input}"
+  done
   source_digest="sha256:$(git ls-tree -r --full-tree HEAD -- "${build_input_paths[@]}" | sha256sum | cut -d' ' -f1)"
   [[ "${source_digest}" == "${DEVELOPMENT_SOURCE_TREE_DIGEST}" ]] \
     || fail "local DEVELOPMENT source archive differs before bootstrap."
