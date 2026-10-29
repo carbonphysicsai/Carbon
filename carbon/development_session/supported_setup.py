@@ -1,8 +1,9 @@
 """The one machine setup Carbon's launch supports, and the warning every other
 machine gets (OWNER-LAUNCH-SUPPORTED-MACHINE-01).
 
-Supported: Ubuntu 22.04 or 24.04, x86-64, Docker 29, at least 16 GB of RAM and
-about 150 GiB of free disk; a GPU is optional, and any NVIDIA GPU whose driver is
+Supported: Ubuntu 22.04 or 24.04, x86-64, Docker 29, a Docker that sees at least
+`MIN_DOCKER_MEMORY_GIB` GiB of memory (recommended: a 32 GB machine) and about
+150 GiB of free disk; a GPU is optional, and any NVIDIA GPU whose driver is
 at least `MIN_NVIDIA_DRIVER` works. Any other setup is *warned about, never
 blocked*: it may work, but only the supported setup is guaranteed.
 

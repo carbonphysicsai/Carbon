@@ -275,12 +275,39 @@ def _mining_versions(text, marker):
     return found
 
 
+def _reachable(key):
+    from carbon.challenge_registry import registry
+
+    try:
+        registry.describe(*key)
+    except (registry.ChallengeNotImplemented, registry.UnsupportedVersion):
+        return False
+    return True
+
+
+def test_t9_reserved_versions_are_not_named_to_miners():
+    reserved = {
+        (COOLING, "1.5"),
+        (COOLING, "1.6"),
+        (F08, "1.6"),
+        (F08, "1.7"),
+        (F02, "2.5"),
+    }
+    assert not any(_reachable(key) for key in reserved)
+    text = (ROOT / "docs" / "MINING.md").read_text(encoding="utf-8")
+    for marker in ("**Rebuild resources.**", "**Build time limit.**"):
+        assert not _mining_versions(text, marker) & reserved
+
+
 def test_t9_the_mining_guide_lists_exactly_the_large_resource_versions():
     text = (ROOT / "docs" / "MINING.md").read_text(encoding="utf-8")
+    # Only versions a miner can reach: the reserved test is the registry's own (a version whose
+    # `describe()` raises: reserved launch versions and versions the registry no longer serves).
+    # The guide grows by itself when a reserved version opens.
     large = {
         key
         for key in version_registry.VERSIONS
-        if served_versions.worker_resources(*key) is not None
+        if served_versions.worker_resources(*key) is not None and _reachable(key)
     }
     assert _mining_versions(text, "**Rebuild resources.**") == large
     line = next(r for r in text.splitlines() if "**Rebuild resources.**" in r)
@@ -293,7 +320,7 @@ def test_t9_the_mining_guide_lists_exactly_the_large_resource_versions():
     walled = {
         key
         for key, entry in version_registry.VERSIONS.items()
-        if entry.rebuild_wall_seconds is not None
+        if entry.rebuild_wall_seconds is not None and _reachable(key)
     }
     assert _mining_versions(text, "**Build time limit.**") == walled
 
