@@ -11,6 +11,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from exam_cadence_fixture import cadence_v2
 
 from carbon.challenge_validator import direct_receiver, receiver_setup
 from scripts.dev.miner_launchpad import installed
@@ -414,10 +415,7 @@ def test_status_counts_graded_submissions_from_the_receivers_own_ledger(
     root.mkdir(mode=0o700)
     cap = exam_cap.ExamCap(
         AttemptLedger(root / "attempts.sqlite3"),
-        cadence={
-            "capacity_cpu_hours_per_day": 270.0,
-            "rebuild_cpu_hours_placeholder": {MOTOR["id"]: 1.0},
-        },
+        cadence=cadence_v2(challenges=(MOTOR["id"],)),
         clock=lambda: 5_000_000_000_000,
     )
     slot = cap.reserve(

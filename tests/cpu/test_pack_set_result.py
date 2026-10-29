@@ -6,6 +6,7 @@ the epoch counter increments once; a rotation is never compared across keys."""
 from __future__ import annotations
 
 import pytest
+from exam_cadence_fixture import cadence_v2
 
 from carbon.challenge_validator import exam_cap
 from carbon.challenge_validator import pack_set_result as psr
@@ -39,7 +40,7 @@ def world(tmp_path):
     directory = tmp_path / "ledger"
     directory.mkdir(mode=0o700)
     ledger = AttemptLedger(directory / "attempts.sqlite3")
-    return exam_cap.ExamCap(ledger), psr.SetResultStore(ledger)
+    return exam_cap.ExamCap(ledger, cadence=cadence_v2()), psr.SetResultStore(ledger)
 
 
 def _scored(a, d, ok=True):
