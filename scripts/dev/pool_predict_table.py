@@ -142,15 +142,20 @@ def predict_command(args, *, binder=None, curves=None):
 
     binder = binder or _sibling("proof_run_bind")
     curves = curves or _sibling("practice_v2_curves")
-    challenge_id, version = curves.TARGETS[args.kind]
+    challenge_id, _launch_version = curves.TARGETS[args.kind]
+    rows_document = json.loads(Path(args.rows).read_text(encoding="utf-8"))
+    if (
+        rows_document.get("schema") != ROWS_SCHEMA
+        or rows_document.get("kind") != args.kind
+    ):
+        raise Stop("the rows file is not this Challenge's")
+    # The version is the rows file's own, never the curves job's hard-coded launch version
+    # (a pool version's table is built for ITS version). The bound table must hold a pick for
+    # exactly this version (check_pick), so a version nobody bound is a STOP.
+    version = rows_document["version"]
     bound = json.loads(Path(args.bound).read_text(encoding="utf-8"))
     pick = check_pick(binder, bound, args.role, challenge_id, version)
-    rows_document = json.loads(Path(args.rows).read_text(encoding="utf-8"))
-    if rows_document.get("schema") != ROWS_SCHEMA or (
-        rows_document["kind"],
-        rows_document["version"],
-    ) != (args.kind, version):
-        raise Stop("the rows file is not this Challenge version's")
+    curves.TARGETS[args.kind] = (challenge_id, version)  # the practice builder reads it
     strategy = binder.catalog_recipe(
         challenge_id, version, pick["catalog_id"], pick.get("procedure")
     )

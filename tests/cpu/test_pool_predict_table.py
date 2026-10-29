@@ -218,3 +218,53 @@ def test_predict_builds_once_and_writes_the_table(tmp_path, monkeypatch):
     )
     with pytest.raises(tool.Stop):
         tool.predict_command(args, binder=_Binder(), curves=curves)
+
+
+def test_predict_builds_for_the_rows_files_own_version_not_the_launch_version(
+    tmp_path, monkeypatch
+):
+    """A pool version (F02 2.5) is built for its own binding: the curves job's hard-coded
+    launch version (2.4) is not used, and a version with no bound pick is a STOP."""
+    from carbon.scoring import pool_serving
+
+    built = {}
+    monkeypatch.setattr(
+        pool_serving,
+        "predict_rows",
+        lambda practice, identity, strategy, rows: (
+            [[0.5] for _ in rows],
+            "sha256:" + "3" * 64,
+        ),
+    )
+    bound = _bound()
+    bound["picks"][0]["version"] = "2.5"
+    (tmp_path / "bound.json").write_text(json.dumps(bound))
+    rows = {
+        "schema": tool.ROWS_SCHEMA,
+        "kind": "f02",
+        "version": "2.5",
+        "input_names": ["peak_w", "on_time_s"],
+        "rows": [[90.0, 4.0]],
+    }
+    (tmp_path / "rows.json").write_text(json.dumps(rows))
+
+    def practice_for(kind, args):
+        built["version"] = curves.TARGETS[kind][1]
+        return "practice-object"
+
+    curves = SimpleNamespace(TARGETS={"f02": ("f02", "2.4")}, practice_for=practice_for)
+    args = SimpleNamespace(
+        kind="f02",
+        role="good",
+        bound=str(tmp_path / "bound.json"),
+        rows=str(tmp_path / "rows.json"),
+        out=str(tmp_path / "t.json"),
+        work_dir=str(tmp_path / "w"),
+    )
+    assert tool.predict_command(args, binder=_Binder(), curves=curves) == 0
+    assert built["version"] == "2.5"
+    assert pool_serving.load_table(tmp_path / "t.json")["version"] == "2.5"
+    # the bound table holds only a 2.4 pick: rows for 2.5 are a STOP
+    (tmp_path / "bound.json").write_text(json.dumps(_bound()))
+    with pytest.raises(tool.Stop):
+        tool.predict_command(args, binder=_Binder(), curves=curves)
