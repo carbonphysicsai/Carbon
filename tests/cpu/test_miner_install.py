@@ -517,6 +517,11 @@ class Sandbox:
             "init", "--quiet", "--initial-branch=main", str(self.work), cwd=tmp_path
         )
         self._executable(self.work / "scripts" / "install_miner.sh", SCRIPT.read_text())
+        # The installer resolves its Python through this helper (no script assumes a system python3).
+        self._executable(
+            self.work / "scripts" / "dev" / "resolve_python.sh",
+            (ROOT / "scripts/dev/resolve_python.sh").read_text(),
+        )
         for name, text in FAKE_CHECKOUT.items():
             self._executable(self.work / name, text)
         (self.work / ".gitignore").write_text(

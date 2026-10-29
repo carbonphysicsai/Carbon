@@ -927,9 +927,13 @@ fi
 # stops with a typed code and records nothing.
 verify_recorded_images_present() {
   local missing
-  # The venv interpreter (a minimal host and Targon's canonical sandbox have no bare python3 on PATH);
-  # CARBON_IMAGE_CHECK_PYTHON names another for a test that needs the real one.
-  missing="$("${CARBON_IMAGE_CHECK_PYTHON:-${python}}" - "${worker_manifest}" "${analysis:-}" "${gpu_manifest:-}" \
+  # The venv interpreter, else python3 or python (a minimal host and Targon's canonical sandbox have no python3 on
+  # PATH); a typed refusal when there is none. CARBON_IMAGE_CHECK_PYTHON names another first, for a test that needs the
+  # real one (install_validator.sh refuses it on a real install).
+  local check_python
+  check_python="$(bash "${repo_root}/scripts/dev/resolve_python.sh" "${CARBON_IMAGE_CHECK_PYTHON:-${python}}")" \
+    || fail "installed_image_check_python_missing: no Python interpreter to check the recorded images with. Nothing was recorded."
+  missing="$("${check_python}" - "${worker_manifest}" "${analysis:-}" "${gpu_manifest:-}" \
     "${torch_gpu_manifest:-}" "${artifacts}" <<'PY'
 import json
 import pathlib

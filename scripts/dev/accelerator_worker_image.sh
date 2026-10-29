@@ -6,6 +6,8 @@ export PYTHONDONTWRITEBYTECODE=1
 
 # Build images only; no GPU flag, installation on the host, or allocation.
 script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+# No script assumes a system python3 (resolve_python.sh): the checkout's venv python, else python3, else python.
+PYTHON="$(bash "${script_dir}/resolve_python.sh")" || exit 2
 repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
 [[ "$#" -le 1 ]] || { echo 'usage: accelerator_worker_image.sh [output-manifest]' >&2; exit 2; }
 output="${1:-${repo_root}/.carbon-artifacts/accelerator-worker-image.json}"
@@ -13,8 +15,8 @@ output="${1:-${repo_root}/.carbon-artifacts/accelerator-worker-image.json}"
 export CARBON_WORKER_PARENT_VARIANT=accelerator
 parent_manifest="${repo_root}/.carbon-artifacts/accelerator-parent-worker-image.json"
 bash "${script_dir}/worker_parent_manifest.sh" "${parent_manifest}"
-parent="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image_id"])' "${parent_manifest}")"
-source_digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_tree_digest"])' "${parent_manifest}")"
+parent="$("${PYTHON}" -c 'import json,sys; print(json.load(open(sys.argv[1]))["image_id"])' "${parent_manifest}")"
+source_digest="$("${PYTHON}" -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_tree_digest"])' "${parent_manifest}")"
 [[ "${parent}" =~ ^sha256:[0-9a-f]{64}$ && "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
 parent_ref="$(bash "${script_dir}/worker_parent_ref.sh" "${parent}" "${source_digest}")"
 # A local parent is named by tag: point the tag at the exact parent image
@@ -26,7 +28,7 @@ fi
 recipe="${repo_root}/.devcontainer/accelerators/Dockerfile"
 recipe_digest="sha256:$(sha256sum "${recipe}" | cut -d' ' -f1)"
 lock_digest="sha256:$(sha256sum "${repo_root}/.devcontainer/accelerators/cuda13-py311.txt" | cut -d' ' -f1)"
-profile_digest="$(cd "${repo_root}" && python3 -c 'from carbon.reconstruction.accelerators import GPU_PROFILE; print(GPU_PROFILE.digest)')"
+profile_digest="$(cd "${repo_root}" && "${PYTHON}" -c 'from carbon.reconstruction.accelerators import GPU_PROFILE; print(GPU_PROFILE.digest)')"
 [[ "${profile_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
 temporary="$(mktemp -d)"
 container=""
@@ -50,7 +52,7 @@ mkdir -p "$(dirname -- "${output}")"
 # The manifest is the image's own build identity plus its ID, written only
 # when that identity names this build's parent, recipe and GPU lock: a
 # builder that skipped the identity step (S20) writes no manifest.
-python3 - "${image}" "${temporary}/build.json" "${output}" \
+"${PYTHON}" - "${image}" "${temporary}/build.json" "${output}" \
   "${parent}" "${recipe_digest}" "${lock_digest}" <<'PY'
 import json
 import pathlib

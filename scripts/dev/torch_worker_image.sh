@@ -8,14 +8,16 @@ export PYTHONDONTWRITEBYTECODE=1
 # the exact C-03 JAX worker image this checkout builds. Build only: nothing is
 # installed on the host and no deployment is changed.
 script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+# No script assumes a system python3 (resolve_python.sh): the checkout's venv python, else python3, else python.
+PYTHON="$(bash "${script_dir}/resolve_python.sh")" || exit 2
 repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
 [[ "$#" -le 1 ]] || { echo 'usage: torch_worker_image.sh [output-manifest]' >&2; exit 2; }
 command -v docker >/dev/null 2>&1 || { echo 'Docker is unavailable.' >&2; exit 2; }
 output="${1:-${repo_root}/.carbon-artifacts/torch-worker-image.json}"
 parent_manifest="${repo_root}/.carbon-artifacts/torch-parent-worker-image.json"
 bash "${script_dir}/worker_parent_manifest.sh" "${parent_manifest}"
-parent="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image_id"])' "${parent_manifest}")"
-source_digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_tree_digest"])' "${parent_manifest}")"
+parent="$("${PYTHON}" -c 'import json,sys; print(json.load(open(sys.argv[1]))["image_id"])' "${parent_manifest}")"
+source_digest="$("${PYTHON}" -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_tree_digest"])' "${parent_manifest}")"
 [[ "${parent}" =~ ^sha256:[0-9a-f]{64}$ && "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
 parent_ref="$(bash "${script_dir}/worker_parent_ref.sh" "${parent}" "${source_digest}")"
 # A local parent is named by tag: point the tag at the exact parent image
@@ -27,7 +29,7 @@ fi
 recipe="${repo_root}/.devcontainer/torch/Dockerfile"
 recipe_digest="sha256:$(sha256sum "${recipe}" | cut -d' ' -f1)"
 lock_digest="sha256:$(sha256sum "${repo_root}/.devcontainer/torch/torch-cpu-py311.txt" | cut -d' ' -f1)"
-determinism_digest="$(cd "${repo_root}" && python3 -c 'from carbon.reconstruction.torch_profile import CPU_DETERMINISM_DIGEST; print(CPU_DETERMINISM_DIGEST)')"
+determinism_digest="$(cd "${repo_root}" && "${PYTHON}" -c 'from carbon.reconstruction.torch_profile import CPU_DETERMINISM_DIGEST; print(CPU_DETERMINISM_DIGEST)')"
 [[ "${determinism_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
 temporary="$(mktemp -d)"
 container=""
@@ -49,7 +51,7 @@ image="$(tr -d '[:space:]' < "${temporary}/iid")"
 container="$(docker create "${image}")"
 docker cp "${container}:/opt/carbon/worker-image-build.json" "${temporary}/build.json"
 mkdir -p "$(dirname -- "${output}")"
-python3 - "${image}" "${temporary}/build.json" "${output}" <<'PY'
+"${PYTHON}" - "${image}" "${temporary}/build.json" "${output}" <<'PY'
 import json
 import pathlib
 import sys

@@ -248,3 +248,88 @@ def test_the_miner_installer_needs_no_bare_python3():
     text = (SCRIPTS / "install_miner.sh").read_text(encoding="utf-8")
     code = [line for line in text.splitlines() if not line.lstrip().startswith("#")]
     assert not [line for line in code if "python3" in line]
+
+
+# --- no script assumes a system python3 (Targon's canonical sandbox has none on PATH) ---------------------
+
+RESOLVER = SCRIPTS / "dev" / "resolve_python.sh"
+BASH = "/bin/bash"
+
+
+def resolve(*arguments, path):
+    return subprocess.run(
+        [BASH, str(RESOLVER), *arguments],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={"PATH": str(path)},
+    )
+
+
+def _executable(path, body="#!/bin/sh\nexit 0\n"):
+    path.write_text(body)
+    path.chmod(0o755)
+    return path
+
+
+def test_the_resolver_has_a_typed_refusal_when_no_python_exists_anywhere(tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    done = resolve("/nonexistent/venv/python", path=empty)
+    assert done.returncode == 3 and "python_not_found" in done.stderr
+    assert done.stdout == ""
+    # A preferred path that is not an executable file is skipped, not trusted.
+    (tmp_path / "plain").write_text("x")
+    assert resolve(str(tmp_path / "plain"), path=empty).returncode == 3
+
+
+def test_the_resolver_prefers_the_venv_python_then_python3_then_python(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    only_python = _executable(bin_dir / "python")
+    assert resolve("/nonexistent", path=bin_dir).stdout.strip() == str(only_python)
+    python3 = _executable(bin_dir / "python3")
+    assert resolve("/nonexistent", path=bin_dir).stdout.strip() == str(python3)
+    venv = _executable(tmp_path / "venv-python")
+    done = resolve(str(venv), path=bin_dir)
+    assert done.returncode == 0 and done.stdout.strip() == str(venv)
+
+
+def test_no_installer_or_image_builder_assumes_a_bare_python3():
+    """The scripts install_miner.sh and install_validator.sh run (and the image builders they call) resolve a Python
+    (resolve_python.sh). The only bare python3 left is the validator's pre-install host-class check, which runs before
+    any venv exists and is guarded: `command -v python3`, with the V_TOOL refusal when it is absent.
+    """
+
+    def code(path):
+        return [
+            line.strip()
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if "python3" in line and not line.lstrip().startswith("#")
+        ]
+
+    for name in (
+        "install_miner.sh",
+        "dev/c03_worker_image.sh",
+        "dev/torch_worker_image.sh",
+        "dev/torch_gpu_worker_image.sh",
+        "dev/accelerator_worker_image.sh",
+        "dev/worker_parent_manifest.sh",
+    ):
+        assert code(SCRIPTS / name) == [], name
+    left = code(SCRIPTS / "install_validator.sh")
+    assert len(left) == 3 and all(
+        "command -v python3" in line
+        or "python3 - " in line
+        or "python3 is not installed" in line
+        for line in left
+    ), left
+    for name in (
+        "dev/c03_worker_image.sh",
+        "dev/torch_worker_image.sh",
+        "dev/torch_gpu_worker_image.sh",
+        "dev/accelerator_worker_image.sh",
+        "dev/worker_parent_manifest.sh",
+    ):
+        text = (SCRIPTS / name).read_text(encoding="utf-8")
+        assert 'PYTHON="$(bash "${script_dir}/resolve_python.sh")"' in text, name
