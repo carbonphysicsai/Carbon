@@ -54,7 +54,11 @@ def test_the_whole_catalog_still_verifies():
 
 
 @pytest.mark.parametrize("catalog_id,runtime", sorted(TWINS.items()))
-def test_a_twin_is_not_offered_without_a_gpu_receipt(catalog_id, runtime):
+def test_a_twin_is_not_offered_without_a_gpu_receipt(
+    catalog_id, runtime, monkeypatch, tmp_path
+):
+    # An empty receipts directory stands for "no receipt yet", whatever receipts the catalog now carries.
+    monkeypatch.setattr(gpu_receipt, "RECEIPTS", tmp_path)
     item = listing.entry(catalog_id)
     assert runtime not in gpu_receipt.offered_runtimes(item)
     recipe = {
