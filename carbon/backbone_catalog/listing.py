@@ -61,6 +61,11 @@ def entries(challenge_id=None, version=None):
 
 #: The prefix of the v2 entries (graph route v2's catalog: every setting a miner may set).
 V2_PREFIX = "v2."
+#: Shown on every entry whose GPU build is smoke-only (CNO1d, under each id): the official rebuild is the CPU one.
+CPU_REBUILD_NOTE = " (CPU rebuild on this validator class)"
+#: The legacy F08 CNO1d has the same GPU build but no smoke receipt (no valid GPU receipt: the official route
+#: refuses it), so it is CPU-rebuilt too and is labelled alike.
+LEGACY_CPU_REBUILD = frozenset({"f08.cno.CNO1d"})
 LEGACY_NOTE = (
     " (legacy entry: some settings stay Carbon-limited here; the v2.* entries take "
     "every setting, so start from one of those)"
@@ -103,7 +108,12 @@ def is_legacy(catalog_id, challenge_id, version):
 
 def summary(catalog_id, backbone, challenge_id, version):
     """The miner-facing line for a catalog entry, labelled when it is a legacy one."""
+    from . import gpu_receipt
+
     text = "Carbon's tested " + backbone + " bundle"
+    if catalog_id in gpu_receipt.SMOKE_ONLY or catalog_id in LEGACY_CPU_REBUILD:
+        # Its GPU build is not bit-reproducible, so grading rebuilds it on the CPU.
+        text += CPU_REBUILD_NOTE
     return text + (LEGACY_NOTE if is_legacy(catalog_id, challenge_id, version) else "")
 
 
