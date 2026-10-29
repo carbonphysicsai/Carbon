@@ -365,11 +365,11 @@ def test_the_real_v4_binding_of_each_physical_challenge_contends(
         )
     again = stored_grade_repeat(store)
     one = retention._contend(adapter, store, first, artifacts, inputs, pin, again)
-    assert one["outcome"] == "FIRST_INCUMBENT", one
+    assert one.get("outcome") == "FIRST_INCUMBENT", one
     assert store.incumbent()["model_id"] == first
     # The same graded model again: with no registered noise it is unavailable, never a win.
     koth["noise"] = None
     two = retention._contend(adapter, store, second, artifacts, inputs, pin, again)
-    assert two["outcome"] == "UNAVAILABLE", two
+    assert two.get("outcome") == "UNAVAILABLE", two
     assert two["reason"] == "rebuild_noise_unregistered"
     assert store.incumbent()["model_id"] == first
