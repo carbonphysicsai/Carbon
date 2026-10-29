@@ -24,8 +24,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -37,6 +39,37 @@ from scripts.dev import catalog_wheelhouse, library_bundle
 
 #: What a skipped wheel entry tells the owner to run first.
 WHEELHOUSE_STEP = "python -m scripts.dev.catalog_wheelhouse"
+
+#: One bounded retry of an entry whose install hit a Docker CLI timeout or an unreachable daemon (a busy machine: the
+#: owner's page and practice share the daemon). Only that cause is retried; every other failure stays final.
+RETRY_BACKOFF_SECONDS = 5.0
+
+
+def _transient(failure):
+    """True for a typed worker failure of the UNAVAILABLE kind (a CLI timeout or an unreachable daemon)."""
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    return isinstance(failure, WorkerFailure) and failure.code == WorkerCode.UNAVAILABLE
+
+
+def _diagnostic(failure):
+    """A short, path-safe cause for a skipped entry: the failure type, its stable code and, for a worker failure, the
+    last line of its private diagnostic with every path-like or long token removed. Nothing else leaves the host.
+    """
+    text = f"{type(failure).__name__}: {failure}"
+    code = getattr(failure, "code", None)
+    if code is not None:
+        text += f" [{getattr(code, 'value', code)}]"
+    raw = getattr(failure, "private_diagnostic", b"")
+    lines = raw.decode("utf-8", "replace").strip().splitlines() if raw else []
+    if lines:
+        line = lines[-1]  # the daemon's own last word, not the exit-code header
+        words = [
+            "<redacted>" if re.search(r"[/\\]|[A-Za-z0-9+=_-]{24,}", word) else word
+            for word in line.split()
+        ]
+        text += " (" + " ".join(words)[:120] + ")"
+    return re.sub(r"[^ -~]", "?", text)[:300]
 
 
 def _declares_wheels(item):
@@ -115,24 +148,39 @@ def install(
                 {"catalog_id": catalog_id, "reason": "wheel_missing", "wheel": missing}
             )
             continue
-        try:
+
+        def attempt(item=item):
             with tempfile.TemporaryDirectory() as work:
                 directory = pipeline.bundle_directory(
                     item, Path(work) / "bundle", wheelhouse=wheelhouse
                 )
                 if receiver_config is not None:
-                    result = library_bundle.install_receiver_bundle(
+                    return library_bundle.install_receiver_bundle(
                         directory, receiver_config, inventory=inventory
                     )
-                else:
-                    kwargs = {} if state_dir is None else {"state_dir": state_dir}
-                    result = library_bundle.install_bundle(
-                        directory, inventory=inventory, **kwargs
-                    )
+                kwargs = {} if state_dir is None else {"state_dir": state_dir}
+                return library_bundle.install_bundle(
+                    directory, inventory=inventory, **kwargs
+                )
+
+        retried = False
+        try:
+            try:
+                result = attempt()
+            except Exception as first:
+                if catalog_ids or not _transient(first):
+                    raise
+                retried = True
+                print(
+                    f"retrying {catalog_id} once: Docker timed out or was busy",
+                    file=sys.stderr,
+                )
+                time.sleep(RETRY_BACKOFF_SECONDS)
+                result = attempt()
         except Exception as failure:  # one entry never stops the rest
             if catalog_ids:
                 raise
-            detail = f"{type(failure).__name__}: {failure}"[:300]
+            detail = _diagnostic(failure) + (" (retried once)" if retried else "")
             print(
                 f"skipped {catalog_id}: its install failed: {detail}", file=sys.stderr
             )
