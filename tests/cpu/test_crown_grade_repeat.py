@@ -349,3 +349,28 @@ def test_an_unchanged_outcome_files_no_mark():
     store = Store(fixed)
     consider(fixed, lambda model: 1 / 0, store=store)
     assert store.marks == {}
+
+
+def test_the_alert_names_the_gate_whose_verdict_flipped():
+    fixed = pair(body("c", total=0.95), body("k", total=0.5))
+    for row in (fixed["candidate"], fixed["incumbent"]):
+        row["evidence"]["model_p"]["gate_outcomes"] = {"stress": True, "speed": True}
+    again = same_again(fixed)
+
+    def flipped(model):
+        row = again(model)
+        if model == "c":
+            row["evidence"]["model_p"]["gate_outcomes"]["speed"] = False
+        return row
+
+    outcome, moves = consider(fixed, flipped)
+    assert outcome["outcome"] == bp.FAILED_INFRA and moves == []
+    assert outcome["alert"]["flipped_gates"] == {"c": ["speed"]}
+    assert outcome["alert"]["states"] == ["c"]
+
+
+def test_a_total_beyond_tolerance_names_no_gate():
+    fixed = CASES["takeover"]
+    again = same_again(fixed)
+    outcome, _moves = consider(fixed, lambda model: moved(again(model), 0.2))
+    assert outcome["alert"]["flipped_gates"] == {}

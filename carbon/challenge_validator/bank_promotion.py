@@ -849,6 +849,16 @@ def states_to_repeat(pair, marked):
     return states
 
 
+def _flipped_gates(first, second):
+    """The names of the gates whose verdict differs between two grades of one state (a verdict missing from one
+    grade counts), or [] when the grades carry no gate outcomes."""
+    a = (first["evidence"].get("model_p") or {}).get("gate_outcomes")
+    b = (second["evidence"].get("model_p") or {}).get("gate_outcomes")
+    if type(a) is not dict or type(b) is not dict:
+        return []
+    return sorted(str(name) for name in set(a) | set(b) if a.get(name) != b.get(name))
+
+
 def repeat_gate(pair, outcome, repeat, marked=None, tolerance=None):
     """Let a crown change stand only if every grade it read has been repeat-
     verified: a second, independent grade of the same state on the registered
@@ -875,6 +885,7 @@ def repeat_gate(pair, outcome, repeat, marked=None, tolerance=None):
     if repeat is None:
         return held(REPEAT_UNAVAILABLE, UNAVAILABLE)
     differing = []
+    flipped = {}
     for first in states:
         try:
             second = repeat(first["submission_id"])
@@ -883,6 +894,9 @@ def repeat_gate(pair, outcome, repeat, marked=None, tolerance=None):
             return held(REPEAT_UNAVAILABLE, UNAVAILABLE)
         if not same:
             differing.append(first["submission_id"])
+            names = _flipped_gates(first, second)
+            if names:
+                flipped[first["submission_id"]] = names
     if not differing:
         return outcome
     return held(
@@ -893,6 +907,8 @@ def repeat_gate(pair, outcome, repeat, marked=None, tolerance=None):
             "code": REPEAT_MISMATCH,
             "evaluation_key": pair["evaluation_key"],
             "states": differing,
+            # The gates whose verdict differed between the two grades, by name: gate-unstable states.
+            "flipped_gates": flipped,
             "action": "recheck_validator_host",
         },
     )
