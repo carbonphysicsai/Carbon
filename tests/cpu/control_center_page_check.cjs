@@ -3049,7 +3049,7 @@ scenario("Library: the plan editor checks a plan against Graphite's rule, then s
   const state = graphiteWorld();
   const page = await open(state);
   const first = G().library.plans[0];
-  const chosen = selectable();
+  const chosen = fx.caps.challenges.find(entry => entry.selectable); // the Challenge the fixture's own plan is written for
   page.go(planHref(first.digest));
   await page.advance(0);
   await refresh(page);
