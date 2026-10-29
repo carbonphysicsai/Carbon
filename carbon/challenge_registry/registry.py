@@ -949,11 +949,11 @@ def _unsupported_version(challenge_id, version, matches):
 
 
 def published_description(challenge_id, version):
-    """The existing public exam block for an exact registered identity.
+    """The existing public exam block for an exact registered identity that is offered.
 
-    Publication is independent of execution readiness. This metadata supplies
-    no profile, host capability or admission; `_find` still owns those refusals.
-    """
+    The same typed refusal as `describe` for a version the registry does not offer (reserved, deferred or retired:
+    `challenge_not_implemented` and its next action), so a miner never reads rules for a Challenge it cannot enter.
+    It still needs no host capability and supplies no profile or admission."""
     from carbon.challenge_registry import published_exam
 
     matches = _matching_entries(challenge_id, version)
@@ -961,6 +961,9 @@ def published_description(challenge_id, version):
     if not exact:
         raise _unsupported_version(challenge_id, version, matches)
     entry = exact[0]
+    _find(
+        entry.challenge_id, entry.version
+    )  # reserved / deferred / retired: the registry's own typed refusal
     return _json(
         {
             "challenge_id": entry.challenge_id,
