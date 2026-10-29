@@ -13,7 +13,8 @@ an entry gets at most `--max-attempts` attempts. A failed entry has no record, s
 - Low priority, yields: `os.nice(19)`. No lane starts, and running containers are frozen (`docker pause`), while the
   operator's `operator-pause.json` in `--operator-state-dir` pauses anything (an unreadable flag pauses everything) or
   official grading is running (chosen explicitly: `--grading-state-dir` for `official-grading.lock`, `--yield-file`,
-  `--busy-command` or `--no-yield`). One GPU: it never competes with a grade.
+  `--busy-command` or `--no-yield`). `--grading-state-dir` is the directory that holds the receiver's lock: the PARENT of
+  the receiver config's `official_gpu_receipts` path. One GPU: it never competes with a grade.
 - Lanes: min(free VRAM, CPUs, memory, cap) from the measured per-lane limits you pass (nothing defaulted).
 - Resumes: the queue is a SQLite file in `--state-dir`; a restart (or reboot, via the `units` service) re-queues RUNNING jobs.
 - Progress: "GPU receipts: <challenge> N of M ..." per Challenge, on every finish and on `status`.

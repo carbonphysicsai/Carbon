@@ -61,7 +61,7 @@ def drive(
             "receipt_writer",
             lambda c, j, r: "sha256:" + "0" * 64,
         ),
-        sleep=lambda s: None,
+        sleep=extra.pop("sleep", lambda s: None),
         nice=0,
         poll_s=0.01,
         out=lines.append,
@@ -562,3 +562,49 @@ def test_a_wheelhouse_the_container_cannot_read_is_refused_before_any_run(tmp_pa
         wheels.chmod(0o700)
         assert "wheels_not_world_readable" in w.wheels_problem(wheels)
     assert "wheels_dir_missing" in w.wheels_problem(tmp_path / "nope")
+
+
+def test_the_worker_starts_no_lane_while_a_grade_holds_the_lock_then_starts_one(
+    tmp_path,
+):
+    """The receiver holds official-grading.lock for a whole official rebuild + grade (receipt_job.official_grading);
+    the worker's loop, with the real lock probe, must start nothing until it is released.
+    """
+    pytest.importorskip("fcntl")
+    from carbon.backbone_catalog import receipt_job
+
+    state = tmp_path / "validator-state"
+    state.mkdir()
+    q = w.Queue(":memory:")
+    q.sync(jobs("a"))
+    started = []
+    probes = []
+    real = w.make_busy(grading_state_dir=state)
+
+    def busy():
+        held = real()
+        probes.append(held)
+        return held
+
+    def exe(c, j):
+        started.append(len(probes))
+        return ok(c, j)
+
+    lock = receipt_job.official_grading(state)
+    lock.__enter__()
+    released = []
+
+    def sleep(_):
+        # the loop waited at least three probes under the held lock, and nothing started
+        if len(probes) >= 3 and not released:
+            assert started == [] and all(probes)
+            lock.__exit__(None, None, None)
+            released.append(True)
+
+    try:
+        counts, _ = drive(q, ctx(tmp_path), exe, busy=busy, sleep=sleep)
+    finally:
+        if not released:
+            lock.__exit__(None, None, None)
+    assert released and counts["PASS"] == 1
+    assert len(started) == 1 and started[0] > 3  # started only after the release
