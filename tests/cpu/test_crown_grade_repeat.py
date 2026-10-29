@@ -40,13 +40,13 @@ def pair(candidate, incumbent):
     }
 
 
-def comparator():
+def comparator(noise=NOISE):
     return {
         "schema": bp.COMPARATOR_SCHEMA,
         "scope": "DEVELOPMENT",
         "challenge": "electric-motor-magnetics",
         "score_pack_digest": PACK,
-        "rebuild_noise": NOISE,
+        "rebuild_noise": noise,
         "ties": "incumbent_keeps",
         "minimum_source_entry_ids": [digest("baseline run")],
         "baseline_total": 0.5,
@@ -81,14 +81,14 @@ class Store:
         self.moves.append(("vacate", expected))
 
 
-def consider(fixed, repeat, marks=None, store=None):
+def consider(fixed, repeat, marks=None, store=None, noise=NOISE):
     store = store or Store(fixed, marks)
     # The constructor wants a real PoolStore; the stub keeps the question to the gate.
     promotion = bp.BankPromotion.__new__(bp.BankPromotion)
     promotion.store = store
     promotion.registered_source_receipt_sha256 = digest("pin")
     outcome = promotion.consider_private(
-        fixed["candidate"]["submission_id"], KEY, comparator(), repeat=repeat
+        fixed["candidate"]["submission_id"], KEY, comparator(noise), repeat=repeat
     )
     return outcome, store.moves
 
@@ -132,26 +132,31 @@ def test_dethrone_without_a_successor_vacates_after_an_identical_repeat():
     assert moves == [("vacate", "k")]
 
 
+def moved(row, by):
+    """``row`` with its total moved ``by`` (down when that would leave 0..1 upward)."""
+    total = row["evidence"]["model_p"]["total_score"]
+    row["evidence"]["model_p"]["total_score"] = (
+        total - by if total >= by else total + by
+    )
+    return row
+
+
 @pytest.mark.parametrize("name", sorted(CASES))
 @pytest.mark.parametrize("who", ["candidate", "incumbent"])
-def test_a_differing_bit_is_failed_infra_and_moves_nothing(name, who):
+def test_a_repeat_beyond_the_registered_tolerance_is_failed_infra_and_moves_nothing(
+    name, who
+):
     fixed = CASES[name]
     if fixed[who] is None:
         pytest.skip("this case has no such state")
     target = fixed[who]["submission_id"]
     again = same_again(fixed)
 
-    def flipped(model):
+    def beyond(model):
         row = again(model)
-        if model == target:
-            # One unit in the last place: equal to every tolerance, not to the bits.
-            total = row["evidence"]["model_p"]["total_score"]
-            row["evidence"]["model_p"]["total_score"] = (
-                total + 2**-53 if total < 1 else total - 2**-53
-            )
-        return row
+        return moved(row, 0.2) if model == target else row  # NOISE is 0.1
 
-    outcome, moves = consider(fixed, flipped)
+    outcome, moves = consider(fixed, beyond)
     assert outcome["outcome"] == bp.FAILED_INFRA
     assert outcome["reason"] == bp.REPEAT_MISMATCH
     assert outcome["alert"]["schema"] == bp.ALERT_SCHEMA
@@ -162,7 +167,76 @@ def test_a_differing_bit_is_failed_infra_and_moves_nothing(name, who):
     assert moves == []
 
 
-def test_negative_zero_is_not_zero():
+@pytest.mark.parametrize("name", sorted(CASES))
+@pytest.mark.parametrize("by", [2**-53, 0.03, 0.1])
+def test_a_repeat_within_the_registered_tolerance_lets_the_crown_change(name, by):
+    fixed = CASES[name]
+    again = same_again(fixed)
+
+    def near(model):
+        return moved(again(model), by)
+
+    outcome, moves = consider(fixed, near)
+    assert outcome["outcome"] in (bp.FIRST_INCUMBENT, bp.CHALLENGER)
+    assert moves == [("set", "c", fixed["expected_incumbent"])]
+
+
+def test_a_changed_verdict_is_failed_infra_whatever_the_size_of_the_change():
+    # The device flips a gate verdict: the totals can agree and the grade still does not.
+    fixed = CASES["takeover"]
+    again = same_again(fixed)
+
+    def flipped(model):
+        row = again(model)
+        if model == "c":
+            row["evidence"]["model_p"]["score_status"] = "MANDATORY_GATE_FAILED"
+        return row
+
+    outcome, moves = consider(fixed, flipped)
+    assert outcome["outcome"] == bp.FAILED_INFRA and moves == []
+
+
+def test_only_score_level_values_have_a_tolerance_everything_else_is_exact():
+    first = body("c", total=0.95)
+    first["evidence"]["model_p"].update(
+        physics_benefit=0.9, design_benefit=0.8, gate_outcomes={"g": "pass", "x": 1.5}
+    )
+    second = deepcopy(first)
+    second["evidence"]["model_p"].update(physics_benefit=0.93, design_benefit=0.76)
+    assert bp.repeat_agrees(first, second, 0.1)
+    second["evidence"]["model_p"]["gate_outcomes"]["x"] = 1.5 + 2**-52
+    assert not bp.repeat_agrees(first, second, 0.1)
+    third = deepcopy(first)
+    third["evidence"]["score_compatibility"] = {"score_pack_digest": digest("other")}
+    assert not bp.repeat_agrees(first, third, 0.1)
+    fourth = deepcopy(first)
+    fourth["evidence"]["model_p"]["extra"] = 1
+    assert not bp.repeat_agrees(first, fourth, 0.1)
+
+
+@pytest.mark.parametrize("name", sorted(CASES))
+def test_no_registered_tolerance_is_unavailable_and_runs_no_repeat(name):
+    fixed = CASES[name]
+
+    def never(model):
+        raise AssertionError("no tolerance, no repeat")
+
+    store = Store(fixed)
+    outcome, moves = consider(fixed, never, store=store, noise=None)
+    # A crown change needs the tolerance; the comparison itself may already be UNAVAILABLE without noise.
+    assert outcome["outcome"] == bp.UNAVAILABLE
+    assert moves == [] and store.marks == {}
+
+
+def test_the_dethrone_without_a_successor_also_needs_the_tolerance():
+    fixed = pair(body("c", "FAILED_INFRA"), body("k", "MANDATORY_GATE_FAILED", 0.0))
+    outcome, moves = consider(fixed, same_again(fixed), noise=None)
+    assert outcome["outcome"] == bp.UNAVAILABLE
+    assert outcome["reason"] == bp.REPEAT_TOLERANCE_UNREGISTERED
+    assert moves == []
+
+
+def test_negative_zero_agrees_within_the_tolerance():
     fixed = pair(body("c", "FAILED_INFRA"), body("k", "MANDATORY_GATE_FAILED", 0.0))
 
     def negated(model):
@@ -172,7 +246,7 @@ def test_negative_zero_is_not_zero():
         return row
 
     outcome, moves = consider(fixed, negated)
-    assert outcome["outcome"] == bp.FAILED_INFRA and moves == []
+    assert outcome["outcome"] == bp.DETHRONED and moves == [("vacate", "k")]
 
 
 def test_no_repeat_means_no_crown_change():
@@ -262,7 +336,7 @@ def test_a_passed_change_files_a_mark_for_each_repeated_grade_and_a_failed_one_n
 
     def flipped(model):
         row = again(model)
-        row["evidence"]["model_p"]["total_score"] += 2**-52
+        row["evidence"]["model_p"]["total_score"] += 0.2  # beyond the registered 0.1
         return row
 
     failed = Store(fixed)
@@ -275,3 +349,28 @@ def test_an_unchanged_outcome_files_no_mark():
     store = Store(fixed)
     consider(fixed, lambda model: 1 / 0, store=store)
     assert store.marks == {}
+
+
+def test_the_alert_names_the_gate_whose_verdict_flipped():
+    fixed = pair(body("c", total=0.95), body("k", total=0.5))
+    for row in (fixed["candidate"], fixed["incumbent"]):
+        row["evidence"]["model_p"]["gate_outcomes"] = {"stress": True, "speed": True}
+    again = same_again(fixed)
+
+    def flipped(model):
+        row = again(model)
+        if model == "c":
+            row["evidence"]["model_p"]["gate_outcomes"]["speed"] = False
+        return row
+
+    outcome, moves = consider(fixed, flipped)
+    assert outcome["outcome"] == bp.FAILED_INFRA and moves == []
+    assert outcome["alert"]["flipped_gates"] == {"c": ["speed"]}
+    assert outcome["alert"]["states"] == ["c"]
+
+
+def test_a_total_beyond_tolerance_names_no_gate():
+    fixed = CASES["takeover"]
+    again = same_again(fixed)
+    outcome, _moves = consider(fixed, lambda model: moved(again(model), 0.2))
+    assert outcome["alert"]["flipped_gates"] == {}

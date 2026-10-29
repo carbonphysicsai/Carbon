@@ -1483,7 +1483,7 @@ def _contend(
             outcome,
             "pack",
             submission_id,
-            discovery.evaluation_pack_digest,
+            lambda: discovery.evaluation_pack_digest,
             repeat,
             pin,
         )
@@ -1508,9 +1508,11 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
     (`crown_pause_sweep`). Anything else files nothing."""
     from carbon.challenge_validator.bank_promotion import CROWNS_PAUSED
 
-    entry_id = getattr(repeat, "entry_id", None)
     if outcome.get("reason") != CROWNS_PAUSED:
         return
+    # ``exam`` may be a callable, read only now: a grade that is not paused needs no exam digest.
+    exam = exam() if callable(exam) else exam
+    entry_id = getattr(repeat, "entry_id", None)
     if entry_id is None:
         raise RetentionUnavailable("crown_paused_entry_unavailable")
     store.record_crown_paused(

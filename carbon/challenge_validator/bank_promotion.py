@@ -575,7 +575,7 @@ class BankPromotion:
 
         A crown change (first crown, takeover, dethrone) applies only after
         ``repeat`` produced a second, independent grade of every state the
-        decision read, bit-identical to the first (`repeat_gate`,
+        decision read, agreeing with the first within the Challenge's registered rebuild noise (`repeat_gate`,
         OWNER-CROWN-GRADE-REPEAT-01): the contender's always, the incumbent's
         only when it has no repeat mark. Without ``repeat`` no crown changes.
 
@@ -628,7 +628,13 @@ class BankPromotion:
                 for row in (pair["candidate"], pair["incumbent"])
                 if row
             }
-            gated = repeat_gate(pair, outcome, repeat, marked)
+            gated = repeat_gate(
+                pair,
+                outcome,
+                repeat,
+                marked,
+                (comparator.get("rebuild_noise") or {}).get("value"),
+            )
             if gated is outcome:
                 # Verified: file the marks, so the next decision repeats only what is unmarked.
                 for row in states_to_repeat(pair, marked):
@@ -759,6 +765,11 @@ CROWN_CHANGING = frozenset({FIRST_INCUMBENT, CHALLENGER, DETHRONED})
 FAILED_INFRA = "FAILED_INFRA"
 REPEAT_MISMATCH = "crown_repeat_grade_mismatch"
 REPEAT_UNAVAILABLE = "crown_repeat_grade_unavailable"
+#: No rebuild noise is registered for the Challenge, so a repeat has no tolerance to agree within.
+REPEAT_TOLERANCE_UNREGISTERED = "crown_repeat_tolerance_unregistered"
+#: The score-level values of a grade: the 0..1 scale the registered rebuild noise is measured on. A repeat
+#: agrees on these within the tolerance; every other value of the grade must be equal bit for bit.
+SCORE_LEVEL = frozenset({"total_score", "physics_benefit", "design_benefit"})
 #: The operator paused crown changes (`operator_pause`); the miner sees only UNAVAILABLE.
 CROWNS_PAUSED = "crowns_paused"
 ALERT_SCHEMA = "carbon.challenge-validator.crown-grade-alert.v1"
@@ -793,6 +804,36 @@ def grade_fingerprint(body):
     )
 
 
+def _agree(first, second, tolerance, level=False):
+    """Whether two values of a grade agree: a score-level number within ``tolerance``, anything else exactly."""
+    if type(first) is dict and type(second) is dict:
+        return set(first) == set(second) and all(
+            _agree(first[k], second[k], tolerance, k in SCORE_LEVEL) for k in first
+        )
+    if (
+        level
+        and type(first) in (int, float)
+        and type(second) in (int, float)
+        and type(first) is not bool
+        and type(second) is not bool
+    ):
+        if not (math.isfinite(first) and math.isfinite(second)):
+            raise StateError("private_evaluation_invalid")
+        return abs(first - second) <= tolerance
+    return _exact(first) == _exact(second)
+
+
+def repeat_agrees(first, second, tolerance):
+    """Whether a second grade of the same state agrees with the first: the scored result within the registered
+    rebuild-noise ``tolerance`` on its score-level values (`SCORE_LEVEL`), and the score compatibility and
+    every other value exactly. Entry and task identities differ between two grades and stay out.
+    """
+    a, b = first["evidence"], second["evidence"]
+    return _agree(
+        a.get("score_compatibility"), b.get("score_compatibility"), tolerance
+    ) and _agree(a.get("model_p"), b.get("model_p"), tolerance)
+
+
 def states_to_repeat(pair, marked):
     """The grades a crown change read that still need their second grade: the
     contender's fresh grade always, the incumbent's only when it carries no mark
@@ -808,10 +849,22 @@ def states_to_repeat(pair, marked):
     return states
 
 
-def repeat_gate(pair, outcome, repeat, marked=None):
+def _flipped_gates(first, second):
+    """The names of the gates whose verdict differs between two grades of one state (a verdict missing from one
+    grade counts), or [] when the grades carry no gate outcomes."""
+    a = (first["evidence"].get("model_p") or {}).get("gate_outcomes")
+    b = (second["evidence"].get("model_p") or {}).get("gate_outcomes")
+    if type(a) is not dict or type(b) is not dict:
+        return []
+    return sorted(str(name) for name in set(a) | set(b) if a.get(name) != b.get(name))
+
+
+def repeat_gate(pair, outcome, repeat, marked=None, tolerance=None):
     """Let a crown change stand only if every grade it read has been repeat-
     verified: a second, independent grade of the same state on the registered
-    class, bit-identical to the first (OWNER-CROWN-GRADE-REPEAT-01).
+    class, agreeing with the first within ``tolerance``, the Challenge's registered
+    rebuild noise (`repeat_agrees`; OWNER-CROWN-GRADE-REPEAT-01, amended by
+    OWNER-GPU-ONLY-REPEAT-TOLERANCE-01). No registered tolerance is UNAVAILABLE.
 
     ``repeat(submission_id)`` returns that state's second grade, shaped like
     `PoolStore.private_evaluation_pair` rows, on the same evaluation key. Which
@@ -827,17 +880,23 @@ def repeat_gate(pair, outcome, repeat, marked=None):
             out["alert"] = alert
         return out
 
+    if tolerance is None:
+        return held(REPEAT_TOLERANCE_UNREGISTERED, UNAVAILABLE)
     if repeat is None:
         return held(REPEAT_UNAVAILABLE, UNAVAILABLE)
     differing = []
+    flipped = {}
     for first in states:
         try:
             second = repeat(first["submission_id"])
-            same = grade_fingerprint(first) == grade_fingerprint(second)
+            same = repeat_agrees(first, second, tolerance)
         except Exception:  # noqa: BLE001 - a repeat that cannot run is not a grade
             return held(REPEAT_UNAVAILABLE, UNAVAILABLE)
         if not same:
             differing.append(first["submission_id"])
+            names = _flipped_gates(first, second)
+            if names:
+                flipped[first["submission_id"]] = names
     if not differing:
         return outcome
     return held(
@@ -848,6 +907,8 @@ def repeat_gate(pair, outcome, repeat, marked=None):
             "code": REPEAT_MISMATCH,
             "evaluation_key": pair["evaluation_key"],
             "states": differing,
+            # The gates whose verdict differed between the two grades, by name: gate-unstable states.
+            "flipped_gates": flipped,
             "action": "recheck_validator_host",
         },
     )
