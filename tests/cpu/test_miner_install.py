@@ -47,6 +47,7 @@ import time
 from pathlib import Path
 
 import pytest
+from build_inputs_fixture import seed_build_inputs
 
 from carbon.reconstruction.worker import build_inputs
 from scripts.dev.miner_launchpad import installed
@@ -524,10 +525,9 @@ class Sandbox:
             (ROOT / "scripts/dev/resolve_python.sh").read_text(),
         )
         # The installer's DEVELOPMENT candidate check hashes the worker build inputs (build_inputs.py + its set file).
-        for name in ("build_inputs.py", "build_inputs.txt"):
-            target = self.work / "carbon" / "reconstruction" / "worker" / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text((build_inputs.INPUTS_FILE.parent / name).read_text())
+        seed_build_inputs(
+            self.work
+        )  # every input exists; the digest refuses a partial set
         for name, text in FAKE_CHECKOUT.items():
             self._executable(self.work / name, text)
         (self.work / ".gitignore").write_text(

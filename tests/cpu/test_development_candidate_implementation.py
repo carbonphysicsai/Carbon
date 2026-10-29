@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 
 import pytest
+from build_inputs_fixture import seed_build_inputs
 
 from carbon.development_session import research_campaign
 from carbon.reconstruction.worker import build_inputs
@@ -26,17 +27,10 @@ def _candidate(tmp_path):
     (repo / "source.txt").write_text("main\n")
     (repo / "carbon").mkdir()
     (repo / "carbon" / "__init__.py").write_text("# committed source\n")
-    inputs = repo / build_inputs.INPUTS_FILE_IN_REPO
-    inputs.parent.mkdir(parents=True)
-    inputs.write_text(build_inputs.INPUTS_FILE.read_text(encoding="utf-8"))
-    _git(
-        repo,
-        "add",
-        ".gitignore",
-        "source.txt",
-        "carbon/__init__.py",
-        build_inputs.INPUTS_FILE_IN_REPO,
-    )
+    seeded = seed_build_inputs(
+        repo
+    )  # every build input must exist: the digest refuses a partial set
+    _git(repo, "add", ".gitignore", "source.txt", "carbon/__init__.py", *seeded)
     _git(repo, "commit", "-qm", "base")
     _git(
         repo, "update-ref", "refs/remotes/origin/main", _git(repo, "rev-parse", "HEAD")
