@@ -60,7 +60,7 @@ def test_presence_batches_exact_immutable_ids_without_building():
     class CLI:
         def run(self, arguments):
             calls.append(arguments)
-            if arguments == ["image", "ls", "--no-trunc", "--quiet"]:
+            if arguments == ["image", "ls", "--all", "--no-trunc", "--quiet"]:
                 return SimpleNamespace(stdout=(_sha("4") + "\n").encode())
             assert arguments == [
                 "image",
@@ -75,6 +75,51 @@ def test_presence_batches_exact_immutable_ids_without_building():
         [_sha("4"), _sha("4"), _sha("5")], cli=CLI()
     ) == frozenset({_sha("4")})
     assert len(calls) == 2
+
+
+def test_presence_includes_untagged_and_intermediate_children():
+    tagged, untagged, intermediate, missing = (_sha(char) for char in "4567")
+    calls = []
+
+    class CLI:
+        def run(self, arguments):
+            calls.append(arguments)
+            if arguments[:2] == ["image", "ls"]:
+                assert set(arguments[2:]) <= {"--all", "--no-trunc", "--quiet"}
+                values = [tagged]
+                if "--all" in arguments:
+                    values += [untagged, intermediate]
+                return SimpleNamespace(stdout="\n".join(values).encode())
+            selected = arguments[2:-2]
+            assert arguments[:2] == ["image", "inspect"]
+            assert arguments[-2:] == ["--format", "{{json .Id}}"]
+            assert missing not in selected
+            return SimpleNamespace(
+                stdout="\n".join(json.dumps(value) for value in selected).encode()
+            )
+
+    found = cache.present_library_worker_images(
+        [untagged, intermediate, tagged, missing, untagged], cli=CLI()
+    )
+    assert found == frozenset({tagged, untagged, intermediate})
+    assert len(calls) == 2
+    assert calls[1][2:-2] == sorted(found)
+
+
+def test_presence_of_only_missing_children_needs_no_inspection():
+    calls = []
+
+    class CLI:
+        def run(self, arguments):
+            calls.append(arguments)
+            assert arguments == ["image", "ls", "--all", "--no-trunc", "--quiet"]
+            return SimpleNamespace(stdout=(_sha("4") + "\n").encode())
+
+    assert (
+        cache.present_library_worker_images([_sha("5"), _sha("5")], cli=CLI())
+        == frozenset()
+    )
+    assert len(calls) == 1
 
 
 @pytest.mark.parametrize(
@@ -153,7 +198,7 @@ def test_receiver_opt_in_rebuilds_only_a_missing_child_and_preserves_failed_rece
             state["queries"].append(arguments)
             if fault == "unreachable":
                 raise WorkerFailure(WorkerCode.RUNTIME)
-            if arguments == ["image", "ls", "--no-trunc", "--quiet"]:
+            if arguments == ["image", "ls", "--all", "--no-trunc", "--quiet"]:
                 return SimpleNamespace(
                     stdout="\n".join(sorted(state["images"])).encode()
                 )

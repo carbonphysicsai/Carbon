@@ -74,7 +74,7 @@ def daemon(monkeypatch):
             state["calls"].append(arguments)
             if state["fault"] == "unreachable":
                 raise WorkerFailure(WorkerCode.RUNTIME)
-            if arguments == ["image", "ls", "--no-trunc", "--quiet"]:
+            if arguments == ["image", "ls", "--all", "--no-trunc", "--quiet"]:
                 body = "\n".join(sorted(state["images"]))
                 if state["fault"] == "malformed_listing":
                     body = "a-tag-is-not-an-immutable-image-id"

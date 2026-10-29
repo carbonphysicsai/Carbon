@@ -648,7 +648,8 @@ def present_library_worker_images(image_ids, *, cli: object) -> frozenset[str]:
     downloads an image and does not replace runtime image/host verification.
     """
     wanted = frozenset(_digest(value) for value in image_ids)
-    listed = cli.run(["image", "ls", "--no-trunc", "--quiet"]).stdout
+    # Admitted children may be untagged or intermediate images, hidden by default.
+    listed = cli.run(["image", "ls", "--all", "--no-trunc", "--quiet"]).stdout
     available = frozenset(_digest(line) for line in listed.decode("ascii").splitlines())
     selected = wanted & available
     if not selected:
