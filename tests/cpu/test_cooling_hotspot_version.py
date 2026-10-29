@@ -145,23 +145,19 @@ def test_practice_and_pool_share_the_new_module_with_new_evaluation_identities()
     )
 
 
-def test_the_new_pool_version_stays_reserved_without_owner_constants():
+def test_the_new_pool_version_is_offered_on_provisional_testnet_constants():
+    """OWNER-POOL-CONSTANTS-PROVISIONAL-01: Motor 1.5's row, PROVISIONAL, until the guard grid on the final
+    pools (a version that fails it goes back to RESERVED)."""
     found = next(
         e
         for e in registry.entries()
         if (e.challenge_id, e.version) == (corrected.CHALLENGE, "1.6")
     )
-    assert found.status == registry.RESERVED
-    assert published_exam.registered_pool(corrected.CHALLENGE, "1.6") is None
-    for call in (
-        pool_version.registered_policies,
-        pool_version.registered_a_multiplier,
-    ):
-        with pytest.raises(
-            pool_version.PoolConstantsNotRegistered,
-            match="pool_constants_not_registered",
-        ):
-            call(corrected.CHALLENGE, "1.6")
+    assert found.status == registry.IMPLEMENTED
+    own = published_exam.registered_pool(corrected.CHALLENGE, "1.6")
+    assert own is not None and "PROVISIONAL" in own["source"]
+    assert pool_version.registered_a_multiplier(corrected.CHALLENGE, "1.6") == 3.0
+    assert pool_version.registered_policies(corrected.CHALLENGE, "1.6") is not None
 
 
 def test_public_kit_and_graph_recipe_keep_the_same_train_interface_and_adapter():

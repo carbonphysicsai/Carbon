@@ -1,6 +1,6 @@
 {
   "schema": "carbon.pool.constants.v1",
-  "source": "Owner picks from the per-Challenge owner sheets (the proof grid on the final pools); V8_RULINGS sections 11, 15. Motor 1.5: OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01 (.agent/decisions, 39f1ee4b4; owner '1 and a', reports/OWNER_SCORING_SHEET_MOTOR_20261026.md row B 60 / s_h 1.0 / A multiplier 3 / A_gen scales set-3 (0.03 x the TRAIN spread, expanded by pool_adapters.train_spread) / rule mean; sigma0 0.25, population None and honesty reduction max are the grid spec's fixed values). Every other entry: HUMAN_INPUT, a version with any HUMAN_INPUT refuses to grade (pool_constants_not_registered).",
+  "source": "Owner picks from the per-Challenge owner sheets (the proof grid on the final pools); V8_RULINGS sections 11, 15. Motor 1.5: OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01 (.agent/decisions, 39f1ee4b4; owner '1 and a', reports/OWNER_SCORING_SHEET_MOTOR_20261026.md row B 60 / s_h 1.0 / A multiplier 3 / A_gen scales set-3 (0.03 x the TRAIN spread, expanded by pool_adapters.train_spread) / rule mean; sigma0 0.25, population None and honesty reduction max are the grid spec's fixed values). Cooling 1.6, F08 1.7 and F02 2.5: OWNER-POOL-CONSTANTS-PROVISIONAL-01 (owner 'Yes approve', 2026-10-29): Motor 1.5's row, PROVISIONAL, testnet only, with each A_gen scale set computed as 0.03 x that version's TRAIN spread (pool_adapters.train_spread) and c_rule min. Every other entry: HUMAN_INPUT, a version with any HUMAN_INPUT refuses to grade (pool_constants_not_registered).",
   "versions": {
     "chip-cold-plate 1.5": {
       "a_multiplier": "HUMAN_INPUT",
@@ -20,20 +20,31 @@
       }
     },
     "chip-cold-plate 1.6": {
-      "a_multiplier": "HUMAN_INPUT",
-      "a_rule": "HUMAN_INPUT",
-      "agen_scales": "HUMAN_INPUT",
+      "a_multiplier": 3.0,
+      "a_rule": {
+        "kind": "mean"
+      },
+      "agen_scales": {
+        "die_peak_c": 0.41420407077591903,
+        "hydraulic_w": 0.00608371529422243
+      },
       "c_rule": {
         "kind": "min"
       },
       "honesty": {
-        "reduction": "HUMAN_INPUT",
-        "scale": "HUMAN_INPUT"
+        "reduction": "max",
+        "scale": 1.0
       },
       "optimizer": {
-        "budget": "HUMAN_INPUT",
-        "population": "HUMAN_INPUT",
-        "sigma0": "HUMAN_INPUT"
+        "budget": 60,
+        "population": null,
+        "sigma0": 0.25
+      },
+      "provisional": {
+        "record": "OWNER-POOL-CONSTANTS-PROVISIONAL-01",
+        "scope": "testnet",
+        "status": "PROVISIONAL",
+        "guard": "the version's scoring grid on its final sealed pools, in custody; a version that fails goes back to RESERVED"
       }
     },
     "electric-motor-magnetics 1.5": {
@@ -59,35 +70,60 @@
       }
     },
     "f02 2.5": {
-      "a_multiplier": "HUMAN_INPUT",
-      "a_rule": "HUMAN_INPUT",
-      "agen_scales": "HUMAN_INPUT",
+      "a_multiplier": 3.0,
+      "a_rule": {
+        "kind": "mean"
+      },
+      "agen_scales": {
+        "peak_top_c": 0.5011239631533212,
+        "extra_energy_j": 15.071498436712524
+      },
       "c_rule": {
         "kind": "min"
       },
       "honesty": {
-        "reduction": "HUMAN_INPUT",
-        "scale": "HUMAN_INPUT"
+        "reduction": "max",
+        "scale": 1.0
       },
       "optimizer": {
-        "budget": "HUMAN_INPUT",
-        "population": "HUMAN_INPUT",
-        "sigma0": "HUMAN_INPUT"
+        "budget": 60,
+        "population": null,
+        "sigma0": 0.25
+      },
+      "provisional": {
+        "record": "OWNER-POOL-CONSTANTS-PROVISIONAL-01",
+        "scope": "testnet",
+        "status": "PROVISIONAL",
+        "guard": "the version's scoring grid on its final sealed pools, in custody; a version that fails goes back to RESERVED"
       }
     },
     "f08-ribbed-bracket 1.7": {
-      "a_multiplier": "HUMAN_INPUT",
-      "a_rule": "HUMAN_INPUT",
-      "agen_scales": "HUMAN_INPUT",
-      "c_rule": "HUMAN_INPUT",
+      "a_multiplier": 3.0,
+      "a_rule": {
+        "kind": "mean"
+      },
+      "agen_scales": {
+        "static_tip_mm_per_n": 0.00012582924841297258,
+        "worst_dynamic_mm_per_n": 0.012185592047152595,
+        "cad_mass_kg": 0.0025458163971437196
+      },
+      "c_rule": {
+        "kind": "min"
+      },
       "honesty": {
-        "reduction": "HUMAN_INPUT",
-        "scale": "HUMAN_INPUT"
+        "reduction": "max",
+        "scale": 1.0
       },
       "optimizer": {
-        "budget": "HUMAN_INPUT",
-        "population": "HUMAN_INPUT",
-        "sigma0": "HUMAN_INPUT"
+        "budget": 60,
+        "population": null,
+        "sigma0": 0.25
+      },
+      "provisional": {
+        "record": "OWNER-POOL-CONSTANTS-PROVISIONAL-01",
+        "scope": "testnet",
+        "status": "PROVISIONAL",
+        "guard": "the version's scoring grid on its final sealed pools, in custody; a version that fails goes back to RESERVED"
       }
     },
     "f08-ribbed-bracket 1.6": {

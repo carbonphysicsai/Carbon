@@ -303,8 +303,30 @@ def test_motor_15_publishes_its_registered_rules():
         assert needle in text, needle
 
 
+#: Registered PROVISIONAL, testnet (OWNER-POOL-CONSTANTS-PROVISIONAL-01): Motor 1.5's row, own A_gen scales.
+PROVISIONAL = {
+    ("chip-cold-plate", "1.6"),
+    ("f08-ribbed-bracket", "1.7"),
+    ("f02", "2.5"),
+}
+
+
+def test_the_provisional_versions_publish_motor_1_5_s_row_with_their_own_scales():
+    motor = pe.registered_pool(*MOTOR_15)
+    skip = ("a_gen_scales", "source")
+    for key in PROVISIONAL:
+        own = pe.registered_pool(*key)
+        assert own is not None, key
+        assert "PROVISIONAL" in own["source"]
+        assert {k: v for k, v in own.items() if k not in skip} == {
+            k: v for k, v in motor.items() if k not in skip
+        }
+        assert own["a_gen_scales"] != motor["a_gen_scales"]
+        assert pe.for_version(*key)["design_search"] is not pe._DESIGN_SEARCH
+
+
 def test_every_other_pool_version_still_says_not_yet_registered():
-    for key in POOL_KEYS - {MOTOR_15}:
+    for key in POOL_KEYS - {MOTOR_15} - PROVISIONAL:
         block = pe.for_version(*key)
         assert block["design_search"] is pe._DESIGN_SEARCH
         assert block["design_search"]["search"]["query_budget"] == pe.NOT_REGISTERED

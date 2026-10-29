@@ -171,37 +171,18 @@ def test_serialized_policy_cannot_change_an_older_adapters_semantics(case):
         prospective.validate_definition(definition)
 
 
-def test_reserved_version_refuses_grading_until_owner_picks(case):
+def test_the_version_is_offered_on_provisional_testnet_constants(case):
+    """OWNER-POOL-CONSTANTS-PROVISIONAL-01 registers F08 1.7 on Motor 1.5's row (PROVISIONAL, testnet only); the
+    guard grid on its final pools can send it back to RESERVED."""
     entry = next(e for e in registry.entries() if (e.challenge_id, e.version) == KEY)
-    assert entry.status == registry.RESERVED
-    with pytest.raises(registry.ChallengeNotImplemented):
-        registry.resolve(*KEY, registry.CPU_RESEARCH)
+    assert entry.status == registry.IMPLEMENTED
     constants = json.loads(pool_version.CONSTANTS.read_bytes())["versions"][
         " ".join(KEY)
     ]
-
-    def leaves(value):
-        return (
-            [v for child in value.values() for v in leaves(child)]
-            if isinstance(value, dict)
-            else [value]
-        )
-
-    assert set(leaves(constants)) == {pool_version.HUMAN_INPUT}
-    chosen = sealed.adapter("1.7")
-    with pytest.raises(
-        pool_version.PoolConstantsNotRegistered, match="pool_constants_not_registered"
-    ):
-        chosen.measure(
-            bank_rows=[],
-            outputs=[],
-            repeats=[[], []],
-            definition={"pool": {"sets": []}},
-            limits={},
-            objective=None,
-            train_raw=b"",
-            names=[],
-        )
+    assert pool_version.HUMAN_INPUT not in json.dumps(constants)
+    assert constants["provisional"]["status"] == "PROVISIONAL"
+    assert constants["c_rule"] == {"kind": "min"}
+    assert pool_version.registered_a_multiplier(*KEY) == 3.0
 
 
 def test_published_gate_changes_only_for_the_prospective_version():

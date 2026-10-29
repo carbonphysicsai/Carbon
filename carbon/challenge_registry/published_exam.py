@@ -390,7 +390,8 @@ HOW_TESTED_LINES = (
 #: absent here keeps the words "not yet registered". Motor 1.5:
 #: OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01 (owner "1 and a", 2026-10-26). The A_gen
 #: scales are 0.03 x the TRAIN spread of each output, which is public TRAIN data;
-#: no target, pool, region bound or seed is named.
+#: no target, pool, region bound or seed is named. Cooling 1.6, F08 1.7 and F02 2.5 take Motor 1.5's row,
+#: PROVISIONAL and testnet only (OWNER-POOL-CONSTANTS-PROVISIONAL-01), each with its own A_gen scales (0.03 x its TRAIN spread).
 _REGISTERED_POOL = {
     ("electric-motor-magnetics", "1.5"): {
         "query_budget": 60,
@@ -405,7 +406,50 @@ _REGISTERED_POOL = {
         },
         "c_rule": "min",
         "source": "carbon/scoring/pool_constants.json (OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01)",
-    }
+    },
+    ("chip-cold-plate", "1.6"): {
+        "query_budget": 60,
+        "initial_step": 0.25,
+        "honesty_scale": 1.0,
+        "honesty_reduction": "max",
+        "a_multiplier": 3.0,
+        "a_gen_rule": "mean",
+        "a_gen_scales": {
+            "die_peak_c": 0.41420407077591903,
+            "hydraulic_w": 0.00608371529422243,
+        },
+        "c_rule": "min",
+        "source": "carbon/scoring/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only)",
+    },
+    ("f08-ribbed-bracket", "1.7"): {
+        "query_budget": 60,
+        "initial_step": 0.25,
+        "honesty_scale": 1.0,
+        "honesty_reduction": "max",
+        "a_multiplier": 3.0,
+        "a_gen_rule": "mean",
+        "a_gen_scales": {
+            "static_tip_mm_per_n": 0.00012582924841297258,
+            "worst_dynamic_mm_per_n": 0.012185592047152595,
+            "cad_mass_kg": 0.0025458163971437196,
+        },
+        "c_rule": "min",
+        "source": "carbon/scoring/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only)",
+    },
+    ("f02", "2.5"): {
+        "query_budget": 60,
+        "initial_step": 0.25,
+        "honesty_scale": 1.0,
+        "honesty_reduction": "max",
+        "a_multiplier": 3.0,
+        "a_gen_rule": "mean",
+        "a_gen_scales": {
+            "peak_top_c": 0.5011239631533212,
+            "extra_energy_j": 15.071498436712524,
+        },
+        "c_rule": "min",
+        "source": "carbon/scoring/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only)",
+    },
 }
 
 
