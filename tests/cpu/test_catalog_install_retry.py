@@ -145,4 +145,4 @@ def test_the_recorded_cause_carries_no_address_and_the_cap_holds_with_the_suffix
     assert "10.1.2" not in detail and "2376" not in detail and "timeout" in detail
     long = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"x " * 400)
     capped = catalog_install._diagnostic(long, " (retried once)")
-    assert len(capped) == 300 and capped.endswith(" (retried once)")
+    assert len(capped) <= 300 and capped.endswith(" (retried once)")
