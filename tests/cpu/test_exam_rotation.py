@@ -455,3 +455,218 @@ def test_the_real_pool_store_serves_the_kings_filed_evaluation_to_the_check(
         margin=0.0,
     )
     assert outcome["outcome"] == exam_rotation.KEEP
+
+
+# --- the weekly runner and its systemd timer (exam-refresh audit, gap 1) ----------------------
+
+WEEK = exam_rotation.FRESH_DRAW_PERIOD_BLOCKS
+
+
+def _weekly_check(tmp_path, *, fresh=False):
+    """One configured Challenge: its ledger, an (empty) pool store, a sealed binding (and a fresh one)."""
+    from carbon.battery.pool_store import PoolStore
+
+    directory = tmp_path / "ledger"
+    directory.mkdir(mode=0o700, exist_ok=True)
+    sealed = tmp_path / "sealed" / "private-evaluation-binding.json"
+    sealed.parent.mkdir(exist_ok=True)
+    sealed.write_text(json.dumps({"key": SEALED, "source_receipt_sha256": "pin-s"}))
+    (sealed.parent / exam_rotation.SE_SIDECAR).write_text(
+        json.dumps(
+            {
+                "schema": exam_rotation.SE_SCHEMA,
+                "status": "MEASURED",
+                "standard_error": 0.004,
+                "total": 0.8,
+            }
+        )
+    )
+    check = {
+        "ledger": str(directory / "attempts.sqlite3"),
+        "challenge": "electric-motor-magnetics",
+        "version": "1.5",
+        "sealed_binding": str(sealed),
+        "pool_store": str(tmp_path / "pool.sqlite"),
+        "deployment": "deployment.json",
+    }
+    PoolStore(tmp_path / "pool.sqlite")
+    if fresh:
+        binding = tmp_path / "fresh" / "private-evaluation-binding.json"
+        binding.parent.mkdir(exist_ok=True)
+        binding.write_text(json.dumps({"key": FRESH, "source_receipt_sha256": "pin-f"}))
+        check["fresh_binding"] = str(binding)
+    return check
+
+
+def _crown(tmp_path, model="rtsk_king"):
+    from carbon.battery.pool_store import PoolStore
+
+    store = PoolStore(tmp_path / "pool.sqlite")
+    with store.db() as db:
+        store._set_incumbent(db, model, "test", expected=None)
+
+
+@pytest.fixture
+def weekly(monkeypatch):
+    from carbon.challenge_validator import bank_promotion
+
+    monkeypatch.setattr(bank_promotion, "private_evaluation_key", lambda b: b["key"])
+
+
+def _rows(check):
+    return exam_rotation.FreshDrawLog(AttemptLedger(check["ledger"])).rows()
+
+
+def _run(check, block):
+    return exam_rotation.run_weekly(
+        {"checks": [check]}, head_reader=lambda deployment: block
+    )
+
+
+def test_an_unreadable_chain_is_a_logged_unavailable_week(tmp_path, weekly):
+    check = _weekly_check(tmp_path)
+    (outcome,) = _run(check, None)
+    assert (outcome["outcome"], outcome["reason"]) == (
+        "UNAVAILABLE",
+        "chain_unavailable",
+    )
+    (row,) = _rows(check)
+    assert (row["outcome"], row["reason"], row["block"]) == (
+        "UNAVAILABLE",
+        "chain_unavailable",
+        exam_rotation.NO_BLOCK,
+    )
+    assert row["sealed_key"] == SEALED and row["sealed_total"] is None
+
+
+def test_the_block_comes_from_the_chain_reader_not_the_ledger(tmp_path, weekly):
+    check = _weekly_check(tmp_path)
+    _crown(tmp_path)
+    log = exam_rotation.FreshDrawLog(AttemptLedger(check["ledger"]))
+    last = 5 * WEEK
+    _record(log, last)  # the ledger's last check was long ago ...
+    (outcome,) = _run(check, last + 1)  # ... but the chain says only 1 block later
+    assert outcome == {
+        "outcome": "NOT_DUE",
+        "challenge": check["challenge"],
+        "block": last + 1,
+    }
+    assert len(_rows(check)) == 1  # not due: no new row
+
+
+def test_no_incumbent_is_a_logged_unavailable_week(tmp_path, weekly):
+    check = _weekly_check(tmp_path)
+    (outcome,) = _run(check, 3 * WEEK)
+    assert outcome["reason"] == "no_incumbent"
+    (row,) = _rows(check)
+    assert (row["reason"], row["block"], row["king_submission_id"]) == (
+        "no_incumbent",
+        3 * WEEK,
+        "",
+    )
+
+
+def test_a_missing_fresh_set_is_a_logged_unavailable_week_with_the_king(
+    tmp_path, weekly
+):
+    check = _weekly_check(tmp_path)
+    _crown(tmp_path, "rtsk_king")
+    (outcome,) = _run(check, 3 * WEEK)
+    assert outcome["reason"] == "fresh_draw_set_unavailable"
+    (row,) = _rows(check)
+    assert row["king_submission_id"] == "rtsk_king" and row["fresh_total"] is None
+    assert row["sealed_key"] == SEALED and row["outcome"] == "UNAVAILABLE"
+
+
+def test_a_fresh_binding_runs_the_check_with_both_sidecar_ses(
+    tmp_path, weekly, monkeypatch
+):
+    check = _weekly_check(tmp_path, fresh=True)
+    _crown(tmp_path, "rtsk_king")
+    (tmp_path / "fresh" / exam_rotation.SE_SIDECAR).write_text(
+        json.dumps(
+            {
+                "schema": exam_rotation.SE_SCHEMA,
+                "status": "MEASURED",
+                "standard_error": 0.006,
+                "total": 0.79,
+            }
+        )
+    )
+    seen = {}
+
+    def fake_check(**kwargs):
+        seen.update(kwargs)
+        return {"outcome": exam_rotation.KEEP, "reason": "within_margin_and_2se"}
+
+    monkeypatch.setattr(exam_rotation, "check_king", fake_check)
+    (outcome,) = _run(check, 3 * WEEK)
+    assert outcome["outcome"] == exam_rotation.KEEP
+    assert seen["king"] == "rtsk_king" and seen["block"] == 3 * WEEK
+    assert seen["sealed"] == {"key": SEALED, "pin": "pin-s", "se": 0.004}
+    assert seen["fresh"] == {"key": FRESH, "pin": "pin-f", "se": 0.006}
+    assert seen["challenge_version"] == "1.5"
+
+
+def test_the_timer_unit_renders_weekly_persistent_and_runs_the_weekly_command():
+    units = exam_rotation.render_units(
+        "/etc/carbon/fresh-draw.json",
+        repository="/home/carbon/carbon",
+        python="/home/carbon/carbon/.venv/bin/python",
+    )
+    assert sorted(units) == [
+        "carbon-exam-fresh-draw.service",
+        "carbon-exam-fresh-draw.timer",
+    ]
+    timer = units["carbon-exam-fresh-draw.timer"]
+    service = units["carbon-exam-fresh-draw.service"]
+    assert "OnCalendar=weekly" in timer and "Persistent=true" in timer
+    assert "Unit=carbon-exam-fresh-draw.service" in timer
+    assert "WantedBy=timers.target" in timer
+    assert "Type=oneshot" in service
+    assert "WorkingDirectory=/home/carbon/carbon" in service
+    assert (
+        "ExecStart=/home/carbon/carbon/.venv/bin/python -B -m "
+        "carbon.challenge_validator.exam_rotation weekly --config "
+        "/etc/carbon/fresh-draw.json"
+    ) in service
+    # Operator-only: no key and no secret in either unit.
+    for text in (timer, service):
+        assert "SECRET" not in text.upper() and "TOKEN" not in text.upper()
+    with pytest.raises(ValueError):
+        exam_rotation.render_units("relative.json", repository="/r", python="/p")
+
+
+def test_the_cli_writes_the_units_into_a_new_directory_and_runs_weekly(
+    tmp_path, weekly, capsys, monkeypatch
+):
+    out = tmp_path / "units"
+    arguments = [
+        "units",
+        "--config",
+        "/etc/carbon/fresh-draw.json",
+        "--repository",
+        "/home/carbon/carbon",
+        "--python",
+        "/usr/bin/python3",
+        "--out-dir",
+        str(out),
+    ]
+    assert exam_rotation.main(arguments) == 0
+    assert sorted(p.name for p in out.iterdir()) == [
+        "carbon-exam-fresh-draw.service",
+        "carbon-exam-fresh-draw.timer",
+    ]
+    assert json.loads(capsys.readouterr().out)["installed"] is False
+    with pytest.raises(FileExistsError):
+        exam_rotation.main(arguments)
+    check = _weekly_check(tmp_path)
+    config = tmp_path / "weekly.json"
+    config.write_text(json.dumps({"checks": [check]}))
+    from carbon.challenge_validator import answer_key
+
+    monkeypatch.setattr(answer_key, "finalized_head", lambda deployment: None)
+    assert exam_rotation.main(["weekly", "--config", str(config)]) == 0
+    assert json.loads(capsys.readouterr().out)[0]["reason"] == "chain_unavailable"
+    with pytest.raises(SystemExit):
+        exam_rotation.main(["weekly"])

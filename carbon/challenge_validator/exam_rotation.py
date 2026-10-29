@@ -236,6 +236,177 @@ def check_king(
     return {**decision, **inputs}
 
 
+#: A weekly run that could not read the chain has no block to log; the row carries this sentinel (and its
+#: reason), which never counts as the last check's block.
+NO_BLOCK = 0
+UNIT_NAME = "carbon-exam-fresh-draw"
+
+
+def _unavailable(log, check, *, reason, block, king="", sealed_key="", fresh_key=""):
+    """Log a week the check could not run, so a miss is a row and never a silence."""
+    inputs = {
+        "sealed_total": None,
+        "fresh_total": None,
+        "margin": None,
+        "se_sealed": None,
+        "se_fresh": None,
+    }
+    log.record(
+        challenge_id=check["challenge"],
+        challenge_version=check["version"],
+        king=king,
+        sealed_key=sealed_key,
+        fresh_key=fresh_key,
+        block=block,
+        inputs=inputs,
+        decision={"outcome": UNAVAILABLE, "reason": reason, "threshold": None},
+    )
+    return {"outcome": UNAVAILABLE, "reason": reason, "challenge": check["challenge"]}
+
+
+def run_weekly(config, *, head_reader=None, clock=None):
+    """One weekly pass over the configured Challenges (operator only; the timer's command).
+
+    ``config`` is ``{"checks": [{"ledger", "challenge", "version", "sealed_binding", "pool_store",
+    "deployment", "fresh_binding"?}]}``. For each: the chain's finalized block is read through the validator
+    deployment's own reader (never the ledger's last block, which goes stale when nothing is graded); when the
+    check is due, the king is the pool store's incumbent (never an operator file) and the fresh binding is the
+    king's regrade on a held-back fresh set. Every miss is a ``fresh_draw_log`` row with its reason:
+    ``chain_unavailable``, ``no_incumbent``, ``fresh_draw_set_unavailable``. Returns one outcome per check.
+    """
+    from carbon.battery.pool_store import PoolStore
+    from carbon.challenge_validator import answer_key
+    from carbon.challenge_validator.bank_promotion import private_evaluation_key
+    from carbon.challenge_validator.ledger import AttemptLedger
+
+    head_reader = head_reader or answer_key.finalized_head
+    outcomes = []
+    for check in config["checks"]:
+        log = FreshDrawLog(AttemptLedger(Path(check["ledger"])), clock=clock)
+        sealed_path = Path(check["sealed_binding"])
+        sealed_binding = json.loads(sealed_path.read_bytes())
+        sealed_key = private_evaluation_key(sealed_binding)
+        block = head_reader(check["deployment"])
+        if type(block) is not int or block < 0:
+            outcomes.append(
+                _unavailable(
+                    log,
+                    check,
+                    reason="chain_unavailable",
+                    block=NO_BLOCK,
+                    sealed_key=sealed_key,
+                )
+            )
+            continue
+        if not log.due(
+            challenge_id=check["challenge"], sealed_key=sealed_key, block=block
+        ):
+            outcomes.append(
+                {"outcome": "NOT_DUE", "challenge": check["challenge"], "block": block}
+            )
+            continue
+        store = PoolStore(Path(check["pool_store"]))
+        incumbent = store.incumbent()
+        if incumbent is None:
+            outcomes.append(
+                _unavailable(
+                    log,
+                    check,
+                    reason="no_incumbent",
+                    block=block,
+                    sealed_key=sealed_key,
+                )
+            )
+            continue
+        king = incumbent["model_id"]
+        fresh_path = (
+            Path(check["fresh_binding"]) if check.get("fresh_binding") else None
+        )
+        if fresh_path is None or not fresh_path.is_file():
+            outcomes.append(
+                _unavailable(
+                    log,
+                    check,
+                    reason="fresh_draw_set_unavailable",
+                    block=block,
+                    king=king,
+                    sealed_key=sealed_key,
+                )
+            )
+            continue
+        fresh_binding = json.loads(fresh_path.read_bytes())
+        sides = []
+        for binding, path in (
+            (sealed_binding, sealed_path),
+            (fresh_binding, fresh_path),
+        ):
+            sidecar = path.with_name(SE_SIDECAR)
+            sides.append(
+                {
+                    "key": private_evaluation_key(binding),
+                    "pin": binding["source_receipt_sha256"],
+                    "se": read_se(sidecar)[0] if sidecar.is_file() else None,
+                }
+            )
+        outcomes.append(
+            {
+                **check_king(
+                    log=log,
+                    store=store,
+                    challenge_id=check["challenge"],
+                    challenge_version=check["version"],
+                    king=king,
+                    sealed=sides[0],
+                    fresh=sides[1],
+                    block=block,
+                ),
+                "challenge": check["challenge"],
+            }
+        )
+    return outcomes
+
+
+def render_units(config_path, *, repository, python):
+    """The weekly check as a ``systemd --user`` service and timer (weekly, Persistent): ``{filename: text}``.
+    The service runs ``exam_rotation weekly`` from the repository checkout; it holds no key and reads only the
+    validator's own ledger, pool store and deployment named in the config."""
+    import shlex
+
+    config_path, repository, python = (
+        Path(config_path),
+        Path(repository),
+        Path(python),
+    )
+    for path in (config_path, repository, python):
+        if not path.is_absolute() and not str(path).startswith("/"):
+            raise ValueError("unit paths must be absolute")
+    command = " ".join(
+        shlex.quote(part)
+        for part in (
+            python.as_posix(),
+            "-B",
+            "-m",
+            "carbon.challenge_validator.exam_rotation",
+            "weekly",
+            "--config",
+            config_path.as_posix(),
+        )
+    )
+    return {
+        f"{UNIT_NAME}.service": (
+            "[Unit]\nDescription=Carbon weekly fresh-draw check (operator only)\n\n"
+            f"[Service]\nType=oneshot\nWorkingDirectory={repository.as_posix()}\n"
+            "Environment=PYTHONDONTWRITEBYTECODE=1\n"
+            f"ExecStart={command}\n"
+        ),
+        f"{UNIT_NAME}.timer": (
+            "[Unit]\nDescription=Carbon weekly fresh-draw check, once a week\n\n"
+            "[Timer]\nOnCalendar=weekly\nPersistent=true\n"
+            f"Unit={UNIT_NAME}.service\n\n[Install]\nWantedBy=timers.target\n"
+        ),
+    }
+
+
 def main(argv=None):
     import argparse
 
@@ -247,16 +418,42 @@ def main(argv=None):
         prog="python -m carbon.challenge_validator.exam_rotation",
         description="The weekly fresh-draw check of the king (operator only).",
     )
-    parser.add_argument("action", choices=("due", "check"))
-    parser.add_argument("--ledger", type=Path, required=True)
-    parser.add_argument("--challenge", required=True)
-    parser.add_argument("--version", required=True)
-    parser.add_argument("--block", type=int, required=True)
-    parser.add_argument("--sealed-binding", type=Path, required=True)
+    parser.add_argument("action", choices=("due", "check", "weekly", "units"))
+    parser.add_argument("--config", type=Path)
+    parser.add_argument("--repository", type=Path)
+    parser.add_argument("--python", type=Path)
+    parser.add_argument("--out-dir", type=Path)
+    parser.add_argument("--ledger", type=Path)
+    parser.add_argument("--challenge")
+    parser.add_argument("--version")
+    parser.add_argument("--block", type=int)
+    parser.add_argument("--sealed-binding", type=Path)
     parser.add_argument("--fresh-binding", type=Path)
     parser.add_argument("--pool-store", type=Path)
     parser.add_argument("--king")
     args = parser.parse_args(argv)
+    if args.action == "weekly":
+        if not args.config:
+            parser.error("weekly needs --config")
+        outcomes = run_weekly(json.loads(args.config.read_bytes()))
+        print(json.dumps(outcomes, sort_keys=True))
+        return 0
+    if args.action == "units":
+        if not (args.config and args.repository and args.python and args.out_dir):
+            parser.error("units needs --config, --repository, --python and --out-dir")
+        units = render_units(
+            args.config, repository=args.repository, python=args.python
+        )
+        args.out_dir.mkdir(mode=0o700)
+        for name, text in units.items():
+            target = args.out_dir / name
+            target.write_text(text, encoding="utf-8", newline="\n")
+            target.chmod(0o600)
+        print(json.dumps({"written": sorted(units), "installed": False}))
+        return 0
+    for required in ("ledger", "challenge", "version", "block", "sealed_binding"):
+        if getattr(args, required) is None:
+            parser.error(f"{args.action} needs --{required.replace('_', '-')}")
     log = FreshDrawLog(AttemptLedger(args.ledger))
     sealed_binding = json.loads(args.sealed_binding.read_bytes())
     sealed_key = private_evaluation_key(sealed_binding)
