@@ -5381,7 +5381,7 @@
     redraw: () => quietly(render),
     // Graphite's words and choices, shared with the research surface.
     graphite: {modeLabel: graphiteMode, stageLabel: graphiteStage, now: graphiteNow, summary: graphiteSummary, usd, agentChoices},
-    challengeEntry, agentEntry, selectedProvider, describeComposition, journey,
+    challengeEntry, offeredChallenges, agentEntry, selectedProvider, describeComposition, journey,
     launch: launchResearch, discardLaunch,
     launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),
     goWizard(step) { if (STEPS.some(([name]) => name === step)) { wizard.step = step; saveWizard(); } location.hash = "#launch"; render(); },

@@ -76,7 +76,8 @@ const byValue = (page, selector, value) => { const node = all(page, selector).fi
 function clean(page) { assert.deepEqual(page.errors.map(String), [], "the page raised no error"); }
 // The page's own plain-words pass over a controller's sentence (what the miner reads).
 const plain = text => String(text).replace(/\bevaluation endpoints\b/g, "grading addresses").replace(/\bevaluation endpoint\b/g, "grading address").replace(/\bvalidator intakes\b/g, "grading addresses").replace(/\bvalidator intake\b/g, "grading address").replace(/\b[Cc]onstruction intake\b/g, "recipe receiver").replace(/\bconstruction receiver\b/g, "recipe receiver");
-function selectable() { return fx.caps.challenges.find(entry => entry.selectable); }
+// The first selectable Challenge the page offers (what the Library defaults to): never an unoffered one such as Battery.
+function selectable() { return listedChallenges(fx.caps).find(entry => entry.implemented && entry.selectable); }
 // The first Challenge the wizard lists (its newest version) that can be launched and practised: a
 // Challenge that cannot practise is Coming soon (Battery is out of launch), so no wizard scenario picks it.
 function listedChallenges(capabilities = fx.caps) {
@@ -2884,6 +2885,7 @@ scenario("Library: every card says where it came from and UNCHECKED; search rank
   page.go("#library");
   await page.advance(0);
   assert.match(page.text("library-body"), /Your pins and bans/);
+  assert.ok(!/Battery/.test(page.text(page.$("library-challenge"))), "the Rank dropdown lists only what the wizard offers, never Battery");
   await page.type(page.$("library-query"), "mlp");
   await page.press(page.$("library-search-go"));
   const sent = lastPost(state, "/api/v1/library/search").body;
@@ -3047,7 +3049,7 @@ scenario("Library: the plan editor checks a plan against Graphite's rule, then s
   const state = graphiteWorld();
   const page = await open(state);
   const first = G().library.plans[0];
-  const chosen = selectable();
+  const chosen = fx.caps.challenges.find(entry => entry.selectable); // the Challenge the fixture's own plan is written for
   page.go(planHref(first.digest));
   await page.advance(0);
   await refresh(page);
