@@ -10,16 +10,55 @@ import time
 
 import pytest
 
+from carbon import file_seal
 from carbon.backbone_catalog import listing, served
 from carbon.development_session import library_bundles as bundles
 from carbon.level4 import allowlist
 from scripts.dev.miner_launchpad import capabilities
 
+
+@pytest.fixture
+def settled(monkeypatch):
+    """Treat every file as long settled, so the once-per-state caches apply; the tests that write a file twice
+    wait past the filesystem's timestamp tick between the writes."""
+    monkeypatch.setattr(file_seal, "RACY_NS", 0)
+
+
+def tick():
+    time.sleep(0.05)
+
+
 # ---- listing.load ---------------------------------------------------------------------------------------
 
 
-def test_the_manifest_is_parsed_once_and_served_again_until_the_file_changes(
+def test_a_file_written_just_now_is_never_kept_so_a_same_tick_rewrite_is_seen(
     tmp_path, monkeypatch
+):
+    # Two writes inside one timestamp tick look identical to a stat seal ("racily clean"), so a file that has not
+    # been quiet for file_seal.RACY_NS is read again every time.
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps({"schema": listing.SCHEMA, "entries": []}))
+    monkeypatch.setattr(listing, "MANIFEST", path)
+    parses = []
+    real = listing._json
+    monkeypatch.setattr(listing, "_json", lambda p: parses.append(1) or real(p))
+    listing.load()
+    path.write_text(json.dumps({"schema": listing.SCHEMA, "entries": [3]}))
+    assert listing.load()["entries"] == [3], "the immediate rewrite is read"
+    assert len(parses) == 2
+
+
+def test_the_settled_rule_is_the_newest_of_mtime_and_ctime_against_the_window():
+    now = 10 * file_seal.RACY_NS
+    assert file_seal.settled(1, 2, now_ns=now)
+    assert not file_seal.settled(1, now - 1, now_ns=now)
+    assert not file_seal.settled(
+        now + 5, now_ns=now
+    ), "a clock ahead of ours is never trusted"
+
+
+def test_the_manifest_is_parsed_once_and_served_again_until_the_file_changes(
+    tmp_path, monkeypatch, settled
 ):
     path = tmp_path / "manifest.json"
     path.write_text(json.dumps({"schema": listing.SCHEMA, "entries": []}))
@@ -29,6 +68,7 @@ def test_the_manifest_is_parsed_once_and_served_again_until_the_file_changes(
     monkeypatch.setattr(listing, "_json", lambda p: parses.append(1) or real(p))
     first = listing.load()
     assert listing.load() is first and len(parses) == 1, "served again, not re-parsed"
+    tick()
     path.write_text(
         json.dumps({"schema": listing.SCHEMA, "entries": [{"catalog_id": "x"}]})
     )
@@ -37,12 +77,15 @@ def test_the_manifest_is_parsed_once_and_served_again_until_the_file_changes(
     assert len(parses) == 2, "a rewritten file is read again"
 
 
-def test_a_rewrite_that_restores_the_old_mtime_is_still_seen(tmp_path, monkeypatch):
+def test_a_rewrite_that_restores_the_old_mtime_is_still_seen(
+    tmp_path, monkeypatch, settled
+):
     path = tmp_path / "manifest.json"
     path.write_text(json.dumps({"schema": listing.SCHEMA, "entries": []}))
     monkeypatch.setattr(listing, "MANIFEST", path)
     before = os.stat(path)
     first = listing.load()
+    tick()
     path.write_text(json.dumps({"schema": listing.SCHEMA, "entries": [1, 2]}))
     os.utime(
         path, ns=(before.st_atime_ns, before.st_mtime_ns)
@@ -98,7 +141,7 @@ def test_the_served_digest_follows_the_entries_a_version_offers(monkeypatch):
 
 
 def test_v8_bytes_are_hashed_once_per_file_state_and_checked_again_on_change(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, settled
 ):
     path = tmp_path / "allowlist_v8.json"
     path.write_bytes(b'{"a":1}')
@@ -112,6 +155,7 @@ def test_v8_bytes_are_hashed_once_per_file_state_and_checked_again_on_change(
         allowlist.hashlib, "sha256", lambda raw=b"": hashed.append(1) or real(raw)
     )
     assert allowlist.v8_bytes() == b'{"a":1}' and hashed == [], "not hashed again"
+    tick()
     path.write_bytes(b'{"a":2}')  # same size, different bytes
     with pytest.raises(ValueError, match="allowlist v8 bytes differ"):
         allowlist.v8_bytes()
@@ -148,7 +192,18 @@ def _context(tmp_path):
     return root
 
 
-def test_the_context_seal_is_computed_once_per_state_of_the_tree(tmp_path, monkeypatch):
+def test_a_tree_touched_just_now_is_hashed_every_time(tmp_path, monkeypatch):
+    root = _context(tmp_path)
+    monkeypatch.setattr(bundles, "_CONTEXT_SEALS", {})
+    first = bundles._context_digest(root)
+    wheel = root / "wheels" / "w.whl"
+    wheel.write_bytes(b"X" * len(wheel.read_bytes()))  # the same tick, the same size
+    assert bundles._context_digest(root) != first, "seen: nothing young is kept"
+
+
+def test_the_context_seal_is_computed_once_per_state_of_the_tree(
+    tmp_path, monkeypatch, settled
+):
     root = _context(tmp_path)
     monkeypatch.setattr(bundles, "_CONTEXT_SEALS", {})
     calls = []
@@ -161,18 +216,23 @@ def test_the_context_seal_is_computed_once_per_state_of_the_tree(tmp_path, monke
     assert first == real(root), "the kept seal is the real one"
 
 
-def test_a_rewritten_file_changes_the_seal_even_at_the_same_size(tmp_path, monkeypatch):
+def test_a_rewritten_file_changes_the_seal_even_at_the_same_size(
+    tmp_path, monkeypatch, settled
+):
     root = _context(tmp_path)
     monkeypatch.setattr(bundles, "_CONTEXT_SEALS", {})
     first = bundles._context_digest(root)
     wheel = root / "wheels" / "w.whl"
     before = os.stat(wheel)
+    tick()
     wheel.write_bytes(b"X" * len(wheel.read_bytes()))
     os.utime(wheel, ns=(before.st_atime_ns, before.st_mtime_ns))
     assert bundles._context_digest(root) != first
 
 
-def test_an_added_or_removed_file_is_seen_and_a_link_is_refused(tmp_path, monkeypatch):
+def test_an_added_or_removed_file_is_seen_and_a_link_is_refused(
+    tmp_path, monkeypatch, settled
+):
     root = _context(tmp_path)
     monkeypatch.setattr(bundles, "_CONTEXT_SEALS", {})
     bundles._context_digest(root)
@@ -361,7 +421,7 @@ def test_the_capability_build_runs_inside_one_memo_scope(monkeypatch):
     assert build_memo._MEMO.get() is None, "and it ends with the build"
 
 
-def test_the_owner_commands_edit_a_private_copy_never_the_shared_manifest():
+def test_the_owner_commands_edit_a_private_copy_never_the_shared_manifest(settled):
     import pathlib
 
     from carbon.backbone_catalog import pipeline

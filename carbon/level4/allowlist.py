@@ -196,22 +196,19 @@ def v8_bytes():
     """Allowlist v8's exact frozen bytes, or ValueError. Read and hashed once per state of the file: kept under
     its path, expected sha and stat seal (size, mtime, ctime, inode), so a changed file or a changed pin is
     checked again."""
+    from carbon import file_seal
+
     stat = V8_PATH.stat()
-    seal = (
-        str(V8_PATH),
-        V8_SHA256,
-        stat.st_size,
-        stat.st_mtime_ns,
-        stat.st_ctime_ns,
-        stat.st_ino,
-    )
+    seal = (*file_seal.stat_seal(V8_PATH, stat), V8_SHA256)
     if seal in _V8_CHECKED:
         return _V8_CHECKED[seal]
     raw = V8_PATH.read_bytes()
     if hashlib.sha256(raw).hexdigest() != V8_SHA256:
         raise ValueError("allowlist v8 bytes differ")
-    _V8_CHECKED.clear()
-    _V8_CHECKED[seal] = raw
+    # Kept only once the file has settled (not rewritten inside one timestamp tick).
+    if file_seal.settled(stat.st_mtime_ns, stat.st_ctime_ns):
+        _V8_CHECKED.clear()
+        _V8_CHECKED[seal] = raw
     return raw
 
 

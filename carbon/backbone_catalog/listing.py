@@ -30,16 +30,13 @@ _LOADED_LOCK = threading.Lock()
 
 
 def _seal(path):
-    """What a file is at this moment: path, size, mtime, ctime and inode. A rewrite changes it (ctime moves even
-    when a writer restores the mtime), so a parse kept under it is never stale."""
+    """The file's stat seal and its newest timestamp: a rewrite changes the seal (ctime moves even when a writer
+    restores the mtime), and a file that changed within `file_seal.RACY_NS` is not kept at all.
+    """
+    from carbon import file_seal
+
     stat = Path(path).stat()
-    return (
-        str(path),
-        stat.st_size,
-        stat.st_mtime_ns,
-        stat.st_ctime_ns,
-        stat.st_ino,
-    )
+    return file_seal.stat_seal(path, stat), max(stat.st_mtime_ns, stat.st_ctime_ns)
 
 
 def load_fresh():
@@ -62,14 +59,17 @@ def load():
     change it; copy before editing."""
     if not MANIFEST.exists():
         return {"schema": SCHEMA, "entries": []}
-    seal = _seal(MANIFEST)
+    from carbon import file_seal
+
+    seal, newest = _seal(MANIFEST)
     with _LOADED_LOCK:
         if _LOADED["seal"] == seal:
             return _LOADED["manifest"]
     manifest = _json(MANIFEST)
     if type(manifest) is not dict or manifest.get("schema") != SCHEMA:
         raise CatalogBroken("catalog manifest schema differs")
-    if _seal(MANIFEST) == seal:  # unchanged while it was read: safe to keep
+    # Kept only if unchanged while it was read and settled (not rewritten inside one timestamp tick).
+    if _seal(MANIFEST)[0] == seal and file_seal.settled(newest):
         with _LOADED_LOCK:
             _LOADED["seal"], _LOADED["manifest"] = seal, manifest
     return manifest
