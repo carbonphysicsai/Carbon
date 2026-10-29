@@ -1,0 +1,213 @@
+"""A crown change needs a second, bit-identical grade (OWNER-CROWN-GRADE-REPEAT-01).
+
+Synthetic pairs shaped like `PoolStore.private_evaluation_pair` output; no model,
+solver or reference runs. The store is a recording stub: the question is only
+whether `consider_private` moves the crown.
+"""
+
+from copy import deepcopy
+
+import pytest
+
+from carbon.challenge_validator import bank_promotion as bp
+from carbon.challenge_validator.interface import digest
+
+PACK = digest("score pack")
+KEY = digest("evaluation context")
+NOISE = {"value": 0.1, "measurement_digest": digest("rebuild noise record")}
+
+
+def body(model, status=bp.SCORED, total=1.0):
+    return {
+        "submission_id": model,
+        "evidence": {
+            "schema": bp.PAIRED_BINDING,
+            "challenge": "electric-motor-magnetics",
+            "score_compatibility": {"score_pack_digest": PACK},
+            "entry_id": digest(["entry", model]),
+            "model_p": {"score_status": status, "total_score": total},
+        },
+    }
+
+
+def pair(candidate, incumbent):
+    return {
+        "scope": "PRIVATE_OPERATOR_DEVELOPMENT",
+        "evaluation_key": KEY,
+        "expected_incumbent": None if incumbent is None else incumbent["submission_id"],
+        "candidate": candidate,
+        "incumbent": incumbent,
+    }
+
+
+def comparator():
+    return {
+        "schema": bp.COMPARATOR_SCHEMA,
+        "scope": "DEVELOPMENT",
+        "challenge": "electric-motor-magnetics",
+        "score_pack_digest": PACK,
+        "rebuild_noise": NOISE,
+        "ties": "incumbent_keeps",
+        "minimum_source_entry_ids": [digest("baseline run")],
+        "baseline_total": 0.5,
+    }
+
+
+class Store:
+    def __init__(self, fixed):
+        self.fixed = fixed
+        self.moves = []
+
+    def record_baseline(self, *args):
+        pass
+
+    def incumbent(self):
+        return None
+
+    def private_evaluation_pair(self, *args, **kwargs):
+        return self.fixed
+
+    def set_incumbent(self, model_id, reason, *, expected):
+        self.moves.append(("set", model_id, expected))
+
+    def vacate_incumbent(self, expected, reason):
+        self.moves.append(("vacate", expected))
+
+
+def consider(fixed, repeat):
+    store = Store(fixed)
+    # The constructor wants a real PoolStore; the stub keeps the question to the gate.
+    promotion = bp.BankPromotion.__new__(bp.BankPromotion)
+    promotion.store = store
+    promotion.registered_source_receipt_sha256 = digest("pin")
+    outcome = promotion.consider_private(
+        fixed["candidate"]["submission_id"], KEY, comparator(), repeat=repeat
+    )
+    return outcome, store.moves
+
+
+def same_again(fixed):
+    rows = {fixed["candidate"]["submission_id"]: fixed["candidate"]}
+    if fixed["incumbent"]:
+        rows[fixed["incumbent"]["submission_id"]] = fixed["incumbent"]
+    # A second grade has its own entry id and the same graded result.
+    return lambda model: _fresh_entry(rows[model])
+
+
+def _fresh_entry(row):
+    copy = deepcopy(row)
+    copy["evidence"]["entry_id"] = digest(["second grade", row["submission_id"]])
+    return copy
+
+
+CASES = {
+    "first_crown": pair(body("c", total=0.95), None),
+    "takeover": pair(body("c", total=0.95), body("k", total=0.5)),
+    "dethrone": pair(
+        body("c", bp.SCORED, 0.95), body("k", "MANDATORY_GATE_FAILED", 0.0)
+    ),
+}
+
+
+@pytest.mark.parametrize("name", sorted(CASES))
+def test_identical_second_grade_lets_the_crown_change(name):
+    fixed = CASES[name]
+    outcome, moves = consider(fixed, same_again(fixed))
+    assert outcome["outcome"] in (bp.FIRST_INCUMBENT, bp.CHALLENGER)
+    assert moves == [("set", "c", fixed["expected_incumbent"])]
+
+
+def test_dethrone_without_a_successor_vacates_after_an_identical_repeat():
+    fixed = pair(body("c", "FAILED_INFRA"), body("k", "MANDATORY_GATE_FAILED", 0.0))
+    # Candidate unscored and incumbent failed its gate: dethroned, nobody takes it.
+    outcome, moves = consider(fixed, same_again(fixed))
+    assert outcome["outcome"] == bp.DETHRONED
+    assert moves == [("vacate", "k")]
+
+
+@pytest.mark.parametrize("name", sorted(CASES))
+@pytest.mark.parametrize("who", ["candidate", "incumbent"])
+def test_a_differing_bit_is_failed_infra_and_moves_nothing(name, who):
+    fixed = CASES[name]
+    if fixed[who] is None:
+        pytest.skip("this case has no such state")
+    target = fixed[who]["submission_id"]
+    again = same_again(fixed)
+
+    def flipped(model):
+        row = again(model)
+        if model == target:
+            # One unit in the last place: equal to every tolerance, not to the bits.
+            total = row["evidence"]["model_p"]["total_score"]
+            row["evidence"]["model_p"]["total_score"] = (
+                total + 2**-53 if total < 1 else total - 2**-53
+            )
+        return row
+
+    outcome, moves = consider(fixed, flipped)
+    assert outcome["outcome"] == bp.FAILED_INFRA
+    assert outcome["reason"] == bp.REPEAT_MISMATCH
+    assert outcome["alert"]["schema"] == bp.ALERT_SCHEMA
+    assert outcome["alert"]["states"] == [target]
+    assert outcome["alert"]["action"] == "recheck_validator_host"
+    # The alert names ids only: no grade value of either run.
+    assert "total_score" not in repr(outcome["alert"])
+    assert moves == []
+
+
+def test_negative_zero_is_not_zero():
+    fixed = pair(body("c", "FAILED_INFRA"), body("k", "MANDATORY_GATE_FAILED", 0.0))
+
+    def negated(model):
+        row = same_again(fixed)(model)
+        if model == "k":
+            row["evidence"]["model_p"]["total_score"] = -0.0
+        return row
+
+    outcome, moves = consider(fixed, negated)
+    assert outcome["outcome"] == bp.FAILED_INFRA and moves == []
+
+
+def test_no_repeat_means_no_crown_change():
+    fixed = CASES["takeover"]
+    outcome, moves = consider(fixed, None)
+    assert (outcome["outcome"], outcome["reason"]) == (
+        bp.UNAVAILABLE,
+        bp.REPEAT_UNAVAILABLE,
+    )
+    assert moves == []
+
+
+@pytest.mark.parametrize("fault", [RuntimeError("daemon"), KeyError("k"), ValueError()])
+def test_a_repeat_that_cannot_run_is_unavailable_never_a_win(fault):
+    def broken(model):
+        raise fault
+
+    outcome, moves = consider(CASES["takeover"], broken)
+    assert outcome["reason"] == bp.REPEAT_UNAVAILABLE and moves == []
+
+
+def test_a_repeat_returning_a_malformed_row_is_unavailable():
+    outcome, moves = consider(CASES["first_crown"], lambda model: {"evidence": None})
+    assert outcome["reason"] == bp.REPEAT_UNAVAILABLE and moves == []
+
+
+def test_unchanged_outcomes_never_ask_for_a_repeat():
+    # Within the margin: the incumbent keeps the crown, so no second grade runs.
+    fixed = pair(body("c", total=0.55), body("k", total=0.5))
+
+    def never(model):
+        raise AssertionError("no crown change, no repeat")
+
+    outcome, moves = consider(fixed, never)
+    assert outcome["outcome"] == bp.INCUMBENT_KEEPS and moves == []
+
+
+def test_the_repeat_reads_the_grade_not_the_identity():
+    fixed = CASES["first_crown"]
+    assert bp.grade_fingerprint(fixed["candidate"]) == bp.grade_fingerprint(
+        _fresh_entry(fixed["candidate"])
+    )
+    other = deepcopy(fixed["candidate"])
+    other["evidence"]["score_compatibility"] = {"score_pack_digest": digest("other")}
+    assert bp.grade_fingerprint(other) != bp.grade_fingerprint(fixed["candidate"])
