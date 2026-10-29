@@ -353,6 +353,21 @@ Hermes asks you before each action that changes something (launch, practise, fre
 
 ---
 
+## Report a problem
+
+Telegram: **@RBequette**. Please send:
+
+- the app version (run `git -C ~/carbon rev-parse --short HEAD` and send what it prints),
+- the Challenge you were on,
+- the error code or message shown, word for word,
+- the time it happened (with your time zone).
+
+Before you write, check [Known issues](KNOWN_ISSUES.md): your problem may already be listed with a workaround.
+
+**How fixes work.** On the test network, a fix for broken behaviour ships within a day, and you get it by running the installer's update (`~/carbon/scripts/install_miner.sh --update`, repeating the options you installed with). Changes to scoring are different: they only ever arrive as a new exam version, and results already given are never re-scored.
+
+---
+
 ## Questions miners ask
 
 **Can I carry what I learn from my own data into my recipe, and hardcode fitted constants or tables in a Level 4 graph?**
