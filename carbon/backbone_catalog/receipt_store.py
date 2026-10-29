@@ -131,6 +131,21 @@ def _owned_private(path: Path, *, directory: bool) -> os.stat_result:
     return info
 
 
+class _Snapshot:
+    """The records in force of a verified store, by (bundle digest, runtime): read-only, no file access."""
+
+    def __init__(self, found):
+        replaced = {r["supersedes"] for r in found if r["supersedes"]}
+        self._current = {
+            (r["bundle_digest"], r["runtime_profile_id"]): r
+            for r in found
+            if digest(canonical(r)) not in replaced
+        }
+
+    def current(self, bundle_digest, runtime):
+        return self._current.get((bundle_digest, runtime))
+
+
 class ReceiptStore:
     """Read and (for the standing job only) append to the store at ``root``."""
 
@@ -213,6 +228,12 @@ class ReceiptStore:
             if key in heads:
                 raise ReceiptRefused("record_fork")
             heads[key] = record
+
+    def snapshot(self):
+        """The store verified ONCE and frozen: a read-only view with the same `current`, so a caller that asks about
+        many bundles (a listing of readiness) reads and verifies the log once, not once per question.
+        """
+        return _Snapshot(self.records())
 
     def current(self, bundle_digest, runtime):
         """The record in force for this bundle and runtime, or None when it has none."""

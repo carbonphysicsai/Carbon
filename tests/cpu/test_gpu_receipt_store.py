@@ -470,3 +470,97 @@ def test_without_a_lock_directory_the_work_lock_is_the_plain_one_it_was(tmp_path
     work = direct_intake._WorkLock(None)
     with work:
         assert not (tmp_path / receipt_job.GRADING_LOCK).exists()
+
+
+# --- readiness published in the info document ---------------------------------------------------------------------
+
+
+def _served_item():
+    from carbon.backbone_catalog import listing
+
+    for item in listing.entries("electric-motor-magnetics", "1.5"):
+        if RUNTIME in (item.get("bundle_refs") or {}):
+            return item
+    raise AssertionError("no torch twin served by Motor 1.5")
+
+
+def _official(monkeypatch):
+    monkeypatch.setattr(gpu_receipt, "PINNED_GPU_IMAGES", {RUNTIME: {IMAGE}})
+    monkeypatch.setattr(
+        gpu_receipt,
+        "REGISTERED_HOST_CLASSES",
+        frozenset({"VALIDATOR-HOST-CLASS-FIXTURE"}),
+    )
+
+
+def test_readiness_lists_only_the_ids_with_a_valid_official_receipt_and_the_log_head(
+    store, monkeypatch
+):
+    _official(monkeypatch)
+    item = _served_item()
+    store.append(record(item))
+    ready = served.official_readiness(
+        "electric-motor-magnetics", "1.5", (RUNTIME,), store
+    )
+    assert set(ready) == {"status", "ready", "log_head"}
+    assert ready["status"] == "OK"
+    assert ready["ready"] == [item["catalog_id"]]
+    assert ready["log_head"] == store.log_digest()
+    # A receiver that holds no GPU worker lists nothing; so does an unpinned image.
+    assert (
+        served.official_readiness("electric-motor-magnetics", "1.5", (), store)["ready"]
+        == []
+    )
+    monkeypatch.setattr(gpu_receipt, "PINNED_GPU_IMAGES", {})
+    assert (
+        served.official_readiness("electric-motor-magnetics", "1.5", (RUNTIME,), store)[
+            "ready"
+        ]
+        == []
+    )
+
+
+def test_readiness_carries_ids_and_a_digest_and_nothing_else(store, monkeypatch):
+    _official(monkeypatch)
+    store.append(record(_served_item()))
+    text = json.dumps(
+        served.official_readiness("electric-motor-magnetics", "1.5", (RUNTIME,), store)
+    )
+    for secret in (
+        IMAGE.split(":")[1],
+        RUN_A.split(":")[1],
+        "FIXTURE",
+        str(store.root),
+        "host_class",
+        "/",
+    ):
+        assert secret not in text
+
+
+def test_readiness_without_a_readable_store_is_an_empty_list_with_a_typed_status(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(gpu_receipt, "OFFICIAL_STORE", None)
+    assert served.official_readiness("electric-motor-magnetics", "1.5", (RUNTIME,)) == {
+        "status": "STORE_ABSENT",
+        "ready": [],
+        "log_head": None,
+    }
+    loose = tmp_path / "loose"
+    loose.mkdir(mode=0o755)
+    os.chmod(loose, 0o755)
+    broken = ReceiptStore(loose, registered_noise=registered)
+    (loose / "receipts.log").write_bytes(b"")
+    os.chmod(loose / "receipts.log", 0o600)
+    assert served.official_readiness(
+        "electric-motor-magnetics", "1.5", (RUNTIME,), broken
+    ) == {"status": "STORE_UNREADABLE", "ready": [], "log_head": None}
+
+
+def test_the_snapshot_verifies_the_log_once_and_answers_like_the_store(store):
+    item = torch_item()
+    store.append(record(item))
+    view = store.snapshot()
+    key = (record(item)["bundle_digest"], RUNTIME)
+    assert view.current(*key) == store.current(*key) == record(item)
+    assert view.current("sha256:" + "f" * 64, RUNTIME) is None

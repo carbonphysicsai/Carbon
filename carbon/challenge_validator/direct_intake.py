@@ -56,6 +56,8 @@ from .interface import Submission, Unavailable
 from .lean_recipe import LeanRecipeAdapter
 
 INFO_PATH = "/carbon/v1/construction/intake"
+#: How long the published readiness is reused: reading it verifies the whole official receipt log.
+OFFICIAL_GPU_CACHE_SECONDS = 10.0
 SUBMIT_PATH = PATH
 SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
@@ -123,6 +125,28 @@ class DirectRecipeIntake(BatteryIntake):
         #: facts, status, the Ladder) never take it.
         self._write = threading.Lock()
 
+    def _official_gpu(self):
+        """Readiness for the public info document (`served.official_readiness`), cached for a few seconds: it
+        verifies the receipt log. Never an error: a failure is a typed status with an empty list.
+        """
+        now = time.monotonic()
+        cached = getattr(self, "_official_gpu_cache", None)
+        if cached is not None and now - cached[0] < OFFICIAL_GPU_CACHE_SECONDS:
+            return dict(cached[1])
+        try:
+            from carbon.backbone_catalog import served
+
+            runtimes = getattr(self.adapter, "_gpu_runtimes", None)
+            value = served.official_readiness(
+                self.challenge.challenge_id,
+                self.challenge.version,
+                tuple(runtimes()) if callable(runtimes) else (),
+            )
+        except Exception:  # noqa: BLE001 - never an error page
+            value = {"status": "UNAVAILABLE", "ready": [], "log_head": None}
+        self._official_gpu_cache = (now, value)
+        return dict(value)
+
     def public(self):
         snapshot = self.window.latest()
         if snapshot is None:
@@ -163,6 +187,8 @@ class DirectRecipeIntake(BatteryIntake):
                     "owner": "authenticated_hotkey",
                 },
                 "served_contracts": self.door.served_contracts(),
+                # Which catalog entries are officially gradable now: ids and the receipt log's head digest only.
+                "official_gpu": self._official_gpu(),
                 "limits": {
                     "max_body": MAX_BODY,
                     "snapshot_max_age_s": SNAPSHOT_MAX_AGE_S,
