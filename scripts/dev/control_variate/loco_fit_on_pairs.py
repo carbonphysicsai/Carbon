@@ -1,4 +1,4 @@
-"""CONTROL-VARIATE-PREDICT-01, METHOD-ONLY: leave-one-out fits on the public
+"""CONTROL-VARIATE-PREDICT, METHOD-ONLY: leave-one-out fits on the public
 two-rung pairs themselves.
 
     python loco_fit_on_pairs.py --pairs-dir DIR --out DIR
