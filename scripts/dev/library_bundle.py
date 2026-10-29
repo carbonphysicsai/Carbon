@@ -220,7 +220,8 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR, inventory=None):
         expected_bundle=selected,
         cli=cli,
         rebuild_missing=True,
-        inventory=inventory,
+        # Only a caller that shares one listing passes it; a direct install is exactly as before.
+        **({} if inventory is None else {"inventory": inventory}),
     )
     # The exact material too, where admission inspects it (F4, M1 2026-10-22:
     # an installed image without staged material resolves nothing, and every
@@ -287,7 +288,8 @@ def install_receiver_bundle(directory, receiver_config, inventory=None):
         expected_bundle=selected,
         cli=DockerCLI(),
         rebuild_missing=True,
-        inventory=inventory,
+        # Only a caller that shares one listing passes it; a direct install is exactly as before.
+        **({} if inventory is None else {"inventory": inventory}),
     )
     # The exact material too, where admission inspects it (F4, M1 2026-10-22:
     # an installed image without staged material resolves nothing, and every
