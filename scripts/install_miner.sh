@@ -382,7 +382,7 @@ supported_setup_warning() {
   if [[ ! "${free}" =~ ^[0-9]+$ ]]; then
     unchecked+=("free disk")
   elif (( free < SUPPORTED_DISK_GIB )); then
-    differs+=("${free} GB of free disk (supported: about ${SUPPORTED_DISK_GIB} GB free)")
+    differs+=("${free} GiB of free disk (supported: about ${SUPPORTED_DISK_GIB} GiB free)")
   fi
   driver="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n 1 || true)"
   if [[ -n "${driver}" ]] \
@@ -390,7 +390,7 @@ supported_setup_warning() {
     differs+=("NVIDIA driver ${driver} (supported: ${SUPPORTED_NVIDIA_DRIVER} or newer)")
   fi
   if (( ${#differs[@]} )); then
-    echo "WARNING: this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run: Ubuntu 22.04 or 24.04 (x86-64), Docker ${SUPPORTED_DOCKER_MAJOR}, ${SUPPORTED_RAM_GB} GB of RAM (a 16 GB machine reports about 15.6 GiB and cannot run practice), ${SUPPORTED_CPUS} CPUs and about ${SUPPORTED_DISK_GIB} GB of free disk; a GPU is optional (any NVIDIA GPU with driver ${SUPPORTED_NVIDIA_DRIVER} or newer)." >&2
+    echo "WARNING: this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run: Ubuntu 22.04 or 24.04 (x86-64), Docker ${SUPPORTED_DOCKER_MAJOR}, ${SUPPORTED_RAM_GB} GB of RAM (a 16 GB machine reports about 15.6 GiB and cannot run practice), ${SUPPORTED_CPUS} CPUs and about ${SUPPORTED_DISK_GIB} GiB of free disk; a GPU is optional (any NVIDIA GPU with driver ${SUPPORTED_NVIDIA_DRIVER} or newer)." >&2
     printf '  Differs: %s\n' "${differs[@]}" >&2
   fi
   if (( ${#unchecked[@]} )); then

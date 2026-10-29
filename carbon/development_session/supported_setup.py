@@ -1,8 +1,9 @@
 """The one machine setup Carbon's launch supports, and the warning every other
 machine gets (OWNER-LAUNCH-SUPPORTED-MACHINE-01).
 
-Supported: Ubuntu 22.04 or 24.04, x86-64, Docker 29, at least 16 GB of RAM and
-about 150 GB of free disk; a GPU is optional, and any NVIDIA GPU whose driver is
+Supported: Ubuntu 22.04 or 24.04, x86-64, Docker 29, a Docker that sees at least
+`MIN_DOCKER_MEMORY_GIB` GiB of memory (recommended: a 32 GB machine) and about
+150 GiB of free disk; a GPU is optional, and any NVIDIA GPU whose driver is
 at least `MIN_NVIDIA_DRIVER` works. Any other setup is *warned about, never
 blocked*: it may work, but only the supported setup is guaranteed.
 
@@ -19,14 +20,22 @@ import re
 import shutil
 import subprocess
 
+from carbon.reconstruction.worker.model import (
+    LARGE_MODEL_CPU_COUNT,
+    LARGE_MODEL_RESOURCES,
+)
+
 SUPPORTED_UBUNTU = ("22.04", "24.04")
 SUPPORTED_ARCH = "x86_64"
 SUPPORTED_DOCKER_MAJOR = 29
-#: Practice's worker runs under a 16 GiB limit and Docker must see that plus 1 GiB
-#: (`docker_runtime.doctor`: MemTotal >= memory_bytes + 1 GiB, NCPU >= 4), so a
-#: "16 GB" machine, which Docker reports as about 15.6 GiB, cannot run it.
-MIN_DOCKER_MEMORY_GIB = 17
-MIN_CPUS = 4
+#: Practice's worker runs under the version's memory limit and Docker must see that plus
+#: 1 GiB (`docker_runtime.doctor`: MemTotal >= effective_memory_bytes + 1 GiB, NCPU >=
+#: effective_cpu_count). Derived from the larger worker profile every launch version
+#: gets (`reconstruction.worker.model`), never a literal: every miner on a version is
+#: told the bytes the check needs, and a "16 GB" machine (about 15.6 GiB) cannot run it.
+WORKER_MEMORY_GIB = LARGE_MODEL_RESOURCES["memory_bytes"] // 1024**3
+MIN_DOCKER_MEMORY_GIB = WORKER_MEMORY_GIB + 1
+MIN_CPUS = LARGE_MODEL_CPU_COUNT
 RECOMMENDED_RAM_GB = 32
 DISK_GIB = 150
 
@@ -49,7 +58,7 @@ NOT_SUPPORTED = (
 SUPPORTED_SUMMARY = (
     f"Ubuntu 22.04 or 24.04 (x86-64), Docker 29, {RECOMMENDED_RAM_GB} GB of RAM "
     f"(practice needs Docker to see {MIN_DOCKER_MEMORY_GIB} GiB; a 16 GB machine "
-    f"reports about 15.6 GiB), {MIN_CPUS} CPUs and about {DISK_GIB} GB of free disk; "
+    f"reports about 15.6 GiB), {MIN_CPUS} CPUs and about {DISK_GIB} GiB of free disk; "
     f"a GPU is optional (any NVIDIA GPU with driver {MIN_NVIDIA_DRIVER} or newer)."
 )
 
@@ -107,7 +116,7 @@ def assess(facts: dict) -> list[dict]:
             "memory",
             f"{ram:.1f} GiB seen",
             f"{RECOMMENDED_RAM_GB} GB of RAM (Docker must see {MIN_DOCKER_MEMORY_GIB} GiB: "
-            "the practice worker runs under a 16 GiB limit plus 1 GiB)",
+            f"the practice worker runs under a {WORKER_MEMORY_GIB} GiB limit plus 1 GiB)",
         )
     cpus = facts.get("cpus")
     if cpus is not None and cpus < MIN_CPUS:
@@ -118,7 +127,7 @@ def assess(facts: dict) -> list[dict]:
         )
     disk = facts.get("disk_free_gib")
     if disk is not None and disk < DISK_GIB:
-        add("disk", f"{disk:.0f} GB free", f"about {DISK_GIB} GB free")
+        add("disk", f"{disk:.0f} GiB free", f"about {DISK_GIB} GiB free")
     driver = facts.get("nvidia_driver")
     if driver is not None:
         have, need = _numbers(driver), _numbers(MIN_NVIDIA_DRIVER)
