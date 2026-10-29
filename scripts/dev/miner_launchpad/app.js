@@ -39,6 +39,10 @@
   let busy = false;
   let polling = false;
   let connected = false;
+  // A token is only a connection attempt until its capability handshake succeeds.
+  let sessionReady = false;
+  let connecting = null;
+  let connectionGeneration = 0;
   let landed = false;
   let developmentSources = [];
   let research = {preflight: {available: false}, runs: []};
@@ -2104,8 +2108,9 @@
   $("onboarding-confirm").addEventListener("click", () => onboardingCall("confirm"));
 
   // ---- Capabilities: read on connect and on request, never assumed. ----
-  async function readCapabilities() {
+  async function readCapabilities(generation = connectionGeneration) {
     const value = await api("/api/v1/control-center/capabilities", undefined, undefined, 20000);
+    if (generation !== connectionGeneration) return false;
     if (value.schema !== CAPS_SCHEMA) throw new Error("unsupported_controller_version");
     caps = value;
     capsVersion++;
@@ -2123,6 +2128,7 @@
     if (!wizard.provider && setupModel && listed(setupModel.provider_id, setupModel.model_id)) {
       wizard.provider = setupModel.provider_id; wizard.model = setupModel.model_id;
     }
+    return true;
   }
   // What a miner is offered to start on (owner decision U-f): the latest version of each Challenge, and no
   // reserved, retired or deferred entry. Older versions stay readable (campaigns on them keep their titles:
@@ -2235,22 +2241,34 @@
   function computeChoice() { return caps?.compute.choices[0] || null; }
 
   async function refresh() {
-    if (!token || polling) return;
+    if (!sessionReady || connecting !== null || polling) return;
+    const generation = connectionGeneration;
+    const current = () => generation === connectionGeneration;
     polling = true;
     try {
-      runs = (await api("/api/v1/runs")).runs;
-      developmentSources = (await api("/api/v1/development")).sources;
-      research = await api("/api/v1/research");
+      const latestRuns = await api("/api/v1/runs");
+      if (!current()) return;
+      const latestSources = await api("/api/v1/development");
+      if (!current()) return;
+      const latestResearch = await api("/api/v1/research");
+      if (!current()) return;
+      runs = latestRuns.runs;
+      developmentSources = latestSources.sources;
+      research = latestResearch;
       if (research.preflight.available && !launchOptions) {
-        try { launchOptions = await api("/api/v1/operations/options", {}); }
-        catch (_) { launchOptions = null; }
+        try {
+          const options = await api("/api/v1/operations/options", {});
+          if (!current()) return;
+          launchOptions = options;
+        } catch (_) { if (!current()) return; launchOptions = null; }
       }
       if (!launchShape) {
         try {
           const listed = (await api("/api/v1/operations")).operations;
+          if (!current()) return;
           operationsListed = Array.isArray(listed) ? listed : null;
           launchShape = operationsListed?.find(op => op.operation === "launch") || null;
-        } catch (_) { launchShape = null; }
+        } catch (_) { if (!current()) return; launchShape = null; }
       }
       connected = true; resuming = false;
       land();
@@ -2262,9 +2280,14 @@
       else pollSetup();
       setText($("connection-state"), "Connected");
     } catch (error) {
+      if (!current()) return;
       connected = false; resuming = false;
       if (error.status === 401 || error.status === 403) {
         // The controller no longer knows this token: it was restarted.
+        polling = false;
+        connectionGeneration++;
+        sessionReady = false;
+        caps = null;
         token = ""; forgetSession();
         quietly(render);
         setText($("connection-state"), "Disconnected");
@@ -2274,7 +2297,7 @@
         setText($("connection-state"), "Connection interrupted");
         message("Lost contact with the controller. Your campaigns may still be running. This page keeps trying; press Reconnect to try now.", true);
       }
-    } finally { polling = false; }
+    } finally { if (current()) polling = false; }
   }
   // A returning miner lands on their active campaign; otherwise where they were.
   function land() {
@@ -2289,12 +2312,12 @@
   }
   $("reconnect").addEventListener("click", () => {
     const resumed = keptSession();
-    if (!resumed || busy || polling) return;
+    if (!resumed || busy || polling || connecting !== null) return;
     token = ""; connect(resumed, true);
   });
   $("connect-form").addEventListener("submit", event => {
     event.preventDefault();
-    if (busy || polling) return;
+    if (busy || polling || connecting !== null) return;
     connect($("token").value.trim());
   });
   // The session link connects as a pasted token does. One read while a
@@ -2304,7 +2327,7 @@
       message("This address held a session link this page cannot read. Open the link the Control Center printed again, or paste its local session token.", true);
       return;
     }
-    if (busy || polling) { setTimeout(() => connectFromLink(value, resumed), 250); return; }
+    if (busy || polling || connecting !== null) { setTimeout(() => connectFromLink(value, resumed), 250); return; }
     connect(value, resumed);
   }
   // The same words wherever a refused session is met.
@@ -2320,12 +2343,21 @@
     connect("", false);
   }
   async function connect(value, resumed = false) {
+    if (connecting !== null) return;
+    const generation = ++connectionGeneration;
+    const current = () => generation === connectionGeneration;
+    connecting = generation;
+    sessionReady = false;
+    polling = false;
     connected = false;
+    caps = null;
+    setText($("connection-state"), "Connecting…");
     render();
     token = value;
     try {
-      await readCapabilities();
+      if (!await readCapabilities(generation)) return;
       const catalog = await api("/api/v1/capabilities");
+      if (!current()) return;
       if (catalog.schema !== "carbon.launchpad.rehearsal.v1" || catalog.mode !== "REHEARSAL") {
         throw new Error("unsupported_controller_version");
       }
@@ -2340,20 +2372,29 @@
       // Order matters: renderExamEnvironment clears the panel before filling
       // it, so the compute choices are appended after it rather than before.
       await renderExamEnvironment();
+      if (!current()) return;
       renderComputeChoices(caps.compute.destinations || []);
       await onboardingRequirements();
+      if (!current()) return;
       if (value) {
         keepSession(value);
         // U1: remember this browser, so a new tab or a restart needs no
         // paste. The cookie is HttpOnly and this loopback origin's only.
-        try { await api("/api/v1/session", {}); store(rememberedKey, {remembered: true}); } catch (_) { /* this tab still works */ }
+        try { await api("/api/v1/session", {}); if (!current()) return; store(rememberedKey, {remembered: true}); } catch (_) { if (!current()) return; /* this tab still works */ }
       }
       store(footerSeenKey, {seen: true});
       message("Connected. Records persist on this machine.");
+      sessionReady = true;
+      connecting = null;
       await refresh();
+      if (!current()) return;
       if (storageError) message("Browser retry storage is unavailable. Launch is disabled to preserve duplicate protection.", true);
     } catch (error) {
+      if (!current()) return;
+      connectionGeneration++;
       resuming = false;
+      sessionReady = false;
+      caps = null;
       token = "";
       connected = false;
       $("connection-state").textContent = "Disconnected";
@@ -2364,12 +2405,12 @@
       if (resumed && (error.status === 401 || error.status === 403)) message(SESSION_ENDED, true);
       else if (resumed) message("The Control Center did not answer. Start it, then press Reconnect.", true);
       else message("Could not connect: " + error.message, true);
-    }
+    } finally { if (connecting === generation) connecting = null; }
   }
   $("settings-recheck").addEventListener("click", async () => {
     if (busy || !connected) return;
     busy = true; render();
-    try { await readCapabilities(); launchOptions = null; launchShape = null; message("Capabilities re-read from the controller."); }
+    try { if (!await readCapabilities()) return; launchOptions = null; launchShape = null; message("Capabilities re-read from the controller."); }
     catch (error) { message("Capabilities not re-read: " + error.message, true); }
     finally { busy = false; await refresh(); render(); }
   });

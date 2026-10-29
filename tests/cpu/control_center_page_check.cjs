@@ -123,6 +123,123 @@ async function throughLaunch(page) {
 const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
 
+function deferred() {
+  let resolve;
+  const promise = new Promise(done => { resolve = done; });
+  return {promise, resolve};
+}
+function fourOffered(page) {
+  const expected = ["electric-motor-magnetics", "chip-cold-plate", "f08-ribbed-bracket", "f02"].sort();
+  assert.deepEqual(all(page, "#challenge-catalog [data-challenge]").map(node => node.dataset.challenge).sort(), expected);
+  assert.deepEqual(all(page, "#wizard-challenges input").map(node => node.dataset.challenge).sort(), expected);
+  assert.equal(JSON.stringify(page.window.CarbonControlCenter.state().caps), JSON.stringify(fx.caps),
+    "connection preserves the actual capability and catalog-readiness document");
+}
+
+scenario("a delayed connection handshake cannot become Connected through periodic refresh or duplicate submit", async () => {
+  const state = world();
+  const pending = deferred();
+  state.script.push({match: r => r.path === "/api/v1/control-center/capabilities", answer: () => pending.promise});
+  const page = await openPage(ROOT, state.server);
+  page.$("token").value = "fixture-token";
+  const button = one(page, "#connect-form button[type=submit]");
+  await page.press(button);
+  await page.advance(3 * REFRESH);
+  assert.notEqual(page.text("connection-state"), "Connected");
+  assert.equal(page.window.CarbonControlCenter.state().connected, false);
+  assert.equal(page.window.CarbonControlCenter.state().caps, null);
+  assert.equal(all(page, "#challenge-catalog [data-challenge]").length, 0);
+  assert.equal(page.requests.filter(r => r.path === "/api/v1/runs").length, 0,
+    "ordinary polling cannot race the pending capability handshake");
+  await page.press(button);
+  assert.equal(page.requests.filter(r => r.path === "/api/v1/control-center/capabilities").length, 1,
+    "a second normal submit does not start a competing handshake");
+  pending.resolve({body: state.caps});
+  await page.advance(0);
+  assert.equal(page.text("connection-state"), "Connected");
+  page.go("#challenges");
+  await page.advance(0);
+  const card = one(page, "#challenge-catalog [data-challenge]");
+  await page.press(card.querySelector("button"));
+  assert.equal(page.window.location.hash, "#launch", "the normal card action opens the real wizard");
+  fourOffered(page);
+  clean(page);
+});
+
+scenario("a failed delayed connection handshake stays disconnected and a normal retry succeeds", async () => {
+  const state = world();
+  const pending = deferred();
+  state.script.push({match: r => r.path === "/api/v1/control-center/capabilities", answer: () => pending.promise});
+  const page = await openPage(ROOT, state.server);
+  page.$("token").value = "fixture-token";
+  const button = one(page, "#connect-form button[type=submit]");
+  await page.press(button);
+  await page.advance(3 * REFRESH);
+  assert.notEqual(page.text("connection-state"), "Connected");
+  pending.resolve({timeout: true});
+  await page.advance(0);
+  assert.equal(page.text("connection-state"), "Disconnected");
+  assert.equal(page.window.CarbonControlCenter.state().caps, null);
+  assert.match(page.text("message"), /Could not connect/);
+  await page.advance(3 * REFRESH);
+  assert.equal(page.requests.filter(r => r.path === "/api/v1/runs").length, 0);
+  await page.press(button);
+  assert.equal(page.text("connection-state"), "Connected");
+  fourOffered(page);
+  clean(page);
+});
+
+scenario("a stale capability response cannot revive a refused session before a normal reconnect", async () => {
+  const state = world();
+  const page = await open(state);
+  const pending = deferred();
+  state.script.push({match: r => r.path === "/api/v1/control-center/capabilities", answer: () => pending.promise});
+  await page.press(page.$("settings-recheck"));
+  state.script.push({match: r => r.path === "/api/v1/runs", answer: {status: 401, body: {error: "unauthorized"}}});
+  await refresh(page);
+  assert.equal(page.text("connection-state"), "Disconnected");
+  assert.equal(page.window.CarbonControlCenter.state().caps, null);
+  pending.resolve({body: state.caps});
+  await page.advance(0);
+  assert.equal(page.window.CarbonControlCenter.state().caps, null,
+    "the late response belongs to the refused session, not a new connection");
+  assert.equal(page.window.CarbonControlCenter.state().connected, false);
+  assert.match(page.text("message"), /Your session ended/);
+  page.$("token").value = "replacement-fixture-token";
+  await page.press(one(page, "#connect-form button[type=submit]"));
+  assert.equal(page.text("connection-state"), "Connected");
+  fourOffered(page);
+  clean(page);
+});
+
+scenario("a newer remembered connection owns refresh results that finish after an earlier normal connection", async () => {
+  const state = world();
+  const remembered = deferred();
+  const local = new Storage();
+  local.setItem("carbon.launchpad.remembered.v1", JSON.stringify({remembered: true}));
+  state.script.push({match: r => r.path === "/api/v1/capabilities" && !r.headers.Authorization,
+    answer: () => remembered.promise});
+  const page = await openPage(ROOT, state.server, {localStorage: local});
+  await page.advance(6000);
+  page.$("token").value = "fixture-token";
+  await page.press(one(page, "#connect-form button[type=submit]"));
+  assert.equal(page.text("connection-state"), "Connected");
+  const oldRefresh = deferred();
+  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "GET",
+    answer: () => oldRefresh.promise});
+  await refresh(page);
+  remembered.resolve({body: fx.catalog});
+  await page.advance(0);
+  assert.equal(page.text("connection-state"), "Connected", "the remembered cookie handshake also completes");
+  assert.equal(page.window.CarbonControlCenter.state().research.runs.length, 0);
+  oldRefresh.resolve({body: {preflight: state.preflight, runs: [copy(fx.run)]}});
+  await page.advance(0);
+  assert.equal(page.window.CarbonControlCenter.state().research.runs.length, 0,
+    "the older connection's late refresh cannot replace the current session's records");
+  fourOffered(page);
+  clean(page);
+});
+
 scenario("normal challenge selection shows only its construction serving paths", async () => {
   const challenge = listedChallenge();
   const state = world();
