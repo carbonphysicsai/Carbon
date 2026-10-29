@@ -344,6 +344,79 @@ def check_strictness_curve(plugin, policies, params):
     return _verdict(passed, {"curves": curves})
 
 
+#: The strictness curve's families (inverse-design checklist E.2): injected noise at several levels, a near-limit
+#: bias (every limit margin k x U safer than truth) and a wrong trend (exact except near each target's reference
+#: optimum, where it is off by k x U). Each must lower the score monotonically as k grows.
+STRICTNESS_FAMILIES = (
+    (
+        "random_noise",
+        lambda k, p: {"kind": "noisy", "k": k, "mode": "random", "seed": p.seed},
+    ),
+    (
+        "near_limit_bias",
+        lambda k, p: {"kind": "noisy", "k": k, "mode": "feasible_bias", "seed": p.seed},
+    ),
+    (
+        "wrong_trend",
+        lambda k, p: {
+            "kind": "wrong_near_optimum",
+            "radius": p.wrong_radius,
+            "k": k,
+            "seed": p.seed,
+        },
+    ),
+)
+
+
+def strictness_levels(plugin, descriptor, policies):
+    """One level of the curve for a model: its total and its A, A_gen and D legs, each the mean over the version's
+    sets (A_gen over the sets that have a slice; None when none has). Aggregates only.
+    """
+    all_specs = [spec for specs in plugin.sets for spec in specs]
+    per_set = [
+        score_specs(plugin, specs, descriptor, policies, all_specs)
+        for specs in plugin.sets
+    ]
+    a_gens = [gen for _total, _grade, gen, _legs in per_set if gen is not None]
+    return {
+        "total": statistics.fmean(total for total, _g, _a, _l in per_set),
+        "A": statistics.fmean(legs["A"] for _t, _g, _a, legs in per_set),
+        "A_gen": statistics.fmean(a_gens) if a_gens else None,
+        "D": statistics.fmean(grade.d for _t, grade, _a, _l in per_set),
+    }
+
+
+def strictness_report(plugin, policies, params):
+    """The strictness curve run mode: for each family and each k in ``params.k_grid``, the model's total and its
+    A / A_gen / D legs, and whether the total falls monotonically (within ``params.monotone_tolerance``). Nothing in
+    it is a pool point, a pick or a truth; the Test Lead runs it in custody per launch version.
+
+    ``{"verdict": "PASS" | "FAIL", "numbers": {"k_grid", "monotone_tolerance", "families": {name: {"levels":
+    [{"k", "total", "A", "A_gen", "D"}], "monotone"}}}}``."""
+    pool_grader._check_policies(policies.optimizer, policies.honesty)
+    families = {}
+    for name, make in STRICTNESS_FAMILIES:
+        levels = [
+            {"k": k, **strictness_levels(plugin, make(k, params), policies)}
+            for k in params.k_grid
+        ]
+        families[name] = {
+            "levels": levels,
+            "monotone": all(
+                later["total"] <= earlier["total"] + params.monotone_tolerance
+                for earlier, later in pairwise(levels)
+            ),
+        }
+    return _verdict(
+        all(family["monotone"] for family in families.values()),
+        {
+            "k_grid": list(params.k_grid),
+            "monotone_tolerance": params.monotone_tolerance,
+            "families": families,
+        },
+    )
+
+
 def extended_d(plugin, descriptor, policies):
     """The mean D over the version's EXTENDED targets (T5/T6) for a model, or None when it has none."""
     specs = [s for group in plugin.sets for s in group]

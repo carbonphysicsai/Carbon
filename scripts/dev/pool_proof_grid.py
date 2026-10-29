@@ -269,10 +269,63 @@ def sealed_truth_bank_legs(bank_legs, batch_dir, truth_file):
     )
 
 
+def strictness_inputs(document):
+    """(Policies, SuiteParams) from a strictness spec, every value required (the owner's or the Validator's)."""
+    from carbon.scoring import pool_grader
+    from carbon.scoring import pool_proof_suite as suite
+
+    policies = suite.Policies(
+        optimizer=pool_grader.OptimizerPolicy(
+            budget=document["budget"],
+            sigma0=document["sigma0"],
+            population=document["population"],
+        ),
+        honesty=pool_grader.HonestyPolicy(
+            scale=document["honesty_scale"], reduction=document["honesty_reduction"]
+        ),
+        agen_scales=dict(document["agen_scales"]),
+        a_rule=dict(document["a_rule"]),
+        c_rule=dict(document["c_rule"]),
+    )
+
+    class Params:
+        k_grid = tuple(document["k_grid"])
+        monotone_tolerance = document["monotone_tolerance"]
+        seed = document["seed"]
+        wrong_radius = document["wrong_radius"]
+        wrong_k = document["wrong_k"]
+
+    return policies, Params
+
+
+def _strictness(args, plugin, out):
+    """The strictness curve for one version: per-level totals and A / A_gen / D legs, aggregates only."""
+    from carbon.scoring import pool_proof_suite as suite
+
+    document = json.loads(Path(args.strictness_spec).read_text(encoding="utf-8"))
+    policies, params = strictness_inputs(document)
+    result = suite.strictness_report(plugin, policies, params)
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / f"strictness-{args.kind}-{args.version}.json"
+    path.write_text(json.dumps(result, indent=2, sort_keys=True), encoding="utf-8")
+    print(f"strictness curve {result['verdict']}: {path}")
+    return 0 if result["verdict"] == "PASS" else 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    for flag in ("kind", "version", "binding", "pools-dir", "sets", "grid", "out-dir"):
+    for flag in ("kind", "version", "binding", "pools-dir", "sets", "out-dir"):
         parser.add_argument("--" + flag, required=True)
+    parser.add_argument(
+        "--grid", default=None, help="the grid spec (not needed with --strictness-spec)"
+    )
+    parser.add_argument(
+        "--strictness-spec",
+        default=None,
+        help="run the strictness curve instead of the grid: JSON {k_grid, monotone_tolerance, seed, wrong_radius, "
+        "wrong_k, budget, sigma0, population, honesty_scale, honesty_reduction, agen_scales, a_rule, c_rule}, every "
+        "value the owner's or the Validator's (nothing is defaulted). Writes strictness-<kind>-<version>.json",
+    )
     parser.add_argument(
         "--truth-probe-rule", required=True, choices=("perfect", "measured")
     )
@@ -341,7 +394,13 @@ def main(argv=None):
                 (pools / f"pool-source-{tid}.json").read_text(encoding="utf-8")
             )
             specs[tid] = pool_plugin.spec_from_source(document, binding)
-    grid_doc = json.loads(Path(args.grid).read_text(encoding="utf-8"))
+    if args.strictness_spec is None and args.grid is None:
+        parser.error("give --grid, or --strictness-spec for the strictness curve")
+    grid_doc = (
+        {}
+        if args.strictness_spec is not None
+        else json.loads(Path(args.grid).read_text(encoding="utf-8"))
+    )
     grid_doc = {k: v for k, v in grid_doc.items() if not k.startswith("_")}
     grid_doc["in_distribution_is_pass_criterion"] = args.in_distribution == "pass"
     out = Path(args.out_dir)
@@ -380,8 +439,13 @@ def main(argv=None):
         "agen_scale_sets",
         "a_rules",
     ):
-        grid_doc[key] = tuple(grid_doc[key])
-    grid = pool_proof_grid.GridSpec(**grid_doc)
+        if key in grid_doc:
+            grid_doc[key] = tuple(grid_doc[key])
+    grid = (
+        None
+        if args.strictness_spec is not None
+        else pool_proof_grid.GridSpec(**grid_doc)
+    )
     bank_legs = pool_plugin.practice_bank_legs(
         binding,
         truth_probe_rule=args.truth_probe_rule,
@@ -472,6 +536,8 @@ def main(argv=None):
         no_fresh_set,
         pool_gates=args.pool_gates == "required",
     )
+    if args.strictness_spec is not None:
+        return _strictness(args, plugin, Path(args.out_dir))
     result = pool_proof_grid.run_grid(plugin, grid)
     if args.truth_row_sealed_batch_dir:
         result["meta"]["truth_row_check"] = {"source": "sealed_native", **truth_record}
