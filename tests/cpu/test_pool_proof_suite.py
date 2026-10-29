@@ -5,8 +5,10 @@ All values are SYNTHETIC test numbers on a two-variable toy problem; none is a p
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import random
+from itertools import pairwise
 from pathlib import Path
 
 import pytest
@@ -307,3 +309,84 @@ def test_the_suite_names_no_challenge():
     source = Path(suite.__file__).read_text(encoding="utf-8").lower()
     for name in ("motor", "cooling", "battery", "f02", "f08", "ribbed", "burst"):
         assert name not in source, name
+
+
+def test_the_strictness_report_lists_every_family_and_level_with_its_legs_and_falls_monotonically():
+    """Checklist E.2 as a run mode: injected noise, a near-limit bias and a wrong trend, each at several levels,
+    with the total and the A / A_gen / D legs per level. Aggregates only."""
+    report = suite.strictness_report(build_plugin(), POLICIES, PARAMS)
+    assert report["verdict"] == "PASS", report
+    numbers = report["numbers"]
+    assert numbers["k_grid"] == list(PARAMS.k_grid)
+    assert set(numbers["families"]) == {
+        "random_noise",
+        "near_limit_bias",
+        "wrong_trend",
+    }
+    for name, family in numbers["families"].items():
+        levels = family["levels"]
+        assert [level["k"] for level in levels] == list(PARAMS.k_grid), name
+        assert family["monotone"] is True
+        for level in levels:
+            assert set(level) == {"k", "total", "A", "A_gen", "D"}, name
+            assert 0.0 <= level["total"] <= 1.0 and 0.0 <= level["D"] <= 1.0
+        totals = [level["total"] for level in levels]
+        assert all(
+            later <= earlier + PARAMS.monotone_tolerance
+            for earlier, later in pairwise(totals)
+        ), name
+        # The strongest level is strictly worse than k = 0; where k = 0 is the oracle it is perfect (the toy
+        # plugin's legs for a wrong-trend model are its own, so only the first two families are held to 1).
+        assert totals[-1] < totals[0], name
+        if name != "wrong_trend":
+            assert totals[0] == pytest.approx(1.0, abs=1e-9), name
+    # Deterministic, and nothing but numbers and labels: no design, truth or pick.
+    again = suite.strictness_report(build_plugin(), POLICIES, PARAMS)
+    assert json.dumps(again, sort_keys=True) == json.dumps(report, sort_keys=True)
+    text = json.dumps(report)
+    assert "designs" not in text and "truths" not in text and "pick" not in text
+
+
+def test_the_strictness_report_fails_when_a_family_does_not_fall():
+    """A grader that stops punishing error (the wrong trend is invisible) is reported, not hidden."""
+    flat = dataclasses.replace(PARAMS, k_grid=(0.0, 4.0, 1.0), monotone_tolerance=0.0)
+    report = suite.strictness_report(build_plugin(), POLICIES, flat)
+    # k goes 0 -> 4 -> 1: the total must rise on the last step, so at least one family is non-monotone.
+    assert report["verdict"] == "FAIL"
+    assert any(
+        not family["monotone"] for family in report["numbers"]["families"].values()
+    )
+
+
+def test_the_custody_cli_builds_policies_from_a_spec_with_nothing_defaulted():
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[2] / "scripts/dev/pool_proof_grid.py"
+    spec = importlib.util.spec_from_file_location("pool_proof_grid_cli", path)
+    cli = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cli)
+    document = {
+        "k_grid": [0.0, 1.0, 2.0],
+        "monotone_tolerance": 0.02,
+        "seed": 7,
+        "wrong_radius": 0.15,
+        "wrong_k": 12.0,
+        "budget": 60,
+        "sigma0": 0.25,
+        "population": None,
+        "honesty_scale": 1.0,
+        "honesty_reduction": "max",
+        "agen_scales": {"f": 0.1, "g": 0.1},
+        "a_rule": {"kind": "mean"},
+        "c_rule": {"kind": "min"},
+    }
+    policies, params = cli.strictness_inputs(document)
+    assert policies.optimizer.budget == 60 and policies.a_rule == {"kind": "mean"}
+    assert params.k_grid == (0.0, 1.0, 2.0) and params.seed == 7
+    report = suite.strictness_report(build_plugin(), policies, params)
+    assert report["verdict"] == "PASS"
+    for missing in document:
+        trimmed = {k: v for k, v in document.items() if k != missing}
+        with pytest.raises(KeyError):
+            cli.strictness_inputs(trimmed)
