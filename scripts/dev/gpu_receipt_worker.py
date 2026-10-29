@@ -1,34 +1,31 @@
-"""The GPU receipt worker: a standing job on the validator host that works toward every served model having its official
-GPU receipt (OWNER-GPU-OPEN-WITH-READY-01, "A but work toward B").
+"""The standing GPU receipt worker (OWNER-GPU-OPEN-WITH-READY-01): the only writer of the on-box official receipt store.
 
-It queues every served catalog entry that has a GPU twin and no official GPU receipt on this host class, and for each one
-runs its two official GPU rebuilds through the existing path: two SEPARATE processes of `scripts/dev/gpu_repeat.py` in the
-pinned GPU worker image (the invocation the Test Lead's box runs use: `--gpus device=UUID --network none --read-only`, the
-checkout read-only, a scratch volume), then its own `compare`. A bit-identical pair writes the receipt with the existing
-`gpu_receipt.make` (schema `carbon.backbone-catalog-pair-identity.v1`; no new format). A pair that differs is recorded
-UNSTABLE with its reason and never gets a receipt (a repeat within a tolerance is for the registered tolerance, once the
-recalibration registers it: `gpu_receipt.check` requires identical == pairs today). An entry that fails is FAILED with a
-reason; every entry gets at most `--max-attempts` attempts, so nothing retries forever. The CNO1d twins (SMOKE_ONLY) are
-SKIPPED: the official route refuses them (CPU lane).
+For every served catalog entry with a GPU twin and no record in force in the store, it runs the entry's two official GPU
+rebuilds (two SEPARATE `scripts/dev/gpu_repeat.py` containers in the pinned GPU worker image, as the validator box's own
+runs do: `--gpus device=UUID --network none --read-only`, checkout read-only) and compares them with gpu_repeat's own
+`compare`. A bit-identical pair appends a record to `carbon.backbone_catalog.receipt_store` (bundle digest, image id, host
+class, determinism-flags digest, result, the two run digests); nothing is written to the repository.
+A pair that differs is UNSTABLE (`non_reproducible`: a tolerance is the registered rebuild noise's, once the recalibration
+registers it); other failures are FAILED with a typed reason. Each outcome is one line of `failures.jsonl` (owner-only) and
+an entry gets at most `--max-attempts` attempts. A failed entry has no record, so it is never offered. The CNO1d twins
+(SMOKE_ONLY) are SKIPPED: the official route refuses them.
 
-Behaviour:
-- Lanes: as many concurrent rebuilds as the GPU's free VRAM, the host's CPUs and memory allow, from limits you pass
-  (the measured per-lane figures; nothing is defaulted) and the largest VRAM peak the runs themselves report.
-- Yields to official grading: no new lane starts while the yield file exists or `--busy-command` exits 0 (one of the two,
-  or an explicit `--no-yield`, is required, so the worker never starves grading by omission). Running lanes finish.
-- Resumes: the queue is a SQLite file in `--state-dir`; a restart (or reboot, with the unit from `units`) puts RUNNING
-  jobs back to QUEUED and goes on; a receipt already on disk for this host class is adopted, not redone.
-- Progress: one line per finish and on `status`: "N of M per Challenge", with the FAILED / UNSTABLE / running counts.
-- Start proof: every `run` first prints and writes the checkout's HEAD and TREE, the images, the queue and the lane plan.
+- Low priority, yields: `os.nice(19)`; no lane starts, and running containers are frozen (`docker pause`), while the operator
+  pause flag exists or official grading holds `official-grading.lock` (chosen explicitly: `--grading-state-dir`,
+  `--yield-file`, `--busy-command` or `--no-yield`). One GPU: it never competes with a grade.
+- Lanes: min(free VRAM, CPUs, memory, cap) from the measured per-lane limits you pass (nothing defaulted).
+- Resumes: the queue is a SQLite file in `--state-dir`; a restart (or reboot, via the `units` service) re-queues RUNNING jobs.
+- Progress: "GPU receipts: <challenge> N of M ..." per Challenge, on every finish and on `status`.
+- Start proof: every `run` prints and writes HEAD/TREE, images, queue, limits and lane plan.
 
     gpu_receipt_worker.py run --state-dir D --checkout C --gpu-uuid U --torch-gpu-manifest M [--jax-gpu-manifest M]
-        --host-class ID --wheels W --receipts-dir R --max-attempts N --entry-timeout-s S --lane-vram-bytes B
-        --lane-cpus N --lane-memory-bytes B --max-lanes N (--yield-file F | --busy-command CMD | --no-yield)
-        [--dry-run] [--only ID ...]
+        --host-class ID --wheels W --store-dir S --max-attempts N --entry-timeout-s S --lane-vram-bytes B
+        --lane-cpus N --lane-memory-bytes B --max-lanes N
+        (--grading-state-dir V | --yield-file F | --busy-command CMD | --no-yield) [--pause-file F] [--dry-run] [--only ID ...]
     gpu_receipt_worker.py status --state-dir D
     gpu_receipt_worker.py units  (same flags as run) --out-dir DIR      # a systemd --user service, not installed
 
-Public data only; reads no sealed material. Receipts say where and on what they ran, never a score.
+Public data only; reads no sealed material. Records say where and on what they ran, never a score.
 """
 
 from __future__ import annotations
@@ -62,6 +59,7 @@ CREATE TABLE IF NOT EXISTS jobs(
     key TEXT PRIMARY KEY,
     catalog_id TEXT NOT NULL,
     runtime TEXT NOT NULL,
+    bundle_digest TEXT NOT NULL DEFAULT '',
     challenges TEXT NOT NULL,
     status TEXT NOT NULL CHECK(status IN ('QUEUED','RUNNING','PASS','UNSTABLE','FAILED','SKIPPED')),
     attempts INTEGER NOT NULL DEFAULT 0,
@@ -111,6 +109,7 @@ def served_jobs(*, entries=None, versions=None):
                         "key": key,
                         "catalog_id": item["catalog_id"],
                         "runtime": runtime,
+                        "bundle_digest": item["bundle_refs"][runtime]["bundle_digest"],
                         "challenges": set(),
                     },
                 )
@@ -121,20 +120,19 @@ def served_jobs(*, entries=None, versions=None):
     ]
 
 
-def receipt_is_done(receipt, runtime, host_class):
-    """Whether a receipt on disk is this host class's official GPU receipt: a valid repeat receipt, bit-identical, that
-    carries the official determinism environment and this host class (the image pin is the Validator's registry).
-    """
+def record_is_done(store, job, image_id, host_class):
+    """Whether the store already holds this entry's official record on this image and host class (a refused store is
+    an error, never a yes)."""
     from carbon.backbone_catalog import gpu_receipt
 
-    try:
-        gpu_receipt.check(receipt, receipt["catalog_id"], runtime)
-    except (gpu_receipt.GpuReceiptBroken, KeyError, TypeError):
-        return False
+    record = store.current(job["bundle_digest"], job["runtime"])
     return (
-        receipt.get("kind") == "repeat"
-        and receipt.get("host_class") == host_class
-        and receipt.get("determinism") == gpu_receipt.required_determinism(runtime)
+        record is not None
+        and record["catalog_id"] == job["catalog_id"]
+        and record["image_id"] == image_id
+        and record["host_class"] == host_class
+        and record["determinism_flags_digest"]
+        == gpu_receipt.required_determinism_digest(job["runtime"])
     )
 
 
@@ -164,11 +162,12 @@ class Queue:
             elif job["key"] in adopted:
                 status, reason = "PASS", adopted[job["key"]]
             self.db.execute(
-                "INSERT INTO jobs(key, catalog_id, runtime, challenges, status, reason, updated) VALUES(?,?,?,?,?,?,?)",
+                "INSERT INTO jobs(key, catalog_id, runtime, bundle_digest, challenges, status, reason, updated) VALUES(?,?,?,?,?,?,?,?)",
                 (
                     job["key"],
                     job["catalog_id"],
                     job["runtime"],
+                    job["bundle_digest"],
                     json.dumps(job["challenges"]),
                     status,
                     reason,
@@ -197,9 +196,9 @@ class Queue:
 
     def claim(self, only=None):
         row = self.db.execute(
-            "SELECT key, catalog_id, runtime, challenges, attempts FROM jobs WHERE status='QUEUED' ORDER BY attempts, key"
+            "SELECT key, catalog_id, runtime, bundle_digest, challenges, attempts FROM jobs WHERE status='QUEUED' ORDER BY attempts, key"
         ).fetchall()
-        for key, catalog_id, runtime, challenges, attempts in row:
+        for key, catalog_id, runtime, bundle_digest, challenges, attempts in row:
             if only and catalog_id not in only:
                 continue
             self.db.execute(
@@ -211,6 +210,7 @@ class Queue:
                 "key": key,
                 "catalog_id": catalog_id,
                 "runtime": runtime,
+                "bundle_digest": bundle_digest,
                 "challenges": json.loads(challenges),
                 "attempt": attempts + 1,
             }
@@ -308,24 +308,58 @@ def plan_lanes(
 
 
 def make_busy(
-    *, yield_file=None, busy_command=None, no_yield=False, run=subprocess.run
+    *,
+    grading_state_dir=None,
+    yield_file=None,
+    busy_command=None,
+    no_yield=False,
+    pause_file=None,
+    run=subprocess.run,
+    grading_busy=None,
 ):
-    """`busy()`: whether official grading is using the GPU now. One of the three must be chosen explicitly."""
-    chosen = [x for x in (yield_file, busy_command, no_yield or None) if x]
+    """`busy()`: whether the worker must not use the GPU now: the operator pause flag, or official grading running.
+
+    Grading is detected one way, chosen explicitly (never by omission): the validator state's `official-grading.lock`
+    (`receipt_job.grading_busy`), a yield file, a busy command (exit 0 = busy), or `no_yield` (tests, scratch boxes).
+    """
+    chosen = [
+        x for x in (grading_state_dir, yield_file, busy_command, no_yield or None) if x
+    ]
     if len(chosen) != 1:
         raise ValueError(
-            "choose exactly one of --yield-file, --busy-command and --no-yield"
+            "choose exactly one of --grading-state-dir, --yield-file, --busy-command and --no-yield"
         )
-    if no_yield:
-        return lambda: False
-    if yield_file:
-        return lambda: Path(yield_file).exists()
-    return (
-        lambda: run(
-            busy_command, shell=True, capture_output=True, check=False
-        ).returncode
-        == 0
-    )
+    if grading_state_dir:
+        if grading_busy is None:
+            from carbon.backbone_catalog.receipt_job import grading_busy
+
+        def grading():
+            return grading_busy(grading_state_dir)
+
+    elif yield_file:
+
+        def grading():
+            return Path(yield_file).exists()
+
+    elif busy_command:
+
+        def grading():
+            return (
+                run(
+                    busy_command, shell=True, capture_output=True, check=False
+                ).returncode
+                == 0
+            )
+
+    else:
+
+        def grading():
+            return False
+
+    def busy():
+        return bool(pause_file and Path(pause_file).exists()) or grading()
+
+    return busy
 
 
 # --- one entry's two official GPU rebuilds -------------------------------------------------------------------------
@@ -338,7 +372,7 @@ class Context:
     gpu_uuid: str
     images: dict  # runtime -> image id (sha256:...)
     wheels: Path
-    receipts_dir: Path
+    store: object
     host_class: str
     tested_on: str
     entry_timeout_s: int
@@ -415,6 +449,14 @@ def compare_runs(first, second):
     return only
 
 
+def run_digest(first):
+    """The digest of what must repeat bit for bit in one run (gpu_repeat's own `stable`), canonical JSON."""
+    from carbon.backbone_catalog import receipt_store
+    from scripts.dev import gpu_repeat
+
+    return receipt_store.digest(receipt_store.canonical(gpu_repeat.stable(first)))
+
+
 def official_pair(ctx, job):
     """Run the entry's two rebuilds in two separate containers and compare. Returns
     {"verdict": "PASS"|"UNSTABLE"|"FAILED", "reason", "detail", "peak_gpu_bytes"}."""
@@ -426,6 +468,7 @@ def official_pair(ctx, job):
     for stale in out_dir.glob("*.json"):
         stale.unlink()
     peak = 0
+    digests = []
     for n in (1, 2):
         name = run_name_of(job, n)
         try:
@@ -456,11 +499,12 @@ def official_pair(ctx, job):
         document = json.loads((out_dir / f"{name}.json").read_bytes())
         entry = (document.get("entries") or {}).get(job["catalog_id"]) or {}
         peak = max(peak, int((entry.get("first") or {}).get("peak_gpu_bytes", 0)))
+        digests.append(run_digest(entry.get("first") or {}))
     verdict = compare_runs(
         out_dir / (run_name_of(job, 1) + ".json"),
         out_dir / (run_name_of(job, 2) + ".json"),
     )
-    return _classify(verdict, peak)
+    return {**_classify(verdict, peak), "run_digests": digests}
 
 
 def _classify(verdict, peak):
@@ -474,7 +518,7 @@ def _classify(verdict, peak):
     if verdict == "DIFFER":
         return {
             "verdict": "UNSTABLE",
-            "reason": "repeat_differs",
+            "reason": "non_reproducible",
             "detail": "the two rebuilds did not match bit for bit; a tolerance is the registered tolerance's, not this worker's",
             "peak_gpu_bytes": peak,
         }
@@ -486,32 +530,57 @@ def _classify(verdict, peak):
     }
 
 
-def write_receipt(ctx, job):
-    """The receipt of a bit-identical pair, through the existing `gpu_receipt.make` (no new format), write-once."""
-    from carbon.backbone_catalog import gpu_receipt
+def make_record(ctx, job, result):
+    """The official record of a bit-identical pair (`receipt_store`'s own schema): the entry's bundle digest, the pinned
+    GPU image, the registered host class, the determinism-flags digest and the two run digests.
+    """
+    from carbon.backbone_catalog import gpu_receipt, receipt_store
 
-    receipt = gpu_receipt.make(
-        job["catalog_id"],
-        job["runtime"],
-        image_digest=ctx.images[job["runtime"]],
-        tested_on=ctx.tested_on,
-        gpu_used=True,
-        smoke_ok=True,
-        determinism=gpu_receipt.required_determinism(job["runtime"]),
-        host_class=ctx.host_class,
-        pairs=2,
-        identical=2,
+    return {
+        "schema": receipt_store.SCHEMA,
+        "catalog_id": job["catalog_id"],
+        "runtime_profile_id": job["runtime"],
+        "bundle_digest": job["bundle_digest"],
+        "image_id": ctx.images[job["runtime"]],
+        "host_class": ctx.host_class,
+        "determinism_flags_digest": gpu_receipt.required_determinism_digest(
+            job["runtime"]
+        ),
+        "result": {"kind": receipt_store.BIT_IDENTICAL},
+        "run_digests": list(result["run_digests"]),
+        "supersedes": None,
+    }
+
+
+def write_record(ctx, job, result):
+    """Append the record to the on-box store (the worker is its only writer). Returns the record digest."""
+    return ctx.store.append(make_record(ctx, job, result))
+
+
+FAILURE_LOG = "failures.jsonl"
+
+
+def log_failure(ctx, job, status, reason, detail):
+    """One typed line per FAILED / UNSTABLE entry, append-only, owner-only, no addresses. A failed entry is never
+    offered: it has no store record."""
+    ctx.state_dir.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(
+        {
+            "catalog_id": job["catalog_id"],
+            "runtime": job["runtime"],
+            "bundle_digest": job["bundle_digest"],
+            "status": status,
+            "reason": reason,
+            "detail": (detail or "")[:300],
+            "attempt": job.get("attempt"),
+        },
+        sort_keys=True,
     )
-    ctx.receipts_dir.mkdir(parents=True, exist_ok=True)
-    target = ctx.receipts_dir / f"{job['catalog_id']}.{job['runtime']}.json"
-    payload = (json.dumps(receipt, indent=1, sort_keys=True) + "\n").encode()
-    if target.exists() and target.read_bytes() != payload:
-        # An earlier receipt (another image or host) is never overwritten: say so, keep both.
-        target = target.with_name(
-            target.stem + "." + hashlib.sha256(payload).hexdigest()[:12] + ".json"
-        )
-    target.write_bytes(payload)
-    return target
+    fd = os.open(
+        ctx.state_dir / FAILURE_LOG, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600
+    )
+    with os.fdopen(fd, "a", encoding="utf-8") as stream:
+        stream.write(line + "\n")
 
 
 # --- the loop ---------------------------------------------------------------------------------------------------
@@ -526,21 +595,29 @@ def run_loop(
     lanes_now,
     busy,
     executor=official_pair,
-    receipt_writer=write_receipt,
+    receipt_writer=write_record,
+    pauser=None,
+    nice=19,
     sleep=time.sleep,
     poll_s=5.0,
     out=print,
 ):
     """Run the queue to the end: claim jobs while lanes are free and official grading is not busy, finish them, print
     progress. Never retries a job beyond `max_attempts`. Returns the final counts."""
+    if hasattr(os, "nice"):
+        os.nice(nice)  # the standing job never competes with grading for the CPU
     queue.recover()
     queue.exhaust(max_attempts)
     running = {}
+    paused = False
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=64)
     try:
         while True:
             queue.exhaust(max_attempts)
             held = busy()
+            if pauser is not None and held != paused:
+                pauser([running[f] for f in running], held)  # freeze/thaw containers
+                paused = held
             if not held:
                 allowed = lanes_now() - len(running)
                 for _ in range(max(0, allowed)):
@@ -575,11 +652,26 @@ def run_loop(
     return queue.counts()
 
 
+def docker_pauser(run=subprocess.run):
+    """Freeze (`docker pause`) or thaw the containers of the running entries; either container of a pair may be live."""
+
+    def pause(jobs, paused):
+        for job in jobs:
+            for n in (1, 2):
+                run(
+                    ["docker", "pause" if paused else "unpause", run_name_of(job, n)],
+                    capture_output=True,
+                    check=False,
+                )
+
+    return pause
+
+
 def _settle(queue, job, result, ctx, receipt_writer, max_attempts, out):
     verdict = result["verdict"]
     if verdict == "PASS":
         try:
-            path = receipt_writer(ctx, job)
+            path = receipt_writer(ctx, job, result)
         except Exception as error:  # noqa: BLE001
             queue.finish(
                 job["key"],
@@ -587,15 +679,20 @@ def _settle(queue, job, result, ctx, receipt_writer, max_attempts, out):
                 "receipt_not_written",
                 f"{type(error).__name__}: {error}",
             )
+            log_failure(
+                ctx, job, "FAILED", "receipt_not_written", f"{type(error).__name__}"
+            )
             out(f"FAILED {job['key']}: receipt_not_written")
             return
         queue.finish(job["key"], "PASS", "bit_identical", str(path))
-        out(f"PASS {job['key']} -> {path.name}")
+        out(f"PASS {job['key']} -> {str(path)[:19]}")
     elif verdict == "UNSTABLE":
         queue.finish(job["key"], "UNSTABLE", result["reason"], result.get("detail", ""))
+        log_failure(ctx, job, "UNSTABLE", result["reason"], result.get("detail", ""))
         out(f"UNSTABLE {job['key']}: {result['reason']}")
     elif job["attempt"] >= max_attempts:
         queue.finish(job["key"], "FAILED", result["reason"], result.get("detail", ""))
+        log_failure(ctx, job, "FAILED", result["reason"], result.get("detail", ""))
         out(f"FAILED {job['key']}: {result['reason']}")
     else:
         queue.requeue(job["key"], result["reason"])
@@ -662,7 +759,9 @@ def _parser():
     parser.add_argument("--jax-gpu-manifest", type=Path)
     parser.add_argument("--host-class")
     parser.add_argument("--wheels", type=Path)
-    parser.add_argument("--receipts-dir", type=Path)
+    parser.add_argument("--store-dir", type=Path)
+    parser.add_argument("--grading-state-dir", type=Path)
+    parser.add_argument("--pause-file", type=Path)
     parser.add_argument("--max-attempts", type=int)
     parser.add_argument("--entry-timeout-s", type=int)
     parser.add_argument("--lane-vram-bytes", type=int)
@@ -684,7 +783,7 @@ REQUIRED_RUN = (
     "gpu_uuid",
     "host_class",
     "wheels",
-    "receipts_dir",
+    "store_dir",
     "max_attempts",
     "entry_timeout_s",
     "lane_vram_bytes",
@@ -711,6 +810,7 @@ def build_queue(args, queue, *, jobs=None):
     """Fill the queue: served GPU entries, minus the smoke-only ones (CPU lane), minus those whose receipt is already
     on disk for this host class, minus those whose runtime has no recorded GPU image."""
     from carbon.backbone_catalog import gpu_receipt
+    from carbon.backbone_catalog.receipt_store import ReceiptStore
 
     jobs = served_jobs() if jobs is None else jobs
     images = image_ids(args)
@@ -721,17 +821,13 @@ def build_queue(args, queue, *, jobs=None):
         elif job["runtime"] not in images:
             skipped[job["key"]] = "no_gpu_image_recorded_for_runtime"
         else:
-            target = (
-                Path(args.receipts_dir) / f"{job['catalog_id']}.{job['runtime']}.json"
-            )
-            if target.is_file():
-                try:
-                    if receipt_is_done(
-                        json.loads(target.read_bytes()), job["runtime"], args.host_class
-                    ):
-                        adopted[job["key"]] = "receipt_already_on_disk"
-                except ValueError:
-                    pass
+            if record_is_done(
+                ReceiptStore(args.store_dir),
+                job,
+                images[job["runtime"]],
+                args.host_class,
+            ):
+                adopted[job["key"]] = "record_already_in_store"
     queue.sync(jobs, skipped=skipped, adopted=adopted)
     return images
 
@@ -754,9 +850,11 @@ def main(argv=None):
         return 2
     try:
         busy = make_busy(
+            grading_state_dir=args.grading_state_dir,
             yield_file=args.yield_file,
             busy_command=args.busy_command,
             no_yield=args.no_yield,
+            pause_file=args.pause_file,
         )
     except ValueError as error:
         print(str(error), file=sys.stderr)
@@ -771,6 +869,8 @@ def main(argv=None):
         return 2
     if args.command == "units":
         return _units(args)
+    from carbon.backbone_catalog.receipt_store import ReceiptStore
+
     queue = Queue(":memory:" if args.dry_run else args.state_dir / "queue.sqlite3")
     images = build_queue(args, queue)
     _, tested_on = gpu_facts(args.gpu_uuid)
@@ -780,7 +880,7 @@ def main(argv=None):
         gpu_uuid=args.gpu_uuid,
         images=images,
         wheels=args.wheels,
-        receipts_dir=args.receipts_dir,
+        store=ReceiptStore(args.store_dir),
         host_class=args.host_class,
         tested_on=tested_on,
         entry_timeout_s=args.entry_timeout_s,
@@ -850,6 +950,7 @@ def main(argv=None):
         only=set(args.only) if args.only else None,
         lanes_now=lanes_now,
         busy=busy,
+        pauser=docker_pauser(),
         poll_s=args.poll_s,
     )
     print(json.dumps(counts, sort_keys=True))
@@ -871,13 +972,15 @@ def _units(args):
         "jax_gpu_manifest",
         "host_class",
         "wheels",
-        "receipts_dir",
+        "store_dir",
         "max_attempts",
         "entry_timeout_s",
         "lane_vram_bytes",
         "lane_cpus",
         "lane_memory_bytes",
         "max_lanes",
+        "grading_state_dir",
+        "pause_file",
         "yield_file",
         "busy_command",
     ):

@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import threading
 from pathlib import Path
 
 import pytest
 
-from carbon.backbone_catalog import gpu_receipt
+from carbon.backbone_catalog import gpu_receipt, listing
+from carbon.backbone_catalog.receipt_store import ReceiptStore
 from scripts.dev import gpu_receipt_worker as w
 
 RT = "torch-cu130-py311"
@@ -23,6 +25,7 @@ def jobs(*ids, challenges=("c1",), runtime=RT):
             "key": f"{i}|{runtime}",
             "catalog_id": i,
             "runtime": runtime,
+            "bundle_digest": "sha256:" + "b" * 64,
             "challenges": list(challenges),
         }
         for i in ids
@@ -36,7 +39,7 @@ def ctx(tmp_path):
         gpu_uuid="GPU-x",
         images={RT: IMAGE},
         wheels=tmp_path / "wheels",
-        receipts_dir=tmp_path / "receipts",
+        store=ReceiptStore(tmp_path / "store"),
         host_class=HOST,
         tested_on="RTX / 1",
         entry_timeout_s=60,
@@ -56,9 +59,10 @@ def drive(
         executor=executor,
         receipt_writer=extra.pop(
             "receipt_writer",
-            lambda c, j: Path(c.receipts_dir) / (j["catalog_id"] + ".json"),
+            lambda c, j, r: "sha256:" + "0" * 64,
         ),
         sleep=lambda s: None,
+        nice=0,
         poll_s=0.01,
         out=lines.append,
         **extra,
@@ -111,10 +115,10 @@ def test_a_pair_that_differs_is_unstable_with_no_receipt_and_no_retry(tmp_path):
 
     written = []
     counts, _ = drive(
-        q, ctx(tmp_path), differ, receipt_writer=lambda c, j: written.append(j)
+        q, ctx(tmp_path), differ, receipt_writer=lambda c, j, r: written.append(j)
     )
     assert counts["UNSTABLE"] == 1 and calls == [1] and not written
-    assert q.failures()[0]["reason"] == "repeat_differs"
+    assert q.failures()[0]["reason"] == "non_reproducible"
 
 
 def test_a_crashing_attempt_is_a_result_not_a_stop(tmp_path):
@@ -322,22 +326,121 @@ def test_a_timeout_removes_the_container_and_is_a_failure(tmp_path):
     assert done["reason"] == "timeout" and ["docker", "rm", "-f"] in seen
 
 
-def test_the_receipt_is_the_existing_format_and_valid_for_the_official_check(tmp_path):
+def test_a_pass_appends_the_store_record_the_official_route_reads(tmp_path):
+    pytest.importorskip("fcntl")
     c = ctx(tmp_path)
-    cid = min(set(w_entries()) - set(gpu_receipt.SMOKE_ONLY))
-    job = {"key": f"{cid}|{RT}", "catalog_id": cid, "runtime": RT, "challenges": ["c1"]}
-    path = w.write_receipt(c, job)
-    receipt = json.loads(path.read_text())
-    gpu_receipt.check(receipt, cid, RT)
-    assert receipt["kind"] == "repeat" and receipt["host_class"] == HOST
-    assert receipt["identical"] == receipt["pairs"] == 2
-    assert w.receipt_is_done(receipt, RT, HOST) and not w.receipt_is_done(
-        receipt, RT, "other"
+    item = next(
+        e
+        for e in listing.entries()
+        if RT in (e.get("bundle_refs") or {})
+        and e["catalog_id"] not in gpu_receipt.SMOKE_ONLY
     )
-    # write-once: a different payload for the same entry never overwrites
-    c.tested_on = "other box"
-    again = w.write_receipt(c, job)
-    assert again == path or again.name != path.name
+    cid = item["catalog_id"]
+    job = {
+        "key": f"{cid}|{RT}",
+        "catalog_id": cid,
+        "runtime": RT,
+        "bundle_digest": item["bundle_refs"][RT]["bundle_digest"],
+        "challenges": ["c1"],
+    }
+    run = "sha256:" + "d" * 64
+    assert not w.record_is_done(c.store, job, IMAGE, HOST)
+    own = w.write_record(c, job, {"run_digests": [run, run]})
+    record = c.store.current(job["bundle_digest"], RT)
+    assert own.startswith("sha256:") and record["host_class"] == HOST
+    assert record["determinism_flags_digest"] == (
+        gpu_receipt.required_determinism_digest(RT)
+    )
+    assert record["result"] == {"kind": "bit_identical"}
+    assert w.record_is_done(c.store, job, IMAGE, HOST)
+    assert not w.record_is_done(c.store, job, IMAGE, "other-class")
+    assert not w.record_is_done(c.store, job, "sha256:" + "e" * 64, HOST)
+    # the official read serves it (official_grade_problem judges image pin and host class, not this worker)
+    assert gpu_receipt.official_load(item, RT, c.store)["host_class"] == HOST
+    # write-once: the same bundle again must name the record it replaces, so a blind second write is refused
+    with pytest.raises(ValueError):
+        w.write_record(c, job, {"run_digests": [run, run]})
+
+
+def test_a_bad_pair_writes_no_record_and_a_typed_failure_line(tmp_path):
+    pytest.importorskip("fcntl")
+    q = w.Queue(":memory:")
+    q.sync(jobs("a", "b"))
+    c = ctx(tmp_path)
+
+    def exe(cx, j):
+        if j["catalog_id"] == "a":
+            return w._classify("DIFFER", 1)
+        return {"verdict": "FAILED", "reason": "timeout", "detail": "x"}
+
+    drive(q, c, exe, max_attempts=1)
+    lines = [
+        json.loads(x) for x in (c.state_dir / w.FAILURE_LOG).read_text().splitlines()
+    ]
+    assert {(x["catalog_id"], x["reason"]) for x in lines} == {
+        ("a", "non_reproducible"),
+        ("b", "timeout"),
+    }
+    assert ((c.state_dir / w.FAILURE_LOG).stat().st_mode & 0o077) == 0
+    assert c.store.records() == []
+
+
+def test_the_pause_flag_and_the_grading_lock_hold_the_worker_back(tmp_path):
+    pytest.importorskip("fcntl")
+    import fcntl
+
+    pause = tmp_path / "pause"
+    state = tmp_path / "validator"
+    state.mkdir()
+    busy = w.make_busy(grading_state_dir=state, pause_file=pause)
+    assert busy() is False  # no lock file: grading is not running
+    (state / "official-grading.lock").write_text("")
+    fd = os.open(state / "official-grading.lock", os.O_RDWR)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        assert busy() is True
+    finally:
+        os.close(fd)
+    assert busy() is False
+    pause.write_text("")
+    assert busy() is True  # the operator pause, with grading idle
+    assert w.make_busy(no_yield=True, pause_file=pause)() is True
+
+
+def test_busy_freezes_the_running_containers_and_thaws_them(tmp_path):
+    q = w.Queue(":memory:")
+    q.sync(jobs("a"))
+    flags = iter([False, True, True, False, False, False, False])
+    calls = []
+    release = threading.Event()
+
+    def exe(c, j):
+        release.wait(5)
+        return ok(c, j)
+
+    def busy():
+        return next(flags, False)
+
+    def pauser(running, paused):
+        calls.append((paused, [j["catalog_id"] for j in running]))
+        if not paused:
+            release.set()
+
+    drive(
+        q,
+        ctx(tmp_path),
+        exe,
+        busy=busy,
+        pauser=pauser,
+    )
+    assert calls[:2] == [(True, ["a"]), (False, ["a"])]
+
+
+def test_the_docker_pauser_names_both_containers_of_a_pair():
+    seen = []
+    w.docker_pauser(run=lambda argv, **kw: seen.append(argv))(jobs("a"), True)
+    assert [x[:2] for x in seen] == [["docker", "pause"]] * 2
+    assert seen[0][2] != seen[1][2]
 
 
 def w_entries():
@@ -361,7 +464,7 @@ def test_the_cli_requires_every_limit_and_a_registered_host_class(tmp_path, caps
         ("gpu-uuid", "u"),
         ("host-class", "nope"),
         ("wheels", tmp_path),
-        ("receipts-dir", tmp_path),
+        ("store-dir", tmp_path),
         ("max-attempts", 2),
         ("entry-timeout-s", 9),
         ("lane-vram-bytes", 1),
@@ -391,7 +494,7 @@ def test_units_write_a_user_service_that_is_not_installed(tmp_path, monkeypatch)
         ("gpu-uuid", "u"),
         ("host-class", HOST),
         ("wheels", tmp_path),
-        ("receipts-dir", tmp_path),
+        ("store-dir", tmp_path),
         ("max-attempts", 2),
         ("entry-timeout-s", 9),
         ("lane-vram-bytes", 1),
