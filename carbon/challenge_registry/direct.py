@@ -38,9 +38,8 @@ def catalog_recipe(spec, catalog_id=None, *, version):
     explicit gap, never a recipe that runs. A named id the version does not
     offer is refused (`catalog_entry_unknown`).
     """
-    from carbon.backbone_catalog.entries import CatalogRefused
-
     from carbon.backbone_catalog import listing, served
+    from carbon.backbone_catalog.entries import CatalogRefused
 
     kit = _kit(spec, version)
     if catalog_id is None:
@@ -186,13 +185,12 @@ def _exam(challenge_id, version):
 
 def describe(spec, version):
     """The direct version's description, from its registrations only."""
+    from carbon.backbone_catalog import listing as catalog_listing
+    from carbon.backbone_catalog import served
     from carbon.direct_campaign import facts
     from carbon.direct_campaign.contracts import train_facts
     from carbon.direct_campaign.spec import key_for, keyed
     from carbon.reconstruction.served_recipe_contract import registered
-
-    from carbon.backbone_catalog import listing as catalog_listing
-    from carbon.backbone_catalog import served
 
     key = key_for(spec, version)
     public = spec.public()

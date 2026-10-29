@@ -39,6 +39,12 @@ def _seal(path):
     return file_seal.stat_seal(path, stat), max(stat.st_mtime_ns, stat.st_ctime_ns)
 
 
+def clear_cache():
+    """Forget the kept parse (tests and operator tools: the next `load` reads the file)."""
+    with _LOADED_LOCK:
+        _LOADED["seal"] = _LOADED["manifest"] = None
+
+
 def load_fresh():
     """A new parse of the manifest that no one else holds: for the owner commands that edit it and write it
     back (`pipeline.add`, `add_twin`). `load` serves one shared object and must never be edited.

@@ -225,10 +225,9 @@ def catalog_recipe(catalog_id=None, version=CATALOG_VERSION):
     tested baseline settings (empty: unset settings keep the baseline's). With no
     id, a v2.* entry where the version offers one (every setting is the miner's),
     else `neuralop.FNO`."""
+    from carbon.backbone_catalog import listing, served
     from carbon.challenge_kit import physical_public
     from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
-
-    from carbon.backbone_catalog import listing, served
 
     if catalog_id is None:
         catalog_id = listing.preferred(MOTOR_CHALLENGE, version) or "neuralop.FNO"
@@ -263,6 +262,8 @@ def catalog_recipe(catalog_id=None, version=CATALOG_VERSION):
 def describe_catalog(version=CATALOG_VERSION):
     """Motor's catalog version: Carbon's tested backbones by catalog id, built
     and judged as the Carbon bundle each names, on the direct recipe path."""
+    from carbon.backbone_catalog import listing as catalog_listing
+    from carbon.backbone_catalog import served
     from carbon.motor import domain, exam
     from carbon.motor.challenge import (
         PRACTICE_CASES,
@@ -275,9 +276,6 @@ def describe_catalog(version=CATALOG_VERSION):
         public_registry,
     )
     from carbon.reconstruction.served_recipe_contract import registered
-
-    from carbon.backbone_catalog import listing as catalog_listing
-    from carbon.backbone_catalog import served
 
     contract = registered(MOTOR_CHALLENGE, version)
     catalog = served.document(MOTOR_CHALLENGE, version)

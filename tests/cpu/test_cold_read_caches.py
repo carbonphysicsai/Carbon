@@ -436,3 +436,60 @@ def test_the_owner_commands_edit_a_private_copy_never_the_shared_manifest(settle
     source = pathlib.Path(pipeline.__file__).read_text(encoding="utf-8")
     assert "manifest = load()" not in source, "add and add_twin read their own copy"
     assert source.count("manifest = load_fresh()") == 2
+
+
+# ---- every cache can be cleared ------------------------------------------------------------------------
+
+
+def test_every_once_per_process_cache_has_a_clear_hook(tmp_path, monkeypatch, settled):
+    from carbon.direct_campaign import contracts
+
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps({"schema": listing.SCHEMA, "entries": []}))
+    monkeypatch.setattr(listing, "MANIFEST", path)
+    first = listing.load()
+    assert listing.load() is first
+    listing.clear_cache()
+    assert listing.load() is not first, "forgotten: the next load parses again"
+
+    served.digest(CHALLENGE, VERSION)
+    assert served._DIGESTS
+    served.clear_cache()
+    assert not served._DIGESTS
+
+    allowlist._V8_CHECKED["k"] = b""
+    allowlist.clear_cache()
+    assert not allowlist._V8_CHECKED
+
+    bundles._CONTEXT_SEALS["k"] = "d"
+    bundles.clear_cache()
+    assert not bundles._CONTEXT_SEALS
+
+    for kept in (
+        contracts._documents,
+        contracts._profile,
+        contracts._clause_digest,
+        contracts._direct_contracts,
+    ):
+        assert kept.cache_info().currsize >= 0
+    contracts.clear_caches()
+    for kept in (
+        contracts._documents,
+        contracts._profile,
+        contracts._clause_digest,
+        contracts._direct_contracts,
+    ):
+        assert kept.cache_info().currsize == 0, "the contracts chain is emptied"
+
+
+def test_the_suite_clears_the_contract_caches_for_each_test_module():
+    import pathlib
+
+    source = (
+        pathlib.Path(__file__)
+        .parents[1]
+        .joinpath("conftest.py")
+        .read_text(encoding="utf-8")
+    )
+    assert 'scope="module"' in source and "clear_caches()" in source
+    assert "_fresh_once_per_process_caches" in source

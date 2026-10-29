@@ -51,6 +51,11 @@ def document(challenge_id, version):
 _DIGESTS = {}
 
 
+def clear_cache():
+    """Forget the kept digests (tests and operator tools: the next `digest` recomputes)."""
+    _DIGESTS.clear()
+
+
 def digest(challenge_id, version):
     """The served document's digest. Kept per (challenge, version) while the entries it covers are the very
     objects it was computed from (`listing.load` serves the same objects until the manifest changes, a test's

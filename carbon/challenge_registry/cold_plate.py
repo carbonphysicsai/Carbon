@@ -234,12 +234,11 @@ def catalog_recipe(catalog_id=None, *, version):
     `output.format` are None: an explicit gap, never a recipe that runs. A
     named id the version does not offer is refused (`catalog_entry_unknown`).
     """
+    from carbon.backbone_catalog import listing, served
     from carbon.backbone_catalog.entries import CatalogRefused
     from carbon.challenge_kit import physical_public
     from carbon.challenge_kit.served_versions import serves_catalog
     from carbon.reconstruction.capability_registry import COLD_PLATE_CHALLENGE
-
-    from carbon.backbone_catalog import listing, served
 
     if not serves_catalog(COLD_PLATE_CHALLENGE, version):
         raise ValueError("cooling catalog version required")
@@ -288,6 +287,8 @@ def describe_catalog(version):
     """Cooling's catalog version: Carbon's tested backbones by catalog id,
     built and judged as the Carbon bundle each names, on the direct recipe
     path (as Motor's `describe_catalog`)."""
+    from carbon.backbone_catalog import listing as catalog_listing
+    from carbon.backbone_catalog import served
     from carbon.cold_plate import domain, exam
     from carbon.cold_plate.challenge import (
         PRACTICE_CASES,
@@ -301,9 +302,6 @@ def describe_catalog(version):
         public_registry,
     )
     from carbon.reconstruction.served_recipe_contract import registered
-
-    from carbon.backbone_catalog import listing as catalog_listing
-    from carbon.backbone_catalog import served
 
     contract = registered(COLD_PLATE_CHALLENGE, version)
     catalog = served.document(COLD_PLATE_CHALLENGE, version)

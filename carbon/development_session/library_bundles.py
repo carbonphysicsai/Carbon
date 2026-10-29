@@ -472,6 +472,11 @@ def _locked_wheels(lock):
 _CONTEXT_SEALS = {}
 
 
+def clear_cache():
+    """Forget the kept context seals (tests and operator tools: the next seal hashes the tree)."""
+    _CONTEXT_SEALS.clear()
+
+
 def _tree_signature(context):
     """A cheap fingerprint of a context tree and its newest timestamp: every entry's path, type, size, mtime,
     ctime and inode, or None when it holds anything but plain files and the `wheels` folder (the real check then

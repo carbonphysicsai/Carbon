@@ -192,6 +192,11 @@ V8_SHA256 = "12513d71056a19b5432ac151835f0e2e585dd1f14845e9c67ed1428640e824e0"
 _V8_CHECKED = {}
 
 
+def clear_cache():
+    """Forget the checked v8 bytes (tests and operator tools: the next `v8_bytes` reads and hashes the file)."""
+    _V8_CHECKED.clear()
+
+
 def v8_bytes():
     """Allowlist v8's exact frozen bytes, or ValueError. Read and hashed once per state of the file: kept under
     its path, expected sha and stat seal (size, mtime, ctime, inode), so a changed file or a changed pin is
