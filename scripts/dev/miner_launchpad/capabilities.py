@@ -265,8 +265,9 @@ _STATIC = {}
 def _static_description(challenge_id, version, host):
     import copy
 
-    from carbon.challenge_registry import describe
     from scripts.dev.miner_launchpad.toolbox import catalog_recipes
+
+    from carbon.challenge_registry import describe
 
     key = (challenge_id, version, host)
     if key not in _STATIC:
@@ -289,6 +290,8 @@ def _static_description(challenge_id, version, host):
 
 
 def _challenges(profile_state, host, cfg=None):
+    from scripts.dev.miner_launchpad.catalog_verifier import VERIFIER
+
     from carbon.challenge_registry import catalog
     from carbon.challenge_registry.registry import (
         DEFERRED,
@@ -297,8 +300,6 @@ def _challenges(profile_state, host, cfg=None):
         ChallengeDeferred,
         ChallengeNotImplemented,
     )
-    from scripts.dev.miner_launchpad.catalog_verifier import VERIFIER
-
     from scripts.dev.miner_launchpad import gpu_readiness
 
     # Instant: the verifier's snapshot, never the whole catalog's fresh read (tens of seconds on a full install).
@@ -1201,7 +1202,10 @@ def control_center(runner=None):
                 flight = _FLIGHTS[key] = _Flight()
         if leader:
             try:
-                flight.value = _control_center(runner)
+                from carbon.challenge_registry import build_memo
+
+                with build_memo.scope():
+                    flight.value = _control_center(runner)
                 return flight.value
             except BaseException:
                 flight.failed = True

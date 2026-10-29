@@ -55,6 +55,7 @@ from .listing import (  # noqa: F401  (the owner commands' API)
     entries,
     entry,
     load,
+    load_fresh,
 )
 
 BUNDLES = HERE / "bundles"
@@ -447,7 +448,7 @@ def add(packet, *, challenges, receipt, receipt_key, image_digest, catalog_id=No
     prior = _prior_facts((root / "source.tar.gz").read_bytes())
     if prior is not None:
         item["prior"] = prior
-    manifest = load()
+    manifest = load_fresh()  # edited and written back: never the shared copy
     manifest["entries"] = sorted(
         [e for e in manifest["entries"] if e["catalog_id"] != catalog_id] + [item],
         key=lambda e: e["catalog_id"],
@@ -470,7 +471,7 @@ def add_twin(catalog_id):
     `bundle_ref`, so the catalog digest does not move. Returns the entry."""
     from . import gpu_build
 
-    manifest = load()
+    manifest = load_fresh()  # edited and written back: never the shared copy
     matches = [e for e in manifest["entries"] if e["catalog_id"] == catalog_id]
     if len(matches) != 1:
         raise CatalogBroken(f"{catalog_id}: not in the catalog")

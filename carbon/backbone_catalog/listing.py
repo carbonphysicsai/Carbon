@@ -42,6 +42,18 @@ def _seal(path):
     )
 
 
+def load_fresh():
+    """A new parse of the manifest that no one else holds: for the owner commands that edit it and write it
+    back (`pipeline.add`, `add_twin`). `load` serves one shared object and must never be edited.
+    """
+    if not MANIFEST.exists():
+        return {"schema": SCHEMA, "entries": []}
+    manifest = _json(MANIFEST)
+    if type(manifest) is not dict or manifest.get("schema") != SCHEMA:
+        raise CatalogBroken("catalog manifest schema differs")
+    return manifest
+
+
 def load():
     """The manifest: {"schema", "entries": [...]}, ordered by catalog id.
 

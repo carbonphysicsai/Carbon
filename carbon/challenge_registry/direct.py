@@ -18,8 +18,13 @@ from carbon.direct_campaign.spec import HUMAN_INPUT
 def _kit(spec, version):
     from carbon.direct_campaign.spec import key_for
 
+    from carbon.challenge_registry import build_memo
+
     key = key_for(spec, version)
-    return spec.public().construction_kit(key.challenge_id, key.version)
+    return build_memo.once(
+        ("kit", key.challenge_id, key.version),
+        lambda: spec.public().construction_kit(key.challenge_id, key.version),
+    )
 
 
 def catalog_recipe(spec, catalog_id=None, *, version):
@@ -33,8 +38,9 @@ def catalog_recipe(spec, catalog_id=None, *, version):
     explicit gap, never a recipe that runs. A named id the version does not
     offer is refused (`catalog_entry_unknown`).
     """
-    from carbon.backbone_catalog import listing, served
     from carbon.backbone_catalog.entries import CatalogRefused
+
+    from carbon.backbone_catalog import listing, served
 
     kit = _kit(spec, version)
     if catalog_id is None:
@@ -180,12 +186,13 @@ def _exam(challenge_id, version):
 
 def describe(spec, version):
     """The direct version's description, from its registrations only."""
-    from carbon.backbone_catalog import listing as catalog_listing
-    from carbon.backbone_catalog import served
     from carbon.direct_campaign import facts
     from carbon.direct_campaign.contracts import train_facts
     from carbon.direct_campaign.spec import key_for, keyed
     from carbon.reconstruction.served_recipe_contract import registered
+
+    from carbon.backbone_catalog import listing as catalog_listing
+    from carbon.backbone_catalog import served
 
     key = key_for(spec, version)
     public = spec.public()
