@@ -152,8 +152,12 @@ def measure_pool(
     input_dtype=None,
     a_multiplier=1.0,
     speed_outputs_match=True,
+    capture=None,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
+
+    ``capture`` (a dict, operator-only, default None) receives the per-target decomposition of the final total
+    (`se_basis`) for the exam-total standard error; it is never part of the returned dict.
 
     ``bank_rows`` / ``outputs`` / ``repeats`` are the receiver's: every exam row, the model's raw answers to each,
     and the two inferences of the paired repeat. ``sets`` are the version's `pool_grader` target sets (custody
@@ -219,6 +223,8 @@ def measure_pool(
     }
     if base.get("A") is None or not all(gates.values()):
         # A failed mandatory gate gives no score; the dual pack reads only the gate verdicts.
+        if capture is not None:
+            capture["se_basis"] = {"gated": True}
         return {
             **base,
             "A": base.get("A"),
@@ -275,6 +281,28 @@ def measure_pool(
         # D as the total sees it: capped by C, so the dual pack's own 0.5 A + 0.5 D is each set's TOP.
         d_values.append(min(grade.d, legs["C"]))
         reasons.update(grade.public()["reasons"])
+    if capture is not None:
+        predict = suite.pool_predictor(plugin, descriptor, all_specs)
+        capture["se_basis"] = {
+            "gated": False,
+            "a_bank": a_bank,
+            "c": legs["C"],
+            "a_rule": dict(policies.a_rule),
+            "sets": [
+                [
+                    {
+                        "d": target.d,
+                        "agen": pool_grader.agen_accuracy(
+                            [spec], predict, policies.agen_scales
+                        ),
+                    }
+                    for spec, target in zip(specs, grade.targets, strict=True)
+                ]
+                for specs, (_t, grade, _g, _l) in zip(plugin.sets, per_set, strict=True)
+            ],
+            "total": 0.5 * statistics.fmean(a_values)
+            + 0.5 * statistics.fmean(d_values),
+        }
     return {
         **base,
         "A": statistics.fmean(a_values),
@@ -289,6 +317,58 @@ def measure_pool(
             "set_totals": [t for t, _g, _a, _l in per_set],
         },
     }
+
+
+#: A weekly-check SE is reported only from at least this many targets per set (Validator ruling, 2026-10-29).
+SE_MIN_TARGETS = 4
+
+
+def total_of_targets(basis, sets):
+    """The final pool total recomputed from per-target values: the exam's own composition
+    (`measure_pool`): per set, D = min(mean d, C) and A = combine_a(A_bank, mean A_gen, rule); the
+    total is 0.5 * mean(A) + 0.5 * mean(D) over the sets."""
+    a_values, d_values = [], []
+    for targets in sets:
+        gens = [t["agen"] for t in targets if t["agen"] is not None]
+        a_gen = statistics.fmean(gens) if gens else None
+        a_values.append(pool_grader.combine_a(basis["a_bank"], a_gen, basis["a_rule"]))
+        d_values.append(min(statistics.fmean(t["d"] for t in targets), basis["c"]))
+    return 0.5 * statistics.fmean(a_values) + 0.5 * statistics.fmean(d_values)
+
+
+def target_bootstrap_se(basis, exam_key, *, resamples=200):
+    """(SE, n_targets) of the exam total: a cluster bootstrap over TARGETS (Validator ruling, 2026-10-29).
+
+    Targets are resampled with replacement within each set (the set structure kept, a target's d and A_gen
+    travelling with it), the final total is recomputed exactly as the exam computes it, and the SE is the standard
+    deviation of the resampled totals times sqrt(n / (n - 1)), n = the smallest set's targets. The seed is the
+    first 8 bytes of the exam key. Raises `ExamRefused` with "gated" (a gate failed, so there is no total) or
+    "too_few_targets" (fewer than SE_MIN_TARGETS in a set)."""
+    import numpy as np
+
+    _require(type(basis) is dict and basis.get("gated") is False, "gated")
+    sets = basis["sets"]
+    sizes = [len(targets) for targets in sets]
+    _require(sizes and min(sizes) >= SE_MIN_TARGETS, "too_few_targets")
+    _require(
+        type(exam_key) is str and exam_key.startswith("sha256:"),
+        "bootstrap_exam_key_invalid",
+    )
+    try:
+        seed = int.from_bytes(bytes.fromhex(exam_key[7:])[:8], "big")
+    except ValueError:
+        raise ExamRefused("bootstrap_exam_key_invalid") from None
+    generator = np.random.Generator(np.random.PCG64(seed))
+    totals = []
+    for _ in range(resamples):
+        drawn = []
+        for targets in sets:
+            order = generator.choice(len(targets), size=len(targets), replace=True)
+            drawn.append([targets[int(i)] for i in order])
+        totals.append(total_of_targets(basis, drawn))
+    n = min(sizes)
+    spread = float(np.std(np.asarray(totals), ddof=1)) * math.sqrt(n / (n - 1))
+    return spread, sizes
 
 
 def _quantizer(input_dtype):

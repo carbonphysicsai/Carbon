@@ -1160,7 +1160,7 @@ def _retain_selected_pack_evaluation(
         write_once(binding_path, _json(binding))
         if uncounted and regrade.promotion is not None:
             _record_regraded_evidence(regrade, bind_inputs, source_pin)
-        if regrade is not None and regrade.exam_se:
+        if (regrade is not None and regrade.exam_se) or _pool_graded(adapter):
             _write_exam_se(
                 adapter,
                 snapshot,
@@ -1242,16 +1242,38 @@ def _retain_selected_pack_evaluation(
     }
 
 
+def _pool_graded(adapter) -> bool:
+    """Whether the version is pool graded: its grade writes the exam-total SE sidecar every time, so the weekly
+    fresh-draw check is never UNAVAILABLE for want of one (exam-refresh audit, gap 2).
+    """
+    from carbon.scoring import private_evaluation_source
+
+    try:
+        module = private_evaluation_source._physical_adapter(
+            adapter.challenge_id, adapter.challenge_version
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    return getattr(module, "POOL_GRADED", False) is True
+
+
 def _write_exam_se(
     adapter, snapshot, directory, registered, source, originals, scoring
 ):
-    """The exam-total standard error of this evaluation (a case bootstrap), write-once beside
-    the binding; an adapter that cannot measure a resample leaves UNAVAILABLE with the reason.
-    Read only by the operator's weekly fresh-draw check (``exam_rotation``)."""
+    """The exam-total standard error of this evaluation, write-once beside the binding: a case
+    bootstrap, or for a pool-graded version a cluster bootstrap over its targets
+    (`pool_exam_se`, graded on the sealed bank with the pool material). An adapter that cannot
+    measure a resample leaves UNAVAILABLE with the reason. Read only by the operator's weekly
+    fresh-draw check (``exam_rotation``)."""
     from carbon.challenge_kit import physical_pack
     from carbon.challenge_validator import exam_rotation
     from carbon.development_session.data import write_once
-    from carbon.scoring import physical_dual_pack, private_evaluation_source
+    from carbon.scoring import (
+        physical_dual_pack,
+        pool_exam_se,
+        private_evaluation_source,
+        sealed_batch_source,
+    )
 
     document = {
         "schema": exam_rotation.SE_SCHEMA,
@@ -1259,6 +1281,8 @@ def _write_exam_se(
         "resamples": 200,
         "total": scoring["models"][0].get("score"),
     }
+    report = {}
+    pooled = _pool_graded(adapter)
     try:
         module = private_evaluation_source._physical_adapter(
             adapter.challenge_id, adapter.challenge_version
@@ -1268,7 +1292,29 @@ def _write_exam_se(
                 "bootstrap_adapter_unavailable"
             )
         discovery = adapter.discovery
-        document["standard_error"] = physical_dual_pack.bootstrap_total_se(
+        measure = physical_dual_pack.bootstrap_total_se
+        bank = None
+        if pooled:
+            # The pool exam is graded on the sealed bank that carries the pool material.
+            sealed = sealed_batch_source.resolve(
+                challenge=adapter.challenge_id,
+                version=adapter.challenge_version,
+                selected_pack=snapshot,
+                private_root=discovery.evaluation_pack_private_root,
+                development_adapter=None,
+                copy_hotkey=getattr(adapter, "copy_hotkey", None),
+            )
+            if sealed is None:
+                raise private_evaluation_source.PrivateEvaluationSourceRefused(
+                    "bootstrap_sealed_bank_unavailable"
+                )
+            bank, module = sealed[0], sealed[1]
+            measure = pool_exam_se.bootstrap_total_se
+        else:
+            bank = physical_pack.development_bank(
+                adapter.challenge_id, adapter.challenge_version
+            )
+        document["standard_error"] = measure(
             module,
             selected=snapshot,
             public_root=discovery.evaluation_pack_public_root,
@@ -1279,17 +1325,25 @@ def _write_exam_se(
             references=registered["references"],
             originals=originals,
             source_raw=registered["evaluation_source_receipt_raw"],
-            bank=physical_pack.development_bank(
-                adapter.challenge_id, adapter.challenge_version
-            ),
+            bank=bank,
             interface_names=physical_dual_pack.input_names(module),
             exam_key=snapshot.manifest_digest,
             resamples=document["resamples"],
+            **({"report": report} if pooled else {}),
         )
         document["status"] = "MEASURED"
+        if "n_targets" in report:
+            document["n_targets"] = report["n_targets"]
     except private_evaluation_source.PrivateEvaluationSourceRefused as refused:
         document["status"] = "UNAVAILABLE"
         document["reason"] = refused.code
+    except Exception as failure:
+        # A pool grade's sidecar is written on every grade: its failure is recorded, never raised.
+        if not pooled:
+            raise
+        document.pop("standard_error", None)
+        document["status"] = "UNAVAILABLE"
+        document["reason"] = "bootstrap_failed:" + type(failure).__name__
     write_once(directory / exam_rotation.SE_SIDECAR, _json(document))
 
 
@@ -2367,7 +2421,9 @@ def regrade_retained_entry(
         )
         operations = json.loads(_private_measurement_bytes(operations_path, 65536))
         worker_evidence = (
-            _private_measurement_bytes(task_root / "worker-evidence.json", 16 * 1024**2)
+            _private_measurement_bytes(
+                task_root / "worker-evidence.json", 16 * 1024**2
+            )
             if kind == "graph"
             else None
         )
