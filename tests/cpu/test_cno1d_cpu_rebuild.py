@@ -54,7 +54,7 @@ def test_the_cno1d_list_is_every_cno1d_entry_in_the_catalog():
 @pytest.mark.parametrize("catalog_id", sorted(ALL))
 def test_the_official_route_never_takes_a_cno1d_gpu_build(catalog_id):
     item = _manifest_cno1d()[catalog_id]
-    for runtime, ref in (item.get("bundle_refs") or {}).items():
+    for ref in (item.get("bundle_refs") or {}).values():
         with pytest.raises(CatalogRefused) as refused:
             refuse_unreproducible_runtime(ref)
         assert refused.value.code == "catalog_runtime_not_reproducible"
