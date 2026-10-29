@@ -295,6 +295,7 @@ def _challenges(profile_state, host, cfg=None):
         ChallengeDeferred,
         ChallengeNotImplemented,
     )
+    from scripts.dev.miner_launchpad import gpu_readiness
     from scripts.dev.miner_launchpad.catalog_verifier import VERIFIER
 
     # Instant: the verifier's snapshot, never the whole catalog's fresh read (tens of seconds on a full install).
@@ -356,7 +357,18 @@ def _challenges(profile_state, host, cfg=None):
             item["description"] = description
             item["tools"] = static["tools"]
             item["example_strategy"] = static["example_strategy"]
-            item["catalog_recipes"] = static["catalog_recipes"]
+            # Which of them the validator can grade officially, from its public intake document (display only;
+            # unknown, shown as nothing, when it cannot be read).
+            item["catalog_recipes"] = gpu_readiness.mark(
+                static["catalog_recipes"],
+                gpu_readiness.lookup(
+                    gpu_readiness.target_url(
+                        cfg, entry["challenge_id"], entry["version"]
+                    ),
+                    entry["challenge_id"],
+                    entry["version"],
+                ),
+            )
             # E11 (newcomer list): a Challenge with no ready recipe and no
             # installable backbone cannot be practised from the page; say so
             # rather than offer it as if it could (Battery 2.2 until its

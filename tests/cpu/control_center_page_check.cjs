@@ -542,6 +542,41 @@ scenario("practice picks a tested backbone from a list and two settings are form
   clean(page);
 });
 
+scenario("a backbone with no official GPU build says it is not yet GPU-checked on the validator; practice stays open for all (OWNER-GPU-OPEN-WITH-READY-01)", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  run.journey.frozen_awaiting_submission = false;
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const entry = state.caps.challenges.find(item => item.challenge_id === run.challenge.id && item.version === run.challenge.version);
+  const recipeOf = id => ({schema: "carbon.construction-recipe.v1", source: {kind: "catalog", catalog_id: id}, procedure: {entrypoint: null, configuration: {}, train_use: {}, initial_state: null}});
+  const settings = {configuration: ["learning_rate"], train_use: ["steps"]};
+  entry.catalog_recipes = [
+    {catalog_id: "a.Ready", backbone: "Ready", recipe: recipeOf("a.Ready"), settings, officially_gradable: true},
+    {catalog_id: "b.Pending", backbone: "Pending", recipe: recipeOf("b.Pending"), settings, officially_gradable: false},
+    {catalog_id: "c.Unread", backbone: "Unread", recipe: recipeOf("c.Unread"), settings, officially_gradable: null},
+  ];
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  const pick = one(page, "#journey-backbone-" + run.id);
+  const labels = [...pick.options].map(option => option.textContent);
+  assert.deepEqual(labels, ["Ready", "Pending (not yet GPU-checked on the validator)", "Unread"], "only the entry known to lack an official GPU build is marked; nothing is hidden");
+  const note = () => one(page, "#journey-backbone-gradable-" + run.id);
+  assert.equal(note().hidden, true, "no note for a ready entry");
+  await page.change(pick, "b.Pending");
+  assert.equal(note().hidden, false);
+  assert.match(page.text(note()), /not yet GPU-checked on the validator.*you can practise on it/);
+  await page.change(pick, "c.Unread");
+  assert.equal(note().hidden, true, "an entry whose readiness cannot be read gets no guess");
+  await page.change(pick, "b.Pending");
+  await page.type(one(page, "#journey-hypothesis-" + run.id), "practise the pending one");
+  state.script.push({match: r => r.path === "/api/v1/operations/practice", answer: () => ({body: {...run, state: "PRACTICING"}})});
+  await page.press(one(page, "#journey-practice-" + run.id));
+  assert.equal(lastPost(state, "/api/v1/operations/practice").body.strategy.source.catalog_id, "b.Pending", "practice is open for it");
+  clean(page);
+});
+
 scenario("the Overview launch card follows Setup's agent and does not mix in a stale wizard Graphite choice (R5-6)", async () => {
   const setup = copy(fx.setups.none);
   setup.steps.agent = {...(setup.steps.agent || {}), checked: true, choice: "hermes"};
