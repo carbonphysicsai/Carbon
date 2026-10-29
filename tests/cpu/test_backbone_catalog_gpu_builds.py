@@ -125,9 +125,12 @@ def test_every_jax_entry_lists_a_jax_cuda13_build_with_the_cpu_source_unchanged(
         assert gpu["runtime_profile_id"] == "jax-cuda13-py311"
         assert gpu["accelerator"] == "cuda13"
         assert gpu["base_environment_digest"] == GPU_PROFILE.environment_lock_digest
-        assert (root / "jax-cuda13-py311" / "source.tar.gz").read_bytes() == (
-            root / "source.tar.gz"
-        ).read_bytes()
+        if item["catalog_id"] not in gpu_build.JAX_X64_SOLVE:
+            # The four prior_krr twins carry the registered device-solve change instead
+            # (test_catalog_krr_device_solve pins exactly that difference).
+            assert (root / "jax-cuda13-py311" / "source.tar.gz").read_bytes() == (
+                root / "source.tar.gz"
+            ).read_bytes()
         pipeline.verify(item)
 
 
