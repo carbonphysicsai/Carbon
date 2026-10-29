@@ -10,9 +10,10 @@ registers it); other failures are FAILED with a typed reason. Each outcome is on
 an entry gets at most `--max-attempts` attempts. A failed entry has no record, so it is never offered. The CNO1d twins
 (SMOKE_ONLY) are SKIPPED: the official route refuses them.
 
-- Low priority, yields: `os.nice(19)`; no lane starts, and running containers are frozen (`docker pause`), while the operator
-  pause flag exists or official grading holds `official-grading.lock` (chosen explicitly: `--grading-state-dir`,
-  `--yield-file`, `--busy-command` or `--no-yield`). One GPU: it never competes with a grade.
+- Low priority, yields: `os.nice(19)`. No lane starts, and running containers are frozen (`docker pause`), while the
+  operator's `operator-pause.json` in `--operator-state-dir` pauses anything (an unreadable flag pauses everything) or
+  official grading is running (chosen explicitly: `--grading-state-dir` for `official-grading.lock`, `--yield-file`,
+  `--busy-command` or `--no-yield`). One GPU: it never competes with a grade.
 - Lanes: min(free VRAM, CPUs, memory, cap) from the measured per-lane limits you pass (nothing defaulted).
 - Resumes: the queue is a SQLite file in `--state-dir`; a restart (or reboot, via the `units` service) re-queues RUNNING jobs.
 - Progress: "GPU receipts: <challenge> N of M ..." per Challenge, on every finish and on `status`.
@@ -21,7 +22,7 @@ an entry gets at most `--max-attempts` attempts. A failed entry has no record, s
     gpu_receipt_worker.py run --state-dir D --checkout C --gpu-uuid U --torch-gpu-manifest M [--jax-gpu-manifest M]
         --host-class ID --wheels W --store-dir S --max-attempts N --entry-timeout-s S --lane-vram-bytes B
         --lane-cpus N --lane-memory-bytes B --max-lanes N
-        (--grading-state-dir V | --yield-file F | --busy-command CMD | --no-yield) [--pause-file F] [--dry-run] [--only ID ...]
+        (--grading-state-dir V | --yield-file F | --busy-command CMD | --no-yield) [--operator-state-dir V] [--dry-run] [--only ID ...]
     gpu_receipt_worker.py status --state-dir D
     gpu_receipt_worker.py units  (same flags as run) --out-dir DIR      # a systemd --user service, not installed
 
@@ -313,11 +314,12 @@ def make_busy(
     yield_file=None,
     busy_command=None,
     no_yield=False,
-    pause_file=None,
+    operator_state_dir=None,
     run=subprocess.run,
     grading_busy=None,
 ):
-    """`busy()`: whether the worker must not use the GPU now: the operator pause flag, or official grading running.
+    """`busy()`: whether the worker must not use the GPU now: the operator pause flag (`operator-pause.json` in the
+    validator state: any pause, or a flag that cannot be read, holds everything), or official grading running.
 
     Grading is detected one way, chosen explicitly (never by omission): the validator state's `official-grading.lock`
     (`receipt_job.grading_busy`), a yield file, a busy command (exit 0 = busy), or `no_yield` (tests, scratch boxes).
@@ -357,7 +359,12 @@ def make_busy(
             return False
 
     def busy():
-        return bool(pause_file and Path(pause_file).exists()) or grading()
+        if operator_state_dir is not None:
+            from carbon.challenge_validator import operator_pause
+
+            if any(operator_pause.read(operator_state_dir).values()):
+                return True
+        return grading()
 
     return busy
 
@@ -761,7 +768,7 @@ def _parser():
     parser.add_argument("--wheels", type=Path)
     parser.add_argument("--store-dir", type=Path)
     parser.add_argument("--grading-state-dir", type=Path)
-    parser.add_argument("--pause-file", type=Path)
+    parser.add_argument("--operator-state-dir", type=Path)
     parser.add_argument("--max-attempts", type=int)
     parser.add_argument("--entry-timeout-s", type=int)
     parser.add_argument("--lane-vram-bytes", type=int)
@@ -784,6 +791,7 @@ REQUIRED_RUN = (
     "host_class",
     "wheels",
     "store_dir",
+    "operator_state_dir",
     "max_attempts",
     "entry_timeout_s",
     "lane_vram_bytes",
@@ -854,7 +862,7 @@ def main(argv=None):
             yield_file=args.yield_file,
             busy_command=args.busy_command,
             no_yield=args.no_yield,
-            pause_file=args.pause_file,
+            operator_state_dir=args.operator_state_dir,
         )
     except ValueError as error:
         print(str(error), file=sys.stderr)
@@ -980,7 +988,7 @@ def _units(args):
         "lane_memory_bytes",
         "max_lanes",
         "grading_state_dir",
-        "pause_file",
+        "operator_state_dir",
         "yield_file",
         "busy_command",
     ):

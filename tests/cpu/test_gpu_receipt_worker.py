@@ -385,15 +385,14 @@ def test_a_bad_pair_writes_no_record_and_a_typed_failure_line(tmp_path):
     assert c.store.records() == []
 
 
-def test_the_pause_flag_and_the_grading_lock_hold_the_worker_back(tmp_path):
+def test_the_operator_pause_and_the_grading_lock_hold_the_worker_back(tmp_path):
     pytest.importorskip("fcntl")
     import fcntl
 
-    pause = tmp_path / "pause"
     state = tmp_path / "validator"
     state.mkdir()
-    busy = w.make_busy(grading_state_dir=state, pause_file=pause)
-    assert busy() is False  # no lock file: grading is not running
+    busy = w.make_busy(grading_state_dir=state, operator_state_dir=state)
+    assert busy() is False  # no flag, no lock file: nothing holds the worker
     (state / "official-grading.lock").write_text("")
     fd = os.open(state / "official-grading.lock", os.O_RDWR)
     try:
@@ -402,9 +401,29 @@ def test_the_pause_flag_and_the_grading_lock_hold_the_worker_back(tmp_path):
     finally:
         os.close(fd)
     assert busy() is False
-    pause.write_text("")
-    assert busy() is True  # the operator pause, with grading idle
-    assert w.make_busy(no_yield=True, pause_file=pause)() is True
+    flag = state / "operator-pause.json"
+
+    def put(text, mode=0o600):
+        flag.write_text(text)
+        flag.chmod(mode)
+
+    put('{"crowns_paused": false, "weights_paused": false}')
+    assert busy() is False  # a flag that pauses nothing
+    for held in ('{"crowns_paused": true}', '{"weights_paused": true}'):
+        put(held)
+        assert busy() is True  # any pause stops new lanes
+    for bad, mode in (
+        ("not json", 0o600),
+        ('{"other": true}', 0o600),
+        ('{"crowns_paused": "yes"}', 0o600),
+        ('{"crowns_paused": false}', 0o644),  # group/world-readable: a bad flag
+    ):
+        put(bad, mode)
+        assert busy() is True  # a bad flag stops everything
+    flag.unlink()
+    flag.symlink_to(state / "elsewhere")
+    assert busy() is True  # a symlinked flag is bad too
+    assert w.make_busy(no_yield=True, operator_state_dir=state)() is True
 
 
 def test_busy_freezes_the_running_containers_and_thaws_them(tmp_path):
@@ -465,6 +484,7 @@ def test_the_cli_requires_every_limit_and_a_registered_host_class(tmp_path, caps
         ("host-class", "nope"),
         ("wheels", tmp_path),
         ("store-dir", tmp_path),
+        ("operator-state-dir", tmp_path),
         ("max-attempts", 2),
         ("entry-timeout-s", 9),
         ("lane-vram-bytes", 1),
@@ -495,6 +515,7 @@ def test_units_write_a_user_service_that_is_not_installed(tmp_path, monkeypatch)
         ("host-class", HOST),
         ("wheels", tmp_path),
         ("store-dir", tmp_path),
+        ("operator-state-dir", tmp_path),
         ("max-attempts", 2),
         ("entry-timeout-s", 9),
         ("lane-vram-bytes", 1),
