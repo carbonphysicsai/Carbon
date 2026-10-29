@@ -4,7 +4,6 @@ The CLI module is a tiny non-model fixture. Git and the Python child are real;
 no authority check is mocked and no numerical/scientific claim is made.
 """
 
-import hashlib
 import os
 import subprocess
 import time
@@ -13,7 +12,11 @@ import pytest
 from test_development_candidate_implementation import _candidate, _checked, _git
 
 from carbon.development_session import construction_level
-from carbon.reconstruction.worker import docker_runtime, liveness_reaper
+from carbon.reconstruction.worker import (
+    build_inputs,
+    docker_runtime,
+    liveness_reaper,
+)
 
 
 def test_first_compile_preserves_second_case_clean_candidate(tmp_path, monkeypatch):
@@ -25,12 +28,7 @@ def test_first_compile_preserves_second_case_clean_candidate(tmp_path, monkeypat
     # Freeze the actual new source, never amend an old accepted identity.
     revision = _git(repo, "rev-parse", "HEAD")
     tree = _git(repo, "rev-parse", "HEAD^{tree}")
-    source_digest = (
-        "sha256:"
-        + hashlib.sha256(
-            _git(repo, "archive", "--format=tar", "HEAD", text=False)
-        ).hexdigest()
-    )
+    source_digest = build_inputs.digest(repo)
     monkeypatch.setattr(
         construction_level,
         "__file__",
@@ -64,7 +62,7 @@ def test_real_reaper_child_preserves_second_case_clean_candidate(
 ):
     repo, _, _, _ = _candidate(tmp_path)
     package = repo / "carbon" / "reconstruction" / "worker"
-    package.mkdir(parents=True)
+    package.mkdir(parents=True, exist_ok=True)
     for path in (package.parent, package):
         (path / "__init__.py").write_text("# fixture package\n")
     module = "watchdog" if kind == "deadline" else "liveness_reaper"
@@ -75,12 +73,7 @@ def test_real_reaper_child_preserves_second_case_clean_candidate(
     _git(repo, "commit", "-qm", "fixture reaper module")
     revision = _git(repo, "rev-parse", "HEAD")
     tree = _git(repo, "rev-parse", "HEAD^{tree}")
-    source_digest = (
-        "sha256:"
-        + hashlib.sha256(
-            _git(repo, "archive", "--format=tar", "HEAD", text=False)
-        ).hexdigest()
-    )
+    source_digest = build_inputs.digest(repo)
     assert _checked(repo, revision, tree, source_digest)["revision"] == revision
     monkeypatch.chdir(repo)
     monkeypatch.setenv("PYTHONDONTWRITEBYTECODE", "1")
