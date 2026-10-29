@@ -1234,6 +1234,7 @@ def _retain_selected_pack_evaluation(
                         name: leg["minimum"]
                         for name, leg in registered["score_pack"]["legs"].items()
                     },
+                    score_pack=registered["score_pack"],
                 )
             }
         ),
@@ -1467,6 +1468,7 @@ def _record_ladder(
     graded,
     recipe_digest=None,
     leg_minimums=None,
+    score_pack=None,
 ):
     """Apply the bound result to the miner's private-exam Ladder
     (`ladder_store`), stepped by the Challenge's registered rebuild noise from
@@ -1474,7 +1476,7 @@ def _record_ladder(
     failure never unbinds the evaluation: the state says RECORDED or names the
     refusal."""
     try:
-        from carbon.challenge_validator import koth_registry
+        from carbon.challenge_validator import koth_registry, part_feedback
         from carbon.challenge_validator.ladder_store import LadderStore
 
         hotkey = adapter.owner(submission_id)
@@ -1484,14 +1486,25 @@ def _record_ladder(
         about = (
             {} if epoch is None else {"recipe_digest": recipe_digest, "epoch": epoch}
         )
+        challenge_key = adapter.discovery.info.challenge_key
+        # Per-part feedback (schema v4) is served only on a Challenge whose custody
+        # feedback-leak attack passed (part_feedback_attacks.json); otherwise v3.
+        serves_parts = (
+            score_pack is not None
+            and epoch is not None
+            and part_feedback.served(challenge_key.challenge_id, exam_version)
+        )
         LadderStore(adapter.ledger).record(
             hotkey,
-            adapter.discovery.info.challenge_key,
+            challenge_key,
             exam_key,
             graded,
             exam_version=exam_version,
             gates=gates,
             leg_minimums=leg_minimums,
+            parts_registry=(
+                part_feedback.parts_registry(score_pack) if serves_parts else None
+            ),
             **about,
             rebuild_noise=koth_registry.rebuild_noise(
                 adapter.discovery.info.challenge_key.challenge_id

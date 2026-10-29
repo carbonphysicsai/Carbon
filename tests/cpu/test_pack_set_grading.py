@@ -224,7 +224,12 @@ def test_a_batch_without_an_adapter_gives_no_set_result(tmp_path, monkeypatch):
 def _ladder_spy(monkeypatch):
     calls = []
 
-    def record(adapter, submission_id, *, exam_key, exam_version, gates, graded):
+    def record(
+        adapter, submission_id, *, exam_key, exam_version, gates, graded, score_pack
+    ):
+        # The set's score pack reaches the Ladder, for the registered component
+        # names of the per-part feedback (served only on a registered Challenge).
+        assert {"A", "D"} <= set(score_pack["legs"])
         calls.append((submission_id, exam_key, exam_version, gates, graded))
         return "RECORDED"
 
