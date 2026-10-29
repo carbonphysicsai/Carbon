@@ -131,9 +131,15 @@ def _ready(root, item, served, images) -> bool:
     return True
 
 
-def readiness(cfg, items=None, progress=None) -> dict | None:
+class ReadinessUnknown(RuntimeError):
+    """The daemon or the install's parents could not be read, so nothing is known about the entries."""
+
+
+def readiness(cfg, items=None, progress=None, strict=False) -> dict | None:
     """One read-only inventory shared by setup and the Challenge picker. `progress(checked, total)`, when given, is
     called as each entry is checked (and once more when the daemon's images are read); it changes no result.
+    A daemon or parent that cannot be read gives every entry False (not installed: fail closed); with `strict`
+    it raises `ReadinessUnknown` instead, so a display can say "unknown" and never "nothing installed".
     """
     from carbon.backbone_catalog import listing
     from carbon.development_session.library_environment_cache import (
@@ -148,7 +154,9 @@ def readiness(cfg, items=None, progress=None) -> dict | None:
     items = list(listing.load()["entries"] if items is None else items)
     try:
         served = parents(cfg)
-    except (OSError, ValueError, KeyError, TypeError, WorkerFailure):
+    except (OSError, ValueError, KeyError, TypeError, WorkerFailure) as failure:
+        if strict:
+            raise ReadinessUnknown(type(failure).__name__) from None
         return {item["catalog_id"]: False for item in items}
     selected = [
         item
@@ -166,7 +174,9 @@ def readiness(cfg, items=None, progress=None) -> dict | None:
         return found
     try:
         present = present_library_worker_images(images.values(), cli=DockerCLI())
-    except (OSError, ValueError, WorkerFailure):
+    except (OSError, ValueError, WorkerFailure) as failure:
+        if strict:
+            raise ReadinessUnknown(type(failure).__name__) from None
         present = frozenset()
     if progress is not None:
         progress(total, total)
@@ -190,7 +200,7 @@ def state(cfg) -> dict | None:
     }
 
 
-def progress(cfg) -> dict | None:
+def progress(cfg, found=None) -> dict | None:
     """How far the catalog is installed for this install's current parents
     (M1 E2E E2): {"total", "installed", "challenges": [{id, version, ready,
     total}]}, over every entry whose runtime this install serves; None
@@ -199,7 +209,8 @@ def progress(cfg) -> dict | None:
     from carbon.backbone_catalog import listing
 
     items = listing.load()["entries"]
-    found = readiness(cfg, items)
+    if found is None:
+        found = readiness(cfg, items)
     if found is None:
         return None
     total = installed = 0

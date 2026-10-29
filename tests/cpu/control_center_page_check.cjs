@@ -3500,6 +3500,36 @@ scenario("the installed-catalog check shows its progress, is read again until it
   clean(page);
 });
 
+scenario("the setup's catalog document: checking and could-not-check are said so, and an unfinished install can be started again", async () => {
+  const build = (extra) => ({schema: "carbon.launchpad.catalog-build.v1", state: "COMPLETE", note: null, skipped: [], installed: 241, total: 241, challenges: [], ...extra});
+  const state = world({setup: {...copy(fx.setups.none), catalog_build: build({state: "VERIFYING", installed: null, total: null, readiness: {status: "verifying", checked: 12, total: 241}})}});
+  const picks = listedChallenges(state.caps).filter(entry => entry.selectable);
+  picks[0].catalog_install = {entries: 5, installed: 0};
+  const page = await openPage(ROOT, state.server);
+  page.$("token").value = "fixture-token";
+  await page.press(one(page, "#connect-form button[type=submit]"));
+  await page.advance(0);
+  let text = page.text("overview-prerequisites");
+  assert.ok(text.includes("Checking which backbones are installed on this machine: 12 of 241 checked"));
+  assert.ok(!text.includes("No backbone is installed"), "a check in progress is never shown as nothing installed");
+  state.setup.catalog_build = build({state: "UNKNOWN", installed: null, total: null, readiness: {status: "unknown", code: "docker_unavailable"}});
+  await page.advance(10000);
+  text = page.text("overview-prerequisites");
+  assert.ok(text.includes("Couldn't check which backbones are installed on this machine (docker unavailable); trying again."));
+  assert.ok(!text.includes("No backbone is installed"), "an unreadable daemon is never shown as nothing installed");
+  state.setup.catalog_build = build({state: "INCOMPLETE", installed: 200, total: 241, note: "Installed every entry it could; not installed: x: it was skipped."});
+  await page.advance(10000);
+  text = page.text("overview-prerequisites");
+  assert.ok(text.includes("Installed every entry it could"));
+  state.script.push({match: r => r.path === "/api/v1/page/catalog_install", answer: () => ({body: build({state: "RUNNING", installed: 200, total: 241})})});
+  await page.press(one(page, "#overview-prerequisites button[data-catalog-install]"));
+  await page.advance(0);
+  const post = state.posted.find(item => item.path === "/api/v1/page/catalog_install");
+  assert.deepEqual(post && post.body, {start: true}, "the retry sends the closed start request");
+  assert.ok(page.text("overview-prerequisites").includes("Installing the backbone catalog in the background: 200 of 241 installed."));
+  clean(page);
+});
+
 scenario("a catalog check that could not finish is said so and is never shown as installed", async () => {
   const state = world();
   const picks = listedChallenges(state.caps).filter(entry => entry.selectable);

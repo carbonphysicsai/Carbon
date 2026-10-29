@@ -137,19 +137,37 @@ def _save(state_dir, record) -> None:
 _seen_end: dict = {}
 
 
-def status(state_dir, clock=time.time) -> dict:
+def status(state_dir, clock=time.time, display=None) -> dict:
     """Where the catalog stands for this install: {state, installed, total,
     challenges, started_at, ended_at, exit_code, estimate_seconds, duration,
     log}. `state` is NO_PROFILE (Review first), RUNNING, COMPLETE,
     INCOMPLETE (not running, entries missing: start it again) or STOPPED
-    (it ended with an error; its log says why)."""
+    (it ended with an error; its log says why).
+
+    By default the readiness is measured fresh (the start decision reads it so). A page poll passes `display`,
+    `display(cfg)` giving the display-only snapshot (not while an install runs, which measures its live count fresh) (`{"found": {id: ready} | None, "status", ...}`) so polling
+    never re-inspects the daemon: until a snapshot exists the state is VERIFYING, and when the last check could not
+    read the daemon it is UNKNOWN, with `installed` and `total` None, never 0."""
     from scripts.dev.miner_launchpad import catalog_state
 
     cfg = _profile(state_dir)
     record = _record(state_dir) or {}
-    found = catalog_state.progress(cfg) if cfg is not None else None
-    found = found or {"total": 0, "installed": 0, "challenges": []}
+    shown = None
     active = running(state_dir)
+    if cfg is None:
+        found = None
+    elif display is None or active:
+        # A running install shows its live count, measured fresh: the snapshot is discarded while it runs.
+        found = catalog_state.progress(cfg)
+    else:
+        shown = display(cfg)
+        found = (
+            None
+            if shown["found"] is None
+            else catalog_state.progress(cfg, shown["found"])
+        )
+    unmeasured = shown is not None and found is None
+    found = found or {"total": 0, "installed": 0, "challenges": []}
     from scripts.dev.miner_launchpad import catalog_generation
 
     if active or record.get("ended_at") != _seen_end.get(
@@ -161,6 +179,8 @@ def status(state_dir, clock=time.time) -> dict:
         state = "NO_PROFILE"
     elif active:
         state = "RUNNING"
+    elif unmeasured:
+        state = "VERIFYING" if shown["status"] == "verifying" else "UNKNOWN"
     elif found["total"] > 0 and found["installed"] >= found["total"]:
         state = "COMPLETE"
     elif record.get("exit_code") not in (None, 0):
@@ -211,9 +231,28 @@ def status(state_dir, clock=time.time) -> dict:
         # The entries the last run skipped, each with its reason code and
         # the same in words (M1 E2E R10-1).
         "skipped": skipped,
-        "installed": found["installed"],
-        "total": found["total"],
+        "installed": None if unmeasured else found["installed"],
+        "total": None if unmeasured else found["total"],
         "challenges": found["challenges"],
+        **(
+            {
+                "readiness": {
+                    key: shown[key]
+                    for key in (
+                        "status",
+                        "checked",
+                        "total",
+                        "code",
+                        "detail",
+                        "stale",
+                        "checked_at",
+                    )
+                    if key in shown
+                }
+            }
+            if shown is not None
+            else {}
+        ),
         "started_at": started,
         "ended_at": record.get("ended_at"),
         "exit_code": record.get("exit_code"),
