@@ -1,0 +1,7 @@
+# OWNER-DOOR-LOOKUPS-AND-PART-FEEDBACK-01: keep the three read-only door lookups; miners see a per-part breakdown
+
+- **Received by:** the Lead session (local_b7032708-92d1-4a7c-a1d3-9ad008ba9cae), directly from the owner in chat, 2026-10-29.
+- **Owner's words:** "Yes allow those 3 things. Tempted to let them see how they did on each part beyond just a final rounded score unless that's too much. I think they need to know what to improve."
+- **Decided (1), the door allow-list:** info, koth GET (current king), submit, status, exam_feedback (signed, the caller's own results only), and carbon_research_v2 op stage_research_source (graph upload). Everything else is refused, failing closed (with OWNER-DOOR-A-NARROW-01).
+- **Direction (2), per-part feedback:** a miner's own graded result should show how they did on each part of the score, beyond the rounded total, so they know what to improve. That covers the accuracy and design halves, each named score part, which gates passed or failed, and any minimum missed.
+- **Bound:** the breakdown must not let anyone reconstruct the hidden exam: no per-case values, no case ids, positions or seeds. The Validator sets the granularity (aggregate per part, rounded) and proves it against the required feedback-leak attack (OWNER-INVERSE-DESIGN-PROOF-01) before it ships. If a part can't be shown safely, it is shown coarser, not hidden entirely, unless the Validator rules it unsafe at any granularity.
