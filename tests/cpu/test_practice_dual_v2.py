@@ -226,6 +226,49 @@ def test_an_unregistered_version_is_an_explicit_unavailable_not_a_silent_omissio
     assert doc["reason"] == "practice_version_not_registered"
 
 
+def _private_records(caplog):
+    return [r for r in caplog.records if r.name == "carbon.practice.private"]
+
+
+def test_a_failed_predict_is_logged_privately_and_a_miner_sees_only_the_typed_reason(
+    caplog,
+):
+    def predict(inputs):
+        raise RuntimeError("secret operator detail")
+
+    with caplog.at_level("ERROR", logger="carbon.practice.private"):
+        doc = practice_dual.feedback_v2("f08", "1.4", predict)
+    assert doc["available"] is False and doc["reason"] == "practice_predict_failed"
+    assert "secret operator detail" not in json.dumps(doc)
+    (record,) = _private_records(caplog)
+    assert "secret operator detail" in record.getMessage()
+    assert record.exc_info is not None and record.exc_info[0] is RuntimeError
+
+
+def test_a_measure_value_error_keeps_message_and_traceback_privately_type_name_publicly(
+    caplog, monkeypatch
+):
+    real = practice_grid.adapter("f08", "1.4")
+
+    class Boom:
+        def __getattr__(self, name):
+            return getattr(real, name)
+
+        def measure(self, **kwargs):
+            raise ValueError("boom detail only the operator may read")
+
+    monkeypatch.setattr(practice_grid, "adapter", lambda kind, version: Boom())
+    with caplog.at_level("ERROR", logger="carbon.practice.private"):
+        doc = practice_dual.feedback_v2(
+            "f08", "1.4", lambda inputs: [[0.0] for _ in inputs]
+        )
+    assert doc["available"] is False and doc["reason"] == "practice_ValueError"
+    assert "boom detail" not in json.dumps(doc)
+    (record,) = _private_records(caplog)
+    assert "boom detail only the operator may read" in record.getMessage()
+    assert record.exc_info[0] is ValueError and record.exc_info[2] is not None
+
+
 # --- a grid shape is bound to its population, never "either" --------------------
 
 
