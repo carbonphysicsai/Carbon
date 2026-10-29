@@ -176,6 +176,7 @@ def run_grid(plugin, grid):
         grid.a_rules,
     ):
         totals = {}
+        legs_out = {}
         for name in named:
             legs = legs_by_model[name]
             a_legs = legs.get("A_legs")
@@ -193,6 +194,16 @@ def run_grid(plugin, grid):
                 or speed_failed[name]
                 else pool_grader.total(a_all, d, legs["C"], grid.c_rule)
             )
+            # Every model's legs, for the headroom proof: the A legs after the A multiplier (A), A_gen, A as the
+            # total sees it (A_all, A_gen entering by the rule), D, and the total. A model that failed a mandatory
+            # gate still lists its legs (its total is 0). Aggregates only.
+            legs_out[name] = {
+                "A": a,
+                "A_gen": agen_cache[(agen_index, name)],
+                "A_all": a_all,
+                "D": d,
+                "total": totals[name],
+            }
         good, default = totals["good"], totals["default"]
         controls = {c: totals[c] for c in CONTROLS + REPORTED}
         # The in-distribution control is judged on the whole total when there is no extended target; on the
@@ -239,6 +250,7 @@ def run_grid(plugin, grid):
                 "H": 1.0 - good,
                 "S": good - default,
                 "controls": controls,
+                "legs": legs_out,
                 "controls_margin": margin,
                 "oracle_reaches_all_references": d_cache[(budget, s_h, "oracle")][1],
                 "oracle_total": totals["oracle"],
