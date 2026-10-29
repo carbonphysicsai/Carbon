@@ -321,3 +321,19 @@ def test_the_image_build_script_refuses_ignored_inputs_before_the_digest():
         'build_inputs.py" digest'
     )
     assert "unbound by its digest" in text
+
+
+def test_bytecode_caches_are_not_ignored_inputs_because_dockerignore_drops_them(
+    tmp_path,
+):
+    assert "**/__pycache__" in (ROOT / ".dockerignore").read_text().splitlines()
+    repo = _repo(tmp_path)
+    (repo / ".gitignore").write_text("__pycache__/\n*.so\n")
+    _git(repo, "add", ".gitignore")
+    _git(repo, "commit", "-q", "-m", "ignore")
+    cache = repo / "carbon" / "__pycache__"
+    cache.mkdir()
+    (cache / "x.cpython-311.pyc").write_bytes(b"z")
+    assert build_inputs.ignored_files(repo) == []
+    (repo / "carbon" / "real.so").write_bytes(b"x")
+    assert build_inputs.ignored_files(repo) == ["carbon/real.so"]

@@ -117,7 +117,12 @@ def ignored_files(repo) -> list:
         ],
         timeout=60,
     ).decode("utf-8")
-    return [line for line in out.splitlines() if line]
+    # `**/__pycache__` is in .dockerignore: it never enters the build context, so it cannot reach the image.
+    return [
+        line
+        for line in out.splitlines()
+        if line and "__pycache__" not in Path(line).parts
+    ]
 
 
 def digest(repo, *, revision="HEAD") -> str:
