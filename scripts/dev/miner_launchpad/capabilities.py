@@ -250,8 +250,44 @@ def _setup_offers(entry):
     }
 
 
+#: A version's description and what is derived from it, kept for the life of this
+#: process: they are a function of the registry, the repository's pinned catalog and
+#: TRAIN files and the host's facts, none of which change while the Control Center
+#: runs (a code or catalog update restarts it). Rebuilding them on every capabilities
+#: read took tens of seconds on a quiet miner machine, past the page's deadline
+#: (M3b Test Runner). Each use gets its own copy, so nothing a caller changes leaks
+#: into the next read.
+_STATIC = {}
+
+
+def _static_description(challenge_id, version, host):
+    import copy
+
+    from carbon.challenge_registry import describe
+    from scripts.dev.miner_launchpad.toolbox import catalog_recipes
+
+    key = (challenge_id, version, host)
+    if key not in _STATIC:
+        description = describe(challenge_id, version, host=host)
+        examples = description.get("examples") or []
+        _STATIC[key] = {
+            "description": description,
+            "tools": _tools(description),
+            # A Level 0 example is a strategy; a direct version's is a recipe.
+            "example_strategy": (
+                examples[0].get("strategy", examples[0].get("recipe"))
+                if examples
+                else None
+            ),
+            # A catalog version's backbone picker: each entry and its ready
+            # recipe, from the version's catalog (S22); [] elsewhere.
+            "catalog_recipes": catalog_recipes(challenge_id, version),
+        }
+    return copy.deepcopy(_STATIC[key])
+
+
 def _challenges(profile_state, host, cfg=None):
-    from carbon.challenge_registry import catalog, describe
+    from carbon.challenge_registry import catalog
     from carbon.challenge_registry.registry import (
         DEFERRED,
         IMPLEMENTED,
@@ -259,9 +295,11 @@ def _challenges(profile_state, host, cfg=None):
         ChallengeDeferred,
         ChallengeNotImplemented,
     )
-    from scripts.dev.miner_launchpad.catalog_state import readiness
+    from scripts.dev.miner_launchpad.catalog_verifier import VERIFIER
 
-    installed_catalog = readiness(cfg) or {}
+    # Instant: the verifier's snapshot, never the whole catalog's fresh read (tens of seconds on a full install).
+    # Display only; every use of an entry re-verifies it (catalog_verifier).
+    snapshot = VERIFIER.read(cfg) if cfg is not None else None
     result = []
     for entry in catalog(host)["challenges"]:
         profiles = [p for p in entry["profiles"] if p["profile"] == LAUNCH_PROFILE]
@@ -291,9 +329,7 @@ def _challenges(profile_state, host, cfg=None):
             ],
             "provisions": _provisions(entry["challenge_id"]),
             "known_limitations": _known_limitations(entry),
-            "catalog_install": _catalog_install(
-                entry, cfg, readiness_state=installed_catalog
-            ),
+            "catalog_install": _catalog_install(entry, cfg, snapshot=snapshot),
             "setup_offers": _setup_offers(entry),
         }
         refusal = None
@@ -315,23 +351,12 @@ def _challenges(profile_state, host, cfg=None):
         else:
             refusal = _composed(entry["challenge_id"], entry["version"])
         if item["implemented"]:
-            description = describe(entry["challenge_id"], entry["version"], host=host)
+            static = _static_description(entry["challenge_id"], entry["version"], host)
+            description = static["description"]
             item["description"] = description
-            item["tools"] = _tools(description)
-            examples = description.get("examples") or []
-            # A Level 0 example is a strategy; a direct version's is a recipe.
-            item["example_strategy"] = (
-                examples[0].get("strategy", examples[0].get("recipe"))
-                if examples
-                else None
-            )
-            # A catalog version's backbone picker: each entry and its ready
-            # recipe, from the version's catalog (S22); [] elsewhere.
-            from scripts.dev.miner_launchpad.toolbox import catalog_recipes
-
-            item["catalog_recipes"] = catalog_recipes(
-                entry["challenge_id"], entry["version"]
-            )
+            item["tools"] = static["tools"]
+            item["example_strategy"] = static["example_strategy"]
+            item["catalog_recipes"] = static["catalog_recipes"]
             # E11 (newcomer list): a Challenge with no ready recipe and no
             # installable backbone cannot be practised from the page; say so
             # rather than offer it as if it could (Battery 2.2 until its
@@ -414,7 +439,7 @@ def _mcp_connection(profile_path):
     }
 
 
-def _catalog_install(entry, cfg, *, readiness_state=None):
+def _catalog_install(entry, cfg, *, readiness_state=None, snapshot=None):
     """How many of the version's backbone catalog entries are installed on
     this host (their pinned material staged where practice and admission
     look, `library_bundle.install_bundle`), or None where the version serves
@@ -427,6 +452,8 @@ def _catalog_install(entry, cfg, *, readiness_state=None):
         return None
     if not entries:
         return None
+    if snapshot is not None:
+        return _progressive(entries, snapshot)
     from scripts.dev.miner_launchpad.catalog_state import readiness
 
     if readiness_state is None:
@@ -437,6 +464,29 @@ def _catalog_install(entry, cfg, *, readiness_state=None):
         "entries": len(entries),
         "installed": sum(found.get(item["catalog_id"], False) for item in entries),
     }
+
+
+def _progressive(entries, snapshot):
+    """`catalog_install` from the verifier's snapshot: while it verifies, or after a failed run, `installed` is None
+    (never counted as ready, never 0); `status` is verifying | ready | failed. DISPLAY ONLY: `ready` is never
+    permission, and every practice, submission, rebuild or install re-verifies the entry itself.
+    """
+    found = snapshot["found"]
+    value = {
+        "entries": len(entries),
+        "installed": (
+            None
+            if found is None
+            else sum(found.get(item["catalog_id"], False) for item in entries)
+        ),
+        "status": snapshot["status"],
+        "checked": snapshot["checked"],
+        "total": snapshot["total"],
+    }
+    for key in ("code", "detail", "stale", "checked_at"):
+        if key in snapshot:
+            value[key] = snapshot[key]
+    return value
 
 
 def _known_limitations(entry):

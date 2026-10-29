@@ -1639,6 +1639,13 @@ def main() -> None:
             # not configured yet.
             else "Open the link above and follow Get started to set up."
         )
+        # Read the capability document once now, off the request path, so the
+        # first browser read does not pay for it (M3b: tens of seconds on a quiet
+        # machine, past the page's deadline). A failure here is the request's to
+        # report; the warm-up only fills the cache.
+        threading.Thread(
+            target=_warm_capabilities, args=(server.research_runner,), daemon=True
+        ).start()
         try:
             server.serve_forever(poll_interval=0.2)
         except KeyboardInterrupt:
@@ -1649,6 +1656,14 @@ def main() -> None:
                 server.research_runner.close()
             thread.join(timeout=3)
             server.server_close()
+
+
+def _warm_capabilities(runner):
+    """Fill the capability cache; a failure is the requesting read's to report."""
+    from scripts.dev.miner_launchpad.capabilities import control_center
+
+    with contextlib.suppress(Exception):
+        control_center(runner)
 
 
 if __name__ == "__main__":

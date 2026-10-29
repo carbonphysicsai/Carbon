@@ -70,25 +70,31 @@ def daemon(monkeypatch):
     state = {"images": set(), "calls": [], "fault": None}
 
     class MetadataCLI:
-        def run(self, arguments):
+        def run(self, arguments, *, accepted=(0,)):
             state["calls"].append(arguments)
             if state["fault"] == "unreachable":
                 raise WorkerFailure(WorkerCode.RUNTIME)
-            if arguments == ["image", "ls", "--all", "--no-trunc", "--quiet"]:
-                body = "\n".join(sorted(state["images"]))
-                if state["fault"] == "malformed_listing":
-                    body = "a-tag-is-not-an-immutable-image-id"
-            else:
-                assert arguments[:2] == ["image", "inspect"]
-                assert arguments[-2:] == ["--format", "{{json .Id}}"]
-                ids = arguments[2:-2]
-                assert len(ids) == len(set(ids)) and set(ids) <= state["images"]
-                if state["fault"] == "partial_inspection":
-                    ids = ids[:-1]
-                elif state["fault"] == "wrong_inspected_id":
-                    ids = ["a-tag-is-not-an-immutable-image-id"]
-                body = "\n".join(json.dumps(value) for value in ids)
-            return SimpleNamespace(stdout=body.encode("ascii"))
+            assert arguments[:2] == ["image", "inspect"]
+            assert arguments[-2:] == ["--format", "{{json .Id}}"]
+            ids = arguments[2:-2]
+            assert len(ids) == len(set(ids))
+            held = [value for value in ids if value in state["images"]]
+            absent = [value for value in ids if value not in state["images"]]
+            lines = [
+                f"Error response from daemon: No such image: {value}"
+                for value in absent
+            ]
+            if state["fault"] == "unknown_stderr":
+                lines.append("Cannot connect to the Docker daemon")
+            elif state["fault"] == "partial_inspection":
+                held = held[:-1]
+            elif state["fault"] == "wrong_inspected_id":
+                held = ["a-tag-is-not-an-immutable-image-id"]
+            return SimpleNamespace(
+                stdout="\n".join(json.dumps(value) for value in held).encode("ascii"),
+                stderr="\n".join(lines).encode("ascii"),
+                returncode=1 if lines else 0,
+            )
 
     monkeypatch.setattr(docker_runtime, "DockerCLI", MetadataCLI)
     return state
@@ -321,8 +327,8 @@ def test_readiness_only_reads_deduplicated_image_metadata(
     daemon["calls"].clear()
     found = receiver_catalog.verify(config)
     assert found["ready"] is True and found["image_inventory"] == "VERIFIED"
-    assert len(daemon["calls"]) == 2
-    assert len(daemon["calls"][1][2:-2]) == len(items)
+    assert len(daemon["calls"]) == 1
+    assert len(daemon["calls"][0][2:-2]) == len(items)
     assert found["served"] == len(items) + 1
 
 
@@ -346,7 +352,7 @@ def test_an_intact_cache_cannot_hide_a_removed_daemon_image(receiver, daemon):
 
 @pytest.mark.parametrize(
     "fault",
-    ["unreachable", "malformed_listing", "partial_inspection", "wrong_inspected_id"],
+    ["unreachable", "unknown_stderr", "partial_inspection", "wrong_inspected_id"],
 )
 def test_unverified_daemon_inventory_cannot_report_ready(receiver, daemon, fault):
     config, root = receiver

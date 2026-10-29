@@ -2108,12 +2108,38 @@
   $("onboarding-confirm").addEventListener("click", () => onboardingCall("confirm"));
 
   // ---- Capabilities: read on connect and on request, never assumed. ----
-  async function readCapabilities(generation = connectionGeneration) {
-    const value = await api("/api/v1/control-center/capabilities", undefined, undefined, 20000);
+  // While the installed-catalog check runs in the background, read the capabilities again every
+  // few seconds (a read is cheap) until it is no longer "verifying". One timer at a time; a new
+  // connection or a disconnect ends it.
+  let catalogPoll = null;
+  const withoutInstall = document => JSON.stringify({...document, challenges: (document.challenges || []).map(entry => ({...entry, catalog_install: null}))});
+  const catalogProgress = () => JSON.stringify((caps?.challenges || []).map(entry => entry.catalog_install || null));
+  function scheduleCatalogPoll(generation) {
+    if (catalogPoll !== null) { clearTimeout(catalogPoll); catalogPoll = null; }
+    const verifying = Boolean(caps) && (caps.challenges || []).some(entry => entry.catalog_install && entry.catalog_install.status === "verifying");
+    if (!verifying) return;
+    catalogPoll = setTimeout(async () => {
+      catalogPoll = null;
+      if (generation !== connectionGeneration || !connected) return;
+      try {
+        const value = await api("/api/v1/control-center/capabilities", undefined, undefined, 20000);
+        if (generation !== connectionGeneration) return;
+        // Only the install progress moved: update it in place and redraw just the readiness list,
+        // so a hand on the launch wizard is never disturbed. Anything else moved: adopt it whole.
+        if (value.schema === CAPS_SCHEMA && caps && withoutInstall(value) === withoutInstall(caps)) {
+          caps = value; scheduleCatalogPoll(generation); render();
+        } else { await readCapabilities(generation, value); render(); }
+      } catch (_) { scheduleCatalogPoll(generation); }
+    }, 3000);
+  }
+
+  async function readCapabilities(generation = connectionGeneration, prefetched = null) {
+    const value = prefetched || await api("/api/v1/control-center/capabilities", undefined, undefined, 20000);
     if (generation !== connectionGeneration) return false;
     if (value.schema !== CAPS_SCHEMA) throw new Error("unsupported_controller_version");
     caps = value;
     capsVersion++;
+    scheduleCatalogPoll(generation);
     // A remembered choice is checked against what exists now.
     if (wizard.challenge && !offeredChallenges().some(entry => entry.challenge_id === wizard.challenge.id && entry.version === wizard.challenge.version)) wizard.challenge = null;
     // A choice no longer offered (the autonomous agent, once Graphite
@@ -2607,14 +2633,29 @@
       ? {ok: true, text: "Your settings are loaded.", detail: ["Profile: " + caps.profile.profile_id]}
       : {ok: false, area: "Your settings", item: caps.profile});
     items.push({ok: null, text: "Your registration is read at launch, before anything is recorded.", fix: {label: "Check it", href: "#wallet"}});
-    const selectable = caps.challenges.filter(entry => entry.selectable);
+    // Only what the wizard offers: the latest version of each launch Challenge, never Battery (out of the launch set) or an older version.
+    const selectable = offeredChallenges().filter(entry => entry.selectable);
     items.push(selectable.length
       ? {ok: true, text: "You can launch: " + selectable.map(entry => entry.title).join(", ") + "."}
       : {ok: false, area: "Challenges", item: caps.challenges.find(entry => entry.implemented) || caps.challenges[0]});
     // U30: a catalog version cannot practise until its backbone catalog is
     // installed here, so setup is not done while none is.
     const uninstalled = selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed === 0);
-    if (uninstalled.length) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_not_installed", plain: {sentence: "The backbone catalog isn't installed on this machine, so a catalog campaign can't practise yet.", next: null}, next_action: "Install it on this machine: python -B -m scripts.dev.catalog_install --state-dir <your state directory> (in your Carbon checkout). Not installed for: " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ")}});
+    if (uninstalled.length) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_not_installed", plain: {sentence: "No backbone is installed on this machine for " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ") + ", so a catalog campaign on " + (uninstalled.length === 1 ? "it" : "them") + " can't practise yet.", next: null}, next_action: "Install it on this machine: python -B -m scripts.dev.catalog_install --state-dir <your state directory> (in your Carbon checkout). Not installed for: " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ")}});
+    // What is installed is checked in the background (a full catalog takes a while). While it runs the
+    // page shows the progress and never a count; a check that could not finish is said so and can be
+    // asked again. "Ready" here is display only: every practice, submission and rebuild verifies the
+    // entry itself.
+    const catalogs = selectable.map(entry => entry.catalog_install).filter(Boolean);
+    const verifying = catalogs.find(info => info.status === "verifying");
+    if (verifying) items.push({ok: null, label: "Checking", text: "Checking which backbones are installed on this machine: " + (Number.isInteger(verifying.checked) && Number.isInteger(verifying.total) ? verifying.checked + " of " + verifying.total + " checked" : "in progress") + ". This runs in the background."});
+    const failed = catalogs.find(info => info.status === "failed");
+    if (failed) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_check_failed", plain: {sentence: "Could not check which backbones are installed on this machine" + (failed.code ? " (" + words(failed.code) + ")" : "") + ", so none is shown as installed.", next: null}, next_action: "Press Re-read capabilities in Settings to check again."}});
+    const stale = catalogs.find(info => info.status === "ready" && info.stale === true);
+    if (stale) items.push({ok: null, label: "Checking", text: "What is installed was last checked " + (Number.isFinite(stale.checked_at) ? Math.max(1, Math.round((Date.now() / 1000 - stale.checked_at) / 60)) + " minute(s) ago" : "a while ago") + "; it is being checked again."});
+    // Some of a version's backbones installed and some not: said as it is, not as "not installed".
+    const partly = selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed > 0 && entry.catalog_install.installed < entry.catalog_install.entries);
+    if (partly.length) items.push({ok: null, text: "Backbone catalog partly installed: " + partly.map(entry => entry.title + " " + entry.version + " " + entry.catalog_install.installed + " of " + entry.catalog_install.entries).join(", ") + ". The rest cannot be practised until they are installed; run the install again to retry them."});
     const agents = agentChoices().filter(choice => choice.availability === "available");
     items.push(agents.length
       ? {ok: true, text: "Agents ready: " + agents.map(choice => choice.label).join(", ") + "."}
@@ -2637,7 +2678,7 @@
     for (const item of items) {
       if (item.ok !== false) {
         const entry = el("li", undefined, item.ok ? "ok" : "pending");
-        entry.append(pill(item.ok ? "Ready" : "At launch", item.ok ? "pill-done" : "pill-wait"), el("span", item.text));
+        entry.append(pill(item.ok ? "Ready" : (item.label || "At launch"), item.ok ? "pill-done" : "pill-wait"), el("span", item.text));
         if (item.fix) entry.append(link(item.fix));
         if (item.detail) details(entry, "Details", item.detail);
         list.append(entry);
@@ -2715,7 +2756,7 @@
     renderGettingStarted();
     const list = $("overview-prerequisites");
     if (!connected || !caps) rebuild(list, "disconnected", target => target.append(el("li", "Connect to read what this controller can do.", "hint")));
-    else rebuild(list, "caps:" + capsVersion, target => renderReadiness(target, prerequisites()));
+    else rebuild(list, "caps:" + capsVersion + ":" + catalogProgress(), target => renderReadiness(target, prerequisites()));
     const live = research.runs.filter(run => !TERMINAL.includes(run.state));
     const shown = connected ? (live.length ? live : research.runs.slice(0, 3)) : [];
     rebuild($("overview-active"), JSON.stringify([connected, research.runs.length, shown.map(cardKey), capsVersion]), active => {

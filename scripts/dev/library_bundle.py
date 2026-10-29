@@ -153,7 +153,7 @@ def _register_parent_alias(cli, profile, parent):
     return cli.register_parent_alias(parent.image_id, recorded[0], recorded[1])
 
 
-def install_bundle(directory, state_dir=DEFAULT_STATE_DIR, inventory=None):
+def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
     """Owner-initiated install using checked local setup, never MCP preflight.
 
     Select the declared installed CPU or CUDA parent by exact runtime ABI.
@@ -220,8 +220,6 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR, inventory=None):
         expected_bundle=selected,
         cli=cli,
         rebuild_missing=True,
-        # Only a caller that shares one listing passes it; a direct install is exactly as before.
-        **({} if inventory is None else {"inventory": inventory}),
     )
     # The exact material too, where admission inspects it (F4, M1 2026-10-22:
     # an installed image without staged material resolves nothing, and every
@@ -234,7 +232,7 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR, inventory=None):
     }
 
 
-def install_receiver_bundle(directory, receiver_config, inventory=None):
+def install_receiver_bundle(directory, receiver_config):
     """Owner-initiated install on a DEVELOPMENT receiver host, never MCP.
 
     A receiver has no Launchpad miner setup (signer, inference, agent): it
@@ -288,8 +286,6 @@ def install_receiver_bundle(directory, receiver_config, inventory=None):
         expected_bundle=selected,
         cli=DockerCLI(),
         rebuild_missing=True,
-        # Only a caller that shares one listing passes it; a direct install is exactly as before.
-        **({} if inventory is None else {"inventory": inventory}),
     )
     # The exact material too, where admission inspects it (F4, M1 2026-10-22:
     # an installed image without staged material resolves nothing, and every

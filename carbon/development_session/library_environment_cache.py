@@ -648,54 +648,59 @@ INSPECT_CHUNK = 40
 INSPECT_WORKERS = 4
 
 
-class LibraryImageInventory:
-    """One `docker image ls --all` snapshot, reused only within the call that made it.
+#: Docker's one line per absent id on a multi-id `image inspect` (stderr; rc 1; present ids still print on stdout).
+_NO_SUCH_IMAGE = re.compile(
+    r"Error response from daemon: No such image: (sha256:[0-9a-f]{64})"
+)
 
-    It is the cheap exact listing of the ids this daemon holds (admitted children may be untagged or intermediate,
-    hidden by default). A caller that checks many entries in one owner call (the rebuild-missing step) shares one
-    instance instead of listing the whole daemon again for every entry. It is never kept across calls and never
-    replaces the exact per-id inspection or the later runtime verification of the image: an id listed here is only
-    a candidate that is then inspected, and an unlisted id is only ever rebuilt, never trusted.
+
+#: An id no daemon can hold (the all-zero digest), used to check the daemon still answers exact queries correctly.
+_ABSENT_CANARY = "sha256:" + "0" * 64
+
+
+def _inspect_exact(cli: object, ids: list[str]) -> frozenset[str]:
+    """The ids of `ids` that exist, from one exact `docker image inspect`.
+
+    Absence is read only from the daemon's own "No such image: <id>" line for exactly a requested id: every id must
+    be accounted for once, as printed (present) or named missing, and any other stderr text, count or id fails closed.
+    Nothing here lists the daemon (`image ls --all` took 20 s over 6000 records) and nothing is inferred.
     """
-
-    def __init__(self, cli: object) -> None:
-        self._cli = cli
-        self._available: frozenset[str] | None = None
-
-    def available(self) -> frozenset[str]:
-        if self._available is None:
-            listed = self._cli.run(
-                ["image", "ls", "--all", "--no-trunc", "--quiet"]
-            ).stdout
-            self._available = frozenset(
-                _digest(line) for line in listed.decode("ascii").splitlines()
-            )
-        return self._available
-
-
-def _inspect_exact(cli: object, ids: list[str]) -> list[str]:
-    printed = cli.run(["image", "inspect", *ids, "--format", "{{json .Id}}"]).stdout
-    found = [_digest(json.loads(line)) for line in printed.splitlines()]
-    if len(found) != len(ids) or frozenset(found) != frozenset(ids):
+    result = cli.run(
+        ["image", "inspect", *ids, "--format", "{{json .Id}}"], accepted=(0, 1)
+    )
+    found = [_digest(json.loads(line)) for line in result.stdout.splitlines()]
+    missing = []
+    for line in result.stderr.decode("ascii").splitlines():
+        matched = _NO_SUCH_IMAGE.fullmatch(line.strip()) if line.strip() else None
+        if matched is None and line.strip():
+            raise ValueError("local library image inspection reported an unknown error")
+        if matched is not None:
+            missing.append(matched.group(1))
+    if (result.returncode == 0) != (not missing):
+        raise ValueError(
+            "local library image inspection status differs from its report"
+        )
+    accounted = found + missing
+    if len(accounted) != len(ids) or frozenset(accounted) != frozenset(ids):
         raise ValueError("local library image inspection differs from admitted ids")
-    return found
+    return frozenset(found)
 
 
-def present_library_worker_images(
-    image_ids, *, cli: object, inventory: LibraryImageInventory | None = None
-) -> frozenset[str]:
-    """Read exact local child-image presence: one listing and bounded exact inspections.
+def present_library_worker_images(image_ids, *, cli: object) -> frozenset[str]:
+    """Read exact local child-image presence in bounded, concurrent exact inspections.
 
-    The immutable ids come from admitted cache records. A tag, malformed output
-    or partial inspection cannot establish presence. This neither builds nor
-    downloads an image and does not replace runtime image/host verification.
-    `inventory` is an optional call-local listing shared by the checks of one owner call; with none, this lists
-    the daemon itself, exactly as before. The listed ids are always inspected afresh here.
+    The immutable ids come from admitted cache records. A tag, malformed output,
+    an unrecognised error or a partial inspection cannot establish presence; only
+    an id the daemon printed is present, and only its own "No such image" line for
+    exactly that id makes it absent. This neither builds nor downloads an image and
+    does not replace runtime image/host verification.
     """
-    wanted = frozenset(_digest(value) for value in image_ids)
-    available = (inventory or LibraryImageInventory(cli)).available()
-    selected = sorted(wanted & available)
+    selected = sorted({_digest(value) for value in image_ids})
     if not selected:
+        # Nothing to look for, but an unreachable or changed daemon must still not read as verified: one exact
+        # inspect of an id no daemon holds must be answered with exactly its own "No such image" line.
+        if _inspect_exact(cli, [_ABSENT_CANARY]):
+            raise ValueError("local library image inspection found an impossible id")
         return frozenset()
     chunks = [
         selected[start : start + INSPECT_CHUNK]
@@ -708,10 +713,7 @@ def present_library_worker_images(
 
         with ThreadPoolExecutor(max_workers=min(INSPECT_WORKERS, len(chunks))) as pool:
             results = list(pool.map(lambda chunk: _inspect_exact(cli, chunk), chunks))
-    inspected = frozenset(value for chunk in results for value in chunk)
-    if inspected != frozenset(selected):
-        raise ValueError("local library image inspection differs from admitted ids")
-    return inspected
+    return frozenset(value for chunk in results for value in chunk)
 
 
 def library_image_cache_paths(
@@ -896,12 +898,8 @@ def install_pinned_library_worker_image(
     expected_bundle: LibraryBundleRef,
     cli: object,
     rebuild_missing: bool = False,
-    inventory: LibraryImageInventory | None = None,
 ) -> LibraryWorkerImage:
     """Install or reuse one verified child during an admitted owner setup step.
-
-    `inventory` is the call-local daemon listing the owner's rebuild-missing step shares across its entries; the
-    child it names is still inspected and verified afresh for each entry.
 
     This operation can build an image and must not be called from MCP preflight
     or miner-controlled recipe handling. The caller selects the trusted parent
@@ -939,7 +937,7 @@ def install_pinned_library_worker_image(
         ):
             raise ValueError("cached library context differs from selected closure")
         if not rebuild_missing or image.image_id in present_library_worker_images(
-            (image.image_id,), cli=cli, inventory=inventory
+            (image.image_id,), cli=cli
         ):
             return verify_library_worker_image(image, cli)
     provisioned = provision_offline_bundle(

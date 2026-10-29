@@ -3448,6 +3448,74 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   clean(page);
 });
 
+scenario("a partly installed backbone catalog is said as it is, and an empty one names its versions", async () => {
+  const state = world();
+  const picks = listedChallenges(state.caps).filter(entry => entry.selectable);
+  assert.ok(picks.length >= 2, "the fixture offers at least two launchable entries");
+  picks[0].catalog_install = {entries: 5, installed: 0};
+  picks[1].catalog_install = {entries: 10, installed: 7};
+  const page = await openPage(ROOT, state.server);
+  page.$("token").value = "fixture-token";
+  await page.press(one(page, "#connect-form button[type=submit]"));
+  await page.advance(0);
+  const text = page.text("overview-prerequisites");
+  assert.ok(text.includes("No backbone is installed on this machine for " + picks[0].title + " " + picks[0].version));
+  assert.ok(!text.includes("The backbone catalog isn't installed on this machine"),
+    "the old sentence read as if nothing was installed anywhere");
+  assert.ok(text.includes("Backbone catalog partly installed: " + picks[1].title + " " + picks[1].version + " 7 of 10"));
+  clean(page);
+});
+
+scenario("the installed-catalog check shows its progress, is read again until it is done, and shows a stale or failed one as it is", async () => {
+  const state = world();
+  const picks = listedChallenges(state.caps).filter(entry => entry.selectable);
+  picks[0].catalog_install = {entries: 5, installed: null, status: "verifying", checked: 10, total: 241};
+  picks[1].catalog_install = {entries: 10, installed: null, status: "verifying", checked: 10, total: 241};
+  const page = await openPage(ROOT, state.server);
+  page.$("token").value = "fixture-token";
+  await page.press(one(page, "#connect-form button[type=submit]"));
+  await page.advance(0);
+  const reads = () => page.requests.filter(r => r.path === "/api/v1/control-center/capabilities").length;
+  let text = page.text("overview-prerequisites");
+  assert.ok(text.includes("Checking which backbones are installed on this machine: 10 of 241 checked"));
+  assert.ok(!text.includes("No backbone is installed"), "a check in progress is never shown as nothing installed");
+  assert.ok(!text.includes("partly installed"), "and never as a count");
+  const before = reads();
+  for (const entry of state.caps.challenges) {
+    if (entry.catalog_install && entry.catalog_install.status === "verifying") entry.catalog_install = {...entry.catalog_install, installed: entry.catalog_install.entries, status: "ready"};
+  }
+  picks[0].catalog_install = {entries: 5, installed: 5, status: "ready", checked: 241, total: 241};
+  picks[1].catalog_install = {entries: 10, installed: 10, status: "ready", checked: 241, total: 241, stale: true, checked_at: Date.now() / 1000 - 600};
+  await page.advance(3100);
+  assert.ok(reads() > before, "the page read the capabilities again while the check ran");
+  text = page.text("overview-prerequisites");
+  assert.ok(!text.includes("Checking which backbones are installed on this machine: 10 of 241"));
+  assert.ok(text.includes("last checked") && text.includes("being checked again"), "a stale result says how old it is");
+  picks[1].catalog_install.stale = false;
+  const after = reads();
+  await page.advance(12000);
+  assert.equal(reads(), after, "the page stops reading the capabilities when no check is running");
+  clean(page);
+});
+
+scenario("a catalog check that could not finish is said so and is never shown as installed", async () => {
+  const state = world();
+  const picks = listedChallenges(state.caps).filter(entry => entry.selectable);
+  picks[0].catalog_install = {entries: 5, installed: null, status: "failed", checked: 12, total: 241, code: "docker_unavailable"};
+  const page = await openPage(ROOT, state.server);
+  page.$("token").value = "fixture-token";
+  await page.press(one(page, "#connect-form button[type=submit]"));
+  await page.advance(0);
+  const text = page.text("overview-prerequisites");
+  assert.ok(text.includes("Could not check which backbones are installed on this machine"));
+  assert.ok(text.includes("docker unavailable"));
+  assert.ok(!text.includes("No backbone is installed"));
+  const launchable = text.slice(text.indexOf("You can launch:"));
+  assert.ok(text.includes("You can launch:") && !/Battery/.test(launchable.split(".")[0]),
+    "the sentence names what the wizard offers, never Battery (out of the launch set)");
+  clean(page);
+});
+
 scenario("plainWords keeps E10's secret warning and names an address as a mining key address, with no epoch word for a round", async () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "..", "scripts", "dev", "miner_launchpad", "app.js"), "utf8");
   const text = source.match(/function plainWords[(]text[)] [{][^]*?\n  [}]/)[0];

@@ -86,7 +86,7 @@ def test_deleted_child_cannot_leave_complete_progress_or_picker(miner, daemon):
 
 @pytest.mark.parametrize(
     "fault",
-    ["unreachable", "malformed_listing", "partial_inspection", "wrong_inspected_id"],
+    ["unreachable", "unknown_stderr", "partial_inspection", "wrong_inspected_id"],
 )
 def test_unknown_image_observation_never_proves_ready(miner, daemon, fault):
     cfg, root, items, state = miner
@@ -137,8 +137,8 @@ def test_metadata_queries_are_deduplicated_and_status_never_starts_work(
         lambda *args, **kwargs: pytest.fail("status started work"),
     )
     assert catalog_build.status(state)["state"] == "COMPLETE"
-    assert len(daemon["calls"]) == 2
-    assert daemon["calls"][1][2:-2] == [items[0]["bundle_ref"]["bundle_digest"]]
+    assert len(daemon["calls"]) == 1
+    assert daemon["calls"][0][2:-2] == [items[0]["bundle_ref"]["bundle_digest"]]
 
 
 def test_zero_known_entries_cannot_report_complete(miner, monkeypatch):

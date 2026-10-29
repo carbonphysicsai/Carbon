@@ -134,6 +134,9 @@ def _save(state_dir, record) -> None:
     )
 
 
+_seen_end: dict = {}
+
+
 def status(state_dir, clock=time.time) -> dict:
     """Where the catalog stands for this install: {state, installed, total,
     challenges, started_at, ended_at, exit_code, estimate_seconds, duration,
@@ -147,6 +150,13 @@ def status(state_dir, clock=time.time) -> dict:
     found = catalog_state.progress(cfg) if cfg is not None else None
     found = found or {"total": 0, "installed": 0, "challenges": []}
     active = running(state_dir)
+    from scripts.dev.miner_launchpad import catalog_generation
+
+    if active or record.get("ended_at") != _seen_end.get(
+        str(state_dir), record.get("ended_at")
+    ):
+        catalog_generation.bump()  # the installed catalog changed under any earlier display snapshot
+    _seen_end[str(state_dir)] = record.get("ended_at")
     if cfg is None:
         state = "NO_PROFILE"
     elif active:
@@ -224,6 +234,9 @@ def start(state_dir, *, python=sys.executable, spawn=subprocess.Popen) -> dict:
     now = status(state_dir)
     if now["installed"] >= now["total"]:
         return now  # nothing missing, or nothing this install serves
+    from scripts.dev.miner_launchpad import catalog_generation
+
+    catalog_generation.bump()
     root = _setup_dir(state_dir)
     log = os.open(
         root / LOG,
