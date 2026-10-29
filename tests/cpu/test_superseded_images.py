@@ -134,9 +134,18 @@ def test_the_dry_run_says_what_each_kind_frees(tmp_path, capsys):
     )
     out = capsys.readouterr().out
     assert "postgres" not in out and OTHER not in out
-    assert "  practice job containers that finished: 1, frees about 12.0MB" in out
-    assert "  catalog images built over an earlier worker: 1, frees about 2.0GB" in out
-    assert "  Carbon images from earlier installs: 3, frees about 8.4GB" in out
+    assert (
+        "  practice job containers that finished: 1 (space freed is measured after removal)"
+        in out
+    )
+    assert (
+        "  catalog images built over an earlier worker: 1 (space freed is measured after removal)"
+        in out
+    )
+    assert (
+        "  Carbon images from earlier installs: 3 (space freed is measured after removal)"
+        in out
+    )
 
 
 def test_removal_is_without_force_containers_first_and_reports_a_refusal(
@@ -203,7 +212,7 @@ def test_the_catalog_commands_remove_only_those_images_without_force(tmp_path, c
     assert superseded_images.main(["catalog-list", *args], docker) == 0
     listing = capsys.readouterr().out
     assert "catalog images this update builds again: 1" in listing
-    assert "frees about 2.0GB" in listing
+    assert "space freed is measured after removal" in listing
     docker.calls.clear()
     assert superseded_images.main(["catalog-remove", *args], docker) == 0
     removals = [c for c in docker.calls if c[0] == "rm" or c[:2] == ("image", "rm")]
@@ -238,3 +247,38 @@ def test_the_installer_offers_the_current_catalog_only_on_its_own_flag_and_yes()
     body = script.split("offer_current_catalog() {")[1].split("old_images_offered=0")[0]
     assert "REMOVE_OLD_IMAGES" not in body
     assert "catalog-remove" in body and "catalog-list" in body
+
+
+def test_a_timed_out_or_unrunnable_docker_call_is_a_failed_call_never_an_exception(
+    tmp_path, monkeypatch
+):
+    """A daemon with thousands of image records can exceed the per-call bound; the listing then comes back short and
+    the update that asked for it is not blocked."""
+    state, repo = install(tmp_path)
+
+    def timed_out(*args, **kwargs):
+        raise subprocess.TimeoutExpired(args[0], 120)
+
+    monkeypatch.setattr(subprocess, "run", timed_out)
+    result = superseded_images._docker("image", "ls")
+    assert result.returncode == 124 and result.stdout == ""
+    assert superseded_images.superseded(state, repo) == []
+
+    def unrunnable(*args, **kwargs):
+        raise FileNotFoundError("docker")
+
+    monkeypatch.setattr(subprocess, "run", unrunnable)
+    assert superseded_images._docker("ps").returncode == 127
+    assert superseded_images.superseded(state, repo) == []
+
+
+def test_no_listing_promises_a_size_because_listed_sizes_overlap(tmp_path, capsys):
+    state, repo = install(tmp_path)
+    superseded_images.main(
+        ["list", "--state-dir", str(state), "--repo", str(repo)], docker=Docker()
+    )
+    out = capsys.readouterr().out
+    lines = [line for line in out.splitlines() if "measured after removal" in line]
+    assert lines and not any(
+        "MB" in line or "GB" in line or "frees" in line for line in lines
+    )
