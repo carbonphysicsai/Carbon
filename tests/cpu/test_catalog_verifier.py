@@ -161,10 +161,12 @@ def test_the_capabilities_view_never_counts_unknown_as_installed_or_zero():
 
 
 def test_no_practice_submission_rebuild_or_install_path_reads_the_snapshot():
-    """The snapshot is display only: nothing but the capabilities answer imports it."""
+    """The snapshot is display only: nothing but the capabilities answer and the page poll imports it."""
     root = Path(__file__).resolve().parents[2]
     allowed = {
         root / "scripts/dev/miner_launchpad/capabilities.py",
+        # The page poll's display read; the start decision reads a fresh check.
+        root / "scripts/dev/miner_launchpad/controller.py",
         root / "scripts/dev/miner_launchpad/catalog_verifier.py",
     }
     found = set()

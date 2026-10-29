@@ -30,6 +30,8 @@ import time
 from scripts.dev.miner_launchpad import catalog_generation
 
 STALE_SECONDS = 60.0
+#: A run that took d seconds is not repeated for 3 x d: a poller can hold the daemon busy at most a quarter of the time.
+BACKOFF_FACTOR = 3.0
 FAILED_CODE = "catalog.readiness.failed"
 
 
@@ -49,7 +51,7 @@ def _detail(failure) -> str:
 def _compute(cfg, progress):
     from scripts.dev.miner_launchpad.catalog_state import readiness
 
-    return readiness(cfg, progress=progress) or {}
+    return readiness(cfg, progress=progress, strict=True) or {}
 
 
 def _spawn(function):
@@ -85,7 +87,9 @@ class CatalogVerifier:
                 self._seen_external, self._fingerprint = external, fingerprint
                 self._invalidate()
             held = self._result
-            stale = held is not None and self._clock() - held["at"] > STALE_SECONDS
+            stale = held is not None and self._clock() - held["at"] > max(
+                STALE_SECONDS, BACKOFF_FACTOR * held["duration"]
+            )
             if (held is None or stale) and not self._running:
                 self._running = True
                 generation = self._generation
@@ -118,6 +122,8 @@ class CatalogVerifier:
         return view
 
     def _run(self, cfg, generation) -> None:
+        began = self._clock()
+
         def progress(checked, total):
             with self._lock:
                 if generation == self._generation:
@@ -146,6 +152,7 @@ class CatalogVerifier:
                 "code": code,
                 "detail": detail,
                 "at": self._clock(),
+                "duration": self._clock() - began,
                 "checked": total if status == "ready" else self._checked,
                 "total": total if status == "ready" else self._total,
             }

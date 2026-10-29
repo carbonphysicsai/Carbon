@@ -1145,9 +1145,14 @@ class Handler(BaseHTTPRequestHandler):
                         # The catalog's background install and its progress
                         # (M1 E2E E2), with the page's one click to start it.
                         from scripts.dev.miner_launchpad import catalog_build
+                        from scripts.dev.miner_launchpad.catalog_verifier import (
+                            VERIFIER,
+                        )
 
                         document["catalog_build"] = {
-                            **catalog_build.status(self.server.state_dir),
+                            **catalog_build.status(
+                                self.server.state_dir, display=VERIFIER.read
+                            ),
                             "start": {
                                 "http": "POST " + CATALOG_ROUTE,
                                 "body": {"start": True},
