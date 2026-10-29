@@ -5,11 +5,11 @@ Operator only, never a miner surface: nothing imports this module. It reads the 
 ``exam_rotation`` is the only runner). It alerts, per active exam, when
 
 - no ``fresh_draw_log`` row is newer than 8 days (the timer did not run, or its run could not even log a miss), or
-- the newest row is a week the check could not run (``chain_unavailable``, ``no_incumbent``,
-  ``fresh_draw_set_unavailable``), or
+- the newest row is a week the check could not run: ``chain_unavailable`` alerts; ``no_incumbent`` and
+  ``fresh_draw_set_unavailable`` (expected until the first crown / the backlog exists) only WARN with exit 0, or
 - the weekly service's last result is not ``success`` (systemd ``Result``, read with ``systemctl --user show``).
 
-The alert path is the exam-age report's: plain lines, exit code 1 when anything alerts.
+The alert path is the exam-age report's: plain lines, exit code 1 only for an ALERT (a WARN exits 0).
 
     python -m carbon.challenge_validator.exam_watchdog --ledger <ledger> [--no-unit-check]
 """
@@ -42,6 +42,9 @@ def _rows(path, query):
         db.close()
 
 
+#: Expected early (no crown yet; no held-back fresh sets yet): a WARN line, exit 0, so the alert does not fire every
+#: week from day one and get ignored. The others (staleness, chain_unavailable, a failed timer) are ALERTs, exit 1.
+WARN_MISSES = ("no_incumbent", "fresh_draw_set_unavailable")
 RUN_MISSES = ("chain_unavailable", "no_incumbent", "fresh_draw_set_unavailable")
 
 
@@ -82,6 +85,7 @@ def alerts(ledger, *, now_ns, unit=None):
                 {
                     "challenge": challenge,
                     "kind": "weekly_check_overdue",
+                    "severity": "ALERT",
                     "detail": f"no weekly check row newer than {MAX_SILENCE_DAYS} days",
                 }
             )
@@ -91,6 +95,7 @@ def alerts(ledger, *, now_ns, unit=None):
                 {
                     "challenge": challenge,
                     "kind": "weekly_check_failed",
+                    "severity": "WARN" if last["reason"] in WARN_MISSES else "ALERT",
                     "detail": f"the last weekly run could not run: {last['reason']}",
                 }
             )
@@ -101,6 +106,7 @@ def alerts(ledger, *, now_ns, unit=None):
                 {
                     "challenge": None,
                     "kind": "weekly_unit_failed",
+                    "severity": "ALERT",
                     "detail": f"the weekly service's last result is {result}",
                 }
             )
@@ -113,7 +119,7 @@ def render(found):
     lines = []
     for alert in found:
         who = alert["challenge"] or "weekly timer"
-        lines.append(f"ALERT {who}: {alert['kind']}: {alert['detail']}.")
+        lines.append(f"{alert['severity']} {who}: {alert['kind']}: {alert['detail']}.")
     return "\n".join(lines)
 
 
@@ -131,7 +137,7 @@ def main(argv=None, *, clock=time.time_ns, unit=unit_result):
         args.ledger, now_ns=clock(), unit=None if args.no_unit_check else unit
     )
     print(render(found))
-    return 1 if found else 0
+    return 1 if any(a["severity"] == "ALERT" for a in found) else 0
 
 
 if __name__ == "__main__":

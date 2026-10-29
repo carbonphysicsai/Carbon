@@ -42,13 +42,21 @@ def test_an_exam_with_no_row_newer_than_eight_days_is_overdue(tmp_path):
     }
 
 
-def test_a_week_the_check_could_not_run_alerts_but_a_decision_does_not(tmp_path):
+def test_a_week_the_check_could_not_run_alerts_or_warns_by_reason(tmp_path, capsys):
     for reason in wd.RUN_MISSES:
         ledger = _ledger(
             tmp_path, keys=[KEYS[0]], checks=[("motor", "1.1", "UNAVAILABLE", reason)]
         )
         assert _alerts(ledger, NS) == {("motor", "weekly_check_failed")}
+        severity = {a["severity"] for a in wd.alerts(ledger, now_ns=NS)}
+        assert severity == {"WARN" if reason in wd.WARN_MISSES else "ALERT"}
+        rc = wd.main(["--ledger", str(ledger), "--no-unit-check"], clock=lambda: NS)
+        out = capsys.readouterr().out
+        assert (rc, out.split()[0]) == (
+            (0, "WARN") if reason in wd.WARN_MISSES else (1, "ALERT")
+        )
         Path(ledger).unlink()
+    assert wd.WARN_MISSES == ("no_incumbent", "fresh_draw_set_unavailable")
     ledger = _ledger(
         tmp_path,
         keys=[KEYS[0]],
@@ -90,13 +98,13 @@ def test_the_weekly_service_result_is_read_and_anything_but_success_alerts(tmp_p
 def test_it_reads_the_ledger_read_only_and_prints_no_key_or_total(tmp_path, capsys):
     ledger = _ledger(
         tmp_path,
-        keys=KEYS,
+        keys=[KEYS[0]],
         checks=[("motor", "1.1", "UNAVAILABLE", "no_incumbent")],
     )
     before = Path(ledger).read_bytes()
     rc = wd.main(["--ledger", str(ledger), "--no-unit-check"], clock=lambda: NS)
     out = capsys.readouterr().out
-    assert rc == 1 and "ALERT motor: weekly_check_failed" in out
+    assert rc == 0 and "WARN motor: weekly_check_failed" in out
     assert SECRET_KEY not in out and "king-sub-77" not in out and "0.8123" not in out
     assert Path(ledger).read_bytes() == before
     with pytest.raises(
