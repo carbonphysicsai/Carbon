@@ -1193,6 +1193,14 @@
     // Shared GPU path (Validator condition 4; owner): a GPU practice is
     // labelled as such, and the miner is told CPU and GPU results can differ.
     if (rows.some(r => r.backend === "C03_DOCKER_GPU" || r.backend === "REMOTE_GPU")) para(box, "Runs marked GPU were measured on your GPU, not official. CPU and GPU results can differ; the validator rebuilds your frozen recipe on its own pinned environment.", "hint");
+    // A CPU practice says so (the official grade rebuilds on the validator's GPU); wording only.
+    if (rows.some(r => CC.ranOnCpu(r.backend, r.fallback))) {
+      para(box, CC.CPU_PRACTICE_NOTE, "hint cpu-practice-note");
+      if (CC.machineHasUsableGpu()) {
+        const recommend = para(box, CC.GPU_PRACTICE_RECOMMENDATION + " ", "hint cpu-practice-note");
+        recommend.append(CC.link({label: "Choose GPU practice in Compute setup", href: "#setup/compute"}));
+      }
+    }
     const queried = rows.map(r => r.dual?.n_cases).find(n => Number.isInteger(n));
     if (dual) para(box, "Graded total: the exam's own gates and 0.5·A + 0.5·D, computed on the public practice bank" + (Number.isInteger(queried) ? " (practice queries your model on " + queried + " public cases, on your own machine)" : "") + "; it compares within this Challenge version only and is not the exam grade.", "hint");
     const byId = Object.fromEntries(doc.charts.map(c => [c.id, c]));

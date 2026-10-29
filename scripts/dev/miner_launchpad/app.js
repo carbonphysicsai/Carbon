@@ -3558,6 +3558,29 @@
     researchNote(section, "Training: final loss " + num(fit.final_loss) + " · " + num(fit.n_params) + " parameters · " + num(fit.train_s) + " s training · backend " + (backend.kind || "unavailable"));
     const budget = budgetLine(experiment.budget_status);
     if (budget) researchNote(section, budget, "budget-status");
+    cpuPracticeNote(section, backend);
+  }
+  // A CPU practice says so: the official grade always rebuilds on the validator's GPU, and close to a physics
+  // check a CPU result can differ. Wording only; no grade or gate changes. A run whose backend is not recorded
+  // gets no note (nothing is guessed), and where this machine has a usable GPU, GPU practice is recommended.
+  // One wording for both result screens (the research screen reads these through the page's shared object).
+  const CPU_PRACTICE_NOTE = "You practised on CPU. The official grade rebuilds your model on the validator's GPU, and close to a physics check the result can differ.";
+  const GPU_PRACTICE_RECOMMENDATION = "This machine has a usable GPU: practise on it to match how the official grade rebuilds.";
+  function ranOnCpu(kind, fallback) {
+    return typeof kind === "string" && kind !== "" && (!/GPU/.test(kind) || Boolean(fallback));
+  }
+  function machineHasUsableGpu() {
+    const gpu = computeChoice()?.lanes?.gpu;
+    return Boolean(gpu) && ["available", "configured"].includes(gpu.availability);
+  }
+  function cpuPracticeNote(section, backend) {
+    if (!ranOnCpu(backend?.kind, backend?.fallback)) return;
+    researchNote(section, CPU_PRACTICE_NOTE, "hint cpu-practice-note");
+    if (machineHasUsableGpu()) {
+      const recommend = el("p", GPU_PRACTICE_RECOMMENDATION + " ", "hint cpu-practice-note");
+      recommend.append(link({label: "Choose GPU practice in Compute setup", href: "#setup/compute"}));
+      section.append(recommend);
+    }
   }
   // The recipe against its Challenge's compute budget, by admission's own
   // rule (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). NOT_SET shows no number.
@@ -5406,7 +5429,7 @@
     redraw: () => quietly(render),
     // Graphite's words and choices, shared with the research surface.
     graphite: {modeLabel: graphiteMode, stageLabel: graphiteStage, now: graphiteNow, summary: graphiteSummary, usd, agentChoices},
-    challengeEntry, offeredChallenges, agentEntry, selectedProvider, describeComposition, journey,
+    challengeEntry, offeredChallenges, ranOnCpu, machineHasUsableGpu, CPU_PRACTICE_NOTE, GPU_PRACTICE_RECOMMENDATION, agentEntry, selectedProvider, describeComposition, journey,
     launch: launchResearch, discardLaunch,
     launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),
     goWizard(step) { if (STEPS.some(([name]) => name === step)) { wizard.step = step; saveWizard(); } location.hash = "#launch"; render(); },
