@@ -183,12 +183,62 @@ def grade_set_entry(
     }
     if promotion is not None:
         out["koth_comparison"] = _contend_set(
-            promotion, batch_adapters, batches, set_key, origin, pins
+            promotion,
+            batch_adapters,
+            batches,
+            set_key,
+            origin,
+            pins,
+            _set_repeat(
+                batch_adapters,
+                batches,
+                set_key,
+                origin,
+                entry_id,
+                artifact_directory=artifact_directory,
+                entry_directory=entry_directory,
+                runner=runner,
+            ),
         )
     return out
 
 
-def _contend_set(promotion, batch_adapters, batches, set_key, origin, pins):
+def _set_repeat(batch_adapters, batches, set_key, origin, entry_id, **custody):
+    """`repeat` for the set's KOTH decision (OWNER-CROWN-GRADE-REPEAT-01): every batch is graded a second time under
+    its own task, and the set evidence is derived from those repeats exactly as the first one was, never typed.
+    Only the retained state graded here has a repeat; another (an unmarked incumbent) gives none.
+    """
+
+    def repeat(submission_id):
+        from carbon.challenge_validator.bank_promotion import (
+            build_set_evidence,
+            private_evaluation_key,
+        )
+
+        if submission_id != origin:
+            raise psr.SetResultRefused("repeat_state_not_retained_here")
+        bodies = []
+        for digest in batches:
+            evidence = retention.repeat_grade(
+                batch_adapters[digest], entry_id, **custody
+            )
+            bodies.append(
+                {
+                    "evidence": evidence,
+                    "evaluation_key": private_evaluation_key(evidence),
+                }
+            )
+        return {
+            "submission_id": origin,
+            "evidence": build_set_evidence(set_key, bodies),
+        }
+
+    return repeat
+
+
+def _contend_set(
+    promotion, batch_adapters, batches, set_key, origin, pins, repeat=None
+):
     """File the submission's set evaluation and let it meet the incumbent under
     the set's key. Its own failure never unbinds the set result: the outcome
     names the refusal."""
@@ -229,6 +279,7 @@ def _contend_set(promotion, batch_adapters, batches, set_key, origin, pins):
             sealed=all(
                 getattr(d, "evaluation_pack_sealed", False) is True for d in discoveries
             ),
+            repeat=repeat,
         )
     except Exception as exc:  # noqa: BLE001 - a pool refusal never unbinds the grade
         return {"error": str(getattr(exc, "code", None) or type(exc).__name__)}
