@@ -42,7 +42,7 @@ if [[ -z "${repository}" ]]; then
     # One tag per parent variant (worker_parent_tag.sh): a build never retags another's image.
     bash "$(dirname -- "${BASH_SOURCE[0]}")/worker_parent_tag.sh" "${CARBON_WORKER_PARENT_VARIANT:-cpu}" "${source_digest}"
   else
-    printf '%s:%s\n' "${name}" "${source_digest:7:16}"
+    bash "$(dirname -- "${BASH_SOURCE[0]}")/worker_tag.sh" "${name}" cpu "${source_digest}"
   fi
   exit 0
 fi

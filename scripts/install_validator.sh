@@ -101,6 +101,7 @@ receiver_pack=""
 receiver_start=0
 setup=0
 status=0
+mark_installed=0
 hotkey=""
 challenges="current"
 packs=""
@@ -119,6 +120,7 @@ while [[ $# -gt 0 ]]; do
     --start-receiver) receiver_start=1 ;;
     --setup) setup=1 ;;
     --status) status=1 ;;
+    --mark-installed) mark_installed=1 ;;
     --hotkey) hotkey="${2:?--hotkey needs an ss58 address}"; shift ;;
     --challenges) challenges="${2:?--challenges needs a list}"; shift ;;
     --packs) packs="${2:?--packs needs a directory}"; shift ;;
@@ -131,6 +133,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 repo_root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+if [[ "${mark_installed}" == 1 ]]; then
+  # Record an install made before the host marker existed: its state must hold the recorded images.
+  [[ -f "${STATE_DIR}/installed-images.json" ]] || { printf 'Carbon validator install stopped: --mark-installed needs an install in %s (installed-images.json is missing).\n' "${STATE_DIR}" >&2; exit 2; }
+  write_host_role_marker
+  printf 'Recorded that a validator install lives on this host (%s).\n' "${CARBON_HOST_ROLE_DIR:-${HOME}/.carbon}/validator-host.json"
+  exit 0
+fi
 if [[ "${status}" == 1 ]]; then
   # Read-only: no machine check and no install.
   cd "${repo_root}"
@@ -158,6 +167,27 @@ if [[ -z "${receiver_id}" && ( "${receiver_start}" == 1 || -n "${receiver_pack}"
   printf 'Carbon validator install stopped: --start-receiver and --pack need --receiver ID VERSION (the receiver is prepared first, then started).\n' >&2
   exit 2
 fi
+
+# The host-level record that a validator install lives here (CARBON_HOST_ROLE_DIR, default ~/.carbon): install_miner.sh
+# refuses to build on this Docker daemon while it exists, because a miner install of the same tree retags a validator's
+# images (installer_role_conflict; val4090, 2026-10-29). Written after every successful install, or by --mark-installed
+# for an install made before this marker existed. Owner-only; lists the recorded image ids it protects.
+write_host_role_marker() {
+  local dir="${CARBON_HOST_ROLE_DIR:-${HOME}/.carbon}"
+  mkdir -p "${dir}" && chmod 700 "${dir}"
+  python3 - "${dir}/validator-host.json" "$(realpath -m -- "${STATE_DIR}")" "$@" <<'PY'
+import json
+import os
+import sys
+
+path, state, *images = sys.argv[1:]
+document = {"role": "validator", "state_dir": state, "recorded_images": sorted(set(images))}
+tmp = path + ".part"
+with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as stream:
+    stream.write(json.dumps(document, sort_keys=True) + "\n")
+os.replace(tmp, path)
+PY
+}
 
 step() { printf '\n== %s\n' "$*"; }
 failures=()
@@ -364,7 +394,7 @@ printf 'This machine meets the requirements.\n'
 [[ "${check_only}" == 0 ]] || exit 0
 
 step "2/3 Installing the environment and worker images (scripts/install_miner.sh)"
-"${repo_root}/scripts/install_miner.sh" --pytorch --no-start "${pass[@]}"
+CARBON_INSTALL_ROLE=validator "${repo_root}/scripts/install_miner.sh" --pytorch --no-start "${pass[@]}"
 
 step "3/3 Checking the installed images"
 cd "${repo_root}"
@@ -398,6 +428,7 @@ PY
   docker run --rm --gpus all --entrypoint /bin/sh "${gpu_image}" -c 'test -e /dev/nvidiactl' >/dev/null 2>&1 \
     || { printf 'Carbon validator install stopped: V_GPU_VISIBLE: the GPU is not visible from the installed worker image. Next: install or configure the NVIDIA Container Toolkit (runtime or CDI) and restart Docker.\n' >&2; exit 3; }
 fi
+write_host_role_marker ${ids}
 printf '\nValidator host ready: worker and analysis images present (state: %s).\n' "${STATE_DIR}"
 if [[ -n "${receiver_id}" ]]; then
   step "Receiver profile and configuration"
