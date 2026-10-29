@@ -132,6 +132,14 @@ def test_published_metadata_preserves_development_identity_refusal(key, monkeypa
         _call({"challenge_id": key[0], "version": key[1]})
 
 
+#: Left RESERVED when their pool constants were registered PROVISIONAL (OWNER-POOL-CONSTANTS-PROVISIONAL-01).
+PROVISIONAL = {
+    ("chip-cold-plate", "1.6"),
+    ("f02", "2.5"),
+    ("f08-ribbed-bracket", "1.7"),
+}
+
+
 @pytest.mark.parametrize(
     "key",
     [
@@ -143,6 +151,8 @@ def test_published_metadata_preserves_development_identity_refusal(key, monkeypa
     ],
 )
 def test_published_rules_are_readable_without_admitting_reserved_versions(key):
+    """The published rules of every pool version are readable; a RESERVED one (Cooling 1.5, F08 1.6) is still
+    not admitted by describe or resolve, and the three on provisional constants are."""
     from carbon.miner_mcp.open_tier import create_open_tier_server
 
     def no_host_observation():
@@ -160,6 +170,10 @@ def test_published_rules_are_readable_without_admitting_reserved_versions(key):
         challenges.published_description(*key)
     )
     assert result.structured_content["official_eligible"] is False
+    if key in PROVISIONAL:
+        # Registered PROVISIONAL (testnet) by OWNER-POOL-CONSTANTS-PROVISIONAL-01: admitted like any offered version.
+        assert challenges.describe(*key, host=EVERYTHING)["version"] == key[1]
+        return
     with pytest.raises(challenges.ChallengeNotImplemented):
         challenges.describe(*key, host=EVERYTHING)
     with pytest.raises(challenges.ChallengeNotImplemented):
