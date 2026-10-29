@@ -12,6 +12,7 @@ import sqlite3
 import sys
 import threading
 import time
+import urllib.error
 import urllib.request
 from dataclasses import replace
 from pathlib import Path
@@ -1443,8 +1444,8 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
             with urllib.request.urlopen(request) as stream:
                 return json.load(stream)
 
-        # The first real signed material chunk must work on a fresh receiver;
-        # it remains incomplete and cannot become an admitted bundle/model.
+        # OWNER-DOOR-A-NARROW-01: the door stages graph source only. A signed material
+        # chunk is refused 400 before any provider or service call, on a fresh receiver too.
         material_call = research.ServiceCall(
             research.RESEARCH_NAMESPACE,
             "stage_research_material",
@@ -1458,22 +1459,18 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
                 b"a",
             ),
         )
-        material_reply = post(
-            research.RESEARCH_NAMESPACE,
-            {
-                "call_base64": base64.b64encode(
-                    research.canonical_bytes(material_call)
-                ).decode()
-            },
-            1,
-        )
-        staged = research.load_canonical(
-            base64.b64decode(material_reply["protocol_reply_base64"]),
-            research.ServiceReply,
-        )
-        assert staged.status is research.ReplyStatus.OK
-        assert staged.result.received_bytes == 1
-        assert staged.result.complete is False
+        with pytest.raises(urllib.error.HTTPError) as material_refused:
+            post(
+                research.RESEARCH_NAMESPACE,
+                {
+                    "call_base64": base64.b64encode(
+                        research.canonical_bytes(material_call)
+                    ).decode()
+                },
+                1,
+            )
+        assert material_refused.value.code == 400
+        assert json.load(material_refused.value)["refused"] == "source_staging_context"
 
         for index, (name, raw) in enumerate(
             (
