@@ -79,11 +79,13 @@ const plain = text => String(text).replace(/\bevaluation endpoints\b/g, "grading
 function selectable() { return fx.caps.challenges.find(entry => entry.selectable); }
 // The first Challenge the wizard lists (its newest version) that can be launched and practised: a
 // Challenge that cannot practise is Coming soon (Battery is out of launch), so no wizard scenario picks it.
-function listedChallenge(capabilities = fx.caps) {
+function listedChallenges(capabilities = fx.caps) {
   const newer = (x, y) => { const a = String(x || "").split(".").map(Number), b = String(y || "").split(".").map(Number); for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); return false; };
   const open = capabilities.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development");
-  const listed = open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newer(other.version, entry.version)));
-  return listed.find(entry => entry.selectable && entry.practise?.ready !== false);
+  return open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newer(other.version, entry.version)));
+}
+function listedChallenge(capabilities = fx.caps) {
+  return listedChallenges(capabilities).find(entry => entry.selectable && entry.practise?.ready !== false);
 }
 // A launchable world: the Challenge, the agent and this machine are ready.
 function launchable(state, agent = "manual") {
@@ -128,10 +130,16 @@ function deferred() {
   const promise = new Promise(done => { resolve = done; });
   return {promise, resolve};
 }
-function fourOffered(page) {
-  const expected = ["electric-motor-magnetics", "chip-cold-plate", "f08-ribbed-bracket", "f02"].sort();
-  assert.deepEqual(all(page, "#challenge-catalog [data-challenge]").map(node => node.dataset.challenge).sort(), expected);
-  assert.deepEqual(all(page, "#wizard-challenges input").map(node => node.dataset.challenge).sort(), expected);
+function offeredChoices(page) {
+  const expected = listedChallenges();
+  const cards = all(page, "#challenge-catalog [data-challenge]").map(node => node.dataset.challenge).sort();
+  assert.deepEqual(cards, expected.map(entry => entry.challenge_id).sort(),
+    "all actual offered entries, including the neutral reference fixture, remain visible");
+  for (const id of ["electric-motor-magnetics", "chip-cold-plate", "f08-ribbed-bracket", "f02"]) assert.ok(cards.includes(id));
+  assert.ok(cards.includes("fixture-reference-burgers"), "the reference fixture is not a fifth production Challenge");
+  assert.ok(!cards.some(id => id.includes("battery")), "historical Battery remains outside the launch portfolio");
+  assert.deepEqual(all(page, "#wizard-challenges input").map(node => node.value).sort(),
+    expected.map(entry => entry.challenge_id + "@" + entry.version).sort());
   assert.equal(JSON.stringify(page.window.CarbonControlCenter.state().caps), JSON.stringify(fx.caps),
     "connection preserves the actual capability and catalog-readiness document");
 }
@@ -162,7 +170,7 @@ scenario("a delayed connection handshake cannot become Connected through periodi
   const card = one(page, "#challenge-catalog [data-challenge]");
   await page.press(card.querySelector("button"));
   assert.equal(page.window.location.hash, "#launch", "the normal card action opens the real wizard");
-  fourOffered(page);
+  offeredChoices(page);
   clean(page);
 });
 
@@ -185,7 +193,7 @@ scenario("a failed delayed connection handshake stays disconnected and a normal 
   assert.equal(page.requests.filter(r => r.path === "/api/v1/runs").length, 0);
   await page.press(button);
   assert.equal(page.text("connection-state"), "Connected");
-  fourOffered(page);
+  offeredChoices(page);
   clean(page);
 });
 
@@ -208,35 +216,36 @@ scenario("a stale capability response cannot revive a refused session before a n
   page.$("token").value = "replacement-fixture-token";
   await page.press(one(page, "#connect-form button[type=submit]"));
   assert.equal(page.text("connection-state"), "Connected");
-  fourOffered(page);
+  offeredChoices(page);
   clean(page);
 });
 
-scenario("a newer remembered connection owns refresh results that finish after an earlier normal connection", async () => {
+scenario("an older remembered probe cannot replace a newer normal token connection when cookie remembering fails", async () => {
   const state = world();
   const remembered = deferred();
   const local = new Storage();
   local.setItem("carbon.launchpad.remembered.v1", JSON.stringify({remembered: true}));
   state.script.push({match: r => r.path === "/api/v1/capabilities" && !r.headers.Authorization,
     answer: () => remembered.promise});
+  state.script.push({match: r => r.path === "/api/v1/session" && r.method === "POST",
+    answer: {status: 401, body: {error: "cookie_unavailable"}}});
   const page = await openPage(ROOT, state.server, {localStorage: local});
   await page.advance(6000);
   page.$("token").value = "fixture-token";
   await page.press(one(page, "#connect-form button[type=submit]"));
   assert.equal(page.text("connection-state"), "Connected");
-  const oldRefresh = deferred();
-  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "GET",
-    answer: () => oldRefresh.promise});
-  await refresh(page);
+  const handshakes = page.requests.filter(r => r.path === "/api/v1/control-center/capabilities").length;
   remembered.resolve({body: fx.catalog});
   await page.advance(0);
-  assert.equal(page.text("connection-state"), "Connected", "the remembered cookie handshake also completes");
-  assert.equal(page.window.CarbonControlCenter.state().research.runs.length, 0);
-  oldRefresh.resolve({body: {preflight: state.preflight, runs: [copy(fx.run)]}});
-  await page.advance(0);
-  assert.equal(page.window.CarbonControlCenter.state().research.runs.length, 0,
-    "the older connection's late refresh cannot replace the current session's records");
-  fourOffered(page);
+  assert.equal(page.requests.filter(r => r.path === "/api/v1/control-center/capabilities").length, handshakes,
+    "the old cookie probe cannot start a competing handshake after the user's valid token connection");
+  const beforeRefresh = page.requests.length;
+  await refresh(page);
+  assert.ok(page.requests.slice(beforeRefresh).length > 0);
+  assert.ok(page.requests.slice(beforeRefresh).every(r => r.headers.Authorization === "Bearer fixture-token"),
+    "the current token is preserved even though remembering its cookie failed");
+  assert.equal(page.text("connection-state"), "Connected");
+  offeredChoices(page);
   clean(page);
 });
 

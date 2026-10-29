@@ -2338,8 +2338,10 @@
     // Only a browser that was remembered asks; a first visit sends nothing
     // before the miner connects (the flag is not a secret: the cookie is).
     if (!stored(rememberedKey, null)) return;
+    const generation = connectionGeneration;
     try { await fetch("/api/v1/capabilities", {cache: "no-store", redirect: "error"}).then(r => { if (!r.ok) throw new Error(String(r.status)); }); }
     catch (_) { return; }
+    if (generation !== connectionGeneration) return;
     connect("", false);
   }
   async function connect(value, resumed = false) {

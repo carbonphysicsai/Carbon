@@ -12,16 +12,21 @@ capabilities request exceeded the existing browser deadline; that backend
 latency is separate and this repair changes neither deadline nor validation.
 
 Working decision: a session becomes available to ordinary polling only after
-its current capability/setup handshake succeeds. A pending connection prevents
+its current capability handshake succeeds. A pending connection prevents
 duplicate normal submissions. Connection generations own capability and refresh
-responses; refusal or replacement makes older responses inert. The existing
-cookie-based connection follows the same successful-handshake boundary. Normal
+responses; refusal or replacement makes older responses inert. An older automatic
+cookie probe cannot supersede a later normal token connection, including when
+remembering the cookie failed. The existing cookie-based connection follows the
+same successful-handshake boundary. Normal
 transient polling retry, form/navigation and truthful readiness data remain.
 
 Reuse the existing live-page fake-clock/scripted-controller tests and actual
 Python-generated capability fixtures. Exercise delayed success, delayed failure,
 duplicate submit, stale capability completion after refusal, normal retry and
-the real four offered-card/wizard renderers. Synthetic transport timing grants
+an older cookie probe completing after a successful normal token connection.
+Preserve all offered fixture entries alongside the four physical Challenges,
+with reserved/historical filtering and exact capability data unchanged.
+Synthetic transport timing grants
 no scientific evidence. Actual M3 ordinary four-practice results stay versioned;
 the changed browser requires its own canonical and real-browser acceptance.
 
