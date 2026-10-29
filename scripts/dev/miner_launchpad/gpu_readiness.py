@@ -10,8 +10,14 @@ that receiver serves. Anything but status ``OK`` (``STORE_ABSENT``, ``STORE_UNRE
 missing key (an older receiver), another version, an unreachable intake or a malformed answer is **unknown**
 (``None``), shown as nothing at all and never as "nothing is ready".
 
-A read answers at once with the last result and, when that is older than ``TTL`` seconds, starts one fresh read in
-the background, so a Control Center read never waits for a remote validator.
+A read answers at once with the last result and, when that is older than the wait, starts one fresh read in the
+background, so a Control Center read never waits for a remote validator.
+
+The intake route is public and shares the validator's per-IP rate budget with this miner's own submissions, so this
+reader is deliberately quiet (Validator condition): it reads **only while a page is open** (a read starts only within
+``PAGE_OPEN_SECONDS`` of a page's own capabilities read; the start-up warm-up and any agent door never trigger one),
+**at most once a minute** (``TTL``), and **backs off** on a 429 or any error (the wait doubles, a 429 counting as
+two failures, up to ``MAX_WAIT``), going back to a minute after one success.
 """
 
 from __future__ import annotations
@@ -19,8 +25,13 @@ from __future__ import annotations
 import threading
 import time
 
-TTL = 10.0
+TTL = 60.0
 TIMEOUT = 3.0
+#: A read starts only this soon after the page's own capabilities read.
+PAGE_OPEN_SECONDS = 120.0
+#: The longest wait between reads after repeated failures.
+MAX_WAIT = 900.0
+_page = {"at": None}
 _CACHE: dict = {}
 _LOCK = threading.Lock()
 
@@ -65,6 +76,20 @@ def target_url(cfg, challenge_id, version):
     return None
 
 
+def page_read():
+    """The page read the capabilities now: a validator read may start within ``PAGE_OPEN_SECONDS``."""
+    _page["at"] = time.monotonic()
+
+
+def _page_open():
+    at = _page["at"]
+    return at is not None and time.monotonic() - at < PAGE_OPEN_SECONDS
+
+
+def _wait(failures):
+    return min(MAX_WAIT, TTL * 2 ** min(failures, 10))
+
+
 def _fetch(url):
     from carbon.development_session import direct_submission
 
@@ -72,15 +97,21 @@ def _fetch(url):
 
 
 def _refresh(key, fetch):
+    from carbon.development_session.direct_submission import DirectIntakeRateLimit
+
     url, challenge_id, version = key
+    failed = 0
     try:
         value = parse(fetch(url), challenge_id, version)
+    except DirectIntakeRateLimit:
+        value, failed = None, 2
     # Unreachable or malformed is unknown, never a stale "ready".
     except Exception:  # noqa: BLE001
-        value = None
+        value, failed = None, 1
     with _LOCK:
-        slot = _CACHE.setdefault(key, {"value": None, "at": 0.0})
+        slot = _CACHE.setdefault(key, {"value": None, "at": None})
         slot["running"] = False
+        slot["failures"] = slot.get("failures", 0) + failed if failed else 0
         slot["value"], slot["at"] = value, time.monotonic()
 
 
@@ -92,9 +123,11 @@ def lookup(url, challenge_id, version, *, fetch=None, background=True):
     key = (url, challenge_id, version)
     fetch = fetch or _fetch
     with _LOCK:
-        slot = _CACHE.setdefault(key, {"value": None, "at": 0.0})
-        stale = time.monotonic() - slot["at"] >= TTL
-        start = stale and not slot.get("running")
+        slot = _CACHE.setdefault(key, {"value": None, "at": None})
+        stale = slot["at"] is None or (
+            time.monotonic() - slot["at"] >= _wait(slot.get("failures", 0))
+        )
+        start = stale and not slot.get("running") and _page_open()
         if start:
             slot["running"] = True
     if start:

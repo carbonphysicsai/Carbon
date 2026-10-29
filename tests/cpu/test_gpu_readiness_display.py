@@ -27,8 +27,11 @@ def facts(**official):
 @pytest.fixture(autouse=True)
 def _clean():
     g._CACHE.clear()
+    g._page["at"] = None
+    g.page_read()  # a page is open unless a test says otherwise
     yield
     g._CACHE.clear()
+    g._page["at"] = None
 
 
 def test_ok_gives_the_ready_set():
@@ -150,3 +153,113 @@ def test_the_repository_receipts_are_never_consulted():
 
     source = pathlib.Path(g.__file__).read_text(encoding="utf-8")
     assert "gpu_receipt" not in source and "officially_gradable(" not in source
+
+
+def _clock(monkeypatch, start=1000.0):
+    now = [start]
+    monkeypatch.setattr(g.time, "monotonic", lambda: now[0])
+    g.page_read()
+    return now
+
+
+def test_it_reads_at_most_once_a_minute(monkeypatch):
+    now = _clock(monkeypatch)
+    calls = []
+
+    def fetch(url):
+        calls.append(now[0])
+        return facts(ready=["v2.f08.a"])
+
+    assert g.TTL >= 60.0
+    g.lookup("https://v.example/", CID, VER, fetch=fetch, background=False)
+    now[0] += g.TTL - 1
+    g.page_read()
+    g.lookup("https://v.example/", CID, VER, fetch=fetch, background=False)
+    assert len(calls) == 1, "no second read inside a minute"
+    now[0] += 2
+    g.page_read()
+    g.lookup("https://v.example/", CID, VER, fetch=fetch, background=False)
+    assert len(calls) == 2
+
+
+def test_it_reads_only_while_a_page_is_open(monkeypatch):
+    now = _clock(monkeypatch)
+    calls = []
+
+    def fetch(url):
+        calls.append(1)
+        return facts(ready=["v2.f08.a"])
+
+    now[0] += g.PAGE_OPEN_SECONDS + 1  # the page's last read is long ago
+    assert (
+        g.lookup("https://v.example/", CID, VER, fetch=fetch, background=False) is None
+    )
+    assert calls == [], "no read without an open page"
+    g._page["at"] = None  # the start-up warm-up: no page has read yet
+    assert (
+        g.lookup("https://v.example/", CID, VER, fetch=fetch, background=False) is None
+    )
+    assert calls == []
+
+
+def test_only_the_pages_capabilities_route_marks_a_page_open():
+    import pathlib
+
+    source = (
+        pathlib.Path(g.__file__)
+        .parent.joinpath("controller.py")
+        .read_text(encoding="utf-8")
+    )
+    assert source.count("gpu_readiness.page_read()") == 1
+    at = source.index("gpu_readiness.page_read()")
+    assert "control_center(self.server.research_runner)" in source[at : at + 200]
+    warm = source[source.index("def _warm_capabilities") :]
+    assert "page_read" not in warm[: warm.index("\ndef ") if "\ndef " in warm else 2000]
+
+
+def test_it_backs_off_on_an_error_and_more_on_a_429_then_recovers(monkeypatch):
+    from carbon.development_session.direct_submission import DirectIntakeRateLimit
+
+    now = _clock(monkeypatch)
+    calls = []
+    outcome = ["error"]
+
+    def fetch(url):
+        calls.append(now[0])
+        if outcome[0] == "error":
+            raise OSError("unreachable")
+        if outcome[0] == "429":
+            raise DirectIntakeRateLimit()
+        return facts(ready=["v2.f08.a"])
+
+    def poll(advance):
+        now[0] += advance
+        g.page_read()
+        return g.lookup("https://v.example/", CID, VER, fetch=fetch, background=False)
+
+    assert poll(0) is None and len(calls) == 1  # first failure: the wait doubles
+    poll(g.TTL + 1)
+    assert len(calls) == 1, "still waiting after one failure"
+    poll(g.TTL)
+    assert len(calls) == 2
+    outcome[0] = "429"  # two failures so far: the wait is four minutes
+    poll(g._wait(2) - 1)
+    assert len(calls) == 2, "still inside the wait"
+    poll(2)
+    assert len(calls) == 3  # a 429 counts as two failures: the wait is now at the cap
+    assert g._wait(4) == g.MAX_WAIT
+    poll(g._wait(4) - 1)
+    assert len(calls) == 3, "backed off further after a 429"
+    poll(2)
+    assert len(calls) == 4
+    assert g._wait(50) == g.MAX_WAIT
+    outcome[0] = "ok"
+    poll(g.MAX_WAIT + 1)
+    assert len(calls) == 5
+    assert g.lookup("https://v.example/", CID, VER, fetch=fetch, background=False) == {
+        "v2.f08.a"
+    }
+    poll(g.TTL - 1)
+    assert len(calls) == 5
+    poll(2)  # one success reset the wait to a minute
+    assert len(calls) == 6

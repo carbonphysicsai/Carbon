@@ -1045,8 +1045,11 @@ class Handler(BaseHTTPRequestHandler):
             elif self.path == "/api/v1/control-center/capabilities":
                 # Every launch choice the Control Center renders, derived from
                 # the registry, the shared options operation and this host.
+                # The page is open: the validator's readiness list may be read (quietly, `gpu_readiness`).
+                from scripts.dev.miner_launchpad import gpu_readiness
                 from scripts.dev.miner_launchpad.capabilities import control_center
 
+                gpu_readiness.page_read()
                 self.reply(200, control_center(self.server.research_runner))
             elif self.path == "/api/v1/operations":
                 # The same table MCP lists its operation tools from.
