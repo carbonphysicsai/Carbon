@@ -18,6 +18,7 @@ REFUSAL_CODES = (
     "catalog_settings_inconsistent",
     "catalog_library_not_pinned",
     "catalog_runtime_not_reproducible",
+    "catalog_gpu_receipt_pending",
 )
 
 

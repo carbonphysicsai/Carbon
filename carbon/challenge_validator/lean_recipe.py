@@ -213,8 +213,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 ConstructionRecipe,
             )
 
-            # The grading rebuild: the entry's official-grade GPU twin where this receiver holds
-            # that GPU worker, else its CPU build (OWNER-NO-LAUNCH-WITHOUT-GPU-REBUILD-01).
+            # The grading rebuild: the entry's official-grade GPU twin on a GPU worker this receiver holds.
+            # No official GPU receipt is a typed refusal (catalog_gpu_receipt_pending), never a CPU rebuild
+            # (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01).
             expanded, _runtime = expand_official(recipe.to_dict(), self._gpu_runtimes())
             return ConstructionRecipe.from_dict(expanded)
         return recipe

@@ -208,26 +208,53 @@ def expand(recipe, runtime=None):
     }
 
 
+#: The plain words a miner is told when an entry has no official GPU receipt yet.
+GPU_RECEIPT_PENDING = "not yet GPU-checked on the validator"
+
+
+def official_runtime(item, gpu_runtimes):
+    """``(runtime, bundle ref)`` of the first of `gpu_runtimes` (the GPU workers the receiver holds) on which
+    ``item`` has an OFFICIAL-GRADE build, or None: a `repeat` receipt (the on-box store's record, or a repository
+    receipt) on the pinned GPU worker image, the full determinism environment and a registered host class
+    (`gpu_receipt.official_grade_problem`, through `runtime_bundle_ref(..., official=True)`). A smoke-only twin, an
+    unreceipted one and one whose receipt store fails verification are never chosen (fail closed).
+    """
+    from . import gpu_receipt
+
+    for runtime in gpu_runtimes:
+        try:
+            return runtime, runtime_bundle_ref(item, runtime, official=True)
+        except (CatalogRefused, gpu_receipt.GpuReceiptBroken):
+            continue
+    return None
+
+
+def officially_gradable(item, gpu_runtimes) -> bool:
+    """Whether ``item`` may be listed as officially gradable on a receiver holding `gpu_runtimes`."""
+    return official_runtime(item, gpu_runtimes) is not None
+
+
 def expand_official(recipe, gpu_runtimes=()):
     """`expand(recipe)` as the GRADING rebuild runs it: ``(bundle recipe, runtime)``.
 
-    On the entry's GPU build for the first of `gpu_runtimes` (the GPU workers the receiver
-    holds) that has an OFFICIAL-GRADE one - a `repeat` receipt on the pinned GPU worker image,
-    the full determinism environment, a registered host class (`gpu_receipt.official_grade_problem`,
-    through `runtime_bundle_ref(..., official=True)`) - else the entry's CPU build, which is always
-    official. `runtime` is that GPU runtime, or None for the CPU build. A smoke-only twin is never
-    chosen: it is practice only. Raises `CatalogRefused` exactly as `expand` does."""
+    The official rebuild runs only on the entry's official-grade GPU build (`official_runtime`); it never falls
+    back to the CPU build (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01). An entry with none is refused with the typed GAP
+    `catalog_gpu_receipt_pending` ("not yet GPU-checked on the validator"), before anything is reserved; a receiver
+    holding no GPU worker refuses every catalog entry the same way. Practice (`expand`) is unaffected. Raises
+    `CatalogRefused` exactly as `expand` does for a recipe the catalog refuses."""
     expanded = expand(recipe)
     source, challenge = recipe["source"], recipe["challenge"]
     item = listing.entry(source["catalog_id"], challenge["id"], challenge["version"])
-    for runtime in gpu_runtimes:
-        try:
-            reference = runtime_bundle_ref(item, runtime, official=True)
-        except CatalogRefused:
-            continue
-        expanded["source"]["bundle_ref"] = dict(reference)
-        return expanded, runtime
-    return expanded, None
+    chosen = official_runtime(item, gpu_runtimes)
+    if chosen is None:
+        raise CatalogRefused(
+            "catalog_gpu_receipt_pending",
+            f"{item['catalog_id']!r} is {GPU_RECEIPT_PENDING}: it has no official GPU receipt for a GPU worker "
+            "this validator holds, and an official rebuild never runs on the CPU. Practice is unaffected.",
+        )
+    runtime, reference = chosen
+    expanded["source"]["bundle_ref"] = dict(reference)
+    return expanded, runtime
 
 
 def _bundle_ref(item, runtime):
