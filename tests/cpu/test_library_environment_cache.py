@@ -54,96 +54,153 @@ def _image(context):
     return LibraryWorkerImage(environment, parent, bundle.to_dict())
 
 
-def test_presence_batches_exact_immutable_ids_without_building():
-    calls = []
+class _Inspector:
+    """A fake daemon for `image inspect`: it prints the requested ids it holds and, for each it does not, Docker's own
+    "No such image" line on stderr with rc 1 (the real daemon's behaviour, probed on Docker 29.9.2).
+    """
 
-    class CLI:
-        def run(self, arguments):
-            calls.append(arguments)
-            if arguments == ["image", "ls", "--all", "--no-trunc", "--quiet"]:
-                return SimpleNamespace(stdout=(_sha("4") + "\n").encode())
-            assert arguments == [
-                "image",
-                "inspect",
-                _sha("4"),
-                "--format",
-                "{{json .Id}}",
-            ]
-            return SimpleNamespace(stdout=json.dumps(_sha("4")).encode())
+    def __init__(self, held, *, drop=None, raise_on=None, stderr_extra=b"", rc=None):
+        self.held = set(held)
+        self.drop, self.raise_on = drop, raise_on
+        self.stderr_extra, self.rc = stderr_extra, rc
+        self.calls = []
+        self.active = self.peak = 0
+        import threading
 
-    assert cache.present_library_worker_images(
-        [_sha("4"), _sha("4"), _sha("5")], cli=CLI()
-    ) == frozenset({_sha("4")})
-    assert len(calls) == 2
+        self._lock = threading.Lock()
 
-
-def test_presence_includes_untagged_and_intermediate_children():
-    tagged, untagged, intermediate, missing = (_sha(char) for char in "4567")
-    calls = []
-
-    class CLI:
-        def run(self, arguments):
-            calls.append(arguments)
-            if arguments[:2] == ["image", "ls"]:
-                assert set(arguments[2:]) <= {"--all", "--no-trunc", "--quiet"}
-                values = [tagged]
-                if "--all" in arguments:
-                    values += [untagged, intermediate]
-                return SimpleNamespace(stdout="\n".join(values).encode())
-            selected = arguments[2:-2]
+    def run(self, arguments, *, accepted=(0,)):
+        with self._lock:
+            self.calls.append(list(arguments))
+            self.active += 1
+            self.peak = max(self.peak, self.active)
+        try:
+            time.sleep(0.01)
             assert arguments[:2] == ["image", "inspect"]
             assert arguments[-2:] == ["--format", "{{json .Id}}"]
-            assert missing not in selected
+            selected = arguments[2:-2]
+            if self.raise_on is not None and self.raise_on in selected:
+                raise WorkerFailure(WorkerCode.RUNTIME)
+            shown = [value for value in selected if value in self.held]
+            if self.drop is not None and self.drop in shown:
+                shown.remove(self.drop)
+            absent = [value for value in selected if value not in self.held]
+            code = (1 if absent else 0) if self.rc is None else self.rc
+            if code not in accepted:
+                raise WorkerFailure(WorkerCode.RUNTIME)
+            lines = [
+                f"Error response from daemon: No such image: {value}"
+                for value in absent
+            ]
             return SimpleNamespace(
-                stdout="\n".join(json.dumps(value) for value in selected).encode()
+                stdout="\n".join(json.dumps(value) for value in shown).encode(),
+                stderr=("\n".join(lines).encode() + self.stderr_extra),
+                returncode=code,
             )
+        finally:
+            with self._lock:
+                self.active -= 1
 
+
+def test_presence_batches_exact_immutable_ids_without_building_or_listing():
+    daemon = _Inspector({_sha("4")})
+    assert cache.present_library_worker_images(
+        [_sha("4"), _sha("4"), _sha("5")], cli=daemon
+    ) == frozenset({_sha("4")})
+    assert daemon.calls == [
+        ["image", "inspect", _sha("4"), _sha("5"), "--format", "{{json .Id}}"]
+    ]
+
+
+def test_presence_includes_untagged_and_intermediate_children_by_exact_id():
+    tagged, untagged, intermediate, missing = (_sha(char) for char in "4567")
+    daemon = _Inspector({tagged, untagged, intermediate})
     found = cache.present_library_worker_images(
-        [untagged, intermediate, tagged, missing, untagged], cli=CLI()
+        [untagged, intermediate, tagged, missing, untagged], cli=daemon
     )
     assert found == frozenset({tagged, untagged, intermediate})
-    assert len(calls) == 2
-    assert calls[1][2:-2] == sorted(found)
+    assert len(daemon.calls) == 1 and daemon.calls[0][2:-2] == sorted(
+        [tagged, untagged, intermediate, missing]
+    )
 
 
-def test_presence_of_only_missing_children_needs_no_inspection():
-    calls = []
-
-    class CLI:
-        def run(self, arguments):
-            calls.append(arguments)
-            assert arguments == ["image", "ls", "--all", "--no-trunc", "--quiet"]
-            return SimpleNamespace(stdout=(_sha("4") + "\n").encode())
-
+def test_presence_of_only_missing_children_reads_absence_from_the_daemons_own_line():
+    daemon = _Inspector(set())
     assert (
-        cache.present_library_worker_images([_sha("5"), _sha("5")], cli=CLI())
+        cache.present_library_worker_images([_sha("5"), _sha("5")], cli=daemon)
         == frozenset()
     )
-    assert len(calls) == 1
+    assert len(daemon.calls) == 1
+    nothing = _Inspector(set())
+    assert cache.present_library_worker_images([], cli=nothing) == frozenset()
+    # With nothing to find it still checks the daemon answers an exact query (an id none can hold).
+    assert nothing.calls == [
+        ["image", "inspect", "sha256:" + "0" * 64, "--format", "{{json .Id}}"]
+    ]
+    with pytest.raises(WorkerFailure):
+        cache.present_library_worker_images(
+            [], cli=_Inspector(set(), raise_on="sha256:" + "0" * 64)
+        )
 
 
 @pytest.mark.parametrize(
-    "fault", ["unreachable", "tag", "partial", "wrong_id", "duplicate"]
+    "fault",
+    [
+        "unreachable",
+        "tag",
+        "partial",
+        "wrong_id",
+        "duplicate",
+        "unknown_error",
+        "rc0_with_missing_line",
+        "rc1_without_line",
+        "missing_line_for_other_id",
+        "unlisted_rc",
+    ],
 )
 def test_image_presence_never_accepts_unknown_or_partial_metadata(fault):
     class CLI:
-        def run(self, arguments):
+        def run(self, arguments, *, accepted=(0,)):
             if fault == "unreachable":
                 raise WorkerFailure(WorkerCode.RUNTIME)
-            if arguments[:2] == ["image", "ls"]:
-                body = (
-                    "not-an-image-id"
-                    if fault == "tag"
-                    else _sha("4") + "\n" + _sha("5")
-                )
-                return SimpleNamespace(stdout=body.encode())
-            values = {
-                "partial": [_sha("4")],
-                "wrong_id": [_sha("4"), _sha("9")],
-                "duplicate": [_sha("4"), _sha("4")],
-            }[fault]
+            absent = "Error response from daemon: No such image: " + _sha("5")
+            both = [_sha("4"), _sha("5")]
+            table = {
+                "tag": ("not-an-image-id", "", 0),
+                "partial": (json.dumps(_sha("4")), "", 0),
+                "wrong_id": (
+                    "\n".join(json.dumps(v) for v in [_sha("4"), _sha("9")]),
+                    "",
+                    0,
+                ),
+                "duplicate": (
+                    "\n".join(json.dumps(v) for v in [_sha("4"), _sha("4")]),
+                    "",
+                    0,
+                ),
+                "unknown_error": (
+                    json.dumps(_sha("4")),
+                    "Cannot connect to the Docker daemon",
+                    1,
+                ),
+                "rc0_with_missing_line": (
+                    "\n".join(json.dumps(v) for v in both),
+                    absent,
+                    0,
+                ),
+                "rc1_without_line": (json.dumps(_sha("4")), "", 1),
+                "missing_line_for_other_id": (
+                    json.dumps(_sha("4")),
+                    "Error response from daemon: No such image: " + _sha("9"),
+                    1,
+                ),
+                "unlisted_rc": ("\n".join(json.dumps(v) for v in both), "", 2),
+            }
+            out, err, code = table[fault]
+            if code not in accepted:
+                raise WorkerFailure(WorkerCode.RUNTIME)
             return SimpleNamespace(
-                stdout="\n".join(json.dumps(v) for v in values).encode()
+                stdout=out.encode(), stderr=err.encode(), returncode=code
             )
 
     with pytest.raises((ValueError, WorkerFailure)):
@@ -194,22 +251,23 @@ def test_receiver_opt_in_rebuilds_only_a_missing_child_and_preserves_failed_rece
     )
 
     class CLI:
-        def run(self, arguments):
+        def run(self, arguments, *, accepted=(0,)):
             state["queries"].append(arguments)
             if fault == "unreachable":
                 raise WorkerFailure(WorkerCode.RUNTIME)
-            if arguments == ["image", "ls", "--all", "--no-trunc", "--quiet"]:
-                return SimpleNamespace(
-                    stdout="\n".join(sorted(state["images"])).encode()
-                )
-            assert arguments == [
-                "image",
-                "inspect",
-                _sha("5"),
-                "--format",
-                "{{json .Id}}",
+            assert arguments[:2] == ["image", "inspect"]
+            ids = arguments[2:-2]
+            held = [value for value in ids if value in state["images"]]
+            absent = [value for value in ids if value not in state["images"]]
+            lines = [
+                f"Error response from daemon: No such image: {value}"
+                for value in absent
             ]
-            return SimpleNamespace(stdout=json.dumps(_sha("5")).encode())
+            return SimpleNamespace(
+                stdout="\n".join(json.dumps(value) for value in held).encode(),
+                stderr="\n".join(lines).encode(),
+                returncode=1 if absent else 0,
+            )
 
     def provision(*args, cli):
         assert receipt.read_bytes() == original
@@ -878,52 +936,14 @@ def _ids(count):
     ]
 
 
-class _Daemon:
-    """A fake daemon: `image ls` lists `listed`; `image inspect` prints the ids it is given that it holds."""
-
-    def __init__(self, listed, *, held=None, drop=None, raise_on=None):
-        self.listed, self.held = list(listed), set(listed if held is None else held)
-        self.drop, self.raise_on = drop, raise_on
-        self.calls = []
-        self.active = self.peak = 0
-        import threading
-
-        self._lock = threading.Lock()
-
-    def run(self, arguments):
-        with self._lock:
-            self.calls.append(list(arguments))
-            self.active += 1
-            self.peak = max(self.peak, self.active)
-        try:
-            time.sleep(0.01)
-            if arguments[:2] == ["image", "ls"]:
-                return SimpleNamespace(stdout="\n".join(self.listed).encode())
-            selected = arguments[2:-2]
-            if self.raise_on is not None and self.raise_on in selected:
-                raise WorkerFailure(WorkerCode.RUNTIME)
-            shown = [value for value in selected if value in self.held]
-            if self.drop is not None and self.drop in shown:
-                shown.remove(self.drop)
-            return SimpleNamespace(
-                stdout="\n".join(json.dumps(value) for value in shown).encode()
-            )
-        finally:
-            with self._lock:
-                self.active -= 1
-
-
 def test_many_children_are_inspected_in_bounded_chunks_each_id_once_and_read_back_exactly():
     ids = _ids(236)
-    daemon = _Daemon(ids)
+    daemon = _Inspector(ids)
     found = cache.present_library_worker_images(ids, cli=daemon)
     assert found == frozenset(ids)
-    listing = [call for call in daemon.calls if call[:2] == ["image", "ls"]]
-    inspections = [call for call in daemon.calls if call[:2] == ["image", "inspect"]]
-    assert len(listing) == 1
-    assert len(inspections) == -(-236 // cache.INSPECT_CHUNK)
-    assert all(len(call[2:-2]) <= cache.INSPECT_CHUNK for call in inspections)
-    asked = [value for call in inspections for value in call[2:-2]]
+    assert len(daemon.calls) == -(-236 // cache.INSPECT_CHUNK)
+    assert all(len(call[2:-2]) <= cache.INSPECT_CHUNK for call in daemon.calls)
+    asked = [value for call in daemon.calls for value in call[2:-2]]
     assert sorted(asked) == sorted(ids) and len(asked) == len(set(asked))
     assert daemon.peak <= cache.INSPECT_WORKERS
 
@@ -931,73 +951,21 @@ def test_many_children_are_inspected_in_bounded_chunks_each_id_once_and_read_bac
 def test_a_chunk_that_returns_a_different_set_or_fails_makes_the_whole_read_fail_closed():
     ids = _ids(120)
     with pytest.raises(ValueError, match="inspection differs"):
-        cache.present_library_worker_images(ids, cli=_Daemon(ids, drop=ids[77]))
+        cache.present_library_worker_images(ids, cli=_Inspector(ids, drop=ids[77]))
     with pytest.raises(WorkerFailure):
-        cache.present_library_worker_images(ids, cli=_Daemon(ids, raise_on=ids[99]))
-    # An id the listing shows but the daemon will not resolve is not presence either.
-    with pytest.raises(ValueError, match="inspection differs"):
+        cache.present_library_worker_images(ids, cli=_Inspector(ids, raise_on=ids[99]))
+
+
+def test_missing_ids_across_chunks_are_absent_and_the_rest_present():
+    ids = _ids(120)
+    held = set(ids) - {ids[3], ids[90]}
+    found = cache.present_library_worker_images(ids, cli=_Inspector(held))
+    assert found == frozenset(held)
+
+
+def test_any_extra_stderr_text_fails_closed_even_when_every_id_is_accounted_for():
+    ids = _ids(3)
+    with pytest.raises(ValueError, match="unknown error"):
         cache.present_library_worker_images(
-            ids, cli=_Daemon(ids, held=set(ids) - {ids[3]})
+            ids, cli=_Inspector(ids, stderr_extra=b"\nWarning: something else")
         )
-
-
-def test_one_call_local_listing_serves_many_checks_but_every_listed_id_is_inspected_afresh():
-    ids = _ids(30)
-    present, absent = ids[:25], ids[25:]
-    daemon = _Daemon(present)
-    inventory = cache.LibraryImageInventory(daemon)
-    for target in ids:
-        found = cache.present_library_worker_images(
-            (target,), cli=daemon, inventory=inventory
-        )
-        assert found == (frozenset({target}) if target in present else frozenset())
-    listings = [call for call in daemon.calls if call[:2] == ["image", "ls"]]
-    inspections = [call for call in daemon.calls if call[:2] == ["image", "inspect"]]
-    assert len(listings) == 1
-    assert [
-        call[2] for call in inspections
-    ] == present  # fresh per entry; never for an unlisted id
-    # Never kept across calls: a new inventory lists the daemon again.
-    cache.present_library_worker_images(
-        present[:1], cli=daemon, inventory=cache.LibraryImageInventory(daemon)
-    )
-    assert len([c for c in daemon.calls if c[:2] == ["image", "ls"]]) == 2
-
-
-def test_an_unknown_or_malformed_listing_fails_closed_through_a_shared_inventory():
-    class Bad:
-        def run(self, arguments):
-            return SimpleNamespace(stdout=b"sha256:not-a-digest\n")
-
-    with pytest.raises(ValueError):
-        cache.present_library_worker_images(
-            [_sha("4")], cli=Bad(), inventory=cache.LibraryImageInventory(Bad())
-        )
-
-
-def test_the_owner_catalog_install_shares_one_inventory_across_its_entries(monkeypatch):
-    from scripts.dev import catalog_install
-
-    seen = []
-
-    def install_bundle(directory, inventory=None, **kwargs):
-        seen.append(inventory)
-        return {"status": "INSTALLED_VERIFIED", "bundle_ref": {}}
-
-    monkeypatch.setattr(
-        catalog_install.library_bundle, "install_bundle", install_bundle
-    )
-    monkeypatch.setattr(
-        catalog_install.pipeline,
-        "bundle_directory",
-        lambda item, work, wheelhouse=None: work,
-    )
-    monkeypatch.setattr(catalog_install.pipeline, "verify", lambda item: None)
-    monkeypatch.setattr(catalog_install, "_declares_wheels", lambda item: False)
-    monkeypatch.setattr(
-        catalog_install, "_missing_wheel", lambda item, wheelhouse: None
-    )
-    monkeypatch.setattr(catalog_install, "stage_gpu_twins", lambda *a, **k: None)
-    catalog_install.install(wheelhouse=Path("."), state_dir=Path("."), skipped=[])
-    assert len(seen) > 1 and all(item is seen[0] for item in seen)
-    assert isinstance(seen[0], cache.LibraryImageInventory)

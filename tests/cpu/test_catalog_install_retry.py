@@ -30,7 +30,7 @@ def harness(monkeypatch):
     only = catalog_install.pipeline.load()["entries"][0]["catalog_id"]
 
     def run(behaviour, ids=None):
-        def install_bundle(directory, inventory=None, **kwargs):
+        def install_bundle(directory, **kwargs):
             calls.append(1)
             return behaviour(len(calls))
 
