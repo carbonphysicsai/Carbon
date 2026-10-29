@@ -3450,7 +3450,7 @@ scenario("miners are offered only the latest version of each Challenge, and no r
 
 scenario("a partly installed backbone catalog is said as it is, and an empty one names its versions", async () => {
   const state = world();
-  const picks = state.caps.challenges.filter(entry => entry.selectable);
+  const picks = listedChallenges(state.caps).filter(entry => entry.selectable);
   assert.ok(picks.length >= 2, "the fixture offers at least two launchable entries");
   picks[0].catalog_install = {entries: 5, installed: 0};
   picks[1].catalog_install = {entries: 10, installed: 7};
@@ -3468,7 +3468,7 @@ scenario("a partly installed backbone catalog is said as it is, and an empty one
 
 scenario("the installed-catalog check shows its progress, is read again until it is done, and shows a stale or failed one as it is", async () => {
   const state = world();
-  const picks = state.caps.challenges.filter(entry => entry.selectable);
+  const picks = listedChallenges(state.caps).filter(entry => entry.selectable);
   picks[0].catalog_install = {entries: 5, installed: null, status: "verifying", checked: 10, total: 241};
   picks[1].catalog_install = {entries: 10, installed: null, status: "verifying", checked: 10, total: 241};
   const page = await openPage(ROOT, state.server);
@@ -3500,7 +3500,7 @@ scenario("the installed-catalog check shows its progress, is read again until it
 
 scenario("a catalog check that could not finish is said so and is never shown as installed", async () => {
   const state = world();
-  const picks = state.caps.challenges.filter(entry => entry.selectable);
+  const picks = listedChallenges(state.caps).filter(entry => entry.selectable);
   picks[0].catalog_install = {entries: 5, installed: null, status: "failed", checked: 12, total: 241, code: "docker_unavailable"};
   const page = await openPage(ROOT, state.server);
   page.$("token").value = "fixture-token";
@@ -3510,6 +3510,9 @@ scenario("a catalog check that could not finish is said so and is never shown as
   assert.ok(text.includes("Could not check which backbones are installed on this machine"));
   assert.ok(text.includes("docker unavailable"));
   assert.ok(!text.includes("No backbone is installed"));
+  const launchable = text.slice(text.indexOf("You can launch:"));
+  assert.ok(text.includes("You can launch:") && !/Battery/.test(launchable.split(".")[0]),
+    "the sentence names what the wizard offers, never Battery (out of the launch set)");
   clean(page);
 });
 

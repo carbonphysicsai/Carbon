@@ -2633,7 +2633,8 @@
       ? {ok: true, text: "Your settings are loaded.", detail: ["Profile: " + caps.profile.profile_id]}
       : {ok: false, area: "Your settings", item: caps.profile});
     items.push({ok: null, text: "Your registration is read at launch, before anything is recorded.", fix: {label: "Check it", href: "#wallet"}});
-    const selectable = caps.challenges.filter(entry => entry.selectable);
+    // Only what the wizard offers: the latest version of each launch Challenge, never Battery (out of the launch set) or an older version.
+    const selectable = offeredChallenges().filter(entry => entry.selectable);
     items.push(selectable.length
       ? {ok: true, text: "You can launch: " + selectable.map(entry => entry.title).join(", ") + "."}
       : {ok: false, area: "Challenges", item: caps.challenges.find(entry => entry.implemented) || caps.challenges[0]});
