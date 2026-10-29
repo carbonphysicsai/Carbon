@@ -27,7 +27,14 @@ mkdir -p "$(dirname -- "${output}")"
 temporary="$(mktemp -d)"
 trap 'rm -rf "${temporary}"' EXIT
 
-source_tree_digest="sha256:$(git -C "${repo_root}" archive --format=tar HEAD | shasum -a 256 | cut -d' ' -f1)"
+# The digest of the worker build inputs only (carbon/reconstruction/worker/build_inputs.txt), not the whole repository:
+# a change outside them (scripts/, docs/, tests/ ...) no longer moves any image id. The checkout is still clean as a whole.
+# A git-ignored file under the inputs would enter the build context and the wheel without being bound by the digest.
+ignored_inputs="$("${PYTHON}" "${repo_root}/carbon/reconstruction/worker/build_inputs.py" ignored "${repo_root}")" \
+  || fail "git-ignored files under the worker build inputs would enter the image unbound by its digest: ${ignored_inputs//$'\n'/ }"
+source_tree_digest="$("${PYTHON}" "${repo_root}/carbon/reconstruction/worker/build_inputs.py" digest "${repo_root}")" \
+  || fail "could not compute the worker build-inputs digest."
+[[ "${source_tree_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "the worker build-inputs digest is malformed."
 lock_digest="sha256:$(shasum -a 256 "${repo_root}/uv.lock" | cut -d' ' -f1)"
 recipe_digest="sha256:$(shasum -a 256 "${dockerfile}" | cut -d' ' -f1)"
 entrypoint_digest="sha256:$(shasum -a 256 "${repo_root}/carbon/reconstruction/worker/entrypoint.py" | cut -d' ' -f1)"

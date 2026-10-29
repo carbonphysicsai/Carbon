@@ -27,7 +27,7 @@ def sha(character):
 @pytest.fixture
 def parent_record(tmp_path, monkeypatch):
     document = {
-        "schema": "carbon.c03.worker-image-build.v1",
+        "schema": "carbon.c03.worker-image-build.v2",
         "source_tree_digest": sha("1"),
         "wheel_digest": sha("2"),
         "lock_digest": sha("3"),

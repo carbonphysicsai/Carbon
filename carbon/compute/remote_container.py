@@ -73,7 +73,7 @@ WORKER_PYTHON = "/opt/carbon-worker/bin/python"
 #: (`.devcontainer/Dockerfile.reconstruction-worker`; the GPU worker's
 #: `.devcontainer/accelerators/Dockerfile` updates its base, recipe and lock).
 BUILD_FILE = "/opt/carbon/worker-image-build.json"
-BUILD_SCHEMA = "carbon.c03.worker-image-build.v1"
+BUILD_SCHEMA = "carbon.c03.worker-image-build.v2"
 #: The pinned manifest's fields the build file carries: everything but the
 #: image ID, which no image can know about itself.
 BUILD_FIELDS = (

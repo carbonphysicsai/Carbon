@@ -39,7 +39,7 @@ def _digest(body: bytes) -> str:
 def _parent_build(tmp_path: Path, monkeypatch, lock: bytes) -> dict:
     record = tmp_path / "worker-image-build.json"
     build = {
-        "schema": "carbon.c03.worker-image-build.v1",
+        "schema": "carbon.c03.worker-image-build.v2",
         "source_tree_digest": _digest(b"source"),
         "wheel_digest": _digest(b"wheels"),
         "lock_digest": _digest(lock),

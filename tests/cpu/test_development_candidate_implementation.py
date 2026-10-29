@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
 import subprocess
 
 import pytest
+from build_inputs_fixture import seed_build_inputs
 
 from carbon.development_session import research_campaign
+from carbon.reconstruction.worker import build_inputs
 
 
 def _git(repo, *args, text=True):
@@ -26,7 +27,10 @@ def _candidate(tmp_path):
     (repo / "source.txt").write_text("main\n")
     (repo / "carbon").mkdir()
     (repo / "carbon" / "__init__.py").write_text("# committed source\n")
-    _git(repo, "add", ".gitignore", "source.txt", "carbon/__init__.py")
+    seeded = seed_build_inputs(
+        repo
+    )  # every build input must exist: the digest refuses a partial set
+    _git(repo, "add", ".gitignore", "source.txt", "carbon/__init__.py", *seeded)
     _git(repo, "commit", "-qm", "base")
     _git(
         repo, "update-ref", "refs/remotes/origin/main", _git(repo, "rev-parse", "HEAD")
@@ -37,10 +41,7 @@ def _candidate(tmp_path):
     _git(repo, "commit", "-qm", "candidate")
     revision = _git(repo, "rev-parse", "HEAD")
     tree = _git(repo, "rev-parse", "HEAD^{tree}")
-    archive = subprocess.check_output(
-        ["git", "archive", "--format=tar", "HEAD"], cwd=repo, timeout=10
-    )
-    source_digest = "sha256:" + hashlib.sha256(archive).hexdigest()
+    source_digest = build_inputs.digest(repo)
     return repo, revision, tree, source_digest
 
 
@@ -126,14 +127,11 @@ def _candidate_ignoring_pycache(tmp_path):
         ignore.write("__pycache__\n")
     _git(repo, "add", ".gitignore")
     _git(repo, "commit", "-qm", "ignore bytecode caches")
-    archive = subprocess.check_output(
-        ["git", "archive", "--format=tar", "HEAD"], cwd=repo, timeout=10
-    )
     return (
         repo,
         _git(repo, "rev-parse", "HEAD"),
         _git(repo, "rev-parse", "HEAD^{tree}"),
-        "sha256:" + hashlib.sha256(archive).hexdigest(),
+        build_inputs.digest(repo),
     )
 
 

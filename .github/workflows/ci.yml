@@ -440,7 +440,7 @@ jobs:
           revision="$(git rev-parse HEAD)"
           [[ "${revision}" == "${CANDIDATE_SHA}" ]]
           tree="$(git rev-parse 'HEAD^{tree}')"
-          source_tree_digest="$(.venv/bin/python -c 'import subprocess; from carbon.development_session.profile import digest; print(digest(subprocess.check_output(["git", "archive", "--format=tar", "HEAD"])))')"
+          source_tree_digest="$(.venv/bin/python carbon/reconstruction/worker/build_inputs.py digest .)"
           c03_manifest="${GITHUB_WORKSPACE}/.carbon-artifacts/c03-worker-image.json"
           .venv/bin/python -m carbon.development_session.research_image \
             --parent-manifest "${c03_manifest}" \

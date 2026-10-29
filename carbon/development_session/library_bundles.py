@@ -995,7 +995,7 @@ if digest(pathlib.Path(base_lock).read_bytes()) != manifest['base_environment_di
     raise SystemExit('base environment digest differs')
 """
         cpu_check = f"""build = json.loads(pathlib.Path('/opt/carbon/worker-image-build.json').read_bytes())
-if build.get('schema') != 'carbon.c03.worker-image-build.v1' or build.get('lock_digest') != manifest['base_environment_digest'] or build.get('build_recipe_digest') != '{recipe_digest}' or build.get('entrypoint_digest') != '{entrypoint_digest}':
+if build.get('schema') != 'carbon.c03.worker-image-build.v2' or build.get('lock_digest') != manifest['base_environment_digest'] or build.get('build_recipe_digest') != '{recipe_digest}' or build.get('entrypoint_digest') != '{entrypoint_digest}':
     raise SystemExit('base environment digest differs')
 """
         if install.count(cuda_check) != 1:

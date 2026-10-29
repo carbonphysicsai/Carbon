@@ -369,7 +369,7 @@ def test_cpu_bundle_binds_actual_base_lock_and_build_record(tmp_path):
     installer = (context / "install-source.py").read_text()
     ast.parse(installer)
     assert "/opt/carbon/worker-image-build.json" in installer
-    assert "carbon.c03.worker-image-build.v1" in installer
+    assert "carbon.c03.worker-image-build.v2" in installer
     assert "build_recipe_digest" in installer
     assert "entrypoint_digest" in installer
     assert "accelerator-requirements.txt" not in installer

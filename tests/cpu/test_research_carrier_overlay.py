@@ -95,7 +95,7 @@ def test_pinned_uv_copy_does_not_run_before_ledger_reservation(tmp_path, bind_pa
 
 def _parent_build(value):
     return {
-        "schema": "carbon.c03.worker-image-build.v1",
+        "schema": "carbon.c03.worker-image-build.v2",
         **{
             name: value
             for name in (

@@ -1177,7 +1177,7 @@ def _run_locked(
             or trusted_stage_identity["parent_image_id"] != image.image_id
             or trusted_stage_identity["parent_build"]
             != {
-                "schema": "carbon.c03.worker-image-build.v1",
+                "schema": "carbon.c03.worker-image-build.v2",
                 "source_tree_digest": image.source_tree_digest,
                 "wheel_digest": image.wheel_digest,
                 "lock_digest": image.lock_digest,

@@ -66,7 +66,7 @@ def _verify_parent_environment(manifest: dict, expected: dict) -> None:
     if (
         type(build) is not dict
         or set(build) != fields
-        or build["schema"] != "carbon.c03.worker-image-build.v1"
+        or build["schema"] != "carbon.c03.worker-image-build.v2"
         or any(
             type(build[name]) is not str
             or len(build[name]) != 71

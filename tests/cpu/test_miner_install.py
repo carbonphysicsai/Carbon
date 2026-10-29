@@ -47,7 +47,9 @@ import time
 from pathlib import Path
 
 import pytest
+from build_inputs_fixture import seed_build_inputs
 
+from carbon.reconstruction.worker import build_inputs
 from scripts.dev.miner_launchpad import installed
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -522,6 +524,10 @@ class Sandbox:
             self.work / "scripts" / "dev" / "resolve_python.sh",
             (ROOT / "scripts/dev/resolve_python.sh").read_text(),
         )
+        # The installer's DEVELOPMENT candidate check hashes the worker build inputs (build_inputs.py + its set file).
+        seed_build_inputs(
+            self.work
+        )  # every input exists; the digest refuses a partial set
         for name, text in FAKE_CHECKOUT.items():
             self._executable(self.work / name, text)
         (self.work / ".gitignore").write_text(
@@ -708,7 +714,6 @@ def test_a_ref_outside_main_is_refused_before_anything_moves(sandbox):
 
 def test_explicit_development_candidate_builds_only_the_exact_local_tree(sandbox):
     """The unmerged route is explicit and leaves the normal main guard intact."""
-    import hashlib
 
     sandbox.git("checkout", "--quiet", "-b", "candidate", cwd=sandbox.clone)
     (sandbox.clone / ".gitignore").write_text(
@@ -718,10 +723,7 @@ def test_explicit_development_candidate_builds_only_the_exact_local_tree(sandbox
     sandbox.git("commit", "--quiet", "-m", "candidate", cwd=sandbox.clone)
     revision = sandbox.head()
     tree = sandbox.git("rev-parse", "HEAD^{tree}", cwd=sandbox.clone)
-    archive = subprocess.check_output(
-        ["git", "archive", "--format=tar", "HEAD"], cwd=sandbox.clone
-    )
-    source = "sha256:" + hashlib.sha256(archive).hexdigest()
+    source = build_inputs.digest(sandbox.clone)
     state = sandbox.tmp / "home" / ".carbon" / "s5-candidate"
 
     ordinary = sandbox.run("--ref", revision, "--no-start")
@@ -762,18 +764,13 @@ def test_explicit_development_candidate_builds_only_the_exact_local_tree(sandbox
 
 
 def _local_development_identity(sandbox):
-    import hashlib
-
     sandbox.git("checkout", "--quiet", "-b", "candidate", cwd=sandbox.clone)
     (sandbox.clone / "candidate.txt").write_text("local development candidate\n")
     sandbox.git("add", "candidate.txt", cwd=sandbox.clone)
     sandbox.git("commit", "--quiet", "-m", "candidate", cwd=sandbox.clone)
     revision = sandbox.head()
     tree = sandbox.git("rev-parse", "HEAD^{tree}", cwd=sandbox.clone)
-    archive = subprocess.check_output(
-        ["git", "archive", "--format=tar", "HEAD"], cwd=sandbox.clone
-    )
-    source = "sha256:" + hashlib.sha256(archive).hexdigest()
+    source = build_inputs.digest(sandbox.clone)
     state = sandbox.tmp / "home" / ".carbon" / "s5-candidate"
     return revision, tree, source, state
 
@@ -905,7 +902,6 @@ def test_development_pair_cache_controls_only_the_cpu_build_reserve(
 ):
     """An exact installed pair avoids a new build reserve; a miss or invalid
     pair cannot silently spend the same 13 GiB as if no build were needed."""
-    import hashlib
 
     sandbox.git("checkout", "--quiet", "-b", "candidate", cwd=sandbox.clone)
     (sandbox.clone / ".gitignore").write_text(
@@ -915,10 +911,7 @@ def test_development_pair_cache_controls_only_the_cpu_build_reserve(
     sandbox.git("commit", "--quiet", "-m", "candidate", cwd=sandbox.clone)
     revision = sandbox.head()
     tree = sandbox.git("rev-parse", "HEAD^{tree}", cwd=sandbox.clone)
-    archive = subprocess.check_output(
-        ["git", "archive", "--format=tar", "HEAD"], cwd=sandbox.clone
-    )
-    source = "sha256:" + hashlib.sha256(archive).hexdigest()
+    source = build_inputs.digest(sandbox.clone)
     state = sandbox.tmp / "home" / ".carbon" / "s5-candidate"
     fake_df(sandbox, 13 * 1048576)
 

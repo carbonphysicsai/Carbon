@@ -10,7 +10,7 @@
 #   CARBON_STATE_DIR=~/.carbon/s5-candidate ~/carbon/scripts/install_miner.sh \
 #     --development-candidate "$(git -C ~/carbon rev-parse HEAD)" \
 #     "$(git -C ~/carbon rev-parse 'HEAD^{tree}')" \
-#     "sha256:$(git -C ~/carbon archive --format=tar HEAD | sha256sum | cut -d' ' -f1)" \
+#     "$(python3 ~/carbon/carbon/reconstruction/worker/build_inputs.py digest ~/carbon)" \
 #     --no-start                                # local DEVELOPMENT only
 #
 # What it does, in order, and nothing else:
@@ -704,7 +704,21 @@ if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
     || fail "local DEVELOPMENT source revision differs before bootstrap."
   [[ "$(git rev-parse 'HEAD^{tree}')" == "${DEVELOPMENT_TREE}" ]] \
     || fail "local DEVELOPMENT source tree differs before bootstrap."
-  source_digest="sha256:$(git archive --format=tar HEAD | sha256sum | cut -d' ' -f1)"
+  # The worker build inputs only (carbon/reconstruction/worker/build_inputs.txt), in plain shell: this runs before the
+  # environment exists, so it needs only git and sha256sum. It prints the same bytes build_inputs.py hashes.
+  build_inputs="$(git show HEAD:carbon/reconstruction/worker/build_inputs.txt \
+    | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^#/d' -e '/^$/d')" \
+    || fail "could not read the worker build inputs file."
+  [[ -n "${build_inputs}" ]] || fail "the worker build inputs file is empty."
+  mapfile -t build_input_paths <<< "${build_inputs}"
+  build_listing="$(git ls-tree -r --full-tree HEAD -- "${build_input_paths[@]}")" \
+    || fail "could not list the worker build inputs."
+  for build_input in "${build_input_paths[@]}"; do
+    printf '%s\n' "${build_listing}" | cut -f2- | awk -v p="${build_input}" \
+      'index($0, p) == 1 && (length($0) == length(p) || substr($0, length(p) + 1, 1) == "/") { found = 1 } END { exit !found }' \
+      || fail "worker build input missing at this revision: ${build_input}"
+  done
+  source_digest="sha256:$(git ls-tree -r --full-tree HEAD -- "${build_input_paths[@]}" | sha256sum | cut -d' ' -f1)"
   [[ "${source_digest}" == "${DEVELOPMENT_SOURCE_TREE_DIGEST}" ]] \
     || fail "local DEVELOPMENT source archive differs before bootstrap."
   [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]] \
