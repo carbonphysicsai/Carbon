@@ -286,17 +286,21 @@ def _reachable(key):
 
 
 def test_t9_reserved_versions_are_not_named_to_miners():
-    reserved = {
-        (COOLING, "1.5"),
-        (COOLING, "1.6"),
-        (F08, "1.6"),
-        (F08, "1.7"),
-        (F02, "2.5"),
-    }
+    # Cooling 1.6, Ribbed Bracket 1.7 and Burst Thermal 2.5 left RESERVED when their pool constants
+    # were registered PROVISIONAL (OWNER-POOL-CONSTANTS-PROVISIONAL-01); the guide lists them from then on.
+    reserved = {(COOLING, "1.5"), (F08, "1.6")}
     assert not any(_reachable(key) for key in reserved)
     text = (ROOT / "docs" / "MINING.md").read_text(encoding="utf-8")
     for marker in ("**Rebuild resources.**", "**Build time limit.**"):
         assert not _mining_versions(text, marker) & reserved
+
+
+def test_t9_the_provisional_pool_versions_are_reachable_and_in_the_guide():
+    provisional = {(COOLING, "1.6"), (F08, "1.7"), (F02, "2.5")}
+    assert all(_reachable(key) for key in provisional)
+    text = (ROOT / "docs" / "MINING.md").read_text(encoding="utf-8")
+    assert provisional <= _mining_versions(text, "**Rebuild resources.**")
+    assert provisional <= _mining_versions(text, "**Build time limit.**")
 
 
 def test_t9_the_mining_guide_lists_exactly_the_large_resource_versions():
