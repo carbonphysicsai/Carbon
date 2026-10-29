@@ -11,7 +11,7 @@
  "python_abi": "cp311",
  "runtime_profile_id": "jax-cuda13-py311",
  "schema": "carbon.development.library-bundle.v1",
- "source_bytes": 21247,
- "source_sha256": "sha256:3f44eeae2665ed311c23e316d675b4269960c10eca239f479c880179ea398956",
+ "source_bytes": 21447,
+ "source_sha256": "sha256:c934c02d8533b55cc31f31d2271dd703cf2e1d1af6cace5fa9963fc8131ea3c3",
  "wheels": {}
 }

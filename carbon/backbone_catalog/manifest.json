@@ -3881,7 +3881,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:d011944a819f58f06c52c5d0f3b761712f57d638fbe3b633c65ad80d306b3c13",
+     "bundle_digest": "sha256:9379db37509f26554b2a77c39b646c1bff2fbaab710876d93085aa100f50745f",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -5649,7 +5649,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:95660979b403c19186c957152c7a4ff268c6e157b829228d08a93cd13832f3c0",
+     "bundle_digest": "sha256:9cf9b82406d8483822458ac560702b3aafed034617f6d404218cf7c01cd58b74",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -7376,7 +7376,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:bba6d993c20b327ec2a129255e7754f0681759e11075ff5f9dcb381d0df5cf80",
+     "bundle_digest": "sha256:df2f650963da5fd632c733b2e329b4e8a03da7166d6a8c492d17b0f2b5c6f071",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
@@ -9189,7 +9189,7 @@
    },
    "bundle_refs": {
     "jax-cuda13-py311": {
-     "bundle_digest": "sha256:a09959ad70994c48c0e0f0d92a39282a57beaa64f79562ae325e96585b656a57",
+     "bundle_digest": "sha256:c72342d26bcfb3df519b3901c0b356a0987927771cba1b9262a2b220b4f4b73d",
      "environment_digest": "sha256:c314980c55c89d1e8323a170f86555854c22d5f8f13af1fbd87fd627a351f0b2",
      "language": "python",
      "runtime_profile_id": "jax-cuda13-py311",
