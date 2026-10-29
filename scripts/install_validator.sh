@@ -133,6 +133,27 @@ while [[ $# -gt 0 ]]; do
 done
 
 repo_root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+# The host-level record that a validator install lives here (CARBON_HOST_ROLE_DIR, default ~/.carbon): install_miner.sh
+# refuses to build on this Docker daemon while it exists, because a miner install of the same tree retags a validator's
+# images (installer_role_conflict; val4090, 2026-10-29). Written after every successful install, or by --mark-installed
+# for an install made before this marker existed. Owner-only; lists the recorded image ids it protects.
+write_host_role_marker() {
+  local dir="${CARBON_HOST_ROLE_DIR:-${HOME}/.carbon}"
+  mkdir -p "${dir}" && chmod 700 "${dir}"
+  python3 - "${dir}/validator-host.json" "$(realpath -m -- "${STATE_DIR}")" "$@" <<'PY'
+import json
+import os
+import sys
+
+path, state, *images = sys.argv[1:]
+document = {"role": "validator", "state_dir": state, "recorded_images": sorted(set(images))}
+tmp = path + ".part"
+with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as stream:
+    stream.write(json.dumps(document, sort_keys=True) + "\n")
+os.replace(tmp, path)
+PY
+}
+
 if [[ "${mark_installed}" == 1 ]]; then
   # Record an install made before the host marker existed: its state must hold the recorded images.
   [[ -f "${STATE_DIR}/installed-images.json" ]] || { printf 'Carbon validator install stopped: --mark-installed needs an install in %s (installed-images.json is missing).\n' "${STATE_DIR}" >&2; exit 2; }
@@ -167,27 +188,6 @@ if [[ -z "${receiver_id}" && ( "${receiver_start}" == 1 || -n "${receiver_pack}"
   printf 'Carbon validator install stopped: --start-receiver and --pack need --receiver ID VERSION (the receiver is prepared first, then started).\n' >&2
   exit 2
 fi
-
-# The host-level record that a validator install lives here (CARBON_HOST_ROLE_DIR, default ~/.carbon): install_miner.sh
-# refuses to build on this Docker daemon while it exists, because a miner install of the same tree retags a validator's
-# images (installer_role_conflict; val4090, 2026-10-29). Written after every successful install, or by --mark-installed
-# for an install made before this marker existed. Owner-only; lists the recorded image ids it protects.
-write_host_role_marker() {
-  local dir="${CARBON_HOST_ROLE_DIR:-${HOME}/.carbon}"
-  mkdir -p "${dir}" && chmod 700 "${dir}"
-  python3 - "${dir}/validator-host.json" "$(realpath -m -- "${STATE_DIR}")" "$@" <<'PY'
-import json
-import os
-import sys
-
-path, state, *images = sys.argv[1:]
-document = {"role": "validator", "state_dir": state, "recorded_images": sorted(set(images))}
-tmp = path + ".part"
-with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as stream:
-    stream.write(json.dumps(document, sort_keys=True) + "\n")
-os.replace(tmp, path)
-PY
-}
 
 step() { printf '\n== %s\n' "$*"; }
 failures=()

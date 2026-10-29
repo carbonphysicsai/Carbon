@@ -179,8 +179,11 @@ def clean_environment():
     }
 
 
-def parent_ref(*args, repository=None):
+def parent_ref(*args, repository=None, role=None):
     env = clean_environment()
+    env.pop("CARBON_INSTALL_ROLE", None)
+    if role is not None:
+        env["CARBON_INSTALL_ROLE"] = role
     if repository is not None:
         env["CARBON_WORKER_PARENT_REPOSITORY"] = repository
     return subprocess.run(
@@ -193,11 +196,15 @@ def parent_ref(*args, repository=None):
 
 
 def test_a_local_build_names_the_parent_in_the_local_store():
-    done = parent_ref(PARENT_ID, SOURCE)
+    done = parent_ref(PARENT_ID, SOURCE, role="validator")
     assert done.returncode == 0
     # By tag only: a local image ID is not a registry digest (G-B1); each
-    # child tags the exact parent image first.
+    # child tags the exact parent image first. A validator keeps the names it has always used.
     assert done.stdout == "carbon-c03-worker:f07e01414c6600f0\n"
+    # A miner's name carries its role (worker_tag.sh), so it can never be a validator's.
+    miner = parent_ref(PARENT_ID, SOURCE, role="miner")
+    assert miner.returncode == 0 and miner.stdout != done.stdout
+    assert miner.stdout.startswith("carbon-c03-worker:")
 
 
 def test_a_release_builds_on_the_pushed_parent_by_registry_digest():
