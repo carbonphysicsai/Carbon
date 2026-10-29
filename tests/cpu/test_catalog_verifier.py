@@ -181,3 +181,30 @@ def test_no_practice_submission_rebuild_or_install_path_reads_the_snapshot():
     )
     for name in install_side:
         assert "catalog_verifier" not in (root / name).read_text(encoding="utf-8")
+
+
+def test_every_in_app_path_that_rebuilds_or_removes_catalog_images_bumps_the_generation():
+    """The Control Center's only launcher of the catalog install is catalog_build.start(), which bumps the
+    generation; image removal (superseded_images) runs only from the installer script, outside the app, and a
+    restart makes a new verifier. A change made outside the app (docker rmi) is covered by the 60 s stale rule.
+    """
+    root = Path(__file__).resolve().parents[2]
+    app = root / "scripts/dev/miner_launchpad"
+    launchers = {
+        path.name
+        for path in app.glob("*.py")
+        if '"scripts.dev.catalog_install"' in path.read_text(encoding="utf-8")
+    }
+    assert launchers == {"catalog_build.py"}
+    build = (app / "catalog_build.py").read_text(encoding="utf-8")
+    start = build.split("def start(", 1)[1]
+    assert "catalog_generation.bump()" in start.split("spawn(", 1)[0]
+    status = build.split("def status(", 1)[1].split("def start(", 1)[0]
+    assert "catalog_generation.bump()" in status
+    remover = {
+        path.name
+        for path in app.glob("*.py")
+        if "superseded_images" in path.read_text(encoding="utf-8")
+        and path.name != "superseded_images.py"
+    }
+    assert remover == set()

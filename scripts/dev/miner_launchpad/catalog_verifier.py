@@ -15,6 +15,8 @@ Rules (Validator ruling, 2026-10-29):
 - a result merely older than `STALE_SECONDS` is kept and shown with `stale: True` and its time while one run, on
   demand from a read, replaces it (no timer: a quiet machine's Docker sees no background load);
 - one run at a time; a read during a run starts no second one;
+- a change made outside the app (`docker rmi`, an owner CLI install) cannot be seen; it is covered only by the
+  stale rule, so a `ready` snapshot may be up to `STALE_SECONDS` old, which is fine because it is display only;
 - a failed run carries a stable code and a redacted type/code detail, never raw daemon text, paths or addresses.
 """
 
