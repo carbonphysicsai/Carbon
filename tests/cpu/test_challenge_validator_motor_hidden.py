@@ -29,6 +29,7 @@ from carbon.challenge_validator.motor_hidden import (
     DEPLOYMENT_SCHEMA,
     SOLVER_IMAGE,
     MotorHiddenAdapter,
+    check_document,
     open_store,
     overlap_key,
 )
@@ -311,6 +312,7 @@ def resigned(published, commitment, payload):
         ("rule", "answer_key_identity_mismatch"),
         ("window", "answer_key_no_window"),
         ("case", "answer_key_fingerprint_mismatch"),
+        ("case_malformed", "answer_key_malformed"),
         ("drop_reference", "answer_key_references_mismatch"),
         ("change_reference", "answer_key_references_mismatch"),
         ("other_image", "answer_key_references_mismatch"),
@@ -329,15 +331,20 @@ def test_a_correctly_signed_but_wrong_package_imports_nothing(
     elif change == "window":
         commitment["window"] = None
     elif change == "case":
-        # A deterministic tamper that stays inside the registered domain (a fresh draw
-        # can sit at the upper bound, where +1e-3 leaves the domain and the import
-        # refuses as malformed before the fingerprint check): move down at the top.
-        inputs = payload["document"]["cases"][0]["inputs"]
-        low, high = INPUT_BOUNDS["airgap_mm"]
-        before = inputs["airgap_mm"]
-        inputs["airgap_mm"] = before + 1e-3 if before + 1e-3 <= high else before - 1e-3
-        assert low <= inputs["airgap_mm"] <= high  # the tampered value is admissible
-        assert inputs["airgap_mm"] != before
+        case = payload["document"]["cases"][0]
+        inputs = case["inputs"]
+        low, high = INPUT_BOUNDS["current_angle_deg"]
+        original = inputs["current_angle_deg"]
+        # Change identity without violating the earlier domain/geometry gate.
+        inputs["current_angle_deg"] = low if original != low else high
+        assert inputs["current_angle_deg"] != original
+        assert check_document(payload["document"])[case["case_id"]] == inputs
+    elif change == "case_malformed":
+        payload["document"]["cases"][0]["inputs"]["airgap_mm"] = math.nextafter(
+            INPUT_BOUNDS["airgap_mm"][1], math.inf
+        )
+        with pytest.raises(ValueError):
+            check_document(payload["document"])
     elif change == "drop_reference":
         references.pop(first)
     elif change == "change_reference":
