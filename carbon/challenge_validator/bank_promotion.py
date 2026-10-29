@@ -15,6 +15,7 @@ from dataclasses import asdict, dataclass
 
 from carbon.battery.pool_store import PoolStore, StateError, canonical
 
+from . import operator_pause
 from .interface import digest, is_digest
 
 #: A Challenge version's evaluation over its whole pack set
@@ -501,6 +502,11 @@ class BankPromotion:
         # Absent real registration stays unavailable at the core binder.
         self.registered_source_receipt_sha256 = registered_source_receipt_sha256
 
+    def _state_dir(self):
+        """The validator state directory holding the operator's pause flag: the pool store's own directory."""
+        path = getattr(self.store, "path", None)
+        return None if path is None else path.parent
+
     def retain_private(self, submission_id, **original_evidence):
         """Resolve originals through the core and retain DEVELOPMENT metadata.
 
@@ -600,10 +606,21 @@ class BankPromotion:
             }
         outcome = compare_private_pair(pair, comparator)
         if outcome["outcome"] in CROWN_CHANGING:
+            if operator_pause.crowns_paused(self._state_dir()):
+                # The operator's pause: the grade stays filed, no repeat is spent and the incumbent is untouched;
+                # considering the contender again after the flag is removed decides it as normal.
+                return {
+                    "outcome": UNAVAILABLE,
+                    "reason": CROWNS_PAUSED,
+                    "evaluation_key": evaluation_key,
+                    "candidate": submission_id,
+                    "incumbent": (self.store.incumbent() or {}).get("model_id"),
+                }
+
             # A mark belongs to the grade's own evaluation key: a carried king's grade is filed under his old key.
-            own_key = lambda row: row.get(
-                "evaluation_key", evaluation_key
-            )  # noqa: E731
+            def own_key(row):
+                return row.get("evaluation_key", evaluation_key)
+
             marked = {
                 row["submission_id"]: self.store.repeat_verified(
                     row["submission_id"], own_key(row)
@@ -742,6 +759,8 @@ CROWN_CHANGING = frozenset({FIRST_INCUMBENT, CHALLENGER, DETHRONED})
 FAILED_INFRA = "FAILED_INFRA"
 REPEAT_MISMATCH = "crown_repeat_grade_mismatch"
 REPEAT_UNAVAILABLE = "crown_repeat_grade_unavailable"
+#: The operator paused crown changes (`operator_pause`); the miner sees only UNAVAILABLE.
+CROWNS_PAUSED = "crowns_paused"
 ALERT_SCHEMA = "carbon.challenge-validator.crown-grade-alert.v1"
 
 

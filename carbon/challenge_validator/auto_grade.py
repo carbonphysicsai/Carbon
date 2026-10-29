@@ -11,6 +11,9 @@ Safety properties:
 - **Once.** A create-only marker per task. Retention consumes a task's single inference
   pair, so a failed attempt is never retried by itself: its marker records the typed
   code, and an operator deletes the marker to retry.
+- **Paused crowns resume by themselves.** A crown decision the operator paused
+  (`operator_pause`) is filed in the pool store; once the flag is gone each tick first makes those
+  decisions again (`crown_pause_sweep`), from the filed evaluation, with no regrade.
 - **Not while building.** Grading and the construction `advance` pass share one lock, so
   a grade never competes with a reconstruction for the host.
 - **Never a candidate failure.** An unavailable retention is recorded as infrastructure
@@ -82,6 +85,7 @@ class AutoGrader:
         ``state`` is GRADED, FAILED or PENDING (nothing written for PENDING)."""
         from .lean_recipe_retention import RetentionUnavailable
 
+        self._resume_paused_crowns()
         for submission_id in self.pending():
             try:
                 result = self.intake.retain_result(
@@ -117,6 +121,28 @@ class AutoGrader:
             )
             return submission_id, "GRADED"
         return None
+
+    def _resume_paused_crowns(self):
+        """Make the crown decisions the operator's pause withheld, once it is lifted."""
+        from . import crown_pause_sweep
+        from .lean_recipe_retention import reconsider_paused_pack
+
+        pool = self._pool()
+        if pool is None or not hasattr(pool, "paused_crowns"):
+            return
+        adapter = self.intake.adapter
+        crown_pause_sweep.sweep(
+            pool,
+            lambda record: reconsider_paused_pack(
+                adapter,
+                pool,
+                record,
+                artifact_directory=self.artifacts,
+                entry_directory=self.entries,
+            ),
+            kind="pack",
+            current_exam=adapter.discovery.evaluation_pack_digest,
+        )
 
     def _keep(self, submission_id, failure):
         """The full traceback of a failed grade, and a worker failure's closed code and

@@ -13,6 +13,7 @@ from pathlib import Path
 from carbon.chain import ChainContext
 from carbon.chain.models import ChainFailure, identifier
 from carbon.chain.publication import PublicationFailure
+from carbon.challenge_validator import operator_pause
 
 from .bundle import SetupRefused
 
@@ -109,6 +110,11 @@ async def execute(args):
     from carbon.rewards import testnet_winner_publication as publication
 
     config = load_config(Path(args.config).absolute())
+    if args.action != "preview" and operator_pause.weights_paused(
+        Path(args.journal).parent
+    ):
+        # The operator's pause, before any issuer, reader or wallet access; preview stays available.
+        raise SetupRefused(operator_pause.WEIGHTS_PAUSED)
     if args.action == "preview":
         # The operator image has a read-only root and no implicit writable /tmp.
         # This explicit journal parent is already a required state mount; each

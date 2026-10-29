@@ -108,6 +108,73 @@ def _set_exam_facts(batch_adapters, batches):
     return versions.pop(), list(gates.pop())
 
 
+def reconsider_paused_set(
+    promotion,
+    batch_adapters,
+    batches,
+    record,
+    *,
+    artifact_directory,
+    entry_directory,
+    runner=None,
+):
+    """Make a paused set contender's crown decision again: the set evaluation is derived again from the stored
+    per-batch evaluations (idempotent), with no regrade, no exam-cap slot and no Ladder document. Its repeat
+    grade of every batch is the only extra grade, uncounted."""
+    return _contend_set(
+        promotion,
+        batch_adapters,
+        batches,
+        record["exam"],
+        record["submission_id"],
+        {record["pin"]},
+        _set_repeat(
+            batch_adapters,
+            batches,
+            record["exam"],
+            record["submission_id"],
+            record["entry_id"],
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+            runner=runner,
+        ),
+    )
+
+
+def resume_paused_sets(
+    promotion,
+    batch_adapters,
+    batches,
+    set_key,
+    *,
+    artifact_directory,
+    entry_directory,
+    runner=None,
+):
+    """The sweep of the set path (`crown_pause_sweep`): set grading is an operator step, so its paused contenders
+    are made again at the start of the next one, once the flag is gone."""
+    from . import crown_pause_sweep
+    from .bank_promotion import BankPromotion
+
+    store = getattr(promotion, "store", promotion)
+    if not hasattr(store, "paused_crowns"):
+        return []
+    return crown_pause_sweep.sweep(
+        store,
+        lambda record: reconsider_paused_set(
+            BankPromotion(store, registered_source_receipt_sha256=record["pin"]),
+            batch_adapters,
+            batches,
+            record,
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+            runner=runner,
+        ),
+        kind="set",
+        current_exam=set_key,
+    )
+
+
 def grade_set_entry(
     batch_adapters,
     *,
@@ -131,6 +198,17 @@ def grade_set_entry(
     from . import exam_cap
 
     primary = batch_adapters[batches[0]]
+    if promotion is not None:
+        # Contenders the operator's pause withheld are decided first, oldest first.
+        resume_paused_sets(
+            promotion,
+            batch_adapters,
+            batches,
+            set_key,
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+            runner=runner,
+        )
     base = retention._owner_directory(artifact_directory, "artifact_directory")
     entries = retention._owner_directory(entry_directory, "entry_directory")
     entry, origin, owner, _manifest, files, _recipe = retention._regrade_origin(
@@ -233,6 +311,7 @@ def _set_repeat(batch_adapters, batches, set_key, origin, entry_id, **custody):
             "evidence": build_set_evidence(set_key, bodies),
         }
 
+    repeat.entry_id = entry_id
     return repeat
 
 
@@ -272,7 +351,7 @@ def _contend_set(
         comparator = koth_registry.comparator_for_set(
             batch_adapters[batches[0]].challenge_id, packs, accuracies
         )
-        return promotion.consider_private(
+        outcome = promotion.consider_private(
             origin,
             filed["evaluation_key"],
             comparator,
@@ -281,5 +360,9 @@ def _contend_set(
             ),
             repeat=repeat,
         )
+        retention._file_if_paused(
+            promotion.store, outcome, "set", origin, set_key, repeat, pin
+        )
+        return outcome
     except Exception as exc:  # noqa: BLE001 - a pool refusal never unbinds the grade
         return {"error": str(getattr(exc, "code", None) or type(exc).__name__)}

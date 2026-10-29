@@ -1478,6 +1478,15 @@ def _contend(
             sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
             repeat=repeat,
         )
+        _file_if_paused(
+            promotion.store,
+            outcome,
+            "pack",
+            submission_id,
+            discovery.evaluation_pack_digest,
+            repeat,
+            pin,
+        )
     # A pool refusal, whatever its type, never unbinds the evaluation.
     except Exception as exc:  # noqa: BLE001
         return {
@@ -1492,6 +1501,64 @@ def _contend(
         "reason": outcome["reason"],
         "evaluation_key": outcome["evaluation_key"],
     }
+
+
+def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
+    """A crown decision the operator paused is filed, so it is made again once the flag is gone
+    (`crown_pause_sweep`). Anything else files nothing."""
+    from carbon.challenge_validator.bank_promotion import CROWNS_PAUSED
+
+    entry_id = getattr(repeat, "entry_id", None)
+    if outcome.get("reason") != CROWNS_PAUSED:
+        return
+    if entry_id is None:
+        raise RetentionUnavailable("crown_paused_entry_unavailable")
+    store.record_crown_paused(
+        submission_id,
+        outcome["evaluation_key"],
+        kind=kind,
+        exam=exam,
+        entry_id=entry_id,
+        pin=pin,
+    )
+
+
+def reconsider_paused_pack(
+    adapter, pool_store, record, *, artifact_directory, entry_directory, runner=None
+):
+    """Make a paused contender's crown decision again from its filed evaluation: no regrade, no exam-cap slot and
+    no Ladder document. Its repeat grade is the only extra grade, uncounted, as in `repeat_grade`.
+    """
+    from carbon.challenge_validator import koth_registry
+    from carbon.challenge_validator.bank_promotion import BankPromotion
+
+    discovery = adapter.discovery
+    score_pack = discovery.evaluation_pack_snapshot.read_json_role(
+        discovery.evaluation_pack_private_root, "private", "score_pack", max_bytes=65536
+    )
+    accuracy = discovery.evaluation_pack_snapshot.read_json_role(
+        discovery.evaluation_pack_public_root,
+        "public",
+        "accuracy_definition",
+        max_bytes=65536,
+    )
+    promotion = BankPromotion(
+        pool_store, registered_source_receipt_sha256=record["pin"]
+    )
+    return promotion.consider_private(
+        record["submission_id"],
+        record["evaluation_key"],
+        koth_registry.comparator(adapter.challenge_id, score_pack, accuracy),
+        sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
+        repeat=_repeat_of(
+            adapter,
+            record["submission_id"],
+            record["entry_id"],
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+            runner=runner,
+        ),
+    )
 
 
 def _timing_step(adapter):
@@ -2339,6 +2406,8 @@ def _repeat_of(adapter, origin, entry_id, **custody):
             "evidence": repeat_grade(adapter, entry_id, **custody),
         }
 
+    # The retained entry this repeat runs from: what a paused crown decision files to be made again.
+    repeat.entry_id = entry_id
     return repeat
 
 
@@ -2499,9 +2568,7 @@ def regrade_retained_entry(
         )
         operations = json.loads(_private_measurement_bytes(operations_path, 65536))
         worker_evidence = (
-            _private_measurement_bytes(
-                task_root / "worker-evidence.json", 16 * 1024**2
-            )
+            _private_measurement_bytes(task_root / "worker-evidence.json", 16 * 1024**2)
             if kind == "graph"
             else None
         )
