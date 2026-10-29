@@ -336,7 +336,7 @@ def test_a_passed_change_files_a_mark_for_each_repeated_grade_and_a_failed_one_n
 
     def flipped(model):
         row = again(model)
-        row["evidence"]["model_p"]["total_score"] += 2**-52
+        row["evidence"]["model_p"]["total_score"] += 0.2  # beyond the registered 0.1
         return row
 
     failed = Store(fixed)

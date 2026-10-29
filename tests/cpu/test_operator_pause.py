@@ -529,3 +529,17 @@ def test_the_auto_grade_tick_resumes_pack_decisions_before_new_grades(
     assert auto.run_once() is None
     assert [r["submission_id"] for r in calls] == ["a"]
     assert store.paused_crowns() == []
+
+
+def test_a_grade_that_is_not_paused_never_reads_the_exam_digest(tmp_path):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    store = pool(tmp_path)
+
+    def exam():
+        raise AssertionError("only a paused decision needs the exam digest")
+
+    retention._file_if_paused(
+        store, decided() | {"evaluation_key": KEY_A}, "pack", "a", exam, None, PIN
+    )
+    assert store.paused_crowns() == []
