@@ -824,6 +824,18 @@
     const build = value?.gpu_build;
     return JSON.stringify([value?.registered_hotkey ?? null, value?.steps ?? null, value?.status?.done ?? null, build?.state ?? null, build?.offered ?? null, value?.images?.gpu_image_manifest?.path ?? null]);
   }
+  function catalogBuildKey(build) {
+    return build ? JSON.stringify([build.state, build.installed ?? null, build.total ?? null, build.readiness?.checked ?? null, build.readiness?.status ?? null]) : "";
+  }
+  // The catalog's own install, started from this page only; its status is what comes back.
+  async function startCatalog() {
+    try {
+      const result = await api("/api/v1/page/catalog_install", {start: true});
+      if (setupState) setupState.catalog_build = {...(setupState.catalog_build || {}), ...result};
+      message("Installing the backbone catalog in the background.");
+    } catch (error) { message(error.message || "Could not start the catalog install.", true); }
+    render();
+  }
   async function pollSetup() {
     if (!connected || setupPolling || ++setupPolls % 3) return;
     setupPolling = true;
@@ -832,6 +844,10 @@
       const changed = setupKey(fresh) !== setupKey(setupState);
       // A running GPU worker build: its progress, in place.
       if (!changed && setupState && fresh.gpu_build) setupState.gpu_build = fresh.gpu_build;
+      // The catalog install and its readiness check: kept current in place; only a change of state or count redraws.
+      const catalogChanged = catalogBuildKey(fresh.catalog_build) !== catalogBuildKey(setupState?.catalog_build);
+      if (!changed && setupState && fresh.catalog_build !== undefined) setupState.catalog_build = fresh.catalog_build;
+      if (catalogChanged && !changed) render();
       if (fresh.gpu_build?.state === "running") setText($("setup-gpu-build-progress"), gpuBuildText(fresh.gpu_build));
       if (changed) {
         setupState = fresh; setupVersion++;
@@ -2640,7 +2656,15 @@
       : {ok: false, area: "Challenges", item: caps.challenges.find(entry => entry.implemented) || caps.challenges[0]});
     // U30: a catalog version cannot practise until its backbone catalog is
     // installed here, so setup is not done while none is.
-    const uninstalled = selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed === 0);
+    // The install's own state (setup): until it has been measured, or when the daemon could not be read, the
+    // page never says nothing is installed.
+    const build = setupState?.catalog_build;
+    const unmeasured = build && ["VERIFYING", "UNKNOWN"].includes(build.state);
+    const uninstalled = unmeasured ? [] : selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed === 0);
+    if (build?.state === "VERIFYING") items.push({ok: null, label: "Checking", text: "Checking which backbones are installed on this machine" + (Number.isInteger(build.readiness?.checked) && Number.isInteger(build.readiness?.total) ? ": " + build.readiness.checked + " of " + build.readiness.total + " checked" : "") + ". This runs in the background."});
+    if (build?.state === "UNKNOWN") items.push({ok: null, label: "Checking", text: "Couldn't check which backbones are installed on this machine" + (build.readiness?.code ? " (" + words(build.readiness.code) + ")" : "") + "; trying again."});
+    if (build?.state === "RUNNING") items.push({ok: null, label: "Installing", text: "Installing the backbone catalog in the background" + (Number.isInteger(build.installed) && Number.isInteger(build.total) ? ": " + build.installed + " of " + build.total + " installed" : "") + "."});
+    if (build && ["INCOMPLETE", "STOPPED"].includes(build.state)) items.push({ok: null, label: "Not finished", text: build.note || "The backbone catalog is not fully installed.", action: {label: "Install the catalog again", run: startCatalog}});
     if (uninstalled.length) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_not_installed", plain: {sentence: "No backbone is installed on this machine for " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ") + ", so a catalog campaign on " + (uninstalled.length === 1 ? "it" : "them") + " can't practise yet.", next: null}, next_action: "Install it on this machine: python -B -m scripts.dev.catalog_install --state-dir <your state directory> (in your Carbon checkout). Not installed for: " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ")}});
     // What is installed is checked in the background (a full catalog takes a while). While it runs the
     // page shows the progress and never a count; a check that could not finish is said so and can be
@@ -2655,7 +2679,7 @@
     if (stale) items.push({ok: null, label: "Checking", text: "What is installed was last checked " + (Number.isFinite(stale.checked_at) ? Math.max(1, Math.round((Date.now() / 1000 - stale.checked_at) / 60)) + " minute(s) ago" : "a while ago") + "; it is being checked again."});
     // Some of a version's backbones installed and some not: said as it is, not as "not installed".
     const partly = selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed > 0 && entry.catalog_install.installed < entry.catalog_install.entries);
-    if (partly.length) items.push({ok: null, text: "Backbone catalog partly installed: " + partly.map(entry => entry.title + " " + entry.version + " " + entry.catalog_install.installed + " of " + entry.catalog_install.entries).join(", ") + ". The rest cannot be practised until they are installed; run the install again to retry them."});
+    if (partly.length) items.push({ok: null, text: "Backbone catalog partly installed: " + partly.map(entry => entry.title + " " + entry.version + " " + entry.catalog_install.installed + " of " + entry.catalog_install.entries).join(", ") + ". The rest cannot be practised until they are installed; run the install again to retry them.", action: setupState?.catalog_build && !["RUNNING", "VERIFYING", "UNKNOWN"].includes(setupState.catalog_build.state) ? {label: "Install the catalog again", run: startCatalog} : undefined});
     const agents = agentChoices().filter(choice => choice.availability === "available");
     items.push(agents.length
       ? {ok: true, text: "Agents ready: " + agents.map(choice => choice.label).join(", ") + "."}
@@ -2680,6 +2704,7 @@
         const entry = el("li", undefined, item.ok ? "ok" : "pending");
         entry.append(pill(item.ok ? "Ready" : (item.label || "At launch"), item.ok ? "pill-done" : "pill-wait"), el("span", item.text));
         if (item.fix) entry.append(link(item.fix));
+        if (item.action) { const act = el("button", item.action.label, "secondary"); act.type = "button"; act.dataset.catalogInstall = "start"; act.addEventListener("click", () => item.action.run()); entry.append(act); }
         if (item.detail) details(entry, "Details", item.detail);
         list.append(entry);
         continue;
@@ -2756,7 +2781,7 @@
     renderGettingStarted();
     const list = $("overview-prerequisites");
     if (!connected || !caps) rebuild(list, "disconnected", target => target.append(el("li", "Connect to read what this controller can do.", "hint")));
-    else rebuild(list, "caps:" + capsVersion + ":" + catalogProgress(), target => renderReadiness(target, prerequisites()));
+    else rebuild(list, "caps:" + capsVersion + ":" + catalogProgress() + ":" + catalogBuildKey(setupState?.catalog_build), target => renderReadiness(target, prerequisites()));
     const live = research.runs.filter(run => !TERMINAL.includes(run.state));
     const shown = connected ? (live.length ? live : research.runs.slice(0, 3)) : [];
     rebuild($("overview-active"), JSON.stringify([connected, research.runs.length, shown.map(cardKey), capsVersion]), active => {
