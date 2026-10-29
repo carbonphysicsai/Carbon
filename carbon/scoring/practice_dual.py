@@ -18,6 +18,7 @@ times (graded run plus the two fresh repeats the paired-repeat gate compares).
 
 from __future__ import annotations
 
+import logging
 import math
 
 from carbon.challenge_kit import physical_pack
@@ -37,6 +38,15 @@ class PracticeDualRefused(ValueError):
     def __init__(self, code):
         self.code = code
         super().__init__(code)
+
+
+_PRIVATE_LOG = logging.getLogger("carbon.practice.private")
+
+
+def _record(stage, exc):
+    """Keep the exception's message and traceback in the operator's private log. The practice document a miner sees
+    carries only the typed reason (the exception's type name), never this text."""
+    _PRIVATE_LOG.error("practice %s failed: %r", stage, exc, exc_info=exc)
 
 
 def _unavailable(adapter, reason):
@@ -95,6 +105,7 @@ def feedback(adapter, predict):
     try:
         bank, public, names, rows = _rows(adapter)
     except (KeyError, ValueError, FileNotFoundError) as exc:
+        _record("bank", exc)
         return _unavailable(adapter, f"practice_bank_unavailable:{type(exc).__name__}")
     definition = {
         **adapter.definition(bank=bank, train_raw=public["train"]),
@@ -104,7 +115,8 @@ def feedback(adapter, predict):
     inputs = [row["inputs"] for row in rows]
     try:
         graded, first, second = (list(map(list, predict(inputs))) for _ in range(3))
-    except Exception:
+    except Exception as exc:
+        _record("predict", exc)
         return _unavailable(adapter, "practice_predict_failed")
     try:
         measured = adapter.measure(
@@ -118,6 +130,7 @@ def feedback(adapter, predict):
             names=names,
         )
     except adapter.Refused as exc:
+        _record("measure", exc)
         return _unavailable(adapter, f"practice_{exc.code}")
     # Practice queries the model once, so the paired-repeat gate has nothing to
     # compare: it is shown as not tested (never PASS) and does not count toward
@@ -328,6 +341,7 @@ def feedback_v2(kind, version, predict):
         names = practice_grid.input_names(kind, version)
         rows = physical.bank_rows(bank, names)
     except (KeyError, ValueError, FileNotFoundError, OSError) as exc:
+        _record("bank", exc)
         return unavailable_v2(
             kind, version, f"practice_bank_unavailable:{type(exc).__name__}"
         )
@@ -339,7 +353,8 @@ def feedback_v2(kind, version, predict):
     inputs = [row["inputs"] for row in rows]
     try:
         graded, first, second = (list(map(list, predict(inputs))) for _ in range(3))
-    except Exception:
+    except Exception as exc:
+        _record("predict", exc)
         return unavailable_v2(kind, version, "practice_predict_failed")
     try:
         measured = adapter.measure(
@@ -353,6 +368,7 @@ def feedback_v2(kind, version, predict):
             names=names,
         )
     except ValueError as exc:
+        _record("measure", exc)
         code = getattr(exc, "code", type(exc).__name__)
         return unavailable_v2(kind, version, f"practice_{code}")
     gates = {
