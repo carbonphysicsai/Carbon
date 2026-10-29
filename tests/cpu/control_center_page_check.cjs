@@ -443,6 +443,33 @@ async function runsScreen(direction) {
   await page.advance(0);
   return {page, tiles: [...all(page, "#campaign-detail .run-tile")].map(node => node.textContent)};
 }
+async function practiceBackendScreen(backends, gpuLane) {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  backends.forEach((backend, i) => { state.view.experiments.rows[i].backend = backend; });
+  if (gpuLane) state.caps.compute.choices[0].lanes.gpu = {availability: gpuLane};
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  return {page, text: page.text("campaign-detail")};
+}
+const CPU_NOTE = "You practised on CPU. The official grade rebuilds your model on the validator's GPU, and close to a physics check the result can differ.";
+scenario("a CPU practice says the official grade rebuilds on the validator's GPU; a GPU practice does not", async () => {
+  const gpuOnly = await practiceBackendScreen(["ISOLATED_CARRIER_GPU", "C03_DOCKER_GPU", "REMOTE_GPU"], "available");
+  assert.ok(!gpuOnly.text.includes("You practised on CPU"), "no note when every run was on a GPU");
+  assert.equal(all(gpuOnly.page, "#campaign-detail .cpu-practice-note").length, 0);
+  const cpu = await practiceBackendScreen(["C03_DOCKER", "ISOLATED_CARRIER_GPU"], undefined);
+  assert.ok(cpu.text.includes(CPU_NOTE), "the CPU note appears");
+  assert.ok(!cpu.text.includes("usable GPU"), "no GPU recommendation when this machine has no usable GPU");
+  const old = await practiceBackendScreen(["ISOLATED_CARRIER"], "available");
+  assert.ok(old.text.includes(CPU_NOTE) && old.text.includes("This machine has a usable GPU: practise on it to match how the official grade rebuilds."), "recommends GPU practice where one is usable");
+  assert.equal(one(old.page, "#campaign-detail a[href='#setup/compute']").textContent, "Choose GPU practice in Compute setup");
+  const unknown = await practiceBackendScreen([""], "available");
+  assert.ok(!unknown.text.includes("You practised on CPU"), "a run with no recorded backend gets no guess");
+  clean(cpu.page);
+});
 scenario("the runs screen's best tile is the lowest passing score when lower is better", async () => {
   const {page, tiles} = await runsScreen("lower_is_better");
   const best = tiles.find(text => text.startsWith("Best passing score (lower is better)"));

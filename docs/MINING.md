@@ -41,6 +41,8 @@ Carbon's launch supports **one** setup, and a run on it is guaranteed:
 
 **Minimum NVIDIA driver.** Carbon's GPU builds (the PyTorch and JAX runtimes) are built on CUDA 13.0, and NVIDIA's table of the driver each toolkit needs gives CUDA 13.0 on Linux x86-64 as 580.65.06 or newer (later CUDA 13.x runs on any 580 driver). Source: [NVIDIA CUDA Toolkit 13.0 release notes](https://docs.nvidia.com/cuda/archive/13.0.0/cuda-toolkit-release-notes/index.html). An older driver is not blocked; a GPU practice that cannot start on it says "driver too old" and practises on CPU.
 
+**CPU practice and the official grade.** The official grade always rebuilds your model on the validator's GPU. A practice that ran on CPU says so under its result ("You practised on CPU. The official grade rebuilds your model on the validator's GPU, and close to a physics check the result can differ."): close to a physics check, a CPU result can pass where the GPU rebuild fails, or the other way round. Where this machine has a usable GPU, the page recommends practising on it; choose GPU practice under Compute in Setup. This is a note only: it changes no grade and no gate.
+
 **Any other setup gets a warning, not a block.** The installer, and a note at the top of the Control Center, say: *this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run*, and list what differs (system, Docker, memory, CPUs, disk, driver) and anything it could not check. Other Docker versions and other Linux distributions are planned after launch.
 
 **A rented GPU pod (for example Lium).** Measured on three different pods (RTX 3090, RTX 5070 Ti, RTX 6000 Ada), which all behave the same way:
