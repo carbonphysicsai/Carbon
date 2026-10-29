@@ -778,6 +778,22 @@ def _context_path(value: Path, root: Path) -> Path:
     return value
 
 
+def _recorded_context(recorded, root: Path) -> Path:
+    """The context a record names: a relative path is taken under THIS host's context root
+    (host-portable records); an absolute path (an earlier record) must lie under the root as
+    before. Either way `_context_path` still demands a real, unlinked directory under the
+    root, and the context digest and bundle/parent bindings are checked by the caller.
+    """
+    if type(recorded) is not str or not recorded or "\\" in recorded:
+        raise ValueError("cached context is outside the installed context root")
+    path = Path(recorded)
+    if path.is_absolute() or recorded.startswith("/"):
+        return path
+    if ".." in path.parts or "." in path.parts or not isinstance(root, Path):
+        raise ValueError("cached context is outside the installed context root")
+    return root / path
+
+
 def store_verified_library_worker_image(
     path: Path,
     image: LibraryWorkerImage,
@@ -805,7 +821,9 @@ def store_verified_library_worker_image(
         "parent": asdict(image.parent),
         "provisioned": {
             "parent_image": image.provisioned.parent_image,
-            "context": str(image.provisioned.context),
+            # Relative to the context root, so the record is host-portable: the same record loads
+            # on a host that keeps its state under another path (the digests still decide).
+            "context": context.relative_to(context_root).as_posix(),
             "context_digest": image.provisioned.context_digest,
             "image_id": image.provisioned.image_id,
         },
@@ -873,7 +891,9 @@ def load_cached_library_worker_image(
     try:
         bundle = LibraryBundleRef.from_dict(record["bundle"])
         parent_image = WorkerImageIdentity(**parent)
-        context = _context_path(Path(provisioned["context"]), context_root)
+        context = _context_path(
+            _recorded_context(provisioned["context"], context_root), context_root
+        )
         environment = ProvisionedLibraryEnvironment(
             bundle=bundle,
             parent_image=_digest(provisioned["parent_image"]),
