@@ -134,3 +134,15 @@ def test_an_entry_named_by_id_raises_and_is_not_retried(harness):
             ids=[catalog_install.pipeline.load()["entries"][0]["catalog_id"]],
         )
     assert len(calls) == 1 and sleeps == []
+
+
+def test_the_recorded_cause_carries_no_address_and_the_cap_holds_with_the_suffix():
+    failure = WorkerFailure(
+        WorkerCode.UNAVAILABLE,
+        private_diagnostic=b"dial tcp 10.1.2.3:2376: timeout to docker.example:2376",
+    )
+    detail = catalog_install._diagnostic(failure)
+    assert "10.1.2" not in detail and "2376" not in detail and "timeout" in detail
+    long = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"x " * 400)
+    capped = catalog_install._diagnostic(long, " (retried once)")
+    assert len(capped) == 300 and capped.endswith(" (retried once)")

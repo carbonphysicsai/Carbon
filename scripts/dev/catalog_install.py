@@ -52,7 +52,13 @@ def _transient(failure):
     return isinstance(failure, WorkerFailure) and failure.code == WorkerCode.UNAVAILABLE
 
 
-def _diagnostic(failure):
+#: A word of a daemon line that could name a path, an address, a host:port or a token.
+_SENSITIVE = re.compile(
+    r"[/\\]|\d{1,3}(?:\.\d{1,3}){3}|:\d+[.,;]?$|[A-Za-z0-9+=_-]{24,}"
+)
+
+
+def _diagnostic(failure, suffix=""):
     """A short, path-safe cause for a skipped entry: the failure type, its stable code and, for a worker failure, the
     last line of its private diagnostic with every path-like or long token removed. Nothing else leaves the host.
     """
@@ -65,11 +71,10 @@ def _diagnostic(failure):
     if lines:
         line = lines[-1]  # the daemon's own last word, not the exit-code header
         words = [
-            "<redacted>" if re.search(r"[/\\]|[A-Za-z0-9+=_-]{24,}", word) else word
-            for word in line.split()
+            "<redacted>" if _SENSITIVE.search(word) else word for word in line.split()
         ]
         text += " (" + " ".join(words)[:120] + ")"
-    return re.sub(r"[^ -~]", "?", text)[:300]
+    return re.sub(r"[^ -~]", "?", text)[: 300 - len(suffix)] + suffix
 
 
 def _declares_wheels(item):
@@ -180,7 +185,7 @@ def install(
         except Exception as failure:  # one entry never stops the rest
             if catalog_ids:
                 raise
-            detail = _diagnostic(failure) + (" (retried once)" if retried else "")
+            detail = _diagnostic(failure, " (retried once)" if retried else "")
             print(
                 f"skipped {catalog_id}: its install failed: {detail}", file=sys.stderr
             )
