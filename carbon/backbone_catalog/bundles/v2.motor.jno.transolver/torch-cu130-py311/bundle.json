@@ -1,0 +1,17 @@
+{
+ "accelerator": "cuda13",
+ "architecture": "amd64",
+ "base_environment_digest": "sha256:9b947608d31daccdb2230d6d64a04893253064b89328eaeda8098b75b9d18400",
+ "environment_digest": "sha256:f1c08e0e41ecc2b700c2775d8578275671f7ed7a7eff952ba02c881f2da85f8e",
+ "language": "python",
+ "license_sha256": "sha256:bb3d1375474bfb81426f3c70ca51d1c3bfe898fe2184f9cb7461eb93ab8eed5b",
+ "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+ "name": "motor-stress-t-transolver-baseline-v2",
+ "os": "linux",
+ "python_abi": "cp311",
+ "runtime_profile_id": "torch-cu130-py311",
+ "schema": "carbon.development.library-bundle.v1",
+ "source_bytes": 21114,
+ "source_sha256": "sha256:82ae617ba4458a3458fea4382995a0b2a5ea0e5cdb83110c26987e592638adc2",
+ "wheels": {}
+}

@@ -1,0 +1,1 @@
+torch-harmonics==0.7.4 --hash=sha256:326941e127489f7fa133fe4fd22f043f06e0fe8c5e344200392fd9da7ec0ab72

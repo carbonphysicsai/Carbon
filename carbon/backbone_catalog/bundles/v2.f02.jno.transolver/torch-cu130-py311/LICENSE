@@ -1,0 +1,34 @@
+Third-party licences for this bundle
+=====================================
+
+This bundle's source archive holds Carbon's own glue code (carbon_candidate/) and the third-party components listed
+below; the pinned wheels (if any) are installed beside it. This file reproduces the licences of those third-party
+components, unmodified. It is not a licence for Carbon's own code.
+
+Used from the base worker image, not vendored here: torch (BSD-3-Clause and others), einops (MIT), timm (Apache-2.0).
+
+------------------------------------------------------------------------------
+Vendored source tree: Transolver-75e0f67643806a81cd1d3f6adc88dd8c02416fe7  (upstream: thuml/Transolver @ 75e0f67)
+Licence file in the archive: Transolver-75e0f67643806a81cd1d3f6adc88dd8c02416fe7/LICENSE
+------------------------------------------------------------------------------
+MIT License
+
+Copyright (c) 2024 THUML @ Tsinghua University
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
