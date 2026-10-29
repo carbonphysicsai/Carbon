@@ -6,6 +6,27 @@ are covered where the gate is (`test_crown_grade_repeat`).
 """
 
 
+def stored_grade_repeat(store):
+    """``repeat`` for a flow test that files its own evaluation: the one evaluation the store holds for the state, again."""
+    import json
+
+    def repeat(submission_id):
+        with store.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='private_evaluation.v1'"
+            ).fetchall()
+        mine = [
+            json.loads(raw)
+            for (raw,) in rows
+            if json.loads(raw)["submission_id"] == submission_id
+        ]
+        if len(mine) != 1:
+            raise LookupError("one stored grade per state in these tests")
+        return {"submission_id": submission_id, "evidence": mine[0]["evidence"]}
+
+    return repeat
+
+
 def identical_repeat(store, key, pin):
     """``repeat`` for `consider_private`: each state's stored grade under ``key``, again."""
 

@@ -27,6 +27,7 @@ from carbon.challenge_validator.bank_promotion import (
     UNAVAILABLE,
     BankPromotion,
     carry_identity,
+    grade_fingerprint,
     private_evaluation_key,
 )
 from carbon.rewards.winner_eligibility import WinnerLedger, lean_promotion
@@ -153,6 +154,11 @@ def _old_deployment(tmp_path, total=0.80):
     store = PoolStore(tmp_path / "f08-1.4.sqlite", clock=lambda: 100.0)
     store.king_key = _file(store, "king", "king-hotkey", "1.4", total, pin=OLD_PIN)
     store.set_incumbent("king", SEALED_TESTNET_PROMOTION)
+    # He was repeat-verified when he took the crown; the mark travels with him in the carry.
+    graded = store.private_evaluation_body(
+        "king", store.king_key, registered_source_receipt_sha256=OLD_PIN
+    )
+    store.record_repeat_verified("king", store.king_key, grade_fingerprint(graded))
     return store
 
 

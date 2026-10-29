@@ -913,8 +913,12 @@ def _retain_selected_pack_evaluation(
     evidence=None,
     regrade=None,
     pool_store=None,
+    repeat=None,
 ):
-    """Apply only trusted, versioned measurement evidence after bank custody."""
+    """Apply only trusted, versioned measurement evidence after bank custody.
+
+    ``repeat`` is the crown decision's second grade of an ordinary retention (a regrade carries its own).
+    """
     if result.get("evaluation_pack_digest") is None:
         return result
     cap = reservation = None
@@ -1179,7 +1183,7 @@ def _retain_selected_pack_evaluation(
                 artifacts,
                 bind_inputs,
                 source_pin,
-                regrade.repeat if regrade is not None else None,
+                regrade.repeat if regrade is not None else repeat,
             )
     except (
         ImportError,
@@ -1572,6 +1576,17 @@ def _grade_selected_pack(
             artifacts,
             evidence,
             pool_store=pool_store,
+            repeat=(
+                _repeat_of(
+                    adapter,
+                    submission_id,
+                    bound.get("entry_id"),
+                    artifact_directory=artifact_directory,
+                    entry_directory=entry_directory,
+                )
+                if pool_store is not None
+                else None
+            ),
         )
     return _counted_bank_grade(
         adapter,

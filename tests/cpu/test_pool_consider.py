@@ -21,6 +21,7 @@ from carbon.scoring import physical_dual_pack
 from carbon.scoring import private_evaluation_evidence as evidence
 from carbon.scoring import private_evaluation_source as source
 from carbon.scoring.engine import ScoreEngine
+from tests.cpu._crown_repeat import stored_grade_repeat
 
 
 def _intent(adapter, submission_id):
@@ -81,7 +82,12 @@ def _setup(tmp_path, monkeypatch, *, registered=True):
         fixture.koth = _register_koth(
             monkeypatch, tmp_path, fixture.adapter.challenge_id
         )
-    return fixture, PoolStore(tmp_path / "pool.sqlite", clock=lambda: 123.0)
+    store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: 123.0)
+    # The flow is under test, not a real regrade: the second grade is the stored grade again.
+    monkeypatch.setattr(
+        retention, "_repeat_of", lambda *args, **kwargs: stored_grade_repeat(store)
+    )
+    return fixture, store
 
 
 def _run(fixture, tmp_path, store, submission_id=None):
@@ -210,7 +216,7 @@ def test_the_leg_minimum_baseline_never_contends(tmp_path, monkeypatch):
 def test_a_pool_refusal_never_unbinds_the_evaluation(tmp_path, monkeypatch):
     fixture, store = _setup(tmp_path, monkeypatch)
 
-    def refuse(self, submission_id, key, comparator, *, sealed=False):
+    def refuse(self, submission_id, key, comparator, *, sealed=False, repeat=None):
         raise StateError("incumbent_moved")
 
     monkeypatch.setattr(BankPromotion, "consider_private", refuse)
@@ -357,12 +363,13 @@ def test_the_real_v4_binding_of_each_physical_challenge_contends(
         adapter.ledger.record_recipe_task_intent(
             adapter.contract_digest, submission_id, "owner-hotkey", "sha256:" + "8" * 64
         )
-    one = retention._contend(adapter, store, first, artifacts, inputs, pin)
+    again = stored_grade_repeat(store)
+    one = retention._contend(adapter, store, first, artifacts, inputs, pin, again)
     assert one["outcome"] == "FIRST_INCUMBENT", one
     assert store.incumbent()["model_id"] == first
     # The same graded model again: with no registered noise it is unavailable, never a win.
     koth["noise"] = None
-    two = retention._contend(adapter, store, second, artifacts, inputs, pin)
+    two = retention._contend(adapter, store, second, artifacts, inputs, pin, again)
     assert two["outcome"] == "UNAVAILABLE", two
     assert two["reason"] == "rebuild_noise_unregistered"
     assert store.incumbent()["model_id"] == first
