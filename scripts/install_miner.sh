@@ -976,7 +976,11 @@ Then, in the Control Center:
   - Challenges: choose what to mine, then launch.
 EOF
 
-step "6/6 Starting the Control Center"
+if [[ "${START}" == 1 ]]; then
+  step "6/6 Starting the Control Center"
+else
+  step "6/6 Control Center (not started: --no-start)"
+fi
 #: remote_line: on a rented server reached over SSH, the one command the
 #: miner runs on their own computer to reach the page (M1 E2E E1).
 remote_line() {
@@ -993,6 +997,11 @@ remote_line() {
 #: to a log (M1 E2E E1: no token to fetch or paste). The token is kept in
 #: the state directory and survives restarts and updates.
 open_page_lines() {
+  if [[ "${START}" == 0 ]]; then
+    # --no-start (a validator or a build host): nothing is started and nothing listens on the port.
+    # Say so first; the link below is for when it is started later (Validator, 2026-10-29).
+    echo "The Control Center was not started (--no-start); nothing listens on port ${PORT} yet. When you start it with the command above, use the link below."
+  fi
   remote_line
   if [[ ! -t 1 ]]; then
     # Captured or piped (tee, an agent, CI): never the token itself, which

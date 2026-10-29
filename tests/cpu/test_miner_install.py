@@ -671,6 +671,23 @@ def test_thousands_of_local_changes_still_end_with_the_stash_command(sandbox):
     assert sandbox.logged() == []
 
 
+def test_no_start_says_the_control_center_was_not_started(sandbox):
+    """Validator, 2026-10-29: a --no-start install (a validator box runs no miner app) printed "Starting the Control
+    Center" though nothing was started or listening. It now says it was not started, before the link that is for
+    when it is started later."""
+    completed = sandbox.run("--no-start")
+    assert completed.returncode == 0, completed.stderr
+    out = completed.stdout
+    assert "Control Center (not started: --no-start)" in out
+    assert "Starting the Control Center" not in out
+    statement = (
+        "The Control Center was not started (--no-start); nothing listens on port"
+    )
+    assert statement in out
+    assert out.index("Start it again later with:") < out.index(statement)
+    assert out.index(statement) < out.index("Open the Control Center at")
+
+
 def test_a_ref_outside_main_is_refused_before_anything_moves(sandbox):
     """Setup accepts only a revision in main, so the installer checks that
     first rather than building images setup would then refuse."""
