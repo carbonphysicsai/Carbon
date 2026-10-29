@@ -268,7 +268,8 @@
   // implemented ones, the wizard's choice first.
   function chooseChallenge() {
     const s = CC.state();
-    const offeredHere = (s.caps?.challenges || []).filter(entry => entry.implemented);
+    // The one offered list the wizard and cards use: latest version of each launch Challenge, never Battery.
+    const offeredHere = CC.offeredChallenges().filter(entry => entry.implemented);
     const known = item => item && offeredHere.some(entry => entry.challenge_id === item.id && entry.version === item.version);
     if (known(lib.challenge)) return offeredHere;
     const wanted = s.wizard?.challenge;

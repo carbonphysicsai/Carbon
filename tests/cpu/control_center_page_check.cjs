@@ -2884,6 +2884,7 @@ scenario("Library: every card says where it came from and UNCHECKED; search rank
   page.go("#library");
   await page.advance(0);
   assert.match(page.text("library-body"), /Your pins and bans/);
+  assert.ok(!/Battery/.test(page.text(page.$("library-challenge"))), "the Rank dropdown lists only what the wizard offers, never Battery");
   await page.type(page.$("library-query"), "mlp");
   await page.press(page.$("library-search-go"));
   const sent = lastPost(state, "/api/v1/library/search").body;
