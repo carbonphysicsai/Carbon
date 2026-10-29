@@ -5,8 +5,9 @@ Every install builds or pulls new worker and analysis images and records
 them; the earlier ones stay in Docker, and so do the catalog images built
 over an earlier worker and the containers finished practice jobs leave.
 Over a few updates they filled the disk until an update stopped at its own
-space check. `scripts/install_miner.sh` lists them here, with how much each
-kind frees, and removes them only on the miner's yes.
+space check. `scripts/install_miner.sh` lists them here, with how many of each
+kind there are (the space freed is measured after removal, never promised
+before), and removes them only on the miner's yes.
 
 What counts, and nothing else:
 - an image tagged in one of Carbon's own repositories (`REPOSITORIES`, or
@@ -70,15 +71,25 @@ KINDS = {
 }
 #: The catalog images the current install names, which an update builds again: its own kind and its own offer.
 CURRENT_CATALOG_WORDS = "catalog images this update builds again"
+#: What every offer says in place of a size: Docker's per-image sizes overlap, so no figure is promised.
+MEASURED_AFTER = " (space freed is measured after removal)"
 _IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}")
 _SIZE = re.compile(r"([0-9.]+)\s*([kKMGT]?B)")
 _UNITS = {"B": 1, "kB": 1e3, "KB": 1e3, "MB": 1e6, "GB": 1e9, "TB": 1e12}
 
 
 def _docker(*argv):
-    return subprocess.run(
-        ["docker", *argv], capture_output=True, text=True, timeout=120, check=False
-    )
+    """One Docker call, bounded. A call that times out or cannot start is a failed call (rc 124 / 127, no output),
+    so a listing over a daemon with thousands of image records comes back short, never raising: the update that
+    asked for it is never blocked by it."""
+    try:
+        return subprocess.run(
+            ["docker", *argv], capture_output=True, text=True, timeout=120, check=False
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(["docker", *argv], 124, "", "timed out")
+    except OSError:
+        return subprocess.CompletedProcess(["docker", *argv], 127, "", "not runnable")
 
 
 def kept(state_dir, repo) -> set[str]:
@@ -248,7 +259,10 @@ def current_catalog(state_dir, repo, docker=_docker) -> list[dict]:
 
 
 def totals(found) -> dict:
-    """{kind: (count, bytes)} of what `superseded` lists."""
+    """{kind: (count, bytes)} of what `superseded` lists. The bytes are Docker's listed sizes, which count shared
+    layers once per image (a daemon holding thousands of catalog images summed to 12 TB on a 242 GB disk), so no
+    listing prints them: it shows counts, and the space freed is measured after removal, never promised before.
+    """
     result = {}
     for item in found:
         count, total = result.get(item["kind"], (0, 0))
@@ -287,10 +301,7 @@ def main(argv=None, docker=_docker) -> int:
         current = current_catalog(args.state_dir, args.repo, docker)
         if args.command == "catalog-list":
             if current:
-                total = sum(size_bytes(item["size"]) for item in current)
-                print(
-                    f"  {CURRENT_CATALOG_WORDS}: {len(current)}, frees about {human(total)}"
-                )
+                print(f"  {CURRENT_CATALOG_WORDS}: {len(current)}{MEASURED_AFTER}")
             return 0
         refused = 0
         for ref, why in remove(current, docker):
@@ -308,7 +319,7 @@ def main(argv=None, docker=_docker) -> int:
         for kind, words in KINDS.items():
             if kind in summary:
                 count, total = summary[kind]
-                print(f"  {words}: {count}, frees about {human(total)}")
+                print(f"  {words}: {count}{MEASURED_AFTER}")
         return 0
     refused = 0
     for ref, why in remove(found, docker):
