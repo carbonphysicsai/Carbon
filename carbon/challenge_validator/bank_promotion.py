@@ -600,9 +600,13 @@ class BankPromotion:
             }
         outcome = compare_private_pair(pair, comparator)
         if outcome["outcome"] in CROWN_CHANGING:
+            # A mark belongs to the grade's own evaluation key: a carried king's grade is filed under his old key.
+            own_key = lambda row: row.get(
+                "evaluation_key", evaluation_key
+            )  # noqa: E731
             marked = {
                 row["submission_id"]: self.store.repeat_verified(
-                    row["submission_id"], evaluation_key
+                    row["submission_id"], own_key(row)
                 )
                 for row in (pair["candidate"], pair["incumbent"])
                 if row
@@ -612,7 +616,7 @@ class BankPromotion:
                 # Verified: file the marks, so the next decision repeats only what is unmarked.
                 for row in states_to_repeat(pair, marked):
                     self.store.record_repeat_verified(
-                        row["submission_id"], evaluation_key, grade_fingerprint(row)
+                        row["submission_id"], own_key(row), grade_fingerprint(row)
                     )
             outcome = gated
         if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):

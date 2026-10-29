@@ -127,6 +127,8 @@ def test_the_crown_carries_the_reason_of_the_pack_it_was_won_on(
         "score_pack_digest": "sha256:" + "ab" * 32,
         "baseline_total": 0.4,
     }
+    # The crown move is under test, not the repeat gate (test_crown_grade_repeat).
+    monkeypatch.setattr(bp, "CROWN_CHANGING", frozenset())
     promotion.consider_private("m1", "key", comparator, sealed=sealed)
     assert store.set_calls == [("m1", reason, None)]
     # the comparator's own aggregate is what gets registered for its exam set

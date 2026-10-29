@@ -13,6 +13,7 @@ from carbon.battery.pool_store import PoolStore, StateError
 from carbon.challenge_validator import bank_promotion as bp
 from carbon.challenge_validator.interface import digest
 from carbon.rewards.core import DAY_MS, Q12
+from tests.cpu._crown_repeat import identical_repeat
 from carbon.rewards.winner_decay import Winner, epoch_targets, load_policy
 
 PACK = digest("score pack")
@@ -263,14 +264,23 @@ def test_scored_results_drive_a_development_king_and_its_halving(tmp_path, monke
         _Pairs(store, {"a": pair(a, None), "b": pair(b, a), "c": pair(c, a)}),
     )
     rule = comparator(NOISE)
+    again = identical_repeat(store, KEY, digest("pin"))
 
-    assert flow.consider_private("a", KEY, rule)["outcome"] == bp.FIRST_INCUMBENT
+    assert (
+        flow.consider_private("a", KEY, rule, repeat=again)["outcome"]
+        == bp.FIRST_INCUMBENT
+    )
     assert store.incumbent() == {"model_id": "a", "reason": bp.DEVELOPMENT_PROMOTION}
     crowned_ms = 0
-    assert flow.consider_private("b", KEY, rule)["outcome"] == bp.INCUMBENT_KEEPS
+    assert (
+        flow.consider_private("b", KEY, rule, repeat=again)["outcome"]
+        == bp.INCUMBENT_KEEPS
+    )
     assert store.incumbent()["model_id"] == "a"
     clock[0] = 3 * DAY_MS / 1000
-    assert flow.consider_private("c", KEY, rule)["outcome"] == bp.CHALLENGER
+    assert (
+        flow.consider_private("c", KEY, rule, repeat=again)["outcome"] == bp.CHALLENGER
+    )
     assert store.incumbent()["model_id"] == "c"
 
     policy = load_policy("testnet-winner-v2-four-challenge-dev")
@@ -304,15 +314,30 @@ def test_a_lost_race_does_not_move_the_incumbent(tmp_path, monkeypatch):
     candidate = body("b", total=0.95)
     moved = pair(candidate, body("a", total=0.5))
     moved["expected_incumbent"] = "c"  # the incumbent changed after pairing
-    monkeypatch.setattr(store, "private_evaluation_pair", _Pairs(store, {"b": moved}))
+    monkeypatch.setattr(
+        store,
+        "private_evaluation_pair",
+        _Pairs(store, {"b": moved, "a": pair(body("a", total=0.5), None)}),
+    )
     with pytest.raises(StateError, match="incumbent_moved"):
-        flow.consider_private("b", KEY, comparator(NOISE))
+        flow.consider_private(
+            "b",
+            KEY,
+            comparator(NOISE),
+            repeat=identical_repeat(store, KEY, digest("pin")),
+        )
     assert store.incumbent()["model_id"] == "a"
     unchanged = deepcopy(store.incumbent())
     monkeypatch.setattr(
         store,
         "private_evaluation_pair",
-        _Pairs(store, {"b": pair(candidate, body("a", total=0.5))}),
+        _Pairs(
+            store,
+            {
+                "b": pair(candidate, body("a", total=0.5)),
+                "a": pair(body("a", total=0.5), None),
+            },
+        ),
     )
     assert (
         flow.consider_private("b", KEY, comparator(None))["outcome"] == bp.UNAVAILABLE
@@ -333,9 +358,20 @@ def test_a_king_failing_a_mandatory_gate_with_no_valid_successor_leaves_no_winne
     monkeypatch.setattr(
         store,
         "private_evaluation_pair",
-        _Pairs(store, {"b": pair(body("b", "FAILED_INFRA"), failed_king)}),
+        _Pairs(
+            store,
+            {
+                "b": pair(body("b", "FAILED_INFRA"), failed_king),
+                "a": pair(failed_king, None),
+            },
+        ),
     )
-    outcome = flow.consider_private("b", KEY, comparator(NOISE))
+    outcome = flow.consider_private(
+        "b",
+        KEY,
+        comparator(NOISE),
+        repeat=identical_repeat(store, KEY, digest("pin")),
+    )
     assert outcome["outcome"] == bp.DETHRONED
     assert store.incumbent() is None
     policy = load_policy("testnet-winner-v2-four-challenge-dev")
