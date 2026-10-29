@@ -2614,7 +2614,10 @@
     // U30: a catalog version cannot practise until its backbone catalog is
     // installed here, so setup is not done while none is.
     const uninstalled = selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed === 0);
-    if (uninstalled.length) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_not_installed", plain: {sentence: "The backbone catalog isn't installed on this machine, so a catalog campaign can't practise yet.", next: null}, next_action: "Install it on this machine: python -B -m scripts.dev.catalog_install --state-dir <your state directory> (in your Carbon checkout). Not installed for: " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ")}});
+    if (uninstalled.length) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_not_installed", plain: {sentence: "No backbone is installed on this machine for " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ") + ", so a catalog campaign on " + (uninstalled.length === 1 ? "it" : "them") + " can't practise yet.", next: null}, next_action: "Install it on this machine: python -B -m scripts.dev.catalog_install --state-dir <your state directory> (in your Carbon checkout). Not installed for: " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ")}});
+    // Some of a version's backbones installed and some not: said as it is, not as "not installed".
+    const partly = selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed > 0 && entry.catalog_install.installed < entry.catalog_install.entries);
+    if (partly.length) items.push({ok: null, text: "Backbone catalog partly installed: " + partly.map(entry => entry.title + " " + entry.version + " " + entry.catalog_install.installed + " of " + entry.catalog_install.entries).join(", ") + ". The rest cannot be practised until they are installed; run the install again to retry them."});
     const agents = agentChoices().filter(choice => choice.availability === "available");
     items.push(agents.length
       ? {ok: true, text: "Agents ready: " + agents.map(choice => choice.label).join(", ") + "."}

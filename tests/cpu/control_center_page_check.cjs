@@ -3448,6 +3448,24 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   clean(page);
 });
 
+scenario("a partly installed backbone catalog is said as it is, and an empty one names its versions", async () => {
+  const state = world();
+  const picks = state.caps.challenges.filter(entry => entry.selectable);
+  assert.ok(picks.length >= 2, "the fixture offers at least two launchable entries");
+  picks[0].catalog_install = {entries: 5, installed: 0};
+  picks[1].catalog_install = {entries: 10, installed: 7};
+  const page = await openPage(ROOT, state.server);
+  page.$("token").value = "fixture-token";
+  await page.press(one(page, "#connect-form button[type=submit]"));
+  await page.advance(0);
+  const text = page.text("overview-prerequisites");
+  assert.ok(text.includes("No backbone is installed on this machine for " + picks[0].title + " " + picks[0].version));
+  assert.ok(!text.includes("The backbone catalog isn't installed on this machine"),
+    "the old sentence read as if nothing was installed anywhere");
+  assert.ok(text.includes("Backbone catalog partly installed: " + picks[1].title + " " + picks[1].version + " 7 of 10"));
+  clean(page);
+});
+
 scenario("plainWords keeps E10's secret warning and names an address as a mining key address, with no epoch word for a round", async () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "..", "scripts", "dev", "miner_launchpad", "app.js"), "utf8");
   const text = source.match(/function plainWords[(]text[)] [{][^]*?\n  [}]/)[0];
