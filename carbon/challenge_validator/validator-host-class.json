@@ -1,14 +1,14 @@
 {
-  "cpu_model_name": "AMD EPYC-Milan Processor",
+  "cpu_model_name": "AMD Ryzen 9 7950X 16-Core Processor",
   "isa_flags_present": {
     "amx": false,
     "avx2": true,
-    "avx512_bf16": false,
-    "avx512f": false,
+    "avx512_bf16": true,
+    "avx512f": true,
     "fma": true
   },
-  "mem_total_min_gib": 30,
-  "nproc": 8,
+  "mem_total_min_gib": 124,
+  "nproc": 32,
   "schema": "carbon.validator.host-class.v1",
   "scope": "DEVELOPMENT"
 }

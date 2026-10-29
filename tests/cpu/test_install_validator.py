@@ -337,15 +337,16 @@ def test_the_committed_class_is_registered_and_well_formed():
     )
     assert document["schema"] == "carbon.validator.host-class.v1"
     assert document["scope"] == "DEVELOPMENT"
-    assert document["cpu_model_name"] == "AMD EPYC-Milan Processor"
+    # VALIDATOR-HOST-CLASS-7950X-01: the dedicated validator box (Ryzen 9 7950X, AVX-512).
+    assert document["cpu_model_name"] == "AMD Ryzen 9 7950X 16-Core Processor"
     assert document["isa_flags_present"] == {
         "avx2": True,
         "fma": True,
-        "avx512f": False,
-        "avx512_bf16": False,
+        "avx512f": True,
+        "avx512_bf16": True,
         "amx": False,
     }
-    assert document["nproc"] == 8 and document["mem_total_min_gib"] == 30
+    assert document["nproc"] == 32 and document["mem_total_min_gib"] == 124
 
 
 @pytest.mark.parametrize(
