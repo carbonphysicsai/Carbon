@@ -910,6 +910,84 @@ else
   fi
 fi
 
+# The install records image ids; a later build must not have removed or retagged one it recorded.
+# A --gpu install builds the C-03 parent three times, and one shared tag let the last build retag the
+# others' (the CPU parent, which the CPU Torch worker was built FROM, was lost; val4090, 2026-10-29).
+# So every recorded image of this source tree must still be in Docker before it is recorded, or the install
+# stops with a typed code and records nothing.
+verify_recorded_images_present() {
+  local missing
+  missing="$(python3 - "${worker_manifest}" "${analysis:-}" "${gpu_manifest:-}" \
+    "${torch_gpu_manifest:-}" "${artifacts}" <<'PY'
+import json
+import pathlib
+import re
+import subprocess
+import sys
+
+IMAGE = re.compile(r"sha256:[0-9a-f]{64}")
+worker, analysis, gpu, torch_gpu, artifacts = sys.argv[1:6]
+
+
+def load(path):
+    try:
+        document = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return document if isinstance(document, dict) else None
+
+
+current = (load(worker) or {}).get("source_tree_digest")
+paths = [worker, analysis, gpu, torch_gpu]
+# A parent manifest of an earlier source tree may name an image that was removed on purpose.
+for name in (
+    "torch-parent-worker-image.json",
+    "accelerator-parent-worker-image.json",
+    "torch-gpu-parent-worker-image.json",
+):
+    document = load(pathlib.Path(artifacts) / name)
+    if document is not None and current is not None and document.get("source_tree_digest") == current:
+        paths.append(str(pathlib.Path(artifacts) / name))
+
+def present(image):
+    return (
+        subprocess.run(
+            ["docker", "image", "inspect", image], capture_output=True, check=False
+        ).returncode
+        == 0
+    )
+
+
+CHILDREN = {
+    "torch-worker-image.json": "torch-parent-worker-image.json",
+    "accelerator-worker-image.json": "accelerator-parent-worker-image.json",
+    "torch-gpu-worker-image.json": "torch-gpu-parent-worker-image.json",
+}
+for path in paths:
+    document = load(path) if path else None
+    image = (document or {}).get("image_id")
+    if not isinstance(image, str) or not IMAGE.fullmatch(image):
+        continue
+    if not present(image):
+        print("installed_image_missing " + pathlib.Path(path).name + " " + image)
+        continue
+    # A child worker is only as good as the parent it was built FROM: its base must be the parent this install
+    # recorded for it, and Docker must hold that image.
+    parent_name = CHILDREN.get(pathlib.Path(path).name)
+    parent = load(pathlib.Path(path).with_name(parent_name)) if parent_name else None
+    if parent is not None and parent.get("source_tree_digest") != document.get(
+        "source_tree_digest"
+    ):
+        parent = None  # an earlier tree's parent manifest is not this worker's parent
+    base = (document or {}).get("base_image_digest")
+    if parent is not None and (parent.get("image_id") != base or not present(base)):
+        print("installed_worker_parent_stale " + pathlib.Path(path).name + " " + str(base))
+PY
+  )" || fail "installed_image_check_failed: could not read the recorded image manifests. Nothing was recorded."
+  [[ -z "${missing}" ]] || fail "${missing//$'\n'/; }. Docker no longer holds an image this install recorded, or a recorded worker was built FROM a parent that is not the recorded one (installed_image_missing / installed_worker_parent_stale). Nothing was recorded; run the installer again."
+}
+verify_recorded_images_present
+
 # Every catalog entry's library image (CPU as well as GPU) is built offline with
 # the pinned uv image (carbon/development_session/library_bundles.py, UV_IMAGE):
 # pulled here by digest when Docker lacks it. It was pulled only for a GPU
