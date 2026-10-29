@@ -113,7 +113,7 @@ def refuse_unreproducible_runtime(bundle_ref):
                 continue
             try:
                 problem = gpu_receipt.official_grade_problem(
-                    gpu_receipt.load(item["catalog_id"], runtime), runtime
+                    gpu_receipt.official_load(item, runtime), runtime
                 )
             except gpu_receipt.GpuReceiptBroken:
                 problem = "its receipt is invalid"
@@ -144,7 +144,11 @@ def runtime_bundle_ref(item, runtime, *, official):
         raise CatalogRefused(
             "catalog_entry_unknown", f"{item['catalog_id']!r} has no {runtime} build"
         )
-    receipt = gpu_receipt.load(item["catalog_id"], runtime)
+    receipt = (
+        gpu_receipt.official_load(item, runtime)
+        if official
+        else gpu_receipt.load(item["catalog_id"], runtime)
+    )
     if receipt is None:
         raise CatalogRefused(
             "catalog_entry_unknown",
