@@ -1,12 +1,9 @@
 {
-  "capacity_cpu_hours_per_day": 134.4,
-  "rebuild_cpu_hours_placeholder": {
-    "battery-fastcharge-ageing-development-v1": 2.0,
-    "chip-cold-plate": 1.0,
-    "electric-motor-magnetics": 1.0,
-    "f02": 0.2,
-    "f08-ribbed-bracket": 0.5
-  },
-  "schema": "carbon.exam.cadence-registry.v1",
-  "source": "OWNER-CADENCE-AND-ROTATION-02, proposal rev 2; capacity from the registered validator host class (OWNER-VALIDATOR-HOST-CLASS-01): 8 vCPU x 24 h x 0.7 (Hetzner ccx33, VALIDATOR-HOST-CLASS-CCX33-01)"
+  "capacity_gpu_lane_hours_per_day": null,
+  "class_record_digest": null,
+  "lanes": null,
+  "measurement_digest": null,
+  "rebuild_gpu_lane_hours": null,
+  "schema": "carbon.exam.cadence-registry.v2",
+  "source": "UNREGISTERED: the recalibration writes the values (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01); until then grading refuses with exam_cadence_unregistered. R = lanes x 24 x 0.7; t_c = mean GPU-lane-hours from lane start to release over the panel's >= 10 rebuilds."
 }

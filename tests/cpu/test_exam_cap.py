@@ -18,19 +18,39 @@ HOTKEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 OTHER = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
 EXAM = "sha256:" + "1" * 64
 NEXT_EXAM = "sha256:" + "2" * 64
-PLACEHOLDERS = {
+LANE_HOURS = {
     "electric-motor-magnetics": 1.0,
     "chip-cold-plate": 1.0,
     "f08-ribbed-bracket": 0.5,
     "f02": 0.2,
     "battery-fastcharge-ageing-development-v1": 2.0,
-}  # sum 4.7 CPU-h, the approved proposal's table
+}  # sum 4.7 GPU-lane-hours: fixture numbers, not measurements
 
 
-def cadence(capacity=270.0, placeholders=None):
+DIGEST_A = "sha256:" + "a" * 64
+DIGEST_B = "sha256:" + "b" * 64
+
+
+def cadence(capacity=270.0, measured=None):
     return {
-        "capacity_cpu_hours_per_day": capacity,
-        "rebuild_cpu_hours_placeholder": dict(placeholders or PLACEHOLDERS),
+        "capacity_gpu_lane_hours_per_day": capacity,
+        "rebuild_gpu_lane_hours": dict(measured or LANE_HOURS),
+        "lanes": 1,
+        "measurement_digest": DIGEST_A,
+        "class_record_digest": DIGEST_B,
+    }
+
+
+def v2_document(capacity=16.8, measured=None):
+    """A complete schema-v2 registry file (fixture values, as the recalibration would write them)."""
+    return {
+        "schema": exam_cap.REGISTRY_SCHEMA,
+        "source": "fixture: a recalibration's measurement",
+        "capacity_gpu_lane_hours_per_day": capacity,
+        "rebuild_gpu_lane_hours": dict(measured or LANE_HOURS),
+        "lanes": 1,
+        "measurement_digest": DIGEST_A,
+        "class_record_digest": DIGEST_B,
     }
 
 
@@ -50,6 +70,9 @@ def clock():
 def make_cap(tmp_path, clock, **options):
     directory = tmp_path / "ledger"
     directory.mkdir(mode=0o700, exist_ok=True)
+    options.setdefault(
+        "cadence", cadence(134.4)
+    )  # cadence=None uses the committed (unvalued) registry
     return exam_cap.ExamCap(
         AttemptLedger(directory / "attempts.sqlite3"), clock=clock, **options
     )
@@ -57,13 +80,13 @@ def make_cap(tmp_path, clock, **options):
 
 @pytest.fixture
 def cap(tmp_path, clock):
-    """The committed registry: 134.4 CPU-h a day (the registered 8-vCPU host class)."""
-    return make_cap(tmp_path, clock)
+    """134.4 GPU-lane-hours a day (a fixture value: the committed registry carries none until the recalibration)."""
+    return make_cap(tmp_path, clock, cadence=cadence(134.4))
 
 
 @pytest.fixture
 def tight(tmp_path, clock):
-    """9.4 CPU-h a day: one miner may grade 2 a day, two active miners 1 each."""
+    """9.4 GPU-lane-hours a day: one miner may grade 2 a day, two active miners 1 each."""
     return make_cap(tmp_path, clock, cadence=cadence(9.4))
 
 
@@ -81,9 +104,9 @@ def _reserve(cap, n, *, hotkey=HOTKEY, exam=EXAM, block=None, challenge=MOTOR, *
     )
 
 
-def _grade(cap, n, status="SCORED_DEVELOPMENT_CANDIDATE", cpu_seconds=None, **kw):
+def _grade(cap, n, status="SCORED_DEVELOPMENT_CANDIDATE", lane_seconds=None, **kw):
     slot = _reserve(cap, n, **kw)
-    cap.settle(slot, status, cpu_seconds=cpu_seconds)
+    cap.settle(slot, status, lane_seconds=lane_seconds)
     return slot
 
 
@@ -99,47 +122,95 @@ def _count(cap, hotkey=HOTKEY, exam=EXAM):
 # --- the registry -----------------------------------------------------------------
 
 
-def test_the_committed_registry_is_the_approved_proposals_table():
-    registered = exam_cap.registered_cadence()
-    # R = nproc x 24 h x 0.7 for the registered validator host class (4 vCPU).
-    assert registered["capacity_cpu_hours_per_day"] == pytest.approx(8 * 24 * 0.7)
-    assert registered["rebuild_cpu_hours_placeholder"] == PLACEHOLDERS
-    assert set(PLACEHOLDERS) == set(exam_cap.registered_challenges())
+def test_the_committed_registry_carries_no_values_until_the_recalibration_writes_them():
     document = json.loads(exam_cap.REGISTRY.read_bytes())
-    assert document["source"].startswith(
-        "OWNER-CADENCE-AND-ROTATION-02, proposal rev 2"
+    assert (
+        document["schema"]
+        == exam_cap.REGISTRY_SCHEMA
+        == "carbon.exam.cadence-registry.v2"
     )
-    assert "OWNER-VALIDATOR-HOST-CLASS-01" in document["source"]
+    assert set(document) == {
+        "schema",
+        "source",
+        "capacity_gpu_lane_hours_per_day",
+        "rebuild_gpu_lane_hours",
+        "lanes",
+        "measurement_digest",
+        "class_record_digest",
+    }
+    for key in set(document) - {"schema", "source"}:
+        assert document[key] is None, key  # no placeholders, no values
+    assert "OWNER-GPU-ONLY-REPEAT-TOLERANCE-01" in document["source"]
+    with pytest.raises(exam_cap.ExamCapRefused) as refused:
+        exam_cap.registered_cadence()
+    assert refused.value.code == "exam_cadence_unregistered"
+
+
+def test_a_complete_v2_registry_is_read(tmp_path):
+    path = tmp_path / "exam_cadence.json"
+    path.write_text(json.dumps(v2_document(16.8)))
+    registered = exam_cap.registered_cadence(path)
+    assert registered == {
+        "capacity_gpu_lane_hours_per_day": 16.8,
+        "rebuild_gpu_lane_hours": LANE_HOURS,
+        "lanes": 1,
+        "measurement_digest": DIGEST_A,
+        "class_record_digest": DIGEST_B,
+    }
+    assert set(LANE_HOURS) == set(exam_cap.registered_challenges())
+
+
+def test_the_retired_cpu_hours_schema_is_refused_with_its_own_code(tmp_path):
+    path = tmp_path / "exam_cadence.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "carbon.exam.cadence-registry.v1",
+                "source": "OWNER-CADENCE-AND-ROTATION-02",
+                "capacity_gpu_lane_hours_per_day": 134.4,
+                "rebuild_gpu_lane_hours": {"f02": 0.2},
+            }
+        )
+    )
+    with pytest.raises(exam_cap.ExamCapRefused) as refused:
+        exam_cap.registered_cadence(path)
+    assert refused.value.code == "exam_cadence_schema_unsupported"
+
+
+def test_grading_with_the_unvalued_committed_registry_fails_closed(tmp_path, clock):
+    unregistered = make_cap(tmp_path, clock, cadence=None)  # the committed file
+    with pytest.raises(exam_cap.ExamCapRefused) as refused:
+        _reserve(unregistered, 0)
+    assert refused.value.code == "exam_cadence_unregistered"
 
 
 @pytest.mark.parametrize(
     "mutate",
     [
-        lambda d: d.update(capacity_cpu_hours_per_day=0),
-        lambda d: d.update(capacity_cpu_hours_per_day="270"),
-        lambda d: d.update(capacity_cpu_hours_per_day=float("nan")),
-        lambda d: d.update(schema="other"),
-        lambda d: d.update(source=""),
-        lambda d: d.update(extra=1),
-        lambda d: d["rebuild_cpu_hours_placeholder"].update(f02=0),
-        lambda d: d.pop("rebuild_cpu_hours_placeholder"),
+        lambda d: d.update(capacity_gpu_lane_hours_per_day=None),
+        lambda d: d.update(rebuild_gpu_lane_hours=None),
+        lambda d: d.update(rebuild_gpu_lane_hours={}),
+        lambda d: d.update(lanes=None),
+        lambda d: d.update(lanes=0),
+        lambda d: d.update(lanes=1.5),
+        lambda d: d.update(measurement_digest=None),
+        lambda d: d.update(class_record_digest="sha256:abc"),
+        lambda d: d.update(measurement_digest="a" * 64),
     ],
 )
-def test_a_malformed_registry_refuses_fail_closed(tmp_path, mutate):
-    document = json.loads(exam_cap.REGISTRY.read_bytes())
+def test_a_v2_registry_with_a_missing_or_bad_value_is_unregistered(tmp_path, mutate):
+    document = v2_document()
     mutate(document)
     path = tmp_path / "exam_cadence.json"
     path.write_text(json.dumps(document))
     with pytest.raises(exam_cap.ExamCapRefused) as refused:
         exam_cap.registered_cadence(path)
     assert refused.value.code == "exam_cadence_unregistered"
-    with pytest.raises(exam_cap.ExamCapRefused):
-        exam_cap.registered_cadence(tmp_path / "absent.json")
 
 
 def test_without_a_registry_grading_refuses_not_defaults(tmp_path, clock, monkeypatch):
     monkeypatch.setattr(exam_cap, "REGISTRY", tmp_path / "absent.json")
-    unregistered = make_cap(tmp_path, clock)
+    unregistered = make_cap(tmp_path, clock, cadence=None)
     with pytest.raises(exam_cap.ExamCapRefused) as refused:
         _reserve(unregistered, 0)
     assert refused.value.code == "exam_cadence_unregistered"
@@ -148,7 +219,7 @@ def test_without_a_registry_grading_refuses_not_defaults(tmp_path, clock, monkey
 # --- the cadence ------------------------------------------------------------------
 
 
-# floor(134.4 / (miners x 4.7)), at least 1, for the registered 8-vCPU host class.
+# floor(134.4 / (miners x 4.7)), at least 1 (fixture capacity).
 @pytest.mark.parametrize("miners, expected", [(2, 14), (5, 5), (25, 1), (100, 1)])
 def test_the_allowance_follows_the_approved_tables_miner_counts(cap, miners, expected):
     for n in range(miners - 1):  # the others are active in the rolling day
@@ -156,7 +227,7 @@ def test_the_allowance_follows_the_approved_tables_miner_counts(cap, miners, exp
     view = cap.allowance(hotkey=HOTKEY, block=360 * 30)
     assert view["active_miners"] == miners
     assert view["allowance"] == expected
-    assert view["sum_rebuild_cpu_hours"] == pytest.approx(4.7)
+    assert view["sum_rebuild_gpu_lane_hours"] == pytest.approx(4.7)
 
 
 def test_a_daily_allowance_refuses_the_next_graded_submission(tight):
@@ -191,29 +262,31 @@ def test_the_floor_is_one_a_day_however_many_miners(tight):
     _grade(tight, 99, block=360 * 30)  # the floor still lets the first one in
 
 
-def test_measured_rebuild_time_replaces_the_placeholder_for_that_challenge(tight):
-    # Motor's measured mean rebuild is 2 CPU-h (not the placeholder 1.0), so sum t = 5.7
+def test_measured_rebuild_time_replaces_the_registered_value_for_that_challenge(tight):
+    # Motor's measured mean rebuild is 2 lane-hours (not the registered 1.0), so sum t = 5.7
     # and a = floor(9.4 / 5.7) = 1.
-    _grade(tight, 0, cpu_seconds=2 * 3600.0)
+    _grade(tight, 0, lane_seconds=2 * 3600.0)
     view = tight.allowance(hotkey=HOTKEY, block=360 * 1)
-    assert view["sum_rebuild_cpu_hours"] == pytest.approx(5.7)
+    assert view["sum_rebuild_gpu_lane_hours"] == pytest.approx(5.7)
     assert view["allowance"] == 1
     with pytest.raises(exam_cap.ExamCapRefused, match="exam_daily_allowance_reached"):
         _reserve(tight, 1)
 
 
 def test_released_attempts_neither_count_nor_make_a_miner_active(tight):
-    _grade(tight, 0, "FAILED_INFRA", hotkey=OTHER, block=360 * 5, cpu_seconds=99999.0)
+    _grade(tight, 0, "FAILED_INFRA", hotkey=OTHER, block=360 * 5, lane_seconds=99999.0)
     view = tight.allowance(hotkey=HOTKEY, block=360 * 6)
     assert view["active_miners"] == 1
-    assert view["sum_rebuild_cpu_hours"] == pytest.approx(4.7)  # its time is ignored
+    assert view["sum_rebuild_gpu_lane_hours"] == pytest.approx(
+        4.7
+    )  # its time is ignored
 
 
-def test_rebuild_cpu_seconds_must_be_a_finite_non_negative_number(tight):
+def test_rebuild_lane_seconds_must_be_a_finite_non_negative_number(tight):
     slot = _reserve(tight, 0)
     for bad in (-1.0, float("nan"), float("inf"), "3"):
-        with pytest.raises(ValueError, match="cpu seconds"):
-            tight.settle(slot, "SCORED_DEVELOPMENT_CANDIDATE", cpu_seconds=bad)
+        with pytest.raises(ValueError, match="lane seconds"):
+            tight.settle(slot, "SCORED_DEVELOPMENT_CANDIDATE", lane_seconds=bad)
 
 
 def test_there_is_no_per_version_cap_any_more(cap):
@@ -362,7 +435,7 @@ def test_recovery_runs_when_a_deadline_is_given_at_construction(tmp_path, clock)
     assert _count(restarted) == 0
 
 
-def test_a_ledger_from_before_the_cadence_gains_the_cpu_column(tmp_path, clock):
+def test_a_ledger_from_before_the_cadence_gains_the_lane_column(tmp_path, clock):
     directory = tmp_path / "ledger"
     directory.mkdir(mode=0o700)
     ledger = AttemptLedger(directory / "attempts.sqlite3")
@@ -375,8 +448,8 @@ def test_a_ledger_from_before_the_cadence_gains_the_cpu_column(tmp_path, clock):
             "status TEXT, reserved_ns INTEGER NOT NULL, settled_ns INTEGER, "
             "UNIQUE(challenge_id, challenge_version, exam_key, submission_id))"
         )
-    upgraded = exam_cap.ExamCap(ledger, clock=clock)
-    _grade(upgraded, 0, cpu_seconds=10.0)
+    upgraded = exam_cap.ExamCap(ledger, clock=clock, cadence=cadence(134.4))
+    _grade(upgraded, 0, lane_seconds=10.0)
 
 
 # --- regrade ------------------------------------------------------------------------
@@ -464,7 +537,7 @@ def _adapter(cap, contract, exam_cadence=None):
         challenge_id=MOTOR[0],
         challenge_version=MOTOR[1],
         contract_digest=contract,
-        **({} if exam_cadence is None else {"exam_cadence": exam_cadence}),
+        exam_cadence=cadence(134.4) if exam_cadence is None else exam_cadence,
     )
 
 
@@ -502,7 +575,7 @@ def test_retention_with_no_signed_block_does_not_grade(cap):
     assert refused["private_evaluation_reason"] == "exam_cap_block_unavailable"
 
 
-def test_rebuild_cpu_seconds_come_from_the_ledgers_operation_receipts(tmp_path):
+def test_rebuild_lane_seconds_come_from_the_ledgers_operation_receipts(tmp_path):
     import sqlite3
 
     database = tmp_path / "operations.sqlite3"
@@ -539,12 +612,12 @@ def test_rebuild_cpu_seconds_come_from_the_ledgers_operation_receipts(tmp_path):
         "inference_operation": "operation-infer",
         "timed_operation": "operation-timed",
     }
-    # (600 + 30 + 10) s of compute on 2 CPUs; the pair operations carry no receipt here.
-    assert retention._rebuild_cpu_seconds(
+    # (600 + 30 + 10) s of metered compute on one lane; the pair operations carry no receipt here.
+    assert retention._rebuild_lane_seconds(
         adapter, "rtsk_x", evidence, EXAM
-    ) == pytest.approx(1280.0)
-    # No receipt at all leaves the placeholder in force.
-    assert retention._rebuild_cpu_seconds(adapter, "rtsk_x", {}, EXAM) is None
+    ) == pytest.approx(640.0)
+    # No receipt at all leaves the registered value in force.
+    assert retention._rebuild_lane_seconds(adapter, "rtsk_x", {}, EXAM) is None
 
 
 def test_the_grading_deadline_is_the_challenges_registered_wall_limit():

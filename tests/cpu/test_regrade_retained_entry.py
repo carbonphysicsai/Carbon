@@ -528,8 +528,11 @@ def test_a_counted_bank_grade_runs_the_retained_state_on_the_bank_and_takes_the_
         # the rotated-pack stand-in discovery has no `info`, which the real owner lookup reads
         adapter.owner = lambda _task: "miner"
         adapter.exam_cadence = {
-            "capacity_cpu_hours_per_day": 270.0,
-            "rebuild_cpu_hours_placeholder": {adapter.challenge_id: 1.0},
+            "capacity_gpu_lane_hours_per_day": 270.0,
+            "rebuild_gpu_lane_hours": {adapter.challenge_id: 1.0},
+            "lanes": 1,
+            "measurement_digest": "sha256:" + "a" * 64,
+            "class_record_digest": "sha256:" + "b" * 64,
         }
         adapter.ledger.record(
             SimpleNamespace(
@@ -623,8 +626,11 @@ def test_a_counted_pool_grade_repeats_and_times_the_bank_it_graded(
         adapter.copy_hotkey = None
         adapter.owner = lambda _task: "miner"
         adapter.exam_cadence = {
-            "capacity_cpu_hours_per_day": 270.0,
-            "rebuild_cpu_hours_placeholder": {adapter.challenge_id: 1.0},
+            "capacity_gpu_lane_hours_per_day": 270.0,
+            "rebuild_gpu_lane_hours": {adapter.challenge_id: 1.0},
+            "lanes": 1,
+            "measurement_digest": "sha256:" + "a" * 64,
+            "class_record_digest": "sha256:" + "b" * 64,
         }
         adapter.ledger.record(
             SimpleNamespace(
