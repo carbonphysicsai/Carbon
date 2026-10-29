@@ -864,3 +864,140 @@ def test_the_least_recently_used_idle_overlay_goes_first(tmp_path):
     )
     assert built[0][2].path.is_dir() and third.path.is_dir()
     assert not built[1][2].path.exists()
+
+
+# ---- readiness latency: bounded exact queries and call-local reuse ----------------------------------------
+def _ids(count):
+    return [
+        (
+            _sha(format(index, "x").zfill(64)[-1])
+            if False
+            else "sha256:" + format(index, "064x")
+        )
+        for index in range(count)
+    ]
+
+
+class _Daemon:
+    """A fake daemon: `image ls` lists `listed`; `image inspect` prints the ids it is given that it holds."""
+
+    def __init__(self, listed, *, held=None, drop=None, raise_on=None):
+        self.listed, self.held = list(listed), set(listed if held is None else held)
+        self.drop, self.raise_on = drop, raise_on
+        self.calls = []
+        self.active = self.peak = 0
+        import threading
+
+        self._lock = threading.Lock()
+
+    def run(self, arguments):
+        with self._lock:
+            self.calls.append(list(arguments))
+            self.active += 1
+            self.peak = max(self.peak, self.active)
+        try:
+            time.sleep(0.01)
+            if arguments[:2] == ["image", "ls"]:
+                return SimpleNamespace(stdout="\n".join(self.listed).encode())
+            selected = arguments[2:-2]
+            if self.raise_on is not None and self.raise_on in selected:
+                raise WorkerFailure(WorkerCode.RUNTIME)
+            shown = [value for value in selected if value in self.held]
+            if self.drop is not None and self.drop in shown:
+                shown.remove(self.drop)
+            return SimpleNamespace(
+                stdout="\n".join(json.dumps(value) for value in shown).encode()
+            )
+        finally:
+            with self._lock:
+                self.active -= 1
+
+
+def test_many_children_are_inspected_in_bounded_chunks_each_id_once_and_read_back_exactly():
+    ids = _ids(236)
+    daemon = _Daemon(ids)
+    found = cache.present_library_worker_images(ids, cli=daemon)
+    assert found == frozenset(ids)
+    listing = [call for call in daemon.calls if call[:2] == ["image", "ls"]]
+    inspections = [call for call in daemon.calls if call[:2] == ["image", "inspect"]]
+    assert len(listing) == 1
+    assert len(inspections) == -(-236 // cache.INSPECT_CHUNK)
+    assert all(len(call[2:-2]) <= cache.INSPECT_CHUNK for call in inspections)
+    asked = [value for call in inspections for value in call[2:-2]]
+    assert sorted(asked) == sorted(ids) and len(asked) == len(set(asked))
+    assert daemon.peak <= cache.INSPECT_WORKERS
+
+
+def test_a_chunk_that_returns_a_different_set_or_fails_makes_the_whole_read_fail_closed():
+    ids = _ids(120)
+    with pytest.raises(ValueError, match="inspection differs"):
+        cache.present_library_worker_images(ids, cli=_Daemon(ids, drop=ids[77]))
+    with pytest.raises(WorkerFailure):
+        cache.present_library_worker_images(ids, cli=_Daemon(ids, raise_on=ids[99]))
+    # An id the listing shows but the daemon will not resolve is not presence either.
+    with pytest.raises(ValueError, match="inspection differs"):
+        cache.present_library_worker_images(
+            ids, cli=_Daemon(ids, held=set(ids) - {ids[3]})
+        )
+
+
+def test_one_call_local_listing_serves_many_checks_but_every_listed_id_is_inspected_afresh():
+    ids = _ids(30)
+    present, absent = ids[:25], ids[25:]
+    daemon = _Daemon(present)
+    inventory = cache.LibraryImageInventory(daemon)
+    for target in ids:
+        found = cache.present_library_worker_images(
+            (target,), cli=daemon, inventory=inventory
+        )
+        assert found == (frozenset({target}) if target in present else frozenset())
+    listings = [call for call in daemon.calls if call[:2] == ["image", "ls"]]
+    inspections = [call for call in daemon.calls if call[:2] == ["image", "inspect"]]
+    assert len(listings) == 1
+    assert [
+        call[2] for call in inspections
+    ] == present  # fresh per entry; never for an unlisted id
+    # Never kept across calls: a new inventory lists the daemon again.
+    cache.present_library_worker_images(
+        present[:1], cli=daemon, inventory=cache.LibraryImageInventory(daemon)
+    )
+    assert len([c for c in daemon.calls if c[:2] == ["image", "ls"]]) == 2
+
+
+def test_an_unknown_or_malformed_listing_fails_closed_through_a_shared_inventory():
+    class Bad:
+        def run(self, arguments):
+            return SimpleNamespace(stdout=b"sha256:not-a-digest\n")
+
+    with pytest.raises(ValueError):
+        cache.present_library_worker_images(
+            [_sha("4")], cli=Bad(), inventory=cache.LibraryImageInventory(Bad())
+        )
+
+
+def test_the_owner_catalog_install_shares_one_inventory_across_its_entries(monkeypatch):
+    from scripts.dev import catalog_install
+
+    seen = []
+
+    def install_bundle(directory, inventory=None, **kwargs):
+        seen.append(inventory)
+        return {"status": "INSTALLED_VERIFIED", "bundle_ref": {}}
+
+    monkeypatch.setattr(
+        catalog_install.library_bundle, "install_bundle", install_bundle
+    )
+    monkeypatch.setattr(
+        catalog_install.pipeline,
+        "bundle_directory",
+        lambda item, work, wheelhouse=None: work,
+    )
+    monkeypatch.setattr(catalog_install.pipeline, "verify", lambda item: None)
+    monkeypatch.setattr(catalog_install, "_declares_wheels", lambda item: False)
+    monkeypatch.setattr(
+        catalog_install, "_missing_wheel", lambda item, wheelhouse: None
+    )
+    monkeypatch.setattr(catalog_install, "stage_gpu_twins", lambda *a, **k: None)
+    catalog_install.install(wheelhouse=Path("."), state_dir=Path("."), skipped=[])
+    assert len(seen) > 1 and all(item is seen[0] for item in seen)
+    assert isinstance(seen[0], cache.LibraryImageInventory)

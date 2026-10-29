@@ -26,6 +26,7 @@ import argparse
 import json
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -34,9 +35,21 @@ if str(REPOSITORY) not in sys.path:
 
 from carbon.backbone_catalog import pipeline
 from scripts.dev import catalog_wheelhouse, library_bundle
+from scripts.dev.miner_launchpad.failure_words import diagnostic as _diagnostic
 
 #: What a skipped wheel entry tells the owner to run first.
 WHEELHOUSE_STEP = "python -m scripts.dev.catalog_wheelhouse"
+
+#: One bounded retry of an entry whose install hit a Docker CLI timeout or an unreachable daemon (a busy machine: the
+#: owner's page and practice share the daemon). Only that cause is retried; every other failure stays final.
+RETRY_BACKOFF_SECONDS = 5.0
+
+
+def _transient(failure):
+    """True for a typed worker failure of the UNAVAILABLE kind (a CLI timeout or an unreachable daemon)."""
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    return isinstance(failure, WorkerFailure) and failure.code == WorkerCode.UNAVAILABLE
 
 
 def _declares_wheels(item):
@@ -82,6 +95,14 @@ def install(
         wheelhouse = catalog_wheelhouse.DEFAULT_DIRECTORY
     skipped = [] if skipped is None else skipped
     installed = []
+    # One daemon listing for this call's entries (call-local, never kept): the rebuild-missing step used to list the
+    # whole daemon again for every entry. Each entry's child is still inspected and verified afresh.
+    from carbon.development_session.library_environment_cache import (
+        LibraryImageInventory,
+    )
+    from carbon.reconstruction.worker.docker_runtime import DockerCLI
+
+    inventory = LibraryImageInventory(DockerCLI())
     for item in pipeline.load()["entries"]:
         catalog_id = item["catalog_id"]
         if catalog_ids and catalog_id not in catalog_ids:
@@ -107,22 +128,39 @@ def install(
                 {"catalog_id": catalog_id, "reason": "wheel_missing", "wheel": missing}
             )
             continue
-        try:
+
+        def attempt(item=item):
             with tempfile.TemporaryDirectory() as work:
                 directory = pipeline.bundle_directory(
                     item, Path(work) / "bundle", wheelhouse=wheelhouse
                 )
                 if receiver_config is not None:
-                    result = library_bundle.install_receiver_bundle(
-                        directory, receiver_config
+                    return library_bundle.install_receiver_bundle(
+                        directory, receiver_config, inventory=inventory
                     )
-                else:
-                    kwargs = {} if state_dir is None else {"state_dir": state_dir}
-                    result = library_bundle.install_bundle(directory, **kwargs)
+                kwargs = {} if state_dir is None else {"state_dir": state_dir}
+                return library_bundle.install_bundle(
+                    directory, inventory=inventory, **kwargs
+                )
+
+        retried = False
+        try:
+            try:
+                result = attempt()
+            except Exception as first:
+                if catalog_ids or not _transient(first):
+                    raise
+                retried = True
+                print(
+                    f"retrying {catalog_id} once: Docker timed out or was busy",
+                    file=sys.stderr,
+                )
+                time.sleep(RETRY_BACKOFF_SECONDS)
+                result = attempt()
         except Exception as failure:  # one entry never stops the rest
             if catalog_ids:
                 raise
-            detail = f"{type(failure).__name__}: {failure}"[:300]
+            detail = _diagnostic(failure, " (retried once)" if retried else "")
             print(
                 f"skipped {catalog_id}: its install failed: {detail}", file=sys.stderr
             )
