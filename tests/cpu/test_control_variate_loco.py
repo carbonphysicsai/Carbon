@@ -1,4 +1,4 @@
-"""CONTROL-VARIATE-PREDICT-01: the METHOD-ONLY leave-one-out fit (numpy only)."""
+"""CONTROL-VARIATE-PREDICT: the METHOD-ONLY leave-one-out fit (numpy only)."""
 
 from __future__ import annotations
 

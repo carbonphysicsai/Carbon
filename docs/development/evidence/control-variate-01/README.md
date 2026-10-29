@@ -1,4 +1,4 @@
-# CONTROL-VARIATE-PREDICT-01: a first estimate of rho (METHOD-ONLY)
+# CONTROL-VARIATE-PREDICT: a first estimate of rho (METHOD-ONLY)
 
 **This is not evidence about any member.** No qualified member can predict the battery v3 or 10p/12s motor cases, because their registered TRAIN sets are unsolved. On the Test Lead's decision, each case is instead predicted by a small fixed model fitted on the *other* pair cases. The result is a first estimate of rho for the control-variate lever in PROVEN-LEADERBOARD-03, section C. It is DEVELOPMENT only and makes no qualification, threshold or value claim.
 
