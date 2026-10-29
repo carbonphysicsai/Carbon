@@ -90,8 +90,10 @@ def daemon(monkeypatch):
                 held = held[:-1]
             elif state["fault"] == "wrong_inspected_id":
                 held = ["a-tag-is-not-an-immutable-image-id"]
+            # The daemon prints one blank line when every requested id is absent.
+            printed = "\n".join(json.dumps(value) for value in held).encode("ascii")
             return SimpleNamespace(
-                stdout="\n".join(json.dumps(value) for value in held).encode("ascii"),
+                stdout=b"\n" if absent and not held else printed,
                 stderr="\n".join(lines).encode("ascii"),
                 returncode=1 if lines else 0,
             )
