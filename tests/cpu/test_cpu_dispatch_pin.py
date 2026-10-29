@@ -11,6 +11,8 @@ from carbon.challenge_validator import cpu_pin
 
 ROOT = Path(__file__).resolve().parents[2]
 BLAS = cpu_pin.OPENBLAS_CORETYPE
+OK_VIEW = lambda: ([], [])
+OK_CORE = lambda: "Haswell"
 NPY = cpu_pin.NPY_DISABLE_CPU_FEATURES
 
 
@@ -62,13 +64,13 @@ def test_canonical_and_ci_set_the_pin():
 
 
 def test_the_guard_accepts_exactly_the_pin():
-    assert cpu_pin.require(dict(cpu_pin.PIN), features=list) == cpu_pin.PIN
+    assert cpu_pin.require(dict(cpu_pin.PIN), view=OK_VIEW, core=OK_CORE) == cpu_pin.PIN
     # the feature list is a set: order and separators do not matter
     spaced = {
         **cpu_pin.PIN,
         "NPY_DISABLE_CPU_FEATURES": " ".join(reversed(NPY.split(","))),
     }
-    assert cpu_pin.require(spaced, features=list)
+    assert cpu_pin.require(spaced, view=OK_VIEW, core=OK_CORE)
 
 
 @pytest.mark.parametrize(
@@ -93,17 +95,20 @@ def test_the_guard_refuses_a_missing_or_different_pin(mutate, code):
     environ = dict(cpu_pin.PIN)
     mutate(environ)
     with pytest.raises(cpu_pin.CpuPinRefused) as refused:
-        cpu_pin.require(environ, features=list)
+        cpu_pin.require(environ, view=OK_VIEW, core=OK_CORE)
     assert refused.value.code == code
 
 
 def test_the_guard_refuses_a_pin_numpy_is_not_honouring():
     with pytest.raises(cpu_pin.CpuPinRefused) as refused:
-        cpu_pin.require(dict(cpu_pin.PIN), features=lambda: ["AVX512F"])
+        cpu_pin.require(dict(cpu_pin.PIN), view=lambda: (["X86_V4"], []), core=OK_CORE)
     assert refused.value.code == "cpu_dispatch_pin_not_effective"
     # unless the caller opts out of the NumPy check (the variables alone)
     assert cpu_pin.require(
-        dict(cpu_pin.PIN), check_effective=False, features=lambda: ["AVX512F"]
+        dict(cpu_pin.PIN),
+        check_effective=False,
+        view=lambda: (["X86_V4"], []),
+        core=OK_CORE,
     )
 
 
@@ -128,3 +133,55 @@ def test_no_producer_file_changed():
     """physical_dual_pack.py is a shared producer file: the pin is set outside it."""
     text = _text("carbon/scoring/physical_dual_pack.py")
     assert "OPENBLAS_CORETYPE" not in text and "NPY_DISABLE_CPU_FEATURES" not in text
+
+
+def test_cannot_tell_is_a_refusal_not_a_pass():
+    def refuse(**kwargs):
+        with pytest.raises(cpu_pin.CpuPinRefused) as refused:
+            cpu_pin.require(dict(cpu_pin.PIN), **kwargs)
+        return refused.value
+
+    assert (
+        refuse(view=lambda: None, core=OK_CORE).code == "cpu_dispatch_pin_unverifiable"
+    )
+    unknown = refuse(view=lambda: ([], ["X86_V4"]), core=OK_CORE)
+    assert unknown.code == "cpu_dispatch_pin_unverifiable" and "X86_V4" in str(unknown)
+    assert (
+        refuse(view=OK_VIEW, core=lambda: None).code == "cpu_dispatch_pin_unverifiable"
+    )
+    assert (
+        refuse(view=OK_VIEW, core=lambda: "SkylakeX").code
+        == "cpu_dispatch_pin_not_effective"
+    )
+
+
+def test_every_pinned_name_is_a_known_feature_of_the_installed_numpy():
+    """Otherwise `__cpu_features__.get(name)` would read an unknown name as off and the effectiveness check would be vacuous."""
+    seen = cpu_pin.numpy_view()
+    assert seen is not None
+    _active, unknown = seen
+    assert unknown == [], unknown
+    from numpy._core._multiarray_umath import __cpu_dispatch__
+
+    # and at least one pinned name is an actual dispatch target of this build (the pin can bite)
+    assert set(cpu_pin.NPY_DISABLE_CPU_FEATURES.split(",")) & set(__cpu_dispatch__) or (
+        "X86_V3" in __cpu_dispatch__
+    )
+
+
+def test_the_live_openblas_core_is_read_from_the_library_not_the_variable(tmp_path):
+    import subprocess
+    import sys
+
+    code = (
+        "from carbon.challenge_validator import cpu_pin; print(cpu_pin.openblas_core())"
+    )
+    env = {**__import__("os").environ, "OPENBLAS_CORETYPE": BLAS}
+    done = subprocess.run(
+        [sys.executable, "-c", code],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert done.stdout.strip() == BLAS
