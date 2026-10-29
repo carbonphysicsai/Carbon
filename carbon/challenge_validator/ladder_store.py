@@ -36,6 +36,7 @@ or rescored.
 from __future__ import annotations
 
 import json
+import math
 import os
 import sqlite3
 
@@ -51,6 +52,15 @@ CREATE TABLE IF NOT EXISTS ladder_feedback(
     latest TEXT NOT NULL,
     updated_ns INTEGER NOT NULL,
     PRIMARY KEY(hotkey, challenge_id, challenge_version, exam_key)
+);
+CREATE TABLE IF NOT EXISTS ladder_parts_v4(
+    hotkey TEXT NOT NULL,
+    challenge_id TEXT NOT NULL,
+    evaluation_version TEXT NOT NULL,
+    exam_key TEXT NOT NULL,
+    parts TEXT NOT NULL,
+    updated_ns INTEGER NOT NULL,
+    PRIMARY KEY(hotkey, challenge_id, evaluation_version, exam_key)
 );
 CREATE TABLE IF NOT EXISTS ladder_feedback_v2(
     hotkey TEXT NOT NULL,
@@ -87,6 +97,66 @@ def _is_v1(raw):
         return False
 
 
+def _unit(value):
+    return (
+        type(value) in (int, float)
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and 0 <= value <= 1
+    )
+
+
+def _check_v4(document):
+    """A v4 document's content, by status (PART_FEEDBACK_GRANULARITY section 1):
+    a result that counts carries its total, parts and gates; a failed gate carries
+    its gates and no number; a result that does not count carries no number and no
+    gates. Every shown part is a plain number in 0..1, every gate "pass" or "fail"
+    and every missed minimum a name."""
+    status, parts, gates = document["status"], document["parts"], document["gates"]
+    missed = document["minimums_missed"]
+    bad = LadderStoreRefused("ladder_document")
+    if type(missed) is not list or not all(type(n) is str and n for n in missed):
+        raise bad
+    if gates is not None and (
+        type(gates) is not dict
+        or not gates
+        or not all(type(n) is str and v in gf.GATE_VERDICTS for n, v in gates.items())
+    ):
+        raise bad
+    if parts is not None and (
+        type(parts) is not dict
+        or set(parts) != gf.PARTS_FIELDS
+        or not _unit(parts["A"])
+        or not _unit(parts["D"])
+        or type(parts["components"]) is not dict
+        or not all(type(n) is str and _unit(v) for n, v in parts["components"].items())
+    ):
+        raise bad
+    if status in ("IMPROVED", "NO_IMPROVEMENT"):
+        if parts is None or gates is None or not _unit(document["total"]):
+            raise bad
+        if document["gate_names"] != []:
+            raise bad
+    elif status == "GATE_FAILED":
+        failed = sorted(n for n, v in (gates or {}).items() if v == "fail")
+        if (
+            parts is not None
+            or gates is None
+            or document["total"] is not None
+            or not failed
+            or document["gate_names"] != failed
+        ):
+            raise bad
+    else:  # NOT_SCORED
+        if (
+            parts is not None
+            or gates is not None
+            or document["total"] is not None
+            or document["gate_names"] != []
+        ):
+            raise bad
+
+
 def checked(document, *, latest=False):
     """``document`` when it is exactly as the builder emits it (its
     allow-listed fields and schema, and status IMPROVED for a best document
@@ -100,6 +170,14 @@ def checked(document, *, latest=False):
         or type(document["gate_names"]) is not list
     ):
         raise LadderStoreRefused("ladder_document")
+    if version == gf.SCHEMA_V4:
+        _check_v4(document)
+        fields = (
+            gf.FIELDS_V4_NOT_SCORED
+            if document["status"] == "NOT_SCORED"
+            else gf.FIELDS_V4
+        )
+        return {name: document[name] for name in sorted(fields)}
     if version == gf.SCHEMA_V3 and (
         type(document["recipe_digest"]) is not str
         or type(document["epoch"]) is not int
@@ -217,13 +295,20 @@ class LadderStore:
         recipe_digest=None,
         epoch=None,
         leg_minimums=None,
+        parts_registry=None,
     ):
         """Apply one graded private-exam result (the score row) and return the
         document it shows: stored as the latest, and as the best only when it
-        improved. ``rebuild_noise`` is the Challenge's registration or None."""
+        improved. ``rebuild_noise`` is the Challenge's registration or None.
+
+        With ``parts_registry`` (the score pack's registered component names per
+        leg) the document is v4 and the miner's last shown parts, kept per hotkey
+        and exam key, are the hysteresis state; a result that does not count leaves
+        that state as it was."""
         key, version = self._key(hotkey, challenge, exam_key)
         noise = _noise_value(rebuild_noise)
         best, _ = self._documents(key)
+        parts_state = None if parts_registry is None else self._parts_state(key)
         shown = gf.ladder_feedback(
             graded,
             best=best,
@@ -233,6 +318,8 @@ class LadderStore:
             recipe_digest=recipe_digest,
             epoch=epoch,
             leg_minimums=leg_minimums,
+            parts_registry=parts_registry,
+            parts_state=parts_state,
         )
         kept = gf.next_best(best, shown)
         with self.ledger._db() as db:
@@ -252,7 +339,33 @@ class LadderStore:
                     int(self.ledger.clock()),
                 ),
             )
+            if shown.get("parts") is not None:
+                db.execute(
+                    "INSERT INTO ladder_parts_v4(hotkey, challenge_id,"
+                    " evaluation_version, exam_key, parts, updated_ns)"
+                    " VALUES(?,?,?,?,?,?)"
+                    " ON CONFLICT(hotkey, challenge_id, evaluation_version, exam_key)"
+                    " DO UPDATE SET parts=excluded.parts,"
+                    " updated_ns=excluded.updated_ns",
+                    (
+                        *key,
+                        json.dumps(
+                            shown["parts"], sort_keys=True, separators=(",", ":")
+                        ),
+                        int(self.ledger.clock()),
+                    ),
+                )
         return shown
+
+    def _parts_state(self, key):
+        """The miner's last shown ``parts`` for this exam (None before the first)."""
+        with self.ledger._db() as db:
+            row = db.execute(
+                "SELECT parts FROM ladder_parts_v4 WHERE hotkey=? AND challenge_id=?"
+                " AND evaluation_version=? AND exam_key=?",
+                key,
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
 
     def served(self, hotkey, challenge, exam_key):
         """What the miner may read for this exam: ``{"best", "latest"}``, each

@@ -3335,6 +3335,21 @@
     const said = (other.status === "GATE_FAILED" || other.status === "NOT_SCORED") && typeof other.words === "string" ? other.words.replace(/^graded: /, "") : other.status === "GATE_FAILED" ? "not eligible (a mandatory gate failed)" : other.status === "NOT_SCORED" || typeof other.total !== "number" ? "not scored" : other.total.toFixed(4);
     return " Your mining key's latest grade on this exam is " + said + ", from " + (other.recipe_digest ? "another submission" : "a submission the validator did not name") + "; it is not this one's.";
   }
+  // Per-part feedback (PART_FEEDBACK_GRANULARITY_20261029): this miner's own per-part feedback from
+  // the Ladder's v4 document, as the Ladder floored it: the two halves and each
+  // registered component, the gates pass or fail, and the legs below their minimum by
+  // name. The page shows these numbers and computes none.
+  function partFeedbackText(latest) {
+    if (!latest) return "";
+    const bits = [];
+    if (latest.parts) {
+      const rows = [["accuracy (A)", latest.parts.A], ["design value (D)", latest.parts.D], ...Object.entries(latest.parts.components || {}).map(([name, value]) => [words(name), value])].filter(([, value]) => typeof value === "number");
+      if (rows.length) bits.push("Parts (rounded down to the part step, at least 0.05; each changes only by a full step): " + rows.map(([name, value]) => name + " " + value.toFixed(2)).join(", ") + ".");
+    }
+    if (latest.gates && Object.keys(latest.gates).length) bits.push("Gates: " + Object.entries(latest.gates).map(([name, verdict]) => words(name) + " " + verdict).join(", ") + ".");
+    if (Array.isArray(latest.minimums_missed) && latest.minimums_missed.length) bits.push("Below the required minimum: " + latest.minimums_missed.map(words).join(", ") + ".");
+    return bits.length ? " " + bits.join(" ") : "";
+  }
   function gradeLine(grade, state) {
     const latest = grade && grade.latest;
     const best = grade?.best && typeof grade.best.total === "number" ? grade.best.total.toFixed(4) : null;
@@ -3344,12 +3359,12 @@
     }
     // Validator (Ladder v3): a non-improvement repeats the best total under
     // this submit's digest, so it is never read as this submit's score.
-    if (latest.status === "NO_IMPROVEMENT") return "Grade: did not improve on your best" + (typeof latest.total === "number" ? " (" + latest.total.toFixed(4) + ")" : "") + ". Compares within this Challenge version only.";
-    if (latest.status === "GATE_FAILED") return "Grade: " + (typeof latest.words === "string" ? latest.words.replace(/^graded: /, "") : "not eligible (a mandatory gate failed" + (Array.isArray(latest.gate_names) && latest.gate_names.length ? ": " + latest.gate_names.map(words).join(", ") : "") + ")") + ". Compares within this Challenge version only.";
+    if (latest.status === "NO_IMPROVEMENT") return "Grade: did not improve on your best" + (typeof latest.total === "number" ? " (" + latest.total.toFixed(4) + ")" : "") + ". Compares within this Challenge version only." + partFeedbackText(latest);
+    if (latest.status === "GATE_FAILED") return "Grade: " + (typeof latest.words === "string" ? latest.words.replace(/^graded: /, "") : "not eligible (a mandatory gate failed" + (Array.isArray(latest.gate_names) && latest.gate_names.length ? ": " + latest.gate_names.map(words).join(", ") : "") + ")") + ". Compares within this Challenge version only." + partFeedbackText(latest);
     // The projection's one mapping of every Ladder status into words (GRADE_WORDS).
     if (typeof latest.total !== "number") return "Grade: " + (typeof latest.words === "string" ? latest.words.replace(/^graded: /, "") : "not scored") + ".";
     const detail = [typeof latest.A === "number" ? "A " + latest.A.toFixed(3) : null, typeof latest.D === "number" ? "D " + latest.D.toFixed(3) : null].filter(Boolean).join(", ");
-    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + (best ? " · your best: " + best : "") + ". Compares within this Challenge version only.";
+    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + (best ? " · your best: " + best : "") + ". Compares within this Challenge version only." + partFeedbackText(latest);
   }
   function renderValidatorOutcome(panel, result, campaign) {
     const o = result.result;

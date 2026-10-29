@@ -80,6 +80,15 @@ def grade_entry_on_set(
     )
 
 
+def _set_score_pack(batch_adapters, batches):
+    """The set's score pack (its batches' packs agree on the version's legs): the
+    first batch's, read for the registered component names of the per-part feedback."""
+    discovery = batch_adapters[batches[0]].discovery
+    return discovery.evaluation_pack_snapshot.read_json_role(
+        discovery.evaluation_pack_private_root, "private", "score_pack", max_bytes=65536
+    )
+
+
 def _set_exam_facts(batch_adapters, batches):
     """The version's exam version and hard gates, from the batch packs (they must
     agree), or a refusal."""
@@ -169,6 +178,7 @@ def grade_set_entry(
             exam_version=version,
             gates=gates,
             graded=result["graded"],
+            score_pack=_set_score_pack(batch_adapters, batches),
         ),
     }
     if promotion is not None:

@@ -369,6 +369,63 @@ NOT_SCORED_WORDS = {
     ),
 }
 _LEG = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,31}")
+#: A registered component's metric name (a pack's own names, e.g. "accuracy_mean").
+_LEG_NAME = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,63}")
+
+
+def _unit_number(value):
+    return (
+        type(value) in (int, float)
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and 0 <= value <= 1
+    )
+
+
+def _part_feedback(document):
+    """A v4 Ladder document's per-part feedback for the page (the owner's per-part
+    feedback decision), allow-listed field by field: the A and D halves and each
+    registered component (already floored by the Ladder), every registered gate as
+    pass or fail, and the names of legs below their minimum. Anything of another
+    shape is dropped; the page computes nothing from it."""
+    if document.get("schema") != "carbon.private-exam.ladder-feedback.v4":
+        return {}
+    out = {}
+    parts = document.get("parts")
+    if (
+        type(parts) is dict
+        and _unit_number(parts.get("A"))
+        and _unit_number(parts.get("D"))
+        and type(parts.get("components")) is dict
+    ):
+        out["parts"] = {
+            "A": float(parts["A"]),
+            "D": float(parts["D"]),
+            "components": {
+                name: float(value)
+                for name, value in list(parts["components"].items())[:32]
+                if type(name) is str
+                and _LEG_NAME.fullmatch(name)
+                and _unit_number(value)
+            },
+        }
+    gates = document.get("gates")
+    if type(gates) is dict:
+        out["gates"] = {
+            name: verdict
+            for name, verdict in list(gates.items())[:32]
+            if type(name) is str
+            and _GATE.fullmatch(name)
+            and verdict in ("pass", "fail")
+        }
+    missed = document.get("minimums_missed")
+    if type(missed) is list:
+        out["minimums_missed"] = [
+            name[:64]
+            for name in missed[:8]
+            if type(name) is str and _LEG_NAME.fullmatch(name)
+        ]
+    return out
 
 
 def _grade(ladder, submission=None, epoch=None, also=()):
@@ -418,6 +475,7 @@ def _grade(ladder, submission=None, epoch=None, also=()):
                 and math.isfinite(value)
             ):
                 shown[name] = float(value)
+        shown.update(_part_feedback(document))
         if type(document.get("exam_version")) is str:
             shown["exam_version"] = document["exam_version"][:64]
         # Ladder v3 names the submission each document is about (U63).
