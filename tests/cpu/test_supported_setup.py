@@ -1,6 +1,6 @@
 """The one supported launch setup and the warning every other machine gets
 (OWNER-LAUNCH-SUPPORTED-MACHINE-01): Ubuntu 22.04/24.04 x86-64, Docker 29, 16 GB RAM,
-about 150 GB disk, GPU optional (any NVIDIA, driver >= the figure our CUDA 13.0 builds
+about 150 GiB disk, GPU optional (any NVIDIA, driver >= the figure our CUDA 13.0 builds
 need). Anything else is warned about, never blocked; the installer and the Python check
 say the same thing from the same numbers."""
 
@@ -134,7 +134,7 @@ def test_mining_md_states_the_supported_setup_and_the_driver_source():
         "32 GB",
         "17 GiB",
         "15.6 GiB",
-        "150 GB",
+        "150 GiB",
         ss.MIN_NVIDIA_DRIVER,
         "CUDA Toolkit 13.0 release notes",
         "not a supported setup yet",
@@ -191,7 +191,7 @@ def test_the_installer_function_prints_the_warning_for_an_unsupported_machine(tm
     assert "not a supported setup yet; it may work" in done.stderr
     assert "Docker 28.5.1 (supported: Docker 29)" in done.stderr
     assert "NVIDIA driver 575.57.08 (supported: 580.65.06 or newer)" in done.stderr
-    assert "90 GB of free disk" in done.stderr
+    assert "90 GiB of free disk" in done.stderr
     assert "Docker sees 8 GiB" in done.stderr and "17 GiB" in done.stderr
     assert "2 CPUs (supported: 4 or more" in done.stderr
 

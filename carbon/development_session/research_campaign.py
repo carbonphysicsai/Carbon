@@ -30,6 +30,7 @@ from carbon.reconstruction.worker.docker_runtime import doctor, load_image_ident
 from carbon.transport.models import message
 
 from . import research_guidance as guidance
+from . import supported_setup
 from .data import write_once
 from .gpu_research import PublicGPUPractice, registered_gpu_image
 from .model_provider import (
@@ -1928,8 +1929,9 @@ def _host_too_small_step(capacity):
         f"This machine is too small for the practice: Docker sees {seen} GiB of memory "
         f"and {cpus} CPUs, and the practice worker needs {needs} GiB and "
         f"{needs_cpus} CPUs (it runs under a {needs - 1:g} GiB limit, and Docker must see 1 GiB "
-        "more). Nothing ran and nothing counts against you. The supported machine has 32 GB of "
-        "RAM and 4 or more CPUs (docs/MINING.md, Supported setup); on a smaller machine, "
+        "more). Nothing ran and nothing counts against you. The supported machine has "
+        f"{supported_setup.RECOMMENDED_RAM_GB} GB of RAM and {supported_setup.MIN_CPUS} or more CPUs "
+        "(docs/MINING.md, Supported setup); on a smaller machine, "
         "run the practice on a bigger one (a rented CPU machine is enough) or use a "
         "Challenge version that fits. `docker info` shows what Docker sees (MemTotal, NCPU)."
     )

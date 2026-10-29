@@ -72,6 +72,8 @@ import threading
 import time
 from pathlib import Path
 
+from carbon.development_session import supported_setup
+
 INLINE, SUPERVISOR, DETACHED, CLIENT = "inline", "supervisor", "detached", "client"
 ROLES = (INLINE, SUPERVISOR, DETACHED, CLIENT)
 #: How often a supervisor looks for queued work when nothing wakes it.
@@ -526,9 +528,10 @@ NEXT_ACTIONS = {
     # itself (research_campaign.PracticeNotRun.next_step), this is the fixed fallback.
     "practice_host_too_small": (
         "This machine is too small for the practice worker: Docker must see at least "
-        "17 GiB of memory and 4 CPUs (the supported machine has 32 GB of RAM). Nothing "
-        "ran and nothing counts against you. Practise on a bigger machine. `docker info` "
-        "shows what Docker sees (MemTotal, NCPU)."
+        f"{supported_setup.MIN_DOCKER_MEMORY_GIB} GiB of memory and {supported_setup.MIN_CPUS} "
+        f"CPUs (the supported machine has {supported_setup.RECOMMENDED_RAM_GB} GB of RAM). "
+        "Nothing ran and nothing counts against you. Practise on a bigger machine. "
+        "`docker info` shows what Docker sees (MemTotal, NCPU)."
     ),
     "smoke_practice_unavailable": (
         "This Challenge offers no smoke practice. Practise the recipe in full "

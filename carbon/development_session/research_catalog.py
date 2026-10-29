@@ -252,7 +252,7 @@ def public_catalog(backbones=RESEARCH_BACKBONES):
             "FNO n_modes is even; allocated Fourier modes=n_modes/2+1",
             "both warmup counts must be strictly below steps",
             "only architecture-applicable fields may be supplied",
-            "actual 2-CPU/4-GiB/no-swap/600-second admission dominates parameter bounds",
+            "the worker's actual CPU, memory, swap and time admission, set by the Challenge version's resource profile, dominates parameter bounds",
         ],
         "training": "AdamW; linear warmup then cosine decay; uniform TRAIN cases then uniform supplied times; params or EMA at final step",
         "losses": {

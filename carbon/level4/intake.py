@@ -49,7 +49,7 @@ BOUNDS = {
 #: (Validator, 2026-10-21). Proposed values, not a security acceptance: a
 #: document at `allowlist.CONTAINMENT`'s 64 MiB, a submission of three such
 #: role documents, and parse limits sized from a measured 64 MiB parse
-#: (13 s, 841 MiB peak; three documents about 39 s and 2.5 GB).
+#: (13 s, 841 MiB peak; three documents about 39 s and 2.5 GiB).
 CONTAINMENT_BOUNDS = {
     "manifest_bytes": 16 * 1024,
     "document_bytes": 64 * 1024**2,
