@@ -376,6 +376,7 @@ def test_the_owner_sheet_sweeps_every_constant_and_reports_aggregates_only():
         "H",
         "S",
         "controls",
+        "legs",
         "controls_margin",
         "oracle_reaches_all_references",
         "oracle_total",
@@ -398,6 +399,45 @@ def test_the_owner_sheet_sweeps_every_constant_and_reports_aggregates_only():
     assert (
         grid.dump(grid.run_grid(_grid_plugin(), _grid_spec())) == text
     ), "deterministic"
+
+
+def test_every_model_row_carries_its_legs_and_they_recompose_its_total():
+    """Headroom proof: each row lists A, A_gen, A_all, D and the total for EVERY model the sheet names (the oracle,
+    good, default, the floor, the in-distribution control and each gaming control), not only the first four.
+    """
+    from carbon.scoring import pool_proof_grid as grid
+
+    spec = _grid_spec()
+    named = set(grid.descriptors(spec))
+    assert {
+        "optimistic_near_limits",
+        "wrong_near_the_optimum",
+        "default_model",
+        "in_distribution_only",
+    } <= named
+    result = grid.run_grid(_grid_plugin(), spec)
+    for row in result["rows"]:
+        legs = row["legs"]
+        assert set(legs) == named
+        for name, leg in legs.items():
+            assert set(leg) == {"A", "A_gen", "A_all", "D", "total"}, name
+            for key in ("A", "A_all", "D", "total"):
+                assert type(leg[key]) is float and 0.0 <= leg[key] <= 1.0, (name, key)
+            assert leg["A_gen"] is None or 0.0 <= leg["A_gen"] <= 1.0
+        # The row's headline numbers are these legs' totals.
+        assert row["good"] == legs["good"]["total"]
+        assert row["default"] == legs["default"]["total"]
+        assert row["oracle_total"] == legs["oracle"]["total"]
+        assert row["controls"] == {
+            name: legs[name]["total"] for name in row["controls"]
+        }
+        # A total recomposes from its legs (C rule min; no toy model fails a gate).
+        for name, leg in legs.items():
+            if leg["total"] > 0.0:
+                assert leg["total"] <= 0.5 * leg["A_all"] + 0.5 * leg["D"] + 1e-12, name
+    # Aggregates only, as before.
+    text = grid.dump(result)
+    assert "designs" not in text and "truths" not in text and "pick" not in text
 
 
 def test_a_tighter_a_scale_lowers_the_good_model_and_a_larger_honesty_scale_raises_it():
