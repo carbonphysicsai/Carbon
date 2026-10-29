@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -1165,3 +1166,75 @@ def test_infra_re_runs_are_bounded(cap, monkeypatch):
         host.tasks[task].state = DirectTaskStateV3.FAILED_INFRA
     with pytest.raises(Unavailable, match="direct_infra_rerun_limit_reached"):
         host.submit(recipe)
+
+
+# --- the calibration campaign is uncapped: an unregistered cadence cannot deadlock the recalibration ----------
+
+
+def test_a_calibration_grade_completes_on_an_unregistered_cadence_while_a_miner_grade_is_refused(
+    tmp_path, clock, monkeypatch
+):
+    """The committed cadence carries no values until the recalibration writes them. The calibration campaign (its own
+    uncapped ledger, never the official one) must still run, or the recalibration would wait on its own fail-closed
+    cadence; a miner-graded submission on the same unregistered cadence is refused."""
+    from carbon.challenge_validator import calibration_grade_run as run
+    from carbon.development_session.research_ledger import CampaignLedger
+
+    # The shipped, unvalued v2 registry is what is in force.
+    with pytest.raises(exam_cap.ExamCapRefused) as unvalued:
+        exam_cap.registered_cadence()
+    assert unvalued.value.code == "exam_cadence_unregistered"
+
+    reads = []
+    real = exam_cap.registered_cadence
+
+    def spy(*args, **kwargs):
+        reads.append(1)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(exam_cap, "registered_cadence", spy)
+
+    # (1) a calibration grade runs through its own frozen campaign ledger and completes.
+    ledger = CampaignLedger(tmp_path / "calibration-ledger")
+    run.freeze_campaign(ledger)
+    runner = run.stub_runner(lambda _inputs, _control: [[1.0]])
+    record = runner(
+        ledger,
+        owner=run.CALIBRATION_OWNER,
+        identity="calibration-unregistered-cadence",
+        files={
+            "control.json": json.dumps(
+                {
+                    "recipe_digest": "sha256:" + "1" * 64,
+                    "state_digest": "sha256:" + "2" * 64,
+                    "inputs_digest": "sha256:" + "3" * 64,
+                }
+            ).encode(),
+            "inputs.npz": b"inputs",
+        },
+    )
+    assert set(record["files"]) == {"predictions.json", "receipt.json"}
+    assert reads == []  # the calibration path never read the cadence
+
+    # (2) a miner-graded submission on the same unregistered cadence is refused, fail closed.
+    miner = make_cap(tmp_path, clock, cadence=None)
+    with pytest.raises(exam_cap.ExamCapRefused) as refused:
+        _reserve(miner, 0)
+    assert refused.value.code == "exam_cadence_unregistered"
+    assert reads == [1]  # only the official cap asked
+
+
+@pytest.mark.parametrize("module", ["calibration_grade", "calibration_grade_run"])
+def test_the_calibration_modules_never_touch_the_exam_cap_or_the_cadence(module):
+    import ast
+
+    path = Path(exam_cap.__file__).with_name(module + ".py")
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    names = {
+        alias.name if isinstance(n, ast.Import) else f"{n.module}.{alias.name}"
+        for n in ast.walk(tree)
+        if isinstance(n, ast.Import | ast.ImportFrom)
+        for alias in n.names
+    }
+    assert not [m for m in names if "exam_cap" in m or "cadence" in m]
+    assert "exam_cadence" not in path.read_text(encoding="utf-8")
