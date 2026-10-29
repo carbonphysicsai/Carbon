@@ -40,11 +40,11 @@ def _official(monkeypatch, answers):
     """`runtime_bundle_ref(..., official=True)` answers per runtime: a ref or a refusal."""
     real = served.runtime_bundle_ref
 
-    def pick(item, runtime, *, official):
+    def pick(item, runtime, *, official, store=None):
         assert official is True
         answer = answers.get(runtime)
         if answer is None:
-            return real(item, runtime, official=True)
+            return real(item, runtime, official=True, store=store)
         if isinstance(answer, Exception):
             raise answer
         return dict(answer)
