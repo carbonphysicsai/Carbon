@@ -76,7 +76,8 @@ const byValue = (page, selector, value) => { const node = all(page, selector).fi
 function clean(page) { assert.deepEqual(page.errors.map(String), [], "the page raised no error"); }
 // The page's own plain-words pass over a controller's sentence (what the miner reads).
 const plain = text => String(text).replace(/\bevaluation endpoints\b/g, "grading addresses").replace(/\bevaluation endpoint\b/g, "grading address").replace(/\bvalidator intakes\b/g, "grading addresses").replace(/\bvalidator intake\b/g, "grading address").replace(/\b[Cc]onstruction intake\b/g, "recipe receiver").replace(/\bconstruction receiver\b/g, "recipe receiver");
-function selectable() { return fx.caps.challenges.find(entry => entry.selectable); }
+// The first selectable Challenge the page offers (what the Library defaults to): never an unoffered one such as Battery.
+function selectable() { return listedChallenges(fx.caps).find(entry => entry.implemented && entry.selectable); }
 // The first Challenge the wizard lists (its newest version) that can be launched and practised: a
 // Challenge that cannot practise is Coming soon (Battery is out of launch), so no wizard scenario picks it.
 function listedChallenges(capabilities = fx.caps) {
