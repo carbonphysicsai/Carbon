@@ -407,7 +407,13 @@ def test_capabilities_expose_the_example_and_the_picker():
     assert motor["example_strategy"] == motor_registry.catalog_recipe(
         "neuralop.FNO", version="1.3"
     )
-    assert motor["catalog_recipes"] == toolbox.catalog_recipes(MOTOR, "1.3")
+    # The picker is the toolbox's list plus the validator's readiness per entry (display only; unknown, None, with
+    # no receiver configured here).
+    assert [
+        {k: v for k, v in r.items() if k != "officially_gradable"}
+        for r in motor["catalog_recipes"]
+    ] == toolbox.catalog_recipes(MOTOR, "1.3")
+    assert all(r["officially_gradable"] is None for r in motor["catalog_recipes"])
     assert len(motor["catalog_recipes"]) == len(listing.entries(MOTOR, "1.3"))
     assert items[(MOTOR, "1.0")]["catalog_recipes"] == []
 

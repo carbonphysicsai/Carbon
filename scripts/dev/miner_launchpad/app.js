@@ -3705,19 +3705,29 @@
   // A tested backbone chosen from a list, with the two settings a newcomer changes first as form fields. It writes
   // the recipe JSON (the Advanced text area) from the chosen backbone's ready recipe; whatever that text area holds
   // when "Run practice trial" is pressed is what is sent (E4).
+  // The plain words for a catalog entry that has no official GPU build yet (served.GPU_RECEIPT_PENDING, display only).
+  const GPU_RECEIPT_PENDING_WORDS = "not yet GPU-checked on the validator";
+  const GPU_RECEIPT_PENDING_NOTE = "This backbone is " + GPU_RECEIPT_PENDING_WORDS + ": you can practise on it, but the validator cannot grade it officially yet.";
   function catalogPracticeForm(box, run, catalog, raw, holder) {
     const form = el("div", undefined, "catalog-practice"); form.id = "journey-form-" + run.id;
     const idOf = text => { try { return JSON.parse(text)?.source?.catalog_id || null; } catch (_) { return null; } };
     const known = id => catalog.some(item => item.catalog_id === id);
     const start = known(idOf(raw.value)) ? idOf(raw.value) : catalog[0].catalog_id;
     const pickLabel = el("label", "Backbone"); const pick = document.createElement("select"); pick.id = "journey-backbone-" + run.id; pickLabel.htmlFor = pick.id;
-    for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "") + (item.legacy ? " (legacy)" : "")); option.value = item.catalog_id; pick.append(option); }
+    for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "") + (item.legacy ? " (legacy)" : "") + (item.officially_gradable === false ? " (" + GPU_RECEIPT_PENDING_WORDS + ")" : "")); option.value = item.catalog_id; pick.append(option); }
     pick.value = start; pick.dataset.draft = "1";
     const about = el("p", undefined, "hint"); about.id = "journey-backbone-about-" + run.id;
+    // OWNER-GPU-OPEN-WITH-READY-01: an entry with no official GPU build yet can be practised, but the validator
+    // cannot grade it officially. Display only; nothing is hidden or blocked.
+    const gradable = el("p", undefined, "hint gpu-readiness"); gradable.id = "journey-backbone-gradable-" + run.id;
     const stepsLabel = el("label", "Training steps (empty keeps the tested default)"); const steps = document.createElement("input"); steps.type = "number"; steps.min = "1"; steps.step = "1"; steps.id = "journey-steps-" + run.id; stepsLabel.htmlFor = steps.id; steps.dataset.draft = "1";
     const rateLabel = el("label", "Learning rate (empty keeps the tested default)"); const rate = document.createElement("input"); rate.type = "number"; rate.min = "0"; rate.step = "any"; rate.id = "journey-rate-" + run.id; rateLabel.htmlFor = rate.id; rate.dataset.draft = "1";
     const current = () => catalog.find(item => item.catalog_id === pick.value) || catalog[0];
-    const describe = () => { about.textContent = current().variant ? current().variant : current().legacy ? "A legacy entry: " + current().legacy : "A backbone Carbon has tested on this Challenge. Its tested settings are the starting point."; };
+    const describe = () => {
+      const notYet = current().officially_gradable === false;
+      gradable.hidden = !notYet;
+      gradable.textContent = notYet ? GPU_RECEIPT_PENDING_NOTE : "";
+      about.textContent = current().variant ? current().variant : current().legacy ? "A legacy entry: " + current().legacy : "A backbone Carbon has tested on this Challenge. Its tested settings are the starting point."; };
     try { const kept = JSON.parse(raw.value); const s = kept?.procedure?.train_use?.steps, r = kept?.procedure?.configuration?.learning_rate; if (known(idOf(raw.value))) { if (Number.isFinite(s)) steps.value = String(s); if (Number.isFinite(r)) rate.value = String(r); } } catch (_) { /* kept as typed */ }
     const write = () => {
       const recipe = JSON.parse(JSON.stringify(current().recipe));
@@ -3743,7 +3753,7 @@
     steps.addEventListener("input", write); rate.addEventListener("input", write);
     describe(); fit();
     if (!known(idOf(raw.value))) write();
-    form.append(pickLabel, pick, about, stepsLabel, steps, rateLabel, rate);
+    form.append(pickLabel, pick, gradable, about, stepsLabel, steps, rateLabel, rate);
     box.insertBefore(form, holder.parentElement);
     researchNote(box, "Pick a tested backbone and, if you like, change its steps or learning rate. Anything else is under Advanced.", "hint");
   }
