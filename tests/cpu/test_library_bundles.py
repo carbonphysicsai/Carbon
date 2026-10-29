@@ -518,8 +518,8 @@ def test_owner_install_cli_uses_checked_gpu_profile_without_private_path_args(
         selected_parent,
         *,
         expected_bundle,
-        rebuild_missing,
         cli,
+        rebuild_missing,
     ):
         # the owner-only install rebuilds a missing bundle (library_bundle.py)
         assert rebuild_missing is True
@@ -638,8 +638,8 @@ def test_owner_install_cpu_uses_checked_installed_worker_identity(
         selected_parent,
         *,
         expected_bundle,
-        rebuild_missing,
         cli,
+        rebuild_missing,
     ):
         # the owner-only install rebuilds a missing bundle (library_bundle.py)
         assert rebuild_missing is True
@@ -727,7 +727,7 @@ def test_owner_install_selects_only_profile_pinned_torch_cpu_parent(
     calls = []
 
     def install(
-        input_directory, cache_root, image, *, expected_bundle, rebuild_missing, cli
+        input_directory, cache_root, image, *, expected_bundle, cli, rebuild_missing
     ):
         # the owner-only install rebuilds a missing bundle (library_bundle.py)
         assert rebuild_missing is True
