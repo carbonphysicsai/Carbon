@@ -23,7 +23,9 @@ def torch_entries():
 
 
 def withdrawn_twins():
-    """The 10 relicensed THUML twins withdrawn from GPU (the pinned lock lacked timm; OWNER-CATALOG-LICENCES-01 record)."""
+    """The twins withdrawn from GPU by the licence derivation: none since OWNER-THUML-GPU-TWIN-LIFT-01 lifted the
+    withdrawal of the 10 legacy THUML twins (the pinned lock now carries timm and einops).
+    """
     derivation = json.loads(
         (
             pipeline.BUNDLES.parent / "derivations/OWNER-CATALOG-LICENCES-01.json"
@@ -63,14 +65,10 @@ CNO1D_IDS = {
 
 
 def has_no_twin_by_design(item):
-    """No GPU twin yet or any more: the named CPU-only entries, the v2 entries still waiting for theirs, and the
-    withdrawn ones."""
+    """No GPU twin: the named CPU-only entries (none now) and the licence-withdrawn ones. Every other entry,
+    v2 included, has a twin (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01)."""
     return (
         item["catalog_id"] in gpu_build.NO_GPU_TWIN
-        or (
-            item["catalog_id"].startswith("v2.")
-            and item["catalog_id"] not in V2_TWINNED
-        )
         or item["catalog_id"] in withdrawn_twins()
     )
 
@@ -127,9 +125,12 @@ def test_every_jax_entry_lists_a_jax_cuda13_build_with_the_cpu_source_unchanged(
         assert gpu["runtime_profile_id"] == "jax-cuda13-py311"
         assert gpu["accelerator"] == "cuda13"
         assert gpu["base_environment_digest"] == GPU_PROFILE.environment_lock_digest
-        assert (root / "jax-cuda13-py311" / "source.tar.gz").read_bytes() == (
-            root / "source.tar.gz"
-        ).read_bytes()
+        if item["catalog_id"] not in gpu_build.JAX_X64_SOLVE:
+            # The four prior_krr twins carry the registered device-solve change instead
+            # (test_catalog_krr_device_solve pins exactly that difference).
+            assert (root / "jax-cuda13-py311" / "source.tar.gz").read_bytes() == (
+                root / "source.tar.gz"
+            ).read_bytes()
         pipeline.verify(item)
 
 
@@ -246,7 +247,7 @@ IMAGE = "sha256:" + "a" * 64
 def test_the_smoke_only_list_is_the_two_named_entries_and_nothing_else():
     from carbon.backbone_catalog import gpu_receipt
 
-    assert set(gpu_receipt.SMOKE_ONLY) == CNO1D_IDS
+    assert set(gpu_receipt.SMOKE_ONLY) == CNO1D_IDS | set(LSM_IDS)
     assert gpu_receipt.required_kind("cno.CNO1d") == "smoke"
     assert gpu_receipt.required_kind("neuralop.FNO") == "repeat"
     assert "not bit-reproducible on GPU" in gpu_receipt.SMOKE_NOTE
@@ -567,7 +568,9 @@ def test_the_warn_only_exception_is_exactly_the_smoke_only_list():
     from carbon.backbone_catalog import gpu_receipt
 
     assert (
-        set(gpu_build.WARN_ONLY_DETERMINISM) == set(gpu_receipt.SMOKE_ONLY) == CNO1D_IDS
+        set(gpu_build.WARN_ONLY_DETERMINISM)
+        == set(gpu_receipt.SMOKE_ONLY)
+        == CNO1D_IDS | set(LSM_IDS)
     )
 
 
@@ -654,25 +657,43 @@ def _relax(source):
     return zipped.getvalue()
 
 
-def test_lsm_has_no_gpu_twin_and_a_gpu_ref_for_it_is_refused(tmp_path, monkeypatch):
-    from carbon.backbone_catalog import gpu_receipt
+LSM_IDS = (
+    "thuml.LSM",
+    "f08.thuml.LSM",
+    "v2.motor.thuml.LSM",
+    "v2.cooling.thuml.LSM",
+    "v2.f08.thuml.LSM",
+    "v2.f02.thuml.LSM",
+)
 
-    assert gpu_build.NO_GPU_TWIN[:2] == ("thuml.LSM", "f08.thuml.LSM")
-    # ... and the same entry under its v2 ids.
-    assert {n for n in gpu_build.NO_GPU_TWIN[2:]} == {
-        f"v2.{c}.thuml.LSM" for c in ("motor", "cooling", "f08", "f02")
-    }
-    assert "thuml.LSM" not in gpu_receipt.SMOKE_ONLY
-    lsm = next(e for e in pipeline.load()["entries"] if e["catalog_id"] == "thuml.LSM")
-    assert "bundle_refs" not in lsm
-    assert not (pipeline.BUNDLES / "thuml.LSM" / "torch-cu130-py311").exists()
-    assert not gpu_receipt.path("thuml.LSM", "torch-cu130-py311").exists()
-    with pytest.raises(gpu_build.GpuBuildRefused, match="no GPU twin"):
-        gpu_build.derived_source("torch-cpu-py311", b"", "thuml.LSM")
-    fake = copy.deepcopy(lsm)
-    fake["bundle_refs"] = {"torch-cu130-py311": lsm["bundle_ref"]}
-    with pytest.raises(pipeline.CatalogBroken, match="no GPU twin"):
-        pipeline.verify(fake)
+
+def test_lsm_is_twinned_warn_only_and_smoke_only_like_cno1d_and_the_official_route_refuses_it():
+    # Nothing trains on a CPU (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01) and the cu130 lock pins timm, so LSM has a twin; its
+    # U-Net upsample backward has no deterministic CUDA kernel, so it is on the explicit warn-only and smoke-only lists
+    # until its tolerance receipt.
+    from carbon.backbone_catalog import gpu_receipt
+    from carbon.backbone_catalog.served import (
+        CatalogRefused,
+        refuse_unreproducible_runtime,
+    )
+
+    assert gpu_build.NO_GPU_TWIN == ()
+    assert set(LSM_IDS) <= set(gpu_build.WARN_ONLY_DETERMINISM)
+    assert set(LSM_IDS) <= set(gpu_receipt.SMOKE_ONLY)
+    entries = {e["catalog_id"]: e for e in pipeline.load()["entries"]}
+    for catalog_id in LSM_IDS:
+        item = entries[catalog_id]
+        assert set(item["bundle_refs"]) == {"torch-cu130-py311"}
+        assert gpu_receipt.required_kind(catalog_id) == "smoke"
+        assert not gpu_receipt.path(catalog_id, "torch-cu130-py311").exists()
+        twin = _members(
+            pipeline.BUNDLES / catalog_id / "torch-cu130-py311" / "source.tar.gz"
+        )
+        assert gpu_build.WARN_ONLY in twin[gpu_build.COMMON_MEMBER].decode()
+        pipeline.verify(item)
+        with pytest.raises(CatalogRefused) as refused:
+            refuse_unreproducible_runtime(item["bundle_refs"]["torch-cu130-py311"])
+        assert refused.value.code == "catalog_runtime_not_reproducible"
 
 
 DEVICE_FIXED = ("lno.LNO1d", "neuralop.GINO", "physicsnemo.MeshGraphNet")
@@ -971,3 +992,38 @@ def test_make_has_no_silent_defaults_for_the_official_fields():
             gpu_used=True,
             smoke_ok=True,
         )
+
+
+LIFTED_THUML = {
+    "f08.thuml.FNO",
+    "f08.thuml.F_FNO",
+    "f08.thuml.Factformer",
+    "f08.thuml.Galerkin_Transformer",
+    "f08.thuml.Transolver",
+    "thuml.FNO",
+    "thuml.F_FNO",
+    "thuml.Factformer",
+    "thuml.Galerkin_Transformer",
+    "thuml.Transolver",
+}
+
+
+def test_the_ten_thuml_twins_are_lifted_re_derived_and_the_record_cites_the_lift():
+    derivation = json.loads(
+        (
+            pipeline.BUNDLES.parent / "derivations/OWNER-CATALOG-LICENCES-01.json"
+        ).read_bytes()
+    )
+    withdrawn = derivation["gpu_twins_withdrawn"]
+    assert withdrawn["ids"] == []
+    assert withdrawn["lifted"]["by"] == "OWNER-THUML-GPU-TWIN-LIFT-01"
+    assert set(withdrawn["lifted"]["ids"]) == LIFTED_THUML
+    entries = {e["catalog_id"]: e for e in pipeline.load()["entries"]}
+    for catalog_id in LIFTED_THUML:
+        assert set(entries[catalog_id]["bundle_refs"]) == {"torch-cu130-py311"}
+        pipeline.verify(entries[catalog_id])
+    # Every entry now has a twin.
+    assert [c for c, e in entries.items() if not e.get("bundle_refs")] == []
+    licences = (pipeline.BUNDLES.parent / "LICENCES.md").read_text(encoding="utf-8")
+    assert "`timm`" in licences and "Apache-2.0" in licences
+    assert "`einops`" in licences and "MIT" in licences

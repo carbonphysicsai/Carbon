@@ -47,18 +47,10 @@ _CLEAR = (
 )
 
 
-#: Entries with no GPU twin at all (Validator ruling, 2026-10-22): thuml.LSM stays CPU-only and officially gradable
-#: with its CPU receipt (its GPU build would need `timm`, which the cu130 lock does not carry, and its upsample backward
-#: has no deterministic CUDA kernel).
-NO_GPU_TWIN = (
-    "thuml.LSM",
-    "f08.thuml.LSM",
-    # The same entry under its v2 ids (it still needs `timm`).
-    "v2.motor.thuml.LSM",
-    "v2.cooling.thuml.LSM",
-    "v2.f08.thuml.LSM",
-    "v2.f02.thuml.LSM",
-)
+#: Entries with no GPU twin at all. None: thuml.LSM had none (Validator ruling, 2026-10-22: it needs `timm`, which
+#: the cu130 lock did not carry), but the lock now pins timm and the owner's rule is that nothing trains on a CPU
+#: (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01), so it is twinned under its warn-only list below.
+NO_GPU_TWIN = ()
 #: The second registered change, on an explicit one-entry list and never a general rule (owner, 2026-10-22): the CNO1d
 #: build's upsample backward has no deterministic CUDA kernel, so its GPU twin relaxes
 #: `use_deterministic_algorithms(True)` to `warn_only=True`. The twin is therefore not a pure derivation of the CPU build
@@ -72,7 +64,55 @@ WARN_ONLY_DETERMINISM = (
     "v2.cooling.cno.CNO1d",
     "v2.f08.cno.CNO1d",
     "v2.f02.cno.CNO1d",
+    # thuml.LSM's U-Net blocks upsample with `nn.Upsample(mode='linear')`, whose backward has no deterministic CUDA
+    # kernel either (the original reason it had no twin). Same decision, same explicit list: a warn-only twin that
+    # is smoke-only until its tolerance receipt (`gpu_receipt.SMOKE_ONLY`).
+    "thuml.LSM",
+    "f08.thuml.LSM",
+    "v2.motor.thuml.LSM",
+    "v2.cooling.thuml.LSM",
+    "v2.f08.thuml.LSM",
+    "v2.f02.thuml.LSM",
 )
+#: The fourth registered change, on an explicit list (Lead, 2026-10-29): the kernel-ridge fit of the physics-prior
+#: entries solves its Cholesky system in float64 on the CPU (NumPy), so its GPU twin would train on the CPU. The twin
+#: solves it on the JAX device instead, with x64 enabled for that one solve only (the official environment pins
+#: JAX_ENABLE_X64=false, which every other step, the model's parameters and its float32 outputs keep). The CPU build is
+#: untouched; `pipeline.verify` re-derives the twin with this change.
+JAX_X64_SOLVE = (
+    "v2.motor.prior_krr",
+    "v2.cooling.prior_krr",
+    "v2.f08.prior_krr",
+    "v2.f02.prior_krr",
+)
+KRR_MEMBER = "carbon_candidate/build.py"
+KRR_CALL = 'alpha = _solve_spd(gram + spec["ridge"] * np.eye(len(x)), target - mean)'
+KRR_CALL_GPU = (
+    'alpha = _solve_spd_device(gram + spec["ridge"] * np.eye(len(x)), target - mean)'
+)
+KRR_ANCHOR = (
+    "def build(train_inputs, train_targets, *, seed, configuration, train_use):"
+)
+KRR_HELPER = '''def _solve_spd_device(matrix, rhs):
+    """GPU twin of `_solve_spd`: the same system solved by a float64 Cholesky on the JAX device, with x64 enabled for
+    this solve only and restored after (the build's parameters and outputs stay at the environment's precision)."""
+    import jax
+    import jax.numpy as jnp
+    import numpy as np
+
+    before = bool(jax.config.jax_enable_x64)
+    jax.config.update("jax_enable_x64", True)
+    try:
+        factor = jnp.linalg.cholesky(jnp.asarray(matrix, dtype=jnp.float64))
+        if not bool(jnp.all(jnp.isfinite(factor))):
+            raise ValueError("krr: the kernel matrix is not positive definite; raise krr.ridge")
+        solved = jax.scipy.linalg.cho_solve((factor, True), jnp.asarray(rhs, dtype=jnp.float64))
+        return np.asarray(solved, dtype=np.float64)
+    finally:
+        jax.config.update("jax_enable_x64", before)
+
+
+'''
 COMMON_MEMBER = "carbon_candidate/common.py"
 DETERMINISM = "torch.use_deterministic_algorithms(True)"
 WARN_ONLY = "torch.use_deterministic_algorithms(True, warn_only=True)  # GPU twin of this entry only"
@@ -281,6 +321,53 @@ def bundle_ref(manifest: dict) -> dict:
     }
 
 
+def _unpack(raw: bytes):
+    files = {}
+    root = None
+    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+        for member in archive.getmembers():
+            if member.isfile():
+                top, rest = member.name.split("/", 1)
+                root = root or top
+                files[rest] = archive.extractfile(member).read()
+    return files, root
+
+
+def _repack(files, root) -> bytes:
+    packed = io.BytesIO()
+    with tarfile.open(fileobj=packed, mode="w:") as out:
+        for rest in sorted(files):
+            info = tarfile.TarInfo(f"{root}/{rest}")
+            info.size, info.mode, info.uid, info.gid, info.mtime = (
+                len(files[rest]),
+                0o644,
+                0,
+                0,
+                0,
+            )
+            out.addfile(info, io.BytesIO(files[rest]))
+    zipped = io.BytesIO()
+    with gzip.GzipFile(fileobj=zipped, mode="wb", filename="", mtime=0) as stream:
+        stream.write(packed.getvalue())
+    return zipped.getvalue()
+
+
+def _krr_device_solve(raw: bytes) -> bytes:
+    """The CPU build's `source.tar.gz` with the kernel-ridge solve moved to the JAX device (`JAX_X64_SOLVE`)."""
+    files, root = _unpack(raw)
+    text = files[KRR_MEMBER].decode("utf-8")
+    for anchor in (KRR_CALL, KRR_ANCHOR):
+        if text.count(anchor) != 1:
+            raise GpuBuildRefused(
+                f"{KRR_MEMBER}: anchor found {text.count(anchor)} times, expected once: {anchor[:60]!r}"
+            )
+    text = text.replace(KRR_CALL, KRR_CALL_GPU).replace(
+        KRR_ANCHOR, KRR_HELPER + KRR_ANCHOR
+    )
+    files[KRR_MEMBER] = text.encode("utf-8")
+    return _repack(files, root)
+
+
 def derived_source(
     cpu_profile: str, raw: bytes, catalog_id: str | None = None
 ) -> bytes:
@@ -290,6 +377,8 @@ def derived_source(
     if cpu_profile == CPU_PROFILE:
         return patched_source(raw, catalog_id)
     if cpu_profile == JAX_CPU_PROFILE:
+        if catalog_id in JAX_X64_SOLVE:
+            return _krr_device_solve(raw)
         return raw
     raise GpuBuildRefused(f"no GPU twin for {cpu_profile}")
 

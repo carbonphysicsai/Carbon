@@ -31,6 +31,13 @@ SMOKE_ONLY = {
     "v2.cooling.cno.CNO1d": SMOKE_NOTE,
     "v2.f08.cno.CNO1d": SMOKE_NOTE,
     "v2.f02.cno.CNO1d": SMOKE_NOTE,
+    # thuml.LSM (U-Net `nn.Upsample` linear backward), twinned under the same warn-only decision.
+    "thuml.LSM": SMOKE_NOTE,
+    "f08.thuml.LSM": SMOKE_NOTE,
+    "v2.motor.thuml.LSM": SMOKE_NOTE,
+    "v2.cooling.thuml.LSM": SMOKE_NOTE,
+    "v2.f08.thuml.LSM": SMOKE_NOTE,
+    "v2.f02.thuml.LSM": SMOKE_NOTE,
 }
 
 

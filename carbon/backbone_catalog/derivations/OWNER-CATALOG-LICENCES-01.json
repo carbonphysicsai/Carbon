@@ -13,19 +13,23 @@
   "status_column": "codex-queue/reports/CATALOG_S3_GPU_COLUMN_20261023.json"
  },
  "gpu_twins_withdrawn": {
-  "ids": [
-   "f08.thuml.FNO",
-   "f08.thuml.F_FNO",
-   "f08.thuml.Factformer",
-   "f08.thuml.Galerkin_Transformer",
-   "f08.thuml.Transolver",
-   "thuml.FNO",
-   "thuml.F_FNO",
-   "thuml.Factformer",
-   "thuml.Galerkin_Transformer",
-   "thuml.Transolver"
-  ],
-  "reason": "the relicensed twins fail under the pinned cu130 lock (timm and einops are not in it; GPU_TWIN_RECEIPTS_RELICENSED_20261023.json, 0/10); by Graphite Test's direction the pinned GPU lock is not changed for testnet, so these 10 are not offered on GPU: refs, twin directories and the 5 stale GPU receipts removed; CPU entries unchanged"
+  "ids": [],
+  "lifted": {
+   "by": "OWNER-THUML-GPU-TWIN-LIFT-01",
+   "ids": [
+    "f08.thuml.FNO",
+    "f08.thuml.F_FNO",
+    "f08.thuml.Factformer",
+    "f08.thuml.Galerkin_Transformer",
+    "f08.thuml.Transolver",
+    "thuml.FNO",
+    "thuml.F_FNO",
+    "thuml.Factformer",
+    "thuml.Galerkin_Transformer",
+    "thuml.Transolver"
+   ],
+   "reason_was": "the relicensed twins failed under the pinned cu130 lock (timm and einops were not in it; GPU_TWIN_RECEIPTS_RELICENSED_20261023.json, 0/10), so these 10 were not offered on GPU: refs, twin directories and the 5 stale GPU receipts removed; CPU entries unchanged"
+  }
  },
  "old_commit": "03b05614e",
  "re_paired": {
