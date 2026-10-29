@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -129,6 +130,15 @@ def sandbox(tmp_path):
     return Sandbox(tmp_path)
 
 
+def _run(sandbox, *arguments, **environment):
+    """The sandbox install, with the REAL interpreter for the recorded-image check (the sandbox's venv python is a
+    fake; the check reads manifests and asks Docker, so it needs one that runs the script).
+    """
+    return sandbox.run(
+        *arguments, CARBON_IMAGE_CHECK_PYTHON=sys.executable, **environment
+    )
+
+
 WORKER, PARENTS = "sha256:" + "1" * 64, {
     "torch-parent-worker-image.json": "sha256:" + "2" * 64,
     "accelerator-parent-worker-image.json": "sha256:" + "3" * 64,
@@ -164,7 +174,7 @@ def _stage(sandbox, *, parents):
 
 def test_an_install_that_kept_every_recorded_image_records_them(sandbox):
     _stage(sandbox, parents=PARENTS)
-    done = sandbox.run("--pytorch", "--no-start", CARBON_TEST_GONE="none")
+    done = _run(sandbox, "--pytorch", "--no-start", CARBON_TEST_GONE="none")
     assert done.returncode == 0, done.stderr
     assert any("installed write" in line for line in sandbox.logged())
 
@@ -174,7 +184,7 @@ def test_an_install_stops_with_a_typed_code_when_a_recorded_parent_is_gone(
     sandbox, name
 ):
     _stage(sandbox, parents=PARENTS)
-    done = sandbox.run("--pytorch", "--no-start", CARBON_TEST_GONE=PARENTS[name])
+    done = _run(sandbox, "--pytorch", "--no-start", CARBON_TEST_GONE=PARENTS[name])
     assert done.returncode == 2
     assert "installed_image_missing" in done.stderr
     assert name in done.stderr and PARENTS[name] in done.stderr
@@ -183,7 +193,7 @@ def test_an_install_stops_with_a_typed_code_when_a_recorded_parent_is_gone(
 
 def test_a_recorded_worker_image_that_is_gone_stops_the_install(sandbox):
     _stage(sandbox, parents={})
-    done = sandbox.run("--pytorch", "--no-start", CARBON_TEST_GONE=WORKER)
+    done = _run(sandbox, "--pytorch", "--no-start", CARBON_TEST_GONE=WORKER)
     assert done.returncode == 2 and "installed_image_missing" in done.stderr
 
 
@@ -196,7 +206,8 @@ def test_a_parent_manifest_of_an_earlier_source_tree_is_not_checked(sandbox):
         f'{{"image_id":"{PARENTS["torch-parent-worker-image.json"]}",'
         f'"source_tree_digest":"{OTHER_SOURCE}"}}\n'
     )
-    done = sandbox.run(
+    done = _run(
+        sandbox,
         "--pytorch",
         "--no-start",
         CARBON_TEST_GONE=PARENTS["torch-parent-worker-image.json"],
@@ -231,14 +242,14 @@ def _manifests(sandbox, *, base):
 
 def test_a_worker_built_from_the_recorded_parent_passes(sandbox):
     _manifests(sandbox, base=PARENTS["torch-parent-worker-image.json"])
-    done = sandbox.run("--pytorch", "--no-start", CARBON_TEST_GONE="none")
+    done = _run(sandbox, "--pytorch", "--no-start", CARBON_TEST_GONE="none")
     assert done.returncode == 0, done.stderr
 
 
 def test_a_worker_whose_base_is_not_the_recorded_parent_is_refused(sandbox):
     """val4090: the Torch CPU worker survived but its base (93fa1967) was a parent that no longer existed."""
     _manifests(sandbox, base="sha256:" + "7" * 64)
-    done = sandbox.run("--pytorch", "--no-start", CARBON_TEST_GONE="none")
+    done = _run(sandbox, "--pytorch", "--no-start", CARBON_TEST_GONE="none")
     assert done.returncode == 2
     assert "installed_worker_parent_stale" in done.stderr
     assert "torch-worker-image.json" in done.stderr
@@ -248,7 +259,7 @@ def test_a_worker_whose_base_is_not_the_recorded_parent_is_refused(sandbox):
 def test_a_worker_whose_base_is_the_recorded_parent_but_gone_is_refused(sandbox):
     parent = PARENTS["torch-parent-worker-image.json"]
     _manifests(sandbox, base=parent)
-    done = sandbox.run("--pytorch", "--no-start", CARBON_TEST_GONE=parent)
+    done = _run(sandbox, "--pytorch", "--no-start", CARBON_TEST_GONE=parent)
     assert done.returncode == 2
     assert "installed_image_missing" in done.stderr or (
         "installed_worker_parent_stale" in done.stderr

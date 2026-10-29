@@ -927,7 +927,9 @@ fi
 # stops with a typed code and records nothing.
 verify_recorded_images_present() {
   local missing
-  missing="$(python3 - "${worker_manifest}" "${analysis:-}" "${gpu_manifest:-}" \
+  # The venv interpreter (a minimal host and Targon's canonical sandbox have no bare python3 on PATH);
+  # CARBON_IMAGE_CHECK_PYTHON names another for a test that needs the real one.
+  missing="$("${CARBON_IMAGE_CHECK_PYTHON:-${python}}" - "${worker_manifest}" "${analysis:-}" "${gpu_manifest:-}" \
     "${torch_gpu_manifest:-}" "${artifacts}" <<'PY'
 import json
 import pathlib

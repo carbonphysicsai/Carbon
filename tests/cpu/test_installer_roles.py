@@ -8,6 +8,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -183,13 +184,16 @@ def test_a_miner_install_after_a_validator_install_is_refused_before_anything_ru
     state.mkdir()
     (state / "installed-images.json").write_text("{}")
     marker = _marker_dir(tmp_path)
+    tools = tmp_path / "pytools"
+    tools.mkdir()
+    (tools / "python3").symlink_to(sys.executable)
     marked = subprocess.run(
         ["bash", str(SCRIPTS / "install_validator.sh"), "--mark-installed"],
         capture_output=True,
         text=True,
         check=False,
         env={
-            "PATH": "/usr/bin:/bin",
+            "PATH": f"{tools}:/usr/bin:/bin",
             "HOME": str(tmp_path),
             "CARBON_STATE_DIR": str(state),
             "CARBON_HOST_ROLE_DIR": str(marker),
@@ -235,3 +239,12 @@ def test_an_invalid_role_is_refused(sandbox, tmp_path):
         CARBON_INSTALL_ROLE="operator",
     )
     assert done.returncode == 2 and "installer_role_invalid" in done.stderr
+
+
+def test_the_miner_installer_needs_no_bare_python3():
+    """Targon's canonical sandbox (and a minimal host) has no `python3` on PATH: M7 600d4ca34 failed 38 install tests with
+    `python3: command not found` from the recorded-image check. The installer uses its own venv interpreter.
+    """
+    text = (SCRIPTS / "install_miner.sh").read_text(encoding="utf-8")
+    code = [line for line in text.splitlines() if not line.lstrip().startswith("#")]
+    assert not [line for line in code if "python3" in line]
