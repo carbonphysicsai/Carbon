@@ -469,7 +469,74 @@ def _locked_wheels(lock):
     return names
 
 
+_CONTEXT_SEALS = {}
+
+
+def clear_cache():
+    """Forget the kept context seals (tests and operator tools: the next seal hashes the tree)."""
+    _CONTEXT_SEALS.clear()
+
+
+def _tree_signature(context):
+    """A cheap fingerprint of a context tree and its newest timestamp: every entry's path, type, size, mtime,
+    ctime and inode, or None when it holds anything but plain files and the `wheels` folder (the real check then
+    refuses it). A file rewritten in place moves its ctime, so a digest kept under this is never stale; a tree
+    touched within `file_seal.RACY_NS` is not kept at all."""
+    entries = []
+    newest = 0
+    pending = [(Path(context), "")]
+    while pending:
+        folder, prefix = pending.pop()
+        try:
+            with os.scandir(folder) as scan:
+                for item in scan:
+                    if item.is_symlink():
+                        return None
+                    stat = item.stat(follow_symlinks=False)
+                    kind = "d" if item.is_dir(follow_symlinks=False) else "f"
+                    if kind == "f" and not item.is_file(follow_symlinks=False):
+                        return None
+                    newest = max(newest, stat.st_mtime_ns, stat.st_ctime_ns)
+                    entries.append(
+                        (
+                            prefix + item.name,
+                            kind,
+                            stat.st_size,
+                            stat.st_mtime_ns,
+                            stat.st_ctime_ns,
+                            stat.st_ino,
+                        )
+                    )
+                    if kind == "d":
+                        pending.append((Path(item.path), prefix + item.name + "/"))
+        except OSError:
+            return None
+    return (str(Path(context)), tuple(sorted(entries))), newest
+
+
 def _context_digest(context):
+    """The context seal (`_context_digest_uncached`), computed once per state of the tree: the wheels are
+    hashed on the first call and again only when a file in the tree is added, removed or rewritten.
+    """
+    from carbon import file_seal
+
+    found = _tree_signature(context)
+    if found is None:
+        return _context_digest_uncached(context)
+    signature, newest = found
+    if signature in _CONTEXT_SEALS:
+        return _CONTEXT_SEALS[signature]
+    digest = _context_digest_uncached(context)
+    after = _tree_signature(context)
+    # Kept only if unchanged while it was hashed and settled (not rewritten inside one timestamp tick).
+    if after is not None and after[0] == signature and file_seal.settled(newest):
+        _CONTEXT_SEALS[signature] = digest
+        if len(_CONTEXT_SEALS) > 64:
+            _CONTEXT_SEALS.pop(next(iter(_CONTEXT_SEALS)))
+    return digest
+
+
+def _context_digest_uncached(context):
     """Exact regular-file tree seal; rejects extra paths and links."""
     manifest = context / "bundle.json"
     if manifest.is_symlink() or manifest.stat().st_size > 65536:

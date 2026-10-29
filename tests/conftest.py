@@ -25,6 +25,47 @@ def _no_installed_research_resource_profile(monkeypatch, _empty_profile_home):
     )
 
 
+@pytest.fixture(autouse=True)
+def _fresh_once_per_process_caches():
+    """The cold-read caches (manifest, served digests, allowlist v8, bundle context seals) are keyed on what they
+    read and so never stale; they are still cleared around every test so no test leaves another a kept value.
+    """
+    import sys
+
+    def clear():
+        for module, name in (
+            ("carbon.backbone_catalog.listing", "clear_cache"),
+            ("carbon.backbone_catalog.served", "clear_cache"),
+            ("carbon.level4.allowlist", "clear_cache"),
+            ("carbon.development_session.library_bundles", "clear_cache"),
+        ):
+            loaded = sys.modules.get(module)
+            if loaded is not None:
+                getattr(loaded, name)()
+
+    clear()
+    yield
+    clear()
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _fresh_direct_contract_caches():
+    """The direct-campaign contracts are cached per (spec, version) for speed (hundreds of clauses bind one
+    profile). A test module that patches a fact or the registered catalog while one is built must not leave the
+    built value to the modules after it (the F08 1.4 clause digest read a stale profile inside a full shard), so
+    they are cleared when a test module starts and when it ends."""
+    import sys
+
+    def clear():
+        loaded = sys.modules.get("carbon.direct_campaign.contracts")
+        if loaded is not None:
+            loaded.clear_caches()
+
+    clear()
+    yield
+    clear()
+
+
 #: Tools a canonical run must have. A test that skips because one is missing is a
 #: FAILURE there (a gate that skipped the browser-page tests silently proved nothing);
 #: elsewhere the skip stands. `CARBON_CANONICAL_DEV_ENV` is set only by the canonical

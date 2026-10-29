@@ -179,6 +179,17 @@ def direct_sources(spec):
     )
 
 
+def clear_caches():
+    """Forget every kept document, profile, clause digest and authored contract.
+
+    They are read once per process and keyed on (spec, version) only, so an input changed under them (a patched
+    fact, a different registered catalog) is not seen until they are cleared. Tests that change such an input
+    call this around the change; the suite clears them for each test module so no module sees another's.
+    """
+    for kept in (_documents, _profile, _clause_digest, _direct_contracts):
+        kept.cache_clear()
+
+
 def profile_document(spec):
     """The whole profile, for its digest. Read a field's value only through
     `profile_value`, which refuses one that is still unset."""

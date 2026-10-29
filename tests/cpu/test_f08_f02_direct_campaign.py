@@ -1049,7 +1049,7 @@ def test_an_unset_profile_field_is_still_refused(spec, version, monkeypatch):
     key = (spec.challenge_id, version)
     unset = {**direct_facts.FACTS[key], "governing_law": HUMAN_INPUT}
     monkeypatch.setitem(direct_facts.FACTS, key, unset)
-    direct_contracts._profile.cache_clear()
+    direct_contracts.clear_caches()
     try:
         with keyed(spec, key_for(spec, version)):
             assert direct_contracts.profile_document(spec)["governing_law"] == (
@@ -1059,7 +1059,7 @@ def test_an_unset_profile_field_is_still_refused(spec, version, monkeypatch):
                 direct_contracts.profile_value(spec, "governing_law")
     finally:
         monkeypatch.undo()
-        direct_contracts._profile.cache_clear()
+        direct_contracts.clear_caches()
     assert refused.value.code == "direct_profile_value_missing"
 
 

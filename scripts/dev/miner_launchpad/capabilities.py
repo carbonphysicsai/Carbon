@@ -16,9 +16,11 @@ authority, starts nothing and reads no chain.
 
 from __future__ import annotations
 
+import copy
 import functools
 import os
 import shlex
+import threading
 from pathlib import Path
 
 SCHEMA = "carbon.control-center.capabilities.v1"
@@ -1169,8 +1171,53 @@ def _graphite(options, refusal):
     }
 
 
+class _Flight:
+    """One build of the capability document in progress."""
+
+    def __init__(self):
+        self.done = threading.Event()
+        self.value = None
+        self.failed = False
+
+
+_FLIGHTS: dict = {}
+_FLIGHT_LOCK = threading.Lock()
+
+
 def control_center(runner=None):
-    """The whole capability document for one controller."""
+    """The whole capability document for one controller, built one at a time.
+
+    The start-up warm-up and the first page read used to build it side by side, each paying the full cost on a
+    cold machine. A read that arrives while a build is in flight waits for it and takes its result; it never
+    starts a second one. If the build it joined failed, that failure is the leader's to report and this read
+    builds for itself."""
+    key = id(runner)
+    while True:
+        with _FLIGHT_LOCK:
+            flight = _FLIGHTS.get(key)
+            leader = flight is None
+            if leader:
+                flight = _FLIGHTS[key] = _Flight()
+        if leader:
+            try:
+                from carbon.challenge_registry import build_memo
+
+                with build_memo.scope():
+                    flight.value = _control_center(runner)
+                return flight.value
+            except BaseException:
+                flight.failed = True
+                raise
+            finally:
+                with _FLIGHT_LOCK:
+                    _FLIGHTS.pop(key, None)
+                flight.done.set()
+        flight.done.wait()
+        if not flight.failed:
+            return copy.deepcopy(flight.value)
+
+
+def _control_center(runner=None):
     cfg, profile_state = _profile(runner)
     options, options_refusal = _options(runner)
     refusal = options_refusal or NO_PROFILE

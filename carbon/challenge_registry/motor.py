@@ -231,7 +231,12 @@ def catalog_recipe(catalog_id=None, version=CATALOG_VERSION):
 
     if catalog_id is None:
         catalog_id = listing.preferred(MOTOR_CHALLENGE, version) or "neuralop.FNO"
-    kit = physical_public.construction_kit(MOTOR_CHALLENGE, version)
+    from carbon.challenge_registry import build_memo
+
+    kit = build_memo.once(
+        ("kit", MOTOR_CHALLENGE, version),
+        lambda: physical_public.construction_kit(MOTOR_CHALLENGE, version),
+    )
     item = listing.entry(catalog_id, MOTOR_CHALLENGE, version)
     return {
         "schema": "carbon.construction-recipe.v1",

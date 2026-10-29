@@ -48,11 +48,33 @@ def document(challenge_id, version):
     }
 
 
+_DIGESTS = {}
+
+
+def clear_cache():
+    """Forget the kept digests (tests and operator tools: the next `digest` recomputes)."""
+    _DIGESTS.clear()
+
+
 def digest(challenge_id, version):
-    return (
+    """The served document's digest. Kept per (challenge, version) while the entries it covers are the very
+    objects it was computed from (`listing.load` serves the same objects until the manifest changes, a test's
+    stand-in manifest is other objects), so it is recomputed whenever what a version offers could differ.
+    """
+    items = listing.entries(challenge_id, version)
+    kept = _DIGESTS.get((challenge_id, version))
+    if (
+        kept is not None
+        and len(kept[0]) == len(items)
+        and all(a is b for a, b in zip(kept[0], items, strict=True))
+    ):
+        return kept[1]
+    value = (
         "sha256:"
         + hashlib.sha256(_canonical(document(challenge_id, version))).hexdigest()
     )
+    _DIGESTS[(challenge_id, version)] = (items, value)
+    return value
 
 
 SUBMISSION_SCHEMA = "carbon.backbone-catalog.submission.v1"

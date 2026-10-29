@@ -9,6 +9,7 @@ may import (`tests/invariants/test_attack_store_unreachable.py`).
 from __future__ import annotations
 
 import json
+import threading
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -24,13 +25,59 @@ def _json(path):
     return json.loads(Path(path).read_bytes())
 
 
-def load():
-    """The manifest: {"schema", "entries": [...]}, ordered by catalog id."""
+_LOADED = {"seal": None, "manifest": None}
+_LOADED_LOCK = threading.Lock()
+
+
+def _seal(path):
+    """The file's stat seal and its newest timestamp: a rewrite changes the seal (ctime moves even when a writer
+    restores the mtime), and a file that changed within `file_seal.RACY_NS` is not kept at all.
+    """
+    from carbon import file_seal
+
+    stat = Path(path).stat()
+    return file_seal.stat_seal(path, stat), max(stat.st_mtime_ns, stat.st_ctime_ns)
+
+
+def clear_cache():
+    """Forget the kept parse (tests and operator tools: the next `load` reads the file)."""
+    with _LOADED_LOCK:
+        _LOADED["seal"] = _LOADED["manifest"] = None
+
+
+def load_fresh():
+    """A new parse of the manifest that no one else holds: for the owner commands that edit it and write it
+    back (`pipeline.add`, `add_twin`). `load` serves one shared object and must never be edited.
+    """
     if not MANIFEST.exists():
         return {"schema": SCHEMA, "entries": []}
     manifest = _json(MANIFEST)
     if type(manifest) is not dict or manifest.get("schema") != SCHEMA:
         raise CatalogBroken("catalog manifest schema differs")
+    return manifest
+
+
+def load():
+    """The manifest: {"schema", "entries": [...]}, ordered by catalog id.
+
+    Parsed once per process and served again until the file changes (a full catalog is hundreds of entries and
+    this is read for every entry of every Challenge). The returned object is shared: callers read it and never
+    change it; copy before editing."""
+    if not MANIFEST.exists():
+        return {"schema": SCHEMA, "entries": []}
+    from carbon import file_seal
+
+    seal, newest = _seal(MANIFEST)
+    with _LOADED_LOCK:
+        if _LOADED["seal"] == seal:
+            return _LOADED["manifest"]
+    manifest = _json(MANIFEST)
+    if type(manifest) is not dict or manifest.get("schema") != SCHEMA:
+        raise CatalogBroken("catalog manifest schema differs")
+    # Kept only if unchanged while it was read and settled (not rewritten inside one timestamp tick).
+    if _seal(MANIFEST)[0] == seal and file_seal.settled(newest):
+        with _LOADED_LOCK:
+            _LOADED["seal"], _LOADED["manifest"] = seal, manifest
     return manifest
 
 

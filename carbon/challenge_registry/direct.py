@@ -18,8 +18,13 @@ from carbon.direct_campaign.spec import HUMAN_INPUT
 def _kit(spec, version):
     from carbon.direct_campaign.spec import key_for
 
+    from carbon.challenge_registry import build_memo
+
     key = key_for(spec, version)
-    return spec.public().construction_kit(key.challenge_id, key.version)
+    return build_memo.once(
+        ("kit", key.challenge_id, key.version),
+        lambda: spec.public().construction_kit(key.challenge_id, key.version),
+    )
 
 
 def catalog_recipe(spec, catalog_id=None, *, version):

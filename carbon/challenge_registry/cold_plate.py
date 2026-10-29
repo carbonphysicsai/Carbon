@@ -242,7 +242,12 @@ def catalog_recipe(catalog_id=None, *, version):
 
     if not serves_catalog(COLD_PLATE_CHALLENGE, version):
         raise ValueError("cooling catalog version required")
-    kit = physical_public.construction_kit(COLD_PLATE_CHALLENGE, version)
+    from carbon.challenge_registry import build_memo
+
+    kit = build_memo.once(
+        ("kit", COLD_PLATE_CHALLENGE, version),
+        lambda: physical_public.construction_kit(COLD_PLATE_CHALLENGE, version),
+    )
     if catalog_id is None:
         offered = listing.entries(COLD_PLATE_CHALLENGE, version)
         # A v2.* entry first (every setting is the miner's), else the first offered.
