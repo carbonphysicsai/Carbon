@@ -124,3 +124,37 @@ def test_parity_refuses_a_cpu_fallback_and_needs_the_gpu_image(capsys):
     assert code == 3
     with pytest.raises(SystemExit):
         entry.main(["parity", *COMMON])
+
+
+def test_the_gpu_leg_uses_its_own_scratch_cache_and_the_cpu_leg_the_installs():
+    seen = []
+
+    def factory(kind, args):
+        seen.append(args.cache_root)
+
+        class Practice:
+            gpu_image = None
+
+            def __call__(self, identity, recipe):
+                return _outcome(
+                    0.8,
+                    0.4,
+                    backend_kind=("C03_DOCKER_GPU" if self.gpu_image else "C03_DOCKER"),
+                )
+
+        return Practice()
+
+    argv = ["parity", *COMMON, "--gpu-image", "g.json", "--gpu-cache-root", "SCRATCH"]
+    code = entry.main(argv, factory=factory, load_identity=lambda path: path)
+    assert code == 0
+    assert seen == [
+        "c",
+        "SCRATCH",
+    ]  # CPU leg first on the install's cache, then the GPU leg on the scratch one
+    seen.clear()
+    entry.main(
+        ["grade", *COMMON, "--gpu-image", "g.json"],
+        factory=factory,
+        load_identity=lambda path: path,
+    )
+    assert seen == ["c"]  # no scratch cache named: the one cache

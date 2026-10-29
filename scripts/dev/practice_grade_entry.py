@@ -9,6 +9,10 @@ reads no sealed material, no seed and no key; it is feedback, never an exam grad
                                    [--gpu-image GPU_ID.json] [--work-dir DIR]
     practice_grade_entry.py parity --kind K --entry CATALOG_ID --gpu-image GPU_ID.json (same other flags)
 
+On a host with a recorded install, give the GPU leg a SCRATCH cache so no image or tag of the install is built,
+created or moved: `python -m scripts.dev.stage_scratch_twin --scratch-state-dir DIR --torch-gpu-manifest M ENTRY`
+prints its cache root; pass it as --gpu-cache-root (the CPU leg keeps --cache-root, the install's own cache).
+
 `grade` prints one canonical JSON line (sorted keys, no timings, no wall clock): the legs, the design parts, the gates,
 `total` = 0.5 * accuracy + 0.5 * design_value, the state digest and where it ran. Two runs with the same inputs and
 pinned BLAS/OMP threads print the same bytes, so `grade_repeat --cmd` hashes that line. `parity` runs the entry on the
@@ -95,7 +99,11 @@ def _args(ns, work_dir, gpu_image):
     return SimpleNamespace(
         out_dir=str(work_dir),
         parent_identity=ns.parent_identity,
-        cache_root=ns.cache_root,
+        # The GPU leg may use its own (scratch) cache, where only the twin material is staged
+        # (stage_scratch_twin.py); the CPU leg reads the install's cache.
+        cache_root=(
+            ns.gpu_cache_root if gpu_image and ns.gpu_cache_root else ns.cache_root
+        ),
         gpu_image=gpu_image,
     )
 
@@ -108,6 +116,10 @@ def main(argv=None, *, factory=None, load_identity=None):
     parser.add_argument("--parent-identity", required=True)
     parser.add_argument("--cache-root", required=True)
     parser.add_argument("--gpu-image")
+    parser.add_argument(
+        "--gpu-cache-root",
+        help="the library cache for the GPU leg (a scratch cache from stage_scratch_twin.py); the CPU leg uses --cache-root",
+    )
     parser.add_argument("--work-dir")
     ns = parser.parse_args(argv)
     if ns.mode == "parity" and not ns.gpu_image:
