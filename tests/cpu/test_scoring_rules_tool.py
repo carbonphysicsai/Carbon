@@ -172,34 +172,36 @@ PROVISIONAL = {
         ("f08-ribbed-bracket", "1.7"),
     ],
 )
-def test_published_rules_are_readable_without_admitting_reserved_versions(key):
-    """The published rules of every pool version are readable; a RESERVED one (Cooling 1.5, F08 1.6) is still
-    not admitted by describe or resolve, and the three on provisional constants are."""
+def test_rules_are_served_only_for_versions_the_registry_offers(key):
+    """The scoring_rules tool refuses a version the registry does not offer (Cooling 1.5, F08 1.6: RESERVED) with the
+    same typed `challenge_not_implemented` as describe, and needs no runtime host facts for an offered one (the three
+    on provisional constants, admitted by OWNER-POOL-CONSTANTS-PROVISIONAL-01)."""
     from carbon.miner_mcp.open_tier import create_open_tier_server
 
     def no_host_observation():
         raise AssertionError("published metadata needs no runtime host facts")
 
     server = create_open_tier_server(host_facts=no_host_observation)
-    result = asyncio.run(
-        server.call_tool(
-            PREFIX + "scoring_rules", {"challenge_id": key[0], "version": key[1]}
-        )
-    )
+    arguments = {"challenge_id": key[0], "version": key[1]}
+    if key not in PROVISIONAL:
+        with pytest.raises(ToolError, match="challenge_not_implemented") as refused:
+            asyncio.run(server.call_tool(PREFIX + "scoring_rules", arguments))
+        assert "next_action=" in str(refused.value)
+        with pytest.raises(challenges.ChallengeNotImplemented):
+            challenges.published_description(*key)
+        with pytest.raises(challenges.ChallengeNotImplemented):
+            challenges.describe(*key, host=EVERYTHING)
+        with pytest.raises(challenges.ChallengeNotImplemented):
+            challenges.resolve(*key, "cpu_research", host=EVERYTHING)
+        return
+    result = asyncio.run(server.call_tool(PREFIX + "scoring_rules", arguments))
     assert not result.is_error
     rules = result.structured_content["payload"]
     assert rules == mcp_challenges.scoring_rules_view(
         challenges.published_description(*key)
     )
     assert result.structured_content["official_eligible"] is False
-    if key in PROVISIONAL:
-        # Registered PROVISIONAL (testnet) by OWNER-POOL-CONSTANTS-PROVISIONAL-01: admitted like any offered version.
-        assert challenges.describe(*key, host=EVERYTHING)["version"] == key[1]
-        return
-    with pytest.raises(challenges.ChallengeNotImplemented):
-        challenges.describe(*key, host=EVERYTHING)
-    with pytest.raises(challenges.ChallengeNotImplemented):
-        challenges.resolve(*key, "cpu_research", host=EVERYTHING)
+    assert challenges.describe(*key, host=EVERYTHING)["version"] == key[1]
 
 
 def test_a_pool_graded_version_carries_the_speed_gate_and_the_search(monkeypatch):
