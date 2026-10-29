@@ -1,4 +1,4 @@
-"""Each miner's own per-part feedback (OWNER-DOOR-LOOKUPS-AND-PART-FEEDBACK-01;
+"""Each miner's own per-part feedback (the owner's per-part feedback decision;
 PART_FEEDBACK_GRANULARITY_20261029 sections 1, 2 and 4): the v4 Ladder document is
 v3 plus ``parts`` (the A and D halves and each registered component, on the part step
 with hysteresis), ``gates`` (pass or fail) and ``minimums_missed`` (names only); it is

@@ -29,7 +29,7 @@ the state.
 
 Values are rounded *down* to the step grid with exact decimal arithmetic, so a
 shown value never exceeds what was earned and never depends on float error.
-v4 (OWNER-DOOR-LOOKUPS-AND-PART-FEEDBACK-01; PART_FEEDBACK_GRANULARITY_20261029
+v4 (the owner's per-part feedback decision; PART_FEEDBACK_GRANULARITY_20261029
 sections 1 and 2) is v3 plus the miner's own per-part feedback: ``parts`` (the A and
 D halves and each registered component of those legs, floored to the part step with
 hysteresis), ``gates`` (every registered hard gate, pass or fail) and
@@ -70,7 +70,7 @@ SCHEMA_V4 = "carbon.private-exam.ladder-feedback.v4"
 FIELDS_V4 = FIELDS_V3 | {"parts", "gates", "minimums_missed"}
 FIELDS_V4_NOT_SCORED = FIELDS_V4 | {"reason", "leg"}
 #: The part step is p = max(PART_FLOOR, PART_FACTOR * s), with s the total's step.
-#: PROVISIONAL disclosure settings, testnet only (OWNER-OVERNIGHT-DELEGATION-01); the
+#: PROVISIONAL disclosure settings, testnet only, not owner-selected (the overnight delegation); the
 #: invariant test pins p >= 2 * s so a merge cannot show a part finer than the total.
 PART_FLOOR = 0.05
 PART_FACTOR = 2

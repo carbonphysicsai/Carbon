@@ -3335,7 +3335,7 @@
     const said = (other.status === "GATE_FAILED" || other.status === "NOT_SCORED") && typeof other.words === "string" ? other.words.replace(/^graded: /, "") : other.status === "GATE_FAILED" ? "not eligible (a mandatory gate failed)" : other.status === "NOT_SCORED" || typeof other.total !== "number" ? "not scored" : other.total.toFixed(4);
     return " Your mining key's latest grade on this exam is " + said + ", from " + (other.recipe_digest ? "another submission" : "a submission the validator did not name") + "; it is not this one's.";
   }
-  // OWNER-DOOR-LOOKUPS-AND-PART-FEEDBACK-01: this miner's own per-part feedback from
+  // Per-part feedback (PART_FEEDBACK_GRANULARITY_20261029): this miner's own per-part feedback from
   // the Ladder's v4 document, as the Ladder floored it: the two halves and each
   // registered component, the gates pass or fail, and the legs below their minimum by
   // name. The page shows these numbers and computes none.

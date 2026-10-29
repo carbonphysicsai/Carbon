@@ -383,8 +383,8 @@ def _unit_number(value):
 
 
 def _part_feedback(document):
-    """A v4 Ladder document's per-part feedback for the page (OWNER-DOOR-LOOKUPS-AND-
-    PART-FEEDBACK-01), allow-listed field by field: the A and D halves and each
+    """A v4 Ladder document's per-part feedback for the page (the owner's per-part
+    feedback decision), allow-listed field by field: the A and D halves and each
     registered component (already floored by the Ladder), every registered gate as
     pass or fail, and the names of legs below their minimum. Anything of another
     shape is dropped; the page computes nothing from it."""
