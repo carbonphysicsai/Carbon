@@ -3,6 +3,7 @@
 import json
 import os
 import stat
+from pathlib import Path
 
 import pytest
 
@@ -391,75 +392,81 @@ def test_the_grading_probe_sees_the_lock_and_never_holds_it(tmp_path):
         os.close(fd)
 
 
-def entries_with_twins(count):
-    return [
-        e for e in pipeline.load()["entries"] if RUNTIME in (e.get("bundle_refs") or {})
-    ][:count]
+def test_receipt_job_is_a_helper_library_with_no_append_path():
+    assert not hasattr(receipt_job, "run_standing")
+    assert not hasattr(receipt_job, "append")
+    source = Path(receipt_job.__file__).read_text(encoding="utf-8")
+    assert ".append(" not in source and "ReceiptStore(" not in source
 
 
-def test_the_job_waits_while_grading_runs_and_receipts_every_entry_in_order(store):
-    items = entries_with_twins(3)
-    state = {"busy_for": 3, "waits": 0, "produced": []}
-
-    def busy():
-        if state["busy_for"] > 0:
-            state["busy_for"] -= 1
-            return True
-        return False
-
-    def produce(entry, should_yield):
-        state["produced"].append(entry["catalog_id"])
-        return record(entry)
-
-    def sleep(seconds):
-        state["waits"] += 1
-
-    done = receipt_job.run_standing(
-        store, items, produce, busy=busy, nice=0, sleep=sleep
-    )
-    assert state["waits"] == 3
-    assert state["produced"] == [e["catalog_id"] for e in items]
-    assert len(done) == 3 and len(store.records()) == 3
+def test_the_receiver_holds_the_grading_lock_for_the_whole_grade_and_releases_it(
+    tmp_path,
+):
+    assert receipt_job.grading_busy(tmp_path) is False
+    with receipt_job.official_grading(tmp_path):
+        assert receipt_job.grading_busy(tmp_path) is True
+        assert (
+            stat.S_IMODE((tmp_path / receipt_job.GRADING_LOCK).stat().st_mode) == 0o600
+        )
+    assert receipt_job.grading_busy(tmp_path) is False
 
 
-def test_an_entry_abandoned_for_grading_is_redone_afterwards_not_recorded(store):
-    (item,) = entries_with_twins(1)
-    calls = []
-    busy_now = [False]
-
-    def busy():
-        return busy_now[0]
-
-    def produce(entry, should_yield):
-        calls.append(should_yield())
-        if len(calls) == 1:
-            busy_now[0] = True  # official grading starts mid-entry
-            assert should_yield() is True
-            raise receipt_job.Yielded
-        return record(entry)
-
-    def sleep(seconds):
-        busy_now[0] = False  # grading ends
-
-    done = receipt_job.run_standing(
-        store, [item], produce, busy=busy, nice=0, sleep=sleep
-    )
-    assert len(calls) == 2 and len(done) == 1
-    assert len(store.records()) == 1
+def test_the_grading_lock_is_released_on_every_exit_path(tmp_path):
+    with pytest.raises(RuntimeError), receipt_job.official_grading(tmp_path):
+        assert receipt_job.grading_busy(tmp_path) is True
+        raise RuntimeError("the grade failed")
+    assert receipt_job.grading_busy(tmp_path) is False
+    with pytest.raises(KeyboardInterrupt), receipt_job.official_grading(tmp_path):
+        raise KeyboardInterrupt
+    assert receipt_job.grading_busy(tmp_path) is False
 
 
-def test_the_job_lowers_its_priority_and_stops_cleanly(store, monkeypatch):
-    niced = []
-    monkeypatch.setattr(os, "nice", lambda value: niced.append(value) or 0)
+def test_the_receivers_reconstruction_and_grade_loops_hold_the_grading_lock(tmp_path):
+    import threading
 
-    def never(entry, should_yield):
-        raise AssertionError("stopped before any work")
+    from carbon.challenge_validator import direct_intake
 
-    done = receipt_job.run_standing(
-        store,
-        entries_with_twins(2),
-        never,
-        busy=lambda: False,
-        stop=lambda: True,
-    )
-    assert niced == [19] and done == []
+    seen = {"advance": [], "grade": []}
+    stop = threading.Event()
+
+    class Advancer:
+        def advance(self):
+            seen["advance"].append(receipt_job.grading_busy(tmp_path))
+            stop.set()
+
+    class Grader:
+        def run_once(self):
+            seen["grade"].append(receipt_job.grading_busy(tmp_path))
+            stop.set()
+
+    work = direct_intake._WorkLock(tmp_path)
+    direct_intake._advance_loop(Advancer(), stop, work)
+    stop.clear()
+    direct_intake._grade_loop(Grader(), stop, work)
+    assert seen == {"advance": [True], "grade": [True]}
+    # Between passes nothing holds it: the worker may start a lane.
+    assert receipt_job.grading_busy(tmp_path) is False
+
+
+def test_a_failed_pass_still_releases_the_grading_lock(tmp_path):
+    import threading
+
+    from carbon.challenge_validator import direct_intake
+
+    stop = threading.Event()
+
+    class Failing:
+        def advance(self):
+            stop.set()
+            raise RuntimeError("worker failed")
+
+    direct_intake._advance_loop(Failing(), stop, direct_intake._WorkLock(tmp_path))
+    assert receipt_job.grading_busy(tmp_path) is False
+
+
+def test_without_a_lock_directory_the_work_lock_is_the_plain_one_it_was(tmp_path):
+    from carbon.challenge_validator import direct_intake
+
+    work = direct_intake._WorkLock(None)
+    with work:
+        assert not (tmp_path / receipt_job.GRADING_LOCK).exists()

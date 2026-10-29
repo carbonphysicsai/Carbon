@@ -1612,6 +1612,12 @@ def serve(
                 grader=grader,
                 ready=listening,
                 closing=providers.cancel,
+                # The standing receipt worker yields to this lock (`receipt_job`): it sits beside the receipt store.
+                grading_lock_dir=(
+                    Path(cfg["official_gpu_receipts"]).parent
+                    if "official_gpu_receipts" in cfg
+                    else None
+                ),
             )
             if watch.lost:
                 # The service exits non-zero; its next start refuses until the

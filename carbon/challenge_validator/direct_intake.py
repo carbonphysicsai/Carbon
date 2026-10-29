@@ -429,6 +429,7 @@ def serve_loopback(
     ready=None,
     closing=None,
     grader=None,
+    grading_lock_dir=None,
 ):
     """Serve the prospective receiver on a trusted loopback test host."""
     host = config.get("host")
@@ -449,7 +450,7 @@ def serve_loopback(
     # Join already-authenticated bounded handlers before taking the final
     # cancellation snapshot. Otherwise a submit may queue after cancellation.
     httpd.daemon_threads = False
-    work = threading.Lock()
+    work = _WorkLock(grading_lock_dir)
     threads = [
         threading.Thread(
             target=refresher,
@@ -537,6 +538,40 @@ def _keep_failure(subject, loop, failure):
         return site
     except Exception:  # noqa: BLE001 - evidence is best effort
         return None
+
+
+class _WorkLock:
+    """The one lock the reconstruction pass and the grade share (one at a time), plus, when ``grading_lock_dir`` is
+    set, the official-grading file lock (`receipt_job.official_grading`): held for each whole official rebuild and
+    grade so the standing receipt worker starts no lane meanwhile, and released on every exit path.
+    """
+
+    def __init__(self, grading_lock_dir=None):
+        self._lock = threading.Lock()
+        self._dir = grading_lock_dir
+        self._held = None
+
+    def __enter__(self):
+        self._lock.acquire()
+        try:
+            if self._dir is not None:
+                from carbon.backbone_catalog import receipt_job
+
+                self._held = receipt_job.official_grading(self._dir)
+                self._held.__enter__()
+        except BaseException:
+            self._held = None
+            self._lock.release()
+            raise
+        return self
+
+    def __exit__(self, *exc):
+        held, self._held = self._held, None
+        try:
+            if held is not None:
+                return held.__exit__(*exc)
+        finally:
+            self._lock.release()
 
 
 def _advance_loop(intake, stop, work=None):

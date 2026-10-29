@@ -1,32 +1,30 @@
-"""The standing receipt job: the only writer of the official GPU receipt store (OWNER-GPU-OPEN-WITH-READY-01).
+"""Helpers for the standing receipt worker and the receiver: the official-grading lock.
 
-It produces official receipts in the background, one entry at a time, and never at the expense of official grading:
+The WORKER (`scripts/dev/gpu_receipt_worker.py`) is the only writer of the official receipt store
+(`receipt_store.ReceiptStore.append`); this module has no append path. It holds what the worker and the receiver
+share so official grading is never starved by receipting (OWNER-GPU-OPEN-WITH-READY-01):
 
-- it lowers its own scheduling priority (``os.nice``) before any work;
-- before it starts an entry, and between the steps of one (``produce`` is handed ``should_yield``), it asks whether
-  official grading is running; while it is, the job waits, and an entry it had to abandon is retried afterwards;
-- official grading announces itself by holding the advisory lock ``official-grading.lock`` in the validator state
-  (`grading_busy`): the job never takes it, only tests it.
-
-`produce(entry, should_yield)` runs the entry's two rebuilds on the registered class and returns the record to append
-(`receipt_store.check_record` refuses a malformed one), or raises `Yielded` when ``should_yield()`` became true.
+- the RECEIVER holds ``official-grading.lock`` (`official_grading`) for each whole official rebuild and grade, and
+  releases it on every exit path;
+- the WORKER only tests it (`grading_busy`), never takes it, and starts no lane while it is held;
+- `Yielded` is what a worker's rebuild raises when it abandons a lane because grading started.
 """
 
 from __future__ import annotations
 
 import os
-import time
+from contextlib import contextmanager
 from pathlib import Path
 
 GRADING_LOCK = "official-grading.lock"
 
 
 class Yielded(Exception):
-    """The entry's rebuilds were abandoned because official grading started."""
+    """A rebuild was abandoned because official grading started."""
 
 
 def grading_busy(state_dir) -> bool:
-    """Whether official grading holds its lock in ``state_dir`` (the job only tests it, never holds it)."""
+    """Whether official grading holds its lock in ``state_dir`` (the worker only tests it, never holds it)."""
     import fcntl
 
     path = Path(state_dir) / GRADING_LOCK
@@ -45,36 +43,20 @@ def grading_busy(state_dir) -> bool:
         os.close(fd)
 
 
-def run_standing(
-    store,
-    entries,
-    produce,
-    *,
-    busy,
-    nice=19,
-    poll_seconds=5.0,
-    sleep=time.sleep,
-    stop=lambda: False,
-):
-    """Receipt every entry in ``entries`` in order; returns the digests appended.
+@contextmanager
+def official_grading(state_dir):
+    """Hold ``official-grading.lock`` in ``state_dir`` for the whole of one official rebuild and grade.
 
-    ``busy()`` is the grading probe. The job waits while it is true, yields mid-entry through ``produce``, and stops
-    cleanly when ``stop()`` is true."""
-    if hasattr(os, "nice"):
-        os.nice(nice)
-    appended = []
-    for entry in entries:
-        while True:
-            while busy():
-                if stop():
-                    return appended
-                sleep(poll_seconds)
-            if stop():
-                return appended
-            try:
-                record = produce(entry, busy)
-            except Yielded:
-                continue  # grading started mid-entry: wait for it to end, then redo the entry
-            appended.append(store.append(record))
-            break
-    return appended
+    Released on every exit path, an exception included; the lock file is created owner-only. The receiver is the
+    only taker."""
+    import fcntl
+
+    fd = os.open(Path(state_dir) / GRADING_LOCK, os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
