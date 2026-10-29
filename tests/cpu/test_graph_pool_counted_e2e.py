@@ -22,6 +22,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from exam_cadence_fixture import cadence_v2
 from test_physical_dual_pack_end_to_end import IMAGE, _npz, _pair
 from test_pool_dual_e2e import MOTOR, VERSION, case  # noqa: F401
 from test_public_bundle_model_custody import _json, _sha
@@ -240,6 +241,7 @@ def _setup(case, tmp_path, monkeypatch, *, candidate_failure=False, ensemble=Fal
     adapter = object.__new__(LeanRecipeAdapter)
     adapter.challenge_id, adapter.challenge_version = MOTOR, VERSION
     adapter.contract_digest, adapter.ledger = CONTRACT, ledger
+    adapter.exam_cadence = cadence_v2()  # the committed registry carries no values yet
     adapter.copy_hotkey = case["copy_hotkey"]
     adapter.speed_sample_key = bytes(range(32))  # synthetic test-only sampling key
     adapter.owner = lambda _task: OWNER

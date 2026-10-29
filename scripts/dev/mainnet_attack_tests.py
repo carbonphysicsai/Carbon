@@ -352,15 +352,19 @@ def out_of_range_total_reaches_comparator():
 
 
 def _cadence():
+    # Schema v2 (GPU-lane-hours): fixture numbers for the attack run, not measurements.
     return {
-        "capacity_cpu_hours_per_day": 134.4,
-        "rebuild_cpu_hours_placeholder": {
+        "capacity_gpu_lane_hours_per_day": 134.4,
+        "rebuild_gpu_lane_hours": {
             "battery-fastcharge-ageing-development-v1": 2.0,
             "chip-cold-plate": 1.0,
             CHALLENGE: 1.0,
             "f02": 0.2,
             "f08-ribbed-bracket": 0.5,
         },
+        "lanes": 1,
+        "measurement_digest": "sha256:" + "a" * 64,
+        "class_record_digest": "sha256:" + "b" * 64,
     }
 
 
