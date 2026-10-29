@@ -668,7 +668,11 @@ def _inspect_exact(cli: object, ids: list[str]) -> frozenset[str]:
     result = cli.run(
         ["image", "inspect", *ids, "--format", "{{json .Id}}"], accepted=(0, 1)
     )
-    found = [_digest(json.loads(line)) for line in result.stdout.splitlines()]
+    # When every id is absent the daemon prints one blank line on stdout (Docker 29.9.2 containerd store, probed): a blank
+    # line names no image, so it is skipped; every other line must be an id's JSON.
+    found = [
+        _digest(json.loads(line)) for line in result.stdout.splitlines() if line.strip()
+    ]
     missing = []
     for line in result.stderr.decode("ascii").splitlines():
         matched = _NO_SUCH_IMAGE.fullmatch(line.strip()) if line.strip() else None

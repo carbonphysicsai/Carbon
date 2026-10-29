@@ -92,8 +92,10 @@ class _Inspector:
                 f"Error response from daemon: No such image: {value}"
                 for value in absent
             ]
+            # The real daemon prints one blank line on stdout when every requested id is absent.
+            printed = "\n".join(json.dumps(value) for value in shown).encode()
             return SimpleNamespace(
-                stdout="\n".join(json.dumps(value) for value in shown).encode(),
+                stdout=b"\n" if absent and not shown else printed,
                 stderr=("\n".join(lines).encode() + self.stderr_extra),
                 returncode=code,
             )
@@ -263,8 +265,10 @@ def test_receiver_opt_in_rebuilds_only_a_missing_child_and_preserves_failed_rece
                 f"Error response from daemon: No such image: {value}"
                 for value in absent
             ]
+            # The daemon prints one blank line when every requested id is absent.
+            printed = "\n".join(json.dumps(value) for value in held).encode()
             return SimpleNamespace(
-                stdout="\n".join(json.dumps(value) for value in held).encode(),
+                stdout=b"\n" if absent and not held else printed,
                 stderr="\n".join(lines).encode(),
                 returncode=1 if absent else 0,
             )
@@ -969,3 +973,45 @@ def test_any_extra_stderr_text_fails_closed_even_when_every_id_is_accounted_for(
         cache.present_library_worker_images(
             ids, cli=_Inspector(ids, stderr_extra=b"\nWarning: something else")
         )
+
+
+def test_a_blank_stdout_line_from_an_all_absent_inspect_is_not_an_id():
+    """Probed on Docker 29.9.2 (containerd store): inspecting only absent ids prints one blank stdout line, which broke the
+    rebuild of a missing child with `JSONDecodeError` (Test Runner, 2026-10-29). Only blank lines are skipped.
+    """
+    absent = _sha("7")
+
+    class Daemon:
+        def __init__(self, stdout):
+            self.stdout = stdout
+
+        def run(self, arguments, *, accepted=(0,)):
+            return SimpleNamespace(
+                stdout=self.stdout,
+                stderr=f"Error response from daemon: No such image: {absent}\n".encode(),
+                returncode=1,
+            )
+
+    assert (
+        cache.present_library_worker_images([absent], cli=Daemon(b"\n")) == frozenset()
+    )
+    assert (
+        cache.present_library_worker_images([absent], cli=Daemon(b"\n\n"))
+        == frozenset()
+    )
+    with pytest.raises(ValueError):
+        cache.present_library_worker_images([absent], cli=Daemon(b"not json\n"))
+    # An id printed while another is reported absent still counts as present, blank lines or not.
+    other = _sha("8")
+
+    class Mixed:
+        def run(self, arguments, *, accepted=(0,)):
+            return SimpleNamespace(
+                stdout=(json.dumps(other) + "\n\n").encode(),
+                stderr=f"Error response from daemon: No such image: {absent}\n".encode(),
+                returncode=1,
+            )
+
+    assert cache.present_library_worker_images(
+        [absent, other], cli=Mixed()
+    ) == frozenset({other})
