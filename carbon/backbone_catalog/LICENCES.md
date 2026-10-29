@@ -43,11 +43,12 @@ cover them explicitly.
 | `neuraloperator` (neuralop) | MIT (read from package metadata, 2.0.0) | neuralop.*, f08.neuralop.*, cooling.neuralop.* |
 | `nvidia-physicsnemo` | Apache-2.0 (read from package metadata, 2.2.0) | physicsnemo.*, f08/cooling/f02 FullyConnected |
 | `timm` (huggingface pytorch-image-models) | Apache-2.0 (read from package metadata, 1.0.29) | thuml.LSM |
+| `einops` | MIT (named by the owner, OWNER-THUML-GPU-TWIN-LIFT-01) | the legacy thuml.* and f08.thuml.* entries whose GPU twins were lifted |
 
 The versions the image actually carries are pinned by its environment digest; the figures above are
 from the test venv and must be re-read from the published image when it is built.
 
-`timm` 1.0.29 is imported by `thuml.LSM` and is not in the entry's bundle lock. It must be in the `torch-cu130-py311` lock, hash-pinned at 1.0.29 (the version the repository's `uv.lock` already ships through physicsnemo; not a bundled wheel, which would move LSM's CPU digest): a change for Launchpad / Test Engineer, not made here (Validator ruling, 2026-10-22). It goes on the owner's next named-licence list; it does not block testnet.
+`timm` 1.0.29 (Apache-2.0) and `einops` 0.8.2 (MIT) are hash-pinned in the `torch-cu130-py311` lock (supplied by the pinned worker image, not bundled wheels, so no CPU digest moves). timm is imported by `thuml.LSM`; with einops it let the ten legacy THUML GPU twins be re-derived (OWNER-THUML-GPU-TWIN-LIFT-01: the withdrawal was technical, not a licence restriction; the owner named both licences).
 
 ## Variants (an entry that is not the backbone's plain default)
 

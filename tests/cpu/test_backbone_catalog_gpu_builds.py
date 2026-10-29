@@ -23,7 +23,9 @@ def torch_entries():
 
 
 def withdrawn_twins():
-    """The 10 relicensed THUML twins withdrawn from GPU (the pinned lock lacked timm; OWNER-CATALOG-LICENCES-01 record)."""
+    """The twins withdrawn from GPU by the licence derivation: none since OWNER-THUML-GPU-TWIN-LIFT-01 lifted the
+    withdrawal of the 10 legacy THUML twins (the pinned lock now carries timm and einops).
+    """
     derivation = json.loads(
         (
             pipeline.BUNDLES.parent / "derivations/OWNER-CATALOG-LICENCES-01.json"
@@ -987,3 +989,38 @@ def test_make_has_no_silent_defaults_for_the_official_fields():
             gpu_used=True,
             smoke_ok=True,
         )
+
+
+LIFTED_THUML = {
+    "f08.thuml.FNO",
+    "f08.thuml.F_FNO",
+    "f08.thuml.Factformer",
+    "f08.thuml.Galerkin_Transformer",
+    "f08.thuml.Transolver",
+    "thuml.FNO",
+    "thuml.F_FNO",
+    "thuml.Factformer",
+    "thuml.Galerkin_Transformer",
+    "thuml.Transolver",
+}
+
+
+def test_the_ten_thuml_twins_are_lifted_re_derived_and_the_record_cites_the_lift():
+    derivation = json.loads(
+        (
+            pipeline.BUNDLES.parent / "derivations/OWNER-CATALOG-LICENCES-01.json"
+        ).read_bytes()
+    )
+    withdrawn = derivation["gpu_twins_withdrawn"]
+    assert withdrawn["ids"] == []
+    assert withdrawn["lifted"]["by"] == "OWNER-THUML-GPU-TWIN-LIFT-01"
+    assert set(withdrawn["lifted"]["ids"]) == LIFTED_THUML
+    entries = {e["catalog_id"]: e for e in pipeline.load()["entries"]}
+    for catalog_id in LIFTED_THUML:
+        assert set(entries[catalog_id]["bundle_refs"]) == {"torch-cu130-py311"}
+        pipeline.verify(entries[catalog_id])
+    # Every entry now has a twin.
+    assert [c for c, e in entries.items() if not e.get("bundle_refs")] == []
+    licences = (pipeline.BUNDLES.parent / "LICENCES.md").read_text(encoding="utf-8")
+    assert "`timm`" in licences and "Apache-2.0" in licences
+    assert "`einops`" in licences and "MIT" in licences
