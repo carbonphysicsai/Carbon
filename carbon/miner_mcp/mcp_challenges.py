@@ -354,7 +354,7 @@ def make_challenge_tools(*, guard=None, host_facts=None):
         if guard is not None:
             guard()
         try:
-            payload = challenges.describe(challenge_id, version, host=facts())
+            payload = challenges.published_description(challenge_id, version)
         except challenges.ResolutionError as refused:
             raise ToolError(
                 f"{refused.code}; next_action={refused.next_action}"
@@ -369,7 +369,9 @@ def make_challenge_tools(*, guard=None, host_facts=None):
     async def list_challenges():
         if guard is not None:
             guard()
-        return ChallengeResult(operation="list", payload=challenges.catalog(facts()))
+        return ChallengeResult(
+            operation="list", payload=challenges.offered_catalog(facts())
+        )
 
     async def describe(challenge_id, version, compact=False):
         if guard is not None:
@@ -439,6 +441,6 @@ def register_catalog_resource(server, *, guard=None, host_facts=None):
     def catalog() -> str:
         if guard is not None:
             guard()
-        return json.dumps(challenges.catalog(facts()), allow_nan=False)
+        return json.dumps(challenges.offered_catalog(facts()), allow_nan=False)
 
     return catalog

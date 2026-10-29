@@ -25,7 +25,7 @@ def test_battery_cards_state_the_sealed_exam_gap():
         assert "below 10 °C" in line and "above 0.42" in line
 
 
-def test_a_catalog_versions_card_counts_its_installed_entries(tmp_path):
+def test_a_material_directory_alone_does_not_make_a_catalog_card_ready(tmp_path):
     # M1 E2E U30: setup read done while the catalog was not installed.
     from carbon.backbone_catalog import listing
 
@@ -39,5 +39,5 @@ def test_a_catalog_versions_card_counts_its_installed_entries(tmp_path):
     digest = entries[0]["bundle_ref"]["bundle_digest"][7:]
     staged = tmp_path / ".direct-development/library-cache/materials" / digest
     staged.mkdir(parents=True)
-    assert capabilities._catalog_install(motor, cfg)["installed"] == 1
+    assert capabilities._catalog_install(motor, cfg)["installed"] == 0
     assert capabilities._catalog_install({**motor, "version": "1.0"}, cfg) is None

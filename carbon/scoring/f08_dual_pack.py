@@ -167,7 +167,16 @@ def _train_targets(train_raw):
 
 
 def measure(
-    *, bank_rows, outputs, repeats, definition, limits, objective, train_raw, names
+    *,
+    bank_rows,
+    outputs,
+    repeats,
+    definition,
+    limits,
+    objective,
+    train_raw,
+    names,
+    native_summary_rule=None,
 ):
     return fdm.measure(
         bank=bank_rows,
@@ -176,6 +185,7 @@ def measure(
         definition=definition,
         limits=limits,
         train=_train_targets(train_raw),
+        native_summary_rule=native_summary_rule,
     )
 
 

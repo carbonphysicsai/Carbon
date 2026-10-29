@@ -896,10 +896,7 @@ class Server(ThreadingHTTPServer):
         its status. A failure to start never fails the setup step."""
         from scripts.dev.miner_launchpad import catalog_build
 
-        try:
-            return catalog_build.start(self.state_dir)
-        except Exception:  # noqa: BLE001 - the status still says what to do
-            return catalog_build.status(self.state_dir)
+        return catalog_build.start_or_status(self.state_dir)
 
     def attach_profile(self, profile: Path) -> bool:
         """Load the runner profile setup wrote, without a restart.
@@ -1286,11 +1283,6 @@ class Handler(BaseHTTPRequestHandler):
                 result = setup_operations.perform(
                     self.server.setup, action, value, door=setup_operations.HTTP
                 )
-                if action in ("review", "recheck") and self.server.state_dir:
-                    # The page wrote the runner profile: the catalog starts
-                    # installing in the background now, where it is
-                    # missing (M1 E2E E2). The page's door only.
-                    self.server.start_catalog()
             elif self.path == CATALOG_ROUTE:
                 # Install the backbone catalog in the background, from this
                 # page only (M1 E2E E2); a running install is reported.

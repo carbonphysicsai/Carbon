@@ -10,6 +10,8 @@ a GPU model (`A100-SXM4-80`) is not. Its boundaries are whitelists (space,
 quotes, brackets, punctuation, `/`), so a prefix never matches inside a
 longer id (`GATE-DESIGN-01` in `FEASIBILITY-GATE-DESIGN-01`), a ticket path's
 `_slug` or a file label (`R4.L4-G-CONSTRUCTOR-3.json`).
+An id may wrap after a hyphen, including onto the next Python comment line;
+only complete matched ids are unwrapped, never arbitrary preceding text.
 
 Cited ids are scanned in tracked files under `carbon/`, `scripts/` and
 `docs/development/evidence/`. An id resolves when it is
@@ -42,6 +44,7 @@ HISTORY = ROOT / ".agent" / "DECISIONS.md"
 TICKETS = ROOT / ".agent" / "tickets"
 SCANNED = ("carbon", "scripts", "docs/development/evidence")
 _DATE = re.compile(r"\A\d{4}-\d{2}-\d{2}-")
+_WRAPPED_LINE = re.compile(r"[ \t]*\r?\n[ \t]*(?:#[ \t]*)?")
 #: What may stand next to an id (the text's edge always may): a whitelist,
 #: not a blacklist, since `-`, `_` and `.` each once let a non-id through.
 _BEFORE = r"\s\"'`(\[{<,;:=/*|>"
@@ -56,7 +59,6 @@ UNRECORDED = frozenset(
         "CHALLENGE-COLD-PLATE-02",
         "CHALLENGE-PHOTONIC-02",
         "CHALLENGE-PROTOCOL-04",
-        "CHAMPIONSHIP-03",
         "CHAMPIONSHIP-04",
         "EVIDENCE-ENTRYPOINTS-01",
         "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2",
@@ -97,9 +99,15 @@ def _pattern():
     alternation = "|".join(
         re.escape(p) for p in sorted(prefixes, key=len, reverse=True)
     )
+    separator = r"-(?:[ \t]*\r?\n[ \t]*(?:#[ \t]*)?)?"
     return prefixes, re.compile(
-        rf"(?<![^{_BEFORE}])(?:{alternation})(?:-[A-Z0-9_]+)*-\d+(?![^{_AFTER}])"
+        rf"(?<![^{_BEFORE}])(?:{alternation})"
+        rf"(?:{separator}[A-Z0-9_]+)*{separator}\d+(?![^{_AFTER}])"
     )
+
+
+def _ids(pattern, text):
+    return [_WRAPPED_LINE.sub("", found) for found in pattern.findall(text)]
 
 
 def _text(path):
@@ -113,9 +121,9 @@ def _resolved(pattern):
     declared = set()
     for path in _records():
         declared.add(_stem(path))
-        declared.update(pattern.findall(_text(path)))
+        declared.update(_ids(pattern, _text(path)))
     if HISTORY.is_file():
-        declared.update(pattern.findall(_text(HISTORY)))
+        declared.update(_ids(pattern, _text(HISTORY)))
     if TICKETS.is_dir():
         declared.update(re.split(r"[_.]", p.name)[0] for p in TICKETS.iterdir())
     return declared
@@ -132,7 +140,7 @@ def _cited(pattern):
     cited = {}
     for name in filter(None, tracked):
         relative = name.decode("utf-8")
-        for found in set(pattern.findall(_text(ROOT / relative))):
+        for found in set(_ids(pattern, _text(ROOT / relative))):
             cited.setdefault(found, []).append(relative)
     return cited
 
@@ -187,4 +195,4 @@ def test_the_id_boundaries(text, found):
     prefixes, pattern = _pattern()
     if "FEASIBILITY" in prefixes or "A100" in prefixes:
         pytest.fail("a fixture prefix became a record family; update this test")
-    assert pattern.findall(text) == found
+    assert _ids(pattern, text) == found

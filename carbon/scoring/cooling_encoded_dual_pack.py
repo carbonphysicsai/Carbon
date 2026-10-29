@@ -28,7 +28,10 @@ VERSIONS = {
     version: (EVALUATION_VERSION, CASE_ID) for version in (VERSION, "1.4", "1.5")
 }
 #: Pool-graded: the sealed grader's cells and probes plus the pool set (`pool_exam`).
-POOL_VERSIONS = {"1.5": ("cooling-pool-sealed-v1", "cooling-sealed-pool-set")}
+POOL_VERSIONS = {
+    "1.5": ("cooling-pool-sealed-v1", "cooling-sealed-pool-set"),
+    "1.6": ("cooling-pool-sealed-v2", "cooling-sealed-pool-set"),
+}
 FILES = (*_cooling.FILES, "cooling_encoded_dual_pack.py")
 
 
@@ -100,7 +103,13 @@ def sealed_adapter(version):
     model's encoded rows are decoded, then Cooling's own sealed measurement runs on the
     native rows against the unchanged sealed bank. The 1.2 and 1.3 sealed scores are
     therefore comparable. 1.4 (graph route v2, construction only) is graded the
-    same way, from 1.3's sealed batches. None for any other version."""
+    same way, from 1.3's sealed batches. Cooling 1.6 dispatches to its prospective
+    hotspot-response correction, including callers of this module's pack writer.
+    None for any other version."""
+    if version == "1.6":
+        from carbon.scoring import cooling_hotspot_dual_pack
+
+        return cooling_hotspot_dual_pack.sealed_adapter(version)
     if version not in VERSIONS:
         return None
     if version in POOL_VERSIONS:

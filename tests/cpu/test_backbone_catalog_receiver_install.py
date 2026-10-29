@@ -55,8 +55,11 @@ def receiver(tmp_path, monkeypatch):
         host["sources"].append((profile_path, kwargs))
         return {}, host["parent"], None, cache
 
-    def install(directory, cache_root, parent, *, expected_bundle, cli):
+    def install(
+        directory, cache_root, parent, *, expected_bundle, cli, rebuild_missing
+    ):
         del cli
+        assert rebuild_missing is True
         host["installed"].append((cache_root, parent, expected_bundle))
 
         class Image:

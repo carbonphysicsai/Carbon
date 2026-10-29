@@ -97,7 +97,7 @@ The **Setup** page walks you through six steps. Each one is checked before you g
 
 **Just want to practise?** At the first step, choose **Practise without registering**. You skip the signer and the registration. Setup makes a **practice identity** for this machine: a key kept in a file only you can read, registered nowhere and never sent. Carbon uses it to sign your practice locally. Then set up who researches, your AI model and your compute as usual, save your settings, and practise on any Challenge. Nothing from your practice is sent to Carbon or to a validator: your agent's model calls go to your own provider, and practice runs on your own compute.
 
-In practice-only mode, **Freeze**, **Submit**, **Commit** and **Check for result** say *registration required*. Graphite can research and practise: launch it in **Research** mode, or with its submission policy set to retain only (`retain_only_v1`), when it plans and practises and then stops, *registration required*, where it would pick its final candidate. To unlock freezing and submitting later, register your hotkey in your own wallet, then:
+In practice-only mode, **Freeze**, **Submit**, **Commit** and **Check for result** say *registration required*. Graphite can research and practise: launch it in **Research** mode, or with its submission policy set to retain only (`retain_only_v1`), when it plans and practises and then stops, *registration required*, where it would pick its final candidate. The launch wizard ticks that retain-only choice for you when you practise without registering, and when you set a model-spend ceiling it starts Graphite's research share high enough that one model call fits (a smaller share would be refused *research share too small*); a share you type is never changed. To unlock freezing and submitting later, register your hotkey in your own wallet, then:
 1. confirm it at Setup's first step (**Join Carbon mining**);
 2. start your signer;
 3. choose **Who researches** again, so Setup checks your signer;
@@ -116,7 +116,13 @@ The other steps you checked are kept. Your practice campaigns stay on the page a
 5. **Compute.** Where practice runs: this machine's CPU, this machine's GPU, or a GPU machine you rent yourself. With a GPU, **Test my GPU** runs each GPU framework (JAX and PyTorch) once on your GPU, about a minute each, on synthetic data it makes itself; it shows the exact commands first and runs only when you agree. You get a plain answer per framework (works, or doesn't, with what to fix, e.g. an NVIDIA driver too old for the worker). It writes no score. With several GPUs, setup asks you to choose one (`--device GPU-<uuid>`, from `nvidia-smi -L`); it never picks for you. `carbon_accelerator.py doctor --miner-lane` exits 0 when your own practice is ready, and shows `miner_lane_ready`: a grant or approval it lists as blocked is for owner-authorised runs and does not stop your own practice. Your agent can offer the same step: `carbon_setup_test_gpu`, with the consent `carbon_setup_status` lists under `test_gpu`. **What runs on the GPU.** Your own graph's practice (its build, its inference and the speed query) runs on your GPU. A catalog entry (the starting recipes Carbon serves) has no GPU build yet, so a catalog practice runs on its CPU build and says so in its result ("Ran on CPU: this catalog entry has no GPU build yet"); start from your own graph to use the GPU. On Motor and Cooling the served example is the JAX **bcat** entry: its GPU rebuild is repeatable (bit-identical across runs). The PyTorch **CNO1d** entries stay in the catalog, but on a GPU machine they rebuild on the CPU (their GPU build is not repeatable), and the result says so.
 6. **Review and launch.** **Save my settings** saves your settings and loads them. Carbon's own grader is used for each Challenge where one is published. To use your own, open **Advanced: where a Challenge's grader runs** and give its **grading address** and **the grader's mining key address** (public, starts with 5…; never a key, password or seed phrase).
 
-Once you save your settings, the model catalog (the ready-made model types you can build from) installs itself in the background, and the page shows how far it has got. A Challenge can practise a catalog model as soon as that entry is installed. If it stops, its log says why; you can also install it yourself:
+Once you save your settings through the page or your connected agent, the model catalog (the ready-made model types you can build from) installs itself in the background, and setup shows how far it has got. A Challenge can practise a catalog model as soon as that entry is installed. If it stops or could not start, setup offers a retry and its log says what the job recorded; you can also install it yourself:
+
+Installed counts require intact pinned material, a receipt for the current
+construction parent, and that exact child image in Docker. If an image was
+removed, the entry reads missing again; retrying the catalog install rebuilds
+it from the pinned material. An unreachable Docker engine cannot establish
+readiness. Reading setup or catalog status never starts a build.
 
 ```bash
 cd ~/carbon && .venv/bin/python -B -m scripts.dev.catalog_install --state-dir ~/.carbon/development-launchpad
@@ -125,6 +131,12 @@ cd ~/carbon && .venv/bin/python -B -m scripts.dev.catalog_install --state-dir ~/
 ## 5. Pick a Challenge and start a campaign
 
 A **Challenge** is a physics task, e.g. motor magnetics, a chip cold plate or a ribbed bracket. Open **Challenges**, read one, and click **Start a campaign**.
+
+Cooling 1.6 is a prospective pool-exam version. It removes the temperature-rise
+sign check against hotspot ratio and that sensitivity's fitted exponent; the
+other checks and ordinary output accuracy still apply. Older versions keep
+their original rules. The new version remains reserved until its scoring
+constants are registered, so it is not offered for campaigns yet.
 
 With Graphite you set your limits up front: how many model calls, how many dollars, how much time. Graphite uses them to the end: near your money or time limit it shortens its last calls to fit what is left, and stops only when not even one short call fits (about 2 minutes, or a 512-token reply). The page then says which limit stopped it (money, model calls, practice runs or time) and what to raise next time. Graphite plans, builds models, practises them, and picks the best.
 
@@ -152,6 +164,20 @@ The exam is not a surprise: you can read what it measures and what passes. What 
 - **Gates come before the score.** A failed gate is never made up for by a good score. Physics laws marked *gated* below fail a model; laws marked *measured* count in *A_law* but are **not yet registered as gate margins**.
 - **Practice and exam.** Practice uses the public bank, with public-seeded probes; its totals are not exam totals. The exam uses private cases, drawn near the design limit inside the published validity region, so that some designs pass and some fail. Exams rotate at most every 90 days, with a weekly overfit check.
 - **King of the hill.** The best total wins. A challenger must beat the king by the registered margin, a tie keeps the king, and the first king must beat Carbon's baseline by the margin. The margin is **not yet registered**, so takeovers are paused.
+
+### Ribbed Bracket 1.7 (reserved)
+
+Scoring `f08-pool-sealed-v2`, with development scoring
+`f08-dual-development-grid-v3`. This prospective version applies the owner's
+frequency-band correction: answers must have the correct seven-value width,
+finite values, non-negative compliance and strictly positive peak frequencies.
+The 80–600 Hz band no longer gates individual answers. A frequency overshoot
+is an accuracy error in A. Dynamic peaks must still be at least the static
+compliance and ordered by damping; design feasibility limits are unchanged.
+Practice and pool answers use the same rule. Pool constants remain **not yet
+registered**, so 1.7 remains **RESERVED** and refuses official grading until
+the owner selects them. Versions through 1.6 keep their original band gate
+and evaluation identities; historical grades retain their meaning.
 
 ### Ribbed Bracket 1.5
 

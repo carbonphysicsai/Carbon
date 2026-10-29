@@ -35,6 +35,7 @@ EVALUATION_VERSIONS = {
     # The pool-graded versions (GPU_REBUILD_RULINGS section 11): each its own grid-graded evaluation.
     (motor.CHALLENGE, "1.5"): "motor-dual-development-grid-v2",
     (cooling.CHALLENGE, "1.5"): "cooling-dual-development-grid-v2",
+    (cooling.CHALLENGE, "1.6"): "cooling-dual-development-grid-v3",
     (f08.CHALLENGE, "1.6"): "f08-dual-development-grid-v2",
     (f02.CHALLENGE, "2.5"): "f02-dual-development-grid-v2",
 }

@@ -62,6 +62,10 @@ AT_600 = {
     ("f08-ribbed-bracket", "1.6"): (
         "56e2cf8577153a9e15c460a0a846c87ed70fc54c8792fbe1141cf9377fa0d175"
     ),
+    # Prospective identity measured on the canonical VM; no old pin changes.
+    ("f08-ribbed-bracket", "1.7"): (
+        "097f30513609ad91078d46896f1e78e3aede884a5bddb0ec87c195eb35c40c0f"
+    ),
 }
 #: The two new versions whose served catalog the catalog freeze moved (frozen
 #: catalog 0530c1d41, "catalog v2 entries"): the catalog digest served at rc10
@@ -94,12 +98,18 @@ NEW_KITS = {
     ("chip-cold-plate", "1.5"): (
         "7bfb4366cba785d11546aa6882ae13c3a457cba6e88df02b662becf61d68ee72"
     ),
+    ("chip-cold-plate", "1.6"): (
+        "39a7b6fe1c19274382097a0d41bc0b20ca18a4b0b2be9ba411b0986d29017215"
+    ),
     ("electric-motor-magnetics", "1.5"): (
         "391dbddcf047326654b172f3e8b34cd6fa10070cbdec071981867e8b4e0f186f"
     ),
     ("f02", "2.5"): "567f31adcab3cb3ab0b7385eb2c1a89f63016a61fa130489c6ea3b5eb87e04e1",
     ("f08-ribbed-bracket", "1.6"): (
         "44a9dbf57444cdf6b484fe9b76aa690c3acb7bf24667060dc2971f6b3220d4d8"
+    ),
+    ("f08-ribbed-bracket", "1.7"): (
+        "b7834da20f87ba2d55288a370d6f1ca407d00cef19699a3cb7ff5bfe593e751b"
     ),
 }
 #: The shared C-03 profiles (CPU build, G5 compile) at rc8 1ea4c49ad.
@@ -130,7 +140,8 @@ def _binding(cid, version):
 
 def test_exactly_the_graph_route_v2_versions_declare_the_wall():
     assert REBUILD_LIMIT_SECONDS == 648
-    assert NEW == sorted(NEW_KITS) == sorted(AT_600)
+    assert NEW == sorted(NEW_KITS)
+    assert set(AT_600) == set(NEW_KITS) - {("chip-cold-plate", "1.6")}
     for key, entry in version_registry.VERSIONS.items():
         expected = REBUILD_LIMIT_SECONDS if key in NEW_KITS else None
         assert entry.rebuild_wall_seconds == expected, key
@@ -159,7 +170,25 @@ def test_a_new_version_moves_only_by_its_wall_fields(key, monkeypatch):
             "total_reconstruction_wall_seconds_max": 1800,
         },
     }
-    assert digest(canonical(at_600)) == "sha256:" + AT_600[key]
+    key_600 = key
+    if key == ("chip-cold-plate", "1.6"):
+        # This scoring successor changes no construction setting. Restore its
+        # identity and lineage, then require the existing 1.5 document's pin.
+        from carbon.backbone_catalog import served
+
+        key_600 = ("chip-cold-plate", "1.5")
+        at_600["challenge"] = {"id": key_600[0], "version": key_600[1]}
+        new_catalog, old_catalog = served.document(*key), served.document(*key_600)
+        assert {**new_catalog, "challenge": old_catalog["challenge"]} == old_catalog
+        at_600["backbone_catalog"] = {
+            **at_600["backbone_catalog"],
+            "digest": served.digest(*key_600),
+        }
+        at_600["graph_training_adapter"] = {
+            **at_600["graph_training_adapter"],
+            "predecessor": version_registry.entry(*key_600).predecessor,
+        }
+    assert digest(canonical(at_600)) == "sha256:" + AT_600[key_600]
     if key in FREEZE_MOVED:
         old_catalog, old_at_600 = FREEZE_MOVED[key]
         assert document["backbone_catalog"]["digest"] != old_catalog

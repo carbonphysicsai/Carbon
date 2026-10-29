@@ -763,7 +763,13 @@ def test_a_stale_check_that_blocks_nothing_reads_done_on_the_step_and_the_list(
         assert row["stale"] == ["the worker image was rebuilt since the check"]
         assert "launches work" in row["note"]
         assert row["recheck"] == setup_operations.call("recheck", door)
+        # These compute-only manifests establish no ready catalog. Its
+        # separate reminder stays truthful without holding up launch.
+        catalog = next(r for r in view["steps"] if r["id"] == "catalog")
+        assert catalog["state"] == "open" and catalog["blocks_launch"] is False
         assert view["next"]["step"] == "launch"
+        assert view["next"]["call"]["tool"] == "carbon_launch"
+        assert "catalog" not in view["done"]
         # The step and the list agree, row by row.
         assert view["done"] == [
             r["id"]
@@ -794,11 +800,19 @@ def test_a_head_git_cannot_read_is_not_a_moved_checkout(tmp_path, state, head):
 
 
 def test_recheck_writes_the_profile_a_changed_step_left_unwritten(
-    tmp_path, state, head
+    tmp_path, state, head, monkeypatch
 ):
     """M1 E2E R8-7: after Compute was checked again (which drops Review's
     record), recheck said ready and wrote nothing; Review had to. It writes
     it, and with no profile ever written it says so."""
+    from scripts.dev.miner_launchpad import catalog_build, setup_operations
+
+    starts = []
+    monkeypatch.setattr(
+        catalog_build,
+        "start",
+        lambda root: starts.append(root) or {"state": "RUNNING"},
+    )
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Current())
     made = completed(tmp_path, setup)
     rebuild_path = {
@@ -807,18 +821,24 @@ def test_recheck_writes_the_profile_a_changed_step_left_unwritten(
         "analysis_image_manifest": made["analysis.json"],
     }
     rebuild(tmp_path, state, REVISION)
-    unwritten = setup.recheck({"confirm": True})
+    unwritten = setup_operations.perform(
+        setup, "recheck", {"confirm": True}, door=setup_operations.MCP
+    )
     assert unwritten["update"]["profile"] == {
         "written": False,
         "code": "profile_not_written",
     }
     assert "review in setup to write your profile" in unwritten["update"]["next_steps"]
+    assert starts == []
     setup.review({"confirm": True})
     setup.compute(rebuild_path)
     assert setup.state()["steps"]["review"]["profile_written"] is False
-    result = setup.recheck({"confirm": True})
+    result = setup_operations.perform(
+        setup, "recheck", {"confirm": True}, door=setup_operations.MCP
+    )
     assert result["update"]["profile"]["written"] is True
     assert result["steps"]["review"]["profile_written"] is True
+    assert starts == [state]
 
 
 def test_a_challenge_without_an_intake_names_a_field_the_schema_has(

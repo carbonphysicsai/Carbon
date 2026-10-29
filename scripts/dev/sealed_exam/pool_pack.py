@@ -77,6 +77,11 @@ def build(
     if "pool" in document:
         raise SystemExit("the A batch already carries a pool: give the plain A batch")
     predecessor = find(challenge, version).predecessor
+    # A scoring successor can follow another pool version (Cooling 1.6).
+    # The input here is the plain A batch, so its native-grid ancestor supplies
+    # the shape/dtype before this version's pool is attached below.
+    while source._pool_graded(challenge, predecessor):
+        predecessor = find(challenge, predecessor).predecessor
     plain = source._build(challenge, kit, document, records, predecessor)
     if material is None:
         material = pool_version.material_from_set_dir(

@@ -29,7 +29,13 @@ def committed():
 def test_every_launch_portfolio_challenge_has_exactly_one_valid_record():
     launch = {e.challenge_id for e in entries() if e.portfolio == "launch"}
     records = committed()
-    assert set(records) == launch
+    # A Challenge taken out of the launch set keeps its committed record as history
+    # (Battery, OWNER-BATTERY-OUT-OF-LAUNCH-01): nothing is deleted.
+    historical = {
+        e.challenge_id for e in entries() if e.portfolio == "historical_development"
+    }
+    assert launch <= set(records) <= launch | historical
+    assert set(records) - launch == {BATTERY}
     for document in records.values():
         assert document["status"] == readiness.STATUS
         assert document["population"]["approved"] is None

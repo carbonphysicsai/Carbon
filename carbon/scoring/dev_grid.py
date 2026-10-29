@@ -17,12 +17,14 @@ from __future__ import annotations
 GRID_KINDS = {
     ("f08-ribbed-bracket", "1.5"): "f08",
     ("f08-ribbed-bracket", "1.6"): "f08",
+    ("f08-ribbed-bracket", "1.7"): "f08",
     ("f02", "2.4"): "f02",
     ("f02", "2.5"): "f02",
     ("electric-motor-magnetics", "1.4"): "motor",
     ("electric-motor-magnetics", "1.5"): "motor",
     ("chip-cold-plate", "1.4"): "cooling",
     ("chip-cold-plate", "1.5"): "cooling",
+    ("chip-cold-plate", "1.6"): "cooling",
 }
 
 

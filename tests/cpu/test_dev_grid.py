@@ -77,11 +77,25 @@ KITS = {
         "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
         "version": "1.5",
     },
+    ("chip-cold-plate", "1.6"): {
+        "construction_limits_digest": "sha256:39a7b6fe1c19274382097a0d41bc0b20ca18a4b0b2be9ba411b0986d29017215",
+        "id": "chip-cold-plate",
+        "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+        "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+        "version": "1.6",
+    },
 }  # fmt: skip
 
 
 @pytest.mark.parametrize("key", KEYS)
 def test_the_kit_does_not_move_so_a_bound_recipe_or_artifact_stays_valid(key):
+    if key == ("f08-ribbed-bracket", "1.7"):
+        # A prospective version has its own identity fields. Its unchanged
+        # construction semantics are covered by test_f08_frequency_band_drop.
+        kit = physical_material.construction_kit(*key)
+        assert kit["version"] == key[1]
+        assert kit["train_digest"] == KITS[(key[0], "1.6")]["train_digest"]
+        return
     assert physical_material.construction_kit(*key) == KITS[key]
 
 
@@ -89,7 +103,12 @@ def test_the_kit_does_not_move_so_a_bound_recipe_or_artifact_stays_valid(key):
 def test_a_dev_grid_version_registers_its_own_development_evaluation(key):
     entry = version_registry.entry(*key)
     kind = dev_grid.kind(*key)
-    assert entry.development_evaluation[0] == f"{kind}-dual-development-grid-v2"
+    revision = (
+        "v3"
+        if key in {("chip-cold-plate", "1.6"), ("f08-ribbed-bracket", "1.7")}
+        else "v2"
+    )
+    assert entry.development_evaluation[0] == f"{kind}-dual-development-grid-{revision}"
     variant = dev_grid.adapter(*key)
     assert variant.EVALUATION_VERSION == entry.development_evaluation[0]
     assert variant.VERSION == key[1]

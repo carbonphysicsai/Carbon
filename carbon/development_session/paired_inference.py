@@ -219,7 +219,19 @@ def infer_frozen_pair(
         or not 40 <= total_seconds <= policy["total_reconstruction_wall_seconds_max"]
     ):
         raise RecipeRefused("inference_pair_binding_invalid")
-    load(state_bytes, recipe, _trusted_allowlist(allowlist_bytes))
+    provenance = "DIRECT_BUNDLE_PUBLIC_INFERENCE"
+    query_contract = {"input_name": "inputs/x"}
+    state_loader = load
+    if recipe.to_dict()["source"]["kind"] == "graph":
+        from .direct_graph_construction_worker import registered_inference_contract
+
+        state_loader, query_contract, registered_dtype = registered_inference_contract(
+            binding, limits_document, recipe=recipe
+        )
+        provenance = query_contract.pop("provenance")
+        if not _exact_numeric_dtype(expected_output_dtype, registered_dtype):
+            raise RecipeRefused("inference_pair_binding_invalid")
+    state_loader(state_bytes, recipe, _trusted_allowlist(allowlist_bytes))
     accelerator_kwargs = _accelerator_kwargs(accelerator)
     for child in identities:
         if _accounting(ledger, owner, child) is not None:
@@ -227,11 +239,6 @@ def infer_frozen_pair(
     fixed_inputs = inputs.copy()
     fixed_inputs.flags.writeable = False
     inputs_digest = _digest(_tensors(inputs=fixed_inputs))
-    provenance = (
-        "DIRECT_GRAPH_PUBLIC_INFERENCE"
-        if recipe.to_dict()["source"]["kind"] == "graph"
-        else "DIRECT_BUNDLE_PUBLIC_INFERENCE"
-    )
     started = time.monotonic()
     originals = {}
     for phase, child in zip(("primary", "repeat"), identities, strict=True):
@@ -252,11 +259,7 @@ def infer_frozen_pair(
                 expected_output_shape=expected_output_shape,
                 expected_output_dtype=expected_output_dtype,
                 allowlist_bytes=allowlist_bytes,
-                input_name=(
-                    "inputs/forcing"
-                    if provenance == "DIRECT_GRAPH_PUBLIC_INFERENCE"
-                    else "inputs/x"
-                ),
+                **query_contract,
                 provenance=provenance,
                 seconds=min(seconds, remaining),
                 runner=runner,

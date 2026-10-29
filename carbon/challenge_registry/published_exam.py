@@ -942,29 +942,62 @@ def _pool_block(own, scope, scoring_version):
 
 
 _F08_POOL = _pool_block(_F08, "f08-ribbed-bracket 1.6", "f08-pool-sealed-v1")
+_F08_POOL_SANITY = {
+    **_pool_block(_F08, "f08-ribbed-bracket 1.7", "f08-pool-sealed-v2"),
+    "gates": [
+        _gate(
+            "finite_native_summary",
+            "the graded rows and both repeats have the correct width and finite "
+            "numbers, non-negative compliance and strictly positive peak frequencies; "
+            "frequency error, including outside 80–600 Hz, is scored in A",
+        ),
+        *_F08["gates"][1:],
+        *_POOL_GATES,
+    ],
+}
 _F02_POOL = _pool_block(_F02, "f02 2.5", "f02-pool-sealed-v1")
 _MOTOR_POOL = _pool_block(
     _MOTOR, "electric-motor-magnetics 1.5", "motor-pool-sealed-v1"
 )
 _COOLING_POOL = _pool_block(_COOLING, "chip-cold-plate 1.5", "cooling-pool-sealed-v1")
+# OWNER-COOLING-HOTSPOT-GATE-DROP-01: a new version, never a rewrite of _COOLING.
+_COOLING_POOL_16 = {
+    **_pool_block(_COOLING, "chip-cold-plate 1.6", "cooling-pool-sealed-v2"),
+    "physics_laws": {
+        **_COOLING["physics_laws"],
+        "sign_laws": [
+            "the temperature rise falls with flow and rises with heat load",
+            "the pressure drop rises with flow and falls with channel width and depth",
+        ],
+        "source": "carbon/scoring/cooling_hotspot_dual_pack.py, carbon/scoring/cooling_physics.py, carbon/cold_plate/exam.py",
+    },
+    "score": pool_score(
+        _COOLING["score"]["legs"][0]["measures"]
+        + "; the hotspot-ratio sensitivity has no registered response exponent"
+    ),
+}
 
 #: Versions graded by the pool grader (their `_BY_VERSION` entry must carry a
 #: `pool_score(...)` score); the block of every other version is unchanged.
 _POOL_VERSIONS = frozenset(
     {
         ("f08-ribbed-bracket", "1.6"),
+        ("f08-ribbed-bracket", "1.7"),
         ("f02", "2.5"),
         ("electric-motor-magnetics", "1.5"),
         ("chip-cold-plate", "1.5"),
+        ("chip-cold-plate", "1.6"),
     }
 )
 
 _BY_VERSION = {
     ("f08-ribbed-bracket", "1.5"): _F08,
     ("f08-ribbed-bracket", "1.6"): _F08_POOL,
+    ("f08-ribbed-bracket", "1.7"): _F08_POOL_SANITY,
     ("f02", "2.5"): _F02_POOL,
     ("electric-motor-magnetics", "1.5"): _MOTOR_POOL,
     ("chip-cold-plate", "1.5"): _COOLING_POOL,
+    ("chip-cold-plate", "1.6"): _COOLING_POOL_16,
     ("f02", "2.4"): _F02,
     ("electric-motor-magnetics", "1.4"): _MOTOR,
     ("chip-cold-plate", "1.4"): _COOLING,

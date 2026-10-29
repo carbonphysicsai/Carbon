@@ -91,6 +91,8 @@ class ScriptedDocker:
         self.fail_on = set(fail_on)
         self.exporter = exporter
         self.existing_containers = b""
+        self.log_stdout = b""
+        self.log_stderr = b""
         self.export_bounds: list[dict] = []
         self._waits = 0
 
@@ -288,6 +290,12 @@ class ScriptedDocker:
             # result means no container already holds the device.
             return SimpleNamespace(
                 returncode=0, stdout=self.existing_containers, stderr=b""
+            )
+        if head == "logs":
+            if len(command) != 4 or command[1:3] != ["--tail", "200"]:
+                raise AssertionError(f"unscripted logs command: {command}")
+            return SimpleNamespace(
+                returncode=0, stdout=self.log_stdout, stderr=self.log_stderr
             )
         if head == "exec":
             return self._exec(command, accepted)

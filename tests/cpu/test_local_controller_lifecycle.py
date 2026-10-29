@@ -323,9 +323,15 @@ def test_cancellation_after_the_container_starts_is_terminal(harness):
 def test_a_container_that_stops_early_is_a_runtime_failure(harness):
     harness.cli.ready_after = 10
     harness.cli.running = False
+    harness.cli.log_stdout = b"synthetic stopped-worker stdout\n"
+    harness.cli.log_stderr = b"synthetic stopped-worker stderr\n"
     with pytest.raises(WorkerFailure) as error:
         harness.run()
     assert error.value.code in (WorkerCode.RUNTIME, WorkerCode.QUARANTINED)
+    assert harness.cli.removed
+    assert any(command[0] == "logs" for command in harness.cli.commands)
+    assert harness.cli.log_stdout in error.value.private_diagnostic
+    assert harness.cli.log_stderr in error.value.private_diagnostic
 
 
 # --- admission still gates the real entry --------------------------------------

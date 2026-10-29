@@ -468,7 +468,7 @@ def sealed_adapter(version):
     Cooling 1.3 changes the output interface (the law-safe encoding), so its sealed
     adapter is the one that decodes first (``cooling_encoded_dual_pack``): the one
     dispatch point stays here, and no shared producer file routes it."""
-    if version in ("1.3", "1.5"):
+    if version in ("1.3", "1.5", "1.6"):
         from carbon.scoring import cooling_encoded_dual_pack
 
         return cooling_encoded_dual_pack.sealed_adapter(version)

@@ -25,6 +25,9 @@ from statistics import fmean, pstdev
 
 DEFINITION_SCHEMA = "carbon.scoring.f08-dual-accuracy.v1"
 METHOD = "f08-summary-dual-from-predictions.v1"
+# OWNER-F08-FREQUENCY-BAND-DROP-01: prospective 1.7 only. Older definitions
+# omit this field and retain their registered band check.
+SANITY_RULE = "nonnegative_compliance_positive_frequency.v1"
 GATES = (
     "finite_native_summary",
     "paired_repeat",
@@ -50,7 +53,7 @@ def _number(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
-def validate_definition(definition):
+def validate_definition(definition, *, native_summary_rule=None):
     """The registered A/D definition document, checked for every field used."""
     targets = definition.get("targets") if type(definition) is dict else None
     _require(
@@ -69,11 +72,29 @@ def validate_definition(definition):
         and type(definition.get("frequency_band_hz")) is list
         and len(definition["frequency_band_hz"]) == 2
         and all(_number(v) for v in definition["frequency_band_hz"])
+        and native_summary_rule in (None, SANITY_RULE)
+        and definition.get("native_summary_rule") == native_summary_rule
         and definition.get("paired_repeat_rule") == "exact_equality"
         and type(definition.get("geometry_count")) is int,
         "f08_definition",
     )
     return definition
+
+
+def native_summary(row, *, targets, frequency_targets, frequency_band_hz, rule=None):
+    """One per-answer check for native grading and the pool hook.
+
+    The historical rule retains the band. The owner's prospective rule treats
+    frequencies as predictions: positive and finite, with their error scored in A.
+    Damping ordering remains the registered physics-law gate.
+    """
+    if len(row) != len(targets) or not all(_number(v) and v >= 0 for v in row):
+        return False
+    frequencies = [targets.index(name) for name in frequency_targets]
+    if rule == SANITY_RULE:
+        return all(row[j] > 0 for j in frequencies)
+    low, high = frequency_band_hz
+    return all(low <= row[j] <= high for j in frequencies)
 
 
 def _limits(limits):
@@ -93,7 +114,9 @@ def _limits(limits):
     return constraints
 
 
-def measure(*, bank, outputs, repeats, definition, limits, train):
+def measure(
+    *, bank, outputs, repeats, definition, limits, train, native_summary_rule=None
+):
     """A, D, native gates and the decision outcome for one model.
 
     ``bank`` rows carry ``case_id``, ``inputs``, ``reference`` (the seven
@@ -101,7 +124,7 @@ def measure(*, bank, outputs, repeats, definition, limits, train):
     ``cad_mass_kg``); ``outputs`` and the two ``repeats`` are that many
     seven-value rows. ``train`` is TRAIN's target rows in the same order.
     """
-    validate_definition(definition)
+    validate_definition(definition, native_summary_rule=native_summary_rule)
     constraints = _limits(limits)
     targets = definition["targets"]
     n = len(bank)
@@ -129,20 +152,33 @@ def measure(*, bank, outputs, repeats, definition, limits, train):
     _require(all(_number(s) and s > 0 for s in spread), "f08_train_normalization")
     index = {name: j for j, name in enumerate(targets)}
     tips = [index[name] for name in definition["tip_targets"]]
-    frequencies = [index[name] for name in definition["frequency_targets"]]
     static = index[definition["static_target"]]
-    low, high = definition["frequency_band_hz"]
 
-    def native(row):
-        return (
-            len(row) == width
-            and all(_number(v) and v >= 0 for v in row)
-            and all(low <= row[j] <= high for j in frequencies)
+    # Policy is selected by the trusted version adapter. Serialized fields bind
+    # that selection but cannot grant an older adapter the prospective rule.
+    rule = native_summary_rule
+    if rule == SANITY_RULE:
+        # Malformed new-version answers fail the native gate, rather than
+        # escaping as a float-conversion exception. Historical readers stay exact.
+        def rows(values):
+            return [list(r) if type(r) in (list, tuple) else [] for r in values]
+
+        graded = rows(outputs)
+        runs = [graded, *[rows(r) for r in repeats]]
+    else:
+        graded = [[float(v) for v in row] for row in outputs]
+        runs = [graded, *[[list(map(float, row)) for row in r] for r in repeats]]
+    finite = all(
+        native_summary(
+            row,
+            targets=targets,
+            frequency_targets=definition["frequency_targets"],
+            frequency_band_hz=definition["frequency_band_hz"],
+            rule=rule,
         )
-
-    graded = [[float(v) for v in row] for row in outputs]
-    runs = [graded, *[[list(map(float, row)) for row in r] for r in repeats]]
-    finite = all(native(row) for run in runs for row in run)
+        for run in runs
+        for row in run
+    )
     repeat_equal = runs[0] == runs[1] == runs[2]
 
     def feasible(row, mass):

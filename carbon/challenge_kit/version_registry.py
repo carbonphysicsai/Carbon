@@ -311,6 +311,25 @@ VERSIONS = dict(
             predecessor="1.4",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
+        # OWNER-COOLING-HOTSPOT-GATE-DROP-01: a prospective response contract.
+        # Construction/TRAIN are unchanged; no constants are adopted here.
+        _v(
+            COOLING,
+            "1.6",
+            COOLING_TRAIN_ENCODED,
+            "v8",
+            False,
+            "cooling-normal-construction-development-7",
+            ("cooling-dual-development-grid-v3", "cooling-development-grid-8x6"),
+            "cooling-pool-sealed-v2",
+            "catalog",
+            catalog=True,
+            graph_adapter="v2",
+            output_encoding=COOLING_LAW_SAFE,
+            catalog_entries_from=("1.4", "1.3"),
+            predecessor="1.5",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
+        ),
         # --- F08 (Ribbed Bracket) -----------------------------------------
         _v(
             F08,
@@ -409,6 +428,25 @@ VERSIONS = dict(
             catalog_entries_from=("1.5",),
             facts="1.6",
             predecessor="1.5",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
+        ),
+        # OWNER-F08-FREQUENCY-BAND-DROP-01: prospective answer sanity only;
+        # construction and design feasibility retain 1.6's registered material.
+        _v(
+            F08,
+            "1.7",
+            F08_TRAIN_V2,
+            "v8",
+            False,
+            "f08-normal-construction-development-8",
+            ("f08-dual-development-grid-v3", "f08-development-grid-8x1"),
+            "f08-pool-sealed-v2",
+            "direct",
+            catalog=True,
+            graph_adapter="v2",
+            catalog_entries_from=("1.5",),
+            facts="1.7",
+            predecessor="1.6",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
         # --- F02 (Burst Thermal) ------------------------------------------

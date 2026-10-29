@@ -169,6 +169,18 @@ SPECS = {
         "float32",
         "1.5",
     ),
+    ("f08-ribbed-bracket", "1.7"): Spec(
+        "f08-ribbed-bracket",
+        "1.7",
+        "f08-ribbed-bracket-public-jax-graph-v2",
+        "f08-pinned-train-v2",
+        "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+        287,
+        6,
+        7,
+        "float32",
+        "1.6",
+    ),
     ("f02", "2.4"): Spec(
         "f02",
         "2.4",
@@ -240,6 +252,18 @@ SPECS = {
         32,
         "float64",
         "1.4",
+    ),
+    ("chip-cold-plate", "1.6"): Spec(
+        "chip-cold-plate",
+        "1.6",
+        "chip-cold-plate-public-jax-graph-v2",
+        "cooling-dev-train-400-v2-encoded",
+        "2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+        400,
+        9,
+        32,
+        "float64",
+        "1.5",
     ),
 }
 ADAPTER_IDS = frozenset(spec.adapter_id for spec in SPECS.values())

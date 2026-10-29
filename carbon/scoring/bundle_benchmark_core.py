@@ -15,6 +15,7 @@ import math
 import re
 from dataclasses import asdict, is_dataclass
 
+from carbon.development_session.graph_state_contract import GRAPH_SOURCE_STATE_SCHEMAS
 from carbon.scoring import benchmark_evidence as solver_benchmark
 from carbon.scoring.solver_benchmark_v3 import register_pack
 
@@ -39,7 +40,6 @@ _ENTRY_BINDINGS = (
     "roles",
     "original_files",
 )
-_GRAPH_SOURCE_SCHEMA = "carbon.development.graph-source-state.v1"
 #: v3: a measured batched graded query (history); v5: graded one case at a
 #: time beside a separate timed query, as a bundle is.
 _GRAPH_ROLE_SCHEMAS = frozenset(
@@ -166,7 +166,7 @@ def _parse_graph_original(raw, label, *, object_required=True):
 
 def _graph_saved_inference_binding(entry, inference):
     if (
-        entry.get("source_schema") != _GRAPH_SOURCE_SCHEMA
+        entry.get("source_schema") not in GRAPH_SOURCE_STATE_SCHEMAS
         or entry.get("source_kind") != "graph"
         or entry.get("role_schema") not in _GRAPH_ROLE_SCHEMAS
         or type(entry.get("roles")) is not dict
@@ -277,15 +277,15 @@ def _graph_custody_binding(entry, receipt):
     """Bind the prospective graph role-v3 variant without changing bundle v5."""
     discriminators = {"source_kind", "role_schema", "submission_digest"}
     graph_claimed = (
-        entry.get("source_schema") == _GRAPH_SOURCE_SCHEMA
-        or receipt.get("source_schema") == _GRAPH_SOURCE_SCHEMA
+        entry.get("source_schema") in GRAPH_SOURCE_STATE_SCHEMAS
+        or receipt.get("source_schema") in GRAPH_SOURCE_STATE_SCHEMAS
         or bool(discriminators & (entry.keys() | receipt.keys()))
     )
     if not graph_claimed:
         return
     if (
-        entry.get("source_schema") != _GRAPH_SOURCE_SCHEMA
-        or receipt.get("source_schema") != _GRAPH_SOURCE_SCHEMA
+        entry.get("source_schema") not in GRAPH_SOURCE_STATE_SCHEMAS
+        or receipt.get("source_schema") != entry.get("source_schema")
         or entry.get("source_kind") != "graph"
         or receipt.get("source_kind") != "graph"
         or entry.get("role_schema") not in _GRAPH_ROLE_SCHEMAS
@@ -695,7 +695,7 @@ def measurement_from_saved_inference(
         "receipt",
     }
     graph_measurement = type(entry) is dict and (
-        entry.get("source_schema") == _GRAPH_SOURCE_SCHEMA
+        entry.get("source_schema") in GRAPH_SOURCE_STATE_SCHEMAS
         or entry.get("source_kind") == "graph"
         or "role_schema" in entry
     )

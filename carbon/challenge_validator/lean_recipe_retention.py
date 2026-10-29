@@ -371,6 +371,7 @@ def _retain_graph_artifacts(
     try:
         from scripts.dev.score_lab.public_unbound_custody import (
             GRAPH_ROLE_SCHEMA_V5,
+            graph_state_schema,
             prepare_custody_v5,
         )
         from scripts.dev.score_lab.public_unbound_entry import create_entry_v5
@@ -404,10 +405,18 @@ def _retain_graph_artifacts(
             else {}
         ),
     }
+    try:
+        state_schema = graph_state_schema(
+            artifacts["state.npz"],
+            artifacts["recipe.json"],
+            artifacts["allowlist.json"],
+        )
+    except ValueError as exc:
+        raise RetentionUnavailable("operator_bank_custody_unavailable") from exc
     role_manifest = {
         "schema": GRAPH_ROLE_SCHEMA_V5,
         "scope": "PUBLIC_DEVELOPMENT_BUNDLE_MODEL",
-        "source_schema": "carbon.development.graph-source-state.v1",
+        "source_schema": state_schema,
         "roles": {
             role: {"file": name, "codec": codec}
             for role, (name, codec) in sorted(roles.items())
@@ -819,7 +828,17 @@ def _single_call_raw(
         )[0:1].astype(delivered.dtype)
         graded = json.loads(artifacts["predictions.json"])
         graph_query = (
-            _graph_regrade_query(adapter.discovery, material)
+            _graph_regrade_query(
+                adapter.discovery,
+                material,
+                recipe=(
+                    ConstructionRecipe.from_dict(
+                        provider._requests[submission_id].recipe
+                    )
+                    if regrade is None
+                    else regrade.recipe
+                ),
+            )
             if "worker-evidence.json" in artifacts
             else {}
         )
@@ -2359,7 +2378,9 @@ def regrade_retained_entry(
             verify_direct_resource_policy(binding, limits)
 
             graph_query = (
-                _graph_regrade_query(discovery, material) if kind == "graph" else {}
+                _graph_regrade_query(discovery, material, recipe=recipe)
+                if kind == "graph"
+                else {}
             )
 
             def infer_identity(label):
@@ -2451,13 +2472,17 @@ def regrade_retained_entry(
     if timed:
         artifacts["timed-query-receipt.json"] = timed_raw
         artifacts["timed-query-predictions.json"] = timed_predictions
-    lineage = json.loads(artifacts["lineage.json"])
-    lineage.update(
-        task_id=regrade_id,
-        prediction_digest=_sha(predictions),
-        inference_operation=operation,
-    )
-    artifacts["lineage.json"] = _json(lineage)
+    if kind == "bundle":
+        # Bundle lineage belongs to its source archive. Graph custody instead
+        # authenticates the source envelope and worker evidence above, and has
+        # no lineage.json role. Its regrade provenance is recorded below.
+        lineage = json.loads(artifacts["lineage.json"])
+        lineage.update(
+            task_id=regrade_id,
+            prediction_digest=_sha(predictions),
+            inference_operation=operation,
+        )
+        artifacts["lineage.json"] = _json(lineage)
     new_manifest = dict(manifest)
     new_manifest["roles"] = {
         role: spec
@@ -2540,32 +2565,47 @@ def regrade_retained_entry(
     return {**regraded, "regrade_of": entry_id, "regrade_task_id": regrade_id}
 
 
-def _graph_regrade_query(discovery, material):
+def _graph_regrade_query(discovery, material, *, recipe=None):
     """The extra `_infer_state` arguments of a graph's source-free inference, the
     same as `reconstruct_and_infer_graph_public` builds them for the version's
     registered graph adapter (a test pins the two together)."""
-    from pathlib import Path as _Path
-
     from carbon.development_session import direct_graph_construction_worker as worker
+    from carbon.development_session.bundle_construction_worker import (
+        _exact_numeric_dtype,
+    )
 
     adapter_id = discovery.graph_adapter_for(discovery.info.challenge_key)
     if adapter_id is None:
         raise RetentionUnavailable("regrade_graph_adapter_unavailable")
-    query = {
-        "input_name": "inputs/forcing",
-        "provenance": worker.INFERENCE_PROVENANCE,
+    kit = material["construction_kit"]
+    binding = {
+        "challenge_id": kit["id"],
+        "challenge_version": kit["version"],
+        **{
+            field: kit[field]
+            for field in (
+                "train_digest",
+                "interface_digest",
+                "construction_limits_digest",
+            )
+        },
     }
-    if adapter_id in worker._v2_adapter_ids():
-        key = discovery.info.challenge_key
-        query.update(worker.v2_infer_query(key.challenge_id, key.version))
-    elif adapter_id != worker.SYNTHETIC_ADAPTER_ID:
-        root = _Path(worker.__file__).resolve().parents[2]
-        name = "carbon.development_session.physical_graph_state"
-        query["input_name"] = "inputs/features"
-        query["program"] = worker.PHYSICAL_INFER_PROGRAM
-        query["staged_files"] = {
-            name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
-        }
+    limits = material["construction_limits_document"]
+    block = limits.get("graph_training_adapter")
+    if type(block) is not dict or block.get("id") != adapter_id:
+        raise RetentionUnavailable("regrade_graph_adapter_unavailable")
+    try:
+        _loader, query, dtype = worker.registered_inference_contract(
+            binding, limits, recipe=recipe
+        )
+    except ValueError as exc:
+        raise RetentionUnavailable("regrade_graph_adapter_unavailable") from exc
+    try:
+        declared_dtype = output_dtype(material["interface_document"])
+    except ValueError as exc:
+        raise RetentionUnavailable("regrade_graph_adapter_unavailable") from exc
+    if type(dtype) is not str or not _exact_numeric_dtype(dtype, declared_dtype):
+        raise RetentionUnavailable("regrade_graph_adapter_unavailable")
     return query
 
 
@@ -2613,11 +2653,22 @@ def _graph_regrade_worker_evidence(
             # No batched timed query on this bank (a pool-graded version): none is claimed.
             del evidence["timed_receipt"]
             evidence.pop("timed_operation", None)
+            evidence.pop("timed_controls_digest", None)
         else:
             evidence.update(
                 timed_operation=timed_result.worker_operation,
                 timed_receipt=json.loads(timed_raw),
             )
+            # Controls belong to this new query, never the origin's operation.
+            evidence.pop("timed_controls_digest", None)
+            if runner is None:
+                evidence["timed_controls_digest"] = _private_controls_digest(
+                    provider.ledger,
+                    owner=owner,
+                    identity=timed_identity,
+                    operation=timed_result.worker_operation,
+                    provenance=worker.INFERENCE_PROVENANCE,
+                )
     return _json(evidence)
 
 

@@ -5,7 +5,7 @@
         --installed-state STATE --receiver-state DIR --hotkey SS58 \\
         --challenge ID VERSION \\
         [--pack DIR | --pack-store DIR (--pack-digest sha256:... | --pack-set-key KEY)] \\
-        [--port N] [--lifetime-seconds N]
+        [--port N] [--lifetime-seconds N] [--no-construction-runtimes]
     .venv/bin/python -B -m carbon.challenge_validator.receiver_setup start \\
         --receiver-state DIR [--detach]
     .venv/bin/python -B -m carbon.challenge_validator.receiver_setup service \\
@@ -272,7 +272,7 @@ def _gpu_lane_keys(
         if not construction_runtimes:
             raise SetupRefused(
                 "construction_runtimes_needed",
-                "GPU construction images ride the per-runtime construction set; add --construction-runtimes.",
+                "GPU construction images need the full CPU construction set; enable --construction-runtimes.",
             )
         keys["gpu_construction_images"] = [
             _gpu_file("gpu_construction_image", item) for item in images
@@ -303,15 +303,16 @@ def prepare(
     graph_gpu_image_manifest: Path | None = None,
     graph_gpu_ops: Path | None = None,
     gpu_construction_images: tuple = (),
-    construction_runtimes: bool = False,
+    construction_runtimes: bool = True,
 ) -> dict:
     """Write the runner profile and receiver configuration; return public facts.
 
     The GPU lane (a dedicated GPU validator host) is opt-in: ``graph_gpu_image_manifest`` and
     ``graph_gpu_ops`` (both or neither) name the registered JAX GPU worker and the ops record the
     hardware class check wrote; ``gpu_construction_images`` (one or two GPU worker manifests) rebuild
-    catalog entries on their GPU twins and need ``construction_runtimes`` (the explicit opt-in to the
-    per-runtime CPU construction pair). Paths are checked here; the receiver re-checks the images, the
+    catalog entries on their GPU twins and need ``construction_runtimes`` (the default full CPU
+    construction pair). An explicit false opts out and retains only the installed worker; the returned
+    mode and subsequent status report that choice. Paths are checked here; the receiver re-checks the images, the
     ops record and the owner's hardware acceptance at start.
 
     ``speed_sample_key_file`` is the pool versions' K_speed (the custody job writes it beside the signed copy,
@@ -540,6 +541,9 @@ def prepare(
         "evaluation_pack_set": pack_set is not None,
         "graph_gpu_lane": "graph_gpu_image_manifest" in gpu_keys,
         "gpu_construction_images": len(gpu_keys.get("gpu_construction_images", ())),
+        "construction_runtime_mode": (
+            "full_cpu" if construction_runtimes else "installed_worker_only"
+        ),
         "network_block": block,
         "profile_sha256": _sha(profile_path.read_bytes()),
         "config_sha256": _sha(config_path.read_bytes()),
@@ -841,6 +845,71 @@ def _auto_grade_failures(root: Path) -> dict:
     return failure_summary(root)
 
 
+#: At most this many missing bundles are listed in `status` (the count is whole).
+CATALOG_LISTED = 12
+
+
+def catalog_state(config: dict) -> dict:
+    """The receiver's catalog for `status`: how many served bundles it holds and
+    which it lacks (`scripts.dev.receiver_catalog.verify`, read-only). The
+    receiver is not healthy while any served bundle is missing. A receiver whose
+    records cannot be read here reports ``UNVERIFIED``; that unknown inventory
+    cannot establish receiver health."""
+    try:
+        from scripts.dev import receiver_catalog
+
+        if not receiver_catalog.served_runtimes(config):
+            # No construction parent can be read from its records: nothing here
+            # can say what it would install.
+            return {"status": "UNVERIFIED", "ready": None}
+        found = receiver_catalog.verify(config)
+    except (OSError, ValueError, KeyError, TypeError, ImportError):
+        return {"status": "UNVERIFIED", "ready": None}
+    inventory_status = "COMPLETE" if found["ready"] else "INCOMPLETE"
+    if found["image_inventory"] == "UNVERIFIED":
+        inventory_status = "UNVERIFIED"
+    return {
+        "status": inventory_status,
+        "ready": found["ready"],
+        "image_inventory": found["image_inventory"],
+        "served": found["served"],
+        "installed": found["installed"],
+        "missing_count": len(found["missing"]),
+        "missing": [
+            {k: row[k] for k in ("catalog_id", "runtime", "kind", "reason")}
+            for row in found["missing"][:CATALOG_LISTED]
+        ],
+        "next": (
+            None
+            if found["ready"]
+            else "run `receiver_setup install-catalog --receiver-state DIR` "
+            "(day-one step 8a), then check again"
+        ),
+    }
+
+
+def install_catalog(receiver_state: Path, *, wheelhouse: Path | None = None) -> dict:
+    """Day-one step 8a: install every served catalog entry into the receiver's
+    own library cache and verify them. Not ready (and a non-zero exit) while any
+    served bundle is missing."""
+    from scripts.dev import receiver_catalog
+
+    from .direct_receiver import load_config
+
+    path = receiver_state / "receiver" / CONFIG_NAME
+    return receiver_catalog.install(load_config(path), path, wheelhouse=wheelhouse)
+
+
+def catalog_status(receiver_state: Path) -> dict:
+    from scripts.dev import receiver_catalog
+
+    from .direct_receiver import load_config
+
+    return receiver_catalog.verify(
+        load_config(receiver_state / "receiver" / CONFIG_NAME)
+    )
+
+
 def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
     """What a validator checks (E7): the service, the local intake, the exam
     the receiver holds and its last graded submission. Read-only."""
@@ -881,16 +950,22 @@ def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
         exam = json.loads(binding.read_bytes()).get("evaluation_pack_digest")
     except (OSError, ValueError):
         exam = None
+    catalog = catalog_state(config)
     healthy = (
         service_state == "active"
         and intake == "LISTENING"
         and "evaluation_pack" in config
+        and catalog.get("ready") is True
     )
     return {
         "status": "RECEIVER_HEALTHY" if healthy else "RECEIVER_NOT_HEALTHY",
+        "catalog": catalog,
         "challenge": config.get("challenge"),
         "receiver_hotkey": config["receiver_hotkey"],
         "unit": unit,
+        "construction_runtime_mode": (
+            "full_cpu" if "construction_runtimes" in config else "installed_worker_only"
+        ),
         "service": service_state,
         "intake": intake,
         "port": config["port"],
@@ -953,8 +1028,9 @@ def main(argv=None) -> int:
     )
     prep.add_argument(
         "--construction-runtimes",
-        action="store_true",
-        help="opt in to the per-runtime CPU construction set (needed by --gpu-construction-image)",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="serve both CPU construction runtimes (default); --no-construction-runtimes explicitly narrows to the installed worker",
     )
     prep.add_argument("--port", type=int, default=DEFAULT_PORT)
     prep.add_argument("--lifetime-seconds", type=int, default=DEFAULT_LIFETIME_SECONDS)
@@ -965,8 +1041,15 @@ def main(argv=None) -> int:
     run = sub.add_parser("start")
     run.add_argument("--receiver-state", type=Path, required=True)
     run.add_argument("--detach", action="store_true")
-    for name in ("service", "status"):
+    for name in ("service", "status", "catalog-status"):
         sub.add_parser(name).add_argument("--receiver-state", type=Path, required=True)
+    installer = sub.add_parser("install-catalog")
+    installer.add_argument("--receiver-state", type=Path, required=True)
+    installer.add_argument(
+        "--wheelhouse",
+        type=Path,
+        help="the pinned wheels (default: the host's catalog wheelhouse)",
+    )
     args = parser.parse_args(argv)
     try:
         if args.command == "start":
@@ -985,6 +1068,14 @@ def main(argv=None) -> int:
             result = status(args.receiver_state)
             print(json.dumps(result, sort_keys=True))
             return 0 if result["status"] == "RECEIVER_HEALTHY" else 3
+        elif args.command in ("install-catalog", "catalog-status"):
+            result = (
+                install_catalog(args.receiver_state, wheelhouse=args.wheelhouse)
+                if args.command == "install-catalog"
+                else catalog_status(args.receiver_state)
+            )
+            print(json.dumps(result, sort_keys=True))
+            return 0 if result["ready"] else 3
         else:
             result = prepare(
                 installed_state=args.installed_state,

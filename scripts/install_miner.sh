@@ -951,8 +951,8 @@ fi
 # R7-1), and a newcomer should never have to know to install it (E2). When
 # a runner profile exists and entries are missing for the current parent,
 # it starts here in the background, said first; the page shows its
-# progress. A new install has no profile yet: the page starts it once
-# Review writes one.
+# progress. A new install has no profile yet: shared setup starts it once
+# Review writes one, through either the page or MCP.
 catalog_missing="$("${setup_cli[@]}" catalog-needed --state-dir "${STATE_DIR}" 2>/dev/null || true)"
 if [[ "${catalog_missing}" =~ ^[0-9]+$ ]]; then
   echo

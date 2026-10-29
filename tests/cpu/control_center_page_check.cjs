@@ -79,9 +79,9 @@ const plain = text => String(text).replace(/\bevaluation endpoints\b/g, "grading
 function selectable() { return fx.caps.challenges.find(entry => entry.selectable); }
 // The first Challenge the wizard lists (its newest version) that can be launched and practised: a
 // Challenge that cannot practise is Coming soon (Battery is out of launch), so no wizard scenario picks it.
-function listedChallenge() {
+function listedChallenge(capabilities = fx.caps) {
   const newer = (x, y) => { const a = String(x || "").split(".").map(Number), b = String(y || "").split(".").map(Number); for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); return false; };
-  const open = fx.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+  const open = capabilities.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development");
   const listed = open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newer(other.version, entry.version)));
   return listed.find(entry => entry.selectable && entry.practise?.ready !== false);
 }
@@ -255,7 +255,8 @@ scenario("a Challenge pending readiness reads planned for launch, never Launch",
   // Validator, 2026-10-21: launch_pending_readiness shows "Planned for
   // launch · readiness not yet confirmed" and never the bare word Launch.
   const state = world();
-  const entry = state.caps.challenges.find(item => item.implemented);
+  const entry = listedChallenge(state.caps);
+  assert.ok(entry, "an offered Challenge in this scenario");
   entry.portfolio = "launch_pending_readiness";
   const page = await open(state);
   page.go("#challenges");
@@ -272,8 +273,8 @@ scenario("an exam Carbon has not set yet renders and the page stays connected", 
   // gates as HUMAN_INPUT until the owner sets them: the catalog says so, and
   // every refresh still connects (the 2026-10-21 M1 interruption).
   const state = world();
-  const entry = state.caps.challenges.find(item => item.implemented);
-  assert.ok(entry, "an implemented Challenge");
+  const entry = listedChallenge(state.caps);
+  assert.ok(entry, "an offered Challenge in this scenario");
   entry.description = {...(entry.description || {}), exam: {components: "HUMAN_INPUT", gates: "HUMAN_INPUT", rule: "HUMAN_INPUT", qualification: false}};
   const page = await open(state);
   for (const route of ["#challenges", "#setup", "#overview"]) {
@@ -2400,6 +2401,41 @@ scenario("Graphite: the edition is chosen from the controller's list, v1 by defa
   clean(olderPage);
 });
 
+scenario("Graphite: a first launch works by default (practice-only retains; the share fits one call at the ceiling)", async () => {
+  // Test Runner's filming run: without 'retain before submit' a practice-only Graphite launch
+  // was refused 'registration required', and 10% of a 1.5 USD ceiling cannot pay one reserved call.
+  const state = graphiteWorld({setup: practisingSetup()});
+  state.operations = state.operations.map(op => op.operation === "launch" ? {...op, optional: [...op.optional, "submission_policy"]} : op);
+  // The miner's chosen model is a priced one: each call holds spend (an unpriced model holds none).
+  const chosen = state.caps.model.setup_choice;
+  const defaults = (state.caps.model.input_window.graphite_defaults ||= {});
+  (defaults[chosen.provider_id] ||= {})[chosen.model_id] = copy(state.options.graphite.input_window.launch_default);
+  const page = await open(state);
+  await wizardTo(page, "agent", "graphite");
+  assert.equal(page.$("wizard-retain-before-submit").checked, true, "a miner practising without registering retains by default");
+  assert.equal(page.$("wizard-research-share").value, "10", "with no model-spend ceiling set the share is the controller's default");
+  page.window.CarbonControlCenter.goWizard("limits");
+  await page.advance(0);
+  await page.press(page.$("path-advanced"));
+  await page.type(page.$("ceiling-provider_attempts"), "200");
+  await page.type(page.$("ceiling-provider_nanodollars"), "1.5");
+  page.$("ceiling-provider_nanodollars").blur();
+  await toAgentStep(page);
+  const perCall = state.options.graphite.input_window.launch_default.per_call_reservation_nanodollars;
+  const shown = Number(page.$("wizard-research-share").value);
+  assert.ok(shown > 10, "the default share is raised above 10% so one call fits a 1.5 USD ceiling: " + shown);
+  assert.ok(perCall <= 1.5e9 * shown / 100, "one reserved call fits the share of the ceiling");
+  const body = await launchNow(page, state);
+  assert.equal(body.submission_policy, "retain_only_v1");
+  assert.ok(body.research_share * 1.5e9 >= perCall, "the launch's share pays one call");
+  // A share the miner types is never overridden.
+  await toAgentStep(page);
+  await page.type(page.$("wizard-research-share"), "10");
+  page.$("wizard-research-share").blur();
+  const typed = await launchNow(page, state, "h".repeat(32));
+  assert.equal(typed.research_share, 0.1);
+  clean(page);
+});
 scenario("Graphite: retain before submit is visible, opt-in, and sent only when declared", async () => {
   const state = graphiteWorld();
   state.operations = state.operations.map(op => op.operation === "launch" ? {...op, optional: [...op.optional, "submission_policy"]} : op);
@@ -3260,10 +3296,12 @@ scenario("setup starts with keys, funding and joining, then the signer (Dana 1)"
   clean(page);
 });
 
-scenario("miners are offered only the latest version of each Challenge, and no reserved, retired or deferred one (owner U-f)", async () => {
+scenario("miners are offered only the latest version of each Challenge, and no reserved, retired, deferred or historical one (owner U-f)", async () => {
   const state = world();
   const page = await open(state);
-  const offered = fx.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+  const historical = new Set(state.caps.challenges.filter(entry => entry.portfolio === "historical_development").map(entry => entry.challenge_id));
+  assert.ok(historical.size, "the fixture retains historical Challenge records");
+  const offered = state.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development");
   const latest = id => offered.filter(entry => entry.challenge_id === id).map(entry => entry.version).sort((a, b) => parseFloat(b) - parseFloat(a))[0];
   assert.ok(offered.filter(entry => entry.challenge_id === "electric-motor-magnetics").length > 1, "the fixture has several Motor versions");
   page.go("#launch");
@@ -3273,9 +3311,11 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   assert.equal(new Set(inputs.map(input => input.dataset.challenge)).size, inputs.length, "one entry per Challenge: " + pairs);
   for (const input of inputs) assert.equal(input.dataset.version, latest(input.dataset.challenge) || "", "the latest version of " + input.value);
   assert.ok(!pairs.some(pair => /photonic|power-magnetics|airfoil|burgers-dynamics/.test(pair)), "no reserved, deferred or retired entry: " + pairs);
+  assert.ok(inputs.every(input => !historical.has(input.dataset.challenge)), "historical Challenges are absent from the wizard");
   page.go("#challenges");
   await page.advance(0);
   const text = page.text("challenge-catalog");
+  assert.ok(all(page, "#challenge-catalog [data-challenge]").every(card => !historical.has(card.dataset.challenge)), "historical Challenges are absent from the catalog DOM");
   assert.doesNotMatch(text, /Reserved|Deferred|Retired/);
   assert.doesNotMatch(text, /electric-motor-magnetics · version 1\.(0|2)/);
   assert.ok(text.includes("electric-motor-magnetics · version " + latest("electric-motor-magnetics")), "Motor is listed at its latest version");
