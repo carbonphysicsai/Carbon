@@ -494,9 +494,12 @@ def test_the_cli_requires_every_limit_and_a_registered_host_class(tmp_path, caps
     ):
         flags += [f"--{name}", str(value)]
     assert w.main(["run", "--state-dir", str(tmp_path), *flags]) == 2  # no yield choice
+    capsys.readouterr()
+    # a dry run may use --no-yield; an unregistered host class is refused
     assert (
-        w.main(["run", "--state-dir", str(tmp_path), "--no-yield", *flags]) == 2
-    )  # unregistered host class
+        w.main(["run", "--state-dir", str(tmp_path), "--dry-run", "--no-yield", *flags])
+        == 2
+    )
     assert "not registered" in capsys.readouterr().err
 
 
@@ -514,8 +517,9 @@ def test_units_write_a_user_service_that_is_not_installed(tmp_path, monkeypatch)
         ("gpu-uuid", "u"),
         ("host-class", HOST),
         ("wheels", tmp_path),
-        ("store-dir", tmp_path),
+        ("store-dir", tmp_path / "state" / "gpu-receipts"),
         ("operator-state-dir", tmp_path),
+        ("grading-state-dir", tmp_path / "state"),
         ("max-attempts", 2),
         ("entry-timeout-s", 9),
         ("lane-vram-bytes", 1),
@@ -531,7 +535,6 @@ def test_units_write_a_user_service_that_is_not_installed(tmp_path, monkeypatch)
                 "units",
                 "--state-dir",
                 str(tmp_path / "s"),
-                "--no-yield",
                 "--out-dir",
                 str(out),
                 *flags,
@@ -543,7 +546,7 @@ def test_units_write_a_user_service_that_is_not_installed(tmp_path, monkeypatch)
     assert (
         "Restart=on-failure" in text
         and "gpu_receipt_worker.py" in text
-        and "--no-yield" in text
+        and "--grading-state-dir" in text
     )
 
 
@@ -644,3 +647,54 @@ def test_the_worker_refuses_a_grading_dir_that_is_not_the_parent_of_the_store(
         flags += [f"--{name}", str(value)]
     assert w.main(["run", "--state-dir", str(tmp_path / "s"), *flags]) == 2
     assert "grading_state_dir_not_store_parent" in capsys.readouterr().err
+
+
+def test_a_real_run_requires_the_grading_dir_and_refuses_the_test_only_yield_modes(
+    tmp_path, capsys, monkeypatch
+):
+    monkeypatch.setattr(gpu_receipt, "REGISTERED_HOST_CLASSES", frozenset({HOST}))
+    state = tmp_path / "state"
+    base = [
+        "--state-dir",
+        str(tmp_path / "s"),
+        "--checkout",
+        str(tmp_path),
+        "--gpu-uuid",
+        "u",
+        "--host-class",
+        HOST,
+        "--wheels",
+        str(tmp_path),
+        "--store-dir",
+        str(state / "gpu-receipts"),
+        "--operator-state-dir",
+        str(state),
+        "--max-attempts",
+        "2",
+        "--entry-timeout-s",
+        "9",
+        "--lane-vram-bytes",
+        "1",
+        "--lane-cpus",
+        "1",
+        "--lane-memory-bytes",
+        "1",
+        "--max-lanes",
+        "1",
+    ]
+    for command in ("run", "units"):
+        out = ["--out-dir", str(tmp_path / "u")] if command == "units" else []
+        assert w.main([command, *base, *out]) == 2
+        assert "grading_state_dir_required" in capsys.readouterr().err
+        for mode in (["--no-yield"], ["--yield-file", "f"], ["--busy-command", "true"]):
+            assert w.main([command, *base, *out, *mode]) == 2
+            assert "yield_mode_not_allowed_on_a_real_run" in capsys.readouterr().err
+            # even with the grading dir named: the test-only modes never run beside the lock
+            both = [*mode, "--grading-state-dir", str(state)]
+            assert w.main([command, *base, *out, *both]) == 2
+            assert "yield_mode_not_allowed_on_a_real_run" in capsys.readouterr().err
+    # a dry run may use them (it writes nothing official)
+    args = w._parser().parse_args(["run", *base, "--dry-run", "--no-yield"])
+    assert w.real_run_problem(args) is None
+    args = w._parser().parse_args(["run", *base, "--grading-state-dir", str(state)])
+    assert w.real_run_problem(args) is None

@@ -23,7 +23,7 @@ an entry gets at most `--max-attempts` attempts. A failed entry has no record, s
     gpu_receipt_worker.py run --state-dir D --checkout C --gpu-uuid U --torch-gpu-manifest M [--jax-gpu-manifest M]
         --host-class ID --wheels W --store-dir S --max-attempts N --entry-timeout-s S --lane-vram-bytes B
         --lane-cpus N --lane-memory-bytes B --max-lanes N
-        (--grading-state-dir V | --yield-file F | --busy-command CMD | --no-yield) [--operator-state-dir V] [--dry-run] [--only ID ...]
+        (--grading-state-dir V [required on a real run] | --yield-file F | --busy-command CMD | --no-yield [dry run and tests only]) [--operator-state-dir V] [--dry-run] [--only ID ...]
     gpu_receipt_worker.py status --state-dir D
     gpu_receipt_worker.py units  (same flags as run) --out-dir DIR      # a systemd --user service, not installed
 
@@ -802,6 +802,26 @@ REQUIRED_RUN = (
 )
 
 
+def real_run_problem(args):
+    """The typed refusal for a run that writes the official store (not --dry-run) or renders its service: official
+    grading must be detected by the receiver's lock, so `--grading-state-dir` is required there and the other yield
+    modes (`--yield-file`, `--busy-command`, `--no-yield`) are for --dry-run and tests only.
+    """
+    if args.dry_run:
+        return None
+    if args.yield_file or args.busy_command or args.no_yield:
+        return (
+            "yield_mode_not_allowed_on_a_real_run: --yield-file, --busy-command and --no-yield are for --dry-run and "
+            "tests only; give --grading-state-dir"
+        )
+    if args.grading_state_dir is None:
+        return (
+            "grading_state_dir_required: a real run detects official grading by the receiver's lock; give "
+            "--grading-state-dir (the parent of --store-dir)"
+        )
+    return None
+
+
 def grading_dir_problem(store_dir, grading_state_dir):
     """The typed refusal when `--grading-state-dir` is not exactly the PARENT of the store path, or None. The receiver
     holds `official-grading.lock` in the parent of its configured official_gpu_receipts path; any other directory would
@@ -886,6 +906,10 @@ def main(argv=None):
             "missing: " + ", ".join("--" + m.replace("_", "-") for m in missing),
             file=sys.stderr,
         )
+        return 2
+    problem = real_run_problem(args)
+    if problem:
+        print(problem, file=sys.stderr)
         return 2
     try:
         busy = make_busy(
