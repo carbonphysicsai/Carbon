@@ -1937,3 +1937,61 @@ def test_the_permit_is_read_again_each_round_and_a_lost_one_stops_the_receiver()
     # Carbon's publisher needs no read, so no watch thread runs for it.
     quiet = receiver.PermitWatch(RECEIVER, network, Reads(), threading.Event())
     assert quiet.start() is quiet and not quiet.lost
+
+
+@pytest.mark.parametrize("bad", ["relative/receipts", None, 7])
+def test_the_official_receipt_store_is_an_exact_absolute_operator_path(
+    tmp_path, monkeypatch, bad
+):
+    cfg = {**_config(tmp_path), "official_gpu_receipts": bad}
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    with pytest.raises(ValueError, match="official gpu receipts"):
+        receiver.load_config(tmp_path / "config.json")
+
+
+def test_a_symlinked_official_receipt_store_is_refused(tmp_path, monkeypatch):
+    target = tmp_path.resolve() / "real"
+    target.mkdir()
+    link = tmp_path.resolve() / "link"
+    link.symlink_to(target)
+    cfg = {**_config(tmp_path), "official_gpu_receipts": str(link)}
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    with pytest.raises(ValueError, match="official gpu receipts"):
+        receiver.load_config(tmp_path / "config.json")
+
+
+def test_the_configured_receipt_store_becomes_the_official_route_with_the_registered_noise(
+    tmp_path, monkeypatch
+):
+    from carbon.backbone_catalog import gpu_receipt, receipt_store
+    from carbon.challenge_validator import koth_registry
+
+    monkeypatch.setattr(gpu_receipt, "OFFICIAL_STORE", None)
+    store_dir = tmp_path.resolve() / "gpu-receipts"
+    cfg = {**_config(tmp_path), "official_gpu_receipts": str(store_dir)}
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    assert receiver.load_config(tmp_path / "config.json") == cfg
+    receiver.install_official_receipt_store(cfg)
+    store = gpu_receipt.OFFICIAL_STORE
+    assert type(store) is receipt_store.ReceiptStore and store.root == store_dir
+    monkeypatch.setattr(
+        koth_registry,
+        "rebuild_noise",
+        lambda challenge: (
+            {"value": 0.01, "measurement_digest": "sha256:" + "0" * 64}
+            if challenge == "electric-motor-magnetics"
+            else None
+        ),
+    )
+    assert store.registered_noise("electric-motor-magnetics") == 0.01
+    assert store.registered_noise("not-registered") is None
+
+
+def test_a_receiver_without_a_receipt_store_has_no_official_gpu_receipt(
+    tmp_path, monkeypatch
+):
+    from carbon.backbone_catalog import gpu_receipt
+
+    monkeypatch.setattr(gpu_receipt, "OFFICIAL_STORE", object())
+    receiver.install_official_receipt_store(_config(tmp_path))
+    assert gpu_receipt.OFFICIAL_STORE is None

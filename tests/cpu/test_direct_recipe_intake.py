@@ -226,3 +226,61 @@ def test_direct_receiver_refuses_public_bind(tmp_path):
             {"host": "0.0.0.0", "port": 0},
             stop=threading.Event(),
         )
+
+
+PUBLIC_KEYS_BEFORE_READINESS = {
+    "schema",
+    "network",
+    "genesis",
+    "netuid",
+    "challenge",
+    "receiver",
+    "snapshot",
+    "discovery_path",
+    "path",
+    "tools",
+    "source_staging",
+    "exam_feedback",
+    "served_contracts",
+    "limits",
+    "score_pack",
+    "qualification",
+    "reward",
+}
+
+
+def test_the_info_document_publishes_official_readiness_as_ids_and_a_digest_only(
+    tmp_path, monkeypatch
+):
+    from carbon.backbone_catalog import gpu_receipt
+
+    monkeypatch.setattr(gpu_receipt, "OFFICIAL_STORE", None)
+    _request, provider_factory, discovery = _fixture(
+        tmp_path / "direct", monkeypatch, material=bundle_material_v5()
+    )
+    provider = provider_factory()
+    root = tmp_path / "attempts"
+    root.mkdir(mode=0o700)
+    root.chmod(0o700)
+    window = SnapshotWindow(clock=lambda: NOW / 1_000_000_000)
+    window.add(_snapshot())
+    intake = DirectRecipeIntake(
+        context=CONTEXT,
+        receiver="validator",
+        journal=ReceiptJournal(tmp_path / "transport.sqlite3", CONTEXT),
+        verifier=_Verifier(),
+        window=window,
+        discovery=discovery,
+        provider_for=lambda owner: provider if owner == "miner" else None,
+        attempt_ledger=AttemptLedger(root / "ledger.sqlite3"),
+        clock_ns=lambda: NOW,
+    )
+    body = intake.handle("GET", INFO_PATH, {}, b"", "127.0.0.1").body
+    # Exactly one new field: nothing else is added to the public document.
+    assert set(body) == PUBLIC_KEYS_BEFORE_READINESS | {"official_gpu"}
+    # No store configured: an empty list with a typed status, never an error.
+    assert body["official_gpu"] == {
+        "status": "STORE_ABSENT",
+        "ready": [],
+        "log_head": None,
+    }

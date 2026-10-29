@@ -138,6 +138,10 @@ RECIPE_ISSUE_TEXT = {
     "catalog_library_not_pinned": (
         "The chosen catalog entry's settings schema is not served here."
     ),
+    "catalog_gpu_receipt_pending": (
+        "This catalog entry is not yet GPU-checked on the validator, so it cannot be submitted for "
+        "official grading yet. Practice is unaffected; choose an entry that is ready, or try again later."
+    ),
 }
 #: Any other recipe code: the document is not a recipe this version takes.
 RECIPE_ISSUE_DEFAULT = (

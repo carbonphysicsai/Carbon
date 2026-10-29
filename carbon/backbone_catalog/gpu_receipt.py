@@ -113,6 +113,69 @@ def load(catalog_id: str, runtime: str):
     return receipt
 
 
+#: The on-box store of OFFICIAL GPU receipts (`receipt_store.ReceiptStore`), set by the validator's composition.
+#: None means there is none: the official route then reads only the repository receipts, which never qualify
+#: (`official_grade_problem` needs a pinned image, the determinism environment and a registered host class).
+OFFICIAL_STORE = None
+
+
+def required_determinism_digest(runtime: str) -> str:
+    """The digest an official record binds for the determinism environment the official worker runs under:
+    sha256 of the canonical JSON of `required_determinism(runtime)`."""
+    import hashlib
+
+    raw = json.dumps(
+        required_determinism(runtime), sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def official_receipt(item, runtime: str, store=None):
+    """The receipt-shaped view of the store's record in force for ``item``'s ``runtime`` build, or None.
+
+    Never served from a store that fails verification (`GpuReceiptBroken`), nor for a record of another entry or
+    bundle. The record's determinism digest becomes the full environment only when it IS the official one.
+    """
+    from . import receipt_store
+
+    store = store or OFFICIAL_STORE
+    ref = (item.get("bundle_refs") or {}).get(runtime)
+    if store is None or ref is None:
+        return None
+    try:
+        record = store.current(ref["bundle_digest"], runtime)
+    except receipt_store.ReceiptRefused as refused:
+        raise GpuReceiptBroken(f"{item['catalog_id']} {runtime}: {refused}") from None
+    if record is None:
+        return None
+    if record["catalog_id"] != item["catalog_id"]:
+        raise GpuReceiptBroken(
+            f"{item['catalog_id']} {runtime}: the record is for another entry"
+        )
+    same = record["determinism_flags_digest"] == required_determinism_digest(runtime)
+    return {
+        "schema": SCHEMA,
+        "catalog_id": record["catalog_id"],
+        "runtime_profile_id": runtime,
+        "kind": "repeat",
+        "image_digest": record["image_id"],
+        "tested_on": "the on-box official receipt store",
+        "gpu_used": True,
+        "smoke_ok": True,
+        "pairs": len(record["run_digests"]) - 1,
+        "identical": len(record["run_digests"]) - 1,
+        "differ": [],
+        "host_class": record["host_class"],
+        "determinism": required_determinism(runtime) if same else None,
+    }
+
+
+def official_load(item, runtime: str, store=None):
+    """The receipt the OFFICIAL route reads: the store's record when there is one, else the repository receipt
+    (practice and legacy). `official_grade_problem` judges either."""
+    return official_receipt(item, runtime, store) or load(item["catalog_id"], runtime)
+
+
 def offered_runtimes(item) -> list:
     """The GPU runtimes of an entry that may be listed: those with a valid receipt. CNO1d's warn-only GPU twin is
     offered for practice on its smoke receipt (OWNER-CATALOG-CNO1D-WARN-ONLY-01); the official route refuses it.

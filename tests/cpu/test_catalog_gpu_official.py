@@ -2,8 +2,8 @@
 (OWNER-NO-LAUNCH-WITHOUT-GPU-REBUILD-01; GPU_REBUILD_RULINGS_20261026).
 
 Claims: a catalog recipe expands to the entry's GPU build for the first GPU runtime the receiver holds that has
-an OFFICIAL-GRADE build, else to the CPU build (always official); a smoke-only or unreceipted twin is never
-chosen; a receiver may hold CPU parents beside GPU ones and each bundle builds on the accelerator of its own
+an OFFICIAL-GRADE build, else it is refused (`catalog_gpu_receipt_pending`: an official rebuild never runs on the
+CPU, OWNER-GPU-ONLY-REPEAT-TOLERANCE-01); a smoke-only or unreceipted twin is never chosen; a receiver may hold CPU parents beside GPU ones and each bundle builds on the accelerator of its own
 runtime's parent; the GPU workers are configured beside the CPU pair, verified like the receiver's other workers,
 and the receiver refuses to start on a device class without the owner's hardware acceptance.
 """
@@ -40,11 +40,11 @@ def _official(monkeypatch, answers):
     """`runtime_bundle_ref(..., official=True)` answers per runtime: a ref or a refusal."""
     real = served.runtime_bundle_ref
 
-    def pick(item, runtime, *, official):
+    def pick(item, runtime, *, official, store=None):
         assert official is True
         answer = answers.get(runtime)
         if answer is None:
-            return real(item, runtime, official=True)
+            return real(item, runtime, official=True, store=store)
         if isinstance(answer, Exception):
             raise answer
         return dict(answer)
@@ -72,15 +72,59 @@ def test_the_entrys_official_gpu_twin_is_the_grading_build(monkeypatch):
     assert expanded["source"]["kind"] == "bundle"
 
 
-def test_without_an_official_twin_or_a_gpu_parent_the_cpu_build_grades(monkeypatch):
-    cpu = served.expand(catalog_recipe())
+def test_without_an_official_twin_or_a_gpu_parent_the_official_route_refuses_never_the_cpu(
+    monkeypatch,
+):
     _official(monkeypatch, {"torch-cu130-py311": _refused()})
-    assert served.expand_official(catalog_recipe(), ("torch-cu130-py311",)) == (
-        cpu,
-        None,
+    for runtimes in (("torch-cu130-py311",), ()):
+        with pytest.raises(CatalogRefused) as refused:
+            served.expand_official(catalog_recipe(), runtimes)
+        assert refused.value.code == "catalog_gpu_receipt_pending"
+        assert served.GPU_RECEIPT_PENDING in refused.value.detail
+        assert "never runs on the CPU" in refused.value.detail
+    with pytest.raises(CatalogRefused) as refused:
+        served.expand_official(catalog_recipe())
+    assert refused.value.code == "catalog_gpu_receipt_pending"
+    # Practice is unaffected: the CPU expansion is still there for it.
+    assert served.expand(catalog_recipe())["source"]["bundle_ref"] != TWIN
+
+
+def test_a_receipt_store_that_fails_verification_is_a_pending_refusal_not_a_crash(
+    monkeypatch,
+):
+    from carbon.backbone_catalog import gpu_receipt
+
+    _official(
+        monkeypatch,
+        {"torch-cu130-py311": gpu_receipt.GpuReceiptBroken("store_not_owner_only")},
     )
-    assert served.expand_official(catalog_recipe(), ()) == (cpu, None)
-    assert served.expand_official(catalog_recipe()) == (cpu, None)
+    with pytest.raises(CatalogRefused) as refused:
+        served.expand_official(catalog_recipe(), ("torch-cu130-py311",))
+    assert refused.value.code == "catalog_gpu_receipt_pending"
+
+
+def test_an_entry_is_listed_as_officially_gradable_only_with_a_valid_official_receipt(
+    monkeypatch,
+):
+    from carbon.backbone_catalog import listing
+
+    item = listing.entry("neuralop.FNO", "electric-motor-magnetics", "1.2")
+    _official(monkeypatch, {"torch-cu130-py311": _refused()})
+    assert served.officially_gradable(item, ("torch-cu130-py311",)) is False
+    assert served.officially_gradable(item, ()) is False
+    _official(monkeypatch, {"torch-cu130-py311": TWIN})
+    assert served.officially_gradable(item, ("torch-cu130-py311",)) is True
+    assert served.officially_gradable(item, ("jax-cuda13-py311",)) is False
+
+
+def test_the_pending_reason_is_a_registered_refusal_with_plain_words_for_the_miner():
+    from carbon.challenge_validator import dispatch
+    from carbon.development_session import research_service
+
+    assert "catalog_gpu_receipt_pending" in dispatch.RECIPE_SCREEN_REFUSALS
+    text = research_service.RECIPE_ISSUE_TEXT["catalog_gpu_receipt_pending"]
+    assert "not yet GPU-checked on the validator" in text
+    assert "Practice is unaffected" in text
 
 
 def test_the_first_runtime_with_an_official_build_wins(monkeypatch):
@@ -96,15 +140,17 @@ def test_the_first_runtime_with_an_official_build_wins(monkeypatch):
 
 def test_the_real_data_never_picks_a_twin_without_its_official_receipt():
     # No monkeypatch: every Motor 1.2 entry's GPU build is judged by its real receipt.
-    cpu = served.expand(catalog_recipe())
-    expanded, runtime = served.expand_official(catalog_recipe(), ("torch-cu130-py311",))
-    if runtime is None:
-        assert expanded == cpu
+    try:
+        _expanded, runtime = served.expand_official(
+            catalog_recipe(), ("torch-cu130-py311",)
+        )
+    except CatalogRefused as refused:
+        assert refused.code == "catalog_gpu_receipt_pending"
     else:  # only a build that passed the official-grade test can be chosen
         from carbon.backbone_catalog import gpu_receipt, listing
 
         item = listing.entry("neuralop.FNO", "electric-motor-magnetics", "1.2")
-        receipt = gpu_receipt.load(item["catalog_id"], runtime)
+        receipt = gpu_receipt.official_load(item, runtime)
         assert gpu_receipt.official_grade_problem(receipt, runtime) is None
 
 

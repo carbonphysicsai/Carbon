@@ -56,6 +56,8 @@ from .interface import Submission, Unavailable
 from .lean_recipe import LeanRecipeAdapter
 
 INFO_PATH = "/carbon/v1/construction/intake"
+#: How long the published readiness is reused: reading it verifies the whole official receipt log.
+OFFICIAL_GPU_CACHE_SECONDS = 10.0
 SUBMIT_PATH = PATH
 SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
@@ -123,6 +125,28 @@ class DirectRecipeIntake(BatteryIntake):
         #: facts, status, the Ladder) never take it.
         self._write = threading.Lock()
 
+    def _official_gpu(self):
+        """Readiness for the public info document (`served.official_readiness`), cached for a few seconds: it
+        verifies the receipt log. Never an error: a failure is a typed status with an empty list.
+        """
+        now = time.monotonic()
+        cached = getattr(self, "_official_gpu_cache", None)
+        if cached is not None and now - cached[0] < OFFICIAL_GPU_CACHE_SECONDS:
+            return dict(cached[1])
+        try:
+            from carbon.backbone_catalog import served
+
+            runtimes = getattr(self.adapter, "_gpu_runtimes", None)
+            value = served.official_readiness(
+                self.challenge.challenge_id,
+                self.challenge.version,
+                tuple(runtimes()) if callable(runtimes) else (),
+            )
+        except Exception:  # noqa: BLE001 - never an error page
+            value = {"status": "UNAVAILABLE", "ready": [], "log_head": None}
+        self._official_gpu_cache = (now, value)
+        return dict(value)
+
     def public(self):
         snapshot = self.window.latest()
         if snapshot is None:
@@ -163,6 +187,8 @@ class DirectRecipeIntake(BatteryIntake):
                     "owner": "authenticated_hotkey",
                 },
                 "served_contracts": self.door.served_contracts(),
+                # Which catalog entries are officially gradable now: ids and the receipt log's head digest only.
+                "official_gpu": self._official_gpu(),
                 "limits": {
                     "max_body": MAX_BODY,
                     "snapshot_max_age_s": SNAPSHOT_MAX_AGE_S,
@@ -429,6 +455,7 @@ def serve_loopback(
     ready=None,
     closing=None,
     grader=None,
+    grading_lock_dir=None,
 ):
     """Serve the prospective receiver on a trusted loopback test host."""
     host = config.get("host")
@@ -449,7 +476,7 @@ def serve_loopback(
     # Join already-authenticated bounded handlers before taking the final
     # cancellation snapshot. Otherwise a submit may queue after cancellation.
     httpd.daemon_threads = False
-    work = threading.Lock()
+    work = _WorkLock(grading_lock_dir)
     threads = [
         threading.Thread(
             target=refresher,
@@ -537,6 +564,40 @@ def _keep_failure(subject, loop, failure):
         return site
     except Exception:  # noqa: BLE001 - evidence is best effort
         return None
+
+
+class _WorkLock:
+    """The one lock the reconstruction pass and the grade share (one at a time), plus, when ``grading_lock_dir`` is
+    set, the official-grading file lock (`receipt_job.official_grading`): held for each whole official rebuild and
+    grade so the standing receipt worker starts no lane meanwhile, and released on every exit path.
+    """
+
+    def __init__(self, grading_lock_dir=None):
+        self._lock = threading.Lock()
+        self._dir = grading_lock_dir
+        self._held = None
+
+    def __enter__(self):
+        self._lock.acquire()
+        try:
+            if self._dir is not None:
+                from carbon.backbone_catalog import receipt_job
+
+                self._held = receipt_job.official_grading(self._dir)
+                self._held.__enter__()
+        except BaseException:
+            self._held = None
+            self._lock.release()
+            raise
+        return self
+
+    def __exit__(self, *exc):
+        held, self._held = self._held, None
+        try:
+            if held is not None:
+                return held.__exit__(*exc)
+        finally:
+            self._lock.release()
 
 
 def _advance_loop(intake, stop, work=None):

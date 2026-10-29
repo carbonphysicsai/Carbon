@@ -76,12 +76,15 @@ RECIPE_SCREEN_REFUSALS = (
     # REFUSED, the miner's input, except catalog_library_not_pinned (Carbon's
     # GAP) (Validator, OWNER-BACKBONE-CATALOG-01). catalog_runtime_not_reproducible is also Carbon's GAP: a
     # smoke-only GPU runtime named for the official rebuild (Validator ruling, 2026-10-22).
+    # catalog_gpu_receipt_pending is Carbon's GAP too: the entry has no official GPU receipt yet, and an
+    # official rebuild never falls back to the CPU (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01).
     "catalog_entry_unknown",
     "catalog_setting_unknown",
     "catalog_setting_invalid",
     "catalog_settings_inconsistent",
     "catalog_library_not_pinned",
     "catalog_runtime_not_reproducible",
+    "catalog_gpu_receipt_pending",
 )
 
 
