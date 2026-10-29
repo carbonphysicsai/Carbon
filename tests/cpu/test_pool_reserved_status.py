@@ -20,6 +20,10 @@ POOL = [
     ("f08-ribbed-bracket", "1.7"),
     ("f02", "2.5"),
 ]
+#: Registered PROVISIONAL (testnet) by OWNER-POOL-CONSTANTS-PROVISIONAL-01; the guard grid on the final pools can
+#: send one back to RESERVED.
+PROVISIONAL = POOL[2:3] + POOL[4:]
+STILL_RESERVED = [POOL[1], POOL[3]]
 NOTHING = challenges.HostFacts(frozenset())
 
 
@@ -50,13 +54,15 @@ def test_the_grading_constants_and_the_published_ones_are_registered_together(ke
     )
 
 
-def test_motor_1_5_is_offered_and_the_others_are_reserved_until_they_register():
+def test_motor_1_5_and_the_provisional_versions_are_offered_and_the_others_reserved():
     assert _status(("electric-motor-magnetics", "1.5")) == registry.IMPLEMENTED
-    for key in POOL[1:]:
+    for key in PROVISIONAL:
+        assert _status(key) == registry.IMPLEMENTED, key
+    for key in STILL_RESERVED:
         assert _status(key) == registry.RESERVED, key
 
 
-@pytest.mark.parametrize("key", POOL[1:])
+@pytest.mark.parametrize("key", STILL_RESERVED)
 def test_a_reserved_pool_version_is_listed_as_reserved_and_refuses_selection(key):
     listed = {
         (c["challenge_id"], c["version"]): c
@@ -70,7 +76,7 @@ def test_a_reserved_pool_version_is_listed_as_reserved_and_refuses_selection(key
         challenges.resolve(key[0], key[1], "cpu_research")
 
 
-@pytest.mark.parametrize("key", POOL[1:])
+@pytest.mark.parametrize("key", STILL_RESERVED)
 def test_registering_the_published_constants_flips_the_version_to_offered(
     key, monkeypatch
 ):

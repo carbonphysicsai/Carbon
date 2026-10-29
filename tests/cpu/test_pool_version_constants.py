@@ -42,7 +42,16 @@ def _file(tmp_path, versions, schema=pool_version.SCHEMA):
     return path
 
 
-UNREGISTERED = [key for key in POOL if key != ("electric-motor-magnetics", "1.5")]
+PROVISIONAL = [
+    ("chip-cold-plate", "1.6"),
+    ("f08-ribbed-bracket", "1.7"),
+    ("f02", "2.5"),
+]
+UNREGISTERED = [
+    key
+    for key in POOL
+    if key != ("electric-motor-magnetics", "1.5") and key not in PROVISIONAL
+]
 
 
 @pytest.mark.parametrize(("challenge_id", "version"), UNREGISTERED)
@@ -51,9 +60,7 @@ def test_the_shipped_file_registers_no_owner_constant_for_the_other_pool_version
 ):
     document = json.loads(pool_version.CONSTANTS.read_bytes())
     entry = document["versions"][f"{challenge_id} {version}"]
-    assert entry["c_rule"] == (
-        pool_version.HUMAN_INPUT if version == "1.7" else {"kind": "min"}
-    )
+    assert entry["c_rule"] == {"kind": "min"}
     assert pool_version.HUMAN_INPUT in json.dumps(entry)
     for call in (
         pool_version.registered_policies,
@@ -206,3 +213,32 @@ def test_a_carry_from_a_version_with_a_different_train_is_refused(monkeypatch):
         assert "train differs" in refused.value.detail
     finally:
         carries.require_identity_only.cache_clear()
+
+
+@pytest.mark.parametrize(("challenge_id", "version"), PROVISIONAL)
+def test_the_provisional_versions_carry_motor_1_5_s_row_with_their_own_train_scales(
+    challenge_id, version
+):
+    """OWNER-POOL-CONSTANTS-PROVISIONAL-01: Motor 1.5's row (budget 60, sigma0 0.25, honesty max/1.0, A multiplier 3,
+    A_gen rule mean, c_rule min), labelled PROVISIONAL and testnet-only; only the A_gen scales differ, and each is
+    0.03 x that version's public TRAIN spread, recomputed here."""
+    from carbon.scoring import pool_adapters
+
+    document = json.loads(pool_version.CONSTANTS.read_bytes())["versions"]
+    entry = document[f"{challenge_id} {version}"]
+    motor = document["electric-motor-magnetics 1.5"]
+    assert pool_version.HUMAN_INPUT not in json.dumps(entry)
+    assert entry["provisional"]["status"] == "PROVISIONAL"
+    assert entry["provisional"]["scope"] == "testnet"
+    assert entry["provisional"]["record"] == "OWNER-POOL-CONSTANTS-PROVISIONAL-01"
+    for field in ("a_multiplier", "a_rule", "c_rule", "honesty", "optimizer"):
+        assert entry[field] == motor[field], field
+    kind = {"chip-cold-plate": "cooling", "f08-ribbed-bracket": "f08", "f02": "f02"}[
+        challenge_id
+    ]
+    chosen = pool_adapters.adapter(kind, version)
+    spread = pool_adapters.train_spread(kind, version, chosen)
+    assert entry["agen_scales"] == {name: 0.03 * v for name, v in spread.items()}
+    assert pool_version.registered_a_multiplier(challenge_id, version) == 3.0
+    policies = pool_version.registered_policies(challenge_id, version)
+    assert policies.optimizer.budget == 60 and policies.honesty.reduction == "max"
