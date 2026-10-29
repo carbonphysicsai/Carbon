@@ -82,6 +82,14 @@ def install(
         wheelhouse = catalog_wheelhouse.DEFAULT_DIRECTORY
     skipped = [] if skipped is None else skipped
     installed = []
+    # One daemon listing for this call's entries (call-local, never kept): the rebuild-missing step used to list the
+    # whole daemon again for every entry. Each entry's child is still inspected and verified afresh.
+    from carbon.development_session.library_environment_cache import (
+        LibraryImageInventory,
+    )
+    from carbon.reconstruction.worker.docker_runtime import DockerCLI
+
+    inventory = LibraryImageInventory(DockerCLI())
     for item in pipeline.load()["entries"]:
         catalog_id = item["catalog_id"]
         if catalog_ids and catalog_id not in catalog_ids:
@@ -114,11 +122,13 @@ def install(
                 )
                 if receiver_config is not None:
                     result = library_bundle.install_receiver_bundle(
-                        directory, receiver_config
+                        directory, receiver_config, inventory=inventory
                     )
                 else:
                     kwargs = {} if state_dir is None else {"state_dir": state_dir}
-                    result = library_bundle.install_bundle(directory, **kwargs)
+                    result = library_bundle.install_bundle(
+                        directory, inventory=inventory, **kwargs
+                    )
         except Exception as failure:  # one entry never stops the rest
             if catalog_ids:
                 raise
