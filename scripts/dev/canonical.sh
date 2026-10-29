@@ -221,6 +221,9 @@ build_run_command() {
     --user 1000:1000
     --workdir /workspaces/Carbon
     --env HOME=/home/ubuntu
+    # The CPU-dispatch pin (carbon/challenge_validator/cpu_pin.py): the same float bytes on every x86-64-v3 host.
+    --env OPENBLAS_CORETYPE=Haswell
+    --env NPY_DISABLE_CPU_FEATURES=AVX512F,AVX512CD,AVX512_SKX,AVX512_CLX,AVX512_CNL,AVX512_ICL,AVX512_SPR
     --env "PATH=${trusted_system_path}"
     --env "CARBON_CANONICAL_DEV_ENV=${canonical_marker}"
     --env GIT_CONFIG_COUNT=1

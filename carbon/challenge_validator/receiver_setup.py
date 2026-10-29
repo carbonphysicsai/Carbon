@@ -55,6 +55,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from carbon.challenge_validator import cpu_pin
+
 REPO = Path(__file__).resolve().parents[2]
 CONFIG_NAME = "receiver.json"
 PROFILE_NAME = "runner-profile.json"
@@ -752,6 +754,9 @@ def _unit_text(receiver_state: Path, challenge: dict) -> str:
             "[Service]",
             "Type=simple",
             f"WorkingDirectory={REPO}",
+            # The CPU-dispatch pin (cpu_pin.py): scoring runs on the same kernels on every host.
+            "Environment=OPENBLAS_CORETYPE=" + cpu_pin.OPENBLAS_CORETYPE,
+            "Environment=NPY_DISABLE_CPU_FEATURES=" + cpu_pin.NPY_DISABLE_CPU_FEATURES,
             "ExecStart=" + " ".join(command),
             "Restart=on-failure",
             "RestartSec=30",

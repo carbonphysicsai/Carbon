@@ -118,7 +118,9 @@ def _roles(snapshot, pack_root):
             raise cg.CalibrationRefused("calibration_role_unavailable:" + name) from exc
 
     try:
-        train = snapshot.read_role(pack_root, "public", "train", max_bytes=16 * 1024**2)
+        train = snapshot.read_role(
+            pack_root, "public", "train", max_bytes=16 * 1024**2
+        )
     except ValueError as exc:
         raise cg.CalibrationRefused("calibration_role_unavailable:train") from exc
     return {
@@ -365,6 +367,13 @@ def main(argv=None):
     parser.add_argument("--run-config", type=Path)
     parser.add_argument("--run-config-digest")
     args = parser.parse_args(argv)
+    from carbon.challenge_validator import cpu_pin
+
+    try:
+        cpu_pin.require()  # the calibration scores on the same pinned kernels as the receiver
+    except cpu_pin.CpuPinRefused as refused:
+        print(f"refused: {refused}", file=sys.stderr)
+        return 2
     try:
         result = run(
             artifact_dir=args.artifact,
