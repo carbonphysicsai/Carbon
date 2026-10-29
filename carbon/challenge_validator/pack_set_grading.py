@@ -325,8 +325,12 @@ def _set_control_check(repeat, control, comparator):
     """``control()`` for the set's `repeat_gate`: the registered control graded on every batch like the contender's
     repeat (`_set_repeat`), its set evidence compared as `lean_recipe_retention._control_check` does.
     """
-    if control is None or getattr(repeat, "custody", None) is None:
-        return None
+    if (
+        control is None
+        or getattr(repeat, "custody", None) is None
+        or repeat.set_key != control["evaluation_pack_digest"]
+    ):
+        return None  # none registered, nothing to rebuild with, or a rotated pack set: as with no control
 
     def check():
         entry = control["entry_id"]

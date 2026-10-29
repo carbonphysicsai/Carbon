@@ -67,13 +67,21 @@ CONTROL_BASES = ("bit_identical", "within_noise")
 
 def _control_ok(control):
     """The control the recal registered beside a Challenge's noise (Validator V7 rulings, codex-queue/reports/VALIDATOR_V7_RULINGS_20261029.md): a panel
-    member that trains on the GPU, its reference total and grade fingerprint, and how it is compared.
+    member that trains on the GPU, its reference total and grade fingerprint, how it is compared, and the evaluation
+    pack (or pack-set key) they were measured on: a control runs only on that exam, since a rotation changes both.
     """
     return (
         type(control) is dict
         and set(control)
-        == {"entry_id", "reference_total", "reference_fingerprint", "control_basis"}
+        == {
+            "entry_id",
+            "reference_total",
+            "reference_fingerprint",
+            "control_basis",
+            "evaluation_pack_digest",
+        }
         and is_digest(control["entry_id"])
+        and is_digest(control["evaluation_pack_digest"])
         and type(control["reference_total"]) in (int, float)
         and math.isfinite(control["reference_total"])
         and is_digest(control["reference_fingerprint"])
@@ -88,8 +96,8 @@ def rebuild_noise(challenge_id, *, path=REGISTRY):
 
 
 def control(challenge_id, *, path=REGISTRY):
-    """The Challenge's registered control `{entry_id, reference_total, reference_fingerprint, control_basis}`, or
-    None: with none, a beyond-tolerance repeat is FAILED_INFRA, as before (fail closed).
+    """The Challenge's registered control `{entry_id, reference_total, reference_fingerprint, control_basis,
+    evaluation_pack_digest}`, or None: with none, a beyond-tolerance repeat is FAILED_INFRA, as before (fail closed).
     """
     noise = _load(path).get(challenge_id)
     found = None if noise is None else noise.get("control")

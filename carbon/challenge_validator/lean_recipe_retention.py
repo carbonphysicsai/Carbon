@@ -1668,9 +1668,17 @@ def _control_check(repeat, control, comparator):
     """``control()`` for `repeat_gate`: rebuild the Challenge's registered control (`koth_registry.control`, picked by
     the recal) on this host through the same uncounted `repeat_grade`, and say whether it reproduced: its exact grade
     fingerprint (`bit_identical`), or its total within the registered noise (`within_noise`). None when no control
-    is registered or this repeat has no custody to rebuild with (then a miss stays FAILED_INFRA).
+    is registered, this repeat has no custody to rebuild with, or the receiver's selected pack is not the one the
+    control was measured on (a rotation changes its fingerprint and total, so running it would only raise false host
+    alerts): then a miss stays FAILED_INFRA, as with no control.
     """
     if control is None or getattr(repeat, "custody", None) is None:
+        return None
+    discovery = getattr(repeat.adapter, "discovery", None)
+    if (
+        getattr(discovery, "evaluation_pack_digest", None)
+        != control["evaluation_pack_digest"]
+    ):
         return None
 
     def check():

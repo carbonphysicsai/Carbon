@@ -38,6 +38,7 @@ CONTROL = {
     "reference_total": 0.5,
     "reference_fingerprint": "sha256:" + "c" * 64,
     "control_basis": "within_noise",
+    "evaluation_pack_digest": "sha256:" + "d" * 64,
 }
 
 
@@ -46,6 +47,8 @@ def test_a_repeat_miss_with_a_reproducing_control_is_counted_once_feeds_the_ladd
 ):
     inputs, pin, artifacts = _v4(case)
     pool_adapter = _adapter_for(case, tmp_path)
+    # The receiver's selected pack is the one the control was measured on (a rotation would make it none_registered).
+    pool_adapter.discovery.evaluation_pack_digest = CONTROL["evaluation_pack_digest"]
     _register_koth(
         monkeypatch, tmp_path, pool_adapter.challenge_id, noise=1e-9, minima=(0.0, 0.0)
     )

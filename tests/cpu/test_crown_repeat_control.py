@@ -9,6 +9,7 @@ alert only.
 import json
 import logging
 import math
+from types import SimpleNamespace
 
 import pytest
 
@@ -129,6 +130,7 @@ CONTROL = {
     "reference_total": 0.62,
     "reference_fingerprint": base.digest("control fingerprint"),
     "control_basis": "bit_identical",
+    "evaluation_pack_digest": base.digest("exam pack"),
 }
 
 
@@ -171,6 +173,8 @@ def test_without_a_control_there_is_none_and_the_noise_is_as_before(tmp_path):
         {**CONTROL, "reference_fingerprint": None},
         {**CONTROL, "reference_total": math.inf},
         {**CONTROL, "reference_total": "0.6"},
+        {**CONTROL, "evaluation_pack_digest": "latest"},
+        {k: v for k, v in CONTROL.items() if k != "evaluation_pack_digest"},
         {k: v for k, v in CONTROL.items() if k != "reference_total"},
         {**CONTROL, "extra": 1},
         "control",
@@ -235,13 +239,57 @@ def test_the_control_check_rebuilds_the_registered_entry_through_the_uncounted_r
     def repeat(model):
         raise AssertionError("not run")
 
-    repeat.adapter, repeat.custody = "ADAPTER", {"artifact_directory": "A"}
+    adapter = SimpleNamespace(
+        discovery=SimpleNamespace(
+            evaluation_pack_digest=CONTROL["evaluation_pack_digest"]
+        )
+    )
+    repeat.adapter, repeat.custody = adapter, {"artifact_directory": "A"}
     check = retention._control_check(repeat, control, {})
     assert check() is True
-    assert asked == [("ADAPTER", control["entry_id"], {"artifact_directory": "A"})]
+    assert asked == [(adapter, control["entry_id"], {"artifact_directory": "A"})]
     # With no registered control, or a repeat with nothing to rebuild with, there is no check.
     assert retention._control_check(repeat, None, {}) is None
     assert retention._control_check(lambda model: None, control, {}) is None
+
+
+def test_a_rotation_makes_the_control_none_registered_so_no_false_host_alert():
+    """A control measured on another exam pack has a changed fingerprint and total: it is not run."""
+
+    def repeat(model):
+        raise AssertionError("not run")
+
+    def adapter(digest):
+        return SimpleNamespace(discovery=SimpleNamespace(evaluation_pack_digest=digest))
+
+    repeat.custody = {"artifact_directory": "A"}
+    repeat.adapter = adapter(base.digest("a rotated exam pack"))
+    assert retention._control_check(repeat, CONTROL, {}) is None
+    repeat.adapter = adapter(None)  # a pack the receiver cannot name
+    assert retention._control_check(repeat, CONTROL, {}) is None
+    repeat.adapter = adapter(CONTROL["evaluation_pack_digest"])
+    assert callable(retention._control_check(repeat, CONTROL, {}))
+    # Through the gate: with no control run, the miss stays FAILED_INFRA with the host alert, as before V7.
+    outcome, _ = consider(
+        TAKEOVER, miss_by(base.same_again(TAKEOVER), {"c"}), control=None
+    )
+    assert outcome["outcome"] == bp.FAILED_INFRA
+    assert outcome["alert"]["control"] == "none_registered"
+
+
+def test_the_set_path_runs_the_control_only_on_the_pack_set_it_was_measured_on():
+    from carbon.challenge_validator import pack_set_grading
+
+    def repeat(model):
+        raise AssertionError("not run")
+
+    repeat.custody = {"artifact_directory": "A"}
+    repeat.batch_adapters, repeat.batches = {}, []
+    repeat.set_key = CONTROL["evaluation_pack_digest"]
+    assert callable(pack_set_grading._set_control_check(repeat, CONTROL, {}))
+    repeat.set_key = base.digest("a rotated pack set")
+    assert pack_set_grading._set_control_check(repeat, CONTROL, {}) is None
+    assert pack_set_grading._set_control_check(repeat, None, {}) is None
 
 
 # --- the watch ------------------------------------------------------------------------------------------------------------
