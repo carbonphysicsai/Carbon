@@ -33,7 +33,7 @@ from carbon.challenge_validator.motor_hidden import (
     overlap_key,
 )
 from carbon.challenge_validator.motor_source import MotorBatchSource
-from carbon.motor.domain import ANGLE_STEPS
+from carbon.motor.domain import ANGLE_STEPS, INPUT_BOUNDS
 from carbon.motor.research import SCAFFOLD
 from carbon.reconstruction import capability_registry as registry
 
@@ -329,7 +329,15 @@ def test_a_correctly_signed_but_wrong_package_imports_nothing(
     elif change == "window":
         commitment["window"] = None
     elif change == "case":
-        payload["document"]["cases"][0]["inputs"]["airgap_mm"] += 1e-3
+        # A deterministic tamper that stays inside the registered domain (a fresh draw
+        # can sit at the upper bound, where +1e-3 leaves the domain and the import
+        # refuses as malformed before the fingerprint check): move down at the top.
+        inputs = payload["document"]["cases"][0]["inputs"]
+        low, high = INPUT_BOUNDS["airgap_mm"]
+        before = inputs["airgap_mm"]
+        inputs["airgap_mm"] = before + 1e-3 if before + 1e-3 <= high else before - 1e-3
+        assert low <= inputs["airgap_mm"] <= high  # the tampered value is admissible
+        assert inputs["airgap_mm"] != before
     elif change == "drop_reference":
         references.pop(first)
     elif change == "change_reference":

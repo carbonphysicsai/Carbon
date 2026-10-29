@@ -512,7 +512,17 @@ def test_owner_install_cli_uses_checked_gpu_profile_without_private_path_args(
     )
     monkeypatch.setattr(command, "DockerCLI", lambda: adapter)
 
-    def install(input_directory, cache_root, selected_parent, *, expected_bundle, cli):
+    def install(
+        input_directory,
+        cache_root,
+        selected_parent,
+        *,
+        expected_bundle,
+        rebuild_missing,
+        cli,
+    ):
+        # the owner-only install rebuilds a missing bundle (library_bundle.py)
+        assert rebuild_missing is True
         calls.append(
             (input_directory, cache_root, selected_parent, expected_bundle, cli)
         )
@@ -622,7 +632,17 @@ def test_owner_install_cpu_uses_checked_installed_worker_identity(
     monkeypatch.setattr(command, "DockerCLI", lambda: object())
     calls = []
 
-    def install(input_directory, cache_root, selected_parent, *, expected_bundle, cli):
+    def install(
+        input_directory,
+        cache_root,
+        selected_parent,
+        *,
+        expected_bundle,
+        rebuild_missing,
+        cli,
+    ):
+        # the owner-only install rebuilds a missing bundle (library_bundle.py)
+        assert rebuild_missing is True
         calls.append((input_directory, cache_root, selected_parent, expected_bundle))
         return SimpleNamespace(bundle_ref=expected_bundle.to_dict())
 
@@ -706,7 +726,11 @@ def test_owner_install_selects_only_profile_pinned_torch_cpu_parent(
     monkeypatch.setattr(command, "DockerCLI", lambda: object())
     calls = []
 
-    def install(input_directory, cache_root, image, *, expected_bundle, cli):
+    def install(
+        input_directory, cache_root, image, *, expected_bundle, rebuild_missing, cli
+    ):
+        # the owner-only install rebuilds a missing bundle (library_bundle.py)
+        assert rebuild_missing is True
         calls.append((input_directory, cache_root, image, expected_bundle))
         return SimpleNamespace(bundle_ref=expected_bundle.to_dict())
 
