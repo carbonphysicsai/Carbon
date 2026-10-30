@@ -662,25 +662,31 @@ def baseline(challenge):
 
 
 def run_eligible(experiment, dual=None):
-    """A practice run's eligibility: its summary's verdict, else its dual
-    block's, else None (unknown). A direct practice reports its gates in the
+    """A practice run's eligibility, fail closed (A4): every verdict the run carries must be true
+    (the summary's, the summary's kept `summary_gate_eligible`, the dual block's); else None
+    (unknown). A direct practice reports its gates in the
     dual block, not the summary (M1 E2E R11: a catalog default read
     "eligible: null" though its exam gate failed). One reader for the view
     and the projection the MCP tools return (R11e)."""
     summary = experiment.get("summary") if type(experiment) is dict else None
     if dual is None and type(experiment) is dict:
         dual = dual_feedback(experiment)
-    # One truth (Lead 02:13Z): the exam's own gate verdict on the practice grid wins over the
-    # summary's own count, which can disagree (Motor and Cooling v2).
+    # One truth, fail closed: the dual's verdict and the summary's can disagree (Motor and Cooling
+    # v2), and a mandatory failure shown in either must make the run ineligible. An older stored
+    # result carried the dual's verdict as `eligible` and the summary's own as
+    # `summary_gate_eligible`; both count.
+    verdicts = []
+    if type(summary) is dict:
+        for key in ("eligible", "summary_gate_eligible"):
+            if type(summary.get(key)) is bool:
+                verdicts.append(summary[key])
     if (
         type(dual) is dict
         and dual.get("available") is not False
         and type(dual.get("eligible")) is bool
     ):
-        return dual["eligible"]
-    if type(summary) is dict and type(summary.get("eligible")) is bool:
-        return summary["eligible"]
-    return None
+        verdicts.append(dual["eligible"])
+    return all(verdicts) if verdicts else None
 
 
 #: What a practice "score" is, on every Challenge (owner, 2026-10-25: "what the heck is with those
@@ -1769,9 +1775,9 @@ def outcomes(own, view, mode):
                 shown["feedback_mode"] = mode
             else:
                 shown["feedback_mode"] = mode
-                shown["withheld"] = (
-                    "this feedback mode is unknown here; only the state is shown"
-                )
+                shown[
+                    "withheld"
+                ] = "this feedback mode is unknown here; only the state is shown"
             entry["result"] = {**shown, "qualification": False, "reward": False}
         elif status == "VERIFIED_SOURCE" and result is not None:
             entry["result"] = {

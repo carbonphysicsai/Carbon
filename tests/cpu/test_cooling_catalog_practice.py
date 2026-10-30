@@ -195,9 +195,14 @@ def test_the_columns_map_back_to_coolings_outputs_in_the_interfaces_order(practi
     _rows, summary = score_practice(
         direct, PracticeSet.load(ROOT), PublicMaterial.load(ROOT)
     )
-    # The practice's `eligible` is the exam's own gate verdict (practice_dual) when it has one;
-    # the scorer's own stays beside it as summary_gate_eligible. Everything else is the scorer's.
-    reconciled = {"eligible", "eligible_basis", "summary_gate_eligible"}
+    # The practice's `eligible` is the exam's gate verdict on the practice grid (practice_dual) AND the
+    # scorer's own (A4, fail closed); both stay beside it. Everything else is the scorer's.
+    reconciled = {
+        "eligible",
+        "eligible_basis",
+        "summary_gate_eligible",
+        "dual_gate_eligible",
+    }
     assert {k: v for k, v in result["summary"].items() if k not in reconciled} == {
         k: v for k, v in summary.items() if k not in reconciled
     }

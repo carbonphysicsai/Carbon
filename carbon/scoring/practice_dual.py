@@ -60,17 +60,20 @@ def _unavailable(adapter, reason):
 
 
 ELIGIBLE_BASIS = (
-    "the exam's own gates on the practice grid (practice_dual); the summary's own count of "
-    "failed gates stays beside it as summary_gate_eligible"
+    "eligible only if the exam's gates pass on the practice grid AND on every public practice case; "
+    "each verdict stays beside it (dual_gate_eligible, summary_gate_eligible)"
 )
 
 
 def reconcile_eligibility(summary, dual):
-    """One truth for "eligible" (Test Runner 01:57Z, Lead 02:13Z: an agent read summary
-    eligible=false and practice_dual eligible=true on Motor, the reverse on Cooling): when the
-    practice carries the exam's dual measurement, its gate verdict is the practice's
-    `eligible`. The summary's own verdict is kept as `summary_gate_eligible`, never dropped.
-    Without a usable dual block the summary is returned unchanged."""
+    """One truth for "eligible", fail closed (A4, Validator 2026-10-30: Motor practice showed
+    `eligible: true` beside a listed gate failure, a mandatory failure compensated by the other
+    case set). When the practice carries the exam's dual measurement, `eligible` is the dual's
+    verdict AND the summary's own verdict (the exam's aggregate over the public practice cases):
+    any gate failure shown anywhere in the result makes it false. Both verdicts are kept
+    (`dual_gate_eligible`, `summary_gate_eligible`), never dropped. Without a usable dual block
+    the summary is returned unchanged; a summary with no verdict of its own gains the dual one.
+    """
     if (
         type(summary) is not dict
         or type(dual) is not dict
@@ -79,9 +82,12 @@ def reconcile_eligibility(summary, dual):
     ):
         return summary
     merged = dict(summary)
+    merged["dual_gate_eligible"] = dual["eligible"]
     if type(summary.get("eligible")) is bool:
         merged["summary_gate_eligible"] = summary["eligible"]
-    merged["eligible"] = dual["eligible"]
+        merged["eligible"] = dual["eligible"] and summary["eligible"]
+    else:
+        merged["eligible"] = dual["eligible"]
     merged["eligible_basis"] = ELIGIBLE_BASIS
     return merged
 
@@ -413,7 +419,9 @@ def feedback_v2(kind, version, predict):
         "status": (
             "PRACTICE_GATE_FAILED"
             if not eligible
-            else "PRACTICE_BELOW_MINIMUM" if below else "PRACTICE_SCORED"
+            else "PRACTICE_BELOW_MINIMUM"
+            if below
+            else "PRACTICE_SCORED"
         ),
         "failed_legs": below if eligible else [],
         "minimums": minimums,
