@@ -621,7 +621,7 @@ def test_a_practice_that_ran_nothing_says_so_with_a_code_and_a_next_step(
             )
         )
     step = supervisor.next_action("practice_could_not_run")
-    assert "infrastructure problem" in step and "carbon_setup_status" in step
+    assert "infrastructure problem" in step and "carbon_setup_status" not in step
     assert "practice_could_not_run" in supervisor.NEXT_ACTIONS
 
 

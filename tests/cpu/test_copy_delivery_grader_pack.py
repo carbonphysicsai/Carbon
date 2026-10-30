@@ -93,6 +93,10 @@ def test_f08_expected_roles_equal_the_bytes_write_sealed_pack_writes(tmp_path):
         role: (tmp_path / "pack" / "private" / f"{role}.json").read_bytes()
         for role in ("reference_rows", "solver_evidence")
     }
+    # the writer's elapsed_s is float(sum(...)): interpreter-dependent; the issuer's is the 3.12 value
+    written["reference_rows"] = delivery._interpreter_independent_elapsed(
+        written["reference_rows"], bank, physical
+    )
     expected = delivery.expected_roles(challenge, version, kit, bank)
     kit_roles = kit.private_roles(bank)
     for role, body in written.items():

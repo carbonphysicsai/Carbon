@@ -62,7 +62,11 @@ def _grader_roles(challenge, version, kit, bank):
         minimums="calibration",
     )
     roles = dict(kit.private_roles(bank))
-    roles["reference_rows"] = documents["reference_rows"]
+    # The issuer's pack is written on Python >= 3.12 (compensated float sum); a 3.11 test host's producer would
+    # write the naive sum one ulp apart, so the elapsed time is normalised the way copy_delivery does.
+    roles["reference_rows"] = delivery._interpreter_independent_elapsed(
+        documents["reference_rows"], bank, physical
+    )
     roles["solver_evidence"] = documents["solver_evidence"]
     return roles
 

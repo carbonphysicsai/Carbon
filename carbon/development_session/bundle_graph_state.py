@@ -157,10 +157,19 @@ def _checked_graph(doc: dict, allowlist) -> bytes:
     graph.check_structure(doc)
     allowlist.check(doc)
     caps = allowlist_module.caps_for(allowlist)
+    accounting, measured_as = allowlist_module.accounting_for(allowlist)
+    measurements = graph.measure(doc)
+    if accounting == allowlist_module.CONSTANT_ACCOUNTING_V6:
+        # As `level4.validate`: v6 bounds the information in the recipe, a
+        # measurement `graph.measure` does not make.
+        measurements = {
+            **measurements,
+            "recipe_info_bytes": graph.recipe_info_bytes(doc),
+        }
     if any(
         verdict != "pass"
         for verdict in allowlist_module.check_caps(
-            graph.measure(doc), caps, allowlist_module.accounting_for(allowlist)[1]
+            measurements, caps, measured_as
         ).values()
     ):
         raise RecipeRefused("bundle_graph_caps_refused")

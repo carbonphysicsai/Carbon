@@ -25,6 +25,7 @@ import base64
 import hashlib
 import hmac
 import json
+import math
 import os
 import shutil
 import tempfile
@@ -189,7 +190,49 @@ def expected_roles(challenge, version, kit, bank):
     )
     for role in ("reference_rows", "solver_evidence"):
         roles[role] = documents[role]
+    roles["reference_rows"] = _interpreter_independent_elapsed(
+        roles["reference_rows"], bank, physical
+    )
     return roles
+
+
+def reference_wall_seconds(values):
+    """The sum of the measured solves' wall times as CPython 3.12's ``sum()`` over floats computes it
+    (Neumaier compensation), spelled out so every interpreter gives the same float.
+
+    The pack writer's ``elapsed_s`` is ``float(sum(...))``: left to right up to Python 3.11, compensated from
+    3.12, so one list of wall times is two floats one ulp apart on a 3.11 and a 3.12 host, and the copy check's
+    recomputed reference_rows differ from the issuer's signed bytes by that ulp (copy_batch_not_the_pack). The
+    issuer's value is the 3.12 one; this reproduces it on a 3.11 worker without touching the producer's files
+    (their bytes are the producer digest every signed pack carries)."""
+    total = 0.0
+    compensation = 0.0
+    for x in values:
+        t = total + x
+        if abs(total) >= abs(x):
+            compensation += (total - t) + x
+        else:
+            compensation += (x - t) + total
+        total = t
+    if compensation and math.isfinite(compensation):
+        total += compensation
+    return float(total)
+
+
+def _interpreter_independent_elapsed(reference_rows, bank, physical):
+    """``reference_rows`` (the grader's canonical bytes) with ``elapsed_s`` recomputed by
+    `reference_wall_seconds`; every other byte is the producer's own."""
+    rows = json.loads(reference_rows)
+    if type(rows) is not list or len(rows) != 1 or "elapsed_s" not in rows[0]:
+        return reference_rows
+    rows[0]["elapsed_s"] = reference_wall_seconds(
+        float(r["wall_s"])
+        for r, present in zip(
+            bank["reference_records"], physical.reference_mask(bank), strict=True
+        )
+        if present
+    )
+    return physical.canonical(rows)
 
 
 def verify_copy(commitment, payload, copy, *, hotkey):
