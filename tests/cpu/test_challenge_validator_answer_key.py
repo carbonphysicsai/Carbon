@@ -656,6 +656,7 @@ def test_a_refused_connection_sees_eof_at_once_and_a_valid_fetch_still_answers_u
     from _signer_harness import in_thread_signer
 
     server, port, cert, validator, receiver = _host(tmp_path, published, monkeypatch)
+    fetch_limit = 15.0
     stop = threading.Event()
 
     def spin():
@@ -691,9 +692,13 @@ def test_a_refused_connection_sees_eof_at_once_and_a_valid_fetch_still_answers_u
             listing = asker.ask(published["source"].challenge_id)
             fetched_after = time.monotonic() - began
         assert listing["packages"]
-        assert (
-            fetched_after < 5.0
-        )  # generous: the point is that it never waited on the silent ones
+        # Generous for a loaded runner: the point is that the fetch never waited on
+        # the silent sockets, which the host holds for the handshake timeout. That
+        # hold must be at least twice the limit, so a fetch that did wait fails.
+        from carbon.battery import intake as ib
+
+        assert ib.LoggedHandler.timeout >= 2 * fetch_limit
+        assert fetched_after < fetch_limit
     finally:
         stop.set()
         for connection in silent:
