@@ -30,9 +30,10 @@ trap 'rm -rf "${temporary}"' EXIT
 # The digest of the worker build inputs only (carbon/reconstruction/worker/build_inputs.txt), not the whole repository:
 # a change outside them (scripts/, docs/, tests/ ...) no longer moves any image id. The checkout is still clean as a whole.
 # A git-ignored file under the inputs would enter the build context and the wheel without being bound by the digest.
-ignored_inputs="$("${PYTHON}" "${repo_root}/carbon/reconstruction/worker/build_inputs.py" ignored "${repo_root}")" \
+build_inputs_program="${repo_root}/carbon/reconstruction/worker/build_inputs.py"
+ignored_inputs="$("${PYTHON}" "${build_inputs_program}" ignored "${repo_root}")" \
   || fail "git-ignored files under the worker build inputs would enter the image unbound by its digest: ${ignored_inputs//$'\n'/ }"
-source_tree_digest="$("${PYTHON}" "${repo_root}/carbon/reconstruction/worker/build_inputs.py" digest "${repo_root}")" \
+source_tree_digest="$("${PYTHON}" "${build_inputs_program}" digest "${repo_root}")" \
   || fail "could not compute the worker build-inputs digest."
 [[ "${source_tree_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "the worker build-inputs digest is malformed."
 lock_digest="sha256:$(shasum -a 256 "${repo_root}/uv.lock" | cut -d' ' -f1)"
