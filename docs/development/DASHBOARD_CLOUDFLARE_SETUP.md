@@ -297,10 +297,14 @@ somewhere private:
 you. The domain, the DNS record and the Worker already exist: skip section 4. The Battery board is
 removed: `FEED_URLS` ends up holding **only the four launch board URLs**.
 
-0. **Which checkout.** Run steps 3 and 5 in a Git Bash checkout of the exact commit the Carbon
-   team names for the launch Worker and page. That may be a reviewed branch carrying the Launchpad UX
-   polish rather than `main`. Check out that commit, run `git rev-parse HEAD`, and send the printed
-   sha back. Deploying reads the files in your checkout and uploads them to Cloudflare; it pushes
+0. **Which checkout.** The repoint is **not** `FEED_URLS` alone. The page now live has no
+   launch-board page: without a redeploy of a site built from the new dashboard code, it would show the
+   launch boards as a championship board with "More coming" filler lines. Run steps 3 and 5 in a Git
+   Bash checkout of the exact commit the Carbon team names for the launch Worker and page. That is the
+   reviewed Launchpad UX dashboard branch (`carbon/dashboard` is not on `main` yet), not `main`, at a
+   commit that includes the showcase switch of step 3 (the team names it; at the time of writing the
+   UX branch is local and unpushed). Check
+   out that commit, run `git rev-parse HEAD`, and send the printed sha back. Deploying reads the files in your checkout and uploads them to Cloudflare; it pushes
    nothing and changes nothing in `main`. Build the site (step 3) and deploy it (step 5) from the same
    checkout.
 1. Sign in: `npx wrangler@4.151.3 login`.
@@ -315,8 +319,26 @@ mkdir -p ~/carbon-launch-feed && i=0 && for u in $(tr ',' ' ' < <urls>); do i=$(
 ```
 
 ```bash
-python -m carbon.dashboard build $(for f in ~/carbon-launch-feed/board*.json; do printf -- '--feed %s ' "$f"; done) --trust-key "$(cut -d, -f1 <keys>)" --out ~/carbon-dashboard-site
+python -m carbon.dashboard build $(for f in ~/carbon-launch-feed/board*.json; do printf -- '--feed %s ' "$f"; done) --trust-key "$(cut -d, -f1 <keys>)" --names <names file> --no-showcase --out ~/carbon-dashboard-site
 ```
+
+   `--no-showcase` leaves out the design showcase, which replays a Battery fast-charge task; the owner
+   decided Battery is not on the dashboard. It needs the dashboard commit that hides every showcase
+   link when the build has none (`index.json` carries `"showcase": false`): the commit named in step 0
+   must contain it. With an older commit, `--no-showcase` would leave broken links.
+
+   `<names file>` gives the page its Challenge display names. Without it the page title-cases the id
+   ("Chip Cold Plate", "F02"). It is a small file, not a secret:
+
+```json
+{"electric-motor-magnetics": "Motor", "chip-cold-plate": "Cooling", "f08-ribbed-bracket": "Ribbed Bracket", "f02": "Burst Thermal"}
+```
+
+   Each name is a plain label of at most 40 characters, with no markup; the build refuses a bad one.
+   The cards sort by display name, so the page lists Burst Thermal, Cooling, Motor, Ribbed Bracket. The
+   Worker serves this file from the build. (Alternatively set the Worker var `CHALLENGE_NAMES` to the
+   same JSON as a string with `wrangler deploy --var`; a var that is not plain labels is ignored. Do not
+   commit values to `wrangler.dashboard.toml`.)
 
    Every board line must print `ACCEPTED`. A `REFUSED <code>`: stop and send the code to the Carbon
    Validator session.
@@ -345,6 +367,11 @@ npx wrangler@4.151.3 deploy --config carbon/dashboard/wrangler.dashboard.toml --
 7. **Roll back**, if the page looks wrong: set `FEED_URLS` back to the list you kept in step 2 and
    load it the same way; `npx wrangler@4.151.3 rollback --config carbon/dashboard/wrangler.dashboard.toml`
    returns the code and site to the previous deployment. Nothing else changed.
+
+**Before the boards exist.** The UX branch can also build an honest "launching soon" site with no
+board, no showcase and no Worker code: `python -m carbon.dashboard build --empty --names <names file> --out <site>` (with the names file, the page lists the four Challenges as "Launching soon" cards; this needs a UX commit that takes `--names` with `--empty`) and
+`wrangler deploy` with `carbon/dashboard/wrangler.dashboard-static.toml`. Replace it with the live
+Worker deploy above once the four boards are published. Optional; it takes no secrets.
 
 **Does the old Battery board stay cached?** The Worker keeps no copy of its own: it rebuilds the board
 list from `FEED_URLS` on each request, and a feed it no longer lists is not shown. What can still
