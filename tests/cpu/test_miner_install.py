@@ -1220,7 +1220,7 @@ def test_an_install_starts_the_catalog_in_the_background_when_entries_are_missin
     assert again.returncode == 0, again.stderr
     assert "needs 3 entries built over" in again.stdout
     assert (
-        "in the background now (from about 15 minutes on a 16-core machine to about 2 hours on a 4-core one)"
+        "in the background now (about 20 to 40 minutes on 8 or more CPUs, about 2 hours on 4 CPUs; 8 or more are recommended, 4 stays the minimum)"
         in again.stdout
     )
     assert any(

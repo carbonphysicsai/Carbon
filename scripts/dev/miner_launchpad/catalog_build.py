@@ -53,10 +53,10 @@ SKIP_NEXT = (
     "explained in its log."
 )
 LOCK = "catalog-build.lock"
-#: What a newcomer is told up front: measured full-catalog installs, 15 to 20 minutes on 16 cores and about 115
+#: What a newcomer is told up front: measured full-catalog installs, 20 to 40 minutes on 8 or more CPUs and about 115
 #: minutes on 4 (Runner and GCP runs, 2026-10-29).
 DURATION = (
-    "from about 15 minutes on a 16-core machine to about 2 hours on a 4-core one; each "
+    "about 20 to 40 minutes on 8 or more CPUs, about 2 hours on 4 CPUs; 8 or more are recommended, 4 stays the minimum; each "
     "Challenge's starting backbone installs first, so a first practice can run within a few minutes"
 )
 REPOSITORY = Path(__file__).resolve().parents[3]

@@ -276,7 +276,7 @@
   const PRACTICE_CODES = {
     smoke_practice_unavailable: "This Challenge has no smoke practice",
     practice_time_budget_reached: "The full practice reached its time budget. Next, run a smoke practice",
-    catalog_entry_not_installed: "This backbone is not installed on this machine yet. The catalog installs itself in the background after you save your settings (from about 15 minutes on a 16-core machine to about 2 hours on a 4-core one; the Overview shows how far it is). Pick a backbone marked installed, or try again when it finishes",
+    catalog_entry_not_installed: "This backbone is not installed on this machine yet. The catalog installs itself in the background after you save your settings (about 20 to 40 minutes on 8 or more CPUs, about 2 hours on 4 CPUs; 8 or more are recommended, 4 stays the minimum; the Overview shows how far it is). Pick a backbone marked installed, or try again when it finishes",
   };
   function practiceMessage(code) {
     return typeof code === "string" && Object.hasOwn(PRACTICE_CODES, code) ? PRACTICE_CODES[code] : null;
@@ -1906,11 +1906,11 @@
       describeTransport(); updateCommands();
     }
     const action = el("div", undefined, "step-action"); action.append(computeButton); compute.append(action);
-    // Saving your settings starts the catalog install (15 minutes to 2 hours, by machine), so it is offered as soon as it can be taken
+    // Saving your settings starts the catalog install (20 minutes to 2 hours, by machine), so it is offered as soon as it can be taken
     // (steps 3 to 5 checked) instead of only at the last step: the install runs while you finish the rest.
     if (steps.compute?.checked && steps.review?.ready && !steps.review?.profile_written) {
       const early = el("div", undefined, "step-action save-early");
-      early.append(el("p", "Ready to save? Saving your settings now starts installing the model catalog in the background (from about 15 minutes on a 16-core machine to about 2 hours on a 4-core one; each Challenge's starting backbone installs first), so your first practice is ready sooner. You can still change anything under Review.", "hint"));
+      early.append(el("p", "Ready to save? Saving your settings now starts installing the model catalog in the background (about 20 to 40 minutes on 8 or more CPUs, about 2 hours on 4 CPUs; 8 or more are recommended, 4 stays the minimum; each Challenge's starting backbone installs first), so your first practice is ready sooner. You can still change anything under Review.", "hint"));
       const saveNow = el("button", "Save my settings now"); saveNow.type = "button"; saveNow.id = "setup-save-early";
       saveNow.addEventListener("click", async () => { await setupCall("review", {confirm: true}); });
       early.append(saveNow); computePanel.append(early);
