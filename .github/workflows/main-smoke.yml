@@ -27,8 +27,10 @@ jobs:
           cache-dependency-glob: uv.lock
       - run: ./scripts/dev/bootstrap.sh
         env:
-          # tests/invariants builds a real keypair from the chain SDK.
-          CARBON_UV_GROUPS: chain
+          # tests/invariants builds a real keypair from the chain SDK, and its
+          # scoring/producer-digest and import-door invariants import numpy
+          # (science-jax, from the lock): without it they error or fail.
+          CARBON_UV_GROUPS: "chain science-jax"
       - name: Check integration invariants and public import
         run: |
           set -euo pipefail
