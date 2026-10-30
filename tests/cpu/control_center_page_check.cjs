@@ -2073,6 +2073,8 @@ scenario("a controller that does not answer keeps the session, and Reconnect is 
 // One cause, one banner (owner smoke sweep S6/S11, 2026-10-21).
 scenario("one banner says the cause holding the page up, with its one fix, on every page", async () => {
   const state = world();
+  // A real blocker: with no agent available at all (Manual and your own agent included) the missing model key is a fix.
+  state.caps.agents.choices.forEach(choice => { choice.availability = "unavailable"; });
   const page = await open(state);
   const banner = page.$("setup-banner");
   assert.equal(banner.hidden, false, "something blocks a launch in this world");
@@ -3523,10 +3525,11 @@ scenario("a partly installed backbone catalog is said as it is, and an empty one
   await page.press(one(page, "#connect-form button[type=submit]"));
   await page.advance(0);
   const text = page.text("overview-prerequisites");
-  assert.ok(text.includes("No backbone is installed on this machine for " + picks[0].title + " " + picks[0].version));
+  const plain = title => title.replace(/\s*\(.*$/, "").trim() || title;
+  assert.ok(text.includes("No backbone is installed on this machine for " + plain(picks[0].title) + " " + picks[0].version));
   assert.ok(!text.includes("The backbone catalog isn't installed on this machine"),
     "the old sentence read as if nothing was installed anywhere");
-  assert.ok(text.includes("Backbone catalog partly installed: " + picks[1].title + " " + picks[1].version + " 7 of 10"));
+  assert.ok(text.includes("Backbone catalog partly installed: " + plain(picks[1].title) + " " + picks[1].version + " 7 of 10"));
   clean(page);
 });
 
@@ -3589,6 +3592,106 @@ scenario("the setup's catalog document: checking and could-not-check are said so
   const post = state.posted.find(item => item.path === "/api/v1/page/catalog_install");
   assert.deepEqual(post && post.body, {start: true}, "the retry sends the closed start request");
   assert.ok(page.text("overview-prerequisites").includes("Installing the backbone catalog in the background: 200 of 241 installed."));
+  clean(page);
+});
+
+scenario("a refused practice says why in words: the specific code, not the generic one (clean-machine L1)", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  run.journey.frozen_awaiting_submission = false;
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  state.script.push({match: r => r.path === "/api/v1/operations/practice", answer: () => ({body: {...run, state: "PRACTICING"}})});
+  run.state = "PRACTICING";
+  await page.press(one(page, "#journey-practice-" + run.id));
+  Object.assign(run, {state: "READY", refusals: [{operation: "start_research_task", reason: "contract_incompatibility", correction_code: "catalog_entry_not_installed"}]});
+  await refresh(page);
+  await refresh(page);
+  const said = page.text("message") + " " + page.text("campaign-detail");
+  assert.match(said, /This backbone is not installed on this machine yet/);
+  assert.doesNotMatch(said, /Not done: contract incompatibility/);
+  clean(page);
+});
+
+scenario("the backbone picker marks what is not installed yet and starts on an installed current entry (clean-machine L2)", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  run.journey.frozen_awaiting_submission = false;
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const entry = state.caps.challenges.find(item => item.challenge_id === run.challenge.id && item.version === run.challenge.version);
+  const recipeOf = id => ({schema: "carbon.construction-recipe.v1", source: {kind: "catalog", catalog_id: id}, procedure: {entrypoint: null, configuration: {}, train_use: {}, initial_state: null}});
+  const settings = {configuration: ["learning_rate"], train_use: ["steps"]};
+  entry.catalog_recipes = [
+    {catalog_id: "old.Legacy", backbone: "Legacy", legacy: "an older entry", recipe: recipeOf("old.Legacy"), settings, installed: true},
+    {catalog_id: "v2.Missing", backbone: "Missing", recipe: recipeOf("v2.Missing"), settings, installed: false},
+    {catalog_id: "v2.Ready", backbone: "Ready", recipe: recipeOf("v2.Ready"), settings, installed: true},
+    {catalog_id: "v2.Unknown", backbone: "Unknown", recipe: recipeOf("v2.Unknown"), settings, installed: null},
+  ];
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  const pick = one(page, "#journey-backbone-" + run.id);
+  assert.deepEqual([...pick.options].map(option => option.textContent), ["Legacy (legacy)", "Missing (not installed yet)", "Ready", "Unknown"], "only a measured absence is marked; nothing is hidden");
+  assert.equal(pick.value, "v2.Ready", "it starts on an installed current entry, never on the legacy one");
+  const note = () => one(page, "#journey-backbone-missing-" + run.id);
+  assert.equal(note().hidden, true);
+  await page.change(pick, "v2.Missing");
+  assert.equal(note().hidden, false);
+  assert.match(page.text(note()), /not installed on this machine yet/);
+  await page.change(pick, "v2.Unknown");
+  assert.equal(note().hidden, true, "an unknown state gets no guess");
+  clean(page);
+});
+
+scenario("while the catalog installs the page says so once, in plain titles, and reads again when it ends (clean-machine L3)", async () => {
+  const build = (extra) => ({schema: "carbon.launchpad.catalog-build.v1", state: "COMPLETE", note: null, skipped: [], installed: 241, total: 241, challenges: [], ...extra});
+  const state = world({setup: {...copy(fx.setups.none), catalog_build: build({state: "RUNNING", installed: 11})}});
+  const picks = listedChallenges(state.caps).filter(entry => entry.selectable);
+  picks[0].title = picks[0].title.replace(/\s*\(.*$/, "") + " (DEVELOPMENT periodic cell, a long registry title)";
+  picks[0].catalog_install = {entries: 5, installed: 0};
+  const page = await open(state);
+  const reads = () => page.requests.filter(r => r.path === "/api/v1/control-center/capabilities").length;
+  let text = page.text("overview-prerequisites");
+  assert.ok(text.includes("Installing the backbone catalog in the background: 11 of 241 installed."));
+  assert.ok(!text.includes("No backbone is installed"), "the installing line is not contradicted");
+  assert.ok(!text.includes("a long registry title"), "titles in the banner are the plain names");
+  const before = reads();
+  state.setup.catalog_build = build({state: "COMPLETE"});
+  picks[0].catalog_install = {entries: 5, installed: 5, status: "ready", checked: 241, total: 241};
+  await page.advance(30000);
+  assert.ok(reads() > before, "the capabilities were read again when the install ended");
+  clean(page);
+});
+
+scenario("a missing model key is a note, not a fix, while Manual or your own agent is available (clean-machine L4)", async () => {
+  const state = launchable(world());
+  state.caps.model.providers.forEach(provider => { provider.availability = "unavailable"; });
+  const page = await open(state);
+  await page.advance(0);
+  const text = page.text("overview-prerequisites");
+  assert.ok(text.includes("only Carbon's own agent (Graphite) needs one"));
+  assert.ok(!/Needed[^]*Model key/.test(text), "no Needed line for the model key");
+  clean(page);
+});
+
+scenario("the Challenge description reads as words: no 'undefined', no empty brackets, positional inputs said once (clean-machine L5)", async () => {
+  const state = launchable(world());
+  const chosen = listedChallenge(state.caps);
+  const entry = state.caps.challenges.find(item => item.challenge_id === chosen.challenge_id && item.version === chosen.version);
+  entry.description = {task: "Predict y.", interface: {inputs: {"0": {}, "1": {}, "2": {}}, outputs: {torque_nm: {shape: []}, field: {shape: [4], unit: "T"}}}, public_material: {train: {cases: 150}, practice: {cases: 30}}};
+  const page = await open(state);
+  page.go("#launch");
+  await page.advance(0);
+  await page.press(byValue(page, "#wizard-challenges input", chosen.challenge_id + "@" + chosen.version));
+  const text = page.text("wizard-challenge-description");
+  assert.ok(!/undefined/.test(text) && !/\[\]/.test(text), text);
+  assert.ok(text.includes("3 numbers, in order (positions 0 to 2)"), text);
+  assert.ok(text.includes("TRAIN: 150 cases"), text);
+  assert.ok(text.includes("torque_nm") && text.includes("field [4] T"), text);
   clean(page);
 });
 

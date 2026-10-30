@@ -371,6 +371,8 @@ def _challenges(profile_state, host, cfg=None):
                     entry["version"],
                 ),
             )
+            # Whether each entry is installed on this machine (display only; unknown until the verifier measured).
+            item["catalog_recipes"] = _mark_installed(item["catalog_recipes"], snapshot)
             # E11 (newcomer list): a Challenge with no ready recipe and no
             # installable backbone cannot be practised from the page; say so
             # rather than offer it as if it could (Battery 2.2 until its
@@ -451,6 +453,24 @@ def _mcp_connection(profile_path):
         "profile_path": str(profile_path),
         "client_configuration": connection["client_configuration"],
     }
+
+
+def _mark_installed(recipes, snapshot):
+    """The picker's entries with ``installed``: True or False once the verifier's snapshot has measured, None
+    (shown as nothing) while it has not or could not. Display only: a practice re-verifies the entry itself.
+    """
+    found = snapshot["found"] if snapshot is not None else None
+    return [
+        {
+            **recipe,
+            "installed": (
+                None
+                if found is None
+                else bool(found.get(recipe.get("catalog_id"), False))
+            ),
+        }
+        for recipe in recipes
+    ]
 
 
 def _catalog_install(entry, cfg, *, readiness_state=None, snapshot=None):

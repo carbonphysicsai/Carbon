@@ -20,7 +20,7 @@ This guide gets you from a clean machine to your first graded model.
 
 ## What you need
 
-- **A Linux machine** (x86-64; see [Supported setup](#supported-setup): 32 GB of RAM and 4 CPUs), or Windows with WSL2. It needs Docker ([install Docker Engine](https://docs.docker.com/engine/install/), start it, add yourself to the `docker` group) and free disk for Carbon's images; the installer checks the space first and says how much it needs. A GPU is optional; to practise on this machine's GPU, install the [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), then install with `--gpu`.
+- **A Linux machine** (x86-64; see [Supported setup](#supported-setup): 32 GB of RAM and 4 CPUs), or Windows with WSL2. It needs Docker ([install Docker Engine](https://docs.docker.com/engine/install/), start it, add yourself to the `docker` group and **log out and in again** so the group applies) and free disk for Carbon's images; the installer checks the space first and says how much it needs. A GPU is optional; to practise on this machine's GPU, install the [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), then install with `--gpu`.
 - **To practise: nothing to register.** You can run your agent and practise on any Challenge without a wallet, a registration or a signer (see **Just want to practise?** in step 4).
 - **To freeze and submit: a Bittensor wallet with a hotkey registered on subnet 567.** Carbon never asks for your keys or seed phrase. Your hotkey stays in your own wallet.
 - **A model key from a provider**, if you want Carbon's agent (Graphite) or Hermes to do the research. Setup lists the providers each agent can use. Save the key in a file only you can read; Carbon reads it from that file. Skip this if you bring your own agent, e.g. Claude Code, which uses its own model.
@@ -67,6 +67,8 @@ git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon
 Add `--gpu` if the machine has an NVIDIA GPU. Any NVIDIA GPU works, whatever the model, driver string or count: a field the GPU does not report (a virtual GPU's capability, for one) is recorded as unknown and never refuses the machine; with several GPUs setup uses the first usable one, prints which, and `--device` picks another.
 
 The installer checks your machine, sets up Carbon's environment, builds the images your practice runs use, and starts the **Control Center**, the web page where you run everything. It never asks for a key or password.
+
+**How long it takes** (measured on a clean 16-vCPU, 30 GiB Ubuntu 24.04 machine): the installer about 4 minutes; then, after you save your settings in Setup, the model catalog installs itself in the background, **about 15 minutes** for all 241 entries. You can open the page and finish Setup while it runs. **A practice on a backbone that is not installed yet is refused** (the page says "This backbone is not installed on this machine yet"): the Overview shows how far the install is, and the backbone picker marks an entry "not installed yet" once the page has measured. Pick an installed one or wait; nothing is lost.
 
 **If your network drops during the install.** The steps that download (the locked environment, the released images, the image builds) are tried once more on their own if the network or the registry times out. If it is still down, the installer stops with: "Carbon install paused: your network dropped while downloading (step ...). Nothing is broken; run the same command again and it continues." Run the same command again; it picks up where it stopped. Any other failure is shown as it was.
 
@@ -121,7 +123,7 @@ The other steps you checked are kept. Your practice campaigns stay on the page a
    - **Fund your wallet first.** Joining is paid in TAO from your money key (the coldkey), so put a little TAO there before you join. **On the test network (the one Carbon launches on) it is test TAO: free, with no money value and no price, from the test network's faucet or from the Carbon team, never bought, and no dollar amount is shown.** Paste your money-key address (public) into the **Get some test TAO** box (**Put some TAO in your wallet** on a real-money network): it shows the address to copy and as a QR code, and **Check my balance** reads your balance and the current joining cost from the chain, in TAO, with the block it was read at. It says **Ready to join** when your balance covers the cost, before transaction fees; your wallet shows the exact cost again when you sign, and that figure is the one that counts. The page only reads: it never moves your funds, and it never asks for a key, password or phrase. **How do I get test TAO?** says where to ask for it. On a real-money network **How do I buy TAO?** lists the steps instead, with Coinbase and Kraken as plain links (examples only; Carbon has no link or share in either).
 3. **Who researches.** Choose one of three:
    - **Graphite**, Carbon's research agent, running on your model key.
-   - **Your own agent**, e.g. Claude Code or Codex, connected over MCP (see below).
+   - **Your own agent**, e.g. Claude Code or Codex, connected over MCP (see below). **No agent and no model key?** Choose this too, finish Setup, and pick **Manual** when you launch: you run each practice from the page and no model is called.
    - **Hermes**, Nous Research's open agent (see below).
 4. **AI model.** Pick a provider and model, give the path to your key file, and agree to the small, quoted cost of a test call.
 5. **Compute.** Where practice runs: this machine's CPU, this machine's GPU, or a GPU machine you rent yourself. With a GPU, **Test my GPU** runs each GPU framework (JAX and PyTorch) once on your GPU, about a minute each, on synthetic data it makes itself; it shows the exact commands first and runs only when you agree. You get a plain answer per framework (works, or doesn't, with what to fix, e.g. an NVIDIA driver too old for the worker). It writes no score. With several GPUs, setup asks you to choose one (`--device GPU-<uuid>`, from `nvidia-smi -L`); it never picks for you. `carbon_accelerator.py doctor --miner-lane` exits 0 when your own practice is ready, and shows `miner_lane_ready`: a grant or approval it lists as blocked is for owner-authorised runs and does not stop your own practice. Your agent can offer the same step: `carbon_setup_test_gpu`, with the consent `carbon_setup_status` lists under `test_gpu`. **What runs on the GPU.** Your own graph's practice (its build, its inference and the speed query) runs on your GPU. A catalog entry (the starting recipes Carbon serves) has no GPU build yet, so a catalog practice runs on its CPU build and says so in its result ("Ran on CPU: this catalog entry has no GPU build yet"); start from your own graph to use the GPU. On Motor and Cooling the served example is the JAX **bcat** entry: its GPU rebuild is repeatable (bit-identical across runs). The PyTorch **CNO1d** entries stay in the catalog, but on a GPU machine they rebuild on the CPU (their GPU build is not repeatable), and the result says so.
@@ -141,13 +143,12 @@ cd ~/carbon && .venv/bin/python -B -m scripts.dev.catalog_install --state-dir ~/
 
 ## 5. Pick a Challenge and start a campaign
 
-A **Challenge** is a physics task, e.g. motor magnetics, a chip cold plate or a ribbed bracket. Open **Challenges**, read one, and click **Start a campaign**.
+A **Challenge** is a physics task, e.g. motor magnetics, a chip cold plate or a ribbed bracket. Open **Challenges**, read one, and click **Use for a new campaign**. The launch step then asks who researches (**Manual** needs no agent and no model key), your compute and your limits.
 
-Cooling 1.6 is a prospective pool-exam version. It removes the temperature-rise
+Cooling 1.6 is a pool-exam version. It removes the temperature-rise
 sign check against hotspot ratio and that sensitivity's fitted exponent; the
 other checks and ordinary output accuracy still apply. Older versions keep
-their original rules. The new version remains reserved until its scoring
-constants are registered, so it is not offered for campaigns yet.
+their original rules.
 
 With Graphite you set your limits up front: how many model calls, how many dollars, how much time. Graphite uses them to the end: near your money or time limit it shortens its last calls to fit what is left, and stops only when not even one short call fits (about 2 minutes, or a 512-token reply). The page then says which limit stopped it (money, model calls, practice runs or time) and what to raise next time. Graphite plans, builds models, practises them, and picks the best.
 
@@ -176,19 +177,18 @@ The exam is not a surprise: you can read what it measures and what passes. What 
 - **Practice and exam.** Practice uses the public bank, with public-seeded probes; its totals are not exam totals. The exam uses private cases, drawn near the design limit inside the published validity region, so that some designs pass and some fail. Exams rotate at most every 90 days, with a weekly overfit check.
 - **King of the hill.** The best total wins. A challenger must beat the king by the registered margin, a tie keeps the king, and the first king must beat Carbon's baseline by the margin. The margin is **not yet registered**, so takeovers are paused.
 
-### Ribbed Bracket 1.7 (reserved)
+### Ribbed Bracket 1.7
 
 Scoring `f08-pool-sealed-v2`, with development scoring
-`f08-dual-development-grid-v3`. This prospective version applies the owner's
+`f08-dual-development-grid-v3`. This version applies the owner's
 frequency-band correction: answers must have the correct seven-value width,
 finite values, non-negative compliance and strictly positive peak frequencies.
 The 80–600 Hz band no longer gates individual answers. A frequency overshoot
 is an accuracy error in A. Dynamic peaks must still be at least the static
 compliance and ordered by damping; design feasibility limits are unchanged.
-Practice and pool answers use the same rule. Pool constants remain **not yet
-registered**, so 1.7 remains **RESERVED** and refuses official grading until
-the owner selects them. Versions through 1.6 keep their original band gate
-and evaluation identities; historical grades retain their meaning.
+Practice and pool answers use the same rule. Versions through 1.6 keep their
+original band gate and evaluation identities; historical grades retain their
+meaning.
 
 ### Ribbed Bracket 1.5
 
