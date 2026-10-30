@@ -49,12 +49,17 @@ HOST_CLASS_FILE="${CARBON_VALIDATOR_HOST_CLASS_FILE:-${SCRIPT_DIR}/../carbon/cha
 # Further registered host classes (schema v2), one JSON file each. They are accepted IN ADDITION to the class above and
 # live outside carbon/ on purpose: a class record is an install gate, not a build input, so registering one moves no
 # image id. With the class FILE knob set (tests) none are read unless the DIR knob names a directory.
+# A class file counts only when it is TRACKED at HEAD and UNMODIFIED in this checkout (git ls-files + no diff against HEAD), so
+# a file dropped on the box or edited in place can never admit a machine, not even in --check-only. The rule applies to the
+# default directory; the DIR test knob (never allowed for an install) reads a plain directory.
+HOST_CLASS_GIT_ROOT=""
 if [[ -n "${CARBON_VALIDATOR_HOST_CLASS_DIR:-}" ]]; then
   HOST_CLASS_DIR="${CARBON_VALIDATOR_HOST_CLASS_DIR}"
 elif [[ -n "${CARBON_VALIDATOR_HOST_CLASS_FILE:-}" ]]; then
   HOST_CLASS_DIR=""
 else
   HOST_CLASS_DIR="${SCRIPT_DIR}/validator_host_classes"
+  HOST_CLASS_GIT_ROOT="${SCRIPT_DIR}/.."
 fi
 MEMINFO_FILE="${CARBON_VALIDATOR_MEMINFO_FILE:-/proc/meminfo}"
 
@@ -258,7 +263,7 @@ ram_gib="$(awk '/^MemTotal:/ { printf "%d", $2 / 1048576 }' /proc/meminfo 2>/dev
 if command -v python3 >/dev/null 2>&1; then
   while IFS=$'\t' read -r code message next; do
     if [[ -n "${code}" ]]; then refuse "${code}" "${message}" "${next}"; fi
-  done < <(python3 - "${HOST_CLASS_FILE}" "${MEMINFO_FILE}" "${HOST_CLASS_DIR}" <<'PY'
+  done < <(python3 - "${HOST_CLASS_FILE}" "${MEMINFO_FILE}" "${HOST_CLASS_DIR}" "${HOST_CLASS_GIT_ROOT}" <<'PY'
 import glob
 import json
 import os
@@ -269,7 +274,7 @@ import sys
 FLAGS = ("avx2", "fma", "avx512f", "avx512_bf16", "amx")
 SCHEMA = "carbon.validator.host-class.v1"
 SCHEMA_V2 = "carbon.validator.host-class.v2"
-path, meminfo, extra_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+path, meminfo, extra_dir, git_root = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 
 
 def refuse(code, message, nxt):
@@ -282,6 +287,27 @@ def run(*command):
     except OSError:
         return ""
     return done.stdout
+
+
+def committed_and_unmodified(file_path):
+    """Whether the file is tracked at HEAD and has no change against HEAD (staged or not). Without a usable git
+    checkout nothing counts: an unverifiable class file is not a class."""
+    if not git_root:
+        return True
+    rel = os.path.relpath(os.path.realpath(file_path), os.path.realpath(git_root))
+    env = {**os.environ, "LC_ALL": "C"}
+    try:
+        tracked = subprocess.run(
+            ["git", "-C", git_root, "ls-files", "--error-unmatch", "--", rel],
+            capture_output=True, env=env, check=False,
+        ).returncode == 0
+        clean = subprocess.run(
+            ["git", "-C", git_root, "diff", "--quiet", "HEAD", "--", rel],
+            capture_output=True, env=env, check=False,
+        ).returncode == 0
+    except OSError:
+        return False
+    return tracked and clean
 
 
 def wellformed(registered, schema):
@@ -325,6 +351,8 @@ except (OSError, ValueError, KeyError, TypeError):
 classes = [(primary.get("id", "the registered class"), primary)]
 if extra_dir:
     for extra_path in sorted(glob.glob(os.path.join(extra_dir, "*.json"))):
+        if not committed_and_unmodified(extra_path):
+            continue  # untracked or edited: never a class
         try:
             with open(extra_path, encoding="utf-8") as stream:
                 extra = json.load(stream)
