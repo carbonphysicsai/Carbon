@@ -86,6 +86,7 @@ Carbon has a small helper that makes a wallet on your own machine. It is its own
 
 1. **Start the helper.** In a terminal on the machine you mine from:
 
+   <!-- human-step: wallet helper -->
    ```bash
    ~/carbon/.venv/bin/carbon-miner-identity
    ```
@@ -101,6 +102,7 @@ Carbon has a small helper that makes a wallet on your own machine. It is its own
 4. **Close the helper's window.** Then copy your **hotkey address** into the Control Center's Setup. Carbon carries nothing across for you.
 5. **Fund the coldkey, then register your hotkey on subnet 567 in your own wallet tool.** Joining is paid in TAO from the coldkey; on the test network it is free test TAO (see **Join Carbon mining** in Setup, below). With `btcli` at the pinned version above:
 
+   <!-- human-step: registration signing -->
    ```bash
    btcli subnets register --netuid 567 --wallet-name <your wallet> --hotkey <your hotkey> --network test
    ```
@@ -114,6 +116,7 @@ Practising only? Skip this step: you need the signer only to freeze and submit.
 
 Your signer signs your submissions with your hotkey. Keys stay in your wallet. In its own terminal:
 
+<!-- human-step: signer start -->
 ```bash
 ~/carbon/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>
 ```
