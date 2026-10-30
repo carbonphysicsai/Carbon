@@ -3677,6 +3677,21 @@ scenario("a default backbone that was not installed moves to an installed one wh
   clean(page);
 });
 
+scenario("an unset learning-curve basis never shows the placeholder word (GTM F4)", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  state.view.learning_curve = {...(state.view.learning_curve || {}), basis: "HUMAN_INPUT"};
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/live");
+  await page.advance(0);
+  const text = page.text("campaign-detail");
+  assert.ok(/Learning curve/.test(text), "the live tab drew");
+  assert.ok(!/HUMAN_INPUT/.test(text), text.slice(0, 200));
+  clean(page);
+});
+
 scenario("while the catalog installs the page says so once, in plain titles, and reads again when it ends (clean-machine L3)", async () => {
   const build = (extra) => ({schema: "carbon.launchpad.catalog-build.v1", state: "COMPLETE", note: null, skipped: [], installed: 241, total: 241, challenges: [], ...extra});
   const state = world({setup: {...copy(fx.setups.none), catalog_build: build({state: "RUNNING", installed: 11})}});
