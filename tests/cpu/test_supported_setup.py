@@ -63,10 +63,16 @@ def test_each_difference_is_a_warning_naming_the_check(change, check):
     assert "Ubuntu 22.04 or 24.04" in warning["supported"]
 
 
-def test_17_gib_and_4_cpus_are_enough_and_16_gb_is_not():
-    assert ss.assess({**SUPPORTED, "ram_gib": 17.0, "cpus": 4}) == []
-    (row,) = ss.assess({**SUPPORTED, "ram_gib": 15.6})
-    assert "32 GB" in row["supported"] and "17 GiB" in row["supported"]
+def test_carbon_needs_32_gb_so_17_gib_and_16_gb_machines_both_differ():
+    """Owner ruling (bug hunt R6): Carbon needs 32 GB to install and practise. A 32 GB machine reports about 31 GiB;
+    the floor is 30 GiB, the same number the installer stops at."""
+    assert ss.MIN_MACHINE_RAM_GIB == 30
+    assert ss.assess({**SUPPORTED, "ram_gib": 30.0, "cpus": 4}) == []
+    for ram in (17.0, 15.6, 29.9):
+        (row,) = ss.assess({**SUPPORTED, "ram_gib": ram})
+        assert row["check"] == "memory"
+        assert "Carbon needs 32 GB to install and practise" in row["supported"]
+        assert "17 GiB" in row["supported"] and f"{ram:.1f} GB seen" == row["found"]
 
 
 def test_what_cannot_be_read_is_not_a_difference_but_is_named():
@@ -118,6 +124,7 @@ def test_the_installer_and_the_python_check_hold_the_same_numbers():
     assert int(value("SUPPORTED_DOCKER_MAJOR")) == ss.SUPPORTED_DOCKER_MAJOR
     assert int(value("SUPPORTED_DOCKER_MEMORY_GIB")) == ss.MIN_DOCKER_MEMORY_GIB
     assert int(value("SUPPORTED_RAM_GB")) == ss.RECOMMENDED_RAM_GB
+    assert int(value("SUPPORTED_MIN_RAM_GIB")) == ss.MIN_MACHINE_RAM_GIB
     assert int(value("SUPPORTED_CPUS")) == ss.MIN_CPUS
     assert int(value("SUPPORTED_DISK_GIB")) == ss.DISK_GIB
     assert value("SUPPORTED_NVIDIA_DRIVER") == ss.MIN_NVIDIA_DRIVER
@@ -204,3 +211,43 @@ def test_the_installer_function_says_what_it_could_not_check(tmp_path):
     assert done.returncode == 0
     for what in ("Docker version", "memory", "CPU count", "free disk"):
         assert what in done.stderr, done.stderr
+
+
+def _memory_check(tmp_path, kb, allow=0):
+    start = INSTALLER.index("step_memory_check() {")
+    end = INSTALLER.index("\n}\n", start) + 3
+    meminfo = tmp_path / "meminfo"
+    meminfo.write_text(f"MemTotal:       {kb} kB\n" if kb else "garbage\n")
+    script = (
+        "set -euo pipefail\n"
+        "fail() { printf 'Carbon install stopped: %s\\n' \"$*\" >&2; exit 2; }\n"
+        f"SUPPORTED_RAM_GB=32\nSUPPORTED_MIN_RAM_GIB=30\nALLOW_LOW_MEMORY={allow}\n"
+        f"export CARBON_INSTALL_MEMINFO_FILE={meminfo.as_posix()}\n"
+        + INSTALLER[start:end]
+        + "step_memory_check\necho passed\n"
+    )
+    return subprocess.run(  # fixed argv
+        ["bash", "-c", script], capture_output=True, text=True, check=False
+    )
+
+
+def test_the_memory_check_function_stops_below_the_floor_and_says_it_in_plain_words(
+    tmp_path,
+):
+    low = _memory_check(tmp_path, 16_367_000)
+    assert low.returncode == 2 and "passed" not in low.stdout
+    assert (
+        "Carbon install stopped: This machine has 15.6 GB of memory. Carbon needs 32 GB to install and practise; "
+        "with less, the install fails partway. Use a machine with 32 GB or more."
+    ) in low.stderr
+    assert "--allow-low-memory" in low.stderr
+    assert (
+        _memory_check(tmp_path, 31_457_280).stdout.strip() == "passed"
+    )  # exactly 30 GiB
+    assert _memory_check(tmp_path, 31_457_279).returncode == 2
+    assert (
+        _memory_check(tmp_path, 0).stdout.strip() == "passed"
+    )  # unreadable: not a block
+    override = _memory_check(tmp_path, 16_367_000, allow=1)
+    assert override.stdout.strip() == "passed"
+    assert "Going on because you passed --allow-low-memory" in override.stderr

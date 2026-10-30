@@ -72,6 +72,7 @@ UPDATE=0
 SERVICE=0
 REMOVE_OLD_IMAGES=0
 REMOVE_CATALOG_IMAGES=0
+ALLOW_LOW_MEMORY=0
 REF_GIVEN=0
 RELEASE=""
 DEVELOPMENT_REVISION=""
@@ -150,6 +151,9 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                other CARBON_STATE_DIR. An install never writes, starts or
                stops another state directory's service
   --port PORT  the Control Center's local port (default 8788)
+  --allow-low-memory
+               expert override: go on although this machine has less memory
+               than Carbon needs (32 GB). The install may fail partway
 EOF
 }
 
@@ -170,6 +174,7 @@ while [[ $# -gt 0 ]]; do
     --service) SERVICE=1 ;;
     --remove-old-images) REMOVE_OLD_IMAGES=1 ;;
     --remove-catalog-images) REMOVE_CATALOG_IMAGES=1 ;;
+    --allow-low-memory) ALLOW_LOW_MEMORY=1 ;;
     --port) PORT="${2:?--port needs a value}"; PORT_GIVEN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
@@ -388,6 +393,10 @@ SUPPORTED_UBUNTU="22.04 24.04"
 SUPPORTED_DOCKER_MAJOR=29
 SUPPORTED_DOCKER_MEMORY_GIB=17
 SUPPORTED_RAM_GB=32
+#: The memory the install STOPS below (OWNER ruling via the Lead, bug hunt R6): Carbon needs 32 GB. A 32 GB machine
+#: reports about 31 GiB in MemTotal (the kernel keeps some), so the stop is at 30 GiB; a "16 GB" machine reports
+#: about 15.6 GiB and fails partway through the image builds. Same number as supported_setup.MIN_MACHINE_RAM_GIB.
+SUPPORTED_MIN_RAM_GIB=30
 SUPPORTED_CPUS=4
 SUPPORTED_DISK_GIB=150
 SUPPORTED_NVIDIA_DRIVER="580.65.06"
@@ -447,9 +456,26 @@ supported_setup_warning() {
   fi
 }
 
+step_memory_check() {
+  # MemTotal in GiB with one decimal, from /proc/meminfo (CARBON_INSTALL_MEMINFO_FILE names another file for a test).
+  local kb tenths
+  kb="$(awk '/^MemTotal:/ {print $2; exit}' "${CARBON_INSTALL_MEMINFO_FILE:-/proc/meminfo}" 2>/dev/null || true)"
+  [[ "${kb}" =~ ^[0-9]+$ ]] || return 0   # unreadable: the supported-setup note below says it could not check
+  (( kb < SUPPORTED_MIN_RAM_GIB * 1048576 )) || return 0
+  tenths=$(( kb * 10 / 1048576 ))
+  local words
+  words="This machine has $(( tenths / 10 )).$(( tenths % 10 )) GB of memory. Carbon needs ${SUPPORTED_RAM_GB} GB to install and practise; with less, the install fails partway. Use a machine with ${SUPPORTED_RAM_GB} GB or more."
+  if [[ "${ALLOW_LOW_MEMORY}" == 1 ]]; then
+    printf 'WARNING: %s Going on because you passed --allow-low-memory; it may fail.\n' "${words}" >&2
+    return 0
+  fi
+  fail "${words} (Expert override: add --allow-low-memory; it may fail.)"
+}
+
 step "1/6 Checking this machine"
 [[ "$(uname -s)" == "Linux" ]] || fail "Linux is required (Windows: use WSL2)."
 [[ "$(uname -m)" == "x86_64" ]] || fail "x86-64 is required."
+step_memory_check
 for tool in git curl docker; do
   command -v "${tool}" >/dev/null 2>&1 || fail "${tool} is not installed. $(install_hint "${tool}")"
 done

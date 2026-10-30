@@ -627,7 +627,12 @@ class Sandbox:
         return out.decode().replace("\r\n", "\n")
 
     def env(self, **env):
+        # The installer stops below 30 GiB of memory (bug hunt R6); these tests run it on whatever machine runs them,
+        # so they read a fake 64 GiB meminfo. The low-memory tests pass their own.
+        meminfo = self.tmp / "meminfo-64gib"
+        meminfo.write_text("MemTotal:       67108864 kB\nMemAvailable:   60000000 kB\n")
         return {
+            "CARBON_INSTALL_MEMINFO_FILE": str(meminfo),
             "PATH": f"{self.tools}:/usr/bin:/bin",
             "HOME": str(self.tmp / "home"),
             "CARBON_STATE_DIR": str(self.state),
@@ -647,6 +652,73 @@ class Sandbox:
 @pytest.fixture
 def sandbox(tmp_path):
     return Sandbox(tmp_path)
+
+
+def _low_memory(sandbox, kb):
+    meminfo = sandbox.tmp / "meminfo-low"
+    meminfo.write_text(f"MemTotal:       {kb} kB\nMemAvailable:   {kb // 2} kB\n")
+    return str(meminfo)
+
+
+def test_a_machine_under_32_gb_stops_at_step_1_in_plain_words_before_anything_runs(
+    sandbox,
+):
+    """Bug hunt R6: a 15.6 GiB ("16 GB") machine ran ~10 minutes and died with raw tracebacks."""
+    done = sandbox.run(
+        "--no-start", CARBON_INSTALL_MEMINFO_FILE=_low_memory(sandbox, 16_367_000)
+    )
+    assert done.returncode == 2
+    assert (
+        "This machine has 15.6 GB of memory. Carbon needs 32 GB to install and practise; "
+        "with less, the install fails partway. Use a machine with 32 GB or more."
+    ) in done.stderr
+    assert "--allow-low-memory" in done.stderr and "may fail" in done.stderr
+    assert sandbox.logged() == []  # nothing was built, fetched or recorded
+    assert "== 1/6" in done.stdout and "== 2/6" not in done.stdout
+
+
+def test_32_gb_machines_pass_the_memory_check(sandbox):
+    # a 32 GB machine reports about 31 GiB; 30 GiB is the floor
+    for kb in (32_500_000, 31_457_280):  # 31.0 GiB and exactly 30 GiB
+        done = sandbox.run(
+            "--no-start", CARBON_INSTALL_MEMINFO_FILE=_low_memory(sandbox, kb)
+        )
+        assert "Carbon needs 32 GB" not in done.stderr, kb
+    done = sandbox.run(
+        "--no-start", CARBON_INSTALL_MEMINFO_FILE=_low_memory(sandbox, 31_457_279)
+    )
+    assert (
+        done.returncode == 2 and "Carbon needs 32 GB" in done.stderr
+    )  # one kB under the floor stops
+
+
+def test_the_expert_override_goes_on_with_a_warning(sandbox):
+    done = sandbox.run(
+        "--no-start",
+        "--allow-low-memory",
+        CARBON_INSTALL_MEMINFO_FILE=_low_memory(sandbox, 16_367_000),
+    )
+    assert "WARNING: This machine has 15.6 GB of memory." in done.stderr
+    assert "Going on because you passed --allow-low-memory; it may fail." in done.stderr
+    assert "== 2/6" in done.stdout  # it went past step 1
+    assert "--allow-low-memory" in INSTALLER_TEXT
+
+
+def test_unreadable_memory_does_not_block_the_install(sandbox):
+    done = sandbox.run(
+        "--no-start", CARBON_INSTALL_MEMINFO_FILE=str(sandbox.tmp / "no-such-file")
+    )
+    assert "Carbon needs 32 GB" not in done.stderr
+
+
+def test_the_memory_check_comes_before_every_tool_and_docker_check():
+    text = INSTALLER_TEXT
+    assert text.index("\nstep_memory_check\n") < text.index(
+        "for tool in git curl docker"
+    )
+
+
+INSTALLER_TEXT = SCRIPT.read_text(encoding="utf-8")
 
 
 def test_a_dirty_checkout_stops_at_step_2_with_the_command_that_sets_it_aside(
