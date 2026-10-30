@@ -61,3 +61,29 @@ def test_checked_graph_still_refuses_an_over_budget_graph():
             bundle_graph_state._checked_graph(doc, permitted)
     finally:
         allowlist.caps_for = original
+
+
+def _recipe():
+    from tests.cpu.test_bundle_graph_state import _recipe as recipe
+
+    return recipe()
+
+
+def test_v8_graph_freezes_loads_and_runs_inference():
+    import jax.numpy as jnp
+    import numpy as np
+
+    from carbon.level4 import interpret
+
+    recipe = _recipe()
+    permitted = allowlist.Allowlist(allowlist.v8_bytes())
+    doc = _doc(permitted, constant=0.0)
+    state = bundle_graph_state.freeze(
+        recipe, doc, [np.asarray([2.0, 3.0], dtype=np.float32)], permitted
+    )
+    loaded, parameters = bundle_graph_state.load(state, recipe, permitted)
+    assert loaded == doc
+    result = interpret.rebuild(loaded, permitted)(
+        jnp.asarray(parameters[0]), jnp.asarray([4.0, 5.0], dtype=jnp.float32)
+    )
+    np.testing.assert_array_equal(np.asarray(result[0]), [8.0, 15.0])
