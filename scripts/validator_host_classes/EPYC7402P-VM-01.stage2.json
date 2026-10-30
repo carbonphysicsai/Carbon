@@ -1,0 +1,19 @@
+{
+  "host_class_id": "VALIDATOR-HOST-CLASS-EPYC7402P-VM-01",
+  "runtimes": {
+    "jax-cuda13-py311": {
+      "determinism_flags_digest": "sha256:4fbf1d7acad8da73ed6f099a098d60a6e2c025ac7f367c2b3a5c67f153a58c32",
+      "image_ids": [
+        "sha256:f63a2cb69de1b56c613f515d3778fc16fdb9b08fc9e0d56d02a6aab281b57785"
+      ]
+    },
+    "torch-cu130-py311": {
+      "determinism_flags_digest": "sha256:1782c72a01c6e92ebbcd552bfe210e7c30586efc7faf0bcd29f656aa2310ec9c",
+      "image_ids": [
+        "sha256:1ec5027cea27d6eee3ebc33de80261d1b48555e18ad032dd819ef3fdb3ac31da"
+      ]
+    }
+  },
+  "schema": "carbon.validator.host-class-stage2.v1",
+  "stage1_record_digest": "sha256:25efbeaa1940d8c0fd54ab96f71d87764a6180920bc39b2aa094414f0dd55b80"
+}
