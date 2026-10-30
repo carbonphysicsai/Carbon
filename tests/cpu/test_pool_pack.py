@@ -493,7 +493,6 @@ def _plain_batch_dir(batch, tmp_path):
 
 def _sealed_digest(pack_root):
     from carbon.challenge_validator.evaluation_pack import prepare_pack
-
     from carbon.scoring import physical_dual_pack as physical
 
     return prepare_pack(
@@ -512,7 +511,6 @@ def _graded_binding(calibration_pack, legs):
     import json
 
     from carbon.challenge_validator.evaluation_pack import prepare_pack
-
     from carbon.scoring import physical_dual_pack as physical
 
     sealed = prepare_pack(
@@ -563,7 +561,6 @@ def test_the_judge_pack_takes_the_baselines_graded_legs_as_its_minimums(
     import json
 
     from carbon.challenge_validator import koth_registry
-
     from carbon.scoring import physical_dual_pack as physical
 
     plain = _plain_batch_dir(batch, tmp_path)
