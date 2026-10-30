@@ -226,8 +226,8 @@ TASK_CORRECTIONS = {
     # read as a backend to change): the miner's install step, by name.
     "catalog_entry_not_installed": (
         "This catalog entry is not installed on this machine, so it cannot "
-        "practise here; the entries installed here are listed below. Choose "
-        "one of them, or have the miner install this one once, outside the "
+        "practise here. Choose an installed one, or have the miner install this "
+        "one once, outside the "
         "campaign: python -B -m scripts.dev.catalog_install --state-dir <the "
         "Control Center state directory> <its catalog id> (Setup's catalog "
         "step says why an earlier install skipped it). Nothing started and no "
