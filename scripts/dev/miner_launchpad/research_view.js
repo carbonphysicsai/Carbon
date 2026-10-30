@@ -634,7 +634,7 @@
         const rows = doc.experiments?.rows || [];
         const latest = rows[rows.length - 1];
         const kernel = !latest || (!latest.backbone && !latest.recipe) || /kernel|krr/i.test(String(latest.backbone || ""));
-        para(curve, kernel ? "Not recorded. " + (doc.learning_curve.basis || "") : "Not recorded for this model yet.", "empty-state");
+        para(curve, kernel ? "Not recorded. " + (doc.learning_curve.basis && doc.learning_curve.basis !== "HUMAN_INPUT" ? doc.learning_curve.basis : "") : "Not recorded for this model yet.", "empty-state");
       }
     });
     part(grid, "cases", JSON.stringify(doc.per_case), cases => {
