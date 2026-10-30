@@ -1,8 +1,8 @@
 <!-- Living guide (owner, 2026-10-22): keep this plain Markdown so anyone can
 edit it. Whoever changes a step a miner sees (an installer flag, a Setup step,
 a command, a message) updates this guide in the same change. Re-read it end to
-end after each install round until launch. Fill DISCORD_INVITE_URL below with
-the owner's invite link. -->
+end after each install round until launch. Help contact: the owner's Telegram
+(owner, 2026-10-30; Carbon has no Discord). -->
 
 # Mining on Carbon: quick start
 
@@ -364,7 +364,7 @@ Hermes asks you before each action that changes something (launch, practise, fre
 | Setup or a campaign says your **practice identity** is missing, damaged or not readable by you alone | Run `chmod 600` on it if it is only readable by others, otherwise choose **Practise without registering** again at Setup's first step, then **Review and launch**. |
 | Submit says the validator doesn't serve this Challenge | No validator grades that Challenge yet. Practise it now; submit when one appears. |
 
-**Need help?** Ask in Carbon's Discord: <DISCORD_INVITE_URL>. Miners and the Carbon team answer there.
+**Need help?** Message the Carbon team on Telegram: [@RBequette](https://t.me/RBequette).
 
 ---
 
