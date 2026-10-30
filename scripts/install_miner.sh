@@ -1169,11 +1169,18 @@ fi
 #: miner runs on their own computer to reach the page (M1 E2E E1).
 remote_line() {
   [[ -n "${SSH_CONNECTION:-}" ]] || return 0
-  local host
+  local host private_note=""
   host="$(printf '%s' "${SSH_CONNECTION}" | cut -d' ' -f3)"
-  [[ -n "${host}" ]] || host="<this machine's address>"
+  # The address this server sees may be a private one (a cloud's internal network, a NAT): it is not reachable
+  # from the miner's own computer, so it is never printed as the address to use.
+  case "${host}" in
+    ""|10.*|127.*|169.254.*|192.168.*|172.1[6-9].*|172.2[0-9].*|172.3[0-1].*|::1|[fF][cCdD]*|[fF][eE]80:*)
+      host="<your server's public address>"
+      private_note=1 ;;
+  esac
   echo "This is a remote machine. On your own computer, run:"
   echo "  ssh -N -L ${PORT}:127.0.0.1:${PORT} ${USER:-$(id -un)}@${host}"
+  [[ -z "${private_note:-}" ]] || echo "  (use the address you connect to this machine with; the one it sees for itself is private)"
   echo "then open the link below there."
 }
 #: open_page_lines: the last lines: the remote line, then the page's link
