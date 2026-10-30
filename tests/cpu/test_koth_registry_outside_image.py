@@ -10,6 +10,7 @@ from pathlib import Path
 
 from carbon.challenge_validator import koth_registry
 from carbon.reconstruction.worker import build_inputs
+from carbon.scoring import pool_version
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -45,3 +46,31 @@ def test_no_worker_staged_module_reads_the_registry():
         assert (
             "koth_registry" not in source and "koth_rebuild_noise" not in source
         ), module
+
+
+def test_the_owner_constants_file_is_outside_the_build_inputs_too():
+    assert pool_version.CONSTANTS.is_file()
+    assert not _inside(pool_version.CONSTANTS, build_inputs.paths())
+    assert not (ROOT / "carbon/scoring/pool_constants.json").exists()
+    assert (
+        pool_version.registered_a_multiplier("electric-motor-magnetics", "1.5") == 3.0
+    )
+    assert '"pool_constants.json"' not in (ROOT / "pyproject.toml").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_no_worker_staged_module_reads_the_constants_file():
+    from carbon.development_session import (
+        bundle_construction_worker,
+        direct_graph_construction_worker,
+    )
+
+    for module in sorted(
+        {
+            *bundle_construction_worker.STAGED_MODULES,
+            *direct_graph_construction_worker.STAGED_MODULES,
+        }
+    ):
+        source = (ROOT / (module.replace(".", "/") + ".py")).read_text(encoding="utf-8")
+        assert "pool_constants" not in source and "pool_version" not in source, module

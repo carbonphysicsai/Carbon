@@ -374,7 +374,7 @@ def _compile_motor(strategy):
 def _pool_status(challenge_id, version):
     """A pool-graded version is offered (IMPLEMENTED) only once its owner constants are registered and published;
     until then it is RESERVED, and the page, which offers by status only, does not offer it. Each version flips in
-    the same change that registers its constants (`scoring/pool_constants.json`, `published_exam._REGISTERED_POOL`;
+    the same change that registers its constants (`scripts/validator_host_classes/pool_constants.json`, `published_exam._REGISTERED_POOL`;
     tests/cpu/test_pool_reserved_status.py ties the two)."""
     from . import published_exam
 

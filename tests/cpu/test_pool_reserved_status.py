@@ -1,7 +1,7 @@
 """A pool-graded version is offered only once its owner constants are registered (Validator 06:55Z): until then it is
 RESERVED, the page (which offers by status only) lists it as reserved, and selecting it is refused. It flips to
 IMPLEMENTED in the same change that registers its constants, which this test ties across the grading constants
-(`scoring/pool_constants.json`) and the published ones (`published_exam._REGISTERED_POOL`).
+(`scripts/validator_host_classes/pool_constants.json`) and the published ones (`published_exam._REGISTERED_POOL`).
 """
 
 from __future__ import annotations

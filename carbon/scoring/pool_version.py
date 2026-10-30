@@ -10,7 +10,7 @@ cohort `pool_design` (inputs only), and its `definition` carries the pools' trut
 `{"sets": [[<carbon.pool.v1 document>, ...], ...]}`. The definition is private to the grading host.
 
 The owner's constants (B, s_h, the honesty reduction, the A and A_gen scales, how A_gen enters A) are read from
-`pool_constants.json`, where each is HUMAN_INPUT until the owner picks it from the per-Challenge owner sheet. A
+`scripts/validator_host_classes/pool_constants.json`, where each is HUMAN_INPUT until the owner picks it from the per-Challenge owner sheet. A
 version with any HUMAN_INPUT refuses to grade: no default, never a guess.
 """
 
@@ -26,7 +26,15 @@ from carbon.scoring import pool_adapters, pool_exam, pool_grader
 from carbon.scoring import pool_proof_suite as suite
 from carbon.scoring.probe_design import POOL_COHORT
 
-CONSTANTS = Path(__file__).with_name("pool_constants.json")
+#: Outside `carbon/` (beside the host-class records): the worker image's source digest is the git listing of the build
+#: inputs, `carbon/` among them, so an owner-constant write inside it would move the image id and every pack bound to it.
+#: Only the host reads it (registered_policies / registered_a_multiplier at grade time); no worker module does.
+CONSTANTS = (
+    Path(__file__).resolve().parents[2]
+    / "scripts"
+    / "validator_host_classes"
+    / "pool_constants.json"
+)
 SCHEMA = "carbon.pool.constants.v1"
 HUMAN_INPUT = "HUMAN_INPUT"
 POOL_KEY = "pool"

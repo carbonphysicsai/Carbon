@@ -386,7 +386,7 @@ HOW_TESTED_LINES = (
 
 
 #: The owner constants a pool version has registered, copied from
-#: `carbon/scoring/pool_constants.json` (a test holds the two equal). A version
+#: `scripts/validator_host_classes/pool_constants.json` (a test holds the two equal). A version
 #: absent here keeps the words "not yet registered". Motor 1.5:
 #: OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01 (owner "1 and a", 2026-10-26). The A_gen
 #: scales are 0.03 x the TRAIN spread of each output, which is public TRAIN data;
@@ -406,7 +406,7 @@ _REGISTERED_POOL = {
             "ripple_fraction": 0.08677790679238961,
         },
         "c_rule": "min",
-        "source": "carbon/scoring/pool_constants.json (OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01)",
+        "source": "scripts/validator_host_classes/pool_constants.json (OWNER-MOTOR-SHEET-AND-F02-EXPONENT-01)",
     },
     ("chip-cold-plate", "1.6"): {
         "query_budget": 60,
@@ -420,7 +420,7 @@ _REGISTERED_POOL = {
             "hydraulic_w": 0.00608371529422243,
         },
         "c_rule": "min",
-        "source": "carbon/scoring/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only)",
+        "source": "scripts/validator_host_classes/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only)",
     },
     ("f08-ribbed-bracket", "1.7"): {
         "query_budget": 80,
@@ -435,7 +435,7 @@ _REGISTERED_POOL = {
             "cad_mass_kg": 0.0025458163971437196,
         },
         "c_rule": "min",
-        "source": "carbon/scoring/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only; query budget 80: OWNER-F08-17-QUERY-BUDGET-80-01)",
+        "source": "scripts/validator_host_classes/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only; query budget 80: OWNER-F08-17-QUERY-BUDGET-80-01)",
     },
     ("f02", "2.5"): {
         "query_budget": 60,
@@ -449,7 +449,7 @@ _REGISTERED_POOL = {
             "extra_energy_j": 15.071498436712524,
         },
         "c_rule": "min",
-        "source": "carbon/scoring/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only)",
+        "source": "scripts/validator_host_classes/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only)",
     },
 }
 

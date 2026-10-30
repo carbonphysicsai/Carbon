@@ -263,7 +263,9 @@ MOTOR_15 = ("electric-motor-magnetics", "1.5")
 
 
 def test_the_registered_values_equal_the_constants_file():
-    document = json.loads((ROOT / "carbon/scoring/pool_constants.json").read_bytes())
+    document = json.loads(
+        (ROOT / "scripts/validator_host_classes/pool_constants.json").read_bytes()
+    )
     row = document["versions"]["electric-motor-magnetics 1.5"]
     own = pe.registered_pool(*MOTOR_15)
     assert own["query_budget"] == row["optimizer"]["budget"]
@@ -277,7 +279,9 @@ def test_the_registered_values_equal_the_constants_file():
 
 
 def test_only_a_fully_registered_version_publishes_numbers():
-    document = json.loads((ROOT / "carbon/scoring/pool_constants.json").read_bytes())
+    document = json.loads(
+        (ROOT / "scripts/validator_host_classes/pool_constants.json").read_bytes()
+    )
     for key in POOL_KEYS:
         row = document["versions"][f"{key[0]} {key[1]}"]
         registered = "HUMAN_INPUT" not in json.dumps(row)
@@ -355,7 +359,9 @@ def test_mining_md_carries_motor_15_s_registered_values():
 def test_f08_17_publishes_its_owner_set_query_budget_of_80():
     """OWNER-F08-17-QUERY-BUDGET-80-01: F08 1.7 asks 80 times per target; the constants file agrees."""
     key = ("f08-ribbed-bracket", "1.7")
-    document = json.loads((ROOT / "carbon/scoring/pool_constants.json").read_bytes())
+    document = json.loads(
+        (ROOT / "scripts/validator_host_classes/pool_constants.json").read_bytes()
+    )
     row = document["versions"]["f08-ribbed-bracket 1.7"]
     assert pe.registered_pool(*key)["query_budget"] == row["optimizer"]["budget"] == 80
     lines = {

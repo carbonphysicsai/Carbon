@@ -6,7 +6,7 @@ seeded optimiser searches through the model. This note is the exact shape the
 pool rows take in the sealed bank, so a sealed pack and its per-validator copies can
 be built in custody. It states structure only; no pool value, truth, constant or
 policy is chosen here. Owner constants stay `HUMAN_INPUT` in
-`carbon/scoring/pool_constants.json`; a pool version refuses to grade until they are
+`scripts/validator_host_classes/pool_constants.json`; a pool version refuses to grade until they are
 registered.
 
 ## What the pack carries
