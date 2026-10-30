@@ -198,7 +198,6 @@ def test_a_pool_version_serves_the_how_you_are_tested_lines(pool_version):
         "score",
         "inverse_design",
         "optimizer",
-        "variants",
         "out_of_range",
         "gates",
         "speed",

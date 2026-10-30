@@ -284,8 +284,8 @@ _SPEED_CEILING_SECONDS = speed_gate.ceilings()
 SPEED_LINE = (
     "Your model must answer each design in at most 1/500 of the time the "
     "reference solver needs for one design. The time is measured on the "
-    "validator's machine, for the whole batch of exam designs with the model's "
-    "loading included, divided by the number of designs. Failing it is a failed "
+    "validator's machine as the median time of single-design calls, each a "
+    "separate call with the model's loading included. Failing it is a failed "
     "gate (speed), and no score."
 )
 HOW_TESTED_LINES = (
@@ -333,23 +333,13 @@ HOW_TESTED_LINES = (
         ),
     ),
     (
-        "variants",
-        "Tighter and looser limits",
-        (
-            "Some targets are tighter or looser versions of the base problem: the "
-            "same design question with its limits moved. A model that only works "
-            "for the base limits loses there. How far the limits move is not "
-            "published."
-        ),
-    ),
-    (
         "out_of_range",
         "Outside the training range",
         (
-            "Some exam questions lie just outside the range your training data "
-            "covers. They count: accuracy there, inverse-design picks there, and "
-            "the physics gates there. How far that range extends, and where its "
-            "questions are, is not published."
+            "Some of the designs your model is asked about during the design "
+            "search lie outside the range your training data covers. They count: "
+            "inverse-design picks there, and the physics gates there. How far "
+            "that range extends is not published."
         ),
     ),
     (
