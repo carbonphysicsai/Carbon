@@ -4,7 +4,7 @@ Date: 2026-10-29 (owner's local evening, CST)
 Status: ACCEPTED by the owner, directly in the Lead session (local_b7032708-92d1-4a7c-a1d3-9ad008ba9cae). The Lead asked for this reply: "I accept containment on the GPUYard backup validator for testnet".
 Owner's words: "accept containment on the GPUYard backup validator for testnet"
 
-Scope: **testnet 567 only**, on the GPUYard backup validator (VM [held in custody], class EPYC7402P-VM-01; see OWNER-GPUYARD-BACKUP-VALIDATOR-01 and VALIDATOR-HOST-CLASS-EPYC7402P-VM-01). **Not mainnet**: mainnet needs the dedicated machine and the owner's fresh acceptance.
+Scope: **testnet 567 only**, on the GPUYard backup validator (class EPYC7402P-VM-01; see OWNER-GPUYARD-BACKUP-VALIDATOR-01 and VALIDATOR-HOST-CLASS-EPYC7402P-VM-01). **Not mainnet**: mainnet needs the dedicated machine and the owner's fresh acceptance.
 
 ## What is accepted
 
