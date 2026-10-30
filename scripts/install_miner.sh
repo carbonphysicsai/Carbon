@@ -191,6 +191,42 @@ fi
 step() { printf '\n== %s\n' "$*"; }
 fail() { printf 'Carbon install stopped: %s\n' "$*" >&2; exit 2; }
 
+# A step that downloads (the package environment, the released images, the image builds). If it fails because the
+# network or the registry dropped (BuildKit's "failed to resolve reference ... i/o timeout" and its relatives), the
+# installer tries that step ONCE more, and if the network is still down it says so in plain words and stops: nothing is
+# half-installed, and running the same command again continues. Any other failure is left exactly as it was (same exit
+# status, same output). Only the step's stderr is watched (it is still shown live); its stdout is untouched.
+NETWORK_FAILURE_PATTERN='i/o timeout|failed to resolve reference|failed to do request|failed to fetch|TLS handshake timeout|connection reset by peer|connection refused|no such host|Temporary failure in name resolution|Could not resolve host|unexpected EOF|context deadline exceeded|net/http: request canceled|dial tcp|error pulling image|Network is unreachable|Connection timed out|failed to copy|read: connection'
+network_retry_wait="${CARBON_INSTALL_NETWORK_RETRY_WAIT:-10}"
+network_step() {
+  local label="$1"; shift
+  local attempt rc log seen
+  log="$(mktemp)"
+  for attempt in 1 2; do
+    : > "${log}"
+    if "$@" 2> >(tee -a "${log}" >&2); then
+      rc=0
+    else
+      rc=$?
+    fi
+    wait $! 2>/dev/null || true   # let tee finish writing the log before it is read
+    if [[ "${rc}" == 0 ]]; then rm -f "${log}"; return 0; fi
+    seen="$(tail -n 80 "${log}")"   # a variable, not a pipe: grep -q would SIGPIPE the tail under pipefail
+    if ! grep -Eiq "${NETWORK_FAILURE_PATTERN}" <<< "${seen}"; then
+      rm -f "${log}"; return "${rc}"    # not a network failure: unchanged
+    fi
+    if [[ "${attempt}" == 1 ]]; then
+      printf 'Your network dropped while downloading (%s). Trying this step once more in %s seconds.\n' \
+        "${label}" "${network_retry_wait}" >&2
+      sleep "${network_retry_wait}"
+    fi
+  done
+  rm -f "${log}"
+  printf 'Carbon install paused: your network dropped while downloading (%s). Nothing is broken; run the same command again and it continues.\n' \
+    "${label}" >&2
+  exit 2
+}
+
 # One role per Docker daemon. The local image tags are derived from the source tree, so a miner install of the same
 # tree as a validator install retags the validator's parent and worker images (val4090, 2026-10-29). The tags now carry
 # the role (worker_tag.sh) AND a miner install refuses outright while a validator install lives on this host.
@@ -749,7 +785,7 @@ if ! command -v uv >/dev/null 2>&1 || [[ "$(uv --version | awk '{print $2}')" !=
 fi
 # Every group a documented command runs with (`uv run --group ...`), so none
 # of them re-syncs this environment.
-CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/bootstrap.sh
+CARBON_UV_GROUPS="science-jax chain archive mcp" network_step "step 3/6, installing the locked environment" ./scripts/dev/bootstrap.sh
 if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
   # These exact root directories were absent at the verified pre-bootstrap
   # boundary. Refuse links/files and unknown paths rather than deleting them.
@@ -864,7 +900,7 @@ if [[ -n "${RELEASE}" ]]; then
     fi
   fi
   for kind in "${kinds[@]}"; do
-    "${python}" -m scripts.dev.worker_image_release pull \
+    network_step "step 4/6, pulling the released images" "${python}" -m scripts.dev.worker_image_release pull \
       --record "${release_dir}/${kind}-worker-image.release.json" \
       --out "${release_dir}/${kind}-worker-image.json" \
       || fail "could not pull or verify the released ${kind} image of ${RELEASE} (above). Nothing was built, and nothing was recorded for setup. To build the images on this machine instead, run without --release: ${rebuild}"
@@ -904,13 +940,13 @@ else
       echo "The worker image built here from this exact source tree is still present; using it again."
     else
       if [[ "${PYTORCH}" == 1 ]]; then
-        ./scripts/dev/torch_worker_image.sh "${worker_manifest}"
+        network_step "step 4/6, building the PyTorch worker image" ./scripts/dev/torch_worker_image.sh "${worker_manifest}"
       else
-        ./scripts/dev/c03_worker_image.sh "${worker_manifest}"
+        network_step "step 4/6, building the worker image" ./scripts/dev/c03_worker_image.sh "${worker_manifest}"
       fi
     fi
     analysis="$(
-      "${python}" -m carbon.development_session.research_image \
+      network_step "step 4/6, building the analysis image" "${python}" -m carbon.development_session.research_image \
         --parent-manifest "${worker_manifest}" \
         --root "${artifacts}/research-images" \
       | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
@@ -920,14 +956,14 @@ else
     if current_image "${artifacts}/accelerator-worker-image.json"; then
       echo "The GPU worker built here from this exact source tree is still present; using it again."
     else
-      ./scripts/dev/accelerator_worker_image.sh "${artifacts}/accelerator-worker-image.json"
+      network_step "step 4/6, building the GPU worker image" ./scripts/dev/accelerator_worker_image.sh "${artifacts}/accelerator-worker-image.json"
     fi
     gpu_manifest="${artifacts}/accelerator-worker-image.json"
     if [[ "${PYTORCH}" == 1 ]]; then
       if current_image "${artifacts}/torch-gpu-worker-image.json"; then
         echo "The PyTorch GPU worker built here from this exact source tree is still present; using it again."
       else
-        ./scripts/dev/torch_gpu_worker_image.sh "${artifacts}/torch-gpu-worker-image.json"
+        network_step "step 4/6, building the PyTorch GPU worker image" ./scripts/dev/torch_gpu_worker_image.sh "${artifacts}/torch-gpu-worker-image.json"
       fi
       torch_gpu_manifest="${artifacts}/torch-gpu-worker-image.json"
     fi
