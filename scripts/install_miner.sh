@@ -209,7 +209,10 @@ network_step() {
     else
       rc=$?
     fi
-    wait $! 2>/dev/null || true   # let tee finish writing the log before it is read
+    # Let tee finish writing the log before it is read. The background-pid variable is deliberately not used: under
+    # set -u it is unbound on bash builds that do not set it for a process substitution.
+    wait 2>/dev/null || true
+    sleep 0.2
     if [[ "${rc}" == 0 ]]; then rm -f "${log}"; return 0; fi
     seen="$(tail -n 80 "${log}")"   # a variable, not a pipe: grep -q would SIGPIPE the tail under pipefail
     if ! grep -Eiq "${NETWORK_FAILURE_PATTERN}" <<< "${seen}"; then

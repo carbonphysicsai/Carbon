@@ -126,3 +126,9 @@ def test_every_downloading_install_step_goes_through_it():
         'network_step "step 4/6, building the analysis image"',
     ):
         assert fragment in SCRIPT, fragment
+
+
+def test_the_wrapper_never_reads_the_background_pid_variable():
+    """`$!` is unbound under `set -u` on bash builds that do not set it for a process substitution (Targon, 49 installer
+    tests failed on it): the wrapper must not mention it."""
+    assert "$!" not in _function() and "${!" not in _function()
