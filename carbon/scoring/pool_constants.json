@@ -115,12 +115,13 @@
         "scale": 1.0
       },
       "optimizer": {
-        "budget": 60,
+        "budget": 80,
         "population": null,
         "sigma0": 0.25
       },
       "provisional": {
         "record": "OWNER-POOL-CONSTANTS-PROVISIONAL-01",
+        "query_budget_record": "OWNER-F08-17-QUERY-BUDGET-80-01",
         "scope": "testnet",
         "status": "PROVISIONAL",
         "guard": "the version's scoring grid on its final sealed pools, in custody; a version that fails goes back to RESERVED"

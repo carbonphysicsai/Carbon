@@ -318,9 +318,11 @@ def test_the_provisional_versions_publish_motor_1_5_s_row_with_their_own_scales(
         own = pe.registered_pool(*key)
         assert own is not None, key
         assert "PROVISIONAL" in own["source"]
+        # F08 1.7 asks 80 times, not 60 (OWNER-F08-17-QUERY-BUDGET-80-01)
+        budget = 80 if key == ("f08-ribbed-bracket", "1.7") else motor["query_budget"]
         assert {k: v for k, v in own.items() if k not in skip} == {
             k: v for k, v in motor.items() if k not in skip
-        }
+        } | {"query_budget": budget}
         assert own["a_gen_scales"] != motor["a_gen_scales"]
         assert pe.for_version(*key)["design_search"] is not pe._DESIGN_SEARCH
 
@@ -348,3 +350,16 @@ def test_mining_md_carries_motor_15_s_registered_values():
     section = _how_section()
     own = pe.registered_pool(*MOTOR_15)
     assert pe._registered_text(own) in section
+
+
+def test_f08_17_publishes_its_owner_set_query_budget_of_80():
+    """OWNER-F08-17-QUERY-BUDGET-80-01: F08 1.7 asks 80 times per target; the constants file agrees."""
+    key = ("f08-ribbed-bracket", "1.7")
+    document = json.loads((ROOT / "carbon/scoring/pool_constants.json").read_bytes())
+    row = document["versions"]["f08-ribbed-bracket 1.7"]
+    assert pe.registered_pool(*key)["query_budget"] == row["optimizer"]["budget"] == 80
+    lines = {
+        line["id"]: line["text"] for line in pe.for_version(*key)["how_you_are_tested"]
+    }
+    assert "The query budget is 80." in lines["inverse_design"]
+    assert "80 times" in lines["registered_values"]

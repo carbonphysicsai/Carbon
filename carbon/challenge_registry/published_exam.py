@@ -392,6 +392,7 @@ HOW_TESTED_LINES = (
 #: scales are 0.03 x the TRAIN spread of each output, which is public TRAIN data;
 #: no target, pool, region bound or seed is named. Cooling 1.6, F08 1.7 and F02 2.5 take Motor 1.5's row,
 #: PROVISIONAL and testnet only (OWNER-POOL-CONSTANTS-PROVISIONAL-01), each with its own A_gen scales (0.03 x its TRAIN spread).
+#: F08 1.7's query budget is 80, not 60 (OWNER-F08-17-QUERY-BUDGET-80-01, provisional).
 _REGISTERED_POOL = {
     ("electric-motor-magnetics", "1.5"): {
         "query_budget": 60,
@@ -422,7 +423,7 @@ _REGISTERED_POOL = {
         "source": "carbon/scoring/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only)",
     },
     ("f08-ribbed-bracket", "1.7"): {
-        "query_budget": 60,
+        "query_budget": 80,
         "initial_step": 0.25,
         "honesty_scale": 1.0,
         "honesty_reduction": "max",
@@ -434,7 +435,7 @@ _REGISTERED_POOL = {
             "cad_mass_kg": 0.0025458163971437196,
         },
         "c_rule": "min",
-        "source": "carbon/scoring/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only)",
+        "source": "carbon/scoring/pool_constants.json (OWNER-POOL-CONSTANTS-PROVISIONAL-01: PROVISIONAL, testnet only; query budget 80: OWNER-F08-17-QUERY-BUDGET-80-01)",
     },
     ("f02", "2.5"): {
         "query_budget": 60,

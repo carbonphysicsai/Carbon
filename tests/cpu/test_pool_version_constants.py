@@ -231,8 +231,16 @@ def test_the_provisional_versions_carry_motor_1_5_s_row_with_their_own_train_sca
     assert entry["provisional"]["status"] == "PROVISIONAL"
     assert entry["provisional"]["scope"] == "testnet"
     assert entry["provisional"]["record"] == "OWNER-POOL-CONSTANTS-PROVISIONAL-01"
-    for field in ("a_multiplier", "a_rule", "c_rule", "honesty", "optimizer"):
+    # F08 1.7's query budget is 80 (OWNER-F08-17-QUERY-BUDGET-80-01): the oracle reaches every reference from B = 80,
+    # not at 60; every other value is Motor 1.5's.
+    budget = 80 if (challenge_id, version) == ("f08-ribbed-bracket", "1.7") else 60
+    if budget == 80:
+        assert entry["provisional"]["query_budget_record"] == (
+            "OWNER-F08-17-QUERY-BUDGET-80-01"
+        )
+    for field in ("a_multiplier", "a_rule", "c_rule", "honesty"):
         assert entry[field] == motor[field], field
+    assert entry["optimizer"] == {**motor["optimizer"], "budget": budget}
     kind = {"chip-cold-plate": "cooling", "f08-ribbed-bracket": "f08", "f02": "f02"}[
         challenge_id
     ]
@@ -241,4 +249,4 @@ def test_the_provisional_versions_carry_motor_1_5_s_row_with_their_own_train_sca
     assert entry["agen_scales"] == {name: 0.03 * v for name, v in spread.items()}
     assert pool_version.registered_a_multiplier(challenge_id, version) == 3.0
     policies = pool_version.registered_policies(challenge_id, version)
-    assert policies.optimizer.budget == 60 and policies.honesty.reduction == "max"
+    assert policies.optimizer.budget == budget and policies.honesty.reduction == "max"
