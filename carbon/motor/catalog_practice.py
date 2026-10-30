@@ -176,7 +176,7 @@ class MotorCatalogPractice:
         from carbon.development_session.construction_recipe import ConstructionRecipe
         from carbon.development_session.profile import canonical, digest
         from carbon.development_session.research_workspace import ResearchWorkspace
-        from carbon.scoring import motor_dual_pack, practice_dual
+        from carbon.scoring import practice_dual
 
         from .challenge import PublicMaterial
         from .practice import PracticeSet, score_practice
@@ -222,7 +222,6 @@ class MotorCatalogPractice:
                 ]
             )
             expected_shape = (len(query), *tuple(expected_shape)[1:])
-        adapter = practice_dual.versioned(motor_dual_pack, self.version)
         from carbon.development_session.catalog_gpu import backend_record
 
         source_kind = (
@@ -396,12 +395,8 @@ class MotorCatalogPractice:
                     ),
                 )
                 if v2
-                else (
-                    practice_dual.unavailable(
-                        motor_dual_pack, "practice_version_not_registered"
-                    )
-                    if adapter is None
-                    else practice_dual.from_rows(adapter, rows)
+                else practice_dual.unavailable_v2(
+                    "motor", self.version, practice_dual.V1_RETIRED
                 )
             ),
         }

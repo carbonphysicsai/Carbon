@@ -279,10 +279,11 @@ class MotorAdapter(ChallengeAdapter):
             raise CandidateFault(
                 "non_finite_score", self.candidate_fault_policy
             ) from fault
-        from carbon.scoring import motor_dual_pack, practice_dual
+        from carbon.scoring import practice_dual
 
-        dual = practice_dual.feedback(
-            motor_dual_pack, practice_dual.motor_predict(model)
+        # The v1 dual shows a value-only design score: retired (it was never an exam grade).
+        dual = practice_dual.unavailable_v2(
+            "motor", self.challenge_version, practice_dual.V1_RETIRED
         )
         outcome = self._outcome(
             submission_id, "SCORED", summary=summary, practice_dual=dual

@@ -277,6 +277,26 @@ class LeanRecipeAdapter(ChallengeAdapter):
             ),
         )
 
+    def require_registered_pool(self):
+        """Fail closed (Validator WIRING_CHANNEL_AND_LOOKUP_P0_RULING_20261030, item b): an
+        OFFICIAL submission on a registered Challenge version with no registered pool exam is
+        refused, so the older allowlist-v7 versions (F08 1.3/1.4, F02 2.2/2.3, Cooling 1.2,
+        Motor 1.3) grade nothing. Practice is not routed here and stays open. A version the
+        version registry does not know is refused by its own door, not by this one."""
+        from carbon.challenge_kit import version_registry
+        from carbon.challenge_registry import published_exam
+
+        kit = getattr(self, "_kit", None)
+        if kit is None:  # no bound kit: validate_strategy refuses it next
+            return
+        key = (kit["id"], kit["version"])
+        try:
+            version_registry.entry(*key)
+        except version_registry.UnregisteredVersion:
+            return
+        if published_exam.registered_pool(*key) is None:
+            raise Unavailable("official_version_without_pool")
+
     def evaluate(self, submission):
         from carbon.development_session.construction_recipe import (
             RecipeRefused,
@@ -285,6 +305,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
         from carbon.research.errors import ResearchServiceErrorCode
         from carbon.research.lifecycle import ResearchTaskProviderError
 
+        self.require_registered_pool()
         recipe = self.validate_strategy(submission.strategy)
         provider = self._provider(submission.hotkey)
         # The durable task provider owns source inspection and admitted

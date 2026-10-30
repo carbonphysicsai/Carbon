@@ -252,6 +252,9 @@ def versioned(module, version):
 
 
 SCHEMA_V2 = "carbon.practice.dual-feedback.v2"
+#: The v1 practice dual shows a value-only design score, which no miner may see (owner
+#: OWNER-EVALUATION-FOCUS-AND-DATA-CYCLE-01 section 1): a version with no v2 grader refuses with this.
+V1_RETIRED = "practice_dual_v1_retired"
 BANK_LABEL = "practice (public bank)"
 
 
@@ -387,7 +390,8 @@ def feedback_v2(kind, version, predict):
         type(v) in (int, float) and math.isfinite(v) for v in (a, d)
     )
     fidelity = measured.get("design_fidelity") or {}
-    value = fidelity.get("value") or {}
+    # The V parts sit under "value" for most packs and at the top of the record for F02's sealed pack.
+    value = fidelity.get("value") or fidelity
     physics = measured.get("physics_half") or {}
 
     def number(x):

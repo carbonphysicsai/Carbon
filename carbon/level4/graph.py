@@ -26,10 +26,12 @@ third-party format. Refusals carry a typed code and never echo content.
 from __future__ import annotations
 
 import base64
+import copy
 import hashlib
 import json
 import math
 import re
+import zlib
 
 SCHEMA = "carbon.development.level4-graph.v0"
 ROLES = ("forward", "init", "loss")
@@ -268,6 +270,41 @@ def decode_array(entry, where=""):
 def dumps(doc):
     """Canonical bytes: sorted keys, no whitespace, UTF-8."""
     return json.dumps(doc, sort_keys=True, separators=(",", ":")).encode()
+
+
+def recipe_info_bytes(*docs):
+    """Accounting v6: the zlib level-9 size of the canonical documents together (ops, operand
+    wiring, shapes, constants, literals and every other field), so a table of true answers
+    cannot hide in the topology. A regular architecture (repeated layers) compresses far below
+    its raw size; high-entropy data does not. Carbon's key-drawn initial values are not in the
+    documents (`init_spec` builds them Carbon-side).
+
+    Value ids are measured relative (owner OWNER-TESTNET-ALL-FOUR-CROWNS-MAINNET-NEW-VERSIONS-01):
+    each id is its distance from the next fresh id, so repeated layers have identical bytes. The
+    rewrite is injective (the next fresh id is recomputed while decoding), so it drops nothing."""
+    body = b"\n".join(dumps(_relative_ids(d)) for d in docs)
+    return len(zlib.compress(body, 9))
+
+
+def _relative_ids(doc):
+    """A copy of a structure-checked ``doc`` with every value id as a distance."""
+    doc = copy.deepcopy(doc)
+    for g in doc["graphs"].values():
+        top = -1
+        for entry in g["inputs"] + g["constants"]:
+            value = entry["value"]
+            entry["value"] = value - top
+            top = max(top, value)
+        for node in g["nodes"]:
+            fresh = top + 1
+            node["in"] = [fresh - i for i in node["in"]]
+            for out in node["out"]:
+                value = out["value"]
+                out["value"] = value - fresh
+                top = max(top, value)
+        fresh = top + 1
+        g["outputs"] = [fresh - o for o in g["outputs"]]
+    return doc
 
 
 def digest(doc):
