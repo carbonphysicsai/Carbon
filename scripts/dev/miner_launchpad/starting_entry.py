@@ -12,24 +12,19 @@ so it is refused at freeze and cannot be graded at launch (owner: "just change t
 for it is after launch). Its start is the entry that freezes under the budget, holds an official GPU receipt and is
 eligible in practice with the highest measured practice total: of the two with a receipt, `physicsnemo.MeshGraphNet`
 (12,870 bytes; eligible, total 0.371) rather than `physicsnemo.FullyConnected` (1,413 bytes; gate-failed, no total).
-Measured on the 12-entry panel of 2026-10-30. The other three launch versions keep `prior_krr`, which fits there.
+Measured on the 12-entry panel of 2026-10-30; its official gradability still needs its receipt on the final
+image. The choice lives in `listing.MEASURED_START`, shared with the MCP ready recipe. The other three launch versions keep `prior_krr`, which fits there.
 """
 
 from carbon.backbone_catalog import listing
 
 BASELINE_SUFFIX = ".prior_krr"
-# (challenge_id, version) -> catalog id, where the baseline cannot be graded (see the module docstring).
-MEASURED_START = {
-    ("chip-cold-plate", "1.6"): "v2.cooling.physicsnemo.MeshGraphNet",
-}
 
 
 def starting_entry(challenge_id, version):
     """The catalog id a first practice on (challenge_id, version) starts on, or None when it offers no entry."""
-    chosen = MEASURED_START.get((challenge_id, version))
-    if chosen is not None and any(
-        item["catalog_id"] == chosen for item in listing.entries(challenge_id, version)
-    ):
+    chosen = listing.measured_start(challenge_id, version)
+    if chosen is not None:
         return chosen
     for item in listing.entries(challenge_id, version):
         catalog_id = item["catalog_id"]

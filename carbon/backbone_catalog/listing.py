@@ -145,6 +145,27 @@ def preferred(challenge_id, version):
     return None
 
 
+#: Versions whose newcomer start is a measured entry rather than the kernel-ridge baseline, because the baseline
+#: cannot be graded there. Cooling 1.6: `prior_krr` freezes to 63,026 bytes of wiring, over the 32 KiB accounting-v6
+#: budget, so it is refused at freeze. The pick is the entry that freezes under the budget, holds an official GPU
+#: receipt and is eligible in practice with the highest measured practice total (panel 2026-10-30:
+#: MeshGraphNet 12,870 bytes, total 0.371; FullyConnected is gate-failed). Its official gradability still needs its
+#: receipt on the final image. Read by the Launchpad page and by the MCP ready recipe alike.
+MEASURED_START = {
+    ("chip-cold-plate", "1.6"): "v2.cooling.physicsnemo.MeshGraphNet",
+}
+
+
+def measured_start(challenge_id, version):
+    """The `MEASURED_START` entry for (challenge_id, version) when it is served there, else None."""
+    named = MEASURED_START.get((challenge_id, version))
+    if named is not None and any(
+        item["catalog_id"] == named for item in entries(challenge_id, version)
+    ):
+        return named
+    return None
+
+
 def install_order(items):
     """`items` (manifest entries) with the entries a first practice starts on first, the rest in their own order.
 

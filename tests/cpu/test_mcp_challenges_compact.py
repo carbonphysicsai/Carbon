@@ -11,6 +11,7 @@ import json
 import pytest
 
 from carbon import challenge_registry as challenges
+from carbon.backbone_catalog import listing
 from carbon.miner_mcp import mcp_challenges
 from carbon.miner_mcp.mcp_challenges import (
     COMPACT_SCHEMA,
@@ -129,14 +130,23 @@ def test_compact_is_a_small_projection_of_the_full_answer(
     assert compact["ready_recipe_kind"] == kind
     # A catalog recipe starts on the version's baseline entry where one is offered; nothing else about it changes
     # (the catalog digest is the version's, the same for every entry).
-    assert compact["ready_recipe"] == mcp_challenges._baseline_start(full, kind, document)
+    assert compact["ready_recipe"] == mcp_challenges._baseline_start(
+        full, kind, document
+    )
     if kind == "recipe" and document["source"].get("kind") == "catalog":
         swapped = {**compact["ready_recipe"]["source"], "catalog_id": None}
         assert swapped == {**document["source"], "catalog_id": None}
-        assert compact["ready_recipe"]["source"]["catalog_id"].endswith(
-            ".prior_krr"
-        ) or not any(
-            entry.endswith(".prior_krr") for entry in full["models"]["catalog"]["entries"]
+        measured = listing.measured_start(full["challenge_id"], full["version"])
+        assert (
+            (
+                measured is not None
+                and compact["ready_recipe"]["source"]["catalog_id"] == measured
+            )
+            or compact["ready_recipe"]["source"]["catalog_id"].endswith(".prior_krr")
+            or not any(
+                entry.endswith(".prior_krr")
+                for entry in full["models"]["catalog"]["entries"]
+            )
         )
     else:
         assert compact["ready_recipe"] == document
@@ -242,3 +252,14 @@ def test_the_schema_offers_compact_as_optional():
     assert schema["properties"]["compact"]["default"] is False
     assert "compact" not in schema.get("required", [])
     assert "compact" in tool.description
+
+
+def test_cooling_1_6_ready_recipe_starts_on_the_measured_entry_not_the_refused_baseline():
+    ready = {"source": {"kind": "catalog", "catalog_id": "v2.cooling.jno.bcat"}}
+    described = {"challenge_id": "chip-cold-plate", "version": "1.6"}
+    swapped = mcp_challenges._baseline_start(described, "recipe", ready)
+    assert swapped["source"]["catalog_id"] == "v2.cooling.physicsnemo.MeshGraphNet"
+    other = {"challenge_id": "f08-ribbed-bracket", "version": "1.7"}
+    assert mcp_challenges._baseline_start(other, "recipe", ready)["source"][
+        "catalog_id"
+    ].endswith(".prior_krr")

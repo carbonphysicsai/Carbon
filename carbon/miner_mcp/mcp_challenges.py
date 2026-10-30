@@ -98,6 +98,9 @@ def _baseline_start(described, kind, ready):
         entries = listing.entries(described["challenge_id"], described["version"])
     except (KeyError, TypeError, ValueError):
         return ready
+    measured = listing.measured_start(described["challenge_id"], described["version"])
+    if measured is not None:
+        return {**ready, "source": {**source, "catalog_id": measured}}
     for item in entries:
         catalog_id = item["catalog_id"]
         if catalog_id.startswith(listing.V2_PREFIX) and catalog_id.endswith(

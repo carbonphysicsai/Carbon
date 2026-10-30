@@ -3,12 +3,9 @@
 import pathlib
 
 from carbon.backbone_catalog import listing
+from carbon.backbone_catalog.listing import MEASURED_START
 from scripts.dev.miner_launchpad import toolbox
-from scripts.dev.miner_launchpad.starting_entry import (
-    MEASURED_START,
-    start_first,
-    starting_entry,
-)
+from scripts.dev.miner_launchpad.starting_entry import start_first, starting_entry
 
 
 def _newest():
