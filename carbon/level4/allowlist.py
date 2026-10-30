@@ -60,7 +60,10 @@ def caps_for(allowlist):
     version = (
         allowlist if type(allowlist) is str else getattr(allowlist, "version", None)
     )
-    return dict(UNCAPPED_CAPS if version in UNCAPPED_VERSIONS else CAPS)
+    caps = dict(UNCAPPED_CAPS if version in UNCAPPED_VERSIONS else CAPS)
+    if version in ACCOUNTING_V6_VERSIONS:
+        caps["constant_bytes"] = V6_CONSTANT_BYTES
+    return caps
 
 
 def _refusal(code, where, op):
@@ -248,6 +251,10 @@ MEASURED_AS_V5 = {"constant_bytes": "fitted_info_bytes"}
 CONSTANT_ACCOUNTING_V6 = "level4-constant-accounting-v6"
 ACCOUNTING_V6_VERSIONS = frozenset({"level4-allowlist-v8"})
 MEASURED_AS_V6 = {"constant_bytes": "recipe_info_bytes"}
+#: The recipe-information budget under accounting v6, for the allowlist versions that use it
+#: (OWNER-FITTED-INFO-32KIB-AT-LAUNCH-01): 32 KiB, up from the 16 KiB of `CAPS`. An entry above it
+#: stays refused (`fitted_info_over_budget`); every earlier accounting keeps its cap.
+V6_CONSTANT_BYTES = 32 * 1024
 
 
 def accounting_for(allowlist):
