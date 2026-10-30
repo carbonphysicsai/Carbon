@@ -4,6 +4,7 @@ import pathlib
 
 from carbon.backbone_catalog import listing
 from scripts.dev.miner_launchpad import toolbox
+from scripts.dev.miner_launchpad.starting_entry import start_first, starting_entry
 
 
 def _newest():
@@ -18,7 +19,7 @@ def _newest():
 
 def test_install_order_is_a_permutation_with_the_first_practice_entries_first():
     items = listing.load()["entries"]
-    ordered = listing.install_order(items)
+    ordered = start_first(items)
     assert sorted(i["catalog_id"] for i in ordered) == sorted(
         i["catalog_id"] for i in items
     ), "nothing dropped or added"
@@ -27,7 +28,7 @@ def test_install_order_is_a_permutation_with_the_first_practice_entries_first():
     ], "the shared manifest is not reordered"
     wanted = []
     for challenge_id, version in sorted(_newest().items()):
-        preferred = listing.preferred(challenge_id, version)
+        preferred = starting_entry(challenge_id, version)
         if preferred is not None and preferred not in wanted:
             wanted.append(preferred)
     assert wanted, "the catalog names first-practice entries"
@@ -44,10 +45,27 @@ def test_the_picker_marks_the_one_recommended_entry_per_version():
         if not recipes:
             continue
         marked = [r["catalog_id"] for r in recipes if r["recommended"]]
-        preferred = listing.preferred(challenge_id, version)
+        preferred = starting_entry(challenge_id, version)
         assert marked == ([preferred] if preferred is not None else [])
 
 
 def test_the_catalog_installer_installs_in_that_order():
     source = pathlib.Path("scripts/dev/catalog_install.py").read_text(encoding="utf-8")
-    assert 'listing.install_order(pipeline.load()["entries"])' in source
+    assert 'start_first(pipeline.load()["entries"])' in source
+
+
+def test_a_newcomer_starts_on_the_baseline_where_one_is_offered_and_the_registry_example_is_unchanged():
+    seen = 0
+    for challenge_id, version in sorted(_newest().items()):
+        ids = [item["catalog_id"] for item in listing.entries(challenge_id, version)]
+        baselines = [i for i in ids if i.startswith("v2.") and i.endswith(".prior_krr")]
+        start = starting_entry(challenge_id, version)
+        if baselines:
+            seen += 1
+            assert start == baselines[0]
+            assert start in ids, "the baseline is a real, served entry"
+        else:
+            assert start == listing.preferred(challenge_id, version)
+    assert seen, "the catalog offers a baseline on at least one Challenge"
+    # The registry's ready example and its digests are not moved by the Launchpad's choice.
+    assert listing.preferred("electric-motor-magnetics", "1.4") == "v2.motor.jno.bcat"

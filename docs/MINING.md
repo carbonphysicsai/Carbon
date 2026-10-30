@@ -333,6 +333,14 @@ hermes -p carbon chat
 
 Hermes asks you before each action that changes something (launch, practise, freeze, submit). To let it run unattended, set `trust: full` for the `carbon` server in `~/.hermes/profiles/carbon/config.yaml`, then run `hermes gateway stop` once.
 
+**A first practice, as an agent does it over MCP.** The tools are the page's own operations:
+
+1. `carbon_setup_status` until Setup is complete, then `carbon_launch` with `{"challenge": ..., "challenge_version": ..., "agent": "none"}`. It returns the campaign id.
+2. `carbon_practice` with `{"campaign": <id>, "strategy": <a recipe object>, "hypothesis": "what this trial tests"}`. `mode: "smoke"` is the short trial where the Challenge offers one. The recipe is the Challenge's ready recipe, with `source.catalog_id` naming the backbone. **The backbone must be installed on this machine**: the catalog installs itself in the background after you save your settings (about 15 minutes for all of it); the Control Center's Overview shows how far it is, and the page marks entries not installed yet. Start on the entry the Control Center's picker recommends once it shows as installed.
+3. `carbon_observe` with the campaign id and read `state`, the practice results and `refusals`. **A practice that is refused still returns a normal campaign state**: check `refusals` for a `correction_code` before you assume it started. `catalog_entry_not_installed` means that backbone is not installed yet: pick an installed one or wait.
+4. `carbon_freeze_candidate` for the practice you want to keep, then `carbon_submit`, then `carbon_observe` for the result.
+
+
 ---
 
 ## When something goes wrong
