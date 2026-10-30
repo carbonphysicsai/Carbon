@@ -627,7 +627,7 @@ class Sandbox:
         return out.decode().replace("\r\n", "\n")
 
     def env(self, **env):
-        # The installer stops below 30 GiB of memory (bug hunt R6); these tests run it on whatever machine runs them,
+        # The installer stops below 28 GiB of memory (bug hunt R6); these tests run it on whatever machine runs them,
         # so they read a fake 64 GiB meminfo. The low-memory tests pass their own.
         meminfo = self.tmp / "meminfo-64gib"
         meminfo.write_text("MemTotal:       67108864 kB\nMemAvailable:   60000000 kB\n")
@@ -669,7 +669,7 @@ def test_a_machine_under_32_gb_stops_at_step_1_in_plain_words_before_anything_ru
     )
     assert done.returncode == 2
     assert (
-        "This machine has 15.6 GB of memory. Carbon needs 32 GB to install and practise; "
+        "This machine has 15.6 GiB of memory. Carbon needs 32 GB to install and practise; "
         "with less, the install fails partway. Use a machine with 32 GB or more."
     ) in done.stderr
     assert "--allow-low-memory" in done.stderr and "may fail" in done.stderr
@@ -678,14 +678,14 @@ def test_a_machine_under_32_gb_stops_at_step_1_in_plain_words_before_anything_ru
 
 
 def test_32_gb_machines_pass_the_memory_check(sandbox):
-    # a 32 GB machine reports about 31 GiB; 30 GiB is the floor
-    for kb in (32_500_000, 31_457_280):  # 31.0 GiB and exactly 30 GiB
+    # a 32 GB machine reports about 30-31 GiB; 28 GiB is the floor
+    for kb in (32_500_000, 29_360_128):  # 31.0 GiB and exactly 28 GiB
         done = sandbox.run(
             "--no-start", CARBON_INSTALL_MEMINFO_FILE=_low_memory(sandbox, kb)
         )
         assert "Carbon needs 32 GB" not in done.stderr, kb
     done = sandbox.run(
-        "--no-start", CARBON_INSTALL_MEMINFO_FILE=_low_memory(sandbox, 31_457_279)
+        "--no-start", CARBON_INSTALL_MEMINFO_FILE=_low_memory(sandbox, 29_360_127)
     )
     assert (
         done.returncode == 2 and "Carbon needs 32 GB" in done.stderr
@@ -698,7 +698,7 @@ def test_the_expert_override_goes_on_with_a_warning(sandbox):
         "--allow-low-memory",
         CARBON_INSTALL_MEMINFO_FILE=_low_memory(sandbox, 16_367_000),
     )
-    assert "WARNING: This machine has 15.6 GB of memory." in done.stderr
+    assert "WARNING: This machine has 15.6 GiB of memory." in done.stderr
     assert "Going on because you passed --allow-low-memory; it may fail." in done.stderr
     assert "== 2/6" in done.stdout  # it went past step 1
     assert "--allow-low-memory" in INSTALLER_TEXT

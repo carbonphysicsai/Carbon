@@ -10,7 +10,7 @@ Carbon is built to reward miners for fast, accurate physics models. You build th
 
 This guide gets you from a clean machine to your first graded model.
 
-> **You need a machine with 32 GB of memory.** With less, the installer stops at step 1 and says so ("This machine has X GB of memory. Carbon needs 32 GB to install and practise; with less, the install fails partway. Use a machine with 32 GB or more."). An expert can go on anyway with `--allow-low-memory`; the install may fail partway.
+> **You need a machine with 32 GB of memory.** With less, the installer stops at step 1 and says so ("This machine has X GiB of memory. Carbon needs 32 GB to install and practise; with less, the install fails partway. Use a machine with 32 GB or more."). An expert can go on anyway with `--allow-low-memory`; the install may fail partway.
 
 > **Testnet only, for now.** Everything here runs on Carbon's test network (subnet 567). Nothing is paid yet.
 
@@ -35,7 +35,7 @@ Carbon's launch supports **one** setup, and a run on it is guaranteed:
 |---|---|
 | Operating system | Ubuntu 22.04 or 24.04, x86-64 |
 | Docker | Docker 29 (the installer may install it) |
-| Memory | **32 GB of RAM** (a 32 GB machine reports about 31 GiB; the install stops below 30 GiB, unless you add `--allow-low-memory`, which may fail). Practice runs its worker with a 16 GiB limit and needs Docker to see at least 17 GiB, so a 16 GB machine (about 15.6 GiB) cannot run it |
+| Memory | **32 GB of RAM** (a 32 GB machine reports about 31 GiB; the install stops below 28 GiB, unless you add `--allow-low-memory`, which may fail). Practice runs its worker with a 16 GiB limit and needs Docker to see at least 17 GiB, so a 16 GB machine (about 15.6 GiB) cannot run it |
 | CPUs | at least 4 |
 | Disk | about 150 GiB free |
 | GPU | optional; any NVIDIA GPU with driver **580.65.06 or newer** |

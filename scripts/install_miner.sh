@@ -201,7 +201,10 @@ fail() { printf 'Carbon install stopped: %s\n' "$*" >&2; exit 2; }
 # installer tries that step ONCE more, and if the network is still down it says so in plain words and stops: nothing is
 # half-installed, and running the same command again continues. Any other failure is left exactly as it was (same exit
 # status, same output). Only the step's stderr is watched (it is still shown live); its stdout is untouched.
-NETWORK_FAILURE_PATTERN='i/o timeout|failed to resolve reference|failed to do request|failed to fetch|TLS handshake timeout|connection reset by peer|connection refused|no such host|Temporary failure in name resolution|Could not resolve host|unexpected EOF|context deadline exceeded|net/http: request canceled|dial tcp|error pulling image|Network is unreachable|Connection timed out|failed to copy|read: connection'
+NETWORK_FAILURE_PATTERN='i/o timeout|failed to resolve reference|failed to do request|failed to fetch|TLS handshake timeout|connection reset by peer|connection refused|no such host|Temporary failure in name resolution|Could not resolve host|unexpected EOF|context deadline exceeded|net/http: request canceled|dial tcp|error pulling image|Network is unreachable|Connection timed out|read: connection'
+# A full disk or an exceeded quota is not the network, even when BuildKit words it as a failed copy or pull: no retry,
+# and the original error passes through.
+DISK_FAILURE_PATTERN='no space left on device|disk quota exceeded|quota exceeded|not enough space|insufficient space|No space left'
 network_retry_wait="${CARBON_INSTALL_NETWORK_RETRY_WAIT:-10}"
 network_step() {
   local label="$1"; shift
@@ -220,7 +223,7 @@ network_step() {
     sleep 0.2
     if [[ "${rc}" == 0 ]]; then rm -f "${log}"; return 0; fi
     seen="$(tail -n 80 "${log}")"   # a variable, not a pipe: grep -q would SIGPIPE the tail under pipefail
-    if ! grep -Eiq "${NETWORK_FAILURE_PATTERN}" <<< "${seen}"; then
+    if grep -Eiq "${DISK_FAILURE_PATTERN}" <<< "${seen}" || ! grep -Eiq "${NETWORK_FAILURE_PATTERN}" <<< "${seen}"; then
       rm -f "${log}"; return "${rc}"    # not a network failure: unchanged
     fi
     if [[ "${attempt}" == 1 ]]; then
@@ -394,9 +397,11 @@ SUPPORTED_DOCKER_MAJOR=29
 SUPPORTED_DOCKER_MEMORY_GIB=17
 SUPPORTED_RAM_GB=32
 #: The memory the install STOPS below (OWNER ruling via the Lead, bug hunt R6): Carbon needs 32 GB. A 32 GB machine
-#: reports about 31 GiB in MemTotal (the kernel keeps some), so the stop is at 30 GiB; a "16 GB" machine reports
-#: about 15.6 GiB and fails partway through the image builds. Same number as supported_setup.MIN_MACHINE_RAM_GIB.
-SUPPORTED_MIN_RAM_GIB=30
+#: reports about 31 GiB in MemTotal (the kernel keeps some), so the stop is at 28 GiB: the floor must never refuse a real
+#: 32 GB machine (our own 32 GB-class VM reported about 30 GiB); it only separates it from a 24 GB (about 23 GiB) and a
+#: "16 GB" machine (about 15.6 GiB), which fail partway through the image builds. Same number as
+#: supported_setup.MIN_MACHINE_RAM_GIB.
+SUPPORTED_MIN_RAM_GIB=28
 SUPPORTED_CPUS=4
 SUPPORTED_DISK_GIB=150
 SUPPORTED_NVIDIA_DRIVER="580.65.06"
@@ -464,7 +469,7 @@ step_memory_check() {
   (( kb < SUPPORTED_MIN_RAM_GIB * 1048576 )) || return 0
   tenths=$(( kb * 10 / 1048576 ))
   local words
-  words="This machine has $(( tenths / 10 )).$(( tenths % 10 )) GB of memory. Carbon needs ${SUPPORTED_RAM_GB} GB to install and practise; with less, the install fails partway. Use a machine with ${SUPPORTED_RAM_GB} GB or more."
+  words="This machine has $(( tenths / 10 )).$(( tenths % 10 )) GiB of memory. Carbon needs ${SUPPORTED_RAM_GB} GB to install and practise; with less, the install fails partway. Use a machine with ${SUPPORTED_RAM_GB} GB or more."
   if [[ "${ALLOW_LOW_MEMORY}" == 1 ]]; then
     printf 'WARNING: %s Going on because you passed --allow-low-memory; it may fail.\n' "${words}" >&2
     return 0

@@ -38,8 +38,8 @@ MIN_DOCKER_MEMORY_GIB = WORKER_MEMORY_GIB + 1
 MIN_CPUS = LARGE_MODEL_CPU_COUNT
 RECOMMENDED_RAM_GB = 32
 #: Carbon needs 32 GB to install and practise (owner ruling, bug hunt R6). A 32 GB machine reports about 31 GiB, so the
-#: installer stops, and this check differs, below 30 GiB. Same number as `SUPPORTED_MIN_RAM_GIB` in install_miner.sh.
-MIN_MACHINE_RAM_GIB = 30
+#: installer stops, and this check differs, below 28 GiB (the floor never refuses a real 32 GB machine; our own 32 GB-class VM reported about 30 GiB). Same number as `SUPPORTED_MIN_RAM_GIB` in install_miner.sh.
+MIN_MACHINE_RAM_GIB = 28
 DISK_GIB = 150
 
 #: The oldest NVIDIA Linux driver that runs Carbon's GPU builds. Both GPU
@@ -117,7 +117,7 @@ def assess(facts: dict) -> list[dict]:
     if ram is not None and ram < MIN_MACHINE_RAM_GIB:
         add(
             "memory",
-            f"{ram:.1f} GB seen",
+            f"{ram:.1f} GiB seen",
             f"{RECOMMENDED_RAM_GB} GB of RAM: Carbon needs {RECOMMENDED_RAM_GB} GB to install and practise "
             f"(Docker must see {MIN_DOCKER_MEMORY_GIB} GiB: the practice worker runs under a "
             f"{WORKER_MEMORY_GIB} GiB limit plus 1 GiB)",

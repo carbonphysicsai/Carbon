@@ -104,6 +104,33 @@ def test_other_network_wordings_are_recognised(tmp_path, line):
     )
 
 
+@pytest.mark.parametrize(
+    "line",
+    [
+        "ERROR: failed to copy: write /var/lib/docker/x: no space left on device",
+        "failed to solve: failed to copy: no space left on device",
+        "write /tmp/x: disk quota exceeded",
+        "error: not enough space on the device",
+    ],
+)
+def test_a_full_disk_is_not_a_network_failure_even_with_a_network_word_before_it(
+    tmp_path, line
+):
+    body = f'echo "dial tcp 1.2.3.4:443: i/o timeout" >&2; echo "{line}" >&2; exit 5'
+    done, attempts = _run(tmp_path, body)
+    assert attempts == 1 and done.returncode == 5  # no retry, the step's own status
+    assert (
+        "network dropped" not in done.stderr and line in done.stderr
+    )  # the original error passes through
+
+
+def test_a_bare_failed_to_copy_is_not_called_a_network_failure(tmp_path):
+    done, attempts = _run(
+        tmp_path, 'echo "failed to copy: unexpected layer" >&2; exit 4'
+    )
+    assert attempts == 1 and done.returncode == 4
+
+
 def test_a_failure_that_is_not_the_network_is_left_exactly_as_it_was(tmp_path):
     done, attempts = _run(
         tmp_path, 'echo "ERROR: Dockerfile parse error on line 3" >&2; exit 7'

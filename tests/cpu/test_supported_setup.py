@@ -65,14 +65,15 @@ def test_each_difference_is_a_warning_naming_the_check(change, check):
 
 def test_carbon_needs_32_gb_so_17_gib_and_16_gb_machines_both_differ():
     """Owner ruling (bug hunt R6): Carbon needs 32 GB to install and practise. A 32 GB machine reports about 31 GiB;
-    the floor is 30 GiB, the same number the installer stops at."""
-    assert ss.MIN_MACHINE_RAM_GIB == 30
-    assert ss.assess({**SUPPORTED, "ram_gib": 30.0, "cpus": 4}) == []
-    for ram in (17.0, 15.6, 29.9):
+    the floor is 28 GiB (never refusing a real 32 GB machine), the same number the installer stops at.
+    """
+    assert ss.MIN_MACHINE_RAM_GIB == 28
+    assert ss.assess({**SUPPORTED, "ram_gib": 28.0, "cpus": 4}) == []
+    for ram in (17.0, 15.6, 23.4, 27.9):
         (row,) = ss.assess({**SUPPORTED, "ram_gib": ram})
         assert row["check"] == "memory"
         assert "Carbon needs 32 GB to install and practise" in row["supported"]
-        assert "17 GiB" in row["supported"] and f"{ram:.1f} GB seen" == row["found"]
+        assert "17 GiB" in row["supported"] and f"{ram:.1f} GiB seen" == row["found"]
 
 
 def test_what_cannot_be_read_is_not_a_difference_but_is_named():
@@ -221,7 +222,7 @@ def _memory_check(tmp_path, kb, allow=0):
     script = (
         "set -euo pipefail\n"
         "fail() { printf 'Carbon install stopped: %s\\n' \"$*\" >&2; exit 2; }\n"
-        f"SUPPORTED_RAM_GB=32\nSUPPORTED_MIN_RAM_GIB=30\nALLOW_LOW_MEMORY={allow}\n"
+        f"SUPPORTED_RAM_GB=32\nSUPPORTED_MIN_RAM_GIB=28\nALLOW_LOW_MEMORY={allow}\n"
         f"export CARBON_INSTALL_MEMINFO_FILE={meminfo.as_posix()}\n"
         + INSTALLER[start:end]
         + "step_memory_check\necho passed\n"
@@ -237,14 +238,14 @@ def test_the_memory_check_function_stops_below_the_floor_and_says_it_in_plain_wo
     low = _memory_check(tmp_path, 16_367_000)
     assert low.returncode == 2 and "passed" not in low.stdout
     assert (
-        "Carbon install stopped: This machine has 15.6 GB of memory. Carbon needs 32 GB to install and practise; "
+        "Carbon install stopped: This machine has 15.6 GiB of memory. Carbon needs 32 GB to install and practise; "
         "with less, the install fails partway. Use a machine with 32 GB or more."
     ) in low.stderr
     assert "--allow-low-memory" in low.stderr
     assert (
-        _memory_check(tmp_path, 31_457_280).stdout.strip() == "passed"
-    )  # exactly 30 GiB
-    assert _memory_check(tmp_path, 31_457_279).returncode == 2
+        _memory_check(tmp_path, 29_360_128).stdout.strip() == "passed"
+    )  # exactly 28 GiB
+    assert _memory_check(tmp_path, 29_360_127).returncode == 2
     assert (
         _memory_check(tmp_path, 0).stdout.strip() == "passed"
     )  # unreadable: not a block
