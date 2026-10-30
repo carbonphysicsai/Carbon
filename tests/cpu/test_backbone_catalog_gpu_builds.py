@@ -358,7 +358,7 @@ def _with_receipt(monkeypatch, tmp_path, catalog_id, **kwargs):
     (tmp_path / f"{catalog_id}.torch-cu130-py311.json").write_text(json.dumps(receipt))
 
 
-def test_the_official_route_refuses_a_smoke_only_gpu_runtime_with_a_typed_gap_naming_the_cpu_build(
+def test_the_official_route_refuses_a_smoke_only_gpu_runtime_with_a_typed_gap_naming_no_cpu_build(
     tmp_path, monkeypatch
 ):
     from carbon.backbone_catalog import served
@@ -377,11 +377,18 @@ def test_the_official_route_refuses_a_smoke_only_gpu_runtime_with_a_typed_gap_na
             served.runtime_bundle_ref(item, "torch-cu130-py311", official=True)
         assert refused.value.code == "catalog_runtime_not_reproducible"
         assert (
-            "GPU practice only; official grading rebuilds on CPU"
+            "GPU practice only until it holds an official GPU receipt; official grading rebuilds on the validator's GPU"
             in refused.value.detail
         )
-        assert item["bundle_ref"]["bundle_digest"] in refused.value.detail
-        # the CPU build stays officially gradable
+        assert (
+            "practice-only until it holds an official GPU receipt; choose an entry that has one"
+            in refused.value.detail
+        )
+        detail = refused.value.detail
+        assert item["bundle_ref"]["bundle_digest"] not in detail
+        assert item["bundle_ref"]["runtime_profile_id"] not in detail
+        assert "use the" not in detail and "CPU" not in detail
+        # runtime_bundle_ref still returns the base (CPU) ref for its own runtime: flagged to the Validator, unchanged here
         assert (
             served.runtime_bundle_ref(item, "torch-cpu-py311", official=True)
             == item["bundle_ref"]
@@ -411,7 +418,7 @@ def test_a_repeat_receipt_backs_practice_but_the_official_route_needs_an_officia
         served.runtime_bundle_ref(item, runtime, official=True)
     assert refused.value.code == "catalog_runtime_not_reproducible"
     assert "not on the pinned GPU worker image" in refused.value.detail
-    assert item["bundle_ref"]["bundle_digest"] in refused.value.detail
+    assert item["bundle_ref"]["bundle_digest"] not in refused.value.detail
 
 
 def test_only_a_receipt_with_the_pinned_image_the_full_determinism_environment_and_a_registered_host_is_official_grade(
@@ -501,7 +508,7 @@ def test_the_receivers_recipe_screen_refuses_a_smoke_only_gpu_bundle_ref_before_
         with pytest.raises(CatalogRefused) as refused:
             adapter.validate_strategy(recipe_for(item, gpu_ref))
         assert refused.value.code == "catalog_runtime_not_reproducible"
-        assert item["bundle_ref"]["bundle_digest"] in refused.value.detail
+        assert item["bundle_ref"]["bundle_digest"] not in refused.value.detail
         # the CPU build is officially fine, and practice (runtime_bundle_ref official=False) still gets the GPU ref
         assert adapter.validate_strategy(recipe_for(item, item["bundle_ref"]))
     other = entries["neuralop.FNO"]

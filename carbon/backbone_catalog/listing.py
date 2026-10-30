@@ -170,7 +170,7 @@ def install_order(items):
     """`items` (manifest entries) with the entries a first practice starts on first, the rest in their own order.
 
     A miner's first practice runs on the entry the picker starts on: each Challenge's newest catalog version's
-    `preferred` entry. Installing all of a full catalog takes about 15 minutes, so those come first and a first
+    `preferred` entry. Installing all of a full catalog takes about 20 to 40 minutes on 8 or more CPUs and about 2 hours on 4, so those come first and a first
     practice can run a minute or two after the install starts, not after the last entry. A permutation: nothing is
     dropped, added or changed."""
     items = list(items)

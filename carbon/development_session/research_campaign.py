@@ -1998,7 +1998,7 @@ def _refuse_uninstalled_entry(prepared, strategy):
         "catalog_entry_not_installed" if installed else "catalog_not_installed",
         "This backbone is not installed on this machine yet. Installed here: "
         f"{len(installed)} of {total} entries for this Challenge. The catalog installs itself in "
-        "the background after setup (about 15 minutes in all), so retry later, or practise an "
+        "the background after setup (about 20 to 40 minutes on 8 or more CPUs, about 2 hours on 4), so retry later, or practise an "
         "entry that is installed. Nothing started and nothing counts against you.",
     )
 

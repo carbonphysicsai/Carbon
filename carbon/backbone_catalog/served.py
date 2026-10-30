@@ -124,7 +124,8 @@ def refuse_unreproducible_runtime(bundle_ref, store=None):
     official route cannot rebuild reproducibly: a smoke-only entry's GPU build, or any GPU build without an
     official-grade receipt (pinned GPU worker image digest, the full determinism environment, a registered host
     class: `gpu_receipt.official_grade_problem`). A recipe names its bundle_ref directly, so the receiver's recipe
-    screen looks the digest up here, before anything is reserved. The CPU build is always the official one.
+    screen looks the digest up here, before anything is reserved. Official grading never falls back to a CPU
+    build (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01): such an entry is practice-only until it holds an official GPU receipt.
     """
     from . import gpu_receipt
 
@@ -141,20 +142,20 @@ def refuse_unreproducible_runtime(bundle_ref, store=None):
                 problem = "its receipt is invalid"
             if problem is None:
                 continue
-            base = item["bundle_ref"]
             raise CatalogRefused(
                 "catalog_runtime_not_reproducible",
                 f"{item['catalog_id']!r} {runtime} is not officially gradable: {problem}; "
-                f"{gpu_receipt.CARD_NOTE}; use the {base['runtime_profile_id']} build {base['bundle_digest']}",
+                f"{gpu_receipt.CARD_NOTE}; this entry is practice-only until it holds an official GPU receipt; "
+                "choose an entry that has one",
             )
 
 
 def runtime_bundle_ref(item, runtime, *, official, store=None):
     """The bundle ref of the runtime a recipe names for `item`; `official` is the grading rebuild.
 
-    The CPU build is always the official one. A GPU build needs its valid receipt (`gpu_receipt`); a smoke-only
-    GPU build is practice only, so the official route refuses it with the typed GAP `catalog_runtime_not_reproducible`
-    and names the CPU build, which keeps its CPU pair-identity receipt (Validator ruling, 2026-10-22).
+    A GPU build needs its valid receipt (`gpu_receipt`); a smoke-only GPU build is practice only, so the official
+    route refuses it with the typed GAP `catalog_runtime_not_reproducible`, which names no CPU build: official
+    grading does not fall back to the CPU (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01).
     """
     from . import gpu_receipt
 

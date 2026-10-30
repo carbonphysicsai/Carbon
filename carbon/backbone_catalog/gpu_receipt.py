@@ -25,7 +25,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 RECEIPTS = HERE / "receipts"
 SCHEMA = "carbon.backbone-catalog-pair-identity.v1"
-CARD_NOTE = "GPU practice only; official grading rebuilds on CPU"
+CARD_NOTE = "GPU practice only until it holds an official GPU receipt; official grading rebuilds on the validator's GPU"
 SMOKE_NOTE = "smoke only: not bit-reproducible on GPU (no deterministic CUDA implementation of the upsample backward)"
 #: The entries that get the smoke receipt instead of repeat identity: a short explicit list, not a skip.
 SMOKE_ONLY = {
