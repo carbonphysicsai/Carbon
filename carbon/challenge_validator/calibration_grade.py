@@ -441,6 +441,11 @@ def aggregates(measured, total, *, entry_id, control=None, challenge=None):
 # -------------------------------------------------------------------- grade
 
 
+#: The pool exam's speed gate (`pool_exam.SPEED_GATE`) and the label of its calibration-only placeholder.
+SPEED_GATE = "speed"
+SPEED_NOT_MEASURED = "NOT_MEASURED_PLACEHOLDER"
+
+
 def worker_infer(
     *,
     ledger,
@@ -537,6 +542,18 @@ def grade(
             for r in runs
         ]
     graded, repeats = runs[0], runs[1:]
+    pool = {}
+    if getattr(adapter, "POOL_GRADED", False):
+        # A pool-graded version's measure needs the receiver's 20 single-design call timings (`single_call_timing`,
+        # host-private). This tool does not measure them: it passes the ceiling-safe constant, labelled in the
+        # aggregates (`speed_gate`), never a measured pass (Validator, OWNER-LEG-MINIMUM / recal ruling).
+        from carbon.challenge_registry import speed_gate
+        from carbon.scoring import pool_exam
+
+        pool = {
+            "speed_call_seconds": [speed_gate.ceiling_seconds(adapter.CHALLENGE)]
+            * pool_exam.SPEED_SAMPLE
+        }
     try:
         measured = adapter.measure(
             bank_rows=bank_rows(bank, interface_names),
@@ -547,6 +564,7 @@ def grade(
             objective=objective,
             train_raw=train_raw,
             names=interface_names,
+            **pool,
         )
     except adapter.Refused as exc:
         raise CalibrationRefused("dual_native_" + exc.code) from exc
@@ -591,6 +609,12 @@ def grade(
     )
     if control is not None:
         document["run_config_digest"] = run_config_digest
+    if pool:
+        # the speed gate was not measured: it is not a gate result here, and the aggregates say so
+        document["gates"] = {
+            k: v for k, v in document["gates"].items() if k != SPEED_GATE
+        }
+        document["speed_gate"] = SPEED_NOT_MEASURED
     return document
 
 
@@ -617,6 +641,8 @@ __all__ = [
     "ARTIFACT_SCHEMA",
     "CONTROLS",
     "RESULT_SCHEMA",
+    "SPEED_GATE",
+    "SPEED_NOT_MEASURED",
     "Artifact",
     "CalibrationRefused",
     "aggregates",
