@@ -492,7 +492,7 @@ done
 if ! docker_error="$(docker info 2>&1 >/dev/null)"; then
   case "${docker_error}" in
     *"permission denied"*)
-      fail "Docker is installed, but your user is not allowed to use it (permission denied). Add yourself to the docker group with: sudo usermod -aG docker \$USER, then log out and in again, and run this again." ;;
+      fail "Docker is installed, but your user is not allowed to use it (permission denied). Add yourself to the docker group with: sudo usermod -aG docker \$USER, then log out of every session for this user and in again (on a server also: sudo systemctl restart user@$(id -u).service, or reboot), and run this again." ;;
     *)
       fail "Docker is installed but not running. Start it (for example: sudo systemctl start docker), then run this again." ;;
   esac
@@ -513,7 +513,7 @@ if [[ "${service_mode}" == 1 ]] && command -v systemctl >/dev/null 2>&1 \
     if [[ -n "${WSL_DISTRO_NAME:-}" ]]; then
       restart="From Windows, run: wsl --terminate ${WSL_DISTRO_NAME}, then open the distro again. That stops everything running in it, Docker's containers and any Carbon campaign included."
     else
-      restart="Run: sudo systemctl restart user@$(id -u).service (that stops all of your user services, a running Control Center service included), or log out of every session and back in."
+      restart="Run: sudo systemctl restart user@$(id -u).service (that stops all of your user services, a running Control Center service included; it may print a failed-job line and still restart), or log out of every session for this user and back in, or reboot."
     fi
     fail "Docker answers this shell but not your systemd user manager, which runs the Control Center service and everything it starts. Most often the manager started before you joined the docker group, so it does not have the group. Nothing was changed. Restart the manager so it picks the group up. ${restart} Then run this again."
   fi
