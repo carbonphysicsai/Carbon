@@ -317,8 +317,9 @@ def test_git_ignored_files_under_the_inputs_are_found_and_refused(tmp_path):
 
 def test_the_image_build_script_refuses_ignored_inputs_before_the_digest():
     text = (ROOT / "scripts/dev/c03_worker_image.sh").read_text(encoding="utf-8")
-    assert text.index('build_inputs.py" ignored') < text.index(
-        'build_inputs.py" digest'
+    assert "carbon/reconstruction/worker/build_inputs.py" in text
+    assert text.index('"${build_inputs_program}" ignored') < text.index(
+        '"${build_inputs_program}" digest'
     )
     assert "unbound by its digest" in text
 

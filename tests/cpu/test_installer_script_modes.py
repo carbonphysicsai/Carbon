@@ -22,10 +22,11 @@ ROOT = Path(__file__).resolve().parents[2]
 INSTALLER = "scripts/install_miner.sh"
 
 #: A repository script in command position: at the start of a line, after
-#: optional `NAME=value` assignments, and not passed to an interpreter
+#: optional `NAME=value` assignments and the installer's `network_step "label"` retry wrapper, and not passed to an interpreter
 #: (`bash x.sh`, `"${python}" x.py`), which would need no mode.
 _DIRECT = re.compile(
     r"""^\s*(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|\S+)\s+)*"""
+    r"""(?:network_step\s+"[^"]*"\s+)?"""  # the installer's retry wrapper runs the script as its command
     r"""(?:\./|"?\$\{repo_root\}/|"?\$\{script_dir\}/)"""
     r"""(?P<path>(?:scripts/)?[A-Za-z0-9_./-]+\.(?:sh|py))"?(?:\s|$)""",
     re.MULTILINE,
@@ -76,6 +77,15 @@ def test_the_scan_finds_what_the_installer_runs_directly():
         "scripts/dev/c03_worker_image.sh",
         "scripts/dev/accelerator_worker_image.sh",
     } <= _run_directly_by_the_installer()
+
+
+def test_the_network_retry_wrapper_still_counts_as_a_direct_execution():
+    line = 'network_step "step 4/6, building the worker image" ./scripts/dev/c03_worker_image.sh "${m}"\n'
+    assert _DIRECT.search(line)
+    line = 'CARBON_UV_GROUPS="a b" network_step "step 3/6" ./scripts/dev/bootstrap.sh\n'
+    assert _DIRECT.search(line)
+    # a wrapped interpreter run still needs no mode
+    assert not _DIRECT.search('network_step "step" "${python}" -m x\n')
 
 
 def test_an_interpreter_run_is_not_a_direct_execution():

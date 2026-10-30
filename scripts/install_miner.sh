@@ -72,6 +72,7 @@ UPDATE=0
 SERVICE=0
 REMOVE_OLD_IMAGES=0
 REMOVE_CATALOG_IMAGES=0
+ALLOW_LOW_MEMORY=0
 REF_GIVEN=0
 RELEASE=""
 DEVELOPMENT_REVISION=""
@@ -150,6 +151,9 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                other CARBON_STATE_DIR. An install never writes, starts or
                stops another state directory's service
   --port PORT  the Control Center's local port (default 8788)
+  --allow-low-memory
+               expert override: go on although this machine has less memory
+               than Carbon needs (32 GB). The install may fail partway
 EOF
 }
 
@@ -170,6 +174,7 @@ while [[ $# -gt 0 ]]; do
     --service) SERVICE=1 ;;
     --remove-old-images) REMOVE_OLD_IMAGES=1 ;;
     --remove-catalog-images) REMOVE_CATALOG_IMAGES=1 ;;
+    --allow-low-memory) ALLOW_LOW_MEMORY=1 ;;
     --port) PORT="${2:?--port needs a value}"; PORT_GIVEN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
@@ -190,6 +195,48 @@ fi
 
 step() { printf '\n== %s\n' "$*"; }
 fail() { printf 'Carbon install stopped: %s\n' "$*" >&2; exit 2; }
+
+# A step that downloads (the package environment, the released images, the image builds). If it fails because the
+# network or the registry dropped (BuildKit's "failed to resolve reference ... i/o timeout" and its relatives), the
+# installer tries that step ONCE more, and if the network is still down it says so in plain words and stops: nothing is
+# half-installed, and running the same command again continues. Any other failure is left exactly as it was (same exit
+# status, same output). Only the step's stderr is watched (it is still shown live); its stdout is untouched.
+NETWORK_FAILURE_PATTERN='i/o timeout|failed to resolve reference|failed to do request|failed to fetch|TLS handshake timeout|connection reset by peer|connection refused|no such host|Temporary failure in name resolution|Could not resolve host|unexpected EOF|context deadline exceeded|net/http: request canceled|dial tcp|error pulling image|Network is unreachable|Connection timed out|read: connection'
+# A full disk or an exceeded quota is not the network, even when BuildKit words it as a failed copy or pull: no retry,
+# and the original error passes through.
+DISK_FAILURE_PATTERN='no space left on device|disk quota exceeded|quota exceeded|not enough space|insufficient space|No space left'
+network_retry_wait="${CARBON_INSTALL_NETWORK_RETRY_WAIT:-10}"
+network_step() {
+  local label="$1"; shift
+  local attempt rc log seen
+  log="$(mktemp)"
+  for attempt in 1 2; do
+    : > "${log}"
+    if "$@" 2> >(tee -a "${log}" >&2); then
+      rc=0
+    else
+      rc=$?
+    fi
+    # Let tee finish writing the log before it is read. The background-pid variable is deliberately not used: under
+    # set -u it is unbound on bash builds that do not set it for a process substitution.
+    wait 2>/dev/null || true
+    sleep 0.2
+    if [[ "${rc}" == 0 ]]; then rm -f "${log}"; return 0; fi
+    seen="$(tail -n 80 "${log}")"   # a variable, not a pipe: grep -q would SIGPIPE the tail under pipefail
+    if grep -Eiq "${DISK_FAILURE_PATTERN}" <<< "${seen}" || ! grep -Eiq "${NETWORK_FAILURE_PATTERN}" <<< "${seen}"; then
+      rm -f "${log}"; return "${rc}"    # not a network failure: unchanged
+    fi
+    if [[ "${attempt}" == 1 ]]; then
+      printf 'Your network dropped while downloading (%s). Trying this step once more in %s seconds.\n' \
+        "${label}" "${network_retry_wait}" >&2
+      sleep "${network_retry_wait}"
+    fi
+  done
+  rm -f "${log}"
+  printf 'Carbon install paused: your network dropped while downloading (%s). Nothing is broken; run the same command again and it continues.\n' \
+    "${label}" >&2
+  exit 2
+}
 
 # One role per Docker daemon. The local image tags are derived from the source tree, so a miner install of the same
 # tree as a validator install retags the validator's parent and worker images (val4090, 2026-10-29). The tags now carry
@@ -349,6 +396,12 @@ SUPPORTED_UBUNTU="22.04 24.04"
 SUPPORTED_DOCKER_MAJOR=29
 SUPPORTED_DOCKER_MEMORY_GIB=17
 SUPPORTED_RAM_GB=32
+#: The memory the install STOPS below (OWNER ruling via the Lead, bug hunt R6): Carbon needs 32 GB. A 32 GB machine
+#: reports about 31 GiB in MemTotal (the kernel keeps some), so the stop is at 28 GiB: the floor must never refuse a real
+#: 32 GB machine (our own 32 GB-class VM reported about 30 GiB); it only separates it from a 24 GB (about 23 GiB) and a
+#: "16 GB" machine (about 15.6 GiB), which fail partway through the image builds. Same number as
+#: supported_setup.MIN_MACHINE_RAM_GIB.
+SUPPORTED_MIN_RAM_GIB=28
 SUPPORTED_CPUS=4
 SUPPORTED_DISK_GIB=150
 SUPPORTED_NVIDIA_DRIVER="580.65.06"
@@ -408,9 +461,26 @@ supported_setup_warning() {
   fi
 }
 
+step_memory_check() {
+  # MemTotal in GiB with one decimal, from /proc/meminfo (CARBON_INSTALL_MEMINFO_FILE names another file for a test).
+  local kb tenths
+  kb="$(awk '/^MemTotal:/ {print $2; exit}' "${CARBON_INSTALL_MEMINFO_FILE:-/proc/meminfo}" 2>/dev/null || true)"
+  [[ "${kb}" =~ ^[0-9]+$ ]] || return 0   # unreadable: the supported-setup note below says it could not check
+  (( kb < SUPPORTED_MIN_RAM_GIB * 1048576 )) || return 0
+  tenths=$(( kb * 10 / 1048576 ))
+  local words
+  words="This machine has $(( tenths / 10 )).$(( tenths % 10 )) GiB of memory. Carbon needs ${SUPPORTED_RAM_GB} GB to install and practise; with less, the install fails partway. Use a machine with ${SUPPORTED_RAM_GB} GB or more."
+  if [[ "${ALLOW_LOW_MEMORY}" == 1 ]]; then
+    printf 'WARNING: %s Going on because you passed --allow-low-memory; it may fail.\n' "${words}" >&2
+    return 0
+  fi
+  fail "${words} (Expert override: add --allow-low-memory; it may fail.)"
+}
+
 step "1/6 Checking this machine"
 [[ "$(uname -s)" == "Linux" ]] || fail "Linux is required (Windows: use WSL2)."
 [[ "$(uname -m)" == "x86_64" ]] || fail "x86-64 is required."
+step_memory_check
 for tool in git curl docker; do
   command -v "${tool}" >/dev/null 2>&1 || fail "${tool} is not installed. $(install_hint "${tool}")"
 done
@@ -749,7 +819,7 @@ if ! command -v uv >/dev/null 2>&1 || [[ "$(uv --version | awk '{print $2}')" !=
 fi
 # Every group a documented command runs with (`uv run --group ...`), so none
 # of them re-syncs this environment.
-CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/bootstrap.sh
+CARBON_UV_GROUPS="science-jax chain archive mcp" network_step "step 3/6, installing the locked environment" ./scripts/dev/bootstrap.sh
 if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
   # These exact root directories were absent at the verified pre-bootstrap
   # boundary. Refuse links/files and unknown paths rather than deleting them.
@@ -864,7 +934,7 @@ if [[ -n "${RELEASE}" ]]; then
     fi
   fi
   for kind in "${kinds[@]}"; do
-    "${python}" -m scripts.dev.worker_image_release pull \
+    network_step "step 4/6, pulling the released images" "${python}" -m scripts.dev.worker_image_release pull \
       --record "${release_dir}/${kind}-worker-image.release.json" \
       --out "${release_dir}/${kind}-worker-image.json" \
       || fail "could not pull or verify the released ${kind} image of ${RELEASE} (above). Nothing was built, and nothing was recorded for setup. To build the images on this machine instead, run without --release: ${rebuild}"
@@ -904,13 +974,13 @@ else
       echo "The worker image built here from this exact source tree is still present; using it again."
     else
       if [[ "${PYTORCH}" == 1 ]]; then
-        ./scripts/dev/torch_worker_image.sh "${worker_manifest}"
+        network_step "step 4/6, building the PyTorch worker image" ./scripts/dev/torch_worker_image.sh "${worker_manifest}"
       else
-        ./scripts/dev/c03_worker_image.sh "${worker_manifest}"
+        network_step "step 4/6, building the worker image" ./scripts/dev/c03_worker_image.sh "${worker_manifest}"
       fi
     fi
     analysis="$(
-      "${python}" -m carbon.development_session.research_image \
+      network_step "step 4/6, building the analysis image" "${python}" -m carbon.development_session.research_image \
         --parent-manifest "${worker_manifest}" \
         --root "${artifacts}/research-images" \
       | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
@@ -920,14 +990,14 @@ else
     if current_image "${artifacts}/accelerator-worker-image.json"; then
       echo "The GPU worker built here from this exact source tree is still present; using it again."
     else
-      ./scripts/dev/accelerator_worker_image.sh "${artifacts}/accelerator-worker-image.json"
+      network_step "step 4/6, building the GPU worker image" ./scripts/dev/accelerator_worker_image.sh "${artifacts}/accelerator-worker-image.json"
     fi
     gpu_manifest="${artifacts}/accelerator-worker-image.json"
     if [[ "${PYTORCH}" == 1 ]]; then
       if current_image "${artifacts}/torch-gpu-worker-image.json"; then
         echo "The PyTorch GPU worker built here from this exact source tree is still present; using it again."
       else
-        ./scripts/dev/torch_gpu_worker_image.sh "${artifacts}/torch-gpu-worker-image.json"
+        network_step "step 4/6, building the PyTorch GPU worker image" ./scripts/dev/torch_gpu_worker_image.sh "${artifacts}/torch-gpu-worker-image.json"
       fi
       torch_gpu_manifest="${artifacts}/torch-gpu-worker-image.json"
     fi

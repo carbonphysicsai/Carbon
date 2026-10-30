@@ -10,6 +10,8 @@ Carbon is built to reward miners for fast, accurate physics models. You build th
 
 This guide gets you from a clean machine to your first graded model.
 
+> **You need a machine with 32 GB of memory.** With less, the installer stops at step 1 and says so ("This machine has X GiB of memory. Carbon needs 32 GB to install and practise; with less, the install fails partway. Use a machine with 32 GB or more."). An expert can go on anyway with `--allow-low-memory`; the install may fail partway.
+
 > **Testnet only, for now.** Everything here runs on Carbon's test network (subnet 567). Nothing is paid yet.
 
 > **Mainnet starts clean.** Nothing from testnet carries over to mainnet: not registrations, scores, submissions, frontier standing or any other record. Plan to register and submit again.
@@ -33,7 +35,7 @@ Carbon's launch supports **one** setup, and a run on it is guaranteed:
 |---|---|
 | Operating system | Ubuntu 22.04 or 24.04, x86-64 |
 | Docker | Docker 29 (the installer may install it) |
-| Memory | **32 GB of RAM**. Practice runs its worker with a 16 GiB limit and needs Docker to see at least 17 GiB, so a 16 GB machine (about 15.6 GiB) cannot run it |
+| Memory | **32 GB of RAM** (a 32 GB machine reports about 31 GiB; the install stops below 28 GiB, unless you add `--allow-low-memory`, which may fail). Practice runs its worker with a 16 GiB limit and needs Docker to see at least 17 GiB, so a 16 GB machine (about 15.6 GiB) cannot run it |
 | CPUs | at least 4 |
 | Disk | about 150 GiB free |
 | GPU | optional; any NVIDIA GPU with driver **580.65.06 or newer** |
@@ -43,7 +45,7 @@ Carbon's launch supports **one** setup, and a run on it is guaranteed:
 
 **CPU practice and the official grade.** The official grade always rebuilds your model on the validator's GPU. A practice that ran on CPU says so under its result ("You practised on CPU. The official grade rebuilds your model on the validator's GPU, and close to a physics check the result can differ."): close to a physics check, a CPU result can pass where the GPU rebuild fails, or the other way round. Where this machine has a usable GPU, the page recommends practising on it; choose GPU practice under Compute in Setup. This is a note only: it changes no grade and no gate.
 
-**Any other setup gets a warning, not a block.** The installer, and a note at the top of the Control Center, say: *this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run*, and list what differs (system, Docker, memory, CPUs, disk, driver) and anything it could not check. Other Docker versions and other Linux distributions are planned after launch.
+**Any other setup gets a warning, not a block, except memory:** under 32 GB the install stops (see the memory row above). **For every other difference** the installer, and a note at the top of the Control Center, say: *this is not a supported setup yet; it may work. Use the supported setup for a guaranteed run*, and list what differs (system, Docker, memory, CPUs, disk, driver) and anything it could not check. Other Docker versions and other Linux distributions are planned after launch.
 
 **A rented GPU pod (for example Lium).** Measured on three different pods (RTX 3090, RTX 5070 Ti, RTX 6000 Ada), which all behave the same way:
 - A "PyTorch (CUDA + DinD)" pod runs Docker inside a container and cannot bind-mount anything under `/root` (even a plain `docker run -v /root/x:/input:ro` fails with a `runc` "change mount propagation" error); `/tmp`, `/mnt`, `/run` and `/dev/shm` work. Carbon stages each worker's input under its state directory, so install with the state directory off `/root`, for example `CARBON_STATE_DIR=/mnt/carbon ~/carbon/scripts/install_miner.sh --gpu ...`. Otherwise every practice ends "practice could not run" with a worker start failure.
@@ -65,6 +67,8 @@ git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon
 Add `--gpu` if the machine has an NVIDIA GPU. Any NVIDIA GPU works, whatever the model, driver string or count: a field the GPU does not report (a virtual GPU's capability, for one) is recorded as unknown and never refuses the machine; with several GPUs setup uses the first usable one, prints which, and `--device` picks another.
 
 The installer checks your machine, sets up Carbon's environment, builds the images your practice runs use, and starts the **Control Center**, the web page where you run everything. It never asks for a key or password.
+
+**If your network drops during the install.** The steps that download (the locked environment, the released images, the image builds) are tried once more on their own if the network or the registry times out. If it is still down, the installer stops with: "Carbon install paused: your network dropped while downloading (step ...). Nothing is broken; run the same command again and it continues." Run the same command again; it picks up where it stopped. Any other failure is shown as it was.
 
 **Updating.** Run `~/carbon/scripts/install_miner.sh --update --pytorch`, repeating the other options you installed with (e.g. `--gpu`). If the disk is short, it lists Carbon's own images from earlier installs that this install no longer uses, and asks before removing them; nothing else is touched. To say yes up front, add `--remove-old-images`. If the disk is still short, an update then offers the catalog images it has now, which it builds again over the new worker (that rebuild takes about as long as the first catalog install); it asks its own yes, and `--remove-catalog-images` says yes up front. If the disk is still short after that, the message says how many GiB more are needed and what frees them. Carbon removes only its own images, never Docker's build cache or another project's images; `docker system df` shows what Docker keeps, and what to clear there is your call. An update checks your setup's compute again, rewrites your runner profile, and says what changed. If it can't (for example, it rebuilt images your compute check named), it sets the check and your runner profile aside and says so in its **Next** lines: check Compute again on the page, or from your agent or `carbon-mcp` with `carbon_setup_recheck {confirm: true}`, then review.
 
