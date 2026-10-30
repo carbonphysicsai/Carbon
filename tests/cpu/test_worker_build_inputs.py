@@ -274,6 +274,59 @@ def test_the_installers_shell_digest_equals_the_python_digest(tmp_path):
     assert done.stdout == build_inputs.digest(repo)
 
 
+def test_the_installers_shell_digest_equals_the_python_digest_for_the_real_per_file_set(
+    tmp_path,
+):
+    """The narrowed set lists individual carbon files (and `a.py` is a prefix of `a.pyi`-style neighbours): the shell
+    digest must still print the bytes build_inputs.py hashes, or a miner and a validator would disagree on the image
+    and refuse each other's installs."""
+    import shutil
+
+    if shutil.which("bash") is None or shutil.which("sha256sum") is None:
+        pytest.skip("needs bash and sha256sum")
+    repo = tmp_path / "real"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    inputs = build_inputs.paths()
+    assert sum(1 for path in inputs if path.startswith("carbon/")) > 100
+    for path in inputs:
+        source = ROOT / path
+        if source.is_dir():
+            for member in source.rglob("*"):
+                if member.is_file() and "__pycache__" not in member.parts:
+                    target = repo / member.relative_to(ROOT)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(member.read_bytes())
+        else:
+            target = repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(source.read_bytes())
+    # a neighbour that shares a listed path as a prefix must not be counted as the listed file
+    neighbour = repo / "carbon" / "reconstruction" / "worker" / "entrypoint.pyi"
+    neighbour.write_text("x\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "real set")
+    text = (ROOT / "scripts/install_miner.sh").read_text(encoding="utf-8")
+    start = text.index('build_inputs="$(git show HEAD:')
+    end = text.index('source_digest="sha256:$(git ls-tree', start)
+    end = text.index("\n", end) + 1
+    script = (
+        'set -euo pipefail\nfail() { echo "$*" >&2; exit 2; }\n'
+        + text[start:end].replace("  ", "", 1)
+        + 'printf "%s" "${source_digest}"\n'
+    )
+    done = subprocess.run(
+        ["bash", "-c", script], cwd=repo, check=True, capture_output=True, text=True
+    )
+    assert done.stdout == build_inputs.digest(repo)
+    # the neighbour is outside the set: it does not move the digest
+    before = build_inputs.digest(repo)
+    neighbour.write_text("y\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "neighbour")
+    assert build_inputs.digest(repo) == before
+
+
 def test_a_build_input_that_matches_nothing_is_refused_not_just_all_of_them(tmp_path):
     repo = _repo(tmp_path)
     assert build_inputs.digest(repo)  # all present

@@ -7,12 +7,14 @@ not replay a worker, grade predictions, or grant receiver/official authority.
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import io
 import json
 import os
 import re
 import stat
+import subprocess
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -50,6 +52,48 @@ def _served_custody_limit(challenge_id, version) -> int:
     except served_versions.UnregisteredVersion:
         raw = None
     return _custody_limit(raw)
+
+
+#: The private record of which code graded a submission: the installed checkout's commit. Written once, beside the
+#: private evaluation binding, so a grade still says what graded it when host-side scoring no longer moves the image id.
+INSTALLED_COMMIT_SIDECAR = "grade-installed-commit.json"
+INSTALLED_COMMIT_SCHEMA = "carbon.scoring.grade-installed-commit.v1"
+
+
+@functools.lru_cache(maxsize=1)
+def _installed_commit() -> dict:
+    """The commit and tree of the checkout this process runs from, and the worker build-inputs digest of that commit.
+
+    An install that is not a git checkout records ``commit: null`` with the reason, never a guess; the record is private
+    and is never a score input."""
+    from carbon.reconstruction.worker import build_inputs
+
+    repo = Path(__file__).resolve().parents[2]
+    try:
+        commit, tree = (
+            subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD", "HEAD^{tree}"],
+                stderr=subprocess.DEVNULL,
+                timeout=30,
+            )
+            .decode("ascii")
+            .split()
+        )
+        digest = build_inputs.digest(repo)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return {
+            "schema": INSTALLED_COMMIT_SCHEMA,
+            "commit": None,
+            "tree": None,
+            "build_inputs_digest": None,
+            "reason": "the installed code is not a readable git checkout",
+        }
+    return {
+        "schema": INSTALLED_COMMIT_SCHEMA,
+        "commit": commit,
+        "tree": tree,
+        "build_inputs_digest": digest,
+    }
 
 
 def _sha(raw: bytes) -> str:
@@ -1162,6 +1206,7 @@ def _retain_selected_pack_evaluation(
         )
         binding_path = directory / "private-evaluation-binding.json"
         write_once(binding_path, _json(binding))
+        write_once(directory / INSTALLED_COMMIT_SIDECAR, _json(_installed_commit()))
         if uncounted and regrade.promotion is not None:
             _record_regraded_evidence(regrade, bind_inputs, source_pin)
         if (regrade is not None and regrade.exam_se) or _pool_graded(adapter):
@@ -2567,9 +2612,7 @@ def regrade_retained_entry(
         )
         operations = json.loads(_private_measurement_bytes(operations_path, 65536))
         worker_evidence = (
-            _private_measurement_bytes(
-                task_root / "worker-evidence.json", 16 * 1024**2
-            )
+            _private_measurement_bytes(task_root / "worker-evidence.json", 16 * 1024**2)
             if kind == "graph"
             else None
         )
