@@ -3,7 +3,7 @@
 - **Received by:** the Lead session (local_b7032708-92d1-4a7c-a1d3-9ad008ba9cae), directly from the owner in chat, 2026-10-29.
 - **Owner's words:** "I accept the sandbox."
 - **Context:** the Lead had listed this as step 4 before the registered calibration: "Your acceptance of the sandbox that runs miner code on this machine, with the GPU attached ... It's a security call, so it's yours."
-- **Decided:** the containment that runs miner-controlled work on [held in custody] is accepted for testnet operation and the registered recalibration:
+- **Decided:** the containment that runs miner-controlled work on the HOSTKEY validator host [address held in custody] is accepted for testnet operation and the registered recalibration:
   - with the GPU attached;
   - with the same containment limits as the 10-21 testnet acceptance: network none, read-only root, pids, nofile, inodes, intake parse bounds;
   - with the measured lane limits under OWNER-4090-MINER-LIMITS-MAX-PRACTICAL-01.

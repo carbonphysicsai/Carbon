@@ -8,6 +8,6 @@
   3. **Exam copies:** the testnet producer key may be used in place on the custody hosts to issue copies for new exam versions, through the existing tooling. The key is never read, printed or copied.
   4. **Spend:** USD 50 total for tonight (VMs + GPU rentals), inside the standing weekly grant. GPU rentals ≤ USD 5 each, priced first, public data only, deleted after a verified fetch.
   5. **Provisional scoring values:** the Validator may set provisional testnet scoring and pool values where the owner has not yet picked, each labelled PROVISIONAL / not owner-selected. The owner picks the final values from the curves.
-  6. **valV3:** the rehearsal validator ([held in custody]) may be restarted or reinstalled if a test needs it.
+  6. **valV3:** the rehearsal validator [address held in custody] may be restarted or reinstalled if a test needs it.
 - **Owner-side state:** about 7 test signers running; gcloud active.
 - **NOT granted:** public push or publish, mainnet, security acceptances, spend beyond USD 50, legal or economics.
