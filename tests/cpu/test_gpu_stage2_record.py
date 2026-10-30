@@ -76,12 +76,26 @@ def refused(directory):
     return caught.value.code
 
 
-def test_no_record_means_both_registries_are_empty_and_everything_is_refused():
-    assert not list(CLASSES.glob("*.stage2.json")), "the shipped tree registers nothing until the images are read in"
+def test_no_record_means_both_registries_are_empty_and_everything_is_refused(
+    tmp_path, monkeypatch
+):
+    # a tree where no stage-2 record ships (the shipped tree now carries the EPYC class's: see the next test)
+    monkeypatch.setattr(gpu_receipt, "stage2_directory", lambda: tmp_path)
     registries = gpu_receipt.stage2_registries()
     assert registries.images == {} and registries.host_classes == frozenset()
     receipt = {"kind": "repeat", "image_digest": IMAGE, "host_class": EPYC}
     assert "pinned" in gpu_receipt.official_grade_problem(receipt, TORCH)
+
+
+def test_the_shipped_tree_registers_the_epyc_class_from_its_committed_record():
+    """The stage-2 record that ships (EPYC7402P-VM-01.stage2.json) registers exactly its class and its recorded images;
+    no other class is registered."""
+    record = json.loads((CLASSES / (STEM + ".stage2.json")).read_text(encoding="utf-8"))
+    registries = gpu_receipt.stage2_registries()
+    assert registries.host_classes == {EPYC}
+    for runtime, entry in record["runtimes"].items():
+        assert registries.images[runtime] == set(entry["image_ids"])
+    assert set(registries.images) == set(record["runtimes"])
 
 
 def test_a_committed_record_registers_its_class_and_images(tree):
@@ -178,4 +192,10 @@ def test_the_7950x_class_is_unaffected(tree):
     """The 7950X class registers no GPU stage 2; a record for the EPYC class never names it, and the stage-1 files stay."""
     registries = gpu_receipt.stage2_registries(tree(stage2()))
     assert not any("7950" in name for name in registries.host_classes)
-    assert sorted(p.name for p in CLASSES.glob("*.json")) == [STEM + ".json"]
+    names = sorted(p.name for p in CLASSES.glob("*.json"))
+    # no 7950X host-class file; the EPYC class's stage-1 record and its stage-2 record are the only host-class files
+    assert not any("7950" in name for name in names)
+    assert [name for name in names if name.startswith(STEM)] == [
+        STEM + ".json",
+        STEM + ".stage2.json",
+    ]

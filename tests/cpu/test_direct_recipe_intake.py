@@ -21,6 +21,7 @@ from carbon.battery.construction_bundle_material import (
 )
 from carbon.battery.intake import SnapshotWindow
 from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
+from carbon.challenge_registry import published_exam
 from carbon.challenge_validator import AttemptLedger
 from carbon.challenge_validator.direct_intake import (
     INFO_PATH,
@@ -87,6 +88,34 @@ def test_signed_battery_recipe_uses_registered_public_bundle_contract(
                 "contract_digest": intake.adapter.contract_digest,
             },
             request="signed-battery-bundle-submit-0001",
+        )
+        # The official door now refuses a registered version with no registered pool exam
+        # (`official_version_without_pool`, WIRING_CHANNEL_AND_LOOKUP_P0 ruling b): Battery is not a launch pool version.
+        refused = intake.handle("POST", SUBMIT_PATH, headers, body, "127.0.0.1")
+        assert refused.status == 503
+        assert refused.body["code"] == "official_version_without_pool"
+        # This test is about the signed recipe's contract path, so give the version a registered pool for the admission.
+        key = (request.challenge_key.challenge_id, request.challenge_key.version)
+        real = published_exam.registered_pool
+        monkeypatch.setattr(
+            published_exam,
+            "registered_pool",
+            lambda challenge_id, version: (
+                {"query_budget": 60}
+                if (challenge_id, version) == key
+                else real(challenge_id, version)
+            ),
+        )
+        body, headers = _signed(
+            state,
+            request.challenge_key,
+            SUBMIT_TOOL,
+            {
+                "strategy_json": json.dumps(request.recipe, sort_keys=True),
+                "contract_digest": intake.adapter.contract_digest,
+            },
+            request="signed-battery-bundle-submit-0002",
+            nonce=NOW + 1,  # the refused request above consumed NOW
         )
         admitted = intake.handle("POST", SUBMIT_PATH, headers, body, "127.0.0.1")
         assert admitted.status == 202
