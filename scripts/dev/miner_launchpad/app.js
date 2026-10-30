@@ -1899,6 +1899,15 @@
       describeTransport(); updateCommands();
     }
     const action = el("div", undefined, "step-action"); action.append(computeButton); compute.append(action);
+    // Saving your settings starts the catalog install (about 15 minutes), so it is offered as soon as it can be taken
+    // (steps 3 to 5 checked) instead of only at the last step: the install runs while you finish the rest.
+    if (steps.compute?.checked && steps.review?.ready && !steps.review?.profile_written) {
+      const early = el("div", undefined, "step-action save-early");
+      early.append(el("p", "Ready to save? Saving your settings now starts installing the model catalog in the background (about 15 minutes), so your first practice is ready sooner. You can still change anything under Review.", "hint"));
+      const saveNow = el("button", "Save my settings now"); saveNow.type = "button"; saveNow.id = "setup-save-early";
+      saveNow.addEventListener("click", async () => { await setupCall("review", {confirm: true}); });
+      early.append(saveNow); computePanel.append(early);
+    }
     compute.addEventListener("submit", async event => {
       event.preventDefault();
       const request = {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()};

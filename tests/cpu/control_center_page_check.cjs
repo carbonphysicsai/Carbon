@@ -3678,6 +3678,36 @@ scenario("a missing model key is a note, not a fix, while Manual or your own age
   clean(page);
 });
 
+scenario("Save my settings is offered on the Compute step once steps 3 to 5 are checked, and starts the same save (clean-machine B)", async () => {
+  const setup = copy(fx.setups.none);
+  setup.steps.compute = {...setup.steps.compute, checked: true, choice: setup.steps.compute?.choice || "local-isolated-worker"};
+  setup.steps.review = {...setup.steps.review, ready: true, profile_written: false};
+  const state = launchable(world({setup}));
+  const page = await open(state);
+  page.go("#setup/compute");
+  await page.advance(0);
+  const button = page.$("setup-save-early");
+  assert.ok(button, "the early save is offered");
+  assert.match(page.text(button.parentNode), /starts installing the model catalog in the background/);
+  state.script.push({match: r => r.path === "/api/v1/setup/review", answer: () => ({body: {...copy(setup), steps: {...setup.steps, review: {...setup.steps.review, profile_written: true}}, attached: true}})});
+  await page.press(button);
+  assert.deepEqual(lastPost(state, "/api/v1/setup/review").body, {confirm: true}, "the same request the Review step sends by default");
+  clean(page);
+});
+
+scenario("Save my settings is not offered early before steps 3 to 5 are checked, or once the profile is written", async () => {
+  for (const [ready, written] of [[false, false], [true, true]]) {
+    const setup = copy(fx.setups.none);
+    setup.steps.compute = {...setup.steps.compute, checked: true, choice: setup.steps.compute?.choice || "local-isolated-worker"};
+    setup.steps.review = {...setup.steps.review, ready, profile_written: written};
+    const page = await open(launchable(world({setup})));
+    page.go("#setup/compute");
+    await page.advance(0);
+    assert.equal(page.$("setup-save-early"), null);
+    clean(page);
+  }
+});
+
 scenario("the Challenge description reads as words: no 'undefined', no empty brackets, positional inputs said once (clean-machine L5)", async () => {
   const state = launchable(world());
   const chosen = listedChallenge(state.caps);
