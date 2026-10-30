@@ -126,6 +126,7 @@ ENTRY_VARIANTS = {
 def _catalog_recipes(challenge_id, version):
     from carbon.backbone_catalog import listing, settings
     from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_catalog
+    from scripts.dev.miner_launchpad.starting_entry import starting_entry
 
     try:
         if type(version) is not str or not serves_catalog(challenge_id, version):
@@ -139,7 +140,7 @@ def _catalog_recipes(challenge_id, version):
                 "backbone": item["backbone"],
                 # The entry a first practice starts on, and the one the install does first.
                 "recommended": item["catalog_id"]
-                == listing.preferred(challenge_id, version),
+                == starting_entry(challenge_id, version),
                 "recipe": _catalog_recipe(challenge_id, version, item["catalog_id"]),
                 # The settings this entry's schema accepts, so the page offers only fields the entry takes (a
                 # newcomer's first run cannot hit catalog_setting_unknown).

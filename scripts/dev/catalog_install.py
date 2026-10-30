@@ -33,9 +33,10 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
-from carbon.backbone_catalog import listing, pipeline
+from carbon.backbone_catalog import pipeline
 from scripts.dev import catalog_wheelhouse, library_bundle
 from scripts.dev.miner_launchpad.failure_words import diagnostic as _diagnostic
+from scripts.dev.miner_launchpad.starting_entry import start_first
 
 #: What a skipped wheel entry tells the owner to run first.
 WHEELHOUSE_STEP = "python -m scripts.dev.catalog_wheelhouse"
@@ -95,8 +96,8 @@ def install(
         wheelhouse = catalog_wheelhouse.DEFAULT_DIRECTORY
     skipped = [] if skipped is None else skipped
     installed = []
-    # The entries a first practice starts on come first (listing.install_order); the rest follow in manifest order.
-    for item in listing.install_order(pipeline.load()["entries"]):
+    # The entries a first practice starts on come first (start_first: the Launchpad's starting entries); the rest follow in manifest order.
+    for item in start_first(pipeline.load()["entries"]):
         catalog_id = item["catalog_id"]
         if catalog_ids and catalog_id not in catalog_ids:
             continue
