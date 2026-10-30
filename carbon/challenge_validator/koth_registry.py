@@ -1,6 +1,6 @@
 """The one registered source of each Challenge's KOTH rule (KOTH-TAKEOVER-RULE-01).
 
-`koth_rebuild_noise.json` holds each Challenge's registered rebuild noise,
+`scripts/validator_host_classes/koth_rebuild_noise.json` holds each Challenge's registered rebuild noise,
 `{value, measurement_digest}`, once its measurement record has been reviewed.
 A Challenge absent from it has none: the comparator then decides UNAVAILABLE
 and the private-exam ladder steps at eta. The KOTH comparator and the Ladder
@@ -17,7 +17,15 @@ from pathlib import Path
 from carbon.challenge_validator.bank_promotion import COMPARATOR_SCHEMA
 from carbon.challenge_validator.interface import is_digest
 
-REGISTRY = Path(__file__).with_name("koth_rebuild_noise.json")
+#: The registered margins live OUTSIDE `carbon/` (beside the host-class records): the worker image's source digest is the
+#: git listing of the build inputs, `carbon/` among them, so a margin write inside it would move the image id and with it
+#: every pack, copy and binding. Only the host reads this file; nothing in a worker container does.
+REGISTRY = (
+    Path(__file__).resolve().parents[2]
+    / "scripts"
+    / "validator_host_classes"
+    / "koth_rebuild_noise.json"
+)
 SCHEMA = "carbon.koth.rebuild-noise-registry.v1"
 
 

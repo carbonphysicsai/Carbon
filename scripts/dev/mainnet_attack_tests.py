@@ -302,6 +302,8 @@ def hostile_comparator_inputs():
 def noise_unregistered_never_crowns():
     """On a build where a Challenge has no registered rebuild noise (the committed registry is empty today), no
     pair can crown: UNAVAILABLE, never zero."""
+    from carbon.challenge_validator import koth_registry
+
     outcomes = {
         _decide(0.99, 0.2, None),
         bp.compare_private_pair(_pair(_body("c", total=0.99), None), _rule(None))[
@@ -316,9 +318,9 @@ def noise_unregistered_never_crowns():
         ", ".join(sorted(outcomes)),
         "PASS" if outcomes == {bp.UNAVAILABLE} else "FAIL",
         {
-            "committed_registry": json.loads(
-                (Path(bp.__file__).with_name("koth_rebuild_noise.json")).read_text()
-            )["challenges"],
+            "committed_registry": json.loads(koth_registry.REGISTRY.read_text())[
+                "challenges"
+            ],
             "note": "while the committed registry is empty the testnet cannot crown anyone; K1-K5 need it registered",
         },
     )
