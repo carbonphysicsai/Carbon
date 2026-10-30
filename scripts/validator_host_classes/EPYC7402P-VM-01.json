@@ -1,0 +1,38 @@
+{
+  "cpu_model_name": "AMD EPYC 7402P 24-Core Processor",
+  "id": "VALIDATOR-HOST-CLASS-EPYC7402P-VM-01",
+  "isa_flags_present": {
+    "amx": false,
+    "avx2": true,
+    "avx512_bf16": false,
+    "avx512f": false,
+    "fma": true
+  },
+  "mem_total_min_gib": 62,
+  "nproc": 8,
+  "recorded": {
+    "docker": "29.1.3",
+    "gpu": {
+      "compute_capability": "8.9",
+      "name": "NVIDIA GeForce RTX 4090",
+      "pcie": "gen4 x16",
+      "uuid": "GPU-1d45e6b7-72d6-0da5-78a2-1640a84a31f6",
+      "vram_mib": 24564
+    },
+    "identity_json_sha256": "8281e814898e4490182e1ef1e8d472fdad48b0bb20d5b7d629e83950fafc64cf",
+    "kernel": "6.8.0-147-generic",
+    "known_quirk": "nvidia-smi clocks_throttle_reasons 0x4 (SW power cap) is reported at 25-50% of the 450 W limit with SM clocks at max boost",
+    "mem_total_kb": 65819092,
+    "microcode": "0x830107d",
+    "nvidia_driver": "580.178.04",
+    "os": "Ubuntu 24.04.5 LTS",
+    "owner_decision": "OWNER-GPUYARD-BACKUP-VALIDATOR-01 (testnet only; mainnet needs a dedicated box and a fresh acceptance)",
+    "procedure": "GPUYARD_EPYC7402P_VM_PROCEDURES_20261029 section C.2",
+    "read_by": "Test Lead, kit s1_identity_check.sh on the guest",
+    "stage_2": "UNREGISTERED: image ids, thread pins per role, lane cpusets, CPU pin values and cpu_pin.require() on the box come after the install"
+  },
+  "schema": "carbon.validator.host-class.v2",
+  "scope": "DEVELOPMENT",
+  "stage": 1,
+  "virtualization": "vm-other"
+}

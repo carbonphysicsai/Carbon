@@ -46,6 +46,16 @@ STATE_DIR="${CARBON_STATE_DIR:-${HOME}/.carbon/development-launchpad}"
 # any of them set the script only runs the checks (--check-only) and never installs.
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 HOST_CLASS_FILE="${CARBON_VALIDATOR_HOST_CLASS_FILE:-${SCRIPT_DIR}/../carbon/challenge_validator/validator-host-class.json}"
+# Further registered host classes (schema v2), one JSON file each. They are accepted IN ADDITION to the class above and
+# live outside carbon/ on purpose: a class record is an install gate, not a build input, so registering one moves no
+# image id. With the class FILE knob set (tests) none are read unless the DIR knob names a directory.
+if [[ -n "${CARBON_VALIDATOR_HOST_CLASS_DIR:-}" ]]; then
+  HOST_CLASS_DIR="${CARBON_VALIDATOR_HOST_CLASS_DIR}"
+elif [[ -n "${CARBON_VALIDATOR_HOST_CLASS_FILE:-}" ]]; then
+  HOST_CLASS_DIR=""
+else
+  HOST_CLASS_DIR="${SCRIPT_DIR}/validator_host_classes"
+fi
 MEMINFO_FILE="${CARBON_VALIDATOR_MEMINFO_FILE:-/proc/meminfo}"
 
 usage() {
@@ -248,7 +258,8 @@ ram_gib="$(awk '/^MemTotal:/ { printf "%d", $2 / 1048576 }' /proc/meminfo 2>/dev
 if command -v python3 >/dev/null 2>&1; then
   while IFS=$'\t' read -r code message next; do
     if [[ -n "${code}" ]]; then refuse "${code}" "${message}" "${next}"; fi
-  done < <(python3 - "${HOST_CLASS_FILE}" "${MEMINFO_FILE}" <<'PY'
+  done < <(python3 - "${HOST_CLASS_FILE}" "${MEMINFO_FILE}" "${HOST_CLASS_DIR}" <<'PY'
+import glob
 import json
 import os
 import re
@@ -257,7 +268,8 @@ import sys
 
 FLAGS = ("avx2", "fma", "avx512f", "avx512_bf16", "amx")
 SCHEMA = "carbon.validator.host-class.v1"
-path, meminfo = sys.argv[1], sys.argv[2]
+SCHEMA_V2 = "carbon.validator.host-class.v2"
+path, meminfo, extra_dir = sys.argv[1], sys.argv[2], sys.argv[3]
 
 
 def refuse(code, message, nxt):
@@ -265,16 +277,17 @@ def refuse(code, message, nxt):
 
 
 def run(*command):
-    done = subprocess.run(command, capture_output=True, text=True, env={**os.environ, "LC_ALL": "C"}, check=False)
+    try:
+        done = subprocess.run(command, capture_output=True, text=True, env={**os.environ, "LC_ALL": "C"}, check=False)
+    except OSError:
+        return ""
     return done.stdout
 
 
-try:
-    with open(path, encoding="utf-8") as stream:
-        registered = json.load(stream)
+def wellformed(registered, schema):
     flags = registered["isa_flags_present"]
-    if (
-        registered["schema"] != SCHEMA
+    return not (
+        registered["schema"] != schema
         or registered["scope"] not in ("DEVELOPMENT", "MAINNET")
         or type(registered["cpu_model_name"]) is not str
         or not registered["cpu_model_name"]
@@ -284,7 +297,22 @@ try:
         or registered["nproc"] < 1
         or type(registered["mem_total_min_gib"]) is not int
         or registered["mem_total_min_gib"] < 1
-    ):
+        or (
+            schema == SCHEMA_V2
+            and (
+                type(registered["id"]) is not str
+                or not registered["id"]
+                or type(registered["virtualization"]) is not str
+                or not registered["virtualization"]
+            )
+        )
+    )
+
+
+try:
+    with open(path, encoding="utf-8") as stream:
+        primary = json.load(stream)
+    if not wellformed(primary, SCHEMA):
         raise ValueError("malformed")
 except (OSError, ValueError, KeyError, TypeError):
     refuse(
@@ -293,6 +321,17 @@ except (OSError, ValueError, KeyError, TypeError):
         "register carbon/challenge_validator/validator-host-class.json from the calibration host before installing.",
     )
     sys.exit(0)
+
+classes = [(primary.get("id", "the registered class"), primary)]
+if extra_dir:
+    for extra_path in sorted(glob.glob(os.path.join(extra_dir, "*.json"))):
+        try:
+            with open(extra_path, encoding="utf-8") as stream:
+                extra = json.load(stream)
+            if wellformed(extra, SCHEMA_V2):
+                classes.append((extra["id"], extra))
+        except (OSError, ValueError, KeyError, TypeError):
+            pass  # a malformed extra file is simply not a registered class
 
 lscpu = run("lscpu")
 model = next(
@@ -313,31 +352,68 @@ try:
 except (OSError, AttributeError, ValueError):
     kib = 0
 mem_gib = kib // 1048576
+virt = ""
+if any("virtualization" in registered for _, registered in classes):
+    virt = run("systemd-detect-virt").strip()
 
-if model != registered["cpu_model_name"]:
-    refuse(
-        "V_HOST_CLASS_MODEL",
-        "this CPU is '" + (model or "unknown") + "'; the validator host class is '" + registered["cpu_model_name"] + "'.",
-        "use the registered validator hardware.",
-    )
-if seen != flags:
-    refuse(
-        "V_HOST_CLASS_ISA",
-        "CPU flags " + json.dumps(seen, sort_keys=True) + " differ from the host class " + json.dumps(flags, sort_keys=True) + ".",
-        "use the registered validator hardware.",
-    )
-if cpus != registered["nproc"]:
-    refuse(
-        "V_HOST_CLASS_VCPU",
-        str(cpus) + " vCPUs; the validator host class has exactly " + str(registered["nproc"]) + ".",
-        "use a machine with exactly the registered vCPU count.",
-    )
-if mem_gib < registered["mem_total_min_gib"]:
-    refuse(
-        "V_HOST_CLASS_MEMORY",
-        str(mem_gib) + " GiB of memory; the validator host class needs at least " + str(registered["mem_total_min_gib"]) + " GiB.",
-        "use a machine with the registered memory.",
-    )
+
+def refusals(label, registered):
+    found = []
+    flags = registered["isa_flags_present"]
+    if model != registered["cpu_model_name"]:
+        found.append(
+            (
+                "V_HOST_CLASS_MODEL",
+                "this CPU is '" + (model or "unknown") + "'; the validator host class is '" + registered["cpu_model_name"] + "'.",
+                "use the registered validator hardware.",
+            )
+        )
+    if seen != flags:
+        found.append(
+            (
+                "V_HOST_CLASS_ISA",
+                "CPU flags " + json.dumps(seen, sort_keys=True) + " differ from the host class " + json.dumps(flags, sort_keys=True) + ".",
+                "use the registered validator hardware.",
+            )
+        )
+    if cpus != registered["nproc"]:
+        found.append(
+            (
+                "V_HOST_CLASS_VCPU",
+                str(cpus) + " vCPUs; the validator host class has exactly " + str(registered["nproc"]) + ".",
+                "use a machine with exactly the registered vCPU count.",
+            )
+        )
+    if mem_gib < registered["mem_total_min_gib"]:
+        found.append(
+            (
+                "V_HOST_CLASS_MEMORY",
+                str(mem_gib) + " GiB of memory; the validator host class needs at least " + str(registered["mem_total_min_gib"]) + " GiB.",
+                "use a machine with the registered memory.",
+            )
+        )
+    if "virtualization" in registered and virt != registered["virtualization"]:
+        found.append(
+            (
+                "V_HOST_CLASS_VIRT",
+                "this machine is '" + (virt or "unknown") + "'; the validator host class " + label + " is '" + registered["virtualization"] + "'.",
+                "use the registered validator machine type.",
+            )
+        )
+    return found
+
+
+# One class must match in full. When none does, the refusals are those of the closest class (fewest differences;
+# the first registered wins a tie), so a single drift from a registered class names exactly that drift.
+best = None
+for label, registered in classes:
+    found = refusals(label, registered)
+    if not found:
+        sys.exit(0)
+    if best is None or len(found) < len(best):
+        best = found
+for item in best:
+    refuse(*item)
 PY
 )
 else
@@ -347,7 +423,7 @@ fi
 # The test knobs can only produce a check result, never an install: a validator cannot use them to
 # pass as another host class.
 overrides=()
-for knob in CARBON_VALIDATOR_ASSUME_MACHINE CARBON_VALIDATOR_HOST_CLASS_FILE CARBON_VALIDATOR_MEMINFO_FILE CARBON_IMAGE_CHECK_PYTHON; do
+for knob in CARBON_VALIDATOR_ASSUME_MACHINE CARBON_VALIDATOR_HOST_CLASS_FILE CARBON_VALIDATOR_HOST_CLASS_DIR CARBON_VALIDATOR_MEMINFO_FILE CARBON_IMAGE_CHECK_PYTHON; do
   if [[ -n "${!knob:-}" ]]; then overrides+=("${knob}"); fi
 done
 if (( ${#overrides[@]} > 0 && check_only == 0 )); then

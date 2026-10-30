@@ -83,7 +83,11 @@ def machine(tmp_path):
     )
     _stub(stubs, "curl", '[[ "${STUB_CURL_FAIL:-0}" == 1 ]] && exit 6; exit 0')
     _stub(stubs, "nvidia-smi", 'echo "${STUB_DRIVER:-}"')
-    _stub(stubs, "systemd-detect-virt", '[[ -n "${STUB_VIRT:-}" ]] && exit 0; exit 1')
+    _stub(
+        stubs,
+        "systemd-detect-virt",
+        '[[ -n "${STUB_VIRT:-}" ]] && { echo "${STUB_VIRT}"; exit 0; }; exit 1',
+    )
     _host_stubs(stubs)
     state = tmp_path / "state"
     host = _host_files(tmp_path)
@@ -378,3 +382,154 @@ def test_a_check_only_run_with_the_knobs_still_works(machine):
 def test_a_check_only_run_may_set_the_image_check_interpreter(machine):
     done = machine(CARBON_IMAGE_CHECK_PYTHON="/usr/bin/python3")
     assert done.returncode == 0 and "V_TEST_OVERRIDE" not in done.stderr
+
+
+# --- the GPUYard VM class (VALIDATOR-HOST-CLASS-EPYC7402P-VM-01, stage 1: identity) ----------------------------
+
+CLASS_DIR = ROOT / "scripts" / "validator_host_classes"
+PRIMARY_CLASS = ROOT / "carbon" / "challenge_validator" / "validator-host-class.json"
+EPYC_VM = {
+    "STUB_MODEL": "AMD EPYC 7402P 24-Core Processor",
+    "STUB_FLAGS": "avx2 fma",
+    "STUB_NPROC": "8",
+    "STUB_VIRT": "vm-other",
+}
+EPYC_KIB = 65_819_092  # the guest's MemTotal (62.77 GiB, floors to 62)
+
+
+def _real_classes(tmp_path, mem_kib=EPYC_KIB, directory=CLASS_DIR):
+    meminfo = tmp_path / "meminfo-real"
+    meminfo.write_text(f"MemTotal:       {mem_kib} kB\nMemFree:        1 kB\n")
+    return {
+        "CARBON_VALIDATOR_HOST_CLASS_FILE": str(PRIMARY_CLASS),
+        "CARBON_VALIDATOR_HOST_CLASS_DIR": str(directory),
+        "CARBON_VALIDATOR_MEMINFO_FILE": str(meminfo),
+    }
+
+
+def test_the_gpuyard_vm_class_is_accepted_exactly(tmp_path, machine):
+    done = machine(**_real_classes(tmp_path), **EPYC_VM)
+    assert done.returncode == 0, done.stderr
+    assert "V_HOST_CLASS" not in done.stderr
+
+
+def test_the_7950x_class_stays_registered_beside_it(tmp_path, machine):
+    done = machine(
+        **_real_classes(tmp_path, mem_kib=124 * 1048576),
+        STUB_MODEL="AMD Ryzen 9 7950X 16-Core Processor",
+        STUB_FLAGS="avx2 fma avx512f avx512_bf16",
+        STUB_NPROC="32",
+    )
+    assert done.returncode == 0, done.stderr
+
+
+@pytest.mark.parametrize(
+    "env, kib, code",
+    [
+        # EPYC-Milan (the retired ccx33 class) is refused, naming the model
+        ({"STUB_MODEL": "AMD EPYC-Milan Processor"}, EPYC_KIB, "V_HOST_CLASS_MODEL"),
+        (
+            {"STUB_MODEL": "AMD EPYC 7452 32-Core Processor"},
+            EPYC_KIB,
+            "V_HOST_CLASS_MODEL",
+        ),
+        ({"STUB_FLAGS": "avx2 fma avx512f"}, EPYC_KIB, "V_HOST_CLASS_ISA"),
+        ({"STUB_FLAGS": "avx2 fma avx512_bf16"}, EPYC_KIB, "V_HOST_CLASS_ISA"),
+        ({"STUB_FLAGS": "avx2 fma amx_tile"}, EPYC_KIB, "V_HOST_CLASS_ISA"),
+        ({"STUB_FLAGS": "avx2"}, EPYC_KIB, "V_HOST_CLASS_ISA"),
+        ({"STUB_NPROC": "7"}, EPYC_KIB, "V_HOST_CLASS_VCPU"),
+        ({"STUB_NPROC": "16"}, EPYC_KIB, "V_HOST_CLASS_VCPU"),
+        ({}, 62 * 1048576 - 1, "V_HOST_CLASS_MEMORY"),
+        ({"STUB_VIRT": "kvm"}, EPYC_KIB, "V_HOST_CLASS_VIRT"),
+        ({"STUB_VIRT": "none"}, EPYC_KIB, "V_HOST_CLASS_VIRT"),
+    ],
+)
+def test_each_single_drift_from_the_gpuyard_class_is_refused_with_one_code(
+    tmp_path, machine, env, kib, code
+):
+    done = machine(**_real_classes(tmp_path, mem_kib=kib), **{**EPYC_VM, **env})
+    if code is None:
+        assert done.returncode == 0, done.stderr
+        return
+    assert done.returncode == 2 and code in done.stderr
+    assert done.stderr.count("V_HOST_CLASS") == 1, done.stderr
+
+
+def test_exactly_62_gib_is_enough_for_the_gpuyard_class(tmp_path, machine):
+    done = machine(**_real_classes(tmp_path, mem_kib=62 * 1048576), **EPYC_VM)
+    assert done.returncode == 0, done.stderr
+
+
+def test_a_drift_from_the_7950x_class_still_names_exactly_that_drift(tmp_path, machine):
+    done = machine(
+        **_real_classes(tmp_path, mem_kib=124 * 1048576),
+        STUB_MODEL="AMD Ryzen 9 7950X 16-Core Processor",
+        STUB_FLAGS="avx2 fma avx512f avx512_bf16",
+        STUB_NPROC="31",
+    )
+    assert done.returncode == 2 and "V_HOST_CLASS_VCPU" in done.stderr
+    assert done.stderr.count("V_HOST_CLASS") == 1
+
+
+def test_a_machine_of_neither_class_gets_the_closest_classs_refusals(tmp_path, machine):
+    done = machine(**_real_classes(tmp_path), STUB_MODEL="Other", STUB_NPROC="2")
+    assert done.returncode == 2
+    assert "V_HOST_CLASS_MODEL" in done.stderr and "V_HOST_CLASS_VCPU" in done.stderr
+
+
+def test_a_malformed_extra_class_file_is_not_a_class(tmp_path, machine):
+    bad = tmp_path / "classes"
+    bad.mkdir()
+    (bad / "broken.json").write_text("{not json")
+    (bad / "wrong-schema.json").write_text(
+        json.dumps({"schema": "carbon.validator.host-class.v1"})
+    )
+    done = machine(**_real_classes(tmp_path, directory=bad), **EPYC_VM)
+    assert done.returncode == 2 and "V_HOST_CLASS_MODEL" in done.stderr
+
+
+def test_an_unregistered_primary_class_still_refuses_everything_even_with_extras(
+    tmp_path, machine
+):
+    env = _real_classes(tmp_path)
+    env["CARBON_VALIDATOR_HOST_CLASS_FILE"] = str(tmp_path / "absent.json")
+    done = machine(**env, **EPYC_VM)
+    assert done.returncode == 2 and "V_HOST_CLASS_UNREGISTERED" in done.stderr
+
+
+def test_the_class_dir_is_a_test_knob_never_allowed_for_an_install(tmp_path, machine):
+    done = machine("--install", **_real_classes(tmp_path), **EPYC_VM)
+    assert done.returncode == 2 and "V_TEST_OVERRIDE" in done.stderr
+    assert "CARBON_VALIDATOR_HOST_CLASS_DIR" in done.stderr
+
+
+def test_the_committed_gpuyard_record_is_stage_1_identity_only_and_outside_the_build_inputs():
+    from carbon.reconstruction.worker import build_inputs
+
+    record = json.loads((CLASS_DIR / "EPYC7402P-VM-01.json").read_bytes())
+    assert record["schema"] == "carbon.validator.host-class.v2"
+    assert record["id"] == "VALIDATOR-HOST-CLASS-EPYC7402P-VM-01"
+    assert record["scope"] == "DEVELOPMENT" and record["stage"] == 1
+    assert record["cpu_model_name"] == "AMD EPYC 7402P 24-Core Processor"
+    assert record["isa_flags_present"] == {
+        "amx": False,
+        "avx2": True,
+        "avx512_bf16": False,
+        "avx512f": False,
+        "fma": True,
+    }
+    assert (record["nproc"], record["mem_total_min_gib"]) == (8, 62)
+    assert record["virtualization"] == "vm-other"
+    assert 65_819_092 // 1048576 == record["mem_total_min_gib"]
+    # stage 2 (image ids, thread pins, lane cpusets, CPU pin values) is explicitly not registered here
+    assert record["recorded"]["stage_2"].startswith("UNREGISTERED")
+    assert not any(
+        key in record for key in ("image_ids", "thread_pins", "lane_cpusets")
+    )
+    relative = "scripts/validator_host_classes/EPYC7402P-VM-01.json"
+    inputs = build_inputs.paths()
+    assert not any(relative == p or relative.startswith(p + "/") for p in inputs)
+    # the 7950X class file is untouched: still v1, still the only primary class
+    primary = json.loads(PRIMARY_CLASS.read_bytes())
+    assert primary["schema"] == "carbon.validator.host-class.v1"
+    assert primary["cpu_model_name"] == "AMD Ryzen 9 7950X 16-Core Processor"
