@@ -118,7 +118,9 @@ def _roles(snapshot, pack_root):
             raise cg.CalibrationRefused("calibration_role_unavailable:" + name) from exc
 
     try:
-        train = snapshot.read_role(pack_root, "public", "train", max_bytes=16 * 1024**2)
+        train = snapshot.read_role(
+            pack_root, "public", "train", max_bytes=16 * 1024**2
+        )
     except ValueError as exc:
         raise cg.CalibrationRefused("calibration_role_unavailable:train") from exc
     return {
@@ -263,6 +265,7 @@ def run(
     from carbon.challenge_kit.interface_dtype import output_dtype
     from carbon.development_session.bundle_construction_worker import (
         _checked_binding,
+        rebuild_wall_kwargs,
         verify_direct_resource_policy,
     )
     from carbon.development_session.construction_recipe import (
@@ -335,6 +338,7 @@ def run(
         allowlist_bytes=material["allowlist_bytes"],
         seconds=policy["inference_wall_seconds_max"],
         runner=runner,
+        **rebuild_wall_kwargs(limits_document),
     )
     return cg.grade(
         adapter=adapter,

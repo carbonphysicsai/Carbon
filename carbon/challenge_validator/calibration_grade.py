@@ -457,6 +457,7 @@ def worker_infer(
     seconds,
     accelerator=None,
     runner=None,
+    rebuild_wall_seconds=None,
 ):
     """``infer(inputs) -> rows`` over the same inference step the official regrade
     uses (``bundle_construction_worker._infer_state``: the C-03 worker on the judge
@@ -481,6 +482,12 @@ def worker_infer(
             seconds=seconds,
             accelerator=accelerator,
             runner=runner,
+            # a graph route v2 version's inference runs under its longer rebuild wall, as the official route does
+            **(
+                {}
+                if rebuild_wall_seconds is None
+                else {"rebuild_wall_seconds": rebuild_wall_seconds}
+            ),
         )
         return [[float(v) for v in row] for row in result.predictions]
 
