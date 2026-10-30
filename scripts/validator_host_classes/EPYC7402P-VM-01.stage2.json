@@ -4,13 +4,13 @@
     "jax-cuda13-py311": {
       "determinism_flags_digest": "sha256:4fbf1d7acad8da73ed6f099a098d60a6e2c025ac7f367c2b3a5c67f153a58c32",
       "image_ids": [
-        "sha256:78b3fc0f69ffa4bbbd28376796b398fe95e5ce92764f8d20eb3dd1a9ba058779"
+        "sha256:a549785d9ac30b4e38b2509153026c9ede566f23ac071e82ef7747277e952903"
       ]
     },
     "torch-cu130-py311": {
       "determinism_flags_digest": "sha256:1782c72a01c6e92ebbcd552bfe210e7c30586efc7faf0bcd29f656aa2310ec9c",
       "image_ids": [
-        "sha256:5dd0d1ccbbd825cc3e6ca2f13faf90bb60b3fe40875b9c7297e1fcd5425ad266"
+        "sha256:11ac7fa86be6b7d137eacde7274c21d82cb8f5d2a3993df3fc94f4f706448108"
       ]
     }
   },
