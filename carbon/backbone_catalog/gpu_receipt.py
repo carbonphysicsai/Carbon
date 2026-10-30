@@ -15,7 +15,11 @@ driver), `image_digest`, `kind` and, for `smoke`, the fixed note.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import re
+import subprocess
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -129,8 +133,6 @@ OFFICIAL_STORE = None
 def required_determinism_digest(runtime: str) -> str:
     """The digest an official record binds for the determinism environment the official worker runs under:
     sha256 of the canonical JSON of `required_determinism(runtime)`."""
-    import hashlib
-
     raw = json.dumps(
         required_determinism(runtime), sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
@@ -253,10 +255,183 @@ def make(
 # built and the two-host check (the Validator's GPU host-class decision) is done, so until the Validator fills them every GPU ref is
 # refused officially.
 
-#: runtime -> the worker image digests the official route accepts (filled by the Validator when the image is registered).
-PINNED_GPU_IMAGES: dict = {}
-#: the registered validator GPU host classes (filled by the Validator after the two-host check).
-REGISTERED_HOST_CLASSES: frozenset = frozenset()
+# The two registries are not module constants: this file is a build input, so a pin written here would move the image it
+# pins. They are loaded from a tracked stage-2 record outside the build inputs, `scripts/validator_host_classes/
+# <class>.stage2.json` (Validator ruling GPUYARD_GPU4_REPEAT_EVIDENCE_RULING_20261030, stage 2). This loader is the only
+# source: with no record both are empty and every GPU ref is refused officially; a record that is empty, edited,
+# untracked, outside a git work tree, or that disagrees with the stage-1 file or the determinism environment is refused
+# with a typed code, never partly read.
+
+STAGE2_SCHEMA = "carbon.validator.host-class-stage2.v1"
+STAGE2_SUFFIX = ".stage2.json"
+_RUNTIMES = ("torch-cu130-py311", "jax-cuda13-py311")
+_IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}")
+_STAGE2_KEYS = {"schema", "host_class_id", "stage1_record_digest", "runtimes"}
+_RUNTIME_KEYS = {"image_ids", "determinism_flags_digest"}
+
+
+class Stage2Refused(Exception):
+    """A stage-2 record that cannot be trusted. ``code`` is the typed reason."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(f"{code}: {message}")
+        self.code = code
+
+
+class Stage2Registries:
+    """What the stage-2 record(s) register: the pinned worker images per runtime and the registered host classes."""
+
+    def __init__(self, images=None, host_classes=()):
+        self.images = {k: frozenset(v) for k, v in (images or {}).items()}
+        self.host_classes = frozenset(host_classes)
+
+
+def stage2_directory() -> Path:
+    return Path(__file__).resolve().parents[2] / "scripts" / "validator_host_classes"
+
+
+def record_digest(document) -> str:
+    """sha256 of the canonical JSON of a parsed record (line endings and key order do not matter)."""
+    raw = json.dumps(document, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def _git(directory: Path, *args):
+    try:
+        return subprocess.run(
+            ["git", "-C", str(directory), *args],
+            capture_output=True,
+            text=True,
+            env={**os.environ, "LC_ALL": "C"},
+            check=False,
+        )
+    except OSError:
+        return None
+
+
+def _tracked_and_unmodified(directory: Path, name: str):
+    """Refuse unless ``name`` is tracked at HEAD with no change (staged or not) in a usable git work tree."""
+    inside = _git(directory, "rev-parse", "--is-inside-work-tree")
+    if inside is None or inside.returncode != 0 or inside.stdout.strip() != "true":
+        raise Stage2Refused(
+            "V_STAGE2_UNVERIFIABLE",
+            f"{name}: this is not a git work tree, so the record cannot be checked (install from a git clone)",
+        )
+    tracked = _git(directory, "ls-files", "--error-unmatch", "--", name)
+    clean = _git(directory, "diff", "--quiet", "HEAD", "--", name)
+    if (
+        tracked is None
+        or clean is None
+        or tracked.returncode != 0
+        or clean.returncode != 0
+    ):
+        raise Stage2Refused(
+            "V_STAGE2_MODIFIED", f"{name}: untracked or changed against HEAD"
+        )
+
+
+def _load_json(path: Path, code: str):
+    try:
+        with open(path, encoding="utf-8") as stream:
+            return json.load(stream)
+    except (OSError, ValueError) as error:
+        raise Stage2Refused(code, f"{path.name}: {error}") from None
+
+
+def _read_record(directory: Path, path: Path):
+    name = path.name
+    _tracked_and_unmodified(directory, name)
+    record = _load_json(path, "V_STAGE2_MALFORMED")
+    stem = name[: -len(STAGE2_SUFFIX)]
+    if (
+        type(record) is not dict
+        or set(record) != _STAGE2_KEYS
+        or record["schema"] != STAGE2_SCHEMA
+        or type(record["runtimes"]) is not dict
+    ):
+        raise Stage2Refused(
+            "V_STAGE2_MALFORMED",
+            f"{name}: not a {STAGE2_SCHEMA} record",
+        )
+    if not record["runtimes"]:
+        raise Stage2Refused("V_STAGE2_EMPTY", f"{name}: registers no runtime")
+    stage1_name = stem + ".json"
+    _tracked_and_unmodified(directory, stage1_name)
+    stage1 = _load_json(directory / stage1_name, "V_STAGE2_MISMATCH")
+    if (
+        type(stage1) is not dict
+        or stage1.get("id") != record["host_class_id"]
+        or record_digest(stage1) != record["stage1_record_digest"]
+    ):
+        raise Stage2Refused(
+            "V_STAGE2_MISMATCH",
+            f"{name}: the stage-1 class record differs (id or digest)",
+        )
+    images = {}
+    for runtime, entry in record["runtimes"].items():
+        if (
+            runtime not in _RUNTIMES
+            or type(entry) is not dict
+            or set(entry) != _RUNTIME_KEYS
+        ):
+            raise Stage2Refused(
+                "V_STAGE2_MALFORMED", f"{name}: unknown or malformed runtime {runtime!r}"
+            )
+        ids = entry["image_ids"]
+        if (
+            type(ids) is not list
+            or not ids
+            or any(type(i) is not str or not _IMAGE_ID.fullmatch(i) for i in ids)
+        ):
+            raise Stage2Refused(
+                "V_STAGE2_EMPTY", f"{name}: {runtime} pins no full sha256 image id"
+            )
+        if entry["determinism_flags_digest"] != required_determinism_digest(runtime):
+            raise Stage2Refused(
+                "V_STAGE2_MISMATCH",
+                f"{name}: {runtime} determinism digest differs from the code's",
+            )
+        images[runtime] = set(ids)
+    return record["host_class_id"], images
+
+
+def _stat(path: Path):
+    try:
+        info = path.stat()
+    except OSError:
+        return (None, None)
+    return (info.st_mtime_ns, info.st_size)
+
+
+_STAGE2_CACHE: dict = {}
+
+
+def stage2_registries(directory=None) -> Stage2Registries:
+    """THE loader of the pinned GPU worker images and registered host classes (nothing else may set them).
+
+    No ``.stage2.json`` file means empty registries. Any record that fails verification raises ``Stage2Refused``."""
+    directory = Path(directory) if directory is not None else stage2_directory()
+    paths = sorted(directory.glob("*" + STAGE2_SUFFIX)) if directory.is_dir() else []
+    if not paths:
+        return Stage2Registries()
+    key = (str(directory),) + tuple(
+        (p.name, *_stat(p), *_stat(directory / (p.name[: -len(STAGE2_SUFFIX)] + ".json")))
+        for p in paths
+    )
+    cached = _STAGE2_CACHE.get(key)
+    if cached is not None:
+        return cached
+    images: dict = {}
+    classes = set()
+    for path in paths:
+        host_class, found = _read_record(directory, path)
+        classes.add(host_class)
+        for runtime, ids in found.items():
+            images.setdefault(runtime, set()).update(ids)
+    result = Stage2Registries(images, classes)
+    _STAGE2_CACHE.clear()
+    _STAGE2_CACHE[key] = result
+    return result
 
 
 #: The JAX GPU determinism environment, copied rather than imported (the accelerator profile is on the execution side of
@@ -293,11 +468,15 @@ def official_grade_problem(receipt, runtime: str):
         return "it has no receipt"
     if receipt.get("kind") != "repeat":
         return "its receipt is smoke only"
+    try:
+        registries = stage2_registries()
+    except Stage2Refused as refused:
+        return f"its host-class stage-2 record is refused ({refused.code})"
     image = receipt.get("image_digest")
-    if image is None or image not in PINNED_GPU_IMAGES.get(runtime, ()):
+    if image is None or image not in registries.images.get(runtime, ()):
         return "its receipt is not on the pinned GPU worker image"
     if receipt.get("determinism") != required_determinism(runtime):
         return "its receipt does not carry the full determinism environment"
-    if receipt.get("host_class") not in REGISTERED_HOST_CLASSES:
+    if receipt.get("host_class") not in registries.host_classes:
         return "its receipt is not from a registered host class"
     return None

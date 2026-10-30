@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.cpu import gpu_registries
 from carbon.backbone_catalog import (
     gpu_receipt,
     pipeline,
@@ -295,13 +296,9 @@ def test_the_official_route_reads_the_stores_record_and_judges_it_unchanged(
     assert receipt["determinism"] == gpu_receipt.required_determinism(RUNTIME)
     # Not yet an official-grade receipt: the image is not pinned and the host class is not registered.
     assert "pinned" in gpu_receipt.official_grade_problem(receipt, RUNTIME)
-    monkeypatch.setattr(gpu_receipt, "PINNED_GPU_IMAGES", {RUNTIME: {IMAGE}})
+    gpu_registries.set_pins(monkeypatch, {RUNTIME: {IMAGE}})
     assert "host class" in gpu_receipt.official_grade_problem(receipt, RUNTIME)
-    monkeypatch.setattr(
-        gpu_receipt,
-        "REGISTERED_HOST_CLASSES",
-        frozenset({"VALIDATOR-HOST-CLASS-FIXTURE"}),
-    )
+    gpu_registries.set_classes(monkeypatch, frozenset({"VALIDATOR-HOST-CLASS-FIXTURE"}))
     assert gpu_receipt.official_grade_problem(receipt, RUNTIME) is None
 
 
@@ -312,12 +309,8 @@ def test_a_record_with_another_determinism_digest_is_not_official_grade(
     store.append(record(item, determinism_flags_digest="sha256:" + "d" * 64))
     receipt = gpu_receipt.official_receipt(item, RUNTIME, store)
     assert receipt["determinism"] is None
-    monkeypatch.setattr(gpu_receipt, "PINNED_GPU_IMAGES", {RUNTIME: {IMAGE}})
-    monkeypatch.setattr(
-        gpu_receipt,
-        "REGISTERED_HOST_CLASSES",
-        frozenset({"VALIDATOR-HOST-CLASS-FIXTURE"}),
-    )
+    gpu_registries.set_pins(monkeypatch, {RUNTIME: {IMAGE}})
+    gpu_registries.set_classes(monkeypatch, frozenset({"VALIDATOR-HOST-CLASS-FIXTURE"}))
     assert "determinism" in gpu_receipt.official_grade_problem(receipt, RUNTIME)
 
 
@@ -356,12 +349,8 @@ def test_the_official_route_accepts_a_store_receipt_and_refuses_without_one(
 ):
     item = torch_item()
     ref = item["bundle_refs"][RUNTIME]
-    monkeypatch.setattr(gpu_receipt, "PINNED_GPU_IMAGES", {RUNTIME: {IMAGE}})
-    monkeypatch.setattr(
-        gpu_receipt,
-        "REGISTERED_HOST_CLASSES",
-        frozenset({"VALIDATOR-HOST-CLASS-FIXTURE"}),
-    )
+    gpu_registries.set_pins(monkeypatch, {RUNTIME: {IMAGE}})
+    gpu_registries.set_classes(monkeypatch, frozenset({"VALIDATOR-HOST-CLASS-FIXTURE"}))
     monkeypatch.setattr(gpu_receipt, "OFFICIAL_STORE", store)
     monkeypatch.setattr(gpu_receipt, "load", lambda catalog_id, runtime: None)
     with pytest.raises(served.CatalogRefused) as refused:
@@ -485,12 +474,8 @@ def _served_item():
 
 
 def _official(monkeypatch):
-    monkeypatch.setattr(gpu_receipt, "PINNED_GPU_IMAGES", {RUNTIME: {IMAGE}})
-    monkeypatch.setattr(
-        gpu_receipt,
-        "REGISTERED_HOST_CLASSES",
-        frozenset({"VALIDATOR-HOST-CLASS-FIXTURE"}),
-    )
+    gpu_registries.set_pins(monkeypatch, {RUNTIME: {IMAGE}})
+    gpu_registries.set_classes(monkeypatch, frozenset({"VALIDATOR-HOST-CLASS-FIXTURE"}))
 
 
 def test_readiness_lists_only_the_ids_with_a_valid_official_receipt_and_the_log_head(
@@ -511,7 +496,7 @@ def test_readiness_lists_only_the_ids_with_a_valid_official_receipt_and_the_log_
         served.official_readiness("electric-motor-magnetics", "1.5", (), store)["ready"]
         == []
     )
-    monkeypatch.setattr(gpu_receipt, "PINNED_GPU_IMAGES", {})
+    gpu_registries.set_pins(monkeypatch, {})
     assert (
         served.official_readiness("electric-motor-magnetics", "1.5", (RUNTIME,), store)[
             "ready"

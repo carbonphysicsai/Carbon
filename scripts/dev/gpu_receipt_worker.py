@@ -924,9 +924,14 @@ def main(argv=None):
         return 2
     from carbon.backbone_catalog import gpu_receipt
 
-    if args.host_class not in gpu_receipt.REGISTERED_HOST_CLASSES:
+    try:
+        registered = gpu_receipt.stage2_registries().host_classes
+    except gpu_receipt.Stage2Refused as refused:
+        print(str(refused), file=sys.stderr)
+        return 2
+    if args.host_class not in registered:
         print(
-            f"host class {args.host_class!r} is not registered (gpu_receipt.REGISTERED_HOST_CLASSES)",
+            f"host class {args.host_class!r} is not registered (no verified stage-2 record names it)",
             file=sys.stderr,
         )
         return 2
