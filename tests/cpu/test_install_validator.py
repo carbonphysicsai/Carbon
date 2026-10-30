@@ -573,7 +573,7 @@ def _checkout(tmp_path):
     return repo, git
 
 
-def _check_on_box(repo, tmp_path, machine_env):
+def _check_on_box(repo, tmp_path, machine_env, mem_kib=EPYC_KIB):
     """Run the box's own installer copy with NO class knobs, so the default class directory and the git rule apply."""
     stubs = tmp_path / "stubs-box"
     stubs.mkdir(exist_ok=True)
@@ -587,7 +587,7 @@ def _check_on_box(repo, tmp_path, machine_env):
     _stub(stubs, "nvidia-smi", 'echo ""')
     _stub(stubs, "systemd-detect-virt", 'echo "${STUB_VIRT:-}"')
     meminfo = tmp_path / "meminfo-box"
-    meminfo.write_text(f"MemTotal:       {EPYC_KIB} kB\nMemFree:        1 kB\n")
+    meminfo.write_text(f"MemTotal:       {mem_kib} kB\nMemFree:        1 kB\n")
     env = {
         **os.environ,
         "PATH": f"{stubs}:{os.environ['PATH']}",
@@ -657,13 +657,43 @@ def test_an_untracked_class_file_dropped_on_the_box_never_admits_a_machine(tmp_p
     assert _check_on_box(repo, tmp_path, EPYC_VM).returncode == 0
 
 
-def test_a_checkout_without_git_admits_no_extra_class(tmp_path):
+def test_a_tree_that_is_not_a_git_work_tree_fails_closed_with_a_typed_refusal(tmp_path):
     repo, _ = _checkout(tmp_path)
-    shutil.rmtree(repo / ".git")
-    done = _check_on_box(repo, tmp_path, EPYC_VM)
+    shutil.rmtree(repo / ".git")  # a release tarball or a copied directory
+    for machine_env in (
+        EPYC_VM,
+        {**EPYC_VM, "STUB_MODEL": "AMD Ryzen 9 7950X 16-Core Processor"},
+    ):
+        done = _check_on_box(repo, tmp_path, machine_env)
+        assert (
+            done.returncode == 2 and "V_HOST_CLASS_UNVERIFIABLE" in done.stderr
+        ), done.stderr
+        assert "git clone" in done.stderr and done.stderr.count("V_HOST_CLASS") == 1
+
+
+def test_a_modified_tracked_class_file_is_refused_not_registered(tmp_path):
+    repo, _ = _checkout(tmp_path)
+    record = repo / "scripts" / "validator_host_classes" / "EPYC7402P-VM-01.json"
+    edited = json.loads(record.read_text())
+    edited["mem_total_min_gib"] = 1  # loosened in place
+    record.write_text(json.dumps(edited))
+    done = _check_on_box(repo, tmp_path, {**EPYC_VM, "STUB_NPROC": "16"})
+    assert done.returncode == 2 and "V_HOST_CLASS" in done.stderr
     assert (
-        done.returncode == 2 and "V_HOST_CLASS_MODEL" in done.stderr
-    )  # only the primary class is left
+        _check_on_box(repo, tmp_path, EPYC_VM).returncode == 2
+    )  # even the matching machine: the class is not registered
+
+
+def test_both_clean_class_files_are_accepted_on_a_work_tree(tmp_path):
+    repo, _ = _checkout(tmp_path)
+    assert _check_on_box(repo, tmp_path, EPYC_VM).returncode == 0
+    seven = {
+        "STUB_MODEL": "AMD Ryzen 9 7950X 16-Core Processor",
+        "STUB_FLAGS": "avx2 fma avx512f avx512_bf16",
+        "STUB_NPROC": "32",
+    }
+    done = _check_on_box(repo, tmp_path, seven, mem_kib=124 * 1048576)
+    assert done.returncode == 0, done.stderr
 
 
 def test_a_deleted_committed_class_file_is_simply_not_a_class(tmp_path):
