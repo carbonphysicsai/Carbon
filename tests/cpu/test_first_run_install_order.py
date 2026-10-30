@@ -4,7 +4,11 @@ import pathlib
 
 from carbon.backbone_catalog import listing
 from scripts.dev.miner_launchpad import toolbox
-from scripts.dev.miner_launchpad.starting_entry import start_first, starting_entry
+from scripts.dev.miner_launchpad.starting_entry import (
+    MEASURED_START,
+    start_first,
+    starting_entry,
+)
 
 
 def _newest():
@@ -60,6 +64,8 @@ def test_a_newcomer_starts_on_the_baseline_where_one_is_offered_and_the_registry
         ids = [item["catalog_id"] for item in listing.entries(challenge_id, version)]
         baselines = [i for i in ids if i.startswith("v2.") and i.endswith(".prior_krr")]
         start = starting_entry(challenge_id, version)
+        if (challenge_id, version) in MEASURED_START:
+            continue
         if baselines:
             seen += 1
             assert start == baselines[0]
@@ -69,3 +75,24 @@ def test_a_newcomer_starts_on_the_baseline_where_one_is_offered_and_the_registry
     assert seen, "the catalog offers a baseline on at least one Challenge"
     # The registry's ready example and its digests are not moved by the Launchpad's choice.
     assert listing.preferred("electric-motor-magnetics", "1.4") == "v2.motor.jno.bcat"
+
+
+def test_cooling_1_6_starts_on_the_measured_entry_because_its_baseline_is_refused_at_freeze():
+    """prior_krr on Cooling 1.6 is 63,026 bytes of wiring, over the 32 KiB v6 budget (panel 2026-10-30); the start is
+    the receipted, eligible entry with the highest measured total. The other launch versions keep prior_krr.
+    """
+    ids = [i["catalog_id"] for i in listing.entries("chip-cold-plate", "1.6")]
+    assert "v2.cooling.prior_krr" in ids, "the baseline stays in the picker"
+    assert (
+        starting_entry("chip-cold-plate", "1.6")
+        == "v2.cooling.physicsnemo.MeshGraphNet"
+    )
+    assert MEASURED_START == {
+        ("chip-cold-plate", "1.6"): "v2.cooling.physicsnemo.MeshGraphNet"
+    }
+    for challenge_id, version, expected in (
+        ("electric-motor-magnetics", "1.5", "v2.motor.prior_krr"),
+        ("f08-ribbed-bracket", "1.7", "v2.f08.prior_krr"),
+        ("f02", "2.5", "v2.f02.prior_krr"),
+    ):
+        assert starting_entry(challenge_id, version) == expected
