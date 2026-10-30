@@ -480,12 +480,23 @@ step_memory_check() {
 step "1/6 Checking this machine"
 [[ "$(uname -s)" == "Linux" ]] || fail "Linux is required (Windows: use WSL2)."
 [[ "$(uname -m)" == "x86_64" ]] || fail "x86-64 is required."
+if [[ "$(id -u)" == "0" ]]; then
+  echo "Warning: you are running this as root. Carbon is built for a normal user in the docker group: the Control Center runs as that user's service and keeps its state in that user's home. Running as root may not work; use a normal user."
+fi
 step_memory_check
 for tool in git curl docker; do
   command -v "${tool}" >/dev/null 2>&1 || fail "${tool} is not installed. $(install_hint "${tool}")"
 done
-docker info >/dev/null 2>&1 \
-  || fail "Docker is installed but not reachable; start it, or add yourself to the docker group."
+# Docker answers or says why: a permission error is the docker group (log out and in after joining it); anything
+# else is a daemon that is not running. Each says its own fix.
+if ! docker_error="$(docker info 2>&1 >/dev/null)"; then
+  case "${docker_error}" in
+    *"permission denied"*)
+      fail "Docker is installed, but your user is not allowed to use it (permission denied). Add yourself to the docker group with: sudo usermod -aG docker \$USER, then log out and in again, and run this again." ;;
+    *)
+      fail "Docker is installed but not running. Start it (for example: sudo systemctl start docker), then run this again." ;;
+  esac
+fi
 supported_setup_warning
 # The service, and every unit Carbon's runs start, run under the systemd user
 # manager, not this shell (LA-F6). A docker group added after the manager
@@ -1163,11 +1174,18 @@ fi
 #: miner runs on their own computer to reach the page (M1 E2E E1).
 remote_line() {
   [[ -n "${SSH_CONNECTION:-}" ]] || return 0
-  local host
+  local host private_note=""
   host="$(printf '%s' "${SSH_CONNECTION}" | cut -d' ' -f3)"
-  [[ -n "${host}" ]] || host="<this machine's address>"
+  # The address this server sees may be a private one (a cloud's internal network, a NAT): it is not reachable
+  # from the miner's own computer, so it is never printed as the address to use.
+  case "${host}" in
+    ""|10.*|127.*|169.254.*|192.168.*|172.1[6-9].*|172.2[0-9].*|172.3[0-1].*|::1|[fF][cCdD]*|[fF][eE]80:*)
+      host="<your server's public address>"
+      private_note=1 ;;
+  esac
   echo "This is a remote machine. On your own computer, run:"
   echo "  ssh -N -L ${PORT}:127.0.0.1:${PORT} ${USER:-$(id -un)}@${host}"
+  [[ -z "${private_note:-}" ]] || echo "  (use the address you connect to this machine with; the one it sees for itself is private)"
   echo "then open the link below there."
 }
 #: open_page_lines: the last lines: the remote line, then the page's link

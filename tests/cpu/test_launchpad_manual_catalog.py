@@ -410,10 +410,12 @@ def test_capabilities_expose_the_example_and_the_picker():
     # The picker is the toolbox's list plus the validator's readiness per entry (display only; unknown, None, with
     # no receiver configured here).
     assert [
-        {k: v for k, v in r.items() if k != "officially_gradable"}
+        {k: v for k, v in r.items() if k not in ("officially_gradable", "installed")}
         for r in motor["catalog_recipes"]
     ] == toolbox.catalog_recipes(MOTOR, "1.3")
     assert all(r["officially_gradable"] is None for r in motor["catalog_recipes"])
+    # Whether each entry is installed here is measured once a profile is loaded; with none it is unknown (None).
+    assert all(r["installed"] is None for r in motor["catalog_recipes"])
     assert len(motor["catalog_recipes"]) == len(listing.entries(MOTOR, "1.3"))
     assert items[(MOTOR, "1.0")]["catalog_recipes"] == []
 
@@ -451,3 +453,22 @@ def test_the_toolbox_serves_the_version_asked_for():
             host, {"challenge": MOTOR, "challenge_version": "9.9"}, lanes={}
         )
     assert refused.value.code == "challenge_unknown"
+
+
+def test_the_picker_marks_entries_installed_only_from_a_measured_snapshot():
+    from scripts.dev.miner_launchpad.capabilities import _mark_installed
+
+    recipes = [{"catalog_id": "a"}, {"catalog_id": "b"}, {"catalog_id": "c"}]
+    measured = {"found": {"a": True, "b": False}, "status": "ready"}
+    marked = _mark_installed(recipes, measured)
+    assert [r["installed"] for r in marked] == [
+        True,
+        False,
+        False,
+    ], "absent = not installed"
+    assert recipes == [{"catalog_id": "a"}, {"catalog_id": "b"}, {"catalog_id": "c"}]
+    # Not measured (verifying or failed: found is None) or no profile (no snapshot): unknown, never "not installed".
+    for snapshot in ({"found": None, "status": "verifying"}, None):
+        assert [r["installed"] for r in _mark_installed(recipes, snapshot)] == [
+            None
+        ] * 3

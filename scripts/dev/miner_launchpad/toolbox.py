@@ -137,6 +137,9 @@ def _catalog_recipes(challenge_id, version):
             {
                 "catalog_id": item["catalog_id"],
                 "backbone": item["backbone"],
+                # The entry a first practice starts on, and the one the install does first.
+                "recommended": item["catalog_id"]
+                == listing.preferred(challenge_id, version),
                 "recipe": _catalog_recipe(challenge_id, version, item["catalog_id"]),
                 # The settings this entry's schema accepts, so the page offers only fields the entry takes (a
                 # newcomer's first run cannot hit catalog_setting_unknown).

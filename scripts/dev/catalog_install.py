@@ -33,7 +33,7 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
-from carbon.backbone_catalog import pipeline
+from carbon.backbone_catalog import listing, pipeline
 from scripts.dev import catalog_wheelhouse, library_bundle
 from scripts.dev.miner_launchpad.failure_words import diagnostic as _diagnostic
 
@@ -95,7 +95,8 @@ def install(
         wheelhouse = catalog_wheelhouse.DEFAULT_DIRECTORY
     skipped = [] if skipped is None else skipped
     installed = []
-    for item in pipeline.load()["entries"]:
+    # The entries a first practice starts on come first (listing.install_order); the rest follow in manifest order.
+    for item in listing.install_order(pipeline.load()["entries"]):
         catalog_id = item["catalog_id"]
         if catalog_ids and catalog_id not in catalog_ids:
             continue

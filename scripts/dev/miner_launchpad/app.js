@@ -272,10 +272,14 @@
     return Number.isInteger(error?.status) && error.status >= 400 && error.status < 500 && !OUTCOME_UNKNOWN.has(error.code);
   }
   // An error's code or message, read as words, without a closing stop.
+  // The refusals a first-time miner meets, in words: what happened and what to do next.
+  const PRACTICE_CODES = {
+    smoke_practice_unavailable: "This Challenge has no smoke practice",
+    practice_time_budget_reached: "The full practice reached its time budget. Next, run a smoke practice",
+    catalog_entry_not_installed: "This backbone is not installed on this machine yet. The catalog installs itself in the background after you save your settings (about 15 minutes the first time, the Overview shows how far it is). Pick a backbone marked installed, or try again when it finishes",
+  };
   function practiceMessage(code) {
-    if (code === "smoke_practice_unavailable") return "This Challenge has no smoke practice";
-    if (code === "practice_time_budget_reached") return "The full practice reached its time budget. Next, run a smoke practice";
-    return null;
+    return typeof code === "string" && Object.hasOwn(PRACTICE_CODES, code) ? PRACTICE_CODES[code] : null;
   }
   function said(error) { return (refused(error) && practiceMessage(error?.code)) || words(error?.message).replace(/\.$/, ""); }
   // Human units for the ledger's resources (LP-PROD-F): what the miner types
@@ -824,6 +828,14 @@
     const build = value?.gpu_build;
     return JSON.stringify([value?.registered_hotkey ?? null, value?.steps ?? null, value?.status?.done ?? null, build?.state ?? null, build?.offered ?? null, value?.images?.gpu_image_manifest?.path ?? null]);
   }
+  // A catalog install moving or ending changes what the Challenge cards, the backbone picker and the banner say, so
+  // the capabilities are read again (at most every 10 s): an open page never keeps the old answer.
+  let capabilitiesRefreshedAt = 0;
+  function refreshCapabilitiesSoon() {
+    if (Date.now() - capabilitiesRefreshedAt < 10000) return;
+    capabilitiesRefreshedAt = Date.now();
+    Promise.resolve(readCapabilities()).catch(() => { /* the next change tries again */ });
+  }
   function catalogBuildKey(build) {
     return build ? JSON.stringify([build.state, build.installed ?? null, build.total ?? null, build.readiness?.checked ?? null, build.readiness?.status ?? null]) : "";
   }
@@ -848,6 +860,7 @@
       const catalogChanged = catalogBuildKey(fresh.catalog_build) !== catalogBuildKey(setupState?.catalog_build);
       if (!changed && setupState && fresh.catalog_build !== undefined) setupState.catalog_build = fresh.catalog_build;
       if (catalogChanged && !changed) render();
+      if (catalogChanged) refreshCapabilitiesSoon();
       if (fresh.gpu_build?.state === "running") setText($("setup-gpu-build-progress"), gpuBuildText(fresh.gpu_build));
       if (changed) {
         setupState = fresh; setupVersion++;
@@ -1886,6 +1899,15 @@
       describeTransport(); updateCommands();
     }
     const action = el("div", undefined, "step-action"); action.append(computeButton); compute.append(action);
+    // Saving your settings starts the catalog install (about 15 minutes), so it is offered as soon as it can be taken
+    // (steps 3 to 5 checked) instead of only at the last step: the install runs while you finish the rest.
+    if (steps.compute?.checked && steps.review?.ready && !steps.review?.profile_written) {
+      const early = el("div", undefined, "step-action save-early");
+      early.append(el("p", "Ready to save? Saving your settings now starts installing the model catalog in the background (about 15 minutes), so your first practice is ready sooner. You can still change anything under Review.", "hint"));
+      const saveNow = el("button", "Save my settings now"); saveNow.type = "button"; saveNow.id = "setup-save-early";
+      saveNow.addEventListener("click", async () => { await setupCall("review", {confirm: true}); });
+      early.append(saveNow); computePanel.append(early);
+    }
     compute.addEventListener("submit", async event => {
       event.preventDefault();
       const request = {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()};
@@ -1949,7 +1971,7 @@
       connectBox.hidden = !choice?.connect;
       if (!choice?.connect) return;
       const connect = choice.connect;
-      connectBox.append(el("h3", "Connect your agent"), el("p", "Skips the AI model step: " + choice.skips.inference + ". " + connect.note, "hint"));
+      connectBox.append(el("h3", "No agent and no model key?"), el("p", "You can still practise: choose this, finish Setup, then pick Manual when you launch. You run each practice from the page and no model is called. (Manual appears in the launch step, not in this list.)", "hint"), el("h3", "Connect your agent"), el("p", "Skips the AI model step: " + choice.skips.inference + ". " + connect.note, "hint"));
       copyRow(connectBox, "The one command, run from your Carbon checkout (" + connect.cwd + ")", connect.command, "setup-agent-command-copy");
       // One disclosure per client: its snippets, its source and what Carbon
       // has not verified.
@@ -2652,20 +2674,21 @@
     // Only what the wizard offers: the latest version of each launch Challenge, never Battery (out of the launch set) or an older version.
     const selectable = offeredChallenges().filter(entry => entry.selectable);
     items.push(selectable.length
-      ? {ok: true, text: "You can launch: " + selectable.map(entry => entry.title).join(", ") + "."}
+      ? {ok: true, text: "You can launch: " + selectable.map(entry => plainTitle(entry.title)).join(", ") + "."}
       : {ok: false, area: "Challenges", item: caps.challenges.find(entry => entry.implemented) || caps.challenges[0]});
     // U30: a catalog version cannot practise until its backbone catalog is
     // installed here, so setup is not done while none is.
     // The install's own state (setup): until it has been measured, or when the daemon could not be read, the
     // page never says nothing is installed.
     const build = setupState?.catalog_build;
-    const unmeasured = build && ["VERIFYING", "UNKNOWN"].includes(build.state);
+    // While the catalog installs (RUNNING) its own line says so: "no backbone installed" would contradict it.
+    const unmeasured = build && ["VERIFYING", "UNKNOWN", "RUNNING"].includes(build.state);
     const uninstalled = unmeasured ? [] : selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed === 0);
     if (build?.state === "VERIFYING") items.push({ok: null, label: "Checking", text: "Checking which backbones are installed on this machine" + (Number.isInteger(build.readiness?.checked) && Number.isInteger(build.readiness?.total) ? ": " + build.readiness.checked + " of " + build.readiness.total + " checked" : "") + ". This runs in the background."});
     if (build?.state === "UNKNOWN") items.push({ok: null, label: "Checking", text: "Couldn't check which backbones are installed on this machine" + (build.readiness?.code ? " (" + words(build.readiness.code) + ")" : "") + "; trying again."});
     if (build?.state === "RUNNING") items.push({ok: null, label: "Installing", text: "Installing the backbone catalog in the background" + (Number.isInteger(build.installed) && Number.isInteger(build.total) ? ": " + build.installed + " of " + build.total + " installed" : "") + "."});
     if (build && ["INCOMPLETE", "STOPPED"].includes(build.state)) items.push({ok: null, label: "Not finished", text: build.note || "The backbone catalog is not fully installed.", action: {label: "Install the catalog again", run: startCatalog}});
-    if (uninstalled.length) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_not_installed", plain: {sentence: "No backbone is installed on this machine for " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ") + ", so a catalog campaign on " + (uninstalled.length === 1 ? "it" : "them") + " can't practise yet.", next: null}, next_action: "Install it on this machine: python -B -m scripts.dev.catalog_install --state-dir <your state directory> (in your Carbon checkout). Not installed for: " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ")}});
+    if (uninstalled.length) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_not_installed", plain: {sentence: "No backbone is installed on this machine for " + uninstalled.map(entry => plainTitle(entry.title) + " " + entry.version).join(", ") + ", so a catalog campaign on " + (uninstalled.length === 1 ? "it" : "them") + " can't practise yet.", next: null}, next_action: "Install it on this machine: python -B -m scripts.dev.catalog_install --state-dir <your state directory> (in your Carbon checkout). Not installed for: " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ")}});
     // What is installed is checked in the background (a full catalog takes a while). While it runs the
     // page shows the progress and never a count; a check that could not finish is said so and can be
     // asked again. "Ready" here is display only: every practice, submission and rebuild verifies the
@@ -2679,15 +2702,20 @@
     if (stale) items.push({ok: null, label: "Checking", text: "What is installed was last checked " + (Number.isFinite(stale.checked_at) ? Math.max(1, Math.round((Date.now() / 1000 - stale.checked_at) / 60)) + " minute(s) ago" : "a while ago") + "; it is being checked again."});
     // Some of a version's backbones installed and some not: said as it is, not as "not installed".
     const partly = selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed > 0 && entry.catalog_install.installed < entry.catalog_install.entries);
-    if (partly.length) items.push({ok: null, text: "Backbone catalog partly installed: " + partly.map(entry => entry.title + " " + entry.version + " " + entry.catalog_install.installed + " of " + entry.catalog_install.entries).join(", ") + ". The rest cannot be practised until they are installed; run the install again to retry them.", action: setupState?.catalog_build && !["RUNNING", "VERIFYING", "UNKNOWN"].includes(setupState.catalog_build.state) ? {label: "Install the catalog again", run: startCatalog} : undefined});
+    if (partly.length) items.push({ok: null, text: "Backbone catalog partly installed: " + partly.map(entry => plainTitle(entry.title) + " " + entry.version + " " + entry.catalog_install.installed + " of " + entry.catalog_install.entries).join(", ") + ". The rest cannot be practised until they are installed; run the install again to retry them.", action: setupState?.catalog_build && !["RUNNING", "VERIFYING", "UNKNOWN"].includes(setupState.catalog_build.state) ? {label: "Install the catalog again", run: startCatalog} : undefined});
     const agents = agentChoices().filter(choice => choice.availability === "available");
     items.push(agents.length
       ? {ok: true, text: "Agents ready: " + agents.map(choice => choice.label).join(", ") + "."}
       : {ok: false, area: "Agents", item: agentChoices()[0]});
     const provider = caps.model.providers.find(item => item.availability === "available");
+    // Only Carbon's own agent (Graphite) needs a model key: with Manual or your own agent available, a missing
+    // key is a note, not a fix that holds setup up.
+    const keyless = agents.some(choice => choice.launch_agent !== "graphite");
     items.push(provider
       ? {ok: true, text: "Model key set for " + provider.provider + "."}
-      : {ok: false, area: "Model key (only Carbon's own agent needs one)", item: caps.model.providers[0]});
+      : keyless
+        ? {ok: null, label: "Optional", text: "No model key set: only Carbon's own agent (Graphite) needs one. Manual and your own agent do not.", fix: {label: "Set up inference", href: "#setup/inference"}}
+        : {ok: false, area: "Model key (only Carbon's own agent needs one)", item: caps.model.providers[0]});
     const compute = computeChoice();
     items.push(compute && compute.availability === "available"
       ? {ok: true, text: "Compute: " + compute.label + "."}
@@ -3003,11 +3031,15 @@
     row("Objective", d.task);
     row("Intended use", d.intended_use);
     const inputs = d.interface?.inputs || {};
-    row("Inputs", Object.entries(inputs).map(([name, spec]) => name + " [" + (spec.bounds || []).join(", ") + "] " + (spec.unit || "")).join(" · "));
+    const inputNames = Object.keys(inputs);
+    const positional = inputNames.length > 0 && inputNames.every((name, i) => name === String(i)) && inputNames.every(name => !(inputs[name].bounds || []).length && !inputs[name].unit);
+    row("Inputs", positional
+      ? inputNames.length + " numbers, in order (positions 0 to " + (inputNames.length - 1) + "); no names or units are published for them"
+      : Object.entries(inputs).map(([name, spec]) => [name, (spec.bounds || []).length ? "[" + spec.bounds.join(", ") + "]" : "", spec.unit || ""].filter(Boolean).join(" ")).join(" · "));
     const outputs = d.interface?.outputs || {};
-    row("Outputs", Object.entries(outputs).map(([name, spec]) => name + " " + JSON.stringify(spec.shape ?? []) + " " + (spec.unit || "") + (spec.grid ? " (" + spec.grid + ")" : "") + (spec.meaning ? " (" + spec.meaning + ")" : "")).join(" · "));
+    row("Outputs", Object.entries(outputs).map(([name, spec]) => [name, (spec.shape || []).length ? JSON.stringify(spec.shape) : "", spec.unit || ""].filter(Boolean).join(" ") + (spec.grid ? " (" + spec.grid + ")" : "") + (spec.meaning ? " (" + spec.meaning + ")" : "")).join(" · "));
     const material = d.public_material || {};
-    row("Public data", [(material.names || []).join(", "), material.train ? "TRAIN " + material.train.version + ": " + material.train.cases + " cases" : "", material.practice ? "PRACTICE: " + material.practice.cases + " cases" : ""].filter(Boolean).join(" · "));
+    row("Public data", [(material.names || []).join(", "), material.train ? "TRAIN" + (material.train.version ? " " + material.train.version : "") + ": " + material.train.cases + " cases" : "", material.practice ? "PRACTICE: " + material.practice.cases + " cases" : ""].filter(Boolean).join(" · "));
     row("Never disclosed", (material.never_disclosed || []).join("; "));
     row("Tools", Object.entries(entry.tools?.workflow || {}).map(([name, detail]) => name + ": " + detail).join(" · "));
     row("Rebuildable models", (entry.tools?.rebuildable_models || []).join(", "));
@@ -3735,18 +3767,26 @@
     const form = el("div", undefined, "catalog-practice"); form.id = "journey-form-" + run.id;
     const idOf = text => { try { return JSON.parse(text)?.source?.catalog_id || null; } catch (_) { return null; } };
     const known = id => catalog.some(item => item.catalog_id === id);
-    const start = known(idOf(raw.value)) ? idOf(raw.value) : catalog[0].catalog_id;
+    // Start on an entry that can run now: an installed current (non-legacy) one, else any current one that is
+    // not known to be missing, else the first; never on a legacy entry while a current one is there.
+    const firstChoice = catalog.find(item => item.recommended === true && item.installed !== false) || catalog.find(item => item.installed === true && !item.legacy) || catalog.find(item => !item.legacy && item.installed !== false) || catalog.find(item => item.installed !== false) || catalog[0];
+    const start = known(idOf(raw.value)) ? idOf(raw.value) : firstChoice.catalog_id;
     const pickLabel = el("label", "Backbone"); const pick = document.createElement("select"); pick.id = "journey-backbone-" + run.id; pickLabel.htmlFor = pick.id;
-    for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "") + (item.legacy ? " (legacy)" : "") + (item.officially_gradable === false ? " (" + GPU_RECEIPT_PENDING_WORDS + ")" : "")); option.value = item.catalog_id; pick.append(option); }
+    for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "") + (item.legacy ? " (legacy)" : "") + (item.installed === false ? " (not installed yet)" : "") + (item.officially_gradable === false ? " (" + GPU_RECEIPT_PENDING_WORDS + ")" : "")); option.value = item.catalog_id; pick.append(option); }
     pick.value = start; pick.dataset.draft = "1";
     const about = el("p", undefined, "hint"); about.id = "journey-backbone-about-" + run.id;
     // OWNER-GPU-OPEN-WITH-READY-01: an entry with no official GPU build yet can be practised, but the validator
     // cannot grade it officially. Display only; nothing is hidden or blocked.
     const gradable = el("p", undefined, "hint gpu-readiness"); gradable.id = "journey-backbone-gradable-" + run.id;
+    // An entry whose files are not on this machine yet cannot practise: said here, before a practice is refused.
+    const missing = el("p", undefined, "hint backbone-not-installed"); missing.id = "journey-backbone-missing-" + run.id;
     const stepsLabel = el("label", "Training steps (empty keeps the tested default)"); const steps = document.createElement("input"); steps.type = "number"; steps.min = "1"; steps.step = "1"; steps.id = "journey-steps-" + run.id; stepsLabel.htmlFor = steps.id; steps.dataset.draft = "1";
     const rateLabel = el("label", "Learning rate (empty keeps the tested default)"); const rate = document.createElement("input"); rate.type = "number"; rate.min = "0"; rate.step = "any"; rate.id = "journey-rate-" + run.id; rateLabel.htmlFor = rate.id; rate.dataset.draft = "1";
     const current = () => catalog.find(item => item.catalog_id === pick.value) || catalog[0];
     const describe = () => {
+      const absent = current().installed === false;
+      missing.hidden = !absent;
+      missing.textContent = absent ? PRACTICE_CODES.catalog_entry_not_installed + "." : "";
       const notYet = current().officially_gradable === false;
       gradable.hidden = !notYet;
       gradable.textContent = notYet ? GPU_RECEIPT_PENDING_NOTE : "";
@@ -3776,7 +3816,7 @@
     steps.addEventListener("input", write); rate.addEventListener("input", write);
     describe(); fit();
     if (!known(idOf(raw.value))) write();
-    form.append(pickLabel, pick, gradable, about, stepsLabel, steps, rateLabel, rate);
+    form.append(pickLabel, pick, missing, gradable, about, stepsLabel, steps, rateLabel, rate);
     box.insertBefore(form, holder.parentElement);
     researchNote(box, "Pick a tested backbone and, if you like, change its steps or learning rate. Anything else is under Advanced.", "hint");
   }
@@ -5310,7 +5350,8 @@
     const recorded = run.refusals || [];
     if (recorded.length > entry.refusals) {
       const last = recorded[recorded.length - 1] || {};
-      const code = last.reason || last.status || "refused";
+      // The most specific code the record carries: its correction, else the generic reason.
+      const code = last.correction_code || last.reason || last.status || "refused";
       return {kind: "refused", text: "Not done: " + (practiceMessage(code) || words(code)) + "." + (last.detail && !practiceMessage(code) ? " " + last.detail : ""), refusal: {code}};
     }
     if (entry.name === "submit" && (run.journey?.submitted_epochs || []).length > entry.submitted) {
