@@ -47,9 +47,22 @@ def _random(n, levels=2, seed=1):
     return np.random.default_rng(seed).integers(0, levels, n)
 
 
-def test_v6_is_not_served_until_registered():
-    assert allowlist_module.ACCOUNTING_V6_VERSIONS == frozenset()
-    assert allowlist_module.accounting_for(V8)[0] == "level4-constant-accounting-v5"
+def test_v6_is_served_with_allowlist_v8_to_the_four_launch_versions_only():
+    from carbon.challenge_kit import version_registry
+
+    assert allowlist_module.ACCOUNTING_V6_VERSIONS == frozenset({"level4-allowlist-v8"})
+    assert allowlist_module.accounting_for(V8)[0] == "level4-constant-accounting-v6"
+    launch = [
+        ("electric-motor-magnetics", "1.5"),
+        ("chip-cold-plate", "1.6"),
+        ("f08-ribbed-bracket", "1.7"),
+        ("f02", "2.5"),
+    ]
+    for key in launch:
+        version = "level4-allowlist-" + version_registry.entry(*key).allowlist
+        assert allowlist_module.accounting_for(version)[0] == "level4-constant-accounting-v6"
+    for old in ("level4-allowlist-v6", "level4-allowlist-v7"):
+        assert allowlist_module.accounting_for(old)[0] == "level4-constant-accounting-v3"
 
 
 def test_the_200k_operand_concatenate_is_refused(v6):
@@ -83,6 +96,38 @@ def test_canonicalisation_is_byte_identical():
     doc = _wired_table(_random(500))
     shuffled = {k: doc[k] for k in reversed(list(doc))}
     assert graph.recipe_info_bytes(doc) == graph.recipe_info_bytes(shuffled)
+
+
+def test_the_same_graph_written_differently_measures_the_same_on_the_real_parse_path():
+    """The submission path is `graph.parse` over raw bytes: key order, whitespace and a shifted
+    numbering of the value ids must not move the measured size (which is the canonical, relative form)."""
+    import json
+
+    doc = _wired_table(_random(2_000, levels=16, seed=7), levels=16)
+    base = graph.parse(graph.dumps(doc), max_bytes=10**8)
+    reordered = json.dumps(base, indent=2, sort_keys=False).encode()
+    swapped = json.dumps({k: base[k] for k in reversed(list(base))}).encode()
+    sizes = {graph.recipe_info_bytes(graph.parse(raw, max_bytes=10**8)) for raw in (reordered, swapped)}
+    assert sizes == {graph.recipe_info_bytes(base)}
+
+    shifted = json.loads(graph.dumps(base))
+    for g in shifted["graphs"].values():
+        for entry in g["inputs"] + g["constants"]:
+            entry["value"] += 1000
+        for node in g["nodes"]:
+            node["in"] = [i + 1000 for i in node["in"]]
+            for out in node["out"]:
+                out["value"] += 1000
+        g["outputs"] = [o + 1000 for o in g["outputs"]]
+    # absolute ids change the bytes; the relative measure of the first definition differs only by that offset
+    assert graph.recipe_info_bytes(graph.parse(json.dumps(shifted).encode(), max_bytes=10**8)) <= graph.recipe_info_bytes(base) + 8
+
+
+def test_repeated_layers_cost_the_same_wherever_they_sit(v6):
+    """Relative ids: a repeated layer has identical bytes, so a deeper model of the same shape adds little."""
+    shallow = graph.recipe_info_bytes(_wired_table([0, 1] * 5_000))
+    deep = graph.recipe_info_bytes(_wired_table([0, 1] * 50_000))
+    assert deep < shallow * 3
 
 
 def test_the_budget_is_the_submissions_not_each_documents(v6):

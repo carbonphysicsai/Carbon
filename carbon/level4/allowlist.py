@@ -241,10 +241,12 @@ MEASURED_AS_V5 = {"constant_bytes": "fitted_info_bytes"}
 
 #: Accounting v6 (Validator WIRING_CHANNEL_AND_LOOKUP_P0_RULING_20261030, section a): the one
 #: 16 KiB budget bounds the zlib-9 size of the whole canonical recipe (`graph.recipe_info_bytes`),
-#: so operand wiring and topology count too. Not served by any allowlist yet: the set stays empty
-#: until the owner approves the fix and the launch versions are tied to it.
+#: so operand wiring and topology count too (value ids measured relative). Served with allowlist v8,
+#: the allowlist of the four launch versions (owner
+#: OWNER-TESTNET-ALL-FOUR-CROWNS-MAINNET-NEW-VERSIONS-01). v8 is not published, so no recorded
+#: verdict is re-measured; the older v8 versions have no registered pool and grade nothing officially.
 CONSTANT_ACCOUNTING_V6 = "level4-constant-accounting-v6"
-ACCOUNTING_V6_VERSIONS = frozenset()
+ACCOUNTING_V6_VERSIONS = frozenset({"level4-allowlist-v8"})
 MEASURED_AS_V6 = {"constant_bytes": "recipe_info_bytes"}
 
 

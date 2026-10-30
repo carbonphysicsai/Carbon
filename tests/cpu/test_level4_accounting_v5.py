@@ -38,6 +38,13 @@ CAP = allowlist_module.CAPS["constant_bytes"]
 ACCOUNTING = "level4-constant-accounting-v5"
 
 
+@pytest.fixture(autouse=True)
+def _accounting_v5(monkeypatch):
+    """These tests pin the v5 mechanism, which v8 served before v6; v6 is tested in
+    test_level4_accounting_v6.py."""
+    monkeypatch.setattr(allowlist_module, "ACCOUNTING_V6_VERSIONS", frozenset())
+
+
 def _constant(array, value=0):
     return {"value": value, **graph.encode_array(np.asarray(array))}
 
