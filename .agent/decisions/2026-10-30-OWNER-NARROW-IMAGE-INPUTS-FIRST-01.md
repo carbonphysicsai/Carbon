@@ -17,3 +17,9 @@ Context: any change under carbon/ moves the worker image id. GPU receipts, pool 
 - Estimated cost: about 9–11 hours of work plus about 2 hours of box time. The launch moves about half a day to a day later.
 - The full removal of the pack-to-image tie is still after launch (OWNER-IMAGE-TIE-QUICK-FIX-NOW-FULL-LATER-01).
 - Sets no score, threshold or economics.
+
+## SUPERSEDED (same day, later)
+
+The owner was asked in the Lead session (local_b7032708-92d1-4a7c-a1d3-9ad008ba9cae) to resolve the conflict between "Narrow it first" in the Validator session and "A" in the Lead session. He answered "A" twice, the second time in direct reply to "Which one, A or B?".
+
+- Decided: launch on Move B now, without the narrowing. The image-input narrowing becomes the first planned update of testnet week, batched with the full pack-to-image tie removal (OWNER-IMAGE-TIE-QUICK-FIX-NOW-FULL-LATER-01), in one rebuild cycle.
