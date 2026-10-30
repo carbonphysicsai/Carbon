@@ -19,3 +19,11 @@ With the v6 accounting fix live at freeze, Carbon's own Cooling 1.6 prior_krr ca
 - The miner graph-recipe budget is not loosened.
 - Sets no score, threshold or economics.
 - Testnet launch versions. Mainnet follows its own versions.
+
+## Update (same day, later)
+
+In the Validator session (local_9d14c86b-b50e-4cf2-a2ef-5c69ad1ed1e0), the Validator proposed taking this exemption out of the final testnet launch image, so that every pack is rebuilt only once, at the post-launch image-tie removal (OWNER-IMAGE-TIE-QUICK-FIX-NOW-FULL-LATER-01). The owner replied directly: "Agreed. Just change the starting model…". The Validator relayed this to the Lead.
+
+- The exemption is deferred to the post-launch release. It is not in Move B.
+- For launch, Cooling 1.6's recommended starting model becomes MeshGraphNet, a served catalog entry that freezes under the 32 KiB budget. This applies in the Control Center and in the MCP door (`_baseline_start`), in Move B.
+- The decision itself stands; only its timing changes.
