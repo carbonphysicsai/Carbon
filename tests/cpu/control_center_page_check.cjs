@@ -3559,6 +3559,7 @@ scenario("the installed-catalog check shows its progress, is read again until it
   assert.ok(!text.includes("Checking which backbones are installed on this machine: 10 of 241"));
   assert.ok(text.includes("last checked") && text.includes("being checked again"), "a stale result says how old it is");
   picks[1].catalog_install.stale = false;
+  await page.advance(3100); // the read already scheduled while the result was stale sees it current
   const after = reads();
   await page.advance(12000);
   assert.equal(reads(), after, "the page stops reading the capabilities when no check is running");
@@ -3689,6 +3690,20 @@ scenario("an unset learning-curve basis never shows the placeholder word (GTM F4
   const text = page.text("campaign-detail");
   assert.ok(/Learning curve/.test(text), "the live tab drew");
   assert.ok(!/HUMAN_INPUT/.test(text), text.slice(0, 200));
+  clean(page);
+});
+
+scenario("an old installed-check is read again until it is current: a finished install never stays 'last checked N minutes ago' (L3b)", async () => {
+  const state = world({setup: {...copy(fx.setups.none), catalog_build: {schema: "carbon.launchpad.catalog-build.v1", state: "COMPLETE", note: null, skipped: [], installed: 241, total: 241, challenges: []}}});
+  const picks = listedChallenges(state.caps).filter(entry => entry.selectable);
+  picks[0].catalog_install = {entries: 5, installed: 2, status: "ready", checked: 241, total: 241, stale: true, checked_at: Date.now() / 1000 - 85 * 60};
+  const page = await open(state);
+  assert.ok(/last checked/.test(page.text("overview-prerequisites")), "the old check is said");
+  picks[0].catalog_install = {entries: 5, installed: 5, status: "ready", checked: 241, total: 241};
+  await page.advance(10000);
+  const text = page.text("overview-prerequisites");
+  assert.ok(!text.includes("minute(s) ago"), text);
+  assert.ok(!text.includes("partly installed"), text);
   clean(page);
 });
 

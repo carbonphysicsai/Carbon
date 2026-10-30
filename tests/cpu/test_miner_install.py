@@ -1219,7 +1219,10 @@ def test_an_install_starts_the_catalog_in_the_background_when_entries_are_missin
     again = sandbox.run("--no-start", CARBON_TEST_CATALOG_MISSING="3")
     assert again.returncode == 0, again.stderr
     assert "needs 3 entries built over" in again.stdout
-    assert "in the background now (about 40 minutes" in again.stdout
+    assert (
+        "in the background now (from about 15 minutes on a 16-core machine to about 2 hours on a 4-core one)"
+        in again.stdout
+    )
     assert any(
         "-B -m scripts.dev.miner_launchpad.catalog_build start --state-dir "
         + str(sandbox.state)
