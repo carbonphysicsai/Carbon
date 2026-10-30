@@ -15,15 +15,18 @@ from pathlib import Path
 
 import pytest
 
-from carbon.reconstruction.worker import build_inputs
+from carbon.reconstruction.worker import build_inputs, image_modules
 
 ROOT = Path(__file__).resolve().parents[2]
+# The carbon part of the set is the image's own imports (image_modules.py: "Narrow it first"); everything else is the
+# ruled set of IMAGE_DIGEST_SCOPE_AND_M9PRIME_RULING_20261029, plus the Dockerfile's own ignore file.
 RULED_SET = (
     "pyproject.toml",
     "uv.lock",
     "README.md",
-    "carbon",
+    *image_modules.files(ROOT),
     ".devcontainer/Dockerfile.reconstruction-worker",
+    ".devcontainer/Dockerfile.reconstruction-worker.dockerignore",
     ".devcontainer/worker-native-mesh.lock",
     ".devcontainer/install-worker-native-mesh.sh",
     ".devcontainer/accelerators",
@@ -39,6 +42,10 @@ DOCKERFILES = (
 
 def _inside(path: str, inputs) -> bool:
     path = path.removeprefix("./").rstrip("/")
+    if path == "carbon":
+        # `COPY carbon` is filtered by the Dockerfile's own allow-list ignore file (test_worker_image_modules.py holds
+        # that exactly the listed carbon files survive), so it is inside when carbon files are inputs.
+        return any(item.startswith("carbon/") for item in inputs)
     return any(path == item or path.startswith(item + "/") for item in inputs)
 
 
@@ -47,6 +54,7 @@ def test_the_set_is_exactly_the_ruled_one():
     assert build_inputs.BUILD_SCHEMA == "carbon.c03.worker-image-build.v2"
     # the set file is itself an input (it lives in carbon/), so changing the set moves every image id
     assert _inside(build_inputs.INPUTS_FILE_IN_REPO, RULED_SET)
+    assert "carbon" not in build_inputs.paths()  # no whole-package input any more
     assert (ROOT / build_inputs.INPUTS_FILE_IN_REPO).is_file()
 
 
@@ -152,13 +160,21 @@ def test_a_change_outside_the_inputs_does_not_move_the_digest_and_one_inside_doe
     repo = _repo(tmp_path)
     base = build_inputs.digest(repo)
     assert re.fullmatch(r"sha256:[0-9a-f]{64}", base)
-    for outside in ("scripts/a.sh", "docs/x.md", "tests/t.py", "codex-queue/q.md"):
+    (repo / "carbon" / "challenge_validator").mkdir(parents=True)
+    for outside in (
+        "scripts/a.sh",
+        "docs/x.md",
+        "tests/t.py",
+        "codex-queue/q.md",
+        # host-only carbon code: the receiver, the door, host-side scoring ... no longer moves the image id
+        "carbon/challenge_validator/direct_receiver.py",
+    ):
         _commit(repo, outside, "changed\n")
         assert build_inputs.digest(repo) == base, outside
     for inside in (
         "README.md",
         "uv.lock",
-        "carbon/f.txt",
+        "carbon/__init__.py",
         ".devcontainer/torch/f.txt",
         ".devcontainer/accelerators/f.txt",
         ".devcontainer/worker-native-mesh.lock",
@@ -294,9 +310,14 @@ def test_git_ignored_files_under_the_inputs_are_found_and_refused(tmp_path):
     (repo / ".gitignore").write_text("*.so\n__pycache__/\n")
     _git(repo, "add", ".gitignore")
     _git(repo, "commit", "-q", "-m", "ignore")
-    (repo / "carbon" / "native.so").write_bytes(b"x")  # inside the inputs, ignored
+    (repo / ".devcontainer" / "torch" / "native.so").write_bytes(
+        b"x"
+    )  # inside the inputs, ignored
     (repo / "scripts" / "tool.so").write_bytes(b"y")  # ignored but outside the inputs
-    assert build_inputs.ignored_files(repo) == ["carbon/native.so"]
+    (repo / "carbon" / "native.so").write_bytes(
+        b"z"
+    )  # outside the listed files: the allow-list never copies it
+    assert build_inputs.ignored_files(repo) == [".devcontainer/torch/native.so"]
     program = ROOT / build_inputs.INPUTS_FILE_IN_REPO.replace(".txt", ".py")
     done = subprocess.run(
         [sys.executable, "-I", str(program), "ignored", str(repo)],
@@ -304,8 +325,10 @@ def test_git_ignored_files_under_the_inputs_are_found_and_refused(tmp_path):
         text=True,
         check=False,
     )
-    assert done.returncode == 1 and done.stdout.strip() == "carbon/native.so"
-    (repo / "carbon" / "native.so").unlink()
+    assert (
+        done.returncode == 1 and done.stdout.strip() == ".devcontainer/torch/native.so"
+    )
+    (repo / ".devcontainer" / "torch" / "native.so").unlink()
     done = subprocess.run(
         [sys.executable, "-I", str(program), "ignored", str(repo)],
         capture_output=True,
@@ -332,9 +355,9 @@ def test_bytecode_caches_are_not_ignored_inputs_because_dockerignore_drops_them(
     (repo / ".gitignore").write_text("__pycache__/\n*.so\n")
     _git(repo, "add", ".gitignore")
     _git(repo, "commit", "-q", "-m", "ignore")
-    cache = repo / "carbon" / "__pycache__"
+    cache = repo / ".devcontainer" / "torch" / "__pycache__"
     cache.mkdir()
     (cache / "x.cpython-311.pyc").write_bytes(b"z")
     assert build_inputs.ignored_files(repo) == []
-    (repo / "carbon" / "real.so").write_bytes(b"x")
-    assert build_inputs.ignored_files(repo) == ["carbon/real.so"]
+    (repo / ".devcontainer" / "torch" / "real.so").write_bytes(b"x")
+    assert build_inputs.ignored_files(repo) == [".devcontainer/torch/real.so"]

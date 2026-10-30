@@ -84,4 +84,8 @@ WORKDIR /
 USER 65532:65532
 # Verify the final runtime can load the native ABI; never infer it from a build label.
 RUN /opt/carbon-worker/bin/python -I -c "import ctypes; ctypes.CDLL('libGLU.so.1'); ctypes.CDLL('libGL.so.1')"
+# The image carries only the carbon files its container imports (this Dockerfile's own .dockerignore allow-list, generated
+# by carbon/reconstruction/worker/image_modules.py). Import every listed module, and refuse any carbon .py the list does not
+# name (a builder that ignored the allow-list): a module the closure missed fails HERE, at build, never in a grade.
+RUN /opt/carbon-worker/bin/python -I -m carbon.reconstruction.worker.image_modules smoke
 ENTRYPOINT ["/opt/carbon-worker/bin/python", "-I", "-m", "carbon.reconstruction.worker.entrypoint"]

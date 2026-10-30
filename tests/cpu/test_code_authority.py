@@ -610,6 +610,13 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "module_name",
         ),
         (
+            # The worker image build-time smoke (reviewed): imports each module its generated list names, nothing else.
+            "carbon/reconstruction/worker/image_modules.py",
+            "smoke",
+            "importlib.import_module",
+            "name",
+        ),
+        (
             # GPU lane tools (reviewed): the class check imports the version modules it reports on by name, and the
             # repeat tool imports an entry's declared module.
             "scripts/dev/gpu_rebuild_class_check.py",

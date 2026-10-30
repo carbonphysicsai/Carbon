@@ -31,6 +31,11 @@ trap 'rm -rf "${temporary}"' EXIT
 # a change outside them (scripts/, docs/, tests/ ...) no longer moves any image id. The checkout is still clean as a whole.
 # A git-ignored file under the inputs would enter the build context and the wheel without being bound by the digest.
 build_inputs_program="${repo_root}/carbon/reconstruction/worker/build_inputs.py"
+# The carbon files the image carries are GENERATED from the container's own imports (image_modules.py); a stale list,
+# build-inputs file or Dockerfile allow-list would build an image whose digest does not describe it.
+image_modules_program="${repo_root}/carbon/reconstruction/worker/image_modules.py"
+stale_generated="$("${PYTHON}" "${image_modules_program}" check "${repo_root}")" \
+  || fail "the generated worker image files are stale (run: python carbon/reconstruction/worker/image_modules.py generate): ${stale_generated//$'\n'/ }"
 ignored_inputs="$("${PYTHON}" "${build_inputs_program}" ignored "${repo_root}")" \
   || fail "git-ignored files under the worker build inputs would enter the image unbound by its digest: ${ignored_inputs//$'\n'/ }"
 source_tree_digest="$("${PYTHON}" "${build_inputs_program}" digest "${repo_root}")" \
