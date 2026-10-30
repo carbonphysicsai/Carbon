@@ -78,6 +78,35 @@ def _ready_example(described):
     return None, None
 
 
+#: A newcomer's start on a catalog Challenge is its kernel-ridge baseline where one is offered (the Launchpad's
+#: scripts/dev/miner_launchpad/starting_entry.py makes the same choice for the page): the registry's CNO example was
+#: the weakest start in the agent runs. A start, not a ranking; every entry stays served, and only this ready
+#: recipe's `catalog_id` changes (a catalog recipe's digest is the version's, the same for each entry).
+BASELINE_SUFFIX = ".prior_krr"
+
+
+def _baseline_start(described, kind, ready):
+    """`ready` with its catalog entry swapped for the version's baseline entry when it offers one, else `ready`."""
+    source = (
+        ready.get("source") if kind == "recipe" and isinstance(ready, dict) else None
+    )
+    if not isinstance(source, dict) or source.get("kind") != "catalog":
+        return ready
+    from carbon.backbone_catalog import listing
+
+    try:
+        entries = listing.entries(described["challenge_id"], described["version"])
+    except (KeyError, TypeError, ValueError):
+        return ready
+    for item in entries:
+        catalog_id = item["catalog_id"]
+        if catalog_id.startswith(listing.V2_PREFIX) and catalog_id.endswith(
+            BASELINE_SUFFIX
+        ):
+            return {**ready, "source": {**source, "catalog_id": catalog_id}}
+    return ready
+
+
 def _refusal_hints(kind):
     """Registered refusal codes and their registered text, grouped by text:
     never written here, never a requester's words."""
@@ -150,6 +179,7 @@ def compact_description(described):
     catalog = models.get("catalog") if isinstance(models, dict) else None
     adapter = models.get("graph_training_adapter") if isinstance(models, dict) else None
     kind, ready = _ready_example(described)
+    ready = _baseline_start(described, kind, ready)
 
     entries = catalog.get("entries") if isinstance(catalog, dict) else None
     catalog_ids = sorted(entries) if isinstance(entries, dict) else None

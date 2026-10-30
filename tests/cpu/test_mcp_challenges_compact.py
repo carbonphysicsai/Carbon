@@ -127,7 +127,19 @@ def test_compact_is_a_small_projection_of_the_full_answer(
         return
     kind, document = ready[0]
     assert compact["ready_recipe_kind"] == kind
-    assert compact["ready_recipe"] == document
+    # A catalog recipe starts on the version's baseline entry where one is offered; nothing else about it changes
+    # (the catalog digest is the version's, the same for every entry).
+    assert compact["ready_recipe"] == mcp_challenges._baseline_start(full, kind, document)
+    if kind == "recipe" and document["source"].get("kind") == "catalog":
+        swapped = {**compact["ready_recipe"]["source"], "catalog_id": None}
+        assert swapped == {**document["source"], "catalog_id": None}
+        assert compact["ready_recipe"]["source"]["catalog_id"].endswith(
+            ".prior_krr"
+        ) or not any(
+            entry.endswith(".prior_krr") for entry in full["models"]["catalog"]["entries"]
+        )
+    else:
+        assert compact["ready_recipe"] == document
     catalog = full["models"].get("catalog")
     if catalog is not None:
         every = sorted(catalog["entries"])
@@ -141,7 +153,7 @@ def test_compact_is_a_small_projection_of_the_full_answer(
         else:
             assert compact["catalog_ids"] == every
             assert "catalog_count" not in compact
-        assert document["source"]["catalog_id"] in compact["catalog_ids"]
+        assert compact["ready_recipe"]["source"]["catalog_id"] in compact["catalog_ids"]
         assert document["source"]["kind"] in compact["source_kinds"]
     else:
         assert compact["catalog_ids"] is None
