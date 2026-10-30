@@ -7,7 +7,9 @@ from pathlib import Path
 
 import pytest
 
-_spec = importlib.util.spec_from_file_location("recal_stats", Path(__file__).parents[2] / "scripts" / "dev" / "recal_stats.py")
+_spec = importlib.util.spec_from_file_location(
+    "recal_stats", Path(__file__).parents[2] / "scripts" / "dev" / "recal_stats.py"
+)
 rs = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rs)
 
@@ -18,7 +20,12 @@ def H(c):
 
 def _member(totals, same=True, within=False, fp="a"):
     digests = [H("1")] * 10 if same else [H(str(i)) for i in range(10)]
-    return {"reference_fingerprint": H(fp), "seed0_totals": totals, "state_digests": digests, "within_noise": within}
+    return {
+        "reference_fingerprint": H(fp),
+        "seed0_totals": totals,
+        "state_digests": digests,
+        "within_noise": within,
+    }
 
 
 def _doc():
@@ -29,10 +36,14 @@ def _doc():
         "control_basis_within_noise": "smallest sigma within noise",
         "panel": ["mgn", "fc"],
         "members": {
-            "mgn": _member([1.0 + 0.01 * i for i in range(10)], same=False, within=True, fp="d"),
+            "mgn": _member(
+                [1.0 + 0.01 * i for i in range(10)], same=False, within=True, fp="d"
+            ),
             "fc": _member([2.0] * 10, same=True, fp="e"),
         },
-        "control_seed_totals": {"fc": [2.0, 2.1, 1.9, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]},
+        "control_seed_totals": {
+            "fc": [2.0, 2.1, 1.9, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+        },
     }
     return {"schema": rs.SCHEMA_IN, "challenges": {"Cooling": spec}}
 
@@ -44,7 +55,10 @@ def test_values_follow_the_ruling():
     assert out["seed_spread"] == pytest.approx(0.2)
     assert out["value"] == pytest.approx(max(5 * sd, 0.2))
     assert out["bit_identical"] == {"mgn": False, "fc": True}
-    assert out["control"]["entry_id"] == "fc" and out["control"]["control_basis"] == "ten bit-identical"
+    assert (
+        out["control"]["entry_id"] == "fc"
+        and out["control"]["control_basis"] == "ten bit-identical"
+    )
 
 
 def test_control_is_first_bit_identical_member_in_panel_order():
@@ -53,16 +67,27 @@ def test_control_is_first_bit_identical_member_in_panel_order():
     doc["challenges"]["Cooling"]["control_seed_totals"] = {"mgn": [1.0] * 9 + [1.5]}
     c = rs.measure(doc)["challenges"]["Cooling"]["control"]
     assert c["entry_id"] == "mgn"
-    assert set(c) == {"entry_id", "reference_fingerprint", "reference_total", "control_basis", "pack_digest", "class_record_digest"}
+    assert set(c) == {
+        "entry_id",
+        "reference_fingerprint",
+        "reference_total",
+        "control_basis",
+        "pack_digest",
+        "class_record_digest",
+    }
 
 
 def test_fallback_is_smallest_sigma_within_noise_and_needs_the_flag():
     doc = _doc()
     spec = doc["challenges"]["Cooling"]
-    spec["members"]["fc"] = _member([2.0 + 0.5 * i for i in range(10)], same=False, within=False, fp="e")
+    spec["members"]["fc"] = _member(
+        [2.0 + 0.5 * i for i in range(10)], same=False, within=False, fp="e"
+    )
     spec["control_seed_totals"] = {"mgn": [1.0, 1.1] * 5}
     c = rs.measure(doc)["challenges"]["Cooling"]["control"]
-    assert c["entry_id"] == "mgn" and c["control_basis"] == "smallest sigma within noise"
+    assert (
+        c["entry_id"] == "mgn" and c["control_basis"] == "smallest sigma within noise"
+    )
     spec["members"]["mgn"]["within_noise"] = False
     with pytest.raises(rs.StatsError, match="no control"):
         rs.measure(doc)
@@ -109,6 +134,9 @@ def test_cli_writes_document_and_prints_digest(tmp_path, capsys):
     src, dst = tmp_path / "in.json", tmp_path / "out.json"
     src.write_text(json.dumps(_doc()))
     assert rs.main([str(src), "--out", str(dst)]) == 0
-    assert capsys.readouterr().out.strip() == json.loads(dst.read_text())["measurement_digest"]
+    assert (
+        capsys.readouterr().out.strip()
+        == json.loads(dst.read_text())["measurement_digest"]
+    )
     src.write_text("{}")
     assert rs.main([str(src)]) == 2

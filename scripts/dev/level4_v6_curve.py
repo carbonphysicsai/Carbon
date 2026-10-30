@@ -4,6 +4,8 @@ the 16 KiB cap or the depth limit. Read-only.
 
 Usage: python scripts/dev/level4_v6_curve.py [family ...]   (default: every family)"""
 
+# ruff: noqa: BLE001 - a family that does not lower is reported, not fatal
+
 from __future__ import annotations
 
 import sys
@@ -18,7 +20,9 @@ from carbon.level4 import graph
 from carbon.level4.tooling import lower_jax
 
 CAP = allowlist_module.CAPS["constant_bytes"]
-V8 = allowlist_module.load(Path(allowlist_module.__file__).with_name("allowlist_v8.json"))
+V8 = allowlist_module.load(
+    Path(allowlist_module.__file__).with_name("allowlist_v8.json")
+)
 DEPTH_LIMIT = 512
 
 
@@ -76,7 +80,9 @@ def unet(depth, width):
         for i in range(depth):
             x = conv_(conv_(x, p[4 * i]), p[4 * i + 1])
             skips.append(x)
-            x = lax.reduce_window(x, -jnp.inf, lax.max, (1, 1, 1, 1), (1, 1, 1, 1), "VALID")
+            x = lax.reduce_window(
+                x, -jnp.inf, lax.max, (1, 1, 1, 1), (1, 1, 1, 1), "VALID"
+            )
         for i in reversed(range(depth)):
             x = conv_(conv_(x + skips[i], p[4 * i + 2]), p[4 * i + 3])
         return x
@@ -99,7 +105,13 @@ def fno(depth, width):
 
 
 FAMILIES = {"mlp": mlp, "attention": attention, "conv": conv, "unet": unet, "fno": fno}
-WIDTHS = {"mlp": (64, 512), "attention": (256, 512), "conv": (16, 64), "unet": (16, 64), "fno": (64, 256)}
+WIDTHS = {
+    "mlp": (64, 512),
+    "attention": (256, 512),
+    "conv": (16, 64),
+    "unet": (16, 64),
+    "fno": (64, 256),
+}
 
 
 def measure(family, depth, width):
@@ -109,7 +121,11 @@ def measure(family, depth, width):
     closed = lower_jax.trace(lambda *a: forward(list(a[:-1]), a[-1]), *params, x)
     names = [f"params/p{i}" for i in range(len(params))] + ["inputs/x"]
     doc = lower_jax.lower(closed, role="forward", allowlist=V8, input_names=names)
-    return graph.recipe_info_bytes(doc), len(graph.dumps(doc)), graph.measure(doc)["nodes_stored"]
+    return (
+        graph.recipe_info_bytes(doc),
+        len(graph.dumps(doc)),
+        graph.measure(doc)["nodes_stored"],
+    )
 
 
 def main():
@@ -121,14 +137,27 @@ def main():
                 try:
                     packed, raw, nodes = measure(family, depth, width)
                 except Exception as error:
-                    print(f"{family} w{width} d{depth}: did not lower: {str(error)[:90]}")
+                    print(
+                        f"{family} w{width} d{depth}: did not lower: {str(error)[:90]}"
+                    )
                     break
-                print(f"{family:9} w{width:<4} d{depth:<4} v6={packed:>7} raw={raw:>8} nodes={nodes}", flush=True)
+                print(
+                    f"{family:9} w{width:<4} d{depth:<4} v6={packed:>7} raw={raw:>8} nodes={nodes}",
+                    flush=True,
+                )
                 if packed > CAP:
                     crossed = depth
                     break
                 depth *= 2
-            print(f"CROSS {family} w{width}: " + (f"over {CAP} at depth {crossed}" if crossed else f"stays under {CAP} to depth {depth // 2 if depth > DEPTH_LIMIT else depth}"), flush=True)
+            print(
+                f"CROSS {family} w{width}: "
+                + (
+                    f"over {CAP} at depth {crossed}"
+                    if crossed
+                    else f"stays under {CAP} to depth {depth // 2 if depth > DEPTH_LIMIT else depth}"
+                ),
+                flush=True,
+            )
 
 
 if __name__ == "__main__":

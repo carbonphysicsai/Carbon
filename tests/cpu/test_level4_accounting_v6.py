@@ -11,11 +11,11 @@ import pytest
 
 pytest.importorskip("jax")
 
-import jax.numpy as jnp  # noqa: E402
+import jax.numpy as jnp
 
-from carbon.level4 import allowlist as allowlist_module  # noqa: E402
-from carbon.level4 import graph, validate  # noqa: E402
-from carbon.level4.tooling import lower_jax  # noqa: E402
+from carbon.level4 import allowlist as allowlist_module
+from carbon.level4 import graph, validate
+from carbon.level4.tooling import lower_jax
 
 HERE = Path(allowlist_module.__file__).parent
 V8 = allowlist_module.load(HERE / "allowlist_v8.json")
@@ -60,9 +60,14 @@ def test_v6_is_served_with_allowlist_v8_to_the_four_launch_versions_only():
     ]
     for key in launch:
         version = "level4-allowlist-" + version_registry.entry(*key).allowlist
-        assert allowlist_module.accounting_for(version)[0] == "level4-constant-accounting-v6"
+        assert (
+            allowlist_module.accounting_for(version)[0]
+            == "level4-constant-accounting-v6"
+        )
     for old in ("level4-allowlist-v6", "level4-allowlist-v7"):
-        assert allowlist_module.accounting_for(old)[0] == "level4-constant-accounting-v3"
+        assert (
+            allowlist_module.accounting_for(old)[0] == "level4-constant-accounting-v3"
+        )
 
 
 def test_the_200k_operand_concatenate_is_refused(v6):
@@ -100,14 +105,18 @@ def test_canonicalisation_is_byte_identical():
 
 def test_the_same_graph_written_differently_measures_the_same_on_the_real_parse_path():
     """The submission path is `graph.parse` over raw bytes: key order, whitespace and a shifted
-    numbering of the value ids must not move the measured size (which is the canonical, relative form)."""
+    numbering of the value ids must not move the measured size (which is the canonical, relative form).
+    """
     import json
 
     doc = _wired_table(_random(2_000, levels=16, seed=7), levels=16)
     base = graph.parse(graph.dumps(doc), max_bytes=10**8)
     reordered = json.dumps(base, indent=2, sort_keys=False).encode()
     swapped = json.dumps({k: base[k] for k in reversed(list(base))}).encode()
-    sizes = {graph.recipe_info_bytes(graph.parse(raw, max_bytes=10**8)) for raw in (reordered, swapped)}
+    sizes = {
+        graph.recipe_info_bytes(graph.parse(raw, max_bytes=10**8))
+        for raw in (reordered, swapped)
+    }
     assert sizes == {graph.recipe_info_bytes(base)}
 
     shifted = json.loads(graph.dumps(base))
@@ -120,7 +129,12 @@ def test_the_same_graph_written_differently_measures_the_same_on_the_real_parse_
                 out["value"] += 1000
         g["outputs"] = [o + 1000 for o in g["outputs"]]
     # absolute ids change the bytes; the relative measure of the first definition differs only by that offset
-    assert graph.recipe_info_bytes(graph.parse(json.dumps(shifted).encode(), max_bytes=10**8)) <= graph.recipe_info_bytes(base) + 8
+    assert (
+        graph.recipe_info_bytes(
+            graph.parse(json.dumps(shifted).encode(), max_bytes=10**8)
+        )
+        <= graph.recipe_info_bytes(base) + 8
+    )
 
 
 def test_repeated_layers_cost_the_same_wherever_they_sit(v6):

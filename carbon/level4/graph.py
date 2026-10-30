@@ -281,7 +281,8 @@ def recipe_info_bytes(*docs):
 
     Value ids are measured relative (owner OWNER-TESTNET-ALL-FOUR-CROWNS-MAINNET-NEW-VERSIONS-01):
     each id is its distance from the next fresh id, so repeated layers have identical bytes. The
-    rewrite is injective (the next fresh id is recomputed while decoding), so it drops nothing."""
+    rewrite is injective (the next fresh id is recomputed while decoding), so it drops nothing.
+    """
     body = b"\n".join(dumps(_relative_ids(d)) for d in docs)
     return len(zlib.compress(body, 9))
 
