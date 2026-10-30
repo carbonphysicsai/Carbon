@@ -68,7 +68,7 @@ Add `--gpu` if the machine has an NVIDIA GPU. Any NVIDIA GPU works, whatever the
 
 The installer checks your machine, sets up Carbon's environment, builds the images your practice runs use, and starts the **Control Center**, the web page where you run everything. It never asks for a key or password.
 
-**How long it takes** (measured on a clean 16-vCPU, 30 GiB Ubuntu 24.04 machine): the installer about 4 minutes; then, after you save your settings in Setup, the model catalog installs itself in the background: **about 20 to 40 minutes on 8 or more CPUs, about 2 hours on 4 CPUs; 8 or more are recommended, 4 stays the minimum** for all 241 entries (measured: 15 to 20 minutes on 16 cores, about 115 minutes on 4). Each Challenge's starting backbone (its kernel-ridge baseline, marked recommended in the picker) installs first, so a first practice can run within a few minutes of saving. You can open the page and finish Setup while it runs. **A practice on a backbone that is not installed yet is refused** (the page says "This backbone is not installed on this machine yet"): the Overview shows how far the install is, and the backbone picker marks an entry "not installed yet" once the page has measured. Pick an installed one or wait; nothing is lost.
+**How long it takes** (measured on a clean 16-vCPU, 30 GiB Ubuntu 24.04 machine): the installer about 4 minutes; then, after you save your settings in Setup, the model catalog installs itself in the background: **about 10 to 40 minutes on 8 or more CPUs, about 2 hours on 4 CPUs; 8 or more are recommended, 4 stays the minimum** for all 241 entries (measured: 15 to 20 minutes on 16 cores, about 115 minutes on 4). Each Challenge's starting backbone (its kernel-ridge baseline, marked recommended in the picker) installs first, so a first practice can run within a few minutes of saving. You can open the page and finish Setup while it runs. **A practice on a backbone that is not installed yet is refused** (the page says "This backbone is not installed on this machine yet"): the Overview shows how far the install is, and the backbone picker marks an entry "not installed yet" once the page has measured. Pick an installed one or wait; nothing is lost.
 
 **If your network drops during the install.** The steps that download (the locked environment, the released images, the image builds) are tried once more on their own if the network or the registry times out. If it is still down, the installer stops with: "Carbon install paused: your network dropped while downloading (step ...). Nothing is broken; run the same command again and it continues." Run the same command again; it picks up where it stopped. Any other failure is shown as it was.
 
@@ -182,6 +182,8 @@ sign check against hotspot ratio and that sensitivity's fitted exponent; the
 other checks and ordinary output accuracy still apply. Older versions keep
 their original rules.
 
+**Cooling: start with MeshGraphNet until `prior_krr` is restored.** The kernel-ridge baseline `prior_krr` is not available for Cooling at launch; practise Cooling on the MeshGraphNet backbone first.
+
 With Graphite you set your limits up front: how many model calls, how many dollars, how much time. Graphite uses them to the end: near your money or time limit it shortens its last calls to fit what is left, and stops only when not even one short call fits (about 2 minutes, or a 512-token reply). The page then says which limit stopped it (money, model calls, practice runs or time) and what to raise next time. Graphite plans, builds models, practises them, and picks the best.
 
 ## 6. Practise, freeze, submit
@@ -221,6 +223,59 @@ compliance and ordered by damping; design feasibility limits are unchanged.
 Practice and pool answers use the same rule. Versions through 1.6 keep their
 original band gate and evaluation identities; historical grades retain their
 meaning.
+
+### Pool-exam versions: Burst Thermal 2.5, Motor 1.5, Cooling 1.6 (and Ribbed Bracket 1.7)
+
+These versions share one scoring shape, so the sections below list only what differs per Challenge.
+
+- **A** is the mean of *A_acc*, *A_robust*, *A_law* and *A_response*, each tightened as 1 / (1 + 3 x); the final **A** is the mean of that value and *A_gen*, the same accuracy on a fixed slice of the extended validity region. The design search is never allowed to ask your model about those points.
+- **D** is the mean of the per-target scores of a set, kept at or below *C*. The search is Carbon's fixed CMA-ES: **60 queries per target**, first step 0.25, and honesty is exp(-*e* / *s_h*) with *s_h* = 1.0. You cannot change it, and you may copy it for practice.
+- **Two more gates.** `physics_pool`: the Challenge's physics gates hold on every design your model answers in the exam, in range and out of range; a violation fails the whole submission and names only the gate. `speed`: your model answers each design in at most 1/500 of the time the reference solver needs for one design, measured on the validator's machine over the whole batch with the model's loading included. A slower model fails the gate and gets no score. Ceilings: Burst Thermal 0.38 s per design, Motor 3.3 s, Cooling 2.84 s, Ribbed Bracket 2.08 s.
+- **Registered values.** The *A_gen* scales and the constants above are registered for testnet; the describe tool's `published_exam` carries them.
+
+### Burst Thermal 2.5
+
+Scoring `f02-pool-sealed-v1`. Exam: 8 cells (8 designs x 1 condition); probes are random points inside the validity region with a step of 0.005 to 0.015 of each input's span.
+
+- **Hard gates:** `finite_peak`, `paired_repeat`, `reference_acceptance`, `verified_pick` (the model's pick is feasible by the references, peak top c max 95.0), `physics_laws`, `physics_pool`, `speed`
+- **Physics laws (gated):** `peak_not_below_initial`: every predicted peak is at least the initial temperature (40.0 degC)
+- **Physics laws (measured, not yet gate margins):** affine_in_power (the peak is affine in power at fixed on-time)
+- **Sign laws:** the temperature rise over the initial rises with peak power and with on-time
+- **Design-value scales:** value scale 100.0 J, margin scale 1.0 degC
+- **A_gen scales:** peak_top_c 0.501, extra_energy_j 15.07
+- **Limits:** `peak_top_c_max` = 95.0
+- **Input ranges:** peak_w 70.0–100.0, on_time_s 4.0–6.0
+- **Registered measurement uncertainty U:** peak_top_c = 0.012
+
+### Motor 1.5
+
+Scoring `motor-pool-sealed-v1`. Exam: 30 cells (5 designs x 6 conditions); probes are random points inside the validity region with a step of 0.005 to 0.015 of each input's span.
+
+- **Hard gates:** `native_motor_valid`, `complete_fixed_coverage` (all 30 cells are scored), `physics_laws`, `schema_finite` (the torque curve has 60 finite values), `motoring_mean_nonnegative` (mean(torque) is at least -(1e-3 x max|torque| + 1e-3 N.m)), `paired_repeat` (within 32 float32 ulp), `physics_pool`, `speed`
+- **Physics laws (gated):** `mean_torque_positive`: the mean torque of the predicted curve is positive wherever the current density exceeds 1 A/mm^2
+- **Physics laws (measured, not yet gate margins):** linear_in_current (mean torque scales with current density, K = 1.5); zero_current_torque (mean torque tends to 0 as current density tends to 0)
+- **Sign laws:** mean torque rises with current density and falls with current angle
+- **Design-value scales:** torque margin 0.1 N.m, ripple margin 0.01 ripple fraction, objective D scale 0.01 ripple fraction
+- **A_gen scales:** mean_torque_nm 0.0743, ripple_fraction 0.0868
+- **Limits:** `min_mean_torque_nm` = 4.0, `max_ripple_fraction` = 0.3
+- **Input ranges:** magnet_mm 1.5–4.0, embrace 0.55–0.95, airgap_mm 0.3–1.0, slot_open_deg 1.0–6.0, tooth_mm 2.5–5.0, slot_bottom_mm 34.0–42.0, current_density_a_mm2 0.0–15.0, current_angle_deg 0.0–60.0
+- **Registered measurement uncertainty U:** mean_torque_nm = 0.0052, ripple_fraction = 0.026
+
+### Cooling 1.6
+
+Scoring `cooling-pool-sealed-v2`. Exam: 16 cells (4 designs x 4 conditions); probes are random points inside the validity region with a step of 0.005 to 0.015 of each input's span. This version drops the temperature-rise sign check against hotspot ratio and that sensitivity's fitted exponent; the other checks apply.
+
+- **Hard gates:** `native_cold_plate`, `complete_grid_common_mask` (a complete 4 x 4 cross), `selected_design_verified_feasible` (the pick is feasible by the references at every condition: die peak c max 100.0, hydraulic power w max 0.25), `physics_laws`, `schema_finite` (peak, the 30-value profile and the pressure drop are finite), `face_above_inlet`, `peak_bounds_profile` (within 32 float32 ulp), `pressure_drop_positive`, `paired_repeat` (within 32 float32 ulp), `physics_pool`, `speed`
+- **Physics laws (gated):** `peak_above_profile`, `profile_above_inlet`, `pressure_positive`
+- **Physics laws (measured, not yet gate margins):** inlet_shift_temperatures (moving only the inlet by 5 degC moves the peak and every profile segment by the same amount); pressure_ignores_hotspot (mirroring only the hotspot inputs leaves the pressure drop unchanged)
+- **Sign laws:** the temperature rise falls with flow and rises with heat load; the pressure drop rises with flow and falls with channel width and depth
+- **Design-value scales:** die margin 1.0 degC, hydraulic margin 0.025 W, objective D scale 0.025 W
+- **A_gen scales:** die_peak_c 0.414, hydraulic_w 0.00608
+- **Limits:** `die_peak_c_max` = 100.0, `hydraulic_power_w_max` = 0.25
+- **Input ranges:** channel_width_mm 0.2–0.5, fin_width_mm 0.2–0.5, channel_depth_mm 1.0–3.0, flow_lpm_per_kw 1.25–2.0, inlet_c 30.0–45.0, heat_load_w 500.0–1500.0, hotspot_ratio 1.0–3.0, hotspot_center_mm 3.0–27.0, hotspot_width_mm 1.5–3.5
+- **Registered measurement uncertainty U:** die_peak_c = 0.037, hydraulic_w = 3 % of the cell's value
+
+The sections below are the earlier versions, which keep their original exam.
 
 ### Ribbed Bracket 1.5
 
@@ -333,7 +388,7 @@ Your agent can read these rules as data: `carbon_challenges_v1__scoring_rules` w
 
 ## Writing a graph
 
-A graph recipe is a JAX program. Carbon lowers it on your machine, checks every operation, rebuilds it on its own side and trains it itself; your Python never runs there. Ribbed Bracket 1.5, Burst Thermal 2.4, Motor 1.4 and Cooling 1.4 take graphs on the open operation set (allowlist v8).
+A graph recipe is a JAX program. Carbon lowers it on your machine, checks every operation, rebuilds it on its own side and trains it itself; your Python never runs there. Ribbed Bracket 1.5 and 1.7, Burst Thermal 2.4 and 2.5, Motor 1.4 and 1.5, and Cooling 1.4 and 1.6 take graphs on the open operation set (allowlist v8).
 
 - **Operations.** Every pure, deterministic array operation JAX has is allowed: elementwise math (inverse trigonometric and hyperbolic functions, special functions, rounding), comparisons and bit operations, reductions and cumulative operations, sorting and `top_k`, pooling windows, gathers and scatters (`.at[].add` and the rest), FFTs, convolutions, dense linear algebra (`cholesky`, triangular solves, LU, QR, `eigh`, `eig`, `svd`, and through `jnp.linalg` also `solve`, `inv`, `det`), `scan` with a static length, `cond` and `switch`, `jax.checkpoint`, the matmul `precision` argument, and your own `custom_jvp` and `custom_vjp` rules, which Carbon carries and runs as you wrote them. Debug prints and sharding hints are dropped. Randomness comes only from Carbon's init key, in the init graph, and an init graph may build any structured table (identity, DFT, orthogonal bases).
 - **Still refused**, with the operation named in the refusal: host callbacks (`pure_callback`, `io_callback`), `custom_call` and foreign-function calls, infeed and outfeed, collectives and device placement, hardware or unkeyed random numbers, and uninitialised memory. `while` loops are not served yet; use `scan` with a fixed length.
