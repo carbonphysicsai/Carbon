@@ -947,7 +947,7 @@
     const held = CC.heldOperation(run.id, which === "practice" ? ["practice"] : ["freeze_candidate", "submit"]);
     // Whether its Challenge can be evaluated now: the Submission form says so.
     const evaluation = which === "submission" && CC.evaluationFor ? CC.evaluationFor(run) : null;
-    return JSON.stringify([which, run.id, run.state, run.journey || null, (run.experiments || []).map(e => e.recipe || null), Boolean(s.launchOptions), s.connected, s.busy, status ? [status.kind, status.text] : null, held, evaluation, which === "practice" && CC.practiceIssue ? CC.practiceIssue(run) : null]);
+    return JSON.stringify([which, run.id, run.state, run.journey || null, (run.experiments || []).map(e => e.recipe || null), Boolean(s.launchOptions), s.connected, s.busy, status ? [status.kind, status.text] : null, held, evaluation, which === "practice" && CC.practiceIssue ? CC.practiceIssue(run) : null, which === "practice" && CC.catalogSignature ? CC.catalogSignature(run) : null]);
   }
   function tabExperiments(panel, doc, run) {
     if (run && run.selects === "miner" && CC.renderJourneyPractice) part(panel, "journey", journeyKey(run, "practice"), box => CC.renderJourneyPractice(box, run), "rs-journey-part", "div");

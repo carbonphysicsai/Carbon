@@ -831,10 +831,17 @@
   // A catalog install moving or ending changes what the Challenge cards, the backbone picker and the banner say, so
   // the capabilities are read again (at most every 10 s): an open page never keeps the old answer.
   let capabilitiesRefreshedAt = 0;
+  let capabilitiesRefreshQueued = false;
   function refreshCapabilitiesSoon() {
-    if (Date.now() - capabilitiesRefreshedAt < 10000) return;
+    const wait = 10000 - (Date.now() - capabilitiesRefreshedAt);
+    if (wait > 0) {
+      // Too soon after the last read: one read is queued for when the pause ends, so a change is never dropped.
+      if (!capabilitiesRefreshQueued) { capabilitiesRefreshQueued = true; setTimeout(() => { capabilitiesRefreshQueued = false; refreshCapabilitiesSoon(); }, wait + 50); }
+      return;
+    }
     capabilitiesRefreshedAt = Date.now();
-    Promise.resolve(readCapabilities()).catch(() => { /* the next change tries again */ });
+    // Drawn again once read, so the picker and the banner follow what the install has now put on the machine.
+    Promise.resolve(readCapabilities()).then(read => { if (read) render(); }).catch(() => { /* the next change tries again */ });
   }
   function catalogBuildKey(build) {
     return build ? JSON.stringify([build.state, build.installed ?? null, build.total ?? null, build.readiness?.checked ?? null, build.readiness?.status ?? null]) : "";
@@ -3738,6 +3745,11 @@
     if (code === "smoke_practice_unavailable") smokeUnavailable.add(campaign);
     if (code === "practice_time_budget_reached" && mode !== "smoke") smokeFocus = campaign;
   }
+  // Which of the run's Challenge's catalog entries are installed (display only): the journey form redraws when it moves.
+  function catalogSignature(run) {
+    const entry = run.challenge ? challengeEntry({id: run.challenge.id, version: run.challenge.version}) : null;
+    return (Array.isArray(entry?.catalog_recipes) ? entry.catalog_recipes : []).map(item => (item?.catalog_id ?? "") + "=" + (item?.installed ?? "?")).join(",");
+  }
   function practiceIssue(run) {
     const refusal = lastRefusal(run);
     if (refusalOf("practice", refusal) && refusal.code === "smoke_practice_unavailable") smokeUnavailable.add(run.id);
@@ -3770,7 +3782,12 @@
     // Start on an entry that can run now: an installed current (non-legacy) one, else any current one that is
     // not known to be missing, else the first; never on a legacy entry while a current one is there.
     const firstChoice = catalog.find(item => item.recommended === true && item.installed !== false) || catalog.find(item => item.installed === true && !item.legacy) || catalog.find(item => !item.legacy && item.installed !== false) || catalog.find(item => item.installed !== false) || catalog[0];
-    const start = known(idOf(raw.value)) ? idOf(raw.value) : firstChoice.catalog_id;
+    // A backbone the person picked themselves is kept. One that was only the default is dropped while it is known
+    // not to be installed, so the picker moves to an installed entry once the catalog install reports one (L14).
+    const pickedKey = run.id + ":backbone-picked";
+    const keptEntry = catalog.find(item => item.catalog_id === idOf(raw.value));
+    const keepKept = keptEntry && (journeyDrafts[pickedKey] === true || keptEntry.installed !== false);
+    const start = keepKept ? keptEntry.catalog_id : firstChoice.catalog_id;
     const pickLabel = el("label", "Backbone"); const pick = document.createElement("select"); pick.id = "journey-backbone-" + run.id; pickLabel.htmlFor = pick.id;
     for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "") + (item.legacy ? " (legacy)" : "") + (item.installed === false ? " (not installed yet)" : "") + (item.officially_gradable === false ? " (" + GPU_RECEIPT_PENDING_WORDS + ")" : "")); option.value = item.catalog_id; pick.append(option); }
     pick.value = start; pick.dataset.draft = "1";
@@ -3791,7 +3808,7 @@
       gradable.hidden = !notYet;
       gradable.textContent = notYet ? GPU_RECEIPT_PENDING_NOTE : "";
       about.textContent = current().variant ? current().variant : current().legacy ? "A legacy entry: " + current().legacy : "A backbone Carbon has tested on this Challenge. Its tested settings are the starting point."; };
-    try { const kept = JSON.parse(raw.value); const s = kept?.procedure?.train_use?.steps, r = kept?.procedure?.configuration?.learning_rate; if (known(idOf(raw.value))) { if (Number.isFinite(s)) steps.value = String(s); if (Number.isFinite(r)) rate.value = String(r); } } catch (_) { /* kept as typed */ }
+    try { const kept = JSON.parse(raw.value); const s = kept?.procedure?.train_use?.steps, r = kept?.procedure?.configuration?.learning_rate; if (keepKept) { if (Number.isFinite(s)) steps.value = String(s); if (Number.isFinite(r)) rate.value = String(r); } } catch (_) { /* kept as typed */ }
     const write = () => {
       const recipe = JSON.parse(JSON.stringify(current().recipe));
       recipe.procedure = recipe.procedure || {};
@@ -3812,10 +3829,10 @@
         if (!shown) node.value = "";
       }
     };
-    pick.addEventListener("change", () => { describe(); fit(); write(); });
+    pick.addEventListener("change", () => { journeyDrafts[pickedKey] = true; store(draftKey, journeyDrafts); describe(); fit(); write(); });
     steps.addEventListener("input", write); rate.addEventListener("input", write);
     describe(); fit();
-    if (!known(idOf(raw.value))) write();
+    if (!keepKept) write();
     form.append(pickLabel, pick, missing, gradable, about, stepsLabel, steps, rateLabel, rate);
     box.insertBefore(form, holder.parentElement);
     researchNote(box, "Pick a tested backbone and, if you like, change its steps or learning rate. Anything else is under Advanced.", "hint");
@@ -5484,7 +5501,7 @@
     launch: launchResearch, discardLaunch,
     launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),
     goWizard(step) { if (STEPS.some(([name]) => name === step)) { wizard.step = step; saveWizard(); } location.hash = "#launch"; render(); },
-    operate, researchAction, renderCampaigns, renderJourneyPractice, renderJourneySubmission, renderPractice, practiceIssue,
+    operate, researchAction, renderCampaigns, renderJourneyPractice, renderJourneySubmission, renderPractice, practiceIssue, catalogSignature,
     evaluationFor, evaluationNote,
     // Live regions, refusals and keyed operations (LP-PROD-F), shared with
     // the research surface and its Tools tab so all three behave alike.

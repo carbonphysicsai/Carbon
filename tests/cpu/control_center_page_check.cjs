@@ -3647,6 +3647,36 @@ scenario("the backbone picker marks what is not installed yet and starts on an i
   clean(page);
 });
 
+scenario("a default backbone that was not installed moves to an installed one when the install reports it; a person's own pick stays (L14)", async () => {
+  const build = installed => ({schema: "carbon.launchpad.catalog-build.v1", state: "RUNNING", note: null, skipped: [], installed, total: 241, challenges: []});
+  const state = launchable(world({setup: {...copy(fx.setups.none), catalog_build: build(0)}}));
+  const run = manualRun();
+  run.journey.frozen_awaiting_submission = false;
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const entry = state.caps.challenges.find(item => item.challenge_id === run.challenge.id && item.version === run.challenge.version);
+  const recipeOf = id => ({schema: "carbon.construction-recipe.v1", source: {kind: "catalog", catalog_id: id}, procedure: {entrypoint: null, configuration: {}, train_use: {}, initial_state: null}});
+  const settings = {configuration: ["learning_rate"], train_use: ["steps"]};
+  const make = (id, installed) => ({catalog_id: id, backbone: id, recipe: recipeOf(id), settings, installed});
+  entry.catalog_recipes = [make("v2.A", false), make("v2.B", false)];
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  const pick = () => one(page, "#journey-backbone-" + run.id);
+  assert.equal(pick().value, "v2.A", "nothing is installed yet: the first current entry");
+  entry.catalog_recipes = [make("v2.A", false), make("v2.B", true)];
+  state.setup.catalog_build = build(5);
+  await page.advance(30000);
+  await page.advance(15000);
+  assert.equal(pick().value, "v2.B", "the default moved to the installed entry");
+  await page.change(pick(), "v2.A");
+  entry.catalog_recipes = [make("v2.A", false), make("v2.B", true)];
+  state.setup.catalog_build = build(9);
+  await page.advance(30000);
+  assert.equal(pick().value, "v2.A", "an entry the person picked is kept");
+  clean(page);
+});
+
 scenario("while the catalog installs the page says so once, in plain titles, and reads again when it ends (clean-machine L3)", async () => {
   const build = (extra) => ({schema: "carbon.launchpad.catalog-build.v1", state: "COMPLETE", note: null, skipped: [], installed: 241, total: 241, challenges: [], ...extra});
   const state = world({setup: {...copy(fx.setups.none), catalog_build: build({state: "RUNNING", installed: 11})}});
