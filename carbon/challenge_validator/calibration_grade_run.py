@@ -118,9 +118,7 @@ def _roles(snapshot, pack_root):
             raise cg.CalibrationRefused("calibration_role_unavailable:" + name) from exc
 
     try:
-        train = snapshot.read_role(
-            pack_root, "public", "train", max_bytes=16 * 1024**2
-        )
+        train = snapshot.read_role(pack_root, "public", "train", max_bytes=16 * 1024**2)
     except ValueError as exc:
         raise cg.CalibrationRefused("calibration_role_unavailable:train") from exc
     return {
