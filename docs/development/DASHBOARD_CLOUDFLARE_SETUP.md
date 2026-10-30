@@ -11,10 +11,11 @@
   the edge for 60 s.
 
 **What stays out of the repository:** no account id, token, feed URL or feed
-key. Each is read from a file under `~/.config/carbon/`.
+key. Each is read from a file kept off the repository.
 
 **Wait before deploying publicly:**
-- the real feed must be served: VALIDATOR-29, #854, merged and its door up;
+- the real feed must be served: VALIDATOR-29, #854, merged and its door up. At launch the four
+  signed launch boards (section 7) are the feed; follow section 8;
 - never deploy a fixture build. The Worker refuses to serve one anyway: every
   path answers 503.
 
@@ -37,25 +38,24 @@ template, and add **Zone → DNS → Edit** for `carbonphysics.ai`. Save the tok
 and the account id as the two files below, then load them:
 
 ```bash
-mkdir -p ~/.config/carbon && chmod 700 ~/.config/carbon
-chmod 600 ~/.config/carbon/cloudflare-dashboard.token ~/.config/carbon/cloudflare-account-id
+chmod 600 <token file> <account id file>
 ```
 
 ```bash
-export CLOUDFLARE_API_TOKEN="$(cat ~/.config/carbon/cloudflare-dashboard.token)"
+export CLOUDFLARE_API_TOKEN="$(cat <token file>)"
 ```
 
 ```bash
-export CLOUDFLARE_ACCOUNT_ID="$(cat ~/.config/carbon/cloudflare-account-id)"
+export CLOUDFLARE_ACCOUNT_ID="$(cat <account id file>)"
 ```
 
 **Write the feed settings.** These are two one-line files. They are not
 secret, but they stay out of the repository:
-- `~/.config/carbon/dashboard-feed-urls`: comma-separated `https://` feed URLs,
+- The feed URLs file (`<urls>`): comma-separated `https://` feed URLs,
   one per Challenge and device class, each
   `https://<validator door>/carbon/v1/feed/<challenge>`. The Carbon Validator
   session gives you the exact URLs.
-- `~/.config/carbon/dashboard-feed-keys`: the validator's feed public key (64
+- The feed key file (`<keys>`): the validator's feed public key (64
   hex), from its configuration (`score_feed keygen` printed it). Several keys
   are comma-separated. Never take the key from the feed itself.
 
@@ -65,11 +65,11 @@ Fetch one feed and build against the pinned key. Repeat `--feed` for each
 feed file.
 
 ```bash
-python -m carbon.dashboard fetch --url "$(cut -d, -f1 ~/.config/carbon/dashboard-feed-urls)" --out ~/carbon-dashboard-feed.json
+python -m carbon.dashboard fetch --url "$(cut -d, -f1 <urls>)" --out ~/carbon-dashboard-feed.json
 ```
 
 ```bash
-python -m carbon.dashboard build --feed ~/carbon-dashboard-feed.json --trust-key "$(cut -d, -f1 ~/.config/carbon/dashboard-feed-keys)" --out ~/carbon-dashboard-site
+python -m carbon.dashboard build --feed ~/carbon-dashboard-feed.json --trust-key "$(cut -d, -f1 <keys>)" --out ~/carbon-dashboard-site
 ```
 
 Every board line must print `ACCEPTED`. If one prints `REFUSED <code>`, stop
@@ -84,11 +84,11 @@ npx wrangler@4.151.3 deploy --config carbon/dashboard/wrangler.dashboard.toml --
 Then give the Worker its feed settings as secrets. This takes effect at once.
 
 ```bash
-python -c "import json,pathlib; h=pathlib.Path.home()/'.config/carbon'; print(json.dumps({'FEED_URLS': (h/'dashboard-feed-urls').read_text().strip(), 'FEED_KEYS': (h/'dashboard-feed-keys').read_text().strip()}))" > ~/.config/carbon/dashboard-secrets.json
+python -c "import json,pathlib,sys; print(json.dumps({'FEED_URLS': pathlib.Path(sys.argv[1]).read_text().strip(), 'FEED_KEYS': pathlib.Path(sys.argv[2]).read_text().strip()}))" <urls> <keys> > <secrets json>
 ```
 
 ```bash
-npx wrangler@4.151.3 secret bulk ~/.config/carbon/dashboard-secrets.json --config carbon/dashboard/wrangler.dashboard.toml
+npx wrangler@4.151.3 secret bulk <secrets json> --config carbon/dashboard/wrangler.dashboard.toml
 ```
 
 ## 4. The custom domain (one-time)
@@ -128,7 +128,7 @@ Until `SNAPSHOT_URLS` is set, the path answers `404`. A snapshot that fails a
 check is listed as `REFUSED` with its reason and no data.
 
 **On the validator host (the operator).** Write the builder's config as
-`~/.config/carbon/network-snapshot.json` (mode 600). The chain block is the
+a snapshot config file (`<snapshot config>`, mode 600). The chain block is the
 validator's own chain context; `key` is the feed key file the feed build
 already uses:
 
@@ -143,7 +143,7 @@ Run it on a timer, every 5 minutes, and upload the file next to the feed, the
 same way and to the same bucket as the feed upload, as `valv2/network.json`:
 
 ```bash
-python -m carbon.challenge_validator.network_snapshot build --config ~/.config/carbon/network-snapshot.json --out <feed directory>/network.json
+python -m carbon.challenge_validator.network_snapshot build --config <snapshot config> --out <feed directory>/network.json
 ```
 
 ```bash
@@ -158,10 +158,10 @@ next run retries.
 
 **On the Worker (the owner).** Save the snapshot's public URL,
 `https://<public bucket host>/valv2/network.json`, as
-`~/.config/carbon/dashboard-snapshot-urls`, then set it as a secret:
+a file (`<snapshot urls>`), then set it as a secret:
 
 ```bash
-npx wrangler@4.151.3 secret put SNAPSHOT_URLS --config carbon/dashboard/wrangler.dashboard.toml < ~/.config/carbon/dashboard-snapshot-urls
+npx wrangler@4.151.3 secret put SNAPSHOT_URLS --config carbon/dashboard/wrangler.dashboard.toml < <snapshot urls>
 ```
 
 A snapshot older than 30 minutes, by its block's chain timestamp, is refused
@@ -180,7 +180,7 @@ code, send it to the Carbon Validator session.
 
 ## 7. The launch boards (OWNER-DASHBOARD-01; the Test Engineer's valV3 step 6)
 
-The four launch Challenges are graded on sealed exams and have no score feed. Their
+The four launch Challenges are graded on the validator's own exams and have no score feed. Their
 standing is one signed **launch board** each (`carbon.validator.launch-board.v1`, its own
 signing domain): the king (exactly the receiver's `GET /carbon/v1/koth/<id>` answer), the
 Ladder's best total per graded hotkey (rounded to the Ladder step), and counts. Nothing
@@ -188,7 +188,7 @@ finer. The same **feed key** signs it, so the key the Worker pins (`FEED_KEYS`) 
 change; this repository never reads that key.
 
 **On the validator host (the operator).** Write
-`~/.config/carbon/launch-boards.json` (mode 600, never committed):
+a launch-boards config file (`<launch boards config>`, mode 600, never committed):
 
 ```json
 {"schema": "carbon.launch-board.operator.config.v1",
@@ -197,13 +197,13 @@ change; this repository never reads that key.
  "receiver_url": "http://127.0.0.1:<receiver port>",
  "key": "<the feed key file>",
  "out": "<feed directory>/launch",
- "upload_command": ["npx", "wrangler@4", "r2", "object", "put", "<feed bucket>/valv3/{name}",
+ "upload_command": ["npx", "wrangler@4.151.3", "r2", "object", "put", "<feed bucket>/valv3/{name}",
                     "--file", "{file}", "--content-type", "application/json", "--remote"],
  "challenges": [
-  {"id": "electric-motor-magnetics", "version": "1.4", "exam_version_label": "<label>"},
-  {"id": "chip-cold-plate", "version": "1.4", "exam_version_label": "<label>"},
-  {"id": "f08-ribbed-bracket", "version": "1.5", "exam_version_label": "<label>"},
-  {"id": "f02", "version": "2.4", "exam_version_label": "<label>"}]}
+  {"id": "electric-motor-magnetics", "version": "1.5", "exam_version_label": "<label>"},
+  {"id": "chip-cold-plate", "version": "1.6", "exam_version_label": "<label>"},
+  {"id": "f08-ribbed-bracket", "version": "1.7", "exam_version_label": "<label>"},
+  {"id": "f02", "version": "2.5", "exam_version_label": "<label>"}]}
 ```
 
 `exam_version_label` is only used while the receiver publishes no king document yet.
@@ -213,11 +213,11 @@ the board to a fresh ladder by itself); set `"exam_key"` on a Challenge to pin o
 Run it once, then on a timer:
 
 ```bash
-python scripts/dev/launch_board_operator.py run --config ~/.config/carbon/launch-boards.json
+python scripts/dev/launch_board_operator.py run --config <launch boards config>
 ```
 
 ```bash
-python scripts/dev/launch_board_operator.py systemd --config ~/.config/carbon/launch-boards.json
+python scripts/dev/launch_board_operator.py systemd --config <launch boards config>
 ```
 
 The first command prints one row per Challenge: `UPLOADED` (or `WROTE` without an
@@ -237,6 +237,132 @@ as the static build does (`feed.mjs`, held equal to `launch.py` by
 **Check it:** `curl -s https://dashboard.carbonphysics.ai/data/index.json` lists each
 launch board `"state": "ACCEPTED"` with labels `DEVELOPMENT` and `TESTNET`. A `REFUSED`
 code names what the Worker's checks found; send it to the Carbon Validator session.
+
+## 8. Launch day: repoint the live dashboard to the four launch boards
+
+The launch versions are Motor 1.5 (`electric-motor-magnetics`), Cooling 1.6 (`chip-cold-plate`),
+Ribbed Bracket 1.7 (`f08-ribbed-bracket`) and Burst Thermal 2.5 (`f02`). Section 7's example uses
+them. The dashboard is already deployed and serving (`dashboard.carbonphysics.ai`, with `FEED_URLS` and
+`FEED_KEYS` already set), so this is a repoint, not a first deploy. Run it after the receivers are
+prepared and serving, in this order. Steps A to C are the Test Lead's, on the validator host; D is the
+owner's, in Cloudflare.
+
+**A. Read each exam's label (Test Lead).** The label is only a fallback while a receiver publishes
+no king document, but the config needs one per Challenge. Take it from the receiver, not from
+memory:
+
+```bash
+curl -s http://127.0.0.1:<receiver port>/carbon/v1/koth/electric-motor-magnetics
+```
+
+Repeat for `chip-cold-plate`, `f08-ribbed-bracket` and `f02`. If an answer is `404`, use the exam
+exam version label for that Challenge. It must match
+`[A-Za-z0-9][A-Za-z0-9 ._:+-]{0,63}`. Do not invent one.
+
+**B. Write `<launch boards config>` (Test Lead, mode 600, never committed).** Use
+section 7's JSON with the four versions above: `network` is `testnet`; `ledger`, `receiver_url`,
+`key` and `out` are this host's; `upload_command` names the feed bucket. Then:
+
+```bash
+chmod 600 <launch boards config>
+```
+
+```bash
+python scripts/dev/launch_board_operator.py run --config <launch boards config>
+```
+
+Expect four rows, each `UPLOADED` (or `WROTE` with no `upload_command`). Before the first graded
+result every board is the empty state ("No hotkey has a graded result yet"), which is correct.
+Any `REFUSED <code>` (exit code 2): stop and send the code to the Carbon Validator session.
+`receiver_unavailable` means the receiver is not up; start it and run again.
+
+```bash
+python scripts/dev/launch_board_operator.py systemd --config <launch boards config>
+```
+
+Install the printed oneshot service and 5-minute timer.
+
+**C. Hand the owner two files (Test Lead).** Both stay off the repository, and the owner keeps them
+somewhere private:
+- the new feed URLs file: the four board URLs, comma-separated, each
+  `https://<public bucket host>/valv3/<slug>.json`, with slugs
+  `electric-motor-magnetics--no-class`, `chip-cold-plate--no-class`,
+  `f08-ribbed-bracket--no-class`, `f02--no-class`;
+- the feed key file: the validator's feed **public** key (64 hex), from the validator's own
+  configuration (`score_feed keygen` printed it); never from a board. The launch boards are signed by
+  the same feed key (section 7), so if `FEED_KEYS` already holds it, it does not change. If a different
+  key signs them, the file lists both, comma-separated.
+
+**D. The owner's steps in Cloudflare.** `<urls>` and `<keys>` are the two files the Test Lead hands
+you. The domain, the DNS record and the Worker already exist: skip section 4. The Battery board is
+removed: `FEED_URLS` ends up holding **only the four launch board URLs**.
+
+0. **Which checkout.** Run steps 3 and 5 in a Git Bash checkout of the exact commit the Carbon
+   team names for the launch Worker and page. That may be a reviewed branch carrying the Launchpad UX
+   polish rather than `main`. Check out that commit, run `git rev-parse HEAD`, and send the printed
+   sha back. Deploying reads the files in your checkout and uploads them to Cloudflare; it pushes
+   nothing and changes nothing in `main`. Build the site (step 3) and deploy it (step 5) from the same
+   checkout.
+1. Sign in: `npx wrangler@4.151.3 login`.
+2. **Keep the current `FEED_URLS` value** in a private file. A Worker secret cannot be read back.
+   It is the way to roll back.
+3. Build the page shell from the launch boards. This is needed, not optional: the shell now
+   deployed was built from the Battery feed and still carries Battery's data files. Fetch the four
+   boards and build against the pinned key:
+
+```bash
+mkdir -p ~/carbon-launch-feed && i=0 && for u in $(tr ',' ' ' < <urls>); do i=$((i+1)); python -m carbon.dashboard fetch --url "$u" --out ~/carbon-launch-feed/board$i.json; done
+```
+
+```bash
+python -m carbon.dashboard build $(for f in ~/carbon-launch-feed/board*.json; do printf -- '--feed %s ' "$f"; done) --trust-key "$(cut -d, -f1 <keys>)" --out ~/carbon-dashboard-site
+```
+
+   Every board line must print `ACCEPTED`. A `REFUSED <code>`: stop and send the code to the Carbon
+   Validator session.
+4. Set the two Worker secrets, `FEED_URLS` (exactly the contents of `<urls>`: the four launch
+   boards and nothing else; **do not add the Battery URL back**) and `FEED_KEYS` (the contents of
+   `<keys>`; unchanged when the same feed key signs the launch boards). Put them in a JSON file kept
+   off the repository, `{"FEED_URLS": "...", "FEED_KEYS": "..."}`, and load it:
+
+```bash
+npx wrangler@4.151.3 secret bulk <secrets json> --config carbon/dashboard/wrangler.dashboard.toml
+```
+
+5. Deploy the Worker and the site built in step 3, from the checkout of step 0. The route is
+   unchanged:
+
+```bash
+npx wrangler@4.151.3 deploy --config carbon/dashboard/wrangler.dashboard.toml --assets ~/carbon-dashboard-site
+```
+
+6. Check it (section 5): `curl -s https://dashboard.carbonphysics.ai/data/index.json` lists
+   exactly the four launch boards, each `"state": "ACCEPTED"` with labels `DEVELOPMENT` and
+   `TESTNET`, and no Battery board. `curl -sI` the Battery board path
+   (`/data/boards/battery-fastcharge-ageing-development-v1--cpu.json`) answers `404`. A board
+   listed `REFUSED` carries a code: send it to the Carbon Validator session. A `503 Feed not
+   configured` means step 4 is not done or the list is wrong.
+7. **Roll back**, if the page looks wrong: set `FEED_URLS` back to the list you kept in step 2 and
+   load it the same way; `npx wrangler@4.151.3 rollback --config carbon/dashboard/wrangler.dashboard.toml`
+   returns the code and site to the previous deployment. Nothing else changed.
+
+**Does the old Battery board stay cached?** The Worker keeps no copy of its own: it rebuilds the board
+list from `FEED_URLS` on each request, and a feed it no longer lists is not shown. What can still
+show it is a cache holding a response from before the change:
+- Every `/data/` answer carries `Cache-Control: public, max-age=60`, so a browser or a cache in front
+  may show the old list for up to 60 seconds.
+- The Worker also asks Cloudflare to cache each feed fetch for `CACHE_SECONDS` (60) seconds. That
+  only affects feeds still listed.
+- To clear it: wait a minute, then reload the page with a hard refresh (Ctrl+Shift+R). If it still shows
+  Battery, check `curl -s https://dashboard.carbonphysics.ai/data/index.json` first: if that answers
+  without Battery, the page is the browser's cache. If it still lists Battery, `FEED_URLS` was not
+  updated (step 4); in the Cloudflare dashboard you can also use Caching > Configuration > Purge
+  Everything for `carbonphysics.ai` as a last step. The deployed site files cannot show Battery
+  after step 5, because every `/data/` path the Worker does not serve answers `404`.
+
+The first crown appears on the next 5-minute run after the first graded result. Nothing here is
+done automatically or from this repository: the Cloudflare login, the secrets and any deploy are
+the owner's.
 
 ## Afterwards
 
