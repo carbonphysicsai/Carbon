@@ -118,9 +118,7 @@ def _roles(snapshot, pack_root):
             raise cg.CalibrationRefused("calibration_role_unavailable:" + name) from exc
 
     try:
-        train = snapshot.read_role(
-            pack_root, "public", "train", max_bytes=16 * 1024**2
-        )
+        train = snapshot.read_role(pack_root, "public", "train", max_bytes=16 * 1024**2)
     except ValueError as exc:
         raise cg.CalibrationRefused("calibration_role_unavailable:train") from exc
     return {
@@ -231,6 +229,18 @@ def freeze_campaign(ledger):
     )
 
 
+def graded_definition(adapter, bank, definition):
+    """The accuracy definition the OFFICIAL receiver grades with: the pack's public role, plus for a pool-graded
+    adapter the pool material of the sealed bank (``physical_dual_pack`` dual-native path: the pool's truths ride
+    in the carried batch, never in the public accuracy definition), refused when the bank carries none.
+    """
+    if not getattr(adapter, "POOL_GRADED", False):
+        return definition
+    if type(bank.get("pool")) is not dict:
+        raise cg.CalibrationRefused("calibration_pool_material_missing")
+    return {**definition, "pool": bank["pool"]}
+
+
 def run(
     *,
     artifact_dir,
@@ -264,7 +274,7 @@ def run(
     artifact = cg.load_artifact(artifact_dir, challenge_id=challenge_id, **(pins or {}))
     snapshot = prepare(pack_root, challenge_id, version)
     bank, adapter, names = resolve_bank(
-        snapshot, Path(pack_root), challenge_id, version
+        snapshot, Path(pack_root), challenge_id, version, copy_hotkey
     )
     roles = _roles(snapshot, Path(pack_root))
 
@@ -330,7 +340,7 @@ def run(
         adapter=adapter,
         bank=bank,
         pack=roles["score_pack"],
-        definition=roles["definition"],
+        definition=graded_definition(adapter, bank, roles["definition"]),
         limits=roles["limits"],
         objective=roles["objective"],
         train_raw=roles["train"],
@@ -366,6 +376,11 @@ def main(argv=None):
     parser.add_argument("--control", type=Path)
     parser.add_argument("--run-config", type=Path)
     parser.add_argument("--run-config-digest")
+    parser.add_argument(
+        "--copy-hotkey",
+        help="a validator's own hotkey: grade the pack as that validator's delivered copy (the store pack keeps it "
+        "beside it in .copies/<digest>/), in its canonical form, exactly as the receiver does",
+    )
     args = parser.parse_args(argv)
     from carbon.challenge_validator import cpu_pin
 
@@ -391,6 +406,7 @@ def main(argv=None):
                 json.loads(args.run_config.read_bytes()) if args.run_config else None
             ),
             run_config_digest=args.run_config_digest,
+            copy_hotkey=args.copy_hotkey,
         )
     except cg.CalibrationRefused as refused:
         print(f"calibration grade refused: {refused.code}", file=sys.stderr)
