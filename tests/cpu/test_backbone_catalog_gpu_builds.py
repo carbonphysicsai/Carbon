@@ -11,6 +11,7 @@ import tarfile
 
 import pytest
 
+from tests.cpu import gpu_registries
 from carbon.backbone_catalog import gpu_build, pipeline
 
 
@@ -444,11 +445,10 @@ def test_only_a_receipt_with_the_pinned_image_the_full_determinism_environment_a
 
     with pytest.raises(CatalogRefused, match="pinned GPU worker image"):
         official()
-    monkeypatch.setattr(gpu_receipt, "PINNED_GPU_IMAGES", {runtime: frozenset({IMAGE})})
+    gpu_registries.set_pins(monkeypatch, {runtime: frozenset({IMAGE})})
     with pytest.raises(CatalogRefused, match="registered host class"):
         official()
-    monkeypatch.setattr(
-        gpu_receipt, "REGISTERED_HOST_CLASSES", frozenset({"rtx4090-v1"})
+    gpu_registries.set_classes(monkeypatch, frozenset({"rtx4090-v1"})
     )
     assert official() == item["bundle_refs"][runtime]
     receipt["determinism"] = [["use_deterministic_algorithms", False]]
@@ -895,9 +895,8 @@ def test_a_made_receipt_passes_the_official_check_when_the_run_carried_what_it_r
         ("torch-cu130-py311", "neuralop.FNO"),
         ("jax-cuda13-py311", "jno.fno1d"),
     ):
-        monkeypatch.setattr(gpu_receipt, "PINNED_GPU_IMAGES", {runtime: (IMAGE,)})
-        monkeypatch.setattr(
-            gpu_receipt, "REGISTERED_HOST_CLASSES", frozenset({"rtx4090-v1"})
+        gpu_registries.set_pins(monkeypatch, {runtime: (IMAGE,)})
+        gpu_registries.set_classes(monkeypatch, frozenset({"rtx4090-v1"})
         )
         made = gpu_receipt.make(
             entry,

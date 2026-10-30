@@ -105,11 +105,45 @@ def add_wheels(source_dir, wheel_dirs):
         sys.path.insert(0, site)
 
 
+def declared_input_bounds(root, entry):
+    """The prior's `INPUT_BOUNDS` literal, read from its source (the harness imports nothing it did not name)."""
+    import ast
+
+    package = entry["entrypoint"]["module"].rsplit(".", 1)[0].replace(".", "/")
+    tree = ast.parse((root / package / "prior.py").read_text(encoding="utf-8"))
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "INPUT_BOUNDS" for t in node.targets
+        ):
+            return ast.literal_eval(node.value)
+    raise ValueError("the prior declares no INPUT_BOUNDS")
+
+
+def watch_solve_devices():
+    """Record the platform of every array `jax.scipy.linalg.cho_solve` returns (the kernel-ridge device solve), in
+    the returned list; the wrapper is installed once and appends to the list of the latest call.
+    """
+    import jax.scipy.linalg as linalg
+
+    seen = []
+    original = getattr(linalg.cho_solve, "_carbon_original", linalg.cho_solve)
+
+    def cho_solve(*args, **kwargs):
+        result = original(*args, **kwargs)
+        seen.extend(d.platform for d in result.devices())
+        return result
+
+    cho_solve._carbon_original = original
+    linalg.cho_solve = cho_solve
+    return seen
+
+
 def one_run(source_dir, entry, n_in, n_out, framework, steps, wheel_dirs=()):
     import numpy as np
 
     rng = np.random.default_rng(0)
     zi, zt = rng.normal(size=(24, n_in)), rng.normal(size=(24, n_out))
+    krr = entry["defaults"]["configuration"].get("backbone") == "krr"
     add_wheels(source_dir, wheel_dirs)
     if framework == "torch":
         import torch
@@ -129,7 +163,19 @@ def one_run(source_dir, entry, n_in, n_out, framework, steps, wheel_dirs=()):
     module = importlib.import_module(entry["entrypoint"]["module"])
     build = getattr(module, entry["entrypoint"]["name"])
     cfg = entry["defaults"]["configuration"]
-    product = build(zi, zt, seed=1, configuration=cfg, train_use={"steps": steps})
+    if krr:
+        # A kernel-ridge build takes no training settings, and its inputs are scaled by the prior's own declared
+        # input bounds: the smoke draws them uniformly inside those bounds (N(0,1) falls outside and the build
+        # refuses its own prediction). Other backbones keep the N(0,1) smoke unchanged.
+        bounds = np.asarray(declared_input_bounds(Path(root), entry), dtype=np.float64)
+        zi = bounds[:, 0] + rng.uniform(size=(24, n_in)) * (bounds[:, 1] - bounds[:, 0])
+        train_use = {}
+    else:
+        train_use = {"steps": steps}
+    solved_on = []
+    if krr:
+        solved_on = watch_solve_devices()
+    product = build(zi, zt, seed=1, configuration=cfg, train_use=train_use)
     sys.path.remove(root)
     parameters = product["parameters"]
     if framework == "torch":
@@ -149,6 +195,12 @@ def one_run(source_dir, entry, n_in, n_out, framework, steps, wheel_dirs=()):
             product["apply"]([jnp.asarray(p) for p in parameters], jnp.asarray(zi[:8]))
         )
         device = jax.default_backend()
+        if krr:
+            # The device solve itself must have run on the GPU: the backend name alone does not show where the
+            # kernel system was solved.
+            platforms = sorted(set(solved_on))
+            if platforms != [device]:
+                device = "solve:" + ",".join(platforms or ["none"])
         stats = jax.devices()[0].memory_stats() or {}
         peak = int(stats.get("peak_bytes_in_use", 0))
         flat = [np.asarray(p) for p in parameters]

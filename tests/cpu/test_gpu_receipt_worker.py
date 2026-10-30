@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.cpu import gpu_registries
 from carbon.backbone_catalog import gpu_receipt, listing
 from carbon.backbone_catalog.receipt_store import ReceiptStore
 from scripts.dev import gpu_receipt_worker as w
@@ -504,13 +505,7 @@ def test_the_cli_requires_every_limit_and_a_registered_host_class(tmp_path, caps
 
 
 def test_units_write_a_user_service_that_is_not_installed(tmp_path, monkeypatch):
-    monkeypatch.setattr(
-        gpu_receipt,
-        "REGISTERED_HOST_CLASSES",
-        {HOST: {}}
-        if isinstance(gpu_receipt.REGISTERED_HOST_CLASSES, dict)
-        else (HOST,),
-    )
+    gpu_registries.set_classes(monkeypatch, (HOST,))
     flags = []
     for name, value in (
         ("checkout", tmp_path),
@@ -616,7 +611,7 @@ def test_the_worker_starts_no_lane_while_a_grade_holds_the_lock_then_starts_one(
 def test_the_worker_refuses_a_grading_dir_that_is_not_the_parent_of_the_store(
     tmp_path, capsys, monkeypatch
 ):
-    monkeypatch.setattr(gpu_receipt, "REGISTERED_HOST_CLASSES", frozenset({HOST}))
+    gpu_registries.set_classes(monkeypatch, frozenset({HOST}))
     state = tmp_path / "state"
     store = state / "gpu-receipts"
     assert w.grading_dir_problem(store, state) is None
@@ -652,7 +647,7 @@ def test_the_worker_refuses_a_grading_dir_that_is_not_the_parent_of_the_store(
 def test_a_real_run_requires_the_grading_dir_and_refuses_the_test_only_yield_modes(
     tmp_path, capsys, monkeypatch
 ):
-    monkeypatch.setattr(gpu_receipt, "REGISTERED_HOST_CLASSES", frozenset({HOST}))
+    gpu_registries.set_classes(monkeypatch, frozenset({HOST}))
     state = tmp_path / "state"
     base = [
         "--state-dir",
