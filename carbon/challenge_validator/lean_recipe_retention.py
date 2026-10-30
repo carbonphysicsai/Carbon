@@ -7,7 +7,6 @@ not replay a worker, grade predictions, or grant receiver/official authority.
 
 from __future__ import annotations
 
-import functools
 import hashlib
 import io
 import json
@@ -60,15 +59,16 @@ INSTALLED_COMMIT_SIDECAR = "grade-installed-commit.json"
 INSTALLED_COMMIT_SCHEMA = "carbon.scoring.grade-installed-commit.v1"
 
 
-@functools.lru_cache(maxsize=1)
-def _installed_commit() -> dict:
-    """The commit and tree of the checkout this process runs from, and the worker build-inputs digest of that commit.
+def read_installed_commit(repo) -> dict:
+    """The commit and tree of the checkout at ``repo``, the worker build-inputs digest of that commit, and whether a
+    tracked file differs from it (``git status --porcelain --untracked-files=no``): a modified tracked file must not look
+    like the clean commit.
 
-    An install that is not a git checkout records ``commit: null`` with the reason, never a guess; the record is private
-    and is never a score input."""
+    A path that is not a readable git checkout records ``commit: null`` with the reason, never a guess; the record is
+    private and is never a score input."""
     from carbon.reconstruction.worker import build_inputs
 
-    repo = Path(__file__).resolve().parents[2]
+    repo = Path(repo)
     try:
         commit, tree = (
             subprocess.check_output(
@@ -79,12 +79,27 @@ def _installed_commit() -> dict:
             .decode("ascii")
             .split()
         )
+        dirty = bool(
+            subprocess.check_output(
+                [
+                    "git",
+                    "-C",
+                    str(repo),
+                    "status",
+                    "--porcelain",
+                    "--untracked-files=no",
+                ],
+                stderr=subprocess.DEVNULL,
+                timeout=60,
+            ).strip()
+        )
         digest = build_inputs.digest(repo)
     except (OSError, subprocess.SubprocessError, ValueError):
         return {
             "schema": INSTALLED_COMMIT_SCHEMA,
             "commit": None,
             "tree": None,
+            "dirty": None,
             "build_inputs_digest": None,
             "reason": "the installed code is not a readable git checkout",
         }
@@ -92,8 +107,18 @@ def _installed_commit() -> dict:
         "schema": INSTALLED_COMMIT_SCHEMA,
         "commit": commit,
         "tree": tree,
+        "dirty": dirty,
         "build_inputs_digest": digest,
     }
+
+
+#: Read ONCE, when this module loads (the receiver's start), never at the first grade: a checkout moved after the
+#: process started would otherwise record the NEW commit while the OLD code is the code that is loaded.
+_INSTALLED_COMMIT = read_installed_commit(Path(__file__).resolve().parents[2])
+
+
+def _installed_commit() -> dict:
+    return _INSTALLED_COMMIT
 
 
 def _sha(raw: bytes) -> str:

@@ -2,50 +2,87 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from carbon.challenge_validator import lean_recipe_retention as retention
+from carbon.reconstruction.worker import build_inputs
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _git_out(*args):
-    done = subprocess.run(
-        ["git", "-C", str(ROOT), *args], capture_output=True, text=True, check=False
-    )
-    return done.stdout.strip() if done.returncode == 0 else None
+def _git(repo, *args):
+    return subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "user.name=t",
+            *args,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
 
 
-def test_the_record_names_the_installed_commit_tree_and_build_inputs_digest():
-    retention._installed_commit.cache_clear()
-    record = retention._installed_commit()
+@pytest.fixture
+def small_repo(tmp_path, monkeypatch):
+    if shutil.which("git") is None:
+        pytest.skip("needs git")
+    monkeypatch.setattr(build_inputs, "digest", lambda repo: "sha256:" + "0" * 64)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    (repo / "tracked.txt").write_text("a\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    return repo
+
+
+def test_a_clean_checkout_records_commit_tree_and_dirty_false(small_repo):
+    record = retention.read_installed_commit(small_repo)
     assert record["schema"] == retention.INSTALLED_COMMIT_SCHEMA
-    head = _git_out("rev-parse", "HEAD")
-    if head is None:
-        assert record["commit"] is None and "not a readable git" in record["reason"]
-        return
-    assert (record["commit"], record["tree"]) == (
-        head,
-        _git_out("rev-parse", "HEAD^{tree}"),
-    )
-    assert record["build_inputs_digest"].startswith("sha256:")
+    assert record["commit"] == _git(small_repo, "rev-parse", "HEAD")
+    assert record["tree"] == _git(small_repo, "rev-parse", "HEAD^{tree}")
+    assert record["dirty"] is False
+    assert record["build_inputs_digest"] == "sha256:" + "0" * 64
 
 
-def test_an_install_that_is_not_a_checkout_records_null_and_why_never_a_guess(
-    monkeypatch,
-):
-    def refuse(*args, **kwargs):
-        raise OSError("no git")
+def test_a_modified_tracked_file_is_dirty_but_an_untracked_file_is_not(small_repo):
+    (small_repo / "untracked.txt").write_text("u\n")
+    assert retention.read_installed_commit(small_repo)["dirty"] is False
+    (small_repo / "tracked.txt").write_text("changed\n")
+    record = retention.read_installed_commit(small_repo)
+    assert record["dirty"] is True
+    assert record["commit"] == _git(small_repo, "rev-parse", "HEAD")
 
-    monkeypatch.setattr(retention.subprocess, "check_output", refuse)
-    retention._installed_commit.cache_clear()
-    try:
-        record = retention._installed_commit()
-    finally:
-        retention._installed_commit.cache_clear()
+
+def test_a_path_that_is_not_a_checkout_records_null_and_why_never_a_guess(tmp_path):
+    record = retention.read_installed_commit(tmp_path / "missing")
     assert record["commit"] is None and record["tree"] is None
-    assert record["build_inputs_digest"] is None and record["reason"]
+    assert record["dirty"] is None and record["build_inputs_digest"] is None
+    assert record["reason"]
+
+
+def test_the_record_is_read_once_at_module_load_not_at_the_first_grade(
+    small_repo, monkeypatch
+):
+    loaded = retention._INSTALLED_COMMIT
+    assert retention._installed_commit() is loaded
+    # a checkout that moves after the process started does not change what the grade records
+    monkeypatch.setattr(
+        retention, "read_installed_commit", lambda repo: pytest.fail("re-read")
+    )
+    (small_repo / "tracked.txt").write_text("moved\n")
+    _git(small_repo, "commit", "-q", "-am", "move")
+    assert retention._installed_commit() is loaded
 
 
 def test_the_sidecar_is_written_once_right_after_the_private_binding():
