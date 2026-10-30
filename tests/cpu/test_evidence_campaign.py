@@ -263,7 +263,9 @@ def _fixture(tmp_path):
             "hard_wall_s": 3600.0,
             "analysis": {"bootstrap_replicates": 100, "confidence": 0.95, "seed": 7},
             "analysis_reserve": {
-                family: {"wall_s": 60, "core_s": 60, "peak_ram_gb": 1.0}
+                # Synthetic fixture reserve: the page build loads a repository script
+                # and runs inside this limit, so it needs room on a loaded shard.
+                family: {"wall_s": 600, "core_s": 600, "peak_ram_gb": 1.0}
                 for family in campaign.FAMILIES
             },
         },

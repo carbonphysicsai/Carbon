@@ -186,12 +186,13 @@ def test_unavailable_until_pool_open_then_exact_exam_and_owner_only_record(
         "practice_dual",
     }
     assert outcome["schema"] == "carbon.motor.validator-outcome.v2"
-    # The shared practice block (C13): feedback on the public bank, gates first;
-    # the existing error score above keeps its meaning.
+    # The shared practice block: the v1 dual's value-only design score is retired
+    # (the validator outcome carries the v2 "unavailable" block); the existing
+    # error score above keeps its meaning.
     dual = outcome["practice_dual"]
-    assert dual["schema"] == "carbon.practice.dual-feedback.v1"
-    assert dual["available"] is True and dual["eligible"] is True
-    assert 0 < dual["total"] <= 1
+    assert dual["schema"] == "carbon.practice.dual-feedback.v2"
+    assert dual["available"] is False
+    assert dual["reason"] == "practice_dual_v1_retired"
     assert not ({"cases", "predictions", "references", "recipe"} & set(outcome))
     record = Operator(adapters, ledger).score_record(
         CONTRACT.digest, outcome["submission_id"]
