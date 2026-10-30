@@ -145,6 +145,35 @@ def preferred(challenge_id, version):
     return None
 
 
+def install_order(items):
+    """`items` (manifest entries) with the entries a first practice starts on first, the rest in their own order.
+
+    A miner's first practice runs on the entry the picker starts on: each Challenge's newest catalog version's
+    `preferred` entry. Installing all of a full catalog takes about 15 minutes, so those come first and a first
+    practice can run a minute or two after the install starts, not after the last entry. A permutation: nothing is
+    dropped, added or changed."""
+    items = list(items)
+    newest = {}
+    for item in items:
+        for each in item.get("challenges") or []:
+            key = each["id"]
+            if key not in newest or _version_key(each["version"]) > _version_key(
+                newest[key]
+            ):
+                newest[key] = each["version"]
+    first = []
+    for challenge_id in sorted(newest):
+        wanted = preferred(challenge_id, newest[challenge_id])
+        if wanted is not None and wanted not in first:
+            first.append(wanted)
+    rank = {catalog_id: index for index, catalog_id in enumerate(first)}
+    return sorted(items, key=lambda item: rank.get(item["catalog_id"], len(first)))
+
+
+def _version_key(version):
+    return tuple(int(part) if part.isdigit() else 0 for part in str(version).split("."))
+
+
 def is_legacy(catalog_id, challenge_id, version):
     """Whether ``catalog_id`` is a pre-v2 entry on a version that also offers v2.* ones."""
     return (

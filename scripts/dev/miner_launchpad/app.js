@@ -3760,7 +3760,7 @@
     const known = id => catalog.some(item => item.catalog_id === id);
     // Start on an entry that can run now: an installed current (non-legacy) one, else any current one that is
     // not known to be missing, else the first; never on a legacy entry while a current one is there.
-    const firstChoice = catalog.find(item => item.installed === true && !item.legacy) || catalog.find(item => !item.legacy && item.installed !== false) || catalog.find(item => item.installed !== false) || catalog[0];
+    const firstChoice = catalog.find(item => item.recommended === true && item.installed !== false) || catalog.find(item => item.installed === true && !item.legacy) || catalog.find(item => !item.legacy && item.installed !== false) || catalog.find(item => item.installed !== false) || catalog[0];
     const start = known(idOf(raw.value)) ? idOf(raw.value) : firstChoice.catalog_id;
     const pickLabel = el("label", "Backbone"); const pick = document.createElement("select"); pick.id = "journey-backbone-" + run.id; pickLabel.htmlFor = pick.id;
     for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "") + (item.legacy ? " (legacy)" : "") + (item.installed === false ? " (not installed yet)" : "") + (item.officially_gradable === false ? " (" + GPU_RECEIPT_PENDING_WORDS + ")" : "")); option.value = item.catalog_id; pick.append(option); }
