@@ -60,8 +60,15 @@ def build(
     material=None,
     calibration=False,
     response_reference=None,
+    baseline_binding_raw=None,
+    calibration_pack_root=None,
 ):
-    """The pool pack and its record. ``material`` (a ready `pool_version` material) replaces ``--set-dir``."""
+    """The pool pack and its record. ``material`` (a ready `pool_version` material) replaces ``--set-dir``.
+
+    The leg minimums are the registered baseline's own graded legs (two builds): ``calibration`` writes the
+    minimum-free calibration pack; ``baseline_binding_raw`` (the baseline's retained binding, graded under that
+    calibration pack) with ``calibration_pack_root`` writes the judge pack with those minimums. Neither: no minimums.
+    """
     from carbon.challenge_kit.version_registry import find
     from carbon.scoring import copy_package, pool_exam, pool_version
     from carbon.scoring import sealed_batch_source as source
@@ -104,14 +111,27 @@ def build(
     bank = source._build(
         challenge, kit, canonical["document"], canonical["records"], version
     )
+    if (baseline_binding_raw is None) != (calibration_pack_root is None):
+        raise SystemExit("--baseline-binding and --calibration-pack go together")
+    if calibration and baseline_binding_raw is not None:
+        raise SystemExit("a calibration pack takes no baseline binding")
     out = Path(out_dir)
     pack_root = out / "pack"
+    minimums = (
+        {
+            "baseline_binding_raw": baseline_binding_raw,
+            "calibration_pack_root": Path(calibration_pack_root),
+        }
+        if baseline_binding_raw is not None
+        else {}
+    )
     manifest_path = module.write_sealed_pack(
         pack_root,
         bank,
         version=version,
         inference_image_id=inference_image_id,
         calibration=calibration,
+        **minimums,
     )
     (pack_root / source.SEALED_BATCH_FILE).write_bytes(raw)
     cohorts = list(bank["cohorts"])
@@ -155,6 +175,16 @@ def main(argv=None):
         help="F02 2.5: the f02_response_reference.py build output (JSON), carried in the pool material",
     )
     one.add_argument("--calibration", action="store_true")
+    one.add_argument(
+        "--baseline-binding",
+        type=Path,
+        help="the baseline's retained binding, graded under the calibration pack (needs --calibration-pack)",
+    )
+    one.add_argument(
+        "--calibration-pack",
+        type=Path,
+        help="the calibration pack directory the baseline was graded under (its `pack/`)",
+    )
     acc = sub.add_parser("accounting")
     for flag in ("challenge", "version", "set-dir", "input-dtype"):
         acc.add_argument("--" + flag, required=True)
@@ -187,6 +217,10 @@ def main(argv=None):
         set_dir=args.set_dir,
         set_digest=args.set_digest,
         calibration=args.calibration,
+        baseline_binding_raw=(
+            args.baseline_binding.read_bytes() if args.baseline_binding else None
+        ),
+        calibration_pack_root=args.calibration_pack,
         response_reference=(
             json.loads(Path(args.response_reference).read_text(encoding="utf-8"))
             if args.response_reference

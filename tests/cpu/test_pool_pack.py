@@ -479,3 +479,148 @@ def test_the_builder_record_carries_the_accounting(batch, tmp_path):
     assert accounting["designs_total"] - accounting["unique_rows"] == (
         accounting["dup_within_target"] + accounting["dup_across_targets"]
     )
+
+
+def _plain_batch_dir(batch, tmp_path):
+    document, records = batch
+    plain = tmp_path / "plain"
+    plain.mkdir(exist_ok=True)
+    (plain / source.SEALED_BATCH_FILE).write_bytes(
+        source.batch_bytes(document, records)
+    )
+    return plain
+
+
+def _sealed_digest(pack_root):
+    from carbon.challenge_validator.evaluation_pack import prepare_pack
+
+    from carbon.scoring import physical_dual_pack as physical
+
+    return prepare_pack(
+        pack_root,
+        physical.MANIFEST_NAME,
+        public_root=pack_root,
+        private_root=pack_root,
+        challenge_id=MOTOR,
+        challenge_version=POOL_VERSION,
+    ).snapshot.manifest_digest
+
+
+def _graded_binding(calibration_pack, legs):
+    """A synthetic retained binding of a baseline graded under ``calibration_pack`` (test-only values)."""
+    import hashlib
+    import json
+
+    from carbon.challenge_validator.evaluation_pack import prepare_pack
+
+    from carbon.scoring import physical_dual_pack as physical
+
+    sealed = prepare_pack(
+        calibration_pack,
+        physical.MANIFEST_NAME,
+        public_root=calibration_pack,
+        private_root=calibration_pack,
+        challenge_id=MOTOR,
+        challenge_version=POOL_VERSION,
+    ).snapshot
+    score_pack = json.loads(
+        (calibration_pack / "private" / "score_pack.json").read_bytes()
+    )
+    definition = json.loads(
+        (calibration_pack / "public" / "accuracy_definition.json").read_bytes()
+    )
+    entry = "sha256:" + "7" * 64
+    scoring = {
+        "models": [
+            {
+                "status": "SCORED_DEVELOPMENT_CANDIDATE",
+                "artifact_digest": entry,
+                "legs": legs,
+            }
+        ]
+    }
+    bound = {
+        "status": "BOUND_DEVELOPMENT_ONLY",
+        "official_score": False,
+        "evaluation_pack_digest": sealed.manifest_digest,
+        "measurement_contract_digest": score_pack["measurement_contract_digest"],
+        "producer_digest": definition["producer_digest"],
+        "entry_id": entry,
+        "state_digest": "sha256:" + "8" * 64,
+        "scoring": scoring,
+        "score_result_digest": "sha256:"
+        + hashlib.sha256(physical.canonical(scoring)).hexdigest(),
+    }
+    return physical.canonical(bound), entry
+
+
+def test_the_judge_pack_takes_the_baselines_graded_legs_as_its_minimums(
+    batch, tmp_path
+):
+    """Two builds (calibration, then judge from the baseline's graded run): the pool pack's leg minimums are the
+    baseline's own legs, never an invented value, and the baseline run never contends.
+    """
+    import json
+
+    from carbon.challenge_validator import koth_registry
+
+    from carbon.scoring import physical_dual_pack as physical
+
+    plain = _plain_batch_dir(batch, tmp_path)
+    image = "sha256:" + "1" * 64
+    calibration = _builder().build(
+        challenge=MOTOR,
+        version=POOL_VERSION,
+        batch_dir=plain,
+        out_dir=tmp_path / "cal",
+        inference_image_id=image,
+        material=material(),
+        calibration=True,
+    )
+    cal_pack = tmp_path / "cal" / "pack"
+    cal_score = json.loads((cal_pack / "private" / "score_pack.json").read_bytes())
+    assert all(leg["minimum"] is None for leg in cal_score["legs"].values())
+    raw, entry = _graded_binding(cal_pack, {"A": 0.25, "D": 0.75})
+    judge = _builder().build(
+        challenge=MOTOR,
+        version=POOL_VERSION,
+        batch_dir=plain,
+        out_dir=tmp_path / "judge",
+        inference_image_id=image,
+        material=material(),
+        baseline_binding_raw=raw,
+        calibration_pack_root=cal_pack,
+    )
+    pack = json.loads((tmp_path / "judge/pack/private/score_pack.json").read_bytes())
+    definition = json.loads(
+        (tmp_path / "judge/pack/public/accuracy_definition.json").read_bytes()
+    )
+    assert {k: v["minimum"] for k, v in pack["legs"].items()} == {"A": 0.25, "D": 0.75}
+    assert physical.minimum_source_entry_ids(definition) == [entry]
+    assert koth_registry.baseline_total(pack) == pytest.approx(0.5)
+    # the judge pack is its own sealed exam (the record's draft-manifest digest names paths only, so both match)
+    assert _sealed_digest(tmp_path / "judge" / "pack") != _sealed_digest(cal_pack)
+    assert judge["rows"] == calibration["rows"]
+
+
+def test_a_binding_needs_its_calibration_pack_and_a_calibration_pack_takes_none(
+    batch, tmp_path
+):
+    plain = _plain_batch_dir(batch, tmp_path)
+    common = {
+        "challenge": MOTOR,
+        "version": POOL_VERSION,
+        "batch_dir": plain,
+        "inference_image_id": "sha256:" + "1" * 64,
+        "material": material(),
+    }
+    with pytest.raises(SystemExit, match="go together"):
+        _builder().build(out_dir=tmp_path / "a", baseline_binding_raw=b"{}", **common)
+    with pytest.raises(SystemExit, match="takes no baseline binding"):
+        _builder().build(
+            out_dir=tmp_path / "b",
+            calibration=True,
+            baseline_binding_raw=b"{}",
+            calibration_pack_root=tmp_path,
+            **common,
+        )
