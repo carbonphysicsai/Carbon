@@ -4,6 +4,8 @@ grade nothing; practice is not routed through the official door."""
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 import pytest
 
 from carbon.challenge_kit import version_registry
@@ -29,7 +31,7 @@ LAUNCH = [
 
 def _adapter_stub(key):
     class Stub:
-        _kit = {"id": key[0], "version": key[1]}
+        _kit: ClassVar[dict] = {"id": key[0], "version": key[1]}
 
     return Stub()
 

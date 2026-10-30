@@ -17,6 +17,7 @@ Input (JSON), schema "carbon.recal-stats.input.v1":
       "control_seed_totals": {<entry_id>: [10 numbers]}  # the control rebuilt with seed=0..9
   }}}
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,21 +49,32 @@ def _totals(value, where):
         raise StatsError(f"{where}: need exactly {N} totals")
     out = []
     for x in value:
-        if isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x):
+        if (
+            isinstance(x, bool)
+            or not isinstance(x, (int, float))
+            or not math.isfinite(x)
+        ):
             raise StatsError(f"{where}: totals must be finite numbers")
         out.append(float(x))
     return out
 
 
 def canonical(doc):
-    return json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False).encode()
+    return json.dumps(
+        doc, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False
+    ).encode()
 
 
 def _challenge(name, spec):
     pack = _digest(spec.get("pack_digest"), f"{name}.pack_digest")
     klass = _digest(spec.get("class_record_digest"), f"{name}.class_record_digest")
     panel, members = spec.get("panel"), spec.get("members")
-    if not panel or not isinstance(members, dict) or set(panel) != set(members) or len(set(panel)) != len(panel):
+    if (
+        not panel
+        or not isinstance(members, dict)
+        or set(panel) != set(members)
+        or len(set(panel)) != len(panel)
+    ):
         raise StatsError(f"{name}: panel must list each member exactly once")
     stats = {}
     for eid in panel:
@@ -75,7 +87,9 @@ def _challenge(name, spec):
         stats[eid] = {
             "sigma": statistics.stdev(totals),
             "bit_identical": len(set(digests)) == 1,
-            "fingerprint": _digest(m.get("reference_fingerprint"), f"{name}.{eid}.reference_fingerprint"),
+            "fingerprint": _digest(
+                m.get("reference_fingerprint"), f"{name}.{eid}.reference_fingerprint"
+            ),
             "within_noise": m.get("within_noise") is True,
             "seed0_total": totals[0],
         }
@@ -85,16 +99,25 @@ def _challenge(name, spec):
     if control is None:
         pool = [e for e in panel if stats[e]["within_noise"]]
         if not pool:
-            raise StatsError(f"{name}: no bit-identical member and none marked within_noise; no control can be chosen")
+            raise StatsError(
+                f"{name}: no bit-identical member and none marked within_noise; no control can be chosen"
+            )
         control = min(pool, key=lambda e: (stats[e]["sigma"], panel.index(e)))
         basis = spec.get("control_basis_within_noise")
     if not isinstance(basis, str) or not basis:
-        raise StatsError(f"{name}: the control_basis text for the chosen case is missing")
-    seeds = _totals((spec.get("control_seed_totals") or {}).get(control), f"{name}.control_seed_totals[{control}]")
+        raise StatsError(
+            f"{name}: the control_basis text for the chosen case is missing"
+        )
+    seeds = _totals(
+        (spec.get("control_seed_totals") or {}).get(control),
+        f"{name}.control_seed_totals[{control}]",
+    )
     spread = max(seeds) - min(seeds)
     value = max(5 * sigma, spread)
     if value == 0:
-        raise StatsError(f"{name}: sigma and seed spread are both 0; stop and report (no resolution floor is registered)")
+        raise StatsError(
+            f"{name}: sigma and seed spread are both 0; stop and report (no resolution floor is registered)"
+        )
     return {
         "bit_identical": {e: stats[e]["bit_identical"] for e in panel},
         "control": {
@@ -113,16 +136,27 @@ def _challenge(name, spec):
 
 
 def measure(doc):
-    if not isinstance(doc, dict) or doc.get("schema") != SCHEMA_IN or not isinstance(doc.get("challenges"), dict):
+    if (
+        not isinstance(doc, dict)
+        or doc.get("schema") != SCHEMA_IN
+        or not isinstance(doc.get("challenges"), dict)
+    ):
         raise StatsError(f"input must carry schema {SCHEMA_IN} and a challenges object")
-    body = {"challenges": {n: _challenge(n, s) for n, s in sorted(doc["challenges"].items())}, "schema": SCHEMA_OUT}
+    body = {
+        "challenges": {
+            n: _challenge(n, s) for n, s in sorted(doc["challenges"].items())
+        },
+        "schema": SCHEMA_OUT,
+    }
     return {**body, "measurement_digest": hashlib.sha256(canonical(body)).hexdigest()}
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("input")
-    ap.add_argument("--out", help="write the measurement document here (default: stdout)")
+    ap.add_argument(
+        "--out", help="write the measurement document here (default: stdout)"
+    )
     args = ap.parse_args(argv)
     try:
         with open(args.input, encoding="utf-8") as f:
