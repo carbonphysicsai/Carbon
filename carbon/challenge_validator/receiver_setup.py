@@ -244,6 +244,36 @@ def _gpu_file(name: str, value) -> str:
     return str(selected)
 
 
+def _official_gpu_receipts(value) -> str:
+    """The official GPU receipt store directory (`receipt_store.ReceiptStore`) a receiver reads: exact, absolute,
+    no symlink, owner-only once it exists (the receipt worker creates it), inside an existing directory (that
+    directory holds the receiver's `official-grading.lock`)."""
+    selected = Path(value) if isinstance(value, (str, Path)) else None
+    if (
+        selected is None
+        or not selected.is_absolute()
+        or selected.is_symlink()
+        or selected.resolve() != selected
+        or not selected.parent.is_dir()
+    ):
+        raise SetupRefused(
+            "official_gpu_receipts_invalid",
+            "give the exact absolute path of the receipt store directory (no symlink), inside an existing directory.",
+        )
+    if selected.exists():
+        status = selected.stat()
+        if (
+            not selected.is_dir()
+            or status.st_mode & 0o077
+            or (hasattr(os, "getuid") and status.st_uid != os.getuid())
+        ):
+            raise SetupRefused(
+                "official_gpu_receipts_invalid",
+                "the receipt store must be a directory owned by this user with no group or other access.",
+            )
+    return str(selected)
+
+
 def _gpu_lane_keys(
     graph_gpu_image_manifest,
     graph_gpu_ops,
@@ -306,6 +336,7 @@ def prepare(
     graph_gpu_ops: Path | None = None,
     gpu_construction_images: tuple = (),
     construction_runtimes: bool = True,
+    official_gpu_receipts: Path | None = None,
 ) -> dict:
     """Write the runner profile and receiver configuration; return public facts.
 
@@ -316,6 +347,10 @@ def prepare(
     construction pair). An explicit false opts out and retains only the installed worker; the returned
     mode and subsequent status report that choice. Paths are checked here; the receiver re-checks the images, the
     ops record and the owner's hardware acceptance at start.
+
+    ``official_gpu_receipts`` is the on-box official GPU receipt store the receiver reads at start
+    (`direct_receiver.install_official_receipt_store`); without it every catalog entry is refused for official grading
+    (`catalog_gpu_receipt_pending`), so it is required whenever ``gpu_construction_images`` is given.
 
     ``speed_sample_key_file`` is the pool versions' K_speed (the custody job writes it beside the signed copy,
     `copy_issuance`): an exact private file, recorded in the configuration so the receiver times single-design
@@ -373,6 +408,15 @@ def prepare(
         gpu_construction_images,
         construction_runtimes,
     )
+    if gpu_keys.get("gpu_construction_images") and official_gpu_receipts is None:
+        raise SetupRefused(
+            "official_gpu_receipts_needed",
+            "GPU construction images need --official-gpu-receipts: without the receipt store no catalog entry grades.",
+        )
+    if official_gpu_receipts is not None:
+        gpu_keys["official_gpu_receipts"] = _official_gpu_receipts(
+            official_gpu_receipts
+        )
     for name, path in (
         ("installed_state", installed_state),
         ("receiver_state", receiver_state),
@@ -543,6 +587,7 @@ def prepare(
         "evaluation_pack_set": pack_set is not None,
         "graph_gpu_lane": "graph_gpu_image_manifest" in gpu_keys,
         "gpu_construction_images": len(gpu_keys.get("gpu_construction_images", ())),
+        "official_gpu_receipts": "official_gpu_receipts" in gpu_keys,
         "construction_runtime_mode": (
             "full_cpu" if construction_runtimes else "installed_worker_only"
         ),
@@ -1037,6 +1082,11 @@ def main(argv=None) -> int:
         default=True,
         help="serve both CPU construction runtimes (default); --no-construction-runtimes explicitly narrows to the installed worker",
     )
+    prep.add_argument(
+        "--official-gpu-receipts",
+        type=Path,
+        help="the official GPU receipt store directory (the receipt worker's --store-dir); required with --gpu-construction-image",
+    )
     prep.add_argument("--port", type=int, default=DEFAULT_PORT)
     prep.add_argument("--lifetime-seconds", type=int, default=DEFAULT_LIFETIME_SECONDS)
     gpu = sub.add_parser("gpu-check")
@@ -1100,6 +1150,7 @@ def main(argv=None) -> int:
                 graph_gpu_ops=args.graph_gpu_ops,
                 gpu_construction_images=tuple(args.gpu_construction_image),
                 construction_runtimes=args.construction_runtimes,
+                official_gpu_receipts=args.official_gpu_receipts,
             )
     except SetupRefused as refusal:
         print(

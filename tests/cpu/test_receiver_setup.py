@@ -595,14 +595,18 @@ def test_gpu_construction_images_use_the_full_cpu_default_and_refuse_an_opt_out(
             construction_runtimes=False,
         )
     assert not (tmp_path / "receiver-state").exists()
+    store = tmp_path / "gpu-receipts"
     done = _prepare(
         tmp_path,
         installed_state,
         gpu_construction_images=(torch,),
+        official_gpu_receipts=store,
     )
     assert done["gpu_construction_images"] == 1 and done["graph_gpu_lane"] is False
+    assert done["official_gpu_receipts"] is True
     config = _config(tmp_path)
     assert config["gpu_construction_images"] == [str(torch)]
+    assert config["official_gpu_receipts"] == str(store)
     assert config["construction_runtimes"] == direct_receiver.CONSTRUCTION_RUNTIMES
 
 
@@ -857,4 +861,58 @@ def test_prepare_refuses_inconsistent_auto_grade_options(
     }
     with pytest.raises(receiver_setup.SetupRefused, match=code):
         _prepare(tmp_path, installed_state, **extra)
+    assert not (tmp_path / "receiver-state").exists()
+
+
+def test_gpu_construction_images_need_the_official_receipt_store(
+    tmp_path, installed_state, faked
+):
+    (torch,) = _gpu_files(tmp_path, "torch-gpu.json")
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="official_gpu_receipts_needed"
+    ):
+        _prepare(tmp_path, installed_state, gpu_construction_images=(torch,))
+    assert not (tmp_path / "receiver-state").exists()
+    done = _prepare(tmp_path, installed_state)
+    assert done["official_gpu_receipts"] is False
+    assert "official_gpu_receipts" not in _config(tmp_path)
+
+
+def test_the_receipt_store_loads_as_the_receivers_official_route(
+    tmp_path, installed_state, faked, monkeypatch
+):
+    from carbon.backbone_catalog import gpu_receipt, receipt_store
+
+    monkeypatch.setattr(gpu_receipt, "OFFICIAL_STORE", None)
+    store = tmp_path / "gpu-receipts"
+    store.mkdir(mode=0o700)
+    _prepare(tmp_path, installed_state, official_gpu_receipts=store)
+    config = _config(tmp_path)
+    direct_receiver.install_official_receipt_store(config)
+    installed_store = gpu_receipt.OFFICIAL_STORE
+    assert type(installed_store) is receipt_store.ReceiptStore
+    assert installed_store.root == store
+
+
+@pytest.mark.parametrize("kind", ["relative", "no_parent", "symlink", "file", "open"])
+def test_a_receipt_store_path_is_exact_and_owner_only(
+    tmp_path, installed_state, faked, kind
+):
+    store = tmp_path / "gpu-receipts"
+    if kind == "relative":
+        store = Path("gpu-receipts")
+    elif kind == "no_parent":
+        store = tmp_path / "missing" / "gpu-receipts"
+    elif kind == "symlink":
+        (tmp_path / "real").mkdir(mode=0o700)
+        store.symlink_to(tmp_path / "real")
+    elif kind == "file":
+        store.write_text("x")
+    else:
+        store.mkdir(mode=0o755)
+        store.chmod(0o755)
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="official_gpu_receipts_invalid"
+    ):
+        _prepare(tmp_path, installed_state, official_gpu_receipts=store)
     assert not (tmp_path / "receiver-state").exists()
