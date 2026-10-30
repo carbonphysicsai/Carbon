@@ -43,6 +43,7 @@ from carbon.battery.worker import (
     DirectBackend,
     reconstruct_files,
 )
+from carbon.challenge_validator.cpu_pin import PIN as _CPU_PIN
 from carbon.reconstruction import capability_registry as cr
 from carbon.reconstruction import development_composition as dc
 from carbon.reconstruction import development_variants as dv
@@ -250,6 +251,9 @@ def test_the_staged_program_and_the_in_process_rebuild_agree(
             "PYTHONPATH": str(REPOSITORY),
             "JAX_PLATFORMS": "cpu",
             "PATH": "/usr/bin:/bin",
+            # The staged program must run under the CPU-dispatch pin the in-process
+            # rebuild runs under, or the two use different BLAS kernels.
+            **{k: os.environ[k] for k in _CPU_PIN if k in os.environ},
         },
         check=True,
         timeout=900,

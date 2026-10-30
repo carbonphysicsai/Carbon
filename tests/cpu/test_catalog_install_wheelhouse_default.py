@@ -128,7 +128,8 @@ def test_one_entrys_failed_install_never_stops_the_rest(host, tmp_path, monkeypa
     built.mkdir(mode=0o700)
     monkeypatch.setattr(catalog_wheelhouse, "DEFAULT_DIRECTORY", built)
     monkeypatch.setattr(catalog_install, "_missing_wheel", lambda item, house: None)
-    first = pipeline.load()["entries"][0]["catalog_id"]
+    # install() tries the starting entries first (start_first), then manifest order.
+    first = catalog_install.start_first(pipeline.load()["entries"])[0]["catalog_id"]
     calls = []
 
     def install_bundle(directory, **kwargs):
