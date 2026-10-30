@@ -12,6 +12,10 @@ from pathlib import Path
 
 import pytest
 
+# The contract-authority lane installs no numerical stack and the adapters import
+# numpy on load; the canonical shards, which install it, run this file.
+pytest.importorskip("numpy")
+
 from carbon.scoring import battery_dual_pack as battery
 from carbon.scoring import battery_sealed_dual_pack as battery_sealed
 from carbon.scoring import cooling_dual_pack as cooling
