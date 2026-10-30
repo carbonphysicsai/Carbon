@@ -637,12 +637,14 @@ def _dual_feedback(spec, version, rows, speed=None):
     ):
         return practice_dual.from_rows_v2(spec.prefix, version, rows, speed=speed)
 
+    # The v1 F08/F02 dual shows a value-only design score: retired, never shown to a miner.
+    if spec.prefix in ("f08", "f02"):
+        return practice_dual.unavailable_v2(
+            spec.prefix, version, practice_dual.V1_RETIRED
+        )
+
     # A static dispatch: the code-authority inventory forbids a computed import.
-    if spec.prefix == "f08":
-        from carbon.scoring import f08_dual_pack as module
-    elif spec.prefix == "f02":
-        from carbon.scoring import f02_dual_pack as module
-    elif spec.prefix == "battery_catalog":
+    if spec.prefix == "battery_catalog":
         # Battery's own practice dual, on modules a miner surface may import
         # (Phase A), so practice feedback matches the exam (0.5 A + 0.5 D).
         from carbon.scoring import battery_public_adapter as module
