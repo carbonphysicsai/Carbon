@@ -45,8 +45,7 @@ def test_the_copy_hotkey_reaches_the_banks_resolution(monkeypatch):
     seen = {}
 
     def resolve(**kwargs):
-        seen.update(kwargs)
-        return None
+        seen.update(kwargs)  # returns None: a development pack
 
     monkeypatch.setattr(sealed_batch_source, "resolve", resolve)
     from carbon.challenge_kit import physical_pack
