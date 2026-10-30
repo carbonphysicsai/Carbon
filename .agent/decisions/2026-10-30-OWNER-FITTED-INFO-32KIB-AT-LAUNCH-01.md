@@ -17,3 +17,10 @@ The Lead's two numbered options were for the case that some served catalog model
 - Testnet launch versions only. Mainnet is not covered.
 - The Ribbed Bracket and Burst Thermal testnet lookup watch stays as decided.
 - Sets no other threshold, score or economics.
+
+## Update (same session, later)
+
+Owner's words: "Add it now". He was answering the Lead's offer to include the 32 KiB limit without waiting for the measurement ("Reply '32 KB now' to do that, or approve the Launchpad step and we'll measure first").
+
+- Decided: the v6 budget for the four testnet launch versions is 32 KiB (32768 bytes) at launch, unconditionally. It goes in this install via c781a13d3, with its tests re-run.
+- The catalog-size measurement is no longer on the launch critical path. It still runs after the install, to list any served entry over 32 KiB, which stays refused.
