@@ -239,12 +239,23 @@ ACCOUNTING_V5_VERSIONS = frozenset({"level4-allowlist-v8"})
 MEASURED_AS_V5 = {"constant_bytes": "fitted_info_bytes"}
 
 
+#: Accounting v6 (Validator WIRING_CHANNEL_AND_LOOKUP_P0_RULING_20261030, section a): the one
+#: 16 KiB budget bounds the zlib-9 size of the whole canonical recipe (`graph.recipe_info_bytes`),
+#: so operand wiring and topology count too. Not served by any allowlist yet: the set stays empty
+#: until the owner approves the fix and the launch versions are tied to it.
+CONSTANT_ACCOUNTING_V6 = "level4-constant-accounting-v6"
+ACCOUNTING_V6_VERSIONS = frozenset()
+MEASURED_AS_V6 = {"constant_bytes": "recipe_info_bytes"}
+
+
 def accounting_for(allowlist):
     """(accounting name, cap -> measurement map) for ``allowlist`` (an
     `Allowlist` or its version string): v5 for v8, else v3."""
     version = (
         allowlist if type(allowlist) is str else getattr(allowlist, "version", None)
     )
+    if version in ACCOUNTING_V6_VERSIONS:
+        return CONSTANT_ACCOUNTING_V6, MEASURED_AS_V6
     if version in ACCOUNTING_V5_VERSIONS:
         return CONSTANT_ACCOUNTING_V5, MEASURED_AS_V5
     return CONSTANT_ACCOUNTING, MEASURED_AS

@@ -236,6 +236,11 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
     # the constants cap and containment); one a caller sets to HUMAN_INPUT
     # blocks, it never passes.
     accounting, measured_as = allowlist_module.accounting_for(allowlist)
+    if accounting == allowlist_module.CONSTANT_ACCOUNTING_V6:
+        measurements = {
+            **measurements,
+            "recipe_info_bytes": graph.recipe_info_bytes(doc),
+        }
     verdicts = allowlist_module.check_caps(
         measurements,
         {**allowlist_module.caps_for(allowlist), **(caps or {})},
@@ -243,6 +248,8 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
     )
     exceeded = sorted(name for name, v in verdicts.items() if v == "refuse")
     if exceeded:
+        if accounting == allowlist_module.CONSTANT_ACCOUNTING_V6:
+            raise graph.GraphRefused("fitted_info_over_budget", ",".join(exceeded))
         raise graph.GraphRefused("cap_exceeded", ",".join(exceeded))
     check_declared_shapes(doc, allowlist)
     if role is not None and doc["role"] != role:
@@ -343,7 +350,7 @@ def validate_submission(
             raise graph.GraphRefused("init_outputs_mismatch")
     else:
         initializers.build(parsed["init_spec"], parsed["forward"])
-    check_submission_budget(verdicts, allowlist, caps)
+    check_submission_budget(verdicts, allowlist, caps, parsed)
     statuses = {v["status"] for v in verdicts.values()}
     return {
         "status": "admitted" if statuses == {"admitted"} else "blocked_human_input",
@@ -352,15 +359,23 @@ def validate_submission(
     }
 
 
-def check_submission_budget(verdicts, allowlist, caps=None):
+def check_submission_budget(verdicts, allowlist, caps=None, parsed=None):
     """Under accounting v5 the fitted-value cap is the submission's, not each
     document's: the forward, init and loss graphs together may carry at most one cap's
     worth (a table split across the three would otherwise pass three times over). The
     earlier accountings measure and cap each document alone, as they always did."""
     accounting, _ = allowlist_module.accounting_for(allowlist)
+    cap = {**allowlist_module.caps_for(allowlist), **(caps or {})}.get("constant_bytes")
+    if accounting == allowlist_module.CONSTANT_ACCOUNTING_V6:
+        # Accounting v6: one compressed size over the whole submission, so a table split across
+        # documents or hidden in wiring pays once (never the sum of separately compressed parts).
+        if type(cap) is int and parsed is not None:
+            docs = [parsed[k] for k in ("forward", "init", "loss") if k in parsed]
+            if graph.recipe_info_bytes(*docs) > cap:
+                raise graph.GraphRefused("fitted_info_over_budget", "constant_bytes")
+        return
     if accounting != allowlist_module.CONSTANT_ACCOUNTING_V5:
         return
-    cap = {**allowlist_module.caps_for(allowlist), **(caps or {})}.get("constant_bytes")
     if type(cap) is not int:
         return
     total = sum(v["measurements"]["fitted_info_bytes"] for v in verdicts.values())

@@ -30,6 +30,7 @@ import hashlib
 import json
 import math
 import re
+import zlib
 
 SCHEMA = "carbon.development.level4-graph.v0"
 ROLES = ("forward", "init", "loss")
@@ -268,6 +269,16 @@ def decode_array(entry, where=""):
 def dumps(doc):
     """Canonical bytes: sorted keys, no whitespace, UTF-8."""
     return json.dumps(doc, sort_keys=True, separators=(",", ":")).encode()
+
+
+def recipe_info_bytes(*docs):
+    """Accounting v6: the zlib level-9 size of the canonical documents together (ops, operand
+    wiring, shapes, constants, literals and every other field), so a table of true answers
+    cannot hide in the topology. A regular architecture (repeated layers) compresses far below
+    its raw size; high-entropy data does not. Carbon's key-drawn initial values are not in the
+    documents (`init_spec` builds them Carbon-side)."""
+    body = b"\n".join(dumps(d) for d in docs)
+    return len(zlib.compress(body, 9))
 
 
 def digest(doc):
