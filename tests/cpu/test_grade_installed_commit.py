@@ -95,3 +95,15 @@ def test_the_sidecar_is_written_once_right_after_the_private_binding():
     )
     assert 0 < sidecar - binding < 200
     assert retention.INSTALLED_COMMIT_SIDECAR == "grade-installed-commit.json"
+
+
+def test_the_receiver_loads_the_retention_module_at_its_start():
+    """lean_recipe_retention is otherwise imported lazily (first grade); serve() imports it before anything else runs."""
+    source = (ROOT / "carbon/challenge_validator/direct_receiver.py").read_text(
+        encoding="utf-8"
+    )
+    start = source.index("def serve(")
+    body = source[start:]
+    loaded = body.index("from carbon.challenge_validator import lean_recipe_retention")
+    assert body.index("cpu_pin.require()") < loaded
+    assert loaded < body.index("cfg = load_config(config_path)")
