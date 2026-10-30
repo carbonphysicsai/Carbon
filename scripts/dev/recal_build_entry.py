@@ -392,25 +392,27 @@ def assemble(grades_dir, meta):
     grades_dir = Path(grades_dir)
     challenges = {}
     for name, own in sorted(meta["challenges"].items()):
-        members, control_totals = {}, {}
+        members, control_totals, control_legs = {}, {}, {}
         for entry in own["panel"]:
-            totals0, digests0 = [], []
+            totals0, digests0, legs0 = [], [], []
             for repeat in REPEATS:
                 grade, manifest = _read_run(grades_dir, entry, 0, repeat)
                 totals0.append(grade["total"])
+                legs0.append(_legs(grade))
                 digests0.append(_hex(manifest["state_sha256"]))
             facts = own["entries"][entry]
             members[entry] = {
                 "reference_fingerprint": facts["reference_fingerprint"],
                 "seed0_totals": totals0,
+                "seed0_legs": legs0,
                 "state_digests": digests0,
                 "within_noise": facts["within_noise"],
             }
         control = own.get("control")
         if control is not None:
-            control_totals[control] = [
-                _read_run(grades_dir, control, seed, 0)[0]["total"] for seed in SEEDS
-            ]
+            runs = [_read_run(grades_dir, control, seed, 0)[0] for seed in SEEDS]
+            control_totals[control] = [grade["total"] for grade in runs]
+            control_legs[control] = [_legs(grade) for grade in runs]
         challenges[name] = {
             "pack_digest": own["pack_digest"],
             "class_record_digest": own["class_record_digest"],
@@ -419,8 +421,16 @@ def assemble(grades_dir, meta):
             "panel": list(own["panel"]),
             "members": members,
             "control_seed_totals": control_totals,
+            "control_seed_legs": control_legs,
         }
     return {"schema": "carbon.recal-stats.input.v1", "challenges": challenges}
+
+
+def _legs(grade):
+    """The legs a judge pack's minimums are checked against (recal_stats --judge-pack): the grade's own A and D and
+    its decision outcome, as the calibration grade recorded them (None when it did not).
+    """
+    return {k: grade.get(k) for k in ("A", "D", "decision_outcome")}
 
 
 def _read_run(grades_dir, entry, seed, repeat):
