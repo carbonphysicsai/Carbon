@@ -19,7 +19,9 @@ from carbon.level4.tooling import lower_jax
 
 HERE = Path(allowlist_module.__file__).parent
 V8 = allowlist_module.load(HERE / "allowlist_v8.json")
-CAP = allowlist_module.CAPS["constant_bytes"]
+# OWNER-FITTED-INFO-32KIB-AT-LAUNCH-01: the v6 budget is 32 KiB; the 16 KiB of CAPS is the earlier accountings'.
+OLD_CAP = allowlist_module.CAPS["constant_bytes"]
+CAP = allowlist_module.V6_CONSTANT_BYTES
 
 
 @pytest.fixture
@@ -157,3 +159,53 @@ def test_the_budget_is_the_submissions_not_each_documents(v6):
             parsed={"forward": half, "loss": other},
         )
     assert refused.value.code == "fitted_info_over_budget"
+
+
+def _sized(low, high):
+    """A random-wired document whose recipe information is in (low, high] bytes."""
+    for n in range(4_000, 80_000, 1_000):
+        doc = _wired_table(_random(n, levels=256, seed=n), levels=256)
+        size = graph.recipe_info_bytes(doc)
+        if low < size <= high:
+            return doc
+        if size > high:
+            break
+    raise AssertionError("no document in the band")
+
+
+def test_the_v6_budget_is_32_kib_for_v8_and_unchanged_elsewhere(v6):
+    assert CAP == 32 * 1024 and OLD_CAP == 16 * 1024
+    assert allowlist_module.caps_for(V8)["constant_bytes"] == CAP
+    for old in ("level4-allowlist-v6", "level4-allowlist-v7"):
+        assert allowlist_module.caps_for(old)["constant_bytes"] == OLD_CAP
+
+
+def test_an_entry_between_16_and_32_kib_is_admitted_and_over_32_kib_refused(v6):
+    between = _sized(OLD_CAP, CAP)
+    assert OLD_CAP < graph.recipe_info_bytes(between) <= CAP
+    validate.validate(between, V8, role="forward")
+    over = _wired_table(_random(CAP * 2, levels=256, seed=9), levels=256)
+    assert graph.recipe_info_bytes(over) > CAP
+    with pytest.raises(graph.GraphRefused) as refused:
+        validate.validate(over, V8, role="forward")
+    assert refused.value.code == "fitted_info_over_budget"
+
+
+def test_at_or_below_16_kib_is_unchanged(v6):
+    under = _wired_table(_random(OLD_CAP // 4, levels=256, seed=3), levels=256)
+    assert graph.recipe_info_bytes(under) <= OLD_CAP
+    validate.validate(under, V8, role="forward")
+
+
+def test_a_20_kib_graph_freezes_and_loads_under_v8(v6):
+    from carbon.development_session import bundle_graph_state
+    from tests.cpu.test_bundle_graph_state import _recipe
+
+    doc = _sized(18 * 1024, 22 * 1024)
+    recipe = _recipe()
+    state = bundle_graph_state.freeze(recipe, doc, [], V8)
+    loaded, parameters = bundle_graph_state.load(state, recipe, V8)
+    assert loaded == doc and parameters == []
+    over = _wired_table(_random(CAP * 2, levels=256, seed=9), levels=256)
+    with pytest.raises(Exception, match="bundle_graph_caps_refused"):
+        bundle_graph_state.freeze(recipe, over, [], V8)
