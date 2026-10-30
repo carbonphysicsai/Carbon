@@ -1146,7 +1146,7 @@ catalog_missing="$("${setup_cli[@]}" catalog-needed --state-dir "${STATE_DIR}" 2
 if [[ "${catalog_missing}" =~ ^[0-9]+$ ]]; then
   echo
   echo "The backbone catalog needs ${catalog_missing} entries built over this install's construction parent."
-  echo "Starting it in the background now (about 40 minutes for the whole catalog on Carbon's test machine); the Control Center's setup shows its progress, and each Challenge can practise a catalog backbone as soon as its entry is ready. Everything else is ready now."
+  echo "Starting it in the background now (about 20 to 40 minutes on 8 or more CPUs, about 2 hours on 4 CPUs; 8 or more are recommended, 4 stays the minimum); each Challenge's starting backbone installs first, so a first practice can run within a few minutes; the Control Center's setup shows the progress. Everything else is ready now."
   "${python}" -B -m scripts.dev.miner_launchpad.catalog_build start --state-dir "${STATE_DIR}" >/dev/null \
     || echo "The catalog install could not start; the Control Center's setup offers it again, or run: ${python} -B -m scripts.dev.catalog_install --state-dir ${STATE_DIR}"
 fi

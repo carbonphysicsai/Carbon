@@ -53,11 +53,11 @@ SKIP_NEXT = (
     "explained in its log."
 )
 LOCK = "catalog-build.lock"
-#: What a newcomer is told up front: the one measurement there is, the full
-#: catalog on Carbon's test machine (M1 E2E round 6, 2026-10-22).
+#: What a newcomer is told up front: measured full-catalog installs, 20 to 40 minutes on 8 or more CPUs and about 115
+#: minutes on 4 (Runner and GCP runs, 2026-10-29).
 DURATION = (
-    "about 40 minutes for the whole catalog on Carbon's test machine; each "
-    "Challenge can practise a catalog backbone as soon as its entry is ready"
+    "about 20 to 40 minutes on 8 or more CPUs, about 2 hours on 4 CPUs; 8 or more are recommended, 4 stays the minimum; each "
+    "Challenge's starting backbone installs first, so a first practice can run within a few minutes"
 )
 REPOSITORY = Path(__file__).resolve().parents[3]
 

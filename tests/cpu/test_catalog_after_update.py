@@ -200,7 +200,7 @@ def test_status_lists_a_missing_catalog_and_never_reads_all_done(
         assert row["missing"] == ["catalog_not_installed_for_this_install"]
         assert row["not_installed"] == ["a", "b", "c"] and row["entries"] == 3
         assert row["install"]["schema"] == catalog_build.SCHEMA
-        assert "40 minutes" in row["duration"]
+        assert "about 2 hours on 4 CPUs" in row["duration"]
         assert "catalog" not in view["done"]
         assert len(view["done"]) < len(view["steps"])
         nxt = view["next"]
