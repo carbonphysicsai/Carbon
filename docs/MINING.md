@@ -78,6 +78,36 @@ The installer checks your machine, sets up Carbon's environment, builds the imag
 
 **btcli version.** If you use `btcli` for registration, pin **bittensor-cli 9.23.2**: it is the version registration on subnet 567 was run with. In a fresh install, `btcli subnets show` and `btcli subnets metagraph` fail on the test network **and on mainnet**, on every release we tried (9.8.7 to 9.23.2), so this is btcli's own problem and not the test network's: 9.21.0 and newer stop with "storage function SubtensorModule.RootClaimType not found", and 9.20.1 and older stop with "int() argument ... not 'list'" and then wrongly say the subnet does not exist. Neither command is part of the register step.
 
+### No wallet yet?
+
+Skip this if you already have a Bittensor wallet with a hotkey. Practising only? Skip it too: you need a wallet only to freeze and submit.
+
+Carbon has a small helper that makes a wallet on your own machine. It is its own program, separate from the Control Center, and Carbon never sees your keys, your recovery phrase or your passwords.
+
+1. **Start the helper.** In a terminal on the machine you mine from:
+
+   ```bash
+   ~/carbon/.venv/bin/carbon-miner-identity
+   ```
+
+   It prints a link that works on this computer only, such as `http://127.0.0.1:<port>/#t=...`. Open it in your browser on the same machine. (On a rented server, forward the port the same way as for the Control Center, below, then open the link on your own computer.) `--hotkey <name>` names the hotkey (it is `default` if you leave it out) and `--wallet-path <folder>` picks the wallets folder (the Bittensor default if you leave it out). Nothing is sent anywhere, and the helper closes itself after 30 minutes without use.
+2. **On the helper's page, five steps.**
+   1. Give the wallet a name. A name that already exists here is refused: the helper never overwrites a wallet.
+   2. **Write down the 12-word recovery phrase on paper**, in order. It is shown once, with no copy button. It is the only way back to your funds if you lose the password or the computer. Do not photograph it or keep it in a file.
+   3. Type back the three words the page asks for, to prove you wrote it down.
+   4. Choose **two different passwords**, each at least 10 characters: a **money password** for your coldkey, which guards your funds, and a **mining password** for your hotkey, which unlocks the key that signs your submissions and cannot move your funds.
+   5. Done. The page shows your **hotkey address** (public, safe to share) and your **coldkey address** (public), and the folder to back up.
+3. **Where the passwords go.** Only into the helper's own page, in your own browser. They are never typed into the Control Center, never put in a file, an environment variable or a link, and never logged. Your hotkey has no recovery phrase of its own, so **back up the whole wallet folder** it names. The folder stays locked by your mining password.
+4. **Close the helper's window.** Then copy your **hotkey address** into the Control Center's Setup. Carbon carries nothing across for you.
+5. **Fund the coldkey, then register your hotkey on subnet 567 in your own wallet tool.** Joining is paid in TAO from the coldkey; on the test network it is free test TAO (see **Join Carbon mining** in Setup, below). With `btcli` at the pinned version above:
+
+   ```bash
+   btcli subnets register --netuid 567 --wallet-name <your wallet> --hotkey <your hotkey> --network test
+   ```
+
+   `btcli` asks for your money password in its own prompt. Carbon neither charges nor receives this payment.
+6. **Start your signer** (the next section) with that wallet and hotkey. It asks for your mining password in its own terminal prompt.
+
 ## 2. Start your signer
 
 Practising only? Skip this step: you need the signer only to freeze and submit.
