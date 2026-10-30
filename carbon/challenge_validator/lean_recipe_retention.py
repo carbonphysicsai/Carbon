@@ -2080,7 +2080,7 @@ def retain_served_result(
         from carbon.backbone_catalog.served import check_reexpansion
 
         try:
-            check_reexpansion(catalog, recipe.digest)
+            check_reexpansion(catalog, recipe.digest, recipe.to_dict())
         except ValueError:
             raise RetentionUnavailable("catalog_reexpansion_differs") from None
     artifacts = {
@@ -2353,7 +2353,9 @@ def _regrade_origin(adapter, base, entries, entry_id):
         from carbon.backbone_catalog.served import check_reexpansion
 
         try:
-            check_reexpansion(files["catalog-submission.json"], recipe.digest)
+            check_reexpansion(
+                files["catalog-submission.json"], recipe.digest, recipe.to_dict()
+            )
         except ValueError:
             raise RetentionUnavailable("regrade_catalog_reexpansion_differs") from None
     return entry, origin, owner, manifest, files, recipe
