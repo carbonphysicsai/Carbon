@@ -289,6 +289,18 @@ def run(*command):
     return done.stdout
 
 
+def is_git_work_tree():
+    """Whether git_root is a usable git work tree (a release tarball or a copied directory is not)."""
+    try:
+        done = subprocess.run(
+            ["git", "-C", git_root, "rev-parse", "--is-inside-work-tree"],
+            capture_output=True, text=True, env={**os.environ, "LC_ALL": "C"}, check=False,
+        )
+    except OSError:
+        return False
+    return done.returncode == 0 and done.stdout.strip() == "true"
+
+
 def committed_and_unmodified(file_path):
     """Whether the file is tracked at HEAD and has no change against HEAD (staged or not). Without a usable git
     checkout nothing counts: an unverifiable class file is not a class."""
@@ -349,6 +361,15 @@ except (OSError, ValueError, KeyError, TypeError):
     sys.exit(0)
 
 classes = [(primary.get("id", "the registered class"), primary)]
+# The registered classes beside the primary one are verified against git. If this tree is not a git work tree they cannot
+# be verified, and the install fails closed (a typed refusal, not a silent loss of the class).
+if extra_dir and git_root and glob.glob(os.path.join(extra_dir, "*.json")) and not is_git_work_tree():
+    refuse(
+        "V_HOST_CLASS_UNVERIFIABLE",
+        "the registered host class files (" + extra_dir + ") cannot be checked: this is not a git work tree.",
+        "install from a git clone of Carbon (only class files tracked at HEAD and unmodified count).",
+    )
+    sys.exit(0)
 if extra_dir:
     for extra_path in sorted(glob.glob(os.path.join(extra_dir, "*.json"))):
         if not committed_and_unmodified(extra_path):
