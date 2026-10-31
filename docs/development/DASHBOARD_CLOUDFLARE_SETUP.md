@@ -238,6 +238,24 @@ as the static build does (`feed.mjs`, held equal to `launch.py` by
 launch board `"state": "ACCEPTED"` with labels `DEVELOPMENT` and `TESTNET`. A `REFUSED`
 code names what the Worker's checks found; send it to the Carbon Validator session.
 
+**Serving a board from the receiver's door (no bucket).** A direct-intake receiver can serve its own
+Challenge's board at `GET /carbon/v1/feed/<challenge id>`, the same path the Battery door used. The
+receiver never holds the feed key: the operator's run above writes `<out>/<slug>.json`, and the receiver
+reads that file on every request. Add two optional lines to the receiver's private configuration:
+
+```json
+{"launch_board": "<absolute path of <out>/<slug>.json>",
+ "launch_board_key": "<the feed PUBLIC key, 64 hex>"}
+```
+
+`launch_board_key` is optional and needs `launch_board`; with it, a board signed by any other key is not
+served. The door serves the file only when its shape is the closed launch board's, it is this Challenge's,
+and its signature verifies; a board signed by the dashboard's fixture key is never served. Answers: `200`
+the board, `404 feed_not_served` (no `launch_board` configured), `503 feed_unavailable` (missing, garbled,
+unsigned, tampered, foreign or fixture-signed file; the operator reruns the build). Restart the receiver
+after adding the lines. Point the Worker's `FEED_URLS` at `https://<door>/carbon/v1/feed/<challenge id>`
+instead of the bucket URL; `FEED_KEYS` is unchanged.
+
 ## 8. Launch day: repoint the live dashboard to the four launch boards
 
 The launch versions are Motor 1.5 (`electric-motor-magnetics`), Cooling 1.6 (`chip-cold-plate`),

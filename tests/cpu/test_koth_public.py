@@ -319,3 +319,70 @@ def test_the_intake_side_reads_no_score_pack():
     source = __import__("inspect").getsource(direct_receiver._king_view)
     assert "baseline_total(" not in source and "read_json_role" not in source
     assert "latest_baseline" in source
+
+
+def test_the_pool_view_takes_the_hotkey_from_the_stored_owner_dict():
+    # The real shape: `PoolStore._private_model` stores owner as {"hotkey", "request_digest"}.
+    held = {"model_id": "sub-1", "reason": "r"}
+    owner = {"hotkey": HOTKEY, "request_digest": "sha256:" + "c" * 64}
+    status, body = kp.serve(
+        _pool_view(_Store(held, {"owner": owner, "total": 0.8})), KEY
+    )
+    assert status == 200
+    assert body["king"]["hotkey"] == HOTKEY and type(body["king"]["hotkey"]) is str
+
+
+@pytest.mark.parametrize(
+    "owner",
+    [
+        {"hotkey": 5, "request_digest": "x"},
+        {"hotkey": "not-ss58", "request_digest": "x"},
+        {"hotkey": HOTKEY},
+        {"hotkey": HOTKEY, "request_digest": "x", "extra": 1},
+        {},
+        None,
+        7,
+    ],
+)
+def test_a_malformed_owner_is_a_503_never_a_partial_king(owner):
+    held = {"model_id": "sub-1", "reason": "r"}
+    status, body = kp.serve(
+        _pool_view(_Store(held, {"owner": owner, "total": 0.8})), KEY
+    )
+    assert status == 503 and body == {"refused": "koth_king"}
+
+
+def test_the_real_store_round_trips_a_king_page_with_the_dict_owner(tmp_path):
+    # An evaluation body filed as the store files it (owner = {"hotkey", "request_digest"}),
+    # read by the real `incumbent_standing` and served by the real view.
+    from carbon.battery.pool_store import PoolStore
+    from carbon.challenge_validator.interface import digest
+
+    store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: 0.0)
+    store.admit(
+        "a",
+        request_digest=digest(["request", "a"]),
+        hotkey=HOTKEY,
+        challenge="electric-motor-magnetics",
+        strategy={},
+        binding={"challenge": {"id": "electric-motor-magnetics"}},
+    )
+    body = {
+        "submission_id": "a",
+        "owner": {"hotkey": HOTKEY, "request_digest": digest(["request", "a"])},
+        "evidence": {
+            "model_p": {
+                "score_status": "SCORED_DEVELOPMENT_CANDIDATE",
+                "total_score": 0.8,
+            }
+        },
+    }
+    with store.transaction() as db:
+        db.execute(
+            "INSERT INTO operations VALUES(?,?,?,?)",
+            ("1", "private_evaluation.v1", "BOUND_DEVELOPMENT_ONLY", json.dumps(body)),
+        )
+    store.set_incumbent("a", "FIRST_INCUMBENT")
+    status, doc = kp.serve(_pool_view(store), KEY)
+    assert status == 200
+    assert doc["king"]["hotkey"] == HOTKEY and doc["king"]["since_epoch"] == 7

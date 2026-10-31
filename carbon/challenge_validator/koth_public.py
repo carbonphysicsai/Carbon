@@ -170,10 +170,23 @@ class PoolKingView:
         if standing is None or epoch is None:
             return None
         return {
-            "hotkey": standing["owner"],
+            "hotkey": _owner_hotkey(standing["owner"]),
             "total": standing["total"],
             "since_epoch": epoch,
         }
+
+
+def _owner_hotkey(owner):
+    """The king's hotkey from a stored evaluation's ``owner``. The pool store keeps it as
+    ``{"hotkey", "request_digest"}`` (`PoolStore._private_model`); a bare hotkey string is
+    taken as it is. Anything else is a typed refusal, never a partial king."""
+    if type(owner) is dict:
+        if set(owner) != {"hotkey", "request_digest"}:
+            raise KothPublicRefused("koth_king")
+        owner = owner["hotkey"]
+    if type(owner) is not str:
+        raise KothPublicRefused("koth_king")
+    return owner
 
 
 def serve(view, challenge):

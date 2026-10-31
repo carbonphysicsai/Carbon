@@ -56,6 +56,8 @@ from .interface import Submission, Unavailable
 from .lean_recipe import LeanRecipeAdapter
 
 INFO_PATH = "/carbon/v1/construction/intake"
+#: The signed launch board: `GET FEED_PATH + <challenge id>` (the battery door's feed path).
+FEED_PATH = "/carbon/v1/feed/"
 #: How long the published readiness is reused: reading it verifies the whole official receipt log.
 OFFICIAL_GPU_CACHE_SECONDS = 10.0
 SUBMIT_PATH = PATH
@@ -119,6 +121,9 @@ class DirectRecipeIntake(BatteryIntake):
         self.adapter = adapter
         #: The receiver's public king view (`koth_public`); None until it publishes one.
         self.koth_view = None
+        #: The signed launch board's reader (`launch_board_file.read_board` bound to the
+        #: configured file), or None when this receiver serves no board.
+        self.board_feed = None
         #: One writer at a time for the calls that change state (an admission or a source
         #: stage): the cap, idempotency and the once-per-epoch rule hold exactly under any
         #: number of concurrent clients (GPU_REBUILD_RULINGS section 12). Reads (the public
@@ -205,9 +210,22 @@ class DirectRecipeIntake(BatteryIntake):
             return self.public()
         if method == "GET" and path.startswith(koth_public.PATH):
             return self._koth(path)
+        if method == "GET" and path == FEED_PATH + self.challenge.challenge_id:
+            return self._board()
         if method != "POST" or path != SUBMIT_PATH:
             return _refused(404, "not_found")
         return asyncio.run(self._post(headers, body))
+
+    def _board(self):
+        """The operator-signed launch board of this receiver's one Challenge
+        (`launch_board_file`): served only when its signature, shape and Challenge
+        verify; this door holds no key."""
+        if self.board_feed is None:
+            return _refused(404, "feed_not_served")
+        found = self.board_feed()
+        if found is None:
+            return _refused(503, "feed_unavailable")
+        return Answer(200, found)
 
     def _koth(self, path):
         """The public king document of this receiver's one Challenge; any other

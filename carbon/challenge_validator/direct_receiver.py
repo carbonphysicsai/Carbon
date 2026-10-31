@@ -46,6 +46,10 @@ _OPTIONAL_FIELDS = {
     "challenge",
     "construction_runtimes",
     "auto_grade",
+    # The operator-signed launch board file the door serves at GET /carbon/v1/feed/<challenge> and, optionally, the
+    # public feed key (64 hex) it must be signed by. The receiver verifies; it never holds the private key.
+    "launch_board",
+    "launch_board_key",
     # The graph route's GPU lane (OWNER-GPU-REBUILD-RENTED-4090-01): a JAX GPU worker and the record of ops its hardware
     # class repeats bit for bit. Both or neither.
     "graph_gpu_image_manifest",
@@ -259,6 +263,17 @@ def load_config(path: Path) -> dict:
         )
     ):
         raise ValueError("invalid auto_grade selection")
+    if "launch_board" in value and (
+        type(value["launch_board"]) is not str
+        or not Path(value["launch_board"]).is_absolute()
+    ):
+        raise ValueError("invalid launch_board file")
+    if "launch_board_key" in value and (
+        "launch_board" not in value
+        or type(value["launch_board_key"]) is not str
+        or not re.fullmatch(r"[0-9a-f]{64}", value["launch_board_key"])
+    ):
+        raise ValueError("invalid launch_board_key")
     if "auto_grade" in value and "evaluation_pack_set" in value:
         # Set auto-grade (one grade over every batch) is not built: a multi-batch
         # receiver must be graded by --grade-set-entry until it is.
@@ -1641,6 +1656,17 @@ def serve(
                 )
             if "auto_grade" in cfg and cfg["auto_grade"].get("pool_store"):
                 intake.koth_view = _king_view(intake, cfg["auto_grade"]["pool_store"])
+            if "launch_board" in cfg:
+                import functools
+
+                from carbon.challenge_validator.launch_board_file import read_board
+
+                intake.board_feed = functools.partial(
+                    read_board,
+                    cfg["launch_board"],
+                    intake.challenge.challenge_id,
+                    cfg.get("launch_board_key"),
+                )
             serve_loopback(
                 intake,
                 {"host": cfg["host"], "port": cfg["port"]},
