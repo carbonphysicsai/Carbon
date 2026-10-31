@@ -53,6 +53,7 @@ import json
 import math
 import re
 import sys
+from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from pathlib import Path
 
 from carbon.scoring import grade_feedback as gf
@@ -96,6 +97,30 @@ _NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 _LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._:+-]{0,63}")
 _GATE = re.compile(r"[a-z][a-z0-9_.-]{0,63}")
 _UTC = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ")
+
+
+#: The most decimals a public number carries. The dashboard's reader refuses anything that does not fit
+#: (`carbon.dashboard.launch._digits`), so the producer rounds to this, and rounds so the page is never kinder than the
+#: truth: a total or the baseline DOWN (the Ladder's own floor rule continues to 9 places), the margin and the score to
+#: beat UP (the bar is never understated).
+DECIMALS = 9
+_GRID = Decimal(1).scaleb(-DECIMALS)
+
+
+def floor9(value):
+    """``value`` rounded DOWN to `DECIMALS` places, exactly (decimal arithmetic on the float's shortest form)."""
+    return float(Decimal(repr(float(value))).quantize(_GRID, rounding=ROUND_FLOOR))
+
+
+def ceil9(value):
+    """``value`` rounded UP to `DECIMALS` places, exactly."""
+    return float(Decimal(repr(float(value))).quantize(_GRID, rounding=ROUND_CEILING))
+
+
+def on_nine(value):
+    """Whether ``value`` already fits in `DECIMALS` places."""
+    shown = Decimal(repr(float(value)))
+    return shown == shown.quantize(_GRID)
 
 
 class BoardRefused(ValueError):
@@ -143,7 +168,7 @@ def _king(raw):
             raise BoardRefused("board_king")
         king = {
             "hotkey": king["hotkey"],
-            "total": _unit(king["total"], "board_king"),
+            "total": floor9(_unit(king["total"], "board_king")),
             "since_epoch": king["since_epoch"],
         }
     label = raw["exam_version_label"]
@@ -157,8 +182,8 @@ def _king(raw):
     ):
         raise BoardRefused("board_king")
 
-    def optional(name):
-        return None if raw[name] is None else _unit(raw[name], "board_king")
+    def optional(name, rounding):
+        return None if raw[name] is None else rounding(_unit(raw[name], "board_king"))
 
     return {
         "schema": raw["schema"],
@@ -166,9 +191,10 @@ def _king(raw):
         "challenge_version": raw["challenge_version"],
         "exam_version_label": label,
         "king": king,
-        "margin": optional("margin"),
-        "to_beat": optional("to_beat"),
-        "baseline_total": optional("baseline_total"),
+        # the bar is never understated: margin and score to beat UP, the baseline DOWN
+        "margin": optional("margin", ceil9),
+        "to_beat": optional("to_beat", ceil9),
+        "baseline_total": optional("baseline_total", floor9),
     }
 
 
@@ -183,7 +209,7 @@ def ladder_rows(rows):
             raise BoardRefused("board_hotkey")
         if latest is None or latest.get("status") not in gf.STATUSES:
             raise BoardRefused("board_latest")
-        total = None if best is None else _unit(best["total"], "board_total")
+        total = None if best is None else floor9(_unit(best["total"], "board_total"))
         gates = (
             [g for g in latest["gate_names"] if type(g) is str and _GATE.fullmatch(g)]
             if latest["status"] == "GATE_FAILED"
@@ -308,6 +334,11 @@ def check(document, *, unsigned=False):
             **king,
         }
     )
+    shown = [king[name] for name in ("margin", "to_beat", "baseline_total")]
+    if king["king"] is not None:
+        shown.append(king["king"]["total"])
+    if any(value is not None and not on_nine(value) for value in shown):
+        raise BoardRefused("board_unrounded")
     ladder = document["ladder"]
     if type(ladder) is not list or len(ladder) > MAX_LADDER:
         raise BoardRefused("board_ladder")
@@ -327,6 +358,8 @@ def check(document, *, unsigned=False):
         seen.add(row["hotkey"])
         if row["total"] is not None:
             _unit(row["total"], "board_ladder")
+            if not on_nine(row["total"]):
+                raise BoardRefused("board_unrounded")
         if row["gate_names"] is not None and (
             row["status"] != "GATE_FAILED"
             or type(row["gate_names"]) is not list

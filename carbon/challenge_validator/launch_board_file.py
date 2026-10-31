@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from decimal import Decimal
 from pathlib import Path
 
 #: A launch board is at most 512 ladder rows; this is far above a real one.
@@ -83,17 +84,31 @@ def read_board(path, challenge_id, pinned_key=None):
 
 
 def _on_the_ladder_step(board):
-    """Whether every total the board shows (the king's and each ladder row's) is exactly
-    on the Ladder step of the board's own margin, so no total is finer than a miner sees
-    (`grade_feedback.floor_to_step`). A failing check is a refusal to serve, never a
-    rounding."""
+    """Whether every total the board shows (the king's and each ladder row's) is a Ladder-step multiple rounded DOWN to
+    the board's 9 decimals and nothing finer, so no total is finer than a miner sees (`grade_feedback.floor_to_step`).
+
+    The grid is the receiver's OWN registered rebuild noise for this Challenge (`koth_registry`), not the margin the
+    board shows: the board's margin is rounded UP to 9 places, which would move a grid of 17-digit multiples. A total
+    passes when the largest step multiple at or below it (counting the sub-9-decimal remainder the floor dropped),
+    floored to 9 decimals, is the total itself. A failing check is a refusal to serve, never a rounding."""
+    from carbon.challenge_validator import koth_registry
     from carbon.scoring import grade_feedback as gf
 
-    noise = board["king"]["margin"]
+    from .launch_board import floor9
+
+    registered = koth_registry.rebuild_noise(board["challenge"]["id"])
+    noise = None if registered is None else registered["value"]
     totals = [row["total"] for row in board["ladder"] if row["total"] is not None]
     if board["king"]["king"] is not None:
         totals.append(board["king"]["king"]["total"])
-    return all(gf.floor_to_step(total, noise) == total for total in totals)
+    nudge = Decimal(1).scaleb(-9)
+
+    def on_grid(total):
+        # the floor to 9 places dropped less than one unit in the 9th place: add it back before asking the grid
+        lifted = float(Decimal(repr(float(total))) + nudge)
+        return floor9(gf.floor_to_step(lifted, noise)) == total
+
+    return all(on_grid(total) for total in totals)
 
 
 __all__ = ["MAX_BYTES", "fixture_public_key", "read_board"]
