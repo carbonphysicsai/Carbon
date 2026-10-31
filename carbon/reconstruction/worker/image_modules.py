@@ -50,9 +50,8 @@ import re
 import subprocess
 import sys
 import tarfile
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 ENTRYPOINT = "carbon.reconstruction.worker.entrypoint"
 WORKER_DIR = "carbon/reconstruction/worker"
@@ -260,9 +259,11 @@ def package_data_files(repo, modules) -> set:
     project = tomllib.loads((repo / "pyproject.toml").read_text(encoding="utf-8"))
     data = project["tool"]["setuptools"].get("package-data", {})
     reading = {
-        module.rpartition(".")[0]
-        if not index[module].endswith("__init__.py")
-        else module
+        (
+            module.rpartition(".")[0]
+            if not index[module].endswith("__init__.py")
+            else module
+        )
         for module in modules
         if _reads_beside_itself(repo, index, module)
     }
