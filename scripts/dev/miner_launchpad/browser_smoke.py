@@ -2195,7 +2195,10 @@ def fresh_miner():
                         " document.getElementById('overview-primary').getAttribute('href')])"
                     )
                 )
-                assert primary == ["Next: Get your keys and join", "#setup/register"], primary
+                assert primary == [
+                    "Next: Get your keys and join",
+                    "#setup/register",
+                ], primary
                 # The same step leads in setup, with its command to copy; the
                 # steps after registration are locked until it is confirmed.
                 goto(session, "#setup/signer")
