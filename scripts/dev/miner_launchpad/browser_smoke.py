@@ -37,7 +37,29 @@ def wait(session, expression):
         if session.evaluate(expression):
             return
         time.sleep(0.05)
-    raise AssertionError(f"Browser condition failed: {expression}")
+    raise AssertionError(
+        f"Browser condition failed: {expression} | page: {_page_state(session)}"
+    )
+
+
+#: What a person would read on the page when a condition fails: the wizard's own reason it
+#: will not go on, the message line and the preflight, so a CI failure names the cause.
+_PAGE_STATE = (
+    "JSON.stringify(Object.fromEntries(["
+    "['hash', location.hash],"
+    "['next_reason', document.getElementById('wizard-next-reason')?.textContent],"
+    "['message', document.getElementById('message')?.textContent],"
+    "['preflight', document.getElementById('research-preflight')?.textContent],"
+    "['review', document.getElementById('wizard-review')?.textContent]"
+    "].map(([k, v]) => [k, (v || '').slice(0, 400)])))"
+)
+
+
+def _page_state(session):
+    try:
+        return session.evaluate(_PAGE_STATE)
+    except Exception as exc:  # noqa: BLE001 - diagnostics must never mask the failure
+        return f"unavailable ({type(exc).__name__})"
 
 
 class StubReader:
