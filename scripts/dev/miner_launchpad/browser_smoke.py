@@ -1020,9 +1020,12 @@ def run():
                         session,
                         "document.getElementById('connection-state').textContent === 'Connection interrupted'",
                     )
-                    # No control can be sent while the connection is down.
+                    # No control can be sent while the connection is down. The research surface
+                    # draws only the controls that apply to the state (research_view.js: a
+                    # control that cannot be pressed is not drawn), so a running campaign has
+                    # Pause, Stop and Export.
                     assert session.evaluate(
-                        "[...document.querySelectorAll('#campaign-detail [data-action]')].length >= 4"
+                        "[...document.querySelectorAll('#campaign-detail [data-action]')].length >= 2"
                         " && [...document.querySelectorAll('#campaign-detail [data-action]')].every(b => b.disabled)"
                     )
                     research.recent = original_research_recent
