@@ -885,7 +885,7 @@ def run():
                         session, "!document.getElementById('research-launch').disabled"
                     )
                     assert session.evaluate(
-                        "document.getElementById('research-preflight').textContent.includes('your subnet registration, read at launch') && document.getElementById('research-launch').textContent === 'Launch research'"
+                        "document.getElementById('research-preflight').textContent.includes('your registration, read at launch') && document.getElementById('research-launch').textContent === 'Launch research'"
                     )
                     panel = session.evaluate(
                         "document.getElementById('research-heading').closest('section').textContent"
