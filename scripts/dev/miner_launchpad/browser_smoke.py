@@ -1576,7 +1576,7 @@ def journey():
                     click(session, f"journey-submit-{run_id}")
                     wait(
                         session,
-                        "document.getElementById('campaign-detail').textContent.includes('Submitted epochs: 1')",
+                        "document.getElementById('campaign-detail').textContent.includes('Submitted rounds: 1')",
                     )
                     assert (
                         campaign / "epoch-1" / "permitted-final-feedback.json"
