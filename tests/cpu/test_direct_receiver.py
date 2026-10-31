@@ -229,8 +229,9 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     )
     monkeypatch.setattr(
         research_campaign,
-        "accepted_implementation",
-        lambda revision: calls.append(("accepted", revision)) or accepted,
+        "accepted_values_descendant",
+        lambda revision: calls.append(("accepted", revision))
+        or {**accepted, "running_head": "f" * 40},
     )
     monkeypatch.setattr(
         docker_runtime,
@@ -318,8 +319,13 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     with pytest.raises(ValueError, match="installed GPU parent required"):
         receiver.installed_source(profile)
     cfg["gpu_image"] = str(tmp_path / "gpu.json")
-    implementation, parent, _, _ = receiver.installed_source(profile)
+    running = {}
+    implementation, parent, _, _ = receiver.installed_source(profile, running=running)
+    # The accepted revision's identity only (every binding made from it is unchanged by a values push); the commit
+    # the receiver runs on is reported on the side, for the grade records.
     assert (implementation, parent) == (accepted, gpu)
+    assert "running_head" not in implementation
+    assert running == {"head": "f" * 40}
     assert calls[-1] == ("accepted", accepted["revision"])
 
     # The signed v1.3 receiver accepts an older Torch image only when its
@@ -548,6 +554,7 @@ def test_serve_forwards_only_private_constructor_manifest(tmp_path, monkeypatch)
 
     def installed(profile, **kwargs):
         assert profile == Path(cfg["runner_profile"])
+        assert kwargs.pop("running") == {}  # the commit report the grade records read
         assert kwargs == {"construction_image_manifest": manifest}
         raise Seen
 
@@ -1371,7 +1378,7 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
     monkeypatch.setattr(
         receiver,
         "installed_source",
-        lambda _: (
+        lambda _, **__: (
             {"revision": "a" * 40, "source_tree_digest": "sha256:" + "6" * 64},
             parent,
             SimpleNamespace(context=context, publisher_hotkey=RECEIVER),

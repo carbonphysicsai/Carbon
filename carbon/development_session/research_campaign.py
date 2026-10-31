@@ -122,6 +122,119 @@ def accepted_implementation(revision):
     }
 
 
+class DescendantRefused(ValueError):
+    """A receiver checkout that is not an accepted descendant; ``code`` is the closed reason."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+#: What a values-only descendant of the accepted revision may change (OWNER-STOP-RULES-THAT-BLOCK-ITERATION-01): the
+#: host-class value files, the exam cadence registry, the published endpoints, documentation, tests and top-level notes.
+#: Nothing else, and never `carbon/**` or anything the worker build reads.
+DESCENDANT_FILES = (
+    "carbon/challenge_validator/exam_cadence.json",
+    "scripts/dev/miner_launchpad/published_endpoints.json",
+)
+DESCENDANT_FOLDERS = ("docs/", "tests/")
+DESCENDANT_FLAT = (("scripts/validator_host_classes/", ".json"),)
+
+
+def descendant_path_allowed(path):
+    """True for a repo-relative path a values-only descendant may change (exact, no wildcard crossing a folder)."""
+    if path in DESCENDANT_FILES:
+        return True
+    if any(
+        path.startswith(folder) and len(path) > len(folder)
+        for folder in DESCENDANT_FOLDERS
+    ):
+        return True
+    for folder, suffix in DESCENDANT_FLAT:
+        name = path[len(folder) :]
+        if (
+            path.startswith(folder)
+            and name.endswith(suffix)
+            and len(name) > len(suffix)
+            and "/" not in name
+        ):
+            return True
+    return "/" not in path and path.endswith(".md") and len(path) > len(".md")
+
+
+def accepted_values_descendant(revision, *, repository=None):
+    """The accepted implementation for a checkout that is the accepted ``revision`` or a clean, values-only descendant.
+
+    ``accepted_implementation`` is unchanged and stays the rule for everything else. This one accepts HEAD when ALL hold:
+    HEAD is the revision, or the revision is an ancestor of HEAD and HEAD is an ancestor of fetched ``origin/main``; the
+    tracked tree is clean; `git diff --name-only revision HEAD` (renames split) lists only `descendant_path_allowed`
+    paths; and the worker build inputs digest at HEAD equals the one at the revision (a values push cannot change what
+    the image is built from, even by a path the list allowed). Otherwise a typed ``DescendantRefused``.
+
+    Returns the ACCEPTED revision's identity (revision, tree, source_tree_digest, so every comparison against the installed
+    worker images and the setup record holds) and ``running_head``: the commit the receiver actually runs on.
+    """
+    repo = (
+        Path(__file__).resolve().parents[2] if repository is None else Path(repository)
+    )
+
+    def git(*args, check=True):
+        return subprocess.run(
+            ["git", *args],
+            cwd=repo,
+            text=True,
+            timeout=60,
+            capture_output=True,
+            check=check,
+        ).stdout.strip()
+
+    def ancestor(older, newer):
+        return (
+            subprocess.run(
+                ["git", "merge-base", "--is-ancestor", older, newer],
+                cwd=repo,
+                timeout=30,
+                check=False,
+                capture_output=True,
+            ).returncode
+            == 0
+        )
+
+    if (
+        type(revision) is not str
+        or len(revision) != 40
+        or any(ch not in "0123456789abcdef" for ch in revision)
+    ):
+        raise DescendantRefused("receiver_revision_not_descendant")
+    head = git("rev-parse", "HEAD")
+    if git("status", "--porcelain", "--untracked-files=no"):
+        raise DescendantRefused("receiver_tree_dirty")
+    if head != revision and not (
+        ancestor(revision, head) and ancestor(head, "origin/main")
+    ):
+        raise DescendantRefused("receiver_revision_not_descendant")
+    if head != revision:
+        changed = [
+            name
+            for name in git(
+                "diff", "--name-only", "--no-renames", "-z", revision, head
+            ).split("\0")
+            if name
+        ]
+        if any(not descendant_path_allowed(name) for name in changed):
+            raise DescendantRefused("receiver_descendant_path_not_allowed")
+        if build_inputs.digest(repo, revision=head) != build_inputs.digest(
+            repo, revision=revision
+        ):
+            raise DescendantRefused("receiver_build_inputs_moved")
+    return {
+        "revision": revision,
+        "tree": git("rev-parse", f"{revision}^{{tree}}"),
+        "source_tree_digest": build_inputs.digest(repo, revision=revision),
+        "running_head": head,
+    }
+
+
 def campaign_implementation(args, root):
     """The implementation a product campaign runs: the installed development
     candidate its runner profile names, else the exact clean accepted

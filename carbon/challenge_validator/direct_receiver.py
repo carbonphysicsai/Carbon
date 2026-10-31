@@ -663,13 +663,22 @@ def retention_snapshots(window, context, reader, *, period=RETENTION_REFRESH_S):
 
 
 def installed_source(
-    profile_path: Path, *, construction_image_manifest: Path | None = None
+    profile_path: Path,
+    *,
+    construction_image_manifest: Path | None = None,
+    running: dict | None = None,
 ):
-    """Verify installed source/images; a private operator may pin its constructor."""
+    """Verify installed source/images; a private operator may pin its constructor.
+
+    The checkout may be the accepted revision or a clean, values-only descendant of it (`accepted_values_descendant`).
+    The returned implementation is always the ACCEPTED revision's identity, so every binding made from it is unchanged
+    by a values push; the commit the receiver runs on is put in ``running["head"]`` for the grade records.
+    """
     from carbon.development_session.gpu_practice import direct_parent_backend
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import (
-        accepted_implementation,
+        DescendantRefused,
+        accepted_values_descendant,
         verify_current_worker,
         verify_direct_v13_worker,
     )
@@ -701,7 +710,17 @@ def installed_source(
         ):
             raise ValueError("development candidate profile differs")
     if implementation is None:
-        implementation = accepted_implementation(cfg["accepted_revision"])
+        try:
+            implementation = accepted_values_descendant(cfg["accepted_revision"])
+        except DescendantRefused as refused:
+            raise ReceiverUnavailable(refused.code) from None
+        if running is not None:
+            running["head"] = implementation["running_head"]
+        implementation = {
+            name: value
+            for name, value in implementation.items()
+            if name != "running_head"
+        }
     paths = {name: Path(value) for name, value in cfg["paths"].items()}
     gpu_image_path = cfg.get("gpu_image")
     if construction_image_manifest is not None:
@@ -1292,7 +1311,7 @@ def serve(
 
     # Loading this module reads the installed-commit record (the code every grade of this run is recorded against): it is
     # read HERE, at the receiver's start, never at the first grade (which imports it lazily).
-    from carbon.challenge_validator import lean_recipe_retention  # noqa: F401
+    from carbon.challenge_validator import lean_recipe_retention
     from carbon.challenge_validator.direct_intake import (
         DirectRecipeIntake,
         serve_loopback,
@@ -1309,9 +1328,17 @@ def serve(
         if "construction_image_manifest" in cfg
         else {}
     )
+    running = {}
     implementation, parent, network, cache = installed_source(
-        Path(cfg["runner_profile"]), **selected_parent
+        Path(cfg["runner_profile"]), running=running, **selected_parent
     )
+    # Every official grade records the commit it ran on (`grade-installed-commit.json`, read when the grading module
+    # loaded). The checkout that was just accepted must be that same commit, or the records would name the wrong code.
+    if (
+        "head" in running
+        and lean_recipe_retention._installed_commit().get("commit") != running["head"]
+    ):
+        raise ReceiverUnavailable("receiver_running_head_moved")
     from carbon.development_session.gpu_practice import (
         direct_bundle_accelerators,
         direct_parent_backend,
