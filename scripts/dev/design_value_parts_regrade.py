@@ -11,6 +11,8 @@ and measure) with `design_value_parts.recording()` around it, and prints the sam
         --version V --judge-image JUDGE.json --work SCRATCH --stored STORED.json [--copy-hotkey HOTKEY] [--json]
         [--fake]
 
+- ``--copy-hotkey`` (the receiver's hotkey) is REQUIRED with sealed packs: without it the grade stops with
+  ``sealed_bank_missing`` (the sealed bank is bound to that hotkey).
 - ``--retained`` is read, never written (it must not contain ``--work``). Its ``recipe.json``, ``state.npz`` and
   ``image.json`` become a calibration artifact under ``--work`` (the recal's own artifact form), pinned to the retained
   state's digest. The receiver's ledger, custody and pool store are not opened.
