@@ -482,3 +482,133 @@ def test_the_run_settles_before_it_issues():
 
     source = inspect.getsource(twp._run)
     assert source.index("settle_pending(publisher)") < source.index("issuer.issue(")
+
+
+# --- a lean pool's second and later crowns are bank promotions ------------------------
+
+
+class _LeanStore:
+    """A duck-typed lean pool store (`winner_eligibility.lean_promotion`): the incumbent, its incumbent events and the
+    hotkey of each submission."""
+
+    def __init__(self):
+        self.models = {}
+        self._events = []
+        self._incumbent = None
+
+    def crown(self, model, hotkey, previous=None):
+        self.models[model] = {"hotkey": hotkey, "binding": {}}
+        self._events.append({"model_id": model, "previous": previous})
+        self._incumbent = {
+            "model_id": model,
+            "reason": "bank_comparison_sealed_testnet",
+        }
+
+    def incumbent(self):
+        return self._incumbent
+
+    def events(self, kind=None):
+        return [{"body": body} for body in self._events]
+
+    def submission(self, model_id):
+        return self.models[model_id]
+
+
+def _lean(tmp_path, store, policy=POLICY):
+    auth = authorization(policy_digest=policy.digest)
+    receipts = ReceiptJournal(tmp_path / "publication.sqlite3", auth.context)
+    ledger = we.WinnerLedger(tmp_path / "winners.jsonl")
+    challenge = policy.challenges[0]
+    sources = {challenge: lambda: we.lean_promotion(store)}
+    issuer = twp.TestnetWinnerIntentIssuer(receipts, auth, policy, ledger, sources)
+    return issuer, Backend(snapshot(chain(), block=925)), challenge
+
+
+def _at(backend, block):
+    backend.state = snapshot(chain(), block=block)
+    return asyncio.run(backend.observe())[0]
+
+
+def test_a_takeover_by_another_hotkey_on_a_lean_pool_is_paid_and_resets_the_clock(
+    tmp_path,
+):
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, challenge = _lean(tmp_path, store)
+    first = _at(backend, 925)
+    asyncio.run(
+        twp.TestnetWinnerPublisher(issuer, backend).publish(issuer.issue(first))
+    )
+    assert issuer.ledger.records(challenge)[0]["promotion"]["kind"] == we.FIRST
+    store.crown("m2", "owner-hotkey", previous="m1")  # another hotkey and coldkey
+    later = _at(backend, 1100)
+    seen = twp.preview(issuer, later)
+    record = seen["records"][challenge]
+    assert (record["kind"], record["eligible"], record["reason"]) == (
+        we.BANK,
+        True,
+        "bank_improvement",
+    )
+    assert record["clock_ms"] == later.timestamp_ms  # a full first day again
+    assert record["hotkey"] == "owner-hotkey"
+    # the new winner is the one the targets pay (uid 0 is owner-hotkey in this snapshot)
+    winners = seen["targets"]["winners"]
+    assert [holder["hotkey"] for holder, _ in winners] == [
+        "owner-hotkey"
+    ]  # not miner-hotkey
+    assert winners[0][1] > 0
+
+
+def test_an_unknown_promotion_kind_is_still_refused(tmp_path):
+    issuer, backend, _ = composed(
+        tmp_path,
+        source=lambda: {
+            "model_id": "m9",
+            "hotkey": "miner-hotkey",
+            "previous": "m1",
+            "previous_hotkey": "x",
+            "kind": "SOMETHING_ELSE",
+        },
+    )
+    state, _ = asyncio.run(backend.observe())
+    with pytest.raises(twp.WinnerPublicationRefused) as refused:
+        twp.preview(issuer, state)
+    assert str(refused.value) == "WINNER_SOURCE_UNAVAILABLE"
+
+
+def test_a_same_miner_bank_self_beat_under_v4_keeps_the_clock(tmp_path):
+    v4 = wd.load_policy("testnet-winner-v4-launch")
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, challenge = _lean(tmp_path, store, v4)
+    first = _at(backend, 925)
+    asyncio.run(
+        twp.TestnetWinnerPublisher(issuer, backend).publish(issuer.issue(first))
+    )
+    clock = issuer.ledger.records(challenge)[0]["clock_ms"]
+    store.crown("m2", "miner-hotkey", previous="m1")  # the king beats himself
+    seen = twp.preview(issuer, _at(backend, 1100))
+    record = seen["records"][challenge]
+    assert (
+        record["kind"],
+        record["eligible"],
+        record["reason"],
+        record["clock_ms"],
+    ) == (
+        we.BANK,
+        True,
+        "same_miner_no_reset",
+        clock,
+    )
+
+
+def test_the_first_crown_path_is_unchanged(tmp_path):
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, challenge = _lean(tmp_path, store)
+    record = twp.preview(issuer, _at(backend, 925))["records"][challenge]
+    assert (record["kind"], record["eligible"], record["reason"]) == (
+        we.FIRST,
+        True,
+        "first_incumbent_no_baseline",
+    )

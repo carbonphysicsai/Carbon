@@ -73,6 +73,7 @@ from .winner_decay import (
     winner_fraction,
 )
 from .winner_eligibility import (
+    BANK,
     FINAL,
     FIRST,
     WinnerCutoverFailure,
@@ -226,7 +227,9 @@ class TestnetWinnerIntentIssuer:
                     type(promotion.get(key)) is not str or not promotion[key]
                     for key in ("model_id", "hotkey")
                 )
-                or promotion.get("kind") not in (FIRST, FINAL)
+                # A lean pool's second and later crowns are bank promotions (`lean_promotion`); `decide` handles
+                # every kind listed here, and any other kind is refused.
+                or promotion.get("kind") not in (FIRST, FINAL, BANK)
             ):
                 _refuse("WINNER_SOURCE_UNAVAILABLE")
             return promotion
