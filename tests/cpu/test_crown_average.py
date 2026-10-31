@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -21,6 +22,7 @@ import pytest
 from carbon.challenge_validator import bank_promotion as bp
 from carbon.challenge_validator import crown_average as ca
 from carbon.challenge_validator import crown_average_host as host
+from carbon.challenge_validator import exam_cap
 from carbon.challenge_validator.interface import digest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -65,27 +67,23 @@ def _grade(total, status=bp.SCORED, sid="c"):
 # --- the registry: N is config ---------------------------------------------------------------------------
 
 
-def test_the_committed_registry_registers_the_n10_margins():
+def test_the_committed_registry_is_structurally_sound():
+    # structure, never the values: a margin update must not break main
     rule = ca.load_rule()
-    assert rule.n_for(CHALLENGE) == 10 and rule.seed_range == 2147483647
-    # the Validator-receipted 2sd_mean_n margins at N = 10, one per Challenge (the committed file is byte-equal)
-    assert {
-        challenge: rule.margin_for(challenge)
-        for challenge in (
-            "chip-cold-plate",
-            "electric-motor-magnetics",
-            "f02",
-            "f08-ribbed-bracket",
-        )
-    } == {
-        "chip-cold-plate": 0.004967348930510956,
-        "electric-motor-magnetics": 0.0025056870668293094,
-        "f02": 0.014946093836402718,
-        "f08-ribbed-bracket": 0.0019171440369318365,
-    }
-    # a Challenge the file does not name has no margin: the rule is UNAVAILABLE for it, never guessed
+    document = json.loads(
+        (ROOT / "scripts/validator_host_classes/crown_average.json").read_bytes()
+    )
+    assert rule.n_for(CHALLENGE) >= 2 and rule.seed_range >= 2**16
+    listed = document["margins"]
+    assert listed
+    for challenge, entry in listed.items():
+        assert challenge in exam_cap.registered_challenges()
+        assert entry["n"] == rule.n_for(challenge)
+        assert math.isfinite(entry["value"]) and entry["value"] > 0
+        assert re.fullmatch(r"sha256:[0-9a-f]{64}", entry["measurement_digest"])
+        assert rule.margin_for(challenge) == entry["value"]
+    # a Challenge the file does not name has no margin: UNAVAILABLE, never guessed
     assert rule.margin_for("a-challenge-with-no-entry") is None
-    assert (ROOT / "scripts/validator_host_classes/crown_average.json").is_file()
 
 
 def test_n_is_read_from_config_and_a_per_challenge_override_wins(tmp_path):
