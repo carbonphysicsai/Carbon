@@ -1,7 +1,7 @@
 """the crown multi-rebuild average ruling (lead-records a322dea4): the crown's N-rebuild mean (pure decision logic).
 
-Claims: N is a registered config value, never a code constant (and the committed registry registers no margin yet,
-so the rule answers UNAVAILABLE until the owner confirms N and the margins are registered); the seeds come from
+Claims: N is a registered config value, never a code constant (the committed registry registers the receipted n = 10
+margins; a Challenge with no entry, or one measured at another N, answers UNAVAILABLE); the seeds come from
 the host-private K_crown, are distinct, never 0 and never appear in a miner-facing view; the trigger fires only
 for a crown-changing screening grade; all N rebuilds must be scored, else no takeover (`unstable_across_seeds`);
 an infrastructure failure is retried and never counted against the miner; the means decide, with a tie inside
@@ -65,13 +65,26 @@ def _grade(total, status=bp.SCORED, sid="c"):
 # --- the registry: N is config ---------------------------------------------------------------------------
 
 
-def test_the_committed_registry_registers_n_but_no_margin_yet():
+def test_the_committed_registry_registers_the_n10_margins():
     rule = ca.load_rule()
     assert rule.n_for(CHALLENGE) == 10 and rule.seed_range == 2147483647
-    # no margin is registered: the owner confirms N first, so the rule is UNAVAILABLE, never guessed
-    assert all(
-        rule.margin_for(c) is None for c in ("f02", "chip-cold-plate", CHALLENGE)
-    )
+    # the Validator-receipted 2sd_mean_n margins at N = 10, one per Challenge (the committed file is byte-equal)
+    assert {
+        challenge: rule.margin_for(challenge)
+        for challenge in (
+            "chip-cold-plate",
+            "electric-motor-magnetics",
+            "f02",
+            "f08-ribbed-bracket",
+        )
+    } == {
+        "chip-cold-plate": 0.004967348930510956,
+        "electric-motor-magnetics": 0.0025056870668293094,
+        "f02": 0.014946093836402718,
+        "f08-ribbed-bracket": 0.0019171440369318365,
+    }
+    # a Challenge the file does not name has no margin: the rule is UNAVAILABLE for it, never guessed
+    assert rule.margin_for("a-challenge-with-no-entry") is None
     assert (ROOT / "scripts/validator_host_classes/crown_average.json").is_file()
 
 
