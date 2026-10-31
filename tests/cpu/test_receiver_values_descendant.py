@@ -245,3 +245,21 @@ def test_the_sidecar_is_written_with_every_official_grade():
 
     source = inspect.getsource(retention)
     assert "write_once(directory / INSTALLED_COMMIT_SIDECAR" in source
+
+
+def test_a_local_only_revision_is_refused_even_when_head_is_exactly_it(repo):
+    """`accepted_implementation` always required the revision to be in fetched main; so does this."""
+    repo.write("docs/local.md", "x\n")
+    local = repo.commit(
+        "never pushed"
+    )  # origin/main stays at the first accepted revision
+    refused(repo, "receiver_revision_not_descendant", revision=local)
+
+
+def test_an_unknown_object_or_unreadable_repository_is_typed_not_a_traceback(
+    repo, tmp_path
+):
+    refused(repo, "receiver_revision_not_descendant", revision="0" * 40)
+    with pytest.raises(rc.DescendantRefused) as caught:
+        rc.accepted_values_descendant(repo.accepted, repository=tmp_path / "absent")
+    assert caught.value.code == "receiver_revision_not_descendant"

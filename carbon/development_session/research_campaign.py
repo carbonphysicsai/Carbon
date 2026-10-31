@@ -166,7 +166,9 @@ def accepted_values_descendant(revision, *, repository=None):
     """The accepted implementation for a checkout that is the accepted ``revision`` or a clean, values-only descendant.
 
     ``accepted_implementation`` is unchanged and stays the rule for everything else. This one accepts HEAD when ALL hold:
-    HEAD is the revision, or the revision is an ancestor of HEAD and HEAD is an ancestor of fetched ``origin/main``; the
+    The revision itself is always in fetched ``origin/main`` (as `accepted_implementation` requires), even when HEAD is
+    exactly it. HEAD is the revision, or the revision is an ancestor of HEAD and HEAD is an ancestor of fetched
+    ``origin/main``; the
     tracked tree is clean; `git diff --name-only revision HEAD` (renames split) lists only `descendant_path_allowed`
     paths; and the worker build inputs digest at HEAD equals the one at the revision (a values push cannot change what
     the image is built from, even by a path the list allowed). Otherwise a typed ``DescendantRefused``.
@@ -206,33 +208,41 @@ def accepted_values_descendant(revision, *, repository=None):
         or any(ch not in "0123456789abcdef" for ch in revision)
     ):
         raise DescendantRefused("receiver_revision_not_descendant")
-    head = git("rev-parse", "HEAD")
-    if git("status", "--porcelain", "--untracked-files=no"):
-        raise DescendantRefused("receiver_tree_dirty")
-    if head != revision and not (
-        ancestor(revision, head) and ancestor(head, "origin/main")
-    ):
-        raise DescendantRefused("receiver_revision_not_descendant")
-    if head != revision:
-        changed = [
-            name
-            for name in git(
-                "diff", "--name-only", "--no-renames", "-z", revision, head
-            ).split("\0")
-            if name
-        ]
-        if any(not descendant_path_allowed(name) for name in changed):
-            raise DescendantRefused("receiver_descendant_path_not_allowed")
-        if build_inputs.digest(repo, revision=head) != build_inputs.digest(
-            repo, revision=revision
-        ):
-            raise DescendantRefused("receiver_build_inputs_moved")
-    return {
-        "revision": revision,
-        "tree": git("rev-parse", f"{revision}^{{tree}}"),
-        "source_tree_digest": build_inputs.digest(repo, revision=revision),
-        "running_head": head,
-    }
+    try:
+        head = git("rev-parse", "HEAD")
+        if git("status", "--porcelain", "--untracked-files=no"):
+            raise DescendantRefused("receiver_tree_dirty")
+        # As `accepted_implementation` always required: the accepted revision itself is in fetched main (a local-only
+        # revision is not accepted even when HEAD is exactly it).
+        if not ancestor(revision, "origin/main"):
+            raise DescendantRefused("receiver_revision_not_descendant")
+        if head != revision:
+            if not (ancestor(revision, head) and ancestor(head, "origin/main")):
+                raise DescendantRefused("receiver_revision_not_descendant")
+            changed = [
+                name
+                for name in git(
+                    "diff", "--name-only", "--no-renames", "-z", revision, head
+                ).split("\0")
+                if name
+            ]
+            if any(not descendant_path_allowed(name) for name in changed):
+                raise DescendantRefused("receiver_descendant_path_not_allowed")
+            if build_inputs.digest(repo, revision=head) != build_inputs.digest(
+                repo, revision=revision
+            ):
+                raise DescendantRefused("receiver_build_inputs_moved")
+        return {
+            "revision": revision,
+            "tree": git("rev-parse", f"{revision}^{{tree}}"),
+            "source_tree_digest": build_inputs.digest(repo, revision=revision),
+            "running_head": head,
+        }
+    except (subprocess.SubprocessError, OSError, ValueError) as failed:
+        if isinstance(failed, DescendantRefused):
+            raise
+        # A bad object, an unreadable repository or a missing ref: not a descendant we can show. Fails closed, typed.
+        raise DescendantRefused("receiver_revision_not_descendant") from None
 
 
 def campaign_implementation(args, root):
