@@ -2,7 +2,8 @@
 
 Run on the synthetic toy Challenge of `test_pool_exam` (every number there is a SYNTHETIC test value) with the container
 run replaced by that toy grade: what is pinned is the packaging of a retained model into the recal's artifact form, the
-exact A/D self-check, the read-only handling of the receiver's files and that only scalars are printed."""
+exact A/D self-check, the read-only handling of the receiver's files and that only scalars are printed.
+"""
 
 from __future__ import annotations
 
@@ -268,7 +269,7 @@ ALLOWED = re.compile(
     r"|  target \d+\.\d+ \[[0-9a-f]{16}\]: feasible=(True|False) reason=\w+ d=\S+ q=\S+ e=\S+ s_h=\S+ h=\S+"
     r" reached_reference=(True|False) queries=\d+ regret=\S+ \(derived \(not a grader output\)\)"
     r"|gated: .*|stored D     = \S+|recomputed D = \S+|stored A     = \S+|regraded A   = \S+|regraded D   = \S+"
-    r"|MATCH|MISMATCH)$"
+    r"|graded under = \S+ \S+|MATCH|MISMATCH)$"
 )
 
 

@@ -331,8 +331,29 @@ def _honesty_sheet(args, plugin, binding, out):
             {name: fraction * value for name, value in spread.items()}
             for fraction in fractions
         ]
+        out.mkdir(parents=True, exist_ok=True)
+        # the sets file the regrade tool's --agen-scale-sets reads: it names the kind and version whose spread built them
+        (out / f"agen-sets-{args.kind}-{args.version}.json").write_text(
+            json.dumps(
+                {
+                    "kind": args.kind,
+                    "version": args.version,
+                    "train_spread": spread,
+                    "fractions": fractions,
+                    "agen_scale_sets": spec["agen_scale_sets"],
+                },
+                indent=2,
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
     out.mkdir(parents=True, exist_ok=True)
-    dump = sheet.record(plugin, spec, args.kind, args.version)
+    try:
+        multiplier = sheet.registered_inputs(args.kind, args.version, spec)
+    except sheet.SheetError as refused:
+        print(f"STOP, back to the Validator: {refused}", file=sys.stderr)
+        return 3
+    dump = sheet.record(plugin, spec, args.kind, args.version, a_multiplier=multiplier)
     path = out / f"honesty-dump-{args.kind}-{args.version}.json"
     path.write_text(
         json.dumps(dump, indent=2, sort_keys=True, allow_nan=False), encoding="utf-8"
@@ -447,9 +468,7 @@ def main(argv=None):
             "give --grid, or --strictness-spec / --honesty-sheet-spec instead of the grid"
         )
     grid_doc = (
-        {}
-        if no_grid
-        else json.loads(Path(args.grid).read_text(encoding="utf-8"))
+        {} if no_grid else json.loads(Path(args.grid).read_text(encoding="utf-8"))
     )
     grid_doc = {k: v for k, v in grid_doc.items() if not k.startswith("_")}
     grid_doc["in_distribution_is_pass_criterion"] = args.in_distribution == "pass"

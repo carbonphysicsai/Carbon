@@ -69,7 +69,8 @@ def _digest(value, label):
 
 def identities(files):
     """``(recipe, bundle_ref, worker_image_digest, parent_image_digest)`` of a retained bundle model, from its own files:
-    a GPU overlay names its tree digest, a CPU library child its image id (as the recal's packaging does)."""
+    a GPU overlay names its tree digest, a CPU library child its image id (as the recal's packaging does).
+    """
     try:
         recipe = json.loads(files["recipe.json"])
         image = json.loads(files["image.json"])
@@ -90,7 +91,8 @@ def identities(files):
 
 def artifact_from_retained(retained, out, *, challenge_id, version, name="retained"):
     """Write the recal's calibration artifact for the retained model into the new directory ``out`` and return its manifest.
-    The state and recipe are the retained bytes, unchanged; the identities are read from the retained files."""
+    The state and recipe are the retained bytes, unchanged; the identities are read from the retained files.
+    """
     from carbon.agent_campaign import calibration_artifact_job as job
 
     files = retained if isinstance(retained, dict) else read_retained(retained)
@@ -148,6 +150,31 @@ def stored_legs(document):
             "--stored must carry exactly one A and D pair (a flat object or one `legs`)"
         )
     return unique.pop()
+
+
+def load_agen_sets(path, challenge, version):
+    """The scale sets of an ``agen-sets-<kind>-<version>.json``, after checking they were built from the SAME version's
+    TRAIN spread as the entry being regraded (a set from another version's spread would grade this entry at another scale).
+    """
+    from carbon.scoring import pool_version
+
+    try:
+        document = json.loads(_read(path))
+        kind, sets = document["kind"], document["agen_scale_sets"]
+        sets_version = document["version"]
+    except (ValueError, KeyError, TypeError) as exc:
+        raise RegradeError("--agen-scale-sets is not a recorder sets file") from exc
+    if sets_version != version:
+        raise RegradeError(
+            f"the A_gen scale sets were built for version {sets_version!r}, this entry is graded under {version!r}"
+        )
+    if pool_version.KINDS.get(challenge) != kind:
+        raise RegradeError(
+            f"the A_gen scale sets are for {kind!r}, not for the challenge {challenge!r}"
+        )
+    if type(sets) is not list or not sets or any(type(s) is not dict for s in sets):
+        raise RegradeError("--agen-scale-sets holds no scale sets")
+    return sets
 
 
 def _same_path(child, parent):
@@ -208,6 +235,7 @@ def regrade(
         )
     stored_a, stored_d = stored
     report = {
+        "graded_under": {"challenge": challenge, "version": version},
         "stored_a": stored_a,
         "stored_d": stored_d,
         "regraded_a": result.get("A"),
@@ -242,6 +270,9 @@ def render(report):
             "ok": report["ok"],
         }
     ).splitlines()
+    graded = report.get("graded_under")
+    if graded:
+        lines.insert(-1, f"graded under = {graded['challenge']} {graded['version']}")
     lines.insert(-1, f"stored A     = {report['stored_a']!r}")
     lines.insert(-1, f"regraded A   = {report['regraded_a']!r}")
     lines.insert(-1, f"regraded D   = {report['regraded_d']!r}")
@@ -263,7 +294,9 @@ def main(argv=None):
     parser.add_argument(
         "--agen-scale-sets",
         type=Path,
-        help="JSON list of {output: scale}: also report the exam's A at each stricter A_gen scale set",
+        help="the agen-sets-<kind>-<version>.json the recorder wrote (it names the kind and version whose TRAIN spread "
+        "built the sets): also report the exam's A at each stricter A_gen scale set. Refused when that version or kind "
+        "differs from --version / --challenge",
     )
     parser.add_argument("--fake", action="store_true")
     parser.add_argument("--json", action="store_true", help="print the report as JSON")
@@ -299,7 +332,7 @@ def main(argv=None):
             agen_scale_sets=(
                 None
                 if args.agen_scale_sets is None
-                else json.loads(_read(args.agen_scale_sets))
+                else load_agen_sets(args.agen_scale_sets, args.challenge, args.version)
             ),
         )
     except (RegradeError, parts_tool.PartsError, cg.CalibrationRefused) as refused:

@@ -158,7 +158,8 @@ def _biased_outputs(binding, rows, descriptor):
     adds to the truth. ``{"kind": "biased", "base": descriptor, "bias": {"mode": "feasible_bias", "k": k, "seed": s}}``
     adds the `noisy` control's seeded k x U on every row that has a reference; ``{"mode": "wrong_near", ...}`` leaves the
     bank rows unchanged (the `wrong_near_optimum` control answers the bank with the truth alone: its error lives in the
-    pool, near each target's reference optimum). It is never a TRUTH model: the perfect probe rule does not apply."""
+    pool, near each target's reference optimum). It is never a TRUTH model: the perfect probe rule does not apply.
+    """
     bias = descriptor.get("bias")
     _require(
         type(bias) is dict and bias.get("mode") in BIAS_MODES,

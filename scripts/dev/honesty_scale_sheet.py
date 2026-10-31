@@ -20,7 +20,8 @@ multiple of U for every Challenge and the "unit-normalised" reading is the one t
 (operator-only) lists each target's declared U per output so that can be checked against the pack.
 
 RECORD SPEC (every value the owner's or the Validator's; nothing defaulted):
-  {"budget", "sigma0", "population", "honesty_reduction", "agen_scale_sets": [{output: scale}, ...],
+  {"budget", "sigma0", "population", "honesty_reduction", "agen_scale_sets": [{output: scale}, ...],  (no a_multiplier: it is
+   the version's registered one)
    "a_rule", "c_rule": {"kind": "min"}, "optimism_k", "wrong_radius", "wrong_k", "seed", "bases": ["good", "default"]}
 RENDER SPEC:
   {"out": PATH, "ks": [0.25, 0.5, 1.0], "challenges": [{"key", "name", "dump": PATH, "baseline_parts": PATH,
@@ -95,18 +96,32 @@ def _finite(value):
     return value if isinstance(value, (int, float)) and math.isfinite(value) else None
 
 
-def record(plugin, spec, kind, version):
-    """Grade every model once at s_h = 1 and return the dump (aggregates only)."""
+def record(plugin, spec, kind, version, *, a_multiplier):
+    """Grade every model once at s_h = 1 and return the dump (aggregates only).
+
+    ``a_multiplier`` is the version's REGISTERED A-leg tightening (`pool_version.registered_a_multiplier`), required and
+    never read from the spec: each A leg 1 / (1 + x) becomes 1 / (1 + m x) before the legs are averaged, exactly as the
+    exam (`pool_exam.measure_pool`) and the proof grid score it, so the recorded A and totals match the live exam.
+    """
     from carbon.scoring import pool_grader
+    from carbon.scoring.pool_proof_grid import tighten
+
+    if (
+        type(a_multiplier) not in (int, float)
+        or isinstance(a_multiplier, bool)
+        or not math.isfinite(a_multiplier)
+        or a_multiplier <= 0
+    ):
+        raise SheetError("a_multiplier_must_be_the_registered_positive_number")
+    if "a_multiplier" in spec:
+        raise SheetError("a_multiplier_comes_from_the_registered_version_not_the_spec")
     from carbon.scoring import pool_proof_suite as suite
 
     all_specs = [s for specs in plugin.sets for s in specs]
     optimizer = pool_grader.OptimizerPolicy(
         budget=spec["budget"], sigma0=spec["sigma0"], population=spec["population"]
     )
-    honesty = pool_grader.HonestyPolicy(
-        scale=1.0, reduction=spec["honesty_reduction"]
-    )
+    honesty = pool_grader.HonestyPolicy(scale=1.0, reduction=spec["honesty_reduction"])
     models = {}
     for name, descriptor in descriptors(spec).items():
         predict = suite.pool_predictor(plugin, descriptor, all_specs)
@@ -115,11 +130,19 @@ def record(plugin, spec, kind, version):
             for specs in plugin.sets
         ]
         legs = plugin.legs(descriptor, plugin.sets[0])
-        gates = list(plugin.pool_gates(descriptor, all_specs)) if plugin.pool_gates else []
+        gates = (
+            list(plugin.pool_gates(descriptor, all_specs)) if plugin.pool_gates else []
+        )
         speed = bool(
             plugin.speed_gate
             and (r := plugin.speed_gate(descriptor)) is not None
             and not r["passed"]
+        )
+        a_legs = legs.get("A_legs")
+        a_bank = (
+            statistics.fmean(tighten(v, a_multiplier) for v in a_legs.values())
+            if a_legs
+            else tighten(legs["A"], a_multiplier)
         )
         models[name] = {
             "descriptor_kind": descriptor["kind"],
@@ -136,7 +159,8 @@ def record(plugin, spec, kind, version):
                 ]
                 for grade in grades
             ],
-            "A": legs["A"],
+            "A": a_bank,
+            "A_untightened": legs["A"],
             "C": legs["C"],
             "gates_ok": legs.get("gates_ok"),
             "pool_gate_failures": gates,
@@ -153,9 +177,43 @@ def record(plugin, spec, kind, version):
         "schema": "carbon.honesty-scale-dump.v1",
         "kind": kind,
         "version": version,
+        "a_multiplier": a_multiplier,
         "spec": {k: v for k, v in spec.items()},
         "models": models,
     }
+
+
+def registered_inputs(kind, version, spec, *, path=None):
+    """The version's REGISTERED a_multiplier, after checking the spec's optimizer, honesty reduction and rules equal the
+    registered entry (a spec that differs would record a different exam than the live one): raises `SheetError`.
+    """
+    from carbon.scoring import pool_version
+
+    challenge_id = next((c for c, k in pool_version.KINDS.items() if k == kind), None)
+    if challenge_id is None:
+        raise SheetError("kind_is_not_a_registered_pool_kind")
+    kwargs = {} if path is None else {"path": path}
+    try:
+        multiplier = pool_version.registered_a_multiplier(
+            challenge_id, version, **kwargs
+        )
+        policies = pool_version.registered_policies(challenge_id, version, **kwargs)
+    except Exception as refused:  # noqa: BLE001 - closed code, no guess
+        raise SheetError(f"version_not_registered: {refused}") from None
+    registered = {
+        "budget": policies.optimizer.budget,
+        "sigma0": policies.optimizer.sigma0,
+        "population": policies.optimizer.population,
+        "honesty_reduction": policies.honesty.reduction,
+        "a_rule": policies.a_rule,
+        "c_rule": policies.c_rule,
+    }
+    differs = sorted(k for k, v in registered.items() if spec.get(k) != v)
+    if differs:
+        raise SheetError(
+            "spec_differs_from_the_registered_version: " + ", ".join(differs)
+        )
+    return multiplier
 
 
 def u_dump(plugin):
@@ -213,9 +271,7 @@ def parts_targets(path):
 
 
 def _d_parts(targets, c, s_h):
-    return min(
-        statistics.fmean(q * math.exp(-e / s_h) for q, e in targets), c
-    )
+    return min(statistics.fmean(q * math.exp(-e / s_h) for q, e in targets), c)
 
 
 def _fmt(value):
@@ -245,7 +301,11 @@ def render(spec):
         candidates = [("0 (keep s_h = 1)", 1.0)] + [
             (f"k={k:g}", k * median_e) for k in ks
         ]
-        names = [n for n in ("oracle", "good", "default", "floor", "in_distribution_only") if n in models]
+        names = [
+            n
+            for n in ("oracle", "good", "default", "floor", "in_distribution_only")
+            if n in models
+        ]
         gaming = [n for n in models if n in CONTROLS or n.startswith("e2_")]
         out += [
             f"## {ch['name']}",
@@ -285,9 +345,7 @@ def render(spec):
                 if value[name][0] > bd + 1e-12 or value[name][1] > bt + 1e-12:
                     failures.append(name)
             oracle = value.get("oracle")
-            cells.append(
-                f"{math.exp(-3 / s_h):.3g} / {math.exp(-30 / s_h):.3g}"
-            )
+            cells.append(f"{math.exp(-3 / s_h):.3g} / {math.exp(-30 / s_h):.3g}")
             cells.append("PASS" if not failures else "FAIL: " + ", ".join(failures))
             cells.append("n/m" if oracle is None else f"{oracle[0]:.3g}")
             out.append(f"| {label} | {s_h:.4g} | " + " | ".join(cells) + " |")
@@ -303,13 +361,14 @@ def render(spec):
             "|---|" + "---|" * (len(names) + len(gaming) + 2),
         ]
         sweeps = {}
-        for who, key in (("baseline", "baseline_agen_sweep"), ("crown", "crown_agen_sweep")):
+        for who, key in (
+            ("baseline", "baseline_agen_sweep"),
+            ("crown", "crown_agen_sweep"),
+        ):
             if ch.get(key):
                 sweeps[who] = json.loads(Path(ch[key]).read_text(encoding="utf-8"))
         for j, scales in enumerate(scale_sets):
-            row = [
-                f"{model_a(models[n], j, a_rule):.4f}" for n in names + gaming
-            ]
+            row = [f"{model_a(models[n], j, a_rule):.4f}" for n in names + gaming]
             for who, fallback in (("baseline", base_a), ("crown", crown_a)):
                 sweep = sweeps.get(who)
                 row.append(

@@ -62,8 +62,12 @@ class Recorder:
     def __init__(self):
         self.sets = []
         self.measured = None
-        self.agen_calls = []  # {"digests", "value", "alts"}: each A_gen the grader computed, and the same at other scales
-        self.combine_calls = []  # (a, a_gen, rule): each A_gen combination the grader made
+        self.agen_calls = (
+            []
+        )  # {"digests", "value", "alts"}: each A_gen the grader computed, and the same at other scales
+        self.combine_calls = (
+            []
+        )  # (a, a_gen, rule): each A_gen combination the grader made
 
 
 @contextlib.contextmanager
@@ -121,7 +125,8 @@ def agen_sweep(recorder, agen_scale_sets):
 
     The exam's A per set is ``combine_a(a_bank, mean A_gen, rule)`` (`pool_exam.measure_pool`), the LAST combinations the
     grader made (one per set, after the per-set scoring). Each is redone with the A_gen recomputed at the alternative scale
-    on the same specs. Only the A_gen scale changes: a_bank, the rule and every prediction are the grader's own."""
+    on the same specs. Only the A_gen scale changes: a_bank, the rule and every prediction are the grader's own.
+    """
     n = len(recorder.sets)
     if not recorder.agen_calls or len(recorder.combine_calls) < n or n == 0:
         raise PartsError("no A_gen sweep was recorded (recording(agen_scale_sets=...))")
@@ -138,7 +143,9 @@ def agen_sweep(recorder, agen_scale_sets):
                 values.append(a_bank)
                 continue
             if not match:
-                raise PartsError("a recorded A_gen does not match the exam's combination")
+                raise PartsError(
+                    "a recorded A_gen does not match the exam's combination"
+                )
             values.append(pool_grader.combine_a(a_bank, match[0]["alts"][j], rule))
         out.append({"scales": dict(scales), "A": statistics.fmean(values)})
     return out
