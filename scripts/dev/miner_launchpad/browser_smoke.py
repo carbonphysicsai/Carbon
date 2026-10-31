@@ -51,6 +51,7 @@ _PAGE_STATE = (
     "['message', document.getElementById('message')?.textContent],"
     "['preflight', document.getElementById('research-preflight')?.textContent],"
     "['review', document.getElementById('wizard-review')?.textContent]"
+    "['controls', JSON.stringify([...document.querySelectorAll('#campaign-detail [data-action]')].map(b => [b.dataset.action, b.disabled]))],"
     "].map(([k, v]) => [k, (v || '').slice(0, 400)])))"
 )
 #: Each wizard step's own reason it will not go on, read by opening the steps in order (a
@@ -1024,9 +1025,10 @@ def run():
                     # draws only the controls that apply to the state (research_view.js: a
                     # control that cannot be pressed is not drawn), so a running campaign has
                     # Pause, Stop and Export.
-                    assert session.evaluate(
+                    wait(
+                        session,
                         "[...document.querySelectorAll('#campaign-detail [data-action]')].length >= 2"
-                        " && [...document.querySelectorAll('#campaign-detail [data-action]')].every(b => b.disabled)"
+                        " && [...document.querySelectorAll('#campaign-detail [data-action]')].every(b => b.disabled)",
                     )
                     research.recent = original_research_recent
                     wait(
