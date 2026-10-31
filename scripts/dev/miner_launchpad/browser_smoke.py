@@ -1146,10 +1146,20 @@ def run():
                             ), (width, surface)
                         # Monitoring and stop stay usable: the campaign's own
                         # controls, and the rehearsal's in the Development area.
+                        # The research surface draws only the controls that apply to the
+                        # campaign's state, so every control shown in the bar is measured.
+                        shown = (
+                            "[...document.querySelectorAll('#campaign-detail .rs-head [data-action]')]"
+                            ".filter(b => b.offsetParent !== null)"
+                        )
                         assert session.evaluate(
-                            "document.querySelector('#campaign-detail .rs-head [data-action=stop]')"
-                            ".getBoundingClientRect().width >= 44"
-                        ), width
+                            f"{shown}.length >= 1 && {shown}.every(b => b.getBoundingClientRect().width >= 44)"
+                        ), (
+                            width,
+                            session.evaluate(
+                                f"JSON.stringify({shown}.map(b => [b.dataset.action, b.getBoundingClientRect().width]))"
+                            ),
+                        )
                         goto(session, "#development")
                         assert session.evaluate(
                             "document.getElementById('stop').getBoundingClientRect().width >= 44"
