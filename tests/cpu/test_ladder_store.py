@@ -405,11 +405,25 @@ def _hook(store):
     )
 
 
-def test_the_retention_hook_steps_at_eta_while_the_registry_is_empty(store):
+def test_the_retention_hook_steps_at_eta_while_the_registry_is_empty(
+    store, tmp_path, monkeypatch
+):
     # Retention never unbinds on a ladder failure, so it reports a state; a
     # signature drift between hook and store would read UNAVAILABLE here.
+    # The registry is an EMPTY one in a tmp file, whatever the committed registry holds: the hook still reads it through
+    # the real loader (`rebuild_noise(..., path=...)`), so "empty registry -> eta" is what is tested.
+    import json
+
     from carbon.challenge_validator import koth_registry
 
+    empty = tmp_path / "empty_koth_rebuild_noise.json"
+    empty.write_text(json.dumps({"schema": koth_registry.SCHEMA, "challenges": {}}))
+    real = koth_registry.rebuild_noise
+    monkeypatch.setattr(
+        koth_registry,
+        "rebuild_noise",
+        lambda challenge_id, **_: real(challenge_id, path=empty),
+    )
     assert koth_registry.rebuild_noise(MOTOR.challenge_id) is None
     assert _hook(store) == "RECORDED"
     assert store.served("5Miner", MOTOR, EXAM)["best"]["total"] == 0.62
