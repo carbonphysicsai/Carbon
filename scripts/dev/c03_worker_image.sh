@@ -46,10 +46,16 @@ recipe_digest="sha256:$(shasum -a 256 "${dockerfile}" | cut -d' ' -f1)"
 entrypoint_digest="sha256:$(shasum -a 256 "${repo_root}/carbon/reconstruction/worker/entrypoint.py" | cut -d' ' -f1)"
 tag="$(bash "$(dirname -- "${BASH_SOURCE[0]}")/worker_parent_tag.sh" "${CARBON_WORKER_PARENT_VARIANT:-cpu}" "${source_tree_digest}")"
 
+# The build context is STAGED: a directory holding exactly the build inputs, exported from HEAD (image_modules.py stage).
+# BuildKit reads the Dockerfile-specific .dockerignore and a legacy builder (Docker without buildx) does not; a staged
+# context needs neither, so every builder gives the same image and the source digest above describes its context.
+context="${temporary}/context"
+"${PYTHON}" "${image_modules_program}" stage "${repo_root}" "${context}" \
+  || fail "could not stage the build context from the build inputs."
 docker build \
   --platform linux/amd64 \
   --pull \
-  --file "${dockerfile}" \
+  --file "${context}/.devcontainer/Dockerfile.reconstruction-worker" \
   --build-arg "SOURCE_TREE_DIGEST=${source_tree_digest}" \
   --build-arg "LOCK_DIGEST=${lock_digest}" \
   --build-arg "BASE_IMAGE_DIGEST=${base_digest}" \
@@ -57,7 +63,7 @@ docker build \
   --build-arg "ENTRYPOINT_DIGEST=${entrypoint_digest}" \
   --iidfile "${temporary}/iid" \
   --tag "${tag}" \
-  "${repo_root}"
+  "${context}"
 
 image_id="$(tr -d '[:space:]' < "${temporary}/iid")"
 [[ "${image_id}" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "Docker returned an invalid image ID."

@@ -119,6 +119,7 @@ carbon/**
 !carbon/reconstruction/repeats.py
 !carbon/reconstruction/scaling.py
 !carbon/reconstruction/service.py
+!carbon/reconstruction/torch_profile.py
 !carbon/reconstruction/worker/__init__.py
 !carbon/reconstruction/worker/artifact_validator.py
 !carbon/reconstruction/worker/backend_probe.py
