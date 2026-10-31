@@ -172,16 +172,22 @@ CARBON_AGENT = (
 
 
 def _challenges():
-    from carbon.reconstruction.capability_registry import (
-        BATTERY_CHALLENGE,
-        BATTERY_CONTRACT,
-        BURGERS_CHALLENGE,
-    )
+    from carbon.challenge_registry import registry
+    from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
 
-    return BATTERY_CHALLENGE, BATTERY_CONTRACT, BURGERS_CHALLENGE
+    # The wizard offers the newest version of each launch Challenge (app.js offeredChallenges).
+    versions = [
+        entry.version
+        for entry in registry._entries()
+        if entry.challenge_id == MOTOR_CHALLENGE
+        and entry.status not in ("RESERVED", "RETIRED", "DEFERRED")
+    ]
+    return MOTOR_CHALLENGE, max(versions, key=lambda v: tuple(map(int, v.split("."))))
 
 
-BATTERY_CHALLENGE, BATTERY_CONTRACT, BURGERS_CHALLENGE = _challenges()
+#: A launch Challenge and the version the wizard offers (Battery is historical_development
+#: and no longer offered).
+LAUNCH_CHALLENGE, LAUNCH_VERSION = _challenges()
 
 
 def choose(session, name, value):
@@ -318,8 +324,8 @@ class ResearchFixture:
             "review_digest": "fixture-review-pin",
             "agent": "autonomous",
             "budget": LAUNCH_BUDGET,
-            "challenge": BATTERY_CHALLENGE,
-            "challenge_version": BATTERY_CONTRACT.version,
+            "challenge": LAUNCH_CHALLENGE,
+            "challenge_version": LAUNCH_VERSION,
             "model_provider": "openai-responses",
             "model": "gpt-5-mini-2025-08-07",
         }
@@ -796,7 +802,7 @@ def run():
                     # Every launch choice is rendered from the capability
                     # document; the person picks each one, nothing is defaulted.
                     goto(session, "#launch")
-                    choose(session, "wizard-challenge", BATTERY_CHALLENGE)
+                    choose(session, "wizard-challenge", LAUNCH_CHALLENGE)
                     assert session.evaluate(
                         "document.getElementById('wizard-challenge-description').textContent.includes('Objective')"
                     )
