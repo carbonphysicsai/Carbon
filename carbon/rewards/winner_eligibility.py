@@ -37,7 +37,7 @@ import stat
 from pathlib import Path
 
 from .core import RewardFailure
-from .winner_decay import Winner
+from .winner_decay import FULL_RESET, Winner
 
 LEDGER_SCHEMA = "carbon.rewards.testnet-winner-ledger.v2"
 LEGACY_LEDGER_SCHEMA = "carbon.rewards.testnet-winner-ledger.v1"
@@ -161,7 +161,15 @@ def lean_promotion(store):
         "contract_digest": row["binding"].get("contract_digest"),
         "incumbent_reason": reason,
     }
-    return {**promotion, "kind": FIRST if previous is None else BANK}
+    if previous is None:
+        return {**promotion, "kind": FIRST}
+    # A crown change applies only after the contender's grade was repeat-verified
+    # (`bank_promotion.consider_private`), which files the mark beside the grade: the
+    # evidence a self-improvement reset (`decide`) trusts, with no threshold of its own.
+    marks = getattr(store, "repeat_marks", None)
+    if marks is not None:
+        promotion["repeat_verified"] = len(marks(model_id)) > 0
+    return {**promotion, "kind": BANK}
 
 
 def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
@@ -227,6 +235,21 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
             previous_record["clock_ms"] if keep else now_ms,
         )
 
+    def self_improvement():
+        # OWNER-KING-SELF-IMPROVEMENT-RESET-01: a repeat-confirmed crown by the same miner
+        # beating its own king restarts the clock. What qualifies is the KOTH rule alone
+        # (the grade beat the king's by more than the registered rebuild noise AND was
+        # repeat-verified); this adds no threshold. A bank promotion without its repeat
+        # mark is refused, leaving the ledger unchanged (fail closed). An ineligible
+        # predecessor cannot gain eligibility this way.
+        if promotion["kind"] != BANK:
+            return no_reset()
+        if promotion.get("repeat_verified") is not True:
+            raise RewardFailure("SELF_IMPROVEMENT_UNVERIFIED")
+        if previous_record is None or not previous_record["eligible"]:
+            return no_reset()
+        return record(True, "self_improvement_reset")
+
     if promotion["kind"] == FIRST:
         if policy.baseline(challenge) is not None:
             if previous_record is not None:
@@ -251,9 +274,14 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
     ):
         raise WinnerIdentityFailure("PREDECESSOR_RECORD_MISMATCH")
     if same_miner(previous_hotkey):
-        # A king beating himself: the better model is the incumbent, the
-        # clock does not reset (KOTH-TAKEOVER-RULE-01 §2).
-        return no_reset()
+        factor = policy.self_improvement_factor
+        if factor is None:
+            # A king beating himself: the better model is the incumbent, the
+            # clock does not reset (KOTH-TAKEOVER-RULE-01 §2).
+            return no_reset()
+        if factor != FULL_RESET:
+            raise RewardFailure("SELF_IMPROVEMENT_FACTOR_UNKNOWN")
+        return self_improvement()
     return record(
         True, "final_improvement" if promotion["kind"] == FINAL else "bank_improvement"
     )

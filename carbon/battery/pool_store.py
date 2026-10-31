@@ -1703,6 +1703,23 @@ class PoolStore:
             ).fetchone()
         return None if row is None else json.loads(row[0])["fingerprint"]
 
+    def repeat_marks(self, submission_id):
+        """The evaluation keys ``submission_id`` holds a repeat-verified mark under, oldest
+        first. Reads only (the reward layer's evidence that a crown was repeat-confirmed)."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='repeat_verified.v1' ORDER BY rowid"
+            ).fetchall()
+        keys = []
+        for (raw,) in rows:
+            try:
+                body = json.loads(raw)
+            except ValueError:
+                continue
+            if body.get("submission_id") == submission_id:
+                keys.append(body["evaluation_key"])
+        return keys
+
     # --- the registered KOTH baseline (public king route) --------------------------
 
     def record_baseline(self, challenge, key, total):

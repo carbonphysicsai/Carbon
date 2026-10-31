@@ -1,0 +1,27 @@
+{
+  "authority": "OWNER-TESTNET-WEIGHTS-01",
+  "baselines": {
+    "chip-cold-plate": null,
+    "electric-motor-magnetics": null,
+    "f02": null,
+    "f08-ribbed-bracket": null
+  },
+  "burn_uid": 0,
+  "cadence_blocks": 360,
+  "challenges": [
+    "electric-motor-magnetics",
+    "chip-cold-plate",
+    "f08-ribbed-bracket",
+    "f02"
+  ],
+  "decay": {
+    "full_ms": 86400000,
+    "halving_ms": 86400000
+  },
+  "membership_note": "LAUNCH policy v5: testnet-winner-v4-launch plus self_improvement_factor = \"full_reset\" (OWNER-KING-SELF-IMPROVEMENT-RESET-01): when the crown holder beats its own king (same hotkey or same coldkey) with a repeat-verified promotion, which the KOTH rule already requires to exceed the king's repeat-confirmed total by more than the registered rebuild noise, its decay clock restarts at the time the promotion is first observed. Nothing else differs from v4 (the four launch Challenges, decay, cadence, burn, baselines null / first-incumbent rule). Applies going forward only: ledger records written under other policies are never recomputed. Not the registry's current policy; a standing authorization names its digest only when the owner approves it.",
+  "netuid": 567,
+  "network": "testnet",
+  "schema": "carbon.rewards.testnet-winner-policy.v1",
+  "self_improvement_factor": "full_reset",
+  "version": "testnet-winner-v5-launch"
+}

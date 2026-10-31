@@ -79,6 +79,10 @@ _KEYS = frozenset(
 )
 _DECAY = {"full_ms": DAY_MS, "halving_ms": DAY_MS}
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+#: The closed set of self-improvement factors (OWNER-KING-SELF-IMPROVEMENT-RESET-01). ``None``: a same-miner
+#: promotion keeps its old clock. ``FULL_RESET``: a repeat-verified same-miner promotion restarts the clock. No
+#: other value, and never a number, is a factor.
+FULL_RESET = "full_reset"
 
 
 def _canonical(value):
@@ -143,7 +147,7 @@ def load_policy(version=None, directory=None):
         or len(set(challenges)) != len(challenges)
         or not all(type(c) is str and c for c in challenges)
         or document["decay"] != _DECAY
-        or not (factor is None or type(factor) is str)
+        or not (factor is None or factor == FULL_RESET)
         or document["burn_uid"] != 0
         or document["cadence_blocks"] != 360
         or type(baselines) is not dict
