@@ -41,15 +41,7 @@
       "status": "would-reformat"
     },
     {
-      "path": "carbon/challenge_validator/direct_receiver.py",
-      "status": "would-reformat"
-    },
-    {
       "path": "carbon/challenge_validator/exam_cap.py",
-      "status": "would-reformat"
-    },
-    {
-      "path": "carbon/challenge_validator/lean_recipe_retention.py",
       "status": "would-reformat"
     },
     {
@@ -900,10 +892,10 @@
       "code": "I001",
       "column": 1,
       "end_column": 25,
-      "end_row": 54,
+      "end_row": 56,
       "message": "Import block is un-sorted or un-formatted",
       "path": "carbon/reconstruction/worker/image_modules.py",
-      "row": 44
+      "row": 45
     },
     {
       "code": "I001",
@@ -958,15 +950,6 @@
       "message": "Import block is un-sorted or un-formatted",
       "path": "tests/cpu/test_battery_sealed_family_grading.py",
       "row": 24
-    },
-    {
-      "code": "I001",
-      "column": 1,
-      "end_column": 54,
-      "end_row": 18,
-      "message": "Import block is un-sorted or un-formatted",
-      "path": "tests/cpu/test_worker_build_inputs.py",
-      "row": 7
     },
     {
       "code": "I001",
@@ -1879,7 +1862,7 @@
     }
   ],
   "schema_version": 1,
-  "source_commit": "418ce0de6f875b81de18513393a0f89d309ba358",
+  "source_commit": "0a76dabce05e58812ac047d4227ee256922383ee",
   "tool_arguments": {
     "black": [
       "--config",
@@ -3365,6 +3348,7 @@
     "scripts/dev/evidence_runs/f02.py",
     "scripts/dev/evidence_runs/motor_10p12s.py",
     "scripts/dev/evidence_runs/settlement.py",
+    "scripts/dev/exam_cadence_from_recal.py",
     "scripts/dev/exam_design/adaptive_agent.py",
     "scripts/dev/exam_design/battery_reference.py",
     "scripts/dev/exam_design/campaign.py",
@@ -4166,6 +4150,7 @@
     "tests/cpu/test_container_end_evidence.py",
     "tests/cpu/test_control_center_capabilities.py",
     "tests/cpu/test_control_center_challenge_neutral.py",
+    "tests/cpu/test_control_center_default_backbone.py",
     "tests/cpu/test_control_center_easy_mode.py",
     "tests/cpu/test_control_center_graphite.py",
     "tests/cpu/test_control_center_live_page.py",
@@ -4188,6 +4173,7 @@
     "tests/cpu/test_cooling_hotspot_version.py",
     "tests/cpu/test_cooling_mesh_family.py",
     "tests/cpu/test_cooling_pilot.py",
+    "tests/cpu/test_cooling_pool_gate_contract.py",
     "tests/cpu/test_cooling_readiness_build.py",
     "tests/cpu/test_cooling_sealed_grading.py",
     "tests/cpu/test_copy_delivery.py",
@@ -4324,6 +4310,7 @@
     "tests/cpu/test_evidence_runs_battery_motor.py",
     "tests/cpu/test_evidence_runs_f02.py",
     "tests/cpu/test_exam_batch_qa.py",
+    "tests/cpu/test_exam_cadence_from_recal.py",
     "tests/cpu/test_exam_cap.py",
     "tests/cpu/test_exam_design_machinery.py",
     "tests/cpu/test_exam_health.py",
@@ -4394,6 +4381,7 @@
     "tests/cpu/test_gpu_worker_manifest_round_trip.py",
     "tests/cpu/test_grade_diagnostics.py",
     "tests/cpu/test_grade_feedback.py",
+    "tests/cpu/test_grade_installed_commit.py",
     "tests/cpu/test_grade_why_door.py",
     "tests/cpu/test_grant_pod_rate_ceiling.py",
     "tests/cpu/test_grant_refund_slot.py",
@@ -4856,8 +4844,10 @@
     "tests/cpu/test_pool_exam.py",
     "tests/cpu/test_pool_exam_se.py",
     "tests/cpu/test_pool_grader.py",
+    "tests/cpu/test_pool_official_path_refused_rows.py",
     "tests/cpu/test_pool_pack.py",
     "tests/cpu/test_pool_pack_cooling.py",
+    "tests/cpu/test_pool_pack_set_fixture.py",
     "tests/cpu/test_pool_plugin.py",
     "tests/cpu/test_pool_predict_table.py",
     "tests/cpu/test_pool_proof_grid_raw.py",
@@ -4928,6 +4918,7 @@
     "tests/cpu/test_receiver_catalog.py",
     "tests/cpu/test_receiver_pack_set_config.py",
     "tests/cpu/test_receiver_setup.py",
+    "tests/cpu/test_receiver_values_descendant.py",
     "tests/cpu/test_reconcile_interrupted_tool_calls.py",
     "tests/cpu/test_reconstruction_catalogue.py",
     "tests/cpu/test_reduced_baselines.py",
@@ -5160,10 +5151,13 @@
     "tests/cpu/test_workbench_scope.py",
     "tests/cpu/test_worker_build_inputs.py",
     "tests/cpu/test_worker_image_capability.py",
+    "tests/cpu/test_worker_image_derived_and_context.py",
+    "tests/cpu/test_worker_image_modules.py",
     "tests/cpu/test_worker_image_release.py",
     "tests/cpu/test_worker_loop_backoff.py",
     "tests/cpu/test_worker_parent_tags.py",
     "tests/cpu/test_worker_resources_wiring.py",
+    "tests/cpu/test_worker_script_invocations.py",
     "tests/cpu/test_workspace_path_confinement.py",
     "tests/cpu/test_write_once_atomic.py",
     "tests/fixtures/guarded419_t128.py",
