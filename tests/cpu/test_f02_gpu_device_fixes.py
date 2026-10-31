@@ -110,6 +110,15 @@ def test_the_motor_and_f08_sources_already_place_their_tensors_so_no_fix_applies
 
 
 def test_the_fix_key_maps_only_the_two_f02_entries():
+    # the aliases are data: exactly these two, each naming an original entry that has registered fixes
+    assert gpu_build.DEVICE_FIX_ALIASES == {
+        "v2.f02.lno.LNO1d": "lno.LNO1d",
+        "v2.f02.neuralop.GINO": "neuralop.GINO",
+    }
+    assert all(
+        target in gpu_build.DEVICE_FIXES
+        for target in gpu_build.DEVICE_FIX_ALIASES.values()
+    )
     assert gpu_build.device_fix_key("v2.f02.lno.LNO1d") == "lno.LNO1d"
     assert gpu_build.device_fix_key("v2.f02.neuralop.GINO") == "neuralop.GINO"
     for other in (

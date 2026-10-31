@@ -186,23 +186,20 @@ DEVICE_FIXES = {
     ),
 }
 
-#: The F02 v2 bundles (`v2.f02.<backbone>`) were generated from the older template: their sources still build the DFT
-#: matrices (LNO1d) and the query-row index (GINO) on the CPU inside `forward`, unlike the Motor and F08 v2 sources, which
-#: already place them on the input's device. So these two F02 entries take the SAME registered fixes as the original
-#: `lno.LNO1d` / `neuralop.GINO`; every anchor occurs exactly once in their sources (`patched_source` refuses otherwise).
-#: Any other id, and every other v2 entry, is looked up under its own id and so is unchanged.
-F02_PREFIX = "v2.f02."
-F02_DEVICE_FIX_ENTRIES = ("lno.LNO1d", "neuralop.GINO")
+#: Old-template v2 entries that take the registered fixes of an original entry. The F02 v2 bundles were generated from
+#: the older template: their sources still build the DFT matrices (LNO1d) and the query-row index (GINO) on the CPU inside
+#: `forward`, unlike the Motor and F08 v2 sources, which already place them on the input's device. Each alias is one line of
+#: data (a future old-template v2 entry is one more); every anchor of the aliased fixes must occur exactly once in the
+#: entry's own source (`patched_source` refuses otherwise). Any id not listed is looked up as itself.
+DEVICE_FIX_ALIASES = {
+    "v2.f02.lno.LNO1d": "lno.LNO1d",
+    "v2.f02.neuralop.GINO": "neuralop.GINO",
+}
 
 
 def device_fix_key(catalog_id):
-    """The `DEVICE_FIXES` key a catalog id selects: its own id, except the two F02 v2 entries that share the original
-    entries' fixes (see `F02_DEVICE_FIX_ENTRIES`)."""
-    if type(catalog_id) is str and catalog_id.startswith(F02_PREFIX):
-        stripped = catalog_id[len(F02_PREFIX) :]
-        if stripped in F02_DEVICE_FIX_ENTRIES:
-            return stripped
-    return catalog_id
+    """The `DEVICE_FIXES` key a catalog id selects: its alias if it has one, else itself."""
+    return DEVICE_FIX_ALIASES.get(catalog_id, catalog_id)
 
 
 # Historical data for the original derived bytes. The shared implementation's
