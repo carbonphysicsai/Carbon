@@ -29,6 +29,7 @@ from carbon.battery import (
 from carbon.battery import level4 as battery
 from carbon.battery import level4_lowering as battery_lowering
 from carbon.battery.compile import compile_recipe
+from carbon.challenge_validator.cpu_pin import PIN as _CPU_PIN
 from carbon.level4 import allowlist, graph, intake, staging, submission
 from carbon.reconstruction import development_composition as dc
 
@@ -382,7 +383,13 @@ def test_graph_staged_program_state_and_documents_match_in_process(
     subprocess.run(
         [sys.executable, "program.py"],
         cwd=work,
-        env={"PYTHONPATH": str(ROOT), "JAX_PLATFORMS": "cpu", "PATH": "/usr/bin:/bin"},
+        # The staged program runs under the same CPU-dispatch pin as this process.
+        env={
+            "PYTHONPATH": str(ROOT),
+            "JAX_PLATFORMS": "cpu",
+            "PATH": "/usr/bin:/bin",
+            **{k: os.environ[k] for k in _CPU_PIN if k in os.environ},
+        },
         check=True,
         timeout=900,
     )

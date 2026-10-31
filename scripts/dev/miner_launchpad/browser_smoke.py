@@ -37,7 +37,40 @@ def wait(session, expression):
         if session.evaluate(expression):
             return
         time.sleep(0.05)
-    raise AssertionError(f"Browser condition failed: {expression}")
+    raise AssertionError(
+        f"Browser condition failed: {expression} | page: {_page_state(session)}"
+    )
+
+
+#: What a person would read on the page when a condition fails: the wizard's own reason it
+#: will not go on, the message line and the preflight, so a CI failure names the cause.
+_PAGE_STATE = (
+    "JSON.stringify(Object.fromEntries(["
+    "['hash', location.hash],"
+    "['next_reason', document.getElementById('wizard-next-reason')?.textContent],"
+    "['message', document.getElementById('message')?.textContent],"
+    "['preflight', document.getElementById('research-preflight')?.textContent],"
+    "['review', document.getElementById('wizard-review')?.textContent],"
+    "['controls', JSON.stringify([...document.querySelectorAll('#campaign-detail [data-action]')].map(b => [b.dataset.action, b.disabled]))],"
+    "].map(([k, v]) => [k, (v || '').slice(0, 400)])))"
+)
+#: Each wizard step's own reason it will not go on, read by opening the steps in order (a
+#: step button is disabled while an earlier step has a problem). Run only once a wait failed.
+_STEP_REASONS = (
+    "JSON.stringify([...document.querySelectorAll('#wizard-steps button')].map(b => {"
+    " if (!b.disabled) b.click();"
+    " return [b.dataset.wizardStep, b.disabled,"
+    " (document.getElementById('wizard-next-reason')?.textContent || '').slice(0, 300)]; }))"
+)
+
+
+def _page_state(session):
+    try:
+        return (
+            session.evaluate(_PAGE_STATE) + " steps: " + session.evaluate(_STEP_REASONS)
+        )
+    except Exception as exc:  # noqa: BLE001 - diagnostics must never mask the failure
+        return f"unavailable ({type(exc).__name__}: {exc})"
 
 
 class StubReader:
@@ -156,6 +189,20 @@ class ReadbackFixture:
 
 
 LAUNCH_BUDGET = {"elapsed_seconds": 600, "ceilings": {"research_trials": 5}}
+#: Graphite refuses a launch without a model-call ceiling and a model-spend ceiling (U17); the
+#: page takes the spend in dollars. The same composition, with those two, is what a Graphite launch sends.
+GRAPHITE_CEILING_FIELDS = {
+    "ceiling-provider_attempts": "100",
+    "ceiling-provider_nanodollars": "5",
+}
+GRAPHITE_LAUNCH_BUDGET = {
+    "elapsed_seconds": 600,
+    "ceilings": {
+        "provider_attempts": 100,
+        "provider_nanodollars": 5 * 10**9,
+        "research_trials": 5,
+    },
+}
 #: Graphite's choices as the wizard starts them (GRAPHITE-MINER-S5): Full,
 #: a 10% research share, and no hunt (it spends the miner's money, so it is
 #: off until they turn it on).
@@ -172,21 +219,31 @@ CARBON_AGENT = (
 
 
 def _challenges():
-    from carbon.reconstruction.capability_registry import (
-        BATTERY_CHALLENGE,
-        BATTERY_CONTRACT,
-        BURGERS_CHALLENGE,
-    )
+    from carbon.challenge_registry import registry
+    from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
 
-    return BATTERY_CHALLENGE, BATTERY_CONTRACT, BURGERS_CHALLENGE
+    # The wizard offers the newest version of each launch Challenge (app.js offeredChallenges).
+    versions = [
+        entry.version
+        for entry in registry._entries()
+        if entry.challenge_id == MOTOR_CHALLENGE
+        and entry.status not in ("RESERVED", "RETIRED", "DEFERRED")
+    ]
+    return MOTOR_CHALLENGE, max(versions, key=lambda v: tuple(map(int, v.split("."))))
 
 
-BATTERY_CHALLENGE, BATTERY_CONTRACT, BURGERS_CHALLENGE = _challenges()
+#: A launch Challenge and the version the wizard offers (Battery is historical_development
+#: and no longer offered).
+LAUNCH_CHALLENGE, LAUNCH_VERSION = _challenges()
 
 
 def choose(session, name, value):
     """Pick a wizard choice the way a person does: its radio, by value."""
     selector = f"input[name={name}][value={json.dumps(value)}]"
+    if name == "wizard-challenge" and "@" not in value:
+        # The wizard's option value is "<challenge id>@<version>" (43348bd220); a bare
+        # Challenge id picks the option by its data-challenge attribute.
+        selector = f"input[name={name}][data-challenge={json.dumps(value)}]"
     wait(
         session,
         f"Boolean(document.querySelector({json.dumps(selector)}))"
@@ -314,13 +371,14 @@ class ResearchFixture:
             "review_digest": "fixture-review-pin",
             "agent": "autonomous",
             "budget": LAUNCH_BUDGET,
-            "challenge": BATTERY_CHALLENGE,
-            "challenge_version": BATTERY_CONTRACT.version,
+            "challenge": LAUNCH_CHALLENGE,
+            "challenge_version": LAUNCH_VERSION,
             "model_provider": "openai-responses",
             "model": "gpt-5-mini-2025-08-07",
         }
         if value.get("agent") == "graphite":
             expected["agent"] = "graphite"
+            expected["budget"] = GRAPHITE_LAUNCH_BUDGET
             expected.update({k: v for k, v in GRAPHITE_DEFAULTS.items() if k in value})
         assert value == expected, value
         self.keys.add(key)
@@ -475,10 +533,12 @@ def set_field(session, identity, value):
     )
 
 
-def compose_and_template(session):
+def compose_and_template(session, graphite=False):
     """C2: one composition behind both paths, saved and loaded as a template,
     closed and checked against what is available when it is loaded."""
-    assert summary(session).endswith("budget: none, no cap"), summary(session)
+    # With Graphite the two model ceilings are already set; the "empty" composition is that one.
+    empty = summary(session)
+    assert graphite or empty.endswith("budget: none, no cap"), empty
     click(session, "path-advanced")
     wait(session, "!document.getElementById('launch-advanced').hidden")
     # Every resource the ledger knows is offered, and only those.
@@ -512,7 +572,7 @@ def compose_and_template(session):
     set_field(session, "ceiling-research_trials", "")
     click(session, "path-quick")
     wait(session, "document.getElementById('launch-advanced').hidden")
-    assert summary(session).endswith("budget: none, no cap"), summary(session)
+    assert summary(session) == empty, summary(session)
     # A template carrying anything a launch composition cannot is refused by
     # name - and the specimen, the saved one, loads.
     session.evaluate(
@@ -532,7 +592,7 @@ def compose_and_template(session):
         session,
         "document.getElementById('message').textContent.includes('which a template cannot carry')",
     )
-    assert summary(session).endswith("budget: none, no cap"), summary(session)
+    assert summary(session) == empty, summary(session)
     session.evaluate("document.getElementById('template-pick').value = 'night run'")
     click(session, "template-load")
     wait(
@@ -792,14 +852,17 @@ def run():
                     # Every launch choice is rendered from the capability
                     # document; the person picks each one, nothing is defaulted.
                     goto(session, "#launch")
-                    choose(session, "wizard-challenge", BATTERY_CHALLENGE)
+                    choose(session, "wizard-challenge", LAUNCH_CHALLENGE)
                     assert session.evaluate(
                         "document.getElementById('wizard-challenge-description').textContent.includes('Objective')"
                     )
                     reserved = session.evaluate(
                         "document.getElementById('wizard-challenges').textContent"
                     )
-                    assert "challenge not implemented" in reserved, reserved[:400]
+                    # The wizard lists only the launch set, each Ready (app.js offeredChallenges drops
+                    # reserved, retired, deferred and historical entries), so no entry is unimplemented.
+                    assert "challenge not implemented" not in reserved, reserved[:400]
+                    assert reserved.count("Ready") >= 1, reserved[:400]
                     agent = session.evaluate(CARBON_AGENT)
                     if agent == "graphite":
                         # Never both: Graphite replaces the autonomous agent.
@@ -815,12 +878,15 @@ def run():
                             "document.querySelector('input[name=wizard-model]').value"
                         ),
                     )
+                    if agent == "graphite":
+                        for field, value in GRAPHITE_CEILING_FIELDS.items():
+                            set_field(session, field, value)
                     research.preflight = original_preflight
                     wait(
                         session, "!document.getElementById('research-launch').disabled"
                     )
                     assert session.evaluate(
-                        "document.getElementById('research-preflight').textContent.includes('your subnet registration, read at launch') && document.getElementById('research-launch').textContent === 'Launch research'"
+                        "document.getElementById('research-preflight').textContent.includes('your registration, read at launch') && document.getElementById('research-launch').textContent === 'Launch research'"
                     )
                     panel = session.evaluate(
                         "document.getElementById('research-heading').closest('section').textContent"
@@ -828,7 +894,7 @@ def run():
                     # "grants nothing" (a capability request) is not an
                     # admission grant; the word itself must not appear.
                     assert not re.search(r"\bgrant\b", panel.lower()), panel[:300]
-                    compose_and_template(session)
+                    compose_and_template(session, agent == "graphite")
 
                     def lost_research_response(value, key):
                         research_launch(value, key)
@@ -955,10 +1021,17 @@ def run():
                         session,
                         "document.getElementById('connection-state').textContent === 'Connection interrupted'",
                     )
-                    # No control can be sent while the connection is down.
-                    assert session.evaluate(
-                        "[...document.querySelectorAll('#campaign-detail [data-action]')].length >= 4"
-                        " && [...document.querySelectorAll('#campaign-detail [data-action]')].every(b => b.disabled)"
+                    # No control can be sent while the connection is down. The research surface
+                    # draws only the controls that apply to the state (research_view.js: a
+                    # control that cannot be pressed is not drawn), so a running campaign has
+                    # Pause, Stop, Reconcile and Export. Export is drawn enabled (research_view.js sets no
+                    # disabled state on it) but researchAction returns at once while disconnected, so it
+                    # sends nothing; every other control is disabled.
+                    wait(
+                        session,
+                        "[...document.querySelectorAll('#campaign-detail [data-action]')].length >= 2"
+                        " && [...document.querySelectorAll('#campaign-detail [data-action]')]"
+                        ".every(b => b.disabled || b.dataset.action === 'export')",
                     )
                     research.recent = original_research_recent
                     wait(
@@ -1073,10 +1146,20 @@ def run():
                             ), (width, surface)
                         # Monitoring and stop stay usable: the campaign's own
                         # controls, and the rehearsal's in the Development area.
+                        # The research surface draws only the controls that apply to the
+                        # campaign's state, so every control shown in the bar is measured.
+                        shown = (
+                            "[...document.querySelectorAll('#campaign-detail .rs-head [data-action]')]"
+                            ".filter(b => b.offsetParent !== null)"
+                        )
                         assert session.evaluate(
-                            "document.querySelector('#campaign-detail .rs-head [data-action=stop]')"
-                            ".getBoundingClientRect().width >= 44"
-                        ), width
+                            f"{shown}.length >= 1 && {shown}.every(b => b.getBoundingClientRect().width >= 44)"
+                        ), (
+                            width,
+                            session.evaluate(
+                                f"JSON.stringify({shown}.map(b => [b.dataset.action, b.getBoundingClientRect().width]))"
+                            ),
+                        )
                         goto(session, "#development")
                         assert session.evaluate(
                             "document.getElementById('stop').getBoundingClientRect().width >= 44"
@@ -1203,9 +1286,13 @@ def run():
                 recovered.recover()
                 token = "rotated-browser-smoke-token-not-a-real-credential"
                 with serving(recovered, token, port):
+                    # The restarted controller has a new token, so the page's old one is
+                    # refused (401): the page says its session ended (app.js SESSION_ENDED)
+                    # rather than that the connection was interrupted.
                     wait(
                         session,
-                        "document.getElementById('connection-state').textContent === 'Connection interrupted'",
+                        "document.getElementById('connection-state').textContent === 'Disconnected'"
+                        " && document.getElementById('message').textContent.includes('Your session ended')",
                     )
                     connect(session, token)
                     state(session, "INTERRUPTED")
@@ -1273,9 +1360,14 @@ def journey():
                         session,
                         f"document.querySelector('input[name=research-agent][value={agent}]').disabled",
                     )
-                    assert "provider key not configured" in session.evaluate(
+                    # The reason is the plain sentence the capability document states
+                    # ("Carbon's agent needs your model key"), else the words of its code.
+                    selects = session.evaluate(
                         "document.getElementById('research-selects').textContent"
                     )
+                    assert re.search(
+                        r"needs your model key|provider key not configured", selects
+                    ), selects[:400]
                     # A template saved where the agent could run is checked
                     # again when it is loaded here, where it cannot: refused
                     # with the reason, and the composition is left unchanged.
@@ -1484,7 +1576,7 @@ def journey():
                     click(session, f"journey-submit-{run_id}")
                     wait(
                         session,
-                        "document.getElementById('campaign-detail').textContent.includes('Submitted epochs: 1')",
+                        "document.getElementById('campaign-detail').textContent.includes('Submitted rounds: 1')",
                     )
                     assert (
                         campaign / "epoch-1" / "permitted-final-feedback.json"
@@ -1868,9 +1960,11 @@ def setup_journey():
                     "document.getElementById('setup-result').textContent === 'Checked: inference.'",
                 )
                 # The step shows done, and Next opens the following step.
-                assert session.evaluate(
+                # (the panel is redrawn from the refreshed setup record, a beat after the result line)
+                wait(
+                    session,
                     "document.querySelector('[data-step-panel=inference] .step-done')"
-                    ".textContent.includes('Done')"
+                    "?.textContent.includes('Done')",
                 )
                 click(session, "setup-next")
                 wait(
@@ -2180,10 +2274,6 @@ def fresh_miner():
                 # Next, getting your keys and joining; the signer is open beside
                 # it, in either order, and says so.
                 assert [s[2] for s in steps] == ["Next", "Open"] + ["Waiting"] * 4
-                assert session.evaluate(
-                    "document.querySelector('#getting-started-steps [data-step=register]')"
-                    ".textContent.includes('either order')"
-                )
                 assert "is-current" in steps[0][1]
                 primary = json.loads(
                     session.evaluate(
@@ -2191,7 +2281,10 @@ def fresh_miner():
                         " document.getElementById('overview-primary').getAttribute('href')])"
                     )
                 )
-                assert primary == ["Next: Get your keys and join", "#setup/register"], primary
+                assert primary == [
+                    "Next: Get your keys and join",
+                    "#setup/register",
+                ], primary
                 # The same step leads in setup, with its command to copy; the
                 # steps after registration are locked until it is confirmed.
                 goto(session, "#setup/signer")
@@ -2199,6 +2292,11 @@ def fresh_miner():
                     session,
                     "location.hash === '#setup/signer'"
                     " && !document.querySelector('[data-step-panel=signer]').hidden",
+                )
+                # The either-order note sits on the signer step (app.js: the register step says
+                # it only while it is Open, not while it is the Next step).
+                assert session.evaluate(
+                    "document.querySelector('[data-step-panel=signer]').textContent.includes('either order')"
                 )
                 assert session.evaluate(
                     "document.getElementById('setup-signer-copy').type === 'button'"
