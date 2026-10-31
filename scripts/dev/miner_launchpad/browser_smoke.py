@@ -809,7 +809,10 @@ def run():
                     reserved = session.evaluate(
                         "document.getElementById('wizard-challenges').textContent"
                     )
-                    assert "challenge not implemented" in reserved, reserved[:400]
+                    # The wizard lists only the launch set, each Ready (app.js offeredChallenges drops
+                    # reserved, retired, deferred and historical entries), so no entry is unimplemented.
+                    assert "challenge not implemented" not in reserved, reserved[:400]
+                    assert reserved.count("Ready") >= 1, reserved[:400]
                     agent = session.evaluate(CARBON_AGENT)
                     if agent == "graphite":
                         # Never both: Graphite replaces the autonomous agent.
