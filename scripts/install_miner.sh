@@ -10,7 +10,7 @@
 #   CARBON_STATE_DIR=~/.carbon/s5-candidate ~/carbon/scripts/install_miner.sh \
 #     --development-candidate "$(git -C ~/carbon rev-parse HEAD)" \
 #     "$(git -C ~/carbon rev-parse 'HEAD^{tree}')" \
-#     "$(python3 ~/carbon/carbon/reconstruction/worker/build_inputs.py digest ~/carbon)" \
+#     "$(python3 -I -B ~/carbon/carbon/reconstruction/worker/build_inputs.py digest ~/carbon)" \
 #     --no-start                                # local DEVELOPMENT only
 #
 # What it does, in order, and nothing else:

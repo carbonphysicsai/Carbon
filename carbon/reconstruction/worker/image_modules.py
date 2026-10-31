@@ -23,13 +23,16 @@ Files it writes (all under version control, all inputs):
     carbon/reconstruction/worker/build_inputs.txt              the build inputs (the digest every image identity is scoped to)
     .devcontainer/Dockerfile.reconstruction-worker.dockerignore the BuildKit allow-list that makes `COPY carbon` copy only those
 
-    python carbon/reconstruction/worker/image_modules.py generate [REPO]   # rewrite the three files
-    python carbon/reconstruction/worker/image_modules.py check [REPO]      # exit 1 when they are not what the code gives
-    python carbon/reconstruction/worker/image_modules.py stage REPO DIR     # a build context of exactly the build inputs
+    python -I -B carbon/reconstruction/worker/image_modules.py generate [REPO]   # rewrite the three files
+    python -I -B carbon/reconstruction/worker/image_modules.py check [REPO]      # exit 1 when they are not what the code gives
+    python -I -B carbon/reconstruction/worker/image_modules.py stage REPO DIR     # a build context of exactly the build inputs
                                                                            # (builder-independent: see `stage_context`)
     python -I -m carbon.reconstruction.worker.image_modules smoke          # IN the image: import every listed module and
                                                                            # refuse any `.py` the list does not name
-    python carbon/reconstruction/worker/image_modules.py trace-check [REPO] < modules.txt
+    python -I -B carbon/reconstruction/worker/image_modules.py trace-check [REPO] < modules.txt
+
+(`-I -B` always: this directory holds the worker's own `operator.py`; a plain `python <script>` would put it first on
+sys.path and shadow the standard library's `operator`, so `import ast` -> `enum` fails.)
                                                                            # a container's traced imports not in the list
 
 The derived images (PyTorch CPU/GPU, JAX GPU) are built FROM this image and run carbon code at build time
@@ -317,7 +320,7 @@ def render_inputs(repo) -> str:
     return (
         "# The worker image's build inputs: every path a worker Dockerfile COPYs, the Dockerfiles, and the derived images'\n"
         "# input directories. The carbon files are the image's own imports (carbon/reconstruction/worker/image_modules.py),\n"
-        "# GENERATED: `python carbon/reconstruction/worker/image_modules.py generate`; a test fails when this file differs.\n"
+        "# GENERATED: `python -I -B carbon/reconstruction/worker/image_modules.py generate`; a test fails when this file differs.\n"
         "# One path per line, relative to the repository root. `source_tree_digest` of a worker-image-build.v2 record is the\n"
         "# digest of the git tree listing (modes and blob ids) of these paths at HEAD.\n"
         + "".join(path + "\n" for path in OTHER_INPUTS[:3])

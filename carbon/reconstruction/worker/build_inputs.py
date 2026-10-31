@@ -10,9 +10,12 @@ meaning (the whole tree) and are never reinterpreted: the schema is the differen
 The set lives in ONE data file, ``build_inputs.txt`` beside this module (itself inside ``carbon/``, so a change to the
 set moves the digest). Python reads it here; shell scripts run this file as a program::
 
-    python carbon/reconstruction/worker/build_inputs.py digest [REPO]   # sha256:<hex>
-    python carbon/reconstruction/worker/build_inputs.py paths           # one repo-relative path per line
-    python carbon/reconstruction/worker/build_inputs.py ignored [REPO]  # git-ignored files under the inputs; exit 1 if any
+    python -I -B carbon/reconstruction/worker/build_inputs.py digest [REPO]   # sha256:<hex>
+    python -I -B carbon/reconstruction/worker/build_inputs.py paths           # one repo-relative path per line
+    python -I -B carbon/reconstruction/worker/build_inputs.py ignored [REPO]  # git-ignored files under the inputs; exit 1 if any
+
+Run these with `-I -B`: this directory holds the worker's own `operator.py`, which a plain `python <script>` would put first
+on sys.path and so shadow the standard library's `operator` (`import enum` then fails).
 
 Standard library only, so any script can run it before the package is importable.
 """
