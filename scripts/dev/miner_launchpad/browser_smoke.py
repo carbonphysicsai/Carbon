@@ -50,7 +50,7 @@ _PAGE_STATE = (
     "['next_reason', document.getElementById('wizard-next-reason')?.textContent],"
     "['message', document.getElementById('message')?.textContent],"
     "['preflight', document.getElementById('research-preflight')?.textContent],"
-    "['review', document.getElementById('wizard-review')?.textContent]"
+    "['review', document.getElementById('wizard-review')?.textContent],"
     "['controls', JSON.stringify([...document.querySelectorAll('#campaign-detail [data-action]')].map(b => [b.dataset.action, b.disabled]))],"
     "].map(([k, v]) => [k, (v || '').slice(0, 400)])))"
 )
@@ -70,7 +70,7 @@ def _page_state(session):
             session.evaluate(_PAGE_STATE) + " steps: " + session.evaluate(_STEP_REASONS)
         )
     except Exception as exc:  # noqa: BLE001 - diagnostics must never mask the failure
-        return f"unavailable ({type(exc).__name__})"
+        return f"unavailable ({type(exc).__name__}: {exc})"
 
 
 class StubReader:
