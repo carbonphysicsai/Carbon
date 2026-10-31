@@ -262,6 +262,8 @@ Official submissions for this version go to https://motor-door.carbonphysics.ai.
 
 This version drops the temperature-rise sign check against hotspot ratio and that sensitivity's fitted exponent; the other checks apply.
 
+Official submissions for this version go to https://cooling-door.carbonphysics.ai. The installer update puts that address in your profile; you type nothing. Crowns are not open yet for this version: submissions are graded and recorded, but no crown changes hands until they open.
+
 - **Hard gates:** `native_cold_plate`, `complete_grid_common_mask`, `selected_design_verified_feasible` (the pick is feasible by the references at every condition: die peak c max 100.0, hydraulic power w max 0.25), `physics_laws`, `schema_finite` (peak, the 30-value profile and the pressure drop are finite), `face_above_inlet`, `peak_bounds_profile` (within 32 float32 ulp), `pressure_drop_positive`, `paired_repeat` (within 32 float32 ulp), and the two gates above
 - **Physics laws (gated):** `peak_above_profile`, `profile_above_inlet`, `pressure_positive`
 - **Physics laws (measured, not yet gate margins):** inlet_shift_temperatures (moving only the inlet by 5 degC moves the peak and every profile segment by the same amount); pressure_ignores_hotspot (mirroring only the hotspot inputs leaves the pressure drop unchanged)

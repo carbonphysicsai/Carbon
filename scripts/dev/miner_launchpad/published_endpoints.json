@@ -25,6 +25,14 @@
       "version": "1.5",
       "intake_url": "https://motor-door.carbonphysics.ai",
       "receiver_hotkey": "5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR"
+    },
+    {
+      "network": "testnet",
+      "netuid": 567,
+      "challenge": "chip-cold-plate",
+      "version": "1.6",
+      "intake_url": "https://cooling-door.carbonphysics.ai",
+      "receiver_hotkey": "5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR"
     }
   ]
 }
