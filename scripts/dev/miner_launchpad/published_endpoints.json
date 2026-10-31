@@ -17,6 +17,14 @@
       "version": "1.7",
       "intake_url": "https://ribbed-bracket-door.carbonphysics.ai",
       "receiver_hotkey": "5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR"
+    },
+    {
+      "network": "testnet",
+      "netuid": 567,
+      "challenge": "electric-motor-magnetics",
+      "version": "1.5",
+      "intake_url": "https://motor-door.carbonphysics.ai",
+      "receiver_hotkey": "5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR"
     }
   ]
 }

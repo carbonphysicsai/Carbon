@@ -246,6 +246,7 @@ Official submissions for this version go to https://ribbed-bracket-door.carbonph
 
 ### Motor 1.5
 
+Official submissions for this version go to https://motor-door.carbonphysics.ai. The installer update puts that address in your profile; you type nothing.
 
 - **Hard gates:** `native_motor_valid`, `complete_fixed_coverage`, `physics_laws`, `schema_finite` (the torque curve has 60 finite values), `motoring_mean_nonnegative` (mean(torque) is at least -(1e-3 x max|torque| + 1e-3 N.m)), `paired_repeat` (within 32 float32 ulp), and the two gates above
 - **Physics laws (gated):** `mean_torque_positive`: the mean torque of the predicted curve is positive wherever the current density exceeds 1 A/mm^2
