@@ -1360,9 +1360,14 @@ def journey():
                         session,
                         f"document.querySelector('input[name=research-agent][value={agent}]').disabled",
                     )
-                    assert "provider key not configured" in session.evaluate(
+                    # The reason is the plain sentence the capability document states
+                    # ("Carbon's agent needs your model key"), else the words of its code.
+                    selects = session.evaluate(
                         "document.getElementById('research-selects').textContent"
                     )
+                    assert re.search(
+                        r"needs your model key|provider key not configured", selects
+                    ), selects[:400]
                     # A template saved where the agent could run is checked
                     # again when it is loaded here, where it cannot: refused
                     # with the reason, and the composition is left unchanged.
