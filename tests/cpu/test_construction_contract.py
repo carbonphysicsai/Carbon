@@ -43,7 +43,7 @@ from carbon.battery.worker import (
     DirectBackend,
     reconstruct_files,
 )
-from carbon.challenge_validator.cpu_pin import PIN as _CPU_PIN
+from carbon.challenge_validator import cpu_pin
 from carbon.reconstruction import capability_registry as cr
 from carbon.reconstruction import development_composition as dc
 from carbon.reconstruction import development_variants as dv
@@ -244,16 +244,18 @@ def test_the_staged_program_and_the_in_process_rebuild_agree(
     for name, body in files.items():
         (work / name).write_bytes(body)
     (work / "program.py").write_text(program)
+    # The staged program runs under the same CPU-dispatch pin as the in-process rebuild (and as production): CI sets the
+    # pin on the pytest process only, so a bare subprocess environment ran the staged program on unpinned kernels.
+    # Unconfirmed hypothesis for the CI failures of this test (week-1 item: confirm on an AVX-512 host, e.g. the
+    # 7950X): the in-process rebuild used the pinned AVX2 kernels, the subprocess the host's AVX-512 ones.
     subprocess.run(
         [sys.executable, "program.py"],
         cwd=work,
         env={
+            **cpu_pin.PIN,
             "PYTHONPATH": str(REPOSITORY),
             "JAX_PLATFORMS": "cpu",
             "PATH": "/usr/bin:/bin",
-            # The staged program must run under the CPU-dispatch pin the in-process
-            # rebuild runs under, or the two use different BLAS kernels.
-            **{k: os.environ[k] for k in _CPU_PIN if k in os.environ},
         },
         check=True,
         timeout=900,

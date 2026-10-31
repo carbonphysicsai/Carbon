@@ -16,6 +16,7 @@ import pytest
 
 from carbon.backbone_catalog import pipeline
 from scripts.dev import catalog_install, catalog_wheelhouse
+from scripts.dev.miner_launchpad.starting_entry import start_first
 
 
 def _wheel_ids():
@@ -128,8 +129,9 @@ def test_one_entrys_failed_install_never_stops_the_rest(host, tmp_path, monkeypa
     built.mkdir(mode=0o700)
     monkeypatch.setattr(catalog_wheelhouse, "DEFAULT_DIRECTORY", built)
     monkeypatch.setattr(catalog_install, "_missing_wheel", lambda item, house: None)
-    # install() tries the starting entries first (start_first), then manifest order.
-    first = catalog_install.start_first(pipeline.load()["entries"])[0]["catalog_id"]
+    # install() goes through the Launchpad's order: each Challenge's starting entry first (start_first), not the
+    # manifest's first entry (bcb33f8f80 moved the start to the baseline entries).
+    first = start_first(pipeline.load()["entries"])[0]["catalog_id"]
     calls = []
 
     def install_bundle(directory, **kwargs):

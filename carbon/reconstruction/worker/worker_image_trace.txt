@@ -1,0 +1,2 @@
+# Modules a box trace of every job kind found beyond the static closure (one module name per line). Maintained by
+# the trace harness; empty until the first box trace.

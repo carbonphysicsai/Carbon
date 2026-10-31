@@ -744,3 +744,100 @@ def test_the_commands_exit_non_zero_until_ready(
     for row in receiver_catalog.served_bundles(config):
         _install(root, row)
     assert receiver_setup.main(["catalog-status", "--receiver-state", str(state)]) == 0
+
+
+# --- the on-box official receipt store decides which twins the receiver must hold ---------------------------------
+
+
+def _only_in_the_store(monkeypatch, tmp_path):
+    """BCAT's torch GPU twin has an official receipt ONLY in the receiver's on-box store (no repository receipt)."""
+    from carbon.backbone_catalog import receipt_store
+
+    seen = []
+
+    class FakeStore:
+        def __init__(self, path, registered_noise=None):
+            seen.append(Path(path))
+
+    monkeypatch.setattr(receipt_store, "ReceiptStore", FakeStore)
+    monkeypatch.setattr(
+        receiver_catalog, "gpu_runtimes", lambda c: ["torch-cu130-py311"]
+    )
+    monkeypatch.setattr(gpu_receipt, "load", lambda cid, rt: None)
+    monkeypatch.setattr(
+        gpu_receipt,
+        "official_receipt",
+        lambda item, runtime, store=None: (
+            {"x": 1} if store is not None and item["catalog_id"] == BCAT else None
+        ),
+    )
+    monkeypatch.setattr(
+        gpu_receipt,
+        "official_grade_problem",
+        lambda receipt, runtime: None if receipt else "it has no receipt",
+    )
+    return seen
+
+
+def test_a_twin_whose_official_receipt_is_only_in_the_on_box_store_is_required(
+    receiver, monkeypatch, tmp_path
+):
+    """Regression (the baseline `direct_reference_not_found` on every receiver): the receiver's catalog step read only
+    the repository receipts, so a twin official only through the on-box store was never listed, never staged, and the
+    official GPU route found no material for it."""
+    config, _root = receiver
+    seen = _only_in_the_store(monkeypatch, tmp_path)
+    assert _twins(config) == []  # no store configured: the repository has no receipt
+    config = {**config, "official_gpu_receipts": str(tmp_path / "receipts")}
+    assert [t["catalog_id"] for t in _twins(config)] == [BCAT]
+    assert seen and all(path == tmp_path / "receipts" for path in seen)
+    # Reading the store here never installs it as the process-wide official store.
+    assert gpu_receipt.OFFICIAL_STORE is None
+
+
+def test_install_stages_a_twin_that_is_official_only_in_the_on_box_store(
+    receiver, monkeypatch, tmp_path
+):
+    config, root = receiver
+    _only_in_the_store(monkeypatch, tmp_path)
+    config = {**config, "official_gpu_receipts": str(tmp_path / "receipts")}
+    fake, _calls = _fake_install(root, config)
+    monkeypatch.setattr(catalog_install, "install", fake)
+    monkeypatch.setattr(
+        pipeline,
+        "twin_directory",
+        lambda item, runtime, target, wheelhouse=None: (
+            root.parent
+            / "synthetic-material"
+            / item["bundle_refs"][runtime]["bundle_digest"][7:]
+        ),
+    )
+    result = receiver_catalog.install(config, tmp_path / "receiver.json")
+    assert result["ready"] is True and result["skipped"] == []
+    (twin,) = _twins(config)
+    assert (root / "materials" / twin["digest"][7:]).is_dir()
+
+
+def test_the_catalog_status_reports_the_gpu_twin_counts_so_ready_cannot_hide_zero_twins(
+    receiver, monkeypatch, tmp_path
+):
+    config, root = receiver
+    # a GPU worker is held but no twin has an official receipt: the counts say 0 required, not just "ready"
+    monkeypatch.setattr(
+        receiver_catalog, "gpu_runtimes", lambda c: ["torch-cu130-py311"]
+    )
+    assert receiver_catalog.verify(config)["gpu_twins"] == {
+        "runtimes": ["torch-cu130-py311"],
+        "required": 0,
+        "installed": 0,
+    }
+    _only_in_the_store(monkeypatch, tmp_path)
+    config = {**config, "official_gpu_receipts": str(tmp_path / "receipts")}
+    for row in receiver_catalog.served_bundles(config):
+        if row["kind"] == "cpu":
+            _install(root, row)
+    shown = receiver_catalog.verify(config)["gpu_twins"]
+    assert shown == {"runtimes": ["torch-cu130-py311"], "required": 1, "installed": 0}
+    (twin,) = _twins(config)
+    _stage(root, twin)
+    assert receiver_catalog.verify(config)["gpu_twins"]["installed"] == 1

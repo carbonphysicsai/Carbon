@@ -30,10 +30,21 @@ trap 'rm -rf "${temporary}"' EXIT
 # The digest of the worker build inputs only (carbon/reconstruction/worker/build_inputs.txt), not the whole repository:
 # a change outside them (scripts/, docs/, tests/ ...) no longer moves any image id. The checkout is still clean as a whole.
 # A git-ignored file under the inputs would enter the build context and the wheel without being bound by the digest.
+# These two programs live in carbon/reconstruction/worker/, beside that package's own `operator.py`. Run as a script,
+# Python puts the script's directory first on sys.path, so `import ast` -> `enum` -> `from operator import or_` found
+# THAT file instead of the standard library's and failed (reported as a stale list). `-I` (isolated mode: neither the
+# script's directory, the working directory, PYTHON* variables nor the user site on sys.path; every Python 3 has it,
+# unlike `-P`, 3.11+ only, and the interpreter here may be a host python3) keeps the shadow out; `-B` restores what the
+# ignored PYTHONDONTWRITEBYTECODE export above would have done (isolated mode ignores the environment).
 build_inputs_program="${repo_root}/carbon/reconstruction/worker/build_inputs.py"
-ignored_inputs="$("${PYTHON}" "${build_inputs_program}" ignored "${repo_root}")" \
+# The carbon files the image carries are GENERATED from the container's own imports (image_modules.py); a stale list,
+# build-inputs file or Dockerfile allow-list would build an image whose digest does not describe it.
+image_modules_program="${repo_root}/carbon/reconstruction/worker/image_modules.py"
+stale_generated="$("${PYTHON}" -I -B "${image_modules_program}" check "${repo_root}")" \
+  || fail "the generated worker image files are stale or the check could not run (run: python -I -B carbon/reconstruction/worker/image_modules.py generate): ${stale_generated//$'\n'/ }"
+ignored_inputs="$("${PYTHON}" -I -B "${build_inputs_program}" ignored "${repo_root}")" \
   || fail "git-ignored files under the worker build inputs would enter the image unbound by its digest: ${ignored_inputs//$'\n'/ }"
-source_tree_digest="$("${PYTHON}" "${build_inputs_program}" digest "${repo_root}")" \
+source_tree_digest="$("${PYTHON}" -I -B "${build_inputs_program}" digest "${repo_root}")" \
   || fail "could not compute the worker build-inputs digest."
 [[ "${source_tree_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "the worker build-inputs digest is malformed."
 lock_digest="sha256:$(shasum -a 256 "${repo_root}/uv.lock" | cut -d' ' -f1)"
@@ -41,10 +52,16 @@ recipe_digest="sha256:$(shasum -a 256 "${dockerfile}" | cut -d' ' -f1)"
 entrypoint_digest="sha256:$(shasum -a 256 "${repo_root}/carbon/reconstruction/worker/entrypoint.py" | cut -d' ' -f1)"
 tag="$(bash "$(dirname -- "${BASH_SOURCE[0]}")/worker_parent_tag.sh" "${CARBON_WORKER_PARENT_VARIANT:-cpu}" "${source_tree_digest}")"
 
+# The build context is STAGED: a directory holding exactly the build inputs, exported from HEAD (image_modules.py stage).
+# BuildKit reads the Dockerfile-specific .dockerignore and a legacy builder (Docker without buildx) does not; a staged
+# context needs neither, so every builder gives the same image and the source digest above describes its context.
+context="${temporary}/context"
+"${PYTHON}" -I -B "${image_modules_program}" stage "${repo_root}" "${context}" \
+  || fail "could not stage the build context from the build inputs."
 docker build \
   --platform linux/amd64 \
   --pull \
-  --file "${dockerfile}" \
+  --file "${context}/.devcontainer/Dockerfile.reconstruction-worker" \
   --build-arg "SOURCE_TREE_DIGEST=${source_tree_digest}" \
   --build-arg "LOCK_DIGEST=${lock_digest}" \
   --build-arg "BASE_IMAGE_DIGEST=${base_digest}" \
@@ -52,7 +69,7 @@ docker build \
   --build-arg "ENTRYPOINT_DIGEST=${entrypoint_digest}" \
   --iidfile "${temporary}/iid" \
   --tag "${tag}" \
-  "${repo_root}"
+  "${context}"
 
 image_id="$(tr -d '[:space:]' < "${temporary}/iid")"
 [[ "${image_id}" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "Docker returned an invalid image ID."

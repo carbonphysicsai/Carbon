@@ -90,7 +90,6 @@ def test_adapter_record_stages_the_same_parameters_as_its_executed_composition(
     tmp_path,
 ):
     import json
-    import os
     import subprocess
     import sys
     from pathlib import Path
@@ -99,7 +98,7 @@ def test_adapter_record_stages_the_same_parameters_as_its_executed_composition(
 
     from carbon.battery import development_rebuild
     from carbon.battery.worker import RECONSTRUCT_PROGRAM, reconstruct_files
-    from carbon.challenge_validator.cpu_pin import PIN as _CPU_PIN
+    from carbon.challenge_validator import cpu_pin
 
     requested = strategy("l1", "spectral", "pool", "l3")
     made = l2.COMPOSITION_ADAPTER.rebuild(requested)
@@ -129,9 +128,8 @@ def test_adapter_record_stages_the_same_parameters_as_its_executed_composition(
             "PYTHONPATH": str(repository),
             "JAX_PLATFORMS": "cpu",
             "PATH": "/usr/bin:/bin",
-            # The staged program must run under the CPU-dispatch pin the in-process
-            # rebuild runs under, or the two use different BLAS kernels.
-            **{k: os.environ[k] for k in _CPU_PIN if k in os.environ},
+            # The staged program runs under the in-process run's CPU-dispatch pin.
+            **cpu_pin.PIN,
         },
         check=True,
         timeout=900,
