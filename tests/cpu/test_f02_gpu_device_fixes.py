@@ -5,7 +5,8 @@ The GPU screen found `v2.f02.lno.LNO1d` and `v2.f02.neuralop.GINO` failing on a 
 query-row index on the CPU inside `forward`, and `gpu_build.DEVICE_FIXES` is keyed by the original ids, so their twins were
 derived with no fix. `gpu_build.device_fix_key` now selects the same fixes for those two F02 entries. These tests pin that
 both twins carry device placement, that they are the derivation of their CPU build, and that every other twin is byte
-unchanged (their SHA-256 pins were taken from the committed twins before this change)."""
+unchanged (their SHA-256 pins were taken from the committed twins before this change).
+"""
 
 from __future__ import annotations
 
