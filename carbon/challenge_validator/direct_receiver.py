@@ -1053,13 +1053,17 @@ class OwnerProviders:
         restart keeps the first observation while checking the same registered
         identity is still present in the current finalized snapshot. The host-owned
         owner of the crown average's derived rebuilds (``host``) has no registration
-        to observe: its campaign is frozen with no admission and is always live.
+        to observe: its campaign records the closed HOST_REBUILD admission (the Challenge it serves, no hotkey)
+        and is always live.
         """
         from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
         from carbon.challenge_kit import physical_material
         from carbon.challenge_validator.interface import Unavailable
         from carbon.development_session.product_campaign import AUTHORITY
-        from carbon.development_session.research_ledger import PRODUCT
+        from carbon.development_session.research_ledger import (
+            HOST_REBUILD_ADMISSION,
+            PRODUCT,
+        )
 
         if (
             self.implementation is None
@@ -1067,8 +1071,15 @@ class OwnerProviders:
             or self.receiver is None
         ):
             raise ValueError("direct receiver authority binding required")
-        admission = None if host else self._admission(hotkey)
         challenge = self.discovery.info.challenge_key
+        admission = (
+            {
+                "admission": HOST_REBUILD_ADMISSION,
+                "challenge_id": challenge.challenge_id,
+            }
+            if host
+            else self._admission(hotkey)
+        )
         # Battery 1.0 and the step-2 2.0 share the scope and objective labels.
         battery_selected = challenge.challenge_id == BATTERY_CHALLENGE.challenge_id
         physical_selected = physical_material.is_registered(
