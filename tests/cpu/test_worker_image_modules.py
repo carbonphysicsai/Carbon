@@ -235,8 +235,10 @@ def test_a_run_target_in_an_argv_list_with_flags_is_a_root(tmp_path):
         ("carbon/__init__.py", ""),
         (
             "carbon/controller.py",
-            "ARGV = ['exec', 'c', '/opt/carbon-worker/bin/python', '-I', '-B', '-m', 'carbon.target', '1']\n"
-            "HOST = ['python', '-m', 'carbon.host_only']\n",
+            (
+                "ARGV = ['exec', 'c', '/opt/carbon-worker/bin/python', '-I', '-B', '-m', 'carbon.target', '1']\n"
+                "HOST = ['python', '-m', 'carbon.host_only']\n"
+            ),
         ),
         ("carbon/target.py", ""),
         ("carbon/host_only.py", ""),
