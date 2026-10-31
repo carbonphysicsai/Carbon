@@ -1960,9 +1960,11 @@ def setup_journey():
                     "document.getElementById('setup-result').textContent === 'Checked: inference.'",
                 )
                 # The step shows done, and Next opens the following step.
-                assert session.evaluate(
+                # (the panel is redrawn from the refreshed setup record, a beat after the result line)
+                wait(
+                    session,
                     "document.querySelector('[data-step-panel=inference] .step-done')"
-                    ".textContent.includes('Done')"
+                    "?.textContent.includes('Done')",
                 )
                 click(session, "setup-next")
                 wait(
