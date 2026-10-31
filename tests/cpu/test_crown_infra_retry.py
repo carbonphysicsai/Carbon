@@ -96,7 +96,11 @@ def test_the_provider_factory_serves_exactly_the_host_owner_and_no_other_non_ss5
         import json
 
         frozen = json.loads(db.execute("SELECT manifest FROM campaign").fetchone()[0])
-    assert frozen["owner"] == ca.HOST_OWNER and frozen["admission"] is None
+    assert frozen["owner"] == ca.HOST_OWNER
+    assert frozen["admission"] == {
+        "admission": "HOST_REBUILD",
+        "challenge_id": frozen["challenge"]["id"],
+    }
     for other in (
         "carbon-crown-average-host2",
         "carbon-crown-average",
