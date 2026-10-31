@@ -165,6 +165,10 @@
       "status": "would-reformat"
     },
     {
+      "path": "tests/cpu/test_pool_decision_refusal_is_gated.py",
+      "status": "would-reformat"
+    },
+    {
       "path": "tests/cpu/test_pool_exam_se.py",
       "status": "would-reformat"
     },
@@ -895,6 +899,15 @@
     {
       "code": "I001",
       "column": 1,
+      "end_column": 25,
+      "end_row": 54,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/reconstruction/worker/image_modules.py",
+      "row": 44
+    },
+    {
+      "code": "I001",
+      "column": 1,
       "end_column": 33,
       "end_row": 63,
       "message": "Import block is un-sorted or un-formatted",
@@ -1035,6 +1048,15 @@
       "message": "Import block is un-sorted or un-formatted",
       "path": "tests/cpu/test_physical_public_train.py",
       "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 69,
+      "end_row": 18,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "tests/cpu/test_worker_build_inputs.py",
+      "row": 7
     },
     {
       "code": "I001",
@@ -2985,6 +3007,7 @@
     "carbon/reconstruction/worker/entrypoint.py",
     "carbon/reconstruction/worker/exporter.py",
     "carbon/reconstruction/worker/image_fingerprint.py",
+    "carbon/reconstruction/worker/image_modules.py",
     "carbon/reconstruction/worker/liveness_reaper.py",
     "carbon/reconstruction/worker/model.py",
     "carbon/reconstruction/worker/operator.py",
@@ -4827,6 +4850,7 @@
     "tests/cpu/test_pool_baseline.py",
     "tests/cpu/test_pool_calibration.py",
     "tests/cpu/test_pool_consider.py",
+    "tests/cpu/test_pool_decision_refusal_is_gated.py",
     "tests/cpu/test_pool_dual_e2e.py",
     "tests/cpu/test_pool_e2e_verify.py",
     "tests/cpu/test_pool_exam.py",
