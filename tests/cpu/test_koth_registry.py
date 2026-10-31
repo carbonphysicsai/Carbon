@@ -20,11 +20,39 @@ def _write(tmp_path, challenges):
     return path
 
 
-def test_the_committed_registry_registers_no_noise_yet():
-    # Nothing is registered until a measurement record is reviewed; every
-    # takeover is UNAVAILABLE and the ladder steps at eta.
-    assert kr._load() == {}
-    assert kr.rebuild_noise("electric-motor-magnetics") is None
+def test_the_committed_registry_loads_and_lists_only_registered_noise():
+    """Whatever has been registered loads: each Challenge it lists is a registered one, with a positive value and a
+    digest. Which Challenges those are is a reviewed values change, so the test does not pin the set.
+    """
+    from carbon.challenge_validator.exam_cap import registered_challenges
+
+    registered = kr._load()
+    for challenge, noise in registered.items():
+        assert challenge in registered_challenges()
+        assert noise["value"] > 0
+        assert noise["measurement_digest"].startswith("sha256:")
+        assert kr.rebuild_noise(challenge) == noise
+
+
+def test_a_challenge_absent_from_the_committed_registry_has_no_noise(tmp_path):
+    """A tmp copy of the committed registry minus one entry: that Challenge gives None (takeover UNAVAILABLE, the ladder
+    steps at eta); every other listed Challenge keeps its registered noise."""
+    registered = kr._load()
+    if not registered:
+        pytest.skip("the committed registry lists no Challenge to leave out")
+    left_out = min(registered)
+    path = _write(tmp_path, {k: v for k, v in registered.items() if k != left_out})
+    assert kr.rebuild_noise(left_out, path=path) is None
+    for challenge, noise in registered.items():
+        if challenge != left_out:
+            assert kr.rebuild_noise(challenge, path=path) == noise
+
+
+def test_an_empty_registry_registers_no_noise(tmp_path):
+    # Nothing registered: every takeover is UNAVAILABLE and the ladder steps at eta.
+    path = _write(tmp_path, {})
+    assert kr._load(path) == {}
+    assert kr.rebuild_noise("electric-motor-magnetics", path=path) is None
 
 
 def test_a_registered_noise_is_returned_and_others_are_none(tmp_path):
@@ -60,7 +88,10 @@ def _pack(minimum_a, minimum_d, combination="weighted_arithmetic_mean", weight=0
     leg = {"components": [], "minimum": None}
     return {
         "pack_digest": digest("score pack"),
-        "legs": {"A": {**leg, "minimum": minimum_a}, "D": {**leg, "minimum": minimum_d}},
+        "legs": {
+            "A": {**leg, "minimum": minimum_a},
+            "D": {**leg, "minimum": minimum_d},
+        },
         "value_weight": weight,
         "combination": combination,
     }
