@@ -1,4 +1,17 @@
 {
-  "challenges": {},
+  "challenges": {
+    "electric-motor-magnetics": {
+      "measurement_digest": "sha256:f66380949cbd96f9560a64cd532da917bad3e569034aa6c24769b718a43b9aa6",
+      "value": 0.007923678234807158
+    },
+    "f02": {
+      "measurement_digest": "sha256:5c0a428498e55d86fc34516fb7ec99716d50c043bc69c20a96dc2768326152b2",
+      "value": 0.04726369864563663
+    },
+    "f08-ribbed-bracket": {
+      "measurement_digest": "sha256:22343dee16d652239d7a4704e361ed7e7f8d3bea14e6bb1850ba98294b6fc164",
+      "value": 0.006062541759314569
+    }
+  },
   "schema": "carbon.koth.rebuild-noise-registry.v1"
 }
