@@ -1599,6 +1599,81 @@ class PoolStore:
             elif row != ("repeat_verified.v1", "REPEAT_VERIFIED", body):
                 raise StateError("repeat_mark_changed")
 
+    # --- the crown's multi-rebuild average (OWNER-CROWN-MULTI-REBUILD-AVERAGE-01) --------------
+    # The N per-seed totals, their mean and the seeds of one averaged crown decision are PRIVATE: filed here,
+    # write-once per (submission, evaluation key), and read back only as the king's mean.
+
+    def record_crown_average(self, submission_id, key, private):
+        """File the private record of an averaged crown decision. Idempotent for the same record; a different one
+        for the same decision refuses."""
+        from carbon.challenge_validator.interface import is_digest
+
+        if not is_digest(key) or type(private) is not dict:
+            raise StateError("crown_average_invalid")
+        op = self._bank_operation("crown_average.v1", submission_id, key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.crown-average.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "private": private,
+            }
+        )
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT kind,state,body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is None:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (op, "crown_average.v1", "RECORDED", body),
+                )
+            elif row != ("crown_average.v1", "RECORDED", body):
+                raise StateError("crown_average_changed")
+
+    def record_crown_trigger(self, submission_id, key):
+        """Log that an averaged decision was triggered for ``submission_id`` under ``key``, once, at the store's clock
+        (the per-day trigger count; private). Idempotent: the first time stays."""
+        op = self._bank_operation("crown_average_trigger.v1", submission_id, key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.crown-average-trigger.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "at": self.clock(),
+            }
+        )
+        with self.transaction() as db:
+            db.execute(
+                "INSERT OR IGNORE INTO operations VALUES(?,?,?,?)",
+                (op, "crown_average_trigger.v1", "RECORDED", body),
+            )
+
+    def crown_triggers_since(self, since):
+        """How many averaged decisions were triggered at or after ``since`` (store clock seconds). Reads only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_average_trigger.v1'"
+            ).fetchall()
+        return sum(1 for (raw,) in rows if json.loads(raw)["at"] >= since)
+
+    def crown_mean(self, submission_id):
+        """The mean of ``submission_id``'s latest averaged crown decision that scored all its rebuilds, or None
+        (it was never averaged: its single grade stands until it is beaten). Reads only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_average.v1' ORDER BY rowid DESC"
+            ).fetchall()
+        for (raw,) in rows:
+            try:
+                found = json.loads(raw)
+            except ValueError:
+                continue
+            mean = (found.get("private") or {}).get("mean")
+            if found.get("submission_id") == submission_id and type(mean) in (int, float):
+                return float(mean)
+        return None
+
     # --- crowns paused by the operator (OWNER-CROWN-PAUSE) -------------------------------------
     # A contender whose crown decision the operator's pause withheld is filed here, so it is
     # considered again, oldest first, once the flag is gone. The resolution is write-once.

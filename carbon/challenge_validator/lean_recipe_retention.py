@@ -2477,6 +2477,15 @@ def _repeat_of(adapter, origin, entry_id, **custody):
 
     # The retained entry this repeat runs from: what a paused crown decision files to be made again.
     repeat.entry_id = entry_id
+
+    def rebuild_at(seed):
+        """The crown's averaging rebuild (`crown_average`): REBUILD the model from its recipe at a validator-chosen
+        ``seed`` and grade it, uncounted. The construction lane has no seeded validator rebuild yet, so while
+        the average is on this refuses and no crown moves (UNAVAILABLE); it never falls back to a regrade of the
+        retained state, which would repeat one build and average nothing."""
+        raise RetentionUnavailable("seeded_rebuild_unavailable")
+
+    repeat.rebuild_at = rebuild_at
     return repeat
 
 

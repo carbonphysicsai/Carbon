@@ -60,6 +60,9 @@ _OPTIONAL_FIELDS = {
     # A private file (>= 32 bytes) holding the pack's custody copy key: the speed-sample seed of the pool
     # versions' single-design call timing is derived under it (`single_call_timing.sample_seed`).
     "speed_sample_key_file",
+    # OWNER-CROWN-MULTI-REBUILD-AVERAGE-01: {"key_file": <absolute private file>} holds K_crown and turns the crown's
+    # N-rebuild average on (`crown_average.install`). Absent: the crown rule is as before.
+    "crown_average",
     # The on-box store of OFFICIAL GPU receipts (`backbone_catalog.receipt_store`, OWNER-GPU-OPEN-WITH-READY-01):
     # an exact absolute operator path in the validator state, written only by the standing receipt worker. Without
     # it no catalog entry is officially gradable (the official route never falls back to a CPU rebuild).
@@ -247,6 +250,13 @@ def load_config(path: Path) -> dict:
             raise ValueError(refusal)
     if "speed_sample_key_file" in value:
         read_speed_sample_key(value["speed_sample_key_file"])
+    if "crown_average" in value:
+        section = value["crown_average"]
+        if type(section) is not dict or set(section) != {"key_file"}:
+            raise ValueError("invalid crown_average selection")
+        from carbon.challenge_validator import crown_average
+
+        crown_average.read_crown_key(section["key_file"])
     if "challenge" in value:
         selected = value["challenge"]
         if type(selected) is not dict or selected not in served_challenges():
@@ -1338,6 +1348,9 @@ def serve(
 
     cfg = load_config(config_path)
     install_official_receipt_store(cfg)
+    from carbon.challenge_validator import crown_average
+
+    crown_average.install(cfg)
     selected_parent = (
         {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
         if "construction_image_manifest" in cfg

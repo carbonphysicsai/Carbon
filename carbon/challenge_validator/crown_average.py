@@ -54,6 +54,9 @@ FAULT_DOMAIN = b"carbon.crown.average-host-fault.v1\x00"
 #: Outcomes a decision may carry (`bank_promotion`'s own vocabulary, so the caller reads one set).
 UNSTABLE = "unstable_across_seeds"
 MARGIN_UNREGISTERED = "crown_average_margin_unregistered"
+#: A king whose mean was never measured (it was crowned by a single grade): crowns for the Challenge stay paused
+#: until it is re-measured at switch-over. A single grade is never compared as if it were a mean.
+KING_UNMEASURED = "crown_average_king_unmeasured"
 REBUILD_UNAVAILABLE = "crown_average_rebuild_unavailable"
 MEAN_EXCEEDS = "mean_exceeds_incumbent_beyond_margin"
 MEAN_WITHIN = "mean_within_margin_or_tie"
@@ -83,6 +86,10 @@ class Rule:
 
     def n_for(self, challenge_id):
         return self._override.get(challenge_id, self._n)
+
+    def margin_digest_for(self, challenge_id):
+        entry = self._margins.get(challenge_id)
+        return None if entry is None else entry["measurement_digest"]
 
     def margin_for(self, challenge_id):
         """The registered margin_N of ``challenge_id`` at the N now configured for it, or None: absent, or
@@ -232,6 +239,127 @@ def triggered(screening_total, king_mean, baseline_floor, margin):
     return screening_total > bar + margin
 
 
+class CrownAverageUnavailable(Exception):
+    """The averaged crown decision cannot be made (no registered margin, no rebuild noise): nothing moves."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+#: The installed rule, or None (off). Set once at receiver start from its configuration (`install`), like the
+#: official receipt store; `BankPromotion.consider_private` reads it.
+ACTIVE = None
+
+
+class Active:
+    """The rule in force on one receiver: the registered rule and K_crown (never printed, never logged)."""
+
+    def __init__(self, rule, key):
+        self.rule, self._key = rule, key
+
+    def __repr__(self):
+        return "Active(<redacted>)"
+
+    def screening(self, store, pair, comparator):
+        """``(pair, comparator)`` for the screening comparison under this rule: the incumbent's total is its stored
+        MEAN (a scored king with no recorded mean is KING_UNMEASURED: crowns stay paused) and the margin is margin_N. So a
+        screening win is exactly the trigger: it beats the king's mean by more than margin_N."""
+        margin = self.rule.margin_for(comparator["challenge"])
+        if margin is None:
+            raise CrownAverageUnavailable(MARGIN_UNREGISTERED)
+        noise = comparator.get("rebuild_noise")
+        if noise is None:
+            raise CrownAverageUnavailable("rebuild_noise_unregistered")
+        incumbent = pair["incumbent"]
+        if incumbent is not None:
+            model = (incumbent.get("evidence") or {}).get("model_p")
+            if (
+                type(model) is dict
+                and model.get("score_status") == bp.SCORED
+                and model.get("total_score") is not None
+            ):
+                mean = store.crown_mean(incumbent["submission_id"])
+                if mean is None:
+                    raise CrownAverageUnavailable(KING_UNMEASURED)
+                incumbent = json.loads(json.dumps(incumbent))
+                incumbent["evidence"]["model_p"]["total_score"] = mean
+                pair = {**pair, "incumbent": incumbent}
+        screened = {
+            **comparator,
+            "rebuild_noise": {
+                "value": margin,
+                "measurement_digest": self.rule.margin_digest_for(
+                    comparator["challenge"]
+                ),
+            },
+        }
+        return pair, screened
+
+    def decide(
+        self, store, submission_id, evaluation_key, pair, outcome, comparator, repeat
+    ):
+        """The averaged decision for a screening win, in place of the repeat. ``repeat.rebuild_at(seed)`` rebuilds
+        and grades the model at one seed (the receiver's construction lane); without it nothing moves."""
+        rebuild = getattr(repeat, "rebuild_at", None)
+        if rebuild is None:
+            return {**outcome, "outcome": bp.UNAVAILABLE, "reason": REBUILD_UNAVAILABLE}
+        incumbent = pair["incumbent"]
+        status, king_mean = (None, None) if incumbent is None else bp._scored(incumbent)
+
+        def guarded(seed):
+            # a rebuild that cannot run says nothing about the model: retried, then UNAVAILABLE, never a loss
+            try:
+                return rebuild(seed)
+            except (RebuildInfra, CrownAverageInvalid):
+                raise
+            except Exception as error:  # noqa: BLE001
+                raise RebuildInfra("rebuild failed") from error
+
+        # logged privately so the per-day trigger count is visible (abuse shows as a rate)
+        store.record_crown_trigger(submission_id, evaluation_key)
+        result = run_average(
+            key=self._key,
+            challenge_id=comparator["challenge"],
+            submission_id=submission_id,
+            rule=self.rule,
+            rebuild=guarded,
+            rebuild_again=guarded,
+            king_mean=king_mean if status == bp.SCORED else None,
+            baseline_floor=comparator.get("baseline_total"),
+            tolerance=(comparator.get("rebuild_noise") or {}).get("value"),
+        )
+        private = result.get("private")
+        if private is not None:
+            try:
+                store.record_crown_average(submission_id, evaluation_key, private)
+            except Exception as error:  # noqa: BLE001 - a record that cannot be filed moves no crown
+                if getattr(error, "code", None) != "crown_average_changed":
+                    raise
+                # the same decision rebuilt differently: a host that does not reproduce is not a grade
+                return {
+                    **outcome,
+                    "outcome": bp.FAILED_INFRA,
+                    "reason": "crown_average_record_changed",
+                }
+        held = {**outcome, "outcome": result["outcome"], "reason": result["reason"]}
+        if "alert" in result:
+            held["alert"] = result["alert"]
+        return held
+
+
+def install(cfg):
+    """Turn the rule on (or off) from a receiver's configuration: ``cfg["crown_average"] = {"key_file": ...}``."""
+    global ACTIVE
+    section = cfg.get("crown_average")
+    if section is None:
+        ACTIVE = None
+        return
+    if type(section) is not dict or set(section) != {"key_file"}:
+        raise CrownAverageInvalid("crown_average_selection_invalid")
+    ACTIVE = Active(load_rule(), read_crown_key(section["key_file"]))
+
+
 class RebuildInfra(Exception):
     """A rebuild failed for a reason that says nothing about the model (infrastructure): retried, never counted
     against the miner."""
@@ -356,7 +484,11 @@ def public_view(result):
 
 
 __all__ = [
+    "ACTIVE",
+    "Active",
     "CrownAverageInvalid",
+    "CrownAverageUnavailable",
+    "install",
     "Rule",
     "derive_seeds",
     "host_fault_index",
