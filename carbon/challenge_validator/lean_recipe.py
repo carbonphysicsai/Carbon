@@ -316,6 +316,11 @@ class LeanRecipeAdapter(ChallengeAdapter):
         from carbon.research.lifecycle import ResearchTaskProviderError
 
         self.require_registered_pool()
+        from carbon.challenge_validator import crown_average
+
+        if submission.hotkey == crown_average.HOST_OWNER:
+            # the host-owned owner of the crown average's derived rebuilds is never a submitter
+            raise Unavailable("direct_owner_reserved")
         recipe = self.validate_strategy(submission.strategy)
         provider = self._provider(submission.hotkey)
         # The durable task provider owns source inspection and admitted

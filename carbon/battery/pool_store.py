@@ -1761,6 +1761,77 @@ class PoolStore:
             elif row[0] != body:
                 raise StateError("crown_pause_resolution_changed")
 
+    # --- a decision that could not be made is retried, never lost ------------------------------------------------
+    # An UNAVAILABLE or FAILED_INFRA crown decision (the host could not rebuild or repeat; a margin or a king's mean is
+    # not yet measured) says nothing about the contender. Its paused record stays UNRESOLVED; these rows count its failed
+    # attempts and when the last one was, so the sweep retries at most once per epoch and raises a typed alert after
+    # repeated failures. They are bookkeeping, not decisions: nothing here resolves a record.
+
+    def crown_pause_attempts(self, submission_id, key):
+        """``(failed attempts, store-clock seconds of the last one)`` of a paused decision: ``(0, None)`` before any."""
+        op = self._bank_operation("crown_pause_attempt.v1", submission_id, key)
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=? AND kind='crown_pause_attempt.v1'",
+                (op,),
+            ).fetchone()
+        if row is None:
+            return 0, None
+        body = json.loads(row[0])
+        return body["attempts"], body["last_at"]
+
+    def note_crown_pause_attempt(self, submission_id, key, code):
+        """Count one more failed attempt (and when, and why); returns the new count."""
+        op = self._bank_operation("crown_pause_attempt.v1", submission_id, key)
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            attempts = (json.loads(row[0])["attempts"] if row else 0) + 1
+            body = canonical(
+                {
+                    "schema": "carbon.challenge-validator.crown-pause-attempt.v1",
+                    "submission_id": submission_id,
+                    "evaluation_key": key,
+                    "attempts": attempts,
+                    "last_at": self.clock(),
+                    "code": code,
+                }
+            )
+            db.execute(
+                "INSERT OR REPLACE INTO operations VALUES(?,?,?,?)",
+                (op, "crown_pause_attempt.v1", "ATTEMPTED", body),
+            )
+        return attempts
+
+    def record_crown_pause_alert(self, submission_id, key, attempts, code):
+        """File the typed alert for a decision that kept failing; once per decision (the first stays)."""
+        op = self._bank_operation("crown_pause_alert.v1", submission_id, key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.crown-pause-alert.v1",
+                "code": "crown_decision_unavailable",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "attempts": attempts,
+                "last_code": code,
+                "action": "recheck_validator_host",
+            }
+        )
+        with self.transaction() as db:
+            db.execute(
+                "INSERT OR IGNORE INTO operations VALUES(?,?,?,?)",
+                (op, "crown_pause_alert.v1", "ALERT", body),
+            )
+
+    def crown_pause_alerts(self):
+        """The typed alerts of repeatedly failing crown decisions, oldest first (private: ids and codes only)."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_pause_alert.v1' ORDER BY rowid"
+            ).fetchall()
+        return [json.loads(raw) for (raw,) in rows]
+
     def crown_pause_resolved(self, submission_id, key):
         """The code a paused contender was resolved with, or None."""
         op = self._bank_operation("crown_pause_resolved.v1", submission_id, key)

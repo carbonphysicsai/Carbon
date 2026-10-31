@@ -1571,14 +1571,27 @@ def _contend(
 def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
     """A crown decision the operator paused is filed, so it is made again once the flag is gone
     (`crown_pause_sweep`). Anything else files nothing."""
-    from carbon.challenge_validator.bank_promotion import CROWNS_PAUSED
+    from carbon.challenge_validator import bank_promotion as bp
+    from carbon.challenge_validator import crown_average
 
-    if outcome.get("reason") != CROWNS_PAUSED:
+    paused = outcome.get("reason") == bp.CROWNS_PAUSED
+    # A decision the host could not make (UNAVAILABLE or FAILED_INFRA on a rebuild, a repeat, or a margin or king mean not
+    # yet measured) is kept for retry the same way (`crown_pause_sweep`), never lost with the screening grade.
+    retry = outcome.get("reason") in (
+        bp.REPEAT_UNAVAILABLE,
+        bp.REPEAT_MISMATCH,
+        crown_average.REBUILD_UNAVAILABLE,
+        crown_average.MARGIN_UNREGISTERED,
+        crown_average.KING_UNMEASURED,
+    ) and outcome.get("outcome") in (bp.UNAVAILABLE, bp.FAILED_INFRA)
+    if not (paused or retry):
         return
     # ``exam`` may be a callable, read only now: a grade that is not paused needs no exam digest.
     exam = exam() if callable(exam) else exam
     entry_id = getattr(repeat, "entry_id", None)
     if entry_id is None:
+        if retry and not paused:
+            return  # nothing retained to retry from: the outcome stands as the typed answer it is
         raise RetentionUnavailable("crown_paused_entry_unavailable")
     store.record_crown_paused(
         submission_id,
@@ -1588,6 +1601,13 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
         entry_id=entry_id,
         pin=pin,
     )
+    if retry and not paused:
+        # The live trigger's own failure is the first failed attempt: the sweep's retry waits for its epoch.
+        store.note_crown_pause_attempt(
+            submission_id,
+            outcome["evaluation_key"],
+            f"{outcome['outcome']}:{outcome['reason']}",
+        )
 
 
 def reconsider_paused_pack(

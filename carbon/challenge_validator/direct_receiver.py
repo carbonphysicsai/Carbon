@@ -1046,12 +1046,14 @@ class OwnerProviders:
             )
         )
 
-    def _manifest(self, hotkey, ledger, *, restoring):
+    def _manifest(self, hotkey, ledger, *, restoring, host=False):
         """Freeze the signed owner's one DEVELOPMENT receiver campaign.
 
         Registration is observed, not asserted by an operator or a recipe. A
         restart keeps the first observation while checking the same registered
-        identity is still present in the current finalized snapshot.
+        identity is still present in the current finalized snapshot. The host-owned
+        owner of the crown average's derived rebuilds (``host``) has no registration
+        to observe: its campaign is frozen with no admission and is always live.
         """
         from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
         from carbon.challenge_kit import physical_material
@@ -1065,7 +1067,7 @@ class OwnerProviders:
             or self.receiver is None
         ):
             raise ValueError("direct receiver authority binding required")
-        admission = self._admission(hotkey)
+        admission = None if host else self._admission(hotkey)
         challenge = self.discovery.info.challenge_key
         # Battery 1.0 and the step-2 2.0 share the scope and objective labels.
         battery_selected = challenge.challenge_id == BATTERY_CHALLENGE.challenge_id
@@ -1159,34 +1161,42 @@ class OwnerProviders:
             candidate = frozen
         elif restoring:
             raise ValueError("retained direct owner campaign manifest missing")
-        elif admission is None:
+        elif admission is None and not host:
             raise Unavailable("direct_provider_registration_unavailable")
         ledger.freeze(candidate)
+        if host:
+            return candidate["admission"], True
         return candidate["admission"], self._same_registration(
             candidate["admission"], admission
         )
 
-    def _open(self, hotkey, *, restoring):
+    def _open(self, hotkey, *, restoring, host=False):
+        from carbon.challenge_validator import crown_average
         from carbon.challenge_validator.interface import Unavailable
         from carbon.development_session.research_control import CampaignControl
         from carbon.development_session.research_ledger import CampaignLedger
         from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
         from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
 
-        if type(hotkey) is not str or not ADDRESS.fullmatch(hotkey):
+        if host:
+            # ONLY the host owner of the crown average's derived rebuilds, by exact equality: a miner's owner
+            # is always a verified ss58 address (below), which this string is not.
+            if hotkey != crown_average.HOST_OWNER:
+                raise Unavailable("direct_provider_owner_invalid")
+        elif type(hotkey) is not str or not ADDRESS.fullmatch(hotkey):
             raise Unavailable("direct_provider_owner_invalid")
         with self._lock:
             if self._closing:
                 raise Unavailable("direct_receiver_stopping")
             if hotkey not in self._providers:
-                if not restoring and self._admission(hotkey) is None:
+                if not restoring and not host and self._admission(hotkey) is None:
                     raise Unavailable("direct_provider_registration_unavailable")
                 directory = _private_directory(
                     self.root / hashlib.sha256(hotkey.encode()).hexdigest()
                 )
                 ledger = CampaignLedger(directory / "ledger")
                 frozen_admission, live = self._manifest(
-                    hotkey, ledger, restoring=restoring
+                    hotkey, ledger, restoring=restoring, host=host
                 )
                 if not restoring and not live:
                     raise Unavailable("direct_provider_registration_unavailable")
@@ -1243,14 +1253,24 @@ class OwnerProviders:
                         provider.cancel_observed_task(
                             task_id, self.discovery.info.challenge_key
                         )
-            if not restoring and not self._same_registration(
-                self._admissions[hotkey], self._admission(hotkey)
+            if (
+                not restoring
+                and not host
+                and not self._same_registration(
+                    self._admissions[hotkey], self._admission(hotkey)
+                )
             ):
                 raise Unavailable("direct_provider_registration_unavailable")
             return self._providers[hotkey]
 
     def __call__(self, hotkey):
-        return self._open(hotkey, restoring=False)
+        from carbon.challenge_validator import crown_average
+
+        # The derived-rebuild path asks for its host owner by name; a miner's request never can (its owner is a
+        # verified ss58 address, and `LeanRecipeAdapter.evaluate` refuses the host owner as a submitter).
+        return self._open(
+            hotkey, restoring=False, host=hotkey == crown_average.HOST_OWNER
+        )
 
     def restore(self):
         """Reopen every retained owner before listening, including interrupted work."""
@@ -1265,7 +1285,13 @@ class OwnerProviders:
                 != directory.name
             ):
                 raise ValueError("retained receiver owner binding differs")
-            self._open(owner["hotkey"], restoring=True)
+            from carbon.challenge_validator import crown_average
+
+            self._open(
+                owner["hotkey"],
+                restoring=True,
+                host=owner["hotkey"] == crown_average.HOST_OWNER,
+            )
 
     def cancel(self):
         """Close admission and request only our providers' domain cancellation."""
