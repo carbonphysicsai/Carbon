@@ -283,7 +283,8 @@ def test_consider_private_registers_the_comparators_baseline(tmp_path):
     }
     try:
         flow.consider_private("missing", digest("key"), comparator)
-    except Exception:  # noqa: BLE001 - the pair is not filed; registration comes first
+    # The pair is not filed; registration comes first.
+    except Exception:  # noqa: BLE001, S110
         pass
     assert store.latest_baseline("electric-motor-magnetics") == 0.37
 
