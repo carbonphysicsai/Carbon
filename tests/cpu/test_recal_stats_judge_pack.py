@@ -39,7 +39,9 @@ def _judge(tmp_path, a=MIN_A, d=MIN_D):
     body["legs"]["A"]["minimum"] = a
     body["legs"]["D"]["minimum"] = d
     path = tmp_path / "judge-score-pack.json"
-    raw = json.dumps(body, sort_keys=True).encode()
+    # The real judge file carries its own top-level pack_digest, which `register_pack` refuses in the body.
+    declared = dual_score.register_pack(body)["pack_digest"]
+    raw = json.dumps({**body, "pack_digest": declared}, sort_keys=True).encode()
     path.write_bytes(raw)
     return path, "sha256:" + hashlib.sha256(raw).hexdigest(), body
 
@@ -76,7 +78,7 @@ def _scored_on_the_judge_pack(body, a, d):
 )
 def test_the_rejudge_equals_scoring_the_same_legs_on_the_judge_pack(tmp_path, a, d):
     path, _sha, body = _judge(tmp_path)
-    pack, _ = rs.load_judge_pack(path)
+    pack = rs.load_judge_pack(path)[0]
     got = rs.rejudge(_legs(a, d), pack, "x")
     assert got == _scored_on_the_judge_pack(body, a, d)
     failing = a < MIN_A or d < MIN_D
@@ -121,7 +123,7 @@ def _good(offset=0.0):
     return [(0.5 + 0.01 * i + offset, 0.6) for i in range(10)]
 
 
-def test_rebuilds_below_the_judge_minimums_are_excluded_from_sigma_and_counted(
+def test_rebuilds_below_the_judge_minimums_are_counted_and_keep_their_totals(
     tmp_path,
 ):
     path, sha, _body = _judge(tmp_path)
@@ -131,34 +133,36 @@ def test_rebuilds_below_the_judge_minimums_are_excluded_from_sigma_and_counted(
     doc = _doc({"mgn": _member(rows, same=False, within=True)})
     out = rs.measure(doc, {"Motor": rs.load_judge_pack(path)})
     motor = out["challenges"]["Motor"]
-    kept = [_total(a, d) for i, (a, d) in enumerate(rows) if i not in (2, 7)]
-    assert motor["sigma"] == pytest.approx(statistics.stdev(kept))
+    every = [_total(a, d) for a, d in rows]
+    # minimums change a row's status, never its total: all ten are valid rebuild-noise measurements
+    assert motor["sigma"] == pytest.approx(statistics.stdev(every))
     assert motor["minimum_failed"]["by_member"] == {"mgn": 2}
+    assert motor["gated"] == {"by_member": {"mgn": 0}, "control_seeds": 0}
     header = out["judge_minimums"]["Motor"]
     assert header["source_sha256"] == sha
     assert header["minimums"] == {"A": MIN_A, "D": MIN_D}
     assert header["score_pack_digest"].startswith("sha256:")
-    # Without the judge pack the same rows give the calibration sigma over all ten.
+    # Without the judge pack the same rows give the same sigma.
     plain = rs.measure(copy.deepcopy(doc))["challenges"]["Motor"]
-    assert plain["sigma"] == pytest.approx(
-        statistics.stdev([_total(a, d) for a, d in rows])
-    )
+    assert plain["sigma"] == motor["sigma"]
     assert "minimum_failed" not in plain and "judge_minimums" not in rs.measure(doc)
 
 
-def test_the_control_seed_spread_ignores_failing_seeds_and_reports_them(tmp_path):
+def test_the_control_seed_spread_keeps_failing_seeds_and_reports_them(tmp_path):
     path, _sha, _body = _judge(tmp_path)
     control_rows = [(0.5, 0.5)] * 8 + [(0.1, 0.5), (0.9, 0.9)]
     doc = _doc({"fc": _member([(0.5, 0.6)] * 10)}, control_rows=control_rows)
     doc["challenges"]["Motor"]["members"]["fc"]["seed0_totals"][1] = _total(0.5, 0.61)
     doc["challenges"]["Motor"]["members"]["fc"]["seed0_legs"][1] = _legs(0.5, 0.61)
     out = rs.measure(doc, {"Motor": rs.load_judge_pack(path)})["challenges"]["Motor"]
-    kept = [_total(0.5, 0.5)] * 8 + [_total(0.9, 0.9)]
-    assert out["seed_spread"] == pytest.approx(max(kept) - min(kept))
+    every = [_total(a, d) for a, d in control_rows]
+    assert out["seed_spread"] == pytest.approx(max(every) - min(every))
     assert out["minimum_failed"]["control_seeds"] == 1
 
 
-def test_a_control_whose_official_seed_row_fails_the_minimums_is_not_chosen(tmp_path):
+def test_a_control_whose_official_seed_row_fails_the_minimums_is_still_chosen_and_flagged(
+    tmp_path,
+):
     path, _sha, _body = _judge(tmp_path)
     first = [(0.1, 0.6)] + [(0.5, 0.6)] * 9  # rebuild 0 below the A minimum
     members = {
@@ -175,18 +179,54 @@ def test_a_control_whose_official_seed_row_fails_the_minimums_is_not_chosen(tmp_
             _legs(a, d) for a, d in seeds
         ]
     out = rs.measure(doc, {"Motor": rs.load_judge_pack(path)})["challenges"]["Motor"]
-    assert out["control"]["entry_id"] == "second"
-    # Without the minimums the first bit-identical member is the control, as before.
-    plain = rs.measure(copy.deepcopy(doc))["challenges"]["Motor"]
-    assert plain["control"]["entry_id"] == "first"
+    assert out["control"]["entry_id"] == "first"
+    assert out["control_fails_judge_minimums"] is True
+    clean = rs.measure(
+        _doc(
+            {"second": _member([(0.5, 0.6)] * 10, same=True, fp="e")},
+            control_rows=[(0.5, 0.5 + 0.01 * i) for i in range(10)],
+        ),
+        {"Motor": rs.load_judge_pack(path)},
+    )["challenges"]["Motor"]
+    assert clean["control"]["entry_id"] == "second"
+    assert clean["control_fails_judge_minimums"] is False
 
 
-def test_fewer_than_two_passing_rebuilds_is_refused(tmp_path):
+def test_rows_that_fail_the_minimums_never_count_against_the_two_rebuild_rule(tmp_path):
     path, _sha, _body = _judge(tmp_path)
-    rows = [(0.1, 0.6)] * 9 + [(0.5, 0.6)]
+    rows = [(0.1, 0.6 + 0.01 * i) for i in range(9)] + [(0.5, 0.6)]
     doc = _doc({"mgn": _member(rows, same=False, within=True)})
-    with pytest.raises(rs.StatsError, match="only 1 rebuild"):
+    out = rs.measure(doc, {"Motor": rs.load_judge_pack(path)})["challenges"]["Motor"]
+    assert out["minimum_failed"]["by_member"] == {"mgn": 9}
+    assert out["sigma"] == pytest.approx(
+        statistics.stdev([_total(a, d) for a, d in rows])
+    )
+
+
+def test_a_minimum_failed_total_must_equal_the_same_legs_scored_without_minimums(
+    tmp_path,
+):
+    path, _sha, _body = _judge(tmp_path)
+    rows = _good()
+    rows[2] = (0.1, 0.6)
+    doc = _doc({"mgn": _member(rows, same=False, within=True)})
+    doc["challenges"]["Motor"]["members"]["mgn"]["seed0_totals"][2] += 0.01
+    with pytest.raises(rs.StatsError, match="not the recorded"):
         rs.measure(doc, {"Motor": rs.load_judge_pack(path)})
+
+
+def test_the_real_f08_shape_every_row_failing_minimums_gated_seeds_excluded(tmp_path):
+    """Ten bit-identical panel rows, ALL failing the minimums; control seeds gated at 3, 4, 5, 7, 9 and the rest failing."""
+    path, _sha, _body = _judge(
+        tmp_path, a=0.5, d=0.5
+    )  # the totals (about 0.42) are below both
+    out = rs.measure(_f08_doc(), {"F08": rs.load_judge_pack(path)})["challenges"]["F08"]
+    assert out["control"]["entry_id"] == "FC"
+    assert out["sigma"] == 0.0
+    assert out["value"] == pytest.approx(0.0071754010, abs=1e-10)
+    assert out["gated"] == {"by_member": {"FC": 0}, "control_seeds": 5}
+    assert out["minimum_failed"] == {"by_member": {"FC": 10}, "control_seeds": 5}
+    assert out["control_fails_judge_minimums"] is True
 
 
 def test_missing_legs_or_a_total_the_judge_pack_does_not_reproduce_is_refused(tmp_path):
@@ -343,7 +383,7 @@ def test_nulls_are_refused_without_a_judge_pack():
 def test_nine_gated_rows_leave_one_kept_and_are_refused(tmp_path):
     path, _sha, _body = _judge(tmp_path)
     seeds = [0.4218] + [None] * 9
-    with pytest.raises(rs.StatsError, match="only 1 rebuild"):
+    with pytest.raises(rs.StatsError, match="only 1 non-gated rebuild"):
         rs.measure(
             _f08_doc(seeds=seeds, gated_at=tuple(range(1, 10))),
             {"F08": rs.load_judge_pack(path)},
@@ -426,3 +466,56 @@ def test_a_member_whose_official_seed_row_is_gated_is_not_an_eligible_control(tm
     out = rs.measure(doc, {"F08": rs.load_judge_pack(path)})["challenges"]["F08"]
     assert out["control"]["entry_id"] == "SECOND"
     assert out["gated"]["by_member"] == {"FC": 1, "SECOND": 0}
+
+
+# --- the judge pack file in its real shape -------------------------------------------------------------------------------
+
+
+def test_the_real_judge_file_with_a_top_level_pack_digest_loads_and_is_recorded(
+    tmp_path,
+):
+    path, sha, body = _judge(tmp_path)
+    loaded = rs.load_judge_pack(path)
+    pack, file_sha, declared = loaded
+    assert file_sha == sha and pack == dual_score.register_pack(body)
+    assert declared == pack["pack_digest"]
+    out = rs.measure(
+        _doc({"mgn": _member(_good(), same=False, within=True)}), {"Motor": loaded}
+    )
+    header = out["judge_minimums"]["Motor"]
+    assert header["declared_pack_digest"] == declared
+    assert header["declared_pack_digest_matches"] is True
+    assert header["score_pack_digest"] == pack["pack_digest"]
+
+
+def test_a_bare_hex_digest_is_accepted_and_a_mismatch_is_recorded_not_hidden(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    document = json.loads(path.read_text())
+    bare = document["pack_digest"].removeprefix("sha256:")
+    document["pack_digest"] = bare
+    path.write_text(json.dumps(document))
+    assert rs.load_judge_pack(path)[2] == "sha256:" + bare
+    document["pack_digest"] = "sha256:" + "0" * 64
+    path.write_text(json.dumps(document))
+    loaded = rs.load_judge_pack(path)
+    out = rs.measure(
+        _doc({"mgn": _member(_good(), same=False, within=True)}), {"Motor": loaded}
+    )
+    assert out["judge_minimums"]["Motor"]["declared_pack_digest_matches"] is False
+
+
+@pytest.mark.parametrize("value", ["abc", "sha256:xyz", 7, None, "", "A" * 64])
+def test_a_malformed_pack_digest_in_the_judge_file_is_refused(tmp_path, value):
+    path, _sha, _body = _judge(tmp_path)
+    document = json.loads(path.read_text())
+    document["pack_digest"] = value
+    path.write_text(json.dumps(document))
+    with pytest.raises(rs.StatsError, match="pack_digest"):
+        rs.load_judge_pack(path)
+
+
+def test_a_judge_file_without_a_digest_still_loads(tmp_path):
+    path, _sha, body = _judge(tmp_path)
+    path.write_text(json.dumps(body))
+    loaded = rs.load_judge_pack(path)
+    assert len(loaded) == 2

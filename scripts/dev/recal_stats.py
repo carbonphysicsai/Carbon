@@ -20,18 +20,24 @@ Input (JSON), schema "carbon.recal-stats.input.v1":
   }}}
 
 --judge-pack CHALLENGE=SCORE_PACK.json (repeatable). The recalibration runs on CALIBRATION packs (leg minimums null).
-Minimums only change a row's status, never its legs or total (dual_score.score), so the judge pack's minimums are
-applied here: each rebuild's legs are scored on the judge pack by `dual_score.score` itself; a rebuild that comes out
-REQUIRED_LEG_MINIMUM_FAILED is excluded from sigma and the seed spread, counted and reported per member, and a control
-whose official-seed row fails is not eligible. At least 2 passing rebuilds are needed for any sigma or spread. The
-minimums and the sha256 of the judge pack file are in the output (`judge_minimums`) and printed as a header.
+Minimums only change a row's status, never its legs or total (dual_score.score), so a rebuild that fails the judge
+minimums has a VALID total and is a valid rebuild-noise measurement: it stays in sigma and the seed spread (Validator
+ruling, 2026-10-31, reversing 2026-10-30). Every non-gated rebuild is still re-judged by `dual_score.score` itself; one that
+comes out REQUIRED_LEG_MINIMUM_FAILED is counted and reported (`minimum_failed`, per member and for the control seeds) and
+its recorded total must equal what the same legs give with the minimums removed. The minimums, the sha256 of the judge
+pack file and the pack's digest are in the output (`judge_minimums`) and printed as a header. The judge pack file carries
+a top-level `pack_digest`: it is checked for form, taken off before the pack is registered, compared with the digest the
+registration computes, and both are recorded.
 
 A rebuild whose total is null because a hard gate failed has no total (A and D may still be numbers). With --judge-pack
 its legs entry shows the failure (`gate_failed`: a decision_outcome or status of GATE_FAILED / MANDATORY_GATE_FAILED, or a
-`gates` map with a value that is not PASS / true) and the rebuild is GATED: excluded from sigma and the seed spread exactly
-as a minimum failure is, counted separately (`gated`: by member and for the control seeds), and a control whose official
-seed-0 row is gated is not eligible (Validator ruling, 2026-10-30). A null total WITHOUT a gate failure is a refusal:
-missing data is not gated. The same rule holds: at least 2 kept rebuilds for any sigma or spread, else a refusal.
+`gates` map with a value that is not PASS / true) and the rebuild is GATED: excluded from sigma and the seed spread,
+counted separately (`gated`: by member and for the control seeds). A null total WITHOUT a gate failure is a refusal:
+missing data is not gated. At least 2 kept (non-gated) rebuilds are needed for any sigma or spread, else a refusal.
+
+The control is the first panel member that is bit-identical AND whose official seed-0 rebuild is not gated (else the
+within-noise rule, with the same seed-0 condition). Failing the judge minimums no longer disqualifies a control; whether
+the chosen control's official seed-0 row fails them is reported as `control_fails_judge_minimums`.
 """
 
 from __future__ import annotations
@@ -167,10 +173,36 @@ def load_judge_pack(path):
 
     raw = Path(path).read_bytes()
     try:
-        pack = dual_score.register_pack(json.loads(raw))
+        body = json.loads(raw)
+        declared = None
+        if isinstance(body, dict) and "pack_digest" in body:
+            # A real judge pack file carries its own digest; `register_pack` takes the body without it.
+            declared = _declared_digest(body.pop("pack_digest"), Path(path).name)
+        pack = dual_score.register_pack(body)
     except (ValueError, dual_score.DualScoreRefused) as exc:
         raise StatsError(f"judge pack {Path(path).name}: {exc}") from exc
-    return pack, "sha256:" + hashlib.sha256(raw).hexdigest()
+    sha = "sha256:" + hashlib.sha256(raw).hexdigest()
+    # The declared digest is recorded, never relied on: the digest the registration computes is the pack's identity.
+    return (pack, sha) if declared is None else (pack, sha, declared)
+
+
+def _declared_digest(value, name):
+    """A judge pack file's own `pack_digest` as `sha256:<64 hex>`: 64 hex, with or without the prefix."""
+    text = value.removeprefix("sha256:") if isinstance(value, str) else None
+    if text is None or not _HEX.fullmatch(text):
+        raise StatsError(f"judge pack {name}: pack_digest is not a sha256 digest")
+    return "sha256:" + text
+
+
+def without_minimums(pack):
+    """The same pack with every leg minimum removed: what the calibration run scored a rebuild on."""
+    from carbon.scoring import dual_score
+
+    body = {k: v for k, v in pack.items() if k != "pack_digest"}
+    body["legs"] = {
+        leg: {**spec, "minimum": None} for leg, spec in pack["legs"].items()
+    }
+    return dual_score.register_pack(body)
 
 
 def _challenge(name, spec, judge=None):
@@ -185,17 +217,20 @@ def _challenge(name, spec, judge=None):
     ):
         raise StatsError(f"{name}: panel must list each member exactly once")
 
+    unbounded = None if judge is None else without_minimums(judge)
+
     def keep(totals, legs, where):
-        """(totals of the rebuilds that pass the judge minimums, count that fail them, count gated, whether
-        rebuild 0 passes). A gated rebuild (null total, its legs show a hard-gate failure) is excluded like a minimum
-        failure and counted apart; a null total the legs do not explain is a refusal."""
+        """(kept totals, count failing the judge minimums, count gated, whether rebuild 0 is not gated, whether
+        rebuild 0 fails the minimums). A gated rebuild (null total, legs show a hard-gate failure) is excluded and counted
+        apart; a null total the legs do not explain is a refusal. A rebuild that fails only the judge minimums KEEPS its
+        total (minimums change a row's status, never its total) and is counted."""
         if judge is None:
-            return totals, 0, 0, True
+            return totals, 0, 0, True, False
         if not isinstance(legs, list) or len(legs) != N:
             raise StatsError(
                 f"{where}: need exactly {N} legs entries with --judge-pack"
             )
-        kept, failed, gated, first_ok = [], 0, 0, False
+        kept, failed, gated, first_ok, first_failed = [], 0, 0, False, False
         for index, (total, leg) in enumerate(zip(totals, legs, strict=True)):
             if total is None:
                 if not gate_failed(leg):
@@ -207,8 +242,15 @@ def _challenge(name, spec, judge=None):
             status, rescored = rejudge(leg, judge, f"{where}[{index}]")
             if status == "REQUIRED_LEG_MINIMUM_FAILED":
                 failed += 1
-                continue
-            if status != "SCORED_DEVELOPMENT_CANDIDATE" or abs(rescored - total) > 1e-9:
+                # The status is all the minimums change: the total is what the same legs give without them.
+                _, rescored = rejudge(leg, unbounded, f"{where}[{index}]")
+                if index == 0:
+                    first_failed = True
+            elif status != "SCORED_DEVELOPMENT_CANDIDATE":
+                raise StatsError(
+                    f"{where}[{index}]: the judge pack gives {status}, not a scored row"
+                )
+            if rescored is None or abs(rescored - total) > 1e-9:
                 raise StatsError(
                     f"{where}[{index}]: the judge pack gives {status} / total {rescored}, not the recorded {total}"
                 )
@@ -217,9 +259,9 @@ def _challenge(name, spec, judge=None):
                 first_ok = True
         if len(kept) < 2:
             raise StatsError(
-                f"{where}: only {len(kept)} rebuild(s) pass the judge minimums and the gates; sigma needs at least 2"
+                f"{where}: only {len(kept)} non-gated rebuild(s); sigma needs at least 2"
             )
-        return kept, failed, gated, first_ok
+        return kept, failed, gated, first_ok, first_failed
 
     stats = {}
     for eid in panel:
@@ -231,7 +273,7 @@ def _challenge(name, spec, judge=None):
         if not isinstance(digests, list) or len(digests) != N:
             raise StatsError(f"{name}.{eid}: need exactly {N} state digests")
         digests = [_digest(d, f"{name}.{eid}.state_digests") for d in digests]
-        kept, failed, gated, seed0_ok = keep(
+        kept, failed, gated, seed0_ok, seed0_failed = keep(
             totals, m.get("seed0_legs"), f"{name}.{eid}.seed0_legs"
         )
         stats[eid] = {
@@ -243,6 +285,7 @@ def _challenge(name, spec, judge=None):
             "within_noise": m.get("within_noise") is True,
             "seed0_total": totals[0],
             "seed0_ok": seed0_ok,
+            "seed0_failed_minimums": seed0_failed,
             "minimum_failed": failed,
             "gated": gated,
         }
@@ -268,7 +311,7 @@ def _challenge(name, spec, judge=None):
         f"{name}.control_seed_totals[{control}]",
         judge is not None,
     )
-    seed_kept, seed_failed, seed_gated, _ = keep(
+    seed_kept, seed_failed, seed_gated, _ok, _failed = keep(
         seeds,
         (spec.get("control_seed_legs") or {}).get(control),
         f"{name}.control_seed_legs[{control}]",
@@ -299,6 +342,7 @@ def _challenge(name, spec, judge=None):
             "by_member": {e: stats[e]["minimum_failed"] for e in panel},
             "control_seeds": seed_failed,
         }
+        result["control_fails_judge_minimums"] = stats[control]["seed0_failed_minimums"]
         result["gated"] = {
             "by_member": {e: stats[e]["gated"] for e in panel},
             "control_seeds": seed_gated,
@@ -330,11 +374,20 @@ def measure(doc, judge_packs=None):
             n: {
                 "source_sha256": sha,
                 "score_pack_digest": pack["pack_digest"],
+                **(
+                    {
+                        "declared_pack_digest": declared[0],
+                        "declared_pack_digest_matches": declared[0]
+                        == pack["pack_digest"],
+                    }
+                    if declared
+                    else {}
+                ),
                 "minimums": {
                     leg: spec["minimum"] for leg, spec in sorted(pack["legs"].items())
                 },
             }
-            for n, (pack, sha) in sorted(judge_packs.items())
+            for n, (pack, sha, *declared) in sorted(judge_packs.items())
         }
     return {**body, "measurement_digest": hashlib.sha256(canonical(body)).hexdigest()}
 
@@ -364,7 +417,7 @@ def main(argv=None):
             judge_packs[challenge] = load_judge_pack(path)
         with open(args.input, encoding="utf-8") as f:
             result = measure(json.load(f), judge_packs)
-        for challenge, (pack, sha) in sorted(judge_packs.items()):
+        for challenge, (pack, sha, *_declared) in sorted(judge_packs.items()):
             minimums = {leg: s["minimum"] for leg, s in sorted(pack["legs"].items())}
             print(
                 f"recal_stats: {challenge}: judge-pack minimums {minimums} from {sha}",
