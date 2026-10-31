@@ -123,7 +123,55 @@ def _count(cap, hotkey=HOTKEY, exam=EXAM):
 # --- the registry -----------------------------------------------------------------
 
 
-def test_the_committed_registry_carries_no_values_until_the_recalibration_writes_them():
+UNVALUED = {
+    "schema": "carbon.exam.cadence-registry.v2",
+    "source": "unvalued fixture (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01): the recalibration writes the values",
+    "capacity_gpu_lane_hours_per_day": None,
+    "rebuild_gpu_lane_hours": None,
+    "lanes": None,
+    "measurement_digest": None,
+    "class_record_digest": None,
+}
+
+
+@pytest.fixture
+def unvalued_registry(tmp_path, monkeypatch):
+    """A registry file with no values, in force in place of the committed one (which the recalibration has since written)."""
+    path = tmp_path / "unvalued_exam_cadence.json"
+    path.write_text(json.dumps(UNVALUED))
+    monkeypatch.setattr(exam_cap, "REGISTRY", path)
+    return path
+
+
+def test_the_committed_registry_loads_and_lists_only_registered_challenges():
+    """Whatever the recalibration has registered loads, and every Challenge it values is one the cap knows. Which
+    Challenges those are is the recalibration's to change (a values push), so the test does not pin the set.
+    """
+    cadence = exam_cap.registered_cadence()
+    listed = set(cadence["rebuild_gpu_lane_hours"])
+    assert listed and listed <= set(exam_cap._LEAN_CHALLENGES)
+
+
+def test_a_challenge_absent_from_a_registry_is_refused_not_defaulted(tmp_path, clock):
+    """A tmp copy of the committed registry minus one entry: that Challenge is `exam_cap_unregistered`; the rest reserve."""
+    document = json.loads(exam_cap.REGISTRY.read_bytes())
+    left_out = min(document["rebuild_gpu_lane_hours"])
+    del document["rebuild_gpu_lane_hours"][left_out]
+    copy = tmp_path / "exam_cadence.json"
+    copy.write_text(json.dumps(document))
+    cap = make_cap(tmp_path, clock, cadence=exam_cap.registered_cadence(copy))
+    challenge = (left_out, "1.0")
+    with pytest.raises(exam_cap.ExamCapRefused) as refused:
+        _reserve(cap, 0, challenge=challenge)
+    assert refused.value.code == "exam_cap_unregistered"
+    kept = sorted(document["rebuild_gpu_lane_hours"])
+    if kept:
+        assert _reserve(cap, 1, challenge=(kept[0], "1.0"))
+
+
+def test_an_unvalued_registry_carries_no_values_and_is_unregistered(
+    unvalued_registry,
+):
     document = json.loads(exam_cap.REGISTRY.read_bytes())
     assert (
         document["schema"]
@@ -178,8 +226,12 @@ def test_the_retired_cpu_hours_schema_is_refused_with_its_own_code(tmp_path):
     assert refused.value.code == "exam_cadence_schema_unsupported"
 
 
-def test_grading_with_the_unvalued_committed_registry_fails_closed(tmp_path, clock):
-    unregistered = make_cap(tmp_path, clock, cadence=None)  # the committed file
+def test_grading_with_an_unvalued_registry_fails_closed(
+    tmp_path, clock, unvalued_registry
+):
+    unregistered = make_cap(
+        tmp_path, clock, cadence=None
+    )  # the registry in force: unvalued
     with pytest.raises(exam_cap.ExamCapRefused) as refused:
         _reserve(unregistered, 0)
     assert refused.value.code == "exam_cadence_unregistered"
@@ -1172,7 +1224,7 @@ def test_infra_re_runs_are_bounded(cap, monkeypatch):
 
 
 def test_a_calibration_grade_completes_on_an_unregistered_cadence_while_a_miner_grade_is_refused(
-    tmp_path, clock, monkeypatch
+    tmp_path, clock, monkeypatch, unvalued_registry
 ):
     """The committed cadence carries no values until the recalibration writes them. The calibration campaign (its own
     uncapped ledger, never the official one) must still run, or the recalibration would wait on its own fail-closed
@@ -1180,7 +1232,7 @@ def test_a_calibration_grade_completes_on_an_unregistered_cadence_while_a_miner_
     from carbon.challenge_validator import calibration_grade_run as run
     from carbon.development_session.research_ledger import CampaignLedger
 
-    # The shipped, unvalued v2 registry is what is in force.
+    # An unvalued v2 registry is what is in force (the fixture; the committed one has since been written).
     with pytest.raises(exam_cap.ExamCapRefused) as unvalued:
         exam_cap.registered_cadence()
     assert unvalued.value.code == "exam_cadence_unregistered"
