@@ -207,9 +207,33 @@ def test_check_king_reads_both_totals_decides_logs_and_is_loud_on_rotate(
     assert again["reason"] == "total_unavailable"
 
 
-def test_the_margin_is_the_registered_rebuild_noise_and_absent_means_unavailable(
-    tmp_path,
-):
+def _registry(monkeypatch, tmp_path, challenges):
+    """Put a registry holding exactly ``challenges`` in force for `check_king`, whatever the committed one holds: its
+    margin is read through the real loader (`koth_registry.rebuild_noise(..., path=...)`) from a tmp file."""
+    from carbon.challenge_validator import koth_registry
+    from carbon.challenge_validator.interface import digest
+
+    path = tmp_path / "koth_rebuild_noise.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": koth_registry.SCHEMA,
+                "challenges": {
+                    name: {"value": value, "measurement_digest": digest("record")}
+                    for name, value in challenges.items()
+                },
+            }
+        )
+    )
+    real = koth_registry.rebuild_noise
+    monkeypatch.setattr(
+        koth_registry,
+        "rebuild_noise",
+        lambda challenge_id, **_: real(challenge_id, path=path),
+    )
+
+
+def _check_motor(tmp_path):
     log = _log(tmp_path)
     store = FakeStore({("king", SEALED): _body(0.9), ("king", FRESH): _body(0.1)})
     side = lambda key: {
@@ -217,18 +241,34 @@ def test_the_margin_is_the_registered_rebuild_noise_and_absent_means_unavailable
         "pin": "sha256:" + "1" * 64,
         "se": 0.0,
     }
-    outcome = exam_rotation.check_king(
+    return exam_rotation.check_king(
         log=log,
         store=store,
-        challenge_id="electric-motor-magnetics",  # none registered yet in the committed file
+        challenge_id="electric-motor-magnetics",
         challenge_version="1.0",
         king="king",
         sealed=side(SEALED),
         fresh=side(FRESH),
         block=1,
     )
+
+
+def test_absent_from_the_registry_means_unavailable(tmp_path, monkeypatch):
+    # An EMPTY registry in a tmp file: the weekly check has no margin for Motor, whatever the committed file holds.
+    _registry(monkeypatch, tmp_path, {})
+    outcome = _check_motor(tmp_path)
     assert outcome["outcome"] == exam_rotation.UNAVAILABLE
     assert outcome["reason"] == "rebuild_noise_unregistered"
+    assert outcome["margin"] is None
+
+
+def test_the_margin_is_the_registered_rebuild_noise(tmp_path, monkeypatch):
+    # A registry with a KNOWN value for Motor: that value is the margin (with SEs of 0 it is also the threshold).
+    _registry(monkeypatch, tmp_path, {"electric-motor-magnetics": 0.05})
+    outcome = _check_motor(tmp_path)
+    assert outcome["margin"] == 0.05
+    assert outcome["threshold"] == 0.05
+    assert outcome["outcome"] == exam_rotation.ROTATE  # 0.9 - 0.1 exceeds 0.05
 
 
 def test_the_se_sidecar_is_read_not_typed(tmp_path):
