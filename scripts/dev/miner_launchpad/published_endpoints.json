@@ -9,5 +9,14 @@
     "intake_url": "the validator intake's https URL",
     "receiver_hotkey": "the ss58 hotkey of the validator published as the receiver; the profile pins it, and the intake must report it before anything is signed for it"
   },
-  "endpoints": []
+  "endpoints": [
+    {
+      "network": "testnet",
+      "netuid": 567,
+      "challenge": "f08-ribbed-bracket",
+      "version": "1.7",
+      "intake_url": "https://ribbed-bracket-door.carbonphysics.ai",
+      "receiver_hotkey": "5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR"
+    }
+  ]
 }
