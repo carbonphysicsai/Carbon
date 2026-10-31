@@ -1024,11 +1024,14 @@ def run():
                     # No control can be sent while the connection is down. The research surface
                     # draws only the controls that apply to the state (research_view.js: a
                     # control that cannot be pressed is not drawn), so a running campaign has
-                    # Pause, Stop and Export.
+                    # Pause, Stop, Reconcile and Export. Export is drawn enabled (research_view.js sets no
+                    # disabled state on it) but researchAction returns at once while disconnected, so it
+                    # sends nothing; every other control is disabled.
                     wait(
                         session,
                         "[...document.querySelectorAll('#campaign-detail [data-action]')].length >= 2"
-                        " && [...document.querySelectorAll('#campaign-detail [data-action]')].every(b => b.disabled)",
+                        " && [...document.querySelectorAll('#campaign-detail [data-action]')]"
+                        ".every(b => b.disabled || b.dataset.action === 'export')",
                     )
                     research.recent = original_research_recent
                     wait(
