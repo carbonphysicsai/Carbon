@@ -226,6 +226,7 @@ def test_a_retry_is_at_most_once_per_epoch_and_a_third_failure_raises_a_typed_al
     assert len(calls) == 3
     (alert,) = store.crown_pause_alerts()
     assert alert["code"] == "crown_decision_unavailable" and alert["attempts"] == 3
+    assert alert["waiting"] == 0
     assert alert["action"] == "recheck_validator_host" and alert["submission_id"] == "a"
     assert alert["last_code"] == f"UNAVAILABLE:{ca.REBUILD_UNAVAILABLE}"
     clock[0] += sweeper.EPOCH_SECONDS
@@ -423,3 +424,25 @@ def test_end_to_end_a_triggered_decision_survives_a_host_outage_and_is_decided_l
     sweeper.sweep(store, reconsider, kind="pack", current_exam=EXAM)
     assert store.incumbent() is not None and store.incumbent()["model_id"] == "a"
     assert store.paused_crowns() == []
+
+
+@posix
+def test_an_alert_for_the_oldest_record_names_the_decisions_queued_behind_it(tmp_path):
+    clock = [t0]
+    store = _store(tmp_path, clock)
+    for name in ("a", "b", "c"):
+        file_paused(store, name, KEY_A)
+    calls = []
+
+    def host_down(record):
+        calls.append(record["submission_id"])
+        return outcome(bp.UNAVAILABLE, ca.REBUILD_UNAVAILABLE)
+
+    for _attempt in range(3):
+        _sweep(store, host_down)
+        clock[0] += sweeper.EPOCH_SECONDS
+    assert calls == ["a", "a", "a"]  # the sweep never reaches b or c while a is undecided
+    (alert,) = store.crown_pause_alerts()
+    assert alert["code"] == "crown_pause_blocked_by_undecided"
+    assert alert["waiting"] == 2 and alert["submission_id"] == "a"
+    assert [r["submission_id"] for r in store.paused_crowns()] == ["a", "b", "c"]

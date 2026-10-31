@@ -18,6 +18,10 @@ Rules (Validator, 2026-10-29):
   about the contender, so the record stays UNRESOLVED and is retried, at most once per epoch (a persistent fault never
   burns GPU every tick), with a typed alert after `ALERT_AFTER` failed attempts. Only decided outcomes resolve
   (FIRST_INCUMBENT, CHALLENGER, INCUMBENT_KEEPS, NO_WINNER, including ``unstable_across_seeds``).
+- the sweep stops at an undecided record, so a persistently failing OLDEST record holds every later paused decision of
+  its Challenge until it resolves (each is decided against the incumbent of its moment). The alert says so: when
+  decisions are queued behind it, its code is ``crown_pause_blocked_by_undecided`` and ``waiting`` counts them (as of
+  the filing).
 """
 
 from __future__ import annotations
@@ -45,7 +49,8 @@ def sweep(store, reconsider, *, kind, current_exam):
     if operator_pause.crowns_paused(store.path.parent):
         return []
     resolved = []
-    for record in store.paused_crowns(kind):
+    pending = store.paused_crowns(kind)
+    for place, record in enumerate(pending):
         submission_id, key = record["submission_id"], record["evaluation_key"]
         incumbent = store.incumbent() or {}
         if incumbent.get("model_id") == submission_id:
@@ -68,7 +73,13 @@ def sweep(store, reconsider, *, kind, current_exam):
             if outcome["outcome"] in UNDECIDED:
                 failed = store.note_crown_pause_attempt(submission_id, key, code)
                 if failed >= ALERT_AFTER:
-                    store.record_crown_pause_alert(submission_id, key, failed, code)
+                    store.record_crown_pause_alert(
+                        submission_id,
+                        key,
+                        failed,
+                        code,
+                        waiting=len(pending) - place - 1,
+                    )
                 break  # not a decision: stays unresolved, retried after the epoch
         store.resolve_crown_pause(submission_id, key, code)
         resolved.append((submission_id, code))

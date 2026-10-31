@@ -1804,13 +1804,19 @@ class PoolStore:
             )
         return attempts
 
-    def record_crown_pause_alert(self, submission_id, key, attempts, code):
-        """File the typed alert for a decision that kept failing; once per decision (the first stays)."""
+    def record_crown_pause_alert(self, submission_id, key, attempts, code, waiting=0):
+        """File the typed alert for a decision that kept failing; once per decision (the first stays).
+
+        ``waiting`` counts the later paused decisions held behind it (the sweep decides in order): with any, the alert
+        code is ``crown_pause_blocked_by_undecided``."""
         op = self._bank_operation("crown_pause_alert.v1", submission_id, key)
         body = canonical(
             {
                 "schema": "carbon.challenge-validator.crown-pause-alert.v1",
-                "code": "crown_decision_unavailable",
+                "code": "crown_pause_blocked_by_undecided"
+                if waiting
+                else "crown_decision_unavailable",
+                "waiting": waiting,
                 "submission_id": submission_id,
                 "evaluation_key": key,
                 "attempts": attempts,
