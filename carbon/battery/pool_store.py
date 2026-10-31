@@ -1705,7 +1705,8 @@ class PoolStore:
 
     def repeat_marks(self, submission_id):
         """The evaluation keys ``submission_id`` holds a repeat-verified mark under, oldest
-        first. Reads only (the reward layer's evidence that a crown was repeat-confirmed)."""
+        first. Reads only (the reward layer's evidence that a crown was repeat-confirmed).
+        """
         with self.db() as db:
             rows = db.execute(
                 "SELECT body FROM operations WHERE kind='repeat_verified.v1' ORDER BY rowid"
@@ -1729,7 +1730,9 @@ class PoolStore:
         reads this stored aggregate and never the score pack. Idempotent for the same
         ``(challenge, key)``; a different total for the same key refuses."""
         if total is not None and (
-            type(total) not in (int, float) or not 0 <= total <= 1 or total != total
+            type(total) not in (int, float)
+            or not 0 <= total <= 1
+            or total != total  # noqa: PLR0124 - NaN check
         ):
             raise StateError("koth_baseline_invalid")
         op = self._bank_operation("koth_baseline.v1", challenge, key)
