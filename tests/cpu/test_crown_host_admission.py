@@ -25,7 +25,9 @@ from carbon.development_session.research_ledger import (
 
 def _frozen(provider):
     with provider.ledger.db() as db:
-        return json.loads(db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()[0])
+        return json.loads(
+            db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()[0]
+        )
 
 
 def _fresh(tmp_path, name):
@@ -37,7 +39,9 @@ def test_the_real_pool_opens_the_host_owner_and_the_seam_reaches_a_provider_and_
     tmp_path,
 ):
     pool = _pool(tmp_path)()
-    provider = pool(ca.HOST_OWNER)  # real OwnerProviders -> real _manifest -> real CampaignLedger.freeze
+    provider = pool(
+        ca.HOST_OWNER
+    )  # real OwnerProviders -> real _manifest -> real CampaignLedger.freeze
     manifest = _frozen(provider)
     assert manifest["owner"] == manifest["principal"] == ca.HOST_OWNER
     assert manifest["admission"] == {
@@ -86,6 +90,7 @@ def test_a_host_manifest_freezes_on_a_fresh_ledger_and_survives_a_restart(tmp_pa
 
 def variants(manifest):
     """The host manifests that must NOT freeze (2)."""
+
     def with_(**changes):
         value = copy.deepcopy(manifest)
         for key, new in changes.items():
@@ -131,7 +136,9 @@ def test_the_miner_path_is_unchanged_a_product_manifest_without_admission_still_
 ):
     pool = _pool(tmp_path)()
     miner = _frozen(pool(OWNER))
-    assert miner["admission"]["admission"] == PRODUCT_ADMISSION  # the registration, as before
+    assert (
+        miner["admission"]["admission"] == PRODUCT_ADMISSION
+    )  # the registration, as before
     unadmitted = copy.deepcopy(miner)
     unadmitted["admission"] = None
     with pytest.raises(ValueError, match="must record its registration admission"):

@@ -261,7 +261,9 @@ def _check_product(manifest):
     admission = manifest.get("admission")
     if type(admission) is dict and admission.get("admission") == PRACTICE_ADMISSION:
         _check_practice(manifest, admission)
-    elif type(admission) is dict and admission.get("admission") == HOST_REBUILD_ADMISSION:
+    elif (
+        type(admission) is dict and admission.get("admission") == HOST_REBUILD_ADMISSION
+    ):
         _check_host_rebuild(manifest, admission)
     elif (
         type(admission) is not dict

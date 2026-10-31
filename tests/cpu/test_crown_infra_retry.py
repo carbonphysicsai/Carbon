@@ -4,7 +4,8 @@ Claims. FIX 1: `OwnerProviders` opens EXACTLY `crown_average.HOST_OWNER` (no reg
 campaign), only through the provider factory the rebuild path uses; every other non-ss58 owner is still refused, the host
 owner is never a submitter, and it survives a restart. FIX 2: the sweep leaves a paused decision UNRESOLVED on an UNAVAILABLE
 or FAILED_INFRA outcome (counted, one retry per epoch, a typed alert after three failures), resolves only decided outcomes,
-and a live trigger that hits infra keeps its screening grade filed for the same retry."""
+and a live trigger that hits infra keeps its screening grade filed for the same retry.
+"""
 
 from __future__ import annotations
 
@@ -441,7 +442,11 @@ def test_an_alert_for_the_oldest_record_names_the_decisions_queued_behind_it(tmp
     for _attempt in range(3):
         _sweep(store, host_down)
         clock[0] += sweeper.EPOCH_SECONDS
-    assert calls == ["a", "a", "a"]  # the sweep never reaches b or c while a is undecided
+    assert calls == [
+        "a",
+        "a",
+        "a",
+    ]  # the sweep never reaches b or c while a is undecided
     (alert,) = store.crown_pause_alerts()
     assert alert["code"] == "crown_pause_blocked_by_undecided"
     assert alert["waiting"] == 2 and alert["submission_id"] == "a"

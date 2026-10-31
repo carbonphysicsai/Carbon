@@ -1813,9 +1813,11 @@ class PoolStore:
         body = canonical(
             {
                 "schema": "carbon.challenge-validator.crown-pause-alert.v1",
-                "code": "crown_pause_blocked_by_undecided"
-                if waiting
-                else "crown_decision_unavailable",
+                "code": (
+                    "crown_pause_blocked_by_undecided"
+                    if waiting
+                    else "crown_decision_unavailable"
+                ),
                 "waiting": waiting,
                 "submission_id": submission_id,
                 "evaluation_key": key,
