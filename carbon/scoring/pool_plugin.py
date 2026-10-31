@@ -29,6 +29,7 @@ from dataclasses import dataclass
 
 from carbon.scoring import pool_proof_suite as suite
 
+BIAS_MODES = ("feasible_bias", "wrong_near")
 TRUTH_MODELS = ("oracle", "noisy", "wrong_near_optimum")
 
 
@@ -152,6 +153,36 @@ def _row_u(binding, row, out):
     return u
 
 
+def _biased_outputs(binding, rows, descriptor):
+    """E2, the accuracy-matched gaming control: an HONEST model's own outputs plus the same bias the truth-built control
+    adds to the truth. ``{"kind": "biased", "base": descriptor, "bias": {"mode": "feasible_bias", "k": k, "seed": s}}``
+    adds the `noisy` control's seeded k x U on every row that has a reference; ``{"mode": "wrong_near", ...}`` leaves the
+    bank rows unchanged (the `wrong_near_optimum` control answers the bank with the truth alone: its error lives in the
+    pool, near each target's reference optimum). It is never a TRUTH model: the perfect probe rule does not apply."""
+    bias = descriptor.get("bias")
+    _require(
+        type(bias) is dict and bias.get("mode") in BIAS_MODES,
+        "unknown_bias_mode",
+    )
+    base = model_outputs(binding, rows, descriptor["base"])
+    if bias["mode"] == "wrong_near":
+        return base
+    k, seed = bias["k"], bias.get("seed", 0)
+    return [
+        [
+            (
+                value + k * u * suite._sign(seed, "bank", row["case_id"], index)
+                if row.get("reference") is not None
+                else value
+            )
+            for index, (value, u) in enumerate(
+                zip(out, _row_u(binding, row, out), strict=True)
+            )
+        ]
+        for row, out in zip(rows, base, strict=True)
+    ]
+
+
 def model_outputs(binding, rows, descriptor):
     """Raw output rows for a model descriptor on any rows {"case_id", "inputs": {name: value}, "reference": raw
     truth row | None}: the bank's rows, or every pool row (reference = the pool's raw truth where attached).
@@ -182,6 +213,8 @@ def model_outputs(binding, rows, descriptor):
             ]
             for row, out in zip(rows, base, strict=True)
         ]
+    if kind == "biased":
+        return _biased_outputs(binding, rows, descriptor)
     reference = [
         (
             _model_space_of(binding, r["reference"])

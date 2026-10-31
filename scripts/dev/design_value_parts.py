@@ -62,13 +62,21 @@ class Recorder:
     def __init__(self):
         self.sets = []
         self.measured = None
+        self.agen_calls = []  # {"digests", "value", "alts"}: each A_gen the grader computed, and the same at other scales
+        self.combine_calls = []  # (a, a_gen, rule): each A_gen combination the grader made
 
 
 @contextlib.contextmanager
-def recording():
-    """Wrap `pool_grader.grade_set` and `pool_exam.measure_pool` so their returns are recorded; restore on exit."""
+def recording(agen_scale_sets=None):
+    """Wrap `pool_grader.grade_set` and `pool_exam.measure_pool` so their returns are recorded; restore on exit.
+
+    ``agen_scale_sets`` (optional, a list of ``{output: scale}``) also records, for every A_gen the grader computes, the
+    same A_gen at each of those scales (`pool_grader.agen_accuracy` on the SAME specs and predictions, called inside the
+    wrapper while the model is still being served) and every A_gen combination, so `agen_sweep` can give A at stricter
+    accuracy scales. The grader's own result is unchanged."""
     recorder = Recorder()
     real_grade_set, real_measure_pool = pool_grader.grade_set, pool_exam.measure_pool
+    real_agen, real_combine = pool_grader.agen_accuracy, pool_grader.combine_a
 
     def grade_set(specs, predict, optimizer, honesty):
         grade = real_grade_set(specs, predict, optimizer, honesty)
@@ -79,7 +87,25 @@ def recording():
         recorder.measured = real_measure_pool(*args, **kwargs)
         return recorder.measured
 
+    def agen_accuracy(specs, predict, scales):
+        value = real_agen(specs, predict, scales)
+        if agen_scale_sets:
+            recorder.agen_calls.append(
+                {
+                    "digests": tuple(s.digest for s in specs),
+                    "value": value,
+                    "alts": [real_agen(specs, predict, s) for s in agen_scale_sets],
+                }
+            )
+        return value
+
+    def combine_a(a, a_gen, rule):
+        recorder.combine_calls.append((a, a_gen, dict(rule)))
+        return real_combine(a, a_gen, rule)
+
     pool_grader.grade_set, pool_exam.measure_pool = grade_set, measure_pool
+    if agen_scale_sets:
+        pool_grader.agen_accuracy, pool_grader.combine_a = agen_accuracy, combine_a
     try:
         yield recorder
     finally:
@@ -87,6 +113,35 @@ def recording():
             real_grade_set,
             real_measure_pool,
         )
+        pool_grader.agen_accuracy, pool_grader.combine_a = real_agen, real_combine
+
+
+def agen_sweep(recorder, agen_scale_sets):
+    """A of the recorded exam at each alternative A_gen scale set: ``[{"scales": set, "A": a}]`` (a mean over sets).
+
+    The exam's A per set is ``combine_a(a_bank, mean A_gen, rule)`` (`pool_exam.measure_pool`), the LAST combinations the
+    grader made (one per set, after the per-set scoring). Each is redone with the A_gen recomputed at the alternative scale
+    on the same specs. Only the A_gen scale changes: a_bank, the rule and every prediction are the grader's own."""
+    n = len(recorder.sets)
+    if not recorder.agen_calls or len(recorder.combine_calls) < n or n == 0:
+        raise PartsError("no A_gen sweep was recorded (recording(agen_scale_sets=...))")
+    out = []
+    for j, scales in enumerate(agen_scale_sets):
+        values = []
+        for (specs, _grade, _honesty), (a_bank, gen, rule) in zip(
+            recorder.sets, recorder.combine_calls[-n:], strict=True
+        ):
+            digests = tuple(s.digest for s in specs)
+            calls = [c for c in recorder.agen_calls if c["digests"] == digests]
+            match = [c for c in calls if c["value"] == gen]
+            if gen is None:
+                values.append(a_bank)
+                continue
+            if not match:
+                raise PartsError("a recorded A_gen does not match the exam's combination")
+            values.append(pool_grader.combine_a(a_bank, match[0]["alts"][j], rule))
+        out.append({"scales": dict(scales), "A": statistics.fmean(values)})
+    return out
 
 
 def _regret(spec, grade):

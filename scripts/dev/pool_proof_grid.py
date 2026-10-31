@@ -312,6 +312,41 @@ def _strictness(args, plugin, out):
     return 0 if result["verdict"] == "PASS" else 1
 
 
+def _honesty_sheet(args, plugin, binding, out):
+    """Record the honesty-scale dump for one version (per-target q, e for every model and E2); aggregates only."""
+    import os
+
+    from scripts.dev import honesty_scale_sheet as sheet
+
+    spec = json.loads(Path(args.honesty_sheet_spec).read_text(encoding="utf-8"))
+    spec = {k: v for k, v in spec.items() if not k.startswith("_")}
+    fractions = spec.pop("agen_scale_sets_train_spread_fractions", None)
+    if fractions is not None:
+        if "agen_scale_sets" in spec or binding.train_spread is None:
+            raise SystemExit(
+                "give agen_scale_sets or its fractions (not both), and a binding with train_spread"
+            )
+        spread = binding.train_spread()
+        spec["agen_scale_sets"] = [
+            {name: fraction * value for name, value in spread.items()}
+            for fraction in fractions
+        ]
+    out.mkdir(parents=True, exist_ok=True)
+    dump = sheet.record(plugin, spec, args.kind, args.version)
+    path = out / f"honesty-dump-{args.kind}-{args.version}.json"
+    path.write_text(
+        json.dumps(dump, indent=2, sort_keys=True, allow_nan=False), encoding="utf-8"
+    )
+    print(f"honesty dump ({len(dump['models'])} models): {path}")
+    if args.u_dump_out:
+        target = Path(args.u_dump_out)
+        fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(sheet.u_dump(plugin), handle, indent=2, sort_keys=True)
+        print(f"U dump (operator only, custody): {target}")
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     for flag in ("kind", "version", "binding", "pools-dir", "sets", "out-dir"):
@@ -325,6 +360,18 @@ def main(argv=None):
         help="run the strictness curve instead of the grid: JSON {k_grid, monotone_tolerance, seed, wrong_radius, "
         "wrong_k, budget, sigma0, population, honesty_scale, honesty_reduction, agen_scales, a_rule, c_rule}, every "
         "value the owner's or the Validator's (nothing is defaulted). Writes strictness-<kind>-<version>.json",
+    )
+    parser.add_argument(
+        "--honesty-sheet-spec",
+        default=None,
+        help="record the honesty-scale dump instead of the grid (scripts/dev/honesty_scale_sheet.py): JSON with every "
+        "value the owner's or the Validator's; may give agen_scale_sets_train_spread_fractions in place of "
+        "agen_scale_sets. Writes honesty-dump-<kind>-<version>.json",
+    )
+    parser.add_argument(
+        "--u-dump-out",
+        default=None,
+        help="with --honesty-sheet-spec, OPERATOR ONLY: also write each target's declared U per output (mode 0600)",
     )
     parser.add_argument(
         "--truth-probe-rule", required=True, choices=("perfect", "measured")
@@ -394,11 +441,14 @@ def main(argv=None):
                 (pools / f"pool-source-{tid}.json").read_text(encoding="utf-8")
             )
             specs[tid] = pool_plugin.spec_from_source(document, binding)
-    if args.strictness_spec is None and args.grid is None:
-        parser.error("give --grid, or --strictness-spec for the strictness curve")
+    no_grid = args.strictness_spec is not None or args.honesty_sheet_spec is not None
+    if not no_grid and args.grid is None:
+        parser.error(
+            "give --grid, or --strictness-spec / --honesty-sheet-spec instead of the grid"
+        )
     grid_doc = (
         {}
-        if args.strictness_spec is not None
+        if no_grid
         else json.loads(Path(args.grid).read_text(encoding="utf-8"))
     )
     grid_doc = {k: v for k, v in grid_doc.items() if not k.startswith("_")}
@@ -441,11 +491,7 @@ def main(argv=None):
     ):
         if key in grid_doc:
             grid_doc[key] = tuple(grid_doc[key])
-    grid = (
-        None
-        if args.strictness_spec is not None
-        else pool_proof_grid.GridSpec(**grid_doc)
-    )
+    grid = None if no_grid else pool_proof_grid.GridSpec(**grid_doc)
     bank_legs = pool_plugin.practice_bank_legs(
         binding,
         truth_probe_rule=args.truth_probe_rule,
@@ -538,6 +584,8 @@ def main(argv=None):
     )
     if args.strictness_spec is not None:
         return _strictness(args, plugin, Path(args.out_dir))
+    if args.honesty_sheet_spec is not None:
+        return _honesty_sheet(args, plugin, binding, Path(args.out_dir))
     result = pool_proof_grid.run_grid(plugin, grid)
     if args.truth_row_sealed_batch_dir:
         result["meta"]["truth_row_check"] = {"source": "sealed_native", **truth_record}

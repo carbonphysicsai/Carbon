@@ -9,7 +9,7 @@ and measure) with `design_value_parts.recording()` around it, and prints the sam
 
     python -m scripts.dev.design_value_parts_regrade --retained ARTIFACTS/<id> --pack PACK_DIR --challenge ID
         --version V --judge-image JUDGE.json --work SCRATCH --stored STORED.json [--copy-hotkey HOTKEY] [--json]
-        [--fake]
+        [--fake] [--agen-scale-sets SETS.json]
 
 - ``--copy-hotkey`` (the receiver's hotkey) is REQUIRED with sealed packs: without it the grade stops with
   ``sealed_bank_missing`` (the sealed bank is bound to that hotkey).
@@ -167,10 +167,12 @@ def regrade(
     copy_hotkey=None,
     fake=False,
     grade=None,
+    agen_scale_sets=None,
 ):
     """Re-grade the retained entry with the recal's grade path, recorded; the report dict.
 
-    ``grade`` replaces `calibration_grade_run.run` in tests. ``report["ok"]`` is true only when the re-graded A and D equal
+    ``agen_scale_sets`` (a list of ``{output: scale}``) adds ``report["agen_sweep"]``: the exam's A at each stricter A_gen
+    scale, from the same predictions (the registered A and D above are unchanged). ``grade`` replaces `calibration_grade_run.run` in tests. ``report["ok"]`` is true only when the re-graded A and D equal
     ``stored`` exactly and the recomputed D equals the grader's D."""
     from carbon.challenge_validator import calibration_grade_run as runner
 
@@ -193,7 +195,7 @@ def regrade(
         name=retained_dir.name,
     )
     run = grade or runner.run
-    with parts_tool.recording() as recorder:
+    with parts_tool.recording(agen_scale_sets) as recorder:
         result = run(
             artifact_dir=artifact,
             pack_root=Path(pack),
@@ -224,6 +226,8 @@ def regrade(
         report["recomputed_d"] = report["regraded_d"]
         d_ok = stored_d == report["regraded_d"] == 0.0
     report["ok"] = bool(d_ok and stored_a == report["regraded_a"])
+    if agen_scale_sets and recorder.sets:
+        report["agen_sweep"] = parts_tool.agen_sweep(recorder, agen_scale_sets)
     return report
 
 
@@ -241,6 +245,8 @@ def render(report):
     lines.insert(-1, f"stored A     = {report['stored_a']!r}")
     lines.insert(-1, f"regraded A   = {report['regraded_a']!r}")
     lines.insert(-1, f"regraded D   = {report['regraded_d']!r}")
+    for row in report.get("agen_sweep", []):
+        lines.insert(-1, f"A at A_gen scales {row['scales']!r} = {row['A']!r}")
     return "\n".join(lines)
 
 
@@ -254,6 +260,11 @@ def main(argv=None):
     parser.add_argument("--judge-image", type=Path)
     parser.add_argument("--stored", required=True, type=Path)
     parser.add_argument("--copy-hotkey")
+    parser.add_argument(
+        "--agen-scale-sets",
+        type=Path,
+        help="JSON list of {output: scale}: also report the exam's A at each stricter A_gen scale set",
+    )
     parser.add_argument("--fake", action="store_true")
     parser.add_argument("--json", action="store_true", help="print the report as JSON")
     args = parser.parse_args(argv)
@@ -285,6 +296,11 @@ def main(argv=None):
             stored=stored,
             copy_hotkey=args.copy_hotkey,
             fake=args.fake,
+            agen_scale_sets=(
+                None
+                if args.agen_scale_sets is None
+                else json.loads(_read(args.agen_scale_sets))
+            ),
         )
     except (RegradeError, parts_tool.PartsError, cg.CalibrationRefused) as refused:
         print(f"REFUSED: {type(refused).__name__}: {refused}", file=sys.stderr)
