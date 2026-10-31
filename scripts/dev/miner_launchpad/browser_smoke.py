@@ -2272,10 +2272,6 @@ def fresh_miner():
                 # Next, getting your keys and joining; the signer is open beside
                 # it, in either order, and says so.
                 assert [s[2] for s in steps] == ["Next", "Open"] + ["Waiting"] * 4
-                assert session.evaluate(
-                    "document.querySelector('#getting-started-steps [data-step=register]')"
-                    ".textContent.includes('either order')"
-                )
                 assert "is-current" in steps[0][1]
                 primary = json.loads(
                     session.evaluate(
@@ -2294,6 +2290,11 @@ def fresh_miner():
                     session,
                     "location.hash === '#setup/signer'"
                     " && !document.querySelector('[data-step-panel=signer]').hidden",
+                )
+                # The either-order note sits on the signer step (app.js: the register step says
+                # it only while it is Open, not while it is the Next step).
+                assert session.evaluate(
+                    "document.querySelector('[data-step-panel=signer]').textContent.includes('either order')"
                 )
                 assert session.evaluate(
                     "document.getElementById('setup-signer-copy').type === 'button'"
