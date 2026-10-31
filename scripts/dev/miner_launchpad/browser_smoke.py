@@ -188,6 +188,20 @@ class ReadbackFixture:
 
 
 LAUNCH_BUDGET = {"elapsed_seconds": 600, "ceilings": {"research_trials": 5}}
+#: Graphite refuses a launch without a model-call ceiling and a model-spend ceiling (U17); the
+#: page takes the spend in dollars. The same composition, with those two, is what a Graphite launch sends.
+GRAPHITE_CEILING_FIELDS = {
+    "ceiling-provider_attempts": "100",
+    "ceiling-provider_nanodollars": "5",
+}
+GRAPHITE_LAUNCH_BUDGET = {
+    "elapsed_seconds": 600,
+    "ceilings": {
+        "provider_attempts": 100,
+        "provider_nanodollars": 5 * 10**9,
+        "research_trials": 5,
+    },
+}
 #: Graphite's choices as the wizard starts them (GRAPHITE-MINER-S5): Full,
 #: a 10% research share, and no hunt (it spends the miner's money, so it is
 #: off until they turn it on).
@@ -363,6 +377,7 @@ class ResearchFixture:
         }
         if value.get("agent") == "graphite":
             expected["agent"] = "graphite"
+            expected["budget"] = GRAPHITE_LAUNCH_BUDGET
             expected.update({k: v for k, v in GRAPHITE_DEFAULTS.items() if k in value})
         assert value == expected, value
         self.keys.add(key)
@@ -517,10 +532,12 @@ def set_field(session, identity, value):
     )
 
 
-def compose_and_template(session):
+def compose_and_template(session, graphite=False):
     """C2: one composition behind both paths, saved and loaded as a template,
     closed and checked against what is available when it is loaded."""
-    assert summary(session).endswith("budget: none, no cap"), summary(session)
+    # With Graphite the two model ceilings are already set; the "empty" composition is that one.
+    empty = summary(session)
+    assert graphite or empty.endswith("budget: none, no cap"), empty
     click(session, "path-advanced")
     wait(session, "!document.getElementById('launch-advanced').hidden")
     # Every resource the ledger knows is offered, and only those.
@@ -554,7 +571,7 @@ def compose_and_template(session):
     set_field(session, "ceiling-research_trials", "")
     click(session, "path-quick")
     wait(session, "document.getElementById('launch-advanced').hidden")
-    assert summary(session).endswith("budget: none, no cap"), summary(session)
+    assert summary(session) == empty, summary(session)
     # A template carrying anything a launch composition cannot is refused by
     # name - and the specimen, the saved one, loads.
     session.evaluate(
@@ -574,7 +591,7 @@ def compose_and_template(session):
         session,
         "document.getElementById('message').textContent.includes('which a template cannot carry')",
     )
-    assert summary(session).endswith("budget: none, no cap"), summary(session)
+    assert summary(session) == empty, summary(session)
     session.evaluate("document.getElementById('template-pick').value = 'night run'")
     click(session, "template-load")
     wait(
@@ -860,6 +877,9 @@ def run():
                             "document.querySelector('input[name=wizard-model]').value"
                         ),
                     )
+                    if agent == "graphite":
+                        for field, value in GRAPHITE_CEILING_FIELDS.items():
+                            set_field(session, field, value)
                     research.preflight = original_preflight
                     wait(
                         session, "!document.getElementById('research-launch').disabled"
@@ -873,7 +893,7 @@ def run():
                     # "grants nothing" (a capability request) is not an
                     # admission grant; the word itself must not appear.
                     assert not re.search(r"\bgrant\b", panel.lower()), panel[:300]
-                    compose_and_template(session)
+                    compose_and_template(session, agent == "graphite")
 
                     def lost_research_response(value, key):
                         research_launch(value, key)
