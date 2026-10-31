@@ -201,3 +201,47 @@ def test_trace_check_names_the_traced_carbon_modules_the_list_does_not_carry():
         ROOT, [listed[0], "carbon.challenge_validator.direct_receiver", "jax", "carbon"]
     )
     assert extra == ["carbon.challenge_validator.direct_receiver"]
+
+
+# --- `python -m` targets run in the container --------------------------------------------------------------------------
+
+
+def test_the_scan_finds_the_known_container_run_targets_and_the_list_carries_each():
+    """The exporter is run by `docker exec <container> /opt/carbon-worker/bin/python -I -m ...exporter` from four
+    controllers; the import closure alone missed it and every Cooling rebuild failed with
+    `No module named carbon.reconstruction.worker.exporter`."""
+    targets = image_modules.container_run_targets(ROOT)
+    assert {
+        "carbon.reconstruction.worker.entrypoint",
+        "carbon.reconstruction.worker.exporter",
+        "carbon.compute.job_server",
+    } <= targets
+    listed = set(image_modules.listed_modules(ROOT))
+    assert targets <= listed, sorted(targets - listed)
+
+
+def test_the_file_list_names_its_run_targets_for_the_in_image_smoke():
+    line = next(
+        line
+        for line in (ROOT / image_modules.FILES_FILE).read_text().splitlines()
+        if line.startswith(image_modules.RUN_TARGETS_PREFIX)
+    )
+    named = line[len(image_modules.RUN_TARGETS_PREFIX) :].split()
+    assert named == sorted(image_modules.container_run_targets(ROOT))
+
+
+def test_a_run_target_in_an_argv_list_with_flags_is_a_root(tmp_path):
+    for name, body in (
+        ("carbon/__init__.py", ""),
+        (
+            "carbon/controller.py",
+            "ARGV = ['exec', 'c', '/opt/carbon-worker/bin/python', '-I', '-B', '-m', 'carbon.target', '1']\n"
+            "HOST = ['python', '-m', 'carbon.host_only']\n",
+        ),
+        ("carbon/target.py", ""),
+        ("carbon/host_only.py", ""),
+    ):
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body)
+    assert image_modules.container_run_targets(tmp_path) == {"carbon.target"}

@@ -33,6 +33,8 @@ carbon/**
 !carbon/challenge_kit/__init__.py
 !carbon/challenge_kit/served_versions.py
 !carbon/challenge_kit/version_registry.py
+!carbon/compute/__init__.py
+!carbon/compute/job_server.py
 !carbon/construction/__init__.py
 !carbon/construction/canonical.py
 !carbon/construction/catalog.py
@@ -127,6 +129,7 @@ carbon/**
 !carbon/reconstruction/worker/build_inputs.txt
 !carbon/reconstruction/worker/docker_runtime.py
 !carbon/reconstruction/worker/entrypoint.py
+!carbon/reconstruction/worker/exporter.py
 !carbon/reconstruction/worker/image_modules.py
 !carbon/reconstruction/worker/model.py
 !carbon/reconstruction/worker/protocol.py
