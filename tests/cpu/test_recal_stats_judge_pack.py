@@ -608,3 +608,178 @@ def test_the_seed_sd_is_the_sample_sd_over_the_kept_seeds_only(tmp_path):
     # n - 1, not n: the population sd of the same five would be smaller
     assert out["seed_sd"] == pytest.approx(statistics.stdev(F08_KEPT))
     assert out["seed_sd"] > statistics.pstdev(F08_KEPT)
+
+
+# --- round 4: a null total whose gates all PASS gets its total from its legs ----------------------------------------------
+
+COOLING_A = [
+    0.4812,
+    0.5011,
+    0.4953,
+    0.5287,
+    0.4906,
+    0.5102,
+    0.4877,
+]  # the 7 all-PASS control seeds, A in [0.48, 0.53]
+COOLING_D = 3.7e-13
+PASS = {"finite_outputs": "PASS", "envelope": "PASS"}
+
+
+def _pass_legs(a, d=COOLING_D):
+    """A calibration-grade row whose legs fell under a minimum: no recorded total, every gate PASS."""
+    return {"A": a, "D": d, "gates": dict(PASS), "decision_outcome": "POOL_GRADED"}
+
+
+def _fail_legs(a=0.5, d=COOLING_D):
+    return {
+        "A": a,
+        "D": d,
+        "gates": {**PASS, "physics_pool": "FAIL"},
+        "decision_outcome": "POOL_GRADED",
+    }
+
+
+def _cooling_doc(seed_a=COOLING_A, failed_at=(2, 5, 8), member_a=0.5):
+    """The real Cooling shape: one bit-identical member (seed-0 rows all null-total, all PASS), ten control seeds of which
+    three fail the physics_pool gate (total null, gated) and seven PASS with a null total."""
+    it = iter(seed_a)
+    legs = [_fail_legs() if i in failed_at else _pass_legs(next(it)) for i in range(10)]
+    member = {
+        "reference_fingerprint": H("a"),
+        "seed0_totals": [None] * 10,
+        "seed0_legs": [_pass_legs(member_a)] * 10,
+        "state_digests": [H("1")] * 10,
+        "within_noise": False,
+    }
+    return {
+        "schema": rs.SCHEMA_IN,
+        "challenges": {
+            "Cooling": {
+                "pack_digest": H("b"),
+                "class_record_digest": H("c"),
+                "control_basis_bit_identical": "ten bit-identical",
+                "control_basis_within_noise": "smallest sigma within noise",
+                "panel": ["MGN"],
+                "members": {"MGN": member},
+                "control_seed_totals": {"MGN": [None] * 10},
+                "control_seed_legs": {"MGN": legs},
+            }
+        },
+    }
+
+
+def test_the_real_cooling_shape_totals_are_computed_from_legs_and_failed_gates_stay_gated(
+    tmp_path,
+):
+    path, _sha, _body = _judge(tmp_path)
+    out = rs.measure(_cooling_doc(), {"Cooling": rs.load_judge_pack(path)})
+    cooling = out["challenges"]["Cooling"]
+    totals = [_total(a, COOLING_D) for a in COOLING_A]
+    assert cooling["total_from_legs"] == {"by_member": {"MGN": 10}, "control_seeds": 7}
+    assert cooling["total_from_legs_rows"]["control_seeds"] == [0, 1, 3, 4, 6, 7, 9]
+    assert cooling["total_from_legs_rows"]["by_member"] == {"MGN": list(range(10))}
+    assert cooling["gated"] == {"by_member": {"MGN": 0}, "control_seeds": 3}
+    # every computed row is under the judge pack's D minimum: counted, kept
+    assert cooling["minimum_failed"] == {"by_member": {"MGN": 10}, "control_seeds": 7}
+    assert cooling["control"]["entry_id"] == "MGN"  # bit-identical, seed-0 not gated
+    assert cooling["control"]["reference_total"] == pytest.approx(
+        _total(0.5, COOLING_D), abs=1e-12
+    )
+    assert cooling["sigma"] == pytest.approx(
+        0.0, abs=1e-15
+    )  # identical legs: same total
+    assert cooling["seed_sd"] == pytest.approx(statistics.stdev(totals), abs=1e-12)
+    assert cooling["value"] == pytest.approx(
+        max(5 * cooling["sigma"], 2 * statistics.stdev(totals)), abs=1e-12
+    )
+    assert cooling["value"] == pytest.approx(2 * statistics.stdev(totals), abs=1e-12)
+
+
+def test_the_computed_total_is_what_the_same_legs_give_without_minimums(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    unbounded = rs.without_minimums(rs.load_judge_pack(path)[0])
+    status, total = rs.rejudge(_pass_legs(0.5), unbounded, "x")
+    assert status == "SCORED_DEVELOPMENT_CANDIDATE"
+    assert total == pytest.approx(_total(0.5, COOLING_D), abs=1e-12)
+    # the judge pack itself withholds the status of the same legs: minimums change status, not the total
+    status, _withheld = rs.rejudge(_pass_legs(0.5), rs.load_judge_pack(path)[0], "x")
+    assert status == "REQUIRED_LEG_MINIMUM_FAILED"
+
+
+def test_a_recorded_total_is_never_replaced_by_the_legs(tmp_path):
+    # a row with a total keeps the previous rule: the recorded total must equal the legs' (here it does not)
+    path, _sha, _body = _judge(tmp_path)
+    doc = _f08_doc()
+    doc["challenges"]["F08"]["control_seed_totals"]["FC"][0] = 0.9
+    with pytest.raises(rs.StatsError, match="not the recorded"):
+        rs.measure(doc, {"F08": rs.load_judge_pack(path)})
+
+
+@pytest.mark.parametrize(
+    "legs",
+    [
+        {"A": 0.5, "D": COOLING_D},  # no gates map
+        {"A": 0.5, "D": COOLING_D, "gates": {}},  # an empty gates map proves nothing
+        {"A": None, "D": COOLING_D, "gates": dict(PASS)},
+        {"A": 0.5, "D": "x", "gates": dict(PASS)},
+        {"A": float("nan"), "D": COOLING_D, "gates": dict(PASS)},
+        {"A": float("inf"), "D": COOLING_D, "gates": dict(PASS)},
+        {"A": True, "D": COOLING_D, "gates": dict(PASS)},
+        {"A": 0.5, "gates": dict(PASS)},  # no D
+        "gated",
+        None,
+    ],
+    ids=str,
+)
+def test_a_null_total_the_legs_cannot_give_stays_refused(tmp_path, legs):
+    path, _sha, _body = _judge(tmp_path)
+    doc = _cooling_doc()
+    doc["challenges"]["Cooling"]["control_seed_legs"]["MGN"][0] = legs
+    with pytest.raises(rs.StatsError, match="not gated|numeric A and D"):
+        rs.measure(doc, {"Cooling": rs.load_judge_pack(path)})
+
+
+def test_any_gate_failure_is_gated_never_computed(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    for gates in ({**PASS, "g": "FAIL"}, {**PASS, "g": False}, {"g": None}):
+        doc = _cooling_doc()
+        doc["challenges"]["Cooling"]["control_seed_legs"]["MGN"][0] = {
+            **_pass_legs(0.5),
+            "gates": gates,
+        }
+        out = rs.measure(doc, {"Cooling": rs.load_judge_pack(path)})
+        cooling = out["challenges"]["Cooling"]
+        assert cooling["gated"]["control_seeds"] == 4
+        assert cooling["total_from_legs"]["control_seeds"] == 6
+
+
+def test_the_f08_shape_computes_nothing(tmp_path):
+    # the existing real F08 shape (gated seeds with numeric legs) still counts as gated, nothing computed
+    path, _sha, _body = _judge(tmp_path)
+    out = rs.measure(_f08_doc(), {"F08": rs.load_judge_pack(path)})
+    f08 = out["challenges"]["F08"]
+    assert f08["total_from_legs"] == {"by_member": {"FC": 0}, "control_seeds": 0}
+    assert f08["total_from_legs_rows"]["control_seeds"] == []
+
+
+def test_two_kept_computed_rows_are_enough_and_one_is_refused(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    packs = {"Cooling": rs.load_judge_pack(path)}
+    two = _cooling_doc(seed_a=COOLING_A[:2], failed_at=tuple(range(2, 10)))
+    out = rs.measure(two, packs)["challenges"]["Cooling"]
+    assert out["total_from_legs"]["control_seeds"] == 2
+    one = _cooling_doc(seed_a=COOLING_A[:1], failed_at=tuple(range(1, 10)))
+    with pytest.raises(rs.StatsError, match="only 1 non-gated"):
+        rs.measure(one, packs)
+
+
+def test_the_computed_row_marks_are_in_the_measurement_digest(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    packs = {"Cooling": rs.load_judge_pack(path)}
+    first = rs.measure(_cooling_doc(), packs)
+    other = rs.measure(_cooling_doc(failed_at=(1, 5, 8)), packs)
+    assert (
+        first["measurement_digest"]
+        == rs.measure(_cooling_doc(), packs)["measurement_digest"]
+    )
+    assert first["measurement_digest"] != other["measurement_digest"]

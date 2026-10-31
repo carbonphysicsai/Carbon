@@ -39,6 +39,13 @@ its legs entry shows the failure (`gate_failed`: a decision_outcome or status of
 counted separately (`gated`: by member and for the control seeds). A null total WITHOUT a gate failure is a refusal:
 missing data is not gated. At least 2 kept (non-gated) rebuilds are needed for any sigma or spread, else a refusal.
 
+A rebuild whose total is null, whose A and D legs are finite numbers and whose `gates` map is ALL PASS has no recorded total
+only because the grade's leg minimums (a FINAL pack) left it unscored: calibration-grade writes total = null for a row whose
+legs fall under a minimum. Its total is COMPUTED by `dual_score.score` of its legs on the judge pack with the minimums
+removed (the same rejudge copy: minimums change a row's status, never its total), marked `total_from_legs` and counted
+(`total_from_legs`: by member and for the control seeds), and it stays in sigma and the seed sd. A row with any gate failure
+stays GATED, and a null total with non-numeric legs (or no gates map) stays a refusal.
+
 The control is the first panel member that is bit-identical AND whose official seed-0 rebuild is not gated (else the
 within-noise rule, with the same seed-0 condition). Failing the judge minimums no longer disqualifies a control; whether
 the chosen control's official seed-0 row fails them is reported as `control_fails_judge_minimums`.
@@ -115,6 +122,25 @@ def gate_failed(legs):
     gates = legs.get("gates")
     return isinstance(gates, dict) and any(
         v not in (True, "PASS") for v in gates.values()
+    )
+
+
+def total_from_legs_ok(legs):
+    """True when a null-total rebuild can have its total computed: A and D are finite numbers and the gates map is present,
+    non-empty and ALL PASS (a gate failure is never computed, it is gated)."""
+    if not isinstance(legs, dict):
+        return False
+    gates = legs.get("gates")
+    return (
+        all(
+            isinstance(legs.get(k), (int, float))
+            and not isinstance(legs.get(k), bool)
+            and math.isfinite(legs[k])
+            for k in ("A", "D")
+        )
+        and isinstance(gates, dict)
+        and bool(gates)
+        and all(v in (True, "PASS") for v in gates.values())
     )
 
 
@@ -228,23 +254,45 @@ def _challenge(name, spec, judge=None):
 
     def keep(totals, legs, where):
         """(kept totals, count failing the judge minimums, count gated, whether rebuild 0 is not gated, whether
-        rebuild 0 fails the minimums). A gated rebuild (null total, legs show a hard-gate failure) is excluded and counted
+        rebuild 0 fails the minimums, indices whose total was computed from legs, rebuild 0's total or None).
+        A rebuild with a null total whose legs are numbers and whose gates all PASS gets its total computed on the judge
+        pack with the minimums removed (`total_from_legs`). A gated rebuild (null total, legs show a hard-gate failure) is excluded and counted
         apart; a null total the legs do not explain is a refusal. A rebuild that fails only the judge minimums KEEPS its
         total (minimums change a row's status, never its total) and is counted."""
         if judge is None:
-            return totals, 0, 0, True, False
+            return totals, 0, 0, True, False, [], totals[0]
         if not isinstance(legs, list) or len(legs) != N:
             raise StatsError(
                 f"{where}: need exactly {N} legs entries with --judge-pack"
             )
         kept, failed, gated, first_ok, first_failed = [], 0, 0, False, False
+        from_legs, first_total = [], None
         for index, (total, leg) in enumerate(zip(totals, legs, strict=True)):
             if total is None:
-                if not gate_failed(leg):
+                if gate_failed(leg):
+                    gated += 1
+                    continue
+                if not total_from_legs_ok(leg):
                     raise StatsError(
-                        f"{where}[{index}]: the total is null and the legs show no hard-gate failure; missing data is not gated"
+                        f"{where}[{index}]: the total is null and the legs show no hard-gate failure and cannot give one "
+                        "(numeric A and D and an all-PASS gates map are needed); missing data is not gated"
                     )
-                gated += 1
+                # The grade's leg minimums left it unscored: the total is what its legs give without them.
+                status, total = rejudge(leg, unbounded, f"{where}[{index}]")
+                if status != "SCORED_DEVELOPMENT_CANDIDATE" or total is None:
+                    raise StatsError(
+                        f"{where}[{index}]: the legs give {status} without minimums, not a scored row"
+                    )
+                from_legs.append(index)
+                if rejudge(leg, judge, f"{where}[{index}]")[0] == (
+                    "REQUIRED_LEG_MINIMUM_FAILED"
+                ):
+                    failed += 1
+                    if index == 0:
+                        first_failed = True
+                kept.append(total)
+                if index == 0:
+                    first_ok, first_total = True, total
                 continue
             status, rescored = rejudge(leg, judge, f"{where}[{index}]")
             if status == "REQUIRED_LEG_MINIMUM_FAILED":
@@ -263,12 +311,12 @@ def _challenge(name, spec, judge=None):
                 )
             kept.append(total)
             if index == 0:
-                first_ok = True
+                first_ok, first_total = True, total
         if len(kept) < 2:
             raise StatsError(
                 f"{where}: only {len(kept)} non-gated rebuild(s); sigma needs at least 2"
             )
-        return kept, failed, gated, first_ok, first_failed
+        return kept, failed, gated, first_ok, first_failed, from_legs, first_total
 
     stats = {}
     for eid in panel:
@@ -280,7 +328,7 @@ def _challenge(name, spec, judge=None):
         if not isinstance(digests, list) or len(digests) != N:
             raise StatsError(f"{name}.{eid}: need exactly {N} state digests")
         digests = [_digest(d, f"{name}.{eid}.state_digests") for d in digests]
-        kept, failed, gated, seed0_ok, seed0_failed = keep(
+        kept, failed, gated, seed0_ok, seed0_failed, from_legs, seed0_total = keep(
             totals, m.get("seed0_legs"), f"{name}.{eid}.seed0_legs"
         )
         stats[eid] = {
@@ -290,11 +338,13 @@ def _challenge(name, spec, judge=None):
                 m.get("reference_fingerprint"), f"{name}.{eid}.reference_fingerprint"
             ),
             "within_noise": m.get("within_noise") is True,
-            "seed0_total": totals[0],
+            "seed0_total": seed0_total,
             "seed0_ok": seed0_ok,
             "seed0_failed_minimums": seed0_failed,
             "minimum_failed": failed,
             "gated": gated,
+            "total_from_legs": len(from_legs),
+            "total_from_legs_rows": from_legs,
         }
     sigma = max(s["sigma"] for s in stats.values())
     control = next(
@@ -318,7 +368,7 @@ def _challenge(name, spec, judge=None):
         f"{name}.control_seed_totals[{control}]",
         judge is not None,
     )
-    seed_kept, seed_failed, seed_gated, _ok, _failed = keep(
+    seed_kept, seed_failed, seed_gated, _ok, _failed, seed_from_legs, _first = keep(
         seeds,
         (spec.get("control_seed_legs") or {}).get(control),
         f"{name}.control_seed_legs[{control}]",
@@ -358,6 +408,15 @@ def _challenge(name, spec, judge=None):
         result["gated"] = {
             "by_member": {e: stats[e]["gated"] for e in panel},
             "control_seeds": seed_gated,
+        }
+        result["total_from_legs"] = {
+            "by_member": {e: stats[e]["total_from_legs"] for e in panel},
+            "control_seeds": len(seed_from_legs),
+        }
+        # The rows (0-based seed positions) whose total was computed from legs, marked `total_from_legs: true`.
+        result["total_from_legs_rows"] = {
+            "by_member": {e: stats[e]["total_from_legs_rows"] for e in panel},
+            "control_seeds": seed_from_legs,
         }
     return result
 
