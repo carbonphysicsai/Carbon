@@ -90,7 +90,8 @@ def _on_the_ladder_step(board):
     The grid is the receiver's OWN registered rebuild noise for this Challenge (`koth_registry`), not the margin the
     board shows: the board's margin is rounded UP to 9 places, which would move a grid of 17-digit multiples. A total
     passes when the largest step multiple at or below it (counting the sub-9-decimal remainder the floor dropped),
-    floored to 9 decimals, is the total itself. A failing check is a refusal to serve, never a rounding."""
+    floored to 9 decimals, is the total itself. A failing check is a refusal to serve, never a rounding.
+    """
     from carbon.challenge_validator import koth_registry
     from carbon.scoring import grade_feedback as gf
 
