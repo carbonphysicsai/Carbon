@@ -3777,18 +3777,26 @@
   // The plain words for a catalog entry that has no official GPU build yet (served.GPU_RECEIPT_PENDING, display only).
   const GPU_RECEIPT_PENDING_WORDS = "not yet GPU-checked on the validator";
   const GPU_RECEIPT_PENDING_NOTE = "This backbone is " + GPU_RECEIPT_PENDING_WORDS + ": you can practise on it, but the validator cannot grade it officially yet.";
-  function catalogPracticeForm(box, run, catalog, raw, holder) {
+  function catalogPracticeForm(box, run, catalog, raw, holder, defaultText) {
     const form = el("div", undefined, "catalog-practice"); form.id = "journey-form-" + run.id;
     const idOf = text => { try { return JSON.parse(text)?.source?.catalog_id || null; } catch (_) { return null; } };
     const known = id => catalog.some(item => item.catalog_id === id);
-    // Start on an entry that can run now: an installed current (non-legacy) one, else any current one that is
-    // not known to be missing, else the first; never on a legacy entry while a current one is there.
-    const firstChoice = catalog.find(item => item.recommended === true && item.installed !== false) || catalog.find(item => item.installed === true && !item.legacy) || catalog.find(item => !item.legacy && item.installed !== false) || catalog.find(item => item.installed !== false) || catalog[0];
+    // Start on the entry the server recommends (starting_entry.py), installed or not: while it is still installing the picker
+    // says so ("not installed yet" and the missing hint below) rather than moving to another entry, which could be one that
+    // is smoke-only on GPU and can never be graded officially. Without a recommendation: an installed current
+    // (non-legacy) entry, else any current one not known to be missing, else the first; never a legacy entry while a
+    // current one is there.
+    const firstChoice = catalog.find(item => item.recommended === true) || catalog.find(item => item.installed === true && !item.legacy) || catalog.find(item => !item.legacy && item.installed !== false) || catalog.find(item => item.installed !== false) || catalog[0];
     // A backbone the person picked themselves is kept. One that was only the default is dropped while it is known
     // not to be installed, so the picker moves to an installed entry once the catalog install reports one (L14).
     const pickedKey = run.id + ":backbone-picked";
     const keptEntry = catalog.find(item => item.catalog_id === idOf(raw.value));
-    const keepKept = keptEntry && (journeyDrafts[pickedKey] === true || keptEntry.installed !== false);
+    // The Advanced box starts out holding the Challenge's registered example (a CNO recipe on some versions, which is
+    // smoke-only on GPU and can never be graded officially) or the list's first entry. That is a default, never a
+    // choice: only a backbone the person picked, or a recipe they edited, is kept; the untouched default gives way to the
+    // starting entry the server names (`recommended`, starting_entry.py).
+    const untouched = typeof defaultText === "string" && raw.value === defaultText && journeyDrafts[pickedKey] !== true;
+    const keepKept = keptEntry && !untouched && (journeyDrafts[pickedKey] === true || keptEntry.installed !== false);
     const start = keepKept ? keptEntry.catalog_id : firstChoice.catalog_id;
     const pickLabel = el("label", "Backbone"); const pick = document.createElement("select"); pick.id = "journey-backbone-" + run.id; pickLabel.htmlFor = pick.id;
     for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "") + (item.legacy ? " (legacy)" : "") + (item.installed === false ? " (not installed yet)" : "") + (item.officially_gradable === false ? " (" + GPU_RECEIPT_PENDING_WORDS + ")" : "")); option.value = item.catalog_id; pick.append(option); }
@@ -3852,9 +3860,10 @@
     // E4: with a tested-backbone list, the miner picks a backbone and fills two settings; the recipe JSON sits
     // under Advanced and is what a practice sends either way.
     const holder = catalog.length ? advancedHolder(box) : box;
-    const recipe = journeyField(holder, run.id, "recipe", "Recipe to practice (JSON)", document.createElement("textarea"), example || (catalog.length ? JSON.stringify(catalog[0].recipe, null, 2) : ""));
+    const defaultText = example || (catalog.length ? JSON.stringify(catalog[0].recipe, null, 2) : "");
+    const recipe = journeyField(holder, run.id, "recipe", "Recipe to practice (JSON)", document.createElement("textarea"), defaultText);
     recipe.rows = 8; recipe.className = "research-guidance";
-    if (catalog.length) catalogPracticeForm(box, run, catalog, recipe, holder);
+    if (catalog.length) catalogPracticeForm(box, run, catalog, recipe, holder, defaultText);
     else if (example) researchNote(box, "Prefilled with this Challenge's registered example, which passes admission. Edit it freely.", "hint");
     else researchNote(box, "No registered example for this campaign's Challenge; write a recipe.", "hint");
     const hypothesis = journeyField(box, run.id, "hypothesis", "What this trial tests", document.createElement("input"), "");

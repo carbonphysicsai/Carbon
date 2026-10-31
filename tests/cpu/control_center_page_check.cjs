@@ -542,6 +542,49 @@ scenario("practice picks a tested backbone from a list and two settings are form
   clean(page);
 });
 
+scenario("the backbone picker starts on the server's starting entry, not on the registered example (a CNO recipe) or the first listed entry", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  run.journey.frozen_awaiting_submission = false;
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const entry = state.caps.challenges.find(item => item.challenge_id === run.challenge.id && item.version === run.challenge.version);
+  assert.ok(entry, "the campaign's Challenge is on the list");
+  const recipeOf = id => ({schema: "carbon.construction-recipe.v1", source: {kind: "catalog", catalog_id: id}, procedure: {entrypoint: null, configuration: {}, train_use: {}, initial_state: null}});
+  const settings = {configuration: [], train_use: ["steps"]};
+  // the registered ready example is the CNO recipe (smoke-only on GPU); the server recommends another entry
+  entry.example_strategy = recipeOf("cno.CNO1d");
+  entry.catalog_recipes = [
+    {catalog_id: "cno.CNO1d", backbone: "CNO1d", recipe: recipeOf("cno.CNO1d"), settings, installed: true},
+    {catalog_id: "neuralop.FNO", backbone: "FNO", recipe: recipeOf("neuralop.FNO"), settings, installed: true},
+    {catalog_id: "v2.start.Entry", backbone: "Start", recipe: recipeOf("v2.start.Entry"), settings, installed: true, recommended: true},
+  ];
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  const pick = one(page, "#journey-backbone-" + run.id);
+  assert.equal(pick.value, "v2.start.Entry", "the untouched default (the example) gives way to the starting entry");
+  assert.equal(JSON.parse(one(page, "#journey-recipe-" + run.id).value).source.catalog_id, "v2.start.Entry");
+  await page.change(pick, "cno.CNO1d");
+  assert.equal(JSON.parse(one(page, "#journey-recipe-" + run.id).value).source.catalog_id, "cno.CNO1d", "a person's own pick is still honoured");
+  clean(page);
+  // while the starting entry is still installing, the picker stays on it and says so; it never falls back to CNO
+  const state2 = launchable(world());
+  const run2 = manualRun();
+  run2.journey.frozen_awaiting_submission = false;
+  state2.runs = [run2];
+  state2.view = copy(fx.view);
+  const entry2 = state2.caps.challenges.find(item => item.challenge_id === run2.challenge.id && item.version === run2.challenge.version);
+  entry2.example_strategy = recipeOf("cno.CNO1d");
+  entry2.catalog_recipes = entry.catalog_recipes.map(item => ({...item, installed: item.catalog_id !== "v2.start.Entry"}));
+  const page2 = await open(state2);
+  page2.go("#campaigns/" + run2.id + "/experiments");
+  await page2.advance(0);
+  assert.equal(one(page2, "#journey-backbone-" + run2.id).value, "v2.start.Entry", "no silent fallback to an installed CNO entry");
+  assert.equal(one(page2, "#journey-backbone-missing-" + run2.id).hidden, false, "it says the starting model is still installing");
+  clean(page2);
+});
+
 scenario("a backbone with no official GPU build says it is not yet GPU-checked on the validator; practice stays open for all (OWNER-GPU-OPEN-WITH-READY-01)", async () => {
   const state = launchable(world());
   const run = manualRun();
