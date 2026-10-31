@@ -641,7 +641,8 @@ def _fail_legs(a=0.5, d=COOLING_D):
 
 def _cooling_doc(seed_a=COOLING_A, failed_at=(2, 5, 8), member_a=0.5):
     """The real Cooling shape: one bit-identical member (seed-0 rows all null-total, all PASS), ten control seeds of which
-    three fail the physics_pool gate (total null, gated) and seven PASS with a null total."""
+    three fail the physics_pool gate (total null, gated) and seven PASS with a null total.
+    """
     it = iter(seed_a)
     legs = [_fail_legs() if i in failed_at else _pass_legs(next(it)) for i in range(10)]
     member = {
