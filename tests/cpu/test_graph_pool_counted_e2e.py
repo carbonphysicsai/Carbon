@@ -387,6 +387,8 @@ def test_graph_custody_pool_grade_is_counted_and_filed_without_a_crown(
     pin = json.loads((evaluation / "private-evaluation-binding.json").read_bytes())[
         "source_receipt_sha256"
     ]
+    installed = json.loads((evaluation / "grade-installed-commit.json").read_bytes())
+    assert installed["schema"] == "carbon.scoring.grade-installed-commit.v1"
     pair = BankPromotion(
         fixture.store, registered_source_receipt_sha256=pin
     ).private_pair(TASK, key)

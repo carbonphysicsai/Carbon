@@ -1289,6 +1289,10 @@ def serve(
     from carbon.chain.sdk import BittensorReader
     from carbon.challenge_kit import physical_material
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
+
+    # Loading this module reads the installed-commit record (the code every grade of this run is recorded against): it is
+    # read HERE, at the receiver's start, never at the first grade (which imports it lazily).
+    from carbon.challenge_validator import lean_recipe_retention  # noqa: F401
     from carbon.challenge_validator.direct_intake import (
         DirectRecipeIntake,
         serve_loopback,
@@ -1822,9 +1826,7 @@ def main(argv=None):
         (
             args.grade_set_entry
             if args.grade_set_entry is not None
-            else args.retain_task
-            if args.regrade_entry is None
-            else args.regrade_entry
+            else args.retain_task if args.regrade_entry is None else args.regrade_entry
         ),
         args.artifact_directory,
         args.entry_directory,

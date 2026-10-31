@@ -103,9 +103,17 @@ def submission_document(catalog_recipe, bundle_recipe):
     )
 
 
-def check_reexpansion(document_bytes, bundle_recipe_digest):
+def check_reexpansion(document_bytes, bundle_recipe_digest, bundle_recipe=None):
     """Re-expand a retained catalog submission; raise ValueError unless it
-    gives exactly the retained bundle recipe (regrade and retention)."""
+    gives exactly the retained bundle recipe (regrade and retention).
+
+    The practice route retains the entry's own (CPU) build. The OFFICIAL grading rebuild retains the entry's
+    official-grade GPU twin (`expand_official`), so when ``bundle_recipe`` (the retained bundle recipe, a dict) is
+    given and the CPU expansion differs, the recipe is expanded again with the twin of the runtime the retained
+    bundle names, taken from the entry's PINNED `bundle_refs` and never from the retained bytes. Nothing else may
+    differ: the procedure, settings, output and Challenge still come from the miner's recipe and the catalog, and a
+    runtime the entry does not pin, or a retained digest that is not that pin, still refuses.
+    """
     from carbon.development_session.construction_recipe import ConstructionRecipe
 
     document = json.loads(document_bytes)
@@ -113,7 +121,23 @@ def check_reexpansion(document_bytes, bundle_recipe_digest):
         raise ValueError("catalog submission malformed")
     if document.get("bundle_recipe_digest") != bundle_recipe_digest:
         raise ValueError("catalog submission names another bundle recipe")
-    again = ConstructionRecipe.from_dict(expand(document["recipe"])).digest
+    expanded = expand(document["recipe"])
+    again = ConstructionRecipe.from_dict(expanded).digest
+    if again != bundle_recipe_digest and bundle_recipe is not None:
+        try:
+            runtime = bundle_recipe["source"]["bundle_ref"]["runtime_profile_id"]
+        except (KeyError, TypeError):
+            raise ValueError("catalog re-expansion differs") from None
+        challenge = document["recipe"]["challenge"]
+        item = listing.entry(
+            document["recipe"]["source"]["catalog_id"],
+            challenge["id"],
+            challenge["version"],
+        )
+        pinned = (item.get("bundle_refs") or {}).get(runtime) if item else None
+        if pinned is not None:
+            expanded["source"]["bundle_ref"] = dict(pinned)
+            again = ConstructionRecipe.from_dict(expanded).digest
     if again != bundle_recipe_digest:
         raise ValueError("catalog re-expansion differs")
     return document

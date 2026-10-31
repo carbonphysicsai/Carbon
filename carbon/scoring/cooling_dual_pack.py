@@ -341,11 +341,17 @@ def applied_pack(*, bank_rows, definition, limits, objective, train_raw, names):
     when it scores as a development candidate, else none."""
     from carbon.scoring import dual_score
 
+    # A definition with a physics block (every probed or pool-graded bank) also grades the law gate: the measurement
+    # returns it, so the pack must register it (a missing name fails the gate contract at grading).
+    hard_gates = [
+        *cdm.gates_for(definition),
+        *([cooling_physics.GATE] if "physics" in definition else []),
+    ]
     body = {
         "schema": dual_score.PACK_SCHEMA,
         "scope": "PUBLIC_DEVELOPMENT",
         "challenge": CHALLENGE,
-        "hard_gates": list(cdm.gates_for(definition)),
+        "hard_gates": hard_gates,
         "legs": {
             leg: {
                 "components": [
@@ -404,7 +410,7 @@ def applied_pack(*, bank_rows, definition, limits, objective, train_raw, names):
                     "artifact_digest": provisional,
                     "gates": {
                         k: "PASS" if measured["gates"][k] else "FAIL"
-                        for k in cdm.gates_for(definition)
+                        for k in hard_gates
                     },
                     "measurements": {
                         physical.METRICS[leg]: (

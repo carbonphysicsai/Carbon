@@ -143,6 +143,24 @@ def gpu_runtimes(config) -> list:
     return runtimes
 
 
+def _official_store(config):
+    """The receiver's on-box official GPU receipt store (``official_gpu_receipts``), or None: the store the serving
+    receiver installs at start (`direct_receiver.install_official_receipt_store`), read here without installing it
+    as a process global."""
+    from carbon.backbone_catalog import receipt_store
+    from carbon.challenge_validator import koth_registry
+
+    path = config.get("official_gpu_receipts")
+    if path is None:
+        return None
+    return receipt_store.ReceiptStore(
+        Path(path),
+        registered_noise=lambda challenge: (
+            koth_registry.rebuild_noise(challenge) or {}
+        ).get("value"),
+    )
+
+
 def served_bundles(config) -> list:
     """Every catalog bundle the receiver of ``config["challenge"]`` must hold:
     each served entry's CPU build, and each of its GPU twins that is
@@ -153,6 +171,7 @@ def served_bundles(config) -> list:
 
     challenge = config["challenge"]
     gpus = gpu_runtimes(config)
+    store = _official_store(config)
     rows = []
     for item in listing.entries(challenge["id"], challenge["version"]):
         ref = item["bundle_ref"]
@@ -168,7 +187,10 @@ def served_bundles(config) -> list:
             if runtime not in gpus:
                 continue
             try:
-                receipt = gpu_receipt.load(item["catalog_id"], runtime)
+                # The receipt the OFFICIAL route reads: the receiver's on-box store record when it holds one,
+                # else the repository receipt (`gpu_receipt.official_load`). A twin whose only official receipt is
+                # in the store was never listed, so it was never staged and every catalog entry was refused.
+                receipt = gpu_receipt.official_load(item, runtime, store)
             except gpu_receipt.GpuReceiptBroken:
                 continue
             if gpu_receipt.official_grade_problem(receipt, runtime) is None:
@@ -271,6 +293,15 @@ def verify(config) -> dict:
         "missing": missing,
         "ready": bool(rows) and not missing and image_inventory == "VERIFIED",
         "image_inventory": image_inventory,
+        # The GPU twins the official GPU route reads: how many the receiver's official receipts require and how many
+        # are staged, beside the GPU runtimes it holds, so a "ready" receiver can never hide zero twins.
+        "gpu_twins": {
+            "runtimes": gpu_runtimes(config),
+            "required": sum(1 for b in bundles if b["kind"] == "gpu_twin"),
+            "installed": sum(
+                1 for b in bundles if b["kind"] == "gpu_twin" and b["installed"]
+            ),
+        },
         "bundles": bundles,
     }
 
