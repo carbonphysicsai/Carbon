@@ -33,6 +33,14 @@
       "version": "1.6",
       "intake_url": "https://cooling-door.carbonphysics.ai",
       "receiver_hotkey": "5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR"
+    },
+    {
+      "network": "testnet",
+      "netuid": 567,
+      "challenge": "f02",
+      "version": "2.5",
+      "intake_url": "https://burst-thermal-door.carbonphysics.ai",
+      "receiver_hotkey": "5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR"
     }
   ]
 }

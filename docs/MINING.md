@@ -233,6 +233,7 @@ Official submissions for this version go to https://ribbed-bracket-door.carbonph
 
 ### Burst Thermal 2.5
 
+Official submissions for this version go to https://burst-thermal-door.carbonphysics.ai. The installer update puts that address in your profile; you type nothing.
 
 - **Hard gates:** `finite_peak`, `paired_repeat`, `reference_acceptance`, `verified_pick` (the model's pick is feasible by the references, peak top c max 95.0), `physics_laws`, and the two gates above
 - **Physics laws (gated):** `peak_not_below_initial`: every predicted peak is at least the initial temperature (40.0 degC)
