@@ -5314,7 +5314,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:e469c681f11670220d76f11803b8df17f245a1c8b825e2d22e52e85576a56f66",
+     "bundle_digest": "sha256:6cbbb058c99da70fa01e0df5e04cb0448a19a6dcdb9b267215b9f4f5472f5557",
      "environment_digest": "sha256:f1c08e0e41ecc2b700c2775d8578275671f7ed7a7eff952ba02c881f2da85f8e",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",
@@ -5397,7 +5397,7 @@
    },
    "bundle_refs": {
     "torch-cu130-py311": {
-     "bundle_digest": "sha256:717b6736d42175be66dc625d798f19904b30dc93e85e44f8f25bfad4cfc4c2b7",
+     "bundle_digest": "sha256:30c0bd34707c3af085cbb85b0f81681bb18655adcd8539e64db5897eebf34c5f",
      "environment_digest": "sha256:f1c08e0e41ecc2b700c2775d8578275671f7ed7a7eff952ba02c881f2da85f8e",
      "language": "python",
      "runtime_profile_id": "torch-cu130-py311",

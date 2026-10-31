@@ -186,6 +186,25 @@ DEVICE_FIXES = {
     ),
 }
 
+#: The F02 v2 bundles (`v2.f02.<backbone>`) were generated from the older template: their sources still build the DFT
+#: matrices (LNO1d) and the query-row index (GINO) on the CPU inside `forward`, unlike the Motor and F08 v2 sources, which
+#: already place them on the input's device. So these two F02 entries take the SAME registered fixes as the original
+#: `lno.LNO1d` / `neuralop.GINO`; every anchor occurs exactly once in their sources (`patched_source` refuses otherwise).
+#: Any other id, and every other v2 entry, is looked up under its own id and so is unchanged.
+F02_PREFIX = "v2.f02."
+F02_DEVICE_FIX_ENTRIES = ("lno.LNO1d", "neuralop.GINO")
+
+
+def device_fix_key(catalog_id):
+    """The `DEVICE_FIXES` key a catalog id selects: its own id, except the two F02 v2 entries that share the original
+    entries' fixes (see `F02_DEVICE_FIX_ENTRIES`)."""
+    if type(catalog_id) is str and catalog_id.startswith(F02_PREFIX):
+        stripped = catalog_id[len(F02_PREFIX) :]
+        if stripped in F02_DEVICE_FIX_ENTRIES:
+            return stripped
+    return catalog_id
+
+
 # Historical data for the original derived bytes. The shared implementation's
 # active device-placement pass is semantic, in gpu_tensor_placement.
 CONSTANT_GRAPH_DEVICE_FIXES = DEVICE_FIXES["physicsnemo.MeshGraphNet"]
@@ -226,7 +245,7 @@ def _device_fixes(files, catalog_id):
     if repaired is not None:
         files[BACKBONES_MEMBER] = repaired
         return ()
-    historical = DEVICE_FIXES.get(catalog_id, ())
+    historical = DEVICE_FIXES.get(device_fix_key(catalog_id), ())
     if historical == CONSTANT_GRAPH_DEVICE_FIXES:
         raise GpuBuildRefused("constant graph device capability is missing")
     return historical
