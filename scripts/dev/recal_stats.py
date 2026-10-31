@@ -29,6 +29,10 @@ pack file and the pack's digest are in the output (`judge_minimums`) and printed
 a top-level `pack_digest`: it is checked for form, taken off before the pack is registered, compared with the digest the
 registration computes, and both are recorded.
 
+The margin (OWNER-CROWN-MARGIN-2SD-01) is value = max(5 x sigma, 2 x seed_sd), where seed_sd is the SAMPLE standard
+deviation (n - 1, `statistics.stdev`) of the control's kept per-seed totals; `seed_spread` (max - min) is still reported for
+reference and `spread_rule` is "2sd". If 5 x sigma and 2 x seed_sd are both 0 the run is refused (no resolution floor).
+
 A rebuild whose total is null because a hard gate failed has no total (A and D may still be numbers). With --judge-pack
 its legs entry shows the failure (`gate_failed`: a decision_outcome or status of GATE_FAILED / MANDATORY_GATE_FAILED, or a
 `gates` map with a value that is not PASS / true) and the rebuild is GATED: excluded from sigma and the seed spread,
@@ -58,6 +62,9 @@ if str(REPOSITORY) not in sys.path:
 SCHEMA_IN = "carbon.recal-stats.input.v1"
 SCHEMA_OUT = "carbon.recal-stats.measurement.v1"
 N = 10
+#: OWNER-CROWN-MARGIN-2SD-01: the margin is max(5 x sigma, 2 x the sample sd of the control's kept per-seed totals).
+SEED_SD_MULTIPLE = 2
+SPREAD_RULE = "2sd"
 _HEX = re.compile(r"[0-9a-f]{64}")
 
 
@@ -317,10 +324,13 @@ def _challenge(name, spec, judge=None):
         f"{name}.control_seed_legs[{control}]",
     )
     spread = max(seed_kept) - min(seed_kept)
-    value = max(5 * sigma, spread)
+    # OWNER-CROWN-MARGIN-2SD-01: the seed term is 2 x the SAMPLE standard deviation (n - 1) of the control's kept per-seed
+    # totals; the max - min range stays in the output for reference.
+    seed_sd = statistics.stdev(seed_kept)
+    value = max(5 * sigma, SEED_SD_MULTIPLE * seed_sd)
     if value == 0:
         raise StatsError(
-            f"{name}: sigma and seed spread are both 0; stop and report (no resolution floor is registered)"
+            f"{name}: sigma and 2 x the seed sd are both 0; stop and report (no resolution floor is registered)"
         )
     result = {
         "bit_identical": {e: stats[e]["bit_identical"] for e in panel},
@@ -332,7 +342,9 @@ def _challenge(name, spec, judge=None):
             "pack_digest": pack,
             "class_record_digest": klass,
         },
+        "seed_sd": seed_sd,
         "seed_spread": spread,
+        "spread_rule": SPREAD_RULE,
         "sigma": sigma,
         "sigma_by_member": {e: stats[e]["sigma"] for e in panel},
         "value": value,

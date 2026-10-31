@@ -52,8 +52,12 @@ def test_values_follow_the_ruling():
     out = rs.measure(_doc())["challenges"]["Cooling"]
     sd = statistics.stdev([1.0 + 0.01 * i for i in range(10)])
     assert out["sigma"] == pytest.approx(sd) and out["sigma_by_member"]["fc"] == 0.0
+    seeds = [2.0, 2.1, 1.9, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    # OWNER-CROWN-MARGIN-2SD-01: the seed term is 2 x the sample sd of the kept seeds; the range stays for reference
     assert out["seed_spread"] == pytest.approx(0.2)
-    assert out["value"] == pytest.approx(max(5 * sd, 0.2))
+    assert out["seed_sd"] == pytest.approx(statistics.stdev(seeds))
+    assert out["spread_rule"] == "2sd"
+    assert out["value"] == pytest.approx(max(5 * sd, 2 * statistics.stdev(seeds)))
     assert out["bit_identical"] == {"mgn": False, "fc": True}
     assert (
         out["control"]["entry_id"] == "fc"

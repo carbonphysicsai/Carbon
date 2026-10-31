@@ -223,7 +223,7 @@ def test_the_real_f08_shape_every_row_failing_minimums_gated_seeds_excluded(tmp_
     out = rs.measure(_f08_doc(), {"F08": rs.load_judge_pack(path)})["challenges"]["F08"]
     assert out["control"]["entry_id"] == "FC"
     assert out["sigma"] == 0.0
-    assert out["value"] == pytest.approx(0.0071754010, abs=1e-10)
+    assert out["value"] == pytest.approx(F08_VALUE, abs=1e-12)
     assert out["gated"] == {"by_member": {"FC": 0}, "control_seeds": 5}
     assert out["minimum_failed"] == {"by_member": {"FC": 10}, "control_seeds": 5}
     assert out["control_fails_judge_minimums"] is True
@@ -296,6 +296,12 @@ F08_SEEDS = [
 ]
 
 
+F08_KEPT = [t for t in F08_SEEDS if t is not None]
+# the sample sd (n - 1) of the five kept control seeds, about 0.00304
+F08_SD = statistics.stdev(F08_KEPT)
+F08_VALUE = 2 * F08_SD
+
+
 def _gate_legs(a=0.4, d=0.5, outcome="MANDATORY_GATE_FAILED"):
     return {"A": a, "D": d, "decision_outcome": outcome}
 
@@ -336,8 +342,12 @@ def test_the_real_f08_shape_gated_seeds_are_excluded_and_counted(tmp_path):
     out = rs.measure(_f08_doc(), {"F08": rs.load_judge_pack(path)})
     f08 = out["challenges"]["F08"]
     assert f08["sigma"] == 0.0
+    # the range is still reported, for reference
     assert f08["seed_spread"] == pytest.approx(0.0071754010, abs=1e-10)
-    assert f08["value"] == pytest.approx(0.0071754010, abs=1e-10)
+    assert f08["seed_sd"] == pytest.approx(F08_SD, abs=1e-12)
+    assert f08["spread_rule"] == "2sd"
+    assert f08["value"] == pytest.approx(F08_VALUE, abs=1e-12)
+    assert F08_VALUE == pytest.approx(0.0061, abs=1e-4)
     assert f08["gated"] == {"by_member": {"FC": 0}, "control_seeds": 5}
     assert f08["minimum_failed"]["control_seeds"] == 0
     assert f08["control"]["entry_id"] == "FC"
@@ -519,3 +529,82 @@ def test_a_judge_file_without_a_digest_still_loads(tmp_path):
     path.write_text(json.dumps(body))
     loaded = rs.load_judge_pack(path)
     assert len(loaded) == 2
+
+
+# --- OWNER-CROWN-MARGIN-2SD-01: the seed term is 2 x the sample sd ---------------------------------------------------------
+
+MOTOR_SEEDS = [
+    0.23704820689755804,
+    None,
+    0.2471802603356559,
+    0.23898016572385053,
+    0.24386670529535648,
+    0.24565049761585236,
+    0.24846615332646735,
+    0.2411177586352313,
+    0.2465566893723074,
+    0.24612368545844515,
+]
+F02_SEEDS = [
+    0.4700923055632988,
+    0.45000658230108453,
+    0.45970616990913743,
+    0.5009238001644356,
+    0.5122679997277158,
+    0.48545056366406475,
+    0.44845071370806344,
+    0.4499675285093288,
+    0.48623923530858726,
+    0.4493821989276442,
+]
+
+
+def test_the_motor_shape_one_gated_seed_value_is_two_sd_of_the_nine_kept(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    out = rs.measure(
+        _f08_doc(seeds=MOTOR_SEEDS, gated_at=(1,)), {"F08": rs.load_judge_pack(path)}
+    )["challenges"]["F08"]
+    kept = [t for t in MOTOR_SEEDS if t is not None]
+    assert out["gated"]["control_seeds"] == 1
+    assert out["seed_sd"] == pytest.approx(statistics.stdev(kept), abs=1e-12)
+    assert out["value"] == pytest.approx(2 * statistics.stdev(kept), abs=1e-12)
+    assert out["value"] == pytest.approx(0.0079, abs=1e-4)
+    assert out["seed_spread"] == pytest.approx(max(kept) - min(kept))
+
+
+def test_the_f02_shape_ten_seeds_value_is_two_sd(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    out = rs.measure(_f02_doc(), {"F08": rs.load_judge_pack(path)})["challenges"]["F08"]
+    assert out["gated"]["control_seeds"] == 0
+    assert out["value"] == pytest.approx(2 * statistics.stdev(F02_SEEDS), abs=1e-12)
+    assert out["value"] == pytest.approx(0.0473, abs=1e-4)
+
+
+def _f02_doc():
+    return _f08_doc(seeds=F02_SEEDS, gated_at=())
+
+
+def test_the_margin_is_five_sigma_when_that_is_larger(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    rows = [(0.5 + 0.02 * i, 0.6) for i in range(10)]  # a noisy member
+    doc = _doc({"mgn": _member(rows, same=False, within=True)})
+    out = rs.measure(doc, {"Motor": rs.load_judge_pack(path)})["challenges"]["Motor"]
+    assert out["value"] == pytest.approx(5 * out["sigma"])
+    assert out["value"] > 2 * out["seed_sd"]
+
+
+def test_both_terms_zero_is_still_refused(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    same = [0.42181190434059457] * 10
+    with pytest.raises(rs.StatsError, match="both 0"):
+        rs.measure(_f08_doc(seeds=same, gated_at=()), {"F08": rs.load_judge_pack(path)})
+    with pytest.raises(rs.StatsError, match="both 0"):
+        rs.measure(_doc({"fc": _member([(0.5, 0.6)] * 10)}))
+
+
+def test_the_seed_sd_is_the_sample_sd_over_the_kept_seeds_only(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    out = rs.measure(_f08_doc(), {"F08": rs.load_judge_pack(path)})["challenges"]["F08"]
+    # n - 1, not n: the population sd of the same five would be smaller
+    assert out["seed_sd"] == pytest.approx(statistics.stdev(F08_KEPT))
+    assert out["seed_sd"] > statistics.pstdev(F08_KEPT)
