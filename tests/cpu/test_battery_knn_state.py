@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -20,6 +21,7 @@ from pathlib import Path
 import pytest
 
 from carbon.battery import knn_state
+from carbon.challenge_validator.cpu_pin import PIN as _CPU_PIN
 
 
 @pytest.fixture(scope="module")
@@ -173,7 +175,13 @@ def _run(program, files, tmp_path):
     subprocess.run(
         [sys.executable, "-c", program],
         cwd=work,
-        env={"PATH": "/usr/bin:/bin", "HOME": "/tmp", "JAX_PLATFORMS": "cpu"},
+        # The staged program runs under the same CPU-dispatch pin as this process.
+        env={
+            "PATH": "/usr/bin:/bin",
+            "HOME": "/tmp",
+            "JAX_PLATFORMS": "cpu",
+            **{k: os.environ[k] for k in _CPU_PIN if k in os.environ},
+        },
         capture_output=True,
         check=True,
         timeout=600,
