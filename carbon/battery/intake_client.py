@@ -35,6 +35,7 @@ import time
 import urllib.error
 import urllib.request
 
+from carbon.miner_agent import MINER_HEADERS
 from carbon.transport.models import message
 
 from .intake import INFO_PATH, PUBLIC_SCHEMA, STATUS_TOOL
@@ -48,7 +49,10 @@ class IntakeMismatch(ValueError):
 
 def read_intake(url, *, timeout=10.0):
     """The intake's public facts, checked against this client's chain."""
-    with urllib.request.urlopen(url.rstrip("/") + INFO_PATH, timeout=timeout) as r:
+    request = urllib.request.Request(
+        url.rstrip("/") + INFO_PATH, headers=MINER_HEADERS, method="GET"
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as r:
         facts = json.loads(r.read(65536))
     if type(facts) is not dict or facts.get("schema") != PUBLIC_SCHEMA:
         raise IntakeMismatch("not a battery intake")
@@ -188,7 +192,7 @@ def post(url, body, headers, *, timeout=30.0):
     request = urllib.request.Request(
         url.rstrip("/") + "/carbon/v1/mcp",
         data=body,
-        headers={**headers, "Content-Type": "application/json"},
+        headers={**MINER_HEADERS, **headers, "Content-Type": "application/json"},
         method="POST",
     )
     try:

@@ -130,7 +130,16 @@ def parse(document, challenge_id):
     }
 
 
-def read(intake, challenge_id, *, timeout=10.0, opener=urllib.request.urlopen):
+def _open(url, *, timeout):
+    from carbon.miner_agent import MINER_HEADERS
+
+    return urllib.request.urlopen(
+        urllib.request.Request(url, headers=MINER_HEADERS, method="GET"),
+        timeout=timeout,
+    )
+
+
+def read(intake, challenge_id, *, timeout=10.0, opener=_open):
     """`(answer, None)` from the grader at `intake`, or `(None, words)`: why
     nothing is shown. A 404 is a grader that publishes no king yet."""
     from carbon.development_session.intake_targets import intake_url

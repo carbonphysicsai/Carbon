@@ -379,8 +379,13 @@ class RemoteHiddenPool:
 def _post(url, body, *, context=None, timeout=600.0):
     import urllib.request
 
+    from carbon.miner_agent import MINER_HEADERS
+
     req = urllib.request.Request(
-        url, data=body, method="POST", headers={"Content-Type": "application/json"}
+        url,
+        data=body,
+        method="POST",
+        headers={**MINER_HEADERS, "Content-Type": "application/json"},
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout, context=context) as response:

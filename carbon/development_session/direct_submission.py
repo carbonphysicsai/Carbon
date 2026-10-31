@@ -26,6 +26,7 @@ from carbon.challenge_validator.interface import (
 from carbon.challenge_validator.lean_recipe import OUTCOME_SCHEMA
 from carbon.development_session.construction_recipe import ConstructionRecipe
 from carbon.development_session.data import write_once
+from carbon.miner_agent import MINER_HEADERS
 from carbon.registry.model import ChallengeKey
 from carbon.transport.models import MAX_BODY, message
 
@@ -122,7 +123,10 @@ def read_intake(url: str, *, timeout: float = 10.0) -> dict:
         raise DirectIntakeRefusal("construction_intake_url_invalid")
     try:
         with urllib.request.urlopen(
-            url.rstrip("/") + INFO_PATH, timeout=timeout
+            urllib.request.Request(
+                url.rstrip("/") + INFO_PATH, headers=MINER_HEADERS, method="GET"
+            ),
+            timeout=timeout,
         ) as response:
             facts = json.loads(response.read(65536))
     except urllib.error.HTTPError as refused:
@@ -140,7 +144,7 @@ def post(url, body, headers, *, timeout=30.0):
     request = urllib.request.Request(
         url.rstrip("/") + SUBMIT_PATH,
         data=body,
-        headers={**headers, "Content-Type": "application/json"},
+        headers={**MINER_HEADERS, **headers, "Content-Type": "application/json"},
         method="POST",
     )
     try:
