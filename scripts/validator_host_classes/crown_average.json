@@ -1,0 +1,8 @@
+{
+  "challenge_n": {},
+  "margins": {},
+  "n": 10,
+  "rule_version": "crown-average-v1",
+  "schema": "carbon.crown.average-rule.v1",
+  "seed_range": 2147483647
+}
