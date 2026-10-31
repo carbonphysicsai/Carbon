@@ -1,6 +1,27 @@
 {
   "challenge_n": {},
-  "margins": {},
+  "margins": {
+    "chip-cold-plate": {
+      "measurement_digest": "sha256:bbac8bc8857b1e648a29edb9fd0dcb7b3662957b5e0f950012f75f26dfbdbb62",
+      "n": 10,
+      "value": 0.004967348930510956
+    },
+    "electric-motor-magnetics": {
+      "measurement_digest": "sha256:d3ed0e5c19a726cefb78488815b1f950479648e6832dbc0147f53b951dbd290e",
+      "n": 10,
+      "value": 0.0025056870668293094
+    },
+    "f02": {
+      "measurement_digest": "sha256:d694e4502e7e0b208c4850399131a7be6b3891a08364913287daa55c9b988830",
+      "n": 10,
+      "value": 0.014946093836402718
+    },
+    "f08-ribbed-bracket": {
+      "measurement_digest": "sha256:06a78f6e23c5ec6c81bc143412b3074dcf5bc8e830e311d24063a5d8b9ac42b6",
+      "n": 10,
+      "value": 0.0019171440369318365
+    }
+  },
   "n": 10,
   "rule_version": "crown-average-v1",
   "schema": "carbon.crown.average-rule.v1",
