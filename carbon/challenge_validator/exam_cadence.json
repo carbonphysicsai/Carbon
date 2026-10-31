@@ -2,13 +2,13 @@
   "capacity_gpu_lane_hours_per_day": 16.799999999999997,
   "class_record_digest": "sha256:b7af024b037d9ddef784febd2942fd5125c07ad1e0ece37198c39da823499feb",
   "lanes": 1,
-  "measurement_digest": "sha256:3134cdf4ebf1a2d332b5aed1dd1e1517554940ebfd07851a187e43c7210c5c0b",
+  "measurement_digest": "sha256:7c2294e12c26a83f52565e6ff99c84ff8d3ead71214e9ca094c0617dd9e0e994",
   "rebuild_gpu_lane_hours": {
-    "chip-cold-plate": 0.020702777777779072,
+    "chip-cold-plate": 0.017162277777777894,
     "electric-motor-magnetics": 0.02082003703703608,
     "f02": 0.016012240740740608,
     "f08-ribbed-bracket": 0.015266000000000026
   },
   "schema": "carbon.exam.cadence-registry.v2",
-  "source": "PROVISIONAL (n=5 rebuilds per Challenge): recalibration lane rows sha256:3134cdf4ebf1a2d332b5aed1dd1e1517554940ebfd07851a187e43c7210c5c0b: R = lanes x 24 x 0.7 with lanes=1; t_c = mean GPU-lane-hours from lane start to release over the panel's >= 3 rebuilds per Challenge (exam_cap.py); Challenges included: chip-cold-plate, electric-motor-magnetics, f02, f08-ribbed-bracket"
+  "source": "recalibration lane rows sha256:7c2294e12c26a83f52565e6ff99c84ff8d3ead71214e9ca094c0617dd9e0e994: R = lanes x 24 x 0.7 with lanes=1; t_c = mean GPU-lane-hours from lane start to release over the panel's >= 10 rebuilds per Challenge (exam_cap.py); Challenges included: chip-cold-plate, electric-motor-magnetics, f02, f08-ribbed-bracket"
 }

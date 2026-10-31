@@ -1,5 +1,9 @@
 {
   "challenges": {
+    "chip-cold-plate": {
+      "measurement_digest": "sha256:8d560e25c55b2e44c7950f9c3dbf9b9aea731d8edc088b70da6a69461b4a0929",
+      "value": 0.01570813655321609
+    },
     "electric-motor-magnetics": {
       "measurement_digest": "sha256:f66380949cbd96f9560a64cd532da917bad3e569034aa6c24769b718a43b9aa6",
       "value": 0.007923678234807158
