@@ -14,6 +14,10 @@ only those are written, and the registry's `source` text names the included set.
 closed for every Challenge left out (`ExamCap.reserve` refuses it with `exam_cap_unregistered`, never a default value),
 so a Challenge whose recalibration is not done yet is added by a later file, not guessed.
 
+`--provisional` marks the file (same schema v2; `source` starts "PROVISIONAL (n=<rebuilds> rebuilds per Challenge): ") and
+`--min-rebuilds N` lowers the per-Challenge minimum: N may be below 10 only together with `--provisional`, never below 3.
+Without `--provisional` nothing changes (at least 10).
+
 The file's own registered formula (exam_cap.py module docstring and the registry's `source` text):
 
     capacity_gpu_lane_hours_per_day  R = lanes x 24 x 0.7          (lanes = the measured official GPU lanes)
@@ -50,6 +54,8 @@ from carbon.challenge_validator import exam_cap
 
 SCHEMA_IN = "carbon.recal-lane-rows.v1"
 MIN_REBUILDS = 10
+#: The fewest rebuilds a PROVISIONAL file may rest on (OWNER-GUARD-REVIEW-SOFTENS-01 line 6).
+PROVISIONAL_FLOOR = 3
 #: The launch Challenges every cadence must value (Battery is registered in exam_cap but is not a launch exam).
 REQUIRED = exam_cap._LEAN_CHALLENGES
 UTILISATION = 0.7
@@ -69,12 +75,12 @@ def _number(value, where):
     return float(value)
 
 
-def lane_hours(challenge, spec):
+def lane_hours(challenge, spec, minimum=MIN_REBUILDS):
     """t_c in GPU-lane-hours for one Challenge, or a refusal."""
     rebuilds = spec.get("rebuilds") if isinstance(spec, dict) else None
-    if not isinstance(rebuilds, list) or len(rebuilds) < MIN_REBUILDS:
+    if not isinstance(rebuilds, list) or len(rebuilds) < minimum:
         raise CadenceError(
-            f"{challenge}: at least {MIN_REBUILDS} rebuilds with lane timing are required"
+            f"{challenge}: at least {minimum} rebuilds with lane timing are required"
         )
     seen, seconds = set(), []
     for index, row in enumerate(rebuilds):
@@ -121,10 +127,44 @@ def _named(challenges):
     return names
 
 
-def build(lane_rows_raw, class_record_raw, lanes, challenges=None):
+def _minimum(provisional, min_rebuilds):
+    """The fewest rebuilds each Challenge needs: 10 unless a PROVISIONAL file says otherwise (never below 3)."""
+    if provisional is not True and provisional is not False:
+        raise CadenceError("provisional: true or false is required")
+    if min_rebuilds is None:
+        return MIN_REBUILDS
+    if isinstance(min_rebuilds, bool) or not isinstance(min_rebuilds, int):
+        raise CadenceError("min_rebuilds: a whole number is required")
+    if min_rebuilds >= MIN_REBUILDS:
+        return min_rebuilds
+    if not provisional:
+        raise CadenceError(
+            f"min_rebuilds: below {MIN_REBUILDS} only with --provisional"
+        )
+    if min_rebuilds < PROVISIONAL_FLOOR:
+        raise CadenceError(
+            f"min_rebuilds: a provisional file needs at least {PROVISIONAL_FLOOR} rebuilds"
+        )
+    return min_rebuilds
+
+
+def build(
+    lane_rows_raw,
+    class_record_raw,
+    lanes,
+    challenges=None,
+    *,
+    provisional=False,
+    min_rebuilds=None,
+):
     """The v2 registry document for these inputs (the bytes' digests included), or a refusal. ``challenges`` names the
     Challenges to value (default the launch four); a Challenge left out gets no entry, so the cap refuses it.
+
+    ``min_rebuilds`` (default 10) may go below 10 only with ``provisional`` and never below 3. A provisional file is
+    the same schema v2; its ``source`` starts with ``PROVISIONAL (n=<fewest rebuilds any included Challenge rests on>
+    rebuilds per Challenge): `` so the record shows what it rests on.
     """
+    needed = _minimum(provisional, min_rebuilds)
     included = _named(challenges)
     if isinstance(lanes, bool) or not isinstance(lanes, int) or lanes < 1:
         raise CadenceError("lanes: a whole number of at least 1 is required")
@@ -143,19 +183,24 @@ def build(lane_rows_raw, class_record_raw, lanes, challenges=None):
     if missing:
         raise CadenceError(f"lane rows: no rebuilds for {', '.join(missing)}")
     measurement = _sha(lane_rows_raw)
+    hours = {
+        name: lane_hours(name, challenges[name], needed) for name in sorted(included)
+    }
+    prefix = ""
+    if provisional:
+        fewest = min(len(challenges[name]["rebuilds"]) for name in included)
+        prefix = f"PROVISIONAL (n={fewest} rebuilds per Challenge): "
     return {
         "schema": exam_cap.REGISTRY_SCHEMA,
         "source": (
-            f"recalibration lane rows {measurement}: R = lanes x 24 x {UTILISATION} with lanes={lanes}; "
-            f"t_c = mean GPU-lane-hours from lane start to release over the panel's >= {MIN_REBUILDS} rebuilds "
+            f"{prefix}recalibration lane rows {measurement}: R = lanes x 24 x {UTILISATION} with lanes={lanes}; "
+            f"t_c = mean GPU-lane-hours from lane start to release over the panel's >= {needed} rebuilds "
             "per Challenge (exam_cap.py); "
             f"Challenges included: {', '.join(sorted(included))}"
         ),
         "capacity_gpu_lane_hours_per_day": lanes * 24 * UTILISATION,
         "lanes": lanes,
-        "rebuild_gpu_lane_hours": {
-            name: lane_hours(name, challenges[name]) for name in sorted(included)
-        },
+        "rebuild_gpu_lane_hours": hours,
         "measurement_digest": measurement,
         "class_record_digest": _sha(class_record_raw),
     }
@@ -191,6 +236,17 @@ def main(argv=None):
         default=None,
         help="comma-separated Challenge ids to value (default: the four launch Challenges)",
     )
+    parser.add_argument(
+        "--provisional",
+        action="store_true",
+        help="mark the file PROVISIONAL in its source text; allows --min-rebuilds below 10",
+    )
+    parser.add_argument(
+        "--min-rebuilds",
+        type=int,
+        default=None,
+        help="fewest rebuilds per Challenge (default 10; below 10 only with --provisional, never below 3)",
+    )
     parser.add_argument("--out", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
@@ -199,6 +255,8 @@ def main(argv=None):
             args.class_record.read_bytes(),
             args.lanes,
             args.challenges,
+            provisional=args.provisional,
+            min_rebuilds=args.min_rebuilds,
         )
         digest = write(document, args.out)
     except (OSError, CadenceError) as refused:
