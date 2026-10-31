@@ -25,6 +25,13 @@ applied here: each rebuild's legs are scored on the judge pack by `dual_score.sc
 REQUIRED_LEG_MINIMUM_FAILED is excluded from sigma and the seed spread, counted and reported per member, and a control
 whose official-seed row fails is not eligible. At least 2 passing rebuilds are needed for any sigma or spread. The
 minimums and the sha256 of the judge pack file are in the output (`judge_minimums`) and printed as a header.
+
+A rebuild whose total is null because a hard gate failed has no total (A and D may still be numbers). With --judge-pack
+its legs entry shows the failure (`gate_failed`: a decision_outcome or status of GATE_FAILED / MANDATORY_GATE_FAILED, or a
+`gates` map with a value that is not PASS / true) and the rebuild is GATED: excluded from sigma and the seed spread exactly
+as a minimum failure is, counted separately (`gated`: by member and for the control seeds), and a control whose official
+seed-0 row is gated is not eligible (Validator ruling, 2026-10-30). A null total WITHOUT a gate failure is a refusal:
+missing data is not gated. The same rule holds: at least 2 kept rebuilds for any sigma or spread, else a refusal.
 """
 
 from __future__ import annotations
@@ -58,11 +65,17 @@ def _digest(value, where):
     return value
 
 
-def _totals(value, where):
+def _totals(value, where, allow_null=False):
+    """The N totals as floats. ``allow_null`` (only with a judge pack, which carries the legs that can show a gate
+    failure) lets a null stand for a gated rebuild; `keep` then refuses any null the legs do not explain.
+    """
     if not isinstance(value, list) or len(value) != N:
         raise StatsError(f"{where}: need exactly {N} totals")
     out = []
     for x in value:
+        if x is None and allow_null:
+            out.append(None)
+            continue
         if (
             isinstance(x, bool)
             or not isinstance(x, (int, float))
@@ -71,6 +84,25 @@ def _totals(value, where):
             raise StatsError(f"{where}: totals must be finite numbers")
         out.append(float(x))
     return out
+
+
+#: A legs entry shows a hard-gate failure by its decision outcome or status, or by a gates map with a non-PASS value.
+GATE_FAILURES = frozenset({"GATE_FAILED", "MANDATORY_GATE_FAILED"})
+
+
+def gate_failed(legs):
+    """True when this rebuild's legs entry shows that a hard gate failed (so it has no total)."""
+    if not isinstance(legs, dict):
+        return False
+    if (
+        legs.get("decision_outcome") in GATE_FAILURES
+        or legs.get("status") in GATE_FAILURES
+    ):
+        return True
+    gates = legs.get("gates")
+    return isinstance(gates, dict) and any(
+        v not in (True, "PASS") for v in gates.values()
+    )
 
 
 def canonical(doc):
@@ -154,15 +186,24 @@ def _challenge(name, spec, judge=None):
         raise StatsError(f"{name}: panel must list each member exactly once")
 
     def keep(totals, legs, where):
-        """(totals of the rebuilds that pass the judge minimums, count that fail, whether rebuild 0 passes)."""
+        """(totals of the rebuilds that pass the judge minimums, count that fail them, count gated, whether
+        rebuild 0 passes). A gated rebuild (null total, its legs show a hard-gate failure) is excluded like a minimum
+        failure and counted apart; a null total the legs do not explain is a refusal."""
         if judge is None:
-            return totals, 0, True
+            return totals, 0, 0, True
         if not isinstance(legs, list) or len(legs) != N:
             raise StatsError(
                 f"{where}: need exactly {N} legs entries with --judge-pack"
             )
-        kept, failed, first_ok = [], 0, False
+        kept, failed, gated, first_ok = [], 0, 0, False
         for index, (total, leg) in enumerate(zip(totals, legs, strict=True)):
+            if total is None:
+                if not gate_failed(leg):
+                    raise StatsError(
+                        f"{where}[{index}]: the total is null and the legs show no hard-gate failure; missing data is not gated"
+                    )
+                gated += 1
+                continue
             status, rescored = rejudge(leg, judge, f"{where}[{index}]")
             if status == "REQUIRED_LEG_MINIMUM_FAILED":
                 failed += 1
@@ -176,19 +217,21 @@ def _challenge(name, spec, judge=None):
                 first_ok = True
         if len(kept) < 2:
             raise StatsError(
-                f"{where}: only {len(kept)} rebuild(s) pass the judge minimums; sigma needs at least 2"
+                f"{where}: only {len(kept)} rebuild(s) pass the judge minimums and the gates; sigma needs at least 2"
             )
-        return kept, failed, first_ok
+        return kept, failed, gated, first_ok
 
     stats = {}
     for eid in panel:
         m = members[eid]
-        totals = _totals(m.get("seed0_totals"), f"{name}.{eid}.seed0_totals")
+        totals = _totals(
+            m.get("seed0_totals"), f"{name}.{eid}.seed0_totals", judge is not None
+        )
         digests = m.get("state_digests")
         if not isinstance(digests, list) or len(digests) != N:
             raise StatsError(f"{name}.{eid}: need exactly {N} state digests")
         digests = [_digest(d, f"{name}.{eid}.state_digests") for d in digests]
-        kept, failed, seed0_ok = keep(
+        kept, failed, gated, seed0_ok = keep(
             totals, m.get("seed0_legs"), f"{name}.{eid}.seed0_legs"
         )
         stats[eid] = {
@@ -201,6 +244,7 @@ def _challenge(name, spec, judge=None):
             "seed0_total": totals[0],
             "seed0_ok": seed0_ok,
             "minimum_failed": failed,
+            "gated": gated,
         }
     sigma = max(s["sigma"] for s in stats.values())
     control = next(
@@ -222,8 +266,9 @@ def _challenge(name, spec, judge=None):
     seeds = _totals(
         (spec.get("control_seed_totals") or {}).get(control),
         f"{name}.control_seed_totals[{control}]",
+        judge is not None,
     )
-    seed_kept, seed_failed, _ = keep(
+    seed_kept, seed_failed, seed_gated, _ = keep(
         seeds,
         (spec.get("control_seed_legs") or {}).get(control),
         f"{name}.control_seed_legs[{control}]",
@@ -253,6 +298,10 @@ def _challenge(name, spec, judge=None):
         result["minimum_failed"] = {
             "by_member": {e: stats[e]["minimum_failed"] for e in panel},
             "control_seeds": seed_failed,
+        }
+        result["gated"] = {
+            "by_member": {e: stats[e]["gated"] for e in panel},
+            "control_seeds": seed_gated,
         }
     return result
 

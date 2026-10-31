@@ -238,3 +238,191 @@ def test_the_command_prints_the_minimums_source_digest_header(tmp_path, capsys):
         )
         == 2
     )
+
+
+# --- gated rebuilds: a null total because a hard gate failed ---------------------------------------------------------------
+
+F08_SEEDS = [
+    0.42181190434059457,
+    0.4224448318,
+    0.4152694308,
+    None,
+    None,
+    None,
+    0.4200110,
+    None,
+    0.4224263,
+    None,
+]
+
+
+def _gate_legs(a=0.4, d=0.5, outcome="MANDATORY_GATE_FAILED"):
+    return {"A": a, "D": d, "decision_outcome": outcome}
+
+
+def _f08_doc(seeds=None, gated_at=(3, 4, 5, 7, 9), legs=None):
+    """The real F08 shape: a panel of one member with ten bit-identical totals, and ten control seeds, some gated."""
+    seeds = list(F08_SEEDS if seeds is None else seeds)
+    total = 0.42181190434059457
+    member = {
+        "reference_fingerprint": H("a"),
+        "seed0_totals": [total] * 10,
+        "state_digests": [H("1")] * 10,
+        "within_noise": False,
+        "seed0_legs": [_legs(total, total)] * 10,
+    }
+    control_legs = [
+        _gate_legs() if i in gated_at else _legs(t, t) for i, t in enumerate(seeds)
+    ]
+    return {
+        "schema": rs.SCHEMA_IN,
+        "challenges": {
+            "F08": {
+                "pack_digest": H("b"),
+                "class_record_digest": H("c"),
+                "control_basis_bit_identical": "ten bit-identical",
+                "control_basis_within_noise": "smallest sigma within noise",
+                "panel": ["FC"],
+                "members": {"FC": member},
+                "control_seed_totals": {"FC": seeds},
+                "control_seed_legs": {"FC": legs if legs is not None else control_legs},
+            }
+        },
+    }
+
+
+def test_the_real_f08_shape_gated_seeds_are_excluded_and_counted(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    out = rs.measure(_f08_doc(), {"F08": rs.load_judge_pack(path)})
+    f08 = out["challenges"]["F08"]
+    assert f08["sigma"] == 0.0
+    assert f08["seed_spread"] == pytest.approx(0.0071754010, abs=1e-10)
+    assert f08["value"] == pytest.approx(0.0071754010, abs=1e-10)
+    assert f08["gated"] == {"by_member": {"FC": 0}, "control_seeds": 5}
+    assert f08["minimum_failed"]["control_seeds"] == 0
+    assert f08["control"]["entry_id"] == "FC"
+
+
+def test_the_gated_count_is_in_the_measurement_digest(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    packs = {"F08": rs.load_judge_pack(path)}
+    first = rs.measure(_f08_doc(), packs)
+    again = rs.measure(_f08_doc(), packs)
+    other = rs.measure(
+        _f08_doc(seeds=F08_SEEDS[:3] + [0.4201] + F08_SEEDS[4:], gated_at=(4, 5, 7, 9)),
+        packs,
+    )
+    assert first["measurement_digest"] == again["measurement_digest"]
+    assert other["challenges"]["F08"]["gated"]["control_seeds"] == 4
+    assert other["measurement_digest"] != first["measurement_digest"]
+
+
+def test_a_null_total_without_a_gate_failure_is_a_refusal_not_gated(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    # legs that explain every number and every gated rebuild, except rebuild 9: a null whose legs look normal
+    legs = [
+        _gate_legs() if i in (3, 4, 5, 7) else _legs(t, t)
+        for i, t in enumerate(F08_SEEDS)
+    ]
+    legs[9] = _legs(0.42, 0.42)
+    with pytest.raises(rs.StatsError, match="missing data is not gated"):
+        rs.measure(_f08_doc(legs=legs), {"F08": rs.load_judge_pack(path)})
+    # the same null with no legs entry at all, and with a non-dict entry
+    for entry in (None, "gated"):
+        broken = list(legs)
+        broken[9] = entry
+        with pytest.raises(rs.StatsError, match="not gated"):
+            rs.measure(_f08_doc(legs=broken), {"F08": rs.load_judge_pack(path)})
+
+
+def test_nulls_are_refused_without_a_judge_pack():
+    with pytest.raises(rs.StatsError, match="finite numbers"):
+        rs.measure(_f08_doc())
+
+
+def test_nine_gated_rows_leave_one_kept_and_are_refused(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    seeds = [0.4218] + [None] * 9
+    with pytest.raises(rs.StatsError, match="only 1 rebuild"):
+        rs.measure(
+            _f08_doc(seeds=seeds, gated_at=tuple(range(1, 10))),
+            {"F08": rs.load_judge_pack(path)},
+        )
+    # eight gated leave two kept: allowed
+    seeds = [0.4218, 0.4220] + [None] * 8
+    out = rs.measure(
+        _f08_doc(seeds=seeds, gated_at=tuple(range(2, 10))),
+        {"F08": rs.load_judge_pack(path)},
+    )
+    assert out["challenges"]["F08"]["gated"]["control_seeds"] == 8
+
+
+@pytest.mark.parametrize(
+    "legs",
+    [
+        {"A": 0.4, "D": 0.5, "decision_outcome": "GATE_FAILED"},
+        {
+            "A": 0.4,
+            "D": 0.5,
+            "decision_outcome": "VERIFIED_FEASIBLE",
+            "status": "MANDATORY_GATE_FAILED",
+        },
+        {
+            "A": 0.4,
+            "D": 0.5,
+            "decision_outcome": "POOL_GRADED",
+            "gates": {"speed": "FAIL"},
+        },
+        {
+            "A": 0.4,
+            "D": 0.5,
+            "decision_outcome": "POOL_GRADED",
+            "gates": {"physics_pool": False},
+        },
+    ],
+)
+def test_every_shape_of_a_gate_failure_is_recognised(legs):
+    assert rs.gate_failed(legs) is True
+
+
+@pytest.mark.parametrize(
+    "legs",
+    [
+        None,
+        "gated",
+        {},
+        {"A": 0.4, "D": 0.5, "decision_outcome": "VERIFIED_FEASIBLE"},
+        {"A": 0.4, "D": 0.5, "gates": {"speed": "PASS", "physics_pool": True}},
+        {"A": 0.4, "D": 0.5, "decision_outcome": "REFERENCE_UNRESOLVED"},
+    ],
+)
+def test_a_normal_or_unreadable_legs_entry_is_not_a_gate_failure(legs):
+    assert rs.gate_failed(legs) is False
+
+
+def test_a_member_whose_official_seed_row_is_gated_is_not_an_eligible_control(tmp_path):
+    path, _sha, _body = _judge(tmp_path)
+    doc = _f08_doc()
+    challenge = doc["challenges"]["F08"]
+    good = 0.4218
+    second = {
+        "reference_fingerprint": H("e"),
+        "seed0_totals": [good] * 10,
+        "state_digests": [H("2")] * 10,
+        "within_noise": False,
+        "seed0_legs": [_legs(good, good)] * 10,
+    }
+    first = challenge["members"]["FC"]
+    first["seed0_totals"][0] = None  # the official seed 0 rebuild is gated
+    first["seed0_legs"][0] = _gate_legs()
+    challenge["members"]["SECOND"] = second
+    challenge["panel"] = ["FC", "SECOND"]
+    challenge["control_seed_totals"]["SECOND"] = [
+        0.4218 + 0.0001 * i for i in range(10)
+    ]
+    challenge["control_seed_legs"]["SECOND"] = [
+        _legs(0.4218 + 0.0001 * i, 0.4218 + 0.0001 * i) for i in range(10)
+    ]
+    out = rs.measure(doc, {"F08": rs.load_judge_pack(path)})["challenges"]["F08"]
+    assert out["control"]["entry_id"] == "SECOND"
+    assert out["gated"]["by_member"] == {"FC": 1, "SECOND": 0}
