@@ -219,6 +219,8 @@ The exam is not a surprise: you can read what it measures and what passes. What 
 
 This version applies the owner's frequency-band correction: answers must have the correct seven-value width, finite values, non-negative compliance and strictly positive peak frequencies. The 80–600 Hz band no longer gates individual answers; a frequency overshoot is an accuracy error in A. Dynamic peaks must still be at least the static compliance and ordered by damping; design feasibility limits are unchanged. Versions through 1.6 keep their original band gate; historical grades retain their meaning.
 
+Official submissions for this version go to https://ribbed-bracket-door.carbonphysics.ai. The installer update puts that address in your profile; you type nothing.
+
 - **Hard gates:** `finite_native_summary`, `paired_repeat` (the graded run and the two fresh repeats are identical, per case), `complete_accepted_reference`, `verified_pick_feasible` (the model's pick is feasible by the references; otherwise D = 0), `physics_laws`, and the two gates above
 - **Physics laws (gated):** `peak_not_below_static`: the peak dynamic compliance is at least the static compliance at every damping level; `peaks_ordered_by_damping`: the peak at zeta 0.005 is at least the peak at 0.01, which is at least the peak at 0.02
 - **Physics laws (measured, not yet gate margins):** damping_scaling_005_010 (peak at 0.005 = 2 x peak at 0.01, the 1/zeta peak scaling); damping_scaling_010_020 (peak at 0.01 = 2 x peak at 0.02); frequency_independence_005_010 (peak frequency at 0.005 = at 0.01); frequency_independence_010_020 (peak frequency at 0.01 = at 0.02)

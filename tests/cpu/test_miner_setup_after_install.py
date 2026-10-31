@@ -169,6 +169,9 @@ def unpublished(*configured):
     Review says truthfully that Carbon has not published its endpoint
     (Validator, Motor 1.2 landing, 2026-10-20)."""
     named = {challenge["id"] for challenge in configured}
+    # A version Carbon has published a door for (published_endpoints.json) is no
+    # longer unpublished.
+    published = environment.published_endpoints()["endpoints"]
     return [
         {
             "code": "no_evaluation_endpoint",
@@ -178,6 +181,7 @@ def unpublished(*configured):
         }
         for challenge in intake_challenges()
         if challenge["id"] not in named
+        and challenge["version"] not in published.get(challenge["id"], {})
     ]
 
 

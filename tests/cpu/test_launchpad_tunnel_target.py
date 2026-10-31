@@ -130,10 +130,21 @@ def test_the_submit_time_step_names_the_tunnel_or_validator_too():
 
 def test_the_tunnel_target_is_not_published():
     """OWNER-AX42-DOOR-PRIVATE-01: the loopback-through-tunnel address works
-    only where the tunnel key is held, so nothing publishes it."""
+    only where the tunnel key is held, so nothing publishes it. A published
+    door is a public https hostname (`<name>-door.carbonphysics.ai`), never a
+    loopback or tunnel address."""
     document = json.loads(environment.PUBLISHED_ENDPOINTS.read_bytes())
-    assert document["endpoints"] == []
-    assert environment.published_endpoints()["endpoints"] == {}
+    for entry in document["endpoints"]:
+        host = entry["intake_url"].removeprefix("https://")
+        assert entry["intake_url"].startswith("https://")
+        assert host.endswith("-door.carbonphysics.ai")
+        assert not host.startswith(("127.", "localhost", "[::1]"))
+        assert (
+            environment.published_endpoints()["endpoints"][entry["challenge"]][
+                entry["version"]
+            ]["intake_url"]
+            == entry["intake_url"]
+        )
 
 
 # --- readback: the intake outcome and the sealed outcome --------------------------
