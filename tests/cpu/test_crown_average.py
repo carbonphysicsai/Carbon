@@ -20,6 +20,7 @@ import pytest
 
 from carbon.challenge_validator import bank_promotion as bp
 from carbon.challenge_validator import crown_average as ca
+from carbon.challenge_validator import crown_average_host as host
 from carbon.challenge_validator.interface import digest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -178,28 +179,28 @@ def test_the_key_file_must_be_an_exact_private_regular_file(tmp_path):
     good = tmp_path / "k"
     good.write_bytes(KEY)
     good.chmod(0o600)
-    assert ca.read_crown_key(str(good)) == KEY
+    assert host.read_crown_key(str(good)) == KEY
     for bad in (
         "relative/path",
         str(tmp_path / "missing"),
         None,
     ):
         with pytest.raises(ca.CrownAverageInvalid):
-            ca.read_crown_key(bad)
+            host.read_crown_key(bad)
     open_mode = tmp_path / "open"
     open_mode.write_bytes(KEY)
     open_mode.chmod(0o644)
     with pytest.raises(ca.CrownAverageInvalid):
-        ca.read_crown_key(str(open_mode))
+        host.read_crown_key(str(open_mode))
     short = tmp_path / "short"
     short.write_bytes(b"x" * 8)
     short.chmod(0o600)
     with pytest.raises(ca.CrownAverageInvalid):
-        ca.read_crown_key(str(short))
+        host.read_crown_key(str(short))
     link = tmp_path / "link"
     link.symlink_to(good)
     with pytest.raises(ca.CrownAverageInvalid):
-        ca.read_crown_key(str(link))
+        host.read_crown_key(str(link))
 
 
 # --- seeds never reach a miner surface ----------------------------------------------------------------------

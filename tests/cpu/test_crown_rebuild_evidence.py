@@ -4,7 +4,8 @@ Claims: the derived task is its own identity (origin, seed and repeat) and the d
 always was; it runs under the host-owned synthetic owner, found by the retention helpers only while `deriving` holds it
 and never through the ledger's intents; its seed is set before it starts and a retry cannot change it; its artifacts
 are retained and graded by the UNCOUNTED regrade only (no counted grade, exam-cap slot, Ladder document, pool filing or
-KOTH filing) and its only output is the bound evaluation evidence; the host-fault second build is a different task."""
+KOTH filing) and its only output is the bound evaluation evidence; the host-fault second build is a different task.
+"""
 
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ import hashlib
 import json
 from contextlib import contextmanager
 from types import SimpleNamespace
+from typing import ClassVar
 
 import pytest
 
@@ -67,7 +69,7 @@ def _key(adapter, hotkey="miner", **extra):
         def __init__(self, *args):
             captured["idempotency"] = args[1]
 
-    import carbon.research as research
+    from carbon import research
 
     original = research.DirectStartTaskRequestV3
     research.DirectStartTaskRequestV3 = Request
@@ -132,9 +134,11 @@ def test_the_host_owner_is_found_only_while_deriving_holds_the_task():
     with LeanRecipeAdapter.deriving(fake, "rtsk_x", HOST):
         assert fake._derived_owners == {"rtsk_x": HOST}
         assert LeanRecipeAdapter.owner(fake, "rtsk_x") == HOST
-        with pytest.raises(RuntimeError, match="already held"):
-            with LeanRecipeAdapter.deriving(fake, "rtsk_x", HOST):
-                pass
+        with (
+            pytest.raises(RuntimeError, match="already held"),
+            LeanRecipeAdapter.deriving(fake, "rtsk_x", HOST),
+        ):
+            pass
     assert fake._derived_owners == {}
 
 
@@ -279,7 +283,7 @@ def _fixture(state=DirectTaskStateV3.QUEUED):
                 challenge_key=ChallengeKey("electric-motor-magnetics", "1.5")
             )
         )
-        _derived_owners = {}
+        _derived_owners: ClassVar[dict] = {}
 
         def owner(self, submission_id):
             return (
@@ -377,7 +381,11 @@ def test_a_retry_reuses_the_task_and_cannot_change_its_seed(tmp_path, monkeypatc
         "retain_rebuild_evidence",
         lambda a, t, **k: {"submission_id": t, "evidence": {}},
     )
-    call = dict(host_owner=HOST, artifact_directory=tmp_path, entry_directory=tmp_path)
+    call = {
+        "host_owner": HOST,
+        "artifact_directory": tmp_path,
+        "entry_directory": tmp_path,
+    }
     retention.rebuild_at_seed(adapter, ORIGIN, 77, **call)
     retention.rebuild_at_seed(
         adapter, ORIGIN, 77, **call
@@ -402,7 +410,7 @@ def test_a_retry_reuses_the_task_and_cannot_change_its_seed(tmp_path, monkeypatc
 def test_a_derived_task_that_did_not_succeed_is_unavailable(
     tmp_path, monkeypatch, state
 ):
-    adapter, host, _keys, _ = _fixture(state)
+    adapter, _host, _keys, _ = _fixture(state)
     monkeypatch.setattr(ConstructionRecipe, "from_dict", classmethod(lambda cls, d: d))
     monkeypatch.setattr(
         retention,
@@ -464,6 +472,8 @@ def test_the_repeat_carries_both_builds_and_the_host_fault_pair_is_the_second(
 
 def test_the_average_asks_the_second_build_for_the_host_fault_pair(tmp_path):
     """`Active.decide` uses `rebuild_again_at` for the host-fault check, not the first build again."""
+    from carbon.challenge_validator import bank_promotion as bp
+    from carbon.challenge_validator.interface import digest
     from tests.cpu.test_crown_average_wiring import (
         CHALLENGE,
         KEY,
@@ -475,8 +485,6 @@ def test_the_average_asks_the_second_build_for_the_host_fault_pair(tmp_path):
         _Pairs,
         _store,
     )
-    from carbon.challenge_validator import bank_promotion as bp
-    from carbon.challenge_validator.interface import digest
 
     store = _store(tmp_path)
     a = _body("a", 0.70)

@@ -17,6 +17,7 @@ import pytest
 from carbon.battery.pool_store import PoolStore, StateError
 from carbon.challenge_validator import bank_promotion as bp
 from carbon.challenge_validator import crown_average as ca
+from carbon.challenge_validator import crown_average_host as host
 from carbon.challenge_validator.interface import digest
 
 CHALLENGE = "electric-motor-magnetics"
@@ -376,7 +377,7 @@ def restore_active(monkeypatch):
 
 
 def test_install_is_off_without_a_section_and_refuses_any_other_shape(restore_active):
-    ca.install({})
+    host.install({})
     assert ca.ACTIVE is None
     for bad in (
         {"crown_average": []},
@@ -384,7 +385,7 @@ def test_install_is_off_without_a_section_and_refuses_any_other_shape(restore_ac
         {"crown_average": {"key_file": "x", "n": 1}},
     ):
         with pytest.raises(ca.CrownAverageInvalid):
-            ca.install(bad)
+            host.install(bad)
     assert ca.ACTIVE is None
 
 
@@ -395,10 +396,10 @@ def test_install_reads_the_private_key_file_and_never_shows_it(
     key = tmp_path / "k"
     key.write_bytes(CROWN_KEY)
     key.chmod(0o600)
-    ca.install({"crown_average": {"key_file": str(key)}})
+    host.install({"crown_average": {"key_file": str(key)}})
     assert isinstance(ca.ACTIVE, ca.Active)
     assert repr(ca.ACTIVE) == "Active(<redacted>)"
-    ca.install({})
+    host.install({})
     assert ca.ACTIVE is None
 
 

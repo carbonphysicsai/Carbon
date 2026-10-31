@@ -630,9 +630,7 @@ class BankPromotion:
                     "incumbent": (self.store.incumbent() or {}).get("model_id"),
                 }
         outcome = compare_private_pair(pair, screened)
-        averaged = (
-            active is not None and outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER)
-        )
+        averaged = active is not None and outcome["outcome"] in AVERAGED_CROWNS
         if outcome["outcome"] in CROWN_CHANGING:
             if operator_pause.crowns_paused(self._state_dir()):
                 # The operator's pause: the grade stays filed, no repeat is spent and the incumbent is untouched;
@@ -805,6 +803,8 @@ def _scored(body):
 
 #: Outcomes that change who holds the crown.
 CROWN_CHANGING = frozenset({FIRST_INCUMBENT, CHALLENGER, DETHRONED})
+#: The crown changes the N-rebuild average decides in place of the repeat (a dethrone keeps the repeat).
+AVERAGED_CROWNS = frozenset({FIRST_INCUMBENT, CHALLENGER})
 #: A repeat grade that differs, or cannot run, is the host's fault, never the
 #: miner's: no crown change, a typed alert, a re-check of the host.
 FAILED_INFRA = "FAILED_INFRA"

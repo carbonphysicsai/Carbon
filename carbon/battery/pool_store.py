@@ -1659,7 +1659,8 @@ class PoolStore:
 
     def crown_mean(self, submission_id):
         """The mean of ``submission_id``'s latest averaged crown decision that scored all its rebuilds, or None
-        (it was never averaged: its single grade stands until it is beaten). Reads only."""
+        (it was never averaged: its single grade stands until it is beaten). Reads only.
+        """
         with self.db() as db:
             rows = db.execute(
                 "SELECT body FROM operations WHERE kind='crown_average.v1' ORDER BY rowid DESC"
@@ -1669,8 +1670,10 @@ class PoolStore:
                 found = json.loads(raw)
             except ValueError:
                 continue
+            if found.get("submission_id") != submission_id:
+                continue
             mean = (found.get("private") or {}).get("mean")
-            if found.get("submission_id") == submission_id and type(mean) in (int, float):
+            if type(mean) in (int, float):
                 return float(mean)
         return None
 

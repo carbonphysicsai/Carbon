@@ -254,9 +254,9 @@ def load_config(path: Path) -> dict:
         section = value["crown_average"]
         if type(section) is not dict or set(section) != {"key_file"}:
             raise ValueError("invalid crown_average selection")
-        from carbon.challenge_validator import crown_average
+        from carbon.challenge_validator import crown_average_host
 
-        crown_average.read_crown_key(section["key_file"])
+        crown_average_host.read_crown_key(section["key_file"])
     if "challenge" in value:
         selected = value["challenge"]
         if type(selected) is not dict or selected not in served_challenges():
@@ -1348,9 +1348,9 @@ def serve(
 
     cfg = load_config(config_path)
     install_official_receipt_store(cfg)
-    from carbon.challenge_validator import crown_average
+    from carbon.challenge_validator import crown_average_host
 
-    crown_average.install(cfg)
+    crown_average_host.install(cfg)
     selected_parent = (
         {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
         if "construction_image_manifest" in cfg

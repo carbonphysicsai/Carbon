@@ -7,7 +7,8 @@ validator rebuilds that model N times on validator-chosen seeds and compares MEA
    stored MEAN plus the margin (or, with no king, Carbon's baseline floor plus the margin).
 2. **N rebuilds** (`derive_seeds`): seed_i = HMAC-SHA256(K_crown, domain | challenge_id | submission_id | i)
    reduced into the registered seed range, never 0 (the official seed), all distinct. K_crown is a
-   host-private owner-only file (`read_crown_key`), never in the repository and never in a worker
+   host-private owner-only file (read by `crown_average_host`, the validator-host-only module; this one is pure and
+   takes the key as bytes), never in the repository and never in a worker
    container; only the integer seeds cross into the container, at build time. The seeds, the
    per-seed totals and the mean are PRIVATE: `public_view` is all a miner-facing surface may take.
 3. **Admissibility before averaging** (constitution 7.3): every rebuild must be scored (every mandatory
@@ -156,24 +157,6 @@ def load_rule(path=REGISTRY):
     return Rule(document)
 
 
-def read_crown_key(name) -> bytes:
-    """K_crown from a configured private file: an exact absolute regular file, owner-private, 32 to 4096
-    bytes (like the speed-sample key). It is held by the validator host only and never leaves it.
-    """
-    selected = Path(name) if type(name) is str else None
-    if (
-        selected is None
-        or not selected.is_absolute()
-        or selected.is_symlink()
-        or not selected.is_file()
-        or selected.resolve() != selected
-        or (selected.stat().st_mode & 0o077)
-        or not 32 <= selected.stat().st_size <= 4096
-    ):
-        raise CrownAverageInvalid("crown_key_file_invalid")
-    return selected.read_bytes()
-
-
 def _mac(key, domain, challenge_id, submission_id, *parts):
     if type(key) is not bytes or len(key) < 32:
         raise CrownAverageInvalid("crown_key_invalid")
@@ -269,7 +252,8 @@ class Active:
     def screening(self, store, pair, comparator):
         """``(pair, comparator)`` for the screening comparison under this rule: the incumbent's total is its stored
         MEAN (a scored king with no recorded mean is KING_UNMEASURED: crowns stay paused) and the margin is margin_N. So a
-        screening win is exactly the trigger: it beats the king's mean by more than margin_N."""
+        screening win is exactly the trigger: it beats the king's mean by more than margin_N.
+        """
         margin = self.rule.margin_for(comparator["challenge"])
         if margin is None:
             raise CrownAverageUnavailable(MARGIN_UNREGISTERED)
@@ -305,7 +289,8 @@ class Active:
         self, store, submission_id, evaluation_key, pair, outcome, comparator, repeat
     ):
         """The averaged decision for a screening win, in place of the repeat. ``repeat.rebuild_at(seed)`` rebuilds
-        and grades the model at one seed (the receiver's construction lane); without it nothing moves."""
+        and grades the model at one seed (the receiver's construction lane); without it nothing moves.
+        """
         rebuild = getattr(repeat, "rebuild_at", None)
         if rebuild is None:
             return {**outcome, "outcome": bp.UNAVAILABLE, "reason": REBUILD_UNAVAILABLE}
@@ -357,18 +342,6 @@ class Active:
         if "alert" in result:
             held["alert"] = result["alert"]
         return held
-
-
-def install(cfg):
-    """Turn the rule on (or off) from a receiver's configuration: ``cfg["crown_average"] = {"key_file": ...}``."""
-    global ACTIVE
-    section = cfg.get("crown_average")
-    if section is None:
-        ACTIVE = None
-        return
-    if type(section) is not dict or set(section) != {"key_file"}:
-        raise CrownAverageInvalid("crown_average_selection_invalid")
-    ACTIVE = Active(load_rule(), read_crown_key(section["key_file"]))
 
 
 class RebuildInfra(Exception):
@@ -502,11 +475,9 @@ __all__ = [
     "Rule",
     "derive_seeds",
     "host_fault_index",
-    "install",
     "load_rule",
     "margin_n",
     "public_view",
-    "read_crown_key",
     "run_average",
     "triggered",
 ]

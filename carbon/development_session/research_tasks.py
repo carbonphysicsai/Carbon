@@ -447,7 +447,9 @@ class DirectDevelopmentTasksV3:
                 retained_measurements = dict(
                     db.execute("SELECT id,profile FROM direct_task_measurements")
                 )
-                retained_seeds = dict(db.execute("SELECT id,seed FROM direct_task_seeds"))
+                retained_seeds = dict(
+                    db.execute("SELECT id,seed FROM direct_task_seeds")
+                )
             self._path.chmod(0o600)
             if set(retained_seeds) - {row[0] for row in retained}:
                 raise ValueError("retained direct seed task missing")
@@ -1046,7 +1048,8 @@ class DirectDevelopmentTasksV3:
 
     def set_rebuild_seed(self, task_value: str, seed: int) -> None:
         """Give the (not yet started) derived task ``task_value`` a validator-chosen build seed. Validator side only:
-        it is not reachable from any request. Write-once, never 0 (the official seed) and a positive int32."""
+        it is not reachable from any request. Write-once, never 0 (the official seed) and a positive int32.
+        """
         if (
             type(task_value) is not str
             or type(seed) is not int
