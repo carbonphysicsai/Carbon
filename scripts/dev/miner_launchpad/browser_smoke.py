@@ -1286,9 +1286,13 @@ def run():
                 recovered.recover()
                 token = "rotated-browser-smoke-token-not-a-real-credential"
                 with serving(recovered, token, port):
+                    # The restarted controller has a new token, so the page's old one is
+                    # refused (401): the page says its session ended (app.js SESSION_ENDED)
+                    # rather than that the connection was interrupted.
                     wait(
                         session,
-                        "document.getElementById('connection-state').textContent === 'Connection interrupted'",
+                        "document.getElementById('connection-state').textContent === 'Disconnected'"
+                        " && document.getElementById('message').textContent.includes('Your session ended')",
                     )
                     connect(session, token)
                     state(session, "INTERRUPTED")
