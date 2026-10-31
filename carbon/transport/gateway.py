@@ -10,6 +10,7 @@ from carbon.mcp.model import McpCall, McpField
 from carbon.registry import ChallengeKey
 
 from .models import (
+    MAX_HEADER_COUNT,
     MAX_HEADERS,
     METHOD,
     PATH,
@@ -64,7 +65,7 @@ class AuthenticatedGateway:
             raise TransportFailure(
                 TransportCode.MALFORMED, _branch=_MalformedBranch.HEADERS_TYPE
             )
-        if len(headers) > 16:
+        if len(headers) > MAX_HEADER_COUNT:
             raise TransportFailure(
                 TransportCode.MALFORMED, _branch=_MalformedBranch.HEADER_COUNT
             )

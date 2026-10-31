@@ -13,6 +13,9 @@ PROTOCOL = "carbon.mcp.hotkey.v1"
 METHOD = "POST"
 PATH = "/carbon/v1/mcp"
 MAX_BODY = 65536
+#: The most request headers the gateway accepts. A signed request is five or six headers of its own, a client adds
+#: five to ten, and a reverse proxy such as Cloudflare adds ten or more; the BYTE budget below is the real guard.
+MAX_HEADER_COUNT = 32
 MAX_HEADERS = 4096
 
 

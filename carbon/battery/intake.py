@@ -109,6 +109,7 @@ from pathlib import Path
 
 from carbon.transport.models import (
     MAX_BODY,
+    MAX_HEADER_COUNT,
     MAX_HEADERS,
     PATH,
     TransportCode,
@@ -212,8 +213,8 @@ class _MalformedDiagnostics:
                 self._seen.add(branch)
             count, over_count, over_budget = None, None, None
             if type(headers) is dict:
-                count = min(len(headers), 17)
-                over_count = len(headers) > 16
+                count = min(len(headers), MAX_HEADER_COUNT + 1)
+                over_count = len(headers) > MAX_HEADER_COUNT
                 if not over_count:
                     size = 0
                     for key, value in headers.items():
@@ -225,7 +226,8 @@ class _MalformedDiagnostics:
             log(
                 "transport_malformed",
                 branch=branch.value,
-                header_count_capped_at_17=count,
+                header_count_capped=count,
+                header_count_cap=MAX_HEADER_COUNT + 1,
                 header_count_over_limit=over_count,
                 header_budget_over_limit=over_budget,
             )
