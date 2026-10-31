@@ -187,6 +187,10 @@ BATTERY_CHALLENGE, BATTERY_CONTRACT, BURGERS_CHALLENGE = _challenges()
 def choose(session, name, value):
     """Pick a wizard choice the way a person does: its radio, by value."""
     selector = f"input[name={name}][value={json.dumps(value)}]"
+    if name == "wizard-challenge" and "@" not in value:
+        # The wizard's option value is "<challenge id>@<version>" (43348bd220); a bare
+        # Challenge id picks the option by its data-challenge attribute.
+        selector = f"input[name={name}][data-challenge={json.dumps(value)}]"
     wait(
         session,
         f"Boolean(document.querySelector({json.dumps(selector)}))"
