@@ -137,7 +137,7 @@ DESCENDANT_FILES = (
     "carbon/challenge_validator/exam_cadence.json",
     "scripts/dev/miner_launchpad/published_endpoints.json",
 )
-DESCENDANT_FOLDERS = ("docs/", "tests/")
+DESCENDANT_FOLDERS = ("docs/", "tests/", ".ci/")
 DESCENDANT_FLAT = (("scripts/validator_host_classes/", ".json"),)
 
 
