@@ -34,7 +34,7 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
-from scripts.dev import design_value_parts as parts_tool  # noqa: E402
+from scripts.dev import design_value_parts as parts_tool
 
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 _RETAINED_FILES = ("recipe.json", "state.npz", "image.json")

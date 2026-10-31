@@ -205,7 +205,7 @@ def test_a_regrade_whose_a_and_d_equal_the_stored_legs_matches_exactly(tmp_path)
 def test_a_stored_leg_that_differs_in_the_last_bit_is_a_mismatch(tmp_path, which):
     base = grade(weak)
     a, d = base["A"], base["D"]
-    nudge = lambda x: x + 1e-15 * max(1.0, abs(x))  # noqa: E731
+    nudge = lambda x: x + 1e-15 * max(1.0, abs(x))
     stored = (nudge(a), d) if which == "A" else (a, nudge(d))
     report = _call(tmp_path, stored, fake_run())
     assert report["ok"] is False
@@ -329,7 +329,7 @@ def test_a_mismatch_exits_one_and_an_unusable_input_exits_two(
 
 
 def test_a_missing_judge_image_is_refused_unless_fake(command, capsys, tmp_path):
-    invoke, base = command
+    _invoke, base = command
     stored = tmp_path / "s.json"
     stored.write_text(json.dumps({"A": base["A"], "D": base["D"]}))
     args = ["--retained", str(tmp_path / "artifacts" / ("rtsk_" + "a" * 64)), "--pack", str(tmp_path),
