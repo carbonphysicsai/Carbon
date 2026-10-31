@@ -1,4 +1,4 @@
-"""The crown's multi-rebuild average (OWNER-CROWN-MULTI-REBUILD-AVERAGE-01).
+"""The crown's multi-rebuild average (the crown multi-rebuild average ruling (lead-records a322dea4)).
 
 A new crown-rule version, applied going forward only. When a screening grade beats the bar, the
 validator rebuilds that model N times on validator-chosen seeds and compares MEANS:
@@ -155,7 +155,8 @@ def load_rule(path=REGISTRY):
 
 def read_crown_key(name) -> bytes:
     """K_crown from a configured private file: an exact absolute regular file, owner-private, 32 to 4096
-    bytes (like the speed-sample key). It is held by the validator host only and never leaves it."""
+    bytes (like the speed-sample key). It is held by the validator host only and never leaves it.
+    """
     selected = Path(name) if type(name) is str else None
     if (
         selected is None
@@ -188,7 +189,8 @@ def _mac(key, domain, challenge_id, submission_id, *parts):
 def derive_seeds(key, challenge_id, submission_id, n, seed_range):
     """The N averaging seeds: ``HMAC-SHA256(K_crown, domain | challenge_id | submission_id | i)`` reduced
     into ``1 .. seed_range - 1``. Never 0 (the official seed) and all distinct: a collision or a zero
-    takes the next candidate (``attempt``), so the result is a pure function of the inputs."""
+    takes the next candidate (``attempt``), so the result is a pure function of the inputs.
+    """
     _count(n, "crown_average_n_invalid")
     if type(seed_range) is not int or seed_range < 2**16:
         raise CrownAverageInvalid("crown_average_seed_range_invalid")
@@ -313,7 +315,7 @@ class Active:
                 return rebuild(seed)
             except (RebuildInfra, CrownAverageInvalid):
                 raise
-            except Exception as error:  # noqa: BLE001
+            except Exception as error:
                 raise RebuildInfra("rebuild failed") from error
 
         # logged privately so the per-day trigger count is visible (abuse shows as a rate)
@@ -333,7 +335,7 @@ class Active:
         if private is not None:
             try:
                 store.record_crown_average(submission_id, evaluation_key, private)
-            except Exception as error:  # noqa: BLE001 - a record that cannot be filed moves no crown
+            except Exception as error:
                 if getattr(error, "code", None) != "crown_average_changed":
                     raise
                 # the same decision rebuilt differently: a host that does not reproduce is not a grade
@@ -488,10 +490,10 @@ __all__ = [
     "Active",
     "CrownAverageInvalid",
     "CrownAverageUnavailable",
-    "install",
     "Rule",
     "derive_seeds",
     "host_fault_index",
+    "install",
     "load_rule",
     "margin_n",
     "public_view",

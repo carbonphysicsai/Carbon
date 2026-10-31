@@ -1,8 +1,9 @@
-"""recal_stats --crown-n N (OWNER-CROWN-MULTI-REBUILD-AVERAGE-01): the crown compares means of N rebuilds, so the seed
+"""recal_stats --crown-n N (the crown multi-rebuild average ruling (lead-records a322dea4)): the crown compares means of N rebuilds, so the seed
 term of the margin is 2 x SD / sqrt(N): value = max(5 x sigma, 2 x seed_sd / sqrt(N)), spread rule `2sd_mean_n`.
 
 The values are recomputed from the existing recal measurements (no new runs). The margins pinned here are the ones the
-Validator tabled for N = 10 and N = 5 from today's registered 2-SD margins; the rule without --crown-n is unchanged."""
+Validator tabled for N = 10 and N = 5 from today's registered 2-SD margins; the rule without --crown-n is unchanged.
+"""
 
 from __future__ import annotations
 

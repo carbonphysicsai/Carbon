@@ -29,7 +29,7 @@ pack file and the pack's digest are in the output (`judge_minimums`) and printed
 a top-level `pack_digest`: it is checked for form, taken off before the pack is registered, compared with the digest the
 registration computes, and both are recorded.
 
-With --crown-n N (OWNER-CROWN-MULTI-REBUILD-AVERAGE-01) the crown compares means of N rebuilds and the seed term is
+With --crown-n N (the crown multi-rebuild average ruling (lead-records a322dea4)) the crown compares means of N rebuilds and the seed term is
 2 x seed_sd / sqrt(N): value = max(5 x sigma, 2 x seed_sd / sqrt(N)), `spread_rule` "2sd_mean_n", `crown_n` in the output.
 Without it the rule below is unchanged.
 
@@ -76,7 +76,7 @@ N = 10
 #: OWNER-CROWN-MARGIN-2SD-01: the margin is max(5 x sigma, 2 x the sample sd of the control's kept per-seed totals).
 SEED_SD_MULTIPLE = 2
 SPREAD_RULE = "2sd"
-#: OWNER-CROWN-MULTI-REBUILD-AVERAGE-01: with --crown-n N the crown compares means of N rebuilds, so the seed term is
+#: the crown multi-rebuild average ruling (lead-records a322dea4): with --crown-n N the crown compares means of N rebuilds, so the seed term is
 #: 2 x SD / sqrt(N): margin_N = max(5 x sigma, 2 x seed_sd / sqrt(N)).
 SPREAD_RULE_MEAN_N = "2sd_mean_n"
 _HEX = re.compile(r"[0-9a-f]{64}")

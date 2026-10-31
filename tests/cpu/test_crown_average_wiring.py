@@ -1,4 +1,4 @@
-"""OWNER-CROWN-MULTI-REBUILD-AVERAGE-01 slice 2: the rule wired into `BankPromotion.consider_private`, OFF by default.
+"""the crown multi-rebuild average ruling (lead-records a322dea4) slice 2: the rule wired into `BankPromotion.consider_private`, OFF by default.
 
 Claims: with no rule installed nothing differs from before; installed, the screening grade meets the king's MEAN at
 margin_N and only a crown-changing win spends the N rebuilds (a win inside the margin spends none); the N-rebuild mean
@@ -155,7 +155,7 @@ def test_with_no_rule_installed_the_old_single_grade_rule_decides(
     # 0.72 does not beat 0.7 + the old noise 0.03; the rebuilds are never asked
     a, b = _body("a", 0.7), _body("b", 0.72)
     store, flow = _flow(tmp_path, monkeypatch, {"a": _pair(a, None), "b": _pair(b, a)})
-    again = lambda submission_id: store.private_evaluation_pair(  # noqa: E731
+    again = lambda submission_id: store.private_evaluation_pair(
         submission_id, KEY, registered_source_receipt_sha256=digest("pin")
     )["candidate"]
     assert (

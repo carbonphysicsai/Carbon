@@ -611,7 +611,7 @@ class BankPromotion:
                 "candidate": submission_id,
                 "incumbent": (self.store.incumbent() or {}).get("model_id"),
             }
-        # OWNER-CROWN-MULTI-REBUILD-AVERAGE-01: off unless the receiver installed the rule (or a caller passes
+        # the crown multi-rebuild average ruling (lead-records a322dea4): off unless the receiver installed the rule (or a caller passes
         # ``average``). The screening grade then meets the king's MEAN at margin_N, and a crown-changing win is
         # decided by the N-rebuild mean in place of the repeat. Off, nothing below differs from before.
         from carbon.challenge_validator import crown_average

@@ -1,4 +1,4 @@
-"""OWNER-CROWN-MULTI-REBUILD-AVERAGE-01: the crown's N-rebuild mean (pure decision logic).
+"""the crown multi-rebuild average ruling (lead-records a322dea4): the crown's N-rebuild mean (pure decision logic).
 
 Claims: N is a registered config value, never a code constant (and the committed registry registers no margin yet,
 so the rule answers UNAVAILABLE until the owner confirms N and the margins are registered); the seeds come from

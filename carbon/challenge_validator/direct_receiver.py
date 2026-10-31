@@ -60,7 +60,7 @@ _OPTIONAL_FIELDS = {
     # A private file (>= 32 bytes) holding the pack's custody copy key: the speed-sample seed of the pool
     # versions' single-design call timing is derived under it (`single_call_timing.sample_seed`).
     "speed_sample_key_file",
-    # OWNER-CROWN-MULTI-REBUILD-AVERAGE-01: {"key_file": <absolute private file>} holds K_crown and turns the crown's
+    # the crown multi-rebuild average ruling (lead-records a322dea4): {"key_file": <absolute private file>} holds K_crown and turns the crown's
     # N-rebuild average on (`crown_average.install`). Absent: the crown rule is as before.
     "crown_average",
     # The on-box store of OFFICIAL GPU receipts (`backbone_catalog.receipt_store`, OWNER-GPU-OPEN-WITH-READY-01):

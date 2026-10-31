@@ -1599,7 +1599,7 @@ class PoolStore:
             elif row != ("repeat_verified.v1", "REPEAT_VERIFIED", body):
                 raise StateError("repeat_mark_changed")
 
-    # --- the crown's multi-rebuild average (OWNER-CROWN-MULTI-REBUILD-AVERAGE-01) --------------
+    # --- the crown's multi-rebuild average (the crown multi-rebuild average ruling (lead-records a322dea4)) --------------
     # The N per-seed totals, their mean and the seeds of one averaged crown decision are PRIVATE: filed here,
     # write-once per (submission, evaluation key), and read back only as the king's mean.
 
