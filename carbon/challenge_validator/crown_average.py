@@ -49,6 +49,9 @@ REGISTRY = (
     / "validator_host_classes"
     / "crown_average.json"
 )
+#: The synthetic owner of the validator's averaging-rebuild tasks. Not an ss58 address and never a registered hotkey, so
+#: it can never be in a metagraph snapshot or receive weight; a derived task is its alone, never a miner's.
+HOST_OWNER = "carbon-crown-average-host"
 SEED_DOMAIN = b"carbon.crown.average-seed.v1\x00"
 FAULT_DOMAIN = b"carbon.crown.average-host-fault.v1\x00"
 #: Outcomes a decision may carry (`bank_promotion`'s own vocabulary, so the caller reads one set).
@@ -309,14 +312,20 @@ class Active:
         incumbent = pair["incumbent"]
         status, king_mean = (None, None) if incumbent is None else bp._scored(incumbent)
 
-        def guarded(seed):
-            # a rebuild that cannot run says nothing about the model: retried, then UNAVAILABLE, never a loss
-            try:
-                return rebuild(seed)
-            except (RebuildInfra, CrownAverageInvalid):
-                raise
-            except Exception as error:
-                raise RebuildInfra("rebuild failed") from error
+        def guarded(build):
+            def run(seed):
+                # a rebuild that cannot run says nothing about the model: retried, then UNAVAILABLE, never a loss
+                try:
+                    return build(seed)
+                except (RebuildInfra, CrownAverageInvalid):
+                    raise
+                except Exception as error:
+                    raise RebuildInfra("rebuild failed") from error
+
+            return run
+
+        # The host-fault second build is its OWN build of the same seed (`rebuild_again_at`), not the first one again.
+        again = getattr(repeat, "rebuild_again_at", None) or rebuild
 
         # logged privately so the per-day trigger count is visible (abuse shows as a rate)
         store.record_crown_trigger(submission_id, evaluation_key)
@@ -325,8 +334,8 @@ class Active:
             challenge_id=comparator["challenge"],
             submission_id=submission_id,
             rule=self.rule,
-            rebuild=guarded,
-            rebuild_again=guarded,
+            rebuild=guarded(rebuild),
+            rebuild_again=guarded(again),
             king_mean=king_mean if status == bp.SCORED else None,
             baseline_floor=comparator.get("baseline_total"),
             tolerance=(comparator.get("rebuild_noise") or {}).get("value"),

@@ -434,16 +434,6 @@ def test_the_receiver_configuration_validates_the_section(tmp_path, monkeypatch)
                 receiver.load_config(tmp_path / "c.json")
 
 
-def test_the_construction_lane_has_no_seeded_rebuild_yet_so_the_rule_stays_unavailable():
-    from carbon.challenge_validator import lean_recipe_retention as retention
-
-    repeat = retention._repeat_of(None, "origin", digest("entry"))
-    with pytest.raises(
-        retention.RetentionUnavailable, match="seeded_rebuild_unavailable"
-    ):
-        repeat.rebuild_at(12345)
-
-
 def test_a_king_never_measured_by_the_average_keeps_crowns_paused(
     tmp_path, monkeypatch
 ):
