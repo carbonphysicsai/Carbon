@@ -209,7 +209,8 @@ def test_check_king_reads_both_totals_decides_logs_and_is_loud_on_rotate(
 
 def _registry(monkeypatch, tmp_path, challenges):
     """Put a registry holding exactly ``challenges`` in force for `check_king`, whatever the committed one holds: its
-    margin is read through the real loader (`koth_registry.rebuild_noise(..., path=...)`) from a tmp file."""
+    margin is read through the real loader (`koth_registry.rebuild_noise(..., path=...)`) from a tmp file.
+    """
     from carbon.challenge_validator import koth_registry
     from carbon.challenge_validator.interface import digest
 
