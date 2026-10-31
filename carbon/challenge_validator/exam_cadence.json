@@ -1,9 +1,13 @@
 {
-  "capacity_gpu_lane_hours_per_day": null,
-  "class_record_digest": null,
-  "lanes": null,
-  "measurement_digest": null,
-  "rebuild_gpu_lane_hours": null,
+  "capacity_gpu_lane_hours_per_day": 16.799999999999997,
+  "class_record_digest": "sha256:b7af024b037d9ddef784febd2942fd5125c07ad1e0ece37198c39da823499feb",
+  "lanes": 1,
+  "measurement_digest": "sha256:9e794bfa5a58b05b0f5c721f21436024ef08498a012787dc8923d3fb2a429fa9",
+  "rebuild_gpu_lane_hours": {
+    "electric-motor-magnetics": 0.02082003703703608,
+    "f02": 0.016012240740740608,
+    "f08-ribbed-bracket": 0.015266000000000026
+  },
   "schema": "carbon.exam.cadence-registry.v2",
-  "source": "UNREGISTERED: the recalibration writes the values (OWNER-GPU-ONLY-REPEAT-TOLERANCE-01); until then grading refuses with exam_cadence_unregistered. R = lanes x 24 x 0.7; t_c = mean GPU-lane-hours from lane start to release over the panel's >= 10 rebuilds."
+  "source": "recalibration lane rows sha256:9e794bfa5a58b05b0f5c721f21436024ef08498a012787dc8923d3fb2a429fa9: R = lanes x 24 x 0.7 with lanes=1; t_c = mean GPU-lane-hours from lane start to release over the panel's >= 10 rebuilds per Challenge (exam_cap.py); Challenges included: electric-motor-magnetics, f02, f08-ribbed-bracket"
 }
