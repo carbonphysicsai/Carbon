@@ -53,11 +53,21 @@ _PAGE_STATE = (
     "['review', document.getElementById('wizard-review')?.textContent]"
     "].map(([k, v]) => [k, (v || '').slice(0, 400)])))"
 )
+#: Each wizard step's own reason it will not go on, read by opening the steps in order (a
+#: step button is disabled while an earlier step has a problem). Run only once a wait failed.
+_STEP_REASONS = (
+    "JSON.stringify([...document.querySelectorAll('#wizard-steps button')].map(b => {"
+    " if (!b.disabled) b.click();"
+    " return [b.dataset.wizardStep, b.disabled,"
+    " (document.getElementById('wizard-next-reason')?.textContent || '').slice(0, 300)]; }))"
+)
 
 
 def _page_state(session):
     try:
-        return session.evaluate(_PAGE_STATE)
+        return (
+            session.evaluate(_PAGE_STATE) + " steps: " + session.evaluate(_STEP_REASONS)
+        )
     except Exception as exc:  # noqa: BLE001 - diagnostics must never mask the failure
         return f"unavailable ({type(exc).__name__})"
 
