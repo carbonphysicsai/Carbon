@@ -195,9 +195,10 @@ def unpublished_king(challenge, *, v2=False):
 
 
 def _readonly(path):
-    """A read-only connection to an existing owner-only database file. It never creates
-    the file, never changes its journal mode and cannot write (``mode=ro`` and
-    ``query_only``)."""
+    """A read-only connection to an existing owner-only database file (a symlink is
+    refused). It never creates the database, never changes its journal mode and cannot
+    write it (``mode=ro`` and ``query_only``); on a WAL database whose receiver is
+    stopped, SQLite may leave the empty -wal/-shm sidecars a reader needs."""
     path = Path(path)
     info = os.lstat(path)
     if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:

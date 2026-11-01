@@ -367,16 +367,49 @@ def test_no_exact_total_leaves_the_operator_process(tmp_path, door, frozen, caps
     path = tmp_path / "boards.config.json"
     path.write_text(json.dumps(config))
     assert operator.main(["run", "--config", str(path)]) == 0
-    out = capsys.readouterr().out
+    printed = capsys.readouterr()
+    rows = json.dumps(operator.run_once(config, version=9))
     written = _board_bytes(config, COOLING).decode()
     for exact in (KING_EXACT, OTHER_EXACT):
-        for shown in (repr(exact), str(exact)[:9]):
-            assert shown not in written and shown not in out
+        for shown in _shown(exact):
+            assert shown not in written
+            assert shown not in printed.out and shown not in printed.err
+            assert shown not in rows
     # nothing but the board is written, and the pool store is unchanged
     assert [p.name for p in Path(config["out"]).iterdir()] == [
         operator.slug_of(COOLING) + ".json"
     ]
     assert _snapshot(pool) == before
+
+
+def _shown(exact):
+    """The forms an exact total could leak as: its repr, and its first 7 decimals."""
+    return (repr(exact), str(exact)[:9])
+
+
+@pytest.mark.parametrize("case", ["moved", "no_exact", "group_readable"])
+def test_a_refusal_names_a_code_and_no_exact_total(tmp_path, door, frozen, case):
+    king = None
+    if case == "moved":
+        king = {**_v2_king()}
+        king["king"] = {**king["king"], "hotkey": OTHER}
+    config, _ = _v2_fixture(
+        tmp_path, door, king=king, mode=0o640 if case == "group_readable" else 0o600
+    )
+    if case == "no_exact":
+        third = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+        _record(Path(config["ledger"]).parent, COOLING, third, 0.5)
+    (row,) = operator.run_once(config, version=9)
+    assert row["state"] == "REFUSED" and set(row) == {
+        "challenge",
+        "version",
+        "file",
+        "state",
+        "code",
+    }
+    text = json.dumps(row) + str(operator.OperatorRefused(row["code"]))
+    for exact in (KING_EXACT, OTHER_EXACT):
+        assert not any(shown in text for shown in _shown(exact))
 
 
 def test_the_pool_store_is_opened_read_only(tmp_path):
@@ -386,7 +419,62 @@ def test_the_pool_store_is_opened_read_only(tmp_path):
     assert store.incumbent()["model_id"] == "m-king"
     with store.db() as db, pytest.raises(sqlite3.OperationalError):
         db.execute("DELETE FROM incumbent")
+    with store.db() as db, pytest.raises(sqlite3.OperationalError):
+        db.execute("CREATE TABLE IF NOT EXISTS x(y)")
     assert not hasattr(store, "transaction") and not hasattr(store, "record")
+
+
+def test_the_borrowed_readers_run_select_statements_only(tmp_path, monkeypatch):
+    """`events`, `incumbent`, `incumbent_standing` and `private_evaluation_bodies` over
+    the read-only store issue nothing but SELECTs: no writer, no schema statement, no
+    journal-mode change."""
+    root, _ = _root(tmp_path)
+    pool = _pool(root)
+    seen = []
+    opened = operator._readonly
+
+    def traced(path):
+        connection = opened(path)
+        connection.set_trace_callback(seen.append)
+        return connection
+
+    monkeypatch.setattr(operator, "_readonly", traced)
+    store = operator.ReadOnlyPoolStore(pool)
+    store.events("incumbent")
+    store.incumbent_standing(store.incumbent()["model_id"])
+    store.private_evaluation_bodies()
+    assert seen and all(s.lstrip().upper().startswith("SELECT") for s in seen)
+
+
+def test_a_missing_pool_store_is_never_created(tmp_path):
+    root, _ = _root(tmp_path)
+    store = operator.ReadOnlyPoolStore(root / "pool.sqlite3")
+    with pytest.raises(OSError):
+        store.incumbent()
+    assert list(root.iterdir()) == [root / "FEED.key"]
+
+
+def test_a_symlinked_pool_store_is_refused(tmp_path, door, frozen):
+    config, pool = _v2_fixture(tmp_path, door)
+    real = pool.with_name("real.sqlite3")
+    pool.rename(real)
+    pool.symlink_to(real)
+    (row,) = operator.run_once(config, version=9)
+    assert row["state"] == "REFUSED" and row["code"] == "pool_store_not_owner_only"
+
+
+def test_a_wal_pool_store_reads_without_writing_its_database_file(tmp_path):
+    """The receiver keeps its pool store in WAL mode. A read-only open of it, with its
+    -wal/-shm closed away (the receiver stopped), still reads, and the database file's
+    bytes do not change (SQLite may leave empty -wal/-shm sidecars, never a database).
+    """
+    root, _ = _root(tmp_path)
+    pool = _pool(root)
+    with sqlite3.connect(pool) as db:
+        assert db.execute("PRAGMA journal_mode").fetchone() == ("wal",)
+    before = pool.read_bytes()
+    assert operator.ReadOnlyPoolStore(pool).incumbent()["model_id"] == "m-king"
+    assert pool.read_bytes() == before
 
 
 def test_a_crown_that_moved_between_the_reads_is_refused(tmp_path, door, frozen):
