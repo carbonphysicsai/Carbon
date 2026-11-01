@@ -232,8 +232,12 @@ def test_a_human_input_table_refuses_a_production_deck_and_synthetic_tables_are_
     tmp_path,
 ):
     case = CASES["cool-rect-low"]
+    closed = {
+        layer: {"k": v3.HUMAN_INPUT, "cp": v3.HUMAN_INPUT}
+        for layer in ("copper", "die")
+    }
     with pytest.raises(v3.DeckRefused, match="property_table_human_input"):
-        v3.write_case(case, tmp_path / "p", production=True)
+        v3.write_case(case, tmp_path / "p", tables=closed, production=True)
     with pytest.raises(v3.DeckRefused, match="human_input"):
         v3.resolve_materials(
             {"die": {"k": v3.HUMAN_INPUT, "cp": 700.0}}, test_mode=True
@@ -611,3 +615,106 @@ def test_the_bounds_law_pairs_are_computed_over_the_observed_range_and_stay_info
     assert (
         v3.bounds_check(90.0, 93.0, 92.0, u=0.012)["ordered"] is False
     )  # the pairing is not a bound at all
+
+
+# --- the owner-signed production tables (OWNER-F02-V3-TABLES-SIGNED-01) -----------------------------------------------
+
+SIGNED_SHA256 = "240a6ea2d400d8159202b79114c01d48191c175ab714f431e7a4976e0697718c"
+TABLE_FILE = Path(v3.__file__).with_name("f02_v3_production_tables.json")
+
+
+def test_the_vendored_table_file_is_the_signed_one_and_the_deck_loads_its_values():
+    raw = TABLE_FILE.read_bytes().replace(b"\r\n", b"\n")
+    assert hashlib.sha256(raw).hexdigest() == SIGNED_SHA256
+    assert v3.TABLES_SHA256 == "sha256:" + SIGNED_SHA256
+    assert (
+        v3.TABLES_STATUS == "SIGNED"
+        and v3.TABLES_DECISION == "OWNER-F02-V3-TABLES-SIGNED-01"
+    )
+    signed = json.loads(raw)["tables"]
+    for layer in ("copper", "die"):
+        for prop in ("k", "cp"):
+            assert v3.PRODUCTION_TABLES[layer][prop] == [
+                (float(t), float(v)) for t, v in signed[layer][prop]
+            ]
+    assert v3.PRODUCTION_TABLES["die"]["k"][0] == (250.0, 191.0)
+    assert "Ho, R. W. Powell, P. E. Liley" in v3.TABLES_CITATION
+
+
+def test_a_changed_or_missing_table_file_leaves_human_input_in_place_and_refuses_production(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setattr(v3, "TABLES_SHA256", "sha256:" + "0" * 64)
+    tables, status = v3._load_signed_tables()
+    assert status == "TABLES_FILE_NOT_THE_SIGNED_ONE"
+    assert tables["die"]["k"] == v3.HUMAN_INPUT
+    with pytest.raises(v3.DeckRefused, match="property_table_human_input"):
+        v3.resolve_materials(tables, production=True)
+    monkeypatch.setattr(v3, "TABLES_FILE", "no_such_file.json")
+    assert v3._load_signed_tables()[1] == "TABLES_FILE_MISSING"
+
+
+def test_a_production_deck_builds_records_the_signed_file_and_emits_exactly_its_tables(
+    tmp_path,
+):
+    case = CASES["cool-rect-low"]
+    meta = v3.write_case(case, tmp_path / "prod", production=True)
+    assert meta["tables"] == "PRODUCTION"
+    assert meta["tables_source"]["decision"] == "OWNER-F02-V3-TABLES-SIGNED-01"
+    assert meta["tables_source"]["sha256"] == "sha256:" + SIGNED_SHA256
+    saved = json.loads((tmp_path / "prod" / "deck.json").read_text())
+    assert saved["tables_source"] == meta["tables_source"]
+    sif = (tmp_path / "prod" / "case.sif").read_text()
+    assert sif.startswith("! f02 deck v3: tables PRODUCTION;")
+    assert "OWNER-F02-V3-TABLES-SIGNED-01 sha256:" + SIGNED_SHA256 in sif
+    # the emitted tables hash-match the signed file's
+    signed = json.loads(TABLE_FILE.read_bytes())["tables"]
+    for layer in ("copper", "die"):
+        for prop in ("k", "cp"):
+            emitted = [list(point) for point in saved["materials"][layer][prop]]
+            assert emitted == [[float(t), float(v)] for t, v in signed[layer][prop]]
+    # the TIM is the 2.5 deck's explicit synthetic constant, unchanged
+    assert saved["materials"]["tim"] == {"k": 5.0, "cp": 1000.0, "rho": 2500.0}
+    assert saved["nonlinear"]["max_iterations"] == 50
+    # a non-production deck records no table source
+    test = v3.write_case(
+        case,
+        tmp_path / "t",
+        tables={"die": {"k": [(280.0, 140.0), (420.0, 110.0)], "cp": 700.0}},
+        test_mode=True,
+    )
+    assert test["tables_source"] is None
+
+
+def test_the_signed_tables_bound_the_solution_to_250_to_500_k_and_leaving_it_is_invalid(
+    tmp_path,
+):
+    materials, label = v3.resolve_materials(production=True)
+    assert label == "PRODUCTION" and v3.property_range_k(materials) == (250.0, 500.0)
+    case = {**CASES["cool-rect-low"], **_wave()}
+    settings = {"max_iterations": 50, "tolerance": 1e-8}
+    log = _log_v3(tmp_path, [(3, 1e-10)] * 3)
+
+    def run(name, series, window=(250.0, 500.0), **changes):
+        directory = _case_dir_v3(
+            tmp_path / name, series, {**case, **changes}, 500.0, settings
+        )
+        meta = json.loads((directory / "deck.json").read_text())
+        meta.update(tables="PRODUCTION", property_range_k=list(window))
+        (directory / "deck.json").write_text(json.dumps(meta))
+        return v3.observe_v3(directory, threshold_c=90.0, log_path=log)
+
+    assert run("in", [(0.0, 40.0), (50.0, 100.0), (120.0, 45.0)])["status"] == "OK"
+    hot = run("hot", [(0.0, 40.0), (50.0, 230.0), (120.0, 45.0)])  # 503 K
+    assert hot["status"] == "REFERENCE_INVALID"
+    assert hot["reference"]["reason"] == "out_of_property_range"
+    assert (
+        hot["reference"]["range_k"] == [250.0, 500.0] and hot["tables"] == "PRODUCTION"
+    )
+    cold = run(
+        "cold",
+        [(0.0, -30.0), (50.0, 100.0)],
+        coolant_c=-30.0,
+        initial_c=-30.0,
+    )  # 243 K
+    assert cold["reference"]["reason"] == "out_of_property_range"

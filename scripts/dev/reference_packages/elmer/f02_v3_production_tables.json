@@ -1,0 +1,183 @@
+{
+ "cp_range_k": [
+  200.0,
+  600.0
+ ],
+ "flags": [
+  "silicon rows at 250, 273.2, 298.2 K are the handbook's 'merely typical' values, not recommended values",
+  "printed T values (273.2, 298.2, ...) used as printed",
+  "no HUMAN_INPUT is filled by this file until the owner signs"
+ ],
+ "k_range_k": [
+  250.0,
+  500.0
+ ],
+ "label": "CANDIDATE_PENDING_OWNER_SIGNATURE",
+ "overlap_range_k": [
+  250.0,
+  500.0
+ ],
+ "schema": "carbon.f02.v3-production-tables-candidate.v1",
+ "source_cp": {
+  "file": "F02_V3_TEST_ONLY_TABLES_CP_20261101.json",
+  "note": "NIST-JANAF, provisional (TEST_ONLY until the owner signs)",
+  "sha256": "5901a508d8ffce84de664af6b6f3c9e9511589a9f36ae2ee68f1336f071c9c7b"
+ },
+ "source_k": {
+  "authors": "C. Y. Ho, R. W. Powell, P. E. Liley",
+  "conversion": "x100 = W/m/K",
+  "copper_note": "well-annealed high-purity copper; accurate to within +-2% near room temperature and +-4% at low and high temperatures; dagger: values above 2000 K provisional",
+  "file_sha256": "102e9376cc7c9e9ac83bfb07c576a96ebd851d0608710772ddbf59cebea1131d",
+  "journal": "J. Phys. Chem. Ref. Data, Vol. 1, No. 2, 1972 (page footer)",
+  "passes": "two independent transcriptions (pass1.json, pass2.json), 20/20 rows identical",
+  "printed_pages": {
+   "copper": 332,
+   "silicon": 394
+  },
+  "silicon_note": "values are for high-purity silicon; those at 300 K and above are recommended values (+-5% from 300 to 1000 K, +-10% at the highest temperatures); values below 300 K are merely typical values serving to indicate the general trend (dagger footnote)",
+  "title": "Thermal Conductivity of the Elements",
+  "unit_printed": "W cm^-1 K^-1"
+ },
+ "tables": {
+  "copper": {
+   "cp": [
+    [
+     200.0,
+     356.136
+    ],
+    [
+     298.15,
+     384.635
+    ],
+    [
+     300.0,
+     384.949
+    ],
+    [
+     400.0,
+     398.42
+    ],
+    [
+     500.0,
+     407.768
+    ],
+    [
+     600.0,
+     416.722
+    ]
+   ],
+   "k": [
+    [
+     250.0,
+     406.0
+    ],
+    [
+     273.2,
+     403.0
+    ],
+    [
+     298.2,
+     401.0
+    ],
+    [
+     300.0,
+     401.0
+    ],
+    [
+     323.2,
+     399.0
+    ],
+    [
+     350.0,
+     396.0
+    ],
+    [
+     373.2,
+     395.0
+    ],
+    [
+     400.0,
+     393.0
+    ],
+    [
+     473.2,
+     388.0
+    ],
+    [
+     500.0,
+     386.0
+    ]
+   ]
+  },
+  "die": {
+   "cp": [
+    [
+     200.0,
+     556.729
+    ],
+    [
+     298.15,
+     712.111
+    ],
+    [
+     300.0,
+     713.892
+    ],
+    [
+     400.0,
+     788.378
+    ],
+    [
+     500.0,
+     830.678
+    ],
+    [
+     600.0,
+     860.017
+    ]
+   ],
+   "k": [
+    [
+     250.0,
+     191.0
+    ],
+    [
+     273.2,
+     168.0
+    ],
+    [
+     298.2,
+     149.0
+    ],
+    [
+     300.0,
+     148.0
+    ],
+    [
+     323.2,
+     133.0
+    ],
+    [
+     350.0,
+     119.0
+    ],
+    [
+     373.2,
+     108.0
+    ],
+    [
+     400.0,
+     98.9
+    ],
+    [
+     473.2,
+     81.4
+    ],
+    [
+     500.0,
+     76.2
+    ]
+   ]
+  }
+ }
+}
