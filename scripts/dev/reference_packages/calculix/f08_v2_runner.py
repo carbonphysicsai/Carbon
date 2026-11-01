@@ -2,7 +2,7 @@
 of the U / edge payload (`f08_v2_payload.py`), in the RESULTS.jsonl schema its judge reads.
 
     CARBON_F08_SOLVERS=<id> CARBON_F08_NATIVE_GMSH=1 python3 f08_v2_runner.py run SHARD.json --out DIR \\
-        [--timeout-s S] [--parallel N] [--only JOB_ID ...] [--keep none|failed|all]
+        [--timeout-s S] [--parallel N] [--only JOB_ID ...] [--keep none|failed|all] [--alone]
     CARBON_F08_NATIVE_GMSH=1 python3 f08_v2_runner.py mesh-only SHARD.json --out DIR [--only JOB_ID ...]
 
 SHARD.json is a payload shard (``{"jobs": [{"job_id", "cell", "kind", "case", "h_mm", "fillet_h_mm", "axis"}]}``). Each job is meshed
@@ -19,9 +19,11 @@ module only chains them. The outputs, all per newton of the unit resultant:
 
 The tip displacement is the z component at the tip node, as in 1.7; an angled load moves the participation factors (both load
 components) but not which component is read. Statuses (typed): ``OK``; ``REFERENCE_INVALID`` (the solve ran or was refused on the
-job's own merits: a deck refusal, a solver error or timeout, a missing or unobservable output, a non-finite or non-positive
-output, a wrong mode count; the ``reasons`` name it); ``FAILED_INFRA`` (the job could not start, was stopped from outside, or
-passed the memory limit: retried, never judged). Every record carries the mesh image digest, the solver identity and the deck and
+job's own merits: a deck refusal, a solver error, a missing or unobservable output, a non-finite or non-positive output, a
+wrong mode count; the ``reasons`` name it); ``REFERENCE_TIMEOUT`` (the solve exceeded the timeout: it may be host capacity, not
+the case's physics, so it counts for NOTHING until the job is rerun ALONE once with ``--alone``, where a repeat timeout is
+``REFERENCE_INVALID`` with reason ``solver_timeout``; the judge treats a ``REFERENCE_TIMEOUT`` as missing, not as a failure);
+``FAILED_INFRA`` (the job could not start, was stopped from outside, or passed the memory limit: retried, never judged). Every record carries the mesh image digest, the solver identity and the deck and
 .dat digests. Nothing here decides a threshold: the judgement is custody's.
 """
 
@@ -241,8 +243,10 @@ def solve(directory, timeout_s, cores):
         cores.put(core)
 
 
-def classify(run, outputs, problem):
-    """``(status, reasons)`` from the run_native result, the outputs (or None) and the observation problem (or None). Pure."""
+def classify(run, outputs, problem, *, alone=False):
+    """``(status, reasons)`` from the run_native result, the outputs (or None) and the observation problem (or None). Pure.
+    ``alone`` marks the single rerun of a timed-out job: a repeat timeout is then the case's own (``REFERENCE_INVALID``).
+    """
     reason = run.get("stop_reason")
     code = run.get("exit")
     if reason == "not_run":  # refused or failed before any solve: the problem names it
@@ -256,7 +260,9 @@ def classify(run, outputs, problem):
             f"the job could not start, was stopped or passed memory ({reason})"
         ]
     if reason == "timeout":
-        return "REFERENCE_INVALID", ["solver_timeout"]
+        if alone:
+            return "REFERENCE_INVALID", ["solver_timeout"]
+        return "REFERENCE_TIMEOUT", ["solver_timeout_unconfirmed"]
     if code != 0:
         return "REFERENCE_INVALID", ["solver_failed"]
     if outputs is None:
@@ -264,8 +270,10 @@ def classify(run, outputs, problem):
     return "OK", []
 
 
-def record_for(job, run, outputs, problem, *, mesh_meta, directory, solvers_id):
-    status, reasons = classify(run, outputs, problem)
+def record_for(
+    job, run, outputs, problem, *, mesh_meta, directory, solvers_id, alone=False
+):
+    status, reasons = classify(run, outputs, problem, alone=alone)
     directory = Path(directory)
     record = {
         "schema": RECORD_SCHEMA,
@@ -303,7 +311,16 @@ def record_for(job, run, outputs, problem, *, mesh_meta, directory, solvers_id):
 
 
 def run_job(
-    job, work, *, timeout_s, cores, solvers_id, keep="none", mesh=v1.mesh, solver=solve
+    job,
+    work,
+    *,
+    timeout_s,
+    cores,
+    solvers_id,
+    keep="none",
+    mesh=v1.mesh,
+    solver=solve,
+    alone=False,
 ):
     """Mesh, deck, solve and observe one job; returns its record. The job directory is removed unless ``keep`` says otherwise."""
     directory = Path(work) / job["job_id"]
@@ -318,21 +335,25 @@ def run_job(
             return record_for(
                 job, not_run, None, f"deck_refused:{refusal}",
                 mesh_meta={}, directory=directory, solvers_id=solvers_id,
+                alone=alone,
             )  # fmt: skip
         except subprocess.CalledProcessError:
             return record_for(
                 job, not_run, None, "mesh_failed",
                 mesh_meta={}, directory=directory, solvers_id=solvers_id,
+                alone=alone,
             )  # fmt: skip
         except OSError:  # the mesher could not even start: not the job's fault
             return record_for(
                 job, {"stop_reason": "infra", "exit": None}, None, None,
                 mesh_meta={}, directory=directory, solvers_id=solvers_id,
+                alone=alone,
             )  # fmt: skip
         except (KeyError, ValueError):
             return record_for(
                 job, not_run, None, "mesh_unreadable",
                 mesh_meta={}, directory=directory, solvers_id=solvers_id,
+                alone=alone,
             )  # fmt: skip
         run = solver(directory, timeout_s, cores)
         if run.get("exit") == 0 and (directory / "case.dat").is_file():
@@ -350,6 +371,7 @@ def run_job(
             mesh_meta=meta,
             directory=directory,
             solvers_id=solvers_id,
+            alone=alone,
         )
     finally:
         status_ok = outputs is not None
@@ -424,8 +446,15 @@ def main(argv=None):
             p.add_argument("--parallel", type=int, default=1)
             p.add_argument("--timeout-s", type=float, default=5400.0)
             p.add_argument("--keep", choices=("none", "failed", "all"), default="none")
+            p.add_argument(
+                "--alone",
+                action="store_true",
+                help="the single rerun of a timed-out job (one job, one core): a repeat timeout is REFERENCE_INVALID",
+            )
     args = parser.parse_args(argv)
     jobs = load_jobs(args.shard, args.only)
+    if args.cmd == "run" and args.alone and (len(jobs) != 1 or args.parallel != 1):
+        raise SystemExit("--alone reruns exactly one job (--only ID) with --parallel 1")
     args.out.mkdir(parents=True, exist_ok=True)
     work = args.out / "work"
     work.mkdir(exist_ok=True)
@@ -452,7 +481,7 @@ def main(argv=None):
         def one(job):
             record = run_job(
                 job, work, timeout_s=args.timeout_s, cores=cores,
-                solvers_id=solvers_id, keep=args.keep,
+                solvers_id=solvers_id, keep=args.keep, alone=args.alone,
             )  # fmt: skip
             with lock:
                 handle.write(json.dumps(record, sort_keys=True) + "\n")

@@ -250,7 +250,7 @@ def test_the_observation_refuses_a_wrong_mode_count_wrong_blocks_or_a_non_finite
         ({"stop_reason": "memory", "exit": 137}, None, None, "FAILED_INFRA"),
         ({"stop_reason": "exit", "exit": 137}, None, None, "FAILED_INFRA"),
         ({"stop_reason": "exit", "exit": 120}, None, None, "FAILED_INFRA"),
-        ({"stop_reason": "timeout", "exit": 143}, None, None, "REFERENCE_INVALID"),
+        ({"stop_reason": "timeout", "exit": 143}, None, None, "REFERENCE_TIMEOUT"),
         ({"stop_reason": "exit", "exit": 1}, None, None, "REFERENCE_INVALID"),
         ({"stop_reason": "exit", "exit": 0}, None, "mode_count", "REFERENCE_INVALID"),
     ],
@@ -396,3 +396,63 @@ def test_the_command_line_refuses_without_the_verified_build(tmp_path, monkeypat
     monkeypatch.delenv("CARBON_F08_NATIVE_GMSH", raising=False)
     with pytest.raises(SystemExit, match="CARBON_F08_NATIVE_GMSH"):
         runner.main(["mesh-only", str(shard), "--out", str(tmp_path / "o")])
+
+
+def test_a_timeout_is_its_own_status_until_the_job_is_rerun_alone():
+    run = {"stop_reason": "timeout", "exit": 143}
+    assert runner.classify(run, None, None) == (
+        "REFERENCE_TIMEOUT",
+        ["solver_timeout_unconfirmed"],
+    )
+    # the single rerun alone: a repeat timeout is the case's own
+    assert runner.classify(run, None, None, alone=True) == (
+        "REFERENCE_INVALID",
+        ["solver_timeout"],
+    )
+    # --alone changes nothing else
+    assert runner.classify({"stop_reason": "exit", "exit": 1}, None, None, alone=True)[
+        1
+    ] == ["solver_failed"]
+    assert runner.classify({"stop_reason": "infra"}, None, None, alone=True)[0] == (
+        "FAILED_INFRA"
+    )
+
+
+def test_a_timed_out_record_carries_no_outputs_so_the_judge_sees_it_as_missing(
+    tmp_path,
+):
+    def slow(directory, timeout_s, cores):
+        return {"stop_reason": "timeout", "exit": 143, "wall_s": 5400.0}
+
+    args = {"timeout_s": 10, "cores": _cores(), "solvers_id": "s", "mesh": fake_mesh}
+    first = runner.run_job(_job(job_id="t1"), tmp_path, solver=slow, **args)
+    assert first["status"] == "REFERENCE_TIMEOUT" and "outputs" not in first
+    assert first["reasons"] == ["solver_timeout_unconfirmed"]
+    assert first["run"]["wall_s"] == 5400.0
+    again = runner.run_job(_job(job_id="t2"), tmp_path, solver=slow, alone=True, **args)
+    assert again["status"] == "REFERENCE_INVALID"
+    assert again["reasons"] == ["solver_timeout"] and "outputs" not in again
+    assert runner.TERMINAL == ("OK", "REFERENCE_INVALID")  # a timeout is not terminal
+
+
+def test_alone_reruns_exactly_one_job_on_one_core(tmp_path, monkeypatch):
+    document = payload.plan(20261101)
+    shard = tmp_path / "s.json"
+    shard.write_text(json.dumps({"jobs": document["shards"][1]}))
+    with pytest.raises(SystemExit, match="exactly one job"):
+        runner.main(["run", str(shard), "--out", str(tmp_path / "o"), "--alone"])
+    one = document["shards"][1][0]["job_id"]
+    with pytest.raises(SystemExit, match="exactly one job"):
+        runner.main(
+            [
+                "run",
+                str(shard),
+                "--out",
+                str(tmp_path / "o2"),
+                "--alone",
+                "--only",
+                one,
+                "--parallel",
+                "2",
+            ]
+        )
