@@ -1,5 +1,6 @@
 """The F08 2.0 closed-form gate: the structured adversary recovers a SYNTHETIC notch law, the client's fit is weaker, the
-stop rule needs an owner margin. The 'peaks' here come from a made-up formula, never from physics or a solve."""
+stop rule needs an owner margin. The 'peaks' here come from a made-up formula, never from physics or a solve.
+"""
 
 from __future__ import annotations
 

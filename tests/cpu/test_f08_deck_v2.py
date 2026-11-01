@@ -1,5 +1,6 @@
 """F08 2.0 deck (STRESS working choice): owner values refuse, the Gmsh program compiles, the stress reduction and the
-closed-form controls are right on synthetic data. No solve, no Gmsh, no CalculiX is run."""
+closed-form controls are right on synthetic data. No solve, no Gmsh, no CalculiX is run.
+"""
 
 from __future__ import annotations
 
