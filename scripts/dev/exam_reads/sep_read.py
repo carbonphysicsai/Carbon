@@ -110,15 +110,12 @@ def _finite(value):
     )
 
 
-def expected_region(klass):
-    """The pool_grader.region_class a case of this S4a class must carry, or None when the class sets no constraint."""
-    if klass in ("in_train", "inner_band"):
-        return "in_train"
-    if klass == "outer_shell" or klass.startswith("side_"):
-        return "extended_shell"
-    if klass.startswith("regime:"):
-        return klass
-    return None
+def region_agrees(klass, region):
+    """The class cross-check (Validator 11-01, corrected): a case labelled ``in_train`` must have region class ``in_train``, and
+    EVERY other label (the coverage plan's registered names regime:inner_band, regime:side_*, extended_shell, and the legacy
+    inner_band / outer_shell / side_*) must have a region class other than ``in_train``: the registered inner band lies outside
+    the TRAIN box."""
+    return (klass == "in_train") == (region == "in_train")
 
 
 def load_probe_set(path):
@@ -209,9 +206,8 @@ def load_probe_set(path):
             and _REGION.fullmatch(case["region_class"]),
             "probe_set_case_region_class",
         )
-        want = expected_region(case["class"])
         _need(
-            want is None or want == case["region_class"],
+            region_agrees(case["class"], case["region_class"]),
             "class_contradicts_region_class:" + case["class"],
         )
     return document, _sha_bytes(raw)
@@ -370,7 +366,7 @@ def class_rows(document, predictions, scales, u):
                 for k in outputs
             }
             row[who] = {
-                "median_err_over_u": {
+                "median_err_over_in_range_u": {
                     k: statistics.median(
                         errors[k][j] / _u(u[k], document["cases"][i]["truth"][k])
                         for j, i in enumerate(indices)
@@ -421,7 +417,7 @@ def clear_win(document, predictions, scales, margin, seed):
     """The C1 gate's read: does a trained operator CLEARLY beat the TRAIN-kernel out of range? The statistic is the paired O - K
     registered A_gen atom, balanced (the mean of class means) over the OUT-OF-RANGE classes (every class but in_train) with n >= 6;
     its paired bootstrap resamples cases WITHIN each class (``BOOTSTRAP_DRAWS`` draws, ``seed`` recorded). ``clear`` is the lower
-    end of the two-sided 95 % interval (q 0.025) > margin_N; the one-sided 95 % bound (q 0.05) is reported beside it. No eligible
+    end: the ONE-SIDED 95 % lower bound (q 0.05) > margin_N (Validator 11-01); the two-sided bound (q 0.025) is reported beside it. No eligible
     class, or no registered scales: not computed (no clear win)."""
     import random
 
@@ -463,7 +459,7 @@ def clear_win(document, predictions, scales, margin, seed):
         "margin_n": margin,
         "draws": BOOTSTRAP_DRAWS,
         "seed": seed,
-        "clear": lower_two_sided > margin,
+        "clear": lower_one_sided > margin,
     }
 
 
@@ -601,6 +597,10 @@ def read(config_path):
         "challenge": document["challenge"],
         "version": document["version"],
         "contenders": records,
+        "u_scope": (
+            "in-range U: one U per set from the probe set's U record"
+            " (a per-class U comes when the ext-U records land)"
+        ),
         "accuracy": (
             "registered A_gen atom 1/(1+|err|/scale)"
             if scales is not None

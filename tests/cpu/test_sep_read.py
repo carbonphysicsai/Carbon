@@ -25,7 +25,7 @@ from carbon.scoring import pool_adapters
 NAMES = ["a", "b"]
 
 
-def _case(a, b, y, klass="inner_band", region="in_train"):
+def _case(a, b, y, klass="inner_band", region="extended_shell"):
     return {
         "inputs": {"a": a, "b": b},
         "truth": {"y": y},
@@ -168,12 +168,17 @@ def _config(tmp_path, cases, kernel_rows, operator_rows, margin=0.05):
             "class_contradicts_region_class:outer_shell",
         ),
         (
-            _case(0.1, 0.2, 1.0, klass="inner_band", region="extended_shell"),
+            # the registered inner band lies OUTSIDE the TRAIN box (Validator 11-01 correction)
+            _case(0.1, 0.2, 1.0, klass="inner_band", region="in_train"),
             "class_contradicts_region_class:inner_band",
         ),
         (
-            _case(0.1, 0.2, 1.0, klass="regime:a", region="regime:b"),
-            "class_contradicts_region_class:regime:a",
+            _case(0.1, 0.2, 1.0, klass="regime:inner_band", region="in_train"),
+            "class_contradicts_region_class:regime:inner_band",
+        ),
+        (
+            _case(0.1, 0.2, 1.0, klass="in_train", region="extended_shell"),
+            "class_contradicts_region_class:in_train",
         ),
         ({**_case(0.1, 0.2, 1.0), "inputs": {"a": 0.1}}, "probe_set_case_inputs"),
         ({**_case(0.1, 0.2, 1.0), "truth": {"z": 1.0}}, "probe_set_case_outputs"),
@@ -192,7 +197,8 @@ def test_the_probe_set_is_closed_and_its_class_agrees_with_its_region_class(
 def test_a_class_without_a_region_rule_is_accepted_as_labelled(tmp_path):
     document, _ = sep_read.load_probe_set(
         _probe_set(
-            tmp_path, [_case(0.0, 0.0, 1.0, klass="neighbour_task", region="in_train")]
+            tmp_path,
+            [_case(0.0, 0.0, 1.0, klass="neighbour_task", region="extended_shell")],
         )
     )
     assert document["cases"][0]["class"] == "neighbour_task"
@@ -256,7 +262,7 @@ def test_a_class_where_the_kernel_loses_and_the_operator_wins_is_flagged_only_at
         shell["o_minus_k"] == pytest.approx(2 / 3)
         and shell["k_loses_and_o_wins"] is True
     )
-    assert shell["K"]["median_err_over_u"] == {
+    assert shell["K"]["median_err_over_in_range_u"] == {
         "y": pytest.approx(4.0)
     }  # |err| 2 over U 0.5
     # n = 3: INDICATIVE, never flagged
@@ -284,7 +290,7 @@ def test_with_no_registered_scales_there_is_no_accuracy_and_no_flag(
         and row["k_loses_and_o_wins"] is None
         and "o_minus_k" not in row
     )
-    assert row["K"]["median_err_over_u"] == {"y": pytest.approx(4.0)}
+    assert row["K"]["median_err_over_in_range_u"] == {"y": pytest.approx(4.0)}
     assert result["accuracy"].startswith("no registered A_gen scales")
 
 
@@ -483,3 +489,33 @@ def test_a_provisional_probe_set_labels_the_whole_read(tmp_path, fakes):
     Path(config["probe_set"]).write_text(json.dumps({**document, "provisional": "yes"}))
     with pytest.raises(sep_read.SepRefused, match="probe_set_provisional"):
         sep_read.read(path)
+
+
+@pytest.mark.parametrize(
+    "klass, region",
+    [
+        ("in_train", "in_train"),
+        ("regime:inner_band", "extended_shell"),
+        ("regime:side_current_angle_high", "extended_shell"),
+        ("extended_shell", "extended_shell"),
+        ("outer_shell", "extended_shell"),
+        ("inner_band", "regime:inner_band"),
+    ],
+)
+def test_the_registered_and_legacy_class_names_are_accepted(tmp_path, klass, region):
+    document, _ = sep_read.load_probe_set(
+        _probe_set(tmp_path, [_case(0.0, 0.0, 1.0, klass=klass, region=region)])
+    )
+    assert document["cases"][0]["class"] == klass
+
+
+def test_the_one_sided_bound_decides_and_the_two_sided_is_reported_beside_it(
+    tmp_path, fakes
+):
+    cases = _six("outer_shell", "extended_shell", 1.0)
+    kernel = [[1.0 + d] for d in (0.0, 0.5, 1.0, 1.5, 2.0, 2.5)]
+    result = sep_read.read(_config(tmp_path, cases, kernel, [[1.0]] * 6, margin=0.05))[
+        "c1_clear_win"
+    ]
+    assert result["clear"] is (result["lower95_one_sided"] > 0.05)
+    assert result["lower95_two_sided"] <= result["lower95_one_sided"]
