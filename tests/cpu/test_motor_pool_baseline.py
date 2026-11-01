@@ -389,11 +389,18 @@ def test_the_overlay_entry_is_1_5s_with_the_new_names_only():
         "predecessor",
         "catalog_entries_from",
         "facts",
+        "pack_version",
     }
     for field in new.__dataclass_fields__:
         if field not in own:
             assert getattr(new, field) == getattr(old, field), field
     assert new.sealed_evaluation == "motor-pool-sealed-v2" != old.sealed_evaluation
+    # every version names its own pack (Validator ruling: 1.6 reusing 1.5's "-6" was a miss)
+    assert (
+        new.pack_version
+        == "motor-normal-construction-development-7"
+        != old.pack_version
+    )
     assert new.predecessor == "1.5" and new.catalog_entries_from == (
         "1.5",
         "1.4",

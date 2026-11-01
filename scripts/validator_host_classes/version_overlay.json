@@ -31,7 +31,7 @@
       "train": "motor-dev-train-150-v1",
       "allowlist": "v8",
       "step_caps": false,
-      "pack_version": "motor-normal-construction-development-6",
+      "pack_version": "motor-normal-construction-development-7",
       "development_evaluation": [
         "motor-dual-development-grid-v2",
         "motor-development-grid-8x6"
