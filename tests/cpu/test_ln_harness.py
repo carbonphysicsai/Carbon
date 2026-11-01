@@ -276,3 +276,121 @@ def test_the_harness_has_no_truth_input_and_the_record_holds_none(tmp_path):
 def test_the_digest_command_prints_the_canonical_digest(tmp_path, capsys):
     assert h.main(["digest", str(GRID_FILE)]) == 0
     assert capsys.readouterr().out.strip() == h.digest(_grid())
+
+
+def test_a_pod_run_without_probe_inputs_records_the_selection_and_exports_nothing(
+    tmp_path,
+):
+    grid = _grid()
+    path, digest = _write(tmp_path, grid)
+    out = tmp_path / "pod"
+    record = h.run(
+        path, digest, "2.5", None, out, builders=_builders(grid), log=lambda *_: None
+    )
+    assert record["probe_inputs_sha256"] is None and record["probe_rows"] is None
+    fno = next(
+        c for c in record["contenders"] if c["catalog_id"] == "v2.f02.neuralop.FNO"
+    )
+    assert fno["selected_index"] == 2 and fno["exports"] == {}
+    assert set(fno["final_fit_seconds"]) == {"default", "tuned"}
+    assert not list(out.rglob("*.npy"))  # no prediction file exists
+
+
+def test_the_custody_step_retrains_the_recorded_selection_and_matches_a_one_process_run(
+    tmp_path,
+):
+    grid = _grid()
+    path, digest = _write(tmp_path, grid)
+    probe = _probe(tmp_path)
+    h.run(
+        path,
+        digest,
+        "2.5",
+        None,
+        tmp_path / "pod",
+        builders=_builders(grid),
+        log=lambda *_: None,
+    )
+    h.run(
+        path,
+        digest,
+        "2.5",
+        probe,
+        tmp_path / "desk",
+        builders=_builders(grid),
+        log=lambda *_: None,
+    )
+    document = h.predict_from_record(
+        tmp_path / "pod" / "record.json",
+        digest,
+        "2.5",
+        probe,
+        tmp_path / "custody",
+        builders=_builders(grid),
+        log=lambda *_: None,
+    )
+    assert document["schema"] == h.PREDICT_SCHEMA and document["truths_read"] is False
+    assert document["grid_digest"] == digest and document["probe_rows"] == 6
+    for contender in document["contenders"]:
+        for label, entry in contender["exports"].items():
+            custody = np.load(tmp_path / "custody" / entry["file"])
+            desk = np.load(tmp_path / "desk" / entry["file"])
+            assert np.array_equal(custody, desk), (contender["catalog_id"], label)
+    assert {c["catalog_id"] for c in document["contenders"]} == {
+        c["catalog_id"]
+        for c in h.json.loads((tmp_path / "pod/record.json").read_text())["contenders"]
+    }
+    assert set(inspect.signature(h.predict_from_record).parameters) == {
+        "record_path",
+        "grid_digest",
+        "version",
+        "probe_path",
+        "out_dir",
+        "builders",
+        "challenge_id",
+        "log",
+    }
+
+
+def test_the_custody_step_refuses_a_record_that_is_not_this_grids_selection(tmp_path):
+    grid = _grid()
+    path, digest = _write(tmp_path, grid)
+    probe = _probe(tmp_path)
+    h.run(
+        path,
+        digest,
+        "2.5",
+        None,
+        tmp_path / "pod",
+        builders=_builders(grid),
+        log=lambda *_: None,
+    )
+    record_path = tmp_path / "pod" / "record.json"
+    builders = dict.fromkeys(_builders(grid), _never)
+    with pytest.raises(h.Refused, match="record_is_not_this_grids_selection_record"):
+        h.predict_from_record(
+            record_path,
+            "sha256:" + "1" * 64,
+            "2.5",
+            probe,
+            tmp_path / "a",
+            builders=builders,
+        )
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    record["truths_read"] = True
+    forged = tmp_path / "forged.json"
+    forged.write_text(json.dumps(record), encoding="utf-8")
+    with pytest.raises(h.Refused, match="record_is_not_this_grids_selection_record"):
+        h.predict_from_record(
+            forged, digest, "2.5", probe, tmp_path / "b", builders=builders
+        )
+    record["truths_read"] = False
+    record["contenders"][1]["catalog_id"] = "v2.f02.not_in_the_catalog"
+    odd = tmp_path / "odd.json"
+    odd.write_text(json.dumps(record), encoding="utf-8")
+    with pytest.raises(
+        h.Refused, match="recorded_contender_not_offered_by_the_version"
+    ):
+        h.predict_from_record(
+            odd, digest, "2.5", probe, tmp_path / "c", builders=builders
+        )

@@ -4,6 +4,9 @@
 For one Challenge version it trains the contender catalog entries on the version's PUBLIC TRAIN only and exports each
 contender's predictions on the probe INPUTS. It never reads a truth: there is no truth argument, and the export holds
 predictions and the probe inputs' digest only. Scoring is the version's own ``measure_pool`` in custody, elsewhere.
+Sealed inputs never go to a rented pod, so there are two phases: the pod run (no probe inputs) selects per architecture
+and records the selection; the custody step (``predict``) retrains that recorded selection on the public TRAIN and
+predicts the probe inputs.
 
 What it enforces (Validator conditions, "Validator rulings" in the spec):
 
@@ -23,6 +26,11 @@ What it enforces (Validator conditions, "Validator rulings" in the spec):
 Aggregates only: the tuned recipes stay private to Carbon (the record is CARBON_PRIVATE, never a miner hint).
 
     python ln_harness.py digest GRID.json
+    # pod (rented GPU): selection only, no probe inputs ever leave custody
+    python ln_harness.py run --grid GRID.json --grid-digest sha256:... --version 2.5 --out OUT
+    # custody: retrain the recorded selection on public TRAIN, predict the sealed probe inputs
+    python ln_harness.py predict --record OUT/record.json --grid-digest sha256:... --version 2.5 --probe-inputs probe.npy --out PRED
+    # (one process with both, for desk runs)
     python ln_harness.py run --grid GRID.json --grid-digest sha256:... --version 2.5 --probe-inputs probe.npy --out OUT
 """
 
@@ -295,6 +303,38 @@ def load_probe(path, n_in):
     return probe
 
 
+def fit_and_export(builder, x, y, fits, seed, wall, probe, out, cid, record):
+    """Refit each ``label -> (configuration, train_use)`` on all TRAIN, time it against the wall, and (with probe inputs)
+    export its predictions. Without probe inputs nothing is predicted: only the timings are recorded.
+    """
+    exports, timings = {}, {}
+    for label, (configuration, train_use) in fits.items():
+        product, seconds = timed_fit(
+            builder, x, y, seed=seed, configuration=configuration, train_use=train_use
+        )
+        timings[label] = seconds
+        if seconds > wall:
+            record.setdefault("over_limit_final_fits", []).append(label)
+            continue
+        if probe is None:
+            continue
+        prediction = predict(product, probe)
+        if prediction.shape[0] != probe.shape[0] or not np.isfinite(prediction).all():
+            raise Refused("prediction_invalid:" + cid)
+        target = Path(out) / cid
+        target.mkdir(exist_ok=True)
+        buffer = io.BytesIO()
+        np.save(buffer, prediction.astype(np.float32), allow_pickle=False)
+        (target / f"{label}.npy").write_bytes(buffer.getvalue())
+        exports[label] = {
+            "file": f"{cid}/{label}.npy",
+            "sha256": "sha256:" + hashlib.sha256(buffer.getvalue()).hexdigest(),
+            "fit_seconds": seconds,
+        }
+    record["exports"] = exports
+    record["final_fit_seconds"] = timings
+
+
 def run(
     grid_path,
     grid_digest,
@@ -311,7 +351,7 @@ def run(
     if grid["challenge"] != {"id": challenge_id, "version": version}:
         raise Refused("grid_is_for_another_challenge_version")
     x, y = load_train(challenge_id, version)
-    probe = load_probe(probe_path, x.shape[1])
+    probe = None if probe_path is None else load_probe(probe_path, x.shape[1])
     entries = resolve_entries(grid, challenge_id, version)
     checked = {
         item["catalog_id"]: check_settings(each, item) for each, item, _ in entries
@@ -352,36 +392,7 @@ def run(
         fits = {"default": default}
         if chosen is not None:
             fits["tuned"] = checked[cid][chosen]
-        exports = {}
-        for label, (configuration, train_use) in fits.items():
-            product, seconds = timed_fit(
-                builder,
-                x,
-                y,
-                seed=seed,
-                configuration=configuration,
-                train_use=train_use,
-            )
-            if seconds > wall:
-                record.setdefault("over_limit_final_fits", []).append(label)
-                continue
-            prediction = predict(product, probe)
-            if (
-                prediction.shape[0] != probe.shape[0]
-                or not np.isfinite(prediction).all()
-            ):
-                raise Refused("prediction_invalid:" + cid)
-            target = out / cid
-            target.mkdir(exist_ok=True)
-            buffer = io.BytesIO()
-            np.save(buffer, prediction.astype(np.float32), allow_pickle=False)
-            (target / f"{label}.npy").write_bytes(buffer.getvalue())
-            exports[label] = {
-                "file": f"{cid}/{label}.npy",
-                "sha256": "sha256:" + hashlib.sha256(buffer.getvalue()).hexdigest(),
-                "fit_seconds": seconds,
-            }
-        record["exports"] = exports
+        fit_and_export(builder, x, y, fits, seed, wall, probe, out, cid, record)
         contenders.append(record)
     document = {
         "schema": RECORD_SCHEMA,
@@ -394,14 +405,91 @@ def run(
         "folds": folds,
         "rebuild_wall_seconds": wall,
         "train_rows": len(x),
-        "probe_inputs_sha256": "sha256:"
-        + hashlib.sha256(np.ascontiguousarray(probe).tobytes()).hexdigest(),
-        "probe_rows": int(probe.shape[0]),
+        "probe_inputs_sha256": None if probe is None else probe_digest(probe),
+        "probe_rows": None if probe is None else int(probe.shape[0]),
         "host": host_record(),
         "contenders": contenders,
         "truths_read": False,
     }
     (out / "record.json").write_text(
+        json.dumps(document, indent=1, sort_keys=True), encoding="utf-8"
+    )
+    return document
+
+
+def probe_digest(probe):
+    return "sha256:" + hashlib.sha256(np.ascontiguousarray(probe).tobytes()).hexdigest()
+
+
+PREDICT_SCHEMA = "carbon.ln-harness-predict.v1"
+
+
+def predict_from_record(
+    record_path,
+    grid_digest,
+    version,
+    probe_path,
+    out_dir,
+    *,
+    builders=None,
+    challenge_id="f02",
+    log=print,
+):
+    """The custody step: retrain, on the PUBLIC TRAIN, the settings a pod run recorded (default and selected) and export
+    their predictions on the probe inputs. The probe inputs never leave custody; the models travel as recorded settings,
+    seed and grid digest. Refuses a record whose grid digest is not the one given."""
+    record = json.loads(Path(record_path).read_text(encoding="utf-8"))
+    if (
+        record.get("schema") != RECORD_SCHEMA
+        or record.get("truths_read") is not False
+        or record.get("grid_digest") != grid_digest
+        or record.get("challenge") != {"id": challenge_id, "version": version}
+    ):
+        raise Refused("record_is_not_this_grids_selection_record")
+    from carbon.backbone_catalog import listing, settings
+
+    x, y = load_train(challenge_id, version)
+    probe = load_probe(probe_path, x.shape[1])
+    wall = rebuild_wall_seconds(challenge_id, version)
+    offered = {e["catalog_id"]: e for e in listing.entries(challenge_id, version)}
+    for each in record["contenders"]:  # every refusal before the first fit
+        if each["catalog_id"] not in offered:
+            raise Refused(
+                "recorded_contender_not_offered_by_the_version:" + each["catalog_id"]
+            )
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=False)
+    seed = record["seed"]
+    contenders = []
+    for each in record["contenders"]:
+        cid = each["catalog_id"]
+        item = offered[cid]
+        builder = (builders or {}).get(cid) or load_catalog_builder(item)
+        fits = {"default": settings_resolve_default(item)}
+        chosen = each.get("selected_setting")
+        if chosen is not None:
+            fits["tuned"] = settings.resolve(
+                item, dict(chosen["configuration"]), dict(chosen["train_use"])
+            )
+        entry = {"role": each["role"], "catalog_id": cid, "tuned": chosen is not None}
+        fit_and_export(builder, x, y, fits, seed, wall, probe, out, cid, entry)
+        log(f"{cid}: exported {sorted(entry['exports'])}")
+        contenders.append(entry)
+    document = {
+        "schema": PREDICT_SCHEMA,
+        "visibility": "CARBON_PRIVATE",
+        "challenge": record["challenge"],
+        "grid_digest": grid_digest,
+        "source_record_sha256": digest(record),
+        "seed": seed,
+        "rebuild_wall_seconds": wall,
+        "probe_inputs_sha256": probe_digest(probe),
+        "probe_rows": int(probe.shape[0]),
+        "host": host_record(),
+        "contenders": contenders,
+        "truths_read": False,
+    }
+    (out / "predict-record.json").write_text(
         json.dumps(document, indent=1, sort_keys=True), encoding="utf-8"
     )
     return document
@@ -422,14 +510,31 @@ def main(argv=None):
     two.add_argument("--grid", required=True)
     two.add_argument("--grid-digest", required=True)
     two.add_argument("--version", required=True)
-    two.add_argument("--probe-inputs", required=True)
+    two.add_argument(
+        "--probe-inputs",
+        help="optional: sealed inputs never go to a rented pod, so a pod run omits this and records the selection only",
+    )
     two.add_argument("--out", required=True)
+    three = sub.add_parser(
+        "predict",
+        help="custody step: retrain a recorded selection, predict the probe inputs",
+    )
+    three.add_argument("--record", required=True)
+    three.add_argument("--grid-digest", required=True)
+    three.add_argument("--version", required=True)
+    three.add_argument("--probe-inputs", required=True)
+    three.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     if args.command == "digest":
         print(digest(json.loads(Path(args.grid).read_text(encoding="utf-8"))))
         return 0
     try:
-        run(args.grid, args.grid_digest, args.version, args.probe_inputs, args.out)
+        if args.command == "predict":
+            predict_from_record(
+                args.record, args.grid_digest, args.version, args.probe_inputs, args.out
+            )
+        else:
+            run(args.grid, args.grid_digest, args.version, args.probe_inputs, args.out)
     except Refused as refusal:
         print(f"refused: {refusal}", file=sys.stderr)
         return 2
