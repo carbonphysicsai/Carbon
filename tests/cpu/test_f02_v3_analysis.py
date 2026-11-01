@@ -36,9 +36,9 @@ def test_each_metric_is_computed_as_defined_in_c_and_in_multiples_of_u():
         _record("a", "p_high", 100.0, power_w=150.0),
         _record("a", "base", 80.0),
         _record("a", "shift", 85.4, delta_c=5.0),
-        _record("a", "split_0", 70.0),
-        _record("a", "split_05", 71.0),
-        _record("a", "split_1", 74.0),
+        _record("a", "split_lo", 70.0, split=0.5),
+        _record("a", "split_mid", 71.0, split=0.7),
+        _record("a", "split_hi", 74.0, split=0.9),
     ]
     found = nl.defects(records, u=U)
     row = found["points"]["a"]
@@ -50,7 +50,7 @@ def test_each_metric_is_computed_as_defined_in_c_and_in_multiples_of_u():
     assert parts["additivity"]["c"] == pytest.approx(0.4)  # 85.4 against 80 + 5
     assert parts["split"]["c"] == pytest.approx(
         1.0
-    )  # 71 against the mean of 70 and 74 (72)
+    )  # 71 against the line from 70 at 0.5 to 74 at 0.9, which is 72 at 0.7
     assert row["superposition"]["c"] == pytest.approx(1.0)  # the largest part
     assert found["max"]["superposition"]["point"] == "a"
 
@@ -342,3 +342,21 @@ def test_the_command_fits_predicts_and_scores_without_any_default_criterion(
                 "0.012",
             ]
         )
+
+
+def test_the_split_part_interpolates_between_the_signed_ends_and_needs_them_ordered():
+    records = [
+        _record("a", "split_lo", 70.0, split=0.5),
+        _record(
+            "a", "split_mid", 71.0, split=0.6
+        ),  # on the line 70 + 4 * (0.1 / 0.4) = 71
+        _record("a", "split_hi", 74.0, split=0.9),
+    ]
+    found = nl.defects(records, u=U)["points"]["a"]
+    assert found["superposition_parts"]["split"]["c"] == pytest.approx(0.0, abs=1e-12)
+    swapped = [dict(r, split=s) for r, s in zip(records, (0.9, 0.6, 0.5), strict=True)]
+    with pytest.raises(nl.DefectInputRefused, match="record_split_order"):
+        nl.defects(swapped, u=U)
+    missing = [{k: v for k, v in r.items() if k != "split"} for r in records]
+    with pytest.raises(nl.DefectInputRefused, match="record_split"):
+        nl.defects(missing, u=U)

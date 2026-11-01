@@ -10,8 +10,9 @@ box the dry run solves a small set of VARIANTS (the primary rung), and this modu
 - (iii) **superposition defect**, the largest of the available parts:
   - additivity: the peak with (coolant + d, start + d) against the base peak + d (variants ``base`` and ``shift``, the latter
     carrying ``delta_c``);
-  - the split: the peak at split 0.5 against the mean of the split-0 and split-1 peaks (``split_0``, ``split_05``,
-    ``split_1``);
+  - the split mix: the peak at a middle split against the linear interpolation between the peaks at the SIGNED range ends
+    (the step-1 ruling: 0.5 and 0.9, interpolated to 0.7), each variant carrying its ``split`` (``split_lo``,
+    ``split_mid``, ``split_hi``; the ends are parameters, never 0 and 1);
   - the two-pulse response against the sum of the shifted single-pulse responses (``two_pulse`` with its ``series`` and
     ``single`` series each carrying ``shift_s``; the sum is taken on the two-pulse series' own time axis, from the common
     start temperature ``start_c``). This part needs the solved time series and is skipped when they are absent.
@@ -100,9 +101,17 @@ def superposition_parts(variants):
         parts["additivity"] = abs(
             variants["shift"]["peak_c"] - (variants["base"]["peak_c"] + delta)
         )
-    if {"split_0", "split_05", "split_1"} <= set(variants):
-        mean = (variants["split_0"]["peak_c"] + variants["split_1"]["peak_c"]) / 2
-        parts["split"] = abs(variants["split_05"]["peak_c"] - mean)
+    if {"split_lo", "split_mid", "split_hi"} <= set(variants):
+        lo, mid, hi = (variants[v] for v in ("split_lo", "split_mid", "split_hi"))
+        s_lo, s_mid, s_hi = (
+            _finite(r.get("split"), "record_split") for r in (lo, mid, hi)
+        )
+        if not s_lo < s_mid < s_hi:
+            raise DefectInputRefused("record_split_order")
+        line = lo["peak_c"] + (hi["peak_c"] - lo["peak_c"]) * (s_mid - s_lo) / (
+            s_hi - s_lo
+        )
+        parts["split"] = abs(mid["peak_c"] - line)
     two = variants.get("two_pulse")
     if two is not None and two.get("series") and two.get("singles"):
         start = _finite(two.get("start_c"), "record_start")
