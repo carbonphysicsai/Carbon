@@ -39,7 +39,8 @@ CHALLENGE_VERSION = "1.1"
 #: only the construction source (Validator, 2026-10-20). The batches stay 1.1's.
 #: 1.4 (graph route v2) changes construction only, as 1.2 and 1.3 did.
 #: 1.5 (pool grade) adds its pool rows to the same sealed cells (`pool_version`).
-SERVED_VERSIONS = (CHALLENGE_VERSION, "1.2", "1.3", "1.4", "1.5")
+#: 1.6 (pool grade, in-pack baseline) is 1.5's exam material under a new scoring.
+SERVED_VERSIONS = (CHALLENGE_VERSION, "1.2", "1.3", "1.4", "1.5", "1.6")
 RULE_SCHEMA = "carbon.motor.sealed-batch-rule.v1"
 DOCUMENT_SCHEMA = "carbon.motor.sealed-batch.v1"
 DEPLOYMENT_SCHEMA = "carbon.motor.sealed-deployment.v1"

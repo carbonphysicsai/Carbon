@@ -62,6 +62,7 @@ def build(
     response_reference=None,
     baseline_binding_raw=None,
     calibration_pack_root=None,
+    baseline_floor_total=None,
 ):
     """The pool pack and its record. ``material`` (a ready `pool_version` material) replaces ``--set-dir``.
 
@@ -134,6 +135,12 @@ def build(
         inference_image_id=inference_image_id,
         calibration=calibration,
         **minimums,
+        # the crown floor (option B), a measured number; only versions whose writer registers one take it (Motor 1.6)
+        **(
+            {"baseline_floor_total": baseline_floor_total}
+            if baseline_floor_total is not None
+            else {}
+        ),
     )
     (pack_root / source.SEALED_BATCH_FILE).write_bytes(raw)
     cohorts = list(bank["cohorts"])
@@ -187,6 +194,11 @@ def main(argv=None):
         type=Path,
         help="the calibration pack directory the baseline was graded under (its `pack/`)",
     )
+    one.add_argument(
+        "--baseline-floor-total",
+        type=float,
+        help="Motor 1.6: the crown floor (a MEASURED number: the best catalog entry's official total), carried in the score pack",
+    )
     acc = sub.add_parser("accounting")
     for flag in ("challenge", "version", "set-dir", "input-dtype"):
         acc.add_argument("--" + flag, required=True)
@@ -223,6 +235,7 @@ def main(argv=None):
             args.baseline_binding.read_bytes() if args.baseline_binding else None
         ),
         calibration_pack_root=args.calibration_pack,
+        baseline_floor_total=args.baseline_floor_total,
         response_reference=(
             json.loads(Path(args.response_reference).read_text(encoding="utf-8"))
             if args.response_reference

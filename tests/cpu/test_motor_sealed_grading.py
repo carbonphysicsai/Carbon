@@ -336,7 +336,7 @@ def test_dispatch_is_by_the_banks_declared_population(case):
         chosen = sealed.adapter_for_bank(case["bank"], version)
         assert chosen.EVALUATION_VERSION == "motor-dual-sealed-batch-30-v2"
         assert chosen.VERSION == version and chosen.CASE_ID == sealed.CASE_ID
-    assert sealed.adapter("1.0") is None and sealed.adapter("1.6") is None
+    assert sealed.adapter("1.0") is None and sealed.adapter("1.7") is None
     # Motor 1.5 is the pool-graded version: a pool adapter, never the plain grid grader
     assert sealed.adapter("1.5").POOL_GRADED
     development = physical_pack.development_bank(MOTOR, "1.3")

@@ -489,7 +489,9 @@ def test_no_non_cooling_producer_identity_reads_a_file_this_version_changed():
 #: Producer digests of every non-Cooling adapter on origin/main (ae260371c2), measured before the 1.7 dispatch edits.
 NON_COOLING_DIGESTS = {
     "motor_dual_pack": "sha256:3089b982651cd1b158affd8e145ad544a80d6be26d1e6ba01e9323bc502762b9",
-    "motor_sealed_dual_pack": "sha256:3d45a99670763e003a6fa43393730ab7518e004c2a32a5ae80ef1b91e7b678f4",
+    # Motor 1.6's dispatch (one POOL_VERSIONS entry, the routing branch and the floor pass-through) moved this one from
+    # sha256:3d45a99670763e003a6fa43393730ab7518e004c2a32a5ae80ef1b91e7b678f4 (the Motor 1.1-1.5 sealed identity, kept for history).
+    "motor_sealed_dual_pack": "sha256:db705a2da11d7a7d0f10be42c5ef400e4aea499241f45fa04463c7228d549e1b",
     "f02_dual_pack": "sha256:60861496cb77682c25e338d75744a99161cc830ac94ded9c75d54890d7a00c9b",
     "f02_sealed_dual_pack": "sha256:4c49041bb04d0971d25f896899f83f122082a24fc252210733c1f5d67d909263",
     "f08_dual_pack": "sha256:1d244cf56dd30de4a7b6e3961cd4f6c4e9c007487941ae0dcd2de46e4cf0e29e",
