@@ -6,8 +6,8 @@ The judgements (`u_per_output`, `judge_cell`, `cut_side`) take the results as ``
 
 1. **U panel first**: 12 interior cases over the 11-dim box (the old six drawn by the registered 1.7 lattice sampler, the
    new four uniform in their approved ranges from a seed-derived stream, alloy cycled 4/4/4), each solved at the full
-   rung ladder: three mesh sizes (h 3.4 / 1.7 / 0.85, fillet rung 0.5) and three fillet rungs (fillet h 1.0 / 0.5 /
-   0.25, h 1.7). U per output is the largest Roache estimate over the panel (rounded up, never below the measured
+   rung ladder: three mesh sizes (the registered h 3 / 2.25 / 1.7, fillet rung 0.5) and three fillet rungs (fillet h
+   1.0 / 0.5 / 0.25, h 1.7). U per output is the largest Roache estimate over the panel (rounded up, never below the measured
    band). If two or more of the twelve fail to solve or are non-monotone, STOP.
 2. **Edge check**, judged against that U: 8 edge cells (each new dim at its low and high end, the old six at the TRAIN
    centre, alloy 6061-T6), 3 corner cells (one per alloy: fillet min, angle max, |offset| max, damping min) and the
@@ -46,11 +46,12 @@ OUTPUTS = (
 EXACT = frozenset({"cad_mass_kg"})  # geometry only: identical on every rung, U = 0
 PANEL_SIZE = 12
 STOP_FAILURES = 2
-#: The ladder: refinement ratio 2 on both axes (Roache needs a constant ratio). The base rung is h 1.7, fillet 0.5.
-MESH_RUNGS = (3.4, 1.7, 0.85)
+#: The mesh ladder is the REGISTERED F08 ladder (h 3 / 2.25 / 1.7, refinement ratio 4/3: Validator ruling 2026-11-01,
+#: so U stays like-for-like with U v1/v2 and h 0.85, about 8x the elements, is never solved). The fillet ladder is local
+#: refinement at ratio 2. The Roache estimate takes the NON-UNIFORM-ratio form (MOTOR_REF_UNCERTAINTY_METHOD_20261019).
+MESH_RUNGS = (3.0, 2.25, 1.7)
 FILLET_RUNGS = (1.0, 0.5, 0.25)
 BASE = {"h_mm": 1.7, "fillet_h_mm": 0.5}
-RATIO = 2.0
 SAFETY = 1.25  # Roache's three-grid safety factor (F08-SCIENCE-VALUES-01 V10)
 MIN_ORDER = 0.5  # an observed order below this is not a convergent series (the Battery U-record stop rule)
 CUT = 0.125
@@ -218,27 +219,57 @@ def plan(seed, shard_size=20):
 # ---------------------------------------------------------------- the Roache rule and the judgements
 
 
-def roache(coarse, mid, fine, *, ratio=RATIO, safety=SAFETY):
-    """Three solutions at h, h/2, h/4 -> ``{"monotone", "order", "estimate", "range"}``. The estimate is the Roache
-    error at the finest rung, safety * |fine - mid| / (ratio**p - 1); None for a non-monotone or non-convergent series
-    (observed order below MIN_ORDER), where the full range is the figure."""
+def _order(e21, e32, r21, r32):
+    """The observed order of a monotone three-grid series with NON-UNIFORM refinement ratios (Celik et al. 2008 / Roache):
+    p = |ln|e32/e21| + q(p)| / ln r21, q = ln((r21**p - s) / (r32**p - s)), s = sign(e32/e21); a fixed-point iteration.
+    """
+    ratio = abs(e32 / e21)
+    sign = 1.0 if e32 / e21 > 0 else -1.0
+    p = abs(math.log(ratio)) / math.log(r21)
+    for _ in range(500):
+        q = math.log((r21**p - sign) / (r32**p - sign)) if r21 != r32 else 0.0
+        new = abs(math.log(ratio) + q) / math.log(r21)
+        if abs(new - p) < 1e-13:
+            return new
+        p = new
+    return p
+
+
+def roache(coarse, mid, fine, *, sizes=None, safety=SAFETY):
+    """Three solutions, coarse to fine, on grids of ``sizes`` (default 4 / 2 / 1: ratio 2) ->
+    ``{"monotone", "order", "estimate", "range"}``. The estimate is the Roache error at the finest rung,
+    ``safety * |fine - mid| / (r**p - 1)`` with ``r`` the mid/fine ratio and ``p`` the observed order for the (possibly
+    non-uniform) ratios; None for a non-monotone or non-convergent series (observed order below MIN_ORDER), where the
+    full range is the figure."""
+    h_coarse, h_mid, h_fine = sizes if sizes is not None else (4.0, 2.0, 1.0)
+    r32, r21 = h_coarse / h_mid, h_mid / h_fine
     values = (coarse, mid, fine)
     span = max(values) - min(values)
-    d1, d2 = coarse - mid, mid - fine
-    if d1 == 0 and d2 == 0:
+    e32, e21 = coarse - mid, mid - fine
+    if e32 == 0 and e21 == 0:
         return {"monotone": True, "order": None, "estimate": 0.0, "range": span}
-    monotone = d1 != 0 and d2 != 0 and (d1 > 0) == (d2 > 0) and abs(d2) < abs(d1)
+    monotone = e32 != 0 and e21 != 0 and (e32 > 0) == (e21 > 0) and abs(e21) < abs(e32)
     if not monotone:
         return {"monotone": False, "order": None, "estimate": None, "range": span}
-    order = math.log(abs(d1) / abs(d2), ratio)
+    order = _order(e21, e32, r21, r32)
     if order < MIN_ORDER:
         return {"monotone": False, "order": order, "estimate": None, "range": span}
     return {
         "monotone": True,
         "order": order,
-        "estimate": safety * abs(d2) / (ratio**order - 1),
+        "estimate": safety * abs(e21) / (r21**order - 1),
         "range": span,
     }
+
+
+def rung_sizes(axis):
+    """The grid sizes of an axis, coarse to fine."""
+    return MESH_RUNGS if axis == "mesh" else FILLET_RUNGS
+
+
+def estimate(results, cell, axis, output):
+    """The Roache record of one output on one axis of one cell (``Refused`` if a rung is missing)."""
+    return roache(*series(results, cell, axis, output), sizes=rung_sizes(axis))
 
 
 def series(results, cell, axis, output):
@@ -269,7 +300,7 @@ def u_per_output(results, panel_cells):
         for output in [name for name in OUTPUTS if name not in EXACT]:
             for axis in ("mesh", "fillet"):
                 try:
-                    est = roache(*series(results, cell, axis, output))
+                    est = estimate(results, cell, axis, output)
                 except Refused:
                     failed = True
                     continue
@@ -299,7 +330,7 @@ def judge_cell(results, cell, u):
     over = []
     for output, bound in u.items():
         for axis in ("mesh", "fillet"):
-            est = roache(*series(results, cell, axis, output))
+            est = estimate(results, cell, axis, output)
             if figure(est) > bound:
                 over.append(
                     {"output": output, "axis": axis, "figure": figure(est), "u": bound}

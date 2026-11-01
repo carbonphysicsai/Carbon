@@ -68,8 +68,14 @@ def test_every_cell_has_the_five_solves_of_the_ladder_sharing_the_base_rung():
     jobs = payload.ladder_jobs(cell)
     assert len(jobs) == 5
     keys = {(j["h_mm"], j["fillet_h_mm"]) for j in jobs}
-    assert keys == {(3.4, 0.5), (1.7, 0.5), (0.85, 0.5), (1.7, 1.0), (1.7, 0.25)}
-    assert payload.RATIO == 2.0 and payload.MESH_RUNGS[0] / payload.MESH_RUNGS[1] == 2.0
+    assert keys == {(3.0, 0.5), (2.25, 0.5), (1.7, 0.5), (1.7, 1.0), (1.7, 0.25)}
+    assert payload.MESH_RUNGS == (
+        3.0,
+        2.25,
+        1.7,
+    )  # the registered F08 ladder; h 0.85 is never solved
+    assert payload.FILLET_RUNGS == (1.0, 0.5, 0.25)
+    assert all(job["h_mm"] >= 1.7 for job in jobs)
 
 
 def test_the_plan_puts_the_one_job_smoke_first_and_the_shards_hold_inputs_only():
@@ -77,7 +83,9 @@ def test_the_plan_puts_the_one_job_smoke_first_and_the_shards_hold_inputs_only()
     assert document["jobs"] == (12 + 12) * 5
     assert len(document["shards"][0]) == 1  # the heaviest job alone
     first = document["shards"][0][0]
-    assert first["h_mm"] == 0.85 and first["fillet_h_mm"] in (0.5, 0.25, 1.0)
+    assert (
+        first["h_mm"] == 1.7 and first["fillet_h_mm"] == 0.25
+    )  # the heaviest rung of the biggest cell
     ids = [j["job_id"] for shard in document["shards"] for j in shard]
     assert len(ids) == len(set(ids)) == document["jobs"]
     assert document["shards"][1][0]["kind"] == "u_panel"  # the panel before the edges
@@ -122,24 +130,21 @@ def test_an_exactly_constant_series_has_zero_error():
 
 
 def _results(cells, make):
-    out = {}
-    for cell in cells:
-        rows = {}
-        for axis, rungs in (
-            ("mesh", payload.MESH_RUNGS),
-            ("fillet", payload.FILLET_RUNGS),
-        ):
-            for index, rung in enumerate(rungs):
-                key = (rung, 0.5) if axis == "mesh" else (1.7, rung)
-                row = rows.setdefault(key, {})
-                for output in payload.OUTPUTS:
-                    row[output] = make(cell, axis, output, index)
-        out[cell] = rows
-    return out
+    """results[cell][(h, fillet_h)][output] = make(cell, output, h, fillet_h) for the five distinct solves of a cell."""
+    keys = [(h, 0.5) for h in payload.MESH_RUNGS] + [
+        (1.7, f) for f in payload.FILLET_RUNGS if f != 0.5
+    ]
+    return {
+        cell: {
+            (h, f): {o: make(cell, o, h, f) for o in payload.OUTPUTS} for h, f in keys
+        }
+        for cell in cells
+    }
 
 
-def _clean(cell, axis, output, index):
-    return 10.0 + (0.0 if output == "cad_mass_kg" else 0.4 * 0.5 ** (2 * index))
+def _clean(cell, output, h, f):
+    """A smooth second-order series on both axes (cad mass is geometry only)."""
+    return 10.0 if output == "cad_mass_kg" else 10.0 + 0.001 * h**2 + 0.01 * f**2
 
 
 def test_u_is_the_largest_figure_over_the_panel_and_the_stop_rule_counts_bad_cells():
@@ -149,38 +154,34 @@ def test_u_is_the_largest_figure_over_the_panel_and_the_stop_rule_counts_bad_cel
     assert set(good["u"]) == set(payload.OUTPUTS) - payload.EXACT
     assert all(v > 0 for v in good["u"].values())
 
-    def two_bad(cell, axis, output, index):
-        if cell in ("U03", "U07") and output == "static_tip_mm_per_n":
-            return (10.0, 10.6, 10.3)[index]  # non-monotone
-        return _clean(cell, axis, output, index)
+    def kinked(bad_cells):
+        def make(cell, output, h, f):
+            if cell in bad_cells and output == "static_tip_mm_per_n" and h == 2.25:
+                return 40.0  # the middle mesh rung is off the series: non-monotone
+            return _clean(cell, output, h, f)
 
-    bad = payload.u_per_output(_results(cells, two_bad), cells)
-    assert bad["failed_cells"] == ["U03", "U07"] and bad["stop"] is True
+        return make
 
-    def one_bad(cell, axis, output, index):
-        if cell == "U03" and output == "static_tip_mm_per_n":
-            return (10.0, 10.6, 10.3)[index]
-        return _clean(cell, axis, output, index)
-
-    assert payload.u_per_output(_results(cells, one_bad), cells)["stop"] is False
+    two = payload.u_per_output(_results(cells, kinked({"U03", "U07"})), cells)
+    assert two["failed_cells"] == ["U03", "U07"] and two["stop"] is True
+    one = payload.u_per_output(_results(cells, kinked({"U03"})), cells)
+    assert one["failed_cells"] == ["U03"] and one["stop"] is False
 
 
 def test_a_missing_rung_is_a_failed_cell_and_a_changing_cad_mass_is_too():
     cells = [f"U{i:02d}" for i in range(12)]
     results = _results(cells, _clean)
-    del results["U00"][(0.85, 0.5)]
+    del results["U00"][(2.25, 0.5)]
     out = payload.u_per_output(results, cells)
     assert out["failed_cells"] == ["U00"]
 
-    def mass_moves(cell, axis, output, index):
+    def mass_moves(cell, output, h, f):
         if cell == "U05" and output == "cad_mass_kg":
-            return 1.0 + index
-        return _clean(cell, axis, output, index)
+            return 1.0 + h
+        return _clean(cell, output, h, f)
 
-    assert (
-        "U05"
-        in payload.u_per_output(_results(cells, mass_moves), cells)["failed_cells"]
-    )
+    moved = payload.u_per_output(_results(cells, mass_moves), cells)
+    assert "U05" in moved["failed_cells"]
 
 
 def test_an_edge_cell_passes_against_u_when_its_figures_are_within_and_fails_with_the_overshoot():
@@ -189,17 +190,67 @@ def test_an_edge_cell_passes_against_u_when_its_figures_are_within_and_fails_wit
     edge = ["E-fillet_radius_mm-low"]
     assert payload.judge_cell(_results(edge, _clean), edge[0], u)["passes"]
 
-    def rough(cell, axis, output, index):
+    def rough(cell, output, h, f):
         if output == "dynamic_fillet_stress_mpa_per_n":
-            return 10.0 + 3.0 * 0.5**index  # converges first order from far away
-        return _clean(cell, axis, output, index)
+            return 10.0 + 3.0 * f  # first order in the fillet size: far above U
+        return _clean(cell, output, h, f)
 
     verdict = payload.judge_cell(_results(edge, rough), edge[0], u)
     assert not verdict["passes"]
     assert {o["output"] for o in verdict["over"]} == {"dynamic_fillet_stress_mpa_per_n"}
+    assert {o["axis"] for o in verdict["over"]} == {"fillet"}
 
 
 def test_a_failed_side_is_cut_inward_once_by_12_point_5_percent():
     assert payload.cut_side((0.5, 3.0), "low") == pytest.approx((0.5 + 0.3125, 3.0))
     assert payload.cut_side((0.5, 3.0), "high") == pytest.approx((0.5, 3.0 - 0.3125))
     assert math.isclose(payload.CUT, 0.125)
+
+
+def power_law(sizes, order, base=2.0, coefficient=0.5):
+    """f(h) = base + coefficient * h**order sampled on ``sizes`` (coarse to fine)."""
+    return tuple(base + coefficient * h**order for h in sizes)
+
+
+@pytest.mark.parametrize("order", [0.8, 1.0, 2.0, 3.0])
+def test_the_non_uniform_ratio_rule_recovers_the_order_on_the_registered_mesh_ladder(
+    order,
+):
+    sizes = payload.MESH_RUNGS  # 3 / 2.25 / 1.7: ratios 4/3 and 1.3235
+    values = power_law(sizes, order)
+    r = payload.roache(*values, sizes=sizes)
+    assert r["monotone"] and r["order"] == pytest.approx(order, rel=1e-9)
+    r21 = sizes[1] / sizes[2]
+    exact_error = (
+        0.5 * sizes[2] ** order
+    )  # distance of the finest value from the h -> 0 limit
+    assert r["estimate"] == pytest.approx(
+        1.25 * abs(values[1] - values[2]) / (r21**order - 1)
+    )
+    assert (
+        r["estimate"] >= 1.25 * exact_error * 0.99
+    )  # the safety factor covers the true error of a clean series
+
+
+def test_the_uniform_ratio_default_agrees_with_the_non_uniform_form_at_equal_ratios():
+    values = power_law((4.0, 2.0, 1.0), 1.7)
+    assert payload.roache(*values)["order"] == pytest.approx(1.7)
+    assert payload.roache(*values, sizes=(4.0, 2.0, 1.0)) == payload.roache(*values)
+
+
+def test_each_axis_is_judged_with_its_own_sizes():
+    assert payload.rung_sizes("mesh") == payload.MESH_RUNGS
+    assert payload.rung_sizes("fillet") == payload.FILLET_RUNGS
+    results = _results(["U00"], _clean)
+    mesh = payload.estimate(results, "U00", "mesh", "static_tip_mm_per_n")
+    fillet = payload.estimate(results, "U00", "fillet", "static_tip_mm_per_n")
+    assert mesh["order"] == pytest.approx(
+        2.0, rel=1e-9
+    )  # recovered across the 4/3 ratios
+    assert fillet["order"] == pytest.approx(
+        2.0, rel=1e-9
+    )  # and across the ratio-2 fillet ladder
+    assert (
+        payload.figure(mesh) == mesh["estimate"]
+        and payload.figure(fillet) == fillet["estimate"]
+    )
