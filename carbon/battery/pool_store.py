@@ -2435,6 +2435,23 @@ class PoolStore:
             {"model_id": model_id, "reason": reason, "previous": current},
         )
 
+    def private_evaluation_bodies(self):
+        """Every stored private evaluation body (``BOUND_DEVELOPMENT_ONLY``), oldest first. OPERATOR-ONLY and read-only:
+        the launch board's exact-order source (`launch_board.exact_best_totals`) reads it and never publishes or stores
+        what it returns."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='private_evaluation.v1' "
+                "AND state='BOUND_DEVELOPMENT_ONLY' ORDER BY rowid"
+            ).fetchall()
+        bodies = []
+        for (raw,) in rows:
+            try:
+                bodies.append(json.loads(raw))
+            except ValueError:
+                continue
+        return bodies
+
     def incumbent_standing(self, model_id):
         """The incumbent's latest scored private evaluation, for the public king
         document: ``{"owner", "total"}``, or None when it has none scored. Reads only.

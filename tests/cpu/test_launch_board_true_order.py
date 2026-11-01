@@ -165,3 +165,127 @@ def test_the_v2_board_needs_the_exact_totals_and_refuses_inconsistent_ones():
 def test_a_king_who_is_not_on_the_ladder_forces_nothing():
     board = _board({A: 0.9, B: 0.8}, king="5" + "Z" * 47)
     assert _ranks(board) == [(A, 1), (B, 2)]
+
+
+def test_a_challenger_bit_equal_to_the_king_co_ranks_one_and_is_listed_after_the_king():
+    exact = {HOTKEY: 0.7125, A: 0.7125, B: 0.7101}
+    board = _board(exact)
+    assert _ranks(board) == [
+        (HOTKEY, 1),
+        (A, 1),
+        (B, 3),
+    ]  # the king first; the tie is exact equality only
+    near = {HOTKEY: 0.7125, A: 0.7125 + 8e-16}
+    assert _ranks(_board(near)) == [(HOTKEY, 1), (A, 2)]
+
+
+class _StubStore:
+    """A stand-in for the pool store: private evaluation bodies and the incumbent standing."""
+
+    def __init__(self, bodies, standing=None):
+        self._bodies, self._standing = bodies, standing
+        self.asked = []
+
+    def private_evaluation_bodies(self):
+        return list(self._bodies)
+
+    def incumbent_standing(self, model_id):
+        self.asked.append(model_id)
+        return self._standing
+
+
+def _body(
+    owner,
+    total,
+    *,
+    status="SCORED_DEVELOPMENT_CANDIDATE",
+    version="ev-now",
+    challenge="c",
+):
+    return {
+        "owner": owner,
+        "evidence": {
+            "challenge": challenge,
+            "evaluation_version": version,
+            "model_p": {"total_score": total, "score_status": status},
+        },
+    }
+
+
+def test_the_exact_totals_come_from_scored_private_evaluations_of_the_current_exam_only():
+    host = "carbon-crown-average-host"
+    store = _StubStore(
+        [
+            _body({"hotkey": A, "request_digest": "d"}, 0.71),
+            _body({"hotkey": A, "request_digest": "d"}, 0.7149),  # the max for A
+            _body(
+                {"hotkey": A, "request_digest": "d"}, 0.99, version="ev-old"
+            ),  # another exam
+            _body(
+                {"hotkey": B, "request_digest": "d"}, 0.99, status="GATE_FAILED"
+            ),  # not scored
+            _body({"hotkey": C, "request_digest": "d"}, 0.5, challenge="other"),
+            _body(host, 0.95),  # a host-owned derived row is never a hotkey
+            _body("not a hotkey", 0.9),
+            _body(
+                {"hotkey": D, "request_digest": "d"}, 1
+            ),  # an int is not an exact float total
+        ]
+    )
+    exact = lb.exact_best_totals(store, challenge_id="c", evaluation_version="ev-now")
+    assert exact == {A: 0.7149}
+    assert store.asked == []  # no king asked for
+
+
+def test_the_kings_entry_is_the_incumbents_standing_total_not_its_best_single_row():
+    store = _StubStore(
+        [_body({"hotkey": HOTKEY, "request_digest": "d"}, 0.80), _body(A, 0.7)],
+        standing={"owner": {"hotkey": HOTKEY, "request_digest": "d"}, "total": 0.7712},
+    )
+    exact = lb.exact_best_totals(
+        store, challenge_id="c", evaluation_version="ev-now", king_model_id="m-king"
+    )
+    assert exact == {
+        HOTKEY: 0.7712,
+        A: 0.7,
+    }  # the crown-average mean replaces the single best row
+    assert store.asked == ["m-king"]
+
+
+def test_the_helper_output_builds_the_v2_board_and_never_reaches_the_bytes():
+    store = _StubStore(
+        [
+            _body({"hotkey": HOTKEY, "request_digest": "d"}, 0.7123),
+            _body({"hotkey": A, "request_digest": "d"}, 0.7129),
+        ]
+    )
+    exact = lb.exact_best_totals(store, challenge_id="c", evaluation_version="ev-now")
+    board = _board(exact)
+    assert _ranks(board) == [(HOTKEY, 1), (A, 2)]
+    assert "0.7129" not in json.dumps(board) and "0.7123" not in json.dumps(board)
+
+
+def test_the_real_pool_store_exposes_the_bodies_read_only(tmp_path):
+    from carbon.battery.pool_store import PoolStore
+
+    store = PoolStore(tmp_path / "pool.sqlite3")
+    assert store.private_evaluation_bodies() == []
+    with store.transaction() as db:
+        db.execute(
+            "INSERT INTO operations VALUES(?,?,?,?)",
+            (
+                "op1",
+                "private_evaluation.v1",
+                "BOUND_DEVELOPMENT_ONLY",
+                json.dumps(_body({"hotkey": A, "request_digest": "d"}, 0.7)),
+            ),
+        )
+        db.execute(
+            "INSERT INTO operations VALUES(?,?,?,?)",
+            ("op2", "private_evaluation.v1", "OTHER_STATE", "{}"),
+        )
+    bodies = store.private_evaluation_bodies()
+    assert [b["owner"]["hotkey"] for b in bodies] == [A]
+    assert lb.exact_best_totals(
+        store, challenge_id="c", evaluation_version="ev-now"
+    ) == {A: 0.7}

@@ -260,9 +260,10 @@ def ladder_rows(rows, *, exact=None, king_hotkey=None):
     by total, highest first, equal totals sharing a rank.
 
     With ``exact`` (a v2 board; OWNER-BOARD-TRUE-ORDER-01) the order is the TRUE one: the current king (``king_hotkey``)
-    is always rank 1, every other row follows by descending EXACT best total, and equal ranks only when the exact totals
-    are bit-equal. The published ``total`` stays step-floored, and the exact totals never leave this function: only the
-    order is revealed."""
+    is always listed first at rank 1, every other row follows by descending EXACT best total, and equal ranks only when
+    the exact totals are bit-equal (a challenger bit-equal to the king co-ranks 1, listed after the king). The published
+    ``total`` stays step-floored, and the exact totals never leave this function: only the order is revealed.
+    """
     kept = []
     for hotkey, best, latest in rows:
         if type(hotkey) is not str or not _SS58.fullmatch(hotkey):
@@ -333,10 +334,50 @@ def _true_order(kept, exact, king_hotkey):
         key=lambda row: (values[row[0]] is None, -(values[row[0]] or 0.0), row[0])
     )
     ordered = [
-        (row, ("king", row[0])) for row in king
-    ]  # alone at rank 1: a unique tie key
+        (row, values[row[0]]) for row in king
+    ]  # first; a bit-equal challenger co-ranks 1
     ordered += [(row, values[row[0]]) for row in rest]
     return ordered
+
+
+def exact_best_totals(store, *, challenge_id, evaluation_version, king_model_id=None):
+    """The OPERATOR-SIDE source of the exact best totals for a v2 board (never published, never persisted): per hotkey,
+    the maximum ``total_score`` over the pool store's private evaluations that are SCORED (all gates pass, minimums met)
+    for this Challenge under the CURRENT evaluation version. The king's own entry is the incumbent standing's total
+    (after crown-average, its N-rebuild mean). ``store`` needs `private_evaluation_bodies()` and `incumbent_standing`.
+    A host-owned derived row (not a hotkey) is skipped. Pass the result to `build(..., exact_totals=)`.
+    """
+    from .koth_public import KothPublicRefused, _owner_hotkey
+
+    best = {}
+    for body in store.private_evaluation_bodies():
+        evidence = body.get("evidence")
+        model = evidence.get("model_p") if type(evidence) is dict else None
+        if (
+            type(model) is not dict
+            or evidence.get("challenge") != challenge_id
+            or evidence.get("evaluation_version") != evaluation_version
+            or model.get("score_status") != "SCORED_DEVELOPMENT_CANDIDATE"
+            or type(model.get("total_score")) is not float
+            or not math.isfinite(model["total_score"])
+        ):
+            continue
+        try:
+            hotkey = _owner_hotkey(body.get("owner"))
+        except KothPublicRefused:
+            continue
+        if _SS58.fullmatch(hotkey):
+            best[hotkey] = max(best.get(hotkey, 0.0), model["total_score"])
+    if king_model_id is not None:
+        standing = store.incumbent_standing(king_model_id)
+        if standing is not None:
+            try:
+                hotkey = _owner_hotkey(standing["owner"])
+            except KothPublicRefused:
+                hotkey = ""
+            if _SS58.fullmatch(hotkey):
+                best[hotkey] = float(standing["total"])
+    return best
 
 
 def counts(ladder):
