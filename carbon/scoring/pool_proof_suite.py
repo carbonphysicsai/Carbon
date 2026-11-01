@@ -283,7 +283,10 @@ def score_specs(plugin, specs, descriptor, policies, all_specs):
     predict = pool_predictor(plugin, descriptor, all_specs)
     grade = pool_grader.grade_set(specs, predict, policies.optimizer, policies.honesty)
     legs = plugin.legs(descriptor, specs)
-    a_gen = pool_grader.agen_accuracy(specs, predict, policies.agen_scales)
+    # The registered A_gen aggregation (a NEW version's class-balanced mean); a version without one makes the plain call.
+    a_gen = pool_grader.agen_for(
+        specs, predict, policies.agen_scales, policies.optimizer
+    )
     a = pool_grader.combine_a(legs["A"], a_gen, policies.a_rule)
     # A failed mandatory gate gives no score (the plugin reports `gates_ok`; absent means no gate to fail), and so
     # does a physics gate violated on any pool answer, or the speed gate (GATE_FAILED, names only).

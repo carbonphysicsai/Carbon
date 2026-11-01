@@ -153,6 +153,8 @@ def measure_pool(
     a_multiplier=1.0,
     speed_outputs_match=True,
     capture=None,
+    coverage_plan=None,
+    coverage_plan_sums=None,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
 
@@ -163,7 +165,11 @@ def measure_pool(
     and the two inferences of the paired repeat. ``sets`` are the version's `pool_grader` target sets (custody
     material); ``policies`` a `pool_proof_suite.Policies` (the owner's constants); ``base_measure`` the Challenge's
     sealed v2 `measure` with ``base_arguments`` (definition, limits, objective, train_raw, names).
+
+    ``coverage_plan`` / ``coverage_plan_sums`` are a NEW version's sealed class-map document and its plan package's
+    SHA256SUMS text (`attach_coverage_plan`); None for every registered version, whose policies stay as given.
     """
+    policies = attach_coverage_plan(policies, coverage_plan, coverage_plan_sums, sets)
     _require(
         len(bank_rows) == len(outputs)
         and all(len(r) == len(bank_rows) for r in repeats),
@@ -303,6 +309,7 @@ def measure_pool(
             "total": 0.5 * statistics.fmean(a_values)
             + 0.5 * statistics.fmean(d_values),
         }
+        _basis_regions(capture["se_basis"], policies.optimizer, plugin.sets)
     return {
         **base,
         "A": statistics.fmean(a_values),
@@ -323,16 +330,51 @@ def measure_pool(
 SE_MIN_TARGETS = 4
 
 
+def _basis_regions(basis, optimizer, sets):
+    """A balanced version's SE basis also carries its aggregation, the class order and each target's class, so the
+    recomposed total aggregates exactly as the grade did. A version with neither aggregate (every registered version)
+    keeps its basis as it was."""
+    if optimizer.d_aggregate is None and optimizer.a_gen_aggregate is None:
+        return
+    plan = optimizer.coverage_plan
+    basis["d_aggregate"] = optimizer.d_aggregate
+    basis["a_gen_aggregate"] = optimizer.a_gen_aggregate
+    basis["classes"] = list(pool_grader.class_order(plan))
+    for targets, specs in zip(basis["sets"], sets, strict=True):
+        for target, spec in zip(targets, specs, strict=True):
+            target["region"] = pool_grader.region_class(spec, plan)
+
+
+def _region_mean(targets, key, order):
+    rows = [t for t in targets if t[key] is not None]
+    if not rows:
+        return None
+    regions = pool_grader.region_means(
+        [t["region"] for t in rows], [t[key] for t in rows], order
+    )
+    return statistics.fmean(value for _name, value in regions)
+
+
 def total_of_targets(basis, sets):
     """The final pool total recomputed from per-target values: the exam's own composition
     (`measure_pool`): per set, D = min(mean d, C) and A = combine_a(A_bank, mean A_gen, rule); the
-    total is 0.5 * mean(A) + 0.5 * mean(D) over the sets."""
+    total is 0.5 * mean(A) + 0.5 * mean(D) over the sets. A balanced version's basis (`_basis_regions`) takes each
+    balanced mean over its classes in the basis's order instead, as `grade_set` / `agen_accuracy` did.
+    """
+    order = basis.get("classes")
     a_values, d_values = [], []
     for targets in sets:
-        gens = [t["agen"] for t in targets if t["agen"] is not None]
-        a_gen = statistics.fmean(gens) if gens else None
+        if basis.get("a_gen_aggregate") is None:
+            gens = [t["agen"] for t in targets if t["agen"] is not None]
+            a_gen = statistics.fmean(gens) if gens else None
+        else:
+            a_gen = _region_mean(targets, "agen", order)
         a_values.append(pool_grader.combine_a(basis["a_bank"], a_gen, basis["a_rule"]))
-        d_values.append(min(statistics.fmean(t["d"] for t in targets), basis["c"]))
+        if basis.get("d_aggregate") is None:
+            d = statistics.fmean(t["d"] for t in targets)
+        else:
+            d = _region_mean(targets, "d", order)
+        d_values.append(min(d, basis["c"]))
     return 0.5 * statistics.fmean(a_values) + 0.5 * statistics.fmean(d_values)
 
 
@@ -360,15 +402,81 @@ def target_bootstrap_se(basis, exam_key, *, resamples=200):
         raise ExamRefused("bootstrap_exam_key_invalid") from None
     generator = np.random.Generator(np.random.PCG64(seed))
     totals = []
+    stratified = basis.get("classes") is not None
     for _ in range(resamples):
         drawn = []
         for targets in sets:
+            if stratified:
+                drawn.append(_stratified_draw(generator, targets, basis["classes"]))
+                continue
             order = generator.choice(len(targets), size=len(targets), replace=True)
             drawn.append([targets[int(i)] for i in order])
         totals.append(total_of_targets(basis, drawn))
     n = min(sizes)
     spread = float(np.std(np.asarray(totals), ddof=1)) * math.sqrt(n / (n - 1))
     return spread, sizes
+
+
+def _stratified_draw(generator, targets, classes):
+    """A balanced version's resample of one set: with replacement WITHIN each class, in the class order, so every class
+    the grade averaged over stays in the resample with its own size (the set and class structure kept).
+    """
+    drawn = []
+    for name in classes:
+        members = [t for t in targets if t["region"] == name]
+        if not members:
+            continue
+        order = generator.choice(len(members), size=len(members), replace=True)
+        drawn += [members[int(i)] for i in order]
+    return drawn
+
+
+def geometric_v1_names_valid(classes):
+    """Whether every class name of a coverage plan is a geometric-v1 name. The vocabulary must be read from the receipted
+    geometric-v1 rule code (the coverage plan package's probe_set.py), which is not in this repository, and no list is
+    typed here: until it lands, every coverage plan is refused (fail closed)."""
+    raise ExamRefused("geometric_v1_vocabulary_not_in_the_repository")
+
+
+def attach_coverage_plan(policies, document, sums, sets):
+    """``policies`` with the version's registered coverage plan attached, or `ExamRefused`.
+
+    A version that registers no coverage plan keeps its policies unchanged and its sealed material carries none. A
+    version that registers one (`coverage_plan_sha256` and `coverage_plan_sums_sha256`) grades only with a sealed
+    class-map ``document`` of exactly that sha256, listed in a ``sums`` text (the plan package's SHA256SUMS) of exactly
+    that sha256, whose class names are geometric-v1 names, and that classes every target of every set, each set holding
+    every registered class (a missing target or class is refused, never defaulted or skipped).
+    """
+    optimizer = policies.optimizer
+    registered = optimizer.coverage_plan_sha256
+    if registered is None:
+        _require(document is None and sums is None, "coverage_plan_not_registered")
+        return policies
+    _require(document is not None, "coverage_plan_missing_from_the_sealed_pack")
+    _require(sums is not None, "coverage_plan_sums_missing_from_the_sealed_pack")
+    try:
+        plan = pool_grader.coverage_plan(document)
+        listed = pool_grader.sums_list(sums, plan.sha256)
+    except pool_grader.PoolRefused:
+        raise ExamRefused("coverage_plan_malformed") from None
+    _require(plan.sha256 == registered, "coverage_plan_sha256_mismatch")
+    _require(
+        hashlib.sha256(sums.encode()).hexdigest()
+        == optimizer.coverage_plan_sums_sha256,
+        "coverage_plan_sums_sha256_mismatch",
+    )
+    _require(listed, "coverage_plan_not_listed_in_its_sums")
+    _require(
+        geometric_v1_names_valid(plan.classes) is True,
+        "coverage_plan_class_not_geometric_v1",
+    )
+    for group in sets:
+        try:
+            classes = {pool_grader.region_class(spec, plan) for spec in group}
+        except pool_grader.PoolRefused:
+            raise ExamRefused("target_not_in_the_coverage_plan") from None
+        _require(classes == set(plan.classes), "set_missing_a_registered_class")
+    return replace(policies, optimizer=replace(optimizer, coverage_plan=plan))
 
 
 def _quantizer(input_dtype):
@@ -406,6 +514,8 @@ __all__ = [
     "SPEED_GATE",
     "SPEED_SAMPLE",
     "ExamRefused",
+    "attach_coverage_plan",
+    "geometric_v1_names_valid",
     "measure_pool",
     "public",
     "single_call_speed_gate",

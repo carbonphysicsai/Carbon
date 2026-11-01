@@ -1,12 +1,14 @@
-"""Multi-class balanced regions of the pool grader (new exam versions only; Validator ruling, the multi-class balanced-regions
-build).
+"""Multi-class balanced regions of the pool grader (new exam versions only; Validator rulings on the multi-class
+balanced-regions build).
 
 Claims: a target's class comes only from the version's registered coverage plan (target id -> class name, the plan's class
 order), never from code or a model; with ``balanced_region_mean`` a set's D, and with the new ``a_gen_aggregate`` a set's
-A_gen, are the mean over the plan's classes of each class's mean, so a small class cannot be averaged away; a target
-missing from the plan is refused, never defaulted to in_train; the plan binds by its registered sha256; every registered
-version (no aggregate, no plan) is unchanged. Every class name, count and value here is a SYNTHETIC fixture: none is a
-production class list, digest, scale or threshold.
+A_gen, are the mean over the plan's classes of each class's mean, so a small class cannot be averaged away; a target missing
+from the plan, or a set missing a registered class, is refused, never defaulted or skipped; the plan binds by its registered
+sha256 AND by the registered sha256 of the plan package's SHA256SUMS, which must list it; the exam path (score_specs, the
+SE basis and its bootstrap) aggregates exactly as the grade; class names must be geometric-v1 names, and until the rule's
+vocabulary is in the repository every plan is refused; every registered version (no aggregate, no plan) is unchanged.
+Every class name, count and value here is a SYNTHETIC fixture: none is a production class list, digest, scale or threshold.
 """
 
 from __future__ import annotations
@@ -15,9 +17,19 @@ import dataclasses
 import hashlib
 import inspect
 import json
+import statistics
+import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+REPOSITORY = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPOSITORY / "tests" / "cpu"))
+
+from test_pool_exam import ARGUMENTS, CEILING, FAST, POLICIES, exam_rows, toy_binding
+from test_pool_plugin import fake_measure, good_serve
+from test_pool_plugin import toy_target as exam_target
 
 from carbon.scoring import pool_exam, pool_grader, pool_version
 from carbon.scoring import pool_proof_suite as suite
@@ -35,6 +47,7 @@ from tests.cpu.test_pool_grader import HONESTY, OPTIMIZER, oracle, toy_target
 # Synthetic class names: deliberately not any registered plan's names.
 BIG, MID, SMALL = "fixture:big", "fixture:mid", "fixture:small"
 SCALES = {"f": 0.1, "g": 0.1}
+KEY = "sha256:" + "ab" * 32
 
 
 def plan_document(classes, targets):
@@ -43,6 +56,15 @@ def plan_document(classes, targets):
         "classes": list(classes),
         "targets": dict(targets),
     }
+
+
+def sums_text(*shas):
+    """A synthetic SHA256SUMS listing the given digests (the `sha256sum` line format)."""
+    return "".join(f"{sha} *./file-{n}.json\n" for n, sha in enumerate(shas))
+
+
+def sha(text):
+    return hashlib.sha256(text.encode()).hexdigest()
 
 
 def three_class_plan(n_big, n_mid=2, n_small=1, order=(BIG, MID, SMALL)):
@@ -57,6 +79,7 @@ def balanced(plan, **fields):
         OPTIMIZER,
         d_aggregate="balanced_region_mean",
         coverage_plan_sha256=plan.sha256,
+        coverage_plan_sums_sha256=sha(sums_text(plan.sha256)),
         coverage_plan=plan,
         **fields,
     )
@@ -110,12 +133,17 @@ def test_the_class_order_is_the_plans_and_each_class_is_its_own_mean(monkeypatch
     assert set(result.public()) == {"d", "reasons"}  # no class leaves custody
 
 
-def test_a_class_with_no_target_in_the_set_is_skipped(monkeypatch):
+def test_a_set_missing_a_registered_class_is_refused_never_skipped(monkeypatch):
     plan = three_class_plan(2)
     ds = {t: 0.5 for t, c in plan.targets if c != MID}
-    specs, _ = stand_ins(monkeypatch, ds)
-    result = grade_set(specs, None, balanced(plan), HONESTY)
-    assert [name for name, _ in result.regions] == [BIG, SMALL]
+    specs, graded = stand_ins(monkeypatch, ds)
+    for policy in (
+        balanced(plan),
+        dataclasses.replace(balanced(plan), d_aggregate=None),
+    ):
+        with pytest.raises(PoolRefused, match="set_missing_a_registered_class"):
+            grade_set(specs, None, policy, HONESTY)
+    assert graded == []
 
 
 def test_a_single_class_plan_is_the_plain_mean_bit_for_bit():
@@ -149,13 +177,13 @@ def agen_targets(n_big):
     return specs
 
 
-def small_class_misses(specs):
+def small_class_misses(specs, key="case"):
     """The oracle, except the small class's target, whose f is 0.9 off (synthetic): its A_gen is 0.5 * (1/(1+9) + 1)."""
     base = oracle(specs)
 
     def predict(conditions, designs):
         rows = base(conditions, designs)
-        if conditions["case"].startswith("small"):
+        if conditions[key].startswith("small"):
             return [{"f": r["f"] + 0.9, "g": r["g"]} for r in rows]
         return rows
 
@@ -179,17 +207,27 @@ def test_a_small_class_cannot_be_averaged_away_in_a_gen(n_big):
     assert value < plain
 
 
-def test_a_gen_skips_a_target_without_a_slice_and_a_class_without_one():
+def test_a_gen_refuses_a_class_without_a_reserved_slice_before_any_prediction():
     specs = [toy_target("big0", seed=1), toy_target("mid0", seed=2, agen_count=0)]
     specs.append(toy_target("small0", seed=3))
     plan = coverage_plan(
         plan_document([BIG, MID, SMALL], {"big0": BIG, "mid0": MID, "small0": SMALL})
     )
-    predict = small_class_misses(specs)
-    value = agen_accuracy(
-        specs, predict, SCALES, aggregate="balanced_region_mean", plan=plan
+    calls = []
+
+    def predict(conditions, designs):
+        calls.append(conditions)
+        return oracle(specs)(conditions, designs)
+
+    with pytest.raises(PoolRefused, match="a_gen_class_without_a_reserved_slice"):
+        agen_accuracy(
+            specs, predict, SCALES, aggregate="balanced_region_mean", plan=plan
+        )
+    assert calls == []
+    # the plain mean on the same plan only needs every class to have a target
+    assert agen_accuracy(specs, predict, SCALES, plan=plan) == agen_accuracy(
+        specs, predict, SCALES
     )
-    assert value == pytest.approx((1.0 + 0.5 * (0.1 + 1.0)) / 2)
 
 
 def test_the_balanced_a_gen_needs_a_plan_and_a_known_aggregate():
@@ -198,6 +236,61 @@ def test_the_balanced_a_gen_needs_a_plan_and_a_known_aggregate():
         agen_accuracy(specs, oracle(specs), SCALES, aggregate="balanced_region_mean")
     with pytest.raises(PoolRefused, match="a_gen_aggregate_must_be"):
         agen_accuracy(specs, oracle(specs), SCALES, aggregate="mean")
+
+
+def test_agen_for_makes_the_plain_call_for_a_registered_version(monkeypatch):
+    """A registered version's A_gen goes through the unchanged 3-argument call (a wrapper with that signature still
+    works); a new version's passes its aggregate and plan."""
+    seen = []
+    real = pool_grader.agen_accuracy
+
+    def three_args(specs, predict, scales):
+        seen.append("plain")
+        return real(specs, predict, scales)
+
+    specs = agen_targets(1)
+    predict = small_class_misses(specs)
+    monkeypatch.setattr(pool_grader, "agen_accuracy", three_args)
+    assert pool_grader.agen_for(specs, predict, SCALES, OPTIMIZER) == real(
+        specs, predict, SCALES
+    )
+    assert seen == ["plain"]
+    monkeypatch.setattr(pool_grader, "agen_accuracy", real)
+    plan = three_class_plan(1)
+    policy = balanced(plan, a_gen_aggregate="balanced_region_mean")
+    assert pool_grader.agen_for(specs, predict, SCALES, policy) == real(
+        specs, predict, SCALES, aggregate="balanced_region_mean", plan=plan
+    )
+
+
+def test_score_specs_passes_the_registered_a_gen_aggregate(monkeypatch):
+    specs = agen_targets(3)
+    plan = three_class_plan(3)
+    predict = small_class_misses(specs)
+    seen = []
+
+    def agen_for(specs_, predict_, scales, optimizer):
+        seen.append(optimizer.a_gen_aggregate)
+        return 0.5
+
+    monkeypatch.setattr(pool_grader, "agen_for", agen_for)
+    policies = suite.Policies(
+        optimizer=balanced(plan, a_gen_aggregate="balanced_region_mean"),
+        honesty=HONESTY,
+        agen_scales=SCALES,
+        a_rule={"kind": "mean"},
+        c_rule={"kind": "min"},
+    )
+    plugin = SimpleNamespace(
+        legs=lambda descriptor, specs_: {"A": 0.5, "C": 1.0},
+        pool_gates=None,
+        speed_gate=None,
+    )
+    monkeypatch.setattr(suite, "pool_predictor", lambda *a: predict)
+    _total, _grade, a_gen, _legs = suite.score_specs(
+        plugin, specs, {"kind": "good"}, policies, specs
+    )
+    assert seen == ["balanced_region_mean"] and a_gen == 0.5
 
 
 def test_the_practice_report_uses_the_registered_a_gen_aggregate():
@@ -256,7 +349,7 @@ def test_a_missing_target_is_never_defaulted_to_in_train():
         calls.append(conditions)
         return []
 
-    specs = [toy_target("big0"), toy_target("stray")]
+    specs = [toy_target(t) for t, _c in plan.targets] + [toy_target("stray")]
     with pytest.raises(PoolRefused, match="target_not_in_the_coverage_plan"):
         agen_accuracy(
             specs, predict, SCALES, aggregate="balanced_region_mean", plan=plan
@@ -288,14 +381,24 @@ def test_a_malformed_plan_is_refused(document):
         coverage_plan(document)
 
 
-def test_the_plan_binds_by_the_sha256_of_its_canonical_document():
+def test_the_plan_binds_by_the_sha256_of_its_canonical_file():
     document = plan_document([BIG, SMALL], {"a": BIG, "b": SMALL})
     plan = coverage_plan(document)
     canonical = json.dumps(document, sort_keys=True, separators=(",", ":"))
-    assert plan.sha256 == hashlib.sha256(canonical.encode()).hexdigest()
+    assert pool_grader.coverage_plan_bytes(document) == canonical.encode()
+    assert plan.sha256 == sha(canonical)
     reordered = coverage_plan(plan_document([SMALL, BIG], {"a": BIG, "b": SMALL}))
     assert reordered.sha256 != plan.sha256  # the class order is part of the identity
     assert plan.classes == (BIG, SMALL) and plan.targets == (("a", BIG), ("b", SMALL))
+
+
+def test_the_sums_list_reads_the_sha256sum_format_and_refuses_anything_else():
+    a, b = "a" * 64, "b" * 64
+    assert pool_grader.sums_list(f"{a} *./x.json\n{b}  y.json\n\n", b)
+    assert not pool_grader.sums_list(f"{a} *./x.json\n", b)
+    for bad in ["", None, f"{a}*x\n", f"{a.upper()} *x\n", f"{a} *\n", "abc *x\n"]:
+        with pytest.raises(PoolRefused, match="coverage_plan_sums_malformed"):
+            pool_grader.sums_list(bad, a)
 
 
 def test_an_attached_plan_must_be_the_registered_one(monkeypatch):
@@ -304,12 +407,22 @@ def test_an_attached_plan_must_be_the_registered_one(monkeypatch):
     specs, _ = stand_ins(monkeypatch, {t: 1.0 for t, _c in plan.targets})
     cases = [
         (dataclasses.replace(balanced(plan), coverage_plan=other), "registered_one"),
-        (
-            dataclasses.replace(balanced(plan), coverage_plan_sha256=None),
-            "registered_one",
-        ),
         (dataclasses.replace(balanced(plan), coverage_plan=None), "not_attached"),
         (dataclasses.replace(balanced(plan), coverage_plan_sha256="ab"), "64_hex"),
+        (
+            dataclasses.replace(balanced(plan), coverage_plan_sums_sha256="ab"),
+            "sums_sha256_must_be_64_hex",
+        ),
+        (
+            dataclasses.replace(balanced(plan), coverage_plan_sums_sha256=None),
+            "map_and_sums_digests",
+        ),
+        (
+            dataclasses.replace(
+                OPTIMIZER, coverage_plan_sums_sha256=plan.sha256, coverage_plan=plan
+            ),
+            "map_and_sums_digests",
+        ),
         (
             dataclasses.replace(OPTIMIZER, a_gen_aggregate="balanced_region_mean"),
             "needs",
@@ -341,29 +454,40 @@ def _policies(tmp_path, entry):
     return pool_version.registered_policies("fixture-x", "9.9", path=path)
 
 
-def test_the_registration_reads_both_fields_with_no_default_when_present(tmp_path):
-    sha = three_class_plan(1).sha256
+def test_the_registration_reads_every_field_with_no_default_when_present(tmp_path):
+    plan_sha = three_class_plan(1).sha256
+    sums_sha = sha(sums_text(plan_sha))
+    both = {"coverage_plan_sha256": plan_sha, "coverage_plan_sums_sha256": sums_sha}
     absent = _policies(tmp_path, _entry()).optimizer
     assert absent.a_gen_aggregate is None and absent.coverage_plan_sha256 is None
+    assert absent.coverage_plan_sums_sha256 is None
     new = _policies(
         tmp_path,
         _entry(
             d_aggregate="balanced_region_mean",
             a_gen_aggregate="balanced_region_mean",
-            coverage_plan_sha256=sha,
+            **both,
         ),
     ).optimizer
     assert new.a_gen_aggregate == "balanced_region_mean"
-    assert new.coverage_plan_sha256 == sha and new.coverage_plan is None
+    assert new.coverage_plan_sha256 == plan_sha and new.coverage_plan is None
+    assert new.coverage_plan_sums_sha256 == sums_sha
     for fields, error in [
-        ({"a_gen_aggregate": pool_version.HUMAN_INPUT}, "not_registered"),
-        ({"coverage_plan_sha256": pool_version.HUMAN_INPUT}, "not_registered"),
-        ({"a_gen_aggregate": None}, "malformed"),
-        ({"coverage_plan_sha256": None}, "malformed"),
-        ({"coverage_plan_sha256": sha.upper()}, "malformed"),
-        ({"coverage_plan_sha256": "sha256:" + sha}, "malformed"),
+        ({"a_gen_aggregate": pool_version.HUMAN_INPUT, **both}, "not_registered"),
+        ({**both, "coverage_plan_sha256": pool_version.HUMAN_INPUT}, "not_registered"),
+        (
+            {**both, "coverage_plan_sums_sha256": pool_version.HUMAN_INPUT},
+            "not_registered",
+        ),
+        ({"a_gen_aggregate": None, **both}, "malformed"),
+        ({**both, "coverage_plan_sha256": None}, "malformed"),
+        ({**both, "coverage_plan_sums_sha256": None}, "malformed"),
+        ({**both, "coverage_plan_sha256": plan_sha.upper()}, "malformed"),
+        ({**both, "coverage_plan_sha256": "sha256:" + plan_sha}, "malformed"),
+        ({"coverage_plan_sha256": plan_sha}, "malformed"),  # no SUMS digest
+        ({"coverage_plan_sums_sha256": sums_sha}, "malformed"),  # no map digest
         ({"a_gen_aggregate": "balanced_region_mean"}, "malformed"),  # no plan
-        ({"a_gen_aggregate": "mean", "coverage_plan_sha256": sha}, "malformed"),
+        ({"a_gen_aggregate": "mean", **both}, "malformed"),
     ]:
         with pytest.raises(pool_version.PoolConstantsNotRegistered, match=error):
             _policies(tmp_path, _entry(**fields))
@@ -375,8 +499,12 @@ def test_every_registered_version_registers_no_plan_and_no_a_gen_aggregate():
     )
     document = json.loads(pool_version.CONSTANTS.read_bytes())
     for name, entry in document["versions"].items():
-        assert "a_gen_aggregate" not in entry["optimizer"], name
-        assert "coverage_plan_sha256" not in entry["optimizer"], name
+        for key in (
+            "a_gen_aggregate",
+            "coverage_plan_sha256",
+            "coverage_plan_sums_sha256",
+        ):
+            assert key not in entry["optimizer"], name
         challenge, version = name.rsplit(" ", 1)
         try:
             policies = pool_version.registered_policies(challenge, version)
@@ -384,14 +512,16 @@ def test_every_registered_version_registers_no_plan_and_no_a_gen_aggregate():
             continue
         assert policies.optimizer.a_gen_aggregate is None, name
         assert policies.optimizer.coverage_plan_sha256 is None, name
+        assert policies.optimizer.coverage_plan_sums_sha256 is None, name
 
 
-def test_no_coverage_class_name_is_typed_in_the_grader():
-    source = inspect.getsource(pool_grader)
-    assert "regime:" not in source and "inner_band" not in source
+def test_no_coverage_class_name_is_typed_in_the_grader_or_the_exam():
+    for module in (pool_grader, pool_exam):
+        source = inspect.getsource(module)
+        assert "regime:" not in source and "inner_band" not in source, module
 
 
-# --- the sealed material ---------------------------------------------------------------------------------------------------
+# --- the sealed material and its attachment -------------------------------------------------------------------------------
 
 
 def _policy_set(**optimizer):
@@ -404,40 +534,94 @@ def _policy_set(**optimizer):
     )
 
 
-def test_the_material_plan_attaches_only_when_registered_and_complete():
-    specs = [toy_target("big0", seed=1), toy_target("small0", seed=2)]
+@pytest.fixture
+def geometric_v1_stand_in(monkeypatch):
+    """The receipted geometric-v1 vocabulary is not in the repository; a fixture predicate stands in for it."""
+    monkeypatch.setattr(
+        pool_exam,
+        "geometric_v1_names_valid",
+        lambda classes: all(c.startswith("fixture:") for c in classes),
+    )
+
+
+def _plan_and_sums():
+    specs = (toy_target("big0", seed=1), toy_target("small0", seed=2))
     document = plan_document([BIG, SMALL], {"big0": BIG, "small0": SMALL})
     plan = coverage_plan(document)
-    sets = (tuple(specs),)
-    unregistered = _policy_set()
-    assert pool_version.with_coverage_plan(unregistered, {}, sets) is unregistered
-    with pytest.raises(pool_exam.ExamRefused, match="coverage_plan_not_registered"):
-        pool_version.with_coverage_plan(unregistered, {"coverage_plan": document}, sets)
+    sums = sums_text("c" * 64, plan.sha256)
     registered = _policy_set(
-        d_aggregate="balanced_region_mean", coverage_plan_sha256=plan.sha256
+        d_aggregate="balanced_region_mean",
+        coverage_plan_sha256=plan.sha256,
+        coverage_plan_sums_sha256=sha(sums),
     )
-    attached = pool_version.with_coverage_plan(
-        registered, {"coverage_plan": document}, sets
-    )
-    assert attached.optimizer.coverage_plan == plan
-    with pytest.raises(pool_exam.ExamRefused, match="missing_from_the_sealed_pack"):
-        pool_version.with_coverage_plan(registered, {}, sets)
-    with pytest.raises(pool_exam.ExamRefused, match="coverage_plan_malformed"):
-        pool_version.with_coverage_plan(
-            registered, {"coverage_plan": {**document, "schema": "x"}}, sets
-        )
-    other = plan_document([SMALL, BIG], {"big0": BIG, "small0": SMALL})
-    with pytest.raises(pool_exam.ExamRefused, match="sha256_mismatch"):
-        pool_version.with_coverage_plan(registered, {"coverage_plan": other}, sets)
-    short = plan_document([BIG], {"big0": BIG})
-    short_registered = _policy_set(coverage_plan_sha256=coverage_plan(short).sha256)
-    with pytest.raises(pool_exam.ExamRefused, match="target_not_in_the_coverage_plan"):
-        pool_version.with_coverage_plan(
-            short_registered, {"coverage_plan": short}, sets
+    return (specs,), document, sums, plan, registered
+
+
+def test_the_material_plan_attaches_only_when_registered_listed_and_complete(
+    geometric_v1_stand_in,
+):
+    sets, document, sums, plan, registered = _plan_and_sums()
+    attach = pool_exam.attach_coverage_plan
+    unregistered = _policy_set()
+    assert attach(unregistered, None, None, sets) is unregistered
+    for doc, text in ((document, sums), (document, None), (None, sums)):
+        with pytest.raises(pool_exam.ExamRefused, match="coverage_plan_not_registered"):
+            attach(unregistered, doc, text, sets)
+    assert attach(registered, document, sums, sets).optimizer.coverage_plan == plan
+    refusals = [
+        ((None, sums, sets), "coverage_plan_missing_from_the_sealed_pack"),
+        ((document, None, sets), "coverage_plan_sums_missing_from_the_sealed_pack"),
+        (({**document, "schema": "x"}, sums, sets), "coverage_plan_malformed"),
+        ((document, "not a sums file", sets), "coverage_plan_malformed"),
+        (
+            (plan_document([SMALL, BIG], {"big0": BIG, "small0": SMALL}), sums, sets),
+            "coverage_plan_sha256_mismatch",
+        ),
+        ((document, sums + sums_text("d" * 64), sets), "sums_sha256_mismatch"),
+        (
+            (document, sums, ((toy_target("big0", seed=1), toy_target("x", seed=3)),)),
+            "target_not_in_the_coverage_plan",
+        ),
+        (
+            (document, sums, ((toy_target("big0", seed=1),),)),
+            "set_missing_a_registered_class",
+        ),
+    ]
+    for arguments, code in refusals:
+        with pytest.raises(pool_exam.ExamRefused, match=code):
+            attach(registered, *arguments)
+    # a SUMS of the registered digest that does not list the map
+    unlisted = sums_text("c" * 64)
+    with pytest.raises(pool_exam.ExamRefused, match="not_listed_in_its_sums"):
+        attach(
+            dataclasses.replace(
+                registered,
+                optimizer=dataclasses.replace(
+                    registered.optimizer, coverage_plan_sums_sha256=sha(unlisted)
+                ),
+            ),
+            document,
+            unlisted,
+            sets,
         )
 
 
-def test_the_material_check_admits_a_valid_plan_and_refuses_a_malformed_one():
+def test_class_names_must_be_geometric_v1_and_every_plan_refuses_until_the_rule_lands(
+    monkeypatch,
+):
+    sets, document, sums, _plan, registered = _plan_and_sums()
+    with pytest.raises(
+        pool_exam.ExamRefused, match="geometric_v1_vocabulary_not_in_the_repository"
+    ):
+        pool_exam.attach_coverage_plan(registered, document, sums, sets)
+    monkeypatch.setattr(pool_exam, "geometric_v1_names_valid", lambda classes: False)
+    with pytest.raises(
+        pool_exam.ExamRefused, match="coverage_plan_class_not_geometric_v1"
+    ):
+        pool_exam.attach_coverage_plan(registered, document, sums, sets)
+
+
+def test_the_material_check_admits_a_plan_with_its_sums_and_refuses_a_partial_one():
     material = {
         "schema": pool_version.MATERIAL_SCHEMA,
         "kind": "fixture",
@@ -449,42 +633,227 @@ def test_the_material_check_admits_a_valid_plan_and_refuses_a_malformed_one():
         "sets": [[{}]],
     }
     assert pool_version.check_material(material) is material
-    good = {**material, "coverage_plan": plan_document([BIG], {"t": BIG})}
+    document = plan_document([BIG], {"t": BIG})
+    good = {**material, "coverage_plan": document, "coverage_plan_sums": "x"}
     assert pool_version.check_material(good) is good
-    with pytest.raises(pool_exam.ExamRefused, match="pool_material_malformed"):
-        pool_version.check_material(
-            {**material, "coverage_plan": plan_document([BIG], {"t": MID})}
-        )
+    for bad in [
+        {**material, "coverage_plan": document},
+        {**material, "coverage_plan_sums": "x"},
+        {**material, "coverage_plan": document, "coverage_plan_sums": 1},
+        {
+            **material,
+            "coverage_plan": plan_document([BIG], {"t": MID}),
+            "coverage_plan_sums": "x",
+        },
+    ]:
+        with pytest.raises(pool_exam.ExamRefused, match="pool_material_malformed"):
+            pool_version.check_material(bad)
 
 
-def test_the_exam_path_refuses_a_registered_a_gen_aggregate(monkeypatch):
-    """`pool_proof_suite.score_specs` computes the plain A_gen, so a version that registers the class-balanced one refuses to
-    grade (Carbon's gap) instead of being graded by the plain mean."""
-    plan = three_class_plan(1)
-    policies = _policy_set(
-        a_gen_aggregate="balanced_region_mean", coverage_plan_sha256=plan.sha256
-    )
-    monkeypatch.setattr(pool_version, "registered_policies", lambda c, v: policies)
+def _measure_kwargs(monkeypatch, material):
+    """`PoolVariant.measure` up to `measure_pool` (recorded), with placeholder policies it must never read."""
+    calls = []
+    monkeypatch.setattr(pool_version, "registered_policies", lambda c, v: object())
+    monkeypatch.setattr(pool_version, "registered_a_multiplier", lambda c, v: 3.0)
+    monkeypatch.setattr(pool_version, "check_material", lambda m: m)
+    monkeypatch.setattr(pool_grader, "load_pool", lambda document: document)
+    monkeypatch.setattr(pool_version.pool_adapters, "official_binding", lambda *a: None)
     monkeypatch.setattr(
-        pool_grader,
-        "load_pool",
-        lambda document: pytest.fail("graded past the refusal"),
+        pool_exam, "measure_pool", lambda **kwargs: calls.append(kwargs) or "graded"
     )
-    adapter = SimpleNamespace(_challenge_id="fixture-x", VERSION="9.9")
-    with pytest.raises(
-        pool_exam.ExamRefused, match="a_gen_aggregate_not_in_the_exam_path"
-    ):
-        pool_version.PoolVariant.measure(
-            adapter,
-            bank_rows=[],
-            outputs=[],
-            repeats=[],
-            definition={"pool": {"sets": [[{}]]}},
-            limits=None,
-            objective=None,
-            train_raw=None,
-            names=None,
+    adapter = SimpleNamespace(
+        _challenge_id="f02",
+        _kind="fixture",
+        VERSION="9.9",
+        _module=SimpleNamespace(measure=None),
+        _without_pool=pool_version.PoolVariant._without_pool,
+    )
+    pool_version.PoolVariant.measure(
+        adapter,
+        bank_rows=[],
+        outputs=[],
+        repeats=[],
+        definition={"pool": material},
+        limits=None,
+        objective=None,
+        train_raw=None,
+        names=None,
+    )
+    (call,) = calls
+    return call
+
+
+def test_the_adapter_hands_the_plan_material_to_the_exam_and_never_reads_the_policies(
+    monkeypatch,
+):
+    base = {"sets": [[{}]], "input_dtype": "float32"}
+    call = _measure_kwargs(monkeypatch, base)
+    assert "coverage_plan" not in call and "coverage_plan_sums" not in call
+    document = plan_document([BIG], {"t": BIG})
+    call = _measure_kwargs(
+        monkeypatch, {**base, "coverage_plan": document, "coverage_plan_sums": "x"}
+    )
+    assert call["coverage_plan"] == document and call["coverage_plan_sums"] == "x"
+
+
+# --- the official exam path and its SE -------------------------------------------------------------------------------------
+
+
+def _exam_sets():
+    return (
+        tuple(exam_target(f"big{i}", 20 + i) for i in range(4))
+        + (exam_target("small0", 60),),
+        tuple(exam_target(f"big{4 + i}", 40 + i) for i in range(4))
+        + (exam_target("small1", 70),),
+    )
+
+
+def _exam_plan(the_sets):
+    targets = {
+        s.target_id: (SMALL if s.target_id.startswith("small") else BIG)
+        for group in the_sets
+        for s in group
+    }
+    document = plan_document([BIG, SMALL], targets)
+    plan = coverage_plan(document)
+    sums = sums_text(plan.sha256)
+    return document, sums, plan
+
+
+def _measure(the_sets, policies, serve, **plan_material):
+    rows = exam_rows(the_sets)
+    outputs = serve([r["inputs"] for r in rows])
+    capture = {}
+    result = pool_exam.measure_pool(
+        binding=toy_binding(),
+        sets=the_sets,
+        policies=policies,
+        bank_rows=rows,
+        outputs=outputs,
+        repeats=[outputs, outputs],
+        base_measure=fake_measure,
+        base_arguments=ARGUMENTS,
+        speed_call_seconds=FAST,
+        ceiling_seconds=CEILING,
+        capture=capture,
+        **plan_material,
+    )
+    return result, capture["se_basis"]
+
+
+def test_the_multi_class_exam_grades_aggregates_and_recomposes_like_the_grade(
+    geometric_v1_stand_in,
+):
+    the_sets = _exam_sets()
+    document, sums, plan = _exam_plan(the_sets)
+    policies = dataclasses.replace(
+        POLICIES,
+        optimizer=dataclasses.replace(
+            POLICIES.optimizer,
+            d_aggregate="balanced_region_mean",
+            a_gen_aggregate="balanced_region_mean",
+            coverage_plan_sha256=plan.sha256,
+            coverage_plan_sums_sha256=sha(sums),
+        ),
+    )
+    result, basis = _measure(
+        the_sets,
+        policies,
+        good_serve,
+        coverage_plan=document,
+        coverage_plan_sums=sums,
+    )
+    assert basis["gated"] is False
+    assert basis["classes"] == [BIG, SMALL]
+    assert basis["d_aggregate"] == basis["a_gen_aggregate"] == "balanced_region_mean"
+    assert [[t["region"] for t in s] for s in basis["sets"]] == [
+        [BIG] * 4 + [SMALL],
+        [BIG] * 4 + [SMALL],
+    ]
+    recomposed = pool_exam.total_of_targets(basis, basis["sets"])
+    assert recomposed == pytest.approx(0.5 * result["A"] + 0.5 * result["D"], abs=1e-12)
+    assert basis["total"] == pytest.approx(recomposed, abs=1e-12)
+    # the recomposition is the balanced one: by hand, per set, the mean of the class means
+    by_hand = []
+    for targets in basis["sets"]:
+        big = [t for t in targets if t["region"] == BIG]
+        small = [t for t in targets if t["region"] == SMALL]
+        d = statistics.fmean(
+            [
+                statistics.fmean(t["d"] for t in big),
+                statistics.fmean(t["d"] for t in small),
+            ]
         )
+        gen = statistics.fmean(
+            [
+                statistics.fmean(t["agen"] for t in big),
+                statistics.fmean(t["agen"] for t in small),
+            ]
+        )
+        a = pool_grader.combine_a(basis["a_bank"], gen, basis["a_rule"])
+        by_hand.append((a, min(d, basis["c"])))
+    total = 0.5 * statistics.fmean(a for a, _d in by_hand) + 0.5 * statistics.fmean(
+        d for _a, d in by_hand
+    )
+    assert recomposed == pytest.approx(total, abs=1e-12)
+    spread, sizes = pool_exam.target_bootstrap_se(basis, KEY)
+    assert sizes == [5, 5] and spread >= 0.0
+
+
+def test_a_registered_version_grades_and_captures_exactly_as_before():
+    """No aggregate and no plan: the same grade and the same SE basis keys as the 3q head (no class, no order)."""
+    the_sets = _exam_sets()
+    result, basis = _measure(the_sets, POLICIES, good_serve)
+    assert set(basis) == {"gated", "a_bank", "c", "a_rule", "sets", "total"}
+    assert all(set(t) == {"d", "agen"} for s in basis["sets"] for t in s)
+    again, _ = _measure(the_sets, POLICIES, good_serve)
+    assert result == again
+
+
+def test_the_exam_refuses_a_registered_plan_without_its_material():
+    the_sets = _exam_sets()
+    _document, sums, plan = _exam_plan(the_sets)
+    policies = dataclasses.replace(
+        POLICIES,
+        optimizer=dataclasses.replace(
+            POLICIES.optimizer,
+            d_aggregate="balanced_region_mean",
+            coverage_plan_sha256=plan.sha256,
+            coverage_plan_sums_sha256=sha(sums),
+        ),
+    )
+    with pytest.raises(pool_exam.ExamRefused, match="missing_from_the_sealed_pack"):
+        _measure(the_sets, policies, good_serve)
+
+
+def test_the_balanced_bootstrap_resamples_within_each_class():
+    basis = {
+        "gated": False,
+        "a_bank": 0.7,
+        "c": 1.0,
+        "a_rule": {"kind": "mean"},
+        "d_aggregate": "balanced_region_mean",
+        "a_gen_aggregate": None,
+        "classes": [BIG, SMALL],
+        "sets": [
+            [{"d": d, "agen": None, "region": BIG} for d in (0.2, 0.4, 0.6, 0.8)]
+            + [{"d": 0.0, "agen": None, "region": SMALL}],
+        ],
+    }
+    import numpy as np
+
+    generator = np.random.Generator(np.random.PCG64(7))
+    for _ in range(50):
+        drawn = pool_exam._stratified_draw(
+            generator, basis["sets"][0], basis["classes"]
+        )
+        assert [t["region"] for t in drawn] == [BIG] * 4 + [SMALL]
+    # the single small target is in every resample, so D's small class mean is always 0.0
+    assert pool_exam.total_of_targets(basis, basis["sets"]) == pytest.approx(
+        0.5 * 0.7 + 0.5 * statistics.fmean([0.5, 0.0])
+    )
+    spread, sizes = pool_exam.target_bootstrap_se(basis, KEY)
+    assert sizes == [5] and spread > 0.0
 
 
 def test_a_plan_is_a_frozen_value():
