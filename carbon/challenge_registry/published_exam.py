@@ -1025,11 +1025,22 @@ _COOLING_POOL_16 = {
     ),
 }
 
+#: Validator ruling E6: Cooling 1.7's version record states what its A_gen slice is. The slice holds only in-range cases until 1.8.
+_COOLING_17_A_GEN = (
+    "A_gen is measured in-range only (no out-of-range cases until 1.8): the same accuracy on a fixed slice of the registered "
+    "validity region, with its own scale; the design search is never allowed to ask your model about those points"
+)
 _COOLING_POOL_17 = {
     **_COOLING_POOL_16,
     **_pool_block(_COOLING, "chip-cold-plate 1.7", "cooling-pool-sealed-v3"),
     "physics_laws": _COOLING_POOL_16["physics_laws"],
-    "score": _COOLING_POOL_16["score"],
+    "score": {
+        **_COOLING_POOL_16["score"],
+        "legs": [
+            {**leg, "measures": _COOLING_17_A_GEN} if leg["id"] == "A_gen" else leg
+            for leg in _COOLING_POOL_16["score"]["legs"]
+        ],
+    },
 }
 
 #: Versions graded by the pool grader (their `_BY_VERSION` entry must carry a
