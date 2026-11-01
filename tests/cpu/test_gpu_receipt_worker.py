@@ -269,6 +269,38 @@ def test_the_docker_run_is_the_official_isolated_shape_and_moves_no_tag(tmp_path
     )
 
 
+def test_the_per_task_run_directory_is_operator_only_and_a_wider_one_is_refused(
+    tmp_path, monkeypatch
+):
+    c = ctx(tmp_path)
+    job = {
+        "key": f"cat-1|{RT}",
+        "catalog_id": "cat-1",
+        "runtime": RT,
+        "challenges": ["c1"],
+        "attempt": 1,
+    }
+    calls = []
+
+    def fake(argv, **kw):
+        calls.append(argv)
+        return subprocess.CompletedProcess(argv, 1, "", "stopped")
+
+    c.run = fake
+    w.official_pair(c, job)
+    (root,) = (c.state_dir / "runs").glob("*")
+    assert (
+        root.stat().st_mode & 0o777 == 0o700
+    )  # operator-only parent of the 0o777 children
+    # a directory that stays group/world-accessible (the chmod does not take) is refused before any container runs
+    root.chmod(0o755)
+    calls.clear()
+    monkeypatch.setattr(Path, "chmod", lambda self, mode: None)
+    done = w.official_pair(c, job)
+    assert done["verdict"] == "FAILED" and done["reason"] == "run_dir_not_private"
+    assert not any(a[:2] == ["docker", "run"] for a in calls)
+
+
 def test_official_pair_passes_on_two_identical_runs_and_fails_on_a_dead_run(
     tmp_path, monkeypatch
 ):

@@ -479,6 +479,16 @@ def official_pair(ctx, job):
     for directory in (out_dir, scratch / "tmp", scratch / "cache", scratch / "home"):
         directory.mkdir(parents=True, exist_ok=True)
         directory.chmod(0o777)
+    # The 0o777 children are reachable only through this per-task directory: operator-only (0o700), so the container's
+    # mapped uid (through its bind mounts) and the operator are the only ones who can read or write the run.
+    root.chmod(0o700)
+    if root.stat().st_mode & 0o077:
+        return {
+            "verdict": "FAILED",
+            "reason": "run_dir_not_private",
+            "detail": f"{root} is group- or world-accessible",
+            "peak_gpu_bytes": 0,
+        }
     for stale in out_dir.glob("*.json"):
         stale.unlink()
     peak = 0
