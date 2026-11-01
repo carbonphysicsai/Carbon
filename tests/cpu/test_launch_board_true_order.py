@@ -39,7 +39,9 @@ def _rows(exact):
 
 def _board(exact, *, king=HOTKEY, v2=True):
     document = (kp.document_v2 if v2 else kp.document)(
-        **_args(king={"hotkey": king, "total": 0.7123, "since_epoch": 12})
+        **_args(
+            king={"hotkey": king, "total": exact.get(king) or 0.7123, "since_epoch": 12}
+        )
     )
     return lb.build(
         king_document=document,
@@ -132,16 +134,17 @@ def test_the_v2_board_needs_the_exact_totals_and_refuses_inconsistent_ones():
             version=1,
             crown_changes=[],
         )
+    good = {HOTKEY: 0.7123, A: 0.7123}
     for bad in (
-        {HOTKEY: 0.70},  # below the shown (floored) total 0.71
-        {HOTKEY: float("nan")},
-        {HOTKEY: 1.5},
-        {},  # a scored row without an exact total
+        {HOTKEY: 0.7123, A: 0.70},  # below A's shown (floored) total 0.71
+        {HOTKEY: 0.7123, A: float("nan")},
+        {HOTKEY: 0.7123, A: 1.5},
+        {HOTKEY: 0.7123},  # a scored row without an exact total
     ):
         with pytest.raises(lb.BoardRefused, match="board_exact"):
             lb.build(
                 king_document=document,
-                rows=_rows({HOTKEY: 0.7123}),
+                rows=_rows(good),
                 network="testnet",
                 key=KEY,
                 version=1,
@@ -289,3 +292,40 @@ def test_the_real_pool_store_exposes_the_bodies_read_only(tmp_path):
     assert lb.exact_best_totals(
         store, challenge_id="c", evaluation_version="ev-now"
     ) == {A: 0.7}
+
+
+def test_a_king_whose_crown_mean_is_below_its_single_best_shows_the_floored_mean_like_the_koth_page():
+    document = kp.document_v2(
+        **_args(king={"hotkey": HOTKEY, "total": 0.7712, "since_epoch": 12})
+    )
+    koth_total = document["king"]["total"]  # what the king page shows: the floored mean
+    single_best = {
+        "total": lb.floor9(0.80)
+    }  # the Ladder's best row for the king: a higher single grade
+    rows = [
+        (HOTKEY, single_best, {"status": "IMPROVED", "gate_names": []}),
+        _row(A, 0.7129),
+    ]
+    board = lb.build(
+        king_document=document,
+        rows=rows,
+        network="testnet",
+        key=KEY,
+        version=5,
+        now=NOW,
+        crown_changes=[],
+        exact_totals={
+            HOTKEY: 0.7712,
+            A: 0.7129,
+        },  # the king's entry: the incumbent standing's mean
+    )
+    king_row = next(r for r in board["ladder"] if r["hotkey"] == HOTKEY)
+    assert king_row["total"] == board["king"]["king"]["total"] == koth_total
+    assert koth_total < lb.floor9(
+        0.80
+    )  # the single best is NOT what the king row shows
+    assert king_row["rank"] == 1 and _ranks(board) == [(HOTKEY, 1), (A, 2)]
+    assert lb.verify(board, KEY.public_key) == board
+    # other rows keep their floored ladder best
+    other = next(r for r in board["ladder"] if r["hotkey"] == A)
+    assert other["total"] == lb.floor9(_floor(0.7129))

@@ -253,7 +253,7 @@ def crown_changes_checked(changes):
     return out
 
 
-def ladder_rows(rows, *, exact=None, king_hotkey=None):
+def ladder_rows(rows, *, exact=None, king_hotkey=None, king_total=None):
     """The board's ladder from `ladder_store.board_rows`: ``[(hotkey, best,
     latest)]`` with each document as the Ladder serves it. One row per hotkey:
     its best total (null before any improvement) and its latest status, ranked
@@ -262,7 +262,9 @@ def ladder_rows(rows, *, exact=None, king_hotkey=None):
     With ``exact`` (a v2 board; OWNER-BOARD-TRUE-ORDER-01) the order is the TRUE one: the current king (``king_hotkey``)
     is always listed first at rank 1, every other row follows by descending EXACT best total, and equal ranks only when
     the exact totals are bit-equal (a challenger bit-equal to the king co-ranks 1, listed after the king). The published
-    ``total`` stays step-floored, and the exact totals never leave this function: only the order is revealed.
+    ``total`` stays step-floored, and the exact totals never leave this function: only the order is revealed. On such a
+    board the KING row's shown total is ``king_total`` (the crown standing's floored total, as the king page shows it)
+    rather than its single best grade, so the board and the king page always agree.
     """
     kept = []
     for hotkey, best, latest in rows:
@@ -283,6 +285,11 @@ def ladder_rows(rows, *, exact=None, king_hotkey=None):
         kept.sort(key=lambda row: (row[1] is None, -(row[1] or 0.0), row[0]))
         keys = [row[1] for row in kept]
     else:
+        if king_hotkey is not None and king_total is not None:
+            kept = [
+                (h, king_total if h == king_hotkey else t, st, g)
+                for h, t, st, g in kept
+            ]
         keys = _true_order(kept, exact, king_hotkey)
         kept = [row for row, _ in keys]
         keys = [key for _, key in keys]
@@ -425,6 +432,7 @@ def build(
         rows,
         exact=exact_totals if v2 else None,
         king_hotkey=None if king["king"] is None else king["king"]["hotkey"],
+        king_total=None if king["king"] is None else king["king"]["total"],
     )
     moment = datetime.datetime.now(datetime.UTC) if now is None else now
     document = {
