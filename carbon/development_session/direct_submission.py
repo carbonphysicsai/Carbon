@@ -58,11 +58,15 @@ POLL_S = 30.0
 
 
 class DirectIntakeRefusal(ValueError):
-    """Closed reason; neither a model score nor a scientific failure."""
+    """Closed reason; neither a model score nor a scientific failure.
 
-    def __init__(self, code: str):
+    ``retry`` is the receiver's public scheduling facts for a limit refusal (the next round's block and time,
+    and its plain sentence); empty for every other refusal."""
+
+    def __init__(self, code: str, retry=None):
         super().__init__(code)
         self.code = code
+        self.retry = dict(retry or {})
 
 
 class DirectConstructionPending(DirectIntakeRefusal):
@@ -114,6 +118,18 @@ def retry_rate_limited(operation, *, deadline, clock=time.monotonic, sleep=time.
             sleep(min(1.0, remaining))
             if clock() >= deadline:
                 raise
+
+
+def _preflight_catalog(recipe, facts):
+    """Refuse a catalog recipe the door would refuse, naming the fix."""
+    from carbon.development_session import catalog_preflight
+
+    try:
+        catalog_preflight.check(recipe.to_dict(), facts)
+    except catalog_preflight.CatalogPreflightRefused as refused:
+        error = DirectIntakeRefusal(refused.code)
+        error.fix = refused.fix
+        raise error from None
 
 
 def read_intake(url: str, *, timeout: float = 10.0) -> dict:
@@ -193,6 +209,23 @@ def _checked(facts, *, recipe, contract_digest, receiver, context):
     if type(snapshot) is not dict or type(snapshot.get("id")) is not str:
         raise DirectIntakeRefusal("construction_snapshot_unavailable")
     return ChallengeKey(challenge["id"], challenge["version"]), snapshot["id"]
+
+
+#: The receiver's public facts a limit refusal may carry (`exam_cap`): a number, two short strings.
+_RETRY_FIELDS = {"next_block": int, "next_utc": str, "message": str}
+LIMIT_CODES = ("epoch_limit_reached", "exam_daily_allowance_reached")
+
+
+def _refusal_retry(answer, code):
+    """The closed ``retry`` facts of a limit refusal, else {}: only these fields, only these types."""
+    retry = answer.get("retry") if type(answer) is dict else None
+    if code not in LIMIT_CODES or type(retry) is not dict:
+        return {}
+    return {
+        name: retry[name]
+        for name, kind in _RETRY_FIELDS.items()
+        if type(retry.get(name)) is kind and len(str(retry[name])) <= 600
+    }
 
 
 def _refusal_code(answer, fallback):
@@ -523,6 +556,7 @@ def submit_and_wait(
                 if read is read_intake
                 else read(url)
             )
+            _preflight_catalog(recipe, facts)
             if admission_attempts > 1:
                 if admission_deadline - clock() <= 1.05:
                     raise DirectIntakeRateLimit()
@@ -585,7 +619,7 @@ def submit_and_wait(
                 if code == "TRANSPORT_CONFLICT":
                     # The next submit uses a new request id (H16).
                     _bump_submit_attempt(root, epoch)
-                raise DirectIntakeRefusal(code)
+                raise DirectIntakeRefusal(code, _refusal_retry(answer, code))
             outcome, pinned = _outcome(
                 answer,
                 contract_digest=contract_digest,

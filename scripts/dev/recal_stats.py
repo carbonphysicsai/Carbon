@@ -29,6 +29,10 @@ pack file and the pack's digest are in the output (`judge_minimums`) and printed
 a top-level `pack_digest`: it is checked for form, taken off before the pack is registered, compared with the digest the
 registration computes, and both are recorded.
 
+With --crown-n N (the crown multi-rebuild average ruling (lead-records a322dea4)) the crown compares means of N rebuilds and the seed term is
+2 x seed_sd / sqrt(N): value = max(5 x sigma, 2 x seed_sd / sqrt(N)), `spread_rule` "2sd_mean_n", `crown_n` in the output.
+Without it the rule below is unchanged.
+
 The margin (OWNER-CROWN-MARGIN-2SD-01) is value = max(5 x sigma, 2 x seed_sd), where seed_sd is the SAMPLE standard
 deviation (n - 1, `statistics.stdev`) of the control's kept per-seed totals; `seed_spread` (max - min) is still reported for
 reference and `spread_rule` is "2sd". If 5 x sigma and 2 x seed_sd are both 0 the run is refused (no resolution floor).
@@ -72,6 +76,9 @@ N = 10
 #: OWNER-CROWN-MARGIN-2SD-01: the margin is max(5 x sigma, 2 x the sample sd of the control's kept per-seed totals).
 SEED_SD_MULTIPLE = 2
 SPREAD_RULE = "2sd"
+#: the crown multi-rebuild average ruling (lead-records a322dea4): with --crown-n N the crown compares means of N rebuilds, so the seed term is
+#: 2 x SD / sqrt(N): margin_N = max(5 x sigma, 2 x seed_sd / sqrt(N)).
+SPREAD_RULE_MEAN_N = "2sd_mean_n"
 _HEX = re.compile(r"[0-9a-f]{64}")
 
 
@@ -238,7 +245,7 @@ def without_minimums(pack):
     return dual_score.register_pack(body)
 
 
-def _challenge(name, spec, judge=None):
+def _challenge(name, spec, judge=None, crown_n=None):
     pack = _digest(spec.get("pack_digest"), f"{name}.pack_digest")
     klass = _digest(spec.get("class_record_digest"), f"{name}.class_record_digest")
     panel, members = spec.get("panel"), spec.get("members")
@@ -377,7 +384,10 @@ def _challenge(name, spec, judge=None):
     # OWNER-CROWN-MARGIN-2SD-01: the seed term is 2 x the SAMPLE standard deviation (n - 1) of the control's kept per-seed
     # totals; the max - min range stays in the output for reference.
     seed_sd = statistics.stdev(seed_kept)
-    value = max(5 * sigma, SEED_SD_MULTIPLE * seed_sd)
+    seed_term = SEED_SD_MULTIPLE * seed_sd
+    if crown_n is not None:
+        seed_term /= math.sqrt(crown_n)
+    value = max(5 * sigma, seed_term)
     if value == 0:
         raise StatsError(
             f"{name}: sigma and 2 x the seed sd are both 0; stop and report (no resolution floor is registered)"
@@ -394,11 +404,13 @@ def _challenge(name, spec, judge=None):
         },
         "seed_sd": seed_sd,
         "seed_spread": spread,
-        "spread_rule": SPREAD_RULE,
+        "spread_rule": SPREAD_RULE if crown_n is None else SPREAD_RULE_MEAN_N,
         "sigma": sigma,
         "sigma_by_member": {e: stats[e]["sigma"] for e in panel},
         "value": value,
     }
+    if crown_n is not None:
+        result["crown_n"] = crown_n
     if judge is not None:
         result["minimum_failed"] = {
             "by_member": {e: stats[e]["minimum_failed"] for e in panel},
@@ -421,7 +433,7 @@ def _challenge(name, spec, judge=None):
     return result
 
 
-def measure(doc, judge_packs=None):
+def measure(doc, judge_packs=None, crown_n=None):
     """The measurement document; ``judge_packs`` is {challenge: (registered score pack, file sha256)}."""
     if (
         not isinstance(doc, dict)
@@ -429,13 +441,21 @@ def measure(doc, judge_packs=None):
         or not isinstance(doc.get("challenges"), dict)
     ):
         raise StatsError(f"input must carry schema {SCHEMA_IN} and a challenges object")
+    if crown_n is not None and (
+        isinstance(crown_n, bool)
+        or not isinstance(crown_n, int)
+        or not 2 <= crown_n <= 1000
+    ):
+        raise StatsError("crown_n must be a whole number from 2 to 1000")
     judge_packs = judge_packs or {}
     unknown = sorted(set(judge_packs) - set(doc["challenges"]))
     if unknown:
         raise StatsError(f"--judge-pack names a Challenge not in the input: {unknown}")
     body = {
         "challenges": {
-            n: _challenge(n, s, judge_packs[n][0] if n in judge_packs else None)
+            n: _challenge(
+                n, s, judge_packs[n][0] if n in judge_packs else None, crown_n
+            )
             for n, s in sorted(doc["challenges"].items())
         },
         "schema": SCHEMA_OUT,
@@ -476,8 +496,17 @@ def main(argv=None):
         metavar="CHALLENGE=SCORE_PACK.json",
         help="apply this judge pack's leg minimums to that Challenge's rebuilds (repeatable)",
     )
+    ap.add_argument(
+        "--crown-n",
+        type=int,
+        default=None,
+        metavar="N",
+        help="the crown compares means of N rebuilds: the seed term becomes 2 x SD / sqrt(N) (spread rule 2sd_mean_n)",
+    )
     args = ap.parse_args(argv)
     try:
+        if args.crown_n is not None and not 2 <= args.crown_n <= 1000:
+            raise StatsError("--crown-n must be a whole number from 2 to 1000")
         judge_packs = {}
         for item in args.judge_pack:
             challenge, _, path = item.partition("=")
@@ -487,7 +516,7 @@ def main(argv=None):
                 )
             judge_packs[challenge] = load_judge_pack(path)
         with open(args.input, encoding="utf-8") as f:
-            result = measure(json.load(f), judge_packs)
+            result = measure(json.load(f), judge_packs, args.crown_n)
         for challenge, (pack, sha, *_declared) in sorted(judge_packs.items()):
             minimums = {leg: s["minimum"] for leg, s in sorted(pack["legs"].items())}
             print(

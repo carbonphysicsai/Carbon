@@ -1275,6 +1275,7 @@ def _retain_selected_pack_evaluation(
             **result,
             "private_evaluation_state": "UNAVAILABLE",
             "private_evaluation_reason": reason,
+            **_limit_message(adapter, submission_id, reason),
         }
     return {
         **result,
@@ -1315,6 +1316,24 @@ def _retain_selected_pack_evaluation(
         ),
         **({} if koth is None else {"koth_comparison": koth}),
     }
+
+
+def _limit_message(adapter, submission_id, reason):
+    """``{"private_evaluation_message": sentence}`` for the two limit refusals (one graded exam per Challenge per
+    round), with the next round's block and time when the signed block is known; ``{}`` for any other reason.
+    """
+    from carbon.challenge_validator import exam_cap
+
+    block = exam_cap.submission_block(
+        adapter.ledger, adapter.contract_digest, submission_id
+    )
+    retry = (
+        exam_cap.next_round(block)
+        if reason == "epoch_limit_reached" and block is not None
+        else None
+    )
+    message = exam_cap.plain_text(reason, retry)
+    return {} if message is None else {"private_evaluation_message": message}
 
 
 def _pool_graded(adapter) -> bool:
@@ -1571,14 +1590,27 @@ def _contend(
 def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
     """A crown decision the operator paused is filed, so it is made again once the flag is gone
     (`crown_pause_sweep`). Anything else files nothing."""
-    from carbon.challenge_validator.bank_promotion import CROWNS_PAUSED
+    from carbon.challenge_validator import bank_promotion as bp
+    from carbon.challenge_validator import crown_average
 
-    if outcome.get("reason") != CROWNS_PAUSED:
+    paused = outcome.get("reason") == bp.CROWNS_PAUSED
+    # A decision the host could not make (UNAVAILABLE or FAILED_INFRA on a rebuild, a repeat, or a margin or king mean not
+    # yet measured) is kept for retry the same way (`crown_pause_sweep`), never lost with the screening grade.
+    retry = outcome.get("reason") in (
+        bp.REPEAT_UNAVAILABLE,
+        bp.REPEAT_MISMATCH,
+        crown_average.REBUILD_UNAVAILABLE,
+        crown_average.MARGIN_UNREGISTERED,
+        crown_average.KING_UNMEASURED,
+    ) and outcome.get("outcome") in (bp.UNAVAILABLE, bp.FAILED_INFRA)
+    if not (paused or retry):
         return
     # ``exam`` may be a callable, read only now: a grade that is not paused needs no exam digest.
     exam = exam() if callable(exam) else exam
     entry_id = getattr(repeat, "entry_id", None)
     if entry_id is None:
+        if retry and not paused:
+            return  # nothing retained to retry from: the outcome stands as the typed answer it is
         raise RetentionUnavailable("crown_paused_entry_unavailable")
     store.record_crown_paused(
         submission_id,
@@ -1588,6 +1620,13 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
         entry_id=entry_id,
         pin=pin,
     )
+    if retry and not paused:
+        # The live trigger's own failure is the first failed attempt: the sweep's retry waits for its epoch.
+        store.note_crown_pause_attempt(
+            submission_id,
+            outcome["evaluation_key"],
+            f"{outcome['outcome']}:{outcome['reason']}",
+        )
 
 
 def reconsider_paused_pack(
@@ -1825,10 +1864,12 @@ def _counted_bank_grade(
             ),
         )
     except exam_cap.ExamCapRefused as refused:
+        code = getattr(refused, "code", str(refused))
         return {
             **bound,
             "private_evaluation_state": "UNAVAILABLE",
-            "private_evaluation_reason": getattr(refused, "code", str(refused)),
+            "private_evaluation_reason": code,
+            **_limit_message(adapter, submission_id, code),
         }
     try:
         graded = regrade_retained_entry(
@@ -1855,21 +1896,16 @@ def _counted_bank_grade(
     return {**bound, **kept, "bank_grade_entry_id": graded["entry_id"]}
 
 
-def retain_served_result(
+def _retain_served_artifacts(
     adapter,
     submission_id: str,
     *,
     artifact_directory: Path,
     entry_directory: Path,
-    pool_store=None,
-) -> dict:
-    """Create one pending bank entry from trusted, already-successful task bytes.
-
-    Directory arguments are selected by the operator, never from a submitted
-    recipe or signed client request. Original files and manifests are create-only;
-    an identical retry returns the existing entry. The bundle and graph source
-    variants use the same create-only v5 bank; missing graph roles fail closed.
-    """
+) -> tuple:
+    """Retain a served task's artifacts into the create-only bank (the shared first half of
+    `retain_served_result` and `retain_rebuild_evidence`) and return ``(provider, task, result, artifacts,
+    evidence)``. It grades nothing and files nothing in any pool, Ladder or exam cap."""
     from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
     from carbon.development_session.bundle_construction_worker import _tensors
     from carbon.development_session.construction_recipe import ConstructionRecipe
@@ -1917,22 +1953,7 @@ def retain_served_result(
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
         )
-        bound = _retain_private_pack_binding(
-            adapter, provider, submission_id, task, result
-        )
-        bound = _grade_selected_pack(
-            adapter,
-            submission_id,
-            bound,
-            artifacts,
-            evidence,
-            pool_store=pool_store,
-            artifact_directory=artifact_directory,
-            entry_directory=entry_directory,
-        )
-        return _retain_public_synthetic_measurement(
-            bound, artifacts, submission_id, evidence
-        )
+        return provider, task, result, artifacts, evidence
     if recipe.to_dict()["source"]["kind"] != "bundle":
         raise RetentionUnavailable("source_kind_unavailable")
     admitted_binding = provider._task_image_bindings.get(submission_id)
@@ -2305,6 +2326,30 @@ def retain_served_result(
         "score_state": saved["entry"]["score_state"],
         "official_eligible": False,
     }
+    return provider, task, result, artifacts, evidence
+
+
+def retain_served_result(
+    adapter,
+    submission_id: str,
+    *,
+    artifact_directory: Path,
+    entry_directory: Path,
+    pool_store=None,
+) -> dict:
+    """Create one pending bank entry from trusted, already-successful task bytes.
+
+    Directory arguments are selected by the operator, never from a submitted
+    recipe or signed client request. Original files and manifests are create-only;
+    an identical retry returns the existing entry. The bundle and graph source
+    variants use the same create-only v5 bank; missing graph roles fail closed.
+    """
+    provider, task, result, artifacts, evidence = _retain_served_artifacts(
+        adapter,
+        submission_id,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+    )
     bound = _retain_private_pack_binding(adapter, provider, submission_id, task, result)
     bound = _grade_selected_pack(
         adapter,
@@ -2398,7 +2443,10 @@ def _regrade_origin(adapter, base, entries, entry_id):
     if match is None:
         raise RetentionUnavailable("regrade_origin_task_unavailable")
     origin = match.group(1)
-    owner = adapter.ledger.owned_outcome(adapter.contract_digest, origin)
+    # A validator-derived averaging rebuild is held in memory by `adapter.deriving`; every other task is the ledger's.
+    owner = getattr(adapter, "_derived_owners", {}).get(
+        origin
+    ) or adapter.ledger.owned_outcome(adapter.contract_digest, origin)
     if owner is None:
         raise RetentionUnavailable("regrade_owner_unavailable")
     task_root = _owner_directory(base / origin, "task_artifacts")
@@ -2462,6 +2510,119 @@ def repeat_grade(
         raise RetentionUnavailable("repeat_grade_evidence_unavailable") from error
 
 
+def retain_rebuild_evidence(
+    adapter, derived_task_id, *, artifact_directory, entry_directory, runner=None
+):
+    """The bound evaluation evidence of a validator-derived averaging rebuild, and nothing else.
+
+    The derived task's artifacts are retained into the create-only bank exactly as a served result's are
+    (`_retain_served_artifacts`), then graded on the ACTIVE pack by the existing UNCOUNTED regrade
+    (`regrade_retained_entry` with ``repeat_index`` 1): no exam-cap slot, no Ladder document, no pool admission, no KOTH
+    filing, and no counted grade (`_grade_selected_pack` is not called). Returns ``{"submission_id", "evidence"}``
+    shaped like `repeat`'s answer, for `crown_average`. The caller holds the task with `adapter.deriving`.
+    """
+    _provider, _task, result, _artifacts, _evidence = _retain_served_artifacts(
+        adapter,
+        derived_task_id,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+    )
+    again = regrade_retained_entry(
+        adapter,
+        result["entry_id"],
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+        runner=runner,
+        repeat_index=1,
+    )
+    if again.get("private_evaluation_state") != "BOUND_DEVELOPMENT_ONLY":
+        raise RetentionUnavailable(
+            "rebuild_grade_" + str(again.get("private_evaluation_reason", "unbound"))
+        )
+    try:
+        evidence = json.loads(Path(again["private_evaluation_path"]).read_bytes())
+    except (OSError, ValueError, KeyError) as error:
+        raise RetentionUnavailable("rebuild_grade_evidence_unavailable") from error
+    return {"submission_id": derived_task_id, "evidence": evidence}
+
+
+def rebuild_at_seed(
+    adapter,
+    origin,
+    seed,
+    *,
+    repeat=0,
+    host_owner,
+    artifact_directory,
+    entry_directory,
+    runner=None,
+):
+    """The crown's averaging rebuild: build ``origin``'s recipe AGAIN at the validator-chosen ``seed`` and grade it.
+
+    A derived task under the HOST-OWNED synthetic ``host_owner`` (never a chain hotkey, never the miner), through the
+    same admission, build, inference, retention and custody code as any task: only its build seed differs (the
+    provider's host-private seed map). Its identity binds the origin, the seed and ``repeat`` (0 the averaging build,
+    1 the host-fault second build). It appears in no miner's task list or status, takes no exam-cap slot, writes no
+    Ladder document and is never a pool submission, crown contender or weights source: its only output is the
+    bound evaluation evidence returned to `crown_average`. A retry finds the same task and reuses it.
+    """
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.research import DirectTaskStateV3
+
+    origin_owner = adapter.owner(origin)
+    if origin_owner is None:
+        raise RetentionUnavailable("rebuild_origin_unavailable")
+    recipe = ConstructionRecipe.from_dict(
+        adapter._provider(origin_owner)._requests[origin].recipe
+    )
+    provider = adapter._provider(host_owner)
+    # Invariant 7: a derived task that ended on OUR infrastructure (FAILED_INFRA, unresolved, cancelled) is never the
+    # model's result and is never read again: the next try is the next fresh generation (`rerun`, the miner path's own
+    # counter), with the SAME seed and an unchanged generation 0. The failed task's records stay for audit; a task
+    # that is queued, running or succeeded is the one this try reuses. No input of the miner reaches the generation.
+    generation = 0
+    while True:
+        request = adapter._request(
+            host_owner,
+            recipe,
+            evaluation_pack_digest=provider.evaluation_pack_digest,
+            rebuild=f"{origin}\0{seed}\0{repeat}",
+            rerun=generation,
+        )
+        task_id = provider._task_id(request)
+        if task_id.value not in provider._views or not adapter._ended_on_infra(
+            host_owner, task_id, provider
+        ):
+            break
+        generation += 1
+    if task_id.value in provider._views:
+        # A retry: the task exists, and must be the very seed asked for.
+        if provider._seed_for(task_id.value) != seed:
+            raise RetentionUnavailable("rebuild_seed_changed")
+    else:
+        provider.set_rebuild_seed(task_id.value, seed)
+    task = provider.start_research_task(
+        request, measure_query=adapter._measure_query
+    ).task
+    if task.state is DirectTaskStateV3.QUEUED:
+        provider.run_queued_task(task_id)
+    from carbon.research import DirectGetTaskRequestV3
+
+    task = provider.get_research_result(
+        DirectGetTaskRequestV3(adapter.discovery.info.challenge_key, task_id)
+    ).task
+    if task.state is not DirectTaskStateV3.SUCCEEDED:
+        raise RetentionUnavailable("rebuild_task_" + task.state.value.lower())
+    with adapter.deriving(task_id.value, host_owner):
+        return retain_rebuild_evidence(
+            adapter,
+            task_id.value,
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+            runner=runner,
+        )
+
+
 def _repeat_of(adapter, origin, entry_id, **custody):
     """`repeat` for `BankPromotion.consider_private`: the second grade of the one state this task retains. Another
     state (an incumbent without a repeat mark) is not retained here, so it gives none and no crown moves.
@@ -2477,6 +2638,25 @@ def _repeat_of(adapter, origin, entry_id, **custody):
 
     # The retained entry this repeat runs from: what a paused crown decision files to be made again.
     repeat.entry_id = entry_id
+
+    def rebuild_at(seed, repeat_index=0):
+        """The crown's averaging rebuild (`crown_average`): REBUILD the model from its recipe at a validator-chosen
+        ``seed`` and grade it, uncounted (`rebuild_at_seed`). Never a regrade of the retained state, which would
+        repeat one build and average nothing."""
+        from carbon.challenge_validator import crown_average
+
+        return rebuild_at_seed(
+            adapter,
+            origin,
+            seed,
+            repeat=repeat_index,
+            host_owner=crown_average.HOST_OWNER,
+            **custody,
+        )
+
+    repeat.rebuild_at = rebuild_at
+    # The host-fault pair's second build of the same seed: a different derived task, so a real second build.
+    repeat.rebuild_again_at = lambda seed: rebuild_at(seed, 1)
     return repeat
 
 

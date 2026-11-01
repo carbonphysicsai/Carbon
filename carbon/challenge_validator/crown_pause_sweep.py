@@ -12,16 +12,31 @@ Rules (Validator, 2026-10-29):
 - a resolution is write-once, so a crash mid-sweep resumes where it stopped and no contender is decided twice (a
   contender that is already the incumbent resolves without a decision);
 - a record whose exam is no longer the active one (a rotation during the pause) resolves to UNAVAILABLE
-  ``exam_rotated_during_pause``, never a crown.
+  ``exam_rotated_during_pause``, never a crown;
+- a decision that could not be MADE is never resolved (Validator, 2026-10-31): an UNAVAILABLE outcome (the host could
+  not rebuild or repeat; a margin or a king's mean not measured) or a FAILED_INFRA one (a host-fault mismatch) says nothing
+  about the contender, so the record stays UNRESOLVED and is retried, at most once per epoch (a persistent fault never
+  burns GPU every tick), with a typed alert after `ALERT_AFTER` failed attempts. Only decided outcomes resolve
+  (FIRST_INCUMBENT, CHALLENGER, INCUMBENT_KEEPS, NO_WINNER, including ``unstable_across_seeds``).
+- the sweep stops at an undecided record, so a persistently failing OLDEST record holds every later paused decision of
+  its Challenge until it resolves (each is decided against the incumbent of its moment). The alert says so: when
+  decisions are queued behind it, its code is ``crown_pause_blocked_by_undecided`` and ``waiting`` counts them (as of
+  the filing).
 """
 
 from __future__ import annotations
 
 from . import operator_pause
-from .bank_promotion import CROWNS_PAUSED
+from .bank_promotion import CROWNS_PAUSED, FAILED_INFRA, UNAVAILABLE
 
 ROTATED = "exam_rotated_during_pause"
 ALREADY_INCUMBENT = "already_incumbent"
+#: Outcomes that are no decision about the contender: kept unresolved and retried.
+UNDECIDED = frozenset({UNAVAILABLE, FAILED_INFRA})
+#: One reward epoch in seconds (360 blocks of 12 s, the weights cadence): an engineering retry spacing, not a science value.
+EPOCH_SECONDS = 360 * 12
+#: Failed attempts after which a typed alert is filed.
+ALERT_AFTER = 3
 
 
 def sweep(store, reconsider, *, kind, current_exam):
@@ -34,7 +49,8 @@ def sweep(store, reconsider, *, kind, current_exam):
     if operator_pause.crowns_paused(store.path.parent):
         return []
     resolved = []
-    for record in store.paused_crowns(kind):
+    pending = store.paused_crowns(kind)
+    for place, record in enumerate(pending):
         submission_id, key = record["submission_id"], record["evaluation_key"]
         incumbent = store.incumbent() or {}
         if incumbent.get("model_id") == submission_id:
@@ -42,6 +58,9 @@ def sweep(store, reconsider, *, kind, current_exam):
         elif record["exam"] != current_exam:
             code = "UNAVAILABLE:" + ROTATED
         else:
+            attempts, last = store.crown_pause_attempts(submission_id, key)
+            if attempts and store.clock() - last < EPOCH_SECONDS:
+                break  # tried this epoch already: no GPU is burned again before the next one
             try:
                 outcome = reconsider(record)
             except Exception:  # noqa: BLE001 - left unresolved, retried next tick
@@ -51,6 +70,17 @@ def sweep(store, reconsider, *, kind, current_exam):
             if outcome.get("reason") == CROWNS_PAUSED:
                 break  # paused again
             code = f"{outcome['outcome']}:{outcome.get('reason')}"
+            if outcome["outcome"] in UNDECIDED:
+                failed = store.note_crown_pause_attempt(submission_id, key, code)
+                if failed >= ALERT_AFTER:
+                    store.record_crown_pause_alert(
+                        submission_id,
+                        key,
+                        failed,
+                        code,
+                        waiting=len(pending) - place - 1,
+                    )
+                break  # not a decision: stays unresolved, retried after the epoch
         store.resolve_crown_pause(submission_id, key, code)
         resolved.append((submission_id, code))
     return resolved

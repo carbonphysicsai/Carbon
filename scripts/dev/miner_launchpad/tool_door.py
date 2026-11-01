@@ -348,7 +348,12 @@ class DirectToolDoor:
                 "official_eligible": False,
             }
         except DirectIntakeRefusal as refused:
-            return {"ok": False, "error": refused.code}
+            # A limit refusal also carries the receiver's plain sentence and the next round (block, UTC time).
+            return {
+                "ok": False,
+                "error": refused.code,
+                **({"retry": refused.retry} if refused.retry else {}),
+            }
         except RecipeRefused as refused:
             return {"ok": False, "error": refused.code}
         except (OSError, ValueError, LookupError):

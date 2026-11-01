@@ -571,6 +571,23 @@ NEXT_ACTIONS = {
         "this one keeps its frozen candidate), or wait for a new exam set: "
         "then this same recipe is graded again."
     ),
+    # One graded exam per Challenge per round (week-1 item 104): refused at
+    # admission, before any build, so nothing was built, graded or used.
+    "epoch_limit_reached": (
+        "One graded exam per Challenge per round, and your graded exam for "
+        "this round is already used or in progress. Nothing was built or "
+        "graded for this submission and it used none of your allowance. Your "
+        "frozen candidate is kept: submit it again when the next round opens "
+        "(a round is 360 blocks, about 72 minutes; the receiver's answer names "
+        "the block and the time)."
+    ),
+    "exam_daily_allowance_reached": (
+        "You have used your graded exams for the day on this Challenge. "
+        "Nothing was built or graded for this submission and it used none of "
+        "your allowance. Your frozen candidate is kept: a slot frees as "
+        "earlier graded exams age past one day, so submit it again in a later "
+        "round."
+    ),
     # LAUNCHPAD-PAGE-USABILITY-01: says what still works and what to do,
     # since a miner usually cannot add an intake until one is published.
     "construction_submission_unserved": (

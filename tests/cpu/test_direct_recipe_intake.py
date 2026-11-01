@@ -305,8 +305,11 @@ def test_the_info_document_publishes_official_readiness_as_ids_and_a_digest_only
         clock_ns=lambda: NOW,
     )
     body = intake.handle("GET", INFO_PATH, {}, b"", "127.0.0.1").body
-    # Exactly one new field: nothing else is added to the public document.
-    assert set(body) == PUBLIC_KEYS_BEFORE_READINESS | {"official_gpu"}
+    # Two additive fields: nothing else is added to the public document.
+    assert set(body) == PUBLIC_KEYS_BEFORE_READINESS | {
+        "official_gpu",
+        "catalog_digest",
+    }
     # No store configured: an empty list with a typed status, never an error.
     assert body["official_gpu"] == {
         "status": "STORE_ABSENT",

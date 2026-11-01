@@ -9,6 +9,7 @@ and reconciliation. No scorer or promotion is installed here.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 from collections.abc import Callable
@@ -148,6 +149,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
         # The custody copy key the speed-sample seed is derived under (pool versions' single-design call timing,
         # `single_call_timing.sample_seed`); None = a pool grade has no speed evidence (typed unavailable).
         self.speed_sample_key = speed_sample_key
+        #: Validator-derived tasks (the crown's averaging rebuilds) in flight, task id -> host owner, in memory only
+        #: and only while `deriving` holds them: never a miner's, never persisted, never in the ledger's intents.
+        self._derived_owners: dict[str, str] = {}
         self.challenge_id = contract.challenge_id
         self.challenge_version = contract.version
         self.contract_digest = contract.digest
@@ -241,9 +245,13 @@ class LeanRecipeAdapter(ChallengeAdapter):
             raise Unavailable("direct_provider_binding_unavailable")
         return provider
 
-    def _request(self, hotkey, recipe, *, evaluation_pack_digest=None, rerun=0):
+    def _request(
+        self, hotkey, recipe, *, evaluation_pack_digest=None, rerun=0, rebuild=None
+    ):
         """The task request; ``rerun`` n > 0 is the n-th fresh task for the same
-        recipe after infrastructure failures (generation 0 is unchanged)."""
+        recipe after infrastructure failures (generation 0 is unchanged). ``rebuild`` is the label of a
+        validator-derived averaging rebuild (`crown_average`); it makes the task its own identity, and without it
+        the identity is exactly what it always was."""
         from carbon.development_session.profile import canonical
         from carbon.development_session.profile import digest as sha
         from carbon.research import DirectStartTaskRequestV3
@@ -256,6 +264,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
             task_binding += "\0EVALUATION_PACK\0" + evaluation_pack_digest
         if rerun:
             task_binding += "\0INFRA_RERUN\0" + str(rerun)
+        if rebuild is not None:
+            task_binding += "\0CROWN_REBUILD\0" + rebuild
         identity = hashlib.sha256(task_binding.encode("utf-8")).hexdigest()
         return DirectStartTaskRequestV3(
             info.challenge_key,
@@ -306,6 +316,11 @@ class LeanRecipeAdapter(ChallengeAdapter):
         from carbon.research.lifecycle import ResearchTaskProviderError
 
         self.require_registered_pool()
+        from carbon.challenge_validator import crown_average
+
+        if submission.hotkey == crown_average.HOST_OWNER:
+            # the host-owned owner of the crown average's derived rebuilds is never a submitter
+            raise Unavailable("direct_owner_reserved")
         recipe = self.validate_strategy(submission.strategy)
         provider = self._provider(submission.hotkey)
         # The durable task provider owns source inspection and admitted
@@ -329,6 +344,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 break
         else:
             raise Unavailable("direct_infra_rerun_limit_reached")
+        self._refuse_spent_round(submission, task_id.value, provider)
         source = recipe.to_dict()["source"]
         if source["kind"] == "graph":
             try:
@@ -383,6 +399,33 @@ class LeanRecipeAdapter(ChallengeAdapter):
             exam_key=provider.evaluation_pack_digest,
             submission_id=submission_id,
         )
+
+    def _refuse_spent_round(self, submission, task_id, provider):
+        """One graded exam per Challenge per round: a hotkey whose graded exam already holds this
+        epoch's slot (or whose day's allowance is used) is told so now, before any build, in plain
+        words with the next round's block and time. Read-only: no slot, no row, no grade, no
+        allowance used (`ExamCap.admission_refusal`); `reserve` still decides at grading time.
+        """
+        if provider.evaluation_pack_digest is None:
+            return
+        from carbon.challenge_validator.exam_cap import ExamCap
+
+        receipt = submission.receipt if type(submission.receipt) is dict else {}
+        refusal = ExamCap(
+            self.ledger, cadence=getattr(self, "exam_cadence", None)
+        ).admission_refusal(
+            hotkey=submission.hotkey,
+            challenge_id=self.challenge_id,
+            challenge_version=self.challenge_version,
+            exam_key=provider.evaluation_pack_digest,
+            submission_id=task_id,
+            block=receipt.get("block"),
+        )
+        if refusal is not None:
+            raise Unavailable(
+                refusal["code"],
+                retry={k: v for k, v in refusal.items() if k != "code"},
+            )
 
     def _ended_on_infra(self, hotkey, task_id, provider):
         """Whether this task exists and ended on Carbon's infrastructure: its
@@ -475,7 +518,24 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     ]
         return outcome
 
+    @contextlib.contextmanager
+    def deriving(self, task_value, host_owner):
+        """Hold a validator-derived task's host owner for the span of one evidence-only retention, so the retention
+        helpers that ask `owner` find it. Nothing else does: it is not a ledger intent (the advance pass never sees
+        it), not persisted, and gone when the block ends."""
+        if task_value in self._derived_owners:
+            raise RuntimeError("derived task already held")
+        self._derived_owners[task_value] = host_owner
+        try:
+            yield
+        finally:
+            self._derived_owners.pop(task_value, None)
+
     def owner(self, submission_id):
+        # (an adapter built without __init__, as several tests do, holds no derived task)
+        derived = getattr(self, "_derived_owners", {}).get(submission_id)
+        if derived is not None:
+            return derived
         owner = self.ledger.owned_outcome(self.contract_digest, submission_id)
         if owner is None:
             return None

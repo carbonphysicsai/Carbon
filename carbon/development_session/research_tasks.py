@@ -336,6 +336,10 @@ class DirectDevelopmentTasksV3:
         self._task_image_bindings: dict[str, str] = {}
         self._task_overlays: dict[str, object] = {}
         self._measured_tasks: set[str] = set()
+        #: HOST-PRIVATE build seeds of validator-derived tasks (the crown's averaging rebuilds,
+        #: `crown_average`). Written only by `set_rebuild_seed` on the validator side; no request, schema, status or
+        #: receipt field carries a seed, and a task without an entry builds at the official seed 0.
+        self._task_seeds: dict[str, int] = {}
         self._idempotency: dict[str, str] = {}
         self._cancellations: dict[str, str | None] = {}
         try:
@@ -363,6 +367,9 @@ class DirectDevelopmentTasksV3:
                     CREATE TABLE IF NOT EXISTS direct_task_measurements (
                         id TEXT PRIMARY KEY REFERENCES direct_tasks(id),
                         profile TEXT NOT NULL);
+                    CREATE TABLE IF NOT EXISTS direct_task_seeds (
+                        id TEXT PRIMARY KEY REFERENCES direct_tasks(id),
+                        seed INTEGER NOT NULL);
                 """)
                 binding = (
                     json.dumps(
@@ -440,7 +447,13 @@ class DirectDevelopmentTasksV3:
                 retained_measurements = dict(
                     db.execute("SELECT id,profile FROM direct_task_measurements")
                 )
+                retained_seeds = dict(
+                    db.execute("SELECT id,seed FROM direct_task_seeds")
+                )
             self._path.chmod(0o600)
+            if set(retained_seeds) - {row[0] for row in retained}:
+                raise ValueError("retained direct seed task missing")
+            self._task_seeds.update(retained_seeds)
             for identity, request_bytes, view_bytes, cancellation in retained:
                 request = load_canonical(request_bytes, DirectStartTaskRequestV3)
                 view = load_canonical(view_bytes, DirectTaskViewV3)
@@ -570,7 +583,7 @@ class DirectDevelopmentTasksV3:
                     source_envelope=source_envelope,
                     train=material["train"],
                     allowlist_bytes=material["allowlist_bytes"],
-                    seed=0,
+                    seed=self._seed_for(task_id.value),
                     seconds=limits["reconstruction_resource_policy"][
                         "build_wall_seconds_max"
                     ],
@@ -1033,6 +1046,25 @@ class DirectDevelopmentTasksV3:
             *actual,
         )
 
+    def set_rebuild_seed(self, task_value: str, seed: int) -> None:
+        """Give the (not yet started) derived task ``task_value`` a validator-chosen build seed. Validator side only:
+        it is not reachable from any request. Write-once, never 0 (the official seed) and a positive int32.
+        """
+        if (
+            type(task_value) is not str
+            or type(seed) is not int
+            or not 0 < seed < 2**31 - 1
+        ):
+            raise ValueError("rebuild seed invalid")
+        if task_value in self._views:
+            raise ValueError("rebuild seed must be set before the task starts")
+        if self._task_seeds.setdefault(task_value, seed) != seed:
+            raise ValueError("rebuild seed already set")
+
+    def _seed_for(self, task_value: str) -> int:
+        """The build seed of a task: its derived seed, else the official 0."""
+        return self._task_seeds.get(task_value, 0)
+
     def _task_id(self, request: DirectStartTaskRequestV3):
         from carbon.research.refs import ResearchTaskId
 
@@ -1083,6 +1115,12 @@ class DirectDevelopmentTasksV3:
                 db.execute(
                     "INSERT INTO direct_task_measurements VALUES(?,?)",
                     (view.task_id.value, "COLD_QUERY_V2"),
+                )
+            if view.task_id.value in self._task_seeds:
+                # A derived task's seed is kept with the task, so a restart never builds it at the official seed 0.
+                db.execute(
+                    "INSERT OR IGNORE INTO direct_task_seeds VALUES(?,?)",
+                    (view.task_id.value, self._task_seeds[view.task_id.value]),
                 )
             if failure_evidence is not None:
                 db.execute(
@@ -2022,7 +2060,7 @@ class DirectDevelopmentTasksV3:
                     limits_document=material["construction_limits_document"],
                     source_envelope=source_envelope,
                     train=material["train"],
-                    seed=0,
+                    seed=self._seed_for(task_id.value),
                     inputs=material["practice_inputs"],
                     expected_output_shape=material["expected_output_shape"],
                     allowlist_bytes=material["allowlist_bytes"],
@@ -2049,7 +2087,7 @@ class DirectDevelopmentTasksV3:
                     limits_document=material["construction_limits_document"],
                     train=material["train"],
                     example=material["example"],
-                    seed=0,
+                    seed=self._seed_for(task_id.value),
                     inputs=material["practice_inputs"],
                     expected_output_shape=material["expected_output_shape"],
                     allowlist_bytes=material["allowlist_bytes"],

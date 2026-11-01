@@ -18,6 +18,10 @@ from the pool truths, while the plugin builds the matching model on its own A an
   {"kind": "wrong_near_optimum", "radius": r, "k": k, "seed": s}
         exact except within normalised radius r of each target's reference optimum, where it is `noisy`
   {"kind": "default"}, {"kind": "good"}   the plugin's real models
+  {"kind": "biased", "base": descriptor, "bias": {"mode": "feasible_bias" | "wrong_near", "k": k, "seed": s,
+                                                  "radius": r  (wrong_near only)}}
+        E2, the accuracy-matched gaming control: the base (honest) model's own predictions plus the bias the truth-built
+        control (`noisy` feasible_bias / `wrong_near_optimum`) adds to the truth; deterministic
   {"kind": "perturbed", "base": descriptor, "layers": [[seed, step], ...]}
         the base model plus seeded noise of step*U per output per layer (the leak attack's miner)
 
@@ -47,6 +51,7 @@ DESCRIPTOR_KINDS = (
     "floor",
     "good",
     "perturbed",
+    "biased",
 )
 
 
@@ -174,6 +179,22 @@ def pool_predictor(plugin, descriptor, specs):
             return out
 
         return perturbed
+    if kind == "biased":
+        base = pool_predictor(plugin, descriptor["base"], specs)
+        bias = descriptor["bias"]
+        if bias.get("mode") not in ("feasible_bias", "wrong_near"):
+            raise pool_grader.PoolRefused("unknown_bias_mode")
+
+        def biased(conditions, designs):
+            out = []
+            for design, prediction in zip(designs, base(conditions, designs)):
+                spec, index = universe.lookup(conditions, design)
+                out.append(
+                    _apply_bias(spec, index, conditions, design, dict(prediction), bias)
+                )
+            return out
+
+        return biased
     if kind == "in_distribution":
 
         def clamped(conditions, designs):
@@ -220,6 +241,20 @@ def pool_predictor(plugin, descriptor, specs):
         return out
 
     return truth_based
+
+
+def _apply_bias(spec, index, conditions, design, prediction, bias):
+    """The truth-built controls' bias, applied to an honest model's prediction (E2)."""
+    k, seed = bias["k"], bias.get("seed", 0)
+    if bias["mode"] == "feasible_bias":
+        for limit in spec.limits:
+            shift = k * spec.u_at(index, limit.output)
+            prediction[limit.output] += shift if limit.kind == ">=" else -shift
+        return prediction
+    distance = math.dist(spec.norm[spec.reference], spec.norm[index])
+    if distance <= bias["radius"]:
+        return _random_error(spec, index, conditions, design, prediction, k, seed)
+    return prediction
 
 
 def _random_error(spec, index, conditions, design, truth, k, seed):

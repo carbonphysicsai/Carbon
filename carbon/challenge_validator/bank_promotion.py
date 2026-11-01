@@ -558,7 +558,14 @@ class BankPromotion:
         raise StateError("evaluation_binding_unavailable")
 
     def consider_private(
-        self, submission_id, evaluation_key, comparator, *, sealed=False, repeat=None
+        self,
+        submission_id,
+        evaluation_key,
+        comparator,
+        *,
+        sealed=False,
+        repeat=None,
+        average=None,
     ):
         """King of the hill on one shared evaluation key, DEVELOPMENT only.
 
@@ -604,7 +611,26 @@ class BankPromotion:
                 "candidate": submission_id,
                 "incumbent": (self.store.incumbent() or {}).get("model_id"),
             }
-        outcome = compare_private_pair(pair, comparator)
+        # the crown multi-rebuild average ruling (lead-records a322dea4): off unless the receiver installed the rule (or a caller passes
+        # ``average``). The screening grade then meets the king's MEAN at margin_N, and a crown-changing win is
+        # decided by the N-rebuild mean in place of the repeat. Off, nothing below differs from before.
+        from carbon.challenge_validator import crown_average
+
+        active = crown_average.ACTIVE if average is None else average
+        screened = comparator
+        if active is not None:
+            try:
+                pair, screened = active.screening(self.store, pair, comparator)
+            except crown_average.CrownAverageUnavailable as unavailable:
+                return {
+                    "outcome": UNAVAILABLE,
+                    "reason": unavailable.code,
+                    "evaluation_key": evaluation_key,
+                    "candidate": submission_id,
+                    "incumbent": (self.store.incumbent() or {}).get("model_id"),
+                }
+        outcome = compare_private_pair(pair, screened)
+        averaged = active is not None and outcome["outcome"] in AVERAGED_CROWNS
         if outcome["outcome"] in CROWN_CHANGING:
             if operator_pause.crowns_paused(self._state_dir()):
                 # The operator's pause: the grade stays filed, no repeat is spent and the incumbent is untouched;
@@ -621,6 +647,23 @@ class BankPromotion:
             def own_key(row):
                 return row.get("evaluation_key", evaluation_key)
 
+            if averaged:
+                outcome = active.decide(
+                    self.store,
+                    submission_id,
+                    evaluation_key,
+                    pair,
+                    outcome,
+                    comparator,
+                    repeat,
+                )
+                if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):
+                    self.store.set_incumbent(
+                        submission_id,
+                        reason,
+                        expected=pair["expected_incumbent"],
+                    )
+                return outcome
             marked = {
                 row["submission_id"]: self.store.repeat_verified(
                     row["submission_id"], own_key(row)
@@ -760,6 +803,8 @@ def _scored(body):
 
 #: Outcomes that change who holds the crown.
 CROWN_CHANGING = frozenset({FIRST_INCUMBENT, CHALLENGER, DETHRONED})
+#: The crown changes the N-rebuild average decides in place of the repeat (a dethrone keeps the repeat).
+AVERAGED_CROWNS = frozenset({FIRST_INCUMBENT, CHALLENGER})
 #: A repeat grade that differs, or cannot run, is the host's fault, never the
 #: miner's: no crown change, a typed alert, a re-check of the host.
 FAILED_INFRA = "FAILED_INFRA"

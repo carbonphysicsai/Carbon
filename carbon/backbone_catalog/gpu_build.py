@@ -186,6 +186,22 @@ DEVICE_FIXES = {
     ),
 }
 
+#: Old-template v2 entries that take the registered fixes of an original entry. The F02 v2 bundles were generated from
+#: the older template: their sources still build the DFT matrices (LNO1d) and the query-row index (GINO) on the CPU inside
+#: `forward`, unlike the Motor and F08 v2 sources, which already place them on the input's device. Each alias is one line of
+#: data (a future old-template v2 entry is one more); every anchor of the aliased fixes must occur exactly once in the
+#: entry's own source (`patched_source` refuses otherwise). Any id not listed is looked up as itself.
+DEVICE_FIX_ALIASES = {
+    "v2.f02.lno.LNO1d": "lno.LNO1d",
+    "v2.f02.neuralop.GINO": "neuralop.GINO",
+}
+
+
+def device_fix_key(catalog_id):
+    """The `DEVICE_FIXES` key a catalog id selects: its alias if it has one, else itself."""
+    return DEVICE_FIX_ALIASES.get(catalog_id, catalog_id)
+
+
 # Historical data for the original derived bytes. The shared implementation's
 # active device-placement pass is semantic, in gpu_tensor_placement.
 CONSTANT_GRAPH_DEVICE_FIXES = DEVICE_FIXES["physicsnemo.MeshGraphNet"]
@@ -226,7 +242,7 @@ def _device_fixes(files, catalog_id):
     if repaired is not None:
         files[BACKBONES_MEMBER] = repaired
         return ()
-    historical = DEVICE_FIXES.get(catalog_id, ())
+    historical = DEVICE_FIXES.get(device_fix_key(catalog_id), ())
     if historical == CONSTANT_GRAPH_DEVICE_FIXES:
         raise GpuBuildRefused("constant graph device capability is missing")
     return historical

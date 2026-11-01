@@ -262,6 +262,10 @@ def _check_product(manifest):
     if type(admission) is dict and admission.get("admission") == PRACTICE_ADMISSION:
         _check_practice(manifest, admission)
     elif (
+        type(admission) is dict and admission.get("admission") == HOST_REBUILD_ADMISSION
+    ):
+        _check_host_rebuild(manifest, admission)
+    elif (
         type(admission) is not dict
         or admission.get("admission") != PRODUCT_ADMISSION
         or set(admission)
@@ -284,6 +288,27 @@ def _check_product(manifest):
         raise ValueError("a product campaign never carries a development grant")
 
 
+def _check_host_rebuild(manifest, admission):
+    """The host-owned campaign of the crown average's derived rebuilds: no miner, no registration.
+
+    A closed record: exactly the admission kind and the Challenge it serves (no hotkey, uid, block or snapshot, which
+    would claim a chain registration nothing observed), accepted only for the host owner by exact equality (a miner's
+    owner is a verified ss58 address, never this string) as both principal and owner. Produced only by
+    `direct_receiver.OwnerProviders._manifest`'s host branch."""
+    from carbon.challenge_validator.crown_average import HOST_OWNER
+
+    challenge = manifest.get("challenge")
+    if (
+        set(admission) != {"admission", "challenge_id"}
+        or manifest.get("owner") != HOST_OWNER
+        or manifest.get("principal") != HOST_OWNER
+        or type(challenge) is not dict
+        or type(admission["challenge_id"]) is not str
+        or admission["challenge_id"] != challenge.get("id")
+    ):
+        raise ValueError("host rebuild campaign must record its host admission")
+
+
 def _check_practice(manifest, admission):
     """A practice-only manifest (`practice_identity.PracticeMiner.record`):
     typed PRACTICE_ONLY, local-practice, its principal the identity's."""
@@ -304,6 +329,10 @@ def _check_practice(manifest, admission):
 #: registering"): research and reports only, every other phase refused.
 PRACTICE_ADMISSION = "PRACTICE_ONLY"
 PRACTICE_PHASES = frozenset({"research", "report"})
+
+#: The admission of the receiver's own derived rebuilds of the crown average: owned by the host, not a miner. Never
+#: scientific evidence and never a registration.
+HOST_REBUILD_ADMISSION = "HOST_REBUILD"
 
 
 class RegistrationRequired(ValueError):
@@ -490,6 +519,8 @@ class CampaignLedger:
                 )
             if manifest["admission"]["admission"] == PRACTICE_ADMISSION:
                 return {"kind": PRACTICE_ADMISSION, "expires_unix": None}
+            if manifest["admission"]["admission"] == HOST_REBUILD_ADMISSION:
+                return {"kind": HOST_REBUILD_ADMISSION, "expires_unix": None}
             return {"kind": PRODUCT_ADMISSION, "expires_unix": None}
         raise ValueError("controlled campaign authority required")
 

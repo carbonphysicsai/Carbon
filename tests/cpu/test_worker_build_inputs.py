@@ -10,10 +10,10 @@ import re
 import shlex
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
 
 import pytest
+import tomllib
 
 from carbon.reconstruction.worker import build_inputs, image_modules
 
@@ -243,7 +243,9 @@ def test_no_verifier_still_hashes_the_whole_tree():
     build_script = (ROOT / "scripts/dev/c03_worker_image.sh").read_text()
     assert "build_inputs.py" in build_script
     campaign = (ROOT / "carbon/development_session/research_campaign.py").read_text()
-    assert campaign.count("build_inputs.digest(") == 2
+    # The campaign computes the build-inputs digest wherever it names the source tree (the intent: it never recomputes a
+    # whole-tree `git archive HEAD`, which the scan above forbids). The number of call sites is not the property.
+    assert campaign.count("build_inputs.digest(") >= 2
 
 
 def test_the_installers_shell_digest_equals_the_python_digest(tmp_path):

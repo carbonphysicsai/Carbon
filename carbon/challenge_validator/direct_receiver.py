@@ -60,6 +60,9 @@ _OPTIONAL_FIELDS = {
     # A private file (>= 32 bytes) holding the pack's custody copy key: the speed-sample seed of the pool
     # versions' single-design call timing is derived under it (`single_call_timing.sample_seed`).
     "speed_sample_key_file",
+    # the crown multi-rebuild average ruling (lead-records a322dea4): {"key_file": <absolute private file>} holds K_crown and turns the crown's
+    # N-rebuild average on (`crown_average.install`). Absent: the crown rule is as before.
+    "crown_average",
     # The on-box store of OFFICIAL GPU receipts (`backbone_catalog.receipt_store`, OWNER-GPU-OPEN-WITH-READY-01):
     # an exact absolute operator path in the validator state, written only by the standing receipt worker. Without
     # it no catalog entry is officially gradable (the official route never falls back to a CPU rebuild).
@@ -247,6 +250,13 @@ def load_config(path: Path) -> dict:
             raise ValueError(refusal)
     if "speed_sample_key_file" in value:
         read_speed_sample_key(value["speed_sample_key_file"])
+    if "crown_average" in value:
+        section = value["crown_average"]
+        if type(section) is not dict or set(section) != {"key_file"}:
+            raise ValueError("invalid crown_average selection")
+        from carbon.challenge_validator import crown_average_host
+
+        crown_average_host.read_crown_key(section["key_file"])
     if "challenge" in value:
         selected = value["challenge"]
         if type(selected) is not dict or selected not in served_challenges():
@@ -1036,18 +1046,24 @@ class OwnerProviders:
             )
         )
 
-    def _manifest(self, hotkey, ledger, *, restoring):
+    def _manifest(self, hotkey, ledger, *, restoring, host=False):
         """Freeze the signed owner's one DEVELOPMENT receiver campaign.
 
         Registration is observed, not asserted by an operator or a recipe. A
         restart keeps the first observation while checking the same registered
-        identity is still present in the current finalized snapshot.
+        identity is still present in the current finalized snapshot. The host-owned
+        owner of the crown average's derived rebuilds (``host``) has no registration
+        to observe: its campaign records the closed HOST_REBUILD admission (the Challenge it serves, no hotkey)
+        and is always live.
         """
         from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
         from carbon.challenge_kit import physical_material
         from carbon.challenge_validator.interface import Unavailable
         from carbon.development_session.product_campaign import AUTHORITY
-        from carbon.development_session.research_ledger import PRODUCT
+        from carbon.development_session.research_ledger import (
+            HOST_REBUILD_ADMISSION,
+            PRODUCT,
+        )
 
         if (
             self.implementation is None
@@ -1055,8 +1071,15 @@ class OwnerProviders:
             or self.receiver is None
         ):
             raise ValueError("direct receiver authority binding required")
-        admission = self._admission(hotkey)
         challenge = self.discovery.info.challenge_key
+        admission = (
+            {
+                "admission": HOST_REBUILD_ADMISSION,
+                "challenge_id": challenge.challenge_id,
+            }
+            if host
+            else self._admission(hotkey)
+        )
         # Battery 1.0 and the step-2 2.0 share the scope and objective labels.
         battery_selected = challenge.challenge_id == BATTERY_CHALLENGE.challenge_id
         physical_selected = physical_material.is_registered(
@@ -1149,34 +1172,42 @@ class OwnerProviders:
             candidate = frozen
         elif restoring:
             raise ValueError("retained direct owner campaign manifest missing")
-        elif admission is None:
+        elif admission is None and not host:
             raise Unavailable("direct_provider_registration_unavailable")
         ledger.freeze(candidate)
+        if host:
+            return candidate["admission"], True
         return candidate["admission"], self._same_registration(
             candidate["admission"], admission
         )
 
-    def _open(self, hotkey, *, restoring):
+    def _open(self, hotkey, *, restoring, host=False):
+        from carbon.challenge_validator import crown_average
         from carbon.challenge_validator.interface import Unavailable
         from carbon.development_session.research_control import CampaignControl
         from carbon.development_session.research_ledger import CampaignLedger
         from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
         from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
 
-        if type(hotkey) is not str or not ADDRESS.fullmatch(hotkey):
+        if host:
+            # ONLY the host owner of the crown average's derived rebuilds, by exact equality: a miner's owner
+            # is always a verified ss58 address (below), which this string is not.
+            if hotkey != crown_average.HOST_OWNER:
+                raise Unavailable("direct_provider_owner_invalid")
+        elif type(hotkey) is not str or not ADDRESS.fullmatch(hotkey):
             raise Unavailable("direct_provider_owner_invalid")
         with self._lock:
             if self._closing:
                 raise Unavailable("direct_receiver_stopping")
             if hotkey not in self._providers:
-                if not restoring and self._admission(hotkey) is None:
+                if not restoring and not host and self._admission(hotkey) is None:
                     raise Unavailable("direct_provider_registration_unavailable")
                 directory = _private_directory(
                     self.root / hashlib.sha256(hotkey.encode()).hexdigest()
                 )
                 ledger = CampaignLedger(directory / "ledger")
                 frozen_admission, live = self._manifest(
-                    hotkey, ledger, restoring=restoring
+                    hotkey, ledger, restoring=restoring, host=host
                 )
                 if not restoring and not live:
                     raise Unavailable("direct_provider_registration_unavailable")
@@ -1233,14 +1264,24 @@ class OwnerProviders:
                         provider.cancel_observed_task(
                             task_id, self.discovery.info.challenge_key
                         )
-            if not restoring and not self._same_registration(
-                self._admissions[hotkey], self._admission(hotkey)
+            if (
+                not restoring
+                and not host
+                and not self._same_registration(
+                    self._admissions[hotkey], self._admission(hotkey)
+                )
             ):
                 raise Unavailable("direct_provider_registration_unavailable")
             return self._providers[hotkey]
 
     def __call__(self, hotkey):
-        return self._open(hotkey, restoring=False)
+        from carbon.challenge_validator import crown_average
+
+        # The derived-rebuild path asks for its host owner by name; a miner's request never can (its owner is a
+        # verified ss58 address, and `LeanRecipeAdapter.evaluate` refuses the host owner as a submitter).
+        return self._open(
+            hotkey, restoring=False, host=hotkey == crown_average.HOST_OWNER
+        )
 
     def restore(self):
         """Reopen every retained owner before listening, including interrupted work."""
@@ -1255,7 +1296,13 @@ class OwnerProviders:
                 != directory.name
             ):
                 raise ValueError("retained receiver owner binding differs")
-            self._open(owner["hotkey"], restoring=True)
+            from carbon.challenge_validator import crown_average
+
+            self._open(
+                owner["hotkey"],
+                restoring=True,
+                host=owner["hotkey"] == crown_average.HOST_OWNER,
+            )
 
     def cancel(self):
         """Close admission and request only our providers' domain cancellation."""
@@ -1338,6 +1385,9 @@ def serve(
 
     cfg = load_config(config_path)
     install_official_receipt_store(cfg)
+    from carbon.challenge_validator import crown_average_host
+
+    crown_average_host.install(cfg)
     selected_parent = (
         {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
         if "construction_image_manifest" in cfg
@@ -1973,6 +2023,9 @@ def main(argv=None):
             reason = result.get("private_evaluation_reason")
             if type(reason) is str and re.fullmatch(r"[A-Za-z0-9_]{1,80}", reason):
                 reported["private_evaluation_reason"] = reason
+            message = result.get("private_evaluation_message")
+            if type(message) is str and message:
+                reported["private_evaluation_message"] = message
         koth = result.get("koth_comparison")
         if type(koth) is dict:
             # Operator-only: the DEVELOPMENT king-of-the-hill outcome, or the pool refusal.
