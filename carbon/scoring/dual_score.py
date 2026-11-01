@@ -294,9 +294,7 @@ def score(benchmark, pack):
     common = (
         "FAILED_INFRA"
         if "REFERENCE_INFRA" in states
-        else "INDETERMINATE_EVIDENCE"
-        if "REFERENCE_UNRESOLVED" in states
-        else None
+        else "INDETERMINATE_EVIDENCE" if "REFERENCE_UNRESOLVED" in states else None
     )
     rows, digest_models = [], []
     for model in models:
