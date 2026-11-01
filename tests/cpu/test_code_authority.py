@@ -631,6 +631,13 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "entry['entrypoint']['module']",
         ),
         (
+            # LN harness host record (reviewed): imports only the literal runtimes ("torch", "jax") to record versions.
+            "scripts/dev/learning_necessity/ln_harness.py",
+            "host_record",
+            "importlib.import_module",
+            "name",
+        ),
+        (
             "scripts/dev/level4_spike/g3_memory_probe.py",
             "main",
             "importlib.import_module",
