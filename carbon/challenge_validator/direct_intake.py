@@ -68,6 +68,17 @@ STATUS_TOOL = "construction_status"
 #: in `tools`, which deployed clients pin exactly.
 FEEDBACK_TOOL = "exam_feedback"
 FEEDBACK_REPLY_SCHEMA = "carbon.private-exam.ladder-feedback-reply.v1"
+#: The same read for one of the caller's own submissions: v1's fields plus that submission's grade
+#: state. Advertised in its own facts entry (``exam_feedback_v2``) only by a receiver that grades its
+#: own submissions, so the v1 entry deployed clients pin is unchanged.
+FEEDBACK_REPLY_SCHEMA_V2 = "carbon.private-exam.ladder-feedback-reply.v2"
+#: The closed grade states (`DirectRecipeIntake._grade_state`); None is none of these.
+GRADE_STATES = (
+    "GRADED",
+    "QUEUED",
+    "SUPERSEDED_BY_OWN_LATER_SUBMIT",
+    "ROUND_LIMIT_REACHED",
+)
 PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
 SOURCE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
 
@@ -124,6 +135,9 @@ class DirectRecipeIntake(BatteryIntake):
         #: The signed launch board's reader (`launch_board_file.read_board` bound to the
         #: configured file), or None when this receiver serves no board.
         self.board_feed = None
+        #: The auto-grade marker reader (`AutoGrader.marker`), or None when this receiver does not
+        #: grade its own submissions (then no grade state is served).
+        self.grade_marker = None
         #: One writer at a time for the calls that change state (an admission or a source
         #: stage): the cap, idempotency and the once-per-epoch rule hold exactly under any
         #: number of concurrent clients (GPU_REBUILD_RULINGS section 12). Reads (the public
@@ -200,6 +214,19 @@ class DirectRecipeIntake(BatteryIntake):
                     "path": SUBMIT_PATH,
                     "owner": "authenticated_hotkey",
                 },
+                **(
+                    {}
+                    if getattr(self, "grade_marker", None) is None
+                    else {
+                        "exam_feedback_v2": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V2,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        }
+                    }
+                ),
                 "served_contracts": self.door.served_contracts(),
                 # Which catalog entries are officially gradable now: ids and the receipt log's head digest only.
                 "official_gpu": self._official_gpu(),
@@ -324,9 +351,16 @@ class DirectRecipeIntake(BatteryIntake):
                 ),
             )
         if received.call.tool == FEEDBACK_TOOL:
-            if fields:
+            if not fields:
+                return self._feedback(received.receipt.hotkey)
+            if (
+                set(fields) != {"submission_id"}
+                or type(fields["submission_id"]) is not str
+            ):
                 return _refused(400, "feedback_fields")
-            return self._feedback(received.receipt.hotkey)
+            return self._feedback(
+                received.receipt.hotkey, submission_id=fields["submission_id"]
+            )
         return _refused(400, "tool")
 
     def _admit(self, submitted):
@@ -334,12 +368,20 @@ class DirectRecipeIntake(BatteryIntake):
         with self._write:
             return self.door.evaluate(submitted)
 
-    def _feedback(self, hotkey):
+    def _feedback(self, hotkey, *, submission_id=None):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
-        (the signed hotkey is the key)."""
+        (the signed hotkey is the key). With ``submission_id`` (v2), also that
+        submission's grade state; an id the caller does not own and an unknown id
+        are refused with the same code, so the read says nothing of other keys."""
         from .ladder_store import LadderStore, LadderStoreRefused
 
+        if submission_id is not None:
+            if getattr(self, "grade_marker", None) is None:
+                return _refused(503, "grade_state_unavailable")
+            if self.adapter.owner(submission_id) != hotkey:
+                return _refused(404, "feedback_submission_unknown")
+            grade_state = self._grade_state(hotkey, submission_id)
         snapshot = getattr(self.adapter.discovery, "evaluation_pack_snapshot", None)
         exam_key = getattr(snapshot, "manifest_digest", None)
         documents = {"best": None, "latest": None}
@@ -360,7 +402,53 @@ class DirectRecipeIntake(BatteryIntake):
                 },
                 "best": documents["best"],
                 "latest": documents["latest"],
+                **(
+                    {}
+                    if submission_id is None
+                    else {
+                        "schema": FEEDBACK_REPLY_SCHEMA_V2,
+                        "submission": {
+                            "submission_id": submission_id,
+                            "grade_state": grade_state,
+                        },
+                    }
+                ),
             },
+        )
+
+    def _grade_state(self, hotkey, submission_id):
+        """One of `GRADE_STATES` for the caller's own submission, from its auto-grade marker
+        (`AutoGrader.marker`) and the exam slot rows of its round, or None for none of them (a
+        failed grade, or a grade refused for any reason but the two limits).
+
+        No marker yet: QUEUED. A computed grade: GRADED. Refused at a limit: SUPERSEDED_BY_OWN_LATER_SUBMIT
+        when the slot of the submission's round is held by the caller's own LATER submission (a later
+        submit built first and took it), else ROUND_LIMIT_REACHED. No time, count or other key is read
+        out."""
+        from .exam_cap import later_own_holds_the_round
+
+        marker = self.grade_marker(submission_id)
+        if marker is None:
+            return "QUEUED"
+        if marker.get("state") != "GRADED":
+            return None
+        if marker.get("code") is None:
+            return "GRADED"
+        if marker.get("code") not in (
+            "epoch_limit_reached",
+            "exam_daily_allowance_reached",
+        ):
+            return None
+        return (
+            "SUPERSEDED_BY_OWN_LATER_SUBMIT"
+            if later_own_holds_the_round(
+                self.adapter.ledger,
+                self.adapter.contract_digest,
+                hotkey=hotkey,
+                challenge_id=self.challenge.challenge_id,
+                submission_id=submission_id,
+            )
+            else "ROUND_LIMIT_REACHED"
         )
 
     def _stage_source(self, received):

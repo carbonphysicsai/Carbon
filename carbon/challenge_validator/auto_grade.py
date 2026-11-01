@@ -70,6 +70,20 @@ class AutoGrader:
             json.dump(body, handle, sort_keys=True)
             handle.write("\n")
 
+    def marker(self, submission_id):
+        """The task's marker (``{"state", "code", ...}``), or None before it has one (or for a name
+        that is not a task id, or an unreadable marker)."""
+        if type(submission_id) is not str or not _TASK.fullmatch(submission_id):
+            return None
+        path = self._marker(submission_id)
+        try:
+            if path.is_symlink():
+                return None
+            body = json.loads(path.read_text())
+        except (OSError, ValueError):
+            return None
+        return body if type(body) is dict and body.get("schema") == SCHEMA else None
+
     def pending(self):
         """Task ids with no marker yet, in the ledger's order."""
         adapter = self.intake.adapter

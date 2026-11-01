@@ -1704,6 +1704,8 @@ def serve(
                 grader = AutoGrader(
                     intake, root, pool_store=cfg["auto_grade"].get("pool_store")
                 )
+                # The caller's own submission's grade state (exam_feedback v2) reads its marker.
+                intake.grade_marker = grader.marker
             if "auto_grade" in cfg and cfg["auto_grade"].get("pool_store"):
                 intake.koth_view = _king_view(intake, cfg["auto_grade"]["pool_store"])
             if "launch_board" in cfg:

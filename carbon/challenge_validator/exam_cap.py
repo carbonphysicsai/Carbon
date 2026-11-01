@@ -308,6 +308,42 @@ def submission_block(ledger, contract_digest: str, submission_id: str):
     return block if type(block) is int else None
 
 
+def later_own_holds_the_round(
+    ledger, contract_digest: str, *, hotkey, challenge_id, submission_id
+) -> bool:
+    """Whether the slot of ``submission_id``'s round (the epoch of its signed block) is held by
+    one of ``hotkey``'s OWN later submissions: a graded row (RESERVED or COUNTED) of the same
+    hotkey and Challenge in that epoch, the rows `_limit_refusal` counts, whose submission
+    arrived after this one in the attempt ledger. Read-only; False when the block, the rows or
+    the order are unknown."""
+    import sqlite3
+
+    block = submission_block(ledger, contract_digest, submission_id)
+    if type(block) is not int or block < 0:
+        return False
+    try:
+        with ledger._db() as db:
+            holders = db.execute(
+                "SELECT submission_id FROM exam_graded WHERE hotkey=? AND challenge_id=? "
+                "AND epoch=? AND kind='GRADED' AND state IN ('RESERVED','COUNTED') "
+                "AND submission_id<>?",
+                (hotkey, challenge_id, epoch_of(block), submission_id),
+            ).fetchall()
+            arrived = {}
+            for name in (submission_id, *(row[0] for row in holders)):
+                arrived[name] = db.execute(
+                    "SELECT MIN(seq) FROM attempts WHERE kind='OUTCOME' AND "
+                    "contract_digest=? AND submission_id=?",
+                    (contract_digest, name),
+                ).fetchone()[0]
+    except sqlite3.OperationalError:  # no slot table yet: nothing holds the round
+        return False
+    mine = arrived.pop(submission_id)
+    return mine is not None and any(
+        seq is not None and seq > mine for seq in arrived.values()
+    )
+
+
 def _prepare(db):
     for statement in _DDL.strip().split(";"):
         if statement.strip():

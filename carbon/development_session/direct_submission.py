@@ -404,6 +404,20 @@ FEEDBACK_FACTS = {
     "path": SUBMIT_PATH,
     "owner": "authenticated_hotkey",
 }
+#: The same read for one of the signer's own submissions, with its grade state: advertised only by
+#: a receiver that grades its own submissions (`direct_intake.FEEDBACK_REPLY_SCHEMA_V2`).
+FEEDBACK_REPLY_SCHEMA_V2 = "carbon.private-exam.ladder-feedback-reply.v2"
+FEEDBACK_V2_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V2,
+}
+GRADE_STATES = (
+    "GRADED",
+    "QUEUED",
+    "SUPERSEDED_BY_OWN_LATER_SUBMIT",
+    "ROUND_LIMIT_REACHED",
+)
 
 
 def read_exam_feedback(
@@ -416,10 +430,14 @@ def read_exam_feedback(
     context,
     read=read_intake,
     send=post,
+    submission_id=None,
 ):
     """The signer's own private-exam Ladder documents for the active exam
     (OWNER-GRADE-FEEDBACK-LADDER-01): ``{"best", "latest"}``, the best None
     before a result improved it and the latest None before any graded result.
+    With ``submission_id`` and a receiver that advertises the v2 read, also
+    ``"submission": {"submission_id", "grade_state"}`` (one of `GRADE_STATES`, or
+    None for none of them); a receiver without it answers the v1 read.
 
     Only the builder's allow-listed fields are accepted back: a reply of any
     other shape is refused, never trimmed."""
@@ -430,6 +448,9 @@ def read_exam_feedback(
     facts = read(url)
     if facts.get("exam_feedback") != FEEDBACK_FACTS:
         raise DirectIntakeRefusal("exam_feedback_unavailable")
+    v2 = (
+        submission_id is not None and facts.get("exam_feedback_v2") == FEEDBACK_V2_FACTS
+    )
     body = _body(
         facts,
         recipe=recipe,
@@ -437,7 +458,7 @@ def read_exam_feedback(
         receiver=receiver,
         context=context,
         tool=FEEDBACK_TOOL,
-        fields={},
+        fields={"submission_id": submission_id} if v2 else {},
         request=f"exam-feedback-{time.time_ns()}",
     )
     headers = BittensorMessageSigner(signer).sign(
@@ -447,15 +468,28 @@ def read_exam_feedback(
     if status != 200 or type(answer) is not dict:
         raise DirectIntakeRefusal(_refusal_code(answer, "exam_feedback_unavailable"))
     challenge = recipe.to_dict()["challenge"]
+    keys = {"schema", "challenge", "best", "latest"} | ({"submission"} if v2 else set())
     if (
-        set(answer) != {"schema", "challenge", "best", "latest"}
-        or answer["schema"] != FEEDBACK_REPLY_SCHEMA
+        set(answer) != keys
+        or answer["schema"]
+        != (FEEDBACK_REPLY_SCHEMA_V2 if v2 else FEEDBACK_REPLY_SCHEMA)
         or answer["challenge"]
         != {"id": challenge["id"], "version": challenge["version"]}
     ):
         raise DirectIntakeRefusal("exam_feedback_reply_invalid")
+    if v2 and (
+        type(answer["submission"]) is not dict
+        or set(answer["submission"]) != {"submission_id", "grade_state"}
+        or answer["submission"]["submission_id"] != submission_id
+        or (
+            answer["submission"]["grade_state"] is not None
+            and answer["submission"]["grade_state"] not in GRADE_STATES
+        )
+    ):
+        raise DirectIntakeRefusal("exam_feedback_reply_invalid")
     try:
         return {
+            **({"submission": dict(answer["submission"])} if v2 else {}),
             "best": None if answer["best"] is None else checked(answer["best"]),
             "latest": (
                 None
@@ -773,6 +807,12 @@ def refresh_exam_feedback(root, epoch, signer, *, read=read_intake, send=post):
         context=context,
         read=read,
         send=send,
+        # the epoch's own submission, as recorded at admission: its grade state where the receiver serves it
+        submission_id=(
+            record["submission_id"]
+            if type(record.get("submission_id")) is str
+            else None
+        ),
     )
     target = folder / EXAM_FEEDBACK_FILE
     staged = folder / (EXAM_FEEDBACK_FILE + ".tmp")
