@@ -116,9 +116,9 @@ def _undo_a3(text, h_mm):
 # The PaStiX re-pin (owner, 11-01): a versioned deck migration naming SOLVER=PASTIX on the *FREQUENCY and *STATIC lines.
 # These are the PaStiX decks for the same cases; PINNED's deck_* are the SPOOLES-era decks, recovered by `_undo_pastix`.
 PINNED_PASTIX_DECK = {
-    "deck_base": "TO_FILL",
-    "deck_norelief": "TO_FILL",
-    "deck_offset_angle": "TO_FILL",
+    "deck_base": "584cb4b49197c359a909501fbf30f452fdaa2f62b16f2f29f30ae80747aaf456",
+    "deck_norelief": "11e7cfcc53585d1852d016ddf864b584d7bd6aa2a14464707443eafff9bde9eb",
+    "deck_offset_angle": "9436939ccf1f58a4e16f66c2d91272db57a5240a4d7b43d1a64d36f8c62be6c4",
 }
 
 

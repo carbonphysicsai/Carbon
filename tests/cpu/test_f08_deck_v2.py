@@ -600,7 +600,9 @@ def test_the_1_7_deck_default_bytes_are_unchanged_and_a_named_solver_edits_only_
 
 
 #: sha256 of `f08_deck.write_case`'s case.inp for V17_CASE on `_fake_v1_mesh` (the registered generator, never edited).
-V17_FAKE_MESH_DECK_SHA256 = "TO_FILL"
+V17_FAKE_MESH_DECK_SHA256 = (
+    "c1a0219b17133fa04c4a9e2206df60af97b2bf3a8f1efcffcaae0354e61e75b2"
+)
 
 
 @pytest.mark.parametrize(
