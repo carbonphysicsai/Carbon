@@ -357,14 +357,11 @@ def test_the_registry_declares_each_new_version_in_full():
             if field not in own_here:
                 assert getattr(new, field) == getattr(old, field), (cid, field)
         assert new.graph_adapter == "v2"
-        # a scoring-only successor keeps its predecessor's construction (and so its pack version): Motor 1.6
-        # (OWNER/Validator: the same construction, a new scoring), where every other version has its own
-        assert new.pack_version != old.pack_version or (cid, version) in SCORING_ONLY, (
-            cid,
-            version,
-        )
+        # every version has its own pack version, a scoring-only successor too: Motor 1.6 keeps its predecessor's
+        # construction but writes its own pack version ("-7"), so a pack of one version never passes as the other's
+        assert new.pack_version != old.pack_version, (cid, version)
         if (cid, version) in SCORING_ONLY:
-            # the whole difference is the version's identity plus its scoring (sealed evaluation): nothing else
+            # the whole difference is the version's identity, its own pack version and its scoring (sealed evaluation)
             differing = {
                 f
                 for f in new.__dataclass_fields__
@@ -372,6 +369,7 @@ def test_the_registry_declares_each_new_version_in_full():
             }
             assert differing <= {
                 "version",
+                "pack_version",
                 "predecessor",
                 "catalog_entries_from",
                 "sealed_evaluation",
