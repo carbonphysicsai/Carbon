@@ -367,6 +367,7 @@ def test_motor_1_3_is_its_own_catalog_campaign():
     from carbon.challenge_registry.motor import catalog_recipe
     from carbon.motor import campaign
 
+    # 1.6: intended effect of registering Motor 1.6 through the version overlay with catalog: true
     assert campaign.CATALOG_VERSIONS == ("1.2", "1.3", "1.4", "1.5", "1.6")
     document = describe(MOTOR, "1.3")
     assert document["identity"] == "carbon.electric-motor-magnetics-catalog.1.3"

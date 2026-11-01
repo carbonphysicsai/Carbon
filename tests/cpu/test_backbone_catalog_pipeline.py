@@ -214,8 +214,8 @@ def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
     [
         ("cooling.neuralop.FNO", {"id": "chip-cold-plate", "version": "1.1"}),
         ("neuralop.FNO", {"id": "electric-motor-magnetics", "version": "1.1"}),
-        # 1.4 is graph route v2, 1.5 is pool-graded and 1.6 (version overlay) carries 1.5's catalog; 1.7 is unregistered.
-        ("neuralop.FNO", {"id": "electric-motor-magnetics", "version": "1.7"}),
+        # A version no Challenge will ever register (a planned one such as 1.7 would break this the day it registers).
+        ("neuralop.FNO", {"id": "electric-motor-magnetics", "version": "99.0"}),
     ],
 )
 def test_an_entry_offered_where_no_catalog_is_served_is_refused(catalog_id, challenge):
@@ -223,6 +223,14 @@ def test_an_entry_offered_where_no_catalog_is_served_is_refused(catalog_id, chal
     item["challenges"].append(challenge)
     with pytest.raises(pipeline.CatalogBroken, match="serves no backbone catalog"):
         pipeline.verify(item)
+
+
+def test_neuralop_fno_verifies_on_motor_1_6():
+    # Intended effect of the image move: Motor 1.6 (version overlay, catalog: true) serves 1.5's catalog, so the
+    # Motor-tested FNO entry offered on it verifies (Validator ruling; it was the "unregistered" example before).
+    item = copy.deepcopy(pipeline.entry("neuralop.FNO"))
+    item["challenges"].append({"id": "electric-motor-magnetics", "version": "1.6"})
+    pipeline.verify(item)
 
 
 # --- the receipt binds its run facts (Validator, 2026-10-21) ------------------
