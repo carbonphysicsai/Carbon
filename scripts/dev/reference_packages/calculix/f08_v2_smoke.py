@@ -7,8 +7,9 @@ container itself, so a rented pod or the Test Lead's box runs the two commands i
     #                         python3 -c "import f08_deck_v2 as d; ..."  (see `prepare`'s printed `then`), then ccx
     python3 f08_v2_smoke.py report OUTDIR
 
-The NEW inputs' ranges are the owner's (HUMAN_INPUT), so the smoke uses clearly SYNTHETIC stand-ins for fillet radius,
-load angle, offset and damping and a synthetic alloy; every output is labelled ``tables: TEST_ONLY``. The 1.7 TRAIN box
+The new numeric inputs' ranges are registered (OWNER-F08-V2-VALUES-01) and the smoke's stand-ins lie inside them; the
+alloys' properties are still HUMAN_INPUT, so the smoke uses a SYNTHETIC alloy and every output is labelled
+``tables: TEST_ONLY``. The 1.7 TRAIN box
 (length 180-260, width 60-100, thickness 4-8, rib height 8-16, rib thickness 3-5, relief 20-60 mm) is the signed 1.7
 region for the old six inputs.
 """
@@ -38,7 +39,7 @@ BOX = {
 STAND_IN = {
     "fillet_radius_mm": 1.5,
     "load_angle_deg": 0.0,
-    "load_offset_mm": 0.0,
+    "load_offset_frac": 0.0,
     "damping_ratio": 0.01,
     "alloy": "SMOKE_STAND_IN",
 }

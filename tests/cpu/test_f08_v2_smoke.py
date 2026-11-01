@@ -40,9 +40,9 @@ def test_prepare_writes_a_compiling_mesh_program_and_a_test_only_plan(tmp_path):
     assert v2.script_compiles(text) and "SizeMin" in text
     saved = json.loads((tmp_path / "smoke.json").read_text())
     assert saved["case"]["alloy"] == "SMOKE_STAND_IN" and len(saved["then"]) == 3
-    # the synthetic table is only usable in test mode
-    with pytest.raises(v2.Refused):
-        v2.validate_case(saved["case"])  # production ranges are HUMAN_INPUT
+    # the synthetic alloy is not a registered one: only the test table resolves it
+    with pytest.raises(v2.Refused, match="alloy_not_registered"):
+        v2.material(saved["case"]["alloy"])
     row = v2.material("SMOKE_STAND_IN", table=saved["table"], test_mode=True)
     assert row["tables"] == "TEST_ONLY"
 

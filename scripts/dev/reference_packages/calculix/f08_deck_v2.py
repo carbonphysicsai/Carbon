@@ -6,14 +6,16 @@ peak von Mises stress at the rib-root fillet, a local NOTCH response, against th
 - a rib-root fillet (`fillet_radius_mm`) on the four rib/plate junction lines, with local mesh refinement
   (`fillet_h_mm`, the refinement rung), and a FILLET element set for the stress output;
 - `alloy` (a categorical input: its E, nu, rho and yield come from a registered table), `load_angle_deg` (the load
-  direction, rotated about the x axis from +z toward +y; the resultant stays 1 N), `load_offset_mm` (the pad centre's y
+  direction, rotated about the x axis from +z toward +y; the resultant stays 1 N), `load_offset_frac` (the pad centre's y
   offset on the free edge) and `damping_ratio` (a condition, one steady-state sweep instead of 1.7's three bands);
 - `observe_v2`: peak von Mises over the FILLET integration points, and (only when the alloy's yield and the owner's safety
   factor are registered) the ratio to the allowable.
 
-NOTHING owner-set is invented here. Every alloy value, the input ranges of the new inputs, the safety factor and the
-yield gate are `HUMAN_INPUT`: a production deck, observation or stress margin refuses until they are registered.
-`test_mode=True` accepts clearly synthetic values and marks every output `"tables": "TEST_ONLY"`.
+NOTHING owner-set is invented here. OWNER-F08-V2-VALUES-01 (2026-11-01) registers the new inputs' ranges (fillet 0.5-3.0
+mm, load angle 0-45 deg, load offset -0.4 to +0.4 of the width, damping 0.005-0.02), the safety factor 1.5 and the three
+alloy ids. The alloys' E, nu, rho and Fty stay `HUMAN_INPUT` until the two-pass transcription is signed: a production
+deck, observation or yield margin refuses until then. `test_mode=True` accepts clearly synthetic values and marks every
+output `"tables": "TEST_ONLY"`.
 
 The mesh runs in the pinned Gmsh image (not available on a desk); the tests here check the generated script compiles and
 carry the stress parser, the von Mises reduction and the closed-form controls on synthetic data. NO solve is run by this
@@ -50,18 +52,34 @@ GEOMETRY = (
 NEW_INPUTS = (
     "fillet_radius_mm",
     "load_angle_deg",
-    "load_offset_mm",
+    "load_offset_frac",
     "damping_ratio",
 )
 CATEGORICAL = "alloy"
 ALL_INPUTS = (*GEOMETRY, *NEW_INPUTS, CATEGORICAL)
-#: The registered ranges of the NEW inputs: owner values. HUMAN_INPUT refuses a production case.
-RANGES = {name: HUMAN_INPUT for name in NEW_INPUTS}
+#: OWNER-F08-V2-VALUES-01 (owner-approved, 2026-11-01): the registered ranges of the NEW inputs.
+#: load_offset_frac is the pad centre's y offset as a fraction of the plate width (0 = the centre).
+DECISION = "OWNER-F08-V2-VALUES-01"
+RANGES = {
+    "fillet_radius_mm": (0.5, 3.0),
+    "load_angle_deg": (0.0, 45.0),
+    "load_offset_frac": (-0.4, 0.4),
+    "damping_ratio": (0.005, 0.02),
+}
 #: Alloy table: owner-approved values with an open citing source and two transcriptions. Empty until registered.
-ALLOYS: dict = {}
+#: The three registered alloy ids, in registration order (the categorical id is the position). Their E, nu, rho and
+#: Fty stay HUMAN_INPUT until the two-pass transcription is signed.
+ALLOYS: dict = {
+    name: {
+        field: HUMAN_INPUT for field in ("E_mpa", "nu", "rho_t_per_mm3", "yield_mpa")
+    }
+    for name in ("6061-T6", "4130-normalized", "Ti-6Al-4V-annealed")
+}
 ALLOY_FIELDS = ("E_mpa", "nu", "rho_t_per_mm3", "yield_mpa")
 #: Owner values for the stress margin.
-SAFETY_FACTOR = HUMAN_INPUT
+SAFETY_FACTOR = (
+    1.5  # OWNER-F08-V2-VALUES-01: the constraint is static fillet stress <= Fty / 1.5
+)
 STRESS_FIXED = {
     "step": "*EL PRINT,ELSET=FILLET: S at the integration points (C3D10: 4 per element)",
     "reduction": "von Mises",
@@ -107,7 +125,7 @@ def validate_case(case, *, ranges=None, test_mode=False):
     rf = case["fillet_radius_mm"]
     if not (0 < rf < min(case["rib_height_mm"], t, case["rib_thickness_mm"])):
         raise Refused("fillet_radius_exceeds_the_junction")
-    if abs(case["load_offset_mm"]) + v1.PAD_Y / 2 > W / 2 - rf:
+    if abs(case["load_offset_frac"]) * W + v1.PAD_Y / 2 > W / 2:
         raise Refused("load_pad_leaves_the_plate")
     if not (0 < case["damping_ratio"] < 1):
         raise Refused("damping_ratio_out_of_range")
@@ -153,14 +171,14 @@ def load_lines(loads, angle_deg):
 
 def gmsh_script_v2(case, h_mm, fillet_h_mm):
     """The Gmsh program for one case: 1.7's body, the fillet on the four rib junction lines, a refinement field around
-    the fillet faces, the pad at ``load_offset_mm`` and a FILLET element set. Returned as text; it runs in MESH_IMAGE.
+    the fillet faces, the pad at ``load_offset_frac`` and a FILLET element set. Returned as text; it runs in MESH_IMAGE.
     """
     return f"""
 import json, math, gmsh
 case = {json.dumps(case)}
 L, W, t = case["length_mm"], case["width_mm"], case["thickness_mm"]
 hr, tr, lr = case["rib_height_mm"], case["rib_thickness_mm"], case["relief_length_mm"]
-rf, off = case["fillet_radius_mm"], case["load_offset_mm"]
+rf, off = case["fillet_radius_mm"], case["load_offset_frac"] * W
 gmsh.initialize(["-nt", "1"])
 gmsh.option.setNumber("General.Terminal", 0)
 occ = gmsh.model.occ
@@ -444,9 +462,9 @@ def feature_names():
 
 
 def alloy_ids(table=None):
-    """Stable categorical ids: the registered alloys in sorted-name order (0, 1, 2, ...)."""
+    """Stable categorical ids: the registered alloys in registration order (0, 1, 2)."""
     table = ALLOYS if table is None else table
-    return {name: index for index, name in enumerate(sorted(table))}
+    return {name: index for index, name in enumerate(table)}
 
 
 def features(case, *, table=None):

@@ -27,7 +27,7 @@ CASE = {
     "relief_length_mm": 40.0,
     "fillet_radius_mm": 2.0,
     "load_angle_deg": 0.0,
-    "load_offset_mm": 0.0,
+    "load_offset_frac": 0.0,
     "damping_ratio": 0.01,
     "alloy": "TEST_ALLOY",
 }
@@ -35,7 +35,7 @@ CASE = {
 TEST_RANGES = {
     "fillet_radius_mm": (0.5, 4.0),
     "load_angle_deg": (-30.0, 30.0),
-    "load_offset_mm": (-10.0, 10.0),
+    "load_offset_frac": (-0.45, 0.45),
     "damping_ratio": (0.005, 0.02),
 }
 TEST_TABLE = {
@@ -59,11 +59,36 @@ def test_the_pinned_1_7_deck_is_untouched():
 V1_SHA256 = "85b0388b49f8466b21f22f0a2705ec70125c902932dd280085df4b23338653a3"
 
 
-def test_a_production_case_refuses_until_the_owner_registers_the_new_ranges():
+def test_the_new_input_ranges_are_the_owner_registered_ones():
+    assert v2.DECISION == "OWNER-F08-V2-VALUES-01"
+    assert v2.RANGES == {
+        "fillet_radius_mm": (0.5, 3.0),
+        "load_angle_deg": (0.0, 45.0),
+        "load_offset_frac": (-0.4, 0.4),
+        "damping_ratio": (0.005, 0.02),
+    }
+    assert (
+        v2.validate_case(CASE)["fillet_radius_mm"] == 2.0
+    )  # in the registered ranges: no test mode needed
+    for change in (
+        {"fillet_radius_mm": 3.5},
+        {"load_angle_deg": 60.0},
+        {"load_angle_deg": -1.0},
+        {"load_offset_frac": 0.5},
+        {"damping_ratio": 0.03},
+    ):
+        with pytest.raises(v2.Refused, match="out_of_range"):
+            v2.validate_case({**CASE, **change})
+
+
+def test_a_range_that_is_human_input_refuses_unless_test_mode_supplies_it():
+    open_ranges = {**v2.RANGES, "fillet_radius_mm": v2.HUMAN_INPUT}
     with pytest.raises(v2.Refused, match="range_not_registered_fillet_radius_mm"):
-        v2.validate_case(CASE)
-    assert v2.validate_case(CASE, ranges=TEST_RANGES)["alloy"] == "TEST_ALLOY"
-    assert v2.validate_case(CASE, test_mode=True)["fillet_radius_mm"] == 2.0
+        v2.validate_case(CASE, ranges=open_ranges)
+    assert (
+        v2.validate_case(CASE, ranges=open_ranges, test_mode=True)["alloy"]
+        == "TEST_ALLOY"
+    )
 
 
 @pytest.mark.parametrize(
@@ -72,7 +97,7 @@ def test_a_production_case_refuses_until_the_owner_registers_the_new_ranges():
         ({"fillet_radius_mm": 9.0}, "out_of_range"),
         ({"fillet_radius_mm": 0.1}, "out_of_range"),
         ({"rib_height_mm": 0.0}, "fillet_needs_a_rib"),
-        ({"load_offset_mm": 10.0, "width_mm": 30.0}, "load_pad_leaves_the_plate"),
+        ({"load_offset_frac": 0.4, "width_mm": 20.0}, "load_pad_leaves_the_plate"),
         ({"damping_ratio": 0.0}, "out_of_range"),
     ],
 )
@@ -87,8 +112,18 @@ def test_a_fillet_larger_than_the_junction_is_refused():
         v2.validate_case({**CASE, "fillet_radius_mm": 5.5}, ranges=wide)
 
 
-def test_the_alloy_table_is_empty_and_every_value_refuses_until_registered():
-    assert v2.ALLOYS == {} and v2.SAFETY_FACTOR == v2.HUMAN_INPUT
+def test_the_three_alloy_ids_are_registered_but_every_property_refuses_until_the_transcription_is_signed():
+    assert list(v2.ALLOYS) == ["6061-T6", "4130-normalized", "Ti-6Al-4V-annealed"]
+    assert v2.SAFETY_FACTOR == 1.5
+    assert v2.alloy_ids() == {
+        "6061-T6": 0,
+        "4130-normalized": 1,
+        "Ti-6Al-4V-annealed": 2,
+    }
+    for name in v2.ALLOYS:
+        assert all(v == v2.HUMAN_INPUT for v in v2.ALLOYS[name].values())
+        with pytest.raises(v2.Refused, match="alloy_value_not_registered_E_mpa"):
+            v2.material(name)
     with pytest.raises(v2.Refused, match="alloy_not_registered"):
         v2.material("TEST_ALLOY")
     with pytest.raises(v2.Refused, match="alloy_value_not_registered_yield_mpa"):
@@ -191,16 +226,20 @@ def test_the_stress_parser_reads_ccx_rows_and_the_peak_is_the_largest_von_mises(
         v2.peak_von_mises([])
 
 
-def test_the_margin_needs_the_alloy_yield_and_the_owners_safety_factor():
+def test_the_margin_uses_the_registered_safety_factor_and_the_alloy_yield():
     mat = v2.material("TEST_ALLOY", table=TEST_TABLE, test_mode=True)
-    out = v2.observe_v2(CASE, DAT, mat)
-    assert out["margin"] == {"refused": "safety_factor_not_registered"}
+    out = v2.observe_v2(CASE, DAT, mat)  # SF = 1.5 (OWNER-F08-V2-VALUES-01)
     assert out["tables"] == "TEST_ONLY"
-    out = v2.observe_v2(CASE, DAT, mat, safety_factor=1.5)
     assert out["margin"]["allowable_mpa"] == pytest.approx(100.0 / 1.5)
     assert out["margin"]["stress_ratio"] == pytest.approx(120.0 / (100.0 / 1.5))
     with pytest.raises(v2.Refused, match="safety_factor_out_of_range"):
         v2.stress_margin(out, mat, 0.5)
+    refused = v2.observe_v2(CASE, DAT, mat, safety_factor=v2.HUMAN_INPUT)
+    assert refused["margin"] == {"refused": "safety_factor_not_registered"}
+    no_yield = {**mat, "yield_mpa": v2.HUMAN_INPUT}
+    assert v2.observe_v2(CASE, DAT, no_yield)["margin"] == {
+        "refused": "yield_not_registered"
+    }
 
 
 def test_the_cantilever_control_is_elementary_beam_theory():
@@ -228,10 +267,10 @@ def test_the_feature_vector_carries_the_geometry_the_new_inputs_the_alloy_id_and
         **TEST_TABLE,
         "A_FIRST": {**TEST_TABLE["TEST_ALLOY"], "E_mpa": 200000.0},
     }
-    assert v2.alloy_ids(table) == {"A_FIRST": 0, "TEST_ALLOY": 1}
+    assert v2.alloy_ids(table) == {"TEST_ALLOY": 0, "A_FIRST": 1}
     row = v2.features(CASE, table=table)
     assert len(row) == len(names)
-    assert row[names.index("alloy_id")] == 1.0
+    assert row[names.index("alloy_id")] == 0.0
     assert (
         row[names.index("E_mpa")] == 70000.0 and row[names.index("yield_mpa")] == 100.0
     )
