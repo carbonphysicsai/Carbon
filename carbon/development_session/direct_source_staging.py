@@ -80,8 +80,12 @@ def stage_source(
             _verify_complete(name, complete, fingerprint)
             return DirectStageSourceResultV1(name, len(complete), fingerprint, True)
         if current != expected:
+            # a replace that names a file the receiver no longer holds is not a conflict with another file: say so
+            # (REFERENCE_NOT_FOUND, "no manifest held"), so the miner re-stages instead of hunting for a digest
             raise ResearchTaskProviderError(
-                ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+                ResearchServiceErrorCode.REFERENCE_NOT_FOUND
+                if current is None and expected is not None
+                else ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
             )
         identity = (
             name

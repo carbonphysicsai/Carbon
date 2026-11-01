@@ -101,6 +101,37 @@ def test_wrong_bytes_offset_digest_and_compare_swap_fail_closed(tmp_path):
     assert cas.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
 
 
+def test_a_replace_naming_a_manifest_the_receiver_does_not_hold_says_so(tmp_path):
+    # miner feedback 11-01: the CAS answered idempotency_conflict when the receiver held no manifest at all
+    ledger = _ledger(tmp_path)
+    body = b'{"documents":{}}'
+    name = staging.WORKSPACE_MANIFEST
+    held_before = "sha256:" + "1" * 64
+    with pytest.raises(research.ResearchTaskProviderError) as none_held:
+        stage_source(
+            ledger, "alice", _request(name, body, 0, body, expected=held_before)
+        )
+    assert none_held.value.code is research.ResearchServiceErrorCode.REFERENCE_NOT_FOUND
+    assert ResearchWorkspace(ledger, "alice").current_digest(name) is None
+    # a manifest IS held and the replace names another one: still the conflict
+    stage_source(ledger, "alice", _request(name, body, 0, body))
+    replacement = b'{"documents":{"forward":"sha256:' + b"0" * 64 + b'"}}'
+    with pytest.raises(research.ResearchTaskProviderError) as other_held:
+        stage_source(
+            ledger,
+            "alice",
+            _request(name, replacement, 0, replacement, expected=held_before),
+        )
+    assert (
+        other_held.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+    )
+    # naming the held one replaces it
+    held = ResearchWorkspace(ledger, "alice").current_digest(name)
+    assert stage_source(
+        ledger, "alice", _request(name, replacement, 0, replacement, expected=held)
+    ).complete
+
+
 def test_document_name_must_match_bytes_and_call_bounds(tmp_path):
     ledger = _ledger(tmp_path)
     body = b"{}"
