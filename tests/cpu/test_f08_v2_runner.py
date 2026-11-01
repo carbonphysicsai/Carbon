@@ -49,6 +49,11 @@ def _fmt(t):
     return " ".join(f"{v:.6e}" for v in t)
 
 
+def _step(n):
+    """A ccx .dat step header, as `f08_proof.parse_dat` and `f08_deck_v2.stress_blocks_by_step` read it."""
+    return f"\n                        S T E P       {n}\n\n"
+
+
 def _block(rows):
     lines = [HEADER, ""]
     for element, ip, tensor in rows:
@@ -164,7 +169,13 @@ def _synthetic_job_directory(tmp_path, monkeypatch, modes=2):
         (1, 1, (3.0, 0.0, 0.0, 0.0, 0.0, 0.0)),
         (2, 1, (0.0, 1.0, 0.0, 0.0, 0.0, 0.0)),
     ]
-    text = "".join(_block(modal_rows) for _ in range(modes)) + _block(static_rows)
+    text = (
+        _step(1)
+        + "".join(_block(modal_rows) for _ in range(modes))
+        + _step(2)
+        + _step(3)
+        + _block(static_rows)
+    )
     (directory / "case.dat").write_text(text)
     eig = [
         {"mode": i + 1, "eigenvalue": 0.0, "rad": 2 * math.pi * hz, "hz": hz}
@@ -213,6 +224,33 @@ def test_the_observation_gives_the_five_outputs_by_the_decks_own_functions(
     assert all(type(v) is float and math.isfinite(v) for v in out.values())
 
 
+def test_stress_blocks_the_steady_state_step_inherits_are_never_read(
+    tmp_path, monkeypatch
+):
+    # 0034 (11-01): the steady-state step names no *EL PRINT, so ccx keeps the frequency step's FILLET S print there and
+    # writes blocks between the modes and the static block. The observation reads the frequency step's and the static step's.
+    directory, *_ = _synthetic_job_directory(tmp_path, monkeypatch)
+    plain = runner.observe(directory)
+    text = (directory / "case.dat").read_text()
+    noise = [
+        (1, 1, (99.0, 0.0, 0.0, 0.0, 0.0, 0.0)),
+        (2, 1, (0.0, 99.0, 0.0, 0.0, 0.0, 0.0)),
+    ]
+    inherited = text.replace(
+        _step(2), _step(2) + "".join(_block(noise) for _ in range(7))
+    )
+    (directory / "case.dat").write_text(inherited)
+    assert [len(b) for b in v2.stress_blocks_by_step(inherited)] == [2, 7, 1]
+    assert runner.observe(directory) == plain
+    # the static step must carry exactly one block, the frequency step exactly one per mode
+    (directory / "case.dat").write_text(text + _block(noise))
+    with pytest.raises(runner.RunnerRefused, match="stress_blocks:2,0,2"):
+        runner.observe(directory)
+    # a block before the first step belongs to no step
+    with pytest.raises(v2.Refused, match="stress_block_outside_a_step"):
+        v2.stress_blocks_by_step(_block(noise) + text)
+
+
 def test_the_observation_refuses_a_wrong_mode_count_wrong_blocks_or_a_non_finite_output(
     tmp_path, monkeypatch
 ):
@@ -224,7 +262,7 @@ def test_the_observation_refuses_a_wrong_mode_count_wrong_blocks_or_a_non_finite
     (directory / "deck.json").write_text(json.dumps(deck))
     text = (directory / "case.dat").read_text()
     (directory / "case.dat").write_text(text.replace(HEADER, "x", 1))
-    with pytest.raises(runner.RunnerRefused, match="stress_blocks"):
+    with pytest.raises(runner.RunnerRefused, match="stress_blocks:1,0,1"):
         runner.observe(directory)
     (directory / "case.dat").write_text(text)
 

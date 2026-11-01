@@ -769,6 +769,25 @@ def parse_stress_blocks(dat_text):
     return blocks
 
 
+_STEP = re.compile(r"\s+S T E P\s+\d+")
+
+
+def stress_blocks_by_step(dat_text):
+    """`parse_stress_blocks` per ccx STEP: one list of blocks per step, split at the .dat's ``S T E P n`` headers exactly as
+    `f08_proof.parse_dat` splits its steps. A stress block before the first step header is refused (it belongs to no step).
+    """
+    segments, current = [], []
+    for line in dat_text.splitlines(keepends=True):
+        if _STEP.match(line):
+            segments.append(current)
+            current = []
+        current.append(line)
+    segments.append(current)
+    if parse_stress_blocks("".join(segments[0])):
+        raise Refused("stress_block_outside_a_step")
+    return [parse_stress_blocks("".join(segment)) for segment in segments[1:]]
+
+
 def modal_stress_tensors(dat_text, modes):
     """The mass-normalised modal stress fields from the frequency step: ``(keys, array[mode, row, 6])``. The first
     ``modes`` FILLET blocks of the .dat are the modes in order; the static step's block is the one after them.

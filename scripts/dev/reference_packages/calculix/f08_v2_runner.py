@@ -282,9 +282,17 @@ def observe(directory):
     worst = v1.resolved_peak(lambda f: v1.response(modal, f, zeta, "tip"), grid)
     static = steps[2]["events"][0][1]
     static_tip = static[tip][2]
-    blocks = v2.parse_stress_blocks(dat)
-    _need(len(blocks) == modes + 1, "stress_blocks")
-    static_stress = v2.peak_von_mises(blocks[modes])["peak_von_mises_mpa"]
+    # One FILLET stress block per mode in the frequency step, and exactly one in the static step. The steady-state step
+    # names no *EL PRINT, so ccx keeps the frequency step's selection there ("if no *EL PRINT card is used within a step
+    # the selections of the previous step apply"): its blocks, if any, are never read. 0034 (11-01) refused on the old
+    # whole-file count of modes + 1; the refusal names the per-step counts.
+    by_step = v2.stress_blocks_by_step(dat)
+    counts = [len(blocks) for blocks in by_step]
+    _need(
+        len(by_step) == 3 and counts[0] == modes and counts[2] == 1,
+        "stress_blocks:" + ",".join(map(str, counts)),
+    )
+    static_stress = v2.peak_von_mises(by_step[2][0])["peak_von_mises_mpa"]
     _keys, tensors = v2.modal_stress_tensors(dat, modes)
     dynamic = v2.worst_band_dynamic_stress(tensors, modal, zeta)
     outputs = {
