@@ -323,19 +323,13 @@ def _true_order(kept, exact, king_hotkey):
         raise BoardRefused("board_exact")
     values = {}
     for hotkey, total, _status, _gates in kept:
-        if total is None:
-            if exact.get(hotkey) is not None:
-                raise BoardRefused("board_exact")
-            values[hotkey] = None
-            continue
         value = exact.get(hotkey)
-        if value is None:
-            # no exact total is held for this row (the pool store keeps one only on the crown path): it orders by its own
-            # step-floored total, as on a v1 board, and ties only on an equal floored total. Nothing is invented.
-            values[hotkey] = total
-            continue
-        # the shown total is the exact one floored to a step: never above it
-        if (
+        if total is None:
+            if value is not None:
+                raise BoardRefused("board_exact")
+        # the shown total is the exact one floored to a step: never above it. No exact total (the pool store keeps one
+        # only on the crown path) is allowed and nothing is invented for it.
+        elif value is not None and (
             type(value) is not float
             or not math.isfinite(value)
             or not 0.0 <= value <= 1.0
@@ -343,15 +337,50 @@ def _true_order(kept, exact, king_hotkey):
         ):
             raise BoardRefused("board_exact")
         values[hotkey] = value
+    # Validator 17:25 CST: an exact total orders only rows that both hold one; a row with one against a row without is
+    # compared on both floored totals. So the floored total sorts first, and a floored group (equal shown totals) that
+    # holds a row with no exact total is ONE tie: that row is equal to every row in it.
+    mixed = {t for h, t, _s, _g in kept if t is not None and values[h] is None}
+
+    def tie_key(row):
+        hotkey, total = row[0], row[1]
+        if total is None:
+            return None
+        if total in mixed or values[hotkey] is None:
+            return ("floored", total)
+        return ("exact", values[hotkey])
+
     king = [row for row in kept if row[0] == king_hotkey]
     rest = [row for row in kept if row[0] != king_hotkey]
     rest.sort(
-        key=lambda row: (values[row[0]] is None, -(values[row[0]] or 0.0), row[0])
+        key=lambda row: (
+            row[1] is None,
+            -(row[1] or 0.0),
+            values[row[0]] is None,
+            -(values[row[0]] or 0.0),
+            row[0],
+        )
     )
     ordered = [
-        (row, values[row[0]]) for row in king
-    ]  # first; a bit-equal challenger co-ranks 1
-    ordered += [(row, values[row[0]]) for row in rest]
+        (row, tie_key(row)) for row in king
+    ]  # first, alone unless a challenger compares equal
+    ordered += [(row, tie_key(row)) for row in rest]
+    if king and len(ordered) > len(king):
+        # the group right after the king co-ranks 1 when any of its rows compares equal to the king: bit-equal exact
+        # totals when both hold one, else equal floored totals
+        (krow, kkey), group_key = ordered[0], ordered[len(king)][1]
+        group = [
+            i for i in range(len(king), len(ordered)) if ordered[i][1] == group_key
+        ]
+
+        def equal_to_king(row):
+            if values[krow[0]] is not None and values[row[0]] is not None:
+                return values[row[0]] == values[krow[0]]
+            return row[1] is not None and row[1] == krow[1]
+
+        if group_key is not None and any(equal_to_king(ordered[i][0]) for i in group):
+            for i in group:
+                ordered[i] = (ordered[i][0], kkey)
     return ordered
 
 

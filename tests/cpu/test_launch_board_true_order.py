@@ -20,7 +20,7 @@ from carbon.challenge_validator import launch_board as lb
 
 NOW = datetime.datetime.fromtimestamp(1_800_000_000, datetime.UTC)
 KEY = lb.LaunchBoardKey(bytes(range(32)))
-A, B, C, D = (("5" + letter * 47) for letter in "ABCD")
+A, B, C, D, E = (("5" + letter * 47) for letter in "ABCDE")
 STEP = 0.01
 
 
@@ -200,8 +200,52 @@ def test_rows_without_an_exact_total_keep_their_floored_order_and_ties():
         assert repr(value) not in blob
     assert lb.verify(board, KEY.public_key) == board
     # mixed: a challenger with an exact total sorts by it, one without by its floored total (both show 0.71)
+    # mixed: one shows 0.71 with an exact total, one without; compared on both floored totals they tie (Validator 17:25)
     mixed = _partial({HOTKEY: 0.80, A: 0.7101, B: 0.7149}, {HOTKEY: 0.80, A: 0.7101})
-    assert _ranks(mixed) == [(HOTKEY, 1), (A, 2), (B, 3)]
+    assert _ranks(mixed) == [(HOTKEY, 1), (A, 2), (B, 2)]
+
+
+def test_an_exact_total_orders_only_rows_that_also_hold_one():
+    # Validator 17:25 CST: exact vs exact by the exact totals; exact vs floored-only on both FLOORED totals
+    shown = {HOTKEY: 0.90, A: 0.7149, B: 0.7101, C: 0.7125, D: 0.6549, E: 0.6512}
+    exact = {
+        HOTKEY: 0.90,
+        A: 0.7149,
+        B: 0.7101,
+        D: 0.6549,
+        E: 0.6512,
+    }  # C (0.71) has none
+    board = _partial(shown, exact)
+    ranks = dict(_ranks(board))
+    # the 0.71 group holds C (no exact total): C ties A and B, so the whole group is one rank; listed exact-first
+    assert ranks[A] == ranks[B] == ranks[C] == 2
+    assert [r["hotkey"] for r in board["ladder"][1:4]] == [A, B, C]
+    # the 0.65 group holds exact totals only: they order by them
+    assert (ranks[D], ranks[E]) == (5, 6)
+
+
+def test_a_challenger_without_an_exact_total_at_the_kings_shown_total_co_ranks_one():
+    king_shown = _partial({HOTKEY: 0.7123}, {HOTKEY: 0.7123})["king"]["king"]["total"]
+    document = kp.document_v2(
+        **_args(king={"hotkey": HOTKEY, "total": 0.7123, "since_epoch": 12})
+    )
+    scored = {"status": "IMPROVED", "gate_names": []}
+    rows = [
+        (HOTKEY, {"total": 0.7123}, scored),
+        (A, {"total": king_shown}, scored),  # equal floored total, no exact total held
+        (B, {"total": lb.floor9(_floor(0.60))}, scored),
+    ]
+    board = lb.build(
+        king_document=document,
+        rows=rows,
+        network="testnet",
+        key=KEY,
+        version=5,
+        now=NOW,
+        crown_changes=[],
+        exact_totals={HOTKEY: 0.7123, B: 0.60},
+    )
+    assert _ranks(board) == [(HOTKEY, 1), (A, 1), (B, 3)]
 
 
 def test_the_v1_board_is_untouched_by_the_partial_exact_rule():
