@@ -45,6 +45,7 @@ import importlib
 import io
 import json
 import math
+import os
 import platform
 import subprocess
 import sys
@@ -243,9 +244,64 @@ def predict(product, inputs):
     return np.asarray(product["apply"](product["parameters"], inputs), dtype=np.float64)
 
 
+def _is_module(obj):
+    return callable(getattr(obj, "modules", None)) and callable(
+        getattr(obj, "cpu", None)
+    )
+
+
+def _on_device(value):
+    return (
+        callable(getattr(value, "cpu", None))
+        and getattr(getattr(value, "device", None), "type", "cpu") != "cpu"
+    )
+
+
+def to_cpu_inference(product):
+    """Make a trained torch product's ``apply`` run wholly on the CPU, as the official inference does in its own process.
+
+    The catalog build trains on the GPU and returns an ``apply`` closure over the model. ``model.cpu()`` moves the registered
+    parameters and buffers, but not the plain tensors a library module caches on itself (a neuralop grid embedding), so a
+    CPU ``apply`` then mixes devices. Every plain tensor attribute (and a tensor held one level deep in a list, tuple or
+    dict) of every submodule is moved to the CPU. A product with no torch module in its closure (jax, numpy) is returned
+    unchanged."""
+    for cell in getattr(product["apply"], "__closure__", None) or ():
+        try:
+            model = cell.cell_contents
+        except ValueError:  # an empty cell
+            continue
+        if not _is_module(model):
+            continue
+        model.cpu()
+        for module in model.modules():
+            for name, value in list(vars(module).items()):
+                if _on_device(value):
+                    setattr(module, name, value.cpu())
+                elif isinstance(value, dict | list | tuple) and any(
+                    _on_device(v)
+                    for v in (value.values() if isinstance(value, dict) else value)
+                ):
+                    moved = [
+                        v.cpu() if _on_device(v) else v
+                        for v in (value.values() if isinstance(value, dict) else value)
+                    ]
+                    setattr(
+                        module,
+                        name,
+                        (
+                            dict(zip(value, moved, strict=True))
+                            if isinstance(value, dict)
+                            else type(value)(moved)
+                        ),
+                    )
+    return product
+
+
 def timed_fit(builder, x, y, *, seed, configuration, train_use):
     start = time.monotonic()
-    product = builder(x, y, seed=seed, configuration=configuration, train_use=train_use)
+    product = to_cpu_inference(
+        builder(x, y, seed=seed, configuration=configuration, train_use=train_use)
+    )
     return product, time.monotonic() - start
 
 
@@ -597,6 +653,11 @@ def main(argv=None):
     two.add_argument(
         "--runtime", choices=RUNTIMES, help="run only the contenders on this stack"
     )
+    two.add_argument(
+        "--cpu-only",
+        action="store_true",
+        help="hide the GPU (CUDA_VISIBLE_DEVICES empty) so every fit and prediction runs on the CPU, as the official inference does",
+    )
     three = sub.add_parser(
         "predict",
         help="custody step: retrain a recorded selection, predict the probe inputs",
@@ -609,11 +670,18 @@ def main(argv=None):
     three.add_argument(
         "--runtime", choices=RUNTIMES, help="must match the record's runtime"
     )
+    three.add_argument(
+        "--cpu-only",
+        action="store_true",
+        help="hide the GPU so the retrain and prediction run on the CPU",
+    )
     four = sub.add_parser(
         "merge-check", help="refuse a merged result that misses a grid contender"
     )
     four.add_argument("records", nargs="+")
     args = parser.parse_args(argv)
+    if getattr(args, "cpu_only", False):
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""  # before any builder imports torch
     if args.command == "digest":
         print(digest(json.loads(Path(args.grid).read_text(encoding="utf-8"))))
         return 0

@@ -619,3 +619,106 @@ def test_an_existing_empty_output_directory_is_accepted_and_a_filled_one_is_not(
     (filled / "x").write_text("1")
     with pytest.raises(h.Refused, match="output_directory_not_empty"):
         h.make_output_dir(filled)
+
+
+class _Tensor:
+    """A stand-in tensor: a device and a cpu() that returns a CPU copy."""
+
+    def __init__(self, device="cuda"):
+        self.device = type("Device", (), {"type": device})()
+
+    def cpu(self):
+        return _Tensor("cpu")
+
+
+class _Module:
+    def __init__(self, **attributes):
+        self.__dict__.update(attributes)
+        self.moved = False
+        self.children_ = []
+
+    def cpu(self):
+        self.moved = (
+            True  # registered parameters and buffers move; plain attributes do not
+        )
+        return self
+
+    def modules(self):
+        yield self
+        yield from self.children_
+
+
+def _closure_over(model):
+    def apply(params, inputs):
+        return model
+
+    return {"apply": apply, "parameters": []}
+
+
+def test_plain_tensor_attributes_of_a_trained_module_are_moved_to_the_cpu():
+    """The real failure: a library module caches a grid tensor on the GPU, and model.cpu() leaves it there."""
+    inner = _Module(
+        grid=_Tensor(), cache={"a": _Tensor(), "b": 1}, stack=[_Tensor(), 2], name="x"
+    )
+    outer = _Module(embedding=_Tensor())
+    outer.children_ = [inner]
+    product = _closure_over(outer)
+    assert h.to_cpu_inference(product) is product
+    assert outer.moved and outer.embedding.device.type == "cpu"
+    assert inner.grid.device.type == "cpu"
+    assert inner.cache["a"].device.type == "cpu" and inner.cache["b"] == 1
+    assert inner.stack[0].device.type == "cpu" and inner.stack[1] == 2
+    assert inner.name == "x"
+
+
+def test_a_product_without_a_torch_module_is_returned_unchanged():
+    jax_like = {"apply": lambda params, inputs: inputs, "parameters": [1, 2]}
+    assert h.to_cpu_inference(jax_like) is jax_like
+    numpy_like = _fake_build(
+        np.zeros((3, 2)), np.zeros((3, 1)), seed=0, configuration={}, train_use={}
+    )
+    assert h.to_cpu_inference(numpy_like) is numpy_like
+
+
+def test_every_fit_goes_through_the_cpu_normalisation(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(h, "to_cpu_inference", lambda p: (calls.append(1), p)[1])
+    h.timed_fit(
+        _fake_build,
+        np.zeros((4, 2)),
+        np.zeros((4, 1)),
+        seed=0,
+        configuration={},
+        train_use={},
+    )
+    assert calls == [1]
+
+
+def test_cpu_only_hides_the_gpu_before_anything_runs(tmp_path, monkeypatch):
+    monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
+    seen = {}
+
+    def fake_run(*args, **kwargs):
+        seen["cuda"] = h.os.environ.get("CUDA_VISIBLE_DEVICES")
+
+    monkeypatch.setattr(h, "run", fake_run)
+    h.main(
+        [
+            "run",
+            "--grid",
+            "g",
+            "--grid-digest",
+            "d",
+            "--version",
+            "2.5",
+            "--out",
+            "o",
+            "--cpu-only",
+        ]
+    )
+    assert seen["cuda"] == ""
+    monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
+    h.main(
+        ["run", "--grid", "g", "--grid-digest", "d", "--version", "2.5", "--out", "o"]
+    )
+    assert seen["cuda"] is None
