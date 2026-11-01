@@ -301,6 +301,9 @@ FORBIDDEN = (
 )
 #: What a run may read besides code: committed public material under these repository directories.
 PUBLIC_DIRS = ("carbon", "docs/development/evidence")
+#: ...and these exact committed public files: the version registry reads the validator host-class version overlay
+#: (from the image move on main), a tracked repository file with no sealed content.
+PUBLIC_FILES = ("scripts/validator_host_classes/version_overlay.json",)
 _RUN = """
 import json, sys
 sys.path.insert(0, sys.argv[1]); sys.path.insert(0, sys.argv[2])
@@ -356,7 +359,7 @@ def test_the_adapter_imports_nothing_sealed_and_a_run_reads_only_public_reposito
             ), path
             continue
         relative = resolved.relative_to(ROOT).as_posix()
-        assert relative.startswith(PUBLIC_DIRS), relative
+        assert relative.startswith(PUBLIC_DIRS) or relative in PUBLIC_FILES, relative
         assert not any(
             part in relative for part in ("custody", "sealed", "private", "store")
         ), relative
