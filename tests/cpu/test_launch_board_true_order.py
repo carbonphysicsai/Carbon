@@ -67,8 +67,8 @@ def test_the_king_is_first_even_with_a_higher_exact_challenger():
     board = _board(exact)
     assert _ranks(board) == [(HOTKEY, 1), (A, 2)]
     assert (
-        board["ladder"][0]["total"] == board["ladder"][1]["total"]
-    )  # the shown totals are equal
+        board["ladder"][0]["total"] == board["king"]["king"]["total"]
+    )  # the king row follows the crown
     # a challenger far above the king still ranks below the king (the crown has not changed hands)
     assert _ranks(_board({HOTKEY: 0.40, A: 0.90}))[0] == (HOTKEY, 1)
 
