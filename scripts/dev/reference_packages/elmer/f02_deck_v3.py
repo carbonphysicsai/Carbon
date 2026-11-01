@@ -620,6 +620,76 @@ End
 {bcs}"""
 
 
+def resolve_case(case):
+    """The case with its start temperature resolved. A v3-family case (it has ``ramp_fraction``) takes ``start_offset_c``
+    >= 0, the start being the coolant plus the offset (the start is never below the coolant), and its ``initial_c`` is
+    derived; a legacy labelled case is returned unchanged."""
+    if "ramp_fraction" not in case:
+        return case
+    offset = case.get("start_offset_c")
+    if (
+        type(offset) not in (int, float)
+        or isinstance(offset, bool)
+        or not math.isfinite(offset)
+        or offset < 0
+    ):
+        raise DeckRefused("start_offset_invalid")
+    initial = case["coolant_c"] + offset
+    if "initial_c" in case and abs(case["initial_c"] - initial) > 1e-9:
+        raise DeckRefused("start_inconsistent_with_the_offset")
+    return {**case, "initial_c": initial}
+
+
+def property_range_k(materials):
+    """``(low, high)`` K over which every table layer is defined (the largest first knot to the smallest last knot), or
+    None when no property is a table. Outside it Elmer clamps; a solution leaving it is REFERENCE_INVALID.
+    """
+    firsts, lasts = [], []
+    for entry in materials.values():
+        for prop in ("k", "cp"):
+            if is_table(entry[prop]):
+                firsts.append(entry[prop][0][0])
+                lasts.append(entry[prop][-1][0])
+    return (max(firsts), min(lasts)) if firsts else None
+
+
+def extremes(value, low_k, high_k):
+    """``(min, max)`` of a property over [low_k, high_k] (a constant, or the piecewise-linear table with end clamping)."""
+    if not is_table(value):
+        return value, value
+    points = [low_k, high_k] + [t for t, _ in value if low_k < t < high_k]
+    samples = [interpolate(value, t) for t in points]
+    return min(samples), max(samples)
+
+
+def bounds_tables(materials, low_k, high_k):
+    """The two constant-property tables of the bounds law over the observed range [low_k, high_k] K: ``(lower, upper)``
+    where ``lower`` has every table layer at its MAX k and MIN c_p and ``upper`` at its MIN k and MAX c_p, as specified
+    (F02_V3_BUILD_SPEC). Pass each to `write_case(tables=...)`. INFO ONLY until the law is proven (OWNER-F02-V3-PICKS-01);
+    note that a lower c_p speeds the transient heating, so which pairing bounds the peak is what a measured panel decides.
+    """
+    lower, upper = {}, {}
+    for name, entry in materials.items():
+        if not any(is_table(entry[p]) for p in ("k", "cp")):
+            continue
+        k_lo, k_hi = extremes(entry["k"], low_k, high_k)
+        c_lo, c_hi = extremes(entry["cp"], low_k, high_k)
+        lower[name] = {"k": k_hi, "cp": c_lo}
+        upper[name] = {"k": k_lo, "cp": c_hi}
+    return lower, upper
+
+
+def bounds_check(peak_kt, peak_lower, peak_upper, u):
+    """The bounds law's verdict, info only: ``peak_lower - U <= peak_kt <= peak_upper + U``, with ``ordered`` false when the
+    two constant-property peaks are not themselves ordered (the pairing is then not a bound at all).
+    """
+    return {
+        "info_only": True,
+        "ordered": peak_lower <= peak_upper,
+        "within": peak_lower - u <= peak_kt <= peak_upper + u,
+    }
+
+
 def write_case(
     case,
     out,
@@ -638,6 +708,7 @@ def write_case(
     HUMAN_INPUT table raises `DeckRefused`; ``test_mode`` marks the deck and every output "tables": "TEST_ONLY".
     """
     out = Path(out)
+    case = resolve_case(case)
     materials, label = resolve_materials(
         tables, production=production, test_mode=test_mode
     )
@@ -667,6 +738,7 @@ def write_case(
             "tables": label, "materials": materials,
             "nonlinear": {"max_iterations": NONLINEAR_MAX_ITERATIONS, "tolerance": NONLINEAR_TOLERANCE}
             if any(is_table(m[p]) for m in materials.values() for p in ("k", "cp")) else None,
+            "property_range_k": property_range_k(materials),
             "tim_thickness_mm": tim_mm}  # fmt: skip
     (out / "deck.json").write_text(json.dumps(meta, indent=1) + "\n")
     return meta
@@ -783,20 +855,22 @@ def recovery_s(t, top, threshold_c):
 
 
 def second_pulse_window(case):
-    """``(start, end)`` of the second pulse, or None for a single pulse."""
+    """``(start of pulse 2, horizon end)``, or None for a single pulse (OWNER-F02-V3-PICKS-01: the window runs to the end
+    of the horizon, so the soak after the second pulse is part of it)."""
     if case.get("pulses") != 2:
         return None
-    return second_pulse_times(case)
+    return second_pulse_times(case)[0], HORIZON_S
 
 
 def second_pulse_times(case):
+    """``(start, end)`` of the second pulse itself."""
     duration = case["on_time_s"] / 2
     start = round(round(BURST_START_S + duration, 6) + case["gap_s"], 6)
     return start, round(start + duration, 6)
 
 
 def second_pulse_peak_c(t, top, window):
-    """The die-top maximum over the second pulse's own window (start to end, with the interpolated end values)."""
+    """The die-top maximum over ``window`` = [pulse-2 start, horizon end] (None for one pulse)."""
     if window is None:
         return None
     lo, hi = window
@@ -863,8 +937,8 @@ def observe_v3(case_dir, *, threshold_c, baseline_top_c=None, log_path=None):
 
     ``threshold_c`` is a PARAMETER with no default (the 90 C value is the owner's pick). New keys: ``time_above_s`` (total
     time above the threshold), ``threshold_recovery_s`` (last upward to final downward crossing; None if never reached,
-    "NOT_RECOVERED" if still above), ``second_pulse_peak_c`` (the maximum over the second pulse's own window; None for one
-    pulse). A REFERENCE_INVALID run returns only its status and reason (never numbers that look valid). Every result carries
+    "NOT_RECOVERED" if still above), ``second_pulse_peak_c`` (the maximum from the second pulse's start to the horizon end; None
+    for one pulse). A REFERENCE_INVALID run returns only its status and reason (never numbers that look valid). Every result carries
     "tables": the label of the deck's property tables ("TEST_ONLY" for synthetic ones).
     """
     if (
@@ -878,11 +952,29 @@ def observe_v3(case_dir, *, threshold_c, baseline_top_c=None, log_path=None):
     labelled = {"tables": meta.get("tables", "CONSTANT"), "reference": status}
     if status["status"] != "OK":
         return {"status": "REFERENCE_INVALID", **labelled}
-    result = observe(case_dir, baseline_top_c)
     cols, rows = read_scalars(case_dir)
     i_top = next(i for i, c in enumerate(cols) if c.startswith("boundary max"))
     t = [r[0] for r in rows]
     top = [r[i_top] - 273.15 for r in rows]
+    window = meta.get("property_range_k")
+    if window is not None:
+        # Elmer clamps outside the table; a solution that leaves its range is never extrapolated, it is invalid
+        case = meta["case"]
+        coolest = min(
+            min(top) + 273.15, case["coolant_c"] + 273.15, case["initial_c"] + 273.15
+        )
+        if max(top) + 273.15 > window[1] or coolest < window[0]:
+            return {
+                "status": "REFERENCE_INVALID",
+                "tables": labelled["tables"],
+                "reference": {
+                    "status": "REFERENCE_INVALID",
+                    "reason": "out_of_property_range",
+                    "range_k": window,
+                    "observed_k": [coolest, max(top) + 273.15],
+                },
+            }
+    result = observe(case_dir, baseline_top_c)
     return {
         **result,
         "status": "OK",
@@ -894,6 +986,24 @@ def observe_v3(case_dir, *, threshold_c, baseline_top_c=None, log_path=None):
         ),
         **labelled,
     }
+
+
+#: The scalar outputs a TRAIN row may publish: inputs -> these, never a time series (OWNER-F02-V3-PICKS-01).
+SCALAR_KEYS = (
+    "peak_top_c",
+    "first_95c_crossing_s",
+    "extra_energy_j",
+    "time_above_s",
+    "threshold_recovery_s",
+    "second_pulse_peak_c",
+)
+
+
+def scalar_outputs(observed):
+    """The publishable scalars of a valid `observe_v3` result, and nothing else (no 0.5 s series, no patch values)."""
+    if observed.get("status") != "OK":
+        raise DeckRefused("reference_not_valid")
+    return {key: observed[key] for key in SCALAR_KEYS}
 
 
 def _vtu_arrays(case_dir, tim_mm=TIM_MM_DEFAULT):

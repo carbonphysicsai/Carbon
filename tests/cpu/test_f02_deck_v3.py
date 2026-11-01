@@ -446,3 +446,168 @@ def test_the_pinned_v2_deck_is_not_edited():
     # the pinned 2.5 deck keeps its documented sha (deck_v1): v3 is a new file beside it
     digest = hashlib.sha256(Path(v1.__file__).read_bytes()).hexdigest()
     assert digest == "70d51aba555456bdf0cd7dcfa341d665201284955bbdab49273bf14c6d1fb4b4"
+
+
+# --- owner conditions (OWNER-F02-V3-PICKS-01) -------------------------------------------------------------------------
+
+
+def test_the_start_is_the_coolant_plus_a_non_negative_offset():
+    case = {**_wave(), "coolant_c": 30.0, "start_offset_c": 7.5}
+    assert v3.resolve_case(case)["initial_c"] == 37.5
+    assert v3.resolve_case({**case, "start_offset_c": 0.0})["initial_c"] == 30.0
+    for bad in (-0.1, None, float("nan"), True, "5"):
+        with pytest.raises(v3.DeckRefused, match="start_offset_invalid"):
+            v3.resolve_case({**case, "start_offset_c": bad})
+    with pytest.raises(v3.DeckRefused, match="inconsistent"):
+        v3.resolve_case({**case, "initial_c": 31.0})
+    legacy = dict(CASES["cool-rect-low"])
+    assert (
+        v3.resolve_case(legacy) == legacy
+    )  # a labelled legacy case keeps its absolute start
+
+
+def test_a_v3_case_deck_starts_at_the_derived_temperature(tmp_path):
+    case = {
+        **CASES["cool-rect-low"],
+        **_wave(),
+        "coolant_c": 28.0,
+        "start_offset_c": 6.0,
+        "h_w_m2_k": 2500.0,
+        "left_source_fraction": 0.6,
+        "tim_thickness_mm": 0.3,
+    }
+    case.pop("initial_c", None)
+    case.pop("waveform", None)
+    meta = v3.write_case(case, tmp_path / "d")
+    assert meta["case"]["initial_c"] == 34.0 and meta["tim_thickness_mm"] == 0.3
+    assert (
+        f"Temperature = {34.0 + 273.15!r}" in (tmp_path / "d" / "case.sif").read_text()
+    )
+
+
+def _case_dir_v3(directory, series, case, high_k, settings):
+    directory.mkdir(parents=True)
+    rows = "\n".join(f"{t!r} {v + 273.15!r} {v!r}" for t, v in series)
+    (directory / "scalars.dat").write_text(rows + "\n")
+    (directory / "scalars.dat.names").write_text(
+        "   1: time\n   2: boundary max: temperature\n   3: value: temperature at node 1\n"
+    )
+    (directory / "deck.json").write_text(
+        json.dumps(
+            {
+                "case": case,
+                "schedule_w": v3.schedule(case),
+                "tables": "TEST_ONLY",
+                "nonlinear": settings,
+                "property_range_k": [290.0, high_k],
+            }
+        )
+    )
+    return directory
+
+
+def _log_v3(tmp_path, steps):
+    lines = []
+    for iterations, final in steps:
+        for i in range(1, iterations + 1):
+            change = final if i == iterations else 10.0**-i
+            lines.append(
+                f"ComputeChange: NS (ITER={i}) (NRM,RELC): ( 3.4E+02  {change:.3E} ) :: heat equation"
+            )
+    path = tmp_path / "range.log"
+    path.write_text("\n".join(lines) + "\n")
+    return path
+
+
+def test_the_property_range_is_recorded_and_a_solution_outside_it_is_invalid(tmp_path):
+    tables = {
+        "copper": {"k": [(280.0, 400.0), (420.0, 380.0)], "cp": 385.0},
+        "die": {"k": [(290.0, 140.0), (400.0, 110.0)], "cp": 700.0},
+    }
+    materials, _ = v3.resolve_materials(tables, test_mode=True)
+    assert v3.property_range_k(materials) == (290.0, 400.0)
+    assert v3.property_range_k(v3.resolve_materials()[0]) is None
+    settings = {"max_iterations": 8, "tolerance": 1e-8}
+    case = {**CASES["cool-rect-low"], **_wave()}
+    log = _log_v3(tmp_path, [(3, 1e-10)] * 3)
+    inside = _case_dir_v3(
+        tmp_path / "in",
+        [(0.0, 40.0), (50.0, 100.0), (120.0, 45.0)],
+        case,
+        400.0,
+        settings,
+    )
+    assert v3.observe_v3(inside, threshold_c=90.0, log_path=log)["status"] == "OK"
+    hot = _case_dir_v3(
+        tmp_path / "hot",
+        [(0.0, 40.0), (50.0, 130.0), (120.0, 45.0)],
+        case,
+        400.0,
+        settings,
+    )
+    out = v3.observe_v3(hot, threshold_c=90.0, log_path=log)
+    assert (
+        out["status"] == "REFERENCE_INVALID"
+        and out["reference"]["reason"] == "out_of_property_range"
+    )
+    assert "peak_top_c" not in out and out["tables"] == "TEST_ONLY"
+    cool_case = {**case, "coolant_c": 12.0, "initial_c": 12.0}
+    cold = _case_dir_v3(
+        tmp_path / "cold", [(0.0, 12.0), (50.0, 100.0)], cool_case, 400.0, settings
+    )
+    assert (
+        v3.observe_v3(cold, threshold_c=90.0, log_path=log)["reference"]["reason"]
+        == "out_of_property_range"
+    )
+
+
+def test_the_second_pulse_window_runs_from_its_start_to_the_horizon_end():
+    case = _wave(pulses=2, gap_s=8.0, on_time_s=10.0)
+    assert v3.second_pulse_times(case) == (33.0, 38.0)
+    assert v3.second_pulse_window(case) == (33.0, v3.HORIZON_S)
+    assert v3.second_pulse_window(_wave()) is None
+    t, top = [0.0, 30.0, 36.0, 40.0, 100.0], [40.0, 118.0, 110.0, 119.0, 80.0]
+    # the 118 C at 30 s is the FIRST pulse's; the window starts at 33 s, and the soak after pulse 2 is inside it
+    assert v3.second_pulse_peak_c(t, top, v3.second_pulse_window(case)) == 119.0
+
+
+def test_the_scalar_outputs_are_the_publishable_ones_only(tmp_path):
+    case = {**CASES["cool-rect-low"], **_wave()}
+    series = [(0.0, 40.0), (20.0, 40.0), (25.0, 100.0), (60.0, 40.0), (120.0, 40.0)]
+    directory = _case_dir(tmp_path, series, case=case)
+    scalars = v3.scalar_outputs(v3.observe_v3(directory, threshold_c=90.0))
+    assert set(scalars) == set(v3.SCALAR_KEYS)
+    assert not any(
+        "0p5s" in key or "patch" in key for key in scalars
+    )  # no time series is published
+    with pytest.raises(v3.DeckRefused, match="reference_not_valid"):
+        v3.scalar_outputs({"status": "REFERENCE_INVALID"})
+
+
+def test_the_bounds_law_pairs_are_computed_over_the_observed_range_and_stay_info_only():
+    tables = {
+        "copper": {"k": [(280.0, 400.0), (350.0, 390.0), (420.0, 370.0)], "cp": 385.0},
+        "die": {
+            "k": [(280.0, 150.0), (350.0, 120.0), (420.0, 100.0)],
+            "cp": [(280.0, 650.0), (420.0, 750.0)],
+        },
+    }
+    materials, _ = v3.resolve_materials(tables, test_mode=True)
+    lower, upper = v3.bounds_tables(materials, 300.0, 350.0)
+    assert lower["die"]["k"] == pytest.approx(
+        v3.interpolate(materials["die"]["k"], 300.0)
+    )  # the table max in range
+    assert upper["die"]["k"] == pytest.approx(120.0)  # the table min in range
+    assert lower["die"]["cp"] == pytest.approx(
+        v3.interpolate(materials["die"]["cp"], 300.0)
+    )
+    assert upper["die"]["cp"] == pytest.approx(
+        v3.interpolate(materials["die"]["cp"], 350.0)
+    )
+    assert "tim" not in lower  # the TIM is not a table
+    verdict = v3.bounds_check(90.0, 88.0, 92.0, u=0.012)
+    assert verdict == {"info_only": True, "ordered": True, "within": True}
+    assert v3.bounds_check(95.0, 88.0, 92.0, u=0.012)["within"] is False
+    assert (
+        v3.bounds_check(90.0, 93.0, 92.0, u=0.012)["ordered"] is False
+    )  # the pairing is not a bound at all

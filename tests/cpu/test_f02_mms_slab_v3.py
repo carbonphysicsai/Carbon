@@ -211,7 +211,7 @@ def test_the_slab_input_holds_the_underside_fixes_the_flux_and_labels_the_proper
     slab.write_control(tmp_path, 1, 8.0e6)
     text = (tmp_path / "case.sif").read_text()
     assert text.startswith(
-        "! f02 Kirchhoff slab control (test-only properties, tables TEST_ONLY)"
+        "! f02 Kirchhoff slab control, matc path (test-only properties, tables TEST_ONLY)"
     )
     assert "Simulation Type = Steady State" in text and "Heat Flux = 8000000.0" in text
     assert (
@@ -237,3 +237,59 @@ def test_the_slab_result_reader_takes_the_two_point_values(tmp_path):
     (tmp_path / "scalars.dat").write_text("1.0 1.0 1.0\n2.0 2.0 2.0\n")
     with pytest.raises(ValueError, match="not this control's"):
         slab.read_result(tmp_path)
+
+
+# --- the table path ---------------------------------------------------------------------------------------------
+
+
+def test_the_table_path_exact_solution_satisfies_conduction_and_matches_the_table_integral():
+    q = slab.LOADS_W_M2[1]
+    h = slab.LENGTH * 1e-4
+
+    def flux(z):
+        t_lo, t_hi = slab.temperature_table(z - h, q), slab.temperature_table(z + h, q)
+        t_mid = slab.temperature_table(z, q)
+        return deck.interpolate(slab.K_TABLE, t_mid) * (t_hi - t_lo) / (2 * h)
+
+    for fraction in (0.3, 0.6, 0.95):
+        assert flux(fraction * slab.LENGTH) == pytest.approx(q, rel=1e-4)
+    top = slab.temperature_table(slab.LENGTH, q)
+    assert deck.integral(slab.K_TABLE, slab.TA_K, top) == pytest.approx(
+        q * slab.LENGTH, rel=1e-9
+    )
+    assert 280.0 < top < 420.0  # inside the table: no clamping in the control
+    assert slab.exact_temperature("matc", slab.LENGTH, q) != slab.exact_temperature(
+        "table", slab.LENGTH, q
+    )
+    with pytest.raises(ValueError, match="unknown"):
+        slab.exact_temperature("other", slab.LENGTH, q)
+
+
+def test_a_constant_table_reduces_to_the_linear_slab():
+    flat = [(280.0, 390.0), (420.0, 390.0)]
+    q = 1.0e7
+    expected = slab.TA_K + q * slab.LENGTH / 390.0
+    assert slab.temperature_table(slab.LENGTH, q, table=flat) == pytest.approx(
+        expected, rel=1e-9
+    )
+
+
+def test_the_table_input_is_an_elmer_variable_temperature_table_and_the_verdict_uses_its_solution(
+    tmp_path,
+):
+    slab.write_control(tmp_path, 1, 8.0e6, "table")
+    text = (tmp_path / "case.sif").read_text()
+    assert "table path" in text.splitlines()[0]
+    assert "Heat Conductivity = Variable Temperature\n    Real\n" in text
+    assert "MATC" not in text.split("Material 1")[1].split("Initial Condition")[0]
+    for temperature, value in slab.K_TABLE:
+        assert f"{temperature!r} {value!r}" in text
+    q = slab.LOADS_W_M2[0]
+    top, mid = slab.temperature_table(slab.LENGTH, q), slab.temperature_table(
+        slab.LENGTH / 2, q
+    )
+    assert slab.compare(q, top, mid, "table")["pass"] is True
+    assert (
+        slab.compare(q, slab.temperature(slab.LENGTH, q), mid, "table")["top_error_c"]
+        > 0
+    )
