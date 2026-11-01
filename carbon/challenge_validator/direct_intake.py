@@ -243,9 +243,13 @@ class DirectRecipeIntake(BatteryIntake):
         from urllib.parse import unquote
 
         asked = unquote(path[len(koth_public.PATH) :])
+        serve = koth_public.serve
+        if asked.endswith(koth_public.V2_SUFFIX):
+            # the v2 document at its own path; v1 is served unchanged at the existing one
+            asked, serve = asked[: -len(koth_public.V2_SUFFIX)], koth_public.serve_v2
         if asked != self.challenge.challenge_id:
             return _refused(404, "not_found")
-        status, body = koth_public.serve(self.koth_view, self.challenge)
+        status, body = serve(self.koth_view, self.challenge)
         return Answer(status, body)
 
     async def _post(self, headers, body):

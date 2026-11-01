@@ -28,6 +28,11 @@ import urllib.parse
 import urllib.request
 
 SCHEMA = "carbon.koth.public.v1"
+#: v2 (read first when the grader serves it, at its own path): v1 plus ``to_beat_rule``, with the
+#: conservative score to beat (the step-floored total + one Ladder step + the margin, rounded up).
+SCHEMA_V2 = "carbon.koth.public.v2"
+V2_SUFFIX = "/v2"
+TO_BEAT_RULE = "floor_plus_step_plus_margin"
 PATH = "/carbon/v1/koth/"
 FIELDS = frozenset(
     {
@@ -41,6 +46,7 @@ FIELDS = frozenset(
         "baseline_total",
     }
 )
+FIELDS_V2 = FIELDS | {"to_beat_rule"}
 KING_FIELDS = frozenset({"hotkey", "total", "since_epoch"})
 _SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
 _ID = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
@@ -74,11 +80,13 @@ def _total(value, *, nullable=True):
 
 def parse(document, challenge_id):
     """The route's answer for `challenge_id`, checked field by field."""
+    v2 = type(document) is dict and document.get("schema") == SCHEMA_V2
     if (
         type(document) is not dict
-        or set(document) != FIELDS
-        or document["schema"] != SCHEMA
+        or set(document) != (FIELDS_V2 if v2 else FIELDS)
+        or document["schema"] not in (SCHEMA, SCHEMA_V2)
         or document["challenge_id"] != challenge_id
+        or (v2 and document["to_beat_rule"] != TO_BEAT_RULE)
     ):
         raise KingUnreadable("shape")
     version, label = document["challenge_version"], document["exam_version_label"]
@@ -114,7 +122,18 @@ def parse(document, challenge_id):
     # plus the margin, within one Ladder grid step, eta (Validator, king-card
     # receipt: the margin itself is never part of the tolerance).
     held = king["total"] if king is not None else baseline
-    if to_beat is not None:
+    if to_beat is not None and v2:
+        # the conservative bar: the shown (step-floored) score + one step + the margin, rounded up to 3 places
+        from carbon.scoring.grade_feedback import step
+
+        if held is None:
+            raise KingUnreadable("to_beat")
+        expected = min(
+            1.0, math.ceil((held + step(margin) + margin) * 1000 - 1e-9) / 1000
+        )
+        if abs(to_beat - expected) > 1e-9:
+            raise KingUnreadable("to_beat")
+    elif to_beat is not None:
         from carbon.scoring.grade_feedback import ETA
 
         if held is None or abs(to_beat - (held + margin)) > ETA + 1e-9:
@@ -127,6 +146,7 @@ def parse(document, challenge_id):
         "margin": margin,
         "to_beat": to_beat,
         "baseline_total": baseline,
+        **({"conservative": True} if v2 else {}),
     }
 
 
@@ -147,13 +167,19 @@ def read(intake, challenge_id, *, timeout=10.0, opener=_open):
     if not intake_url(intake) or not _ID.fullmatch(challenge_id or ""):
         return None, NO_GRADER
     url = intake.rstrip("/") + PATH + urllib.parse.quote(challenge_id, safe="")
-    try:
-        with opener(url, timeout=timeout) as response:
-            raw = response.read(MAX_BYTES + 1)
-    except urllib.error.HTTPError as refused:
-        return None, NO_ROUTE if refused.code == 404 else UNREACHABLE
-    except (urllib.error.URLError, OSError, ValueError):
-        return None, UNREACHABLE
+    raw = None
+    # v2 first when the grader serves it (404 means it does not: an older grader), then the v1 route
+    for candidate in (url + V2_SUFFIX, url):
+        try:
+            with opener(candidate, timeout=timeout) as response:
+                raw = response.read(MAX_BYTES + 1)
+            break
+        except urllib.error.HTTPError as refused:
+            if refused.code == 404 and candidate != url:
+                continue
+            return None, NO_ROUTE if refused.code == 404 else UNREACHABLE
+        except (urllib.error.URLError, OSError, ValueError):
+            return None, UNREACHABLE
     try:
         if len(raw) > MAX_BYTES:
             raise KingUnreadable("size")
@@ -177,7 +203,13 @@ def words(answer):
             f"(0 to 1, higher is better; exam {label}), since round "
             f"{king['since_epoch']}."
         )
-        if answer["to_beat"] is not None:
+        if answer["to_beat"] is not None and answer.get("conservative"):
+            lines.append(
+                f"Score above {_score(answer['to_beat'])} to be sure to take the "
+                f"crown. The exact bar may be up to one Ladder step lower "
+                f"(margin {_score(answer['margin'])})."
+            )
+        elif answer["to_beat"] is not None:
             lines.append(
                 f"Score to beat: {_score(answer['to_beat'])} (the king's score "
                 f"plus the margin {_score(answer['margin'])})."

@@ -61,11 +61,16 @@ from carbon.scoring import grade_feedback as gf
 from .feed_file import canonical as _canonical
 from .feed_file import write_feed
 from .koth_public import FIELDS as KOTH_FIELDS
-from .koth_public import KING_FIELDS
+from .koth_public import FIELDS_V2 as KOTH_FIELDS_V2
+from .koth_public import KING_FIELDS, TO_BEAT_RULE
 from .score_feed import FeedKey, FeedRefused
 
 SCHEMA = "carbon.validator.launch-board.v1"
 BOARD_DOMAIN = b"carbon.validator.launch-board.v1\x00"
+#: The v2 board: v1's shape plus the king's ``to_beat_rule`` and ``crown_changes``, under its OWN signing domain. v1
+#: stays byte-identical and is still built from a v1 king document; a v1 signature never verifies as v2 or the reverse.
+SCHEMA_V2 = "carbon.validator.launch-board.v2"
+BOARD_DOMAIN_V2 = b"carbon.validator.launch-board.v2\x00"
 CONFIG_SCHEMA = "carbon.validator.launch-board.config.v1"
 NETWORKS = ("testnet", "mainnet")
 #: The labels a board may carry: never FIXTURE (a fixture is never served).
@@ -85,6 +90,12 @@ FIELDS = frozenset(
         "signature",
     }
 )
+FIELDS_V2 = FIELDS | {"crown_changes"}
+KING_SECTION = ("king", "margin", "to_beat", "baseline_total")
+KING_SECTION_V2 = (*KING_SECTION, "to_beat_rule")
+#: A board shows at most this many changes of king, newest first.
+MAX_CROWN_CHANGES = 5
+CROWN_CHANGE_FIELDS = frozenset({"from_hotkey", "to_hotkey", "since_epoch", "total"})
 CHALLENGE_FIELDS = frozenset({"id", "version", "exam_version_label"})
 LADDER_FIELDS = frozenset({"rank", "hotkey", "total", "status", "gate_names"})
 COUNT_FIELDS = ("graded", "scored", "gate_failed", "not_scored")
@@ -129,6 +140,11 @@ class BoardRefused(ValueError):
         self.code = code
 
 
+def _domain(document):
+    """The signing domain of a board's schema: v2 has its own, anything else is v1's."""
+    return BOARD_DOMAIN_V2 if document.get("schema") == SCHEMA_V2 else BOARD_DOMAIN
+
+
 class LaunchBoardKey(FeedKey):
     """The validator's feed key, signing launch boards: under `BOARD_DOMAIN`
     only, never the feed's or the snapshot's domain."""
@@ -137,7 +153,7 @@ class LaunchBoardKey(FeedKey):
         return "LaunchBoardKey(<redacted>)"
 
     def sign(self, document):
-        return self._key.sign(BOARD_DOMAIN + _canonical(document).encode()).hex()
+        return self._key.sign(_domain(document) + _canonical(document).encode()).hex()
 
 
 def _unit(value, code):
@@ -151,9 +167,11 @@ def _unit(value, code):
     return float(value)
 
 
-def _king(raw):
-    """The closed king document (`koth_public.document`'s shape) or a refusal."""
-    if type(raw) is not dict or set(raw) != KOTH_FIELDS:
+def _king(raw, *, v2=False):
+    """The closed king document (`koth_public.document`'s shape, or `document_v2`'s) or a refusal."""
+    if type(raw) is not dict or set(raw) != (KOTH_FIELDS_V2 if v2 else KOTH_FIELDS):
+        raise BoardRefused("board_king")
+    if v2 and raw["to_beat_rule"] != TO_BEAT_RULE:
         raise BoardRefused("board_king")
     king = raw["king"]
     if king is not None:
@@ -195,7 +213,44 @@ def _king(raw):
         "margin": optional("margin", ceil9),
         "to_beat": optional("to_beat", ceil9),
         "baseline_total": optional("baseline_total", floor9),
+        **({"to_beat_rule": raw["to_beat_rule"]} if v2 else {}),
     }
+
+
+def crown_changes_checked(changes):
+    """The closed ``crown_changes`` list (at most `MAX_CROWN_CHANGES`, each exactly the four keys, hotkeys as the king
+    page shows them, the total rounded as every public total), or a refusal. Nothing else can pass through.
+    """
+    if type(changes) is not list or len(changes) > MAX_CROWN_CHANGES:
+        raise BoardRefused("board_crown_changes")
+    out = []
+    for change in changes:
+        if (
+            type(change) is not dict
+            or set(change) != CROWN_CHANGE_FIELDS
+            or type(change["to_hotkey"]) is not str
+            or not _SS58.fullmatch(change["to_hotkey"])
+            or (
+                change["from_hotkey"] is not None
+                and (
+                    type(change["from_hotkey"]) is not str
+                    or not _SS58.fullmatch(change["from_hotkey"])
+                )
+            )
+            or type(change["since_epoch"]) is not int
+            or isinstance(change["since_epoch"], bool)
+            or change["since_epoch"] < 0
+        ):
+            raise BoardRefused("board_crown_changes")
+        out.append(
+            {
+                "from_hotkey": change["from_hotkey"],
+                "to_hotkey": change["to_hotkey"],
+                "since_epoch": change["since_epoch"],
+                "total": floor9(_unit(change["total"], "board_crown_changes")),
+            }
+        )
+    return out
 
 
 def ladder_rows(rows):
@@ -249,7 +304,7 @@ def counts(ladder):
     }
 
 
-def build(*, king_document, rows, network, key, version, now=None):
+def build(*, king_document, rows, network, key, version, now=None, crown_changes=None):
     """The signed launch board for one Challenge.
 
     ``king_document`` is the receiver's `koth_public.document` (its public
@@ -261,11 +316,12 @@ def build(*, king_document, rows, network, key, version, now=None):
         raise BoardRefused("board_network")
     if type(version) is not int or version < 1:
         raise BoardRefused("board_version")
-    king = _king(king_document)
+    v2 = crown_changes is not None
+    king = _king(king_document, v2=v2)
     ladder = ladder_rows(rows)
     moment = datetime.datetime.now(datetime.UTC) if now is None else now
     document = {
-        "schema": SCHEMA,
+        "schema": SCHEMA_V2 if v2 else SCHEMA,
         "version": version,
         "labels": list(LABELS[network]),
         "network": network,
@@ -277,10 +333,11 @@ def build(*, king_document, rows, network, key, version, now=None):
         },
         "validator": {"feed_key": key.public_key},
         "king": {
-            name: king[name] for name in ("king", "margin", "to_beat", "baseline_total")
+            name: king[name] for name in (KING_SECTION_V2 if v2 else KING_SECTION)
         },
         "ladder": ladder,
         "counts": counts(ladder),
+        **({"crown_changes": crown_changes_checked(crown_changes)} if v2 else {}),
     }
     check(document, unsigned=True)
     return {**document, "signature": key.sign(document)}
@@ -289,10 +346,14 @@ def build(*, king_document, rows, network, key, version, now=None):
 def check(document, *, unsigned=False):
     """The document when it has exactly the board's closed shape, else a
     `BoardRefused`: the writer's last step and the reader's first."""
-    want = FIELDS - ({"signature"} if unsigned else set())
+    v2 = type(document) is dict and document.get("schema") == SCHEMA_V2
+    want = (FIELDS_V2 if v2 else FIELDS) - ({"signature"} if unsigned else set())
     if type(document) is not dict or set(document) != want:
         raise BoardRefused("board_fields")
-    if document["schema"] != SCHEMA or document["network"] not in NETWORKS:
+    if (
+        document["schema"] not in (SCHEMA, SCHEMA_V2)
+        or document["network"] not in NETWORKS
+    ):
         raise BoardRefused("board_schema")
     if document["labels"] != LABELS[document["network"]]:
         raise BoardRefused("board_labels")
@@ -318,12 +379,9 @@ def check(document, *, unsigned=False):
     ):
         raise BoardRefused("board_validator")
     king = document["king"]
-    if type(king) is not dict or set(king) != {
-        "king",
-        "margin",
-        "to_beat",
-        "baseline_total",
-    }:
+    if type(king) is not dict or set(king) != set(
+        KING_SECTION_V2 if v2 else KING_SECTION
+    ):
         raise BoardRefused("board_king")
     _king(
         {
@@ -332,7 +390,8 @@ def check(document, *, unsigned=False):
             "challenge_version": challenge["version"],
             "exam_version_label": challenge["exam_version_label"],
             **king,
-        }
+        },
+        v2=v2,
     )
     shown = [king[name] for name in ("margin", "to_beat", "baseline_total")]
     if king["king"] is not None:
@@ -371,6 +430,12 @@ def check(document, *, unsigned=False):
             raise BoardRefused("board_ladder")
     if document["counts"] != counts(ladder):
         raise BoardRefused("board_counts")
+    if (
+        v2
+        and crown_changes_checked(document["crown_changes"])
+        != document["crown_changes"]
+    ):
+        raise BoardRefused("board_crown_changes")
     return document
 
 
@@ -386,7 +451,7 @@ def verify(document, pinned_key):
         body = {k: v for k, v in document.items() if k != "signature"}
         Ed25519PublicKey.from_public_bytes(bytes.fromhex(pinned_key)).verify(
             bytes.fromhex(document["signature"]),
-            BOARD_DOMAIN + _canonical(body).encode(),
+            _domain(body) + _canonical(body).encode(),
         )
     except (InvalidSignature, KeyError, TypeError, ValueError, AttributeError):
         raise BoardRefused("board_signature") from None
@@ -411,7 +476,15 @@ def _config(path):
 
 
 def build_from_ledger(
-    *, ledger, challenge, exam_key, king_document, network, key, version
+    *,
+    ledger,
+    challenge,
+    exam_key,
+    king_document,
+    network,
+    key,
+    version,
+    crown_changes=None,
 ):
     """The signed board for ``challenge`` (an object with `challenge_id` and `version`)
     from the receiver's ledger file (read-only) and its king document. ``exam_key``
@@ -428,6 +501,7 @@ def build_from_ledger(
         network=network,
         key=key,
         version=version,
+        crown_changes=crown_changes,
     )
 
 

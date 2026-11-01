@@ -107,7 +107,8 @@ def test_the_reader_asks_the_graders_route_and_says_why_when_it_cannot():
 
     shown, why = king.read("https://grader.example/", COOLING, opener=opener)
     assert why is None and shown["king"]["hotkey"] == HOTKEY
-    assert asked == ["https://grader.example/carbon/v1/koth/chip-cold-plate"]
+    # the v2 route first (a grader that serves only v1 answers 404 and the v1 route is asked next)
+    assert asked == ["https://grader.example/carbon/v1/koth/chip-cold-plate/v2"]
 
     def missing(url, timeout):
         raise urllib.error.HTTPError(url, 404, "Not Found", {}, io.BytesIO(b""))

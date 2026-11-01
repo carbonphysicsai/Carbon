@@ -279,7 +279,7 @@ Official submissions for this version go to https://cooling-door.carbonphysics.a
 - **Input ranges:** channel_width_mm 0.2–0.5, fin_width_mm 0.2–0.5, channel_depth_mm 1.0–3.0, flow_lpm_per_kw 1.25–2.0, inlet_c 30.0–45.0, heat_load_w 500.0–1500.0, hotspot_ratio 1.0–3.0, hotspot_center_mm 3.0–27.0, hotspot_width_mm 1.5–3.5
 - **Registered measurement uncertainty U:** die_peak_c = 0.037, hydraulic_w = 3 % of the value
 
-**Current kings** (Overview): for each Challenge whose grader you use, who holds it now (their mining key address and score on this exam version), and the **score to beat**: the king's score plus the registered margin. With no king yet, you need to beat Carbon's baseline. Until the margin has been measured, the card says **Takeovers paused** and shows no score to beat. The card never shows anyone's recipe.
+**Current kings** (Overview): for each Challenge whose grader you use, who holds it now (their mining key address and score on this exam version), and the **score to beat**. Where the grader serves the newer king document (`/v2`), the card shows the conservative bar: *score above this to be sure to take the crown*; the exact bar may be up to one Ladder step lower, because the shown king score is rounded down to the step and the bar adds one step and the margin on top of it (rounded up to three places). An older grader still shows the king's score plus the registered margin. With no king yet, you need to beat Carbon's baseline. Until the margin has been measured, the card says **Takeovers paused** and shows no score to beat. The card never shows anyone's recipe.
 
 ---
 
