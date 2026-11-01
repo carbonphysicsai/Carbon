@@ -11,11 +11,13 @@ scalars. Bundle entries regrade through the same path.
         --artifact-directory ARTIFACTS --entry-directory ENTRIES --work SCRATCH --stored STORED.json
         [--challenge ID --version V --agen-scale-sets SETS.json] [--no-pick-values] [--in-place] [--json]
 
-- The receiver must be STOPPED (its serve unit holds the receiver state lock, as for ``--regrade-entry``).
+- Run against a scratch copy of the receiver root (sqlite backup API, modes 700/600). Never stop a live receiver; doors
+  stay up. If ``--config``'s root is held by a running serve unit the receiver's state lock is taken, and the tool
+  refuses with exit 2 and a clear message (it does not wait).
 - The regrade is the receiver's uncounted REGRADE: no pool store is given, so nothing is filed for the Ladder, KOTH or the
   pool. By default the entry's task files (origin task directory, roles, custody and the entry) are COPIED under ``--work``
-  and the regrade writes there, so the receiver's ``artifacts/`` and ``entries/`` are not changed (``--in-place`` runs on
-  them as ``--regrade-entry`` does). The receiver's own ledger and snapshot files are used as the regrade uses them.
+  and the regrade writes there, so the receiver's ``artifacts/`` and ``entries/`` are not changed (``--in-place``, scratch roots
+  only, runs on them as ``--regrade-entry`` does). The receiver's own ledger and snapshot files are used as the regrade uses them.
 - ``--stored`` names what the receiver recorded for the entry (``{"A": x, "D": y}`` or one document with one ``legs``
   object with ``A`` and ``D``, e.g. the entry's original evaluation binding). The tool exits 0 ONLY when the regraded A and D
   (the legs of the regrade's own bound evaluation) EQUAL the stored legs bit for bit and the recomputed D equals the grader's
@@ -217,7 +219,11 @@ def main(argv=None):
         help="the agen-sets-<kind>-<version>.json the recorder wrote; needs --challenge and --version, which it must match",
     )
     parser.add_argument("--no-pick-values", action="store_true")
-    parser.add_argument("--in-place", action="store_true")
+    parser.add_argument(
+        "--in-place",
+        action="store_true",
+        help="scratch roots only: run on --artifact-directory/--entry-directory themselves",
+    )
     parser.add_argument("--json", action="store_true", help="print the report as JSON")
     args = parser.parse_args(argv)
     from carbon.challenge_validator import cpu_pin
@@ -254,6 +260,15 @@ def main(argv=None):
         print(f"REFUSED: {type(refused).__name__}: {refused}", file=sys.stderr)
         return 2
     except Exception as failure:  # noqa: BLE001
+        from scripts.dev.miner_launchpad.controller import LockHeld
+
+        if isinstance(failure, LockHeld):
+            print(
+                "REFUSED: --config's receiver root is held by a running serve unit; "
+                "run against a scratch copy of the root, never stop a live receiver",
+                file=sys.stderr,
+            )
+            return 2
         # the receiver's typed unavailable codes; never its private text
         code = getattr(failure, "code", None) or str(failure)
         print(f"REFUSED: {type(failure).__name__}: {code}", file=sys.stderr)

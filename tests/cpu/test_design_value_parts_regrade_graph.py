@@ -251,3 +251,36 @@ def test_the_command_exits_zero_one_and_two(tmp_path, receiver, monkeypatch, cap
     assert invoke({"A": base["A"]}) == 2  # no D
     assert invoke({"A": base["A"], "D": base["D"]}, "--agen-scale-sets", "x.json") == 2
     assert "--challenge and --version" in capsys.readouterr().err
+
+
+def test_a_receiver_root_held_by_a_running_serve_is_refused_clearly(
+    tmp_path, receiver, monkeypatch, capsys
+):
+    from scripts.dev.miner_launchpad.controller import LockHeld
+
+    def held(*_args):
+        raise LockHeld("held")
+
+    monkeypatch.setattr(cpu_pin, "require", lambda: None)
+    monkeypatch.setattr(tool, "_run_receiver", held)
+    artifacts, entries = receiver
+    stored = tmp_path / "stored.json"
+    stored.write_text(json.dumps({"A": 0.5, "D": 0.5}))
+    code = tool.main(
+        [
+            "--config",
+            str(tmp_path / "receiver.json"),
+            "--entry",
+            ENTRY,
+            "--artifact-directory",
+            str(artifacts),
+            "--entry-directory",
+            str(entries),
+            "--work",
+            str(tmp_path / "w"),
+            "--stored",
+            str(stored),
+        ]
+    )
+    assert code == 2
+    assert "running serve unit" in capsys.readouterr().err
