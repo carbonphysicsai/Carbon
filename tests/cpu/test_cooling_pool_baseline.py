@@ -362,3 +362,67 @@ def test_an_unregistered_s_h_reads_as_the_placeholder_only_while_calibrating(tmp
         pytest.raises(pool_version.PoolConstantsNotRegistered),
     ):
         pool_version.registered_policies("chip-cold-plate", "1.7", path=path)
+
+
+# --- 1.7's own producer identity -------------------------------------------------------------------------------------
+
+
+def test_1_7s_producer_identity_covers_its_module_and_routing_and_1_3_to_1_6_are_unmoved(
+    tmp_path, monkeypatch
+):
+    import shutil
+
+    from carbon.scoring import (
+        cooling_dual_pack,
+        cooling_encoded_dual_pack,
+    )
+
+    new = {"cooling_pool_baseline_dual_pack.py", "physical_adapters.py"}
+    assert new <= set(seventeen.FILES)
+    for older in (cooling_dual_pack, cooling_encoded_dual_pack, hotspot):
+        assert not (
+            new & set(older.FILES)
+        ), older.__name__  # 1.3-1.6 never name the new files
+    scoring = Path(physical.__file__).parent
+    names = sorted(
+        {*physical._SHARED_FILES, *seventeen.FILES, *hotspot.FILES, *encoded_files()}
+    )
+
+    def digests(root):
+        monkeypatch.setattr(physical, "__file__", str(root / "physical_dual_pack.py"))
+        return {
+            "1.7": physical.producer_digest(seventeen),
+            "1.6": physical.producer_digest(hotspot),
+            "1.5": physical.producer_digest(cooling_encoded_dual_pack),
+            "1.0": physical.producer_digest(cooling_dual_pack),
+        }
+
+    base = tmp_path / "base"
+    base.mkdir()
+    for name in names:
+        shutil.copy(scoring / name, base / name)
+    reference = digests(base)
+    assert len(set(reference.values())) == 4
+    for touched in sorted(new):
+        copy = tmp_path / touched.replace(".py", "")
+        shutil.copytree(base, copy)
+        (copy / touched).write_bytes((copy / touched).read_bytes() + b"\n# changed\n")
+        moved = digests(copy)
+        assert moved["1.7"] != reference["1.7"], touched  # 1.7 moves with either file
+        assert {k: v for k, v in moved.items() if k != "1.7"} == {
+            k: v for k, v in reference.items() if k != "1.7"
+        }  # 1.0-1.6 are byte-identical
+
+
+def encoded_files():
+    from carbon.scoring import cooling_dual_pack, cooling_encoded_dual_pack
+
+    return (*cooling_encoded_dual_pack.FILES, *cooling_dual_pack.FILES)
+
+
+def test_cooling_1_7_is_routed_to_its_own_module_by_the_development_selector():
+    from carbon.scoring import physical_adapters
+
+    chosen = physical_adapters._static()["chip-cold-plate"]
+    assert chosen("1.7") is seventeen
+    assert chosen("1.6") is not seventeen

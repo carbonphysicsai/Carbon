@@ -24,6 +24,7 @@ def _static():
     from carbon.scoring import (
         cooling_dual_pack,
         cooling_encoded_dual_pack,
+        cooling_pool_baseline_dual_pack,
         dev_grid,
         f02_dual_pack,
         f08_dual_pack,
@@ -43,9 +44,14 @@ def _static():
         cooling_dual_pack.CHALLENGE: lambda version: (
             dev_grid.adapter(cooling_dual_pack.CHALLENGE, version)
             or (
-                physical.versioned(cooling_encoded_dual_pack, version)
-                if version in cooling_encoded_dual_pack.VERSIONS
-                else physical.versioned(cooling_dual_pack, version)
+                # Cooling 1.7 (its own module and producer identity: the baseline's minimums graded like a miner's)
+                physical.versioned(cooling_pool_baseline_dual_pack, version)
+                if version in cooling_pool_baseline_dual_pack.VERSIONS
+                else (
+                    physical.versioned(cooling_encoded_dual_pack, version)
+                    if version in cooling_encoded_dual_pack.VERSIONS
+                    else physical.versioned(cooling_dual_pack, version)
+                )
             )
         ),
         # Dev-pack v2: a dev-grid version's development adapter is the sealed v2 grader

@@ -35,7 +35,9 @@ CASE_ID = hotspot.CASE_ID
 VERSIONS = {VERSION: (EVALUATION_VERSION, CASE_ID)}
 #: The pool-graded evaluation version of 1.7 (a NEW version string: its minimums differ from 1.6's). Proposed.
 POOL_VERSIONS = {VERSION: ("cooling-pool-sealed-v3", "cooling-sealed-pool-set")}
-FILES = (*hotspot.FILES, "cooling_pool_baseline_dual_pack.py")
+#: 1.7's OWN producer identity covers its new module and the routing that selects it (`physical_adapters.py`), so it is never an
+#: unpinned producer; 1.3-1.6's FILES do not name either, so their identities are byte-identical to before.
+FILES = (*hotspot.FILES, "cooling_pool_baseline_dual_pack.py", "physical_adapters.py")
 
 #: Where the minimums come from, for the pack's `leg_minimum_source` and the structural test.
 MINIMUM_SOURCE = "pool_exam.measure_pool"
