@@ -376,6 +376,7 @@ def _board(changes, *, v2=True, key=None):
         version=3,
         now=datetime.datetime.fromtimestamp(1_800_000_000, datetime.UTC),
         crown_changes=changes if v2 else None,
+        exact_totals={} if v2 else None,
     )
     return board, signer
 

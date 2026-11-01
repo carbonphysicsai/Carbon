@@ -253,11 +253,16 @@ def crown_changes_checked(changes):
     return out
 
 
-def ladder_rows(rows):
+def ladder_rows(rows, *, exact=None, king_hotkey=None):
     """The board's ladder from `ladder_store.board_rows`: ``[(hotkey, best,
     latest)]`` with each document as the Ladder serves it. One row per hotkey:
     its best total (null before any improvement) and its latest status, ranked
-    by total, highest first, equal totals sharing a rank."""
+    by total, highest first, equal totals sharing a rank.
+
+    With ``exact`` (a v2 board; OWNER-BOARD-TRUE-ORDER-01) the order is the TRUE one: the current king (``king_hotkey``)
+    is always rank 1, every other row follows by descending EXACT best total, and equal ranks only when the exact totals
+    are bit-equal. The published ``total`` stays step-floored, and the exact totals never leave this function: only the
+    order is revealed."""
     kept = []
     for hotkey, best, latest in rows:
         if type(hotkey) is not str or not _SS58.fullmatch(hotkey):
@@ -273,11 +278,19 @@ def ladder_rows(rows):
         if gates is not None and len(gates) > MAX_GATES:
             raise BoardRefused("board_gates")
         kept.append((hotkey, total, latest["status"], gates))
-    kept.sort(key=lambda row: (row[1] is None, -(row[1] or 0.0), row[0]))
+    if exact is None:
+        kept.sort(key=lambda row: (row[1] is None, -(row[1] or 0.0), row[0]))
+        keys = [row[1] for row in kept]
+    else:
+        keys = _true_order(kept, exact, king_hotkey)
+        kept = [row for row, _ in keys]
+        keys = [key for _, key in keys]
     out, rank, previous = [], 0, object()
-    for position, (hotkey, total, status, gates) in enumerate(kept, 1):
-        if total != previous:
-            rank, previous = position, total
+    for position, ((hotkey, total, status, gates), key) in enumerate(
+        zip(kept, keys, strict=True), 1
+    ):
+        if key != previous:
+            rank, previous = position, key
         row = {
             "rank": rank,
             "hotkey": hotkey,
@@ -289,6 +302,41 @@ def ladder_rows(rows):
     if len(out) > MAX_LADDER:
         raise BoardRefused("board_ladder_size")
     return out
+
+
+def _true_order(kept, exact, king_hotkey):
+    """``[(row, tie_key)]`` in the true order: the king first (alone at rank 1), then descending exact best total; the
+    tie key is the exact total itself (so only bit-equal totals share a rank), or None for a row with no best total.
+    """
+    if type(exact) is not dict:
+        raise BoardRefused("board_exact")
+    values = {}
+    for hotkey, total, _status, _gates in kept:
+        if total is None:
+            if exact.get(hotkey) is not None:
+                raise BoardRefused("board_exact")
+            values[hotkey] = None
+            continue
+        value = exact.get(hotkey)
+        # the shown total is the exact one floored to a step: never above it
+        if (
+            type(value) is not float
+            or not math.isfinite(value)
+            or not 0.0 <= value <= 1.0
+            or value < total
+        ):
+            raise BoardRefused("board_exact")
+        values[hotkey] = value
+    king = [row for row in kept if row[0] == king_hotkey]
+    rest = [row for row in kept if row[0] != king_hotkey]
+    rest.sort(
+        key=lambda row: (values[row[0]] is None, -(values[row[0]] or 0.0), row[0])
+    )
+    ordered = [
+        (row, ("king", row[0])) for row in king
+    ]  # alone at rank 1: a unique tie key
+    ordered += [(row, values[row[0]]) for row in rest]
+    return ordered
 
 
 def counts(ladder):
@@ -304,7 +352,17 @@ def counts(ladder):
     }
 
 
-def build(*, king_document, rows, network, key, version, now=None, crown_changes=None):
+def build(
+    *,
+    king_document,
+    rows,
+    network,
+    key,
+    version,
+    now=None,
+    crown_changes=None,
+    exact_totals=None,
+):
     """The signed launch board for one Challenge.
 
     ``king_document`` is the receiver's `koth_public.document` (its public
@@ -318,7 +376,15 @@ def build(*, king_document, rows, network, key, version, now=None, crown_changes
         raise BoardRefused("board_version")
     v2 = crown_changes is not None
     king = _king(king_document, v2=v2)
-    ladder = ladder_rows(rows)
+    if v2 and exact_totals is None:
+        raise BoardRefused(
+            "board_exact_totals_required"
+        )  # the v2 board's order is the true one
+    ladder = ladder_rows(
+        rows,
+        exact=exact_totals if v2 else None,
+        king_hotkey=None if king["king"] is None else king["king"]["hotkey"],
+    )
     moment = datetime.datetime.now(datetime.UTC) if now is None else now
     document = {
         "schema": SCHEMA_V2 if v2 else SCHEMA,
@@ -485,6 +551,7 @@ def build_from_ledger(
     key,
     version,
     crown_changes=None,
+    exact_totals=None,
 ):
     """The signed board for ``challenge`` (an object with `challenge_id` and `version`)
     from the receiver's ledger file (read-only) and its king document. ``exam_key``
@@ -502,6 +569,7 @@ def build_from_ledger(
         key=key,
         version=version,
         crown_changes=crown_changes,
+        exact_totals=exact_totals,
     )
 
 
