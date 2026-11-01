@@ -40,6 +40,10 @@ HUMAN_INPUT = "HUMAN_INPUT"
 POOL_KEY = "pool"
 #: Optional material field: per-probe-group reference slopes a version anchors one response input on (F02 2.5).
 RESPONSE_REFERENCE = "response_reference"
+#: Optional material field, NEW versions only: the coverage-plan class map (`pool_grader.coverage_plan` document) whose
+#: sha256 the version's constants register as ``coverage_plan_sha256``. Custody: it names targets.
+COVERAGE_PLAN = "coverage_plan"
+_OPTIONAL_MATERIAL_KEYS = {RESPONSE_REFERENCE, COVERAGE_PLAN}
 MATERIAL_SCHEMA = "carbon.pool.sealed-material.v1"
 _MATERIAL_KEYS = {
     "schema",
@@ -108,6 +112,30 @@ def _d_aggregate(value):
     return None if value is None else _picked(value)
 
 
+#: Absent from a registration (every registered version): its field is None.
+_ABSENT = object()
+
+
+def _a_gen_aggregate(value):
+    """The registered A_gen aggregation of a new version, or None when the key is absent (every registered version). When
+    present it has no default: HUMAN_INPUT refuses, and so does a null (only an absent key is the plain mean).
+    """
+    if value is _ABSENT:
+        return None
+    if value is None:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    return _picked(value)
+
+
+def _coverage_plan_sha256(value):
+    """The registered sha256 (64 hex) of a new version's coverage-plan class map, or None when the key is absent."""
+    if value is _ABSENT:
+        return None
+    if value is None:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    return _picked(value)
+
+
 def registered_policies(challenge_id, version, *, path=CONSTANTS):
     """The version's `pool_proof_suite.Policies` from the registered file, or `PoolConstantsNotRegistered`."""
     try:
@@ -129,6 +157,13 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
                 # optional: a registered version without a design rule keeps the single pick, unchanged
                 pick_rule=_pick_rule(optimizer.get("pick_rule")),
                 d_aggregate=_d_aggregate(optimizer.get("d_aggregate")),
+                # optional, NEW versions only: absent is today's plain A_gen and no class map, unchanged
+                a_gen_aggregate=_a_gen_aggregate(
+                    optimizer.get("a_gen_aggregate", _ABSENT)
+                ),
+                coverage_plan_sha256=_coverage_plan_sha256(
+                    optimizer.get("coverage_plan_sha256", _ABSENT)
+                ),
             ),
             honesty=pool_grader.HonestyPolicy(
                 scale=_picked(honesty["scale"]), reduction=_picked(honesty["reduction"])
@@ -201,10 +236,15 @@ class PoolVariant(physical.Variant):
             raise pool_exam.ExamRefused("pool_material_missing_from_the_sealed_pack")
         # The owner's constants first: a version without them grades nothing.
         policies = registered_policies(self._challenge_id, self.VERSION)
+        # The class-balanced A_gen is not yet carried by the exam path (`pool_proof_suite.score_specs` computes the plain
+        # A_gen): a version that registers it refuses to grade rather than be graded by the plain mean.
+        if policies.optimizer.a_gen_aggregate is not None:
+            raise pool_exam.ExamRefused("a_gen_aggregate_not_in_the_exam_path")
         sets = tuple(
             tuple(pool_grader.load_pool(document) for document in group)
             for group in material["sets"]
         )
+        policies = with_coverage_plan(policies, material, sets)
         return pool_exam.measure_pool(
             binding=pool_adapters.official_binding(self._kind, self.VERSION),
             sets=sets,
@@ -265,11 +305,55 @@ def _reference_ok(value):
     )
 
 
+def _coverage_plan_ok(material):
+    if COVERAGE_PLAN not in material:
+        return True
+    try:
+        pool_grader.coverage_plan(material[COVERAGE_PLAN])
+    except pool_grader.PoolRefused:
+        return False
+    return True
+
+
+def with_coverage_plan(policies, material, sets):
+    """``policies`` with the version's registered coverage plan attached from the sealed material, or `ExamRefused`.
+
+    A version that registers no ``coverage_plan_sha256`` keeps its policies unchanged and its material carries no plan. A
+    version that registers one grades only with the material's plan of exactly that sha256, and only when every target of
+    every set is in it (a missing target is refused, never defaulted to a class)."""
+    import dataclasses
+
+    optimizer = policies.optimizer
+    registered = optimizer.coverage_plan_sha256
+    if registered is None:
+        if COVERAGE_PLAN in material:
+            raise pool_exam.ExamRefused("coverage_plan_not_registered")
+        return policies
+    if COVERAGE_PLAN not in material:
+        raise pool_exam.ExamRefused("coverage_plan_missing_from_the_sealed_pack")
+    try:
+        plan = pool_grader.coverage_plan(material[COVERAGE_PLAN])
+    except pool_grader.PoolRefused:
+        raise pool_exam.ExamRefused("coverage_plan_malformed") from None
+    if plan.sha256 != registered:
+        raise pool_exam.ExamRefused("coverage_plan_sha256_mismatch")
+    try:
+        for group in sets:
+            for spec in group:
+                pool_grader.region_class(spec, plan)
+    except pool_grader.PoolRefused:
+        raise pool_exam.ExamRefused("target_not_in_the_coverage_plan") from None
+    return dataclasses.replace(
+        policies, optimizer=dataclasses.replace(optimizer, coverage_plan=plan)
+    )
+
+
 def check_material(material):
     if (
         type(material) is not dict
-        or set(material) - {RESPONSE_REFERENCE} != _MATERIAL_KEYS
+        or set(material) - _OPTIONAL_MATERIAL_KEYS != _MATERIAL_KEYS
         or not _reference_ok(material.get(RESPONSE_REFERENCE))
+        or not _coverage_plan_ok(material)
         or material["schema"] != MATERIAL_SCHEMA
         or type(material["input_names"]) is not list
         or type(material["design_names"]) is not list
@@ -482,6 +566,7 @@ def variant(module, version, evaluation_version, case_id, *, challenge_id):
 
 
 __all__ = [
+    "COVERAGE_PLAN",
     "HUMAN_INPUT",
     "KINDS",
     "MATERIAL_SCHEMA",
@@ -498,4 +583,5 @@ __all__ = [
     "rows_from_material",
     "strip_pool",
     "variant",
+    "with_coverage_plan",
 ]

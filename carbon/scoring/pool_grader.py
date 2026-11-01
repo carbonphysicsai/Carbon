@@ -198,16 +198,111 @@ class OptimizerPolicy:
     #: registered version). ``"balanced_region_mean"`` is the mean over REGION CLASSES of each class's mean d, so a regime with
     #: few targets (the outer shell, a band edge) cannot be averaged away behind a majority that is near perfect.
     d_aggregate: str | None = None
+    #: How a set's A_gen aggregates its targets, for NEW exam versions only. None is the plain mean over the targets with a
+    #: reserved slice (every registered version). ``"balanced_region_mean"`` is the mean over the coverage plan's classes of
+    #: each class's mean A_gen, so a small class cannot be averaged away. It needs a registered coverage plan.
+    a_gen_aggregate: str | None = None
+    #: The sha256 (64 hex) of the version's registered coverage-plan class map (`coverage_plan`), as the pool constants
+    #: name it; None for every registered version. When set, a set is graded only with that exact map attached.
+    coverage_plan_sha256: str | None = None
+    #: The attached class map (`CoveragePlan`, custody material checked against `coverage_plan_sha256`), or None.
+    coverage_plan: object = None
 
 
-#: The region classes a target belongs to (`region_class`): its own kind, never a model's property.
+#: The 2-class fallback of a version with ``balanced_region_mean`` D and no registered coverage plan (`region_class`): a
+#: target's own kind, never a model's property. A version WITH a coverage plan takes its classes and their order from the
+#: plan alone; no class name is typed here for it.
 REGION_CLASSES = ("in_train", "extended_shell")
 D_AGGREGATES = (None, "balanced_region_mean")
+A_GEN_AGGREGATES = (None, "balanced_region_mean")
+COVERAGE_PLAN_SCHEMA = "carbon.pool.coverage-plan.v1"
 
 
-def region_class(spec):
-    """The region class of a target: ``extended_shell`` for an EXTENDED target (T5/T6, its OOD shell), else ``in_train``."""
+@dataclass(frozen=True)
+class CoveragePlan:
+    """A version's registered class map: target id -> the coverage plan's class name, and the class order.
+
+    Built only by `coverage_plan` from the custody document whose sha256 the pool constants register. The classes are
+    the plan's own (never derived from any model output) and their order is the plan's (the report and summation order).
+    """
+
+    classes: tuple  # the class names, in the registered order
+    targets: tuple  # ((target_id, class name), ...), sorted by target id
+    sha256: str  # 64 hex: sha256 of the canonical document
+
+    def class_of(self, target_id):
+        """The target's class, or `PoolRefused`: a target missing from the map is never given a default class."""
+        for name, region in self.targets:
+            if name == target_id:
+                return region
+        raise PoolRefused("target_not_in_the_coverage_plan")
+
+
+def _is_sha256(value):
+    return (
+        type(value) is str
+        and len(value) == 64
+        and all(c in "0123456789abcdef" for c in value)
+    )
+
+
+def coverage_plan(document):
+    """The `CoveragePlan` of a document ``{"schema": COVERAGE_PLAN_SCHEMA, "classes": [name, ...], "targets": {target_id:
+    name}}``, or `PoolRefused`. Every class is named by at least one target and every target's class is listed.
+    """
+    _require(
+        type(document) is dict
+        and set(document) == {"schema", "classes", "targets"}
+        and document["schema"] == COVERAGE_PLAN_SCHEMA,
+        "coverage_plan_malformed",
+    )
+    classes, targets = document["classes"], document["targets"]
+    _require(
+        type(classes) is list
+        and classes
+        and all(type(c) is str and c for c in classes)
+        and len(set(classes)) == len(classes),
+        "coverage_plan_classes_must_be_unique_names",
+    )
+    _require(
+        type(targets) is dict
+        and targets
+        and all(type(t) is str and t for t in targets)
+        and all(type(c) is str and c in classes for c in targets.values()),
+        "coverage_plan_targets_must_name_listed_classes",
+    )
+    _require(
+        set(targets.values()) == set(classes), "coverage_plan_class_without_a_target"
+    )
+    raw = json.dumps(document, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return CoveragePlan(
+        classes=tuple(classes),
+        targets=tuple(sorted(targets.items())),
+        sha256=hashlib.sha256(raw.encode()).hexdigest(),
+    )
+
+
+def region_class(spec, plan=None):
+    """The region class of a target. With a coverage plan: the plan's class of its target id (a target missing from the plan
+    is refused, never defaulted). Without one (the 2-class fallback): ``extended_shell`` for an EXTENDED target (T5/T6, its
+    OOD shell), else ``in_train``."""
+    if plan is not None:
+        return plan.class_of(spec.target_id)
     return "extended_shell" if spec.extended else "in_train"
+
+
+def _class_order(plan):
+    return REGION_CLASSES if plan is None else plan.classes
+
+
+def _set_plan(optimizer):
+    """The coverage plan a set is graded with: the attached one, or None for a version that registers none. A version that
+    registers a plan grades nothing without it (never the 2-class fallback)."""
+    _require(
+        optimizer.coverage_plan_sha256 is None or optimizer.coverage_plan is not None,
+        "coverage_plan_not_attached",
+    )
+    return optimizer.coverage_plan
 
 
 def pick_count(optimizer):
@@ -252,6 +347,28 @@ def _check_policies(optimizer, honesty):
     _require(
         optimizer.d_aggregate in D_AGGREGATES,
         "d_aggregate_must_be_none_or_balanced_region_mean",
+    )
+    _require(
+        optimizer.a_gen_aggregate in A_GEN_AGGREGATES,
+        "a_gen_aggregate_must_be_none_or_balanced_region_mean",
+    )
+    _require(
+        optimizer.coverage_plan_sha256 is None
+        or _is_sha256(optimizer.coverage_plan_sha256),
+        "coverage_plan_sha256_must_be_64_hex",
+    )
+    _require(
+        optimizer.a_gen_aggregate is None or optimizer.coverage_plan_sha256 is not None,
+        "a_gen_aggregate_needs_a_registered_coverage_plan",
+    )
+    plan = optimizer.coverage_plan
+    _require(
+        plan is None
+        or (
+            isinstance(plan, CoveragePlan)
+            and plan.sha256 == optimizer.coverage_plan_sha256
+        ),
+        "coverage_plan_is_not_the_registered_one",
     )
     _require(
         _finite(honesty.scale) and honesty.scale > 0, "honesty_scale_must_be_positive"
@@ -750,27 +867,53 @@ def grade_set(specs, predict, optimizer, honesty):
         len({s.target_id for s in specs}) == len(specs), "target_ids_must_be_unique"
     )
     _check_policies(optimizer, honesty)
+    plan = _set_plan(optimizer)
+    # Every target's class first, so a target missing from the plan refuses the set before anything is graded.
+    classes = (
+        None if plan is None else tuple(region_class(spec, plan) for spec in specs)
+    )
     grades = tuple(grade_target(spec, predict, optimizer, honesty) for spec in specs)
     if optimizer.d_aggregate is None:
         return SetGrade(statistics.fmean(g.d for g in grades), grades)
-    by_region = {}
-    for spec, grade in zip(specs, grades, strict=True):
-        by_region.setdefault(region_class(spec), []).append(grade.d)
-    regions = tuple(
-        (name, statistics.fmean(by_region[name]))
-        for name in REGION_CLASSES
-        if name in by_region
-    )
+    if classes is None:
+        classes = tuple(region_class(spec) for spec in specs)
+    regions = _balanced(classes, [g.d for g in grades], _class_order(plan))
     return SetGrade(statistics.fmean(d for _name, d in regions), grades, regions)
 
 
-def agen_accuracy(specs, predict, scales):
+def _balanced(classes, values, order):
+    """``((class, mean value), ...)`` in ``order``, over the classes that have a value."""
+    by_region = {}
+    for name, value in zip(classes, values, strict=True):
+        by_region.setdefault(name, []).append(value)
+    return tuple(
+        (name, statistics.fmean(by_region[name])) for name in order if name in by_region
+    )
+
+
+def agen_accuracy(specs, predict, scales, *, aggregate=None, plan=None):
     """A_gen: accuracy on the reserved slice, atom form benefit(|error| / scale) = 1 / (1 + loss), the common
     benefit of `design_fidelity`, averaged over outputs, points and targets. `scales` is {output: scale} and
     required (OWNER). None when no target has a slice. The slice is never queried by the optimiser.
+
+    `aggregate` (a NEW version's registered ``a_gen_aggregate``) None is the plain mean over the targets with a slice
+    (every registered version). ``"balanced_region_mean"`` is the mean over `plan`'s classes (in the plan's order) of each
+    class's mean target A_gen; a class with no sliced target in the set has no value and is skipped. It needs the
+    registered `plan`; a target missing from it is refused, never defaulted.
     """
-    values = []
-    for spec in specs:
+    _require(
+        aggregate in A_GEN_AGGREGATES,
+        "a_gen_aggregate_must_be_none_or_balanced_region_mean",
+    )
+    _require(
+        aggregate is None or isinstance(plan, CoveragePlan),
+        "a_gen_aggregate_needs_a_registered_coverage_plan",
+    )
+    classes = (
+        None if plan is None else tuple(region_class(spec, plan) for spec in specs)
+    )
+    values, owners = [], []
+    for position, spec in enumerate(specs):
         if not spec.agen:
             continue
         _require(
@@ -793,7 +936,13 @@ def agen_accuracy(specs, predict, scales):
                 for k in spec.outputs
             ]
         values.append(statistics.fmean(atoms))
-    return statistics.fmean(values) if values else None
+        owners.append(position)
+    if not values:
+        return None
+    if aggregate is None:
+        return statistics.fmean(values)
+    regions = _balanced([classes[i] for i in owners], values, plan.classes)
+    return statistics.fmean(value for _name, value in regions)
 
 
 def combine_a(a, a_gen, rule):
@@ -917,7 +1066,13 @@ def practice_report(
     """
     _require(all(s.public for s in specs), "pool_not_public")
     grade = grade_set(specs, predict, optimizer, honesty)
-    a_gen = agen_accuracy(specs, predict, agen_scales)
+    a_gen = agen_accuracy(
+        specs,
+        predict,
+        agen_scales,
+        aggregate=optimizer.a_gen_aggregate,
+        plan=optimizer.coverage_plan,
+    )
     a_total = combine_a(a, a_gen, a_rule)
     gated_out = any(not g["passed"] for g in gates)
     top = 0.0 if gated_out else total(a_total, grade.d, c, c_rule)
