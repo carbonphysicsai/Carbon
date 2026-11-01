@@ -67,7 +67,9 @@ def build(
 
     The leg minimums are the registered baseline's own graded legs (two builds): ``calibration`` writes the
     minimum-free calibration pack; ``baseline_binding_raw`` (the baseline's retained binding, graded under that
-    calibration pack) with ``calibration_pack_root`` writes the judge pack with those minimums. Neither: no minimums.
+    calibration pack) with ``calibration_pack_root`` writes the judge pack with those minimums. Neither: the adapter's own
+    (Motor, F08 and F02 pool versions carry none; Cooling's in-pack baseline sets them, and from 1.7 it is graded through
+    ``pool_exam.measure_pool`` like a miner, see ``cooling_pool_baseline_dual_pack``).
     """
     from carbon.challenge_kit.version_registry import find
     from carbon.scoring import copy_package, pool_exam, pool_version
