@@ -150,13 +150,13 @@ BAND_FINE_ELEMENTS = 2
 BAND_GRADE_ELEMENTS = 3
 #: The graded FAR field (option a3, Validator F08 2.0 ruling 11-01: admissible, Validator-ruled payload values, no owner value
 #: moves). (a2) left 0033 at ~498 k nodes: the GLOBAL body mesh drives the count, and SPOOLES solved 313 k (0034). A NEAR zone
-#: keeps each rung's sizes exactly: h in boxes around each rib (the rib plus NEAR_EXTENT_MM on each side, so the junction lines
-#: and the fillet), around the pad and around the probe; fillet_h on the fillet surface, the (a2) band unchanged. Only the plate
+#: keeps each rung's sizes exactly: h in boxes around each rib (the rib plus NEAR_EXTENT_MM on each side; the junction lines and
+#: the fillet are inside the (a2) band, which keeps its exact sizes wherever it reaches), around the pad and around the probe; fillet_h on the fillet surface, the (a2) band unchanged. Only the plate
 #: AWAY from them coarsens, linearly over FAR_GRADE_MM to FAR_SIZE_MM. Engineering constants, the same on every rung; the ribbed
 #: bracket only (a control keeps its mesh). The paired same-rung U check (ruling A) decides whether they are admissible.
-NEAR_EXTENT_MM = 10.0
-FAR_GRADE_MM = 12.0
-FAR_SIZE_MM = 6.0
+NEAR_EXTENT_MM = 1.0
+FAR_GRADE_MM = 3.0
+FAR_SIZE_MM = 12.0
 
 
 class Refused(ValueError):

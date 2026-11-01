@@ -94,9 +94,9 @@ CASES = {
 }
 # The (a3) deck rev (Validator F08 2.0 ruling 11-01): the graded far field. Its gmsh programs for the same cases.
 PINNED_A3_GMSH = {
-    "gmsh_base": "99c13cdd3fc6ad2dcc09e555e86e9c9649fd3915f1ac997a21ad9561a9e51bd9",
-    "gmsh_norelief": "52e8faff4e3e1575004614f545d96fe7fa5fb23b2429c215fceabbb6b3782f69",
-    "gmsh_offset_angle": "f98037b95ffed3372233dabcabe770914ac0f333dd1f8761926c4657ccbffc2d",
+    "gmsh_base": "12438ccd16875b2d781118bf02b601055b8107194fd44419581c8a3783beda0c",
+    "gmsh_norelief": "a2028d6b23900fa2584191a64c0f4a76cc530b65164446e21b47331e55390449",
+    "gmsh_offset_angle": "ce347d5c61310ebaa96bb96b45b1746a28ed46b4fb6c7477c2461ef9c277f0d4",
 }
 
 
@@ -128,7 +128,7 @@ def test_the_a3_far_field_is_the_only_change_to_the_a2_program():
 
 
 def test_the_a3_near_zone_keeps_every_rungs_sizes_and_only_the_far_plate_coarsens():
-    assert (v2.NEAR_EXTENT_MM, v2.FAR_GRADE_MM, v2.FAR_SIZE_MM) == (10.0, 12.0, 6.0)
+    assert (v2.NEAR_EXTENT_MM, v2.FAR_GRADE_MM, v2.FAR_SIZE_MM) == (1.0, 3.0, 12.0)
     for h, fillet_h in ((3.0, 0.5), (2.25, 0.5), (1.7, 0.5), (1.7, 0.25)):
         text = v2.gmsh_script_v2(CASE, h, fillet_h)
         assert v2.script_compiles(text)
@@ -140,9 +140,9 @@ def test_the_a3_near_zone_keeps_every_rungs_sizes_and_only_the_far_plate_coarsen
         assert (
             text.count(f'field.setNumber(tag, "VIn", {h})') == 3
         )  # one line per loop: ribs (x2), pad, probe
-        assert text.count('field.setNumber(tag, "VOut", 6.0)') == 3
-        assert text.count('field.setNumber(tag, "Thickness", 12.0)') == 3
-        assert 'gmsh.option.setNumber("Mesh.MeshSizeMax", 6.0)' in text
+        assert text.count('field.setNumber(tag, "VOut", 12.0)') == 3
+        assert text.count('field.setNumber(tag, "Thickness", 3.0)') == 3
+        assert 'gmsh.option.setNumber("Mesh.MeshSizeMax", 12.0)' in text
         assert f'gmsh.option.setNumber("Mesh.MeshSizeMin", {fillet_h})' in text
     # a control keeps its mesh: no far field, MeshSizeMax h
     for control in (ctl.kirsch_case(ALLOY), ctl.plain_plate_case(ALLOY)):
