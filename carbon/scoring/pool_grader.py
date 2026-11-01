@@ -189,6 +189,17 @@ class OptimizerPolicy:
     budget: int
     sigma0: float
     population: int | None
+    #: The design rule, for NEW exam versions only (week-1 item: top-k design regret). None is today's single pick, and a
+    #: registered version without one is unchanged. ``{"kind": "top_k", "k": k}`` grades the model's k best distinct
+    #: feasible-predicted designs together (see `grade_target`); k = 1 is the single pick, bit for bit. k is the owner's and
+    #: has no default.
+    pick_rule: dict | None = None
+
+
+def pick_count(optimizer):
+    """The number of picks the design rule grades: 1 for no rule, else the rule's k."""
+    rule = optimizer.pick_rule
+    return 1 if rule is None else rule["k"]
 
 
 @dataclass(frozen=True)
@@ -211,6 +222,18 @@ def _check_policies(optimizer, honesty):
         optimizer.population is None
         or (type(optimizer.population) is int and optimizer.population >= 2),
         "population_must_be_none_or_at_least_2",
+    )
+    rule = optimizer.pick_rule
+    _require(
+        rule is None
+        or (
+            type(rule) is dict
+            and set(rule) == {"kind", "k"}
+            and rule["kind"] == "top_k"
+            and type(rule["k"]) is int
+            and rule["k"] >= 1
+        ),
+        "pick_rule_must_be_none_or_top_k_with_a_positive_int_k",
     )
     _require(
         _finite(honesty.scale) and honesty.scale > 0, "honesty_scale_must_be_positive"
@@ -474,6 +497,9 @@ class TargetGrade:
     queries: int
     reason: str
     reached_reference: bool
+    #: Top-k only (custody): the k picks as ``(index, q_i, h_i)`` in the model's own rank order, the missing slots
+    #: ``(None, 0.0, 0.0)``. Empty for the single pick.
+    picks: tuple = ()
 
 
 def _valid_prediction(prediction, outputs):
@@ -562,6 +588,10 @@ def grade_target(spec, predict, optimizer, honesty):
     feasible_predicted = [i for i in predictions if key(i)[0] == 0]
     if not feasible_predicted:
         return refused("no_predicted_feasible_pick")
+    if pick_count(optimizer) > 1:
+        return _top_k_grade(
+            spec, predictions, feasible_predicted, key, optimizer, honesty
+        )
     pick = min(feasible_predicted, key=lambda i: (key(i), i))
     queries = len(predictions)
     if not spec.feasible[pick]:
@@ -594,6 +624,71 @@ def grade_target(spec, predict, optimizer, honesty):
         queries,
         "graded",
         s_pick >= spec.s_ref,
+    )
+
+
+def _top_k_grade(spec, predictions, feasible_predicted, key, optimizer, honesty):
+    """The top-k design rule. The model's optimiser returns its k best DISTINCT feasible-predicted designs, ranked by its
+    own predicted objective (the same ordering as the single pick). Then
+
+    - q = the verified quality of the BEST pool truth among the k (an infeasible truth contributes 0 for ranking);
+    - the honesty factor h = the mean over the k picks of exp(-e_i / s_h), with a missing slot (fewer than k feasible-
+      predicted designs) counted as infeasible: q contribution 0 and h_i = 0 in the mean;
+    - d = q * h.
+
+    A wrong prediction among the k lowers h; a lucky single pick no longer carries the target alone.
+    """
+    k = pick_count(optimizer)
+    ranked = sorted(feasible_predicted, key=lambda i: (key(i), i))[:k]
+    queries = len(predictions)
+    picks, qualities, factors, errors = [], [], [], []
+    for index in ranked:
+        e_i = _error(spec, index, predictions[index], honesty)
+        h_i = math.exp(-e_i / honesty.scale)
+        if spec.feasible[index]:
+            s_i = spec.sign * spec.truths[index][spec.objective]
+            q_i = min(1.0, max(0.0, (s_i - spec.s_low) / (spec.s_ref - spec.s_low)))
+        else:
+            q_i = 0.0
+        picks.append((index, q_i, h_i))
+        qualities.append(q_i)
+        factors.append(h_i)
+        errors.append(e_i)
+    picks += [(None, 0.0, 0.0)] * (k - len(ranked))
+    factors += [0.0] * (k - len(ranked))
+    best = max(range(len(ranked)), key=lambda n: (qualities[n], -n))
+    q = qualities[best]
+    h = statistics.fmean(factors)
+    best_index = ranked[best]
+    if q == 0.0 and not any(spec.feasible[i] for i in ranked):
+        return TargetGrade(
+            spec.target_id,
+            spec.digest,
+            0.0,
+            0.0,
+            0.0,
+            errors[best],
+            False,
+            best_index,
+            queries,
+            "pick_infeasible",
+            False,
+            tuple(picks),
+        )
+    s_best = spec.sign * spec.truths[best_index][spec.objective]
+    return TargetGrade(
+        spec.target_id,
+        spec.digest,
+        q * h,
+        q,
+        h,
+        errors[best],
+        True,
+        best_index,
+        queries,
+        "graded",
+        s_best >= spec.s_ref,
+        tuple(picks),
     )
 
 

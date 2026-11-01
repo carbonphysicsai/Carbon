@@ -61,6 +61,9 @@ class GridSpec:
     wrong_k: float
     oracle_tolerance: float
     seed: int
+    pick_rule: object = (
+        None  # None (the single pick) or {"kind": "top_k", "k": k}: a NEW version's design rule
+    )
 
 
 def tighten(leg, m):
@@ -123,7 +126,10 @@ def run_grid(plugin, grid):
     has_extended = bool(extended_ids)
     for budget, s_h in itertools.product(grid.budgets, grid.honesty_scales):
         optimizer = pool_grader.OptimizerPolicy(
-            budget=budget, sigma0=grid.sigma0, population=grid.population
+            budget=budget,
+            sigma0=grid.sigma0,
+            population=grid.population,
+            pick_rule=grid.pick_rule,
         )
         honesty = pool_grader.HonestyPolicy(scale=s_h, reduction=grid.honesty_reduction)
         for name in named:

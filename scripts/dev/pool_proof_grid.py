@@ -279,6 +279,7 @@ def strictness_inputs(document):
             budget=document["budget"],
             sigma0=document["sigma0"],
             population=document["population"],
+            pick_rule=document.get("pick_rule"),
         ),
         honesty=pool_grader.HonestyPolicy(
             scale=document["honesty_scale"], reduction=document["honesty_reduction"]

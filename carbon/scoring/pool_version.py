@@ -94,6 +94,15 @@ def registered_a_multiplier(challenge_id, version, *, path=CONSTANTS):
     return float(value)
 
 
+def _pick_rule(value):
+    """The registered design rule ``{"kind": "top_k", "k": k}`` (k picked by the owner, never defaulted) or None."""
+    if value is None:
+        return None
+    if type(value) is not dict or set(value) != {"kind", "k"}:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    return {"kind": _picked(value["kind"]), "k": _picked(value["k"])}
+
+
 def registered_policies(challenge_id, version, *, path=CONSTANTS):
     """The version's `pool_proof_suite.Policies` from the registered file, or `PoolConstantsNotRegistered`."""
     try:
@@ -112,6 +121,8 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
                 budget=_picked(optimizer["budget"]),
                 sigma0=_picked(optimizer["sigma0"]),
                 population=_picked(optimizer["population"]),
+                # optional: a registered version without a design rule keeps the single pick, unchanged
+                pick_rule=_pick_rule(optimizer.get("pick_rule")),
             ),
             honesty=pool_grader.HonestyPolicy(
                 scale=_picked(honesty["scale"]), reduction=_picked(honesty["reduction"])
