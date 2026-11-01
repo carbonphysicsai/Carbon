@@ -10,10 +10,10 @@ import re
 import shlex
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
 
 import pytest
+import tomllib
 
 from carbon.reconstruction.worker import build_inputs, image_modules
 
