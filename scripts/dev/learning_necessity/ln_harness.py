@@ -298,20 +298,29 @@ def load_catalog_builder(item):
     member = pipeline._source_member(source, schema.build_member)
     if "sha256:" + hashlib.sha256(member).hexdigest() != schema.build_sha256:
         raise Refused("catalog_build_differs_from_its_pin:" + item["catalog_id"])
+    return import_builder(source)
+
+
+def import_builder(source):
+    """Extract a bundle's ``source.tar.gz`` and import its ``carbon_candidate.build`` fresh. The pinned tarballs carry one
+    top-level directory (``<bundle>/carbon_candidate/...``); a flat tarball works too. The directory that HOLDS the package
+    goes first on ``sys.path`` and stays there: the build imports its sibling modules lazily.
+    """
     target = Path(tempfile.mkdtemp(prefix="ln-build-"))
     with tarfile.open(fileobj=io.BytesIO(source), mode="r:gz") as archive:
         archive.extractall(target, filter="data")
+    packages = sorted(target.glob("**/carbon_candidate/build.py"))
+    if len(packages) != 1:
+        raise Refused(f"bundle_source_holds_{len(packages)}_carbon_candidate_builds")
+    root = packages[0].parent.parent
     for name in [
         m
         for m in sys.modules
         if m == "carbon_candidate" or m.startswith("carbon_candidate.")
     ]:
         del sys.modules[name]
-    sys.path.insert(0, str(target))
-    try:
-        module = importlib.import_module("carbon_candidate.build")
-    finally:
-        sys.path.remove(str(target))
+    sys.path.insert(0, str(root))
+    module = importlib.import_module("carbon_candidate.build")
     return module.build
 
 
@@ -354,6 +363,14 @@ def load_probe(path, n_in):
     ):
         raise Refused("probe_inputs_shape_or_values_invalid")
     return probe
+
+
+def make_output_dir(out):
+    """Create the output directory; an existing EMPTY one (a mounted volume) is accepted, a non-empty one refuses."""
+    out = Path(out)
+    if out.exists() and (not out.is_dir() or any(out.iterdir())):
+        raise Refused("output_directory_not_empty")
+    out.mkdir(parents=True, exist_ok=True)
 
 
 def fit_and_export(builder, x, y, fits, seed, wall, probe, out, cid, record):
@@ -415,7 +432,7 @@ def run(
     wall = rebuild_wall_seconds(challenge_id, version)
     folds = make_folds(len(x), grid["k"], grid["fold_seed"])
     out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=False)
+    make_output_dir(out)
     seed = grid["seed"]
     contenders = []
     for each, item, substituted_from in entries:
@@ -518,7 +535,7 @@ def predict_from_record(
                 "recorded_contender_not_offered_by_the_version:" + each["catalog_id"]
             )
     out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=False)
+    make_output_dir(out)
     seed = record["seed"]
     contenders = []
     for each in record["contenders"]:

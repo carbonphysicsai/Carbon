@@ -533,3 +533,89 @@ def test_the_merge_check_refuses_a_result_that_misses_or_doubles_a_contender():
         h.merge_check([torch, {**jax, "grid_digest": "sha256:" + "b" * 64}])
     with pytest.raises(h.Refused, match="merge_needs_records"):
         h.merge_check([])
+
+
+def _tarball(files, prefix=""):
+    import io
+    import tarfile
+
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+        for name, text in files.items():
+            raw = text.encode()
+            info = tarfile.TarInfo(prefix + name)
+            info.size = len(raw)
+            archive.addfile(info, io.BytesIO(raw))
+    return buffer.getvalue()
+
+
+_PACKAGE = {
+    "carbon_candidate/__init__.py": "",
+    "carbon_candidate/common.py": "VALUE = 7\n",
+    "carbon_candidate/build.py": (
+        "def build(x, y, *, seed, configuration, train_use):\n"
+        "    from carbon_candidate import common  # a lazy sibling import, as the pinned builds do\n"
+        "    return common.VALUE\n"
+    ),
+}
+
+
+@pytest.mark.parametrize("prefix", ["", "f02x-catalog-neuralop-fno-baseline-v2/"])
+def test_the_builder_imports_from_a_flat_or_a_prefixed_bundle_tarball(prefix):
+    build = h.import_builder(_tarball(_PACKAGE, prefix))
+    assert build(None, None, seed=0, configuration={}, train_use={}) == 7
+
+
+def test_a_second_bundle_gets_its_own_fresh_package():
+    """The harness loads one entry's builder and uses it fully before loading the next, so each sees its own package."""
+    first = h.import_builder(_tarball(_PACKAGE, "a/"))
+    assert first(None, None, seed=0, configuration={}, train_use={}) == 7
+    other = {**_PACKAGE, "carbon_candidate/common.py": "VALUE = 9\n"}
+    second = h.import_builder(_tarball(other, "b/"))
+    assert second(None, None, seed=0, configuration={}, train_use={}) == 9
+
+
+def test_a_bundle_with_no_or_two_builds_is_refused():
+    with pytest.raises(h.Refused, match="holds_0_carbon_candidate_builds"):
+        h.import_builder(_tarball({"README": "x"}, "a/"))
+    both = _tarball(
+        {
+            **{f"a/{k}": v for k, v in _PACKAGE.items()},
+            **{f"b/{k}": v for k, v in _PACKAGE.items()},
+        }
+    )
+    with pytest.raises(h.Refused, match="holds_2_carbon_candidate_builds"):
+        h.import_builder(both)
+
+
+def test_every_real_f02_entry_bundle_holds_exactly_one_importable_package_dir(tmp_path):
+    """The pinned bundles' real layout (a top-level directory): the import root must resolve for each, no torch needed."""
+    import io
+    import tarfile
+
+    from carbon.backbone_catalog import listing, pipeline
+
+    for each, item, _ in h.resolve_entries(_grid(), "f02", "2.5"):
+        source = pipeline.bundle_files(item)["source.tar.gz"]
+        target = tmp_path / item["catalog_id"]
+        with tarfile.open(fileobj=io.BytesIO(source), mode="r:gz") as archive:
+            archive.extractall(target, filter="data")
+        builds = sorted(target.glob("**/carbon_candidate/build.py"))
+        assert len(builds) == 1, item["catalog_id"]
+        assert (builds[0].parent / "__init__.py").is_file(), item["catalog_id"]
+    assert listing
+
+
+def test_an_existing_empty_output_directory_is_accepted_and_a_filled_one_is_not(
+    tmp_path,
+):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    h.make_output_dir(empty)
+    h.make_output_dir(tmp_path / "new" / "deep")
+    assert (tmp_path / "new" / "deep").is_dir()
+    filled = tmp_path / "filled"
+    filled.mkdir()
+    (filled / "x").write_text("1")
+    with pytest.raises(h.Refused, match="output_directory_not_empty"):
+        h.make_output_dir(filled)
