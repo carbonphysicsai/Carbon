@@ -22,9 +22,9 @@ refinement ladder, the analytic references and the verdicts from the solver's `.
    includes the clamp's local constraint (it is not a pure beam stress), so the control reports the ratio of the observer's peak
    to beam theory and decides nothing. Its tolerance is `HUMAN_INPUT`.
 
-The GCI safety factor is the published three-grid convention Fs = 1.25 (P. J. Roache, "Perspective: A Method for Uniform
-Reporting of Grid Refinement Studies", J. Fluids Eng. 116(3), 1994, pp. 405-413), a named constant, not a Carbon choice;
-it is an argument so another can be passed.
+The GCI safety factor is the registered three-grid value (F08-SCIENCE-VALUES-01 V10, `f08_v2_payload.SAFETY` = 1.25; P. J.
+Roache, J. Fluids Eng. 116(3), 1994, pp. 405-413), imported so it cannot drift; it is also an argument.
+Kirsch's reference was verified through secondary sources only (not the journal).
 """
 
 from __future__ import annotations
@@ -38,14 +38,18 @@ sys.path.insert(0, str(HERE))
 
 import f08_deck as v1
 import f08_deck_v2 as v2
+import f08_v2_payload as payload
 
 HUMAN_INPUT = v2.HUMAN_INPUT
-#: Roache (1994): the three-grid factor of safety.
-GCI_SAFETY_FACTOR = 1.25
+#: Roache's three-grid factor of safety: the registered value (F08-SCIENCE-VALUES-01 V10), shared with the payload so the two
+#: cannot drift.
+GCI_SAFETY_FACTOR = payload.SAFETY
 #: Each rung halves the local element size near the observed feature.
 REFINEMENT_RATIO = 2.0
 KIRSCH_KT = 3.0
-KIRSCH_SOURCE = "G. Kirsch, Z. Ver. Dtsch. Ing. 42 (1898) 797-807"
+KIRSCH_SOURCE = (
+    "G. Kirsch, Z. Ver. Dtsch. Ing. 42 (1898) 797-807 (verified via secondary sources)"
+)
 GCI_SOURCE = "P. J. Roache, J. Fluids Eng. 116(3) (1994) 405-413"
 
 #: Geometry defaults (mm). The hole is small against the width (2a/W = 0.05) and the plate thin (t = a/2).

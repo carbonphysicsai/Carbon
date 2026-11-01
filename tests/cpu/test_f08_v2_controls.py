@@ -225,7 +225,9 @@ def test_kirsch_passes_when_three_is_inside_the_rungs_own_extrapolation_band():
     assert out["passed"] and out["published_kt"] == 3.0
     assert out["richardson"]["order"] == pytest.approx(2.0)
     assert out["finite_width"].startswith("none applied")
-    assert out["source"].startswith("G. Kirsch")
+    assert (
+        out["source"].startswith("G. Kirsch") and "secondary sources" in out["source"]
+    )
 
 
 def test_kirsch_fails_when_the_rungs_converge_to_another_value():
@@ -297,6 +299,9 @@ def test_the_shoulder_fillet_sanity_reports_and_never_decides():
 
 
 def test_the_gci_safety_factor_is_the_cited_three_grid_value_and_is_an_argument():
+    import f08_v2_payload as payload
+
+    assert ctl.GCI_SAFETY_FACTOR is payload.SAFETY  # one registered value, not a copy
     assert ctl.GCI_SAFETY_FACTOR == 1.25 and "Roache" in ctl.GCI_SOURCE
     wide = ctl.richardson_gci(2.9, 2.7, 2.1, safety_factor=2.5)
     narrow = ctl.richardson_gci(2.9, 2.7, 2.1)
