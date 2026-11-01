@@ -83,24 +83,44 @@ def _digest(body):
     return "sha256:" + hashlib.sha256(raw.encode()).hexdigest()
 
 
+def minimums_total(pack):
+    """The total of a model sitting exactly on the pack's leg minimums, or None when the pack has no minimums."""
+    legs = pack["legs"]
+    a, d = legs["A"]["minimum"], legs["D"]["minimum"]
+    if a is None or d is None:
+        return None
+    w = pack["value_weight"]
+    if pack["combination"] == "weighted_arithmetic_mean":
+        return (1 - w) * a + w * d
+    if a == 0 or d == 0:
+        return 0.0
+    return min(a, d) * math.exp((1 - w) * math.log(a) + w * math.log(d))
+
+
 def register_pack(body):
-    """Bind explicit candidate values; registration is not scientific adoption."""
-    _shape(
-        body,
-        {
-            "schema",
-            "scope",
-            "challenge",
-            "physics_contract_digest",
-            "measurement_contract_digest",
-            "hard_gates",
-            "legs",
-            "value_weight",
-            "combination",
-            "decision_policy",
-        },
-        "pack_shape",
-    )
+    """Bind explicit candidate values; registration is not scientific adoption.
+
+    A pack may carry ``baseline_floor_total`` (OWNER-EXAM-VALUE-PICKS-01, option B): the crown floor, kept separate from
+    the leg minimums. Absent, the pack is exactly what it always was (and its digest is unchanged); present, it is a
+    number in [0, 1] and never below the total of a model sitting on the minimums."""
+    required = {
+        "schema",
+        "scope",
+        "challenge",
+        "physics_contract_digest",
+        "measurement_contract_digest",
+        "hard_gates",
+        "legs",
+        "value_weight",
+        "combination",
+        "decision_policy",
+    }
+    floor = body.get("baseline_floor_total") if type(body) is dict else None
+    if type(body) is dict and "baseline_floor_total" in body:
+        required.add("baseline_floor_total")
+    _shape(body, required, "pack_shape")
+    if "baseline_floor_total" in body and (not _number(floor) or not 0 <= floor <= 1):
+        raise DualScoreRefused("pack_baseline_floor")
     if (
         body["schema"] != PACK_SCHEMA
         or not _text(body["scope"])
@@ -173,6 +193,10 @@ def register_pack(body):
             or not 0 <= policy["maximum_D"] <= 1
         ):
             raise DualScoreRefused("pack_outcome_policy")
+    if "baseline_floor_total" in body:
+        derived = minimums_total(body)
+        if derived is not None and body["baseline_floor_total"] < derived - 1e-12:
+            raise DualScoreRefused("pack_baseline_floor_below_minimums")
     # Return a detached canonical copy, so a caller cannot mutate nested inputs.
     return json.loads(
         json.dumps({**body, "pack_digest": _digest(body)}, allow_nan=False)
@@ -270,7 +294,9 @@ def score(benchmark, pack):
     common = (
         "FAILED_INFRA"
         if "REFERENCE_INFRA" in states
-        else "INDETERMINATE_EVIDENCE" if "REFERENCE_UNRESOLVED" in states else None
+        else "INDETERMINATE_EVIDENCE"
+        if "REFERENCE_UNRESOLVED" in states
+        else None
     )
     rows, digest_models = [], []
     for model in models:

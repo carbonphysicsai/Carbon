@@ -140,9 +140,30 @@ def comparator_for_set(
 
 
 def baseline_total(score_pack):
-    """The total of a model sitting exactly on the pack's leg minimums: Carbon's
-    baseline, the unpaid starting king the first crown must beat by the margin
-    (OWNER-FIRST-CROWN-BEATS-BASELINE-01). None when the pack has no minimums."""
+    """The crown floor: Carbon's baseline, the unpaid starting king the first crown must beat by the margin
+    (OWNER-FIRST-CROWN-BEATS-BASELINE-01).
+
+    Normally the total of a model sitting exactly on the pack's leg minimums (None when the pack has no minimums). A pack
+    that carries ``baseline_floor_total`` (OWNER-EXAM-VALUE-PICKS-01, option B) uses THAT instead: the floor is separate
+    from the minimums, which stay untouched; it can never sit below the minimums-derived total (a refusal). Absent, this is
+    exactly what it always was."""
+    derived = minimums_total(score_pack)
+    if "baseline_floor_total" not in score_pack:
+        return derived
+    floor = score_pack["baseline_floor_total"]
+    if (
+        type(floor) not in (int, float)
+        or isinstance(floor, bool)
+        or not math.isfinite(floor)
+        or not 0 <= floor <= 1
+        or (derived is not None and floor < derived - 1e-12)
+    ):
+        raise RegistryInvalid("baseline_floor_invalid")
+    return float(floor)
+
+
+def minimums_total(score_pack):
+    """The total of a model sitting exactly on the pack's leg minimums, or None when the pack has no minimums."""
     legs = score_pack["legs"]
     a, d = legs["A"]["minimum"], legs["D"]["minimum"]
     if a is None or d is None:
