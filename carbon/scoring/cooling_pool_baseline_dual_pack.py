@@ -29,6 +29,8 @@ from carbon.scoring import cooling_encoded_dual_pack as encoded
 from carbon.scoring import cooling_hotspot_dual_pack as hotspot
 
 CHALLENGE = encoded.CHALLENGE
+#: The definition field that binds the version's host registration digest.
+REGISTRATION_KEY = "version_registration_digest"
 VERSION = "1.7"
 EVALUATION_VERSION = hotspot.EVALUATION_VERSION
 CASE_ID = hotspot.CASE_ID
@@ -208,6 +210,28 @@ class InPackBaselineVariant(_pool_version().PoolVariant):
     #: scale (e does not depend on it) and `calibration` receives the report.
     calibrating = False
     calibration = None
+
+    def definition(self, *, bank, train_raw):
+        """The version's definition plus its host registration digest (`version_overlay`): the definition is hashed into
+        the measurement contract, so a changed registration entry is another pack identity.
+        """
+        return {
+            **super().definition(bank=bank, train_raw=train_raw),
+            REGISTRATION_KEY: self._registration_digest(),
+        }
+
+    def validate_definition(self, definition):
+        bound = definition.get(REGISTRATION_KEY)
+        if bound != self._registration_digest():
+            raise _cooling.Refused("cooling_registration_digest")
+        return super().validate_definition(
+            {k: v for k, v in definition.items() if k != REGISTRATION_KEY}
+        )
+
+    def _registration_digest(self):
+        from carbon.challenge_kit import version_overlay
+
+        return version_overlay.entry_digest(CHALLENGE, self.VERSION)
 
     def applied_pack(self, *, bank_rows, **kwargs):
         from carbon.scoring import dual_score, pool_exam

@@ -505,3 +505,25 @@ def test_every_non_cooling_producer_digest_is_byte_identical_to_main():
     for name, expected in NON_COOLING_DIGESTS.items():
         module = importlib.import_module("carbon.scoring." + name)
         assert physical.producer_digest(module) == expected, name
+
+
+def test_the_definition_binds_the_versions_registration_digest_so_a_changed_entry_is_another_identity(
+    scene, monkeypatch
+):
+    from carbon.challenge_kit import version_overlay
+
+    adapter, _kwargs, _recorder, bank = scene
+    first = adapter.definition(bank=bank, train_raw=b"train")
+    expected = version_overlay.entry_digest("chip-cold-plate", "1.7")
+    assert first[seventeen.REGISTRATION_KEY] == expected
+    adapter.validate_definition(first)
+    monkeypatch.setattr(
+        version_overlay, "entry_digest", lambda challenge, version: "sha256:" + "0" * 64
+    )
+    second = adapter.definition(bank=bank, train_raw=b"train")
+    assert second[seventeen.REGISTRATION_KEY] != first[seventeen.REGISTRATION_KEY]
+    assert json.dumps(second, sort_keys=True) != json.dumps(first, sort_keys=True)
+    with pytest.raises(Exception, match="cooling_registration_digest"):
+        adapter.validate_definition(
+            first
+        )  # a definition bound to the old entry is refused

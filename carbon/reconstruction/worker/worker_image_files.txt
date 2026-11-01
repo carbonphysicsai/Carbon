@@ -21,6 +21,7 @@ carbon/cards/model.py
 carbon/cards/store.py
 carbon/challenge_kit/__init__.py
 carbon/challenge_kit/served_versions.py
+carbon/challenge_kit/version_overlay.py
 carbon/challenge_kit/version_registry.py
 carbon/compute/__init__.py
 carbon/compute/job_server.py
