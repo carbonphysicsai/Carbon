@@ -10,14 +10,16 @@ key.** It verifies; it does not sign.
 A board is served only when all of these hold:
 
 - the file is a readable JSON object of at most `MAX_BYTES`;
-- it is the closed launch-board shape (`launch_board.check`): no field outside the
-  allow-lists, so nothing finer than the Ladder's rounded totals, the king document
-  and counts can appear;
+- it is a v1 or a v2 board (`launch_board.SCHEMA`, `SCHEMA_V2`) in its closed shape
+  (`launch_board.check`): no field outside that schema's allow-lists, so nothing finer
+  than the Ladder's rounded totals, the king document, counts and (v2) the crown
+  changes can appear; an exact total never can;
 - it is this Challenge's board (`challenge.id`);
 - its signature verifies under `launch_board.BOARD_DOMAIN` with the feed key it names,
   and with ``pinned_key`` (64 hex, the key the operator configured) when one is given;
-- every total it shows is exactly on the Ladder step of its own margin: none is finer than
-  a miner sees;
+- every total it shows (the king's, each ladder row's and, on a v2 board, each crown
+  change's) is exactly on the Ladder step of its own margin: none is finer than a miner
+  sees;
 - the key is not the dashboard's public fixture key: a fixture-signed board is never
   served, and the dashboard refuses it too.
 
@@ -66,7 +68,7 @@ def read_board(path, challenge_id, pinned_key=None):
         board = json.loads(file.read_text(encoding="utf-8"))
         if (
             type(board) is not dict
-            or board.get("schema") != launch_board.SCHEMA
+            or board.get("schema") not in (launch_board.SCHEMA, launch_board.SCHEMA_V2)
             or (board.get("challenge") or {}).get("id") != challenge_id
         ):
             return None
@@ -102,6 +104,8 @@ def _on_the_ladder_step(board):
     totals = [row["total"] for row in board["ladder"] if row["total"] is not None]
     if board["king"]["king"] is not None:
         totals.append(board["king"]["king"]["total"])
+    # a v2 board's crown changes show each past king's step-floored total (`koth_public.PoolKingView.crown_changes`)
+    totals += [change["total"] for change in board.get("crown_changes", ())]
     nudge = Decimal(1).scaleb(-9)
 
     def on_grid(total):
