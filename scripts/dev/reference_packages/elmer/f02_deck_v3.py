@@ -620,6 +620,112 @@ def load_leakage(path, *, expect_sha256=None, test_mode=False):
     }
 
 
+# --- the SIGNED production deck (Stage 2 exam material) -------------------------------------------------------------
+
+#: The owner-signed Stage-2 pins. A SIGNED deck requires all three, and refuses anything else:
+#: - the property tables: TABLES_SHA256 (OWNER-F02-V3-TABLES-SIGNED-01), already the production tables;
+#: - the leakage law: leak_vth0_0p35_share2_SIGNED.json (OWNER-F02-V3-LEAK-BOX-SIGNED-01; F02_V3_STAGE2_SIGNED receipt);
+#: - the box: box-c6-signed.json (the same record), its canonical sha256 without its own box_sha256 field.
+SIGNED_LEAKAGE_DECISION = "OWNER-F02-V3-LEAK-BOX-SIGNED-01"
+SIGNED_LEAKAGE_SHA256 = (
+    "f5d6f768d95ed6b7a3a8089a1b98963e555c232a493819fb669d417e96a95112"
+)
+SIGNED_BOX_SHA256 = "d144ae42c22428654a9c61939aa55ae5de5745916cda79a48fea2128349b7227"
+BOX_SCHEMA = "carbon.f02.v3-box.v1"
+SIGNED = "SIGNED"
+
+
+def _canonical_sha256(document):
+    return hashlib.sha256(
+        json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def load_signed_box(path):
+    """The owner-signed box (``carbon.f02.v3-box.v1``), or a refusal: its own ``box_sha256`` and the canonical sha256 of the
+    document without that field must both be `SIGNED_BOX_SHA256`, its status OWNER_SIGNED, every input a real closed range.
+    """
+    doc = json.loads(Path(path).read_bytes())
+    if type(doc) is not dict or doc.get("schema") != BOX_SCHEMA:
+        raise DeckRefused("box_schema")
+    if (
+        doc.get("status") != "OWNER_SIGNED"
+        or doc.get("box_sha256") != SIGNED_BOX_SHA256
+    ):
+        raise DeckRefused("box_not_the_signed_one")
+    if (
+        _canonical_sha256({k: v for k, v in doc.items() if k != "box_sha256"})
+        != SIGNED_BOX_SHA256
+    ):
+        raise DeckRefused("box_changed_after_signing")
+    inputs = doc.get("inputs")
+    if type(inputs) is not dict or not inputs:
+        raise DeckRefused("box_inputs")
+    ranges = {}
+    for name, bounds in inputs.items():
+        if (
+            type(bounds) is not list
+            or len(bounds) != 2
+            or not all(_finite(b) for b in bounds)
+            or not bounds[0] < bounds[1]
+        ):
+            raise DeckRefused(f"box_range_invalid:{name}")
+        ranges[name] = (float(bounds[0]), float(bounds[1]))
+    return {
+        "inputs": ranges,
+        "sha256": "sha256:" + SIGNED_BOX_SHA256,
+        "record": doc.get("record"),
+    }
+
+
+def case_in_box(case, box):
+    """Refuse a case outside the signed box (closed ranges, on the RESOLVED case: the start is the coolant plus its offset).
+    ``gap_s`` is constrained only for a two-pulse case (a one-pulse case has none, as the waveform requires).
+    """
+    resolved = resolve_case(case)
+    for name, (low, high) in box["inputs"].items():
+        if name == "gap_s" and resolved.get("pulses") == 1:
+            if "gap_s" in resolved:
+                raise DeckRefused("one_pulse_case_has_no_gap")
+            continue
+        if (
+            name not in resolved
+        ):  # a signed case names every box input (no default stands in for one)
+            raise DeckRefused(f"case_lacks_a_box_input:{name}")
+        value = resolved[name]
+        if not _finite(value) or not low <= value <= high:
+            raise DeckRefused(f"case_outside_the_signed_box:{name}")
+    return resolved
+
+
+def write_signed_case(case, out, *, leakage_path, box_path, level=1, dt_scale=1.0):
+    """The SIGNED (exam-material) deck: `write_case` with production tables, the signed leakage law and the signed box, and
+    nothing else. Refuses a leakage file or a box that is not the signed one, a case outside the box, or any test input. The
+    deck is labelled SIGNED (tables PRODUCTION, leakage REGISTERED); its physics is exactly the test-mode deck's.
+    """
+    box = load_signed_box(box_path)
+    case_in_box(case, box)
+    leak = load_leakage(leakage_path, expect_sha256=SIGNED_LEAKAGE_SHA256)
+    if leak["decision"] != SIGNED_LEAKAGE_DECISION or leak["label"] != "REGISTERED":
+        raise DeckRefused("leakage_not_the_signed_law")
+    signed = {
+        "label": SIGNED,
+        "tables": TABLES_SHA256,
+        "leakage": leak["sha256"],
+        "box": box["sha256"],
+        "decision": SIGNED_LEAKAGE_DECISION,
+    }
+    return write_case(
+        case,
+        out,
+        level=level,
+        dt_scale=dt_scale,
+        production=True,
+        leakage=leak,
+        signed=signed,
+    )
+
+
 def leakage_density(leak, temperature_k):
     """The volumetric leakage power density q(T) in W/m^3 (exact; refuses a temperature outside the law's range)."""
     low, high = leak["range_k"]
@@ -729,6 +835,7 @@ def sif(
     tim_mm=TIM_MM_DEFAULT,
     tables_source=None,
     leakage=None,
+    signed=None,
 ):
     if leakage is not None and (slab or not source):
         raise DeckRefused("leakage_needs_the_powered_die")
@@ -812,6 +919,8 @@ def sif(
             f"! leakage: {leakage['label']} {leakage['form']} {leakage['sha256']}"
             f" range {leakage['range_k'][0]!r}..{leakage['range_k'][1]!r} K, inside the nonlinear iteration\n"
         )
+    if signed is not None:
+        header += f"! {signed['label']}: {signed['decision']} box {signed['box']}\n"
     return f"""{header}Header
   Mesh DB "." "mesh"
 End
@@ -958,6 +1067,7 @@ def write_case(
     production=False,
     test_mode=False,
     leakage=None,
+    signed=None,
 ):
     """Write the deck. ``leakage`` (a `load_leakage` result, or None for none) adds the die's temperature-dependent heat
     source whenever the die is powered; with None the deck is byte-identical to the one without the parameter. ``tables`` (per layer ``{"k", "cp"}``: a constant or a ``[(T_K, value), ...]`` table, or
@@ -995,6 +1105,7 @@ def write_case(
             tim_mm=tim_mm,
             tables_source=source_of_tables,
             leakage=leakage,
+            signed=signed,
         )
     )
     (out / "ELMERSOLVER_STARTINFO").write_text("case.sif\n1\n")
@@ -1020,6 +1131,13 @@ def write_case(
         }
         if leakage["label"] == LEAKAGE_TEST_ONLY:
             meta["tables"] = LEAKAGE_TEST_ONLY
+    if signed is not None:
+        if label != "PRODUCTION" or leakage is None or leakage["label"] != "REGISTERED":
+            raise DeckRefused(
+                "signed_deck_needs_production_tables_and_registered_leakage"
+            )
+        meta["deck_label"] = signed["label"]
+        meta["signed"] = dict(signed)
     (out / "deck.json").write_text(json.dumps(meta, indent=1) + "\n")
     return meta
 
