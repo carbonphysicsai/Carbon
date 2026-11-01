@@ -44,6 +44,27 @@ Config (`carbon.launch-board.operator.config.v1`, mode 600, never committed):
 recent graded result). `upload_command` is optional; `{file}` and `{name}` are
 replaced, and nothing else is ever put on the command line.
 
+`"board": "v2"` (optional; default "v1") builds the v2 board instead
+(`launch_board.SCHEMA_V2`: the true rank order, the king's ``to_beat_rule`` and the last
+``crown_changes``). Each Challenge then also names its receiver's pool store and its
+contract digest:
+
+     {"id": "chip-cold-plate", "version": "1.4", "exam_version_label": "<label>",
+      "pool_store": "<the receiver's pool store file>",
+      "contract_digest": "sha256:<64 hex>"}
+
+and a v2 run (a) fetches the receiver's v2 king document (`GET /carbon/v1/koth/<id>/v2`),
+(b) opens the pool store READ-ONLY (never created, never written) for the crown changes
+(`koth_public.PoolKingView.crown_changes`, the receiver's own reader, with the epochs of
+the ledger's signed receipts) and the exact best totals (`launch_board.exact_best_totals`,
+the rank source as ruled), and (c) checks the written board with `launch_board.verify`
+under the PUBLIC key. The exact totals stay in this process: they set the order and are
+never written, printed, uploaded or served. Without ``"board"`` (or with "v1") the run
+is exactly the v1 run: same requests, same reads, same bytes.
+
+Turn v2 on for a door only after the dashboard Worker that reads launch-board.v2 is
+deployed; until then a v2 board would be refused there and the last good board kept.
+
 Exit codes: 0 every board written and uploaded; 2 a board could not be built, checked
 or uploaded (the run names which and why).
 
@@ -53,8 +74,12 @@ DEVELOPMENT / TESTNET only: display data, no score, weight or reward authority.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
+import os
 import re
+import sqlite3
+import stat
 import subprocess
 import sys
 import time
@@ -65,6 +90,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+from carbon.battery.pool_store import PoolStore, StateError
 from carbon.challenge_validator import koth_public, launch_board
 from carbon.challenge_validator.feed_file import write_feed
 from carbon.challenge_validator.score_feed import FeedRefused
@@ -72,9 +98,15 @@ from carbon.dashboard import feed as dashboard_feed
 
 CONFIG_SCHEMA = "carbon.launch-board.operator.config.v1"
 NAMES = {"schema", "network", "ledger", "receiver_url", "key", "out", "challenges"}
-OPTIONAL = {"upload_command", "fetch_timeout_seconds"}
+OPTIONAL = {"upload_command", "fetch_timeout_seconds", "board"}
+BOARDS = ("v1", "v2")
+CHALLENGE_NAMES = {"id", "version", "exam_version_label"}
+CHALLENGE_OPTIONAL = {"exam_key"}
+#: What a v2 Challenge must also name; a v1 config never carries them.
+CHALLENGE_V2 = {"pool_store", "contract_digest"}
 MAX_KOTH_BYTES = koth_public.MAX_BYTES
 _PLACEHOLDER = re.compile(r"\{(file|name)\}")
+_CONTRACT = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 class OperatorRefused(ValueError):
@@ -95,11 +127,22 @@ def load_config(path):
         or not raw["challenges"]
     ):
         raise OperatorRefused("operator_config")
+    if raw.get("board", "v1") not in BOARDS:
+        raise OperatorRefused("operator_config_board")
+    v2 = raw.get("board") == "v2"
     for item in raw["challenges"]:
+        required = CHALLENGE_NAMES | (CHALLENGE_V2 if v2 else set())
         if (
             type(item) is not dict
-            or not {"id", "version", "exam_version_label"} <= set(item)
-            or set(item) - {"id", "version", "exam_version_label", "exam_key"}
+            or not required <= set(item)
+            or set(item) - required - CHALLENGE_OPTIONAL
+        ):
+            raise OperatorRefused("operator_config_challenge")
+        if v2 and (
+            type(item["pool_store"]) is not str
+            or not Path(item["pool_store"]).is_absolute()
+            or type(item["contract_digest"]) is not str
+            or not _CONTRACT.fullmatch(item["contract_digest"])
         ):
             raise OperatorRefused("operator_config_challenge")
     command = raw.get("upload_command")
@@ -112,10 +155,13 @@ def load_config(path):
     return raw
 
 
-def fetch_king(receiver_url, challenge, timeout):
-    """The receiver's king document for ``challenge``, or None when it publishes none
-    yet (404); an unreachable or malformed answer is `OperatorRefused`."""
+def fetch_king(receiver_url, challenge, timeout, *, v2=False):
+    """The receiver's king document for ``challenge`` (its v2 document at its own path
+    when ``v2``), or None when it publishes none yet (404); an unreachable or malformed
+    answer is `OperatorRefused`."""
     url = f"{receiver_url}{koth_public.PATH}{challenge['id']}"
+    if v2:
+        url += koth_public.V2_SUFFIX
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response:
             body = response.read(MAX_KOTH_BYTES + 1)
@@ -136,9 +182,9 @@ def fetch_king(receiver_url, challenge, timeout):
     return document
 
 
-def unpublished_king(challenge):
+def unpublished_king(challenge, *, v2=False):
     """The king document of a receiver that publishes none yet: no king, no margin."""
-    return koth_public.document(
+    return (koth_public.document_v2 if v2 else koth_public.document)(
         challenge_id=challenge["id"],
         challenge_version=challenge["version"],
         exam_version_label=challenge["exam_version_label"],
@@ -146,6 +192,104 @@ def unpublished_king(challenge):
         rebuild_noise=None,
         baseline_total=None,
     )
+
+
+def _readonly(path):
+    """A read-only connection to an existing owner-only database file. It never creates
+    the file, never changes its journal mode and cannot write (``mode=ro`` and
+    ``query_only``)."""
+    path = Path(path)
+    info = os.lstat(path)
+    if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+        raise OperatorRefused("pool_store_not_owner_only")
+    connection = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
+    connection.execute("PRAGMA query_only=ON")
+    return connection
+
+
+class ReadOnlyPoolStore:
+    """The receiver's pool store, read-only: exactly the four `PoolStore` readers the v2
+    sources call, over `_readonly` connections. It has no writer."""
+
+    def __init__(self, path):
+        self.path = Path(path)
+
+    @contextlib.contextmanager
+    def db(self):
+        with contextlib.closing(_readonly(self.path)) as connection:
+            yield connection
+
+    events = PoolStore.events
+    incumbent = PoolStore.incumbent
+    incumbent_standing = PoolStore.incumbent_standing
+    private_evaluation_bodies = PoolStore.private_evaluation_bodies
+
+
+class _ReadOnlyLedger:
+    """The receiver's attempt ledger, read-only, for `exam_cap.submission_block`."""
+
+    def __init__(self, path):
+        self.path = Path(path)
+
+    @contextlib.contextmanager
+    def _db(self):
+        with contextlib.closing(_readonly(self.path)) as connection:
+            yield connection
+
+
+def v2_sources(config, item, king_document):
+    """``(crown_changes, exact_totals)`` for a v2 board, read here, on the validator host,
+    from the receiver's pool store and ledger (both read-only). The crown changes are the
+    receiver's own `PoolKingView.crown_changes`; the exact totals are
+    `launch_board.exact_best_totals` on the king document's exam, with the king's entry
+    its standing. They are returned to `run_once` only, which hands them to
+    `launch_board.build`: nothing here writes, prints or keeps them. No pool store yet is
+    no change of king and no exact total."""
+    from carbon.challenge_validator import exam_cap, koth_registry
+
+    if not os.path.lexists(item["pool_store"]):
+        return [], {}
+    store = ReadOnlyPoolStore(item["pool_store"])
+    ledger = _ReadOnlyLedger(config["ledger"])
+
+    def epoch_of(submission_id):
+        if not os.path.lexists(ledger.path):
+            return None
+        block = exam_cap.submission_block(
+            ledger, item["contract_digest"], submission_id
+        )
+        return None if block is None else exam_cap.epoch_of(block)
+
+    view = koth_public.PoolKingView(
+        open_store=lambda: store,
+        epoch_of=epoch_of,
+        exam_version_label=king_document["exam_version_label"],
+        rebuild_noise_of=lambda: koth_registry.rebuild_noise(item["id"]),
+    )
+    changes = view.crown_changes(limit=launch_board.MAX_CROWN_CHANGES)
+    king_model_id = None
+    if king_document["king"] is not None:
+        # The king row's exact entry is the standing of the king the document names; a
+        # crown that moved between the two reads is refused (the next run is consistent).
+        incumbent = store.incumbent()
+        standing = (
+            None
+            if incumbent is None
+            else store.incumbent_standing(incumbent["model_id"])
+        )
+        if standing is None or (
+            koth_public._owner_hotkey(standing["owner"])
+            != king_document["king"]["hotkey"]
+        ):
+            raise OperatorRefused("king_moved_during_run")
+        king_model_id = incumbent["model_id"]
+    exact = launch_board.exact_best_totals(
+        store,
+        challenge_id=item["id"],
+        evaluation_version=king_document["exam_version_label"],
+        king_model_id=king_model_id,
+    )
+    return changes, exact
 
 
 def slug_of(challenge):
@@ -176,6 +320,7 @@ def run_once(config, *, version=None):
     out.mkdir(parents=True, exist_ok=True)
     version = launch_board.now_version() if version is None else version
     timeout = config.get("fetch_timeout_seconds", 10)
+    v2 = config.get("board") == "v2"
     rows = []
     for item in config["challenges"]:
         challenge = type(
@@ -184,29 +329,47 @@ def run_once(config, *, version=None):
         name = slug_of(item) + ".json"
         row = {"challenge": item["id"], "version": item["version"], "file": name}
         try:
-            king = fetch_king(config["receiver_url"], item, timeout)
+            king = fetch_king(config["receiver_url"], item, timeout, v2=v2)
+            king = unpublished_king(item, v2=v2) if king is None else king
+            extra = {}
+            if v2:
+                # The closed v2 king check the build makes, first: the sources read
+                # only a king document of exactly that shape.
+                launch_board._king(king, v2=True)
+                try:
+                    changes, exact = v2_sources(config, item, king)
+                except (sqlite3.Error, StateError):
+                    raise OperatorRefused("pool_store_unavailable") from None
+                extra = {"crown_changes": changes, "exact_totals": exact}
             board = launch_board.build_from_ledger(
                 ledger=config["ledger"],
                 challenge=challenge,
                 exam_key=item.get("exam_key", "latest"),
-                king_document=unpublished_king(item) if king is None else king,
+                king_document=king,
                 network=config["network"],
                 key=key,
                 version=version,
+                **extra,
             )
             path = out / name
             write_feed(path, board)
-            # The dashboard's own reader, under the PUBLIC key, must accept what was
-            # written before it is uploaded.
-            projected = dashboard_feed.project(
-                json.loads(path.read_text(encoding="utf-8")), trust
-            )
+            written = json.loads(path.read_text(encoding="utf-8"))
+            if v2:
+                # The v2 board's closed shape and signature, under the PUBLIC key (the
+                # reader the dashboard Worker's v2 reader is held equal to).
+                shown = launch_board.verify(written, key.public_key)["counts"]
+            else:
+                # The dashboard's own reader, under the PUBLIC key, must accept what
+                # was written before it is uploaded.
+                shown = dashboard_feed.project(written, trust)["launch"]["counts"]
             row.update(
                 state="WROTE",
                 graded=board["counts"]["graded"],
                 king=board["king"]["king"] is not None,
-                shown=projected["launch"]["counts"]["graded"],
+                shown=shown["graded"],
             )
+            if v2:
+                row.update(board="v2", crown_changes=len(board["crown_changes"]))
             if upload(config.get("upload_command"), path, name):
                 row["state"] = "UPLOADED"
         except (
