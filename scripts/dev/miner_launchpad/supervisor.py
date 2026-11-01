@@ -459,7 +459,19 @@ NEXT_ACTIONS = {
         "again for Carbon's subnet (carbon_setup_status), then resume."
     ),
     "signer_not_running": (
-        "Start carbon-miner-signer for your hotkey, then try again. Nothing was signed."
+        "Start carbon-miner-signer for your hotkey, then try again. Nothing was signed. "
+        "Keep the signer running until your result shows reconstructed: a submit is only "
+        "queued until then, and stopping the signer first loses it."
+    ),
+    "construction_recipe_graph_workspace_missing": (
+        "Your graph is not staged at the receiver yet. Stage it first (the Control "
+        "Center's stage button, or the stage_construction_graph action), then submit "
+        "again. Nothing was submitted."
+    ),
+    "construction_source_idempotency_conflict": (
+        "The receiver already holds a different graph for your hotkey. To replace it, "
+        "stage again and pass expected_manifest_digest: the manifest digest returned "
+        "when you staged the earlier graph. Nothing was changed."
     ),
     "signer_refused": "Your signer declined the request. Check it, then try again.",
     "signer_wrong_hotkey": (
