@@ -194,6 +194,20 @@ class OptimizerPolicy:
     #: feasible-predicted designs together (see `grade_target`); k = 1 is the single pick, bit for bit. k is the owner's and
     #: has no default.
     pick_rule: dict | None = None
+    #: How a set's D aggregates its targets, for NEW exam versions only. None is the plain mean of the per-target d (every
+    #: registered version). ``"balanced_region_mean"`` is the mean over REGION CLASSES of each class's mean d, so a regime with
+    #: few targets (the outer shell, a band edge) cannot be averaged away behind a majority that is near perfect.
+    d_aggregate: str | None = None
+
+
+#: The region classes a target belongs to (`region_class`): its own kind, never a model's property.
+REGION_CLASSES = ("in_train", "extended_shell")
+D_AGGREGATES = (None, "balanced_region_mean")
+
+
+def region_class(spec):
+    """The region class of a target: ``extended_shell`` for an EXTENDED target (T5/T6, its OOD shell), else ``in_train``."""
+    return "extended_shell" if spec.extended else "in_train"
 
 
 def pick_count(optimizer):
@@ -234,6 +248,10 @@ def _check_policies(optimizer, honesty):
             and rule["k"] >= 1
         ),
         "pick_rule_must_be_none_or_top_k_with_a_positive_int_k",
+    )
+    _require(
+        optimizer.d_aggregate in D_AGGREGATES,
+        "d_aggregate_must_be_none_or_balanced_region_mean",
     )
     _require(
         _finite(honesty.scale) and honesty.scale > 0, "honesty_scale_must_be_positive"
@@ -714,6 +732,8 @@ def _error(spec, index, prediction, honesty):
 class SetGrade:
     d: float
     targets: tuple  # custody only
+    #: ``((region class, mean d), ...)`` for a balanced set (custody; the per-region report), else empty.
+    regions: tuple = ()
 
     def public(self):
         """All that may leave custody: the set's D and the closed reason codes seen. Never a pick, a
@@ -729,8 +749,19 @@ def grade_set(specs, predict, optimizer, honesty):
     _require(
         len({s.target_id for s in specs}) == len(specs), "target_ids_must_be_unique"
     )
+    _check_policies(optimizer, honesty)
     grades = tuple(grade_target(spec, predict, optimizer, honesty) for spec in specs)
-    return SetGrade(statistics.fmean(g.d for g in grades), grades)
+    if optimizer.d_aggregate is None:
+        return SetGrade(statistics.fmean(g.d for g in grades), grades)
+    by_region = {}
+    for spec, grade in zip(specs, grades, strict=True):
+        by_region.setdefault(region_class(spec), []).append(grade.d)
+    regions = tuple(
+        (name, statistics.fmean(by_region[name]))
+        for name in REGION_CLASSES
+        if name in by_region
+    )
+    return SetGrade(statistics.fmean(d for _name, d in regions), grades, regions)
 
 
 def agen_accuracy(specs, predict, scales):

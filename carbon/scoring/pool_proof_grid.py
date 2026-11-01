@@ -61,9 +61,10 @@ class GridSpec:
     wrong_k: float
     oracle_tolerance: float
     seed: int
-    pick_rule: object = (
-        None  # None (the single pick) or {"kind": "top_k", "k": k}: a NEW version's design rule
-    )
+    # None (the single pick) or {"kind": "top_k", "k": k}: a NEW version's design rule
+    pick_rule: object = None
+    # None (the plain mean) or "balanced_region_mean": a NEW version's D aggregation
+    d_aggregate: object = None
 
 
 def tighten(leg, m):
@@ -130,6 +131,7 @@ def run_grid(plugin, grid):
             sigma0=grid.sigma0,
             population=grid.population,
             pick_rule=grid.pick_rule,
+            d_aggregate=grid.d_aggregate,
         )
         honesty = pool_grader.HonestyPolicy(scale=s_h, reduction=grid.honesty_reduction)
         for name in named:

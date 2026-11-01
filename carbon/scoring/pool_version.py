@@ -103,6 +103,11 @@ def _pick_rule(value):
     return {"kind": _picked(value["kind"]), "k": _picked(value["k"])}
 
 
+def _d_aggregate(value):
+    """The registered D aggregation of a new version (``balanced_region_mean``) or None; never defaulted when present."""
+    return None if value is None else _picked(value)
+
+
 def registered_policies(challenge_id, version, *, path=CONSTANTS):
     """The version's `pool_proof_suite.Policies` from the registered file, or `PoolConstantsNotRegistered`."""
     try:
@@ -123,6 +128,7 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
                 population=_picked(optimizer["population"]),
                 # optional: a registered version without a design rule keeps the single pick, unchanged
                 pick_rule=_pick_rule(optimizer.get("pick_rule")),
+                d_aggregate=_d_aggregate(optimizer.get("d_aggregate")),
             ),
             honesty=pool_grader.HonestyPolicy(
                 scale=_picked(honesty["scale"]), reduction=_picked(honesty["reduction"])
