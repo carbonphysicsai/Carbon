@@ -1159,6 +1159,32 @@ def second_pulse_peak_c(t, top, window):
 
 
 _ITERATION_LINE = re.compile(r"ITER=(\d+)\)\s*\(NRM,RELC\):\s*\(\s*(\S+)\s+(\S+)\s*\)")
+_ITERSOLVE_FAILURE = re.compile(
+    r"IterSolve:\s*Numerical Error:\s*Too many iterations", re.IGNORECASE
+)
+
+
+def runaway_in_log(text):
+    """``{"norms": [...]}`` when the solve of a LEAKAGE-ON deck ended in the iterative-solver error exit ("IterSolve: Numerical
+    Error: Too many iterations were needed") AFTER nonlinear iterations whose norm rose strictly (at least two, over the last
+    time step's iterations): the signature of thermal runaway. Otherwise None, and the failure stays an ordinary solver failure.
+    """
+    if not _ITERSOLVE_FAILURE.search(text):
+        return None
+    norms = []
+    for line in text.splitlines():
+        found = _ITERATION_LINE.search(line)
+        if found is None:
+            continue
+        if int(found.group(1)) == 1:
+            norms = []
+        try:
+            norms.append(float(found.group(2)))
+        except ValueError:
+            return None
+    if len(norms) < 2 or any(b <= a for a, b in itertools.pairwise(norms)):
+        return None
+    return {"norms": norms}
 
 
 def reference_status(case_dir, log_path=None):
@@ -1176,7 +1202,17 @@ def reference_status(case_dir, log_path=None):
     if log_path is None or not Path(log_path).is_file():
         raise DeckRefused("solver_log_required")
     steps, last = [], None
-    for line in Path(log_path).read_text(errors="replace").splitlines():
+    text = Path(log_path).read_text(errors="replace")
+    if meta.get("leakage") is not None:
+        runaway = runaway_in_log(text)
+        if runaway is not None:
+            return {
+                "status": "REFERENCE_INVALID",
+                "reason": "thermal_runaway",
+                "evidence": "solver error exit with a strictly rising nonlinear norm",
+                **runaway,
+            }
+    for line in text.splitlines():
         found = _ITERATION_LINE.search(line)
         if found is None:
             continue

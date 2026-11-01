@@ -465,3 +465,80 @@ def test_zero_leakage_changes_only_the_leakage_lines(tmp_path):
         ), line
     for name in ("mesh.header", "mesh.nodes", "mesh.elements", "mesh.boundary"):
         assert (on / "mesh" / name).read_bytes() == (off / "mesh" / name).read_bytes()
+
+
+# --- the iterative-solver error exit of a leakage-on solve (Validator, cut smoke C1-kT at Vth0 0.70 / 50 %) -----------
+
+
+def _tail(norms, relc="1.000E+00", error=True):
+    lines = [
+        f"ComputeChange: NS (ITER={i}) (NRM,RELC): ( {n:.4E}  {relc} ) :: heat equation"
+        for i, n in enumerate(norms, start=1)
+    ]
+    if error:
+        lines += [
+            "ERROR:: IterSolve: Numerical Error: Too many iterations were needed.",
+            "STOP 1",
+        ]
+    return "\n".join(lines) + "\n"
+
+
+def _runaway_dir(tmp_path, tail, leak=True):
+    directory = tmp_path / ("on" if leak else "off")
+    if leak:
+        v3.write_case(V3, directory, leakage=_leak(tmp_path))
+    else:
+        v3.write_case(V3, directory, tables=TABLES, test_mode=True)
+    log = tmp_path / ("run-on.log" if leak else "run-off.log")
+    log.write_text(tail)
+    return directory, log
+
+
+def test_the_exact_failing_tail_of_a_leakage_on_solve_is_thermal_runaway(tmp_path):
+    # the smoke's tail: the nonlinear norm 332.6 -> 341.0 -> 437.1 -> 1.8e6, then the iterative-solver error and STOP 1
+    directory, log = _runaway_dir(tmp_path, _tail([332.6, 341.0, 437.1, 1.8e6]))
+    status = v3.reference_status(directory, log)
+    assert status["status"] == "REFERENCE_INVALID"
+    assert status["reason"] == "thermal_runaway"
+    assert status["norms"] == [332.6, 341.0, 437.1, 1.8e6]
+
+
+def test_a_failing_solve_without_a_strictly_rising_norm_stays_an_ordinary_failure(
+    tmp_path,
+):
+    cases = {
+        "falling": [332.6, 300.0, 437.1],
+        "flat": [332.6, 332.6, 400.0],
+        "single": [332.6],
+    }
+    for name, norms in cases.items():
+        sub = tmp_path / name
+        sub.mkdir()
+        directory, log = _runaway_dir(sub, _tail(norms))
+        status = v3.reference_status(directory, log)
+        assert status.get("reason") != "thermal_runaway", name
+
+
+def test_a_rising_norm_without_the_solver_error_exit_is_not_runaway(tmp_path):
+    directory, log = _runaway_dir(tmp_path, _tail([332.6, 341.0, 437.1], error=False))
+    assert v3.reference_status(directory, log).get("reason") != "thermal_runaway"
+
+
+def test_only_the_last_time_steps_iterations_count(tmp_path):
+    # an earlier step rose and recovered; the failing step's norms are the ones read (they restart at ITER=1)
+    steps = _tail([300.0, 310.0], error=False) + _tail([400.0, 380.0, 390.0])
+    directory, log = _runaway_dir(tmp_path, steps)
+    assert v3.reference_status(directory, log).get("reason") != "thermal_runaway"
+    steps = _tail([400.0, 380.0], error=False) + _tail([300.0, 310.0, 420.0])
+    sub = tmp_path / "second"
+    sub.mkdir()
+    directory, log = _runaway_dir(sub, steps)
+    assert v3.reference_status(directory, log)["reason"] == "thermal_runaway"
+
+
+def test_without_leakage_the_same_tail_is_never_typed_thermal_runaway(tmp_path):
+    directory, log = _runaway_dir(
+        tmp_path, _tail([332.6, 341.0, 437.1, 1.8e6]), leak=False
+    )
+    status = v3.reference_status(directory, log)
+    assert status.get("reason") != "thermal_runaway"
