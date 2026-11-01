@@ -2555,13 +2555,25 @@ def rebuild_at_seed(
         adapter._provider(origin_owner)._requests[origin].recipe
     )
     provider = adapter._provider(host_owner)
-    request = adapter._request(
-        host_owner,
-        recipe,
-        evaluation_pack_digest=provider.evaluation_pack_digest,
-        rebuild=f"{origin}\0{seed}\0{repeat}",
-    )
-    task_id = provider._task_id(request)
+    # Invariant 7: a derived task that ended on OUR infrastructure (FAILED_INFRA, unresolved, cancelled) is never the
+    # model's result and is never read again: the next try is the next fresh generation (`rerun`, the miner path's own
+    # counter), with the SAME seed and an unchanged generation 0. The failed task's records stay for audit; a task
+    # that is queued, running or succeeded is the one this try reuses. No input of the miner reaches the generation.
+    generation = 0
+    while True:
+        request = adapter._request(
+            host_owner,
+            recipe,
+            evaluation_pack_digest=provider.evaluation_pack_digest,
+            rebuild=f"{origin}\0{seed}\0{repeat}",
+            rerun=generation,
+        )
+        task_id = provider._task_id(request)
+        if task_id.value not in provider._views or not adapter._ended_on_infra(
+            host_owner, task_id, provider
+        ):
+            break
+        generation += 1
     if task_id.value in provider._views:
         # A retry: the task exists, and must be the very seed asked for.
         if provider._seed_for(task_id.value) != seed:

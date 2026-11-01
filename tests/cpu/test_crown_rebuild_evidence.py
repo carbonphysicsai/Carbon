@@ -240,7 +240,8 @@ class _Provider:
         self.owner = owner
         self.evaluation_pack_digest = "sha256:" + "e" * 64
         self._views, self._seeds, self.log = {}, {}, []
-        self.state = state
+        self.state = state  # the state a NEW task starts in
+        self.states = {}  # each task's own state (a failed task stays failed)
         self._requests = {}
 
     def _task_id(self, request):
@@ -259,14 +260,17 @@ class _Provider:
         self.log.append(("start", request.key))
         value = self._task_id(request).value
         self._views[value] = True
-        return SimpleNamespace(task=SimpleNamespace(state=self.state))
+        state = self.states.setdefault(value, self.state)
+        return SimpleNamespace(task=SimpleNamespace(state=state))
 
     def run_queued_task(self, task_id):
         self.log.append(("run", task_id.value))
+        self.states[task_id.value] = DirectTaskStateV3.SUCCEEDED
         self.state = DirectTaskStateV3.SUCCEEDED
 
     def get_research_result(self, request):
-        return SimpleNamespace(task=SimpleNamespace(state=self.state))
+        state = self.states.get(request.task_id.value, self.state)
+        return SimpleNamespace(task=SimpleNamespace(state=state))
 
 
 def _fixture(state=DirectTaskStateV3.QUEUED):
@@ -295,10 +299,20 @@ def _fixture(state=DirectTaskStateV3.QUEUED):
         def _provider(self, owner):
             return host if owner == HOST else origin_provider
 
-        def _request(self, owner, recipe, *, evaluation_pack_digest, rebuild=None):
+        def _request(
+            self, owner, recipe, *, evaluation_pack_digest, rebuild=None, rerun=0
+        ):
             assert owner == HOST and rebuild is not None
-            keys.append(rebuild)
-            return SimpleNamespace(key=f"{owner}|{rebuild}")
+            keys.append(rebuild if not rerun else f"{rebuild}\0rerun{rerun}")
+            return SimpleNamespace(key=f"{owner}|{rebuild}|{rerun}")
+
+        def _ended_on_infra(self, hotkey, task_id, provider):
+            # LeanRecipeAdapter._ended_on_infra's task-state test (the ledger half has no derived rows)
+            return provider.states.get(task_id.value) in (
+                DirectTaskStateV3.FAILED_INFRA,
+                DirectTaskStateV3.UNRESOLVED,
+                DirectTaskStateV3.CANCELLED,
+            )
 
         @contextmanager
         def deriving(self, task_value, host_owner):
@@ -499,3 +513,179 @@ def test_the_average_asks_the_second_build_for_the_host_fault_pair(tmp_path):
         "a", KEY, _comparator(), repeat=repeat, average=_active(tmp_path)
     )
     assert len(second) == 1 and CHALLENGE
+
+
+# --- a retry after an infrastructure failure is a fresh generation (invariant 7) -------------------------------
+
+
+def _wired(tmp_path, monkeypatch, body=None):
+    """The averaging builds over the fake host provider, with the grade stubbed to ``body`` (default a scored 0.70)."""
+    from tests.cpu.test_crown_average import _grade
+
+    adapter, host, keys, _ = _fixture()
+    monkeypatch.setattr(ConstructionRecipe, "from_dict", classmethod(lambda cls, d: d))
+    graded = _grade(0.70) if body is None else body
+    monkeypatch.setattr(
+        retention,
+        "retain_rebuild_evidence",
+        lambda a, t, **k: {"submission_id": t, "evidence": graded["evidence"]},
+    )
+
+    def build(repeat):
+        def run(seed):
+            try:
+                return retention.rebuild_at_seed(
+                    adapter,
+                    ORIGIN,
+                    seed,
+                    repeat=repeat,
+                    host_owner=HOST,
+                    artifact_directory=tmp_path,
+                    entry_directory=tmp_path,
+                )
+            except retention.RetentionUnavailable as error:
+                raise ca.RebuildInfra("rebuild failed") from error
+
+        return run
+
+    return adapter, host, keys, build(0), build(1)
+
+
+def _average(tmp_path, rebuild, rebuild_again):
+    from tests.cpu.test_crown_average import CHALLENGE, KEY, _rule
+
+    return ca.run_average(
+        key=KEY,
+        challenge_id=CHALLENGE,
+        submission_id="sub-1",
+        rule=_rule(tmp_path),
+        rebuild=rebuild,
+        rebuild_again=rebuild_again,
+        king_mean=0.60,
+        baseline_floor=0.26,
+        tolerance=0.0,
+    )
+
+
+def test_a_task_that_ended_on_infrastructure_is_never_read_again_the_next_try_is_fresh(
+    tmp_path, monkeypatch
+):
+    _adapter, host, keys, rebuild, _again = _wired(tmp_path, monkeypatch)
+    host.state = DirectTaskStateV3.FAILED_INFRA
+    with pytest.raises(ca.RebuildInfra):
+        rebuild(4242)  # attempt 1: the build fails on our infrastructure
+    (failed,) = host.states
+    assert host.states[failed] is DirectTaskStateV3.FAILED_INFRA
+
+    host.state = DirectTaskStateV3.QUEUED  # attempt 2: the host is well again
+    result = rebuild(4242)
+    assert result["evidence"]  # the build actually ran and was graded
+    assert [e[0] for e in host.log] == ["seed", "start", "seed", "start", "run"]
+    _, second = host.states
+    assert second != failed
+    assert result["submission_id"] == second
+    # the old failed task is untouched, for audit; its seed and the new one's are the very same seed
+    assert host.states[failed] is DirectTaskStateV3.FAILED_INFRA
+    assert host._seeds[failed] == host._seeds[second] == 4242
+    # generation 0 is the unchanged label; the retry is the same label at rerun 1, nothing a miner supplies
+    assert _starts(host) == [
+        (f"{ORIGIN}\0{4242}\0{0}", 0),
+        (f"{ORIGIN}\0{4242}\0{0}", 1),
+    ]
+    assert keys[0] == f"{ORIGIN}\0{4242}\0{0}"
+
+
+def _starts(host):
+    """``(label, generation)`` of every task the host provider was asked to start, in order."""
+    out = []
+    for entry in host.log:
+        if entry[0] == "start":
+            _owner, label, generation = entry[1].rsplit("|", 2)
+            out.append((label.removeprefix(f"{HOST}|"), int(generation)))
+    return out
+
+
+def test_every_inner_try_after_a_failure_is_its_own_generation(tmp_path, monkeypatch):
+    _adapter, host, _keys, rebuild, _again = _wired(tmp_path, monkeypatch)
+    host.state = DirectTaskStateV3.FAILED_INFRA
+    for _ in range(3):
+        with pytest.raises(ca.RebuildInfra):
+            rebuild(77)
+    assert len(host.states) == 3  # three tasks, none re-read
+    assert [g for _label, g in _starts(host)] == [0, 1, 2]
+    host.state = DirectTaskStateV3.QUEUED
+    assert rebuild(77)["evidence"]
+    assert len(host.states) == 4
+    assert [g for _label, g in _starts(host)] == [0, 1, 2, 3]
+    assert {label for label, _g in _starts(host)} == {f"{ORIGIN}\0{77}\0{0}"}
+
+
+def test_the_host_fault_second_build_gets_the_same_treatment(tmp_path, monkeypatch):
+    _adapter, host, _keys, _rebuild, again = _wired(tmp_path, monkeypatch)
+    host.state = DirectTaskStateV3.FAILED_INFRA
+    with pytest.raises(ca.RebuildInfra):
+        again(9)
+    host.state = DirectTaskStateV3.QUEUED
+    assert again(9)["evidence"]
+    assert _starts(host) == [(f"{ORIGIN}\0{9}\0{1}", 0), (f"{ORIGIN}\0{9}\0{1}", 1)]
+
+
+def test_attempt_two_resolves_after_attempt_one_failed_on_infrastructure(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import bank_promotion as bp
+    from tests.cpu.test_crown_average import CHALLENGE, KEY, _rule
+
+    _adapter, host, _keys, rebuild, again = _wired(tmp_path, monkeypatch)
+    seeds = ca.derive_seeds(
+        KEY, CHALLENGE, "sub-1", _rule(tmp_path).n_for(CHALLENGE), 2147483647
+    )
+
+    host.state = DirectTaskStateV3.FAILED_INFRA  # attempt 1: every build fails
+    first = _average(tmp_path, rebuild, again)
+    assert (
+        first["outcome"] == bp.UNAVAILABLE and first["reason"] == ca.REBUILD_UNAVAILABLE
+    )
+    assert (
+        len(host.states) == 3
+    )  # the three inner tries, three generations of the first seed
+    failed = set(host.states)
+
+    host.state = DirectTaskStateV3.QUEUED  # attempt 2, one epoch later: no fault
+    second = _average(tmp_path, rebuild, again)
+    assert second["outcome"] == bp.CHALLENGER  # decided and recorded, not UNAVAILABLE
+    assert second["private"]["seeds"] == seeds  # the same seeds, derived again
+    built = [task for task in host.states if task not in failed]
+    assert len(built) >= len(seeds)  # the builds really ran, as new tasks
+    assert all(host.states[task] is DirectTaskStateV3.SUCCEEDED for task in built)
+    assert all(host.states[task] is DirectTaskStateV3.FAILED_INFRA for task in failed)
+
+
+def test_three_consecutive_real_failures_stay_unavailable_each_on_fresh_tasks(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import bank_promotion as bp
+
+    _adapter, host, _keys, rebuild, again = _wired(tmp_path, monkeypatch)
+    host.state = DirectTaskStateV3.FAILED_INFRA
+    for attempt in range(3):
+        result = _average(tmp_path, rebuild, again)
+        assert result["outcome"] == bp.UNAVAILABLE
+        assert len(host.states) == 3 * (
+            attempt + 1
+        )  # every try its own task, none reused
+
+
+def test_a_scientific_failure_is_not_retried_and_resolves_as_unstable(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import bank_promotion as bp
+    from tests.cpu.test_crown_average import CHALLENGE, _grade, _rule
+
+    gated = _grade(None, status="MANDATORY_GATE_FAILED")
+    _adapter, host, _keys, rebuild, again = _wired(tmp_path, monkeypatch, body=gated)
+    result = _average(tmp_path, rebuild, again)
+    assert result["outcome"] == bp.INCUMBENT_KEEPS and result["reason"] == ca.UNSTABLE
+    # one build per seed, none repeated, none regenerated
+    assert len(host.states) == _rule(tmp_path).n_for(CHALLENGE)
+    assert all(state is DirectTaskStateV3.SUCCEEDED for state in host.states.values())
