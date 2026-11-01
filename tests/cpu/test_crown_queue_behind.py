@@ -179,3 +179,17 @@ def test_the_incumbent_event_is_stamped_with_the_decision_time_not_the_admission
     with store.db() as db:
         (since,) = db.execute("SELECT since FROM incumbent WHERE id=1").fetchone()
     assert since == clock[0]  # the weights ledger reads the time the crown was DECIDED
+
+
+def test_only_unresolved_records_count_and_in_admission_order(rig):
+    store, _clock, _pairs, _repeats, live, reconsider, _bodies = rig
+    live("a")  # undecided: unresolved
+    live("b")  # queued behind a
+    assert [r["submission_id"] for r in store.paused_crowns()] == ["a", "b"]
+    store.resolve_crown_pause("a", KEY, "INCUMBENT_KEEPS:resolved_by_a_test")
+    # a resolved earlier record queues nobody: b is now the oldest unresolved one and is decided
+    assert [r["submission_id"] for r in store.paused_crowns()] == ["b"]
+    flow = bp.BankPromotion(store, registered_source_receipt_sha256=PIN)
+    assert flow._undecided_before("b", KEY) == []
+    assert [r["submission_id"] for r in flow._undecided_before("c", KEY)] == ["b"]
+    assert reconsider({"submission_id": "b"})["outcome"] == bp.FIRST_INCUMBENT
