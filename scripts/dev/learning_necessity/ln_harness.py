@@ -31,6 +31,9 @@ Aggregates only: the tuned recipes stay private to Carbon (the record is CARBON_
     # custody: retrain the recorded selection on public TRAIN, predict the sealed probe inputs
     python ln_harness.py predict --record OUT/record.json --grid-digest sha256:... --version 2.5 --probe-inputs probe.npy --out PRED
     # (one process with both, for desk runs)
+    # the two pinned worker images each hold one stack (torch or jax): run each with --runtime, then check the pair
+    python ln_harness.py run ... --runtime torch --out OUT-torch ; python ln_harness.py run ... --runtime jax --out OUT-jax
+    python ln_harness.py merge-check OUT-torch/record.json OUT-jax/record.json
     python ln_harness.py run --grid GRID.json --grid-digest sha256:... --version 2.5 --probe-inputs probe.npy --out OUT
 """
 
@@ -146,6 +149,56 @@ def resolve_entries(grid, challenge_id, version):
         else:
             raise Refused("contender_not_offered_by_the_version:" + each["role"])
     return out
+
+
+RUNTIMES = ("torch", "jax")
+
+
+def entry_runtime(item):
+    """The runtime stack an entry's pinned build needs, from its settings schema ("torch" or "jax")."""
+    schema_id = item["settings_schema"]
+    for name in RUNTIMES:
+        if f"-{name}-" in schema_id:
+            return name
+    raise Refused("entry_runtime_unknown:" + item["catalog_id"])
+
+
+def for_runtime(entries, runtime):
+    """The contenders whose build runs on ``runtime`` (all of them when None); refuses an unknown runtime or an empty set."""
+    if runtime is None:
+        return entries
+    if runtime not in RUNTIMES:
+        raise Refused("runtime_must_be_torch_or_jax")
+    kept = [e for e in entries if entry_runtime(e[1]) == runtime]
+    if not kept:
+        raise Refused("no_contender_for_runtime:" + runtime)
+    return kept
+
+
+def merge_check(records):
+    """Refuse a merged result that does not cover the whole grid: the records must share one grid digest and challenge,
+    run distinct runtimes, and together hold every contender the grid resolves to, each once.
+    """
+    if not records:
+        raise Refused("merge_needs_records")
+    first = records[0]
+    for each in records:
+        if (
+            each.get("grid_digest") != first.get("grid_digest")
+            or each.get("challenge") != first.get("challenge")
+            or each.get("contenders_expected") != first.get("contenders_expected")
+        ):
+            raise Refused("merge_records_are_for_different_grids")
+    runtimes = [each.get("runtime") for each in records]
+    if None in runtimes or len(set(runtimes)) != len(runtimes):
+        raise Refused("merge_needs_one_record_per_runtime")
+    ran = [c["catalog_id"] for each in records for c in each["contenders"]]
+    for cid in first["contenders_expected"]:
+        if cid not in ran:
+            raise Refused("merged_result_missing_contender:" + cid)
+    if len(ran) != len(set(ran)) or set(ran) - set(first["contenders_expected"]):
+        raise Refused("merged_result_has_a_duplicate_or_foreign_contender")
+    return {"runtimes": runtimes, "contenders": ran}
 
 
 def check_settings(contender, item):
@@ -344,6 +397,7 @@ def run(
     *,
     builders=None,
     challenge_id="f02",
+    runtime=None,
     log=print,
 ):
     """The whole harness for one version. ``builders`` maps catalog_id to a build callable (tests); default: the pins."""
@@ -356,6 +410,8 @@ def run(
     checked = {
         item["catalog_id"]: check_settings(each, item) for each, item, _ in entries
     }
+    expected = [item["catalog_id"] for _, item, _ in entries]
+    entries = for_runtime(entries, runtime)
     wall = rebuild_wall_seconds(challenge_id, version)
     folds = make_folds(len(x), grid["k"], grid["fold_seed"])
     out = Path(out_dir)
@@ -399,6 +455,8 @@ def run(
         "visibility": "CARBON_PRIVATE",
         "challenge": grid["challenge"],
         "grid_digest": grid_digest,
+        "runtime": runtime,
+        "contenders_expected": expected,
         "k": grid["k"],
         "fold_seed": grid["fold_seed"],
         "seed": seed,
@@ -433,6 +491,7 @@ def predict_from_record(
     *,
     builders=None,
     challenge_id="f02",
+    runtime=None,
     log=print,
 ):
     """The custody step: retrain, on the PUBLIC TRAIN, the settings a pod run recorded (default and selected) and export
@@ -444,6 +503,7 @@ def predict_from_record(
         or record.get("truths_read") is not False
         or record.get("grid_digest") != grid_digest
         or record.get("challenge") != {"id": challenge_id, "version": version}
+        or (runtime is not None and record.get("runtime") != runtime)
     ):
         raise Refused("record_is_not_this_grids_selection_record")
     from carbon.backbone_catalog import listing, settings
@@ -481,6 +541,8 @@ def predict_from_record(
         "challenge": record["challenge"],
         "grid_digest": grid_digest,
         "source_record_sha256": digest(record),
+        "runtime": record.get("runtime"),
+        "contenders_expected": record.get("contenders_expected"),
         "seed": seed,
         "rebuild_wall_seconds": wall,
         "probe_inputs_sha256": probe_digest(probe),
@@ -515,6 +577,9 @@ def main(argv=None):
         help="optional: sealed inputs never go to a rented pod, so a pod run omits this and records the selection only",
     )
     two.add_argument("--out", required=True)
+    two.add_argument(
+        "--runtime", choices=RUNTIMES, help="run only the contenders on this stack"
+    )
     three = sub.add_parser(
         "predict",
         help="custody step: retrain a recorded selection, predict the probe inputs",
@@ -524,17 +589,41 @@ def main(argv=None):
     three.add_argument("--version", required=True)
     three.add_argument("--probe-inputs", required=True)
     three.add_argument("--out", required=True)
+    three.add_argument(
+        "--runtime", choices=RUNTIMES, help="must match the record's runtime"
+    )
+    four = sub.add_parser(
+        "merge-check", help="refuse a merged result that misses a grid contender"
+    )
+    four.add_argument("records", nargs="+")
     args = parser.parse_args(argv)
     if args.command == "digest":
         print(digest(json.loads(Path(args.grid).read_text(encoding="utf-8"))))
         return 0
     try:
-        if args.command == "predict":
+        if args.command == "merge-check":
+            loaded = [
+                json.loads(Path(r).read_text(encoding="utf-8")) for r in args.records
+            ]
+            print(json.dumps(merge_check(loaded)))
+        elif args.command == "predict":
             predict_from_record(
-                args.record, args.grid_digest, args.version, args.probe_inputs, args.out
+                args.record,
+                args.grid_digest,
+                args.version,
+                args.probe_inputs,
+                args.out,
+                runtime=args.runtime,
             )
         else:
-            run(args.grid, args.grid_digest, args.version, args.probe_inputs, args.out)
+            run(
+                args.grid,
+                args.grid_digest,
+                args.version,
+                args.probe_inputs,
+                args.out,
+                runtime=args.runtime,
+            )
     except Refused as refusal:
         print(f"refused: {refusal}", file=sys.stderr)
         return 2

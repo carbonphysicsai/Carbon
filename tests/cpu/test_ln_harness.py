@@ -255,6 +255,7 @@ def test_the_harness_has_no_truth_input_and_the_record_holds_none(tmp_path):
         "out_dir",
         "builders",
         "challenge_id",
+        "runtime",
         "log",
     }
     grid = _grid()
@@ -348,6 +349,7 @@ def test_the_custody_step_retrains_the_recorded_selection_and_matches_a_one_proc
         "out_dir",
         "builders",
         "challenge_id",
+        "runtime",
         "log",
     }
 
@@ -394,3 +396,140 @@ def test_the_custody_step_refuses_a_record_that_is_not_this_grids_selection(tmp_
         h.predict_from_record(
             odd, digest, "2.5", probe, tmp_path / "c", builders=builders
         )
+
+
+def _runtime_builders(grid, runtime):
+    """Fake builders that fail for a contender outside ``runtime``: the other stack is not installed in that image."""
+    items = {e[1]["catalog_id"]: e[1] for e in h.resolve_entries(grid, "f02", "2.5")}
+    return {
+        cid: (_fake_build if h.entry_runtime(item) == runtime else _never)
+        for cid, item in items.items()
+    }
+
+
+def test_each_entry_belongs_to_one_runtime_stack():
+    items = [e[1] for e in h.resolve_entries(_grid(), "f02", "2.5")]
+    got = {i["catalog_id"]: h.entry_runtime(i) for i in items}
+    assert {c for c, r in got.items() if r == "jax"} == {
+        "v2.f02.prior_krr",
+        "v2.f02.jno.mgno2d",
+    }
+    assert sum(r == "torch" for r in got.values()) == 4
+    with pytest.raises(h.Refused, match="entry_runtime_unknown"):
+        h.entry_runtime({"catalog_id": "x", "settings_schema": "carbon-candidate-v9"})
+    with pytest.raises(h.Refused, match="runtime_must_be_torch_or_jax"):
+        h.for_runtime([("a", {"settings_schema": "x-torch-y"}, None)], "tensorflow")
+
+
+def test_a_runtime_run_trains_only_that_stack_and_the_two_records_cover_the_grid(
+    tmp_path,
+):
+    grid = _grid()
+    path, digest = _write(tmp_path, grid)
+    probe = _probe(tmp_path)
+    records = {}
+    for runtime in h.RUNTIMES:
+        records[runtime] = h.run(
+            path,
+            digest,
+            "2.5",
+            None,
+            tmp_path / runtime,
+            builders=_runtime_builders(grid, runtime),
+            runtime=runtime,
+            log=lambda *_: None,
+        )
+    assert {
+        r: [c["catalog_id"] for c in v["contenders"]] for r, v in records.items()
+    } == {
+        "jax": ["v2.f02.prior_krr", "v2.f02.jno.mgno2d"],
+        "torch": [
+            "v2.f02.neuralop.FNO",
+            "v2.f02.lno.LNO1d",
+            "v2.f02.physicsnemo.FullyConnected",
+            "v2.f02.jno.transolver",
+        ],
+    }
+    for runtime, record in records.items():
+        assert record["runtime"] == runtime and len(record["contenders_expected"]) == 6
+        assert record["grid_digest"] == digest
+    merged = h.merge_check(list(records.values()))
+    assert (
+        sorted(merged["runtimes"]) == ["jax", "torch"]
+        and len(merged["contenders"]) == 6
+    )
+    # the custody step per runtime reproduces the one-process run for the same contenders
+    h.run(
+        path,
+        digest,
+        "2.5",
+        probe,
+        tmp_path / "desk",
+        builders=_builders(grid),
+        log=lambda *_: None,
+    )
+    for runtime in h.RUNTIMES:
+        document = h.predict_from_record(
+            tmp_path / runtime / "record.json",
+            digest,
+            "2.5",
+            probe,
+            tmp_path / f"cust-{runtime}",
+            builders=_runtime_builders(grid, runtime),
+            runtime=runtime,
+            log=lambda *_: None,
+        )
+        assert (
+            document["runtime"] == runtime and len(document["contenders_expected"]) == 6
+        )
+        for contender in document["contenders"]:
+            for entry in contender["exports"].values():
+                assert np.array_equal(
+                    np.load(tmp_path / f"cust-{runtime}" / entry["file"]),
+                    np.load(tmp_path / "desk" / entry["file"]),
+                )
+    with pytest.raises(h.Refused, match="record_is_not_this_grids_selection_record"):
+        h.predict_from_record(
+            tmp_path / "torch" / "record.json",
+            digest,
+            "2.5",
+            probe,
+            tmp_path / "x",
+            builders=_builders(grid),
+            runtime="jax",
+        )
+
+
+def test_the_merge_check_refuses_a_result_that_misses_or_doubles_a_contender():
+    base = {
+        "grid_digest": "sha256:" + "a" * 64,
+        "challenge": {"id": "f02", "version": "2.5"},
+        "contenders_expected": ["a", "b", "c"],
+    }
+    torch = {
+        **base,
+        "runtime": "torch",
+        "contenders": [{"catalog_id": "a"}, {"catalog_id": "b"}],
+    }
+    jax = {**base, "runtime": "jax", "contenders": [{"catalog_id": "c"}]}
+    assert h.merge_check([torch, jax])["contenders"] == ["a", "b", "c"]
+    with pytest.raises(h.Refused, match="merged_result_missing_contender:c"):
+        h.merge_check([torch])
+    with pytest.raises(h.Refused, match="merged_result_missing_contender:b"):
+        h.merge_check([{**torch, "contenders": [{"catalog_id": "a"}]}, jax])
+    with pytest.raises(h.Refused, match="duplicate_or_foreign"):
+        h.merge_check(
+            [torch, {**jax, "contenders": [{"catalog_id": "c"}, {"catalog_id": "a"}]}]
+        )
+    with pytest.raises(h.Refused, match="duplicate_or_foreign"):
+        h.merge_check(
+            [torch, {**jax, "contenders": [{"catalog_id": "c"}, {"catalog_id": "z"}]}]
+        )
+    with pytest.raises(h.Refused, match="merge_needs_one_record_per_runtime"):
+        h.merge_check([torch, {**torch, "contenders": [{"catalog_id": "c"}]}])
+    with pytest.raises(h.Refused, match="merge_needs_one_record_per_runtime"):
+        h.merge_check([torch, {**jax, "runtime": None}])
+    with pytest.raises(h.Refused, match="different_grids"):
+        h.merge_check([torch, {**jax, "grid_digest": "sha256:" + "b" * 64}])
+    with pytest.raises(h.Refused, match="merge_needs_records"):
+        h.merge_check([])
