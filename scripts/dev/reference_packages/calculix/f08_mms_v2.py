@@ -220,7 +220,8 @@ def write_case(
     for i in boundary:
         u = field_u(nodes[i], DEFAULT_A, q)
         deck += [f"{i},{d + 1},{d + 1},{u[d]:.12g}" for d in range(3)]
-    deck += ["*STEP", "*STATIC"]
+    # the F08 2.0 PaStiX re-pin (f08_deck_v2.SOLVER): a versioned deck migration, every deck sha256 changes
+    deck += ["*STEP", f"*STATIC,SOLVER={v2.SOLVER}"]
     if magnitude > 0:
         direction = [x / magnitude for x in bf]
         # body force density = rho * g * direction, so g = |b| / rho

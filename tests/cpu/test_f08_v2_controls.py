@@ -98,12 +98,37 @@ def _sha(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+# The PaStiX re-pin (owner, 11-01): a versioned deck migration naming SOLVER=PASTIX on the *FREQUENCY and *STATIC lines.
+# These are the PaStiX decks for the same cases; PINNED's deck_* are the SPOOLES-era decks, recovered by `_undo_pastix`.
+PINNED_PASTIX_DECK = {
+    "deck_base": "584cb4b49197c359a909501fbf30f452fdaa2f62b16f2f29f30ae80747aaf456",
+    "deck_norelief": "11e7cfcc53585d1852d016ddf864b584d7bd6aa2a14464707443eafff9bde9eb",
+    "deck_offset_angle": "9436939ccf1f58a4e16f66c2d91272db57a5240a4d7b43d1a64d36f8c62be6c4",
+}
+
+
+def _undo_pastix(text):
+    """The deck with the PaStiX re-pin taken out: the two SPOOLES-era step lines, which named no solver."""
+    frequency, static = (
+        "*FREQUENCY,SOLVER=PASTIX,STORAGE=YES\n",
+        "*STATIC,SOLVER=PASTIX\n",
+    )
+    assert text.count(frequency) == 1 and text.count(static) == 1
+    assert text.count("SOLVER=") == 2
+    return text.replace(frequency, "*FREQUENCY,STORAGE=YES\n").replace(
+        static, "*STATIC\n"
+    )
+
+
 def test_a_case_without_control_leaves_every_existing_output_byte_identical():
-    got = {}
+    got, spooles = {}, {}
     for name, case in CASES.items():
         got["gmsh_" + name] = _sha(v2.gmsh_script_v2(case, 3.0, 0.5))
-        got["deck_" + name] = _sha(v2.deck_text(case, META, MAT))
-    assert got == {**PINNED, **PINNED_A2_GMSH}
+        deck = v2.deck_text(case, META, MAT)
+        got["deck_" + name] = _sha(deck)
+        spooles["deck_" + name] = _sha(_undo_pastix(deck))
+    assert got == {**PINNED_PASTIX_DECK, **PINNED_A2_GMSH}
+    assert spooles == {k: v for k, v in PINNED.items() if k.startswith("deck_")}
 
 
 def test_the_a2_band_is_the_only_change_to_the_gmsh_program():
@@ -176,7 +201,8 @@ def test_a_control_deck_is_one_static_step_and_the_hole_load_is_axial():
     hole = v2.deck_text(ctl.kirsch_case(ALLOY), META, MAT)
     plain = v2.deck_text(ctl.plain_plate_case(ALLOY), META, MAT)
     for deck in (hole, plain):
-        assert deck.count("*STEP") == 1 and "*STATIC" in deck
+        assert deck.count("*STEP") == 1 and "*STATIC,SOLVER=PASTIX\n" in deck
+        assert deck.count("SOLVER=") == 1
         assert "*FREQUENCY" not in deck and "*STEADY STATE DYNAMICS" not in deck
         assert "*EL PRINT,ELSET=FILLET\nS" in deck
     loads_hole = hole.split("*CLOAD,OP=NEW\n")[1].split("*NODE PRINT")[0]

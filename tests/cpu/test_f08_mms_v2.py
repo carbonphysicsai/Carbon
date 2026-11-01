@@ -100,6 +100,17 @@ def test_the_case_files_prescribe_every_boundary_node_and_load_only_the_mms_case
         mms.write_case(tmp_path / "bad", degree=3)
 
 
+def test_every_static_step_of_the_patch_and_mms_decks_names_the_pastix_solver(
+    tmp_path,
+):
+    assert mms.v2.SOLVER == "PASTIX"
+    for degree in (1, 2):
+        mms.write_case(tmp_path / str(degree), n=2, degree=degree, size=SIZE)
+        lines = (tmp_path / str(degree) / "case.inp").read_text().splitlines()
+        steps = [line for line in lines if line.startswith(("*STATIC", "*FREQUENCY"))]
+        assert steps == ["*STATIC,SOLVER=PASTIX"], degree
+
+
 def _fabricated_dat(expected, nodes, perturb=0.0):
     interior = {int(i): u for i, u in expected["interior"].items()}
     rows = ["\n S T E P       1\n"]
