@@ -34,4 +34,5 @@ def test_the_guide_says_where_practice_runs_and_that_submit_is_queued():
     assert "practice_candidate_failed" in MINING
     assert "never on a validator's" in MINING
     assert "RTX 4090-class" in MINING
+    assert "shown for each Challenge in its kit document" in MINING
     assert "Keep your signer running until the result shows reconstructed" in MINING
