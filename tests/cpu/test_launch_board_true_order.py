@@ -139,7 +139,6 @@ def test_the_v2_board_needs_the_exact_totals_and_refuses_inconsistent_ones():
         {HOTKEY: 0.7123, A: 0.70},  # below A's shown (floored) total 0.71
         {HOTKEY: 0.7123, A: float("nan")},
         {HOTKEY: 0.7123, A: 1.5},
-        {HOTKEY: 0.7123},  # a scored row without an exact total
     ):
         with pytest.raises(lb.BoardRefused, match="board_exact"):
             lb.build(
@@ -163,6 +162,69 @@ def test_the_v2_board_needs_the_exact_totals_and_refuses_inconsistent_ones():
             crown_changes=[],
             exact_totals={HOTKEY: 0.5},
         )
+
+
+def _partial(shown, exact):
+    """A v2 board whose rows show ``shown`` (floored) and whose exact totals are only ``exact``."""
+    document = kp.document_v2(
+        **_args(king={"hotkey": HOTKEY, "total": 0.7123, "since_epoch": 12})
+    )
+    return lb.build(
+        king_document=document,
+        rows=_rows(shown),
+        network="testnet",
+        key=KEY,
+        version=5,
+        now=NOW,
+        crown_changes=[],
+        exact_totals=exact,
+    )
+
+
+def test_rows_without_an_exact_total_keep_their_floored_order_and_ties():
+    # the pool store holds an exact total only on the crown path (Motor, RB and BT boards failed closed on this): the
+    # other rows order by their own floored totals as on v1, equal floored totals share a rank, nothing is invented
+    shown = {HOTKEY: 0.7123, A: 0.7129, B: 0.6544, C: 0.6512, D: None}
+    board = _partial(shown, {HOTKEY: 0.7123})
+    assert _ranks(board) == [(HOTKEY, 1), (A, 2), (B, 3), (C, 3), (D, 5)]
+    # the king row shows the crown standing's total, as the king page does
+    assert board["ladder"][0]["total"] == board["king"]["king"]["total"]
+    for row in board["ladder"][1:]:
+        assert row["total"] == (
+            None
+            if shown[row["hotkey"]] is None
+            else lb.floor9(_floor(shown[row["hotkey"]]))
+        )
+    blob = lb._canonical({k: v for k, v in board.items() if k != "signature"})
+    for value in (0.7129, 0.6544, 0.6512):
+        assert repr(value) not in blob
+    assert lb.verify(board, KEY.public_key) == board
+    # mixed: a challenger with an exact total sorts by it, one without by its floored total (both show 0.71)
+    mixed = _partial({HOTKEY: 0.80, A: 0.7101, B: 0.7149}, {HOTKEY: 0.80, A: 0.7101})
+    assert _ranks(mixed) == [(HOTKEY, 1), (A, 2), (B, 3)]
+
+
+def test_the_v1_board_is_untouched_by_the_partial_exact_rule():
+    shown = {HOTKEY: 0.7123, A: 0.7129, B: 0.6544, C: 0.6512, D: None}
+    document = kp.document(
+        **_args(king={"hotkey": HOTKEY, "total": 0.7123, "since_epoch": 12})
+    )
+    board = lb.build(
+        king_document=document,
+        rows=_rows(shown),
+        network="testnet",
+        key=KEY,
+        version=5,
+        now=NOW,
+    )
+    assert board["schema"] == lb.SCHEMA
+    assert _ranks(board) == [
+        (A, 1),
+        (HOTKEY, 1),
+        (B, 3),
+        (C, 3),
+        (D, 5),
+    ]  # v1: equal floored totals, by hotkey
 
 
 def test_a_king_who_is_not_on_the_ladder_forces_nothing():

@@ -261,8 +261,10 @@ def ladder_rows(rows, *, exact=None, king_hotkey=None, king_total=None):
 
     With ``exact`` (a v2 board; OWNER-BOARD-TRUE-ORDER-01) the order is the TRUE one: the current king (``king_hotkey``)
     is always listed first at rank 1, every other row follows by descending EXACT best total, and equal ranks only when
-    the exact totals are bit-equal (a challenger bit-equal to the king co-ranks 1, listed after the king). The published
-    ``total`` stays step-floored, and the exact totals never leave this function: only the order is revealed. On such a
+    the exact totals are bit-equal (a challenger bit-equal to the king co-ranks 1, listed after the king). A row for
+    which ``exact`` holds no total (only the crown path keeps one) is ordered by its own floored total, as on v1; none
+    is invented. The published ``total`` stays step-floored, and the exact totals never leave this function: only the
+    order is revealed. On such a
     board the KING row's shown total is ``king_total`` (the crown standing's floored total, as the king page shows it)
     rather than its single best grade, so the board and the king page always agree.
     """
@@ -314,7 +316,8 @@ def ladder_rows(rows, *, exact=None, king_hotkey=None, king_total=None):
 
 def _true_order(kept, exact, king_hotkey):
     """``[(row, tie_key)]`` in the true order: the king first (alone at rank 1), then descending exact best total; the
-    tie key is the exact total itself (so only bit-equal totals share a rank), or None for a row with no best total.
+    tie key is the exact total itself (so only bit-equal totals share a rank), the row's own floored total when no exact
+    total is held for it (v1's order and ties for that row), or None for a row with no best total.
     """
     if type(exact) is not dict:
         raise BoardRefused("board_exact")
@@ -326,6 +329,11 @@ def _true_order(kept, exact, king_hotkey):
             values[hotkey] = None
             continue
         value = exact.get(hotkey)
+        if value is None:
+            # no exact total is held for this row (the pool store keeps one only on the crown path): it orders by its own
+            # step-floored total, as on a v1 board, and ties only on an equal floored total. Nothing is invented.
+            values[hotkey] = total
+            continue
         # the shown total is the exact one floored to a step: never above it
         if (
             type(value) is not float

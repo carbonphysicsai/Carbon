@@ -387,8 +387,10 @@ def _shown(exact):
     return (repr(exact), str(exact)[:9])
 
 
-@pytest.mark.parametrize("case", ["moved", "no_exact", "group_readable"])
+@pytest.mark.parametrize("case", ["moved", "group_readable"])
 def test_a_refusal_names_a_code_and_no_exact_total(tmp_path, door, frozen, case):
+    # (a ladder row with no exact total is no longer a refusal: see
+    # test_a_ladder_row_with_no_exact_total_keeps_its_floored_order)
     king = None
     if case == "moved":
         king = {**_v2_king()}
@@ -396,9 +398,6 @@ def test_a_refusal_names_a_code_and_no_exact_total(tmp_path, door, frozen, case)
     config, _ = _v2_fixture(
         tmp_path, door, king=king, mode=0o640 if case == "group_readable" else 0o600
     )
-    if case == "no_exact":
-        third = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
-        _record(Path(config["ledger"]).parent, COOLING, third, 0.5)
     (row,) = operator.run_once(config, version=9)
     assert row["state"] == "REFUSED" and set(row) == {
         "challenge",
@@ -493,13 +492,27 @@ def test_a_group_readable_pool_store_is_refused(tmp_path, door, frozen):
     assert row["state"] == "REFUSED" and row["code"] == "pool_store_not_owner_only"
 
 
-def test_a_ladder_row_with_no_exact_total_refuses_the_board(tmp_path, door, frozen):
+def test_a_ladder_row_with_no_exact_total_keeps_its_floored_order(
+    tmp_path, door, frozen
+):
+    # graded on the ladder but with no pool evaluation, so no exact total: the board is written, that row is ordered
+    # by its own floored total (as on v1), and no exact total is invented for it
     config, _ = _v2_fixture(tmp_path, door)
     third = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
     _record(Path(config["ledger"]).parent, COOLING, third, 0.5)  # no pool evaluation
     (row,) = operator.run_once(config, version=9)
-    assert row["state"] == "REFUSED" and row["code"] == "board_exact"
-    assert not (Path(config["out"]) / (operator.slug_of(COOLING) + ".json")).exists()
+    assert row["state"] == "WROTE" and row["board"] == "v2"
+    document = json.loads(_board_bytes(config, COOLING))
+    assert lb.verify(document, lb.LaunchBoardKey(SEED).public_key) == document
+    noise = koth_registry.rebuild_noise(COOLING["id"])["value"]
+    assert [(r["hotkey"], r["rank"], r["total"]) for r in document["ladder"]] == [
+        (KING, 1, document["king"]["king"]["total"]),
+        (OTHER, 2, lb.floor9(gf.floor_to_step(OTHER_EXACT, noise))),
+        (third, 3, lb.floor9(gf.floor_to_step(0.5, noise))),
+    ]
+    text = _board_bytes(config, COOLING).decode()
+    for exact in (KING_EXACT, OTHER_EXACT):
+        assert repr(exact) not in text
 
 
 def test_before_any_pool_store_the_v2_board_is_the_empty_one(tmp_path, door, frozen):
