@@ -288,3 +288,99 @@ def test_the_solve_record_binds_the_deck_the_output_the_mesh_and_the_images_and_
         and record["dat_sha256"] != record["deck_sha256"]
     )
     assert "coords" not in record["mesh"] and "peak_von_mises_mpa" not in record
+
+
+def _modal_dat(modes, static_peak):
+    blocks = []
+    for k in range(modes):
+        blocks.append(
+            "\n stresses (elem, integ.pnt.,sxx,syy,szz,sxy,sxz,syz) for set FILLET"
+            f" and time  {k + 1}.0\n\n"
+            f"         5   1  {10.0 * (k + 1):.6E}  0.0  0.0  0.0  0.0  0.0\n"
+            f"         5   2  {5.0 * (k + 1):.6E}  0.0  0.0  0.0  0.0  0.0\n"
+        )
+    blocks.append(_dat(static_peak))
+    return "".join(blocks)
+
+
+def test_the_modal_stress_fields_are_the_first_blocks_and_the_static_block_follows():
+    keys, fields = v2.modal_stress_tensors(_modal_dat(3, 99.0), 3)
+    assert keys == [(5, 1), (5, 2)] and fields.shape == (3, 2, 6)
+    assert fields[2, 0, 0] == pytest.approx(30.0)
+    with pytest.raises(v2.Refused, match="modal_stress_blocks_missing"):
+        v2.modal_stress_tensors(_modal_dat(3, 99.0), 4)
+
+
+def _one_mode(hz, pf, stress):
+    omega = 2.0 * math.pi * hz
+    return (
+        [{"omega": omega, "hz": hz, "pf": pf}],
+        v2.np.array([[[stress, 0.0, 0.0, 0.0, 0.0, 0.0]]]),
+    )
+
+
+def test_a_single_resonance_gives_the_textbook_dynamic_stress_peak_at_the_mode_frequency():
+    modal, field = _one_mode(200.0, 0.5, 40.0)
+    zeta = 0.01
+    out = v2.worst_band_dynamic_stress(field, modal, zeta)
+    omega = modal[0]["omega"]
+    expected = (
+        0.5 * 40.0 / (2.0 * zeta * omega**2)
+    )  # |q| = pf / (2 zeta omega^2) at resonance
+    assert out["dynamic_von_mises_mpa_per_n"] == pytest.approx(expected, rel=2e-3)
+    assert out["frequency_hz"] == pytest.approx(200.0, abs=1.0)
+    assert out["band_hz"] == [80.0, 600.0]
+
+
+def test_the_dynamic_stress_depends_on_damping_and_on_where_the_mode_sits_against_the_band():
+    modal, field = _one_mode(200.0, 0.5, 40.0)
+    light = v2.worst_band_dynamic_stress(field, modal, 0.005)
+    heavy = v2.worst_band_dynamic_stress(field, modal, 0.02)
+    assert light["dynamic_von_mises_mpa_per_n"] == pytest.approx(
+        4.0 * heavy["dynamic_von_mises_mpa_per_n"], rel=5e-3
+    )
+    outside, field_out = _one_mode(
+        1500.0, 0.5, 40.0
+    )  # same mode, stiffer alloy: out of the band
+    off = v2.worst_band_dynamic_stress(field_out, outside, 0.01)
+    assert (
+        off["dynamic_von_mises_mpa_per_n"] < 0.05 * light["dynamic_von_mises_mpa_per_n"]
+    )
+
+
+def test_an_oscillating_shear_state_keeps_its_von_mises_amplitude():
+    omega = 2.0 * math.pi * 200.0
+    modal = [{"omega": omega, "hz": 200.0, "pf": 1.0}]
+    shear = v2.np.array([[[0.0, 0.0, 0.0, 30.0, 0.0, 0.0]]])
+    value = v2.dynamic_stress_amplitude(shear, modal, 200.0, 0.01)
+    assert value == pytest.approx(
+        30.0 * math.sqrt(3.0) / (2 * 0.01 * omega**2), rel=1e-6
+    )
+
+
+def test_the_dynamic_ladder_reports_each_rung_and_the_change():
+    mat = v2.material("TEST_ALLOY", table=TEST_TABLE, test_mode=True)
+    coarse, fine = _one_mode(200.0, 0.5, 40.0), _one_mode(200.0, 0.5, 42.0)
+    out = v2.observe_dynamic_rungs(
+        CASE, {1.0: (coarse[1], coarse[0]), 0.5: (fine[1], fine[0])}, mat
+    )
+    assert [r["fillet_h_mm"] for r in out["rungs"]] == [1.0, 0.5]
+    assert out["successive"][0]["rel_change"] == pytest.approx(0.05, rel=2e-3)
+    with pytest.raises(v2.Refused, match="fillet_refinement_needs_two_rungs"):
+        v2.observe_dynamic_rungs(CASE, {1.0: (coarse[1], coarse[0])}, mat)
+
+
+def test_the_modal_stress_is_requested_in_the_frequency_step_and_the_ruling_is_recorded():
+    meta = {
+        "pad_tri6": [[1, 2, 3, 4, 5, 6]],
+        "probe_tri6": [[1, 2, 3, 7, 8, 9]],
+        "coords": {str(n): [float(n % 3), float(n // 3), 0.0] for n in range(1, 10)},
+        "tip_node": 1,
+        "probe_node": 2,
+    }
+    mat = v2.material("TEST_ALLOY", table=TEST_TABLE, test_mode=True)
+    deck = v2.deck_text(CASE, meta, mat)
+    frequency = deck.split("*FREQUENCY")[1].split("*END STEP")[0]
+    assert "*EL PRINT,ELSET=FILLET\nS" in frequency
+    assert v2.STRESS_FIXED["primary"] == "worst_band_dynamic_von_mises"
+    assert v2.STRESS_FIXED["constraint"] == "static_peak_von_mises"

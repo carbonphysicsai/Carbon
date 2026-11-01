@@ -184,6 +184,82 @@ def digest(model):
     return _sha(model)
 
 
+# ------------------------------------------------ the PRIMARY output: worst-band DYNAMIC fillet stress (Validator ruling)
+
+DYNAMIC_INPUTS = (*INPUTS, "damping_ratio", "E_mpa", "rho_t_per_mm3")
+DYNAMIC_MODEL_SCHEMA = "carbon.f08.closed-form-gate-dynamic-model.v1"
+BAND_HZ = (
+    80.0,
+    600.0,
+)  # the registered band (f08_proof.BAND_HZ); read here so the gate has no solver import
+FIRST_MODE_COEFFICIENT = 1.8751**2 / (2.0 * math.pi)  # cantilever first-mode constant
+
+
+def first_mode_hz(row):
+    """Euler-Bernoulli cantilever first bending frequency of the section (mm, t, N, s: sqrt(E I / (rho A L^4)) is rad/s),
+    for the weaker bending axis: an adversary's estimate, not a physical claim."""
+    s = section(row)
+    area = (
+        row["width_mm"] * row["thickness_mm"]
+        + 2 * row["rib_thickness_mm"] * row["rib_height_mm"]
+    )
+    inertia = min(s["iy"], s["iz"])
+    return FIRST_MODE_COEFFICIENT * math.sqrt(
+        row["E_mpa"] * inertia / (row["rho_t_per_mm3"] * area * row["length_mm"] ** 4)
+    )
+
+
+def band_amplification(f1_hz, zeta, band=BAND_HZ):
+    """Peak over the band of a single oscillator's dynamic amplification |1 / (1 - r^2 + 2 i zeta r)|, r = f / f1."""
+    lo, hi = band
+    if lo <= f1_hz <= hi:
+        return 1.0 / (2.0 * zeta * math.sqrt(1.0 - zeta**2))  # the resonance peak
+    edge = lo if f1_hz < lo else hi
+    r = edge / f1_hz
+    return 1.0 / math.hypot(1.0 - r * r, 2.0 * zeta * r)
+
+
+def dynamic_features(row):
+    """The modal-superposition adversary: the static notch features plus ln(band amplification) and ln(1 / f1^2)."""
+    f1 = first_mode_hz(row)
+    return [
+        *structured_features(row),
+        math.log(band_amplification(f1, row["damping_ratio"])),
+        -2.0 * math.log(f1),
+    ]
+
+
+def fit_dynamic(train, *, ridge=1e-6):
+    """Fit the structured modal-superposition adversary on rows carrying `dynamic_von_mises_mpa_per_n`."""
+    if train.get("schema") != TRAIN_SCHEMA:
+        raise GateRefused("train_schema")
+    rows = train["rows"]
+    if not rows:
+        raise GateRefused("no_rows")
+    for row in rows:
+        if any(not math.isfinite(float(row.get(k, math.nan))) for k in DYNAMIC_INPUTS):
+            raise GateRefused("row_input_not_finite")
+        if not row.get("dynamic_von_mises_mpa_per_n", 0) > 0:
+            raise GateRefused("peak_not_positive")
+    target = [math.log(r["dynamic_von_mises_mpa_per_n"]) for r in rows]
+    return {
+        "schema": DYNAMIC_MODEL_SCHEMA,
+        "train_sha256": _sha(train),
+        "ridge": ridge,
+        "band_hz": list(BAND_HZ),
+        "structured": {
+            "coefficients": _ridge([dynamic_features(r) for r in rows], target, ridge)
+        },
+    }
+
+
+def predict_dynamic(model, rows):
+    if model.get("schema") != DYNAMIC_MODEL_SCHEMA:
+        raise GateRefused("model_schema")
+    coef = np.array(model["structured"]["coefficients"])
+    return [math.exp(float(np.dot(coef, dynamic_features(r)))) for r in rows]
+
+
 def predict(model, rows):
     if model.get("schema") != MODEL_SCHEMA:
         raise GateRefused("model_schema")

@@ -30,6 +30,8 @@ import re
 import sys
 from pathlib import Path
 
+import numpy as np
+
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
@@ -63,6 +65,11 @@ SAFETY_FACTOR = HUMAN_INPUT
 STRESS_FIXED = {
     "step": "*EL PRINT,ELSET=FILLET: S at the integration points (C3D10: 4 per element)",
     "reduction": "von Mises",
+    # Validator ruling 2026-11-01: PRIMARY = worst-band DYNAMIC von Mises at the fillet (modal superposition of the
+    # mass-normalised modal stresses under the harmonic load, peak over the band and over the oscillation phase);
+    # the STATIC peak is the safety-constraint output.
+    "primary": "worst_band_dynamic_von_mises",
+    "constraint": "static_peak_von_mises",
 }
 
 
@@ -312,7 +319,8 @@ def deck_text(case, meta, mat, *, modes=48, loads=None):
     ]
     deck = "\n".join(lines) + "\n"
     deck += (
-        f"*STEP\n*FREQUENCY,STORAGE=YES\n{modes}\n*NODE PRINT,NSET=OBS\nU\n*END STEP\n"
+        f"*STEP\n*FREQUENCY,STORAGE=YES\n{modes}\n*NODE PRINT,NSET=OBS\nU\n"
+        "*EL PRINT,ELSET=FILLET\nS\n*END STEP\n"
     )
     zeta = case["damping_ratio"]
     deck += (
@@ -504,4 +512,135 @@ def solve_record(
         },
         "images": dict(image_ids),
         "wall_s": wall_s,
+    }
+
+
+# ---------------------------------------------------------------- dynamic (primary) fillet stress
+
+PHASES = 72  # oscillation phases scanned for the von Mises amplitude of an oscillating stress tensor
+HEADER = "stresses (elem, integ.pnt.,sxx,syy,szz,sxy,sxz,syz)"
+_ROW = re.compile(rf"^\s*(\d+)\s+(\d+)\s+((?:{NUM}\s+){{5}}{NUM})\s*$")
+
+
+def parse_stress_blocks(dat_text):
+    """Every ``*EL PRINT ... S`` block of a .dat, in file order: a list of `parse_stress`-style row lists."""
+    blocks = []
+    current = None
+    for line in dat_text.splitlines():
+        if HEADER in line:
+            current = []
+            blocks.append(current)
+            continue
+        if current is not None:
+            match = _ROW.match(line)
+            if match:
+                current.append(
+                    (
+                        int(match.group(1)),
+                        int(match.group(2)),
+                        tuple(float(x) for x in match.group(3).split()),
+                    )
+                )
+            elif line.strip():
+                current = None
+    return blocks
+
+
+def modal_stress_tensors(dat_text, modes):
+    """The mass-normalised modal stress fields from the frequency step: ``(keys, array[mode, row, 6])``. The first
+    ``modes`` FILLET blocks of the .dat are the modes in order; the static step's block is the one after them.
+    """
+    blocks = parse_stress_blocks(dat_text)
+    if len(blocks) < modes + 1:
+        raise Refused("modal_stress_blocks_missing")
+    keys = [(e, ip) for e, ip, _ in blocks[0]]
+    for block in blocks[:modes]:
+        if [(e, ip) for e, ip, _ in block] != keys:
+            raise Refused("modal_stress_rows_differ")
+    return keys, np.array([[list(r[2]) for r in block] for block in blocks[:modes]])
+
+
+def _vm_rows(tensors):
+    """Von Mises of an array[..., 6] of (sxx, syy, szz, sxy, sxz, syz)."""
+    sxx, syy, szz, sxy, sxz, syz = (tensors[..., k] for k in range(6))
+    return np.sqrt(
+        0.5 * ((sxx - syy) ** 2 + (syy - szz) ** 2 + (szz - sxx) ** 2)
+        + 3.0 * (sxy**2 + sxz**2 + syz**2)
+    )
+
+
+def dynamic_stress_amplitude(modal_stress, modal, f_hz, zeta):
+    """The von Mises amplitude of the oscillating stress at ``f_hz``, per N: the complex modal sum
+    sigma(f) = sum_j q_j(f) sigma_j, then the largest von Mises over one oscillation (``PHASES`` phases) and over every
+    integration point. ``modal`` is v1.modal_data's list (omega, pf per mode)."""
+    w = 2.0 * math.pi * f_hz
+    q = np.array(
+        [
+            m["pf"] / (m["omega"] ** 2 - w * w + 2j * zeta * m["omega"] * w)
+            for m in modal
+        ]
+    )
+    sigma = np.tensordot(q, modal_stress, axes=(0, 0))  # [row, 6], complex
+    phase = np.exp(1j * np.linspace(0.0, math.pi, PHASES, endpoint=False))
+    oscillating = np.real(sigma[None, :, :] * phase[:, None, None])  # [phase, row, 6]
+    return float(_vm_rows(oscillating).max())
+
+
+def worst_band_dynamic_stress(modal_stress, modal, zeta, *, band_hz=None):
+    """The primary output: the peak of `dynamic_stress_amplitude` over the registered band at the case's damping, found
+    on the same grid rule as the displacement peak (every in-band mode resolved) and refined by golden section.
+    """
+    lo, hi = proof.BAND_HZ if band_hz is None else band_hz
+    grid = [f for f in v1.dense_grid([m["hz"] for m in modal], zeta) if lo <= f <= hi]
+
+    def value(f):
+        return dynamic_stress_amplitude(modal_stress, modal, f, zeta)
+
+    values = [value(f) for f in grid]
+    top = max(values)
+    i = values.index(top)
+    a, b = grid[max(i - 1, 0)], grid[min(i + 1, len(grid) - 1)]
+    f_peak = v1._golden(value, a, b)
+    refined = value(f_peak)
+    best_f, best = (f_peak, refined) if refined > top else (grid[i], top)
+    return {
+        "frequency_hz": best_f,
+        "dynamic_von_mises_mpa_per_n": best,
+        "grid_points": len(grid),
+        "band_hz": [lo, hi],
+        "damping_ratio": zeta,
+    }
+
+
+def observe_dynamic_rungs(case, rung_inputs, mat):
+    """The dynamic fillet stress over the refinement ladder (capture 5). ``rung_inputs`` maps ``fillet_h_mm`` to
+    ``(modal_stress, modal)``; reports each rung's worst-band value and the change between successive rungs.
+    """
+    if len(rung_inputs) < 2:
+        raise Refused("fillet_refinement_needs_two_rungs")
+    peaks = []
+    for h in sorted(rung_inputs, reverse=True):
+        stress, modal = rung_inputs[h]
+        peaks.append(
+            {
+                "fillet_h_mm": h,
+                **worst_band_dynamic_stress(stress, modal, case["damping_ratio"]),
+            }
+        )
+    changes = [
+        {
+            "from_h_mm": a["fillet_h_mm"],
+            "to_h_mm": b["fillet_h_mm"],
+            "rel_change": (
+                b["dynamic_von_mises_mpa_per_n"] - a["dynamic_von_mises_mpa_per_n"]
+            )
+            / a["dynamic_von_mises_mpa_per_n"],
+        }
+        for a, b in itertools.pairwise(peaks)
+    ]
+    return {
+        "case": case,
+        "tables": mat["tables"],
+        "rungs": peaks,
+        "successive": changes,
     }

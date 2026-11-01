@@ -125,3 +125,84 @@ def test_the_stop_rule_needs_the_owners_margin():
     assert refused.value.code == "margin_not_registered"
     assert gate.stop_rule(0.89, 0.90, 0.02)["stop"] is True
     assert gate.stop_rule(0.70, 0.90, 0.02)["stop"] is False
+
+
+def dyn_row(rng):
+    r = row(rng)
+    return {
+        **r,
+        "damping_ratio": rng.uniform(0.005, 0.02),
+        "E_mpa": rng.choice([70000.0, 200000.0, 110000.0]),
+        "rho_t_per_mm3": rng.choice([2.7e-9, 7.85e-9, 4.43e-9]),
+    }
+
+
+def synthetic_dynamic(r):
+    """A made-up law of the modal-superposition form (SYNTHETIC)."""
+    coef = [0.2, 1.0, -0.35, 0.05, 0.1, 0.9, 0.6]
+    return math.exp(sum(c * f for c, f in zip(coef, gate.dynamic_features(r))))
+
+
+def make_dynamic(count, seed):
+    rng = random.Random(seed)
+    rows = [dyn_row(rng) for _ in range(count)]
+    return [{**r, "dynamic_von_mises_mpa_per_n": synthetic_dynamic(r)} for r in rows]
+
+
+def test_the_band_amplification_is_the_resonance_peak_inside_and_flat_far_above_the_band():
+    zeta = 0.01
+    assert gate.band_amplification(300.0, zeta) == pytest.approx(
+        1.0 / (2 * zeta * math.sqrt(1 - zeta**2))
+    )
+    assert gate.band_amplification(50000.0, zeta) == pytest.approx(1.0, rel=1e-3)
+    below = gate.band_amplification(20.0, zeta)  # the band lies above the mode: r > 1
+    assert below < 0.1
+
+
+def test_the_first_mode_scales_with_the_alloy_and_the_section():
+    base = dyn_row(random.Random(5))
+    stiffer = {**base, "E_mpa": base["E_mpa"] * 4.0}
+    assert gate.first_mode_hz(stiffer) == pytest.approx(2.0 * gate.first_mode_hz(base))
+    heavier = {**base, "rho_t_per_mm3": base["rho_t_per_mm3"] * 4.0}
+    assert gate.first_mode_hz(heavier) == pytest.approx(0.5 * gate.first_mode_hz(base))
+
+
+def test_the_modal_superposition_adversary_recovers_a_synthetic_dynamic_law_and_is_deterministic():
+    train = {"schema": gate.TRAIN_SCHEMA, "rows": make_dynamic(150, 7)}
+    model = gate.fit_dynamic(train)
+    assert model == gate.fit_dynamic(train) and model["train_sha256"].startswith(
+        "sha256:"
+    )
+    assert len(model["structured"]["coefficients"]) == 7 and model["band_hz"] == [
+        80.0,
+        600.0,
+    ]
+    probe = make_dynamic(40, 8)
+    predicted = gate.predict_dynamic(model, probe)
+    truth = [r["dynamic_von_mises_mpa_per_n"] for r in probe]
+    assert max(abs(p - t) / t for p, t in zip(predicted, truth)) < 1e-4
+
+
+@pytest.mark.parametrize(
+    "mutate, code",
+    [
+        (lambda t: {**t, "schema": "x"}, "train_schema"),
+        (lambda t: {**t, "rows": []}, "no_rows"),
+        (
+            lambda t: {
+                **t,
+                "rows": [{**t["rows"][0], "dynamic_von_mises_mpa_per_n": 0.0}],
+            },
+            "peak_not_positive",
+        ),
+        (
+            lambda t: {**t, "rows": [{**t["rows"][0], "E_mpa": math.nan}]},
+            "row_input_not_finite",
+        ),
+    ],
+)
+def test_a_bad_dynamic_train_document_is_refused(mutate, code):
+    train = {"schema": gate.TRAIN_SCHEMA, "rows": make_dynamic(5, 9)}
+    with pytest.raises(gate.GateRefused) as refused:
+        gate.fit_dynamic(mutate(train))
+    assert refused.value.code == code
