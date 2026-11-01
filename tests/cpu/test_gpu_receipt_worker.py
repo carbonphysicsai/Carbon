@@ -260,6 +260,9 @@ def test_the_docker_run_is_the_official_isolated_shape_and_moves_no_tag(tmp_path
     ):
         assert part in joined, part
     assert argv[:2] == ["docker", "run"] and "tag" not in argv and "build" not in argv
+    # a writable HOME and TMPDIR inside the task's own scratch (deepxde writes ~/.deepxde at import)
+    env = [argv[i + 1] for i, a in enumerate(argv) if a == "-e"]
+    assert "HOME=/scratch/home" in env and "TMPDIR=/scratch/tmp" in env
     assert (
         "--framework torch" in joined
         and argv[argv.index("scripts/dev/gpu_repeat.py") + 2] == "/out/name1.json"
@@ -296,6 +299,15 @@ def test_official_pair_passes_on_two_identical_runs_and_fails_on_a_dead_run(
     monkeypatch.setattr(w, "compare_runs", lambda a, b: state["verdict"])
     done = w.official_pair(c, job)
     assert done["verdict"] == "PASS" and done["peak_gpu_bytes"] == 7
+    (scratch,) = (c.state_dir / "runs").glob("*/scratch")
+    for name in (
+        "home",
+        "tmp",
+        "cache",
+    ):  # every dir the container's HOME/TMPDIR/XDG_CACHE names exists, world-writable
+        assert (scratch / name).is_dir() and (
+            scratch / name
+        ).stat().st_mode & 0o777 == 0o777
     state["verdict"] = "DIFFER"
     assert w.official_pair(c, job)["verdict"] == "UNSTABLE"
     state["verdict"] = "NOT_OK: backend_not_gpu"

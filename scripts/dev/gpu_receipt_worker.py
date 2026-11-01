@@ -420,6 +420,12 @@ def docker_argv(ctx, runtime, catalog_id, run_name, out_dir, scratch):
         "PYTHONDONTWRITEBYTECODE=1",
         "-e",
         "JAX_PLATFORMS=cuda",
+        # A writable per-run HOME and TMPDIR inside the task's own scratch mount (never the host's): deepxde writes
+        # ~/.deepxde at import, and the container user (65532) cannot create /scratch/home in the host's 775 directory.
+        "-e",
+        "HOME=/scratch/home",
+        "-e",
+        "TMPDIR=/scratch/tmp",
         "--workdir",
         "/work",
         "--entrypoint",
@@ -470,7 +476,7 @@ def official_pair(ctx, job):
     {"verdict": "PASS"|"UNSTABLE"|"FAILED", "reason", "detail", "peak_gpu_bytes"}."""
     root = ctx.state_dir / "runs" / hashlib.sha256(job["key"].encode()).hexdigest()[:16]
     out_dir, scratch = root / "out", root / "scratch"
-    for directory in (out_dir, scratch / "tmp", scratch / "cache"):
+    for directory in (out_dir, scratch / "tmp", scratch / "cache", scratch / "home"):
         directory.mkdir(parents=True, exist_ok=True)
         directory.chmod(0o777)
     for stale in out_dir.glob("*.json"):
