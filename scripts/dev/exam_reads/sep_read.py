@@ -21,6 +21,7 @@ PROBE SET (`PROBE_SCHEMA`, one closed custody document per version, assembled by
 CONFIG (every key required):
   probe_set, kernel / operator: {"predict_record", "catalog_id", "fit": "tuned" | "default"}, koth_rebuild_noise,
   nearest_train: {"payload_dir", "region", "region_sha256", "train_npz", "train_provenance"}
+  bootstrap_seed: the seed of the C1 paired bootstrap (recorded in the output)
 
 Per class (Validator rulings 11-01):
 - accuracy = the mean over the class's cases and outputs of the version's REGISTERED A_gen atom, 1 / (1 + |err| / scale), with the
@@ -29,6 +30,9 @@ Per class (Validator rulings 11-01):
 - the median |err| / U per output for K and O (U from the probe set's U record; a relative U is relative to the true value);
 - the flag "K loses by > margin_N AND O beats K", set ONLY for n >= 6 (n < 6 is INDICATIVE and never flagged);
 - the nearest-TRAIN distance quantiles from DC's receipted nearest_train.py, run IN PLACE (its SHA256SUMS checked first).
+Overall, the C1 gate's read (OWNER-ACCURACY-OOD-MIN-01 amendment, the Validator's "clearly"): the paired O - K atom balanced over the
+out-of-range classes with n >= 6, its within-class paired bootstrap (2000 draws, ``bootstrap_seed`` recorded), and whether its 95 %
+lower bound clears margin_N (`clear_win`).
 Raw predictions become decision outputs through the version's own `pool_adapters.official_binding(...).derive`. No pass rule: report
 fields only. No case, design, input, truth or prediction leaves: counts, classes and aggregates.
 """
@@ -59,7 +63,16 @@ PREDICT_SCHEMA = "carbon.ln-harness-predict.v1"
 #: The receipted NEAREST_TRAIN_READ_20261101 payload (DC; Validator receipt 11-01).
 NEAREST_TRAIN_SUMS = "923b662bf64d1fbabc2f265d7099fbd2f0734aa75f063a5759bcc6d3d894fae2"
 INDICATIVE_BELOW = 6
-CONFIG_KEYS = {"probe_set", "kernel", "operator", "koth_rebuild_noise", "nearest_train"}
+CONFIG_KEYS = {
+    "probe_set",
+    "kernel",
+    "operator",
+    "koth_rebuild_noise",
+    "nearest_train",
+    "bootstrap_seed",
+}
+#: The C1 "clearly beats" read (OWNER-ACCURACY-OOD-MIN-01 amendment; the Validator's definition, no new constant).
+BOOTSTRAP_DRAWS = 2000
 CONTENDER_KEYS = {"predict_record", "catalog_id", "fit"}
 NEAREST_KEYS = {
     "payload_dir",
@@ -368,6 +381,81 @@ def class_rows(document, predictions, scales, u):
     return out
 
 
+def paired_atoms(document, predictions, scales):
+    """Per case, the paired O - K difference of the registered A_gen atom (each case's mean over its outputs)."""
+    from carbon.scoring.design_fidelity import benefit
+
+    outputs = sorted(document["cases"][0]["truth"])
+
+    def atom(rows, index, truth):
+        return statistics.fmean(
+            benefit(abs(rows[index][k] - truth[k]) / scales[k]) for k in outputs
+        )
+
+    return [
+        atom(predictions["O"], index, case["truth"])
+        - atom(predictions["K"], index, case["truth"])
+        for index, case in enumerate(document["cases"])
+    ]
+
+
+def _quantile(values, q):
+    ordered = sorted(values)
+    position = q * (len(ordered) - 1)
+    low = int(position)
+    high = min(low + 1, len(ordered) - 1)
+    return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
+
+
+def clear_win(document, predictions, scales, margin, seed):
+    """The C1 gate's read: does a trained operator CLEARLY beat the TRAIN-kernel out of range? The statistic is the paired O - K
+    registered A_gen atom, balanced (the mean of class means) over the OUT-OF-RANGE classes (every class but in_train) with n >= 6;
+    its paired bootstrap resamples cases WITHIN each class (``BOOTSTRAP_DRAWS`` draws, ``seed`` recorded). ``clear`` is the lower
+    end of the two-sided 95 % interval (q 0.025) > margin_N; the one-sided 95 % bound (q 0.05) is reported beside it. No eligible
+    class, or no registered scales: not computed (no clear win)."""
+    import random
+
+    if scales is None:
+        return {
+            "computed": False,
+            "reason": "no registered A_gen scales",
+            "clear": False,
+        }
+    diffs = paired_atoms(document, predictions, scales)
+    by = {}
+    for index, case in enumerate(document["cases"]):
+        if case["class"] != "in_train":
+            by.setdefault(case["class"], []).append(diffs[index])
+    eligible = {k: v for k, v in sorted(by.items()) if len(v) >= INDICATIVE_BELOW}
+    if not eligible:
+        return {
+            "computed": False,
+            "reason": "no out-of-range class with n >= 6",
+            "clear": False,
+        }
+    statistic = statistics.fmean(statistics.fmean(v) for v in eligible.values())
+    draw = random.Random(seed)
+    boots = []
+    for _ in range(BOOTSTRAP_DRAWS):
+        boots.append(
+            statistics.fmean(
+                statistics.fmean(draw.choice(v) for _ in v) for v in eligible.values()
+            )
+        )
+    lower_two_sided, lower_one_sided = _quantile(boots, 0.025), _quantile(boots, 0.05)
+    return {
+        "computed": True,
+        "classes": sorted(eligible),
+        "statistic": statistic,
+        "lower95_two_sided": lower_two_sided,
+        "lower95_one_sided": lower_one_sided,
+        "margin_n": margin,
+        "draws": BOOTSTRAP_DRAWS,
+        "seed": seed,
+        "clear": lower_two_sided > margin,
+    }
+
+
 def flag(row, margin):
     """K loses by > margin_N AND O beats K, for n >= 6 with registered scales; None (not computed) otherwise."""
     k, o = row["K"]["accuracy"], row["O"]["accuracy"]
@@ -479,6 +567,9 @@ def read(config_path):
         if row["K"]["accuracy"] is not None:
             row["o_minus_k"] = row["O"]["accuracy"] - row["K"]["accuracy"]
         row["nearest_train"] = distances[klass]
+    seed = config["bootstrap_seed"]
+    _need(type(seed) is int and not isinstance(seed, bool), "config_bootstrap_seed")
+    c1 = clear_win(document, predictions, scales, margin, seed)
     everything = {"n": len(document["cases"]), "K": None, "O": None}
     if scales is not None:
         whole = class_rows(
@@ -507,6 +598,7 @@ def read(config_path):
         "indicative_below_n": INDICATIVE_BELOW,
         "classes": classes,
         "overall": everything,
+        "c1_clear_win": c1,
         "identities": {
             "probe_set_sha256": probe_sha,
             "probe_inputs_sha256": digest,

@@ -142,6 +142,7 @@ def _config(tmp_path, cases, kernel_rows, operator_rows, margin=0.05):
             "fit": "tuned",
         },
         "koth_rebuild_noise": str(noise),
+        "bootstrap_seed": 20261101,
         "nearest_train": {
             "payload_dir": str(tmp_path),
             "region": "r.json",
@@ -402,3 +403,68 @@ def test_nearest_train_runs_dcs_build_in_place_per_class_behind_its_sums(
     (payload / "nearest_train.py").write_text("def build(cfg):\n    return {}\n")
     with pytest.raises(sep_read.SepRefused, match="nearest_train_file_changed"):
         sep_read.nearest_train(cfg, document)
+
+
+# --- the C1 gate's "clearly beats" read ---------------------------------------------------------------------------------
+
+
+def test_c1_is_a_clear_win_only_when_the_bootstrap_lower_bound_clears_margin_n(
+    tmp_path, fakes
+):
+    # two out-of-range classes of 6 where K is wrong by 2 and O exact: O - K = 2/3 per case, no spread
+    cases = _six("outer_shell", "extended_shell", 1.0) + _six(
+        "side_a", "extended_shell", 1.0
+    )
+    cases += [
+        _case(0.5, 0.5, 1.0, klass="in_train", region="in_train") for _ in range(6)
+    ]  # never counted
+    kernel = [[3.0]] * 12 + [[1.0]] * 6
+    result = sep_read.read(_config(tmp_path, cases, kernel, [[1.0]] * 18))[
+        "c1_clear_win"
+    ]
+    assert result["computed"] and result["classes"] == ["outer_shell", "side_a"]
+    assert result["statistic"] == pytest.approx(2 / 3)
+    assert (
+        result["lower95_two_sided"] == pytest.approx(2 / 3) and result["clear"] is True
+    )
+    assert result["draws"] == 2000 and result["seed"] == 20261101
+
+
+def test_c1_is_not_clear_inside_margin_n_or_with_no_eligible_class(tmp_path, fakes):
+    close = sep_read.read(
+        _config(
+            tmp_path,
+            _six("outer_shell", "extended_shell", 1.0),
+            [[1.02]] * 6,
+            [[1.0]] * 6,
+        )
+    )["c1_clear_win"]
+    assert close["computed"] and close["clear"] is False
+    small = sep_read.read(
+        _config(
+            tmp_path / "s",
+            [_case(0.1, 0.2, 1.0, klass="outer_shell", region="extended_shell")] * 5,
+            [[3.0]] * 5,
+            [[1.0]] * 5,
+        )
+    )["c1_clear_win"]
+    assert small == {
+        "computed": False,
+        "reason": "no out-of-range class with n >= 6",
+        "clear": False,
+    }
+
+
+def test_c1_bootstrap_is_deterministic_for_its_seed_and_resamples_within_class(
+    tmp_path, fakes
+):
+    cases = _six("outer_shell", "extended_shell", 1.0)
+    kernel = [[1.0 + d] for d in (0.0, 0.5, 1.0, 1.5, 2.0, 2.5)]
+    first = sep_read.read(_config(tmp_path, cases, kernel, [[1.0]] * 6))["c1_clear_win"]
+    again = sep_read.read(_config(tmp_path / "b", cases, kernel, [[1.0]] * 6))[
+        "c1_clear_win"
+    ]
+    assert first == again
+    assert (
+        first["lower95_two_sided"] <= first["lower95_one_sided"] <= first["statistic"]
+    )
