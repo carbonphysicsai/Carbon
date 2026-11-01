@@ -155,6 +155,8 @@ def _need(value, name):
 
 def validate_case(case, *, ranges=None, test_mode=False):
     """The case's inputs, in range. A range that is HUMAN_INPUT refuses unless ``test_mode`` supplies it."""
+    if case.get("control") is not None:
+        return _validate_control_case(case)
     ranges = RANGES if ranges is None else ranges
     missing = [name for name in ALL_INPUTS if name not in case]
     if missing:
@@ -178,6 +180,44 @@ def validate_case(case, *, ranges=None, test_mode=False):
         raise Refused("load_pad_leaves_the_plate")
     if not (0 < case["damping_ratio"] < 1):
         raise Refused("damping_ratio_out_of_range")
+    return dict(case)
+
+
+def _validate_control_case(case):
+    """A CONTROL case (the optional ``control`` key): plain geometry, no ribs, no fillet. It checks the control's own
+    shape only; it grants no range of a production input."""
+    control = case["control"]
+    kind = control.get("kind") if isinstance(control, dict) else None
+    if kind not in CONTROL_KINDS:
+        raise Refused("control_kind_not_registered")
+    need = (
+        *GEOMETRY,
+        "load_angle_deg",
+        "load_offset_frac",
+        "damping_ratio",
+        CATEGORICAL,
+    )
+    missing = [name for name in need if name not in case]
+    if missing:
+        raise Refused("case_missing_" + ",".join(missing))
+    if (
+        case["rib_height_mm"] != 0
+        or case["rib_thickness_mm"] != 0
+        or case["relief_length_mm"] != 0
+    ):
+        raise Refused("control_case_has_no_ribs_or_relief")
+    if case["load_angle_deg"] != 0 or (
+        kind == "hole_plate" and case["load_offset_frac"] != 0
+    ):
+        raise Refused("control_load_is_fixed")
+    if kind == "hole_plate":
+        radius = control.get("hole_radius_mm")
+        if not (type(radius) in (int, float) and 0 < radius < case["width_mm"] / 2):
+            raise Refused("hole_radius_out_of_range")
+        if set(control) != {"kind", "hole_radius_mm"}:
+            raise Refused("control_keys_not_registered")
+    elif set(control) != {"kind"}:
+        raise Refused("control_keys_not_registered")
     return dict(case)
 
 
@@ -220,23 +260,96 @@ def load_lines(loads, angle_deg):
     return "".join(out)
 
 
+def axial_load_lines(loads):
+    """``*CLOAD`` lines for per-node unit-resultant weights along +x (a uniform axial traction on the free end face; used
+    only by the ``hole_plate`` control)."""
+    return "".join(
+        f"{node},1,{weight:.12g}\n" for node, weight in sorted(loads.items())
+    )
+
+
 # ---------------------------------------------------------------- mesh script
+
+
+CONTROL_KINDS = ("plain_plate", "hole_plate")
+
+
+def _pad_block():
+    return f"""pad = occ.addRectangle(L - {v1.PAD_X}, off - {v1.PAD_Y} / 2, t, {v1.PAD_X}, {v1.PAD_Y})
+probe = occ.addRectangle(L / 2 - {v1.PROBE} / 2, W / 2 - 8 - {v1.PROBE} / 2, t, {v1.PROBE}, {v1.PROBE})
+occ.fragment(body, [(2, pad), (2, probe)])
+occ.synchronize()"""
+
+
+def _face_lines():
+    return f"""pad_faces = faces(L - {v1.PAD_X}, off - {v1.PAD_Y} / 2, t, L, off + {v1.PAD_Y} / 2, t)
+probe_faces = faces(L / 2 - {v1.PROBE} / 2, W / 2 - 9, t, L / 2 + {v1.PROBE} / 2, W / 2 - 7, t)
+root_faces = faces(0, -W, -1, 0, W, t + hr + 1)"""
+
+
+def _tip_points():
+    return f"""p_tip = occ.addPoint(L - {v1.PAD_X} / 2, off, t)
+p_probe = occ.addPoint(L / 2, W / 2 - 8, t)
+occ.synchronize()
+gmsh.model.mesh.embed(0, [p_tip], 2, pad_faces[0])
+gmsh.model.mesh.embed(0, [p_probe], 2, probe_faces[0])"""
+
+
+def _control_pieces(control):
+    """The Gmsh pieces of a CONTROL case, in `gmsh_script_v2`'s order: ``(RF_OFF, BODY, PADBLOCK, FACELINES, POINTS,
+    TIP_NODE, PROBE_NODE)``. The deck's own refinement field, element-set and stress path is kept; only the geometry, the
+    loaded face and the observed set change.
+
+    - ``plain_plate``: the rib-less plate (no fillet), the deck's own pad load, and the observed set is the elements touching
+      the clamped root face. Beam theory gives its root bending stress.
+    - ``hole_plate``: a plate with a through-hole of ``hole_radius_mm`` at mid-length on the centreline, a uniform axial
+      traction on the free end face, and the observed set is the elements touching the hole wall (Kirsch).
+    """
+    kind = control.get("kind") if isinstance(control, dict) else None
+    if kind == "plain_plate":
+        return (
+            'rf, off = t, case["load_offset_frac"] * W',
+            """body = [(3, occ.addBox(0, -W / 2, 0, L, W, t))]
+e = 1e-6
+occ.synchronize()""",
+            _pad_block(),
+            _face_lines() + "\nfillet_faces = root_faces",
+            _tip_points(),
+            f"nearest((L - {v1.PAD_X} / 2, off, t))",
+            "nearest((L / 2, W / 2 - 8, t))",
+        )
+    if kind == "hole_plate":
+        return (
+            f"rf, off = {float(control['hole_radius_mm'])!r}, 0.0",
+            """body = [(3, occ.addBox(0, -W / 2, 0, L, W, t))]
+e = 1e-6
+hole = occ.addCylinder(L / 2, 0, -1, 0, 0, t + 2, rf)
+body, _ = occ.cut(body, [(3, hole)])
+occ.synchronize()""",
+            "occ.synchronize()",
+            """pad_faces = faces(L, -W, -1, L, W, t + 1)
+probe_faces = []
+root_faces = faces(0, -W, -1, 0, W, t + 1)
+fillet_faces = [tg for d, tg in gmsh.model.getEntities(2) if gmsh.model.getType(d, tg) == "Cylinder"]""",
+            "occ.synchronize()",
+            "nearest((L, 0.0, t / 2))",
+            "nearest((L / 2, W / 2, t / 2))",
+        )
+    raise Refused("control_kind_not_registered")
 
 
 def gmsh_script_v2(case, h_mm, fillet_h_mm):
     """The Gmsh program for one case: 1.7's body, the fillet on the four rib junction lines, a refinement field around
     the fillet faces, the pad at ``load_offset_frac`` and a FILLET element set. Returned as text; it runs in MESH_IMAGE.
+
+    A case with the optional ``control`` key is a code-verification CONTROL case (see `CONTROL_KINDS`): the same program
+    with the rib/fillet, load and observation pieces swapped. A case without the key gets exactly the text it always got
+    (pinned in tests/cpu/test_f08_deck_v2.py).
     """
-    return f"""
-import json, math, gmsh
-case = {json.dumps(case)}
-L, W, t = case["length_mm"], case["width_mm"], case["thickness_mm"]
-hr, tr, lr = case["rib_height_mm"], case["rib_thickness_mm"], case["relief_length_mm"]
-rf, off = case["fillet_radius_mm"], case["load_offset_frac"] * W
-gmsh.initialize(["-nt", "1"])
-gmsh.option.setNumber("General.Terminal", 0)
-occ = gmsh.model.occ
-body = [(3, occ.addBox(0, -W / 2, 0, L, W, t))]
+    control = case.get("control")
+    if control is None:
+        RF_OFF = 'rf, off = case["fillet_radius_mm"], case["load_offset_frac"] * W'
+        BODY = """body = [(3, occ.addBox(0, -W / 2, 0, L, W, t))]
 ribs = [(3, occ.addBox(0, s * W / 4 - tr / 2, t, L, tr, hr)) for s in (-1, 1)]
 body, _ = occ.fuse(body, ribs)
 occ.synchronize()
@@ -249,26 +362,39 @@ for s in (-1, 1):
         junction += [tag for d, tag in found if abs(occ.getMass(1, tag) - L) < 1e-6]
 assert len(junction) == 4, junction
 filleted = occ.fillet([body[0][1]], junction, [rf] * 4, True)
-body = [(3, filleted[0][1])]
+body = [(3, filleted[0][1])]"""
+        PADBLOCK = _pad_block()
+        FACELINES = (
+            _face_lines()
+            + """
+fillet_faces = [tg for d, tg in gmsh.model.getEntities(2) if gmsh.model.getType(d, tg) == "Cylinder"]"""
+        )
+        POINTS = _tip_points()
+        TIP_NODE = f"nearest((L - {v1.PAD_X} / 2, off, t))"
+        PROBE_NODE = "nearest((L / 2, W / 2 - 8, t))"
+    else:
+        RF_OFF, BODY, PADBLOCK, FACELINES, POINTS, TIP_NODE, PROBE_NODE = (
+            _control_pieces(control)
+        )
+    return f"""
+import json, math, gmsh
+case = {json.dumps(case)}
+L, W, t = case["length_mm"], case["width_mm"], case["thickness_mm"]
+hr, tr, lr = case["rib_height_mm"], case["rib_thickness_mm"], case["relief_length_mm"]
+{RF_OFF}
+gmsh.initialize(["-nt", "1"])
+gmsh.option.setNumber("General.Terminal", 0)
+occ = gmsh.model.occ
+{BODY}
 if lr > 0:
     face = occ.addRectangle(L / 2 - lr / 2, -{v1.RELIEF_W} / 2, -1, lr, {v1.RELIEF_W}, roundedRadius={v1.RELIEF_R})
     cutter = occ.extrude([(2, face)], 0, 0, t + 2)
     body, _ = occ.cut(body, [x for x in cutter if x[0] == 3])
-pad = occ.addRectangle(L - {v1.PAD_X}, off - {v1.PAD_Y} / 2, t, {v1.PAD_X}, {v1.PAD_Y})
-probe = occ.addRectangle(L / 2 - {v1.PROBE} / 2, W / 2 - 8 - {v1.PROBE} / 2, t, {v1.PROBE}, {v1.PROBE})
-occ.fragment(body, [(2, pad), (2, probe)])
-occ.synchronize()
+{PADBLOCK}
 def faces(x0, y0, z0, x1, y1, z1):
     return [tg for d, tg in gmsh.model.getEntitiesInBoundingBox(x0 - e, y0 - e, z0 - e, x1 + e, y1 + e, z1 + e, 2)]
-pad_faces = faces(L - {v1.PAD_X}, off - {v1.PAD_Y} / 2, t, L, off + {v1.PAD_Y} / 2, t)
-probe_faces = faces(L / 2 - {v1.PROBE} / 2, W / 2 - 9, t, L / 2 + {v1.PROBE} / 2, W / 2 - 7, t)
-root_faces = faces(0, -W, -1, 0, W, t + hr + 1)
-fillet_faces = [tg for d, tg in gmsh.model.getEntities(2) if gmsh.model.getType(d, tg) == "Cylinder"]
-p_tip = occ.addPoint(L - {v1.PAD_X} / 2, off, t)
-p_probe = occ.addPoint(L / 2, W / 2 - 8, t)
-occ.synchronize()
-gmsh.model.mesh.embed(0, [p_tip], 2, pad_faces[0])
-gmsh.model.mesh.embed(0, [p_probe], 2, probe_faces[0])
+{FACELINES}
+{POINTS}
 field = gmsh.model.mesh.field
 field.add("Distance", 1)
 field.setNumbers(1, "SurfacesList", fillet_faces)
@@ -344,7 +470,7 @@ with open("mesh.inp", "w") as fh:
         fh.write(f"{{n}}\\n")
 meta = {{"cad_volume_mm3": cad_volume, "mesh_volume_mm3": sum(volumes), "nodes": len(coords), "elements": len(tets),
         "fillet_elements": len(fillet_elements), "pad_tri6": tri6(pad_faces), "probe_tri6": tri6(probe_faces),
-        "tip_node": nearest((L - {v1.PAD_X} / 2, off, t)), "probe_node": nearest((L / 2, W / 2 - 8, t))}}
+        "tip_node": {TIP_NODE}, "probe_node": {PROBE_NODE}}}
 used = {{n for tri in meta["pad_tri6"] + meta["probe_tri6"] for n in tri}} | {{meta["tip_node"], meta["probe_node"]}}
 meta["coords"] = {{str(n): coords[n] for n in sorted(used)}}
 json.dump(meta, open("mesh.json", "w"))
@@ -368,7 +494,11 @@ def deck_text(case, meta, mat, *, modes=48, loads=None):
     pad = v1.face_weights(meta["pad_tri6"], meta["coords"])
     total = math.fsum(pad.values())
     weights = loads or {n: w / total for n, w in pad.items()}
-    lines_text = load_lines(weights, case["load_angle_deg"])
+    control = case.get("control")
+    if control is not None and control.get("kind") == "hole_plate":
+        lines_text = axial_load_lines(weights)
+    else:
+        lines_text = load_lines(weights, case["load_angle_deg"])
     obs = sorted(
         set(weights)
         | set(v1.face_weights(meta["probe_tri6"], meta["coords"]))
@@ -397,16 +527,19 @@ def deck_text(case, meta, mat, *, modes=48, loads=None):
         "*SOLID SECTION,ELSET=EALL,MATERIAL=ALLOY",
     ]
     deck = "\n".join(lines) + "\n"
-    deck += (
-        f"*STEP\n*FREQUENCY,STORAGE=YES\n{modes}\n*NODE PRINT,NSET=OBS\nU\n"
-        "*EL PRINT,ELSET=FILLET\nS\n*END STEP\n"
-    )
-    zeta = case["damping_ratio"]
-    deck += (
-        f"*STEP\n*STEADY STATE DYNAMICS\n{proof.BAND_HZ[0]},{proof.BAND_HZ[1]},{proof.POINTS},{proof.BIAS}\n"
-        f"*MODAL DAMPING\n1,{modes},{zeta}\n*CLOAD,OP=NEW\n{lines_text}"
-        "*NODE PRINT,NSET=OBS\nU\n*END STEP\n"
-    )
+    if (
+        control is None
+    ):  # a control case is a static verification: no eigen or steady-state step
+        deck += (
+            f"*STEP\n*FREQUENCY,STORAGE=YES\n{modes}\n*NODE PRINT,NSET=OBS\nU\n"
+            "*EL PRINT,ELSET=FILLET\nS\n*END STEP\n"
+        )
+        zeta = case["damping_ratio"]
+        deck += (
+            f"*STEP\n*STEADY STATE DYNAMICS\n{proof.BAND_HZ[0]},{proof.BAND_HZ[1]},{proof.POINTS},{proof.BIAS}\n"
+            f"*MODAL DAMPING\n1,{modes},{zeta}\n*CLOAD,OP=NEW\n{lines_text}"
+            "*NODE PRINT,NSET=OBS\nU\n*END STEP\n"
+        )
     deck += (
         f"*STEP\n*STATIC\n*CLOAD,OP=NEW\n{lines_text}*NODE PRINT,NSET=OBS\nU\n"
         "*EL PRINT,ELSET=FILLET\nS\n*END STEP\n"
