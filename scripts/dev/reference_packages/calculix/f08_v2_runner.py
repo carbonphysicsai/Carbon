@@ -23,8 +23,12 @@ job's own merits: a deck refusal, a solver error, a missing or unobservable outp
 wrong mode count; the ``reasons`` name it); ``REFERENCE_TIMEOUT`` (the solve exceeded the timeout: it may be host capacity, not
 the case's physics, so it counts for NOTHING until the job is rerun ALONE once with ``--alone``, where a repeat timeout is
 ``REFERENCE_INVALID`` with reason ``solver_timeout``; the judge treats a ``REFERENCE_TIMEOUT`` as missing, not as a failure);
-``FAILED_INFRA`` (the job could not start, was stopped from outside, or passed the memory limit: retried, never judged). Every record carries the mesh image digest, the solver identity and the deck and
-.dat digests. Nothing here decides a threshold: the judgement is custody's.
+``FAILED_INFRA`` (the job could not start, was stopped from outside, or passed the memory limit: retried, never judged). A MESHER that
+cannot be launched (native Gmsh not importable, its shared library missing, a version other than the pinned one, the image runtime
+failing to start) is the host's fault, never the case's: ``FAILED_INFRA`` with ``mesher_unavailable:<cause>`` (invariant 7); only a
+mesh the launched mesher could not make is ``REFERENCE_INVALID`` ``mesh_failed``. Every record names the mesher that actually ran
+(`mesher_identity`: native Gmsh with its version and the pinned ``GMSH_VERSION``, or the pinned image), the solver identity and the
+deck and .dat digests. Nothing here decides a threshold: the judgement is custody's.
 """
 
 from __future__ import annotations
@@ -81,6 +85,93 @@ def _sha(text):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+# ---------------------------------------------------------------- the mesher (infrastructure, never the case)
+
+
+class MesherUnavailable(Exception):
+    """The mesher could not be launched: the host's fault (FAILED_INFRA), never a reference verdict on the case."""
+
+    def __init__(self, cause):
+        super().__init__(cause)
+        self.cause = cause
+
+
+#: Text a launch failure leaves on stderr (the module or its shared library cannot load): the mesher never ran the job.
+_LAUNCH_MARKERS = (
+    "ModuleNotFoundError",
+    "No module named",
+    "ImportError",
+    "cannot open shared object file",
+    "Library not loaded",
+)
+#: Docker's own exit codes for a container that could not start (daemon error, not executable, not found).
+_IMAGE_LAUNCH_EXITS = (125, 126, 127)
+
+
+def _native():
+    return os.environ.get("CARBON_F08_NATIVE_GMSH") == "1"
+
+
+def mesher_identity():
+    """The mesher this host will run: ``{"kind": "native_gmsh", "gmsh_version", "pinned_gmsh_version", "python"}`` (the Gmsh that
+    ``python3`` imports, which must be the pinned ``GMSH_VERSION``), or ``{"kind": "image", "image", "pinned_gmsh_version"}``.
+    `MesherUnavailable` when native Gmsh cannot be imported or is not the pinned version.
+    """
+    if not _native():
+        return {
+            "kind": "image",
+            "image": v1.MESH_IMAGE,
+            "pinned_gmsh_version": v1.GMSH_VERSION,
+        }
+    try:
+        found = subprocess.run(
+            ["python3", "-c", "import gmsh; print(gmsh.__version__)"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        raise MesherUnavailable("python3_not_launchable") from None
+    if found.returncode != 0:
+        raise MesherUnavailable("gmsh_not_importable")
+    version = found.stdout.strip()
+    if version != v1.GMSH_VERSION:
+        raise MesherUnavailable("gmsh_version_not_pinned")
+    return {
+        "kind": "native_gmsh",
+        "gmsh_version": version,
+        "pinned_gmsh_version": v1.GMSH_VERSION,
+        "python": shutil.which("python3"),
+    }
+
+
+def mesh_job(directory):
+    """`f08_deck.mesh` (unchanged), with its launch failures typed as the host's: a mesher that cannot start raises
+    `MesherUnavailable`; a mesh the running mesher could not make stays a ``CalledProcessError`` (the job's ``mesh_failed``).
+    """
+    try:
+        v1.mesh(directory)
+    except SystemExit:  # f08_deck.mesh: the native Gmsh is not the pinned version
+        raise MesherUnavailable("gmsh_version_not_pinned") from None
+    except OSError:
+        raise MesherUnavailable("mesher_not_launchable") from None
+    except subprocess.CalledProcessError as failed:
+        command = list(failed.cmd) if isinstance(failed.cmd, (list, tuple)) else []
+        if command[:2] == ["python3", "-c"]:  # f08_deck.mesh's own import check
+            raise MesherUnavailable("gmsh_not_importable") from None
+        if command[:1] == ["docker"] and failed.returncode in _IMAGE_LAUNCH_EXITS:
+            raise MesherUnavailable("mesh_image_not_launchable") from None
+        stderr = failed.stderr or b""
+        text = (
+            stderr.decode("utf-8", "replace")
+            if isinstance(stderr, bytes)
+            else str(stderr)
+        )
+        if any(marker in text for marker in _LAUNCH_MARKERS):
+            raise MesherUnavailable("mesher_import_failed") from None
+        raise
+
+
 # ---------------------------------------------------------------- the job
 
 
@@ -105,7 +196,7 @@ def check_job(job):
     return case
 
 
-def prepare(job, directory, *, mesh=v1.mesh, modes=MODES):
+def prepare(job, directory, *, mesher, mesh=mesh_job, modes=MODES):
     """Write the job's mesh script, mesh it (``mesh(directory)``), write the v2 deck and ``deck.json``. Returns the mesh meta."""
     case = check_job(job)
     directory = Path(directory)
@@ -129,7 +220,7 @@ def prepare(job, directory, *, mesh=v1.mesh, modes=MODES):
                 "fillet_h_mm": job["fillet_h_mm"],
                 "modes": modes,
                 "loads": {str(n): w / total for n, w in sorted(pad.items())},
-                "mesh_image": v1.MESH_IMAGE,
+                "mesher": mesher,
                 "deck_sha256": _sha(deck),
             },
             indent=1,
@@ -271,9 +362,20 @@ def classify(run, outputs, problem, *, alone=False):
 
 
 def record_for(
-    job, run, outputs, problem, *, mesh_meta, directory, solvers_id, alone=False
+    job,
+    run,
+    outputs,
+    problem,
+    *,
+    mesh_meta,
+    directory,
+    solvers_id,
+    mesher,
+    alone=False,
 ):
     status, reasons = classify(run, outputs, problem, alone=alone)
+    if run.get("infra_cause"):
+        reasons = [*reasons, run["infra_cause"]]
     directory = Path(directory)
     record = {
         "schema": RECORD_SCHEMA,
@@ -285,7 +387,7 @@ def record_for(
         "fillet_h_mm": job["fillet_h_mm"],
         "status": status,
         "reasons": reasons,
-        "images": {"mesh_image": v1.MESH_IMAGE, "solvers_id": solvers_id},
+        "images": {"mesher": mesher, "solvers_id": solvers_id},
         "alloy_table_sha256": v2.ALLOY_SHA256,
         "mesh": {
             key: mesh_meta.get(key)
@@ -317,8 +419,9 @@ def run_job(
     timeout_s,
     cores,
     solvers_id,
+    mesher,
     keep="none",
-    mesh=v1.mesh,
+    mesh=mesh_job,
     solver=solve,
     alone=False,
 ):
@@ -330,29 +433,36 @@ def run_job(
     try:
         not_run = {"stop_reason": "not_run", "exit": None}
         try:
-            meta = prepare(job, directory, mesh=mesh)
+            meta = prepare(job, directory, mesh=mesh, mesher=mesher)
+        except MesherUnavailable as lost:  # the host's mesher, never the case
+            return record_for(
+                job, {"stop_reason": "infra", "exit": None,
+                      "infra_cause": f"mesher_unavailable:{lost.cause}"}, None, None,
+                mesh_meta={}, directory=directory, solvers_id=solvers_id, mesher=mesher,
+                alone=alone,
+            )  # fmt: skip
         except (v2.Refused, RunnerRefused) as refusal:
             return record_for(
                 job, not_run, None, f"deck_refused:{refusal}",
-                mesh_meta={}, directory=directory, solvers_id=solvers_id,
+                mesh_meta={}, directory=directory, solvers_id=solvers_id, mesher=mesher,
                 alone=alone,
             )  # fmt: skip
         except subprocess.CalledProcessError:
             return record_for(
                 job, not_run, None, "mesh_failed",
-                mesh_meta={}, directory=directory, solvers_id=solvers_id,
+                mesh_meta={}, directory=directory, solvers_id=solvers_id, mesher=mesher,
                 alone=alone,
             )  # fmt: skip
         except OSError:  # the mesher could not even start: not the job's fault
             return record_for(
                 job, {"stop_reason": "infra", "exit": None}, None, None,
-                mesh_meta={}, directory=directory, solvers_id=solvers_id,
+                mesh_meta={}, directory=directory, solvers_id=solvers_id, mesher=mesher,
                 alone=alone,
             )  # fmt: skip
         except (KeyError, ValueError):
             return record_for(
                 job, not_run, None, "mesh_unreadable",
-                mesh_meta={}, directory=directory, solvers_id=solvers_id,
+                mesh_meta={}, directory=directory, solvers_id=solvers_id, mesher=mesher,
                 alone=alone,
             )  # fmt: skip
         run = solver(directory, timeout_s, cores)
@@ -371,6 +481,7 @@ def run_job(
             mesh_meta=meta,
             directory=directory,
             solvers_id=solvers_id,
+            mesher=mesher,
             alone=alone,
         )
     finally:
@@ -379,10 +490,10 @@ def run_job(
             shutil.rmtree(directory, ignore_errors=True)
 
 
-def mesh_only(job, work, *, mesh=v1.mesh):
+def mesh_only(job, work, *, mesher, mesh=mesh_job):
     """The dry run: mesh and write the deck, report the sizes, solve nothing."""
     directory = Path(work) / job["job_id"]
-    meta = prepare(job, directory, mesh=mesh)
+    meta = prepare(job, directory, mesh=mesh, mesher=mesher)
     return {
         "schema": RECORD_SCHEMA,
         "job_id": job["job_id"],
@@ -399,7 +510,7 @@ def mesh_only(job, work, *, mesh=v1.mesh):
                 "cad_volume_mm3",
             )
         },
-        "images": {"mesh_image": v1.MESH_IMAGE},
+        "images": {"mesher": mesher},
         "deck_sha256": _sha((directory / "case.inp").read_bytes()),
     }
 
@@ -461,6 +572,12 @@ def main(argv=None):
     results = args.out / ("RESULTS.jsonl" if args.cmd == "run" else "MESH_ONLY.jsonl")
     if results.exists():
         raise SystemExit(f"{results} exists; refusing to overwrite")
+    try:
+        mesher = (
+            mesher_identity()
+        )  # once per run: every record names the mesher that ran
+    except MesherUnavailable as lost:
+        raise SystemExit(f"FAILED_INFRA: mesher_unavailable:{lost.cause}") from None
     if args.cmd == "mesh-only":
         if os.environ.get("CARBON_F08_NATIVE_GMSH") != "1":
             raise SystemExit(
@@ -468,7 +585,10 @@ def main(argv=None):
             )
         with results.open("x") as handle:
             for job in jobs:
-                handle.write(json.dumps(mesh_only(job, work), sort_keys=True) + "\n")
+                handle.write(
+                    json.dumps(mesh_only(job, work, mesher=mesher), sort_keys=True)
+                    + "\n"
+                )
         return 0
     solvers_id = _solvers()
     cores = queue.Queue()
@@ -481,7 +601,7 @@ def main(argv=None):
         def one(job):
             record = run_job(
                 job, work, timeout_s=args.timeout_s, cores=cores,
-                solvers_id=solvers_id, keep=args.keep, alone=args.alone,
+                solvers_id=solvers_id, mesher=mesher, keep=args.keep, alone=args.alone,
             )  # fmt: skip
             with lock:
                 handle.write(json.dumps(record, sort_keys=True) + "\n")

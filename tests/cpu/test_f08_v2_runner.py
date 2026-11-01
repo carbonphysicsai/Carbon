@@ -72,6 +72,15 @@ MESH = {
 }
 
 
+#: The mesher a record names in these tests (a real run names `runner.mesher_identity()`).
+MESHER = {
+    "kind": "native_gmsh",
+    "gmsh_version": "4.15.2",
+    "pinned_gmsh_version": "4.15.2",
+    "python": "/usr/bin/python3",
+}
+
+
 def fake_mesh(directory):
     (Path(directory) / "mesh.json").write_text(json.dumps(MESH))
     (Path(directory) / "mesh.inp").write_text("** fake\n")
@@ -111,7 +120,7 @@ def test_a_malformed_job_or_an_out_of_range_case_is_refused(mutate):
 
 
 def test_prepare_writes_the_script_the_deck_and_the_load_weights(tmp_path):
-    meta = runner.prepare(_job(), tmp_path / "j", mesh=fake_mesh)
+    meta = runner.prepare(_job(), tmp_path / "j", mesh=fake_mesh, mesher=MESHER)
     assert meta["tip_node"] == 3
     directory = tmp_path / "j"
     script = (directory / "make_mesh.py").read_text()
@@ -120,7 +129,7 @@ def test_prepare_writes_the_script_the_deck_and_the_load_weights(tmp_path):
     deck = (directory / "case.inp").read_text()
     assert deck == v2.deck_text(case, MESH, v2.material(case["alloy"]))
     info = json.loads((directory / "deck.json").read_text())
-    assert info["modes"] == 48 and info["mesh_image"] == v1.MESH_IMAGE
+    assert info["modes"] == 48 and info["mesher"] == MESHER
     assert math.isclose(sum(info["loads"].values()), 1.0, rel_tol=1e-12)
     assert info["deck_sha256"] == runner._sha(deck)
 
@@ -276,13 +285,10 @@ def test_a_solved_job_makes_an_ok_record_with_digests_and_leaves_no_directory(
     monkeypatch.setattr(runner, "observe", lambda _d: outputs)
     record = runner.run_job(
         _job(), tmp_path, timeout_s=10, cores=_cores(), solvers_id="sha256:" + "a" * 64,
-        mesh=fake_mesh, solver=ok_solver,
+        mesh=fake_mesh, solver=ok_solver, mesher=MESHER,
     )  # fmt: skip
     assert record["status"] == "OK" and record["outputs"] == outputs
-    assert record["images"] == {
-        "mesh_image": v1.MESH_IMAGE,
-        "solvers_id": "sha256:" + "a" * 64,
-    }
+    assert record["images"] == {"mesher": MESHER, "solvers_id": "sha256:" + "a" * 64}
     assert record["deck_sha256"].startswith("sha256:") and record["dat_sha256"]
     assert record["alloy_table_sha256"] == v2.ALLOY_SHA256
     assert record["mesh"]["nodes"] == 12 and record["job_id"] == "f08v2-9000"
@@ -298,6 +304,7 @@ def test_keep_all_keeps_the_directory_and_a_second_run_of_a_job_refuses(
         "timeout_s": 10,
         "cores": _cores(),
         "solvers_id": "s",
+        "mesher": MESHER,
         "mesh": fake_mesh,
         "solver": ok_solver,
     }
@@ -310,7 +317,13 @@ def test_keep_all_keeps_the_directory_and_a_second_run_of_a_job_refuses(
 def test_failed_solves_and_refused_decks_are_typed_records_not_exceptions(
     tmp_path, monkeypatch
 ):
-    args = {"timeout_s": 10, "cores": _cores(), "solvers_id": "s", "mesh": fake_mesh}
+    args = {
+        "timeout_s": 10,
+        "cores": _cores(),
+        "solvers_id": "s",
+        "mesh": fake_mesh,
+        "mesher": MESHER,
+    }
 
     def failing(directory, timeout_s, cores):
         return {"stop_reason": "exit", "exit": 1}
@@ -365,7 +378,7 @@ def test_failed_solves_and_refused_decks_are_typed_records_not_exceptions(
 
 
 def test_the_mesh_only_dry_run_reports_sizes_and_solves_nothing(tmp_path):
-    record = runner.mesh_only(_job(), tmp_path, mesh=fake_mesh)
+    record = runner.mesh_only(_job(), tmp_path, mesh=fake_mesh, mesher=MESHER)
     assert record["status"] == "MESH_ONLY"
     assert record["mesh"]["nodes"] == 12 and record["mesh"]["cad_volume_mm3"] == 1001.0
     assert not (tmp_path / "f08v2-9000" / "case.dat").exists()
@@ -424,7 +437,13 @@ def test_a_timed_out_record_carries_no_outputs_so_the_judge_sees_it_as_missing(
     def slow(directory, timeout_s, cores):
         return {"stop_reason": "timeout", "exit": 143, "wall_s": 5400.0}
 
-    args = {"timeout_s": 10, "cores": _cores(), "solvers_id": "s", "mesh": fake_mesh}
+    args = {
+        "timeout_s": 10,
+        "cores": _cores(),
+        "solvers_id": "s",
+        "mesh": fake_mesh,
+        "mesher": MESHER,
+    }
     first = runner.run_job(_job(job_id="t1"), tmp_path, solver=slow, **args)
     assert first["status"] == "REFERENCE_TIMEOUT" and "outputs" not in first
     assert first["reasons"] == ["solver_timeout_unconfirmed"]
@@ -456,3 +475,141 @@ def test_alone_reruns_exactly_one_job_on_one_core(tmp_path, monkeypatch):
                 "2",
             ]
         )
+
+
+# --- the mesher is infrastructure (Validator 11-01, Launchpad smoke): a launch fault is FAILED_INFRA, never mesh_failed ----
+
+
+def _failing_mesh(monkeypatch, error):
+    def mesh(directory):
+        raise error
+
+    monkeypatch.setattr(v1, "mesh", mesh)
+
+
+@pytest.mark.parametrize(
+    "error, cause",
+    [
+        (
+            subprocess.CalledProcessError(
+                1, ["python3", "-c", "import gmsh; print(gmsh.__version__)"]
+            ),
+            "gmsh_not_importable",
+        ),
+        (
+            subprocess.CalledProcessError(
+                1,
+                ["python3", "make_mesh.py"],
+                stderr=b"ModuleNotFoundError: No module named 'gmsh'\n",
+            ),
+            "mesher_import_failed",
+        ),
+        (
+            subprocess.CalledProcessError(
+                1,
+                ["python3", "make_mesh.py"],
+                stderr=b"OSError: libgmsh.so.4.15: cannot open shared object file\n",
+            ),
+            "mesher_import_failed",
+        ),
+        (
+            SystemExit("native Gmsh 4.13.1 differs from pinned 4.15.2"),
+            "gmsh_version_not_pinned",
+        ),
+        (
+            subprocess.CalledProcessError(125, ["docker", "run"]),
+            "mesh_image_not_launchable",
+        ),
+        (FileNotFoundError("python3"), "mesher_not_launchable"),
+    ],
+)
+def test_a_mesher_that_cannot_launch_is_failed_infra_with_its_cause(
+    tmp_path, monkeypatch, error, cause
+):
+    _failing_mesh(monkeypatch, error)
+    record = runner.run_job(
+        _job(),
+        tmp_path,
+        timeout_s=10,
+        cores=_cores(),
+        solvers_id="s",
+        mesher=MESHER,
+        solver=ok_solver,
+    )
+    assert record["status"] == "FAILED_INFRA"
+    assert record["reasons"][-1] == f"mesher_unavailable:{cause}"
+    assert "outputs" not in record
+
+
+def test_a_mesh_the_running_mesher_could_not_make_stays_the_jobs_mesh_failed(
+    tmp_path, monkeypatch
+):
+    _failing_mesh(
+        monkeypatch,
+        subprocess.CalledProcessError(
+            1,
+            ["python3", "make_mesh.py"],
+            stderr=b"Exception: Invalid boolean operation\n",
+        ),
+    )
+    record = runner.run_job(
+        _job(),
+        tmp_path,
+        timeout_s=10,
+        cores=_cores(),
+        solvers_id="s",
+        mesher=MESHER,
+        solver=ok_solver,
+    )
+    assert record["status"] == "REFERENCE_INVALID" and record["reasons"] == [
+        "mesh_failed"
+    ]
+
+
+def _gmsh_says(monkeypatch, returncode, stdout):
+    real = subprocess.run
+
+    def run(command, **kwargs):
+        if command[:2] == ["python3", "-c"]:
+            return subprocess.CompletedProcess(
+                command, returncode, stdout=stdout, stderr=""
+            )
+        return real(command, **kwargs)
+
+    monkeypatch.setattr(runner.subprocess, "run", run)
+
+
+def test_the_record_names_the_native_gmsh_that_ran_and_its_pin(monkeypatch):
+    monkeypatch.setenv("CARBON_F08_NATIVE_GMSH", "1")
+    _gmsh_says(monkeypatch, 0, v1.GMSH_VERSION + "\n")
+    identity = runner.mesher_identity()
+    assert identity["kind"] == "native_gmsh"
+    assert (
+        identity["gmsh_version"] == identity["pinned_gmsh_version"] == v1.GMSH_VERSION
+    )
+    assert (
+        "image" not in identity
+    )  # never the Motor reference image when native Gmsh meshes
+
+
+@pytest.mark.parametrize(
+    "returncode, stdout, cause",
+    [(1, "", "gmsh_not_importable"), (0, "4.13.1\n", "gmsh_version_not_pinned")],
+)
+def test_a_native_gmsh_that_is_missing_or_unpinned_stops_the_run_as_infra(
+    monkeypatch, returncode, stdout, cause
+):
+    monkeypatch.setenv("CARBON_F08_NATIVE_GMSH", "1")
+    _gmsh_says(monkeypatch, returncode, stdout)
+    with pytest.raises(runner.MesherUnavailable) as lost:
+        runner.mesher_identity()
+    assert lost.value.cause == cause
+
+
+def test_without_native_gmsh_the_record_names_the_pinned_mesh_image(monkeypatch):
+    monkeypatch.delenv("CARBON_F08_NATIVE_GMSH", raising=False)
+    assert runner.mesher_identity() == {
+        "kind": "image",
+        "image": v1.MESH_IMAGE,
+        "pinned_gmsh_version": v1.GMSH_VERSION,
+    }
