@@ -42,32 +42,36 @@ TABLES = {
     "die": {"k": [(250.0, 160.0), (500.0, 90.0)], "cp": 420.0},
 }
 
-#: sha256 of case.sif and deck.json written by the deck BEFORE the leakage term existed (claude/f02-v3-deck 86569402).
+#: sha256 of case.sif and deck.json written ON LINUX by the deck BEFORE the leakage term existed (claude/f02-v3-deck 86569402,
+#: tree dd42e072), an independent artifact (Validator 11-01, gate58): the first pins were taken natively on Windows, where
+#: write_text writes CRLF. case.sif is also what the receipted export the step-1 / CUT-03 pods ran (350c8b32, tree 903158bc)
+#: writes on Linux; its deck.json lacks only the later "tables_source" key (OWNER-F02-V3-TABLES-SIGNED-01). The canonical
+#: (Linux) run is the authority; a native Windows run writes CRLF and does not match by design.
 OFF_PINS = {
     "labelled": (
         {"case": LABELLED},
-        "efca1eace148d5c4e8a142b1514364bec8f25e0b72ffe9802a900e17eafe4dba",
-        "922548cfeba1865558475d5d64a75596eae17001e93f47d29cb16e9283a199c3",
+        "2065803ce517eae0d19f67b97169ee900b7d6d9681183e1e85ce3f884bcc051c",
+        "2f795ebf5049788b152e8339a99c2c3b23de4f49f48b42c1f7869e9adde3ebf2",
     ),
     "constant": (
         {"case": V3},
-        "468ebbffaaa1aba41cbdb356c0d84bfcd7a075e274da7ea18b575128e26b2a22",
-        "b7a4d55f343625877573495aa4e4aac72c97e0615db5606a7008118958e6a4c6",
+        "78bf5d61abc9f2c0d700cde4a3d96540bd595f9861fe8dd3c3d48bd69fec47cb",
+        "ca9900bc5fd2613386d71658141d7443e2c106fdbaa7f52aae9b6428a0400761",
     ),
     "tables": (
         {"case": V3, "tables": TABLES, "test_mode": True},
-        "ef432f15138781a497ad39d6954628d8f81edabfce72ea8bf113c13977544d6f",
-        "ffb183d1451ad75fff28eda353acf4e125703a11724cafeeb95a0244fa01f94d",
+        "3dd331141a6d50271341076ab32c9bf5116c569be9cd490a7fe4bda8d4a08cfb",
+        "29d8cca00de3832eef6c0fd6d309ef915c89bb2994f198bc09ee2fc63b483054",
     ),
     "source_off": (
         {"case": V3, "source": False},
-        "dce284c1300fea4816486c7ce4e59720300c240a7246bb8d8616171b22ab581b",
-        "17416392e2cd09357e4f0b44f6b272b78f5f634d2fc914d02c8eef241df11ac1",
+        "7c327cfb4a548034cf3e4fea111d4483c23bcd52e99e93f3545b60a3b0f6d1cf",
+        "d23f9126cba1bd1d7c6f6d778da20e7c46f10a6f43d00e7ec342e8b6034f97fc",
     ),
     "steady": (
         {"case": V3, "steady": True},
-        "beeea9db4da5c6ffcbd8966916f3fcefb42d09d6dc7aef742869d3cfb2f4cd32",
-        "e0b6e9c34119b2d1e84208c2adac1b9b44b6adfc19166e0478893c540d822e49",
+        "f45fc016c6940aa44bc069d4ffdbe641c0429fd6cd6a8552ab683b0bfe33aa8e",
+        "a3d4df66c78624678598f0c0a78e10e5744382a1977d45851bfcb6e172947c1f",
     ),
 }
 
