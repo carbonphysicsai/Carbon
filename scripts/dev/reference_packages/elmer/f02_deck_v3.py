@@ -14,6 +14,10 @@ POOL_PAYLOAD_RULINGS rule 12, SUMS 194d7371...) plus, per F02_V3_BUILD_SPEC_2026
   and the 0.5 s sample selector by step index;
 - an import that works at any install depth (v2 failed at less than five levels).
 
+Provenance: built on the deck v2 payload (codex-queue/reports/F02_DECK_GATE_20261026/f02_deck_v2.py, sha256 bb48111408d9...,
+SUMS 194d7371bcad...; POOL_PAYLOAD_RULINGS rule 12, the two-deck gate NO_IMPACT) with the sample-selector and parents[4] fixes added.
+The pinned 2.5 deck (f02_deck.py, sha256 70d51aba5554...) is not edited.
+
     python -m scripts.dev.reference_packages.elmer.f02_deck_v3 case LABEL --out DIR [--mesh 2] [--dt-scale 0.5]
 
 The packet's stack (round1/f02-burst-thermal.md, requirements.json): silicon
