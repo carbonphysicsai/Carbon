@@ -15,6 +15,7 @@ CALCULIX = (
 )
 sys.path.insert(0, str(CALCULIX))
 
+import f08_deck as v1
 import f08_deck_v2 as v2
 
 CASE = {
@@ -384,3 +385,50 @@ def test_the_modal_stress_is_requested_in_the_frequency_step_and_the_ruling_is_r
     assert "*EL PRINT,ELSET=FILLET\nS" in frequency
     assert v2.STRESS_FIXED["primary"] == "worst_band_dynamic_von_mises"
     assert v2.STRESS_FIXED["constraint"] == "static_peak_von_mises"
+
+
+def _tiny_meta():
+    return {
+        "pad_tri6": [[1, 2, 3, 4, 5, 6]],
+        "probe_tri6": [[1, 2, 3, 7, 8, 9]],
+        "coords": {
+            "1": [0.0, 0.0, 0.0],
+            "2": [4.0, 0.0, 0.0],
+            "3": [0.0, 4.0, 0.0],
+            "4": [2.0, 0.0, 0.0],
+            "5": [2.0, 2.0, 0.0],
+            "6": [0.0, 2.0, 0.0],
+            "7": [4.0, 4.0, 0.0],
+            "8": [3.0, 3.0, 0.0],
+            "9": [1.0, 3.0, 0.0],
+        },
+        "tip_node": 1,
+        "probe_node": 2,
+    }
+
+
+def test_load_angle_zero_reproduces_the_1_7_load_lines_exactly():
+    meta = _tiny_meta()
+    mat = v2.material("TEST_ALLOY", table=TEST_TABLE, test_mode=True)
+    pad = v1.face_weights(meta["pad_tri6"], meta["coords"])
+    total = math.fsum(pad.values())
+    loads = {n: w / total for n, w in pad.items()}
+    v1_lines = "".join(f"{n},3,{f:.12g}\n" for n, f in sorted(loads.items()))
+    assert v2.load_lines(loads, 0.0) == v1_lines  # the 1.7 CLOAD text, byte for byte
+    deck = v2.deck_text({**CASE, "load_angle_deg": 0.0}, meta, mat)
+    assert deck.count(v1_lines) == 2  # the steady-state and the static step
+    assert ",2," not in v1_lines
+    # +y at 90 degrees is the in-plane transverse load
+    assert "".join(f"{n},3," for n in loads) not in v2.load_lines(loads, 90.0)
+
+
+def test_the_numerical_settings_are_fixed_and_written_in_every_deck_header():
+    settings = v2.numerical_settings()
+    assert (
+        settings["oscillation_phases"] == 72 and settings["peak_refinement_rel"] == 1e-6
+    )
+    assert settings["band_hz"] == [80.0, 600.0]
+    mat = v2.material("TEST_ALLOY", table=TEST_TABLE, test_mode=True)
+    deck = v2.deck_text(CASE, _tiny_meta(), mat)
+    header = deck.split("*INCLUDE")[0]
+    assert "** numerical settings: " in header and '"oscillation_phases": 72' in header

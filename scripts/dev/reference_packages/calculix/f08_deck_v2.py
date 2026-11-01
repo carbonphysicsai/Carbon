@@ -305,6 +305,8 @@ def deck_text(case, meta, mat, *, modes=48, loads=None):
     lines = [
         "*HEADING",
         f"f08 2.0 {json.dumps(case, sort_keys=True)} modes={modes} tables={mat['tables']}",
+        # Numerical settings (Validator, 2026-11-01): fixed, never tuned; the refinement ladder verifies them.
+        f"** numerical settings: {json.dumps(numerical_settings(), sort_keys=True)}",
         "*INCLUDE,INPUT=mesh.inp",
         "*NSET,NSET=OBS",
         *map(str, obs),
@@ -643,4 +645,17 @@ def observe_dynamic_rungs(case, rung_inputs, mat):
         "tables": mat["tables"],
         "rungs": peaks,
         "successive": changes,
+    }
+
+
+def numerical_settings():
+    """The numerical settings of the dynamic fillet-stress observation, recorded in every deck header. They are fixed
+    (never tuned); the refinement ladder is what verifies them."""
+    return {
+        "oscillation_phases": PHASES,
+        "peak_refinement": "golden section on the bracketing grid points",
+        "peak_refinement_rel": 1e-6,
+        "frequency_grid": "f08_deck.dense_grid: <= 0.1 half-power bandwidth near each mode, 0.5 Hz elsewhere",
+        "band_hz": list(proof.BAND_HZ),
+        "stress_points": "C3D10 integration points of the FILLET element set",
     }
