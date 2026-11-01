@@ -2023,6 +2023,9 @@ def main(argv=None):
             reason = result.get("private_evaluation_reason")
             if type(reason) is str and re.fullmatch(r"[A-Za-z0-9_]{1,80}", reason):
                 reported["private_evaluation_reason"] = reason
+            message = result.get("private_evaluation_message")
+            if type(message) is str and message:
+                reported["private_evaluation_message"] = message
         koth = result.get("koth_comparison")
         if type(koth) is dict:
             # Operator-only: the DEVELOPMENT king-of-the-hill outcome, or the pool refusal.

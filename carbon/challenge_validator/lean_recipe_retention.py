@@ -1275,6 +1275,7 @@ def _retain_selected_pack_evaluation(
             **result,
             "private_evaluation_state": "UNAVAILABLE",
             "private_evaluation_reason": reason,
+            **_limit_message(adapter, submission_id, reason),
         }
     return {
         **result,
@@ -1315,6 +1316,24 @@ def _retain_selected_pack_evaluation(
         ),
         **({} if koth is None else {"koth_comparison": koth}),
     }
+
+
+def _limit_message(adapter, submission_id, reason):
+    """``{"private_evaluation_message": sentence}`` for the two limit refusals (one graded exam per Challenge per
+    round), with the next round's block and time when the signed block is known; ``{}`` for any other reason.
+    """
+    from carbon.challenge_validator import exam_cap
+
+    block = exam_cap.submission_block(
+        adapter.ledger, adapter.contract_digest, submission_id
+    )
+    retry = (
+        exam_cap.next_round(block)
+        if reason == "epoch_limit_reached" and block is not None
+        else None
+    )
+    message = exam_cap.plain_text(reason, retry)
+    return {} if message is None else {"private_evaluation_message": message}
 
 
 def _pool_graded(adapter) -> bool:
@@ -1845,10 +1864,12 @@ def _counted_bank_grade(
             ),
         )
     except exam_cap.ExamCapRefused as refused:
+        code = getattr(refused, "code", str(refused))
         return {
             **bound,
             "private_evaluation_state": "UNAVAILABLE",
-            "private_evaluation_reason": getattr(refused, "code", str(refused)),
+            "private_evaluation_reason": code,
+            **_limit_message(adapter, submission_id, code),
         }
     try:
         graded = regrade_retained_entry(

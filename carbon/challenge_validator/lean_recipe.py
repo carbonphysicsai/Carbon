@@ -344,6 +344,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 break
         else:
             raise Unavailable("direct_infra_rerun_limit_reached")
+        self._refuse_spent_round(submission, task_id.value, provider)
         source = recipe.to_dict()["source"]
         if source["kind"] == "graph":
             try:
@@ -398,6 +399,33 @@ class LeanRecipeAdapter(ChallengeAdapter):
             exam_key=provider.evaluation_pack_digest,
             submission_id=submission_id,
         )
+
+    def _refuse_spent_round(self, submission, task_id, provider):
+        """One graded exam per Challenge per round: a hotkey whose graded exam already holds this
+        epoch's slot (or whose day's allowance is used) is told so now, before any build, in plain
+        words with the next round's block and time. Read-only: no slot, no row, no grade, no
+        allowance used (`ExamCap.admission_refusal`); `reserve` still decides at grading time.
+        """
+        if provider.evaluation_pack_digest is None:
+            return
+        from carbon.challenge_validator.exam_cap import ExamCap
+
+        receipt = submission.receipt if type(submission.receipt) is dict else {}
+        refusal = ExamCap(
+            self.ledger, cadence=getattr(self, "exam_cadence", None)
+        ).admission_refusal(
+            hotkey=submission.hotkey,
+            challenge_id=self.challenge_id,
+            challenge_version=self.challenge_version,
+            exam_key=provider.evaluation_pack_digest,
+            submission_id=task_id,
+            block=receipt.get("block"),
+        )
+        if refusal is not None:
+            raise Unavailable(
+                refusal["code"],
+                retry={k: v for k, v in refusal.items() if k != "code"},
+            )
 
     def _ended_on_infra(self, hotkey, task_id, provider):
         """Whether this task exists and ended on Carbon's infrastructure: its

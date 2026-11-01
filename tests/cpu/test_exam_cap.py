@@ -1290,3 +1290,291 @@ def test_the_calibration_modules_never_touch_the_exam_cap_or_the_cadence(module)
     }
     assert not [m for m in names if "exam_cap" in m or "cadence" in m]
     assert "exam_cadence" not in path.read_text(encoding="utf-8")
+
+
+# --- one graded exam per Challenge per round, refused at admission (week-1 item 104) ----------------------
+
+
+def _admission(cap, n, *, hotkey=HOTKEY, exam=EXAM, block):
+    return cap.admission_refusal(
+        hotkey=hotkey,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        exam_key=exam,
+        submission_id=f"rtsk_{n}",
+        block=block,
+    )
+
+
+def _ledger_rows(cap):
+    with cap.ledger._db() as db:
+        return (
+            db.execute("SELECT COUNT(*) FROM exam_graded").fetchone()[0],
+            db.execute("SELECT COUNT(*) FROM operator_refusals").fetchone()[0],
+        )
+
+
+def test_a_second_submit_in_the_same_round_is_refused_at_admission_in_plain_words(cap):
+    _grade(cap, 1, block=360 * 7 + 5)  # the first graded exam holds epoch 7
+    before = (_ledger_rows(cap), _count(cap))
+    refusal = _admission(cap, 2, block=360 * 7 + 100)
+    assert refusal["code"] == "epoch_limit_reached"
+    assert refusal["next_block"] == 360 * 8
+    assert refusal["next_utc"].endswith(" UTC")
+    for words in (
+        "One graded exam per Challenge per round",
+        "Nothing was built or graded",
+        "none of your allowance",
+        "block 2880",
+        refusal["next_utc"],
+    ):
+        assert words in refusal["message"]
+    # Read-only: no slot, no row, no audit line; the cap's counts are exactly as they were.
+    assert (_ledger_rows(cap), _count(cap)) == before
+    # The cap itself still refuses the same attempt, with the same code (semantics unchanged).
+    with pytest.raises(exam_cap.ExamCapRefused, match="epoch_limit_reached"):
+        _reserve(cap, 2, block=360 * 7 + 100)
+    assert _count(cap) == 1
+
+
+def test_admission_lets_through_what_reserve_would_let_through(cap):
+    _grade(cap, 1, block=360 * 7 + 5)
+    assert _admission(cap, 2, block=360 * 8) is None  # the next round
+    assert _admission(cap, 2, block=360 * 7 + 5, hotkey=OTHER) is None  # another hotkey
+    assert (
+        _admission(cap, 1, block=360 * 7 + 5) is None
+    )  # the submission holding the slot
+    assert _admission(cap, 2, block=None) is None  # no block: reserve decides
+    # the round is the hotkey's, whatever the exam key: reserve counts the epoch across pack sets, so does admission
+    assert _admission(cap, 2, block=360 * 7, exam=NEXT_EXAM) is not None
+    with pytest.raises(exam_cap.ExamCapRefused, match="epoch_limit_reached"):
+        _reserve(cap, 2, block=360 * 7, exam=NEXT_EXAM)
+
+
+def test_a_released_first_attempt_does_not_use_the_round(cap):
+    _grade(cap, 1, status="FAILED_INFRA", block=360 * 7)
+    assert _admission(cap, 2, block=360 * 7 + 1) is None
+    _grade(cap, 3, block=360 * 7 + 2)
+    assert _admission(cap, 4, block=360 * 7 + 3)["code"] == "epoch_limit_reached"
+
+
+def test_the_daily_allowance_is_refused_at_admission_too_without_a_round_time(tight):
+    _grade(tight, 1)
+    _grade(tight, 2)  # two a day for one miner
+    refusal = _admission(tight, 3, block=360 * 3 + 7)
+    assert refusal["code"] == "exam_daily_allowance_reached"
+    assert (
+        "next_block" not in refusal and "none of your allowance" in refusal["message"]
+    )
+
+
+def test_the_plain_text_covers_exactly_the_two_limit_codes():
+    assert exam_cap.plain_text("exam_key_expired") is None
+    assert "the next 360-block round" in exam_cap.plain_text("epoch_limit_reached")
+    shown = exam_cap.next_round(360 * 7 + 100, now=0)
+    # 260 blocks left at 12 s = 3120 s = 52 minutes after the clock's zero
+    assert shown == {"next_block": 360 * 8, "next_utc": "1970-01-01 00:52 UTC"}
+
+
+LEAN_PACK = "sha256:" + "a" * 64
+
+
+def _lean_door(cap, monkeypatch):
+    """A LeanRecipeAdapter over a recording provider (as the same-recipe test), with submit/grade helpers."""
+    import hashlib
+
+    import carbon.research
+    from carbon.challenge_validator.interface import Admitted
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.registry.model import ChallengeKey
+    from carbon.research import DirectTaskStateV3, ResearchTaskId
+
+    monkeypatch.setattr(
+        carbon.research,
+        "DirectStartTaskRequestV3",
+        lambda *fields: SimpleNamespace(idempotency_key=fields[1]),
+    )
+    monkeypatch.setattr(
+        carbon.research,
+        "canonical_bytes",
+        lambda request: request.idempotency_key.encode(),
+    )
+    pack = LEAN_PACK
+    tasks, started = {}, []
+
+    def task_id(request):
+        key = request.idempotency_key.encode()
+        return ResearchTaskId("rtsk_" + hashlib.sha256(key).hexdigest())
+
+    def start(request, *, measure_query):
+        identity = task_id(request)
+        started.append(identity.value)
+        task = tasks.setdefault(
+            identity.value,
+            SimpleNamespace(task_id=identity, state=DirectTaskStateV3.QUEUED),
+        )
+        return SimpleNamespace(task=task)
+
+    provider = SimpleNamespace(
+        owner=HOTKEY,
+        evaluation_pack_digest=pack,
+        _task_id=task_id,
+        start_research_task=start,
+        get_research_result=lambda request: _found(tasks, request),
+        public_result=lambda _task: {
+            "official_eligible": False,
+            "predictions_digest": "sha256:" + "f" * 64,
+        },
+    )
+    adapter = object.__new__(LeanRecipeAdapter)
+    adapter.discovery = SimpleNamespace(
+        info=SimpleNamespace(
+            challenge_key=ChallengeKey(*MOTOR),
+            public_train_digest="sha256:" + "1" * 64,
+            practice_inputs_digest="sha256:" + "2" * 64,
+            interface_digest="sha256:" + "3" * 64,
+            construction_limits_digest="sha256:" + "4" * 64,
+        ),
+        _material={
+            "construction_limits_document": {"reconstruction_resource_policy": {}}
+        },
+    )
+    adapter.ledger = cap.ledger
+    adapter.exam_cadence = cadence(134.4)
+    adapter.challenge_id, adapter.challenge_version = MOTOR
+    adapter.contract_digest = "sha256:" + "c" * 64
+    adapter._measure_query = False
+    adapter._evidence_label = "DEVELOPMENT_PUBLIC_SYNTHETIC"
+    adapter._identities = {
+        "challenge_info_digest": "sha256:" + "5" * 64,
+        "manifest_digest": "sha256:" + "6" * 64,
+        "construction_kit_digest": "sha256:" + "7" * 64,
+    }
+    adapter.validate_strategy = lambda strategy: SimpleNamespace(
+        digest=strategy["recipe"],
+        to_dict=lambda: {"source": {"kind": "bundle"}, "r": strategy["recipe"]},
+    )
+    adapter._provider = lambda _hotkey: provider
+    adapter.owner = lambda _submission_id: HOTKEY
+
+    def submit(recipe, block, hotkey=HOTKEY):
+        return adapter.evaluate(
+            Admitted(
+                hotkey=hotkey,
+                receipt={"sequence": block, "digest": "0" * 64, "block": block},
+                challenge_id=MOTOR[0],
+                challenge_version=MOTOR[1],
+                strategy={"recipe": recipe},
+                contract_digest=adapter.contract_digest,
+            )
+        )
+
+    def grade(submission_id, block):
+        reservation = cap.reserve(
+            hotkey=HOTKEY,
+            challenge_id=MOTOR[0],
+            challenge_version=MOTOR[1],
+            exam_key=pack,
+            submission_id=submission_id,
+            block=block,
+        )
+        cap.settle(reservation, "SCORED_DEVELOPMENT_CANDIDATE")
+        tasks[submission_id].state = DirectTaskStateV3.SUCCEEDED
+        tasks[submission_id].terminal_receipt = SimpleNamespace(
+            state_digest="sha256:" + "e" * 64,
+            predictions_digest="sha256:" + "f" * 64,
+        )
+
+    return submit, grade, started
+
+
+def test_the_receiver_refuses_the_second_recipe_of_a_round_before_any_build(
+    cap, monkeypatch
+):
+    from carbon.challenge_validator.interface import (
+        SameRecipeAlreadySubmitted,
+        Unavailable,
+    )
+
+    submit, grade, started = _lean_door(cap, monkeypatch)
+    same, different = "sha256:" + "8" * 64, "sha256:" + "9" * 64
+    first = submit(same, 360 * 7 + 5)
+    assert first["state"] == "ADMITTED"
+    grade(first["submission_id"], 360 * 7 + 5)
+    before = (_ledger_rows(cap), _count(cap, exam=LEAN_PACK), list(started))
+
+    # A different recipe, same round: refused at the door, typed and plain, nothing started.
+    with pytest.raises(Unavailable) as refused:
+        submit(different, 360 * 7 + 100)
+    assert refused.value.code == "epoch_limit_reached"
+    assert refused.value.retry["next_block"] == 360 * 8
+    assert "One graded exam per Challenge per round" in refused.value.retry["message"]
+    assert (_ledger_rows(cap), _count(cap, exam=LEAN_PACK), list(started)) == before
+
+    # The replay of the SAME recipe still returns its earlier grade, never the round refusal.
+    with pytest.raises(SameRecipeAlreadySubmitted) as replay:
+        submit(same, 360 * 7 + 100)
+    assert replay.value.outcome["submission_id"] == first["submission_id"]
+    assert (_ledger_rows(cap), _count(cap, exam=LEAN_PACK), list(started)) == before
+
+    # The next round admits the different recipe; nothing was graded or counted by any of it.
+    assert submit(different, 360 * 8)["state"] == "ADMITTED"
+    assert _count(cap, exam=LEAN_PACK) == 1
+
+
+def test_the_dispatch_answer_for_the_round_refusal_carries_the_plain_words(
+    cap, monkeypatch
+):
+    # The 503 envelope the miner's client reads: the closed code and the receiver's retry facts.
+    from carbon.challenge_validator.dispatch import _result
+    from carbon.challenge_validator.interface import Unavailable
+
+    submit, grade, _ = _lean_door(cap, monkeypatch)
+    first = submit("sha256:" + "8" * 64, 360 * 7 + 5)
+    grade(first["submission_id"], 360 * 7 + 5)
+    with pytest.raises(Unavailable) as refused:
+        submit("sha256:" + "9" * 64, 360 * 7 + 9)
+    answer = _result("UNAVAILABLE", code=refused.value.code, retry=refused.value.retry)
+    assert answer["code"] == "epoch_limit_reached"
+    assert set(answer["retry"]) == {"next_block", "next_utc", "message"}
+
+
+def test_the_client_keeps_only_the_closed_retry_facts_of_a_limit_refusal():
+    from carbon.development_session import direct_submission as client
+
+    answer = {
+        "code": "epoch_limit_reached",
+        "retry": {
+            "next_block": 2880,
+            "next_utc": "2026-11-01 02:00 UTC",
+            "message": "plain",
+            "secret": "x",
+        },
+    }
+    kept = client._refusal_retry(answer, "epoch_limit_reached")
+    assert kept == {
+        "next_block": 2880,
+        "next_utc": "2026-11-01 02:00 UTC",
+        "message": "plain",
+    }
+    assert client._refusal_retry(answer, "construction_intake_unavailable") == {}
+    assert (
+        client._refusal_retry({"retry": {"next_block": "x"}}, "epoch_limit_reached")
+        == {}
+    )
+    assert client.DirectIntakeRefusal("x").retry == {}
+
+
+def test_a_built_task_refused_at_grading_gets_the_same_plain_words(cap):
+    # An already-built task whose grade is refused: same code as before, now with the plain sentence.
+    contract = "sha256:" + "c" * 64
+    adapter = _adapter(cap, contract)
+    _grade(cap, 1, block=360 * 7 + 5)
+    _record(cap, contract, "rtsk_2", 360 * 7 + 50)
+    result = _retain(adapter, "rtsk_2")
+    assert result["private_evaluation_reason"] == "epoch_limit_reached"
+    assert (
+        "One graded exam per Challenge per round"
+        in result["private_evaluation_message"]
+    )
+    assert "block 2880" in result["private_evaluation_message"]

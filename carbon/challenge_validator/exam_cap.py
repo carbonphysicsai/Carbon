@@ -36,6 +36,13 @@ Refusals, all before grading, so none consumes exam wear and none writes an atte
 ``exam_cap_unregistered`` (a Challenge not registered), ``exam_cadence_unregistered`` and
 ``exam_cadence_schema_unsupported``.
 
+**Admission check.** The two limit refusals above are also checked, read-only, when a submission is
+admitted and before anything is built (`ExamCap.admission_refusal`): a hotkey that already holds its graded
+exam in this epoch (or has used its day's allowance) is told so at once, in plain words with the next
+round's block and time (`plain_text`), instead of after the build. It reads exactly the rows `reserve`
+counts, takes no slot, writes no row and grades nothing; `reserve` stays the authority at grading time (an
+in-flight build holds no slot, so a race between two builds is still decided there, with the same plain text).
+
 **Same recipe, same pack set.** A submission is hotkey + contract + recipe + evaluation
 pack (the receiver's task identity), so a resubmit of a graded recipe on the same pack set
 is the same submission. The receiver refuses it at its door (``holds_slot``;
@@ -59,6 +66,8 @@ import time
 from pathlib import Path
 
 EPOCH_BLOCKS = 360
+#: A chain block, in seconds (12 s blocks): the clock behind "next round opens at <UTC time>".
+BLOCK_SECONDS = 12
 #: One day, in epochs and in blocks (12 s blocks).
 DAY_EPOCHS = 20
 DAY_BLOCKS = DAY_EPOCHS * EPOCH_BLOCKS
@@ -127,6 +136,47 @@ CREATE TABLE IF NOT EXISTS exam_keys(
     PRIMARY KEY(challenge_id, challenge_version, exam_key)
 );
 """
+
+
+#: Miner-facing words for the two limit refusals, said plainly (week-1 item 104). ``{when}`` is the next
+#: round's block and, when known, its approximate UTC time.
+LIMIT_TEXT = {
+    "epoch_limit_reached": (
+        "One graded exam per Challenge per round, and this hotkey's graded exam for this round is already "
+        "used or in progress. Nothing was built or graded for this submission and it used none of your "
+        "allowance. The next round opens at {when}."
+    ),
+    "exam_daily_allowance_reached": (
+        "This hotkey has used its graded exams for the day on this Challenge. Nothing was built or graded "
+        "for this submission and it used none of your allowance. A slot frees as earlier graded exams age "
+        "past one day; try again in a later round."
+    ),
+}
+
+
+def next_round(block, *, now=None):
+    """``{"next_block", "next_utc"}`` of the round after the one ``block`` is in: the block that opens it and
+    its approximate UTC time (``now`` plus the blocks left at 12 s; ``now`` defaults to the clock).
+    """
+    epoch = epoch_of(block)
+    opens = (epoch + 1) * EPOCH_BLOCKS
+    seconds = (time.time() if now is None else now) + (opens - block) * BLOCK_SECONDS
+    stamp = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(seconds))
+    return {"next_block": opens, "next_utc": stamp}
+
+
+def plain_text(code, retry=None):
+    """The miner-facing sentence for a limit refusal ``code``, or None for any other code."""
+    text = LIMIT_TEXT.get(code)
+    if text is None:
+        return None
+    retry = retry or {}
+    when = (
+        f"block {retry['next_block']} (about {retry['next_utc']})"
+        if "next_block" in retry and "next_utc" in retry
+        else "the next 360-block round"
+    )
+    return text.format(when=when)
 
 
 class ExamCapRefused(ValueError):
@@ -352,6 +402,72 @@ class ExamCap:
         with self.ledger._db() as db:
             return self._allowance(db, hotkey, epoch_of(block), cadence)
 
+    def _limit_refusal(self, db, hotkey, challenge_id, submission_id, epoch, cadence):
+        """The daily-allowance or epoch refusal code for a graded submission, or None (read-only)."""
+        low, high = self._window(epoch)
+        held = "kind='GRADED' AND state IN ('RESERVED','COUNTED') AND submission_id<>?"
+        allowed = self._allowance(db, hotkey, epoch, cadence)["allowance"]
+        used = db.execute(
+            "SELECT COUNT(*) FROM exam_graded WHERE hotkey=? AND "
+            f"challenge_id=? AND epoch>? AND epoch<=? AND {held}",
+            (hotkey, challenge_id, low, high, submission_id),
+        ).fetchone()[0]
+        in_epoch = db.execute(
+            "SELECT COUNT(*) FROM exam_graded WHERE hotkey=? AND "
+            f"challenge_id=? AND epoch=? AND {held}",
+            (hotkey, challenge_id, epoch, submission_id),
+        ).fetchone()[0]
+        return (
+            "exam_daily_allowance_reached"
+            if used >= allowed
+            else "epoch_limit_reached" if in_epoch >= 1 else None
+        )
+
+    def admission_refusal(
+        self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id, block
+    ):
+        """At admission, before anything is built: the limit refusal `reserve` would give this graded
+        submission now, as ``{"code", "message"}`` plus ``next_block``/``next_utc`` for the epoch limit, or None.
+
+        Read-only: no slot is taken, no row written, nothing graded, no allowance used. It answers None
+        wherever `reserve` would not reach the limits (no block, an unregistered Challenge or cadence, a
+        submission that already holds its row, an expired exam key): those stay `reserve`'s to decide.
+        """
+        if type(block) is not int or block < 0:
+            return None
+        values = (hotkey, challenge_id, challenge_version, exam_key, submission_id)
+        if not all(type(value) is str and value for value in values):
+            return None
+        try:
+            cadence = self.cadence()
+        except ExamCapRefused:
+            return None
+        if challenge_id not in cadence["rebuild_gpu_lane_hours"]:
+            return None
+        epoch = epoch_of(block)
+        with self.ledger._db() as db:
+            row = db.execute(
+                "SELECT state FROM exam_graded WHERE challenge_id=? AND "
+                "challenge_version=? AND exam_key=? AND submission_id=?",
+                (challenge_id, challenge_version, exam_key, submission_id),
+            ).fetchone()
+            if row is not None and row[0] in ("RESERVED", "COUNTED"):
+                return None
+            first = db.execute(
+                "SELECT first_block FROM exam_keys WHERE challenge_id=? AND "
+                "challenge_version=? AND exam_key=?",
+                (challenge_id, challenge_version, exam_key),
+            ).fetchone()
+            if first is not None and block - first[0] >= MAX_EXAM_AGE_BLOCKS:
+                return None
+            code = self._limit_refusal(
+                db, hotkey, challenge_id, submission_id, epoch, cadence
+            )
+        if code is None:
+            return None
+        retry = next_round(block) if code == "epoch_limit_reached" else {}
+        return {"code": code, **retry, "message": plain_text(code, retry)}
+
     def reserve(
         self,
         *,
@@ -397,28 +513,8 @@ class ExamCap:
                 if block - first_block >= MAX_EXAM_AGE_BLOCKS:
                     refusal = "exam_key_expired"
                 else:
-                    low, high = self._window(epoch)
-                    held = (
-                        "kind='GRADED' AND state IN ('RESERVED','COUNTED') "
-                        "AND submission_id<>?"
-                    )
-                    allowed = self._allowance(db, hotkey, epoch, cadence)["allowance"]
-                    used = db.execute(
-                        "SELECT COUNT(*) FROM exam_graded WHERE hotkey=? AND "
-                        f"challenge_id=? AND epoch>? AND epoch<=? AND {held}",
-                        (hotkey, challenge_id, low, high, submission_id),
-                    ).fetchone()[0]
-                    in_epoch = db.execute(
-                        "SELECT COUNT(*) FROM exam_graded WHERE hotkey=? AND "
-                        f"challenge_id=? AND epoch=? AND {held}",
-                        (hotkey, challenge_id, epoch, submission_id),
-                    ).fetchone()[0]
-                    refusal = (
-                        "exam_daily_allowance_reached"
-                        if used >= allowed
-                        else "epoch_limit_reached"
-                        if in_epoch >= 1
-                        else None
+                    refusal = self._limit_refusal(
+                        db, hotkey, challenge_id, submission_id, epoch, cadence
                     )
             if refusal is None:
                 now = int(self.clock())
