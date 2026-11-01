@@ -266,7 +266,7 @@ def u_per_output(results, panel_cells):
     u, bad = {name: 0.0 for name in OUTPUTS if name not in EXACT}, []
     for cell in panel_cells:
         failed = False
-        for output in u:
+        for output in [name for name in OUTPUTS if name not in EXACT]:
             for axis in ("mesh", "fillet"):
                 try:
                     est = roache(*series(results, cell, axis, output))
