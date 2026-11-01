@@ -66,6 +66,8 @@ POOL = {
     (COOLING, "1.5"): "cooling-pool-sealed-v1",
     (COOLING, "1.6"): "cooling-pool-sealed-v2",
 }
+#: Versions whose construction is their predecessor's unchanged (only the scoring and the minimums differ).
+SCORING_ONLY = frozenset({(MOTOR, "1.6")})
 #: The versions registered through the host overlay (`version_overlay`), not pinned here one by one: each is checked by
 #: the property below, so a new overlay version (F02 3.0, F08 2.0, Motor 1.6) needs no edit to this file.
 OVERLAY = frozenset(version_overlay.install())
@@ -354,7 +356,13 @@ def test_the_registry_declares_each_new_version_in_full():
         for field in new.__dataclass_fields__:
             if field not in own_here:
                 assert getattr(new, field) == getattr(old, field), (cid, field)
-        assert new.graph_adapter == "v2" and new.pack_version != old.pack_version
+        assert new.graph_adapter == "v2"
+        # a scoring-only successor keeps its predecessor's construction (and so its pack version): Motor 1.6
+        # (OWNER/Validator: the same construction, a new scoring), where every other version has its own
+        assert new.pack_version != old.pack_version or (cid, version) in SCORING_ONLY, (
+            cid,
+            version,
+        )
         assert served_versions.serves_catalog(cid, version)
         assert served_versions.serves_v8(cid, version)
         # a pool version's predecessor is itself a graph route v2 version (v8)

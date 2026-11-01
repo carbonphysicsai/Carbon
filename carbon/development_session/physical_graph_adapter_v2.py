@@ -229,6 +229,18 @@ SPECS = {
         "float64",
         "1.4",
     ),
+    ("electric-motor-magnetics", "1.6"): Spec(
+        "electric-motor-magnetics",
+        "1.6",
+        "electric-motor-magnetics-public-jax-graph-v2",
+        "motor-dev-train-150-v1",
+        "5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+        150,
+        8,
+        60,
+        "float64",
+        "1.5",
+    ),
     ("chip-cold-plate", "1.4"): Spec(
         "chip-cold-plate",
         "1.4",

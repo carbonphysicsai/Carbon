@@ -1004,6 +1004,9 @@ _F02_POOL = _pool_block(_F02, "f02 2.5", "f02-pool-sealed-v1")
 _MOTOR_POOL = _pool_block(
     _MOTOR, "electric-motor-magnetics 1.5", "motor-pool-sealed-v1"
 )
+_MOTOR_POOL_16 = _pool_block(
+    _MOTOR, "electric-motor-magnetics 1.6", "motor-pool-sealed-v2"
+)
 _COOLING_POOL = _pool_block(_COOLING, "chip-cold-plate 1.5", "cooling-pool-sealed-v1")
 # OWNER-COOLING-HOTSPOT-GATE-DROP-01: a new version, never a rewrite of _COOLING.
 _COOLING_POOL_16 = {
@@ -1037,6 +1040,7 @@ _POOL_VERSIONS = frozenset(
         ("f08-ribbed-bracket", "1.7"),
         ("f02", "2.5"),
         ("electric-motor-magnetics", "1.5"),
+        ("electric-motor-magnetics", "1.6"),
         ("chip-cold-plate", "1.5"),
         ("chip-cold-plate", "1.6"),
         ("chip-cold-plate", "1.7"),
@@ -1049,6 +1053,7 @@ _BY_VERSION = {
     ("f08-ribbed-bracket", "1.7"): _F08_POOL_SANITY,
     ("f02", "2.5"): _F02_POOL,
     ("electric-motor-magnetics", "1.5"): _MOTOR_POOL,
+    ("electric-motor-magnetics", "1.6"): _MOTOR_POOL_16,
     ("chip-cold-plate", "1.5"): _COOLING_POOL,
     ("chip-cold-plate", "1.6"): _COOLING_POOL_16,
     ("chip-cold-plate", "1.7"): _COOLING_POOL_17,

@@ -89,6 +89,13 @@ KITS = {
 
 @pytest.mark.parametrize("key", KEYS)
 def test_the_kit_does_not_move_so_a_bound_recipe_or_artifact_stays_valid(key):
+    if key == ("electric-motor-magnetics", "1.6"):
+        # a scoring-only successor: 1.5's construction kit (TRAIN, interface), under its own version field
+        kit = physical_material.construction_kit(*key)
+        assert kit["version"] == "1.6"
+        for field in ("train_digest", "interface_digest"):
+            assert kit[field] == KITS[(key[0], "1.5")][field]
+        return
     if key in {("f08-ribbed-bracket", "1.7"), ("chip-cold-plate", "1.7")}:
         # A prospective version has its own identity fields. Its unchanged
         # construction semantics are covered by test_f08_frequency_band_drop.
