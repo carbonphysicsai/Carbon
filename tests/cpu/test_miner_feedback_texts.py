@@ -23,6 +23,23 @@ def test_the_idempotency_conflict_names_the_field_to_pass():
     assert "expected_manifest_digest" in text and "stage again" in text
 
 
+def test_a_compare_and_swap_with_no_manifest_held_says_so():
+    # Miner feedback: a stage naming expected_manifest_digest read
+    # idempotency_conflict when the receiver held no graph at all. The
+    # receiver now refuses REFERENCE_NOT_FOUND for that case (Validator:
+    # "no manifest held", never another key's manifest or digest).
+    text = supervisor.next_action("construction_source_reference_not_found")
+    assert text == (
+        "The receiver holds no earlier graph for your hotkey: stage it again "
+        "without expected_manifest_digest."
+    )
+    assert "sha256:" not in text
+    # A held graph under another digest keeps its own wording.
+    held = supervisor.next_action("construction_source_idempotency_conflict")
+    assert held != text
+    assert "already holds a different graph" in held
+
+
 def test_the_signer_text_says_to_keep_it_up_until_reconstructed():
     text = supervisor.NEXT_ACTIONS["signer_not_running"]
     assert "Start carbon-miner-signer" in text

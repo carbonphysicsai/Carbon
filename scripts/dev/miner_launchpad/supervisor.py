@@ -473,6 +473,13 @@ NEXT_ACTIONS = {
         "stage again and pass expected_manifest_digest: the manifest digest returned "
         "when you staged the earlier graph. Nothing was changed."
     ),
+    # The receiver holds no graph under the name, so a compare-and-swap has
+    # no manifest to compare against (Validator: "no manifest held", never
+    # another key's manifest or digest; receiver REFERENCE_NOT_FOUND).
+    "construction_source_reference_not_found": (
+        "The receiver holds no earlier graph for your hotkey: stage it again "
+        "without expected_manifest_digest."
+    ),
     "signer_refused": "Your signer declined the request. Check it, then try again.",
     "signer_wrong_hotkey": (
         "Your signer holds a different hotkey than the registered miner. "
