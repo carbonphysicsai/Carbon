@@ -30,18 +30,40 @@ def _web_files():
 
 
 def test_assets_stay_under_the_budget():
-    """Everything the page loads except the brand fonts: HTML, CSS, JS and the
-    wordmark."""
+    """Everything the page loads except the brand fonts: HTML, CSS, JS, the
+    wordmark and the favicons."""
     sizes = {p.name: p.stat().st_size for p in _web_files()}
     for relative, (published, _digest) in build.BRAND_ASSETS.items():
         if not published.startswith("fonts/"):
             sizes[published] = (ROOT / relative).stat().st_size
+    for name in build.FAVICONS:
+        sizes[f"brand/{name}"] = (build.BRAND / name).stat().st_size
     total = sum(sizes.values())
     assert total <= BUDGET_BYTES, (total, sizes)
 
 
 def test_the_web_app_is_plain_files():
     assert {p.suffix for p in _web_files()} <= {".html", ".js", ".css"}
+
+
+def test_the_favicons_follow_the_colour_scheme_and_are_built(tmp_path):
+    """Dark mark on light browser chrome, light mark on dark; every icon the
+    page names is a pinned file the build writes."""
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    icons = re.findall(r'<link rel="icon" href="([^"]+)"[^>]* media="([^"]+)">', html)
+    assert sorted(icons) == sorted(
+        [
+            ("brand/favicon-light-32.png", "(prefers-color-scheme: dark)"),
+            ("brand/favicon-light.svg", "(prefers-color-scheme: dark)"),
+            ("brand/favicon-dark-32.png", "(prefers-color-scheme: light)"),
+            ("brand/favicon-dark.svg", "(prefers-color-scheme: light)"),
+        ]
+    )
+    site = tmp_path / "site"
+    index = build.build(site, fixtures.documents(), fixtures.fixture_trust())
+    for href, _media in icons:
+        assert (site / href).is_file(), href
+        assert href in index["brand_assets"], href
 
 
 def test_index_carries_the_strict_csp():

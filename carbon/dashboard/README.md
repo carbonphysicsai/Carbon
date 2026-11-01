@@ -151,6 +151,7 @@ is fetched only when `index.json` says `network: true`.
 | `data/v2/<slug>.json` | The same board as `carbon.dashboard.board.v2` (`board_v2.py`, DASHBOARD-02 S1): king, target to beat, eligible leaderboard, history, rounds, gates and phase |
 | `showcase/index.json`, `showcase/*.json` | Replays of EV4's public decision: the released incumbent's panel, when the feed carries one, and the synthetic controls |
 | `index.html`, `*.js`, `style.css`, `fonts/`, `brand/` | The static app. No third-party script, no CDN, no cookies |
+| `brand/favicon-*.svg`, `brand/favicon-*-32.png` | The Carbon favicons from `carbon/dashboard/brand/` (owner Drive originals, digests pinned in `build.FAVICONS`): dark mark for a light browser theme, light mark for a dark one |
 
 ## Hosting: the `carbon-dashboard` Worker
 
