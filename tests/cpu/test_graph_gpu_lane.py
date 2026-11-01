@@ -432,6 +432,7 @@ def _repeat_provider(ledger=None):
         graph_gpu_ops=frozenset({"tanh"}),
         ledger=ledger or _Ledger(),
         owner="miner",
+        _seed_for=lambda _task_value: 0,  # the official seed: a stand-in has no derived seed table
         discovery=SimpleNamespace(
             _material={
                 "construction_limits_document": {

@@ -532,7 +532,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
             self._derived_owners.pop(task_value, None)
 
     def owner(self, submission_id):
-        derived = self._derived_owners.get(submission_id)
+        # (an adapter built without __init__, as several tests do, holds no derived task)
+        derived = getattr(self, "_derived_owners", {}).get(submission_id)
         if derived is not None:
             return derived
         owner = self.ledger.owned_outcome(self.contract_digest, submission_id)
