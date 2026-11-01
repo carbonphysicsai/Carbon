@@ -15,8 +15,9 @@ PROBE SET (`PROBE_SCHEMA`, one closed custody document per version, assembled by
    "cases": [{"inputs": {name: value}, "truth": {output: value}, "class", "class_rule", "region_class", "source"}]}
   ``class`` is the S4a region class (in_train, inner_band, side_*, outer_shell, regime:*, neighbour task, ...), ``class_rule`` the
   rule that assigned it, ``region_class`` pool_grader.region_class's value for the case (in_train | extended_shell | regime:*),
-  checked against the class (Validator 11-01: inner_band / in_train -> in_train; outer_shell / side_* -> extended_shell; regime:x
-  -> regime:x); a contradiction STOPS. ``truth`` holds the derived decision outputs (the reference's L0 truths).
+  checked against the class by `region_agrees` (Validator 11-01, corrected): a case labelled in_train must have region class
+  in_train, and every other label (regime:inner_band, regime:side_*, extended_shell and the legacy names) a region class other
+  than in_train; a contradiction STOPS. ``truth`` holds the derived decision outputs (the reference's L0 truths).
 
 CONFIG (every key required):
   probe_set, kernel / operator: {"predict_record", "catalog_id", "fit": "tuned" | "default"}, koth_rebuild_noise,
