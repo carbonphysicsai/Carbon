@@ -72,21 +72,52 @@ PINNED = {
 }
 
 
+# The (a2) deck rev (owner "Approve" 11-01): the fillet band tied to the element size. These are its gmsh programs for the
+# same cases; the ccx decks are unchanged (PINNED's deck_* still hold).
+PINNED_A2_GMSH = {
+    "gmsh_base": "ed6e9ee4798c5276703daa9af709889d3dd504aab570408a5174d68d260b8ef5",
+    "gmsh_norelief": "4d242c626ce56db97e6db79daea487a39c009b77e8eda6454ea21dbd8a3e632b",
+    "gmsh_offset_angle": "46b3de01610e1cd939a9c7b9babf03711eb78f954ef7d32abd11a5dc17c5400b",
+}
+#: The two band lines before (a2) and, at h 3.0 / fillet_h 0.5, after it.
+BAND_BEFORE = (
+    'field.setNumber(2, "DistMin", rf)\n' 'field.setNumber(2, "DistMax", 4 * rf)'
+)
+BAND_A2 = (
+    'field.setNumber(2, "DistMin", 2 * 0.5)\n'
+    'field.setNumber(2, "DistMax", 2 * 0.5 + 3 * 3.0)'
+)
+CASES = {
+    "base": CASE,
+    "norelief": {**CASE, "relief_length_mm": 0.0},
+    "offset_angle": {**CASE, "load_offset_frac": 0.2, "load_angle_deg": 20.0},
+}
+
+
 def _sha(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
 def test_a_case_without_control_leaves_every_existing_output_byte_identical():
-    cases = {
-        "base": CASE,
-        "norelief": {**CASE, "relief_length_mm": 0.0},
-        "offset_angle": {**CASE, "load_offset_frac": 0.2, "load_angle_deg": 20.0},
-    }
     got = {}
-    for name, case in cases.items():
+    for name, case in CASES.items():
         got["gmsh_" + name] = _sha(v2.gmsh_script_v2(case, 3.0, 0.5))
         got["deck_" + name] = _sha(v2.deck_text(case, META, MAT))
-    assert got == PINNED
+    assert got == {**PINNED, **PINNED_A2_GMSH}
+
+
+def test_the_a2_band_is_the_only_change_to_the_gmsh_program():
+    # undo exactly the two band lines and the program is byte for byte the one pinned before the control hook and before (a2)
+    for name, case in CASES.items():
+        text = v2.gmsh_script_v2(case, 3.0, 0.5)
+        assert text.count(BAND_A2) == 1, name
+        assert _sha(text.replace(BAND_A2, BAND_BEFORE)) == PINNED["gmsh_" + name], name
+    assert (v2.BAND_FINE_ELEMENTS, v2.BAND_GRADE_ELEMENTS) == (2, 3)
+    # the band follows the element sizes of the rung, never the fillet radius
+    finer = v2.gmsh_script_v2({**CASE, "fillet_radius_mm": 3.0}, 1.7, 0.25)
+    assert 'field.setNumber(2, "DistMin", 2 * 0.25)' in finer
+    assert 'field.setNumber(2, "DistMax", 2 * 0.25 + 3 * 1.7)' in finer
+    assert "4 * rf" not in finer
 
 
 def test_the_control_case_validation_refuses_what_it_does_not_register():

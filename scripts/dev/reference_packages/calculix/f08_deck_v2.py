@@ -4,7 +4,8 @@ A NEW file beside the pinned 1.7 deck (`f08_deck.py`, never edited). Working cho
 peak von Mises stress at the rib-root fillet, a local NOTCH response, against the alloy's yield limit. Added to 1.7:
 
 - a rib-root fillet (`fillet_radius_mm`) on the four rib/plate junction lines, with local mesh refinement
-  (`fillet_h_mm`, the refinement rung), and a FILLET element set for the stress output;
+  (`fillet_h_mm`, the refinement rung) in a band tied to the ELEMENT size (`BAND_FINE_ELEMENTS`, `BAND_GRADE_ELEMENTS`),
+  and a FILLET element set for the stress output;
 - `alloy` (a categorical input: its E, nu, rho and yield come from a registered table), `load_angle_deg` (the load
   direction, rotated about the x axis from +z toward +y; the resultant stays 1 N), `load_offset_frac` (the pad centre's y
   offset on the free edge) and `damping_ratio` (a condition, one steady-state sweep instead of 1.7's three bands);
@@ -138,6 +139,15 @@ STRESS_FIXED = {
     "primary": "worst_band_dynamic_von_mises",
     "constraint": "static_peak_von_mises",
 }
+
+
+#: The fillet refinement band (option a2, the owner's "Approve" 11-01 via the Lead; Validator's F08 2.0 SPOOLES ruling). Mesh-field
+#: values the engineer picks, not owner values. Elements within BAND_FINE_ELEMENTS x fillet_h of the fillet faces take fillet_h; the
+#: size then grades to h over BAND_GRADE_ELEMENTS x h. The band used to scale with the RADIUS (DistMin rf, DistMax 4 rf), so its
+#: fine volume grew ~rf^2 / fillet_h^3 and crashed SPOOLES on large-radius fine rungs; tied to the element size it does not. The
+#: fillet SURFACE keeps fillet_h, so the fillet-stress rungs (0.5 / 0.25 mm) stay like-for-like with the plan.
+BAND_FINE_ELEMENTS = 2
+BAND_GRADE_ELEMENTS = 3
 
 
 class Refused(ValueError):
@@ -340,7 +350,8 @@ fillet_faces = [tg for d, tg in gmsh.model.getEntities(2) if gmsh.model.getType(
 
 def gmsh_script_v2(case, h_mm, fillet_h_mm):
     """The Gmsh program for one case: 1.7's body, the fillet on the four rib junction lines, a refinement field around
-    the fillet faces, the pad at ``load_offset_frac`` and a FILLET element set. Returned as text; it runs in MESH_IMAGE.
+    the fillet faces (a band of `BAND_FINE_ELEMENTS` fine elements, graded to h over `BAND_GRADE_ELEMENTS` coarse ones), the
+    pad at ``load_offset_frac`` and a FILLET element set. Returned as text; it runs in MESH_IMAGE.
 
     A case with the optional ``control`` key is a code-verification CONTROL case (see `CONTROL_KINDS`): the same program
     with the rib/fillet, load and observation pieces swapped. A case without the key gets exactly the text it always got
@@ -402,8 +413,8 @@ field.add("Threshold", 2)
 field.setNumber(2, "InField", 1)
 field.setNumber(2, "SizeMin", {fillet_h_mm})
 field.setNumber(2, "SizeMax", {h_mm})
-field.setNumber(2, "DistMin", rf)
-field.setNumber(2, "DistMax", 4 * rf)
+field.setNumber(2, "DistMin", {BAND_FINE_ELEMENTS} * {fillet_h_mm})
+field.setNumber(2, "DistMax", {BAND_FINE_ELEMENTS} * {fillet_h_mm} + {BAND_GRADE_ELEMENTS} * {h_mm})
 field.setAsBackgroundMesh(2)
 vols = [tg for d, tg in gmsh.model.getEntities(3)]
 cad_volume = sum(occ.getMass(3, v) for v in vols)
