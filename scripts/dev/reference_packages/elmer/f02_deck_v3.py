@@ -12,7 +12,12 @@ POOL_PAYLOAD_RULINGS rule 12, SUMS 194d7371...) plus, per F02_V3_BUILD_SPEC_2026
 - `tim_thickness_mm` as an input (0.2 mm reproduces v2's mesh exactly);
 - `observe_v3`: time above a threshold, recovery, the second-pulse peak (the threshold is a parameter with no default),
   and the 0.5 s sample selector by step index;
-- an import that works at any install depth (v2 failed at less than five levels).
+- an import that works at any install depth (v2 failed at less than five levels);
+- an optional temperature-dependent LEAKAGE heat source in the die (OWNER choice A, F02 3.0): a volumetric ``Heat Source``
+  (Elmer, W/kg) that is a function of the local temperature, read from a digest-pinned coefficient file, present whenever the
+  die is powered, inside the same nonlinear iteration as k(T). With leakage OFF (the default) the deck is byte-identical to
+  the receipted one. A run that fails to converge with leakage on is REFERENCE_INVALID ``thermal_runaway``; a solution past
+  the coefficient range is REFERENCE_INVALID ``out_of_property_range``; neither ever yields a number.
 
 Provenance: built on the deck v2 payload (codex-queue/reports/F02_DECK_GATE_20261026/f02_deck_v2.py, sha256 bb48111408d9...,
 SUMS 194d7371bcad...; POOL_PAYLOAD_RULINGS rule 12, the two-deck gate NO_IMPACT) with the sample-selector and parents[4] fixes added.
@@ -513,6 +518,173 @@ def integral(value, t_from, t_to):
     return sign * total
 
 
+# --- leakage (OWNER choice A) --------------------------------------------------------
+
+LEAKAGE_SCHEMA = "carbon.f02.leakage-coefficients.v1"
+LEAKAGE_TEST_ONLY = "TEST_ONLY"
+LEAKAGE_FORMS = ("constant", "exponential", "table")
+#: The grid (K) a constant or exponential law is sampled on for Elmer's piecewise-linear ``Variable Temperature`` table.
+LEAKAGE_GRID_K = 1.0
+
+
+def _finite(value):
+    return (
+        type(value) in (int, float)
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def load_leakage(path, *, expect_sha256=None, test_mode=False):
+    """The leakage law of a digest-pinned coefficient file (``carbon.f02.leakage-coefficients.v1``), or a refusal.
+
+    The file is ``{"schema", "decision", "source", "form", "range_k": [lo, hi], ...}`` with ``form``
+
+    - ``constant``    ``q_w_per_m3``: a temperature-independent volumetric power density (the lumped control's law);
+    - ``exponential`` ``q_ref_w_per_m3``, ``t_ref_k``, ``beta_per_k``: q(T) = q_ref exp(beta (T - t_ref));
+    - ``table``       ``points``: ``[[T_K, q_w_per_m3], ...]`` ascending in T (``range_k`` is then the table's own span).
+
+    ``decision`` is ``TEST_ONLY`` (clearly synthetic: only ``test_mode`` may use it, and every output is labelled) or the owner
+    decision that signs the coefficients, in which case the caller MUST pass the pinned ``expect_sha256`` (the file's digest):
+    a changed file is refused. No coefficient is invented here.
+    """
+    raw = Path(path).read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    if expect_sha256 is not None and digest != expect_sha256:
+        raise DeckRefused("leakage_file_digest_differs")
+    try:
+        doc = json.loads(raw)
+    except ValueError:
+        raise DeckRefused("leakage_file_not_json") from None
+    if type(doc) is not dict or doc.get("schema") != LEAKAGE_SCHEMA:
+        raise DeckRefused("leakage_schema")
+    decision, form = doc.get("decision"), doc.get("form")
+    if type(decision) is not str or not decision or type(doc.get("source")) is not str:
+        raise DeckRefused("leakage_decision_and_source_required")
+    test = decision == LEAKAGE_TEST_ONLY
+    if test and not test_mode:
+        raise DeckRefused("leakage_test_coefficients_refuse_production")
+    if not test and expect_sha256 is None:
+        raise DeckRefused("leakage_signed_coefficients_need_a_pinned_digest")
+    if form not in LEAKAGE_FORMS:
+        raise DeckRefused("leakage_form")
+    keys = {
+        "constant": {"q_w_per_m3"},
+        "exponential": {"q_ref_w_per_m3", "t_ref_k", "beta_per_k"},
+        "table": {"points"},
+    }[form]
+    if set(doc) != {"schema", "decision", "source", "form", "range_k"} | keys:
+        raise DeckRefused("leakage_fields")
+    if form == "table":
+        points = doc["points"]
+        if (
+            type(points) is not list
+            or len(points) < 2
+            or any(type(p) is not list or len(p) != 2 for p in points)
+            or any(not _finite(x) for p in points for x in p)
+            or any(b[0] <= a[0] for a, b in itertools.pairwise(points))
+            or any(p[1] < 0 for p in points)
+        ):
+            raise DeckRefused("leakage_table_invalid")
+        law = {"points": [(float(t), float(q)) for t, q in points]}
+        low, high = law["points"][0][0], law["points"][-1][0]
+        if doc["range_k"] != [low, high]:
+            raise DeckRefused("leakage_range_is_the_tables_span")
+    else:
+        if any(not _finite(doc[k]) for k in keys) or (
+            form == "constant" and doc["q_w_per_m3"] < 0
+        ):
+            raise DeckRefused("leakage_coefficients_invalid")
+        if form == "exponential" and not (
+            doc["q_ref_w_per_m3"] >= 0 and doc["t_ref_k"] > 0
+        ):
+            raise DeckRefused("leakage_coefficients_invalid")
+        law = {k: float(doc[k]) for k in sorted(keys)}
+        range_k = doc["range_k"]
+        if (
+            type(range_k) is not list
+            or len(range_k) != 2
+            or any(not _finite(x) for x in range_k)
+            or not 0 < range_k[0] < range_k[1]
+        ):
+            raise DeckRefused("leakage_range_invalid")
+        low, high = float(range_k[0]), float(range_k[1])
+    return {
+        "form": form,
+        "law": law,
+        "range_k": (low, high),
+        "decision": decision,
+        "label": LEAKAGE_TEST_ONLY if test else "REGISTERED",
+        "source": doc["source"],
+        "sha256": "sha256:" + digest,
+    }
+
+
+def leakage_density(leak, temperature_k):
+    """The volumetric leakage power density q(T) in W/m^3 (exact; refuses a temperature outside the law's range)."""
+    low, high = leak["range_k"]
+    if not low <= temperature_k <= high:
+        raise DeckRefused("out_of_property_range")
+    law = leak["law"]
+    if leak["form"] == "constant":
+        return law["q_w_per_m3"]
+    if leak["form"] == "exponential":
+        return law["q_ref_w_per_m3"] * math.exp(
+            law["beta_per_k"] * (temperature_k - law["t_ref_k"])
+        )
+    return interpolate(law["points"], temperature_k)
+
+
+def leakage_table_w_per_kg(leak, rho):
+    """Elmer's ``Heat Source`` is per unit mass (it is multiplied by the density): the ``[(T_K, q / rho), ...]`` table, the
+    table form's own knots, else the law sampled every `LEAKAGE_GRID_K` over its range (a constant is two knots).
+    """
+    low, high = leak["range_k"]
+    if leak["form"] == "table":
+        knots = [t for t, _ in leak["law"]["points"]]
+    elif leak["form"] == "constant":
+        knots = [low, high]
+    else:
+        count = math.ceil((high - low) / LEAKAGE_GRID_K)
+        knots = [low + i * (high - low) / count for i in range(count + 1)]
+    return [(t, leakage_density(leak, t) / rho) for t in knots]
+
+
+def die_volume_m3(tim_mm=TIM_MM_DEFAULT):
+    side = 2 * LAYERS["die"][0] * MM
+    return side * side * LAYERS["die"][1] * MM
+
+
+def lumped_control(case_dir):
+    """The closed-form check of a STEADY, constant-coefficient leakage deck: the heat in is the base power plus q V_die, and
+    the Robin boundary must carry exactly that out (h x the underside integral of T - T_coolant), so the mean underside
+    temperature is T_coolant + (BASE_W + q V_die) / (h A). Reads the last scalars row; returns the figures and the relative
+    residual. Applies only to ``steady`` decks with ``form == "constant"``."""
+    meta = json.loads(Path(case_dir, "deck.json").read_text())
+    leak = meta.get("leakage")
+    if not meta.get("steady") or leak is None or leak["form"] != "constant":
+        raise DeckRefused("lumped_control_needs_a_steady_constant_leakage_deck")
+    cols, rows = read_scalars(case_dir)
+    i_bottom = next(
+        i
+        for i, c in enumerate(cols)
+        if c.startswith("boundary int") and c.endswith("bc 1")
+    )
+    h, tc = meta["case"]["h_w_m2_k"], meta["case"]["coolant_c"] + 273.15
+    area = (2 * LAYERS["copper"][0] * MM) ** 2
+    expected = BASE_W + leak["law"]["q_w_per_m3"] * die_volume_m3(
+        meta.get("tim_thickness_mm", TIM_MM_DEFAULT)
+    )
+    carried = h * (rows[-1][i_bottom] - tc * area)
+    return {
+        "heat_in_w": expected,
+        "robin_out_w": carried,
+        "residual_rel": (expected - carried) / expected,
+        "mean_underside_k": rows[-1][i_bottom] / area,
+        "expected_mean_underside_k": tc + expected / (h * area),
+    }
+
+
 # --- solver input ----------------------------------------------------------------
 
 
@@ -556,7 +728,10 @@ def sif(
     label="CONSTANT",
     tim_mm=TIM_MM_DEFAULT,
     tables_source=None,
+    leakage=None,
 ):
+    if leakage is not None and (slab or not source):
+        raise DeckRefused("leakage_needs_the_powered_die")
     sched = schedule(case) if source else [(0, 0.0), (HORIZON_S, 0.0)]
     if steady:
         p = BASE_W if source else 0.0
@@ -579,12 +754,23 @@ def sif(
         points = f"{-PATCH_X * MM!r} 0.0 {z!r} {PATCH_X * MM!r} 0.0 {z!r}"
         npoints, bodies = 2, (1, 2, 3)
     bodies_text = "".join(
-        f"Body {b}\n  Equation = 1\n  Material = {b}\n  Initial Condition = 1\nEnd\n"
+        f"Body {b}\n  Equation = 1\n  Material = {b}\n  Initial Condition = 1\n"
+        + ("  Body Force = 1\n" if leakage is not None and b == 3 else "")
+        + "End\n"
         for b in bodies
     )
     if materials is None:
         materials, label = resolve_materials()
-    nonlinear = any(is_table(materials[n][p]) for n in NAMES for p in ("k", "cp"))
+    nonlinear = leakage is not None or any(
+        is_table(materials[n][p]) for n in NAMES for p in ("k", "cp")
+    )
+    force_text = (
+        "Body Force 1\n  Heat Source = Variable Temperature\n    Real\n"
+        + _table(leakage_table_w_per_kg(leakage, materials["die"]["rho"]))
+        + "\n    End\nEnd\n"
+        if leakage is not None
+        else ""
+    )
     mats = "".join(
         f'Material {i}\n  Name = "{n}"\n'
         + _property_lines("Heat Conductivity", materials[n]["k"])
@@ -621,6 +807,11 @@ def sif(
     )
     if tables_source is not None:
         header += f"! tables: {tables_source['decision']} {tables_source['sha256']} ({tables_source['file']})\n"
+    if leakage is not None:
+        header += (
+            f"! leakage: {leakage['label']} {leakage['form']} {leakage['sha256']}"
+            f" range {leakage['range_k'][0]!r}..{leakage['range_k'][1]!r} K, inside the nonlinear iteration\n"
+        )
     return f"""{header}Header
   Mesh DB "." "mesh"
 End
@@ -633,7 +824,7 @@ End
 {bodies_text}Initial Condition 1
   Temperature = {case["initial_c"] + 273.15!r}
 End
-{mats}Equation 1
+{mats}{force_text}Equation 1
   Active Solvers(1) = 1
 End
 Solver 1
@@ -706,6 +897,17 @@ def property_range_k(materials):
     return (max(firsts), min(lasts)) if firsts else None
 
 
+def combined_range_k(materials, leakage=None):
+    """The window a solution must stay in: the property tables' (`property_range_k`) intersected with the leakage law's."""
+    window = property_range_k(materials)
+    if leakage is None:
+        return window
+    low, high = leakage["range_k"]
+    return (
+        (low, high) if window is None else (max(window[0], low), min(window[1], high))
+    )
+
+
 def extremes(value, low_k, high_k):
     """``(min, max)`` of a property over [low_k, high_k] (a constant, or the piecewise-linear table with end clamping)."""
     if not is_table(value):
@@ -755,8 +957,10 @@ def write_case(
     tables=None,
     production=False,
     test_mode=False,
+    leakage=None,
 ):
-    """Write the deck. ``tables`` (per layer ``{"k", "cp"}``: a constant or a ``[(T_K, value), ...]`` table, or
+    """Write the deck. ``leakage`` (a `load_leakage` result, or None for none) adds the die's temperature-dependent heat
+    source whenever the die is powered; with None the deck is byte-identical to the one without the parameter. ``tables`` (per layer ``{"k", "cp"}``: a constant or a ``[(T_K, value), ...]`` table, or
     HUMAN_INPUT) turns the nonlinear solve on; without it the deck is v2's constants. ``production=True`` with a
     HUMAN_INPUT table raises `DeckRefused`; ``test_mode`` marks the deck and every output "tables": "TEST_ONLY".
     """
@@ -766,6 +970,11 @@ def write_case(
         tables, production=production, test_mode=test_mode
     )
     tim_mm = check_tim_mm(case.get("tim_thickness_mm", TIM_MM_DEFAULT))
+    if leakage is not None:
+        if slab or not source:
+            raise DeckRefused("leakage_needs_the_powered_die")
+        if production and leakage["label"] == LEAKAGE_TEST_ONLY:
+            raise DeckRefused("production_deck_cannot_use_test_leakage")
     source_of_tables = (
         tables_source() if label == "PRODUCTION" and tables is None else None
     )
@@ -785,6 +994,7 @@ def write_case(
             label=label,
             tim_mm=tim_mm,
             tables_source=source_of_tables,
+            leakage=leakage,
         )
     )
     (out / "ELMERSOLVER_STARTINFO").write_text("case.sif\n1\n")
@@ -794,10 +1004,22 @@ def write_case(
             "linear_solver": "umfpack" if direct or steady else "cg-ilu0-1e-12",
             "tables": label, "materials": materials,
             "nonlinear": {"max_iterations": NONLINEAR_MAX_ITERATIONS, "tolerance": NONLINEAR_TOLERANCE}
-            if any(is_table(m[p]) for m in materials.values() for p in ("k", "cp")) else None,
-            "property_range_k": property_range_k(materials),
+            if leakage is not None or any(is_table(m[p]) for m in materials.values() for p in ("k", "cp")) else None,
+            "property_range_k": combined_range_k(materials, leakage),
             "tables_source": source_of_tables,
             "tim_thickness_mm": tim_mm}  # fmt: skip
+    if leakage is not None:
+        # the leakage law is recorded (never its coefficients' source file path); a TEST_ONLY law labels every output
+        meta["leakage"] = {
+            "form": leakage["form"],
+            "law": leakage["law"],
+            "range_k": list(leakage["range_k"]),
+            "decision": leakage["decision"],
+            "label": leakage["label"],
+            "sha256": leakage["sha256"],
+        }
+        if leakage["label"] == LEAKAGE_TEST_ONLY:
+            meta["tables"] = LEAKAGE_TEST_ONLY
     (out / "deck.json").write_text(json.dumps(meta, indent=1) + "\n")
     return meta
 
@@ -978,7 +1200,11 @@ def reference_status(case_dir, log_path=None):
     if bad:
         return {
             "status": "REFERENCE_INVALID",
-            "reason": "nonlinear_iteration_limit_reached",
+            "reason": (
+                "thermal_runaway"
+                if meta.get("leakage") is not None
+                else "nonlinear_iteration_limit_reached"
+            ),
             "steps_not_converged": len(bad),
             "max_iterations_seen": most,
         }
@@ -1008,6 +1234,11 @@ def observe_v3(case_dir, *, threshold_c, baseline_top_c=None, log_path=None):
     meta = json.loads(Path(case_dir, "deck.json").read_text())
     status = reference_status(case_dir, log_path)
     labelled = {"tables": meta.get("tables", "CONSTANT"), "reference": status}
+    if meta.get("leakage") is not None:
+        labelled["leakage"] = {
+            "label": meta["leakage"]["label"],
+            "sha256": meta["leakage"]["sha256"],
+        }
     if status["status"] != "OK":
         return {"status": "REFERENCE_INVALID", **labelled}
     cols, rows = read_scalars(case_dir)
