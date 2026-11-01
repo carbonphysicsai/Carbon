@@ -270,3 +270,95 @@ def test_cooling_1_6_is_byte_identical_modules_and_pack(scene):
 
 
 PINNED_16_PACK = "16ea3ed6ecafa926e848c27ab0fd8901a46821ba82e61098dbf9240028151203"
+
+
+# --- the calibration build ---------------------------------------------------------------------------------------------
+
+
+def _toy_grading(recorder, monkeypatch):
+    """Make the stand-in measure_pool grade two toy targets with the real grader, so the calibration sees real per-target e."""
+    from test_pool_grader import HONESTY, OPTIMIZER, oracle, toy_target
+
+    from carbon.scoring import pool_grader
+
+    specs = [toy_target(f"t{i}", seed=i) for i in range(2)]
+    truth = oracle(specs)
+
+    def predict(conditions, designs):
+        return [
+            {k: v + 3 * 0.01 for k, v in row.items()}
+            for row in truth(conditions, designs)
+        ]
+
+    inner = recorder.__call__
+
+    def grading(**kwargs):
+        pool_grader.grade_set(specs, predict, OPTIMIZER, HONESTY)
+        return inner(**kwargs)
+
+    monkeypatch.setattr(pool_exam, "measure_pool", grading)
+
+
+def test_the_calibration_build_reports_only_the_count_the_digest_and_the_median(
+    scene, monkeypatch
+):
+    adapter, kwargs, recorder, _unused = scene
+    _toy_grading(recorder, monkeypatch)
+    adapter.calibrating = True
+    adapter.applied_pack(**kwargs)
+    report = adapter.calibration
+    assert set(report) == {
+        "schema",
+        "targets",
+        "e_list_sha256",
+        "median_e",
+        "strict_s_h_proposal",
+    }
+    assert report["targets"] == 2 and report["median_e"] == pytest.approx(3.0, rel=1e-6)
+    assert report["strict_s_h_proposal"] == pytest.approx(0.25 * report["median_e"])
+    assert len(report["e_list_sha256"]) == 64
+    # a build that is not calibrating records nothing
+    other = seventeen.sealed_adapter("1.7")
+    other.bank = adapter.bank
+    other.applied_pack(**kwargs)
+    assert other.calibration is None
+
+
+def test_the_error_recorder_restores_the_grader_and_the_report_refuses_unusable_errors():
+    from carbon.scoring import pool_grader
+
+    real = pool_grader.grade_set
+    with seventeen._recording_target_errors([]):
+        assert pool_grader.grade_set is not real
+    assert pool_grader.grade_set is real
+    for bad in ([], [float("inf")], [float("nan")], [1]):
+        with pytest.raises(cdm.CoolingMeasurementRefused, match="calibration_errors"):
+            seventeen.calibration_report(bad)
+    assert seventeen.calibration_report([2.0, 4.0, 3.0])["median_e"] == 3.0
+
+
+def test_an_unregistered_s_h_reads_as_the_placeholder_only_while_calibrating(tmp_path):
+    document = json.loads(pool_version.CONSTANTS.read_bytes())
+    entry = json.loads(json.dumps(document["versions"]["chip-cold-plate 1.6"]))
+    entry["honesty"]["scale"] = pool_version.HUMAN_INPUT
+    path = tmp_path / "pool_constants.json"
+    path.write_text(
+        json.dumps({**document, "versions": {"chip-cold-plate 1.7": entry}})
+    )
+    with pytest.raises(pool_version.PoolConstantsNotRegistered):
+        pool_version.registered_policies("chip-cold-plate", "1.7", path=path)
+    with seventeen._calibration_policies():
+        policies = pool_version.registered_policies("chip-cold-plate", "1.7", path=path)
+        assert policies.honesty.scale == seventeen.CALIBRATION_PLACEHOLDER_S_H
+    with pytest.raises(pool_version.PoolConstantsNotRegistered):
+        pool_version.registered_policies("chip-cold-plate", "1.7", path=path)
+    # any OTHER unregistered constant still refuses, calibrating or not
+    entry["optimizer"]["budget"] = pool_version.HUMAN_INPUT
+    path.write_text(
+        json.dumps({**document, "versions": {"chip-cold-plate 1.7": entry}})
+    )
+    with (
+        seventeen._calibration_policies(),
+        pytest.raises(pool_version.PoolConstantsNotRegistered),
+    ):
+        pool_version.registered_policies("chip-cold-plate", "1.7", path=path)

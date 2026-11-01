@@ -19,7 +19,10 @@ balanced regions, U per region) come from the measurement and are not set here.
 
 from __future__ import annotations
 
+import contextlib
+import math
 import sys
+from pathlib import Path
 
 from carbon.scoring import cooling_dual_pack as _cooling
 from carbon.scoring import cooling_encoded_dual_pack as encoded
@@ -99,6 +102,98 @@ def _pool_version():
     return pool_version
 
 
+#: The honesty scale used ONLY while calibrating: the per-target error e does not depend on s_h, so any positive value gives
+#: the same e list. It never reaches a pack.
+CALIBRATION_PLACEHOLDER_S_H = 1.0
+
+
+@contextlib.contextmanager
+def _recording_target_errors(errors):
+    """Append every graded target's error e (in grading order) to ``errors`` while it runs; restored on exit."""
+    from carbon.scoring import pool_grader
+
+    real = pool_grader.grade_set
+
+    def grade_set(specs, predict, optimizer, honesty):
+        grade = real(specs, predict, optimizer, honesty)
+        errors.extend(t.e for t in grade.targets)
+        return grade
+
+    pool_grader.grade_set = grade_set
+    try:
+        yield
+    finally:
+        pool_grader.grade_set = real
+
+
+@contextlib.contextmanager
+def _calibration_policies():
+    """`registered_policies` of this version with an unregistered honesty scale read as the placeholder: the calibration
+    build runs BEFORE s_h exists (it is derived from this very measurement). Every other constant stays the version's own
+    and must be registered."""
+    import json
+
+    pv = _pool_version()
+    real = pv.registered_policies
+
+    def policies(challenge_id, version, *, path=pv.CONSTANTS):
+        try:
+            return real(challenge_id, version, path=path)
+        except pv.PoolConstantsNotRegistered:
+            document = json.loads(Path(path).read_bytes())
+            entry = document["versions"][f"{challenge_id} {version}"]
+            scale = entry["honesty"]["scale"]
+            if scale != pv.HUMAN_INPUT:
+                raise
+            patched = {
+                **document,
+                "versions": {
+                    **document["versions"],
+                    f"{challenge_id} {version}": {
+                        **entry,
+                        "honesty": {
+                            **entry["honesty"],
+                            "scale": CALIBRATION_PLACEHOLDER_S_H,
+                        },
+                    },
+                },
+            }
+            import tempfile
+
+            with tempfile.TemporaryDirectory() as directory:
+                alias = Path(directory) / "pool_constants.json"
+                alias.write_text(json.dumps(patched))
+                return real(challenge_id, version, path=alias)
+
+    pv.registered_policies = policies
+    try:
+        yield
+    finally:
+        pv.registered_policies = real
+
+
+def calibration_report(errors):
+    """The ONLY thing a calibration build may output: how many targets, the digest of their error list and its median, and the
+    proposed strict honesty scale (0.25 x the median, the new-version rule). Per-target values never leave custody.
+    """
+    import hashlib
+    import json
+    import statistics
+
+    if not errors or not all(isinstance(e, float) and math.isfinite(e) for e in errors):
+        raise _cooling.Refused("cooling_calibration_errors_unusable")
+    median = statistics.median(errors)
+    return {
+        "schema": "carbon.cooling.calibration-report.v1",
+        "targets": len(errors),
+        "e_list_sha256": hashlib.sha256(
+            json.dumps([repr(float(e)) for e in errors]).encode()
+        ).hexdigest(),
+        "median_e": median,
+        "strict_s_h_proposal": 0.25 * median,
+    }
+
+
 class InPackBaselineVariant(_pool_version().PoolVariant):
     """Cooling 1.7's sealed adapter: a `PoolVariant` whose pack takes its leg minimums from the in-pack baseline graded the
     way miners are. ``bank`` (the carried bank, holding the pool material) is set by `write_sealed_pack`; only the pack's
@@ -107,6 +202,10 @@ class InPackBaselineVariant(_pool_version().PoolVariant):
 
     IN_PACK_BASELINE = True
     bank = None
+    #: True for the calibration build: s_h is not registered yet, so the baseline's per-target e is read with a placeholder
+    #: scale (e does not depend on it) and `calibration` receives the report.
+    calibrating = False
+    calibration = None
 
     def applied_pack(self, *, bank_rows, **kwargs):
         from carbon.scoring import dual_score, pool_exam
@@ -120,18 +219,28 @@ class InPackBaselineVariant(_pool_version().PoolVariant):
             bank_rows=bank_rows, names=names, sample_count=pool_exam.SPEED_SAMPLE
         )
         # The SAME function and rows as a miner's grade: PoolVariant.measure -> pool_exam.measure_pool.
-        measured = self.measure(
-            bank_rows=bank_rows,
-            outputs=outputs,
-            repeats=[outputs, outputs],
-            definition={**kwargs["definition"], pv.POOL_KEY: self.bank[pv.POOL_KEY]},
-            limits=kwargs["limits"],
-            objective=kwargs["objective"],
-            train_raw=kwargs["train_raw"],
-            names=names,
-            speed_call_seconds=call_seconds,
-            speed_outputs_match=True,
-        )
+        errors = []
+        with (
+            _recording_target_errors(errors),
+            _calibration_policies() if self.calibrating else contextlib.nullcontext(),
+        ):
+            measured = self.measure(
+                bank_rows=bank_rows,
+                outputs=outputs,
+                repeats=[outputs, outputs],
+                definition={
+                    **kwargs["definition"],
+                    pv.POOL_KEY: self.bank[pv.POOL_KEY],
+                },
+                limits=kwargs["limits"],
+                objective=kwargs["objective"],
+                train_raw=kwargs["train_raw"],
+                names=names,
+                speed_call_seconds=call_seconds,
+                speed_outputs_match=True,
+            )
+        if self.calibrating:
+            self.calibration = calibration_report(errors)
         gates = applied["hard_gates"]
         failed = sorted(k for k in gates if not measured["gates"][k])
         if failed:
@@ -206,10 +315,25 @@ def sealed_adapter(version):
 
 
 def write_sealed_pack(root, bank, *, version=VERSION, **platform):
+    return _write(root, bank, version=version, adapter=None, **platform)
+
+
+def calibrate(root, bank, *, version=VERSION, **platform):
+    """The CALIBRATION build (custody): writes the minimum-free calibration pack of ``root`` and returns ONLY the report
+    (`calibration_report`): target count, the digest of the baseline's per-target e list, its median, and the strict s_h
+    proposal 0.25 x median. The version's s_h is then registered with that measurement's digest, and the final build
+    regrades the baseline at that s_h, whose legs become the minimums."""
+    chosen = sealed_adapter(version)
+    chosen.calibrating = True
+    _write(root, bank, version=version, adapter=chosen, calibration=True, **platform)
+    return chosen.calibration
+
+
+def _write(root, bank, *, version, adapter, **platform):
     from carbon.challenge_kit import cooling_sealed_pack
     from carbon.scoring import sealed_pack_writer
 
-    chosen = sealed_adapter(version)
+    chosen = sealed_adapter(version) if adapter is None else adapter
     if chosen is not None:
         chosen.bank = bank  # the pool material the in-pack baseline is graded on
     return sealed_pack_writer.write(
