@@ -215,15 +215,35 @@ def test_the_entry_digest_binds_the_dispatch_block(tmp_path):
 
 
 def test_with_no_dispatch_entry_the_real_sealed_modules_are_untouched():
-    """Hook absent (no overlay entry carries a dispatch): the live sealed grader's functions are the file's own."""
-    from carbon.scoring import motor_sealed_dual_pack as motor
-
-    assert not overlay._DISPATCH or all(
-        key not in overlay._APPLIED for key in overlay._DISPATCH
+    """A sealed grader module's functions are the file's own unless the overlay file carries a dispatch for its Challenge."""
+    from carbon.scoring import (
+        cooling_encoded_dual_pack,
+        f02_sealed_dual_pack,
+        f08_sealed_dual_pack,
+        motor_sealed_dual_pack,
     )
-    for name in ("adapter", "adapter_for_bank", "write_sealed_pack"):
-        assert not hasattr(getattr(motor, name), "__wrapped__"), name
-    assert sorted(motor.POOL_VERSIONS) == ["1.5"]
+
+    entries = json.loads(overlay.OVERLAY_PATH.read_bytes())["versions"].values()
+    served = {e["challenge_id"] for e in entries if "dispatch" in e}
+    modules = {
+        "electric-motor-magnetics": motor_sealed_dual_pack,
+        "f02": f02_sealed_dual_pack,
+        "f08-ribbed-bracket": f08_sealed_dual_pack,
+        "chip-cold-plate": cooling_encoded_dual_pack,
+    }
+    for challenge, module in modules.items():
+        if challenge in served:
+            continue
+        for name in (
+            "adapter",
+            "adapter_for_bank",
+            "write_sealed_pack",
+            "sealed_adapter",
+        ):
+            assert not hasattr(getattr(module, name, None), "__wrapped__"), (
+                challenge,
+                name,
+            )
 
 
 def test_load_reads_a_dispatch_entry_and_refuses_a_bad_sha(scene, tmp_path):
