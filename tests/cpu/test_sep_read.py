@@ -42,6 +42,7 @@ def _probe_set(tmp_path, cases, **over):
         "schema": sep_read.PROBE_SCHEMA,
         "challenge": "electric-motor-magnetics",
         "version": "1.5",
+        "provisional": False,
         "input_names": NAMES,
         "u_record": {"id": "U-TEST", "sha256": "c" * 64, "u": {"y": 0.5}},
         "cases": cases,
@@ -423,6 +424,7 @@ def test_c1_is_a_clear_win_only_when_the_bootstrap_lower_bound_clears_margin_n(
         "c1_clear_win"
     ]
     assert result["computed"] and result["classes"] == ["outer_shell", "side_a"]
+    assert result["n_classes"] == 2
     assert result["statistic"] == pytest.approx(2 / 3)
     assert (
         result["lower95_two_sided"] == pytest.approx(2 / 3) and result["clear"] is True
@@ -468,3 +470,16 @@ def test_c1_bootstrap_is_deterministic_for_its_seed_and_resamples_within_class(
     assert (
         first["lower95_two_sided"] <= first["lower95_one_sided"] <= first["statistic"]
     )
+
+
+def test_a_provisional_probe_set_labels_the_whole_read(tmp_path, fakes):
+    cases = _six("outer_shell", "extended_shell", 1.0)
+    path = _config(tmp_path, cases, [[1.0]] * 6, [[1.0]] * 6)
+    config = json.loads(path.read_text())
+    document = json.loads(Path(config["probe_set"]).read_text())
+    assert sep_read.read(path)["provisional"] is False
+    Path(config["probe_set"]).write_text(json.dumps({**document, "provisional": True}))
+    assert sep_read.read(path)["provisional"] is True
+    Path(config["probe_set"]).write_text(json.dumps({**document, "provisional": "yes"}))
+    with pytest.raises(sep_read.SepRefused, match="probe_set_provisional"):
+        sep_read.read(path)

@@ -10,7 +10,7 @@ scored here on cases ALREADY solved outside TRAIN, per region class.
     python sep_read.py read CONFIG.json --out OUT.json
 
 PROBE SET (`PROBE_SCHEMA`, one closed custody document per version, assembled by DC / the TL; never leaves custody):
-  {"schema", "challenge", "version", "input_names": [...],
+  {"schema", "challenge", "version", "provisional": bool, "input_names": [...],
    "u_record": {"id", "sha256", "u": {output: U | {"relative": r}}},
    "cases": [{"inputs": {name: value}, "truth": {output: value}, "class", "class_rule", "region_class", "source"}]}
   ``class`` is the S4a region class (in_train, inner_band, side_*, outer_shell, regime:*, neighbour task, ...), ``class_rule`` the
@@ -129,10 +129,20 @@ def load_probe_set(path):
     _need(
         type(document) is dict
         and set(document)
-        == {"schema", "challenge", "version", "input_names", "u_record", "cases"}
+        == {
+            "schema",
+            "challenge",
+            "version",
+            "provisional",
+            "input_names",
+            "u_record",
+            "cases",
+        }
         and document["schema"] == PROBE_SCHEMA,
         "probe_set_shape",
     )
+    # PROVISIONAL: early probes from a region not yet signed (e.g. F08 2.0's UEDGE cases): the read is labelled so, end to end
+    _need(type(document["provisional"]) is bool, "probe_set_provisional")
     names = document["input_names"]
     _need(
         type(names) is list
@@ -446,6 +456,7 @@ def clear_win(document, predictions, scales, margin, seed):
     return {
         "computed": True,
         "classes": sorted(eligible),
+        "n_classes": len(eligible),
         "statistic": statistic,
         "lower95_two_sided": lower_two_sided,
         "lower95_one_sided": lower_one_sided,
@@ -586,6 +597,7 @@ def read(config_path):
     result = {
         "schema": SCHEMA,
         "status": "REPORT_FIELD_AGGREGATES_ONLY",
+        "provisional": document["provisional"],
         "challenge": document["challenge"],
         "version": document["version"],
         "contenders": records,
