@@ -404,9 +404,9 @@ def _scorer_tables():
     ):
         for version, entry in module.VERSIONS.items():
             sealed[(module.CHALLENGE, version)] = entry[0]
-    sealed[
-        (cooling_hidden.CHALLENGE_ID, cooling_hidden.CHALLENGE_VERSION)
-    ] = cooling_hidden.EVALUATION_VERSION
+    sealed[(cooling_hidden.CHALLENGE_ID, cooling_hidden.CHALLENGE_VERSION)] = (
+        cooling_hidden.EVALUATION_VERSION
+    )
     for version, value in cooling_dual_pack.SEALED_VERSIONS.items():
         sealed[(cooling_dual_pack.CHALLENGE, version)] = value
     for version in (
