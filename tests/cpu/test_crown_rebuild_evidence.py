@@ -689,3 +689,33 @@ def test_a_scientific_failure_is_not_retried_and_resolves_as_unstable(
     # one build per seed, none repeated, none regenerated
     assert len(host.states) == _rule(tmp_path).n_for(CHALLENGE)
     assert all(state is DirectTaskStateV3.SUCCEEDED for state in host.states.values())
+
+
+def test_generation_zero_is_exactly_the_pre_fix_task_id_so_in_flight_tasks_resume():
+    # The id a derived rebuild had BEFORE generations existed: the host owner's binding with the rebuild label and
+    # no rerun part. The fix must ask for that same id first, so a task retained before the upgrade is found again.
+    adapter = _adapter_for_request()
+    label = f"{ORIGIN}\0{5}\0{0}"
+    pre_fix = (
+        "lean-recipe-"
+        + hashlib.sha256(
+            (
+                HOST
+                + "\0"
+                + adapter.contract_digest
+                + "\0"
+                + _Recipe.digest
+                + "\0EVALUATION_PACK\0"
+                + "sha256:"
+                + "e" * 64
+                + "\0CROWN_REBUILD\0"
+                + label
+            ).encode()
+        ).hexdigest()
+    )
+    assert _key(adapter, HOST, rebuild=label) == pre_fix
+    assert (
+        _key(adapter, HOST, rebuild=label, rerun=0) == pre_fix
+    )  # what rebuild_at_seed now asks first
+    # a later generation is a different id, and only a failed task ever reaches it
+    assert _key(adapter, HOST, rebuild=label, rerun=1) != pre_fix
