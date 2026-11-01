@@ -25,6 +25,7 @@ GRID_KINDS = {
     ("chip-cold-plate", "1.4"): "cooling",
     ("chip-cold-plate", "1.5"): "cooling",
     ("chip-cold-plate", "1.6"): "cooling",
+    ("chip-cold-plate", "1.7"): "cooling",
 }
 
 

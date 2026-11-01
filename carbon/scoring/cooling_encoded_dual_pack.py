@@ -31,6 +31,7 @@ VERSIONS = {
 POOL_VERSIONS = {
     "1.5": ("cooling-pool-sealed-v1", "cooling-sealed-pool-set"),
     "1.6": ("cooling-pool-sealed-v2", "cooling-sealed-pool-set"),
+    "1.7": ("cooling-pool-sealed-v3", "cooling-sealed-pool-set"),
 }
 FILES = (*_cooling.FILES, "cooling_encoded_dual_pack.py")
 
@@ -110,6 +111,10 @@ def sealed_adapter(version):
         from carbon.scoring import cooling_hotspot_dual_pack
 
         return cooling_hotspot_dual_pack.sealed_adapter(version)
+    if version == "1.7":
+        from carbon.scoring import cooling_pool_baseline_dual_pack
+
+        return cooling_pool_baseline_dual_pack.sealed_adapter(version)
     if version not in VERSIONS:
         return None
     if version in POOL_VERSIONS:

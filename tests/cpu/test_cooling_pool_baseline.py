@@ -52,9 +52,21 @@ IMAGE = "sha256:" + "1" * 64
 
 # sha256 of each 1.6 module (CRLF read as LF), as of the commit that added 1.7: none of them is edited by it
 PINNED_16 = {
+    # these two carry only the 1.7 dispatch (a version tuple and one routing branch): their producer digests move at the 1.6
+    # retirement, with the old values kept for history in PRE_17_SHA
+    "cooling_dual_pack.py": "9e4eef3caeee8e34b9dcc691756492667ba34a4f2e197574c57c47e8d82b5002",
+    "cooling_encoded_dual_pack.py": "b5e87c3b1a89893ae8e58c103655ba2196e5c006ccd9a13d17261b37e8523fc4",
+    "cooling_hotspot_dual_pack.py": "bc8d8c9d78bbed58c8295e43177d9a71313f3815cf2cd7f4fa90c578b8153478",
+}
+
+
+SHARED_PINS = {
+    "sealed_batch_source.py": "438aae83e7d0231e1feeecec1e8c4248d23899164e722e1e01450228a862ec3f",
+    "physical_dual_pack.py": "92fdc8966118816a03d28258c72ad9b8e6b8a74ea0ed2bfa1636f198cfb48660",
+}
+PRE_17_SHA = {
     "cooling_dual_pack.py": "e64b9b9ff3cf97b6b9c885457cb82ee8554251acbeb231a91da0b405c8615a81",
     "cooling_encoded_dual_pack.py": "056f2837d6dc9b20fa45a0d7f1453f53b7d4132224f3a0f6564e06b69f62b8e0",
-    "cooling_hotspot_dual_pack.py": "bc8d8c9d78bbed58c8295e43177d9a71313f3815cf2cd7f4fa90c578b8153478",
 }
 
 
@@ -424,5 +436,51 @@ def test_cooling_1_7_is_routed_to_its_own_module_by_the_development_selector():
     from carbon.scoring import physical_adapters
 
     chosen = physical_adapters._static()["chip-cold-plate"]
-    assert chosen("1.7") is seventeen
+    # a dev-grid version: the sealed v2 grader of 1.7's module under its development evaluation
+    assert getattr(chosen("1.7"), "_module", chosen("1.7")) is seventeen
     assert chosen("1.6") is not seventeen
+
+
+def test_no_non_cooling_producer_identity_reads_a_file_this_version_changed():
+    """The 1.7 dispatch edits only Cooling's files: F02, F08, Motor, Battery (and every other producer) are byte-identical."""
+    from carbon.scoring import (
+        battery_dual_pack,
+        battery_sealed_dual_pack,
+        f02_dual_pack,
+        f02_sealed_dual_pack,
+        f08_dual_pack,
+        f08_sealed_dual_pack,
+        motor_dual_pack,
+        motor_sealed_dual_pack,
+    )
+
+    changed = {
+        "cooling_dual_pack.py",
+        "cooling_encoded_dual_pack.py",
+        "cooling_pool_baseline_dual_pack.py",
+        "physical_adapters.py",
+    }
+    for module in (
+        motor_dual_pack,
+        motor_sealed_dual_pack,
+        f02_dual_pack,
+        f02_sealed_dual_pack,
+        f08_dual_pack,
+        f08_sealed_dual_pack,
+        battery_dual_pack,
+        battery_sealed_dual_pack,
+    ):
+        files = set(getattr(module, "FILES", ())) | set(physical._SHARED_FILES)
+        assert not (files & changed), (module.__name__, files & changed)
+    # the shared files themselves are untouched (pinned: an edit would move every Challenge's digest)
+    assert _sha("sealed_batch_source.py") == SHARED_PINS["sealed_batch_source.py"]
+    assert _sha("physical_dual_pack.py") == SHARED_PINS["physical_dual_pack.py"]
+    assert (
+        PRE_17_SHA["cooling_dual_pack.py"] != PINNED_16["cooling_dual_pack.py"]
+    )  # the old values are kept for history
+    # the sealed path reaches 1.7 through cooling_dual_pack.sealed_adapter, with sealed_batch_source unedited
+    from carbon.scoring import cooling_dual_pack
+
+    chosen = cooling_dual_pack.sealed_adapter("1.7")
+    assert chosen._module is seventeen and chosen.POOL_GRADED
+    assert cooling_dual_pack.sealed_adapter("1.6")._module is hotspot

@@ -330,6 +330,25 @@ VERSIONS = dict(
             predecessor="1.5",
             rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
+        # Cooling 1.7: 1.6's material and construction, with the baseline's leg minimums graded the way miners are
+        # (COOLING_BASELINE_FAIRNESS_20261101): a new evaluation key, so no king carries over.
+        _v(
+            COOLING,
+            "1.7",
+            COOLING_TRAIN_ENCODED,
+            "v8",
+            False,
+            "cooling-normal-construction-development-8",
+            ("cooling-dual-development-grid-v3", "cooling-development-grid-8x6"),
+            "cooling-pool-sealed-v3",
+            "catalog",
+            catalog=True,
+            graph_adapter="v2",
+            output_encoding=COOLING_LAW_SAFE,
+            catalog_entries_from=("1.4", "1.3"),
+            predecessor="1.6",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
+        ),
         # --- F08 (Ribbed Bracket) -----------------------------------------
         _v(
             F08,

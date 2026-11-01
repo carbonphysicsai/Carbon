@@ -89,12 +89,14 @@ KITS = {
 
 @pytest.mark.parametrize("key", KEYS)
 def test_the_kit_does_not_move_so_a_bound_recipe_or_artifact_stays_valid(key):
-    if key == ("f08-ribbed-bracket", "1.7"):
+    if key in {("f08-ribbed-bracket", "1.7"), ("chip-cold-plate", "1.7")}:
         # A prospective version has its own identity fields. Its unchanged
         # construction semantics are covered by test_f08_frequency_band_drop.
         kit = physical_material.construction_kit(*key)
         assert kit["version"] == key[1]
         assert kit["train_digest"] == KITS[(key[0], "1.6")]["train_digest"]
+        if key[0] == "chip-cold-plate":
+            assert kit["interface_digest"] == KITS[(key[0], "1.6")]["interface_digest"]
         return
     assert physical_material.construction_kit(*key) == KITS[key]
 
@@ -105,7 +107,12 @@ def test_a_dev_grid_version_registers_its_own_development_evaluation(key):
     kind = dev_grid.kind(*key)
     revision = (
         "v3"
-        if key in {("chip-cold-plate", "1.6"), ("f08-ribbed-bracket", "1.7")}
+        if key
+        in {
+            ("chip-cold-plate", "1.6"),
+            ("chip-cold-plate", "1.7"),
+            ("f08-ribbed-bracket", "1.7"),
+        }
         else "v2"
     )
     assert entry.development_evaluation[0] == f"{kind}-dual-development-grid-{revision}"

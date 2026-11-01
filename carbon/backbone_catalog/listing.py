@@ -153,6 +153,7 @@ def preferred(challenge_id, version):
 #: receipt on the final image. Read by the Launchpad page and by the MCP ready recipe alike.
 MEASURED_START = {
     ("chip-cold-plate", "1.6"): "v2.cooling.physicsnemo.MeshGraphNet",
+    ("chip-cold-plate", "1.7"): "v2.cooling.physicsnemo.MeshGraphNet",
 }
 
 
