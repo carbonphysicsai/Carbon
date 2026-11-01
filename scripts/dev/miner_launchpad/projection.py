@@ -318,15 +318,23 @@ GRADE_REFRESH = (
 
 
 def _graded_digests(path, submitted):
-    """The other digest the receiver may grade this submission under: a
+    """The other digests the receiver may grade this submission under: a
     catalog recipe is graded as the Carbon bundle recipe it names
     (`backbone_catalog.served.expand`, as `lean_recipe` admits it), so its
     Ladder names that recipe's digest, not the submitted one (M1 E2E R10-2).
-    Read from the epoch's frozen selection, and only when that selection is
-    the submitted recipe; () otherwise."""
+    The official rebuild expands it to the entry's GPU build of the runtime
+    the receiver holds (`served.expand_official`), which the miner does not
+    know, so every build the entry PINS in `bundle_refs` is mapped too, as
+    the receiver's own `served.check_reexpansion` re-expands a retained one
+    (a Cooling 1.6 grade under torch-cu130-py311 read "not graded yet").
+    Every digest is this miner's own recipe under a pinned build, matched
+    only against this mining key's Ladder. Read from the epoch's frozen
+    selection, and only when that selection is the submitted recipe; ()
+    otherwise."""
     if submitted is None:
         return ()
     try:
+        from carbon.backbone_catalog import listing
         from carbon.backbone_catalog.served import expand
         from carbon.development_session.construction_recipe import (
             ConstructionRecipe,
@@ -339,7 +347,19 @@ def _graded_digests(path, submitted):
         recipe = ConstructionRecipe.from_dict(strategy)
         if recipe.digest != submitted or strategy["source"]["kind"] != "catalog":
             return ()
-        return (ConstructionRecipe.from_dict(expand(recipe.to_dict())).digest,)
+        expanded = expand(recipe.to_dict())
+        digests = [ConstructionRecipe.from_dict(expanded).digest]
+        challenge = strategy["challenge"]
+        item = listing.entry(
+            strategy["source"]["catalog_id"], challenge["id"], challenge["version"]
+        )
+        pinned = (item.get("bundle_refs") or {}) if item else {}
+        for runtime in sorted(pinned):
+            expanded["source"]["bundle_ref"] = dict(pinned[runtime])
+            digest = ConstructionRecipe.from_dict(expanded).digest
+            if digest not in digests:
+                digests.append(digest)
+        return tuple(digests)
     except Exception:  # noqa: BLE001 - no mapping is "not graded yet", never a guess
         return ()
 

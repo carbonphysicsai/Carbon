@@ -52,13 +52,54 @@ def test_a_catalog_submission_reads_its_grade_under_the_bundle_recipe_it_names(
     assert graded_as != submitted
     path = _epoch(tmp_path, strategy)
     also = projection._graded_digests(path, submitted)
-    assert also == (graded_as,)
+    assert also[0] == graded_as
     grade = projection._grade(_ladder(graded_as), submitted, 0, also=also)
     assert grade["this_submission"] == "graded"
     assert grade["latest"]["total"] == 0.56
     # Without the mapping it was another submission's grade.
     old = projection._grade(_ladder(graded_as), submitted, 0)
     assert old["this_submission"] == "not_graded_yet"
+
+
+def test_a_catalog_submission_reads_its_grade_under_the_official_gpu_build(
+    tmp_path,
+):
+    # A miner's Cooling 1.6 catalog submission was graded under the entry's
+    # torch-cu130-py311 build (`served.expand_official`), so its Ladder named
+    # that bundle recipe's digest and check_result read "not_graded_yet" with
+    # the miner's own grade as "other_submission_latest".
+    from carbon.backbone_catalog import listing, served
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from scripts.dev.miner_launchpad.toolbox import _catalog_recipe
+
+    runtime = "torch-cu130-py311"
+    entry = next(
+        e
+        for e in listing.entries("chip-cold-plate", "1.6")
+        if runtime in (e.get("bundle_refs") or {})
+    )
+    strategy = _catalog_recipe("chip-cold-plate", "1.6", entry["catalog_id"])
+    submitted = ConstructionRecipe.from_dict(strategy).digest
+    cpu = served.expand(strategy)
+    official = json.loads(json.dumps(cpu))
+    official["source"]["bundle_ref"] = dict(entry["bundle_refs"][runtime])
+    graded_as = ConstructionRecipe.from_dict(official).digest
+    assert graded_as != ConstructionRecipe.from_dict(cpu).digest
+    # The receiver itself accepts that digest as this submission's retained
+    # official bundle recipe.
+    document = served.submission_document(strategy, official)
+    served.check_reexpansion(document, graded_as, bundle_recipe=official)
+
+    path = _epoch(tmp_path, strategy)
+    also = projection._graded_digests(path, submitted)
+    assert also[0] == ConstructionRecipe.from_dict(cpu).digest
+    assert graded_as in also
+    grade = projection._grade(_ladder(graded_as), submitted, 0, also=also)
+    assert grade["this_submission"] == "graded"
+    assert grade["other_submission_latest"] is None
+    # Another recipe's grade under the same build is still not this one's.
+    other = projection._grade(_ladder("sha256:" + "c" * 64), submitted, 0, also=also)
+    assert other["this_submission"] == "not_graded_yet"
 
 
 def test_no_mapping_unless_the_frozen_selection_is_the_submitted_catalog_recipe(
