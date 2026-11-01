@@ -367,7 +367,7 @@ def test_motor_1_3_is_its_own_catalog_campaign():
     from carbon.challenge_registry.motor import catalog_recipe
     from carbon.motor import campaign
 
-    assert campaign.CATALOG_VERSIONS == ("1.2", "1.3", "1.4", "1.5")
+    assert campaign.CATALOG_VERSIONS == ("1.2", "1.3", "1.4", "1.5", "1.6")
     document = describe(MOTOR, "1.3")
     assert document["identity"] == "carbon.electric-motor-magnetics-catalog.1.3"
     recipe = catalog_recipe(version="1.3")
@@ -379,6 +379,7 @@ def test_motor_1_3_is_its_own_catalog_campaign():
         "1.3",
         "1.4",
         "1.5",
+        "1.6",
     }
     assert built[(MOTOR, "1.3")]().key.version == "1.3"
     assert built[(MOTOR, "1.2")]().key.version == "1.2"

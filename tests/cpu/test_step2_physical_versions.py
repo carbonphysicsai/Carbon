@@ -48,8 +48,9 @@ def test_an_existing_version_keeps_its_limits_bytes(key):
     assert new == limits
 
 
-# 1.2 and 1.3 are the catalog versions; 1.4 is graph route v2; 1.5 is pool-graded.
-@pytest.mark.parametrize("version", ["1.6", "2.0", ""])
+# 1.2 and 1.3 are the catalog versions; 1.4 is graph route v2; 1.5 is pool-graded; 1.6 is registered through the
+# version overlay (image move).
+@pytest.mark.parametrize("version", ["1.7", "2.0", ""])
 def test_an_unregistered_version_is_refused(version):
     with pytest.raises(ValueError, match="unknown public physical Challenge version"):
         physical_public.construction_kit(sv.MOTOR, version)
