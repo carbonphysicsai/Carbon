@@ -74,14 +74,26 @@ def _module(name):
 
 def test_the_four_launch_versions_serve_a_block_and_others_serve_none():
     assert SERVED == sorted([F08, F02, MOTOR, COOLING])
-    assert sorted(pe._POOL_VERSIONS) == [
-        ("chip-cold-plate", "1.5"),
-        ("chip-cold-plate", "1.6"),
-        ("electric-motor-magnetics", "1.5"),
-        ("f02", "2.5"),
-        ("f08-ribbed-bracket", "1.6"),
-        ("f08-ribbed-bracket", "1.7"),
+    from carbon.challenge_kit import version_overlay, version_registry
+
+    # the registered history is pinned; a pool-graded version registered through the host overlay is a property (it
+    # names a "-pool-sealed-" evaluation), so a new overlay version needs no edit here
+    overlay_pool = [
+        key
+        for key in version_overlay.install()
+        if "-pool-sealed-" in (version_registry.entry(*key).sealed_evaluation or "")
     ]
+    assert sorted(pe._POOL_VERSIONS) == sorted(
+        [
+            ("chip-cold-plate", "1.5"),
+            ("chip-cold-plate", "1.6"),
+            ("electric-motor-magnetics", "1.5"),
+            ("f02", "2.5"),
+            ("f08-ribbed-bracket", "1.6"),
+            ("f08-ribbed-bracket", "1.7"),
+            *overlay_pool,
+        ]
+    )
     assert pe.served() == sorted([*SERVED, *pe._POOL_VERSIONS])
     for key in SERVED:
         assert _block(key)["schema"] == pe.SCHEMA

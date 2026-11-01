@@ -34,7 +34,12 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from carbon.challenge_kit import physical_material, served_versions, version_registry
+from carbon.challenge_kit import (
+    physical_material,
+    served_versions,
+    version_overlay,
+    version_registry,
+)
 from carbon.development_session import (
     build_refusal_v2,
     direct_graph_construction_worker,
@@ -61,6 +66,14 @@ POOL = {
     (COOLING, "1.5"): "cooling-pool-sealed-v1",
     (COOLING, "1.6"): "cooling-pool-sealed-v2",
 }
+#: The versions registered through the host overlay (`version_overlay`), not pinned here one by one: each is checked by
+#: the property below, so a new overlay version (F02 3.0, F08 2.0, Motor 1.6) needs no edit to this file.
+OVERLAY = frozenset(version_overlay.install())
+for _key in sorted(OVERLAY):
+    # an overlay version graded by the pool grader names its sealed evaluation ("...-pool-sealed-vN")
+    _sealed = version_registry.entry(*_key).sealed_evaluation or ""
+    if "-pool-sealed-" in _sealed:
+        POOL[_key] = _sealed
 
 #: Every existing version's construction limits digest, as served at
 #: composite 40 (5b1f2928f), before graph route v2.
@@ -258,6 +271,13 @@ def test_a_new_version_is_its_predecessor_s_material(key):
     assert new_adapter is not None and old_adapter is not None
     if grid:
         revision = "v3" if key in {(COOLING, "1.6"), (F08, "1.7")} else "v2"
+        if key in OVERLAY:
+            # an overlay version names its own development evaluation: its adapter must serve exactly that name
+            revision = (
+                version_registry.entry(*key)
+                .development_evaluation[0]
+                .rsplit("-", 1)[-1]
+            )
         assert new_adapter.EVALUATION_VERSION == (
             f"{dev_grid.kind(cid, version)}-dual-development-grid-{revision}"
         )
@@ -279,7 +299,11 @@ def test_the_registry_declares_each_new_version_in_full():
     """Each graph route v2 version is written out, never read through its
     predecessor: every field but its identity, pack version, adapter, catalog
     entries, lineage and rebuild wall equals the predecessor's."""
-    assert {key: version_registry.entry(*key).predecessor for key in NEW} == {
+    assert {
+        key: version_registry.entry(*key).predecessor
+        for key in NEW
+        if key not in OVERLAY
+    } == {
         (COOLING, "1.4"): "1.3",
         (F02, "2.4"): "2.3",
         (F08, "1.5"): "1.4",
@@ -291,6 +315,13 @@ def test_the_registry_declares_each_new_version_in_full():
         (F08, "1.7"): "1.6",
         (MOTOR, "1.5"): "1.4",
     }
+    for cid, version in OVERLAY & set(NEW):
+        # an overlay version's lineage is a property: it names a registered, lower version of its own Challenge
+        predecessor = version_registry.entry(cid, version).predecessor
+        assert version_registry.find(cid, predecessor) is not None, (cid, version)
+        assert tuple(map(int, predecessor.split("."))) < tuple(
+            map(int, version.split("."))
+        ), (cid, version)
     own = {
         "version",
         "pack_version",
@@ -373,9 +404,9 @@ def _scorer_tables():
     ):
         for version, entry in module.VERSIONS.items():
             sealed[(module.CHALLENGE, version)] = entry[0]
-    sealed[(cooling_hidden.CHALLENGE_ID, cooling_hidden.CHALLENGE_VERSION)] = (
-        cooling_hidden.EVALUATION_VERSION
-    )
+    sealed[
+        (cooling_hidden.CHALLENGE_ID, cooling_hidden.CHALLENGE_VERSION)
+    ] = cooling_hidden.EVALUATION_VERSION
     for version, value in cooling_dual_pack.SEALED_VERSIONS.items():
         sealed[(cooling_dual_pack.CHALLENGE, version)] = value
     for version in (
@@ -417,12 +448,14 @@ def test_every_served_version_resolves_through_the_registry():
                 from carbon.scoring import (
                     cooling_encoded_dual_pack,
                     cooling_hotspot_dual_pack,
+                    cooling_pool_baseline_dual_pack,
                 )
 
                 assert (
                     key[1]
                     in cooling_encoded_dual_pack.VERSIONS.keys()
                     | cooling_hotspot_dual_pack.VERSIONS.keys()
+                    | cooling_pool_baseline_dual_pack.POOL_VERSIONS.keys()
                 ) == (entry.output_encoding is not None)
         assert graph_adapters.serves_graph(*key) == (entry.graph_adapter is not None)
     # Development and sealed tables name no version the registry does not.
@@ -497,8 +530,17 @@ def test_graph_route_v2_versions_offer_their_predecessor_s_entries_and_their_own
     for (cid, version), (total, v2) in CATALOG_COUNTS.items():
         ids = [e["catalog_id"] for e in listing.entries(cid, version)]
         assert (len(ids), sum(i.startswith("v2.") for i in ids)) == (total, v2)
+    for cid, version in OVERLAY & set(_offered()):
+        # an overlay pool version carries its predecessor's catalog (the identity-only diff): its counts equal the
+        # predecessor's, a property rather than a pinned pair
+        entry = version_registry.entry(cid, version)
+        own = [e["catalog_id"] for e in listing.entries(cid, version)]
+        before = [e["catalog_id"] for e in listing.entries(cid, entry.predecessor)]
+        assert len(own) == len(before) and sum(i.startswith("v2.") for i in own) == sum(
+            i.startswith("v2.") for i in before
+        ), (cid, version)
     for cid, version in _offered():
-        if (cid, version) not in CATALOG_COUNTS:
+        if (cid, version) not in CATALOG_COUNTS and (cid, version) not in OVERLAY:
             assert not any(
                 e["catalog_id"].startswith("v2.") for e in listing.entries(cid, version)
             ), (cid, version)

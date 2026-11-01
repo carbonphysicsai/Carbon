@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import pytest
 import rc43_surfaces
-from test_graph_route_v2 import BASE_KITS
+from test_graph_route_v2 import BASE_KITS, OVERLAY
 
 from carbon.challenge_kit import physical_material, version_registry
 from carbon.challenge_kit.version_registry import REBUILD_LIMIT_SECONDS
@@ -140,10 +140,12 @@ def _binding(cid, version):
 
 def test_exactly_the_graph_route_v2_versions_declare_the_wall():
     assert REBUILD_LIMIT_SECONDS == 648
-    assert NEW == sorted(NEW_KITS)
+    # the pinned versions, plus the overlay versions (each checked by property below, never pinned here)
+    assert [key for key in NEW if key not in OVERLAY] == sorted(NEW_KITS)
+    assert set(OVERLAY) <= set(NEW)
     assert set(AT_600) == set(NEW_KITS) - {("chip-cold-plate", "1.6")}
     for key, entry in version_registry.VERSIONS.items():
-        expected = REBUILD_LIMIT_SECONDS if key in NEW_KITS else None
+        expected = REBUILD_LIMIT_SECONDS if key in NEW_KITS or key in OVERLAY else None
         assert entry.rebuild_wall_seconds == expected, key
 
 
@@ -151,9 +153,10 @@ def test_exactly_the_graph_route_v2_versions_declare_the_wall():
 def test_a_new_version_moves_only_by_its_wall_fields(key, monkeypatch):
     from carbon.challenge_kit import served_versions
 
-    assert physical_material.construction_kit(*key)["construction_limits_digest"] == (
-        "sha256:" + NEW_KITS[key]
-    )
+    if key not in OVERLAY:
+        assert physical_material.construction_kit(*key)[
+            "construction_limits_digest"
+        ] == ("sha256:" + NEW_KITS[key])
     # The rc8 document predates the large-profile publication (a separate move,
     # pinned by test_published_policy_is_enforced): the wall is checked before it.
     monkeypatch.setattr(served_versions, "worker_resources", lambda *_: None)
@@ -171,12 +174,15 @@ def test_a_new_version_moves_only_by_its_wall_fields(key, monkeypatch):
         },
     }
     key_600 = key
-    if key == ("chip-cold-plate", "1.6"):
-        # This scoring successor changes no construction setting. Restore its
-        # identity and lineage, then require the existing 1.5 document's pin.
+    if key == ("chip-cold-plate", "1.6") or key in OVERLAY:
+        # A scoring successor changes no construction setting. Restore its identity and lineage, then require the
+        # existing predecessor document's pin: for an overlay version, the nearest predecessor that is pinned here
+        # (so a new overlay version needs no edit to this file).
         from carbon.backbone_catalog import served
 
-        key_600 = ("chip-cold-plate", "1.5")
+        key_600 = (key[0], version_registry.entry(*key).predecessor)
+        while key_600 not in AT_600:
+            key_600 = (key[0], version_registry.entry(*key_600).predecessor)
         at_600["challenge"] = {"id": key_600[0], "version": key_600[1]}
         new_catalog, old_catalog = served.document(*key), served.document(*key_600)
         assert {**new_catalog, "challenge": old_catalog["challenge"]} == old_catalog
@@ -247,7 +253,9 @@ def test_each_version_s_launch_takes_its_own_wall(key):
         physical_material.construction_kit(*key)["construction_limits_digest"]
     )
     expected = (
-        {"rebuild_wall_seconds": REBUILD_LIMIT_SECONDS} if key in NEW_KITS else {}
+        {"rebuild_wall_seconds": REBUILD_LIMIT_SECONDS}
+        if key in NEW_KITS or key in OVERLAY
+        else {}
     )
     assert worker.rebuild_wall_kwargs(document) == expected
     assert worker.rebuild_wall_kwargs(None) == {}

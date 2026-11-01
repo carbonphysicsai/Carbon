@@ -500,11 +500,31 @@ NON_COOLING_DIGESTS = {
 
 
 def test_every_non_cooling_producer_digest_is_byte_identical_to_main():
-    import importlib
+    # explicit imports, not importlib: a dynamic import would need an entry in the code-authority allow-list
+    from carbon.scoring import (
+        battery_dual_pack,
+        battery_sealed_dual_pack,
+        f02_dual_pack,
+        f02_sealed_dual_pack,
+        f08_dual_pack,
+        f08_sealed_dual_pack,
+        motor_dual_pack,
+        motor_sealed_dual_pack,
+    )
 
+    modules = {
+        "battery_dual_pack": battery_dual_pack,
+        "battery_sealed_dual_pack": battery_sealed_dual_pack,
+        "f02_dual_pack": f02_dual_pack,
+        "f02_sealed_dual_pack": f02_sealed_dual_pack,
+        "f08_dual_pack": f08_dual_pack,
+        "f08_sealed_dual_pack": f08_sealed_dual_pack,
+        "motor_dual_pack": motor_dual_pack,
+        "motor_sealed_dual_pack": motor_sealed_dual_pack,
+    }
+    assert set(modules) == set(NON_COOLING_DIGESTS)
     for name, expected in NON_COOLING_DIGESTS.items():
-        module = importlib.import_module("carbon.scoring." + name)
-        assert physical.producer_digest(module) == expected, name
+        assert physical.producer_digest(modules[name]) == expected, name
 
 
 def test_the_definition_binds_the_versions_registration_digest_so_a_changed_entry_is_another_identity(

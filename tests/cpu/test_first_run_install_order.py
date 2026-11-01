@@ -84,9 +84,22 @@ def test_cooling_1_6_starts_on_the_measured_entry_because_its_baseline_is_refuse
         starting_entry("chip-cold-plate", "1.6")
         == "v2.cooling.physicsnemo.MeshGraphNet"
     )
-    assert MEASURED_START == {
-        ("chip-cold-plate", "1.6"): "v2.cooling.physicsnemo.MeshGraphNet"
-    }
+    from carbon.challenge_kit import version_overlay
+
+    # 1.6 is the pinned case; a later Cooling version registered through the host overlay starts on the same measured
+    # entry as a property (its baseline is refused at freeze too), so a new version needs no edit here
+    assert MEASURED_START[("chip-cold-plate", "1.6")] == (
+        "v2.cooling.physicsnemo.MeshGraphNet"
+    )
+    extra = set(MEASURED_START) - {("chip-cold-plate", "1.6")}
+    assert extra <= set(version_overlay.install())
+    for key in extra:
+        offered = [i["catalog_id"] for i in listing.entries(*key)]
+        assert "v2.cooling.prior_krr" in offered  # the baseline stays in the picker
+        assert (
+            starting_entry(*key) == MEASURED_START[key]
+            and MEASURED_START[key] in offered
+        )
     for challenge_id, version, expected in (
         ("electric-motor-magnetics", "1.5", "v2.motor.prior_krr"),
         ("f08-ribbed-bracket", "1.7", "v2.f08.prior_krr"),

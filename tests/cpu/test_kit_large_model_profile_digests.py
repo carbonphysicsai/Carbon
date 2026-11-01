@@ -14,7 +14,7 @@ import pytest
 import rc43_surfaces
 
 from carbon.battery import construction_bundle_material as battery_material
-from carbon.challenge_kit import physical_material, served_versions
+from carbon.challenge_kit import physical_material, served_versions, version_overlay
 from carbon.challenge_kit import version_registry as registry
 from carbon.development_session import bundle_construction_worker as bundle
 
@@ -93,6 +93,15 @@ NEW_REGISTRATIONS = {
     (registry.F08, "1.7"): "1.6",
 }
 CURRENT_PROFILE_VERSIONS = registry.keys(allowlist="v7") | registry.keys(allowlist="v8")
+# Versions registered through the host overlay (`version_overlay`) are new registrations by construction, each
+# with its registered predecessor: derived here, so a new overlay version needs no edit to this file.
+NEW_REGISTRATIONS.update(
+    {
+        key: registry.entry(*key).predecessor
+        for key in version_overlay.install()
+        if key in CURRENT_PROFILE_VERSIONS
+    }
+)
 
 
 def _digest(challenge_id, version):
