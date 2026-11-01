@@ -199,7 +199,11 @@ def merge_check(records):
             raise Refused("merged_result_missing_contender:" + cid)
     if len(ran) != len(set(ran)) or set(ran) - set(first["contenders_expected"]):
         raise Refused("merged_result_has_a_duplicate_or_foreign_contender")
-    return {"runtimes": runtimes, "contenders": ran}
+    return {
+        "runtimes": runtimes,
+        "contenders": ran,
+        "cpu_only": any(each.get("cpu_only") for each in records),
+    }
 
 
 def check_settings(contender, item):
@@ -429,6 +433,23 @@ def make_output_dir(out):
     out.mkdir(parents=True, exist_ok=True)
 
 
+def limit_for(registered_wall, cpu_only):
+    """The wall a fit is held to. A cpu_only run is NOT held to it: the registered limit is GPU-timed, a CPU wall is not
+    comparable, and enforcing it would fail learners spuriously (Validator condition). The walls are still recorded.
+    """
+    return float("inf") if cpu_only else registered_wall
+
+
+def cpu_only_fields(cpu_only):
+    """Record fields stating how the wall was treated, so a cpu_only result is always labelled as such."""
+    out = {"cpu_only": bool(cpu_only), "wall_enforced": not cpu_only}
+    if cpu_only:
+        out["label"] = (
+            "CPU_ONLY_WALLS_INFORMATIONAL_NOT_COMPARABLE_TO_THE_GPU_TIMED_LIMIT"
+        )
+    return out
+
+
 def fit_and_export(builder, x, y, fits, seed, wall, probe, out, cid, record):
     """Refit each ``label -> (configuration, train_use)`` on all TRAIN, time it against the wall, and (with probe inputs)
     export its predictions. Without probe inputs nothing is predicted: only the timings are recorded.
@@ -471,6 +492,7 @@ def run(
     builders=None,
     challenge_id="f02",
     runtime=None,
+    cpu_only=False,
     log=print,
 ):
     """The whole harness for one version. ``builders`` maps catalog_id to a build callable (tests); default: the pins."""
@@ -485,7 +507,8 @@ def run(
     }
     expected = [item["catalog_id"] for _, item, _ in entries]
     entries = for_runtime(entries, runtime)
-    wall = rebuild_wall_seconds(challenge_id, version)
+    registered_wall = rebuild_wall_seconds(challenge_id, version)
+    wall = limit_for(registered_wall, cpu_only)
     folds = make_folds(len(x), grid["k"], grid["fold_seed"])
     out = Path(out_dir)
     make_output_dir(out)
@@ -529,12 +552,13 @@ def run(
         "challenge": grid["challenge"],
         "grid_digest": grid_digest,
         "runtime": runtime,
+        **cpu_only_fields(cpu_only),
         "contenders_expected": expected,
         "k": grid["k"],
         "fold_seed": grid["fold_seed"],
         "seed": seed,
         "folds": folds,
-        "rebuild_wall_seconds": wall,
+        "rebuild_wall_seconds": registered_wall,
         "train_rows": len(x),
         "probe_inputs_sha256": None if probe is None else probe_digest(probe),
         "probe_rows": None if probe is None else int(probe.shape[0]),
@@ -565,6 +589,7 @@ def predict_from_record(
     builders=None,
     challenge_id="f02",
     runtime=None,
+    cpu_only=False,
     log=print,
 ):
     """The custody step: retrain, on the PUBLIC TRAIN, the settings a pod run recorded (default and selected) and export
@@ -583,7 +608,8 @@ def predict_from_record(
 
     x, y = load_train(challenge_id, version)
     probe = load_probe(probe_path, x.shape[1])
-    wall = rebuild_wall_seconds(challenge_id, version)
+    registered_wall = rebuild_wall_seconds(challenge_id, version)
+    wall = limit_for(registered_wall, cpu_only)
     offered = {e["catalog_id"]: e for e in listing.entries(challenge_id, version)}
     for each in record["contenders"]:  # every refusal before the first fit
         if each["catalog_id"] not in offered:
@@ -615,9 +641,10 @@ def predict_from_record(
         "grid_digest": grid_digest,
         "source_record_sha256": digest(record),
         "runtime": record.get("runtime"),
+        **cpu_only_fields(cpu_only),
         "contenders_expected": record.get("contenders_expected"),
         "seed": seed,
-        "rebuild_wall_seconds": wall,
+        "rebuild_wall_seconds": registered_wall,
         "probe_inputs_sha256": probe_digest(probe),
         "probe_rows": int(probe.shape[0]),
         "host": host_record(),
@@ -699,6 +726,7 @@ def main(argv=None):
                 args.probe_inputs,
                 args.out,
                 runtime=args.runtime,
+                cpu_only=args.cpu_only,
             )
         else:
             run(
@@ -708,6 +736,7 @@ def main(argv=None):
                 args.probe_inputs,
                 args.out,
                 runtime=args.runtime,
+                cpu_only=args.cpu_only,
             )
     except Refused as refusal:
         print(f"refused: {refusal}", file=sys.stderr)

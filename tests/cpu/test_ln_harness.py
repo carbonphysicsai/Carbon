@@ -256,6 +256,7 @@ def test_the_harness_has_no_truth_input_and_the_record_holds_none(tmp_path):
         "builders",
         "challenge_id",
         "runtime",
+        "cpu_only",
         "log",
     }
     grid = _grid()
@@ -350,6 +351,7 @@ def test_the_custody_step_retrains_the_recorded_selection_and_matches_a_one_proc
         "builders",
         "challenge_id",
         "runtime",
+        "cpu_only",
         "log",
     }
 
@@ -722,3 +724,104 @@ def test_cpu_only_hides_the_gpu_before_anything_runs(tmp_path, monkeypatch):
         ["run", "--grid", "g", "--grid-digest", "d", "--version", "2.5", "--out", "o"]
     )
     assert seen["cuda"] is None
+
+
+def test_a_cpu_only_run_does_not_exclude_settings_by_the_gpu_timed_wall_and_says_so(
+    tmp_path, monkeypatch
+):
+    grid = _grid()
+    path, digest = _write(tmp_path, grid)
+    monkeypatch.setattr(
+        h, "rebuild_wall_seconds", lambda *_: -1.0
+    )  # every fit is "over" it
+    gpu = h.run(
+        path,
+        digest,
+        "2.5",
+        None,
+        tmp_path / "gpu",
+        builders=_builders(grid),
+        log=lambda *_: None,
+    )
+    cpu = h.run(
+        path,
+        digest,
+        "2.5",
+        None,
+        tmp_path / "cpu",
+        builders=_builders(grid),
+        cpu_only=True,
+        log=lambda *_: None,
+    )
+    pick = lambda record: next(
+        c for c in record["contenders"] if c["catalog_id"] == "v2.f02.neuralop.FNO"
+    )
+    assert (
+        gpu["cpu_only"] is False and gpu["wall_enforced"] is True and "label" not in gpu
+    )
+    assert pick(gpu)["selected_index"] is None  # the GPU rule excludes them
+    assert cpu["cpu_only"] is True and cpu["wall_enforced"] is False
+    assert cpu["label"].startswith("CPU_ONLY")
+    assert pick(cpu)["selected_index"] == 2  # not excluded: the walls are informational
+    assert all(row["state"] == "OK" for row in pick(cpu)["cv"])
+    assert all(
+        row["slowest_fit_seconds"] >= 0 for row in pick(cpu)["cv"]
+    )  # still recorded
+    assert "over_limit_final_fits" not in pick(cpu)
+    assert cpu["rebuild_wall_seconds"] == -1.0  # the registered value, unchanged
+
+
+def test_the_custody_step_and_the_merge_carry_the_cpu_only_label(tmp_path):
+    grid = _grid()
+    path, digest = _write(tmp_path, grid)
+    probe = _probe(tmp_path)
+    h.run(
+        path,
+        digest,
+        "2.5",
+        None,
+        tmp_path / "pod",
+        builders=_builders(grid),
+        cpu_only=True,
+        log=lambda *_: None,
+    )
+    document = h.predict_from_record(
+        tmp_path / "pod" / "record.json",
+        digest,
+        "2.5",
+        probe,
+        tmp_path / "c",
+        builders=_builders(grid),
+        cpu_only=True,
+        log=lambda *_: None,
+    )
+    assert document["cpu_only"] is True and document["label"].startswith("CPU_ONLY")
+    plain = h.predict_from_record(
+        tmp_path / "pod" / "record.json",
+        digest,
+        "2.5",
+        probe,
+        tmp_path / "g",
+        builders=_builders(grid),
+        log=lambda *_: None,
+    )
+    assert plain["cpu_only"] is False and "label" not in plain
+    base = {
+        "grid_digest": "d",
+        "challenge": {"id": "f02", "version": "2.5"},
+        "contenders_expected": ["a", "b"],
+    }
+    torch = {
+        **base,
+        "runtime": "torch",
+        "cpu_only": True,
+        "contenders": [{"catalog_id": "a"}],
+    }
+    jax = {
+        **base,
+        "runtime": "jax",
+        "cpu_only": False,
+        "contenders": [{"catalog_id": "b"}],
+    }
+    assert h.merge_check([torch, jax])["cpu_only"] is True
+    assert h.merge_check([{**torch, "cpu_only": False}, jax])["cpu_only"] is False
