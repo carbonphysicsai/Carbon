@@ -116,6 +116,18 @@ def retry_rate_limited(operation, *, deadline, clock=time.monotonic, sleep=time.
                 raise
 
 
+def _preflight_catalog(recipe, facts):
+    """Refuse a catalog recipe the door would refuse, naming the fix."""
+    from carbon.development_session import catalog_preflight
+
+    try:
+        catalog_preflight.check(recipe.to_dict(), facts)
+    except catalog_preflight.CatalogPreflightRefused as refused:
+        error = DirectIntakeRefusal(refused.code)
+        error.fix = refused.fix
+        raise error from None
+
+
 def read_intake(url: str, *, timeout: float = 10.0) -> dict:
     from carbon.development_session.intake_targets import intake_url
 
@@ -523,6 +535,7 @@ def submit_and_wait(
                 if read is read_intake
                 else read(url)
             )
+            _preflight_catalog(recipe, facts)
             if admission_attempts > 1:
                 if admission_deadline - clock() <= 1.05:
                     raise DirectIntakeRateLimit()

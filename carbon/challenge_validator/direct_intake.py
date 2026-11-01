@@ -152,6 +152,15 @@ class DirectRecipeIntake(BatteryIntake):
         self._official_gpu_cache = (now, value)
         return dict(value)
 
+    def _catalog_digest(self):
+        """The digest of the catalog this version serves (public: every catalog recipe names it); None if it has none."""
+        try:
+            from carbon.backbone_catalog import served
+
+            return served.digest(self.challenge.challenge_id, self.challenge.version)
+        except Exception:  # noqa: BLE001 - never an error page
+            return None
+
     def public(self):
         snapshot = self.window.latest()
         if snapshot is None:
@@ -194,6 +203,7 @@ class DirectRecipeIntake(BatteryIntake):
                 "served_contracts": self.door.served_contracts(),
                 # Which catalog entries are officially gradable now: ids and the receipt log's head digest only.
                 "official_gpu": self._official_gpu(),
+                "catalog_digest": self._catalog_digest(),
                 "limits": {
                     "max_body": MAX_BODY,
                     "snapshot_max_age_s": SNAPSHOT_MAX_AGE_S,
