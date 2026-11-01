@@ -92,10 +92,25 @@ CASES = {
     "norelief": {**CASE, "relief_length_mm": 0.0},
     "offset_angle": {**CASE, "load_offset_frac": 0.2, "load_angle_deg": 20.0},
 }
+# The (a3) deck rev (Validator F08 2.0 ruling 11-01): the graded far field. Its gmsh programs for the same cases.
+PINNED_A3_GMSH = {
+    "gmsh_base": "99c13cdd3fc6ad2dcc09e555e86e9c9649fd3915f1ac997a21ad9561a9e51bd9",
+    "gmsh_norelief": "52e8faff4e3e1575004614f545d96fe7fa5fb23b2429c215fceabbb6b3782f69",
+    "gmsh_offset_angle": "f98037b95ffed3372233dabcabe770914ac0f333dd1f8761926c4657ccbffc2d",
+}
 
 
 def _sha(text):
     return hashlib.sha256(text.encode()).hexdigest()
+
+
+def _undo_a3(text, h_mm):
+    """The program with (a3)'s far field taken out: (a2)'s single background field and its MeshSizeMax of h."""
+    far = f'gmsh.option.setNumber("Mesh.MeshSizeMax", {v2.FAR_SIZE_MM})'
+    assert text.count(v2._far_field(h_mm)) == 1 and text.count(far) == 1
+    return text.replace(v2._far_field(h_mm), "field.setAsBackgroundMesh(2)").replace(
+        far, f'gmsh.option.setNumber("Mesh.MeshSizeMax", {h_mm})'
+    )
 
 
 def test_a_case_without_control_leaves_every_existing_output_byte_identical():
@@ -103,13 +118,43 @@ def test_a_case_without_control_leaves_every_existing_output_byte_identical():
     for name, case in CASES.items():
         got["gmsh_" + name] = _sha(v2.gmsh_script_v2(case, 3.0, 0.5))
         got["deck_" + name] = _sha(v2.deck_text(case, META, MAT))
-    assert got == {**PINNED, **PINNED_A2_GMSH}
+    assert got == {**PINNED, **PINNED_A3_GMSH}
+
+
+def test_the_a3_far_field_is_the_only_change_to_the_a2_program():
+    for name, case in CASES.items():
+        text = v2.gmsh_script_v2(case, 3.0, 0.5)
+        assert _sha(_undo_a3(text, 3.0)) == PINNED_A2_GMSH["gmsh_" + name], name
+
+
+def test_the_a3_near_zone_keeps_every_rungs_sizes_and_only_the_far_plate_coarsens():
+    assert (v2.NEAR_EXTENT_MM, v2.FAR_GRADE_MM, v2.FAR_SIZE_MM) == (10.0, 12.0, 6.0)
+    for h, fillet_h in ((3.0, 0.5), (2.25, 0.5), (1.7, 0.5), (1.7, 0.25)):
+        text = v2.gmsh_script_v2(CASE, h, fillet_h)
+        assert v2.script_compiles(text)
+        # the (a2) band, untouched, and silent beyond its DistMax
+        assert f'field.setNumber(2, "SizeMin", {fillet_h})' in text
+        assert f'field.setNumber(2, "SizeMax", {h})' in text
+        assert 'field.setNumber(2, "StopAtDistMax", 1)' in text
+        # four near boxes (two ribs, the pad, the probe) at the rung's h; the far size and grade are the same on every rung
+        assert (
+            text.count(f'field.setNumber(tag, "VIn", {h})') == 3
+        )  # one line per loop: ribs (x2), pad, probe
+        assert text.count('field.setNumber(tag, "VOut", 6.0)') == 3
+        assert text.count('field.setNumber(tag, "Thickness", 12.0)') == 3
+        assert 'gmsh.option.setNumber("Mesh.MeshSizeMax", 6.0)' in text
+        assert f'gmsh.option.setNumber("Mesh.MeshSizeMin", {fillet_h})' in text
+    # a control keeps its mesh: no far field, MeshSizeMax h
+    for control in (ctl.kirsch_case(ALLOY), ctl.plain_plate_case(ALLOY)):
+        text = v2.gmsh_script_v2(control, 3.0, 0.5)
+        assert "StopAtDistMax" not in text and "field.setAsBackgroundMesh(2)" in text
+        assert 'gmsh.option.setNumber("Mesh.MeshSizeMax", 3.0)' in text
 
 
 def test_the_a2_band_is_the_only_change_to_the_gmsh_program():
-    # undo exactly the two band lines and the program is byte for byte the one pinned before the control hook and before (a2)
+    # undo (a3), then exactly the two band lines, and the program is byte for byte the one pinned before the control hook
     for name, case in CASES.items():
-        text = v2.gmsh_script_v2(case, 3.0, 0.5)
+        text = _undo_a3(v2.gmsh_script_v2(case, 3.0, 0.5), 3.0)
         assert text.count(BAND_A2) == 1, name
         assert _sha(text.replace(BAND_A2, BAND_BEFORE)) == PINNED["gmsh_" + name], name
     assert (v2.BAND_FINE_ELEMENTS, v2.BAND_GRADE_ELEMENTS) == (2, 3)

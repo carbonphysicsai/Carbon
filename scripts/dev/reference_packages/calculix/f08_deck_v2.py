@@ -148,6 +148,15 @@ STRESS_FIXED = {
 #: fillet SURFACE keeps fillet_h, so the fillet-stress rungs (0.5 / 0.25 mm) stay like-for-like with the plan.
 BAND_FINE_ELEMENTS = 2
 BAND_GRADE_ELEMENTS = 3
+#: The graded FAR field (option a3, Validator F08 2.0 ruling 11-01: admissible, Validator-ruled payload values, no owner value
+#: moves). (a2) left 0033 at ~498 k nodes: the GLOBAL body mesh drives the count, and SPOOLES solved 313 k (0034). A NEAR zone
+#: keeps each rung's sizes exactly: h in boxes around each rib (the rib plus NEAR_EXTENT_MM on each side, so the junction lines
+#: and the fillet), around the pad and around the probe; fillet_h on the fillet surface, the (a2) band unchanged. Only the plate
+#: AWAY from them coarsens, linearly over FAR_GRADE_MM to FAR_SIZE_MM. Engineering constants, the same on every rung; the ribbed
+#: bracket only (a control keeps its mesh). The paired same-rung U check (ruling A) decides whether they are admissible.
+NEAR_EXTENT_MM = 10.0
+FAR_GRADE_MM = 12.0
+FAR_SIZE_MM = 6.0
 
 
 class Refused(ValueError):
@@ -348,6 +357,51 @@ fillet_faces = [tg for d, tg in gmsh.model.getEntities(2) if gmsh.model.getType(
     raise Refused("control_kind_not_registered")
 
 
+def _far_field(h_mm):
+    """The bracket's size field (a3): the (a2) fillet band (field 2) imposes nothing beyond its DistMax, so inside it the sizes are
+    (a2)'s exactly; boxes around each rib, the pad and the probe give h, grading to FAR_SIZE_MM over FAR_GRADE_MM outside them;
+    the background is the smallest of them."""
+    near, grade, far = NEAR_EXTENT_MM, FAR_GRADE_MM, FAR_SIZE_MM
+    boxes = [
+        ("-1", "L + 1", f"s * W / 4 - tr / 2 - {near}", f"s * W / 4 + tr / 2 + {near}"),
+        (
+            f"L - {v1.PAD_X} - {near}",
+            "L + 1",
+            f"off - {v1.PAD_Y} / 2 - {near}",
+            f"off + {v1.PAD_Y} / 2 + {near}",
+        ),
+        (
+            f"L / 2 - {v1.PROBE} / 2 - {near}",
+            f"L / 2 + {v1.PROBE} / 2 + {near}",
+            f"W / 2 - 8 - {v1.PROBE} / 2 - {near}",
+            f"W / 2 - 8 + {v1.PROBE} / 2 + {near}",
+        ),
+    ]
+    lines = ['field.setNumber(2, "StopAtDistMax", 1)', "near_fields = [2]"]
+    for index, (x0, x1, y0, y1) in enumerate(boxes):
+        loop = "for s in (-1, 1):" if index == 0 else "for s in (0,):"
+        lines += [
+            loop,
+            '    tag = field.add("Box")',
+            f'    field.setNumber(tag, "VIn", {h_mm})',
+            f'    field.setNumber(tag, "VOut", {far})',
+            f'    field.setNumber(tag, "XMin", {x0})',
+            f'    field.setNumber(tag, "XMax", {x1})',
+            f'    field.setNumber(tag, "YMin", {y0})',
+            f'    field.setNumber(tag, "YMax", {y1})',
+            '    field.setNumber(tag, "ZMin", -1)',
+            '    field.setNumber(tag, "ZMax", t + hr + 1)',
+            f'    field.setNumber(tag, "Thickness", {grade})',
+            "    near_fields.append(tag)",
+        ]
+    lines += [
+        'size = field.add("Min")',
+        'field.setNumbers(size, "FieldsList", near_fields)',
+        "field.setAsBackgroundMesh(size)",
+    ]
+    return "\n".join(lines)
+
+
 def gmsh_script_v2(case, h_mm, fillet_h_mm):
     """The Gmsh program for one case: 1.7's body, the fillet on the four rib junction lines, a refinement field around
     the fillet faces (a band of `BAND_FINE_ELEMENTS` fine elements, graded to h over `BAND_GRADE_ELEMENTS` coarse ones), the
@@ -382,11 +436,13 @@ fillet_faces = [tg for d, tg in gmsh.model.getEntities(2) if gmsh.model.getType(
         )
         POINTS = _tip_points()
         TIP_NODE = f"nearest((L - {v1.PAD_X} / 2, off, t))"
+        SIZE_FIELD, SIZE_MAX = _far_field(h_mm), FAR_SIZE_MM
         PROBE_NODE = "nearest((L / 2, W / 2 - 8, t))"
     else:
         RF_OFF, BODY, PADBLOCK, FACELINES, POINTS, TIP_NODE, PROBE_NODE = (
             _control_pieces(control)
         )
+        SIZE_FIELD, SIZE_MAX = "field.setAsBackgroundMesh(2)", h_mm
     return f"""
 import json, math, gmsh
 case = {json.dumps(case)}
@@ -415,10 +471,10 @@ field.setNumber(2, "SizeMin", {fillet_h_mm})
 field.setNumber(2, "SizeMax", {h_mm})
 field.setNumber(2, "DistMin", {BAND_FINE_ELEMENTS} * {fillet_h_mm})
 field.setNumber(2, "DistMax", {BAND_FINE_ELEMENTS} * {fillet_h_mm} + {BAND_GRADE_ELEMENTS} * {h_mm})
-field.setAsBackgroundMesh(2)
+{SIZE_FIELD}
 vols = [tg for d, tg in gmsh.model.getEntities(3)]
 cad_volume = sum(occ.getMass(3, v) for v in vols)
-gmsh.option.setNumber("Mesh.MeshSizeMax", {h_mm})
+gmsh.option.setNumber("Mesh.MeshSizeMax", {SIZE_MAX})
 gmsh.option.setNumber("Mesh.MeshSizeMin", {fillet_h_mm})
 gmsh.option.setNumber("Mesh.MeshSizeExtendFromBoundary", 0)
 gmsh.option.setNumber("Mesh.MeshSizeFromPoints", 0)
