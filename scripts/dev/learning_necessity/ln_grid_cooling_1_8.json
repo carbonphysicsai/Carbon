@@ -5,10 +5,16 @@
  },
  "contenders": [
   {
+   "implementation_digest": "sha256:69a5d15054c1308f429146af7c18b9f456bab8149641b4b14e3cd4ea30264319",
+   "kind": "inpack_baseline",
+   "role": "reference (in-pack learned baseline)",
+   "settings": null
+  },
+  {
    "candidates": [
     "v2.cooling.prior_krr"
    ],
-   "role": "reference (learned baseline)",
+   "role": "physics-prior KRR",
    "settings": null
   },
   {
@@ -536,7 +542,7 @@
  ],
  "fold_seed": 20261101,
  "k": 5,
- "schema": "carbon.ln-grid.v1",
+ "schema": "carbon.ln-grid.v2",
  "seed": 0,
  "status": "PROPOSED_NOT_RULED"
 }

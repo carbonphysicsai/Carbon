@@ -54,6 +54,9 @@ def test_each_grid_is_the_f02_grid_with_only_its_challenge_and_prefix_changed(
     ]
     for mine, theirs in zip(grid["contenders"], f02["contenders"], strict=True):
         assert mine["settings"] == theirs["settings"]
+        if "kind" in theirs:  # the in-pack reference names no catalog entry
+            assert mine == theirs
+            continue
         assert mine["candidates"] == [
             prefix + c.removeprefix("v2.f02.") for c in theirs["candidates"]
         ]
@@ -70,9 +73,11 @@ def test_each_grid_names_catalog_ids_and_resolves_on_the_registered_listing(
     grid = _read(name)
     ids = {e["catalog_id"] for e in listing.load()["entries"]}
     for each in grid["contenders"]:
-        assert all(c in ids for c in each["candidates"])
+        assert all(c in ids for c in each.get("candidates", []))
     entries = h.resolve_entries(grid, challenge, registered)
     assert [item["catalog_id"] for _, item, _ in entries] == [
+        "inpack.learned_baseline"
+    ] + [
         prefix + suffix
         for suffix in (
             "prior_krr",

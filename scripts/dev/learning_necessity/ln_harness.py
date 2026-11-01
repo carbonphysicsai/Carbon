@@ -21,7 +21,18 @@ What it enforces (Validator conditions, "Validator rulings" in the spec):
   refit on all TRAIN and both predict the probe inputs;
 - a contender absent from the version's listing is replaced by the next candidate of its family, and the substitution is
   recorded;
-- the record names the host and driver (rented-GPU runs are an existence proof, not bit-identical).
+- the record names the host and driver (rented-GPU runs are an existence proof, not bit-identical);
+- the reference role is the in-pack learned baseline run exactly as the pack runs it (``ln_inpack_baseline``), a contender
+  of kind ``inpack_baseline`` that names no catalog entry: it takes no setting, its records carry the identifier
+  ``inpack.learned_baseline`` where a catalog id goes, and the grid pins its implementation digest, which must equal the
+  files on disk before anything trains.
+
+Grid schema v2 (Validator ruling, 1 Nov 15:30 CST). A contender is either a catalog contender, ``{role, candidates,
+settings}`` exactly as in v1, or the in-pack one, ``{role, kind: "inpack_baseline", settings: null, implementation_digest}``
+(at most one). A ``kind`` field rather than a reserved candidate id, because the in-pack baseline has no candidates to fall
+back through and carries a pin a catalog contender has not; the catalog contenders' shape is unchanged, so their grid
+entries stay verbatim. The schema is bumped because a v1 reader would refuse the new contender; no v1 grid remains, so the
+v1 reader is not kept.
 
 Aggregates only: the tuned recipes stay private to Carbon (the record is CARBON_PRIVATE, never a miner hint).
 
@@ -59,10 +70,12 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-GRID_SCHEMA = "carbon.ln-grid.v1"
+GRID_SCHEMA = "carbon.ln-grid.v2"
 RECORD_SCHEMA = "carbon.ln-harness-record.v1"
 GRID_KEYS = {"schema", "status", "challenge", "k", "fold_seed", "seed", "contenders"}
 CONTENDER_KEYS = {"role", "candidates", "settings"}
+INPACK_KIND = "inpack_baseline"
+INPACK_KEYS = {"role", "kind", "settings", "implementation_digest"}
 SETTING_KEYS = {"configuration", "train_use"}
 
 
@@ -104,7 +117,22 @@ def load_grid(path, expected_digest):
     contenders = grid["contenders"]
     if not isinstance(contenders, list) or not contenders:
         raise Refused("grid_contenders_invalid")
+    if sum(isinstance(each, dict) and "kind" in each for each in contenders) > 1:
+        raise Refused("grid_inpack_contender_repeated")
     for each in contenders:
+        if isinstance(each, dict) and "kind" in each:
+            pin = each.get("implementation_digest")
+            if not (
+                set(each) == INPACK_KEYS
+                and each["kind"] == INPACK_KIND
+                and each["settings"] is None
+                and isinstance(pin, str)
+                and len(pin) == 71
+                and pin.startswith("sha256:")
+                and all(c in "0123456789abcdef" for c in pin[7:])
+            ):
+                raise Refused("grid_inpack_contender_invalid")
+            continue
         if not isinstance(each, dict) or set(each) != CONTENDER_KEYS:
             raise Refused("grid_contender_invalid")
         if not (
@@ -142,13 +170,38 @@ def load_train(challenge_id, version):
     raise Refused("train_not_registered_for_this_challenge")
 
 
+def is_inpack(item):
+    return item.get("kind") == INPACK_KIND
+
+
+def inpack_item(challenge_id):
+    """The in-pack baseline's stand-in for a catalog item: its identifier, kind and the implementation digest on disk."""
+    import ln_inpack_baseline
+
+    if challenge_id not in ln_inpack_baseline.KINDS:
+        raise Refused("inpack_baseline_not_registered_for_this_challenge")
+    return {
+        "catalog_id": ln_inpack_baseline.CONTENDER_ID,
+        "kind": INPACK_KIND,
+        "implementation_digest": ln_inpack_baseline.implementation_digest(),
+    }
+
+
 def resolve_entries(grid, challenge_id, version):
-    """``[(contender, item, substituted_from)]``: each contender's first candidate the version lists; refuses when none."""
+    """``[(contender, item, substituted_from)]``: each contender's first candidate the version lists; refuses when none.
+    The in-pack contender resolves to ``inpack_item`` when its pinned implementation digest is the one on disk.
+    """
     from carbon.backbone_catalog import listing
 
     offered = {e["catalog_id"]: e for e in listing.entries(challenge_id, version)}
     out = []
     for each in grid["contenders"]:
+        if each.get("kind") == INPACK_KIND:
+            item = inpack_item(challenge_id)
+            if item["implementation_digest"] != each["implementation_digest"]:
+                raise Refused("inpack_baseline_implementation_differs_from_its_pin")
+            out.append((each, item, None))
+            continue
         for index, candidate in enumerate(each["candidates"]):
             if candidate in offered:
                 out.append(
@@ -165,6 +218,10 @@ RUNTIMES = ("torch", "jax")
 
 def entry_runtime(item):
     """The runtime stack an entry's pinned build needs, from its settings schema ("torch" or "jax")."""
+    if is_inpack(item):
+        import ln_inpack_baseline
+
+        return ln_inpack_baseline.RUNTIME
     schema_id = item["settings_schema"]
     for name in RUNTIMES:
         if f"-{name}-" in schema_id:
@@ -216,6 +273,8 @@ def merge_check(records):
 
 def check_settings(contender, item):
     """Every grid setting and the default recipe through the entry's own settings schema (a catalog refusal re-raised)."""
+    if is_inpack(item):
+        return []  # it takes no setting (the grid's settings are null)
     from carbon.backbone_catalog import settings
     from carbon.backbone_catalog.entries import CatalogRefused
 
@@ -369,6 +428,15 @@ def load_catalog_builder(item):
     return import_builder(source)
 
 
+def load_builder(item, challenge_id, version):
+    """The build callable for an entry: the in-pack baseline's adapter, or the catalog entry's pinned build."""
+    if is_inpack(item):
+        import ln_inpack_baseline
+
+        return ln_inpack_baseline.builder(challenge_id, version)
+    return load_catalog_builder(item)
+
+
 def import_builder(source):
     """Extract a bundle's ``source.tar.gz`` and import its ``carbon_candidate.build`` fresh. The pinned tarballs carry one
     top-level directory (``<bundle>/carbon_candidate/...``); a flat tarball works too. The directory that HOLDS the package
@@ -471,6 +539,9 @@ def fit_and_export(builder, x, y, fits, seed, wall, probe, out, cid, record):
         if seconds > wall:
             record.setdefault("over_limit_final_fits", []).append(label)
             continue
+        # the in-pack baseline's own (length, ridge) choice; a catalog product has none
+        if "inpack_choice" in product:
+            record.setdefault("inpack_choice", {})[label] = product["inpack_choice"]
         if probe is None:
             continue
         prediction = predict(product, probe)
@@ -524,7 +595,7 @@ def run(
     contenders = []
     for each, item, substituted_from in entries:
         cid = item["catalog_id"]
-        builder = (builders or {}).get(cid) or load_catalog_builder(item)
+        builder = (builders or {}).get(cid) or load_builder(item, challenge_id, version)
         default = settings_resolve_default(item)
         record = {
             "role": each["role"],
@@ -532,6 +603,8 @@ def run(
             "substituted_for": substituted_from,
             "tuned": each["settings"] is not None,
         }
+        if is_inpack(item):
+            record["implementation_digest"] = item["implementation_digest"]
         chosen = None
         if each["settings"] is not None:
             table = []
@@ -619,11 +692,19 @@ def predict_from_record(
     registered_wall = rebuild_wall_seconds(challenge_id, version)
     wall = limit_for(registered_wall, cpu_only)
     offered = {e["catalog_id"]: e for e in listing.entries(challenge_id, version)}
+    if any(each.get("implementation_digest") for each in record["contenders"]):
+        inpack = inpack_item(challenge_id)
+        offered[inpack["catalog_id"]] = inpack
     for each in record["contenders"]:  # every refusal before the first fit
         if each["catalog_id"] not in offered:
             raise Refused(
                 "recorded_contender_not_offered_by_the_version:" + each["catalog_id"]
             )
+        item = offered[each["catalog_id"]]
+        if is_inpack(item) and each.get("implementation_digest") != item.get(
+            "implementation_digest"
+        ):
+            raise Refused("inpack_baseline_implementation_differs_from_the_record")
     out = Path(out_dir)
     make_output_dir(out)
     seed = record["seed"]
@@ -631,7 +712,7 @@ def predict_from_record(
     for each in record["contenders"]:
         cid = each["catalog_id"]
         item = offered[cid]
-        builder = (builders or {}).get(cid) or load_catalog_builder(item)
+        builder = (builders or {}).get(cid) or load_builder(item, challenge_id, version)
         fits = {"default": settings_resolve_default(item)}
         chosen = each.get("selected_setting")
         if chosen is not None:
@@ -639,6 +720,8 @@ def predict_from_record(
                 item, dict(chosen["configuration"]), dict(chosen["train_use"])
             )
         entry = {"role": each["role"], "catalog_id": cid, "tuned": chosen is not None}
+        if is_inpack(item):
+            entry["implementation_digest"] = item["implementation_digest"]
         fit_and_export(builder, x, y, fits, seed, wall, probe, out, cid, entry)
         log(f"{cid}: exported {sorted(entry['exports'])}")
         contenders.append(entry)
@@ -666,6 +749,8 @@ def predict_from_record(
 
 
 def settings_resolve_default(item):
+    if is_inpack(item):
+        return {}, {}  # run exactly as the pack runs it: no configuration, no train-use
     from carbon.backbone_catalog import settings
 
     return settings.resolve(item, {}, {})

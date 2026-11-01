@@ -63,7 +63,7 @@ def _builders(grid):
     return {
         candidate: _fake_build
         for each in grid["contenders"]
-        for candidate in each["candidates"]
+        for candidate in each.get("candidates", [h.inpack_item("f02")["catalog_id"]])
     }
 
 
@@ -108,6 +108,7 @@ def test_the_registered_grid_resolves_against_the_real_catalog_vocabulary():
     assert grid["status"] == "PROPOSED_NOT_RULED"
     entries = h.resolve_entries(grid, "f02", "2.5")
     assert [item["catalog_id"] for _, item, _ in entries] == [
+        "inpack.learned_baseline",
         "v2.f02.prior_krr",
         "v2.f02.neuralop.FNO",
         "v2.f02.lno.LNO1d",
@@ -124,7 +125,7 @@ def test_the_registered_grid_resolves_against_the_real_catalog_vocabulary():
 
 def test_a_knob_outside_the_catalog_vocabulary_refuses_before_anything_trains(tmp_path):
     grid = copy.deepcopy(_grid())
-    grid["contenders"][1]["settings"][0]["train_use"][
+    grid["contenders"][2]["settings"][0]["train_use"][
         "teacher_weights"
     ] = "pretrained.bin"
     path, digest = _write(tmp_path, grid)
@@ -139,7 +140,7 @@ def test_a_missing_contender_is_replaced_by_its_next_family_member_and_recorded(
     tmp_path,
 ):
     grid = copy.deepcopy(_grid())
-    second = grid["contenders"][2]
+    second = grid["contenders"][3]
     second["candidates"] = ["v2.f02.not_in_the_catalog", *second["candidates"]]
     path, digest = _write(tmp_path, grid)
     record = h.run(
@@ -154,7 +155,7 @@ def test_a_missing_contender_is_replaced_by_its_next_family_member_and_recorded(
     got = {c["catalog_id"]: c["substituted_for"] for c in record["contenders"]}
     assert got["v2.f02.lno.LNO1d"] == "v2.f02.not_in_the_catalog"
     assert got["v2.f02.neuralop.FNO"] is None
-    grid["contenders"][2]["candidates"] = ["v2.f02.not_in_the_catalog"]
+    grid["contenders"][3]["candidates"] = ["v2.f02.not_in_the_catalog"]
     path, digest = _write(tmp_path, grid, "none.json")
     with pytest.raises(h.Refused, match="contender_not_offered_by_the_version"):
         h.run(
@@ -196,8 +197,9 @@ def test_a_full_run_selects_by_cross_validation_and_exports_predictions_only(tmp
     assert record["rebuild_wall_seconds"] == 648 and len(record["folds"]) == 5
     assert "python" in record["host"] and "gpu" in record["host"]
     by = {c["catalog_id"]: c for c in record["contenders"]}
-    reference = by["v2.f02.prior_krr"]
-    assert reference["tuned"] is False and set(reference["exports"]) == {"default"}
+    for untuned in ("inpack.learned_baseline", "v2.f02.prior_krr"):
+        reference = by[untuned]
+        assert reference["tuned"] is False and set(reference["exports"]) == {"default"}
     fno = by["v2.f02.neuralop.FNO"]
     assert fno["tuned"] is True and len(fno["cv"]) == 8
     assert fno["selected_index"] == 2  # most steps, no decay, the first of equal errors
@@ -413,6 +415,7 @@ def test_each_entry_belongs_to_one_runtime_stack():
     items = [e[1] for e in h.resolve_entries(_grid(), "f02", "2.5")]
     got = {i["catalog_id"]: h.entry_runtime(i) for i in items}
     assert {c for c, r in got.items() if r == "jax"} == {
+        "inpack.learned_baseline",
         "v2.f02.prior_krr",
         "v2.f02.jno.mgno2d",
     }
@@ -444,7 +447,7 @@ def test_a_runtime_run_trains_only_that_stack_and_the_two_records_cover_the_grid
     assert {
         r: [c["catalog_id"] for c in v["contenders"]] for r, v in records.items()
     } == {
-        "jax": ["v2.f02.prior_krr", "v2.f02.jno.mgno2d"],
+        "jax": ["inpack.learned_baseline", "v2.f02.prior_krr", "v2.f02.jno.mgno2d"],
         "torch": [
             "v2.f02.neuralop.FNO",
             "v2.f02.lno.LNO1d",
@@ -453,12 +456,12 @@ def test_a_runtime_run_trains_only_that_stack_and_the_two_records_cover_the_grid
         ],
     }
     for runtime, record in records.items():
-        assert record["runtime"] == runtime and len(record["contenders_expected"]) == 6
+        assert record["runtime"] == runtime and len(record["contenders_expected"]) == 7
         assert record["grid_digest"] == digest
     merged = h.merge_check(list(records.values()))
     assert (
         sorted(merged["runtimes"]) == ["jax", "torch"]
-        and len(merged["contenders"]) == 6
+        and len(merged["contenders"]) == 7
     )
     # the custody step per runtime reproduces the one-process run for the same contenders
     h.run(
@@ -482,7 +485,7 @@ def test_a_runtime_run_trains_only_that_stack_and_the_two_records_cover_the_grid
             log=lambda *_: None,
         )
         assert (
-            document["runtime"] == runtime and len(document["contenders_expected"]) == 6
+            document["runtime"] == runtime and len(document["contenders_expected"]) == 7
         )
         for contender in document["contenders"]:
             for entry in contender["exports"].values():
@@ -598,6 +601,8 @@ def test_every_real_f02_entry_bundle_holds_exactly_one_importable_package_dir(tm
     from carbon.backbone_catalog import listing, pipeline
 
     for each, item, _ in h.resolve_entries(_grid(), "f02", "2.5"):
+        if h.is_inpack(item):
+            continue  # the in-pack baseline has no bundle
         source = pipeline.bundle_files(item)["source.tar.gz"]
         target = tmp_path / item["catalog_id"]
         with tarfile.open(fileobj=io.BytesIO(source), mode="r:gz") as archive:
