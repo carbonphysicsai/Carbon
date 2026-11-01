@@ -47,6 +47,39 @@
         "guard": "the version's scoring grid on its final sealed pools, in custody; a version that fails goes back to RESERVED"
       }
     },
+    "chip-cold-plate 1.7": {
+      "a_multiplier": 3.0,
+      "a_rule": {
+        "kind": "mean"
+      },
+      "agen_scales": {
+        "die_peak_c": 0.41420407077591903,
+        "hydraulic_w": 0.00608371529422243
+      },
+      "c_rule": {
+        "kind": "min"
+      },
+      "honesty": {
+        "reduction": "max",
+        "scale": "HUMAN_INPUT"
+      },
+      "optimizer": {
+        "budget": 60,
+        "population": null,
+        "sigma0": 0.25,
+        "pick_rule": {
+          "kind": "top_k",
+          "k": 3
+        },
+        "d_aggregate": "balanced_region_mean"
+      },
+      "provisional": {
+        "record": "PENDING-VALIDATOR-RECORD (Cooling 1.7 registration spec 20261101; not an owner record)",
+        "scope": "testnet",
+        "status": "PROVISIONAL",
+        "guard": "the version's scoring grid on its final sealed pools, in custody; a version that fails goes back to RESERVED; honesty.scale is HUMAN_INPUT until the custody calibration writes 0.25 x the baseline's median per-target error"
+      }
+    },
     "electric-motor-magnetics 1.5": {
       "a_multiplier": 3.0,
       "a_rule": {

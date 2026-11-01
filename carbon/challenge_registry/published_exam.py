@@ -1022,6 +1022,13 @@ _COOLING_POOL_16 = {
     ),
 }
 
+_COOLING_POOL_17 = {
+    **_COOLING_POOL_16,
+    **_pool_block(_COOLING, "chip-cold-plate 1.7", "cooling-pool-sealed-v3"),
+    "physics_laws": _COOLING_POOL_16["physics_laws"],
+    "score": _COOLING_POOL_16["score"],
+}
+
 #: Versions graded by the pool grader (their `_BY_VERSION` entry must carry a
 #: `pool_score(...)` score); the block of every other version is unchanged.
 _POOL_VERSIONS = frozenset(
@@ -1032,6 +1039,7 @@ _POOL_VERSIONS = frozenset(
         ("electric-motor-magnetics", "1.5"),
         ("chip-cold-plate", "1.5"),
         ("chip-cold-plate", "1.6"),
+        ("chip-cold-plate", "1.7"),
     }
 )
 
@@ -1043,6 +1051,7 @@ _BY_VERSION = {
     ("electric-motor-magnetics", "1.5"): _MOTOR_POOL,
     ("chip-cold-plate", "1.5"): _COOLING_POOL,
     ("chip-cold-plate", "1.6"): _COOLING_POOL_16,
+    ("chip-cold-plate", "1.7"): _COOLING_POOL_17,
     ("f02", "2.4"): _F02,
     ("electric-motor-magnetics", "1.4"): _MOTOR,
     ("chip-cold-plate", "1.4"): _COOLING,

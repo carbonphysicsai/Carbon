@@ -50,7 +50,7 @@ sys.path.insert(0, str(ROOT))
 #: The launch versions (the versions the recal measures), not practice_v2_curves' older defaults.
 LAUNCH = {
     "motor": ("electric-motor-magnetics", "1.5"),
-    "cooling": ("chip-cold-plate", "1.6"),
+    "cooling": ("chip-cold-plate", "1.7"),
     "f08": ("f08-ribbed-bracket", "1.7"),
     "f02": ("f02", "2.5"),
 }

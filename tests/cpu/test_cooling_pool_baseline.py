@@ -484,3 +484,24 @@ def test_no_non_cooling_producer_identity_reads_a_file_this_version_changed():
     chosen = cooling_dual_pack.sealed_adapter("1.7")
     assert chosen._module is seventeen and chosen.POOL_GRADED
     assert cooling_dual_pack.sealed_adapter("1.6")._module is hotspot
+
+
+#: Producer digests of every non-Cooling adapter on origin/main (ae260371c2), measured before the 1.7 dispatch edits.
+NON_COOLING_DIGESTS = {
+    "motor_dual_pack": "sha256:3089b982651cd1b158affd8e145ad544a80d6be26d1e6ba01e9323bc502762b9",
+    "motor_sealed_dual_pack": "sha256:3d45a99670763e003a6fa43393730ab7518e004c2a32a5ae80ef1b91e7b678f4",
+    "f02_dual_pack": "sha256:60861496cb77682c25e338d75744a99161cc830ac94ded9c75d54890d7a00c9b",
+    "f02_sealed_dual_pack": "sha256:4c49041bb04d0971d25f896899f83f122082a24fc252210733c1f5d67d909263",
+    "f08_dual_pack": "sha256:1d244cf56dd30de4a7b6e3961cd4f6c4e9c007487941ae0dcd2de46e4cf0e29e",
+    "f08_sealed_dual_pack": "sha256:43847f922bb63e7f72136c67c2c3da74600c71485452e5f19f19228c36baaefb",
+    "battery_dual_pack": "sha256:852fb21427ba7fec8c635fc588834455f1d55e91f3b4dfa5b925bea2b7924e22",
+    "battery_sealed_dual_pack": "sha256:e8d450a427d5c7572c9e1d41d070719bdc9ee10830e4eb41f09c5f8cabdaf45c",
+}
+
+
+def test_every_non_cooling_producer_digest_is_byte_identical_to_main():
+    import importlib
+
+    for name, expected in NON_COOLING_DIGESTS.items():
+        module = importlib.import_module("carbon.scoring." + name)
+        assert physical.producer_digest(module) == expected, name

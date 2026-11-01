@@ -79,6 +79,7 @@ POOL_KEYS = frozenset(
         ("electric-motor-magnetics", "1.5"),
         ("chip-cold-plate", "1.5"),
         ("chip-cold-plate", "1.6"),
+        ("chip-cold-plate", "1.7"),
     }
 )
 

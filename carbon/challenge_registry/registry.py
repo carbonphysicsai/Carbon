@@ -714,6 +714,29 @@ def _entries():
             _graph_route(_cold_plate_describe_catalog, COLD_PLATE_CHALLENGE, "1.6"),
             None,
         ),
+        # Cooling 1.7 (in-pack baseline graded by the miner measure); s_h unregistered keeps it RESERVED.
+        Entry(
+            COLD_PLATE_CHALLENGE,
+            "1.7",
+            "AI-chip liquid cold plate (DEVELOPMENT periodic cell, pool-graded exam, in-pack baseline, backbone catalog, graph training adapter v2, allowlist v8, law-safe output encoding)",
+            _pool_status(COLD_PLATE_CHALLENGE, "1.7"),
+            "launch",
+            "carbonphysicsai/Carbon#342",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(_cold_plate_describe_catalog, COLD_PLATE_CHALLENGE, "1.7"),
+            None,
+        ),
         # F08 (Ribbed Bracket) 1.4 and F02 (Burst Thermal) 2.3, direct-recipe
         # only (`carbon.direct_campaign`): Carbon's tested backbones by catalog
         # id, or a graph trained by Carbon's registered graph training adapter;
