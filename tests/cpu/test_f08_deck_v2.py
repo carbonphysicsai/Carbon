@@ -4,6 +4,7 @@ closed-form controls are right on synthetic data. No solve, no Gmsh, no CalculiX
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import sys
 from pathlib import Path
@@ -112,7 +113,15 @@ def test_a_fillet_larger_than_the_junction_is_refused():
         v2.validate_case({**CASE, "fillet_radius_mm": 5.5}, ranges=wide)
 
 
-def test_the_three_alloy_ids_are_registered_but_every_property_refuses_until_the_transcription_is_signed():
+ALLOY_SHA256 = "d5b8cc5638c3fa8d1bfd517b98d61c4735d59e3e6dd832c843e347dfd7b7fc10"
+ALLOY_FILE = CALCULIX / "f08_v2_alloy_table.json"
+
+
+def test_the_vendored_alloy_file_is_the_signed_one_and_the_deck_loads_its_values():
+    raw = ALLOY_FILE.read_bytes().replace(b"\r\n", b"\n")
+    assert hashlib.sha256(raw).hexdigest() == ALLOY_SHA256
+    assert v2.ALLOY_SHA256 == "sha256:" + ALLOY_SHA256 and v2.ALLOY_STATUS == "SIGNED"
+    assert v2.ALLOY_DECISION == "OWNER-F08-V2-ALLOYS-SIGNED-01"
     assert list(v2.ALLOYS) == ["6061-T6", "4130-normalized", "Ti-6Al-4V-annealed"]
     assert v2.SAFETY_FACTOR == 1.5
     assert v2.alloy_ids() == {
@@ -120,10 +129,59 @@ def test_the_three_alloy_ids_are_registered_but_every_property_refuses_until_the
         "4130-normalized": 1,
         "Ti-6Al-4V-annealed": 2,
     }
-    for name in v2.ALLOYS:
-        assert all(v == v2.HUMAN_INPUT for v in v2.ALLOYS[name].values())
+    signed = {row["id"]: row for row in json.loads(raw)["alloys"]}
+    for name, file_id in v2.ALLOY_FILE_IDS.items():
+        row, got = signed[file_id], v2.ALLOYS[name]
+        assert got["E_mpa"] == pytest.approx(row["E_GPa"] * 1000.0)
+        assert got["nu"] == row["nu"]
+        assert got["rho_t_per_mm3"] == pytest.approx(row["rho_kg_m3"] * 1e-12)
+        assert (
+            got["yield_mpa"] == row["Fty_selected"]["MPa"]
+        )  # the selected (lowest published) Fty
+    assert v2.ALLOYS["6061-T6"]["yield_mpa"] == 241.3
+    assert v2.ALLOYS["4130-normalized"]["yield_mpa"] == 482.6
+    assert v2.ALLOYS["Ti-6Al-4V-annealed"]["yield_mpa"] == 827.4
+
+
+def test_production_builds_with_the_signed_alloys_and_records_the_decision_and_sha():
+    for name in v2.ALLOY_IDS:
+        mat = v2.material(name)
+        assert (
+            mat["tables"] == "REGISTERED" and mat["source"]["sha256"] == v2.ALLOY_SHA256
+        )
+    deck = v2.deck_text(
+        {**CASE, "alloy": "4130-normalized"},
+        _tiny_meta(),
+        v2.material("4130-normalized"),
+    )
+    assert f"** alloy table: OWNER-F08-V2-ALLOYS-SIGNED-01 {v2.ALLOY_SHA256}" in deck
+    assert (
+        "199950.0,0.32" in deck and "7.8334e-09" in deck and "tables=REGISTERED" in deck
+    )
+    test_deck = v2.deck_text(
+        CASE, _tiny_meta(), v2.material("TEST_ALLOY", table=TEST_TABLE, test_mode=True)
+    )
+    assert (
+        "** alloy table" not in test_deck
+    )  # a test table carries no signed provenance
+    margin = v2.stress_margin({"peak_von_mises_mpa": 200.0}, v2.material("6061-T6"))
+    assert margin["allowable_mpa"] == pytest.approx(241.3 / 1.5)
+    assert margin["stress_ratio"] == pytest.approx(200.0 / (241.3 / 1.5))
+
+
+def test_a_changed_or_missing_alloy_file_puts_human_input_back_and_refuses(monkeypatch):
+    monkeypatch.setattr(v2, "ALLOY_SHA256", "sha256:" + "0" * 64)
+    table, status = v2._load_signed_alloys()
+    assert status == "ALLOY_FILE_NOT_THE_SIGNED_ONE"
+    for name in v2.ALLOY_IDS:
+        assert all(v == v2.HUMAN_INPUT for v in table[name].values())
         with pytest.raises(v2.Refused, match="alloy_value_not_registered_E_mpa"):
-            v2.material(name)
+            v2.material(name, table=table)
+    monkeypatch.setattr(v2, "ALLOY_FILE", "no_such_file.json")
+    assert v2._load_signed_alloys()[1] == "ALLOY_FILE_MISSING"
+
+
+def test_an_unknown_alloy_and_a_human_input_value_are_still_refused():
     with pytest.raises(v2.Refused, match="alloy_not_registered"):
         v2.material("TEST_ALLOY")
     with pytest.raises(v2.Refused, match="alloy_value_not_registered_yield_mpa"):
@@ -134,7 +192,7 @@ def test_the_three_alloy_ids_are_registered_but_every_property_refuses_until_the
             },
         )
     row = v2.material("TEST_ALLOY", table=TEST_TABLE, test_mode=True)
-    assert row["tables"] == "TEST_ONLY"
+    assert row["tables"] == "TEST_ONLY" and "source" not in row
     assert v2.material("TEST_ALLOY", table=TEST_TABLE)["tables"] == "REGISTERED"
 
 

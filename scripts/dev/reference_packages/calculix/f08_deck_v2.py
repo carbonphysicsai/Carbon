@@ -13,9 +13,10 @@ peak von Mises stress at the rib-root fillet, a local NOTCH response, against th
 
 NOTHING owner-set is invented here. OWNER-F08-V2-VALUES-01 (2026-11-01) registers the new inputs' ranges (fillet 0.5-3.0
 mm, load angle 0-45 deg, load offset -0.4 to +0.4 of the width, damping 0.005-0.02), the safety factor 1.5 and the three
-alloy ids. The alloys' E, nu, rho and Fty stay `HUMAN_INPUT` until the two-pass transcription is signed: a production
-deck, observation or yield margin refuses until then. `test_mode=True` accepts clearly synthetic values and marks every
-output `"tables": "TEST_ONLY"`.
+alloy ids. OWNER-F08-V2-ALLOYS-SIGNED-01 signs the alloys' E, nu, rho and Fty (MIL-HDBK-5J, two transcriptions): the
+vendored table is byte-identical to the signed file and checked on load; a changed or missing file puts `HUMAN_INPUT` back
+and a production deck, observation or yield margin refuses. `test_mode=True` accepts clearly synthetic values and marks
+every output `"tables": "TEST_ONLY"`.
 
 The mesh runs in the pinned Gmsh image (not available on a desk); the tests here check the generated script compiles and
 carry the stress parser, the von Mises reduction and the closed-form controls on synthetic data. NO solve is run by this
@@ -25,6 +26,7 @@ module's tests.
 from __future__ import annotations
 
 import ast
+import hashlib
 import itertools
 import json
 import math
@@ -66,15 +68,62 @@ RANGES = {
     "load_offset_frac": (-0.4, 0.4),
     "damping_ratio": (0.005, 0.02),
 }
-#: Alloy table: owner-approved values with an open citing source and two transcriptions. Empty until registered.
-#: The three registered alloy ids, in registration order (the categorical id is the position). Their E, nu, rho and
-#: Fty stay HUMAN_INPUT until the two-pass transcription is signed.
-ALLOYS: dict = {
-    name: {
-        field: HUMAN_INPUT for field in ("E_mpa", "nu", "rho_t_per_mm3", "yield_mpa")
-    }
-    for name in ("6061-T6", "4130-normalized", "Ti-6Al-4V-annealed")
+#: The three registered alloy ids, in registration order (the categorical id is the position), and the SIGNED table
+#: (OWNER-F08-V2-ALLOYS-SIGNED-01, 2026-11-01): MIL-HDBK-5J, two independent transcriptions, E, nu, rho and the selected Fty
+#: (A-basis LT where A/B are given, S-basis where only S is, the lowest over the product forms covering the plate range).
+#: The vendored file is byte-identical to the signed one (sha256 below, checked on every load); a changed or missing file
+#: leaves HUMAN_INPUT in place, so a production deck, observation or yield margin is REFUSED.
+ALLOY_IDS = ("6061-T6", "4130-normalized", "Ti-6Al-4V-annealed")
+ALLOY_DECISION = "OWNER-F08-V2-ALLOYS-SIGNED-01"
+ALLOY_FILE = "f08_v2_alloy_table.json"
+ALLOY_SHA256 = "sha256:d5b8cc5638c3fa8d1bfd517b98d61c4735d59e3e6dd832c843e347dfd7b7fc10"
+#: The signed file's ids for the three alloy ids above.
+ALLOY_FILE_IDS = {
+    "6061-T6": "AL_6061_T651_plate",
+    "4130-normalized": "AISI_4130_normalized",
+    "Ti-6Al-4V-annealed": "TI_6AL_4V_annealed_plate",
 }
+#: Unit conversions to the deck's mm-t-N-s system: GPa -> MPa, kg/m^3 -> t/mm^3.
+GPA_TO_MPA = 1000.0
+KG_M3_TO_T_MM3 = 1e-12
+
+
+def _load_signed_alloys():
+    """``(table, status)``: the three alloys' E, nu, rho and Fty from the signed file when its bytes hash to the signed
+    sha256, else HUMAN_INPUT placeholders and the reason (fail closed)."""
+    closed = {
+        name: {
+            field: HUMAN_INPUT
+            for field in ("E_mpa", "nu", "rho_t_per_mm3", "yield_mpa")
+        }
+        for name in ALLOY_IDS
+    }
+    path = Path(__file__).with_name(ALLOY_FILE)
+    try:
+        raw = path.read_bytes().replace(b"\r\n", b"\n")
+    except OSError:
+        return closed, "ALLOY_FILE_MISSING"
+    if "sha256:" + hashlib.sha256(raw).hexdigest() != ALLOY_SHA256:
+        return closed, "ALLOY_FILE_NOT_THE_SIGNED_ONE"
+    rows = {row["id"]: row for row in json.loads(raw)["alloys"]}
+    table = {
+        name: {
+            "E_mpa": rows[file_id]["E_GPa"] * GPA_TO_MPA,
+            "nu": rows[file_id]["nu"],
+            "rho_t_per_mm3": rows[file_id]["rho_kg_m3"] * KG_M3_TO_T_MM3,
+            "yield_mpa": rows[file_id]["Fty_selected"]["MPa"],
+        }
+        for name, file_id in ALLOY_FILE_IDS.items()
+    }
+    return table, "SIGNED"
+
+
+def alloy_source():
+    """What a deck built from the signed alloys records: the owner decision, the file name and its sha256."""
+    return {"decision": ALLOY_DECISION, "sha256": ALLOY_SHA256, "file": ALLOY_FILE}
+
+
+ALLOYS, ALLOY_STATUS = _load_signed_alloys()
 ALLOY_FIELDS = ("E_mpa", "nu", "rho_t_per_mm3", "yield_mpa")
 #: Owner values for the stress margin.
 SAFETY_FACTOR = (
@@ -133,7 +182,9 @@ def validate_case(case, *, ranges=None, test_mode=False):
 
 
 def material(alloy, *, table=None, test_mode=False):
-    """The alloy's registered row, or a refusal. Every value is HUMAN_INPUT until the owner registers the table."""
+    """The alloy's registered row, or a refusal. The default table is the owner-signed one (HUMAN_INPUT placeholders if
+    its file is not the signed one); ``table`` supplies another (test values)."""
+    signed = table is None
     table = ALLOYS if table is None else table
     row = table.get(alloy)
     if row is None:
@@ -143,7 +194,10 @@ def material(alloy, *, table=None, test_mode=False):
             raise Refused(f"alloy_value_not_registered_{field}")
     if not (row["E_mpa"] > 0 and 0 < row["nu"] < 0.5 and row["rho_t_per_mm3"] > 0):
         raise Refused("alloy_value_out_of_range")
-    return {**row, "tables": "TEST_ONLY" if test_mode else "REGISTERED"}
+    out = {**row, "tables": "TEST_ONLY" if test_mode else "REGISTERED"}
+    if signed and not test_mode:
+        out["source"] = alloy_source()
+    return out
 
 
 # ---------------------------------------------------------------- load
@@ -325,6 +379,11 @@ def deck_text(case, meta, mat, *, modes=48, loads=None):
         f"f08 2.0 {json.dumps(case, sort_keys=True)} modes={modes} tables={mat['tables']}",
         # Numerical settings (Validator, 2026-11-01): fixed, never tuned; the refinement ladder verifies them.
         f"** numerical settings: {json.dumps(numerical_settings(), sort_keys=True)}",
+        *(
+            [f"** alloy table: {mat['source']['decision']} {mat['source']['sha256']}"]
+            if mat.get("source")
+            else []
+        ),
         "*INCLUDE,INPUT=mesh.inp",
         "*NSET,NSET=OBS",
         *map(str, obs),

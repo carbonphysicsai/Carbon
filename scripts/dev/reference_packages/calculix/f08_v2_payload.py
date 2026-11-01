@@ -210,7 +210,8 @@ def plan(seed, shard_size=20):
         "seed": seed,
         "outputs": list(OUTPUTS),
         "exact": sorted(EXACT),
-        "alloy_properties": "HUMAN_INPUT until DC's two-pass transcription is signed: a run refuses",
+        "alloy_properties": "signed: OWNER-F08-V2-ALLOYS-SIGNED-01, the shards carry alloy ids only",
+        "alloy_table_sha256": v2.ALLOY_SHA256,
         "jobs": len(ordered),
         "shards": shards,
     }

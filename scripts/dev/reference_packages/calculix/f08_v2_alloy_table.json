@@ -1,0 +1,141 @@
+{
+ "alloys": [
+  {
+   "E_GPa": 199.95,
+   "Fty_MPa": {
+    "S_gt_0.188in": 482.6,
+    "S_le_0.188in": 517.1
+   },
+   "Fty_selected": {
+    "MPa": 482.6,
+    "basis": "S",
+    "ksi": "70",
+    "why": "lower of the two thickness classes (<=0.188: 75, >0.188: 70)"
+   },
+   "form": "sheet, strip, plate, tubing; normalized and tempered, stress relieved",
+   "id": "AISI_4130_normalized",
+   "nu": 0.32,
+   "page": "2-17",
+   "printed": {
+    "E_10e3_ksi": "29.0",
+    "Fty_ksi": {
+     "S_gt_0.188in": "70",
+     "S_le_0.188in": "75"
+    },
+    "mu": "0.32",
+    "omega_lb_in3": "0.283"
+   },
+   "rho_kg_m3": 7833.4,
+   "table": "2.3.1.0(c1)"
+  },
+  {
+   "E_GPa": 68.26,
+   "Fty_MPa": {
+    "A_L": 248.2,
+    "A_LT": 241.3,
+    "B_L": 262.0,
+    "B_LT": 255.1
+   },
+   "Fty_selected": {
+    "MPa": 241.3,
+    "basis": "A_LT",
+    "ksi": "35",
+    "why": "lower of the sheet T6 0.010-0.249 in A-LT (35) and the plate T651 0.250-2.000 in A-LT (35)"
+   },
+   "form": "plate T651/T62, 0.250-2.000 in; no S basis in this range",
+   "id": "AL_6061_T651_plate",
+   "nu": 0.33,
+   "page": "3-265",
+   "printed": {
+    "E_10e3_ksi": "9.9",
+    "Fty_ksi": {
+     "A_L": "36",
+     "A_LT": "35",
+     "B_L": "38",
+     "B_LT": "37"
+    },
+    "mu": "0.33",
+    "omega_lb_in3": "0.098"
+   },
+   "rho_kg_m3": 2712.6,
+   "sheet_row": {
+    "E_10e3_ksi": "9.9",
+    "Fty_ksi": {
+     "A_L": "36",
+     "A_LT": "35",
+     "B_L": "38",
+     "B_LT": "37"
+    },
+    "form": "sheet T6 and T62, 0.010-0.249 in",
+    "mu": "0.33",
+    "omega_lb_in3": "0.098",
+    "printed_page": "3-264",
+    "table": "3.6.2.0(b1)"
+   },
+   "table": "3.6.2.0(b2)"
+  },
+  {
+   "E_GPa": 110.32,
+   "Fty_MPa": {
+    "A_L": 827.4,
+    "A_LT": 827.4,
+    "B_L": 861.8,
+    "B_LT": 903.2
+   },
+   "Fty_selected": {
+    "MPa": 827.4,
+    "basis": "A_LT",
+    "ksi": "120",
+    "why": "lower of the sheet <=0.1875 in A-LT (126) and the plate 0.1875-2.000 in A-LT (120); footnote b: the specification value is 123 ksi (printed 120)"
+   },
+   "form": "annealed plate 0.1875-2.000 in; no S basis; the LT A-basis Fty cell carries footnote b (footnote text: rounded T99 values higher than the specification values, Fty(LT)=123 ksi)",
+   "id": "TI_6AL_4V_annealed_plate",
+   "nu": 0.31,
+   "page": "5-53",
+   "printed": {
+    "E_10e3_ksi": "16.0",
+    "Fty_ksi": {
+     "A_L": "120",
+     "A_LT": "120",
+     "B_L": "125",
+     "B_LT": "131"
+    },
+    "mu": "0.31",
+    "omega_lb_in3": "0.160"
+   },
+   "rho_kg_m3": 4428.8,
+   "sheet_row": {
+    "Fty_ksi": {
+     "A_L": "126",
+     "A_LT": "126",
+     "B_L": "131",
+     "B_LT": "131"
+    },
+    "form": "annealed sheet <=0.1875 in",
+    "printed_page": "5-53",
+    "table": "5.4.1.0(b)"
+   },
+   "table": "5.4.1.0(b)"
+  }
+ ],
+ "conversion": {
+  "10e3_ksi_to_GPa": 6.894757293,
+  "ksi_to_MPa": 6.894757293,
+  "lb_in3_to_kg_m3": 27679.9047
+ },
+ "label": "CANDIDATE_PENDING_OWNER_SIGNATURE",
+ "passes": "two independent transcriptions (pass1.json, pass2.json), 30 compared cells identical; the sheet rows are in both passes (pass 2 read them from page images)",
+ "rule": {
+  "ruling": "Validator 11-01",
+  "substitution": "the owner asked for S-basis; where S is not published for the form/thickness (6061 T6 sheet/plate, Ti-6Al-4V annealed) the A-basis (99 %) LT value is used as the equivalent conservative minimum",
+  "text": "Fty = the LOWEST published minimum over the product forms covering the bracket's plate-thickness range (roughly 2-8 mm); A-basis LT where A/B are given, S-basis where only S is given"
+ },
+ "schema": "carbon.f08.v2-alloy-table-candidate.v2",
+ "source": {
+  "date": "31 January 2003",
+  "file": "MIL-HDBK-5J.pdf",
+  "host_note": "saved by the owner (copy marked downloaded from everyspec.com); public domain, distribution statement A",
+  "sha256": "0b79178a61e53d3a6ddaf36752a3793d3bd9b0045f268efb0f94150f7f8c7494",
+  "title": "MIL-HDBK-5J Metallic Materials and Elements for Aerospace Vehicle Structures"
+ }
+}

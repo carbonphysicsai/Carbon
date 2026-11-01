@@ -94,7 +94,8 @@ def test_the_plan_puts_the_one_job_smoke_first_and_the_shards_hold_inputs_only()
         assert (
             forbidden not in text
         )  # inputs only: no outputs, no alloy property values
-    assert "HUMAN_INPUT until" in document["alloy_properties"]
+    assert document["alloy_table_sha256"] == v2.ALLOY_SHA256
+    assert "OWNER-F08-V2-ALLOYS-SIGNED-01" in document["alloy_properties"]
 
 
 def series(f_coarse, order, base=1.0):
