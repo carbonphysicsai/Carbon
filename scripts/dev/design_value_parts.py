@@ -68,23 +68,45 @@ class Recorder:
         self.combine_calls = (
             []
         )  # (a, a_gen, rule): each A_gen combination the grader made
+        self.picks = (
+            []
+        )  # per recorded set (with pick_values): each target's predicted and true outputs at its pick
 
 
 @contextlib.contextmanager
-def recording(agen_scale_sets=None):
+def recording(agen_scale_sets=None, pick_values=False):
     """Wrap `pool_grader.grade_set` and `pool_exam.measure_pool` so their returns are recorded; restore on exit.
 
     ``agen_scale_sets`` (optional, a list of ``{output: scale}``) also records, for every A_gen the grader computes, the
     same A_gen at each of those scales (`pool_grader.agen_accuracy` on the SAME specs and predictions, called inside the
     wrapper while the model is still being served) and every A_gen combination, so `agen_sweep` can give A at stricter
-    accuracy scales. The grader's own result is unchanged."""
+    accuracy scales. ``pick_values`` also keeps, per target, the model's predicted outputs and the true outputs at the
+    target's final pick (named scalars: no design, no row index). The grader's own result is unchanged.
+    """
     recorder = Recorder()
     real_grade_set, real_measure_pool = pool_grader.grade_set, pool_exam.measure_pool
     real_agen, real_combine = pool_grader.agen_accuracy, pool_grader.combine_a
 
     def grade_set(specs, predict, optimizer, honesty):
-        grade = real_grade_set(specs, predict, optimizer, honesty)
+        asked = {}
+
+        def watching(conditions, designs):
+            batch = predict(conditions, designs)
+            for design, prediction in zip(designs, batch):
+                asked[(repr(sorted(conditions.items())), tuple(design))] = prediction
+            return batch
+
+        grade = real_grade_set(
+            specs, watching if pick_values else predict, optimizer, honesty
+        )
         recorder.sets.append((tuple(specs), grade, honesty))
+        if pick_values:
+            recorder.picks.append(
+                [
+                    _pick_values(spec, target, asked)
+                    for spec, target in zip(specs, grade.targets)
+                ]
+            )
         return grade
 
     def measure_pool(*args, **kwargs):
@@ -151,6 +173,24 @@ def agen_sweep(recorder, agen_scale_sets):
     return out
 
 
+def _pick_values(spec, target, asked):
+    """``{output: {"predicted", "true"}}`` at the target's final pick, or None (no pick, or the pick was not predicted)."""
+    if target.pick is None:
+        return None
+    key = (repr(sorted(spec.conditions.items())), tuple(spec.designs[target.pick]))
+    predicted = asked.get(key)
+    if predicted is None:
+        return None
+    return {
+        name: {
+            "predicted": float(predicted[name]),
+            "true": float(spec.truths[target.pick][name]),
+        }
+        for name in spec.outputs
+        if name in predicted
+    }
+
+
 def _regret(spec, grade):
     """(s_ref - s_pick) / (s_ref - s_low) from the TargetSpec's own fields; None when there is no pick."""
     if grade.pick is None:
@@ -166,11 +206,16 @@ def parts(recorder):
         raise PartsError("the measure did not reach the pool grade")
     c = ((measured.get("design_fidelity") or {}).get("C")) if measured else None
     sets = []
-    for specs, grade, honesty in recorder.sets:
+    for set_index, (specs, grade, honesty) in enumerate(recorder.sets):
         targets = []
         for spec, target in zip(specs, grade.targets, strict=True):
             targets.append(
                 {
+                    **(
+                        {"pick": recorder.picks[set_index][len(targets)]}
+                        if recorder.picks
+                        else {}
+                    ),
                     "target": target.digest.removeprefix("sha256:")[:16],
                     "feasible": target.feasible,
                     "reason": target.reason,
@@ -303,6 +348,10 @@ def render(report):
                 f" reached_reference={target['reached_reference']} queries={target['queries']}"
                 f" regret={'none' if regret is None else repr(regret)} (derived (not a grader output))"
             )
+            for name, value in sorted((target.get("pick") or {}).items()):
+                lines.append(
+                    f"    pick {name}: predicted={value['predicted']!r} true={value['true']!r}"
+                )
     if report.get("gated"):
         lines.append("gated: a mandatory gate failed, so the grader composed no pool D")
     lines.append(f"stored D     = {report['stored_d']!r}")
