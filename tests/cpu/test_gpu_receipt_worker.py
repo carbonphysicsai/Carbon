@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from tests.cpu import gpu_registries
 from carbon.backbone_catalog import gpu_receipt, listing
 from carbon.backbone_catalog.receipt_store import ReceiptStore
 from scripts.dev import gpu_receipt_worker as w
+from tests.cpu import gpu_registries
 
 RT = "torch-cu130-py311"
 HOST = "test-host-class"
