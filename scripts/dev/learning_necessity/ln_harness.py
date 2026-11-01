@@ -131,6 +131,14 @@ def load_train(challenge_id, version):
 
         data = f02_train.load_public_train(version)
         return data["inputs"], data["targets"]
+    if challenge_id == "electric-motor-magnetics":
+        import ln_train_motor_cooling
+
+        return ln_train_motor_cooling.load_train(challenge_id, version)
+    if challenge_id == "chip-cold-plate":
+        import ln_train_motor_cooling
+
+        return ln_train_motor_cooling.load_train(challenge_id, version)
     raise Refused("train_not_registered_for_this_challenge")
 
 

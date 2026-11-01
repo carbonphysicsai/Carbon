@@ -1,0 +1,542 @@
+{
+ "challenge": {
+  "id": "chip-cold-plate",
+  "version": "1.8"
+ },
+ "contenders": [
+  {
+   "candidates": [
+    "v2.cooling.prior_krr"
+   ],
+   "role": "reference (learned baseline)",
+   "settings": null
+  },
+  {
+   "candidates": [
+    "v2.cooling.neuralop.FNO"
+   ],
+   "role": "operator: FNO",
+   "settings": [
+    {
+     "configuration": {
+      "learning_rate": 0.001
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.001
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.001
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.001
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.004
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.004
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.004
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.004
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 1200
+     }
+    }
+   ]
+  },
+  {
+   "candidates": [
+    "v2.cooling.lno.LNO1d",
+    "v2.cooling.deepxde.DeepONetCartesianProd"
+   ],
+   "role": "second operator",
+   "settings": [
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 1200
+     }
+    }
+   ]
+  },
+  {
+   "candidates": [
+    "v2.cooling.physicsnemo.FullyConnected"
+   ],
+   "role": "MLP",
+   "settings": [
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 1200
+     }
+    }
+   ]
+  },
+  {
+   "candidates": [
+    "v2.cooling.jno.mgno2d",
+    "v2.cooling.neuralop.GINO"
+   ],
+   "role": "graph",
+   "settings": [
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 1200
+     }
+    }
+   ]
+  },
+  {
+   "candidates": [
+    "v2.cooling.jno.transolver"
+   ],
+   "role": "transformer",
+   "settings": [
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.0005
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 300
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.0
+      },
+      "steps": 1200
+     }
+    },
+    {
+     "configuration": {
+      "learning_rate": 0.002
+     },
+     "train_use": {
+      "optimizer": {
+       "name": "adamw",
+       "weight_decay": 0.001
+      },
+      "steps": 1200
+     }
+    }
+   ]
+  }
+ ],
+ "fold_seed": 20261101,
+ "k": 5,
+ "schema": "carbon.ln-grid.v1",
+ "seed": 0,
+ "status": "PROPOSED_NOT_RULED"
+}
