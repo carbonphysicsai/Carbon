@@ -23,6 +23,7 @@ module's tests.
 from __future__ import annotations
 
 import ast
+import itertools
 import json
 import math
 import re
@@ -418,3 +419,89 @@ def notch_control(measured_peak, nominal, published_kt, *, tolerance):
     tol = _need(tolerance, "notch_tolerance")
     ratio = measured_peak / nominal
     return {"measured_kt": ratio, "published_kt": kt, "ok": abs(ratio - kt) <= tol * kt}
+
+
+# ---------------------------------------------------------------- miner features, rungs, solve record
+
+PROPERTY_FEATURES = ("E_mpa", "nu", "rho_t_per_mm3", "yield_mpa")
+
+
+def feature_names():
+    """The numeric feature vector a model sees per case: the 6 geometry inputs, the 4 new numeric inputs, the alloy's
+    categorical id and the alloy's registered property vector (so a model can generalise through properties instead of
+    memorising labels)."""
+    return (*GEOMETRY, *NEW_INPUTS, "alloy_id", *PROPERTY_FEATURES)
+
+
+def alloy_ids(table=None):
+    """Stable categorical ids: the registered alloys in sorted-name order (0, 1, 2, ...)."""
+    table = ALLOYS if table is None else table
+    return {name: index for index, name in enumerate(sorted(table))}
+
+
+def features(case, *, table=None):
+    """The case's feature vector in `feature_names()` order. The property values come from the registered table, so an
+    unregistered alloy or a HUMAN_INPUT value refuses here exactly as `material` does.
+    """
+    table = ALLOYS if table is None else table
+    row = material(case["alloy"], table=table)
+    ids = alloy_ids(table)
+    return [
+        *(float(case[name]) for name in (*GEOMETRY, *NEW_INPUTS)),
+        float(ids[case["alloy"]]),
+        *(float(row[name]) for name in PROPERTY_FEATURES),
+    ]
+
+
+def observe_rungs(case, rung_dats, mat):
+    """The fillet-refinement ladder for one case (capture 5): ``rung_dats`` maps ``fillet_h_mm`` to that rung's .dat
+    text. Reports each rung's peak von Mises and the relative change between successive (finer) rungs, so U per output
+    can be derived from the raw rungs. Refuses fewer than two rungs."""
+    if len(rung_dats) < 2:
+        raise Refused("fillet_refinement_needs_two_rungs")
+    ordered = sorted(rung_dats, reverse=True)  # coarse to fine
+    peaks = [
+        {"fillet_h_mm": h, **peak_von_mises(parse_stress(rung_dats[h]))}
+        for h in ordered
+    ]
+    changes = [
+        {
+            "from_h_mm": a["fillet_h_mm"],
+            "to_h_mm": b["fillet_h_mm"],
+            "rel_change": (b["peak_von_mises_mpa"] - a["peak_von_mises_mpa"])
+            / a["peak_von_mises_mpa"],
+        }
+        for a, b in itertools.pairwise(peaks)
+    ]
+    return {
+        "case": case,
+        "tables": mat["tables"],
+        "rungs": peaks,
+        "successive": changes,
+    }
+
+
+def solve_record(
+    case, *, deck, mesh_meta, dat_text, image_ids, fillet_h_mm, wall_s=None
+):
+    """The per-case reference-solve record (capture 7): what was solved, with what, with digests; no stress values.
+    ``image_ids`` binds the mesher and solver images; ``wall_s`` is the measured wall time when known.
+    """
+    import hashlib
+
+    def sha(text):
+        return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    return {
+        "schema": "carbon.f08.solve-record.v2",
+        "case": case,
+        "fillet_h_mm": fillet_h_mm,
+        "deck_sha256": sha(deck),
+        "dat_sha256": sha(dat_text),
+        "mesh": {
+            key: mesh_meta.get(key)
+            for key in ("nodes", "elements", "fillet_elements", "mesh_volume_mm3")
+        },
+        "images": dict(image_ids),
+        "wall_s": wall_s,
+    }

@@ -218,3 +218,73 @@ def test_the_notch_control_needs_a_published_kt_and_a_tolerance():
         v2.notch_control(30.0, 10.0, 3.0, tolerance=v2.HUMAN_INPUT)
     assert v2.notch_control(30.0, 10.0, 3.0, tolerance=0.05)["ok"] is True
     assert v2.notch_control(36.0, 10.0, 3.0, tolerance=0.05)["ok"] is False
+
+
+def test_the_feature_vector_carries_the_geometry_the_new_inputs_the_alloy_id_and_its_properties():
+    names = v2.feature_names()
+    assert len(names) == 15 and names[-4:] == v2.PROPERTY_FEATURES
+    table = {
+        **TEST_TABLE,
+        "A_FIRST": {**TEST_TABLE["TEST_ALLOY"], "E_mpa": 200000.0},
+    }
+    assert v2.alloy_ids(table) == {"A_FIRST": 0, "TEST_ALLOY": 1}
+    row = v2.features(CASE, table=table)
+    assert len(row) == len(names)
+    assert row[names.index("alloy_id")] == 1.0
+    assert (
+        row[names.index("E_mpa")] == 70000.0 and row[names.index("yield_mpa")] == 100.0
+    )
+    with pytest.raises(v2.Refused, match="alloy_not_registered"):
+        v2.features(CASE)  # the production table is empty
+
+
+def _dat(peak):
+    return f"""
+ stresses (elem, integ.pnt.,sxx,syy,szz,sxy,sxz,syz) for set FILLET and time  0.1000000E+01
+
+         3   1  {peak:.6E}  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00
+
+ total force (fx,fy,fz)
+"""
+
+
+def test_the_refinement_ladder_reports_each_rung_and_the_successive_change():
+    mat = v2.material("TEST_ALLOY", table=TEST_TABLE, test_mode=True)
+    out = v2.observe_rungs(
+        CASE, {1.0: _dat(100.0), 0.5: _dat(110.0), 0.25: _dat(112.2)}, mat
+    )
+    assert [r["fillet_h_mm"] for r in out["rungs"]] == [
+        1.0,
+        0.5,
+        0.25,
+    ]  # coarse to fine
+    assert [r["peak_von_mises_mpa"] for r in out["rungs"]] == pytest.approx(
+        [100.0, 110.0, 112.2]
+    )
+    assert [c["rel_change"] for c in out["successive"]] == pytest.approx([0.10, 0.02])
+    with pytest.raises(v2.Refused, match="fillet_refinement_needs_two_rungs"):
+        v2.observe_rungs(CASE, {0.5: _dat(110.0)}, mat)
+
+
+def test_the_solve_record_binds_the_deck_the_output_the_mesh_and_the_images_and_holds_no_stress():
+    record = v2.solve_record(
+        CASE,
+        deck="deck text",
+        mesh_meta={
+            "nodes": 10,
+            "elements": 4,
+            "fillet_elements": 2,
+            "mesh_volume_mm3": 1.5,
+            "coords": {"1": [0, 0, 0]},
+        },
+        dat_text=_dat(100.0),
+        image_ids={"mesh": "sha256:" + "a" * 64, "ccx": "sha256:" + "b" * 64},
+        fillet_h_mm=0.5,
+        wall_s=12.5,
+    )
+    assert record["schema"] == "carbon.f08.solve-record.v2" and record["wall_s"] == 12.5
+    assert (
+        record["deck_sha256"].startswith("sha256:")
+        and record["dat_sha256"] != record["deck_sha256"]
+    )
+    assert "coords" not in record["mesh"] and "peak_von_mises_mpa" not in record
