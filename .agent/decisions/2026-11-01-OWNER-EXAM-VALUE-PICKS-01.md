@@ -15,3 +15,9 @@ Basis: codex-queue/reports/WEEK1_EXAM_VALUE_ANSWERS_20261101.md (Validator), rel
 ## Bounds
 - Testnet. Each change enters through a new registered exam version with its own qualification and margins recal, then a zero-downtime cutover.
 - Exact numeric values not listed here (the balancing rule, the new targets' thresholds) come back to the owner on the daily sheet as proposals.
+
+## Owner amendment to pick 1 (same day)
+Owner's words: "But don't waste time on a RB exam that's still formula solvable."
+- The closed-form + cheap-method adversary check runs on F08 1.8's design FIRST, from existing data, before any solves.
+- If in-range stays formula-solvable, 1.8 is DROPPED and work goes straight to F08 2.0 (new physics, more inputs, neighbour load cases). 1.8's useful parts (strict scales, shell U v2, band-edge targets) fold into 2.0.
+- F08 2.0 design starts now, in parallel with F02 3.0, without slowing it.
