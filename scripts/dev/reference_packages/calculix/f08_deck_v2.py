@@ -78,6 +78,14 @@ ALLOY_IDS = ("6061-T6", "4130-normalized", "Ti-6Al-4V-annealed")
 ALLOY_DECISION = "OWNER-F08-V2-ALLOYS-SIGNED-01"
 ALLOY_FILE = "f08_v2_alloy_table.json"
 ALLOY_SHA256 = "sha256:d5b8cc5638c3fa8d1bfd517b98d61c4735d59e3e6dd832c843e347dfd7b7fc10"
+#: The ccx linear solver every *FREQUENCY and *STATIC step names explicitly: the owner's PaStiX re-pin for F08 2.0 (a
+#: 64-bit PaStiX build of ccx 2.23, an internal-only image; the SPOOLES build crashes above ~335k nodes). Naming it in the
+#: deck fails closed: a binary without PaStiX stops instead of falling back to its compiled-in default. This is a VERSIONED
+#: deck migration: every deck's sha256 changes, and SPOOLES-era decks and records keep their meaning (never rescored).
+SOLVER = "PASTIX"
+#: The deck identity recorded in every solve and job record, so a PaStiX deck is never mistaken for a SPOOLES-era one
+#: (whose decks named no solver and whose records carry no ``deck_revision``).
+DECK_REVISION = "f08-2.0-deck-solver-pastix"
 #: The signed file's ids for the three alloy ids above.
 ALLOY_FILE_IDS = {
     "6061-T6": "AL_6061_T651_plate",
@@ -598,7 +606,7 @@ def deck_text(case, meta, mat, *, modes=48, loads=None):
         control is None
     ):  # a control case is a static verification: no eigen or steady-state step
         deck += (
-            f"*STEP\n*FREQUENCY,STORAGE=YES\n{modes}\n*NODE PRINT,NSET=OBS\nU\n"
+            f"*STEP\n*FREQUENCY,SOLVER={SOLVER},STORAGE=YES\n{modes}\n*NODE PRINT,NSET=OBS\nU\n"
             "*EL PRINT,ELSET=FILLET\nS\n*END STEP\n"
         )
         zeta = case["damping_ratio"]
@@ -608,10 +616,48 @@ def deck_text(case, meta, mat, *, modes=48, loads=None):
             "*NODE PRINT,NSET=OBS\nU\n*END STEP\n"
         )
     deck += (
-        f"*STEP\n*STATIC\n*CLOAD,OP=NEW\n{lines_text}*NODE PRINT,NSET=OBS\nU\n"
+        f"*STEP\n*STATIC,SOLVER={SOLVER}\n*CLOAD,OP=NEW\n{lines_text}*NODE PRINT,NSET=OBS\nU\n"
         "*EL PRINT,ELSET=FILLET\nS\n*END STEP\n"
     )
     return deck
+
+
+# ---------------------------------------------------------------- the 1.7 decks through a named solver (parity check)
+
+#: The 1.7 step keyword lines that take a SOLVER= parameter, as `f08_deck.write_case` emits them (exactly one of each).
+V17_SOLVER_LINES = ("*FREQUENCY,STORAGE=YES", "*STATIC")
+_SOLVER_NAME = re.compile(r"[A-Z][A-Z_]*\Z")
+
+
+def v17_with_solver(text, solver):
+    """A 1.7 deck (`f08_deck.write_case`'s case.inp) with ``SOLVER=<solver>`` on its *FREQUENCY and *STATIC lines and no
+    other byte changed. `f08_deck.py` is REGISTERED (its file sha256 is the 1.7 registration's ``pins.deck``), so the
+    1.7 parity check names the re-pinned solver here instead of in that file. Refuses an unexpected deck.
+    """
+    if not (isinstance(solver, str) and _SOLVER_NAME.match(solver)):
+        raise Refused("solver_name_invalid")
+    lines = text.split("\n")
+    for keyword in V17_SOLVER_LINES:
+        if lines.count(keyword) != 1:
+            raise Refused("v17_deck_step_lines_unexpected")
+    if any("SOLVER=" in line for line in lines):
+        raise Refused("v17_deck_already_names_a_solver")
+    head = {
+        "*FREQUENCY,STORAGE=YES": f"*FREQUENCY,SOLVER={solver},STORAGE=YES",
+        "*STATIC": f"*STATIC,SOLVER={solver}",
+    }
+    return "\n".join(head.get(line, line) for line in lines)
+
+
+def write_case_v17(case, out, h_mm=3.0, modes=48, *, solver=None):
+    """`f08_deck.write_case`, unchanged; only when ``solver`` is given is its case.inp rewritten by `v17_with_solver`.
+    With ``solver=None`` the written files are exactly the registered 1.7 generator's.
+    """
+    result = v1.write_case(case, out, h_mm, modes)
+    if solver is not None:
+        path = Path(out) / "case.inp"
+        path.write_text(v17_with_solver(path.read_text(), solver))
+    return result
 
 
 # ---------------------------------------------------------------- stress observation
@@ -780,7 +826,9 @@ def solve_record(
         return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     return {
-        "schema": "carbon.f08.solve-record.v2",
+        "schema": "carbon.f08.solve-record.v3",  # v3: the PaStiX deck revision (v2 records are SPOOLES-era)
+        "deck_revision": DECK_REVISION,
+        "solver": SOLVER,
         "case": case,
         "fillet_h_mm": fillet_h_mm,
         "deck_sha256": sha(deck),

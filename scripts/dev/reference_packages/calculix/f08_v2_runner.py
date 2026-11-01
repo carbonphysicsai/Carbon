@@ -55,7 +55,8 @@ import f08_deck as v1
 import f08_deck_v2 as v2
 import f08_proof as proof
 
-RECORD_SCHEMA = "carbon.f08.v2-job-record.v1"
+#: v2: the PaStiX deck revision (f08_deck_v2.DECK_REVISION) is recorded; v1 records are SPOOLES-era decks.
+RECORD_SCHEMA = "carbon.f08.v2-job-record.v2"
 OUTPUTS = (
     "worst_dynamic_mm_per_n",
     "static_tip_mm_per_n",
@@ -221,6 +222,7 @@ def prepare(job, directory, *, mesher, mesh=mesh_job, modes=MODES):
                 "modes": modes,
                 "loads": {str(n): w / total for n, w in sorted(pad.items())},
                 "mesher": mesher,
+                "deck_revision": v2.DECK_REVISION,
                 "deck_sha256": _sha(deck),
             },
             indent=1,
@@ -396,6 +398,7 @@ def record_for(
         "status": status,
         "reasons": reasons,
         "images": {"mesher": mesher, "solvers_id": solvers_id},
+        "deck_revision": v2.DECK_REVISION,
         "alloy_table_sha256": v2.ALLOY_SHA256,
         "mesh": {
             key: mesh_meta.get(key)
@@ -519,6 +522,7 @@ def mesh_only(job, work, *, mesher, mesh=mesh_job):
             )
         },
         "images": {"mesher": mesher},
+        "deck_revision": v2.DECK_REVISION,
         "deck_sha256": _sha((directory / "case.inp").read_bytes()),
     }
 

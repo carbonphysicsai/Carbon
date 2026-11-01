@@ -137,6 +137,9 @@ def test_prepare_writes_the_script_the_deck_and_the_load_weights(tmp_path):
     assert info["modes"] == 48 and info["mesher"] == MESHER
     assert math.isclose(sum(info["loads"].values()), 1.0, rel_tol=1e-12)
     assert info["deck_sha256"] == runner._sha(deck)
+    assert (
+        info["deck_revision"] == v2.DECK_REVISION and "*STATIC,SOLVER=PASTIX\n" in deck
+    )
 
 
 def test_the_participation_factor_uses_both_load_components():
@@ -329,6 +332,8 @@ def test_a_solved_job_makes_an_ok_record_with_digests_and_leaves_no_directory(
     assert record["images"] == {"mesher": MESHER, "solvers_id": "sha256:" + "a" * 64}
     assert record["deck_sha256"].startswith("sha256:") and record["dat_sha256"]
     assert record["alloy_table_sha256"] == v2.ALLOY_SHA256
+    assert record["schema"] == "carbon.f08.v2-job-record.v2"
+    assert record["deck_revision"] == v2.DECK_REVISION
     assert record["mesh"]["nodes"] == 12 and record["job_id"] == "f08v2-9000"
     assert not (tmp_path / "f08v2-9000").exists()
     json.dumps(record)  # a JSON line

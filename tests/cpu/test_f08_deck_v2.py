@@ -381,7 +381,9 @@ def test_the_solve_record_binds_the_deck_the_output_the_mesh_and_the_images_and_
         fillet_h_mm=0.5,
         wall_s=12.5,
     )
-    assert record["schema"] == "carbon.f08.solve-record.v2" and record["wall_s"] == 12.5
+    assert record["schema"] == "carbon.f08.solve-record.v3" and record["wall_s"] == 12.5
+    assert record["deck_revision"] == v2.DECK_REVISION == "f08-2.0-deck-solver-pastix"
+    assert record["solver"] == v2.SOLVER == "PASTIX"
     assert (
         record["deck_sha256"].startswith("sha256:")
         and record["dat_sha256"] != record["deck_sha256"]
@@ -530,3 +532,98 @@ def test_the_numerical_settings_are_fixed_and_written_in_every_deck_header():
     deck = v2.deck_text(CASE, _tiny_meta(), mat)
     header = deck.split("*INCLUDE")[0]
     assert "** numerical settings: " in header and '"oscillation_phases": 72' in header
+
+
+# ---------------------------------------------------------------- the PaStiX re-pin (a versioned deck migration)
+
+
+def _step_lines(deck):
+    return [
+        line for line in deck.splitlines() if line.startswith(("*FREQUENCY", "*STATIC"))
+    ]
+
+
+def test_every_frequency_and_static_step_of_a_2_0_deck_names_the_pastix_solver():
+    assert v2.SOLVER == "PASTIX"
+    mat = v2.material("TEST_ALLOY", table=TEST_TABLE, test_mode=True)
+    for case in (
+        CASE,
+        {**CASE, "load_angle_deg": 20.0},
+        {**CASE, "control": {"kind": "plain_plate"}},
+        {**CASE, "control": {"kind": "hole_plate"}},
+    ):
+        lines = _step_lines(v2.deck_text(case, _tiny_meta(), mat))
+        assert lines and all("SOLVER=PASTIX" in line for line in lines), case
+        expected = ["*STATIC,SOLVER=PASTIX"]
+        if case.get("control") is None:
+            expected = ["*FREQUENCY,SOLVER=PASTIX,STORAGE=YES", *expected]
+        assert lines == expected, case
+    deck = v2.deck_text(CASE, _tiny_meta(), mat)
+    assert deck.count("SOLVER=") == 2  # the steady-state step factorises nothing
+
+
+def _fake_v1_mesh(out):
+    (Path(out) / "mesh.json").write_text(
+        json.dumps({**_tiny_meta(), "nodes": 9, "elements": 1})
+    )
+
+
+V17_CASE = {name: CASE[name] for name in v2.GEOMETRY}
+
+
+def test_the_1_7_deck_default_bytes_are_unchanged_and_a_named_solver_edits_only_its_two_step_lines(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(v1, "mesh", _fake_v1_mesh)
+    v1.write_case(V17_CASE, tmp_path / "registered")
+    v2.write_case_v17(V17_CASE, tmp_path / "default")
+    v2.write_case_v17(V17_CASE, tmp_path / "pastix", solver="PASTIX")
+    for name in ("make_mesh.py", "mesh.json", "case.inp", "deck.json"):
+        registered = (tmp_path / "registered" / name).read_bytes()
+        assert (tmp_path / "default" / name).read_bytes() == registered, name
+        if name != "case.inp":
+            assert (tmp_path / "pastix" / name).read_bytes() == registered, name
+    registered = (tmp_path / "registered/case.inp").read_text()
+    assert "SOLVER=" not in registered
+    assert _step_lines(registered) == ["*FREQUENCY,STORAGE=YES", "*STATIC"]
+    pastix = (tmp_path / "pastix/case.inp").read_text()
+    changed = [
+        (a, b)
+        for a, b in zip(registered.split("\n"), pastix.split("\n"), strict=True)
+        if a != b
+    ]
+    assert changed == [
+        ("*FREQUENCY,STORAGE=YES", "*FREQUENCY,SOLVER=PASTIX,STORAGE=YES"),
+        ("*STATIC", "*STATIC,SOLVER=PASTIX"),
+    ]
+    assert hashlib.sha256(registered.encode()).hexdigest() == V17_FAKE_MESH_DECK_SHA256
+
+
+#: sha256 of `f08_deck.write_case`'s case.inp for V17_CASE on `_fake_v1_mesh` (the registered generator, never edited).
+V17_FAKE_MESH_DECK_SHA256 = "TO_FILL"
+
+
+@pytest.mark.parametrize(
+    "deck, solver, reason",
+    [
+        ("*FREQUENCY,STORAGE=YES\n*STATIC\n", "pastix", "solver_name_invalid"),
+        ("*FREQUENCY,STORAGE=YES\n*STATIC\n", "PASTIX,X=1", "solver_name_invalid"),
+        ("*FREQUENCY,STORAGE=YES\n*STATIC\n", None, "solver_name_invalid"),
+        ("*FREQUENCY,STORAGE=YES\n", "PASTIX", "v17_deck_step_lines_unexpected"),
+        (
+            "*FREQUENCY,STORAGE=YES\n*STATIC\n*STATIC\n",
+            "PASTIX",
+            "v17_deck_step_lines_unexpected",
+        ),
+        (
+            "*FREQUENCY,STORAGE=YES\n*STATIC\n*STATIC,SOLVER=SPOOLES\n",
+            "PASTIX",
+            "v17_deck_already_names_a_solver",
+        ),
+    ],
+)
+def test_naming_a_solver_on_a_1_7_deck_refuses_a_bad_name_or_an_unexpected_deck(
+    deck, solver, reason
+):
+    with pytest.raises(v2.Refused, match=reason):
+        v2.v17_with_solver(deck, solver)
