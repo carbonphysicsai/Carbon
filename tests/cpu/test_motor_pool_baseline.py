@@ -485,6 +485,8 @@ UNMOVED = {
     "cooling_encoded_dual_pack": "sha256:a468a5110c8245fa1c7e1ffb812cf9c78ecacc7b4ef1a245e02832da53ea3699",
     "cooling_hotspot_dual_pack": "sha256:df9e5d27d3959d017b9aae7243a5846c74234a3825c376d9183f9d6e60451dca",
     "cooling_pool_baseline_dual_pack": "sha256:8b33a0ee4098b7a92e81adb6cebc12600599893a88d1f9c8f683a753a1e2b0a2",
+    # the live Motor 1.1-1.5 sealed producer: Motor 1.6 is reached through the overlay dispatch, never by editing it
+    "motor_sealed_dual_pack": "sha256:3d45a99670763e003a6fa43393730ab7518e004c2a32a5ae80ef1b91e7b678f4",
 }
 
 
@@ -500,11 +502,13 @@ def test_no_other_producer_identity_moves():
         f08_dual_pack,
         f08_sealed_dual_pack,
         motor_dual_pack,
+        motor_sealed_dual_pack,
     )
     from carbon.scoring import cooling_pool_baseline_dual_pack as cooling_17
 
     modules = {
         "motor_dual_pack": motor_dual_pack,
+        "motor_sealed_dual_pack": motor_sealed_dual_pack,
         "f02_dual_pack": f02_dual_pack,
         "f02_sealed_dual_pack": f02_sealed_dual_pack,
         "f08_dual_pack": f08_dual_pack,
@@ -524,7 +528,7 @@ def test_no_other_producer_identity_moves():
 # --- the writer's plumbing ----------------------------------------------------------------------------------------
 
 
-def test_the_sealed_writer_routes_1_6_to_the_in_pack_writer_and_refuses_a_retained_binding(
+def test_the_hooked_sealed_writer_routes_1_6_to_the_in_pack_writer_and_refuses_a_retained_binding(
     monkeypatch, tmp_path
 ):
     seen = {}
@@ -544,5 +548,106 @@ def test_the_sealed_writer_routes_1_6_to_the_in_pack_writer_and_refuses_a_retain
         sealed.write_sealed_pack(
             tmp_path, {}, version="1.6", baseline_binding_raw=b"{}"
         )
-    with pytest.raises(ValueError, match="Motor 1.6 only"):
+    # the image-registered 1.5 delegates to the file's own writer, which knows no crown floor
+    with pytest.raises(TypeError, match="baseline_floor_total"):
         sealed.write_sealed_pack(tmp_path, {}, version="1.5", baseline_floor_total=0.7)
+
+
+# --- the dispatch hook and the signed extended region ---------------------------------------------------------------
+
+
+def test_the_dispatch_block_pins_the_module_file_and_the_signed_region():
+    import hashlib
+
+    entry = json.loads(version_overlay.OVERLAY_PATH.read_bytes())["versions"][
+        f"{MOTOR} 1.6"
+    ]
+    block = entry["dispatch"]
+    assert block["module"] == "carbon.scoring.motor_pool_baseline_dual_pack"
+    module = Path(sixteen.__file__).read_bytes().replace(b"\r\n", b"\n")
+    assert block["sha256"] == hashlib.sha256(module).hexdigest()
+    config = block["config"]
+    assert config["region_file_sha256"] == (
+        "c3e41b52242f476ecc7252869b092b142d4112f06281bad1bd3d1817c806bfcd"
+    )
+    assert config["region_sha256"] == (
+        "248460a61ec806ea6756b1a453e5e15890e69f4a6bc30814b11c6d53686a8b4c"
+    )
+    assert set(config["baseline_box"]) == set(NAMES)
+    assert sixteen._BOX == sixteen._check_region(config)
+
+
+def test_the_live_motor_sealed_module_is_byte_identical_to_the_image_move_base():
+    import hashlib
+
+    raw = Path(sealed.__file__).read_bytes().replace(b"\r\n", b"\n")
+    assert hashlib.sha256(raw).hexdigest() == MOTOR_SEALED_FILE_SHA256
+
+
+#: sha256 of carbon/scoring/motor_sealed_dual_pack.py at image-move3c (e0e3471e): 1.6 never edits it.
+MOTOR_SEALED_FILE_SHA256 = (
+    "d5c6d57806e70c05e9af9a9122d443c2bb469ce53bb9d1c999cc1b2b6306d2aa"
+)
+
+
+def _row(**over):
+    from carbon.motor import domain
+
+    row = {name: sum(domain.INPUT_BOUNDS[name]) / 2 for name in domain.INPUTS}
+    row.update(over)
+    return row
+
+
+def test_the_baseline_answers_a_shell_row_outside_train_and_refuses_one_outside_the_signed_region():
+    from carbon.motor import domain
+    from carbon.scoring import motor_dual_pack
+
+    low, _high = domain.INPUT_BOUNDS["magnet_mm"]
+    box_low = sixteen._BOX["magnet_mm"][0]
+    assert box_low < low  # the signed region reaches below TRAIN
+    shell = _row(magnet_mm=(low + box_low) / 2)
+    inside = _row()
+    outputs, seconds = sixteen.pool_baseline(
+        bank_rows=[{"inputs": inside}, {"inputs": shell}], sample_count=1
+    )
+    assert len(outputs) == 2 and all(len(r) == 60 for r in outputs) and seconds
+    # a row inside TRAIN is bit-equal to the registered baseline; the shell row is answered, not refused
+    assert outputs[0] == motor_dual_pack.baseline_outputs([inside])[0]
+    assert all(math.isfinite(v) for v in outputs[1])
+    for bad in (
+        _row(magnet_mm=box_low - 1e-6),
+        _row(embrace=sixteen._BOX["embrace"][1] + 1e-6),
+        {k: v for k, v in inside.items() if k != "tooth_mm"},
+        _row(airgap_mm=float("nan")),
+    ):
+        with pytest.raises(sealed.Refused, match="motor_baseline_row"):
+            sixteen.pool_baseline(bank_rows=[{"inputs": bad}], sample_count=1)
+
+
+def test_the_baseline_refuses_to_run_with_no_registered_region(monkeypatch):
+    monkeypatch.setattr(sixteen, "_BOX", None)
+    with pytest.raises(sealed.Refused, match="motor_baseline_region_unregistered"):
+        sixteen.pool_baseline(bank_rows=[{"inputs": _row()}], sample_count=1)
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda c: {**c, "extra": 1},
+        lambda c: {k: v for k, v in c.items() if k != "region_sha256"},
+        lambda c: {**c, "region_sha256": "xyz"},
+        lambda c: {**c, "baseline_box": {**c["baseline_box"], "tooth_mm": [5.0, 1.0]}},
+        lambda c: {
+            **c,
+            "baseline_box": {
+                k: v for k, v in c["baseline_box"].items() if k != "tooth_mm"
+            },
+        },
+    ],
+)
+def test_a_malformed_region_config_is_refused(mutate):
+    entry = json.loads(version_overlay.OVERLAY_PATH.read_bytes())["versions"][
+        f"{MOTOR} 1.6"
+    ]
+    with pytest.raises(sealed.Refused):
+        sixteen._check_region(mutate(copy.deepcopy(entry["dispatch"]["config"])))

@@ -9,13 +9,19 @@
       "allowlist": "v8",
       "step_caps": false,
       "pack_version": "cooling-normal-construction-development-8",
-      "development_evaluation": ["cooling-dual-development-grid-v3", "cooling-development-grid-8x6"],
+      "development_evaluation": [
+        "cooling-dual-development-grid-v3",
+        "cooling-development-grid-8x6"
+      ],
       "sealed_evaluation": "cooling-pool-sealed-v3",
       "campaign": "catalog",
       "catalog": true,
       "graph_adapter": "v2",
       "output_encoding": "cooling-law-safe-output-encoding",
-      "catalog_entries_from": ["1.4", "1.3"],
+      "catalog_entries_from": [
+        "1.4",
+        "1.3"
+      ],
       "predecessor": "1.6",
       "rebuild_wall_seconds": 648
     },
@@ -26,14 +32,63 @@
       "allowlist": "v8",
       "step_caps": false,
       "pack_version": "motor-normal-construction-development-6",
-      "development_evaluation": ["motor-dual-development-grid-v2", "motor-development-grid-8x6"],
+      "development_evaluation": [
+        "motor-dual-development-grid-v2",
+        "motor-development-grid-8x6"
+      ],
       "sealed_evaluation": "motor-pool-sealed-v2",
       "campaign": "catalog",
       "catalog": true,
       "graph_adapter": "v2",
-      "catalog_entries_from": ["1.5", "1.4", "1.3"],
+      "catalog_entries_from": [
+        "1.5",
+        "1.4",
+        "1.3"
+      ],
       "predecessor": "1.5",
-      "rebuild_wall_seconds": 648
+      "rebuild_wall_seconds": 648,
+      "dispatch": {
+        "module": "carbon.scoring.motor_pool_baseline_dual_pack",
+        "sha256": "72fde7a3f771fedd7596075a476b2dcc957d574162a6ef76fd5514c9de1aa0e0",
+        "config": {
+          "baseline_box": {
+            "airgap_mm": [
+              0.125,
+              1.175
+            ],
+            "current_angle_deg": [
+              -15.0,
+              75.0
+            ],
+            "current_density_a_mm2": [
+              0.0,
+              18.75
+            ],
+            "embrace": [
+              0.45,
+              1.0
+            ],
+            "magnet_mm": [
+              0.875,
+              4.625
+            ],
+            "slot_bottom_mm": [
+              32.0,
+              43.0
+            ],
+            "slot_open_deg": [
+              0.375,
+              6.0
+            ],
+            "tooth_mm": [
+              1.875,
+              5.0
+            ]
+          },
+          "region_file_sha256": "c3e41b52242f476ecc7252869b092b142d4112f06281bad1bd3d1817c806bfcd",
+          "region_sha256": "248460a61ec806ea6756b1a453e5e15890e69f4a6bc30814b11c6d53686a8b4c"
+        }
+      }
     }
   }
 }

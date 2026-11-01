@@ -363,6 +363,20 @@ def test_the_registry_declares_each_new_version_in_full():
             cid,
             version,
         )
+        if (cid, version) in SCORING_ONLY:
+            # the whole difference is the version's identity plus its scoring (sealed evaluation): nothing else
+            differing = {
+                f
+                for f in new.__dataclass_fields__
+                if getattr(new, f) != getattr(old, f)
+            }
+            assert differing <= {
+                "version",
+                "predecessor",
+                "catalog_entries_from",
+                "sealed_evaluation",
+            }, differing
+            assert new.sealed_evaluation != old.sealed_evaluation
         assert served_versions.serves_catalog(cid, version)
         assert served_versions.serves_v8(cid, version)
         # a pool version's predecessor is itself a graph route v2 version (v8)

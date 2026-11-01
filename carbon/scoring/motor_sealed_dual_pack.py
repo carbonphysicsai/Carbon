@@ -62,11 +62,7 @@ VERSION = "1.1"
 EVALUATION_VERSION = "motor-dual-sealed-batch-30-v2"
 CASE_ID = "motor-sealed-batch-30"
 #: Pool-graded versions: the sealed grader's cells and probes plus the pool set (`pool_exam`).
-POOL_VERSIONS = {
-    "1.5": ("motor-pool-sealed-v1", "motor-sealed-pool-set"),
-    # 1.6: 1.5's material, the in-pack baseline graded as miners are (`motor_pool_baseline_dual_pack`)
-    "1.6": ("motor-pool-sealed-v2", "motor-sealed-pool-set"),
-}
+POOL_VERSIONS = {"1.5": ("motor-pool-sealed-v1", "motor-sealed-pool-set")}
 VERSIONS = {
     # 1.4 is graph route v2: construction only, 1.3's sealed batches.
     **{
@@ -569,10 +565,6 @@ def is_pool_bank(bank) -> bool:
 def adapter(version):
     """The sealed adapter for exactly ``version``, or None. A pool-graded version's is the
     `pool_version.PoolVariant` (this module's measure plus the pool exam)."""
-    if version == "1.6":
-        from carbon.scoring import motor_pool_baseline_dual_pack
-
-        return motor_pool_baseline_dual_pack.sealed_adapter(version)
     if version in POOL_VERSIONS:
         from carbon.scoring import pool_version
 
@@ -627,7 +619,6 @@ def write_sealed_pack(
     calibration=False,
     baseline_binding_raw=None,
     calibration_pack_root=None,
-    baseline_floor_total=None,
 ):
     """Write a sealed batch's complete receiver pack under a new, empty
     ``root`` (the pack, public and private root; the manifest the receiver
@@ -643,23 +634,6 @@ def write_sealed_pack(
     carries no leg minimums (none were measured on this batch)."""
     from carbon.challenge_kit import motor_sealed_pack, physical_pack
 
-    if version == "1.6":
-        # the in-pack baseline sets the minimums (graded as miners are); a retained baseline binding has no role
-        if baseline_binding_raw is not None or calibration_pack_root is not None:
-            raise ValueError("Motor 1.6 takes its minimums from the in-pack baseline")
-        from carbon.scoring import motor_pool_baseline_dual_pack
-
-        return motor_pool_baseline_dual_pack.write_sealed_pack(
-            root,
-            bank,
-            version=version,
-            baseline_floor_total=baseline_floor_total,
-            inference_image_id=inference_image_id,
-            device_class=device_class,
-            calibration=calibration,
-        )
-    if baseline_floor_total is not None:
-        raise ValueError("a crown floor is registered for Motor 1.6 only")
     chosen = adapter(version)
     if chosen is None:
         raise ValueError("no sealed Motor adapter for this Challenge version")

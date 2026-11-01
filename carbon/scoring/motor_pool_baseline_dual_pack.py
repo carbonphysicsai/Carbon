@@ -8,6 +8,10 @@ a_multiplier, A_gen scales, pool targets and every gate (`InPackBaselineVariant.
 minimums. The pack may also carry ``baseline_floor_total`` (OWNER-EXAM-VALUE-PICKS-01, option B): the crown floor, a measured
 number passed in by the writer (never typed here), refused below the minimums-derived total (`dual_score.register_pack`).
 
+It is reached through the overlay's dispatch extension (`dispatch`), not by an edit of `motor_sealed_dual_pack.py`, whose bytes (and
+so the Motor 1.1-1.5 sealed producer identity) are unchanged. The baseline answers anywhere inside the signed extended region
+(OWNER-HEADROOM-REGIONS-01, vendored in the entry with both digests) and refuses a row outside it.
+
 Same TRAIN, interface, physics, sealed cells and probes as 1.5; the definition binds the host registration digest of the version's
 overlay entry (`version_overlay`). A new module: 1.5's pack is graded by 1.5's modules. DEVELOPMENT only: no qualification, weight,
 reward or LIVE authority. The registration values (strict s_h, the extended-region U) come from measurement and are not set here.
@@ -42,13 +46,69 @@ CALIBRATION_PLACEHOLDER_S_H = 1.0
 Refused = _sealed.Refused
 
 
-def pool_baseline(*, bank_rows, sample_count):
+#: The signed extended region (OWNER-HEADROOM-REGIONS-01) the baseline answers over: ``{input: (low, high)}``, set from the
+#: overlay entry's dispatch config by `dispatch`. Unset, the baseline refuses (it never falls back to the TRAIN box).
+_BOX = None
+_REGION_KEYS = {"baseline_box", "region_file_sha256", "region_sha256"}
+
+
+def _check_region(config):
+    """The dispatch config's signed extended box, validated: exactly Motor's eight inputs, finite ordered bounds, both digests."""
+    import math
+    import re
+
+    from carbon.motor import domain
+
+    if type(config) is not dict or set(config) != _REGION_KEYS:
+        raise Refused("motor_baseline_region_config")
+    box = config["baseline_box"]
+    if type(box) is not dict or set(box) != set(domain.INPUTS):
+        raise Refused("motor_baseline_region_inputs")
+    for pair in box.values():
+        if (
+            type(pair) is not list
+            or len(pair) != 2
+            or not all(type(v) in (int, float) and math.isfinite(v) for v in pair)
+            or pair[0] > pair[1]
+        ):
+            raise Refused("motor_baseline_region_bounds")
+    for key in ("region_file_sha256", "region_sha256"):
+        if type(config[key]) is not str or not re.fullmatch(
+            r"[0-9a-f]{64}", config[key]
+        ):
+            raise Refused("motor_baseline_region_digest")
+    return {name: (float(lo), float(hi)) for name, (lo, hi) in box.items()}
+
+
+def _check_rows(cases, box):
+    """Refuse a row outside the signed extended box (or not exactly Motor's inputs); the baseline predicts every other row."""
+    import math
+
+    for case in cases:
+        if type(case) is not dict or set(case) != set(box):
+            raise Refused("motor_baseline_row_inputs")
+        for name, (low, high) in box.items():
+            value = case[name]
+            if (
+                type(value) not in (int, float)
+                or not math.isfinite(value)
+                or not low <= value <= high
+            ):
+                raise Refused("motor_baseline_row_outside_region")
+
+
+def pool_baseline(*, bank_rows, sample_count, box=None):
     """``(outputs, call_seconds)``: the registered baseline's answers to EVERY exam row (cells, probes and pool rows), as
-    Motor's torque curves, and ``sample_count`` single-design call timings. Fitted on public TRAIN with one BLAS thread.
-    """
+    Motor's torque curves, and ``sample_count`` single-design call timings. Fitted on public TRAIN with one BLAS thread. A row is
+    answered anywhere inside the signed extended region (the exam's shell and coverage rows lie outside TRAIN by design) and
+    refused outside it."""
     from carbon.scoring import physical_dual_pack as physical
 
+    box = _BOX if box is None else box
+    if box is None:
+        raise Refused("motor_baseline_region_unregistered")
     cases = [row["inputs"] for row in bank_rows]
+    _check_rows(cases, box)
     done = physical.single_threaded(
         "carbon.scoring.motor_pool_baseline_dual_pack:_baseline_timed",
         cases=cases,
@@ -58,11 +118,14 @@ def pool_baseline(*, bank_rows, sample_count):
 
 
 def _baseline_timed(*, cases, sample_count):
-    """Runs in the single-threaded child: the baseline of ``cases``, and one single-row prediction time for each of
-    ``sample_count`` evenly spaced cases."""
+    """Runs in the single-threaded child (rows already checked against the region): the registered baseline of ``cases`` and one
+    single-row prediction time for each of ``sample_count`` evenly spaced cases. The same fit and arithmetic as the registered
+    recipe's ``predict`` (`carbon.motor.recipes`), without its TRAIN-box check."""
     import time
+    from statistics import fmean
 
-    from carbon.motor import recipes
+    from carbon import learned_baseline
+    from carbon.motor import domain, recipes
     from carbon.motor.challenge import PublicMaterial
     from carbon.scoring import motor_dual_pack
 
@@ -72,12 +135,26 @@ def _baseline_timed(*, cases, sample_count):
         {"length": spec["length"], "ridge": spec["ridge"]},
         PublicMaterial.load(Path(__file__).resolve().parents[2]).train,
     )
-    outputs = [[float(v) for v in model.predict(c)["torque_nm"]] for c in cases]
+
+    def answer(case):
+        values = {name: float(case[name]) for name in domain.INPUTS}
+        curve = [
+            float(v)
+            for v in model._model.predict(
+                learned_baseline.scale([values], domain.INPUTS, domain.INPUT_BOUNDS)
+            )[0]
+        ]
+        mean = fmean(curve)
+        if mean < 0:
+            curve = [v - mean for v in curve]
+        return curve
+
+    outputs = [answer(c) for c in cases]
     step = max(1, len(cases) // sample_count)
     seconds = []
     for case in cases[::step][:sample_count]:
         start = time.perf_counter()
-        model.predict(case)
+        answer(case)
         seconds.append(max(time.perf_counter() - start, 1e-9))
     return {"outputs": outputs, "seconds": seconds}
 
@@ -366,6 +443,56 @@ def _write(root, bank, *, version, adapter, baseline_floor_total=None, **platfor
         pack_suffix=_sealed.PACK_SUFFIX,
         **platform,
     )
+
+
+def _writer(
+    root,
+    bank,
+    *,
+    version=VERSION,
+    baseline_floor_total=None,
+    inference_image_id=None,
+    device_class=None,
+    calibration=False,
+    baseline_binding_raw=None,
+    calibration_pack_root=None,
+):
+    """The sealed writer the overlay dispatch serves for 1.6 (`motor_sealed_dual_pack.write_sealed_pack`'s signature plus the
+    crown floor): a retained baseline binding has no role, the in-pack baseline sets the minimums.
+    """
+    if baseline_binding_raw is not None or calibration_pack_root is not None:
+        raise ValueError("Motor 1.6 takes its minimums from the in-pack baseline")
+    return write_sealed_pack(
+        root,
+        bank,
+        version=version,
+        baseline_floor_total=baseline_floor_total,
+        inference_image_id=inference_image_id,
+        device_class=device_class,
+        calibration=calibration,
+    )
+
+
+def _adapter_for_bank(bank, version):
+    if not _sealed.is_pool_bank(bank):
+        raise Refused("motor_bank_population")
+    return sealed_adapter(version)
+
+
+def dispatch(config):
+    """The overlay dispatch (`version_overlay`): registers 1.6 in `motor_sealed_dual_pack`'s tables without editing that file
+    (so Motor 1.1-1.5's sealed producer identity is unchanged). ``config`` is the entry's signed extended region.
+    """
+    global _BOX
+    _BOX = _check_region(config)
+    return {
+        "challenge": CHALLENGE,
+        "version": VERSION,
+        "pool_versions": POOL_VERSIONS[VERSION],
+        "adapter": sealed_adapter,
+        "adapter_for_bank": _adapter_for_bank,
+        "writer": _writer,
+    }
 
 
 def producer_digest():
