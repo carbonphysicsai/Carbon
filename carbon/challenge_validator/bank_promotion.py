@@ -557,6 +557,20 @@ class BankPromotion:
             raise TypeError("a BankResult is required")
         raise StateError("evaluation_binding_unavailable")
 
+    def _undecided_before(self, submission_id, evaluation_key):
+        """The unresolved crown-pause records filed BEFORE this contender's own (all of them when it has none yet), oldest
+        first: the earlier decisions this one must not be decided ahead of."""
+        earlier = []
+        listing = getattr(self.store, "paused_crowns", None)
+        for record in () if listing is None else listing():
+            if (record["submission_id"], record["evaluation_key"]) == (
+                submission_id,
+                evaluation_key,
+            ):
+                break
+            earlier.append(record)
+        return earlier
+
     def consider_private(
         self,
         submission_id,
@@ -638,6 +652,19 @@ class BankPromotion:
                 return {
                     "outcome": UNAVAILABLE,
                     "reason": CROWNS_PAUSED,
+                    "evaluation_key": evaluation_key,
+                    "candidate": submission_id,
+                    "incumbent": (self.store.incumbent() or {}).get("model_id"),
+                }
+
+            behind = self._undecided_before(submission_id, evaluation_key)
+            if behind:
+                # An earlier crown decision of this Challenge is still undecided (the host could not make it): this
+                # contender waits its turn. Its grade stays filed (the caller files it like a paused one) and no repeat
+                # or rebuild is spent. The sweep decides them strictly in admission order.
+                return {
+                    "outcome": UNAVAILABLE,
+                    "reason": CROWN_QUEUED,
                     "evaluation_key": evaluation_key,
                     "candidate": submission_id,
                     "incumbent": (self.store.incumbent() or {}).get("model_id"),
@@ -817,6 +844,9 @@ REPEAT_TOLERANCE_UNREGISTERED = "crown_repeat_tolerance_unregistered"
 SCORE_LEVEL = frozenset({"total_score", "physics_benefit", "design_benefit"})
 #: The operator paused crown changes (`operator_pause`); the miner sees only UNAVAILABLE.
 CROWNS_PAUSED = "crowns_paused"
+#: A crown-changing contender met an earlier crown decision that is still UNRESOLVED (it could not be made): it is queued
+#: behind it, filed like a paused one and decided by `crown_pause_sweep` in admission order, never ahead of it.
+CROWN_QUEUED = "queued_behind_undecided_crown"
 ALERT_SCHEMA = "carbon.challenge-validator.crown-grade-alert.v1"
 
 

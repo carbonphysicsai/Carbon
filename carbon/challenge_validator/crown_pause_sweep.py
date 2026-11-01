@@ -18,6 +18,9 @@ Rules (Validator, 2026-10-29):
   about the contender, so the record stays UNRESOLVED and is retried, at most once per epoch (a persistent fault never
   burns GPU every tick), with a typed alert after `ALERT_AFTER` failed attempts. Only decided outcomes resolve
   (FIRST_INCUMBENT, CHALLENGER, INCUMBENT_KEEPS, NO_WINNER, including ``unstable_across_seeds``).
+- ADMISSION ORDER IS ENFORCED AT THE DOOR TOO: `BankPromotion.consider_private` files a crown-changing contender as
+  queued (``queued_behind_undecided_crown``, no decision) whenever an earlier record of the Challenge is unresolved, so a
+  later candidate cannot be crowned in the gap while an earlier one waits (the sweep alone did not stop that);
 - the sweep stops at an undecided record, so a persistently failing OLDEST record holds every later paused decision of
   its Challenge until it resolves (each is decided against the incumbent of its moment). The alert says so: when
   decisions are queued behind it, its code is ``crown_pause_blocked_by_undecided`` and ``waiting`` counts them (as of
@@ -27,7 +30,7 @@ Rules (Validator, 2026-10-29):
 from __future__ import annotations
 
 from . import operator_pause
-from .bank_promotion import CROWNS_PAUSED, FAILED_INFRA, UNAVAILABLE
+from .bank_promotion import CROWN_QUEUED, CROWNS_PAUSED, FAILED_INFRA, UNAVAILABLE
 
 ROTATED = "exam_rotated_during_pause"
 ALREADY_INCUMBENT = "already_incumbent"
@@ -67,8 +70,8 @@ def sweep(store, reconsider, *, kind, current_exam):
                 break
             if type(outcome) is not dict or "outcome" not in outcome:
                 break  # a refusal ({"error": ...}) is not a decision
-            if outcome.get("reason") == CROWNS_PAUSED:
-                break  # paused again
+            if outcome.get("reason") in (CROWNS_PAUSED, CROWN_QUEUED):
+                break  # paused again, or an earlier record is still undecided (cannot happen to the oldest)
             code = f"{outcome['outcome']}:{outcome.get('reason')}"
             if outcome["outcome"] in UNDECIDED:
                 failed = store.note_crown_pause_attempt(submission_id, key, code)
@@ -79,6 +82,7 @@ def sweep(store, reconsider, *, kind, current_exam):
                         failed,
                         code,
                         waiting=len(pending) - place - 1,
+                        queued=[r["submission_id"] for r in pending[place + 1 :]],
                     )
                 break  # not a decision: stays unresolved, retried after the epoch
         store.resolve_crown_pause(submission_id, key, code)

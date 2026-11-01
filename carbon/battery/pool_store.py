@@ -1804,11 +1804,14 @@ class PoolStore:
             )
         return attempts
 
-    def record_crown_pause_alert(self, submission_id, key, attempts, code, waiting=0):
+    def record_crown_pause_alert(
+        self, submission_id, key, attempts, code, waiting=0, queued=()
+    ):
         """File the typed alert for a decision that kept failing; once per decision (the first stays).
 
         ``waiting`` counts the later paused decisions held behind it (the sweep decides in order): with any, the alert
-        code is ``crown_pause_blocked_by_undecided``."""
+        code is ``crown_pause_blocked_by_undecided`` and ``queued`` names them (their submission ids, oldest first, as
+        of the filing; private)."""
         op = self._bank_operation("crown_pause_alert.v1", submission_id, key)
         body = canonical(
             {
@@ -1819,6 +1822,7 @@ class PoolStore:
                     else "crown_decision_unavailable"
                 ),
                 "waiting": waiting,
+                "queued": [str(q) for q in queued],
                 "submission_id": submission_id,
                 "evaluation_key": key,
                 "attempts": attempts,

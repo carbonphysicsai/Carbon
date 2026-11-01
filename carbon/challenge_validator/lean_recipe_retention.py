@@ -1593,7 +1593,7 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
     from carbon.challenge_validator import bank_promotion as bp
     from carbon.challenge_validator import crown_average
 
-    paused = outcome.get("reason") == bp.CROWNS_PAUSED
+    paused = outcome.get("reason") in (bp.CROWNS_PAUSED, bp.CROWN_QUEUED)
     # A decision the host could not make (UNAVAILABLE or FAILED_INFRA on a rebuild, a repeat, or a margin or king mean not
     # yet measured) is kept for retry the same way (`crown_pause_sweep`), never lost with the screening grade.
     retry = outcome.get("reason") in (
