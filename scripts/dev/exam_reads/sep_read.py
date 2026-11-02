@@ -258,9 +258,19 @@ def load_predictions(spec, document, digest):
         record.get("schema") == PREDICT_SCHEMA and record.get("truths_read") is False,
         "predict_record_schema",
     )
+    # The probe set's version is the TRAIN version the contenders learned from (Validator 23:10): an ln_harness
+    # record names it in `train.version` (LN CLI aa9efb72); an older record trained on its own challenge version.
+    challenge = record.get("challenge")
     _need(
-        record.get("challenge")
-        == {"id": document["challenge"], "version": document["version"]},
+        type(challenge) is dict
+        and set(challenge) == {"id", "version"}
+        and challenge["id"] == document["challenge"]
+        and type(challenge["version"]) is str,
+        "predict_record_other_challenge",
+    )
+    train = record.get("train", {"version": challenge["version"]})
+    _need(
+        type(train) is dict and train.get("version") == document["version"],
         "predict_record_other_version",
     )
     _need(
@@ -565,6 +575,9 @@ def read(config_path):
             "catalog_id": config[key]["catalog_id"],
             "fit": config[key]["fit"],
             "grid_digest": record.get("grid_digest"),
+            # the version the read is for (the grid's), reported beside the TRAIN version it was checked on
+            "target_version": record["challenge"]["version"],
+            "train_version": document["version"],
         }
     scales = agen_scales(document["challenge"], document["version"])
     margin, noise_sha = margin_n(config["koth_rebuild_noise"], document["challenge"])

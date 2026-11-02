@@ -59,7 +59,9 @@ def _provenance(tmp_path, names=NAMES):
     return path
 
 
-def _predict_record(tmp_path, name, document, rows, *, catalog_id, digest=None):
+def _predict_record(
+    tmp_path, name, document, rows, *, catalog_id, digest=None, target=None, train=None
+):
     folder = tmp_path / name
     (folder / catalog_id).mkdir(parents=True)
     buffer = io.BytesIO()
@@ -67,7 +69,11 @@ def _predict_record(tmp_path, name, document, rows, *, catalog_id, digest=None):
     (folder / catalog_id / "tuned.npy").write_bytes(buffer.getvalue())
     record = {
         "schema": sep_read.PREDICT_SCHEMA,
-        "challenge": {"id": document["challenge"], "version": document["version"]},
+        "challenge": {
+            "id": document["challenge"],
+            "version": target or document["version"],
+        },
+        **({} if train is None else {"train": train}),
         "grid_digest": "sha256:" + "d" * 64,
         "probe_inputs_sha256": digest
         or sep_read.probe_digest(sep_read.probe_array(document)),
@@ -519,3 +525,69 @@ def test_the_one_sided_bound_decides_and_the_two_sided_is_reported_beside_it(
     ]
     assert result["clear"] is (result["lower95_one_sided"] > 0.05)
     assert result["lower95_two_sided"] <= result["lower95_one_sided"]
+
+
+def _with_kernel_record(tmp_path, **record):
+    cases = _six("outer_shell", "extended_shell", 1.0)
+    path = _config(tmp_path, cases, [[1.0]] * 6, [[1.0]] * 6)
+    config = json.loads(path.read_text())
+    document, _ = sep_read.load_probe_set(config["probe_set"])
+    for key, catalog_id in (
+        ("kernel", "v2.motor.prior_krr"),
+        ("operator", "v2.motor.fno"),
+    ):
+        config[key]["predict_record"] = str(
+            _predict_record(
+                tmp_path,
+                key + "-r",
+                document,
+                [[1.0]] * 6,
+                catalog_id=catalog_id,
+                **record,
+            )
+        )
+    path.write_text(json.dumps(config))
+    return path, document
+
+
+def test_a_target_grid_trained_on_the_probes_version_is_read_and_the_target_is_reported(
+    tmp_path, fakes
+):
+    """Validator 23:10: a 1.7 grid trained on the 1.6 TRAIN reads against the 1.6 probe set (version check = the record's train
+    version); the 1.7 target is reported beside it."""
+    probe_version = "1.5"  # the fixture probe set (the live case: 1.6 probe, 1.7 grid)
+    path, document = _with_kernel_record(
+        tmp_path,
+        target="1.7",
+        train={
+            "version": probe_version,
+            "name": "train",
+            "sha256": "sha256:" + "e" * 64,
+        },
+    )
+    assert document["version"] == probe_version
+    out = sep_read.read(path)
+    assert {r["target_version"] for r in out["contenders"].values()} == {"1.7"}
+    assert {r["train_version"] for r in out["contenders"].values()} == {probe_version}
+
+
+def test_a_train_version_other_than_the_probes_is_refused(tmp_path, fakes):
+    path, _ = _with_kernel_record(tmp_path, target="1.7", train={"version": "1.7"})
+    with pytest.raises(sep_read.SepRefused, match="predict_record_other_version"):
+        sep_read.read(path)
+
+
+def test_an_older_record_without_train_falls_back_to_its_challenge_version(
+    tmp_path, fakes
+):
+    path, document = _with_kernel_record(
+        tmp_path
+    )  # challenge.version == the probe's, no train key
+    assert (
+        sep_read.read(path)["contenders"]["K"]["target_version"] == document["version"]
+    )
+    path, _ = _with_kernel_record(
+        tmp_path / "other", target="1.7"
+    )  # no train key, another version: refused
+    with pytest.raises(sep_read.SepRefused, match="predict_record_other_version"):
+        sep_read.read(path)
