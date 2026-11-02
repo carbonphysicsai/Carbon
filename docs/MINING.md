@@ -325,7 +325,7 @@ A graph recipe is a JAX program. Carbon lowers it on your machine, checks every 
 
 A neural operator is a model that learns the mapping from a design's inputs to a whole output, such as a torque curve over rotor angle or a temperature profile, and does it in one pass. On Carbon it is a graph recipe (see *Writing a graph*): a JAX program that Carbon lowers, checks, rebuilds on its own side and trains itself. This section builds one step by step. It teaches the method; it does not say which model wins.
 
-**Before you start.** Run `describe` for your Challenge version (or read the page's **How you're tested**). Note the interface: how many inputs, how many outputs, the dtype, the TRAIN box, and which outputs are single numbers and which are curves or fields. A version's practice runs on public data and applies the same gates and score-part minimums as the exam, so a practice that clears the gates and minimums is the first thing to aim for, before any score.
+**Before you start.** Run `describe` for your Challenge version (or read the page's **How you're tested**). Note the interface: how many inputs, how many outputs, the dtype, the TRAIN box, and which outputs are single numbers and which are curves or fields. A version's practice runs on public data and shows what it can of the gates and score-part minimums, so a practice that clears the gates and minimums it shows is the first thing to aim for, before any score.
 
 ### 1. Start from a fit, not from nothing
 
@@ -352,11 +352,11 @@ Practice tells you which gate failed and never which design, so read the failing
 
 ### 4. Train, practise, read the result
 
-Training steps and learning rate are recipe settings; leave them at the tested default first. Run a practice (`carbon_practice`, or **Practise** on the page) and read the practice total, the error details beside it, and the gates and minimums. Compare three things on your own recipe, one change at a time: the fit alone, the fit plus a plain MLP residual, and the fit plus your operator residual. If the operator does not beat the simpler two on public practice, it will not beat them on the exam either.
+Training steps and learning rate are recipe settings; leave them at the tested default first. Run a practice (`carbon_practice`, or **Practise** on the page) and read the practice total, the error details beside it, and the gates and minimums. Compare three things on your own recipe, one change at a time: the fit alone, the fit plus a plain MLP residual, and the fit plus your operator residual. If the operator does not beat the simpler two on public practice, it is unlikely to beat them in range on the exam; the reverse is not guaranteed either, because a practice win is not an exam win.
 
 - **Time.** Practice runs on your own compute and has a time budget; a graph too slow to finish in it can never be frozen. The exam rebuild has its own limits (see *Practise, freeze, submit*: build time and inference time each up to 648 seconds on the newer versions, 947 seconds in total), and the speed gate bounds the answer time per design. A large spectral block with many channels costs time in all three.
 - **Loops.** Use `scan` with a fixed length for anything iterative. `while` loops are not served yet.
-- **Seed.** Your grade builds your graph at seed 0, and crown decisions will average over several seeds, so check that a second seed trains too.
+- **Seed.** Your grade builds your graph at seed 0, and crown decisions will average over several seeds once crown averaging is switched on (it is off now), so check that a second seed trains too.
 
 ### 5. Freeze and submit
 
