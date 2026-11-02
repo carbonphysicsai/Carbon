@@ -317,8 +317,9 @@ def _gap(a, b, *, step, draws, seed, sign=1.0):
     }
 
 
-def run_report(config, config_path, inputs_path):
-    """The report document (see the module docstring)."""
+def run_report(config, config_path, inputs_path, *, sink=None):
+    """The report document (see the module docstring). ``sink`` (a dict), if given, receives the classed point inputs, TRAIN and
+    its columns for `g_reports` (custody memory only: never written into the report)."""
     import acc_noise
 
     from carbon.scoring import grade_feedback, pool_grader, pool_version
@@ -482,6 +483,12 @@ def run_report(config, config_path, inputs_path):
                 }
                 for r in admitted
             }
+    if sink is not None:
+        sink.update(
+            points=list(zip(point_class, point_inputs, strict=True)),
+            train=train,
+            columns=columns,
+        )
     checks["3_coverage"] = {
         "nearest_train": nearest_train(
             list(zip(point_class, point_inputs, strict=True)), train, columns
