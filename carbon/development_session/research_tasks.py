@@ -1139,7 +1139,23 @@ class DirectDevelopmentTasksV3:
         if measure_query:
             self._measured_tasks.add(view.task_id.value)
 
-    def start_research_task(self, request, *, measure_query=False):
+    def _derived_rebuild(self, request) -> bool:
+        """A crown-average rebuild: the host-owned synthetic owner's task with a validator-set build seed
+        (`set_rebuild_seed`, never reachable from a request), so derived and uncounted. Only such a task may carry
+        its origin's retained graph source bytes (`start_research_task`'s ``graph_source``).
+        """
+        from carbon.challenge_validator.crown_average import HOST_OWNER
+
+        return (
+            self.owner == HOST_OWNER
+            and self._task_id(request).value in self._task_seeds
+        )
+
+    def start_research_task(self, request, *, measure_query=False, graph_source=None):
+        """Admit and queue one task. ``graph_source`` is the ORIGIN task's retained graph source envelope, for a
+        crown-average derived rebuild only (`_derived_rebuild`): the host owner has no workspace, so the bytes come
+        from the origin and are checked against the recipe's submission digest like any intake. Any other task
+        passing it is refused, and a miner's task always reads its own workspace."""
         from carbon.research.refs import ResearchTaskId
 
         from .gpu_practice import DirectParentRefused
@@ -1153,6 +1169,14 @@ class DirectDevelopmentTasksV3:
                 ResearchServiceErrorCode.REQUEST_TYPE_INVALID
             )
         with self._lock:
+            if graph_source is not None and (
+                type(graph_source) is not bytes
+                or request.recipe["source"]["kind"] != "graph"
+                or not self._derived_rebuild(request)
+            ):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+                )
             bindings = self._bindings(request)
             if measure_query:
                 from carbon.challenge_kit.interface_dtype import output_dtype
@@ -1201,7 +1225,13 @@ class DirectDevelopmentTasksV3:
                     recipe = ConstructionRecipe.from_dict(request.recipe)
                     source_envelope = _checked_envelope(
                         recipe,
-                        graph_envelope_from_workspace(self.ledger, self.owner, recipe),
+                        (
+                            graph_envelope_from_workspace(
+                                self.ledger, self.owner, recipe
+                            )
+                            if graph_source is None
+                            else graph_source
+                        ),
                     )
             except DirectParentRefused as refused:
                 # A registered runtime without its parent here is a capability

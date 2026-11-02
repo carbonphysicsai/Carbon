@@ -2698,9 +2698,17 @@ def rebuild_at_seed(
     origin_owner = adapter.owner(origin)
     if origin_owner is None:
         raise RetentionUnavailable("rebuild_origin_unavailable")
-    recipe = ConstructionRecipe.from_dict(
-        adapter._provider(origin_owner)._requests[origin].recipe
-    )
+    origin_provider = adapter._provider(origin_owner)
+    origin_recipe = origin_provider._requests[origin].recipe
+    recipe = ConstructionRecipe.from_dict(origin_recipe)
+    # A graph recipe's source is the ORIGIN task's retained envelope (the host owner has no workspace); the host
+    # task checks it against the recipe's submission digest at admission.
+    graph = {}
+    if origin_recipe["source"]["kind"] == "graph":
+        try:
+            graph["graph_source"] = origin_provider._source_envelope(origin, recipe)
+        except (OSError, ValueError) as exc:
+            raise RetentionUnavailable("rebuild_graph_source_unavailable") from exc
     provider = adapter._provider(host_owner)
     # Invariant 7: a derived task that ended on OUR infrastructure (FAILED_INFRA, unresolved, cancelled) is never the
     # model's result and is never read again: the next try is the next fresh generation (`rerun`, the miner path's own
@@ -2728,7 +2736,7 @@ def rebuild_at_seed(
     else:
         provider.set_rebuild_seed(task_id.value, seed)
     task = provider.start_research_task(
-        request, measure_query=adapter._measure_query
+        request, measure_query=adapter._measure_query, **graph
     ).task
     if task.state is DirectTaskStateV3.QUEUED:
         provider.run_queued_task(task_id)

@@ -278,7 +278,9 @@ def _fixture(state=DirectTaskStateV3.QUEUED):
     host = _Provider(HOST, state)
     recipe = ConstructionRecipe.from_dict  # patched below
     keys = []
-    origin_provider._requests[ORIGIN] = SimpleNamespace(recipe={"r": 1})
+    origin_provider._requests[ORIGIN] = SimpleNamespace(
+        recipe={"r": 1, "source": {"kind": "bundle"}}
+    )
 
     class Adapter:
         _measure_query = False
