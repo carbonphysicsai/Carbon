@@ -386,11 +386,11 @@ def _smoke_failure(challenge_id, summary):
 
 @pytest.mark.parametrize("family", ["motor", "cold_plate"])
 def test_motor_and_cooling_pass_on_their_real_summaries_and_fail_closed(family):
-    import importlib
-
     from carbon.challenge_kit import served_versions as sv
+    from carbon.cold_plate import exam as cooling_exam
+    from carbon.motor import exam as motor_exam
 
-    exam = importlib.import_module(f"carbon.{family}.exam")
+    exam = motor_exam if family == "motor" else cooling_exam
     challenge = sv.MOTOR if family == "motor" else sv.COOLING
     summary = exam.aggregate(_family_rows(exam, [0.2, 0.3]))
     assert "aggregate_error" not in summary  # the key the first cut read
