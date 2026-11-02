@@ -626,7 +626,7 @@ def build_validated_graph(
     `allowlist_bytes` must be the version's served graph allowlist; the host
     checks it (`served_allowlist_bytes`) before staging, and the worker checks
     the staged bytes' digest against the host's control."""
-    from carbon.level4 import intake, validate
+    from carbon.level4 import forward_mode, intake, validate
     from carbon.level4.allowlist import Allowlist
     from carbon.level4.train import prepare
 
@@ -664,7 +664,13 @@ def build_validated_graph(
         recipe,
         spec,
         parsed["forward"],
-        prepare(parsed, allowed, verdict=verdict, loss_override=LOSS_OVERRIDE),
+        prepare(
+            parsed,
+            allowed,
+            verdict=verdict,
+            loss_override=LOSS_OVERRIDE,
+            forward=forward_mode.mode(named["id"], named["version"]),
+        ),
         allowed,
         settings,
     )

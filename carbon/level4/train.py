@@ -93,15 +93,27 @@ class Prepared:
         return [jnp.concatenate([b[k] for b in blocks]) for k in range(len(blocks[0]))]
 
 
-def prepare(parsed, allowlist, *, verdict, kit=None, loss_override=None):
+def prepare(
+    parsed, allowlist, *, verdict, kit=None, loss_override=None, forward="eager"
+):
     """G6's inputs from a verified (`submission.verify`) and validated
     (`validate.validate_submission`) submission.
 
     `kit` maps each `kit/` input name to Carbon's published array for it
     (OWNER-L4-CONSTANT-ACCOUNTING-02). `apply` binds those by name on every
-    call, so `predict` (batched or isolated) never slices or pads them."""
+    call, so `predict` (batched or isolated) never slices or pads them.
+
+    `forward` is `forward_mode.mode(challenge, version)`: "eager" (the default) runs
+    the rebuilt graph op by op; "jit" wraps the SAME `apply` in `jax.jit`, compiled
+    once per input shape (so once per params state), and every caller of `apply`
+    (practice, train predictions, judge inference) gets it alike."""
+    from . import forward_mode
+
     if verdict["status"] not in ("admitted", "blocked_human_input"):
         raise ValueError("prepare takes a validated submission")
+    if forward not in forward_mode.MODES:
+        raise ValueError("forward must be one of forward_mode.MODES")
+    forward_run = forward
     forward = interpret.rebuild(parsed["forward"], allowlist)
     entry = parsed["forward"]["graphs"][parsed["forward"]["entry"]]
     order = [i["name"] for i in entry["inputs"]]
@@ -137,6 +149,10 @@ def prepare(parsed, allowlist, *, verdict, kit=None, loss_override=None):
                     args.append(next(inputs))
             return forward(*args)
 
+    if forward_run == forward_mode.JIT:
+        import jax
+
+        apply = jax.jit(apply)
     loss = None
     if "loss" in parsed:
         # G4 admitted it (`validate_submission` with the Challenge's
