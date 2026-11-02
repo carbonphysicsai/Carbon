@@ -49,7 +49,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib
 import json
 import math
 import random
@@ -449,11 +448,25 @@ def _refused(binding, common):
 # ---------------------------------------------------------------- command line
 
 
+def _pool_binding():
+    import pool_binding  # this payload's own custody binding, beside attack.py
+
+    return pool_binding.make()
+
+
+#: The custody bindings this attack may load, each a literal import (no computed import: the code-authority scan). A new
+#: Challenge's binding joins here by name.
+BINDINGS = {"pool_binding:make": _pool_binding}
+
+
 def _load(binding):
     module, _, function = binding.partition(":")
     if not module or not function:
         raise AttackRefused("binding_is_module_colon_function")
-    return getattr(importlib.import_module(module), function)()
+    factory = BINDINGS.get(binding)
+    if factory is None:
+        raise AttackRefused("binding_not_registered")
+    return factory()
 
 
 def sums():
