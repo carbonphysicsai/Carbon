@@ -72,14 +72,17 @@ FEEDBACK_REPLY_SCHEMA = "carbon.private-exam.ladder-feedback-reply.v1"
 #: state. Advertised in its own facts entry (``exam_feedback_v2``) only by a receiver that grades its
 #: own submissions, so the v1 entry deployed clients pin is unchanged.
 FEEDBACK_REPLY_SCHEMA_V2 = "carbon.private-exam.ladder-feedback-reply.v2"
-#: The closed grade states (`DirectRecipeIntake._grade_state`); None is none of these.
+#: The closed grade states of a v2 reply (`DirectRecipeIntake._grade_state`); None is none of these.
 GRADE_STATES = (
     "GRADED",
     "QUEUED",
     "SUPERSEDED_BY_OWN_LATER_SUBMIT",
     "ROUND_LIMIT_REACHED",
-    "CANDIDATE_FAILED",
 )
+#: v3 = v2 plus CANDIDATE_FAILED (the official wall rule, Validator 22:40): a v2 reply keeps it None, so a
+#: deployed v2 client, which pins `GRADE_STATES`, still parses every reply. Advertised as ``exam_feedback_v3``.
+FEEDBACK_REPLY_SCHEMA_V3 = "carbon.private-exam.ladder-feedback-reply.v3"
+GRADE_STATES_V3 = (*GRADE_STATES, "CANDIDATE_FAILED")
 PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
 SOURCE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
 
@@ -225,7 +228,14 @@ class DirectRecipeIntake(BatteryIntake):
                             "reply_schema": FEEDBACK_REPLY_SCHEMA_V2,
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
-                        }
+                        },
+                        "exam_feedback_v3": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V3,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
                     }
                 ),
                 "served_contracts": self.door.served_contracts(),
@@ -354,13 +364,14 @@ class DirectRecipeIntake(BatteryIntake):
         if received.call.tool == FEEDBACK_TOOL:
             if not fields:
                 return self._feedback(received.receipt.hotkey)
+            v3 = set(fields) == {"reply", "submission_id"} and fields["reply"] == "v3"
             if (
-                set(fields) != {"submission_id"}
+                not (v3 or set(fields) == {"submission_id"})
                 or type(fields["submission_id"]) is not str
             ):
                 return _refused(400, "feedback_fields")
             return self._feedback(
-                received.receipt.hotkey, submission_id=fields["submission_id"]
+                received.receipt.hotkey, submission_id=fields["submission_id"], v3=v3
             )
         return _refused(400, "tool")
 
@@ -369,7 +380,7 @@ class DirectRecipeIntake(BatteryIntake):
         with self._write:
             return self.door.evaluate(submitted)
 
-    def _feedback(self, hotkey, *, submission_id=None):
+    def _feedback(self, hotkey, *, submission_id=None, v3=False):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
         (the signed hotkey is the key). With ``submission_id`` (v2), also that
@@ -383,6 +394,10 @@ class DirectRecipeIntake(BatteryIntake):
             if self.adapter.owner(submission_id) != hotkey:
                 return _refused(404, "feedback_submission_unknown")
             grade_state = self._grade_state(hotkey, submission_id)
+            if not v3 and grade_state not in GRADE_STATES:
+                grade_state = (
+                    None  # CANDIDATE_FAILED is v3's; a v2 reply keeps its closed set
+                )
         snapshot = getattr(self.adapter.discovery, "evaluation_pack_snapshot", None)
         exam_key = getattr(snapshot, "manifest_digest", None)
         documents = {"best": None, "latest": None}
@@ -407,7 +422,9 @@ class DirectRecipeIntake(BatteryIntake):
                     {}
                     if submission_id is None
                     else {
-                        "schema": FEEDBACK_REPLY_SCHEMA_V2,
+                        "schema": (
+                            FEEDBACK_REPLY_SCHEMA_V3 if v3 else FEEDBACK_REPLY_SCHEMA_V2
+                        ),
                         "submission": {
                             "submission_id": submission_id,
                             "grade_state": grade_state,

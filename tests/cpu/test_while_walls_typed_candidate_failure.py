@@ -422,7 +422,10 @@ def test_the_marker_and_the_miner_state_name_the_candidate_failure(tmp_path):
         exam_key=exam_key,
         submission_id=A,
     )
-    assert "CANDIDATE_FAILED" in direct_intake.GRADE_STATES
+    assert (
+        "CANDIDATE_FAILED" in direct_intake.GRADE_STATES_V3
+    )  # a v3 reply only (Validator 22:40)
+    assert "CANDIDATE_FAILED" not in direct_intake.GRADE_STATES
     state = direct_intake.DirectRecipeIntake._grade_state(
         SimpleNamespace(grade_marker=lambda sid: marker), hotkey, A
     )

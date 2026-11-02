@@ -417,8 +417,15 @@ GRADE_STATES = (
     "QUEUED",
     "SUPERSEDED_BY_OWN_LATER_SUBMIT",
     "ROUND_LIMIT_REACHED",
-    "CANDIDATE_FAILED",
 )
+#: v3: v2 plus CANDIDATE_FAILED (`direct_intake.FEEDBACK_REPLY_SCHEMA_V3`); asked for only where advertised.
+FEEDBACK_REPLY_SCHEMA_V3 = "carbon.private-exam.ladder-feedback-reply.v3"
+FEEDBACK_V3_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V3,
+}
+GRADE_STATES_V3 = (*GRADE_STATES, "CANDIDATE_FAILED")
 
 
 def read_exam_feedback(
@@ -449,7 +456,10 @@ def read_exam_feedback(
     facts = read(url)
     if facts.get("exam_feedback") != FEEDBACK_FACTS:
         raise DirectIntakeRefusal("exam_feedback_unavailable")
-    v2 = (
+    v3 = (
+        submission_id is not None and facts.get("exam_feedback_v3") == FEEDBACK_V3_FACTS
+    )
+    v2 = v3 or (
         submission_id is not None and facts.get("exam_feedback_v2") == FEEDBACK_V2_FACTS
     )
     body = _body(
@@ -459,7 +469,11 @@ def read_exam_feedback(
         receiver=receiver,
         context=context,
         tool=FEEDBACK_TOOL,
-        fields={"submission_id": submission_id} if v2 else {},
+        fields=(
+            {"reply": "v3", "submission_id": submission_id}
+            if v3
+            else ({"submission_id": submission_id} if v2 else {})
+        ),
         request=f"exam-feedback-{time.time_ns()}",
     )
     headers = BittensorMessageSigner(signer).sign(
@@ -473,7 +487,11 @@ def read_exam_feedback(
     if (
         set(answer) != keys
         or answer["schema"]
-        != (FEEDBACK_REPLY_SCHEMA_V2 if v2 else FEEDBACK_REPLY_SCHEMA)
+        != (
+            FEEDBACK_REPLY_SCHEMA_V3
+            if v3
+            else (FEEDBACK_REPLY_SCHEMA_V2 if v2 else FEEDBACK_REPLY_SCHEMA)
+        )
         or answer["challenge"]
         != {"id": challenge["id"], "version": challenge["version"]}
     ):
@@ -484,7 +502,8 @@ def read_exam_feedback(
         or answer["submission"]["submission_id"] != submission_id
         or (
             answer["submission"]["grade_state"] is not None
-            and answer["submission"]["grade_state"] not in GRADE_STATES
+            and answer["submission"]["grade_state"]
+            not in (GRADE_STATES_V3 if v3 else GRADE_STATES)
         )
     ):
         raise DirectIntakeRefusal("exam_feedback_reply_invalid")

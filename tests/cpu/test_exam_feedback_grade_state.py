@@ -195,6 +195,10 @@ def test_the_facts_advertise_v2_only_with_a_grader_and_keep_v1_pinned(tmp_path, 
     assert "exam_feedback_v2" not in plain
     assert client.GRADE_STATES == direct_intake.GRADE_STATES
     assert client.FEEDBACK_REPLY_SCHEMA_V2 == direct_intake.FEEDBACK_REPLY_SCHEMA_V2
+    assert facts["exam_feedback_v3"] == client.FEEDBACK_V3_FACTS
+    assert "exam_feedback_v3" not in plain
+    assert client.GRADE_STATES_V3 == direct_intake.GRADE_STATES_V3
+    assert client.FEEDBACK_REPLY_SCHEMA_V3 == direct_intake.FEEDBACK_REPLY_SCHEMA_V3
 
 
 @pytest.fixture
@@ -224,7 +228,7 @@ def read_v2(monkeypatch):
         lambda signer: SimpleNamespace(sign=lambda body, **kw: {}),
     )
 
-    def run(reply, *, advertised=True, submission_id=A):
+    def run(reply, *, advertised=True, submission_id=A, v3=False):
         def send(url, body, headers):
             sent.append(body["fields"])
             return 200, {
@@ -242,7 +246,13 @@ def read_v2(monkeypatch):
             receiver="validator",
             context=None,
             read=lambda url: (
-                facts if advertised else {"exam_feedback": client.FEEDBACK_FACTS}
+                (
+                    {**facts, "exam_feedback_v3": client.FEEDBACK_V3_FACTS}
+                    if v3
+                    else facts
+                )
+                if advertised
+                else {"exam_feedback": client.FEEDBACK_FACTS}
             ),
             send=send,
             submission_id=submission_id,
@@ -289,3 +299,39 @@ def test_the_ladder_rows_are_still_only_the_callers(tmp_path, ledger):
         "best": None,
         "latest": None,
     }
+
+
+def test_candidate_failed_is_v3_only_and_a_v2_reply_keeps_its_closed_set(
+    tmp_path, ledger, read_v2
+):
+    """Validator 22:40: CANDIDATE_FAILED appears only in the v3 reply; a v2 reply keeps None, so a deployed v2 client parses it."""
+    intake, marks = _intake(tmp_path, ledger, {A: "5Miner"})
+    marks._write(A, "CANDIDATE_FAILED", code="WORKER_WALL_LIMIT_REACHED")
+    assert "CANDIDATE_FAILED" not in direct_intake.GRADE_STATES
+    v2 = intake._feedback("5Miner", submission_id=A)
+    assert v2.body["schema"] == direct_intake.FEEDBACK_REPLY_SCHEMA_V2
+    assert v2.body["submission"]["grade_state"] is None
+    v3 = intake._feedback("5Miner", submission_id=A, v3=True)
+    assert v3.body["schema"] == direct_intake.FEEDBACK_REPLY_SCHEMA_V3
+    assert v3.body["submission"]["grade_state"] == "CANDIDATE_FAILED"
+    run, sent = read_v2
+    # a v2-only client (no v3 advertised) parses the v2 reply the receiver gives it
+    assert (
+        run({**{k: v2.body[k] for k in ("schema", "submission")}})["submission"][
+            "grade_state"
+        ]
+        is None
+    )
+    assert sent[-1] == {"submission_id": A}
+    # ...and would refuse CANDIDATE_FAILED in a v2 reply: why it is v3's
+    with pytest.raises(client.DirectIntakeRefusal):
+        run(
+            {
+                "schema": client.FEEDBACK_REPLY_SCHEMA_V2,
+                "submission": {"submission_id": A, "grade_state": "CANDIDATE_FAILED"},
+            }
+        )
+    # a client that sees v3 advertised asks for v3 and accepts it
+    got = run({k: v3.body[k] for k in ("schema", "submission")}, v3=True)
+    assert got["submission"]["grade_state"] == "CANDIDATE_FAILED"
+    assert sent[-1] == {"reply": "v3", "submission_id": A}
