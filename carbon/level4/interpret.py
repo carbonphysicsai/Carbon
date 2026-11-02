@@ -182,7 +182,16 @@ def _reduce_window(run, bound, ins):
     return list(out) if count > 1 else [out]
 
 
-def _while(run, bound, ins):
+#: Loop bodies are built ONCE per node of a rebuilt document (the `bodies` memo of
+#: `rebuild`) and reused on every later call: JAX caches a control-flow trace on the
+#: body function's identity, so a body made afresh per call re-traces it on every case
+#: (miner report 11-01: a 500-step scan 0.34 s/case). A reused body must close over
+#: nothing that changes between calls (JAX would replay the first call's constant), so
+#: the loop's per-call consts ride in the carry, unchanged, and every value reaches the
+#: body as an argument. No jit: the same primitives run in the same order.
+
+
+def _while(run, bound, ins, bodies, key):
     """`lax.while_loop` over a condition graph and a body graph. The trip count is
     the data's, so the build and inference walls bound it; a loop that never ends is
     the candidate's failure (Validator ruling 2(b): served only once both walls end
@@ -192,20 +201,27 @@ def _while(run, bound, ins):
     cond_n, body_n = bound["cond_nconsts"], bound["body_nconsts"]
     if cond_n < 0 or body_n < 0 or cond_n + body_n > len(ins):
         raise graph.GraphRefused("parameter_kind_mismatch")
-    cond_consts = list(ins[:cond_n])
-    body_consts = list(ins[cond_n : cond_n + body_n])
+    cond_consts = tuple(ins[:cond_n])
+    body_consts = tuple(ins[cond_n : cond_n + body_n])
     init = tuple(ins[cond_n + body_n :])
-    cond_ref, body_ref = bound["cond_jaxpr"]["graph"], bound["body_jaxpr"]["graph"]
-    return list(
-        jax.lax.while_loop(
-            lambda state: run(cond_ref, [*cond_consts, *state])[0],
-            lambda state: tuple(run(body_ref, [*body_consts, *state])),
-            init,
-        )
-    )
+    if key not in bodies:
+        cond_ref = bound["cond_jaxpr"]["graph"]
+        body_ref = bound["body_jaxpr"]["graph"]
+
+        def cond(carry):
+            held_cond, _held_body, state = carry
+            return run(cond_ref, [*held_cond, *state])[0]
+
+        def body(carry):
+            held_cond, held_body, state = carry
+            return held_cond, held_body, tuple(run(body_ref, [*held_body, *state]))
+
+        bodies[key] = (cond, body)
+    cond, body = bodies[key]
+    return list(jax.lax.while_loop(cond, body, (cond_consts, body_consts, init))[2])
 
 
-def _scan(run, bound, ins):
+def _scan(run, bound, ins, bodies, key):
     """`lax.scan` over a nested body graph (inputs: consts, carry, x slices;
     outputs: new carry, y slices). Static length; the body runs once per step."""
     import jax
@@ -215,15 +231,18 @@ def _scan(run, bound, ins):
     if consts < 0 or carry < 0 or consts + carry > len(ins):
         raise graph.GraphRefused("parameter_kind_mismatch")
     held, init, xs = ins[:consts], ins[consts : consts + carry], ins[consts + carry :]
-    body = bound["jaxpr"]["graph"]
+    if key not in bodies:
+        body = bound["jaxpr"]["graph"]
 
-    def step(state, x):
-        outs = run(body, [*held, *state, *x])
-        return tuple(outs[:carry]), tuple(outs[carry:])
+        def step(state, x):
+            held_now, carried = state
+            outs = run(body, [*held_now, *carried, *x])
+            return (held_now, tuple(outs[:carry])), tuple(outs[carry:])
 
-    state, ys = jax.lax.scan(
-        step,
-        tuple(init),
+        bodies[key] = step
+    (_held, state), ys = jax.lax.scan(
+        bodies[key],
+        (tuple(held), tuple(init)),
         tuple(xs),
         length=bound["length"],
         reverse=bound["reverse"],
@@ -232,17 +251,19 @@ def _scan(run, bound, ins):
     return [*state, *ys]
 
 
-def _cond(run, bound, ins):
+def _cond(run, bound, ins, bodies, key):
     """`lax.switch` over the branch graphs: the first operand is the integer
-    index, the rest go to the chosen branch."""
+    index, the rest go to the chosen branch (every value an argument already)."""
     import jax
 
-    refs = [item["graph"] for item in bound["branches"]]
+    if key not in bodies:
+        refs = [item["graph"] for item in bound["branches"]]
+        bodies[key] = [
+            (lambda *ops, target=target: tuple(run(target, list(ops))))
+            for target in refs
+        ]
     index, operands = ins[0], list(ins[1:])
-    branches = [
-        (lambda *ops, target=target: tuple(run(target, list(ops)))) for target in refs
-    ]
-    return list(jax.lax.switch(index, branches, *operands))
+    return list(jax.lax.switch(index, bodies[key], *operands))
 
 
 _SCATTERS = frozenset(
@@ -329,6 +350,8 @@ def rebuild(doc, allowlist):
         name: {c["value"]: graph.decode_array(c, name) for c in g["constants"]}
         for name, g in graphs.items()
     }
+    # One loop body per (graph, node), built on its first call and reused (see `_while`).
+    bodies = {}
 
     def run(name, args):
         g = graphs[name]
@@ -360,11 +383,11 @@ def rebuild(doc, allowlist):
             elif node["op"] == "reduce_window":
                 outs = _reduce_window(run, bound, ins)
             elif node["op"] == "while":
-                outs = _while(run, bound, ins)
+                outs = _while(run, bound, ins, bodies, (name, i))
             elif node["op"] == "scan":
-                outs = _scan(run, bound, ins)
+                outs = _scan(run, bound, ins, bodies, (name, i))
             elif node["op"] == "cond":
-                outs = _cond(run, bound, ins)
+                outs = _cond(run, bound, ins, bodies, (name, i))
             elif node["op"] in _SCATTERS:
                 outs = [_scatter(node["op"], bound, ins)]
             elif node["op"] == "device_put":
