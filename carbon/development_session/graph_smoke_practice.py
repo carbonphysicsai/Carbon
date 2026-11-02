@@ -116,12 +116,27 @@ def truncate(strategy, compile=None):
     return value, {"field": FIELD, "steps_requested": requested, "steps_run": run}
 
 
+def _error_keys():
+    """Each family's own finite-result key in its practice summary: F08 / F02
+    (`direct_campaign.practice.summary`) and Battery (`catalog_version.practice_summary`)
+    write ``aggregate_error``; Motor and Cooling (`exam.aggregate`) write ``score``, the
+    same mean error (None when no case was scorable). No new value."""
+    from carbon.challenge_kit import served_versions as sv
+
+    return {
+        sv.F08: "aggregate_error",
+        sv.F02: "aggregate_error",
+        sv.BATTERY: "aggregate_error",
+        sv.MOTOR: "score",
+        sv.COOLING: "score",
+    }
+
+
 def failure(result):
     """None when a direct graph practice completed with its rows predicted and
-    a finite error; else a closed code. Reads the result only. The error is the
-    family's own aggregate: ``aggregate_error`` where the summary names it (F08,
-    F02, Battery), else ``score`` (Motor and Cooling's summaries, whose
-    ``score`` is that same error; None when no case was scorable)."""
+    a finite error; else a closed code. Reads the result only. The error is read
+    under the family's own key (`_error_keys`); a family with no registered key
+    fails closed."""
     summary = result.get("summary")
     if type(summary) is not dict:
         return "outputs_missing"
@@ -134,7 +149,11 @@ def failure(result):
         or type(fit.get("state_digest")) is not str
     ):
         return "outputs_missing"
-    error = summary.get("aggregate_error", summary.get("score"))
+    challenge = result.get("challenge")
+    key = _error_keys().get(challenge.get("id") if type(challenge) is dict else None)
+    if key is None:
+        return "error_key_unregistered"
+    error = summary.get(key)
     if type(error) not in (int, float) or not math.isfinite(error):
         return "outputs_not_finite"
     return None

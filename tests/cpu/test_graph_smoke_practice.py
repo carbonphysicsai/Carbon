@@ -147,6 +147,8 @@ class DirectFixture:
         result = {
             "schema": "carbon.f08.direct-practice.v1",
             "provenance": "F08_PUBLIC_PRACTICE",
+            # as the real F08 practice result names its Challenge (`DirectPractice.__call__`)
+            "challenge": {"id": "f08-ribbed-bracket", "version": "1.4"},
             "recipe": strategy,
             "summary": {
                 "n_cases": 12,
@@ -356,22 +358,65 @@ def test_the_practice_path_records_smoke_for_a_graph_and_refuses_a_catalog(tmp_p
     assert smoke.requested(ledger, OWNER, "s6") is None
 
 
-@pytest.mark.parametrize(
-    ("summary", "code"),
-    [
-        (
-            {"n_cases": 4, "aggregate_error": 0.2, "score": 0.2},
-            None,
-        ),  # F08 / F02 / Battery
-        ({"n_cases": 4, "score": 0.2}, None),  # Motor / Cooling: `score` is the error
-        ({"n_cases": 4, "score": None}, "outputs_not_finite"),  # no case scorable
-        ({"n_cases": 4, "score": float("nan")}, "outputs_not_finite"),
-        ({"n_cases": 4}, "outputs_not_finite"),
-        ({"n_cases": 0, "score": 0.2}, "outputs_missing"),
-    ],
-)
-def test_the_pass_rule_reads_each_familys_own_error(summary, code):
+def _family_rows(exam, errors, *, gated=0):
+    """Typed case rows for the family's REAL `exam.aggregate` (the summary its practice writes)."""
+    rows = [
+        {
+            "state": exam.SCORABLE,
+            "error": e,
+            "components": {c: e for c in exam.COMPONENTS},
+            "gates": {},
+        }
+        for e in errors
+    ]
+    return rows + [{"state": exam.GATE_FAILED, "gates": {}} for _ in range(gated)]
+
+
+def _smoke_failure(challenge_id, summary):
     from carbon.development_session import graph_smoke_practice
 
-    result = {"summary": summary, "fit": {"state_digest": "sha256:" + "1" * 64}}
-    assert graph_smoke_practice.failure(result) == code
+    return graph_smoke_practice.failure(
+        {
+            "challenge": {"id": challenge_id, "version": "x"},
+            "summary": summary,
+            "fit": {"state_digest": "sha256:" + "1" * 64},
+        }
+    )
+
+
+@pytest.mark.parametrize("family", ["motor", "cold_plate"])
+def test_motor_and_cooling_pass_on_their_real_summaries_and_fail_closed(family):
+    import importlib
+
+    from carbon.challenge_kit import served_versions as sv
+
+    exam = importlib.import_module(f"carbon.{family}.exam")
+    challenge = sv.MOTOR if family == "motor" else sv.COOLING
+    summary = exam.aggregate(_family_rows(exam, [0.2, 0.3]))
+    assert "aggregate_error" not in summary  # the key the first cut read
+    assert _smoke_failure(challenge, summary) is None
+    nan = exam.aggregate(_family_rows(exam, [0.2, float("nan")]))
+    assert _smoke_failure(challenge, nan) == "outputs_not_finite"
+    unscored = exam.aggregate(_family_rows(exam, [], gated=2))
+    assert unscored["score"] is None
+    assert _smoke_failure(challenge, unscored) == "outputs_not_finite"
+
+
+def test_f08_f02_battery_read_aggregate_error_and_an_unknown_family_fails_closed():
+    from carbon.challenge_kit import served_versions as sv
+
+    for challenge in (sv.F08, sv.F02, sv.BATTERY):
+        assert _smoke_failure(challenge, {"n_cases": 4, "aggregate_error": 0.2}) is None
+        assert (
+            _smoke_failure(challenge, {"n_cases": 4, "aggregate_error": float("nan")})
+            == "outputs_not_finite"
+        )
+        # the other family's key is not read
+        assert (
+            _smoke_failure(challenge, {"n_cases": 4, "score": 0.2})
+            == "outputs_not_finite"
+        )
+    assert (
+        _smoke_failure("unregistered-family", {"n_cases": 4, "score": 0.2})
+        == "error_key_unregistered"
+    )
