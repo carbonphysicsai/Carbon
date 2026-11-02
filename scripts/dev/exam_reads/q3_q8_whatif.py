@@ -806,7 +806,7 @@ class Regrader:
                     _patched(
                         pool_grader,
                         "region_class",
-                        lambda spec: classes[spec.target_id],
+                        lambda spec, plan=None: classes[spec.target_id],
                     )
                 )
             if errors is not None:
@@ -973,7 +973,7 @@ def _recording_agen(pool_grader, sink):
     real = pool_grader.agen_accuracy
     seen = {}
 
-    def recording(specs, predict, scales):
+    def recording(specs, predict, scales, **kwargs):
         calls = []
 
         def tap(conditions, designs):
@@ -981,7 +981,7 @@ def _recording_agen(pool_grader, sink):
             calls.append(batch)
             return batch
 
-        value = real(specs, tap, scales)
+        value = real(specs, tap, scales, **kwargs)
         with_slice = [spec for spec in specs if spec.agen]
         _need(len(calls) == len(with_slice), "agen_predict_calls_differ")
         for spec, batch in zip(with_slice, calls, strict=True):
