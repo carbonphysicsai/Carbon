@@ -1,4 +1,4 @@
-"""The per-hotkey repeat-miss watch (Validator V7 rulings, codex-queue/reports/VALIDATOR_V7_RULINGS_20261029.md, PROVISIONAL).
+"""The per-hotkey repeat-miss watch (Validator V7 rulings, codex-queue/reports/VALIDATOR_V7_RULINGS_20261029.md; values: owner record OWNER-V7-CONTROL-REBUILD-VALUES-01).
 
 A crown repeat that misses (FAILED_INFRA, or after V7 `candidate_not_reproducible`) is recorded against the
 submission's hotkey and Challenge. When one hotkey has `COUNT` misses on one Challenge within `WINDOW_BLOCKS` (one
@@ -17,7 +17,7 @@ import logging
 from . import exam_cap
 
 LOG = logging.getLogger("carbon.repeat_miss_watch")
-STATUS = "PROVISIONAL"
+STATUS = "OWNER-V7-CONTROL-REBUILD-VALUES-01"
 COUNT = 3
 WINDOW_BLOCKS = exam_cap.DAY_BLOCKS
 

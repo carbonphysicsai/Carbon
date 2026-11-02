@@ -364,7 +364,7 @@ def test_three_misses_by_one_hotkey_on_one_challenge_in_a_day_raise_one_operator
     alert = file_miss(store, blocks, owners, "c", 1200)
     assert alert == {
         "alert": "repeat_miss_watch",
-        "status": "PROVISIONAL",
+        "status": "OWNER-V7-CONTROL-REBUILD-VALUES-01",
         "hotkey": "hk",
         "challenge_id": CHALLENGE,
         "misses_in_window": 3,
@@ -462,9 +462,9 @@ def test_recording_a_miss_twice_counts_it_once(watch_env):
     assert store.repeat_miss_blocks("hk", CHALLENGE) == [1000]
 
 
-def test_the_alert_values_are_the_validators_provisional_ones():
+def test_the_alert_values_are_the_owners_confirmed_ones():
     from carbon.challenge_validator import exam_cap
 
-    assert repeat_miss_watch.STATUS == "PROVISIONAL"
+    assert repeat_miss_watch.STATUS == "OWNER-V7-CONTROL-REBUILD-VALUES-01"
     assert repeat_miss_watch.COUNT == 3
     assert repeat_miss_watch.WINDOW_BLOCKS == exam_cap.DAY_BLOCKS
