@@ -118,7 +118,10 @@ def truncate(strategy, compile=None):
 
 def failure(result):
     """None when a direct graph practice completed with its rows predicted and
-    a finite error; else a closed code. Reads the result only."""
+    a finite error; else a closed code. Reads the result only. The error is the
+    family's own aggregate: ``aggregate_error`` where the summary names it (F08,
+    F02, Battery), else ``score`` (Motor and Cooling's summaries, whose
+    ``score`` is that same error; None when no case was scorable)."""
     summary = result.get("summary")
     if type(summary) is not dict:
         return "outputs_missing"
@@ -131,7 +134,7 @@ def failure(result):
         or type(fit.get("state_digest")) is not str
     ):
         return "outputs_missing"
-    error = summary.get("aggregate_error")
+    error = summary.get("aggregate_error", summary.get("score"))
     if type(error) not in (int, float) or not math.isfinite(error):
         return "outputs_not_finite"
     return None

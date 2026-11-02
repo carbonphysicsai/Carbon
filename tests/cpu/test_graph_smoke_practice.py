@@ -354,3 +354,24 @@ def test_the_practice_path_records_smoke_for_a_graph_and_refuses_a_catalog(tmp_p
             )
         )
     assert smoke.requested(ledger, OWNER, "s6") is None
+
+
+@pytest.mark.parametrize(
+    ("summary", "code"),
+    [
+        (
+            {"n_cases": 4, "aggregate_error": 0.2, "score": 0.2},
+            None,
+        ),  # F08 / F02 / Battery
+        ({"n_cases": 4, "score": 0.2}, None),  # Motor / Cooling: `score` is the error
+        ({"n_cases": 4, "score": None}, "outputs_not_finite"),  # no case scorable
+        ({"n_cases": 4, "score": float("nan")}, "outputs_not_finite"),
+        ({"n_cases": 4}, "outputs_not_finite"),
+        ({"n_cases": 0, "score": 0.2}, "outputs_missing"),
+    ],
+)
+def test_the_pass_rule_reads_each_familys_own_error(summary, code):
+    from carbon.development_session import graph_smoke_practice
+
+    result = {"summary": summary, "fit": {"state_digest": "sha256:" + "1" * 64}}
+    assert graph_smoke_practice.failure(result) == code
