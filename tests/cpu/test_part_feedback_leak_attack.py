@@ -211,6 +211,13 @@ def test_the_binding_must_be_module_colon_function():
     assert refused.value.code == "binding_is_module_colon_function"
 
 
+def test_only_a_registered_binding_loads_and_each_is_a_literal_import():
+    with pytest.raises(at.AttackRefused) as refused:
+        at._load("os:getcwd")  # importable, but not a registered custody binding
+    assert refused.value.code == "binding_not_registered"
+    assert set(at.BINDINGS) == {"pool_binding:make"}
+
+
 def test_the_payload_files_match_their_published_sums():
     listed = {}
     for line in (PAYLOAD / "SHA256SUMS").read_text().splitlines():
