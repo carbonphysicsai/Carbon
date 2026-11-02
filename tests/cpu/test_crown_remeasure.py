@@ -56,7 +56,14 @@ def _comparator():
 
 
 def _body(total, status=bp.SCORED):
-    return {"evidence": {"model_p": {"score_status": status, "total_score": total}}}
+    """A paired-dual grade body (the schema `bank_promotion._scored` reads)."""
+    return {
+        "evidence": {
+            "schema": bp.PAIRED_BINDING,
+            "challenge": CHALLENGE,
+            "model_p": {"score_status": status, "total_score": total},
+        }
+    }
 
 
 class _Repeat:
