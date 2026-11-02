@@ -772,3 +772,42 @@ def test_the_auxiliary_block_never_reads_the_steady_state_steps_inherited_blocks
         text.replace(_step(2), _step(2) + "".join(_block(noise) for _ in range(7)))
     )
     assert runner.auxiliary(directory) == plain
+
+
+def _disp(rows):
+    """A ccx displacement block as `f08_proof.parse_dat` reads it: the heading, one line, the rows, a blank line."""
+    lines = [" displacements (vx,vy,vz) for set NALL and time  0.1000000E+01", ""]
+    lines += [f"{n:10d}  {x:.6E}  {y:.6E}  {z:.6E}" for n, x, y, z in rows]
+    return "\n".join(lines) + "\n\n"
+
+
+def test_the_streaming_parse_keeps_every_value_of_the_nodes_read_and_nothing_else_changes(
+    tmp_path,
+):
+    rows = [(n, 0.1 * n, -0.2 * n, 0.3 * n) for n in range(1, 9)]
+    stress = [(1, 1, (1.0, 0.0, 0.0, 0.0, 0.0, 0.0))]
+    text = (
+        _step(1)
+        + _disp(rows)
+        + _block(stress)
+        + _disp(rows[::-1])
+        + _step(2)
+        + _disp(rows)
+        + _step(3)
+        + _disp(rows)
+        + _block(stress)
+    )
+    path = tmp_path / "case.dat"
+    path.write_text(text)
+    kept = "".join(runner._kept_lines(path, {1, 3}))
+    assert len(kept) < len(text)
+    whole, cut = runner.proof.parse_dat(text), runner.proof.parse_dat(kept)
+    assert len(whole) == len(cut) == 3
+    for full_step, cut_step in zip(whole, cut, strict=True):
+        assert cut_step["eigen"] == full_step["eigen"]
+        assert [e[0] for e in cut_step["events"]] == [e[0] for e in full_step["events"]]
+        for full_event, cut_event in zip(
+            full_step["events"], cut_step["events"], strict=True
+        ):
+            assert cut_event[1] == {n: full_event[1][n] for n in (1, 3)}
+    assert v2.stress_blocks_by_step(kept) == v2.stress_blocks_by_step(text)

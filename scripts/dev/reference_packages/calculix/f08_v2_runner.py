@@ -275,16 +275,42 @@ def modal_data(eig, shapes, loads, case, tip):
     ]
 
 
+def _kept_lines(path, nodes):
+    """The .dat's lines in ONE streaming pass, with each ``displacements`` block cut to the rows of ``nodes``: the heading,
+    the line after it and the blank line that ends the block are kept, exactly where `f08_proof.parse_dat` reads them, so
+    every value it returns for those nodes, and everything outside the blocks (eigenvalues, masses, participation factors,
+    the stress blocks and the step headers), is the same as from the whole file."""
+    with open(path, errors="replace") as handle:
+        lines = iter(handle)
+        for line in lines:
+            yield line
+            if not line.strip().startswith("displacements"):
+                continue
+            following = next(lines, None)
+            if following is None:
+                return
+            yield following
+            for row in lines:
+                if not row.strip():
+                    yield row
+                    break
+                if int(row.split()[0]) in nodes:
+                    yield row
+
+
 def parse(directory):
-    """A solved job directory read ONCE (a production .dat is ~1.8 GB): the deck and mesh records, the .dat's steps
-    (`f08_proof.parse_dat`) and its stress blocks per step (`f08_deck_v2.stress_blocks_by_step`). `observe` and `auxiliary`
-    both read this, so the file is read once and parsed twice (steps, stress), never per observable.
-    """
+    """A solved job directory read ONCE, streaming (a production .dat is ~2-3 GB): the deck and mesh records, the .dat's
+    steps (`f08_proof.parse_dat`) and its stress blocks per step (`f08_deck_v2.stress_blocks_by_step`). The displacement
+    blocks are cut to the nodes any output reads (the load nodes and the tip, `modal_data` and the static tip), so the
+    parse never holds the whole field; `observe` and `auxiliary` both read this."""
     directory = Path(directory)
-    dat = (directory / "case.dat").read_text(errors="replace")
+    deck = json.loads((directory / "deck.json").read_text())
+    meta = json.loads((directory / "mesh.json").read_text())
+    nodes = {int(n) for n in deck["loads"]} | {int(meta["tip_node"])}
+    dat = "".join(_kept_lines(directory / "case.dat", nodes))
     return {
-        "deck": json.loads((directory / "deck.json").read_text()),
-        "meta": json.loads((directory / "mesh.json").read_text()),
+        "deck": deck,
+        "meta": meta,
         "steps": proof.parse_dat(dat),
         "by_step": v2.stress_blocks_by_step(dat),
     }
