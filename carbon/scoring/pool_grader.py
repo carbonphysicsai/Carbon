@@ -999,6 +999,22 @@ def agen_accuracy(specs, predict, scales, *, aggregate=None, plan=None):
     return statistics.fmean(value for _name, value in regions)
 
 
+def agen_predictions_valid(specs, predict):
+    """Whether every A_gen slice prediction is valid (`_valid_prediction`). False when the Challenge's own validity
+    gates refused a raw answer (`derive` gave None, e.g. a negative motoring mean): the exam then gates the submission
+    (GATE_FAILED, the slot counted) before `agen_accuracy`, which would otherwise refuse it untyped (Validator 01:40).
+    """
+    for spec in specs:
+        if not spec.agen:
+            continue
+        batch = predict(spec.conditions, [list(spec.designs[i]) for i in spec.agen])
+        if type(batch) is not list or len(batch) != len(spec.agen):
+            return False
+        if not all(_valid_prediction(p, spec.outputs) for p in batch):
+            return False
+    return True
+
+
 def agen_for(specs, predict, scales, optimizer):
     """A set's A_gen under the version's registered aggregation (`optimizer.a_gen_aggregate` and the attached plan). A
     version with neither (every registered version) makes exactly the plain call `agen_accuracy(specs, predict, scales)`.

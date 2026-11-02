@@ -50,6 +50,8 @@ from carbon.scoring import pool_proof_suite as suite
 POOL_COHORT = probe_design.POOL_COHORT
 #: The mandatory gates this module adds to the sealed grader's native ones.
 PHYSICS_GATE = "physics_pool"
+#: The inner name (private, in "pool".physics_failed) of an A_gen slice answer the validity gates refuse.
+AGEN_VALIDITY_GATE = "agen_prediction_validity"
 SPEED_GATE = "speed"
 SPEED_SAMPLE = 20
 OUTCOME_POOL = "POOL_GRADED"
@@ -212,6 +214,12 @@ def measure_pool(
     _require(answered == held, "exam_pool_rows_differ_from_the_targets_pools")
     raw_pool = serve([r["inputs"] for r in pool_row_dicts])
     physics_failed = pool_gates.failed_gates(submitted, pool_row_dicts, raw_pool)
+    # An A_gen slice answer the Challenge's own validity gates refuse is the candidate's gate failure on a pool
+    # answer (OWNER-GATES-ON-POOL-3A-01: the A_gen slice alike), never an untyped refusal inside agen_accuracy.
+    if not pool_grader.agen_predictions_valid(
+        all_specs, pool_plugin.pool_predictor(submitted, serve)
+    ):
+        physics_failed = sorted({*physics_failed, AGEN_VALIDITY_GATE})
     speed = single_call_speed_gate(speed_call_seconds, ceiling_seconds=ceiling_seconds)
     if speed_outputs_match is not True:
         # The timed calls answered differently from the graded run on the same rows: a graph that does other
