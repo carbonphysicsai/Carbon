@@ -21,7 +21,8 @@ limit, and the EXACT CAD mass against the mass limit (geometry, no solve); RB 2.
 base fillet mesh, every solved target output coarse, the CAD mass exact (its single-rung parity is checked first, outside this module);
 BT 3.0 = the modal-sum (adversary 1 of f02_closed_form_gate.py, its own defaults, fit on public TRAIN) predicting the peak only, against
 the target's own limits: a target whose objective it does not predict REFUSES (counted per class, no anchor claimed, dropped from the
-D means); Cooling 1.8 = the coarsest graded-hotspot rung OR COOL-ADV-01, the choice fixed before S2: refused until it is. The coarse
+D means); Cooling 1.8 = COOL-ADV-01 (the choice fixed, Validator 17:51 / 04:09: rev 3, SUMS 7e30282a) predicting die_peak_c,
+hydraulic_w and pressure_drop_pa against the target's own limits, a target whose objective it does not predict REFUSING alone. The coarse
 rows (``coarse``) are those cheap outputs per design, produced outside. A Challenge version without a registered shortcut here is
 refused, never approximated.
 """
@@ -49,7 +50,11 @@ SHORTCUT_SCREENS = {
         "exact": (),
         "per_target_refusal": True,
     },
-    ("chip-cold-plate", "1.8"): None,
+    ("chip-cold-plate", "1.8"): {
+        "coarse": ("die_peak_c", "hydraulic_w", "pressure_drop_pa"),
+        "exact": (),
+        "per_target_refusal": True,
+    },
 }
 
 

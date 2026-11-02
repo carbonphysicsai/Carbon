@@ -253,7 +253,6 @@ def test_the_shortcuts_are_keyed_by_challenge_and_version():
     spec = _target("a", [0.10, 0.12, 0.14], [True, True, True])
     for key, code in (
         (("f08-ribbed-bracket", "1.6"), "no_registered_shortcut_for_the_challenge"),
-        (("chip-cold-plate", "1.8"), "shortcut_method_choice_not_fixed"),
     ):
         with pytest.raises(dv_curve.CurveRefused) as refused:
             dv_curve.shortcut_s_low(key, spec, {}, 4, 100.0, 10.0, random.Random(1))
@@ -328,3 +327,34 @@ def test_bt30_screens_the_peak_only_and_a_target_it_cannot_screen_refuses_alone(
         "refused": "shortcut_does_not_screen_the_objective",
     }
     assert dv_curve.shortcut_q_under_median(on_energy, None) is None
+
+
+def test_cooling18_screens_cool_adv_01s_three_outputs_and_an_unpredicted_target_refuses_alone():
+    cooling = ("chip-cold-plate", "1.8")
+    assert dv_curve.SHORTCUT_SCREENS[cooling] == {
+        "coarse": ("die_peak_c", "hydraulic_w", "pressure_drop_pa"),
+        "exact": (),
+        "per_target_refusal": True,
+    }
+    peak, dp, other = "die_peak_c", "pressure_drop_pa", "flow_uniformity"
+    limits = (pool_grader.Limit(dp, "<=", 5000.0),)
+    truths = [
+        {peak: 80.0, dp: 4000.0, other: 0.9},
+        {peak: 75.0, dp: 4500.0, other: 0.8},
+        {peak: 70.0, dp: 6000.0, other: 0.7},
+    ]
+    spec = _limited_spec("c", truths, peak, limits)  # minimise the die peak (sign -1)
+    # COOL-ADV-01 says design 2 breaks the pressure-drop limit and design 1 is the coolest feasible: it is verified
+    coarse = {
+        0: {peak: 81.0, dp: 3900.0},
+        1: {peak: 74.0, dp: 4400.0},
+        2: {peak: 69.0, dp: 6100.0},
+    }
+    result = dv_curve.shortcut_s_low(
+        cooling, spec, coarse, 4, 100.0, 10.0, random.Random(1)
+    )
+    assert result["s_low"] == -75.0 and result["verify_n"] == 1
+    unpredicted = SimpleNamespace(**{**vars(spec), "objective": other})
+    assert dv_curve.shortcut_s_low(
+        cooling, unpredicted, {}, 4, 100.0, 10.0, random.Random(1)
+    ) == {"s_low": None, "refused": "shortcut_does_not_screen_the_objective"}
