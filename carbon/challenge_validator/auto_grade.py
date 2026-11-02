@@ -96,7 +96,8 @@ class AutoGrader:
     def run_once(self):
         """Grade at most one ready task; returns ``(submission_id, state)`` or None.
 
-        ``state`` is GRADED, FAILED or PENDING (nothing written for PENDING)."""
+        ``state`` is GRADED, CANDIDATE_FAILED, FAILED or PENDING (nothing written for PENDING).
+        """
         from .lean_recipe_retention import RetentionUnavailable
 
         self._resume_paused_crowns()
@@ -120,6 +121,20 @@ class AutoGrader:
                 self._fail(submission_id, type(failure).__name__)
                 return submission_id, "FAILED"
             entry = result.get("entry_id") if type(result) is dict else None
+            if (
+                type(result) is dict
+                and result.get("private_evaluation_state") == "CANDIDATE_FAILED"
+            ):
+                # The candidate's own wall hit, twice, in the official inference pair
+                # (Validator ruling 2026-11-01): typed, unscored, the slot COUNTED. Not a
+                # FAILED marker, and nothing is given back.
+                self._write(
+                    submission_id,
+                    "CANDIDATE_FAILED",
+                    code=result.get("private_evaluation_reason"),
+                    entry_id=entry if type(entry) is str else None,
+                )
+                return submission_id, "CANDIDATE_FAILED"
             # A grade that could not be computed keeps ITS reason in the marker (a typed code): an operator's
             # idempotent re-retention reports whatever it meets on the retry, which can hide the first reason.
             reason = (

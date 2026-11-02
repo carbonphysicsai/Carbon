@@ -24,6 +24,39 @@ class RetentionUnavailable(ValueError):
     """The named original-byte or custody dependency is unavailable."""
 
 
+#: The closed status of a candidate that hit the inference wall twice in the official
+#: grade's inference pair: a typed candidate failure, not scored, the slot kept
+#: (`exam_cap.COUNTED`), never FAILED_INFRA.
+CANDIDATE_WALL_LIMIT_REACHED = "WORKER_WALL_LIMIT_REACHED"
+
+
+class CandidateWallLimitReached(RetentionUnavailable):
+    """The candidate's own graph ended the pair's inference at the wall, twice."""
+
+
+def _settle_candidate_wall_hit(cap, reservation, result) -> dict:
+    """The candidate's own wall hit, twice: typed, unscored, the slot kept (COUNTED)."""
+    if reservation is not None:
+        cap.settle(reservation, CANDIDATE_WALL_LIMIT_REACHED)
+    return {
+        **result,
+        "private_evaluation_state": "CANDIDATE_FAILED",
+        "private_evaluation_reason": CANDIDATE_WALL_LIMIT_REACHED,
+    }
+
+
+def _is_candidate_wall_hit(error) -> bool:
+    """Whether `error` is the carrier's observed candidate wall stop (never a host fault)."""
+    from carbon.development_session import research_carrier as carrier
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    return (
+        isinstance(error, carrier.MinerProgramFailure)
+        and error.code is WorkerCode.DEADLINE
+        and error.result.get("observation") == carrier.CANDIDATE_WALL_LIMIT
+    )
+
+
 def _custody_limit(allowlist_bytes) -> int:
     """The bound on a state's custody read: the worker output envelope of the
     allowlist version the build ran under (`worker_resources_for`), what that
@@ -784,14 +817,16 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
     if type(accuracy) is not dict:
         raise RetentionUnavailable("inference_pair_procedure_unreadable")
     inputs, output_shape = _graded_query(material, artifacts)
-    try:
-        pair = infer_frozen_pair(
+
+    def attempt(suffix):
+        return infer_frozen_pair(
             provider.ledger,
             owner=owner,
             identity="pair-"
             + adapter.discovery.evaluation_pack_snapshot.manifest_digest
             + "-"
-            + submission_id,
+            + submission_id
+            + suffix,
             inference_image=provider.inference_image,
             recipe=(
                 ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
@@ -817,8 +852,23 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
             accelerator=getattr(provider, "inference_accelerator", None),
             procedure=accuracy.get("paired_repeat_procedure", "batched_measured"),
         )
-    except InferencePairFailure as failure:
-        raise RetentionUnavailable("inference_pair_incomplete") from failure
+
+    # Validator ruling (TEAM_BOARD 2026-11-01 22:10): a candidate wall hit in the pair is
+    # retried once, under fresh identities; a second is the candidate's typed failure.
+    # Any other fault stays Carbon's (`inference_pair_incomplete`).
+    walls = 0
+    while True:
+        try:
+            pair = attempt("" if walls == 0 else "-wall-retry")
+            break
+        except InferencePairFailure as failure:
+            if not _is_candidate_wall_hit(failure.cause):
+                raise RetentionUnavailable("inference_pair_incomplete") from failure
+            walls += 1
+            if walls == 2:
+                raise CandidateWallLimitReached(
+                    CANDIDATE_WALL_LIMIT_REACHED
+                ) from failure
     raw = _json(pair.evidence)
     write_once(path, raw)
     return raw
@@ -1263,6 +1313,8 @@ def _retain_selected_pack_evaluation(
         TypeError,
         AttributeError,
     ) as exc:
+        if isinstance(exc, CandidateWallLimitReached):
+            return _settle_candidate_wall_hit(cap, reservation, result)
         if reservation is not None:
             # Grading did not complete (infrastructure or evidence), so the slot is returned.
             cap.settle(reservation, "UNAVAILABLE")

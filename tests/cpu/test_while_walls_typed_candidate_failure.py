@@ -8,10 +8,10 @@ both walls end a never-ending loop as a typed candidate failure, never FAILED_IN
   run through the real interpreter in a stub `docker` process under the real
   `DockerCLI.stream_to_file` wall and the real carrier, ends as `MinerProgramFailure`
   (`DEADLINE`, `WORKER_WALL_LIMIT_REACHED`), the operation settled FAILED_MINER.
-* The official grade's inference pair: a wall hit there is wrapped as
-  `RetentionUnavailable("inference_pair_incomplete")` and given back as FAILED_INFRA.
-  That is the open hole; the strict xfail below states the required behaviour and waits
-  for the Validator's ruling on what the official grade of a candidate wall-hit is.
+* The official grade's inference pair (Validator ruling, TEAM_BOARD 2026-11-01 22:10): a
+  candidate wall hit is retried once; a second is the typed candidate failure
+  WORKER_WALL_LIMIT_REACHED: not scored, the exam slot COUNTED, never FAILED_INFRA. A host
+  or infrastructure fault stays `inference_pair_incomplete`, FAILED_INFRA, released.
 
 No allowlist is changed here: the admitted allowlist exists only inside the test.
 """
@@ -33,11 +33,12 @@ from test_candidate_resource_failure import (
     _observe,
     _state,
 )
+from test_exam_cap import EXAM, HOTKEY, MOTOR, Clock, _count, _reserve, make_cap
 from test_fixed_practice_failure_diagnostics import harness as _runner_harness
 
 from carbon.development_session import research_carrier as carrier
 from carbon.reconstruction.worker.docker_runtime import DockerCLI
-from carbon.reconstruction.worker.model import WorkerCode
+from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
 harness = _runner_harness  # pytest discovers the existing fixture by this name
 
@@ -182,39 +183,194 @@ def test_a_wall_hit_task_is_refused_as_the_candidates_not_infrastructure():
     assert {GRAPH_BUILD, GRAPH_INFERENCE} <= carrier._CANDIDATE_RESOURCE_PROVENANCES
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "OPEN, Validator decision: the official grade's inference pair turns a "
-        "candidate wall hit (MinerProgramFailure) into RetentionUnavailable("
-        "'inference_pair_incomplete'), which AutoGrader gives back as FAILED_INFRA "
-        "(exam row RELEASED, free retry). Ruling 2(b) forbids that for `while`."
-    ),
-)
-def test_the_official_grade_does_not_give_a_candidate_wall_hit_back_as_infrastructure(
-    tmp_path,
-):
-    from test_auto_grade import A, FakeIntake
-
-    from carbon.challenge_validator import auto_grade
-    from carbon.challenge_validator.exam_cap import ExamCap
-    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
-    from carbon.challenge_validator.ledger import AttemptLedger
-    from carbon.development_session.paired_inference import InferencePairFailure
-
-    wall = carrier.MinerProgramFailure(
+def _wall():
+    return carrier.MinerProgramFailure(
         {
             "schema": carrier.MINER_FAILURE_SCHEMA,
             "failure_code": WorkerCode.DEADLINE.value,
             "observation": carrier.CANDIDATE_WALL_LIMIT,
         }
     )
-    unavailable = RetentionUnavailable("inference_pair_incomplete")
-    unavailable.__cause__ = InferencePairFailure("primary", {}, {}, wall)
+
+
+def _pair_failure(cause):
+    from carbon.development_session.paired_inference import InferencePairFailure
+
+    return InferencePairFailure("primary", {}, {}, cause)
+
+
+def _pair(tmp_path, monkeypatch, behaviours):
+    """`_inference_pair_raw` over a fake `infer_frozen_pair` that plays `behaviours` in
+    order (an exception is raised, anything else is returned as the pair's evidence)."""
+    import numpy as np
+    from test_lean_recipe_retention import _tensors
+
+    from carbon.challenge_validator import lean_recipe_retention as retention
+    from carbon.development_session import construction_recipe, paired_inference
+
+    calls = []
+    plays = list(behaviours)
+
+    def fake_pair(ledger, **call):
+        calls.append(call["identity"])
+        play = plays.pop(0)
+        if isinstance(play, Exception):
+            raise play
+        return SimpleNamespace(evidence=play)
+
+    monkeypatch.setattr(paired_inference, "infer_frozen_pair", fake_pair)
+    monkeypatch.setattr(
+        construction_recipe.ConstructionRecipe, "from_dict", staticmethod(lambda d: d)
+    )
+    monkeypatch.setattr(
+        retention, "_private_evaluation_directory", lambda result, sid: tmp_path
+    )
+    snapshot = SimpleNamespace(
+        manifest_digest="sha256:" + "a" * 64,
+        read_json_role=lambda root, side, role, max_bytes: {},
+    )
+    kit = {
+        "id": "c",
+        "version": "1",
+        "train_digest": "t",
+        "interface_digest": "i",
+        "construction_limits_digest": "l",
+    }
+    material = {
+        "construction_kit": kit,
+        "construction_limits_document": {
+            "reconstruction_resource_policy": {
+                "inference_wall_seconds_max": 60,
+                "total_reconstruction_wall_seconds_max": 120,
+            }
+        },
+        "interface_document": {"dtype": "<f8"},
+        "practice_inputs": np.zeros((2, 1)),
+        "expected_output_shape": (2, 1),
+        "allowlist_bytes": b"",
+    }
+    provider = SimpleNamespace(
+        ledger=object(),
+        inference_image=object(),
+        _requests={"rtsk_x": SimpleNamespace(recipe={})},
+    )
+    adapter = SimpleNamespace(
+        owner=lambda sid: "owner",
+        _provider=lambda owner: provider,
+        discovery=SimpleNamespace(
+            _material=material,
+            evaluation_pack_snapshot=snapshot,
+            evaluation_pack_public_root=tmp_path,
+        ),
+    )
+
+    def run():
+        return retention._inference_pair_raw(
+            adapter,
+            "rtsk_x",
+            {},
+            {
+                "state.npz": b"s",
+                "inputs.npz": _tensors(inputs=material["practice_inputs"]),
+            },
+            {"state_digest": "sd"},
+        )
+
+    return run, calls
+
+
+def test_one_wall_hit_in_the_official_pair_is_retried_and_grades_normally(
+    tmp_path, monkeypatch
+):
+    run, calls = _pair(
+        tmp_path, monkeypatch, [_pair_failure(_wall()), {"fixture": True}]
+    )
+    assert json.loads(run()) == {"fixture": True}
+    # The retry runs under fresh identities, never a replay.
+    assert len(calls) == 2 and calls[0] != calls[1]
+
+
+def test_two_wall_hits_are_the_candidates_typed_failure_not_infrastructure(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    run, calls = _pair(
+        tmp_path, monkeypatch, [_pair_failure(_wall()), _pair_failure(_wall())]
+    )
+    with pytest.raises(retention.CandidateWallLimitReached) as caught:
+        run()
+    assert str(caught.value) == "WORKER_WALL_LIMIT_REACHED"
+    assert len(calls) == 2
+
+
+def _memory_stop():
+    return carrier.MinerProgramFailure(
+        {
+            "schema": carrier.MINER_FAILURE_SCHEMA,
+            "failure_code": WorkerCode.RUNTIME.value,
+            "observation": carrier.CANDIDATE_MEMORY_LIMIT,
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "plays",
+    [
+        # A host or infrastructure fault is Carbon's, exactly as before.
+        lambda: [_pair_failure(WorkerFailure(WorkerCode.UNAVAILABLE))],
+        lambda: [_pair_failure(RuntimeError("daemon"))],
+        # A wall hit, then a host fault on the retry, is still Carbon's.
+        lambda: [_pair_failure(_wall()), _pair_failure(RuntimeError("daemon"))],
+        # Only the wall changes: a memory stop keeps its meaning.
+        lambda: [_pair_failure(_memory_stop())],
+    ],
+)
+def test_a_host_fault_in_the_pair_stays_inference_pair_incomplete(
+    tmp_path, monkeypatch, plays
+):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    run, _calls = _pair(tmp_path, monkeypatch, plays())
+    with pytest.raises(retention.RetentionUnavailable) as caught:
+        run()
+    assert not isinstance(caught.value, retention.CandidateWallLimitReached)
+    assert str(caught.value) == "inference_pair_incomplete"
+
+
+def test_a_candidate_wall_failure_counts_the_slot_and_is_never_given_back(tmp_path):
+    cap = make_cap(tmp_path, Clock())
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    slot = _reserve(cap, 0)
+    result = retention._settle_candidate_wall_hit(cap, slot, {"entry_id": "e"})
+    assert result == {
+        "entry_id": "e",
+        "private_evaluation_state": "CANDIDATE_FAILED",
+        "private_evaluation_reason": "WORKER_WALL_LIMIT_REACHED",
+    }
+    assert _count(cap) == 1
+    row = {
+        "hotkey": HOTKEY,
+        "challenge_id": MOTOR[0],
+        "challenge_version": MOTOR[1],
+        "exam_key": EXAM,
+        "submission_id": "rtsk_0",
+    }
+    # Nothing can hand a counted row back as infrastructure.
+    assert cap.give_back_on_infra(**row) == "COUNTED"
+    assert not cap.released_on_infra(**row)
+
+
+def _grader(tmp_path, behaviour):
+    from test_auto_grade import A, FakeIntake
+
+    from carbon.challenge_validator import auto_grade
+    from carbon.challenge_validator.ledger import AttemptLedger
 
     ledger = AttemptLedger(tmp_path / "attempts.sqlite3")
     hotkey = "5" + "1" * 47
-    challenge, exam_key = "electric-motor-magnetics", "sha256:" + "e" * 64
+    exam_key = "sha256:" + "e" * 64
 
     class Ledger:
         _db = staticmethod(ledger._db)
@@ -224,19 +380,62 @@ def test_the_official_grade_does_not_give_a_candidate_wall_hit_back_as_infrastru
             return (A,)
 
     adapter = SimpleNamespace(
-        challenge_id=challenge,
+        challenge_id="electric-motor-magnetics",
         challenge_version="1.3",
         contract_digest="sha256:" + "0" * 64,
         ledger=Ledger,
         owner=lambda submission_id: hotkey,
         _provider=lambda owner: SimpleNamespace(evaluation_pack_digest=exam_key),
     )
-    intake = FakeIntake([A], {A: unavailable})
+    intake = FakeIntake([A], {A: behaviour})
     intake.adapter = adapter
-    auto_grade.AutoGrader(intake, tmp_path).run_once()
+    return auto_grade.AutoGrader(intake, tmp_path), ledger, hotkey, exam_key, A
+
+
+def test_the_marker_and_the_miner_state_name_the_candidate_failure(tmp_path):
+    from carbon.challenge_validator import direct_intake
+    from carbon.challenge_validator.exam_cap import ExamCap
+
+    grader, ledger, hotkey, exam_key, A = _grader(
+        tmp_path,
+        {
+            "entry_id": "e1",
+            "private_evaluation_state": "CANDIDATE_FAILED",
+            "private_evaluation_reason": "WORKER_WALL_LIMIT_REACHED",
+        },
+    )
+    assert grader.run_once() == (A, "CANDIDATE_FAILED")
+    marker = grader.marker(A)
+    assert marker["state"] == "CANDIDATE_FAILED"
+    assert marker["code"] == "WORKER_WALL_LIMIT_REACHED"
+    # Not a FAILED marker: no infrastructure failure is counted or summarised.
+    assert grader.failures() == (0, None)
     assert not ExamCap(ledger).released_on_infra(
         hotkey=hotkey,
-        challenge_id=challenge,
+        challenge_id="electric-motor-magnetics",
+        challenge_version="1.3",
+        exam_key=exam_key,
+        submission_id=A,
+    )
+    assert "CANDIDATE_FAILED" in direct_intake.GRADE_STATES
+    state = direct_intake.DirectRecipeIntake._grade_state(
+        SimpleNamespace(grade_marker=lambda sid: marker), hotkey, A
+    )
+    assert state == "CANDIDATE_FAILED"
+
+
+def test_a_host_fault_is_still_failed_infra_and_released(tmp_path):
+    from carbon.challenge_validator.exam_cap import ExamCap
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    grader, ledger, hotkey, exam_key, A = _grader(
+        tmp_path, RetentionUnavailable("inference_pair_incomplete")
+    )
+    assert grader.run_once() == (A, "FAILED")
+    assert grader.marker(A)["state"] == "FAILED"
+    assert ExamCap(ledger).released_on_infra(
+        hotkey=hotkey,
+        challenge_id="electric-motor-magnetics",
         challenge_version="1.3",
         exam_key=exam_key,
         submission_id=A,

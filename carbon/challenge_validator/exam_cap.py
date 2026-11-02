@@ -93,6 +93,9 @@ COUNTED = frozenset(
         "CANDIDATE_INVALID",
         "REQUIRED_LEG_MINIMUM_FAILED",
         "DECISION_OUTCOME_INELIGIBLE",
+        # The candidate's graph hit the inference wall twice in the official grade's pair
+        # (Validator ruling, 2026-11-01): typed, unscored, charged.
+        "WORKER_WALL_LIMIT_REACHED",
     }
 )
 #: The outcomes that give the slot back.

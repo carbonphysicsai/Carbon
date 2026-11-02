@@ -2020,6 +2020,7 @@ def main(argv=None):
         if result.get("private_evaluation_state") in (
             "BOUND_DEVELOPMENT_ONLY",
             "UNAVAILABLE",
+            "CANDIDATE_FAILED",
         ):
             reported["private_evaluation_state"] = result["private_evaluation_state"]
             reason = result.get("private_evaluation_reason")

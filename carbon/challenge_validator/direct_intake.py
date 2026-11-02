@@ -78,6 +78,7 @@ GRADE_STATES = (
     "QUEUED",
     "SUPERSEDED_BY_OWN_LATER_SUBMIT",
     "ROUND_LIMIT_REACHED",
+    "CANDIDATE_FAILED",
 )
 PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
 SOURCE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
@@ -430,6 +431,8 @@ class DirectRecipeIntake(BatteryIntake):
         marker = self.grade_marker(submission_id)
         if marker is None:
             return "QUEUED"
+        if marker.get("state") == "CANDIDATE_FAILED":
+            return "CANDIDATE_FAILED"
         if marker.get("state") != "GRADED":
             return None
         if marker.get("code") is None:
