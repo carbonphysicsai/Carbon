@@ -1,8 +1,9 @@
-"""The versioned jitted graph forward (carbon/level4/forward_mode.py, train.prepare(forward=...)).
+"""The versioned jitted graph forward (carbon/level4/train.py: JIT_FORWARD_VERSIONS, forward_mode, prepare(forward=...)).
 
 Claims: no version is opted in until the Validator rules (every version stays eager); prepare refuses an unknown mode; a jitted
 forward is bit-equal run to run; the jit-vs-eager difference is reported (it is not required to be 0: XLA may fuse); one predict wall
-each way on a scan graph is reported; and the physical graph adapters pass the registry's mode for the recipe's own version.
+each way on a scan graph is reported; adapter v2 passes the registry's mode for the recipe's own version; and train.py imports no
+Carbon module a graph worker does not stage (a new import would break every graph build in the worker).
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 from carbon.level4 import allowlist as allowlist_module
-from carbon.level4 import forward_mode, submission, tooling, train, validate
+from carbon.level4 import submission, tooling, train, validate
 
 MAX_BYTES = 1 << 26
 ROOT = Path(__file__).resolve().parents[2]
@@ -71,21 +72,19 @@ def _scan_submission(allowlist, n=4):
 
 
 def test_no_version_is_opted_in_until_the_validator_rules():
-    assert forward_mode.JIT_FORWARD_VERSIONS == frozenset()
+    assert train.JIT_FORWARD_VERSIONS == frozenset()
     for key in (
         ("f08-ribbed-bracket", "1.7"),
         ("electric-motor-magnetics", "1.6"),
         ("f02", "3.0"),
     ):
-        assert forward_mode.mode(*key) == forward_mode.EAGER
+        assert train.forward_mode(*key) == train.FORWARD_EAGER
 
 
 def test_the_mode_follows_the_registry(monkeypatch):
-    monkeypatch.setattr(
-        forward_mode, "JIT_FORWARD_VERSIONS", frozenset({("f02", "3.0")})
-    )
-    assert forward_mode.mode("f02", "3.0") == forward_mode.JIT
-    assert forward_mode.mode("f02", "2.5") == forward_mode.EAGER
+    monkeypatch.setattr(train, "JIT_FORWARD_VERSIONS", frozenset({("f02", "3.0")}))
+    assert train.forward_mode("f02", "3.0") == train.FORWARD_JIT
+    assert train.forward_mode("f02", "2.5") == train.FORWARD_EAGER
 
 
 def test_prepare_refuses_an_unknown_mode(allowlist):
@@ -102,7 +101,9 @@ def test_the_jitted_forward_is_bit_equal_run_to_run_and_its_difference_from_eage
 
     parsed, verdict = _scan_submission(allowlist)
     eager = train.prepare(parsed, allowlist, verdict=verdict)
-    jitted = train.prepare(parsed, allowlist, verdict=verdict, forward=forward_mode.JIT)
+    jitted = train.prepare(
+        parsed, allowlist, verdict=verdict, forward=train.FORWARD_JIT
+    )
     params = eager.init(train.keys(3)[0])
     x = jax.random.normal(jax.random.PRNGKey(1), (40, 3))
     walls = {}
@@ -126,11 +127,31 @@ def test_the_jitted_forward_is_bit_equal_run_to_run_and_its_difference_from_eage
     )  # same graph; fusion may move the last bit
 
 
-def test_the_physical_graph_adapters_pass_the_registry_mode_for_the_recipes_version():
-    for rel in (
-        "carbon/development_session/physical_graph_adapter.py",
-        "carbon/development_session/physical_graph_adapter_v2.py",
-    ):
-        source = (ROOT / rel).read_text(encoding="utf-8")
-        assert "forward=forward_mode.mode(" in source, rel
-        assert source.count("prepare(") >= 1
+def test_adapter_v2_passes_the_registry_mode_for_the_recipes_version():
+    source = (
+        ROOT / "carbon/development_session/physical_graph_adapter_v2.py"
+    ).read_text(encoding="utf-8")
+    assert 'forward=forward_mode(named["id"], named["version"])' in source
+    assert "from carbon.level4.train import forward_mode, prepare" in source
+
+
+def test_train_imports_only_modules_every_graph_worker_stages():
+    import ast
+
+    tree = ast.parse((ROOT / "carbon/level4/train.py").read_text(encoding="utf-8"))
+    imported = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.level == 1:
+            imported |= (
+                {f"carbon.level4.{a.name}" for a in node.names}
+                if node.module is None
+                else {f"carbon.level4.{node.module}"}
+            )
+        elif isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
+            "carbon"
+        ):
+            imported.add(node.module)
+    from carbon.development_session import direct_graph_construction_worker
+
+    staged = set(direct_graph_construction_worker.STAGED_MODULES)
+    assert imported <= staged, sorted(imported - staged)

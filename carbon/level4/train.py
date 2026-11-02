@@ -93,8 +93,28 @@ class Prepared:
         return [jnp.concatenate([b[k] for b in blocks]) for k in range(len(blocks[0]))]
 
 
+#: How a graph forward runs: op by op ("eager") or jitted ("jit": compiled once per input shape, so once per params state).
+#: Practice, the trainer's train predictions and the judge's inference all call `Prepared.apply`, so a version runs jitted
+#: everywhere or nowhere. Kept in this module (staged into every graph worker) so the workers stage nothing new.
+FORWARD_EAGER = "eager"
+FORWARD_JIT = "jit"
+FORWARD_MODES = (FORWARD_EAGER, FORWARD_JIT)
+#: (challenge_id, version) pairs whose graph forward is jitted. A version opts in only by a Validator ruling; every live
+#: (graded) version stays eager, so nothing graded is rescored. Empty until that ruling.
+JIT_FORWARD_VERSIONS: frozenset = frozenset()
+
+
+def forward_mode(challenge_id, version):
+    """`FORWARD_JIT` for an opted-in version, else `FORWARD_EAGER` (the default, and every live version's)."""
+    return (
+        FORWARD_JIT
+        if (challenge_id, version) in JIT_FORWARD_VERSIONS
+        else FORWARD_EAGER
+    )
+
+
 def prepare(
-    parsed, allowlist, *, verdict, kit=None, loss_override=None, forward="eager"
+    parsed, allowlist, *, verdict, kit=None, loss_override=None, forward=FORWARD_EAGER
 ):
     """G6's inputs from a verified (`submission.verify`) and validated
     (`validate.validate_submission`) submission.
@@ -103,16 +123,14 @@ def prepare(
     (OWNER-L4-CONSTANT-ACCOUNTING-02). `apply` binds those by name on every
     call, so `predict` (batched or isolated) never slices or pads them.
 
-    `forward` is `forward_mode.mode(challenge, version)`: "eager" (the default) runs
+    `forward` is `forward_mode(challenge, version)`: "eager" (the default) runs
     the rebuilt graph op by op; "jit" wraps the SAME `apply` in `jax.jit`, compiled
     once per input shape (so once per params state), and every caller of `apply`
     (practice, train predictions, judge inference) gets it alike."""
-    from . import forward_mode
-
     if verdict["status"] not in ("admitted", "blocked_human_input"):
         raise ValueError("prepare takes a validated submission")
-    if forward not in forward_mode.MODES:
-        raise ValueError("forward must be one of forward_mode.MODES")
+    if forward not in FORWARD_MODES:
+        raise ValueError("forward must be one of FORWARD_MODES")
     forward_run = forward
     forward = interpret.rebuild(parsed["forward"], allowlist)
     entry = parsed["forward"]["graphs"][parsed["forward"]["entry"]]
@@ -149,7 +167,7 @@ def prepare(
                     args.append(next(inputs))
             return forward(*args)
 
-    if forward_run == forward_mode.JIT:
+    if forward_run == FORWARD_JIT:
         import jax
 
         apply = jax.jit(apply)
