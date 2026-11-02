@@ -1354,9 +1354,13 @@ def serve(
     pool_store=None,
     exam_se=False,
     grade_set=False,
+    remeasure=None,
     permits=None,
 ):
     """Run the same signed intake/task loop with finite admission and owned stop.
+
+    ``remeasure`` (``(evaluation_key, entry_id)``) with ``retention`` naming the sitting king's submission id
+    re-measures that king's crown-average mean (`lean_recipe_retention.remeasure_incumbent_pack`), one-shot.
 
     ``permits`` replaces the chain's validator-permit read (tests only)."""
     from carbon.challenge_validator import cpu_pin
@@ -1652,6 +1656,22 @@ def serve(
                 # No intake feeds snapshots in this mode: refresh them for the
                 # run's life so a run past the 60 s window keeps its authority.
                 with retention_snapshots(window, network.context, reader):
+                    if remeasure is not None:
+                        # ``task_id`` is the sitting king's submission id.
+                        from carbon.challenge_validator.lean_recipe_retention import (
+                            remeasure_incumbent_pack,
+                        )
+
+                        evaluation_key, entry_id = remeasure
+                        return remeasure_incumbent_pack(
+                            intake.adapter,
+                            _open_pool_store(pool_store),
+                            submission_id=task_id,
+                            evaluation_key=evaluation_key,
+                            entry_id=entry_id,
+                            artifact_directory=artifact_directory,
+                            entry_directory=entry_directory,
+                        )
                     if grade_set:
                         # ``task_id`` is the retained bank entry to grade on the
                         # whole configured pack set (OWNER-FULL-EXAM-BANK-01).
@@ -1896,6 +1916,15 @@ def main(argv=None):
         help="grade this retained bank entry on the receiver's whole configured "
         "pack set and record the one set-level result (OWNER-FULL-EXAM-BANK-01)",
     )
+    parser.add_argument(
+        "--remeasure-king",
+        help="re-measure this SITTING king's crown-average mean under the configured "
+        "rule (needs --evaluation-key, --remeasure-entry, --pool-store)",
+    )
+    parser.add_argument("--evaluation-key", help="with --remeasure-king")
+    parser.add_argument(
+        "--remeasure-entry", help="with --remeasure-king: the king's retained entry"
+    )
     parser.add_argument("--artifact-directory", type=Path)
     parser.add_argument("--entry-directory", type=Path)
     args = parser.parse_args(argv)
@@ -1911,17 +1940,40 @@ def main(argv=None):
     if (
         sum(
             value is not None
-            for value in (args.retain_task, args.regrade_entry, args.grade_set_entry)
+            for value in (
+                args.retain_task,
+                args.regrade_entry,
+                args.grade_set_entry,
+                args.remeasure_king,
+            )
         )
         > 1
     ):
-        parser.error("retain a task, regrade an entry, or grade a set entry, not more")
+        parser.error(
+            "retain a task, regrade an entry, grade a set entry, or re-measure a "
+            "king, not more"
+        )
+    if (args.remeasure_king is None) != (
+        args.evaluation_key is None and args.remeasure_entry is None
+    ) or (
+        args.remeasure_king is not None
+        and (
+            args.evaluation_key is None
+            or args.remeasure_entry is None
+            or args.pool_store is None
+        )
+    ):
+        parser.error(
+            "--remeasure-king needs --evaluation-key, --remeasure-entry and "
+            "--pool-store, and they apply to it only"
+        )
     if args.exam_se and args.regrade_entry is None:
         parser.error("--exam-se applies to --regrade-entry only")
     if args.pool_store is not None and (
         args.regrade_entry is None
         and args.retain_task is None
         and args.grade_set_entry is None
+        and args.remeasure_king is None
     ):
         parser.error(
             "--pool-store applies to --retain-task, --regrade-entry or "
@@ -1929,9 +1981,17 @@ def main(argv=None):
         )
     retention_args = (
         (
-            args.grade_set_entry
-            if args.grade_set_entry is not None
-            else args.retain_task if args.regrade_entry is None else args.regrade_entry
+            args.remeasure_king
+            if args.remeasure_king is not None
+            else (
+                args.grade_set_entry
+                if args.grade_set_entry is not None
+                else (
+                    args.retain_task
+                    if args.regrade_entry is None
+                    else args.regrade_entry
+                )
+            )
         ),
         args.artifact_directory,
         args.entry_directory,
@@ -1966,6 +2026,11 @@ def main(argv=None):
             retention=retention,
             regrade=args.regrade_entry is not None,
             grade_set=args.grade_set_entry is not None,
+            remeasure=(
+                None
+                if args.remeasure_king is None
+                else (args.evaluation_key, args.remeasure_entry)
+            ),
             pool_store=args.pool_store,
             exam_se=args.exam_se,
         )
@@ -1998,6 +2063,20 @@ def main(argv=None):
             code = "direct_receiver_unavailable"
         print(json.dumps({"unavailable": code}), flush=True)
         return 1
+    if args.remeasure_king is not None:
+        # Operator-only: the outcome and reason; the seeds, totals and mean stay private.
+        print(
+            json.dumps(
+                {
+                    "schema": SCHEMA,
+                    "state": "KING_REMEASURE",
+                    "outcome": result["outcome"],
+                    "reason": result["reason"],
+                }
+            ),
+            flush=True,
+        )
+        return 0
     if retention is not None:
         reported = {
             "schema": SCHEMA,

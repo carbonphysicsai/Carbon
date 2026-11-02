@@ -1793,6 +1793,59 @@ def reconsider_paused_pack(
     )
 
 
+def remeasure_incumbent_pack(
+    adapter,
+    pool_store,
+    *,
+    submission_id,
+    evaluation_key,
+    entry_id,
+    artifact_directory,
+    entry_directory,
+    runner=None,
+):
+    """Re-measure the SITTING king's N-rebuild mean under the installed crown-average rule
+    (`crown_average.Active.measure_incumbent`), so switching the rule on pauses no crown. Operator-only. The king is
+    rebuilt from its own recipe at the rule's seeds as host-owned, uncounted derived tasks (`_repeat_of` ->
+    `rebuild_at_seed`; a graph king through its retained source), graded on this receiver's selected pack; only the
+    private mean is filed. ``submission_id`` must be the pool store's incumbent, ``entry_id`` its retained entry and
+    ``evaluation_key`` its key on this pack. Returns the outcome and reason only."""
+    from carbon.challenge_validator import crown_average, koth_registry
+
+    active = crown_average.ACTIVE
+    if active is None:
+        raise RetentionUnavailable("crown_average_not_installed")
+    if pool_store is None:
+        raise RetentionUnavailable("remeasure_pool_store_required")
+    discovery = adapter.discovery
+    score_pack = discovery.evaluation_pack_snapshot.read_json_role(
+        discovery.evaluation_pack_private_root, "private", "score_pack", max_bytes=65536
+    )
+    accuracy = discovery.evaluation_pack_snapshot.read_json_role(
+        discovery.evaluation_pack_public_root,
+        "public",
+        "accuracy_definition",
+        max_bytes=65536,
+    )
+    try:
+        return active.measure_incumbent(
+            pool_store,
+            submission_id,
+            evaluation_key,
+            koth_registry.comparator(adapter.challenge_id, score_pack, accuracy),
+            _repeat_of(
+                adapter,
+                submission_id,
+                entry_id,
+                artifact_directory=artifact_directory,
+                entry_directory=entry_directory,
+                runner=runner,
+            ),
+        )
+    except crown_average.CrownAverageUnavailable as refused:
+        raise RetentionUnavailable(refused.code) from refused
+
+
 def _timing_step(adapter):
     """The Ladder step for this Challenge, max(eta, its registered rebuild
     noise): the precision a timed query must agree with the graded run to."""

@@ -66,6 +66,11 @@ MEAN_EXCEEDS = "mean_exceeds_incumbent_beyond_margin"
 MEAN_WITHIN = "mean_within_margin_or_tie"
 FIRST_BEATS_BASELINE = "mean_beats_baseline_by_margin"
 WITHIN_BASELINE = "mean_within_baseline_floor"
+#: The incumbent re-measure (`Active.measure_incumbent`): the sitting king's N-rebuild mean is filed; or its rebuilds were
+#: not all admissible across the seeds (filed, no mean: the king stays unmeasured, flagged); or the entry is not the king.
+KING_MEASURED = "KING_MEASURED"
+KING_UNSTABLE = "KING_UNSTABLE"
+NOT_THE_KING = "crown_average_remeasure_not_the_sitting_king"
 #: An engineering bound, not a scientific value: a rule asking for more rebuilds than this is a typo.
 MAX_N = 1000
 
@@ -296,18 +301,7 @@ class Active:
             return {**outcome, "outcome": bp.UNAVAILABLE, "reason": REBUILD_UNAVAILABLE}
         incumbent = pair["incumbent"]
         status, king_mean = (None, None) if incumbent is None else bp._scored(incumbent)
-
-        def guarded(build):
-            def run(seed):
-                # a rebuild that cannot run says nothing about the model: retried, then UNAVAILABLE, never a loss
-                try:
-                    return build(seed)
-                except (RebuildInfra, CrownAverageInvalid):
-                    raise
-                except Exception as error:
-                    raise RebuildInfra("rebuild failed") from error
-
-            return run
+        guarded = _guarded
 
         # The host-fault second build is its OWN build of the same seed (`rebuild_again_at`), not the first one again.
         again = getattr(repeat, "rebuild_again_at", None) or rebuild
@@ -342,6 +336,68 @@ class Active:
         if "alert" in result:
             held["alert"] = result["alert"]
         return held
+
+    def measure_incumbent(
+        self, store, submission_id, evaluation_key, comparator, repeat
+    ):
+        """The SITTING king's N-rebuild mean, filed so the averaged rule can compare mean with mean (`screening` reads it
+        back through `store.crown_mean`; without it every crown pauses as KING_UNMEASURED). It is the same `run_average` a
+        challenger's trigger runs: the same seeds for this submission, the same host-owned uncounted rebuilds
+        (``repeat.rebuild_at``, seam B for a graph king), the same host-fault second build. Only the incumbent; it moves
+        no crown, logs no trigger and returns no seed, total or mean. A rebuild that cannot run is retried, then
+        UNAVAILABLE with nothing filed (run it again); a host-fault mismatch or a record that does not reproduce is
+        FAILED_INFRA with nothing new filed."""
+        king = store.incumbent()
+        if king is None or king.get("model_id") != submission_id:
+            raise CrownAverageUnavailable(NOT_THE_KING)
+        rebuild = getattr(repeat, "rebuild_at", None)
+        if rebuild is None:
+            return _result(bp.UNAVAILABLE, REBUILD_UNAVAILABLE)
+        again = getattr(repeat, "rebuild_again_at", None) or rebuild
+        result = run_average(
+            key=self._key,
+            challenge_id=comparator["challenge"],
+            submission_id=submission_id,
+            rule=self.rule,
+            rebuild=_guarded(rebuild),
+            rebuild_again=_guarded(again),
+            king_mean=None,
+            baseline_floor=comparator.get("baseline_total"),
+            tolerance=(comparator.get("rebuild_noise") or {}).get("value"),
+        )
+        private = result.get("private")
+        host_checked = result["reason"] not in (
+            bp.REPEAT_UNAVAILABLE,
+            bp.REPEAT_MISMATCH,
+        )
+        if result["reason"] == UNSTABLE:
+            outcome = KING_UNSTABLE
+        elif private is not None and "mean" in private and host_checked:
+            outcome = KING_MEASURED
+        else:
+            return _result(result["outcome"], result["reason"])
+        try:
+            store.record_crown_average(submission_id, evaluation_key, private)
+        except Exception as error:
+            if getattr(error, "code", None) != "crown_average_changed":
+                raise
+            return _result(bp.FAILED_INFRA, "crown_average_record_changed")
+        return _result(outcome, result["reason"])
+
+
+def _guarded(build):
+    """``build(seed)`` with any failure that is not the model's typed as `RebuildInfra`: a rebuild that cannot run says
+    nothing about the model (retried, then UNAVAILABLE, never a loss)."""
+
+    def run(seed):
+        try:
+            return build(seed)
+        except (RebuildInfra, CrownAverageInvalid):
+            raise
+        except Exception as error:
+            raise RebuildInfra("rebuild failed") from error
+
+    return run
 
 
 class RebuildInfra(Exception):
