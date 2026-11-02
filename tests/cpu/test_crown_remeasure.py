@@ -82,6 +82,7 @@ class _Repeat:
 
 
 def _store(tmp_path, king=KING):
+    tmp_path.mkdir(parents=True, exist_ok=True)
     store = PoolStore(tmp_path / "pool.sqlite3")
     with store.transaction() as db:
         store._set_incumbent(db, king, "fixture", expected=None)
