@@ -17,6 +17,13 @@ It writes under ``--out-dir``:
   ``sealed-batch.json`` (canonical, pool included) beside the roles;
 - ``record.json``: digests and counts only (pack manifest digest, batch fingerprints, set digest, row counts).
 
+A NEW version whose pool constants register a coverage plan (``coverage_plan_sha256`` and ``coverage_plan_sums_sha256``,
+Validator 11-01 16:55 / 17:15) builds only with ``--coverage-map FILE --coverage-sums FILE``: the class-map document
+(`pool_grader.coverage_plan`, in its canonical bytes) and the SHA256SUMS text that lists it. Both are checked against the
+registered digests, the map must be listed in the SUMS and must class every target of every set with each set holding
+every class, and both ride in the sealed material (`pool_version.COVERAGE_PLAN`, `COVERAGE_PLAN_SUMS`). Any gap refuses
+(``refused: <code>``); a version that registers none takes neither and builds exactly as before.
+
 Nothing here signs, issues a copy or touches a key: the signed copy is the Lead's `copy_issuance` step on the
 canonical pack. The truths stay in custody inside the pack's private files.
 """
@@ -48,6 +55,144 @@ def _writer(challenge):
     return module
 
 
+def _refuse(code, detail):
+    raise SystemExit(f"refused: {code}: {detail}")
+
+
+def _sha256_hex(value):
+    return (
+        type(value) is str
+        and len(value) == 64
+        and all(c in "0123456789abcdef" for c in value)
+    )
+
+
+def registered_coverage_plan(challenge, version, *, constants):
+    """``(map sha256, SUMS sha256)`` the version's pool constants register, or None when it registers no coverage plan
+    (no entry, or neither key: every registered version). Only these two fields are read, so a new version whose other
+    constants are still HUMAN_INPUT can be built. A key present as null, HUMAN_INPUT or not 64 hex, or only one of the
+    two, refuses (never defaulted)."""
+    from carbon.scoring import pool_version
+
+    try:
+        document = json.loads(Path(constants).read_bytes())
+        if document["schema"] != pool_version.SCHEMA:
+            raise ValueError
+        entries = document["versions"]
+        if type(entries) is not dict:
+            raise TypeError
+    except (OSError, ValueError, KeyError, TypeError):
+        _refuse(
+            "pool_constants_unreadable", f"{constants} is not a pool constants file"
+        )
+    entry = entries.get(f"{challenge} {version}")
+    optimizer = entry.get("optimizer") if type(entry) is dict else None
+    if type(optimizer) is not dict:
+        return None
+    keys = ("coverage_plan_sha256", "coverage_plan_sums_sha256")
+    present = [key in optimizer for key in keys]
+    if not any(present):
+        return None
+    if not all(present):
+        _refuse(
+            "coverage_plan_needs_its_map_and_sums_digests",
+            "the version registers only one of " + " and ".join(keys),
+        )
+    values = tuple(optimizer[key] for key in keys)
+    if not all(_sha256_hex(value) for value in values):
+        _refuse(
+            "coverage_plan_digest_not_registered",
+            "each registered coverage-plan digest must be 64 hex (null and HUMAN_INPUT refuse)",
+        )
+    return values
+
+
+def attach_coverage_plan(
+    material, *, challenge, version, coverage_map_raw, coverage_sums_raw, constants
+):
+    """``material`` with the version's class map and SUMS (`pool_version.COVERAGE_PLAN`, `COVERAGE_PLAN_SUMS`), or
+    ``material`` itself for a version that registers no coverage plan (it takes neither input). Refuses
+    (``SystemExit("refused: <code>: ...")``) as the grader would (`pool_exam.attach_coverage_plan`), at build time: an
+    input missing, a digest that is not the registered one, a map not in its canonical bytes or not listed in the SUMS,
+    a target of a set missing from the map, a set without every class. The class names' geometric-v1 check stays the
+    grader's (it refuses until the receipted rule is in the repository)."""
+    from carbon.scoring import pool_grader, pool_version
+
+    if any(
+        key in material
+        for key in (pool_version.COVERAGE_PLAN, pool_version.COVERAGE_PLAN_SUMS)
+    ):
+        _refuse(
+            "coverage_plan_already_in_the_material",
+            "the class map and its SUMS enter only through --coverage-map / --coverage-sums",
+        )
+    registered = registered_coverage_plan(challenge, version, constants=constants)
+    if registered is None:
+        if coverage_map_raw is not None or coverage_sums_raw is not None:
+            _refuse(
+                "coverage_plan_not_registered",
+                f"{challenge} {version} registers no coverage plan: give no --coverage-map / --coverage-sums",
+            )
+        return material
+    map_sha256, sums_sha256 = registered
+    if coverage_map_raw is None or coverage_sums_raw is None:
+        _refuse(
+            "coverage_plan_inputs_missing",
+            f"{challenge} {version} registers a coverage plan: --coverage-map and --coverage-sums are required",
+        )
+    if hashlib.sha256(coverage_map_raw).hexdigest() != map_sha256:
+        _refuse(
+            "coverage_plan_sha256_mismatch",
+            "--coverage-map is not the registered class-map document",
+        )
+    if hashlib.sha256(coverage_sums_raw).hexdigest() != sums_sha256:
+        _refuse(
+            "coverage_plan_sums_sha256_mismatch",
+            "--coverage-sums is not the registered SHA256SUMS",
+        )
+    try:
+        document = json.loads(coverage_map_raw.decode("utf-8"))
+        sums = coverage_sums_raw.decode("utf-8")
+        plan = pool_grader.coverage_plan(document)
+        listed = pool_grader.sums_list(sums, plan.sha256)
+    except (UnicodeDecodeError, ValueError, pool_grader.PoolRefused):
+        _refuse(
+            "coverage_plan_malformed",
+            "the class map or its SUMS does not parse as a coverage plan",
+        )
+    if pool_grader.coverage_plan_bytes(document) != coverage_map_raw:
+        _refuse(
+            "coverage_plan_not_canonical",
+            "the class-map file must be its document's canonical bytes (the bytes the registered sha256 names)",
+        )
+    if not listed:
+        _refuse(
+            "coverage_plan_not_listed_in_its_sums",
+            "the SUMS does not list the class map",
+        )
+    for number, group in enumerate(material["sets"]):
+        targets = [pool_grader.load_pool(pool).target_id for pool in group]
+        try:
+            classes = {plan.class_of(target_id) for target_id in targets}
+        except pool_grader.PoolRefused:
+            _refuse(
+                "target_not_in_the_coverage_plan",
+                f"set {number} holds a target the class map does not class",
+            )
+        if classes != set(plan.classes):
+            _refuse(
+                "set_missing_a_registered_class",
+                f"set {number} does not hold every class of the map",
+            )
+    return pool_version.check_material(
+        {
+            **material,
+            pool_version.COVERAGE_PLAN: document,
+            pool_version.COVERAGE_PLAN_SUMS: sums,
+        }
+    )
+
+
 def build(
     *,
     challenge,
@@ -63,8 +208,14 @@ def build(
     baseline_binding_raw=None,
     calibration_pack_root=None,
     baseline_floor_total=None,
+    coverage_map_raw=None,
+    coverage_sums_raw=None,
+    constants=None,
 ):
     """The pool pack and its record. ``material`` (a ready `pool_version` material) replaces ``--set-dir``.
+
+    ``coverage_map_raw`` / ``coverage_sums_raw`` (bytes) are a new version's class map and its SUMS, required exactly when
+    the pool constants (``constants``, default `pool_version.CONSTANTS`) register a coverage plan (`attach_coverage_plan`).
 
     The leg minimums are the registered baseline's own graded legs (two builds): ``calibration`` writes the
     minimum-free calibration pack; ``baseline_binding_raw`` (the baseline's retained binding, graded under that
@@ -106,6 +257,14 @@ def build(
         material = pool_version.check_material(
             {**material, pool_version.RESPONSE_REFERENCE: response_reference}
         )
+    material = attach_coverage_plan(
+        material,
+        challenge=challenge,
+        version=version,
+        coverage_map_raw=coverage_map_raw,
+        coverage_sums_raw=coverage_sums_raw,
+        constants=pool_version.CONSTANTS if constants is None else constants,
+    )
     with_pool = {**document, "pool": material}
     raw, source_fp, canonical_fp = copy_package.canonical_batch(
         challenge, version, with_pool, records
@@ -165,6 +324,12 @@ def build(
             - cohorts.count("probe_response"),
         },
     }
+    if pool_version.COVERAGE_PLAN in material:
+        # digests only (the map names targets and stays in the sealed material)
+        record["coverage_plan_sha256"] = hashlib.sha256(coverage_map_raw).hexdigest()
+        record["coverage_plan_sums_sha256"] = hashlib.sha256(
+            coverage_sums_raw
+        ).hexdigest()
     (out / "record.json").write_text(
         json.dumps(record, sort_keys=True, indent=2) + "\n", encoding="utf-8"
     )
@@ -198,6 +363,16 @@ def main(argv=None):
         "--baseline-floor-total",
         type=float,
         help="Motor 1.6: the crown floor (a MEASURED number: the best catalog entry's official total), carried in the score pack",
+    )
+    one.add_argument(
+        "--coverage-map",
+        type=Path,
+        help="a version registering a coverage plan: its class-map document (canonical bytes; needs --coverage-sums)",
+    )
+    one.add_argument(
+        "--coverage-sums",
+        type=Path,
+        help="the SHA256SUMS that lists the class map (its registered coverage_plan_sums_sha256)",
     )
     acc = sub.add_parser("accounting")
     for flag in ("challenge", "version", "set-dir", "input-dtype"):
@@ -240,6 +415,12 @@ def main(argv=None):
             json.loads(Path(args.response_reference).read_text(encoding="utf-8"))
             if args.response_reference
             else None
+        ),
+        coverage_map_raw=(
+            args.coverage_map.read_bytes() if args.coverage_map else None
+        ),
+        coverage_sums_raw=(
+            args.coverage_sums.read_bytes() if args.coverage_sums else None
         ),
     )
     print(json.dumps(record, sort_keys=True, indent=2))
