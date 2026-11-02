@@ -1001,7 +1001,7 @@ def agen_accuracy(specs, predict, scales, *, aggregate=None, plan=None):
 
 def agen_predictions_valid(specs, predict):
     """Whether every A_gen slice prediction is valid (`_valid_prediction`). False when the Challenge's own validity
-    gates refused a raw answer (`derive` gave None, e.g. a negative motoring mean): the exam then gates the submission
+    gates refused a raw answer (`derive` gave None): the exam then gates the submission
     (GATE_FAILED, the slot counted) before `agen_accuracy`, which would otherwise refuse it untyped (Validator 01:40).
     """
     for spec in specs:
