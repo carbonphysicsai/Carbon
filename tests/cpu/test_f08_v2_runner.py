@@ -656,3 +656,30 @@ def test_without_native_gmsh_the_record_names_the_pinned_mesh_image(monkeypatch)
         "image": v1.MESH_IMAGE,
         "pinned_gmsh_version": v1.GMSH_VERSION,
     }
+
+
+def test_the_pastix_deck_revision_runs_at_the_owners_28_gib_and_1_7_keeps_9_gib():
+    assert v2.DECK_REVISION == "f08-2.0-deck-solver-pastix"
+    assert runner.memory_bytes() == runner.memory_bytes(v2.DECK_REVISION) == 28 * 2**30
+    # any other revision (the SPOOLES-era decks, 1.7's) keeps RR-PACKS-07's 9 GiB
+    assert runner.memory_bytes(None) == runner.memory_bytes("f08-1.7") == 9 * 2**30
+    status, reasons = runner.classify(
+        {"stop_reason": "memory", "exit": 137}, None, None
+    )
+    assert status == "FAILED_INFRA"
+    assert reasons == [f"reference_memory_limit_{28 * 2**30}_bytes"]
+
+
+def test_solve_hands_the_native_executor_the_revisions_limit(tmp_path, monkeypatch):
+    import bulk_run
+
+    seen = {}
+
+    def run_native(*args, rss_limit_bytes, **kwargs):
+        seen["rss"] = rss_limit_bytes
+        return {"stop_reason": "exit", "exit": 0, "wall_s": 0.0}
+
+    monkeypatch.setattr(bulk_run, "run_native", run_native)
+    monkeypatch.setattr(bulk_run, "native_env", lambda env, directory: {})
+    runner.solve(tmp_path, 10.0, _cores())
+    assert seen["rss"] == 28 * 2**30
