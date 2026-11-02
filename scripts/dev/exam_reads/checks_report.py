@@ -317,8 +317,8 @@ def _gap(a, b, *, step, draws, seed, sign=1.0):
     }
 
 
-def run_report(config, config_path, inputs_path, *, sink=None):
-    """The report document (see the module docstring). ``sink`` (a dict), if given, receives the classed point inputs, TRAIN and
+def run_report(config, config_path, inputs_path, *, keep=None):
+    """The report document (see the module docstring). ``keep`` (a dict), if given, receives the classed point inputs, TRAIN and
     its columns for `g_reports` (custody memory only: never written into the report)."""
     import acc_noise
 
@@ -483,8 +483,8 @@ def run_report(config, config_path, inputs_path, *, sink=None):
                 }
                 for r in admitted
             }
-    if sink is not None:
-        sink.update(
+    if keep is not None:
+        keep.update(
             points=list(zip(point_class, point_inputs, strict=True)),
             train=train,
             columns=columns,

@@ -51,7 +51,7 @@ def run(config_path, inputs_path, g_inputs_path, out):
     g_inputs = g_reports.load_inputs(g_inputs_path)
     config = reads.load_config(config_path)
     sink = {}
-    checks = report.run_report(config, config_path, inputs_path, sink=sink)
+    checks = report.run_report(config, config_path, inputs_path, keep=sink)
     return _write(out, checks, g_reports.build(checks, sink, g_inputs))
 
 
@@ -117,7 +117,7 @@ def selftest(out):
             )
         )
         sink = {}
-        checks = report.run_report(config, config_path, inputs, sink=sink)
+        checks = report.run_report(config, config_path, inputs, keep=sink)
     g_doc = g_reports.build(
         checks,
         sink,
