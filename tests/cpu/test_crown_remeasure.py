@@ -342,3 +342,85 @@ def test_the_operator_flags_are_all_or_none(tmp_path, argv, monkeypatch):
 
 def test_state_error_carries_the_changed_code():
     assert StateError("crown_average_changed").code == "crown_average_changed"
+
+
+# --- the owner's unstable-king decision: a KING_UNSTABLE king keeps its crown, flagged, met at its single total -----
+
+
+class _Const:
+    """A challenger whose every rebuild (and the host-fault second build) grades ``total``."""
+
+    def __init__(self, total):
+        self.total = total
+
+    def rebuild_at(self, seed):
+        return _body(self.total)
+
+    def rebuild_again_at(self, seed):
+        return _body(self.total)
+
+
+def _unstable_king(tmp_path):
+    store = _store(tmp_path)
+    out = _active().measure_incumbent(
+        store, KING, KEY, _comparator(), _Repeat(status="GATE_FAILED")
+    )
+    assert out["outcome"] == ca.KING_UNSTABLE
+    return store
+
+
+def test_an_unstable_king_is_flagged_and_screening_keeps_its_single_total(tmp_path):
+    store = _unstable_king(tmp_path)
+    assert store.crown_average_unstable(KING) is True and store.crown_mean(KING) is None
+    pair = {
+        "candidate": {"submission_id": OTHER, **_body(0.95)},
+        "incumbent": {"submission_id": KING, **_body(0.90)},
+    }
+    screened_pair, screened = _active().screening(store, pair, _comparator())
+    assert (
+        screened_pair == pair
+    )  # no KING_UNMEASURED: the single registered total stands
+    assert screened["rebuild_noise"]["value"] == _Rule().margin_for(CHALLENGE)
+
+
+@pytest.mark.parametrize(
+    ("challenger", "expected"),
+    [(0.95, bp.CHALLENGER), (0.902, bp.INCUMBENT_KEEPS), (0.85, bp.INCUMBENT_KEEPS)],
+)
+def test_an_unstable_king_is_met_at_its_single_total_plus_the_margin(
+    tmp_path, challenger, expected
+):
+    store = _unstable_king(tmp_path)
+    pair = {
+        "candidate": {"submission_id": OTHER, **_body(challenger)},
+        "incumbent": {"submission_id": KING, **_body(0.90)},
+    }
+    screened_pair, _ = _active().screening(store, pair, _comparator())
+    decided = _active().decide(
+        store,
+        OTHER,
+        digest("challenger key"),
+        screened_pair,
+        {"outcome": bp.CHALLENGER, "reason": "screening"},
+        _comparator(),
+        _Const(challenger),
+    )
+    # 0.902 is above the single total but inside 0.90 + margin_N (0.0035): the king keeps it
+    assert decided["outcome"] == expected
+
+
+def test_a_stable_king_is_unchanged_by_the_unstable_rule(tmp_path):
+    store = _store(tmp_path)
+    _active().measure_incumbent(store, KING, KEY, _comparator(), _Repeat())
+    assert store.crown_average_unstable(KING) is False
+    pair = {"candidate": None, "incumbent": {"submission_id": KING, **_body(0.90)}}
+    screened_pair, _ = _active().screening(store, pair, _comparator())
+    assert screened_pair["incumbent"]["evidence"]["model_p"][
+        "total_score"
+    ] == pytest.approx(0.70)
+    never = PoolStore(tmp_path / "never.sqlite3")
+    with never.transaction() as db:
+        never._set_incumbent(db, KING, "fixture", expected=None)
+    assert never.crown_average_unstable(KING) is False
+    with pytest.raises(ca.CrownAverageUnavailable, match=ca.KING_UNMEASURED):
+        _active().screening(never, pair, _comparator())

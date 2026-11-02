@@ -1677,6 +1677,25 @@ class PoolStore:
                 return float(mean)
         return None
 
+    def crown_average_unstable(self, submission_id):
+        """Whether ``submission_id``'s LATEST averaged record is a seed-fragile one: its rebuilds were not all admissible
+        across the seeds, so it was filed with the per-seed statuses and no mean (`crown_average.KING_UNSTABLE`). The
+        flag a KING_UNSTABLE king carries. Reads only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_average.v1' ORDER BY rowid DESC"
+            ).fetchall()
+        for (raw,) in rows:
+            try:
+                found = json.loads(raw)
+            except ValueError:
+                continue
+            if found.get("submission_id") != submission_id:
+                continue
+            private = found.get("private") or {}
+            return "mean" not in private and type(private.get("statuses")) is list
+        return False
+
     # --- crowns paused by the operator (OWNER-CROWN-PAUSE) -------------------------------------
     # A contender whose crown decision the operator's pause withheld is filed here, so it is
     # considered again, oldest first, once the flag is gone. The resolution is write-once.

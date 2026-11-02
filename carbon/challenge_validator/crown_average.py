@@ -257,7 +257,9 @@ class Active:
     def screening(self, store, pair, comparator):
         """``(pair, comparator)`` for the screening comparison under this rule: the incumbent's total is its stored
         MEAN (a scored king with no recorded mean is KING_UNMEASURED: crowns stay paused) and the margin is margin_N. So a
-        screening win is exactly the trigger: it beats the king's mean by more than margin_N.
+        screening win is exactly the trigger: it beats the king's mean by more than margin_N. A KING_UNSTABLE king (its
+        re-measure filed the per-seed statuses and no mean, `store.crown_average_unstable`) keeps its single registered
+        total: challengers meet it plus margin_N, and the averaged decision compares their mean with that total.
         """
         margin = self.rule.margin_for(comparator["challenge"])
         if margin is None:
@@ -274,11 +276,15 @@ class Active:
                 and model.get("total_score") is not None
             ):
                 mean = store.crown_mean(incumbent["submission_id"])
-                if mean is None:
+                if mean is not None:
+                    incumbent = json.loads(json.dumps(incumbent))
+                    incumbent["evidence"]["model_p"]["total_score"] = mean
+                    pair = {**pair, "incumbent": incumbent}
+                elif not store.crown_average_unstable(incumbent["submission_id"]):
                     raise CrownAverageUnavailable(KING_UNMEASURED)
-                incumbent = json.loads(json.dumps(incumbent))
-                incumbent["evidence"]["model_p"]["total_score"] = mean
-                pair = {**pair, "incumbent": incumbent}
+                # else: a KING_UNSTABLE king (its re-measure was seed-fragile, filed with no mean) keeps its crown,
+                # flagged by that record, and is met at its single registered total plus margin_N (the owner's
+                # unstable-king decision of 2026-11-02): the pair is left as it is.
         screened = {
             **comparator,
             "rebuild_noise": {
