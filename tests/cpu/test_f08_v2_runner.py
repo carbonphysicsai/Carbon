@@ -391,7 +391,7 @@ def test_failed_solves_and_refused_decks_are_typed_records_not_exceptions(
         "no_observable_output"
     ]
 
-    def unobservable(_d):
+    def unobservable(_d, _p=None):
         raise runner.RunnerRefused("mode_count")
 
     monkeypatch.setattr(runner, "observe", unobservable)
