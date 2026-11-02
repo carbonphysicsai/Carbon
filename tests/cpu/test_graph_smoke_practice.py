@@ -40,6 +40,7 @@ from carbon.development_session.research_carrier import (
 from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_tasks import PublicResearchExecutor
 from carbon.development_session.research_workspace import ResearchWorkspace
+from carbon.reconstruction.worker.model import WorkerCode
 from carbon.research import DirectPracticeTaskSpecV1
 from carbon.research.durable import _NoRetry
 from carbon.research.records import InfrastructureExecutionFailure
@@ -150,7 +151,7 @@ class DirectFixture:
             "summary": {
                 "n_cases": 12,
                 "score": 0.25,
-                "aggregate_error": 0.25 if self.finite else float("inf"),
+                "aggregate_error": 0.25 if self.finite else None,
             },
             "fit": {"state_digest": "sha256:" + "b" * 64},
             "practice_dual": {"total": 0.9},
@@ -250,7 +251,7 @@ def wall_failure():
     return MinerProgramFailure(
         {
             "schema": MINER_FAILURE_SCHEMA,
-            "failure_code": "DEADLINE",
+            "failure_code": WorkerCode.DEADLINE.value,
             "observation": "WORKER_WALL_LIMIT_REACHED",
             "limit": {"kind": "wall", "seconds": 600},
         }
