@@ -275,15 +275,30 @@ def modal_data(eig, shapes, loads, case, tip):
     ]
 
 
-def observe(directory):
-    """The five outputs of a solved job directory (``case.dat``, ``deck.json``, ``mesh.json``), or a RunnerRefused."""
+def parse(directory):
+    """A solved job directory read ONCE (a production .dat is ~1.8 GB): the deck and mesh records, the .dat's steps
+    (`f08_proof.parse_dat`) and its stress blocks per step (`f08_deck_v2.stress_blocks_by_step`). `observe` and `auxiliary`
+    both read this, so the file is read once and parsed twice (steps, stress), never per observable.
+    """
     directory = Path(directory)
-    deck = json.loads((directory / "deck.json").read_text())
-    meta = json.loads((directory / "mesh.json").read_text())
     dat = (directory / "case.dat").read_text(errors="replace")
+    return {
+        "deck": json.loads((directory / "deck.json").read_text()),
+        "meta": json.loads((directory / "mesh.json").read_text()),
+        "steps": proof.parse_dat(dat),
+        "by_step": v2.stress_blocks_by_step(dat),
+    }
+
+
+def observe(directory, parsed=None):
+    """The five outputs of a solved job directory (``case.dat``, ``deck.json``, ``mesh.json``), or a RunnerRefused.
+    ``parsed`` is `parse(directory)` when the caller has it (the same values either way).
+    """
+    parsed = parse(directory) if parsed is None else parsed
+    deck, meta = parsed["deck"], parsed["meta"]
     case, modes = deck["case"], deck["modes"]
     mat = v2.material(case["alloy"])
-    steps = proof.parse_dat(dat)
+    steps = parsed["steps"]
     _need(len(steps) == 3, "dat_steps")
     eig = steps[0]["eigen"]
     _need(len(eig) == modes, "mode_count")
@@ -301,14 +316,15 @@ def observe(directory):
     # names no *EL PRINT, so ccx keeps the frequency step's selection there ("if no *EL PRINT card is used within a step
     # the selections of the previous step apply"): its blocks, if any, are never read. 0034 (11-01) refused on the old
     # whole-file count of modes + 1; the refusal names the per-step counts.
-    by_step = v2.stress_blocks_by_step(dat)
+    by_step = parsed["by_step"]
     counts = [len(blocks) for blocks in by_step]
     _need(
         len(by_step) == 3 and counts[0] == modes and counts[2] == 1,
         "stress_blocks:" + ",".join(map(str, counts)),
     )
     static_stress = v2.peak_von_mises(by_step[2][0])["peak_von_mises_mpa"]
-    _keys, tensors = v2.modal_stress_tensors(dat, modes)
+    # The frequency step's blocks are the file's first ``modes`` blocks (a block before the first step is refused).
+    _keys, tensors = v2.modal_stress_tensors_from_blocks(by_step[0], modes)
     dynamic = v2.worst_band_dynamic_stress(tensors, modal, zeta)
     outputs = {
         "worst_dynamic_mm_per_n": worst["mm_per_n"],
@@ -327,18 +343,16 @@ def observe(directory):
     return outputs
 
 
-def auxiliary(directory):
+def auxiliary(directory, parsed=None):
     """The solve's other observables, RETAINED beside the five graded outputs for custody (never graded, never published
     here): every mode's natural frequency (Hz), every mode's peak fillet von Mises per unit (mass-normalised) modal
     coordinate, the static step's von Mises at every fillet integration point (element, point, MPa per N) and the static
-    tip displacement vector (mm per N). The same parse as `observe` (one .dat, one deck, one mesh).
+    tip displacement vector (mm per N). The same parse as `observe` (`parse`: one read of the .dat).
     """
-    directory = Path(directory)
-    deck = json.loads((directory / "deck.json").read_text())
-    meta = json.loads((directory / "mesh.json").read_text())
-    dat = (directory / "case.dat").read_text(errors="replace")
+    parsed = parse(directory) if parsed is None else parsed
+    deck, meta = parsed["deck"], parsed["meta"]
     case, modes = deck["case"], deck["modes"]
-    steps = proof.parse_dat(dat)
+    steps = parsed["steps"]
     _need(len(steps) == 3, "dat_steps")
     eig = steps[0]["eigen"]
     _need(len(eig) == modes, "mode_count")
@@ -346,9 +360,12 @@ def auxiliary(directory):
     tip = meta["tip_node"]
     loads = {int(n): w for n, w in deck["loads"].items()}
     modal = modal_data(eig, shapes, loads, case, tip)
-    blocks = v2.parse_stress_blocks(dat)
-    _need(len(blocks) == modes + 1, "stress_blocks")
-    _keys, tensors = v2.modal_stress_tensors(dat, modes)
+    by_step = parsed["by_step"]
+    _need(
+        len(by_step) == 3 and len(by_step[0]) == modes and len(by_step[2]) == 1,
+        "stress_blocks",
+    )
+    _keys, tensors = v2.modal_stress_tensors_from_blocks(by_step[0], modes)
     static = steps[2]["events"][0][1]
     out = {
         "modes_hz": [float(m["hz"]) for m in modal],
@@ -357,7 +374,7 @@ def auxiliary(directory):
         ],
         "static_fillet_von_mises_mpa_per_n": [
             [element, point, v2.von_mises(stress)]
-            for element, point, stress in blocks[modes]
+            for element, point, stress in by_step[2][0]
         ],
         "tip_static_displacement_mm_per_n": [float(v) for v in static[tip][:3]],
     }
@@ -547,7 +564,8 @@ def run_job(
         run = solver(directory, timeout_s, cores)
         if run.get("exit") == 0 and (directory / "case.dat").is_file():
             try:
-                outputs = observe(directory)
+                parsed = parse(directory)
+                outputs = observe(directory, parsed)
             except (RunnerRefused, v2.Refused) as refusal:
                 problem = f"observation_refused:{getattr(refusal, 'code', refusal)}"
             except (KeyError, IndexError, ValueError, ZeroDivisionError):
@@ -555,7 +573,7 @@ def run_job(
             if outputs is not None:
                 # Retained only: a failure here never changes the graded outputs or the status.
                 try:
-                    aux = auxiliary(directory)
+                    aux = auxiliary(directory, parsed)
                 except (RunnerRefused, v2.Refused, KeyError, IndexError, ValueError):
                     aux = None
         return record_for(

@@ -323,7 +323,7 @@ def test_a_solved_job_makes_an_ok_record_with_digests_and_leaves_no_directory(
     tmp_path, monkeypatch
 ):
     outputs = {name: 1.0 for name in runner.OUTPUTS}
-    monkeypatch.setattr(runner, "observe", lambda _d: outputs)
+    monkeypatch.setattr(runner, "observe", lambda _d, _p=None: outputs)
     record = runner.run_job(
         _job(), tmp_path, timeout_s=10, cores=_cores(), solvers_id="sha256:" + "a" * 64,
         mesh=fake_mesh, solver=ok_solver, mesher=MESHER,
@@ -342,7 +342,9 @@ def test_a_solved_job_makes_an_ok_record_with_digests_and_leaves_no_directory(
 def test_keep_all_keeps_the_directory_and_a_second_run_of_a_job_refuses(
     tmp_path, monkeypatch
 ):
-    monkeypatch.setattr(runner, "observe", lambda _d: {n: 1.0 for n in runner.OUTPUTS})
+    monkeypatch.setattr(
+        runner, "observe", lambda _d, _p=None: {n: 1.0 for n in runner.OUTPUTS}
+    )
     args = {
         "timeout_s": 10,
         "cores": _cores(),
@@ -710,15 +712,15 @@ def test_a_solved_record_carries_the_auxiliary_block_and_its_failure_changes_not
     tmp_path, monkeypatch
 ):
     outputs = {name: 1.0 for name in runner.OUTPUTS}
-    monkeypatch.setattr(runner, "observe", lambda _d: outputs)
-    monkeypatch.setattr(runner, "auxiliary", lambda _d: {"modes_hz": [1.0]})
+    monkeypatch.setattr(runner, "observe", lambda _d, _p=None: outputs)
+    monkeypatch.setattr(runner, "auxiliary", lambda _d, _p=None: {"modes_hz": [1.0]})
     record = runner.run_job(
         _job(), tmp_path / "a", timeout_s=10, cores=_cores(), solvers_id="sha256:" + "a" * 64,
         mesh=fake_mesh, solver=ok_solver, mesher=MESHER,
     )  # fmt: skip
     assert record["status"] == "OK" and record["auxiliary"] == {"modes_hz": [1.0]}
 
-    def broken(_d):
+    def broken(_d, _p=None):
         raise ValueError("unreadable")
 
     monkeypatch.setattr(runner, "auxiliary", broken)
@@ -728,3 +730,45 @@ def test_a_solved_record_carries_the_auxiliary_block_and_its_failure_changes_not
     )  # fmt: skip
     assert record["status"] == "OK" and record["outputs"] == outputs
     assert "auxiliary" not in record
+
+
+def test_one_parse_gives_the_same_observation_and_auxiliary_as_parsing_alone(
+    tmp_path, monkeypatch
+):
+    directory, *_ = _synthetic_job_directory(tmp_path, monkeypatch)
+    parsed = runner.parse(directory)
+    assert runner.observe(directory, parsed) == runner.observe(directory)
+    assert runner.auxiliary(directory, parsed) == runner.auxiliary(directory)
+
+
+def test_a_job_reads_its_dat_once(tmp_path, monkeypatch):
+    directory, *_ = _synthetic_job_directory(tmp_path, monkeypatch)
+    real = Path.read_text
+    reads = []
+
+    def counting(self, *args, **kwargs):
+        if self.name == "case.dat":
+            reads.append(self)
+        return real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", counting)
+    parsed = runner.parse(directory)
+    runner.observe(directory, parsed)
+    runner.auxiliary(directory, parsed)
+    assert len(reads) == 1
+
+
+def test_the_auxiliary_block_never_reads_the_steady_state_steps_inherited_blocks(
+    tmp_path, monkeypatch
+):
+    directory, *_ = _synthetic_job_directory(tmp_path, monkeypatch)
+    plain = runner.auxiliary(directory)
+    text = (directory / "case.dat").read_text()
+    noise = [
+        (1, 1, (99.0, 0.0, 0.0, 0.0, 0.0, 0.0)),
+        (2, 1, (0.0, 99.0, 0.0, 0.0, 0.0, 0.0)),
+    ]
+    (directory / "case.dat").write_text(
+        text.replace(_step(2), _step(2) + "".join(_block(noise) for _ in range(7)))
+    )
+    assert runner.auxiliary(directory) == plain

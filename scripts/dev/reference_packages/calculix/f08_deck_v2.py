@@ -899,6 +899,14 @@ def modal_stress_tensors(dat_text, modes):
     blocks = parse_stress_blocks(dat_text)
     if len(blocks) < modes + 1:
         raise Refused("modal_stress_blocks_missing")
+    return modal_stress_tensors_from_blocks(blocks, modes)
+
+
+def modal_stress_tensors_from_blocks(blocks, modes):
+    """`modal_stress_tensors` from already-parsed blocks whose first ``modes`` are the frequency step's, in order (so a
+    caller that has parsed the .dat once need not parse it again)."""
+    if len(blocks) < modes:
+        raise Refused("modal_stress_blocks_missing")
     keys = [(e, ip) for e, ip, _ in blocks[0]]
     for block in blocks[:modes]:
         if [(e, ip) for e, ip, _ in block] != keys:
