@@ -135,7 +135,7 @@ def load_case_predictions(spec, document, probe_sha, *, kinds):
 def _default_model(spec, document, probe_sha):
     if type(spec) is dict and "predict_record" in spec:
         _need(spec.get("fit") == "default", "default_model_must_be_untuned")
-        raw_rows, record = sep_read.load_predictions(
+        raw_rows, _record = sep_read.load_predictions(
             spec, document, sep_read.probe_digest(sep_read.probe_array(document))
         )
         return (
