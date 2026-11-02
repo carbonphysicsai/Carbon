@@ -588,7 +588,10 @@ def test_the_banks_graph_evidence_check_knows_the_lane_fields():
     assert not ok(lane, {**gpu, "gpu_lane_note": "graph_gpu_attempt_failed"})
     # the CPU served under a configured lane: a registered reason
     for note in retention.GRAPH_LANE_NOTES:
-        assert ok(lane, {"build_device": "CPU", "gpu_lane_note": note})
+        named = (
+            {"gpu_lane_ops": ["fft"]} if note == "graph_op_not_gpu_repeatable" else {}
+        )
+        assert ok(lane, {"build_device": "CPU", "gpu_lane_note": note, **named})
     assert not ok(lane, {"build_device": "CPU"})
     assert not ok(lane, {"build_device": "CPU", "gpu_lane_note": "anything"})
     assert not ok(
