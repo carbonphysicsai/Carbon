@@ -122,7 +122,7 @@ def test_an_unregistered_version_or_another_challenge_is_refused():
     ):
         if version_registry.find(challenge, version) is not None:
             continue
-        with pytest.raises(lt.Refused, match="version_not_registered"):
+        with pytest.raises(h.Refused, match="version_not_registered"):
             h.load_train(challenge, version)
     with pytest.raises(lt.Refused, match="train_not_registered_for_this_challenge"):
         lt.load_train("f08-ribbed-bracket", "1.7")

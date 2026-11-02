@@ -716,6 +716,8 @@ def test_cpu_only_hides_the_gpu_before_anything_runs(tmp_path, monkeypatch):
             "g",
             "--grid-digest",
             "d",
+            "--challenge",
+            "f02",
             "--version",
             "2.5",
             "--out",
@@ -726,7 +728,19 @@ def test_cpu_only_hides_the_gpu_before_anything_runs(tmp_path, monkeypatch):
     assert seen["cuda"] == ""
     monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
     h.main(
-        ["run", "--grid", "g", "--grid-digest", "d", "--version", "2.5", "--out", "o"]
+        [
+            "run",
+            "--grid",
+            "g",
+            "--grid-digest",
+            "d",
+            "--challenge",
+            "f02",
+            "--version",
+            "2.5",
+            "--out",
+            "o",
+        ]
     )
     assert seen["cuda"] is None
 

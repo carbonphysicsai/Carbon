@@ -38,14 +38,14 @@ Aggregates only: the tuned recipes stay private to Carbon (the record is CARBON_
 
     python ln_harness.py digest GRID.json
     # pod (rented GPU): selection only, no probe inputs ever leave custody
-    python ln_harness.py run --grid GRID.json --grid-digest sha256:... --version 2.5 --out OUT
+    python ln_harness.py run --grid GRID.json --grid-digest sha256:... --challenge f02 --version 2.5 --out OUT
     # custody: retrain the recorded selection on public TRAIN, predict the sealed probe inputs
-    python ln_harness.py predict --record OUT/record.json --grid-digest sha256:... --version 2.5 --probe-inputs probe.npy --out PRED
+    python ln_harness.py predict --record OUT/record.json --grid-digest sha256:... --challenge f02 --version 2.5 --probe-inputs probe.npy --out PRED
     # (one process with both, for desk runs)
     # the two pinned worker images each hold one stack (torch or jax): run each with --runtime, then check the pair
     python ln_harness.py run ... --runtime torch --out OUT-torch ; python ln_harness.py run ... --runtime jax --out OUT-jax
     python ln_harness.py merge-check OUT-torch/record.json OUT-jax/record.json
-    python ln_harness.py run --grid GRID.json --grid-digest sha256:... --version 2.5 --probe-inputs probe.npy --out OUT
+    python ln_harness.py run --grid GRID.json --grid-digest sha256:... --challenge f02 --version 2.5 --probe-inputs probe.npy --out OUT
 """
 
 from __future__ import annotations
@@ -159,14 +159,14 @@ def load_train(challenge_id, version):
 
         data = f02_train.load_public_train(version)
         return data["inputs"], data["targets"]
-    if challenge_id == "electric-motor-magnetics":
+    if challenge_id in ("electric-motor-magnetics", "chip-cold-plate"):
         import ln_train_motor_cooling
 
-        return ln_train_motor_cooling.load_train(challenge_id, version)
-    if challenge_id == "chip-cold-plate":
-        import ln_train_motor_cooling
-
-        return ln_train_motor_cooling.load_train(challenge_id, version)
+        try:
+            return ln_train_motor_cooling.load_train(challenge_id, version)
+        except ln_train_motor_cooling.Refused as refusal:
+            # the harness's own refusal, so the command reports it with its code (exit 2) instead of a traceback
+            raise Refused(str(refusal)) from refusal
     raise Refused("train_not_registered_for_this_challenge")
 
 
@@ -764,6 +764,11 @@ def main(argv=None):
     two = sub.add_parser("run")
     two.add_argument("--grid", required=True)
     two.add_argument("--grid-digest", required=True)
+    two.add_argument(
+        "--challenge",
+        required=True,
+        help="the Challenge id the grid names (no default: a Motor or Cooling grid is never checked as F02's)",
+    )
     two.add_argument("--version", required=True)
     two.add_argument(
         "--probe-inputs",
@@ -784,6 +789,9 @@ def main(argv=None):
     )
     three.add_argument("--record", required=True)
     three.add_argument("--grid-digest", required=True)
+    three.add_argument(
+        "--challenge", required=True, help="the Challenge id the record names"
+    )
     three.add_argument("--version", required=True)
     three.add_argument("--probe-inputs", required=True)
     three.add_argument("--out", required=True)
@@ -818,6 +826,7 @@ def main(argv=None):
                 args.version,
                 args.probe_inputs,
                 args.out,
+                challenge_id=args.challenge,
                 runtime=args.runtime,
                 cpu_only=args.cpu_only,
             )
@@ -828,6 +837,7 @@ def main(argv=None):
                 args.version,
                 args.probe_inputs,
                 args.out,
+                challenge_id=args.challenge,
                 runtime=args.runtime,
                 cpu_only=args.cpu_only,
             )
