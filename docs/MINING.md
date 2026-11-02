@@ -321,6 +321,49 @@ A graph recipe is a JAX program. Carbon lowers it on your machine, checks every 
 - **Constants and static values.** Everything written into the graph that can carry a fitted number counts against one 32 KiB budget for the whole submission, by what it holds: a float by its real size (half precision two bytes, float32 four, float64 eight, complex64 eight, complex128 sixteen), an integer by the bits its range needs (a lone scalar by the bits of its value), a boolean one bit, identical copies once. The static values of your nodes count too: every integer, boolean or float in an op's parameters (slice and gather indices, padding, strides, shapes, permutations, a scan's length), each by its own bits. A normal graph of a dozen conv or attention blocks costs a few hundred bytes of this, so the budget only bites when numbers are being carried. Build structure in the graph (`iota`, comparisons, one-hot products) rather than pasting tables; a table of small integers is cheap, a table of fitted floats is not.
 - **The seed.** Your official grade builds your graph at seed 0. Crown decisions will average over several seeds once crown averaging is switched on, so make your graph robust to the seed.
 
+## Build a neural operator
+
+A neural operator is a model that learns the mapping from a design's inputs to a whole output, such as a torque curve over rotor angle or a temperature profile, and does it in one pass. On Carbon it is a graph recipe (see *Writing a graph*): a JAX program that Carbon lowers, checks, rebuilds on its own side and trains itself. This section builds one step by step. It teaches the method; it does not say which model wins.
+
+**Before you start.** Run `describe` for your Challenge version (or read the page's **How you're tested**). Note the interface: how many inputs, how many outputs, the dtype, the TRAIN box, and which outputs are single numbers and which are curves or fields. A version's practice runs on public data and applies the same gates and score-part minimums as the exam, so a practice that clears the gates and minimums is the first thing to aim for, before any score.
+
+### 1. Start from a fit, not from nothing
+
+A model that has to learn everything from a few hundred examples is slow to train and easy to break. Give it a head start with a simple fit, then let the network learn only what the fit misses:
+
+> prediction = fit(inputs) + residual(inputs)
+
+- **The fit** can be a linear response surface (`inputs @ W + b`, with `W` and `b` trained with the rest of the graph), or a closed form you know from the physics. A formula is a legitimate starting point; it is part of your graph, so every operation in it is checked like the rest. A pre-fitted state cannot be shipped: whatever the fit needs is trained inside Carbon's own training.
+- **The residual** is the neural operator. For a few scalar outputs a one-hidden-layer network is enough. For a curve or a field (many outputs along an axis such as angle or position), use a spectral block: lift the inputs to a few channels along the output axis, take `jnp.fft.rfft` along that axis, multiply the lowest few modes by trainable complex weights (build them with `jax.lax.complex` from two real weight arrays), go back with `jnp.fft.irfft`, add a pointwise mix of the channels, pass through `tanh`, and project to one channel. This is the Fourier-neural-operator pattern. Keep the number of modes small (8 is a sensible start).
+- **A DeepONet-style variant** replaces the spectral block with two small networks: one reads the inputs (the branch), one reads the position along the output axis (the trunk), and the prediction at each position is their dot product. Build the position table inside the graph with `iota` rather than pasting numbers.
+
+### 2. Normalise inside the graph
+
+Carbon standardises your **targets**, never your inputs. A raw input in millimetres or degrees next to one in the hundreds makes training diverge: subtract the TRAIN mean and divide by the TRAIN spread yourself, inside the graph, using the TRAIN box from `describe`. The constants count against the 32 KiB budget (see *Writing a graph*), which a mean and a spread per input easily fit.
+
+### 3. Keep predictions physical
+
+The physics gates run on every answer. Two traps show up often:
+
+- **Outputs that must be positive.** An unbounded linear term can go negative away from the training points, and a gate for a non-negative or positive output then fails the whole submission. For strictly positive outputs, work in log space: fit `log(output)` against `log(inputs)` and return `exp(...)`, so the prediction is positive for any weights.
+- **A quadratic term on raw inputs** can make training diverge. Put a nonlinear term after the standardisation, or let the residual carry the curvature.
+
+Practice tells you which gate failed and never which design, so read the failing gate's name and fix the cause in the graph.
+
+### 4. Train, practise, read the result
+
+Training steps and learning rate are recipe settings; leave them at the tested default first. Run a practice (`carbon_practice`, or **Practise** on the page) and read the practice total, the error details beside it, and the gates and minimums. Compare three things on your own recipe, one change at a time: the fit alone, the fit plus a plain MLP residual, and the fit plus your operator residual. If the operator does not beat the simpler two on public practice, it will not beat them on the exam either.
+
+- **Time.** Practice runs on your own compute and has a time budget; a graph too slow to finish in it can never be frozen. The exam rebuild has its own limits (see *Practise, freeze, submit*: build time and inference time each up to 648 seconds on the newer versions, 947 seconds in total), and the speed gate bounds the answer time per design. A large spectral block with many channels costs time in all three.
+- **Loops.** Use `scan` with a fixed length for anything iterative. `while` loops are not served yet.
+- **Seed.** Your grade builds your graph at seed 0, and crown decisions will average over several seeds, so check that a second seed trains too.
+
+### 5. Freeze and submit
+
+When a practice is eligible and clears the minimums, freeze it and submit. The validator rebuilds your graph from the recipe and grades it on the hidden exam; the practice total is never the exam grade.
+
+**What practice cannot tell you.** Practice never touches the exam's hidden targets or its out-of-range questions. A model that fits the public cases closely can still fail outside the training range or at tighter and looser limits. Test your graph on inputs near the edge of the TRAIN box, and prefer a graph whose fit extrapolates sensibly over one that only memorises.
+
 ## Bring your own agent
 
 Any agent that speaks MCP can drive Carbon with the same tools the page uses: launch, practise, freeze, submit and check your result. The page shows everything your agent does, live, and you can message it from the campaign's Conversation box.
