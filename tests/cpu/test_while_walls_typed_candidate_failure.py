@@ -409,7 +409,12 @@ def test_the_marker_and_the_miner_state_name_the_candidate_failure(tmp_path):
     assert marker["state"] == "CANDIDATE_FAILED"
     assert marker["code"] == "WORKER_WALL_LIMIT_REACHED"
     # Not a FAILED marker: no infrastructure failure is counted or summarised.
-    assert grader.failures() == (0, None)
+    from carbon.challenge_validator import auto_grade
+
+    assert auto_grade.failure_summary(tmp_path) == {
+        "auto_grade_failed": 0,
+        "auto_grade_last_failure": None,
+    }
     assert not ExamCap(ledger).released_on_infra(
         hotkey=hotkey,
         challenge_id="electric-motor-magnetics",
