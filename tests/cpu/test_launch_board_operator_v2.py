@@ -260,7 +260,11 @@ def _pool(root, *, mode=0o600):
                             "owner": {"hotkey": hotkey, "request_digest": "d"},
                             "evidence": {
                                 "challenge": COOLING["id"],
-                                "evaluation_version": COOLING["exam_version_label"],
+                                # the pool names a judge-suffixed version; the
+                                # exam is its pack digest, the Ladder's exam key
+                                "evaluation_version": COOLING["exam_version_label"]
+                                + "-judge-97b1eda23adc",
+                                "evaluation_pack_digest": EXAM,
                                 "model_p": {
                                     "total_score": total,
                                     "score_status": "SCORED_DEVELOPMENT_CANDIDATE",
@@ -359,6 +363,25 @@ def test_the_v2_board_has_the_crown_changes_and_the_true_order(tmp_path, door, f
         (OTHER, 2),
     ]
     assert document["ladder"][0]["total"] == document["king"]["king"]["total"]
+
+
+def test_the_exact_totals_are_read_under_the_rows_exam_key(
+    tmp_path, door, frozen, monkeypatch
+):
+    config, _ = _v2_fixture(tmp_path, door)
+    item, king = config["challenges"][0], _v2_king()
+    _, exact = operator.v2_sources(config, item, king, EXAM)
+    assert exact[OTHER] == OTHER_EXACT and KING in exact
+    # under another exam (a rotated bank) no pool evaluation counts; the king's entry is its standing
+    _, other = operator.v2_sources(config, item, king, "sha256:" + "d" * 64)
+    assert OTHER not in other and set(other) == {KING}
+    # the run resolves "latest" once, to the rows' own exam
+    seen, real = [], operator.v2_sources
+    monkeypatch.setattr(
+        operator, "v2_sources", lambda *a: seen.append(a[3]) or real(*a)
+    )
+    (row,) = operator.run_once(config, version=9)
+    assert row["state"] == "WROTE" and seen == [EXAM]
 
 
 def test_no_exact_total_leaves_the_operator_process(tmp_path, door, frozen, capsys):

@@ -57,8 +57,10 @@ and a v2 run (a) fetches the receiver's v2 king document (`GET /carbon/v1/koth/<
 (b) opens the pool store READ-ONLY (never created, never written) for the crown changes
 (`koth_public.PoolKingView.crown_changes`, the receiver's own reader, with the epochs of
 the ledger's signed receipts) and the exact best totals (`launch_board.exact_best_totals`,
-the rank source as ruled), and (c) checks the written board with `launch_board.verify`
-under the PUBLIC key. The exact totals stay in this process: they set the order and are
+the rank source as ruled, on the same exam key the board's rows are read under, resolved
+once per run; the board uses an exact total only where it floors, at the Challenge's
+registered rebuild noise, to its row's published total), and (c) checks the written
+board with `launch_board.verify` under the PUBLIC key. The exact totals stay in this process: they set the order and are
 never written, printed, uploaded or served. Without ``"board"`` (or with "v1") the run
 is exactly the v1 run: same requests, same reads, same bytes.
 
@@ -91,8 +93,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from carbon.battery.pool_store import PoolStore, StateError
-from carbon.challenge_validator import koth_public, launch_board
+from carbon.challenge_validator import koth_public, koth_registry, launch_board
 from carbon.challenge_validator.feed_file import write_feed
+from carbon.challenge_validator.ladder_store import latest_exam_key
 from carbon.challenge_validator.score_feed import FeedRefused
 from carbon.dashboard import feed as dashboard_feed
 
@@ -238,15 +241,15 @@ class _ReadOnlyLedger:
             yield connection
 
 
-def v2_sources(config, item, king_document):
+def v2_sources(config, item, king_document, exam_key):
     """``(crown_changes, exact_totals)`` for a v2 board, read here, on the validator host,
     from the receiver's pool store and ledger (both read-only). The crown changes are the
     receiver's own `PoolKingView.crown_changes`; the exact totals are
-    `launch_board.exact_best_totals` on the king document's exam, with the king's entry
-    its standing. They are returned to `run_once` only, which hands them to
-    `launch_board.build`: nothing here writes, prints or keeps them. No pool store yet is
+    `launch_board.exact_best_totals` on ``exam_key`` (the sealed pack digest the board's
+    rows are read under), with the king's entry its standing. They are returned to
+    `run_once` only, which hands them to `launch_board.build`: nothing here writes, prints or keeps them. No pool store yet is
     no change of king and no exact total."""
-    from carbon.challenge_validator import exam_cap, koth_registry
+    from carbon.challenge_validator import exam_cap
 
     if not os.path.lexists(item["pool_store"]):
         return [], {}
@@ -287,7 +290,7 @@ def v2_sources(config, item, king_document):
     exact = launch_board.exact_best_totals(
         store,
         challenge_id=item["id"],
-        evaluation_version=king_document["exam_version_label"],
+        exam_key=exam_key,
         king_model_id=king_model_id,
     )
     return changes, exact
@@ -332,20 +335,28 @@ def run_once(config, *, version=None):
         try:
             king = fetch_king(config["receiver_url"], item, timeout, v2=v2)
             king = unpublished_king(item, v2=v2) if king is None else king
+            exam_key = item.get("exam_key", "latest")
             extra = {}
             if v2:
                 # The closed v2 king check the build makes, first: the sources read
                 # only a king document of exactly that shape.
                 launch_board._king(king, v2=True)
+                if exam_key == "latest":
+                    # one exam for the rows and their exact totals, resolved once
+                    exam_key = latest_exam_key(config["ledger"], challenge)
                 try:
-                    changes, exact = v2_sources(config, item, king)
+                    changes, exact = v2_sources(config, item, king, exam_key)
                 except (sqlite3.Error, StateError):
                     raise OperatorRefused("pool_store_unavailable") from None
-                extra = {"crown_changes": changes, "exact_totals": exact}
+                extra = {
+                    "crown_changes": changes,
+                    "exact_totals": exact,
+                    "rebuild_noise": koth_registry.rebuild_noise(item["id"]),
+                }
             board = launch_board.build_from_ledger(
                 ledger=config["ledger"],
                 challenge=challenge,
-                exam_key=item.get("exam_key", "latest"),
+                exam_key=exam_key,
                 king_document=king,
                 network=config["network"],
                 key=key,

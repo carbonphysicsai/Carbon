@@ -74,6 +74,7 @@ def _v2_board(signer, *, changes=None):
             else changes
         ),
         exact_totals={KING: 0.64},
+        rebuild_noise=koth_registry.rebuild_noise(CHALLENGE.challenge_id),
     )
 
 

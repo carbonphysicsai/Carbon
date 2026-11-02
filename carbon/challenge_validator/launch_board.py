@@ -116,6 +116,8 @@ _UTC = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ")
 #: beat UP (the bar is never understated).
 DECIMALS = 9
 _GRID = Decimal(1).scaleb(-DECIMALS)
+#: The v2 ``rebuild_noise`` argument has no default: None is a value (no registered noise: the Ladder's eta step).
+_REQUIRED = object()
 
 
 def floor9(value):
@@ -253,7 +255,9 @@ def crown_changes_checked(changes):
     return out
 
 
-def ladder_rows(rows, *, exact=None, king_hotkey=None, king_total=None):
+def ladder_rows(
+    rows, *, exact=None, king_hotkey=None, king_total=None, rebuild_noise=None
+):
     """The board's ladder from `ladder_store.board_rows`: ``[(hotkey, best,
     latest)]`` with each document as the Ladder serves it. One row per hotkey:
     its best total (null before any improvement) and its latest status, ranked
@@ -263,8 +267,10 @@ def ladder_rows(rows, *, exact=None, king_hotkey=None, king_total=None):
     is always listed first at rank 1, every other row follows by descending EXACT best total, and equal ranks only when
     the exact totals are bit-equal (a challenger bit-equal to the king co-ranks 1, listed after the king). A row for
     which ``exact`` holds no total (only the crown path keeps one) is ordered by its own floored total, as on v1; none
-    is invented. The published ``total`` stays step-floored, and the exact totals never leave this function: only the
-    order is revealed. On such a
+    is invented. An exact total orders its row only when it IS that row's total: floored the Ladder's way (its step,
+    from ``rebuild_noise``, the Challenge's registration as the Ladder reads it, or None) it gives the row's published
+    total; otherwise the row keeps the floored rule (Validator, 1 Nov 19:05 CST). The published ``total`` stays
+    step-floored, and the exact totals never leave this function: only the order is revealed. On such a
     board the KING row's shown total is ``king_total`` (the crown standing's floored total, as the king page shows it)
     rather than its single best grade, so the board and the king page always agree.
     """
@@ -292,7 +298,7 @@ def ladder_rows(rows, *, exact=None, king_hotkey=None, king_total=None):
                 (h, king_total if h == king_hotkey else t, st, g)
                 for h, t, st, g in kept
             ]
-        keys = _true_order(kept, exact, king_hotkey)
+        keys = _true_order(kept, exact, king_hotkey, _noise_value(rebuild_noise))
         kept = [row for row, _ in keys]
         keys = [key for _, key in keys]
     out, rank, previous = [], 0, object()
@@ -314,7 +320,20 @@ def ladder_rows(rows, *, exact=None, king_hotkey=None, king_total=None):
     return out
 
 
-def _true_order(kept, exact, king_hotkey):
+def _noise_value(rebuild_noise):
+    """The registered rebuild noise's value (None when none is registered), checked as the Ladder checks it."""
+    from .ladder_store import LadderStoreRefused
+    from .ladder_store import _noise_value as ladder_noise
+
+    try:
+        noise = ladder_noise(rebuild_noise)
+        gf.step(noise)
+    except (LadderStoreRefused, gf.LadderFeedbackRefused):
+        raise BoardRefused("board_rebuild_noise") from None
+    return noise
+
+
+def _true_order(kept, exact, king_hotkey, noise):
     """``[(row, tie_key)]`` in the true order: the king first (alone at rank 1), then descending exact best total; the
     tie key is the exact total itself (so only bit-equal totals share a rank), the row's own floored total when no exact
     total is held for it (v1's order and ties for that row), or None for a row with no best total.
@@ -324,18 +343,20 @@ def _true_order(kept, exact, king_hotkey):
     values = {}
     for hotkey, total, _status, _gates in kept:
         value = exact.get(hotkey)
-        if total is None:
-            if value is not None:
-                raise BoardRefused("board_exact")
-        # the shown total is the exact one floored to a step: never above it. No exact total (the pool store keeps one
-        # only on the crown path) is allowed and nothing is invented for it.
-        elif value is not None and (
+        if value is not None and (
             type(value) is not float
             or not math.isfinite(value)
             or not 0.0 <= value <= 1.0
-            or value < total
         ):
             raise BoardRefused("board_exact")
+        # Validator 1 Nov 19:05 CST: an exact total is used only when it is this row's own total: floored to the
+        # Ladder's step and then to 9 places (as the Ladder floors a best, and the king page its crown standing) it
+        # gives the row's published total. Otherwise (a grade of another exam, a read that raced a new grade, a row
+        # with no best) the row keeps the floored rule, as a row the pool store holds no exact total for.
+        if value is not None and (
+            total is None or floor9(gf.floor_to_step(value, noise)) != total
+        ):
+            value = None
         values[hotkey] = value
     # Validator 17:25 CST: an exact total orders only rows that both hold one; a row with one against a row without is
     # compared on both floored totals. So the floored total sorts first, and a floored group (equal shown totals) that
@@ -384,12 +405,15 @@ def _true_order(kept, exact, king_hotkey):
     return ordered
 
 
-def exact_best_totals(store, *, challenge_id, evaluation_version, king_model_id=None):
+def exact_best_totals(store, *, challenge_id, exam_key, king_model_id=None):
     """The OPERATOR-SIDE source of the exact best totals for a v2 board (never published, never persisted): per hotkey,
-    the maximum ``total_score`` over the pool store's private evaluations that are SCORED (all gates pass, minimums met)
-    for this Challenge under the CURRENT evaluation version. The king's own entry is the incumbent standing's total
-    (after crown-average, its N-rebuild mean). ``store`` needs `private_evaluation_bodies()` and `incumbent_standing`.
-    A host-owned derived row (not a hotkey) is skipped. Pass the result to `build(..., exact_totals=)`.
+    the maximum ``total_score`` over the pool store's private evaluations of this Challenge that the Ladder counts as
+    scored (its own scored statuses) on the board rows' exam. That exam is ``exam_key``, the sealed evaluation pack
+    digest the Ladder keys its rows by, matched against the evidence's own ``evaluation_pack_digest`` (Validator, 1 Nov
+    19:05 CST: the evidence names a judge-suffixed evaluation version, never the Ladder's label). The king's own entry
+    is the incumbent standing's total (after crown-average, its N-rebuild mean). ``store`` needs
+    `private_evaluation_bodies()` and `incumbent_standing`. A host-owned derived row (not a hotkey) is skipped. Pass
+    the result to `build(..., exact_totals=)`, which uses an entry only where it floors to its row's published total.
     """
     from .koth_public import KothPublicRefused, _owner_hotkey
 
@@ -400,8 +424,9 @@ def exact_best_totals(store, *, challenge_id, evaluation_version, king_model_id=
         if (
             type(model) is not dict
             or evidence.get("challenge") != challenge_id
-            or evidence.get("evaluation_version") != evaluation_version
-            or model.get("score_status") != "SCORED_DEVELOPMENT_CANDIDATE"
+            or exam_key is None
+            or evidence.get("evaluation_pack_digest") != exam_key
+            or model.get("score_status") not in gf._SCORED
             or type(model.get("total_score")) is not float
             or not math.isfinite(model["total_score"])
         ):
@@ -447,6 +472,7 @@ def build(
     now=None,
     crown_changes=None,
     exact_totals=None,
+    rebuild_noise=_REQUIRED,
 ):
     """The signed launch board for one Challenge.
 
@@ -454,7 +480,9 @@ def build(
     ``GET /carbon/v1/koth/<id>`` answer); ``rows`` are
     `ladder_store.board_rows`; ``key`` a `LaunchBoardKey`; ``version`` a whole
     number that grows with every build (the Worker keeps the last-good board
-    when it does not)."""
+    when it does not). A v2 board also takes ``exact_totals`` and ``rebuild_noise`` (the Challenge's registration, or
+    None when none is registered: the Ladder's step), with no default, so neither can be left out.
+    """
     if network not in NETWORKS:
         raise BoardRefused("board_network")
     if type(version) is not int or version < 1:
@@ -465,11 +493,14 @@ def build(
         raise BoardRefused(
             "board_exact_totals_required"
         )  # the v2 board's order is the true one
+    if v2 and rebuild_noise is _REQUIRED:
+        raise BoardRefused("board_rebuild_noise_required")
     ladder = ladder_rows(
         rows,
         exact=exact_totals if v2 else None,
         king_hotkey=None if king["king"] is None else king["king"]["hotkey"],
         king_total=None if king["king"] is None else king["king"]["total"],
+        rebuild_noise=rebuild_noise if v2 else None,
     )
     moment = datetime.datetime.now(datetime.UTC) if now is None else now
     document = {
@@ -638,6 +669,7 @@ def build_from_ledger(
     version,
     crown_changes=None,
     exact_totals=None,
+    rebuild_noise=_REQUIRED,
 ):
     """The signed board for ``challenge`` (an object with `challenge_id` and `version`)
     from the receiver's ledger file (read-only) and its king document. ``exam_key``
@@ -656,6 +688,7 @@ def build_from_ledger(
         version=version,
         crown_changes=crown_changes,
         exact_totals=exact_totals,
+        rebuild_noise=rebuild_noise,
     )
 
 

@@ -377,6 +377,7 @@ def _board(changes, *, v2=True, key=None):
         now=datetime.datetime.fromtimestamp(1_800_000_000, datetime.UTC),
         crown_changes=changes if v2 else None,
         exact_totals={} if v2 else None,
+        rebuild_noise=_args()["rebuild_noise"],
     )
     return board, signer
 
