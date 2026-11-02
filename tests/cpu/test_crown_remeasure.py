@@ -23,6 +23,7 @@ from carbon.challenge_validator import crown_average as ca
 from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.challenge_validator.interface import digest
 from carbon.development_session.construction_recipe import ConstructionRecipe
+from carbon.registry.model import ChallengeKey
 from carbon.research import DirectTaskStateV3, ResearchTaskId
 
 CHALLENGE = "electric-motor-magnetics"
@@ -234,6 +235,9 @@ def _adapter(origin, host):
     class Adapter:
         _measure_query = False
         _derived_owners = derived
+        discovery = SimpleNamespace(
+            info=SimpleNamespace(challenge_key=ChallengeKey(CHALLENGE, "1.6"))
+        )
 
         def owner(self, submission_id):
             return "miner" if submission_id == KING else derived.get(submission_id)
