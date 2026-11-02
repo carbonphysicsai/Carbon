@@ -471,7 +471,9 @@ NEXT_ACTIONS = {
     "construction_source_idempotency_conflict": (
         "The receiver already holds a different graph for your hotkey. To replace it, "
         "stage again and pass expected_manifest_digest: the manifest digest returned "
-        "when you staged the earlier graph. Nothing was changed."
+        "when you staged the earlier graph. If you have not staged since a receiver "
+        "update (1-2 Nov), it may hold nothing for you now: stage again without "
+        "expected_manifest_digest. Nothing was changed."
     ),
     # The receiver holds no graph under the name, so a compare-and-swap has
     # no manifest to compare against (Validator: "no manifest held", never
