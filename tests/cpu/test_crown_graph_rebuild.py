@@ -19,6 +19,7 @@ from typing import ClassVar
 
 import pytest
 
+from carbon.challenge_validator import bank_promotion as bp
 from carbon.challenge_validator import crown_average as ca
 from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.development_session.construction_recipe import ConstructionRecipe
@@ -141,7 +142,7 @@ def _graded(host):
         return {
             "submission_id": task_value,
             "evidence": {
-                "model_p": {"score_status": "SCORED", "total_score": TOTALS[origin]}
+                "model_p": {"score_status": bp.SCORED, "total_score": TOTALS[origin]}
             },
         }
 
@@ -184,11 +185,11 @@ def test_a_graph_king_and_a_graph_challenger_average_from_their_retained_sources
 
     king = average(KING, None)
     assert (king["outcome"], king["private"]["mean"]) == (
-        "FIRST_INCUMBENT",
+        bp.FIRST_INCUMBENT,
         pytest.approx(0.70),
     )
     challenger = average(CHALLENGER, king["private"]["mean"])
-    assert challenger["outcome"] == "CHALLENGER"
+    assert challenger["outcome"] == bp.CHALLENGER
     # every derived build got ITS origin's retained bytes, at a non-zero validator seed (3 seeds + the host-fault pair)
     by_origin = {}
     for model, seed, source in host.started.values():
