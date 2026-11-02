@@ -55,16 +55,43 @@ class Prepared:
     parameters: tuple
     #: The admitted loss graph, per case and mapped by Carbon, or None.
     loss: Any = None
+    #: A jitted forward (`FORWARD_JIT`) only: `apply` mapped over cases (`jax.vmap`), each case its own zero-padded block.
+    isolated_apply: Any = None
 
     def predict(self, params, *inputs, isolated=False):
         """Outputs for any number of cases, through the declared batch.
 
         `isolated` grades one case per call: the case is row 0 and the other
         rows are zeros, a fixed public constant, so no output can depend on
-        another case. Judge-side inference sets it; training-time calls do not."""
+        another case. Judge-side inference sets it; training-time calls do not.
+        A jitted forward runs the same per-case blocks mapped (`isolated_apply`),
+        `ISOLATED_CHUNK` cases per call, so isolation is unchanged."""
         import jax.numpy as jnp
 
         n = inputs[0].shape[0]
+        if isolated and self.isolated_apply is not None:
+            outs = []
+            for start in range(0, n, ISOLATED_CHUNK):
+                stop = min(start + ISOLATED_CHUNK, n)
+                blocks = []
+                for x in inputs:
+                    part = x[start:stop]
+                    if stop - start < ISOLATED_CHUNK:  # whole zero cases, dropped below
+                        part = jnp.pad(
+                            part,
+                            [(0, ISOLATED_CHUNK - (stop - start))]
+                            + [(0, 0)] * (x.ndim - 1),
+                        )
+                    # (chunk, batch, ...): each case at row 0 of its own block, zero rows after
+                    blocks.append(
+                        jnp.pad(
+                            part[:, None],
+                            [(0, 0), (0, self.batch - 1)] + [(0, 0)] * (x.ndim - 1),
+                        )
+                    )
+                out = self.isolated_apply(params, *blocks)
+                outs.append([o[: stop - start, 0] for o in out])
+            return [jnp.concatenate([b[k] for b in outs]) for k in range(len(outs[0]))]
         if isolated:
             blocks = []
             for i in range(n):
@@ -99,6 +126,9 @@ class Prepared:
 FORWARD_EAGER = "eager"
 FORWARD_JIT = "jit"
 FORWARD_MODES = (FORWARD_EAGER, FORWARD_JIT)
+#: Cases per mapped isolated call of a jitted forward (memory: this many blocks of the declared batch at once).
+#: An engineering bound, not a scientific value; every chunk compiles to the same shape.
+ISOLATED_CHUNK = 64
 #: (challenge_id, version) pairs whose graph forward is jitted. A version opts in only by a Validator ruling; every live
 #: (graded) version stays eager, so nothing graded is rescored. Empty until that ruling.
 JIT_FORWARD_VERSIONS: frozenset = frozenset()
@@ -167,9 +197,16 @@ def prepare(
                     args.append(next(inputs))
             return forward(*args)
 
+    isolated_apply = None
     if forward_run == FORWARD_JIT:
         import jax
 
+        n_inputs = (
+            len(order)
+            - len(kit_names)
+            - sum(name.startswith(PARAMETER) for name in order)
+        )
+        isolated_apply = jax.jit(jax.vmap(apply, in_axes=(None,) + (0,) * n_inputs))
         apply = jax.jit(apply)
     loss = None
     if "loss" in parsed:
@@ -187,6 +224,7 @@ def prepare(
         batch=verdict["batch"],
         parameters=tuple(validate.parameters(parsed["forward"])),
         loss=loss,
+        isolated_apply=isolated_apply,
     )
 
 

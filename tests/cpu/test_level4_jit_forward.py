@@ -104,12 +104,20 @@ def test_the_jitted_forward_is_bit_equal_run_to_run_and_its_difference_from_eage
     jitted = train.prepare(
         parsed, allowlist, verdict=verdict, forward=train.FORWARD_JIT
     )
+    import jax.numpy as jnp
+
     params = eager.init(train.keys(3)[0])
+    params = [
+        params[0],
+        jnp.full((2,), 0.5, jnp.float32),
+    ]  # the init's zero bias would make the scan ignore its input
     x = jax.random.normal(jax.random.PRNGKey(1), (40, 3))
     walls = {}
     outs = {}
     for name, prepared in (("eager", eager), ("jit", jitted)):
-        prepared.predict(params, x)  # the first call compiles (jit) / warms up (eager)
+        prepared.predict(
+            params, x, isolated=True
+        )  # the first call compiles (jit) / warms up (eager)
         started = time.perf_counter()
         first = np.asarray(prepared.predict(params, x, isolated=True)[0])
         walls[name] = time.perf_counter() - started
@@ -155,3 +163,44 @@ def test_train_imports_only_modules_every_graph_worker_stages():
 
     staged = set(direct_graph_construction_worker.STAGED_MODULES)
     assert imported <= staged, sorted(imported - staged)
+
+
+def test_jitted_isolated_inference_maps_each_cases_own_block_and_keeps_isolation(
+    allowlist, record_property
+):
+    import jax
+    import numpy as np
+
+    parsed, verdict = _scan_submission(allowlist)
+    eager = train.prepare(parsed, allowlist, verdict=verdict)
+    jitted = train.prepare(
+        parsed, allowlist, verdict=verdict, forward=train.FORWARD_JIT
+    )
+    assert eager.isolated_apply is None and jitted.isolated_apply is not None
+    import jax.numpy as jnp
+
+    params = eager.init(train.keys(3)[0])
+    params = [
+        params[0],
+        jnp.full((2,), 0.5, jnp.float32),
+    ]  # the init's zero bias would make the scan ignore its input
+    n = train.ISOLATED_CHUNK + 6  # a full chunk and a partial one
+    x = jax.random.normal(jax.random.PRNGKey(2), (n, 3))
+    want = np.asarray(eager.predict(params, x, isolated=True)[0])
+    got = np.asarray(jitted.predict(params, x, isolated=True)[0])
+    assert got.shape == want.shape == (n, 2)
+    assert (
+        got.tobytes()
+        == np.asarray(jitted.predict(params, x, isolated=True)[0]).tobytes()
+    )
+    diff = float(np.max(np.abs(got - want)))
+    record_property("vmapped_isolated_vs_eager_max_abs_diff", diff)
+    print(f"vmapped isolated vs eager isolated max abs diff {diff:.3e}")
+    np.testing.assert_allclose(got, want, rtol=1e-5, atol=1e-6)
+    # isolation: changing one case changes no other case's output, bit for bit
+    changed = np.asarray(
+        jitted.predict(params, x.at[5].set(x[5] + 3.0), isolated=True)[0]
+    )
+    others = [i for i in range(n) if i != 5]
+    assert changed[others].tobytes() == got[others].tobytes()
+    assert changed[5].tobytes() != got[5].tobytes()
