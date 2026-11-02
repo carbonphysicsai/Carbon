@@ -201,7 +201,8 @@ def test_the_report_measures_every_class_and_gives_each_gap_in_steps_with_a_ci(
         - rows[report.IN_TRAIN]["accuracy"]["gp"]
     )
     assert gap["steps"] == pytest.approx(gap["value"] / step)
-    assert gap["ci95"][0] <= gap["value"] <= gap["ci95"][1]
+    # the toy's errors are constant, so the interval collapses onto the value (to float rounding)
+    assert gap["ci95"][0] - 1e-12 <= gap["value"] <= gap["ci95"][1] + 1e-12
     ceiling = out["checks"]["2_ceiling_gap"][OUTER]
     assert ceiling["member"] == "gp" and ceiling["value"] > 0
     assert set(out["checks"]["1_shortcuts_out_of_range"][OUTER]) == {
