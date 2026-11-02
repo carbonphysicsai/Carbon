@@ -2149,13 +2149,11 @@ async def practice_recipe(
 
     try:
         mode = smoke.mode_of(mode)
-        if (
-            prepared.manifest.get("construction_mode") == "direct"
-            and mode == smoke.SMOKE
-        ):
-            raise OperationRefused("smoke_practice_unavailable")
         if mode == smoke.SMOKE:
-            smoke.hook_of(prepared.campaign)
+            if prepared.manifest.get("construction_mode") == "direct":
+                smoke.direct_hook(strategy)
+            else:
+                smoke.hook_of(prepared.campaign)
     except smoke.SmokeUnavailable as refused:
         raise OperationRefused(refused.code) from None
     if mode == smoke.SMOKE:

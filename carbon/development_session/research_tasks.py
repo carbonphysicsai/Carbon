@@ -3547,7 +3547,24 @@ class PublicResearchExecutor:
         elif type(spec) is DirectPracticeTaskSpecV1:
             if getattr(self.practice, "construction_mode", None) != "direct":
                 raise ValueError("direct practice is unavailable for this campaign")
-            result = self.practice(identity, spec.recipe)
+            # A smoke practice of a graph recipe the campaign's practice path
+            # recorded runs the same callback, truncated, and keeps only its
+            # smoke result.
+            from . import smoke_practice
+
+            smoke = smoke_practice.requested(
+                self.ledger, self.owner, request.idempotency_key
+            )
+            if smoke is None:
+                result = self.practice(identity, spec.recipe)
+            else:
+                result = smoke_practice.run(
+                    self.practice,
+                    identity,
+                    spec.recipe,
+                    smoke,
+                    workspace=self.workspace,
+                )
             evidence = ResearchEvidenceClass.PRACTICE_NON_AUTHORITATIVE
         elif type(spec) is PracticeTaskSpec:
             # The practice adapter supplies trusted labels/randomness and the

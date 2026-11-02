@@ -4574,7 +4574,7 @@ class RunnerAdapter:
         from scripts.dev.miner_launchpad.operations import strategy_value
 
         strategy = strategy_value(request)
-        mode = self._practice_mode(admitted, request)
+        mode = self._practice_mode(admitted, request, strategy)
         self._practice_gates(admitted, strategy)
         hypothesis = request["hypothesis"]
         expected = request.get("expected_effect", hypothesis)
@@ -4594,7 +4594,7 @@ class RunnerAdapter:
         return self._background(admitted, "practice", params, "PRACTICING", request)
 
     @staticmethod
-    def _practice_mode(admitted, request):
+    def _practice_mode(admitted, request, strategy=None):
         """A practice's mode (LAUNCHPAD-SMOKE-PRACTICE-01): full when omitted;
         smoke only where the campaign's Challenge has a smoke hook, refused
         `smoke_practice_unavailable` now, before anything starts."""
@@ -4605,7 +4605,9 @@ class RunnerAdapter:
             mode = smoke.mode_of(request.get("mode"))
             if mode == smoke.SMOKE:
                 if levels.campaign_is_direct(admitted.campaign, admitted.profile):
-                    raise Rejected(smoke.UNAVAILABLE, 409)
+                    # A graph recipe on a served adapter has a hook of its own.
+                    smoke.direct_hook(strategy)
+                    return mode
                 root = Path(admitted.campaign["root"])
                 manifest = json.loads((root / "campaign-manifest.json").read_bytes())
                 smoke.hook_of(campaign_for_manifest(manifest))

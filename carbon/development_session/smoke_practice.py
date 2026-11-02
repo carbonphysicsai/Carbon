@@ -133,6 +133,18 @@ def hook_of(campaign):
     return hook
 
 
+def direct_hook(strategy):
+    """The smoke hook of a direct recipe, or `smoke_practice_unavailable`: a
+    graph recipe on a served graph adapter has one (`graph_smoke_practice`);
+    a catalog recipe, or any other adapter, has none. The campaign's own hook
+    is never read for a direct recipe: it rewrites legacy recipes."""
+    from . import graph_smoke_practice
+
+    # Refused now, before anything is recorded or started.
+    graph_smoke_practice.truncate(strategy)
+    return graph_smoke_practice.hook()
+
+
 def _resolve(challenge):
     from carbon.challenge_registry.campaigns import campaign_for
 
@@ -209,8 +221,11 @@ def run(practice, identity, strategy, request, *, workspace):
     smoke result."""
     if request.get("strategy_digest") != digest(canonical(strategy)):
         raise ValueError("smoke practice request names another recipe")
-    hook = hook_of(RESOLVE(request.get("challenge")))
-    truncated, cut = hook.truncate(strategy, practice.compile)
+    if getattr(practice, "construction_mode", None) == "direct":
+        hook = direct_hook(strategy)
+    else:
+        hook = hook_of(RESOLVE(request.get("challenge")))
+    truncated, cut = hook.truncate(strategy, getattr(practice, "compile", None))
     smoke = _smoke_record(cut)
     before = {item["name"]: item["digest"] for item in workspace.inventory()}
     started = time.monotonic()
