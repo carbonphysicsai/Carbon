@@ -19,6 +19,14 @@ import json
 SCHEMA = "carbon.graph-gpu-ops.v1"
 _KEYS = {"schema", "allowlist_digest", "class_record_digest", "ops"}
 
+#: Why a graph rebuilt on the CPU under a configured lane because of its own ops (retained evidence).
+OPS_NOTE = "graph_op_not_gpu_repeatable"
+
+#: The one miner-visible sentence (wording is the Validator's to approve). Op names only.
+FALLBACK_NOTICE = (
+    "Rebuilt on CPU: the listed graph ops are not on the verified GPU op list."
+)
+
 
 class GpuOpsRecordInvalid(ValueError):
     """The record is not a well-formed `carbon.graph-gpu-ops.v1`."""
@@ -86,3 +94,26 @@ def device_for(source_envelope: bytes, *, gpu_image, gpu_ops):
     if not ops or not ops <= gpu_ops:
         return None
     return MINER_GPU
+
+
+def cpu_forced_ops(source_envelope: bytes, gpu_ops):
+    """The sorted names of this graph's ops that are not in the verified GPU list, or None when
+    the graph cannot be read or every op is listed. Names only; nothing else about the graph.
+    """
+    ops = submission_ops(source_envelope)
+    if not ops or not gpu_ops:
+        return None
+    outside = sorted(ops - gpu_ops)
+    return outside or None
+
+
+def public_lane_facts(gpu_ops, evidence):
+    """The lane facts a graph practice result shows its miner: the verified GPU op list, the
+    device that built the graph and, when the graph's own ops forced the CPU, those op names and
+    the notice. A closed allow-list; every other field of the retained evidence stays private.
+    """
+    facts = {"gpu_ops": sorted(gpu_ops), "build_device": evidence.get("build_device")}
+    if evidence.get("gpu_lane_note") == OPS_NOTE:
+        facts["cpu_forced_ops"] = list(evidence["gpu_lane_ops"])
+        facts["notice"] = FALLBACK_NOTICE
+    return facts

@@ -613,3 +613,126 @@ def test_an_unknown_evidence_field_still_stops_the_bank():
             SimpleNamespace(graph_gpu_image=JAX), "task", None, evidence, None, None
         )
     assert "graph_worker_evidence_unavailable" in str(stopped.value)
+
+
+# ---- the miner is told which ops forced the CPU --------------------------------------
+
+
+def test_the_ops_that_forced_the_cpu_are_named_sorted_and_nothing_else():
+    envelope = _envelope()
+    ops = lane.submission_ops(envelope)
+    assert len(ops) >= 2
+    assert lane.cpu_forced_ops(envelope, ops) is None  # every op listed: no fallback
+    assert lane.cpu_forced_ops(envelope, ops | {"extra"}) is None
+    forced = lane.cpu_forced_ops(envelope, frozenset({"unrelated"}))
+    assert forced == sorted(ops) and all(type(op) is str for op in forced)
+    one = min(ops)
+    assert lane.cpu_forced_ops(envelope, ops - {one}) == [one]
+    # unreadable graph or no record: no claim is made
+    assert lane.cpu_forced_ops(b"{}", ops) is None
+    assert lane.cpu_forced_ops(envelope, frozenset()) is None
+
+
+def test_the_public_lane_facts_are_a_closed_allow_list():
+    evidence = {
+        "build_device": "CPU",
+        "gpu_lane_note": lane.OPS_NOTE,
+        "gpu_lane_ops": ["fft", "sort"],
+        "build_receipt": {"secret": 1},
+        "submission_digest": "sha256:" + "3" * 64,
+        "build_image_id": "sha256:" + "4" * 64,
+    }
+    facts = lane.public_lane_facts(frozenset({"tanh", "dot_general"}), evidence)
+    assert facts == {
+        "gpu_ops": ["dot_general", "tanh"],
+        "build_device": "CPU",
+        "cpu_forced_ops": ["fft", "sort"],
+        "notice": lane.FALLBACK_NOTICE,
+    }
+    assert "secret" not in json.dumps(facts) and "sha256" not in json.dumps(facts)
+    # a GPU build, or a CPU fallback for another reason, names no ops and gives no notice
+    for other in (
+        {"build_device": "GPU", "build_image_id": "x"},
+        {"build_device": "CPU", "gpu_lane_note": "graph_gpu_attempt_failed"},
+    ):
+        assert set(lane.public_lane_facts(frozenset({"tanh"}), other)) == {
+            "gpu_ops",
+            "build_device",
+        }
+
+
+def test_the_bank_accepts_the_ops_note_only_with_sorted_op_names():
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    lane_provider = SimpleNamespace(graph_gpu_image=JAX)
+    ok = retention._graph_lane_evidence_ok
+    cpu = {"build_device": "CPU", "gpu_lane_note": lane.OPS_NOTE}
+    assert ok(lane_provider, {**cpu, "gpu_lane_ops": ["fft", "sort"]})
+    for bad in (
+        cpu,
+        {**cpu, "gpu_lane_ops": []},
+        {**cpu, "gpu_lane_ops": ["sort", "fft"]},
+        {**cpu, "gpu_lane_ops": ["fft", "fft"]},
+        {**cpu, "gpu_lane_ops": [1]},
+        {**cpu, "gpu_lane_ops": "fft"},
+        {
+            "build_device": "CPU",
+            "gpu_lane_note": "graph_gpu_attempt_failed",
+            "gpu_lane_ops": ["fft"],
+        },
+        {"gpu_lane_ops": ["fft"]},
+    ):
+        assert not ok(lane_provider, bad)
+
+
+def _public_result(monkeypatch, lane_image, evidence):
+    from carbon.development_session import research_tasks as tasks
+
+    class View:
+        state = tasks.DirectTaskStateV3.SUCCEEDED
+        terminal_receipt = object()
+        task_id = SimpleNamespace(value="t")
+
+    monkeypatch.setattr(tasks, "DirectTaskViewV3", View)
+    monkeypatch.setattr(tasks, "canonical_bytes", lambda value: b"r")
+    provider = SimpleNamespace(
+        graph_gpu_image=lane_image,
+        graph_gpu_ops=frozenset({"tanh", "dot_general"}),
+        _verified_success_evidence=lambda view: {
+            "predictions_digest": "sha256:" + "5" * 64,
+            "predictions": [[1.0]],
+            **evidence,
+        },
+    )
+    return DirectDevelopmentTasksV3.public_result(provider, View())
+
+
+def test_a_graph_practice_result_names_the_ops_that_forced_the_cpu(monkeypatch):
+    forced = {
+        "build_device": "CPU",
+        "gpu_lane_note": lane.OPS_NOTE,
+        "gpu_lane_ops": ["fft"],
+        "build_receipt": {"private": True},
+    }
+    result = _public_result(monkeypatch, JAX, forced)
+    assert result["gpu_lane"] == {
+        "gpu_ops": ["dot_general", "tanh"],
+        "build_device": "CPU",
+        "cpu_forced_ops": ["fft"],
+        "notice": lane.FALLBACK_NOTICE,
+    }
+    assert "private" not in json.dumps(result)
+    assert set(result) == {
+        "schema",
+        "task_id",
+        "receipt_digest",
+        "predictions_digest",
+        "predictions",
+        "official_eligible",
+        "gpu_lane",
+    }
+
+
+def test_a_result_without_a_lane_or_lane_evidence_is_what_it_was(monkeypatch):
+    for image, evidence in ((None, {"build_device": "CPU"}), (JAX, {})):
+        assert "gpu_lane" not in _public_result(monkeypatch, image, evidence)

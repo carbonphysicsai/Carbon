@@ -18,6 +18,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from carbon.challenge_kit.interface_dtype import output_dtype
+from carbon.development_session.graph_gpu_lane import OPS_NOTE as _OPS_NOTE
 
 
 class RetentionUnavailable(ValueError):
@@ -248,7 +249,7 @@ def _fixture_tensors(material) -> bytes:
 
 #: Why a configured graph GPU lane rebuilt a graph on the CPU (`research_tasks`).
 GRAPH_LANE_NOTES = frozenset(
-    {"graph_gpu_rebuild_not_repeatable", "graph_gpu_attempt_failed"}
+    {"graph_gpu_rebuild_not_repeatable", "graph_gpu_attempt_failed", _OPS_NOTE}
 )
 
 
@@ -257,7 +258,22 @@ def _graph_lane_evidence_ok(provider, evidence) -> bool:
     writes: a GPU build names the receiver's own GPU worker and no note; a CPU build names a
     registered reason. No lane fields: a receiver without a lane."""
     if type(evidence) is not dict or "build_device" not in evidence:
-        return "build_image_id" not in evidence and "gpu_lane_note" not in evidence
+        return (
+            "build_image_id" not in evidence
+            and "gpu_lane_note" not in evidence
+            and "gpu_lane_ops" not in evidence
+        )
+    ops = evidence.get("gpu_lane_ops")
+    if (evidence.get("gpu_lane_note") == _OPS_NOTE) != ("gpu_lane_ops" in evidence) or (
+        ops is not None
+        and (
+            type(ops) is not list
+            or not ops
+            or any(type(op) is not str for op in ops)
+            or ops != sorted(set(ops))
+        )
+    ):
+        return False
     if evidence["build_device"] == "GPU":
         gpu_image = getattr(provider, "graph_gpu_image", None)
         return (
@@ -310,6 +326,8 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
             lane_fields.add("build_image_id")
         if "gpu_lane_note" in evidence:
             lane_fields.add("gpu_lane_note")
+        if "gpu_lane_ops" in evidence:
+            lane_fields.add("gpu_lane_ops")
     if (
         type(evidence) is not dict
         or set(evidence) != worker_fields | timed_fields | lane_fields | {"predictions"}

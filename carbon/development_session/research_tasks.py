@@ -1328,7 +1328,7 @@ class DirectDevelopmentTasksV3:
         ):
             return None
         evidence = self._verified_success_evidence(task)
-        return {
+        result = {
             "schema": "carbon.direct-public-practice-result.v3",
             "task_id": task.task_id.value,
             "receipt_digest": digest(canonical_bytes(task.terminal_receipt)),
@@ -1336,6 +1336,11 @@ class DirectDevelopmentTasksV3:
             "predictions": evidence["predictions"],
             "official_eligible": False,
         }
+        if self.graph_gpu_image is not None and "build_device" in evidence:
+            from .graph_gpu_lane import public_lane_facts
+
+            result["gpu_lane"] = public_lane_facts(self.graph_gpu_ops, evidence)
+        return result
 
     def _verified_failure_evidence(self, view):
         """Read only our closed failure projection, never private worker text."""
@@ -2041,9 +2046,15 @@ class DirectDevelopmentTasksV3:
                 "interface_digest": kit["interface_digest"],
                 "construction_limits_digest": kit["construction_limits_digest"],
             }
-            graph_gpu, graph_note = None, None
+            graph_gpu, graph_note, graph_cpu_ops = None, None, None
             if source_kind == "graph":
                 graph_gpu, graph_lane = self._graph_lane(source_envelope, image)
+                if graph_gpu is None and self.graph_gpu_image is not None:
+                    from .graph_gpu_lane import OPS_NOTE, cpu_forced_ops
+
+                    graph_cpu_ops = cpu_forced_ops(source_envelope, self.graph_gpu_ops)
+                    if graph_cpu_ops is not None:
+                        graph_note = OPS_NOTE
                 if graph_gpu is not None:
                     repeats, graph_note = self._graph_gpu_repeats(
                         task_id, request, recipe, binding, source_envelope, graph_gpu
@@ -2271,6 +2282,8 @@ class DirectDevelopmentTasksV3:
                 elif graph_note is not None:
                     private["build_device"] = "CPU"
                     private["gpu_lane_note"] = graph_note
+                    if graph_cpu_ops is not None:
+                        private["gpu_lane_ops"] = list(graph_cpu_ops)
             elif overlay_run:
                 private.update(
                     {
