@@ -7,8 +7,8 @@ of the U / edge payload (`f08_v2_payload.py`), in the RESULTS.jsonl schema its j
 
 SHARD.json is a payload shard (``{"jobs": [{"job_id", "cell", "kind", "case", "h_mm", "fillet_h_mm", "axis"}]}``). Each job is meshed
 (`f08_deck_v2.gmsh_script_v2`, native Gmsh 4.15.2), written as the v2 deck (`f08_deck_v2.deck_text`, 48 modes, the case's own
-damping), solved by the pinned CalculiX natively under `bulk_run.run_native` with RR-PACKS-07's per-case limits (one core, 9 GiB
-resident), and observed. The deck physics, the meshing and every observer function are `f08_deck_v2` / `f08_deck`'s, unchanged: this
+damping), solved by the pinned CalculiX natively under `bulk_run.run_native` with RR-PACKS-07's per-case limits (one core; resident
+memory per deck revision, `memory_bytes`: 28 GiB for the PaStiX revision, 9 GiB otherwise), and observed. The deck physics, the meshing and every observer function are `f08_deck_v2` / `f08_deck`'s, unchanged: this
 module only chains them. The outputs, all per newton of the unit resultant:
 
 - ``worst_dynamic_mm_per_n``  worst-band tip displacement (modal superposition at the case's damping, the registered dense grid);
@@ -65,7 +65,19 @@ OUTPUTS = (
     "dynamic_fillet_stress_mpa_per_n",
 )
 MODES = 48
-MEMORY_BYTES = 9 * 2**30  # RR-PACKS-07's f08 case limit
+MEMORY_BYTES = (
+    9 * 2**30
+)  # RR-PACKS-07's f08 case limit (the SPOOLES-era decks; 1.7 is unchanged)
+#: Per deck revision, the per-case resident limit: the owner's RB 2.0 reference memory decision (2 Nov: up to 28 GiB, on the v2
+#: PaStiX image only, 1.7 unchanged, a case over it a typed resource stop). A revision not named here keeps RR-PACKS-07's 9 GiB.
+MEMORY_BYTES_BY_REVISION = {v2.DECK_REVISION: 28 * 2**30}
+
+
+def memory_bytes(revision=v2.DECK_REVISION):
+    """The per-case resident limit of a deck revision (`MEMORY_BYTES_BY_REVISION`, else `MEMORY_BYTES`)."""
+    return MEMORY_BYTES_BY_REVISION.get(revision, MEMORY_BYTES)
+
+
 JOB_KEYS = {"job_id", "cell", "kind", "case", "h_mm", "fillet_h_mm", "axis"}
 TERMINAL = ("OK", "REFERENCE_INVALID")
 
@@ -333,7 +345,7 @@ def solve(directory, timeout_s, cores):
                 bulk_run.native_env({}, directory),
                 timeout_s,
                 threading.Event(),
-                rss_limit_bytes=MEMORY_BYTES,
+                rss_limit_bytes=memory_bytes(),
                 cpus={core},
                 stdout=out,
                 stderr=err,
@@ -352,7 +364,10 @@ def classify(run, outputs, problem, *, alone=False):
     code = run.get("exit")
     if reason == "not_run":  # refused or failed before any solve: the problem names it
         return "REFERENCE_INVALID", [problem]
-    if reason in ("infra", "cancel", "memory") or (
+    if reason == "memory":
+        # a typed resource stop at the deck revision's limit: never judged, never a reference verdict
+        return "FAILED_INFRA", [f"reference_memory_limit_{memory_bytes()}_bytes"]
+    if reason in ("infra", "cancel") or (
         reason == "exit"
         and code is not None
         and (code == 120 or code >= 128 or code < 0)
