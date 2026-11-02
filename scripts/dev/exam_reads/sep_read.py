@@ -31,7 +31,7 @@ Per class (Validator rulings 11-01):
 - the median |err| / U per output for K and O (U from the probe set's U record; a relative U is relative to the true value);
 - the flag "K loses by > margin_N AND O beats K", set ONLY for n >= 6 (n < 6 is INDICATIVE and never flagged);
 - the nearest-TRAIN distance quantiles from DC's receipted nearest_train.py, run IN PLACE (its SHA256SUMS checked first).
-Overall, the C1 gate's read (OWNER-ACCURACY-OOD-MIN-01 amendment, the Validator's "clearly"): the paired O - K atom balanced over the
+Overall, the C1 gate's read (the owner's accuracy-OOD minimum amendment, the Validator's "clearly"): the paired O - K atom balanced over the
 out-of-range classes with n >= 6, its within-class paired bootstrap (2000 draws, ``bootstrap_seed`` recorded), and whether its 95 %
 lower bound clears margin_N (`clear_win`).
 Raw predictions become decision outputs through the version's own `pool_adapters.official_binding(...).derive`. No pass rule: report
@@ -72,7 +72,7 @@ CONFIG_KEYS = {
     "nearest_train",
     "bootstrap_seed",
 }
-#: The C1 "clearly beats" read (OWNER-ACCURACY-OOD-MIN-01 amendment; the Validator's definition, no new constant).
+#: The C1 "clearly beats" read (the owner's accuracy-OOD minimum amendment; the Validator's definition, no new constant).
 BOOTSTRAP_DRAWS = 2000
 CONTENDER_KEYS = {"predict_record", "catalog_id", "fit"}
 NEAREST_KEYS = {
