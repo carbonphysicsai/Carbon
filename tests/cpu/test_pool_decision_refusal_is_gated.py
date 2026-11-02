@@ -1,9 +1,11 @@
 """A model answer that a Challenge's `derive` refuses can never reach the pool grader's scoring on the official path.
 
-`pool_grader.grade_target` scores a None prediction as `prediction_invalid` (D = 0), but `pool_grader.agen_accuracy`
-raises `PoolRefused("agen_prediction_invalid")` on one. The official route is safe only because every answer `derive`
-refuses ALSO fails a registered physics gate, and `pool_exam.measure_pool` returns on a failed gate before any scoring.
-These tests pin both halves (Test Engineer, 2026-10-30; no carbon/ change):
+`pool_grader.grade_target` scores a None prediction as `prediction_invalid` (D = 0), and `pool_grader.agen_accuracy`
+refuses one (`agen_prediction_invalid`). On 2026-10-30 the official route relied on every answer `derive` refuses ALSO
+failing a registered physics gate; a live Motor answer (2026-11-02, `motoring_mean_nonnegative`) showed a derive refusal
+the gates pass, which raised out of the official grade. Since then `pool_exam.measure_pool` checks the A_gen slice first
+and gates such an answer itself (GATE_FAILED on the pool physics gate, Validator 01:40), so no refused answer reaches
+scoring untyped. These tests pin it (Test Engineer, 2026-10-30, the last test revised 2026-11-02):
 
 1. for every launch Challenge, over crafted and extreme FINITE or malformed rows: `derive` is None  =>  the gate
    names a failure, and neither `derive` nor the gate raises;
@@ -103,9 +105,11 @@ def _toy_grade(index_of, sentinel_passes_gate):
     def serve(rows):
         out = toy.good_serve(rows)
         return [
-            [12345.0 if sentinel_passes_gate else -1.0, 0.0]
-            if (r["x"], r["y"]) == bad
-            else o
+            (
+                [12345.0 if sentinel_passes_gate else -1.0, 0.0]
+                if (r["x"], r["y"]) == bad
+                else o
+            )
             for r, o in zip(rows, out, strict=True)
         ]
 
@@ -147,7 +151,12 @@ def test_a_refused_queried_design_the_gate_would_pass_is_prediction_invalid():
     assert "prediction_invalid" in measured["pool"]["reasons"]
 
 
-def test_a_refused_a_gen_design_the_gate_would_pass_raises_so_the_invariant_above_is_load_bearing():
-    """Documents the one raising edge: only reachable if a Challenge's derive refuses what its gates pass."""
-    with pytest.raises(Exception, match="agen_prediction_invalid"):
-        _toy_grade(lambda s: next(iter(s.agen)), sentinel_passes_gate=True)
+def test_a_refused_a_gen_design_the_gate_would_pass_is_a_typed_gate_failure_not_an_exception():
+    """The one edge the 10-30 version documented as raising (a derive refusal the gates pass, on the A_gen slice) is now
+    the candidate's typed gate failure: not admitted (D = 0, the pool physics gate failed), so the slot counts.
+    """
+    measured = _toy_grade(lambda s: next(iter(s.agen)), sentinel_passes_gate=True)
+    assert measured["D"] == 0.0
+    assert measured["gates"][exam.PHYSICS_GATE] is False
+    assert exam.AGEN_VALIDITY_GATE in measured["pool"]["physics_failed"]
+    assert exam.public(measured)["status"] == "GATE_FAILED"
