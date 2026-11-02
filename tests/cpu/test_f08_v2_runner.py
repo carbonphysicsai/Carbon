@@ -332,7 +332,7 @@ def test_a_solved_job_makes_an_ok_record_with_digests_and_leaves_no_directory(
     assert record["images"] == {"mesher": MESHER, "solvers_id": "sha256:" + "a" * 64}
     assert record["deck_sha256"].startswith("sha256:") and record["dat_sha256"]
     assert record["alloy_table_sha256"] == v2.ALLOY_SHA256
-    assert record["schema"] == "carbon.f08.v2-job-record.v2"
+    assert record["schema"] == "carbon.f08.v2-job-record.v3"
     assert record["deck_revision"] == v2.DECK_REVISION
     assert record["mesh"]["nodes"] == 12 and record["job_id"] == "f08v2-9000"
     assert not (tmp_path / "f08v2-9000").exists()
@@ -683,3 +683,48 @@ def test_solve_hands_the_native_executor_the_revisions_limit(tmp_path, monkeypat
     monkeypatch.setattr(bulk_run, "native_env", lambda env, directory: {})
     runner.solve(tmp_path, 10.0, _cores())
     assert seen["rss"] == 28 * 2**30
+
+
+def test_the_auxiliary_block_retains_every_mode_the_static_fillet_field_and_the_tip_vector(
+    tmp_path, monkeypatch
+):
+    directory, case, eig, shapes = _synthetic_job_directory(tmp_path, monkeypatch)
+    aux = runner.auxiliary(directory)
+    modal = runner.modal_data(eig, shapes, {1: 0.4, 3: 0.6}, case, tip=3)
+    assert aux["modes_hz"] == [m["hz"] for m in modal] and len(aux["modes_hz"]) == 2
+    _keys, tensors = v2.modal_stress_tensors((directory / "case.dat").read_text(), 2)
+    assert aux["mode_fillet_von_mises_peak_mpa_per_unit_modal"] == [
+        float(v) for v in v2._vm_rows(tensors).max(axis=1)
+    ]
+    static = aux["static_fillet_von_mises_mpa_per_n"]
+    assert max(row[2] for row in static) == pytest.approx(
+        runner.observe(directory)["static_fillet_stress_mpa_per_n"]
+    )
+    assert (
+        aux["tip_static_displacement_mm_per_n"][2] == -0.0123
+    )  # the graded static tip is its z
+    json.dumps(aux)
+
+
+def test_a_solved_record_carries_the_auxiliary_block_and_its_failure_changes_nothing(
+    tmp_path, monkeypatch
+):
+    outputs = {name: 1.0 for name in runner.OUTPUTS}
+    monkeypatch.setattr(runner, "observe", lambda _d: outputs)
+    monkeypatch.setattr(runner, "auxiliary", lambda _d: {"modes_hz": [1.0]})
+    record = runner.run_job(
+        _job(), tmp_path / "a", timeout_s=10, cores=_cores(), solvers_id="sha256:" + "a" * 64,
+        mesh=fake_mesh, solver=ok_solver, mesher=MESHER,
+    )  # fmt: skip
+    assert record["status"] == "OK" and record["auxiliary"] == {"modes_hz": [1.0]}
+
+    def broken(_d):
+        raise ValueError("unreadable")
+
+    monkeypatch.setattr(runner, "auxiliary", broken)
+    record = runner.run_job(
+        _job(), tmp_path / "b", timeout_s=10, cores=_cores(), solvers_id="sha256:" + "a" * 64,
+        mesh=fake_mesh, solver=ok_solver, mesher=MESHER,
+    )  # fmt: skip
+    assert record["status"] == "OK" and record["outputs"] == outputs
+    assert "auxiliary" not in record

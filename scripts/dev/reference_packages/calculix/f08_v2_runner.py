@@ -56,7 +56,8 @@ import f08_deck_v2 as v2
 import f08_proof as proof
 
 #: v2: the PaStiX deck revision (f08_deck_v2.DECK_REVISION) is recorded; v1 records are SPOOLES-era decks.
-RECORD_SCHEMA = "carbon.f08.v2-job-record.v2"
+#: v3: an ``auxiliary`` block (`auxiliary`) beside the outputs on a solved job; the five graded outputs are unchanged.
+RECORD_SCHEMA = "carbon.f08.v2-job-record.v3"
 OUTPUTS = (
     "worst_dynamic_mm_per_n",
     "static_tip_mm_per_n",
@@ -326,6 +327,55 @@ def observe(directory):
     return outputs
 
 
+def auxiliary(directory):
+    """The solve's other observables, RETAINED beside the five graded outputs for custody (never graded, never published
+    here): every mode's natural frequency (Hz), every mode's peak fillet von Mises per unit (mass-normalised) modal
+    coordinate, the static step's von Mises at every fillet integration point (element, point, MPa per N) and the static
+    tip displacement vector (mm per N). The same parse as `observe` (one .dat, one deck, one mesh).
+    """
+    directory = Path(directory)
+    deck = json.loads((directory / "deck.json").read_text())
+    meta = json.loads((directory / "mesh.json").read_text())
+    dat = (directory / "case.dat").read_text(errors="replace")
+    case, modes = deck["case"], deck["modes"]
+    steps = proof.parse_dat(dat)
+    _need(len(steps) == 3, "dat_steps")
+    eig = steps[0]["eigen"]
+    _need(len(eig) == modes, "mode_count")
+    shapes = _shapes(steps[0])
+    tip = meta["tip_node"]
+    loads = {int(n): w for n, w in deck["loads"].items()}
+    modal = modal_data(eig, shapes, loads, case, tip)
+    blocks = v2.parse_stress_blocks(dat)
+    _need(len(blocks) == modes + 1, "stress_blocks")
+    _keys, tensors = v2.modal_stress_tensors(dat, modes)
+    static = steps[2]["events"][0][1]
+    out = {
+        "modes_hz": [float(m["hz"]) for m in modal],
+        "mode_fillet_von_mises_peak_mpa_per_unit_modal": [
+            float(v) for v in v2._vm_rows(tensors).max(axis=1)
+        ],
+        "static_fillet_von_mises_mpa_per_n": [
+            [element, point, v2.von_mises(stress)]
+            for element, point, stress in blocks[modes]
+        ],
+        "tip_static_displacement_mm_per_n": [float(v) for v in static[tip][:3]],
+    }
+    _need(
+        all(
+            math.isfinite(v)
+            for v in (
+                *out["modes_hz"],
+                *out["mode_fillet_von_mises_peak_mpa_per_unit_modal"],
+                *(row[2] for row in out["static_fillet_von_mises_mpa_per_n"]),
+                *out["tip_static_displacement_mm_per_n"],
+            )
+        ),
+        "auxiliary_not_finite",
+    )
+    return out
+
+
 # ---------------------------------------------------------------- the solve and the record
 
 
@@ -397,6 +447,7 @@ def record_for(
     solvers_id,
     mesher,
     alone=False,
+    aux=None,
 ):
     status, reasons = classify(run, outputs, problem, alone=alone)
     if run.get("infra_cause"):
@@ -435,6 +486,8 @@ def record_for(
             record[label] = _sha((directory / name).read_bytes())
     if status in TERMINAL and outputs is not None:
         record["outputs"] = outputs
+        if aux is not None:
+            record["auxiliary"] = aux
     return record
 
 
@@ -455,7 +508,7 @@ def run_job(
     directory = Path(work) / job["job_id"]
     if directory.exists():
         raise RunnerRefused("job_directory_exists")
-    meta, run, outputs, problem = {}, {"stop_reason": "infra"}, None, None
+    meta, run, outputs, problem, aux = {}, {"stop_reason": "infra"}, None, None, None
     try:
         not_run = {"stop_reason": "not_run", "exit": None}
         try:
@@ -499,6 +552,12 @@ def run_job(
                 problem = f"observation_refused:{getattr(refusal, 'code', refusal)}"
             except (KeyError, IndexError, ValueError, ZeroDivisionError):
                 problem = "observation_failed"
+            if outputs is not None:
+                # Retained only: a failure here never changes the graded outputs or the status.
+                try:
+                    aux = auxiliary(directory)
+                except (RunnerRefused, v2.Refused, KeyError, IndexError, ValueError):
+                    aux = None
         return record_for(
             job,
             run,
@@ -509,6 +568,7 @@ def run_job(
             solvers_id=solvers_id,
             mesher=mesher,
             alone=alone,
+            aux=aux,
         )
     finally:
         status_ok = outputs is not None
