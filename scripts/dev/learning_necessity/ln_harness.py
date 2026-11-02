@@ -174,6 +174,45 @@ def is_inpack(item):
     return item.get("kind") == INPACK_KIND
 
 
+def train_version_for(challenge_id, version, train_version):
+    """The version whose public TRAIN a run uses: ``version`` itself, unless ``train_version`` names another, which must
+    be REGISTERED (Validator 1 Nov 18:53 / 19:05: a Motor 1.7 grid may train on the pinned 1.6 TRAIN that the 1.7 build
+    spec declares; the record names it). The grid is still checked against ``version``.
+    """
+    if train_version is None or train_version == version:
+        return version
+    if challenge_id == "f02":
+        from carbon.challenge_kit import f02_train
+
+        registered = train_version in f02_train.CHALLENGE_VERSIONS
+    else:
+        from carbon.challenge_kit import version_registry
+
+        registered = version_registry.find(challenge_id, train_version) is not None
+    if not registered:
+        raise Refused("train_version_not_registered")
+    return train_version
+
+
+def train_identity(challenge_id, train_version):
+    """``{"version", "name", "sha256"}`` of the public TRAIN a run loads, carried in its record."""
+    if challenge_id == "f02":
+        from carbon.challenge_kit import f02_train
+
+        return {
+            "version": train_version,
+            "name": f02_train._TRAIN,
+            "sha256": "sha256:" + f02_train.TRAIN_SHA256,
+        }
+    import ln_train_motor_cooling
+
+    try:
+        named = ln_train_motor_cooling.train_identity(challenge_id, train_version)
+    except ln_train_motor_cooling.Refused as refusal:
+        raise Refused(str(refusal)) from refusal
+    return {"version": train_version, **named}
+
+
 def inpack_item(challenge_id):
     """The in-pack baseline's stand-in for a catalog item: its identifier, kind and the implementation digest on disk."""
     import ln_inpack_baseline
@@ -570,6 +609,7 @@ def run(
     *,
     builders=None,
     challenge_id="f02",
+    train_version=None,
     runtime=None,
     cpu_only=False,
     log=print,
@@ -578,15 +618,16 @@ def run(
     grid = load_grid(grid_path, grid_digest)
     if grid["challenge"] != {"id": challenge_id, "version": version}:
         raise Refused("grid_is_for_another_challenge_version")
-    x, y = load_train(challenge_id, version)
+    train = train_version_for(challenge_id, version, train_version)
+    x, y = load_train(challenge_id, train)
     probe = None if probe_path is None else load_probe(probe_path, x.shape[1])
-    entries = resolve_entries(grid, challenge_id, version)
+    entries = resolve_entries(grid, challenge_id, train)
     checked = {
         item["catalog_id"]: check_settings(each, item) for each, item, _ in entries
     }
     expected = [item["catalog_id"] for _, item, _ in entries]
     entries = for_runtime(entries, runtime)
-    registered_wall = rebuild_wall_seconds(challenge_id, version)
+    registered_wall = rebuild_wall_seconds(challenge_id, train)
     wall = limit_for(registered_wall, cpu_only)
     folds = make_folds(len(x), grid["k"], grid["fold_seed"])
     out = Path(out_dir)
@@ -595,7 +636,7 @@ def run(
     contenders = []
     for each, item, substituted_from in entries:
         cid = item["catalog_id"]
-        builder = (builders or {}).get(cid) or load_builder(item, challenge_id, version)
+        builder = (builders or {}).get(cid) or load_builder(item, challenge_id, train)
         default = settings_resolve_default(item)
         record = {
             "role": each["role"],
@@ -631,6 +672,7 @@ def run(
         "schema": RECORD_SCHEMA,
         "visibility": "CARBON_PRIVATE",
         "challenge": grid["challenge"],
+        "train": train_identity(challenge_id, train),
         "grid_digest": grid_digest,
         "runtime": runtime,
         **cpu_only_fields(cpu_only),
@@ -669,6 +711,7 @@ def predict_from_record(
     *,
     builders=None,
     challenge_id="f02",
+    train_version=None,
     runtime=None,
     cpu_only=False,
     log=print,
@@ -685,13 +728,21 @@ def predict_from_record(
         or (runtime is not None and record.get("runtime") != runtime)
     ):
         raise Refused("record_is_not_this_grids_selection_record")
+    train = train_version_for(challenge_id, version, train_version)
+    identity = train_identity(challenge_id, train)
+    # a record names the TRAIN it selected on; one written before that field is accepted only for its own version
+    recorded = record.get("train")
+    if (recorded is None and train != version) or (
+        recorded is not None and recorded != identity
+    ):
+        raise Refused("record_trained_on_another_train")
     from carbon.backbone_catalog import listing, settings
 
-    x, y = load_train(challenge_id, version)
+    x, y = load_train(challenge_id, train)
     probe = load_probe(probe_path, x.shape[1])
-    registered_wall = rebuild_wall_seconds(challenge_id, version)
+    registered_wall = rebuild_wall_seconds(challenge_id, train)
     wall = limit_for(registered_wall, cpu_only)
-    offered = {e["catalog_id"]: e for e in listing.entries(challenge_id, version)}
+    offered = {e["catalog_id"]: e for e in listing.entries(challenge_id, train)}
     if any(each.get("implementation_digest") for each in record["contenders"]):
         inpack = inpack_item(challenge_id)
         offered[inpack["catalog_id"]] = inpack
@@ -712,7 +763,7 @@ def predict_from_record(
     for each in record["contenders"]:
         cid = each["catalog_id"]
         item = offered[cid]
-        builder = (builders or {}).get(cid) or load_builder(item, challenge_id, version)
+        builder = (builders or {}).get(cid) or load_builder(item, challenge_id, train)
         fits = {"default": settings_resolve_default(item)}
         chosen = each.get("selected_setting")
         if chosen is not None:
@@ -729,6 +780,7 @@ def predict_from_record(
         "schema": PREDICT_SCHEMA,
         "visibility": "CARBON_PRIVATE",
         "challenge": record["challenge"],
+        "train": identity,
         "grid_digest": grid_digest,
         "source_record_sha256": digest(record),
         "runtime": record.get("runtime"),
@@ -771,6 +823,10 @@ def main(argv=None):
     )
     two.add_argument("--version", required=True)
     two.add_argument(
+        "--train-version",
+        help="a REGISTERED version whose public TRAIN the run uses (default: --version); the record names it",
+    )
+    two.add_argument(
         "--probe-inputs",
         help="optional: sealed inputs never go to a rented pod, so a pod run omits this and records the selection only",
     )
@@ -793,6 +849,9 @@ def main(argv=None):
         "--challenge", required=True, help="the Challenge id the record names"
     )
     three.add_argument("--version", required=True)
+    three.add_argument(
+        "--train-version", help="as for run; must match the record's TRAIN"
+    )
     three.add_argument("--probe-inputs", required=True)
     three.add_argument("--out", required=True)
     three.add_argument(
@@ -827,6 +886,7 @@ def main(argv=None):
                 args.probe_inputs,
                 args.out,
                 challenge_id=args.challenge,
+                train_version=args.train_version,
                 runtime=args.runtime,
                 cpu_only=args.cpu_only,
             )
@@ -838,6 +898,7 @@ def main(argv=None):
                 args.probe_inputs,
                 args.out,
                 challenge_id=args.challenge,
+                train_version=args.train_version,
                 runtime=args.runtime,
                 cpu_only=args.cpu_only,
             )

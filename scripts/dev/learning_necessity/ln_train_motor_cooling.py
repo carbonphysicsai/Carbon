@@ -40,6 +40,15 @@ def train_name(challenge_id, version):
     return declared.train
 
 
+def train_identity(challenge_id, version):
+    """``{"name", "sha256"}`` of the version's registered public TRAIN, as `physical_public_train` pins it."""
+    from carbon.challenge_kit import physical_public_train
+
+    name = train_name(challenge_id, version)
+    data = physical_public_train.load_public_train(challenge_id, version)
+    return {"name": name, "sha256": data["provenance"]["train_sha256"]}
+
+
 def load_train(challenge_id, version):
     """The version's PUBLIC TRAIN ``(inputs, targets)``, as `physical_public_train` loads and checks it."""
     from carbon.challenge_kit import physical_public_train
