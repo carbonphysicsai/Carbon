@@ -316,6 +316,11 @@ def derived(document, rows):
     out = []
     for case, row in zip(document["cases"], rows, strict=True):
         prediction = binding.derive(dict(case["inputs"]), list(row))
+        if prediction is None:
+            # the Challenge's own validity gates refused the answer: a gate failure of this contender (Validator 01:40 (b)),
+            # read as the grader reads it (the contender is GATE_FAILED), its case's atom 0 reported as info only
+            out.append(None)
+            continue
         _need(
             type(prediction) is dict and outputs <= set(prediction),
             "derive_lacks_a_truth_output",
@@ -372,28 +377,53 @@ def class_rows(document, predictions, scales, u):
             "status": "INDICATIVE" if len(indices) < INDICATIVE_BELOW else "REPORT",
         }
         for who, rows in sorted(predictions.items()):
+            passing = [i for i in indices if rows[i] is not None]
             errors = {
-                k: [abs(rows[i][k] - document["cases"][i]["truth"][k]) for i in indices]
+                k: [abs(rows[i][k] - document["cases"][i]["truth"][k]) for i in passing]
                 for k in outputs
             }
+            atoms = (
+                [
+                    (
+                        benefit(
+                            abs(rows[i][k] - document["cases"][i]["truth"][k])
+                            / scales[k]
+                        )
+                        if rows[i] is not None
+                        else 0.0
+                    )
+                    for i in indices
+                    for k in outputs
+                ]
+                if scales is not None
+                else None
+            )
             row[who] = {
                 "median_err_over_in_range_u": {
-                    k: statistics.median(
-                        errors[k][j] / _u(u[k], document["cases"][i]["truth"][k])
-                        for j, i in enumerate(indices)
+                    k: (
+                        statistics.median(
+                            errors[k][j] / _u(u[k], document["cases"][i]["truth"][k])
+                            for j, i in enumerate(passing)
+                        )
+                        if passing
+                        else None
                     )
                     for k in outputs
                 },
-                "accuracy": (
-                    None
-                    if scales is None
-                    else statistics.fmean(
+                # a gate-failing case scores the atom 0 (not compensated); with one, this is info only (no verdict)
+                "accuracy": None if atoms is None else statistics.fmean(atoms),
+                "gate_failed": len(indices) - len(passing),
+            }
+            if row[who]["gate_failed"] and scales is not None:
+                row[who]["accuracy_gate_passing_only"] = (
+                    statistics.fmean(
                         benefit(errors[k][j] / scales[k])
-                        for j in range(len(indices))
+                        for j in range(len(passing))
                         for k in outputs
                     )
-                ),
-            }
+                    if passing
+                    else None
+                )
         out[klass] = row
     return out
 
@@ -405,6 +435,8 @@ def paired_atoms(document, predictions, scales):
     outputs = sorted(document["cases"][0]["truth"])
 
     def atom(rows, index, truth):
+        if rows[index] is None:  # a gate-failing case: the atom 0
+            return 0.0
         return statistics.fmean(
             benefit(abs(rows[index][k] - truth[k]) / scales[k]) for k in outputs
         )
@@ -583,14 +615,31 @@ def read(config_path):
     margin, noise_sha = margin_n(config["koth_rebuild_noise"], document["challenge"])
     classes = class_rows(document, predictions, scales, document["u_record"]["u"])
     distances, train = nearest_train(config["nearest_train"], document)
+    gate_failed = {
+        who: sum(p is None for p in rows) for who, rows in sorted(predictions.items())
+    }
+    gated = any(gate_failed.values())
+    for who, count in gate_failed.items():
+        records[who]["status"] = "GATE_FAILED" if count else "GRADED"
+        records[who]["gate_failed_cases"] = count
     for klass, row in classes.items():
-        row["k_loses_and_o_wins"] = flag(row, margin)
+        # a GATE_FAILED contender gives no verdict (the grader's semantics): the flag is not computed
+        row["k_loses_and_o_wins"] = None if gated else flag(row, margin)
         if row["K"]["accuracy"] is not None:
             row["o_minus_k"] = row["O"]["accuracy"] - row["K"]["accuracy"]
         row["nearest_train"] = distances[klass]
     seed = config["bootstrap_seed"]
     _need(type(seed) is int and not isinstance(seed, bool), "config_bootstrap_seed")
     c1 = clear_win(document, predictions, scales, margin, seed)
+    if (
+        gated
+    ):  # atom-0 C1 numbers are info only; no clear win can be read from a GATE_FAILED contender
+        c1 = {
+            **c1,
+            "clear": False,
+            "verdict": None,
+            "info_only": "a contender is GATE_FAILED",
+        }
     everything = {"n": len(document["cases"]), "K": None, "O": None}
     if scales is not None:
         whole = class_rows(
@@ -607,6 +656,8 @@ def read(config_path):
     result = {
         "schema": SCHEMA,
         "status": "REPORT_FIELD_AGGREGATES_ONLY",
+        # no verdict when a contender's prediction failed the Challenge's validity gates (Validator 01:40 (b))
+        "verdict": None if gated else "see classes and c1_clear_win",
         "provisional": document["provisional"],
         "challenge": document["challenge"],
         "version": document["version"],

@@ -591,3 +591,47 @@ def test_an_older_record_without_train_falls_back_to_its_challenge_version(
     )  # no train key, another version: refused
     with pytest.raises(sep_read.SepRefused, match="predict_record_other_version"):
         sep_read.read(path)
+
+
+def test_a_gate_failing_prediction_makes_its_contender_gate_failed_and_gives_no_verdict(
+    tmp_path, fakes, monkeypatch
+):
+    """Validator 01:40 (b): the grader's semantics. A probe prediction the Challenge's validity gates refuse (derive -> None) makes
+    that contender GATE_FAILED: no class flag, no C1 clear win, no verdict; its case scores the atom 0 (info) beside the
+    gate-passing-only accuracy and the gate-fail count."""
+    monkeypatch.setattr(
+        pool_adapters,
+        "official_binding",
+        lambda kind, version: SimpleNamespace(
+            input_names=tuple(NAMES),
+            derive=lambda inputs, raw: None if raw[0] < 0 else {"y": raw[0]},
+        ),
+    )
+    cases = _six("outer_shell", "extended_shell", 1.0)
+    kernel = [[3.0]] * 5 + [[-5.0]]  # one answer the validity gate refuses
+    operator = [[1.0]] * 6
+    result = sep_read.read(_config(tmp_path, cases, kernel, operator))
+    assert result["contenders"]["K"]["status"] == "GATE_FAILED"
+    assert result["contenders"]["K"]["gate_failed_cases"] == 1
+    assert result["contenders"]["O"]["status"] == "GRADED"
+    shell = result["classes"]["outer_shell"]
+    assert shell["K"]["gate_failed"] == 1 and shell["O"]["gate_failed"] == 0
+    assert shell["K"]["accuracy"] == pytest.approx(
+        (5 / 3) / 6
+    )  # the atom 0 for the refused case
+    assert shell["K"]["accuracy_gate_passing_only"] == pytest.approx(1 / 3)
+    assert shell["k_loses_and_o_wins"] is None
+    assert (
+        result["c1_clear_win"]["clear"] is False
+        and result["c1_clear_win"]["verdict"] is None
+    )
+    assert result["verdict"] is None
+
+
+def test_with_no_gate_failure_the_read_keeps_its_verdict(tmp_path, fakes):
+    cases = _six("outer_shell", "extended_shell", 1.0)
+    result = sep_read.read(_config(tmp_path, cases, [[3.0]] * 6, [[1.0]] * 6))
+    assert {r["status"] for r in result["contenders"].values()} == {"GRADED"}
+    assert result["verdict"] is not None
+    assert result["classes"]["outer_shell"]["k_loses_and_o_wins"] is True
+    assert "verdict" not in result["c1_clear_win"]
