@@ -251,15 +251,26 @@ def _provider(owner, recipe, *, seeded=True, tmp_path=None):
         raise _Admitted
 
     provider._retain_source = retain
-    request = DirectStartTaskRequestV3(
-        ChallengeKey(
-            recipe.to_dict()["challenge"]["id"],
-            recipe.to_dict()["challenge"]["version"],
-        ),
-        "lean-recipe-" + "1" * 64,
-        recipe.to_dict(),
-        *("sha256:" + str(i) * 64 for i in range(2, 10)),
-    )
+    named = recipe.to_dict()["challenge"]
+    fields = {
+        "challenge_key": ChallengeKey(named["id"], named["version"]),
+        "idempotency_key": "lean-recipe-" + "1" * 64,
+        "recipe": recipe.to_dict(),
+        "challenge_info_digest": "sha256:" + "2" * 64,
+        "manifest_digest": "sha256:" + "3" * 64,
+        "construction_kit_digest": "sha256:" + "4" * 64,
+        "public_train_digest": named["train_digest"],
+        "practice_inputs_digest": "sha256:" + "6" * 64,
+        "interface_digest": named["interface_digest"],
+        "construction_limits_digest": named["construction_limits_digest"],
+        "resource_policy_digest": "sha256:" + "8" * 64,
+    }
+    if recipe.to_dict()["source"]["kind"] == "graph":
+        request = DirectStartTaskRequestV3(**fields)
+    else:  # a bundle request without its staged material: only the guard reads it
+        request = object.__new__(DirectStartTaskRequestV3)
+        for name, value in fields.items():
+            object.__setattr__(request, name, value)
     if seeded:
         provider._task_seeds[provider._task_id(request).value] = 4242
     return provider, request
@@ -362,7 +373,13 @@ def test_a_miner_task_or_an_unseeded_task_cannot_pass_a_graph_source(
 def test_a_bundle_recipe_cannot_pass_a_graph_source(tmp_path):
     bundle = SimpleNamespace(
         to_dict=lambda: {
-            "challenge": {"id": "ribbed-bracket-static-response", "version": "1.4"},
+            "challenge": {
+                "id": "ribbed-bracket-static-response",
+                "version": "1.4",
+                "train_digest": "sha256:" + "5" * 64,
+                "interface_digest": "sha256:" + "7" * 64,
+                "construction_limits_digest": "sha256:" + "9" * 64,
+            },
             "source": {"kind": "bundle"},
         }
     )
