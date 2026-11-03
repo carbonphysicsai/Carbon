@@ -1677,6 +1677,49 @@ class PoolStore:
                 return float(mean)
         return None
 
+    def record_origin_rebind(self, submission_id, origin, hotkey):
+        """File that ``submission_id``'s crown-average rebuilds read ``origin``, a derived task under the king's own
+        ``hotkey`` on this receiver (`lean_recipe_retention.rebind_origin`, after an image move). Write-once: the same
+        record again is a no-op, another one refuses."""
+        if not all(type(v) is str and v for v in (submission_id, origin, hotkey)):
+            raise StateError("origin_rebind_invalid")
+        op = self._bank_operation("origin_rebind.v1", submission_id, origin)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.origin-rebind.v1",
+                "submission_id": submission_id,
+                "origin": origin,
+                "hotkey": hotkey,
+            }
+        )
+        with self.transaction() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='origin_rebind.v1'"
+            ).fetchall()
+            for (raw,) in rows:
+                if (
+                    json.loads(raw).get("submission_id") == submission_id
+                    and raw != body
+                ):
+                    raise StateError("origin_rebind_changed")
+            if not any(raw == body for (raw,) in rows):
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (op, "origin_rebind.v1", "RECORDED", body),
+                )
+
+    def origin_rebind(self, submission_id):
+        """``{"origin", "hotkey"}`` of ``submission_id``'s filed origin rebind, or None. Reads only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='origin_rebind.v1'"
+            ).fetchall()
+        for (raw,) in rows:
+            found = json.loads(raw)
+            if found.get("submission_id") == submission_id:
+                return {"origin": found["origin"], "hotkey": found["hotkey"]}
+        return None
+
     def crown_average_unstable(self, submission_id):
         """Whether ``submission_id``'s LATEST averaged record is a seed-fragile one: its rebuilds were not all admissible
         across the seeds, so it was filed with the per-seed statuses and no mean (`crown_average.KING_UNSTABLE`). The

@@ -1828,30 +1828,136 @@ def remeasure_incumbent_pack(
         "accuracy_definition",
         max_bytes=65536,
     )
-    origin = submission_id
-    if origin_task_id is not None:
+    import contextlib
+
+    origin, hold = submission_id, contextlib.nullcontext()
+    rebound = (
+        pool_store.origin_rebind(submission_id)
+        if origin_task_id is None and hasattr(pool_store, "origin_rebind")
+        else None
+    )
+    if rebound is not None:
+        # The king's origin task stayed on the old root: its rebind under the king's own hotkey (`rebind_origin`) is the
+        # origin, held for the span of this re-measure so the rebuild finds its owner.
+        origin = _rebound_origin(adapter, pool_store, submission_id, rebound)
+        hold = adapter.deriving(origin, rebound["hotkey"])
+    elif origin_task_id is not None:
         # The king's ORIGIN task may be on another root (an image move re-prepared this one): the same recipe restaged
         # and submitted HERE (route D) is rebuilt instead. The seeds and the filed record stay the king's
         # (``submission_id``); the restaged task must carry the king's exact recipe, which pins its submission digest, and
         # a graph king's retained source is checked against that digest when its rebuild is admitted.
         origin = _restaged_origin(adapter, pool_store, submission_id, origin_task_id)
     try:
-        return active.measure_incumbent(
-            pool_store,
-            submission_id,
-            evaluation_key,
-            koth_registry.comparator(adapter.challenge_id, score_pack, accuracy),
-            _repeat_of(
-                adapter,
-                origin,
-                entry_id,
-                artifact_directory=artifact_directory,
-                entry_directory=entry_directory,
-                runner=runner,
-            ),
-        )
+        with hold:
+            return active.measure_incumbent(
+                pool_store,
+                submission_id,
+                evaluation_key,
+                koth_registry.comparator(adapter.challenge_id, score_pack, accuracy),
+                _repeat_of(
+                    adapter,
+                    origin,
+                    entry_id,
+                    artifact_directory=artifact_directory,
+                    entry_directory=entry_directory,
+                    runner=runner,
+                ),
+            )
     except crown_average.CrownAverageUnavailable as refused:
         raise RetentionUnavailable(refused.code) from refused
+
+
+#: The label of a crown origin rebind's derived request (`LeanRecipeAdapter._request`'s ``rebuild``): its own task
+#: identity, a pure function of the king's submission id, under the king's own hotkey.
+ORIGIN_REBIND = "ORIGIN_REBIND"
+
+
+def _rebind_request(adapter, provider, hotkey, recipe, submission_id):
+    return adapter._request(
+        hotkey,
+        recipe,
+        evaluation_pack_digest=provider.evaluation_pack_digest,
+        rebuild=f"{ORIGIN_REBIND}\0{submission_id}",
+    )
+
+
+def rebind_origin(adapter, pool_store, *, submission_id, source_envelope=None):
+    """REBIND the SITTING king's origin on this receiver (an image move left its task on the old root): one derived request
+    under the king's OWN hotkey, the king's exact admitted recipe, bound to this receiver's pack, admitted through the
+    provider's own `start_research_task` and CANCELLED at once, so it is never built, graded, filed in the Ladder or
+    charged an exam-cap slot. A graph king's source is its retained envelope (``source_envelope``, from the old root),
+    checked against the recipe's submission digest by the graph worker's own check, never the miner's workspace. Then
+    the pool store files the rebind (`PoolStore.record_origin_rebind`), which `remeasure_incumbent_pack` reads.
+    Operator-only and idempotent: a second run finds the same task and the same record.
+    """
+    import hashlib
+
+    from carbon.battery.pool_store import StateError
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session.direct_graph_construction_worker import (
+        _checked_envelope,
+    )
+    from carbon.research import DirectCancelTaskRequestV3, DirectTaskStateV3
+
+    try:
+        king = pool_store.submission(submission_id)
+    except StateError as missing:
+        raise RetentionUnavailable("rebind_king_not_admitted") from missing
+    incumbent = pool_store.incumbent()
+    if incumbent is None or incumbent.get("model_id") != submission_id:
+        raise RetentionUnavailable("rebind_not_the_sitting_king")
+    hotkey = king["hotkey"]
+    recipe = ConstructionRecipe.from_dict(king["strategy"])
+    graph = {}
+    if recipe.to_dict()["source"]["kind"] == "graph":
+        if type(source_envelope) is not bytes:
+            raise RetentionUnavailable("rebind_graph_source_required")
+        try:
+            _checked_envelope(recipe, source_envelope)
+        except ValueError as differs:
+            raise RetentionUnavailable("rebind_graph_source_differs") from differs
+        graph["graph_source"] = source_envelope
+    provider = adapter._provider(hotkey)
+    request = _rebind_request(adapter, provider, hotkey, recipe, submission_id)
+    task_id = provider._task_id(request)
+    if task_id.value not in provider._views:
+        provider.set_origin_rebind(task_id.value)
+        provider.start_research_task(
+            request, measure_query=adapter._measure_query, **graph
+        )
+    if provider._views[task_id.value].state is not DirectTaskStateV3.CANCELLED:
+        provider.cancel_research_task(
+            DirectCancelTaskRequestV3(
+                adapter.discovery.info.challenge_key,
+                task_id,
+                "origin-rebind-"
+                + hashlib.sha256(task_id.value.encode()).hexdigest()[:32],
+            )
+        )
+    pool_store.record_origin_rebind(submission_id, task_id.value, hotkey)
+    return {"state": "ORIGIN_REBOUND", "origin": task_id.value}
+
+
+def _rebound_origin(adapter, pool_store, submission_id, rebound):
+    """The filed rebind's task, once it is shown to be the king's own: the record's hotkey is the king's, and that
+    hotkey's provider holds exactly the rebind request for the king's admitted recipe on this pack.
+    """
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+
+    king = pool_store.submission(submission_id)
+    if rebound["hotkey"] != king["hotkey"]:
+        raise RetentionUnavailable("remeasure_rebind_hotkey_differs")
+    provider = adapter._provider(rebound["hotkey"])
+    recipe = ConstructionRecipe.from_dict(king["strategy"])
+    expected = _rebind_request(
+        adapter, provider, rebound["hotkey"], recipe, submission_id
+    )
+    if (
+        provider._task_id(expected).value != rebound["origin"]
+        or provider._requests.get(rebound["origin"]) != expected
+    ):
+        raise RetentionUnavailable("remeasure_rebind_differs")
+    return rebound["origin"]
 
 
 def _restaged_origin(adapter, pool_store, submission_id, origin_task_id):

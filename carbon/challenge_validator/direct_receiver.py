@@ -1355,6 +1355,7 @@ def serve(
     exam_se=False,
     grade_set=False,
     remeasure=None,
+    rebind=None,
     permits=None,
 ):
     """Run the same signed intake/task loop with finite admission and owned stop.
@@ -1656,6 +1657,19 @@ def serve(
                 # No intake feeds snapshots in this mode: refresh them for the
                 # run's life so a run past the 60 s window keeps its authority.
                 with retention_snapshots(window, network.context, reader):
+                    if rebind is not None:
+                        # ``task_id`` is the sitting king's submission id; ``rebind`` its retained source bytes or None.
+                        from carbon.challenge_validator.lean_recipe_retention import (
+                            rebind_origin,
+                        )
+
+                        (source_envelope,) = rebind
+                        return rebind_origin(
+                            intake.adapter,
+                            _open_pool_store(pool_store),
+                            submission_id=task_id,
+                            source_envelope=source_envelope,
+                        )
                     if remeasure is not None:
                         # ``task_id`` is the sitting king's submission id.
                         from carbon.challenge_validator.lean_recipe_retention import (
@@ -1931,6 +1945,16 @@ def main(argv=None):
         help="with --remeasure-king: rebuild from this restaged task (the king's exact "
         "recipe, submitted on this root) when the king's own task is on another root",
     )
+    parser.add_argument(
+        "--rebind-origin",
+        help="rebind this SITTING king's origin under its own hotkey on this root "
+        "(after an image move), cancelled at once; needs --pool-store",
+    )
+    parser.add_argument(
+        "--rebind-source",
+        type=Path,
+        help="with --rebind-origin: a graph king's retained source-envelope.json",
+    )
     parser.add_argument("--artifact-directory", type=Path)
     parser.add_argument("--entry-directory", type=Path)
     args = parser.parse_args(argv)
@@ -1951,6 +1975,7 @@ def main(argv=None):
                 args.regrade_entry,
                 args.grade_set_entry,
                 args.remeasure_king,
+                args.rebind_origin,
             )
         )
         > 1
@@ -1959,6 +1984,10 @@ def main(argv=None):
             "retain a task, regrade an entry, grade a set entry, or re-measure a "
             "king, not more"
         )
+    if args.rebind_source is not None and args.rebind_origin is None:
+        parser.error("--rebind-source applies to --rebind-origin only")
+    if args.rebind_origin is not None and args.pool_store is None:
+        parser.error("--rebind-origin needs --pool-store")
     if args.remeasure_origin is not None and args.remeasure_king is None:
         parser.error("--remeasure-origin applies to --remeasure-king only")
     if (args.remeasure_king is None) != (
@@ -1982,6 +2011,7 @@ def main(argv=None):
         and args.retain_task is None
         and args.grade_set_entry is None
         and args.remeasure_king is None
+        and args.rebind_origin is None
     ):
         parser.error(
             "--pool-store applies to --retain-task, --regrade-entry or "
@@ -1989,15 +2019,19 @@ def main(argv=None):
         )
     retention_args = (
         (
-            args.remeasure_king
-            if args.remeasure_king is not None
+            args.rebind_origin
+            if args.rebind_origin is not None
             else (
-                args.grade_set_entry
-                if args.grade_set_entry is not None
+                args.remeasure_king
+                if args.remeasure_king is not None
                 else (
-                    args.retain_task
-                    if args.regrade_entry is None
-                    else args.regrade_entry
+                    args.grade_set_entry
+                    if args.grade_set_entry is not None
+                    else (
+                        args.retain_task
+                        if args.regrade_entry is None
+                        else args.regrade_entry
+                    )
                 )
             )
         ),
@@ -2034,6 +2068,17 @@ def main(argv=None):
             retention=retention,
             regrade=args.regrade_entry is not None,
             grade_set=args.grade_set_entry is not None,
+            rebind=(
+                None
+                if args.rebind_origin is None
+                else (
+                    (
+                        None
+                        if args.rebind_source is None
+                        else args.rebind_source.read_bytes()
+                    ),
+                )
+            ),
             remeasure=(
                 None
                 if args.remeasure_king is None
@@ -2071,6 +2116,18 @@ def main(argv=None):
             code = "direct_receiver_unavailable"
         print(json.dumps({"unavailable": code}), flush=True)
         return 1
+    if args.rebind_origin is not None:
+        print(
+            json.dumps(
+                {
+                    "schema": SCHEMA,
+                    "state": result["state"],
+                    "origin": result["origin"],
+                }
+            ),
+            flush=True,
+        )
+        return 0
     if args.remeasure_king is not None:
         # Operator-only: the outcome and reason; the seeds, totals and mean stay private.
         print(

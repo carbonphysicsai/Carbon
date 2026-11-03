@@ -340,6 +340,9 @@ class DirectDevelopmentTasksV3:
         #: `crown_average`). Written only by `set_rebuild_seed` on the validator side; no request, schema, status or
         #: receipt field carries a seed, and a task without an entry builds at the official seed 0.
         self._task_seeds: dict[str, int] = {}
+        #: Validator-set (never request-reachable): derived ORIGIN REBIND tasks (`set_origin_rebind`), which may carry
+        #: their king's retained graph source (``graph_source``). In memory only: a rebind task is cancelled at once.
+        self._origin_rebinds: set[str] = set()
         self._idempotency: dict[str, str] = {}
         self._cancellations: dict[str, str | None] = {}
         try:
@@ -1061,6 +1064,16 @@ class DirectDevelopmentTasksV3:
         if self._task_seeds.setdefault(task_value, seed) != seed:
             raise ValueError("rebuild seed already set")
 
+    def set_origin_rebind(self, task_value: str) -> None:
+        """Mark the (not yet started) derived task ``task_value`` as a crown ORIGIN REBIND
+        (`lean_recipe_retention.rebind_origin`): it may then be admitted with its king's retained graph source. Validator
+        side only: it is not reachable from any request."""
+        if type(task_value) is not str or not task_value:
+            raise ValueError("origin rebind invalid")
+        if task_value in self._views:
+            raise ValueError("origin rebind must be set before the task starts")
+        self._origin_rebinds.add(task_value)
+
     def _seed_for(self, task_value: str) -> int:
         """The build seed of a task: its derived seed, else the official 0."""
         return self._task_seeds.get(task_value, 0)
@@ -1142,14 +1155,15 @@ class DirectDevelopmentTasksV3:
     def _derived_rebuild(self, request) -> bool:
         """A crown-average rebuild: the host-owned synthetic owner's task with a validator-set build seed
         (`set_rebuild_seed`, never reachable from a request), so derived and uncounted. Only such a task may carry
-        its origin's retained graph source bytes (`start_research_task`'s ``graph_source``).
+        its origin's retained graph source bytes (`start_research_task`'s ``graph_source``). So may a crown ORIGIN
+        REBIND task (`set_origin_rebind`, validator-set too): its king's own source, retained on the old root.
         """
         from carbon.challenge_validator.crown_average import HOST_OWNER
 
+        task_value = self._task_id(request).value
         return (
-            self.owner == HOST_OWNER
-            and self._task_id(request).value in self._task_seeds
-        )
+            self.owner == HOST_OWNER and task_value in self._task_seeds
+        ) or task_value in self._origin_rebinds
 
     def start_research_task(self, request, *, measure_query=False, graph_source=None):
         """Admit and queue one task. ``graph_source`` is the ORIGIN task's retained graph source envelope, for a
