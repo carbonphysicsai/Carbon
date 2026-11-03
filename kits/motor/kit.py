@@ -98,7 +98,7 @@ def refuse_protected(path):
             or low.startswith(PROTECTED_PREFIXES)
         ):
             raise KitError(
-                f"refused: {path} looks like a Carbon pack, custody or private "
+                f"{path} looks like a Carbon pack, custody or private "
                 "path; the kit never reads or writes those"
             )
     return resolved

@@ -28,7 +28,7 @@ from . import kit
 
 #: Prints every licence file and package the built image holds (amendment A7).
 _LICENCES = (
-    "for f in $(find /opt/gmsh /opt/getdp -maxdepth 3 -type f "
+    "for f in $(find /opt/gmsh /opt/getdp -maxdepth 5 -type f "
     "\\( -iname '*licen*' -o -iname '*credit*' -o -iname '*copying*' \\)); "
     'do echo "== $f"; cat "$f"; done; '
     'echo "== Ubuntu packages (licence in /usr/share/doc/<package>/copyright)"; '

@@ -76,8 +76,8 @@ this kit ships no binary and no image.
 
 | Component | Licence |
 |---|---|
-| Gmsh 4.15.2 (upstream Linux SDK binary) | GPL-2.0-or-later, plus the licences of the third-party libraries its binary bundles, listed in the files it ships |
-| GetDP 3.5.0 (upstream Linux binary) | GPL-2.0-or-later, plus the licences of the libraries its binary bundles, listed in the files it ships |
+| Gmsh 4.15.2 (upstream Linux SDK binary) | GPL-2.0-or-later with the Gmsh exception for combining with Netgen, METIS, OpenCASCADE and ParaView under their own licences (`share/doc/gmsh/LICENSE.txt`); contributed codes each under their own licence (BSD-style, MIT and others), listed in `share/doc/gmsh/CREDITS.txt` |
+| GetDP 3.5.0 (upstream Linux binary) | GPL-2.0-or-later (`share/doc/getdp/LICENSE.txt`); the libraries it uses are listed in `share/doc/getdp/CREDITS.txt` |
 | Ubuntu 24.04 base and packages | each package's own licence, in `/usr/share/doc/<package>/copyright`; among them python3 (PSF-2.0), ca-certificates (MPL-2.0), the Mesa and X11 client libraries (MIT-style), libgomp1 (GPL-3.0 with the GCC Runtime Library Exception) |
 | Carbon's code in this checkout (decks, mesher script, runner, kit) | MIT (repository `LICENSE`) |
 
