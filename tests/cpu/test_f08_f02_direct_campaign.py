@@ -230,7 +230,7 @@ def test_with_an_offered_entry_the_refusal_is_not_the_catalogs(
 
 
 def _kind(material):
-    from carbon.scoring import f02_dual_pack, f08_dual_pack
+    from carbon.scoring import f08_dual_pack
 
     challenge = material["challenge_key"].challenge_id
     return "f08" if challenge == f08_dual_pack.CHALLENGE else "f02"
