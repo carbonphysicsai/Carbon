@@ -35,6 +35,8 @@ DEFAULT = "default_model"
 GENERIC = ("gp", "poly_ridge", "rbf_ridge", "gbt", "knn")
 #: The rev-2 panel roles (`king_replay:<id>` is matched by prefix).
 PANEL_ROLES = ("engineer_shortcut", *GENERIC, "sparse_physics")
+#: G6's role suffix (`frac_role`): ``default_model@frac:0.25`` is the default model fitted on 25 % of TRAIN (`g6_fit`).
+FRAC = "@frac:"
 FITS = ("default", "tuned", "registered-cheap")
 INPUT_KEYS = frozenset(
     {
@@ -76,6 +78,24 @@ def _role_ok(role):
         and role.startswith("king_replay:")
         and len(role) > len("king_replay:")
     )
+
+
+def frac_role(role):
+    """A G6 learning-curve role ``<base>@frac:<f>`` as ``(base, f)``, else None: ``base`` is the default model or a panel
+    role (`_role_ok`, no nested ``@frac``), ``f`` the canonical float text (``repr``) of a fraction in (0, 1]. A G6 role is
+    graded like any contender and never enters the panel (best shortcut, checks 1-3)."""
+    if type(role) is not str or FRAC not in role:
+        return None
+    base, _, text = role.partition(FRAC)
+    if FRAC in text or not _role_ok(base):
+        return None
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    if repr(value) != text or not 0.0 < value <= 1.0:
+        return None
+    return base, value
 
 
 def load_inputs(path):
@@ -152,7 +172,7 @@ def check_contenders(contenders):
         _need(
             type(entry) is dict
             and set(entry) == CONTENDER_KEYS
-            and _role_ok(entry["role"])
+            and (_role_ok(entry["role"]) or frac_role(entry["role"]) is not None)
             and entry["role"] not in roles
             and entry["fit"] in FITS
             and type(entry["catalog_id"]) is str
@@ -458,7 +478,7 @@ def run_report(config, config_path, inputs_path, *, keep=None):
         }
 
     roles = [e["role"] for e in doc["contenders"]]
-    panel = [r for r in roles if r != DEFAULT]
+    panel = [r for r in roles if r != DEFAULT and frac_role(r) is None]
     admitted = [r for r in panel if per[r]["points"] is not None]
     seed = doc["bootstrap_seed"]
     rows_by_class = []
@@ -525,6 +545,11 @@ def run_report(config, config_path, inputs_path, *, keep=None):
             points=list(zip(point_class, point_inputs, strict=True)),
             train=train,
             columns=columns,
+            frac_atoms={
+                r: {cls: atoms_of(r, cls) for cls in class_order}
+                for r in roles
+                if frac_role(r) is not None
+            },
         )
     checks["3_coverage"] = {
         "nearest_train": nearest_train(
