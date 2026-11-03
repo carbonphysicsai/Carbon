@@ -1676,16 +1676,49 @@ def serve(
                             remeasure_incumbent_pack,
                         )
 
-                        evaluation_key, entry_id = remeasure
-                        return remeasure_incumbent_pack(
+                        evaluation_key, entry_id, record_out, record_in = remeasure
+                        from carbon.challenge_validator import (
+                            crown_average,
+                            crown_import,
+                        )
+
+                        store = _open_pool_store(pool_store)
+                        if record_in is not None:
+                            # C10: file a spare's verified measurement of this king; no rebuild runs here.
+                            return crown_import.import_record(
+                                record_in,
+                                active=crown_average.ACTIVE,
+                                store=store,
+                                challenge_id=intake.adapter.challenge_id,
+                                evaluation_key=evaluation_key,
+                                entry_id=entry_id,
+                                entry_directory=entry_directory,
+                                receiver_binding=immutable,
+                            )
+                        result = remeasure_incumbent_pack(
                             intake.adapter,
-                            _open_pool_store(pool_store),
+                            store,
                             submission_id=task_id,
                             evaluation_key=evaluation_key,
                             entry_id=entry_id,
                             artifact_directory=artifact_directory,
                             entry_directory=entry_directory,
                         )
+                        if record_out is not None:
+                            # C10, the spare's side: the record the live receiver verifies and files.
+                            crown_import.write_record(
+                                record_out,
+                                outcome=result["outcome"],
+                                active=crown_average.ACTIVE,
+                                store=store,
+                                challenge_id=intake.adapter.challenge_id,
+                                submission_id=task_id,
+                                evaluation_key=evaluation_key,
+                                entry_id=entry_id,
+                                entry_directory=entry_directory,
+                                receiver_binding=immutable,
+                            )
+                        return result
                     if grade_set:
                         # ``task_id`` is the retained bank entry to grade on the
                         # whole configured pack set (OWNER-FULL-EXAM-BANK-01).
@@ -1940,6 +1973,17 @@ def main(argv=None):
         "--remeasure-entry", help="with --remeasure-king: the king's retained entry"
     )
     parser.add_argument(
+        "--measurement-record",
+        type=Path,
+        help="with --remeasure-king on a SPARE: write the measurement record (a new 0600 file) for the live import",
+    )
+    parser.add_argument(
+        "--import-crown-measurement",
+        type=Path,
+        help="with --remeasure-king on the LIVE receiver (stopped): verify a spare's measurement record of this king "
+        "against this receiver and file its mean; no rebuild runs",
+    )
+    parser.add_argument(
         "--rebind-origin",
         help="rebind this SITTING king's origin under its own hotkey on this root "
         "(after an image move), cancelled at once; needs --pool-store",
@@ -1995,6 +2039,17 @@ def main(argv=None):
         parser.error(
             "--remeasure-king needs --evaluation-key, --remeasure-entry and "
             "--pool-store, and they apply to it only"
+        )
+    if (
+        args.measurement_record is not None or args.import_crown_measurement is not None
+    ) and (
+        args.remeasure_king is None
+        or (args.measurement_record is not None)
+        == (args.import_crown_measurement is not None)
+    ):
+        parser.error(
+            "--measurement-record (spare) or --import-crown-measurement (live), one of "
+            "them, with --remeasure-king"
         )
     if args.exam_se and args.regrade_entry is None:
         parser.error("--exam-se applies to --regrade-entry only")
@@ -2074,7 +2129,12 @@ def main(argv=None):
             remeasure=(
                 None
                 if args.remeasure_king is None
-                else (args.evaluation_key, args.remeasure_entry)
+                else (
+                    args.evaluation_key,
+                    args.remeasure_entry,
+                    args.measurement_record,
+                    args.import_crown_measurement,
+                )
             ),
             pool_store=args.pool_store,
             exam_se=args.exam_se,
@@ -2119,6 +2179,9 @@ def main(argv=None):
             ),
             flush=True,
         )
+        return 0
+    if args.import_crown_measurement is not None:
+        print(json.dumps({"schema": SCHEMA, "state": result["state"]}), flush=True)
         return 0
     if args.remeasure_king is not None:
         # Operator-only: the outcome and reason; the seeds, totals and mean stay private.
