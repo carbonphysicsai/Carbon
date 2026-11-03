@@ -42,8 +42,11 @@ python3 -m kits.motor verify --out runs/verify   # expected today: "refused: no 
 sha256sum runs/s7/train.npz runs/s7/records.jsonl licences.txt
 ```
 
-Expected wall: the build a few minutes; each case roughly 10 to 40 minutes at
-2 CPUs. `verify` must PASS once the Motor verify set is published; today it must
+Measured on the first clean run (fresh Ubuntu 24.04, 2 cores per case): the
+nominal case 750 s and 402 MiB peak; the two sampled cases 1,263 s and
+1,458 s, 654 to 770 MiB peak. Costs vary with the machine and the case. If
+the build cannot reach getdp.info or gmsh.info (curl error 28), use a box
+whose network reaches them; see the README. `verify` must PASS once the Motor verify set is published; today it must
 refuse. The `score` step needs the full miner install (the grade code's Python
 dependencies) and a trained model's predictions; it joins this list with the
 Control Center page.

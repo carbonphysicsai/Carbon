@@ -68,6 +68,27 @@ TRAIN_PROVENANCE = (
 DOCKER_START_FAILURES = {125, 126, 127}
 
 
+def recipe_sources():
+    """The upstream downloads the recipe names: {ARG name: URL}, read from it."""
+    sources = {}
+    for line in RECIPE.read_text(encoding="utf-8").splitlines():
+        parts = line.split(None, 1)
+        if len(parts) == 2 and parts[0] == "ARG" and "_URL=" in parts[1]:
+            key, url = parts[1].split("=", 1)
+            sources[key] = url.strip()
+    return sources
+
+
+def unreachable_hosts(log_lines):
+    """The recipe's download hosts that a failed build's curl lines name."""
+    hosts = {url.split("/")[2] for url in recipe_sources().values()}
+    return sorted(
+        host
+        for host in hosts
+        if any("curl: (" in line and host in line for line in log_lines)
+    )
+
+
 class KitError(ValueError):
     """A refused kit input, with a plain reason."""
 

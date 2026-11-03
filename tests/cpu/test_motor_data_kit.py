@@ -376,3 +376,13 @@ def test_kit_carries_no_out_of_range_extent():
         for token in re.findall(r"-?\d+\.\d+", path.read_text(encoding="utf-8")):
             numbers.add(float(token))
     assert not numbers & extents
+
+
+def test_build_failure_names_an_unreachable_download_host():
+    sources = kit.recipe_sources()
+    assert set(sources) == {"GETDP_URL", "GMSH_URL"}
+    readme = (KIT_DIR / "README.md").read_text(encoding="utf-8")
+    assert all(url in readme for url in sources.values())
+    log = ["#5 12.3 curl: (28) Failed to connect to getdp.info port 443\n"]
+    assert kit.unreachable_hosts(log) == ["getdp.info"]
+    assert kit.unreachable_hosts(["#5 DONE 61.4s\n"]) == []

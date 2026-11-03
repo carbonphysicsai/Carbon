@@ -15,9 +15,14 @@ score.
 - This Carbon checkout (the one the miner installer set up, or a plain
   `git clone`). The kit needs no Carbon account, wallet or key, and makes no
   network connection while it solves.
-- Disk for the solver image (about 1 GiB) and CPU time: one Motor case solves
-  61 rotor positions, roughly 10 to 40 minutes on 2 CPUs. Every case records
-  its own cost (wall time, peak memory, cores); `cost` prints them.
+- Network access to getdp.info and gmsh.info while the image builds (see
+  below if your network blocks them); none while cases solve.
+- Disk for the solver image (about 1 GiB) and CPU time. One Motor case solves
+  61 rotor positions. Measured on a fresh Ubuntu 24.04 cloud machine at 2
+  cores: the nominal case 750 s and 402 MiB peak; two sampled cases 1,263 s
+  and 1,458 s, 654 to 770 MiB peak. Your times vary with your machine and
+  the case. Every case records its own cost (wall time, peak memory, cores);
+  `cost` prints them.
 
 ## Run it
 
@@ -69,10 +74,34 @@ python3 -m kits.motor licences                       # every licence in the imag
 | Runner | `scripts/dev/motor/reference/run_batch.py` (its case writer, rotor currents, run script and torque reading) |
 | Parser | `kits/motor/kit.py`: Carbon's Motor TRAIN format (`inputs` (N, 8), `targets` (N, 60) torque at 0 to 14.75 degrees, float64), written with the standard library |
 
-## Licences
+## If the build cannot reach getdp.info or gmsh.info
+
+`build` downloads the two solver archives from their authors' sites, and
+some networks cannot reach those hosts (a curl error 28, a time-out, is the
+usual sign; the kit then names the host it could not reach). Run `build` on
+a network that reaches both hosts, for example another machine or a cloud
+box, then move the built image with `docker save` and `docker load`. Carbon
+names no mirror: whatever route you use, the recipe checks each archive
+against its pinned sha256 and stops on any other bytes.
+
+## Download sources and licences
 
 You download and build every component yourself from its upstream source;
-this kit ships no binary and no image.
+this kit ships no binary and no image. The recipe
+(`scripts/dev/motor/reference/Dockerfile`) downloads exactly these and
+checks each against its pinned sha256 before unpacking it:
+
+| Download | Source |
+|---|---|
+| GetDP 3.5.0, Linux 64-bit | https://getdp.info/bin/Linux/getdp-3.5.0-Linux64r.tgz |
+| Gmsh 4.15.2, Linux 64-bit SDK | https://gmsh.info/bin/Linux/gmsh-4.15.2-Linux64-sdk.tgz |
+| Ubuntu 24.04 base image and packages | Docker Hub `ubuntu:24.04` by digest; packages from the Ubuntu archive and its dated snapshot |
+
+**Gmsh's licence is the GNU General Public License, version 2 or later
+(GPL-2.0-or-later), with the Gmsh exception** that permits combining Gmsh
+with Netgen, METIS, OpenCASCADE and ParaView under their own licences.
+**GetDP's licence is the GNU General Public License, version 2 or later
+(GPL-2.0-or-later).**
 
 | Component | Licence |
 |---|---|

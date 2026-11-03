@@ -84,6 +84,32 @@ def _run_options(sub):
     sub.add_argument("--image", default=kit.IMAGE)
 
 
+def _build(command):
+    """Run the build, showing its output; if it fails because a download host
+    cannot be reached, say which host in plain words (the recipe and its
+    pinned sha256 checks are unchanged)."""
+    lines = []
+    with subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        errors="replace",
+    ) as process:
+        for line in process.stdout:
+            print(line, end="", flush=True)
+            lines.append(line)
+    if process.returncode != 0:
+        for host in kit.unreachable_hosts(lines):
+            print(
+                f"build failed: this machine could not download from {host}, "
+                "which the recipe needs. See 'If the build cannot reach "
+                "getdp.info or gmsh.info' in kits/motor/README.md.",
+                file=sys.stderr,
+            )
+    return process.returncode
+
+
 def _records(directory):
     path = kit.refuse_protected(directory) / "records.jsonl"
     return [
@@ -97,7 +123,7 @@ def _run(args):
     if args.command == "build":
         command = ["docker", "build", "-t", args.image, str(kit.RECIPE.parent)]
         print(" ".join(command), flush=True)
-        return subprocess.run(command, check=False).returncode
+        return _build(command)
     if args.command == "licences":
         command = ["docker", "run", "--rm", "--network", "none", args.image]
         return subprocess.run(
