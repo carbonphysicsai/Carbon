@@ -742,16 +742,25 @@ def test_one_parse_gives_the_same_observation_and_auxiliary_as_parsing_alone(
 
 
 def test_a_job_reads_its_dat_once(tmp_path, monkeypatch):
+    import builtins
+
     directory, *_ = _synthetic_job_directory(tmp_path, monkeypatch)
-    real = Path.read_text
+    real_open, real_read = builtins.open, Path.read_text
     reads = []
 
-    def counting(self, *args, **kwargs):
+    def opening(file, *args, **kwargs):
+        if Path(file).name == "case.dat":
+            reads.append(file)
+        return real_open(file, *args, **kwargs)
+
+    def reading(self, *args, **kwargs):
         if self.name == "case.dat":
             reads.append(self)
-        return real(self, *args, **kwargs)
+        return real_read(self, *args, **kwargs)
 
-    monkeypatch.setattr(Path, "read_text", counting)
+    # every way the parse could read the .dat: the streaming open and a whole-file read_text
+    monkeypatch.setattr(builtins, "open", opening)
+    monkeypatch.setattr(Path, "read_text", reading)
     parsed = runner.parse(directory)
     runner.observe(directory, parsed)
     runner.auxiliary(directory, parsed)
