@@ -4,7 +4,8 @@ configuration, store and K_crown and files the mean through `PoolStore.record_cr
 
 Claims: a spare's record imports on a live store whose incumbent, key, entry, binding, K_crown and rule all match, the mean
 then reads back through `crown_mean`, and a second import is a no-op; every bound field that differs refuses with its own
-code and files nothing (incumbent, evaluation key, entry bytes, receiver binding, K_crown, rule, seeds, mean, record shape);
+code and files nothing (incumbent, evaluation key, entry bytes, receiver binding, K_crown, rule, the K_crown MAC over the record,
+seeds, mean, record shape);
 the receiver's hotkey and chain context are not bound (a spare is not the same door); an unstable king's record imports as
 filed; the spare writes nothing unless its re-measure filed, and the record is a new 0600 file; the CLI flags are one of the
 two, with --remeasure-king only.
@@ -207,19 +208,42 @@ def test_a_differing_live_fact_refuses_and_files_nothing(tmp_path, setup, code):
     assert store.crown_mean(KING) is None
 
 
+def _edited_totals(record):
+    # Validator 07:28 (1): edited totals WITH a matching mean pass every arithmetic check; only the MAC stops them.
+    totals = [t + 0.05 for t in record["private"]["totals"]]
+    record["private"].update(totals=totals, mean=math.fsum(totals) / N)
+
+
+def _remac(change):
+    # The same edit, re-signed with the RIGHT K_crown (what only a key holder could do): the content checks still refuse.
+    def edit(record):
+        change(record)
+        record["record_mac"] = crown_import.record_mac(K_CROWN, record)
+
+    return edit
+
+
 @pytest.mark.parametrize(
     ("change", "code"),
     [
-        (lambda r: r["private"]["seeds"].reverse(), "crown_import_seeds_differs"),
+        (_edited_totals, "crown_import_record_mac_differs"),
+        (lambda r: r["private"]["seeds"].reverse(), "crown_import_record_mac_differs"),
+        (lambda r: r.update(record_mac="0" * 64), "crown_import_record_mac_differs"),
+        (lambda r: r.update(record_mac=None), "crown_import_record_mac_differs"),
         (
-            lambda r: r["private"].update(mean=r["private"]["mean"] + 0.01),
+            _remac(lambda r: r["private"]["seeds"].reverse()),
+            "crown_import_seeds_differs",
+        ),
+        (
+            _remac(lambda r: r["private"].update(mean=r["private"]["mean"] + 0.01)),
             "crown_import_mean_differs",
         ),
         (
-            lambda r: r["private"]["totals"].append(0.9),
+            _remac(lambda r: r["private"]["totals"].append(0.9)),
             "crown_import_mean_differs",
         ),
         (lambda r: r.update(extra=1), "crown_import_record_invalid"),
+        (lambda r: r.pop("record_mac"), "crown_import_record_invalid"),
         (lambda r: r.update(schema="other"), "crown_import_record_invalid"),
     ],
 )
@@ -326,6 +350,7 @@ def test_no_rule_installed_refuses(tmp_path):
     [
         ["--measurement-record", "out.json"],
         ["--import-crown-measurement", "in.json"],
+        ["--record-only"],
         [
             "--remeasure-king",
             KING,
@@ -361,3 +386,42 @@ def test_a_different_record_already_filed_refuses_and_keeps_the_first(tmp_path):
     with pytest.raises(crown_import.ImportRefused, match="crown_import_record_changed"):
         _import(tmp_path, record, store=live)
     assert crown_import.filed_private(live, KING, KEY) == first
+
+
+def test_the_write_only_mode_records_what_the_spare_already_filed(tmp_path):
+    # F08 (Validator 07:28): the spare re-measured before C10 existed; --record-only writes its record, no rebuild.
+    active = _active()
+    spare = _store(tmp_path / "spare")
+    spare.record_crown_average(KING, KEY, _measured(active))
+    out = tmp_path / "f08.json"
+    crown_import.write_record(
+        out,
+        outcome=None,
+        active=active,
+        store=spare,
+        challenge_id=CHALLENGE,
+        submission_id=KING,
+        evaluation_key=KEY,
+        entry_id="entry-1",
+        entry_directory=_entry(tmp_path / "spare-entry"),
+        receiver_binding=BINDING,
+    )
+    record = json.loads(out.read_text())
+    assert record["record_mac"] == crown_import.record_mac(K_CROWN, record)
+    result, live = _import(tmp_path, out)
+    assert result["state"] == "CROWN_MEASUREMENT_IMPORTED"
+    assert live.crown_mean(KING) == pytest.approx(0.85)
+    # with nothing filed, the write-only mode refuses too
+    with pytest.raises(crown_import.ImportRefused, match="nothing_filed"):
+        crown_import.write_record(
+            tmp_path / "none.json",
+            outcome=None,
+            active=active,
+            store=_store(tmp_path / "empty"),
+            challenge_id=CHALLENGE,
+            submission_id=KING,
+            evaluation_key=KEY,
+            entry_id="entry-1",
+            entry_directory=_entry(tmp_path / "e2"),
+            receiver_binding=BINDING,
+        )

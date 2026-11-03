@@ -1676,7 +1676,9 @@ def serve(
                             remeasure_incumbent_pack,
                         )
 
-                        evaluation_key, entry_id, record_out, record_in = remeasure
+                        evaluation_key, entry_id, record_out, record_in, only = (
+                            remeasure
+                        )
                         from carbon.challenge_validator import (
                             crown_average,
                             crown_import,
@@ -1695,6 +1697,21 @@ def serve(
                                 entry_directory=entry_directory,
                                 receiver_binding=immutable,
                             )
+                        if only:
+                            # C10 write-only: the spare re-measured earlier and filed; record that, no rebuild.
+                            crown_import.write_record(
+                                record_out,
+                                outcome=None,
+                                active=crown_average.ACTIVE,
+                                store=store,
+                                challenge_id=intake.adapter.challenge_id,
+                                submission_id=task_id,
+                                evaluation_key=evaluation_key,
+                                entry_id=entry_id,
+                                entry_directory=entry_directory,
+                                receiver_binding=immutable,
+                            )
+                            return {"state": "CROWN_MEASUREMENT_RECORDED"}
                         result = remeasure_incumbent_pack(
                             intake.adapter,
                             store,
@@ -1978,6 +1995,11 @@ def main(argv=None):
         help="with --remeasure-king on a SPARE: write the measurement record (a new 0600 file) for the live import",
     )
     parser.add_argument(
+        "--record-only",
+        action="store_true",
+        help="with --measurement-record: write the record from the spare's already filed re-measure, with no rebuild",
+    )
+    parser.add_argument(
         "--import-crown-measurement",
         type=Path,
         help="with --remeasure-king on the LIVE receiver (stopped): verify a spare's measurement record of this king "
@@ -2051,6 +2073,8 @@ def main(argv=None):
             "--measurement-record (spare) or --import-crown-measurement (live), one of "
             "them, with --remeasure-king"
         )
+    if args.record_only and args.measurement_record is None:
+        parser.error("--record-only applies to --measurement-record only")
     if args.exam_se and args.regrade_entry is None:
         parser.error("--exam-se applies to --regrade-entry only")
     if args.pool_store is not None and (
@@ -2134,6 +2158,7 @@ def main(argv=None):
                     args.remeasure_entry,
                     args.measurement_record,
                     args.import_crown_measurement,
+                    args.record_only,
                 )
             ),
             pool_store=args.pool_store,
@@ -2180,7 +2205,7 @@ def main(argv=None):
             flush=True,
         )
         return 0
-    if args.import_crown_measurement is not None:
+    if args.import_crown_measurement is not None or args.record_only:
         print(json.dumps({"schema": SCHEMA, "state": result["state"]}), flush=True)
         return 0
     if args.remeasure_king is not None:

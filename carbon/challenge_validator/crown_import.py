@@ -18,6 +18,9 @@ files nothing):
 - ``private``: the filed private body itself (seeds, N, margin, then the totals and their mean, or the statuses of an unstable
   king). On import the seeds are DERIVED again with the live K_crown and must equal the record's; a mean must be
   ``fsum(totals) / N``.
+- ``record_mac``: HMAC-SHA256 under K_crown over the whole record (`record_mac`), so nothing in it, an edited total with a
+  matching mean included, files without the key. ``write_record`` with ``outcome`` None (``--record-only``) records a
+  measurement the spare filed earlier, with no rebuild.
 
 The record and the filed body are private (seeds and totals never leave the validator host); the file is written 0600.
 """
@@ -35,6 +38,9 @@ from carbon.challenge_validator import crown_average
 
 SCHEMA = "carbon.challenge-validator.crown-measurement-import.v1"
 KEY_ID_LABEL = b"carbon.crown.key-id.v1\x00"
+#: The record MAC's domain (Validator 07:28 condition 1): HMAC-SHA256 under K_crown over the canonical record without its
+#: ``record_mac``, so no field (an edited total with a matching mean included) changes without K_crown.
+RECORD_MAC_DOMAIN = b"carbon.crown.measurement-record-mac.v1\x00"
 #: The receiver-binding fields a measurement depends on (direct_receiver's write-once ``receiver-binding.json``). The hotkey
 #: and the chain context are left out: a spare is the same model on the same images, not the same door.
 BOUND_KEYS = (
@@ -76,6 +82,14 @@ def key_id(key):
     if type(key) is not bytes or not key:
         raise ImportRefused("crown_import_key_unavailable")
     return hmac.new(key, KEY_ID_LABEL, hashlib.sha256).hexdigest()
+
+
+def record_mac(key, record):
+    """HMAC-SHA256 under K_crown over `RECORD_MAC_DOMAIN` and the canonical record without ``record_mac`` (hex)."""
+    body = {k: v for k, v in record.items() if k != "record_mac"}
+    return hmac.new(
+        key, RECORD_MAC_DOMAIN + _canonical(body).encode(), hashlib.sha256
+    ).hexdigest()
 
 
 def rule_identity(rule, challenge_id):
@@ -132,7 +146,7 @@ def filed_private(store, submission_id, evaluation_key):
 def _record(
     *, active, challenge_id, submission_id, evaluation_key, entry, binding, private
 ):
-    return {
+    record = {
         "schema": SCHEMA,
         "submission_id": submission_id,
         "evaluation_key": evaluation_key,
@@ -142,6 +156,8 @@ def _record(
         "rule": rule_identity(active.rule, challenge_id),
         "private": private,
     }
+    record["record_mac"] = record_mac(active._key, record)
+    return record
 
 
 def write_record(
@@ -158,8 +174,10 @@ def write_record(
     receiver_binding,
 ):
     """After a spare re-measure that filed (`FILED` outcomes), write its measurement record to ``path`` (new file, 0600).
-    Any other outcome writes nothing and refuses."""
-    if outcome not in FILED:
+    Any other outcome writes nothing and refuses. ``outcome`` None is the write-only mode (`--record-only`): the spare
+    re-measured earlier and filed; the record is written from that filed body, with no rebuild.
+    """
+    if outcome is not None and outcome not in FILED:
         raise ImportRefused("crown_import_nothing_filed")
     private = filed_private(store, submission_id, evaluation_key)
     if private is None:
@@ -235,9 +253,16 @@ def import_record(
         "key_id",
         "rule",
         "private",
+        "record_mac",
     }
     if type(record) is not dict or set(record) != names or record["schema"] != SCHEMA:
         raise ImportRefused("crown_import_record_invalid")
+    if record["key_id"] != key_id(active._key):
+        raise ImportRefused("crown_import_key_id_differs")
+    if type(record["record_mac"]) is not str or not hmac.compare_digest(
+        record["record_mac"], record_mac(active._key, record)
+    ):
+        raise ImportRefused("crown_import_record_mac_differs")
     submission_id = record["submission_id"]
     king = store.incumbent()
     if king is None or king.get("model_id") != submission_id:
@@ -248,8 +273,6 @@ def import_record(
         raise ImportRefused("crown_import_entry_differs")
     if record["binding"] != bound(receiver_binding):
         raise ImportRefused("crown_import_binding_differs")
-    if record["key_id"] != key_id(active._key):
-        raise ImportRefused("crown_import_key_id_differs")
     rule = rule_identity(active.rule, challenge_id)
     if record["rule"] != rule:
         raise ImportRefused("crown_import_rule_differs")
