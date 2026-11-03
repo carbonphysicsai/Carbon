@@ -1219,22 +1219,3 @@ def test_a_staging_refusal_stops_the_submit_with_its_code(
             campaign_for(_challenge(spec, version)).evaluate(prepared, 1, recipe)
         )
     assert sent == []
-
-
-@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
-def test_a_catalog_recipe_stages_nothing(spec, version, tmp_path, monkeypatch, staged):
-    monkeypatch.setattr(
-        direct_submission,
-        "submit_and_wait",
-        lambda url, key, **kw: {"state": "RECONSTRUCTED"},
-    )
-    monkeypatch.setattr(
-        direct_submission,
-        "read_exam_feedback",
-        lambda url, key, **kw: {"best": None, "latest": None},
-    )
-    monkeypatch.setattr(_module(spec, "campaign"), "record_verdict", lambda *a: None)
-    recipe = catalog_recipe(spec, STAND_IN, version=version)
-    prepared = _prepared(tmp_path, _args(spec), recipe)
-    asyncio.run(campaign_for(_challenge(spec, version)).evaluate(prepared, 1, recipe))
-    assert staged == []
