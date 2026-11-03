@@ -198,7 +198,8 @@ def test_a_valid_kit_runs_and_the_report_has_every_field(stubbed, tmp_path):
         "distance": 0.10,
         "rule": kit.DISTANCE_RULE,
         "kit_designs": 6,
-        "exam_designs": 200,
+        # every design of every exam target of the fake bank, counted from the fixture itself
+        "exam_designs": sum(len(spec.designs) for spec in fake.SPECS),
         "closer_than_distance": 0,
     }
     assert all(
