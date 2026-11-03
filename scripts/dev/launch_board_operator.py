@@ -102,7 +102,7 @@ from carbon.dashboard import feed as dashboard_feed
 CONFIG_SCHEMA = "carbon.launch-board.operator.config.v1"
 NAMES = {"schema", "network", "ledger", "receiver_url", "key", "out", "challenges"}
 OPTIONAL = {"upload_command", "fetch_timeout_seconds", "board"}
-BOARDS = ("v1", "v2")
+BOARDS = ("v1", "v2", "v3")
 CHALLENGE_NAMES = {"id", "version", "exam_version_label"}
 CHALLENGE_OPTIONAL = {"exam_key"}
 #: What a v2 Challenge must also name; a v1 config never carries them.
@@ -132,7 +132,7 @@ def load_config(path):
         raise OperatorRefused("operator_config")
     if raw.get("board", "v1") not in BOARDS:
         raise OperatorRefused("operator_config_board")
-    v2 = raw.get("board") == "v2"
+    v2 = raw.get("board") in ("v2", "v3")  # v3 is v2 plus the king's stability
     for item in raw["challenges"]:
         required = CHALLENGE_NAMES | (CHALLENGE_V2 if v2 else set())
         if (
@@ -227,6 +227,7 @@ class ReadOnlyPoolStore:
     incumbent = PoolStore.incumbent
     incumbent_standing = PoolStore.incumbent_standing
     private_evaluation_bodies = PoolStore.private_evaluation_bodies
+    crown_average_unstable = PoolStore.crown_average_unstable
 
 
 class _ReadOnlyLedger:
@@ -296,6 +297,22 @@ def v2_sources(config, item, king_document, exam_key):
     return changes, exact
 
 
+def king_stability(config, item, king_document):
+    """The v3 board's ``stability`` for the king ``king_document`` names: None with no king, "UNSTABLE" when the pool store says the
+    king's latest crown-average re-measure was seed-fragile (`PoolStore.crown_average_unstable`, read-only), else "STABLE". It
+    reads one boolean; no seed, mean or per-seed status leaves this function (OWNER-CROWN-AVG-UNSTABLE-KING-01).
+    """
+    if king_document["king"] is None or not os.path.lexists(item["pool_store"]):
+        return None
+    store = ReadOnlyPoolStore(item["pool_store"])
+    incumbent = store.incumbent()
+    if incumbent is None:
+        return None
+    return (
+        "UNSTABLE" if store.crown_average_unstable(incumbent["model_id"]) else "STABLE"
+    )
+
+
 def slug_of(challenge):
     return dashboard_feed.board_slug(challenge["id"], "no-class")
 
@@ -324,7 +341,8 @@ def run_once(config, *, version=None):
     out.mkdir(parents=True, exist_ok=True)
     version = launch_board.now_version() if version is None else version
     timeout = config.get("fetch_timeout_seconds", 10)
-    v2 = config.get("board") == "v2"
+    v2 = config.get("board") in ("v2", "v3")
+    v3 = config.get("board") == "v3"
     rows = []
     for item in config["challenges"]:
         challenge = type(
@@ -353,6 +371,11 @@ def run_once(config, *, version=None):
                     "exact_totals": exact,
                     "rebuild_noise": koth_registry.rebuild_noise(item["id"]),
                 }
+                if v3:
+                    try:
+                        extra["stability"] = king_stability(config, item, king)
+                    except (sqlite3.Error, StateError):
+                        raise OperatorRefused("pool_store_unavailable") from None
             board = launch_board.build_from_ledger(
                 ledger=config["ledger"],
                 challenge=challenge,
@@ -381,7 +404,10 @@ def run_once(config, *, version=None):
                 shown=shown["graded"],
             )
             if v2:
-                row.update(board="v2", crown_changes=len(board["crown_changes"]))
+                row.update(
+                    board="v3" if v3 else "v2",
+                    crown_changes=len(board["crown_changes"]),
+                )
             if upload(config.get("upload_command"), path, name):
                 row["state"] = "UPLOADED"
         except (

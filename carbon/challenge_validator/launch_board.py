@@ -71,6 +71,13 @@ BOARD_DOMAIN = b"carbon.validator.launch-board.v1\x00"
 #: stays byte-identical and is still built from a v1 king document; a v1 signature never verifies as v2 or the reverse.
 SCHEMA_V2 = "carbon.validator.launch-board.v2"
 BOARD_DOMAIN_V2 = b"carbon.validator.launch-board.v2\x00"
+#: The v3 board (OWNER-CROWN-AVG-UNSTABLE-KING-01, Validator 3 Nov receipted wording): v2's shape plus ONE king field, ``stability``
+#: ("STABLE" / "UNSTABLE", null with no king), under its OWN signing domain. v1 and v2 stay byte-identical; a v2 signature never
+#: verifies as v3 or the reverse. "UNSTABLE" = the king's latest crown-average re-measure was seed-fragile, so his single
+#: registered total stands; the board carries no seed, no mean and no number for it.
+SCHEMA_V3 = "carbon.validator.launch-board.v3"
+BOARD_DOMAIN_V3 = b"carbon.validator.launch-board.v3\x00"
+STABILITY = ("STABLE", "UNSTABLE")
 CONFIG_SCHEMA = "carbon.validator.launch-board.config.v1"
 NETWORKS = ("testnet", "mainnet")
 #: The labels a board may carry: never FIXTURE (a fixture is never served).
@@ -91,8 +98,10 @@ FIELDS = frozenset(
     }
 )
 FIELDS_V2 = FIELDS | {"crown_changes"}
+FIELDS_V3 = FIELDS_V2
 KING_SECTION = ("king", "margin", "to_beat", "baseline_total")
 KING_SECTION_V2 = (*KING_SECTION, "to_beat_rule")
+KING_SECTION_V3 = (*KING_SECTION_V2, "stability")
 #: A board shows at most this many changes of king, newest first.
 MAX_CROWN_CHANGES = 5
 CROWN_CHANGE_FIELDS = frozenset({"from_hotkey", "to_hotkey", "since_epoch", "total"})
@@ -118,6 +127,8 @@ DECIMALS = 9
 _GRID = Decimal(1).scaleb(-DECIMALS)
 #: The v2 ``rebuild_noise`` argument has no default: None is a value (no registered noise: the Ladder's eta step).
 _REQUIRED = object()
+#: ``build``'s ``stability`` is absent for a v1/v2 board; any value (None included) makes it a v3 board.
+_ABSENT = object()
 
 
 def floor9(value):
@@ -143,8 +154,11 @@ class BoardRefused(ValueError):
 
 
 def _domain(document):
-    """The signing domain of a board's schema: v2 has its own, anything else is v1's."""
-    return BOARD_DOMAIN_V2 if document.get("schema") == SCHEMA_V2 else BOARD_DOMAIN
+    """The signing domain of a board's schema: v2 and v3 each have their own, anything else is v1's."""
+    schema = document.get("schema")
+    if schema == SCHEMA_V3:
+        return BOARD_DOMAIN_V3
+    return BOARD_DOMAIN_V2 if schema == SCHEMA_V2 else BOARD_DOMAIN
 
 
 class LaunchBoardKey(FeedKey):
@@ -473,6 +487,7 @@ def build(
     crown_changes=None,
     exact_totals=None,
     rebuild_noise=_REQUIRED,
+    stability=_ABSENT,
 ):
     """The signed launch board for one Challenge.
 
@@ -487,8 +502,18 @@ def build(
         raise BoardRefused("board_network")
     if type(version) is not int or version < 1:
         raise BoardRefused("board_version")
+    v3 = stability is not _ABSENT
     v2 = crown_changes is not None
+    if v3 and not v2:
+        raise BoardRefused("board_v3_needs_crown_changes")  # v3 is v2 plus one field
     king = _king(king_document, v2=v2)
+    if v3 and (
+        stability not in (None, *STABILITY)
+        or (stability is None) != (king["king"] is None)
+    ):
+        raise BoardRefused(
+            "board_stability"
+        )  # a king has a stability, no king has none
     if v2 and exact_totals is None:
         raise BoardRefused(
             "board_exact_totals_required"
@@ -504,7 +529,7 @@ def build(
     )
     moment = datetime.datetime.now(datetime.UTC) if now is None else now
     document = {
-        "schema": SCHEMA_V2 if v2 else SCHEMA,
+        "schema": SCHEMA_V3 if v3 else SCHEMA_V2 if v2 else SCHEMA,
         "version": version,
         "labels": list(LABELS[network]),
         "network": network,
@@ -515,9 +540,8 @@ def build(
             "exam_version_label": king["exam_version_label"],
         },
         "validator": {"feed_key": key.public_key},
-        "king": {
-            name: king[name] for name in (KING_SECTION_V2 if v2 else KING_SECTION)
-        },
+        "king": {name: king[name] for name in (KING_SECTION_V2 if v2 else KING_SECTION)}
+        | ({"stability": stability} if v3 else {}),
         "ladder": ladder,
         "counts": counts(ladder),
         **({"crown_changes": crown_changes_checked(crown_changes)} if v2 else {}),
@@ -529,12 +553,13 @@ def build(
 def check(document, *, unsigned=False):
     """The document when it has exactly the board's closed shape, else a
     `BoardRefused`: the writer's last step and the reader's first."""
-    v2 = type(document) is dict and document.get("schema") == SCHEMA_V2
+    v3 = type(document) is dict and document.get("schema") == SCHEMA_V3
+    v2 = v3 or (type(document) is dict and document.get("schema") == SCHEMA_V2)
     want = (FIELDS_V2 if v2 else FIELDS) - ({"signature"} if unsigned else set())
     if type(document) is not dict or set(document) != want:
         raise BoardRefused("board_fields")
     if (
-        document["schema"] not in (SCHEMA, SCHEMA_V2)
+        document["schema"] not in (SCHEMA, SCHEMA_V2, SCHEMA_V3)
         or document["network"] not in NETWORKS
     ):
         raise BoardRefused("board_schema")
@@ -563,16 +588,21 @@ def check(document, *, unsigned=False):
         raise BoardRefused("board_validator")
     king = document["king"]
     if type(king) is not dict or set(king) != set(
-        KING_SECTION_V2 if v2 else KING_SECTION
+        KING_SECTION_V3 if v3 else KING_SECTION_V2 if v2 else KING_SECTION
     ):
         raise BoardRefused("board_king")
+    if v3 and (
+        king["stability"] not in (None, *STABILITY)
+        or (king["stability"] is None) != (king["king"] is None)
+    ):
+        raise BoardRefused("board_stability")
     _king(
         {
             "schema": "carbon.koth.public.v1",
             "challenge_id": challenge["id"],
             "challenge_version": challenge["version"],
             "exam_version_label": challenge["exam_version_label"],
-            **king,
+            **{name: value for name, value in king.items() if name != "stability"},
         },
         v2=v2,
     )
@@ -670,6 +700,7 @@ def build_from_ledger(
     crown_changes=None,
     exact_totals=None,
     rebuild_noise=_REQUIRED,
+    stability=_ABSENT,
 ):
     """The signed board for ``challenge`` (an object with `challenge_id` and `version`)
     from the receiver's ledger file (read-only) and its king document. ``exam_key``
@@ -689,6 +720,7 @@ def build_from_ledger(
         crown_changes=crown_changes,
         exact_totals=exact_totals,
         rebuild_noise=rebuild_noise,
+        stability=stability,
     )
 
 

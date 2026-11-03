@@ -10,7 +10,7 @@ key.** It verifies; it does not sign.
 A board is served only when all of these hold:
 
 - the file is a readable JSON object of at most `MAX_BYTES`;
-- it is a v1 or a v2 board (`launch_board.SCHEMA`, `SCHEMA_V2`) in its closed shape
+- it is a v1, v2 or v3 board (`launch_board.SCHEMA`, `SCHEMA_V2`, `SCHEMA_V3`) in its closed shape
   (`launch_board.check`): no field outside that schema's allow-lists, so nothing finer
   than the Ladder's rounded totals, the king document, counts and (v2) the crown
   changes can appear; an exact total never can;
@@ -68,7 +68,8 @@ def read_board(path, challenge_id, pinned_key=None):
         board = json.loads(file.read_text(encoding="utf-8"))
         if (
             type(board) is not dict
-            or board.get("schema") not in (launch_board.SCHEMA, launch_board.SCHEMA_V2)
+            or board.get("schema")
+            not in (launch_board.SCHEMA, launch_board.SCHEMA_V2, launch_board.SCHEMA_V3)
             or (board.get("challenge") or {}).get("id") != challenge_id
         ):
             return None
