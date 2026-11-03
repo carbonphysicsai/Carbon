@@ -1803,6 +1803,7 @@ def remeasure_incumbent_pack(
     artifact_directory,
     entry_directory,
     runner=None,
+    origin_task_id=None,
 ):
     """Re-measure the SITTING king's N-rebuild mean under the installed crown-average rule
     (`crown_average.Active.measure_incumbent`), so switching the rule on pauses no crown. Operator-only. The king is
@@ -1827,6 +1828,13 @@ def remeasure_incumbent_pack(
         "accuracy_definition",
         max_bytes=65536,
     )
+    origin = submission_id
+    if origin_task_id is not None:
+        # The king's ORIGIN task may be on another root (an image move re-prepared this one): the same recipe restaged
+        # and submitted HERE (route D) is rebuilt instead. The seeds and the filed record stay the king's
+        # (``submission_id``); the restaged task must carry the king's exact recipe, which pins its submission digest, and
+        # a graph king's retained source is checked against that digest when its rebuild is admitted.
+        origin = _restaged_origin(adapter, pool_store, submission_id, origin_task_id)
     try:
         return active.measure_incumbent(
             pool_store,
@@ -1835,7 +1843,7 @@ def remeasure_incumbent_pack(
             koth_registry.comparator(adapter.challenge_id, score_pack, accuracy),
             _repeat_of(
                 adapter,
-                submission_id,
+                origin,
                 entry_id,
                 artifact_directory=artifact_directory,
                 entry_directory=entry_directory,
@@ -1844,6 +1852,26 @@ def remeasure_incumbent_pack(
         )
     except crown_average.CrownAverageUnavailable as refused:
         raise RetentionUnavailable(refused.code) from refused
+
+
+def _restaged_origin(adapter, pool_store, submission_id, origin_task_id):
+    """``origin_task_id`` once it is shown to be the king's own recipe on this root: a task this receiver owns
+    (`LeanRecipeAdapter.owner`, its request bound to this pack) whose recipe is byte-for-byte the king's admitted
+    strategy in the pool store; anything else refuses."""
+    from carbon.battery.pool_store import StateError
+    from carbon.development_session.profile import canonical
+
+    owner = adapter.owner(origin_task_id)
+    if owner is None:
+        raise RetentionUnavailable("remeasure_origin_unavailable")
+    try:
+        king = pool_store.submission(submission_id)
+    except StateError as missing:
+        raise RetentionUnavailable("remeasure_king_not_admitted") from missing
+    restaged = adapter._provider(owner)._requests[origin_task_id].recipe
+    if canonical(restaged) != canonical(king["strategy"]):
+        raise RetentionUnavailable("remeasure_origin_recipe_differs")
+    return origin_task_id
 
 
 def _timing_step(adapter):

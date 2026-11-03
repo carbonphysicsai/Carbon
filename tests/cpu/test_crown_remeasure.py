@@ -431,3 +431,118 @@ def test_a_stable_king_is_unchanged_by_the_unstable_rule(tmp_path):
     assert never.crown_average_unstable(KING) is False
     with pytest.raises(ca.CrownAverageUnavailable, match=ca.KING_UNMEASURED):
         _active().screening(never, pair, _comparator())
+
+
+# --- the king's origin on another root (an image move): rebuild from the same recipe restaged here ----------------
+
+RESTAGED = "rtsk_" + "c" * 64
+RECIPE = {
+    "source": {"kind": "graph", "submission_digest": "sha256:" + "d" * 64},
+    "procedure": {"steps": 7},
+}
+
+
+class _RestagedRoot:
+    """This root holds only the restaged task (the king's own task stayed on the old root)."""
+
+    def __init__(self, recipe):
+        self.sources = {RESTAGED: b"retained-king-envelope"}
+        self._requests = {RESTAGED: SimpleNamespace(recipe=recipe)}
+        self.read = []
+
+    def _source_envelope(self, identity, recipe):
+        self.read.append(identity)
+        return self.sources[identity]
+
+
+def _admitted_king(tmp_path):
+    store = _store(tmp_path)
+    store.admit(
+        KING,
+        request_digest=digest(["request", KING]),
+        hotkey="5Fminer",
+        challenge=CHALLENGE,
+        strategy=RECIPE,
+        binding={"challenge": {"id": CHALLENGE}},
+    )
+    return store
+
+
+def _restaged_adapter(recipe):
+    origin, host = _RestagedRoot(recipe), _Host()
+    adapter = _adapter(origin, host)
+    adapter.owner = lambda sid: "5Fminer" if sid in origin.sources else None
+    return adapter, origin, host
+
+
+def test_a_restaged_origin_with_the_kings_exact_recipe_is_rebuilt_at_the_kings_seeds(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(ConstructionRecipe, "from_dict", classmethod(lambda cls, d: d))
+    monkeypatch.setattr(
+        retention,
+        "retain_rebuild_evidence",
+        lambda adapter, task_value, **kwargs: {
+            "submission_id": task_value,
+            "evidence": {"model_p": {"score_status": bp.SCORED, "total_score": 0.72}},
+            **_body(0.72),
+        },
+    )
+    store = _admitted_king(tmp_path)
+    adapter, origin, host = _restaged_adapter(dict(RECIPE))
+    assert retention._restaged_origin(adapter, store, KING, RESTAGED) == RESTAGED
+    repeat = retention._repeat_of(
+        adapter,
+        RESTAGED,
+        "sha256:" + "5" * 64,
+        artifact_directory=tmp_path,
+        entry_directory=tmp_path,
+    )
+    out = _active().measure_incumbent(store, KING, KEY, _comparator(), repeat)
+    assert out["outcome"] == ca.KING_MEASURED and store.crown_mean(
+        KING
+    ) == pytest.approx(0.72)
+    seeds = [seed for seed, _source in host.started]
+    # the seeds are the KING's (its submission id), the rebuilds the restaged task's (its retained source)
+    assert seeds[:N] == ca.derive_seeds(CROWN_KEY, CHALLENGE, KING, N, _Rule.seed_range)
+    assert origin.read and set(origin.read) == {RESTAGED}
+
+
+@pytest.mark.parametrize(
+    ("recipe", "origin_id", "code"),
+    [
+        (
+            {**RECIPE, "procedure": {"steps": 8}},
+            RESTAGED,
+            "remeasure_origin_recipe_differs",
+        ),
+        (dict(RECIPE), "rtsk_" + "e" * 64, "remeasure_origin_unavailable"),
+    ],
+)
+def test_a_restaged_origin_that_is_not_the_kings_recipe_is_refused(
+    tmp_path, recipe, origin_id, code
+):
+    store = _admitted_king(tmp_path)
+    adapter, _origin, host = _restaged_adapter(recipe)
+    with pytest.raises(retention.RetentionUnavailable, match=code):
+        retention._restaged_origin(adapter, store, KING, origin_id)
+    assert host.started == []
+
+
+def test_a_king_not_in_the_pool_store_is_refused(tmp_path):
+    adapter, _origin, _host = _restaged_adapter(dict(RECIPE))
+    with pytest.raises(
+        retention.RetentionUnavailable, match="remeasure_king_not_admitted"
+    ):
+        retention._restaged_origin(adapter, _store(tmp_path), KING, RESTAGED)
+
+
+def test_the_origin_flag_applies_to_a_remeasure_only(tmp_path, monkeypatch):
+    from carbon.challenge_validator import cpu_pin, direct_receiver
+
+    monkeypatch.setattr(cpu_pin, "require", lambda: None)
+    with pytest.raises(SystemExit) as stopped:
+        direct_receiver.main(
+            ["--config", str(tmp_path / "c.json"), "--remeasure-origin", RESTAGED]
+        )
+    assert stopped.value.code == 2
