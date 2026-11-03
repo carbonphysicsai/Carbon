@@ -3,7 +3,7 @@
 Date: 2026-11-03 (CST, ~07:34)
 Status: DECIDED by the owner, directly in the Lead session (local_87151681-c66e-4949-a26c-23c4641b5722).
 Owner's words: "A"
-Asked (the Lead's summary of BT30_T8_OWNER_CHOICE_DRAFT_20261103.md): "the 'hot start' variant sits in the hot corner of the box you signed, because the hot sides couldn't be extended. A (recommended): keep that corner out of training entirely. B: leave training alone, so the corner is just thinly covered. C: drop T8. Whether A works depends on two counts."
+Asked (the Lead's summary of BT30_T8_OWNER_CHOICE_DRAFT_20261103.md): "the 'hot start' variant sits in the hot corner of the box you signed, (reason in custody). A (recommended): keep that corner out of training entirely. B: leave training alone, so the corner is just thinly covered. C: drop T8. Whether A works depends on two counts."
 
 ## Decided
 - **T8 = T1** (most energy under 95 °C), asked in a hot situation drawn per rotation by the sealed custody seed ('t8-context') inside a hot sub-box of the signed box C6.
