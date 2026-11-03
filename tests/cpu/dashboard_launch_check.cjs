@@ -57,8 +57,10 @@ function check(tree, where) {
   return text;
 }
 
+const GATE_HINT = "These hotkeys' latest result failed a mandatory gate. A hotkey with an earlier scored result keeps its rank on that best result; the failed result is not scored.";
 const phases = new Set();
 let count = 0;
+let ranked_and_failed = 0;
 for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   const board = JSON.parse(fs.readFileSync(path.join(site, "data", "v2", name), "utf8"));
   if (!board.launch) continue;
@@ -66,7 +68,7 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   const where = board.slug + " (" + board.phase + ")";
   const tree = D.boardPage(board, ctx);
   const text = check(tree, where);
-  assert.ok(text.includes(board.challenge.id), where + ": title");
+  assert.ok(D.textOf(nodes(tree, "h1")[0]).trim() === D.nameOf(board.challenge.id), where + ": the title is the name, never the raw id");
   assert.ok(hasClass(tree, "card") || hasClass(tree, "hero"), where + ": a standing is drawn");
   assert.ok(text.includes("Graded") && text.includes("Failed a gate") && text.includes(String(board.launch.counts.graded)), where + ": the counts");
   assert.ok(!text.includes("Eligible for the championship"), where + ": a launch board is not a championship");
@@ -84,21 +86,39 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
     assert.ok(text.includes("How to mine"), where + ": call to action");
   } else {
     assert.ok(hasClass(tree, "leader"), where + ": the leader card comes first");
-    assert.ok(text.includes("total score") && text.includes("higher is better"), where + ": the one scored section, in words");
+    assert.ok(/total score/i.test(text) && text.includes("higher is better"), where + ": the one scored section, in words");
+    // A hotkey that failed a gate is named with its gates; with no leader the baseline is the bar.
+    for (const [key, gates] of Object.entries(board.launch.gate_names || {})) {
+      assert.ok(text.includes(D.shortKey(key)) && gates.every(g => text.includes(g.replaceAll("_", " "))), where + ": a failed gate is named");
+    }
+    // A row is best total + latest status: a hotkey whose latest result failed a gate but has an earlier scored best is
+    // listed in both places, and the hint says so (never "not scored or ranked").
+    if (Object.keys(board.launch.gate_names || {}).length) {
+      assert.ok(text.includes(GATE_HINT), where + ": the failed-gate hint");
+      assert.ok(!text.includes("not scored or ranked"), where + ": no claim that a gate failure unranks a best");
+      const ladderText = D.textOf(nodes(tree, "table").find(t => t.attrs.id === "ladder"));
+      const gateText = D.textOf(nodes(tree, "table").find(t => D.textOf(t).includes("Gates failed")));
+      for (const entry of board.eligible_leaderboard.entries) {
+        if (!(entry.hotkey in board.launch.gate_names)) continue;
+        assert.ok(ladderText.includes(D.shortKey(entry.hotkey)) && gateText.includes(D.shortKey(entry.hotkey)), where + ": ranked on its best and named with its gate");
+        ranked_and_failed += 1;
+      }
+    }
+    if (board.king === null && typeof board.launch.baseline_total === "number") assert.ok(text.includes("Carbon's baseline"), where + ": the baseline is shown");
     assert.ok(text.includes(board.eligible_leaderboard.label), where + ": the ladder is named");
     assert.ok(board.king === null || text.includes(D.shortKey(board.king.hotkey)), where + ": king shown");
     const table = nodes(tree, "table").find(t => t.attrs.id === "ladder");
     if (board.eligible_leaderboard.entries.length) {
       assert.equal(nodes(table, "tr").length - 1, board.eligible_leaderboard.entries.length, where + ": every ranked hotkey drawn");
     }
-    // Totals show exactly as the validator rounded them: never a longer number.
+    // Totals show truncated to 3 decimals, never rounded up and never a longer number.
     for (const entry of board.eligible_leaderboard.entries) {
       const shown = entry.screening_value;
-      if (typeof shown === "number") assert.ok(text.includes(D.fmt ? D.fmt(shown) : String(shown)) || text.includes(String(shown)), where + ": total " + shown);
+      if (typeof shown === "number") assert.ok(text.includes(D.total(shown)), where + ": total " + shown);
       check(D.minerPage(board, entry.hotkey, ctx), where + " miner " + entry.hotkey);
     }
   }
   count += 1;
 }
 assert.ok(count > 0, "the site has a launch board");
-process.stdout.write(JSON.stringify({boards: count, phases: [...phases].sort()}));
+process.stdout.write(JSON.stringify({boards: count, phases: [...phases].sort(), ranked_and_failed}));

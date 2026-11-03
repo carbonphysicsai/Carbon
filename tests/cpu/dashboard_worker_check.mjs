@@ -6,7 +6,8 @@
 // mode "project_v2": [{text, fixture, keys, now, card}] -> [{board} | {code}], the
 //   Worker's board.v2 of each, for parity with board_v2.py (DASHBOARD-02 S1).
 // mode "worker": {site, env, feeds: {url: text}, requests: [path]} ->
-//   [{path, status, headers, body}], the fetch handler over a built site.
+//   [{path, status, headers, body}], the fetch handler over a built site. Optional
+//   `missing`: feed URLs whose door answers 404 (no feed published yet).
 import fs from "node:fs";
 import path from "node:path";
 
@@ -59,7 +60,8 @@ if (spec.mode === "project") {
   const realFetch = globalThis.fetch;
   // Like Cloudflare in front of feeds.carbonphysics.ai: no named agent, 403.
   globalThis.fetch = async (url, init) => (!String((init && init.headers && init.headers["User-Agent"]) || "").startsWith("carbon-dashboard/") ? new Response("agent", {status: 403})
-    : url in spec.feeds ? new Response(spec.feeds[url], {status: 200}) : new Response("down", {status: 502}));
+    : url in spec.feeds ? new Response(spec.feeds[url], {status: 200})
+    : (spec.missing || []).includes(url) ? new Response("no feed", {status: 404}) : new Response("down", {status: 502}));
   const out = [];
   for (const p of spec.requests) {
     const response = await worker.fetch(new Request("https://dashboard.example" + p), {...spec.env, ASSETS}, {});

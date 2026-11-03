@@ -11,12 +11,16 @@
 //   FEED_URLS  comma-separated https feed URLs (GET /carbon/v1/feed/<challenge>)
 //   FEED_KEYS  comma-separated pinned validator feed public keys (64 hex)
 // Optional var CACHE_SECONDS (default 60).
+// Optional var CHALLENGE_NAMES: JSON object of Challenge id to display name, served at
+//   /data/names.json (else the build's data/names.json, else the page title-cases the id).
 //
 // Fail closed:
 // - a static build made from FIXTURE data is never served (503 everywhere);
 // - the fixture key is never trusted;
 // - a refused feed shows the last statically built board for it, marked
-//   REFUSED with its reason, or nothing; never a partial board.
+//   REFUSED with its reason, or nothing; never a partial board;
+// - a feed URL whose door answers 404 (no feed published yet) adds no board: a Challenge named in
+//   the display names then shows "Launching soon", so all the launch URLs can be set from day one.
 //
 // Design showcase replays stay static: they need Carbon's Python optimizer,
 // so they are rebuilt and redeployed when the incumbent changes.
@@ -55,6 +59,36 @@ async function asset(env, request, path) {
 }
 const list = value => String(value || "").split(",").map(s => s.trim()).filter(Boolean);
 
+// The optional var CHALLENGE_NAMES: a JSON object of Challenge id to display name (a plain label,
+// as build.py's NAME_PATTERN). Anything else is ignored, so the page shows the title-cased id.
+// A value may also be {name, status, door, about, order} (build.py STATUS_PATTERN, ABOUT_PATTERN, DOOR_PATTERN).
+const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 ._&'+-]{0,39}$/;
+const STATUS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 ._&'+:,-]{0,59}$/;
+const ABOUT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 ._&'+:,()\/-]{0,89}$/;
+const DOOR_PATTERN = /^https:\/\/[A-Za-z0-9.-]+(:\d{1,5})?(\/[A-Za-z0-9._~\/-]*)?$/;
+export function liveNames(env) {
+  if (!env.CHALLENGE_NAMES) return null;
+  try {
+    const given = JSON.parse(env.CHALLENGE_NAMES);
+    if (!given || typeof given !== "object" || Array.isArray(given)) return null;
+    const names = {};
+    for (const [id, value] of Object.entries(given)) {
+      const entry = value && typeof value === "object" && !Array.isArray(value);
+      const name = entry ? value.name : value;
+      if (typeof name !== "string" || !NAME_PATTERN.test(name)) return null;
+      if (entry) {
+        if (Object.keys(value).some(k => !["name", "status", "door", "about", "order"].includes(k))) return null;
+        if (value.status !== undefined && !(typeof value.status === "string" && STATUS_PATTERN.test(value.status))) return null;
+        if (value.about !== undefined && !(typeof value.about === "string" && ABOUT_PATTERN.test(value.about))) return null;
+        if (value.order !== undefined && !(Number.isSafeInteger(value.order) && value.order >= 1 && value.order <= 99)) return null;
+        if (value.door !== undefined && !(typeof value.door === "string" && DOOR_PATTERN.test(value.door))) return null;
+      }
+      names[id] = value;
+    }
+    return Object.keys(names).length ? {schema: "carbon.dashboard.names.v1", names} : null;
+  } catch { return null; }
+}
+
 export function config(env) {
   const urls = list(env.FEED_URLS);
   if (!urls.length || urls.some(u => !u.startsWith("https://"))) throw new FeedRefused("feed_not_configured");
@@ -66,6 +100,9 @@ export function config(env) {
 
 async function fetchFeed(url, seconds, fetcher) {
   const response = await fetcher(url, {headers: FETCH_HEADERS, cf: {cacheTtl: seconds, cacheEverything: true}, signal: AbortSignal.timeout(15000)});
+  // 404: the validator's door serves no feed for this Challenge yet. The Challenge then shows as
+  // "Launching soon" (liveSite skips it); any other failure is shown as a refused card.
+  if (response.status === 404) throw new FeedRefused("feed_not_published");
   if (!response.ok) throw new FeedRefused("feed_unavailable", String(response.status));
   const body = await response.text();
   if (body.length > MAX_FEED_BYTES) throw new FeedRefused("feed_too_large");
@@ -92,6 +129,7 @@ export async function liveSite(env, request, fetcher = fetch, now = Math.floor(D
       boardsV2.set(board.slug, {...projectV2(board, now), feed_state: board.feed_state});
       entries.set(board.slug, entry(board));
     } catch (error) {
+      if (error instanceof FeedRefused && error.code === "feed_not_published") { n += 1; continue; }
       const code = error instanceof FeedRefused ? error.code : "feed_unavailable";
       let slug = null;
       try {
@@ -133,11 +171,15 @@ export default {
       }
       const seconds = config(env).seconds;
       // No signed network snapshot is served yet (S3), so the page never asks.
-      if (url.pathname === "/data/index.json") return json({...site.index, brand_assets: built.brand_assets || [], network: false}, 200, seconds);
+      if (url.pathname === "/data/index.json") return json({...site.index, brand_assets: built.brand_assets || [], network: false, showcase: built.showcase !== false}, 200, seconds);
       const prefix = v2 ? "/data/v2/" : "/data/boards/";
       const slug = decodeURIComponent(url.pathname.slice(prefix.length)).replace(/\.json$/, "");
       const board = (v2 ? site.boardsV2 : site.boards).get(slug);
       return board ? json(board, 200, seconds) : plain("No such board", 404);
+    }
+    if (url.pathname === "/data/names.json") {
+      const names = liveNames(env) ?? await asset(env, request, "/data/names.json");
+      return names ? json(names, 200, Math.max(0, Math.min(600, Number(env.CACHE_SECONDS ?? 60) || 0))) : plain("No display names", 404);
     }
     if (url.pathname === "/data/network.json") {
       let network;

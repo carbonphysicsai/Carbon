@@ -118,6 +118,17 @@ the operator script that builds, signs and uploads them on the validator host is
 `scripts/dev/launch_board_operator.py` (`docs/development/DASHBOARD_CLOUDFLARE_SETUP.md`
 section 7). A public deploy still waits for the owner's go.
 
+### Going live, one command
+
+`bash carbon/dashboard/go_live.sh` fetches each launch feed (`dashboard-feed-urls` in
+`~/.config/carbon`, one https URL per Challenge), builds the live site against the pinned
+`dashboard-feed-keys` with the launch names (`names.launch.json`, no showcase), and dry-runs
+the Worker deploy. `--deploy` then deploys, sets `FEED_URLS`/`FEED_KEYS`, and checks the public
+index. A door that answers 404 has nothing published yet: that Challenge shows "Launching soon"
+(the Worker skips its URL too, so all four URLs can stay set). A failed fetch, a refused board
+or a build with no accepted board exits 1 and nothing is deployed
+(`tests/cpu/test_dashboard_live.py`).
+
 ## The pages (DASHBOARD-02 S2)
 
 `web/` draws every Challenge page from `data/v2/<slug>.json` only: the king,
@@ -151,6 +162,13 @@ is fetched only when `index.json` says `network: true`.
 | `data/v2/<slug>.json` | The same board as `carbon.dashboard.board.v2` (`board_v2.py`, DASHBOARD-02 S1): king, target to beat, eligible leaderboard, history, rounds, gates and phase |
 | `showcase/index.json`, `showcase/*.json` | Replays of EV4's public decision: the released incumbent's panel, when the feed carries one, and the synthetic controls |
 | `index.html`, `*.js`, `style.css`, `fonts/`, `brand/` | The static app. No third-party script, no CDN, no cookies |
+| `data/names.json` | Optional: display names by Challenge id (`build --names FILE`, FILE = `{"<challenge id>": "<name>"}`). The page shows the name; with none it shows the id in title case. Plain labels only, 40 characters at most |
+| `updates.json` | The Updates page's text (`#/updates`), from `carbon/dashboard/updates.json`, the one file to edit: each Challenge's next version, recent fixes, known issues and questions, in plain lines. Only what miners have already been told: no date, digest or hidden value (`tests/cpu/test_dashboard_updates.py`). The live version comes from `data/index.json` |
+| `brand/favicon-*.svg`, `brand/favicon-*-32.png` | The Carbon favicons from `carbon/dashboard/brand/` (owner Drive originals, digests pinned in `build.FAVICONS`): dark mark for a light browser theme, light mark for a dark one |
+
+The Worker serves `/data/names.json` from its optional `CHALLENGE_NAMES` var (the same JSON
+object as a string), else from the build's file. A var that is not plain labels is ignored.
+No Challenge list is kept in the page or the Worker.
 
 ## Hosting: the `carbon-dashboard` Worker
 

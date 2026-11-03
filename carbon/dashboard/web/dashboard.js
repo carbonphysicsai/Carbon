@@ -19,8 +19,42 @@
 (function (root) {
   const SVG_NS = "http://www.w3.org/2000/svg";
   const REPO = "https://github.com/carbonphysicsai/Carbon";
+  // Deploy-time display names, keyed by Challenge id (data/names.json); the fallback is the id in
+  // title case. A value is a plain label (at most 40 characters), or {name, status, door, about, order}: a
+  // status line and https door link for the card while it has no board, a one-line description, and its
+  // place on the home page (1 is first). Plain text only.
+  let NAMES = {};
+  let DETAILS = {};
+  const NAME_OK = /^[A-Za-z0-9][A-Za-z0-9 ._&'+-]{0,39}$/;
+  const STATUS_OK = /^[A-Za-z0-9][A-Za-z0-9 ._&'+:,-]{0,59}$/;
+  const ABOUT_OK = /^[A-Za-z0-9][A-Za-z0-9 ._&'+:,()\/-]{0,89}$/;
+  const DOOR_OK = /^https:\/\/[A-Za-z0-9.-]+(:\d{1,5})?(\/[A-Za-z0-9._~\/-]*)?$/;
+  const isObject = v => Boolean(v) && typeof v === "object" && !Array.isArray(v);
+  function setNames(doc) {
+    const given = isObject(doc) && isObject(doc.names) ? doc.names : {};
+    NAMES = {};
+    DETAILS = {};
+    for (const [id, value] of Object.entries(given)) {
+      const name = isObject(value) ? value.name : value;
+      if (typeof name !== "string" || !NAME_OK.test(name)) continue;
+      NAMES[id] = name;
+      if (!isObject(value)) continue;
+      const detail = {};
+      if (typeof value.status === "string" && STATUS_OK.test(value.status)) detail.status = value.status;
+      if (typeof value.door === "string" && DOOR_OK.test(value.door)) detail.door = value.door;
+      if (typeof value.about === "string" && ABOUT_OK.test(value.about)) detail.about = value.about;
+      if (Number.isSafeInteger(value.order) && value.order >= 1 && value.order <= 99) detail.order = value.order;
+      if (detail.status || detail.door || detail.about || detail.order) DETAILS[id] = detail;
+    }
+  }
+  function nameOf(id) {
+    const key = String(id);
+    if (Object.prototype.hasOwnProperty.call(NAMES, key)) return NAMES[key];
+    return key.split(/[-_]+/).filter(Boolean).map(t => /^[a-z]\d+$/.test(t) ? t.toUpperCase() : t.charAt(0).toUpperCase() + t.slice(1)).join(" ");
+  }
   const LINKS = {
     launchpad: REPO + "/blob/main/carbon/miner_mcp/README.md",
+    guide: REPO + "/blob/main/docs/MINING.md",
     journey: REPO + "/blob/main/docs/development/FRESH_MINER_JOURNEY.md",
     source: REPO + "/tree/main/carbon/dashboard",
   };
@@ -119,6 +153,20 @@
     if (!isNum(v)) return "—";
     return v.toFixed(digits === undefined ? places([v]) : digits);
   }
+  // The score to beat is shown ROUNDED UP to 3 decimals, never below the real bar (the epsilon keeps 0.728 at 0.728).
+  function toBeat(v) { return isNum(v) ? (Math.ceil(v * 1000 - 1e-9) / 1000).toFixed(3) : "—"; }
+  // A public total is TRUNCATED to 3 decimals (0.519901 reads 0.519); the nudge, far below the 9th decimal, keeps a
+  // float's noise (0.52 as 0.5199999999999999) from dropping a digit.
+  const TOTAL_PLACES = 3;
+  function total(v) {
+    if (!isNum(v)) return "—";
+    const scale = 10 ** TOTAL_PLACES;
+    return (Math.floor(v * scale + 1e-9) / scale).toFixed(TOTAL_PLACES);
+  }
+  // The device-class chip shows only when the feed carries more than one class.
+  function classChipShown(classes) {
+    return new Set((classes || []).filter(Boolean)).size > 1;
+  }
   function signed(v, digits) {
     if (!isNum(v)) return "—";
     return (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v).toFixed(digits === undefined ? places([v]) : digits);
@@ -183,6 +231,7 @@
     if (parts[0] === "b" && parts[1] && parts[2] === "m" && parts[3]) return {view: "miner", slug: parts[1], hotkey: parts[3]};
     if (parts[0] === "b" && parts[1]) return {view: "board", slug: parts[1]};
     if (parts[0] === "mine") return {view: "mine"};
+    if (parts[0] === "updates") return {view: "updates"};
     if (parts[0] === "showcase") return {view: "showcase", file: parts[1] || null};
     return {view: "home"};
   }
@@ -261,11 +310,10 @@
   function sparkFigure(spec, caption) {
     const all = spec.main.concat(spec.others || []);
     const ys = all.map(p => p.y), xs = all.map(p => p.x);
-    const digits = places(ys);
     return h("figure", {class: "card chart"},
-      h("div", {class: "spark-y"}, h("span", null, "high " + fmt(Math.max(...ys), digits))),
+      h("div", {class: "spark-y"}, h("span", null, "high " + total(Math.max(...ys)))),
       sparkline(spec),
-      h("div", {class: "spark-x"}, h("span", null, "low " + fmt(Math.min(...ys), digits)), h("span", null, "blocks " + block(Math.min(...xs)) + " to " + block(Math.max(...xs)))),
+      h("div", {class: "spark-x"}, h("span", null, "low " + total(Math.min(...ys))), h("span", null, "blocks " + block(Math.min(...xs)) + " to " + block(Math.max(...xs)))),
       h("figcaption", {class: "hint"}, caption));
   }
   function historySpec(board) {
@@ -327,15 +375,15 @@
 
   function rulesLine() { return h("p", {class: "rules-line"}, RULES_LINE); }
   // `inTarget`: the target panel carries the page's one rules line instead.
-  function boardHead(board, inTarget) {
+  function boardHead(board, inTarget, ctx) {
     const phase = PHASES[board.phase] || [words(board.phase), ""];
     const ok = rulesOk(board);
     return h("header", {class: "board-head"},
-      h("nav", {class: "crumbs", "aria-label": "Breadcrumb"}, h("a", {href: "#/"}, "Boards"), h("span", {"aria-hidden": "true"}, "/"), h("span", {"aria-current": "page"}, board.challenge.id)),
-      h("h1", null, board.challenge.id),
+      h("nav", {class: "crumbs", "aria-label": "Breadcrumb"}, h("a", {href: "#/"}, "Boards"), h("span", {"aria-hidden": "true"}, "/"), h("span", {"aria-current": "page"}, nameOf(board.challenge.id))),
+      h("h1", null, nameOf(board.challenge.id)),
       h("div", {class: "chips"},
         chip(phase[0], phase[1]),
-        board.device_class ? chip(board.device_class, "chip-plain") : null,
+        board.device_class && classChipShown((ctx || {}).classes) ? chip(board.device_class, "chip-plain") : null,
         board.launch ? chip("Exam " + board.launch.exam_version_label, "chip-plain") : chip("Era " + shortDigest(board.era), "chip-plain"),
         ok && board.challenge.rule ? chip("Rule " + board.challenge.rule, "chip-plain") : null,
         chip("Version " + board.challenge.version, "chip-plain")),
@@ -417,7 +465,7 @@
     ].filter(Boolean);
     return section("king", {class: "card king", "aria-labelledby": "king-title"}, top,
       h("p", {class: "king-key"}, hotkey(k.hotkey, {copy: true, href: minerHref(board.slug, k.hotkey)})),
-      isNum(k.value) ? h("div", {class: "metric"}, h("span", {class: "metric-value"}, fmt(k.value, digits)), h("span", {class: "metric-label"}, sectionLabel(board))) : null,
+      isNum(k.value) ? h("div", {class: "metric"}, h("span", {class: "metric-value"}, total(k.value)), h("span", {class: "metric-label"}, sectionLabel(board))) : null,
       stats.length ? h("dl", {class: "stats"}, stats) : null,
       moreLine(!board.launch && kingMissing(k)));
   }
@@ -442,7 +490,7 @@
     const k = board.king;
     const kingGates = k && k.gates ? Object.entries(k.gates) : [];
     const kingPart = [
-      k && isNum(k.value) ? h("div", {class: "metric"}, h("span", {class: "metric-value"}, fmt(k.value)), h("span", {class: "metric-label"}, "king's " + sectionLabel(board))) : null,
+      k && isNum(k.value) ? h("div", {class: "metric"}, h("span", {class: "metric-value"}, total(k.value)), h("span", {class: "metric-label"}, "king's " + sectionLabel(board))) : null,
       kingGates.length ? h("p", {class: "hint"}, "King's gates: " + kingGates.map(([name, v]) => words(name) + " " + String(v).toLowerCase()).join(", ") + ".") : null,
     ];
     if (!ok) {
@@ -508,20 +556,21 @@
     const coldkeys = Array.isArray(lb.coldkeys);
     const sealed = coldkeys && !isNum(lb.grain_pct) && (lb.coldkeys.some(r => r.status === "SEALED_UNTIL_GRAIN")
       || lb.reasons && lb.reasons.grain_pct === "grain_human_input");
-    const notes = coldkeys ? [] : ["Ranked by " + label + "."];
+    const notes = coldkeys ? [] : [board.launch && Array.isArray(board.launch.crown_changes)
+      ? "Ranked by the board's order: the king first, then by exact score. Scores are shown rounded down to the Ladder step, so equal shown scores can hold different ranks."
+      : "Ranked by " + label + "."];
     if (rulesOk(board) && lb.release_lag && isNum(lb.release_lag.hours)) notes.push("Scores publish about " + Math.round(lb.release_lag.hours) + " h after a window.");
     if (rulesOk(board) && isNum(lb.grain_pct)) notes.push("Grain " + fmt(lb.grain_pct) + "%.");
     if (notes.length) parts.push(h("p", {class: "hint"}, notes.join(" ")));
     if (sealed) parts.push(h("p", {class: "hint grain-sealed"}, SEALED_GRAIN));
     if (Array.isArray(lb.coldkeys) && lb.coldkeys.length) {
-      const digits = places(lb.coldkeys.map(r => r.displayed_score));
       const rows = lb.coldkeys.map(r => {
         const status = LADDER[r.status] || [words(r.status), "chip-muted"];
         const hasKing = r.hotkeys.includes(king);
         return h("tr", {"data-find": [r.coldkey].concat(r.hotkeys).join(" ").toLowerCase(), class: hasKing ? "is-king" : null},
           h("td", {class: "num rank"}, r.status !== "SEALED_UNTIL_GRAIN" && isNum(r.rank) ? r.rank : ""),
           h("td", null, h("span", {class: "key", title: r.coldkey}, shortKey(r.coldkey)), hasKing ? h("span", {class: "crown-tag"}, "king") : null),
-          h("td", {class: "num"}, r.status !== "SEALED_UNTIL_GRAIN" && isNum(r.displayed_score) ? fmt(r.displayed_score, digits) : ""),
+          h("td", {class: "num"}, r.status !== "SEALED_UNTIL_GRAIN" && isNum(r.displayed_score) ? total(r.displayed_score) : ""),
           h("td", null, chip(status[0], status[1])),
           h("td", {class: "opt"}, h("details", {class: "hotkeys"}, h("summary", null, r.hotkeys.length + " hotkey" + (r.hotkeys.length === 1 ? "" : "s")),
             h("ul", null, r.hotkeys.map(k => h("li", null, h("a", {href: minerHref(board.slug, k), class: "key", title: k}, shortKey(k)), k === king ? h("span", {class: "crown-tag"}, "king") : null))))));
@@ -530,15 +579,15 @@
         [["Rank", "num"], ["Coldkey"], ["Displayed", "num"], ["Status"], ["Hotkeys", "opt"]], rows, {id: "ladder"}));
       parts.push(h("p", {class: "hint"}, "One pooled displayed score per coldkey; its hotkeys are listed for information."));
     } else if (!coldkeys && lb.entries.length) {
-      const digits = places(lb.entries.map(r => r.screening_value));
+      const tied = r => lb.entries.filter(e => e.rank === r.rank).length > 1;
       const rows = lb.entries.map(r => h("tr", {"data-find": String(r.hotkey).toLowerCase(), class: r.is_king ? "is-king" : null},
-        h("td", {class: "num rank"}, r.rank),
+        h("td", {class: "num rank"}, board.launch && tied(r) ? "=" + r.rank : r.rank),
         h("td", null, h("a", {href: minerHref(board.slug, r.hotkey), class: "key", title: r.hotkey}, shortKey(r.hotkey)), r.is_king ? h("span", {class: "crown-tag"}, "king") : null,
           isNum(r.uid) ? h("span", {class: "uid"}, "UID " + r.uid) : null),
-        h("td", {class: "num"}, isNum(r.screening_value) ? fmt(r.screening_value, digits) : ""),
+        h("td", {class: "num"}, isNum(r.screening_value) ? total(r.screening_value) : ""),
         board.launch ? h("td", {class: "bar-col opt"}, isNum(r.screening_value) ? miniBar(r.screening_value) : null) : h("td", {class: "num opt"}, isNum(r.best_at_block) ? block(r.best_at_block) : ""),
         h("td", {class: "opt"}, r.challenger_state ? chip(words(r.challenger_state), "chip-muted") : "")));
-      parts.push(finder("ladder"), table((lb.label || ELIGIBLE) + ", per hotkey", [["Rank", "num"], ["Hotkey"], [sectionShort(board), "num"], board.launch ? ["", "bar-col opt"] : ["Best at block", "num opt"], [board.launch ? "Latest result" : "Challenge", "opt"]].filter(Boolean), rows, {id: "ladder"}));
+      parts.push(finder("ladder"), table(board.launch ? lb.label : (lb.label || ELIGIBLE) + ", per hotkey", [["Rank", "num"], ["Hotkey"], [sectionShort(board), "num"], board.launch ? ["", "bar-col opt"] : ["Best at block", "num opt"], [board.launch ? "Latest result" : "Challenge", "opt"]].filter(Boolean), rows, {id: "ladder"}));
     } else {
       parts.push(h("p", {class: "empty"}, "No eligible entries in this release yet."));
     }
@@ -559,7 +608,7 @@
     const caption = spec.kind === "kings"
       ? "The king's " + label + " at each released window. A dashed line marks a new king."
       : "Each point is a released, scored submission in this era. The line is the current king's; grey points are other eligible miners.";
-    const rows = spec.main.map(p => h("tr", null, h("td", {class: "num"}, block(p.x)), h("td", {class: "key"}, shortKey(p.hotkey)), h("td", {class: "num"}, fmt(p.y))));
+    const rows = spec.main.map(p => h("tr", null, h("td", {class: "num"}, block(p.x)), h("td", {class: "key"}, shortKey(p.hotkey)), h("td", {class: "num"}, total(p.y))));
     return section("history", {class: "block", "aria-labelledby": "hist-title"},
       h("div", {class: "block-head"}, h("h2", {id: "hist-title"}, "History"), chip("Era " + shortDigest(board.history && board.history.era), "chip-plain")),
       has ? sparkFigure(spec, caption) : h("p", {class: "empty"}, "No released windows in this rule era yet. Each rule digest is its own era; history never crosses eras."),
@@ -663,24 +712,67 @@
       eyebrow("First grade"),
       h("h2", {id: "hero-title"}, "No hotkey has a graded result yet"),
       h("p", {class: "lede"}, "A score appears here the moment the validator grades a submission on the sealed exam. Totals are rounded down to the Ladder step.",
-        isNum(l.baseline_total) ? " Carbon's baseline to beat: " + fmt(l.baseline_total) + (isNum(l.margin) ? " plus a margin of " + fmt(l.margin) + "." : ".") : "",
+        isNum(l.baseline_total) ? " Carbon's baseline to beat: " + total(l.baseline_total) + (isNum(l.margin) ? " plus a margin of " + fmt(l.margin) + "." : ".") : "",
         // The Validator's ruling: before the margin is registered, say so; never a placeholder number.
         isNum(l.margin) ? "" : " The margin a challenger must clear is not yet registered, so no crown is possible yet."),
       h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), h("a", {class: "btn", href: LINKS.launchpad}, "Launchpad docs")));
+  }
+  function beatFacts(board) {
+    const l = board.launch;
+    const k = board.king;
+    const digits = places([k && k.value, l.to_beat, l.margin, l.baseline_total]);
+    if (k && isNum(k.value) && !Array.isArray(l.crown_changes)) return null; // a v1 board states no such rule
+    // Validator 18:56: low = floored king total + margin, rounded DOWN; public values only.
+    if (isNum(l.to_beat) && k && isNum(k.value)) return {label: "Score to beat (guaranteed)", value: toBeat(l.to_beat),
+      line: (isNum(l.margin) ? "The exact bar is between " + total(k.value + l.margin) + " and " + toBeat(l.to_beat) + ". " : "")
+        + "Score above " + toBeat(l.to_beat) + ", passing every gate and minimum, to take the crown."};
+    if (isNum(l.baseline_total)) return {label: "Carbon's baseline", value: fmt(l.baseline_total, digits),
+      line: isNum(l.margin) ? "To take the first crown, beat Carbon's baseline by " + fmt(l.margin, digits) + ". A tie keeps the baseline."
+        : "The margin is not yet registered, so no crown can change hands yet."};
+    return {label: "Score to beat", value: "Not registered", pending: true, line: "No crown can change hands yet."};
+  }
+  function crownChanges(board) {
+    const list = board.launch && board.launch.crown_changes;
+    if (!Array.isArray(list)) return null;
+    const rows = list.slice(0, 5).filter(c => isObject(c) && typeof c.hotkey === "string" && Number.isSafeInteger(c.since_epoch) && c.since_epoch >= 0);
+    return section("crown-changes", {class: "block crown-changes", "aria-labelledby": "cc-title"},
+      h("div", {class: "block-head"}, h("h2", {id: "cc-title"}, "Recent crown changes")),
+      rows.length ? h("ol", {class: "cc-list"}, rows.map(c => h("li", null,
+        h("span", {class: "key", title: c.hotkey}, shortKey(c.hotkey)),
+        c.from_hotkey === c.hotkey ? " re-took the crown" : [" took the crown from ",
+          typeof c.from_hotkey === "string" ? h("span", {class: "key", title: c.from_hotkey}, shortKey(c.from_hotkey)) : "Carbon's baseline"],
+        h("span", {class: "hint"}, " · epoch " + c.since_epoch + (isNum(c.total) ? " · total " + total(c.total) : "")))))
+        : h("p", {class: "hint"}, "No crown has changed hands yet."));
+  }
+  function stabilityLine(board) {
+    const l = board.launch;
+    if (!l || l.king_stability !== "UNSTABLE") return null;
+    return h("p", {class: "hint stability-line", role: "note"}, "The current king's score moved between rebuilds, so its registered score stands and a challenger must beat it by the registered margin.");
+  }
+  // to_beat = floor + step + margin: v2 boards only.
+  let BEAT = true;
+  function beatBlock(board) {
+    if (!BEAT) return null;
+    const f = beatFacts(board);
+    if (!f) return null;
+    return h("div", {class: "beat-block"},
+      h("span", {class: "eyebrow"}, f.label),
+      h("span", {class: "beat-value" + (f.pending ? " is-pending" : "")}, f.value),
+      h("p", {class: "beat-line"}, f.line));
   }
   function leaderCard(board) {
     const l = board.launch;
     const k = board.king;
     const digits = places([k && k.value, l.to_beat, l.margin, l.baseline_total]);
-    const beat = isNum(l.to_beat) ? stat("To beat", fmt(l.to_beat, digits), isNum(l.margin) ? "the leader's total plus " + fmt(l.margin, digits) : null)
-      : stat("To beat", "Not yet registered", "no crown is possible yet");
-    const gap = k && isNum(k.margin) ? stat("Lead over the runner-up", signed(k.margin, digits), k.runner_up ? shortKey(k.runner_up) : null) : null;
+    const gap = k && isNum(k.margin) ? (k.margin === 0 ? stat("Lead over the runner-up", "Same Ladder step", "The crown goes to the higher exact score (hidden) and needs the margin to change hands.")
+      : stat("Lead over the runner-up", signed(k.margin, Math.min(digits, 3)), k.runner_up ? shortKey(k.runner_up) : null)) : null;
     const held = isNum(l.king_since_epoch) ? stat("Leader since", "epoch " + l.king_since_epoch) : null;
-    const stats = [beat, gap, held].filter(Boolean);
+    const stats = [gap, held].filter(Boolean);
     return section("leader", {class: "card leader", "aria-labelledby": "leader-title"},
       h("div", {class: "card-top"}, crown(), h("h2", {id: "leader-title", class: "card-title"}, "Current leader")),
       k ? h("p", {class: "leader-key"}, hotkey(k.hotkey, {copy: true, href: minerHref(board.slug, k.hotkey)})) : h("p", {class: "leader-key"}, "No leader yet"),
-      k && isNum(k.value) ? h("div", {class: "metric leader-metric"}, h("span", {class: "metric-value"}, fmt(k.value, digits)), h("span", {class: "metric-label"}, "total score · higher is better")) : null,
+      k && isNum(k.value) ? h("div", {class: "metric leader-metric"}, h("span", {class: "metric-value"}, total(k.value)), h("span", {class: "metric-label"}, "total score · higher is better")) : null,
+      beatBlock(board),
       stats.length ? h("dl", {class: "stats leader-stats"}, stats) : null);
   }
   function countsStrip(board) {
@@ -688,7 +780,22 @@
     return h("dl", {class: "counts-strip", "aria-label": "Standing"},
       LAUNCH_COUNTS.map(([key, label]) => h("div", {class: "count-cell"}, h("dt", null, label), h("dd", null, String(l.counts[key])))));
   }
+  // A hotkey whose latest result failed a gate, named with its gates. A ladder row is its best total plus its latest
+  // status, so a hotkey with an earlier scored best is also ranked on that best; the failed result itself is never scored.
+  function gateFailures(board) {
+    const names = board.launch.gate_names || {};
+    const rows = Object.keys(names).sort().map(k => h("tr", null,
+      h("td", null, h("span", {class: "key", title: k}, shortKey(k))), h("td", null, names[k].map(words).join(", "))));
+    if (!rows.length) return null;
+    return section("gate-failures", {class: "block", "aria-labelledby": "gf-title"},
+      h("div", {class: "block-head"}, h("h2", {id: "gf-title"}, "Failed a gate")),
+      h("p", {class: "hint"}, "These hotkeys' latest result failed a mandatory gate. A hotkey with an earlier scored result keeps its rank on that best result; the failed result is not scored."),
+      table("Hotkeys that failed a gate", [["Hotkey"], ["Gates failed"]], rows));
+  }
+  // The design showcase is offered only when the build carries one (index.showcase !== false).
+  let SHOWCASE = true;
   function showcaseCard() {
+    if (!SHOWCASE) return null;
     return section("showcase-teaser", {class: "card teaser", "aria-labelledby": "teaser-title"},
       eyebrow("Design showcase"),
       h("h2", {id: "teaser-title"}, "See a model drive the design optimizer"),
@@ -709,15 +816,15 @@
     const c = ctx || {now: Math.floor(Date.now() / 1000)};
     if (board.launch) {
       const pre = board.phase === "PRE_FIRST_RELEASE";
-      const parts = [boardHead(board, true), boardBanners(board, c)];
-      if (pre) parts.push(launchHero(board), countsStrip(board));
-      else parts.push(leaderCard(board), countsStrip(board), leaderboard(board));
+      const parts = [boardHead(board, true, c), boardBanners(board, c)];
+      if (pre) parts.push(launchHero(board), beatBlock(board), stabilityLine(board), crownChanges(board), countsStrip(board));
+      else parts.push(leaderCard(board), stabilityLine(board), crownChanges(board), countsStrip(board), leaderboard(board), gateFailures(board));
       parts.push(showcaseCard(), examLine(board), feedBlock(board));
       return h("div", {class: "page launch-page"}, parts);
     }
     const preRelease = board.phase === "PRE_FIRST_RELEASE" || (board.next_release && board.next_release.released_windows === 0);
     // A live board's one rules line sits in the target panel, where the bars would be.
-    const out = [boardHead(board, !preRelease), boardBanners(board, c)];
+    const out = [boardHead(board, !preRelease, c), boardBanners(board, c)];
     if (preRelease) {
       out.push(heroPre(board, c), scoredBlock(board), timingCard(board, c), championshipBlock(board));
     } else {
@@ -759,7 +866,7 @@
     const series = (board.history.points || {})[key] || [];
     const activity = submissionStatus(board, key);
     const crumbs = h("nav", {class: "crumbs", "aria-label": "Breadcrumb"}, h("a", {href: "#/"}, "Boards"), h("span", {"aria-hidden": "true"}, "/"),
-      h("a", {href: boardHref(board.slug)}, board.challenge.id), h("span", {"aria-hidden": "true"}, "/"), h("span", {"aria-current": "page"}, shortKey(key)));
+      h("a", {href: boardHref(board.slug)}, nameOf(board.challenge.id)), h("span", {"aria-hidden": "true"}, "/"), h("span", {"aria-current": "page"}, shortKey(key)));
     if (!entry && !coldkey && !series.length) {
       return h("div", {class: "page"}, crumbs, h("h1", {class: "key"}, shortKey(key)),
         activity,
@@ -767,14 +874,14 @@
     }
     const label = sectionLabel(board);
     const status = coldkey ? LADDER[coldkey.status] || [words(coldkey.status), "chip-muted"] : null;
-    const rows = series.map(p => h("tr", null, h("td", {class: "num"}, block(p.receipt_block)), h("td", {class: "num"}, fmt(p.value))));
+    const rows = series.map(p => h("tr", null, h("td", {class: "num"}, block(p.receipt_block)), h("td", {class: "num"}, total(p.value))));
     return h("div", {class: "page"}, crumbs, boardBanners(board, ctx || {}),
       eyebrow("Miner"), h("h1", {class: "key"}, shortKey(key)),
       h("p", {class: "king-key"}, h("span", {class: "key full"}, key), copyButton(key, "hotkey")),
       activity,
       h("dl", {class: "stats"},
         entry ? stat("Rank", String(entry.rank)) : null,
-        entry && isNum(entry.screening_value) ? stat(label, fmt(entry.screening_value)) : null,
+        entry && isNum(entry.screening_value) ? stat(label, total(entry.screening_value)) : null,
         entry ? stat("Role", entry.is_king ? "king" : entry.challenger_state ? words(entry.challenger_state) : "eligible") : null,
         coldkey ? stat("Coldkey", h("span", {class: "key", title: coldkey.coldkey}, shortKey(coldkey.coldkey)), null) : null,
         status ? stat("Ladder status", chip(status[0], status[1])) : null),
@@ -784,17 +891,28 @@
       h("p", {class: "hint"}, "Recipes and per-case values are not shown."));
   }
 
-  function homeCard(entry, board) {
+  function best(board) {
+    const first = board.eligible_leaderboard && board.eligible_leaderboard.entries && board.eligible_leaderboard.entries[0];
+    return first && isNum(first.screening_value) ? first.screening_value : null;
+  }
+  function aboutLine(id) {
+    const d = DETAILS[id];
+    return d && d.about ? h("p", {class: "about"}, d.about) : null;
+  }
+  function homeCard(entry, board, showClass) {
     if (!entry.slug) return h("div", {class: "card board-card"}, eyebrow("Feed refused"), h("p", {class: "fail"}, words(entry.code)));
     const phase = board ? PHASES[board.phase] || [words(board.phase), ""] : null;
     const king = board && board.king;
     return h("a", {class: "card board-card", href: boardHref(entry.slug)},
-      h("div", {class: "board-card-head"}, h("h3", null, entry.challenge.id), phase ? chip(phase[0], phase[1]) : null),
-      h("div", {class: "chips"}, chip(entry.device_class || "no device class", "chip-plain"), labelsOf(entry).filter(l => l !== "DEVELOPMENT").map(l => chip(l, l === "FIXTURE" ? "chip-warn" : "chip-plain"))),
+      h("div", {class: "board-card-head"}, h("h3", null, nameOf(entry.challenge.id)), phase ? chip(phase[0], phase[1]) : null),
+      aboutLine(entry.challenge.id),
+      h("div", {class: "chips"}, showClass ? chip(entry.device_class || "no device class", "chip-plain") : null, labelsOf(entry).filter(l => l !== "DEVELOPMENT").map(l => chip(l, l === "FIXTURE" ? "chip-warn" : "chip-plain"))),
       king ? h("div", {class: "board-card-king"},
         h("span", {class: "eyebrow"}, "King"), h("span", {class: "key"}, shortKey(king.hotkey)),
-        isNum(king.value) ? h("span", {class: "board-card-value"}, fmt(king.value), h("small", null, " " + sectionLabel(board))) : null)
-        : board && board.phase === "PRE_FIRST_RELEASE" ? h("p", {class: "hint"}, board.launch ? "No hotkey graded yet" : "First scores after the first release") : null,
+        isNum(king.value) ? h("span", {class: "board-card-value"}, total(king.value), h("small", null, " " + sectionLabel(board))) : null)
+        : board && board.phase === "PRE_FIRST_RELEASE" ? h("p", {class: "hint"}, board.launch ? "No hotkey graded yet" : "First scores after the first release")
+        : board && board.launch && board.launch.counts.graded > 0 ? h("p", {class: "hint"}, board.launch.counts.graded + " graded, no leader yet" + (best(board) !== null ? ". Best total " + total(best(board)) : "")) : null,
+      board && board.launch ? beatBlock(board) : null,
       entry.state !== "ACCEPTED" ? h("p", {class: "fail"}, "Newest feed refused: " + words(entry.code)) : null);
   }
 
@@ -807,6 +925,33 @@
       moreLine(items.length < NETWORK_FIELDS.length));
   }
 
+  // A named Challenge with no board yet: said plainly, with no score, leader or date.
+  function launchingCards(index) {
+    const live = new Set(index.boards.filter(e => e.challenge).map(e => e.challenge.id));
+    return Object.keys(NAMES).filter(id => !live.has(id)).map(id => ({id, node:
+      h("div", {class: "card board-card launching"}, h("div", {class: "board-card-head"}, h("h3", null, NAMES[id]), chip((DETAILS[id] || {}).status || "Launching soon", "chip-plain")),
+        aboutLine(id),
+        h("div", {class: "chips"}, chip("TESTNET", "chip-plain")),
+        h("p", {class: "hint"}, "No board is published yet. This Challenge appears here, with its leader and the score to beat, as soon as the validator publishes it."),
+        DETAILS[id] ? h("div", {class: "actions"},
+          DETAILS[id].door ? h("a", {class: "btn", href: DETAILS[id].door, rel: "noopener noreferrer"}, "Validator door") : null,
+          h("a", {class: "btn", href: "#/mine"}, "How to mine"),
+          h("a", {class: "btn", href: LINKS.guide, rel: "noopener noreferrer"}, "Mining guide")) : null)}));
+  }
+  // One grid: names-file `order`, then name; a feed with no readable Challenge last.
+  function cardOrder(id) {
+    const d = DETAILS[id];
+    return d && d.order ? d.order : 100;
+  }
+  function homeCards(index, boards) {
+    const showClass = classChipShown(index.boards.map(b => b.device_class));
+    const items = index.boards.map(e => ({id: e.challenge ? e.challenge.id : null, device: e.device_class || "",
+      node: homeCard(e, e.slug ? (boards || {})[e.slug] : null, showClass)}));
+    items.push(...launchingCards(index).map(x => ({id: x.id, device: "", node: x.node})));
+    const key = x => [x.id === null ? 1 : 0, x.id === null ? 0 : cardOrder(x.id), x.id === null ? "" : nameOf(x.id).toLowerCase(), x.device];
+    items.sort((a, b) => { const ka = key(a), kb = key(b); for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] < kb[i] ? -1 : 1; return 0; });
+    return items.map(x => x.node);
+  }
   function homePage(index, boards, ctx) {
     const c = ctx || {};
     return h("div", {class: "page"},
@@ -814,11 +959,12 @@
         h("p", {class: "eyebrow section-label"}, "Carbon subnet"),
         h("h1", null, "Leaders by Challenge"),
         h("p", {class: "lede"}, "Each board is one Challenge on one device class, drawn from the Carbon Validator's signed score feed. CPU and GPU results are never ranked together."),
-        h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), h("a", {class: "btn", href: "#/showcase"}, "Design showcase"))),
+        h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), SHOWCASE ? h("a", {class: "btn", href: "#/showcase"}, "Design showcase") : null)),
       networkStrip(c.network),
       index.fixture ? h("p", {class: "notice"}, h("strong", null, "Fixture data. "), "These boards are synthetic, made to build and test the page. They are not results of any model or Challenge.") : null,
-      index.boards.length ? h("div", {class: "board-grid"}, index.boards.map(e => homeCard(e, e.slug ? (boards || {})[e.slug] : null)))
-        : h("p", {class: "empty"}, "No boards yet."));
+      index.boards.length || Object.keys(NAMES).length
+        ? h("div", {class: "board-grid"}, homeCards(index, boards))
+        : h("p", {class: "empty"}, "Launching soon on Carbon's test network. No board is published yet; each Challenge appears here, with its leader and the score to beat, as soon as the validator publishes it."));
   }
 
   function minePage() {
@@ -826,17 +972,43 @@
     return h("div", {class: "page"},
       h("p", {class: "eyebrow section-label"}, "How to mine"),
       h("h1", null, "From a clean machine to your first submission"),
-      h("p", {class: "lede"}, "The Launchpad sets up everything on your own machine, and any MCP agent can drive it. Carbon rents no compute and never holds your keys."),
+      h("p", {class: "lede"}, "You build physics models with an AI agent on your own machine. Carbon rents no compute and never holds your keys. This is the test network (subnet 567): nothing is paid yet."),
       h("ol", {class: "steps"},
-        step("1", "Start", "Clone Carbon and run the installer, then start your signer in your own terminal and open the Control Center. Register your hotkey from your own wallet.",
+        step("1", "Check your machine", "Ubuntu 22.04 or 24.04 on x86-64 (or Windows with WSL2), 32 GB of memory, 4 CPUs, about 150 GiB of free disk, and Docker. A GPU is optional. With less memory the install stops and says so."),
+        step("2", "Install", "Clone Carbon and run the installer, then open the Control Center it prints. It takes about 20 minutes the first time.",
           h("pre", {class: "cmd"}, h("code", null, "git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon && ~/carbon/scripts/install_miner.sh"))),
-        step("2", "Practice", "Run carbon_practice on public material. Practice is free and its signal is intentionally incomplete: it is never the official exam."),
-        step("3", "Submit", "Freeze your candidate, commit it on chain, then submit: carbon_freeze_candidate, carbon_commit, carbon_submit."),
-        step("4", "My status", "Find your hotkey or coldkey on a Challenge board once your window is released. Until then the board shows when the next release is due.")),
+        step("3", "Practice", "Run your agent and practise on any Challenge: free, no wallet needed. Practice is intentionally incomplete and is never the official exam."),
+        step("4", "Submit", "To be graded you need a wallet with a hotkey registered on subnet 567. Start your signer in your own terminal, then freeze your best model and submit it. A validator rebuilds it from your recipe and grades it on an exam you never see."),
+        step("5", "Find yourself", "Your hotkey appears on the Challenge's board once it is graded. The leader is the best total; a challenger must beat it by the margin.")),
       h("div", {class: "actions"},
-        h("a", {class: "btn btn-primary", href: LINKS.launchpad}, "Launchpad (miner MCP) docs"),
-        h("a", {class: "btn", href: LINKS.journey}, "The fresh-miner journey"),
+        h("a", {class: "btn btn-primary", href: LINKS.guide}, "The full mining guide"),
+        h("a", {class: "btn", href: LINKS.launchpad}, "Launchpad (miner MCP) docs"),
         h("a", {class: "btn", href: "#/"}, "Boards")));
+  }
+
+  // Plain text only: no date and no hidden value.
+  function updatesPage(index, doc) {
+    const u = isObject(doc) ? doc : {};
+    const texts = v => (Array.isArray(v) ? v.filter(s => typeof s === "string") : []);
+    const objects = v => (Array.isArray(v) ? v.filter(isObject) : []);
+    const items = v => texts(v).length ? h("ul", {class: "updates"}, texts(v).map(s => h("li", null, s))) : h("p", {class: "hint"}, "None right now.");
+    const part = (name, title, ...kids) => section(name, {class: "block", "aria-labelledby": name + "-title"},
+      h("div", {class: "block-head"}, h("h2", {id: name + "-title"}, title)), kids);
+    const cards = objects(u.challenges).filter(c => typeof c.id === "string").map(c => {
+      const live = index.boards.filter(e => e.slug && e.challenge && e.challenge.id === c.id);
+      return h("article", {class: "card", "data-challenge": c.id}, h("h3", null, nameOf(c.id)),
+        live.length ? live.map(e => h("p", null, h("a", {href: boardHref(e.slug)}, "Live: " + nameOf(c.id) + " " + e.challenge.version))) : h("p", {class: "hint"}, "No live board yet."),
+        objects(c.next).filter(n => typeof n.version === "string").map(n => [h("h4", null, "Next: " + nameOf(c.id) + " " + n.version), texts([u.next_label]).map(s => h("p", {class: "hint"}, s)), items(n.changes)]));
+    });
+    return h("div", {class: "page"},
+      h("p", {class: "eyebrow section-label"}, "Updates"),
+      h("h1", null, "What changes on each Challenge"),
+      texts([u.intro]).map(s => h("p", {class: "lede"}, s)),
+      part("challenges", "By Challenge", h("div", {class: "board-grid"}, cards)),
+      part("every-version", "In every new version", items(u.every_version)),
+      part("fixes", "Recent fixes and changes", items(u.fixes)),
+      part("known-issues", "Known issues", items(u.known_issues)),
+      part("faq", "Questions", objects(u.faq).filter(f => typeof f.q === "string").map(f => [h("h3", null, f.q), texts(f.a).map(s => h("p", null, s))])));
   }
 
   function keyShort(board) {
@@ -849,10 +1021,10 @@
     return "Verified signed feed" + key + " · last verified " + utc(loadedAt);
   }
 
-  const api = {sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, REFUSALS, SEALED_GRAIN, PHASES,
+  const api = {setBeat: on => { BEAT = on; }, nameOf, setNames, sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, REFUSALS, SEALED_GRAIN, PHASES,
     KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
-    h, walk, textOf, mount, places, fmt, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
-    rulesOk, sectionLabel, sparkline, targetCard, historySpec, boardPage, minerPage, homePage, minePage, networkStrip, footerStamp};
+    h, walk, textOf, mount, places, fmt, toBeat, total, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
+    rulesOk, sectionLabel, sparkline, targetCard, historySpec, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
 
@@ -881,14 +1053,37 @@
     const id = board && board.feed && board.feed.key_id;
     if (id) { e.setAttribute("title", id); e.setAttribute("data-key-id", id); } else { e.removeAttribute("title"); e.removeAttribute("data-key-id"); }
   }
+  // The files the page on screen was drawn from, so a refresh can tell when one changed.
+  let used = new Set();
+  let failed = false;
   async function getJson(path) {
     const hit = cache.get(path);
-    if (hit && Date.now() - hit.at < CACHE_MS) return hit.value;
+    if (hit && Date.now() - hit.at < CACHE_MS) { used.add(path); return hit.value; }
     const response = await fetch(path, {cache: "no-cache"});
     if (!response.ok) throw new Error(path + " " + response.status);
     const value = await response.json();
     cache.set(path, {at: Date.now(), value});
+    used.add(path);
     return value;
+  }
+  // Once a minute while the tab is visible: redraw only when a feed changed (a new crown, a new
+  // grade), never while the viewer is typing in the finder; an error page retries itself.
+  async function refresh() {
+    const field = document.activeElement;
+    if (document.hidden || parseRoute(location.hash).view === "showcase" || app.getAttribute("aria-busy") === "true" || (field && field.tagName === "INPUT" && field.value)) return;
+    let changed = failed;
+    try {
+      for (const path of used) {
+        const response = await fetch(path, {cache: "no-cache"});
+        if (!response.ok) return;
+        if (JSON.stringify(await response.json()) !== JSON.stringify(cache.get(path).value)) { changed = true; break; }
+      }
+    } catch { return; }
+    if (!changed) return;
+    cache.clear();
+    const y = window.scrollY;
+    await render();
+    window.scrollTo(0, y);
   }
   async function optional(path) { try { return await getJson(path); } catch { return null; } }
   function eraBefore(slug, era) {
@@ -907,6 +1102,7 @@
   app.addEventListener("click", event => {
     const button = event.target.closest && event.target.closest("[data-copy]");
     if (button) copy(button);
+    if (event.target.closest && event.target.closest("[data-retry]")) { cache.clear(); render(); }
   });
   app.addEventListener("input", event => {
     const input = event.target;
@@ -920,7 +1116,13 @@
   async function render() {
     try {
       app.setAttribute("aria-busy", "true");
+      used = new Set();
+      failed = false;
       const index = await getJson("data/index.json");
+      setNames(await optional("data/names.json"));
+      SHOWCASE = index.showcase !== false;
+      const nav = document.querySelector(".topnav [data-view=showcase]");
+      if (nav) nav.hidden = !SHOWCASE;
       const route = parseRoute(location.hash);
       for (const a of document.querySelectorAll(".topnav a")) {
         const current = a.dataset.view === (route.view === "miner" ? "board" : route.view === "home" ? "board" : route.view);
@@ -929,17 +1131,24 @@
       const now = Math.floor(Date.now() / 1000);
       document.title = "Carbon Leaderboard";
       if (route.view === "showcase") {
+        if (!SHOWCASE) return show(h("p", {class: "notice"}, "There is no design showcase on this site. ", h("a", {href: "#/"}, "All boards")));
         if (!root.CarbonShowcase) throw new Error("showcase unavailable");
         setStamp("Verified signed feed");
         return await root.CarbonShowcase.render(app, route, getJson, setLabels);
       }
       if (route.view === "mine") { setLabels(["DEVELOPMENT"]); setStamp("Verified signed feed"); return show(minePage()); }
+      if (route.view === "updates") {
+        setLabels(["DEVELOPMENT"]); setStamp("Verified signed feed");
+        document.title = "Updates · " + document.title;
+        const updates = await optional("updates.json");
+        return show(updates ? updatesPage(index, updates) : h("p", {class: "notice"}, "The updates could not be loaded. ", h("a", {href: "#/"}, "All boards")));
+      }
       if (route.view === "home") {
         const boards = {};
         await Promise.all(index.boards.filter(b => b.slug).map(async b => { boards[b.slug] = await optional("data/v2/" + encodeURIComponent(b.slug) + ".json"); }));
-        setLabels(index.fixture ? ["DEVELOPMENT", "FIXTURE"] : ["DEVELOPMENT"]);
+        setLabels(index.fixture ? ["DEVELOPMENT", "FIXTURE"] : index.boards.length ? ["DEVELOPMENT"] : ["DEVELOPMENT", "TESTNET"]);
         const first = Object.values(boards).find(Boolean);
-        setStamp(footerStamp(first, now), first);
+        setStamp(first ? footerStamp(first, now) : "No board published yet", first);
         // Fetched only when the index says a signed snapshot exists (S3).
         const network = index.network === true ? await optional("data/network.json") : null;
         return show(homePage(index, boards, {now, network}));
@@ -950,11 +1159,15 @@
       board.feed_state = board.feed_state || {state: entry.state, code: entry.code};
       setLabels(labelsOf(board));
       setStamp(footerStamp(board, now), board);
-      const ctx = {now, eraBefore: route.view === "board" ? eraBefore(board.slug, board.era) : null};
-      document.title = board.challenge.id + " · " + document.title;
+      const ctx = {now, eraBefore: route.view === "board" ? eraBefore(board.slug, board.era) : null, classes: index.boards.map(b => b.device_class)};
+      document.title = nameOf(board.challenge.id) + " · " + document.title;
       return show(route.view === "miner" ? minerPage(board, route.hotkey, ctx) : boardPage(board, ctx));
     } catch (error) {
-      show(h("p", {class: "notice"}, h("strong", null, "Feed unavailable. "), String(error.message || error)));
+      failed = true;
+      setStamp("Standings not loaded");
+      show(h("div", {class: "notice", role: "alert"}, h("strong", null, "The standings could not be loaded. "),
+        "This is a display problem, not a change to any score. The page tries again every minute; you can also ",
+        h("button", {type: "button", class: "btn", "data-retry": "1"}, "Try again"), h("p", {class: "hint"}, String(error.message || error))));
     } finally {
       app.removeAttribute("aria-busy");
     }
@@ -978,5 +1191,6 @@
   paintTheme();
   window.addEventListener("hashchange", () => { render().then(() => { window.scrollTo(0, 0); app.focus({preventScroll: true}); }); });
   if (!ticker) ticker = setInterval(tick, 1000);
+  setInterval(refresh, 60000);
   render();
 })(typeof globalThis !== "undefined" ? globalThis : this);

@@ -31,6 +31,7 @@ GATES = ("native_motor_valid", "complete_fixed_coverage")
 KING = "5F3sa2TJAWMqDhXG6jhV4N8ko9SxwGy8TpaNS1repo5EYjQX"
 OTHER = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy"
 THIRD = "5HGjWAeFDfFCWGSSAdJNNnvVcMB5dAPa3QCVq4NJTfYfmfZZ"
+FOURTH = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 NOW = 1_800_000_000
 
 
@@ -278,10 +279,13 @@ def test_the_pages_render_launch_boards_in_node(receiver, tmp_path):
     _record(store, KING, _scored(0.64))
     _record(store, OTHER, _scored(0.5))
     _record(store, THIRD, _gate_failed())
+    # an earlier scored best, then a latest result that failed a gate: ranked on the best AND listed as failing
+    _record(store, FOURTH, _scored(0.52))
+    _record(store, FOURTH, _gate_failed())
     graded, trust = _board(board_rows(path, CHALLENGE, EXAM))
     build.build(tmp_path / "graded", [graded], trust, now=NOW)
     check = Path(__file__).with_name("dashboard_launch_check.cjs")
-    phases = {}
+    phases, both = {}, {}
     for name in ("empty", "graded"):
         result = subprocess.run(
             [node, str(check), str(tmp_path / name), str(NOW)],
@@ -291,4 +295,9 @@ def test_the_pages_render_launch_boards_in_node(receiver, tmp_path):
         )
         assert result.returncode == 0, result.stdout + result.stderr
         phases[name] = json.loads(result.stdout)["phases"]
+        both[name] = json.loads(result.stdout)["ranked_and_failed"]
     assert phases == {"empty": ["PRE_FIRST_RELEASE"], "graded": ["LIVE"]}
+    assert both == {
+        "empty": 0,
+        "graded": 1,
+    }  # FOURTH, on the ladder and under "Failed a gate"

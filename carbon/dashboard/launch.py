@@ -38,6 +38,15 @@ import re
 
 SCHEMA = "carbon.validator.launch-board.v1"
 DOMAIN = b"carbon.validator.launch-board.v1\x00"
+# v2 adds `crown_changes` under its own signing domain; v1 is read unchanged (no history, nothing drawn).
+SCHEMA_V2 = "carbon.validator.launch-board.v2"
+DOMAIN_V2 = b"carbon.validator.launch-board.v2\x00"
+# v3 adds the king's `stability` ("STABLE" / "UNSTABLE", null with no king) under its own domain (OWNER-CROWN-AVG-UNSTABLE-KING-01).
+SCHEMA_V3 = "carbon.validator.launch-board.v3"
+DOMAIN_V3 = b"carbon.validator.launch-board.v3\x00"
+STABILITY = ("STABLE", "UNSTABLE")
+SCHEMAS = {SCHEMA: DOMAIN, SCHEMA_V2: DOMAIN_V2, SCHEMA_V3: DOMAIN_V3}
+MAX_CROWN_CHANGES = 5
 TOTAL = "total"
 SECTION_META = {
     TOTAL: {
@@ -73,7 +82,12 @@ FIELDS = frozenset(
         "signature",
     }
 )
+FIELDS_V2 = FIELDS | {"crown_changes"}
+CROWN_FIELDS = frozenset({"from_hotkey", "to_hotkey", "since_epoch", "total"})
 KING_FIELDS = frozenset({"king", "margin", "to_beat", "baseline_total"})
+TO_BEAT_RULE = (
+    "floor_plus_step_plus_margin"  # v2 king section names its rule; v1 has none
+)
 KING_ROW = frozenset({"hotkey", "total", "since_epoch"})
 LADDER_FIELDS = frozenset({"rank", "hotkey", "total", "status", "gate_names"})
 
@@ -89,7 +103,7 @@ class LaunchRefused(ValueError):
 def canonical_bytes(document):
     body = {k: v for k, v in document.items() if k != "signature"}
     return (
-        DOMAIN
+        SCHEMAS.get(document.get("schema"), DOMAIN)
         + json.dumps(
             body,
             sort_keys=True,
@@ -144,9 +158,37 @@ def _digits(values):
     raise LaunchRefused("total_unrounded")
 
 
+def _crown_changes(changes):
+    """The v2 history: at most 5 entries, newest first, each exactly the four closed keys."""
+    if type(changes) is not list or len(changes) > MAX_CROWN_CHANGES:
+        raise LaunchRefused("crown_changes_invalid")
+    for entry in changes:
+        if (
+            type(entry) is not dict
+            or set(entry) != CROWN_FIELDS
+            or type(entry["to_hotkey"]) is not str
+            or not _SS58.fullmatch(entry["to_hotkey"])
+            or not (
+                entry["from_hotkey"] is None
+                or (
+                    type(entry["from_hotkey"]) is str
+                    and _SS58.fullmatch(entry["from_hotkey"])
+                )
+            )
+            or type(entry["since_epoch"]) is not int
+            or entry["since_epoch"] < 0
+        ):
+            raise LaunchRefused("crown_changes_invalid")
+        _unit(entry["total"], "crown_changes_invalid")
+
+
 def _check(document):
-    if set(document) != FIELDS:
+    v3 = document.get("schema") == SCHEMA_V3
+    v2 = v3 or document.get("schema") == SCHEMA_V2
+    if set(document) != (FIELDS_V2 if v2 else FIELDS):
         raise LaunchRefused("board_fields")
+    if v2:
+        _crown_changes(document["crown_changes"])
     network = document["network"]
     if network not in NETWORK_LABELS or document["labels"] != NETWORK_LABELS[network]:
         raise LaunchRefused("labels_invalid")
@@ -177,7 +219,17 @@ def _check(document):
     ):
         raise LaunchRefused("validator_invalid")
     king = document["king"]
-    if type(king) is not dict or set(king) != KING_FIELDS:
+    want = KING_FIELDS | {"to_beat_rule"} if v2 else KING_FIELDS
+    if v3:
+        want = want | {"stability"}
+    if type(king) is not dict or set(king) != want:
+        raise LaunchRefused("king_invalid")
+    if v3 and (
+        king["stability"] not in (None, *STABILITY)
+        or (king["stability"] is None) != (king["king"] is None)
+    ):
+        raise LaunchRefused("king_invalid")
+    if v2 and king["to_beat_rule"] != TO_BEAT_RULE:
         raise LaunchRefused("king_invalid")
     row = king["king"]
     if row is not None:
@@ -241,7 +293,7 @@ def project(document, trust):
 
     if trust.fixture:
         raise LaunchRefused("fixture_launch_board")
-    if type(document) is not dict or document.get("schema") != SCHEMA:
+    if type(document) is not dict or document.get("schema") not in SCHEMAS:
         raise LaunchRefused("schema_unsupported")
     signer = verify(document, trust)
     counts = _check(document)
@@ -253,6 +305,7 @@ def project(document, trust):
     totals += [
         king[k] for k in ("margin", "to_beat", "baseline_total") if king[k] is not None
     ]
+    totals += [c["total"] for c in document.get("crown_changes", [])]
     digits = _digits(totals)
     challenge = document["challenge"]
     standing = [
@@ -265,7 +318,9 @@ def project(document, trust):
         for e in ladder
         if e["total"] is not None
     ]
-    standing.sort(key=lambda r: (r["rank"], r["hotkey"]))
+    king_key = None if king["king"] is None else king["king"]["hotkey"]
+    # the king leads its rank; a bit-equal challenger is listed after it
+    standing.sort(key=lambda r: (r["rank"], r["hotkey"] != king_key, r["hotkey"]))
     incumbent = None
     if king["king"] is not None:
         incumbent = {
@@ -277,7 +332,7 @@ def project(document, trust):
     digest = "sha256:" + hashlib.sha256(canonical_bytes(document)).hexdigest()
     return {
         "schema": feed.BOARD_SCHEMA,
-        "source_schema": SCHEMA,
+        "source_schema": document["schema"],
         "fixture": False,
         "labels": list(document["labels"]),
         "challenge": {
@@ -328,6 +383,21 @@ def project(document, trust):
             "gate_names": {
                 e["hotkey"]: list(e["gate_names"]) for e in ladder if e["gate_names"]
             },
+            # v3 only: whether the king's latest re-measure was seed-fragile; None on v1/v2 (nothing drawn)
+            "king_stability": king.get("stability"),
+            "crown_changes": (
+                None
+                if document["schema"] == SCHEMA
+                else [
+                    {
+                        "hotkey": c["to_hotkey"],
+                        "from_hotkey": c["from_hotkey"],
+                        "since_epoch": c["since_epoch"],
+                        "total": float(c["total"]),
+                    }
+                    for c in document["crown_changes"]
+                ]
+            ),
         },
         "feed": {
             "key_id": feed.key_id(signer),

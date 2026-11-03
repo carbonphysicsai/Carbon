@@ -1,0 +1,6 @@
+{
+ "electric-motor-magnetics": {"name": "Motor", "status": "Open: crowns live", "about": "Electric motor magnetics: the torque curve", "order": 1},
+ "chip-cold-plate": {"name": "Cooling", "status": "Open: crowns live", "about": "Chip cold plate: cooling a hot chip", "order": 2},
+ "f08-ribbed-bracket": {"name": "Ribbed Bracket", "status": "Open: crowns live", "about": "Ribbed bracket: stiffness and vibration peaks", "order": 3},
+ "f02": {"name": "Burst Thermal", "status": "Open: crowns live", "about": "Peak top temperature of a part", "order": 4}
+}

@@ -1,0 +1,113 @@
+{
+ "schema": "carbon.dashboard.updates.v1",
+ "intro": "What each Challenge runs now and what its next version changes. Every change ships as a new version with its own board and its own crown. Nothing already graded is rescored: your current results and crowns stay as they are.",
+ "next_label": "Planned; final rules published with each version.",
+ "challenges": [
+  {
+   "id": "electric-motor-magnetics",
+   "next": [
+    {
+     "version": "1.6",
+     "changes": [
+      "Details soon. We'll post them once they're confirmed."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "chip-cold-plate",
+   "next": [
+    {
+     "version": "1.7",
+     "changes": [
+      "Leg minimums and the crown floor are set separately.",
+      "Accuracy is scored in range only until Cooling 1.8.",
+      "The check that your model's predicted value at its pick matches the real one is stricter. Honest predictions matter more."
+     ]
+    },
+    {
+     "version": "1.8",
+     "changes": [
+      "A broader hidden test set, with more out-of-range cases, placed where fits that only match the training data tend to fail.",
+      "Accuracy becomes the worse of in-range and out-of-range accuracy, so a model that is good only inside the training range is held to its out-of-range result. If the version's checks do not support this, a milder combination is used instead; the version's published score formula says which."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "f08-ribbed-bracket",
+   "next": [
+    {
+     "version": "2.0",
+     "changes": [
+      "Material choice becomes an input.",
+      "Its main output becomes a worst-case dynamic stress.",
+      "More out-of-range cases are planned, placed where fits that only match the training data tend to fail. The out-of-range region is not set yet.",
+      "Accuracy becomes the worse of in-range and out-of-range accuracy, so a model that is good only inside the training range is held to its out-of-range result. If the version's checks do not support this, a milder combination is used instead; the version's published score formula says which.",
+      "Design value is measured against the engineer's shortcut: zero means a pick no better than what a cheap shortcut method finds. If the dry run can't measure it, the current zero stays."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "f02",
+   "next": [
+    {
+     "version": "3.0",
+     "changes": [
+      "Materials whose properties change with temperature.",
+      "9 inputs, with the pulse shape as an input. The input ranges are still being finalised; we'll publish them with the version.",
+      "More out-of-range cases, placed where fits that only match the training data tend to fail.",
+      "Accuracy becomes the worse of in-range and out-of-range accuracy, so a model that is good only inside the training range is held to its out-of-range result. If the version's checks do not support this, a milder combination is used instead; the version's published score formula says which.",
+      "Design value is measured against the engineer's shortcut: zero means a pick no better than what a cheap shortcut method finds. If the dry run can't measure it, the current zero stays."
+     ]
+    }
+   ]
+  }
+ ],
+ "every_version": [
+  "In Cooling 1.7 and every next version: design value scores the best of your model's top three design picks, and the honesty of all three is scored too.",
+  "Design value is balanced across the design space, so one area can't decide the result.",
+  "Practice data and the mining guide are updated with each version."
+ ],
+ "fixes": [
+  "Check for result (check_result) could show your own graded Cooling catalog submission as not graded yet, or as another submission's result. It now finds a grade made on the validator's official GPU build. Update your install to get the fix."
+ ],
+ "known_issues": [
+  "Some staged graph files were not carried across a recent receiver update; graded results are unaffected. If staging returns construction_source_idempotency_conflict, stage again without passing the expected manifest.",
+  "A catalog practice runs on the CPU, even on a GPU machine: catalog entries have no GPU build yet. Start from your own graph to practise on the GPU.",
+  "Close to a physics check, a practice that ran on the CPU can differ from the official grade, which always rebuilds your model on the validator's GPU.",
+  "A 16 GB machine cannot run practice: Docker must see at least 17 GiB of memory."
+ ],
+ "faq": [
+  {
+   "q": "Why does my result show no total?",
+   "a": [
+    "A result that does not count shows no total and says why. Not admitted: an invalid result, an ineligible design decision, or a score part below its required minimum. Not graded: an infrastructure problem or indeterminate evidence, which doesn't use your allowance.",
+    "On a board, a hotkey whose latest result does not count is in the Not scored count."
+   ]
+  },
+  {
+   "q": "Can I compare my practice total with my official grade?",
+   "a": [
+    "No. Practice runs on public practice cases; the official grade runs on hidden cases you never see. A practice total is never an exam score or grade."
+   ]
+  },
+  {
+   "q": "How do I read the ladder?",
+   "a": [
+    "Rank is the board's order: the leader first, then by exact score.",
+    "An = before a rank means those hotkeys share that rank.",
+    "Totals are shown rounded down to the Ladder step.",
+    "Failed a gate lists hotkeys whose latest result failed a mandatory gate. A hotkey with an earlier scored result keeps its rank on that best result; the failed result is not scored."
+   ]
+  },
+  {
+   "q": "What is the score to beat?",
+   "a": [
+    "Beat the leader's score by the margin, passing every gate and minimum, to take the crown.",
+    "With no leader yet, you need to beat Carbon's baseline by the margin."
+   ]
+  }
+ ]
+}

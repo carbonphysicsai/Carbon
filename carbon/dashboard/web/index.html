@@ -10,6 +10,10 @@
 <meta name="theme-color" content="#f5f5f0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0e0e10" media="(prefers-color-scheme: dark)">
 <title>Carbon Leaderboard</title>
+<link rel="icon" href="brand/favicon-light-32.png" type="image/png" sizes="32x34" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="brand/favicon-light.svg" type="image/svg+xml" sizes="any" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="brand/favicon-dark-32.png" type="image/png" sizes="32x34" media="(prefers-color-scheme: light)">
+<link rel="icon" href="brand/favicon-dark.svg" type="image/svg+xml" sizes="any" media="(prefers-color-scheme: light)">
 <link rel="preload" href="fonts/neue-0.otf" as="font" type="font/otf" crossorigin>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -17,7 +21,7 @@
 <a class="skip" href="#app">Skip to content</a>
 <header class="topbar">
   <a class="wordmark" href="#/"><img src="brand/brand-2.svg" alt="Carbon" width="96" height="22"><span class="eyebrow">Leaderboard</span></a>
-  <nav class="topnav" aria-label="Sections"><a href="#/" data-view="board">Leaders</a><a href="#/mine" data-view="mine">How to mine</a><a href="#/showcase" data-view="showcase">Design showcase</a></nav>
+  <nav class="topnav" aria-label="Sections"><a href="#/" data-view="board">Leaders</a><a href="#/mine" data-view="mine">How to mine</a><a href="#/updates" data-view="updates">Updates</a><a href="#/showcase" data-view="showcase">Design showcase</a></nav>
   <div class="labels" id="labels" aria-label="Labels"></div>
   <button type="button" class="theme" id="theme" aria-pressed="false" aria-label="Switch between light and dark">Dark</button>
 </header>
@@ -27,6 +31,7 @@
   practice.
 </div>
 <main id="app" tabindex="-1">
+  <p class="hint" role="status">Loading the latest standings…</p>
   <noscript><p class="notice">The leaderboard draws its pages with JavaScript.</p></noscript>
 </main>
 <footer class="footer">
@@ -35,7 +40,7 @@
     again by this site. Rule statements appear only from the Validator's rules card. Recipes and
     per-case values are not shown. The design showcase replays public cases and public reference
     solves only.</p>
-  <div class="foot-row"><a href="https://github.com/carbonphysicsai/Carbon/tree/main/carbon/dashboard">Source</a><a href="#/mine">How to mine</a></div>
+  <div class="foot-row"><a href="https://github.com/carbonphysicsai/Carbon/tree/main/carbon/dashboard">Source</a><a href="#/mine">How to mine</a><a href="#/updates">Updates</a></div>
 </footer>
 <script src="showcase.js"></script>
 <script src="dashboard.js"></script>

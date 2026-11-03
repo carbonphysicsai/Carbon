@@ -620,6 +620,18 @@ def _launch(board):
             "exam_version_label": launch["exam_version_label"],
             "network": launch["network"],
             "gate_names": {k: list(v) for k, v in launch["gate_names"].items()},
+            # v3 boards only: the king's stability ("UNSTABLE" = his latest re-measure was seed-fragile; no seed, mean or number)
+            **(
+                {}
+                if launch.get("king_stability") is None
+                else {"king_stability": launch["king_stability"]}
+            ),
+            # v2 boards only: the signed history, newest first; a v1 board carries none, so the page draws nothing.
+            **(
+                {}
+                if launch.get("crown_changes") is None
+                else {"crown_changes": [dict(c) for c in launch["crown_changes"]]}
+            ),
         }
     }
 

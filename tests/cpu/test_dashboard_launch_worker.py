@@ -19,7 +19,7 @@ import pytest
 
 from carbon.challenge_validator import launch_board as lb
 from carbon.challenge_validator.score_feed import FeedKey
-from carbon.dashboard import board_v2, feed
+from carbon.dashboard import board_v2, feed, launch
 from tests.cpu import test_dashboard_worker as base
 
 NODE = shutil.which("node")
@@ -134,6 +134,77 @@ def _variants(signer, boards):
         lambda b: b["challenge"].__setitem__("exam_version_label", "<b>x"),
     )
     edit("network", lambda b: b.__setitem__("network", "localnet"))
+
+    def crown(to, frm, epoch, total):
+        return {
+            "from_hotkey": frm,
+            "to_hotkey": to,
+            "since_epoch": epoch,
+            "total": total,
+        }
+
+    def v2(name, changes, *, signed_under=launch.DOMAIN_V2, mutate=None):
+        body = {k: v for k, v in copy.deepcopy(graded).items() if k != "signature"}
+        body["schema"] = launch.SCHEMA_V2
+        body["king"]["to_beat_rule"] = launch.TO_BEAT_RULE
+        if changes is not None:
+            body["crown_changes"] = changes
+        if mutate:
+            mutate(body)
+        signature = signer._key.sign(signed_under + lb._canonical(body).encode())
+        out.append((name, {**body, "signature": signature.hex()}))
+
+    two = [crown(KING, OTHER, 9, 0.64), crown(OTHER, None, 4, 0.5)]
+    v2("v2_two", two)
+    v2("v2_empty", [])
+    v2("v2_five", [crown(KING, OTHER, 9 - i, 0.64) for i in range(5)])
+    v2("v2_six", [crown(KING, OTHER, 9 - i, 0.64) for i in range(6)])
+    v2("v2_missing_field", None)
+    v2("v2_extra_entry_key", [{**two[0], "submission": "rtsk_x"}])
+    v2("v2_bad_from", [crown(KING, "5short", 9, 0.64)])
+    v2("v2_negative_epoch", [crown(KING, OTHER, -1, 0.64)])
+    v2("v2_float_epoch", [crown(KING, OTHER, 9.0, 0.64)])
+    v2("v2_total_over_one", [crown(KING, OTHER, 9, 1.5)])
+    v2("v2_total_unrounded", [crown(KING, OTHER, 9, 0.123456789123)])
+    v2("v2_signed_under_v1_domain", two, signed_under=launch.DOMAIN)
+    v2("v2_no_rule", two, mutate=lambda b: b["king"].pop("to_beat_rule"))
+    v2(
+        "v2_wrong_rule",
+        two,
+        mutate=lambda b: b["king"].__setitem__("to_beat_rule", "ceil"),
+    )
+
+    def co_rank(b):  # a bit-equal challenger shares rank 1 with the king
+        for row in b["ladder"]:
+            row["rank"] = 1
+
+    v2("v2_co_rank", two, mutate=co_rank)
+
+    def v3(name, stability, *, signed_under=launch.DOMAIN_V3, mutate=None):
+        body = {k: v for k, v in copy.deepcopy(graded).items() if k != "signature"}
+        body["schema"] = launch.SCHEMA_V3
+        body["king"]["to_beat_rule"] = launch.TO_BEAT_RULE
+        body["king"]["stability"] = stability
+        body["crown_changes"] = two
+        if mutate:
+            mutate(body)
+        signature = signer._key.sign(signed_under + lb._canonical(body).encode())
+        out.append((name, {**body, "signature": signature.hex()}))
+
+    v3("v3_unstable", "UNSTABLE")
+    v3("v3_stable", "STABLE")
+    v3("v3_bad_value", "OTHER")
+    v3("v3_king_without_stability", None)
+    v3("v3_signed_under_v2_domain", "UNSTABLE", signed_under=launch.DOMAIN_V2)
+    v3("v3_missing_field", "UNSTABLE", mutate=lambda b: b["king"].pop("stability"))
+    v3(
+        "v3_extra_king_key",
+        "UNSTABLE",
+        mutate=lambda b: b["king"].__setitem__("mean", 0.7),
+    )
+    body = {k: v for k, v in copy.deepcopy(graded).items() if k != "signature"}
+    signature = signer._key.sign(launch.DOMAIN_V2 + lb._canonical(body).encode())
+    out.append(("v1_signed_under_v2_domain", {**body, "signature": signature.hex()}))
     tampered = copy.deepcopy(graded)
     tampered["ladder"][0]["total"] = 0.99
     out.append(("tampered", tampered))
@@ -172,6 +243,47 @@ def test_worker_matches_launch_py_on_every_board_and_refusal(tmp_path):
     assert codes["extra_ladder_key"] == "ladder_invalid"
     assert codes["unrounded"] == "total_unrounded"
     assert codes["counts"] == "counts_invalid"
+    for ok in ("v2_two", "v2_empty", "v2_five"):
+        assert codes[ok] is None, ok
+    for bad in (
+        "v2_six",
+        "v2_extra_entry_key",
+        "v2_bad_from",
+        "v2_negative_epoch",
+        "v2_float_epoch",
+        "v2_total_over_one",
+    ):
+        assert codes[bad] == "crown_changes_invalid", bad
+    assert codes["v2_missing_field"] == "board_fields"
+    assert codes["v2_total_unrounded"] == "total_unrounded"
+    assert codes["v2_signed_under_v1_domain"] == "signature_invalid"
+    assert (
+        codes["v2_no_rule"] == "board_fields" or codes["v2_no_rule"] == "king_invalid"
+    )
+    assert codes["v2_wrong_rule"] == "king_invalid"
+    assert codes["v2_co_rank"] is None
+    assert codes["v1_signed_under_v2_domain"] == "signature_invalid"
+    for ok in ("v3_unstable", "v3_stable"):
+        assert codes[ok] is None, ok
+    for bad in (
+        "v3_bad_value",
+        "v3_king_without_stability",
+        "v3_missing_field",
+        "v3_extra_king_key",
+    ):
+        assert codes[bad] == "king_invalid", bad
+    assert codes["v3_signed_under_v2_domain"] == "signature_invalid"
+    flags = {
+        n: w["board"]["launch"].get("king_stability")
+        for n, w in expected_v2
+        if "board" in w
+    }
+    assert (
+        flags["v3_unstable"] == "UNSTABLE"
+        and flags["v3_stable"] == "STABLE"
+        and flags["v2_two"] is None
+        and flags["graded"] is None
+    )
     # a board that is accepted projects to the launch phases
     phases = {
         name: want["board"]["phase"] for name, want in expected_v2 if "board" in want
@@ -179,6 +291,13 @@ def test_worker_matches_launch_py_on_every_board_and_refusal(tmp_path):
     assert phases["empty"] == "PRE_FIRST_RELEASE" and phases["graded"] == "LIVE"
     graded = next(w["board"] for n, w in expected_v2 if n == "graded")
     assert graded["launch"]["counts"]["graded"] == 3
+    # a v1 board carries no history; a v2 board carries it as the validator signed it, newest first
+    assert "crown_changes" not in graded["launch"]
+    two = next(w["board"] for n, w in expected_v2 if n == "v2_two")
+    assert [c["since_epoch"] for c in two["launch"]["crown_changes"]] == [9, 4]
+    assert two["launch"]["crown_changes"][1]["from_hotkey"] is None
+    empty = next(w["board"] for n, w in expected_v2 if n == "v2_empty")
+    assert empty["launch"]["crown_changes"] == []
     assert graded["eligible_leaderboard"]["label"] == board_v2.LAUNCH_LADDER_LABEL
 
 

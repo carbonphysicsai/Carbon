@@ -764,7 +764,7 @@ def project(document, trust):
 
     Raises FeedRefused with a reason code; never returns a partial board.
     """
-    if type(document) is dict and document.get("schema") == launch.SCHEMA:
+    if type(document) is dict and document.get("schema") in launch.SCHEMAS:
         # The launch Challenges' standing (OWNER-DASHBOARD-01): its own schema and
         # signing domain, projected to the same board model.
         try:

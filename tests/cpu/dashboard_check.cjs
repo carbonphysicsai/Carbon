@@ -109,7 +109,7 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   const tree = D.boardPage(board, ctx);
   const text = check(tree, where);
   sectionLines(tree, board, null, where);
-  assert.ok(text.includes(board.challenge.id), where + ": title");
+  assert.ok(text.includes(D.nameOf(board.challenge.id)), where + ": title");
   assert.ok(text.includes("key " + D.keyShort(board)), where + ": feed key as people know it");
   assert.ok(!text.includes(board.feed.key_id), where + ": internal key id only in an attribute");
   // Rule statements: one "Rules unavailable" line while the card is not OK.
@@ -216,10 +216,46 @@ const fullNet = {uids: 256, validators: 12, emission: 0.5};
 const netTree = D.homePage(index, boards, {now, network: fullNet});
 sectionLines(netTree, null, fullNet, "network full");
 assert.ok(D.textOf(netTree).includes("Validators 12") && !D.textOf(netTree).includes(D.MORE), "network full");
+// Challenge names: the deploy-time map, else the id in title case; never markup.
+assert.equal(D.nameOf("f08-ribbed-bracket"), "F08 Ribbed Bracket");
+assert.equal(D.nameOf("electric-motor-magnetics"), "Electric Motor Magnetics");
+D.setNames({names: {f02: "Burst Thermal", "chip-cold-plate": "<b>Cooling</b>", "x": 7}});
+assert.equal(D.nameOf("f02"), "Burst Thermal");
+assert.equal(D.nameOf("chip-cold-plate"), "Chip Cold Plate", "a name that is not a plain label is ignored");
+D.setNames(null);
+assert.equal(D.nameOf("f02"), "F02");
+// Named Challenges with no board are "Launching soon" cards: no score, leader or date.
+D.setNames({names: {f02: "Burst Thermal", "chip-cold-plate": "Cooling"}});
+const soon = D.textOf(D.homePage({fixture: false, boards: []}, {}, {now}));
+assert.ok(soon.includes("Burst Thermal") && soon.includes("Cooling") && soon.includes("Launching soon"), "launching cards");
+assert.ok(!/\d/.test(soon) && !soon.includes("KING"), "a launching card carries no number or leader");
+const liveEntry = {slug: "f02--no-class", challenge: {id: "f02", version: "2.5"}, device_class: null, labels: ["DEVELOPMENT", "TESTNET"], state: "ACCEPTED", code: null};
+const part = D.textOf(D.homePage({fixture: false, boards: [liveEntry]}, {}, {now}));
+assert.ok(part.includes("Burst Thermal") && part.includes("Cooling") && (part.match(/Launching soon/g) || []).length === 1, "only a Challenge with no board is launching");
+// An entry may carry a status line and an https door: the chip says the status, the card links
+// the door, "How to mine" and the guide; a bad status or door is dropped, a plain name is unchanged.
+D.setNames({names: {
+  "f08-ribbed-bracket": {name: "Ribbed Bracket", status: "Open: crowns live", door: "https://ribbed-bracket-door.carbonphysics.ai"},
+  "chip-cold-plate": {name: "Cooling", status: "Open: crowns open in week 1"},
+  f02: {name: "Burst Thermal", status: "<b>Open</b>", door: "http://insecure.example"},
+  "electric-motor-magnetics": "Motor",
+}});
+const open = D.homePage({fixture: false, boards: []}, {}, {now});
+const openText = D.textOf(open);
+assert.ok(openText.includes("Open: crowns live") && openText.includes("Open: crowns open in week 1"), "status chips");
+assert.equal((openText.match(/Launching soon/g) || []).length, 2, "a bad status or no entry falls back to Launching soon");
+assert.ok(!openText.includes("<b>"), "no markup from a status");
+const hrefs = []; D.walk(open, n => { if (n.attrs.href) hrefs.push(n.attrs.href); });
+assert.ok(hrefs.includes("https://ribbed-bracket-door.carbonphysics.ai"), "the door is linked");
+assert.ok(!hrefs.some(h => h.startsWith("http://")), "an insecure door is dropped");
+assert.ok(hrefs.includes(D.LINKS.guide), "the guide is linked from a card with a status");
+assert.ok(!/\d/.test(openText.replace("week 1", "")), "still no score, leader or date");
+D.setNames(null);
+assert.ok(D.textOf(D.homePage({fixture: false, boards: []}, {}, {now})).includes("No board is published yet"), "no names: the one empty line");
 const mine = check(D.minePage(), "mine");
-for (const want of ["Start", "Practice", "Submit", "My status"]) assert.ok(mine.includes(want), "how to mine: " + want);
+for (const want of ["Check your machine", "Install", "Practice", "Submit", "Find yourself"]) assert.ok(mine.includes(want), "how to mine: " + want);
 const links = []; D.walk(D.minePage(), n => { if (n.attrs.href) links.push(n.attrs.href); });
-assert.ok(links.includes(D.LINKS.launchpad) && links.includes(D.LINKS.journey), "launchpad docs linked");
+assert.ok(links.includes(D.LINKS.launchpad) && links.includes(D.LINKS.guide), "launchpad docs and the mining guide linked");
 
 assert.deepEqual(D.parseRoute("#/b/x--cpu/m/5abc"), {view: "miner", slug: "x--cpu", hotkey: "5abc"});
 assert.deepEqual(D.parseRoute("#/mine"), {view: "mine"});
@@ -289,7 +325,7 @@ if (chainSite) {
     }
     assert.ok(targetText.includes(D.RULES_LINE), where + ": the rules line in the target panel");
     assert.equal(rulesLines(text), 1, where + ": one rules line");
-    assert.ok(targetText.includes(D.fmt(board.king.value) + " king's " + D.sectionLabel(board)), where + ": the king's score");
+    assert.ok(targetText.includes(D.total(board.king.value) + " king's " + D.sectionLabel(board)), where + ": the king's score");
     assert.ok(targetText.includes("King's gates:"), where + ": the king's gates");
     const ok = clone(board); ok.rules = {status: "OK", card_digest: "sha256:" + "0".repeat(64), reasons: {}};
     const okText = check(D.boardPage(ok, ctx), where + " rules OK");

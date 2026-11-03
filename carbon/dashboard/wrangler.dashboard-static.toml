@@ -1,0 +1,20 @@
+# carbon-dashboard, static-only: the honest "launching soon" page, before any launch board is
+# published. No Worker code, no feed, no secrets: it serves the built site as files (the security
+# headers come from the site's own _headers file). Build the site, then deploy:
+#   python -m carbon.dashboard build --empty --out carbon/dashboard/site-empty
+#   npx wrangler@4.151.3 deploy --config carbon/dashboard/wrangler.dashboard-static.toml
+# Replace it with wrangler.dashboard.toml (the live Worker, built from the real boards) once the
+# four launch boards are published. `npx wrangler@4.151.3 rollback` returns to the previous
+# deployment. Wrangler reads the account and the token from the environment.
+name = "carbon-dashboard"
+compatibility_date = "2026-09-16"
+workers_dev = false
+preview_urls = false
+
+[assets]
+# Relative to this file: carbon/dashboard/site-empty, written by the build above.
+directory = "./site-empty"
+
+[[routes]]
+pattern = "dashboard.carbonphysics.ai"
+custom_domain = true

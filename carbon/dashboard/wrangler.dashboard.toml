@@ -27,3 +27,5 @@ custom_domain = true
 
 [vars]
 CACHE_SECONDS = "60"
+# Optional, set at deploy (`--var`) or in the dashboard, never here: CHALLENGE_NAMES, a JSON
+# object of Challenge id to display name, e.g. {"<challenge id>": "Motor"}.

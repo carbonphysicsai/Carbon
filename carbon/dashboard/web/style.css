@@ -125,9 +125,12 @@ td.num,th.num{text-align:right}
 td.rank{font-weight:600}
 tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--bg)}
-tr.is-king td{background:var(--king-row)}
+tr.is-king td{background:var(--king-row);font-weight:600}
 tr.is-king td:first-child{box-shadow:inset 3px 0 0 var(--red)}
-.crown-tag{margin-left:8px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--red)}
+.crown-tag{margin-left:8px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--fg);border-bottom:2px solid var(--red)}
+.notice .btn{margin:0 4px}
+.field{min-width:0;max-width:100%}
+.field select{max-width:100%;min-width:0}
 .uid{margin-left:8px;font-size:12px;color:var(--muted-fg)}
 .opt{display:none}
 .hotkeys summary{font-size:13px;min-height:24px}
@@ -172,6 +175,7 @@ a.board-card:hover{border-color:var(--fg)}
 .board-card-king{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:12px}
 .board-card-value{margin-left:auto;font-size:24px;font-weight:600;letter-spacing:-.03em}
 .board-card-value small{font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:.04em;color:var(--muted-fg)}
+.updates{margin:8px 0 0;padding-left:20px;display:grid;gap:6px;max-width:80ch}
 .steps{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:12px;counter-reset:none}
 .step{display:grid;grid-template-columns:40px 1fr;gap:14px;background:var(--card);border:1px solid var(--border);padding:18px}
 .step-n{display:grid;place-items:center;width:40px;height:40px;background:var(--fg);color:var(--bg);font-family:var(--mono);font-weight:600}
@@ -303,3 +307,9 @@ tr.is-king .minibar .fill{fill:var(--red)}
   .counts-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
   .teaser{padding:36px 40px}
 }
+.beat-block{display:grid;gap:4px;border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.beat-value{font-size:clamp(28px,8vw,40px);font-weight:600;letter-spacing:-.04em;line-height:1}
+.beat-value.is-pending{font-size:20px;color:var(--muted-fg)}
+.beat-line{font-size:13px;color:var(--muted-fg);margin:0}
+.about{margin:0;font-size:14px;color:var(--muted-fg)}
+.cc-list{margin:0;padding-left:20px;display:grid;gap:6px}
