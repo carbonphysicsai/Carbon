@@ -2,7 +2,8 @@
 
 Each axis is either MEASURED from what that run already graded (G1, G2, G3, G7, G8, G9) or a typed ``NOT_RUN`` naming the rows it
 needs (G4, G5, G6: they need models trained on held-out regimes, variant cases or TRAIN fractions, which a checks run does not
-build). Owner values (the G2 distance threshold, the G3 class floor) are inputs; unset, the count against them is null. No bar,
+build). G6 is MEASURED when the run graded ``@frac`` contenders (`g6_subsets` -> `g6_fit` -> checks_batch): the learning curve
+per class (`g6_learning_curve`); without them it is the same NOT_RUN as before. Owner values (the G2 distance threshold, the G3 class floor) are inputs; unset, the count against them is null. No bar,
 no pass/fail.
 """
 
@@ -10,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import itertools
 import json
 from pathlib import Path
 
@@ -87,6 +89,106 @@ def _not_run(needs):
     return {"status": "NOT_RUN", "needs": needs}
 
 
+G6_NEEDS = "default-model and best-shortcut rows trained on 25 / 50 / 100 % of TRAIN"
+
+
+def _rises(values, *, strict=False):
+    """True when the sequence never falls (``strict``: rises at every step), False otherwise, None when a value is missing."""
+    if any(v is None for v in values) or len(values) < 2:
+        return None
+    return all((b > a) if strict else (b >= a) for a, b in itertools.pairwise(values))
+
+
+def g6_learning_curve(checks, sink):
+    """G6 from the run's ``@frac`` contenders (`checks_report.frac_role`, fitted by `g6_fit`): per class and fraction, each
+    curve's A (the mean A_gen atom with `checks_kit._mean_ci`'s within-class bootstrap interval), its |err|/U (the report's own
+    medians / p90s), whether A rises with the fraction and |err|/U's median falls, and per fraction the gap default - shortcut
+    (`checks_report._gap`, check (3)'s unpaired interval, and `checks_kit.paired_gap`, the same points paired). D is not in the
+    checks-1-3 report: null. Without ``@frac`` contenders: the NOT_RUN it always was."""
+    import checks_kit
+
+    frac_atoms = sink.get("frac_atoms") or {}
+    if not frac_atoms:
+        return _not_run(G6_NEEDS)
+    curves = {}
+    for role in frac_atoms:
+        base, fraction = report.frac_role(role)
+        curves.setdefault(base, {})[fraction] = role
+    order = sorted(curves, key=lambda b: (b != report.DEFAULT, b))
+    shortcuts = [b for b in order if b != report.DEFAULT]
+    status = {c["role"]: c["status"] for c in checks["contenders"]}
+    seed = checks["bootstrap"]["seed"]
+    step = checks["score_step"]
+    by_class = {}
+    for i, row in enumerate(checks["classes"]):
+        cls = row["class"]
+        per_base = {}
+        for j, base in enumerate(order):
+            fractions = sorted(curves[base])
+            points = {}
+            for k, fraction in enumerate(fractions):
+                role = curves[base][fraction]
+                points[repr(fraction)] = {
+                    "role": role,
+                    "status": status[role],
+                    "A": checks_kit._mean_ci(
+                        frac_atoms[role][cls], seed + 6000 + 100 * i + 10 * j + k
+                    ),
+                    "D": None,
+                    "err_over_u": row["err_over_u"][role],
+                }
+            a = [None if p["A"] is None else p["A"]["value"] for p in points.values()]
+            eou = [p["err_over_u"] for p in points.values()]
+            outputs = sorted(set().union(*(e or {} for e in eou)))
+            per_base[base] = {
+                "fractions": points,
+                "a_rises_with_fraction": _rises(a),
+                "a_strictly_rises_with_fraction": _rises(a, strict=True),
+                "err_over_u_median_falls_with_fraction": {
+                    k: _rises(
+                        [
+                            None if e is None or k not in e else -e[k]["median"]
+                            for e in eou
+                        ]
+                    )
+                    for k in outputs
+                },
+            }
+        gaps = {}
+        if report.DEFAULT in curves:
+            for j, base in enumerate(shortcuts):
+                both = sorted(set(curves[report.DEFAULT]) & set(curves[base]))
+                gaps[base] = {}
+                for k, fraction in enumerate(both):
+                    a = frac_atoms[curves[report.DEFAULT][fraction]][cls]
+                    b = frac_atoms[curves[base][fraction]][cls]
+                    s = seed + 8000 + 100 * i + 10 * j + k
+                    gaps[base][repr(fraction)] = {
+                        "gap": report._gap(a, b, step=step, draws=report.DRAWS, seed=s),
+                        "gap_paired": (
+                            checks_kit.paired_gap(
+                                a, b, step=step, draws=report.DRAWS, seed=s
+                            )
+                            if a and b
+                            else None
+                        ),
+                    }
+        by_class[cls] = {
+            "n": row["n"],
+            "curves": per_base,
+            "gap_default_minus_shortcut": gaps,
+        }
+    return {
+        "status": "MEASURED",
+        "contenders": {base: [repr(f) for f in sorted(curves[base])] for base in order},
+        "A": "mean A_gen atom per class, within-class bootstrap 95 % CI (checks_kit._mean_ci)",
+        "D": "not in the checks-1-3 report: not measured",
+        "gap": "default - shortcut per fraction: checks_report._gap (check 3's) and checks_kit.paired_gap",
+        "by_class": by_class,
+        "bars": "owner values: measured only, no pass/fail",
+    }
+
+
 def build(checks, sink, g_inputs):
     """The G1-G9 document from a checks-1-3 report (``checks``) and its run's ``sink`` (`checks_report.run_report`)."""
     classes = {row["class"]: row for row in checks["classes"]}
@@ -158,9 +260,7 @@ def build(checks, sink, g_inputs):
             "default-model rows trained with each registered regime label held out"
         ),
         "G5_nearby_variants": _not_run("a registered variant set and its solved cases"),
-        "G6_learning_curve": _not_run(
-            "default-model and best-shortcut rows trained on 25 / 50 / 100 % of TRAIN"
-        ),
+        "G6_learning_curve": g6_learning_curve(checks, sink),
         "G7_seed_robustness": {
             "registered_rebuild_noise": checks["margin_n"],
             "score_step": checks["score_step"],
