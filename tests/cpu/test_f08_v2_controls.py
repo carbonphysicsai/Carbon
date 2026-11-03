@@ -127,6 +127,24 @@ def _old_case(name):
     }
 
 
+#: The B2 ccx decks of the same cases: their header line names the case (load_position_in_gap); nothing else moves.
+PINNED_B2_DECK = {
+    "deck_base": "3cfc17bb8c47f6fdc58c2fdf0fa222d4afe5c6a147e6f41dda8d0a4fbefd8bde",
+    "deck_norelief": "eb3a9a424b7762b97a97651ab2aa98b6908c6d038c7831210d19d6b3296db3aa",
+    "deck_offset_angle": "a768a8d9c166ea1054eb85296aa830abe028aecaced75ee5643e223c5fe298e9",
+}
+
+
+def _undo_b2_deck(deck, name):
+    """The ccx deck with B2 taken out: the header's case is 1.0's (load_offset_frac), the PaStiX deck byte for byte."""
+    new, old = (
+        json.dumps(CASES[name], sort_keys=True),
+        json.dumps(_old_case(name), sort_keys=True),
+    )
+    assert deck.count(new) == 1, name
+    return deck.replace(new, old)
+
+
 def _undo_b2(text, name):
     """The program with B2 taken out: 1.0's case (load_offset_frac) and its pad line, the (a3) program byte for byte."""
     case = CASES[name]
@@ -175,11 +193,13 @@ def test_a_case_without_control_leaves_every_existing_output_byte_identical():
         got["gmsh_" + name] = _sha(text)
         got["a3_gmsh_" + name] = _sha(_undo_b2(text, name))
         deck = v2.deck_text(case, META, MAT)
-        got["deck_" + name] = _sha(deck)
-        spooles["deck_" + name] = _sha(_undo_pastix(deck))
+        got["b2_deck_" + name] = _sha(deck)
+        got["deck_" + name] = _sha(_undo_b2_deck(deck, name))
+        spooles["deck_" + name] = _sha(_undo_pastix(_undo_b2_deck(deck, name)))
     assert got == {
         **PINNED_PASTIX_DECK,
         **PINNED_B2_GMSH,
+        **{"b2_" + k: v for k, v in PINNED_B2_DECK.items()},
         **{"a3_" + k: v for k, v in PINNED_A3_GMSH.items()},
     }
     assert spooles == {k: v for k, v in PINNED.items() if k.startswith("deck_")}
