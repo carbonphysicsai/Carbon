@@ -914,3 +914,66 @@ def test_a_solved_job_never_reads_ccx_log(tmp_path, monkeypatch):
         solver=ok_solver,
     )
     assert record["status"] == "OK"
+
+
+def test_the_a3_mesh_script_is_unchanged_and_hoo2_adds_only_the_optimiser_line():
+    case = _job()["case"]
+    a3 = v2.gmsh_script_v2(case, 1.7, 0.5)
+    assert a3 == v2.gmsh_script_v2(case, 1.7, 0.5, mesh_revision=None)
+    assert "HighOrderOptimize" not in a3
+    hoo = v2.gmsh_script_v2(case, 1.7, 0.5, mesh_revision="hoo2")
+    line = 'gmsh.option.setNumber("Mesh.HighOrderOptimize", 2)\n'
+    assert hoo.count(line) == 1
+    assert hoo.index(line) < hoo.index("gmsh.model.mesh.generate(3)")
+    assert hoo.replace(line, "", 1) == a3
+    v2.script_compiles(hoo)
+
+
+def test_the_mesh_revision_is_named_in_the_record_only_when_set(tmp_path):
+    args = {
+        "timeout_s": 10,
+        "cores": _cores(),
+        "solvers_id": "s",
+        "mesh": fake_mesh,
+        "mesher": MESHER,
+        "solver": ok_solver,
+        "keep": "all",
+    }
+    plain = runner.run_job(_job(job_id="p"), tmp_path, **args)
+    assert "mesh_revision" not in plain
+    hoo = runner.run_job(_job(job_id="q"), tmp_path, mesh_revision="hoo2", **args)
+    assert hoo["mesh_revision"] == "hoo2"
+    assert "HighOrderOptimize" in (tmp_path / "q" / "make_mesh.py").read_text()
+    assert "HighOrderOptimize" not in (tmp_path / "p" / "make_mesh.py").read_text()
+    refused = runner.run_job(_job(job_id="r"), tmp_path, mesh_revision="hoo9", **args)
+    assert refused["status"] == "REFERENCE_INVALID"
+    assert refused["reasons"] == ["deck_refused:mesh_revision_unknown"]
+
+
+def test_a_failed_solve_keeps_its_ccx_log_tail_in_the_record(tmp_path):
+    lines = [f"line {i}" for i in range(100)] + [JACOBIAN_LOG.rstrip("\n")]
+
+    def inverted(directory, timeout_s, cores):
+        (Path(directory) / "ccx.log").write_text("\n".join(lines) + "\n")
+        return {"stop_reason": "exit", "exit": 201, "wall_s": 3.0}
+
+    args = {
+        "timeout_s": 10,
+        "cores": _cores(),
+        "solvers_id": "s",
+        "mesh": fake_mesh,
+        "mesher": MESHER,
+    }
+    record = runner.run_job(_job(job_id="t"), tmp_path, solver=inverted, **args)
+    tail = record["solver_log_tail"].splitlines()
+    assert len(tail) == runner.SOLVER_LOG_TAIL_LINES
+    assert "nonpositive jacobian" in record["solver_log_tail"]
+    assert tail[-1].strip().startswith("determinant in element")
+    assert record["reasons"] == ["nonpositive_jacobian"]
+    assert not (tmp_path / "t").exists()  # kept in the record even with --keep none
+    (tmp_path / "big").mkdir()
+    (tmp_path / "big" / "ccx.log").write_bytes(b"x" * 50000)
+    assert len(runner.solver_log_tail(tmp_path / "big")) <= runner.SOLVER_LOG_TAIL_BYTES
+    assert runner.solver_log_tail(tmp_path / "none") is None
+    solved = runner.run_job(_job(job_id="u"), tmp_path, solver=ok_solver, **args)
+    assert "solver_log_tail" not in solved

@@ -410,7 +410,17 @@ def _far_field(h_mm):
     return "\n".join(lines)
 
 
-def gmsh_script_v2(case, h_mm, fillet_h_mm):
+#: Mesh revisions of the v2 body (TE 3 Nov; Lead 02:16): extra Gmsh options set right after RandomSeed. None = the a3 mesh, its script
+#: byte-identical. "hoo2" turns on Gmsh's high-order optimiser (Mesh.HighOrderOptimize 2, elastic + optimisation): it untangles the
+#: second-order (C3D10) elements whose mid-side nodes, placed on the curved fillet, invert an element (ccx: nonpositive jacobian).
+#: A trial revision for the RB 2.0 failure map, not a registered deck: the record names it.
+MESH_REVISIONS = {
+    None: "",
+    "hoo2": 'gmsh.option.setNumber("Mesh.HighOrderOptimize", 2)\n',
+}
+
+
+def gmsh_script_v2(case, h_mm, fillet_h_mm, *, mesh_revision=None):
     """The Gmsh program for one case: 1.7's body, the fillet on the four rib junction lines, a refinement field around
     the fillet faces (a band of `BAND_FINE_ELEMENTS` fine elements, graded to h over `BAND_GRADE_ELEMENTS` coarse ones), the
     pad at ``load_offset_frac`` and a FILLET element set. Returned as text; it runs in MESH_IMAGE.
@@ -490,7 +500,7 @@ gmsh.option.setNumber("Mesh.ElementOrder", 2)
 gmsh.option.setNumber("Mesh.SecondOrderLinear", 0)
 gmsh.option.setNumber("Mesh.Algorithm3D", 1)
 gmsh.option.setNumber("Mesh.RandomSeed", 1)
-gmsh.model.mesh.generate(3)
+{MESH_REVISIONS[mesh_revision]}gmsh.model.mesh.generate(3)
 tags, xyz, _ = gmsh.model.mesh.getNodes()
 coords = {{int(n): (xyz[3 * i], xyz[3 * i + 1], xyz[3 * i + 2]) for i, n in enumerate(tags)}}
 tets = []

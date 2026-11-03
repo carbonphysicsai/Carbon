@@ -212,12 +212,16 @@ def check_job(job):
     return case
 
 
-def prepare(job, directory, *, mesher, mesh=mesh_job, modes=MODES):
+def prepare(job, directory, *, mesher, mesh=mesh_job, modes=MODES, mesh_revision=None):
     """Write the job's mesh script, mesh it (``mesh(directory)``), write the v2 deck and ``deck.json``. Returns the mesh meta."""
     case = check_job(job)
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    script = v2.gmsh_script_v2(case, job["h_mm"], job["fillet_h_mm"])
+    if mesh_revision not in v2.MESH_REVISIONS:
+        raise RunnerRefused("mesh_revision_unknown")
+    script = v2.gmsh_script_v2(
+        case, job["h_mm"], job["fillet_h_mm"], mesh_revision=mesh_revision
+    )
     v2.script_compiles(script)
     (directory / "make_mesh.py").write_text(script)
     mesh(directory)
@@ -458,6 +462,22 @@ JACOBIAN_MESSAGE = b"nonpositive jacobian"
 NONPOSITIVE_JACOBIAN = "nonpositive_jacobian"
 
 
+#: A failed solve keeps the end of its ccx.log IN the record (Lead 02:16: the failure map needs the solver's own words even when the
+#: job directory is not kept): at most SOLVER_LOG_TAIL_LINES lines, SOLVER_LOG_TAIL_BYTES bytes.
+SOLVER_LOG_TAIL_LINES, SOLVER_LOG_TAIL_BYTES = 40, 8192
+
+
+def solver_log_tail(directory):
+    """The last lines of the job's ccx.log (decoded, replacing bad bytes), or None when there is no log."""
+    log = Path(directory) / "ccx.log"
+    if not log.is_file():
+        return None
+    with log.open("rb") as handle:
+        handle.seek(max(0, log.stat().st_size - SOLVER_LOG_TAIL_BYTES))
+        tail = handle.read().decode("utf-8", "replace")
+    return "\n".join(tail.splitlines()[-SOLVER_LOG_TAIL_LINES:])
+
+
 def solver_error(directory):
     """``NONPOSITIVE_JACOBIAN`` when the job's ccx.log reports an inverted element, else None (no log, or another error)."""
     log = Path(directory) / "ccx.log"
@@ -514,6 +534,7 @@ def record_for(
     mesher,
     alone=False,
     aux=None,
+    mesh_revision=None,
 ):
     status, reasons = classify(run, outputs, problem, alone=alone)
     if run.get("infra_cause"):
@@ -550,6 +571,14 @@ def record_for(
     for name, label in (("case.inp", "deck_sha256"), ("case.dat", "dat_sha256")):
         if (directory / name).is_file():
             record[label] = _sha((directory / name).read_bytes())
+    if (
+        mesh_revision is not None
+    ):  # absent for the a3 mesh: its records stay byte-identical
+        record["mesh_revision"] = mesh_revision
+    if run.get("stop_reason") == "exit" and run.get("exit") not in (0, None):
+        tail = solver_log_tail(directory)
+        if tail is not None:
+            record["solver_log_tail"] = tail
     if status in TERMINAL and outputs is not None:
         record["outputs"] = outputs
         if aux is not None:
@@ -569,6 +598,7 @@ def run_job(
     mesh=mesh_job,
     solver=solve,
     alone=False,
+    mesh_revision=None,
 ):
     """Mesh, deck, solve and observe one job; returns its record. The job directory is removed unless ``keep`` says otherwise."""
     directory = Path(work) / job["job_id"]
@@ -578,37 +608,39 @@ def run_job(
     try:
         not_run = {"stop_reason": "not_run", "exit": None}
         try:
-            meta = prepare(job, directory, mesh=mesh, mesher=mesher)
+            meta = prepare(
+                job, directory, mesh=mesh, mesher=mesher, mesh_revision=mesh_revision
+            )
         except MesherUnavailable as lost:  # the host's mesher, never the case
             return record_for(
                 job, {"stop_reason": "infra", "exit": None,
                       "infra_cause": f"mesher_unavailable:{lost.cause}"}, None, None,
                 mesh_meta={}, directory=directory, solvers_id=solvers_id, mesher=mesher,
-                alone=alone,
+                alone=alone, mesh_revision=mesh_revision,
             )  # fmt: skip
         except (v2.Refused, RunnerRefused) as refusal:
             return record_for(
                 job, not_run, None, f"deck_refused:{refusal}",
                 mesh_meta={}, directory=directory, solvers_id=solvers_id, mesher=mesher,
-                alone=alone,
+                alone=alone, mesh_revision=mesh_revision,
             )  # fmt: skip
         except subprocess.CalledProcessError:
             return record_for(
                 job, not_run, None, "mesh_failed",
                 mesh_meta={}, directory=directory, solvers_id=solvers_id, mesher=mesher,
-                alone=alone,
+                alone=alone, mesh_revision=mesh_revision,
             )  # fmt: skip
         except OSError:  # the mesher could not even start: not the job's fault
             return record_for(
                 job, {"stop_reason": "infra", "exit": None}, None, None,
                 mesh_meta={}, directory=directory, solvers_id=solvers_id, mesher=mesher,
-                alone=alone,
+                alone=alone, mesh_revision=mesh_revision,
             )  # fmt: skip
         except (KeyError, ValueError):
             return record_for(
                 job, not_run, None, "mesh_unreadable",
                 mesh_meta={}, directory=directory, solvers_id=solvers_id, mesher=mesher,
-                alone=alone,
+                alone=alone, mesh_revision=mesh_revision,
             )  # fmt: skip
         run = solver(directory, timeout_s, cores)
         if run.get("stop_reason") == "exit" and run.get("exit") not in (0, None):
@@ -637,6 +669,7 @@ def run_job(
             solvers_id=solvers_id,
             mesher=mesher,
             alone=alone,
+            mesh_revision=mesh_revision,
             aux=aux,
         )
     finally:
@@ -645,10 +678,12 @@ def run_job(
             shutil.rmtree(directory, ignore_errors=True)
 
 
-def mesh_only(job, work, *, mesher, mesh=mesh_job):
+def mesh_only(job, work, *, mesher, mesh=mesh_job, mesh_revision=None):
     """The dry run: mesh and write the deck, report the sizes, solve nothing."""
     directory = Path(work) / job["job_id"]
-    meta = prepare(job, directory, mesh=mesh, mesher=mesher)
+    meta = prepare(
+        job, directory, mesh=mesh, mesher=mesher, mesh_revision=mesh_revision
+    )
     return {
         "schema": RECORD_SCHEMA,
         "job_id": job["job_id"],
@@ -709,6 +744,7 @@ def main(argv=None):
         p.add_argument("shard", type=Path)
         p.add_argument("--out", type=Path, required=True)
         p.add_argument("--only", nargs="*")
+        p.add_argument("--mesh-revision", choices=[k for k in v2.MESH_REVISIONS if k])
         if name == "run":
             p.add_argument("--parallel", type=int, default=1)
             p.add_argument("--timeout-s", type=float, default=5400.0)
@@ -742,7 +778,12 @@ def main(argv=None):
         with results.open("x") as handle:
             for job in jobs:
                 handle.write(
-                    json.dumps(mesh_only(job, work, mesher=mesher), sort_keys=True)
+                    json.dumps(
+                        mesh_only(
+                            job, work, mesher=mesher, mesh_revision=args.mesh_revision
+                        ),
+                        sort_keys=True,
+                    )
                     + "\n"
                 )
         return 0
@@ -758,6 +799,7 @@ def main(argv=None):
             record = run_job(
                 job, work, timeout_s=args.timeout_s, cores=cores,
                 solvers_id=solvers_id, mesher=mesher, keep=args.keep, alone=args.alone,
+                mesh_revision=args.mesh_revision,
             )  # fmt: skip
             with lock:
                 handle.write(json.dumps(record, sort_keys=True) + "\n")
