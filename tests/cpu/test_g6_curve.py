@@ -179,20 +179,20 @@ def _fit_args(tmp_path, query_path, query_sha, **over):
 
 
 def _fit_defaults(tmp_path, query_path, query_sha):
-    return dict(
-        subsets=tmp_path / "subsets",
-        train=tmp_path / "train.npz",
-        query=query_path,
-        query_sha256=query_sha,
-        member="knn",
-        shortcut_role="knn",
-        shortcut_catalog_id="shortcut_panel:knn",
-        shortcut_fit="default",
-        recipe=None,
-        submission_dir=None,
-        default_catalog_id=None,
-        out=tmp_path / "fit",
-    )
+    return {
+        "subsets": tmp_path / "subsets",
+        "train": tmp_path / "train.npz",
+        "query": query_path,
+        "query_sha256": query_sha,
+        "member": "knn",
+        "shortcut_role": "knn",
+        "shortcut_catalog_id": "shortcut_panel:knn",
+        "shortcut_fit": "default",
+        "recipe": None,
+        "submission_dir": None,
+        "default_catalog_id": None,
+        "out": tmp_path / "fit",
+    }
 
 
 def test_the_fit_driver_writes_rows_and_records_for_every_fraction(tmp_path):
