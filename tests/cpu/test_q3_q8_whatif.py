@@ -1545,3 +1545,20 @@ def test_the_accnoise_mode_regrades_every_contender_and_reports_the_ruled_verdic
     )  # every atom equal within a contender: zero spread < margin 1.0
     assert out["per_class"]["crown"]["regime:inner_band"]["n"] == 3
     assert "points" not in json.dumps(out)  # aggregates only
+
+
+def test_the_class_bootstrap_of_a_set_with_no_targets_is_unresolved_not_a_crash():
+    # TL 3 Nov 09:46: at a DV-CURVE budget where every target was dropped, the bootstrap took the mean of an empty set
+    record = _targets_record()
+    for emptied in (
+        {**record, "targets": [[], []]},  # every target dropped
+        {**record, "targets": [record["targets"][0], []]},  # one set emptied
+        {**record, "targets": []},
+    ):
+        out = reads.class_bootstrap(emptied, resamples=50)
+        assert out["unresolved"] == "set_without_targets"
+        assert out["class_mean_sd"] is None and out["total_sd"] is None
+        assert out["resamples"] == 0 and out["seed"] == reads.SEED
+        assert out["targets_per_set"] == [len(t) for t in emptied["targets"]]
+    # a record with targets in every set is bootstrapped as before (no unresolved key)
+    assert "unresolved" not in reads.class_bootstrap(record, resamples=50)

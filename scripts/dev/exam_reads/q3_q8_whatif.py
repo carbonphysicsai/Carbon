@@ -467,9 +467,23 @@ def total_from_targets(record, *, balanced):
 def class_bootstrap(record, *, resamples=RESAMPLES, seed=SEED):
     """The spread (standard deviation) of each class mean of d and of the balanced total under a bootstrap of TARGETS within each
     class of each set (the set structure kept), ``resamples`` resamples, the registered seed. Aggregates only.
+
+    A set with NO targets (every target of it dropped, e.g. at a DV-CURVE budget where none is anchored) has no balanced total, so
+    nothing is resampled: the result says ``unresolved: set_without_targets`` with the per-set counts and no spread (TL 3 Nov 09:46:
+    the dvcurve crashed on the empty mean). Never a zero spread.
     """
     import numpy as np
 
+    if not record["targets"] or any(not targets for targets in record["targets"]):
+        return {
+            "resamples": 0,
+            "seed": seed,
+            "targets_per_set": [len(targets) for targets in record["targets"]],
+            "targets_per_class": {},
+            "class_mean_sd": None,
+            "total_sd": None,
+            "unresolved": "set_without_targets",
+        }
     generator = np.random.Generator(np.random.PCG64(seed))
     classes = sorted({t["cls"] for targets in record["targets"] for t in targets})
     means = {c: [] for c in classes}
@@ -1572,6 +1586,9 @@ def run_dvcurve(config, config_path, curve_path):
             "classes_below_n": dv_curve.classes_below_floor(
                 counts, curve["class_floor_n"]
             ),
+            # why a budget point may have nothing to bootstrap: how many targets it anchored and how many it dropped
+            "anchored_n": len(anchored),
+            "dropped_n": len(dropped),
         }
         models = {}
         for name in sorted(rows_of):
