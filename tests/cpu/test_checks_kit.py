@@ -433,3 +433,32 @@ def test_the_batch_cli_writes_the_check_1k_report_and_its_sums(
         edit=lambda d: d["datasets"][0].update(disjointness_receipt=" "),
     )
     assert batch.main(["dry", *args, "--kit-data", str(bad)]) == 2
+
+
+def test_the_verdict_bootstrap_is_paired_within_class():
+    # Validator 3 Nov 12:01: the 'clearly' bar draws the SAME points for O and K. O tracks K point by point (+0.02) while K
+    # varies widely: an unpaired bootstrap's interval straddles zero, the paired one is tight around the true gap.
+    import numpy as np
+
+    rng = np.random.default_rng(3)
+    k = list(rng.uniform(0.0, 1.0, 60))
+    o = [v + 0.02 for v in k]
+    step = grade_feedback.step(0.01)
+    paired = kit.paired_gap(o, k, step=step, draws=2000, seed=7)
+    unpaired = report._gap(o, k, step=step, draws=2000, seed=7)
+    assert paired["paired"] is True and paired["value"] == pytest.approx(0.02)
+    assert paired["ci95"][0] == pytest.approx(0.02) and paired["ci95"][
+        1
+    ] == pytest.approx(0.02)
+    assert (
+        unpaired["ci95"][0] < 0.0 < unpaired["ci95"][1]
+    )  # what the unpaired form would have said
+    assert (
+        paired["ci95"][0] > 0.01
+    )  # clears a margin_n of 0.01; the unpaired lower bound does not
+    assert (
+        kit.paired_gap(o, k, step=step, draws=2000, seed=7) == paired
+    )  # deterministic for its seed
+    assert kit.paired_gap([], [], step=step, draws=10, seed=0) is None
+    with pytest.raises(reads.ReadRefused, match="kit_paired_points_differ"):
+        kit.paired_gap(o, k[:-1], step=step, draws=10, seed=0)

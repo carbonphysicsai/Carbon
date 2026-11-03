@@ -14,7 +14,7 @@ Per member and run: the data used (n in / n out by source), the counted size vs 
 D per registered target class with the within-class bootstrap 95 % interval (`acc_noise.bootstrap` / `acc_noise.spread`), and the
 margin vs the best check-(3) learner (`checks_report._gap`, in score steps). Verdict per freeze-binding class, on the "in_out" run:
 FAIL if the best budget-confined (inside, graded) member beats every check-(3) learner "clearly" (the R33 bar: the 95 % lower
-bound of O - K, `checks_report._gap`'s bootstrap, above the config's margin_n); PASS otherwise; N/A with a reason. A FAIL only in
+bound of O - K by `paired_gap`, a PAIRED within-class bootstrap (Validator 12:01), above the config's margin_n); PASS otherwise; N/A with a reason. A FAIL only in
 "in_out" is labelled `EXTENTS_LABEL`. A member over budget is reported with its scores and is never verdict-bearing (section 4).
 Without registered A_gen scales the verdict is PROVISIONAL (verdict-free). No value is set here: margin_n is the config's, the
 distance the addendum's (the registered R15 value), the budget the manifest's.
@@ -363,6 +363,33 @@ def dry(config, inputs_path, manifest_path):
 # ---------------------------------------------------------------- the grade and the report
 
 
+def paired_gap(a, b, *, step, draws, seed):
+    """``mean(a) - mean(b)`` over the SAME points (``a[i]`` and ``b[i]`` are one point graded for O and for K), with its
+    PAIRED bootstrap 95 % interval: every resample draws one set of point indices and takes it for both sides (Validator
+    3 Nov 12:01: the registered 'clearly' bar is within-class AND paired). The caller passes one class's points, so the
+    resampling stays within the class. Unequal lengths refuse: the points must be the same.
+    """
+    import numpy as np
+
+    _need(len(a) == len(b), "kit_paired_points_differ")
+    if not a:
+        return None
+    diff = np.asarray(a, dtype=float) - np.asarray(b, dtype=float)
+    value = float(diff.mean())
+    rng = np.random.default_rng(seed)
+    reps = np.array(
+        [diff[rng.integers(0, diff.size, diff.size)].mean() for _ in range(draws)]
+    )
+    lo, hi = (float(x) for x in np.quantile(reps, [0.025, 0.975]))
+    return {
+        "value": value,
+        "ci95": [lo, hi],
+        "steps": value / step,
+        "ci95_steps": [lo / step, hi / step],
+        "paired": True,
+    }
+
+
 def _mean_ci(values, seed):
     """The mean with its within-class bootstrap 95 % interval (`acc_noise.bootstrap` + `acc_noise.spread`, `report.DRAWS`)."""
     import acc_noise
@@ -582,7 +609,7 @@ def run_kit(config, config_path, inputs_path, manifest_path):
         own = atoms(f"{best}@{fit_data}", cls)
         against = {}
         for li, learner in enumerate(learner_roles):
-            gap = report._gap(
+            gap = paired_gap(
                 own,
                 atoms(learner, cls),
                 step=step,
@@ -657,7 +684,7 @@ def run_kit(config, config_path, inputs_path, manifest_path):
             "draws": report.DRAWS,
             "resampling": "within class",
             "seed": seed,
-            "verdict_gap": "checks_report._gap (each side resampled within itself)",
+            "verdict_gap": "paired_gap (within-class, the same resampled points for O and K)",
         },
         "panel_file_sha256": doc["panel_file"]["sha256"],
         "kit": {
