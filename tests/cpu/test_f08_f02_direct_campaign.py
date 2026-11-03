@@ -525,6 +525,20 @@ def _prepared(tmp_path, args, recipe, epoch=1):
     )
 
 
+@pytest.fixture(autouse=True)
+def staged(monkeypatch):
+    """Every graph submit stages its documents first (`stage_graph`): recorded here, never sent."""
+    from carbon.development_session import direct_source_submission
+
+    calls = []
+    monkeypatch.setattr(
+        direct_source_submission,
+        "stage_graph",
+        lambda url, key, **kw: calls.append((url, kw)),
+    )
+    return calls
+
+
 def _args(spec):
     return SimpleNamespace(
         intakes={spec.challenge_id: "http://127.0.0.1:8769"},
@@ -1140,3 +1154,87 @@ def test_a_model_failing_a_gate_is_not_eligible_on_practice(
     dual = result["practice_dual"]
     assert dual.get("eligible") is not True
     assert dual.get("total") is None
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_a_graph_recipe_is_staged_before_it_is_submitted(
+    spec, version, tmp_path, monkeypatch, staged
+):
+    # Launchpad 3 Nov 15:53: carbon_submit never staged a graph, so the receiver refused
+    # construction_recipe_graph_workspace_missing for every F08 1.7 graph submit
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    order = []
+    monkeypatch.setattr(
+        direct_submission,
+        "submit_and_wait",
+        lambda url, key, **kw: order.append("submit") or {"state": "RECONSTRUCTED"},
+    )
+    monkeypatch.setattr(
+        direct_submission,
+        "read_exam_feedback",
+        lambda url, key, **kw: {"best": None, "latest": None},
+    )
+    monkeypatch.setattr(_module(spec, "campaign"), "record_verdict", lambda *a: None)
+    from carbon.development_session import direct_source_submission
+
+    def stage(url, key, **kw):
+        staged.append((url, kw))
+        order.append("stage")
+
+    monkeypatch.setattr(direct_source_submission, "stage_graph", stage)
+    recipe = graph_recipe(spec, GRAPH_DIGEST, version=version)
+    prepared = _prepared(tmp_path, _args(spec), recipe)
+    asyncio.run(campaign_for(_challenge(spec, version)).evaluate(prepared, 1, recipe))
+    assert order == ["stage", "submit"]
+    ((url, kw),) = staged
+    assert url == "http://127.0.0.1:8769" and kw["receiver"] == RECEIVER
+    assert kw["recipe"].to_dict() == recipe and kw["owner"] == "alice"
+    assert kw["ledger"] is prepared.ledger
+    assert kw["contract_digest"] == registered(spec.challenge_id, version).digest
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_a_staging_refusal_stops_the_submit_with_its_code(
+    spec, version, tmp_path, monkeypatch
+):
+    sent = []
+    monkeypatch.setattr(
+        direct_submission, "submit_and_wait", lambda *a, **k: sent.append(k)
+    )
+    from carbon.development_session import direct_source_submission
+
+    def conflict(*a, **k):
+        raise direct_submission.DirectIntakeRefusal(
+            "construction_source_idempotency_conflict"
+        )
+
+    monkeypatch.setattr(direct_source_submission, "stage_graph", conflict)
+    recipe = graph_recipe(spec, GRAPH_DIGEST, version=version)
+    prepared = _prepared(tmp_path, _args(spec), recipe)
+    with pytest.raises(
+        OperationRefused, match="construction_source_idempotency_conflict"
+    ):
+        asyncio.run(
+            campaign_for(_challenge(spec, version)).evaluate(prepared, 1, recipe)
+        )
+    assert sent == []
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_a_catalog_recipe_stages_nothing(spec, version, tmp_path, monkeypatch, staged):
+    monkeypatch.setattr(
+        direct_submission,
+        "submit_and_wait",
+        lambda url, key, **kw: {"state": "RECONSTRUCTED"},
+    )
+    monkeypatch.setattr(
+        direct_submission,
+        "read_exam_feedback",
+        lambda url, key, **kw: {"best": None, "latest": None},
+    )
+    monkeypatch.setattr(_module(spec, "campaign"), "record_verdict", lambda *a: None)
+    recipe = catalog_recipe(spec, STAND_IN, version=version)
+    prepared = _prepared(tmp_path, _args(spec), recipe)
+    asyncio.run(campaign_for(_challenge(spec, version)).evaluate(prepared, 1, recipe))
+    assert staged == []
