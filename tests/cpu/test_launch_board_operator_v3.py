@@ -19,6 +19,7 @@ from test_launch_board_operator_v2 import (  # noqa: F401 - the fixtures and hel
     COOLING,
     EXAM,
     KING,
+    OTHER,
     _board_bytes,
     _v2_fixture,
     door,
@@ -47,14 +48,30 @@ def test_a_seed_fragile_king_is_flagged_unstable(tmp_path, door, frozen):
     assert lb.verify(board, board["validator"]["feed_key"]) == board
 
 
-def test_a_measured_king_and_a_king_with_no_record_are_not_flagged(
+def test_stable_is_earned_by_a_filed_measurement_and_a_king_with_none_refuses(
     tmp_path, door, frozen
 ):
     record = {"mean": 0.7, "statuses": ["OK", "OK"]}
     _, measured, _ = _run(tmp_path / "a", door, record=record)
     assert measured["king"]["stability"] == "STABLE"
-    _, none, _ = _run(tmp_path / "b", door)
-    assert none["king"]["stability"] == "STABLE"  # nothing filed: not flagged
+    # a king with NO filed measurement is never shown STABLE: the run refuses (king_unmeasured)
+    config, _pool = _v2_fixture(tmp_path / "b", door)
+    config["board"] = "v3"
+    (row,) = operator.run_once(config, version=9)
+    assert row["state"] == "REFUSED" and row["code"] == "king_unmeasured"
+
+
+def test_the_boards_king_must_be_the_stores_incumbent(tmp_path, door, frozen):
+    # the receiver's king document names another hotkey than the store's incumbent
+    config, _pool = _v2_fixture(tmp_path, door)
+    config["board"] = "v3"
+    path = operator.koth_public.PATH + COOLING["id"] + operator.koth_public.V2_SUFFIX
+    document = json.loads(json.dumps(door.documents[path]))
+    document["king"] = {**document["king"], "hotkey": OTHER}
+    door.documents[path] = document
+    (row,) = operator.run_once(config, version=9)
+    assert row["state"] == "REFUSED"
+    assert row["code"] in ("king_mismatch", "king_moved_during_run")
 
 
 def test_no_seed_mean_or_status_reaches_the_signed_bytes(tmp_path, door, frozen):

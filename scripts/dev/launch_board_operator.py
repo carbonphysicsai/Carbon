@@ -228,6 +228,7 @@ class ReadOnlyPoolStore:
     incumbent_standing = PoolStore.incumbent_standing
     private_evaluation_bodies = PoolStore.private_evaluation_bodies
     crown_average_unstable = PoolStore.crown_average_unstable
+    crown_mean = PoolStore.crown_mean
 
 
 class _ReadOnlyLedger:
@@ -298,19 +299,35 @@ def v2_sources(config, item, king_document, exam_key):
 
 
 def king_stability(config, item, king_document):
-    """The v3 board's ``stability`` for the king ``king_document`` names: None with no king, "UNSTABLE" when the pool store says the
-    king's latest crown-average re-measure was seed-fragile (`PoolStore.crown_average_unstable`, read-only), else "STABLE". It
-    reads one boolean; no seed, mean or per-seed status leaves this function (OWNER-CROWN-AVG-UNSTABLE-KING-01).
+    """The v3 board's ``stability`` for the king ``king_document`` names (Validator 3 Nov 07:56): None with no king.
+    The store's incumbent must BE that king (`king_mismatch` otherwise: the standing's owner hotkey is the document's).
+    "UNSTABLE" when the king's latest crown-average record is seed-fragile (`PoolStore.crown_average_unstable`);
+    "STABLE" ONLY when a measurement is filed for him (`PoolStore.crown_mean` is a number: KING_MEASURED), so STABLE is
+    earned; a king with no filed measurement refuses (`king_unmeasured`), it is never defaulted. It reads two booleans; no
+    seed, mean or per-seed status leaves this function (OWNER-CROWN-AVG-UNSTABLE-KING-01).
     """
-    if king_document["king"] is None or not os.path.lexists(item["pool_store"]):
+    if king_document["king"] is None:
         return None
+    if not os.path.lexists(item["pool_store"]):
+        raise OperatorRefused(
+            "king_mismatch"
+        )  # a king on the document, no store to hold him
     store = ReadOnlyPoolStore(item["pool_store"])
     incumbent = store.incumbent()
-    if incumbent is None:
-        return None
-    return (
-        "UNSTABLE" if store.crown_average_unstable(incumbent["model_id"]) else "STABLE"
+    standing = (
+        None if incumbent is None else store.incumbent_standing(incumbent["model_id"])
     )
+    if (
+        standing is None
+        or koth_public._owner_hotkey(standing["owner"])
+        != king_document["king"]["hotkey"]
+    ):
+        raise OperatorRefused("king_mismatch")
+    if store.crown_average_unstable(incumbent["model_id"]):
+        return "UNSTABLE"
+    if store.crown_mean(incumbent["model_id"]) is None:
+        raise OperatorRefused("king_unmeasured")
+    return "STABLE"
 
 
 def slug_of(challenge):
