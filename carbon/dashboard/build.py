@@ -17,8 +17,10 @@ why the newer one was not drawn. A refusal is never replaced by fixture data.
 
 The brand fonts and wordmark are copied from the Launchpad's copies of the
 verified website asset set, and their digests are checked against the website's
-production baseline manifest values pinned here. Nothing loads from the
-internet at runtime.
+production baseline manifest values pinned here. The Carbon favicons (dark
+mark for light browser chrome, light mark for dark) are the owner's brand files
+from the Carbon Google Drive "Favicons" folder, kept in `brand/` beside this
+module and pinned here the same way. Nothing loads from the internet at runtime.
 """
 
 from __future__ import annotations
@@ -50,6 +52,14 @@ BRAND_ASSETS = {
         "98cd406e21141304bee9085918dd7d6d41383a70d2c929964d64717c2655f276",
     ),
 }
+BRAND = Path(__file__).with_name("brand")
+# File in brand/ -> sha256 of the owner's Drive original. Published as brand/<name>.
+FAVICONS = {
+    "favicon-dark.svg": "39f7e21a32ee0d4fceaf218b97caaeaa1663ae5c55283701ca1880c4319e657a",
+    "favicon-light.svg": "fc3ca1fd565e0b1a4e119008dc522a2cc397be501a3583f36e5af463e3985892",
+    "favicon-dark-32.png": "c6f5d352ce67ee8b15409522ed995f6545d398f25d8c6e44e235baa3362b07b8",
+    "favicon-light-32.png": "e80d5d98f380164219fe8caa54b9f03d209b1f32566673b1f11cb5e96f588bd6",
+}
 
 
 def _write_json(path, value):
@@ -79,6 +89,14 @@ def _copy_web(out):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(body)
         copied.append(published)
+    for name, expected in FAVICONS.items():
+        body = (BRAND / name).read_bytes()
+        if hashlib.sha256(body).hexdigest() != expected:
+            raise ValueError(f"favicon digest mismatch: {name}")
+        target = out / "brand" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(body)
+        copied.append(f"brand/{name}")
     return copied
 
 
