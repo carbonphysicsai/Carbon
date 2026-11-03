@@ -12,7 +12,7 @@ Owner, 1 Nov 2026, in the Lead session: "lock all these new updates into somethi
 - Proposals, directions not yet turned into rules, and open values are NOT listed. Every number shown is the owner's or measured. Open values stay HUMAN_INPUT.
 - Scope: every NEW exam version (Burst Thermal 3.0, Ribbed Bracket 2.0, Motor 1.6/1.7, Cooling 1.7/1.8 and later). Nothing graded is rescored. Every change ships only as a new version.
 
-Maintainer: Exam Quality. Every edit needs the Validator's receipt. A new owner record adds a row here in the same step it is written into the system.
+Rev 9 (2 Nov ~14:00 CST): adds R38 (TRAIN data adequacy card). Rev 8 (2 Nov ~11:35 CST): adds R37 (physics hardness card). Rev 7.1 (2 Nov ~10:35 CST): section G bound to OWNER-STRONG-CHECKS-GENERALIZATION-AXES-01 (9515dd60). Rev 7 (2 Nov ~04:25 CST): adds section G (generalization axes G1–G9). Rev 6 (2 Nov ~04:00 CST): R33 amendment 2 (three cheap checks; the tuned S4a read optional). Rev 5 (1 Nov ~21:05 CST): adds R36 (graph forward compile). Rev 4 (1 Nov ~17:35 CST): adds the RB 2.0 solver re-pin record. Rev 3 (1 Nov ~16:25 CST): adds R35 (early TRAIN + practice release) and the BT 3.0 95 °C peak-limit record. Rev 2 (1 Nov ~16:00 CST): adds the Motor next-version shortcut record. Maintainer: Exam Quality. Every edit needs the Validator's receipt. A new owner record adds a row here in the same step it is written into the system.
 
 ## A. Process
 
@@ -44,6 +44,7 @@ Maintainer: Exam Quality. Every edit needs the Validator's receipt. A new owner 
 | R14 | Practice applies the same registered part minimums as the sealed grade | PRACTICE-SHOWS-MINIMUMS-01 · 4457218605 | S7 | practice scorer reads the registered minimums |
 | R15 | Public practice bank: N = 40 per Challenge, ≥ 0.10 (normalised max-norm) from every sealed point, inner half of the band only | PRACTICE-BANK-PICKS-DELEGATED-01 · 25f2d4b850 | S7 | the single "all N satisfy the rule" boolean + bank digest |
 | R16 | Per-part feedback to the miner, at a granularity proven by the feedback-leak attack | DOOR-LOOKUPS-AND-PART-FEEDBACK-01 · 005839c700 | S7 | leak-attack receipt before feedback serves |
+| R35 | Each new version's TRAIN set and practice bank are PUBLISHED as soon as they are frozen and checked, ahead of its board opening | TRAIN-PRACTICE-EARLY-RELEASE-01 · d9c8883c42 | S7 (publication right after the freeze/check) | the TRAIN digest + practice bank digest published before the board-open record |
 
 ## D. Physics gates
 
@@ -67,19 +68,38 @@ Maintainer: Exam Quality. Every edit needs the Validator's receipt. A new owner 
 | R27 | The first crown must beat the baseline total by the registered margin | FIRST-CROWN-BEATS-BASELINE-01 · 4313e52fe4 | S7, S8 | baseline floor in the pack |
 | R28 | KOTH margin ≥ max(rebuild noise, 2 × SD of seed totals), measured at the registered recal; crowns by a multi-rebuild average and a bit-identical repeat grade | KOTH-TAKEOVER-RULE-01 · f5d96a76a1; KOTH-MARGIN-SEED-SPREAD-01 · 54ca06d7a8; CROWN-MARGIN-2SD-01 · 19ade6ade6; CROWN-MULTI-REBUILD-AVERAGE-01 · a322dea43c; CROWN-GRADE-REPEAT-01 · fa6b39ebc4 | S7 | margins recal record per version |
 | R29 | Proof suite uses accuracy-matched gaming controls: each biased copy of the honest model scores ≤ the honest model | PROOF-ACCURACY-MATCHED-CONTROLS-01 · d8eae6862f | S7 | paired gaming result |
+| R36 | The 4 new versions open on a worker image with the loop-body cache fix (all versions, bit-identical) + a versioned compiled forward used identically in practice, trainer predictions and judge inference (opt-in versions only; live versions stay eager; no rescore). A ship condition per version | GRAPH-FORWARD-COMPILE-NEW-VERSIONS-01 · 33c68843ad | S8 (worker image), S7 (practice / judge parity) | the version's worker image digest carries both; a bit-identical eager-vs-compiled parity record |
 
 ## F. Learning-model direction (1 Nov)
 
 | # | Rule | Owner record · commit | Binds | Proving check |
 |---|---|---|---|---|
 | R30 | Learning-necessity gate A: tuned catalog learners must beat the best cheap method by > margin_N. HARD for Burst Thermal 3.0, Ribbed Bracket 2.0, Cooling 1.8; report-only for Motor 1.6, Cooling 1.7; never delays a version. A TRAIN-kernel reference row is reported | LEARNING-NECESSITY-GATE-01 · a60d14bf6d | S5 | LN record (grid digest, folds, UP vs DOWN, TRAIN-kernel row) |
-| R31 | Separation read before big solves: tuned TRAIN-kernel vs the best tuned catalog operator per region class, with nearest-TRAIN distances; mining favours classes where the fit loses (class-level, sampler only) | SEPARATION-READ-ADOPT-01 · 6c24fbb582 | S4a | SEP-READ record per version |
+| R31 | Separation read before big solves: tuned TRAIN-kernel vs the best tuned catalog operator per region class, with nearest-TRAIN distances; mining favours classes where the fit loses (class-level, sampler only) — since amendment 2 (0318421a) the TUNED read is OPTIONAL evidence, not a gate (R33 checks (1)–(3) decide) | SEPARATION-READ-ADOPT-01 · 6c24fbb582 | S4a | SEP-READ record per version |
 | R32 | Design value vs the engineer's shortcut: D's zero point = the registered cheap method screen-then-verify at budget B (B = HUMAN_INPUT per version); off-step / shell-edge design targets where the fit loses; weight unchanged | DESIGN-VALUE-ENGINEER-BASELINE-01 · 5328e97cb7 | S2, S3, S4, S7 | DV-CURVE record; the owner's B pick; the disclosed zero point |
-| R33 | Accuracy = min(in-range, balanced per-class out-of-range), with more cases where the fit loses and per-class floors REPORTED. AMENDED: `min` only after S4a shows a clear operator win over the TRAIN-kernel out of range ("clearly" = the paired bootstrap 95 % lower bound of O − K > margin_N), else `mean` and a TRAIN-COVER card for the next version. Milder fallback if the noise dry run fails | ACCURACY-OOD-MIN-01 · 497b5817c5; amendment · c1f57f0ac0 | S2, S4a, S7 | ACC-NOISE record + S4a bound |
+| R33 | Accuracy = min(in-range, balanced per-class out-of-range), with more cases where the fit loses and per-class floors REPORTED. AMENDED twice: strict A = min(in, out) applies when (1) the registered fits / formula / engineer shortcut score poorly OUT of range, (2) the noise ceiling sits well above them, and (3) ONE DEFAULT trained model (no tuning search) beats them in range, or the training set provably covers the OOD physics. "Poorly" and "well above" are owner values: report the measured gaps, never invent a bar; else `mean` and a TRAIN-COVER card for the next version. Milder fallback if the noise dry run fails | ACCURACY-OOD-MIN-01 · 497b5817c5; amendment 1 · c1f57f0ac0; amendment 2 · 0318421aa4 | S2, S4a, S7 | the three checks' measured gaps (shortcut OOD score, noise ceiling, default model in range) + ACC-NOISE |
 | R34 | Each side of every new version is designed to make fits and formulas lose (accuracy: OOD / generalisation / off-grid; design: R32) | OOD-GENERALIZATION-DIRECTION-01 · 03f4c68f99 | S0, S4 | the S4a read and the Q9 rows show fits lose on both sides |
+| R37 | Every new version carries a PHYSICS HARDNESS CARD (nonlinearity, coupling, regime switches / onsets, history / transients, field / high-dim inputs, realistic distributions: present / shown / missing); a version the R33 shortcut panel scores well on goes back to design with harder physics, while staying learnable | HARD-REAL-PHYSICS-DIRECTION-01 · 0ea04b3db8 | S0 (card), S1 (re-design trigger) | the version's card, owner-confirmed, + the R33 check (1) result |
+| R38 | Every new version carries a TRAIN DATA ADEQUACY CARD before its freeze: TRAIN size vs input dimension; richness (scalars only vs the fields / traces the solver already computes); regime coverage (the G4 label table); learning-curve evidence (G6); whether the interface allows auxiliary supervision | TRAIN-DATA-ADEQUACY-CHECK-01 · 3b42c19c2b | S0 / S4 (before the freeze) | the version's card, owner-confirmed, Validator-receipted |
+
+## G. Generalization axes (STRONG_CHECKS_SPEC_20261102.md). ADOPTED: OWNER-STRONG-CHECKS-GENERALIZATION-AXES-01, lead-records 9515dd60d9ce8a3806f2aef076d745b1ba9f432c (owner: "Love that... Lock them all in.")
+Freeze-binding for the 4 new versions: G1, G2, G3, G7, G8, G9. Report-only: G4, G5, G6. Most map onto rules above; the axis is the owner-facing lens.
+
+| # | Axis | Maps to | Binds | Proving check |
+|---|---|---|---|---|
+| G1 | Extrapolation past the TRAIN range | R7, R33 (amendment 2 checks) | S4 (freeze) | extended / outer-shell classes present + R33 checks (1)–(3) |
+| G2 | Interpolation holes inside the range | R8 (inner band), R15 distance rule | S4 | inner-band cases at max-norm distance ≥ the registered threshold (owner value; rec 0.10) from every TRAIN point |
+| G3 | Hard regimes (near-zero torque, mode crossings / band edges, nonlinearity onset, applicability edges) | R9, R31 | S4 | mined regime classes, per-class floors reported |
+| G4 | Leave-regime-out | — | report | the default model with one regime held out, scored on it |
+| G5 | Nearby variants | (neighbour tasks) | report | a registered variant set, scored separately |
+| G6 | Learning curve | — | report | default model + best shortcut at 25 / 50 / 100 % of TRAIN |
+| G7 | Seed robustness | R28 | S4 / S7 | rebuild noise across the registered seeds; a win exceeds it |
+| G8 | No leakage | R10, R15, invariant 1 | S4 | distance audit exam vs TRAIN and vs published practice; lattice draws skip published cases; sealed seeds |
+| G9 | Physical validity everywhere | R17, R19 | S4 / S7 | every physics gate on every OOD case (truths pass gates) |
 
 ## Version-specific owner records (bound in each version's plan, not general rules)
-- **Burst Thermal 3.0:** F02-NEXT-VERSION-DIRECTION-01 · 9f04949119; F02-V3-BOX-CUT-01 · 2e39fb5dcb; F02-V3-LEAKAGE-NONLINEARITY-01 · 50d84f937e; F02-V3-PICKS-01 · 9b27ddb0a2; F02-V3-TABLES-SIGNED-01 · 80196692aa; the thresholds in PAYOUT-V5-AND-F02-V3-THRESHOLDS-01 · 4f7c7274aa.
-- **Ribbed Bracket 2.0:** F08-V2-VALUES-01 · 72c789da81; F08-V2-ALLOYS-SIGNED-01 · fe7f6c19a9.
+- **Burst Thermal 3.0:** OWNER-F02-V3-PEAK-LIMIT-95C-01 · 57ea32d880 (3.0 keeps the 95 °C peak limit as its REGISTERED peak limit); F02-NEXT-VERSION-DIRECTION-01 · 9f04949119; F02-V3-BOX-CUT-01 · 2e39fb5dcb; F02-V3-LEAKAGE-NONLINEARITY-01 · 50d84f937e; F02-V3-PICKS-01 · 9b27ddb0a2; F02-V3-TABLES-SIGNED-01 · 80196692aa; the thresholds in PAYOUT-V5-AND-F02-V3-THRESHOLDS-01 · 4f7c7274aa.
+- **Ribbed Bracket 2.0:** F08-V2-VALUES-01 · 72c789da81; F08-V2-ALLOYS-SIGNED-01 · fe7f6c19a9; OWNER-RB20-SOLVER-REPIN-PASTIX-01 · 4b2327944c (re-pin the F08 reference solver to 64-bit PaStiX after its checks, with the deck migration; the image is never distributed outside Carbon; the per-case memory limit is raised only after the measured figure goes back to the owner).
 - **Motor 1.6 / 1.7:** MOTOR-16-17-SPLIT-01 · b729d703ee.
+- **Motor next version (after 1.7):** OWNER-MOTOR-NEXT-SHORTCUT-COARSE-MESH-01 · 47bf1946e8: a coarse-mesh run is registered as Motor's engineer shortcut for R32 (the Validator sets the rung after a $0 ladder check), with the formula as a cross-check. Motor 1.7 keeps the R32 part-2 fallback.
 - **Cooling 1.7 / 1.8:** EXAM-VALUE-PICKS-01 item 5 (fairness: Option B or TRAIN refit); IMAGE-MOVE-REGISTRY-OVERLAY-01 · bcf47faeb9.
