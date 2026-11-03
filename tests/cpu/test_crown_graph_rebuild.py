@@ -237,6 +237,7 @@ def _provider(owner, recipe, *, seeded=True, tmp_path=None):
     provider._entropy = b"\x07" * 32
     provider._lock = threading.RLock()
     provider._task_seeds = {}
+    provider._origin_rebinds = set()
     provider._idempotency, provider._views, provider._requests = {}, {}, {}
     provider._measured_tasks = set()
     provider.image_resolver = None
