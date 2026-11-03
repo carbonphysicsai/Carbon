@@ -11,16 +11,7 @@ The owner text `codex-queue/reports/F02_V3_REGION_FINAL_REV2_20261102/OWNER_SIGN
 - **The region:** Burst Thermal 3.0's extended region is `F02_V3_REGION_FINAL_REV2_20261102/region.final.json`.
   - file sha256 2bc68ac917150a104b7bd267b719baf70e224f5fdb863a62b4b62191bbe75a55
   - canonical sha256 d932d08ac7e01b9b4b4616dab38663b89d73d9ca05e52fb8d5744119436f2787 (the sha the exam loader checks)
-- **Extended sides (10):** these stay at +25 %:
-  - coolant low;
-  - gap, both sides;
-  - heat-transfer coefficient high;
-  - left-source fraction, both sides;
-  - on-time low;
-  - peak power, both sides;
-  - TIM thickness low.
-- **Sides kept at the box edge (6):** coolant high, heat-transfer coefficient low, initial temperature low and high, on-time high, TIM thickness high.
-- **Held at their physical ends:** pulse count and ramp fraction.
+- **Extended sides, sides kept at the box edge, and sides held at their physical ends:** held in custody (the per-side lists and the extension percentage are not published; the region file's hashes above identify it).
 - **Corners:** all 5 pass, with 0 exclusions.
 - **What the signature allows:** out-of-range exam cases (the shell and MINE B1/B2/B4/B9–B11) may now be drawn inside this region only.
 - **Unchanged:** the signed box C6, the leakage law, the 95 °C limit, scores and money.

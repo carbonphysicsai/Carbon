@@ -10,6 +10,6 @@ Asked (the Lead's summary of BT30_T8_OWNER_CHOICE_DRAFT_20261103.md): "the 'hot 
 - **The sub-box is held out:** the training designs inside it are dropped before the 3.0 TRAIN set is registered, and the sub-box stays out of the practice bank, so "never seen in training" is true.
 
 ## NOT decided here (back to the owner, one line)
-- **The sub-box bounds.** The draft's candidate was coolant 33–35 °C × start 51–55 °C, labelled a candidate. The owner did not see or set the bounds.
+- **The sub-box bounds.** Held in custody. The draft's candidate bounds were labelled a candidate; the owner did not see or set them.
 - **When it comes back:** the Lead brings the bounds back with the two counts (Evidence, by ~09:30): (i) the TRAIN designs inside the sub-box, which is the loss; (ii) the feasible designs (peak ≤ 95 °C) inside it, where at least 2 per drawn situation are needed.
 - **If (ii) is too small:** a widened sub-box comes back instead, with the counts. No value is used before his answer.
