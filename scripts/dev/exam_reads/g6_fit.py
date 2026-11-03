@@ -12,14 +12,13 @@ Per fraction f of the subsets manifest (`g6_subsets.subset_indices` re-derives a
   `carbon/challenge_kit/local_scorer.py` makes: `ConstructionRecipe.from_bytes`, `graph_adapters.module_for`, the construction
   kit's identities (`bind_recipe`), `checked_train` on the version's public TRAIN by exact digest, `build_validated_graph(...,
   allowlist_bytes=served_allowlist_bytes, train_cases=spec.rows)`, `model.fit(inputs, targets, seed=0)`, `model.predict(QUERY,
-  isolated=True)`. The official path admits exactly the version's TRAIN row count, and its one TRAIN-subset surface is the recipe's
-  own ``procedure.train_use.train_fraction``: the trainer then fits the rows `physical_graph_trainer_v2.selected_rows(n, fraction,
-  seed 0)` names. So below 100 % the recipe's fraction is set to f (or, when the trainer's count int(n f) differs from the
-  subset's, to (k + 0.5) / n, which selects exactly k), and TRAIN's rows are placed so the trainer's own selected positions hold
-  the subset's rows, in TRAIN order; every other row is the rest of TRAIN (unread by the fit). The fit is refused unless those
-  selected rows are byte-equal to the subset file's arrays and the fit reports k rows. At 100 % the recipe and TRAIN are used
-  unchanged. A recipe that is not a graph-route-v2 graph (a catalog or bundle recipe, a v1 or Battery adapter, a version this
-  commit does not register) or that already selects a fraction below 1.0 is NOT_RUN with the reason; no other path is invented.
+  isolated=True)`. THE SUBSET IS THE TRAIN INPUT (Validator 3 Nov 16:24): the recipe is used unchanged (its train_fraction
+  1.0, its bytes and digest the published ones), the graph is admitted exactly as the version admits it (``train_cases`` = the
+  version's TRAIN rows: the same intake and validation verdict), and the model is then fitted at seed 0 on the subset file's own
+  arrays, k rows, with only its interface row count set to k (`subset_model`: ``Spec.rows`` is the shape check of `fit`, nothing
+  else). The fit is refused unless it reports k rows. At 100 % that is TRAIN itself. A recipe that is not a graph-route-v2 graph
+  (a catalog or bundle recipe, a v1 or Battery adapter, a version this commit does not register) or that selects a train
+  fraction below 1.0 is NOT_RUN with the reason; no other path is invented.
 - the SHORTCUT (``<shortcut-role>@frac:<f>``): `shortcut_panel.fit_predict(member, subset X, subset Y, QUERY, seed=0)`, the
   call `shortcut_panel.py fit --train SUBSET.npz --query QUERY.npy --members <member> --seed 0` makes.
 
@@ -122,32 +121,14 @@ def _refusal_code(error):
     return getattr(error, "code", type(error).__name__)
 
 
-def placed_train(inputs, targets, indices, selected):
-    """TRAIN's rows re-placed so the positions ``selected`` (the trainer's own draw) hold the subset rows ``indices`` in TRAIN
-    order, and the other positions the remaining TRAIN rows in TRAIN order. Returns (inputs, targets, source row of each
-    position)."""
-    import numpy as np
+def subset_model(model, k):
+    """The admitted ``model`` with its interface row count set to the subset's k rows (``Spec.rows`` gates only the shape of
+    `fit`'s TRAIN arrays); recipe, graph, allowlist and training settings stay the admitted ones.
+    """
+    import dataclasses
 
-    n = len(inputs)
-    _need(len(indices) == len(selected), "g6_trainer_count_differs_from_subset")
-    rest = np.setdiff1d(np.arange(n), indices)
-    others = np.setdiff1d(np.arange(n), selected)
-    source = np.empty(n, dtype=np.int64)
-    source[selected] = indices
-    source[others] = rest
-    return inputs[source], targets[source], source
-
-
-def trainer_fraction(n, k, fraction):
-    """The recipe train_fraction the official trainer turns into exactly k rows: f itself when int(n f) == k, else
-    (k + 0.5) / n."""
-    from carbon.development_session import physical_graph_trainer_v2 as trainer
-
-    for value in (fraction, (k + 0.5) / n):
-        selected = trainer.selected_rows(n, value, OFFICIAL_SEED)
-        if 0.0 < value < 1.0 and len(selected) == k:
-            return value
-    raise SubsetsRefused("g6_no_trainer_fraction_selects_the_subset_count")
+    model.spec = dataclasses.replace(model.spec, rows=k)
+    return model
 
 
 def default_rows(
@@ -163,7 +144,6 @@ def default_rows(
         graph_adapters,
         physical_graph_adapter_v2,
     )
-    from carbon.development_session import physical_graph_trainer_v2 as trainer
     from carbon.development_session.construction_recipe import (
         ConstructionRecipe,
         RecipeRefused,
@@ -205,25 +185,19 @@ def default_rows(
         manifest, fraction, n, arrays={"inputs": inputs, "targets": targets}
     )
     k = len(indices)
-    if fraction == 1.0:
-        tf, x, y, source = 1.0, inputs, targets, np.arange(n)
-        fit_recipe = recipe
-    else:
-        tf = trainer_fraction(n, k, fraction)
-        selected = trainer.selected_rows(n, tf, OFFICIAL_SEED)
-        _need(module.selected_rows(spec, tf) == k, "g6_adapter_count_differs")
-        x, y, source = placed_train(inputs, targets, indices, selected)
-        _names, sub, _n = subsets.load_train(subset)
-        _need(
-            set(sub) == {"inputs", "targets"}
-            and sub["inputs"].dtype == x.dtype
-            and sub["targets"].dtype == y.dtype
-            and x[selected].tobytes() == sub["inputs"].tobytes()
-            and y[selected].tobytes() == sub["targets"].tobytes(),
-            "g6_trainer_rows_differ_from_subset",
-        )
-        doc["procedure"]["train_use"]["train_fraction"] = tf
-        fit_recipe = ConstructionRecipe.from_dict(doc)
+    _names, sub, _n = subsets.load_train(subset)
+    _need(
+        set(sub) == {"inputs", "targets"}
+        and sub["inputs"].dtype == inputs.dtype
+        and sub["targets"].dtype == targets.dtype
+        and sub["inputs"].tobytes() == inputs[indices].tobytes()
+        and sub["targets"].tobytes() == targets[indices].tobytes(),
+        "g6_subset_rows_differ_from_train",
+    )
+    x, y = sub["inputs"], sub["targets"]
+    if module.training_settings(recipe)["batch_size"] > k:
+        # the official rule (`training_settings`: never more cases per update than the TRAIN rows), on the subset's k rows
+        return None, _not_run("g6_batch_exceeds_subset")
     rows = np.ascontiguousarray(np.asarray(query, dtype=spec.dtype))
     _need(rows.shape[1] == spec.inputs, "g6_query_width_differs_from_interface")
     from carbon.development_session.direct_graph_construction_worker import (
@@ -244,13 +218,13 @@ def default_rows(
     with context:
         try:
             model = module.build_validated_graph(
-                fit_recipe,
+                recipe,
                 raw_manifest,
                 files,
                 allowlist_bytes=module.served_allowlist_bytes(cid, version),
                 train_cases=n,
             )
-            fit = model.fit(x, y, seed=OFFICIAL_SEED)
+            fit = subset_model(model, k).fit(x, y, seed=OFFICIAL_SEED)
         except (GraphRefused, RecipeRefused) as error:
             return None, _not_run(_refusal_code(error))
         except intake.IntakeBlocked:
@@ -261,10 +235,10 @@ def default_rows(
         "status": "FITTED",
         "path": "graph route v2 (local_scorer's official calls)",
         "recipe_digest": recipe.digest,
-        "fit_recipe_digest": fit_recipe.digest,
-        "train_fraction": tf,
-        "trainer_rows": "the subset's rows, TRAIN order (trainer's own draw positions)",
-        "placed_train_source_sha256": _sha(np.asarray(source, dtype="<i8").tobytes()),
+        "train_input": "the subset file's own rows (TRAIN order), k = train_cases",
+        "train_cases": k,
+        "subset_inputs_sha256": _sha(x.tobytes()),
+        "subset_targets_sha256": _sha(y.tobytes()),
         "fit": fit,
     }
 

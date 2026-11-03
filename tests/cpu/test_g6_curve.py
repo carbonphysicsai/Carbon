@@ -241,30 +241,10 @@ def test_the_fit_driver_writes_rows_and_records_for_every_fraction(tmp_path):
         )
 
 
-def test_the_trainer_placement_puts_the_subset_on_the_trainers_own_rows():
-    from carbon.development_session import physical_graph_trainer_v2 as trainer
-
-    n = 20
-    x = np.arange(n * 2, dtype=float).reshape(n, 2)
-    y = -x
-    indices = np.array([1, 4, 9, 15, 18])
-    tf = g6_fit.trainer_fraction(n, len(indices), 0.25)
-    selected = trainer.selected_rows(n, tf, 0)
-    px, py, source = g6_fit.placed_train(x, y, indices, selected)
-    np.testing.assert_array_equal(px[selected], x[indices])
-    np.testing.assert_array_equal(py[selected], y[indices])
-    assert sorted(source.tolist()) == list(range(n))
-    # the trainer's own draw is placed where it already is
-    _px, _py, same = g6_fit.placed_train(x, y, selected, selected)
-    np.testing.assert_array_equal(same, np.arange(n))
-    # a count the plain fraction does not give is reached exactly
-    assert (
-        len(trainer.selected_rows(150, g6_fit.trainer_fraction(150, 38, 0.25), 0)) == 38
-    )
-
-
 @posix
-def test_the_default_model_is_the_official_graph_build_on_the_subset_rows(tmp_path):
+def test_the_default_model_is_the_official_graph_build_on_the_subset_rows(
+    tmp_path, monkeypatch
+):
     import test_graph_route_v2 as graph
 
     from carbon.development_session import physical_graph_adapter_v2 as adapter
@@ -275,12 +255,25 @@ def test_the_default_model_is_the_official_graph_build_on_the_subset_rows(tmp_pa
     raw_train, inputs, targets = graph._train(key)
     manifest = subsets.write(
         _write_train(tmp_path, raw_train),
-        "seed:5",
-        "ceil",
+        "sha256:1.5",
+        "half_up",
         (0.25, 0.5, 1.0),
         tmp_path / "s",
     )
     query = np.asarray(inputs[:3], dtype=np.float64)
+    recipe_bytes = bytes(recipe.canonical_bytes)
+    from carbon.development_session import physical_graph_trainer_v2 as trainer
+
+    used = []
+    real_train = trainer.train
+    monkeypatch.setattr(
+        trainer,
+        "train",
+        lambda prepared, x, y, settings, **kw: used.append(
+            (x.copy(), y.copy(), settings)
+        )
+        or real_train(prepared, x, y, settings, **kw),
+    )
     for label in manifest["fractions"]:
         data = (tmp_path / "s" / manifest["subsets"][label]["file"]).read_bytes()
         rows, record = g6_fit.default_rows(
@@ -295,9 +288,18 @@ def test_the_default_model_is_the_official_graph_build_on_the_subset_rows(tmp_pa
         )
         assert record["status"] == "FITTED", record
         assert rows.shape == (3, spec.outputs) and np.isfinite(rows).all()
-        assert record["fit"]["train_cases"] == manifest["subsets"][label]["n"]
+        k = manifest["subsets"][label]["n"]
+        assert record["fit"]["train_cases"] == record["train_cases"] == k
+        # the recipe is the published one, unchanged (train_fraction 1.0)
+        assert bytes(recipe.canonical_bytes) == recipe_bytes
+        assert record["recipe_digest"] == recipe.digest
+        # the rows the trainer saw are exactly the ruled subset's
+        x, y, settings = used[-1]
+        assert settings["train_fraction"] == 1.0
+        _o, indices = subsets.subset_indices(manifest, float(label), spec.rows)
+        assert x.tobytes() == inputs[indices].tobytes()
+        assert y.tobytes() == targets[indices].tobytes()
         if label == "1.0":
-            assert record["fit_recipe_digest"] == recipe.digest
             model = adapter.build_validated_graph(
                 recipe,
                 raw_manifest,
@@ -313,8 +315,24 @@ def test_the_default_model_is_the_official_graph_build_on_the_subset_rows(tmp_pa
                     dtype=np.float64,
                 ),
             )
-        else:
-            assert record["fit_recipe_digest"] != recipe.digest
+
+    # a subset smaller than the recipe's batch is NOT_RUN, as the official path refuses a batch over its TRAIN rows
+    tiny = subsets.write(
+        _write_train(tmp_path, raw_train),
+        "sha256:1.5",
+        "half_up",
+        (0.02, 1.0),
+        tmp_path / "tiny",
+    )
+    data = (tmp_path / "tiny" / tiny["subsets"]["0.02"]["file"]).read_bytes()
+    assert tiny["subsets"]["0.02"]["n"] < 8
+    rows, record = g6_fit.default_rows(
+        recipe.canonical_bytes, raw_manifest, files, raw_train, tiny, 0.02, data, query
+    )
+    assert rows is None and record == {
+        "status": "NOT_RUN",
+        "code": "g6_batch_exceeds_subset",
+    }
 
 
 # ---------------------------------------------------------------- @frac roles, the checks run and G6

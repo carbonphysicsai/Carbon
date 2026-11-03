@@ -19,7 +19,7 @@ stratum, e.g. RB's alloy column):
   (its indices sorted), so a subset is the same rows whatever order the rule drew them in.
 - ``--count ceil``: k(f) = ceil(f * n); ``--count floor``: k(f) = floor(f * n) (the official graph trainer's own count,
   ``physical_graph_trainer_v2.selected_rows``: ``int(rows * train_fraction)``). Exact arithmetic on f's decimal text (``Fraction("0.25")``), so no
-  float rounding moves a row (`g6_fit` checks the trainer's own draw against the subset before it fits).
+  float rounding moves a row (`g6_fit` fits the subset file's own rows, checked byte-equal to TRAIN's rows at its indices).
 
 Every fraction is a prefix of ONE ordering, so 25 % is inside 50 % is inside 100 % by construction. The 100 % subset is TRAIN
 itself, byte-identical (copied, never re-saved). Each smaller subset is an npz with TRAIN's own array names, dtypes and column
