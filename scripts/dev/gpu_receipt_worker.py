@@ -16,9 +16,11 @@ an entry gets at most `--max-attempts` attempts. A failed entry has no record, s
   `--busy-command` or `--no-yield`). `--grading-state-dir` is the directory that holds the receiver's lock: the PARENT of
   the receiver config's `official_gpu_receipts` path. One GPU: it never competes with a grade.
 - Timeout accounting: by default a run's `--entry-timeout-s` is WALL time, paused time included. With
-  `--entry-wall-cap-s C` the timeout counts RUN time (wall minus the time its containers were frozen by a pause), and C is
-  a separate cap on the whole wall of one run, paused or not (TL 3 Nov 10:05: a night of door grading paused runs past the
-  wall timeout). Both are operator values; nothing defaults.
+  `--entry-wall-cap-s C` (Validator 3 Nov 10:08: ruled (a), C = 6 h = 21600 s) the timeout counts RUN time (wall minus the
+  time its containers were frozen for grading: a frozen container does no work), and C guards one run's whole wall: a run
+  frozen past it is FAILED_INFRA `receipt_starved_by_grading` (harm: GPU memory held) and is retried without spending an
+  attempt. Every pause and resume is logged, and every run's run_s / paused_s / wall_s goes to `run-timing.jsonl` in the
+  state dir and the job's queue detail (the official receipt's schema is closed: it carries none).
 - Lanes: min(free VRAM, CPUs, memory, cap) from the measured per-lane limits you pass (nothing defaulted).
 - Resumes: the queue is a SQLite file in `--state-dir`; a restart (or reboot, via the `units` service) re-queues RUNNING jobs.
 - Progress: "GPU receipts: <challenge> N of M ..." per Challenge, on every finish and on `status`.
@@ -231,6 +233,14 @@ class Queue:
         )
         self.db.commit()
 
+    def requeue_infra(self, key, reason):
+        """A FAILED_INFRA attempt (the host's, not the entry's) goes back to the queue and its attempt is refunded."""
+        self.db.execute(
+            "UPDATE jobs SET status='QUEUED', reason=?, attempts=MAX(attempts - 1, 0), updated=? WHERE key=?",
+            (reason, self.clock(), key),
+        )
+        self.db.commit()
+
     def requeue(self, key, reason):
         """An attempt that failed with attempts left goes back to the queue with its reason."""
         self.db.execute(
@@ -427,15 +437,26 @@ class PauseClock:
 
 
 def run_counted(ctx, argv):
-    """One container run under run-time accounting: ``{"rc", "stderr"}``, or ``{"stop": "timeout"|"wall_cap", "detail"}``
-    after killing it. The run time is the wall since start minus the pause clock's growth since start.
+    """One container run under run-time accounting: ``{"rc", "stderr", "timing"}``, or ``{"stop": "timeout"|"wall_cap",
+    "detail", "timing"}`` after killing it. The run time is the wall since start minus the pause clock's growth since
+    start; ``timing`` is ``{run_s, paused_s, wall_s}``.
     """
     process = ctx.popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     start, paused_at_start = ctx.monotonic(), ctx.pause_clock.paused_s()
+
+    def timing():
+        wall = ctx.monotonic() - start
+        paused = ctx.pause_clock.paused_s() - paused_at_start
+        return {
+            "run_s": round(wall - paused, 3),
+            "paused_s": round(paused, 3),
+            "wall_s": round(wall, 3),
+        }
+
     while True:
         try:
             _out, err = process.communicate(timeout=ctx.tick_s)
-            return {"rc": process.returncode, "stderr": err or ""}
+            return {"rc": process.returncode, "stderr": err or "", "timing": timing()}
         except subprocess.TimeoutExpired:
             pass
         wall = ctx.monotonic() - start
@@ -451,7 +472,22 @@ def run_counted(ctx, argv):
             continue
         process.kill()
         process.communicate()
-        return {"stop": stop[0], "detail": stop[1]}
+        return {"stop": stop[0], "detail": stop[1], "timing": timing()}
+
+
+def _log_timing(ctx, job, n, timing):
+    """One line per counted run in ``run-timing.jsonl`` (owner-only, appended)."""
+    line = json.dumps(
+        {"key": job["key"], "run": n, "attempt": job.get("attempt"), **timing},
+        sort_keys=True,
+    )
+    fd = os.open(
+        ctx.state_dir / "run-timing.jsonl",
+        os.O_WRONLY | os.O_CREAT | os.O_APPEND,
+        0o600,
+    )
+    with os.fdopen(fd, "a", encoding="utf-8") as stream:
+        stream.write(line + "\n")
 
 
 def docker_argv(ctx, runtime, catalog_id, run_name, out_dir, scratch):
@@ -559,6 +595,7 @@ def official_pair(ctx, job):
         stale.unlink()
     peak = 0
     digests = []
+    timings = []
     for n in (1, 2):
         name = run_name_of(job, n)
         if ctx.pause_clock is not None:
@@ -568,13 +605,19 @@ def official_pair(ctx, job):
                     ctx, job["runtime"], job["catalog_id"], name, out_dir, scratch
                 ),
             )
+            _log_timing(ctx, job, n, counted["timing"])
+            timings.append(counted["timing"])
             if "stop" in counted:
                 ctx.run(["docker", "rm", "-f", name], capture_output=True, check=False)
+                starved = counted["stop"] == "wall_cap"
                 return {
-                    "verdict": "FAILED",
-                    "reason": counted["stop"],
-                    "detail": f"run {n}: {counted['detail']}",
+                    "verdict": "FAILED_INFRA" if starved else "FAILED",
+                    "reason": (
+                        "receipt_starved_by_grading" if starved else counted["stop"]
+                    ),
+                    "detail": f"run {n}: {counted['detail']} {json.dumps(counted['timing'], sort_keys=True)}",
                     "peak_gpu_bytes": peak,
+                    "timing": timings,
                 }
             done = subprocess.CompletedProcess(
                 [], counted["rc"], stdout="", stderr=counted["stderr"]
@@ -614,7 +657,10 @@ def official_pair(ctx, job):
         out_dir / (run_name_of(job, 1) + ".json"),
         out_dir / (run_name_of(job, 2) + ".json"),
     )
-    return {**_classify(verdict, peak), "run_digests": digests}
+    out = {**_classify(verdict, peak), "run_digests": digests}
+    if timings:
+        out["timing"] = timings
+    return out
 
 
 def _classify(verdict, peak):
@@ -728,6 +774,10 @@ def run_loop(
             if pauser is not None and held != paused:
                 pauser([running[f] for f in running], held)  # freeze/thaw containers
                 paused = held
+                out(
+                    f"{'pause' if held else 'resume'} {len(running)} running entr"
+                    f"{'y' if len(running) == 1 else 'ies'} (official grading or the operator flag)"
+                )
             if not held:
                 allowed = lanes_now() - len(running)
                 for _ in range(max(0, allowed)):
@@ -799,6 +849,13 @@ def _settle(queue, job, result, ctx, receipt_writer, max_attempts, out):
             return
         queue.finish(job["key"], "PASS", "bit_identical", str(path))
         out(f"PASS {job['key']} -> {str(path)[:19]}")
+    elif verdict == "FAILED_INFRA":
+        # starved by grading (Validator 10:08): the host's, never the entry's; back to the queue, no attempt spent
+        queue.requeue_infra(job["key"], result["reason"])
+        log_failure(
+            ctx, job, "FAILED_INFRA", result["reason"], result.get("detail", "")
+        )
+        out(f"retry {job['key']} (FAILED_INFRA, attempt not spent): {result['reason']}")
     elif verdict == "UNSTABLE":
         queue.finish(job["key"], "UNSTABLE", result["reason"], result.get("detail", ""))
         log_failure(ctx, job, "UNSTABLE", result["reason"], result.get("detail", ""))

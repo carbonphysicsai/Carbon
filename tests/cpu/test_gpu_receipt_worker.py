@@ -848,8 +848,11 @@ def test_a_run_paused_past_the_wall_cap_stops_at_the_cap(tmp_path):
     # 50 s of work but frozen from 10 s on: run time stays low, the WALL passes the 600 s cap
     c, procs, removed = _counted_ctx(tmp_path, work_s=50, pause_between=(10, 10**6))
     done = w.official_pair(c, JOB)
-    assert done["verdict"] == "FAILED" and done["reason"] == "wall_cap"
+    # Validator 10:08: the 6 h wall guard is FAILED_INFRA receipt_starved_by_grading (the host's, retried)
+    assert done["verdict"] == "FAILED_INFRA"
+    assert done["reason"] == "receipt_starved_by_grading"
     assert procs[0].killed and ["docker", "rm", "-f"] in removed
+    assert done["timing"][0]["paused_s"] > done["timing"][0]["run_s"]
 
 
 def test_without_the_cap_the_timeout_is_wall_time_as_before(tmp_path):
@@ -885,3 +888,85 @@ def test_the_wall_cap_must_exceed_the_timeout(tmp_path, capsys):
     ]  # fmt: skip
     assert w.main(args) == 2
     assert "must exceed" in capsys.readouterr().err
+
+
+def test_every_counted_run_records_run_paused_and_wall_seconds(tmp_path, monkeypatch):
+    monkeypatch.setattr(w, "compare_runs", lambda a, b: "PASS")
+    c, _procs, _removed = _counted_ctx(tmp_path, work_s=50, pause_between=(20, 300))
+    c.state_dir.mkdir(parents=True, exist_ok=True)
+    done = w.official_pair(c, JOB)
+    first, second = done["timing"]
+    assert first["paused_s"] == 280.0 and first["run_s"] == 50.0
+    assert first["wall_s"] == first["run_s"] + first["paused_s"]
+    assert second["paused_s"] == 0.0
+    lines = [
+        json.loads(line)
+        for line in (c.state_dir / "run-timing.jsonl").read_text().splitlines()
+    ]
+    assert [(r["key"], r["run"]) for r in lines] == [(JOB["key"], 1), (JOB["key"], 2)]
+    assert set(lines[0]) == {"key", "run", "attempt", "run_s", "paused_s", "wall_s"}
+    assert (c.state_dir / "run-timing.jsonl").stat().st_mode & 0o777 == 0o600
+
+
+def test_a_starved_entry_is_retried_without_spending_an_attempt(tmp_path):
+    q = w.Queue(":memory:")
+    q.sync(jobs("a"))
+    results = iter(
+        [
+            {
+                "verdict": "FAILED_INFRA",
+                "reason": "receipt_starved_by_grading",
+                "detail": "",
+            },
+            {
+                "verdict": "FAILED_INFRA",
+                "reason": "receipt_starved_by_grading",
+                "detail": "",
+            },
+            {
+                "verdict": "PASS",
+                "reason": "bit_identical",
+                "detail": "",
+                "peak_gpu_bytes": 1,
+            },
+        ]
+    )
+    seen = []
+
+    def executor(c, j):
+        seen.append(j["attempt"])
+        return next(results)
+
+    counts, lines = drive(q, ctx(tmp_path), executor, max_attempts=1)
+    assert counts["PASS"] == 1 and counts["FAILED"] == 0
+    assert seen == [1, 1, 1]  # two starved runs refunded: still the first attempt
+    assert sum("FAILED_INFRA, attempt not spent" in line for line in lines) == 2
+
+
+def test_every_pause_and_resume_is_logged(tmp_path):
+    q = w.Queue(":memory:")
+    q.sync(jobs("a"))
+    states = iter([False, True, True, False])
+
+    def busy():
+        return next(states, False)
+
+    import threading as _threading
+
+    gate = _threading.Event()
+
+    def slow(c, j):
+        gate.wait(5)
+        return ok(c, j)
+
+    seen = []
+
+    def pauser(jobs_, paused):
+        seen.append(paused)
+        if not paused:
+            gate.set()
+
+    counts, lines = drive(q, ctx(tmp_path), slow, busy=busy, pauser=pauser)
+    assert counts["PASS"] == 1 and seen == [True, False]
+    assert any(line.startswith("pause 1 running entry") for line in lines)
+    assert any(line.startswith("resume 1 running entry") for line in lines)
