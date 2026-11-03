@@ -3,6 +3,7 @@
 #   checks_batch.sh run VERSION_DIR OUT     VERSION_DIR holds config.json, report-inputs.json and optionally g-inputs.json
 #   checks_batch.sh dry VERSION_DIR         every input checked, nothing graded
 #   checks_batch.sh selftest OUT            the chain on fake data of the real shapes
+#   KIT_DATA=KIT_MANIFEST.json checks_batch.sh run|dry ...   check (1K), the kit-data fit, instead (checks_kit.py)
 # Threads are pinned (BLAS thread count changes scores); run from the repo checkout at the receipted head.
 set -euo pipefail
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1
@@ -17,6 +18,7 @@ case "$cmd" in
     g=()
     if [ -f "$dir/g-inputs.json" ]; then g=(--g-inputs "$dir/g-inputs.json"); fi
     args=(--config "$dir/config.json" --inputs "$dir/report-inputs.json" "${g[@]}")
+    if [ -n "${KIT_DATA:-}" ]; then args+=(--kit-data "$KIT_DATA"); fi
     if [ "$cmd" = run ]; then args+=(--out "${3:?OUT required}"); fi
     exec "$py" "$here/checks_batch.py" "$cmd" "${args[@]}"
     ;;

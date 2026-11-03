@@ -4,11 +4,18 @@
     checks_batch.py run      --config CONFIG.json --inputs REPORT_INPUTS.json [--g-inputs G_INPUTS.json] --out DIR
     checks_batch.py dry      --config CONFIG.json --inputs REPORT_INPUTS.json [--g-inputs G_INPUTS.json]
     checks_batch.py selftest --out DIR
+    checks_batch.py run      --config CONFIG.json --inputs REPORT_INPUTS.json --kit-data KIT_MANIFEST.json [--g-inputs ...] --out DIR
+    checks_batch.py dry      --config CONFIG.json --inputs REPORT_INPUTS.json --kit-data KIT_MANIFEST.json [--g-inputs ...]
 
 ``run`` writes checks-1-3-report.{json,md}, g-reports.json and SUMS (sha256 of each). ``dry`` loads and checks every input (shapes,
 every sha256, the pack loads, the class source resolves) and grades nothing. ``selftest`` runs the whole chain on FAKE pool targets
 of the real shapes (two targets, two outputs, A_gen slices, a gated contender) through the real grader functions, and checks the
 outputs carry every field; it touches no custody material.
+
+With ``--kit-data`` the launch is check (1K), the kit-data fit (`checks_kit`, STRONG_CHECKS_SPEC_ADDENDUM_KITFIT_20261103): ``run``
+writes check-1k-report.{json,md} and SUMS instead (the G inputs, if given, are checked and not used: G1-G9 belong to the checks-1-3
+launch); ``dry`` checks the manifest, every sha256, the row counts, the disjointness, both runs of every member and the budget
+fields, and grades nothing.
 """
 
 from __future__ import annotations
@@ -23,6 +30,7 @@ _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
+import checks_kit
 import checks_report as report
 import g_reports
 import q3_q8_whatif as reads
@@ -31,14 +39,18 @@ OUTPUTS = ("checks-1-3-report.json", "checks-1-3-report.md", "g-reports.json")
 
 
 def _write(out, checks, g_doc):
-    out.mkdir(parents=True)
     files = {
         "checks-1-3-report.json": json.dumps(checks, indent=2, sort_keys=True) + "\n",
         "checks-1-3-report.md": report.summary(checks),
         "g-reports.json": json.dumps(g_doc, indent=2, sort_keys=True) + "\n",
     }
+    return _write_files(out, files, OUTPUTS)
+
+
+def _write_files(out, files, names):
+    out.mkdir(parents=True)
     sums = []
-    for name in OUTPUTS:
+    for name in names:
         raw = files[name].encode()
         (out / name).write_bytes(raw)
         sums.append(f"{hashlib.sha256(raw).hexdigest()}  {name}\n")
@@ -53,6 +65,26 @@ def run(config_path, inputs_path, g_inputs_path, out):
     sink = {}
     checks = report.run_report(config, config_path, inputs_path, keep=sink)
     return _write(out, checks, g_reports.build(checks, sink, g_inputs))
+
+
+def run_kit(config_path, inputs_path, kit_path, g_inputs_path, out):
+    """Check (1K): check-1k-report.{json,md} and SUMS."""
+    reads._need(not out.exists(), "batch_out_exists")
+    g_reports.load_inputs(g_inputs_path)
+    config = reads.load_config(config_path)
+    doc = checks_kit.run_kit(config, config_path, inputs_path, kit_path)
+    files = {
+        "check-1k-report.json": json.dumps(doc, indent=2, sort_keys=True) + "\n",
+        "check-1k-report.md": checks_kit.summary(doc),
+    }
+    return _write_files(out, files, checks_kit.OUTPUTS)
+
+
+def dry_kit(config_path, inputs_path, kit_path, g_inputs_path):
+    """Check (1K)'s inputs loaded and checked; nothing graded."""
+    g_reports.load_inputs(g_inputs_path)
+    config = reads.load_config(config_path)
+    return checks_kit.dry(config, inputs_path, kit_path)
 
 
 def dry(config_path, inputs_path, g_inputs_path):
@@ -138,13 +170,21 @@ def main(argv=None):
         p.add_argument("--config", type=Path, required=True)
         p.add_argument("--inputs", type=Path, required=True)
         p.add_argument("--g-inputs", type=Path)
+        p.add_argument("--kit-data", type=Path)
         if name == "run":
             p.add_argument("--out", type=Path, required=True)
     p = sub.add_parser("selftest")
     p.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
-        if args.cmd == "run":
+        kit = getattr(args, "kit_data", None)
+        if args.cmd == "run" and kit is not None:
+            print(
+                run_kit(args.config, args.inputs, kit, args.g_inputs, args.out), end=""
+            )
+        elif args.cmd == "dry" and kit is not None:
+            print(json.dumps(dry_kit(args.config, args.inputs, kit, args.g_inputs)))
+        elif args.cmd == "run":
             print(run(args.config, args.inputs, args.g_inputs, args.out), end="")
         elif args.cmd == "dry":
             print(json.dumps(dry(args.config, args.inputs, args.g_inputs)))

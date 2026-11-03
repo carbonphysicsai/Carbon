@@ -86,6 +86,14 @@ def load_inputs(path):
     ``train_inputs`` {npy, columns, sha256}; ``bootstrap_seed``, ``ceiling_seed``."""
     doc = json.loads(Path(path).read_bytes())
     _need(type(doc) is dict and set(doc) == INPUT_KEYS, "report_inputs_shape")
+    check_header_and_panel(doc)
+    check_contenders(doc["contenders"])
+    check_train_and_seeds(doc)
+    return doc
+
+
+def check_header_and_panel(doc):
+    """`load_inputs`' checks of ``header`` and ``panel_file`` (shared with the check-1K mode)."""
     header = doc["header"]
     _need(type(header) is dict and set(header) == HEADER_KEYS, "report_header_shape")
     train = header["train_version"]
@@ -134,7 +142,10 @@ def load_inputs(path):
         and _sha_file(panel["path"]) == panel["sha256"].removeprefix("sha256:"),
         "report_panel_file_sha256",
     )
-    contenders = doc["contenders"]
+
+
+def check_contenders(contenders):
+    """`load_inputs`' checks of the checks-1-3 ``contenders`` list."""
     _need(type(contenders) is list and contenders, "report_contenders")
     roles = set()
     for entry in contenders:
@@ -150,6 +161,10 @@ def load_inputs(path):
         )
         roles.add(entry["role"])
     _need(DEFAULT in roles and len(roles) >= 2, "report_needs_default_and_a_panel")
+
+
+def check_train_and_seeds(doc):
+    """`load_inputs`' checks of ``train_inputs`` and the two seeds (shared with the check-1K mode)."""
     train_inputs = doc["train_inputs"]
     _need(
         type(train_inputs) is dict
@@ -163,7 +178,6 @@ def load_inputs(path):
         all(type(doc[k]) is int for k in ("bootstrap_seed", "ceiling_seed")),
         "report_seeds",
     )
-    return doc
 
 
 def train_matrix(spec):
@@ -317,31 +331,25 @@ def _gap(a, b, *, step, draws, seed, sign=1.0):
     }
 
 
-def run_report(config, config_path, inputs_path, *, keep=None):
-    """The report document (see the module docstring). ``keep`` (a dict), if given, receives the classed point inputs, TRAIN and
-    its columns for `g_reports` (custody memory only: never written into the report)."""
+def grade_contenders(
+    regrader, keyed, *, prefix, classes, scales, klass, region, allowed
+):
+    """Grade each ``(key, entry)`` of ``keyed`` (entry: rows_npy + sha256) through ``regrader`` with the A_gen recorder, entry id
+    ``f"{prefix}:{key}"``; each graded point's class by the geometric-v1 rule. Returns ``(per, point_class, point_inputs,
+    point_keys)``: ``per[key]`` = {entry, status, gates, gate_failed, points (None when gated), basis}; the point lists are None
+    when every entry is gated. Every graded entry must score the same points (refused otherwise).
+    """
     import acc_noise
 
-    from carbon.scoring import grade_feedback, pool_grader, pool_version
+    from carbon.scoring import pool_grader, pool_version
 
-    doc = load_inputs(inputs_path)
-    klass, region, allowed, identities = reads._class_source(doc["class_source"])
-    regrader = reads.Regrader(config)
-    classes, _order = regrader.sets_and_classes()
-    policies = pool_version.registered_policies(config["challenge"], config["version"])
-    scales = policies.agen_scales
-    step = grade_feedback.step(config["margin_n"])
     n_rows = len(regrader.graded.bank["inputs"])
     material = regrader.graded.bank[pool_version.POOL_KEY]
     design_names = list(material["design_names"])
     names = sorted(region["base"])
-    train = train_matrix(doc["train_inputs"])
-    columns = doc["train_inputs"]["columns"]
-
     per = {}
-    point_class = None
-    point_inputs = None
-    for entry in doc["contenders"]:
+    point_class = point_inputs = point_keys = None
+    for key, entry in keyed:
         rows = reads._contender_rows(
             {"rows_npy": entry["rows_npy"], "sha256": entry["sha256"]}, n_rows
         )
@@ -350,7 +358,7 @@ def run_report(config, config_path, inputs_path, *, keep=None):
             pool_grader, "agen_accuracy", _recorder(pool_grader, sink, scales)
         ):
             result = regrader.grade(
-                rows, f"checks:{entry['role']}", classes=classes, slacks=True
+                rows, f"{prefix}:{key}", classes=classes, slacks=True
             )
         slack = result["physics_slack"]
         failed = slack["schema_failed"] + sum(
@@ -375,13 +383,42 @@ def run_report(config, config_path, inputs_path, *, keep=None):
             if point_class is None:
                 point_class, point_inputs, point_keys = cls, inputs, keys
             _need(keys == point_keys, "report_points_differ_between_contenders")
-        per[entry["role"]] = {
+        per[key] = {
             "entry": entry,
             "status": result["status"],
             "gates": result["gates"],
             "gate_failed": failed,
             "points": None if gated else list(zip(point_class, sink, strict=True)),
+            "basis": None if gated else result["basis"],
         }
+    return per, point_class, point_inputs, point_keys
+
+
+def run_report(config, config_path, inputs_path, *, keep=None):
+    """The report document (see the module docstring). ``keep`` (a dict), if given, receives the classed point inputs, TRAIN and
+    its columns for `g_reports` (custody memory only: never written into the report)."""
+    from carbon.scoring import grade_feedback, pool_version
+
+    doc = load_inputs(inputs_path)
+    klass, region, allowed, identities = reads._class_source(doc["class_source"])
+    regrader = reads.Regrader(config)
+    classes, _order = regrader.sets_and_classes()
+    policies = pool_version.registered_policies(config["challenge"], config["version"])
+    scales = policies.agen_scales
+    step = grade_feedback.step(config["margin_n"])
+    train = train_matrix(doc["train_inputs"])
+    columns = doc["train_inputs"]["columns"]
+
+    per, point_class, point_inputs, point_keys = grade_contenders(
+        regrader,
+        [(entry["role"], entry) for entry in doc["contenders"]],
+        prefix="checks",
+        classes=classes,
+        scales=scales,
+        klass=klass,
+        region=region,
+        allowed=allowed,
+    )
     _need(point_class is not None, "report_every_contender_gated")
     class_order = [IN_TRAIN] + sorted(c for c in set(point_class) if c != IN_TRAIN)
 
