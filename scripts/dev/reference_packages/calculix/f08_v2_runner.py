@@ -19,7 +19,9 @@ module only chains them. The outputs, all per newton of the unit resultant:
 
 The tip displacement is the z component at the tip node, as in 1.7; an angled load moves the participation factors (both load
 components) but not which component is read. Statuses (typed): ``OK``; ``REFERENCE_INVALID`` (the solve ran or was refused on the
-job's own merits: a deck refusal, a solver error, a missing or unobservable output, a non-finite or non-positive output, a
+job's own merits: a deck refusal, a solver error, a missing or unobservable output, an inverted mesh element that CalculiX
+reports in ccx.log as a nonpositive jacobian determinant (``nonpositive_jacobian``, whatever its exit code: deterministic, the
+mesh's fault, never the host's), a non-finite or non-positive output, a
 wrong mode count; the ``reasons`` name it); ``REFERENCE_TIMEOUT`` (the solve exceeded the timeout: it may be host capacity, not
 the case's physics, so it counts for NOTHING until the job is rerun ALONE once with ``--alone``, where a repeat timeout is
 ``REFERENCE_INVALID`` with reason ``solver_timeout``; the judge treats a ``REFERENCE_TIMEOUT`` as missing, not as a failure);
@@ -449,6 +451,25 @@ def solve(directory, timeout_s, cores):
         cores.put(core)
 
 
+#: CalculiX's own report of an inverted (negative-volume) element in ccx.log: a deterministic mesh-quality failure that ccx ends
+#: with exit 201 (>= 128, which would otherwise read as a signal stop). Only this message re-types an exit; any other code stays.
+#: (e_c3d prints "determinant in element N" on the line after it.)
+JACOBIAN_MESSAGE = b"nonpositive jacobian"
+NONPOSITIVE_JACOBIAN = "nonpositive_jacobian"
+
+
+def solver_error(directory):
+    """``NONPOSITIVE_JACOBIAN`` when the job's ccx.log reports an inverted element, else None (no log, or another error)."""
+    log = Path(directory) / "ccx.log"
+    if not log.is_file():
+        return None
+    with log.open("rb") as handle:
+        for line in handle:
+            if JACOBIAN_MESSAGE in line.lower():
+                return NONPOSITIVE_JACOBIAN
+    return None
+
+
 def classify(run, outputs, problem, *, alone=False):
     """``(status, reasons)`` from the run_native result, the outputs (or None) and the observation problem (or None). Pure.
     ``alone`` marks the single rerun of a timed-out job: a repeat timeout is then the case's own (``REFERENCE_INVALID``).
@@ -456,6 +477,8 @@ def classify(run, outputs, problem, *, alone=False):
     reason = run.get("stop_reason")
     code = run.get("exit")
     if reason == "not_run":  # refused or failed before any solve: the problem names it
+        return "REFERENCE_INVALID", [problem]
+    if reason == "exit" and code not in (0, None) and problem == NONPOSITIVE_JACOBIAN:
         return "REFERENCE_INVALID", [problem]
     if reason == "memory":
         # a typed resource stop at the deck revision's limit: never judged, never a reference verdict
@@ -588,6 +611,8 @@ def run_job(
                 alone=alone,
             )  # fmt: skip
         run = solver(directory, timeout_s, cores)
+        if run.get("stop_reason") == "exit" and run.get("exit") not in (0, None):
+            problem = solver_error(directory)
         if run.get("exit") == 0 and (directory / "case.dat").is_file():
             try:
                 parsed = parse(directory)

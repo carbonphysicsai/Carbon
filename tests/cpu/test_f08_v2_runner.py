@@ -820,3 +820,97 @@ def test_the_streaming_parse_keeps_every_value_of_the_nodes_read_and_nothing_els
         ):
             assert cut_event[1] == {n: full_event[1][n] for n in (1, 3)}
     assert v2.stress_blocks_by_step(kept) == v2.stress_blocks_by_step(text)
+
+
+JACOBIAN_LOG = (
+    " Using up to 1 cpu(s) for the stress calculation.\n"
+    " *ERROR in e_c3d: nonpositive jacobian\n"
+    "        determinant in element 207959\n"
+)
+REAL_JACOBIAN_LOG = (
+    " *ERROR in e_c3d: nonpositive jacobian determinant in element 207959\n"
+)
+
+
+@pytest.mark.parametrize(
+    "log,expected",
+    [
+        (REAL_JACOBIAN_LOG, ("REFERENCE_INVALID", ["nonpositive_jacobian"])),
+        (
+            REAL_JACOBIAN_LOG.upper(),
+            ("REFERENCE_INVALID", ["nonpositive_jacobian"]),
+        ),
+        # another ccx error, or no log, keeps the old typing of a code >= 128
+        (" *ERROR reading *STEP\n", ("FAILED_INFRA", None)),
+        (" *ERROR in e_c3d: positive jacobian\n", ("FAILED_INFRA", None)),
+        # e_c3d's own two lines: the message, then "determinant in element N"
+        (JACOBIAN_LOG, ("REFERENCE_INVALID", ["nonpositive_jacobian"])),
+        (None, ("FAILED_INFRA", None)),
+    ],
+)
+def test_ccx_exit_201_for_an_inverted_element_is_the_meshs_reference_failure(
+    tmp_path, log, expected
+):
+    # Launchpad 22:01: U02 / U03 end with ccx exit 201 and 'nonpositive jacobian determinant' in ccx.log, deterministic on two
+    # CPU classes; Validator 22:06 (b): a REFERENCE outcome (invalid mesh), not FAILED_INFRA.
+    def inverted(directory, timeout_s, cores):
+        if log is not None:
+            (Path(directory) / "ccx.log").write_text(log)
+        return {"stop_reason": "exit", "exit": 201, "wall_s": 30.0}
+
+    record = runner.run_job(
+        _job(job_id="j"),
+        tmp_path,
+        timeout_s=10,
+        cores=_cores(),
+        solvers_id="s",
+        mesh=fake_mesh,
+        mesher=MESHER,
+        solver=inverted,
+    )
+    status, reasons = expected
+    assert record["status"] == status and "outputs" not in record
+    if reasons is not None:
+        assert record["reasons"] == reasons
+    assert record["run"]["exit"] == 201
+
+
+def test_the_jacobian_message_retypes_only_a_failed_exit():
+    jac = runner.NONPOSITIVE_JACOBIAN
+    assert runner.classify({"stop_reason": "exit", "exit": 1}, None, jac) == (
+        "REFERENCE_INVALID",
+        [jac],
+    )
+    # never an outside stop, a memory stop, a timeout or a clean exit
+    assert runner.classify({"stop_reason": "infra"}, None, jac)[0] == "FAILED_INFRA"
+    assert runner.classify({"stop_reason": "cancel"}, None, jac)[0] == "FAILED_INFRA"
+    assert runner.classify({"stop_reason": "memory", "exit": 137}, None, jac)[0] == (
+        "FAILED_INFRA"
+    )
+    assert runner.classify({"stop_reason": "timeout", "exit": 143}, None, jac)[0] == (
+        "REFERENCE_TIMEOUT"
+    )
+    assert runner.classify({"stop_reason": "exit", "exit": 0}, {"x": 1.0}, jac) == (
+        "OK",
+        [],
+    )
+
+
+def test_a_solved_job_never_reads_ccx_log(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        runner, "solver_error", lambda d: pytest.fail("read ccx.log after exit 0")
+    )
+    monkeypatch.setattr(runner, "observe", lambda d, p=None: {"x": 1.0})
+    monkeypatch.setattr(runner, "parse", lambda d: None)
+    monkeypatch.setattr(runner, "auxiliary", lambda d, p=None: None)
+    record = runner.run_job(
+        _job(job_id="k"),
+        tmp_path,
+        timeout_s=10,
+        cores=_cores(),
+        solvers_id="s",
+        mesh=fake_mesh,
+        mesher=MESHER,
+        solver=ok_solver,
+    )
+    assert record["status"] == "OK"
