@@ -175,7 +175,11 @@ def test_a_subset_below_the_declared_minimum_and_an_existing_output_are_refused(
 
 
 def _fit_args(tmp_path, query_path, query_sha, **over):
-    return Namespace(
+    return Namespace(**{**_fit_defaults(tmp_path, query_path, query_sha), **over})
+
+
+def _fit_defaults(tmp_path, query_path, query_sha):
+    return dict(
         subsets=tmp_path / "subsets",
         train=tmp_path / "train.npz",
         query=query_path,
@@ -188,7 +192,6 @@ def _fit_args(tmp_path, query_path, query_sha, **over):
         submission_dir=None,
         default_catalog_id=None,
         out=tmp_path / "fit",
-        **over,
     )
 
 
