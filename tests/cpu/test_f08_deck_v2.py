@@ -704,7 +704,7 @@ def test_an_unregistered_margin_refuses_every_production_deck(monkeypatch, margi
         v2.gmsh_script_v2(CASE, 3.0, 0.5)
 
 
-def test_the_margin_ships_unset_until_the_probes_decide_it():
+def test_the_margin_ships_as_the_probes_decided_it():
     import ast
 
     tree = ast.parse(Path(v2.__file__).read_text(encoding="utf-8"))
@@ -714,5 +714,6 @@ def test_the_margin_ships_unset_until_the_probes_decide_it():
         if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)
     }
     assert isinstance(assigned["PAD_MARGIN_MM"], ast.Constant)
-    assert assigned["PAD_MARGIN_MM"].value is None  # fail closed in the shipped file
+    # Launchpad 09:39: the hoo2 0.5 mm probes all typed OK, so OWNER-RB20-PAD-B2-AND-FINE-MESH-CAP-40-01 gives 0.5 mm
+    assert assigned["PAD_MARGIN_MM"].value == 0.5
     assert ast.literal_eval(assigned["PAD_MARGIN_CANDIDATES_MM"]) == (0.5, 3.0)

@@ -75,8 +75,11 @@ RANGES = {
 #: B2's clearance between the pad and each rib footprint plus its fillet (PAD_DECISION): 0.5 mm if the four 0.5 mm probe
 #: designs pass on the hoo2 mesher at every rung (the Validator's pass rule), else 3 mm; no other value. Unset until that
 #: verdict: every production deck refuses (`pad_margin_unregistered`), so nothing is drawn or solved on a guessed margin.
+#: SET 0.5 mm: Launchpad 3 Nov 09:39 CST, the hoo2 0.5 mm pad probes ALL 16 typed OK (P05-narrow, P05-out, P30-narrow,
+#: P30-out at h 3.0 / 2.25 / 1.7 and f1.0; 0 nonpositive_jacobian, 0 mesh_failed, all under the 28 GiB cap), which passes
+#: the Validator's 01:56 rule (every rung to the production f0.5 clean on both designs), so PAD_DECISION gives 0.5 mm.
 PAD_MARGIN_CANDIDATES_MM = (0.5, 3.0)
-PAD_MARGIN_MM = None
+PAD_MARGIN_MM = 0.5
 #: The domain revision a record names (B2: the load position in the gap).
 DOMAIN_REVISION = "rb20-b2-load-in-gap-v1"
 #: The three registered alloy ids, in registration order (the categorical id is the position), and the SIGNED table
