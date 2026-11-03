@@ -1676,7 +1676,7 @@ def serve(
                             remeasure_incumbent_pack,
                         )
 
-                        evaluation_key, entry_id, origin_task_id = remeasure
+                        evaluation_key, entry_id = remeasure
                         return remeasure_incumbent_pack(
                             intake.adapter,
                             _open_pool_store(pool_store),
@@ -1685,7 +1685,6 @@ def serve(
                             entry_id=entry_id,
                             artifact_directory=artifact_directory,
                             entry_directory=entry_directory,
-                            origin_task_id=origin_task_id,
                         )
                     if grade_set:
                         # ``task_id`` is the retained bank entry to grade on the
@@ -1941,11 +1940,6 @@ def main(argv=None):
         "--remeasure-entry", help="with --remeasure-king: the king's retained entry"
     )
     parser.add_argument(
-        "--remeasure-origin",
-        help="with --remeasure-king: rebuild from this restaged task (the king's exact "
-        "recipe, submitted on this root) when the king's own task is on another root",
-    )
-    parser.add_argument(
         "--rebind-origin",
         help="rebind this SITTING king's origin under its own hotkey on this root "
         "(after an image move), cancelled at once; needs --pool-store",
@@ -1988,8 +1982,6 @@ def main(argv=None):
         parser.error("--rebind-source applies to --rebind-origin only")
     if args.rebind_origin is not None and args.pool_store is None:
         parser.error("--rebind-origin needs --pool-store")
-    if args.remeasure_origin is not None and args.remeasure_king is None:
-        parser.error("--remeasure-origin applies to --remeasure-king only")
     if (args.remeasure_king is None) != (
         args.evaluation_key is None and args.remeasure_entry is None
     ) or (
@@ -2082,7 +2074,7 @@ def main(argv=None):
             remeasure=(
                 None
                 if args.remeasure_king is None
-                else (args.evaluation_key, args.remeasure_entry, args.remeasure_origin)
+                else (args.evaluation_key, args.remeasure_entry)
             ),
             pool_store=args.pool_store,
             exam_se=args.exam_se,

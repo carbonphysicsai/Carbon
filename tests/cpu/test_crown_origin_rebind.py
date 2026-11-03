@@ -19,6 +19,7 @@ import pytest
 
 from carbon.battery.pool_store import PoolStore
 from carbon.challenge_validator import lean_recipe_retention as retention
+from carbon.challenge_validator.crown_average import HOST_OWNER
 from carbon.challenge_validator.interface import digest
 from carbon.development_session import direct_graph_construction_worker as worker
 from carbon.development_session.construction_recipe import ConstructionRecipe
@@ -73,15 +74,24 @@ class _Provider:
         )
 
 
+class _Forbidden:
+    """A ledger no rebind may touch: any read or write of the attempts ledger (exam cap, intents) fails the test."""
+
+    def __getattr__(self, name):
+        raise AssertionError(f"the rebind touched the attempts ledger ({name})")
+
+
 def _adapter(provider):
     class Adapter:
+        ledger = _Forbidden()
         _measure_query = False
         discovery = SimpleNamespace(
             info=SimpleNamespace(challenge_key=ChallengeKey(CHALLENGE, "1.7"))
         )
 
         def _provider(self, owner):
-            assert owner == HOTKEY
+            # only the HOST-OWNED provider: the king's (miner's) provider is never opened, so nothing is written there
+            assert owner == HOST_OWNER, owner
             return provider
 
         def _request(
@@ -142,7 +152,9 @@ def test_a_graph_king_is_rebound_under_its_own_hotkey_and_cancelled_at_once(
     ]
     assert provider._views[origin].state is DirectTaskStateV3.CANCELLED
     assert provider._requests[origin].recipe == GRAPH
-    assert store.origin_rebind(KING) == {"origin": origin, "hotkey": HOTKEY}
+    assert store.origin_rebind(KING) == {"origin": origin, "hotkey": HOST_OWNER}
+    # the request names the host-owned owner, never the miner
+    assert provider._requests[origin].key.startswith(HOST_OWNER + "|")
     # idempotent: the same task, no second start or cancel, the same record
     again = retention.rebind_origin(
         _adapter(provider), store, submission_id=KING, source_envelope=b"king-envelope"
@@ -192,12 +204,13 @@ def test_the_remeasure_follows_a_filed_rebind_only_when_it_is_the_kings_own(
         retention._rebound_origin(adapter, store, KING, store.origin_rebind(KING))
         == origin
     )
-    with pytest.raises(
-        retention.RetentionUnavailable, match="remeasure_rebind_hotkey_differs"
-    ):
-        retention._rebound_origin(
-            adapter, store, KING, {"origin": origin, "hotkey": "5Fother"}
-        )
+    for owner in (HOTKEY, "5Fother"):  # the king's own hotkey is never an origin owner
+        with pytest.raises(
+            retention.RetentionUnavailable, match="remeasure_rebind_owner_not_host"
+        ):
+            retention._rebound_origin(
+                adapter, store, KING, {"origin": origin, "hotkey": owner}
+            )
     provider._requests[origin] = SimpleNamespace(key="changed", recipe=GRAPH)
     with pytest.raises(
         retention.RetentionUnavailable, match="remeasure_rebind_differs"

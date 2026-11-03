@@ -1803,7 +1803,6 @@ def remeasure_incumbent_pack(
     artifact_directory,
     entry_directory,
     runner=None,
-    origin_task_id=None,
 ):
     """Re-measure the SITTING king's N-rebuild mean under the installed crown-average rule
     (`crown_average.Active.measure_incumbent`), so switching the rule on pauses no crown. Operator-only. The king is
@@ -1833,20 +1832,14 @@ def remeasure_incumbent_pack(
     origin, hold = submission_id, contextlib.nullcontext()
     rebound = (
         pool_store.origin_rebind(submission_id)
-        if origin_task_id is None and hasattr(pool_store, "origin_rebind")
+        if hasattr(pool_store, "origin_rebind")
         else None
     )
     if rebound is not None:
-        # The king's origin task stayed on the old root: its rebind under the king's own hotkey (`rebind_origin`) is the
+        # The king's origin task stayed on the old root: its rebind under the host-owned owner (`rebind_origin`) is the
         # origin, held for the span of this re-measure so the rebuild finds its owner.
         origin = _rebound_origin(adapter, pool_store, submission_id, rebound)
         hold = adapter.deriving(origin, rebound["hotkey"])
-    elif origin_task_id is not None:
-        # The king's ORIGIN task may be on another root (an image move re-prepared this one): the same recipe restaged
-        # and submitted HERE (route D) is rebuilt instead. The seeds and the filed record stay the king's
-        # (``submission_id``); the restaged task must carry the king's exact recipe, which pins its submission digest, and
-        # a graph king's retained source is checked against that digest when its rebuild is admitted.
-        origin = _restaged_origin(adapter, pool_store, submission_id, origin_task_id)
     try:
         with hold:
             return active.measure_incumbent(
@@ -1868,7 +1861,7 @@ def remeasure_incumbent_pack(
 
 
 #: The label of a crown origin rebind's derived request (`LeanRecipeAdapter._request`'s ``rebuild``): its own task
-#: identity, a pure function of the king's submission id, under the king's own hotkey.
+#: identity, a pure function of the king's submission id, under the HOST-OWNED owner (`crown_average.HOST_OWNER`).
 ORIGIN_REBIND = "ORIGIN_REBIND"
 
 
@@ -1883,9 +1876,10 @@ def _rebind_request(adapter, provider, hotkey, recipe, submission_id):
 
 def rebind_origin(adapter, pool_store, *, submission_id, source_envelope=None):
     """REBIND the SITTING king's origin on this receiver (an image move left its task on the old root): one derived request
-    under the king's OWN hotkey, the king's exact admitted recipe, bound to this receiver's pack, admitted through the
-    provider's own `start_research_task` and CANCELLED at once, so it is never built, graded, filed in the Ladder or
-    charged an exam-cap slot. A graph king's source is its retained envelope (``source_envelope``, from the old root),
+    under the HOST-OWNED owner (`crown_average.HOST_OWNER`: never a submitter, in no miner's task list, status or
+    ledger), the king's exact admitted recipe, bound to this receiver's pack, admitted through that provider's own
+    `start_research_task` and CANCELLED at once, so it is never built, graded, filed in the Ladder or charged an
+    exam-cap slot. A graph king's source is its retained envelope (``source_envelope``, from the old root),
     checked against the recipe's submission digest by the graph worker's own check, never the miner's workspace. Then
     the pool store files the rebind (`PoolStore.record_origin_rebind`), which `remeasure_incumbent_pack` reads.
     Operator-only and idempotent: a second run finds the same task and the same record.
@@ -1906,7 +1900,11 @@ def rebind_origin(adapter, pool_store, *, submission_id, source_envelope=None):
     incumbent = pool_store.incumbent()
     if incumbent is None or incumbent.get("model_id") != submission_id:
         raise RetentionUnavailable("rebind_not_the_sitting_king")
-    hotkey = king["hotkey"]
+    from carbon.challenge_validator.crown_average import HOST_OWNER
+
+    # The HOST-OWNED owner (Validator (c)): never a submitter, in no miner's task list, status or ledger. The miner's
+    # own provider and ledger are only read (the pool store's admitted recipe), never written.
+    hotkey = HOST_OWNER
     recipe = ConstructionRecipe.from_dict(king["strategy"])
     graph = {}
     if recipe.to_dict()["source"]["kind"] == "graph":
@@ -1939,14 +1937,15 @@ def rebind_origin(adapter, pool_store, *, submission_id, source_envelope=None):
 
 
 def _rebound_origin(adapter, pool_store, submission_id, rebound):
-    """The filed rebind's task, once it is shown to be the king's own: the record's hotkey is the king's, and that
-    hotkey's provider holds exactly the rebind request for the king's admitted recipe on this pack.
+    """The filed rebind's task, once it is shown to be the king's own: the record's owner is the host-owned one, and its
+    provider holds exactly the rebind request for the king's admitted recipe on this pack.
     """
+    from carbon.challenge_validator.crown_average import HOST_OWNER
     from carbon.development_session.construction_recipe import ConstructionRecipe
 
     king = pool_store.submission(submission_id)
-    if rebound["hotkey"] != king["hotkey"]:
-        raise RetentionUnavailable("remeasure_rebind_hotkey_differs")
+    if rebound["hotkey"] != HOST_OWNER:
+        raise RetentionUnavailable("remeasure_rebind_owner_not_host")
     provider = adapter._provider(rebound["hotkey"])
     recipe = ConstructionRecipe.from_dict(king["strategy"])
     expected = _rebind_request(
@@ -1958,26 +1957,6 @@ def _rebound_origin(adapter, pool_store, submission_id, rebound):
     ):
         raise RetentionUnavailable("remeasure_rebind_differs")
     return rebound["origin"]
-
-
-def _restaged_origin(adapter, pool_store, submission_id, origin_task_id):
-    """``origin_task_id`` once it is shown to be the king's own recipe on this root: a task this receiver owns
-    (`LeanRecipeAdapter.owner`, its request bound to this pack) whose recipe is byte-for-byte the king's admitted
-    strategy in the pool store; anything else refuses."""
-    from carbon.battery.pool_store import StateError
-    from carbon.development_session.profile import canonical
-
-    owner = adapter.owner(origin_task_id)
-    if owner is None:
-        raise RetentionUnavailable("remeasure_origin_unavailable")
-    try:
-        king = pool_store.submission(submission_id)
-    except StateError as missing:
-        raise RetentionUnavailable("remeasure_king_not_admitted") from missing
-    restaged = adapter._provider(owner)._requests[origin_task_id].recipe
-    if canonical(restaged) != canonical(king["strategy"]):
-        raise RetentionUnavailable("remeasure_origin_recipe_differs")
-    return origin_task_id
 
 
 def _timing_step(adapter):
