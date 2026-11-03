@@ -110,7 +110,11 @@ def _sha(text):
 # The B2 domain rev (OWNER-RB20-PAD-B2-AND-FINE-MESH-CAP-40-01): the pad's y comes from `load_position`, written into the
 # program as a number, and the case carries load_position_in_gap. These are its gmsh programs for the same cases (MARGIN
 # 0.5 mm); the ccx decks are unchanged.
-PINNED_B2_GMSH = {}
+PINNED_B2_GMSH = {
+    "gmsh_base": "b4548cc24feda9515272c26eb2798acdde8bc0c8ad2664e3b22884c5cd46990d",
+    "gmsh_norelief": "2622c0cc3d6fcd98d3d61b839afeb07a009e0e37fb0801ce25897eb89a0baebd",
+    "gmsh_offset_angle": "759779a8789b2b77812e470624deed000fb8e81929a424c0827de9e73c85cafb",
+}
 
 
 def _old_case(name):
