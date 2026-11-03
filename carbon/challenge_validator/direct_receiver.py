@@ -1676,9 +1676,14 @@ def serve(
                             remeasure_incumbent_pack,
                         )
 
-                        evaluation_key, entry_id, record_out, record_in, only = (
-                            remeasure
-                        )
+                        (
+                            evaluation_key,
+                            entry_id,
+                            record_out,
+                            record_in,
+                            only,
+                            accept_revision,
+                        ) = remeasure
                         from carbon.challenge_validator import (
                             crown_average,
                             crown_import,
@@ -1696,6 +1701,7 @@ def serve(
                                 entry_id=entry_id,
                                 entry_directory=entry_directory,
                                 receiver_binding=immutable,
+                                accept_measured_revision=accept_revision,
                             )
                         if only:
                             # C10 write-only: the spare re-measured earlier and filed; record that, no rebuild.
@@ -2000,6 +2006,11 @@ def main(argv=None):
         help="with --measurement-record: write the record from the spare's already filed re-measure, with no rebuild",
     )
     parser.add_argument(
+        "--accept-measured-revision",
+        help="with --import-crown-measurement: the FULL sha of the revision the record was measured at, accepted "
+        "explicitly when it differs from this receiver's (logged)",
+    )
+    parser.add_argument(
         "--import-crown-measurement",
         type=Path,
         help="with --remeasure-king on the LIVE receiver (stopped): verify a spare's measurement record of this king "
@@ -2072,6 +2083,13 @@ def main(argv=None):
         parser.error(
             "--measurement-record (spare) or --import-crown-measurement (live), one of "
             "them, with --remeasure-king"
+        )
+    if (
+        args.accept_measured_revision is not None
+        and args.import_crown_measurement is None
+    ):
+        parser.error(
+            "--accept-measured-revision applies to --import-crown-measurement only"
         )
     if args.record_only and args.measurement_record is None:
         parser.error("--record-only applies to --measurement-record only")
@@ -2159,6 +2177,7 @@ def main(argv=None):
                     args.measurement_record,
                     args.import_crown_measurement,
                     args.record_only,
+                    args.accept_measured_revision,
                 )
             ),
             pool_store=args.pool_store,
@@ -2206,7 +2225,10 @@ def main(argv=None):
         )
         return 0
     if args.import_crown_measurement is not None or args.record_only:
-        print(json.dumps({"schema": SCHEMA, "state": result["state"]}), flush=True)
+        printed = {"schema": SCHEMA, "state": result["state"]}
+        if "accepted_measured_revision" in result:
+            printed["accepted_measured_revision"] = result["accepted_measured_revision"]
+        print(json.dumps(printed), flush=True)
         return 0
     if args.remeasure_king is not None:
         # Operator-only: the outcome and reason; the seeds, totals and mean stay private.

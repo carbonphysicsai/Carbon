@@ -181,7 +181,7 @@ def _edit(path, change):
                     "implementation": {"revision": "b" * 40},
                 }
             },
-            "binding",
+            "implementation",
         ),
         (
             lambda t: {
@@ -351,6 +351,7 @@ def test_no_rule_installed_refuses(tmp_path):
         ["--measurement-record", "out.json"],
         ["--import-crown-measurement", "in.json"],
         ["--record-only"],
+        ["--accept-measured-revision", "a" * 40],
         [
             "--remeasure-king",
             KING,
@@ -425,3 +426,34 @@ def test_the_write_only_mode_records_what_the_spare_already_filed(tmp_path):
             entry_directory=_entry(tmp_path / "e2"),
             receiver_binding=BINDING,
         )
+
+
+def test_another_revision_imports_only_with_its_full_sha_named(tmp_path):
+    # Validator 07:46: the record keeps the revision it was measured at; another revision imports only under
+    # --accept-measured-revision <that full sha>, logged and returned.
+    record = _spare_record(tmp_path)
+    live_binding = {**BINDING, "implementation": {"revision": "c" * 40}}
+    for accept in (None, "b" * 40, "a" * 39, "A" * 40):
+        store = _store(tmp_path / f"live-{accept}")
+        with pytest.raises(
+            crown_import.ImportRefused, match="crown_import_implementation_differs"
+        ):
+            _import(
+                tmp_path,
+                record,
+                store=store,
+                receiver_binding=live_binding,
+                accept_measured_revision=accept,
+            )
+        assert store.crown_mean(KING) is None
+    result, live = _import(
+        tmp_path,
+        record,
+        receiver_binding=live_binding,
+        accept_measured_revision="a" * 40,
+    )
+    assert result["accepted_measured_revision"] == "a" * 40
+    assert live.crown_mean(KING) == pytest.approx(0.85)
+    # the same revision needs no flag, and the result says nothing about one
+    same, _ = _import(tmp_path, record, store=_store(tmp_path / "same"))
+    assert "accepted_measured_revision" not in same

@@ -12,7 +12,10 @@ files nothing):
 - ``submission_id``: the live store's incumbent; ``evaluation_key``: the key it was measured under;
 - ``entry``: the king's retained entry id and the digest of its retained entry directory (every file's relative path and sha256);
 - ``binding``: the receiver's identity (`BOUND_KEYS` of its write-once receiver binding: implementation, worker and
-  inference images, construction parents, GPU images and devices, evaluation pack digest, Challenge);
+  inference images, construction parents, GPU images and devices, evaluation pack digest, Challenge). The
+  ``implementation`` (the code revision) is compared apart (Validator 07:37 / 07:46): a record measured at another
+  revision imports only when the operator names that measured revision in full (``--accept-measured-revision``), and
+  the acceptance is logged and returned; every other binding field must be equal;
 - ``key_id``: HMAC-SHA256 of a fixed label under K_crown (proves the same K_crown; the key never leaves either host);
 - ``rule``: the crown-average rule's version, seed range, N and registered margin for the Challenge;
 - ``private``: the filed private body itself (seeds, N, margin, then the totals and their mean, or the statuses of an unstable
@@ -234,10 +237,12 @@ def import_record(
     entry_id,
     entry_directory,
     receiver_binding,
+    accept_measured_revision=None,
 ):
     """Verify the spare's measurement record at ``path`` against THIS receiver and file its private body. Returns
-    ``{"state": "CROWN_MEASUREMENT_IMPORTED", "submission_id", "evaluation_key"}``; a differing field refuses
-    (`ImportRefused`) with nothing filed. Filing the same record twice is a no-op."""
+    ``{"state": "CROWN_MEASUREMENT_IMPORTED", "submission_id", "evaluation_key"}`` (plus ``accepted_measured_revision``
+    when a record from another revision was accepted); a differing field refuses (`ImportRefused`) with nothing filed.
+    Filing the same record twice is a no-op."""
     if active is None:
         raise ImportRefused("crown_import_rule_not_installed")
     try:
@@ -271,8 +276,22 @@ def import_record(
         raise ImportRefused("crown_import_evaluation_key_differs")
     if record["entry"] != {"id": entry_id, "digest": entry_digest(entry_directory)}:
         raise ImportRefused("crown_import_entry_differs")
-    if record["binding"] != bound(receiver_binding):
+    measured, live = dict(record["binding"]), bound(receiver_binding)
+    measured_impl, live_impl = measured.pop("implementation", None), live.pop(
+        "implementation", None
+    )
+    if measured != live:
         raise ImportRefused("crown_import_binding_differs")
+    accepted = None
+    if measured_impl != live_impl:
+        revision = (measured_impl or {}).get("revision")
+        if (
+            type(accept_measured_revision) is not str
+            or len(accept_measured_revision) != 40
+            or accept_measured_revision != revision
+        ):
+            raise ImportRefused("crown_import_implementation_differs")
+        accepted = revision
     rule = rule_identity(active.rule, challenge_id)
     if record["rule"] != rule:
         raise ImportRefused("crown_import_rule_differs")
@@ -291,8 +310,18 @@ def import_record(
         StateError
     ) as error:  # a different record already filed for this king and key
         raise ImportRefused("crown_import_record_changed") from error
-    return {
+    result = {
         "state": "CROWN_MEASUREMENT_IMPORTED",
         "submission_id": submission_id,
         "evaluation_key": evaluation_key,
     }
+    if accepted is not None:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "crown measurement imported across revisions: measured at %s, filed at %s",
+            accepted,
+            (live_impl or {}).get("revision"),
+        )
+        result["accepted_measured_revision"] = accepted
+    return result
