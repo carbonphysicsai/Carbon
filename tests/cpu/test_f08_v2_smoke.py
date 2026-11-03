@@ -71,3 +71,9 @@ def test_report_reads_the_mesh_and_counters(tmp_path):
         and out["tables"] == "TEST_ONLY"
     )
     assert (tmp_path / "smoke-report.json").is_file()
+
+
+@pytest.fixture(autouse=True)
+def _b2_margin(monkeypatch):
+    # B2's clearance is unset until the hoo2 probes decide it (fail closed); these tests use 0.5 mm, a registered candidate.
+    monkeypatch.setattr(v2, "PAD_MARGIN_MM", 0.5)

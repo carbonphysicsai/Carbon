@@ -58,9 +58,9 @@ def test_the_edge_cells_are_eight_edges_three_alloy_corners_and_the_pad_corner()
     for c in corners:
         case = c["case"]
         assert case["fillet_radius_mm"] == 0.5 and case["load_angle_deg"] == 45.0
-        assert case["load_offset_frac"] == 0.4 and case["damping_ratio"] == 0.005
+        assert case["load_position_in_gap"] == 1.0 and case["damping_ratio"] == 0.005
     pad = next(c for c in cells if c["kind"] == "pad")["case"]
-    assert pad["width_mm"] == 60.0 and pad["load_offset_frac"] == 0.4
+    assert pad["width_mm"] == 60.0 and pad["load_position_in_gap"] == 1.0
 
 
 def test_every_cell_has_the_five_solves_of_the_ladder_sharing_the_base_rung():
@@ -255,3 +255,9 @@ def test_each_axis_is_judged_with_its_own_sizes():
         payload.figure(mesh) == mesh["estimate"]
         and payload.figure(fillet) == fillet["estimate"]
     )
+
+
+@pytest.fixture(autouse=True)
+def _b2_margin(monkeypatch):
+    # B2's clearance is unset until the hoo2 probes decide it (fail closed); these tests use 0.5 mm, a registered candidate.
+    monkeypatch.setattr(v2, "PAD_MARGIN_MM", 0.5)

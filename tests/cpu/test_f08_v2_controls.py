@@ -6,6 +6,7 @@ data. No solve, no Gmsh, no CalculiX is run; pass tolerances stay HUMAN_INPUT.
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import sys
 from pathlib import Path
@@ -38,7 +39,7 @@ CASE = {
     "relief_length_mm": 40.0,
     "fillet_radius_mm": 2.0,
     "load_angle_deg": 0.0,
-    "load_offset_frac": 0.0,
+    "load_position_in_gap": 0.0,
     "damping_ratio": 0.01,
     "alloy": ALLOY,
 }
@@ -90,8 +91,10 @@ BAND_A2 = (
 CASES = {
     "base": CASE,
     "norelief": {**CASE, "relief_length_mm": 0.0},
-    "offset_angle": {**CASE, "load_offset_frac": 0.2, "load_angle_deg": 20.0},
+    "offset_angle": {**CASE, "load_position_in_gap": 0.5, "load_angle_deg": 20.0},
 }
+#: The same cases as the programs before B2 saw them (1.0's load_offset_frac; the base and norelief pads at the centre).
+OLD_OFFSET = {"base": 0.0, "norelief": 0.0, "offset_angle": 0.2}
 # The (a3) deck rev (Validator F08 2.0 ruling 11-01): the graded far field. Its gmsh programs for the same cases.
 PINNED_A3_GMSH = {
     "gmsh_base": "12438ccd16875b2d781118bf02b601055b8107194fd44419581c8a3783beda0c",
@@ -102,6 +105,32 @@ PINNED_A3_GMSH = {
 
 def _sha(text):
     return hashlib.sha256(text.encode()).hexdigest()
+
+
+# The B2 domain rev (OWNER-RB20-PAD-B2-AND-FINE-MESH-CAP-40-01): the pad's y comes from `load_position`, written into the
+# program as a number, and the case carries load_position_in_gap. These are its gmsh programs for the same cases (MARGIN
+# 0.5 mm); the ccx decks are unchanged.
+PINNED_B2_GMSH = {}
+
+
+def _old_case(name):
+    case = CASES[name]
+    return {
+        ("load_offset_frac" if k == "load_position_in_gap" else k): (
+            OLD_OFFSET[name] if k == "load_position_in_gap" else v
+        )
+        for k, v in case.items()
+    }
+
+
+def _undo_b2(text, name):
+    """The program with B2 taken out: 1.0's case (load_offset_frac) and its pad line, the (a3) program byte for byte."""
+    case = CASES[name]
+    new_case, old_case = json.dumps(case), json.dumps(_old_case(name))
+    new_line = f'rf, off = case["fillet_radius_mm"], {v2.load_position(case)["y_mm"]!r}'
+    old_line = 'rf, off = case["fillet_radius_mm"], case["load_offset_frac"] * W'
+    assert text.count(new_case) == 1 and text.count(new_line) == 1, name
+    return text.replace(new_case, old_case).replace(new_line, old_line)
 
 
 def _undo_a3(text, h_mm):
@@ -138,17 +167,23 @@ def _undo_pastix(text):
 def test_a_case_without_control_leaves_every_existing_output_byte_identical():
     got, spooles = {}, {}
     for name, case in CASES.items():
-        got["gmsh_" + name] = _sha(v2.gmsh_script_v2(case, 3.0, 0.5))
+        text = v2.gmsh_script_v2(case, 3.0, 0.5)
+        got["gmsh_" + name] = _sha(text)
+        got["a3_gmsh_" + name] = _sha(_undo_b2(text, name))
         deck = v2.deck_text(case, META, MAT)
         got["deck_" + name] = _sha(deck)
         spooles["deck_" + name] = _sha(_undo_pastix(deck))
-    assert got == {**PINNED_PASTIX_DECK, **PINNED_A3_GMSH}
+    assert got == {
+        **PINNED_PASTIX_DECK,
+        **PINNED_B2_GMSH,
+        **{"a3_" + k: v for k, v in PINNED_A3_GMSH.items()},
+    }
     assert spooles == {k: v for k, v in PINNED.items() if k.startswith("deck_")}
 
 
 def test_the_a3_far_field_is_the_only_change_to_the_a2_program():
     for name, case in CASES.items():
-        text = v2.gmsh_script_v2(case, 3.0, 0.5)
+        text = _undo_b2(v2.gmsh_script_v2(case, 3.0, 0.5), name)
         assert _sha(_undo_a3(text, 3.0)) == PINNED_A2_GMSH["gmsh_" + name], name
 
 
@@ -179,7 +214,7 @@ def test_the_a3_near_zone_keeps_every_rungs_sizes_and_only_the_far_plate_coarsen
 def test_the_a2_band_is_the_only_change_to_the_gmsh_program():
     # undo (a3), then exactly the two band lines, and the program is byte for byte the one pinned before the control hook
     for name, case in CASES.items():
-        text = _undo_a3(v2.gmsh_script_v2(case, 3.0, 0.5), 3.0)
+        text = _undo_a3(_undo_b2(v2.gmsh_script_v2(case, 3.0, 0.5), name), 3.0)
         assert text.count(BAND_A2) == 1, name
         assert _sha(text.replace(BAND_A2, BAND_BEFORE)) == PINNED["gmsh_" + name], name
     assert (v2.BAND_FINE_ELEMENTS, v2.BAND_GRADE_ELEMENTS) == (2, 3)
@@ -409,3 +444,9 @@ def test_the_gci_safety_factor_is_the_cited_three_grid_value_and_is_an_argument(
     narrow = ctl.richardson_gci(2.9, 2.7, 2.1)
     assert wide["halfwidth"] == pytest.approx(2.0 * narrow["halfwidth"])
     assert math.isfinite(narrow["extrapolated"])
+
+
+@pytest.fixture(autouse=True)
+def _b2_margin(monkeypatch):
+    # B2's clearance is unset until the hoo2 probes decide it (fail closed); these tests use 0.5 mm, a registered candidate.
+    monkeypatch.setattr(v2, "PAD_MARGIN_MM", 0.5)

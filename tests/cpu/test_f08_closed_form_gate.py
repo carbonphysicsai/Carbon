@@ -31,7 +31,7 @@ def row(rng):
         "relief_length_mm": rng.uniform(0.0, 60.0),
         "fillet_radius_mm": rng.uniform(0.5, 0.45 * min(t, tr)),
         "load_angle_deg": rng.uniform(-20.0, 20.0),
-        "load_offset_frac": rng.uniform(-0.4, 0.4),
+        "load_position_in_gap": rng.uniform(-1.0, 1.0),
     }
 
 

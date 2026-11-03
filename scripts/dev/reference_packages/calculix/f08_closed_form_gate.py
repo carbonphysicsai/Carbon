@@ -40,7 +40,7 @@ INPUTS = (
     "relief_length_mm",
     "fillet_radius_mm",
     "load_angle_deg",
-    "load_offset_frac",
+    "load_position_in_gap",
 )
 PAD_X = 5.0  # the 1.7 pad's length along x (the load arm is L - PAD_X / 2)
 TRAIN_SCHEMA = "carbon.f08.train-scalars.v1"

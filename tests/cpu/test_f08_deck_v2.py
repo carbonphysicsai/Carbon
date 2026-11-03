@@ -29,7 +29,7 @@ CASE = {
     "relief_length_mm": 40.0,
     "fillet_radius_mm": 2.0,
     "load_angle_deg": 0.0,
-    "load_offset_frac": 0.0,
+    "load_position_in_gap": 0.0,
     "damping_ratio": 0.01,
     "alloy": "TEST_ALLOY",
 }
@@ -37,7 +37,7 @@ CASE = {
 TEST_RANGES = {
     "fillet_radius_mm": (0.5, 4.0),
     "load_angle_deg": (-30.0, 30.0),
-    "load_offset_frac": (-0.45, 0.45),
+    "load_position_in_gap": (-1.0, 1.0),
     "damping_ratio": (0.005, 0.02),
 }
 TEST_TABLE = {
@@ -66,9 +66,10 @@ def test_the_new_input_ranges_are_the_owner_registered_ones():
     assert v2.RANGES == {
         "fillet_radius_mm": (0.5, 3.0),
         "load_angle_deg": (0.0, 45.0),
-        "load_offset_frac": (-0.4, 0.4),
+        "load_position_in_gap": (-1.0, 1.0),
         "damping_ratio": (0.005, 0.02),
     }
+    assert v2.PAD_DECISION == "OWNER-RB20-PAD-B2-AND-FINE-MESH-CAP-40-01"
     assert (
         v2.validate_case(CASE)["fillet_radius_mm"] == 2.0
     )  # in the registered ranges: no test mode needed
@@ -76,7 +77,7 @@ def test_the_new_input_ranges_are_the_owner_registered_ones():
         {"fillet_radius_mm": 3.5},
         {"load_angle_deg": 60.0},
         {"load_angle_deg": -1.0},
-        {"load_offset_frac": 0.5},
+        {"load_position_in_gap": 1.5},
         {"damping_ratio": 0.03},
     ):
         with pytest.raises(v2.Refused, match="out_of_range"):
@@ -99,7 +100,7 @@ def test_a_range_that_is_human_input_refuses_unless_test_mode_supplies_it():
         ({"fillet_radius_mm": 9.0}, "out_of_range"),
         ({"fillet_radius_mm": 0.1}, "out_of_range"),
         ({"rib_height_mm": 0.0}, "fillet_needs_a_rib"),
-        ({"load_offset_frac": 0.4, "width_mm": 20.0}, "load_pad_leaves_the_plate"),
+        ({"load_position_in_gap": 1.0, "width_mm": 20.0}, "gap_closed"),
         ({"damping_ratio": 0.0}, "out_of_range"),
     ],
 )
@@ -629,3 +630,89 @@ def test_naming_a_solver_on_a_1_7_deck_refuses_a_bad_name_or_an_unexpected_deck(
 ):
     with pytest.raises(v2.Refused, match=reason):
         v2.v17_with_solver(deck, solver)
+
+
+@pytest.fixture(autouse=True)
+def _b2_margin(monkeypatch):
+    # B2's clearance is unset until the hoo2 probes decide it (fail closed); these tests use 0.5 mm, a registered candidate.
+    monkeypatch.setattr(v2, "PAD_MARGIN_MM", 0.5)
+
+
+# --- B2: the load position in the clear gap (OWNER-RB20-PAD-B2-AND-FINE-MESH-CAP-40-01) ------------------------------
+
+
+def _clearance(case, y):
+    W, tr, rf = case["width_mm"], case["rib_thickness_mm"], case["fillet_radius_mm"]
+    low, high = y - 5.0, y + 5.0  # the 10 mm pad
+    return min(
+        max((s * W / 4 - tr / 2 - rf) - high, low - (s * W / 4 + tr / 2 + rf))
+        for s in (-1, 1)
+    )
+
+
+@pytest.mark.parametrize("margin", v2.PAD_MARGIN_CANDIDATES_MM)
+@pytest.mark.parametrize("g", [-1.0, 1.0])
+def test_g_at_either_end_puts_the_pad_exactly_margin_from_the_fillet(
+    monkeypatch, margin, g
+):
+    monkeypatch.setattr(v2, "PAD_MARGIN_MM", margin)
+    case = {**CASE, "load_position_in_gap": g}
+    load = v2.load_position(case)
+    assert load["margin_mm"] == margin and load["g"] == g
+    assert _clearance(case, load["y_mm"]) == pytest.approx(margin, abs=1e-12)
+    v2.validate_case(case)  # the backstop holds at the limit
+
+
+def test_g_zero_is_the_plate_centre():
+    load = v2.load_position(CASE)
+    assert load["y_mm"] == 0.0 and load["y_max_mm"] > 0
+
+
+@pytest.mark.parametrize(("margin", "y_max"), [(0.5, 4.0), (3.0, 1.5)])
+def test_the_smallest_gap_corner_of_the_signed_box_stays_open(
+    monkeypatch, margin, y_max
+):
+    monkeypatch.setattr(v2, "PAD_MARGIN_MM", margin)
+    corner = {
+        **CASE,
+        "width_mm": 60.0,
+        "rib_thickness_mm": 5.0,
+        "fillet_radius_mm": 3.0,
+    }
+    assert v2.load_position(corner)["y_max_mm"] == pytest.approx(y_max)
+
+
+def test_a_forged_pad_position_on_the_rib_is_refused():
+    load = v2.load_position(CASE)
+    rib = CASE["width_mm"] / 4
+    with pytest.raises(v2.Refused, match="load_pad_on_the_rib"):
+        v2.pad_clears_rib(CASE, rib, load["margin_mm"])
+    with pytest.raises(
+        v2.Refused, match="load_pad_on_the_rib"
+    ):  # just inside the margin
+        v2.pad_clears_rib(CASE, load["y_max_mm"] + 0.01, load["margin_mm"])
+    with pytest.raises(v2.Refused, match="load_pad_leaves_the_plate"):
+        v2.pad_clears_rib({**CASE, "width_mm": 400.0}, 199.0, 0.5)
+
+
+@pytest.mark.parametrize("margin", [None, 1.0, 0.0])
+def test_an_unregistered_margin_refuses_every_production_deck(monkeypatch, margin):
+    monkeypatch.setattr(v2, "PAD_MARGIN_MM", margin)
+    with pytest.raises(v2.Refused, match="pad_margin_unregistered"):
+        v2.validate_case(CASE)
+    with pytest.raises(v2.Refused, match="pad_margin_unregistered"):
+        v2.gmsh_script_v2(CASE, 3.0, 0.5)
+
+
+def test_the_margin_ships_unset_until_the_probes_decide_it():
+    import ast
+
+    tree = ast.parse(Path(v2.__file__).read_text(encoding="utf-8"))
+    assigned = {
+        node.targets[0].id: node.value
+        for node in tree.body
+        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name)
+    }
+    assert isinstance(assigned["PAD_MARGIN_MM"], ast.Constant)
+    assert assigned["PAD_MARGIN_MM"].value is None  # fail closed in the shipped file
+    assert ast.literal_eval(assigned["PAD_MARGIN_CANDIDATES_MM"]) == (0.5, 3.0)

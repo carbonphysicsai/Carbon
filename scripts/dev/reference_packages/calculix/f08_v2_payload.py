@@ -82,7 +82,7 @@ def _new_dims_centre():
     return {
         "fillet_radius_mm": sum(v2.RANGES["fillet_radius_mm"]) / 2,
         "load_angle_deg": sum(v2.RANGES["load_angle_deg"]) / 2,
-        "load_offset_frac": 0.0,
+        "load_position_in_gap": 0.0,
         "damping_ratio": sum(v2.RANGES["damping_ratio"]) / 2,
     }
 
@@ -137,7 +137,7 @@ def edge_cells():
     corner = {
         "fillet_radius_mm": lo_fillet,
         "load_angle_deg": hi_angle,
-        "load_offset_frac": v2.RANGES["load_offset_frac"][1],
+        "load_position_in_gap": v2.RANGES["load_position_in_gap"][1],
         "damping_ratio": v2.RANGES["damping_ratio"][0],
     }
     for alloy in ALLOY_ORDER:
@@ -149,7 +149,7 @@ def edge_cells():
             }
         )
     narrow = {**CENTRE, "width_mm": 60.0}
-    pad = {**centre_new, "load_offset_frac": v2.RANGES["load_offset_frac"][1]}
+    pad = {**centre_new, "load_position_in_gap": v2.RANGES["load_position_in_gap"][1]}
     cells.append(
         {
             "cell": "P-pad-validity",

@@ -39,7 +39,7 @@ BOX = {
 STAND_IN = {
     "fillet_radius_mm": 1.5,
     "load_angle_deg": 0.0,
-    "load_offset_frac": 0.0,
+    "load_position_in_gap": 0.0,
     "damping_ratio": 0.01,
     "alloy": "SMOKE_STAND_IN",
 }

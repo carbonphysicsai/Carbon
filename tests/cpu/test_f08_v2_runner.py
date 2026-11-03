@@ -977,3 +977,9 @@ def test_a_failed_solve_keeps_its_ccx_log_tail_in_the_record(tmp_path):
     assert runner.solver_log_tail(tmp_path / "none") is None
     solved = runner.run_job(_job(job_id="u"), tmp_path, solver=ok_solver, **args)
     assert "solver_log_tail" not in solved
+
+
+@pytest.fixture(autouse=True)
+def _b2_margin(monkeypatch):
+    # B2's clearance is unset until the hoo2 probes decide it (fail closed); these tests use 0.5 mm, a registered candidate.
+    monkeypatch.setattr(v2, "PAD_MARGIN_MM", 0.5)

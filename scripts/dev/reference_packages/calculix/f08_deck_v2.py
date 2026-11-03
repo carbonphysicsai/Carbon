@@ -7,8 +7,9 @@ peak von Mises stress at the rib-root fillet, a local NOTCH response, against th
   (`fillet_h_mm`, the refinement rung) in a band tied to the ELEMENT size (`BAND_FINE_ELEMENTS`, `BAND_GRADE_ELEMENTS`),
   and a FILLET element set for the stress output;
 - `alloy` (a categorical input: its E, nu, rho and yield come from a registered table), `load_angle_deg` (the load
-  direction, rotated about the x axis from +z toward +y; the resultant stays 1 N), `load_offset_frac` (the pad centre's y
-  offset on the free edge) and `damping_ratio` (a condition, one steady-state sweep instead of 1.7's three bands);
+  direction, rotated about the x axis from +z toward +y; the resultant stays 1 N), `load_position_in_gap` (B2: the pad
+  centre's position in the clear gap between the ribs, `load_position`) and `damping_ratio` (a condition, one
+  steady-state sweep instead of 1.7's three bands);
 - `observe_v2`: peak von Mises over the FILLET integration points, and (only when the alloy's yield and the owner's safety
   factor are registered) the ratio to the allowable.
 
@@ -55,20 +56,29 @@ GEOMETRY = (
 NEW_INPUTS = (
     "fillet_radius_mm",
     "load_angle_deg",
-    "load_offset_frac",
+    "load_position_in_gap",
     "damping_ratio",
 )
 CATEGORICAL = "alloy"
 ALL_INPUTS = (*GEOMETRY, *NEW_INPUTS, CATEGORICAL)
-#: OWNER-F08-V2-VALUES-01 (owner-approved, 2026-11-01): the registered ranges of the NEW inputs.
-#: load_offset_frac is the pad centre's y offset as a fraction of the plate width (0 = the centre).
+#: OWNER-F08-V2-VALUES-01 (owner-approved, 2026-11-01): the registered ranges of the NEW inputs, with the load position
+#: re-signed by OWNER-RB20-PAD-B2-AND-FINE-MESH-CAP-40-01 (B2, 2026-11-03): load_position_in_gap g in [-1, 1] places the pad
+#: centre anywhere in the clear gap between the ribs (`load_position`); it replaces 1.0's load_offset_frac.
 DECISION = "OWNER-F08-V2-VALUES-01"
+PAD_DECISION = "OWNER-RB20-PAD-B2-AND-FINE-MESH-CAP-40-01"
 RANGES = {
     "fillet_radius_mm": (0.5, 3.0),
     "load_angle_deg": (0.0, 45.0),
-    "load_offset_frac": (-0.4, 0.4),
+    "load_position_in_gap": (-1.0, 1.0),
     "damping_ratio": (0.005, 0.02),
 }
+#: B2's clearance between the pad and each rib footprint plus its fillet (PAD_DECISION): 0.5 mm if the four 0.5 mm probe
+#: designs pass on the hoo2 mesher at every rung (the Validator's pass rule), else 3 mm; no other value. Unset until that
+#: verdict: every production deck refuses (`pad_margin_unregistered`), so nothing is drawn or solved on a guessed margin.
+PAD_MARGIN_CANDIDATES_MM = (0.5, 3.0)
+PAD_MARGIN_MM = None
+#: The domain revision a record names (B2: the load position in the gap).
+DOMAIN_REVISION = "rb20-b2-load-in-gap-v1"
 #: The three registered alloy ids, in registration order (the categorical id is the position), and the SIGNED table
 #: (OWNER-F08-V2-ALLOYS-SIGNED-01, 2026-11-01): MIL-HDBK-5J, two independent transcriptions, E, nu, rho and the selected Fty
 #: (A-basis LT where A/B are given, S-basis where only S is, the lowest over the product forms covering the plate range).
@@ -180,6 +190,48 @@ def _need(value, name):
 # ---------------------------------------------------------------- inputs, tables
 
 
+def pad_margin_mm():
+    """B2's registered clearance in mm (`PAD_MARGIN_MM`, one of `PAD_MARGIN_CANDIDATES_MM`), or a refusal."""
+    if PAD_MARGIN_MM not in PAD_MARGIN_CANDIDATES_MM:
+        raise Refused("pad_margin_unregistered")
+    return float(PAD_MARGIN_MM)
+
+
+def load_position(case):
+    """B2's ONE mapping: the pad centre's y on the top face from ``load_position_in_gap`` g in [-1, 1]:
+    y = g x Y_max, Y_max = W/4 - tr/2 - rf - PAD_Y/2 - MARGIN, so g = 0 is the plate centre and g = +-1 puts the pad MARGIN mm
+    from the inboard foot of either rib's fillet. A case whose gap is closed (Y_max <= 0) refuses (`gap_closed`; none in the
+    signed box). Returns the record's load fields: ``{g, y_mm, y_max_mm, margin_mm, decision}``.
+    """
+    margin = pad_margin_mm()
+    W, tr, rf = case["width_mm"], case["rib_thickness_mm"], case["fillet_radius_mm"]
+    y_max = W / 4 - tr / 2 - rf - v1.PAD_Y / 2 - margin
+    if not y_max > 0:
+        raise Refused("gap_closed")
+    g = case["load_position_in_gap"]
+    return {
+        "g": g,
+        "y_mm": g * y_max,
+        "y_max_mm": y_max,
+        "margin_mm": margin,
+        "decision": PAD_DECISION,
+    }
+
+
+def pad_clears_rib(case, y_mm, margin_mm):
+    """The backstop (Validator 01:16): the pad's y-span clears each rib footprint plus fillet by at least ``margin_mm``
+    (1e-9 mm slack) and stays on the plate, else a refusal. Under B2 it never fires for a valid g; it guards the mapping.
+    """
+    W, tr, rf = case["width_mm"], case["rib_thickness_mm"], case["fillet_radius_mm"]
+    low, high = y_mm - v1.PAD_Y / 2, y_mm + v1.PAD_Y / 2
+    for side in (-1, 1):
+        foot_low, foot_high = side * W / 4 - tr / 2 - rf, side * W / 4 + tr / 2 + rf
+        if max(foot_low - high, low - foot_high) < margin_mm - 1e-9:
+            raise Refused("load_pad_on_the_rib")
+    if abs(y_mm) + v1.PAD_Y / 2 > W / 2:
+        raise Refused("load_pad_leaves_the_plate")
+
+
 def validate_case(case, *, ranges=None, test_mode=False):
     """The case's inputs, in range. A range that is HUMAN_INPUT refuses unless ``test_mode`` supplies it."""
     if case.get("control") is not None:
@@ -197,14 +249,14 @@ def validate_case(case, *, ranges=None, test_mode=False):
         low, high = bounds
         if not (type(case[name]) in (int, float) and low <= case[name] <= high):
             raise Refused(f"{name}_out_of_range")
-    W, t = case["width_mm"], case["thickness_mm"]
+    t = case["thickness_mm"]
     if case["rib_height_mm"] <= 0 or case["rib_thickness_mm"] <= 0:
         raise Refused("fillet_needs_a_rib")
     rf = case["fillet_radius_mm"]
     if not (0 < rf < min(case["rib_height_mm"], t, case["rib_thickness_mm"])):
         raise Refused("fillet_radius_exceeds_the_junction")
-    if abs(case["load_offset_frac"]) * W + v1.PAD_Y / 2 > W / 2:
-        raise Refused("load_pad_leaves_the_plate")
+    load = load_position(case)
+    pad_clears_rib(case, load["y_mm"], load["margin_mm"])
     if not (0 < case["damping_ratio"] < 1):
         raise Refused("damping_ratio_out_of_range")
     return dict(case)
@@ -423,7 +475,7 @@ MESH_REVISIONS = {
 def gmsh_script_v2(case, h_mm, fillet_h_mm, *, mesh_revision=None):
     """The Gmsh program for one case: 1.7's body, the fillet on the four rib junction lines, a refinement field around
     the fillet faces (a band of `BAND_FINE_ELEMENTS` fine elements, graded to h over `BAND_GRADE_ELEMENTS` coarse ones), the
-    pad at ``load_offset_frac`` and a FILLET element set. Returned as text; it runs in MESH_IMAGE.
+    pad at B2's ``load_position`` and a FILLET element set. Returned as text; it runs in MESH_IMAGE.
 
     A case with the optional ``control`` key is a code-verification CONTROL case (see `CONTROL_KINDS`): the same program
     with the rib/fillet, load and observation pieces swapped. A case without the key gets exactly the text it always got
@@ -431,7 +483,8 @@ def gmsh_script_v2(case, h_mm, fillet_h_mm, *, mesh_revision=None):
     """
     control = case.get("control")
     if control is None:
-        RF_OFF = 'rf, off = case["fillet_radius_mm"], case["load_offset_frac"] * W'
+        # B2: the pad centre's y from the one mapping (`load_position`), written into the program as a number.
+        RF_OFF = f'rf, off = case["fillet_radius_mm"], {load_position(case)["y_mm"]!r}'
         BODY = """body = [(3, occ.addBox(0, -W / 2, 0, L, W, t))]
 ribs = [(3, occ.addBox(0, s * W / 4 - tr / 2, t, L, tr, hr)) for s in (-1, 1)]
 body, _ = occ.fuse(body, ribs)

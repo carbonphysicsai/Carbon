@@ -575,6 +575,14 @@ def record_for(
         mesh_revision is not None
     ):  # absent for the a3 mesh: its records stay byte-identical
         record["mesh_revision"] = mesh_revision
+    case = job.get("case")
+    if type(case) is dict and case.get("control") is None:
+        # B2 (domain rev): the load position as drawn (g), the pad centre's y it maps to, the gap's half-width and margin
+        try:
+            record["load"] = v2.load_position(case)
+            record["domain_revision"] = v2.DOMAIN_REVISION
+        except (v2.Refused, KeyError, TypeError):
+            pass  # a case the deck refused carries its refusal in ``reasons`` already
     if run.get("stop_reason") == "exit" and run.get("exit") not in (0, None):
         tail = solver_log_tail(directory)
         if tail is not None:
