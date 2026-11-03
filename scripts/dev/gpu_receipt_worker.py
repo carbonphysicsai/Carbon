@@ -15,6 +15,10 @@ an entry gets at most `--max-attempts` attempts. A failed entry has no record, s
   official grading is running (chosen explicitly: `--grading-state-dir` for `official-grading.lock`, `--yield-file`,
   `--busy-command` or `--no-yield`). `--grading-state-dir` is the directory that holds the receiver's lock: the PARENT of
   the receiver config's `official_gpu_receipts` path. One GPU: it never competes with a grade.
+- Timeout accounting: by default a run's `--entry-timeout-s` is WALL time, paused time included. With
+  `--entry-wall-cap-s C` the timeout counts RUN time (wall minus the time its containers were frozen by a pause), and C is
+  a separate cap on the whole wall of one run, paused or not (TL 3 Nov 10:05: a night of door grading paused runs past the
+  wall timeout). Both are operator values; nothing defaults.
 - Lanes: min(free VRAM, CPUs, memory, cap) from the measured per-lane limits you pass (nothing defaulted).
 - Resumes: the queue is a SQLite file in `--state-dir`; a restart (or reboot, via the `units` service) re-queues RUNNING jobs.
 - Progress: "GPU receipts: <challenge> N of M ..." per Challenge, on every finish and on `status`.
@@ -22,7 +26,7 @@ an entry gets at most `--max-attempts` attempts. A failed entry has no record, s
 
     gpu_receipt_worker.py run --state-dir D --checkout C --gpu-uuid U --torch-gpu-manifest M [--jax-gpu-manifest M]
         --host-class ID --wheels W --store-dir S --max-attempts N --entry-timeout-s S --lane-vram-bytes B
-        --lane-cpus N --lane-memory-bytes B --max-lanes N
+        --lane-cpus N --lane-memory-bytes B --max-lanes N [--entry-wall-cap-s C]
         (--grading-state-dir V [required on a real run] | --yield-file F | --busy-command CMD | --no-yield [dry run and tests only]) [--operator-state-dir V] [--dry-run] [--only ID ...]
     gpu_receipt_worker.py status --state-dir D
     gpu_receipt_worker.py units  (same flags as run) --out-dir DIR      # a systemd --user service, not installed
@@ -43,6 +47,7 @@ import shlex
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -386,6 +391,67 @@ class Context:
     entry_timeout_s: int
     steps: int = 20
     run: object = field(default=subprocess.run, repr=False)
+    #: Run-time accounting (`--entry-wall-cap-s`): the pause clock the pauser keeps, and the cap on one run's whole wall.
+    #: None (the default): the timeout is wall time, as before.
+    pause_clock: object = field(default=None, repr=False)
+    entry_wall_cap_s: int | None = None
+    popen: object = field(default=subprocess.Popen, repr=False)
+    monotonic: object = field(default=time.monotonic, repr=False)
+    tick_s: float = 1.0
+
+
+class PauseClock:
+    """The seconds the worker's containers have been frozen (`docker pause`), cumulative and including a pause in
+    progress. One clock for the worker: a pause freezes every running container at once.
+    """
+
+    def __init__(self, monotonic=time.monotonic):
+        self._monotonic = monotonic
+        self._lock = threading.Lock()
+        self._total = 0.0
+        self._since = None
+
+    def set(self, paused):
+        with self._lock:
+            now = self._monotonic()
+            if paused and self._since is None:
+                self._since = now
+            elif not paused and self._since is not None:
+                self._total += now - self._since
+                self._since = None
+
+    def paused_s(self):
+        with self._lock:
+            ongoing = 0.0 if self._since is None else self._monotonic() - self._since
+            return self._total + ongoing
+
+
+def run_counted(ctx, argv):
+    """One container run under run-time accounting: ``{"rc", "stderr"}``, or ``{"stop": "timeout"|"wall_cap", "detail"}``
+    after killing it. The run time is the wall since start minus the pause clock's growth since start.
+    """
+    process = ctx.popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    start, paused_at_start = ctx.monotonic(), ctx.pause_clock.paused_s()
+    while True:
+        try:
+            _out, err = process.communicate(timeout=ctx.tick_s)
+            return {"rc": process.returncode, "stderr": err or ""}
+        except subprocess.TimeoutExpired:
+            pass
+        wall = ctx.monotonic() - start
+        run_s = wall - (ctx.pause_clock.paused_s() - paused_at_start)
+        if run_s > ctx.entry_timeout_s:
+            stop = ("timeout", f"run time {run_s:.0f} s over {ctx.entry_timeout_s} s")
+        elif wall > ctx.entry_wall_cap_s:
+            stop = (
+                "wall_cap",
+                f"wall {wall:.0f} s over the cap {ctx.entry_wall_cap_s} s",
+            )
+        else:
+            continue
+        process.kill()
+        process.communicate()
+        return {"stop": stop[0], "detail": stop[1]}
 
 
 def docker_argv(ctx, runtime, catalog_id, run_name, out_dir, scratch):
@@ -495,8 +561,28 @@ def official_pair(ctx, job):
     digests = []
     for n in (1, 2):
         name = run_name_of(job, n)
+        if ctx.pause_clock is not None:
+            counted = run_counted(
+                ctx,
+                docker_argv(
+                    ctx, job["runtime"], job["catalog_id"], name, out_dir, scratch
+                ),
+            )
+            if "stop" in counted:
+                ctx.run(["docker", "rm", "-f", name], capture_output=True, check=False)
+                return {
+                    "verdict": "FAILED",
+                    "reason": counted["stop"],
+                    "detail": f"run {n}: {counted['detail']}",
+                    "peak_gpu_bytes": peak,
+                }
+            done = subprocess.CompletedProcess(
+                [], counted["rc"], stdout="", stderr=counted["stderr"]
+            )
+        else:
+            done = None
         try:
-            done = ctx.run(
+            done = done or ctx.run(
                 docker_argv(
                     ctx, job["runtime"], job["catalog_id"], name, out_dir, scratch
                 ),
@@ -676,10 +762,13 @@ def run_loop(
     return queue.counts()
 
 
-def docker_pauser(run=subprocess.run):
-    """Freeze (`docker pause`) or thaw the containers of the running entries; either container of a pair may be live."""
+def docker_pauser(run=subprocess.run, clock=None):
+    """Freeze (`docker pause`) or thaw the containers of the running entries; either container of a pair may be live.
+    ``clock`` (a `PauseClock`, run-time accounting) is told every freeze and thaw."""
 
     def pause(jobs, paused):
+        if clock is not None:
+            clock.set(paused)
         for job in jobs:
             for n in (1, 2):
                 run(
@@ -788,6 +877,11 @@ def _parser():
     parser.add_argument("--operator-state-dir", type=Path)
     parser.add_argument("--max-attempts", type=int)
     parser.add_argument("--entry-timeout-s", type=int)
+    parser.add_argument(
+        "--entry-wall-cap-s",
+        type=int,
+        help="run-time accounting: --entry-timeout-s counts run time (pauses excluded) and this caps one run's whole wall",
+    )
     parser.add_argument("--lane-vram-bytes", type=int)
     parser.add_argument("--lane-cpus", type=int)
     parser.add_argument("--lane-memory-bytes", type=int)
@@ -923,6 +1017,14 @@ def main(argv=None):
             file=sys.stderr,
         )
         return 2
+    if args.entry_wall_cap_s is not None and not (
+        args.entry_wall_cap_s > args.entry_timeout_s > 0
+    ):
+        print(
+            "refused: --entry-wall-cap-s must exceed --entry-timeout-s (a cap on the whole wall, pauses included)",
+            file=sys.stderr,
+        )
+        return 2
     problem = real_run_problem(args)
     if problem:
         print(problem, file=sys.stderr)
@@ -974,6 +1076,8 @@ def main(argv=None):
         host_class=args.host_class,
         tested_on=tested_on,
         entry_timeout_s=args.entry_timeout_s,
+        pause_clock=None if args.entry_wall_cap_s is None else PauseClock(),
+        entry_wall_cap_s=args.entry_wall_cap_s,
     )
     lane_vram = args.lane_vram_bytes
 
@@ -1003,6 +1107,10 @@ def main(argv=None):
         "limits": {
             "max_attempts": args.max_attempts,
             "entry_timeout_s": args.entry_timeout_s,
+            "entry_timeout_accounting": (
+                "wall" if args.entry_wall_cap_s is None else "run_time"
+            ),
+            "entry_wall_cap_s": args.entry_wall_cap_s,
             "lane_vram_bytes": args.lane_vram_bytes,
             "lane_cpus": args.lane_cpus,
             "lane_memory_bytes": args.lane_memory_bytes,
@@ -1040,7 +1148,7 @@ def main(argv=None):
         only=set(args.only) if args.only else None,
         lanes_now=lanes_now,
         busy=busy,
-        pauser=docker_pauser(),
+        pauser=docker_pauser(clock=ctx.pause_clock),
         poll_s=args.poll_s,
     )
     print(json.dumps(counts, sort_keys=True))
@@ -1065,6 +1173,7 @@ def _units(args):
         "store_dir",
         "max_attempts",
         "entry_timeout_s",
+        "entry_wall_cap_s",
         "lane_vram_bytes",
         "lane_cpus",
         "lane_memory_bytes",

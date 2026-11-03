@@ -737,3 +737,151 @@ def test_a_real_run_requires_the_grading_dir_and_refuses_the_test_only_yield_mod
     assert w.real_run_problem(args) is None
     args = w._parser().parse_args(["run", *base, "--grading-state-dir", str(state)])
     assert w.real_run_problem(args) is None
+
+
+# --- run-time accounting (TL 3 Nov 10:05: paused time counted against the wall timeout) ---------------------------------
+
+
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+
+class FakeProcess:
+    """A container run that finishes after ``work_s`` seconds of RUN time; each tick advances the clock by ``tick``, and
+    ``pause_between`` (start, end) of wall time is frozen (the pauser's clock is told).
+    """
+
+    def __init__(self, clock, pause_clock, *, work_s, tick=10.0, pause_between=None):
+        self.clock, self.pause_clock, self.work_s, self.tick = (
+            clock,
+            pause_clock,
+            work_s,
+            tick,
+        )
+        self.pause_between, self.ran, self.returncode, self.killed = (
+            pause_between,
+            0.0,
+            None,
+            False,
+        )
+
+    def communicate(self, timeout=None):
+        if self.killed:
+            return "", ""
+        if timeout is None:
+            return "", ""
+        self.clock.now += self.tick
+        frozen = self.pause_between and (
+            self.pause_between[0] <= self.clock.now < self.pause_between[1]
+        )
+        self.pause_clock.set(bool(frozen))
+        if not frozen:
+            self.ran += self.tick
+        if self.ran >= self.work_s:
+            self.returncode = 0
+            return "", ""
+        raise subprocess.TimeoutExpired("docker", timeout)
+
+    def kill(self):
+        self.killed = True
+
+
+def _counted_ctx(tmp_path, *, work_s, pause_between=None, cap=600, timeout=60):
+    c = ctx(tmp_path)
+    clock = FakeClock()
+    c.monotonic = clock
+    c.pause_clock = w.PauseClock(monotonic=clock)
+    c.entry_timeout_s, c.entry_wall_cap_s, c.tick_s = timeout, cap, 0
+    procs = []
+
+    def popen(argv, **kw):
+        name = argv[argv.index("--name") + 1]
+        out = next(a for a in argv if a.endswith(":/out:rw")).rsplit(":/out:rw", 1)[0]
+        Path(out, name + ".json").write_text(
+            json.dumps({"entries": {"cat-1": {"first": {"peak_gpu_bytes": 7}}}})
+        )
+        proc = FakeProcess(
+            clock, c.pause_clock, work_s=work_s, pause_between=pause_between
+        )
+        procs.append(proc)
+        return proc
+
+    c.popen = popen
+    removed = []
+    c.run = lambda argv, **kw: removed.append(argv[:3]) or subprocess.CompletedProcess(
+        argv, 0, "", ""
+    )
+    return c, procs, removed
+
+
+JOB = {
+    "key": f"cat-1|{RT}",
+    "catalog_id": "cat-1",
+    "runtime": RT,
+    "challenges": ["c1"],
+    "attempt": 1,
+}
+
+
+def test_paused_time_does_not_count_against_the_run_time_timeout(tmp_path, monkeypatch):
+    monkeypatch.setattr(w, "compare_runs", lambda a, b: "PASS")
+    # 50 s of work, frozen from 20 s to 300 s of wall: 330 s of wall, 50 s of run time, under the 60 s timeout
+    c, procs, removed = _counted_ctx(tmp_path, work_s=50, pause_between=(20, 300))
+    done = w.official_pair(c, JOB)
+    assert done["verdict"] == "PASS" and len(procs) == 2
+    assert not any(p.killed for p in procs) and removed == []
+
+
+def test_run_time_over_the_timeout_is_a_timeout(tmp_path):
+    c, procs, removed = _counted_ctx(tmp_path, work_s=500)
+    done = w.official_pair(c, JOB)
+    assert done["verdict"] == "FAILED" and done["reason"] == "timeout"
+    assert "run time" in done["detail"] and procs[0].killed
+    assert ["docker", "rm", "-f"] in removed
+
+
+def test_a_run_paused_past_the_wall_cap_stops_at_the_cap(tmp_path):
+    # 50 s of work but frozen from 10 s on: run time stays low, the WALL passes the 600 s cap
+    c, procs, removed = _counted_ctx(tmp_path, work_s=50, pause_between=(10, 10**6))
+    done = w.official_pair(c, JOB)
+    assert done["verdict"] == "FAILED" and done["reason"] == "wall_cap"
+    assert procs[0].killed and ["docker", "rm", "-f"] in removed
+
+
+def test_without_the_cap_the_timeout_is_wall_time_as_before(tmp_path):
+    c = ctx(tmp_path)
+    assert (
+        c.pause_clock is None and c.entry_wall_cap_s is None
+    )  # the default path: ctx.run with timeout=
+
+
+def test_the_pause_clock_counts_a_pause_in_progress_and_the_pauser_tells_it():
+    clock = FakeClock()
+    pc = w.PauseClock(monotonic=clock)
+    pc.set(True)
+    clock.now = 30.0
+    assert pc.paused_s() == 30.0  # in progress
+    pc.set(False)
+    clock.now = 100.0
+    assert pc.paused_s() == 30.0
+    seen = []
+    pauser = w.docker_pauser(run=lambda argv, **kw: seen.append(argv), clock=pc)
+    pauser([JOB], True)
+    clock.now = 110.0
+    pauser([JOB], False)
+    assert pc.paused_s() == 40.0 and ["docker", "pause", w.run_name_of(JOB, 1)] in seen
+
+
+def test_the_wall_cap_must_exceed_the_timeout(tmp_path, capsys):
+    args = [
+        "run", "--state-dir", str(tmp_path), "--checkout", str(tmp_path), "--gpu-uuid", "G", "--host-class", "H",
+        "--wheels", str(tmp_path), "--store-dir", str(tmp_path), "--operator-state-dir", str(tmp_path),
+        "--max-attempts", "2", "--entry-timeout-s", "1894", "--entry-wall-cap-s", "1800", "--lane-vram-bytes", "1",
+        "--lane-cpus", "1", "--lane-memory-bytes", "1", "--max-lanes", "1", "--dry-run", "--no-yield",
+    ]  # fmt: skip
+    assert w.main(args) == 2
+    assert "must exceed" in capsys.readouterr().err
