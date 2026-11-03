@@ -22,6 +22,7 @@ from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.challenge_validator.interface import digest
 from carbon.development_session import direct_graph_construction_worker as worker
 from carbon.development_session.construction_recipe import ConstructionRecipe
+from carbon.registry.model import ChallengeKey
 from carbon.research import DirectTaskStateV3, ResearchTaskId
 
 KING = "rtsk_" + "a" * 64
@@ -76,7 +77,7 @@ def _adapter(provider):
     class Adapter:
         _measure_query = False
         discovery = SimpleNamespace(
-            info=SimpleNamespace(challenge_key=SimpleNamespace(challenge_id=CHALLENGE))
+            info=SimpleNamespace(challenge_key=ChallengeKey(CHALLENGE, "1.7"))
         )
 
         def _provider(self, owner):
