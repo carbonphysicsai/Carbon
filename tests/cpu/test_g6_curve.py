@@ -438,3 +438,74 @@ def test_without_frac_contenders_g6_is_the_old_not_run(stubbed, tmp_path):
         "status": "NOT_RUN",
         "needs": "default-model and best-shortcut rows trained on 25 / 50 / 100 % of TRAIN",
     }
+
+
+# ---------------------------------------------------------------- the ruled form (Validator 3 Nov 15:46)
+
+
+def test_the_ruled_order_is_the_sha256_of_the_versioned_row_key():
+    import hashlib
+
+    order = subsets.ordering(("sha256", "9.9-test"), 12)
+    keys = [
+        hashlib.sha256(f"carbon.g6.subset.v1/9.9-test/{i}".encode()).hexdigest()
+        for i in range(12)
+    ]
+    assert list(order) == sorted(range(12), key=lambda i: keys[i])
+    assert list(subsets.ordering(("sha256", "9.8-test"), 12)) != list(
+        order
+    )  # the version keys it
+
+
+@pytest.mark.parametrize(
+    ("fraction", "n", "k"),
+    [(0.25, 10, 3), (0.25, 6, 2), (0.5, 7, 4), (0.25, 2, 1), (0.25, 1, 0), (1.0, 7, 7)],
+)
+def test_half_up_rounds_a_half_up(fraction, n, k):
+    # 0.25 * 10 = 2.5 -> 3; 0.25 * 6 = 1.5 -> 2; 0.5 * 7 = 3.5 -> 4; 0.25 * 2 = 0.5 -> 1; 0.25 * 1 = 0.25 -> 0
+    assert subsets.row_count(fraction, n, "half_up") == k
+
+
+def test_the_ruled_form_is_nested_and_stratified_per_stratum(tmp_path):
+    rng = np.random.default_rng(1)
+    inputs = rng.uniform(0, 1, (21, 3))
+    inputs[:, 0] = (
+        [0.0] * 9 + [1.0] * 8 + [2.0] * 4
+    )  # three strata of 9, 8 and 4 rows (synthetic)
+    buffer = io.BytesIO()
+    np.savez(buffer, inputs=inputs, targets=rng.normal(0, 1, (21, 2)))
+    raw = buffer.getvalue()
+    manifest, _files = subsets.make_subsets(
+        raw, "sha256:9.9-test", "half_up", (0.25, 0.5, 1.0), stratum_input=0
+    )
+    assert manifest["rule"] == "sha256:9.9-test" and manifest["stratum_input"] == 0
+    # per stratum half-up: 25 % -> 2 + 2 + 1 = 5; 50 % -> 5 + 4 + 2 = 11; 100 % -> 21
+    assert [manifest["subsets"][label]["n"] for label in ("0.25", "0.5", "1.0")] == [
+        5,
+        11,
+        21,
+    ]
+    order = subsets.ordering(("sha256", "9.9-test"), 21)
+    strata = list(inputs[:, 0])
+    small = {int(i) for i in subsets.select(order, 0.25, 21, "half_up", strata)}
+    half = {int(i) for i in subsets.select(order, 0.5, 21, "half_up", strata)}
+    assert small <= half
+    for stratum, quarter in ((0.0, 2), (1.0, 2), (2.0, 1)):
+        members = [int(i) for i in order if strata[int(i)] == stratum]
+        assert {i for i in small if strata[i] == stratum} == set(members[:quarter])
+    # the manifest re-derives the same rows from TRAIN's arrays (strata need them)
+    _order, derived = subsets.subset_indices(
+        manifest, 0.25, 21, arrays={"inputs": inputs}
+    )
+    assert {int(i) for i in derived} == small
+    with pytest.raises(
+        subsets.SubsetsRefused, match="g6_manifest_needs_train_for_strata"
+    ):
+        subsets.subset_indices(manifest, 0.25, 21)
+    with pytest.raises(subsets.SubsetsRefused, match="g6_stratum_input_invalid"):
+        subsets.make_subsets(
+            raw, "sha256:9.9-test", "half_up", (0.25, 1.0), stratum_input=7
+        )
+    for bad in ("sha256:", "sha256:a/b", "sha256: x"):
+        with pytest.raises(subsets.SubsetsRefused, match="g6_rule_unknown"):
+            subsets.parse_rule(bad)

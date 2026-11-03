@@ -201,7 +201,9 @@ def default_rows(
     except (RecipeRefused, ValueError) as error:
         return None, _not_run(_refusal_code(error))
     n = len(inputs)
-    _order, indices = subsets.subset_indices(manifest, fraction, n)
+    _order, indices = subsets.subset_indices(
+        manifest, fraction, n, arrays={"inputs": inputs, "targets": targets}
+    )
     k = len(indices)
     if fraction == 1.0:
         tf, x, y, source = 1.0, inputs, targets, np.arange(n)
