@@ -30,6 +30,12 @@ and stays accounted to its ORIGINAL arrival epoch), its marker and failure evide
 ``auto-grade/requeued/<id>.attempt-1.{marker.json,failure.txt}`` (kept), a line goes to ``requeued/requeues.jsonl``, and
 the next tick grades it as attempt 2 over the same retained bytes and task identity, reusing its own row (no new slot).
 
+``requeue`` ARCHIVES instead (Validator 4 Nov 16:38) a task that passes every check up to the contract but whose row
+is not in its owner's store on this root (``task_row_missing``: the rs15-only rows): Carbon cannot re-run it, so the
+miner must RESUBMIT the same recipe, which recreates the SAME task id; without the archive the old FAILED marker would
+make the grader skip that resubmit forever. The archive is the same one-shot move and `ExamCap.mark_requeued` (the
+resubmit grades once without spending, or being refused by, the miner's round or day), logged as ``archive``.
+
 ``release``: one task whose COUNTED grade never reached the miner (its marker is FAILED, so its feedback shows no grade,
 and the miner's Ladder shows nothing from that round) is given back through the receiver's own
 `ExamCap.release_undelivered`, keyed on the exam ledger row (it needs no task row): RELEASED / FAILED_INFRA, the prior
@@ -241,6 +247,17 @@ def _requeue_refusal(root, db, door, task):
     return None
 
 
+def _decision(root, db, door, task):
+    """``(action, refusal)``: ``("requeue", None)``, ``("archive", None)`` for a task the door cannot resolve that a
+    resubmit will recreate, or ``(None, code)``."""
+    code = _requeue_refusal(root, db, door, task)
+    if code is None:
+        return "requeue", None
+    if code == "task_row_missing":
+        return "archive", None
+    return None, code
+
+
 def _grade_wall(db):
     """``(mean wall seconds, samples)`` of this door's counted grades (reserve to settle), or ``(None, 0)``."""
     row = db.execute(
@@ -275,14 +292,18 @@ def scan(root, *, split=DEFAULT_SPLIT):
         "split": split,
         "failed_markers": len(failed),
         "eligible": {"before_split": [], "since_split": []},
+        "archive_for_resubmit": [],
         "arrived": {},
         "refused_counts": {},
     }
     with ledger._db() as db:
         for task in failed:
-            code = _requeue_refusal(root, db, door, task)
-            if code is not None:
+            action, code = _decision(root, db, door, task)
+            if action is None:
                 out["refused_counts"][code] = out["refused_counts"].get(code, 0) + 1
+                continue
+            if action == "archive":
+                out["archive_for_resubmit"].append(task)
                 continue
             at_ns = _arrival(db, task)[0]
             group = "since_split" if at_ns >= edge_ns else "before_split"
@@ -310,14 +331,15 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
         "action": "requeue",
         "apply": apply,
         "requeued": [],
+        "archived": [],
         "refused": {},
     }
     ledger, cap = _ledger(root)
     door = _Door(root)
     for task in tasks:
         with ledger._db() as db:
-            code = _requeue_refusal(root, db, door, task)
-        if code is not None:
+            action, code = _decision(root, db, door, task)
+        if action is None:
             out["refused"][task] = code
             continue
         if apply:
@@ -335,12 +357,17 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
             ) as log:
                 log.write(
                     json.dumps(
-                        {"task": task, "attempt": _ATTEMPT + 1, "at_ns": int(clock())},
+                        {
+                            "task": task,
+                            "attempt": _ATTEMPT + 1,
+                            "kind": action,
+                            "at_ns": int(clock()),
+                        },
                         sort_keys=True,
                     )
                     + "\n"
                 )
-        out["requeued"].append(task)
+        out["requeued" if action == "requeue" else "archived"].append(task)
     return out
 
 
@@ -450,8 +477,11 @@ def main(argv=None):
             args.out.write_text(
                 "".join(
                     task + "\n"
-                    for group in ("before_split", "since_split")
-                    for task in out["eligible"][group]
+                    for task in (
+                        *out["eligible"]["before_split"],
+                        *out["eligible"]["since_split"],
+                        *out["archive_for_resubmit"],
+                    )
                 )
             )
     elif args.cmd == "requeue":

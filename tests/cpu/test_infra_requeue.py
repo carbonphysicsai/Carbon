@@ -541,7 +541,9 @@ def test_a_task_off_the_served_contract_or_pack_or_without_its_row_is_refused(tm
         root, ledger, B, stored=False
     )  # no row in the owner's store (the rs15-only 38)
     out = infra_requeue.requeue(root, [A, B], apply=True)
-    assert out["refused"] == {A: "contract_not_served", B: "task_row_missing"}
+    # B cannot be re-run here: it is archived for the miner's resubmit, never graded by us (next test)
+    assert out["refused"] == {A: "contract_not_served"}
+    assert out["requeued"] == [] and out["archived"] == [B]
     other = tmp_path / "other"
     other.mkdir()
     root2, ledger2 = _root(other)
@@ -658,6 +660,64 @@ def test_a_requeued_grade_inside_todays_window_uses_none_of_todays_allowance(tmp
     infra_requeue.requeue(root, [A], apply=True)
     cap.settle(_reserve(cap, A, original), "SCORED_DEVELOPMENT_CANDIDATE")
     assert _admission(cap, C, now) is None  # a = 1 a day, still free
+
+
+def test_a_task_the_door_cannot_resolve_is_archived_so_a_resubmit_grades_once(tmp_path):
+    """Validator 16:38: a task_row_missing task is archived (marker + evidence kept, mark_requeued), so the miner's
+    resubmit of the same recipe (the SAME task id) is admitted and graded once, even at the miner's cap; a graded id
+    is never archived."""
+    from carbon.challenge_validator import auto_grade, infra_requeue
+
+    root, ledger = _root(tmp_path)
+    original, now = 20 * 360, 25 * 360
+    _failed(
+        root, ledger, A, stored=False, block=original
+    )  # its row is not on this root
+    _failed(root, ledger, C, stored=False, state="GRADED")
+    cap = _cap(ledger)
+    cap.settle(_reserve(cap, B, original + 1), "SCORED_DEVELOPMENT_CANDIDATE")
+    assert _admission(cap, A, now) == "exam_daily_allowance_reached"  # before: refused
+    listed = infra_requeue.scan(root)
+    assert listed["archive_for_resubmit"] == [A] and listed["eligible_counts"] == {
+        "before_split": 0,
+        "since_split": 0,
+    }
+    out = infra_requeue.requeue(root, [A, C], apply=True)
+    assert out["archived"] == [A] and out["requeued"] == []
+    assert out["refused"] == {C: "marker_graded"}
+    assert json.loads(_kept(root, A, "marker.json").read_text())["state"] == "FAILED"
+    log = (root / "auto-grade" / "requeued" / "requeues.jsonl").read_text()
+    assert json.loads(log.splitlines()[0])["kind"] == "archive"
+    # the miner resubmits the same recipe: admitted at the cap, its row recreated, graded once
+    assert _admission(cap, A, now) is None
+    _store(root, A, _recipe(A))
+    graded = []
+
+    class Intake:
+        adapter = SimpleNamespace(
+            contract_digest=CONTRACT,
+            ledger=SimpleNamespace(submitted_outcomes=lambda contract: (A, C)),
+            owner=lambda submission_id: HOTKEY,
+        )
+
+        def retain_result(self, submission_id, **kwargs):
+            graded.append(
+                _reserve(cap, submission_id, original)
+            )  # the real slot rule, bypassed once
+            return {"entry_id": "sha256:" + "1" * 64}
+
+    grader = auto_grade.AutoGrader(Intake(), root)
+    assert grader.run_once() == (A, "GRADED") and len(graded) == 1
+    assert grader.run_once() is None  # C stays graded, nothing else owed
+    with ledger._db() as db:  # the bypass is spent: one grade per stuck task
+        assert db.execute(
+            "SELECT reserved_ns IS NOT NULL FROM exam_requeues WHERE submission_id=?",
+            (A,),
+        ).fetchone() == (1,)
+    assert (
+        _admission(cap, A, now) is None
+    )  # its own row is held now; never a second bypass
+    assert cap.mark_requeued(A) is False
 
 
 def test_a_release_needs_no_task_row(tmp_path):

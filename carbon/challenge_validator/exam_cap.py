@@ -502,6 +502,12 @@ class ExamCap:
             ).fetchone()
             if row is not None and row[0] in ("RESERVED", "COUNTED"):
                 return None
+            if db.execute(
+                "SELECT 1 FROM exam_requeues WHERE submission_id=? AND reserved_ns IS NULL",
+                (submission_id,),
+            ).fetchone():
+                # its one re-queued grade (`mark_requeued`): `reserve` bypasses the limits for it, so admission does too
+                return None
             first = db.execute(
                 "SELECT first_block FROM exam_keys WHERE challenge_id=? AND "
                 "challenge_version=? AND exam_key=?",
