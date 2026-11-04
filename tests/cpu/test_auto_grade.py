@@ -215,6 +215,8 @@ def test_a_failed_grade_is_given_back_on_infrastructure_so_a_resubmit_runs_fresh
         _provider=lambda owner: SimpleNamespace(
             evaluation_pack_digest=ident["exam_key"]
         ),
+        # the give-back reads the adapter's bound pack digest, never the provider (REG-UNAVAILABLE)
+        discovery=SimpleNamespace(evaluation_pack_digest=ident["exam_key"]),
     )
     intake = FakeIntake([A], {A: RetentionUnavailable("evaluation_unavailable")})
     intake.adapter = adapter
