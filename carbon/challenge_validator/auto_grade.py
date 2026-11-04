@@ -118,6 +118,13 @@ class AutoGrader:
                 return submission_id, "FAILED"
             except Exception as failure:  # noqa: BLE001 - typed, no private content
                 self._keep(submission_id, failure)
+                if _candidate_wall_stop(failure) and self._count_wall(submission_id):
+                    # The candidate's own graph at the graded-inference wall: its outcome, COUNTED, never given back
+                    # as infrastructure (Validator 4 Nov 16:52: else a changed recipe probes the hidden inputs free).
+                    self._write(
+                        submission_id, "CANDIDATE_FAILED", code=_WALL_LIMIT_REACHED
+                    )
+                    return submission_id, "CANDIDATE_FAILED"
                 self._fail(submission_id, type(failure).__name__)
                 return submission_id, "FAILED"
             entry = result.get("entry_id") if type(result) is dict else None
@@ -234,6 +241,29 @@ class AutoGrader:
             submission_id=submission_id,
         )
 
+    def _count_wall(self, submission_id):
+        """Re-settle this task's slot COUNTED as the candidate's wall stop (`ExamCap.count_candidate_wall`); False
+        when there is no such slot (the stop came before any reservation), so the failure is given back as before.
+        """
+        from .exam_cap import ExamCap
+
+        adapter = self.intake.adapter
+        owner = adapter.owner(submission_id)
+        # the pack digest the bank grade reserved under (the discovery binds it == the snapshot's manifest digest)
+        exam_key = adapter.discovery.evaluation_pack_digest
+        if owner is None or exam_key is None:
+            return False
+        return (
+            ExamCap(adapter.ledger).count_candidate_wall(
+                hotkey=owner,
+                challenge_id=adapter.challenge_id,
+                challenge_version=adapter.challenge_version,
+                exam_key=exam_key,
+                submission_id=submission_id,
+            )
+            == "COUNTED"
+        )
+
     def failures(self):
         """``(count, last code)`` of FAILED markers, for the operator's status."""
         found = []
@@ -253,6 +283,22 @@ class AutoGrader:
         from .direct_receiver import _open_pool_store
 
         return _open_pool_store(self.pool_store)
+
+
+_WALL_LIMIT_REACHED = "WORKER_WALL_LIMIT_REACHED"
+
+
+def _candidate_wall_stop(error):
+    """The carrier's OBSERVED candidate wall stop (the same predicate as
+    `lean_recipe_retention._is_candidate_wall_hit`), never a host fault."""
+    from carbon.development_session import research_carrier as carrier
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    return (
+        isinstance(error, carrier.MinerProgramFailure)
+        and error.code is WorkerCode.DEADLINE
+        and error.result.get("observation") == carrier.CANDIDATE_WALL_LIMIT
+    )
 
 
 def _code(value):

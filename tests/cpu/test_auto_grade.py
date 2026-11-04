@@ -357,3 +357,131 @@ def test_a_grade_that_could_not_be_computed_keeps_its_own_reason_in_the_marker(
     assert grader.run_once() == (B, "GRADED")
     assert _marker(tmp_path, A)["code"] == "single_call_row_not_in_the_delivered_query"
     assert _marker(tmp_path, B)["code"] is None
+
+
+# ---------------------------------------------------------------- the bank wall stop is the candidate's (interim)
+
+
+def _wall_setup(tmp_path, failure, *, row=("RELEASED", "UNAVAILABLE")):
+    """A grader whose retention raises ``failure`` after the bank grade settled the slot ``row``."""
+    from carbon.challenge_validator.exam_cap import ExamCap
+    from carbon.challenge_validator.ledger import AttemptLedger
+
+    ledger = AttemptLedger(tmp_path / "attempts.sqlite3")
+    cap = ExamCap(ledger)
+    ident = {
+        "hotkey": "5" + "1" * 47,
+        "challenge_id": "electric-motor-magnetics",
+        "challenge_version": "1.3",
+        "exam_key": "sha256:" + "e" * 64,
+        "submission_id": A,
+    }
+    if row is not None:
+        with ledger._db() as db:
+            db.execute(
+                "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, exam_key, kind, "
+                "epoch, submission_id, state, status, reserved_ns) VALUES(?,?,?,?,'GRADED',7,?,?,?,1)",
+                (*ident.values(), *row),
+            )
+
+    class Ledger:
+        _db = staticmethod(ledger._db)
+
+        @staticmethod
+        def submitted_outcomes(contract):
+            return (A,)
+
+    adapter = SimpleNamespace(
+        challenge_id=ident["challenge_id"],
+        challenge_version=ident["challenge_version"],
+        contract_digest="sha256:" + "0" * 64,
+        ledger=Ledger,
+        owner=lambda submission_id: ident["hotkey"],
+        discovery=SimpleNamespace(evaluation_pack_digest=ident["exam_key"]),
+    )
+    intake = FakeIntake([A], {A: failure})
+    intake.adapter = adapter
+    return auto_grade.AutoGrader(intake, tmp_path), cap, ident, ledger
+
+
+def _miner_failure(code, observation):
+    from carbon.development_session import research_carrier as carrier
+
+    return carrier.MinerProgramFailure(
+        {
+            "schema": carrier.MINER_FAILURE_SCHEMA,
+            "failure_code": code,
+            "observation": observation,
+        }
+    )
+
+
+def _row(ledger):
+    with ledger._db() as db:
+        return db.execute(
+            "SELECT state, status FROM exam_graded WHERE submission_id=?", (A,)
+        ).fetchall()
+
+
+def test_a_bank_wall_stop_is_the_candidates_outcome_counted_never_a_free_rerun(
+    tmp_path,
+):
+    """Validator 16:52: the graph's own wall stop on hidden inputs is COUNTED as CANDIDATE_FAILED, never given back
+    as FAILED_INFRA, so neither a resubmit nor a changed recipe probes the hidden inputs uncharged.
+    """
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, cap, ident, ledger = _wall_setup(tmp_path, wall)
+    assert grader.run_once() == (A, "CANDIDATE_FAILED")
+    assert _row(ledger) == [("COUNTED", "WORKER_WALL_LIMIT_REACHED")]
+    assert _marker(tmp_path, A)["state"] == "CANDIDATE_FAILED"
+    assert _marker(tmp_path, A)["code"] == "WORKER_WALL_LIMIT_REACHED"
+    assert cap.holds_slot(**ident)  # the door refuses the same recipe: graded
+    assert not cap.released_on_infra(**ident)  # and no free infrastructure rerun
+
+
+@pytest.mark.parametrize(
+    "code, observation",
+    [("RUNTIME", "WORKER_MEMORY_LIMIT_REACHED"), ("DEADLINE", "OWN_ALLOWANCE_ELAPSED")],
+)
+def test_any_other_program_failure_is_given_back_as_before(tmp_path, code, observation):
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    failure = _miner_failure(getattr(WorkerCode, code).value, observation)
+    grader, cap, ident, ledger = _wall_setup(tmp_path, failure)
+    assert grader.run_once() == (A, "FAILED")
+    assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
+    assert cap.released_on_infra(**ident)
+
+
+def test_a_wall_stop_with_no_settled_slot_is_given_back_as_before(tmp_path):
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, _cap, _ident, ledger = _wall_setup(tmp_path, wall, row=None)
+    assert grader.run_once() == (A, "FAILED")  # stopped before any reservation
+    assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
+
+
+def test_a_true_infrastructure_failure_still_reruns_free(tmp_path):
+    grader, cap, ident, _ledger = _wall_setup(
+        tmp_path, RetentionUnavailable("direct_provider_registration_unavailable")
+    )
+    assert grader.run_once() == (A, "FAILED")
+    assert cap.released_on_infra(**ident)
+
+
+def test_only_an_unavailable_released_row_is_recounted(tmp_path):
+    for n, row in enumerate(
+        (
+            ("RELEASED", "FAILED_INFRA"),
+            ("COUNTED", "SCORED_DEVELOPMENT_CANDIDATE"),
+            ("RESERVED", None),
+        )
+    ):
+        (tmp_path / str(n)).mkdir(mode=0o700)
+        (tmp_path / str(n)).chmod(0o700)
+        _grader, cap, ident, ledger = _wall_setup(tmp_path / str(n), None, row=row)
+        assert cap.count_candidate_wall(**ident) is None
+        assert _row(ledger) == [row]

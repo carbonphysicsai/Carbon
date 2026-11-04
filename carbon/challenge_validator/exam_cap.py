@@ -800,6 +800,37 @@ class ExamCap:
             zip(("row", "hotkey", "epoch", "prior_state", "prior_status"), rows[0])
         )
 
+    def count_candidate_wall(
+        self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
+    ) -> str | None:
+        """The candidate's own wall stop on the graded bank inference is ITS outcome, COUNTED as the inference pair's
+        (Validator 4 Nov 03:17 (1); interim 16:52, orchestration only): the bank grade settled that slot UNAVAILABLE
+        before the stop reached the auto-grader, so this re-settles that one row COUNTED / WORKER_WALL_LIMIT_REACHED.
+        Otherwise a changed recipe could probe the hidden inputs ('did it hit the wall') uncharged, as often as it likes.
+
+        Only a GRADED row in exactly RELEASED / UNAVAILABLE is moved (compare-and-swap); anything else is left as it
+        is. Returns ``"COUNTED"`` when moved, else None (the caller then gives back as before).
+        """
+        values = (hotkey, challenge_id, challenge_version, exam_key, submission_id)
+        if not all(type(value) is str and value for value in values):
+            raise ExamCapRefused("exam_cap_identity_unavailable")
+        with self.ledger._db() as db:
+            changed = db.execute(
+                "UPDATE exam_graded SET state='COUNTED', status='WORKER_WALL_LIMIT_REACHED', "
+                "settled_ns=? WHERE challenge_id=? AND challenge_version=? AND exam_key=? AND "
+                "submission_id=? AND hotkey=? AND kind='GRADED' AND state='RELEASED' AND "
+                "status='UNAVAILABLE'",
+                (
+                    int(self.clock()),
+                    challenge_id,
+                    challenge_version,
+                    exam_key,
+                    submission_id,
+                    hotkey,
+                ),
+            ).rowcount
+        return "COUNTED" if changed == 1 else None
+
     def released_on_infra(
         self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
     ) -> bool:
