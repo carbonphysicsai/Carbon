@@ -99,6 +99,8 @@ def served(monkeypatch):
     monkeypatch.setattr(
         dr, "_is_ancestor", lambda old, new, root=None: (old, new) == (OLD, NEW)
     )
+    # M2: these fixture revisions change no grading path (the git check has its own tests below)
+    monkeypatch.setattr(dr, "_grading_change", lambda old, new, root=None: ())
     return contract
 
 
@@ -118,6 +120,11 @@ def test_a_revision_only_change_on_an_ancestor_is_migrated_and_history_kept(
     (line,) = (tmp_path / "manifest-migrations.jsonl").read_text().splitlines()
     record = json.loads(line)
     assert record["from_revision"] == OLD and record["to_revision"] == NEW
+    assert record["to_manifest_sha256"] == digest(canonical(candidate)).removeprefix(
+        "sha256:"
+    )
+    assert len(record["from_manifest_sha256"]) == 64
+    assert record["from_manifest_sha256"] != record["to_manifest_sha256"]
     assert "5Owner" not in line  # the owner appears only as a digest
 
 
@@ -178,3 +185,141 @@ def test_is_ancestor_reads_git_history(tmp_path):
     assert dr._is_ancestor(first, second, tmp_path)
     assert not dr._is_ancestor(second, first, tmp_path)
     assert not dr._is_ancestor("not-a-sha", second, tmp_path)
+
+
+# ---------------------------------------------------------------- M2: no grading or rebuild change is migrated
+
+
+@pytest.mark.parametrize(
+    "path, grading",
+    [
+        ("carbon/scoring/engine.py", True),
+        ("carbon/reconstruction/worker/operator.py", True),
+        ("carbon/backbone_catalog/served.py", True),
+        ("carbon/challenge_validator/lean_recipe_retention.py", True),
+        ("carbon/challenge_validator/f02_hidden.py", True),
+        ("carbon/challenge_validator/motor_scoring.py", True),
+        ("carbon/challenge_validator/battery_bank.py", True),
+        ("carbon/challenge_kit/version_registry.py", True),
+        ("carbon/evaluation_packs/x.json", True),
+        ("carbon/development_session/research_carrier.py", True),
+        # the A1 / migration move (Validator 13:53: no grading path)
+        ("carbon/challenge_validator/direct_receiver.py", False),
+        ("carbon/challenge_validator/auto_grade.py", False),
+        ("carbon/chain/sdk.py", False),
+        ("carbon/dashboard/web/index.html", False),
+        ("carbon/motor/campaign.py", False),
+        ("tests/cpu/test_scoring.py", False),
+        ("docs/carbon/scoring/x.md", False),
+        ("carbon/scoringx.py", False),
+    ],
+)
+def test_the_grading_paths_follow_the_validators_categories(path, grading):
+    assert dr.grading_path(path) is grading
+
+
+def _repo(tmp_path):
+    from carbon.reconstruction.worker import build_inputs
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-C", str(tmp_path), *args],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+    def commit(files, message):
+        for name, text in files.items():
+            path = tmp_path / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+            git("add", name)
+        git("-c", "user.name=t", "-c", "user.email=t@x", "commit", "-qm", message)
+        return git("rev-parse", "HEAD")
+
+    git("init", "-q")
+    base = commit(
+        {
+            build_inputs.INPUTS_FILE_IN_REPO: "pyproject.toml\n",
+            "pyproject.toml": "[project]\n",
+            "carbon/challenge_validator/direct_receiver.py": "1\n",
+            "carbon/scoring/engine.py": "1\n",
+            "docs/a.md": "1\n",
+        },
+        "base",
+    )
+    return git, commit, base
+
+
+def test_the_grading_change_reads_the_real_diff(tmp_path):
+    dr._GRADING_CHANGES.clear()
+    _git, commit, base = _repo(tmp_path)
+    receiver = commit(
+        {"carbon/challenge_validator/direct_receiver.py": "2\n", "docs/a.md": "2\n"},
+        "r",
+    )
+    assert dr._grading_change(base, receiver, tmp_path) == ()
+    scoring = commit({"carbon/scoring/engine.py": "2\n"}, "s")
+    assert dr._grading_change(receiver, scoring, tmp_path) == (
+        "carbon/scoring/engine.py",
+    )
+    assert dr._grading_change(base, scoring, tmp_path) == ("carbon/scoring/engine.py",)
+    image = commit({"pyproject.toml": "[project]\nname='x'\n"}, "i")
+    assert dr._grading_change(scoring, image, tmp_path) == (dr.BUILD_INPUTS_CHANGED,)
+    assert (
+        dr._grading_change("f" * 40, image, tmp_path) is None
+    )  # git cannot tell: refuse
+
+
+def test_a_rename_out_of_a_grading_path_counts(tmp_path):
+    dr._GRADING_CHANGES.clear()
+    git, _commit, base = _repo(tmp_path)
+    git("mv", "carbon/scoring/engine.py", "carbon/other.py")
+    git("-c", "user.name=t", "-c", "user.email=t@x", "commit", "-qm", "mv")
+    moved = git("rev-parse", "HEAD")
+    assert dr._grading_change(base, moved, tmp_path) == ("carbon/scoring/engine.py",)
+
+
+@pytest.mark.parametrize("touched", [("carbon/scoring/engine.py",), None])
+def test_a_grading_change_or_an_unknown_one_refuses_the_migration(
+    tmp_path, served, monkeypatch, capsys, touched
+):
+    monkeypatch.setattr(dr, "_grading_change", lambda old, new, root=None: touched)
+    frozen, candidate = _manifest(OLD), _manifest(NEW)
+    ledger = Ledger(tmp_path, frozen, [served])
+    assert _migrate(ledger, frozen, candidate) is False
+    assert ledger.manifest() == frozen
+    assert not (tmp_path / "manifest-migrations.jsonl").exists()
+    said = json.loads(capsys.readouterr().err.strip().splitlines()[-1])
+    assert said["event"] == "owner_manifest_migration_refused"
+    assert said["reason"] == (
+        "grading_change_unknown" if touched is None else "grading_path_changed"
+    )
+    assert said["paths"] == ([] if touched is None else list(touched))
+
+
+@pytest.mark.parametrize(
+    "old",
+    [
+        "a19b219606b5",  # Burst Thermal + Motor doors (rs15)
+        "f3badf2400ec",  # Ribbed Bracket + Cooling doors (rs16)
+    ],
+)
+def test_the_validators_own_m2_check_of_the_a1_move_reproduces(old):
+    """Validator 13:53 checked a19b2196/f3badf24..95f661a4 by hand: no grading path. The encoded rule agrees."""
+    root = Path(dr.__file__).resolve().parents[2]
+
+    def full(rev):
+        done = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--verify", "-q", rev + "^{commit}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return done.stdout.strip() if done.returncode == 0 else None
+
+    old_sha, new_sha = full(old), full("95f661a4013373319329dcba66067cd173d09e27")
+    if old_sha is None or new_sha is None:
+        pytest.skip("this checkout lacks the door revisions")
+    assert dr._grading_change(old_sha, new_sha, root) == ()

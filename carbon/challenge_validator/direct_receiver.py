@@ -740,6 +740,96 @@ def _is_ancestor(old, new, root=None):
     return done.returncode == 0
 
 
+#: M2 (Validator 4 Nov 12:55): the grading and rebuild paths, by the Validator's categories. A carried owner's manifest
+#: is migrated only when OLD..NEW changes none of them AND leaves the worker build inputs (`build_inputs.txt`, the
+#: scope of every image identity) byte-identical. A path ending in ``/`` is a directory prefix; the rest are exact.
+GRADING_PATHS = (
+    # reconstruction: how a submitted recipe is rebuilt and run
+    "carbon/reconstruction/",
+    "carbon/execution/",
+    "carbon/development_session/bundle_construction_worker.py",
+    "carbon/development_session/construction_recipe.py",
+    "carbon/development_session/research_carrier.py",
+    "carbon/development_session/research_tasks.py",
+    "carbon/development_session/paired_inference.py",
+    "carbon/development_session/graph_gpu_lane.py",
+    # images
+    "carbon/development_session/research_image.py",
+    # catalog
+    "carbon/backbone_catalog/",
+    "carbon/backbones/",
+    # scoring, and the official grade that applies it
+    "carbon/scoring/",
+    "carbon/measurement/",
+    "carbon/measurement_runtime/",
+    "carbon/challenge_validator/lean_recipe_retention.py",
+    "carbon/challenge_validator/scoring.py",
+    "carbon/challenge_validator/koth_registry.py",
+    # registry
+    "carbon/registry/",
+    "carbon/challenge_registry/",
+    "carbon/challenge_kit/version_registry.py",
+    "carbon/challenge_kit/served_versions.py",
+    "carbon/challenge_kit/version_overlay.py",
+    # pack
+    "carbon/evaluation_packs/",
+    "carbon/challenge_validator/evaluation_pack.py",
+    "carbon/challenge_validator/pack_set_grading.py",
+    "carbon/challenge_validator/pack_set_result.py",
+    "carbon/challenge_validator/sealed_pack_import.py",
+    "carbon/challenge_validator/sealed_exam_common.py",
+    "carbon/challenge_validator/hidden_batch_store.py",
+)
+#: The per-Challenge grading modules (``f02_hidden.py``, ``motor_scoring.py``, ``battery_bank.py`` ...).
+_GRADING_MODULE = re.compile(
+    r"carbon/challenge_validator/[a-z0-9_]+_(hidden|source|scoring|sealed|bank)\.py"
+)
+#: Named in a refusal instead of a path: the worker build inputs moved.
+BUILD_INPUTS_CHANGED = "build_inputs"
+
+
+def grading_path(path):
+    """Whether repo-relative ``path`` is a grading or rebuild path (M2)."""
+    return _GRADING_MODULE.fullmatch(path) is not None or any(
+        path.startswith(prefix) if prefix.endswith("/") else path == prefix
+        for prefix in GRADING_PATHS
+    )
+
+
+_GRADING_CHANGES = {}
+
+
+def _grading_change(old, new, root=None):
+    """M2: the grading or rebuild paths OLD..NEW changes (`BUILD_INPUTS_CHANGED` first when the worker build inputs
+    moved), ``()`` when none, or None when git cannot tell (the migration then refuses). Renames count both sides.
+    """
+    import subprocess
+
+    from carbon.reconstruction.worker import build_inputs
+
+    root = Path(__file__).resolve().parents[2] if root is None else Path(root)
+    key = (old, new, str(root))
+    if key in _GRADING_CHANGES:
+        return _GRADING_CHANGES[key]
+    try:
+        moved = build_inputs.listing(root, revision=old) != build_inputs.listing(
+            root, revision=new
+        )
+        names = subprocess.run(
+            ["git", "-C", str(root), "diff", "--name-only", "-z", "--no-renames"]
+            + [old, new],
+            capture_output=True,
+            timeout=60,
+            check=True,
+        ).stdout.decode("utf-8")
+    except (OSError, ValueError, UnicodeDecodeError, subprocess.SubprocessError):
+        return None
+    touched = [BUILD_INPUTS_CHANGED] if moved else []
+    touched += sorted(path for path in names.split("\0") if path and grading_path(path))
+    _GRADING_CHANGES[key] = tuple(touched)
+    return _GRADING_CHANGES[key]
+
+
 def _retained_contracts(ledger):
     """Every ``contract_digest`` the owner's retained task requests name."""
     found = set()
@@ -791,6 +881,29 @@ def _migrate_owner_manifest(ledger, hotkey, raw, frozen, candidate):
     )
     if not _is_ancestor(old, new):
         return False
+    touched = _grading_change(old, new)
+    if touched != ():
+        # M2: a grading or rebuild change is never carried under an old owner's manifest. Said once per owner, so a
+        # spare proof shows why the start refused.
+        print(
+            json.dumps(
+                {
+                    "event": "owner_manifest_migration_refused",
+                    "reason": (
+                        "grading_change_unknown"
+                        if touched is None
+                        else "grading_path_changed"
+                    ),
+                    "from_revision": old,
+                    "to_revision": new,
+                    "paths": [] if touched is None else list(touched[:20]),
+                },
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+        return False
     challenge = candidate["challenge"]
     try:
         contract = registered(challenge["id"], challenge["version"]).digest
@@ -814,6 +927,11 @@ def _migrate_owner_manifest(ledger, hotkey, raw, frozen, candidate):
         "to_revision": new,
         "from_campaign": frozen["campaign_id"],
         "to_campaign": candidate["campaign_id"],
+        # Validator 13:53 follow-up: the manifests themselves, by digest (the old one stays in the record as history).
+        "from_manifest_sha256": hashlib.sha256(
+            raw if type(raw) is bytes else str(raw).encode("utf-8")
+        ).hexdigest(),
+        "to_manifest_sha256": hashlib.sha256(payload).hexdigest(),
     }
     with open(
         Path(ledger.root) / "manifest-migrations.jsonl", "a", encoding="utf-8"
