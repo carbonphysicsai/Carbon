@@ -130,6 +130,24 @@ def test_restart_uses_original_sealed_pack_after_draft_edit(tmp_path):
         _sealed_pack(receiver_root, selection, challenge)
 
 
+def test_a_fixed_state_refuses_another_pack_selection(tmp_path):
+    """MAINNET_UPDATE_ARCHITECTURE s1: a door state outlives release roots, so a later release configured with
+    another pack must refuse, never silently reload the retained one."""
+    from carbon.challenge_validator.direct_receiver import ReceiverUnavailable
+
+    material, _public, _check, selection = _bound(tmp_path)
+    receiver_root = tmp_path / "receiver"
+    receiver_root.mkdir(mode=0o700)
+    challenge = material["challenge_key"]
+    _sealed_pack(receiver_root, selection, challenge)
+    _sealed_pack(
+        receiver_root, dict(selection), challenge
+    )  # the same selection restarts
+    other = dict(selection, manifest="another-pack.json")
+    with pytest.raises(ReceiverUnavailable, match="evaluation_pack_selection_differs"):
+        _sealed_pack(receiver_root, other, challenge)
+
+
 def test_private_retention_sidecar_binds_owner_campaign_and_task(tmp_path):
     digest = "sha256:" + "a" * 64
     task_id = "rtsk_" + "b" * 64

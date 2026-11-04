@@ -916,3 +916,62 @@ def test_a_receipt_store_path_is_exact_and_owner_only(
     ):
         _prepare(tmp_path, installed_state, official_gpu_receipts=store)
     assert not (tmp_path / "receiver-state").exists()
+
+
+def test_two_releases_prepared_with_one_state_dir_both_serve_it(
+    tmp_path, installed_state, faked
+):
+    # MAINNET_UPDATE_ARCHITECTURE s1: the door's state lives outside every release; prepare writes nothing in it.
+    doors = tmp_path / "doors"
+    doors.mkdir(mode=0o700)
+    state_dir = doors / "f02-state"
+    state_dir.mkdir(mode=0o700)
+    (state_dir / "kept.txt").write_text("miner workspace")
+    roots = []
+    for release in ("release-1", "release-2"):
+        receiver_setup.prepare(
+            installed_state=installed_state,
+            receiver_state=tmp_path / release,
+            challenge=MOTOR,
+            checks=Checks(),
+            hotkey=HOTKEY,
+            state_dir=state_dir,
+        )
+        config = json.loads(
+            (tmp_path / release / "receiver" / "receiver.json").read_bytes()
+        )
+        roots.append(config["root"])
+        assert not (tmp_path / release / "receiver" / "state").exists()
+    assert roots == [str(state_dir), str(state_dir)]
+    assert sorted(p.name for p in state_dir.iterdir()) == ["kept.txt"]
+
+
+def test_without_a_state_dir_the_root_is_inside_the_release_as_before(
+    tmp_path, installed_state, faked
+):
+    _prepare(tmp_path, installed_state)
+    config = json.loads(
+        (tmp_path / "receiver-state" / "receiver" / "receiver.json").read_bytes()
+    )
+    assert config["root"] == str(tmp_path / "receiver-state" / "receiver" / "state")
+
+
+def test_a_bad_state_dir_is_refused_before_anything_is_written(
+    tmp_path, installed_state, faked
+):
+    inside = tmp_path / "receiver-state" / "doors" / "f02"
+    a_file = tmp_path / "a-file"
+    a_file.write_text("x")
+    for bad, code in (
+        (Path("relative/state"), "state_dir_invalid"),
+        (a_file, "state_dir_invalid"),
+        (tmp_path / "no-parent" / "state", "state_dir_parent_missing"),
+        (inside, "state_dir_overlaps_release"),
+        (tmp_path, "state_dir_overlaps_release"),
+        (installed_state / "doors", "state_dir_overlaps_install"),
+    ):
+        if bad is inside:
+            inside.parent.mkdir(parents=True)
+        with pytest.raises(receiver_setup.SetupRefused, match=code):
+            _prepare(tmp_path, installed_state, state_dir=bad)
+        assert not (tmp_path / "receiver-state" / "receiver").exists()

@@ -434,13 +434,20 @@ def _sealed_pack(root, selection, challenge, *, bound=True):
     public_root = Path(selection["public_root"])
     private_root = Path(selection["private_root"])
     pack_root = _private_directory(root / "evaluation-packs")
-    binding_path = root / "receiver-binding.json"
-    if binding_path.is_symlink():
-        raise ValueError("receiver binding link refused")
-    retained = private_json(binding_path) if binding_path.exists() else None
-    if bound and retained is not None and "evaluation_pack_digest" in retained:
-        digest = retained["evaluation_pack_digest"]
-    else:
+    # The door's retained pack (door binding, or an older state's receiver-binding.json): `state_binding`.
+    from carbon.challenge_validator.state_binding import retained_pack_digest
+
+    digest = retained_pack_digest(root) if bound else None
+    if bound:
+        # A fixed door state (MAINNET_UPDATE_ARCHITECTURE s1) outlives every release root: a later release whose
+        # configuration selects another pack would otherwise reload the retained one silently. The bound selection
+        # is pinned once, beside the binding; another selection refuses (a new pack is a new door).
+        pinned = canonical({key: selection[key] for key in sorted(selection)})
+        try:
+            write_once(root / "evaluation-pack-selection.json", pinned)
+        except ValueError:
+            raise ReceiverUnavailable("evaluation_pack_selection_differs") from None
+    if digest is None:
         prepared = prepare_pack(
             Path(selection["root"]),
             selection["manifest"],
@@ -1919,7 +1926,11 @@ def serve(
                 "kind": graph_gpu_device.device_kind,
                 "record": graph_gpu_device.digest,
             }
-        write_once(root / "receiver-binding.json", canonical(immutable))
+        # The door part is write-once for the state's life; each release's whole binding is added beside it, so a
+        # later release (or a rollback to an earlier one) starts on the same state (`state_binding`).
+        from carbon.challenge_validator.state_binding import bind as bind_state
+
+        bind_state(root, immutable)
         window = ReceiverSnapshotWindow(root, network.context, cfg["receiver_hotkey"])
         window.add(snapshot)
         providers = OwnerProviders(

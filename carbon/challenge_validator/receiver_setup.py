@@ -337,8 +337,15 @@ def prepare(
     gpu_construction_images: tuple = (),
     construction_runtimes: bool = True,
     official_gpu_receipts: Path | None = None,
+    state_dir: Path | None = None,
 ) -> dict:
     """Write the runner profile and receiver configuration; return public facts.
+
+    ``state_dir`` (optional): the door's FIXED state directory, outside this release's ``receiver_state``. The
+    configuration's ``root`` names it instead of ``<receiver_state>/receiver/state``, so a later release prepared
+    with the same ``state_dir`` serves the same miners' workspaces, task stores and grade queue with nothing copied
+    (MAINNET_UPDATE_ARCHITECTURE s1). Prepare writes nothing inside it; the receiver binds it at its start
+    (`state_binding`), refusing a state that belongs to another door.
 
     The GPU lane (a dedicated GPU validator host) is opt-in: ``graph_gpu_image_manifest`` and
     ``graph_gpu_ops`` (both or neither) name the registered JAX GPU worker and the ops record the
@@ -420,9 +427,29 @@ def prepare(
     for name, path in (
         ("installed_state", installed_state),
         ("receiver_state", receiver_state),
-    ):
+    ) + ((("state_dir", state_dir),) if state_dir is not None else ()):
         if not path.is_absolute() or path.is_symlink() or path.resolve() != path:
             raise SetupRefused(f"{name}_invalid", "give an exact absolute directory.")
+    if state_dir is not None:
+        if state_dir.exists() and not state_dir.is_dir():
+            raise SetupRefused("state_dir_invalid", "give an exact absolute directory.")
+        if not state_dir.parent.is_dir():
+            raise SetupRefused(
+                "state_dir_parent_missing", "create the door's parent directory first."
+            )
+        for name, other in (
+            ("release", receiver_state),
+            ("install", installed_state),
+        ):
+            if (
+                other == state_dir
+                or other in state_dir.parents
+                or state_dir in other.parents
+            ):
+                raise SetupRefused(
+                    f"state_dir_overlaps_{name}",
+                    "the door's state must live apart from the release and the install.",
+                )
     records = installed.read(installed_state)
     if not records or not {"image_manifest", "analysis_image_manifest"} <= set(records):
         raise SetupRefused(
@@ -551,7 +578,11 @@ def prepare(
         raise SetupRefused("source_differs", "the installed source moved; reinstall.")
     config = {
         "schema": "carbon.construction.direct-receiver-operator.v1",
-        "root": str(receiver_state / "receiver" / "state"),
+        "root": str(
+            state_dir
+            if state_dir is not None
+            else receiver_state / "receiver" / "state"
+        ),
         "runner_profile": str(profile_path),
         "receiver_hotkey": hotkey,
         "host": "127.0.0.1",
@@ -995,9 +1026,10 @@ def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
     except (OSError, ValueError):
         intake = "UNREACHABLE"
     root = Path(config["root"])
-    binding = root / "receiver-binding.json"
     try:
-        exam = json.loads(binding.read_bytes()).get("evaluation_pack_digest")
+        from carbon.challenge_validator.state_binding import retained_pack_digest
+
+        exam = retained_pack_digest(root)
     except (OSError, ValueError):
         exam = None
     catalog = catalog_state(config)
@@ -1037,6 +1069,12 @@ def main(argv=None) -> int:
     prep = sub.add_parser("prepare")
     prep.add_argument("--installed-state", type=Path, required=True)
     prep.add_argument("--receiver-state", type=Path, required=True)
+    prep.add_argument(
+        "--state-dir",
+        type=Path,
+        help="the door's fixed state directory outside --receiver-state (owners/, task stores, grade queue); "
+        "a later release prepared with the same --state-dir serves the same state with nothing copied",
+    )
     prep.add_argument("--hotkey", required=True)
     prep.add_argument("--challenge", nargs=2, metavar=("ID", "VERSION"), required=True)
     prep.add_argument("--pack", type=Path)
@@ -1151,6 +1189,7 @@ def main(argv=None) -> int:
                 gpu_construction_images=tuple(args.gpu_construction_image),
                 construction_runtimes=args.construction_runtimes,
                 official_gpu_receipts=args.official_gpu_receipts,
+                state_dir=args.state_dir,
             )
     except SetupRefused as refusal:
         print(
