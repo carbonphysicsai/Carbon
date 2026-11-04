@@ -219,7 +219,9 @@ def test_the_fit_driver_writes_rows_and_records_for_every_fraction(tmp_path):
         "default_model@frac:0.5",
         "default_model@frac:1.0",
     ]
-    assert {e["code"] for e in fragment["not_run"]} == {"default_subset_build_unavailable"}
+    assert {e["code"] for e in fragment["not_run"]} == {
+        "default_subset_build_unavailable"
+    }
     for entry in fragment["contenders"]:
         assert set(entry) == report.CONTENDER_KEYS
         data = Path(entry["rows_npy"]).read_bytes()
