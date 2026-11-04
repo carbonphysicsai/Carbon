@@ -5,6 +5,9 @@ opens no pack (the QUERY rows are the caller's: the version's exam inputs in ban
     g6_fit.py --subsets DIR --train TRAIN.npz --query QUERY.npy --query-sha256 HEX
               --member NAME --shortcut-role ROLE --shortcut-catalog-id ID --shortcut-fit FIT
               [--recipe RECIPE.json --submission-dir GRAPH_DIR --default-catalog-id ID] --out OUT
+    g6_fit.py ... --default-kind catalog --route motor|cooling|f08|f02 [--version V] --default-catalog-id ID
+              --parent-identity ID.json --cache-root DIR [--gpu-image GPU_ID.json --gpu-cache-root DIR --gpu-receipts DIR]
+              [--work-dir DIR] --out OUT
 
 Per fraction f of the subsets manifest (`g6_subsets.subset_indices` re-derives and checks each subset's rows):
 
@@ -19,6 +22,8 @@ Per fraction f of the subsets manifest (`g6_subsets.subset_indices` re-derives a
   else). The fit is refused unless it reports k rows. At 100 % that is TRAIN itself. A recipe that is not a graph-route-v2 graph
   (a catalog or bundle recipe, a v1 or Battery adapter, a version this commit does not register) or that selects a train
   fraction below 1.0 is NOT_RUN with the reason; no other path is invented.
+- a CATALOG default (``--default-kind catalog``): `g6_catalog.default_rows`, the version's own catalog practice route with the
+  real bundle build, its build child cut to the subset rows (see `g6_catalog`). A failed build is NOT_RUN with its code.
 - the SHORTCUT (``<shortcut-role>@frac:<f>``): `shortcut_panel.fit_predict(member, subset X, subset Y, QUERY, seed=0)`, the
   call `shortcut_panel.py fit --train SUBSET.npz --query QUERY.npy --members <member> --seed 0` makes.
 
@@ -275,16 +280,48 @@ def run(args):
         "g6_shortcut_role_not_a_panel_role",
     )
     _need(args.shortcut_fit in report.FITS, "g6_shortcut_fit")
-    with_default = args.recipe is not None
-    _need(
-        with_default == (args.submission_dir is not None)
-        and with_default == (args.default_catalog_id is not None),
-        "g6_default_needs_recipe_graph_dir_and_catalog_id",
-    )
+    catalog = getattr(args, "default_kind", "graph") == "catalog"
+    if catalog:
+        _need(
+            args.recipe is None
+            and args.submission_dir is None
+            and args.default_catalog_id is not None
+            and args.route is not None
+            and args.parent_identity is not None
+            and args.cache_root is not None,
+            "g6_catalog_default_needs_route_catalog_id_parent_and_cache",
+        )
+        with_default = True
+    else:
+        with_default = args.recipe is not None
+        _need(
+            with_default == (args.submission_dir is not None)
+            and with_default == (args.default_catalog_id is not None),
+            "g6_default_needs_recipe_graph_dir_and_catalog_id",
+        )
     train_raw = Path(args.train).read_bytes()
     manifest, manifest_sha, fractions, files = load_subsets(args.subsets, train_raw)
     query, query_sha = load_query(args.query, args.query_sha256)
-    if with_default:
+    if catalog:
+        from types import SimpleNamespace
+
+        import g6_catalog
+
+        if args.gpu_receipts is not None:
+            from recal_build_entry import install_receipts
+
+            install_receipts(args.gpu_receipts)
+        practice_args = SimpleNamespace(
+            out_dir=str(args.work_dir or (Path(args.out).parent / "g6-catalog-work")),
+            parent_identity=args.parent_identity,
+            cache_root=(
+                args.gpu_cache_root
+                if args.gpu_image and args.gpu_cache_root
+                else args.cache_root
+            ),
+            gpu_image=args.gpu_image,
+        )
+    elif with_default:
         from carbon.level4 import staging
 
         _digest, raw_manifest, graph_files = staging.read_directory(
@@ -298,7 +335,25 @@ def run(args):
         subset = files[fraction]
         label = subsets.frac_label(fraction)
         jobs = []
-        if with_default:
+        if catalog:
+            jobs.append(
+                (
+                    frac_role(report.DEFAULT, fraction),
+                    args.default_catalog_id,
+                    "default",
+                    lambda f=fraction, s=subset: g6_catalog.default_rows(
+                        args.route,
+                        args.default_catalog_id,
+                        practice_args,
+                        manifest,
+                        f,
+                        s,
+                        query,
+                        version=args.version,
+                    ),
+                )
+            )
+        elif with_default:
             jobs.append(
                 (
                     frac_role(report.DEFAULT, fraction),
@@ -403,6 +458,17 @@ def main(argv=None):
     parser.add_argument("--recipe", type=Path)
     parser.add_argument("--submission-dir", type=Path)
     parser.add_argument("--default-catalog-id")
+    parser.add_argument("--default-kind", choices=("graph", "catalog"), default="graph")
+    parser.add_argument("--route", choices=("motor", "cooling", "f08", "f02"))
+    parser.add_argument(
+        "--version", help="the route's version (default: practice_v2_curves')"
+    )
+    parser.add_argument("--parent-identity", type=Path)
+    parser.add_argument("--cache-root", type=Path)
+    parser.add_argument("--gpu-image", type=Path)
+    parser.add_argument("--gpu-cache-root", type=Path)
+    parser.add_argument("--gpu-receipts", type=Path)
+    parser.add_argument("--work-dir", type=Path)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
