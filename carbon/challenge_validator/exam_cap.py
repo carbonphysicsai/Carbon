@@ -678,6 +678,49 @@ class ExamCap:
                 )
         return "RELEASED"
 
+    def release_undelivered(self, submission_id: str) -> dict:
+        """Give back the one COUNTED slot of a graded submission whose result never reached the
+        miner (Validator 4 Nov 03:15 (b) and 05:17 (3)): our infrastructure lost it, so the charge
+        is ours (invariant 7). The only way a COUNTED row is ever given back.
+
+        The CALLER proves the result was not delivered (`infra_requeue.release`: the task's grade
+        marker is FAILED and the miner's Ladder shows nothing from that round); this checks only
+        the slot. Nothing is regraded or rescored: the row stays as history, now
+        RELEASED/FAILED_INFRA (`released_on_infra`), so the same recipe runs again as a fresh
+        task. Returns the row as it was; refuses ``release_no_single_counted_row`` unless exactly
+        one GRADED row of this submission is COUNTED, ``release_row_changed`` on a race.
+        """
+        if type(submission_id) is not str or not submission_id:
+            raise ExamCapRefused("exam_cap_identity_unavailable")
+        with self.ledger._db() as db:
+            rows = db.execute(
+                "SELECT id, hotkey, challenge_id, challenge_version, exam_key, epoch, "
+                "state, status FROM exam_graded WHERE submission_id=? AND "
+                "kind='GRADED' AND state='COUNTED'",
+                (submission_id,),
+            ).fetchall()
+            if len(rows) != 1:
+                raise ExamCapRefused("release_no_single_counted_row")
+            row = rows[0]
+            changed = db.execute(
+                "UPDATE exam_graded SET state='RELEASED', status='FAILED_INFRA', "
+                "settled_ns=? WHERE id=? AND state='COUNTED'",
+                (int(self.clock()), row[0]),
+            ).rowcount
+            if changed != 1:
+                raise ExamCapRefused("release_row_changed")
+        names = (
+            "row",
+            "hotkey",
+            "challenge_id",
+            "challenge_version",
+            "exam_key",
+            "epoch",
+            "prior_state",
+            "prior_status",
+        )
+        return dict(zip(names, row))
+
     def released_on_infra(
         self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
     ) -> bool:
