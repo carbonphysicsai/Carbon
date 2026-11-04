@@ -12,6 +12,7 @@ import asyncio
 import base64
 import hashlib
 import os
+import re
 import socket
 import threading
 import time
@@ -83,8 +84,50 @@ GRADE_STATES = (
 #: deployed v2 client, which pins `GRADE_STATES`, still parses every reply. Advertised as ``exam_feedback_v3``.
 FEEDBACK_REPLY_SCHEMA_V3 = "carbon.private-exam.ladder-feedback-reply.v3"
 GRADE_STATES_V3 = (*GRADE_STATES, "CANDIDATE_FAILED")
+#: v4 = v3 plus the states a v3 reply leaves None (or QUEUED), and WHY a candidate run failed (Validator 4 Nov 03:17 (3)
+#: and 07:18: v2 stays closed, v3 untouched). RECONSTRUCTION_FAILED: the task's own build or inference child failed, nothing
+#: graded. FAILED_INFRA: Carbon's side failed, nothing charged. NOT_GRADED: the grade could not be computed, the slot given
+#: back. Advertised as ``exam_feedback_v4``.
+FEEDBACK_REPLY_SCHEMA_V4 = "carbon.private-exam.ladder-feedback-reply.v4"
+GRADE_STATES_V4 = (
+    *GRADE_STATES_V3,
+    "RECONSTRUCTION_FAILED",
+    "FAILED_INFRA",
+    "NOT_GRADED",
+)
+#: The v4 ``failure`` is built from these closed values ONLY (an allow-list, never a filtered private record): the failing
+#: child, the observation CLASS, the registered limit that applied (its name in the public resource policy and that public
+#: value), and for a reconstruction the public refusal code `construction_status` already shows. Nothing measured: no
+#: seconds, memory, cases, exit codes, output text or digests (the inference child runs on hidden inputs: a side channel).
+FAILURE_CHILDREN = ("build", "inference")
+FAILURE_OBSERVATIONS = (
+    "WORKER_MEMORY_LIMIT_REACHED",
+    "WORKER_WALL_LIMIT_REACHED",
+    "OOM_KILLED",
+    "NONZERO_EXIT",
+    "OWN_ALLOWANCE_ELAPSED",
+)
+FAILURE_LIMITS = (
+    "memory_bytes_max",
+    "build_wall_seconds_max",
+    "inference_wall_seconds_max",
+)
+FAILURE_KEYS = ("child", "observation", "limit", "code")
 PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
 SOURCE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
+
+
+def feedback_reply(fields):
+    """Which per-submission feedback reply a signed request's fields ask for: ``"v2"`` (``submission_id`` alone),
+    ``"v3"`` or ``"v4"`` (``reply`` + ``submission_id``), or None for anything else (refused ``feedback_fields``).
+    """
+    if type(fields.get("submission_id")) is not str:
+        return None
+    if set(fields) == {"submission_id"}:
+        return "v2"
+    if set(fields) == {"reply", "submission_id"} and fields["reply"] in ("v3", "v4"):
+        return fields["reply"]
+    return None
 
 
 class DirectRecipeIntake(BatteryIntake):
@@ -236,6 +279,13 @@ class DirectRecipeIntake(BatteryIntake):
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
+                        "exam_feedback_v4": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V4,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
                     }
                 ),
                 "served_contracts": self.door.served_contracts(),
@@ -364,14 +414,14 @@ class DirectRecipeIntake(BatteryIntake):
         if received.call.tool == FEEDBACK_TOOL:
             if not fields:
                 return self._feedback(received.receipt.hotkey)
-            v3 = set(fields) == {"reply", "submission_id"} and fields["reply"] == "v3"
-            if (
-                not (v3 or set(fields) == {"submission_id"})
-                or type(fields["submission_id"]) is not str
-            ):
+            reply = feedback_reply(fields)
+            if reply is None:
                 return _refused(400, "feedback_fields")
             return self._feedback(
-                received.receipt.hotkey, submission_id=fields["submission_id"], v3=v3
+                received.receipt.hotkey,
+                submission_id=fields["submission_id"],
+                v3=reply == "v3",
+                v4=reply == "v4",
             )
         return _refused(400, "tool")
 
@@ -380,7 +430,7 @@ class DirectRecipeIntake(BatteryIntake):
         with self._write:
             return self.door.evaluate(submitted)
 
-    def _feedback(self, hotkey, *, submission_id=None, v3=False):
+    def _feedback(self, hotkey, *, submission_id=None, v3=False, v4=False):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
         (the signed hotkey is the key). With ``submission_id`` (v2), also that
@@ -393,8 +443,15 @@ class DirectRecipeIntake(BatteryIntake):
                 return _refused(503, "grade_state_unavailable")
             if self.adapter.owner(submission_id) != hotkey:
                 return _refused(404, "feedback_submission_unknown")
-            grade_state = self._grade_state(hotkey, submission_id)
-            if not v3 and grade_state not in GRADE_STATES:
+            failure = None
+            if v4:
+                try:
+                    grade_state, failure = self._grade_state_v4(hotkey, submission_id)
+                except (Unavailable, LookupError, ValueError, OSError):
+                    return _refused(503, "grade_state_unavailable")
+            else:
+                grade_state = self._grade_state(hotkey, submission_id)
+            if not (v3 or v4) and grade_state not in GRADE_STATES:
                 grade_state = (
                     None  # CANDIDATE_FAILED is v3's; a v2 reply keeps its closed set
                 )
@@ -423,11 +480,18 @@ class DirectRecipeIntake(BatteryIntake):
                     if submission_id is None
                     else {
                         "schema": (
-                            FEEDBACK_REPLY_SCHEMA_V3 if v3 else FEEDBACK_REPLY_SCHEMA_V2
+                            FEEDBACK_REPLY_SCHEMA_V4
+                            if v4
+                            else (
+                                FEEDBACK_REPLY_SCHEMA_V3
+                                if v3
+                                else FEEDBACK_REPLY_SCHEMA_V2
+                            )
                         ),
                         "submission": {
                             "submission_id": submission_id,
                             "grade_state": grade_state,
+                            **({"failure": failure} if v4 else {}),
                         },
                     }
                 ),
@@ -470,6 +534,75 @@ class DirectRecipeIntake(BatteryIntake):
             )
             else "ROUND_LIMIT_REACHED"
         )
+
+    def _grade_state_v4(self, hotkey, submission_id):
+        """``(grade_state, failure)`` of the caller's own submission for a v4 reply: one of `GRADE_STATES_V4` (never
+        None), and the allow-listed `failure` of a failed candidate run (`failure_v4`) or None.
+
+        No marker: the task itself says RECONSTRUCTION_FAILED (its build or its own inference child failed) or
+        FAILED_INFRA, else QUEUED (v3 says QUEUED for both). A FAILED marker is Carbon's failure (FAILED_INFRA); a
+        CANDIDATE_FAILED one is the inference child at the graded wall. A grade whose reason v3 leaves None is GRADED
+        while its slot is held (a counted outcome), else NOT_GRADED (given back, nothing charged).
+        """
+        marker = self.grade_marker(submission_id)
+        if marker is None:
+            projected = self.adapter.outcome(submission_id)
+            state = projected.get("state")
+            if state == "RECONSTRUCTION_FAILED":
+                child, observation = self.adapter.failed_child(submission_id)
+                code = (projected.get("failure") or {}).get("code")
+                return state, self.failure_v4(child, observation, code)
+            return ("FAILED_INFRA" if state == "FAILED_INFRA" else "QUEUED"), None
+        if marker.get("state") == "CANDIDATE_FAILED":
+            return "CANDIDATE_FAILED", self.failure_v4("inference", marker.get("code"))
+        if marker.get("state") == "FAILED":
+            return "FAILED_INFRA", None
+        state = self._grade_state(hotkey, submission_id)
+        if state is not None:
+            return state, None
+        from .exam_cap import ExamCap
+
+        held = ExamCap(self.adapter.ledger).holds_slot(
+            hotkey=hotkey,
+            challenge_id=self.challenge.challenge_id,
+            challenge_version=self.challenge.version,
+            exam_key=self.adapter.discovery.evaluation_pack_snapshot.manifest_digest,
+            submission_id=submission_id,
+        )
+        return ("GRADED" if held else "NOT_GRADED"), None
+
+    def failure_v4(self, child, observation, code=None):
+        """The v4 ``failure``: exactly `FAILURE_KEYS`, each from a closed value set (anything else becomes None). The
+        limit is named only for a memory or wall observation, with the value the PUBLIC resource policy registers.
+        """
+        child = child if child in FAILURE_CHILDREN else None
+        observation = observation if observation in FAILURE_OBSERVATIONS else None
+        name = None
+        if observation in ("WORKER_MEMORY_LIMIT_REACHED", "OOM_KILLED"):
+            name = "memory_bytes_max"
+        elif observation == "WORKER_WALL_LIMIT_REACHED" and child is not None:
+            name = child + "_wall_seconds_max"
+        limit = None
+        if name in FAILURE_LIMITS:
+            try:
+                value = self.adapter.discovery._material[
+                    "construction_limits_document"
+                ]["reconstruction_resource_policy"][name]
+            except (AttributeError, KeyError, TypeError):
+                value = None
+            if type(value) is int and value > 0:
+                limit = {"name": name, "value": value}
+        public_code = (
+            code
+            if type(code) is str and re.fullmatch(r"[a-z0-9_]{1,64}", code)
+            else None
+        )
+        return {
+            "child": child,
+            "observation": observation,
+            "limit": limit,
+            "code": public_code,
+        }
 
     def _stage_source(self, received):
         """Stage graph bytes in the exact receiver-owned construction workspace.

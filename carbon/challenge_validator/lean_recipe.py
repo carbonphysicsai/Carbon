@@ -584,6 +584,37 @@ class LeanRecipeAdapter(ChallengeAdapter):
         ).task
         return self._project(task, provider)
 
+    def failed_child(self, submission_id):
+        """``(phase, observation)`` of this task's child that failed on the candidate's own account (FAILED_MINER,
+        `research_carrier._settle_miner_failure`): phase ``build`` or ``inference``, and the result's closed
+        observation; ``(None, None)`` when none did. Read from the owner's ledger; no measured value leaves here.
+        """
+        from carbon.development_session.bundle_construction_worker import (
+            direct_child_identity,
+        )
+
+        owner = self.owner(submission_id)
+        if owner is None:
+            return None, None
+        provider = self._provider(owner)
+        with provider.ledger.db() as db:
+            for phase in ("build", "inference"):
+                row = db.execute(
+                    "SELECT state, result FROM operations WHERE id=? AND owner=?",
+                    (direct_child_identity(submission_id, phase), owner),
+                ).fetchone()
+                if row is None or row[0] != "FAILED_MINER":
+                    continue
+                try:
+                    result = json.loads(row[1])
+                except (TypeError, ValueError):
+                    result = None
+                observation = (
+                    result.get("observation") if type(result) is dict else None
+                )
+                return phase, observation if type(observation) is str else None
+        return None, None
+
     def _active_owner(self, submission_id):
         try:
             return self.owner(submission_id)

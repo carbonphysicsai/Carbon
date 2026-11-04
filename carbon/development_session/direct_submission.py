@@ -8,6 +8,7 @@ reconstructed result is construction evidence, never a scored verdict.
 from __future__ import annotations
 
 import json
+import re
 import time
 import urllib.error
 import urllib.request
@@ -426,6 +427,66 @@ FEEDBACK_V3_FACTS = {
     "reply_schema": FEEDBACK_REPLY_SCHEMA_V3,
 }
 GRADE_STATES_V3 = (*GRADE_STATES, "CANDIDATE_FAILED")
+#: v4: v3's states plus RECONSTRUCTION_FAILED, FAILED_INFRA and NOT_GRADED, and the allow-listed ``failure`` of a
+#: failed candidate run (`direct_intake.FEEDBACK_REPLY_SCHEMA_V4`); asked for only where advertised.
+FEEDBACK_REPLY_SCHEMA_V4 = "carbon.private-exam.ladder-feedback-reply.v4"
+FEEDBACK_V4_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V4,
+}
+GRADE_STATES_V4 = (
+    *GRADE_STATES_V3,
+    "RECONSTRUCTION_FAILED",
+    "FAILED_INFRA",
+    "NOT_GRADED",
+)
+FAILURE_CHILDREN = ("build", "inference")
+FAILURE_OBSERVATIONS = (
+    "WORKER_MEMORY_LIMIT_REACHED",
+    "WORKER_WALL_LIMIT_REACHED",
+    "OOM_KILLED",
+    "NONZERO_EXIT",
+    "OWN_ALLOWANCE_ELAPSED",
+)
+FAILURE_LIMITS = (
+    "memory_bytes_max",
+    "build_wall_seconds_max",
+    "inference_wall_seconds_max",
+)
+FAILURE_KEYS = ("child", "observation", "limit", "code")
+
+
+def _failure_v4(value):
+    """Whether a v4 reply's ``failure`` is None or exactly its allow-listed shape (closed values only)."""
+    if value is None:
+        return True
+    if type(value) is not dict or set(value) != set(FAILURE_KEYS):
+        return False
+    limit = value["limit"]
+    return (
+        (value["child"] is None or value["child"] in FAILURE_CHILDREN)
+        and (
+            value["observation"] is None or value["observation"] in FAILURE_OBSERVATIONS
+        )
+        and (
+            limit is None
+            or (
+                type(limit) is dict
+                and set(limit) == {"name", "value"}
+                and limit["name"] in FAILURE_LIMITS
+                and type(limit["value"]) is int
+                and limit["value"] > 0
+            )
+        )
+        and (
+            value["code"] is None
+            or (
+                type(value["code"]) is str
+                and re.fullmatch(r"[a-z0-9_]{1,64}", value["code"]) is not None
+            )
+        )
+    )
 
 
 def read_exam_feedback(
@@ -445,7 +506,9 @@ def read_exam_feedback(
     before a result improved it and the latest None before any graded result.
     With ``submission_id`` and a receiver that advertises the v2 read, also
     ``"submission": {"submission_id", "grade_state"}`` (one of `GRADE_STATES`, or
-    None for none of them); a receiver without it answers the v1 read.
+    None for none of them); a receiver without it answers the v1 read. Where v4 is
+    advertised it is asked for: the grade state is then never None (`GRADE_STATES_V4`)
+    and ``"failure"`` says why a candidate run failed (`_failure_v4`, closed values).
 
     Only the builder's allow-listed fields are accepted back: a reply of any
     other shape is refused, never trimmed."""
@@ -456,11 +519,19 @@ def read_exam_feedback(
     facts = read(url)
     if facts.get("exam_feedback") != FEEDBACK_FACTS:
         raise DirectIntakeRefusal("exam_feedback_unavailable")
-    v3 = (
+    v4 = (
+        submission_id is not None and facts.get("exam_feedback_v4") == FEEDBACK_V4_FACTS
+    )
+    v3 = not v4 and (
         submission_id is not None and facts.get("exam_feedback_v3") == FEEDBACK_V3_FACTS
     )
-    v2 = v3 or (
-        submission_id is not None and facts.get("exam_feedback_v2") == FEEDBACK_V2_FACTS
+    v2 = (
+        v4
+        or v3
+        or (
+            submission_id is not None
+            and facts.get("exam_feedback_v2") == FEEDBACK_V2_FACTS
+        )
     )
     body = _body(
         facts,
@@ -470,8 +541,8 @@ def read_exam_feedback(
         context=context,
         tool=FEEDBACK_TOOL,
         fields=(
-            {"reply": "v3", "submission_id": submission_id}
-            if v3
+            {"reply": "v4" if v4 else "v3", "submission_id": submission_id}
+            if v4 or v3
             else ({"submission_id": submission_id} if v2 else {})
         ),
         request=f"exam-feedback-{time.time_ns()}",
@@ -488,9 +559,13 @@ def read_exam_feedback(
         set(answer) != keys
         or answer["schema"]
         != (
-            FEEDBACK_REPLY_SCHEMA_V3
-            if v3
-            else (FEEDBACK_REPLY_SCHEMA_V2 if v2 else FEEDBACK_REPLY_SCHEMA)
+            FEEDBACK_REPLY_SCHEMA_V4
+            if v4
+            else (
+                FEEDBACK_REPLY_SCHEMA_V3
+                if v3
+                else (FEEDBACK_REPLY_SCHEMA_V2 if v2 else FEEDBACK_REPLY_SCHEMA)
+            )
         )
         or answer["challenge"]
         != {"id": challenge["id"], "version": challenge["version"]}
@@ -498,13 +573,16 @@ def read_exam_feedback(
         raise DirectIntakeRefusal("exam_feedback_reply_invalid")
     if v2 and (
         type(answer["submission"]) is not dict
-        or set(answer["submission"]) != {"submission_id", "grade_state"}
+        or set(answer["submission"])
+        != ({"submission_id", "grade_state"} | ({"failure"} if v4 else set()))
         or answer["submission"]["submission_id"] != submission_id
         or (
             answer["submission"]["grade_state"] is not None
             and answer["submission"]["grade_state"]
-            not in (GRADE_STATES_V3 if v3 else GRADE_STATES)
+            not in (GRADE_STATES_V4 if v4 else GRADE_STATES_V3 if v3 else GRADE_STATES)
         )
+        or (v4 and answer["submission"]["grade_state"] is None)
+        or (v4 and not _failure_v4(answer["submission"]["failure"]))
     ):
         raise DirectIntakeRefusal("exam_feedback_reply_invalid")
     try:
