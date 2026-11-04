@@ -320,7 +320,7 @@ def run(args):
             not_run.append(
                 {
                     "role": frac_role(report.DEFAULT, fraction),
-                    "code": "no_default_recipe_given",
+                    "code": "default_subset_build_unavailable",
                 }
             )
         jobs.append(
