@@ -139,13 +139,16 @@ def test_a_non_ancestor_revision_is_refused(tmp_path, served):
 
 def test_any_other_change_is_refused(tmp_path, served):
     frozen = _manifest(OLD)
-    for candidate in (
+    changed = (
         _manifest(NEW, image="sha256:" + "2" * 64),  # another image
         {**_manifest(NEW), "owner": "5Other"},
         {**_manifest(NEW), "challenge": {"id": "f02", "version": "2.6"}},
         {**_manifest(NEW), "admission": {"uid": 4}},
-    ):
-        ledger = Ledger(tmp_path / str(id(candidate)), frozen, [served])
+    )
+    for n, candidate in enumerate(changed):
+        root = tmp_path / str(n)
+        root.mkdir()
+        ledger = Ledger(root, frozen, [served])
         assert _migrate(ledger, frozen, candidate) is False
         assert ledger.manifest() == frozen
 
