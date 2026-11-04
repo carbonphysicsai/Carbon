@@ -485,9 +485,10 @@ async def evaluate_frozen(spec, prepared, epoch, strategy, *, record):
     (`direct_source_submission.stage_graph`, from this owner's workspace):
     the receiver rebuilds a graph only from a staged manifest, so without it
     the submit refuses ``construction_recipe_graph_workspace_missing`` (the
-    F08 1.7 miner report, Launchpad 3 Nov 15:53). Staging identical bytes
-    again is a no-op; a different graph already held refuses with its code.
-    A catalog recipe stages nothing."""
+    F08 1.7 miner report, Launchpad 3 Nov 15:53). `stage_graph_source` is the
+    one staging step of every campaign: identical bytes are a no-op, a
+    different graph replaces the held one by compare-and-swap. A catalog
+    recipe stages nothing."""
     import asyncio
 
     from carbon.development_session.construction_recipe import ConstructionRecipe
@@ -513,22 +514,21 @@ async def evaluate_frozen(spec, prepared, epoch, strategy, *, record):
     contract = registered(key.challenge_id, key.version)
     connection = prepared.sdk.connection
     try:
-        if recipe.to_dict()["source"]["kind"] == "graph":
-            from carbon.development_session.direct_source_submission import (
-                stage_graph,
-            )
+        from carbon.development_session.direct_source_submission import (
+            stage_graph_source,
+        )
 
-            await asyncio.to_thread(
-                stage_graph,
-                target["intake_url"],
-                connection.miner_key,
-                ledger=ledger,
-                owner=owner,
-                recipe=recipe,
-                contract_digest=contract.digest,
-                receiver=target["receiver_hotkey"],
-                context=connection.chain_context,
-            )
+        await asyncio.to_thread(
+            stage_graph_source,
+            target["intake_url"],
+            connection.miner_key,
+            ledger=ledger,
+            owner=owner,
+            recipe=recipe,
+            contract_digest=contract.digest,
+            receiver=target["receiver_hotkey"],
+            context=connection.chain_context,
+        )
         result = await asyncio.to_thread(
             submit_and_wait,
             target["intake_url"],

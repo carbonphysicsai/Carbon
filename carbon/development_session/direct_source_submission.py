@@ -522,3 +522,148 @@ def stage_bundle(
         "complete": True,
         "official_eligible": False,
     }
+
+
+#: This owner's last staged graph per receiver door and Challenge version (`stage_graph_source`), in the campaign ledger.
+STAGED_GRAPHS = "direct-graph-stages.json"
+STAGED_GRAPHS_SCHEMA = "carbon.construction.staged-graphs.v1"
+#: The most earlier graph manifests `stage_graph_source` offers as the held one before it refuses.
+REPLACE_CANDIDATES = 8
+_NOT_FOUND = "construction_source_reference_not_found"
+_CONFLICT = "construction_source_idempotency_conflict"
+
+
+def _door_key(url, receiver, recipe, owner):
+    challenge = recipe.to_dict()["challenge"]
+    return "|".join(
+        (owner, receiver, url, challenge["id"] + "/" + challenge["version"])
+    )
+
+
+def _read_staged(ledger):
+    path = Path(ledger.root) / STAGED_GRAPHS
+    try:
+        value = json.loads(path.read_bytes())
+    except FileNotFoundError:
+        return {}
+    except ValueError:
+        raise DirectIntakeRefusal("construction_staged_graphs_record_invalid") from None
+    if type(value) is not dict or value.get("schema") != STAGED_GRAPHS_SCHEMA:
+        raise DirectIntakeRefusal("construction_staged_graphs_record_invalid")
+    doors = value.get("doors")
+    if type(doors) is not dict or not all(
+        type(k) is str and type(v) is str for k, v in doors.items()
+    ):
+        raise DirectIntakeRefusal("construction_staged_graphs_record_invalid")
+    return doors
+
+
+def _write_staged(ledger, doors):
+    path = Path(ledger.root) / STAGED_GRAPHS
+    body = json.dumps(
+        {"schema": STAGED_GRAPHS_SCHEMA, "doors": doors},
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_bytes(body)
+    temporary.replace(path)
+
+
+def _earlier_graph_manifests(ledger, recipe):
+    """The manifest digests of this campaign's earlier frozen GRAPH recipes for the same Challenge version, newest first.
+
+    The receiver's held workspace manifest is the Level 4 submission manifest itself, so its digest is that recipe's
+    ``submission_digest`` (`staging.check`); no bytes are needed to name it."""
+    challenge = recipe.to_dict()["challenge"]
+    current = recipe.to_dict()["source"]["submission_digest"]
+    found = []
+    for folder in Path(ledger.root).glob("epoch-*"):
+        try:
+            epoch = int(folder.name.removeprefix("epoch-"))
+            record = json.loads((folder / "selected-recipe.json").read_bytes())
+            earlier = ConstructionRecipe.from_dict(record["strategy"]).to_dict()
+        except (ValueError, KeyError, TypeError, OSError):
+            continue
+        source = earlier["source"]
+        if source["kind"] != "graph" or earlier["challenge"] != challenge:
+            continue
+        if source["submission_digest"] != current:
+            found.append((epoch, source["submission_digest"]))
+    seen, ordered = set(), []
+    for _epoch, digest in sorted(found, reverse=True):
+        if digest not in seen:
+            seen.add(digest)
+            ordered.append(digest)
+    return ordered[:REPLACE_CANDIDATES]
+
+
+def stage_graph_source(
+    url,
+    signer,
+    *,
+    ledger,
+    owner,
+    recipe,
+    contract_digest,
+    receiver,
+    context,
+    stage=None,
+):
+    """Stage a GRAPH recipe's documents on the receiver before its submit; a catalog recipe stages nothing (None).
+
+    The one staging step every campaign's ``evaluate_frozen`` takes (Lead 3 Nov: the 947cf36c fix covered only the
+    direct campaign; Motor and Cooling submitted unstaged). Identical bytes are a no-op on the receiver. A DIFFERENT graph
+    replaces the held one by compare-and-swap (`stage_graph`'s ``expected_manifest_digest``): the expectation is this
+    owner's last staged manifest at this door (recorded in the campaign ledger, `STAGED_GRAPHS`); when nothing is
+    recorded (a manifest staged before this record existed) the campaign's earlier frozen graph recipes are offered,
+    newest first; when the receiver holds no manifest (a re-prepared door) the graph is staged afresh. Any other
+    refusal, or a held manifest none of those names, refuses with the receiver's code: nothing is overwritten blind.
+    """
+    if type(recipe) is not ConstructionRecipe:
+        recipe = ConstructionRecipe.from_dict(recipe)
+    if recipe.to_dict()["source"]["kind"] != "graph":
+        return None
+    stage = stage_graph if stage is None else stage
+    doors = _read_staged(ledger)
+    key = _door_key(url, receiver, recipe, owner)
+    recorded = doors.get(key)
+    expectations = [recorded]
+    for digest in _earlier_graph_manifests(ledger, recipe):
+        if digest not in expectations:
+            expectations.append(digest)
+    if None not in expectations:
+        expectations.append(None)
+    last = None
+    tried = set()
+    queue = list(expectations)
+    while queue:
+        expected = queue.pop(0)
+        if expected in tried:
+            continue
+        tried.add(expected)
+        try:
+            result = stage(
+                url,
+                signer,
+                ledger=ledger,
+                owner=owner,
+                recipe=recipe,
+                contract_digest=contract_digest,
+                receiver=receiver,
+                context=context,
+                expected_manifest_digest=expected,
+            )
+        except DirectIntakeRefusal as refused:
+            last = refused
+            if refused.code == _NOT_FOUND and None not in tried:
+                queue.insert(0, None)  # the door holds no manifest: stage afresh
+                continue
+            if refused.code == _CONFLICT:
+                continue  # it holds another manifest: try the next one we may have staged
+            raise
+        doors = _read_staged(ledger)
+        doors[key] = result["manifest_digest"]
+        _write_staged(ledger, doors)
+        return result
+    raise last

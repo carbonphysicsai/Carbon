@@ -534,7 +534,8 @@ def staged(monkeypatch):
     monkeypatch.setattr(
         direct_source_submission,
         "stage_graph",
-        lambda url, key, **kw: calls.append((url, kw)),
+        lambda url, key, **kw: calls.append((url, kw))
+        or {"manifest_digest": kw["recipe"].to_dict()["source"]["submission_digest"]},
     )
     return calls
 
@@ -1181,6 +1182,7 @@ def test_a_graph_recipe_is_staged_before_it_is_submitted(
     def stage(url, key, **kw):
         staged.append((url, kw))
         order.append("stage")
+        return {"manifest_digest": GRAPH_DIGEST}
 
     monkeypatch.setattr(direct_source_submission, "stage_graph", stage)
     recipe = graph_recipe(spec, GRAPH_DIGEST, version=version)

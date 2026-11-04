@@ -485,7 +485,9 @@ def _direct_target(args):
 async def evaluate_frozen(prepared, epoch, strategy):
     """1.0: the scoring adapter is deliberately absent (fail closed). The
     catalog version submits the frozen recipe to the signed construction
-    receiver, which rebuilds and judges it, and stores its feedback."""
+    receiver, which rebuilds and judges it, and stores its feedback. A GRAPH
+    recipe's documents are staged first (`stage_graph_source`, as every
+    campaign does): the receiver rebuilds a graph only from a staged manifest."""
     import asyncio
 
     from carbon.development_session.research_campaign import OperationRefused
@@ -513,6 +515,21 @@ async def evaluate_frozen(prepared, epoch, strategy):
     contract = registered(CHALLENGE.challenge_id, _key().version)
     connection = prepared.sdk.connection
     try:
+        from carbon.development_session.direct_source_submission import (
+            stage_graph_source,
+        )
+
+        await asyncio.to_thread(
+            stage_graph_source,
+            target["intake_url"],
+            connection.miner_key,
+            ledger=ledger,
+            owner=owner,
+            recipe=recipe,
+            contract_digest=contract.digest,
+            receiver=target["receiver_hotkey"],
+            context=connection.chain_context,
+        )
         result = await asyncio.to_thread(
             submit_and_wait,
             target["intake_url"],
