@@ -197,11 +197,11 @@ def test_a_hung_read_times_out_drops_the_connection_and_the_next_read_reconnects
 ):
     # Validator 4 Nov 07:18: a half-open socket must not block every later read.
     real = sdk._observe
-    hung = []
+    stalled = []
 
     async def hung_once(bt, substrate, client, context):
-        if not hung:
-            hung.append(True)
+        if not stalled:
+            stalled.append(True)
             await asyncio.Event().wait()  # a read that never answers
         return await real(bt, substrate, client, context)
 
