@@ -1,44 +1,53 @@
-"""One-shot operator tools for the REG-UNAVAILABLE incident (TL 4 Nov 03:14-03:44; Validator 03:15 and 05:17).
+"""One-shot operator tools for the REG-UNAVAILABLE incident (TL 4 Nov 03:14-03:44; Validator 03:15, 05:17, 15:38, 15:43,
+15:53).
 
 A registration snapshot that went stale under chain 429s failed tasks when the receiver opened the miner's provider
 (`direct_receiver.OwnerProviders._open`, ``direct_provider_registration_unavailable``), BEFORE anything was retained,
 reserved or graded. `auto_grade._give_back` then raised as well (fixed in A1), so each task kept a FAILED marker
 (``...:unrecorded``) and no exam row. Those tasks are Carbon's infrastructure failures: never graded, never charged.
 
-    python -m carbon.challenge_validator.infra_requeue list    --root RECEIVER_ROOT [--out IDS.txt]
-    python -m carbon.challenge_validator.infra_requeue requeue --root RECEIVER_ROOT --ids IDS.txt [--apply]
-    python -m carbon.challenge_validator.infra_requeue release --root RECEIVER_ROOT --id rtsk_... [--apply]
+    python -m carbon.challenge_validator.infra_requeue list    --root RECEIVER_STATE [--out IDS.txt]
+    python -m carbon.challenge_validator.infra_requeue requeue --root RECEIVER_STATE --ids IDS.txt [--apply]
+    python -m carbon.challenge_validator.infra_requeue release --root RECEIVER_STATE --id rtsk_... [--apply]
 
-``list`` (read-only) regenerates the task list from the door itself, never from a frozen file: every FAILED task
-that ``requeue`` would accept, with the time it arrived (split at ``--split``, default 3 Nov 00:00Z), the counts of
-the FAILED tasks it would refuse by reason, and, per accepted task, the round/day limit its regrade would meet now
-(``limit_preview``: the slot rule `ExamCap.reserve` still applies; Validator ruling pending).
+``list`` (read-only) regenerates the task list from the door itself, BY CRITERION, never from a frozen file: every
+FAILED task ``requeue`` would accept (with its arrival time, grouped at ``--split``, 3 Nov 00:00Z by default, for
+reading only: the criterion has no date), the FAILED tasks it refuses counted by reason, and the cost: the count and
+the estimated grade hours (count x this door's own mean wall per counted grade, with its sample size). Grades run one
+at a time per door, interleaved with live submissions in task-id order.
 
-``requeue``: each listed task whose marker is FAILED, whose private evidence (``auto-grade/failures/<id>.txt``) names
-``direct_provider_registration_unavailable``, that arrived at this door and has no exam row other than an
-uncharged, not-given-back one, goes back to the receiver's own auto-grader ONCE: its marker and failure evidence move
-to ``auto-grade/requeued/<id>.attempt-1.{marker.json,failure.txt}`` (kept, never deleted), a line goes to
-``requeued/requeues.jsonl``, and the next tick grades it as attempt 2 over the same retained bytes and task identity.
-`ExamCap.reserve` reuses the task's own row if it has one, so no new slot. REFUSED per task: any other marker
-(GRADED, CANDIDATE_FAILED: a graded task is NEVER re-queued), any other cause, a second requeue, a COUNTED or RESERVED
-row, and a row already given back as FAILED_INFRA (the door then runs the miner's resubmit as a fresh task, so a
-requeue could grade the same recipe twice).
+``requeue``: a listed task goes back to the receiver's own auto-grader ONCE when ALL hold:
+- its marker is FAILED and its private evidence (``auto-grade/failures/<id>.txt``) names the registration cause;
+- it arrived at this door, under the contract this door serves (``contract_not_served``);
+- its exam row, if any, is neither COUNTED nor RESERVED (a graded task is NEVER re-queued) nor already given back as
+  FAILED_INFRA (``given_back_resubmit_runs_fresh``: the door runs the miner's resubmit fresh);
+- its task row is in its owner's store and that owner is bound to the pack this door serves now (``task_row_missing``,
+  ``pack_not_served``: pinned evaluation; otherwise the grader could not resolve it and would skip it silently);
+- no other task of the same owner with the SAME recipe is GRADED or CANDIDATE_FAILED here (``same_recipe_already_graded``:
+  a resubmit already graded, never a double grade).
+Then `ExamCap.mark_requeued` records it (its one grade neither spends nor is refused by the miner's current round or day,
+and stays accounted to its ORIGINAL arrival epoch), its marker and failure evidence move to
+``auto-grade/requeued/<id>.attempt-1.{marker.json,failure.txt}`` (kept), a line goes to ``requeued/requeues.jsonl``, and
+the next tick grades it as attempt 2 over the same retained bytes and task identity, reusing its own row (no new slot).
 
 ``release``: one task whose COUNTED grade never reached the miner (its marker is FAILED, so its feedback shows no grade,
 and the miner's Ladder shows nothing from that round) is given back through the receiver's own
-`ExamCap.release_undelivered`: RELEASED / FAILED_INFRA, the prior state written to ``requeued/releases.jsonl`` with its
-reason; no regrade, no rescore. REFUSED when the grade was delivered (a GRADED or CANDIDATE_FAILED marker, or a Ladder
-document of that round), when the task has no marker yet, or when the row is not COUNTED.
+`ExamCap.release_undelivered`, keyed on the exam ledger row (it needs no task row): RELEASED / FAILED_INFRA, the prior
+state written to ``requeued/releases.jsonl`` with its reason; no regrade, no rescore. REFUSED when the grade was
+delivered (a GRADED or CANDIDATE_FAILED marker, or a Ladder document of that round), when the task has no marker yet,
+or when the row is not COUNTED. Whether the result was filed in the pool/KOTH store is read by the TL before a release.
 
 Without ``--apply`` nothing changes. Each prints one JSON document: task ids, codes and counts only (no hotkey, path or
-score). Runs with the door up: sqlite writes go through the ledger's own transactions, and the marker move is the
-single commit point the grader observes.
+score). Runs with the door up: sqlite writes go through the ledger's own transactions, the owner stores are opened
+read-only, and the marker move is the single commit point the grader observes.
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -49,10 +58,10 @@ from pathlib import Path
 
 CAUSE = "direct_provider_registration_unavailable"
 SCHEMA = "carbon.challenge-validator.infra-requeue.v2"
-#: The first stuck task the TL found (1 Nov 14:24Z) predates this; the Validator's 43 are the ones since 3 Nov 00:00Z.
 DEFAULT_SPLIT = "2026-11-03T00:00:00Z"
 _TASK = re.compile(r"rtsk_[0-9a-f]{64}")
 _ATTEMPT = 1  # the attempt that failed; a requeue grades attempt 2, once
+_DELIVERED = ("GRADED", "CANDIDATE_FAILED")
 
 
 def _paths(root, task):
@@ -101,11 +110,75 @@ def _ledger(root):
     return ledger, ExamCap(ledger)
 
 
+def _readonly(path):
+    return sqlite3.connect("file:" + str(path) + "?mode=ro", uri=True)
+
+
+class _Door:
+    """What this door serves now (``receiver-binding.json``, written by the running receiver) and read-only access to
+    its owners' stores. Anything unreadable leaves ``served`` None, and every requeue then refuses.
+    """
+
+    def __init__(self, root):
+        self.root = Path(root)
+        self.served = None
+        self._stores = {}
+        try:
+            binding = json.loads((self.root / "receiver-binding.json").read_text())
+            from carbon.reconstruction.served_recipe_contract import registered
+
+            challenge = binding["challenge"]
+            self.served = {
+                "pack": binding["evaluation_pack_digest"],
+                "contract": registered(challenge["id"], challenge["version"]).digest,
+            }
+        except (OSError, ValueError, KeyError, TypeError, LookupError):
+            self.served = None
+
+    def owner_dir(self, hotkey):
+        return self.root / "owners" / hashlib.sha256(hotkey.encode()).hexdigest()
+
+    def store(self, hotkey):
+        """``(owner pack, {task id: canonical recipe bytes})`` of one owner's store, or None when unreadable."""
+        if hotkey in self._stores:
+            return self._stores[hotkey]
+        from carbon.research import DirectStartTaskRequestV3, load_canonical
+
+        found = None
+        try:
+            directory = self.owner_dir(hotkey)
+            with contextlib.closing(
+                _readonly(directory / "ledger" / "campaign.sqlite3")
+            ) as db:
+                manifest = db.execute(
+                    "SELECT manifest FROM campaign WHERE id=1"
+                ).fetchone()
+            pack = json.loads(manifest[0])["receiver_binding"].get(
+                "evaluation_pack_digest"
+            )
+            with contextlib.closing(
+                _readonly(directory / "tasks" / "direct-tasks.sqlite3")
+            ) as db:
+                rows = db.execute("SELECT id, request FROM direct_tasks").fetchall()
+            recipes = {}
+            for identity, raw in rows:
+                request = load_canonical(raw, DirectStartTaskRequestV3)
+                # the recipe document as canonical JSON: the same recipe is the same bytes
+                recipes[identity] = json.dumps(
+                    request.recipe, sort_keys=True, separators=(",", ":")
+                ).encode("utf-8")
+            found = (pack, recipes)
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error):
+            found = None
+        self._stores[hotkey] = found
+        return found
+
+
 def _arrival(db, task):
-    """``(at_ns, block, hotkey)`` of the task's first signed OUTCOME at this door, or None."""
+    """``(at_ns, block, hotkey, contract)`` of the task's first signed OUTCOME at this door, or None."""
     row = db.execute(
-        "SELECT at_ns, receipt, hotkey FROM attempts WHERE kind='OUTCOME' AND submission_id=? "
-        "ORDER BY seq LIMIT 1",
+        "SELECT at_ns, receipt, hotkey, contract_digest FROM attempts WHERE kind='OUTCOME' AND "
+        "submission_id=? ORDER BY seq LIMIT 1",
         (task,),
     ).fetchone()
     if row is None:
@@ -114,7 +187,7 @@ def _arrival(db, task):
         block = json.loads(row[1]).get("block")
     except (TypeError, ValueError, AttributeError):
         block = None
-    return row[0], (block if type(block) is int else None), row[2]
+    return row[0], (block if type(block) is int else None), row[2], row[3]
 
 
 def _rows(db, task):
@@ -125,7 +198,7 @@ def _rows(db, task):
     ).fetchall()
 
 
-def _requeue_refusal(root, db, task):
+def _requeue_refusal(root, db, door, task):
     """None when ``requeue`` accepts the task, else its refusal code (read-only)."""
     if type(task) is not str or not _TASK.fullmatch(task):
         return "not_a_task_id"
@@ -139,35 +212,42 @@ def _requeue_refusal(root, db, task):
         return "marker_" + state.lower()
     if not _cause(paths):
         return "cause_not_registration_unavailable"
-    if _arrival(db, task) is None:
+    arrival = _arrival(db, task)
+    if arrival is None:
         return "not_submitted_at_this_door"
     for _id, row_state, status, *_rest in _rows(db, task):
         if row_state in ("COUNTED", "RESERVED"):
             return "exam_row_counted_or_reserved"
         if status == "FAILED_INFRA":
             return "given_back_resubmit_runs_fresh"
+    if door.served is None:
+        return "door_binding_unavailable"
+    hotkey, contract = arrival[2], arrival[3]
+    if contract != door.served["contract"]:
+        return "contract_not_served"
+    store = door.store(hotkey) if type(hotkey) is str else None
+    if store is None or task not in store[1]:
+        return "task_row_missing"
+    pack, recipes = store
+    if pack != door.served["pack"]:
+        return "pack_not_served"
+    for other, recipe in recipes.items():
+        if (
+            other != task
+            and recipe == recipes[task]
+            and _marker(_paths(root, other)["marker"]) in _DELIVERED
+        ):
+            return "same_recipe_already_graded"
     return None
 
 
-def _limit_preview(cap, db, task):
-    """The limit refusal `ExamCap.reserve` would give this task's regrade now, None, or ``unknown``."""
-    try:
-        challenges = [
-            row[0]
-            for row in db.execute(
-                "SELECT DISTINCT challenge_id FROM exam_graded"
-            ).fetchall()
-        ]
-        arrival = _arrival(db, task)
-        if len(challenges) != 1 or arrival is None or arrival[1] is None:
-            return "unknown"
-        from .exam_cap import epoch_of
-
-        return cap._limit_refusal(
-            db, arrival[2], challenges[0], task, epoch_of(arrival[1]), cap.cadence()
-        )
-    except Exception:  # noqa: BLE001 - a preview never blocks the list
-        return "unknown"
+def _grade_wall(db):
+    """``(mean wall seconds, samples)`` of this door's counted grades (reserve to settle), or ``(None, 0)``."""
+    row = db.execute(
+        "SELECT AVG(settled_ns - reserved_ns), COUNT(*) FROM exam_graded WHERE kind='GRADED' "
+        "AND state='COUNTED' AND settled_ns IS NOT NULL AND settled_ns > reserved_ns"
+    ).fetchone()
+    return (None, 0) if not row[1] else (row[0] / 1e9, row[1])
 
 
 def _iso(at_ns):
@@ -179,16 +259,16 @@ def _iso(at_ns):
 
 
 def scan(root, *, split=DEFAULT_SPLIT):
-    """Read-only: the tasks ``requeue`` accepts now, grouped at ``split``, and the refusal counts."""
-    edge = datetime.datetime.fromisoformat(split)
-    edge_ns = int(edge.timestamp()) * 1_000_000_000
+    """Read-only: the tasks ``requeue`` accepts now, the refusal counts, and the cost (see the module text)."""
+    edge_ns = int(datetime.datetime.fromisoformat(split).timestamp()) * 1_000_000_000
     markers = Path(root) / "auto-grade" / "markers"
     failed = sorted(
         path.stem
         for path in markers.glob("rtsk_*.json")
         if _TASK.fullmatch(path.stem) and _marker(path) == "FAILED"
     )
-    ledger, cap = _ledger(root)
+    ledger, _cap = _ledger(root)
+    door = _Door(root)
     out = {
         "schema": SCHEMA,
         "action": "list",
@@ -196,12 +276,11 @@ def scan(root, *, split=DEFAULT_SPLIT):
         "failed_markers": len(failed),
         "eligible": {"before_split": [], "since_split": []},
         "arrived": {},
-        "limit_preview": {},
         "refused_counts": {},
     }
     with ledger._db() as db:
         for task in failed:
-            code = _requeue_refusal(root, db, task)
+            code = _requeue_refusal(root, db, door, task)
             if code is not None:
                 out["refused_counts"][code] = out["refused_counts"].get(code, 0) + 1
                 continue
@@ -209,10 +288,18 @@ def scan(root, *, split=DEFAULT_SPLIT):
             group = "since_split" if at_ns >= edge_ns else "before_split"
             out["eligible"][group].append(task)
             out["arrived"][task] = _iso(at_ns)
-            preview = _limit_preview(cap, db, task)
-            if preview is not None:
-                out["limit_preview"][task] = preview
+        wall, samples = _grade_wall(db)
+    count = sum(len(v) for v in out["eligible"].values())
     out["eligible_counts"] = {k: len(v) for k, v in out["eligible"].items()}
+    out["cost"] = {
+        "requeue_count": count,
+        "mean_grade_wall_seconds": None if wall is None else round(wall, 1),
+        "grade_wall_samples": samples,
+        "estimated_grade_hours": (
+            None if wall is None else round(count * wall / 3600, 2)
+        ),
+        "order": "one grade at a time per door, interleaved with live submissions in task-id order",
+    }
     return out
 
 
@@ -225,16 +312,19 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
         "requeued": [],
         "refused": {},
     }
-    ledger, _cap = _ledger(root)
+    ledger, cap = _ledger(root)
+    door = _Door(root)
     for task in tasks:
         with ledger._db() as db:
-            code = _requeue_refusal(root, db, task)
+            code = _requeue_refusal(root, db, door, task)
         if code is not None:
             out["refused"][task] = code
             continue
         if apply:
             paths = _paths(root, task)
             paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
+            # Its one bypass of the round/day limits is on record before the grader can see the task.
+            cap.mark_requeued(task, attempt=_ATTEMPT + 1)
             if paths["failure"].exists():
                 # Evidence first, so attempt 2 can write its own (create-only) failure file.
                 os.replace(paths["failure"], paths["kept_failure"])
@@ -343,7 +433,7 @@ def main(argv=None):
     listing.add_argument("--root", type=Path, required=True)
     listing.add_argument("--split", default=DEFAULT_SPLIT)
     listing.add_argument(
-        "--out", type=Path, help="write the since-split ids, one per line"
+        "--out", type=Path, help="write every accepted id, one per line"
     )
     one = sub.add_parser("requeue")
     one.add_argument("--root", type=Path, required=True)
@@ -358,7 +448,11 @@ def main(argv=None):
         out = scan(args.root, split=args.split)
         if args.out is not None:
             args.out.write_text(
-                "".join(task + "\n" for task in out["eligible"]["since_split"])
+                "".join(
+                    task + "\n"
+                    for group in ("before_split", "since_split")
+                    for task in out["eligible"][group]
+                )
             )
     elif args.cmd == "requeue":
         tasks = [

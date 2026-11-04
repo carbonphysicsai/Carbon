@@ -131,6 +131,12 @@ CREATE TABLE IF NOT EXISTS exam_graded(
 CREATE INDEX IF NOT EXISTS exam_graded_miner
     ON exam_graded(hotkey, challenge_id, challenge_version, exam_key);
 CREATE INDEX IF NOT EXISTS exam_graded_epoch ON exam_graded(epoch, challenge_id);
+CREATE TABLE IF NOT EXISTS exam_requeues(
+    submission_id TEXT PRIMARY KEY,
+    attempt INTEGER NOT NULL,
+    queued_ns INTEGER NOT NULL,
+    reserved_ns INTEGER
+);
 CREATE TABLE IF NOT EXISTS exam_keys(
     challenge_id TEXT NOT NULL,
     challenge_version TEXT NOT NULL,
@@ -444,7 +450,11 @@ class ExamCap:
     def _limit_refusal(self, db, hotkey, challenge_id, submission_id, epoch, cadence):
         """The daily-allowance or epoch refusal code for a graded submission, or None (read-only)."""
         low, high = self._window(epoch)
-        held = "kind='GRADED' AND state IN ('RESERVED','COUNTED') AND submission_id<>?"
+        # A re-queued stuck task (`mark_requeued`) never counts against anyone's round or day (Validator 4 Nov 15:53).
+        held = (
+            "kind='GRADED' AND state IN ('RESERVED','COUNTED') AND submission_id<>? "
+            "AND submission_id NOT IN (SELECT submission_id FROM exam_requeues)"
+        )
         allowed = self._allowance(db, hotkey, epoch, cadence)["allowance"]
         used = db.execute(
             "SELECT COUNT(*) FROM exam_graded WHERE hotkey=? AND "
@@ -551,6 +561,9 @@ class ExamCap:
                 ).fetchone()[0]
                 if block - first_block >= MAX_EXAM_AGE_BLOCKS:
                     refusal = "exam_key_expired"
+                elif self._take_requeue(db, submission_id):
+                    # Its one re-queued grade: the round/day limits neither refuse it nor are spent by it.
+                    refusal = None
                 else:
                     refusal = self._limit_refusal(
                         db, hotkey, challenge_id, submission_id, epoch, cadence
@@ -590,6 +603,37 @@ class ExamCap:
                 flush=True,
             )
         raise ExamCapRefused(refusal)
+
+    def mark_requeued(self, submission_id: str, *, attempt: int = 2) -> bool:
+        """Record that a stuck, never-charged task was handed back to the grader ONCE (`infra_requeue`, Validator
+        4 Nov 15:53 (3)): its next reservation bypasses the round and day limits a single time, its row stays
+        accounted to its ORIGINAL arrival epoch (`reserve` takes the signed receipt's block), and it never counts
+        against any later submission's limits. True when newly recorded, False when it already was.
+        """
+        if type(submission_id) is not str or not submission_id:
+            raise ExamCapRefused("exam_cap_identity_unavailable")
+        if type(attempt) is not int or attempt < 2:
+            raise ValueError("a re-queued grade is attempt 2 or later")
+        with self.ledger._db() as db:
+            return (
+                db.execute(
+                    "INSERT OR IGNORE INTO exam_requeues(submission_id, attempt, queued_ns) "
+                    "VALUES(?,?,?)",
+                    (submission_id, attempt, int(self.clock())),
+                ).rowcount
+                == 1
+            )
+
+    def _take_requeue(self, db, submission_id) -> bool:
+        """Consume this submission's one limit bypass, if it has an unused one (inside `reserve`'s transaction)."""
+        return (
+            db.execute(
+                "UPDATE exam_requeues SET reserved_ns=? WHERE submission_id=? AND "
+                "reserved_ns IS NULL",
+                (int(self.clock()), submission_id),
+            ).rowcount
+            == 1
+        )
 
     def settle(self, reservation: int, status: str, *, lane_seconds=None) -> str:
         """Keep the slot for a graded outcome, give it back otherwise; closed vocabulary.

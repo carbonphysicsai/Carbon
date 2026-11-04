@@ -12,8 +12,10 @@ Claims:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import sqlite3
 from types import SimpleNamespace
 
 import pytest
@@ -24,6 +26,20 @@ EXAM = "sha256:" + "e" * 64
 #: 3 Nov 2026 00:00Z, the default split, in ns.
 SPLIT_NS = 1_793_664_000 * 10**9
 CAUSE = "direct_provider_registration_unavailable"
+CONTRACT = "sha256:" + "c" * 64
+PACK = "sha256:" + "a" * 64
+
+
+@pytest.fixture(autouse=True)
+def served(monkeypatch):
+    """The door's served contract for its Challenge (the code registry, patched to the fixture's)."""
+    from carbon.reconstruction import served_recipe_contract
+
+    monkeypatch.setattr(
+        served_recipe_contract,
+        "registered",
+        lambda cid, version: SimpleNamespace(digest=CONTRACT),
+    )
 
 
 def _root(tmp_path):
@@ -35,15 +51,83 @@ def _root(tmp_path):
     os.chmod(root, 0o700)
     ledger = AttemptLedger(root / "attempts.sqlite3")
     ExamCap(ledger)  # the exam tables
+    (root / "receiver-binding.json").write_text(
+        json.dumps(
+            {
+                "challenge": {"id": "f02", "version": "2.5"},
+                "evaluation_pack_digest": PACK,
+            }
+        )
+    )
     return root, ledger
 
 
-def _arrived(ledger, task, *, at_ns=SPLIT_NS + 10**9, block=7_200):
+def _recipe(name, n=0):
+    """A valid graph ConstructionRecipe document; ``name`` picks its graph, ``n`` its configuration."""
+    digest = "sha256:" + hashlib.sha256(str(name).encode()).hexdigest()
+    zero = "sha256:" + "0" * 64
+    return {
+        "schema": "carbon.construction-recipe.v1",
+        "challenge": {
+            "id": "f02",
+            "version": "2.5",
+            "train_digest": zero,
+            "interface_digest": zero,
+            "construction_limits_digest": zero,
+        },
+        "source": {"kind": "graph", "submission_digest": digest},
+        "procedure": {
+            "entrypoint": None,
+            "configuration": {"n": n},
+            "train_use": {"cases": "all"},
+            "initial_state": None,
+        },
+        "output": {"format": "carbon.numeric-graph.v1", "interface_digest": zero},
+    }
+
+
+def _store(root, task, recipe, *, pack=PACK, hotkey=HOTKEY):
+    """The task's row in its owner's store (a real canonical request), the owner bound to ``pack``."""
+    from carbon.registry.model import ChallengeKey
+    from carbon.research import DirectStartTaskRequestV3, canonical_bytes
+
+    directory = root / "owners" / hashlib.sha256(hotkey.encode()).hexdigest()
+    (directory / "ledger").mkdir(parents=True, exist_ok=True)
+    (directory / "tasks").mkdir(parents=True, exist_ok=True)
+    campaign = sqlite3.connect(directory / "ledger" / "campaign.sqlite3")
+    campaign.execute(
+        "CREATE TABLE IF NOT EXISTS campaign(id INTEGER PRIMARY KEY, manifest TEXT)"
+    )
+    campaign.execute(
+        "INSERT OR REPLACE INTO campaign VALUES(1, ?)",
+        (json.dumps({"receiver_binding": {"evaluation_pack_digest": pack}}),),
+    )
+    campaign.commit()
+    campaign.close()
+    digest = "sha256:" + "0" * 64
+    request = DirectStartTaskRequestV3(
+        ChallengeKey("f02", "2.5"),
+        "lean-recipe-" + task[5:],
+        recipe,
+        *([digest] * 8),
+    )
+    tasks = sqlite3.connect(directory / "tasks" / "direct-tasks.sqlite3")
+    tasks.execute(
+        "CREATE TABLE IF NOT EXISTS direct_tasks(id TEXT PRIMARY KEY, request BLOB)"
+    )
+    tasks.execute(
+        "INSERT INTO direct_tasks VALUES(?,?)", (task, canonical_bytes(request))
+    )
+    tasks.commit()
+    tasks.close()
+
+
+def _arrived(ledger, task, *, at_ns=SPLIT_NS + 10**9, block=7_200, contract=CONTRACT):
     with ledger._db() as db:
         db.execute(
             "INSERT INTO attempts(at_ns, kind, hotkey, contract_digest, receipt, submission_sha256, "
-            "submission_id) VALUES(?, 'OUTCOME', ?, 'sha256:c', ?, 'sha256:s', ?)",
-            (at_ns, HOTKEY, json.dumps({"block": block}), task),
+            "submission_id) VALUES(?, 'OUTCOME', ?, ?, ?, 'sha256:s', ?)",
+            (at_ns, HOTKEY, contract, json.dumps({"block": block}), task),
         )
 
 
@@ -63,7 +147,19 @@ def _rows(ledger, task):
         ).fetchall()
 
 
-def _failed(root, ledger, task, *, cause=CAUSE, state="FAILED", arrived=True, **when):
+def _failed(
+    root,
+    ledger,
+    task,
+    *,
+    cause=CAUSE,
+    state="FAILED",
+    arrived=True,
+    stored=True,
+    recipe=None,
+    pack=PACK,
+    **when,
+):
     from carbon.challenge_validator.auto_grade import SCHEMA
 
     markers = root / "auto-grade" / "markers"
@@ -84,6 +180,8 @@ def _failed(root, ledger, task, *, cause=CAUSE, state="FAILED", arrived=True, **
     (failures / (task + ".txt")).write_text(f"Traceback ...\nUnavailable: {cause}\n")
     if arrived:
         _arrived(ledger, task, **when)
+    if stored:
+        _store(root, task, recipe or _recipe(task), pack=pack)
 
 
 def _kept(root, task, suffix):
@@ -120,19 +218,25 @@ def test_list_regenerates_the_stuck_list_from_the_door_split_at_3_nov(tmp_path):
     assert not (root / "auto-grade" / "requeued").exists()
 
 
-def test_list_previews_the_round_limit_a_regrade_would_meet(tmp_path):
-    """`ExamCap.reserve` still applies the slot rule to a re-queued task (TE audit risk; Validator ruling pending):
-    the list says which tasks would meet it, before anything is applied."""
+def test_list_prints_the_cost_from_this_doors_own_grades(tmp_path):
     from carbon.challenge_validator import infra_requeue
 
     root, ledger = _root(tmp_path)
-    _failed(root, ledger, A, block=20 * 360)  # epoch 20
-    _failed(root, ledger, B, block=40 * 360)  # epoch 40
-    _row(
-        ledger, C, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE", epoch=20
-    )  # the miner's later grade, same round
-    out = infra_requeue.scan(root)
-    assert out["limit_preview"] == {A: "epoch_limit_reached"}
+    _failed(root, ledger, A)
+    _failed(root, ledger, B)
+    assert infra_requeue.scan(root)["cost"]["estimated_grade_hours"] is None
+    with ledger._db() as db:
+        for n, wall_s in enumerate((1200, 2400)):
+            db.execute(
+                "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, exam_key, kind, "
+                "epoch, submission_id, state, status, reserved_ns, settled_ns) VALUES(?,'f02','2.5',?,"
+                "'GRADED',1,?,'COUNTED','SCORED_DEVELOPMENT_CANDIDATE',?,?)",
+                (HOTKEY, EXAM, "rtsk_" + str(n) * 64, 10**9, 10**9 + wall_s * 10**9),
+            )
+    cost = infra_requeue.scan(root)["cost"]
+    assert cost["requeue_count"] == 2 and cost["grade_wall_samples"] == 2
+    assert cost["mean_grade_wall_seconds"] == 1800.0
+    assert cost["estimated_grade_hours"] == 1.0
 
 
 # ---------------------------------------------------------------- requeue
@@ -421,3 +525,152 @@ def test_the_command_lists_requeues_and_releases(tmp_path, capsys):
         infra_requeue.main(["release", "--root", str(root), "--id", B, "--apply"]) == 0
     )
     assert json.loads(capsys.readouterr().out)["after"]["status"] == "FAILED_INFRA"
+
+
+# ---------------------------------------------------------------- Validator 15:53 must-fixes
+
+
+def test_a_task_off_the_served_contract_or_pack_or_without_its_row_is_refused(tmp_path):
+    """Pinned evaluation: only a task the door can still resolve, under what it serves now, is re-queued (else the
+    grader would skip it silently as owned_task_unavailable)."""
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A, contract="sha256:" + "9" * 64)
+    _failed(
+        root, ledger, B, stored=False
+    )  # no row in the owner's store (the rs15-only 38)
+    out = infra_requeue.requeue(root, [A, B], apply=True)
+    assert out["refused"] == {A: "contract_not_served", B: "task_row_missing"}
+    other = tmp_path / "other"
+    other.mkdir()
+    root2, ledger2 = _root(other)
+    _failed(
+        root2, ledger2, C, pack="sha256:" + "b" * 64
+    )  # owner bound to an older pack
+    assert infra_requeue.requeue(root2, [C], apply=True)["refused"] == {
+        C: "pack_not_served"
+    }
+    (root2 / "receiver-binding.json").unlink()
+    assert infra_requeue.requeue(root2, [C])["refused"] == {
+        C: "door_binding_unavailable"
+    }
+
+
+@pytest.mark.parametrize("state", ["GRADED", "CANDIDATE_FAILED"])
+def test_a_resubmit_of_the_same_recipe_already_graded_is_not_graded_twice(
+    tmp_path, state
+):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    recipe = _recipe("same")
+    _failed(root, ledger, A, recipe=recipe)  # stuck
+    _failed(root, ledger, B, recipe=recipe, state=state)  # the same recipe, graded
+    _failed(root, ledger, C, recipe=_recipe("same", n=2))  # another recipe
+    out = infra_requeue.requeue(root, [A, C], apply=True)
+    assert out["refused"] == {A: "same_recipe_already_graded"}
+    assert out["requeued"] == [C]
+
+
+def _cap(ledger):
+    from carbon.challenge_validator.exam_cap import ExamCap
+
+    return ExamCap(
+        ledger,
+        cadence={
+            "capacity_gpu_lane_hours_per_day": 1.0,  # allowance a = 1 a day
+            "rebuild_gpu_lane_hours": {"f02": 1.0},
+            "lanes": 1,
+            "measurement_digest": "sha256:" + "a" * 64,
+            "class_record_digest": "sha256:" + "b" * 64,
+        },
+    )
+
+
+def _reserve(cap, task, block):
+    return cap.reserve(
+        hotkey=HOTKEY,
+        challenge_id="f02",
+        challenge_version="2.5",
+        exam_key=EXAM,
+        submission_id=task,
+        block=block,
+    )
+
+
+def _admission(cap, task, block):
+    refusal = cap.admission_refusal(
+        hotkey=HOTKEY,
+        challenge_id="f02",
+        challenge_version="2.5",
+        exam_key=EXAM,
+        submission_id=task,
+        block=block,
+    )
+    return None if refusal is None else refusal["code"]
+
+
+def test_a_requeued_grade_neither_spends_nor_is_refused_by_the_miners_round_or_day(
+    tmp_path,
+):
+    """Validator 15:53 (3): a miner at its cap still gets the re-queued grade (accounted to the task's ORIGINAL
+    epoch), its current round and day are unchanged, and the bypass is one-shot."""
+    from carbon.challenge_validator import infra_requeue
+    from carbon.challenge_validator.exam_cap import ExamCapRefused, epoch_of
+
+    root, ledger = _root(tmp_path)
+    original, now = 20 * 360, 25 * 360  # the stuck task's round, and today's (same day)
+    _failed(root, ledger, A, block=original)
+    cap = _cap(ledger)
+    # the miner's own later grade in the stuck task's round: at its cap for that round and the day
+    cap.settle(_reserve(cap, B, original + 1), "SCORED_DEVELOPMENT_CANDIDATE")
+    with pytest.raises(ExamCapRefused):
+        _reserve(cap, A, original)  # without the requeue the slot rules refuse it
+    before = _admission(cap, C, now)
+    assert before == "exam_daily_allowance_reached"
+    assert infra_requeue.requeue(root, [A], apply=True)["requeued"] == [A]
+    row = _reserve(cap, A, original)  # the grader's reserve for attempt 2
+    cap.settle(row, "SCORED_DEVELOPMENT_CANDIDATE")
+    with ledger._db() as db:
+        assert db.execute(
+            "SELECT epoch, state FROM exam_graded WHERE submission_id=?", (A,)
+        ).fetchone() == (epoch_of(original), "COUNTED")
+        assert db.execute(
+            "SELECT reserved_ns IS NOT NULL FROM exam_requeues WHERE submission_id=?",
+            (A,),
+        ).fetchone() == (1,)
+    assert _admission(cap, C, now) == before  # today: exactly as before
+    assert (
+        _reserve(cap, A, original) == row
+    )  # a COUNTED row is reused, never re-bypassed
+    assert cap.mark_requeued(A) is False  # never twice
+
+
+def test_a_requeued_grade_inside_todays_window_uses_none_of_todays_allowance(tmp_path):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    original, now = 20 * 360, 21 * 360
+    _failed(root, ledger, A, block=original)
+    cap = _cap(ledger)
+    assert _admission(cap, C, now) is None
+    infra_requeue.requeue(root, [A], apply=True)
+    cap.settle(_reserve(cap, A, original), "SCORED_DEVELOPMENT_CANDIDATE")
+    assert _admission(cap, C, now) is None  # a = 1 a day, still free
+
+
+def test_a_release_needs_no_task_row(tmp_path):
+    """Validator 15:43: rtsk_61967e83 has NO direct task row; the release keys on the exam ledger row and reads only
+    the marker and the ledger."""
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(
+        root, ledger, A, arrived=False, stored=False
+    )  # no OUTCOME row, no owner store
+    assert not (root / "owners").exists()
+    _row(ledger, A, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")
+    out = infra_requeue.release(root, A, apply=True)
+    assert "refused" not in out
+    assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]
