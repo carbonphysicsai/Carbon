@@ -233,14 +233,58 @@ def default_rows(
     """
     import numpy as np
     import practice_v2_curves as curves
-    from recal_build_entry import verify_official
+    from recal_build_entry import OfficialMismatch, verify_official
 
     from carbon.development_session import bundle_construction_worker as worker
     from carbon.development_session.construction_recipe import RecipeRefused
 
     _need(route in ROUTES, "g6_catalog_route")
-    if version is not None:
-        curves.TARGETS = {**curves.TARGETS, route: (curves.TARGETS[route][0], version)}
+    # The version is the caller's, always: practice_v2_curves' defaults are older versions (self-review finding 4).
+    _need(type(version) is str and bool(version), "g6_catalog_version_required")
+    targets = curves.TARGETS
+    curves.TARGETS = {**targets, route: (targets[route][0], version)}
+    try:
+        return _default_rows(
+            route,
+            catalog_id,
+            practice_args,
+            manifest,
+            fraction,
+            subset_raw,
+            query,
+            curves=curves,
+            factory=factory,
+            run=run,
+            official=official,
+            np=np,
+            worker=worker,
+            RecipeRefused=RecipeRefused,
+            OfficialMismatch=OfficialMismatch,
+            verify_official=verify_official,
+        )
+    finally:
+        curves.TARGETS = targets
+
+
+def _default_rows(
+    route,
+    catalog_id,
+    practice_args,
+    manifest,
+    fraction,
+    subset_raw,
+    query,
+    *,
+    curves,
+    factory,
+    run,
+    official,
+    np,
+    worker,
+    RecipeRefused,
+    OfficialMismatch,
+    verify_official,
+):
     factory = factory or curves.practice_for
     if run is None:
         from carbon.development_session.research_carrier import _run as run
@@ -251,6 +295,7 @@ def default_rows(
         practice.gpu_image = load_image_identity(Path(practice_args.gpu_image))
     catalog_recipe = _recipe_for(route, catalog_id)
     official_check = None
+    declared = ()
     if official:
         from carbon.backbone_catalog.served import expand_official
         from carbon.development_session.gpu_practice import gpu_runtimes
@@ -295,7 +340,8 @@ def default_rows(
         practice(identity, catalog_recipe)
     except G6Done:
         pass
-    except subsets.SubsetsRefused:
+    except (subsets.SubsetsRefused, OfficialMismatch):
+        # the tool's own refusal, or a GPU build that is not the official bundle: never a NOT_RUN learner row
         raise
     except RecipeRefused as error:
         return None, {
@@ -332,6 +378,8 @@ def default_rows(
         "train_cases": record["train_cases"],
         "indices_sha256": record["indices_sha256"],
         "accelerator": record["accelerator"],
+        # True only for a GPU-twin build checked against expand_official; a CPU curve is recorded as such (Validator 15:51 (2))
+        "official_bundle_verified": bool(official and declared),
         "execution": {
             "carrier": (
                 "research_carrier._run" if run.__name__ == "_run" else run.__name__
@@ -342,4 +390,6 @@ def default_rows(
             "subset_block_sha256": _sha(SUBSET_BLOCK.encode()),
         },
         "build_receipt": result.build.receipt,
+        # the receipt's train_digest is the FULL TRAIN the child decoded before the cut; never read it as the trained rows
+        "receipt_train_digest_is_pre_cut": True,
     }

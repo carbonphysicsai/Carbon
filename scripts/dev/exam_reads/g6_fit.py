@@ -287,9 +287,10 @@ def run(args):
             and args.submission_dir is None
             and args.default_catalog_id is not None
             and args.route is not None
+            and args.version is not None
             and args.parent_identity is not None
             and args.cache_root is not None,
-            "g6_catalog_default_needs_route_catalog_id_parent_and_cache",
+            "g6_catalog_default_needs_route_version_catalog_id_parent_and_cache",
         )
         with_default = True
     else:
@@ -312,7 +313,7 @@ def run(args):
 
             install_receipts(args.gpu_receipts)
         practice_args = SimpleNamespace(
-            out_dir=str(args.work_dir or (Path(args.out).parent / "g6-catalog-work")),
+            out_dir=str(args.work_dir or (Path(args.out) / "catalog-work")),
             parent_identity=args.parent_identity,
             cache_root=(
                 args.gpu_cache_root
@@ -461,7 +462,7 @@ def main(argv=None):
     parser.add_argument("--default-kind", choices=("graph", "catalog"), default="graph")
     parser.add_argument("--route", choices=("motor", "cooling", "f08", "f02"))
     parser.add_argument(
-        "--version", help="the route's version (default: practice_v2_curves')"
+        "--version", help="the route's version (required with --default-kind catalog)"
     )
     parser.add_argument("--parent-identity", type=Path)
     parser.add_argument("--cache-root", type=Path)

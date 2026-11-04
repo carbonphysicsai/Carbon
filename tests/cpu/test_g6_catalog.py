@@ -329,6 +329,7 @@ def _default(monkeypatch, tmp_path, *, practice_train=None, subset=None, fail=No
         ),
         run=_carrier(staged),
         official=False,
+        version="1.7",
     )
     return rows, record, seen, staged, query, manifest, train
 
@@ -359,6 +360,51 @@ def test_default_rows_build_the_subset_and_predict_the_query(monkeypatch, tmp_pa
     assert record["execution"]["official_build_program_sha256"] == _sha(
         worker.BUILD_PROGRAM.encode()
     )
+    # a CPU curve (no GPU twin checked) says so; the receipt's train digest is the full TRAIN, flagged
+    assert record["official_bundle_verified"] is False
+    assert record["receipt_train_digest_is_pre_cut"] is True
+
+
+def test_the_version_is_required_and_the_practice_targets_are_restored(tmp_path):
+    import practice_v2_curves as curves
+
+    before = dict(curves.TARGETS)
+    with pytest.raises(subsets.SubsetsRefused, match="g6_catalog_version_required"):
+        g6_catalog.default_rows(
+            "motor", "x", Namespace(gpu_image=None), {}, 1.0, b"", np.zeros((1, 1))
+        )
+    with pytest.raises(subsets.SubsetsRefused):
+        g6_catalog.default_rows(
+            "motor",
+            "x",
+            Namespace(gpu_image=None),
+            {},
+            1.0,
+            b"",
+            np.zeros((1, 1)),
+            version="9.9",
+            factory=lambda route, args: (_ for _ in ()).throw(
+                subsets.SubsetsRefused("stop")
+            ),
+        )
+    assert curves.TARGETS == before
+
+
+@pytest.mark.parametrize(
+    "module",
+    [
+        "carbon.motor.catalog_practice",
+        "carbon.cold_plate.catalog_practice",
+        "carbon.direct_campaign.practice",
+    ],
+)
+def test_the_practices_read_the_build_call_from_the_module_at_call_time(module):
+    """The capture replaces `bundle_construction_worker.reconstruct_and_infer_public`; a practice that bound the name at
+    import would bypass it (it would still fail closed, but only after a full-TRAIN build).
+    """
+    import importlib
+
+    assert not hasattr(importlib.import_module(module), "reconstruct_and_infer_public")
 
 
 def test_a_practice_train_that_is_not_the_manifest_train_refuses(monkeypatch, tmp_path):
@@ -408,6 +454,7 @@ def test_the_capture_is_removed_after_the_run(monkeypatch, tmp_path):
         factory=lambda route, args: _Practice(train, None, fail=RuntimeError()),
         run=_carrier([]),
         official=False,
+        version="1.7",
     )
     assert worker.reconstruct_and_infer_public is sentinel
 
@@ -471,6 +518,6 @@ def test_g6_fit_catalog_mode_fills_the_default_column(monkeypatch, tmp_path):
     assert {c[3]["version"] for c in called} == {"1.7"}
     with pytest.raises(
         subsets.SubsetsRefused,
-        match="g6_catalog_default_needs_route_catalog_id_parent_and_cache",
+        match="g6_catalog_default_needs_route_version_catalog_id_parent_and_cache",
     ):
         g6_fit.run(Namespace(**{**vars(args), "route": None, "out": tmp_path / "x"}))
