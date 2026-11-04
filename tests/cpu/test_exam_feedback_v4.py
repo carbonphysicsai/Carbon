@@ -410,3 +410,38 @@ def test_the_client_asks_v4_where_advertised_and_takes_only_its_allow_listed_sha
     ):
         with pytest.raises(client.DirectIntakeRefusal):
             run({"schema": client.FEEDBACK_REPLY_SCHEMA_V4, "submission": broken})
+
+
+@pytest.mark.parametrize(
+    "refusal", ["candidate_program_failed", "carbon_capability_gap", "Not_A_Code!"]
+)
+def test_the_v4_code_is_the_one_construction_status_shows(tmp_path, ledger, refusal):
+    """Validator 16:38: the v4 'code' opens no new channel: it is the refusal code the task's own projection
+    (`LeanRecipeAdapter._project`, what construction_status returns) already shows for the same task, or None when
+    that code is not a plain token (never a different value)."""
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.research import DirectTaskStateV3
+
+    real = object.__new__(LeanRecipeAdapter)
+    real.challenge_id, real.challenge_version = MOTOR.challenge_id, MOTOR.version
+    real._evidence_label = "DEVELOPMENT"
+    task = SimpleNamespace(
+        state=DirectTaskStateV3.REFUSED,
+        task_id=SimpleNamespace(value=C),
+        terminal_receipt=SimpleNamespace(refusal_code=refusal),
+    )
+    status = real._project(task, None)  # the construction_status projection
+    assert status["state"] == "RECONSTRUCTION_FAILED"
+    intake, _ = _v4_intake(
+        tmp_path,
+        ledger,
+        {C: "5Miner"},
+        children={C: ("build", "NONZERO_EXIT")},
+    )
+    intake.adapter.outcome = lambda sid: real._project(task, None)
+    state, failure = _v4(intake, "5Miner", C)
+    assert state == "RECONSTRUCTION_FAILED"
+    shown = status["failure"]["code"]
+    assert failure["code"] == (
+        shown if shown.islower() and shown.isidentifier() else None
+    )
