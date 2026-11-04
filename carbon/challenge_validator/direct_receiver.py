@@ -753,6 +753,29 @@ GRADING_PATHS = (
     "carbon/development_session/research_tasks.py",
     "carbon/development_session/paired_inference.py",
     "carbon/development_session/graph_gpu_lane.py",
+    # the graph rebuild (Validator 16:38): the direct-graph worker, the graph engine and what it stages
+    "carbon/development_session/direct_graph_construction_worker.py",
+    "carbon/level4/",
+    "carbon/development_session/construction_tensor_codec.py",
+    "carbon/development_session/build_refusal.py",
+    "carbon/development_session/build_refusal_v2.py",
+    "carbon/development_session/bundle_prediction_comparison.py",
+    "carbon/development_session/single_call_timing.py",
+    "carbon/challenge_validator/strict_json.py",
+    # the construction material a rebuild reads (bundles, kits, TRAIN)
+    "carbon/development_session/library_bundles.py",
+    "carbon/development_session/library_environment_cache.py",
+    "carbon/development_session/library_overlay_prep.py",
+    "carbon/challenge_kit/physical_material.py",
+    "carbon/challenge_kit/physical_public.py",
+    "carbon/challenge_kit/physical_pack.py",
+    "carbon/challenge_kit/f02_public.py",
+    "carbon/challenge_kit/f08_public.py",
+    "carbon/challenge_kit/synthetic_linear_field_2d.py",
+    "carbon/challenge_kit/interface_dtype.py",
+    "carbon/battery/challenge.py",
+    "carbon/battery/construction_bundle_material.py",
+    "carbon/battery/construction_material.py",
     # images
     "carbon/development_session/research_image.py",
     # catalog
@@ -765,6 +788,9 @@ GRADING_PATHS = (
     "carbon/challenge_validator/lean_recipe_retention.py",
     "carbon/challenge_validator/scoring.py",
     "carbon/challenge_validator/koth_registry.py",
+    "carbon/challenge_validator/crown_average.py",
+    "carbon/challenge_validator/bank_promotion.py",
+    "carbon/battery/pool_store.py",
     # registry
     "carbon/registry/",
     "carbon/challenge_registry/",
@@ -779,10 +805,53 @@ GRADING_PATHS = (
     "carbon/challenge_validator/sealed_pack_import.py",
     "carbon/challenge_validator/sealed_exam_common.py",
     "carbon/challenge_validator/hidden_batch_store.py",
+    "carbon/challenge_validator/exam_rotation.py",
 )
-#: The per-Challenge grading modules (``f02_hidden.py``, ``motor_scoring.py``, ``battery_bank.py`` ...).
+#: The per-Challenge grading modules (``f02_hidden.py``, ``motor_scoring.py``, ``battery_bank.py`` ...) and every graph
+#: adapter, state and trainer module, including later versions (``physical_graph_adapter_v3.py``).
 _GRADING_MODULE = re.compile(
     r"carbon/challenge_validator/[a-z0-9_]+_(hidden|source|scoring|sealed|bank)\.py"
+    r"|carbon/development_session/(physical_graph_(adapter|state|trainer)(_v[0-9]+)?"
+    r"|graph_adapters|[a-z0-9_]+_graph_adapter|bundle_graph_state)\.py"
+)
+#: Modules the official grade or rebuild imports that are NOT grading paths, each with its reason (Validator 16:38; the
+#: closure test, `test_grading_paths`, fails on any import of the grade/rebuild entry points that is in neither list).
+GRADING_EXCLUDED = (
+    (
+        "carbon.challenge_validator.exam_cap",
+        "slot accounting, not results (Validator 16:38)",
+    ),
+    ("carbon.challenge_validator.lean_recipe", "task identity (Validator 16:38)"),
+    (
+        "carbon.challenge_validator.ladder_store",
+        "the miner's feedback documents: display of a result, not the result",
+    ),
+    (
+        "carbon.challenge_validator.part_feedback",
+        "which feedback schema is served: display",
+    ),
+    (
+        "carbon.challenge_validator.repeat_miss_watch",
+        "an operator watch: writes no result",
+    ),
+    ("carbon.development_session.data", "create-only file writing"),
+    (
+        "carbon.development_session.profile",
+        "canonical JSON and digest helpers: identity, verified where bound",
+    ),
+    (
+        "carbon.development_session.research_workspace",
+        "the owner's staged graph workspace: the worker re-checks every byte by its digest",
+    ),
+    (
+        "carbon.file_seal",
+        "a stat cache for the allowlist read: the bytes are sha256-verified (allowlist V8_SHA256)",
+    ),
+    ("carbon.research", "the task protocol's wire types and codec: orchestration"),
+    ("carbon.challenge_validator", "package __init__: re-exports only"),
+    ("carbon.development_session", "package __init__: re-exports only"),
+    ("carbon.challenge_kit", "package __init__: re-exports only"),
+    ("carbon.battery", "package __init__: re-exports only"),
 )
 #: Named in a refusal instead of a path: the worker build inputs moved.
 BUILD_INPUTS_CHANGED = "build_inputs"
