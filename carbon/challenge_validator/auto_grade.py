@@ -220,8 +220,10 @@ class AutoGrader:
         owner = adapter.owner(submission_id)
         if owner is None:
             return None
-        provider = adapter._provider(owner)
-        exam_key = provider.evaluation_pack_digest
+        # The pack digest every provider of this adapter is bound to (`lean_recipe._provider` refuses any other), read
+        # without opening the owner's provider: that open re-checks registration, and a stale snapshot there made the
+        # give-back itself raise, so a never-graded task kept no FAILED_INFRA row (REG-UNAVAILABLE, TL 4 Nov 03:14).
+        exam_key = adapter.discovery.evaluation_pack_digest
         if exam_key is None:
             return None
         return ExamCap(adapter.ledger).give_back_on_infra(

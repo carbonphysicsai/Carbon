@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import threading
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -62,7 +61,7 @@ def test_each_ready_task_is_graded_once_and_marked(tmp_path):
 
 def test_a_task_still_building_is_left_alone_until_it_succeeds(tmp_path):
     behaviour = {A: RetentionUnavailable("task_not_succeeded")}
-    grader, intake = _grader(tmp_path, [A], behaviour)
+    grader, _intake = _grader(tmp_path, [A], behaviour)
     assert grader.run_once() is None
     assert not list((tmp_path / "auto-grade" / "markers").glob("*.json"))
     behaviour[A] = "sha256:" + "3" * 64
@@ -95,7 +94,7 @@ def test_an_unexpected_error_is_recorded_by_type_only(tmp_path):
 
 def test_a_marker_is_create_only_and_an_operator_deleting_it_retries(tmp_path):
     behaviour = {A: RetentionUnavailable("verified_attempt_gone")}
-    grader, intake = _grader(tmp_path, [A], behaviour)
+    grader, _intake = _grader(tmp_path, [A], behaviour)
     grader.run_once()
     behaviour[A] = "sha256:" + "4" * 64
     assert grader.run_once() is None
@@ -192,13 +191,13 @@ def test_a_failed_grade_is_given_back_on_infrastructure_so_a_resubmit_runs_fresh
 
     ledger = AttemptLedger(tmp_path / "attempts.sqlite3")
     cap = ExamCap(ledger)
-    ident = dict(
-        hotkey="5" + "1" * 47,
-        challenge_id="electric-motor-magnetics",
-        challenge_version="1.3",
-        exam_key="sha256:" + "e" * 64,
-        submission_id=A,
-    )
+    ident = {
+        "hotkey": "5" + "1" * 47,
+        "challenge_id": "electric-motor-magnetics",
+        "challenge_version": "1.3",
+        "exam_key": "sha256:" + "e" * 64,
+        "submission_id": A,
+    }
 
     class Ledger:
         _db = staticmethod(ledger._db)
@@ -238,13 +237,13 @@ def test_a_graded_row_is_never_given_back(tmp_path):
 
     ledger = AttemptLedger(tmp_path / "attempts.sqlite3")
     cap = ExamCap(ledger)
-    ident = dict(
-        hotkey="5" + "1" * 47,
-        challenge_id="electric-motor-magnetics",
-        challenge_version="1.3",
-        exam_key="sha256:" + "e" * 64,
-        submission_id=A,
-    )
+    ident = {
+        "hotkey": "5" + "1" * 47,
+        "challenge_id": "electric-motor-magnetics",
+        "challenge_version": "1.3",
+        "exam_key": "sha256:" + "e" * 64,
+        "submission_id": A,
+    }
     with ledger._db() as db:
         db.execute(
             "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, "
@@ -281,9 +280,9 @@ def test_an_incomplete_inference_pair_reaches_only_the_operator_never_a_miner(tm
     is given back as FAILED_INFRA."""
     from carbon.challenge_validator.direct_intake import FEEDBACK_REPLY_SCHEMA
     from carbon.challenge_validator.exam_cap import ExamCap
+    from carbon.challenge_validator.ladder_store import LadderStore
     from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
     from carbon.challenge_validator.ledger import AttemptLedger
-    from carbon.challenge_validator.ladder_store import LadderStore
 
     ledger = AttemptLedger(tmp_path / "attempts.sqlite3")
     hotkey = "5" + "1" * 47
@@ -304,6 +303,8 @@ def test_an_incomplete_inference_pair_reaches_only_the_operator_never_a_miner(tm
         ledger=Ledger,
         owner=lambda submission_id: hotkey,
         _provider=lambda owner: SimpleNamespace(evaluation_pack_digest=exam_key),
+        # the give-back reads the adapter's bound pack digest, never the provider (REG-UNAVAILABLE)
+        discovery=SimpleNamespace(evaluation_pack_digest=exam_key),
     )
     intake = FakeIntake([A], {A: RetentionUnavailable("inference_pair_incomplete")})
     intake.adapter = adapter

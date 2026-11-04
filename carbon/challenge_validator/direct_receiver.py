@@ -1372,7 +1372,7 @@ def serve(
         versioned_material as battery_versioned_material,
     )
     from carbon.chain.auth import BittensorHotkeyVerifier
-    from carbon.chain.sdk import BittensorReader
+    from carbon.chain.sdk import PersistentBittensorReader
     from carbon.challenge_kit import physical_material
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
 
@@ -1490,7 +1490,7 @@ def serve(
     # publisher, or a hotkey holding a validator permit on the subnet now.
     _require_receiver_identity(cfg["receiver_hotkey"], network, permits)
     stop = threading.Event() if stop is None else stop
-    reader = BittensorReader() if reader is None else reader
+    reader = PersistentBittensorReader() if reader is None else reader
     snapshot = asyncio.run(reader.capture(network.context))
     if (
         snapshot.context != network.context

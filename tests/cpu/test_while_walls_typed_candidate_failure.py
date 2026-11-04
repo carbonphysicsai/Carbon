@@ -386,6 +386,8 @@ def _grader(tmp_path, behaviour):
         ledger=Ledger,
         owner=lambda submission_id: hotkey,
         _provider=lambda owner: SimpleNamespace(evaluation_pack_digest=exam_key),
+        # the give-back reads the adapter's bound pack digest, never the provider (REG-UNAVAILABLE)
+        discovery=SimpleNamespace(evaluation_pack_digest=exam_key),
     )
     intake = FakeIntake([A], {A: behaviour})
     intake.adapter = adapter

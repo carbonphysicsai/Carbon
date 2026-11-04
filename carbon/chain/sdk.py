@@ -145,23 +145,134 @@ async def _capture(bt, substrate, context: ChainContext) -> MetagraphSnapshot:
         # Connect the explicit backend, avoiding Client.connect's unrelated
         # token-symbol/config reads. Identity is checked before metagraph reads.
         await substrate.connect()
-        genesis = hash256(await substrate.block_hash(0))
-        if genesis != context.genesis_hash:
-            raise ChainFailure(FailureCode.IDENTITY)
-        async with aclosing(client.blocks(finalized=True)) as headers:
-            header = await anext(headers)
-        block = uint(header.number)
-        digest = hash256(await substrate.block_hash(block))
-        view = await client.at(block)
-        graph = await view.read("metagraph", netuid=context.netuid)
-        timestamp_ms = uint(await view.query(bt.storage.Timestamp.Now))
-        # A contradictory provider must not make number-pinned SDK reads look
-        # like a consistent hash-pinned observation.
-        if (
-            hash256(await substrate.block_hash(block)) != digest
-            or hash256(await substrate.block_hash(0)) != genesis
-        ):
-            raise ChainFailure(FailureCode.IDENTITY)
-        return translate(context, block, digest, timestamp_ms, graph)
+        return await _observe(bt, substrate, client, context)
     finally:
         await client.close()
+
+
+async def _observe(bt, substrate, client, context: ChainContext) -> MetagraphSnapshot:
+    """One finalized metagraph observation over an already connected backend."""
+    genesis = hash256(await substrate.block_hash(0))
+    if genesis != context.genesis_hash:
+        raise ChainFailure(FailureCode.IDENTITY)
+    async with aclosing(client.blocks(finalized=True)) as headers:
+        header = await anext(headers)
+    block = uint(header.number)
+    digest = hash256(await substrate.block_hash(block))
+    view = await client.at(block)
+    graph = await view.read("metagraph", netuid=context.netuid)
+    timestamp_ms = uint(await view.query(bt.storage.Timestamp.Now))
+    # A contradictory provider must not make number-pinned SDK reads look
+    # like a consistent hash-pinned observation.
+    if (
+        hash256(await substrate.block_hash(block)) != digest
+        or hash256(await substrate.block_hash(0)) != genesis
+    ):
+        raise ChainFailure(FailureCode.IDENTITY)
+    return translate(context, block, digest, timestamp_ms, graph)
+
+
+class PersistentBittensorReader(BittensorReader):
+    """One open chain connection for a long-running process (a receiver door), reused by every read.
+
+    REG-UNAVAILABLE (TL 3-4 Nov): `BittensorReader` opens a new WebSocket for every read. A door refreshes its
+    snapshot every 12 s and four doors share one IP, so the public endpoint's WebSocket-upgrade policy refused them
+    (HTTP 429 ``ws_upgrade_60s``, retry after 60 s); the reader's in-read retries then outlived the 60 s snapshot
+    freshness and a registration re-check found no current snapshot. This reader connects once, verifies the chain
+    identity once per connection (every read still checks it, `_observe`), and keeps the connection open. A policy
+    refusal starts a cool-down of the endpoint's Retry-After (else a doubling backoff from `_base_delay` to
+    `_max_delay`) during which a read fails at once as PROVIDER_RATE_LIMITED without touching the endpoint; a dropped
+    connection is reopened on the next read. The freshness window itself is unchanged (Validator 4 Nov 05:17). All
+    reads run on the reader's own event-loop thread, one at a time, so callers on any thread or loop share it.
+    """
+
+    def __init__(self, *, clock=time.monotonic):
+        self._clock = clock
+        self._start_lock = threading.Lock()
+        self._loop = None
+        self._serial = None
+        self._open = None  # (substrate, client, context)
+        self._cooldown_until = 0.0
+        self._refusals = 0
+
+    async def capture(self, context: ChainContext) -> MetagraphSnapshot:
+        if context.network == LOCAL_PRACTICE:
+            raise ChainFailure(FailureCode.IDENTITY)
+        loop = self._ensure_loop()
+        future = asyncio.run_coroutine_threadsafe(self._read_open(context), loop)
+        return await asyncio.wrap_future(future)
+
+    def _ensure_loop(self):
+        with self._start_lock:
+            if self._loop is None:
+                loop = asyncio.new_event_loop()
+                threading.Thread(
+                    target=loop.run_forever, name="chain-reader", daemon=True
+                ).start()
+                self._loop = loop
+            return self._loop
+
+    @staticmethod
+    async def _close(client):
+        try:
+            await client.close()
+        except Exception as failure:  # noqa: BLE001 - closing a broken connection
+            _log.debug("chain connection close failed: %s", type(failure).__name__)
+
+    async def _drop(self):
+        opened, self._open = self._open, None
+        if opened is not None:
+            await self._close(opened[1])
+
+    async def _read_open(self, context):
+        if self._serial is None:
+            self._serial = asyncio.Lock()
+        async with self._serial:
+            if self._clock() < self._cooldown_until:
+                raise ChainFailure(FailureCode.RATE_LIMITED)
+            bt = self._sdk()
+            try:
+                if self._open is None or self._open[2] != context:
+                    await self._drop()
+                    substrate = bt.RpcSubstrate(
+                        context.endpoint,
+                        fallback_endpoints=[],
+                        archive_endpoints=[],
+                        retry_forever=False,
+                    )
+                    client = bt.Client(context.endpoint, substrate=substrate)
+                    try:
+                        await substrate.connect()
+                    except BaseException:
+                        await self._close(client)
+                        raise
+                    self._open = (substrate, client, context)
+                substrate, client, _ = self._open
+                snapshot = await _observe(bt, substrate, client, context)
+            except bt.RpcPolicyError as refused:
+                # An upgrade refused leaves nothing open; a request refused on an open connection keeps it.
+                wait = _retry_after(getattr(refused, "retry_after", None))
+                backoff = min(self._max_delay, self._base_delay * 2**self._refusals)
+                self._refusals += 1
+                self._cooldown_until = self._clock() + (
+                    wait if wait is not None else backoff
+                )
+                _log.warning(
+                    "chain read refused by the endpoint's policy: status=%s policy=%s reason=%s retry_after=%s",
+                    getattr(refused, "status_code", None),
+                    getattr(refused, "policy", None),
+                    getattr(refused, "reason", None),
+                    getattr(refused, "retry_after", None),
+                )
+                raise ChainFailure(FailureCode.RATE_LIMITED) from None
+            except bt.RpcConnectionError:
+                await self._drop()
+                raise ChainFailure(FailureCode.UNAVAILABLE) from None
+            except bt.ChainError:
+                await self._drop()
+                raise ChainFailure(FailureCode.CHAIN) from None
+            except BaseException:
+                await self._drop()
+                raise
+            self._refusals = 0
+            return snapshot
