@@ -687,6 +687,142 @@ def retention_snapshots(window, context, reader, *, period=RETENTION_REFRESH_S):
         thread.join(timeout=5)
 
 
+#: The manifest fields an accepted-revision change may move, and how (`_migrate_owner_manifest`).
+_REVISION_FIELDS = frozenset(
+    {"implementation", "runtime", "receiver_binding", "campaign_id"}
+)
+
+
+def _revision_only_change(frozen, candidate):
+    """Whether ``frozen`` and ``candidate`` differ only by the accepted revision: every other field equal, ``runtime``
+    and ``receiver_binding`` equal but for their ``implementation`` (so the same images, receiver, Challenge, pack and
+    owner), ``campaign_id`` the one the new binding derives."""
+    if set(frozen) != set(candidate):
+        return False
+    if any(frozen[k] != candidate[k] for k in candidate if k not in _REVISION_FIELDS):
+        return False
+    for key in ("runtime", "receiver_binding"):
+        old, new = frozen[key], candidate[key]
+        if type(old) is not dict or type(new) is not dict or set(old) != set(new):
+            return False
+        if any(old[k] != new[k] for k in new if k != "implementation"):
+            return False
+    old, new = frozen["implementation"], candidate["implementation"]
+    return (
+        type(old) is dict
+        and type(new) is dict
+        and set(old) == set(new)
+        and type(old.get("revision")) is str
+        and type(new.get("revision")) is str
+        and old["revision"] != new["revision"]
+    )
+
+
+def _is_ancestor(old, new, root=None):
+    """Whether accepted revision ``old`` is an ancestor of ``new`` in this checkout's history (git)."""
+    import subprocess
+
+    if not all(
+        type(r) is str and len(r) == 40 and all(c in "0123456789abcdef" for c in r)
+        for r in (old, new)
+    ):
+        return False
+    root = Path(__file__).resolve().parents[2] if root is None else Path(root)
+    try:
+        done = subprocess.run(
+            ["git", "-C", str(root), "merge-base", "--is-ancestor", old, new],
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return done.returncode == 0
+
+
+def _retained_contracts(ledger):
+    """Every ``contract_digest`` the owner's retained task requests name."""
+    found = set()
+
+    def walk(value):
+        if type(value) is dict:
+            for key, item in value.items():
+                if key == "contract_digest" and type(item) is str:
+                    found.add(item)
+                else:
+                    walk(item)
+        elif type(value) is list:
+            for item in value:
+                walk(item)
+
+    with ledger.db() as db:
+        try:
+            rows = db.execute("SELECT request FROM direct_tasks").fetchall()
+        except Exception:  # noqa: BLE001 - no task table yet: no retained task
+            rows = []
+    for (raw,) in rows:
+        try:
+            walk(json.loads(raw))
+        except (ValueError, TypeError):
+            found.add("unreadable")
+    return found
+
+
+def _migrate_owner_manifest(ledger, hotkey, raw, frozen, candidate):
+    """Re-freeze a retained owner's campaign manifest to a NEW accepted revision (Lead 4 Nov, option (a)), or False.
+
+    A byte-exact carry of the owners/ store into a receiver on a newer revision met its own frozen manifest
+    (the revision is part of it) and refused to start. The manifest is re-frozen only when the change is the revision
+    alone (`_revision_only_change`), the old revision is an ANCESTOR of the new one (`_is_ancestor`), and every retained
+    task names the contract this receiver serves (the recipe contract is unchanged); otherwise the start refuses as
+    before. Only the campaign row changes (compare-and-swap on its old bytes); every task, evidence and view row is
+    kept. The change is logged to stderr and appended to ``manifest-migrations.jsonl`` beside the owner's ledger.
+    """
+    import sys
+
+    from carbon.development_session.profile import canonical, digest
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    if not _revision_only_change(frozen, candidate):
+        return False
+    old, new = (
+        frozen["implementation"]["revision"],
+        candidate["implementation"]["revision"],
+    )
+    if not _is_ancestor(old, new):
+        return False
+    challenge = candidate["challenge"]
+    try:
+        contract = registered(challenge["id"], challenge["version"]).digest
+    except LookupError:
+        return False
+    if not _retained_contracts(ledger) <= {contract}:
+        return False
+    payload = canonical(candidate)
+    with ledger.db() as db:
+        db.execute("BEGIN IMMEDIATE")
+        changed = db.execute(
+            "UPDATE campaign SET manifest=?, digest=? WHERE id=1 AND manifest=?",
+            (payload, digest(payload), raw),
+        ).rowcount
+    if changed != 1:
+        return False
+    record = {
+        "event": "owner_manifest_migrated",
+        "owner_sha256": hashlib.sha256(hotkey.encode()).hexdigest(),
+        "from_revision": old,
+        "to_revision": new,
+        "from_campaign": frozen["campaign_id"],
+        "to_campaign": candidate["campaign_id"],
+    }
+    with open(
+        Path(ledger.root) / "manifest-migrations.jsonl", "a", encoding="utf-8"
+    ) as log:
+        log.write(json.dumps(record, sort_keys=True) + "\n")
+    print(json.dumps(record, sort_keys=True), file=sys.stderr, flush=True)
+    return True
+
+
 def installed_source(
     profile_path: Path,
     *,
@@ -1168,8 +1304,15 @@ class OwnerProviders:
             if set(frozen) != set(candidate) or any(
                 frozen.get(field) != candidate[field] for field in candidate
             ):
-                raise ValueError("retained direct owner campaign binding changed")
-            candidate = frozen
+                if not (
+                    restoring
+                    and _migrate_owner_manifest(
+                        ledger, hotkey, row[0], frozen, candidate
+                    )
+                ):
+                    raise ValueError("retained direct owner campaign binding changed")
+            else:
+                candidate = frozen
         elif restoring:
             raise ValueError("retained direct owner campaign manifest missing")
         elif admission is None and not host:
