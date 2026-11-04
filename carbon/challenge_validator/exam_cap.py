@@ -771,6 +771,35 @@ class ExamCap:
         )
         return dict(zip(names, row))
 
+    def return_promised_slot(self, submission_id: str) -> dict:
+        """Give the slot of one GRADED resubmit back WITHOUT touching its grade (OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01,
+        4 Nov: 'If you want to resubmit in the meantime, it won't cost you a slot'). The row stays as history and its
+        grade stands (never rescored); it becomes RELEASED / ``SLOT_RETURNED``, which no limit counts. Deliberately NOT
+        FAILED_INFRA: that would make the door treat the graded recipe as ended on infrastructure and run it again.
+        The caller (`infra_requeue.return_slots`) decides which resubmit qualifies. Returns the row as it was; refuses
+        ``slot_return_no_single_counted_row`` unless exactly one GRADED row is COUNTED, ``slot_return_row_changed`` on a
+        race."""
+        if type(submission_id) is not str or not submission_id:
+            raise ExamCapRefused("exam_cap_identity_unavailable")
+        with self.ledger._db() as db:
+            rows = db.execute(
+                "SELECT id, hotkey, epoch, state, status FROM exam_graded WHERE "
+                "submission_id=? AND kind='GRADED' AND state='COUNTED'",
+                (submission_id,),
+            ).fetchall()
+            if len(rows) != 1:
+                raise ExamCapRefused("slot_return_no_single_counted_row")
+            changed = db.execute(
+                "UPDATE exam_graded SET state='RELEASED', status='SLOT_RETURNED', "
+                "settled_ns=? WHERE id=? AND state='COUNTED'",
+                (int(self.clock()), rows[0][0]),
+            ).rowcount
+            if changed != 1:
+                raise ExamCapRefused("slot_return_row_changed")
+        return dict(
+            zip(("row", "hotkey", "epoch", "prior_state", "prior_status"), rows[0])
+        )
+
     def released_on_infra(
         self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
     ) -> bool:

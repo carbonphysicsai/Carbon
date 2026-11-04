@@ -734,3 +734,109 @@ def test_a_release_needs_no_task_row(tmp_path):
     out = infra_requeue.release(root, A, apply=True)
     assert "refused" not in out
     assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]
+
+
+# ---------------------------------------------------------------- OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01
+
+POSTED, LIVE = "2026-11-04T20:00:00+00:00", "2026-11-05T02:00:00+00:00"
+IN_WINDOW_NS = 1_793_829_600 * 10**9  # 4 Nov 22:00Z
+AFTER_LIVE_NS = 1_793_862_000 * 10**9  # 5 Nov 07:00Z
+
+
+def _graded_resubmit(ledger, root, task, *, at_ns=IN_WINDOW_NS, hotkey=HOTKEY):
+    """A miner's resubmit that arrived at ``at_ns`` and was graded (COUNTED, marker GRADED)."""
+    from carbon.challenge_validator.auto_grade import SCHEMA as MARKER
+
+    with ledger._db() as db:
+        db.execute(
+            "INSERT INTO attempts(at_ns, kind, hotkey, contract_digest, receipt, submission_sha256, "
+            "submission_id) VALUES(?, 'OUTCOME', ?, ?, ?, 'sha256:s', ?)",
+            (at_ns, hotkey, CONTRACT, json.dumps({"block": 9_000}), task),
+        )
+        db.execute(
+            "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, exam_key, kind, epoch, "
+            "submission_id, state, status, reserved_ns, settled_ns) "
+            "VALUES(?,'f02','2.5',?,'GRADED',25,?,'COUNTED','SCORED_DEVELOPMENT_CANDIDATE',1,2)",
+            (hotkey, EXAM, task),
+        )
+    markers = root / "auto-grade" / "markers"
+    markers.mkdir(parents=True, exist_ok=True)
+    (markers / (task + ".json")).write_text(
+        json.dumps({"schema": MARKER, "submission_id": task, "state": "GRADED"})
+    )
+
+
+def test_a_graded_resubmit_in_the_window_gets_its_slot_back_and_its_grade_stands(
+    tmp_path,
+):
+    from carbon.challenge_validator import infra_requeue
+    from carbon.challenge_validator.exam_cap import ExamCap
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)  # stuck (arrived 3 Nov)
+    _graded_resubmit(ledger, root, B)  # graded resubmit inside the window
+    _graded_resubmit(
+        ledger, root, C, at_ns=AFTER_LIVE_NS
+    )  # after A1 was LIVE: not covered
+    _graded_resubmit(ledger, root, D, hotkey="5" + "2" * 47)  # another hotkey
+    marker = (root / "auto-grade" / "markers" / (B + ".json")).read_bytes()
+    dry = infra_requeue.return_slots(root, [A], window_start=POSTED, window_end=LIVE)
+    assert dry["returned"] == {B: A} and _rows(ledger, B) == [
+        ("COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")
+    ]
+    out = infra_requeue.return_slots(
+        root, [A], window_start=POSTED, window_end=LIVE, apply=True
+    )
+    assert out["returned"] == {B: A} and out["unmatched"] == [] and out["refused"] == {}
+    assert _rows(ledger, B) == [("RELEASED", "SLOT_RETURNED")]  # slot back
+    assert (root / "auto-grade" / "markers" / (B + ".json")).read_bytes() == marker
+    assert _rows(ledger, C) == [("COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")]
+    assert _rows(ledger, D) == [("COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")]
+    ident = {
+        "hotkey": HOTKEY,
+        "challenge_id": "f02",
+        "challenge_version": "2.5",
+        "exam_key": EXAM,
+        "submission_id": B,
+    }
+    cap = ExamCap(ledger)
+    # NOT an infrastructure give-back: the door never runs the graded recipe again
+    assert not cap.released_on_infra(**ident)
+    record = json.loads(
+        (root / "auto-grade" / "requeued" / "slot-returns.jsonl").read_text()
+    )
+    assert (record["stuck"], record["resubmit"]) == (A, B)
+    assert record["reason"] == "OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01"
+    # one slot per stuck task, never twice
+    again = infra_requeue.return_slots(
+        root, [A], window_start=POSTED, window_end=LIVE, apply=True
+    )
+    assert again["refused"] == {A: "already_returned"} and again["returned"] == {}
+
+
+def test_one_slot_per_stuck_task_and_only_for_stuck_tasks(tmp_path):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    _failed(root, ledger, B, at_ns=SPLIT_NS + 2 * 10**9)
+    _graded_resubmit(ledger, root, C)  # one resubmit for two stuck tasks
+    _graded_resubmit(ledger, root, E, at_ns=IN_WINDOW_NS + 10**9)
+    _failed(root, ledger, F, cause="WorkerFailure")  # not an A2 stuck task
+    out = infra_requeue.return_slots(
+        root, [A, B, F, "x"], window_start=POSTED, window_end=LIVE, apply=True
+    )
+    assert out["returned"] == {C: A, E: B}  # arrival order, each resubmit once
+    assert out["refused"] == {F: "not_a_stuck_task", "x": "not_a_task_id"}
+    (tmp_path / "two").mkdir()
+    root2, ledger2 = _root(tmp_path / "two")
+    _failed(root2, ledger2, A)
+    _failed(root2, ledger2, B, at_ns=SPLIT_NS + 2 * 10**9)
+    _graded_resubmit(ledger2, root2, C)
+    out2 = infra_requeue.return_slots(
+        root2, [A, B], window_start=POSTED, window_end=LIVE, apply=True
+    )
+    assert out2["returned"] == {C: A} and out2["unmatched"] == [B]
+    assert infra_requeue.return_slots(root2, [A], window_start=LIVE, window_end=POSTED)[
+        "refused"
+    ] == {"window": "window_empty_or_reversed"}

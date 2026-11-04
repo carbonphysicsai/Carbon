@@ -453,6 +453,137 @@ def release(root, task, *, apply=False, clock=time.time_ns):
     }
 
 
+def _stuck(root, task):
+    """Whether ``task`` is one of this door's A2 stuck tasks: handed back or archived by ``requeue``, released by
+    ``release``, or still FAILED for the registration cause."""
+    paths = _paths(root, task)
+    if paths["kept_marker"].exists():
+        return True
+    released = paths["kept_marker"].parent / "releases.jsonl"
+    try:
+        if any(
+            json.loads(line).get("task") == task
+            for line in released.read_text().splitlines()
+            if line.strip()
+        ):
+            return True
+    except (OSError, ValueError, AttributeError):
+        pass
+    return _marker(paths["marker"]) == "FAILED" and _cause(paths)
+
+
+def _ns(text):
+    return int(datetime.datetime.fromisoformat(text).timestamp() * 1_000_000_000)
+
+
+def return_slots(
+    root, stuck, *, window_start, window_end, apply=False, clock=time.time_ns
+):
+    """OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01 (owner 4 Nov, option A): ONE released slot per A2-listed stuck task, for a
+    GRADED resubmit (a COUNTED row) by the SAME hotkey at THIS door that arrived inside ``[window_start, window_end]``
+    (the miner note's post time to this door's A1 LIVE + checked time, UTC). The resubmit's grade stands, never
+    rescored; only its slot goes back, through `ExamCap.return_promised_slot`. Pairs are made in arrival order, each
+    resubmit used once, and logged to ``requeued/slot-returns.jsonl`` (a re-run skips what is logged).
+    """
+    start, end = _ns(window_start), _ns(window_end)
+    out = {
+        "schema": SCHEMA,
+        "action": "return_slots",
+        "apply": apply,
+        "window": [window_start, window_end],
+        "returned": {},
+        "unmatched": [],
+        "refused": {},
+    }
+    if not start < end:
+        return {**out, "refused": {"window": "window_empty_or_reversed"}}
+    log_path = Path(root) / "auto-grade" / "requeued" / "slot-returns.jsonl"
+    done = []
+    try:
+        done = [
+            json.loads(line)
+            for line in log_path.read_text().splitlines()
+            if line.strip()
+        ]
+    except (OSError, ValueError):
+        done = []
+    used = {record.get("resubmit") for record in done}
+    paired = {record.get("stuck") for record in done}
+    ledger, cap = _ledger(root)
+    tasks = []
+    for task in stuck:
+        if type(task) is not str or not _TASK.fullmatch(task):
+            out["refused"][str(task)] = "not_a_task_id"
+        elif task in paired:
+            out["refused"][task] = "already_returned"
+        elif not _stuck(root, task):
+            out["refused"][task] = "not_a_stuck_task"
+        else:
+            tasks.append(task)
+    stuck_set = set(stuck)
+    plan = []
+    with ledger._db() as db:
+        arrivals = []
+        for task in tasks:
+            arrival = _arrival(db, task)
+            if arrival is None or type(arrival[2]) is not str:
+                out["refused"][task] = "stuck_not_at_this_door"
+            else:
+                arrivals.append((arrival[0], task, arrival[2]))
+        for _at, task, hotkey in sorted(arrivals):
+            found = None
+            for resubmit, _first in db.execute(
+                "SELECT submission_id, MIN(at_ns) AS first_ns FROM attempts WHERE kind='OUTCOME' "
+                "AND hotkey=? AND submission_id IS NOT NULL GROUP BY submission_id "
+                "HAVING first_ns>=? AND first_ns<=? ORDER BY first_ns, submission_id",
+                (hotkey, start, end),
+            ).fetchall():
+                if resubmit in stuck_set or resubmit in used:
+                    continue
+                counted = db.execute(
+                    "SELECT COUNT(*) FROM exam_graded WHERE submission_id=? AND hotkey=? "
+                    "AND kind='GRADED' AND state='COUNTED'",
+                    (resubmit, hotkey),
+                ).fetchone()[0]
+                if counted == 1:
+                    found = resubmit
+                    break
+            if found is None:
+                out["unmatched"].append(task)
+            else:
+                used.add(found)
+                plan.append((task, found))
+    for task, resubmit in plan:
+        if apply:
+            from .exam_cap import ExamCapRefused
+
+            try:
+                before = cap.return_promised_slot(resubmit)
+            except ExamCapRefused as refused:
+                out["refused"][task] = refused.code
+                continue
+            log_path.parent.mkdir(mode=0o700, exist_ok=True)
+            with open(log_path, "a", encoding="utf-8") as log:
+                log.write(
+                    json.dumps(
+                        {
+                            "stuck": task,
+                            "resubmit": resubmit,
+                            "row": before["row"],
+                            "prior_status": before["prior_status"],
+                            "state": "RELEASED",
+                            "status": "SLOT_RETURNED",
+                            "reason": "OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01",
+                            "at_ns": int(clock()),
+                        },
+                        sort_keys=True,
+                    )
+                    + "\n"
+                )
+        out["returned"][resubmit] = task
+    return out
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -470,6 +601,22 @@ def main(argv=None):
     two.add_argument("--root", type=Path, required=True)
     two.add_argument("--id", required=True)
     two.add_argument("--apply", action="store_true")
+    three = sub.add_parser("return-slots")
+    three.add_argument("--root", type=Path, required=True)
+    three.add_argument("--ids", type=Path, required=True, help="the A2 stuck task ids")
+    three.add_argument(
+        "--from",
+        dest="window_start",
+        required=True,
+        help="the note's post time, UTC ISO",
+    )
+    three.add_argument(
+        "--to",
+        dest="window_end",
+        required=True,
+        help="this door's A1 LIVE + checked time, UTC ISO",
+    )
+    three.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     if args.cmd == "list":
         out = scan(args.root, split=args.split)
@@ -489,6 +636,17 @@ def main(argv=None):
             line.strip() for line in args.ids.read_text().splitlines() if line.strip()
         ]
         out = requeue(args.root, tasks, apply=args.apply)
+    elif args.cmd == "return-slots":
+        tasks = [
+            line.strip() for line in args.ids.read_text().splitlines() if line.strip()
+        ]
+        out = return_slots(
+            args.root,
+            tasks,
+            window_start=args.window_start,
+            window_end=args.window_end,
+            apply=args.apply,
+        )
     else:
         out = release(args.root, args.id, apply=args.apply)
     print(json.dumps(out, sort_keys=True))
