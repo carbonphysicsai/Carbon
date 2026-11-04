@@ -12,5 +12,5 @@ Owner's words: held in custody (they contain hidden values). The TL's custody re
   - the held sides stay held;
   - spend is capped by the owner's figure;
   - the edge/U jobs and the coverage side designs are redone on it, while TRAIN, the U panel, the gate probe and the inner band are unaffected.
-- **T8:** the hot corner is re-picked in custody, at a new custody-random position of the same size. The TRAIN corner exclusion is recomputed.
+- **T8:** the hot corner is re-picked in custody, at a new custody-random position (record by sha in custody). The TRAIN corner exclusion is recomputed.
 - The old region and corner are retired as history. Nothing graded is rescored.
