@@ -186,6 +186,11 @@ class PersistentBittensorReader(BittensorReader):
     reads run on the reader's own event-loop thread, one at a time, so callers on any thread or loop share it.
     """
 
+    #: One connect-and-read may take at most this long (Validator 4 Nov 07:18): a half-open socket would otherwise
+    #: block every later read, the not-graded failure again. A read past it drops the connection, fails typed
+    #: PROVIDER_UNAVAILABLE, and the next read reconnects. An engineering bound, not a scientific value.
+    _read_timeout = 20.0
+
     def __init__(self, *, clock=time.monotonic):
         self._clock = clock
         self._start_lock = threading.Lock()
@@ -219,6 +224,12 @@ class PersistentBittensorReader(BittensorReader):
         except Exception as failure:  # noqa: BLE001 - closing a broken connection
             _log.debug("chain connection close failed: %s", type(failure).__name__)
 
+    async def _close_bounded(self, client):
+        try:
+            await asyncio.wait_for(self._close(client), 2.0)
+        except TimeoutError:
+            _log.debug("chain connection close timed out")
+
     async def _drop(self):
         opened, self._open = self._open, None
         if opened is not None:
@@ -232,47 +243,67 @@ class PersistentBittensorReader(BittensorReader):
                 raise ChainFailure(FailureCode.RATE_LIMITED)
             bt = self._sdk()
             try:
-                if self._open is None or self._open[2] != context:
-                    await self._drop()
-                    substrate = bt.RpcSubstrate(
-                        context.endpoint,
-                        fallback_endpoints=[],
-                        archive_endpoints=[],
-                        retry_forever=False,
-                    )
-                    client = bt.Client(context.endpoint, substrate=substrate)
-                    try:
-                        await substrate.connect()
-                    except BaseException:
-                        await self._close(client)
-                        raise
-                    self._open = (substrate, client, context)
-                substrate, client, _ = self._open
-                snapshot = await _observe(bt, substrate, client, context)
-            except bt.RpcPolicyError as refused:
-                # An upgrade refused leaves nothing open; a request refused on an open connection keeps it.
-                wait = _retry_after(getattr(refused, "retry_after", None))
-                backoff = min(self._max_delay, self._base_delay * 2**self._refusals)
-                self._refusals += 1
-                self._cooldown_until = self._clock() + (
-                    wait if wait is not None else backoff
+                return await asyncio.wait_for(
+                    self._connect_and_observe(bt, context), self._read_timeout
                 )
+            except TimeoutError:
+                await self._drop()
                 _log.warning(
-                    "chain read refused by the endpoint's policy: status=%s policy=%s reason=%s retry_after=%s",
-                    getattr(refused, "status_code", None),
-                    getattr(refused, "policy", None),
-                    getattr(refused, "reason", None),
-                    getattr(refused, "retry_after", None),
+                    "chain read exceeded %.0f s: connection dropped", self._read_timeout
                 )
-                raise ChainFailure(FailureCode.RATE_LIMITED) from None
-            except bt.RpcConnectionError:
-                await self._drop()
                 raise ChainFailure(FailureCode.UNAVAILABLE) from None
-            except bt.ChainError:
+
+    async def _connect_and_observe(self, bt, context):
+        """Connect if needed, then one observation; bounded by `_read_timeout` in `_read_open`."""
+        try:
+            if self._open is None or self._open[2] != context:
                 await self._drop()
-                raise ChainFailure(FailureCode.CHAIN) from None
-            except BaseException:
-                await self._drop()
-                raise
-            self._refusals = 0
-            return snapshot
+                substrate = bt.RpcSubstrate(
+                    context.endpoint,
+                    fallback_endpoints=[],
+                    archive_endpoints=[],
+                    retry_forever=False,
+                )
+                client = bt.Client(context.endpoint, substrate=substrate)
+                try:
+                    await substrate.connect()
+                except BaseException:
+                    await self._close(client)
+                    raise
+                self._open = (substrate, client, context)
+            substrate, client, _ = self._open
+            snapshot = await _observe(bt, substrate, client, context)
+        except bt.RpcPolicyError as refused:
+            # An upgrade refused leaves nothing open; a request refused on an open connection keeps it.
+            wait = _retry_after(getattr(refused, "retry_after", None))
+            backoff = min(self._max_delay, self._base_delay * 2**self._refusals)
+            self._refusals += 1
+            self._cooldown_until = self._clock() + (
+                wait if wait is not None else backoff
+            )
+            _log.warning(
+                "chain read refused by the endpoint's policy: status=%s policy=%s reason=%s retry_after=%s",
+                getattr(refused, "status_code", None),
+                getattr(refused, "policy", None),
+                getattr(refused, "reason", None),
+                getattr(refused, "retry_after", None),
+            )
+            raise ChainFailure(FailureCode.RATE_LIMITED) from None
+        except bt.RpcConnectionError:
+            await self._drop()
+            raise ChainFailure(FailureCode.UNAVAILABLE) from None
+        except bt.ChainError:
+            await self._drop()
+            raise ChainFailure(FailureCode.CHAIN) from None
+        except asyncio.CancelledError:
+            # Cut off by the read timeout: forget the connection at once and close it in the background, bounded, so a
+            # close that hangs on the same half-open socket cannot hold the reader.
+            opened, self._open = self._open, None
+            if opened is not None:
+                asyncio.ensure_future(self._close_bounded(opened[1]))
+            raise
+        except BaseException:
+            await self._drop()
+            raise
+        self._refusals = 0
+        return snapshot

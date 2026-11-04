@@ -192,6 +192,52 @@ def test_a_dropped_connection_is_reopened_on_the_next_read(endpoint):
     assert endpoint.upgrades == 2 and endpoint.closes == 1
 
 
+def test_a_hung_read_times_out_drops_the_connection_and_the_next_read_reconnects(
+    endpoint, monkeypatch
+):
+    # Validator 4 Nov 07:18: a half-open socket must not block every later read.
+    real = sdk._observe
+    hung = []
+
+    async def hung_once(bt, substrate, client, context):
+        if not hung:
+            hung.append(True)
+            await asyncio.Event().wait()  # a read that never answers
+        return await real(bt, substrate, client, context)
+
+    monkeypatch.setattr(sdk, "_observe", hung_once)
+    reader = sdk.PersistentBittensorReader()
+    reader._read_timeout = 0.3
+    with pytest.raises(ChainFailure) as hung:
+        asyncio.run(reader.capture(_context()))
+    assert hung.value.code is FailureCode.UNAVAILABLE
+    assert reader._open is None  # the stuck connection is forgotten at once
+    assert asyncio.run(reader.capture(_context())).finalized_block == 11
+    assert endpoint.upgrades == 2  # the next read opened a fresh connection
+
+
+def test_a_hung_connect_times_out_too(endpoint, monkeypatch):
+    reader = sdk.PersistentBittensorReader()
+    reader._read_timeout = 0.3
+    real = _fake_sdk(endpoint)
+
+    class Hanging(real.RpcSubstrate):
+        async def connect(self):
+            await asyncio.Event().wait()
+
+    hanging = types.SimpleNamespace(**{**vars(real), "RpcSubstrate": Hanging})
+    monkeypatch.setattr(
+        sdk.PersistentBittensorReader, "_sdk", staticmethod(lambda: hanging)
+    )
+    with pytest.raises(ChainFailure) as hung:
+        asyncio.run(reader.capture(_context()))
+    assert hung.value.code is FailureCode.UNAVAILABLE and reader._open is None
+
+
+def test_the_read_timeout_is_20_seconds():
+    assert sdk.PersistentBittensorReader._read_timeout == 20.0
+
+
 def test_the_freshness_window_is_unchanged():
     assert battery_intake.SNAPSHOT_MAX_AGE_S == 60.0
 
