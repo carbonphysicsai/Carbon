@@ -855,6 +855,9 @@ INFLIGHT_SCHEMA = "carbon.challenge-validator.work-inflight.v1"
 #: How often a door retries the host's official-grading lock, and re-reads stop and DRAINING, while it waits
 #: (an operational poll period, not a scientific value).
 WORK_POLL_S = 1.0
+#: A waiting door refreshes its entry every poll; an entry not refreshed for this long is not a waiter (a frozen
+#: process never holds the round-robin): an operational value, not a scientific one.
+WAITER_STALE_S = 30.0
 
 
 class WorkDeclined(Exception):
@@ -917,6 +920,10 @@ class _WorkLock:
         self._legacy = threading.local()
         self._yield_until = 0.0
         self._was_draining = None
+        #: This door's place in the host's waiting list (`_mark_waiting`): the time its current GRADE round began to
+        #: wait, or None. A grade round takes the host lock only when no live other door has waited longer.
+        self._wait_since = None
+        self._grade_round = False
         if self._state is not None:
             for name in (INFLIGHT_NAME, WAIT_NAME):
                 left = self._state / name
@@ -952,29 +959,67 @@ class _WorkLock:
     def _waiting_dir(self):
         return Path(self._dir) / WAITING_DIR
 
-    def _others_waiting(self):
-        """Whether another live process (another door) waits for the host lock with a grade to run."""
+    def _waiters(self):
+        """``[(since_ns, pid)]`` of every LIVE other process (another door) waiting for the host lock with a grade to
+        run. An entry whose process is gone (pid reused or exited) is not a waiter; one without a readable time
+        counts as waiting since 0 (oldest: never lets a door jump it)."""
         mine = os.getpid()
         try:
-            names = [p.name for p in self._waiting_dir().iterdir()]
+            entries = list(self._waiting_dir().iterdir())
         except OSError:
-            return False
-        for name in names:
-            pid, _, started = name.partition("-")
+            return []
+        live = []
+        for entry in entries:
+            pid, _, started = entry.name.partition("-")
             if not (pid.isdigit() and started.isdigit()) or int(pid) == mine:
                 continue
-            if _process_start(int(pid)) == int(started):
-                return True
-        return False
+            if _process_start(int(pid)) != int(started):
+                continue
+            try:
+                if time.time() - entry.stat().st_mtime > WAITER_STALE_S:
+                    continue
+                since = int(entry.read_text().strip() or 0)
+            except (OSError, ValueError):
+                since = 0
+            live.append((since, int(pid)))
+        return live
+
+    def _others_waiting(self):
+        """Whether another live process (another door) waits for the host lock with a grade to run."""
+        return bool(self._waiters())
+
+    def _behind_an_earlier_waiter(self):
+        """Whether a GRADE round must let another door go first: a live other door has waited longer (round-robin
+        across doors, Deploy 5 Nov: Motor's due king work lost the race to three doors for over an hour). A round that
+        is not yet waiting counts as arriving now, so it queues behind every current waiter; ties go to the lower
+        pid. Advance rounds never queue (they cannot tell whether they have work), as before.
+        """
+        if not self._grade_round:
+            return False
+        mine = (
+            time.time_ns() if self._wait_since is None else self._wait_since,
+            os.getpid(),
+        )
+        return any(other < mine for other in self._waiters())
 
     def _mark_waiting(self, waiting):
-        """This door's entry in the host's waiting list (``<lock dir>/official-grading.waiting/<pid>-<start>``)."""
+        """This door's entry in the host's waiting list (``<lock dir>/official-grading.waiting/<pid>-<start>``), holding
+        the time it began to wait (its place in the round-robin)."""
         path = self._waiting_dir() / f"{os.getpid()}-{_process_start(os.getpid())}"
         if waiting:
+            if self._wait_since is not None and path.exists():
+                os.utime(path)  # still waiting: refreshed every poll (`WAITER_STALE_S`)
+                return
             self._waiting_dir().mkdir(mode=0o700, exist_ok=True)
-            path.touch(mode=0o600)
+            if self._wait_since is None:
+                self._wait_since = time.time_ns()
+            staged = path.with_name(f".{path.name}.{threading.get_ident()}")
+            staged.write_text(str(self._wait_since))
+            os.chmod(staged, 0o600)
+            os.replace(staged, path)
         else:
             path.unlink(missing_ok=True)
+            self._wait_since = None
 
     def _try_host(self):
         """Take the host's official-grading lock without blocking; True when held. A door that has just released it
@@ -986,6 +1031,8 @@ class _WorkLock:
         from carbon.backbone_catalog.receipt_job import GRADING_LOCK
 
         if time.monotonic() < self._yield_until:
+            return False
+        if self._behind_an_earlier_waiter():
             return False
         fd = os.open(Path(self._dir) / GRADING_LOCK, os.O_RDWR | os.O_CREAT, 0o600)
         try:
@@ -1053,6 +1100,8 @@ class _Taking:
         # Only a GRADE with work waits visibly (the starvation-alert input and the host's waiting list): an advance
         # round cannot tell whether it has work, and must never look like a starving door.
         visible = self.kind == "grade" and self.has_work is not None
+        work._grade_round = visible
+        work._wait_since = None
         waiting = False
         try:
             reason = work._declined()
@@ -1069,6 +1118,10 @@ class _Taking:
                         )
                     work._mark_waiting(True)
                     waiting = True
+                elif waiting:
+                    work._mark_waiting(
+                        True
+                    )  # refresh this door's place: it is still waiting
                 work._stop.wait(work._poll)
                 reason = work._declined()
                 if reason is not None:

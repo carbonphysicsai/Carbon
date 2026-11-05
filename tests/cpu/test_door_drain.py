@@ -7,6 +7,7 @@ lock. The host lock stays the one grading mutex (one grade per host at a time)."
 from __future__ import annotations
 
 import fcntl
+import itertools
 import json
 import os
 import threading
@@ -640,3 +641,101 @@ def test_a_failure_from_before_this_process_started_is_retried_on_the_first_roun
     assert (
         crown_pause_sweep.spaced(mine, 1, 10**6 - 5) is True
     )  # this process's own failure: spaced
+
+
+# --- round-robin across doors (Deploy 5 Nov 17:45: Motor's due king work starved by three doors) -------------------
+
+LOGGING_DOOR = r"""
+import os, sys, time
+sys.path[:0] = sys.argv[4:]
+from carbon.challenge_validator.direct_intake import _WorkLock
+work = _WorkLock(sys.argv[1], poll_s=0.05)
+end = time.monotonic() + float(sys.argv[2])
+while time.monotonic() < end:  # back-to-back grade rounds with due work, each holding the host lock 0.15 s
+    with work.taking("grade", has_work=lambda: True):
+        with open(sys.argv[3], "a") as log:
+            log.write(f"{os.getpid()}\n")
+        time.sleep(0.15)
+"""
+
+
+@pytest.mark.skipif(
+    not os.path.exists("/proc/self/stat"),
+    reason="door processes are told apart by /proc",
+)
+def test_doors_with_due_work_take_the_host_lock_in_turn_and_none_is_starved(
+    dirs, tmp_path
+):
+    """Four doors, every one with due work all the time (the 5 Nov shape): each gets the host lock in turn (the
+    longest-waiting door first), so the turn counts stay level and no door waits behind more than one round of each
+    other door. Under the old stand-back alone, whichever door polled first in the gap won.
+    """
+    import subprocess
+    import sys
+
+    host, _state = dirs
+    script = tmp_path / "door.py"
+    script.write_text(LOGGING_DOOR)
+    log = tmp_path / "turns.log"
+    doors = [
+        subprocess.Popen(
+            [sys.executable, str(script), str(host), "12", str(log), *sys.path],
+            env={**os.environ},
+        )
+        for _ in range(4)
+    ]
+    try:
+        for door in doors:
+            door.wait(timeout=120)
+    finally:
+        for door in doors:
+            if door.poll() is None:
+                door.kill()
+    turns = [int(line) for line in log.read_text().split()]
+    pids = {door.pid for door in doors}
+    assert set(turns) == pids  # every door took the lock
+    # the steady part (all four waiting): skip each door's start-up and the run-down at the end
+    steady = turns[8:-8]
+    counts = [steady.count(pid) for pid in pids]
+    assert max(counts) - min(counts) <= 2, counts
+    for pid in pids:
+        at = [i for i, p in enumerate(steady) if p == pid]
+        gaps = [b - a for a, b in itertools.pairwise(at)]
+        assert max(gaps) <= 2 * len(pids), (
+            pid,
+            gaps,
+        )  # never more than ~a round of every other door
+
+
+def test_a_grade_round_queues_behind_every_door_that_waited_longer(dirs, monkeypatch):
+    """The waiting list is first come, first served: a grade round that is not yet waiting arrives now (behind every
+    live waiter); once waiting, only an EARLIER live waiter goes first; a dead or frozen (stale) entry never holds it;
+    an advance round never queues."""
+    host, _state = dirs
+    waiting = host / direct_intake.WAITING_DIR
+    waiting.mkdir(mode=0o700)
+    live = {4001: 11, 4002: 22}  # pid -> process start: these two are live
+    monkeypatch.setattr(direct_intake, "_process_start", lambda pid: live.get(pid, 99))
+    work = _WorkLock(host, poll_s=POLL)
+    work._grade_round = True
+    (waiting / "4001-11").write_text("1000")
+    assert work._behind_an_earlier_waiter()  # not waiting yet: behind the live waiter
+    work._wait_since = 500
+    assert not work._behind_an_earlier_waiter()  # waited longer than it
+    work._wait_since = 2000
+    assert work._behind_an_earlier_waiter()
+    (waiting / "4001-11").unlink()
+    (waiting / "4003-33").write_text(
+        "10"
+    )  # pid 4003's process is not the one that wrote it: not a waiter
+    assert not work._behind_an_earlier_waiter()
+    (waiting / "4002-22").write_text("10")
+    old = time.time() - direct_intake.WAITER_STALE_S - 5
+    os.utime(
+        waiting / "4002-22", (old, old)
+    )  # alive but never refreshed: frozen, not a waiter
+    assert not work._behind_an_earlier_waiter()
+    os.utime(waiting / "4002-22")
+    assert work._behind_an_earlier_waiter()
+    work._grade_round = False  # an advance round never queues
+    assert not work._behind_an_earlier_waiter()
