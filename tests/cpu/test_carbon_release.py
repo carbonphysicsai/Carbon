@@ -283,7 +283,15 @@ def test_drain_and_release_items(tool, tmp_path):
 
 
 def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
-    root, base = repo
+    root, _ = repo
+    base = _commit(
+        root,
+        {
+            "carbon/challenge_validator/lean_recipe.py": SERVED,
+            "carbon/development_session/research_tasks.py": "A = 1\n",
+        },
+        "served list",
+    )
     new = _commit(root, {"docs/notes.md": "d\n"}, "docs")
     heads = _heads(tmp_path, [(new, "FINAL")])
     old_root = _root(tmp_path, "old", caches=[(BUNDLE, "x")], accepted=base)
@@ -300,7 +308,16 @@ def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
     # the disk floor needs 20 GiB free: the result is either a full PASS or a disk-only REFUSE
     others = {k: v["state"] for k, v in out["items"].items() if k != "disk"}
     assert others == dict.fromkeys(
-        ["final_heads", "accepted", "ancestry", "exam", "caches", "drain", "release"],
+        [
+            "final_heads",
+            "accepted",
+            "ancestry",
+            "exam",
+            "served_source",
+            "caches",
+            "drain",
+            "release",
+        ],
         tool.PASS,
     )
     assert (rc, out["state"]) in ((0, tool.PASS), (3, tool.REFUSE))
@@ -563,3 +580,57 @@ def test_a_push_line_only_for_a_final_fast_forward(tool, repo, tmp_path):
     _git(root, "branch", "-f", "main-ref", base)
     held = _heads(tmp_path, [(side, "HOLD")])
     assert tool.pushline(root, side, held, main="main-ref")["code"] == "not_final"
+
+
+SERVED = """_SOURCE_PATHS = (
+    "carbon/challenge_validator/lean_recipe.py",
+    "carbon/development_session/research_tasks.py",
+)
+"""
+WORKER = """STAGED_MODULES = (
+    "carbon.level4.graph",
+)
+"""
+
+
+def test_served_source_changes_are_listed_never_refused(tool, repo):
+    root, base = repo
+    with_lists = _commit(
+        root,
+        {
+            "carbon/challenge_validator/lean_recipe.py": SERVED,
+            "carbon/development_session/bundle_construction_worker.py": WORKER,
+            "carbon/development_session/research_tasks.py": "A = 1\n",
+            "carbon/level4/graph.py": "G = 1\n",
+        },
+        "served lists",
+    )
+    assert tool.served_files(root, with_lists) == {
+        "carbon/challenge_validator/lean_recipe.py",
+        "carbon/development_session/research_tasks.py",
+        "carbon/level4/graph.py",
+    }
+    docs = _commit(root, {"docs/notes.md": "g\n"}, "docs")
+    assert tool.served_source_item(root, with_lists, docs) == {
+        "state": tool.PASS,
+        "changed": [],
+    }
+    plumbing = _commit(
+        root,
+        {
+            "carbon/development_session/research_tasks.py": "A = 1  # comment\n",
+            "carbon/level4/graph.py": "G = 2\n",
+        },
+        "plumbing",
+    )
+    out = tool.served_source_item(root, docs, plumbing)
+    assert out["state"] == tool.PASS
+    assert out["changed"] == [
+        "carbon/development_session/research_tasks.py",
+        "carbon/level4/graph.py",
+    ]
+    assert "declared record" in out["note"]
+    with pytest.raises(tool.ei.Unknown):
+        tool.served_files(
+            root, base
+        )  # a revision with no served list is never "nothing served"

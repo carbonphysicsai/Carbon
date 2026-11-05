@@ -28,6 +28,8 @@ files the NEW revision's M2 rule names, sorted), so the record the receiver chec
   whose record is valid, names OLD and NEW as full ids and whose paths EQUAL the receiver's own list for OLD..NEW; a
   pack change (a re-seal) passes only with ``--declared-pack-change REASON`` (the receiver then regrades its king);
   an edit to the M2 rule itself only with ``--declared-rule-change REASON``.
+- ``served_source`` (R66, design note s1.5): lists every `lean_recipe._SOURCE_PATHS` / staged-module file OLD..NEW
+  changes, with what it costs on the doors; it informs, it never refuses by itself.
 - ``disk`` (R25, Validator 08:13): free space on NEW's filesystem >= 2 x OLD root (prepare) or 1.5 x (switch) + 20 GiB.
 - ``accepted``: OLD and NEW are the revisions the two roots' receiver configs ACCEPT (the ones the receiver compares and
   a declared record must name); ``ancestry``: OLD is an ancestor of NEW in ``--repo`` (the NEW release's checkout), as
@@ -498,6 +500,64 @@ def accepted_item(old_root, new_root, old, new) -> dict:
     return {"state": PASS}
 
 
+SERVED_FILE = "carbon/challenge_validator/lean_recipe.py"
+STAGING_WORKERS = (
+    "carbon/development_session/bundle_construction_worker.py",
+    "carbon/development_session/direct_graph_construction_worker.py",
+)
+
+
+def _tuple_at(repo, commit, path, name):
+    """The string tuple assigned to ``name`` at module level in ``path`` at ``commit`` (by ast), or None."""
+    try:
+        tree = ast.parse(ei._git(repo, "show", f"{commit}:{path}").decode("utf-8"))
+    except ei.Unknown:
+        return None
+    except (SyntaxError, ValueError) as failed:
+        raise ei.Unknown("served_source_list_unreadable") from failed
+    for node in tree.body:
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and getattr(node.targets[0], "id", None) == name
+        ):
+            value = ast.literal_eval(node.value)
+            if type(value) is not tuple or any(type(v) is not str for v in value):
+                raise ei.Unknown("served_source_list_unreadable")
+            return value
+    return None
+
+
+def served_files(repo, commit) -> set:
+    """The files the served source identity hashes at ``commit`` (`lean_recipe._source_identity`): `_SOURCE_PATHS`
+    plus every module the construction workers stage."""
+    files = set(_tuple_at(repo, commit, SERVED_FILE, "_SOURCE_PATHS") or ())
+    for worker in STAGING_WORKERS:
+        for module in _tuple_at(repo, commit, worker, "STAGED_MODULES") or ():
+            files.add(module.replace(".", "/") + ".py")
+    if not files:
+        raise ei.Unknown("served_source_list_absent")
+    return files
+
+
+def served_source_item(repo, old, new) -> dict:
+    """Which served-source files OLD..NEW changes (design note s1.5): never a refusal by itself, but said before the
+    switch with its cost, so a plumbing edit is a decision, not a surprise."""
+    files = served_files(repo, old) | served_files(repo, new)
+    names = ei._git(repo, "diff", "--name-only", "-z", "--no-renames", old, new, "--")
+    changed = sorted(p for p in names.decode("utf-8").split("\0") if p in files)
+    if not changed:
+        return {"state": PASS, "changed": []}
+    return {
+        "state": PASS,
+        "changed": changed,
+        "note": (
+            "served source changes: on every door this needs the declared record + one spare regrade "
+            "(design note s1.5); if R66 showed key movement, every king is rebuilt"
+        ),
+    }
+
+
 def release_item(new_root, new) -> dict:
     path = Path(new_root) / "release.json"
     try:
@@ -546,6 +606,7 @@ def precheck(args) -> dict:
             ),
         ),
         ("disk", lambda: disk_item(args.mode, args.old_root, args.new_root)),
+        ("served_source", lambda: served_source_item(args.repo, old, new)),
     ]
     if args.mode == "switch":
         checks += [
