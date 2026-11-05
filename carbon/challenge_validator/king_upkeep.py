@@ -39,11 +39,20 @@ def _waiting(pool, exam):
 def _king_key_on(pool, king, exam):
     """The evaluation key of the king's latest evaluation on ``exam``, or None."""
     key = None
+    linked = getattr(pool, "king_rebuild_of", None)
     for body in pool.private_evaluation_bodies():
         evidence = body.get("evidence") or {}
-        if (
-            body.get("submission_id") == king
-            and evidence.get("evaluation_pack_digest") == exam
+        sid = body.get("submission_id")
+        if evidence.get("evaluation_pack_digest") != exam:
+            continue
+        if sid == king or (
+            linked is not None
+            and type(sid) is str
+            and sid.startswith("krb_")
+            and (linked(king, body.get("evaluation_key")) or {}).get(
+                "derived_submission_id"
+            )
+            == sid
         ):
             key = body.get("evaluation_key")
     return key
@@ -167,6 +176,9 @@ def _plan(pool, intake, active):
         return None
     waiting = _waiting(pool, exam)
     if waiting:
+        blocked = getattr(pool, "king_rebuild_blocked", None)
+        if blocked is not None and blocked(king, exam) is not None:
+            return None  # his recipe cannot build on this judge image: contention stops until the owner decides
         if not _due(pool, king, exam, REGRADE):
             return None
         return REGRADE, king, exam, waiting, None
@@ -202,6 +214,22 @@ def _step(pool, intake, root, artifacts, entries, active):
         entry = king_origin_entry(pool, root, king)
         if entry is None:
             return _failed(pool, king, exam, REGRADE, "king_entry_unresolved")
+        from . import lean_recipe_retention as retention
+
+        try:
+            moved = retention.king_parent_moved(
+                intake.adapter,
+                pool,
+                entry,
+                artifact_directory=artifacts,
+                entry_directory=entries,
+            )
+        except Exception as error:  # noqa: BLE001
+            return _failed(
+                pool, king, exam, REGRADE, str(getattr(error, "code", None) or error)
+            )
+        if moved:
+            return _rebuild(pool, intake, king, exam, waiting, artifacts, entries)
         koth_journal.note(
             "king_regrade_started", incumbent=king, waiting=len(waiting), exam=exam
         )
@@ -288,6 +316,60 @@ def _step(pool, intake, root, artifacts, entries, active):
         REMEASURE,
         f"{state}:{(outcome or {}).get('reason')}",
     )
+
+
+def _rebuild(pool, intake, king, exam, waiting, artifacts, entries):
+    """ROUTE (b) (Carbon Validator 5 Nov 10:53 / 10:57): the king predates this judge image, so his admitted recipe is
+    rebuilt on it and graded as a challenger's would be, filed under its derived row and linked to him
+    (`lean_recipe_retention.rebuild_king`). A capability gap stops his contention once, with ONE owner line; anything
+    else is a typed failure, retried (first round after a switch at once)."""
+    from . import lean_recipe_retention as retention
+
+    key = waiting[0]["evaluation_key"]
+    koth_journal.note(
+        "king_rebuild_started", incumbent=king, waiting=len(waiting), evaluation_key=key
+    )
+    try:
+        rebuilt = retention.rebuild_king(
+            intake.adapter,
+            pool,
+            king=king,
+            evaluation_key=key,
+            artifact_directory=artifacts,
+            entry_directory=entries,
+        )
+    except Exception as error:  # noqa: BLE001
+        code = str(getattr(error, "code", None) or error or type(error).__name__)
+        if code == retention.KING_REBUILD_GAP:
+            if pool.record_king_rebuild_blocked(king, exam, code):
+                koth_journal.note(
+                    "operator_alert",
+                    code="king_rebuild_capability_gap",
+                    action="owner_keep_or_vacate",
+                    incumbent=king,
+                    exam=exam,
+                )
+            return {"step": "rebuild", "state": "BLOCKED", "code": code}
+        return _failed(pool, king, exam, REGRADE, code)
+    state = rebuilt.get("private_evaluation_state")
+    if state != "BOUND_DEVELOPMENT_ONLY":
+        return _failed(
+            pool,
+            king,
+            exam,
+            REGRADE,
+            f"regrade_unbound:{rebuilt.get('private_evaluation_reason') or state}",
+        )
+    if pool.awaits_incumbent_regrade(waiting[0]):
+        return _failed(pool, king, exam, REGRADE, "king_regrade_key_differs")
+    koth_journal.note(
+        "king_rebuilt",
+        incumbent=king,
+        derived=rebuilt.get("king_rebuild_id"),
+        evaluation_key=key,
+        waiting=len(waiting),
+    )
+    return {"step": "rebuild", "state": "DONE"}
 
 
 def _kept_rebuilds(pool, king, key):

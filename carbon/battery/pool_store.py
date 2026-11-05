@@ -1845,6 +1845,8 @@ class PoolStore:
                     return False
                 if self._private_evaluation(db, incumbent_id, key, pin) is not None:
                     return False
+                if self._rebuilt_evaluation(db, incumbent_id, key, pin) is not None:
+                    return False
                 return self._carried_evaluation(db, incumbent_id, candidate) is None
         except (StateError, KeyError, TypeError, ValueError):
             return False
@@ -1920,6 +1922,120 @@ class PoolStore:
                 "INSERT OR IGNORE INTO operations VALUES(?,?,?,?)",
                 (op, "crown_rebuild.v1", "RECORDED", record),
             )
+
+    # --- a king REBUILT on the current judge image (Carbon Validator 5 Nov 10:53 + 10:57, route (b)) ----------------
+    # The king's own models row and every evaluation on it stay byte-unchanged as history. His recipe rebuilt on the
+    # current judge image is retained as its OWN row under a DERIVED, host-owned id (never an entry, never crowned,
+    # counted or charged), and this write-once link resolves the king's evaluation on that key to it.
+
+    def record_king_rebuild(
+        self, king, derived, *, judge_image, evaluation_key, recipe_digest, hotkey
+    ):
+        """File the write-once link king -> derived rebuild for one evaluation key. The same record again is a no-op;
+        another refuses (``king_rebuild_changed``); a recipe or hotkey other than the king's admission refuses
+        (``king_rebuild_mismatch``)."""
+        from carbon.challenge_validator.interface import is_digest
+
+        if (
+            type(king) is not str
+            or type(derived) is not str
+            or not derived.startswith("krb_")
+            or not is_digest(judge_image)
+            or not is_digest(evaluation_key)
+        ):
+            raise StateError("king_rebuild_invalid")
+        admitted = self.submission(king)
+        if (
+            admitted["hotkey"] != hotkey
+            or admitted["binding"].get("recipe_digest") != recipe_digest
+        ):
+            raise StateError("king_rebuild_mismatch")
+        op = self._bank_operation("king_rebuild.v1", king, evaluation_key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.king-rebuild.v1",
+                "king_submission_id": king,
+                "derived_submission_id": derived,
+                "judge_image": judge_image,
+                "evaluation_key": evaluation_key,
+                "recipe_digest": recipe_digest,
+                "hotkey": hotkey,
+            }
+        )
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is None:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (op, "king_rebuild.v1", "RECORDED", body),
+                )
+            elif row[0] != body:
+                raise StateError("king_rebuild_changed")
+
+    def _king_rebuild_of(self, db, king, evaluation_key):
+        op = self._bank_operation("king_rebuild.v1", king, evaluation_key)
+        row = db.execute(
+            "SELECT body FROM operations WHERE op_id=? AND kind='king_rebuild.v1'",
+            (op,),
+        ).fetchone()
+        return None if row is None else json.loads(row[0])
+
+    def king_rebuild_of(self, king, evaluation_key):
+        """The king's rebuild link for ``evaluation_key``, or None. Reads only."""
+        with self.db() as db:
+            return self._king_rebuild_of(db, king, evaluation_key)
+
+    def _rebuilt_evaluation(self, db, king, key, source_pin):
+        """The king's evaluation on ``key`` through his rebuild link: the derived row's own filed evaluation, presented
+        under the KING's submission id (contention, crown and emissions identity stay his; ``rebuilt_as`` names the
+        derived row). None without a link or an evaluation."""
+        link = self._king_rebuild_of(db, king, key)
+        if link is None:
+            return None
+        body = self._private_evaluation(
+            db, link["derived_submission_id"], key, source_pin
+        )
+        if body is None:
+            return None
+        return {
+            **body,
+            "submission_id": king,
+            "rebuilt_as": link["derived_submission_id"],
+        }
+
+    def record_king_rebuild_blocked(self, king, exam, code):
+        """File, once, that the king's recipe cannot build for this exam's judge image (a capability gap, not a
+        scientific fail): his contention stops and the owner decides keep / vacate (Carbon Validator 10:53 (5)). True
+        when filed now."""
+        op = self._bank_operation("king_rebuild_blocked.v1", king, exam)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.king-rebuild-blocked.v1",
+                "king_submission_id": king,
+                "exam": exam,
+                "code": str(code),
+                "action": "owner_keep_or_vacate",
+            }
+        )
+        with self.transaction() as db:
+            return (
+                db.execute(
+                    "INSERT OR IGNORE INTO operations VALUES(?,?,?,?)",
+                    (op, "king_rebuild_blocked.v1", "BLOCKED", body),
+                ).rowcount
+                == 1
+            )
+
+    def king_rebuild_blocked(self, king, exam):
+        """The filed blocked record for (king, exam), or None."""
+        op = self._bank_operation("king_rebuild_blocked.v1", king, exam)
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
 
     def record_contention_alert(self, incumbent, key):
         """File the operator alert that the king ``incumbent`` needs a regrade on ``key`` before challengers there can
@@ -2548,6 +2664,11 @@ class PoolStore:
             if incumbent_id is not None and incumbent is None:
                 incumbent = self._carried_evaluation(db, incumbent_id, candidate)
             if incumbent_id is not None and incumbent is None:
+                # route (b): his recipe rebuilt on the current judge image, through the write-once link
+                incumbent = self._rebuilt_evaluation(
+                    db, incumbent_id, key, registered_source_receipt_sha256
+                )
+            if incumbent_id is not None and incumbent is None:
                 raise StateError("incumbent_evaluation_required")
             return {
                 "scope": "PRIVATE_OPERATOR_DEVELOPMENT",
@@ -2795,19 +2916,33 @@ class PoolStore:
     def incumbent_standing(self, model_id):
         """The incumbent's latest scored private evaluation, for the public king
         document: ``{"owner", "total"}``, or None when it has none scored. Reads only.
+
+        A king rebuilt on the current judge image (route (b)) stands on his newest evaluation, which is then the linked
+        derived row's: the rebuilt score is his standing, up or down (Carbon Validator 10:53 (4)).
         """
         with self.db() as db:
             rows = db.execute(
                 "SELECT body FROM operations WHERE kind='private_evaluation.v1' "
                 "AND state='BOUND_DEVELOPMENT_ONLY' ORDER BY rowid DESC"
             ).fetchall()
+            links = db.execute(
+                "SELECT body FROM operations WHERE kind='king_rebuild.v1'"
+            ).fetchall()
+        own = {model_id}
+        for (raw,) in links:
+            try:
+                link = json.loads(raw)
+            except ValueError:
+                continue
+            if link.get("king_submission_id") == model_id:
+                own.add(link.get("derived_submission_id"))
         for (raw,) in rows:
             try:
                 found = json.loads(raw)
                 model = found["evidence"]["model_p"]
             except (ValueError, KeyError, TypeError):
                 continue
-            if found.get("submission_id") != model_id:
+            if found.get("submission_id") not in own:
                 continue
             total = model.get("total_score")
             if model.get("score_status") != "SCORED_DEVELOPMENT_CANDIDATE" or (

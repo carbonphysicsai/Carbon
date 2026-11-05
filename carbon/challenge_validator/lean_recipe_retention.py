@@ -2861,6 +2861,9 @@ class _Regrade:
     #: The image every inference step of this regrade runs on (`_regrade_inference_image`): the receiver's own, or a
     #: sitting king's retained parent (route (a)). None = the provider's inference image.
     inference_image: object = None
+    #: The pool submission id the regraded evidence is filed under, when it is not the origin task's own: a king's
+    #: rebuild (route (b)) is filed under its DERIVED row (`king_rebuild_id`), never under the host task.
+    file_as: object = None
 
 
 def _inference_image_of(provider, regrade):
@@ -2882,7 +2885,9 @@ def _record_regraded_evidence(regrade, bind_inputs, pin=None):
     if type(promotion) is PoolStore:
         promotion = BankPromotion(promotion, registered_source_receipt_sha256=pin)
     try:
-        return promotion.retain_private(regrade.origin_task_id, **bind_inputs)
+        return promotion.retain_private(
+            regrade.file_as or regrade.origin_task_id, **bind_inputs
+        )
     except StateError as refused:
         raise RetentionUnavailable("regrade_record_" + refused.code) from refused
 
@@ -2915,6 +2920,189 @@ def _docker_image_id(image_id):
     return found if type(found) is str else None
 
 
+def _parents(kind, files, provider, recipe):
+    """``(retained parent, current parent)``: the image the retained model was built on (a graph: inferred on) and the
+    one this receiver serves for it now, from the retained image.json; reads only, runs nothing.
+    """
+    from carbon.development_session.library_bundles import LibraryBundleRef
+
+    try:
+        if kind == "graph":
+            return (
+                json.loads(files["image.json"])["image_id"],
+                provider.inference_image.image_id,
+            )
+        return (
+            json.loads(files["image.json"])["parent_image_id"],
+            _construction_parent(
+                provider,
+                LibraryBundleRef.from_dict(recipe.to_dict()["source"]["bundle_ref"]),
+            ).image_id,
+        )
+    except (KeyError, TypeError, ValueError, AttributeError):
+        raise RetentionUnavailable("regrade_construction_parent_unavailable") from None
+
+
+#: Route (b) (Carbon Validator 5 Nov 10:53 + 10:57): a king who predates this receiver's judge image is REBUILT from his
+#: admitted recipe on it, at the official seed, host-owned and uncounted, retained under a DERIVED pool id with this
+#: prefix (never an ``rtsk_`` task: never a challenger, never crowned, counted, charged or a board row of its own).
+KING_REBUILD_PREFIX = "krb_"
+KING_REBUILD_SEED = 0
+#: The derived build's refusal that is a CAPABILITY GAP (the recipe cannot build on the current image), not
+#: infrastructure: the king's contention stops and the owner decides keep / vacate (ruling (5)).
+KING_REBUILD_GAP = "rebuild_task_refused"
+
+
+def king_rebuild_id(king, judge_image, evaluation_key):
+    """The deterministic derived pool id of the king's rebuild for (judge image, evaluation key)."""
+    raw = f"KING_REBUILD\0{king}\0{judge_image}\0{evaluation_key}".encode()
+    return KING_REBUILD_PREFIX + hashlib.sha256(raw).hexdigest()
+
+
+def king_parent_moved(
+    adapter, pool_store, entry_id, *, artifact_directory, entry_directory
+):
+    """Whether the SITTING king's retained model was built on an image this receiver no longer serves for it (its
+    retained image.json vs the current parent), read BEFORE any inference, so a king who must be rebuilt never spends
+    a regrade to be refused. Reads only."""
+    base = _owner_directory(artifact_directory, "artifact_directory")
+    entries = _owner_directory(entry_directory, "entry_directory")
+    _entry, _origin, owner, _manifest, files, recipe = _regrade_origin(
+        adapter, base, entries, entry_id, incumbent=_regrade_incumbent(pool_store)
+    )
+    kind = recipe.to_dict()["source"]["kind"]
+    retained, current = _parents(kind, files, adapter._provider(owner), recipe)
+    return retained != current
+
+
+def rebuild_king(
+    adapter,
+    pool_store,
+    *,
+    king,
+    evaluation_key,
+    artifact_directory,
+    entry_directory,
+    runner=None,
+):
+    """ROUTE (b): rebuild the sitting ``king`` from his ADMITTED recipe on this receiver's judge image and file the
+    grade as his evaluation on ``evaluation_key`` (the challengers' key), exactly as a challenger's entry is built and
+    graded (Carbon Validator 5 Nov 10:53 terms (1)-(6) and 10:57 form):
+
+    1. build: `_derived_build` of the king's own admitted recipe at the official seed 0, as a HOST-OWNED derived task
+       (`crown_average.HOST_OWNER`: no miner ledger, no exam-cap slot, no fee, no Ladder), on the current
+       construction parent; a graph king's source is his retained envelope;
+    2. retain: the derived task's artifacts into the create-only bank (`_retain_served_artifacts`);
+    3. the DERIVED pool row ``king_rebuild_id(...)``: the king's hotkey, his admitted recipe digest and challenge
+       binding, the rebuilt state, RECONSTRUCTED; the king's own models row and old evaluations are never touched;
+    4. grade: the UNCOUNTED regrade of that entry on the active pack (unchanged leg minimums), filed under the derived
+       row, so `record_private_evaluation` / `_private_model` run unchanged;
+    5. link: the write-once ``king_rebuild.v1`` (king -> derived for this key), through which contention resolves the
+       king's evaluation; his submission id stays the crown, board and contention identity.
+
+    Returns the regrade's result. A build the image refuses raises `RetentionUnavailable` with `KING_REBUILD_GAP`;
+    any other failure raises its own typed code (infrastructure: retried by the caller).
+    """
+    import contextlib
+
+    from carbon.challenge_validator import crown_average
+
+    incumbent = (pool_store.incumbent() or {}).get("model_id")
+    if incumbent != king:
+        raise RetentionUnavailable("king_rebuild_not_the_sitting_king")
+    admitted = pool_store.submission(king)
+    hotkey = admitted["hotkey"]
+    binding = admitted["binding"]
+    recipe_digest = binding.get("recipe_digest")
+    # the origin's owner: the king may predate this receiver's contract (Deploy 06:15): hold his admitted owner
+    hold = contextlib.nullcontext()
+    if adapter.owner(king) is None:
+        admitted_owner = adapter.ledger.admitted_owner(king)
+        if admitted_owner is None or admitted_owner[1] != hotkey:
+            raise RetentionUnavailable("king_rebuild_owner_unavailable")
+        hold = adapter.deriving(king, admitted_owner[1])
+    host_owner = crown_average.HOST_OWNER
+    with hold:
+        task_id = _derived_build(
+            adapter,
+            king,
+            KING_REBUILD_SEED,
+            rebuild=f"KING_REBUILD\0{king}\0{evaluation_key}",
+            host_owner=host_owner,
+        )
+    judge_image = adapter._provider(host_owner).inference_image.image_id
+    derived = king_rebuild_id(king, judge_image, evaluation_key)
+    with adapter.deriving(task_id, host_owner):
+        _provider, _task, result, artifacts, _evidence = _retain_served_artifacts(
+            adapter,
+            task_id,
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+        )
+        entry = json.loads(
+            _private_measurement_bytes(Path(result["entry_path"]), 1024**2)
+        )
+        if entry.get("recipe_digest") != recipe_digest:
+            raise RetentionUnavailable("king_rebuild_recipe_differs")
+        _admit_king_rebuild(
+            pool_store, derived, admitted, artifacts, task_id, judge_image
+        )
+        graded = regrade_retained_entry(
+            adapter,
+            result["entry_id"],
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+            runner=runner,
+            promotion=pool_store,
+            file_as=derived,
+        )
+    if graded.get("private_evaluation_state") == "BOUND_DEVELOPMENT_ONLY":
+        pool_store.record_king_rebuild(
+            king,
+            derived,
+            judge_image=judge_image,
+            evaluation_key=evaluation_key,
+            recipe_digest=recipe_digest,
+            hotkey=hotkey,
+        )
+    return {**graded, "king_rebuild_id": derived, "king_rebuild_task": task_id}
+
+
+def _admit_king_rebuild(pool_store, derived, admitted, artifacts, task_id, judge_image):
+    """The derived pool row of a king's rebuild, once: his hotkey, request, admitted recipe and challenge binding, the
+    rebuilt state, RECONSTRUCTED. A replay keeps the first rows (admit / retain_model are first-wins).
+    """
+    from carbon.battery.pool_store import StateError
+
+    try:
+        pool_store.submission(derived)
+    except StateError as missing:
+        if missing.code != "unknown_submission":
+            raise
+        pool_store.admit(
+            derived,
+            request_digest=admitted["request_digest"],
+            hotkey=admitted["hotkey"],
+            challenge=admitted["challenge"],
+            strategy=admitted["strategy"],
+            binding=admitted["binding"],
+        )
+    pool_store.retain_model(
+        derived,
+        recipe_digest=admitted["binding"].get("recipe_digest"),
+        seed=KING_REBUILD_SEED,
+        state=artifacts["state.npz"],
+        reconstruction={
+            "scope": "KING_REBUILD_ON_JUDGE_IMAGE",
+            "seed": KING_REBUILD_SEED,
+            "king_submission_id": admitted["submission_id"],
+            "derived_task_id": task_id,
+            "judge_image": judge_image,
+        },
+    )
+    pool_store.mark(derived, "RECONSTRUCTED")
+
+
 def _regrade_inference_image(kind, files, provider, recipe, origin, incumbent):
     """The image a regrade infers on. The retained model was built on the parent its retention recorded; a regrade runs
     only while this receiver serves that runtime on the same parent image (Validator, OWNER-BACKBONE-CATALOG-01). A graph
@@ -2927,20 +3115,7 @@ def _regrade_inference_image(kind, files, provider, recipe, origin, incumbent):
     inference image says nothing about the image the king was inferred on). Journal ``king_regrade_on_retained_parent``.
     Anything else, and any other task, refuses ``regrade_construction_parent_differs`` as before (the reason journaled).
     """
-    from carbon.development_session.library_bundles import LibraryBundleRef
-
-    try:
-        if kind == "graph":
-            retained_parent = json.loads(files["image.json"])["image_id"]
-            current_parent = provider.inference_image.image_id
-        else:
-            retained_parent = json.loads(files["image.json"])["parent_image_id"]
-            current_parent = _construction_parent(
-                provider,
-                LibraryBundleRef.from_dict(recipe.to_dict()["source"]["bundle_ref"]),
-            ).image_id
-    except (KeyError, TypeError, ValueError, AttributeError):
-        raise RetentionUnavailable("regrade_construction_parent_unavailable") from None
+    retained_parent, current_parent = _parents(kind, files, provider, recipe)
     if retained_parent == current_parent:
         return provider.inference_image
     if incumbent is None or origin != incumbent:
@@ -3110,25 +3285,11 @@ def retain_rebuild_evidence(
     return {"submission_id": derived_task_id, "evidence": evidence}
 
 
-def rebuild_at_seed(
-    adapter,
-    origin,
-    seed,
-    *,
-    repeat=0,
-    host_owner,
-    artifact_directory,
-    entry_directory,
-    runner=None,
-):
-    """The crown's averaging rebuild: build ``origin``'s recipe AGAIN at the validator-chosen ``seed`` and grade it.
-
-    A derived task under the HOST-OWNED synthetic ``host_owner`` (never a chain hotkey, never the miner), through the
-    same admission, build, inference, retention and custody code as any task: only its build seed differs (the
-    provider's host-private seed map). Its identity binds the origin, the seed and ``repeat`` (0 the averaging build,
-    1 the host-fault second build). It appears in no miner's task list or status, takes no exam-cap slot, writes no
-    Ladder document and is never a pool submission, crown contender or weights source: its only output is the
-    bound evaluation evidence returned to `crown_average`. A retry finds the same task and reuses it.
+def _derived_build(adapter, origin, seed, *, rebuild, host_owner):
+    """BUILD ``origin``'s admitted recipe as a derived task under ``host_owner`` at ``seed`` (the shared build half of
+    `rebuild_at_seed` and `rebuild_king`): the same admission, build and FAILED_INFRA rerun rule as any task, its identity
+    bound to ``rebuild`` (a label of the caller's). Returns the SUCCEEDED derived task's id, or raises
+    `RetentionUnavailable` (``rebuild_task_<state>`` for a task that did not succeed).
     """
     from carbon.development_session.construction_recipe import ConstructionRecipe
     from carbon.research import DirectTaskStateV3
@@ -3158,7 +3319,7 @@ def rebuild_at_seed(
             host_owner,
             recipe,
             evaluation_pack_digest=provider.evaluation_pack_digest,
-            rebuild=f"{origin}\0{seed}\0{repeat}",
+            rebuild=rebuild,
             rerun=generation,
         )
         task_id = provider._task_id(request)
@@ -3185,10 +3346,40 @@ def rebuild_at_seed(
     ).task
     if task.state is not DirectTaskStateV3.SUCCEEDED:
         raise RetentionUnavailable("rebuild_task_" + task.state.value.lower())
-    with adapter.deriving(task_id.value, host_owner):
+    return task_id.value
+
+
+def rebuild_at_seed(
+    adapter,
+    origin,
+    seed,
+    *,
+    repeat=0,
+    host_owner,
+    artifact_directory,
+    entry_directory,
+    runner=None,
+):
+    """The crown's averaging rebuild: build ``origin``'s recipe AGAIN at the validator-chosen ``seed`` and grade it.
+
+    A derived task under the HOST-OWNED synthetic ``host_owner`` (never a chain hotkey, never the miner), through the
+    same admission, build, inference, retention and custody code as any task: only its build seed differs (the
+    provider's host-private seed map). Its identity binds the origin, the seed and ``repeat`` (0 the averaging build,
+    1 the host-fault second build). It appears in no miner's task list or status, takes no exam-cap slot, writes no
+    Ladder document and is never a pool submission, crown contender or weights source: its only output is the
+    bound evaluation evidence returned to `crown_average`. A retry finds the same task and reuses it.
+    """
+    task_id = _derived_build(
+        adapter,
+        origin,
+        seed,
+        rebuild=f"{origin}\0{seed}\0{repeat}",
+        host_owner=host_owner,
+    )
+    with adapter.deriving(task_id, host_owner):
         return retain_rebuild_evidence(
             adapter,
-            task_id.value,
+            task_id,
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
             runner=runner,
@@ -3246,6 +3437,7 @@ def regrade_retained_entry(
     counted: bool = False,
     pool_store=None,
     repeat_index: int = 0,
+    file_as=None,
 ) -> dict:
     """Regrade a retained model on the receiver's selected (rotated) evaluation pack.
 
@@ -3600,6 +3792,7 @@ def regrade_retained_entry(
                 else None
             ),
             inference_image,
+            file_as,
         ),
         **({"pool_store": pool_store} if counted else {}),
     )

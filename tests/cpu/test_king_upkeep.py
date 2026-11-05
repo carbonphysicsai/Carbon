@@ -181,6 +181,8 @@ def entry(monkeypatch):
     monkeypatch.setattr(
         king_upkeep, "king_origin_entry", lambda pool, root, king: digest("king entry")
     )
+    # a king built on this receiver's image: the plain regrade (route (b) is its own tests)
+    monkeypatch.setattr(retention, "king_parent_moved", lambda *a, **k: False)
 
 
 def test_a_waiting_challenger_makes_the_receiver_regrade_its_king(
