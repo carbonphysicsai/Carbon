@@ -387,12 +387,19 @@ def test_the_build_never_reads_the_origin_provider_when_custody_gives_the_recipe
         seen["graph"] = graph
         return done
 
+    def refuse_zero(task, seed):
+        if not 0 < seed < 2**31 - 1:
+            raise ValueError("rebuild seed invalid")
+        seen["seed"] = seed
+
     host = SimpleNamespace(
         evaluation_pack_digest="EXAM",
         _views={},
         _requests={},  # no request for the king: the 5 Nov state
         _task_id=lambda request: SimpleNamespace(value="rtsk_" + "d" * 64),
-        set_rebuild_seed=lambda task, seed: seen.setdefault("seed", seed),
+        set_rebuild_seed=refuse_zero,  # as the real provider: never 0 (it hid Deploy's 12:41 failure when it did not)
+        set_origin_rebind=lambda task: seen.setdefault("marked", task),
+        _seed_for=lambda task: 0,
         start_research_task=start,
         get_research_result=lambda request: done,
     )
@@ -423,7 +430,11 @@ def test_the_build_never_reads_the_origin_provider_when_custody_gives_the_recipe
         graph_source=b"envelope",
     )
     assert task == "rtsk_" + "d" * 64
-    assert seen == {"seed": 0, "graph": {"graph_source": b"envelope"}}
+    # the official seed takes the provider's normal path: no derived seed, the validator mark instead
+    assert seen == {
+        "marked": "rtsk_" + "d" * 64,
+        "graph": {"graph_source": b"envelope"},
+    }
     with pytest.raises(
         retention.RetentionUnavailable, match="rebuild_graph_source_unavailable"
     ):

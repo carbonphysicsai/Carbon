@@ -163,3 +163,110 @@ def research_module_path():
 
 def test_the_provider_class_is_the_one_under_test():
     assert DirectDevelopmentTasksV3.set_rebuild_seed is not None
+
+
+# --- route (b): a king's rebuild at the OFFICIAL seed through the real provider (Deploy 5 Nov 12:41) ---------------
+
+
+def _adapter(request, provider):
+    """The adapter surface `_derived_build` uses, over the REAL provider: every request is the fixture's."""
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        _provider=lambda owner: provider,
+        _request=lambda owner, recipe, **identity: request,
+        _ended_on_infra=lambda owner, task_id, provider_: False,
+        _measure_query=False,
+        discovery=SimpleNamespace(
+            info=SimpleNamespace(challenge_key=request.challenge_key)
+        ),
+    )
+
+
+def _build(request, provider, seed):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+
+    try:
+        return retention._derived_build(
+            _adapter(request, provider),
+            "rtsk_" + "a" * 64,
+            seed,
+            rebuild="KING_REBUILD",
+            host_owner="host",
+            recipe=ConstructionRecipe.from_dict(request.recipe),
+        )
+    except retention.RetentionUnavailable as ended:
+        return str(
+            ended
+        )  # the stand-in build claims a success the provider does not accept
+
+
+def test_a_kings_rebuild_at_the_official_seed_reaches_the_build_at_seed_zero(
+    tmp_path, monkeypatch, builds
+):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    request, provider, _ = _fixture(tmp_path, monkeypatch)
+    tasks = provider()
+    try:
+        ended = _build(request, tasks, retention.KING_REBUILD_SEED)
+        assert builds == [
+            0
+        ]  # through admission and the queue INTO the build, at the official seed
+        value = tasks._task_id(request).value
+        assert (
+            tasks._task_seeds == {} and tasks._seed_for(value) == 0
+        )  # no derived seed: the normal path
+        assert (
+            value in tasks._origin_rebinds
+        )  # the validator mark that lets it carry a king's retained source
+        assert tasks._derived_rebuild(request)
+        # a retry finds the same task at the same seed and builds nothing again
+        assert _build(request, tasks, retention.KING_REBUILD_SEED) == ended
+        assert builds == [0]
+    finally:
+        tasks.close()
+
+
+def test_a_kings_rebuild_retried_after_a_restart_is_never_admitted_again(
+    tmp_path, monkeypatch, builds
+):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    request, provider, _ = _fixture(tmp_path, monkeypatch)
+    tasks = provider()
+    ended = _build(request, tasks, retention.KING_REBUILD_SEED)
+    tasks.close()
+    reopened = provider()  # the in-memory mark is gone; the task and its seed 0 are not
+    try:
+        assert reopened._origin_rebinds == set()
+        assert _build(request, reopened, retention.KING_REBUILD_SEED) == ended
+        assert builds == [0]
+    finally:
+        reopened.close()
+
+
+def test_a_retry_proves_the_seed_either_way(tmp_path, monkeypatch, builds):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    request, provider, _ = _fixture(tmp_path, monkeypatch)
+    tasks = provider()
+    try:
+        _build(
+            request, tasks, SEED
+        )  # a crown-average rebuild: the derived seed, as before
+        assert builds == [SEED]
+        assert (
+            _build(request, tasks, retention.KING_REBUILD_SEED)
+            == "rebuild_seed_changed"
+        )
+    finally:
+        tasks.close()
+    request, provider, _ = _fixture(tmp_path / "second", monkeypatch)
+    tasks = provider()
+    try:
+        _build(request, tasks, retention.KING_REBUILD_SEED)
+        assert _build(request, tasks, SEED) == "rebuild_seed_changed"
+    finally:
+        tasks.close()
