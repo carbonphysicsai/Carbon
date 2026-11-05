@@ -179,6 +179,20 @@ def _variant_rule(value):
     return value
 
 
+def _d_zero(value):
+    """A new version's registered engineer's-shortcut zero ``{"kind": "engineer_shortcut", "budget": B}`` (B the owner's, per
+    version: HUMAN_INPUT refuses), or None when the key is absent (every registered version: the median zero).
+    """
+    if value is _ABSENT:
+        return None
+    value = _picked(
+        value
+    )  # a whole-value HUMAN_INPUT is "not registered", as for the neighbouring keys
+    if type(value) is not dict or set(value) != {"kind", "budget"}:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    return {"kind": _picked(value["kind"]), "budget": _picked(value["budget"])}
+
+
 def registered_policies(challenge_id, version, *, path=CONSTANTS):
     """The version's `pool_proof_suite.Policies` from the registered file, or `PoolConstantsNotRegistered`."""
     try:
@@ -216,6 +230,8 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
                 ),
                 # optional, NEW versions only: absent is today's D, bit for bit
                 variant_rule=_variant_rule(optimizer.get("variant_rule", _ABSENT)),
+                # optional, NEW versions only: absent is today's median zero, unchanged
+                d_zero=_d_zero(optimizer.get("d_zero", _ABSENT)),
             ),
             honesty=pool_grader.HonestyPolicy(
                 scale=_picked(honesty["scale"]), reduction=_picked(honesty["reduction"])

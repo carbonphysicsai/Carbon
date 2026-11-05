@@ -528,4 +528,6 @@ def spec_from_source(document, binding):
         seed=document["seed"],
         public=bool(document.get("public", False)),
         shell=document.get("shell"),
+        # a new version's engineer's-shortcut zero (the custody shortcut run's anchor); absent = the median
+        zero=document.get("zero"),
     )

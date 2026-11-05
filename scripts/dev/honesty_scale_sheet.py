@@ -119,7 +119,11 @@ def record(plugin, spec, kind, version, *, a_multiplier):
 
     all_specs = [s for specs in plugin.sets for s in specs]
     optimizer = pool_grader.OptimizerPolicy(
-        budget=spec["budget"], sigma0=spec["sigma0"], population=spec["population"]
+        budget=spec["budget"],
+        sigma0=spec["sigma0"],
+        population=spec["population"],
+        # a NEW version's engineer's-shortcut D zero (absent = the median), as its pools carry it
+        d_zero=spec.get("d_zero"),
     )
     honesty = pool_grader.HonestyPolicy(scale=1.0, reduction=spec["honesty_reduction"])
     models = {}

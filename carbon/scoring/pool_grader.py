@@ -15,6 +15,9 @@ How one target is graded (spec section 2):
 3. D(target) = 0 if the pick is truly infeasible (or there is no predicted-feasible pick), else
    q * h, with q the closeness to the reference optimum (clipped to [0, 1], the median feasible
    objective scoring 0) and h = exp(-e / s_h) the honesty of the model's own prediction at its pick.
+   A NEW version may register the engineer's-shortcut zero instead (OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01:
+   `OptimizerPolicy.d_zero`, per target `build_target(zero=...)`): the objective the version's registered cheap
+   method reached screen-then-verify at budget B scores 0, so a high D means beating the engineer's shortcut.
 4. D(set) is the mean over the set's targets. No simulator runs.
 
 Every constant the spec marks OWNER (the query budget B, the honesty scale s_h, the A and A_gen
@@ -230,6 +233,13 @@ class OptimizerPolicy:
     #: refused variant is a reference failure (dropped, counted), never the candidate's. The shifts (the record's
     #: starting value is +-5 %), the limits per Challenge, ``min_valid`` and the weighting are the owner's.
     variant_rule: dict | None = None
+    #: The design score's zero, for NEW exam versions only (OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01). None is today's
+    #: median feasible pool objective (every registered version, unchanged). ``{"kind": "engineer_shortcut", "budget":
+    #: B}``: each target's zero is the objective the version's registered cheap method reached screen-then-verify at budget B
+    #: (B exam-rung solves under the equal-wall rule; `build_target`'s ``zero``, from the custody shortcut run). Whether B
+    #: must equal ``budget`` (the model's queries) is not enforced here (Validator's ruling). B is the owner's, per version, from the
+    #: dry-run curve; it has no default.
+    d_zero: dict | None = None
 
 
 #: The 2-class fallback of a version with ``balanced_region_mean`` D and no registered coverage plan (`region_class`): a
@@ -242,6 +252,11 @@ D_AGGREGATES = (None, "balanced_region_mean")
 A_GEN_AGGREGATES = (None, "balanced_region_mean", "ood_class_mean")
 #: The pooled class of OWNER-ACCURACY-OOD-MIN-01 item 1: out-of-range classes with fewer than N reserved cases.
 OTHER_OOD = "other_ood"
+#: The engineer's-shortcut zero's kind, and each target's zero status from the custody shortcut run: ``anchored`` (the
+#: shortcut's best verified-feasible objective is the zero), ``no_verified_feasible`` (none of its verified designs is
+#: feasible) and ``not_screened`` (its method does not predict this target's objective) keep the median zero, recorded.
+D_ZERO_KIND = "engineer_shortcut"
+ZERO_STATUSES = ("anchored", "no_verified_feasible", "not_screened")
 COVERAGE_PLAN_SCHEMA = "carbon.pool.coverage-plan.v1"
 
 
@@ -440,6 +455,24 @@ def _check_policies(optimizer, honesty):
         ),
         "coverage_plan_is_not_the_registered_one",
     )
+    zero = optimizer.d_zero
+    # A variant re-asks the question with a shifted limit, so the shortcut's anchor (run on the base) is not that variant's:
+    # until the Validator rules how a variant gets its zero, the two new-version rules do not combine (fail closed).
+    _require(
+        zero is None or optimizer.variant_rule is None,
+        "d_zero_with_a_variant_rule_needs_a_ruling",
+    )
+    _require(
+        zero is None
+        or (
+            type(zero) is dict
+            and set(zero) == {"kind", "budget"}
+            and zero["kind"] == D_ZERO_KIND
+            and type(zero["budget"]) is int
+            and zero["budget"] >= 1
+        ),
+        "d_zero_must_be_none_or_engineer_shortcut_with_a_positive_int_budget",
+    )
     _require(
         optimizer.variant_rule is None or _valid_variant_rule(optimizer.variant_rule),
         VARIANT_RULE_INVALID,
@@ -536,7 +569,7 @@ class TargetSpec:
     agen: tuple  # indices reserved for accuracy only
     reference: int  # best feasible queryable point
     s_ref: float
-    s_low: float  # median feasible queryable objective, in sign * objective
+    s_low: float  # the D zero, in sign * objective: the median feasible queryable objective, or the anchored shortcut's s_zero
     start: tuple
     seed: int
     excluded: int  # pool points dropped at build time for a margin within U of a limit
@@ -559,6 +592,8 @@ class TargetSpec:
     # tuple of the valid variant specs, with the refused ones as ``((output, shift, code), ...)``: reference failures.
     variants: object = None
     variant_refusals: tuple = ()
+    # The engineer's-shortcut zero of a NEW version's target (`checked_zero`), part of the identity; None = the median.
+    zero: object = None
 
     @property
     def extended(self):
@@ -568,6 +603,49 @@ class TargetSpec:
 def _digest(value):
     raw = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return "sha256:" + hashlib.sha256(raw.encode()).hexdigest()
+
+
+def checked_zero(zero):
+    """A target's engineer's-shortcut zero from the custody shortcut run, checked: ``{"kind": "engineer_shortcut", "budget": B,
+    "status": one of `ZERO_STATUSES`, "s_zero": the shortcut's objective in the grader's sign x objective (``anchored`` only),
+    "record_sha256": the custody run record's sha256, "pool_digest": the digest of THIS pool's body without the zero (the run
+    names the pool it ran on; a zero from another pool refuses, Validator 21:30)}``; None for every registered version.
+    """
+    if zero is None:
+        return None
+    _require(type(zero) is dict, "zero_must_be_a_dict")
+    status = zero.get("status")
+    keys = {"kind", "budget", "status", "record_sha256", "pool_digest"} | (
+        {"s_zero"} if status == "anchored" else set()
+    )
+    _require(
+        set(zero) == keys
+        and zero["kind"] == D_ZERO_KIND
+        and type(zero["budget"]) is int
+        and zero["budget"] >= 1
+        and status in ZERO_STATUSES
+        and _is_sha256(zero["record_sha256"])
+        and type(zero["pool_digest"]) is str
+        and zero["pool_digest"].startswith("sha256:")
+        and (status != "anchored" or _finite(zero["s_zero"])),
+        "zero_malformed",
+    )
+    return {k: (float(v) if k == "s_zero" else v) for k, v in zero.items()}
+
+
+def check_zero(spec, optimizer):
+    """The version's registered zero and its targets' zeros agree: none on both sides (every registered version), or the
+    same kind and budget on every target. A pool built under another zero never grades silently.
+    """
+    if optimizer.d_zero is None:
+        _require(spec.zero is None, "target_zero_without_a_registered_d_zero")
+        return
+    _require(
+        spec.zero is not None
+        and spec.zero["kind"] == optimizer.d_zero["kind"]
+        and spec.zero["budget"] == optimizer.d_zero["budget"],
+        "target_zero_differs_from_the_registered_d_zero",
+    )
 
 
 def build_target(
@@ -587,6 +665,7 @@ def build_target(
     seed,
     public=False,
     shell=None,
+    zero=None,
 ):
     """Validate a target's sealed material and derive its reference.
 
@@ -705,7 +784,17 @@ def build_target(
                 "conditions_not_in_the_ood_shell",
             )
     s_ref, s_low = scores[reference], statistics.median(scores.values())
-    _require(s_ref > s_low, "degenerate_reference_best_feasible_must_beat_the_median")
+    zero = checked_zero(zero)
+    if zero is not None and zero["status"] == "anchored":
+        # OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01: the shortcut's own objective scores 0. A target the shortcut already
+        # solves leaves no design value to measure: refused here (reference failure, never a candidate's), and the
+        # sampler redraws it (the owner's condition).
+        _require(s_ref > zero["s_zero"], "degenerate_shortcut_reaches_the_reference")
+        s_low = zero["s_zero"]
+    else:
+        _require(
+            s_ref > s_low, "degenerate_reference_best_feasible_must_beat_the_median"
+        )
     body = {
         "target_id": target_id,
         "conditions": conditions,
@@ -723,6 +812,11 @@ def build_target(
         "public": public,  # visibility is part of the identity: a sealed pool cannot be relabelled public
         "shell": _shell_json(shell),
     }
+    if zero is not None:
+        # the zero's run names THIS pool (the body without the zero): a zero from another pool refuses (Validator
+        # 21:30). Only a new version's zero enters the identity: a registered version's digest is unchanged.
+        _require(zero["pool_digest"] == _digest(body), "zero_is_not_this_pools")
+        body["zero"] = zero
     _require(type(public) is bool, "public_must_be_a_bool")
     return TargetSpec(
         target_id=target_id,
@@ -750,6 +844,7 @@ def build_target(
         shell=shell,
         origin=tuple(keep),
         pool_size=len(designs),
+        zero=zero,
     )
 
 
@@ -908,6 +1003,7 @@ def grade_target(spec, predict, optimizer, honesty):
     rule, D(target) is the mean over the base and its valid neighbour-task variants (`OptimizerPolicy.variant_rule`).
     """
     _check_policies(optimizer, honesty)
+    check_zero(spec, optimizer)
     rule = optimizer.variant_rule
     if rule is None:
         return _grade_one(spec, predict, optimizer, honesty)
@@ -1445,6 +1541,7 @@ def dump_pool(spec):
         "shell": _shell_json(spec.shell),
         "origin": list(spec.origin),
         "pool_size": spec.pool_size,
+        **({} if spec.zero is None else {"zero": dict(spec.zero)}),
     }
 
 
@@ -1470,6 +1567,7 @@ def load_pool(document):
         seed=document["seed"],
         public=document["public"],
         shell=document.get("shell"),
+        zero=document.get("zero"),
     )
     spec = replace(
         spec,

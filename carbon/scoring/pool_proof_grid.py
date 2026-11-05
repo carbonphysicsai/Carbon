@@ -65,6 +65,8 @@ class GridSpec:
     pick_rule: object = None
     # None (the plain mean) or "balanced_region_mean": a NEW version's D aggregation
     d_aggregate: object = None
+    # None (the median zero) or {"kind": "engineer_shortcut", "budget": B}: a NEW version's D zero
+    d_zero: object = None
 
 
 def tighten(leg, m):
@@ -132,6 +134,7 @@ def run_grid(plugin, grid):
             population=grid.population,
             pick_rule=grid.pick_rule,
             d_aggregate=grid.d_aggregate,
+            d_zero=grid.d_zero,
         )
         honesty = pool_grader.HonestyPolicy(scale=s_h, reduction=grid.honesty_reduction)
         for name in named:
