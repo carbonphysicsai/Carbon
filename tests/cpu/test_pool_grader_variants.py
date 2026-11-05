@@ -277,15 +277,165 @@ def test_the_registered_rule_is_absent_for_todays_versions_and_never_defaulted()
 def test_the_sealed_material_must_carry_one_start_per_slot_of_every_target():
     specs = ((toy_target("t0"), toy_target("t1", seed=12, pool_seed=4)),)
     rule = _rule()
-    assert pool_version.attach_material_variants(specs, None, None) is specs
+    assert pool_exam.attach_variant_starts(specs, None, None) is specs
     with pytest.raises(pool_exam.ExamRefused, match="without_a_variant_rule"):
-        pool_version.attach_material_variants(specs, None, {"t0": []})
+        pool_exam.attach_variant_starts(specs, None, {"t0": []})
     with pytest.raises(pool_exam.ExamRefused, match="missing"):
-        pool_version.attach_material_variants(specs, rule, None)
+        pool_exam.attach_variant_starts(specs, rule, None)
     with pytest.raises(pool_exam.ExamRefused, match="every_target_exactly"):
-        pool_version.attach_material_variants(specs, rule, {"t0": _starts(rule)})
-    attached = pool_version.attach_material_variants(
+        pool_exam.attach_variant_starts(specs, rule, {"t0": _starts(rule)})
+    attached = pool_exam.attach_variant_starts(
         specs, rule, {"t0": _starts(rule), "t1": _starts(rule, seed=200)}
     )
     assert all(len(s.variants) == 2 for group in attached for s in group)
     assert attached[0][0].digest == specs[0][0].digest  # the base identity is unchanged
+
+
+# ---------------------------------------------------------------- the shift basis (absolute, or the margin over a condition)
+
+
+def _with_fixed(spec, fixed):
+    return build_target(
+        target_id=spec.target_id,
+        conditions={**spec.conditions, "fixed": fixed},
+        outputs=spec.outputs,
+        objective=spec.objective,
+        sense="max",
+        limits=spec.limits,
+        u=spec.u,
+        box=spec.box,
+        designs=spec.designs,
+        truths=spec.truths,
+        agen=spec.agen,
+        start=(0.5, 0.5),
+        seed=11,
+    )
+
+
+def test_a_margin_basis_shifts_the_margin_over_the_fixed_condition_not_the_bound():
+    spec = _with_fixed(toy_target("t0"), {"t_in": 0.3})
+    absolute = attach_variants(
+        spec, _rule(shifts=(0.05,)), _starts(_rule(shifts=(0.05,)))
+    )
+    margin_rule = {**_rule(shifts=(0.05,)), "basis": "margin_above:t_in"}
+    margin = attach_variants(spec, margin_rule, _starts(margin_rule))
+    assert absolute.variants[0].limits[0].bound == 0.8 * 1.05
+    assert margin.variants[0].limits[0].bound == 0.3 + (0.8 - 0.3) * 1.05
+    # "absolute" spelled out is the default, bit for bit
+    spelled = {**_rule(shifts=(0.05,)), "basis": "absolute"}
+    assert attach_variants(spec, spelled, _starts(spelled)) == absolute
+
+
+def test_a_margin_basis_on_a_missing_or_non_numeric_condition_is_refused_per_slot():
+    for fixed in ({}, {"t_in": "hot"}, {"t_in": True}):
+        spec = _with_fixed(toy_target("t0"), fixed)
+        rule = {**_rule(), "basis": "margin_above:t_in"}
+        attached = attach_variants(spec, rule, _starts(rule))
+        assert attached.variants == ()
+        assert {code for _n, _s, code in attached.variant_refusals} == {
+            "variant_basis_not_a_fixed_condition"
+        }
+    # a target without fixed conditions at all
+    rule = {**_rule(), "basis": "margin_above:t_in"}
+    attached = attach_variants(toy_target("t0"), rule, _starts(rule))
+    assert {code for _n, _s, code in attached.variant_refusals} == {
+        "variant_basis_not_a_fixed_condition"
+    }
+    # a zero margin moves nothing
+    spec = _with_fixed(toy_target("t0"), {"t_in": 0.8})
+    attached = attach_variants(spec, rule, _starts(rule))
+    assert {code for _n, _s, code in attached.variant_refusals} == {
+        "variant_shift_moves_nothing"
+    }
+
+
+def test_a_malformed_basis_refuses_the_rule():
+    spec = toy_target("t0")
+    for basis in ("relative", "margin_above:", "margin_above", 0.3, None):
+        with pytest.raises(PoolRefused, match="variant_rule"):
+            grade_target(
+                spec, oracle([spec]), _with({**_rule(), "basis": basis}), HONESTY
+            )
+
+
+# ---------------------------------------------------------------- review findings (self-review subagent, 4 Nov)
+
+
+def test_bad_custody_starts_refuse_the_exam_never_turn_the_rule_off_quietly():
+    spec = toy_target("t0")
+    rule = _rule(min_valid=0)
+    for bad in (
+        [{"start": [5.0, 5.0], "seed": 1}, {"start": [0.5, 0.5], "seed": 2}],
+        [{"start": [0.5, 0.5], "seed": "x"}, {"start": [0.5, 0.5], "seed": 2}],
+        [{"start": [0.5, 0.5], "seed": True}, {"start": [0.5, 0.5], "seed": 2}],
+        [{"start": [0.5], "seed": 1}, {"start": [0.5, 0.5], "seed": 2}],
+    ):
+        with pytest.raises(PoolRefused, match="unit_box_with_an_int_seed"):
+            attach_variants(spec, rule, bad)
+
+
+def test_a_malformed_answer_anywhere_zeroes_the_target_as_without_the_rule():
+    spec = toy_target("t0")
+    rule = _rule(shifts=(-0.05, 0.05))
+    attached = attach_variants(spec, rule, _starts(rule))
+    model = oracle([spec])
+    bad_point = None
+
+    def nan_once_asked(conditions, designs):
+        nonlocal bad_point
+        out = model(conditions, designs)
+        if bad_point is None:
+            bad_point = tuple(designs[-1])
+        return [
+            {**row, "f": float("nan")} if tuple(d) == bad_point else row
+            for d, row in zip(designs, out, strict=True)
+        ]
+
+    grade = grade_target(attached, nan_once_asked, _with(rule), HONESTY)
+    assert grade.d == 0.0 and grade.reason == "prediction_invalid"
+    public = grade_set([attached], nan_once_asked, _with(rule), HONESTY).public()
+    assert "prediction_invalid" in public["reasons"]
+
+
+def test_a_variants_reason_reaches_the_public_reasons():
+    spec = toy_target("t0")
+    rule = _rule(shifts=(-0.05, 0.05))
+    attached = attach_variants(spec, rule, _starts(rule))
+    graded = grade_set([attached], _noisy(oracle([spec])), _with(rule), HONESTY)
+    seen = {graded.targets[0].reason} | {r for _v, _d, r in graded.targets[0].variants}
+    assert set(graded.public()["reasons"]) == seen - {"graded"}
+
+
+def test_a_band_on_the_named_output_refuses_the_rule():
+    rng = random.Random(5)
+    points = [(rng.random(), rng.random()) for _ in range(80)]
+    spec = build_target(
+        target_id="b",
+        conditions={"case": "b"},
+        outputs=("f", "g"),
+        objective="f",
+        sense="max",
+        limits=(Limit("g", "<=", 0.8), Limit("g", ">=", 0.1)),
+        u={"f": U, "g": U},
+        box=((0.0, 1.0), (0.0, 1.0)),
+        designs=[list(p) for p in points],
+        truths=[outputs_of(*p) for p in points],
+        agen=(),
+        start=(0.5, 0.5),
+        seed=1,
+    )
+    with pytest.raises(PoolRefused, match="variant_limit_is_a_band"):
+        attach_variants(spec, _rule(), _starts(_rule()))
+
+
+def test_shifts_that_name_the_same_variant_id_refuse_and_no_valid_variant_is_a_fallback():
+    spec = toy_target("t0")
+    with pytest.raises(PoolRefused, match="variant_rule"):
+        grade_target(
+            spec, oracle([spec]), _with(_rule(shifts=(0.05, 0.05000001))), HONESTY
+        )
+    rule = _rule(shifts=(-0.99,), min_valid=0)
+    attached = attach_variants(spec, rule, _starts(rule))
+    grade = grade_target(attached, oracle([spec]), _with(rule), HONESTY)
+    assert attached.variants == () and grade.variant_fallback is True
+    assert grade.d == grade.base_d

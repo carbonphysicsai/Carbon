@@ -216,28 +216,6 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
     return policies
 
 
-def attach_material_variants(sets, rule, starts):
-    """``sets`` with each target's neighbour-task variants attached from the sealed material's ``variant_starts`` when the
-    version registers a ``variant_rule``; unchanged (and the material must carry none) when it does not.
-    """
-    if rule is None:
-        if starts is not None:
-            raise pool_exam.ExamRefused("variant_starts_without_a_variant_rule")
-        return sets
-    if type(starts) is not dict:
-        raise pool_exam.ExamRefused("variant_starts_missing_from_the_sealed_pack")
-    ids = {spec.target_id for group in sets for spec in group}
-    if set(starts) != ids:
-        raise pool_exam.ExamRefused("variant_starts_must_name_every_target_exactly")
-    return tuple(
-        tuple(
-            pool_grader.attach_variants(spec, rule, starts[spec.target_id])
-            for spec in group
-        )
-        for group in sets
-    )
-
-
 class PoolVariant(physical.Variant):
     """The sealed adapter of one pool-graded version (see the module docstring)."""
 
@@ -294,19 +272,16 @@ class PoolVariant(physical.Variant):
             raise pool_exam.ExamRefused("pool_material_missing_from_the_sealed_pack")
         # The owner's constants first: a version without them grades nothing.
         policies = registered_policies(self._challenge_id, self.VERSION)
-        sets = attach_material_variants(
-            tuple(
-                tuple(pool_grader.load_pool(document) for document in group)
-                for group in material["sets"]
-            ),
-            policies.optimizer.variant_rule,
-            material.get(VARIANT_STARTS),
+        sets = tuple(
+            tuple(pool_grader.load_pool(document) for document in group)
+            for group in material["sets"]
         )
         # A NEW version's sealed class map and SUMS, checked and attached by `pool_exam.attach_coverage_plan` against the
-        # registered digests; a registered version's material carries neither, so its call is unchanged.
+        # registered digests; a registered version's material carries neither, so its call is unchanged. Likewise a NEW
+        # version's per-target variant starts (`pool_exam.attach_variant_starts`, against its registered variant rule).
         plan_material = {
             key: material[key]
-            for key in (COVERAGE_PLAN, COVERAGE_PLAN_SUMS)
+            for key in (COVERAGE_PLAN, COVERAGE_PLAN_SUMS, VARIANT_STARTS)
             if key in material
         }
         return pool_exam.measure_pool(

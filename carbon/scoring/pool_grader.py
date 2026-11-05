@@ -216,7 +216,9 @@ class OptimizerPolicy:
     #: for bit, for every registered version. ``{"kind": "limit_shift", "limits": [output, ...], "shifts": [s, ...],
     #: "min_valid": n, "aggregate": "mean"}``: each target is graded again on one VARIANT per (limit, shift), the same
     #: pool designs and truths with that limit's bound x (1 + s) (`attach_variants`), and D(target) is the mean over the
-    #: base and its valid variants; with fewer than ``min_valid`` valid variants it is the base D alone (reported). A
+    #: base and its valid variants; with fewer than ``min_valid`` valid variants it is the base D alone (reported).
+    #: Optional ``"basis"``: ``"absolute"`` (the default: bound x (1 + s)) or ``"margin_above:<condition>"`` (the margin
+    #: over that fixed condition is shifted: c + (bound - c) x (1 + s), e.g. a temperature limit over the inlet). A
     #: refused variant is a reference failure (dropped, counted), never the candidate's. The shifts (the record's
     #: starting value is +-5 %), the limits per Challenge, ``min_valid`` and the weighting are the owner's.
     variant_rule: dict | None = None
@@ -439,14 +441,30 @@ VARIANT_RULE_INVALID = (
 )
 
 
+_VARIANT_KEYS = {"kind", "limits", "shifts", "min_valid", "aggregate"}
+MARGIN_ABOVE = "margin_above:"
+
+
+def _variant_basis(rule):
+    """``None`` for an absolute shift, else the fixed condition a ``margin_above:<condition>`` basis measures from."""
+    basis = rule.get("basis", "absolute")
+    return None if basis == "absolute" else basis[len(MARGIN_ABOVE) :]
+
+
 def _valid_variant_rule(rule):
-    if type(rule) is not dict or set(rule) != {
-        "kind",
-        "limits",
-        "shifts",
-        "min_valid",
-        "aggregate",
-    }:
+    if type(rule) is not dict or not (
+        set(rule) == _VARIANT_KEYS or set(rule) == _VARIANT_KEYS | {"basis"}
+    ):
+        return False
+    basis = rule.get("basis", "absolute")
+    if not (
+        basis == "absolute"
+        or (
+            type(basis) is str
+            and basis.startswith(MARGIN_ABOVE)
+            and len(basis) > len(MARGIN_ABOVE)
+        )
+    ):
         return False
     limits, shifts = rule["limits"], rule["shifts"]
     return bool(
@@ -460,6 +478,8 @@ def _valid_variant_rule(rule):
         and shifts
         and all(_finite(x) and x != 0.0 and -1.0 < x < 1.0 for x in shifts)
         and len(set(shifts)) == len(shifts)
+        and len({f"{x:+g}" for x in shifts})
+        == len(shifts)  # the variant ids stay distinct
         and type(rule["min_valid"]) is int
         and 0 <= rule["min_valid"] <= len(limits) * len(shifts)
     )
@@ -725,10 +745,14 @@ def attach_variants(spec, rule, starts):
     `build_target` re-derives the within-U exclusion, the reference and the median, and refuses a degenerate question.
     ``starts`` gives each slot its own private ``{"start": [...], "seed": int}``, derived in custody like a target's.
 
-    A slot is REFUSED (dropped and counted, a reference failure, never scored) when the target has no such limit, its
-    bound is 0 (a relative shift moves nothing), `build_target` refuses it, or no queryable point stays truly
-    infeasible (the shifted question is no longer a choice)."""
+    A slot is REFUSED (dropped and counted, a reference failure, never scored, never refilled) when the target has no such
+    limit, its bound (or its margin over the basis condition) is 0 so a relative shift moves nothing, the basis condition
+    is not one of the target's fixed conditions, `build_target` refuses it, or no queryable point stays truly infeasible
+    (the shifted question is no longer a choice)."""
     slots = variant_slots(rule)
+    over = _variant_basis(rule)
+    fixed = spec.conditions.get("fixed")
+    origin = 0.0 if over is None else (fixed.get(over) if type(fixed) is dict else None)
     _require(
         type(starts) in (list, tuple) and len(starts) == len(slots),
         "variant_starts_must_give_one_start_and_seed_per_slot",
@@ -739,16 +763,29 @@ def attach_variants(spec, rule, starts):
             type(slot) is dict and set(slot) == {"start", "seed"},
             "variant_start_must_be_a_start_and_a_seed",
         )
+        # Bad sealed material is the exam's error, never a quiet reference failure that turns the rule off.
+        _require(
+            type(slot["seed"]) is int
+            and type(slot["start"]) in (list, tuple)
+            and len(slot["start"]) == len(spec.box)
+            and all(_finite(x) and 0.0 <= x <= 1.0 for x in slot["start"]),
+            "variant_start_must_be_in_the_unit_box_with_an_int_seed",
+        )
         matching = [n for n, limit in enumerate(spec.limits) if limit.output == name]
         if not matching:
             refusals.append((name, shift, "variant_limit_not_on_target"))
             continue
-        if any(spec.limits[n].bound == 0.0 for n in matching):
+        # A band (two limits on one output) needs the owner to say which bound moves and which way: refuse the rule.
+        _require(len(matching) == 1, "variant_limit_is_a_band_name_the_bound")
+        if not _finite(origin):
+            refusals.append((name, shift, "variant_basis_not_a_fixed_condition"))
+            continue
+        if any(spec.limits[n].bound - origin == 0.0 for n in matching):
             refusals.append((name, shift, "variant_shift_moves_nothing"))
             continue
         limits = tuple(
             (
-                replace(limit, bound=limit.bound * (1.0 + shift))
+                replace(limit, bound=origin + (limit.bound - origin) * (1.0 + shift))
                 if n in matching
                 else limit
             )
@@ -864,15 +901,21 @@ def grade_target(spec, predict, optimizer, honesty):
     graded = [
         (v.target_id, _grade_one(v, predict, optimizer, honesty)) for v in spec.variants
     ]
-    fallback = len(graded) < rule["min_valid"]
-    d = (
-        base.d
-        if fallback or not graded
-        else statistics.fmean([base.d, *(g.d for _v, g in graded)])
+    fallback = not graded or len(graded) < rule["min_valid"]
+    # A malformed answer zeroes the target, as it does without the rule: averaging never makes up for it.
+    invalid = any(
+        g.reason == "prediction_invalid" for g in (base, *(g for _v, g in graded))
     )
+    if invalid:
+        d = 0.0
+    elif fallback:
+        d = base.d
+    else:
+        d = statistics.fmean([base.d, *(g.d for _v, g in graded)])
     return replace(
         base,
         d=d,
+        reason="prediction_invalid" if invalid else base.reason,
         base_d=base.d,
         variants=tuple((v, g.d, g.reason) for v, g in graded),
         variant_refusals=len(spec.variant_refusals),
@@ -1080,7 +1123,13 @@ class SetGrade:
         per-target value, a pool point or a query."""
         return {
             "d": self.d,
-            "reasons": sorted({t.reason for t in self.targets} - {"graded"}),
+            "reasons": sorted(
+                (
+                    {t.reason for t in self.targets}
+                    | {r for t in self.targets for _v, _d, r in t.variants}
+                )
+                - {"graded"}
+            ),
         }
 
 

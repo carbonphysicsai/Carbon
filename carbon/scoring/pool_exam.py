@@ -157,6 +157,7 @@ def measure_pool(
     capture=None,
     coverage_plan=None,
     coverage_plan_sums=None,
+    variant_starts=None,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
 
@@ -170,8 +171,12 @@ def measure_pool(
 
     ``coverage_plan`` / ``coverage_plan_sums`` are a NEW version's sealed class-map document and its plan package's
     SHA256SUMS text (`attach_coverage_plan`); None for every registered version, whose policies stay as given.
+
+    ``variant_starts`` is a NEW version's sealed per-target variant starts (`attach_variant_starts`), required exactly
+    when its registered optimizer policy carries a ``variant_rule``; None for every registered version.
     """
     policies = attach_coverage_plan(policies, coverage_plan, coverage_plan_sums, sets)
+    sets = attach_variant_starts(sets, policies.optimizer.variant_rule, variant_starts)
     _require(
         len(bank_rows) == len(outputs)
         and all(len(r) == len(bank_rows) for r in repeats),
@@ -485,6 +490,25 @@ def attach_coverage_plan(policies, document, sums, sets):
             raise ExamRefused("target_not_in_the_coverage_plan") from None
         _require(classes == set(plan.classes), "set_missing_a_registered_class")
     return replace(policies, optimizer=replace(optimizer, coverage_plan=plan))
+
+
+def attach_variant_starts(sets, rule, starts):
+    """``sets`` with each target's neighbour-task variants attached (`pool_grader.attach_variants`) from the sealed
+    material's ``variant_starts`` when the version registers a ``variant_rule``; unchanged, and the material must carry
+    none, when it does not. Custody: the starts name targets."""
+    if rule is None:
+        _require(starts is None, "variant_starts_without_a_variant_rule")
+        return sets
+    _require(type(starts) is dict, "variant_starts_missing_from_the_sealed_pack")
+    ids = {spec.target_id for group in sets for spec in group}
+    _require(set(starts) == ids, "variant_starts_must_name_every_target_exactly")
+    return tuple(
+        tuple(
+            pool_grader.attach_variants(spec, rule, starts[spec.target_id])
+            for spec in group
+        )
+        for group in sets
+    )
 
 
 def _quantizer(input_dtype):
