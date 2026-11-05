@@ -66,19 +66,35 @@ def _adapter(recipe, envelope, host):
 # --- audit #1 / condition (1): a graph king rebuilds at the OFFICIAL seed 0 -------------------------------------------
 
 
-def test_audit_1_set_rebuild_seed_accepts_the_official_seed_zero_write_once(
-    graph_case, tmp_path  # noqa: F811
+def test_audit_1_the_kings_seed_zero_task_is_marked_not_seeded_and_a_retry_proves_its_seed(
+    graph_case, no_workspace, tmp_path  # noqa: F811
 ):
-    recipe, _envelope, _ = graph_case
+    """TE's head keeps `set_rebuild_seed` refusing 0: research_tasks.py is in the served source identity
+    (`lean_recipe._SOURCE_PATHS`), so a change there would move every door's contract and strand every king again. The
+    king's seed-0 task takes the provider's normal seed and `rebind_origin`'s validator mark instead.
+    """
+    recipe, envelope, _ = graph_case
     provider, request = _provider(HOST, recipe, seeded=False, tmp_path=tmp_path)
     task = provider._task_id(request).value
-    provider.set_rebuild_seed(task, 0)  # main: ValueError("rebuild seed invalid")
+    with pytest.raises(ValueError, match="rebuild seed invalid"):
+        provider.set_rebuild_seed(
+            task, 0
+        )  # unchanged: the official seed is never a derived one
+    adapter = _adapter(recipe, envelope, (provider, request))
+    with pytest.raises(_Admitted):
+        retention._derived_build(
+            adapter,
+            ORIGIN,
+            retention.KING_REBUILD_SEED,
+            rebuild="king",
+            host_owner=HOST,
+        )
+    assert task in provider._origin_rebinds and task not in provider._task_seeds
     assert provider._seed_for(task) == 0 and provider._derived_rebuild(request)
-    with pytest.raises(ValueError, match="already set"):
-        provider.set_rebuild_seed(task, 7)  # still write-once
-    for bad in (-1, 2**31 - 1, True, "0", None):
-        with pytest.raises(ValueError, match="rebuild seed invalid"):
-            provider.set_rebuild_seed("rtsk_" + "f" * 64, bad)  # the int32 bound stays
+    # a retry of an existing task proves its seed and is never admitted again
+    provider._views[task] = SimpleNamespace(state=None)
+    with pytest.raises(retention.RetentionUnavailable, match="rebuild_seed_changed"):
+        retention._derived_build(adapter, ORIGIN, 4242, rebuild="king", host_owner=HOST)
 
 
 def test_audit_1_a_graph_kings_rebuild_at_seed_zero_is_admitted_with_his_retained_source(

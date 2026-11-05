@@ -150,6 +150,18 @@ def plan(root, pool_store, exam):
     # The key the king was first graded on is the one he WON on (a task is graded on its own exam once; any later key of
     # his is a regrade). Challengers on that key met the king of their moment live, so none of them was stranded.
     won_on = next(iter(king_first), None)
+    # His rebuild on a new exam (route (b)) is filed under its DERIVED row, linked to him per key: that row is his grade
+    # on that key, so a challenger graded after it met him live and is not filed again on a restart (audit #4).
+    linked = getattr(store, "king_rebuild_of", None)
+    if linked is not None:
+        for rowid, body in rows:
+            sid, key = body.get("submission_id"), body.get("evaluation_key")
+            if (
+                type(sid) is str
+                and sid.startswith("krb_")
+                and (linked(king, key) or {}).get("derived_submission_id") == sid
+            ):
+                king_first[key] = min(king_first.get(key, rowid), rowid)
     provenance = _provenance(root)
     to_file, skipped, seen = [], {}, set()
     for rowid, body in rows:

@@ -428,3 +428,64 @@ def test_the_command_prints_the_plan_and_files_only_with_apply(tmp_path, capsys)
     assert [
         r["resolution"] for r in json.loads(capsys.readouterr().out.splitlines()[-1])
     ] == [None] * 3
+
+
+def test_a_rebind_filed_under_an_earlier_pack_falls_through_to_custody(
+    tmp_path, monkeypatch
+):
+    """Audit 5 Nov #3: an origin rebind is write-once, so one filed under an earlier pack never matches the current one
+    again (`_rebound_origin` refuses ``remeasure_rebind_differs`` forever); the king is then rebuilt from custody like any
+    old-contract king. Any other refusal of the rebind still raises."""
+    from carbon.challenge_validator import crown_average
+
+    ledger = _ledger(tmp_path)
+    ledger.record_recipe_task_intent(OLD_CONTRACT, KING, HOTKEY, digest("request"))
+    adapter = SimpleNamespace(
+        challenge_id="electric-motor-magnetics",
+        discovery=SimpleNamespace(
+            evaluation_pack_snapshot=SimpleNamespace(read_json_role=lambda *a, **k: {}),
+            evaluation_pack_private_root=None,
+            evaluation_pack_public_root=None,
+        ),
+        ledger=ledger,
+        owner=lambda sid: None,
+    )
+    import contextlib
+
+    adapter.deriving = lambda task, owner: contextlib.nullcontext()
+    monkeypatch.setattr(
+        crown_average,
+        "ACTIVE",
+        SimpleNamespace(measure_incumbent=lambda *a: {"outcome": "KING_MEASURED"}),
+    )
+    repeats = []
+    monkeypatch.setattr(retention, "_repeat_of", lambda *a, **k: repeats.append(k))
+    monkeypatch.setattr(
+        "carbon.challenge_validator.koth_registry.comparator", lambda *a, **k: {}
+    )
+    custody = {"recipe": "his retained recipe", "graph_source": None}
+    monkeypatch.setattr(retention, "retained_king_source", lambda *a, **k: custody)
+    store = SimpleNamespace(
+        incumbent=lambda: {"model_id": KING},
+        origin_rebind=lambda sid: {"origin": "rtsk_" + "b" * 64, "hotkey": "host"},
+    )
+
+    def run(code):
+        def rebound(*a):
+            raise retention.RetentionUnavailable(code)
+
+        monkeypatch.setattr(retention, "_rebound_origin", rebound)
+        return retention.remeasure_incumbent_pack(
+            adapter,
+            store,
+            submission_id=KING,
+            evaluation_key=digest("current key"),
+            entry_id=digest("entry"),
+            artifact_directory=tmp_path,
+            entry_directory=tmp_path,
+        )
+
+    run("remeasure_rebind_differs")
+    assert repeats[-1]["source"] is custody  # his rebuilds build from custody
+    with pytest.raises(retention.RetentionUnavailable, match="remeasure_rebind_owner"):
+        run("remeasure_rebind_owner_not_host")

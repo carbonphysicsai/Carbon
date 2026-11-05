@@ -24,6 +24,11 @@ from carbon.development_session.graph_gpu_lane import OPS_NOTE as _OPS_NOTE
 class RetentionUnavailable(ValueError):
     """The named original-byte or custody dependency is unavailable."""
 
+    @property
+    def code(self):
+        """The typed code: the message itself (callers read ``error.code`` as for the store's typed errors)."""
+        return str(self.args[0]) if self.args else ""
+
 
 #: The closed status of a candidate that hit the inference wall twice in the official
 #: grade's inference pair: a typed candidate failure, not scored, the slot kept
@@ -1944,10 +1949,19 @@ def remeasure_incumbent_pack(
     if rebound is not None:
         # The king's origin task stayed on the old root: its rebind under the host-owned owner (`rebind_origin`) is the
         # origin, held for the span of this re-measure so the rebuild finds its owner.
-        origin = _rebound_origin(adapter, pool_store, submission_id, rebound)
-        hold = adapter.deriving(origin, rebound["hotkey"])
-    elif adapter.owner(submission_id) is None and _regrade_incumbent(pool_store) == (
-        submission_id
+        try:
+            origin = _rebound_origin(adapter, pool_store, submission_id, rebound)
+            hold = adapter.deriving(origin, rebound["hotkey"])
+        except RetentionUnavailable as differs:
+            if differs.code != "remeasure_rebind_differs":
+                raise
+            # a rebind filed under an EARLIER pack (write-once, so it can never match this one again): he is then an
+            # old-contract king like any other, rebuilt from custody below (audit #3)
+            rebound = None
+    if (
+        rebound is None
+        and adapter.owner(submission_id) is None
+        and _regrade_incumbent(pool_store) == submission_id
     ):
         # The king was admitted under an EARLIER contract (his pack has changed since, Deploy 5 Nov 06:15): his owner is
         # the one that contract records, held for the span of this re-measure so the rebuild finds it, as for a rebind.
@@ -2930,10 +2944,11 @@ def _docker_image_id(image_id):
     return found if type(found) is str else None
 
 
-def _parents(kind, files, provider, recipe):
+def _parents(kind, files, provider, recipe, *, unserved=None):
     """``(retained parent, current parent)``: the image the retained model was built on (a graph: inferred on) and the
     one this receiver serves for it now, from the retained image.json; reads only, runs nothing.
     """
+    from carbon.development_session.gpu_practice import DirectParentRefused
     from carbon.development_session.library_bundles import LibraryBundleRef
 
     try:
@@ -2942,15 +2957,27 @@ def _parents(kind, files, provider, recipe):
                 json.loads(files["image.json"])["image_id"],
                 provider.inference_image.image_id,
             )
-        return (
-            json.loads(files["image.json"])["parent_image_id"],
-            _construction_parent(
+        retained = json.loads(files["image.json"])["parent_image_id"]
+        try:
+            current = _construction_parent(
                 provider,
                 LibraryBundleRef.from_dict(recipe.to_dict()["source"]["bundle_ref"]),
-            ).image_id,
-        )
-    except (KeyError, TypeError, ValueError, AttributeError):
+            ).image_id
+        except DirectParentRefused:
+            # this receiver serves no parent for the bundle any more: ``unserved`` names it apart for the king's
+            # upkeep (a moved parent, audit #2a); a regrade keeps its refusal unchanged
+            raise RetentionUnavailable(
+                unserved or "regrade_construction_parent_unavailable"
+            ) from None
+        return retained, current
+    except (KeyError, TypeError, ValueError, AttributeError) as error:
+        if isinstance(error, RetentionUnavailable):
+            raise
         raise RetentionUnavailable("regrade_construction_parent_unavailable") from None
+
+
+#: `_parents`: the current receiver serves no construction parent for the retained bundle.
+PARENT_UNSERVED = "regrade_construction_parent_unserved"
 
 
 #: Route (b) (Carbon Validator 5 Nov 10:53 + 10:57): a king who predates this receiver's judge image is REBUILT from his
@@ -2974,14 +3001,28 @@ def king_parent_moved(
 ):
     """Whether the SITTING king's retained model was built on an image this receiver no longer serves for it (its
     retained image.json vs the current parent), read BEFORE any inference, so a king who must be rebuilt never spends
-    a regrade to be refused. Reads only."""
+    a regrade to be refused. Reads only.
+
+    The current parent is read from the HOST-OWNED provider (the one his rebuild runs on), never his own hotkey's: a
+    king whose hotkey left the chain has no provider here, which raised every tick (audit #6). A parent this receiver no
+    longer serves for his bundle is a moved parent (audit #2a): his rebuild then finds the gap at admission and files
+    it, instead of an upkeep retried forever."""
+    from carbon.challenge_validator.crown_average import HOST_OWNER
+
     base = _owner_directory(artifact_directory, "artifact_directory")
     entries = _owner_directory(entry_directory, "entry_directory")
-    _entry, _origin, owner, _manifest, files, recipe = _regrade_origin(
+    _entry, _origin, _owner, _manifest, files, recipe = _regrade_origin(
         adapter, base, entries, entry_id, incumbent=_regrade_incumbent(pool_store)
     )
     kind = recipe.to_dict()["source"]["kind"]
-    retained, current = _parents(kind, files, adapter._provider(owner), recipe)
+    try:
+        retained, current = _parents(
+            kind, files, adapter._provider(HOST_OWNER), recipe, unserved=PARENT_UNSERVED
+        )
+    except RetentionUnavailable as unavailable:
+        if unavailable.code == PARENT_UNSERVED:
+            return True
+        raise
     return retained != current
 
 
@@ -3380,28 +3421,47 @@ def _derived_build(
         ):
             break
         generation += 1
-    if task_id.value in provider._views:
-        # A retry: the task exists, and must be the very seed asked for (`_seed_for` is the official 0 exactly when
-        # no derived seed was set). It is never admitted again (as `rebind_origin`): its source was checked at its
-        # own admission, and a seed-0 task's validator mark is not kept across a restart.
-        if provider._seed_for(task_id.value) != seed:
-            raise RetentionUnavailable("rebuild_seed_changed")
-        from carbon.research import DirectGetTaskRequestV3
+    from carbon.research.errors import ResearchServiceErrorCode
+    from carbon.research.lifecycle import ResearchTaskProviderError
 
-        task = provider.get_research_result(
-            DirectGetTaskRequestV3(adapter.discovery.info.challenge_key, task_id)
-        ).task
-    else:
-        if seed == KING_REBUILD_SEED:
-            # The OFFICIAL seed (a king's rebuild, route (b)): the provider's normal seed, never a derived one
-            # (`set_rebuild_seed` refuses 0 by design). The validator-set mark that lets this host-owned task carry
-            # the king's retained graph source is the one `rebind_origin` uses (Deploy 5 Nov 12:41).
-            provider.set_origin_rebind(task_id.value)
+    try:
+        if task_id.value in provider._views:
+            # A retry: the task exists, and must be the very seed asked for (`_seed_for` is the official 0 exactly
+            # when no derived seed was set, so seed 0 vs a derived seed differs either way). It is never admitted
+            # again (as `rebind_origin`): its source was checked at its own admission, and a seed-0 task's validator
+            # mark is not kept across a restart.
+            if provider._seed_for(task_id.value) != seed:
+                raise RetentionUnavailable("rebuild_seed_changed")
+            from carbon.research import DirectGetTaskRequestV3
+
+            task = provider.get_research_result(
+                DirectGetTaskRequestV3(adapter.discovery.info.challenge_key, task_id)
+            ).task
         else:
-            provider.set_rebuild_seed(task_id.value, seed)
-        task = provider.start_research_task(
-            request, measure_query=adapter._measure_query, **graph
-        ).task
+            if seed == KING_REBUILD_SEED:
+                # The OFFICIAL seed (a king's rebuild, route (b)): the provider's normal seed, never a derived one
+                # (`set_rebuild_seed` refuses 0 by design, and research_tasks.py is in the served source identity, so
+                # it is not changed here: a change there moves every door's contract). The validator-set mark that
+                # lets this host-owned task carry the king's retained graph source is the one `rebind_origin` uses
+                # (Deploy 5 Nov 12:41; audit #1).
+                provider.set_origin_rebind(task_id.value)
+            else:
+                provider.set_rebuild_seed(task_id.value, seed)
+            task = provider.start_research_task(
+                request, measure_query=adapter._measure_query, **graph
+            ).task
+    except ResearchTaskProviderError as refused:
+        # Admission refused. A capability this receiver does not serve for the recipe is a CAPABILITY GAP (the
+        # king's route (b): `KING_REBUILD_GAP`, audit #2b); any other refusal is typed by its code (the task-view
+        # bound included, audit #8), never an untyped escape.
+        if refused.code in (
+            ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE,
+            ResearchServiceErrorCode.REFERENCE_NOT_FOUND,
+        ):
+            raise RetentionUnavailable(KING_REBUILD_GAP) from refused
+        raise RetentionUnavailable(
+            "rebuild_admission_" + str(refused.code.value).lower()
+        ) from refused
     if task.state is DirectTaskStateV3.QUEUED:
         provider.run_queued_task(task_id)
     from carbon.research import DirectGetTaskRequestV3
