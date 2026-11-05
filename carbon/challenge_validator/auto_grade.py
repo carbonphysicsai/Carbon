@@ -170,9 +170,7 @@ class AutoGrader:
             attempts, last = pool.crown_pause_attempts(
                 record["submission_id"], record["evaluation_key"]
             )
-            return not (
-                attempts and pool.clock() - last < crown_pause_sweep.EPOCH_SECONDS
-            )
+            return not (crown_pause_sweep.spaced(pool, attempts, last))
         return False
 
     def run_once(self):

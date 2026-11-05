@@ -15,7 +15,7 @@ import time
 import pytest
 
 from carbon.backbone_catalog import receipt_job
-from carbon.challenge_validator import direct_intake
+from carbon.challenge_validator import crown_pause_sweep, direct_intake
 from carbon.challenge_validator.direct_intake import (
     DRAIN_NAME,
     INFLIGHT_NAME,
@@ -434,6 +434,9 @@ class _Pool:
     def __init__(self, path, records, attempts=(0, 0), now=10**6, incumbent=None):
         self.path, self._records, self._attempts = path, records, attempts
         self._now, self._incumbent = now, incumbent
+        # this process has watched the store since time 0, so a planted attempt is ITS failure (spaced as before);
+        # an attempt from an earlier process is the separate test below
+        crown_pause_sweep._FIRST_SEEN[str(path)] = 0
 
     def paused_crowns(self, kind=None):
         assert kind == "pack"
@@ -616,3 +619,24 @@ def test_upkeep_due_and_step_agree(tmp_path):
     )
     broken = SimpleNamespace(king_upkeep_attempts=None, incumbent=lambda: 1 / 0)
     assert king_upkeep.due(broken, intake) is True  # doubt runs the round
+
+
+def test_a_failure_from_before_this_process_started_is_retried_on_the_first_round(
+    tmp_path,
+):
+    """Lead 5 Nov: after a switch the first round tries again at once; only this process's own failures are spaced."""
+    pool_dir = tmp_path / "pool"
+    pool_dir.mkdir(mode=0o700)
+    record = {"submission_id": "rtsk_r", "evaluation_key": "k", "exam": "EXAM"}
+    earlier = _Pool(pool_dir / "e.sqlite3", [record], attempts=(1, 10**6 - 5))
+    crown_pause_sweep._FIRST_SEEN.pop(
+        str(earlier.path)
+    )  # this process has never looked at it
+    assert (
+        crown_pause_sweep.spaced(earlier, 1, 10**6 - 5) is False
+    )  # filed before this process: due now
+    assert _grader(tmp_path, pool=earlier).has_work() is True
+    mine = _Pool(pool_dir / "m.sqlite3", [record], attempts=(1, 10**6 - 5))
+    assert (
+        crown_pause_sweep.spaced(mine, 1, 10**6 - 5) is True
+    )  # this process's own failure: spaced

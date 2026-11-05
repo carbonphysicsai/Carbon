@@ -52,6 +52,23 @@ ALREADY_INCUMBENT = "already_incumbent"
 UNDECIDED = frozenset({UNAVAILABLE, FAILED_INFRA})
 #: One reward epoch in seconds (360 blocks of 12 s, the weights cadence): an engineering retry spacing, not a science value.
 EPOCH_SECONDS = 360 * 12
+#: The store-clock time this process first looked at each store (`spaced`): an attempt filed before it was made by an
+#: EARLIER process (before a deploy or restart), whose code may have been the reason it failed.
+_FIRST_SEEN = {}
+
+
+def spaced(store, attempts, last):
+    """Whether a failed decision is still inside its one-epoch retry spacing. An attempt filed before THIS process first
+    looked at the store never holds it back: the first round after a switch tries again at once (Lead 5 Nov: no 72-min
+    wait after a code change); attempts this process makes are spaced as before."""
+    now = store.clock()
+    # recorded on the FIRST check, attempt or not, so every failure this process makes comes after it
+    first = _FIRST_SEEN.setdefault(str(getattr(store, "path", id(store))), now)
+    if not attempts or last is None or last < first:
+        return False
+    return now - last < EPOCH_SECONDS
+
+
 #: Failed attempts after which a typed alert is filed.
 ALERT_AFTER = 3
 
@@ -80,7 +97,7 @@ def sweep(store, reconsider, *, kind, current_exam):
             continue  # no contention possible until the king's regrade on this key: no GPU, no attempt, no alert
         else:
             attempts, last = store.crown_pause_attempts(submission_id, key)
-            if attempts and store.clock() - last < EPOCH_SECONDS:
+            if spaced(store, attempts, last):
                 break  # tried this epoch already: no GPU is burned again before the next one
             try:
                 outcome = reconsider(record)

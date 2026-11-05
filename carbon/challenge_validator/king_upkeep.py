@@ -22,7 +22,7 @@ and decides no crown itself. DEVELOPMENT / TESTNET only.
 from __future__ import annotations
 
 from . import koth_journal
-from .crown_pause_sweep import ALERT_AFTER, EPOCH_SECONDS
+from .crown_pause_sweep import ALERT_AFTER
 
 REGRADE = "regrade"
 REMEASURE = "remeasure"
@@ -111,8 +111,12 @@ def file_stranded(root, pool_store, discovery):
 
 
 def _due(pool, king, exam, step):
+    """Due unless a failure THIS process made is inside its epoch (`crown_pause_sweep.spaced`): after a switch the
+    first round tries at once."""
+    from .crown_pause_sweep import spaced
+
     attempts, last = pool.king_upkeep_attempts(king, exam, step)
-    return not attempts or pool.clock() - last >= EPOCH_SECONDS
+    return not spaced(pool, attempts, last)
 
 
 def _failed(pool, king, exam, step, code):
