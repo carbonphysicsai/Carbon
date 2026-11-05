@@ -35,6 +35,13 @@ PATH = "/carbon/v1/koth/"
 SCHEMA_V2 = "carbon.koth.public.v2"
 V2_SUFFIX = "/v2"
 TO_BEAT_RULE = "floor_plus_step_plus_margin"
+#: The v2 bar on a door with crown averaging on (Lead 5 Nov): a single screening grade must beat the king's N-rebuild
+#: MEAN by more than margin_N (the averaging rule's screening step), so the score to beat is
+#: ``floor(mean, step) + step + margin_N`` rounded UP (a KING_UNSTABLE king: his single total for the mean; no king: the
+#: baseline). Only that rounded-up sum is published: never the mean or margin_N on their own, never a seed. ``margin``
+#: stays the registered rebuild noise (the Ladder step's basis) and the king's total stays his graded total.
+TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n"
+TO_BEAT_RULES = (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED)
 #: The decimals a displayed score to beat carries; it is always rounded UP.
 TO_BEAT_DECIMALS = 3
 MAX_BYTES = 16384
@@ -147,7 +154,10 @@ def to_beat_v2(base, margin):
     `TO_BEAT_DECIMALS`, capped at 1. ``base`` is the already step-floored king total (or baseline), so this reads
     public values only; the true bar (exact total + margin) is always below it, by at most one step.
     """
-    step = gf.step(margin)
+    return _rounded_up(base, gf.step(margin), margin)
+
+
+def _rounded_up(base, step, margin):
     raw = (
         Decimal(repr(float(base)))
         + Decimal(repr(float(step)))
@@ -157,13 +167,29 @@ def to_beat_v2(base, margin):
     return min(1.0, float(shown))
 
 
-def document_v2(**kwargs):
+def to_beat_averaged(bar, noise):
+    """The conservative averaged score to beat (`TO_BEAT_RULE_AVERAGED`): ``bar`` is ``{"base", "margin"}`` (the king's
+    exact mean, or the total that stands for it, and the registered margin_N), ``noise`` the rebuild noise that sets the
+    Ladder step. The true bar (base + margin_N) is always below it, by at most one step plus the rounding.
+    """
+    if type(bar) is not dict or set(bar) != {"base", "margin"}:
+        raise KothPublicRefused("koth_crown_bar")
+    base = gf.floor_to_step(_unit(bar["base"], "koth_crown_bar"), noise)
+    return _rounded_up(base, gf.step(noise), _unit(bar["margin"], "koth_crown_bar"))
+
+
+def document_v2(*, crown_bar=None, **kwargs):
     """The v2 public document: `document` (same arguments, same checks) with the conservative ``to_beat`` and
-    ``to_beat_rule``. Every other field is exactly v1's."""
+    ``to_beat_rule``. Every other field is exactly v1's. ``crown_bar`` (`PoolKingView.crown_bar`) is the averaged bar of
+    a door with crown averaging on; the score to beat is then `to_beat_averaged` under `TO_BEAT_RULE_AVERAGED`.
+    """
     base = document(**kwargs)
     result = {**base, "schema": SCHEMA_V2, "to_beat_rule": TO_BEAT_RULE}
     margin = base["margin"]
-    if margin is not None:
+    if margin is not None and crown_bar is not None:
+        result["to_beat"] = to_beat_averaged(crown_bar, margin)
+        result["to_beat_rule"] = TO_BEAT_RULE_AVERAGED
+    elif margin is not None:
         held = (
             base["king"]["total"]
             if base["king"] is not None
@@ -189,8 +215,10 @@ class PoolKingView:
         exam_version_label,
         rebuild_noise_of,
         baseline=lambda: None,
+        crown_bar_of=None,
     ):
         self._open, self._epoch_of = open_store, epoch_of
+        self._crown_bar_of = crown_bar_of
         self.exam_version_label = exam_version_label
         self._noise_of, self._baseline = rebuild_noise_of, baseline
 
@@ -244,6 +272,13 @@ class PoolKingView:
             )
         return changes[::-1][:limit]
 
+    def crown_bar(self, challenge_id):
+        """The averaged bar a screening grade must clear on a door with crown averaging on, or None: the receiver's
+        ``crown_bar_of(challenge_id)`` (`direct_receiver._crown_bar`), which knows the averaging rule; this module does
+        not. ``{"base", "margin"}`` is private: `document_v2` publishes only their rounded-up sum.
+        """
+        return None if self._crown_bar_of is None else self._crown_bar_of(challenge_id)
+
     def king(self):
         store = self._open()
         incumbent = store.incumbent()
@@ -285,6 +320,10 @@ def serve(view, challenge, build=None):
     if view is None:
         return 404, {"refused": "koth_unpublished"}
     try:
+        averaged = {}
+        if build is document_v2 and hasattr(view, "crown_bar"):
+            # only the v2 document names its rule; v1 keeps the single-grade bar it has always stated
+            averaged = {"crown_bar": view.crown_bar(challenge.challenge_id)}
         return 200, (build or document)(
             challenge_id=challenge.challenge_id,
             challenge_version=challenge.version,
@@ -292,6 +331,7 @@ def serve(view, challenge, build=None):
             king=view.king(),
             rebuild_noise=view.rebuild_noise,
             baseline_total=view.baseline_total,
+            **averaged,
         )
     except KothPublicRefused as refused:
         return 503, {"refused": refused.code}
@@ -303,6 +343,7 @@ __all__ = [
     "PATH",
     "SCHEMA",
     "SCHEMA_V2",
+    "TO_BEAT_RULE_AVERAGED",
     "V2_SUFFIX",
     "KothPublicRefused",
     "PoolKingView",

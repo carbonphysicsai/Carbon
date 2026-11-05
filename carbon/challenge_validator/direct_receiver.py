@@ -2269,7 +2269,37 @@ def _king_view(intake, pool_store):
         baseline=lambda: _open_pool_store(pool_store).latest_baseline(
             challenge.challenge_id
         ),
+        crown_bar_of=lambda challenge_id: _crown_bar(pool_store, challenge_id),
     )
+
+
+def _crown_bar(pool_store, challenge_id):
+    """The averaged bar of the king page (`koth_public.TO_BEAT_RULE_AVERAGED`, Lead 5 Nov) when this receiver runs crown
+    averaging, or None. A screening grade must beat the king's N-rebuild MEAN by more than margin_N
+    (`crown_average.Active.screening`): ``{"base": mean, "margin": margin_N}``. A KING_UNSTABLE king's single standing
+    total stands for his mean; with no king, Carbon's baseline. None (the single-grade bar stays) when averaging is off,
+    margin_N is not registered at the configured N, the store is absent, or the king has no filed measurement
+    (KING_UNMEASURED: crowns wait). Private: the page publishes only the rounded-up sum.
+    """
+    from carbon.challenge_validator import crown_average
+
+    active = crown_average.ACTIVE
+    if active is None:
+        return None
+    margin = active.rule.margin_for(challenge_id)
+    store = None if margin is None else _open_pool_store(pool_store)
+    if store is None:
+        return None
+    incumbent = store.incumbent()
+    if incumbent is None:
+        base = store.latest_baseline(challenge_id)
+    else:
+        model = incumbent["model_id"]
+        base = store.crown_mean(model)
+        if base is None and store.crown_average_unstable(model):
+            standing = store.incumbent_standing(model)
+            base = None if standing is None else standing["total"]
+    return None if base is None else {"base": base, "margin": margin}
 
 
 class PoolStoreUnavailable(ValueError):

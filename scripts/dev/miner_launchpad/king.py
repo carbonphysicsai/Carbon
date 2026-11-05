@@ -33,6 +33,9 @@ SCHEMA = "carbon.koth.public.v1"
 SCHEMA_V2 = "carbon.koth.public.v2"
 V2_SUFFIX = "/v2"
 TO_BEAT_RULE = "floor_plus_step_plus_margin"
+#: crown averaging on: the king's rebuild mean plus the averaging margin, rounded up; only the sum is public, so the
+#: reader checks its range, not its arithmetic
+TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n"
 PATH = "/carbon/v1/koth/"
 FIELDS = frozenset(
     {
@@ -86,7 +89,9 @@ def parse(document, challenge_id):
         or set(document) != (FIELDS_V2 if v2 else FIELDS)
         or document["schema"] not in (SCHEMA, SCHEMA_V2)
         or document["challenge_id"] != challenge_id
-        or (v2 and document["to_beat_rule"] != TO_BEAT_RULE)
+        or (
+            v2 and document["to_beat_rule"] not in (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED)
+        )
     ):
         raise KingUnreadable("shape")
     version, label = document["challenge_version"], document["exam_version_label"]
@@ -122,7 +127,11 @@ def parse(document, challenge_id):
     # plus the margin, within one Ladder grid step, eta (Validator, king-card
     # receipt: the margin itself is never part of the tolerance).
     held = king["total"] if king is not None else baseline
-    if to_beat is not None and v2:
+    averaged = v2 and document["to_beat_rule"] == TO_BEAT_RULE_AVERAGED
+    if to_beat is not None and averaged:
+        if held is None:
+            raise KingUnreadable("to_beat")
+    elif to_beat is not None and v2:
         # the conservative bar: the shown (step-floored) score + one step + the margin, rounded up to 3 places
         from carbon.scoring.grade_feedback import step
 
@@ -147,6 +156,7 @@ def parse(document, challenge_id):
         "to_beat": to_beat,
         "baseline_total": baseline,
         **({"conservative": True} if v2 else {}),
+        **({"averaged": True} if averaged else {}),
     }
 
 
@@ -203,7 +213,15 @@ def words(answer):
             f"(0 to 1, higher is better; exam {label}), since round "
             f"{king['since_epoch']}."
         )
-        if answer["to_beat"] is not None and answer.get("conservative"):
+        if answer["to_beat"] is not None and answer.get("averaged"):
+            lines.append(
+                f"Score above {_score(answer['to_beat'])} to be sure to start a "
+                f"crown check: crowns here compare averages, so the bar is the "
+                f"king's average over several rebuilds plus the averaging margin, "
+                f"rounded up, and your model is then rebuilt and its average must "
+                f"beat the king's."
+            )
+        elif answer["to_beat"] is not None and answer.get("conservative"):
             lines.append(
                 f"Score above {_score(answer['to_beat'])} to be sure to take the "
                 f"crown. The exact bar may be up to one Ladder step lower "
@@ -214,6 +232,14 @@ def words(answer):
                 f"Score to beat: {_score(answer['to_beat'])} (the king's score "
                 f"plus the margin {_score(answer['margin'])})."
             )
+    elif answer["baseline_total"] is not None and answer.get("averaged"):
+        lines.append(
+            f"No king yet: score above {_score(answer['to_beat'])} to be sure to "
+            f"start a crown check against Carbon's baseline "
+            f"({_score(answer['baseline_total'])}, exam {label}); your model is "
+            f"then rebuilt and its average must beat the baseline by the "
+            f"averaging margin."
+        )
     elif answer["baseline_total"] is not None:
         lines.append(
             f"No king yet: beat Carbon's baseline "

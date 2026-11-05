@@ -626,6 +626,12 @@ def _launch(board):
                 if launch.get("king_stability") is None
                 else {"king_stability": launch["king_stability"]}
             ),
+            # the averaged bar only (crown averaging on): the page says it is the king's rebuild mean plus a margin
+            **(
+                {"to_beat_rule": launch["to_beat_rule"]}
+                if launch.get("to_beat_rule") == "mean_floor_plus_step_plus_margin_n"
+                else {}
+            ),
             # v2 boards only: the signed history, newest first; a v1 board carries none, so the page draws nothing.
             **(
                 {}

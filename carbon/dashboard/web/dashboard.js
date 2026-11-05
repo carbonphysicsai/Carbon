@@ -155,8 +155,7 @@
   }
   // The score to beat is shown ROUNDED UP to 3 decimals, never below the real bar (the epsilon keeps 0.728 at 0.728).
   function toBeat(v) { return isNum(v) ? (Math.ceil(v * 1000 - 1e-9) / 1000).toFixed(3) : "—"; }
-  // A public total is TRUNCATED to 3 decimals (0.519901 reads 0.519); the nudge, far below the 9th decimal, keeps a
-  // float's noise (0.52 as 0.5199999999999999) from dropping a digit.
+  // A public total is TRUNCATED to 3 decimals (0.519901 reads 0.519); the tiny nudge keeps float noise from dropping a digit.
   const TOTAL_PLACES = 3;
   function total(v) {
     if (!isNum(v)) return "—";
@@ -723,9 +722,11 @@
     const digits = places([k && k.value, l.to_beat, l.margin, l.baseline_total]);
     if (k && isNum(k.value) && !Array.isArray(l.crown_changes)) return null; // a v1 board states no such rule
     // Validator 18:56: low = floored king total + margin, rounded DOWN; public values only.
-    if (isNum(l.to_beat) && k && isNum(k.value)) return {label: "Score to beat (guaranteed)", value: toBeat(l.to_beat),
-      line: (isNum(l.margin) ? "The exact bar is between " + total(k.value + l.margin) + " and " + toBeat(l.to_beat) + ". " : "")
-        + "Score above " + toBeat(l.to_beat) + ", passing every gate and minimum, to take the crown."};
+    const a = l.to_beat_rule; // the averaged bar
+    if (isNum(l.to_beat) && (a || k && isNum(k.value))) return {label: "Score to beat (guaranteed)", value: toBeat(l.to_beat),
+      line: (a ? "Crowns compare rebuild averages: this is the leader's average plus the margin, rounded up. "
+        : isNum(l.margin) ? "The exact bar is between " + total(k.value + l.margin) + " and " + toBeat(l.to_beat) + ". " : "")
+        + "Score above " + toBeat(l.to_beat) + ", passing every gate and minimum, " + (a ? "for a crown check: your average must beat it." : "to take the crown.")};
     if (isNum(l.baseline_total)) return {label: "Carbon's baseline", value: fmt(l.baseline_total, digits),
       line: isNum(l.margin) ? "To take the first crown, beat Carbon's baseline by " + fmt(l.margin, digits) + ". A tie keeps the baseline."
         : "The margin is not yet registered, so no crown can change hands yet."};
@@ -780,8 +781,7 @@
     return h("dl", {class: "counts-strip", "aria-label": "Standing"},
       LAUNCH_COUNTS.map(([key, label]) => h("div", {class: "count-cell"}, h("dt", null, label), h("dd", null, String(l.counts[key])))));
   }
-  // A hotkey whose latest result failed a gate, named with its gates. A ladder row is its best total plus its latest
-  // status, so a hotkey with an earlier scored best is also ranked on that best; the failed result itself is never scored.
+  // A hotkey whose latest result failed a gate, with its gates; an earlier scored best keeps its rank.
   function gateFailures(board) {
     const names = board.launch.gate_names || {};
     const rows = Object.keys(names).sort().map(k => h("tr", null,

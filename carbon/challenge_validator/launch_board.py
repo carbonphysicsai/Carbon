@@ -62,7 +62,7 @@ from .feed_file import canonical as _canonical
 from .feed_file import write_feed
 from .koth_public import FIELDS as KOTH_FIELDS
 from .koth_public import FIELDS_V2 as KOTH_FIELDS_V2
-from .koth_public import KING_FIELDS, TO_BEAT_RULE
+from .koth_public import KING_FIELDS, TO_BEAT_RULES
 from .score_feed import FeedKey, FeedRefused
 
 SCHEMA = "carbon.validator.launch-board.v1"
@@ -187,7 +187,7 @@ def _king(raw, *, v2=False):
     """The closed king document (`koth_public.document`'s shape, or `document_v2`'s) or a refusal."""
     if type(raw) is not dict or set(raw) != (KOTH_FIELDS_V2 if v2 else KOTH_FIELDS):
         raise BoardRefused("board_king")
-    if v2 and raw["to_beat_rule"] != TO_BEAT_RULE:
+    if v2 and raw["to_beat_rule"] not in TO_BEAT_RULES:
         raise BoardRefused("board_king")
     king = raw["king"]
     if king is not None:

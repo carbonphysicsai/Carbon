@@ -179,6 +179,14 @@ def _variants(signer, boards):
             row["rank"] = 1
 
     v2("v2_co_rank", two, mutate=co_rank)
+    # crown averaging on (Lead 5 Nov): the averaged bar's own rule, read by both and passed to the page
+    v2(
+        "v2_averaged_rule",
+        two,
+        mutate=lambda b: b["king"].__setitem__(
+            "to_beat_rule", launch.TO_BEAT_RULE_AVERAGED
+        ),
+    )
 
     def v3(name, stability, *, signed_under=launch.DOMAIN_V3, mutate=None):
         body = {k: v for k, v in copy.deepcopy(graded).items() if k != "signature"}
@@ -192,6 +200,13 @@ def _variants(signer, boards):
         out.append((name, {**body, "signature": signature.hex()}))
 
     v3("v3_unstable", "UNSTABLE")
+    v3(
+        "v3_averaged_rule",
+        "STABLE",
+        mutate=lambda b: b["king"].__setitem__(
+            "to_beat_rule", launch.TO_BEAT_RULE_AVERAGED
+        ),
+    )
     v3("v3_stable", "STABLE")
     v3("v3_bad_value", "OTHER")
     v3("v3_king_without_stability", None)
@@ -237,6 +252,16 @@ def test_worker_matches_launch_py_on_every_board_and_refusal(tmp_path):
         assert have == want, name
     codes = {name: want.get("code") for name, want in expected}
     assert codes["empty"] is None and codes["graded"] is None
+    assert codes["v2_averaged_rule"] is None and codes["v3_averaged_rule"] is None
+    assert codes["v2_wrong_rule"] == "king_invalid"
+    shown = dict(expected_v2)
+    assert (
+        shown["v2_averaged_rule"]["board"]["launch"]["to_beat_rule"]
+        == launch.TO_BEAT_RULE_AVERAGED
+    )
+    assert (
+        "to_beat_rule" not in shown["v2_two"]["board"]["launch"]
+    )  # the single-grade page data is unchanged
     assert codes["tampered"] == "signature_invalid"
     assert codes["feed_domain_signature"] == "signature_invalid"
     assert codes["extra_field"] == "board_fields"

@@ -602,6 +602,8 @@ const LAUNCH_MAX_GATES = 16;
 const LAUNCH_FIELDS = ["challenge", "counts", "generated_at", "king", "labels", "ladder", "network", "schema", "signature", "validator", "version"];
 const LAUNCH_KING_FIELDS = ["baseline_total", "king", "margin", "to_beat"];
 const LAUNCH_TO_BEAT_RULE = "floor_plus_step_plus_margin";
+// a door with crown averaging on: the king's rebuild mean plus the averaging margin, rounded up (koth_public)
+const LAUNCH_TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n";
 const LAUNCH_KING_ROW = ["hotkey", "since_epoch", "total"];
 const LAUNCH_LADDER_FIELDS = ["gate_names", "hotkey", "rank", "status", "total"];
 const LAUNCH_SS58 = /^[1-9A-HJ-NP-Za-km-z]{47,48}$/u;
@@ -652,7 +654,7 @@ function launchCheck(document) {
   if (!sameKeys(validator, ["feed_key"]) || typeof validator.feed_key !== "string" || !HEX_KEY.test(validator.feed_key)) throw new FeedRefused("validator_invalid");
   const king = get(document, "king");
   if (!sameKeys(king, v3 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability"].sort() : v2 ? [...LAUNCH_KING_FIELDS, "to_beat_rule"].sort() : LAUNCH_KING_FIELDS)) throw new FeedRefused("king_invalid");
-  if (v2 && king.to_beat_rule !== LAUNCH_TO_BEAT_RULE) throw new FeedRefused("king_invalid");
+  if (v2 && king.to_beat_rule !== LAUNCH_TO_BEAT_RULE && king.to_beat_rule !== LAUNCH_TO_BEAT_RULE_AVERAGED) throw new FeedRefused("king_invalid");
   if (v3 && ((king.stability !== null && !LAUNCH_STABILITY.includes(king.stability)) || (king.stability === null) !== (king.king === null))) throw new FeedRefused("king_invalid");
   const row = king.king;
   if (row !== null) {
@@ -751,6 +753,7 @@ async function projectLaunch(document, pinned) {
       network: document.network,
       gate_names: gateNames,
       king_stability: v3 ? king.stability : null,
+      to_beat_rule: v2 ? king.to_beat_rule : null,
       crown_changes: v2 ? document.crown_changes.map(c => ({
         hotkey: c.to_hotkey, from_hotkey: c.from_hotkey, since_epoch: c.since_epoch.value, total: c.total.value,
       })) : null,
@@ -1284,6 +1287,7 @@ function launchV2(board) {
     network: launch.network,
     gate_names: gateNames,
     ...(launch.king_stability === null || launch.king_stability === undefined ? {} : {king_stability: launch.king_stability}),
+    ...(launch.to_beat_rule === LAUNCH_TO_BEAT_RULE_AVERAGED ? {to_beat_rule: launch.to_beat_rule} : {}),
     ...(!Array.isArray(launch.crown_changes) ? {} : {crown_changes: launch.crown_changes.map(c => ({...c}))}),
   }};
 }

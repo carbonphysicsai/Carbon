@@ -88,6 +88,9 @@ KING_FIELDS = frozenset({"king", "margin", "to_beat", "baseline_total"})
 TO_BEAT_RULE = (
     "floor_plus_step_plus_margin"  # v2 king section names its rule; v1 has none
 )
+# a door with crown averaging on: the bar is the king's rebuild mean plus the averaging margin, rounded up
+TO_BEAT_RULE_AVERAGED = "mean_floor_plus_step_plus_margin_n"
+TO_BEAT_RULES = (TO_BEAT_RULE, TO_BEAT_RULE_AVERAGED)
 KING_ROW = frozenset({"hotkey", "total", "since_epoch"})
 LADDER_FIELDS = frozenset({"rank", "hotkey", "total", "status", "gate_names"})
 
@@ -229,7 +232,7 @@ def _check(document):
         or (king["stability"] is None) != (king["king"] is None)
     ):
         raise LaunchRefused("king_invalid")
-    if v2 and king["to_beat_rule"] != TO_BEAT_RULE:
+    if v2 and king["to_beat_rule"] not in TO_BEAT_RULES:
         raise LaunchRefused("king_invalid")
     row = king["king"]
     if row is not None:
@@ -385,6 +388,8 @@ def project(document, trust):
             },
             # v3 only: whether the king's latest re-measure was seed-fragile; None on v1/v2 (nothing drawn)
             "king_stability": king.get("stability"),
+            # v2/v3 only: the page words the averaged bar differently
+            "to_beat_rule": king.get("to_beat_rule"),
             "crown_changes": (
                 None
                 if document["schema"] == SCHEMA
