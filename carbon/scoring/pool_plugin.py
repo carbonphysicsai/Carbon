@@ -530,6 +530,12 @@ def fresh_variant_starts(spec, rule, draw_seed):
     from carbon.scoring import pool_grader
 
     slots = pool_grader.variant_slots(rule)
+    # A target with an engineer's-shortcut zero needs each variant's own zero from its custody shortcut rows (Validator
+    # 21:40 (3)); nothing here can derive one, so such a fresh set refuses instead of grading a wrong zero.
+    if getattr(spec, "zero", None):
+        raise PluginRefused(
+            "fresh_set_with_a_shortcut_zero_needs_its_own_variant_zeros"
+        )
     return [
         {
             "start": list(spec.start),

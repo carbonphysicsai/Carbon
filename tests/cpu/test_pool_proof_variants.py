@@ -178,3 +178,15 @@ def test_the_official_exam_grades_d_with_the_registered_rule():
     assert varied["D"] != plain["D"]
     with pytest.raises(pool_exam.ExamRefused, match="missing"):
         measure(_with_rule())
+
+
+def test_a_fresh_target_with_a_shortcut_zero_refuses_derived_variant_starts():
+    from types import SimpleNamespace
+
+    with_zero = SimpleNamespace(
+        target_id="f0", start=(0.5, 0.5), zero={"kind": "engineer_shortcut"}
+    )
+    with pytest.raises(pp.PluginRefused, match="needs_its_own_variant_zeros"):
+        pp.fresh_variant_starts(with_zero, RULE, 1)
+    plain = SimpleNamespace(target_id="f0", start=(0.5, 0.5), zero=None)
+    assert len(pp.fresh_variant_starts(plain, RULE, 1)) == len(variant_slots(RULE))
