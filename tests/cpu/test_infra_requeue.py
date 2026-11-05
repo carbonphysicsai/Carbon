@@ -1102,7 +1102,7 @@ def test_keep_evaluation_refuses_what_is_not_attempt_ones_alone(tmp_path):
     _failed(root, ledger, B)  # FAILED, never re-queued
     for task in (A, B, C, E, F):
         _first_attempt_binding(root, task)
-    # C's attempt 2 already failed on attempt 1's binding: a second re-grade is not A2's one shot
+    # C's attempt 2 already failed on attempt 1's binding: `requeue` hands it back, not this step
     intake = _BindingIntake(root, [C], "sha256:" + "2" * 64)
     assert auto_grade.AutoGrader(intake, root).run_once() == (C, "FAILED")
     _row(ledger, F, "RESERVED")  # F's attempt 2 is grading now
@@ -1111,7 +1111,7 @@ def test_keep_evaluation_refuses_what_is_not_attempt_ones_alone(tmp_path):
     assert out["refused"] == {
         A: "not_requeued",
         B: "not_requeued",
-        C: "failed_again_needs_ruling",
+        C: "failed_again_use_requeue",
         D: "no_evaluation_directory",
         E: "evaluation_written_since_requeue",
         F: "grade_in_flight",
@@ -1169,3 +1169,151 @@ def test_an_archived_task_keeps_attempt_ones_evaluation_files_for_its_resubmit(
     assert out["archived"] == [A]
     assert (_kept(root, A, "evaluation") / BINDING).exists()
     assert not _evaluation(root, A).exists()
+
+
+# ---------------------------------------------------------------- Lead 4 Nov: attempt 2 failed on attempt 1's binding
+
+
+class _DoorIntake(_BindingIntake):
+    """`_BindingIntake` on the door's own ledger, so a failure gives the slot back through the real `ExamCap`
+    (RELEASED / FAILED_INFRA, as on rs18)."""
+
+    def __init__(self, root, ledger, entry):
+        super().__init__(root, (), entry)
+        self.adapter = SimpleNamespace(
+            contract_digest=CONTRACT,
+            ledger=ledger,
+            owner=lambda submission_id: HOTKEY,
+            discovery=SimpleNamespace(evaluation_pack_digest=EXAM),
+            challenge_id="f02",
+            challenge_version="2.5",
+        )
+
+
+def _rs18_failed_rerun(root, ledger, task):
+    """A task as rs18 left it: re-queued by the 517b tool (attempt 1's evaluation directory left in place), then its
+    attempt 2 FAILED on attempt 1's binding and was given back. Returns the attempt-2 intake.
+    """
+    from carbon.challenge_validator import auto_grade, infra_requeue
+
+    _failed(root, ledger, task)
+    infra_requeue.requeue(
+        root, [task], apply=True, clock=lambda: time.time_ns() + 10**12
+    )
+    _first_attempt_binding(root, task)
+    intake = _DoorIntake(root, ledger, "sha256:" + "2" * 64)
+    assert auto_grade.AutoGrader(intake, root).run_once() == (task, "FAILED")
+    assert _rows(ledger, task) == [("RELEASED", "FAILED_INFRA")]
+    return intake
+
+
+def test_a_rerun_that_failed_on_attempt_ones_binding_is_requeued_once_more_and_grades(
+    tmp_path,
+):
+    from carbon.challenge_validator import auto_grade, infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _rs18_failed_rerun(root, ledger, A)
+    assert infra_requeue.scan(root)["eligible"]["since_split"] == [A]
+    out = infra_requeue.requeue(root, [A], apply=True)
+    assert out["requeued"] == [A]
+    kept = root / "auto-grade" / "requeued"
+    assert (
+        "evaluation_pack_binding_unavailable"
+        in (kept / f"{A}.attempt-2.failure.txt").read_text()
+    )
+    assert json.loads((kept / f"{A}.attempt-2.marker.json").read_text())["state"] == (
+        "FAILED"
+    )
+    assert json.loads((_kept(root, A, "evaluation") / BINDING).read_text()) == {
+        "entry_id": "sha256:" + "1" * 64
+    }
+    log = [json.loads(x) for x in (kept / "requeues.jsonl").read_text().splitlines()]
+    assert [(x["attempt"], x["evaluation_kept"]) for x in log] == [
+        (2, False),
+        (3, True),
+    ]
+    # the door does not also run a fresh resubmit of it, and its one limit bypass is armed again for attempt 3
+    assert _rows(ledger, A) == [("RELEASED", "REQUEUED")]
+    with ledger._db() as db:
+        assert db.execute(
+            "SELECT attempt, reserved_ns FROM exam_requeues WHERE submission_id=?", (A,)
+        ).fetchall() == [(3, None)]
+    intake = _DoorIntake(root, ledger, "sha256:" + "3" * 64)
+    assert auto_grade.AutoGrader(intake, root).run_once() == (A, "GRADED")
+    assert json.loads((_evaluation(root, A) / BINDING).read_text())["entry_id"] == (
+        "sha256:" + "3" * 64
+    )
+    # once: never handed back a third time, whatever happens to attempt 3
+    assert infra_requeue.requeue(root, [A], apply=True)["refused"] == {
+        A: "already_requeued"
+    }
+
+
+def test_a_second_requeue_takes_only_attempt_twos_binding_conflict_on_attempt_ones_files(
+    tmp_path,
+):
+    from carbon.challenge_validator import auto_grade, infra_requeue
+
+    root, ledger = _root(tmp_path)
+    for task in (A, B, C):
+        _rs18_failed_rerun(root, ledger, task)
+    # B: attempt 2 failed for another reason; C: attempt 2 had written in the directory after its requeue
+    (root / "auto-grade" / "failures" / (B + ".txt")).write_text("WorkerFailure\n")
+    written = _evaluation(root, C) / "inference-pair.json"
+    written.write_text("{}")
+    after = time.time_ns() + 2 * 10**12  # after C's requeue line
+    os.utime(written, ns=(after, after))
+    _failed(root, ledger, D)  # attempt 1, ordinary cause: the one-shot path as before
+    # E: re-queued with this fix (directory kept), then attempt 2 failed on infrastructure: not a binding conflict
+    _failed(root, ledger, E)
+    _first_attempt_binding(root, E)
+    infra_requeue.requeue(root, [E], apply=True)
+    e_intake = _DoorIntake(root, ledger, "sha256:" + "2" * 64)
+    e_intake.retain_result = lambda submission_id, **kwargs: (_ for _ in ()).throw(
+        RuntimeError("worker down")
+    )
+    assert auto_grade.AutoGrader(e_intake, root).run_once() == (E, "FAILED")
+    out = infra_requeue.requeue(root, [A, B, C, D, E])
+    assert out["requeued"] == [A, D]
+    assert out["refused"] == {
+        B: "already_requeued",
+        C: "evaluation_written_since_requeue",
+        E: "already_requeued",
+    }
+
+
+def test_a_rerun_of_the_same_recipe_stops_the_second_requeue(tmp_path):
+    """Attempt 2's give-back lets the door run the miner's resubmit fresh; once one exists, this task never grades."""
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    recipe = _recipe("shared")
+    _failed(root, ledger, A, recipe=recipe)
+    infra_requeue.requeue(root, [A], apply=True, clock=lambda: time.time_ns() + 10**12)
+    _first_attempt_binding(root, A)
+    from carbon.challenge_validator import auto_grade
+
+    assert auto_grade.AutoGrader(
+        _DoorIntake(root, ledger, "sha256:" + "2" * 64), root
+    ).run_once() == (A, "FAILED")
+    _store(root, B, recipe)  # the fresh resubmit
+    assert infra_requeue.requeue(root, [A], apply=True)["refused"] == {
+        A: "given_back_rerun_exists"
+    }
+
+
+def test_exam_cap_rearms_the_bypass_once_per_later_attempt(tmp_path):
+    _root_dir, ledger = _root(tmp_path)
+    cap = _cap(ledger)
+    assert cap.mark_requeued(A, attempt=2) is True
+    with ledger._db() as db:
+        db.execute("UPDATE exam_requeues SET reserved_ns=5 WHERE submission_id=?", (A,))
+    assert cap.mark_requeued(A, attempt=2) is False  # the same attempt twice: nothing
+    assert cap.mark_requeued(A, attempt=3) is True
+    assert cap.mark_requeued(A, attempt=3) is False
+    assert cap.mark_requeued(A, attempt=2) is False  # never back to an earlier attempt
+    with ledger._db() as db:
+        assert db.execute(
+            "SELECT attempt, reserved_ns FROM exam_requeues WHERE submission_id=?", (A,)
+        ).fetchall() == [(3, None)]

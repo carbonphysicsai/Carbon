@@ -41,7 +41,15 @@ re-run failed ``evaluation_pack_binding_unavailable``).
 task was re-queued, attempt 2 has not been graded yet (no marker, no RESERVED row), and every file in its evaluation
 directory is older than its requeue line (so all of it is attempt 1's). Run it while the door's re-run pickups are
 paused: a grade that started in the same instant would fail as before, uncharged. A re-queued task whose attempt 2
-already FAILED this way is refused (``failed_again_needs_ruling``): a second re-grade is not A2's one shot.
+already FAILED this way is refused (``failed_again_use_requeue``); ``requeue`` takes it instead, once more:
+
+``requeue`` also takes, ONCE, a task whose A2 re-run (attempt 2) FAILED on attempt 1's binding (Lead 4 Nov 23:5x; the
+cause ``evaluation_pack_binding_unavailable`` in attempt 2's own failure evidence): its evaluation directory must hold
+attempt 1's files alone (every file older than the attempt-2 requeue line: attempt 2 wrote nothing, so nothing of it is
+lost), and every other check above holds (attempt 2's give-back left a RELEASED / FAILED_INFRA row, so a rerun of the
+same recipe refuses ``given_back_rerun_exists``). Attempt 2's marker and failure are kept as ``<id>.attempt-2.*``,
+attempt 1's directory as ``<id>.attempt-1.evaluation/``, and `ExamCap.mark_requeued` re-arms the task's one limit
+bypass for attempt 3. A task re-queued twice is never re-queued again (``already_requeued``).
 
 ``requeue`` ARCHIVES instead (Validator 4 Nov 16:38) a task that passes every check up to the contract but whose row
 is not in its owner's store on this root (``task_row_missing``: the rs15-only rows): Carbon cannot re-run it, so the
@@ -100,14 +108,20 @@ def _graded_statuses():
 _GRADED_STATUSES = _graded_statuses()
 
 
-def _paths(root, task):
+#: The last attempt whose failure ``requeue`` may hand back: attempt 2, for the binding cause only.
+_LAST_REQUEUED_FAILURE = 2
+BINDING_CAUSE = "evaluation_pack_binding_unavailable"
+
+
+def _paths(root, task, attempt=_ATTEMPT):
+    """The task's marker, failure and evaluation paths, and where ``attempt``'s are kept once it is handed back."""
     base = Path(root) / "auto-grade"
     kept = base / "requeued"
     return {
         "marker": base / "markers" / (task + ".json"),
         "failure": base / "failures" / (task + ".txt"),
-        "kept_marker": kept / f"{task}.attempt-{_ATTEMPT}.marker.json",
-        "kept_failure": kept / f"{task}.attempt-{_ATTEMPT}.failure.txt",
+        "kept_marker": kept / f"{task}.attempt-{attempt}.marker.json",
+        "kept_failure": kept / f"{task}.attempt-{attempt}.failure.txt",
         # the private evaluation directory `lean_recipe_retention._private_evaluation_directory` writes (beside the
         # task's artifacts, in the grader's ``auto-grade/artifacts``), and where attempt 1's copy is kept
         "evaluation": base / "artifacts" / (task + ".evaluation"),
@@ -268,23 +282,63 @@ def _rows(db, task):
     ).fetchall()
 
 
+def _failed_attempt(root, task):
+    """The attempt the task's current marker records: 1 + the attempts already kept (None: one ``requeue`` may not
+    hand back, or a kept path is not a plain file)."""
+    for attempt in range(1, _LAST_REQUEUED_FAILURE + 1):
+        kept = _paths(root, task, attempt)["kept_marker"]
+        if kept.is_symlink():
+            return None
+        if not kept.exists():
+            return attempt
+    return None
+
+
+def _binding_refusal(root, task, paths):
+    """None when attempt 2 failed on attempt 1's binding alone (see the module text), else the refusal code."""
+    try:
+        text = paths["failure"].read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        text = ""
+    if BINDING_CAUSE not in text:
+        return "cause_not_requeueable"
+    if not paths["evaluation"].is_dir():
+        # the binding attempt 2 met is not attempt 1's directory: not this cause
+        return "binding_conflict_without_attempt_ones_files"
+    at_ns = _requeued_at(root, task)
+    if at_ns is None:
+        return "requeue_record_missing"
+    if _written_since(paths["evaluation"], at_ns):
+        return "evaluation_written_since_requeue"
+    return None
+
+
 def _requeue_refusal(root, db, door, task):
     """None when ``requeue`` accepts the task, else its refusal code (read-only)."""
     if type(task) is not str or not _TASK.fullmatch(task):
         return "not_a_task_id"
-    paths = _paths(root, task)
-    if paths["kept_marker"].exists() or paths["kept_marker"].is_symlink():
+    attempt = _failed_attempt(root, task)
+    if attempt is None:
         return "already_requeued"
+    paths = _paths(root, task, attempt)
+    state = _marker(paths["marker"])
+    if attempt == _ATTEMPT:
+        if state is None:
+            return "no_marker"
+        if state != "FAILED":
+            return "marker_" + state.lower()
+        if not _cause(paths):
+            return "cause_not_requeueable"
+    else:
+        # handed back once already: only attempt 2's FAILED binding conflict is handed back again
+        if state != "FAILED":
+            return "already_requeued"
+        code = _binding_refusal(root, task, paths)
+        if code is not None:
+            return "already_requeued" if code == "cause_not_requeueable" else code
     evaluation = _evaluation_refusal(paths)
     if evaluation is not None:
         return evaluation
-    state = _marker(paths["marker"])
-    if state is None:
-        return "no_marker"
-    if state != "FAILED":
-        return "marker_" + state.lower()
-    if not _cause(paths):
-        return "cause_not_requeueable"
     if _released(root, task):
         # its charged-but-undelivered slot was given back by `release`: never re-graded to replace the record
         return "released_not_regraded"
@@ -428,10 +482,11 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
             out["refused"][task] = code
             continue
         if apply:
-            paths = _paths(root, task)
+            attempt = _failed_attempt(root, task)
+            paths = _paths(root, task, attempt)
             paths["kept_marker"].parent.mkdir(mode=0o700, exist_ok=True)
             # Its one bypass of the round/day limits is on record before the grader can see the task.
-            cap.mark_requeued(task, attempt=_ATTEMPT + 1)
+            cap.mark_requeued(task, attempt=attempt + 1)
             if paths["failure"].exists():
                 # Evidence first, so attempt 2 can write its own (create-only) failure file.
                 os.replace(paths["failure"], paths["kept_failure"])
@@ -446,7 +501,7 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
                     json.dumps(
                         {
                             "task": task,
-                            "attempt": _ATTEMPT + 1,
+                            "attempt": attempt + 1,
                             "kind": action,
                             "evaluation_kept": kept_evaluation,
                             "at_ns": int(clock()),
@@ -457,9 +512,6 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
                 )
         out["requeued" if action == "requeue" else "archived"].append(task)
     return out
-
-
-BINDING_CAUSE = "evaluation_pack_binding_unavailable"
 
 
 def _requeued_at(root, task):
@@ -519,7 +571,7 @@ def _keep_evaluation_refusal(root, db, task):
             text = paths["failure"].read_text(encoding="utf-8", errors="replace")
         except OSError:
             text = ""
-        return "failed_again_needs_ruling" if BINDING_CAUSE in text else "marker_failed"
+        return "failed_again_use_requeue" if BINDING_CAUSE in text else "marker_failed"
     if state is not None:
         return "marker_" + state.lower()
     if any(row[1] == "RESERVED" for row in _rows(db, task)):

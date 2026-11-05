@@ -629,6 +629,17 @@ class ExamCap:
                 ).rowcount
                 == 1
             )
+            if not added:
+                # a LATER attempt (`infra_requeue`: an A2 re-run that failed on attempt 1's binding, Lead 4 Nov):
+                # its own single bypass, re-armed once per attempt; the same attempt twice changes nothing
+                added = (
+                    db.execute(
+                        "UPDATE exam_requeues SET attempt=?, queued_ns=?, reserved_ns=NULL "
+                        "WHERE submission_id=? AND attempt<?",
+                        (attempt, int(self.clock()), submission_id, attempt),
+                    ).rowcount
+                    == 1
+                )
             # A row given back as FAILED_INFRA would make the door run a resubmit of this recipe as a FRESH task while
             # this one is being re-graded (a double grade): it stays RELEASED (no slot) but is no longer 'ended on
             # infrastructure'. If the re-grade fails on infrastructure again, the give-back sets FAILED_INFRA again.
