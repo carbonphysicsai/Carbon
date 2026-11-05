@@ -20,7 +20,9 @@ at a time per door, interleaved with live submissions in task-id order.
 - its marker is FAILED and its private evidence (``auto-grade/failures/<id>.txt``) names the registration cause;
 - it arrived at this door, under the contract this door serves (``contract_not_served``);
 - its exam row, if any, is neither COUNTED nor RESERVED (a graded task is NEVER re-queued) nor already given back as
-  FAILED_INFRA (``given_back_resubmit_runs_fresh``: the door runs the miner's resubmit fresh);
+  FAILED_INFRA while a task of the same recipe exists (``given_back_rerun_exists``; with none, it is re-queued and
+  `ExamCap.mark_requeued` stops the door from also running a resubmit of it fresh; a given-back task with no row is
+  ``given_back_resubmit_runs_fresh``), and a task ``release`` gave back (``released_not_regraded``);
 - its task row is in its owner's store and that owner is bound to the pack this door serves now (``task_row_missing``,
   ``pack_not_served``: pinned evaluation; otherwise the grader could not resolve it and would skip it silently);
 - no other task of the same owner with the SAME recipe is GRADED or CANDIDATE_FAILED here (``same_recipe_already_graded``:
@@ -62,7 +64,14 @@ import sys
 import time
 from pathlib import Path
 
-CAUSE = "direct_provider_registration_unavailable"
+#: The Carbon-side causes a stuck task may be re-queued for, by its private failure evidence: the stale registration
+#: snapshot (REG-UNAVAILABLE) and a construction overlay the door switch did not carry (Deploy 4 Nov 20:29: overlays/
+#: was left behind, so the retained source could not be re-read; uncharged, raised before any reservation).
+CAUSES = (
+    "direct_provider_registration_unavailable",
+    "source_overlay_unavailable",
+)
+CAUSE = CAUSES[0]
 SCHEMA = "carbon.challenge-validator.infra-requeue.v2"
 DEFAULT_SPLIT = "2026-11-03T00:00:00Z"
 _TASK = re.compile(r"rtsk_[0-9a-f]{64}")
@@ -113,7 +122,7 @@ def _cause(paths):
             text = paths[name].read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        return CAUSE in text
+        return any(cause in text for cause in CAUSES)
     return False
 
 
@@ -237,15 +246,21 @@ def _requeue_refusal(root, db, door, task):
     if state != "FAILED":
         return "marker_" + state.lower()
     if not _cause(paths):
-        return "cause_not_registration_unavailable"
+        return "cause_not_requeueable"
+    if _released(root, task):
+        # its charged-but-undelivered slot was given back by `release`: never re-graded to replace the record
+        return "released_not_regraded"
     arrival = _arrival(db, task)
     if arrival is None:
         return "not_submitted_at_this_door"
+    given_back = False
     for _id, row_state, status, *_rest in _rows(db, task):
         if row_state in ("COUNTED", "RESERVED"):
             return "exam_row_counted_or_reserved"
         if status == "FAILED_INFRA":
-            return "given_back_resubmit_runs_fresh"
+            # given back on infrastructure (A1 and later): the door runs a resubmit of this recipe fresh, so it is
+            # re-queued only while no such fresh task exists (checked below), and `mark_requeued` then closes that path
+            given_back = True
         if status == "SLOT_RETURNED" or status in _GRADED_STATUSES:
             # a graded outcome, whatever its slot state now: never re-queued (review finding 3)
             return "exam_row_graded"
@@ -259,10 +274,16 @@ def _requeue_refusal(root, db, door, task):
         # unreadable now (locked, torn): never archived on a guess (review finding 1)
         return "owner_store_unreadable"
     if task not in store[1]:
-        return "task_row_missing"
+        # given back: the miner's resubmit already runs fresh, nothing to archive
+        return "given_back_resubmit_runs_fresh" if given_back else "task_row_missing"
     pack, recipes = store
     if pack != door.served["pack"]:
         return "pack_not_served"
+    if given_back and any(
+        other != task and recipe == recipes[task] for other, recipe in recipes.items()
+    ):
+        # a fresh rerun (or another task) of this same recipe exists: it grades, this one never does twice
+        return "given_back_rerun_exists"
     for other, recipe in recipes.items():
         if (
             other != task
@@ -496,6 +517,19 @@ def _stuck(root, task):
     except (OSError, ValueError, AttributeError):
         pass
     return _marker(paths["marker"]) == "FAILED" and _cause(paths)
+
+
+def _released(root, task):
+    """Whether ``release`` gave this task's slot back (its line in ``requeued/releases.jsonl``)."""
+    log = Path(root) / "auto-grade" / "requeued" / "releases.jsonl"
+    try:
+        return any(
+            json.loads(line).get("task") == task
+            for line in log.read_text().splitlines()
+            if line.strip()
+        )
+    except (OSError, ValueError, AttributeError):
+        return False
 
 
 def _ns(text):

@@ -205,16 +205,17 @@ def test_list_regenerates_the_stuck_list_from_the_door_split_at_3_nov(tmp_path):
     _failed(root, ledger, C, state="GRADED")  # not FAILED: not listed at all
     _failed(root, ledger, D, cause="WorkerFailure")
     _failed(root, ledger, E)
-    _row(ledger, E, "RELEASED", "FAILED_INFRA")  # given back: the fresh-rerun path
+    _row(
+        ledger, E, "RELEASED", "FAILED_INFRA"
+    )  # given back, no fresh rerun of its recipe: re-queueable
     _failed(root, ledger, F)
     _row(ledger, F, "COUNTED", "REQUIRED_LEG_MINIMUM_FAILED")
     out = infra_requeue.scan(root)
-    assert out["eligible"] == {"before_split": [B], "since_split": [A]}
-    assert out["eligible_counts"] == {"before_split": 1, "since_split": 1}
+    assert out["eligible"] == {"before_split": [B], "since_split": [A, E]}
+    assert out["eligible_counts"] == {"before_split": 1, "since_split": 2}
     assert out["failed_markers"] == 5
     assert out["refused_counts"] == {
-        "cause_not_registration_unavailable": 1,
-        "given_back_resubmit_runs_fresh": 1,
+        "cause_not_requeueable": 1,
         "exam_row_counted_or_reserved": 1,
     }
     assert out["arrived"][A] == "2026-11-03T00:00:01Z"
@@ -322,11 +323,10 @@ def test_requeue_refuses_other_causes_strangers_and_given_back_tasks(tmp_path):
     _failed(root, ledger, D)
     _row(ledger, D, "RELEASED", "FAILED_INFRA")
     out = infra_requeue.requeue(root, [A, B, D, E, "x"], apply=True)
-    assert out["requeued"] == []
+    assert out["requeued"] == [D]  # given back, no fresh rerun of its recipe exists
     assert out["refused"] == {
-        A: "cause_not_registration_unavailable",
+        A: "cause_not_requeueable",
         B: "not_submitted_at_this_door",
-        D: "given_back_resubmit_runs_fresh",
         E: "no_marker",
         "x": "not_a_task_id",
     }
@@ -408,7 +408,7 @@ def test_release_frees_an_undelivered_counted_slot_through_exam_cap_and_keeps_hi
     # no regrade: the marker stays, and the task can never be re-queued afterwards
     assert (root / "auto-grade" / "markers" / (A + ".json")).exists()
     assert infra_requeue.requeue(root, [A], apply=True)["refused"] == {
-        A: "given_back_resubmit_runs_fresh"
+        A: "released_not_regraded"
     }
     # and a second release finds nothing to release
     assert infra_requeue.release(root, A, apply=True)["refused"] == (
@@ -900,3 +900,66 @@ def test_a_counted_resubmit_without_a_delivered_grade_gets_no_slot_back(tmp_path
         root, [A], window_start=POSTED, window_end=LIVE, apply=True
     )
     assert out["returned"] == {} and out["unmatched"] == [A]
+
+
+# ---------------------------------------------------------------- source_overlay_unavailable (Deploy 4 Nov 20:29)
+
+
+def test_an_overlay_the_switch_left_behind_is_requeued_once_and_never_runs_fresh_too(
+    tmp_path,
+):
+    """rtsk_348e4212's shape: FAILED source_overlay_unavailable on A1 code, so the give-back left RELEASED/FAILED_INFRA.
+    It is re-queued once (no fresh rerun of its recipe exists), and the row stops reading 'ended on infrastructure',
+    so a resubmit while it re-grades returns the same task instead of a second fresh grade.
+    """
+    from carbon.challenge_validator import infra_requeue
+    from carbon.challenge_validator.exam_cap import ExamCap
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A, cause="source_overlay_unavailable")
+    _row(ledger, A, "RELEASED", "FAILED_INFRA")
+    ident = {
+        "hotkey": HOTKEY,
+        "challenge_id": "f02",
+        "challenge_version": "2.5",
+        "exam_key": EXAM,
+        "submission_id": A,
+    }
+    assert ExamCap(ledger).released_on_infra(**ident)
+    out = infra_requeue.requeue(root, [A], apply=True)
+    assert out["requeued"] == [A] and out["refused"] == {}
+    assert _rows(ledger, A) == [("RELEASED", "REQUEUED")]  # still no slot held
+    assert not ExamCap(ledger).released_on_infra(**ident)
+    assert infra_requeue.requeue(root, [A], apply=True)["refused"] == {
+        A: "already_requeued"
+    }
+
+
+@pytest.mark.parametrize("cause", ["source_overlay_unavailable", CAUSE])
+def test_a_graded_task_of_either_cause_is_never_requeued(tmp_path, cause):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A, cause=cause, state="GRADED")
+    assert infra_requeue.requeue(root, [A], apply=True)["refused"] == {
+        A: "marker_graded"
+    }
+
+
+def test_a_given_back_task_with_a_fresh_rerun_or_no_row_is_left_alone(tmp_path):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    recipe = _recipe("same")
+    _failed(root, ledger, A, cause="source_overlay_unavailable", recipe=recipe)
+    _row(ledger, A, "RELEASED", "FAILED_INFRA")
+    _store(root, B, recipe)  # the door already ran the miner's resubmit fresh
+    _failed(root, ledger, C, cause="source_overlay_unavailable", stored=False)
+    _row(ledger, C, "RELEASED", "FAILED_INFRA")
+    out = infra_requeue.requeue(root, [A, C], apply=True)
+    assert out["refused"] == {
+        A: "given_back_rerun_exists",
+        C: "given_back_resubmit_runs_fresh",
+    }
+    assert out["requeued"] == [] and out["archived"] == []
+    assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]  # untouched

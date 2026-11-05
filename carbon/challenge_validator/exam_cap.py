@@ -621,7 +621,7 @@ class ExamCap:
         if type(attempt) is not int or attempt < 2:
             raise ValueError("a re-queued grade is attempt 2 or later")
         with self.ledger._db() as db:
-            return (
+            added = (
                 db.execute(
                     "INSERT OR IGNORE INTO exam_requeues(submission_id, attempt, queued_ns) "
                     "VALUES(?,?,?)",
@@ -629,6 +629,15 @@ class ExamCap:
                 ).rowcount
                 == 1
             )
+            # A row given back as FAILED_INFRA would make the door run a resubmit of this recipe as a FRESH task while
+            # this one is being re-graded (a double grade): it stays RELEASED (no slot) but is no longer 'ended on
+            # infrastructure'. If the re-grade fails on infrastructure again, the give-back sets FAILED_INFRA again.
+            db.execute(
+                "UPDATE exam_graded SET status='REQUEUED' WHERE submission_id=? AND "
+                "kind='GRADED' AND state='RELEASED' AND status='FAILED_INFRA'",
+                (submission_id,),
+            )
+            return added
 
     def _take_requeue(self, db, submission_id) -> bool:
         """Consume this submission's one limit bypass, if it has an unused one (inside `reserve`'s transaction)."""
