@@ -236,8 +236,8 @@ class OptimizerPolicy:
     #: The design score's zero, for NEW exam versions only (OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01). None is today's
     #: median feasible pool objective (every registered version, unchanged). ``{"kind": "engineer_shortcut", "budget":
     #: B}``: each target's zero is the objective the version's registered cheap method reached screen-then-verify at budget B
-    #: (B exam-rung solves under the equal-wall rule; `build_target`'s ``zero``, from the custody shortcut run). Whether B
-    #: must equal ``budget`` (the model's queries) is not enforced here (Validator's ruling). B is the owner's, per version, from the
+    #: (B exam-rung solves under the equal-wall rule; `build_target`'s ``zero``, from the custody shortcut run). B is NOT ``budget`` (the model's queries; Validator 21:45):
+    #: a separate owner value, recorded beside it. B is the owner's, per version, from the
     #: dry-run curve; it has no default.
     d_zero: dict | None = None
 
@@ -456,12 +456,6 @@ def _check_policies(optimizer, honesty):
         "coverage_plan_is_not_the_registered_one",
     )
     zero = optimizer.d_zero
-    # A variant re-asks the question with a shifted limit, so the shortcut's anchor (run on the base) is not that variant's:
-    # until the Validator rules how a variant gets its zero, the two new-version rules do not combine (fail closed).
-    _require(
-        zero is None or optimizer.variant_rule is None,
-        "d_zero_with_a_variant_rule_needs_a_ruling",
-    )
     _require(
         zero is None
         or (
@@ -870,8 +864,11 @@ def attach_variants(spec, rule, starts):
     )
     variants, refusals = [], []
     for (name, shift), slot in zip(slots, starts, strict=True):
+        # A base with an engineer's-shortcut zero needs each slot's own zero (Validator 21:40 (3)): the same shortcut rows
+        # re-ranked under the shifted bound, in custody; a base without one takes none.
         _require(
-            type(slot) is dict and set(slot) == {"start", "seed"},
+            type(slot) is dict
+            and set(slot) == ({"start", "seed"} | ({"zero"} if spec.zero else set())),
             "variant_start_must_be_a_start_and_a_seed",
         )
         # Bad sealed material is the exam's error, never a quiet reference failure that turns the rule off.
@@ -902,27 +899,55 @@ def attach_variants(spec, rule, starts):
             )
             for n, limit in enumerate(spec.limits)
         )
+        question = {
+            "target_id": f"{spec.target_id}~{name}{shift:+g}",
+            "conditions": spec.conditions,
+            "outputs": spec.outputs,
+            "objective": spec.objective,
+            "sense": "max" if spec.sign > 0 else "min",
+            "limits": limits,
+            "u": spec.u,
+            "box": spec.box,
+            "designs": spec.designs,
+            "truths": spec.truths,
+            "agen": spec.agen,
+            "start": slot["start"],
+            "seed": slot["seed"],
+            "public": spec.public,
+            "shell": spec.shell,
+        }
         try:
-            variant = build_target(
-                target_id=f"{spec.target_id}~{name}{shift:+g}",
-                conditions=spec.conditions,
-                outputs=spec.outputs,
-                objective=spec.objective,
-                sense="max" if spec.sign > 0 else "min",
-                limits=limits,
-                u=spec.u,
-                box=spec.box,
-                designs=spec.designs,
-                truths=spec.truths,
-                agen=spec.agen,
-                start=slot["start"],
-                seed=slot["seed"],
-                public=spec.public,
-                shell=spec.shell,
-            )
+            variant = build_target(**question)
         except PoolRefused as refused:
             refusals.append((name, shift, str(refused)))
             continue
+        if spec.zero is not None:
+            # the slot's zero is sealed material: malformed, another pool's, or a status the base forbids refuses the EXAM
+            zero = checked_zero(slot["zero"])
+            _require(
+                zero["kind"] == spec.zero["kind"]
+                and zero["budget"] == spec.zero["budget"],
+                "variant_zero_differs_from_its_targets",
+            )
+            _require(
+                zero["pool_digest"] == variant.digest,
+                "variant_zero_is_not_this_variants",
+            )
+            _require(
+                spec.zero["status"] != "not_screened"
+                or zero["status"] == "not_screened",
+                "variant_zero_must_be_not_screened_like_its_target",
+            )
+            try:
+                variant = build_target(**question, zero=zero)
+            except PoolRefused as refused:
+                # only the shortcut already solving the shifted question drops the slot (a reference failure, counted)
+                _require(
+                    str(refused) == "degenerate_shortcut_reaches_the_reference",
+                    str(refused),
+                )
+                refusals.append((name, shift, str(refused)))
+                continue
         if not any(not variant.feasible[n] for n in variant.queryable):
             refusals.append((name, shift, "variant_pool_has_no_infeasible_point"))
             continue
@@ -1010,6 +1035,10 @@ def grade_target(spec, predict, optimizer, honesty):
     _require(spec.variants is not None, "variants_not_attached")
     predict = _memoized(predict)
     base = _grade_one(spec, predict, optimizer, honesty)
+    for variant in spec.variants:
+        check_zero(
+            variant, optimizer
+        )  # each variant carries its own zero exactly when the version registers one
     graded = [
         (v.target_id, _grade_one(v, predict, optimizer, honesty)) for v in spec.variants
     ]

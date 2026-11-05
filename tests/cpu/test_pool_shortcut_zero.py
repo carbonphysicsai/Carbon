@@ -374,20 +374,96 @@ def test_a_tampered_zero_in_a_dump_refuses_at_load():
     )  # the dump is a copy: the spec is untouched
 
 
-def test_the_shortcut_zero_and_a_variant_rule_do_not_combine_until_ruled():
-    """A variant re-asks the question with a shifted limit; the shortcut's anchor was run on the base question, so the two
-    new-version rules refuse together (fail closed) until the Validator rules how a variant gets its zero.
-    """
-    rule = {
-        "kind": "limit_shift",
-        "limits": ["g"],
-        "shifts": [-0.05, 0.05],
-        "min_valid": 1,
-        "aggregate": "mean",
-    }
-    zeroed = _toy(_zero("no_verified_feasible"))
+RULE = {
+    "kind": "limit_shift",
+    "limits": ["g"],
+    "shifts": [-0.05, 0.05],
+    "min_valid": 1,
+    "aggregate": "mean",
+}
+STARTS = [{"start": [0.5, 0.5], "seed": 21}, {"start": [0.4, 0.6], "seed": 22}]
+
+
+def _variant_digests():
+    """Each slot's zero-less variant digest and its s_ref/s_low (the custody shortcut run's input)."""
+    plain = pool_grader.attach_variants(_toy(), RULE, STARTS)
+    assert len(plain.variants) == 2 and not plain.variant_refusals
+    return [(v.digest, v.s_ref, v.s_low) for v in plain.variants]
+
+
+def _slots(zeros):
+    return [{**start, "zero": zero} for start, zero in zip(STARTS, zeros, strict=True)]
+
+
+def test_each_variant_carries_its_own_zero_and_grades_under_both_rules():
+    base = _toy()
+    spec = _toy(_zero("anchored", base.s_low + 0.3 * (base.s_ref - base.s_low)))
+    zeros = [
+        _zero("anchored", lo + 0.3 * (ref - lo), pool_digest=digest)
+        for digest, ref, lo in _variant_digests()
+    ]
+    attached = pool_grader.attach_variants(spec, RULE, _slots(zeros))
+    assert [v.zero["s_zero"] for v in attached.variants] == [z["s_zero"] for z in zeros]
     policy = OptimizerPolicy(
-        budget=50, sigma0=0.3, population=None, variant_rule=rule, d_zero=SHORTCUT
+        budget=50, sigma0=0.3, population=None, variant_rule=RULE, d_zero=SHORTCUT
     )
-    with pytest.raises(PoolRefused, match="d_zero_with_a_variant_rule_needs_a_ruling"):
-        grade_target(zeroed, _oracle(zeroed), policy, HONESTY)
+    grade = grade_target(attached, _oracle(base), policy, HONESTY)
+    assert grade.reason == "graded" and len(grade.variants) == 2
+
+
+def test_variant_zeros_are_sealed_material_and_refuse_the_exam_when_wrong():
+    base = _toy()
+    spec = _toy(_zero("anchored", base.s_low))
+    rows = _variant_digests()
+    good = [_zero("anchored", lo, pool_digest=d) for d, _ref, lo in rows]
+    with pytest.raises(PoolRefused, match="variant_start_must_be_a_start_and_a_seed"):
+        pool_grader.attach_variants(
+            spec, RULE, STARTS
+        )  # no slot zero for a zeroed target
+    with pytest.raises(PoolRefused, match="variant_zero_is_not_this_variants"):
+        pool_grader.attach_variants(spec, RULE, _slots([good[1], good[0]]))
+    with pytest.raises(PoolRefused, match="variant_zero_differs_from_its_targets"):
+        pool_grader.attach_variants(
+            spec, RULE, _slots([{**good[0], "budget": 4}, good[1]])
+        )
+    with pytest.raises(PoolRefused, match="zero_malformed"):
+        pool_grader.attach_variants(
+            spec, RULE, _slots([{**good[0], "extra": 1}, good[1]])
+        )
+    with pytest.raises(PoolRefused, match="variant_start_must_be_a_start_and_a_seed"):
+        pool_grader.attach_variants(
+            _toy(), RULE, _slots(good)
+        )  # a zero on a zero-less target
+
+
+def test_a_variant_the_shortcut_solves_is_dropped_and_counted():
+    base = _toy()
+    spec = _toy(_zero("anchored", base.s_low))
+    (d0, ref0, lo0), (d1, _ref1, lo1) = _variant_digests()
+    zeros = [
+        _zero("anchored", ref0, pool_digest=d0),
+        _zero("anchored", lo1, pool_digest=d1),
+    ]
+    attached = pool_grader.attach_variants(spec, RULE, _slots(zeros))
+    assert len(attached.variants) == 1
+    assert [r[2] for r in attached.variant_refusals] == [
+        "degenerate_shortcut_reaches_the_reference"
+    ]
+    del lo0
+
+
+def test_a_not_screened_target_keeps_not_screened_variants():
+    spec = _toy(_zero("not_screened"))
+    rows = _variant_digests()
+    with pytest.raises(
+        PoolRefused, match="variant_zero_must_be_not_screened_like_its_target"
+    ):
+        pool_grader.attach_variants(
+            spec,
+            RULE,
+            _slots([_zero("anchored", lo, pool_digest=d) for d, _r, lo in rows]),
+        )
+    ok = pool_grader.attach_variants(
+        spec, RULE, _slots([_zero("not_screened", pool_digest=d) for d, _r, _l in rows])
+    )
+    assert [v.s_low for v in ok.variants] == [lo for _d, _r, lo in rows]  # the median
