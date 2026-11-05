@@ -82,15 +82,36 @@ def _heads(tmp_path, rows):
     return path
 
 
-def _root(tmp_path, name, *, caches=(), draining=False, release=None):
+def _root(
+    tmp_path,
+    name,
+    *,
+    caches=(),
+    draining=False,
+    release=None,
+    state=None,
+    accepted=None,
+):
+    """A prepared door root: its receiver config names its state dir (default <root>/receiver/state)."""
     root = tmp_path / name
-    (root / "receiver/state").mkdir(parents=True)
+    state = root / "receiver/state" if state is None else state
+    state.mkdir(parents=True, exist_ok=True)
+    cfg = {"root": str(state)}
+    if accepted is not None:
+        cfg["accepted_revision"] = accepted
+    (root / "receiver").mkdir(parents=True, exist_ok=True)
+    (root / "receiver/receiver.json").write_text(json.dumps(cfg), encoding="utf-8")
+    lib = root / LIB
+    lib.mkdir(parents=True, exist_ok=True)
+    lib.chmod(0o700)
     for rel, text in caches:
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
+    if (lib / "materials").is_dir():
+        (lib / "materials").chmod(0o700)
     if draining:
-        (root / "receiver/state/draining").write_text("{}", encoding="utf-8")
+        (state / "draining").write_text("{}", encoding="utf-8")
     if release is not None:
         (root / "release.json").write_text(json.dumps(release), encoding="utf-8")
     return root
@@ -279,7 +300,8 @@ def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
     # the disk floor needs 20 GiB free: the result is either a full PASS or a disk-only REFUSE
     others = {k: v["state"] for k, v in out["items"].items() if k != "disk"}
     assert others == dict.fromkeys(
-        ["final_heads", "exam", "caches", "drain", "release"], tool.PASS
+        ["final_heads", "accepted", "ancestry", "exam", "caches", "drain", "release"],
+        tool.PASS,
     )
     assert (rc, out["state"]) in ((0, tool.PASS), (3, tool.REFUSE))
     (old_root / "receiver/state/draining").write_text("{}", encoding="utf-8")
@@ -355,3 +377,158 @@ def test_no_command_reads_stdin(tmp_path):
     assert done.returncode == 0 and json.loads(done.stdout)["seq"] == 1
     assert "input(" not in TOOL.read_text(encoding="utf-8")
     assert "sys.stdin" not in TOOL.read_text(encoding="utf-8")
+
+
+POSIX = pytest.mark.skipif(
+    __import__("os").name != "posix", reason="posix modes and links"
+)
+
+
+def test_a_wrong_old_root_is_never_an_empty_door(tool, tmp_path):
+    new = _root(tmp_path, "new", caches=[(BUNDLE, "x")])
+    nowhere = tmp_path / "typo"
+    for run in (
+        lambda: tool.caches_item([nowhere], new),
+        lambda: tool.drain_item(nowhere),
+        lambda: tool.disk_item("switch", nowhere, new),
+    ):
+        with pytest.raises(tool.ei.Unknown):
+            run()
+    bare = tmp_path / "bare"
+    (bare / "receiver").mkdir(parents=True)
+    (bare / "receiver/receiver.json").write_text(
+        json.dumps({"root": str(bare / "s")}), encoding="utf-8"
+    )
+    (bare / "s").mkdir()
+    with pytest.raises(tool.ei.Unknown):
+        tool.caches_item(
+            [bare], new
+        )  # no library cache on an OLD root: a wrong path, never "nothing to carry"
+
+
+@POSIX
+def test_a_linked_cache_path_on_new_refuses(tool, tmp_path):
+    import os
+
+    old = _root(tmp_path, "old", caches=[(BUNDLE, "x"), (OVERLAY, "y")])
+    leaf = _root(tmp_path, "leaf", caches=[(BUNDLE, "x")])
+    real = tmp_path / "elsewhere/d4"
+    real.mkdir(parents=True)
+    (real / "tree.bin").write_text("y", encoding="utf-8")
+    level = leaf / LIB / "overlays/a1/b2/c3"
+    level.mkdir(parents=True)
+    os.symlink(real, level / "d4")
+    out = tool.caches_item([old], leaf)
+    assert out["state"] == tool.REFUSE and out["code"] == "cache_path_is_link"
+    whole = tmp_path / "whole"
+    (whole / "receiver").mkdir(parents=True)
+    (whole / "receiver/receiver.json").write_text(
+        json.dumps({"root": str(whole / "s")}), encoding="utf-8"
+    )
+    (whole / "s").mkdir()
+    (whole / LIB).parent.mkdir(parents=True)
+    os.symlink(old / LIB, whole / LIB.rstrip("/"))
+    assert tool.caches_item([old], whole)["code"] == "cache_path_is_link"
+
+
+@POSIX
+def test_a_cache_dir_the_receiver_would_refuse_refuses(tool, tmp_path):
+    old = _root(tmp_path, "old", caches=[(BUNDLE, "x")])
+    new = _root(tmp_path, "new", caches=[(BUNDLE, "x")])
+    (new / LIB).chmod(0o755)
+    out = tool.caches_item([old], new)
+    assert out["state"] == tool.REFUSE and out["code"] == "cache_dir_not_private"
+
+
+def test_staging_leftovers_are_not_cache_entries(tool, tmp_path):
+    old = _root(
+        tmp_path, "old", caches=[(BUNDLE, "x"), (LIB + "materials/.pending-abc/f", "t")]
+    )
+    new = _root(tmp_path, "new", caches=[(BUNDLE, "x")])
+    assert tool.caches_item([old], new)["state"] == tool.PASS
+
+
+def test_the_drain_flag_is_read_where_the_config_puts_state(tool, tmp_path):
+    fixed = tmp_path / "doors/motor/state"
+    root = _root(tmp_path, "rel", state=fixed, draining=True)
+    assert not (root / "receiver/state/draining").exists()
+    assert tool.drain_item(root)["code"] == "old_door_draining"
+
+
+def test_accepted_and_ancestry(tool, repo, tmp_path):
+    root, base = repo
+    new = _commit(root, {"docs/notes.md": "e\n"}, "docs")
+    old_root = _root(tmp_path, "old", accepted=base)
+    new_root = _root(tmp_path, "new", accepted=new)
+    assert tool.accepted_item(old_root, new_root, base, new)["state"] == tool.PASS
+    assert (
+        tool.accepted_item(old_root, new_root, new, new)["code"]
+        == "old_rev_is_not_the_accepted_revision"
+    )
+    assert tool.ancestry_item(root, base, new)["state"] == tool.PASS
+    assert tool.ancestry_item(root, new, base)["code"] == "old_not_ancestor_of_new"
+    assert tool.ancestry_item(root, base, "0" * 40)["state"] == tool.UNKNOWN
+
+
+def test_final_heads_reads_short_and_untidy_rows(tool, tmp_path):
+    a = "abcdef1" + "0" * 33
+    tsv = _heads(tmp_path, [(a, "FINAL"), (a[:8], "HOLD")])
+    assert (
+        tool.final_heads_status(tsv, a)["code"] == "not_final"
+    )  # a short HOLD row still holds
+    tsv = _heads(tmp_path, [(a, "FINAL "), (a + " ", " LANDED")])
+    assert tool.final_heads_status(tsv, a)["state"] == tool.PASS
+    shifted = tmp_path / "shifted.tsv"
+    shifted.write_text(
+        HEADER + f"{a}\tlabel with\ta tab\tbase\tgate\tFINAL\tc\tm\tw\tr\tv\tb\tn\n",
+        encoding="utf-8",
+    )
+    assert tool.final_heads_status(shifted, a)["code"] == "final_heads_row_shape"
+
+
+def test_a_rule_only_change_is_said_separately(tool, repo):
+    root, base = repo
+    widened = RULE.replace(
+        '"carbon/scoring/",',
+        '"carbon/scoring/",\n    "carbon/challenge_validator/exam_cap.py",',
+    )
+    new = _commit(
+        root, {"carbon/challenge_validator/direct_receiver.py": widened}, "rule only"
+    )
+    out = tool.exam_item(root, base, new, PACK, PACK, None)
+    assert out["code"] == "grading_rule_change_undeclared"
+    said = tool.exam_item(root, base, new, PACK, PACK, None, None, "M2 adds exam_cap")
+    assert said["state"] == tool.PASS and said["rule_change"] == "M2 adds exam_cap"
+
+
+@POSIX
+def test_an_unreadable_directory_raises_instead_of_counting_low(tool, tmp_path):
+    import os
+
+    if os.geteuid() == 0:
+        pytest.skip("root reads everything")
+    root = tmp_path / "r"
+    (root / "locked").mkdir(parents=True)
+    (root / "locked/f").write_bytes(b"x" * 10)
+    (root / "locked").chmod(0)
+    try:
+        with pytest.raises(OSError):
+            tool.tree_size(root)
+    finally:
+        (root / "locked").chmod(0o700)
+
+
+def test_the_log_refuses_odd_lines_and_a_cut_tail(tool, tmp_path):
+    log = tmp_path / "d.jsonl"
+    log.write_bytes(b"[1, 2]\n")
+    assert tool.log_verify(log)["code"] == "line_unreadable"
+    log2 = tmp_path / "d2.jsonl"
+    tool.log_append(log2, {"a": 1})
+    second = tool.log_append(log2, {"a": 2})
+    assert tool.log_verify(log2, expect_last=second["sha"])["state"] == tool.PASS
+    lines = log2.read_bytes().splitlines()
+    log2.write_bytes(lines[0] + bytes([10]))  # tail cut (one line + newline)
+    assert tool.log_verify(log2)["state"] == tool.PASS  # alone it cannot tell
+    assert (
+        tool.log_verify(log2, expect_last=second["sha"])["code"] == "last_line_differs"
+    )

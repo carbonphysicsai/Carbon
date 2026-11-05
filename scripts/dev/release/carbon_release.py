@@ -25,14 +25,21 @@ files the NEW revision's M2 rule names, sorted), so the record the receiver chec
   exact, every row for that sha agreeing); HOLD, CONTENT, OPEN, any other status or a conflict refuses.
 - ``exam`` (R17, R18): `exam_identity.check`; SAME_EXAM passes; a grading-code change passes only with ``--declared``
   whose record is valid, names OLD and NEW as full ids and whose paths EQUAL the receiver's own list for OLD..NEW; a
-  pack change (a re-seal) passes only with ``--declared-pack-change REASON`` (the receiver then regrades its king).
+  pack change (a re-seal) passes only with ``--declared-pack-change REASON`` (the receiver then regrades its king);
+  an edit to the M2 rule itself only with ``--declared-rule-change REASON``.
 - ``disk`` (R25, Validator 08:13): free space on NEW's filesystem >= 2 x OLD root (prepare) or 1.5 x (switch) + 20 GiB.
+- ``accepted``: OLD and NEW are the revisions the two roots' receiver configs ACCEPT (the ones the receiver compares and
+  a declared record must name); ``ancestry``: OLD is an ancestor of NEW in ``--repo`` (the NEW release's checkout), as
+  the receiver requires to migrate.
 - switch only: ``caches`` (R15): every library-cache entry and prepared-overlay leaf of OLD (and each ``--older-root``)
-  is on NEW with the same file count and bytes; ``drain``: OLD's state has no ``draining`` flag (carried, NEW would start
-  drained); ``release``: NEW root's ``release.json`` names NEW.
+  is on NEW with the same file count and bytes, no link anywhere on NEW's cache paths and the cache directories private
+  (the receiver's own rule); an old root without a library cache or a receiver config is UNKNOWN, never empty;
+  ``drain``: no ``draining`` flag in OLD's state directory (read from its config: H1's fixed state dir included);
+  ``release``: NEW root's ``release.json`` names NEW.
 
 Exit 0 when every item passes, 3 on any REFUSE, 4 on UNKNOWN only (2 = usage). ``log`` keeps a hash-chained deploy log:
-each line carries the previous line's sha, so an edited or dropped line fails ``verify``.
+each line carries the previous line's sha, so an edited, reordered or removed line fails ``verify``; a cut tail is
+caught with ``--expect-last`` (the last sha the deploy receipt recorded). Appends are serialised by a lock.
 """
 
 from __future__ import annotations
@@ -44,6 +51,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import sys
 import time
 from pathlib import Path
@@ -91,7 +99,11 @@ def first_start_files(repo, commit) -> list:
     except ei.Unknown:
         return ["receiver-binding.json"]  # before H1: the one legacy file
     names = {}
-    for node in ast.parse(source.decode("utf-8")).body:
+    try:
+        tree = ast.parse(source.decode("utf-8"))
+    except (SyntaxError, ValueError) as failed:
+        raise ei.Unknown("state_binding_unreadable") from failed
+    for node in tree.body:
         if isinstance(node, ast.Assign) and len(node.targets) == 1:
             target = getattr(node.targets[0], "id", None)
             if target in ("LEGACY_NAME", "DOOR_NAME", "RELEASES_DIR"):
@@ -151,21 +163,34 @@ def declare(repo, old, new, reason, evidence) -> dict:
 
 
 def final_heads_status(tsv, sha) -> dict:
-    """The FINAL_HEADS rows for full ``sha``: PASS when every row is FINAL or LANDED (and at least one exists)."""
+    """The FINAL_HEADS rows naming ``sha`` (full, or a prefix of >= 7 hex, cells stripped and lower-cased): PASS only
+    when at least one exists and EVERY one is FINAL or LANDED. A matching row whose cell count differs from the header
+    (a tab inside a cell shifts the status column) is UNKNOWN."""
     statuses = []
     header = None
+    sha = sha.strip().lower()
     for line in Path(tsv).read_text(encoding="utf-8").splitlines():
-        if not line.strip() or line.startswith("#"):
+        if not line.strip() or line.lstrip().startswith("#"):
             continue
-        cells = line.split("\t")
+        cells = [c.strip() for c in line.split("\t")]
         if header is None:
             header = cells
             if "sha" not in header or "status" not in header:
                 return {"state": UNKNOWN, "code": "final_heads_header"}
             continue
-        row = dict(zip(header, cells))
-        if row.get("sha") == sha:
-            statuses.append(row.get("status", ""))
+        at = header.index("sha")
+        row_sha = cells[at].lower() if len(cells) > at else ""
+        if not (row_sha == sha or (len(row_sha) >= 7 and sha.startswith(row_sha))):
+            continue
+        if len(cells) != len(header):
+            return {
+                "state": UNKNOWN,
+                "code": "final_heads_row_shape",
+                "row_sha": row_sha,
+            }
+        statuses.append(cells[header.index("status")].upper())
+    if header is None:
+        return {"state": UNKNOWN, "code": "final_heads_header"}
     if not statuses:
         return {"state": REFUSE, "code": "not_in_final_heads"}
     if any(s not in LANDABLE for s in statuses):
@@ -193,7 +218,10 @@ def _valid_record(record) -> bool:
     )
 
 
-def exam_item(repo, old, new, old_pack, new_pack, declared, pack_change=None) -> dict:
+def exam_item(
+    repo, old, new, old_pack, new_pack, declared, pack_change=None, rule_change=None
+) -> dict:
+    """``old``/``new`` are the doors' ACCEPTED revisions (the ones the receiver compares)."""
     result = ei.check(repo, old, new, old_pack=old_pack, new_pack=new_pack)
     item = {"identity": result}
     if result["state"] == ei.SAME:
@@ -205,17 +233,18 @@ def exam_item(repo, old, new, old_pack, new_pack, declared, pack_change=None) ->
         return {**item, "state": REFUSE, "code": "pack_change_undeclared"}
     if result["pack_changed"]:
         item["pack_change"] = pack_change
-    if not (
-        result["grading_paths_changed"]
-        or result["build_inputs_moved"]
-        or result["grading_rule_changed"]
-    ):
+    if result["grading_rule_changed"] and not rule_change:
+        # an edit to the M2 rule itself: the receiver's own path list cannot show it, so it is said separately
+        return {**item, "state": REFUSE, "code": "grading_rule_change_undeclared"}
+    if result["grading_rule_changed"]:
+        item["rule_change"] = rule_change
+    want = receiver_paths(repo, result["old"], result["new"])
+    if not want:
         return {**item, "state": PASS}
     if declared is None:
         return {**item, "state": REFUSE, "code": "exam_change_undeclared"}
     if not _valid_record(declared):
         return {**item, "state": REFUSE, "code": "declared_record_invalid"}
-    want = receiver_paths(repo, result["old"], result["new"])
     if (declared["from_revision"], declared["to_revision"]) != (
         result["old"],
         result["new"],
@@ -231,9 +260,14 @@ def exam_item(repo, old, new, old_pack, new_pack, declared, pack_change=None) ->
     return {**item, "state": PASS, "declared": True}
 
 
+def _raise(error):
+    raise error
+
+
 def tree_size(root) -> int:
+    """Bytes under ``root``; an unreadable directory raises (a low count would lower the disk floor)."""
     total = 0
-    for base, dirs, files in os.walk(root):
+    for base, dirs, files in os.walk(root, onerror=_raise):
         dirs[:] = [d for d in dirs if not os.path.islink(os.path.join(base, d))]
         for name in files:
             try:
@@ -244,8 +278,40 @@ def tree_size(root) -> int:
     return total
 
 
+class Door:
+    """A prepared door root, read from its own receiver config (``<root>/receiver/receiver.json``): its state
+    directory (``root`` in the config: ``<root>/receiver/state``, or H1's fixed per-door path) and its accepted
+    revision. Anything missing raises `ei.Unknown`: a wrong path never passes as an empty door.
+    """
+
+    def __init__(self, root):
+        self.root = Path(root)
+        try:
+            cfg = json.loads(
+                (self.root / "receiver" / "receiver.json").read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError) as failed:
+            raise ei.Unknown("receiver_config_unreadable") from failed
+        if type(cfg) is not dict or type(cfg.get("root")) is not str:
+            raise ei.Unknown("receiver_config_unreadable")
+        self.state = Path(cfg["root"])
+        if not self.state.is_absolute():
+            self.state = self.root / self.state
+        if not self.state.is_dir():
+            raise ei.Unknown("state_dir_missing")
+        self.accepted = cfg.get("accepted_revision")
+
+    def size(self) -> int:
+        size = tree_size(self.root)
+        try:
+            self.state.relative_to(self.root)
+        except ValueError:
+            size += tree_size(self.state)  # a fixed state dir outside the release root
+        return size
+
+
 def disk_item(mode, old_root, new_root, *, free=None, size=None) -> dict:
-    size = tree_size(old_root) if size is None else size
+    size = Door(old_root).size() if size is None else size
     target = Path(new_root)
     while not target.exists():
         target = target.parent
@@ -257,37 +323,73 @@ def disk_item(mode, old_root, new_root, *, free=None, size=None) -> dict:
     return {**out, "state": PASS}
 
 
-def cache_entries(root) -> dict:
-    """``{name: (files, bytes)}`` for every library-cache entry (64-hex bundle dirs and materials/*) and every
-    prepared-overlay leaf (4 digest levels) under ``root``."""
-    out = {}
+def _dirs(path):
+    """Real (not linked) subdirectories of ``path`` whose names do not start with '.', and the linked ones."""
+    real, links = [], []
+    with os.scandir(path) as it:
+        for entry in it:
+            if entry.name.startswith("."):
+                continue  # staging leftovers (.pending-*, .seedtmp.*, .ovtmp.*) are never cache entries
+            if entry.is_symlink():
+                links.append(entry.name)
+            elif entry.is_dir(follow_symlinks=False):
+                real.append(entry.name)
+    return real, links
+
+
+def cache_entries(root, *, require=False) -> tuple:
+    """(``{name: (files, bytes)}``, links): every library-cache entry (64-hex bundle dirs, materials/*) and every
+    prepared-overlay leaf (4 digest levels) under ``root``; ``links`` = every symlink met on the way (the receiver
+    refuses a linked cache path: `_private_cache_directory`, the overlay path check). ``require``: the library-cache
+    directory must exist (an old root without one is a wrong path, never an empty cache).
+    """
+    out, links = {}, []
     base = Path(root) / LIBRARY
-    if base.is_dir():
-        for p in base.iterdir():
-            if (
-                p.is_dir()
-                and not p.is_symlink()
-                and re.fullmatch(r"[0-9a-f]{64}", p.name)
-            ):
-                out["library/" + p.name] = p
-        materials = base / "materials"
-        if materials.is_dir() and not materials.is_symlink():
-            for p in materials.iterdir():
-                if not p.is_symlink():
-                    out["materials/" + p.name] = p
-    overlays = Path(root) / OVERLAYS
-    if overlays.is_dir():
-        for leaf in overlays.glob("*/*/*/*"):
-            if leaf.is_dir() and not leaf.name.startswith("."):
-                out["overlay/" + leaf.relative_to(overlays).as_posix()] = leaf
-    return {name: _counts(path) for name, path in out.items()}
+    if base.is_symlink():
+        return out, [LIBRARY]
+    if not base.is_dir():
+        if require:
+            raise ei.Unknown("library_cache_missing")
+        return out, links
+    real, linked = _dirs(base)
+    links += [f"{LIBRARY}/{n}" for n in linked]
+    for name in real:
+        if re.fullmatch(r"[0-9a-f]{64}", name):
+            out["library/" + name] = base / name
+    materials = base / "materials"
+    if materials.is_symlink():
+        links.append(f"{LIBRARY}/materials")
+    elif materials.is_dir():
+        with os.scandir(materials) as it:
+            for entry in it:
+                if entry.name.startswith("."):
+                    continue
+                if entry.is_symlink():
+                    links.append(f"{LIBRARY}/materials/{entry.name}")
+                else:
+                    out["materials/" + entry.name] = materials / entry.name
+    overlays = base / "overlays"
+    if overlays.is_symlink():
+        links.append(f"{LIBRARY}/overlays")
+    elif overlays.is_dir():
+        level = [Path()]
+        for _ in range(4):
+            deeper = []
+            for rel in level:
+                real, linked = _dirs(overlays / rel)
+                links += [f"{LIBRARY}/overlays/{(rel / n).as_posix()}" for n in linked]
+                deeper += [rel / n for n in real]
+            level = deeper
+        for rel in level:
+            out["overlay/" + rel.as_posix()] = overlays / rel
+    return {name: _counts(path) for name, path in out.items()}, links
 
 
 def _counts(path) -> tuple:
     if path.is_file():
         return 1, path.stat().st_size
     files = size = 0
-    for base, dirs, names in os.walk(path):
+    for base, dirs, names in os.walk(path, onerror=_raise):
         dirs[:] = [d for d in dirs if not os.path.islink(os.path.join(base, d))]
         for name in names:
             files += 1
@@ -295,23 +397,54 @@ def _counts(path) -> tuple:
     return files, size
 
 
+def _private(path, uid) -> bool:
+    """`library_bundles._private_cache_directory`'s rule: a real directory, the receiver's owner, no group/other bits."""
+    if path.is_symlink() or not path.is_dir() or path.resolve() != path.absolute():
+        return False
+    if os.name != "posix":
+        return True
+    st = path.stat()
+    return st.st_uid == uid and stat.S_IMODE(st.st_mode) & 0o077 == 0
+
+
 def caches_item(old_roots, new_root) -> dict:
-    new = cache_entries(new_root)
+    new, new_links = cache_entries(new_root)
     missing, differ, checked = [], [], 0
+    uid = None
     for root in old_roots:
-        for name, counts in cache_entries(root).items():
+        entries, _ = cache_entries(root, require=True)
+        if uid is None:
+            uid = (Path(root) / LIBRARY).stat().st_uid if os.name == "posix" else 0
+        for name, counts in entries.items():
             checked += 1
             if name not in new:
                 missing.append(name)
             elif new[name] != counts:
                 differ.append(name)
     missing, differ = sorted(set(missing)), sorted(set(differ) - set(missing))
+    base = Path(new_root) / LIBRARY
+    unusable = [
+        str(p.relative_to(new_root))
+        for p in (base, base / "materials")
+        if (p.exists() or p.is_symlink()) and not _private(p, uid)
+    ]
     out = {
         "checked": checked,
         "new_entries": len(new),
         "missing": len(missing),
         "differ": len(differ),
+        "links": len(new_links),
+        "unusable": unusable,
     }
+    if new_links:
+        return {
+            **out,
+            "state": REFUSE,
+            "code": "cache_path_is_link",
+            "first": new_links[:10],
+        }
+    if unusable:
+        return {**out, "state": REFUSE, "code": "cache_dir_not_private"}
     if missing or differ:
         return {
             **out,
@@ -323,9 +456,38 @@ def caches_item(old_roots, new_root) -> dict:
 
 
 def drain_item(old_root) -> dict:
-    flag = Path(old_root) / STATE / DRAIN_NAME
+    """OLD's drain flag, in the state directory its own config names (`door_drain.py`)."""
+    flag = Door(old_root).state / DRAIN_NAME
     if flag.exists() or flag.is_symlink():
         return {"state": REFUSE, "code": "old_door_draining"}
+    return {"state": PASS}
+
+
+def ancestry_item(repo, old, new) -> dict:
+    """The receiver migrates only when OLD is an ancestor of NEW in its checkout (`direct_receiver._is_ancestor`):
+    ``--repo`` is the NEW release's checkout."""
+    import subprocess
+
+    done = subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", old, new],
+        capture_output=True,
+        timeout=60,
+        check=False,
+    )
+    if done.returncode == 0:
+        return {"state": PASS}
+    if done.returncode == 1:
+        return {"state": REFUSE, "code": "old_not_ancestor_of_new"}
+    return {"state": UNKNOWN, "code": "ancestry_unknown"}
+
+
+def accepted_item(old_root, new_root, old, new) -> dict:
+    """The revisions given are the ones the doors ACCEPT: the receiver compares those, and a declared record must
+    name them."""
+    for root, rev, side in ((old_root, old, "old"), (new_root, new, "new")):
+        accepted = Door(root).accepted
+        if accepted is not None and accepted != rev:
+            return {"state": REFUSE, "code": f"{side}_rev_is_not_the_accepted_revision"}
     return {"state": PASS}
 
 
@@ -361,6 +523,8 @@ def precheck(args) -> dict:
             declared = {}
     checks = [
         ("final_heads", lambda: final_heads_status(args.final_heads, new)),
+        ("accepted", lambda: accepted_item(args.old_root, args.new_root, old, new)),
+        ("ancestry", lambda: ancestry_item(args.repo, old, new)),
         (
             "exam",
             lambda: exam_item(
@@ -371,6 +535,7 @@ def precheck(args) -> dict:
                 args.new_pack,
                 declared,
                 args.declared_pack_change,
+                args.declared_rule_change,
             ),
         ),
         ("disk", lambda: disk_item(args.mode, args.old_root, args.new_root)),
@@ -404,43 +569,56 @@ def log_append(path, event) -> dict:
     """Append ``event`` with the previous line's sha (a chain). Refuses to extend a log that does not verify."""
     if type(event) is not dict or not event:
         raise ValueError("an event is a non-empty JSON object")
-    checked = (
-        log_verify(path)
-        if Path(path).exists()
-        else {"state": PASS, "lines": 0, "last": None}
-    )
-    if checked["state"] != PASS:
-        raise ValueError("log_does_not_verify")
-    line = {
-        "seq": checked["lines"] + 1,
-        "at_ns": time.time_ns(),
-        "prev": checked["last"],
-        "event": event,
-    }
-    line["sha"] = "sha256:" + hashlib.sha256(_canonical(line)).hexdigest()
-    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+    fd = os.open(path, os.O_RDWR | os.O_APPEND | os.O_CREAT, 0o600)
     try:
+        _lock(fd)
+        checked = log_verify(path)
+        if checked["state"] != PASS:
+            raise ValueError("log_does_not_verify")
+        line = {
+            "seq": checked["lines"] + 1,
+            "at_ns": time.time_ns(),
+            "prev": checked["last"],
+            "event": event,
+        }
+        line["sha"] = "sha256:" + hashlib.sha256(_canonical(line)).hexdigest()
         os.write(fd, _canonical(line) + b"\n")
         os.fsync(fd)
     finally:
-        os.close(fd)
+        os.close(fd)  # also drops the lock
     return {"state": PASS, "seq": line["seq"], "sha": line["sha"]}
 
 
-def log_verify(path) -> dict:
+def _lock(fd):
+    """An exclusive lock on the log for one append (two writers would both take the same seq)."""
+    try:
+        import fcntl
+    except (
+        ImportError
+    ):  # not POSIX: tests only; the tool runs on the Linux validator host
+        return
+    fcntl.flock(fd, fcntl.LOCK_EX)
+
+
+def log_verify(path, expect_last=None) -> dict:
+    """The chain: each line's seq, prev and sha. A cut TAIL still verifies on its own; pass the last sha recorded
+    elsewhere (the deploy receipt) as ``expect_last`` to catch it."""
     prev, n = None, 0
-    for raw in Path(path).read_bytes().splitlines():
+    data = Path(path).read_bytes() if Path(path).exists() else b""
+    for raw in data.splitlines():
         n += 1
         try:
             line = json.loads(raw)
             sha = line.pop("sha")
-        except (ValueError, KeyError, AttributeError):
+        except (ValueError, KeyError, AttributeError, TypeError):
             return {"state": REFUSE, "code": "line_unreadable", "line": n}
         if line.get("seq") != n or line.get("prev") != prev:
             return {"state": REFUSE, "code": "chain_broken", "line": n}
         if "sha256:" + hashlib.sha256(_canonical(line)).hexdigest() != sha:
             return {"state": REFUSE, "code": "line_edited", "line": n}
         prev = sha
+    if expect_last is not None and prev != expect_last:
+        return {"state": REFUSE, "code": "last_line_differs", "lines": n, "last": prev}
     return {"state": PASS, "lines": n, "last": prev}
 
 
@@ -472,6 +650,7 @@ def main(argv=None) -> int:
     p.add_argument("--final-heads", type=Path, required=True)
     p.add_argument("--declared", type=Path)
     p.add_argument("--declared-pack-change")
+    p.add_argument("--declared-rule-change")
     p.add_argument("--older-root", type=Path, action="append", default=[])
     lg = sub.add_parser("log")
     lsub = lg.add_subparsers(dest="log_command", required=True)
@@ -480,6 +659,7 @@ def main(argv=None) -> int:
     la.add_argument("--event", required=True)
     lv = lsub.add_parser("verify")
     lv.add_argument("--log", type=Path, required=True)
+    lv.add_argument("--expect-last")
     args = parser.parse_args(argv)
     try:
         if args.command == "manifest":
@@ -503,8 +683,9 @@ def main(argv=None) -> int:
         elif args.log_command == "append":
             result = log_append(args.log, json.loads(args.event))
         else:
-            result = log_verify(args.log)
-    except (ValueError, ei.Unknown, OSError) as failed:
+            result = log_verify(args.log, args.expect_last)
+    except Exception as failed:  # noqa: BLE001
+        # every failure is a refusal or UNKNOWN, never a traceback
         result = {
             "state": REFUSE if isinstance(failed, ValueError) else UNKNOWN,
             "code": str(failed) or type(failed).__name__,
