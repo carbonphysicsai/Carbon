@@ -716,3 +716,99 @@ def test_a_malformed_pool_refuses():
                 host_class=HOST,
                 provenance=PROV,
             )
+
+
+def test_with_the_surrogate_on_cma_es_runs_exactly_as_alone_on_its_share():
+    """Independence (ruling section 2): CMA-ES's own points with the surrogate on equal a plain run whose B_s is
+    CMA-ES's share."""
+    from dataclasses import replace
+
+    designs, truths = _pool()
+    problem = replace(_problem(), pool=(designs, truths), start=(0.2, 0.2))
+    (surr,) = psr.run_pack(
+        _surrogate_spec(budget=16),
+        [problem],
+        StandIn(),
+        host_class=HOST,
+        provenance=PROV,
+    )
+    alone_spec = _surrogate_spec(budget=8)
+    del alone_spec["solver_reference"]["surrogate"]
+    (alone,) = psr.run_pack(
+        alone_spec, [problem], StandIn(), host_class=HOST, provenance=PROV
+    )
+    assert [p.design for p in surr.points if p.phase == "cmaes"] == [
+        p.design for p in alone.points if p.phase == "cmaes"
+    ]
+
+
+@pytest.mark.parametrize("dims", [2, 6])
+def test_without_a_pool_the_surrogate_share_is_spent_or_counted(dims):
+    """Generations that cannot propose yet (too few known points) lose nothing: the quota is re-spread and a top-up
+    batch spends the rest; anything still unspent is counted."""
+    from dataclasses import replace
+
+    def solve(fixed, designs):
+        return [
+            {"status": "OK", "outputs": {"f": sum(d), "g": sum(x * x for x in d)}}
+            for d in designs
+        ]
+
+    problem = replace(
+        _problem(),
+        box=((0.0, 1.0),) * dims,
+        start=(0.2,) * dims,
+        limits=(Limit("g", "<=", 0.5),),
+    )
+    (result,) = psr.run_pack(
+        _surrogate_spec(budget=24), [problem], solve, host_class=HOST, provenance=PROV
+    )
+    used = result.counts.get("surrogate", 0)
+    assert used + result.counts.get("surrogate_unused", 0) == 12
+    assert sum(p.phase == "surrogate" for p in result.points) == used
+    assert used >= 1
+
+
+def test_the_rbf_interpolates_its_points_and_reproduces_a_plane():
+    xs = [(0.1, 0.2), (0.9, 0.1), (0.5, 0.5), (0.2, 0.8), (0.7, 0.9), (0.4, 0.3)]
+    model = psr._rbf_fit(
+        xs,
+        {
+            "bump": [x * x + 3 * y for x, y in xs],
+            "plane": [2.0 - x + 4.0 * y for x, y in xs],
+        },
+    )
+    for x in xs:
+        got = psr._rbf_predict(xs, model, x)
+        assert got["bump"] == pytest.approx(x[0] ** 2 + 3 * x[1], abs=1e-9)
+    for probe in ((0.3, 0.6), (0.8, 0.4)):
+        assert psr._rbf_predict(xs, model, probe)["plane"] == pytest.approx(
+            2.0 - probe[0] + 4.0 * probe[1], abs=1e-9
+        )
+    assert psr._rbf_fit([(0.1, 0.1)] * 4, {"y": [1.0] * 4}) is None
+
+
+def test_out_of_box_pool_designs_are_skipped_not_clipped():
+    from dataclasses import replace
+
+    problem = replace(
+        _problem(),
+        pool=([[1.5, 0.2], [0.3, 0.3]], [{"f": 1.7, "g": 2.29}, {"f": 0.6, "g": 0.18}]),
+    )
+    assert psr._propose(problem, [], 1, 10, 0.1, 0) == []  # one usable point < d + 2
+
+
+def test_under_the_ramp_a_curve_without_credited_gain_is_no_plateau():
+    from dataclasses import replace
+
+    problem = replace(
+        _problem(u_g=0.05),
+        near_limit={"kind": "credit_ramp", "shape": "linear"},
+        s_low=100.0,  # nothing beats this zero: no credited gain anywhere
+    )
+    (result,) = psr.run_pack(
+        SPEC, [problem], StandIn(), host_class=HOST, provenance=PROV
+    )
+    curve = psr.convergence(result, problem)
+    assert all(v is None for _, v in curve)
+    assert psr.plateau_solves(curve, 0.01) is None

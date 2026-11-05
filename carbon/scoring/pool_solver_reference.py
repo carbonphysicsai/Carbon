@@ -272,7 +272,7 @@ def _check_problem(problem):
 @dataclass(frozen=True)
 class SolvedPoint:
     design: tuple  # raw design vector
-    phase: str  # "cmaes" | "line_search"
+    phase: str  # "cmaes" | "surrogate" | "line_search"
     status: str  # OK | REFERENCE_* | FAILED_INFRA
     outputs: dict | None  # derived outputs when OK
     margins: dict | None  # limit index -> true margin, when OK
@@ -457,6 +457,12 @@ def _rbf_predict(xs, model, x):
     return out
 
 
+def _grid(unit):
+    # designs closer than 1e-6 of the box apart are one design to the surrogate (near-duplicates make the RBF
+    # system ill-conditioned without tripping the singular test)
+    return tuple(round(x, 6) for x in unit)
+
+
 def _propose(problem, points, count, candidates, sigma, generation):
     """Up to `count` unit-box designs: the surrogate's predicted best of `candidates` seeded Gaussian candidates
     around the best known point (pool truths + OK solved points), none already known. [] when the data cannot fit.
@@ -465,12 +471,15 @@ def _propose(problem, points, count, candidates, sigma, generation):
     known = {}
     if problem.pool is not None:
         for design, truth in zip(*problem.pool):
-            unit = tuple(min(1.0, max(0.0, x)) for x in _unit(problem, design))
-            known.setdefault(tuple(round(x, 12) for x in unit), (unit, truth))
+            unit = _unit(problem, design)
+            if all(
+                0.0 <= x <= 1.0 for x in unit
+            ):  # out-of-box designs are skipped, not clipped
+                known.setdefault(_grid(unit), (unit, truth))
     for point in points:
         if point.status == OK:
             unit = _unit(problem, point.design)
-            known.setdefault(tuple(round(x, 12) for x in unit), (unit, point.outputs))
+            known.setdefault(_grid(unit), (unit, point.outputs))
     if len(known) < len(problem.box) + 2:
         return []
     data = list(known.values())
@@ -496,7 +505,7 @@ def _propose(problem, points, count, candidates, sigma, generation):
     ranked = []
     for _ in range(candidates):
         unit = tuple(min(1.0, max(0.0, c + rng.gauss(0.0, sigma))) for c in centre)
-        key = tuple(round(x, 12) for x in unit)
+        key = _grid(unit)
         if key in known:
             continue
         ranked.append(
@@ -521,11 +530,6 @@ def _cmaes_phase(problem, solve, policy, counts):
     share, candidates = policy.surrogate or (0.0, 0)
     surrogate_left = math.floor(share * policy.budget)
     cma_budget = policy.budget - surrogate_left
-    per_generation = (
-        math.ceil(surrogate_left / math.ceil(cma_budget / es.lam))
-        if surrogate_left
-        else 0
-    )
     points, cma_done, generation = [], 0, 0
     while cma_done < cma_budget:
         samples = es.ask()
@@ -538,10 +542,13 @@ def _cmaes_phase(problem, solve, policy, counts):
         units = units[:room]
         proposals = []
         if surrogate_left:
+            # re-spread what is left over the generations left, so a generation that could not propose (too few
+            # known points yet) loses nothing
+            generations_left = math.ceil(room / es.lam)
             proposals = _propose(
                 problem,
                 points,
-                min(per_generation, surrogate_left),
+                math.ceil(surrogate_left / generations_left),
                 candidates,
                 es.sigma,
                 generation,
@@ -563,6 +570,26 @@ def _cmaes_phase(problem, solve, policy, counts):
         if len(mine) < len(samples):
             break  # the budget ended mid-generation: nothing left to adapt to
         es.tell([_key(problem, p) for p in mine])
+    if surrogate_left:
+        # one top-up batch (one extra round) spends what the generations could not; what still cannot be
+        # proposed is counted, never silently dropped
+        proposals = _propose(
+            problem, points, surrogate_left, candidates, es.sigma, generation
+        )
+        if proposals:
+            points.extend(
+                _solve(
+                    problem,
+                    solve,
+                    [_raw(problem, u) for u in proposals],
+                    "surrogate",
+                    policy,
+                    counts,
+                )
+            )
+            counts["surrogate"] = counts.get("surrogate", 0) + len(proposals)
+        if surrogate_left - len(proposals):
+            counts["surrogate_unused"] = surrogate_left - len(proposals)
     return points
 
 
@@ -869,12 +896,16 @@ def pool_start(problem, designs, truths):
 
 def _value(problem, point):
     """The comparable value of an OK feasible point, as `_key` ranks it: sign x objective, or under a near-limit rule
-    the grader's credit x gain over s_low. None when the point is not OK or not truly feasible.
+    the grader's credit x gain over s_low (None when that is 0). None when the point is not OK or not truly
+    feasible.
     """
     key = _key(problem, point)
     if key[0] != 0:
         return None
-    return -key[3] if problem.near_limit is None else -key[2]
+    if problem.near_limit is None:
+        return -key[3]
+    # no credited gain over the zero is no value for D: the curve stays None (never a false plateau)
+    return -key[2] if key[2] < 0.0 else None
 
 
 def pool_spread(problem, designs, truths, top):
