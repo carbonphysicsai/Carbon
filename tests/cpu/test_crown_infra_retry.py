@@ -203,7 +203,7 @@ def test_an_undecided_outcome_leaves_the_record_unresolved_and_is_never_a_no_cro
 
 
 @posix
-def test_a_retry_is_at_most_once_per_epoch_and_a_third_failure_raises_a_typed_alert(
+def test_a_retry_is_at_most_once_per_spacing_and_a_third_failure_raises_a_typed_alert(
     tmp_path,
 ):
     clock = [t0]
@@ -220,14 +220,14 @@ def test_a_retry_is_at_most_once_per_epoch_and_a_third_failure_raises_a_typed_al
         50
     ):  # a persistent fault ticking every few seconds burns nothing inside the epoch
         clock[0] += 60
-        if clock[0] - t0 >= sweeper.EPOCH_SECONDS:
+        if clock[0] - t0 >= sweeper.RETRY_SECONDS:
             break
         _sweep(store, host_down)
     assert calls == [t0]
-    clock[0] = t0 + sweeper.EPOCH_SECONDS
+    clock[0] = t0 + sweeper.RETRY_SECONDS
     _sweep(store, host_down)
     assert len(calls) == 2 and store.crown_pause_alerts() == []
-    clock[0] += sweeper.EPOCH_SECONDS
+    clock[0] += sweeper.RETRY_SECONDS
     _sweep(store, host_down)
     assert len(calls) == 3
     (alert,) = store.crown_pause_alerts()
@@ -235,7 +235,7 @@ def test_a_retry_is_at_most_once_per_epoch_and_a_third_failure_raises_a_typed_al
     assert alert["waiting"] == 0
     assert alert["action"] == "recheck_validator_host" and alert["submission_id"] == "a"
     assert alert["last_code"] == f"UNAVAILABLE:{ca.REBUILD_UNAVAILABLE}"
-    clock[0] += sweeper.EPOCH_SECONDS
+    clock[0] += sweeper.RETRY_SECONDS
     _sweep(store, host_down)  # a fourth failure: still one alert, still unresolved
     assert len(store.crown_pause_alerts()) == 1
     assert (
@@ -250,7 +250,7 @@ def test_the_decision_is_made_once_the_host_recovers_and_then_resolves(tmp_path)
     store = _store(tmp_path, clock)
     file_paused(store, "a", KEY_A)
     _sweep(store, lambda record: outcome(bp.FAILED_INFRA, bp.REPEAT_MISMATCH))
-    clock[0] += sweeper.EPOCH_SECONDS
+    clock[0] += sweeper.RETRY_SECONDS
     done = _sweep(
         store,
         lambda record: decided(bp.CHALLENGER, "mean_exceeds_incumbent_beyond_margin"),
@@ -423,7 +423,7 @@ def test_end_to_end_a_triggered_decision_survives_a_host_outage_and_is_decided_l
         store.incumbent() is None
     )  # the live failure was attempt one: the retry waits for its epoch
     assert store.crown_pause_attempts("a", KEY) == (1, t0)
-    clock[0] += sweeper.EPOCH_SECONDS
+    clock[0] += sweeper.RETRY_SECONDS
     sweeper.sweep(store, reconsider, kind="pack", current_exam=EXAM)
     assert store.incumbent() is not None and store.incumbent()["model_id"] == "a"
     assert store.paused_crowns() == []
@@ -443,7 +443,7 @@ def test_an_alert_for_the_oldest_record_names_the_decisions_queued_behind_it(tmp
 
     for _attempt in range(3):
         _sweep(store, host_down)
-        clock[0] += sweeper.EPOCH_SECONDS
+        clock[0] += sweeper.RETRY_SECONDS
     assert calls == [
         "a",
         "a",
@@ -453,3 +453,77 @@ def test_an_alert_for_the_oldest_record_names_the_decisions_queued_behind_it(tmp
     assert alert["code"] == "crown_pause_blocked_by_undecided"
     assert alert["waiting"] == 2 and alert["submission_id"] == "a"
     assert [r["submission_id"] for r in store.paused_crowns()] == ["a", "b", "c"]
+
+
+# --- Deploy 5 Nov: after the king's mean files, the queue must not sit behind the retry spacing -----------------------
+
+
+def test_a_decision_waiting_on_the_kings_mean_is_retried_the_moment_it_files(tmp_path):
+    """The live shape (Motor 5 Nov): the oldest pending contention is tried, the king has no crown mean yet
+    (UNAVAILABLE king_unmeasured), so it is spaced; the king's upkeep then files his mean (`king_changed`, same
+    store), and the very next sweep decides it, not RETRY_SECONDS later."""
+    clock = [t0]
+    store = _store(tmp_path, clock)
+    file_paused(store, "a", KEY_A)
+    measured = [False]
+    calls = []
+
+    def reconsider(record):
+        calls.append(clock[0])
+        if not measured[0]:
+            return outcome(bp.UNAVAILABLE, ca.KING_UNMEASURED)
+        return outcome(bp.CHALLENGER, "bank_comparison_development")
+
+    _sweep(store, reconsider)
+    clock[0] += 60
+    _sweep(store, reconsider)
+    assert calls == [t0]  # spaced: no GPU burned on a decision that cannot be made yet
+    clock[0] += 60
+    measured[0] = True
+    sweeper.king_changed(
+        store
+    )  # the upkeep filed the king's mean (or his rebuild / regrade landed)
+    clock[0] += 1
+    assert _sweep(store, reconsider) == [
+        ("a", f"{bp.CHALLENGER}:bank_comparison_development")
+    ]
+    assert calls == [t0, t0 + 121]
+
+
+def test_without_a_king_change_a_failed_decision_waits_fifteen_minutes(tmp_path):
+    clock = [t0]
+    store = _store(tmp_path, clock)
+    file_paused(store, "a", KEY_A)
+    calls = []
+
+    def host_down(record):
+        calls.append(clock[0])
+        return outcome(bp.UNAVAILABLE, ca.REBUILD_UNAVAILABLE)
+
+    _sweep(store, host_down)
+    clock[0] = t0 + sweeper.RETRY_SECONDS - 1
+    _sweep(store, host_down)
+    assert calls == [t0]
+    clock[0] = t0 + sweeper.RETRY_SECONDS
+    _sweep(store, host_down)
+    assert calls == [t0, t0 + sweeper.RETRY_SECONDS]
+    assert sweeper.RETRY_SECONDS == 900 < sweeper.EPOCH_SECONDS
+
+
+def test_a_king_change_before_the_failure_does_not_reopen_it(tmp_path):
+    """Only a change AFTER the failed attempt reopens it: a decision that already saw the changed king stays spaced."""
+    clock = [t0]
+    store = _store(tmp_path, clock)
+    file_paused(store, "a", KEY_A)
+    sweeper.king_changed(store)
+    clock[0] += 1
+    calls = []
+
+    def unmeasured(record):
+        calls.append(clock[0])
+        return outcome(bp.UNAVAILABLE, ca.KING_UNMEASURED)
+
+    _sweep(store, unmeasured)
+    clock[0] += 60
+    _sweep(store, unmeasured)
+    assert calls == [t0 + 1]

@@ -113,7 +113,7 @@ def test_once_the_earlier_one_is_decided_the_later_one_is_decided_against_the_in
     live("a")
     live("b")
     repeats["a"] = Repeat("a", [0.70] * 10)  # the host recovers
-    clock[0] += sweeper.EPOCH_SECONDS + 1
+    clock[0] += sweeper.RETRY_SECONDS + 1
     pairs["b"] = _pair(b, a)  # b's grade will meet a, as the king then
     done = sweep(store, reconsider)
     assert [sid for sid, _ in done] == ["a", "b"]
@@ -131,7 +131,7 @@ def test_a_stuck_earlier_record_raises_the_alert_naming_the_queued_and_nothing_j
     live("b")
     live("c")
     for _ in range(sweeper.ALERT_AFTER):
-        clock[0] += sweeper.EPOCH_SECONDS + 1
+        clock[0] += sweeper.RETRY_SECONDS + 1
         assert sweep(store, reconsider) == []
     (alert,) = store.crown_pause_alerts()
     assert alert["code"] == "crown_pause_blocked_by_undecided"
@@ -169,7 +169,7 @@ def test_the_incumbent_event_is_stamped_with_the_decision_time_not_the_admission
     live("a")
     live("b")
     repeats["a"] = Repeat("a", [0.70] * 10)
-    clock[0] += 3 * sweeper.EPOCH_SECONDS
+    clock[0] += 3 * sweeper.RETRY_SECONDS
     pairs["b"] = _pair(b, a)
     sweep(store, reconsider)
     events = store.events("incumbent")

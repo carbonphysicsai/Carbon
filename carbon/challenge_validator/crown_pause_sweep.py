@@ -50,23 +50,51 @@ ROTATED = "exam_rotated_during_pause"
 ALREADY_INCUMBENT = "already_incumbent"
 #: Outcomes that are no decision about the contender: kept unresolved and retried.
 UNDECIDED = frozenset({UNAVAILABLE, FAILED_INFRA})
-#: One reward epoch in seconds (360 blocks of 12 s, the weights cadence): an engineering retry spacing, not a science value.
+#: One reward epoch in seconds (360 blocks of 12 s, the weights cadence).
 EPOCH_SECONDS = 360 * 12
+#: The retry spacing of a failed (undecided) decision or king-upkeep step: an engineering value, not a science one. It
+#: was one epoch; a door's whole queue then waited up to 72 min behind one passing fault (Deploy 5 Nov). 15 min (Lead and
+#: Validator-2, 5 Nov) still never burns GPU every tick.
+RETRY_SECONDS = 15 * 60
 #: The store-clock time this process first looked at each store (`spaced`): an attempt filed before it was made by an
 #: EARLIER process (before a deploy or restart), whose code may have been the reason it failed.
 _FIRST_SEEN = {}
+#: The store-clock time the sitting king last CHANGED in this process (`king_changed`: regraded, rebuilt, his crown
+#: mean filed): a decision that failed before it may succeed now, so it is due at once.
+_KING_CHANGED = {}
+
+
+def _store_key(store):
+    return str(getattr(store, "path", id(store)))
+
+
+def king_changed(store):
+    """Note that the sitting king can be met differently now (his regrade or rebuild on this exam landed, or his crown
+    mean was filed): every waiting decision that failed before this is retried at once, not after its spacing (Lead 5
+    Nov: Motor's queue sat behind the spacing after the mean filed). In-process: the king's upkeep runs in the same
+    receiver, just before the sweep; after a restart `spaced` already retries at once.
+    """
+    _KING_CHANGED[_store_key(store)] = store.clock()
 
 
 def spaced(store, attempts, last):
-    """Whether a failed decision is still inside its one-epoch retry spacing. An attempt filed before THIS process first
-    looked at the store never holds it back: the first round after a switch tries again at once (Lead 5 Nov: no 72-min
-    wait after a code change); attempts this process makes are spaced as before."""
+    """Whether a failed decision is still inside its retry spacing (`RETRY_SECONDS`). An attempt filed before THIS
+    process first looked at the store never holds it back: the first round after a switch tries again at once (Lead 5
+    Nov: no wait after a code change); nor does one filed before the king last changed (`king_changed`). Attempts this
+    process makes after both are spaced."""
     now = store.clock()
+    key = _store_key(store)
     # recorded on the FIRST check, attempt or not, so every failure this process makes comes after it
-    first = _FIRST_SEEN.setdefault(str(getattr(store, "path", id(store))), now)
-    if not attempts or last is None or last < first:
+    first = _FIRST_SEEN.setdefault(key, now)
+    changed = _KING_CHANGED.get(key)
+    if (
+        not attempts
+        or last is None
+        or last < first
+        or (changed is not None and last < changed)
+    ):
         return False
-    return now - last < EPOCH_SECONDS
+    return now - last < RETRY_SECONDS
 
 
 #: Failed attempts after which a typed alert is filed.
@@ -98,7 +126,7 @@ def sweep(store, reconsider, *, kind, current_exam):
         else:
             attempts, last = store.crown_pause_attempts(submission_id, key)
             if spaced(store, attempts, last):
-                break  # tried this epoch already: no GPU is burned again before the next one
+                break  # tried within RETRY_SECONDS already: no GPU is burned again before then
             try:
                 outcome = reconsider(record)
             except Exception:  # noqa: BLE001 - left unresolved, retried next tick
@@ -124,7 +152,7 @@ def sweep(store, reconsider, *, kind, current_exam):
                         waiting=len(pending) - place - 1,
                         queued=[r["submission_id"] for r in pending[place + 1 :]],
                     )
-                break  # not a decision: stays unresolved, retried after the epoch
+                break  # not a decision: stays unresolved, retried after RETRY_SECONDS (or at once once the king changes)
         store.resolve_crown_pause(submission_id, key, code)
         resolved.append((submission_id, code))
         if type(outcome) is dict and outcome.get("spent"):

@@ -14,7 +14,7 @@ At the start of every auto-grade tick (`AutoGrader.run_once`, before the crown s
    Meanwhile crown-changing challengers wait as KING_UNMEASURED (queued, retried, never dropped).
 
 A step that fails (infrastructure, an entry that cannot be found, a regrade that lands on another key) is retried at
-most once per epoch (`crown_pause_sweep.EPOCH_SECONDS`: a persistent fault never burns GPU every tick) with a journal
+most once per `crown_pause_sweep.RETRY_SECONDS` (a persistent fault never burns GPU every tick) with a journal
 line and an operator alert after `ALERT_AFTER` failures. It never raises into the grading loop, never counts a slot,
 and decides no crown itself. DEVELOPMENT / TESTNET only.
 """
@@ -126,6 +126,13 @@ def _due(pool, king, exam, step):
 
     attempts, last = pool.king_upkeep_attempts(king, exam, step)
     return not spaced(pool, attempts, last)
+
+
+def _changed(pool):
+    """The king can be met differently now: waiting decisions are due at once (`crown_pause_sweep.king_changed`)."""
+    from .crown_pause_sweep import king_changed
+
+    king_changed(pool)
 
 
 def _failed(pool, king, exam, step, code):
@@ -272,6 +279,7 @@ def _step(pool, intake, root, artifacts, entries, active):
             # the king's new grade is not on the challengers' key: a real difference for people to look at
             return _failed(pool, king, exam, REGRADE, "king_regrade_key_differs")
         koth_journal.note("king_regraded", incumbent=king, waiting=len(waiting))
+        _changed(pool)
         return {"step": REGRADE, "state": "DONE"}
     entry = king_origin_entry(pool, root, king)
     if entry is None:
@@ -310,6 +318,9 @@ def _step(pool, intake, root, artifacts, entries, active):
         koth_journal.note(
             "king_remeasured", incumbent=king, outcome=state, evaluation_key=key
         )
+        _changed(
+            pool
+        )  # his mean (or unstable mark) is filed: the waiting decisions can be made now
         return {"step": REMEASURE, "state": "DONE", "outcome": state}
     return _failed(
         pool,
@@ -365,6 +376,7 @@ def _rebuild(pool, intake, king, exam, waiting, artifacts, entries, entry):
         )
     if pool.awaits_incumbent_regrade(waiting[0]):
         return _failed(pool, king, exam, REGRADE, "king_regrade_key_differs")
+    _changed(pool)
     koth_journal.note(
         "king_rebuilt",
         incumbent=king,

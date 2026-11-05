@@ -489,7 +489,7 @@ def test_has_work_follows_the_crown_sweeps_own_gates(tmp_path):
     later = _Pool(
         pool_dir / "p.sqlite3",
         [record],
-        attempts=(1, 10**6 - crown_pause_sweep.EPOCH_SECONDS - 1),
+        attempts=(1, 10**6 - crown_pause_sweep.RETRY_SECONDS - 1),
     )
     assert _grader(tmp_path, pool=later).has_work() is True
     flag = operator_pause.flag_path(pool_dir)

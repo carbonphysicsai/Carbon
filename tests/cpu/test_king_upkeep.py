@@ -214,7 +214,7 @@ def test_a_failing_regrade_is_retried_once_per_epoch_and_alerts(
         _step(pool, intake) is None and len(intake.calls) == 1
     )  # inside the epoch: not tried again
     for _ in range(2):
-        clock[0] += sweeper.EPOCH_SECONDS
+        clock[0] += sweeper.RETRY_SECONDS
         _step(pool, intake)
     assert len(intake.calls) == 3
     lines = [json.loads(line) for line in capsys.readouterr().err.splitlines()]
@@ -635,3 +635,29 @@ def test_a_regrade_that_returns_unbound_fails_with_its_own_reason_not_the_key_ch
     lines = [json.loads(line) for line in capsys.readouterr().err.splitlines()]
     (failed,) = [line for line in lines if line["event"] == "king_upkeep_failed"]
     assert failed["code"] == "regrade_unbound:leg_minimum_platform_mismatch"
+
+
+def test_each_landed_king_step_reopens_the_waiting_decisions_and_a_failure_does_not(
+    tmp_path, entry, monkeypatch
+):
+    """Lead 5 Nov: the king's regrade landing, his rebuild landing and his crown mean filing each make every waiting
+    decision due at once (`crown_pause_sweep.king_changed` on this pool); a failed step changes nothing.
+    """
+    changed = []
+    monkeypatch.setattr(sweeper, "king_changed", lambda pool: changed.append(pool))
+    pool = _Pool(_store(tmp_path))
+    assert _step(pool, _Intake(pool)) == {"step": "regrade", "state": "DONE"}
+    assert changed == [pool]
+    store = _store(tmp_path / "remeasure")
+    pool = _Pool(store, waiting=0, king_key=KEY)
+
+    def remeasure(adapter, pool_, **kwargs):
+        pool.mean = 0.7
+        return {"outcome": ca.KING_MEASURED, "reason": ca.FIRST_BEATS_BASELINE}
+
+    monkeypatch.setattr(retention, "remeasure_incumbent_pack", remeasure)
+    assert _step(pool, _Intake(pool), object())["state"] == "DONE"
+    assert changed[-1] is pool and len(changed) == 2
+    failing = _Pool(_store(tmp_path / "failing"))
+    assert _step(failing, _Intake(failing, fails=True))["state"] == "FAILED"
+    assert len(changed) == 2
