@@ -240,6 +240,14 @@ class OptimizerPolicy:
     #: a separate owner value, recorded beside it. B is the owner's, per version, from the
     #: dry-run curve; it has no default.
     d_zero: dict | None = None
+    #: Near-limit picks scored by TRUE margin with U (owner option (a2), 4 Nov; Validator 22:01), NEW versions only. None
+    #: is today: every pool point within U of a limit is dropped at build (every registered version, unchanged).
+    #: ``{"kind": "credit_ramp", "shape": "linear"}`` (`build_target`'s ``near_limit``): those points stay; each truly
+    #: feasible point earns credit c = min over limits of min(1, margin / U) (c = 0 when truly infeasible; an exact,
+    #: U = 0 output only needs margin >= 0), its value is c x max(0, s - s_low), the reference is the best value, the pick
+    #: the best PREDICTED value, and q = value(pick) / value(reference). Inside U is never a clean pass; with every point
+    #: clean it is today's q. The ramp shape is the owner's (linear = the starting assumption on his sheet).
+    near_limit: dict | None = None
 
 
 #: The 2-class fallback of a version with ``balanced_region_mean`` D and no registered coverage plan (`region_class`): a
@@ -256,6 +264,8 @@ OTHER_OOD = "other_ood"
 #: shortcut's best verified-feasible objective is the zero), ``no_verified_feasible`` (none of its verified designs is
 #: feasible) and ``not_screened`` (its method does not predict this target's objective) keep the median zero, recorded.
 D_ZERO_KIND = "engineer_shortcut"
+NEAR_LIMIT_KINDS = ("credit_ramp",)
+NEAR_LIMIT_SHAPES = ("linear",)
 ZERO_STATUSES = ("anchored", "no_verified_feasible", "not_screened")
 COVERAGE_PLAN_SCHEMA = "carbon.pool.coverage-plan.v1"
 
@@ -472,6 +482,15 @@ def _check_policies(optimizer, honesty):
         VARIANT_RULE_INVALID,
     )
     _require(
+        optimizer.near_limit is None or valid_near_limit(optimizer.near_limit),
+        NEAR_LIMIT_INVALID,
+    )
+    # The top-k rule has no near-limit form yet: which credit k picks share is the owner's (fail closed).
+    _require(
+        optimizer.near_limit is None or pick_count(optimizer) == 1,
+        "near_limit_needs_the_single_pick",
+    )
+    _require(
         _finite(honesty.scale) and honesty.scale > 0, "honesty_scale_must_be_positive"
     )
     _require(
@@ -588,6 +607,11 @@ class TargetSpec:
     variant_refusals: tuple = ()
     # The engineer's-shortcut zero of a NEW version's target (`checked_zero`), part of the identity; None = the median.
     zero: object = None
+    # The near-limit rule of a NEW version's target (`OptimizerPolicy.near_limit`, part of the identity; None = today's
+    # drop), each kept point's TRUE credit (custody) and the reference's value c x (s_ref - s_low).
+    near_limit: object = None
+    credit: tuple = ()
+    v_ref: float | None = None
 
     @property
     def extended(self):
@@ -627,6 +651,41 @@ def checked_zero(zero):
     return {k: (float(v) if k == "s_zero" else v) for k, v in zero.items()}
 
 
+NEAR_LIMIT_INVALID = "near_limit_must_be_none_or_credit_ramp_with_a_registered_shape"
+
+
+def valid_near_limit(rule):
+    return (
+        type(rule) is dict
+        and set(rule) == {"kind", "shape"}
+        and rule["kind"] in NEAR_LIMIT_KINDS
+        and rule["shape"] in NEAR_LIMIT_SHAPES
+    )
+
+
+def credit(limits, values, u_of):
+    """A point's near-limit credit (`OptimizerPolicy.near_limit`): 0 when any margin is negative, else the smallest
+    min(1, margin / U) over the limits (U = ``u_of(output)``; an exactly computed output, U = 0, only needs margin >= 0).
+    """
+    c = 1.0
+    for limit in limits:
+        margin = limit.margin(values[limit.output])
+        if margin < 0.0:
+            return 0.0
+        scale = u_of(limit.output)
+        if scale > 0.0:
+            c = min(c, margin / scale)
+    return c
+
+
+def check_near_limit(spec, optimizer):
+    """The version's near-limit rule and its targets' agree: a pool built under another rule never grades silently."""
+    _require(
+        spec.near_limit == optimizer.near_limit,
+        "target_near_limit_differs_from_the_registered_rule",
+    )
+
+
 def check_zero(spec, optimizer):
     """The version's registered zero and its targets' zeros agree: none on both sides (every registered version), or the
     same kind and budget on every target. A pool built under another zero never grades silently.
@@ -660,6 +719,7 @@ def build_target(
     public=False,
     shell=None,
     zero=None,
+    near_limit=None,
 ):
     """Validate a target's sealed material and derive its reference.
 
@@ -732,9 +792,10 @@ def build_target(
         all(type(i) is int and 0 <= i < len(designs) for i in agen),
         "agen_index_out_of_range",
     )
+    _require(near_limit is None or valid_near_limit(near_limit), NEAR_LIMIT_INVALID)
     keep, excluded = [], 0
     for index, truth in enumerate(truths):
-        if any(
+        if near_limit is None and any(
             abs(limit.margin(truth[limit.output]))
             <= u_value(u[limit.output], truth[limit.output])
             for limit in limits
@@ -756,6 +817,18 @@ def build_target(
     )
     sign = 1.0 if sense == "max" else -1.0
     scores = {n: sign * kept_truths[n][objective] for n in queryable if feasible[n]}
+    credits = ()
+    if near_limit is not None:
+        credits = tuple(
+            credit(limits, truth, lambda name, t=truth: u_value(u[name], t[name]))
+            for truth in kept_truths
+        )
+        # s_low is the median over CLEAN feasible points (credit 1), as today's kept set was (Validator 22:01)
+        clean = {n: v for n, v in scores.items() if credits[n] == 1.0}
+        _require(
+            len(clean) >= 2,
+            "degenerate_reference_needs_two_clean_feasible_queryable_points",
+        )
     _require(
         len(scores) >= 2, "degenerate_reference_needs_two_feasible_queryable_points"
     )
@@ -777,7 +850,9 @@ def build_target(
                 conditions_in_ood_shell(conditions["fixed"], shell),
                 "conditions_not_in_the_ood_shell",
             )
-    s_ref, s_low = scores[reference], statistics.median(scores.values())
+    s_ref, s_low = scores[reference], statistics.median(
+        (clean if near_limit is not None else scores).values()
+    )
     zero = checked_zero(zero)
     if zero is not None and zero["status"] == "anchored":
         # OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01: the shortcut's own objective scores 0. A target the shortcut already
@@ -789,6 +864,19 @@ def build_target(
         _require(
             s_ref > s_low, "degenerate_reference_best_feasible_must_beat_the_median"
         )
+    v_ref = None
+    if near_limit is not None:
+        # the reference is the best VALUE: credit x the objective's gain over the zero (a near-limit optimum wins only
+        # when its margin earns it)
+        values = {n: credits[n] * max(0.0, scores[n] - s_low) for n in scores}
+        reference = min(values, key=lambda n: (-values[n], n))
+        s_ref, v_ref = scores[reference], values[reference]
+        _require(v_ref > 0.0, "degenerate_reference_no_credited_gain_over_the_zero")
+        if shell is not None and shell["mode"] == "designs":
+            _require(
+                in_ood_shell(kept_designs[reference], shell["inputs"]),
+                "reference_not_in_the_ood_shell",
+            )
     body = {
         "target_id": target_id,
         "conditions": conditions,
@@ -806,6 +894,9 @@ def build_target(
         "public": public,  # visibility is part of the identity: a sealed pool cannot be relabelled public
         "shell": _shell_json(shell),
     }
+    if near_limit is not None:
+        # only a new version's rule enters the identity: a registered version's digest is unchanged
+        body["near_limit"] = dict(near_limit)
     if zero is not None:
         # the zero's run names THIS pool (the body without the zero): a zero from another pool refuses (Validator
         # 21:30). Only a new version's zero enters the identity: a registered version's digest is unchanged.
@@ -839,6 +930,9 @@ def build_target(
         origin=tuple(keep),
         pool_size=len(designs),
         zero=zero,
+        near_limit=None if near_limit is None else dict(near_limit),
+        credit=credits,
+        v_ref=v_ref,
     )
 
 
@@ -915,6 +1009,7 @@ def attach_variants(spec, rule, starts):
             "seed": slot["seed"],
             "public": spec.public,
             "shell": spec.shell,
+            "near_limit": spec.near_limit,
         }
         try:
             variant = build_target(**question)
@@ -1029,6 +1124,7 @@ def grade_target(spec, predict, optimizer, honesty):
     """
     _check_policies(optimizer, honesty)
     check_zero(spec, optimizer)
+    check_near_limit(spec, optimizer)
     rule = optimizer.variant_rule
     if rule is None:
         return _grade_one(spec, predict, optimizer, honesty)
@@ -1036,6 +1132,7 @@ def grade_target(spec, predict, optimizer, honesty):
     predict = _memoized(predict)
     base = _grade_one(spec, predict, optimizer, honesty)
     for variant in spec.variants:
+        check_near_limit(variant, optimizer)
         check_zero(
             variant, optimizer
         )  # each variant carries its own zero exactly when the version registers one
@@ -1134,7 +1231,16 @@ def _grade_one(spec, predict, optimizer, honesty):
         return _top_k_grade(
             spec, predictions, feasible_predicted, key, optimizer, honesty
         )
-    pick = min(feasible_predicted, key=lambda i: (key(i), i))
+    if spec.near_limit is None:
+        pick = min(feasible_predicted, key=lambda i: (key(i), i))
+    else:
+        # the same credit on the model's own predictions (Validator 22:01): the best PREDICTED value, then today's order
+        def predicted_value(i):
+            c = credit(spec.limits, predictions[i], lambda name: spec.u_at(i, name))
+            gain = spec.sign * predictions[i][spec.objective] - spec.s_low
+            return c * max(0.0, gain)
+
+        pick = min(feasible_predicted, key=lambda i: (-predicted_value(i), key(i), i))
     queries = len(predictions)
     if not spec.feasible[pick]:
         return TargetGrade(
@@ -1151,7 +1257,13 @@ def _grade_one(spec, predict, optimizer, honesty):
             False,
         )
     s_pick = spec.sign * spec.truths[pick][spec.objective]
-    q = min(1.0, max(0.0, (s_pick - spec.s_low) / (spec.s_ref - spec.s_low)))
+    if spec.near_limit is None:
+        q = min(1.0, max(0.0, (s_pick - spec.s_low) / (spec.s_ref - spec.s_low)))
+        reached = s_pick >= spec.s_ref
+    else:
+        value = spec.credit[pick] * max(0.0, s_pick - spec.s_low)
+        q = min(1.0, value / spec.v_ref)
+        reached = value >= spec.v_ref
     e = _error(spec, pick, predictions[pick], honesty)
     h = math.exp(-e / honesty.scale)
     return TargetGrade(
@@ -1165,7 +1277,7 @@ def _grade_one(spec, predict, optimizer, honesty):
         pick,
         queries,
         "graded",
-        s_pick >= spec.s_ref,
+        reached,
     )
 
 
@@ -1580,6 +1692,7 @@ def dump_pool(spec):
         "origin": list(spec.origin),
         "pool_size": spec.pool_size,
         **({} if spec.zero is None else {"zero": dict(spec.zero)}),
+        **({} if spec.near_limit is None else {"near_limit": dict(spec.near_limit)}),
     }
 
 
@@ -1606,6 +1719,7 @@ def load_pool(document):
         public=document["public"],
         shell=document.get("shell"),
         zero=document.get("zero"),
+        near_limit=document.get("near_limit"),
     )
     spec = replace(
         spec,

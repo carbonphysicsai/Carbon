@@ -179,6 +179,21 @@ def _variant_rule(value):
     return value
 
 
+def _near_limit(value):
+    """A new version's registered near-limit rule (`pool_grader.OptimizerPolicy.near_limit`), or None when the key is
+    absent (every registered version: within-U points dropped). Present, it has no default: a null or HUMAN_INPUT
+    anywhere in it refuses (the ramp shape is the owner's)."""
+    if value is _ABSENT:
+        return None
+    if value is None:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    value = _picked(value)
+    if type(value) is dict:
+        for item in value.values():
+            _picked(item)
+    return value
+
+
 def _d_zero(value):
     """A new version's registered engineer's-shortcut zero ``{"kind": "engineer_shortcut", "budget": B}`` (B the owner's, per
     version: HUMAN_INPUT refuses), or None when the key is absent (every registered version: the median zero).
@@ -232,6 +247,8 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
                 variant_rule=_variant_rule(optimizer.get("variant_rule", _ABSENT)),
                 # optional, NEW versions only: absent is today's median zero, unchanged
                 d_zero=_d_zero(optimizer.get("d_zero", _ABSENT)),
+                # optional, NEW versions only: absent is today's within-U drop, unchanged
+                near_limit=_near_limit(optimizer.get("near_limit", _ABSENT)),
             ),
             honesty=pool_grader.HonestyPolicy(
                 scale=_picked(honesty["scale"]), reduction=_picked(honesty["reduction"])

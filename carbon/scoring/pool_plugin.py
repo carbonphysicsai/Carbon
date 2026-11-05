@@ -595,4 +595,5 @@ def spec_from_source(document, binding):
         shell=document.get("shell"),
         # a new version's engineer's-shortcut zero (the custody shortcut run's anchor); absent = the median
         zero=document.get("zero"),
+        near_limit=document.get("near_limit"),
     )
