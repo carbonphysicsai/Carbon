@@ -12,8 +12,10 @@ id that resolves to a tracked owner decision (``.agent/decisions/*-<ID>.md``, "D
    part 1), with the off-step / shell-edge target classes graded on their own: ``optimizer.d_aggregate`` =
    ``balanced_region_mean`` and a registered coverage plan (that the plan carries those classes is a custody data check).
 3. ``ood_min_accuracy``: ``a_rule`` = min, ``optimizer.a_gen_aggregate`` = ``ood_class_mean`` with its
-   ``a_gen_min_class_cases`` (OWNER-ACCURACY-OOD-MIN-01). Its amendment-2 fallback (the three conditions fail) is a
-   waiver naming the record that says so.
+   ``a_gen_min_class_cases`` (OWNER-ACCURACY-OOD-MIN-01). Under its amendment 2 the min applies only when three
+   conditions hold, and "poorly" / "well above" are owner values picked per version; the amendment itself waives no
+   version. So min OFF needs that version's OWN owner record AND its Validator-receipted 3-condition report:
+   ``{"record": <owner record id>, "conditions_report_sha256": <64 hex>}`` (Validator 4 Nov 22:03); a plain id fails.
 4. ``v_var``: ``optimizer.variant_rule`` of kind ``limit_shift`` (OWNER-DESIGN-DECISION-FIDELITY-01).
 
 A rule is ON when its switch is registered; its owner values may still be HUMAN_INPUT (the grade then refuses, fail
@@ -108,6 +110,29 @@ def _waiver_resolves(record_id, decisions):
     return "DECIDED by the owner" in found[0].read_text(encoding="utf-8")
 
 
+#: The OOD-min record family: the rule's own records, which decide no version's waiver.
+OOD_MIN_RECORD = "OWNER-ACCURACY-OOD-MIN-01"
+
+
+def _waiver_ok(rule, waiver, decisions):
+    """A plain owner record id; for OOD-min, ``{"record", "conditions_report_sha256"}`` naming the version's OWN record."""
+    if rule == "ood_min_accuracy":
+        if type(waiver) is not dict or set(waiver) != {
+            "record",
+            "conditions_report_sha256",
+        }:
+            return False
+        record, sha = waiver["record"], waiver["conditions_report_sha256"]
+        return (
+            type(record) is str
+            and not record.startswith(OOD_MIN_RECORD)
+            and type(sha) is str
+            and bool(_HEX64.fullmatch(sha))
+            and _waiver_resolves(record, decisions)
+        )
+    return _waiver_resolves(waiver, decisions)
+
+
 def conformance_failures(versions, constants, pool_versions, decisions):
     """``[(challenge, version, rule, why), ...]`` for every new version and rule that is neither on nor waived.
 
@@ -127,7 +152,7 @@ def conformance_failures(versions, constants, pool_versions, decisions):
         on_pool = (challenge, version) in pool_versions and bool(entry)
         for rule in RULES:
             if rule in waivers:
-                if not _waiver_resolves(waivers[rule], decisions):
+                if not _waiver_ok(rule, waivers[rule], decisions):
                     failures.append(
                         (challenge, version, rule, "waiver_does_not_resolve")
                     )
@@ -262,3 +287,34 @@ def test_a_new_version_off_the_pool_path_or_unregistered_fails_every_rule(tmp_pa
 def test_an_exempt_version_is_never_checked(tmp_path):
     exempt = ("f02", "2.5")
     assert conformance_failures({exempt}, {"versions": {}}, set(), tmp_path) == []
+
+
+def test_the_ood_min_waiver_names_the_versions_own_record_and_its_conditions_report(
+    tmp_path,
+):
+    own = "OWNER-MOTOR-17-OOD-MIN-OFF-01"
+    amendment = "OWNER-ACCURACY-OOD-MIN-01-AMENDMENT-2"
+    for record in (own, amendment):
+        (tmp_path / f"2026-11-05-{record}.md").write_text(DECIDED, encoding="utf-8")
+    entry = _all_on()
+    entry["a_rule"] = {"kind": "mean"}
+    good = {"record": own, "conditions_report_sha256": "ef" * 32}
+    entry["fit_breaker"]["waivers"] = {"ood_min_accuracy": good}
+    assert _check(entry, tmp_path) == []
+    for bad in (
+        own,  # the record id alone is not enough
+        {"record": own},
+        {**good, "conditions_report_sha256": "x"},
+        {**good, "record": amendment},  # the amendment waives no version itself
+        {**good, "record": "OWNER-NOT-THERE-01"},
+        {"record": own, "separation_read_sha256": "ef" * 32},  # the superseded form
+        {**good, "extra": 1},
+    ):
+        entry["fit_breaker"]["waivers"] = {"ood_min_accuracy": bad}
+        assert _check(entry, tmp_path) == [
+            (*NEW, "ood_min_accuracy", "waiver_does_not_resolve")
+        ]
+    entry = _all_on()
+    entry["optimizer"].pop("variant_rule")
+    entry["fit_breaker"]["waivers"] = {"v_var": good}  # the report form is OOD-min only
+    assert _check(entry, tmp_path) == [(*NEW, "v_var", "waiver_does_not_resolve")]
