@@ -679,13 +679,16 @@ class ExamCap:
         self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
     ) -> bool:
         """Whether this submission is graded (or grading) on this exam key: a
-        GRADED row holding its slot. The receiver refuses its resubmit
+        GRADED row holding its slot, or a graded one whose slot was returned
+        under the owner's resubmit promise (`return_promised_slot`: its grade
+        stands). The receiver refuses its resubmit
         (``same_recipe_already_submitted``) before anything is reserved."""
         with self.ledger._db() as db:
             row = db.execute(
                 "SELECT 1 FROM exam_graded WHERE hotkey=? AND challenge_id=? AND "
                 "challenge_version=? AND exam_key=? AND submission_id=? AND "
-                "kind='GRADED' AND state IN ('RESERVED','COUNTED')",
+                "kind='GRADED' AND (state IN ('RESERVED','COUNTED') OR "
+                "(state='RELEASED' AND status='SLOT_RETURNED'))",
                 (hotkey, challenge_id, challenge_version, exam_key, submission_id),
             ).fetchone()
         return row is not None

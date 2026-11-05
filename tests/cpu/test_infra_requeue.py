@@ -802,6 +802,15 @@ def test_a_graded_resubmit_in_the_window_gets_its_slot_back_and_its_grade_stands
     cap = ExamCap(ledger)
     # NOT an infrastructure give-back: the door never runs the graded recipe again
     assert not cap.released_on_infra(**ident)
+    # still graded for the door (same recipe refused, v4 GRADED), while the slot counts toward no limit
+    assert cap.holds_slot(**ident)
+    with ledger._db() as db:
+        assert db.execute(
+            "SELECT COUNT(*) FROM exam_graded WHERE hotkey=? AND state IN ('RESERVED','COUNTED')",
+            (HOTKEY,),
+        ).fetchone() == (
+            1,
+        )  # only C, outside the window
     record = json.loads(
         (root / "auto-grade" / "requeued" / "slot-returns.jsonl").read_text()
     )

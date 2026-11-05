@@ -445,3 +445,17 @@ def test_the_v4_code_is_the_one_construction_status_shows(tmp_path, ledger, refu
     assert failure["code"] == (
         shown if shown.islower() and shown.isidentifier() else None
     )
+
+
+def test_a_slot_returned_graded_resubmit_still_reads_graded(tmp_path, ledger):
+    """Validator 17:24 (2): OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01 returns a graded resubmit's slot (RELEASED /
+    SLOT_RETURNED); its grade stands, so v4 keeps it GRADED, never NOT_GRADED via the slot fallback.
+    """
+    from carbon.challenge_validator.exam_cap import ExamCap
+
+    intake, marks = _v4_intake(tmp_path, ledger, {E: "5Miner"})
+    marks._write(E, "GRADED", code="carbon_capability_gap")  # a reason v3 leaves None
+    _hold(ledger, "5Miner", E, 7_200)
+    assert _v4(intake, "5Miner", E) == ("GRADED", None)
+    ExamCap(ledger).return_promised_slot(E)
+    assert _v4(intake, "5Miner", E) == ("GRADED", None)
