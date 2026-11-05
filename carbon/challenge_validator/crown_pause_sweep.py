@@ -21,6 +21,9 @@ Rules (Validator, 2026-10-29):
 - ADMISSION ORDER IS ENFORCED AT THE DOOR TOO: `BankPromotion.consider_private` files a crown-changing contender as
   queued (``queued_behind_undecided_crown``, no decision) whenever an earlier record of the Challenge is unresolved, so a
   later candidate cannot be crowned in the gap while an earlier one waits (the sweep alone did not stop that);
+- AT MOST ONE decision that ran GPU work (a repeat grade or averaging rebuilds, `SpendWatch`) per tick: the sweep
+  stops after it, so a live grade runs between two of them (Validator 5 Nov: 381 queued challengers must not hold live
+  grades for hours); cheap no-crown comparisons go on in the same tick;
 - the sweep stops at an undecided record, so a persistently failing OLDEST record holds every later paused decision of
   its Challenge until it resolves (each is decided against the incumbent of its moment). The alert says so: when
   decisions are queued behind it, its code is ``crown_pause_blocked_by_undecided`` and ``waiting`` counts them (as of
@@ -67,6 +70,7 @@ def sweep(store, reconsider, *, kind, current_exam):
     awaits = getattr(store, "awaits_incumbent_regrade", None)
     for place, record in enumerate(pending):
         submission_id, key = record["submission_id"], record["evaluation_key"]
+        outcome = None
         incumbent = store.incumbent() or {}
         if incumbent.get("model_id") == submission_id:
             code = ALREADY_INCUMBENT
@@ -106,4 +110,8 @@ def sweep(store, reconsider, *, kind, current_exam):
                 break  # not a decision: stays unresolved, retried after the epoch
         store.resolve_crown_pause(submission_id, key, code)
         resolved.append((submission_id, code))
+        if type(outcome) is dict and outcome.get("spent"):
+            # it ran GPU work (a repeat grade or averaging rebuilds): the next decision waits for the next tick, so a
+            # live grade runs between two of them (Validator 5 Nov); cheap no-crown comparisons go on in one tick
+            break
     return resolved

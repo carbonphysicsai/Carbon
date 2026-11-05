@@ -1847,20 +1847,55 @@ def reconsider_paused_pack(
     promotion = BankPromotion(
         pool_store, registered_source_receipt_sha256=record["pin"]
     )
-    return promotion.consider_private(
-        record["submission_id"],
-        record["evaluation_key"],
-        koth_registry.comparator(adapter.challenge_id, score_pack, accuracy),
-        sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
-        repeat=_repeat_of(
+    watched = SpendWatch(
+        _repeat_of(
             adapter,
             record["submission_id"],
             record["entry_id"],
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
             runner=runner,
-        ),
+        )
     )
+    return watched.mark(
+        promotion.consider_private(
+            record["submission_id"],
+            record["evaluation_key"],
+            koth_registry.comparator(adapter.challenge_id, score_pack, accuracy),
+            sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
+            repeat=watched,
+        )
+    )
+
+
+class SpendWatch:
+    """A crown decision's ``repeat``, unchanged, that notes whether the decision ran any GPU work (its repeat grade, or an
+    averaging rebuild). The sweep stops after such a decision so live grades run between them (Validator 5 Nov).
+    """
+
+    def __init__(self, repeat):
+        self._repeat, self.spent = repeat, False
+
+    def __call__(self, submission_id):
+        self.spent = True
+        return self._repeat(submission_id)
+
+    def __getattr__(self, name):
+        value = getattr(self._repeat, name)
+        if name in ("rebuild_at", "rebuild_again_at") and callable(value):
+
+            def run(*args, **kwargs):
+                self.spent = True
+                return value(*args, **kwargs)
+
+            return run
+        return value
+
+    def mark(self, outcome):
+        """``outcome`` with ``spent: True`` when the decision ran GPU work (a key the sweep reads, never published)."""
+        if self.spent and type(outcome) is dict:
+            return {**outcome, "spent": True}
+        return outcome
 
 
 def remeasure_incumbent_pack(

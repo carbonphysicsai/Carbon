@@ -121,13 +121,7 @@ def reconsider_paused_set(
     """Make a paused set contender's crown decision again: the set evaluation is derived again from the stored
     per-batch evaluations (idempotent), with no regrade, no exam-cap slot and no Ladder document. Its repeat
     grade of every batch is the only extra grade, uncounted."""
-    return _contend_set(
-        promotion,
-        batch_adapters,
-        batches,
-        record["exam"],
-        record["submission_id"],
-        {record["pin"]},
+    watched = retention.SpendWatch(
         _set_repeat(
             batch_adapters,
             batches,
@@ -137,7 +131,18 @@ def reconsider_paused_set(
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
             runner=runner,
-        ),
+        )
+    )
+    return watched.mark(
+        _contend_set(
+            promotion,
+            batch_adapters,
+            batches,
+            record["exam"],
+            record["submission_id"],
+            {record["pin"]},
+            watched,
+        )
     )
 
 

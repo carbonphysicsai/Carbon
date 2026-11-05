@@ -421,3 +421,89 @@ def test_a_waiting_live_grade_runs_after_at_most_one_king_job(tmp_path, monkeypa
     for _ in range(4):
         grader.run_once()
     assert order == ["king job", "live 1", "king job", "live 2", "king job", "king job"]
+
+
+# --- the sweep runs at most one GPU decision per tick (Validator 5 Nov, the 7b5ed970 must-fix) ------------------------
+
+
+def _queued(tmp_path, count=3):
+    from carbon.battery.pool_store import PoolStore
+
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700, exist_ok=True)
+    store = PoolStore(state / "pool.sqlite3")
+    ids = ["rtsk_" + f"{n:064x}" for n in range(1, count + 1)]
+    for sid in ids:
+        store.record_crown_paused(
+            sid, KEY, kind="pack", exam=EXAM, entry_id=digest("e"), pin=digest("p")
+        )
+    return store, ids
+
+
+def test_three_queued_crown_changers_and_a_live_task_the_live_task_runs_after_at_most_one(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import auto_grade
+
+    store, _ids = _queued(tmp_path)
+    order, live = [], ["rtsk_" + "f" * 64]
+
+    def reconsider(
+        adapter, pool, record, **kwargs
+    ):  # each runs its repeat + averaging rebuilds
+        order.append("crown " + record["submission_id"][-1])
+        return {"outcome": bp.INCUMBENT_KEEPS, "reason": ca.MEAN_WITHIN, "spent": True}
+
+    monkeypatch.setattr(retention, "reconsider_paused_pack", reconsider)
+    monkeypatch.setattr(king_upkeep, "file_stranded", lambda *a: None)
+    monkeypatch.setattr(king_upkeep, "step", lambda *a, **k: None)
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader.root, grader.pool_store = tmp_path, store.path
+    grader.artifacts = grader.entries = tmp_path
+    grader.intake = SimpleNamespace(
+        adapter=SimpleNamespace(discovery=SimpleNamespace(evaluation_pack_digest=EXAM))
+    )
+    monkeypatch.setattr(auto_grade.AutoGrader, "_pool", lambda self: store)
+    monkeypatch.setattr(auto_grade.AutoGrader, "pending", lambda self: live[:1])
+
+    def graded(submission_id, **kwargs):
+        order.append("live")
+        live.clear()
+        return {"entry_id": None}
+
+    grader.intake.retain_result = graded
+    monkeypatch.setattr(auto_grade.AutoGrader, "_write", lambda self, *a, **k: None)
+    monkeypatch.setattr(
+        auto_grade, "_Sampler", lambda *a: __import__("contextlib").nullcontext()
+    )
+    grader.containers, grader.sample_seconds = (lambda: 0), 1.0
+    for _ in range(3):
+        grader.run_once()
+    assert order == ["crown 1", "live", "crown 2", "crown 3"]
+    assert store.paused_crowns() == []  # all three decided, one per tick
+
+
+def test_cheap_no_crown_comparisons_still_finish_in_one_tick(tmp_path):
+    store, ids = _queued(tmp_path)
+    done = sweeper.sweep(
+        store,
+        lambda r: {"outcome": bp.INCUMBENT_KEEPS, "reason": "kept"},
+        kind="pack",
+        current_exam=EXAM,
+    )
+    assert [sid for sid, _ in done] == ids
+
+
+def test_the_spend_watch_passes_the_repeat_through_and_marks_gpu_work():
+    calls = []
+    repeat = SimpleNamespace(
+        entry_id=digest("e"),
+        rebuild_at=lambda seed, i=0: calls.append(("rebuild", seed, i)),
+    )
+    watched = retention.SpendWatch(repeat)
+    assert watched.entry_id == digest("e") and not watched.spent
+    assert watched.mark({"outcome": "X"}) == {"outcome": "X"}
+    watched.rebuild_at(7, 1)
+    assert calls == [("rebuild", 7, 1)] and watched.spent
+    assert watched.mark({"outcome": "X"}) == {"outcome": "X", "spent": True}
+    assert getattr(retention.SpendWatch(SimpleNamespace()), "rebuild_at", None) is None
