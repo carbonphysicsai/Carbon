@@ -845,7 +845,7 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
             + "-"
             + submission_id
             + suffix,
-            inference_image=provider.inference_image,
+            inference_image=_inference_image_of(provider, regrade),
             recipe=(
                 ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
                 if regrade is None
@@ -987,7 +987,7 @@ def _single_call_raw(
             + hashlib.sha256(
                 (snapshot.manifest_digest + "|" + submission_id).encode()
             ).hexdigest(),
-            inference_image=provider.inference_image,
+            inference_image=_inference_image_of(provider, regrade),
             recipe=(
                 ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
                 if regrade is None
@@ -2858,6 +2858,15 @@ class _Regrade:
     #: ``repeat(submission_id)``: a second, independent grade of the same state for the crown decision
     #: (OWNER-CROWN-GRADE-REPEAT-01); None gives none, so no crown moves.
     repeat: object = None
+    #: The image every inference step of this regrade runs on (`_regrade_inference_image`): the receiver's own, or a
+    #: sitting king's retained parent (route (a)). None = the provider's inference image.
+    inference_image: object = None
+
+
+def _inference_image_of(provider, regrade):
+    """The image an evaluation step infers on: the regrade's chosen image, else the provider's."""
+    chosen = None if regrade is None else getattr(regrade, "inference_image", None)
+    return provider.inference_image if chosen is None else chosen
 
 
 def _record_regraded_evidence(regrade, bind_inputs, pin=None):
@@ -2876,6 +2885,88 @@ def _record_regraded_evidence(regrade, bind_inputs, pin=None):
         return promotion.retain_private(regrade.origin_task_id, **bind_inputs)
     except StateError as refused:
         raise RetentionUnavailable("regrade_record_" + refused.code) from refused
+
+
+#: The receiver configuration's ``king_retained_parents`` (`install_king_retained_parents`): image id -> the
+#: WorkerImageIdentity of an image a sitting king was built on before this receiver's parent moved. Empty: none.
+KING_RETAINED_PARENTS = {}
+
+
+def install_king_retained_parents(identities):
+    """Set `KING_RETAINED_PARENTS` from loaded identities (the receiver does this at start; the list may be empty)."""
+    KING_RETAINED_PARENTS.clear()
+    KING_RETAINED_PARENTS.update(
+        {identity.image_id: identity for identity in identities}
+    )
+
+
+def _docker_image_id(image_id):
+    """The local image store's own ``.Id`` for ``image_id`` when it answers to that id DIRECTLY (never through a
+    recorded alias), else None. Read-only."""
+    from carbon.reconstruction.worker.docker_runtime import DockerCLI, inspect_image
+
+    try:
+        document, by_alias = inspect_image(DockerCLI(), image_id)
+    except Exception:  # noqa: BLE001 - absent or unreadable: no such image here
+        return None
+    if by_alias or type(document) is not dict:
+        return None
+    found = document.get("Id")
+    return found if type(found) is str else None
+
+
+def _regrade_inference_image(kind, files, provider, recipe, origin, incumbent):
+    """The image a regrade infers on. The retained model was built on the parent its retention recorded; a regrade runs
+    only while this receiver serves that runtime on the same parent image (Validator, OWNER-BACKBONE-CATALOG-01). A graph
+    runs on the receiver's inference image itself, which must be the retained one.
+
+    KING-ONLY FALLBACK (Validator 5 Nov, route (a)): when the parent moved since the SITTING king was built (every king
+    predates the door's current image), his regrade infers on HIS OWN retained parent, iff (1) the receiver configures
+    that image's identity (`KING_RETAINED_PARENTS`, from ``king_retained_parents``), (2) the local image store answers to
+    that id directly with exactly that ``.Id``, and (3) this receiver infers on its construction parent (a separate
+    inference image says nothing about the image the king was inferred on). Journal ``king_regrade_on_retained_parent``.
+    Anything else, and any other task, refuses ``regrade_construction_parent_differs`` as before (the reason journaled).
+    """
+    from carbon.development_session.library_bundles import LibraryBundleRef
+
+    try:
+        if kind == "graph":
+            retained_parent = json.loads(files["image.json"])["image_id"]
+            current_parent = provider.inference_image.image_id
+        else:
+            retained_parent = json.loads(files["image.json"])["parent_image_id"]
+            current_parent = _construction_parent(
+                provider,
+                LibraryBundleRef.from_dict(recipe.to_dict()["source"]["bundle_ref"]),
+            ).image_id
+    except (KeyError, TypeError, ValueError, AttributeError):
+        raise RetentionUnavailable("regrade_construction_parent_unavailable") from None
+    if retained_parent == current_parent:
+        return provider.inference_image
+    if incumbent is None or origin != incumbent:
+        raise RetentionUnavailable("regrade_construction_parent_differs")
+    from carbon.challenge_validator import koth_journal
+
+    identity = KING_RETAINED_PARENTS.get(retained_parent)
+    if identity is None:
+        reason = "retained_parent_not_configured"
+    elif kind != "graph" and provider.inference_image.image_id != current_parent:
+        reason = "separate_inference_image"
+    elif _docker_image_id(retained_parent) != retained_parent:
+        reason = "retained_parent_not_in_the_image_store"
+    else:
+        koth_journal.note(
+            "king_regrade_on_retained_parent",
+            incumbent=origin,
+            kind=kind,
+            retained_parent=retained_parent,
+            current_parent=current_parent,
+        )
+        return identity
+    koth_journal.note(
+        "king_regrade_parent_refused", incumbent=origin, kind=kind, reason=reason
+    )
+    raise RetentionUnavailable("regrade_construction_parent_differs")
 
 
 def _regrade_incumbent(promotion):
@@ -3225,26 +3316,9 @@ def regrade_retained_entry(
     )
     material = discovery._material
     provider = adapter._provider(owner)
-    # The retained model was built on the parent its retention recorded; a
-    # regrade runs only while this receiver serves that bundle runtime on the
-    # same parent image (Validator, OWNER-BACKBONE-CATALOG-01). A graph runs on
-    # the receiver's inference image itself, which must be the retained one.
-    from carbon.development_session.library_bundles import LibraryBundleRef
-
-    try:
-        if kind == "graph":
-            retained_parent = json.loads(files["image.json"])["image_id"]
-            current_parent = provider.inference_image.image_id
-        else:
-            retained_parent = json.loads(files["image.json"])["parent_image_id"]
-            current_parent = _construction_parent(
-                provider,
-                LibraryBundleRef.from_dict(recipe.to_dict()["source"]["bundle_ref"]),
-            ).image_id
-    except (KeyError, TypeError, ValueError, AttributeError):
-        raise RetentionUnavailable("regrade_construction_parent_unavailable") from None
-    if retained_parent != current_parent:
-        raise RetentionUnavailable("regrade_construction_parent_differs")
+    inference_image = _regrade_inference_image(
+        kind, files, provider, recipe, origin, _regrade_incumbent(promotion)
+    )
     try:
         bank_raw = snapshot.read_role(
             discovery.evaluation_pack_private_root,
@@ -3342,7 +3416,7 @@ def regrade_retained_entry(
                     provider.ledger,
                     owner=owner,
                     identity=infer_identity(label),
-                    inference_image=provider.inference_image,
+                    inference_image=inference_image,
                     recipe=recipe,
                     binding=binding,
                     state=files["state.npz"],
@@ -3497,7 +3571,7 @@ def regrade_retained_entry(
     )
     evidence = {
         "inference_operation": operation,
-        "inference_image_id": provider.inference_image.image_id,
+        "inference_image_id": inference_image.image_id,
     }
     regraded = _retain_selected_pack_evaluation(
         adapter,
@@ -3525,6 +3599,7 @@ def regrade_retained_entry(
                 if counted and pool_store is not None
                 else None
             ),
+            inference_image,
         ),
         **({"pool_store": pool_store} if counted else {}),
     )

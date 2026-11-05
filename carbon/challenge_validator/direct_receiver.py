@@ -71,6 +71,10 @@ _OPTIONAL_FIELDS = {
     # evidence_sha256}. A carried owner's manifest migrates across a grading-path change ONLY when OLD..NEW is exactly
     # this record's revisions and the computed changed grading paths EQUAL its ``paths`` (`_declared_change`).
     "declared_exam_change",
+    # Absolute paths to carbon.c03.worker-image.v1 manifests of images a SITTING king was built on before this
+    # receiver's parent moved (Validator 5 Nov, route (a)): his regrade may infer on his own retained parent when the
+    # image store holds it with exactly that id (`lean_recipe_retention._regrade_inference_image`). Kings only.
+    "king_retained_parents",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -256,6 +260,8 @@ def load_config(path: Path) -> dict:
         read_speed_sample_key(value["speed_sample_key_file"])
     if "declared_exam_change" in value:
         _check_declared_change(value["declared_exam_change"])
+    if "king_retained_parents" in value:
+        _king_retained_parents(value["king_retained_parents"])
     if "crown_average" in value:
         section = value["crown_average"]
         if type(section) is not dict or set(section) != {"key_file"}:
@@ -918,6 +924,37 @@ def _check_declared_change(record):
     ):
         raise ValueError("invalid declared_exam_change")
     return record
+
+
+def _king_retained_parents(paths):
+    """The identities a ``king_retained_parents`` list names: a non-empty list of distinct absolute manifest paths, each
+    a valid worker-image manifest, with distinct image ids."""
+    from carbon.reconstruction.worker.docker_runtime import load_image_identity
+
+    if (
+        type(paths) is not list
+        or not paths
+        or any(type(p) is not str or not Path(p).is_absolute() for p in paths)
+        or len(set(paths)) != len(paths)
+    ):
+        raise ValueError("invalid king_retained_parents")
+    try:
+        identities = [load_image_identity(Path(p)) for p in paths]
+    except Exception:  # noqa: BLE001
+        raise ValueError("invalid king_retained_parents") from None
+    if len({i.image_id for i in identities}) != len(identities):
+        raise ValueError("invalid king_retained_parents")
+    return identities
+
+
+def install_king_retained_parents(cfg):
+    """Install the configuration's king retained parents (`lean_recipe_retention.KING_RETAINED_PARENTS`)."""
+    from carbon.challenge_validator import lean_recipe_retention
+
+    paths = cfg.get("king_retained_parents")
+    lean_recipe_retention.install_king_retained_parents(
+        [] if paths is None else _king_retained_parents(paths)
+    )
 
 
 def install_declared_change(cfg):
@@ -1815,6 +1852,7 @@ def serve(
 
     crown_average_host.install(cfg)
     install_declared_change(cfg)
+    install_king_retained_parents(cfg)
     selected_parent = (
         {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
         if "construction_image_manifest" in cfg
