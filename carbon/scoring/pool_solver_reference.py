@@ -13,10 +13,14 @@ infeasible point by its summed limit violation in U units, then its objective; t
 (reference failure or infrastructure), last; an exactly computed limit (U = 0) ranks its raw excess ahead of the U-scaled
 ones, as the grader does. The reference is the best truly feasible OK point.
 
-A1 NEEDS A2: the solver's optimum and the limit walk sit within U of the active limit by design, and today's
-`pool_grader.build_target` DROPS every pool point within U of a limit. Until the grader's near-limit rule (a2, "scored
-by the true margin with U", new versions only) lands, those points are excluded from the reference; `extend_pool`
-reports how many fall within U so a pack never assumes otherwise.
+A1 NEEDS A2: without a near-limit rule (`build_target(near_limit=None)`, every registered version) the grader DROPS
+every pool point within U of a limit, so the solver's on-limit optimum never becomes the reference; `extend_pool`
+reports how many points fall within U. With a NEW version's rule (a2, `pool_grader` credit ramp, in main 581c7695) the
+pack sets `Problem.near_limit` to that version's registered rule and `Problem.s_low` to the target's zero (the same
+s_low `build_target` uses). Then the driver searches the grader's OWN value: a feasible point ranks by
+`pool_grader.credit` x max(0, gain over s_low), the same function the grader scores with, so a point exactly on a limit
+(credit 0) is not mistaken for the best; and the limit walk targets the credit-1 offset (true margin = U at the
+optimum) instead of the limit itself. The grader still derives its reference over the extended pool.
 
 Typed outcomes, never collapsed (AGENTS 7.5, invariant 7): `OK`; a reference failure (`REFERENCE_*` from the solve path,
 or `REFERENCE_DERIVE_REFUSED` when the Challenge's own derive refuses the raw row): the reference's, never a candidate's;
@@ -51,7 +55,7 @@ import re
 from dataclasses import dataclass
 
 from carbon.scoring.pool_cmaes import CmaEs
-from carbon.scoring.pool_grader import Limit, u_value
+from carbon.scoring.pool_grader import Limit, credit, u_value, valid_near_limit
 
 SPEC_KEY = "solver_reference"
 OK = "OK"
@@ -163,6 +167,10 @@ class Problem:
     box: tuple  # ((lo, hi), ...) design box
     start: tuple  # CMA-ES start in the unit box
     seed: int
+    # A NEW version's registered near-limit rule (pool_grader credit ramp) and the target's zero s_low (as
+    # build_target computes it), set together or not at all. None = today's grader (within-U points dropped).
+    near_limit: dict | None = None
+    s_low: float | None = None
 
 
 def _check_problem(problem):
@@ -191,6 +199,11 @@ def _check_problem(problem):
         "start_must_be_in_the_unit_box",
     )
     _require(type(problem.seed) is int, "seed_must_be_an_int")
+    _require(
+        (problem.near_limit is None and problem.s_low is None)
+        or (valid_near_limit(problem.near_limit) and _finite(problem.s_low)),
+        "near_limit_and_s_low_go_together",
+    )
 
 
 @dataclass(frozen=True)
@@ -247,7 +260,15 @@ def _key(problem, point):
                     -margin
                 )  # an exactly computed quantity: its raw excess ranks first
     if violation == 0.0 and exact == 0.0:
-        return (0, 0.0, 0.0, loss)
+        if problem.near_limit is None:
+            return (0, 0.0, 0.0, loss)
+        # the grader's value of this point: credit x gain over the zero; ties (value 0) still climb by the objective
+        c = credit(
+            problem.limits,
+            point.outputs,
+            lambda name: u_value(problem.u[name], point.outputs[name]),
+        )
+        return (0, 0.0, -c * max(0.0, -loss - problem.s_low), loss)
     return (1, exact, violation, loss)
 
 
@@ -387,12 +408,17 @@ def _line_targets(problem, points, reference, active, policy):
         return None
     a, g = fit
     gg = sum(x * x for x in g)
+    # under a near-limit rule the walk targets the credit-1 offset (margin = U at the optimum), not the limit itself
+    goal = 0.0
+    if problem.near_limit is not None:
+        limit = problem.limits[active]
+        goal = u_value(problem.u[limit.output], points[reference].outputs[limit.output])
     rng = random.Random(
         hashlib.sha256(f"line-search:{problem.seed}".encode()).hexdigest()
     )
 
     def on_boundary(x):
-        m = a + sum(gi * xi for gi, xi in zip(g, x))
+        m = a + sum(gi * xi for gi, xi in zip(g, x)) - goal
         return tuple(min(1.0, max(0.0, xi - m * gi / gg)) for xi, gi in zip(x, g))
 
     count = (

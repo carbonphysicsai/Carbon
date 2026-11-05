@@ -437,3 +437,85 @@ def test_every_custody_host_runs(host):
 def test_the_host_class_has_no_default():
     with pytest.raises(TypeError):
         psr.run_pack(SPEC, [_problem()], StandIn())
+
+
+RAMP = {"kind": "credit_ramp", "shape": "linear"}
+
+
+def test_under_the_near_limit_rule_the_driver_searches_the_grader_s_value():
+    """a2 in main: the on-limit optimum earns credit 0, so the driver ranks by credit x gain (pool_grader.credit). With
+    the pool's own zero, the solver points raise the GRADER's reference value (v_ref) over the pre-solved pool's.
+    """
+    from dataclasses import replace
+
+    from carbon.scoring.pool_grader import credit as grader_credit
+
+    def u_of(name):
+        return 0.05 if name == "g" else 0.0
+
+    def target_of(designs, truths):
+        return build_target(
+            target_id="t-analytic",
+            conditions={"fixed": {"c": 1.0}},
+            outputs=("f", "g"),
+            objective="f",
+            sense="max",
+            limits=[Limit("g", "<=", 0.5)],
+            u={"f": 0.0, "g": 0.05},
+            box=((0.0, 1.0), (0.0, 1.0)),
+            designs=designs,
+            truths=truths,
+            agen=(),
+            start=(0.5, 0.5),
+            seed=1,
+            near_limit=RAMP,
+        )
+
+    designs, truths = _pool()
+    before = target_of(designs, truths)
+    base = _problem(u_g=0.05)
+    (plain,) = psr.run_pack(SPEC, [base], StandIn(), host_class=HOST)
+    on_limit = plain.points[plain.reference].outputs
+    assert (
+        grader_credit(base.limits, on_limit, u_of) < 0.5
+    )  # the raw optimum is worth little under the rule
+
+    problem = replace(base, near_limit=RAMP, s_low=before.s_low)
+    (result,) = psr.run_pack(SPEC, [problem], StandIn(), host_class=HOST)
+    assert result.status == psr.TARGET_OK
+
+    def value(out):
+        return grader_credit(problem.limits, out, u_of) * max(
+            0.0, out["f"] - before.s_low
+        )
+
+    best = result.points[result.reference].outputs
+    assert value(best) == max(
+        value(p.outputs) for p in result.points if p.status == "OK"
+    )
+    assert value(best) > value(on_limit)
+    extended, ext_truths, _, _ = psr.extend_pool(designs, truths, result, problem)
+    after = target_of(extended, ext_truths)
+    assert len(after.designs) == len(extended)  # nothing dropped under the rule
+    assert after.v_ref > before.v_ref
+
+
+@pytest.mark.parametrize(
+    "near_limit, s_low",
+    [
+        (RAMP, None),
+        (None, 0.5),
+        ({"kind": "credit_ramp", "shape": "cubic"}, 0.5),
+        (RAMP, float("nan")),
+    ],
+)
+def test_near_limit_and_its_zero_go_together(near_limit, s_low):
+    from dataclasses import replace
+
+    with pytest.raises(psr.SolverReferenceRefused, match="near_limit_and_s_low"):
+        psr.run_pack(
+            SPEC,
+            [replace(_problem(), near_limit=near_limit, s_low=s_low)],
+            StandIn(),
+            host_class=HOST,
+        )
