@@ -282,6 +282,7 @@ def strictness_inputs(document):
             pick_rule=document.get("pick_rule"),
             d_aggregate=document.get("d_aggregate"),
             d_zero=document.get("d_zero"),
+            variant_rule=document.get("variant_rule"),
         ),
         honesty=pool_grader.HonestyPolicy(
             scale=document["honesty_scale"], reduction=document["honesty_reduction"]
@@ -408,6 +409,15 @@ def main(argv=None):
         choices=("required", "off"),
         help="physics gates on every pool answer (OWNER-GATES-ON-POOL-3A-01): required needs the binding's "
         "physics_gates and the pools' raw truths (pool-raw-<tid>.json) and runs the truths-pass-gates check first",
+    )
+    parser.add_argument(
+        "--variant-rule",
+        help="CUSTODY JSON: a NEW version's registered neighbour-task rule (pool_grader variant_rule); with "
+        "--variant-starts, both or neither. Every grid row and the strictness run then grade D with the variants",
+    )
+    parser.add_argument(
+        "--variant-starts",
+        help="CUSTODY JSON: the sealed per-target variant starts {target_id: [{start, seed}, ...]}",
     )
     parser.add_argument(
         "--in-distribution",
@@ -597,12 +607,23 @@ def main(argv=None):
     def no_fresh_set(draw):
         raise SystemExit("the grid run needs no fresh set")
 
+    if (args.variant_rule is None) != (args.variant_starts is None):
+        print("STOP: --variant-rule and --variant-starts go together", file=sys.stderr)
+        return 3
+    variant_rule = variant_starts = None
+    if args.variant_rule is not None:
+        variant_rule = json.loads(Path(args.variant_rule).read_text(encoding="utf-8"))
+        variant_starts = json.loads(
+            Path(args.variant_starts).read_text(encoding="utf-8")
+        )
     plugin = pool_plugin.make_plugin(
         binding,
         bank_legs,
         [[specs[t] for t in names] for names in sets.values()],
         no_fresh_set,
         pool_gates=args.pool_gates == "required",
+        variant_rule=variant_rule,
+        variant_starts=variant_starts,
     )
     if args.strictness_spec is not None:
         return _strictness(args, plugin, Path(args.out_dir))

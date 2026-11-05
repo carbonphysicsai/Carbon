@@ -271,6 +271,7 @@ def measure_pool(
         floor_model=_refused("floor_model"),
         good_model=pool_plugin.pool_predictor(submitted, serve),
         legs=lambda descriptor, specs: legs,
+        variant_rule=policies.optimizer.variant_rule,
     )
     # The owner's A-leg tightening (the sheet's A multiplier; 1 = the sealed grader's registered scale): each A leg
     # 1 / (1 + x) becomes 1 / (1 + m x) before the legs are averaged, exactly as the proof grid scored the row.

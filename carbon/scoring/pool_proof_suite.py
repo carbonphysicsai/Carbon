@@ -111,6 +111,17 @@ class ProofPlugin:
     # failed gate NAMES; and the speed gate, callable(descriptor) -> {"passed": bool, ...} or None when unmeasured.
     pool_gates: object = None
     speed_gate: object = None
+    # The version's registered neighbour-task rule (`pool_grader.OptimizerPolicy.variant_rule`), None for every
+    # registered version. With one, every set (and every fresh set) carries its variants attached, and a proof is graded
+    # only with a policy that names the SAME rule (`_same_variant_rule`), so a proof never grades a different D.
+    variant_rule: object = None
+
+
+def _same_variant_rule(plugin, policies):
+    pool_grader._require(
+        policies.optimizer.variant_rule == getattr(plugin, "variant_rule", None),
+        "proof_policy_and_plugin_variant_rules_differ",
+    )
 
 
 def _key(conditions):
@@ -280,6 +291,7 @@ def _speed_failed(plugin, descriptor):
 
 def score_specs(plugin, specs, descriptor, policies, all_specs):
     """TOP for one set of targets: 0.5 A + 0.5 D with the C rule, A_gen entering A by the owner's rule."""
+    _same_variant_rule(plugin, policies)
     predict = pool_predictor(plugin, descriptor, all_specs)
     grade = pool_grader.grade_set(specs, predict, policies.optimizer, policies.honesty)
     legs = plugin.legs(descriptor, specs)
@@ -457,6 +469,7 @@ def strictness_report(plugin, policies, params):
 
 def extended_d(plugin, descriptor, policies):
     """The mean D over the version's EXTENDED targets (T5/T6) for a model, or None when it has none."""
+    _same_variant_rule(plugin, policies)
     specs = [s for group in plugin.sets for s in group]
     extended = [s for s in specs if s.extended]
     if not extended:

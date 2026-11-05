@@ -135,6 +135,8 @@ def run_grid(plugin, grid):
             pick_rule=grid.pick_rule,
             d_aggregate=grid.d_aggregate,
             d_zero=grid.d_zero,
+            # the version's neighbour-task rule rides with its plugin (its sets carry the variants)
+            variant_rule=plugin.variant_rule,
         )
         honesty = pool_grader.HonestyPolicy(scale=s_h, reduction=grid.honesty_reduction)
         for name in named:

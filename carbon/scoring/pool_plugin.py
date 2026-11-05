@@ -420,9 +420,44 @@ def practice_bank_legs(
     )
 
 
-def make_plugin(binding, bank_legs, sets, fresh_set, *, pool_gates, speed=None):
+def make_plugin(
+    binding,
+    bank_legs,
+    sets,
+    fresh_set,
+    *,
+    pool_gates,
+    speed=None,
+    variant_rule=None,
+    variant_starts=None,
+):
     """The `ProofPlugin` for one Challenge version. `sets` are pool_grader.TargetSpec tuples (the Challenge's
-    pools); `fresh_set(draw_seed)` draws a fresh set from the same region."""
+    pools); `fresh_set(draw_seed)` draws a fresh set from the same region.
+
+    ``variant_rule`` / ``variant_starts``: a NEW version's registered neighbour-task rule and its sealed per-target
+    variant starts (custody; `pool_exam.attach_variant_starts`), both or neither. With a rule every set carries its
+    variants, and every fresh set too, each fresh slot started from `fresh_variant_starts` (derived from its own draw).
+    """
+    from carbon.scoring import pool_exam
+
+    sets = pool_exam.attach_variant_starts(
+        tuple(tuple(s) for s in sets), variant_rule, variant_starts
+    )
+    if variant_rule is not None and fresh_set is not None:
+        draw = fresh_set
+
+        def fresh_set(draw_seed):
+            from carbon.scoring import pool_grader
+
+            return tuple(
+                pool_grader.attach_variants(
+                    spec,
+                    variant_rule,
+                    fresh_variant_starts(spec, variant_rule, draw_seed),
+                )
+                for spec in draw(draw_seed)
+            )
+
     memo = {}
 
     def legs(descriptor, specs):
@@ -482,7 +517,31 @@ def make_plugin(binding, bank_legs, sets, fresh_set, *, pool_gates, speed=None):
         legs=legs,
         pool_gates=gates_hook,
         speed_gate=speed_hook,
+        variant_rule=variant_rule,
     )
+
+
+def fresh_variant_starts(spec, rule, draw_seed):
+    """One start and seed per variant slot of a FRESH (leak-attack) target: the target's own start, and a seed derived
+    from its draw seed, its id and the slot, so a fresh set's variants are as private as the fresh set itself.
+    """
+    import hashlib
+
+    from carbon.scoring import pool_grader
+
+    slots = pool_grader.variant_slots(rule)
+    return [
+        {
+            "start": list(spec.start),
+            "seed": int.from_bytes(
+                hashlib.sha256(
+                    json.dumps(["fresh-variant", draw_seed, spec.target_id, n]).encode()
+                ).digest()[:4],
+                "big",
+            ),
+        }
+        for n in range(len(slots))
+    ]
 
 
 def spec_from_source(document, binding):

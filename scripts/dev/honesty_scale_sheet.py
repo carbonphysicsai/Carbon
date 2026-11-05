@@ -124,6 +124,8 @@ def record(plugin, spec, kind, version, *, a_multiplier):
         population=spec["population"],
         # a NEW version's engineer's-shortcut D zero (absent = the median), as its pools carry it
         d_zero=spec.get("d_zero"),
+        # the version's neighbour-task rule rides with its plugin (its sets carry the variants)
+        variant_rule=getattr(plugin, "variant_rule", None),
     )
     honesty = pool_grader.HonestyPolicy(scale=1.0, reduction=spec["honesty_reduction"])
     models = {}
