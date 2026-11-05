@@ -31,7 +31,13 @@ budget instead is the owner's call.
 
 Every number the owner picks (the solver budget B_s, the population, the initial step, the line-search point count and
 span, the infrastructure retries) is a required pack-spec value with no default; a missing one refuses with
-`solver_reference_human_input_required`. Disclosure: designs, outputs and the reference are custody material; only
+`solver_reference_human_input_required`.
+
+Custody only (Validator rule, 4 Nov): the adaptive trajectory traces the hidden optimum and its active limit, so
+`run_pack` and `run_target` take the run's host class and refuse, before the first solve, any class not on
+`CUSTODY_HOST_CLASSES` (`solver_reference_host_not_custody`). There is no default: a rented host never runs it.
+
+Disclosure: designs, outputs and the reference are custody material; only
 `public_summary` (counts and closed codes) may leave custody.
 """
 
@@ -56,6 +62,8 @@ TARGET_OK = "OK"
 TARGET_NO_FEASIBLE = "REFERENCE_NO_FEASIBLE_POINT"
 TARGET_INFRA = "FAILED_INFRA_INCOMPLETE"
 _REFERENCE_STATUS = re.compile(r"REFERENCE_[A-Z][A-Z_]{0,63}")
+# The custody hosts (custody2, Hostkey, GPUYard); exact strings, closed. Never a rented class.
+CUSTODY_HOST_CLASSES = frozenset({"custody2", "hostkey", "gpuyard"})
 
 
 class SolverReferenceRefused(ValueError):
@@ -469,10 +477,19 @@ def _active(problem, point):
     return min(range(len(problem.limits)), key=scaled)
 
 
-def run_target(problem, solve, policy):
+def _require_custody(host_class):
+    _require(
+        type(host_class) is str and host_class in CUSTODY_HOST_CLASSES,
+        "solver_reference_host_not_custody",
+    )
+
+
+def run_target(problem, solve, policy, *, host_class):
     """The solver-driven reference of one target. `solve(fixed, designs)` returns one typed record per raw design,
     ``{"status": "OK", "outputs": {derived}}`` or ``{"status": "<REFERENCE_* | FAILED_INFRA>"}`` (the Challenge's pool
-    solve path plus its `derive`; see `adapter_solver`)."""
+    solve path plus its `derive`; see `adapter_solver`). `host_class` must be a custody class.
+    """
+    _require_custody(host_class)
     _check_problem(problem)
     _require(isinstance(policy, DriverPolicy), "policy_required")
     counts = {
@@ -515,12 +532,17 @@ def run_target(problem, solve, policy):
     )
 
 
-def run_pack(pack_spec, problems, solve):
-    """Every target of a pack, or ``None`` when the pack spec leaves the driver off (nothing is solved)."""
+def run_pack(pack_spec, problems, solve, *, host_class):
+    """Every target of a pack, or ``None`` when the pack spec leaves the driver off (nothing is solved). An enabled
+    pack on a host class off the custody list refuses before any solve."""
     if not enabled(pack_spec):
         return None
+    _require_custody(host_class)
     policy = policy_from_spec(pack_spec)
-    return tuple(run_target(problem, solve, policy) for problem in problems)
+    return tuple(
+        run_target(problem, solve, policy, host_class=host_class)
+        for problem in problems
+    )
 
 
 def adapter_solver(adapter, run_rows):
