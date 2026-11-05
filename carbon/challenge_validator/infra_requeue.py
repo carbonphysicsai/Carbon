@@ -570,6 +570,7 @@ def return_slots(
                             "stuck": task,
                             "resubmit": resubmit,
                             "row": before["row"],
+                            "prior_state": before["prior_state"],
                             "prior_status": before["prior_status"],
                             "state": "RELEASED",
                             "status": "SLOT_RETURNED",

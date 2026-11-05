@@ -807,6 +807,11 @@ def test_a_graded_resubmit_in_the_window_gets_its_slot_back_and_its_grade_stands
     )
     assert (record["stuck"], record["resubmit"]) == (A, B)
     assert record["reason"] == "OWNER-RESUBMIT-SLOT-PROMISE-KEEP-01"
+    # the row's outcome type survives the status overwrite, in the log (Validator 17:24 (1))
+    assert (record["prior_state"], record["prior_status"]) == (
+        "COUNTED",
+        "SCORED_DEVELOPMENT_CANDIDATE",
+    )
     # one slot per stuck task, never twice
     again = infra_requeue.return_slots(
         root, [A], window_start=POSTED, window_end=LIVE, apply=True
