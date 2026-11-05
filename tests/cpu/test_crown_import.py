@@ -95,10 +95,12 @@ def _measured(active, totals=(0.85, 0.86, 0.84, 0.85)):
 
 
 def _entry(path, body=b"state"):
+    """An entries folder as a receiver keeps it: the king's own files (named by its entry id) among other entries."""
     path.mkdir(parents=True, exist_ok=True)
-    (path / "state.npz").write_bytes(body)
-    (path / "meta").mkdir(exist_ok=True)
-    (path / "meta" / "recipe.json").write_bytes(b"{}")
+    (path / "entry-1.json").write_bytes(body)
+    (path / "entry-1.recipe").mkdir(exist_ok=True)
+    (path / "entry-1.recipe" / "recipe.json").write_bytes(b"{}")
+    (path / "other-entry.json").write_bytes(b"another miner's grade")
     return path
 
 
@@ -325,9 +327,9 @@ def test_an_entry_link_refuses(tmp_path):
     if os.name == "nt":
         pytest.skip("symlinks need privileges on Windows")
     entry = _entry(tmp_path / "e")
-    (entry / "link").symlink_to(entry / "state.npz")
+    (entry / "entry-1.link").symlink_to(entry / "entry-1.json")
     with pytest.raises(crown_import.ImportRefused, match="entry_link"):
-        crown_import.entry_digest(entry)
+        crown_import.king_files(entry, "entry-1")
 
 
 def test_no_rule_installed_refuses(tmp_path):
@@ -457,3 +459,75 @@ def test_another_revision_imports_only_with_its_full_sha_named(tmp_path):
     # the same revision needs no flag, and the result says nothing about one
     same, _ = _import(tmp_path, record, store=_store(tmp_path / "same"))
     assert "accepted_measured_revision" not in same
+
+
+# ---------------------------------------------------------------- the king's own files (Validator 4 Nov 19:31)
+
+
+def test_a_record_survives_new_entries_of_other_tasks(tmp_path):
+    """The spare adds its rebuild entries to its folder and the live door one per grade: neither touches the king."""
+    record = _spare_record(tmp_path)
+    live = _entry(tmp_path / "live-entry")
+    for n in range(3):
+        (live / f"rebuild-{n}.json").write_bytes(
+            b"x"
+        )  # new grades since the spare copied the folder
+    result, _live = _import(tmp_path, record, entry_directory=live)
+    assert result["state"] == "CROWN_MEASUREMENT_IMPORTED"
+    entry = json.loads(record.read_bytes())["entry"]
+    assert entry["count"] == 2 and [name for name, _ in entry["files"]] == [
+        "entry-1.json",
+        "entry-1.recipe/recipe.json",
+    ]
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        lambda live: (live / "entry-1.json").write_bytes(b"other state"),  # changed
+        lambda live: (live / "entry-1.recipe" / "recipe.json").unlink(),  # missing
+        lambda live: (live / "entry-1.extra.json").write_bytes(b"{}"),  # extra
+    ],
+)
+def test_a_changed_missing_or_extra_king_file_refuses(tmp_path, change):
+    record = _spare_record(tmp_path)
+    live = _entry(tmp_path / "live-king-changed")  # not the folder _import re-creates
+    change(live)
+    store = _store(tmp_path / "live")
+    with pytest.raises(crown_import.ImportRefused, match="crown_import_entry_differs"):
+        _import(tmp_path, record, store=store, entry_directory=live)
+    assert store.crown_mean(KING) is None
+
+
+def test_the_mac_covers_the_king_file_binding(tmp_path):
+    def swap(record):
+        record["entry"]["files"][0][1] = "0" * 64
+
+    store = _store(tmp_path / "live")
+    with pytest.raises(crown_import.ImportRefused, match="record_mac_differs"):
+        _import(tmp_path, _edit(_spare_record(tmp_path), swap), store=store)
+    # re-signed with the right key (only a K_crown holder could): the live king's files still refuse it
+    (tmp_path / "again").mkdir()
+    edited = _edit(_spare_record(tmp_path / "again"), _remac(swap))
+    with pytest.raises(crown_import.ImportRefused, match="crown_import_entry_differs"):
+        _import(tmp_path, edited, store=store)
+
+
+def test_a_v1_record_binding_the_whole_folder_refuses_typed(tmp_path):
+    def v1(record):
+        record["schema"] = "carbon.challenge-validator.crown-measurement-import.v1"
+        record["entry"] = {"id": "entry-1", "digest": "sha256:" + "7" * 64}
+
+    with pytest.raises(crown_import.ImportRefused, match="crown_import_record_invalid"):
+        _import(tmp_path, _edit(_spare_record(tmp_path), v1))
+
+
+def test_a_king_with_no_file_in_the_folder_refuses(tmp_path):
+    empty = tmp_path / "entries"
+    empty.mkdir()
+    (empty / "other-entry.json").write_bytes(b"x")
+    with pytest.raises(crown_import.ImportRefused, match="entry_unavailable"):
+        crown_import.king_files(empty, "entry-1")
+    assert crown_import.king_files(_entry(tmp_path / "e"), "sha256:entry-1") == (
+        crown_import.king_files(tmp_path / "e", "entry-1")
+    )

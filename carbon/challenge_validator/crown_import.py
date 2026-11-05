@@ -10,7 +10,10 @@ and key (`import_record`) and files the mean through the same `PoolStore.record_
 What the record binds, every field checked on import (a differing field refuses with ``crown_import_<field>_differs`` and
 files nothing):
 - ``submission_id``: the live store's incumbent; ``evaluation_key``: the key it was measured under;
-- ``entry``: the king's retained entry id and the digest of its retained entry directory (every file's relative path and sha256);
+- ``entry``: the king's retained entry id and the KING's OWN retained files in the entries folder: every file whose name
+  starts with the entry id, as a sorted list of (name, sha256) and their count (Validator 4 Nov 19:31). Other entries in
+  the folder never matter: the spare adds its rebuild entries there and the live door one per grade, so the v1 binding
+  of the whole folder (``entry.digest``) could never import. A v1 record refuses as ``crown_import_record_invalid``;
 - ``binding``: the receiver's identity (`BOUND_KEYS` of its write-once receiver binding: implementation, worker and
   inference images, construction parents, GPU images and devices, evaluation pack digest, Challenge). The
   ``implementation`` (the code revision) is compared apart (Validator 07:37 / 07:46): a record measured at another
@@ -39,7 +42,7 @@ from pathlib import Path
 
 from carbon.challenge_validator import crown_average
 
-SCHEMA = "carbon.challenge-validator.crown-measurement-import.v1"
+SCHEMA = "carbon.challenge-validator.crown-measurement-import.v2"
 KEY_ID_LABEL = b"carbon.crown.key-id.v1\x00"
 #: The record MAC's domain (Validator 07:28 condition 1): HMAC-SHA256 under K_crown over the canonical record without its
 #: ``record_mac``, so no field (an edited total with a matching mean included) changes without K_crown.
@@ -105,27 +108,41 @@ def rule_identity(rule, challenge_id):
     }
 
 
-def entry_digest(directory):
-    """sha256 over every regular file of the retained entry directory: its relative path and its bytes' sha256, sorted.
-    A symlink or any other kind of entry refuses."""
+def king_files(directory, entry_id):
+    """The king's own retained files in the entries folder ``directory``: every file whose path, relative to the folder,
+    starts with the entry id (its hex after ``sha256:``), as a sorted ``[[name, sha256], ...]``. A symlink or any other
+    kind of entry among them refuses; so does an entry id with no file at all."""
     root = Path(directory)
     if not root.is_dir() or root.is_symlink():
         raise ImportRefused("crown_import_entry_unavailable")
+    stem = (
+        entry_id[len("sha256:") :]
+        if type(entry_id) is str and entry_id.startswith("sha256:")
+        else entry_id
+    )
+    if type(stem) is not str or not stem or "/" in stem:
+        raise ImportRefused("crown_import_entry_unavailable")
     files = []
     for path in sorted(root.rglob("*")):
+        name = path.relative_to(root)
+        if not name.parts[0].startswith(stem):
+            continue
         if path.is_symlink():
             raise ImportRefused("crown_import_entry_link")
         if path.is_dir():
             continue
         if not path.is_file():
             raise ImportRefused("crown_import_entry_unavailable")
-        files.append(
-            [
-                path.relative_to(root).as_posix(),
-                hashlib.sha256(path.read_bytes()).hexdigest(),
-            ]
-        )
-    return "sha256:" + hashlib.sha256(_canonical(files).encode()).hexdigest()
+        files.append([name.as_posix(), hashlib.sha256(path.read_bytes()).hexdigest()])
+    if not files:
+        raise ImportRefused("crown_import_entry_unavailable")
+    return files
+
+
+def entry_binding(directory, entry_id):
+    """What a record binds of the king's entry: its id, its own files (`king_files`) and their count."""
+    files = king_files(directory, entry_id)
+    return {"id": entry_id, "files": files, "count": len(files)}
 
 
 def filed_private(store, submission_id, evaluation_key):
@@ -190,7 +207,7 @@ def write_record(
         challenge_id=challenge_id,
         submission_id=submission_id,
         evaluation_key=evaluation_key,
-        entry={"id": entry_id, "digest": entry_digest(entry_directory)},
+        entry=entry_binding(entry_directory, entry_id),
         binding=receiver_binding,
         private=private,
     )
@@ -274,7 +291,9 @@ def import_record(
         raise ImportRefused("crown_import_submission_id_differs")
     if record["evaluation_key"] != evaluation_key:
         raise ImportRefused("crown_import_evaluation_key_differs")
-    if record["entry"] != {"id": entry_id, "digest": entry_digest(entry_directory)}:
+    if type(record["entry"]) is not dict or record["entry"].get("id") != entry_id:
+        raise ImportRefused("crown_import_entry_differs")
+    if record["entry"] != entry_binding(entry_directory, entry_id):
         raise ImportRefused("crown_import_entry_differs")
     measured, live = dict(record["binding"]), bound(receiver_binding)
     measured_impl, live_impl = measured.pop("implementation", None), live.pop(
