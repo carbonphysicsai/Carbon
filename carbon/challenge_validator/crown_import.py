@@ -108,6 +108,31 @@ def rule_identity(rule, challenge_id):
     }
 
 
+def entry_digest_v1(directory):
+    """The v1 binding, kept ONLY to verify an existing v1 record (Validator 4 Nov 19:35: the re-bind tool proves each old
+    record's measured folder with this, the receiver's own function; never used by `import_record`): sha256 over every
+    regular file of the directory, its relative path and its bytes' sha256, sorted. A symlink or any other kind of
+    entry refuses."""
+    root = Path(directory)
+    if not root.is_dir() or root.is_symlink():
+        raise ImportRefused("crown_import_entry_unavailable")
+    files = []
+    for path in sorted(root.rglob("*")):
+        if path.is_symlink():
+            raise ImportRefused("crown_import_entry_link")
+        if path.is_dir():
+            continue
+        if not path.is_file():
+            raise ImportRefused("crown_import_entry_unavailable")
+        files.append(
+            [
+                path.relative_to(root).as_posix(),
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+            ]
+        )
+    return "sha256:" + hashlib.sha256(_canonical(files).encode()).hexdigest()
+
+
 def king_files(directory, entry_id):
     """The king's own retained files in the entries folder ``directory``: every file whose path, relative to the folder,
     starts with the entry id (its hex after ``sha256:``), as a sorted ``[[name, sha256], ...]``. A symlink or any other

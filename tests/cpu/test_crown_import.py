@@ -531,3 +531,23 @@ def test_a_king_with_no_file_in_the_folder_refuses(tmp_path):
     assert crown_import.king_files(_entry(tmp_path / "e"), "sha256:entry-1") == (
         crown_import.king_files(tmp_path / "e", "entry-1")
     )
+
+
+def test_the_v1_digest_is_kept_for_verifying_old_records_only(tmp_path):
+    """Validator 19:35: entry_digest_v1 (unchanged from f1c67545's entry_digest) stays, for the re-bind tool's check of an
+    old v1 record's measured folder; import never uses it."""
+    if os.name == "nt":
+        pytest.skip("symlinks need privileges on Windows")
+    entry = _entry(tmp_path / "e")
+    first = crown_import.entry_digest_v1(entry)
+    assert first.startswith("sha256:") and crown_import.entry_digest_v1(entry) == first
+    (entry / "rebuild-1.json").write_bytes(
+        b"x"
+    )  # v1 binds the whole folder: any new file moves it
+    assert crown_import.entry_digest_v1(entry) != first
+    (entry / "a-link").symlink_to(entry / "entry-1.json")
+    with pytest.raises(crown_import.ImportRefused, match="entry_link"):
+        crown_import.entry_digest_v1(entry)
+    import inspect
+
+    assert "entry_digest_v1" not in inspect.getsource(crown_import.import_record)
