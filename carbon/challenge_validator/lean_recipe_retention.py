@@ -1840,6 +1840,14 @@ def remeasure_incumbent_pack(
         # origin, held for the span of this re-measure so the rebuild finds its owner.
         origin = _rebound_origin(adapter, pool_store, submission_id, rebound)
         hold = adapter.deriving(origin, rebound["hotkey"])
+    elif adapter.owner(submission_id) is None and _regrade_incumbent(pool_store) == (
+        submission_id
+    ):
+        # The king was admitted under an EARLIER contract (his pack has changed since, Deploy 5 Nov 06:15): his owner is
+        # the one that contract records, held for the span of this re-measure so the rebuild finds it, as for a rebind.
+        admitted = adapter.ledger.admitted_owner(submission_id)
+        if admitted is not None:
+            hold = adapter.deriving(submission_id, admitted[1])
     try:
         with hold:
             return active.measure_incumbent(
@@ -2717,8 +2725,25 @@ def _record_regraded_evidence(regrade, bind_inputs, pin=None):
         raise RetentionUnavailable("regrade_record_" + refused.code) from refused
 
 
-def _regrade_origin(adapter, base, entries, entry_id):
-    """The retained task behind one bank entry, with its owner from the receiver's ledger."""
+def _regrade_incumbent(promotion):
+    """The sitting king's model id in the pool store a plain regrade records into (a BankPromotion or a PoolStore),
+    or None: only he may be regraded under the contract his task was admitted under."""
+    store = getattr(promotion, "store", promotion)
+    reader = getattr(store, "incumbent", None)
+    if reader is None:
+        return None
+    row = reader()
+    return None if row is None else row.get("model_id")
+
+
+def _regrade_origin(adapter, base, entries, entry_id, *, incumbent=None):
+    """The retained task behind one bank entry, with its owner from the receiver's ledger.
+
+    The owner is the one the ledger records under the CURRENT contract; for the sitting king (``incumbent``, the pool
+    store's incumbent model id) also under the contract his task was ADMITTED under, when the pack has changed since
+    (Deploy 5 Nov 06:15: every king predates its door's current pack, so his regrade on the current pack refused
+    ``regrade_owner_unavailable``). Only the king: any other task keeps the current-contract lookup.
+    """
     from carbon.development_session.construction_recipe import ConstructionRecipe
 
     if (
@@ -2739,6 +2764,9 @@ def _regrade_origin(adapter, base, entries, entry_id):
     owner = getattr(adapter, "_derived_owners", {}).get(
         origin
     ) or adapter.ledger.owned_outcome(adapter.contract_digest, origin)
+    if owner is None and incumbent is not None and origin == incumbent:
+        admitted = adapter.ledger.admitted_owner(origin)
+        owner = None if admitted is None else admitted[1]
     if owner is None:
         raise RetentionUnavailable("regrade_owner_unavailable")
     task_root = _owner_directory(base / origin, "task_artifacts")
@@ -3021,7 +3049,7 @@ def regrade_retained_entry(
     base = _owner_directory(artifact_directory, "artifact_directory")
     entries = _owner_directory(entry_directory, "entry_directory")
     entry, origin, owner, manifest, files, recipe = _regrade_origin(
-        adapter, base, entries, entry_id
+        adapter, base, entries, entry_id, incumbent=_regrade_incumbent(promotion)
     )
     kind = recipe.to_dict()["source"]["kind"]
     if kind not in ("bundle", "graph"):

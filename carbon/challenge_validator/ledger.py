@@ -295,6 +295,28 @@ class AttemptLedger:
             ).fetchall()
         return rows[0][0] if len(rows) == 1 else None
 
+    def admitted_owner(self, submission_id):
+        """``(contract_digest, hotkey)`` of the one contract a task was admitted under and its one owner, or None.
+
+        For a task admitted under an EARLIER contract of this receiver (its pack has since changed): the owner
+        `owned_outcome` gives under that contract. Two contracts, or two owners, fail closed (None).
+        """
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT DISTINCT contract_digest, hotkey FROM ("
+                "SELECT contract_digest, hotkey FROM attempts WHERE kind='OUTCOME' "
+                "AND submission_id=? AND hotkey IS NOT NULL "
+                "UNION ALL SELECT contract_digest, hotkey FROM recipe_task_intents "
+                "WHERE submission_id=? )",
+                (submission_id, submission_id),
+            ).fetchall()
+        if len(rows) != 1:
+            return None
+        contract, hotkey = rows[0]
+        if self.owned_outcome(contract, submission_id) != hotkey:
+            return None
+        return contract, hotkey
+
     def record_recipe_task_intent(
         self, contract_digest, submission_id, hotkey, request_sha256
     ):
