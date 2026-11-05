@@ -128,6 +128,24 @@ def _due(pool, king, exam, step):
     return not spaced(pool, attempts, last)
 
 
+def _link_refusal(pool, king, record):
+    """Why ``record`` cannot meet the king through his filed rebuild link: the pool store's own refusal code for his
+    rebuilt evaluation under the record's key and pin (read only), or a typed absence.
+    """
+    from carbon.battery.pool_store import StateError
+
+    try:
+        with pool.db() as db:
+            found = pool._rebuilt_evaluation(
+                db, king, record["evaluation_key"], record["pin"]
+            )
+    except StateError as refused:
+        return str(refused.code)
+    except Exception as error:  # noqa: BLE001
+        return type(error).__name__
+    return "rebuilt_evaluation_found" if found is not None else "no_rebuilt_evaluation"
+
+
 def _changed(pool):
     """The king can be met differently now: waiting decisions are due at once (`crown_pause_sweep.king_changed`)."""
     from .crown_pause_sweep import king_changed
@@ -339,6 +357,32 @@ def _rebuild(pool, intake, king, exam, waiting, artifacts, entries, entry):
     from . import lean_recipe_retention as retention
 
     key = waiting[0]["evaluation_key"]
+    try:
+        reused = retention.filed_king_rebuild(pool, king, key)
+    except Exception as error:  # noqa: BLE001
+        return _failed(
+            pool, king, exam, REGRADE, str(getattr(error, "code", None) or error)
+        )
+    if reused is not None:
+        # IDEMPOTENT (Deploy 5 Nov Run A): his rebuild on this key is filed and linked (an earlier run, a restart, a
+        # version migration): it is REUSED, never rebuilt. If the waiting challengers still cannot meet him through it,
+        # that is a typed failure naming the store's own refusal, never a second rebuild.
+        koth_journal.note(
+            "king_rebuild_reused",
+            incumbent=king,
+            derived=reused["king_rebuild_id"],
+            evaluation_key=key,
+        )
+        if pool.awaits_incumbent_regrade(waiting[0]):
+            return _failed(
+                pool,
+                king,
+                exam,
+                REGRADE,
+                "king_rebuild_link_unusable:" + _link_refusal(pool, king, waiting[0]),
+            )
+        _changed(pool)
+        return {"step": "rebuild", "state": "REUSED"}
     koth_journal.note(
         "king_rebuild_started", incumbent=king, waiting=len(waiting), evaluation_key=key
     )

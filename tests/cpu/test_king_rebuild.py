@@ -665,3 +665,123 @@ def test_a_dethrone_on_a_rebuilt_king_passes_the_repeat_gate_through_the_link(
         entry_directory=entries,
     )
     assert bp.repeat_gate(pair, dethroned, bare, {}, 0.0)["outcome"] == bp.UNAVAILABLE
+
+
+# --- IDEMPOTENT (Deploy 5 Nov Run A): a filed link is reused, never rebuilt ------------------------------------------
+
+
+def _never(*a, **k):
+    raise AssertionError("a filed king rebuild must never be built or regraded again")
+
+
+def test_a_filed_rebuild_is_reused_and_never_built_or_regraded_again(door, monkeypatch):
+    """Run A's shape: the copy already holds the king's krb_ row, its bound evaluation and the link on this key (an
+    earlier run, then a restart or a version migration that moved the campaign id). `rebuild_king` returns it as is:
+    no build, no regrade, so no write-once evaluation directory or pack binding is touched.
+    """
+    derived, king = _rebuild_row(door)
+    _link(door, derived, king)
+    monkeypatch.setattr(retention, "_derived_build", _never)
+    monkeypatch.setattr(retention, "regrade_retained_entry", _never)
+    monkeypatch.setattr(retention, "_retain_served_artifacts", _never)
+    out = retention.rebuild_king(
+        SimpleNamespace(),
+        door.store,
+        king="king",
+        evaluation_key=door.key,
+        king_entry=digest("king entry"),
+        artifact_directory=None,
+        entry_directory=None,
+    )
+    assert out == {
+        "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
+        "evaluation_key": door.key,
+        "king_rebuild_id": derived,
+        "reused": True,
+    }
+    # and the contention meets him through it
+    assert (
+        door.flow.private_pair("challenger", door.key)["incumbent"]["rebuilt_as"]
+        == derived
+    )
+
+
+def test_a_link_without_its_evaluation_refuses_instead_of_rebuilding(door, monkeypatch):
+    derived, king = _rebuild_row(door)
+    other = digest("a key the derived row was never graded on")
+    _link(door, derived, king, evaluation_key=other)
+    monkeypatch.setattr(retention, "_derived_build", _never)
+    with pytest.raises(
+        retention.RetentionUnavailable, match="king_rebuild_link_without_evaluation"
+    ):
+        retention.filed_king_rebuild(door.store, "king", other)
+
+
+def _door_upkeep(door, tmp_path, monkeypatch, waiting):
+    """The king's upkeep on the real store of ``door``, the challenger pending on its key, his parent moved."""
+    monkeypatch.setattr(
+        king_upkeep, "king_origin_entry", lambda *a: digest("king entry")
+    )
+    monkeypatch.setattr(retention, "king_parent_moved", lambda *a, **k: True)
+    monkeypatch.setattr(retention, "_derived_build", _never)
+    monkeypatch.setattr(retention, "regrade_retained_entry", _never)
+    record = {
+        "submission_id": "challenger",
+        "evaluation_key": door.key,
+        "pin": door.pin,
+        "exam": "EXAM",
+    }
+    pool = SimpleNamespace(
+        store=door.store,
+        clock=door.store.clock,
+        path=door.store.path,
+        incumbent=door.store.incumbent,
+        king_rebuild_of=door.store.king_rebuild_of,
+        private_evaluation_bodies=door.store.private_evaluation_bodies,
+        king_upkeep_attempts=door.store.king_upkeep_attempts,
+        note_king_upkeep_attempt=door.store.note_king_upkeep_attempt,
+        king_rebuild_blocked=door.store.king_rebuild_blocked,
+        record_king_rebuild_blocked=door.store.record_king_rebuild_blocked,
+        db=door.store.db,
+        _rebuilt_evaluation=door.store._rebuilt_evaluation,
+        paused_crowns=lambda kind=None: [record],
+        awaits_incumbent_regrade=lambda r: waiting(r),
+    )
+    intake = SimpleNamespace(
+        adapter=SimpleNamespace(
+            discovery=SimpleNamespace(evaluation_pack_digest="EXAM")
+        )
+    )
+    return (
+        pool,
+        record,
+        lambda: king_upkeep.step(
+            pool, intake, root=tmp_path, artifacts=tmp_path, entries=tmp_path
+        ),
+    )
+
+
+def test_the_upkeep_reuses_a_filed_rebuild_and_starts_none(
+    door, tmp_path, monkeypatch, capsys
+):
+    derived, king = _rebuild_row(door)
+    _link(door, derived, king)
+    calls = [True, False]  # waiting when planned; met through the link once reused
+    _pool, _record, step = _door_upkeep(
+        door, tmp_path, monkeypatch, lambda r: calls.pop(0) if calls else False
+    )
+    assert step() == {"step": "rebuild", "state": "REUSED"}
+    events = [json.loads(x)["event"] for x in capsys.readouterr().err.splitlines()]
+    assert "king_rebuild_reused" in events and "king_rebuild_started" not in events
+
+
+def test_a_filed_rebuild_that_still_cannot_be_met_is_a_typed_failure_never_a_rebuild(
+    door, tmp_path, monkeypatch
+):
+    derived, king = _rebuild_row(door)
+    _link(door, derived, king)
+    _pool, record, step = _door_upkeep(door, tmp_path, monkeypatch, lambda r: True)
+    record["pin"] = digest("a pin the rebuilt grade was not filed under")
+    out = step()
+    assert out["state"] == "FAILED"
+    assert out["code"] == "king_rebuild_link_unusable:evaluation_source_changed"

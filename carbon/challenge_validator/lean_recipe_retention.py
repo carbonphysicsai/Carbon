@@ -3079,6 +3079,12 @@ def rebuild_king(
     incumbent = (pool_store.incumbent() or {}).get("model_id")
     if incumbent != king:
         raise RetentionUnavailable("king_rebuild_not_the_sitting_king")
+    linked = filed_king_rebuild(pool_store, king, evaluation_key)
+    if linked is not None:
+        # IDEMPOTENT (Deploy 5 Nov Run A): his rebuild on this key is already filed and linked, so it is REUSED, never
+        # rebuilt: a second build and regrade would re-enter the same evaluation directory (regrade_id = rebuilt task +
+        # pack), whose write-once pack binding holds the campaign of the first run (a migration moves it).
+        return linked
     admitted = pool_store.submission(king)
     hotkey = admitted["hotkey"]
     binding = admitted["binding"]
@@ -3136,6 +3142,31 @@ def rebuild_king(
             hotkey=hotkey,
         )
     return {**graded, "king_rebuild_id": derived, "king_rebuild_task": task_id}
+
+
+def filed_king_rebuild(pool_store, king, evaluation_key):
+    """The king's FILED rebuild on ``evaluation_key``, or None: his ``king_rebuild.v1`` link and the derived row's own
+    filed evaluation on that key, shaped as `rebuild_king`'s result with ``reused`` True. A link whose derived row has
+    no evaluation on the key raises (the link is only filed once that grade bound: never silently rebuilt over).
+    """
+    link = getattr(pool_store, "king_rebuild_of", lambda *a: None)(king, evaluation_key)
+    if link is None:
+        return None
+    derived = link["derived_submission_id"]
+    filed = [
+        body
+        for body in pool_store.private_evaluation_bodies()
+        if body.get("submission_id") == derived
+        and body.get("evaluation_key") == evaluation_key
+    ]
+    if not filed:
+        raise RetentionUnavailable("king_rebuild_link_without_evaluation")
+    return {
+        "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
+        "evaluation_key": evaluation_key,
+        "king_rebuild_id": derived,
+        "reused": True,
+    }
 
 
 def retained_king_source(
