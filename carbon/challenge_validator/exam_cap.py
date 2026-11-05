@@ -734,7 +734,7 @@ class ExamCap:
     def release_undelivered(self, submission_id: str) -> dict:
         """Give back the one COUNTED slot of a graded submission whose result never reached the
         miner (Validator 4 Nov 03:15 (b) and 05:17 (3)): our infrastructure lost it, so the charge
-        is ours (invariant 7). The only way a COUNTED row is ever given back.
+        is ours (invariant 7). With `return_promised_slot`, the only ways a COUNTED row is ever given back.
 
         The CALLER proves the result was not delivered (`infra_requeue.release`: the task's grade
         marker is FAILED and the miner's Ladder shows nothing from that round); this checks only
@@ -804,7 +804,14 @@ class ExamCap:
         )
 
     def count_candidate_wall(
-        self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
+        self,
+        *,
+        hotkey,
+        challenge_id,
+        challenge_version,
+        exam_key,
+        submission_id,
+        since_ns,
     ) -> str | None:
         """The candidate's own wall stop on the graded bank inference is ITS outcome, COUNTED as the inference pair's
         (Validator 4 Nov 03:17 (1); interim 16:52, orchestration only): the bank grade settled that slot UNAVAILABLE
@@ -812,7 +819,7 @@ class ExamCap:
         Otherwise a changed recipe could probe the hidden inputs ('did it hit the wall') uncharged, as often as it likes.
 
         Only a GRADED row in exactly RELEASED / UNAVAILABLE is moved (compare-and-swap); anything else is left as it
-        is. Returns ``"COUNTED"`` when moved, else None (the caller then gives back as before).
+        is, and only a row reserved by THIS attempt (``reserved_ns >= since_ns``). Returns ``"COUNTED"`` when moved, else None (the caller then gives back as before).
         """
         values = (hotkey, challenge_id, challenge_version, exam_key, submission_id)
         if not all(type(value) is str and value for value in values):
@@ -822,7 +829,7 @@ class ExamCap:
                 "UPDATE exam_graded SET state='COUNTED', status='WORKER_WALL_LIMIT_REACHED', "
                 "settled_ns=? WHERE challenge_id=? AND challenge_version=? AND exam_key=? AND "
                 "submission_id=? AND hotkey=? AND kind='GRADED' AND state='RELEASED' AND "
-                "status='UNAVAILABLE'",
+                "status='UNAVAILABLE' AND reserved_ns>=?",
                 (
                     int(self.clock()),
                     challenge_id,
@@ -830,6 +837,7 @@ class ExamCap:
                     exam_key,
                     submission_id,
                     hotkey,
+                    int(since_ns),
                 ),
             ).rowcount
         return "COUNTED" if changed == 1 else None

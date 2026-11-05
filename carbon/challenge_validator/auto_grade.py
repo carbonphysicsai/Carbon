@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 import traceback
 from pathlib import Path
 
@@ -119,6 +120,7 @@ class AutoGrader:
         self._resume_paused_crowns()
         for submission_id in self.pending():
             sampler = _Sampler(self.containers, self.sample_seconds)
+            started_ns = time.time_ns()
             try:
                 with sampler:
                     result = self.intake.retain_result(
@@ -136,10 +138,8 @@ class AutoGrader:
                 return submission_id, "FAILED"
             except Exception as failure:  # noqa: BLE001 - typed, no private content
                 self._keep(submission_id, failure)
-                if (
-                    _candidate_wall_stop(failure)
-                    and self._uncontended(submission_id, sampler.samples)
-                    and self._count_wall(submission_id)
+                if _candidate_wall_stop(failure) and self._wall_counted(
+                    submission_id, sampler, started_ns
                 ):
                     # The candidate's own graph at the graded-inference wall: its outcome, COUNTED, never given back
                     # as infrastructure (Validator 4 Nov 16:52: else a changed recipe probes the hidden inputs free).
@@ -263,18 +263,28 @@ class AutoGrader:
             submission_id=submission_id,
         )
 
-    def _uncontended(self, submission_id, samples):
-        """The contention guard (Validator 4 Nov 17:16, invariant 7): a wall stop is the candidate's only when this
-        grade held the host lock for the whole run AND no other Carbon worker container ran during it (every sample
-        saw at most this grade's own); otherwise our host may have slowed it, and it is given back as before. Logged
-        either way (``auto-grade/wall-stops.jsonl``: counts only)."""
+    def _wall_counted(self, submission_id, sampler, started_ns):
+        """The contention guard (Validator 4 Nov 17:16, invariant 7) and the count itself. A wall stop is the
+        candidate's only when this grade held the host lock for the whole run, no other Carbon worker container ran
+        during it (every in-run sample saw at most this grade's own), and none ran at the stop (taken after the
+        carrier removed this grade's own container, so it must read 0). Then this attempt's slot is re-settled
+        COUNTED; any failure there gives it back as before, never a crash (the task would run again on hidden
+        inputs). Logged AFTER the outcome is known (``auto-grade/wall-stops.jsonl``: counts only).
+        """
+        samples, stop = sampler.samples, sampler.stop_sample
         known = [s for s in samples if s is not None]
-        verdict = (
+        uncontended = (
             self.host_lock
-            and bool(samples)
+            and stop == 0
             and len(known) == len(samples)
-            and max(known) <= 1
+            and (not known or max(known) <= 1)
         )
+        counted = False
+        if uncontended:
+            try:
+                counted = self._count_wall(submission_id, since_ns=started_ns)
+            except Exception:  # noqa: BLE001 - give back as before, never a crash
+                counted = False
         try:
             with open(
                 self.markers.parent / "wall-stops.jsonl", "a", encoding="utf-8"
@@ -283,11 +293,13 @@ class AutoGrader:
                     json.dumps(
                         {
                             "task": submission_id,
-                            "counted": verdict,
+                            "counted": counted,
+                            "uncontended": uncontended,
                             "host_lock": self.host_lock,
                             "samples": len(samples),
                             "unknown_samples": len(samples) - len(known),
                             "max_worker_containers": max(known) if known else None,
+                            "stop_worker_containers": stop,
                         },
                         sort_keys=True,
                     )
@@ -295,9 +307,9 @@ class AutoGrader:
                 )
         except OSError:
             pass
-        return verdict
+        return counted
 
-    def _count_wall(self, submission_id):
+    def _count_wall(self, submission_id, *, since_ns):
         """Re-settle this task's slot COUNTED as the candidate's wall stop (`ExamCap.count_candidate_wall`); False
         when there is no such slot (the stop came before any reservation), so the failure is given back as before.
         """
@@ -316,6 +328,7 @@ class AutoGrader:
                 challenge_version=adapter.challenge_version,
                 exam_key=exam_key,
                 submission_id=submission_id,
+                since_ns=since_ns,
             )
             == "COUNTED"
         )
@@ -384,6 +397,7 @@ class _Sampler:
         import threading
 
         self.count, self.seconds, self.samples = count, seconds, []
+        self.stop_sample = None
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
 
@@ -399,7 +413,7 @@ class _Sampler:
         self._stop.set()
         self._thread.join(self.seconds + 15)
         if kind is not None and _candidate_wall_stop(value):
-            self.samples.append(self.count())
+            self.stop_sample = self.count()
         return False
 
 

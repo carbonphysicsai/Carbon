@@ -854,3 +854,44 @@ def test_one_slot_per_stuck_task_and_only_for_stuck_tasks(tmp_path):
     assert infra_requeue.return_slots(root2, [A], window_start=LIVE, window_end=POSTED)[
         "refused"
     ] == {"window": "window_empty_or_reversed"}
+
+
+def test_an_unreadable_owner_store_is_refused_never_archived(tmp_path):
+    """Review finding 1: a store that exists but cannot be read now is NOT 'row missing': archiving it on a guess
+    would skip the pack and same-recipe checks."""
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    store = root / "owners" / hashlib.sha256(HOTKEY.encode()).hexdigest() / "tasks"
+    (store / "direct-tasks.sqlite3").write_bytes(b"not a database")
+    out = infra_requeue.requeue(root, [A], apply=True)
+    assert out["refused"] == {A: "owner_store_unreadable"} and out["archived"] == []
+    assert (root / "auto-grade" / "markers" / (A + ".json")).exists()
+
+
+def test_a_slot_returned_graded_row_is_never_requeued(tmp_path):
+    """Review finding 3: a graded resubmit whose slot was returned is still graded: never handed back."""
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    _row(ledger, A, "RELEASED", "SLOT_RETURNED")
+    assert infra_requeue.requeue(root, [A], apply=True)["refused"] == {
+        A: "exam_row_graded"
+    }
+
+
+def test_a_counted_resubmit_without_a_delivered_grade_gets_no_slot_back(tmp_path):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    _graded_resubmit(ledger, root, B)
+    (
+        root / "auto-grade" / "markers" / (B + ".json")
+    ).unlink()  # COUNTED but no delivered grade
+    out = infra_requeue.return_slots(
+        root, [A], window_start=POSTED, window_end=LIVE, apply=True
+    )
+    assert out["returned"] == {} and out["unmatched"] == [A]

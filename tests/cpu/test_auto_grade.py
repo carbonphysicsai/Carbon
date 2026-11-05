@@ -368,7 +368,8 @@ def _wall_setup(
     *,
     row=("RELEASED", "UNAVAILABLE"),
     host_lock=True,
-    containers=lambda: 1,
+    containers=lambda: 0,
+    reserved_ns=2**62,  # reserved by THIS attempt (after it started)
 ):
     """A grader whose retention raises ``failure`` after the bank grade settled the slot ``row``."""
     from carbon.challenge_validator.exam_cap import ExamCap
@@ -387,8 +388,8 @@ def _wall_setup(
         with ledger._db() as db:
             db.execute(
                 "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, exam_key, kind, "
-                "epoch, submission_id, state, status, reserved_ns) VALUES(?,?,?,?,'GRADED',7,?,?,?,1)",
-                (*ident.values(), *row),
+                "epoch, submission_id, state, status, reserved_ns) VALUES(?,?,?,?,'GRADED',7,?,?,?,?)",
+                (*ident.values(), *row, reserved_ns),
             )
 
     class Ledger:
@@ -493,7 +494,7 @@ def test_only_an_unavailable_released_row_is_recounted(tmp_path):
         (tmp_path / str(n)).mkdir(mode=0o700)
         (tmp_path / str(n)).chmod(0o700)
         _grader, cap, ident, ledger = _wall_setup(tmp_path / str(n), None, row=row)
-        assert cap.count_candidate_wall(**ident) is None
+        assert cap.count_candidate_wall(**ident, since_ns=0) is None
         assert _row(ledger) == [row]
 
 
@@ -501,6 +502,11 @@ def test_only_an_unavailable_released_row_is_recounted(tmp_path):
     "host_lock, containers, why",
     [
         (True, lambda: 2, "another worker container ran"),
+        (
+            True,
+            lambda: 1,
+            "a container still ran at the stop (ours was already removed)",
+        ),
         (True, lambda: None, "the daemon could not say"),
         (False, lambda: 1, "the grade did not hold the host lock"),
     ],
@@ -537,7 +543,7 @@ def test_an_uncontended_wall_stop_is_logged_as_counted(tmp_path):
     grader, _cap, _ident, _ledger = _wall_setup(tmp_path, wall)
     assert grader.run_once() == (A, "CANDIDATE_FAILED")
     logged = json.loads((tmp_path / "auto-grade" / "wall-stops.jsonl").read_text())
-    assert logged["counted"] is True and logged["max_worker_containers"] == 1
+    assert logged["counted"] is True and logged["stop_worker_containers"] == 0
 
 
 def test_the_sampler_reads_the_host_while_a_grade_runs():
@@ -552,3 +558,31 @@ def test_the_sampler_reads_the_host_while_a_grade_runs():
     with quick:
         pass  # a not-ready task returns at once: no docker call
     assert quick.samples == []
+
+
+def test_a_failure_while_counting_gives_back_and_never_crashes_the_grade(tmp_path):
+    """Review finding 2: an exception in the count (a provider or ledger fault) gives the slot back as before; a crash
+    would leave no marker and re-run the task on hidden inputs."""
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, _cap, _ident, _ledger = _wall_setup(tmp_path, wall)
+
+    def broken(submission_id):
+        raise RuntimeError("provider unavailable")
+
+    grader.intake.adapter.owner = broken
+    assert grader.run_once() == (A, "FAILED")
+    logged = json.loads((tmp_path / "auto-grade" / "wall-stops.jsonl").read_text())
+    assert logged["uncontended"] is True and logged["counted"] is False
+
+
+def test_a_slot_from_an_earlier_attempt_is_never_counted(tmp_path):
+    """Review finding 6: only the row THIS attempt reserved is re-settled; a stale RELEASED/UNAVAILABLE row from
+    before the attempt started is given back as before."""
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, _cap, _ident, ledger = _wall_setup(tmp_path, wall, reserved_ns=1)
+    assert grader.run_once() == (A, "FAILED")
+    assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]

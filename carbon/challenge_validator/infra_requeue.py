@@ -70,6 +70,15 @@ _ATTEMPT = 1  # the attempt that failed; a requeue grades attempt 2, once
 _DELIVERED = ("GRADED", "CANDIDATE_FAILED")
 
 
+def _graded_statuses():
+    from .exam_cap import COUNTED
+
+    return frozenset(COUNTED)
+
+
+_GRADED_STATUSES = _graded_statuses()
+
+
 def _paths(root, task):
     base = Path(root) / "auto-grade"
     kept = base / "requeued"
@@ -145,14 +154,22 @@ class _Door:
         return self.root / "owners" / hashlib.sha256(hotkey.encode()).hexdigest()
 
     def store(self, hotkey):
-        """``(owner pack, {task id: canonical recipe bytes})`` of one owner's store, or None when unreadable."""
+        """``(owner pack, {task id: canonical recipe bytes})`` of one owner's store; ``(None, {})`` when the owner has
+        no store on this root (nothing to resolve); None when a store exists but cannot be read (never archived).
+        """
         if hotkey in self._stores:
             return self._stores[hotkey]
         from carbon.research import DirectStartTaskRequestV3, load_canonical
 
         found = None
+        directory = self.owner_dir(hotkey)
+        if (
+            not (directory / "tasks" / "direct-tasks.sqlite3").exists()
+            and not (directory / "ledger" / "campaign.sqlite3").exists()
+        ):
+            self._stores[hotkey] = (None, {})
+            return self._stores[hotkey]
         try:
-            directory = self.owner_dir(hotkey)
             with contextlib.closing(
                 _readonly(directory / "ledger" / "campaign.sqlite3")
             ) as db:
@@ -226,13 +243,19 @@ def _requeue_refusal(root, db, door, task):
             return "exam_row_counted_or_reserved"
         if status == "FAILED_INFRA":
             return "given_back_resubmit_runs_fresh"
+        if status == "SLOT_RETURNED" or status in _GRADED_STATUSES:
+            # a graded outcome, whatever its slot state now: never re-queued (review finding 3)
+            return "exam_row_graded"
     if door.served is None:
         return "door_binding_unavailable"
     hotkey, contract = arrival[2], arrival[3]
     if contract != door.served["contract"]:
         return "contract_not_served"
     store = door.store(hotkey) if type(hotkey) is str else None
-    if store is None or task not in store[1]:
+    if store is None:
+        # unreadable now (locked, torn): never archived on a guess (review finding 1)
+        return "owner_store_unreadable"
+    if task not in store[1]:
         return "task_row_missing"
     pack, recipes = store
     if pack != door.served["pack"]:
@@ -545,7 +568,8 @@ def return_slots(
                     "AND kind='GRADED' AND state='COUNTED'",
                     (resubmit, hotkey),
                 ).fetchone()[0]
-                if counted == 1:
+                delivered = _marker(_paths(root, resubmit)["marker"]) in _DELIVERED
+                if counted == 1 and delivered:
                     found = resubmit
                     break
             if found is None:
