@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -963,3 +964,208 @@ def test_a_given_back_task_with_a_fresh_rerun_or_no_row_is_left_alone(tmp_path):
     }
     assert out["requeued"] == [] and out["archived"] == []
     assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]  # untouched
+
+
+# ---------------------------------------------------------------- TL 4 Nov 23:34: attempt 1's evaluation files
+
+BINDING = "evaluation-pack-binding.json"
+
+
+def _evaluation(root, task):
+    return root / "auto-grade" / "artifacts" / (task + ".evaluation")
+
+
+def _first_attempt_binding(root, task, entry="sha256:" + "1" * 64):
+    """What a first attempt that got as far as its pack binding left: the task's artifacts and its create-only
+    binding, written by the receiver's own retention helpers."""
+    from carbon.challenge_validator.lean_recipe_retention import (
+        _private_evaluation_directory,
+    )
+    from carbon.development_session.data import write_once
+
+    task_root = root / "auto-grade" / "artifacts" / task
+    task_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    directory = _private_evaluation_directory({"artifact_path": task_root}, task)
+    write_once(directory / BINDING, json.dumps({"entry_id": entry}).encode())
+    return task_root
+
+
+class _BindingIntake:
+    """The real auto-grader's intake, retaining as the receiver does as far as the pack binding: create-only, bound
+    to THIS attempt's entry (a re-run rebuilds a new state, so its entry differs from attempt 1's).
+    """
+
+    def __init__(self, root, tasks, entry):
+        self.root, self.entry, self.graded = root, entry, []
+        self.adapter = SimpleNamespace(
+            contract_digest="sha256:c",
+            ledger=SimpleNamespace(submitted_outcomes=lambda contract: tuple(tasks)),
+            owner=lambda submission_id: HOTKEY,
+        )
+
+    def retain_result(self, submission_id, **kwargs):
+        from carbon.challenge_validator.lean_recipe_retention import (
+            RetentionUnavailable,
+            _private_evaluation_directory,
+        )
+        from carbon.development_session.data import write_once
+
+        task_root = self.root / "auto-grade" / "artifacts" / submission_id
+        directory = _private_evaluation_directory(
+            {"artifact_path": task_root}, submission_id
+        )
+        try:
+            write_once(
+                directory / BINDING, json.dumps({"entry_id": self.entry}).encode()
+            )
+        except (OSError, ValueError) as exc:
+            raise RetentionUnavailable("evaluation_pack_binding_unavailable") from exc
+        self.graded.append(submission_id)
+        return {"entry_id": self.entry}
+
+
+def test_a_requeue_keeps_attempt_ones_evaluation_files_so_attempt_two_binds_its_own(
+    tmp_path,
+):
+    from carbon.challenge_validator import auto_grade, infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    _first_attempt_binding(root, A)
+    out = infra_requeue.requeue(root, [A], apply=True)
+    assert out["requeued"] == [A]
+    kept = _kept(root, A, "evaluation")
+    assert json.loads((kept / BINDING).read_text())["entry_id"] == "sha256:" + "1" * 64
+    assert not _evaluation(root, A).exists()
+    log = (root / "auto-grade" / "requeued" / "requeues.jsonl").read_text()
+    assert json.loads(log.splitlines()[-1])["evaluation_kept"] is True
+    intake = _BindingIntake(root, [A], "sha256:" + "2" * 64)
+    assert auto_grade.AutoGrader(intake, root).run_once() == (A, "GRADED")
+    assert intake.graded == [A]
+    # attempt 2 bound under its own entry; attempt 1's binding is kept, unchanged, as its evidence
+    assert json.loads((_evaluation(root, A) / BINDING).read_text())["entry_id"] == (
+        "sha256:" + "2" * 64
+    )
+    assert json.loads((kept / BINDING).read_text())["entry_id"] == "sha256:" + "1" * 64
+
+
+def test_without_the_kept_directory_a_rerun_fails_on_attempt_ones_binding(tmp_path):
+    """The 517b door's failure, reproduced: the re-queued re-run meets attempt 1's create-only binding."""
+    from carbon.challenge_validator import auto_grade, infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    infra_requeue.requeue(root, [A], apply=True, clock=lambda: time.time_ns() + 10**12)
+    _first_attempt_binding(root, A)  # as a 517b requeue left it: still in place
+    intake = _BindingIntake(root, [A], "sha256:" + "2" * 64)
+    assert auto_grade.AutoGrader(intake, root).run_once() == (A, "FAILED")
+    failure = (root / "auto-grade" / "failures" / (A + ".txt")).read_text()
+    assert "evaluation_pack_binding_unavailable" in failure
+
+
+def test_keep_evaluation_completes_a_517b_requeue_once_and_the_grader_then_binds(
+    tmp_path,
+):
+    from carbon.challenge_validator import auto_grade, infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    later = time.time_ns() + 10**12  # the requeue line is newer than attempt 1's files
+    infra_requeue.requeue(root, [A], apply=True, clock=lambda: later)
+    _first_attempt_binding(root, A)
+    dry = infra_requeue.keep_evaluation(root, [A])
+    assert (
+        dry["kept"] == [A] and _evaluation(root, A).exists()
+    )  # a dry run moves nothing
+    out = infra_requeue.keep_evaluation(root, [A], apply=True)
+    assert out == {**dry, "apply": True}
+    assert not _evaluation(root, A).exists()
+    assert (_kept(root, A, "evaluation") / BINDING).exists()
+    lines = (root / "auto-grade" / "requeued" / "requeues.jsonl").read_text()
+    assert json.loads(lines.splitlines()[-1])["kind"] == "keep_evaluation"
+    assert infra_requeue.keep_evaluation(root, [A], apply=True)["refused"] == {
+        A: "evaluation_already_kept"
+    }
+    intake = _BindingIntake(root, [A], "sha256:" + "2" * 64)
+    assert auto_grade.AutoGrader(intake, root).run_once() == (A, "GRADED")
+
+
+def test_keep_evaluation_refuses_what_is_not_attempt_ones_alone(tmp_path):
+    from carbon.challenge_validator import auto_grade, infra_requeue
+
+    root, ledger = _root(tmp_path)
+    later = time.time_ns() + 10**12
+    for task in (A, C, D, E, F):
+        _failed(root, ledger, task)
+    infra_requeue.requeue(root, [C, D, F], apply=True, clock=lambda: later)
+    infra_requeue.requeue(root, [E], apply=True, clock=lambda: 1)
+    _failed(root, ledger, B)  # FAILED, never re-queued
+    for task in (A, B, C, E, F):
+        _first_attempt_binding(root, task)
+    # C's attempt 2 already failed on attempt 1's binding: a second re-grade is not A2's one shot
+    intake = _BindingIntake(root, [C], "sha256:" + "2" * 64)
+    assert auto_grade.AutoGrader(intake, root).run_once() == (C, "FAILED")
+    _row(ledger, F, "RESERVED")  # F's attempt 2 is grading now
+    out = infra_requeue.keep_evaluation(root, [A, B, C, D, E, F, "rtsk_x"], apply=True)
+    assert out["kept"] == []
+    assert out["refused"] == {
+        A: "not_requeued",
+        B: "not_requeued",
+        C: "failed_again_needs_ruling",
+        D: "no_evaluation_directory",
+        E: "evaluation_written_since_requeue",
+        F: "grade_in_flight",
+        "rtsk_x": "not_a_task_id",
+    }
+    for task in (A, B, C, E, F):
+        assert (_evaluation(root, task) / BINDING).exists()  # nothing moved
+
+
+def test_a_requeue_refuses_an_evaluation_path_it_cannot_keep(tmp_path):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    _failed(root, ledger, B)
+    _evaluation(root, A).parent.mkdir(parents=True, exist_ok=True)
+    _evaluation(root, A).write_text("not a directory")
+    _kept(root, B, "evaluation").mkdir(parents=True)
+    out = infra_requeue.requeue(root, [A, B], apply=True)
+    assert out["requeued"] == [] and out["refused"] == {
+        A: "evaluation_directory_unreadable",
+        B: "evaluation_already_kept",
+    }
+    assert (root / "auto-grade" / "markers" / (A + ".json")).exists()
+
+
+def test_the_command_keeps_evaluation_directories(tmp_path, capsys):
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A)
+    infra_requeue.requeue(root, [A], apply=True, clock=lambda: time.time_ns() + 10**12)
+    _first_attempt_binding(root, A)
+    ids = tmp_path / "ids.txt"
+    ids.write_text(A + "\n")
+    command = ["keep-evaluation", "--root", str(root), "--ids", str(ids)]
+    assert infra_requeue.main(command) == 0
+    assert json.loads(capsys.readouterr().out)["apply"] is False
+    assert infra_requeue.main([*command, "--apply"]) == 0
+    assert json.loads(capsys.readouterr().out)["kept"] == [A]
+    assert (_kept(root, A, "evaluation") / BINDING).exists()
+
+
+def test_an_archived_task_keeps_attempt_ones_evaluation_files_for_its_resubmit(
+    tmp_path,
+):
+    """The archive route (no task row here): the miner's resubmit recreates the SAME task id, so it too must find no
+    create-only evaluation file of attempt 1 in its way."""
+    from carbon.challenge_validator import infra_requeue
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A, stored=False)
+    _first_attempt_binding(root, A)
+    out = infra_requeue.requeue(root, [A], apply=True)
+    assert out["archived"] == [A]
+    assert (_kept(root, A, "evaluation") / BINDING).exists()
+    assert not _evaluation(root, A).exists()

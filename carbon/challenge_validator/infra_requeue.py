@@ -9,6 +9,7 @@ reserved or graded. `auto_grade._give_back` then raised as well (fixed in A1), s
     python -m carbon.challenge_validator.infra_requeue list    --root RECEIVER_STATE [--out IDS.txt]
     python -m carbon.challenge_validator.infra_requeue requeue --root RECEIVER_STATE --ids IDS.txt [--apply]
     python -m carbon.challenge_validator.infra_requeue release --root RECEIVER_STATE --id rtsk_... [--apply]
+    python -m carbon.challenge_validator.infra_requeue keep-evaluation --root RECEIVER_STATE --ids IDS.txt [--apply]
 
 ``list`` (read-only) regenerates the task list from the door itself, BY CRITERION, never from a frozen file: every
 FAILED task ``requeue`` would accept (with its arrival time, grouped at ``--split``, 3 Nov 00:00Z by default, for
@@ -31,6 +32,16 @@ Then `ExamCap.mark_requeued` records it (its one grade neither spends nor is ref
 and stays accounted to its ORIGINAL arrival epoch), its marker and failure evidence move to
 ``auto-grade/requeued/<id>.attempt-1.{marker.json,failure.txt}`` (kept), a line goes to ``requeued/requeues.jsonl``, and
 the next tick grades it as attempt 2 over the same retained bytes and task identity, reusing its own row (no new slot).
+A first attempt that got as far as its private evaluation files (``auto-grade/artifacts/<id>.evaluation/``: the pack
+binding first, all create-only, bound to that attempt's entry and state) has that directory kept beside them as
+``<id>.attempt-1.evaluation/`` in the same move, so attempt 2 writes its own (TL 4 Nov 23:34: without it every such
+re-run failed ``evaluation_pack_binding_unavailable``).
+
+``keep-evaluation`` (TL 4 Nov 23:34) does that one step for a task ``requeue`` handed back before it did so itself: the
+task was re-queued, attempt 2 has not been graded yet (no marker, no RESERVED row), and every file in its evaluation
+directory is older than its requeue line (so all of it is attempt 1's). Run it while the door's re-run pickups are
+paused: a grade that started in the same instant would fail as before, uncharged. A re-queued task whose attempt 2
+already FAILED this way is refused (``failed_again_needs_ruling``): a second re-grade is not A2's one shot.
 
 ``requeue`` ARCHIVES instead (Validator 4 Nov 16:38) a task that passes every check up to the contract but whose row
 is not in its owner's store on this root (``task_row_missing``: the rs15-only rows): Carbon cannot re-run it, so the
@@ -60,6 +71,7 @@ import json
 import os
 import re
 import sqlite3
+import stat
 import sys
 import time
 from pathlib import Path
@@ -96,7 +108,30 @@ def _paths(root, task):
         "failure": base / "failures" / (task + ".txt"),
         "kept_marker": kept / f"{task}.attempt-{_ATTEMPT}.marker.json",
         "kept_failure": kept / f"{task}.attempt-{_ATTEMPT}.failure.txt",
+        # the private evaluation directory `lean_recipe_retention._private_evaluation_directory` writes (beside the
+        # task's artifacts, in the grader's ``auto-grade/artifacts``), and where attempt 1's copy is kept
+        "evaluation": base / "artifacts" / (task + ".evaluation"),
+        "kept_evaluation": kept / f"{task}.attempt-{_ATTEMPT}.evaluation",
     }
+
+
+def _evaluation_refusal(paths):
+    """None when the evaluation directory is absent or a plain directory, and nothing is kept for it yet."""
+    if paths["kept_evaluation"].exists() or paths["kept_evaluation"].is_symlink():
+        return "evaluation_already_kept"
+    evaluation = paths["evaluation"]
+    if evaluation.is_symlink() or (evaluation.exists() and not evaluation.is_dir()):
+        return "evaluation_directory_unreadable"
+    return None
+
+
+def _keep_evaluation(paths):
+    """Move attempt 1's private evaluation files aside (one rename, same filesystem); True when there were any."""
+    if not paths["evaluation"].is_dir():
+        return False
+    paths["kept_evaluation"].parent.mkdir(mode=0o700, exist_ok=True)
+    os.replace(paths["evaluation"], paths["kept_evaluation"])
+    return True
 
 
 def _marker(path):
@@ -240,6 +275,9 @@ def _requeue_refusal(root, db, door, task):
     paths = _paths(root, task)
     if paths["kept_marker"].exists() or paths["kept_marker"].is_symlink():
         return "already_requeued"
+    evaluation = _evaluation_refusal(paths)
+    if evaluation is not None:
+        return evaluation
     state = _marker(paths["marker"])
     if state is None:
         return "no_marker"
@@ -397,6 +435,8 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
             if paths["failure"].exists():
                 # Evidence first, so attempt 2 can write its own (create-only) failure file.
                 os.replace(paths["failure"], paths["kept_failure"])
+            # Attempt 1's create-only evaluation files too, so attempt 2 binds and grades under its own entry.
+            kept_evaluation = _keep_evaluation(paths)
             # The commit point: with no marker, the grader's next tick takes the task.
             os.replace(paths["marker"], paths["kept_marker"])
             with open(
@@ -408,6 +448,7 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
                             "task": task,
                             "attempt": _ATTEMPT + 1,
                             "kind": action,
+                            "evaluation_kept": kept_evaluation,
                             "at_ns": int(clock()),
                         },
                         sort_keys=True,
@@ -415,6 +456,119 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
                     + "\n"
                 )
         out["requeued" if action == "requeue" else "archived"].append(task)
+    return out
+
+
+BINDING_CAUSE = "evaluation_pack_binding_unavailable"
+
+
+def _requeued_at(root, task):
+    """The ``at_ns`` of the task's attempt-2 line in ``requeued/requeues.jsonl``, or None."""
+    log = Path(root) / "auto-grade" / "requeued" / "requeues.jsonl"
+    try:
+        lines = log.read_text().splitlines()
+    except OSError:
+        return None
+    found = None
+    for line in lines:
+        try:
+            record = json.loads(line)
+        except ValueError:
+            continue
+        if (
+            type(record) is dict
+            and record.get("task") == task
+            and record.get("attempt") == _ATTEMPT + 1
+            and record.get("kind") in ("requeue", "archive")
+            and type(record.get("at_ns")) is int
+        ):
+            found = record["at_ns"]
+    return found
+
+
+def _written_since(directory, at_ns):
+    """Whether anything in ``directory`` (itself included) was written at or after ``at_ns``, or cannot be read."""
+    try:
+        if os.lstat(directory).st_mtime_ns >= at_ns:
+            return True
+        for parent, names, files in os.walk(directory):
+            for name in (*names, *files):
+                info = os.lstat(Path(parent) / name)
+                if stat.S_ISLNK(info.st_mode) or info.st_mtime_ns >= at_ns:
+                    return True
+    except OSError:
+        return True
+    return False
+
+
+def _keep_evaluation_refusal(root, db, task):
+    """None when ``keep_evaluation`` accepts the task, else its refusal code (read-only)."""
+    if type(task) is not str or not _TASK.fullmatch(task):
+        return "not_a_task_id"
+    paths = _paths(root, task)
+    if not paths["kept_marker"].exists():
+        return "not_requeued"
+    code = _evaluation_refusal(paths)
+    if code is not None:
+        return code
+    if not paths["evaluation"].exists():
+        return "no_evaluation_directory"
+    state = _marker(paths["marker"])
+    if state == "FAILED":
+        try:
+            text = paths["failure"].read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            text = ""
+        return "failed_again_needs_ruling" if BINDING_CAUSE in text else "marker_failed"
+    if state is not None:
+        return "marker_" + state.lower()
+    if any(row[1] == "RESERVED" for row in _rows(db, task)):
+        return "grade_in_flight"
+    at_ns = _requeued_at(root, task)
+    if at_ns is None:
+        return "requeue_record_missing"
+    if _written_since(paths["evaluation"], at_ns):
+        # attempt 2 has written there already: not attempt 1's alone, never moved on a guess
+        return "evaluation_written_since_requeue"
+    return None
+
+
+def keep_evaluation(root, tasks, *, apply=False, clock=time.time_ns):
+    """``{"kept": [...], "refused": {task: code}}``: keep attempt 1's evaluation directory of tasks re-queued before
+    ``requeue`` did so itself (see the module text)."""
+    out = {
+        "schema": SCHEMA,
+        "action": "keep_evaluation",
+        "apply": apply,
+        "kept": [],
+        "refused": {},
+    }
+    ledger, _cap = _ledger(root)
+    for task in tasks:
+        with ledger._db() as db:
+            code = _keep_evaluation_refusal(root, db, task)
+        if code is not None:
+            out["refused"][task] = code
+            continue
+        if apply:
+            paths = _paths(root, task)
+            _keep_evaluation(paths)
+            with open(
+                paths["kept_marker"].parent / "requeues.jsonl", "a", encoding="utf-8"
+            ) as log:
+                log.write(
+                    json.dumps(
+                        {
+                            "task": task,
+                            "attempt": _ATTEMPT + 1,
+                            "kind": "keep_evaluation",
+                            "at_ns": int(clock()),
+                        },
+                        sort_keys=True,
+                    )
+                    + "\n"
+                )
+        out["kept"].append(task)
     return out
 
 
@@ -679,6 +833,10 @@ def main(argv=None):
         help="this door's A1 LIVE + checked time, UTC ISO",
     )
     three.add_argument("--apply", action="store_true")
+    four = sub.add_parser("keep-evaluation")
+    four.add_argument("--root", type=Path, required=True)
+    four.add_argument("--ids", type=Path, required=True, help="the re-queued task ids")
+    four.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     if args.cmd == "list":
         out = scan(args.root, split=args.split)
@@ -698,6 +856,11 @@ def main(argv=None):
             line.strip() for line in args.ids.read_text().splitlines() if line.strip()
         ]
         out = requeue(args.root, tasks, apply=args.apply)
+    elif args.cmd == "keep-evaluation":
+        tasks = [
+            line.strip() for line in args.ids.read_text().splitlines() if line.strip()
+        ]
+        out = keep_evaluation(args.root, tasks, apply=args.apply)
     elif args.cmd == "return-slots":
         tasks = [
             line.strip() for line in args.ids.read_text().splitlines() if line.strip()
