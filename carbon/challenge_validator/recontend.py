@@ -2,19 +2,22 @@
 
 On all four doors the kings held evaluations only under the previous pack, so every challenger graded since met
 ``incumbent_regrade_required`` in `BankPromotion.consider_private` and was never compared (381 submissions; TL 5 Nov
-06:03). Once the king is regraded on the current pack (`lean_recipe_retention.regrade_retained_entry`, uncounted), this
-command files each of those challengers, in ORIGINAL GRADING ORDER, into the crown sweep's queue
+06:03). This command files each of those challengers, in ORIGINAL GRADING ORDER, into the crown sweep's queue
 (`PoolStore.record_crown_paused`). The serving receiver's own sweep (`crown_pause_sweep`, run at every auto-grade tick)
 then decides them, oldest first, each against the king of its moment, through `reconsider_paused_pack`: the receiver's
 own consider path with its margin, tie, repeat and averaging rules, from the filed evaluation, with no regrade, no
 exam-cap slot (uncharged) and no Ladder document. A resolution is write-once, so each is contended once; an undecided one
 (a repeat or rebuild the host could not make, an unmeasured king) stays queued and is retried, holding later ones back.
 
-Which challengers: every private evaluation on the current pack ``--exam``, of a submission other than the king, whose
-key the king now has, filed BEFORE the king's own evaluation on that key (after it, the live path contended it). A key
-the king still lacks is reported (``king_not_regraded_on_key``) and filed nothing: regrade the king first. Already filed
-or decided: ``already_filed``. The retained entry its repeat grade runs from is the origin's own (a pool grade's bank
-entry maps to it through its ``regrade-provenance.json``), as the live path files it.
+Which challengers: every private evaluation on the current pack ``--exam``, of a submission other than the king, on a
+key the king does not have yet, or filed BEFORE the king's REGRADE onto its key (after it, the live path contended it).
+Never on the key the king was first graded on (he won there: those met the king of their moment live). A key the king lacks is filed PENDING_CONTENTION: the receiver's own `king_upkeep` regrades the king at its next
+tick, and the sweep in that same tick contends them in filing order. Already filed or decided: ``already_filed``.
+The retained entry its repeat grade runs from is the origin's own (a pool grade's bank entry maps to it through its
+``regrade-provenance.json``), as the live path files it.
+
+The receiver runs this itself once at start-up, before its first grade (`AutoGrader._king_upkeep`), so the stranded
+challengers are queued ahead of anything graded after; the command is the operator's plan / fallback / report.
 
     python -m carbon.challenge_validator.recontend plan  --root RECEIVER_STATE --pool-store POOL --exam sha256:...
     python -m carbon.challenge_validator.recontend file  --root RECEIVER_STATE --pool-store POOL --exam sha256:... --apply
@@ -144,6 +147,9 @@ def plan(root, pool_store, exam):
     for rowid, body in rows:
         if body.get("submission_id") == king:
             king_first.setdefault(body.get("evaluation_key"), rowid)
+    # The key the king was first graded on is the one he WON on (a task is graded on its own exam once; any later key of
+    # his is a regrade). Challengers on that key met the king of their moment live, so none of them was stranded.
+    won_on = next(iter(king_first), None)
     provenance = _provenance(root)
     to_file, skipped, seen = [], {}, set()
     for rowid, body in rows:
@@ -158,10 +164,8 @@ def plan(root, pool_store, exam):
         ):
             continue
         seen.add((sid, key))
-        if key not in king_first:
-            skipped[sid] = "king_not_regraded_on_key"
-        elif rowid > king_first[key]:
-            continue  # graded after the king's evaluation on this key: the live path contended it
+        if key == won_on or (key in king_first and rowid > king_first[key]):
+            continue  # met the king of its moment live (his own exam, or graded after his regrade onto it)
         elif _filed(store, sid, key):
             skipped[sid] = "already_filed"
         else:
@@ -178,6 +182,10 @@ def plan(root, pool_store, exam):
                         "evaluation_key": key,
                         "entry_id": entry,
                         "pin": pin,
+                        # no king evaluation on this key yet: it waits for his automatic regrade (`king_upkeep`)
+                        "state": (
+                            "PAUSED" if key in king_first else "PENDING_CONTENTION"
+                        ),
                     }
                 )
     return {"king": king, "exam": exam, "file": to_file, "skipped": skipped}
@@ -199,6 +207,7 @@ def file(root, pool_store, exam, *, apply=False, clock=time.time_ns):
                     exam=exam,
                     entry_id=item["entry_id"],
                     pin=item["pin"],
+                    state=item["state"],
                 )
                 log.write(
                     json.dumps(
@@ -208,6 +217,7 @@ def file(root, pool_store, exam, *, apply=False, clock=time.time_ns):
                             "king": planned["king"],
                             "submission_id": item["submission_id"],
                             "evaluation_key": item["evaluation_key"],
+                            "state": item["state"],
                         },
                         sort_keys=True,
                     )

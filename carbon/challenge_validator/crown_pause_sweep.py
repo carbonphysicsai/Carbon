@@ -34,7 +34,7 @@ Rules (Validator, 2026-10-29):
 
 from __future__ import annotations
 
-from . import operator_pause
+from . import koth_journal, operator_pause
 from .bank_promotion import (
     CROWN_QUEUED,
     CROWNS_PAUSED,
@@ -82,6 +82,9 @@ def sweep(store, reconsider, *, kind, current_exam):
                 outcome = reconsider(record)
             except Exception:  # noqa: BLE001 - left unresolved, retried next tick
                 break
+            koth_journal.contention(
+                "sweep", submission_id, outcome, incumbent.get("model_id")
+            )
             if type(outcome) is not dict or "outcome" not in outcome:
                 break  # a refusal ({"error": ...}) is not a decision
             if outcome.get("reason") in (CROWNS_PAUSED, CROWN_QUEUED):

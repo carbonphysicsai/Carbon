@@ -60,7 +60,8 @@ class AutoGrader:
         self.host_lock = host_lock is True
         self.containers = count_worker_containers if containers is None else containers
         self.sample_seconds = sample_seconds
-        base = Path(root) / "auto-grade"
+        self.root = Path(root)
+        base = self.root / "auto-grade"
         self.artifacts = base / "artifacts"
         self.entries = base / "entries"
         self.markers = base / "markers"
@@ -117,6 +118,7 @@ class AutoGrader:
         """
         from .lean_recipe_retention import RetentionUnavailable
 
+        self._king_upkeep()
         self._resume_paused_crowns()
         for submission_id in self.pending():
             sampler = _Sampler(self.containers, self.sample_seconds)
@@ -179,6 +181,33 @@ class AutoGrader:
             )
             return submission_id, "GRADED"
         return None
+
+    def _king_upkeep(self):
+        """Keep the king comparable on this door's current exam before anything is decided (`king_upkeep`): his
+        uncounted regrade when challengers wait for it, or one crown re-measure rebuild. Never raises.
+        """
+        from . import crown_average, king_upkeep
+
+        pool = None
+        try:
+            pool = self._pool()
+        except Exception:  # noqa: BLE001 - an unopenable store is the sweep's to report
+            return None
+        if not getattr(self, "_stranded_filed", False) and pool is not None:
+            # Once per start, before the first grade: queue every challenger graded while the king could not be met
+            # (`recontend`), so it is contended ahead of anything graded after.
+            self._stranded_filed = True
+            king_upkeep.file_stranded(
+                self.root, self.pool_store, self.intake.adapter.discovery
+            )
+        return king_upkeep.step(
+            pool,
+            self.intake,
+            root=self.root,
+            artifacts=self.artifacts,
+            entries=self.entries,
+            active=crown_average.ACTIVE,
+        )
 
     def _resume_paused_crowns(self):
         """Make the crown decisions the operator's pause withheld, once it is lifted."""

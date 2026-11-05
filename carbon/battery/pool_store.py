@@ -200,6 +200,13 @@ PENDING_CONTENTION = "PENDING_CONTENTION"
 _NO_COMPARISON = object()
 
 
+def is_digest_like(value):
+    """A ``sha256:<64 hex>`` digest string."""
+    from carbon.challenge_validator.interface import is_digest
+
+    return is_digest(value)
+
+
 class StateError(RuntimeError):
     """A state transition the durable record does not allow."""
 
@@ -1841,6 +1848,78 @@ class PoolStore:
                 return self._carried_evaluation(db, incumbent_id, candidate) is None
         except (StateError, KeyError, TypeError, ValueError):
             return False
+
+    # --- the king's upkeep on a changed exam (`king_upkeep`, Lead 5 Nov) -------------------------------------------
+    # The receiver regrades the king itself when a challenger on the current pack cannot meet him, and on an averaging
+    # door re-measures him there one rebuild per tick. These rows are bookkeeping: attempts (an epoch apart on failure)
+    # and each finished rebuild's grade, so the next tick resumes where the last stopped. They decide nothing.
+
+    def king_upkeep_attempts(self, king, exam, step):
+        """``(failed attempts, store-clock seconds of the last one)`` of one upkeep step: ``(0, None)`` before any."""
+        op = self._bank_operation("king_upkeep_attempt.v1", king, [exam, step])
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+        if row is None:
+            return 0, None
+        body = json.loads(row[0])
+        return body["attempts"], body["last_at"]
+
+    def note_king_upkeep_attempt(self, king, exam, step, code):
+        """Count one more failed attempt of an upkeep step; returns the new count."""
+        op = self._bank_operation("king_upkeep_attempt.v1", king, [exam, step])
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            attempts = (json.loads(row[0])["attempts"] if row else 0) + 1
+            body = canonical(
+                {
+                    "schema": "carbon.challenge-validator.king-upkeep-attempt.v1",
+                    "king": king,
+                    "exam": exam,
+                    "step": step,
+                    "attempts": attempts,
+                    "last_at": self.clock(),
+                    "code": str(code),
+                }
+            )
+            db.execute(
+                "INSERT OR REPLACE INTO operations VALUES(?,?,?,?)",
+                (op, "king_upkeep_attempt.v1", "RECORDED", body),
+            )
+        return attempts
+
+    def crown_rebuild_cached(self, submission_id, key, seed, again):
+        """The grade body of one finished crown rebuild (``again``: the host-fault second build), or None."""
+        op = self._bank_operation("crown_rebuild.v1", submission_id, [key, seed, again])
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+        return None if row is None else json.loads(row[0])["body"]
+
+    def record_crown_rebuild(self, submission_id, key, seed, again, body):
+        """Keep one finished crown rebuild's grade body (private: never published); the first one stays."""
+        if not is_digest_like(key) or type(seed) is not int or type(again) is not bool:
+            raise StateError("crown_rebuild_invalid")
+        op = self._bank_operation("crown_rebuild.v1", submission_id, [key, seed, again])
+        record = canonical(
+            {
+                "schema": "carbon.challenge-validator.crown-rebuild.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "seed": seed,
+                "again": again,
+                "body": body,
+            }
+        )
+        with self.transaction() as db:
+            db.execute(
+                "INSERT OR IGNORE INTO operations VALUES(?,?,?,?)",
+                (op, "crown_rebuild.v1", "RECORDED", record),
+            )
 
     def record_contention_alert(self, incumbent, key):
         """File the operator alert that the king ``incumbent`` needs a regrade on ``key`` before challengers there can

@@ -234,13 +234,32 @@ def _door(tmp_path):
     return root, store
 
 
-def test_nothing_is_filed_while_the_king_has_no_evaluation_on_the_exam(tmp_path):
-    root, _store = _door(tmp_path)
-    planned = recontend.plan(root, root / "pool.sqlite3", EXAM)
-    assert planned["file"] == []
-    assert planned["skipped"] == {
-        _task(n): "king_not_regraded_on_key" for n in (1, 2, 3)
-    }
+def test_before_the_kings_regrade_they_are_filed_pending_for_his_automatic_regrade(
+    tmp_path,
+):
+    root, store = _door(tmp_path)
+    pool = root / "pool.sqlite3"
+    planned = recontend.plan(root, pool, EXAM)
+    assert [i["submission_id"] for i in planned["file"]] == [
+        _task(1),
+        _task(2),
+        _task(3),
+    ]
+    assert {i["state"] for i in planned["file"]} == {"PENDING_CONTENTION"}
+    recontend.file(root, pool, EXAM, apply=True)
+    with store.db() as db:
+        states = {
+            s
+            for (s,) in db.execute(
+                "SELECT state FROM operations WHERE kind='crown_paused.v1'"
+            )
+        }
+    assert states == {"PENDING_CONTENTION"}
+    assert [r["submission_id"] for r in store.paused_crowns("pack")] == [
+        _task(1),
+        _task(2),
+        _task(3),
+    ]
 
 
 def test_after_the_kings_regrade_exactly_the_earlier_challengers_are_filed_in_grading_order(
@@ -261,6 +280,7 @@ def test_after_the_kings_regrade_exactly_the_earlier_challengers_are_filed_in_gr
         "evaluation_key": KEY,
         "entry_id": digest(["origin entry", _task(1)]),
         "pin": PIN,
+        "state": "PAUSED",
     }
     assert store.paused_crowns() == []  # a plan writes nothing
     out = recontend.file(root, pool, EXAM, apply=True, clock=lambda: 7)
@@ -307,6 +327,22 @@ def test_the_receivers_own_sweep_decides_them_oldest_first_and_report_shows_it(
     assert [r["resolution"] for r in recontend.report(pool)] == [
         "INCUMBENT_KEEPS:kept"
     ] * 3
+
+
+def test_a_king_who_won_on_the_current_key_strands_nobody_so_nothing_is_contended_twice(
+    tmp_path,
+):
+    """A king crowned on this exam (his first grade is on its key): every earlier challenger met the king of its moment."""
+    root = tmp_path / "state"
+    for name in ("artifacts", "entries"):
+        (root / "auto-grade" / name).mkdir(parents=True, mode=0o700)
+    store = PoolStore(root / "pool.sqlite3")
+    _row(store, _task(1), KEY)  # graded against the previous king
+    _row(store, KING, KEY)  # the new king's own winning grade
+    _row(store, _task(2), KEY)  # graded against him, live
+    store.set_incumbent(KING, bp.SEALED_TESTNET_PROMOTION)
+    planned = recontend.plan(root, root / "pool.sqlite3", EXAM)
+    assert planned["file"] == [] and planned["skipped"] == {}
 
 
 def test_an_unresolved_entry_or_a_bad_exam_is_reported_never_guessed(tmp_path):

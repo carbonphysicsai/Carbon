@@ -1627,6 +1627,8 @@ def _contend(
         control = _control_check(
             repeat, koth_registry.control(adapter.challenge_id), comparator
         )
+        reader = getattr(promotion.store, "incumbent", None)
+        met = ((reader() if reader is not None else None) or {}).get("model_id")
         outcome = promotion.consider_private(
             submission_id,
             filed["evaluation_key"],
@@ -1638,6 +1640,9 @@ def _contend(
             # Only a registered control is passed: a promotion that takes none is called as before.
             **({} if control is None else {"control": control}),
         )
+        from carbon.challenge_validator import koth_journal
+
+        koth_journal.contention("live", submission_id, outcome, met)
         _watch_repeat_miss(promotion.store, adapter, submission_id, outcome)
         _file_if_paused(
             promotion.store,
@@ -1650,13 +1655,17 @@ def _contend(
         )
     # A pool refusal, whatever its type, never unbinds the evaluation.
     except Exception as exc:  # noqa: BLE001
-        return {
+        refused = {
             "error": (
                 str(exc)
                 if isinstance(exc, RetentionUnavailable)
                 else str(getattr(exc, "code", type(exc).__name__))
             )
         }
+        from carbon.challenge_validator import koth_journal
+
+        koth_journal.contention("live", submission_id, refused)
+        return refused
     return {
         "outcome": outcome["outcome"],
         "reason": outcome["reason"],
@@ -1864,6 +1873,7 @@ def remeasure_incumbent_pack(
     artifact_directory,
     entry_directory,
     runner=None,
+    stepwise=False,
 ):
     """Re-measure the SITTING king's N-rebuild mean under the installed crown-average rule
     (`crown_average.Active.measure_incumbent`), so switching the rule on pauses no crown. Operator-only. The king is
@@ -1909,6 +1919,18 @@ def remeasure_incumbent_pack(
         admitted = adapter.ledger.admitted_owner(submission_id)
         if admitted is not None:
             hold = adapter.deriving(submission_id, admitted[1])
+    repeat = _repeat_of(
+        adapter,
+        origin,
+        entry_id,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+        runner=runner,
+    )
+    if stepwise:
+        # The receiver's own upkeep (`king_upkeep`): at most ONE new rebuild per call, each kept in the pool store, so
+        # live grades run between them and the next call resumes; the mean is filed by the call that finds all done.
+        _one_rebuild_per_call(repeat, pool_store, submission_id, evaluation_key)
     try:
         with hold:
             return active.measure_incumbent(
@@ -1916,17 +1938,52 @@ def remeasure_incumbent_pack(
                 submission_id,
                 evaluation_key,
                 koth_registry.comparator(adapter.challenge_id, score_pack, accuracy),
-                _repeat_of(
-                    adapter,
-                    origin,
-                    entry_id,
-                    artifact_directory=artifact_directory,
-                    entry_directory=entry_directory,
-                    runner=runner,
-                ),
+                repeat,
             )
+    except RebuildStep:
+        return {"outcome": REMEASURE_IN_PROGRESS, "reason": "one_rebuild_done"}
     except crown_average.CrownAverageUnavailable as refused:
         raise RetentionUnavailable(refused.code) from refused
+
+
+#: `remeasure_incumbent_pack(stepwise=True)` ran one rebuild and stopped: call it again for the next.
+REMEASURE_IN_PROGRESS = "REMEASURE_IN_PROGRESS"
+
+
+class RebuildStep(BaseException):
+    """Raised by a stepwise re-measure in place of a second new rebuild in one call. A BaseException, so the averaging
+    loop's own infrastructure retries (`crown_average._guarded`, `_one`) never take it for a failed build.
+    """
+
+
+def _one_rebuild_per_call(repeat, store, submission_id, key):
+    """Wrap ``repeat``'s rebuilds: a rebuild already kept is returned from the store; the first new one runs and is
+    kept; any further new one raises `RebuildStep`. A grade that is not a measurement (infrastructure) is not kept.
+    """
+    from carbon.challenge_validator import bank_promotion as bp
+
+    ran = []
+
+    def kept(build, again):
+        def run(seed, *rest):
+            hit = store.crown_rebuild_cached(submission_id, key, seed, again)
+            if hit is not None:
+                return hit
+            if ran:
+                raise RebuildStep
+            ran.append(seed)
+            body = build(seed, *rest)
+            model = ((body or {}).get("evidence") or {}).get("model_p")
+            status = model.get("score_status") if type(model) is dict else None
+            if type(status) is str and status not in bp.NOT_MEASURED:
+                store.record_crown_rebuild(submission_id, key, seed, again, body)
+            return body
+
+        return run
+
+    first, second = repeat.rebuild_at, repeat.rebuild_again_at
+    repeat.rebuild_at = kept(first, False)
+    repeat.rebuild_again_at = kept(second, True)
 
 
 #: The label of a crown origin rebind's derived request (`LeanRecipeAdapter._request`'s ``rebuild``): its own task

@@ -67,6 +67,10 @@ _OPTIONAL_FIELDS = {
     # an exact absolute operator path in the validator state, written only by the standing receipt worker. Without
     # it no catalog entry is officially gradable (the official route never falls back to a CPU rebuild).
     "official_gpu_receipts",
+    # A DECLARED EXAM CHANGE (Validator 5 Nov 06:49, ruled M2 amendment): {from_revision, to_revision, paths, reason,
+    # evidence_sha256}. A carried owner's manifest migrates across a grading-path change ONLY when OLD..NEW is exactly
+    # this record's revisions and the computed changed grading paths EQUAL its ``paths`` (`_declared_change`).
+    "declared_exam_change",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -250,6 +254,8 @@ def load_config(path: Path) -> dict:
             raise ValueError(refusal)
     if "speed_sample_key_file" in value:
         read_speed_sample_key(value["speed_sample_key_file"])
+    if "declared_exam_change" in value:
+        _check_declared_change(value["declared_exam_change"])
     if "crown_average" in value:
         section = value["crown_average"]
         if type(section) is not dict or set(section) != {"key_file"}:
@@ -874,6 +880,62 @@ def grading_path(path):
 
 _GRADING_CHANGES = {}
 
+#: The receiver configuration's declared exam change (`install_declared_change`), or None: no grading-path change migrates.
+DECLARED_EXAM_CHANGE = None
+_DECLARED_FIELDS = {
+    "from_revision",
+    "to_revision",
+    "paths",
+    "reason",
+    "evidence_sha256",
+}
+
+
+def _check_declared_change(record):
+    """A declared exam change record is exactly its five fields: two full commit ids, a non-empty sorted list of
+    distinct repo paths (or `BUILD_INPUTS_CHANGED`), a reason, and the evidence's sha256 digest.
+    """
+    if (
+        type(record) is not dict
+        or set(record) != _DECLARED_FIELDS
+        or any(
+            type(record[name]) is not str
+            or not re.fullmatch(r"[0-9a-f]{40}", record[name])
+            for name in ("from_revision", "to_revision")
+        )
+        or type(record["paths"]) is not list
+        or not record["paths"]
+        or any(type(path) is not str or not path for path in record["paths"])
+        or record["paths"] != sorted(set(record["paths"]), key=record["paths"].index)
+        or type(record["reason"]) is not str
+        or not record["reason"].strip()
+        or type(record["evidence_sha256"]) is not str
+        or not re.fullmatch(r"sha256:[0-9a-f]{64}", record["evidence_sha256"])
+    ):
+        raise ValueError("invalid declared_exam_change")
+    return record
+
+
+def install_declared_change(cfg):
+    """Set (or clear) `DECLARED_EXAM_CHANGE` from a loaded receiver configuration."""
+    global DECLARED_EXAM_CHANGE
+    record = cfg.get("declared_exam_change")
+    DECLARED_EXAM_CHANGE = None if record is None else _check_declared_change(record)
+
+
+def _declared_change(old, new, touched):
+    """The declared record when it covers exactly this migration (its revisions are OLD and NEW, and its paths EQUAL the
+    computed changed grading paths, in order), else None."""
+    record = DECLARED_EXAM_CHANGE
+    if (
+        record is None
+        or touched is None
+        or (record["from_revision"], record["to_revision"]) != (old, new)
+        or list(record["paths"]) != list(touched)
+    ):
+        return None
+    return record
+
 
 def _grading_change(old, new, root=None):
     """M2: the grading or rebuild paths OLD..NEW changes (`BUILD_INPUTS_CHANGED` first when the worker build inputs
@@ -958,7 +1020,25 @@ def _migrate_owner_manifest(ledger, hotkey, raw, frozen, candidate):
     if not _is_ancestor(old, new):
         return False
     touched = _grading_change(old, new)
-    if touched != ():
+    declared = _declared_change(old, new, touched) if touched else None
+    if declared is not None:
+        # the ruled amendment: a change the Validator receipted by its declaration and per-door evidence
+        print(
+            json.dumps(
+                {
+                    "event": "owner_manifest_migration_declared",
+                    "from_revision": old,
+                    "to_revision": new,
+                    "paths": list(touched[:20]),
+                    "reason": declared["reason"],
+                    "evidence_sha256": declared["evidence_sha256"],
+                },
+                sort_keys=True,
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+    elif touched != ():
         # M2: a grading or rebuild change is never carried under an old owner's manifest. Said once per owner, so a
         # spare proof shows why the start refused.
         print(
@@ -1730,6 +1810,7 @@ def serve(
     from carbon.challenge_validator import crown_average_host
 
     crown_average_host.install(cfg)
+    install_declared_change(cfg)
     selected_parent = (
         {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
         if "construction_image_manifest" in cfg

@@ -399,6 +399,9 @@ def _contend_set(
             # Only a registered control is passed: a promotion that takes none is called as before.
             **({} if control is None else {"control": control}),
         )
+        from . import koth_journal
+
+        koth_journal.contention("live_set", origin, outcome)
         retention._watch_repeat_miss(
             promotion.store, batch_adapters[batches[0]], origin, outcome
         )
