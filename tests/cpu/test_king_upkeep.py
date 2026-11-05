@@ -308,7 +308,9 @@ def test_the_tick_files_stranded_challengers_once_then_runs_upkeep_then_the_swee
 
     order = []
     monkeypatch.setattr(
-        king_upkeep, "file_stranded", lambda *a: order.append("stranded")
+        king_upkeep,
+        "file_stranded",
+        lambda *a: order.append("stranded") or (king_upkeep.STRANDED_DONE, 0),
     )
     monkeypatch.setattr(king_upkeep, "step", lambda *a, **k: order.append("upkeep"))
     grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
@@ -393,7 +395,9 @@ def test_a_waiting_live_grade_runs_after_at_most_one_king_job(tmp_path, monkeypa
     from carbon.challenge_validator import auto_grade
 
     order, live = [], ["rtsk_" + "1" * 64, "rtsk_" + "2" * 64]
-    monkeypatch.setattr(king_upkeep, "file_stranded", lambda *a: None)
+    monkeypatch.setattr(
+        king_upkeep, "file_stranded", lambda *a: (king_upkeep.STRANDED_DONE, 0)
+    )
     monkeypatch.setattr(king_upkeep, "step", lambda *a, **k: order.append("king job"))
     grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
     grader.root, grader.pool_store = tmp_path, tmp_path / "pool.sqlite3"
@@ -455,7 +459,9 @@ def test_three_queued_crown_changers_and_a_live_task_the_live_task_runs_after_at
         return {"outcome": bp.INCUMBENT_KEEPS, "reason": ca.MEAN_WITHIN, "spent": True}
 
     monkeypatch.setattr(retention, "reconsider_paused_pack", reconsider)
-    monkeypatch.setattr(king_upkeep, "file_stranded", lambda *a: None)
+    monkeypatch.setattr(
+        king_upkeep, "file_stranded", lambda *a: (king_upkeep.STRANDED_DONE, 0)
+    )
     monkeypatch.setattr(king_upkeep, "step", lambda *a, **k: None)
     grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
     grader.root, grader.pool_store = tmp_path, store.path
@@ -507,3 +513,95 @@ def test_the_spend_watch_passes_the_repeat_through_and_marks_gpu_work():
     assert calls == [("rebuild", 7, 1)] and watched.spent
     assert watched.mark({"outcome": "X"}) == {"outcome": "X", "spent": True}
     assert getattr(retention.SpendWatch(SimpleNamespace()), "rebuild_at", None) is None
+
+
+# --- the start-up filing is never silent and is retried until it is made (Deploy 5 Nov 09:3x) ----------------------
+
+
+def test_every_start_up_check_writes_one_line_whatever_it_found(
+    tmp_path, capsys, monkeypatch
+):
+    from carbon.challenge_validator import recontend
+
+    assert king_upkeep.file_stranded(
+        tmp_path, tmp_path / "p", SimpleNamespace(evaluation_pack_digest=None)
+    ) == (
+        king_upkeep.STRANDED_RETRY,
+        0,
+    )
+    monkeypatch.setattr(
+        recontend,
+        "file",
+        lambda *a, **k: (_ for _ in ()).throw(
+            recontend.RecontendRefused("no_incumbent")
+        ),
+    )
+    assert king_upkeep.file_stranded(
+        tmp_path, tmp_path / "p", SimpleNamespace(evaluation_pack_digest=EXAM)
+    )[0] == (king_upkeep.STRANDED_DONE)
+    monkeypatch.setattr(
+        recontend,
+        "file",
+        lambda *a, **k: (_ for _ in ()).throw(
+            recontend.RecontendRefused("pool_store_unavailable")
+        ),
+    )
+    assert king_upkeep.file_stranded(
+        tmp_path, tmp_path / "p", SimpleNamespace(evaluation_pack_digest=EXAM)
+    )[0] == (king_upkeep.STRANDED_RETRY)
+    monkeypatch.setattr(
+        recontend,
+        "file",
+        lambda *a, **k: {"king": "rtsk_k", "filed": [], "skipped": {}},
+    )
+    assert king_upkeep.file_stranded(
+        tmp_path, tmp_path / "p", SimpleNamespace(evaluation_pack_digest=EXAM)
+    ) == (
+        king_upkeep.STRANDED_DONE,
+        0,
+    )
+    lines = [json.loads(line) for line in capsys.readouterr().err.splitlines()]
+    assert [(line["event"], line["state"], line.get("code")) for line in lines] == [
+        ("recontend_checked", "RETRY", "no_exam"),
+        ("recontend_checked", "DONE", "no_incumbent"),
+        ("recontend_checked", "RETRY", "pool_store_unavailable"),
+        ("recontend_checked", "DONE", None),
+    ]
+    assert (lines[-1]["filed"], lines[-1]["skipped"]) == (
+        0,
+        0,
+    )  # an empty plan still says so
+
+
+def test_a_check_that_could_not_be_made_is_retried_a_minute_later_not_left_until_a_restart(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import auto_grade
+
+    now, calls = [100.0], []
+    monkeypatch.setattr(auto_grade.time, "monotonic", lambda: now[0])
+    results = [(king_upkeep.STRANDED_RETRY, 0), (king_upkeep.STRANDED_DONE, 129)]
+    monkeypatch.setattr(
+        king_upkeep,
+        "file_stranded",
+        lambda *a: calls.append(now[0]) or results[len(calls) - 1],
+    )
+    monkeypatch.setattr(king_upkeep, "step", lambda *a, **k: None)
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader.root, grader.pool_store = tmp_path, tmp_path / "pool.sqlite3"
+    grader.artifacts = grader.entries = tmp_path
+    grader.intake = SimpleNamespace(adapter=SimpleNamespace(discovery=None))
+    monkeypatch.setattr(auto_grade.AutoGrader, "_pool", lambda self: object())
+    assert grader._stranded_due()
+    grader._king_upkeep()  # could not be made: tried again later
+    assert not grader._stranded_due()
+    now[0] += 30
+    grader._king_upkeep()
+    assert calls == [100.0]  # inside the minute: not again (no host lock every poll)
+    now[0] += king_upkeep.STRANDED_RETRY_SECONDS
+    assert grader._stranded_due()
+    grader._king_upkeep()
+    assert len(calls) == 2 and not grader._stranded_due()
+    now[0] += 10 * king_upkeep.STRANDED_RETRY_SECONDS
+    grader._king_upkeep()
+    assert len(calls) == 2  # made: never again this start

@@ -65,30 +65,49 @@ def king_origin_entry(pool, root, king):
     return None
 
 
+#: `file_stranded` outcomes: the check was made (or can never apply: no king), so it is not tried again this start; or it
+#: could not be made now and is tried again (`STRANDED_RETRY_SECONDS` later, so a failing check never holds the host lock
+#: every poll).
+STRANDED_DONE = "DONE"
+STRANDED_RETRY = "RETRY"
+STRANDED_RETRY_SECONDS = 60.0
+
+
 def file_stranded(root, pool_store, discovery):
     """Queue, in grading order, every challenger on the current exam that was graded while the king could not be met
-    and was never filed (`recontend.file`), with a journal line; returns how many were filed. Never raises.
-    """
+    and was never filed (`recontend.file`). Returns ``(STRANDED_DONE | STRANDED_RETRY, filed count)``. Never raises.
+
+    Every attempt writes ONE journal line, ``recontend_checked``, whatever it found (Deploy 5 Nov 09:3x: Motor and RB
+    filed nothing and said nothing): its state, the counts filed and skipped, or the refusal code, or ``no_exam`` when
+    the door's discovery names no evaluation pack."""
     from . import recontend
 
     exam = getattr(discovery, "evaluation_pack_digest", None)
+    if exam is None:
+        koth_journal.note("recontend_checked", state=STRANDED_RETRY, code="no_exam")
+        return STRANDED_RETRY, 0
     try:
-        if exam is None:
-            return 0
         out = recontend.file(root, pool_store, exam, apply=True)
+    except recontend.RecontendRefused as refused:
+        # no king yet: nothing can be stranded behind one, so the check is done; anything else is tried again
+        state = STRANDED_DONE if refused.code == "no_incumbent" else STRANDED_RETRY
+        koth_journal.note("recontend_checked", state=state, code=refused.code)
+        return state, 0
     except Exception as error:  # noqa: BLE001
         koth_journal.note(
-            "recontend_skipped", code=str(getattr(error, "code", type(error).__name__))
+            "recontend_checked",
+            state=STRANDED_RETRY,
+            code=str(getattr(error, "code", None) or type(error).__name__),
         )
-        return 0
-    if out["filed"] or out["skipped"]:
-        koth_journal.note(
-            "recontend_filed",
-            incumbent=out["king"],
-            filed=len(out["filed"]),
-            skipped=len(out["skipped"]),
-        )
-    return len(out["filed"])
+        return STRANDED_RETRY, 0
+    koth_journal.note(
+        "recontend_checked",
+        state=STRANDED_DONE,
+        incumbent=out["king"],
+        filed=len(out["filed"]),
+        skipped=len(out["skipped"]),
+    )
+    return STRANDED_DONE, len(out["filed"])
 
 
 def _due(pool, king, exam, step):

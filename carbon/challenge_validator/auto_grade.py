@@ -122,13 +122,19 @@ class AutoGrader:
         stranded while the king could not be met, ahead of any new grade), and whenever the upkeep is due (`due`: the
         king's regrade, or one crown re-measure rebuild), so an idle door still keeps its king comparable.
         """
-        if not getattr(self, "_stranded_filed", False):
+        if self._stranded_due():
             return True
         if self.pending():
             return True
         if self._crowns_due():
             return True
         return self._upkeep_due()
+
+    def _stranded_due(self):
+        """Whether the start-up filing of stranded challengers is still to be made now (`_king_upkeep`)."""
+        if getattr(self, "_stranded_filed", False):
+            return False
+        return time.monotonic() >= getattr(self, "_stranded_next", 0.0)
 
     def _upkeep_due(self):
         from . import crown_average, king_upkeep
@@ -251,13 +257,19 @@ class AutoGrader:
             pool = self._pool()
         except Exception:  # noqa: BLE001 - an unopenable store is the sweep's to report
             return None
-        if not getattr(self, "_stranded_filed", False) and pool is not None:
+        if pool is not None and self._stranded_due():
             # Once per start, before the first grade: queue every challenger graded while the king could not be met
-            # (`recontend`), so it is contended ahead of anything graded after.
-            self._stranded_filed = True
-            king_upkeep.file_stranded(
+            # (`recontend`), so it is contended ahead of anything graded after. Marked done only once the check was
+            # MADE (a refusal or a missing exam is tried again a minute later, never left silent until a restart).
+            state, _filed = king_upkeep.file_stranded(
                 self.root, self.pool_store, self.intake.adapter.discovery
             )
+            if state == king_upkeep.STRANDED_DONE:
+                self._stranded_filed = True
+            else:
+                self._stranded_next = (
+                    time.monotonic() + king_upkeep.STRANDED_RETRY_SECONDS
+                )
         return king_upkeep.step(
             pool,
             self.intake,
