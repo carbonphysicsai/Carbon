@@ -390,21 +390,16 @@ def test_the_version_is_required_and_the_practice_targets_are_restored(tmp_path)
     assert curves.TARGETS == before
 
 
-@pytest.mark.parametrize(
-    "module",
-    [
-        "carbon.motor.catalog_practice",
-        "carbon.cold_plate.catalog_practice",
-        "carbon.direct_campaign.practice",
-    ],
-)
-def test_the_practices_read_the_build_call_from_the_module_at_call_time(module):
+def test_the_practices_read_the_build_call_from_the_module_at_call_time():
     """The capture replaces `bundle_construction_worker.reconstruct_and_infer_public`; a practice that bound the name at
-    import would bypass it (it would still fail closed, but only after a full-TRAIN build).
-    """
-    import importlib
+    import would bypass it (it would still fail closed, but only after a full-TRAIN build). Literal imports (the code-authority
+    scan resolves them; gate283)."""
+    from carbon.cold_plate import catalog_practice as cooling
+    from carbon.direct_campaign import practice as direct
+    from carbon.motor import catalog_practice as motor
 
-    assert not hasattr(importlib.import_module(module), "reconstruct_and_infer_public")
+    for module in (motor, cooling, direct):
+        assert not hasattr(module, "reconstruct_and_infer_public"), module.__name__
 
 
 def test_a_practice_train_that_is_not_the_manifest_train_refuses(monkeypatch, tmp_path):
