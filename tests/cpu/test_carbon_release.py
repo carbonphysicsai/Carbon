@@ -537,3 +537,29 @@ def test_the_log_refuses_odd_lines_and_a_cut_tail(tool, tmp_path):
     assert (
         tool.log_verify(log2, expect_last=second["sha"])["code"] == "last_line_differs"
     )
+
+
+def test_a_push_line_only_for_a_final_fast_forward(tool, repo, tmp_path):
+    root, base = repo
+    _git(root, "branch", "main-ref", base)
+    ahead = _commit(root, {"docs/notes.md": "f\n"}, "ahead")
+    heads = _heads(tmp_path, [(ahead, "FINAL")])
+    out = tool.pushline(root, ahead, heads, main="main-ref")
+    assert (
+        out["state"] == tool.PASS and out["line"] == f"PR Head: push {ahead} to main."
+    )
+    assert (
+        tool.pushline(root, ahead[:12], heads, main="main-ref")["code"]
+        == "not_a_full_commit_id"
+    )
+    _git(root, "checkout", "-q", "-b", "side", base)
+    side = _commit(root, {"docs/other.md": "s\n"}, "side")
+    _git(root, "branch", "-f", "main-ref", ahead)
+    heads2 = _heads(tmp_path, [(side, "FINAL")])
+    assert (
+        tool.pushline(root, side, heads2, main="main-ref")["code"]
+        == "not_a_fast_forward_of_main"
+    )
+    _git(root, "branch", "-f", "main-ref", base)
+    held = _heads(tmp_path, [(side, "HOLD")])
+    assert tool.pushline(root, side, held, main="main-ref")["code"] == "not_final"

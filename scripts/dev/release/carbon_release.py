@@ -6,6 +6,7 @@
     python3 -I -B scripts/dev/release/carbon_release.py precheck --mode prepare|switch --repo R \\
         --old-rev OLD --new-rev NEW --old-pack D --new-pack D --old-root DIR --new-root DIR \\
         --final-heads TSV [--declared FILE] [--older-root DIR ...]
+    python3 -I -B scripts/dev/release/carbon_release.py pushline --repo R --sha FULL_SHA --final-heads TSV [--main REF]
     python3 -I -B scripts/dev/release/carbon_release.py log append --log FILE --event JSON
     python3 -I -B scripts/dev/release/carbon_release.py log verify --log FILE
 
@@ -36,6 +37,9 @@ files the NEW revision's M2 rule names, sorted), so the record the receiver chec
   (the receiver's own rule); an old root without a library cache or a receiver config is UNKNOWN, never empty;
   ``drain``: no ``draining`` flag in OLD's state directory (read from its config: H1's fixed state dir included);
   ``release``: NEW root's ``release.json`` names NEW.
+
+``pushline`` (R28) prints the owner's exact push line only for a full sha that is a fast-forward of main and FINAL or
+LANDED in FINAL_HEADS; anything else refuses before an owner ask.
 
 Exit 0 when every item passes, 3 on any REFUSE, 4 on UNKNOWN only (2 = usage). ``log`` keeps a hash-chained deploy log:
 each line carries the previous line's sha, so an edited, reordered or removed line fails ``verify``; a cut tail is
@@ -565,6 +569,37 @@ def precheck(args) -> dict:
     return out
 
 
+# --- the owner's push line (R28) -------------------------------------------------------------------------------------
+
+
+def pushline(repo, sha, final_heads, *, main="origin/main") -> dict:
+    """The owner's push line for ``sha``, ONLY when it can land as asked: a full commit id, a fast-forward of ``main``
+    (``main`` is its ancestor) and FINAL or LANDED in FINAL_HEADS on every row. Anything else refuses BEFORE an owner
+    ask (5 Nov: a line for a non-FF head cost an owner round trip)."""
+    if not _HEX40.fullmatch(sha or ""):
+        return {"state": REFUSE, "code": "not_a_full_commit_id"}
+    commit = ei.resolve(repo, sha)
+    if commit != sha:
+        return {"state": REFUSE, "code": "not_a_full_commit_id"}
+    base = ei.resolve(repo, main)
+    ff = ancestry_item(repo, base, commit)
+    if ff["state"] != PASS:
+        return {
+            "state": ff["state"],
+            "code": "not_a_fast_forward_of_main",
+            "main": base,
+        }
+    heads = final_heads_status(final_heads, commit)
+    if heads["state"] != PASS:
+        return {**heads, "main": base}
+    return {
+        "state": PASS,
+        "main": base,
+        "sha": commit,
+        "line": f"PR Head: push {commit} to main.",
+    }
+
+
 # --- deploy log ----------------------------------------------------------------------------------------------------
 
 
@@ -655,6 +690,11 @@ def main(argv=None) -> int:
     p.add_argument("--declared-pack-change")
     p.add_argument("--declared-rule-change")
     p.add_argument("--older-root", type=Path, action="append", default=[])
+    pl = sub.add_parser("pushline")
+    pl.add_argument("--repo", type=Path, required=True)
+    pl.add_argument("--sha", required=True)
+    pl.add_argument("--final-heads", type=Path, required=True)
+    pl.add_argument("--main", default="origin/main")
     lg = sub.add_parser("log")
     lsub = lg.add_subparsers(dest="log_command", required=True)
     la = lsub.add_parser("append")
@@ -679,6 +719,8 @@ def main(argv=None) -> int:
                     args.repo, args.old, args.new, args.reason, args.evidence
                 ),
             }
+        elif args.command == "pushline":
+            result = pushline(args.repo, args.sha, args.final_heads, main=args.main)
         elif args.command == "precheck":
             for name in ("old_pack", "new_pack"):
                 ei.pack(getattr(args, name))
