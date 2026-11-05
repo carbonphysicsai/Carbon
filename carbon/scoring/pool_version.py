@@ -192,6 +192,10 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
                 a_gen_aggregate=_a_gen_aggregate(
                     optimizer.get("a_gen_aggregate", _ABSENT)
                 ),
+                # optional, NEW versions only (with "ood_class_mean"): the version plan's N, no default
+                a_gen_min_class_cases=_a_gen_aggregate(
+                    optimizer.get("a_gen_min_class_cases", _ABSENT)
+                ),
                 coverage_plan_sha256=_coverage_plan_sha256(
                     optimizer.get("coverage_plan_sha256", _ABSENT)
                 ),

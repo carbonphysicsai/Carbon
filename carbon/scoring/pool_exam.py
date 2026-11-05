@@ -356,6 +356,17 @@ def _basis_regions(basis, optimizer, sets):
     for targets, specs in zip(basis["sets"], sets, strict=True):
         for target, spec in zip(targets, specs, strict=True):
             target["region"] = pool_grader.region_class(spec, plan)
+    if optimizer.a_gen_aggregate == "ood_class_mean":
+        # The out-of-range A_gen classes per set, the small ones pooled, as `agen_accuracy` grouped them (fixed from the
+        # full set: a class's resample keeps its size, so its pooling does not change).
+        basis["agen_orders"] = []
+        for targets, specs in zip(basis["sets"], sets, strict=True):
+            buckets, order = pool_grader.agen_buckets(
+                specs, plan, optimizer.a_gen_min_class_cases
+            )
+            for target, bucket in zip(targets, buckets, strict=True):
+                target["agen_region"] = bucket
+            basis["agen_orders"].append(list(order))
 
 
 def _region_mean(targets, key, order):
@@ -376,10 +387,18 @@ def total_of_targets(basis, sets):
     """
     order = basis.get("classes")
     a_values, d_values = [], []
-    for targets in sets:
+    for position, targets in enumerate(sets):
         if basis.get("a_gen_aggregate") is None:
             gens = [t["agen"] for t in targets if t["agen"] is not None]
             a_gen = statistics.fmean(gens) if gens else None
+        elif basis["a_gen_aggregate"] == "ood_class_mean":
+            rows = [t for t in targets if t["agen"] is not None]
+            regions = pool_grader.region_means(
+                [t["agen_region"] for t in rows],
+                [t["agen"] for t in rows],
+                basis["agen_orders"][position],
+            )
+            a_gen = statistics.fmean(v for _n, v in regions) if regions else None
         else:
             a_gen = _region_mean(targets, "agen", order)
         a_values.append(pool_grader.combine_a(basis["a_bank"], a_gen, basis["a_rule"]))

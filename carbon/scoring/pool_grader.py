@@ -201,7 +201,15 @@ class OptimizerPolicy:
     #: How a set's A_gen aggregates its targets, for NEW exam versions only. None is the plain mean over the targets with a
     #: reserved slice (every registered version). ``"balanced_region_mean"`` is the mean over the coverage plan's classes of
     #: each class's mean A_gen, so a small class cannot be averaged away. It needs a registered coverage plan.
+    #: ``"ood_class_mean"`` (OWNER-ACCURACY-OOD-MIN-01 item 1) is the OUT-OF-RANGE form: A_gen is scored on out-of-range
+    #: classes only (a class is out of range when every target in it is an extended, OOD-shell target; a reserved slice on
+    #: an in-range target, or a class mixing both, refuses), each class's mean A_gen averaged over the classes, and the
+    #: classes with fewer than ``a_gen_min_class_cases`` reserved cases pooled into one ``other_ood`` class.
     a_gen_aggregate: str | None = None
+    #: N of OWNER-ACCURACY-OOD-MIN-01 item 1 ("classes with fewer than N cases pool into other OOD"; N is set in the version
+    #: plan): an int >= 1, required with ``a_gen_aggregate == "ood_class_mean"`` and None otherwise. A case is one reserved
+    #: A_gen point of a target in that class.
+    a_gen_min_class_cases: int | None = None
     #: The sha256 (64 hex) of the version's registered coverage-plan class map (`coverage_plan`): the class-map document
     #: the grader reads, as the pool constants name it; None for every registered version. When set, a set is graded only
     #: with that exact map attached.
@@ -231,7 +239,9 @@ VARIANT_KINDS = ("limit_shift",)
 VARIANT_AGGREGATES = ("mean",)
 REGION_CLASSES = ("in_train", "extended_shell")
 D_AGGREGATES = (None, "balanced_region_mean")
-A_GEN_AGGREGATES = (None, "balanced_region_mean")
+A_GEN_AGGREGATES = (None, "balanced_region_mean", "ood_class_mean")
+#: The pooled class of OWNER-ACCURACY-OOD-MIN-01 item 1: out-of-range classes with fewer than N reserved cases.
+OTHER_OOD = "other_ood"
 COVERAGE_PLAN_SCHEMA = "carbon.pool.coverage-plan.v1"
 
 
@@ -394,7 +404,7 @@ def _check_policies(optimizer, honesty):
     )
     _require(
         optimizer.a_gen_aggregate in A_GEN_AGGREGATES,
-        "a_gen_aggregate_must_be_none_or_balanced_region_mean",
+        "a_gen_aggregate_must_be_none_balanced_region_mean_or_ood_class_mean",
     )
     _require(
         optimizer.coverage_plan_sha256 is None
@@ -414,6 +424,12 @@ def _check_policies(optimizer, honesty):
     _require(
         optimizer.a_gen_aggregate is None or optimizer.coverage_plan_sha256 is not None,
         "a_gen_aggregate_needs_a_registered_coverage_plan",
+    )
+    _require(
+        _valid_min_class_cases(
+            optimizer.a_gen_aggregate, optimizer.a_gen_min_class_cases
+        ),
+        "a_gen_min_class_cases_must_be_a_positive_int_with_ood_class_mean_only",
     )
     plan = optimizer.coverage_plan
     _require(
@@ -1172,7 +1188,121 @@ def region_means(classes, values, order):
     )
 
 
-def agen_accuracy(specs, predict, scales, *, aggregate=None, plan=None):
+def _valid_min_class_cases(aggregate, n):
+    if aggregate != "ood_class_mean":
+        return n is None
+    return type(n) is int and n >= 1
+
+
+def agen_buckets(specs, plan, min_class_cases):
+    """The out-of-range A_gen classes of a set (``a_gen_aggregate == "ood_class_mean"``): ``(bucket per target or None,
+    bucket order)``. A target's bucket is its plan class, or `OTHER_OOD` when that class holds fewer than
+    ``min_class_cases`` reserved cases; None for a target without a slice. The order is the plan's out-of-range classes
+    that keep their own bucket, then `OTHER_OOD`.
+
+    Refused: an in-range target holding a reserved slice (A_gen is out of range only: min(A, A_gen) would otherwise
+    compare in-range with a mix), a class mixing in-range and out-of-range targets, a plan class named `OTHER_OOD`, and
+    a set with no out-of-range case at all."""
+    _require(
+        isinstance(plan, CoveragePlan),
+        "a_gen_aggregate_needs_a_registered_coverage_plan",
+    )
+    _require(
+        _valid_min_class_cases("ood_class_mean", min_class_cases),
+        "a_gen_min_class_cases_must_be_a_positive_int_with_ood_class_mean_only",
+    )
+    _require(OTHER_OOD not in plan.classes, "coverage_plan_class_named_other_ood")
+    classes = _plan_classes(specs, plan)
+    kinds, cases = {}, {}
+    for name, spec in zip(classes, specs, strict=True):
+        kinds.setdefault(name, set()).add(spec.extended)
+        cases[name] = cases.get(name, 0) + len(spec.agen)
+        _require(spec.extended or not spec.agen, "a_gen_slice_on_an_in_range_target")
+    _require(
+        all(len(kind) == 1 for kind in kinds.values()),
+        "a_gen_class_mixes_in_range_and_out_of_range_targets",
+    )
+    _require(any(cases.values()), "a_gen_has_no_out_of_range_case")
+    own = tuple(
+        name
+        for name in plan.classes
+        if kinds[name] == {True} and cases[name] >= min_class_cases
+    )
+    buckets = tuple(
+        None if not spec.agen else (name if name in own else OTHER_OOD)
+        for name, spec in zip(classes, specs, strict=True)
+    )
+    order = own + ((OTHER_OOD,) if OTHER_OOD in buckets else ())
+    return buckets, order
+
+
+def _target_agen(spec, predict, scales):
+    """One target's A_gen on its reserved slice (None without one)."""
+    if not spec.agen:
+        return None
+    _require(
+        set(scales) >= set(spec.outputs)
+        and all(_finite(scales[k]) and scales[k] > 0 for k in spec.outputs),
+        "agen_scales_must_cover_the_outputs",
+    )
+    batch = predict(spec.conditions, [list(spec.designs[i]) for i in spec.agen])
+    _require(
+        type(batch) is list and len(batch) == len(spec.agen),
+        "agen_prediction_invalid",
+    )
+    atoms = []
+    for index, prediction in zip(spec.agen, batch):
+        _require(_valid_prediction(prediction, spec.outputs), "agen_prediction_invalid")
+        atoms += [
+            benefit(abs(prediction[k] - spec.truths[index][k]) / scales[k])
+            for k in spec.outputs
+        ]
+    return statistics.fmean(atoms)
+
+
+def agen_class_report(specs, predict, reference_predict, scales, optimizer):
+    """CUSTODY report of OWNER-ACCURACY-OOD-MIN-01 item 4 (per-class floors REPORTED against the TRAIN-kernel; a hard
+    floor is a later owner pick): for each out-of-range A_gen class of an ``ood_class_mean`` version, in the grade's
+    order, ``{"class", "members" (the plan classes pooled into it), "cases", "a_gen", "reference_a_gen", "gap"}``, where
+    ``reference_predict`` is the TRAIN-kernel's predictor on the same set. Report only: nothing here enters a grade.
+    It names classes, so it stays in custody."""
+    _check_policies_a_gen_report(optimizer)
+    plan = optimizer.coverage_plan
+    buckets, order = agen_buckets(specs, plan, optimizer.a_gen_min_class_cases)
+    classes = _plan_classes(specs, plan)
+    rows = []
+    for bucket in order:
+        members = [n for n, b in enumerate(buckets) if b == bucket]
+        own = [_target_agen(specs[n], predict, scales) for n in members]
+        ref = [_target_agen(specs[n], reference_predict, scales) for n in members]
+        a_gen, reference = statistics.fmean(own), statistics.fmean(ref)
+        rows.append(
+            {
+                "class": bucket,
+                "members": sorted({classes[n] for n in members}),
+                "cases": sum(len(specs[n].agen) for n in members),
+                "a_gen": a_gen,
+                "reference_a_gen": reference,
+                "gap": a_gen - reference,
+            }
+        )
+    return rows
+
+
+def _check_policies_a_gen_report(optimizer):
+    _require(
+        optimizer.a_gen_aggregate == "ood_class_mean",
+        "a_gen_class_report_needs_ood_class_mean",
+    )
+    _require(
+        isinstance(optimizer.coverage_plan, CoveragePlan),
+        "a_gen_aggregate_needs_a_registered_coverage_plan",
+    )
+
+
+def agen_accuracy(
+    specs, predict, scales, *, aggregate=None, plan=None, min_class_cases=None
+):
     """A_gen: accuracy on the reserved slice, atom form benefit(|error| / scale) = 1 / (1 + loss), the common
     benefit of `design_fidelity`, averaged over outputs, points and targets. `scales` is {output: scale} and
     required (OWNER). None when no target has a slice. The slice is never queried by the optimiser.
@@ -1181,14 +1311,26 @@ def agen_accuracy(specs, predict, scales, *, aggregate=None, plan=None):
     (every registered version). ``"balanced_region_mean"`` is the mean over `plan`'s classes (in the plan's order) of each
     class's mean target A_gen. It needs the registered `plan`. A target missing from the plan, a set missing a registered
     class, or (balanced) a class with no target holding a reserved slice is refused, never defaulted or skipped.
+    ``"ood_class_mean"`` is the out-of-range form (`agen_buckets`, with ``min_class_cases`` = the registered N): the mean
+    over the out-of-range classes, the small ones pooled, of each class's mean target A_gen.
     """
     _require(
         aggregate in A_GEN_AGGREGATES,
-        "a_gen_aggregate_must_be_none_or_balanced_region_mean",
+        "a_gen_aggregate_must_be_none_balanced_region_mean_or_ood_class_mean",
     )
     _require(
         aggregate is None or isinstance(plan, CoveragePlan),
         "a_gen_aggregate_needs_a_registered_coverage_plan",
+    )
+    if aggregate == "ood_class_mean":
+        buckets, order = agen_buckets(specs, plan, min_class_cases)
+        owned = [n for n, b in enumerate(buckets) if b is not None]
+        values = [_target_agen(specs[n], predict, scales) for n in owned]
+        regions = region_means([buckets[n] for n in owned], values, order)
+        return statistics.fmean(value for _name, value in regions)
+    _require(
+        min_class_cases is None,
+        "a_gen_min_class_cases_must_be_a_positive_int_with_ood_class_mean_only",
     )
     classes = _plan_classes(specs, plan)
     if aggregate is not None:
@@ -1201,26 +1343,7 @@ def agen_accuracy(specs, predict, scales, *, aggregate=None, plan=None):
     for position, spec in enumerate(specs):
         if not spec.agen:
             continue
-        _require(
-            set(scales) >= set(spec.outputs)
-            and all(_finite(scales[k]) and scales[k] > 0 for k in spec.outputs),
-            "agen_scales_must_cover_the_outputs",
-        )
-        batch = predict(spec.conditions, [list(spec.designs[i]) for i in spec.agen])
-        _require(
-            type(batch) is list and len(batch) == len(spec.agen),
-            "agen_prediction_invalid",
-        )
-        atoms = []
-        for index, prediction in zip(spec.agen, batch):
-            _require(
-                _valid_prediction(prediction, spec.outputs), "agen_prediction_invalid"
-            )
-            atoms += [
-                benefit(abs(prediction[k] - spec.truths[index][k]) / scales[k])
-                for k in spec.outputs
-            ]
-        values.append(statistics.fmean(atoms))
+        values.append(_target_agen(spec, predict, scales))
         owners.append(position)
     if not values:
         return None
@@ -1258,6 +1381,7 @@ def agen_for(specs, predict, scales, optimizer):
         scales,
         aggregate=optimizer.a_gen_aggregate,
         plan=optimizer.coverage_plan,
+        min_class_cases=optimizer.a_gen_min_class_cases,
     )
 
 
