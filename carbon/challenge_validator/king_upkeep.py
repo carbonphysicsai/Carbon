@@ -229,7 +229,9 @@ def _step(pool, intake, root, artifacts, entries, active):
                 pool, king, exam, REGRADE, str(getattr(error, "code", None) or error)
             )
         if moved:
-            return _rebuild(pool, intake, king, exam, waiting, artifacts, entries)
+            return _rebuild(
+                pool, intake, king, exam, waiting, artifacts, entries, entry
+            )
         koth_journal.note(
             "king_regrade_started", incumbent=king, waiting=len(waiting), exam=exam
         )
@@ -318,7 +320,7 @@ def _step(pool, intake, root, artifacts, entries, active):
     )
 
 
-def _rebuild(pool, intake, king, exam, waiting, artifacts, entries):
+def _rebuild(pool, intake, king, exam, waiting, artifacts, entries, entry):
     """ROUTE (b) (Carbon Validator 5 Nov 10:53 / 10:57): the king predates this judge image, so his admitted recipe is
     rebuilt on it and graded as a challenger's would be, filed under its derived row and linked to him
     (`lean_recipe_retention.rebuild_king`). A capability gap stops his contention once, with ONE owner line; anything
@@ -335,6 +337,7 @@ def _rebuild(pool, intake, king, exam, waiting, artifacts, entries):
             pool,
             king=king,
             evaluation_key=key,
+            king_entry=entry,
             artifact_directory=artifacts,
             entry_directory=entries,
         )

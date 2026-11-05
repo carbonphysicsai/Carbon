@@ -240,9 +240,21 @@ def wired(door, monkeypatch, tmp_path):
 
     adapter.deriving = lambda task, owner: contextlib.nullcontext()
 
-    def build(adapter_, origin, seed, *, rebuild, host_owner):
+    def build(adapter_, origin, seed, *, rebuild, host_owner, recipe, graph_source):
         calls["build"] = (origin, seed, rebuild, host_owner)
+        calls["built"] = (recipe, graph_source)
         return "rtsk_" + "d" * 64
+
+    def origin(adapter_, base, entries, entry_id, *, incumbent):
+        calls["origin"] = (entry_id, incumbent)
+        retained = SimpleNamespace(
+            digest=calls.get(
+                "retained", door.store.submission("king")["binding"]["recipe_digest"]
+            ),
+            to_dict=lambda: {"source": {"kind": "graph"}},
+        )
+        files = {"source-envelope.json": b"the king's retained envelope"}
+        return None, calls.get("origin_id", "king"), None, None, files, retained
 
     def retain(adapter_, task_id, *, artifact_directory, entry_directory):
         entry = tmp_path / "entry.json"
@@ -273,6 +285,8 @@ def wired(door, monkeypatch, tmp_path):
         }
 
     monkeypatch.setattr(retention, "_derived_build", build)
+    monkeypatch.setattr(retention, "_regrade_origin", origin)
+    monkeypatch.setattr(retention, "_owner_directory", lambda value, label: value)
     monkeypatch.setattr(retention, "_retain_served_artifacts", retain)
     monkeypatch.setattr(retention, "regrade_retained_entry", regrade)
     monkeypatch.setattr(
@@ -285,6 +299,7 @@ def wired(door, monkeypatch, tmp_path):
             door.store,
             king="king",
             evaluation_key=door.key,
+            king_entry=digest("king entry"),
             artifact_directory=tmp_path,
             entry_directory=tmp_path,
         )
@@ -300,6 +315,11 @@ def test_rebuild_king_builds_his_recipe_at_the_official_seed_host_owned_and_file
     out = wired.run()
     origin, seed, _label, host = wired.calls["build"]
     assert (origin, seed, host) == ("king", 0, crown_average.HOST_OWNER)
+    # his recipe and envelope are his own retained files, read through his origin entry as the sitting king
+    recipe, envelope = wired.calls["built"]
+    assert recipe.digest == door.store.submission("king")["binding"]["recipe_digest"]
+    assert envelope == b"the king's retained envelope"
+    assert wired.calls["origin"] == (digest("king entry"), "king")
     assert (
         seed == retention.KING_REBUILD_SEED == 0
     )  # the official seed a challenger's entry gets
@@ -332,11 +352,89 @@ def test_rebuild_king_links_only_a_bound_grade_and_refuses_another_recipe_or_a_n
         retention.RetentionUnavailable, match="king_rebuild_recipe_differs"
     ):
         wired.run()
+    wired.calls.pop("recipe")
+    wired.calls["retained"] = digest("a retained recipe that is not his admission")
+    with pytest.raises(
+        retention.RetentionUnavailable, match="king_rebuild_recipe_differs"
+    ):
+        wired.run()
+    wired.calls.pop("retained")
+    wired.calls["origin_id"] = "rtsk_" + "f" * 64
+    with pytest.raises(
+        retention.RetentionUnavailable, match="king_rebuild_origin_differs"
+    ):
+        wired.run()
     door.store.set_incumbent("challenger", "test", expected="king")
     with pytest.raises(
         retention.RetentionUnavailable, match="king_rebuild_not_the_sitting_king"
     ):
         wired.run()
+
+
+def test_the_build_never_reads_the_origin_provider_when_custody_gives_the_recipe(
+    monkeypatch,
+):
+    """Deploy 5 Nov (Motor, bbcabff3): a king admitted under an earlier contract/pack is not in his provider's
+    in-memory requests, and the old build head raised a bare KeyError on his task id before any build. With the recipe
+    and envelope from custody the origin's owner and provider are never consulted."""
+    from carbon import research
+    from carbon.research import DirectTaskStateV3
+
+    seen = {}
+    done = SimpleNamespace(task=SimpleNamespace(state=DirectTaskStateV3.SUCCEEDED))
+
+    def start(request, *, measure_query, **graph):
+        seen["graph"] = graph
+        return done
+
+    host = SimpleNamespace(
+        evaluation_pack_digest="EXAM",
+        _views={},
+        _requests={},  # no request for the king: the 5 Nov state
+        _task_id=lambda request: SimpleNamespace(value="rtsk_" + "d" * 64),
+        set_rebuild_seed=lambda task, seed: seen.setdefault("seed", seed),
+        start_research_task=start,
+        get_research_result=lambda request: done,
+    )
+
+    def provider(owner):
+        assert owner == "host", "the origin's provider must not be read"
+        return host
+
+    def no_origin_owner(sid):
+        raise AssertionError("the origin's owner must not be read")
+
+    adapter = SimpleNamespace(
+        owner=no_origin_owner,
+        _provider=provider,
+        _request=lambda owner, recipe, **k: (owner, recipe, k),
+        _measure_query=None,
+        discovery=SimpleNamespace(info=SimpleNamespace(challenge_key="K")),
+    )
+    monkeypatch.setattr(research, "DirectGetTaskRequestV3", lambda *a: a)
+    recipe = SimpleNamespace(digest="R", to_dict=lambda: {"source": {"kind": "graph"}})
+    task = retention._derived_build(
+        adapter,
+        "rtsk_" + "a" * 64,
+        0,
+        rebuild="KING_REBUILD",
+        host_owner="host",
+        recipe=recipe,
+        graph_source=b"envelope",
+    )
+    assert task == "rtsk_" + "d" * 64
+    assert seen == {"seed": 0, "graph": {"graph_source": b"envelope"}}
+    with pytest.raises(
+        retention.RetentionUnavailable, match="rebuild_graph_source_unavailable"
+    ):
+        retention._derived_build(
+            adapter,
+            "rtsk_" + "a" * 64,
+            0,
+            rebuild="KING_REBUILD",
+            host_owner="host",
+            recipe=recipe,
+        )
 
 
 # --- the upkeep -----------------------------------------------------------------------------------------------------

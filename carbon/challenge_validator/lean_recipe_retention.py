@@ -2981,6 +2981,7 @@ def rebuild_king(
     *,
     king,
     evaluation_key,
+    king_entry,
     artifact_directory,
     entry_directory,
     runner=None,
@@ -3000,11 +3001,15 @@ def rebuild_king(
     5. link: the write-once ``king_rebuild.v1`` (king -> derived for this key), through which contention resolves the
        king's evaluation; his submission id stays the crown, board and contention identity.
 
+    The recipe and, for a graph king, its source envelope are his own sha-checked RETAINED files (``king_entry``: his
+    origin bank entry, read by `_regrade_origin`), the recipe's digest equal to his ADMITTED recipe digest (so it is
+    his admitted recipe, by content identity). The origin task's provider is never read: a king admitted under an
+    earlier contract or pack is not in its in-memory requests (Deploy 5 Nov: ``king_upkeep_failed`` with a bare
+    KeyError on the king's task id).
+
     Returns the regrade's result. A build the image refuses raises `RetentionUnavailable` with `KING_REBUILD_GAP`;
     any other failure raises its own typed code (infrastructure: retried by the caller).
     """
-    import contextlib
-
     from carbon.challenge_validator import crown_average
 
     incumbent = (pool_store.incumbent() or {}).get("model_id")
@@ -3014,22 +3019,30 @@ def rebuild_king(
     hotkey = admitted["hotkey"]
     binding = admitted["binding"]
     recipe_digest = binding.get("recipe_digest")
-    # the origin's owner: the king may predate this receiver's contract (Deploy 06:15): hold his admitted owner
-    hold = contextlib.nullcontext()
-    if adapter.owner(king) is None:
-        admitted_owner = adapter.ledger.admitted_owner(king)
-        if admitted_owner is None or admitted_owner[1] != hotkey:
-            raise RetentionUnavailable("king_rebuild_owner_unavailable")
-        hold = adapter.deriving(king, admitted_owner[1])
+    base = _owner_directory(artifact_directory, "artifact_directory")
+    entries = _owner_directory(entry_directory, "entry_directory")
+    _entry, origin, _owner, _manifest, files, recipe = _regrade_origin(
+        adapter, base, entries, king_entry, incumbent=king
+    )
+    if origin != king:
+        raise RetentionUnavailable("king_rebuild_origin_differs")
+    if recipe.digest != recipe_digest:
+        raise RetentionUnavailable("king_rebuild_recipe_differs")
+    graph_source = None
+    if recipe.to_dict()["source"]["kind"] == "graph":
+        graph_source = files.get("source-envelope.json")
+        if type(graph_source) is not bytes:
+            raise RetentionUnavailable("rebuild_graph_source_unavailable")
     host_owner = crown_average.HOST_OWNER
-    with hold:
-        task_id = _derived_build(
-            adapter,
-            king,
-            KING_REBUILD_SEED,
-            rebuild=f"KING_REBUILD\0{king}\0{evaluation_key}",
-            host_owner=host_owner,
-        )
+    task_id = _derived_build(
+        adapter,
+        king,
+        KING_REBUILD_SEED,
+        rebuild=f"KING_REBUILD\0{king}\0{evaluation_key}",
+        host_owner=host_owner,
+        recipe=recipe,
+        graph_source=graph_source,
+    )
     judge_image = adapter._provider(host_owner).inference_image.image_id
     derived = king_rebuild_id(king, judge_image, evaluation_key)
     with adapter.deriving(task_id, host_owner):
@@ -3285,29 +3298,40 @@ def retain_rebuild_evidence(
     return {"submission_id": derived_task_id, "evidence": evidence}
 
 
-def _derived_build(adapter, origin, seed, *, rebuild, host_owner):
+def _derived_build(
+    adapter, origin, seed, *, rebuild, host_owner, recipe=None, graph_source=None
+):
     """BUILD ``origin``'s admitted recipe as a derived task under ``host_owner`` at ``seed`` (the shared build half of
     `rebuild_at_seed` and `rebuild_king`): the same admission, build and FAILED_INFRA rerun rule as any task, its identity
     bound to ``rebuild`` (a label of the caller's). Returns the SUCCEEDED derived task's id, or raises
     `RetentionUnavailable` (``rebuild_task_<state>`` for a task that did not succeed).
+
+    ``recipe`` (a ConstructionRecipe) and, for a graph, ``graph_source`` (its envelope bytes) come from a caller that
+    holds them from custody (`rebuild_king`: the pool's admitted recipe and the king's retained envelope); without
+    them both are read from the ORIGIN task's provider, as the crown re-measure always has.
     """
     from carbon.development_session.construction_recipe import ConstructionRecipe
     from carbon.research import DirectTaskStateV3
 
-    origin_owner = adapter.owner(origin)
-    if origin_owner is None:
-        raise RetentionUnavailable("rebuild_origin_unavailable")
-    origin_provider = adapter._provider(origin_owner)
-    origin_recipe = origin_provider._requests[origin].recipe
-    recipe = ConstructionRecipe.from_dict(origin_recipe)
     # A graph recipe's source is the ORIGIN task's retained envelope (the host owner has no workspace); the host
     # task checks it against the recipe's submission digest at admission.
     graph = {}
-    if origin_recipe["source"]["kind"] == "graph":
-        try:
-            graph["graph_source"] = origin_provider._source_envelope(origin, recipe)
-        except (OSError, ValueError) as exc:
-            raise RetentionUnavailable("rebuild_graph_source_unavailable") from exc
+    if recipe is None:
+        origin_owner = adapter.owner(origin)
+        if origin_owner is None:
+            raise RetentionUnavailable("rebuild_origin_unavailable")
+        origin_provider = adapter._provider(origin_owner)
+        origin_recipe = origin_provider._requests[origin].recipe
+        recipe = ConstructionRecipe.from_dict(origin_recipe)
+        if origin_recipe["source"]["kind"] == "graph":
+            try:
+                graph["graph_source"] = origin_provider._source_envelope(origin, recipe)
+            except (OSError, ValueError) as exc:
+                raise RetentionUnavailable("rebuild_graph_source_unavailable") from exc
+    elif recipe.to_dict()["source"]["kind"] == "graph":
+        if type(graph_source) is not bytes:
+            raise RetentionUnavailable("rebuild_graph_source_unavailable")
+        graph["graph_source"] = graph_source
     provider = adapter._provider(host_owner)
     # Invariant 7: a derived task that ended on OUR infrastructure (FAILED_INFRA, unresolved, cancelled) is never the
     # model's result and is never read again: the next try is the next fresh generation (`rerun`, the miner path's own
