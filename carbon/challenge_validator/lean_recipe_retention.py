@@ -1935,7 +1935,7 @@ def remeasure_incumbent_pack(
     )
     import contextlib
 
-    origin, hold = submission_id, contextlib.nullcontext()
+    origin, hold, source = submission_id, contextlib.nullcontext(), None
     rebound = (
         pool_store.origin_rebind(submission_id)
         if hasattr(pool_store, "origin_rebind")
@@ -1954,10 +1954,20 @@ def remeasure_incumbent_pack(
         admitted = adapter.ledger.admitted_owner(submission_id)
         if admitted is not None:
             hold = adapter.deriving(submission_id, admitted[1])
+        # ... and his request is not in the current provider's memory: his rebuilds build from his retained recipe
+        source = retained_king_source(
+            adapter,
+            pool_store,
+            submission_id,
+            entry_id,
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+        )
     repeat = _repeat_of(
         adapter,
         origin,
         entry_id,
+        source=source,
         artifact_directory=artifact_directory,
         entry_directory=entry_directory,
         runner=runner,
@@ -3019,20 +3029,14 @@ def rebuild_king(
     hotkey = admitted["hotkey"]
     binding = admitted["binding"]
     recipe_digest = binding.get("recipe_digest")
-    base = _owner_directory(artifact_directory, "artifact_directory")
-    entries = _owner_directory(entry_directory, "entry_directory")
-    _entry, origin, _owner, _manifest, files, recipe = _regrade_origin(
-        adapter, base, entries, king_entry, incumbent=king
+    source = retained_king_source(
+        adapter,
+        pool_store,
+        king,
+        king_entry,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
     )
-    if origin != king:
-        raise RetentionUnavailable("king_rebuild_origin_differs")
-    if recipe.digest != recipe_digest:
-        raise RetentionUnavailable("king_rebuild_recipe_differs")
-    graph_source = None
-    if recipe.to_dict()["source"]["kind"] == "graph":
-        graph_source = files.get("source-envelope.json")
-        if type(graph_source) is not bytes:
-            raise RetentionUnavailable("rebuild_graph_source_unavailable")
     host_owner = crown_average.HOST_OWNER
     task_id = _derived_build(
         adapter,
@@ -3040,8 +3044,7 @@ def rebuild_king(
         KING_REBUILD_SEED,
         rebuild=f"KING_REBUILD\0{king}\0{evaluation_key}",
         host_owner=host_owner,
-        recipe=recipe,
-        graph_source=graph_source,
+        **source,
     )
     judge_image = adapter._provider(host_owner).inference_image.image_id
     derived = king_rebuild_id(king, judge_image, evaluation_key)
@@ -3079,6 +3082,31 @@ def rebuild_king(
             hotkey=hotkey,
         )
     return {**graded, "king_rebuild_id": derived, "king_rebuild_task": task_id}
+
+
+def retained_king_source(
+    adapter, pool_store, king, entry_id, *, artifact_directory, entry_directory
+):
+    """``{"recipe", "graph_source"}`` to BUILD the sitting ``king`` from custody: his own sha-checked retained recipe
+    (its digest equal to his ADMITTED recipe digest) and, for a graph, his retained source envelope, read through his
+    origin bank entry ``entry_id`` under the sitting-king owner lookup (`_regrade_origin`). For `rebuild_king` and the
+    re-measure of a king admitted under an earlier contract or pack, whose request the current provider does not hold
+    in memory (Deploy 5 Nov, Motor: a bare KeyError on his task id)."""
+    base = _owner_directory(artifact_directory, "artifact_directory")
+    entries = _owner_directory(entry_directory, "entry_directory")
+    _entry, origin, _owner, _manifest, files, recipe = _regrade_origin(
+        adapter, base, entries, entry_id, incumbent=king
+    )
+    if origin != king:
+        raise RetentionUnavailable("king_rebuild_origin_differs")
+    if recipe.digest != pool_store.submission(king)["binding"].get("recipe_digest"):
+        raise RetentionUnavailable("king_rebuild_recipe_differs")
+    graph_source = None
+    if recipe.to_dict()["source"]["kind"] == "graph":
+        graph_source = files.get("source-envelope.json")
+        if type(graph_source) is not bytes:
+            raise RetentionUnavailable("rebuild_graph_source_unavailable")
+    return {"recipe": recipe, "graph_source": graph_source}
 
 
 def _admit_king_rebuild(pool_store, derived, admitted, artifacts, task_id, judge_image):
@@ -3383,8 +3411,12 @@ def rebuild_at_seed(
     artifact_directory,
     entry_directory,
     runner=None,
+    source=None,
 ):
     """The crown's averaging rebuild: build ``origin``'s recipe AGAIN at the validator-chosen ``seed`` and grade it.
+
+    ``source`` (`retained_king_source`) gives the recipe and envelope from custody for a king the current provider
+    does not hold in memory; without it they are read from the origin's provider, as before.
 
     A derived task under the HOST-OWNED synthetic ``host_owner`` (never a chain hotkey, never the miner), through the
     same admission, build, inference, retention and custody code as any task: only its build seed differs (the
@@ -3399,6 +3431,7 @@ def rebuild_at_seed(
         seed,
         rebuild=f"{origin}\0{seed}\0{repeat}",
         host_owner=host_owner,
+        **(source or {}),
     )
     with adapter.deriving(task_id, host_owner):
         return retain_rebuild_evidence(
@@ -3410,7 +3443,7 @@ def rebuild_at_seed(
         )
 
 
-def _repeat_of(adapter, origin, entry_id, **custody):
+def _repeat_of(adapter, origin, entry_id, *, source=None, **custody):
     """`repeat` for `BankPromotion.consider_private`: the second grade of the one state this task retains. Another
     state (an incumbent without a repeat mark) is not retained here, so it gives none and no crown moves.
     """
@@ -3438,6 +3471,7 @@ def _repeat_of(adapter, origin, entry_id, **custody):
             seed,
             repeat=repeat_index,
             host_owner=crown_average.HOST_OWNER,
+            source=source,
             **custody,
         )
 

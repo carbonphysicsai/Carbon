@@ -143,7 +143,18 @@ def test_the_crown_remeasure_holds_the_kings_admitted_owner(tmp_path, monkeypatc
             return {"outcome": "KING_MEASURED"}
 
     monkeypatch.setattr(crown_average, "ACTIVE", Active())
-    monkeypatch.setattr(retention, "_repeat_of", lambda *a, **k: None)
+    repeats = []
+    monkeypatch.setattr(retention, "_repeat_of", lambda *a, **k: repeats.append(k))
+    # Deploy 5 Nov (Motor): the current provider does not hold his request in memory, so his rebuilds take his
+    # recipe from custody (`retained_king_source`), never the provider's map
+    custody = {"recipe": "his retained recipe", "graph_source": b"his envelope"}
+    monkeypatch.setattr(
+        retention,
+        "retained_king_source",
+        lambda adapter_, store_, king, entry, **dirs: (
+            custody if (king, entry) == (KING, digest("entry")) else None
+        ),
+    )
     monkeypatch.setattr(
         "carbon.challenge_validator.koth_registry.comparator", lambda *a, **k: {}
     )
@@ -160,6 +171,36 @@ def test_the_crown_remeasure_holds_the_kings_admitted_owner(tmp_path, monkeypatc
         entry_directory=tmp_path,
     )
     assert held == [HOTKEY] and adapter._derived_owners == {}
+    assert repeats[0]["source"] is custody
+
+
+def test_a_rebuild_given_a_custody_source_builds_from_it(monkeypatch):
+    builds = []
+
+    def build(adapter_, origin, seed, *, rebuild, host_owner, **source):
+        builds.append(source)
+        return "rtsk_" + "d" * 64
+
+    import contextlib
+
+    adapter = SimpleNamespace(deriving=lambda task, owner: contextlib.nullcontext())
+    monkeypatch.setattr(retention, "_derived_build", build)
+    monkeypatch.setattr(retention, "retain_rebuild_evidence", lambda *a, **k: {})
+    custody = {"recipe": "his retained recipe", "graph_source": None}
+    for source in (custody, None):
+        retention.rebuild_at_seed(
+            adapter,
+            KING,
+            7,
+            host_owner="host",
+            artifact_directory=None,
+            entry_directory=None,
+            source=source,
+        )
+    assert builds == [
+        custody,
+        {},
+    ]  # without one: the origin provider's request, as before
 
 
 # --- recontend -------------------------------------------------------------------------------------------------------
