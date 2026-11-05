@@ -142,6 +142,7 @@ class _Intake:
             discovery=SimpleNamespace(evaluation_pack_digest=EXAM)
         )
         self.pool, self.lands, self.fails, self.calls = pool, lands, fails, []
+        self.unbound = None
 
     def regrade_result(
         self, entry_id, *, artifact_directory, entry_directory, promotion
@@ -149,9 +150,19 @@ class _Intake:
         self.calls.append((entry_id, promotion))
         if self.fails:
             raise retention.RetentionUnavailable("regrade_case_bank_unavailable")
+        if self.unbound:
+            # the grade returns its typed reason instead of raising (lean_recipe_retention's evaluation step)
+            return {
+                "status": "CREATED",
+                "private_evaluation_state": "UNAVAILABLE",
+                "private_evaluation_reason": self.unbound,
+            }
         if self.lands:
             self.pool.waiting = 0
-        return {"status": "CREATED"}
+        return {
+            "status": "CREATED",
+            "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
+        }
 
 
 def _step(pool, intake, active=None):
@@ -605,3 +616,20 @@ def test_a_check_that_could_not_be_made_is_retried_a_minute_later_not_left_until
     now[0] += 10 * king_upkeep.STRANDED_RETRY_SECONDS
     grader._king_upkeep()
     assert len(calls) == 2  # made: never again this start
+
+
+def test_a_regrade_that_returns_unbound_fails_with_its_own_reason_not_the_key_check(
+    tmp_path, entry, capsys
+):
+    """Deploy 5 Nov 10:5x: the grade returned UNAVAILABLE (leg_minimum_platform_mismatch); only key_differs was logged."""
+    pool = _Pool(_store(tmp_path))
+    intake = _Intake(pool)
+    intake.unbound = "leg_minimum_platform_mismatch"
+    assert _step(pool, intake) == {
+        "step": "regrade",
+        "state": "FAILED",
+        "code": "regrade_unbound:leg_minimum_platform_mismatch",
+    }
+    lines = [json.loads(line) for line in capsys.readouterr().err.splitlines()]
+    (failed,) = [line for line in lines if line["event"] == "king_upkeep_failed"]
+    assert failed["code"] == "regrade_unbound:leg_minimum_platform_mismatch"

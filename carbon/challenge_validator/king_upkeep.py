@@ -202,7 +202,7 @@ def _step(pool, intake, root, artifacts, entries, active):
             "king_regrade_started", incumbent=king, waiting=len(waiting), exam=exam
         )
         try:
-            intake.regrade_result(
+            regraded = intake.regrade_result(
                 entry,
                 artifact_directory=artifacts,
                 entry_directory=entries,
@@ -215,6 +215,24 @@ def _step(pool, intake, root, artifacts, entries, active):
                 exam,
                 REGRADE,
                 str(getattr(error, "code", None) or error or type(error).__name__),
+            )
+        state = (
+            regraded.get("private_evaluation_state") if type(regraded) is dict else None
+        )
+        if state != "BOUND_DEVELOPMENT_ONLY":
+            # The grade itself stopped (it returns its typed reason instead of raising, e.g. the pack's
+            # leg_minimum_platform_mismatch): that reason, never the key post-check (Deploy 5 Nov 10:5x).
+            reason = (
+                regraded.get("private_evaluation_reason")
+                if type(regraded) is dict
+                else None
+            )
+            return _failed(
+                pool,
+                king,
+                exam,
+                REGRADE,
+                f"regrade_unbound:{reason or state or type(regraded).__name__}",
             )
         if pool.awaits_incumbent_regrade(waiting[0]):
             # the king's new grade is not on the challengers' key: a real difference for people to look at
