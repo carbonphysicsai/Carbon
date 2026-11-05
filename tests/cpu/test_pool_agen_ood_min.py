@@ -237,11 +237,11 @@ def test_the_class_report_sets_each_bucket_against_the_train_kernel_and_grades_n
 
 
 def test_the_registration_reads_n_with_no_default():
-    assert pool_version._a_gen_aggregate(pool_version._ABSENT) is None
-    for bad in (None, "HUMAN_INPUT"):
+    assert pool_version._min_class_cases(pool_version._ABSENT) is None
+    for bad in (None, "HUMAN_INPUT", 0, -2, 2.0, True, "5"):
         with pytest.raises(pool_version.PoolConstantsNotRegistered):
-            pool_version._a_gen_aggregate(bad)
-    assert pool_version._a_gen_aggregate(5) == 5
+            pool_version._min_class_cases(bad)
+    assert pool_version._min_class_cases(5) == 5
 
 
 @pytest.mark.usefixtures("geometric_v1_stand_in")
@@ -280,3 +280,22 @@ def test_the_exam_recomposes_the_pooled_out_of_range_a_gen_like_the_grade():
     assert recomposed == pytest.approx(0.5 * result["A"] + 0.5 * result["D"], abs=1e-12)
     spread, sizes = pool_exam.target_bootstrap_se(basis, "sha256:" + "ab" * 32)
     assert sizes == [5, 5] and spread >= 0.0
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_a_broken_out_of_range_structure_is_the_exams_refusal_before_any_grade():
+    specs, plan = the_set()
+    specs[0] = stand("i0", False, 2)  # a slice on an in-range target
+    document = plan_document(plan.classes, dict(plan.targets))
+    sums = sums_text(plan.sha256)
+    policies = dataclasses.replace(
+        POLICIES,
+        optimizer=dataclasses.replace(policy(plan, 3), coverage_plan=None),
+    )
+    with pytest.raises(
+        pool_exam.ExamRefused, match="a_gen_slice_on_an_in_range_target"
+    ):
+        pool_exam.attach_coverage_plan(policies, document, sums, (tuple(specs),))
+    specs[0] = stand("i0", False, 0)
+    attached = pool_exam.attach_coverage_plan(policies, document, sums, (tuple(specs),))
+    assert attached.optimizer.coverage_plan == plan

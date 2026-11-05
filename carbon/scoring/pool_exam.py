@@ -357,8 +357,9 @@ def _basis_regions(basis, optimizer, sets):
         for target, spec in zip(targets, specs, strict=True):
             target["region"] = pool_grader.region_class(spec, plan)
     if optimizer.a_gen_aggregate == "ood_class_mean":
-        # The out-of-range A_gen classes per set, the small ones pooled, as `agen_accuracy` grouped them (fixed from the
-        # full set: a class's resample keeps its size, so its pooling does not change).
+        # The out-of-range A_gen classes per set, the small ones pooled, as `agen_accuracy` grouped them on the full set.
+        # The bootstrap keeps this grouping fixed (it conditions on the graded pooling): a resample keeps each class's
+        # TARGET count, not its reserved-case count, so re-pooling a resample could group it differently.
         basis["agen_orders"] = []
         for targets, specs in zip(basis["sets"], sets, strict=True):
             buckets, order = pool_grader.agen_buckets(
@@ -398,6 +399,7 @@ def total_of_targets(basis, sets):
                 [t["agen"] for t in rows],
                 basis["agen_orders"][position],
             )
+            # A resample that draws only slice-less targets has no A_gen, as on the balanced path: A is then A_bank.
             a_gen = statistics.fmean(v for _n, v in regions) if regions else None
         else:
             a_gen = _region_mean(targets, "agen", order)
@@ -508,6 +510,13 @@ def attach_coverage_plan(policies, document, sums, sets):
         except pool_grader.PoolRefused:
             raise ExamRefused("target_not_in_the_coverage_plan") from None
         _require(classes == set(plan.classes), "set_missing_a_registered_class")
+        if optimizer.a_gen_aggregate == "ood_class_mean":
+            # The out-of-range A_gen structure is the EXAM's, not a candidate's: check it here, once, typed, before any
+            # submission is graded (a reference failure is never collapsed into a candidate's result).
+            try:
+                pool_grader.agen_buckets(group, plan, optimizer.a_gen_min_class_cases)
+            except pool_grader.PoolRefused as refused:
+                raise ExamRefused(f"a_gen_structure_refused:{refused}") from None
     return replace(policies, optimizer=replace(optimizer, coverage_plan=plan))
 
 

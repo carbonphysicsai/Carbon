@@ -138,6 +138,18 @@ def _a_gen_aggregate(value):
     return _picked(value)
 
 
+def _min_class_cases(value):
+    """The registered N of a new version's out-of-range A_gen (``a_gen_min_class_cases``, OWNER-ACCURACY-OOD-MIN-01 item
+    1, set in the version plan), or None when the key is absent (every registered version). Present, it has no default:
+    a null or HUMAN_INPUT refuses, and anything but an int >= 1 refuses."""
+    if value is _ABSENT:
+        return None
+    value = _picked(value)
+    if type(value) is not int or value < 1:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    return value
+
+
 def _coverage_plan_sha256(value):
     """A registered sha256 (64 hex) of a new version's coverage plan (its class map, or its package's SHA256SUMS), or None
     when the key is absent."""
@@ -193,7 +205,7 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
                     optimizer.get("a_gen_aggregate", _ABSENT)
                 ),
                 # optional, NEW versions only (with "ood_class_mean"): the version plan's N, no default
-                a_gen_min_class_cases=_a_gen_aggregate(
+                a_gen_min_class_cases=_min_class_cases(
                     optimizer.get("a_gen_min_class_cases", _ABSENT)
                 ),
                 coverage_plan_sha256=_coverage_plan_sha256(
