@@ -449,7 +449,7 @@ class _Pool:
         return self._now
 
 
-def _grader(tmp_path, pending=(), pool=None):
+def _grader(tmp_path, pending=(), pool=None, *, started=True):
     from types import SimpleNamespace
 
     from carbon.challenge_validator.auto_grade import AutoGrader
@@ -457,11 +457,14 @@ def _grader(tmp_path, pending=(), pool=None):
     grader = object.__new__(AutoGrader)
     grader.intake = SimpleNamespace(
         adapter=SimpleNamespace(
-            discovery=SimpleNamespace(evaluation_pack_digest="EXAM")
+            discovery=SimpleNamespace(evaluation_pack_digest="EXAM"),
+            challenge_id="motor",
         )
     )
     grader.pending = lambda: list(pending)
     grader._pool = lambda: pool
+    if started:
+        grader._stranded_filed = True  # the once-per-start filing round has run
     return grader
 
 
@@ -492,3 +495,124 @@ def test_has_work_follows_the_crown_sweeps_own_gates(tmp_path):
     assert (
         _grader(tmp_path, pool=due).has_work() is False
     )  # the operator's pause: the sweep does nothing
+
+
+class _UpkeepPool(_Pool):
+    """A pool with the king's upkeep readers (`king_upkeep`): ``awaiting`` records wait for the king's regrade."""
+
+    def __init__(
+        self, path, records, *, awaiting=(), upkeep=(0, 0), bodies=(), mean=None, **kw
+    ):
+        super().__init__(path, records, incumbent={"model_id": "rtsk_king"}, **kw)
+        self._awaiting, self._upkeep, self._bodies, self._mean = (
+            set(awaiting),
+            upkeep,
+            list(bodies),
+            mean,
+        )
+
+    def awaits_incumbent_regrade(self, record):
+        return record["submission_id"] in self._awaiting
+
+    def king_upkeep_attempts(self, king, exam, step):
+        return self._upkeep
+
+    def private_evaluation_bodies(self):
+        return list(self._bodies)
+
+    def crown_mean(self, king, key):
+        return self._mean
+
+    def crown_average_unstable(self, king, key):
+        return False
+
+
+def test_a_round_always_runs_once_after_a_start(tmp_path):
+    """The first round files the challengers stranded while the king could not be met (`king_upkeep.file_stranded`),
+    ahead of any new grade: an idle door must still run it, or the replay waits for the next submission.
+    """
+    assert _grader(tmp_path, started=False).has_work() is True
+    assert _grader(tmp_path).has_work() is False
+
+
+def test_a_record_waiting_for_the_kings_regrade_runs_a_round_only_when_the_regrade_is_due(
+    tmp_path,
+):
+    pool_dir = tmp_path / "pool"
+    pool_dir.mkdir(mode=0o700)
+    waiting = {"submission_id": "rtsk_w", "evaluation_key": "k", "exam": "EXAM"}
+    due = _UpkeepPool(pool_dir / "p.sqlite3", [waiting], awaiting=["rtsk_w"])
+    assert _grader(tmp_path, pool=due).has_work() is True  # the king's regrade is due
+    # the regrade failed this epoch: retried once an epoch, so no round (and no host lock) until then
+    spaced = _UpkeepPool(
+        pool_dir / "p.sqlite3", [waiting], awaiting=["rtsk_w"], upkeep=(1, 10**6 - 5)
+    )
+    assert _grader(tmp_path, pool=spaced).has_work() is False
+    # a decidable record behind the waiting one still runs the sweep
+    other = {"submission_id": "rtsk_o", "evaluation_key": "k2", "exam": "EXAM"}
+    behind = _UpkeepPool(
+        pool_dir / "p.sqlite3",
+        [waiting, other],
+        awaiting=["rtsk_w"],
+        upkeep=(1, 10**6 - 5),
+    )
+    assert _grader(tmp_path, pool=behind).has_work() is True
+
+
+def test_a_due_crown_re_measure_runs_a_round_on_an_idle_door(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator import crown_average
+
+    pool_dir = tmp_path / "pool"
+    pool_dir.mkdir(mode=0o700)
+    king_eval = {
+        "submission_id": "rtsk_king",
+        "evaluation_key": "kk",
+        "evidence": {"evaluation_pack_digest": "EXAM"},
+    }
+    rule = SimpleNamespace(margin_for=lambda challenge: 0.01)
+    monkeypatch.setattr(
+        crown_average, "ACTIVE", SimpleNamespace(rule=rule), raising=False
+    )
+    unmeasured = _UpkeepPool(pool_dir / "p.sqlite3", [], bodies=[king_eval])
+    assert _grader(tmp_path, pool=unmeasured).has_work() is True
+    measured = _UpkeepPool(pool_dir / "p.sqlite3", [], bodies=[king_eval], mean=0.5)
+    assert _grader(tmp_path, pool=measured).has_work() is False
+    unregistered = SimpleNamespace(
+        rule=SimpleNamespace(margin_for=lambda challenge: None)
+    )
+    monkeypatch.setattr(crown_average, "ACTIVE", unregistered, raising=False)
+    assert (
+        _grader(tmp_path, pool=unmeasured).has_work() is False
+    )  # averaging off: nothing to measure
+    monkeypatch.setattr(crown_average, "ACTIVE", None, raising=False)
+    assert _grader(tmp_path, pool=unmeasured).has_work() is False
+
+
+def test_upkeep_due_and_step_agree(tmp_path):
+    """`due` is `step`'s own plan: when it says nothing is due, `step` does nothing."""
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator import king_upkeep
+
+    pool_dir = tmp_path / "pool"
+    pool_dir.mkdir(mode=0o700)
+    intake = SimpleNamespace(
+        adapter=SimpleNamespace(
+            discovery=SimpleNamespace(evaluation_pack_digest="EXAM")
+        )
+    )
+    waiting = {"submission_id": "rtsk_w", "evaluation_key": "k", "exam": "EXAM"}
+    spaced = _UpkeepPool(
+        pool_dir / "p.sqlite3", [waiting], awaiting=["rtsk_w"], upkeep=(1, 10**6 - 5)
+    )
+    assert king_upkeep.due(spaced, intake) is False
+    assert (
+        king_upkeep.step(
+            spaced, intake, root=tmp_path, artifacts=tmp_path, entries=tmp_path
+        )
+        is None
+    )
+    broken = SimpleNamespace(king_upkeep_attempts=None, incumbent=lambda: 1 / 0)
+    assert king_upkeep.due(broken, intake) is True  # doubt runs the round
