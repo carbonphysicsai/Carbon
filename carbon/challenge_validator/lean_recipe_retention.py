@@ -2950,7 +2950,6 @@ def _parents(kind, files, provider, recipe, *, unserved=None):
     """``(retained parent, current parent)``: the image the retained model was built on (a graph: inferred on) and the
     one this receiver serves for it now, from the retained image.json; reads only, runs nothing.
     """
-    from carbon.development_session.gpu_practice import DirectParentRefused
     from carbon.development_session.library_bundles import LibraryBundleRef
 
     try:
@@ -2960,14 +2959,14 @@ def _parents(kind, files, provider, recipe, *, unserved=None):
                 provider.inference_image.image_id,
             )
         retained = json.loads(files["image.json"])["parent_image_id"]
+        bundle = LibraryBundleRef.from_dict(recipe.to_dict()["source"]["bundle_ref"])
         try:
-            current = _construction_parent(
-                provider,
-                LibraryBundleRef.from_dict(recipe.to_dict()["source"]["bundle_ref"]),
-            ).image_id
-        except DirectParentRefused:
-            # this receiver serves no parent for the bundle any more: ``unserved`` names it apart for the king's
-            # upkeep (a moved parent, audit #2a); a regrade keeps its refusal unchanged
+            current = _construction_parent(provider, bundle).image_id
+        except ValueError:
+            # the provider names no parent for this (parsed) bundle (`DirectParentRefused`, a ValueError; caught by
+            # its base so the grade's import closure does not grow): this receiver serves none for it any more.
+            # ``unserved`` names it apart for the king's upkeep (a moved parent, audit #2a); a regrade keeps its
+            # refusal unchanged
             raise RetentionUnavailable(
                 unserved or "regrade_construction_parent_unavailable"
             ) from None
@@ -3439,8 +3438,7 @@ def _derived_build(
         ):
             break
         generation += 1
-    from carbon.research.errors import ResearchServiceErrorCode
-    from carbon.research.lifecycle import ResearchTaskProviderError
+    from carbon.research import ResearchServiceErrorCode, ResearchTaskProviderError
 
     try:
         if task_id.value in provider._views:
