@@ -613,3 +613,106 @@ def test_pool_spread_is_the_top_points_spread_and_needs_two():
     assert psr.pool_spread(problem, designs[:1], truths[:1], 5) is None
     with pytest.raises(psr.SolverReferenceRefused, match="pool_spread_top"):
         psr.pool_spread(problem, designs, truths, 1)
+
+
+def _surrogate_spec(share=0.5, candidates=200, budget=16, population=4):
+    block = dict(SPEC["solver_reference"], budget=budget, population=population)
+    block["surrogate"] = {"share": share, "candidates": candidates}
+    return {"solver_reference": block}
+
+
+def _counting(solver):
+    calls = []
+
+    def solve(fixed, designs):
+        calls.append(len(designs))
+        return solver(fixed, designs)
+
+    return solve, calls
+
+
+def test_the_surrogate_is_off_unless_the_spec_turns_it_on():
+    problem = _problem()
+    (a,) = psr.run_pack(SPEC, [problem], StandIn(), host_class=HOST, provenance=PROV)
+    assert psr.policy_from_spec(SPEC).surrogate is None
+    assert all(p.phase != "surrogate" for p in a.points)
+    assert "surrogate" not in a.counts
+
+
+@pytest.mark.parametrize(
+    "sub",
+    [
+        {"share": 0.6, "candidates": 10},
+        {"share": 0.0, "candidates": 10},
+        {"share": 0.5, "candidates": 0},
+        {"share": "HUMAN_INPUT", "candidates": 10},
+        {"share": 0.5},
+        {"share": 0.5, "candidates": 10, "model": "rbf"},
+    ],
+)
+def test_a_surrogate_block_is_complete_and_keeps_half_for_cma(sub):
+    spec = {"solver_reference": dict(SPEC["solver_reference"], surrogate=sub)}
+    with pytest.raises(psr.SolverReferenceRefused):
+        psr.policy_from_spec(spec)
+
+
+def test_the_surrogate_keeps_cma_s_share_and_adds_no_serial_rounds():
+    from dataclasses import replace
+
+    designs, truths = _pool()
+    problem = replace(_problem(), pool=(designs, truths), start=(0.2, 0.2))
+    plain_solve, plain_calls = _counting(StandIn())
+    surr_solve, surr_calls = _counting(StandIn())
+    plain_spec = _surrogate_spec()
+    del plain_spec["solver_reference"]["surrogate"]
+    psr.run_pack(plain_spec, [problem], plain_solve, host_class=HOST, provenance=PROV)
+    (result,) = psr.run_pack(
+        _surrogate_spec(), [problem], surr_solve, host_class=HOST, provenance=PROV
+    )
+    by_phase = {}
+    for p in result.points:
+        by_phase[p.phase] = by_phase.get(p.phase, 0) + 1
+    assert by_phase["cmaes"] == 16 - 8 and 1 <= by_phase["surrogate"] <= 8
+    assert result.counts["surrogate"] == by_phase["surrogate"]
+    # CMA-ES gets half the budget, so it runs half the generations: never more solve rounds than without
+    assert len(surr_calls) <= len(plain_calls)
+
+
+def test_on_the_stand_in_the_surrogate_beats_cma_alone_at_the_same_budget():
+    """Measured on the analytic stand-in only (not a claim for any Challenge): with the pool as data, the same
+    B_s finds a better solver reference with the surrogate track than CMA-ES alone."""
+    from dataclasses import replace
+
+    designs, truths = _pool()
+    problem = replace(_problem(), pool=(designs, truths), start=(0.2, 0.2))
+    plain_spec = _surrogate_spec()
+    del plain_spec["solver_reference"]["surrogate"]
+    (plain,) = psr.run_pack(
+        plain_spec, [problem], StandIn(), host_class=HOST, provenance=PROV
+    )
+    (surr,) = psr.run_pack(
+        _surrogate_spec(), [problem], StandIn(), host_class=HOST, provenance=PROV
+    )
+    best_plain = plain.points[plain.reference].outputs["f"]
+    best_surr = surr.points[surr.reference].outputs["f"]
+    assert best_surr >= best_plain
+    assert best_surr > OPTIMUM - 0.01
+
+
+def test_a_malformed_pool_refuses():
+    from dataclasses import replace
+
+    designs, truths = _pool()
+    for pool in (
+        (designs[:3], truths[:2]),
+        ([[0.1]] * 2, [{"f": 0.0, "g": 0.0}] * 2),
+        (designs[:2], [{"f": 0.0}] * 2),
+    ):
+        with pytest.raises(psr.SolverReferenceRefused, match="pool_must_be"):
+            psr.run_pack(
+                SPEC,
+                [replace(_problem(), pool=pool)],
+                StandIn(),
+                host_class=HOST,
+                provenance=PROV,
+            )

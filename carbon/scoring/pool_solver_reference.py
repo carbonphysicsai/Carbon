@@ -52,6 +52,15 @@ and solver image the solves ran on; each result carries it with the host class. 
 `convergence` (best-so-far value against solves) and `plateau_solves` (the solve count after which the best gains no
 more than a tolerance, e.g. the objective's U); both carry custody values and never leave custody.
 
+Surrogate proposer (speed-up ruling section 2; off unless the spec's block carries ``"surrogate": {"share": s,
+"candidates": m}``, both required, 0 < s <= 0.5): a custody-only cubic RBF (linear tail) per needed output, fitted
+on the target's pre-solved pool (`Problem.pool`) plus every OK point solved so far, proposes up to floor(s x B_s)
+designs, each the predicted best of m seeded candidates around the best known point. It is a SEPARATE track: CMA-ES
+keeps the other B_s - floor(s x B_s) solves, its samples untouched and told only its own points, so at least half of
+B_s stays independent exploration. Proposals are solved on the real solver in the same batch as their generation (no
+extra serial rounds), are labelled ``"surrogate"``, and become the reference only by their real outputs. The surrogate
+encodes hidden truths: it lives only in this process on a custody host and is never written out.
+
 Disclosure: designs, outputs and the reference are custody material; only
 `public_summary` (counts and closed codes) may leave custody.
 """
@@ -108,9 +117,13 @@ class DriverPolicy:
     line_search_points: int  # distinct designs solved along the active limit (0 = none)
     line_search_span: float  # half-width of the tangent walk, in the unit box
     infra_retries: int  # re-solves of a design whose solve failed on infrastructure
+    surrogate: tuple | None = (
+        None  # (share, candidates) when the proposer is on; None = off
+    )
 
     def digest(self):
-        body = json.dumps(self.__dict__, sort_keys=True, separators=(",", ":"))
+        fields = {k: v for k, v in self.__dict__.items() if v is not None}
+        body = json.dumps(fields, sort_keys=True, separators=(",", ":"))
         return "sha256:" + hashlib.sha256(body.encode()).hexdigest()
 
 
@@ -136,7 +149,8 @@ def policy_from_spec(pack_spec):
     _require(enabled(pack_spec), "solver_reference_not_enabled")
     block = pack_spec[SPEC_KEY]
     _require(
-        set(block) <= {"enabled", *_POLICY_FIELDS}, "solver_reference_unknown_field"
+        set(block) <= {"enabled", "surrogate", *_POLICY_FIELDS},
+        "solver_reference_unknown_field",
     )
     _require(
         all(
@@ -161,7 +175,28 @@ def policy_from_spec(pack_spec):
         and block["line_search_span"] > 0,
         "solver_reference_policy_invalid",
     )
-    return DriverPolicy(**{name: block[name] for name in _POLICY_FIELDS})
+    surrogate = None
+    if "surrogate" in block:
+        sub = block["surrogate"]
+        _require(
+            type(sub) is dict and set(sub) == {"share", "candidates"},
+            "solver_reference_surrogate_needs_share_and_candidates",
+        )
+        _require(
+            all(v is not None and v != "HUMAN_INPUT" for v in sub.values()),
+            "solver_reference_human_input_required",
+        )
+        _require(
+            _finite(sub["share"])
+            and 0.0 < sub["share"] <= 0.5
+            and type(sub["candidates"]) is int
+            and sub["candidates"] >= 1,
+            "solver_reference_surrogate_invalid",
+        )
+        surrogate = (float(sub["share"]), sub["candidates"])
+    return DriverPolicy(
+        **{name: block[name] for name in _POLICY_FIELDS}, surrogate=surrogate
+    )
 
 
 @dataclass(frozen=True)
@@ -182,6 +217,8 @@ class Problem:
     # build_target computes it), set together or not at all. None = today's grader (within-U points dropped).
     near_limit: dict | None = None
     s_low: float | None = None
+    # The target's pre-solved pool ``(designs, truths)`` (raw designs, derived truths): the surrogate's starting data.
+    pool: tuple | None = None
 
 
 def _check_problem(problem):
@@ -215,6 +252,21 @@ def _check_problem(problem):
         or (valid_near_limit(problem.near_limit) and _finite(problem.s_low)),
         "near_limit_and_s_low_go_together",
     )
+    if problem.pool is not None:
+        designs, truths = problem.pool
+        _require(
+            len(designs) == len(truths)
+            and all(
+                len(d) == len(problem.box) and all(_finite(x) for x in d)
+                for d in designs
+            )
+            and all(
+                type(t) is dict
+                and all(name in t and _finite(t[name]) for name in problem.outputs)
+                for t in truths
+            ),
+            "pool_must_be_designs_and_truths_over_the_outputs",
+        )
 
 
 @dataclass(frozen=True)
@@ -339,7 +391,7 @@ def _solve(problem, solve, designs, phase, policy, counts):
         points.append(
             SolvedPoint(
                 design=tuple(float(x) for x in design),
-                phase=phase,
+                phase=phase[index] if isinstance(phase, list) else phase,
                 status=status,
                 outputs=outputs,
                 margins=None if outputs is None else _margins(problem, outputs),
@@ -349,25 +401,168 @@ def _solve(problem, solve, designs, phase, policy, counts):
     return points
 
 
+def _rbf_fit(xs, ys_by_output):
+    """Cubic RBF with a linear tail through (xs, y) for each output, sharing one factorisation (pure Python, Gaussian
+    elimination with partial pivoting). ``{output: (weights, tail)}`` or None when the system is singular.
+    """
+    n, d = len(xs), len(xs[0])
+    size = n + d + 1
+    names = sorted(ys_by_output)
+    matrix = []
+    for i in range(size):
+        row = [0.0] * size
+        if i < n:
+            for j in range(n):
+                row[j] = math.dist(xs[i], xs[j]) ** 3
+            row[n] = 1.0
+            row[n + 1 :] = list(xs[i])
+        else:
+            k = i - n
+            for j in range(n):
+                row[j] = 1.0 if k == 0 else xs[j][k - 1]
+        rhs = [ys_by_output[name][i] if i < n else 0.0 for name in names]
+        matrix.append(row + rhs)
+    scale = max(abs(v) for row in matrix for v in row[:size]) or 1.0
+    for col in range(size):
+        pivot = max(range(col, size), key=lambda r: abs(matrix[r][col]))
+        if abs(matrix[pivot][col]) <= scale * 1e-12:
+            return None
+        matrix[col], matrix[pivot] = matrix[pivot], matrix[col]
+        lead = matrix[col][col]
+        for r in range(col + 1, size):
+            f = matrix[r][col] / lead
+            if f:
+                row, top = matrix[r], matrix[col]
+                for c in range(col, len(row)):
+                    row[c] -= f * top[c]
+    solution = [[0.0] * size for _ in names]
+    for col in range(size - 1, -1, -1):
+        row = matrix[col]
+        for k in range(len(names)):
+            acc = row[size + k] - sum(
+                row[c] * solution[k][c] for c in range(col + 1, size)
+            )
+            solution[k][col] = acc / row[col]
+    if not all(math.isfinite(v) for sol in solution for v in sol):
+        return None
+    return {name: (sol[:n], sol[n:]) for name, sol in zip(names, solution)}
+
+
+def _rbf_predict(xs, model, x):
+    out = {}
+    for name, (weights, tail) in model.items():
+        value = tail[0] + sum(t * xi for t, xi in zip(tail[1:], x))
+        value += sum(w * math.dist(x, xj) ** 3 for w, xj in zip(weights, xs))
+        out[name] = value
+    return out
+
+
+def _propose(problem, points, count, candidates, sigma, generation):
+    """Up to `count` unit-box designs: the surrogate's predicted best of `candidates` seeded Gaussian candidates
+    around the best known point (pool truths + OK solved points), none already known. [] when the data cannot fit.
+    """
+    needed = sorted({problem.objective, *(limit.output for limit in problem.limits)})
+    known = {}
+    if problem.pool is not None:
+        for design, truth in zip(*problem.pool):
+            unit = tuple(min(1.0, max(0.0, x)) for x in _unit(problem, design))
+            known.setdefault(tuple(round(x, 12) for x in unit), (unit, truth))
+    for point in points:
+        if point.status == OK:
+            unit = _unit(problem, point.design)
+            known.setdefault(tuple(round(x, 12) for x in unit), (unit, point.outputs))
+    if len(known) < len(problem.box) + 2:
+        return []
+    data = list(known.values())
+    xs = [unit for unit, _ in data]
+    model = _rbf_fit(xs, {name: [truth[name] for _, truth in data] for name in needed})
+    if model is None:
+        return []
+
+    def as_point(unit, outputs):
+        return SolvedPoint(
+            design=_raw(problem, unit),
+            phase="surrogate",
+            status=OK,
+            outputs=outputs,
+            margins=_margins(problem, outputs),
+            attempts=0,
+        )
+
+    centre = min(data, key=lambda item: _key(problem, as_point(*item)))[0]
+    rng = random.Random(
+        hashlib.sha256(f"surrogate:{problem.seed}:{generation}".encode()).hexdigest()
+    )
+    ranked = []
+    for _ in range(candidates):
+        unit = tuple(min(1.0, max(0.0, c + rng.gauss(0.0, sigma))) for c in centre)
+        key = tuple(round(x, 12) for x in unit)
+        if key in known:
+            continue
+        ranked.append(
+            (_key(problem, as_point(unit, _rbf_predict(xs, model, unit))), key, unit)
+        )
+    ranked.sort()
+    chosen, seen = [], set()
+    for _, key, unit in ranked:
+        if key not in seen:
+            seen.add(key)
+            chosen.append(unit)
+        if len(chosen) == count:
+            break
+    return chosen
+
+
 def _cmaes_phase(problem, solve, policy, counts):
+    """CMA-ES on the solver for B_s - floor(share x B_s) designs, and (surrogate on) up to floor(share x B_s)
+    surrogate proposals solved in the same batches: CMA-ES is told only its own points.
+    """
     es = CmaEs(problem.start, policy.sigma0, problem.seed, policy.population)
-    points = []
-    while len(points) < policy.budget:
+    share, candidates = policy.surrogate or (0.0, 0)
+    surrogate_left = math.floor(share * policy.budget)
+    cma_budget = policy.budget - surrogate_left
+    per_generation = (
+        math.ceil(surrogate_left / math.ceil(cma_budget / es.lam))
+        if surrogate_left
+        else 0
+    )
+    points, cma_done, generation = [], 0, 0
+    while cma_done < cma_budget:
         samples = es.ask()
-        room = policy.budget - len(points)
+        room = cma_budget - cma_done
         units = [tuple(min(1.0, max(0.0, x)) for x in s) for s in samples]
         # Lamarckian repair: the strategy adapts on the in-box points it actually evaluated, so its mean cannot
         # walk out of the box (with unrepaired steps a mean outside the box spends the budget on clipped edges).
         # `pool_cmaes` itself is unchanged: the grader shares it.
         es._ys = [[(u - m) / es.sigma for u, m in zip(unit, es.mean)] for unit in units]
         units = units[:room]
+        proposals = []
+        if surrogate_left:
+            proposals = _propose(
+                problem,
+                points,
+                min(per_generation, surrogate_left),
+                candidates,
+                es.sigma,
+                generation,
+            )
+            surrogate_left -= len(proposals)
+            counts["surrogate"] = counts.get("surrogate", 0) + len(proposals)
         solved = _solve(
-            problem, solve, [_raw(problem, u) for u in units], "cmaes", policy, counts
+            problem,
+            solve,
+            [_raw(problem, u) for u in units + proposals],
+            ["cmaes"] * len(units) + ["surrogate"] * len(proposals),
+            policy,
+            counts,
         )
+        mine = solved[: len(units)]
         points.extend(solved)
-        if len(solved) < len(samples):
+        cma_done += len(mine)
+        generation += 1
+        if len(mine) < len(samples):
             break  # the budget ended mid-generation: nothing left to adapt to
-        es.tell([_key(problem, p) for p in solved])
+        es.tell([_key(problem, p) for p in mine])
     return points
 
 
