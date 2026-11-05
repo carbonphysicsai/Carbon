@@ -46,6 +46,12 @@ Custody only (Validator rule, 4 Nov): the adaptive trajectory traces the hidden 
 `run_pack` and `run_target` take the run's host class and refuse, before the first solve, any class not on
 `CUSTODY_HOST_CLASSES` (`solver_reference_host_not_custody`). There is no default: a rented host never runs it.
 
+Records (Validator speed-up ruling MF8): `run_pack` / `run_target` take a required `provenance`, the rung, deck sha256
+and solver image the solves ran on; each result carries it with the host class. Warm start: `pool_start` (mean) and
+`pool_spread` (a sigma0 source; the caller picks how many top points and sets sigma0 itself). Evidence for B_s:
+`convergence` (best-so-far value against solves) and `plateau_solves` (the solve count after which the best gains no
+more than a tolerance, e.g. the objective's U); both carry custody values and never leave custody.
+
 Disclosure: designs, outputs and the reference are custody material; only
 `public_summary` (counts and closed codes) may leave custody.
 """
@@ -232,6 +238,7 @@ class TargetResult:
     points: tuple  # SolvedPoint, in solve order
     counts: dict
     policy_digest: str
+    provenance: dict  # rung, deck_sha256, solver_image, host_class (MF8)
 
 
 def _raw(problem, unit):
@@ -515,12 +522,27 @@ def _require_custody(host_class):
     )
 
 
-def run_target(problem, solve, policy, *, host_class):
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+
+
+def _check_provenance(provenance, host_class):
+    _require(
+        type(provenance) is dict
+        and set(provenance) == {"rung", "deck_sha256", "solver_image"}
+        and all(type(v) is str and v for v in provenance.values())
+        and _SHA256.fullmatch(provenance["deck_sha256"]),
+        "provenance_needs_rung_deck_sha256_solver_image",
+    )
+    return {**provenance, "host_class": host_class}
+
+
+def run_target(problem, solve, policy, *, host_class, provenance):
     """The solver-driven reference of one target. `solve(fixed, designs)` returns one typed record per raw design,
     ``{"status": "OK", "outputs": {derived}}`` or ``{"status": "<REFERENCE_* | FAILED_INFRA>"}`` (the Challenge's pool
     solve path plus its `derive`; see `adapter_solver`). `host_class` must be a custody class.
     """
     _require_custody(host_class)
+    record = _check_provenance(provenance, host_class)
     _check_problem(problem)
     _require(isinstance(policy, DriverPolicy), "policy_required")
     counts = {
@@ -560,18 +582,20 @@ def run_target(problem, solve, policy, *, host_class):
         points=tuple(points),
         counts=counts,
         policy_digest=policy.digest(),
+        provenance=record,
     )
 
 
-def run_pack(pack_spec, problems, solve, *, host_class):
+def run_pack(pack_spec, problems, solve, *, host_class, provenance):
     """Every target of a pack, or ``None`` when the pack spec leaves the driver off (nothing is solved). An enabled
     pack on a host class off the custody list refuses before any solve."""
     if not enabled(pack_spec):
         return None
     _require_custody(host_class)
+    _check_provenance(provenance, host_class)
     policy = policy_from_spec(pack_spec)
     return tuple(
-        run_target(problem, solve, policy, host_class=host_class)
+        run_target(problem, solve, policy, host_class=host_class, provenance=provenance)
         for problem in problems
     )
 
@@ -646,6 +670,70 @@ def pool_start(problem, designs, truths):
     if best is None:
         return None
     return tuple(min(1.0, max(0.0, x)) for x in _unit(problem, best[1]))
+
+
+def _value(problem, point):
+    """The comparable value of an OK feasible point, as `_key` ranks it: sign x objective, or under a near-limit rule
+    the grader's credit x gain over s_low. None when the point is not OK or not truly feasible.
+    """
+    key = _key(problem, point)
+    if key[0] != 0:
+        return None
+    return -key[3] if problem.near_limit is None else -key[2]
+
+
+def pool_spread(problem, designs, truths, top):
+    """The RMS over the design axes of the standard deviation (unit box) of the pool's `top` best truly feasible
+    points: a source for sigma0 (the caller sets sigma0; `top` is the caller's). None with fewer than 2 such points.
+    """
+    _require(
+        type(top) is int and top >= 2, "pool_spread_top_must_be_an_int_of_at_least_2"
+    )
+    sign = 1.0 if problem.sense == "max" else -1.0
+    ranked = sorted(
+        (-sign * truth[problem.objective], index)
+        for index, truth in enumerate(truths)
+        if all(limit.margin(truth[limit.output]) >= 0.0 for limit in problem.limits)
+    )[:top]
+    if len(ranked) < 2:
+        return None
+    units = [_unit(problem, designs[index]) for _, index in ranked]
+    n = len(units)
+    variances = []
+    for axis in range(len(problem.box)):
+        column = [u[axis] for u in units]
+        mean = sum(column) / n
+        variances.append(sum((x - mean) ** 2 for x in column) / (n - 1))
+    return math.sqrt(sum(variances) / len(variances))
+
+
+def convergence(result, problem):
+    """``((solves, best value so far), ...)`` in solve order over the result's points (None until a feasible OK
+    point). Custody material: values never leave custody."""
+    _require(result.target_id == problem.target_id, "solver_reference_target_mismatch")
+    curve, best = [], None
+    for n, point in enumerate(result.points, start=1):
+        value = _value(problem, point)
+        if value is not None and (best is None or value > best):
+            best = value
+        curve.append((n, best))
+    return tuple(curve)
+
+
+def plateau_solves(curve, tolerance):
+    """The smallest solve count after which the best-so-far gains no more than `tolerance` (e.g. the objective's U)
+    by the end of the curve; None when the curve never reaches a feasible value."""
+    _require(
+        _finite(tolerance) and tolerance >= 0.0,
+        "tolerance_must_be_finite_and_nonnegative",
+    )
+    if not curve or curve[-1][1] is None:
+        return None
+    final = curve[-1][1]
+    for n, best in curve:
+        if best is not None and final - best <= tolerance:
+            return n
+    return None
 
 
 def public_summary(results):

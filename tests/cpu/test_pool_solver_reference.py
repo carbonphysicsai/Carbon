@@ -19,6 +19,7 @@ from carbon.scoring import pool_solver_reference as psr
 from carbon.scoring.pool_grader import Limit, build_target
 
 HOST = "custody2"
+PROV = {"rung": "L0", "deck_sha256": "a" * 64, "solver_image": "stand-in"}
 SPEC = {
     "solver_reference": {
         "enabled": True,
@@ -92,7 +93,10 @@ def _policy(**changes):
 )
 def test_off_unless_the_pack_spec_turns_it_on(spec):
     solver = StandIn()
-    assert psr.run_pack(spec, [_problem()], solver, host_class=HOST) is None
+    assert (
+        psr.run_pack(spec, [_problem()], solver, host_class=HOST, provenance=PROV)
+        is None
+    )
     assert solver.calls == 0
 
 
@@ -126,7 +130,9 @@ def test_invalid_owner_values_refuse(changes):
 
 def test_the_solver_optimum_reaches_the_constrained_optimum_on_the_limit():
     solver = StandIn()
-    (result,) = psr.run_pack(SPEC, [_problem()], solver, host_class=HOST)
+    (result,) = psr.run_pack(
+        SPEC, [_problem()], solver, host_class=HOST, provenance=PROV
+    )
     assert result.status == psr.TARGET_OK
     best = result.points[result.reference]
     assert best.status == "OK" and best.margins[0] >= 0.0
@@ -152,7 +158,9 @@ def test_the_pack_reference_is_never_worse_than_the_pre_solved_pool():
     for seed in range(12):
         problem = _problem(seed=seed)
         problem = replace(problem, start=psr.pool_start(problem, designs, truths))
-        (result,) = psr.run_pack(SPEC, [problem], StandIn(), host_class=HOST)
+        (result,) = psr.run_pack(
+            SPEC, [problem], StandIn(), host_class=HOST, provenance=PROV
+        )
         _, ext, _, _ = psr.extend_pool(designs, truths, result, problem)
         assert max(t["f"] for t in ext if t["g"] <= 0.5) >= pool_best
         beaten += result.points[result.reference].outputs["f"] > pool_best
@@ -164,7 +172,7 @@ def test_the_line_search_lands_feasible_points_on_the_active_limit():
     near = 0
     for seed in range(12):
         (result,) = psr.run_pack(
-            SPEC, [_problem(seed=seed)], StandIn(), host_class=HOST
+            SPEC, [_problem(seed=seed)], StandIn(), host_class=HOST, provenance=PROV
         )
         line = [p for p in result.points if p.phase == "line_search"]
         assert result.counts["line_search"] == "run"
@@ -183,13 +191,15 @@ def test_the_line_search_lands_feasible_points_on_the_active_limit():
 
 def test_the_budget_is_exact_and_the_run_is_deterministic():
     solver_a, solver_b = StandIn(), StandIn()
-    (a,) = psr.run_pack(SPEC, [_problem()], solver_a, host_class=HOST)
-    (b,) = psr.run_pack(SPEC, [_problem()], solver_b, host_class=HOST)
+    (a,) = psr.run_pack(SPEC, [_problem()], solver_a, host_class=HOST, provenance=PROV)
+    (b,) = psr.run_pack(SPEC, [_problem()], solver_b, host_class=HOST, provenance=PROV)
     assert sum(p.phase == "cmaes" for p in a.points) == 60
     line = sum(p.phase == "line_search" for p in a.points)
     assert a.counts["solves"] == 60 + line == len(solver_a.designs) and line <= 8
     assert a.points == b.points and a.reference == b.reference
-    (c,) = psr.run_pack(SPEC, [_problem(seed=12)], StandIn(), host_class=HOST)
+    (c,) = psr.run_pack(
+        SPEC, [_problem(seed=12)], StandIn(), host_class=HOST, provenance=PROV
+    )
     assert c.points != a.points
     # A budget that ends mid-generation stops there.
     spec = {
@@ -197,13 +207,13 @@ def test_the_budget_is_exact_and_the_run_is_deterministic():
             SPEC["solver_reference"], budget=10, line_search_points=0
         )
     }
-    (d,) = psr.run_pack(spec, [_problem()], StandIn(), host_class=HOST)
+    (d,) = psr.run_pack(spec, [_problem()], StandIn(), host_class=HOST, provenance=PROV)
     assert len(d.points) == 10 and d.counts["line_search"] == "not_run"
 
 
 def test_reference_failures_are_typed_counted_and_never_pooled():
     (result,) = psr.run_pack(
-        SPEC, [_problem()], StandIn(refuse_above=0.6), host_class=HOST
+        SPEC, [_problem()], StandIn(refuse_above=0.6), host_class=HOST, provenance=PROV
     )
     refused = [p for p in result.points if p.status == "REFERENCE_SOLVER_FAILED"]
     assert refused and result.counts["by_status"]["REFERENCE_SOLVER_FAILED"] == len(
@@ -218,7 +228,9 @@ def test_reference_failures_are_typed_counted_and_never_pooled():
 
 def test_an_infrastructure_failure_is_retried_then_typed():
     solver = StandIn(infra_calls={2})
-    (result,) = psr.run_pack(SPEC, [_problem()], solver, host_class=HOST)
+    (result,) = psr.run_pack(
+        SPEC, [_problem()], solver, host_class=HOST, provenance=PROV
+    )
     assert result.status == psr.TARGET_OK
     assert result.counts["infra_attempts"] == SPEC["solver_reference"]["population"]
     assert result.counts["solves"] == len(result.points) + 6
@@ -226,7 +238,9 @@ def test_an_infrastructure_failure_is_retried_then_typed():
     assert any(p.attempts == 2 for p in result.points)
     # Infrastructure that never answers: no reference, never a scientific verdict.
     stuck = StandIn(infra_always=lambda x0, x1: x0 > 0.5)
-    (result,) = psr.run_pack(SPEC, [_problem()], stuck, host_class=HOST)
+    (result,) = psr.run_pack(
+        SPEC, [_problem()], stuck, host_class=HOST, provenance=PROV
+    )
     assert result.status == psr.TARGET_INFRA and result.reference is None
     assert result.counts["by_status"]["FAILED_INFRA"] > 0
     # ...and an incomplete target adds nothing to the pool (review finding 2).
@@ -235,7 +249,9 @@ def test_an_infrastructure_failure_is_retried_then_typed():
 
 
 def test_no_feasible_point_is_the_reference_s_failure():
-    (result,) = psr.run_pack(SPEC, [_problem(bound=-1.0)], StandIn(), host_class=HOST)
+    (result,) = psr.run_pack(
+        SPEC, [_problem(bound=-1.0)], StandIn(), host_class=HOST, provenance=PROV
+    )
     assert result.status == psr.TARGET_NO_FEASIBLE and result.reference is None
     assert result.counts["line_search"] == "not_run"
 
@@ -257,7 +273,9 @@ def test_the_adapter_solver_types_a_refused_derive():
     out = solve({"c": 1.0}, [[0.95, 0.1], [0.2, 0.3]])
     assert out[0] == {"status": psr.DERIVE_REFUSED}
     assert out[1]["status"] == "OK" and math.isclose(out[1]["outputs"]["f"], 0.5)
-    (result,) = psr.run_pack(SPEC, [_problem()], solve, host_class=HOST)
+    (result,) = psr.run_pack(
+        SPEC, [_problem()], solve, host_class=HOST, provenance=PROV
+    )
     assert result.status == psr.TARGET_OK
 
 
@@ -266,7 +284,7 @@ def test_the_extended_pool_feeds_build_target():
     designs = [[rng.random(), rng.random()] for _ in range(40)]
     truths = [{"f": a + b, "g": a * a + b * b} for a, b in designs]
     tight = _problem(u_g=1e-6)
-    (result,) = psr.run_pack(SPEC, [tight], StandIn(), host_class=HOST)
+    (result,) = psr.run_pack(SPEC, [tight], StandIn(), host_class=HOST, provenance=PROV)
     extended, ext_truths, added, _ = psr.extend_pool(designs, truths, result, tight)
 
     def build(ds, ts):
@@ -293,7 +311,11 @@ def test_the_extended_pool_feeds_build_target():
 
 def test_the_public_summary_carries_counts_only():
     results = psr.run_pack(
-        SPEC, [_problem(), _problem(bound=-1.0)], StandIn(), host_class=HOST
+        SPEC,
+        [_problem(), _problem(bound=-1.0)],
+        StandIn(),
+        host_class=HOST,
+        provenance=PROV,
     )
     summary = psr.public_summary(results)
     assert summary["targets"] == 2
@@ -314,7 +336,9 @@ def test_a1_needs_a2_today_s_grader_drops_the_on_limit_optimum():
     says how many, so a pack never assumes the solver optimum became the reference (review finding 1).
     """
     problem = _problem(u_g=0.01)
-    (result,) = psr.run_pack(SPEC, [problem], StandIn(), host_class=HOST)
+    (result,) = psr.run_pack(
+        SPEC, [problem], StandIn(), host_class=HOST, provenance=PROV
+    )
     designs, truths = _pool()
     extended, ext_truths, _added, within = psr.extend_pool(
         designs, truths, result, problem
@@ -350,7 +374,7 @@ def test_only_closed_statuses_are_accepted(status):
         return [{"status": status} for _ in designs]
 
     with pytest.raises(psr.SolverReferenceRefused, match="solve_status_not_closed"):
-        psr.run_pack(SPEC, [_problem()], solve, host_class=HOST)
+        psr.run_pack(SPEC, [_problem()], solve, host_class=HOST, provenance=PROV)
 
 
 def test_numpy_outputs_are_numbers_and_a_wrong_output_set_is_carbon_s_error():
@@ -365,7 +389,9 @@ def test_numpy_outputs_are_numbers_and_a_wrong_output_set_is_carbon_s_error():
             for a, b in designs
         ]
 
-    (result,) = psr.run_pack(SPEC, [_problem()], numpy_solve, host_class=HOST)
+    (result,) = psr.run_pack(
+        SPEC, [_problem()], numpy_solve, host_class=HOST, provenance=PROV
+    )
     assert result.status == psr.TARGET_OK
     assert "REFERENCE_DERIVE_REFUSED" not in result.counts["by_status"]
 
@@ -375,7 +401,7 @@ def test_numpy_outputs_are_numbers_and_a_wrong_output_set_is_carbon_s_error():
         ]
 
     with pytest.raises(psr.SolverReferenceRefused, match="derive_outputs_do_not_match"):
-        psr.run_pack(SPEC, [_problem()], extra_key, host_class=HOST)
+        psr.run_pack(SPEC, [_problem()], extra_key, host_class=HOST, provenance=PROV)
 
 
 def test_an_exact_limit_still_guides_the_search_back_to_feasibility():
@@ -383,7 +409,7 @@ def test_an_exact_limit_still_guides_the_search_back_to_feasibility():
     from dataclasses import replace
 
     corner = replace(_problem(u_g=0.0), start=(0.95, 0.95))
-    (exact,) = psr.run_pack(SPEC, [corner], StandIn(), host_class=HOST)
+    (exact,) = psr.run_pack(SPEC, [corner], StandIn(), host_class=HOST, provenance=PROV)
     assert exact.status == psr.TARGET_OK
     assert exact.points[exact.reference].outputs["f"] > OPTIMUM - 0.03
 
@@ -405,7 +431,7 @@ def test_one_dimension_walks_only_to_the_limit_point():
     def solve(fixed, designs):
         return [{"status": "OK", "outputs": {"f": x, "g": x * x}} for (x,) in designs]
 
-    (result,) = psr.run_pack(SPEC, [problem], solve, host_class=HOST)
+    (result,) = psr.run_pack(SPEC, [problem], solve, host_class=HOST, provenance=PROV)
     line = [p for p in result.points if p.phase == "line_search"]
     assert len({round(p.design[0], 9) for p in line}) == len(line)
     assert result.points[result.reference].outputs["f"] > 0.49
@@ -421,16 +447,18 @@ def test_a_rented_or_unknown_host_refuses_before_the_first_solve(host):
         return StandIn()(fixed, designs)
 
     with pytest.raises(psr.SolverReferenceRefused, match="host_not_custody"):
-        psr.run_pack(SPEC, [_problem()], solve, host_class=host)
+        psr.run_pack(SPEC, [_problem()], solve, host_class=host, provenance=PROV)
     policy = psr.policy_from_spec(SPEC)
     with pytest.raises(psr.SolverReferenceRefused, match="host_not_custody"):
-        psr.run_target(_problem(), solve, policy, host_class=host)
+        psr.run_target(_problem(), solve, policy, host_class=host, provenance=PROV)
     assert calls == []
 
 
 @pytest.mark.parametrize("host", sorted(psr.CUSTODY_HOST_CLASSES))
 def test_every_custody_host_runs(host):
-    (result,) = psr.run_pack(SPEC, [_problem()], StandIn(), host_class=host)
+    (result,) = psr.run_pack(
+        SPEC, [_problem()], StandIn(), host_class=host, provenance=PROV
+    )
     assert result.status == psr.TARGET_OK
 
 
@@ -474,14 +502,16 @@ def test_under_the_near_limit_rule_the_driver_searches_the_grader_s_value():
     designs, truths = _pool()
     before = target_of(designs, truths)
     base = _problem(u_g=0.05)
-    (plain,) = psr.run_pack(SPEC, [base], StandIn(), host_class=HOST)
+    (plain,) = psr.run_pack(SPEC, [base], StandIn(), host_class=HOST, provenance=PROV)
     on_limit = plain.points[plain.reference].outputs
     assert (
         grader_credit(base.limits, on_limit, u_of) < 0.5
     )  # the raw optimum is worth little under the rule
 
     problem = replace(base, near_limit=RAMP, s_low=before.s_low)
-    (result,) = psr.run_pack(SPEC, [problem], StandIn(), host_class=HOST)
+    (result,) = psr.run_pack(
+        SPEC, [problem], StandIn(), host_class=HOST, provenance=PROV
+    )
     assert result.status == psr.TARGET_OK
 
     def value(out):
@@ -518,4 +548,68 @@ def test_near_limit_and_its_zero_go_together(near_limit, s_low):
             [replace(_problem(), near_limit=near_limit, s_low=s_low)],
             StandIn(),
             host_class=HOST,
+            provenance=PROV,
         )
+
+
+@pytest.mark.parametrize(
+    "prov",
+    [
+        None,
+        {},
+        {"rung": "L0", "deck_sha256": "a" * 64},
+        {"rung": "L0", "deck_sha256": "xyz", "solver_image": "i"},
+        {"rung": "", "deck_sha256": "a" * 64, "solver_image": "i"},
+        {"rung": "L0", "deck_sha256": "a" * 64, "solver_image": "i", "extra": "x"},
+    ],
+)
+def test_provenance_is_required_and_closed(prov):
+    calls = []
+
+    def solve(fixed, designs):
+        calls.append(1)
+        return StandIn()(fixed, designs)
+
+    with pytest.raises(psr.SolverReferenceRefused, match="provenance_needs"):
+        psr.run_pack(SPEC, [_problem()], solve, host_class=HOST, provenance=prov)
+    policy = psr.policy_from_spec(SPEC)
+    with pytest.raises(psr.SolverReferenceRefused, match="provenance_needs"):
+        psr.run_target(_problem(), solve, policy, host_class=HOST, provenance=prov)
+    assert calls == []
+
+
+def test_every_result_records_its_provenance_and_host():
+    (result,) = psr.run_pack(
+        SPEC, [_problem()], StandIn(), host_class="hostkey", provenance=PROV
+    )
+    assert result.provenance == {**PROV, "host_class": "hostkey"}
+
+
+def test_the_convergence_curve_is_monotone_and_ends_at_the_reference():
+    problem = _problem()
+    (result,) = psr.run_pack(
+        SPEC, [problem], StandIn(), host_class=HOST, provenance=PROV
+    )
+    curve = psr.convergence(result, problem)
+    assert [n for n, _ in curve] == list(range(1, len(result.points) + 1))
+    values = [v for _, v in curve if v is not None]
+    assert values == sorted(values)
+    assert curve[-1][1] == pytest.approx(result.points[result.reference].outputs["f"])
+    n = psr.plateau_solves(curve, 0.0)
+    assert curve[n - 1][1] == curve[-1][1]
+    assert n == 1 or curve[n - 2][1] != curve[-1][1]
+    first = next(i for i, v in curve if v is not None)
+    assert psr.plateau_solves(curve, 10.0) == first
+    assert psr.plateau_solves(((1, None), (2, None)), 0.1) is None
+
+
+def test_pool_spread_is_the_top_points_spread_and_needs_two():
+    designs, truths = _pool()
+    problem = _problem()
+    wide = psr.pool_spread(problem, designs, truths, 50)
+    narrow = psr.pool_spread(problem, designs, truths, 5)
+    assert wide is not None and narrow is not None
+    assert 0.0 < narrow and 0.0 < wide < 0.5
+    assert psr.pool_spread(problem, designs[:1], truths[:1], 5) is None
+    with pytest.raises(psr.SolverReferenceRefused, match="pool_spread_top"):
+        psr.pool_spread(problem, designs, truths, 1)
