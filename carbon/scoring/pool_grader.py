@@ -1327,7 +1327,8 @@ def agen_buckets(specs, plan, min_class_cases):
 
     Refused: an in-range target holding a reserved slice (A_gen is out of range only: min(A, A_gen) would otherwise
     compare in-range with a mix), a class mixing in-range and out-of-range targets, a plan class named `OTHER_OOD`, and
-    a set with no out-of-range case at all."""
+    a set with no out-of-range case at all, and a pooled `OTHER_OOD` class that still holds fewer than N cases.
+    """
     _require(
         isinstance(plan, CoveragePlan),
         "a_gen_aggregate_needs_a_registered_coverage_plan",
@@ -1358,6 +1359,14 @@ def agen_buckets(specs, plan, min_class_cases):
         for name, spec in zip(classes, specs, strict=True)
     )
     order = own + ((OTHER_OOD,) if OTHER_OOD in buckets else ())
+    # The pooled class must itself reach N (Validator 4 Nov 21:59): the fix is the draw (more cases), never a weight.
+    pooled = sum(
+        len(s.agen) for s, b in zip(specs, buckets, strict=True) if b == OTHER_OOD
+    )
+    _require(
+        OTHER_OOD not in order or pooled >= min_class_cases,
+        "a_gen_other_ood_below_n_cases",
+    )
     return buckets, order
 
 

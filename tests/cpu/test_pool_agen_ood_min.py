@@ -124,10 +124,17 @@ def test_classes_below_n_cases_pool_into_other_ood_and_each_bucket_is_its_own_me
     assert got == pool_grader.agen_for(specs, errors(ERR), SCALES, policy(plan, 3))
 
 
-def test_with_n_one_no_class_pools_and_with_a_large_n_every_class_pools():
+def test_with_n_one_no_class_pools_and_a_pooled_class_below_n_refuses():
     specs, plan = the_set()
     assert agen_buckets(specs, plan, 1)[1] == (EDGE, CORNER, STEP)
-    assert agen_buckets(specs, plan, 100)[1] == (OTHER_OOD,)
+    assert agen_buckets(specs, plan, 3)[1] == (
+        EDGE,
+        OTHER_OOD,
+    )  # CORNER 2 + STEP 1 = 3 cases
+    # pooled, other_ood still holds fewer than N (Validator 21:59): the draw must add cases, no weight rule
+    for n in (4, 100):
+        with pytest.raises(PoolRefused, match="a_gen_other_ood_below_n_cases"):
+            agen_buckets(specs, plan, n)
     one = agen_accuracy(
         specs,
         errors(ERR),
@@ -247,18 +254,22 @@ def test_the_registration_reads_n_with_no_default():
 @pytest.mark.usefixtures("geometric_v1_stand_in")
 def test_the_exam_recomposes_the_pooled_out_of_range_a_gen_like_the_grade():
     the_sets = tuple(
-        tuple(exam_target(f"e{s}{i}", 20 + 10 * s + i, shell=SHELL) for i in range(4))
-        + (exam_target(f"c{s}", 60 + s, shell=SHELL),)
+        tuple(exam_target(f"e{s}{i}", 20 + 10 * s + i, shell=SHELL) for i in range(3))
+        + (
+            exam_target(f"c{s}", 60 + s, shell=SHELL),
+            exam_target(f"p{s}", 70 + s, shell=SHELL),
+        )
         for s in range(2)
     )
-    classes = {t.target_id: (CORNER if t.target_id.startswith("c") else EDGE)
-               for group in the_sets for t in group}  # fmt: skip
-    document = plan_document([EDGE, CORNER], classes)
+    kinds = {"e": EDGE, "c": CORNER, "p": STEP}
+    classes = {t.target_id: kinds[t.target_id[0]] for group in the_sets for t in group}
+    document = plan_document([EDGE, CORNER, STEP], classes)
     plan = coverage_plan(document)
     sums = sums_text(plan.sha256)
-    # the one CORNER target per set is below N (it pools); every EDGE class holds more
-    n = max(len(group[4].agen) for group in the_sets) + 1
-    assert all(sum(len(t.agen) for t in group[:4]) >= n for group in the_sets)
+    # CORNER and STEP (one target each per set) are each below N and pool; pooled, and EDGE, they reach N
+    n = max(len(t.agen) for group in the_sets for t in group[3:]) + 1
+    assert all(sum(len(t.agen) for t in group[3:]) >= n for group in the_sets)
+    assert all(sum(len(t.agen) for t in group[:3]) >= n for group in the_sets)
     policies = dataclasses.replace(
         POLICIES,
         optimizer=dataclasses.replace(
@@ -274,7 +285,7 @@ def test_the_exam_recomposes_the_pooled_out_of_range_a_gen_like_the_grade():
     )
     assert basis["agen_orders"] == [[EDGE, OTHER_OOD], [EDGE, OTHER_OOD]]
     assert [[t["agen_region"] for t in s] for s in basis["sets"]] == [
-        [EDGE] * 4 + [OTHER_OOD]
+        [EDGE] * 3 + [OTHER_OOD] * 2
     ] * 2
     recomposed = pool_exam.total_of_targets(basis, basis["sets"])
     assert recomposed == pytest.approx(0.5 * result["A"] + 0.5 * result["D"], abs=1e-12)
