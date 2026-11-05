@@ -1857,6 +1857,7 @@ def reconsider_paused_pack(
             adapter,
             record["submission_id"],
             record["entry_id"],
+            pool_store=pool_store,
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
             runner=runner,
@@ -2285,6 +2286,7 @@ def _grade_selected_pack(
                     adapter,
                     submission_id,
                     bound.get("entry_id"),
+                    pool_store=pool_store,
                     artifact_directory=artifact_directory,
                     entry_directory=entry_directory,
                 )
@@ -3102,7 +3104,7 @@ def rebuild_king(
         if entry.get("recipe_digest") != recipe_digest:
             raise RetentionUnavailable("king_rebuild_recipe_differs")
         _admit_king_rebuild(
-            pool_store, derived, admitted, artifacts, task_id, judge_image
+            pool_store, derived, admitted, artifacts, task_id, judge_image, entry
         )
         graded = regrade_retained_entry(
             adapter,
@@ -3150,12 +3152,28 @@ def retained_king_source(
     return {"recipe": recipe, "graph_source": graph_source}
 
 
-def _admit_king_rebuild(pool_store, derived, admitted, artifacts, task_id, judge_image):
-    """The derived pool row of a king's rebuild, once: his hotkey, request, admitted recipe and challenge binding, the
-    rebuilt state, RECONSTRUCTED. A replay keeps the first rows (admit / retain_model are first-wins).
+def _admit_king_rebuild(
+    pool_store, derived, admitted, artifacts, task_id, judge_image, entry=None
+):
+    """The derived pool row of a king's rebuild, once: his hotkey, request and ADMITTED recipe digest (what
+    `record_king_rebuild` checks against his admission), the rebuilt state, RECONSTRUCTED. Its construction binding is
+    the REBUILT task's own (Validator-2 5 Nov 13:05 ruling on audit #7): the challenge id and version of ``entry``, the
+    rebuilt task's bank entry, so `_private_model` binds a king carried across a Challenge version (every live king
+    was, on route D), whose admission still names the old one. Without ``entry`` the admission's binding is kept. A
+    replay keeps the first rows (admit / retain_model are first-wins).
     """
     from carbon.battery.pool_store import StateError
 
+    challenge, binding = admitted["challenge"], admitted["binding"]
+    if entry is not None:
+        challenge = entry["challenge"]
+        binding = {
+            **binding,
+            "challenge": {
+                "id": entry["challenge"],
+                "version": entry["challenge_version"],
+            },
+        }
     try:
         pool_store.submission(derived)
     except StateError as missing:
@@ -3165,9 +3183,9 @@ def _admit_king_rebuild(pool_store, derived, admitted, artifacts, task_id, judge
             derived,
             request_digest=admitted["request_digest"],
             hotkey=admitted["hotkey"],
-            challenge=admitted["challenge"],
+            challenge=challenge,
             strategy=admitted["strategy"],
-            binding=admitted["binding"],
+            binding=binding,
         )
     pool_store.retain_model(
         derived,
@@ -3516,14 +3534,22 @@ def rebuild_at_seed(
         )
 
 
-def _repeat_of(adapter, origin, entry_id, *, source=None, **custody):
+def _repeat_of(adapter, origin, entry_id, *, source=None, pool_store=None, **custody):
     """`repeat` for `BankPromotion.consider_private`: the second grade of the one state this task retains. Another
-    state (an incumbent without a repeat mark) is not retained here, so it gives none and no crown moves.
+    state (an incumbent without a repeat mark) is not retained here, so it gives none and no crown moves, EXCEPT the
+    sitting king whose grade on this decision's key is his route-(b) rebuild: his repeat is a second grade of that
+    rebuilt state (`_rebuilt_king_repeat`; Validator-2 5 Nov 13:05 ruling on audit #5: the gate stays, the code finds
+    the state). ``pool_store`` gives the decision's pool; without it only ``origin`` repeats, as before.
     """
 
     def repeat(submission_id):
         if submission_id != origin:
-            raise RetentionUnavailable("repeat_state_not_retained_here")
+            rebuilt = _rebuilt_king_repeat(
+                adapter, pool_store, origin, submission_id, custody
+            )
+            if rebuilt is None:
+                raise RetentionUnavailable("repeat_state_not_retained_here")
+            return rebuilt
         return {
             "submission_id": origin,
             "evidence": repeat_grade(adapter, entry_id, **custody),
@@ -3554,6 +3580,64 @@ def _repeat_of(adapter, origin, entry_id, *, source=None, **custody):
     # What a control rebuild on this host needs: the same adapter and custody (`_control_check`).
     repeat.adapter, repeat.custody = adapter, custody
     return repeat
+
+
+def _rebuilt_king_repeat(adapter, pool_store, origin, king, custody):
+    """The repeat of the SITTING ``king`` when his grade on the decision's key is his route-(b) rebuild, or None.
+
+    The key is the challenger ``origin``'s latest one that carries a ``king_rebuild.v1`` link for him (the pair the gate
+    reads was built on it). The state repeated is the linked krb_ row's retained entry (the rebuilt state the grade
+    was made from, as `_rebuilt_evaluation` resolves it), regraded through its host-owned task like any derived grade:
+    GPU only when a crown change needs it, never an eager repeat in the rebuild itself.
+    """
+    from carbon.challenge_validator.crown_average import HOST_OWNER
+
+    linked = getattr(pool_store, "king_rebuild_of", None)
+    if linked is None or (pool_store.incumbent() or {}).get("model_id") != king:
+        return None
+    bodies = list(pool_store.private_evaluation_bodies())
+    for key in reversed(
+        [b.get("evaluation_key") for b in bodies if b.get("submission_id") == origin]
+    ):
+        link = linked(king, key)
+        if link is None:
+            continue
+        derived = link["derived_submission_id"]
+        rows = [
+            b
+            for b in bodies
+            if b.get("submission_id") == derived and b.get("evaluation_key") == key
+        ]
+        if not rows:
+            return None
+        rebuilt_entry = (rows[-1].get("evidence") or {}).get("entry_id")
+        task = _entry_origin_task(custody["entry_directory"], rebuilt_entry)
+        with adapter.deriving(task, HOST_OWNER):
+            return {
+                "submission_id": king,
+                "evidence": repeat_grade(adapter, rebuilt_entry, **custody),
+            }
+    return None
+
+
+def _entry_origin_task(entry_directory, entry_id):
+    """The retained task behind bank entry ``entry_id`` (its custody receipt names it), read only."""
+    if (
+        type(entry_id) is not str
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", entry_id) is None
+    ):
+        raise RetentionUnavailable("regrade_entry_identity_invalid")
+    entries = _owner_directory(entry_directory, "entry_directory")
+    entry = json.loads(
+        _private_measurement_bytes(
+            entries / (entry_id.removeprefix("sha256:") + ".json"), 1024**2
+        )
+    )
+    receipt = ((entry or {}).get("custody_receipt") or {}).get("file")
+    match = re.fullmatch(r"(rtsk_[0-9a-f]{64})\.custody\.json", str(receipt))
+    if match is None:
+        raise RetentionUnavailable("regrade_origin_task_unavailable")
+    return match.group(1)
 
 
 def regrade_retained_entry(
@@ -3915,6 +3999,7 @@ def regrade_retained_entry(
                     adapter,
                     origin,
                     entry_id,
+                    pool_store=pool_store,
                     artifact_directory=artifact_directory,
                     entry_directory=entry_directory,
                     runner=runner,

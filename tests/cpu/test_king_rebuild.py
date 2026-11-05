@@ -264,7 +264,9 @@ def wired(door, monkeypatch, tmp_path):
                     "recipe_digest": calls.get(
                         "recipe",
                         door.store.submission("king")["binding"]["recipe_digest"],
-                    )
+                    ),
+                    "challenge": door.case["entry"]["challenge"],
+                    "challenge_version": door.case["entry"]["challenge_version"],
                 }
             )
         )
@@ -545,3 +547,121 @@ def test_infrastructure_during_the_rebuild_is_a_typed_retry_never_a_block(
         "code": "rebuild_task_failed_infra",
     }
     assert pool.king_rebuild_blocked("king", "EXAM") is None
+
+
+# --- audit #7 (Validator-2 13:05, MUST-FIX): the krb_ row binds with the REBUILT task's construction binding -----------
+
+
+def test_a_king_carried_across_a_challenge_version_binds_his_rebuild(tmp_path):
+    """Every live king was carried across route D: his admission names the OLD Challenge version, while his rebuilt
+    task's entry is on the current one. The derived row takes the rebuilt entry's challenge binding (and keeps his
+    hotkey, request and admitted recipe digest), so the real `_private_model` binds it; the admission's binding refuses.
+    """
+    case = _graph_case(tmp_path)
+    store = PoolStore(tmp_path / "private.sqlite", clock=lambda: 123.0)
+    admitted(store, case, "king", version="the version he was admitted on")
+    store.set_incumbent("king", "carried across route D")
+    pin, args = inputs(case, version="synthetic-eval-v2")
+    flow = bp.BankPromotion(store, registered_source_receipt_sha256=pin)
+    king = store.submission("king")
+    state = {"state.npz": case["originals"]["build/output/state.npz"]}
+    task = "rtsk_" + "d" * 64
+    old = retention.king_rebuild_id("king", JUDGE, "old binding")
+    retention._admit_king_rebuild(store, old, king, state, task, JUDGE)
+    with pytest.raises(StateError, match="private_evaluation_model_binding"):
+        flow.retain_private(
+            old, **args
+        )  # the admission's old version: the 13:05 failure
+    derived = retention.king_rebuild_id("king", JUDGE, "rebuilt binding")
+    retention._admit_king_rebuild(
+        store, derived, king, state, task, JUDGE, case["entry"]
+    )
+    key = flow.retain_private(derived, **args)["evaluation_key"]
+    row = store.submission(derived)
+    assert row["binding"]["challenge"]["version"] == case["entry"]["challenge_version"]
+    assert (row["hotkey"], row["request_digest"]) == (
+        king["hotkey"],
+        king["request_digest"],
+    )
+    assert row["binding"]["recipe_digest"] == king["binding"]["recipe_digest"]
+    store.record_king_rebuild(  # the link still checks his admission: hotkey and admitted recipe digest
+        "king",
+        derived,
+        judge_image=JUDGE,
+        evaluation_key=key,
+        recipe_digest=king["binding"]["recipe_digest"],
+        hotkey=king["hotkey"],
+    )
+    assert store.king_rebuild_of("king", key)["derived_submission_id"] == derived
+
+
+# --- audit #5 (Validator-2 13:05 ruling): the repeat gate stays; repeat(king) finds his rebuilt state ----------------
+
+
+def test_a_dethrone_on_a_rebuilt_king_passes_the_repeat_gate_through_the_link(
+    door, monkeypatch, tmp_path
+):
+    """A DETHRONED reads the king's grade, which is his krb_ grade with no repeat mark, so the real `repeat_gate` asks
+    repeat(king). It is the second grade of the linked krb_ row's retained entry, run under the host owner (only the
+    GPU re-grade itself is stood in: it returns the same evidence, a bit-exact repeat).
+    """
+    from carbon.challenge_validator.crown_average import HOST_OWNER
+
+    derived, king = _rebuild_row(door)
+    _link(door, derived, king)
+    pair = door.flow.private_pair("challenger", door.key)
+    assert pair["incumbent"]["rebuilt_as"] == derived
+    rebuilt_entry = pair["incumbent"]["evidence"]["entry_id"]
+    host_task = "rtsk_" + "d" * 64
+    entries = tmp_path / "rebuilt-entries"
+    entries.mkdir(mode=0o700)
+    (entries / (rebuilt_entry.removeprefix("sha256:") + ".json")).write_text(
+        json.dumps({"custody_receipt": {"file": host_task + ".custody.json"}})
+    )
+    graded, held = [], []
+
+    def second_grade(adapter_, entry_id, **custody):
+        graded.append(entry_id)
+        held.append(adapter_.owner(host_task))
+        rows = {
+            pair["candidate"]["evidence"]["entry_id"]: pair["candidate"],
+            rebuilt_entry: pair["incumbent"],
+        }
+        return rows[entry_id]["evidence"]
+
+    monkeypatch.setattr(retention, "repeat_grade", second_grade)
+    monkeypatch.setattr(retention, "_owner_directory", lambda value, label: value)
+    monkeypatch.setattr(
+        retention, "_private_measurement_bytes", lambda path, limit: path.read_bytes()
+    )
+    import contextlib
+
+    owners = {}
+
+    @contextlib.contextmanager
+    def deriving(task, owner):
+        owners[task] = owner
+        yield
+        owners.pop(task)
+
+    adapter = SimpleNamespace(deriving=deriving, owner=lambda task: owners.get(task))
+    repeat = retention._repeat_of(
+        adapter,
+        "challenger",
+        pair["candidate"]["evidence"]["entry_id"],
+        pool_store=door.store,
+        artifact_directory=tmp_path,
+        entry_directory=entries,
+    )
+    dethroned = {"outcome": bp.DETHRONED, "reason": "incumbent_failed_mandatory_gate"}
+    assert bp.repeat_gate(pair, dethroned, repeat, {}, 0.0) == dethroned
+    assert graded[-1] == rebuilt_entry and held[-1] == HOST_OWNER
+    # without the pool (the old code path) the king's state is not found: UNAVAILABLE, no crown move
+    bare = retention._repeat_of(
+        adapter,
+        "challenger",
+        pair["candidate"]["evidence"]["entry_id"],
+        artifact_directory=tmp_path,
+        entry_directory=entries,
+    )
+    assert bp.repeat_gate(pair, dethroned, bare, {}, 0.0)["outcome"] == bp.UNAVAILABLE
