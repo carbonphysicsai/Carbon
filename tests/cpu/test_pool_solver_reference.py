@@ -152,7 +152,7 @@ def test_the_pack_reference_is_never_worse_than_the_pre_solved_pool():
         problem = _problem(seed=seed)
         problem = replace(problem, start=psr.pool_start(problem, designs, truths))
         (result,) = psr.run_pack(SPEC, [problem], StandIn())
-        _, ext, _ = psr.extend_pool(designs, truths, result)
+        _, ext, _, _ = psr.extend_pool(designs, truths, result, problem)
         assert max(t["f"] for t in ext if t["g"] <= 0.5) >= pool_best
         beaten += result.points[result.reference].outputs["f"] > pool_best
     # Measured on this stand-in (not a guarantee): the warm-started solver alone beats the pool's best on most seeds.
@@ -206,7 +206,7 @@ def test_reference_failures_are_typed_counted_and_never_pooled():
     )
     assert result.status == psr.TARGET_OK
     assert result.points[result.reference].design[0] <= 0.6
-    designs, _truths, added = psr.extend_pool([], [], result)
+    designs, _truths, added, _ = psr.extend_pool([], [], result, _problem())
     assert len(added) == sum(p.status == "OK" for p in result.points) == len(designs)
     assert all(d[0] <= 0.6 for d in designs)
 
@@ -224,8 +224,9 @@ def test_an_infrastructure_failure_is_retried_then_typed():
     (result,) = psr.run_pack(SPEC, [_problem()], stuck)
     assert result.status == psr.TARGET_INFRA and result.reference is None
     assert result.counts["by_status"]["FAILED_INFRA"] > 0
-    _, _, added = psr.extend_pool([], [], result)
-    assert len(added) == sum(p.status == "OK" for p in result.points)
+    # ...and an incomplete target adds nothing to the pool (review finding 2).
+    with pytest.raises(psr.SolverReferenceRefused, match="result_not_ok"):
+        psr.extend_pool([], [], result, _problem())
 
 
 def test_no_feasible_point_is_the_reference_s_failure():
@@ -261,7 +262,7 @@ def test_the_extended_pool_feeds_build_target():
     truths = [{"f": a + b, "g": a * a + b * b} for a, b in designs]
     tight = _problem(u_g=1e-6)
     (result,) = psr.run_pack(SPEC, [tight], StandIn())
-    extended, ext_truths, added = psr.extend_pool(designs, truths, result)
+    extended, ext_truths, added, _ = psr.extend_pool(designs, truths, result, tight)
 
     def build(ds, ts):
         return build_target(
@@ -299,3 +300,105 @@ def test_the_public_summary_carries_counts_only():
             yield value
 
     assert all(type(v) is int for v in leaves(summary))
+
+
+def test_a1_needs_a2_today_s_grader_drops_the_on_limit_optimum():
+    """At a realistic U the solver's on-limit points fall within U and today's build_target drops them: extend_pool
+    says how many, so a pack never assumes the solver optimum became the reference (review finding 1).
+    """
+    problem = _problem(u_g=0.01)
+    (result,) = psr.run_pack(SPEC, [problem], StandIn())
+    designs, truths = _pool()
+    extended, ext_truths, _added, within = psr.extend_pool(
+        designs, truths, result, problem
+    )
+    assert within >= 1
+    target = build_target(
+        target_id="t-analytic",
+        conditions={"fixed": {"c": 1.0}},
+        outputs=("f", "g"),
+        objective="f",
+        sense="max",
+        limits=[Limit("g", "<=", 0.5)],
+        u={"f": 0.0, "g": 0.01},
+        box=((0.0, 1.0), (0.0, 1.0)),
+        designs=extended,
+        truths=ext_truths,
+        agen=(),
+        start=(0.5, 0.5),
+        seed=1,
+    )
+    solver_best = result.points[result.reference]
+    assert abs(solver_best.margins[0]) <= 0.01  # on the limit, within U
+    assert (
+        target.s_ref < solver_best.outputs["f"]
+    )  # ...so the current grader cannot use it
+
+
+@pytest.mark.parametrize(
+    "status", ["solver crashed at x=0.41", "CANDIDATE_FAILED", "ok", "REFERENCE_"]
+)
+def test_only_closed_statuses_are_accepted(status):
+    def solve(fixed, designs):
+        return [{"status": status} for _ in designs]
+
+    with pytest.raises(psr.SolverReferenceRefused, match="solve_status_not_closed"):
+        psr.run_pack(SPEC, [_problem()], solve)
+
+
+def test_numpy_outputs_are_numbers_and_a_wrong_output_set_is_carbon_s_error():
+    np = pytest.importorskip("numpy")
+
+    def numpy_solve(fixed, designs):
+        return [
+            {
+                "status": "OK",
+                "outputs": {"f": np.float64(a + b), "g": np.float64(a * a + b * b)},
+            }
+            for a, b in designs
+        ]
+
+    (result,) = psr.run_pack(SPEC, [_problem()], numpy_solve)
+    assert result.status == psr.TARGET_OK
+    assert "REFERENCE_DERIVE_REFUSED" not in result.counts["by_status"]
+
+    def extra_key(fixed, designs):
+        return [
+            {"status": "OK", "outputs": {"f": 1.0, "g": 0.1, "h": 0.0}} for _ in designs
+        ]
+
+    with pytest.raises(psr.SolverReferenceRefused, match="derive_outputs_do_not_match"):
+        psr.run_pack(SPEC, [_problem()], extra_key)
+
+
+def test_an_exact_limit_still_guides_the_search_back_to_feasibility():
+    """U = 0 ranks the raw excess (as the grader does), not an all-equal infinity (review finding 5)."""
+    from dataclasses import replace
+
+    corner = replace(_problem(u_g=0.0), start=(0.95, 0.95))
+    (exact,) = psr.run_pack(SPEC, [corner], StandIn())
+    assert exact.status == psr.TARGET_OK
+    assert exact.points[exact.reference].outputs["f"] > OPTIMUM - 0.03
+
+
+def test_one_dimension_walks_only_to_the_limit_point():
+    problem = psr.Problem(
+        target_id="t-1d",
+        fixed={"c": 1.0},
+        outputs=("f", "g"),
+        objective="f",
+        sense="max",
+        limits=(Limit("g", "<=", 0.25),),
+        u={"f": 0.0, "g": 0.001},
+        box=((0.0, 1.0),),
+        start=(0.2,),
+        seed=3,
+    )
+
+    def solve(fixed, designs):
+        return [{"status": "OK", "outputs": {"f": x, "g": x * x}} for (x,) in designs]
+
+    (result,) = psr.run_pack(SPEC, [problem], solve)
+    line = [p for p in result.points if p.phase == "line_search"]
+    assert len({round(p.design[0], 9) for p in line}) == len(line)
+    assert result.points[result.reference].outputs["f"] > 0.49

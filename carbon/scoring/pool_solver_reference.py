@@ -2,19 +2,32 @@
 
 Today a target's reference is the best truly feasible point of its pre-solved pool (`pool_grader.build_target`), not
 what a solver-driven optimiser finds. This module runs, ONCE PER TARGET AT PACK BUILD and only when the pack spec turns
-it on, the same seeded CMA-ES the grader uses (`pool_cmaes`) with the REAL solver as the objective, then a seeded line
-search along the limit that is active at the solver's optimum. It returns the solver-optimum reference and every solved
+it on, the grader's seeded CMA-ES (`pool_cmaes`, unchanged; this module repairs each sample into the design box before
+the strategy adapts, so its trajectory is not the grader's) with the REAL solver as the objective, then a seeded walk
+along the limit that is active at the solver's optimum. It returns the solver-optimum reference and every solved
 point, typed, so the pack can add them to the target's pool (`extend_pool`). It never runs at grade time and never sees
 a candidate.
 
 Ranking on TRUE outputs (lower key is better): a truly feasible point (every margin >= 0) by its objective; then an
 infeasible point by its summed limit violation in U units, then its objective; then a point the solver could not give
-(reference failure or infrastructure), last. The reference is the best truly feasible OK point. Whether a near-limit
-point counts is the grader's rule (a2), not this module's: every point carries its margins.
+(reference failure or infrastructure), last; an exactly computed limit (U = 0) ranks its raw excess ahead of the U-scaled
+ones, as the grader does. The reference is the best truly feasible OK point.
+
+A1 NEEDS A2: the solver's optimum and the limit walk sit within U of the active limit by design, and today's
+`pool_grader.build_target` DROPS every pool point within U of a limit. Until the grader's near-limit rule (a2, "scored
+by the true margin with U", new versions only) lands, those points are excluded from the reference; `extend_pool`
+reports how many fall within U so a pack never assumes otherwise.
 
 Typed outcomes, never collapsed (AGENTS 7.5, invariant 7): `OK`; a reference failure (`REFERENCE_*` from the solve path,
 or `REFERENCE_DERIVE_REFUSED` when the Challenge's own derive refuses the raw row): the reference's, never a candidate's;
-`FAILED_INFRA`: retried up to the policy's count, else the target is `FAILED_INFRA_INCOMPLETE` and gives no reference.
+`FAILED_INFRA`: retried up to the policy's count, else the target is `FAILED_INFRA_INCOMPLETE`, gives no reference and
+adds nothing to the pool. Any other status from the solve path is refused (`solve_status_not_closed`), so no free text
+reaches a count. `solve` must return records, not raise: an exception propagates and the caller marks the run
+FAILED_INFRA.
+
+Budget: B_s and the line-search count are DISTINCT DESIGNS solved; an infrastructure re-solve of the same design is
+extra, at most `infra_retries` x designs, and counted (`solves`, `infra_attempts`). Whether re-solves should spend the
+budget instead is the owner's call.
 
 Every number the owner picks (the solver budget B_s, the population, the initial step, the line-search point count and
 span, the infrastructure retries) is a required pack-spec value with no default; a missing one refuses with
@@ -28,6 +41,7 @@ import hashlib
 import json
 import math
 import random
+import re
 from dataclasses import dataclass
 
 from carbon.scoring.pool_cmaes import CmaEs
@@ -41,6 +55,7 @@ DERIVE_REFUSED = "REFERENCE_DERIVE_REFUSED"
 TARGET_OK = "OK"
 TARGET_NO_FEASIBLE = "REFERENCE_NO_FEASIBLE_POINT"
 TARGET_INFRA = "FAILED_INFRA_INCOMPLETE"
+_REFERENCE_STATUS = re.compile(r"REFERENCE_[A-Z][A-Z_]{0,63}")
 
 
 class SolverReferenceRefused(ValueError):
@@ -64,10 +79,10 @@ def _finite(value):
 class DriverPolicy:
     """The owner's values for one pack (no defaults: HUMAN_INPUT until set in the pack spec)."""
 
-    budget: int  # B_s: solves per target for the CMA-ES phase
+    budget: int  # B_s: distinct designs solved per target in the CMA-ES phase (infra re-solves are extra)
     population: int  # CMA-ES lambda (>= 2)
     sigma0: float  # initial step in the unit box
-    line_search_points: int  # extra solves along the active limit (0 = none)
+    line_search_points: int  # distinct designs solved along the active limit (0 = none)
     line_search_span: float  # half-width of the tangent walk, in the unit box
     infra_retries: int  # re-solves of a design whose solve failed on infrastructure
 
@@ -210,15 +225,22 @@ def _margins(problem, outputs):
 
 def _key(problem, point):
     if point.status != OK:
-        return (2, 0.0, 0.0)
+        return (2, 0.0, 0.0, 0.0)
     loss = -(1.0 if problem.sense == "max" else -1.0) * point.outputs[problem.objective]
-    violation = 0.0
+    violation = exact = 0.0
     for index, limit in enumerate(problem.limits):
         margin = point.margins[index]
         if margin < 0.0:
             scale = u_value(problem.u[limit.output], point.outputs[limit.output])
-            violation += -margin / scale if scale > 0.0 else math.inf
-    return (0, 0.0, loss) if violation == 0.0 else (1, violation, loss)
+            if scale > 0.0:
+                violation += -margin / scale
+            else:
+                exact += (
+                    -margin
+                )  # an exactly computed quantity: its raw excess ranks first
+    if violation == 0.0 and exact == 0.0:
+        return (0, 0.0, 0.0, loss)
+    return (1, exact, violation, loss)
 
 
 def _solve(problem, solve, designs, phase, policy, counts):
@@ -240,6 +262,10 @@ def _solve(problem, solve, designs, phase, policy, counts):
             counts["solves"] += 1
             status = record.get("status") if type(record) is dict else None
             _require(type(status) is str and status, "solve_record_untyped")
+            _require(
+                status in (OK, FAILED_INFRA) or _REFERENCE_STATUS.fullmatch(status),
+                "solve_status_not_closed",
+            )
             if status == FAILED_INFRA:
                 counts["infra_attempts"] += 1
                 still.append(index)
@@ -255,14 +281,19 @@ def _solve(problem, solve, designs, phase, policy, counts):
             status, outputs = record["status"], None
         else:
             outputs = record.get("outputs")
-            if (
-                type(outputs) is not dict
-                or set(outputs) != set(problem.outputs)
-                or not all(_finite(v) for v in outputs.values())
-            ):
+            # A wrong output set is Carbon's setup error (adapter vs problem), never a scientific outcome.
+            _require(
+                type(outputs) is dict and set(outputs) == set(problem.outputs),
+                "derive_outputs_do_not_match_problem",
+            )
+            try:
+                values = {k: float(v) for k, v in outputs.items()}
+            except (TypeError, ValueError):
+                values = None
+            if values is None or not all(math.isfinite(v) for v in values.values()):
                 status, outputs = DERIVE_REFUSED, None
             else:
-                status, outputs = OK, {k: float(v) for k, v in outputs.items()}
+                status, outputs = OK, values
         counts["by_status"][status] = counts["by_status"].get(status, 0) + 1
         points.append(
             SolvedPoint(
@@ -314,15 +345,14 @@ def _fit_margin(problem, points, limit_index, centre, count):
     rows = [(1.0, *_unit(problem, p.design)) for p in ok[: max(count, n + 1)]]
     ys = [p.margins[limit_index] for p in ok[: max(count, n + 1)]]
     m = n + 1
-    # Normal equations with a tiny ridge, solved by Gaussian elimination (pure Python, deterministic).
-    ata = [
-        [sum(r[i] * r[j] for r in rows) + (1e-12 if i == j else 0.0) for j in range(m)]
-        for i in range(m)
-    ]
+    # Normal equations by Gaussian elimination (pure Python, deterministic); a pivot at machine precision relative
+    # to the matrix's scale means the points cannot determine a plane: None.
+    ata = [[sum(r[i] * r[j] for r in rows) for j in range(m)] for i in range(m)]
+    tiny = max(abs(ata[i][i]) for i in range(m)) * 1e-12
     aty = [sum(r[i] * y for r, y in zip(rows, ys)) for i in range(m)]
     for col in range(m):
         pivot = max(range(col, m), key=lambda r: abs(ata[r][col]))
-        if abs(ata[pivot][col]) < 1e-15:
+        if abs(ata[pivot][col]) <= tiny:
             return None
         ata[col], ata[pivot] = ata[pivot], ata[col]
         aty[col], aty[pivot] = aty[pivot], aty[col]
@@ -349,7 +379,9 @@ def _line_targets(problem, points, reference, active, policy):
         return None
     a, g = fit
     gg = sum(x * x for x in g)
-    rng = random.Random(problem.seed * 1_000_003 + 7)
+    rng = random.Random(
+        hashlib.sha256(f"line-search:{problem.seed}".encode()).hexdigest()
+    )
 
     def on_boundary(x):
         m = a + sum(gi * xi for gi, xi in zip(g, x))
@@ -359,6 +391,11 @@ def _line_targets(problem, points, reference, active, policy):
         policy.line_search_points + 1
     ) // 2  # each target has about two solves to reach the limit
     targets = [on_boundary(centre)]
+    if n == 1:
+        return (
+            centre,
+            targets,
+        )  # one dimension: the limit is a point, no tangent to walk
     pairs = max(1, count // 2)
     j = 0
     while len(targets) < count:
@@ -383,21 +420,25 @@ def _line_phase(problem, solve, points, reference, active, policy, counts):
     if found is None:
         return None
     centre, targets = found
-    open_ = [[target, 1.0] for target in dict.fromkeys(targets)]
+    # [target, tau, lo]: tau = the fraction of the way out to the target; lo = the largest known-feasible tau.
+    unique = dict.fromkeys(tuple(round(x, 12) for x in t) for t in targets)
+    open_ = [[target, 1.0, 0.0] for target in unique]
     solved_points, budget = [], policy.line_search_points
     while open_ and budget > 0:
         batch = open_[:budget]
         designs = [
             _raw(problem, [c + tau * (x - c) for c, x in zip(centre, target)])
-            for target, tau in batch
+            for target, tau, _ in batch
         ]
         solved = _solve(problem, solve, designs, "line_search", policy, counts)
         solved_points.extend(solved)
         budget -= len(batch)
         still = []
-        for (target, tau), point in zip(batch, solved):
+        for (target, tau, lo), point in zip(batch, solved):
+            # Bisection on [lo, tau]: an infeasible point steps back to the midpoint. A feasible point closes:
+            # the boundary guess is linear, so a feasible landing is already at or inside the limit.
             if point.status == OK and any(m < 0.0 for m in point.margins.values()):
-                still.append([target, tau / 2.0])
+                still.append([target, (lo + tau) / 2.0, lo])
         open_ = still + open_[len(batch) :]
     return solved_points
 
@@ -421,7 +462,9 @@ def _active(problem, point):
         limit = problem.limits[index]
         scale = u_value(problem.u[limit.output], point.outputs[limit.output])
         margin = point.margins[index]
-        return (margin / scale if scale > 0.0 else margin, index)
+        # Margins in U units are comparable; an exactly computed limit (U = 0) has no U unit, so it is the active
+        # one only when no U-carrying limit exists (then by raw margin).
+        return (0, margin / scale, index) if scale > 0.0 else (1, margin, index)
 
     return min(range(len(problem.limits)), key=scaled)
 
@@ -512,18 +555,28 @@ def adapter_solver(adapter, run_rows):
     return solve
 
 
-def extend_pool(designs, truths, result):
-    """The pool's (designs, truths) with the result's OK points appended, in solve order, and the appended
-    indices. Reference failures and infrastructure failures are never added. The grader's `build_target`
-    then derives its reference over the extended pool."""
+def extend_pool(designs, truths, result, problem):
+    """``(designs, truths, added, within_u)``: the pool with the result's OK points appended in solve order, the
+    appended indices, and how many of them lie within U of a limit (today's `build_target` drops those; see A1 NEEDS
+    A2). Only a TARGET_OK result extends a pool: an infrastructure-incomplete or no-feasible target adds nothing
+    (`solver_reference_result_not_ok`). Reference and infrastructure failures are never added.
+    """
+    _require(result.status == TARGET_OK, "solver_reference_result_not_ok")
+    _require(result.target_id == problem.target_id, "solver_reference_target_mismatch")
     designs, truths, added = list(designs), list(truths), []
+    within = 0
     for point in result.points:
         if point.status != OK:
             continue
         added.append(len(designs))
         designs.append(list(point.design))
         truths.append(dict(point.outputs))
-    return designs, truths, tuple(added)
+        within += any(
+            abs(point.margins[index])
+            <= u_value(problem.u[limit.output], point.outputs[limit.output])
+            for index, limit in enumerate(problem.limits)
+        )
+    return designs, truths, tuple(added), within
 
 
 def pool_start(problem, designs, truths):
