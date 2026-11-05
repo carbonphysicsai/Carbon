@@ -110,6 +110,20 @@ class AutoGrader:
             if _TASK.fullmatch(s) and not self._marker(s).exists()
         ]
 
+    def has_work(self):
+        """Whether a grade round has anything to do: a task with no marker yet, or a paused crown decision to make
+        again. A round without either never takes the host's grading lock (MAINNET_UPDATE_ARCHITECTURE s2.4 Step A),
+        so an idle door never stands between another door and its grade, or between a deploy and its idle check.
+        """
+        if self.pending():
+            return True
+        pool = self._pool()
+        return (
+            pool is not None
+            and hasattr(pool, "paused_crowns")
+            and bool(pool.paused_crowns())
+        )
+
     def run_once(self):
         """Grade at most one ready task; returns ``(submission_id, state)`` or None.
 

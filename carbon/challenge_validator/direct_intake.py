@@ -729,8 +729,12 @@ def serve_loopback(
     closing=None,
     grader=None,
     grading_lock_dir=None,
+    state_dir=None,
 ):
-    """Serve the prospective receiver on a trusted loopback test host."""
+    """Serve the prospective receiver on a trusted loopback test host.
+
+    ``state_dir`` (the receiver's state): where the per-door DRAINING flag is read and the in-flight record kept
+    (`_WorkLock`)."""
     host = config.get("host")
     if (
         type(intake) is not DirectRecipeIntake
@@ -749,7 +753,7 @@ def serve_loopback(
     # Join already-authenticated bounded handlers before taking the final
     # cancellation snapshot. Otherwise a submit may queue after cancellation.
     httpd.daemon_threads = False
-    work = _WorkLock(grading_lock_dir)
+    work = _WorkLock(grading_lock_dir, state_dir=state_dir, stop=stop)
     threads = [
         threading.Thread(
             target=refresher,
@@ -839,49 +843,229 @@ def _keep_failure(subject, loop, failure):
         return None
 
 
+#: Per-door drain and in-flight records in the receiver's state directory (MAINNET_UPDATE_ARCHITECTURE s2.4 Step A).
+DRAIN_NAME = "draining"
+INFLIGHT_NAME = "work-inflight.json"
+WAIT_NAME = "work-wait.json"
+INFLIGHT_SCHEMA = "carbon.challenge-validator.work-inflight.v1"
+#: How often a door retries the host's official-grading lock, and re-reads stop and DRAINING, while it waits
+#: (an operational poll period, not a scientific value).
+WORK_POLL_S = 1.0
+
+
+class WorkDeclined(Exception):
+    """This round takes no work: ``stopping``, ``draining`` or ``idle`` (nothing to do). Never a failure."""
+
+    def __init__(self, reason):
+        super().__init__(reason)
+        self.reason = reason
+
+
+def _process_start(pid):
+    """The kernel's start time of ``pid`` (clock ticks since boot), or None: with the pid it names one process."""
+    try:
+        with open(f"/proc/{pid}/stat", "rb") as handle:
+            return int(handle.read().rsplit(b")", 1)[1].split()[19])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def _write_record(path, body):
+    """Atomic: a temp file beside ``path``, fsynced, put in place by rename. A reader sees the whole record or none."""
+    import json
+
+    staged = path.with_name(f".{path.name}.{os.getpid()}.{threading.get_ident()}")
+    with open(staged, "w", encoding="utf-8") as handle:
+        json.dump(body, handle, sort_keys=True)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.chmod(staged, 0o600)
+    os.replace(staged, path)
+
+
 class _WorkLock:
     """The one lock the reconstruction pass and the grade share (one at a time), plus, when ``grading_lock_dir`` is
-    set, the official-grading file lock (`receipt_job.official_grading`): held for each whole official rebuild and
-    grade so the standing receipt worker starts no lane meanwhile, and released on every exit path.
+    set, the host's official-grading file lock (the same file `receipt_job.official_grading` holds): held for each
+    whole official rebuild and grade, so one grade runs per host at a time and the standing receipt worker starts no
+    lane meanwhile. Released on every exit path.
+
+    A door never BLOCKS waiting for either lock (MAINNET_UPDATE_ARCHITECTURE s2.4 Step A): it polls every
+    `WORK_POLL_S` and gives up the round (`WorkDeclined`) as soon as the receiver is stopping or the operator set
+    DRAINING (``<state>/draining``), so a stopped receiver never starts work after SIGTERM and a draining door holds
+    no item while it waits. With ``state_dir`` it also keeps:
+
+    - ``work-inflight.json`` while it holds the lock (kind, pid + process start, since): written and removed
+      atomically. A deploy's idle check reads THIS door's record, never the host lock (another door grading is not
+      this door being busy). A record left by a crash is set aside at start (renamed, logged), never trusted;
+    - ``work-wait.json`` while a door with work waits for the host lock (since when): the input for a starvation
+      alert, whose threshold is the host's measured longest grade wall (not set here).
     """
 
-    def __init__(self, grading_lock_dir=None):
+    def __init__(
+        self, grading_lock_dir=None, *, state_dir=None, stop=None, poll_s=None
+    ):
         self._lock = threading.Lock()
         self._dir = grading_lock_dir
-        self._held = None
+        self._state = None if state_dir is None else Path(state_dir)
+        self._stop = stop if stop is not None else threading.Event()
+        self._poll = WORK_POLL_S if poll_s is None else poll_s
+        self._fd = None
+        self._legacy = None
+        if self._state is not None:
+            for name in (INFLIGHT_NAME, WAIT_NAME):
+                left = self._state / name
+                if left.exists():
+                    # This process holds nothing yet: whatever is there is a previous process's, never trusted.
+                    aside = left.with_name(f"{name}.stale-{time.time_ns()}")
+                    os.replace(left, aside)
+                    log("direct_work_record_stale", record=name, kept_as=aside.name)
 
-    def __enter__(self):
-        self._lock.acquire()
+    def draining(self):
+        return self._state is not None and (self._state / DRAIN_NAME).exists()
+
+    def _declined(self):
+        if self._stop.is_set():
+            return "stopping"
+        if self.draining():
+            return "draining"
+        return None
+
+    def _try_host(self):
+        """Take the host's official-grading lock without blocking; True when held."""
+        import fcntl
+
+        from carbon.backbone_catalog.receipt_job import GRADING_LOCK
+
+        fd = os.open(Path(self._dir) / GRADING_LOCK, os.O_RDWR | os.O_CREAT, 0o600)
         try:
-            if self._dir is not None:
-                from carbon.backbone_catalog import receipt_job
-
-                self._held = receipt_job.official_grading(self._dir)
-                self._held.__enter__()
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            os.close(fd)
+            return False
         except BaseException:
-            self._held = None
-            self._lock.release()
+            os.close(fd)
             raise
-        return self
+        self._fd = fd
+        return True
+
+    def _release_host(self):
+        import fcntl
+
+        fd, self._fd = self._fd, None
+        if fd is not None:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+            finally:
+                os.close(fd)
+
+    def taking(self, kind, *, has_work=None):
+        """A context for one round of ``kind`` work (``advance`` or ``grade``). ``has_work`` (called under the
+        door's own lock) lets a round with nothing to do skip the host lock entirely (`WorkDeclined("idle")`).
+        """
+        return _Taking(self, kind, has_work)
+
+    # The earlier ``with work:`` form (one advance round), kept for callers outside this module.
+    def __enter__(self):
+        self._legacy = self.taking("advance")
+        return self._legacy.__enter__()
 
     def __exit__(self, *exc):
-        held, self._held = self._held, None
+        legacy, self._legacy = self._legacy, None
+        return legacy.__exit__(*exc)
+
+
+class _Taking:
+    """One round of work under `_WorkLock`; see there."""
+
+    def __init__(self, work, kind, has_work):
+        self.work, self.kind, self.has_work = work, kind, has_work
+
+    def __enter__(self):
+        work = self.work
+        while not work._lock.acquire(timeout=work._poll):
+            reason = work._declined()
+            if reason is not None:
+                raise WorkDeclined(reason)
         try:
-            if held is not None:
-                return held.__exit__(*exc)
+            reason = work._declined()
+            if reason is not None:
+                raise WorkDeclined(reason)
+            if self.has_work is not None and not self.has_work():
+                raise WorkDeclined("idle")
+            waiting = False
+            while work._dir is not None and not work._try_host():
+                if work._state is not None and not waiting:
+                    _write_record(
+                        work._state / WAIT_NAME,
+                        {
+                            "schema": INFLIGHT_SCHEMA,
+                            "kind": self.kind,
+                            "pid": os.getpid(),
+                            "since_ns": time.time_ns(),
+                        },
+                    )
+                    waiting = True
+                work._stop.wait(work._poll)
+                reason = work._declined()
+                if reason is not None:
+                    raise WorkDeclined(reason)
+            # Stop or DRAINING may have arrived while the host lock was being taken: no work starts after either.
+            reason = work._declined()
+            if reason is not None:
+                raise WorkDeclined(reason)
+            if work._state is not None:
+                if waiting:
+                    (work._state / WAIT_NAME).unlink(missing_ok=True)
+                _write_record(
+                    work._state / INFLIGHT_NAME,
+                    {
+                        "schema": INFLIGHT_SCHEMA,
+                        "kind": self.kind,
+                        "pid": os.getpid(),
+                        "pid_start": _process_start(os.getpid()),
+                        "since_ns": time.time_ns(),
+                    },
+                )
+        except BaseException:
+            try:
+                if work._state is not None:
+                    (work._state / WAIT_NAME).unlink(missing_ok=True)
+                work._release_host()
+            finally:
+                work._lock.release()
+            raise
+        return work
+
+    def __exit__(self, *exc):
+        work = self.work
+        try:
+            if work._state is not None:
+                (work._state / INFLIGHT_NAME).unlink(missing_ok=True)
         finally:
-            self._lock.release()
+            try:
+                work._release_host()
+            finally:
+                work._lock.release()
+        return False
+
+
+def _round(work, kind, has_work=None):
+    """One work round: `_WorkLock.taking` when ``work`` is one, else ``work`` itself (any lock, as before)."""
+    taking = getattr(work, "taking", None)
+    return work if taking is None else taking(kind, has_work=has_work)
 
 
 def _advance_loop(intake, stop, work=None):
-    work = work or threading.Lock()
+    work = work or _WorkLock(stop=stop)
     failures = 0
     while not stop.is_set():
         wait = 1
         try:
-            with work:
+            with _round(work, "advance"):
                 intake.advance()
             failures = 0
+        except WorkDeclined:
+            pass  # stopping, draining, or the host lock is another door's: never a failure
         except Exception as failure:  # noqa: BLE001 - no private content in log
             failures += 1
             wait = _backoff_s(failures)
@@ -901,9 +1085,12 @@ def _grade_loop(grader, stop, work):
         graded = None
         wait = 5
         try:
-            with work:
+            # Only a door with something to grade takes the host lock (MAINNET_UPDATE_ARCHITECTURE s2.4 Step A).
+            with _round(work, "grade", getattr(grader, "has_work", None)):
                 graded = grader.run_once()
             failures = 0
+        except WorkDeclined:
+            pass  # stopping, draining, nothing to grade, or waiting on the host: never a failure
         except Exception as failure:  # noqa: BLE001 - no private content in log
             failures += 1
             wait = max(5, _backoff_s(failures))
