@@ -1935,7 +1935,11 @@ def serve(
                 from carbon.challenge_validator.auto_grade import AutoGrader
 
                 grader = AutoGrader(
-                    intake, root, pool_store=cfg["auto_grade"].get("pool_store")
+                    intake,
+                    root,
+                    pool_store=cfg["auto_grade"].get("pool_store"),
+                    # each grade then runs under the host's official-grading lock (serve_loopback's _WorkLock)
+                    host_lock="official_gpu_receipts" in cfg,
                 )
                 # The caller's own submission's grade state (exam_feedback v2) reads its marker.
                 intake.grade_marker = grader.marker

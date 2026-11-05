@@ -362,7 +362,14 @@ def test_a_grade_that_could_not_be_computed_keeps_its_own_reason_in_the_marker(
 # ---------------------------------------------------------------- the bank wall stop is the candidate's (interim)
 
 
-def _wall_setup(tmp_path, failure, *, row=("RELEASED", "UNAVAILABLE")):
+def _wall_setup(
+    tmp_path,
+    failure,
+    *,
+    row=("RELEASED", "UNAVAILABLE"),
+    host_lock=True,
+    containers=lambda: 1,
+):
     """A grader whose retention raises ``failure`` after the bank grade settled the slot ``row``."""
     from carbon.challenge_validator.exam_cap import ExamCap
     from carbon.challenge_validator.ledger import AttemptLedger
@@ -401,7 +408,10 @@ def _wall_setup(tmp_path, failure, *, row=("RELEASED", "UNAVAILABLE")):
     )
     intake = FakeIntake([A], {A: failure})
     intake.adapter = adapter
-    return auto_grade.AutoGrader(intake, tmp_path), cap, ident, ledger
+    grader = auto_grade.AutoGrader(
+        intake, tmp_path, host_lock=host_lock, containers=containers
+    )
+    return grader, cap, ident, ledger
 
 
 def _miner_failure(code, observation):
@@ -485,3 +495,60 @@ def test_only_an_unavailable_released_row_is_recounted(tmp_path):
         _grader, cap, ident, ledger = _wall_setup(tmp_path / str(n), None, row=row)
         assert cap.count_candidate_wall(**ident) is None
         assert _row(ledger) == [row]
+
+
+@pytest.mark.parametrize(
+    "host_lock, containers, why",
+    [
+        (True, lambda: 2, "another worker container ran"),
+        (True, lambda: None, "the daemon could not say"),
+        (False, lambda: 1, "the grade did not hold the host lock"),
+    ],
+)
+def test_a_wall_stop_under_possible_contention_is_given_back_and_logged(
+    tmp_path, host_lock, containers, why
+):
+    """Validator 17:16 guard (invariant 7): a wall stop is counted only when this grade held the host lock and no
+    other Carbon worker container ran during it; otherwise our host may have slowed it, so it is given back.
+    """
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, cap, ident, ledger = _wall_setup(
+        tmp_path, wall, host_lock=host_lock, containers=containers
+    )
+    assert grader.run_once() == (A, "FAILED"), why
+    assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
+    assert cap.released_on_infra(**ident)
+    (logged,) = [
+        json.loads(line)
+        for line in (tmp_path / "auto-grade" / "wall-stops.jsonl")
+        .read_text()
+        .splitlines()
+    ]
+    assert logged["task"] == A and logged["counted"] is False
+    assert logged["host_lock"] is host_lock
+
+
+def test_an_uncontended_wall_stop_is_logged_as_counted(tmp_path):
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, _cap, _ident, _ledger = _wall_setup(tmp_path, wall)
+    assert grader.run_once() == (A, "CANDIDATE_FAILED")
+    logged = json.loads((tmp_path / "auto-grade" / "wall-stops.jsonl").read_text())
+    assert logged["counted"] is True and logged["max_worker_containers"] == 1
+
+
+def test_the_sampler_reads_the_host_while_a_grade_runs():
+    import time as clock
+
+    seen = []
+    sampler = auto_grade._Sampler(lambda: seen.append(1) or 1, 0.01)
+    with sampler:
+        clock.sleep(0.1)
+    assert len(sampler.samples) >= 2 and set(sampler.samples) == {1}
+    quick = auto_grade._Sampler(lambda: 1, 60)
+    with quick:
+        pass  # a not-ready task returns at once: no docker call
+    assert quick.samples == []

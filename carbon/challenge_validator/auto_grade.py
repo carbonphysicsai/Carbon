@@ -41,8 +41,24 @@ _NOT_YET = frozenset({"owned_task_unavailable", "verified_attempt_unavailable"})
 class AutoGrader:
     """Grades each SUCCEEDED task of one served adapter, once."""
 
-    def __init__(self, intake, root, *, pool_store=None):
+    def __init__(
+        self,
+        intake,
+        root,
+        *,
+        pool_store=None,
+        host_lock=False,
+        containers=None,
+        sample_seconds=5.0,
+    ):
+        """``host_lock``: each grade runs under the host's official-grading lock (`direct_intake._WorkLock` with a
+        lock dir). ``containers``: how many Carbon worker containers run on the host now (None = unknown); sampled
+        every ``sample_seconds`` while a grade runs, for the wall-stop contention guard (Validator 4 Nov 17:16).
+        """
         self.intake = intake
+        self.host_lock = host_lock is True
+        self.containers = count_worker_containers if containers is None else containers
+        self.sample_seconds = sample_seconds
         base = Path(root) / "auto-grade"
         self.artifacts = base / "artifacts"
         self.entries = base / "entries"
@@ -102,13 +118,15 @@ class AutoGrader:
 
         self._resume_paused_crowns()
         for submission_id in self.pending():
+            sampler = _Sampler(self.containers, self.sample_seconds)
             try:
-                result = self.intake.retain_result(
-                    submission_id,
-                    artifact_directory=self.artifacts,
-                    entry_directory=self.entries,
-                    pool_store=self._pool(),
-                )
+                with sampler:
+                    result = self.intake.retain_result(
+                        submission_id,
+                        artifact_directory=self.artifacts,
+                        entry_directory=self.entries,
+                        pool_store=self._pool(),
+                    )
             except RetentionUnavailable as unavailable:
                 code = getattr(unavailable, "code", None) or str(unavailable)
                 if code in _PENDING or code in _NOT_YET:
@@ -118,7 +136,11 @@ class AutoGrader:
                 return submission_id, "FAILED"
             except Exception as failure:  # noqa: BLE001 - typed, no private content
                 self._keep(submission_id, failure)
-                if _candidate_wall_stop(failure) and self._count_wall(submission_id):
+                if (
+                    _candidate_wall_stop(failure)
+                    and self._uncontended(submission_id, sampler.samples)
+                    and self._count_wall(submission_id)
+                ):
                     # The candidate's own graph at the graded-inference wall: its outcome, COUNTED, never given back
                     # as infrastructure (Validator 4 Nov 16:52: else a changed recipe probes the hidden inputs free).
                     self._write(
@@ -241,6 +263,40 @@ class AutoGrader:
             submission_id=submission_id,
         )
 
+    def _uncontended(self, submission_id, samples):
+        """The contention guard (Validator 4 Nov 17:16, invariant 7): a wall stop is the candidate's only when this
+        grade held the host lock for the whole run AND no other Carbon worker container ran during it (every sample
+        saw at most this grade's own); otherwise our host may have slowed it, and it is given back as before. Logged
+        either way (``auto-grade/wall-stops.jsonl``: counts only)."""
+        known = [s for s in samples if s is not None]
+        verdict = (
+            self.host_lock
+            and bool(samples)
+            and len(known) == len(samples)
+            and max(known) <= 1
+        )
+        try:
+            with open(
+                self.markers.parent / "wall-stops.jsonl", "a", encoding="utf-8"
+            ) as log:
+                log.write(
+                    json.dumps(
+                        {
+                            "task": submission_id,
+                            "counted": verdict,
+                            "host_lock": self.host_lock,
+                            "samples": len(samples),
+                            "unknown_samples": len(samples) - len(known),
+                            "max_worker_containers": max(known) if known else None,
+                        },
+                        sort_keys=True,
+                    )
+                    + chr(10)
+                )
+        except OSError:
+            pass
+        return verdict
+
     def _count_wall(self, submission_id):
         """Re-settle this task's slot COUNTED as the candidate's wall stop (`ExamCap.count_candidate_wall`); False
         when there is no such slot (the stop came before any reservation), so the failure is given back as before.
@@ -286,6 +342,65 @@ class AutoGrader:
 
 
 _WALL_LIMIT_REACHED = "WORKER_WALL_LIMIT_REACHED"
+#: The carrier names every worker container it starts ``carbon-d4-<launch digest>`` (`research_carrier`).
+_WORKER_PREFIX = "carbon-d4-"
+
+
+def count_worker_containers():
+    """How many Carbon worker containers run on this host now, or None when the daemon cannot say."""
+    import subprocess
+
+    try:
+        done = subprocess.run(
+            [
+                "docker",
+                "ps",
+                "--filter",
+                "name=" + _WORKER_PREFIX,
+                "--format",
+                "{{.Names}}",
+            ],
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if done.returncode != 0:
+        return None
+    return sum(
+        1
+        for name in done.stdout.decode("utf-8", "replace").split()
+        if name.startswith(_WORKER_PREFIX)
+    )
+
+
+class _Sampler:
+    """Samples `count_worker_containers` every ``seconds`` while a grade runs, on its own thread. A call that returns
+    within the first interval costs nothing (the not-ready tasks of every tick); a run that ends in a wall stop always
+    has its samples, the last one taken at the stop."""
+
+    def __init__(self, count, seconds):
+        import threading
+
+        self.count, self.seconds, self.samples = count, seconds, []
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def _run(self):
+        while not self._stop.wait(self.seconds):
+            self.samples.append(self.count())
+
+    def __enter__(self):
+        self._thread.start()
+        return self
+
+    def __exit__(self, kind, value, _trace):
+        self._stop.set()
+        self._thread.join(self.seconds + 15)
+        if kind is not None and _candidate_wall_stop(value):
+            self.samples.append(self.count())
+        return False
 
 
 def _candidate_wall_stop(error):
