@@ -281,6 +281,14 @@ def run(args):
     )
     _need(args.shortcut_fit in report.FITS, "g6_shortcut_fit")
     catalog = getattr(args, "default_kind", "graph") == "catalog"
+    seed = getattr(args, "seed", OFFICIAL_SEED)
+    evidence_only = bool(getattr(args, "evidence_only", False))
+    # another seed than the official one is EVIDENCE only (Validator 21:13: the pre-pack fit read's seed spread): it needs
+    # --evidence-only and a catalog default, and its fragment lists no contenders (never appended to REPORT_INPUTS)
+    _need(
+        seed == OFFICIAL_SEED or (evidence_only and catalog),
+        "g6_seed_other_than_0_is_evidence_only",
+    )
     if catalog:
         _need(
             args.recipe is None
@@ -351,6 +359,7 @@ def run(args):
                         s,
                         query,
                         version=args.version,
+                        seed=getattr(args, "seed", OFFICIAL_SEED),
                     ),
                 )
             )
@@ -436,7 +445,13 @@ def run(args):
         "train_sha256": manifest["train_sha256"],
         "query_sha256": query_sha,
         "fractions": manifest["fractions"],
-        "contenders": contenders,
+        # evidence-only (a seed other than 0): the rows and records are written, but nothing is offered to REPORT_INPUTS
+        "contenders": [] if evidence_only else contenders,
+        **(
+            {"evidence_only": True, "seed": seed, "rows": contenders}
+            if evidence_only
+            else {}
+        ),
         "not_run": not_run,
         "use": "append `contenders` to REPORT_INPUTS.json's contenders; checks_batch grades them, g_reports reads G6",
     }
@@ -470,6 +485,17 @@ def main(argv=None):
     parser.add_argument("--gpu-cache-root", type=Path)
     parser.add_argument("--gpu-receipts", type=Path)
     parser.add_argument("--work-dir", type=Path)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=OFFICIAL_SEED,
+        help="the default model's build seed (0 = G6); another seed needs --evidence-only",
+    )
+    parser.add_argument(
+        "--evidence-only",
+        action="store_true",
+        help="write rows + records but offer no contender (the pre-pack fit read's seed spread)",
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     try:

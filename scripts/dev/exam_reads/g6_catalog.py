@@ -137,7 +137,14 @@ def subset_runner(subset_bytes, build_program, run, calls):
 
 
 def make_capture(
-    *, original, query, subset_bytes, record_into, run, official_check=None
+    *,
+    original,
+    query,
+    subset_bytes,
+    record_into,
+    run,
+    official_check=None,
+    seed=OFFICIAL_SEED,
 ):
     """The replacement for `reconstruct_and_infer_public` (see the module docstring)."""
 
@@ -165,7 +172,7 @@ def make_capture(
                     len(rows),
                     *tuple(kw["expected_output_shape"])[1:],
                 ),
-                "seed": OFFICIAL_SEED,
+                "seed": seed,
                 "measure_query": False,
                 "timing_optional": False,
                 "runner": subset_runner(subset_bytes, worker.BUILD_PROGRAM, run, calls),
@@ -226,8 +233,10 @@ def default_rows(
     factory=None,
     run=None,
     official=True,
+    seed=OFFICIAL_SEED,
 ):
-    """``(rows, record)`` for the catalog default at ``fraction``, or ``(None, NOT_RUN record)``.
+    """``(rows, record)`` for the catalog default at ``fraction``, or ``(None, NOT_RUN record)``. ``seed`` is the official
+    seed 0 for G6; another seed is EVIDENCE only (the pre-pack fit read's seed spread, Validator 21:13), recorded.
 
     ``factory`` (a practice factory) and ``run`` (the carrier) are the real ones unless a test passes stand-ins.
     """
@@ -241,6 +250,7 @@ def default_rows(
     _need(route in ROUTES, "g6_catalog_route")
     # The version is the caller's, always: practice_v2_curves' defaults are older versions (self-review finding 4).
     _need(type(version) is str and bool(version), "g6_catalog_version_required")
+    _need(type(seed) is int and seed >= 0, "g6_catalog_seed_invalid")
     targets = curves.TARGETS
     curves.TARGETS = {**targets, route: (targets[route][0], version)}
     try:
@@ -256,6 +266,7 @@ def default_rows(
             factory=factory,
             run=run,
             official=official,
+            seed=seed,
             np=np,
             worker=worker,
             RecipeRefused=RecipeRefused,
@@ -279,6 +290,7 @@ def _default_rows(
     factory,
     run,
     official,
+    seed,
     np,
     worker,
     RecipeRefused,
@@ -328,12 +340,13 @@ def _default_rows(
             record_into=record,
             run=run,
             official_check=official_check,
+            seed=seed,
         )
         return inner(ledger, **kw)
 
     identity = (
         f"g6-{route}-{hashlib.sha256(catalog_id.encode()).hexdigest()[:12]}"
-        f"-f{subsets.frac_label(fraction).replace('.', '')}"
+        f"-f{subsets.frac_label(fraction).replace('.', '')}-s{seed}"
     )
     worker.reconstruct_and_infer_public = capture
     try:
@@ -376,6 +389,8 @@ def _default_rows(
         "state_digest": result.build.state_digest,
         "train_input": "the practice's full public TRAIN, cut in the build child to the subset rows (TRAIN order)",
         "train_cases": record["train_cases"],
+        "seed": seed,
+        "evidence_only_seed": seed != OFFICIAL_SEED,
         "indices_sha256": record["indices_sha256"],
         "accelerator": record["accelerator"],
         # True only for a GPU-twin build checked against expand_official; a CPU curve is recorded as such (Validator 15:51 (2))

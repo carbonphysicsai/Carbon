@@ -308,7 +308,9 @@ def _carrier(staged):
     return run
 
 
-def _default(monkeypatch, tmp_path, *, practice_train=None, subset=None, fail=None):
+def _default(
+    monkeypatch, tmp_path, *, practice_train=None, subset=None, fail=None, seed=0
+):
     train = _train()
     manifest, files = _subsets(tmp_path, train)
     recipe = bw._recipe(bw._digest(practice_train or train))
@@ -330,6 +332,7 @@ def _default(monkeypatch, tmp_path, *, practice_train=None, subset=None, fail=No
         run=_carrier(staged),
         official=False,
         version="1.7",
+        seed=seed,
     )
     return rows, record, seen, staged, query, manifest, train
 
@@ -511,8 +514,44 @@ def test_g6_fit_catalog_mode_fills_the_default_column(monkeypatch, tmp_path):
         ("motor", "v2.motor.cno.CNO1d", "1.0"),
     ]
     assert {c[3]["version"] for c in called} == {"1.7"}
+    assert {c[3]["seed"] for c in called} == {0}
+    # another seed: refused unless evidence-only; evidence-only offers NO contender (rows + records only)
+    with pytest.raises(
+        subsets.SubsetsRefused, match="g6_seed_other_than_0_is_evidence_only"
+    ):
+        g6_fit.run(Namespace(**{**vars(args), "seed": 2, "out": tmp_path / "s2"}))
+    called.clear()
+    evidence = g6_fit.run(
+        Namespace(
+            **{**vars(args), "seed": 2, "evidence_only": True, "out": tmp_path / "e2"}
+        )
+    )
+    assert evidence["contenders"] == [] and evidence["evidence_only"] is True
+    assert evidence["seed"] == 2 and {c[3]["seed"] for c in called} == {2}
+    assert any(r["role"].startswith("default_model") for r in evidence["rows"])
     with pytest.raises(
         subsets.SubsetsRefused,
         match="g6_catalog_default_needs_route_version_catalog_id_parent_and_cache",
     ):
         g6_fit.run(Namespace(**{**vars(args), "route": None, "out": tmp_path / "x"}))
+
+
+def test_an_evidence_seed_reaches_the_build_and_the_record(monkeypatch, tmp_path):
+    _rows, record, seen, _staged, *_ = _default(monkeypatch, tmp_path, seed=2)
+    assert seen["seed"] == 2
+    assert record["seed"] == 2 and record["evidence_only_seed"] is True
+    (tmp_path / "zero").mkdir()
+    _rows, record0, *_ = _default(monkeypatch, tmp_path / "zero", seed=0)
+    assert record0["seed"] == 0 and record0["evidence_only_seed"] is False
+    with pytest.raises(subsets.SubsetsRefused, match="g6_catalog_seed_invalid"):
+        g6_catalog.default_rows(
+            "motor",
+            "x",
+            Namespace(),
+            {},
+            1.0,
+            b"",
+            np.zeros((1, 1)),
+            version="1.7",
+            seed=-1,
+        )
