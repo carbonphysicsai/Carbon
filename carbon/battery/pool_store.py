@@ -1661,9 +1661,13 @@ class PoolStore:
             ).fetchall()
         return sum(1 for (raw,) in rows if json.loads(raw)["at"] >= since)
 
-    def crown_mean(self, submission_id):
+    def crown_mean(self, submission_id, evaluation_key=None):
         """The mean of ``submission_id``'s latest averaged crown decision that scored all its rebuilds, or None
         (it was never averaged: its single grade stands until it is beaten). Reads only.
+
+        With ``evaluation_key``, only a record filed on THAT key counts: a mean measured on another exam is no measure
+        of this one (Validator 5 Nov 06:24, NO CARRY), so a king regraded on a new key is unmeasured there until he is
+        re-measured on it.
         """
         with self.db() as db:
             rows = db.execute(
@@ -1674,7 +1678,10 @@ class PoolStore:
                 found = json.loads(raw)
             except ValueError:
                 continue
-            if found.get("submission_id") != submission_id:
+            if found.get("submission_id") != submission_id or (
+                evaluation_key is not None
+                and found.get("evaluation_key") != evaluation_key
+            ):
                 continue
             mean = (found.get("private") or {}).get("mean")
             if type(mean) in (int, float):
@@ -1724,10 +1731,11 @@ class PoolStore:
                 return {"origin": found["origin"], "hotkey": found["hotkey"]}
         return None
 
-    def crown_average_unstable(self, submission_id):
+    def crown_average_unstable(self, submission_id, evaluation_key=None):
         """Whether ``submission_id``'s LATEST averaged record is a seed-fragile one: its rebuilds were not all admissible
         across the seeds, so it was filed with the per-seed statuses and no mean (`crown_average.KING_UNSTABLE`). The
-        flag a KING_UNSTABLE king carries. Reads only."""
+        flag a KING_UNSTABLE king carries. Reads only. With ``evaluation_key``, only records filed on that key count
+        (as `crown_mean`)."""
         with self.db() as db:
             rows = db.execute(
                 "SELECT body FROM operations WHERE kind='crown_average.v1' ORDER BY rowid DESC"
@@ -1737,7 +1745,10 @@ class PoolStore:
                 found = json.loads(raw)
             except ValueError:
                 continue
-            if found.get("submission_id") != submission_id:
+            if found.get("submission_id") != submission_id or (
+                evaluation_key is not None
+                and found.get("evaluation_key") != evaluation_key
+            ):
                 continue
             private = found.get("private") or {}
             return "mean" not in private and type(private.get("statuses")) is list
@@ -2684,6 +2695,23 @@ class PoolStore:
             except ValueError:
                 continue
         return bodies
+
+    def incumbent_evaluation_key(self, model_id):
+        """The evaluation key of ``model_id``'s latest filed private evaluation (the one `incumbent_standing` reads), or
+        None. Reads only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='private_evaluation.v1' "
+                "AND state='BOUND_DEVELOPMENT_ONLY' ORDER BY rowid DESC"
+            ).fetchall()
+        for (raw,) in rows:
+            try:
+                found = json.loads(raw)
+            except ValueError:
+                continue
+            if found.get("submission_id") == model_id:
+                return found.get("evaluation_key")
+        return None
 
     def incumbent_standing(self, model_id):
         """The incumbent's latest scored private evaluation, for the public king

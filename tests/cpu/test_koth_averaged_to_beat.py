@@ -119,12 +119,26 @@ def test_a_malformed_crown_bar_refuses(bar):
         kp.document_v2(**_args(), crown_bar=bar)
 
 
+CURRENT = "sha256:" + "c" * 64
+OLD_KEY = "sha256:" + "0" * 64
+
+
 class _Store:
+    """A king whose latest grade is on CURRENT; his mean / unstable flag were filed on ``measured_on``."""
+
     def __init__(
-        self, incumbent, standing, *, mean=None, unstable=False, baseline=None
+        self,
+        incumbent,
+        standing,
+        *,
+        mean=None,
+        unstable=False,
+        baseline=None,
+        measured_on=CURRENT,
     ):
         self._incumbent, self._standing = incumbent, standing
         self._mean, self._unstable, self._baseline = mean, unstable, baseline
+        self._measured_on = measured_on
 
     def incumbent(self):
         return self._incumbent
@@ -132,11 +146,16 @@ class _Store:
     def incumbent_standing(self, model_id):
         return self._standing
 
-    def crown_mean(self, model_id):
-        return self._mean
+    def incumbent_evaluation_key(self, model_id):
+        return CURRENT
 
-    def crown_average_unstable(self, model_id):
-        return self._unstable
+    def crown_mean(self, model_id, evaluation_key=None):
+        return self._mean if evaluation_key in (None, self._measured_on) else None
+
+    def crown_average_unstable(self, model_id, evaluation_key=None):
+        if evaluation_key in (None, self._measured_on):
+            return self._unstable
+        return False
 
     def latest_baseline(self, challenge_id):
         return self._baseline
@@ -194,6 +213,11 @@ def test_the_receiver_reads_the_kings_mean_and_margin_n_only_with_averaging_on(
         receiver(store, margin=None) is None
     )  # no margin_N registered at the configured N
     assert receiver(None) is None  # no pool store yet
+    # a mean (or flag) filed on the king's PREVIOUS key is no measure of this exam (NO CARRY): no averaged bar
+    assert receiver(_Store(KING_ROW, STANDING, mean=0.74, measured_on=OLD_KEY)) is None
+    assert (
+        receiver(_Store(KING_ROW, STANDING, unstable=True, measured_on=OLD_KEY)) is None
+    )
 
 
 def test_the_v2_route_states_the_averaged_bar_and_v1_keeps_the_single_grade_one():

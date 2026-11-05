@@ -2295,8 +2295,14 @@ def _crown_bar(pool_store, challenge_id):
         base = store.latest_baseline(challenge_id)
     else:
         model = incumbent["model_id"]
-        base = store.crown_mean(model)
-        if base is None and store.crown_average_unstable(model):
+        # the mean on the king's latest key only, as the screening reads it (no carry from another exam)
+        key = store.incumbent_evaluation_key(model)
+        base = None if key is None else store.crown_mean(model, key)
+        if (
+            base is None
+            and key is not None
+            and store.crown_average_unstable(model, key)
+        ):
             standing = store.incumbent_standing(model)
             base = None if standing is None else standing["total"]
     return None if base is None else {"base": base, "margin": margin}

@@ -275,12 +275,17 @@ class Active:
                 and model.get("score_status") == bp.SCORED
                 and model.get("total_score") is not None
             ):
-                mean = store.crown_mean(incumbent["submission_id"])
+                # only a mean measured on the exam the king's grade in this pair is on (Validator 5 Nov 06:24: NO CARRY;
+                # a mean filed on his previous key leaves him KING_UNMEASURED here, so crowns queue until he is re-measured)
+                own_key = incumbent.get("evaluation_key")
+                mean = store.crown_mean(incumbent["submission_id"], own_key)
                 if mean is not None:
                     incumbent = json.loads(json.dumps(incumbent))
                     incumbent["evidence"]["model_p"]["total_score"] = mean
                     pair = {**pair, "incumbent": incumbent}
-                elif not store.crown_average_unstable(incumbent["submission_id"]):
+                elif not store.crown_average_unstable(
+                    incumbent["submission_id"], own_key
+                ):
                     raise CrownAverageUnavailable(KING_UNMEASURED)
                 # else: a KING_UNSTABLE king (its re-measure was seed-fragile, filed with no mean) keeps its crown,
                 # flagged by that record, and is met at its single registered total plus margin_N (the owner's
