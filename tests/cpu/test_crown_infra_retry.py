@@ -182,9 +182,10 @@ UNDECIDED = [
     (bp.UNAVAILABLE, bp.REPEAT_UNAVAILABLE),
     (bp.UNAVAILABLE, ca.MARGIN_UNREGISTERED),
     (bp.UNAVAILABLE, ca.KING_UNMEASURED),
-    (bp.UNAVAILABLE, "incumbent_regrade_required"),
     (bp.FAILED_INFRA, bp.REPEAT_MISMATCH),
 ]
+# ``incumbent_regrade_required`` is not a failed attempt any more (Lead 5 Nov): the sweep waits for the king's regrade
+# without trying, counting or alerting, and the live path files it PENDING_CONTENTION (test_crown_contention_pending).
 
 
 @posix
@@ -318,9 +319,7 @@ def _filed(store, kind, reason, *, entry="x"):
 
 
 @posix
-@pytest.mark.parametrize(
-    ("kind", "reason"), [u for u in UNDECIDED if u[1] != "incumbent_regrade_required"]
-)
+@pytest.mark.parametrize(("kind", "reason"), UNDECIDED)
 def test_a_live_trigger_that_hits_infra_files_its_screening_grade_for_retry(
     tmp_path, kind, reason
 ):
@@ -339,7 +338,6 @@ def test_a_live_trigger_that_hits_infra_files_its_screening_grade_for_retry(
         (bp.CHALLENGER, ca.MEAN_EXCEEDS),
         (bp.INCUMBENT_KEEPS, ca.UNSTABLE),
         (bp.NO_WINNER, ca.WITHIN_BASELINE),
-        (bp.UNAVAILABLE, "incumbent_regrade_required"),
     ],
 )
 def test_a_decided_or_unrelated_outcome_files_nothing(tmp_path, kind, reason):

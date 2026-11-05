@@ -562,12 +562,18 @@ class BankPromotion:
         first: the earlier decisions this one must not be decided ahead of."""
         earlier = []
         listing = getattr(self.store, "paused_crowns", None)
+        # A record that waits for the king's regrade on ITS key cannot be decided until then, so it holds nobody back: a
+        # contender reaching this point met the king on its own key, which that record's key is not (a rotated key that
+        # may never be regraded would otherwise block every later crown). It is contended after the regrade.
+        awaits = getattr(self.store, "awaits_incumbent_regrade", None)
         for record in () if listing is None else listing():
             if (record["submission_id"], record["evaluation_key"]) == (
                 submission_id,
                 evaluation_key,
             ):
                 break
+            if awaits is not None and awaits(record):
+                continue
             earlier.append(record)
         return earlier
 
@@ -621,7 +627,7 @@ class BankPromotion:
                 raise
             return {
                 "outcome": UNAVAILABLE,
-                "reason": "incumbent_regrade_required",
+                "reason": INCUMBENT_REGRADE_REQUIRED,
                 "evaluation_key": evaluation_key,
                 "candidate": submission_id,
                 "incumbent": (self.store.incumbent() or {}).get("model_id"),
@@ -849,6 +855,11 @@ CROWNS_PAUSED = "crowns_paused"
 #: A crown-changing contender met an earlier crown decision that is still UNRESOLVED (it could not be made): it is queued
 #: behind it, filed like a paused one and decided by `crown_pause_sweep` in admission order, never ahead of it.
 CROWN_QUEUED = "queued_behind_undecided_crown"
+#: The sitting king has no evaluation on the contender's key (a rotation, a deploy that moved the key, or a carried king
+#: whose regrade is unavailable), so no contention happened. The caller files the contender as PENDING_CONTENTION and logs
+#: it (`lean_recipe_retention._file_if_paused`); `crown_pause_sweep` contends it, in filing order, once the king is regraded
+#: on that key (Lead 5 Nov, the Validator's 06:00 kings trace: 381 challengers were dropped silently).
+INCUMBENT_REGRADE_REQUIRED = "incumbent_regrade_required"
 ALERT_SCHEMA = "carbon.challenge-validator.crown-grade-alert.v1"
 #: A crown-changing repeat beyond tolerance while a Carbon control rebuild on the same host reproduced: the
 #: candidate is the unstable one, not the machine (OWNER-ATTACK-RISKS-V7-G4B-01). No crown, the attempt stays

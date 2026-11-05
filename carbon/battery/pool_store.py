@@ -193,6 +193,10 @@ WITHDRAWN = "WITHDRAWN_INCUMBENT_CHANGED"
 #: FAILED_INFRA_EXHAUSTED for the operator (M3-D14): never a score, never
 #: retried automatically again.
 MAX_INFRA_ATTEMPTS = 3
+#: The states of a filed crown decision (`record_crown_paused`): withheld by the operator's pause (or queued, or a host
+#: retry), or never contended because the king has no evaluation on its key yet.
+CROWN_PAUSED = "PAUSED"
+PENDING_CONTENTION = "PENDING_CONTENTION"
 _NO_COMPARISON = object()
 
 
@@ -1743,14 +1747,20 @@ class PoolStore:
     # A contender whose crown decision the operator's pause withheld is filed here, so it is
     # considered again, oldest first, once the flag is gone. The resolution is write-once.
 
-    def record_crown_paused(self, submission_id, key, *, kind, exam, entry_id, pin):
+    def record_crown_paused(
+        self, submission_id, key, *, kind, exam, entry_id, pin, state=CROWN_PAUSED
+    ):
         """File a paused contender: its evaluation key, the exam it was graded on (a pack digest, or a set key),
-        the retained entry its repeat grade is run from, and the source pin. Idempotent.
+        the retained entry its repeat grade is run from, and the source pin. Idempotent (a second filing keeps the
+        first state). ``state`` is PAUSED, or PENDING_CONTENTION for a contender that never met the king because he
+        has no evaluation on its key (`bank_promotion.INCUMBENT_REGRADE_REQUIRED`): the sweep contends it after the
+        king's regrade (`awaits_incumbent_regrade`).
         """
         from carbon.challenge_validator.interface import is_digest
 
         if (
-            kind not in ("pack", "set")
+            state not in (CROWN_PAUSED, PENDING_CONTENTION)
+            or kind not in ("pack", "set")
             or not is_digest(key)
             or not is_digest(exam)
             or not is_digest(entry_id)
@@ -1776,10 +1786,80 @@ class PoolStore:
             if row is None:
                 db.execute(
                     "INSERT INTO operations VALUES(?,?,?,?)",
-                    (op, "crown_paused.v1", "PAUSED", body),
+                    (op, "crown_paused.v1", state, body),
                 )
             elif row[0] != body:
                 raise StateError("crown_paused_changed")
+
+    def pending_contentions(self, kind=None):
+        """The unresolved contenders filed PENDING_CONTENTION, oldest first (private: ids and keys only)."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_paused.v1' AND state=? ORDER BY rowid",
+                (PENDING_CONTENTION,),
+            ).fetchall()
+        wanted = {
+            (r["submission_id"], r["evaluation_key"]) for r in self.paused_crowns(kind)
+        }
+        records = [json.loads(raw) for (raw,) in rows]
+        return [
+            r for r in records if (r["submission_id"], r["evaluation_key"]) in wanted
+        ]
+
+    def awaits_incumbent_regrade(self, record):
+        """Whether a filed crown decision cannot be made yet because the sitting king has no evaluation on its key
+        (exactly where `private_evaluation_pair` refuses ``incumbent_evaluation_required``). Read-only and without the
+        write lock, since the sweep asks it of every pending record each tick. Anything else (a pair, no king, no
+        candidate evaluation, an unreadable record) is False: the decision is attempted as before.
+        """
+        from carbon.challenge_validator.interface import is_digest
+
+        key, pin = record.get("evaluation_key"), record.get("pin")
+        if not is_digest(key) or not is_digest(pin):
+            return False
+        try:
+            with self.db() as db:
+                candidate = self._private_evaluation(
+                    db, record["submission_id"], key, pin
+                )
+                incumbent_id = self._incumbent_id(db)
+                if candidate is None or incumbent_id is None:
+                    return False
+                if self._private_evaluation(db, incumbent_id, key, pin) is not None:
+                    return False
+                return self._carried_evaluation(db, incumbent_id, candidate) is None
+        except (StateError, KeyError, TypeError, ValueError):
+            return False
+
+    def record_contention_alert(self, incumbent, key):
+        """File the operator alert that the king ``incumbent`` needs a regrade on ``key`` before challengers there can
+        meet him; once per king and key. True when filed now."""
+        op = self._bank_operation("crown_contention_alert.v1", str(incumbent), key)
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.crown-contention-alert.v1",
+                "code": "incumbent_regrade_required",
+                "incumbent": incumbent,
+                "evaluation_key": key,
+                "action": "regrade_incumbent_on_evaluation_key",
+            }
+        )
+        with self.transaction() as db:
+            return (
+                db.execute(
+                    "INSERT OR IGNORE INTO operations VALUES(?,?,?,?)",
+                    (op, "crown_contention_alert.v1", "ALERT", body),
+                ).rowcount
+                == 1
+            )
+
+    def crown_contention_alerts(self):
+        """The kings that need a regrade before challengers can meet them, oldest first (private)."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_contention_alert.v1' ORDER BY rowid"
+            ).fetchall()
+        return [json.loads(raw) for (raw,) in rows]
 
     def paused_crowns(self, kind=None):
         """The unresolved paused contenders in filing order (oldest first), optionally of one kind."""

@@ -25,12 +25,23 @@ Rules (Validator, 2026-10-29):
   its Challenge until it resolves (each is decided against the incumbent of its moment). The alert says so: when
   decisions are queued behind it, its code is ``crown_pause_blocked_by_undecided`` and ``waiting`` counts them (as of
   the filing).
+- A CONTENDER THAT NEVER MET THE KING is contended once he is regraded (Lead 5 Nov): a record whose king has no
+  evaluation on its key (`PoolStore.awaits_incumbent_regrade`; filed PENDING_CONTENTION by the live path on
+  ``incumbent_regrade_required``) is skipped, not tried, not counted and never resolved, every tick until the regrade,
+  so the first tick after it contends it, in filing order, against the king of that moment. It holds nobody back: a later
+  record that can be decided is (its key is one the king was regraded on, which this record's is not).
 """
 
 from __future__ import annotations
 
 from . import operator_pause
-from .bank_promotion import CROWN_QUEUED, CROWNS_PAUSED, FAILED_INFRA, UNAVAILABLE
+from .bank_promotion import (
+    CROWN_QUEUED,
+    CROWNS_PAUSED,
+    FAILED_INFRA,
+    INCUMBENT_REGRADE_REQUIRED,
+    UNAVAILABLE,
+)
 
 ROTATED = "exam_rotated_during_pause"
 ALREADY_INCUMBENT = "already_incumbent"
@@ -53,6 +64,7 @@ def sweep(store, reconsider, *, kind, current_exam):
         return []
     resolved = []
     pending = store.paused_crowns(kind)
+    awaits = getattr(store, "awaits_incumbent_regrade", None)
     for place, record in enumerate(pending):
         submission_id, key = record["submission_id"], record["evaluation_key"]
         incumbent = store.incumbent() or {}
@@ -60,6 +72,8 @@ def sweep(store, reconsider, *, kind, current_exam):
             code = ALREADY_INCUMBENT
         elif record["exam"] != current_exam:
             code = "UNAVAILABLE:" + ROTATED
+        elif awaits is not None and awaits(record):
+            continue  # no contention possible until the king's regrade on this key: no GPU, no attempt, no alert
         else:
             attempts, last = store.crown_pause_attempts(submission_id, key)
             if attempts and store.clock() - last < EPOCH_SECONDS:
@@ -72,6 +86,8 @@ def sweep(store, reconsider, *, kind, current_exam):
                 break  # a refusal ({"error": ...}) is not a decision
             if outcome.get("reason") in (CROWNS_PAUSED, CROWN_QUEUED):
                 break  # paused again, or an earlier record is still undecided (cannot happen to the oldest)
+            if outcome.get("reason") == INCUMBENT_REGRADE_REQUIRED:
+                continue  # the king lost his evaluation on this key between the two reads: still pending
             code = f"{outcome['outcome']}:{outcome.get('reason')}"
             if outcome["outcome"] in UNDECIDED:
                 failed = store.note_crown_pause_attempt(submission_id, key, code)

@@ -1715,10 +1715,35 @@ def _watch_repeat_miss(store, adapter, submission_id, outcome):
 
 def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
     """A crown decision the operator paused is filed, so it is made again once the flag is gone
-    (`crown_pause_sweep`). Anything else files nothing."""
+    (`crown_pause_sweep`). A contender that never met the king (he has no evaluation on its key) is filed
+    PENDING_CONTENTION and logged, so it is contended after his regrade. Anything else files nothing.
+    """
+    from carbon.battery.pool_store import PENDING_CONTENTION
     from carbon.challenge_validator import bank_promotion as bp
     from carbon.challenge_validator import crown_average
 
+    if (
+        outcome.get("outcome") == bp.UNAVAILABLE
+        and outcome.get("reason") == bp.INCUMBENT_REGRADE_REQUIRED
+    ):
+        # Never dropped (Lead 5 Nov): a journal line per contender, one operator alert per king and key, and the record
+        # the sweep contends from once the king is regraded there. Without a retained entry there is nothing to contend
+        # from: the journal line says so (filed false) and the alert names it.
+        entry_id = getattr(repeat, "entry_id", None)
+        if entry_id is not None:
+            store.record_crown_paused(
+                submission_id,
+                outcome["evaluation_key"],
+                kind=kind,
+                exam=exam() if callable(exam) else exam,
+                entry_id=entry_id,
+                pin=pin,
+                state=PENDING_CONTENTION,
+            )
+        _report_pending_contention(
+            store, kind, submission_id, outcome, filed=entry_id is not None
+        )
+        return
     paused = outcome.get("reason") in (bp.CROWNS_PAUSED, bp.CROWN_QUEUED)
     # A decision the host could not make (UNAVAILABLE or FAILED_INFRA on a rebuild, a repeat, or a margin or king mean not
     # yet measured) is kept for retry the same way (`crown_pause_sweep`), never lost with the screening grade.
@@ -1753,6 +1778,42 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
             outcome["evaluation_key"],
             f"{outcome['outcome']}:{outcome['reason']}",
         )
+
+
+def _report_pending_contention(store, kind, submission_id, outcome, *, filed):
+    """The journal line of a contender that could not meet the king, and the operator alert once per king and key (task
+    ids and the key digest only: no hotkey, path or score). Never raises: the record above is what keeps it.
+    """
+    from carbon.battery.intake import log
+    from carbon.challenge_validator import bank_promotion as bp
+
+    try:
+        incumbent, key = outcome.get("incumbent"), outcome.get("evaluation_key")
+        log(
+            "crown_contention_pending",
+            kind=kind,
+            candidate=submission_id,
+            incumbent=incumbent,
+            evaluation_key=key,
+            filed=filed,
+        )
+        note = getattr(store, "record_contention_alert", None)
+        if not filed or (note is not None and note(incumbent, key)):
+            log(
+                "operator_alert",
+                code=(
+                    bp.INCUMBENT_REGRADE_REQUIRED
+                    if filed
+                    else "crown_contention_unfiled"
+                ),
+                action="regrade_incumbent_on_evaluation_key",
+                kind=kind,
+                incumbent=incumbent,
+                evaluation_key=key,
+                **({} if filed else {"candidate": submission_id}),
+            )
+    except Exception:  # noqa: BLE001, S110 - a log line never changes the outcome
+        pass
 
 
 def reconsider_paused_pack(
