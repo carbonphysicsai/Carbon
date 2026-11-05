@@ -286,8 +286,8 @@ def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
     root, base = repo
     new = _commit(root, {"docs/notes.md": "d\n"}, "docs")
     heads = _heads(tmp_path, [(new, "FINAL")])
-    old_root = _root(tmp_path, "old", caches=[(BUNDLE, "x")])
-    new_root = _root(tmp_path, "new", caches=[(BUNDLE, "x")])
+    old_root = _root(tmp_path, "old", caches=[(BUNDLE, "x")], accepted=base)
+    new_root = _root(tmp_path, "new", caches=[(BUNDLE, "x")], accepted=new)
     release = tool.manifest(root, new)
     (new_root / "release.json").write_text(json.dumps(release), encoding="utf-8")
     argv = [
@@ -464,6 +464,11 @@ def test_accepted_and_ancestry(tool, repo, tmp_path):
     assert (
         tool.accepted_item(old_root, new_root, new, new)["code"]
         == "old_rev_is_not_the_accepted_revision"
+    )
+    unnamed = _root(tmp_path, "unnamed")
+    out = tool.accepted_item(old_root, unnamed, base, new)
+    assert (
+        out["state"] == tool.UNKNOWN and out["code"] == "new_accepted_revision_missing"
     )
     assert tool.ancestry_item(root, base, new)["state"] == tool.PASS
     assert tool.ancestry_item(root, new, base)["code"] == "old_not_ancestor_of_new"

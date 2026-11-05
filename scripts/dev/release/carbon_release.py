@@ -486,7 +486,10 @@ def accepted_item(old_root, new_root, old, new) -> dict:
     name them."""
     for root, rev, side in ((old_root, old, "old"), (new_root, new, "new")):
         accepted = Door(root).accepted
-        if accepted is not None and accepted != rev:
+        if accepted is None:
+            # a config that names no accepted revision cannot show the receiver compares these (Validator-2 11:55)
+            return {"state": UNKNOWN, "code": f"{side}_accepted_revision_missing"}
+        if accepted != rev:
             return {"state": REFUSE, "code": f"{side}_rev_is_not_the_accepted_revision"}
     return {"state": PASS}
 
