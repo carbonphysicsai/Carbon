@@ -211,11 +211,22 @@ class OptimizerPolicy:
     coverage_plan_sums_sha256: str | None = None
     #: The attached class map (`CoveragePlan`, custody material checked against both digests), or None.
     coverage_plan: object = None
+    #: Neighbour-task robustness of D, for NEW exam versions only (OWNER-DESIGN-DECISION-FIDELITY-01: V_var, the pick
+    #: question re-asked with a Challenge's main limit shifted, dropped when D moved to the pool). None is today's D, bit
+    #: for bit, for every registered version. ``{"kind": "limit_shift", "limits": [output, ...], "shifts": [s, ...],
+    #: "min_valid": n, "aggregate": "mean"}``: each target is graded again on one VARIANT per (limit, shift), the same
+    #: pool designs and truths with that limit's bound x (1 + s) (`attach_variants`), and D(target) is the mean over the
+    #: base and its valid variants; with fewer than ``min_valid`` valid variants it is the base D alone (reported). A
+    #: refused variant is a reference failure (dropped, counted), never the candidate's. The shifts (the record's
+    #: starting value is +-5 %), the limits per Challenge, ``min_valid`` and the weighting are the owner's.
+    variant_rule: dict | None = None
 
 
 #: The 2-class fallback of a version with ``balanced_region_mean`` D and no registered coverage plan (`region_class`): a
 #: target's own kind, never a model's property. A version WITH a coverage plan takes its classes and their order from the
 #: plan alone; no class name is typed here for it.
+VARIANT_KINDS = ("limit_shift",)
+VARIANT_AGGREGATES = ("mean",)
 REGION_CLASSES = ("in_train", "extended_shell")
 D_AGGREGATES = (None, "balanced_region_mean")
 A_GEN_AGGREGATES = (None, "balanced_region_mean")
@@ -412,10 +423,54 @@ def _check_policies(optimizer, honesty):
         "coverage_plan_is_not_the_registered_one",
     )
     _require(
+        optimizer.variant_rule is None or _valid_variant_rule(optimizer.variant_rule),
+        VARIANT_RULE_INVALID,
+    )
+    _require(
         _finite(honesty.scale) and honesty.scale > 0, "honesty_scale_must_be_positive"
     )
     _require(
         honesty.reduction in ("max", "rms"), "honesty_reduction_must_be_max_or_rms"
+    )
+
+
+VARIANT_RULE_INVALID = (
+    "variant_rule_must_be_none_or_limit_shift_with_limits_shifts_min_valid_and_mean"
+)
+
+
+def _valid_variant_rule(rule):
+    if type(rule) is not dict or set(rule) != {
+        "kind",
+        "limits",
+        "shifts",
+        "min_valid",
+        "aggregate",
+    }:
+        return False
+    limits, shifts = rule["limits"], rule["shifts"]
+    return bool(
+        rule["kind"] in VARIANT_KINDS
+        and rule["aggregate"] in VARIANT_AGGREGATES
+        and type(limits) in (list, tuple)
+        and limits
+        and all(type(name) is str and name for name in limits)
+        and len(set(limits)) == len(limits)
+        and type(shifts) in (list, tuple)
+        and shifts
+        and all(_finite(x) and x != 0.0 and -1.0 < x < 1.0 for x in shifts)
+        and len(set(shifts)) == len(shifts)
+        and type(rule["min_valid"]) is int
+        and 0 <= rule["min_valid"] <= len(limits) * len(shifts)
+    )
+
+
+def variant_slots(rule):
+    """The rule's variants in the one order every custody start/seed list follows: ``(limit output, shift)`` for each
+    limit, then each shift."""
+    _require(_valid_variant_rule(rule), VARIANT_RULE_INVALID)
+    return tuple(
+        (name, float(shift)) for name in rule["limits"] for shift in rule["shifts"]
     )
 
 
@@ -464,6 +519,10 @@ class TargetSpec:
     raw: object = (
         None  # the kept rows' raw output rows, once attached (custody only, never in the digest)
     )
+    # The neighbour-task variants (`attach_variants`; custody only, never in the digest): None until attached, then a
+    # tuple of the valid variant specs, with the refused ones as ``((output, shift, code), ...)``: reference failures.
+    variants: object = None
+    variant_refusals: tuple = ()
 
     @property
     def extended(self):
@@ -658,6 +717,93 @@ def build_target(
     )
 
 
+def attach_variants(spec, rule, starts):
+    """``spec`` with its neighbour-task variants built (custody; `OptimizerPolicy.variant_rule`).
+
+    Each slot of `variant_slots` is the base target asked again on the SAME kept pool designs and truths, so the exam's
+    one table of model answers already covers it (no new row, no new solve), with that limit's bound x (1 + shift).
+    `build_target` re-derives the within-U exclusion, the reference and the median, and refuses a degenerate question.
+    ``starts`` gives each slot its own private ``{"start": [...], "seed": int}``, derived in custody like a target's.
+
+    A slot is REFUSED (dropped and counted, a reference failure, never scored) when the target has no such limit, its
+    bound is 0 (a relative shift moves nothing), `build_target` refuses it, or no queryable point stays truly
+    infeasible (the shifted question is no longer a choice)."""
+    slots = variant_slots(rule)
+    _require(
+        type(starts) in (list, tuple) and len(starts) == len(slots),
+        "variant_starts_must_give_one_start_and_seed_per_slot",
+    )
+    variants, refusals = [], []
+    for (name, shift), slot in zip(slots, starts, strict=True):
+        _require(
+            type(slot) is dict and set(slot) == {"start", "seed"},
+            "variant_start_must_be_a_start_and_a_seed",
+        )
+        matching = [n for n, limit in enumerate(spec.limits) if limit.output == name]
+        if not matching:
+            refusals.append((name, shift, "variant_limit_not_on_target"))
+            continue
+        if any(spec.limits[n].bound == 0.0 for n in matching):
+            refusals.append((name, shift, "variant_shift_moves_nothing"))
+            continue
+        limits = tuple(
+            (
+                replace(limit, bound=limit.bound * (1.0 + shift))
+                if n in matching
+                else limit
+            )
+            for n, limit in enumerate(spec.limits)
+        )
+        try:
+            variant = build_target(
+                target_id=f"{spec.target_id}~{name}{shift:+g}",
+                conditions=spec.conditions,
+                outputs=spec.outputs,
+                objective=spec.objective,
+                sense="max" if spec.sign > 0 else "min",
+                limits=limits,
+                u=spec.u,
+                box=spec.box,
+                designs=spec.designs,
+                truths=spec.truths,
+                agen=spec.agen,
+                start=slot["start"],
+                seed=slot["seed"],
+                public=spec.public,
+                shell=spec.shell,
+            )
+        except PoolRefused as refused:
+            refusals.append((name, shift, str(refused)))
+            continue
+        if not any(not variant.feasible[n] for n in variant.queryable):
+            refusals.append((name, shift, "variant_pool_has_no_infeasible_point"))
+            continue
+        variants.append(variant)
+    return replace(spec, variants=tuple(variants), variant_refusals=tuple(refusals))
+
+
+def _memoized(predict):
+    """``predict`` with one answer per (conditions, design): a model's prediction at a pool point does not depend on the
+    question asked about it, so the base and every variant share it (variants cost optimiser steps, not model calls).
+    A malformed batch is passed through unchanged, for the grader to refuse as without the cache.
+    """
+    memo = {}
+
+    def cached(conditions, designs):
+        key = json.dumps(conditions, sort_keys=True, separators=(",", ":"))
+        missing = [d for d in designs if (key, tuple(d)) not in memo]
+        if missing:
+            batch = predict(conditions, [list(d) for d in missing])
+            if type(batch) is not list or len(batch) != len(missing):
+                return batch
+            for design, out in zip(missing, batch, strict=True):
+                memo[(key, tuple(design))] = out
+        answers = [memo[(key, tuple(d))] for d in designs]
+        return [dict(a) if type(a) is dict else a for a in answers]
+
+    return cached
+
+
 @dataclass(frozen=True)
 class TargetGrade:
     """Custody-only: never disclosed outside `SetGrade.public()`."""
@@ -676,6 +822,13 @@ class TargetGrade:
     #: Top-k only (custody): the k picks as ``(index, q_i, h_i)`` in the model's own rank order, the missing slots
     #: ``(None, 0.0, 0.0)``. Empty for the single pick.
     picks: tuple = ()
+    #: With a variant rule (custody): the base target's own d (``d`` is then the aggregate), each graded variant as
+    #: ``(variant id, d, reason)``, the count of refused variants (reference failures), and whether too few were valid,
+    #: so that ``d`` is the base alone.
+    base_d: float | None = None
+    variants: tuple = ()
+    variant_refusals: int = 0
+    variant_fallback: bool = False
 
 
 def _valid_prediction(prediction, outputs):
@@ -698,8 +851,37 @@ def _nearest(point, norm, candidates, taken):
 
 
 def grade_target(spec, predict, optimizer, honesty):
-    """Grade one target. `predict(conditions, designs)` returns one dict of outputs per design, in order."""
+    """Grade one target. `predict(conditions, designs)` returns one dict of outputs per design, in order. With a variant
+    rule, D(target) is the mean over the base and its valid neighbour-task variants (`OptimizerPolicy.variant_rule`).
+    """
     _check_policies(optimizer, honesty)
+    rule = optimizer.variant_rule
+    if rule is None:
+        return _grade_one(spec, predict, optimizer, honesty)
+    _require(spec.variants is not None, "variants_not_attached")
+    predict = _memoized(predict)
+    base = _grade_one(spec, predict, optimizer, honesty)
+    graded = [
+        (v.target_id, _grade_one(v, predict, optimizer, honesty)) for v in spec.variants
+    ]
+    fallback = len(graded) < rule["min_valid"]
+    d = (
+        base.d
+        if fallback or not graded
+        else statistics.fmean([base.d, *(g.d for _v, g in graded)])
+    )
+    return replace(
+        base,
+        d=d,
+        base_d=base.d,
+        variants=tuple((v, g.d, g.reason) for v, g in graded),
+        variant_refusals=len(spec.variant_refusals),
+        variant_fallback=fallback,
+    )
+
+
+def _grade_one(spec, predict, optimizer, honesty):
+    """One question's grade (a target, or one of its variants): the single pick or the top-k rule."""
     taken = set()
     predictions = {}
     es = CmaEs(spec.start, optimizer.sigma0, spec.seed, optimizer.population)

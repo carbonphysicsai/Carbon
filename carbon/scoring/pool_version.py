@@ -45,7 +45,16 @@ RESPONSE_REFERENCE = "response_reference"
 #: SHA256SUMS text (registered as ``coverage_plan_sums_sha256``) that must list it. Custody: the map names targets.
 COVERAGE_PLAN = "coverage_plan"
 COVERAGE_PLAN_SUMS = "coverage_plan_sums"
-_OPTIONAL_MATERIAL_KEYS = {RESPONSE_REFERENCE, COVERAGE_PLAN, COVERAGE_PLAN_SUMS}
+#: Optional material field, NEW versions with a ``variant_rule`` only: ``{target_id: [{"start": [...], "seed": int}, ...]}``,
+#: one private start and seed per `pool_grader.variant_slots` slot of each target, derived in custody like the targets'
+#: own. Custody: it names targets.
+VARIANT_STARTS = "variant_starts"
+_OPTIONAL_MATERIAL_KEYS = {
+    RESPONSE_REFERENCE,
+    COVERAGE_PLAN,
+    COVERAGE_PLAN_SUMS,
+    VARIANT_STARTS,
+}
 MATERIAL_SCHEMA = "carbon.pool.sealed-material.v1"
 _MATERIAL_KEYS = {
     "schema",
@@ -139,6 +148,25 @@ def _coverage_plan_sha256(value):
     return _picked(value)
 
 
+def _variant_rule(value):
+    """The registered neighbour-task rule of a new version (`pool_grader.OptimizerPolicy.variant_rule`), or None when the
+    key is absent (every registered version). Present, it has no default: a null refuses, and so does HUMAN_INPUT
+    anywhere in it (the limits per Challenge, the minimum of valid variants, the shifts beyond the record's starting
+    value are the owner's)."""
+    if value is _ABSENT:
+        return None
+    if value is None:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    value = _picked(value)
+    if type(value) is dict:
+        for item in value.values():
+            _picked(item)
+            if type(item) in (list, tuple):
+                for element in item:
+                    _picked(element)
+    return value
+
+
 def registered_policies(challenge_id, version, *, path=CONSTANTS):
     """The version's `pool_proof_suite.Policies` from the registered file, or `PoolConstantsNotRegistered`."""
     try:
@@ -170,6 +198,8 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
                 coverage_plan_sums_sha256=_coverage_plan_sha256(
                     optimizer.get("coverage_plan_sums_sha256", _ABSENT)
                 ),
+                # optional, NEW versions only: absent is today's D, bit for bit
+                variant_rule=_variant_rule(optimizer.get("variant_rule", _ABSENT)),
             ),
             honesty=pool_grader.HonestyPolicy(
                 scale=_picked(honesty["scale"]), reduction=_picked(honesty["reduction"])
@@ -184,6 +214,28 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
     except (KeyError, TypeError, ValueError):
         raise PoolConstantsNotRegistered("pool_constants_malformed") from None
     return policies
+
+
+def attach_material_variants(sets, rule, starts):
+    """``sets`` with each target's neighbour-task variants attached from the sealed material's ``variant_starts`` when the
+    version registers a ``variant_rule``; unchanged (and the material must carry none) when it does not.
+    """
+    if rule is None:
+        if starts is not None:
+            raise pool_exam.ExamRefused("variant_starts_without_a_variant_rule")
+        return sets
+    if type(starts) is not dict:
+        raise pool_exam.ExamRefused("variant_starts_missing_from_the_sealed_pack")
+    ids = {spec.target_id for group in sets for spec in group}
+    if set(starts) != ids:
+        raise pool_exam.ExamRefused("variant_starts_must_name_every_target_exactly")
+    return tuple(
+        tuple(
+            pool_grader.attach_variants(spec, rule, starts[spec.target_id])
+            for spec in group
+        )
+        for group in sets
+    )
 
 
 class PoolVariant(physical.Variant):
@@ -242,9 +294,13 @@ class PoolVariant(physical.Variant):
             raise pool_exam.ExamRefused("pool_material_missing_from_the_sealed_pack")
         # The owner's constants first: a version without them grades nothing.
         policies = registered_policies(self._challenge_id, self.VERSION)
-        sets = tuple(
-            tuple(pool_grader.load_pool(document) for document in group)
-            for group in material["sets"]
+        sets = attach_material_variants(
+            tuple(
+                tuple(pool_grader.load_pool(document) for document in group)
+                for group in material["sets"]
+            ),
+            policies.optimizer.variant_rule,
+            material.get(VARIANT_STARTS),
         )
         # A NEW version's sealed class map and SUMS, checked and attached by `pool_exam.attach_coverage_plan` against the
         # registered digests; a registered version's material carries neither, so its call is unchanged.
