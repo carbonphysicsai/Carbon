@@ -19,8 +19,13 @@ reports how many points fall within U. With a NEW version's rule (a2, `pool_grad
 pack sets `Problem.near_limit` to that version's registered rule and `Problem.s_low` to the target's zero (the same
 s_low `build_target` uses). Then the driver searches the grader's OWN value: a feasible point ranks by
 `pool_grader.credit` x max(0, gain over s_low), the same function the grader scores with, so a point exactly on a limit
-(credit 0) is not mistaken for the best; and the limit walk targets the credit-1 offset (true margin = U at the
-optimum) instead of the limit itself. The grader still derives its reference over the extended pool.
+(credit 0) is not mistaken for the best; and the limit walk samples the credit-1 contour (true margin = U at the
+optimum) instead of the limit itself. The value's peak can sit INSIDE the ramp (margin < U) when the gain is small next
+to the objective's slope x U; the CMA-ES phase, which ranks by the same value, covers that, the walk does not.
+
+The driver's reference is ADVISORY: the grader derives its own over the extended pool, and build_target recomputes
+s_low there (the clean solver points move the median), so its argmax can differ from the driver's. Only the grader's
+reference is the target's. Whether the zero should be fixed from the pre-solved pool is a grader rule (owner value).
 
 Typed outcomes, never collapsed (AGENTS 7.5, invariant 7): `OK`; a reference failure (`REFERENCE_*` from the solve path,
 or `REFERENCE_DERIVE_REFUSED` when the Challenge's own derive refuses the raw row): the reference's, never a candidate's;
