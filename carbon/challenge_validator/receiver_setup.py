@@ -1041,6 +1041,8 @@ def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
     )
     return {
         "status": "RECEIVER_HEALTHY" if healthy else "RECEIVER_NOT_HEALTHY",
+        # A door left DRAINING (scripts/dev/release/door_drain.py) admits but starts no work: shown, never silent.
+        "draining": (root / "draining").exists(),
         "catalog": catalog,
         "challenge": config.get("challenge"),
         "receiver_hotkey": config["receiver_hotkey"],

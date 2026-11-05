@@ -111,6 +111,64 @@ class AutoGrader:
             if _TASK.fullmatch(s) and not self._marker(s).exists()
         ]
 
+    def has_work(self):
+        """Whether a grade round has anything to do: a task with no marker yet, or a paused crown decision the sweep
+        would make NOW (`crown_pause_sweep.sweep`'s own gates: crowns not paused by the operator, kind ``pack``, the
+        first unresolved record not inside its one-epoch retry spacing). A round without either never takes the
+        host's grading lock (MAINNET_UPDATE_ARCHITECTURE s2.4 Step A), so an idle door never stands between another
+        door and its grade, or between a deploy and its idle check.
+
+        With the king's upkeep (`king_upkeep`), a round also runs: once after every start (it queues the challengers
+        stranded while the king could not be met, ahead of any new grade), and whenever the upkeep is due (`due`: the
+        king's regrade, or one crown re-measure rebuild), so an idle door still keeps its king comparable.
+        """
+        if not getattr(self, "_stranded_filed", False):
+            return True
+        if self.pending():
+            return True
+        if self._crowns_due():
+            return True
+        return self._upkeep_due()
+
+    def _upkeep_due(self):
+        from . import crown_average, king_upkeep
+
+        try:
+            pool = self._pool()
+        except Exception:  # noqa: BLE001
+            # doubt runs the round, where the sweep reports an unopenable store
+            return True
+        return king_upkeep.due(pool, self.intake, active=crown_average.ACTIVE)
+
+    def _crowns_due(self):
+        from . import crown_pause_sweep, operator_pause
+
+        pool = self._pool()
+        if pool is None or not hasattr(pool, "paused_crowns"):
+            return False
+        if operator_pause.crowns_paused(pool.path.parent):
+            return False
+        incumbent = pool.incumbent() or {}
+        exam = self.intake.adapter.discovery.evaluation_pack_digest
+        awaits = getattr(pool, "awaits_incumbent_regrade", None)
+        for record in pool.paused_crowns("pack"):
+            if (
+                incumbent.get("model_id") == record["submission_id"]
+                or record["exam"] != exam
+            ):
+                return True  # resolved at once, without a grade
+            if awaits is not None and awaits(record):
+                # the sweep skips it until the king's regrade, which `_upkeep_due` asks about: no round for it here,
+                # else a failing regrade (retried once an epoch) would take the host lock every poll for nothing
+                continue
+            attempts, last = pool.crown_pause_attempts(
+                record["submission_id"], record["evaluation_key"]
+            )
+            return not (
+                attempts and pool.clock() - last < crown_pause_sweep.EPOCH_SECONDS
+            )
+        return False
+
     def run_once(self):
         """Grade at most one ready task; returns ``(submission_id, state)`` or None.
 

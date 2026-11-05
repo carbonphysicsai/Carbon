@@ -2249,6 +2249,8 @@ def serve(
                     if "official_gpu_receipts" in cfg
                     else None
                 ),
+                # The per-door DRAINING flag and in-flight record live in this door's state.
+                state_dir=root,
             )
             if watch.lost:
                 # The service exits non-zero; its next start refuses until the

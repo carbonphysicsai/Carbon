@@ -122,7 +122,20 @@ def step(pool, intake, *, root, artifacts, entries, active=None):
         return {"step": None, "state": "ERROR", "code": type(error).__name__}
 
 
-def _step(pool, intake, root, artifacts, entries, active):
+def due(pool, intake, *, active=None):
+    """Whether `step` would do something this tick: its own gates (`_plan`), read-only, no work. Head H4a asks this
+    (`AutoGrader.has_work`): an idle door's grade round never takes the host's grading lock, so a round must run
+    whenever the king's upkeep is due, even with no task pending. On doubt, True: the round then runs `step`.
+    """
+    try:
+        return _plan(pool, intake, active) is not None
+    except Exception:  # noqa: BLE001
+        # doubt runs the round; the upkeep is never skipped
+        return True
+
+
+def _plan(pool, intake, active):
+    """``(step, king, exam, waiting, key)`` for the step due now, or None. Read-only: `due` and `_step` share it."""
     if pool is None or not hasattr(pool, "king_upkeep_attempts"):
         return None
     king = (pool.incumbent() or {}).get("model_id")
@@ -133,6 +146,36 @@ def _step(pool, intake, root, artifacts, entries, active):
     if waiting:
         if not _due(pool, king, exam, REGRADE):
             return None
+        return REGRADE, king, exam, waiting, None
+    if active is None:
+        return None
+    rule = getattr(active, "rule", None)
+    challenge = getattr(intake.adapter, "challenge_id", None)
+    if (
+        rule is not None
+        and challenge is not None
+        and rule.margin_for(challenge) is None
+    ):
+        # averaging only where margin_N is registered at the configured N (Validator 06:49); the comparisons there say
+        # crown_average_margin_unregistered in their journal line
+        return None
+    key = _king_key_on(pool, king, exam)
+    if (
+        key is None
+        or pool.crown_mean(king, key) is not None
+        or pool.crown_average_unstable(king, key)
+        or not _due(pool, king, exam, REMEASURE)
+    ):
+        return None
+    return REMEASURE, king, exam, waiting, key
+
+
+def _step(pool, intake, root, artifacts, entries, active):
+    plan = _plan(pool, intake, active)
+    if plan is None:
+        return None
+    which, king, exam, waiting, key = plan
+    if which == REGRADE:
         entry = king_origin_entry(pool, root, king)
         if entry is None:
             return _failed(pool, king, exam, REGRADE, "king_entry_unresolved")
@@ -159,26 +202,6 @@ def _step(pool, intake, root, artifacts, entries, active):
             return _failed(pool, king, exam, REGRADE, "king_regrade_key_differs")
         koth_journal.note("king_regraded", incumbent=king, waiting=len(waiting))
         return {"step": REGRADE, "state": "DONE"}
-    if active is None:
-        return None
-    rule = getattr(active, "rule", None)
-    challenge = getattr(intake.adapter, "challenge_id", None)
-    if (
-        rule is not None
-        and challenge is not None
-        and rule.margin_for(challenge) is None
-    ):
-        # averaging only where margin_N is registered at the configured N (Validator 06:49); the comparisons there say
-        # crown_average_margin_unregistered in their journal line
-        return None
-    key = _king_key_on(pool, king, exam)
-    if (
-        key is None
-        or pool.crown_mean(king, key) is not None
-        or pool.crown_average_unstable(king, key)
-        or not _due(pool, king, exam, REMEASURE)
-    ):
-        return None
     entry = king_origin_entry(pool, root, king)
     if entry is None:
         return _failed(pool, king, exam, REMEASURE, "king_entry_unresolved")
