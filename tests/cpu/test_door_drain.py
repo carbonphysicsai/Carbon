@@ -303,3 +303,192 @@ def test_door_drain_tool_reads_this_door_only(dirs):
         )
     finally:
         _release(fd)
+
+
+# --- self-review fixes ---------------------------------------------------------------------------------------------
+
+BUSY_DOOR = r"""
+import sys, threading, time
+sys.path[:0] = sys.argv[3:]
+from carbon.challenge_validator.direct_intake import _WorkLock
+work = _WorkLock(sys.argv[1], poll_s=0.05)
+end = time.monotonic() + float(sys.argv[2])
+while time.monotonic() < end:  # back-to-back grade rounds, each holding the host lock 0.2 s
+    with work.taking("grade", has_work=lambda: True):
+        time.sleep(0.2)
+"""
+
+
+def test_a_waiting_door_gets_the_host_lock_between_a_busy_doors_rounds(dirs, tmp_path):
+    """Fairness: a door polling every WORK_POLL_S is never shut out by another door's back-to-back rounds."""
+    import subprocess
+    import sys
+
+    host, state = dirs
+    script = tmp_path / "busy.py"
+    script.write_text(BUSY_DOOR)
+    busy = subprocess.Popen(
+        [sys.executable, str(script), str(host), "90", *sys.path], env={**os.environ}
+    )
+    try:
+        deadline = (
+            time.monotonic() + 60
+        )  # the busy door's interpreter imports carbon first
+        while not receipt_job.grading_busy(host) and time.monotonic() < deadline:
+            assert busy.poll() is None, "the busy door exited"
+            time.sleep(0.01)
+        assert receipt_job.grading_busy(host)
+        work = _WorkLock(host, state_dir=state, poll_s=POLL)
+        started = time.monotonic()
+        with work.taking("grade", has_work=lambda: True):
+            waited = time.monotonic() - started
+        assert (
+            waited < 3.0
+        )  # a few of the busy door's rounds at most, not its whole backlog
+    finally:
+        busy.kill()
+        busy.wait()
+
+
+def test_drain_set_after_the_in_flight_record_declines_and_removes_it(
+    dirs, monkeypatch
+):
+    """The window between the last check and the record is closed: the record goes first, then the check."""
+    host, state = dirs
+    real = direct_intake._write_record
+
+    def then_drain(path, body):
+        real(path, body)
+        if path.name == INFLIGHT_NAME:
+            (state / DRAIN_NAME).write_text(
+                "{}"
+            )  # the deploy's drain lands right after the record
+
+    monkeypatch.setattr(direct_intake, "_write_record", then_drain)
+    work = _WorkLock(host, state_dir=state, poll_s=POLL)
+    with (
+        pytest.raises(direct_intake.WorkDeclined, match="draining"),
+        work.taking("grade"),
+    ):
+        pytest.fail("a round started after DRAINING")
+    assert (
+        not (state / INFLIGHT_NAME).exists() and receipt_job.grading_busy(host) is False
+    )
+
+
+def test_an_advance_round_never_looks_like_a_starving_door(dirs):
+    host, state = dirs
+    fd = _hold_host(host)
+    stop = threading.Event()
+    work = _WorkLock(host, state_dir=state, stop=stop, poll_s=POLL)
+    thread = threading.Thread(
+        target=lambda: pytest.raises(
+            direct_intake.WorkDeclined, work.taking("advance").__enter__
+        ),
+        daemon=True,
+    )
+    thread.start()
+    time.sleep(6 * POLL)
+    assert not (state / WAIT_NAME).exists()
+    assert not (host / direct_intake.WAITING_DIR).exists() or not list(
+        (host / direct_intake.WAITING_DIR).iterdir()
+    )
+    stop.set()
+    thread.join(2)
+    _release(fd)
+
+
+def test_the_old_with_form_is_per_thread(dirs):
+    host, state = dirs
+    work = _WorkLock(host, state_dir=state, poll_s=POLL)
+    errors = []
+
+    def use():
+        try:
+            for _ in range(20):
+                with work:
+                    time.sleep(0.001)
+        except Exception as failure:  # noqa: BLE001
+            errors.append(failure)
+
+    threads = [threading.Thread(target=use) for _ in range(3)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(10)
+    assert errors == [] and receipt_job.grading_busy(host) is False
+
+
+def test_leftover_temp_files_are_removed_and_old_stale_records_trimmed(dirs):
+    host, state = dirs
+    (state / f".{INFLIGHT_NAME}.123.456").write_text("half")
+    for n in range(8):
+        (state / f"{INFLIGHT_NAME}.stale-{1000 + n}").write_text("{}")
+    _WorkLock(host, state_dir=state)
+    names = sorted(p.name for p in state.iterdir())
+    assert not [n for n in names if n.startswith(".")]
+    assert names == [f"{INFLIGHT_NAME}.stale-{1000 + n}" for n in range(3, 8)]
+
+
+class _Pool:
+    def __init__(self, path, records, attempts=(0, 0), now=10**6, incumbent=None):
+        self.path, self._records, self._attempts = path, records, attempts
+        self._now, self._incumbent = now, incumbent
+
+    def paused_crowns(self, kind=None):
+        assert kind == "pack"
+        return list(self._records)
+
+    def incumbent(self):
+        return self._incumbent
+
+    def crown_pause_attempts(self, submission_id, key):
+        return self._attempts
+
+    def clock(self):
+        return self._now
+
+
+def _grader(tmp_path, pending=(), pool=None):
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator.auto_grade import AutoGrader
+
+    grader = object.__new__(AutoGrader)
+    grader.intake = SimpleNamespace(
+        adapter=SimpleNamespace(
+            discovery=SimpleNamespace(evaluation_pack_digest="EXAM")
+        )
+    )
+    grader.pending = lambda: list(pending)
+    grader._pool = lambda: pool
+    return grader
+
+
+def test_has_work_follows_the_crown_sweeps_own_gates(tmp_path):
+    from carbon.challenge_validator import crown_pause_sweep, operator_pause
+
+    pool_dir = tmp_path / "pool"
+    pool_dir.mkdir(mode=0o700)
+    record = {"submission_id": "rtsk_x", "evaluation_key": "k", "exam": "EXAM"}
+    assert _grader(tmp_path, pending=["rtsk_a"]).has_work() is True
+    assert _grader(tmp_path).has_work() is False
+    assert _grader(tmp_path, pool=_Pool(pool_dir / "p.sqlite3", [])).has_work() is False
+    due = _Pool(pool_dir / "p.sqlite3", [record])
+    assert _grader(tmp_path, pool=due).has_work() is True
+    spaced = _Pool(pool_dir / "p.sqlite3", [record], attempts=(1, 10**6 - 5))
+    assert (
+        _grader(tmp_path, pool=spaced).has_work() is False
+    )  # inside its one-epoch retry spacing
+    later = _Pool(
+        pool_dir / "p.sqlite3",
+        [record],
+        attempts=(1, 10**6 - crown_pause_sweep.EPOCH_SECONDS - 1),
+    )
+    assert _grader(tmp_path, pool=later).has_work() is True
+    flag = operator_pause.flag_path(pool_dir)
+    flag.write_text('{"crowns_paused": true, "weights_paused": false}')
+    os.chmod(flag, 0o600)
+    assert (
+        _grader(tmp_path, pool=due).has_work() is False
+    )  # the operator's pause: the sweep does nothing

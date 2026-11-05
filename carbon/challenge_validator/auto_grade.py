@@ -111,18 +111,37 @@ class AutoGrader:
         ]
 
     def has_work(self):
-        """Whether a grade round has anything to do: a task with no marker yet, or a paused crown decision to make
-        again. A round without either never takes the host's grading lock (MAINNET_UPDATE_ARCHITECTURE s2.4 Step A),
-        so an idle door never stands between another door and its grade, or between a deploy and its idle check.
-        """
+        """Whether a grade round has anything to do: a task with no marker yet, or a paused crown decision the sweep
+        would make NOW (`crown_pause_sweep.sweep`'s own gates: crowns not paused by the operator, kind ``pack``, the
+        first unresolved record not inside its one-epoch retry spacing). A round without either never takes the
+        host's grading lock (MAINNET_UPDATE_ARCHITECTURE s2.4 Step A), so an idle door never stands between another
+        door and its grade, or between a deploy and its idle check."""
         if self.pending():
             return True
+        return self._crowns_due()
+
+    def _crowns_due(self):
+        from . import crown_pause_sweep, operator_pause
+
         pool = self._pool()
-        return (
-            pool is not None
-            and hasattr(pool, "paused_crowns")
-            and bool(pool.paused_crowns())
+        if pool is None or not hasattr(pool, "paused_crowns"):
+            return False
+        if operator_pause.crowns_paused(pool.path.parent):
+            return False
+        pending = pool.paused_crowns("pack")
+        if not pending:
+            return False
+        first = pending[0]
+        incumbent = pool.incumbent() or {}
+        if (
+            incumbent.get("model_id") == first["submission_id"]
+            or first["exam"] != self.intake.adapter.discovery.evaluation_pack_digest
+        ):
+            return True  # resolved at once, without a grade
+        attempts, last = pool.crown_pause_attempts(
+            first["submission_id"], first["evaluation_key"]
         )
+        return not (attempts and pool.clock() - last < crown_pause_sweep.EPOCH_SECONDS)
 
     def run_once(self):
         """Grade at most one ready task; returns ``(submission_id, state)`` or None.

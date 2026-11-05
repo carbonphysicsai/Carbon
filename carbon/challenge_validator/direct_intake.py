@@ -847,6 +847,10 @@ def _keep_failure(subject, loop, failure):
 DRAIN_NAME = "draining"
 INFLIGHT_NAME = "work-inflight.json"
 WAIT_NAME = "work-wait.json"
+#: The host's list of doors waiting for the grading lock with a grade to run (in the lock's own directory).
+WAITING_DIR = "official-grading.waiting"
+#: Set-aside (stale) records kept per kind; older ones are removed at start.
+STALE_KEPT = 5
 INFLIGHT_SCHEMA = "carbon.challenge-validator.work-inflight.v1"
 #: How often a door retries the host's official-grading lock, and re-reads stop and DRAINING, while it waits
 #: (an operational poll period, not a scientific value).
@@ -910,7 +914,9 @@ class _WorkLock:
         self._stop = stop if stop is not None else threading.Event()
         self._poll = WORK_POLL_S if poll_s is None else poll_s
         self._fd = None
-        self._legacy = None
+        self._legacy = threading.local()
+        self._yield_until = 0.0
+        self._was_draining = None
         if self._state is not None:
             for name in (INFLIGHT_NAME, WAIT_NAME):
                 left = self._state / name
@@ -919,9 +925,22 @@ class _WorkLock:
                     aside = left.with_name(f"{name}.stale-{time.time_ns()}")
                     os.replace(left, aside)
                     log("direct_work_record_stale", record=name, kept_as=aside.name)
+            for name in (INFLIGHT_NAME, WAIT_NAME):
+                # A writer's temp files (a crash mid-write) are never records: removed. Set-aside records: newest kept.
+                for staged in self._state.glob(f".{name}.*"):
+                    staged.unlink(missing_ok=True)
+                for old in sorted(self._state.glob(f"{name}.stale-*"))[:-STALE_KEPT]:
+                    old.unlink(missing_ok=True)
+        # Said once at start, and on every change: a door left DRAINING after a switch is never silent.
+        self.draining()
 
     def draining(self):
-        return self._state is not None and (self._state / DRAIN_NAME).exists()
+        draining = self._state is not None and (self._state / DRAIN_NAME).exists()
+        if draining != self._was_draining:
+            self._was_draining = draining
+            if self._state is not None:
+                log("direct_work_draining", draining=draining)
+        return draining
 
     def _declined(self):
         if self._stop.is_set():
@@ -930,12 +949,44 @@ class _WorkLock:
             return "draining"
         return None
 
+    def _waiting_dir(self):
+        return Path(self._dir) / WAITING_DIR
+
+    def _others_waiting(self):
+        """Whether another live process (another door) waits for the host lock with a grade to run."""
+        mine = os.getpid()
+        try:
+            names = [p.name for p in self._waiting_dir().iterdir()]
+        except OSError:
+            return False
+        for name in names:
+            pid, _, started = name.partition("-")
+            if not (pid.isdigit() and started.isdigit()) or int(pid) == mine:
+                continue
+            if _process_start(int(pid)) == int(started):
+                return True
+        return False
+
+    def _mark_waiting(self, waiting):
+        """This door's entry in the host's waiting list (``<lock dir>/official-grading.waiting/<pid>-<start>``)."""
+        path = self._waiting_dir() / f"{os.getpid()}-{_process_start(os.getpid())}"
+        if waiting:
+            self._waiting_dir().mkdir(mode=0o700, exist_ok=True)
+            path.touch(mode=0o600)
+        else:
+            path.unlink(missing_ok=True)
+
     def _try_host(self):
-        """Take the host's official-grading lock without blocking; True when held."""
+        """Take the host's official-grading lock without blocking; True when held. A door that has just released it
+        while another door waits stands back for 2 polls first, so a busy door's back-to-back rounds never shut
+        a polling door out (fairness without a queue: the waiter's next poll falls inside the gap).
+        """
         import fcntl
 
         from carbon.backbone_catalog.receipt_job import GRADING_LOCK
 
+        if time.monotonic() < self._yield_until:
+            return False
         fd = os.open(Path(self._dir) / GRADING_LOCK, os.O_RDWR | os.O_CREAT, 0o600)
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -957,6 +1008,8 @@ class _WorkLock:
                 fcntl.flock(fd, fcntl.LOCK_UN)
             finally:
                 os.close(fd)
+            if self._others_waiting():
+                self._yield_until = time.monotonic() + 2 * self._poll
 
     def taking(self, kind, *, has_work=None):
         """A context for one round of ``kind`` work (``advance`` or ``grade``). ``has_work`` (called under the
@@ -964,14 +1017,15 @@ class _WorkLock:
         """
         return _Taking(self, kind, has_work)
 
-    # The earlier ``with work:`` form (one advance round), kept for callers outside this module.
+    # The earlier ``with work:`` form (one advance round), kept for callers outside this module; per thread.
     def __enter__(self):
-        self._legacy = self.taking("advance")
-        return self._legacy.__enter__()
+        taking = self.taking("advance")
+        self._legacy.taking = taking
+        return taking.__enter__()
 
     def __exit__(self, *exc):
-        legacy, self._legacy = self._legacy, None
-        return legacy.__exit__(*exc)
+        taking, self._legacy.taking = self._legacy.taking, None
+        return taking.__exit__(*exc)
 
 
 class _Taking:
@@ -980,56 +1034,66 @@ class _Taking:
     def __init__(self, work, kind, has_work):
         self.work, self.kind, self.has_work = work, kind, has_work
 
+    def _inflight(self):
+        return {
+            "schema": INFLIGHT_SCHEMA,
+            "kind": self.kind,
+            "pid": os.getpid(),
+            "pid_start": _process_start(os.getpid()),
+            "since_ns": time.time_ns(),
+        }
+
     def __enter__(self):
         work = self.work
         while not work._lock.acquire(timeout=work._poll):
             reason = work._declined()
             if reason is not None:
                 raise WorkDeclined(reason)
+        recorded = False
+        # Only a GRADE with work waits visibly (the starvation-alert input and the host's waiting list): an advance
+        # round cannot tell whether it has work, and must never look like a starving door.
+        visible = self.kind == "grade" and self.has_work is not None
+        waiting = False
         try:
             reason = work._declined()
             if reason is not None:
                 raise WorkDeclined(reason)
             if self.has_work is not None and not self.has_work():
                 raise WorkDeclined("idle")
-            waiting = False
             while work._dir is not None and not work._try_host():
-                if work._state is not None and not waiting:
-                    _write_record(
-                        work._state / WAIT_NAME,
-                        {
-                            "schema": INFLIGHT_SCHEMA,
-                            "kind": self.kind,
-                            "pid": os.getpid(),
-                            "since_ns": time.time_ns(),
-                        },
-                    )
+                if visible and not waiting:
+                    if work._state is not None:
+                        _write_record(
+                            work._state / WAIT_NAME,
+                            {**self._inflight(), "pid_start": None},
+                        )
+                    work._mark_waiting(True)
                     waiting = True
                 work._stop.wait(work._poll)
                 reason = work._declined()
                 if reason is not None:
                     raise WorkDeclined(reason)
-            # Stop or DRAINING may have arrived while the host lock was being taken: no work starts after either.
+            if waiting:
+                work._mark_waiting(False)
+                if work._state is not None:
+                    (work._state / WAIT_NAME).unlink(missing_ok=True)
+                waiting = False
+            # The in-flight record goes down BEFORE the last check, so a drain that reads "no record" can never be
+            # followed by a round starting: either the round sees DRAINING here, or the drain sees its record.
+            if work._state is not None:
+                _write_record(work._state / INFLIGHT_NAME, self._inflight())
+                recorded = True
             reason = work._declined()
             if reason is not None:
                 raise WorkDeclined(reason)
-            if work._state is not None:
-                if waiting:
-                    (work._state / WAIT_NAME).unlink(missing_ok=True)
-                _write_record(
-                    work._state / INFLIGHT_NAME,
-                    {
-                        "schema": INFLIGHT_SCHEMA,
-                        "kind": self.kind,
-                        "pid": os.getpid(),
-                        "pid_start": _process_start(os.getpid()),
-                        "since_ns": time.time_ns(),
-                    },
-                )
         except BaseException:
             try:
+                if waiting:
+                    work._mark_waiting(False)
                 if work._state is not None:
                     (work._state / WAIT_NAME).unlink(missing_ok=True)
+                    if recorded:
+                        (work._state / INFLIGHT_NAME).unlink(missing_ok=True)
                 work._release_host()
             finally:
                 work._lock.release()
