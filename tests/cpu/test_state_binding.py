@@ -195,3 +195,83 @@ def test_only_the_code_revision_may_move_on_one_state(root):
     assert state_binding.RELEASE_KEYS == ("implementation",)
     bind(root, _binding("1" * 40))
     bind(root, _binding("2" * 40, implementation={"revision": "2" * 40, "tree": "t"}))
+
+
+#: The only places that may name the legacy file as a path (Validator 17:32 condition 1): the binding module itself,
+#: and the snapshot tool's write-once class list (it never reads the content). Every other reader goes through
+#: `state_binding.read_door` / `retained_pack_digest`, which return door fields only.
+LEGACY_PATH_USERS = {
+    "carbon/challenge_validator/state_binding.py": "the one reader and writer",
+    "scripts/dev/release/state_snapshot.py": "hard-link class list; content never read",
+}
+
+
+def test_no_code_reads_the_legacy_binding_file_directly():
+    import ast
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[2]
+    found = set()
+    for top in ("carbon", "scripts"):
+        for path in (repo / top).rglob("*.py"):
+            text = path.read_text(encoding="utf-8")
+            if LEGACY_NAME not in text:
+                continue
+            for node in ast.walk(ast.parse(text)):
+                if isinstance(node, ast.Constant) and node.value == LEGACY_NAME:
+                    found.add(path.relative_to(repo).as_posix())
+    assert found == set(LEGACY_PATH_USERS)
+
+
+def test_read_door_gives_door_fields_only_whichever_release_wrote_the_file(root):
+    _old_release_start(root, _binding("1" * 40))
+    door = state_binding.read_door(root)
+    assert "implementation" not in door and door["challenge"] == _binding()["challenge"]
+    bind(root, _binding("2" * 40))
+    assert state_binding.read_door(root) == door
+    with pytest.raises(StateBindingRefused, match="missing"):
+        state_binding.read_door(root.parent / "empty")
+
+
+def _carry(old, new):
+    """What today's copy-based switch does (REV5 state_carry): everything but the top-level legacy file."""
+    import shutil
+
+    shutil.copytree(
+        old, new, ignore=lambda d, names: [LEGACY_NAME] if d == str(old) else []
+    )
+    os.chmod(new, 0o700)
+
+
+def test_a_carried_state_starts_when_its_door_matches_and_refuses_when_it_differs(
+    root, tmp_path
+):
+    """Validator 17:32 condition 2: the copy-based switch carries door-binding.json and bindings/."""
+    bind(root, _binding("1" * 40))
+    same = tmp_path / "carried-same"
+    _carry(root, same)
+    assert not (same / LEGACY_NAME).exists() and (same / DOOR_NAME).exists()
+    done = bind(same, _binding("2" * 40))
+    assert (
+        done["legacy_written"] is True
+    )  # the new root's legacy file names the new release
+    assert (
+        len(list((same / RELEASES_DIR).iterdir())) == 2
+    )  # history carried + this release
+    other = tmp_path / "carried-other"
+    _carry(root, other)
+    with pytest.raises(StateBindingRefused, match="retained door binding differs"):
+        bind(other, _binding("2" * 40, challenge={"id": "f02", "version": "3.0"}))
+    assert not (other / LEGACY_NAME).exists()
+
+
+def test_a_carried_pre_h1_state_has_no_door_record_to_check(root, tmp_path):
+    """Stated limit: a state written only by a receiver from before this change carries no door record (its legacy
+    file is excluded by the switch), so the first release after the carry binds it fresh, as every switch did before.
+    """
+    _old_release_start(root, _binding("1" * 40))
+    carried = tmp_path / "carried"
+    _carry(root, carried)
+    assert sorted(p.name for p in carried.iterdir()) == []
+    bind(carried, _binding("2" * 40))
+    assert state_binding.read_door(carried) == state_binding.door_of(_binding("2" * 40))

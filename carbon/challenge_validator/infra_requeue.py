@@ -130,8 +130,9 @@ def _readonly(path):
 
 
 class _Door:
-    """What this door serves now (``receiver-binding.json``, written by the running receiver) and read-only access to
-    its owners' stores. Anything unreadable leaves ``served`` None, and every requeue then refuses.
+    """What this door serves (its door binding, `state_binding.read_door`: the Challenge and pack are fixed for the
+    state's life) and read-only access to its owners' stores. Anything unreadable leaves ``served`` None, and every
+    requeue then refuses.
     """
 
     def __init__(self, root):
@@ -139,7 +140,9 @@ class _Door:
         self.served = None
         self._stores = {}
         try:
-            binding = json.loads((self.root / "receiver-binding.json").read_text())
+            from carbon.challenge_validator.state_binding import read_door
+
+            binding = read_door(self.root)
             from carbon.reconstruction.served_recipe_contract import registered
 
             challenge = binding["challenge"]

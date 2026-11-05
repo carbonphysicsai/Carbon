@@ -51,13 +51,18 @@ def _root(tmp_path):
     os.chmod(root, 0o700)
     ledger = AttemptLedger(root / "attempts.sqlite3")
     ExamCap(ledger)  # the exam tables
-    (root / "receiver-binding.json").write_text(
-        json.dumps(
+    # As the receiver writes it (data.write_once): canonical bytes, owner-only.
+    from carbon.development_session.data import write_once
+    from carbon.development_session.profile import canonical
+
+    write_once(
+        root / "receiver-binding.json",
+        canonical(
             {
                 "challenge": {"id": "f02", "version": "2.5"},
                 "evaluation_pack_digest": PACK,
             }
-        )
+        ),
     )
     return root, ledger
 

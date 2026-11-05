@@ -83,6 +83,23 @@ def release_name(binding: dict) -> str:
     return hashlib.sha256(canonical(binding)).hexdigest() + ".json"
 
 
+def read_door(root: Path) -> dict:
+    """The door this state is bound to: the door binding, or on an older state the door part of its legacy file.
+
+    Readers that need what a door serves (its Challenge, its pack) read it here, never from ``receiver-binding.json``
+    directly: on a fresh state that file names the FIRST release that served it, so its release fields
+    (``implementation``) are not the running release's. Refuses (`StateBindingRefused`) if the state has no binding,
+    or if both records exist and their doors differ."""
+    root = Path(root).absolute()
+    door = _read(root / DOOR_NAME)
+    legacy = _read(root / LEGACY_NAME)
+    if door is None and legacy is None:
+        raise StateBindingRefused("receiver binding missing")
+    if door is not None and legacy is not None and door_of(legacy) != door:
+        raise StateBindingRefused("retained door binding differs")
+    return door if door is not None else door_of(legacy)
+
+
 def retained_pack_digest(root: Path):
     """The evaluation pack digest this state was bound to, or None (a fresh state, or a door without a pack).
 
