@@ -861,6 +861,10 @@ GRADING_EXCLUDED = (
         "a stat cache for the allowlist read: the bytes are sha256-verified (allowlist V8_SHA256)",
     ),
     ("carbon.research", "the task protocol's wire types and codec: orchestration"),
+    (
+        "carbon.challenge_validator.koth_journal",
+        "journal lines of crown events (ids, keys, outcome and reason codes): an operator log, never a grade input",
+    ),
     ("carbon.challenge_validator", "package __init__: re-exports only"),
     ("carbon.development_session", "package __init__: re-exports only"),
     ("carbon.challenge_kit", "package __init__: re-exports only"),

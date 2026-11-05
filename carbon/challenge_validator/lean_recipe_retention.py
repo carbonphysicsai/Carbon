@@ -1793,8 +1793,8 @@ def _report_pending_contention(store, kind, submission_id, outcome, *, filed):
     """The journal line of a contender that could not meet the king, and the operator alert once per king and key (task
     ids and the key digest only: no hotkey, path or score). Never raises: the record above is what keeps it.
     """
-    from carbon.battery.intake import log
     from carbon.challenge_validator import bank_promotion as bp
+    from carbon.challenge_validator.koth_journal import note as log
 
     try:
         incumbent, key = outcome.get("incumbent"), outcome.get("evaluation_key")
