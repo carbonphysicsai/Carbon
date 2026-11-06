@@ -185,7 +185,8 @@ def _variant_rule(value):
 
 def _physics(value):
     """A new version's registered physics rule (`pool_physics_score.PhysicsRule`), or None when the key is absent (every
-    registered version). Present, it has no default: ``{"cells_sha256", "gate_statistic", "gate_threshold", "enters"}``,
+    registered version). Present, it has no default: ``{"cells_sha256", "gate_statistic", "gate_threshold", "gate_cases",
+    "enters", "ad_split"}``,
     and a null or HUMAN_INPUT anywhere in it refuses (the gate's statistic and threshold are the owner's).
     """
     from carbon.scoring import pool_physics_score
@@ -197,7 +198,9 @@ def _physics(value):
         "cells_sha256",
         "gate_statistic",
         "gate_threshold",
+        "gate_cases",
         "enters",
+        "ad_split",
     }:
         raise PoolConstantsNotRegistered("pool_constants_malformed")
     for item in value.values():

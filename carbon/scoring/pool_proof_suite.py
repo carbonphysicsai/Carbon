@@ -299,14 +299,17 @@ def score_specs(plugin, specs, descriptor, policies, all_specs):
     grade = pool_grader.grade_set(specs, predict, policies.optimizer, policies.honesty)
     legs = plugin.legs(descriptor, specs)
     # The registered A_gen aggregation (a NEW version's class-balanced mean); a version without one makes the plain call.
-    # A NEW version with physics scoring takes the family value in A_gen's place (``enters == "a_gen"``).
+    # A NEW version with physics scoring: A IS the family value (``enters == "a"``; the in-range A leg is a gate only).
     if policies.physics is None:
         a_gen = pool_grader.agen_for(
             specs, predict, policies.agen_scales, policies.optimizer
         )
     else:
         a_gen = _physics_a_gen(specs, predict, policies)
-    a = pool_grader.combine_a(legs["A"], a_gen, policies.a_rule)
+    if policies.physics is None:
+        a = pool_grader.combine_a(legs["A"], a_gen, policies.a_rule)
+    else:
+        a = a_gen
     # A failed mandatory gate gives no score (the plugin reports `gates_ok`; absent means no gate to fail), and so
     # does a physics gate violated on any pool answer, or the speed gate (GATE_FAILED, names only).
     if (

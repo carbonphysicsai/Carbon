@@ -181,7 +181,8 @@ def measure_pool(
 
     ``scoring_cells`` is a NEW version's sealed scoring-cell document (`attach_physics`), required exactly when its
     policies carry a physics rule (`pool_physics_score`); None for every registered version, whose result is unchanged.
-    With a physics rule the grade adds the mandatory gate `ACCURACY_GATE` (in-range accuracy, pass/fail) and the custody
+    With a physics rule A is the family value (`pool_physics_score.family_value`, per set), and the grade adds the
+    mandatory gate `ACCURACY_GATE` (in-range accuracy, pass/fail) and the custody
     accuracy record under ``["pool"]["accuracy"]`` (and ``capture["accuracy"]``); `public` never carries the record.
     """
     policies = attach_coverage_plan(policies, coverage_plan, coverage_plan_sums, sets)
@@ -332,11 +333,19 @@ def measure_pool(
     a_values, d_values, reasons, a_gen = [], [], set(), []
     for _total, grade, gen, _legs in per_set:
         a_gen.append(gen)
-        a_values.append(pool_grader.combine_a(a_bank, gen, policies.a_rule))
+        # A version with physics scoring: A is the family value (the in-range A leg is its gate, never points).
+        a_values.append(
+            gen
+            if policies.physics is not None
+            else pool_grader.combine_a(a_bank, gen, policies.a_rule)
+        )
         # D as the total sees it: capped by C, so the dual pack's own 0.5 A + 0.5 D is each set's TOP.
         d_values.append(min(grade.d, legs["C"]))
         reasons.update(grade.public()["reasons"])
-    if capture is not None:
+    if capture is not None and policies.physics is not None:
+        # The target bootstrap does not recompose the family layer yet: the SE refuses, typed (`target_bootstrap_se`).
+        capture["se_basis"] = {"gated": False, "physics": True}
+    elif capture is not None:
         predict = suite.pool_predictor(plugin, descriptor, all_specs)
         capture["se_basis"] = {
             "gated": False,
@@ -460,6 +469,8 @@ def target_bootstrap_se(basis, exam_key, *, resamples=200):
     import numpy as np
 
     _require(type(basis) is dict and basis.get("gated") is False, "gated")
+    # A version with physics scoring: the family layer is not recomposed per target yet (typed, never a wrong SE).
+    _require(basis.get("physics") is not True, "physics_se_not_built")
     sets = basis["sets"]
     sizes = [len(targets) for targets in sets]
     _require(sizes and min(sizes) >= SE_MIN_TARGETS, "too_few_targets")

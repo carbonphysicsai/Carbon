@@ -60,10 +60,19 @@ CELLS = {
 }
 
 
-def rule(statistic="p90", threshold=1.0, cells=CELLS, enters="a_gen"):
+def rule(
+    statistic="p90",
+    threshold=1.0,
+    cells=CELLS,
+    enters="a",
+    gate_cases="agen",
+    ad_split=0.5,
+):
     return pps.PhysicsRule(
         cells_sha256=pps.cell_map(cells).sha256,
         gate_statistic=statistic,
+        gate_cases=gate_cases,
+        ad_split=ad_split,
         gate_threshold=threshold,
         enters=enters,
     )
@@ -132,7 +141,11 @@ def attached(specs, plan, **kw):
         ({"statistic": "mean"}, "statistic_must_be_median_p90_or_max"),
         ({"threshold": -1.0}, "threshold_must_be"),
         ({"threshold": {"f": float("nan")}}, "threshold_must_be"),
-        ({"enters": "replace_a"}, "physics_enters_must_be_a_gen"),
+        ({"enters": "a_gen"}, "physics_enters_must_be_a"),
+        ({"gate_cases": None}, "accuracy_gate_cases_not_registered"),
+        ({"gate_cases": "train"}, "gate_cases_must_be_agen_or_pool"),
+        ({"ad_split": None}, "ad_split_is_human_input"),
+        ({"ad_split": 0.6}, "ad_split_other_than_half_is_not_built"),
     ],
 )
 def test_an_incomplete_rule_refuses_never_defaults(kw, code):
@@ -409,18 +422,61 @@ def test_a_model_failing_the_in_range_gate_gets_no_score_and_only_the_gate_name_
 
 
 @pytest.mark.usefixtures("geometric_v1_stand_in")
-def test_the_family_value_enters_a_in_a_gens_place(monkeypatch):
+def test_a_is_the_family_value_and_the_in_range_a_leg_leaves_the_score(monkeypatch):
     the_sets = _sets()
     policies, material = _registered(the_sets, threshold=2.5)
     seen = []
     real = pps.family_value
-    monkeypatch.setattr(pps, "family_value", lambda *a: seen.append(a) or real(*a))
-    _measure(the_sets, policies, material)
-    assert len(seen) >= len(the_sets)  # once per set at least
-    assert all(
-        {s.target_id for s in a[0]} <= {t.target_id for g in the_sets for t in g}
-        for a in seen
+
+    def recording(*a):
+        value = real(*a)
+        seen.append(({s.target_id for s in a[0]}, value))
+        return value
+
+    monkeypatch.setattr(pps, "family_value", recording)
+    result, _capture = _measure(the_sets, policies, material)
+    per_set = {
+        frozenset(ids): value for ids, value in seen
+    }  # the official loop's calls
+    expected = statistics.fmean(
+        per_set[frozenset(t.target_id for t in group)] for group in the_sets
     )
+    assert result["A"] == pytest.approx(expected, abs=1e-15)
+
+    # the sealed grader's in-range A leg never moves A: a different base A gives the same A
+    original = fake_measure
+
+    def other_base(**kw):
+        measured = original(**kw)
+        return {**measured, "A": 0.123, "A_legs": {}}
+
+    monkeypatch.setattr(sys.modules[__name__], "fake_measure", other_base)
+    again, _ = _measure(the_sets, policies, material)
+    assert again["A"] == result["A"]
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_pool_gate_cases_read_every_kept_point_of_the_in_range_targets():
+    the_sets = _sets()
+    policies, material = _registered(the_sets, threshold=2.5)
+    pooled = dataclasses.replace(
+        policies, physics=dataclasses.replace(policies.physics, gate_cases="pool")
+    )
+    result, _capture = _measure(the_sets, pooled, material)
+    record = result["pool"]["accuracy"]
+    kept = sum(len(g[0].designs) for g in the_sets)  # the in-range target of each set
+    assert all(r["n"] == kept for r in record["rows"] if r["range"] == "in")
+    # out-of-range rows stay on the reserved slices
+    assert all(r["n"] == 16 for r in record["rows"] if r["range"] == "out")
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_the_se_refuses_typed_for_a_physics_version():
+    the_sets = _sets()
+    policies, material = _registered(the_sets, threshold=2.5)
+    _result, capture = _measure(the_sets, policies, material)
+    with pytest.raises(pool_exam.ExamRefused, match="physics_se_not_built"):
+        pool_exam.target_bootstrap_se(capture["se_basis"], "ab" * 32)
 
 
 @pytest.mark.usefixtures("geometric_v1_stand_in")
@@ -568,7 +624,9 @@ def test_the_physics_rule_registers_with_no_default(tmp_path):
         "cells_sha256": pps.cell_map(CELLS).sha256,
         "gate_statistic": "p90",
         "gate_threshold": {"f": 1.0, "g": 2.0},
-        "enters": "a_gen",
+        "gate_cases": "pool",
+        "enters": "a",
+        "ad_split": 0.5,
     }
     rule_read = read(good).physics
     assert rule_read == pps.PhysicsRule(**good) and rule_read.cells is None
@@ -579,7 +637,10 @@ def test_the_physics_rule_registers_with_no_default(tmp_path):
     with pytest.raises(pool_version.PoolConstantsNotRegistered):
         read({**good, "gate_threshold": {"f": pool_version.HUMAN_INPUT}})
     with pytest.raises(pool_version.PoolConstantsNotRegistered):
-        read({**good, "enters": "replace_a"})
+        read({**good, "enters": "a_gen"})
+    for key, value in (("ad_split", pool_version.HUMAN_INPUT), ("ad_split", 0.6)):
+        with pytest.raises(pool_version.PoolConstantsNotRegistered):
+            read({**good, key: value})
     with pytest.raises(pool_version.PoolConstantsNotRegistered):
         read({k: v for k, v in good.items() if k != "enters"})
     assert pool_version.SCORING_CELLS in pool_version._OPTIONAL_MATERIAL_KEYS

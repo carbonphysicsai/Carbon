@@ -15,13 +15,16 @@ rule:
    cases, the count and (in range) the gate verdict. The record is custody material: it is never scored and never leaves
    custody through `pool_exam.public` (scores-only rule; per-case values never appear in it).
 
-Cases: a class's cases are the reserved accuracy slices (`TargetSpec.agen`) of its targets: points the optimiser never
-queries. In-range classes are the coverage-plan classes whose targets are all inside the TRAIN range (not EXTENDED);
+Cases: an out-of-range class's cases are the reserved accuracy slices (`TargetSpec.agen`) of its targets: points the
+optimiser never queries. An in-range class's gate cases are the rule's ``gate_cases``: ``"agen"`` (its reserved slices)
+or ``"pool"`` (every kept pool point of its targets, whose truths are hidden; record + gate only, never scored; EQ 5 Nov
+Q1: R15-disjointness from TRAIN is the pack's, checked where the pack is built). In-range classes are the coverage-plan classes whose targets are all inside the TRAIN range (not EXTENDED);
 out-of-range classes have only EXTENDED targets; a class mixing both is refused.
 
-How the family value enters the score is the rule's ``enters``: ``"a_gen"`` replaces A_gen inside the owner's
-`pool_grader.combine_a` rule (A = combine_a(A_bank, family value, a_rule)). Every other composition refuses until the
-owner registers it.
+How the family value enters the score is the rule's ``enters``: ``"a"``: A IS the family value (EQ 5 Nov Q2, from the
+owner's words: in-range accuracy is a gate, so the in-range A_bank leaves the score). The A/D split is the owner's
+(``ad_split``, HUMAN_INPUT): the dual pack composes 0.5 A + 0.5 D, so only 0.5 grades and any other value refuses
+until that composition is built.
 
 Off by default: `pool_proof_suite.Policies.physics` is None for every registered version, and every path that reads it
 is then unchanged, bit for bit. Nothing here names a Challenge.
@@ -42,7 +45,10 @@ SCORING_CELLS_SCHEMA = "carbon.pool.scoring-cells.v1"
 RECORD_SCHEMA = "carbon.pool.accuracy-record.v1"
 ACCURACY_GATE = "in_range_accuracy"
 STATISTICS = ("median", "p90", "max")
-ENTERS = ("a_gen",)
+ENTERS = ("a",)
+GATE_CASES = ("agen", "pool")
+#: The only A/D split the dual pack's total composes today (0.5 A + 0.5 D).
+AD_SPLIT_BUILT = 0.5
 IN_RANGE, OUT_OF_RANGE = "in", "out"
 
 
@@ -81,14 +87,18 @@ class PhysicsRule:
 
     ``cells_sha256``: the sha256 of the sealed scoring-cell document. ``gate_statistic``: which of `STATISTICS` gates.
     ``gate_threshold``: the largest passing value of that statistic of |err|/U, one number for every output or
-    ``{output: number}`` covering each gated output. Either left None (HUMAN_INPUT) refuses to grade. ``enters``: how the
-    family value enters the score (`ENTERS`). ``cells``: the attached `CellMap` (`attach_cells`), or None.
+    ``{output: number}`` covering each gated output. Either left None (HUMAN_INPUT) refuses to grade. ``gate_cases``: the
+    in-range gate's cases (`GATE_CASES`). ``enters``: how the family value enters the score (`ENTERS`). ``ad_split``: the
+    owner's weight of A in the total (HUMAN_INPUT; only `AD_SPLIT_BUILT` grades). ``cells``: the attached `CellMap`
+    (`attach_cells`), or None.
     """
 
     cells_sha256: str
     gate_statistic: str | None
     gate_threshold: object
+    gate_cases: str | None
     enters: str
+    ad_split: object
     cells: object = None
 
 
@@ -113,7 +123,14 @@ def check_rule(rule):
         ),
         "accuracy_gate_threshold_must_be_a_non_negative_number_or_one_per_output",
     )
-    _require(rule.enters in ENTERS, "physics_enters_must_be_a_gen")
+    _require(rule.gate_cases is not None, "accuracy_gate_cases_not_registered")
+    _require(rule.gate_cases in GATE_CASES, "accuracy_gate_cases_must_be_agen_or_pool")
+    _require(rule.enters in ENTERS, "physics_enters_must_be_a")
+    _require(rule.ad_split is not None, "ad_split_is_human_input")
+    _require(
+        _is_number(rule.ad_split) and rule.ad_split == AD_SPLIT_BUILT,
+        "ad_split_other_than_half_is_not_built",
+    )
     _require(
         rule.cells is None
         or (isinstance(rule.cells, CellMap) and rule.cells.sha256 == rule.cells_sha256),
@@ -191,6 +208,13 @@ def class_ranges(specs, plan):
     }
 
 
+def _cases(spec, in_range, rule):
+    """The case indices of a target: its reserved slice, or (in range, ``gate_cases == "pool"``) every kept pool point."""
+    if in_range and rule.gate_cases == "pool":
+        return tuple(range(len(spec.designs)))
+    return tuple(spec.agen)
+
+
 def _gate_threshold(rule, output):
     threshold = rule.gate_threshold
     return threshold if _is_number(threshold) else threshold.get(output)
@@ -240,7 +264,7 @@ def attach_cells(rule, document, plan, sets):
                 continue
             members = cases.get(name, [])
             _require(
-                any(spec.agen for spec in members),
+                any(_cases(spec, True, rule) for spec in members),
                 "in_range_class_without_gate_cases_in_a_set",
             )
             for spec in members:
@@ -251,7 +275,7 @@ def attach_cells(rule, document, plan, sets):
                         "accuracy_gate_threshold_missing_for_an_output",
                     )
                     _require(
-                        all(spec.u_at(i, output) > 0 for i in spec.agen),
+                        all(spec.u_at(i, output) > 0 for i in _cases(spec, True, rule)),
                         "accuracy_gate_output_with_zero_u",
                     )
     return replace(rule, cells=cells)
@@ -277,19 +301,20 @@ def _summary(values):
     }
 
 
-def _ratios(specs, predict):
+def _ratios(specs, predict, ranges, rule):
     """``{(class, output): [|err|/U, ...]}`` over every reserved case; also ``{(class, output): [|err|, ...]}`` for cases
     whose U is zero (an exact output: reported raw, never divided)."""
     ratios, raw = {}, {}
     for spec, name in specs:
-        if not spec.agen:
+        indices = _cases(spec, ranges[name] == IN_RANGE, rule)
+        if not indices:
             continue
-        batch = predict(spec.conditions, [list(spec.designs[i]) for i in spec.agen])
+        batch = predict(spec.conditions, [list(spec.designs[i]) for i in indices])
         _require(
-            type(batch) is list and len(batch) == len(spec.agen),
+            type(batch) is list and len(batch) == len(indices),
             "accuracy_prediction_invalid",
         )
-        for index, prediction in zip(spec.agen, batch):
+        for index, prediction in zip(indices, batch):
             _require(
                 pool_grader._valid_prediction(prediction, spec.outputs),
                 "accuracy_prediction_invalid",
@@ -316,7 +341,7 @@ def accuracy_record(specs, predict, plan, rule):
     _require(rule.cells is not None, "scoring_cells_not_attached")
     ranges = class_ranges(specs, plan)
     ratios, raw = _ratios(
-        [(spec, plan.class_of(spec.target_id)) for spec in specs], predict
+        [(spec, plan.class_of(spec.target_id)) for spec in specs], predict, ranges, rule
     )
     scored = {(c, o) for _f, c, o in rule.cells.scored}
     outputs = {}
@@ -411,7 +436,9 @@ def family_value(specs, predict, scales, plan, rule):
 
 __all__ = [
     "ACCURACY_GATE",
+    "AD_SPLIT_BUILT",
     "ENTERS",
+    "GATE_CASES",
     "RECORD_SCHEMA",
     "SCORING_CELLS_SCHEMA",
     "STATISTICS",
