@@ -1241,6 +1241,33 @@ scenario("a submit says started, then refused with what to do", async () => {
   clean(page);
 });
 
+// Owner, 6 Nov: a submit the validator QUEUED was accepted and waits for a
+// verdict. The page never calls that "Refused" or "Not done", and its note
+// is not drawn as an error.
+scenario("a queued submit says submitted and waiting, never refused", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/submission");
+  await page.advance(0);
+  state.script.push({match: r => r.path === "/api/v1/operations/submit", answer: () => ({body: {...run, state: "SUBMITTING"}})});
+  run.state = "SUBMITTING";
+  await page.press(one(page, "#journey-submit-" + run.id));
+  await page.advance(0);
+  Object.assign(run, {state: "READY", last_refusal: {code: "evaluation_queued", operation: "submit", intake_outcome: "QUEUED", next_action: "The validator queued your submission and has no verdict yet.", at: 1800000100}});
+  await refresh(page);
+  await refresh(page);
+  assert.match(page.text("message"), /Submitted, waiting for the validator's verdict/);
+  assert.doesNotMatch(page.text("message"), /Refused|Not done/);
+  const note = one(page, "#campaign-detail [data-part=attention] .refusal-note");
+  assert.match(note.textContent, /Submitted, waiting for the validator's verdict \(submit\)/);
+  assert.doesNotMatch(note.textContent, /Refused/);
+  assert.match(note.getAttribute("class"), /queued-note/);
+  clean(page);
+});
+
 // LAUNCHPAD-PAGE-USABILITY-01 (C10): with no validator intake for the
 // campaign's Challenge, the Submission form says so before a submit, with what
 // still works and the next step; a refused submit shows the controller's next

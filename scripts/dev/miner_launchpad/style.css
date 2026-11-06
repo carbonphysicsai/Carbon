@@ -109,6 +109,7 @@ legend{padding:0}
 .launch-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
 .refusal-note{display:flex;flex-direction:column;gap:2px;margin-top:6px;padding-left:10px;border-left:3px solid var(--red)}
 .refusal-note p{margin:0;font-size:14px}
+.refusal-note.queued-note{border-left-color:var(--border)}
 .consent input{margin-top:4px;flex:none}
 .consent label{margin:0;font-weight:400;font-size:15px}
 

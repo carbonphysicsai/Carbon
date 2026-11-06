@@ -2883,6 +2883,13 @@
   // (refused, interrupted or paused)}, shown when present and well formed,
   // ignored otherwise.
   const REFUSAL_KINDS = {refused: "Refused", interrupted: "Interrupted", paused: "Paused"};
+  // A submission the validator queued is not refused: it was accepted and waits for a verdict
+  // (owner, 6 Nov: show miners the queue, never "Refused" for a wait we make them do).
+  const QUEUED_CODES = new Set(["evaluation_queued"]);
+  function queued(refusalOrError) {
+    return QUEUED_CODES.has(refusalOrError?.code) || refusalOrError?.intake_outcome === "QUEUED";
+  }
+  const QUEUED_HEAD = "Submitted, waiting for the validator's verdict";
   const INTAKE_OUTCOMES = {
     QUEUED: "queued, no verdict yet",
     UNAVAILABLE: "unavailable on the validator's side; not a verdict on your recipe",
@@ -2927,10 +2934,11 @@
   // The refusal as a person reads it: what was refused, when, and what to do.
   function refusalNote(parent, refusal, compact = false) {
     if (!refusal) return null;
-    const box = el("div", undefined, "refusal-note");
+    const box = el("div", undefined, queued(refusal) ? "refusal-note queued-note" : "refusal-note");
     box.setAttribute("role", "status");
     const at = when(refusal.at);
-    box.append(el("p", (REFUSAL_KINDS[refusal.kind] || "Refused") + ": " + (practiceMessage(refusal.code) || words(refusal.code)) + (refusal.operation ? " (" + words(refusal.operation) + ")" : "") + (at ? " · " + at : ""), "status-line"));
+    const head = queued(refusal) ? QUEUED_HEAD : (REFUSAL_KINDS[refusal.kind] || "Refused") + ": " + (practiceMessage(refusal.code) || words(refusal.code));
+    box.append(el("p", head + (refusal.operation ? " (" + words(refusal.operation) + ")" : "") + (at ? " · " + at : ""), "status-line"));
     // A submit through a validator intake that was not a verdict
     // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
     if (refusal.intake_outcome) box.append(el("p", "The grader's answer: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
@@ -5308,6 +5316,7 @@
   // caller's wording of the error, when it has its own.
   function notDone(outcome, text = said(outcome.error)) {
     if (outcome.spent) return "Not sent again: an earlier request under this key was recorded with other values, so nothing new started. See the campaign's record.";
+    if (queued(outcome.error)) return QUEUED_HEAD + ". " + text.replace(/\.$/, "") + ".";
     const head = (outcome.refused ? "Refused: " : "Not confirmed: ") + text.replace(/\.$/, "");
     return head + (outcome.kept ? ". Trying again with the same values sends it under the same key: if it started, it is replayed, never run twice. Or discard it." : ".") + (outcome.replaced ? " " + REPLACED : "");
   }
@@ -5330,7 +5339,8 @@
       // "evaluation unavailable").
       else {
         if (name === "practice" && outcome.refused) rememberPracticeIssue(body.campaign, outcome.error.code, body.mode);
-        message(notDone(outcome) + (outcome.refused && outcome.error?.nextStep && !SIGNER_HELP[outcome.error.code] && !practiceMessage(outcome.error.code) ?" Next: " + String(outcome.error.nextStep).replace(/\.$/, "") + "." : ""), true);
+        if (queued(outcome.error)) message(notDone(outcome));
+        else message(notDone(outcome) + (outcome.refused && outcome.error?.nextStep && !SIGNER_HELP[outcome.error.code] && !practiceMessage(outcome.error.code) ?" Next: " + String(outcome.error.nextStep).replace(/\.$/, "") + "." : ""), true);
       }
     } finally { busy = false; await refresh(); render(); focusSmokePractice(); }
   }
@@ -5373,6 +5383,7 @@
     }
     const refusal = lastRefusal(run);
     if (refusal && JSON.stringify(refusal) !== entry.refusal && refusalOf(entry.name, refusal)) {
+      if (queued(refusal)) return {kind: "done", text: QUEUED_HEAD + ". " + (refusal.next_action || "It is kept; the verdict appears here when the validator has one."), refusal};
       return {kind: "refused", text: "Not done: " + (practiceMessage(refusal.code) || words(refusal.code)) + "." + (refusal.next_action && !practiceMessage(refusal.code) ? " " + refusal.next_action : ""), refusal};
     }
     const recorded = run.refusals || [];
