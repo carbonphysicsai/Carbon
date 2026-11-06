@@ -2,9 +2,13 @@
 this door already keeps. Reads; writes nothing.
 
 - **waiting to build / building now / waiting to grade:** the auto-grader's PENDING tasks (submitted, no verdict marker
-  yet: `AutoGrader.pending`), split by the task's own provider state: QUEUED waits to build; RUNNING or CANCEL_REQUESTED
-  is building; anything else (built, or a task whose provider this door no longer holds, e.g. admitted under an earlier
-  contract, or requeued after an infrastructure failure) waits to grade. A pending task is always counted somewhere.
+  yet: `AutoGrader.pending`), split by the task's own state in the providers ALREADY OPEN on this receiver: QUEUED
+  waits to build; RUNNING or CANCEL_REQUESTED is building; anything else (built, or a task no open provider holds, e.g.
+  admitted under an earlier contract, or requeued after an infrastructure failure) waits to grade. A pending task is
+  always counted somewhere.
+- **A GET never slows a grade** (Validator-2 12:37): task states come from ONE pass over the open providers' task views
+  (dict reads, no lock taken, no provider opened, no `owner()` / `_provider()` call, so no source-identity hashing and no
+  registration read). A provider being changed mid-read is skipped for that snapshot (its tasks wait to grade).
 - **grading now:** this door's in-flight record (``work-inflight.json``, `direct_intake._WorkLock`) is a GRADE round and
   the grader is grading a submission (not its king's upkeep).
 - **door state:** ``draining for an update`` while the operator's per-door DRAINING flag is set; ``paused`` while the
@@ -38,16 +42,30 @@ class QueueView:
         self._lock = threading.Lock()
         self._cached = None
 
-    def _task_state(self, submission_id):
-        """``(state name, created unix seconds)`` of a task in its own provider, or ``(None, None)``."""
-        adapter = self.intake.adapter
-        owner = adapter.owner(submission_id)
-        if owner is None:
-            return None, None
-        view = adapter._provider(owner)._views.get(submission_id)
-        if view is None:
-            return None, None
-        return view.state.value, view.created_at_micros / 1e6
+    def _index(self):
+        """``{task id: (state name, created unix seconds)}`` over the providers already open on this receiver: a
+        read of their task views only (never opens one, never takes a lock, never asks ``owner()`` / ``_provider()``).
+        """
+        opened = getattr(self.intake.adapter.provider_for, "_providers", None)
+        if type(opened) is not dict:
+            return {}
+        index = {}
+        for provider in tuple(opened.values()):
+            try:
+                views = tuple(getattr(provider, "_views", {}).items())
+            except (
+                RuntimeError
+            ):  # changed while read: its tasks wait to grade in this snapshot
+                continue
+            for task, view in views:
+                try:
+                    index[task] = (view.state.value, view.created_at_micros / 1e6)
+                except (AttributeError, TypeError):
+                    # a malformed view is not a count: the page answers 503, never a guess (Validator-2 12:24)
+                    raise qp.QueuePublicRefused(
+                        "queue_provider_state_invalid"
+                    ) from None
+        return index
 
     def _door_state(self):
         if (self.state / "draining").exists():
@@ -66,7 +84,7 @@ class QueueView:
         grading = type(record) is dict and record.get("kind") == "grade"
         return int(grading and getattr(self.grader, "activity", None) == "grade")
 
-    def _waits(self, now):
+    def _waits(self, now, index):
         waits = []
         for marker in self.grader.markers.glob("rtsk_*.json"):
             try:
@@ -75,16 +93,17 @@ class QueueView:
                 continue
             if now - written > DAY_S:
                 continue
-            _state, created = self._task_state(marker.stem)
+            _state, created = index.get(marker.stem, (None, None))
             if created is not None and written >= created:
                 waits.append(written - created)
         return waits
 
     def _read(self):
         now = self.clock()
+        index = self._index()
         counts = {"waiting_to_build": 0, "building_now": 0, "waiting_to_grade": 0}
         for submission_id in self.grader.pending():
-            state, _created = self._task_state(submission_id)
+            state, _created = index.get(submission_id, (None, None))
             if state == "QUEUED":
                 counts["waiting_to_build"] += 1
             elif state in _BUILDING:
@@ -95,7 +114,7 @@ class QueueView:
             "door_state": self._door_state(),
             **counts,
             "grading_now": self._grading_now(),
-            "waits_s": self._waits(now),
+            "waits_s": self._waits(now, index),
             "as_of_unix": now,
         }
 

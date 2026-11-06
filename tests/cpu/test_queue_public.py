@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -134,6 +135,12 @@ class _Provider:
         }
 
 
+def _forbidden(*_args):
+    raise AssertionError(
+        "the queue view asked owner() / _provider() (Validator-2 12:37)"
+    )
+
+
 def _door(tmp_path, states, *, pending, verdicts=(), clock=NOW):
     provider = _Provider(states)
     adapter = SimpleNamespace(
@@ -143,8 +150,10 @@ def _door(tmp_path, states, *, pending, verdicts=(), clock=NOW):
                 pending + [v[0] for v in verdicts]
             )
         ),
-        owner=lambda task: "5" + "M" * 47 if task in provider._views else None,
-        _provider=lambda owner: provider,
+        # only providers ALREADY open are read; asking for one would open it (Validator-2 12:37)
+        provider_for=SimpleNamespace(_providers={"5" + "M" * 47: provider}),
+        owner=_forbidden,
+        _provider=_forbidden,
     )
     intake = SimpleNamespace(adapter=adapter)
     grader = auto_grade.AutoGrader(intake, tmp_path)
@@ -267,3 +276,60 @@ def test_the_grader_marks_grade_while_retaining_and_clears_after(tmp_path):
     assert grader.activity is None
     assert grader.run_once() == (TASKS[0], "GRADED")
     assert seen == ["grade"] and grader.activity is None
+
+
+def test_a_snapshot_opens_no_provider_and_hashes_no_served_source(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_validator import lean_recipe
+
+    def forbidden():
+        raise AssertionError("a public GET recomputed the served source identity")
+
+    monkeypatch.setattr(lean_recipe, "_implementation_identity", forbidden)
+    monkeypatch.setattr(lean_recipe, "_source_identity", forbidden)
+    states = {TASKS[0]: (DirectTaskStateV3.QUEUED, NOW - 10)}
+    view, _ = _door(tmp_path, states, pending=TASKS[:2])
+    snap = view.snapshot()  # owner()/_provider() raise if called (see _door)
+    assert (snap["waiting_to_build"], snap["waiting_to_grade"]) == (1, 1)
+
+
+def test_a_get_while_a_build_holds_its_provider_lock_returns_at_once(tmp_path):
+    import threading
+
+    states = {TASKS[0]: (DirectTaskStateV3.RUNNING, NOW - 10)}
+    view, _ = _door(tmp_path, states, pending=TASKS[:1])
+    provider = view.intake.adapter.provider_for._providers["5" + "M" * 47]
+    provider._lock = threading.Lock()
+    provider._lock.acquire()  # a running build holds the provider lock
+    try:
+        started = time.monotonic()
+        status, body = queue_public.serve(view, CHALLENGE)
+        assert time.monotonic() - started < 2.0
+        assert status == 200 and body["building_now"] == 1
+    finally:
+        provider._lock.release()
+
+
+def test_a_malformed_provider_view_is_unavailable_never_a_guess(tmp_path):
+    view, _ = _door(
+        tmp_path, {TASKS[0]: (DirectTaskStateV3.QUEUED, NOW)}, pending=TASKS[:1]
+    )
+    provider = view.intake.adapter.provider_for._providers["5" + "M" * 47]
+    provider._views[TASKS[0]] = SimpleNamespace(
+        state="QUEUED"
+    )  # no enum, no creation time
+    status, body = queue_public.serve(view, CHALLENGE)
+    assert status == 503 and body == {"refused": "queue_provider_state_invalid"}
+
+
+def test_a_provider_changing_mid_read_is_skipped_not_fatal(tmp_path):
+    view, _ = _door(tmp_path, {}, pending=TASKS[:1])
+
+    class Changing(dict):
+        def items(self):
+            raise RuntimeError("dictionary changed size during iteration")
+
+    view.intake.adapter.provider_for._providers["5" + "M" * 47]._views = Changing()
+    snap = view.snapshot()
+    assert snap["waiting_to_grade"] == 1  # its task waits to grade in this snapshot
