@@ -27,8 +27,9 @@ out-of-range classes have only EXTENDED targets; a class mixing both is refused.
 How the family value enters the score is the rule's ``enters``: ``"a"``: A IS the family value (EQ 5 Nov Q2, from the
 owner's words: in-range accuracy is a gate, so the in-range A_bank leaves the score). The A/D split ``ad_split`` is
 owner-set at 0.5 (owner 17:50, "50/50"), the dual pack's 0.5 A + 0.5 D; any other value refuses until he changes it and
-that composition is built. The TOTAL of a version whose D does not separate is HUMAN_INPUT: such a version registers
-``d_separates`` as HUMAN_INPUT (or false) and refuses; only ``true`` grades.
+that composition is built. The TOTAL is the rule's ``total_rule``, picked by the owner per version at registration
+(no default; unset refuses): ``"half_a_half_d"`` (0.5 A + 0.5 D) or ``"a_only"`` (the physics score alone, for a version
+whose D does not separate: the grade reports D := A so the dual pack's 0.5 A + 0.5 D is exactly A).
 
 A cell's score maps |err| to [0, 1] with the version's registered accuracy function (EQ Q3): the A_gen atom
 benefit(|err| / agen_scales), or with the registered A multiplier applied (``cell_scale``). Which one is the
@@ -58,6 +59,7 @@ GATE_CASES = ("agen", "pool")
 #: The A/D split: owner-set 0.5 (17:50), the only split the dual pack's total composes (0.5 A + 0.5 D).
 AD_SPLIT_BUILT = 0.5
 CELL_SCALES = ("agen_scales", "agen_scales_x_a_multiplier")
+TOTAL_RULES = ("half_a_half_d", "a_only")
 IN_RANGE_CASES_SCHEMA = "carbon.pool.in-range-cases.v1"
 IN_RANGE, OUT_OF_RANGE = "in", "out"
 
@@ -99,8 +101,8 @@ class PhysicsRule:
     ``gate_threshold``: the largest passing value of that statistic of |err|/U, one number for every output or
     ``{output: number}`` covering each gated output. Either left None (HUMAN_INPUT) refuses to grade. ``gate_cases``: the
     in-range gate's cases (`GATE_CASES`). ``enters``: how the family value enters the score (`ENTERS`). ``ad_split``: the
-    owner's weight of A in the total (owner-set `AD_SPLIT_BUILT`; any other value refuses). ``d_separates``: True when the
-    version's D separates (its total is 0.5 A + 0.5 D); otherwise the total is HUMAN_INPUT and the version refuses.
+    owner's weight of A in the total (owner-set `AD_SPLIT_BUILT`; any other value refuses). ``total_rule``: the version's
+    TOTAL (`TOTAL_RULES`; the owner's pick per version, no default).
     ``cell_scale``: the cell atom's scale (`CELL_SCALES`, the Validator's ruling; no default). ``cells``: the attached
     `CellMap` (`attach_cells`); ``a_multiplier``: the registered A multiplier, attached at grade time; both None until.
     """
@@ -111,7 +113,7 @@ class PhysicsRule:
     gate_cases: str | None
     enters: str
     ad_split: object
-    d_separates: object
+    total_rule: str | None
     cell_scale: str | None
     cells: object = None
     a_multiplier: object = None
@@ -149,7 +151,11 @@ def check_rule(rule):
         _is_number(rule.ad_split) and rule.ad_split == AD_SPLIT_BUILT,
         "ad_split_must_be_the_owner_set_half",
     )
-    _require(rule.d_separates is True, "total_without_a_separating_d_is_human_input")
+    _require(rule.total_rule is not None, "physics_total_rule_not_registered")
+    _require(
+        rule.total_rule in TOTAL_RULES,
+        "physics_total_rule_must_be_half_a_half_d_or_a_only",
+    )
     _require(rule.cell_scale is not None, "cell_scale_not_registered")
     _require(
         rule.cell_scale in CELL_SCALES,
@@ -621,6 +627,7 @@ __all__ = [
     "RECORD_SCHEMA",
     "SCORING_CELLS_SCHEMA",
     "STATISTICS",
+    "TOTAL_RULES",
     "CellMap",
     "InRangeCases",
     "PhysicsRefused",

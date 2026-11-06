@@ -366,6 +366,10 @@ def measure_pool(
         # D as the total sees it: capped by C, so the dual pack's own 0.5 A + 0.5 D is each set's TOP.
         d_values.append(min(grade.d, legs["C"]))
         reasons.update(grade.public()["reasons"])
+    a_only = policies.physics is not None and policies.physics.total_rule == "a_only"
+    if a_only:
+        # The owner's "physics score alone" for this version: D := A per set, so the dual pack's 0.5 A + 0.5 D is A.
+        d_values = list(a_values)
     if capture is not None and policies.physics is not None:
         # A version with physics scoring: each target carries its d and its sums per scored cell (`target_cells`), so a
         # resample recomposes cell -> family -> A exactly as the grade did (`total_of_targets`).
@@ -373,6 +377,7 @@ def measure_pool(
         capture["se_basis"] = {
             "gated": False,
             "physics": True,
+            "a_only": a_only,
             "c": legs["C"],
             "a_sets": list(a_values),
             "sets": [
@@ -431,6 +436,7 @@ def measure_pool(
             "sets": len(per_set),
             "set_totals": [t for t, _g, _a, _l in per_set],
             **({} if accuracy is None else {"accuracy": accuracy}),
+            **({"total_rule": "a_only"} if a_only else {}),
         },
     }
 
@@ -513,6 +519,10 @@ def total_of_targets(basis, sets):
         else:
             d = _region_mean(targets, "d", order)
         d_values.append(min(d, basis["c"]))
+    if basis.get("a_only") is True:
+        return statistics.fmean(
+            a_values
+        )  # a physics version scored by A alone (its D is reported as A)
     return 0.5 * statistics.fmean(a_values) + 0.5 * statistics.fmean(d_values)
 
 

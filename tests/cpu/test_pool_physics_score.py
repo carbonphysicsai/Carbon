@@ -68,11 +68,11 @@ def rule(
     enters="a",
     gate_cases="agen",
     ad_split=0.5,
-    d_separates=True,
+    total_rule="half_a_half_d",
     cell_scale="agen_scales",
 ):
     return pps.PhysicsRule(
-        d_separates=d_separates,
+        total_rule=total_rule,
         cell_scale=cell_scale,
         cells_sha256=pps.cell_map(cells).sha256,
         gate_statistic=statistic,
@@ -151,8 +151,8 @@ def attached(specs, plan, **kw):
         ({"gate_cases": "train"}, "gate_cases_must_be_agen_or_pool"),
         ({"ad_split": None}, "ad_split_must_be_the_owner_set_half"),
         ({"ad_split": 0.6}, "ad_split_must_be_the_owner_set_half"),
-        ({"d_separates": None}, "total_without_a_separating_d_is_human_input"),
-        ({"d_separates": False}, "total_without_a_separating_d_is_human_input"),
+        ({"total_rule": None}, "physics_total_rule_not_registered"),
+        ({"total_rule": "d_only"}, "total_rule_must_be_half_a_half_d_or_a_only"),
         ({"cell_scale": None}, "cell_scale_not_registered"),
         ({"cell_scale": "u"}, "cell_scale_must_be"),
     ],
@@ -667,7 +667,7 @@ def test_the_physics_rule_registers_with_no_default(tmp_path):
         "gate_cases": "pool",
         "enters": "a",
         "ad_split": 0.5,
-        "d_separates": True,
+        "total_rule": "half_a_half_d",
         "cell_scale": "agen_scales",
     }
     rule_read = read(good).physics
@@ -683,8 +683,8 @@ def test_the_physics_rule_registers_with_no_default(tmp_path):
     for key, value in (
         ("ad_split", pool_version.HUMAN_INPUT),
         ("ad_split", 0.6),
-        ("d_separates", pool_version.HUMAN_INPUT),
-        ("d_separates", False),
+        ("total_rule", pool_version.HUMAN_INPUT),
+        ("total_rule", "d_only"),
         ("cell_scale", pool_version.HUMAN_INPUT),
     ):
         with pytest.raises(pool_version.PoolConstantsNotRegistered):
@@ -840,3 +840,26 @@ def test_a_version_with_no_in_range_case_at_all_refuses():
         pps.PhysicsRefused, match="accuracy_gate_without_in_range_cases"
     ):
         pps.attach_cells(rule(), CELLS, plan, (tuple(out_only),))
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_a_only_total_is_the_physics_score_alone_and_the_se_recomposes_it():
+    """The owner's per-version pick for a version whose D does not separate: TOTAL = A. The dual pack's 0.5 A + 0.5 D
+    stays the composition, with D reported as A, so the total is exactly A."""
+    the_sets = _sets(per_class=2)
+    policies, material = _registered(the_sets, threshold=2.5)
+    half, _ = _measure(the_sets, policies, material)
+    alone = dataclasses.replace(
+        policies, physics=dataclasses.replace(policies.physics, total_rule="a_only")
+    )
+    result, capture = _measure(the_sets, alone, material)
+    assert result["A"] == half["A"] and result["D"] == result["A"]
+    assert result["pool"]["total_rule"] == "a_only"
+    assert "total_rule" not in half["pool"]
+    basis = capture["se_basis"]
+    assert basis["a_only"] is True
+    assert pool_exam.total_of_targets(basis, basis["sets"]) == pytest.approx(
+        result["A"], abs=1e-15
+    )
+    spread, _sizes = pool_exam.target_bootstrap_se(basis, "sha256:" + "cd" * 32)
+    assert math.isfinite(spread)
