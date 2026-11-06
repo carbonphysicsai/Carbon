@@ -44,8 +44,10 @@ ABOVE_AT_START = "ABOVE_AT_START"
 REGION_NONCE_HEX_MIN = 32
 
 #: The 3.1 pins. HUMAN_INPUT until a reviewed change sets each one from its owner record (fail closed).
-V31_LAW_DECISION = HUMAN_INPUT
-V31_LAW_SHA256 = HUMAN_INPUT
+#: OWNER-BT31-LAW-ANCHOR-SIGNED-01 (ledger N8): the law on the owner sheet BT31_LAW_OWNER_SHEET; the signed file stays in custody
+#: staging (reports/BT31_LAW_SIGNED_20261106/leak_bt31_signed.json); only its digest is here, no coefficient.
+V31_LAW_DECISION = "OWNER-BT31-LAW-ANCHOR-SIGNED-01"
+V31_LAW_SHA256 = "f3eefda98fcadd0a14b3b1b57050a166a96c6a2e4fe66d8df49a037a5a42ae35"
 V31_BOX_SHA256 = HUMAN_INPUT
 V31_REGION_SHA256 = HUMAN_INPUT
 
