@@ -38,6 +38,9 @@ files the NEW revision's M2 rule names, sorted), so the record the receiver chec
   is on NEW with the same file count and bytes, no link anywhere on NEW's cache paths and the cache directories private
   (the receiver's own rule); an old root without a library cache or a receiver config is UNKNOWN, never empty;
   ``drain``: no ``draining`` flag in OLD's state directory (read from its config: H1's fixed state dir included);
+  ``owners`` (R36): every retained owner in OLD has the shape the receiver restores (named, before any stop);
+  ``receivers`` (R41): every running direct receiver is a declared ``--host-root``; ``lock_versions`` (R79): when NEW
+  has the round-robin host lock, every other door has it too or is DRAINING (``--allow-mixed-lock REASON``);
   ``release``: NEW root's ``release.json`` names NEW; ``chain`` (H8): OLD's own chain-state is not DEGRADED (never
   flip into a chain outage) unless ``--allow-chain-degraded REASON``.
 
@@ -462,6 +465,180 @@ def caches_item(old_roots, new_root) -> dict:
     return {**out, "state": PASS}
 
 
+#: The commit that made the host lock round-robin (main, 5 Nov). A door whose accepted revision lacks it does not honour
+#: the other doors' waits (R79: Cooling on old code starved the others' king work, 6 Nov 00:30).
+ROUND_ROBIN_COMMIT = "d85950921be30aef4ce949c6874bc0771b09a378"
+RECEIVER_MODULE = "carbon.challenge_validator.direct_receiver"
+
+
+def owners_item(old_root) -> dict:
+    """(R36) Every retained owner in OLD's state has the shape the receiver restores, so NEW starts: ``owner.json`` =
+    exactly {"hotkey"} whose sha256 is the directory's name, and ``ledger/campaign.sqlite3`` holding its frozen
+    campaign manifest. A partly restored owner refuses the switch here, named, before any stop (else NEW refuses at
+    start: ``retained direct owner campaign manifest missing`` / ``owner binding differs``). Read-only.
+    """
+    import hashlib
+    import sqlite3
+
+    owners = Door(old_root).state / "owners"
+    if not owners.is_dir():
+        return {"state": PASS, "owners": 0}
+    broken, count = [], 0
+    for directory in sorted(owners.iterdir()):
+        if directory.name.startswith("."):
+            continue
+        count += 1
+        reason = None
+        try:
+            if directory.is_symlink() or not directory.is_dir():
+                reason = "not_a_directory"
+            else:
+                owner = json.loads(
+                    (directory / "owner.json").read_text(encoding="utf-8")
+                )
+                if (
+                    type(owner) is not dict
+                    or set(owner) != {"hotkey"}
+                    or type(owner["hotkey"]) is not str
+                    or hashlib.sha256(owner["hotkey"].encode()).hexdigest()
+                    != directory.name
+                ):
+                    reason = "owner_binding_differs"
+                else:
+                    ledger = directory / "ledger" / "campaign.sqlite3"
+                    if not ledger.is_file():
+                        reason = "campaign_ledger_missing"
+                    else:
+                        db = sqlite3.connect(f"file:{ledger}?mode=ro", uri=True)
+                        try:
+                            row = db.execute(
+                                "SELECT 1 FROM campaign WHERE id=1"
+                            ).fetchone()
+                        finally:
+                            db.close()
+                        if row is None:
+                            reason = "campaign_manifest_missing"
+        except FileNotFoundError:
+            reason = "owner_json_missing"
+        except (OSError, ValueError, sqlite3.Error):
+            reason = "owner_unreadable"
+        if reason:
+            broken.append({"owner": directory.name, "reason": reason})
+    if broken:
+        return {
+            "state": REFUSE,
+            "code": "owner_shape_broken",
+            "owners": count,
+            "broken": broken[:10],
+        }
+    return {"state": PASS, "owners": count}
+
+
+def _receiver_roots(proc):
+    """The receiver roots of every live direct-receiver process (from its --config <root>/receiver/receiver.json)."""
+    roots = set()
+    for entry in Path(proc).iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            argv = (entry / "cmdline").read_bytes().split(b"\0")
+        except OSError:
+            continue
+        words = [a.decode("utf-8", "replace") for a in argv if a]
+        if RECEIVER_MODULE not in words and not any(
+            w.endswith("direct_receiver.py") for w in words
+        ):
+            continue
+        if "--config" in words and words.index("--config") + 1 < len(words):
+            config = Path(words[words.index("--config") + 1])
+            roots.add(str(config.parent.parent))
+        else:
+            roots.add("<no --config>")
+    return roots
+
+
+def receivers_item(host_roots, *, proc="/proc") -> dict:
+    """(R41) Every direct receiver running on this host is one of the declared door roots: a stray scratch receiver
+    (shared IP, chain load, a host-lock contender) refuses the switch until it is stopped or declared.
+    """
+    if not Path(proc).is_dir():
+        return {"state": UNKNOWN, "code": "process_table_unreadable"}
+    declared = {str(Path(r).absolute()) for r in host_roots}
+    running = _receiver_roots(proc)
+    stray = sorted(running - declared)
+    if stray:
+        return {
+            "state": REFUSE,
+            "code": "undeclared_receiver_running",
+            "stray": stray[:10],
+            "running": len(running),
+        }
+    return {"state": PASS, "running": len(running)}
+
+
+def lock_versions_item(repo, host_roots, new, allow=None) -> dict:
+    """(R79) Doors on one host share one grading lock: a door on lock code older than the round-robin does not honour
+    the others' waits. When NEW has the round-robin, every OTHER declared door must have it too or be DRAINING (its own
+    flag), unless ``allow`` (``--allow-mixed-lock REASON``) names why."""
+    import subprocess
+
+    def has_round_robin(revision):
+        done = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo),
+                "merge-base",
+                "--is-ancestor",
+                ROUND_ROBIN_COMMIT,
+                revision,
+            ],
+            capture_output=True,
+            timeout=60,
+            check=False,
+        )
+        if done.returncode not in (0, 1):
+            raise ei.Unknown("lock_version_unknown")
+        return done.returncode == 0
+
+    known = subprocess.run(
+        ["git", "-C", str(repo), "cat-file", "-e", ROUND_ROBIN_COMMIT + "^{commit}"],
+        capture_output=True,
+        timeout=60,
+        check=False,
+    )
+    if known.returncode != 0:
+        # a repository without the round-robin commit (a test fixture, a fork): nothing on this host can have it
+        return {
+            "state": PASS,
+            "new_round_robin": False,
+            "note": "round_robin_commit_not_in_repo",
+        }
+    if not has_round_robin(new):
+        return {"state": PASS, "new_round_robin": False}
+    doors, mixed = [], []
+    for root in host_roots:
+        door = Door(root)
+        if door.accepted is None:
+            raise ei.Unknown("door_accepted_revision_missing")
+        rr = has_round_robin(door.accepted)
+        draining = (door.state / DRAIN_NAME).exists()
+        doors.append({"root": str(root), "round_robin": rr, "draining": draining})
+        if not rr and not draining:
+            mixed.append(str(root))
+    out = {"new_round_robin": True, "doors": doors}
+    if mixed and not allow:
+        return {
+            **out,
+            "state": REFUSE,
+            "code": "mixed_lock_code_undrained",
+            "undrained": mixed,
+        }
+    if mixed:
+        return {**out, "state": PASS, "allowed": allow}
+    return {**out, "state": PASS}
+
+
 def chain_item(old_root, allow=None) -> dict:
     """(H8) Never flip into a chain outage: OLD's own ``chain-state.json`` (written by H8 receivers) must not say
     DEGRADED. ``allow`` (``--allow-chain-degraded REASON``) lets a fix-forward for the chain fault itself through,
@@ -644,6 +821,21 @@ def precheck(args) -> dict:
             ),
             ("drain", lambda: drain_item(args.old_root)),
             ("chain", lambda: chain_item(args.old_root, args.allow_chain_degraded)),
+            ("owners", lambda: owners_item(args.old_root)),
+            ("receivers", lambda: receivers_item(args.host_root)),
+            (
+                "lock_versions",
+                lambda: lock_versions_item(
+                    args.repo,
+                    [
+                        r
+                        for r in args.host_root
+                        if Path(r).absolute() != Path(args.old_root).absolute()
+                    ],
+                    new,
+                    args.allow_mixed_lock,
+                ),
+            ),
             ("release", lambda: release_item(args.new_root, new)),
         ]
     for name, run in checks:
@@ -780,6 +972,9 @@ def main(argv=None) -> int:
     p.add_argument("--declared-pack-change")
     p.add_argument("--declared-rule-change")
     p.add_argument("--allow-chain-degraded")
+    # every door root on this host, OLD and NEW included (switch mode: R41 stray receivers, R79 lock versions)
+    p.add_argument("--host-root", type=Path, action="append", default=[])
+    p.add_argument("--allow-mixed-lock")
     p.add_argument("--older-root", type=Path, action="append", default=[])
     pl = sub.add_parser("pushline")
     pl.add_argument("--repo", type=Path, required=True)
@@ -815,6 +1010,10 @@ def main(argv=None) -> int:
         elif args.command == "precheck":
             for name in ("old_pack", "new_pack"):
                 ei.pack(getattr(args, name))
+            if args.mode == "switch" and not args.host_root:
+                parser.error(
+                    "--host-root (every door root on this host, OLD and NEW) is required in switch mode"
+                )
             result = precheck(args)
         elif args.log_command == "append":
             result = log_append(args.log, json.loads(args.event))

@@ -302,6 +302,7 @@ def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
         "precheck", "--mode", "switch", "--repo", str(root),
         "--old-rev", base, "--new-rev", new, "--old-pack", PACK, "--new-pack", PACK,
         "--old-root", str(old_root), "--new-root", str(new_root), "--final-heads", str(heads),
+        "--host-root", str(old_root), "--host-root", str(new_root),
     ]  # fmt: skip
     rc = tool.main(argv)
     out = json.loads(capsys.readouterr().out)
@@ -317,6 +318,9 @@ def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
             "caches",
             "drain",
             "chain",
+            "owners",
+            "receivers",
+            "lock_versions",
             "release",
         ],
         tool.PASS,
@@ -657,3 +661,109 @@ def test_never_flip_into_a_chain_outage_unless_said(tool, tmp_path):
     )
     state.write_text("{", encoding="utf-8")
     assert tool.chain_item(root)["state"] == tool.UNKNOWN
+
+
+def _owner(root, hotkey="5Owner", *, ledger=True, manifest=True, bad_hash=False):
+    import hashlib
+    import sqlite3
+
+    name = hashlib.sha256(("x" if bad_hash else hotkey).encode()).hexdigest()
+    owner = root / "receiver/state/owners" / name
+    owner.mkdir(parents=True)
+    (owner / "owner.json").write_text(json.dumps({"hotkey": hotkey}), encoding="utf-8")
+    if ledger:
+        (owner / "ledger").mkdir()
+        db = sqlite3.connect(owner / "ledger" / "campaign.sqlite3")
+        db.execute("CREATE TABLE campaign (id INTEGER PRIMARY KEY, manifest TEXT)")
+        if manifest:
+            db.execute("INSERT INTO campaign VALUES (1, '{}')")
+        db.commit()
+        db.close()
+    return owner
+
+
+def test_a_partly_restored_owner_refuses_the_switch_named(tool, tmp_path):
+    root = _root(tmp_path, "old")
+    assert tool.owners_item(root) == {"state": tool.PASS, "owners": 0}
+    _owner(root, "5Good")
+    assert tool.owners_item(root) == {"state": tool.PASS, "owners": 1}
+    _owner(root, "5NoLedger", ledger=False)
+    _owner(root, "5NoManifest", manifest=False)
+    _owner(root, "5Moved", bad_hash=True)
+    out = tool.owners_item(root)
+    assert out["state"] == tool.REFUSE and out["code"] == "owner_shape_broken"
+    assert sorted(b["reason"] for b in out["broken"]) == [
+        "campaign_ledger_missing",
+        "campaign_manifest_missing",
+        "owner_binding_differs",
+    ]
+
+
+def _proc(tmp_path, commands):
+    proc = tmp_path / "proc"
+    for pid, argv in commands.items():
+        (proc / str(pid)).mkdir(parents=True)
+        (proc / str(pid) / "cmdline").write_bytes(
+            b"\0".join(a.encode() for a in argv) + b"\0"
+        )
+    (proc / "self").mkdir(exist_ok=True)
+    return proc
+
+
+def test_a_stray_receiver_on_the_host_refuses(tool, tmp_path):
+    door, other = tmp_path / "rs27" / "CI_motor", tmp_path / "scratch"
+    run = ["python3", "-m", "carbon.challenge_validator.direct_receiver", "--config"]
+    proc = _proc(
+        tmp_path,
+        {
+            11: [*run, str(door / "receiver/receiver.json")],
+            12: ["python3", "-m", "http.server"],
+        },
+    )
+    assert tool.receivers_item([door], proc=proc) == {"state": tool.PASS, "running": 1}
+    proc = _proc(
+        tmp_path / "b",
+        {
+            13: [*run, str(door / "receiver/receiver.json")],
+            14: [*run, str(other / "receiver/receiver.json")],
+        },
+    )
+    out = tool.receivers_item([door], proc=proc)
+    assert out["state"] == tool.REFUSE and out["code"] == "undeclared_receiver_running"
+    assert out["stray"] == [str(other)]
+    assert tool.receivers_item([door], proc=tmp_path / "none")["state"] == tool.UNKNOWN
+
+
+def test_mixed_lock_code_on_one_host_refuses_unless_drained(
+    tool, repo, tmp_path, monkeypatch
+):
+    root, base = repo
+    rr = _commit(root, {"docs/rr.md": "round robin\n"}, "round robin")
+    after = _commit(root, {"docs/after.md": "x\n"}, "after")
+    monkeypatch.setattr(tool, "ROUND_ROBIN_COMMIT", rr)
+    old_door = _root(tmp_path, "cooling", accepted=base)  # older lock code
+    new_door = _root(tmp_path, "motor", accepted=after)
+    out = tool.lock_versions_item(root, [old_door, new_door], after)
+    assert out["state"] == tool.REFUSE and out["undrained"] == [str(old_door)]
+    (old_door / "receiver/state/draining").write_text("{}", encoding="utf-8")
+    assert (
+        tool.lock_versions_item(root, [old_door, new_door], after)["state"] == tool.PASS
+    )
+    (old_door / "receiver/state/draining").unlink()
+    said = tool.lock_versions_item(
+        root, [old_door, new_door], after, "Cooling can't switch: disk floor"
+    )
+    assert said["state"] == tool.PASS and said["allowed"].startswith("Cooling")
+    # NEW without the round-robin: nothing to protect
+    assert tool.lock_versions_item(root, [old_door], base)["new_round_robin"] is False
+
+
+def test_switch_mode_requires_the_host_roots(tool, repo, tmp_path):
+    root, base = repo
+    argv = [
+        "precheck", "--mode", "switch", "--repo", str(root),
+        "--old-rev", base, "--new-rev", base, "--old-pack", PACK, "--new-pack", PACK,
+        "--old-root", str(tmp_path), "--new-root", str(tmp_path), "--final-heads", str(tmp_path / "h.tsv"),
+    ]  # fmt: skip
+    with pytest.raises(SystemExit):
+        tool.main(argv)
