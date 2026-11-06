@@ -1514,6 +1514,18 @@ def _write_exam_se(
         document["status"] = "UNAVAILABLE"
         document["reason"] = "bootstrap_failed:" + type(failure).__name__
     write_once(directory / exam_rotation.SE_SIDECAR, _json(document))
+    if report.get("accuracy") is not None:
+        # A version with physics scoring only: the grade's accuracy record (custody; every other version writes none).
+        write_once(
+            directory / exam_rotation.ACCURACY_SIDECAR,
+            _json(
+                {
+                    "schema": exam_rotation.ACCURACY_SIDECAR_SCHEMA,
+                    "exam_key": snapshot.manifest_digest,
+                    "record": report["accuracy"],
+                }
+            ),
+        )
 
 
 def _rebuild_lane_seconds(adapter, submission_id, evidence, exam_key):

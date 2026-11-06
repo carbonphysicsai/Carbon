@@ -64,6 +64,9 @@ class Policies:
     agen_scales: dict
     a_rule: dict
     c_rule: dict
+    #: A NEW version's physics scoring (`pool_physics_score.PhysicsRule`, its scoring cells attached): the in-range accuracy
+    #: gate, the accuracy record and the family layer. None for every registered version: every path is then unchanged.
+    physics: object = None
 
 
 @dataclass(frozen=True)
@@ -296,9 +299,13 @@ def score_specs(plugin, specs, descriptor, policies, all_specs):
     grade = pool_grader.grade_set(specs, predict, policies.optimizer, policies.honesty)
     legs = plugin.legs(descriptor, specs)
     # The registered A_gen aggregation (a NEW version's class-balanced mean); a version without one makes the plain call.
-    a_gen = pool_grader.agen_for(
-        specs, predict, policies.agen_scales, policies.optimizer
-    )
+    # A NEW version with physics scoring takes the family value in A_gen's place (``enters == "a_gen"``).
+    if policies.physics is None:
+        a_gen = pool_grader.agen_for(
+            specs, predict, policies.agen_scales, policies.optimizer
+        )
+    else:
+        a_gen = _physics_a_gen(specs, predict, policies)
     a = pool_grader.combine_a(legs["A"], a_gen, policies.a_rule)
     # A failed mandatory gate gives no score (the plugin reports `gates_ok`; absent means no gate to fail), and so
     # does a physics gate violated on any pool answer, or the speed gate (GATE_FAILED, names only).
@@ -309,6 +316,26 @@ def score_specs(plugin, specs, descriptor, policies, all_specs):
     ):
         return 0.0, grade, a_gen, legs
     return pool_grader.total(a, grade.d, legs["C"], policies.c_rule), grade, a_gen, legs
+
+
+def _physics_a_gen(specs, predict, policies):
+    from carbon.scoring import pool_physics_score
+
+    pool_grader._require(
+        policies.optimizer.a_gen_aggregate is None,
+        "physics_rule_replaces_the_a_gen_aggregate",
+    )
+    pool_grader._require(
+        policies.optimizer.coverage_plan is not None,
+        "physics_rule_needs_a_registered_coverage_plan",
+    )
+    return pool_physics_score.family_value(
+        specs,
+        predict,
+        policies.agen_scales,
+        policies.optimizer.coverage_plan,
+        policies.physics,
+    )
 
 
 def version_total(plugin, descriptor, policies):

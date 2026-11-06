@@ -40,6 +40,7 @@ from dataclasses import replace
 from carbon.scoring import (
     pool_gates,
     pool_grader,
+    pool_physics_score,
     pool_plugin,
     pool_serving,
     probe_design,
@@ -52,6 +53,8 @@ POOL_COHORT = probe_design.POOL_COHORT
 PHYSICS_GATE = "physics_pool"
 #: The inner name (private, in "pool".physics_failed) of an A_gen slice answer the validity gates refuse.
 AGEN_VALIDITY_GATE = "agen_prediction_validity"
+#: The in-range accuracy gate of a version with physics scoring (`pool_physics_score`); absent for every other version.
+ACCURACY_GATE = pool_physics_score.ACCURACY_GATE
 SPEED_GATE = "speed"
 SPEED_SAMPLE = 20
 OUTCOME_POOL = "POOL_GRADED"
@@ -158,6 +161,7 @@ def measure_pool(
     coverage_plan=None,
     coverage_plan_sums=None,
     variant_starts=None,
+    scoring_cells=None,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
 
@@ -174,8 +178,14 @@ def measure_pool(
 
     ``variant_starts`` is a NEW version's sealed per-target variant starts (`attach_variant_starts`), required exactly
     when its registered optimizer policy carries a ``variant_rule``; None for every registered version.
+
+    ``scoring_cells`` is a NEW version's sealed scoring-cell document (`attach_physics`), required exactly when its
+    policies carry a physics rule (`pool_physics_score`); None for every registered version, whose result is unchanged.
+    With a physics rule the grade adds the mandatory gate `ACCURACY_GATE` (in-range accuracy, pass/fail) and the custody
+    accuracy record under ``["pool"]["accuracy"]`` (and ``capture["accuracy"]``); `public` never carries the record.
     """
     policies = attach_coverage_plan(policies, coverage_plan, coverage_plan_sums, sets)
+    policies = attach_physics(policies, scoring_cells, sets)
     sets = attach_variant_starts(sets, policies.optimizer.variant_rule, variant_starts)
     _require(
         len(bank_rows) == len(outputs)
@@ -196,7 +206,9 @@ def measure_pool(
     base_gates = dict(base.get("gates") or {})
     _require(base_gates, "sealed_measure_returned_no_gates")
     _require(
-        PHYSICS_GATE not in base_gates and SPEED_GATE not in base_gates,
+        PHYSICS_GATE not in base_gates
+        and SPEED_GATE not in base_gates
+        and (policies.physics is None or ACCURACY_GATE not in base_gates),
         "native_gate_names_collide_with_the_pool_gates",
     )
     all_specs = [spec for group in sets for spec in group]
@@ -240,6 +252,25 @@ def measure_pool(
         PHYSICS_GATE: not physics_failed,
         SPEED_GATE: speed["passed"],
     }
+    accuracy = None
+    if policies.physics is not None:
+        # The in-range accuracy gate and the full record (custody), every grade. An answer the validity gate already
+        # refused leaves nothing sound to measure: the record says so and the gate fails (fail closed).
+        if AGEN_VALIDITY_GATE in physics_failed:
+            accuracy = {
+                "schema": pool_physics_score.RECORD_SCHEMA,
+                "skipped": AGEN_VALIDITY_GATE,
+            }
+        else:
+            accuracy = pool_physics_score.accuracy_record(
+                all_specs,
+                pool_plugin.pool_predictor(submitted, serve),
+                policies.optimizer.coverage_plan,
+                policies.physics,
+            )
+        gates[ACCURACY_GATE] = bool((accuracy.get("gate") or {}).get("passed"))
+        if capture is not None:
+            capture["accuracy"] = accuracy
     if base.get("A") is None or not all(gates.values()):
         # A failed mandatory gate gives no score; the dual pack reads only the gate verdicts.
         if capture is not None:
@@ -250,7 +281,11 @@ def measure_pool(
             "D": 0.0,
             "gates": gates,
             "decision_outcome": base.get("decision_outcome", OUTCOME_POOL),
-            "pool": {"physics_failed": physics_failed, "speed": speed},
+            "pool": {
+                "physics_failed": physics_failed,
+                "speed": speed,
+                **({} if accuracy is None else {"accuracy": accuracy}),
+            },
         }
     legs = {
         "A": base["A"],
@@ -336,6 +371,7 @@ def measure_pool(
             "reasons": sorted(reasons),
             "sets": len(per_set),
             "set_totals": [t for t, _g, _a, _l in per_set],
+            **({} if accuracy is None else {"accuracy": accuracy}),
         },
     }
 
@@ -521,6 +557,27 @@ def attach_coverage_plan(policies, document, sums, sets):
     return replace(policies, optimizer=replace(optimizer, coverage_plan=plan))
 
 
+def attach_physics(policies, document, sets):
+    """``policies`` with a NEW version's sealed scoring cells attached to its physics rule, or `ExamRefused`. A version
+    without a physics rule keeps its policies unchanged and its sealed material carries no scoring cells. The structure
+    is the EXAM's: checked here, once, typed, before any submission is graded."""
+    rule = policies.physics
+    if rule is None:
+        _require(document is None, "scoring_cells_not_registered")
+        return policies
+    _require(
+        policies.optimizer.a_gen_aggregate is None,
+        "physics_rule_replaces_the_a_gen_aggregate",
+    )
+    try:
+        attached = pool_physics_score.attach_cells(
+            rule, document, policies.optimizer.coverage_plan, sets
+        )
+    except pool_grader.PoolRefused as refused:
+        raise ExamRefused(f"physics_structure_refused:{refused}") from None
+    return replace(policies, physics=attached)
+
+
 def attach_variant_starts(sets, rule, starts):
     """``sets`` with each target's neighbour-task variants attached (`pool_grader.attach_variants`) from the sealed
     material's ``variant_starts`` when the version registers a ``variant_rule``; unchanged, and the material must carry
@@ -569,6 +626,7 @@ def public(measured):
 
 
 __all__ = [
+    "ACCURACY_GATE",
     "OUTCOME_POOL",
     "PHYSICS_GATE",
     "POOL_COHORT",
@@ -576,6 +634,7 @@ __all__ = [
     "SPEED_SAMPLE",
     "ExamRefused",
     "attach_coverage_plan",
+    "attach_physics",
     "geometric_v1_names_valid",
     "measure_pool",
     "public",

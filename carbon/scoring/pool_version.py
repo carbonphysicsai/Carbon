@@ -49,11 +49,15 @@ COVERAGE_PLAN_SUMS = "coverage_plan_sums"
 #: one private start and seed per `pool_grader.variant_slots` slot of each target, derived in custody like the targets'
 #: own. Custody: it names targets.
 VARIANT_STARTS = "variant_starts"
+#: Optional material field, NEW versions with a registered ``physics`` rule only: the scoring-cell document
+#: (`pool_physics_score.cell_map`) whose sha256 the rule registers. Custody: it names classes.
+SCORING_CELLS = "scoring_cells"
 _OPTIONAL_MATERIAL_KEYS = {
     RESPONSE_REFERENCE,
     COVERAGE_PLAN,
     COVERAGE_PLAN_SUMS,
     VARIANT_STARTS,
+    SCORING_CELLS,
 }
 MATERIAL_SCHEMA = "carbon.pool.sealed-material.v1"
 _MATERIAL_KEYS = {
@@ -179,6 +183,38 @@ def _variant_rule(value):
     return value
 
 
+def _physics(value):
+    """A new version's registered physics rule (`pool_physics_score.PhysicsRule`), or None when the key is absent (every
+    registered version). Present, it has no default: ``{"cells_sha256", "gate_statistic", "gate_threshold", "enters"}``,
+    and a null or HUMAN_INPUT anywhere in it refuses (the gate's statistic and threshold are the owner's).
+    """
+    from carbon.scoring import pool_physics_score
+
+    if value is _ABSENT:
+        return None
+    value = _picked(value)
+    if type(value) is not dict or set(value) != {
+        "cells_sha256",
+        "gate_statistic",
+        "gate_threshold",
+        "enters",
+    }:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    for item in value.values():
+        if item is None:
+            raise PoolConstantsNotRegistered("pool_constants_not_registered")
+        _picked(item)
+        if type(item) is dict:
+            for inner in item.values():
+                _picked(inner)
+    rule = pool_physics_score.PhysicsRule(**value)
+    try:
+        pool_physics_score.check_rule(rule)
+    except pool_physics_score.PhysicsRefused:
+        raise PoolConstantsNotRegistered("pool_constants_malformed") from None
+    return rule
+
+
 def _near_limit(value):
     """A new version's registered near-limit rule (`pool_grader.OptimizerPolicy.near_limit`), or None when the key is
     absent (every registered version: within-U points dropped). Present, it has no default: a null or HUMAN_INPUT
@@ -256,6 +292,8 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
             agen_scales=dict(_picked(entry["agen_scales"])),
             a_rule=dict(_picked(entry["a_rule"])),
             c_rule=dict(_picked(entry["c_rule"])),
+            # optional, NEW versions only: absent is no physics scoring (no accuracy gate, no record), unchanged
+            physics=_physics(entry.get("physics", _ABSENT)),
         )
         pool_grader._check_policies(policies.optimizer, policies.honesty)
     except pool_exam.ExamRefused:
@@ -330,7 +368,12 @@ class PoolVariant(physical.Variant):
         # version's per-target variant starts (`pool_exam.attach_variant_starts`, against its registered variant rule).
         plan_material = {
             key: material[key]
-            for key in (COVERAGE_PLAN, COVERAGE_PLAN_SUMS, VARIANT_STARTS)
+            for key in (
+                COVERAGE_PLAN,
+                COVERAGE_PLAN_SUMS,
+                VARIANT_STARTS,
+                SCORING_CELLS,
+            )
             if key in material
         }
         return pool_exam.measure_pool(

@@ -36,7 +36,8 @@ def bootstrap_total_se(
 
     The model is measured once more with the per-target decomposition captured (the optimiser's queries are reads
     of the model's table, so this is cheap); then targets are resampled within each set. ``report`` (a dict)
-    receives ``n_targets``, one count per set. Typed refusals: ``gated`` (a gate failed, so no total) and
+    receives ``n_targets``, one count per set, and for a version with physics scoring ``accuracy`` (the custody
+    accuracy record, `pool_physics_score.accuracy_record`). Typed refusals: ``gated`` (a gate failed, so no total) and
     ``too_few_targets`` (fewer than four in a set)."""
     from carbon.development_session import single_call_timing
 
@@ -80,6 +81,10 @@ def bootstrap_total_se(
             speed_outputs_match=outputs_match,
             capture=capture,
         )
+        if report is not None and "accuracy" in capture:
+            # A version with physics scoring: the custody accuracy record of this grade (`pool_physics_score`), kept
+            # even when the SE below refuses (a gated model still has its accuracy data recorded).
+            report["accuracy"] = capture["accuracy"]
         spread, sizes = pool_exam.target_bootstrap_se(
             capture.get("se_basis"), exam_key, resamples=resamples
         )

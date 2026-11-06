@@ -31,6 +31,10 @@ from carbon.challenge_validator.exam_cap import DAY_BLOCKS
 FRESH_DRAW_PERIOD_BLOCKS = 7 * DAY_BLOCKS
 SE_SIDECAR = "exam-total-se.json"
 SE_SCHEMA = "carbon.exam.total-se.v1"
+#: A version with physics scoring writes its grade's accuracy record beside the SE (custody, operator-only; never a
+#: miner surface): the per class x output aggregates, written once per evaluation.
+ACCURACY_SIDECAR = "accuracy-record.json"
+ACCURACY_SIDECAR_SCHEMA = "carbon.exam.accuracy-record-sidecar.v1"
 ROTATE, KEEP, UNAVAILABLE = "ROTATE", "KEEP", "UNAVAILABLE"
 
 _DDL = """
