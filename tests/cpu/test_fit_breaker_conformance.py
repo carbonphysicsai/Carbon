@@ -23,14 +23,19 @@ science) 5 Nov 18:13): for every NEW version, rules 2 and 3 are met ONLY in thei
 with that version's OWN owner record choosing it (the waiver form above). Both new forms also need the batch record in
 ``.agent/decisions`` (until it lands on main they fail closed: no stale pass, no new pass):
 
-2'. ``engineer_shortcut_d_zero``: the zero stays the owner's ENGINEER SHORTCUT at his budget B
-    (OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01; ``optimizer.d_zero.kind`` = ``engineer_shortcut``), and D is built only
-    where it separates (owner D6: "Prove fixed-optimizer design value first: ~10 solves per version on custody hosts, fit
-    vs physics-informed model; build only where it separates"): its design-value proof pointer
+2'. ``engineer_shortcut_d_zero``: D's zero is the BEST OF the cheap ways to a design (owner, batch record: EQ's
+    recommendation "the zero is the best of all three [registered engineer shortcut, the cheap fit's design, the best
+    design already in TRAIN]", owner "approved your decisions there"; ruled by the Validator 5 Nov 18:31):
+    ``optimizer.d_zero`` = ``{"kind": "best_of", "components": [...]}`` whose component kinds are EXACTLY ``fit_pick``
+    (the TRAIN-only fit's solved pick under the fixed optimizer) and ``train_best`` (the best TRAIN design meeting the
+    target's limits, within-U exclusion), plus ``engineer_shortcut`` (with its ``budget`` B, HUMAN_INPUT = fail closed)
+    exactly when the version registers a shortcut screen (``scripts/dev/exam_reads/dv_curve.SHORTCUT_SCREENS``); D is
+    built only where it separates (owner D6: "Prove fixed-optimizer design value first: ~10 solves per version on custody
+    hosts, fit vs physics-informed model; build only where it separates"), so its design-value proof pointer
     (``optimizer.d_zero.dv_proof_sha256``, 64 hex, the D6 or D9 adjacent-task proof, custody-resolved by the Validator's
-    receipt) is required; the region classes stay graded on their own (``d_aggregate`` = ``balanced_region_mean`` and a
-    registered coverage plan). A fixed-optimizer zero is an open owner question (Sat 7): only with that version's OWN
-    owner record. No D scored = that version's own owner record.
+    receipt) is required, and the region classes stay graded on their own (``d_aggregate`` = ``balanced_region_mean``
+    and a registered coverage plan). The 4 Nov engineer-shortcut zero alone, or a fixed-optimizer zero alone, passes
+    only with that version's OWN owner record. No D scored = that version's own owner record.
 3'. ``ood_min_accuracy``: the generalization battery, owner A10: "Physics scoring: score only classes/outputs where the
     fit loses. Outside the training data"; A11: "In-range accuracy is a gate, threshold from the curves"; A13 (each family
     scored only where the fit loses, surviving families weighted equally); A14 (the gate records full aggregates). The
@@ -41,7 +46,7 @@ with that version's OWN owner record choosing it (the waiver form above). Both n
     call, like no D), and the weekly fresh-draw SE is built (``physics_se_not_built`` is a launch blocker).
 
 The fit-breaker intent is unchanged: a fit scores nothing from in-range accuracy, A counts only cells the fit loses, and
-D is scored only where a proof shows it separates, above the engineer-shortcut zero.
+D is scored only where a proof shows it separates, above the best of the fit's pick, TRAIN's best and the shortcut.
 
 A rule is ON when its switch is registered; its owner values may still be HUMAN_INPUT (the grade then refuses, fail
 closed). A new version that is not graded on the pool path at all fails every rule unless waived. The versions that
@@ -136,7 +141,36 @@ def physics_grading():
     return None
 
 
-def _rule_state(rule, entry, decisions, grader):
+def shortcut_screened(challenge, version):
+    """Whether (challenge, version) registers a shortcut screen (`dv_curve.SHORTCUT_SCREENS`; an entry whose method is
+    not fixed yet still counts: its engineer_shortcut component then fails closed on its HUMAN_INPUT budget).
+    """
+    from scripts.dev.exam_reads import dv_curve
+
+    return (challenge, version) in dv_curve.SHORTCUT_SCREENS
+
+
+#: The components of the best-of zero every new version names; the shortcut joins them exactly where screened.
+_ZERO_ALWAYS = frozenset({"fit_pick", "train_best"})
+
+
+def _best_of_zero(zero, screened):
+    """Whether ``zero`` is the owner's best-of zero for a version that does (``screened``) or does not register a
+    shortcut screen: exactly the applicable components, the shortcut with its budget key.
+    """
+    components = zero.get("components")
+    if type(components) is not list or not all(
+        type(c) is dict and type(c.get("kind")) is str for c in components
+    ):
+        return False
+    kinds = [c["kind"] for c in components]
+    expected = _ZERO_ALWAYS | ({"engineer_shortcut"} if screened else set())
+    if len(kinds) != len(set(kinds)) or set(kinds) != expected:
+        return False
+    return all("budget" in c for c in components if c["kind"] == "engineer_shortcut")
+
+
+def _rule_state(rule, entry, decisions, grader, version_key=(None, None)):
     """None when ``rule`` is ON for a NEW version's ``entry``, else why not ("rule_off", or a typed reason)."""
     optimizer = entry.get("optimizer") if type(entry.get("optimizer")) is dict else {}
     breaker = entry.get("fit_breaker") if type(entry.get("fit_breaker")) is dict else {}
@@ -152,7 +186,8 @@ def _rule_state(rule, entry, decisions, grader):
         proof = zero.get("dv_proof_sha256") if type(zero) is dict else None
         on = (
             type(zero) is dict
-            and zero.get("kind") == "engineer_shortcut"
+            and zero.get("kind") == "best_of"
+            and _best_of_zero(zero, shortcut_screened(*version_key))
             and type(proof) is str
             and bool(_HEX64.fullmatch(proof))
             and optimizer.get("d_aggregate") == "balanced_region_mean"
@@ -252,7 +287,7 @@ def conformance_failures(versions, constants, pool_versions, decisions, grader=.
                     (challenge, version, rule, "not_graded_on_the_pool_path")
                 )
             else:
-                why = _rule_state(rule, entry, decisions, grader)
+                why = _rule_state(rule, entry, decisions, grader, (challenge, version))
                 if why is not None:
                     failures.append((challenge, version, rule, why))
         for rule in sorted(set(waivers) - set(RULES)):
@@ -306,8 +341,8 @@ def _all_on():
         "optimizer": {
             "budget": "HUMAN_INPUT",
             "d_zero": {
-                "kind": "engineer_shortcut",
-                "budget": "HUMAN_INPUT",
+                "kind": "best_of",
+                "components": [{"kind": "fit_pick"}, {"kind": "train_best"}],
                 "dv_proof_sha256": "d6" * 32,
             },
             "d_aggregate": "balanced_region_mean",
@@ -321,7 +356,7 @@ def _all_on():
             "gate_cases": "agen",
             "enters": "a",
             "ad_split": 0.5,
-            "d_separates": True,
+            "total_rule": "half_a_half_d",
             "cell_scale": "agen_scales",
         },
         "fit_breaker": {"separation_read_sha256": "cd" * 32},
@@ -473,18 +508,92 @@ def test_no_d_scored_needs_the_versions_own_record(tmp_path):
     assert _check(entry, tmp_path) == []
 
 
-def test_a_fixed_optimizer_zero_needs_the_versions_own_record(tmp_path):
-    """Validator 18:2x: the owner's zero on record is the engineer shortcut; a fixed-optimizer zero is an open Sat 7
-    question, so it passes only with that version's own owner record."""
+SCREENED = (
+    "chip-cold-plate",
+    "1.8",
+)  # registers a shortcut screen (COOL-ADV-01) in dv_curve.SHORTCUT_SCREENS
+
+
+def _check_version(version, entry, tmp_path):
+    _record(tmp_path)
+    return conformance_failures(
+        {version},
+        {"versions": {" ".join(version): entry}},
+        {version},
+        tmp_path,
+        grader=None,
+    )
+
+
+def test_the_shortcut_registry_decides_which_versions_need_the_shortcut_component():
+    assert shortcut_screened(*SCREENED) and not shortcut_screened(*NEW)
+
+
+def test_a_screened_version_passes_with_all_three_components_and_fails_without_the_shortcut(
+    tmp_path,
+):
     entry = _all_on()
-    entry["optimizer"]["d_zero"] = {
-        "kind": "fixed_optimizer",
-        "dv_proof_sha256": "d6" * 32,
-    }
+    entry["optimizer"]["d_zero"]["components"].append(
+        {"kind": "engineer_shortcut", "budget": "HUMAN_INPUT"}
+    )
+    assert _check_version(SCREENED, entry, tmp_path) == []
+    entry["optimizer"]["d_zero"][
+        "components"
+    ].pop()  # the registered shortcut is missing from the zero
+    assert _check_version(SCREENED, entry, tmp_path) == [
+        (*SCREENED, "engineer_shortcut_d_zero", "rule_off")
+    ]
+    entry["optimizer"]["d_zero"]["components"].append({"kind": "engineer_shortcut"})
+    assert _check_version(
+        SCREENED, entry, tmp_path
+    ) == [  # the shortcut needs its budget B
+        (*SCREENED, "engineer_shortcut_d_zero", "rule_off")
+    ]
+
+
+UNSCREENED_BAD_ZEROS = [
+    [{"kind": "fit_pick"}],  # no TRAIN best
+    [{"kind": "train_best"}],  # no fit pick
+    [
+        {"kind": "fit_pick"},
+        {"kind": "train_best"},
+        {"kind": "engineer_shortcut", "budget": 1},
+    ],  # no shortcut screen registered for this version
+    [{"kind": "fit_pick"}, {"kind": "fit_pick"}, {"kind": "train_best"}],
+    [{"kind": "fit_pick"}, {"kind": "train_best"}, {"kind": "oracle"}],
+    "fit_pick,train_best",
+    None,
+]
+
+
+@pytest.mark.parametrize("components", UNSCREENED_BAD_ZEROS)
+def test_an_unscreened_version_needs_exactly_the_two_components(tmp_path, components):
+    """Motor 1.7 registers no shortcut screen: its zero is the best of the fit's pick and TRAIN's best, exactly."""
+    entry = _all_on()
+    entry["optimizer"]["d_zero"]["components"] = components
     assert _check(entry, tmp_path) == [(*NEW, "engineer_shortcut_d_zero", "rule_off")]
-    _record(tmp_path, "OWNER-MOTOR-17-FIXED-OPTIMIZER-ZERO-01")
+
+
+SINGLE_ZEROS = [
+    {
+        "kind": "engineer_shortcut",
+        "budget": "HUMAN_INPUT",
+        "dv_proof_sha256": "d6" * 32,
+    },
+    {"kind": "fixed_optimizer", "dv_proof_sha256": "d6" * 32},
+]
+
+
+@pytest.mark.parametrize("zero", SINGLE_ZEROS)
+def test_a_single_component_zero_needs_the_versions_own_record(tmp_path, zero):
+    """Validator 18:31: the engineer shortcut alone is no longer the default, nor the fixed optimizer alone: either
+    passes only with that version's own owner record."""
+    entry = _all_on()
+    entry["optimizer"]["d_zero"] = zero
+    assert _check(entry, tmp_path) == [(*NEW, "engineer_shortcut_d_zero", "rule_off")]
+    _record(tmp_path, "OWNER-MOTOR-17-SINGLE-ZERO-01")
     entry["fit_breaker"]["waivers"] = {
-        "engineer_shortcut_d_zero": "OWNER-MOTOR-17-FIXED-OPTIMIZER-ZERO-01"
+        "engineer_shortcut_d_zero": "OWNER-MOTOR-17-SINGLE-ZERO-01"
     }
     assert _check(entry, tmp_path) == []
 
