@@ -863,3 +863,40 @@ def test_a_only_total_is_the_physics_score_alone_and_the_se_recomposes_it():
     )
     spread, _sizes = pool_exam.target_bootstrap_se(basis, "sha256:" + "cd" * 32)
     assert math.isfinite(spread)
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_the_record_carries_the_sealed_graders_measured_laws_every_grade(monkeypatch):
+    """Validator 5 Nov (condition before FINAL): laws measured but not yet given a gate margin are recorded per grade
+    in the custody accuracy record, never scored (A is the family value)."""
+    the_sets = _sets()
+    policies, material = _registered(the_sets, threshold=2.5)
+    half = {
+        "mean_residual_by_law": {"fixture_affine": 0.25, "fixture_zero_current": 0.5},
+        "mean_residual": 0.375,
+        "mean_response_error": 0.1,
+        "sign_gate_failed": [],
+        "gate_failed_laws": [],
+    }
+    plain, _ = _measure(
+        the_sets, policies, material
+    )  # the same model, no laws reported
+    original = fake_measure
+
+    def with_laws(**kw):
+        return {**original(**kw), "physics_half": half}
+
+    monkeypatch.setattr(sys.modules[__name__], "fake_measure", with_laws)
+    result, capture = _measure(the_sets, policies, material)
+    laws = result["pool"]["accuracy"]["laws"]
+    assert laws["physics_half"] == half and laws["physics_half"] is not half
+    assert set(laws["a_legs"]) == {"A_acc", "A_robust", "A_law", "A_response"}
+    assert capture["accuracy"]["laws"] == laws
+    assert result["A"] == plain["A"]  # never scored
+    # a gated model still records them
+    tight = dataclasses.replace(
+        policies, physics=dataclasses.replace(policies.physics, gate_threshold=1.5)
+    )
+    failed, _ = _measure(the_sets, tight, material)
+    assert failed["pool"]["accuracy"]["laws"]["physics_half"] == half
+    assert "laws" not in json.dumps(pool_exam.public(result))

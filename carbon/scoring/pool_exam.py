@@ -31,6 +31,7 @@ Every constant the owner picks (`policies`) is a required argument. Nothing here
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import math
 import random
@@ -293,6 +294,16 @@ def measure_pool(
                 policies.physics,
                 case_predict,
             )
+        # The sealed grader's measured laws (Validator 5 Nov, condition before FINAL): with A the family value, a law
+        # measured but not yet given a gate margin is neither scored nor gated, so every grade records it here (custody)
+        # until the owner registers its margin. Copied as the Challenge's physics half reported it; never scored.
+        accuracy = {
+            **accuracy,
+            "laws": {
+                "physics_half": copy.deepcopy(base.get("physics_half")),
+                "a_legs": dict(base.get("A_legs") or {}),
+            },
+        }
         gates[ACCURACY_GATE] = bool((accuracy.get("gate") or {}).get("passed"))
         if capture is not None:
             capture["accuracy"] = accuracy
