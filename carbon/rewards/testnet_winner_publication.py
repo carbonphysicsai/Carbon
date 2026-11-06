@@ -557,9 +557,12 @@ def _open_lean_pool(path):
     return PoolStore(path)
 
 
-def _issuer(args, config, journal):
+def _issuer(args, config, journal, *, runtime_spec=None):
     """The issuer `run` and `preview` share: the same policy, standing
-    authorization, ledger and weight sources."""
+    authorization, ledger and weight sources. ``runtime_spec`` (from
+    `runtime_accept.resolve`) replaces the authorization's pinned spec IN MEMORY
+    when the live runtime was accepted by its used-surface digest (H8); the
+    owner's file is never rewritten."""
     from pathlib import Path
 
     from carbon.battery import deployment
@@ -575,6 +578,10 @@ def _issuer(args, config, journal):
     ):
         _refuse("POLICY_NOT_FOR_THIS_NETWORK")
     auth = load_standing(args.standing, config.context)
+    if runtime_spec is not None and runtime_spec != auth.expected_runtime_spec:
+        from dataclasses import replace
+
+        auth = replace(auth, expected_runtime_spec=runtime_spec)
     sources = {}
     if args.battery_deployment:
         try:
@@ -652,11 +659,26 @@ async def settle_pending(publisher, calls=RECONCILE_CALLS):
 async def _run(args):
     from pathlib import Path
 
+    from carbon.chain import runtime_accept
     from carbon.chain.sdk_weights import BittensorPublicationBackend
     from carbon.development_testnet.operator import _wallet, load_config
 
     config = load_config(Path(args.config).absolute())
     issuer = _issuer(args, config, args.journal)
+    # H8: the live runtime, after the issuer's own offline refusals and before any wallet. A new spec with the
+    # accepted used-surface digest is published under at once; anything else refuses here, before signing.
+    if runtime_accept.has_baseline(args.journal):
+        try:
+            spec = await runtime_accept.resolve(
+                config.endpoint,
+                config.genesis_hash,
+                config.expected_runtime_spec,
+                args.journal,
+            )
+        except runtime_accept.RuntimeRefused as refused:
+            raise PublicationFailure(refused.code) from None
+        if spec != config.expected_runtime_spec:
+            issuer = _issuer(args, config, args.journal, runtime_spec=spec)
     backend = BittensorPublicationBackend(
         config.context,
         config.publisher_hotkey,
