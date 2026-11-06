@@ -209,6 +209,9 @@ class TestnetWinnerIntentIssuer:
         self.replays = dict(replays or {})
         if set(self.replays) - set(self.sources):
             _refuse("SOURCE_OUTSIDE_POLICY")
+        #: The journal whose stored intents say which epochs the loop published (`_published`): this issuer's own
+        #: receipts, or, for a preview on a scratch journal, the loop's real journal read only.
+        self.intent_journal = None
         self.prefix, self.stage, self.maturity = STAGES[context.network]
         #: The bounded development profile is testnet's only.
         self.profile = (
@@ -229,6 +232,25 @@ class TestnetWinnerIntentIssuer:
 
     def _identity(self, snapshot):
         return f"{self.prefix}-{self.policy.version}-e{self.epoch(snapshot)}"
+
+    def _published(self, epoch):
+        """Whether the loop stored an intent for ``epoch`` (it issued, so its observation recorded every crown before
+        it). Read only; an unreadable real journal refuses rather than guessing."""
+        identity = f"{self.prefix}-{self.policy.version}-e{epoch}"
+        query = "SELECT 1 FROM testnet_winner_intent_v1 WHERE identity=?"
+        if self.intent_journal is None:
+            with self.receipts.transaction() as db:
+                return db.execute(query, (identity,)).fetchone() is not None
+        import sqlite3
+
+        try:
+            db = sqlite3.connect(f"file:{self.intent_journal}?mode=ro", uri=True)
+            try:
+                return db.execute(query, (identity,)).fetchone() is not None
+            finally:
+                db.close()
+        except sqlite3.Error:
+            _refuse("INTENT_JOURNAL_UNREADABLE")
 
     def _promotion(self, challenge):
         if challenge not in self.sources:
@@ -262,10 +284,13 @@ class TestnetWinnerIntentIssuer:
         }
     )
 
-    def _crowns(self, challenge, mine, promotion):
+    def _crowns(self, challenge, mine, promotion, snapshot):
         """``(promotion, journal, crowned_ms)`` to observe, in order: every crown since the last record
-        (``replays``), else the current one alone. ``crowned_ms`` is the door event time of a crown the loop missed
-        (two or more since the last record), else None (clocked at observation)."""
+        (``replays``), else the current one alone. ``crowned_ms`` is the door event time of a crown the loop MISSED,
+        else None (clocked at observation, as on a cycle that ran normally). Missed (owner: a king's window starts
+        'when it actually won'; Validator-2 6 Nov): two or more crowns since the last record, or a single one while the
+        previous epoch has no stored intent (the loop skipped or refused it; had it issued, its observation would have
+        recorded any earlier crown)."""
         if not mine or challenge not in self.replays:
             return [(promotion, None, None)]
         try:
@@ -294,8 +319,8 @@ class TestnetWinnerIntentIssuer:
             )
         ):
             _refuse("WINNER_SOURCE_UNAVAILABLE")
-        if len(crowns) == 1:
-            # the usual cycle: one new crown, clocked when first observed
+        if len(crowns) == 1 and self._published(self.epoch(snapshot) - 1):
+            # the usual cycle: one new crown since the last epoch's issue, clocked when first observed
             return [(crowns[0]["promotion"], crowns[0]["journal"], None)]
         # crowns the loop missed: each clocked when it won at the door; one without a time refuses them all, before
         # anything is written
@@ -331,7 +356,7 @@ class TestnetWinnerIntentIssuer:
                         if observe:
                             # each crown since the last record, in the door's order, each with its own predecessor
                             for crown, journal, crowned_ms in self._crowns(
-                                challenge, mine, promotion
+                                challenge, mine, promotion, snapshot
                             ):
                                 found[challenge] = self.ledger.observe(
                                     self.policy,
@@ -346,7 +371,7 @@ class TestnetWinnerIntentIssuer:
                             # the same replay in memory: nothing is written
                             seen = list(mine)
                             for crown, journal, crowned_ms in self._crowns(
-                                challenge, mine, promotion
+                                challenge, mine, promotion, snapshot
                             ):
                                 again = [
                                     r
@@ -708,7 +733,7 @@ def _issuer(args, config, journal, *, runtime_spec=None):
         replays[challenge_id] = lambda recorded, store=store: lean_crowns_since(
             store, recorded
         )
-    return TestnetWinnerIntentIssuer(
+    issuer = TestnetWinnerIntentIssuer(
         ReceiptJournal(Path(journal), config.context),
         auth,
         policy,
@@ -716,6 +741,10 @@ def _issuer(args, config, journal, *, runtime_spec=None):
         sources,
         replays,
     )
+    if Path(journal).absolute() != Path(args.journal).absolute():
+        # a preview on a scratch journal reads which epochs were published from the loop's real one, read only
+        issuer.intent_journal = Path(args.journal).absolute()
+    return issuer
 
 
 async def _preview(args):

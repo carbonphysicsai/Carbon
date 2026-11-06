@@ -842,3 +842,71 @@ def test_a_missed_crown_without_a_door_time_refuses_and_a_late_clock_is_capped(
         ("m2", 12000),
         ("m3", later.timestamp_ms),
     ]
+
+
+# --- a single crown the loop missed (a skipped or refused epoch) is clocked when it won (owner, 6 Nov) -------------
+# v4 cadence 360 blocks: block 925 = epoch 2, 1100 = epoch 3, 1500 = epoch 4; this double's timestamp_ms = block * 12.
+
+
+def test_a_single_crown_after_a_published_epoch_keeps_its_observation_clock(tmp_path):
+    v4 = wd.load_policy("testnet-winner-v4-launch")
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, challenge = _replaying(tmp_path, store, v4)
+    issuer.issue(_at(backend, 925))
+    store.crown("m2", "owner-hotkey", previous="m1", at=11.2)
+    later = _at(backend, 1100)  # epoch 2 was published: a normal cycle
+    issuer.issue(later)
+    assert issuer.ledger.records(challenge)[-1]["clock_ms"] == later.timestamp_ms
+
+
+def test_a_single_crown_across_a_skipped_epoch_is_clocked_when_it_won(tmp_path):
+    v4 = wd.load_policy("testnet-winner-v4-launch")
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, challenge = _replaying(tmp_path, store, v4)
+    issuer.issue(_at(backend, 925))
+    store.crown("m2", "owner-hotkey", previous="m1", at=11.2)
+    later = _at(backend, 1500)  # epoch 3 has no intent: the loop skipped or refused it
+    issuer.issue(later)
+    record = issuer.ledger.records(challenge)[-1]
+    assert (record["clock_ms"], record["observed_ms"]) == (11200, later.timestamp_ms)
+
+
+def test_a_single_missed_crown_without_a_door_time_refuses_and_writes_nothing(tmp_path):
+    v4 = wd.load_policy("testnet-winner-v4-launch")
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, _ = _replaying(tmp_path, store, v4)
+    issuer.issue(_at(backend, 925))
+    history = issuer.ledger.path.read_bytes()
+    store.crown("m2", "owner-hotkey", previous="m1")  # no time
+    with pytest.raises(twp.WinnerPublicationRefused, match="CROWN_EVENT_TIME_MISSING"):
+        issuer.issue(_at(backend, 1500))
+    assert issuer.ledger.path.read_bytes() == history
+
+
+def test_a_preview_reads_the_published_epochs_from_the_loops_real_journal(tmp_path):
+    """A preview runs on a scratch journal; which epochs were published comes from the loop's real one (read only),
+    so the preview clocks a crown exactly as the run will."""
+    v4 = wd.load_policy("testnet-winner-v4-launch")
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, challenge = _replaying(tmp_path, store, v4)
+    issuer.issue(_at(backend, 925))
+    store.crown("m2", "owner-hotkey", previous="m1", at=11.2)
+    scratch, _, _ = _replaying(tmp_path / "scratch", store, v4)
+    scratch.ledger = issuer.ledger
+    scratch.intent_journal = tmp_path / "publication.sqlite3"
+    normal = _at(backend, 1100)
+    assert (
+        twp.preview(scratch, normal)["records"][challenge]["clock_ms"]
+        == normal.timestamp_ms
+    )
+    assert (
+        twp.preview(scratch, _at(backend, 1500))["records"][challenge]["clock_ms"]
+        == 11200
+    )
+    # without the real journal a scratch preview would wrongly see every epoch as skipped
+    scratch.intent_journal = None
+    assert twp.preview(scratch, normal)["records"][challenge]["clock_ms"] == 11200
