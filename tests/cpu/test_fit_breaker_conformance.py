@@ -18,6 +18,14 @@ id that resolves to a tracked owner decision (``.agent/decisions/*-<ID>.md``, "D
    ``{"record": <owner record id>, "conditions_report_sha256": <64 hex>}`` (Validator 4 Nov 22:03); a plain id fails.
 4. ``v_var``: ``optimizer.variant_rule`` of kind ``limit_shift`` (OWNER-DESIGN-DECISION-FIDELITY-01).
 
+3'. AMENDMENT (owner, 5 Nov: OWNER-EXAM-DESIGN-DECISIONS-BATCH-01 items A10-A14): the OOD-min rule is ALSO on when
+   the version grades physics by the generalization battery instead: its ``physics`` block (Graphite's grader; a
+   sibling of ``a_rule``) enters as A (``enters`` = "a": in-range accuracy is a gate only, never scored, A11), names its
+   sealed scoring cells (``cells_sha256``: the cells where the fit LOSES, A10, checked in custody against the separation
+   read of rule 1), declares its gate statistic and cases, and registers the coverage plan, with no ``a_gen_aggregate``
+   beside it (``ood_class_mean`` and the battery never both). The fit-breaker intent is unchanged: a fit can score
+   nothing from in-range accuracy, and A counts only cells the fit loses.
+
 A rule is ON when its switch is registered; its owner values may still be HUMAN_INPUT (the grade then refuses, fail
 closed). A new version that is not graded on the pool path at all fails every rule unless waived. The versions that
 existed when the lock was recorded are exempt (``EXEMPT``, frozen here: adding to it needs an owner record).
@@ -87,6 +95,8 @@ def _rule_on(rule, entry):
             and optimizer.get("coverage_plan_sha256") is not None
         )
     if rule == "ood_min_accuracy":
+        if "physics" in entry:
+            return _physics_on(entry, optimizer)
         a_rule = entry.get("a_rule")
         return (
             type(a_rule) is dict
@@ -98,6 +108,30 @@ def _rule_on(rule, entry):
         variant = optimizer.get("variant_rule")
         return type(variant) is dict and variant.get("kind") == "limit_shift"
     raise AssertionError(rule)
+
+
+#: The battery's gate statistics and case sources (Graphite's grader `physics` block).
+_GATE_STATISTICS = frozenset({"median", "p90", "max"})
+_GATE_CASES = frozenset({"agen", "pool"})
+
+
+def _physics_on(entry, optimizer):
+    """Rule 3' (OWNER-EXAM-DESIGN-DECISIONS-BATCH-01 A10-A14): the generalization battery replaces A, with the in-range
+    gate. Owner values (the threshold) may be HUMAN_INPUT here; the grade refuses them (fail closed).
+    """
+    physics = entry.get("physics")
+    cells = physics.get("cells_sha256") if type(physics) is dict else None
+    return (
+        type(physics) is dict
+        and physics.get("enters") == "a"
+        and type(cells) is str
+        and bool(_HEX64.fullmatch(cells))
+        and physics.get("gate_statistic") in _GATE_STATISTICS
+        and physics.get("gate_cases") in _GATE_CASES
+        and "gate_threshold" in physics
+        and "a_gen_aggregate" not in optimizer
+        and optimizer.get("coverage_plan_sha256") is not None
+    )
 
 
 def _waiver_resolves(record_id, decisions):
@@ -318,3 +352,59 @@ def test_the_ood_min_waiver_names_the_versions_own_record_and_its_conditions_rep
     entry["optimizer"].pop("variant_rule")
     entry["fit_breaker"]["waivers"] = {"v_var": good}  # the report form is OOD-min only
     assert _check(entry, tmp_path) == [(*NEW, "v_var", "waiver_does_not_resolve")]
+
+
+# ---------------------------------------------------------------- rule 3': the generalization battery (5 Nov)
+
+
+def _battery_on():
+    """All four rules on, with rule 3 met by the 5 Nov battery (OWNER-EXAM-DESIGN-DECISIONS-BATCH-01 A10-A14)."""
+    entry = _all_on()
+    entry.pop("a_rule")
+    entry["optimizer"].pop("a_gen_aggregate")
+    entry["optimizer"].pop("a_gen_min_class_cases")
+    entry["physics"] = {
+        "cells_sha256": "9a" * 32,
+        "gate_statistic": "p90",
+        "gate_threshold": "HUMAN_INPUT",  # the owner's pick from the curve: the grade refuses until set
+        "gate_cases": "agen",
+        "enters": "a",
+        "ad_split": 0.5,
+        "d_separates": True,
+        "cell_scale": "agen_scales",
+    }
+    return entry
+
+
+def test_the_generalization_battery_meets_the_ood_rule(tmp_path):
+    assert _check(_battery_on(), tmp_path) == []
+
+
+@pytest.mark.parametrize(
+    "spoil",
+    [
+        lambda e: e["physics"].update(
+            enters="a_gen"
+        ),  # mixed into the old A: in-range would still score
+        lambda e: e["physics"].pop("cells_sha256"),  # no sealed fit-loses cells
+        lambda e: e["physics"].update(cells_sha256="x"),
+        lambda e: e["physics"].update(gate_statistic="mean"),
+        lambda e: e["physics"].pop("gate_threshold"),
+        lambda e: e["physics"].update(gate_cases=None),
+        lambda e: e["optimizer"].update(a_gen_aggregate="ood_class_mean"),  # never both
+        lambda e: e["optimizer"].pop("coverage_plan_sha256"),
+        lambda e: e.update(physics=None),
+    ],
+)
+def test_a_battery_that_lets_a_fit_score_does_not_meet_it(tmp_path, spoil):
+    entry = _battery_on()
+    spoil(entry)
+    failures = _check(entry, tmp_path)
+    assert (*NEW, "ood_min_accuracy", "rule_off") in failures
+
+
+def test_the_battery_never_replaces_the_separation_read(tmp_path):
+    """The battery's cells are the fit-loses cells OF the separation read: without it the version still fails."""
+    entry = _battery_on()
+    entry["fit_breaker"].pop("separation_read_sha256")
+    assert _check(entry, tmp_path) == [(*NEW, "separation_read", "rule_off")]
