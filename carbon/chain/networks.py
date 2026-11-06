@@ -16,7 +16,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
-from .models import _NETUIDS, CARBON_NETWORK
+from .models import (
+    _NETUIDS,
+    CARBON_NETWORK,
+    LOCALNET,
+    LOCALNET_ENDPOINT,
+    LOCALNET_GENESIS,
+)
 
 #: Public reads (Chain Auditor, 5 Nov; read again by TE 5 Nov): test.finney's genesis is the operator's long-standing
 #: pin; finney's genesis is the main chain's ("Bittensor"). Both chains ran runtime spec 488 on 5 Nov.
@@ -64,6 +70,18 @@ NETWORKS: dict[str, NetworkRow] = {
         stage="PUBLIC_MAINNET",
     ),
 }
+
+if CARBON_NETWORK == LOCALNET:
+    # STAGING ONLY (`models.LOCALNET`): present only in a process bound to it, so no other process can name it; its
+    # one endpoint is the host's own node, its genesis the operator's (exact at connect); no stage = no publication.
+    NETWORKS[LOCALNET] = NetworkRow(
+        network=LOCALNET,
+        chain_id="disposable-localnet",
+        genesis_hash=LOCALNET_GENESIS,
+        netuid=_NETUIDS[LOCALNET],
+        endpoints=(LOCALNET_ENDPOINT,),
+        stage=None,
+    )
 
 #: The row THIS process binds (`models.CARBON_NETWORK`, from ``CARBON_CHAIN_NETWORK``; testnet when unset).
 BOUND = NETWORKS[CARBON_NETWORK]
@@ -131,6 +149,9 @@ def check_context(
         and endpoint not in bound.endpoints
         and not own_node(endpoint)
     ):
+        raise NetworkRefused("network_endpoint_unregistered")
+    if bound.network == LOCALNET and endpoint is not None and not own_node(endpoint):
+        # the localnet is only ever the host's own node, whatever a config names
         raise NetworkRefused("network_endpoint_unregistered")
     return bound
 

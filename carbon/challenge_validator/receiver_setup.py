@@ -75,6 +75,26 @@ class SetupRefused(RuntimeError):
         self.code, self.next_step = code, next_step
 
 
+#: The staging harness writes ``<receiver_state>/receiver/STAGING`` before a prepare on the localnet; no live root
+#: has it, and the H5 switch precheck refuses any door root that does (`carbon_release.chain_binding_item`).
+STAGING_MARKER = "STAGING"
+
+
+def _require_live_chain_or_staging(receiver_state: Path) -> None:
+    """A process bound to the staging localnet (`carbon.chain.models.LOCALNET`) prepares only a staging root."""
+    from carbon.chain.models import CARBON_NETWORK, LOCALNET
+
+    if (
+        CARBON_NETWORK == LOCALNET
+        and not (Path(receiver_state) / "receiver" / STAGING_MARKER).is_file()
+    ):
+        raise SetupRefused(
+            "localnet_requires_staging_root",
+            "the localnet is for staging only: prepare a staging root (receiver/STAGING), "
+            "or unset CARBON_CHAIN_NETWORK for a live door.",
+        )
+
+
 def _sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
@@ -502,6 +522,7 @@ def prepare(
         installed.candidate_implementation(installed_state, repository=repository)
         is not None
     )
+    _require_live_chain_or_staging(receiver_state)
     checks = checks or LiveChecks(
         repo=repository, candidate_state_dir=installed_state if development else None
     )

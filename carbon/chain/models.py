@@ -23,6 +23,40 @@ from urllib.parse import urlsplit
 NETWORK_ENVIRONMENT = "CARBON_CHAIN_NETWORK"
 _NETUIDS = {"testnet": 567, "finney": 116}
 CARBON_NETWORK = os.environ.get(NETWORK_ENVIRONMENT) or "testnet"
+
+#: STAGING ONLY (H8 part 3, owner-accepted 6 Nov via the Lead; Validator-2 09:22): a process bound with
+#: ``CARBON_CHAIN_NETWORK=localnet`` gets a third row for the disposable localnet (`carbon.chain.localnet`, netuid 2),
+#: whose genesis is fresh per container, so the operator names it: ``CARBON_LOCALNET_GENESIS`` (0x + 64 hex, exact at
+#: connect) and ``CARBON_LOCALNET_ENDPOINT`` (a loopback ws/wss URL with a port: the host's own node, never a remote
+#: one). Every other process keeps exactly the testnet and finney rows, so nothing else can name localnet. It carries
+#: no stage and no weights authority, and a live door or the weights loop refuses it (the H5 switch precheck).
+LOCALNET = "localnet"
+LOCALNET_NETUID = 2
+LOCALNET_GENESIS_ENVIRONMENT = "CARBON_LOCALNET_GENESIS"
+LOCALNET_ENDPOINT_ENVIRONMENT = "CARBON_LOCALNET_ENDPOINT"
+LOCALNET_GENESIS = LOCALNET_ENDPOINT = None
+if CARBON_NETWORK == LOCALNET:
+    LOCALNET_GENESIS = os.environ.get(LOCALNET_GENESIS_ENVIRONMENT) or ""
+    LOCALNET_ENDPOINT = os.environ.get(LOCALNET_ENDPOINT_ENVIRONMENT) or ""
+    if not re.fullmatch(r"0x[0-9a-f]{64}", LOCALNET_GENESIS):
+        raise RuntimeError("CARBON_LOCALNET_GENESIS must name the localnet's genesis")
+    _endpoint = urlsplit(LOCALNET_ENDPOINT)
+    try:
+        _port = _endpoint.port
+    except ValueError:
+        _port = None
+    if (
+        _endpoint.scheme not in ("ws", "wss")
+        or _endpoint.hostname not in ("127.0.0.1", "localhost", "::1")
+        or _port is None
+        or _endpoint.username
+        or _endpoint.password
+        or _endpoint.path not in ("", "/")
+        or _endpoint.query
+        or _endpoint.fragment
+    ):
+        raise RuntimeError("CARBON_LOCALNET_ENDPOINT must be the host's own node")
+    _NETUIDS = {**_NETUIDS, LOCALNET: LOCALNET_NETUID}
 if CARBON_NETWORK not in _NETUIDS:
     raise RuntimeError("CARBON_CHAIN_NETWORK names no registered network")
 CARBON_NETUID = _NETUIDS[CARBON_NETWORK]

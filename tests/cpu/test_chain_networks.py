@@ -94,7 +94,7 @@ def test_a_finney_binding_moves_every_guard_and_the_context_together():
     assert out["miner_context"] == 116
 
 
-@pytest.mark.parametrize("value", ["mainnet", "Finney", "localnet", "567"])
+@pytest.mark.parametrize("value", ["mainnet", "Finney", "Localnet", "567"])
 def test_an_unregistered_binding_refuses_at_import(value):
     done = _bound(value)
     assert done.returncode != 0
@@ -387,3 +387,240 @@ def test_validator_setup_runtime_read_refuses_the_other_chains_genesis(
     monkeypatch.setattr(runtime_probe, "probe", forbidden)
     with pytest.raises(SetupRefused, match="EXPLICIT_RUNTIME_CONTEXT_REQUIRED"):
         asyncio.run(runtime.observe(network, "wss://fixture.invalid", genesis, 450))
+
+
+# --- H8 part 3: the STAGING-only localnet row (owner-accepted 6 Nov via the Lead; Validator-2 09:22) ------------------
+
+LOCAL_GENESIS = "0x" + "4c" * 32
+LOCAL_ENDPOINT = "ws://127.0.0.1:19944"
+
+_LOCAL_PROBE = """
+import json
+from carbon.chain import networks
+from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK, ChainContext, ChainFailure
+from carbon.development_session.chain_onboarding import carbon_testnet_context
+context = carbon_testnet_context()
+out = {
+    "constants": [CARBON_NETWORK, CARBON_NETUID],
+    "rows": sorted(networks.NETWORKS),
+    "row": [networks.BOUND.network, networks.BOUND.chain_id, networks.BOUND.genesis_hash, networks.BOUND.netuid,
+            list(networks.BOUND.endpoints), networks.BOUND.stage],
+    "context": [context.network, context.endpoint, context.provider, context.genesis_hash, context.netuid],
+}
+try:
+    networks.check_context(network="localnet", endpoint="wss://chain.example.org:443")
+    out["remote"] = "accepted"
+except networks.NetworkRefused as refused:
+    out["remote"] = refused.code
+try:
+    ChainContext("localnet", "wss://chain.example.org:443", "disposable-localnet", context.genesis_hash, 2)
+    out["remote_context"] = "accepted"
+except ChainFailure:
+    out["remote_context"] = "refused"
+try:
+    networks.check_genesis_at_connect(networks.BOUND, "0x" + "5d" * 32)
+    out["other_genesis"] = "accepted"
+except networks.NetworkRefused as refused:
+    out["other_genesis"] = refused.code
+print(json.dumps(out))
+"""
+
+
+def _local(env_changes, probe=_LOCAL_PROBE):
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    names = (
+        "CARBON_CHAIN_NETWORK",
+        "CARBON_LOCALNET_GENESIS",
+        "CARBON_LOCALNET_ENDPOINT",
+    )
+    env = {k: v for k, v in os.environ.items() if k not in names}
+    env.update(env_changes)
+    root = Path(__file__).resolve().parents[2]
+    env["PYTHONPATH"] = str(root)
+    return subprocess.run(
+        [sys.executable, "-c", probe],
+        capture_output=True,
+        check=False,
+        text=True,
+        env=env,
+        cwd=root,
+        timeout=120,
+    )
+
+
+def test_a_localnet_binding_is_the_staging_row_on_the_hosts_own_node():
+    done = _local(
+        {
+            "CARBON_CHAIN_NETWORK": "localnet",
+            "CARBON_LOCALNET_GENESIS": LOCAL_GENESIS,
+            "CARBON_LOCALNET_ENDPOINT": LOCAL_ENDPOINT,
+        }
+    )
+    assert done.returncode == 0, done.stderr[-400:]
+    out = json.loads(done.stdout)
+    assert out["constants"] == ["localnet", 2]
+    assert out["rows"] == ["finney", "localnet", "testnet"]
+    # no stage: no publication profile accepts it (no weights authority)
+    assert out["row"] == [
+        "localnet",
+        "disposable-localnet",
+        LOCAL_GENESIS,
+        2,
+        [LOCAL_ENDPOINT],
+        None,
+    ]
+    assert out["context"] == [
+        "localnet",
+        LOCAL_ENDPOINT,
+        "disposable-localnet",
+        LOCAL_GENESIS,
+        2,
+    ]
+    # only ever the host's own node, whatever a config names; the genesis stays exact at connect
+    assert out["remote"] == "network_endpoint_unregistered"
+    assert out["remote_context"] == "refused"
+    assert out["other_genesis"] == "network_genesis_mismatch_at_connect"
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({}, "CARBON_LOCALNET_GENESIS must name"),
+        ({"CARBON_LOCALNET_GENESIS": "0x1234"}, "CARBON_LOCALNET_GENESIS must name"),
+        (
+            {"CARBON_LOCALNET_GENESIS": LOCAL_GENESIS},
+            "CARBON_LOCALNET_ENDPOINT must be",
+        ),
+        (
+            {
+                "CARBON_LOCALNET_GENESIS": LOCAL_GENESIS,
+                "CARBON_LOCALNET_ENDPOINT": "wss://chain.example.org:443",
+            },
+            "CARBON_LOCALNET_ENDPOINT must be",
+        ),
+        (
+            {
+                "CARBON_LOCALNET_GENESIS": LOCAL_GENESIS,
+                "CARBON_LOCALNET_ENDPOINT": "ws://127.0.0.1",
+            },
+            "CARBON_LOCALNET_ENDPOINT must be",
+        ),
+    ],
+)
+def test_a_localnet_binding_without_its_genesis_and_own_node_refuses_at_import(
+    changes, message
+):
+    done = _local({"CARBON_CHAIN_NETWORK": "localnet", **changes})
+    assert done.returncode != 0
+    assert message in done.stderr
+
+
+@pytest.mark.parametrize("value", [None, "testnet", "finney"])
+def test_no_other_binding_can_name_the_localnet_even_with_its_variables_set(value):
+    probe = """
+import json
+from carbon.chain import networks
+try:
+    networks.row("localnet")
+    named = "accepted"
+except networks.NetworkRefused as refused:
+    named = refused.code
+print(json.dumps({"rows": sorted(networks.NETWORKS), "named": named}))
+"""
+    changes = {
+        "CARBON_LOCALNET_GENESIS": LOCAL_GENESIS,
+        "CARBON_LOCALNET_ENDPOINT": LOCAL_ENDPOINT,
+    }
+    if value is not None:
+        changes["CARBON_CHAIN_NETWORK"] = value
+    done = _local(changes, probe)
+    assert done.returncode == 0, done.stderr[-400:]
+    assert json.loads(done.stdout) == {
+        "rows": ["finney", "testnet"],
+        "named": "network_unregistered",
+    }
+
+
+def test_a_localnet_process_prepares_only_a_staging_root(tmp_path):
+    from pathlib import Path
+
+    probe = """
+import json, sys
+from pathlib import Path
+from carbon.challenge_validator import receiver_setup
+out = {}
+for name in ("live", "staging"):
+    root = Path(sys.argv[1]) / name
+    try:
+        receiver_setup._require_live_chain_or_staging(root)
+        out[name] = "allowed"
+    except receiver_setup.SetupRefused as refused:
+        out[name] = refused.code
+print(json.dumps(out))
+"""
+    (tmp_path / "staging" / "receiver").mkdir(parents=True)
+    (tmp_path / "staging" / "receiver" / "STAGING").write_text("", encoding="utf-8")
+    (tmp_path / "live" / "receiver").mkdir(parents=True)
+    import subprocess
+    import sys
+
+    def run(changes):
+        import os
+
+        names = (
+            "CARBON_CHAIN_NETWORK",
+            "CARBON_LOCALNET_GENESIS",
+            "CARBON_LOCALNET_ENDPOINT",
+        )
+        env = {k: v for k, v in os.environ.items() if k not in names}
+        env.update(changes)
+        root = Path(__file__).resolve().parents[2]
+        env["PYTHONPATH"] = str(root)
+        done = subprocess.run(
+            [sys.executable, "-c", probe, str(tmp_path)],
+            capture_output=True, check=False, text=True, env=env, cwd=root, timeout=120,
+        )  # fmt: skip
+        assert done.returncode == 0, done.stderr[-400:]
+        return json.loads(done.stdout)
+
+    bound = {
+        "CARBON_CHAIN_NETWORK": "localnet",
+        "CARBON_LOCALNET_GENESIS": LOCAL_GENESIS,
+        "CARBON_LOCALNET_ENDPOINT": LOCAL_ENDPOINT,
+    }
+    assert run(bound) == {
+        "live": "localnet_requires_staging_root",
+        "staging": "allowed",
+    }
+    assert run({}) == {
+        "live": "allowed",
+        "staging": "allowed",
+    }  # a live binding is unchanged
+
+
+def test_no_miner_facing_surface_names_the_localnet():
+    """The staging row never reaches a miner: the feed, board, KOTH view, dashboard, kit and MCP sources never name it
+    (a source check: in a live process the row does not exist at all)."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    surfaces = [
+        root / "carbon/challenge_validator/score_feed.py",
+        root / "carbon/challenge_validator/launch_board.py",
+        root / "carbon/challenge_validator/koth_public.py",
+        root / "carbon/dashboard/launch.py",
+        *sorted((root / "carbon/miner_mcp").rglob("*.py")),
+        *sorted((root / "carbon/mcp").rglob("*.py")),
+        *sorted((root / "carbon/challenge_kit").rglob("*.py")),
+    ]
+    assert len(surfaces) > 6
+    named = [
+        str(p.relative_to(root))
+        for p in surfaces
+        if "localnet" in p.read_text(encoding="utf-8").lower()
+    ]
+    assert named == []

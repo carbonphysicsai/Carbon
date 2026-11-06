@@ -320,6 +320,7 @@ def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
             "chain",
             "owners",
             "receivers",
+            "chain_binding",
             "lock_versions",
             "release",
         ],
@@ -800,3 +801,83 @@ def test_the_release_class_is_reported_from_the_items_never_typed(tool):
             "class": None,
             "basis": "exam_or_served_source_not_passed",
         }
+
+
+def _proc_env(tmp_path, processes):
+    """A fake /proc: pid -> (argv, environment dict or None for an unreadable environ)."""
+    proc = tmp_path / "proc"
+    for pid, (argv, env) in processes.items():
+        (proc / str(pid)).mkdir(parents=True)
+        (proc / str(pid) / "cmdline").write_bytes(
+            b"\0".join(a.encode() for a in argv) + b"\0"
+        )
+        environ = proc / str(pid) / "environ"
+        environ.write_bytes(
+            b"\0".join(f"{k}={v}".encode() for k, v in (env or {}).items()) + b"\0"
+        )
+        if env is None:
+            environ.chmod(0)
+    return proc
+
+
+def test_no_live_door_or_weights_loop_runs_off_the_live_chain(tool, tmp_path):
+    door = tmp_path / "rs27" / "CI_motor"
+    (door / "receiver").mkdir(parents=True)
+    receiver = [
+        "python3",
+        "-m",
+        "carbon.challenge_validator.direct_receiver",
+        "--config",
+        str(door / "receiver/receiver.json"),
+    ]
+    loop = ["/home/carbon/venv/bin/python", "/home/carbon/wcycle5.py"]
+    good = _proc_env(
+        tmp_path / "a",
+        {
+            11: (receiver, {"PATH": "/usr/bin"}),
+            12: (loop, {"CARBON_CHAIN_NETWORK": "testnet"}),
+            13: (["bash"], {"CARBON_CHAIN_NETWORK": "localnet"}),
+        },
+    )
+    out = tool.chain_binding_item([door], proc=good)
+    assert out == {"state": tool.PASS, "read": 2, "expect": "testnet"}
+    local = _proc_env(
+        tmp_path / "b",
+        {
+            11: (receiver, {"CARBON_CHAIN_NETWORK": "localnet"}),
+            12: (loop, {"CARBON_LOCALNET_GENESIS": "0x" + "4c" * 32}),
+        },
+    )
+    out = tool.chain_binding_item([door], proc=local)
+    assert (
+        out["state"] == tool.REFUSE and out["code"] == "process_not_on_the_live_chain"
+    )
+    assert sorted((p["pid"], p["kind"]) for p in out["processes"]) == [
+        (11, "receiver"),
+        (12, "weights"),
+    ]
+    # a finney release expects finney everywhere: a testnet-bound loop refuses
+    finney = _proc_env(
+        tmp_path / "c", {12: (loop, {"CARBON_CHAIN_NETWORK": "testnet"})}
+    )
+    assert (
+        tool.chain_binding_item([door], "finney", proc=finney)["state"] == tool.REFUSE
+    )
+    (door / "receiver" / "STAGING").write_text("", encoding="utf-8")
+    staged = tool.chain_binding_item([door], proc=good)
+    assert (staged["state"], staged["code"]) == (tool.REFUSE, "staging_root_on_host")
+    assert tool.chain_binding_item([], proc=tmp_path / "none")["state"] == tool.UNKNOWN
+
+
+def test_an_unreadable_process_environment_is_unknown_never_a_pass(tool, tmp_path):
+    import os
+
+    if os.name != "posix" or os.geteuid() == 0:
+        pytest.skip("root reads any file; the permission refusal needs a normal user")
+    receiver = ["python3", "-m", "carbon.challenge_validator.direct_receiver"]
+    proc = _proc_env(tmp_path, {11: (receiver, None)})
+    out = tool.chain_binding_item([], proc=proc)
+    assert (out["state"], out["code"]) == (
+        tool.UNKNOWN,
+        "process_environment_unreadable",
+    )

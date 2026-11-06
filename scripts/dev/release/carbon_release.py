@@ -39,7 +39,9 @@ files the NEW revision's M2 rule names, sorted), so the record the receiver chec
   (the receiver's own rule); an old root without a library cache or a receiver config is UNKNOWN, never empty;
   ``drain``: no ``draining`` flag in OLD's state directory (read from its config: H1's fixed state dir included);
   ``owners`` (R36): every retained owner in OLD has the shape the receiver restores (named, before any stop);
-  ``receivers`` (R41): every running direct receiver is a declared ``--host-root``; ``lock_versions`` (R79): when NEW
+  ``receivers`` (R41): every running direct receiver is a declared ``--host-root``; ``chain_binding`` (H8 part
+  3): every running receiver and weights-loop process is bound to ``--expect-network`` (testnet when unset) with no
+  localnet variable, and no host root carries the staging marker; ``lock_versions`` (R79): when NEW
   has the round-robin host lock, every other door has it too or is DRAINING (``--allow-mixed-lock REASON``);
   ``release``: NEW root's ``release.json`` names NEW; ``chain`` (H8): OLD's own chain-state is not DEGRADED (never
   flip into a chain outage) unless ``--allow-chain-degraded REASON``.
@@ -560,6 +562,79 @@ def _receiver_roots(proc):
     return roots
 
 
+#: A process the binding check reads: a direct receiver or the weights loop.
+WEIGHTS_MARKERS = (
+    "carbon.validator_setup",
+    "carbon.rewards.testnet_winner_publication",
+    "wcycle",
+)
+CHAIN_ENVIRONMENT = (
+    "CARBON_CHAIN_NETWORK",
+    "CARBON_LOCALNET_GENESIS",
+    "CARBON_LOCALNET_ENDPOINT",
+)
+
+
+def chain_binding_item(host_roots, expect="testnet", *, proc="/proc") -> dict:
+    """(H8 part 3, Validator-2 6 Nov 09:22) No live door and no weights loop runs bound to anything but ``expect``:
+    every running direct receiver's and weights-loop process's environment has ``CARBON_CHAIN_NETWORK`` unset/empty or
+    ``testnet`` (``finney`` only when ``expect`` is finney) and no localnet variable; and no ``--host-root`` carries the
+    staging marker (``receiver/STAGING``). An environment this user cannot read is UNKNOWN, never a pass.
+    """
+    staged = sorted(
+        str(r) for r in host_roots if (Path(r) / "receiver" / "STAGING").exists()
+    )
+    if staged:
+        return {"state": REFUSE, "code": "staging_root_on_host", "roots": staged[:10]}
+    if not Path(proc).is_dir():
+        return {"state": UNKNOWN, "code": "process_table_unreadable"}
+    allowed = {"", "testnet"} if expect == "testnet" else {expect}
+    read, wrong = 0, []
+    for entry in Path(proc).iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            argv = (entry / "cmdline").read_bytes().split(b"\0")
+        except OSError:
+            continue
+        words = [a.decode("utf-8", "replace") for a in argv if a]
+        receiver = RECEIVER_MODULE in words or any(
+            w.endswith("direct_receiver.py") for w in words
+        )
+        weights = any(m in w for w in words for m in WEIGHTS_MARKERS)
+        if not (receiver or weights):
+            continue
+        try:
+            raw = (entry / "environ").read_bytes()
+        except FileNotFoundError:
+            continue  # it exited
+        except OSError:
+            return {"state": UNKNOWN, "code": "process_environment_unreadable"}
+        env = dict(
+            item.decode("utf-8", "replace").partition("=")[::2]
+            for item in raw.split(b"\0")
+            if b"=" in item
+        )
+        read += 1
+        if env.get("CARBON_CHAIN_NETWORK", "") not in allowed or any(
+            name in env for name in CHAIN_ENVIRONMENT[1:]
+        ):
+            wrong.append(
+                {
+                    "pid": int(entry.name),
+                    "kind": "receiver" if receiver else "weights",
+                    "network": env.get("CARBON_CHAIN_NETWORK", ""),
+                }
+            )
+    if wrong:
+        return {
+            "state": REFUSE,
+            "code": "process_not_on_the_live_chain",
+            "processes": wrong[:10],
+        }
+    return {"state": PASS, "read": read, "expect": expect}
+
+
 def receivers_item(host_roots, *, proc="/proc") -> dict:
     """(R41) Every direct receiver running on this host is one of the declared door roots: a stray scratch receiver
     (shared IP, chain load, a host-lock contender) refuses the switch until it is stopped or declared.
@@ -857,6 +932,10 @@ def precheck(args) -> dict:
             ("owners", lambda: owners_item(args.old_root)),
             ("receivers", lambda: receivers_item(args.host_root)),
             (
+                "chain_binding",
+                lambda: chain_binding_item(args.host_root, args.expect_network),
+            ),
+            (
                 "lock_versions",
                 lambda: lock_versions_item(
                     args.repo,
@@ -1009,6 +1088,8 @@ def main(argv=None) -> int:
     # every door root on this host, OLD and NEW included (switch mode: R41 stray receivers, R79 lock versions)
     p.add_argument("--host-root", type=Path, action="append", default=[])
     p.add_argument("--allow-mixed-lock")
+    # the live chain every door and the weights loop must be bound to (switch mode, H8 part 3)
+    p.add_argument("--expect-network", choices=("testnet", "finney"), default="testnet")
     p.add_argument("--older-root", type=Path, action="append", default=[])
     pl = sub.add_parser("pushline")
     pl.add_argument("--repo", type=Path, required=True)
