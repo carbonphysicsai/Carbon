@@ -52,12 +52,16 @@ VARIANT_STARTS = "variant_starts"
 #: Optional material field, NEW versions with a registered ``physics`` rule only: the scoring-cell document
 #: (`pool_physics_score.cell_map`) whose sha256 the rule registers. Custody: it names classes.
 SCORING_CELLS = "scoring_cells"
+#: Optional material field, NEW versions whose physics rule registers ``in_range_cases_sha256`` only: the sealed in-range
+#: case set (`pool_physics_score.in_range_cases`). Custody: hidden truths.
+IN_RANGE_CASES = "in_range_cases"
 _OPTIONAL_MATERIAL_KEYS = {
     RESPONSE_REFERENCE,
     COVERAGE_PLAN,
     COVERAGE_PLAN_SUMS,
     VARIANT_STARTS,
     SCORING_CELLS,
+    IN_RANGE_CASES,
 }
 MATERIAL_SCHEMA = "carbon.pool.sealed-material.v1"
 _MATERIAL_KEYS = {
@@ -194,7 +198,7 @@ def _physics(value):
     if value is _ABSENT:
         return None
     value = _picked(value)
-    if type(value) is not dict or set(value) != {
+    required = {
         "cells_sha256",
         "gate_statistic",
         "gate_threshold",
@@ -203,7 +207,11 @@ def _physics(value):
         "ad_split",
         "d_separates",
         "cell_scale",
-    }:
+    }
+    # optional: a registered in-range case set (absent = none)
+    if type(value) is not dict or not (
+        required <= set(value) <= required | {"in_range_cases_sha256"}
+    ):
         raise PoolConstantsNotRegistered("pool_constants_malformed")
     for item in value.values():
         if item is None:
@@ -378,6 +386,7 @@ class PoolVariant(physical.Variant):
                 COVERAGE_PLAN_SUMS,
                 VARIANT_STARTS,
                 SCORING_CELLS,
+                IN_RANGE_CASES,
             )
             if key in material
         }

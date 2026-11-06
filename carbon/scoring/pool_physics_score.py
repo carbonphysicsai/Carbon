@@ -18,7 +18,10 @@ rule:
 Cases: an out-of-range class's cases are the reserved accuracy slices (`TargetSpec.agen`) of its targets: points the
 optimiser never queries. An in-range class's gate cases are the rule's ``gate_cases``: ``"agen"`` (its reserved slices)
 or ``"pool"`` (every kept pool point of its targets, whose truths are hidden; record + gate only, never scored; EQ 5 Nov
-Q1: R15-disjointness from TRAIN is the pack's, checked where the pack is built). In-range classes are the coverage-plan classes whose targets are all inside the TRAIN range (not EXTENDED);
+Q1: R15-disjointness from TRAIN is the pack's, checked where the pack is built). A version may also register a sealed
+in-range CASE SET (``in_range_cases_sha256``; `in_range_cases`): hidden in-range truths outside the pool targets (e.g.
+in-box non-TRAIN primaries, step-1 in-span records), each case a class, the model's full input row, its truths and U.
+Its rows must be exam rows the model answered (the grade reads them from the model's one table); record + gate only. In-range classes are the coverage-plan classes whose targets are all inside the TRAIN range (not EXTENDED);
 out-of-range classes have only EXTENDED targets; a class mixing both is refused.
 
 How the family value enters the score is the rule's ``enters``: ``"a"``: A IS the family value (EQ 5 Nov Q2, from the
@@ -55,6 +58,7 @@ GATE_CASES = ("agen", "pool")
 #: The A/D split: owner-set 0.5 (17:50), the only split the dual pack's total composes (0.5 A + 0.5 D).
 AD_SPLIT_BUILT = 0.5
 CELL_SCALES = ("agen_scales", "agen_scales_x_a_multiplier")
+IN_RANGE_CASES_SCHEMA = "carbon.pool.in-range-cases.v1"
 IN_RANGE, OUT_OF_RANGE = "in", "out"
 
 
@@ -111,6 +115,10 @@ class PhysicsRule:
     cell_scale: str | None
     cells: object = None
     a_multiplier: object = None
+    #: The sha256 of the version's sealed in-range case set, or None (no case set; registered, optional).
+    in_range_cases_sha256: str | None = None
+    #: The attached `InRangeCases`, or None.
+    in_range: object = None
 
 
 def check_rule(rule):
@@ -151,6 +159,19 @@ def check_rule(rule):
         rule.cells is None
         or (isinstance(rule.cells, CellMap) and rule.cells.sha256 == rule.cells_sha256),
         "scoring_cells_are_not_the_registered_ones",
+    )
+    _require(
+        rule.in_range_cases_sha256 is None
+        or pool_grader._is_sha256(rule.in_range_cases_sha256),
+        "in_range_cases_sha256_must_be_64_hex",
+    )
+    _require(
+        rule.in_range is None
+        or (
+            isinstance(rule.in_range, InRangeCases)
+            and rule.in_range.sha256 == rule.in_range_cases_sha256
+        ),
+        "in_range_cases_are_not_the_registered_ones",
     )
 
 
@@ -208,6 +229,55 @@ def cell_map(document):
     )
 
 
+@dataclass(frozen=True)
+class InRangeCases:
+    """A version's sealed in-range case set (custody: hidden truths). Built only by `in_range_cases`."""
+
+    cases: tuple  # ((class, {input: value}, {output: truth}, {output: U}), ...), in document order
+    sha256: str
+
+    def classes(self):
+        return sorted({case[0] for case in self.cases})
+
+
+def in_range_cases(document):
+    """The `InRangeCases` of ``{"schema": IN_RANGE_CASES_SCHEMA, "cases": [{"class", "inputs": {input: number},
+    "truths": {output: number}, "u": {output: number > 0}}]}``, or `PhysicsRefused`. Truths and U name the same outputs.
+    """
+    _require(
+        type(document) is dict
+        and set(document) == {"schema", "cases"}
+        and document["schema"] == IN_RANGE_CASES_SCHEMA
+        and type(document["cases"]) is list
+        and document["cases"],
+        "in_range_cases_malformed",
+    )
+    cases = []
+    for case in document["cases"]:
+        _require(
+            type(case) is dict
+            and set(case) == {"class", "inputs", "truths", "u"}
+            and type(case["class"]) is str
+            and case["class"]
+            and all(
+                type(case[k]) is dict
+                and case[k]
+                and all(type(n) is str and _is_number(v) for n, v in case[k].items())
+                for k in ("inputs", "truths", "u")
+            )
+            and set(case["truths"]) == set(case["u"])
+            and all(v > 0 for v in case["u"].values()),
+            "in_range_case_malformed",
+        )
+        cases.append(
+            (case["class"], dict(case["inputs"]), dict(case["truths"]), dict(case["u"]))
+        )
+    return InRangeCases(
+        cases=tuple(cases),
+        sha256=hashlib.sha256(cell_map_bytes(document)).hexdigest(),
+    )
+
+
 def class_ranges(specs, plan):
     """``{class: IN_RANGE | OUT_OF_RANGE}`` over the plan's classes present in `specs`; a class mixing in-range and
     EXTENDED targets is refused (the record and the gate never compare a mix)."""
@@ -236,7 +306,7 @@ def _gate_threshold(rule, output):
     return threshold if _is_number(threshold) else threshold.get(output)
 
 
-def attach_cells(rule, document, plan, sets):
+def attach_cells(rule, document, plan, sets, in_range_document=None):
     """``rule`` with its sealed scoring cells attached, or `PhysicsRefused`: the EXAM's structure, checked once before any
     submission is graded, so a structural fault is never a candidate's result.
 
@@ -244,7 +314,9 @@ def attach_cells(rule, document, plan, sets):
     accuracy is a gate, never points); a scored output that is not an output of its class's targets; a scored cell with
     no reserved case in some set; an in-range class with no reserved case in some set (the gate would have nothing to
     judge); an in-range gated output whose U is zero on a case (|err|/U undefined); a threshold that does not cover an
-    in-range output.
+    in-range output; an in-range case set that is not the registered one, or whose case names an out-of-range plan
+    class or an output the threshold does not cover; and a version with no in-range gate case at all (the gate would
+    pass on nothing).
     """
     check_rule(rule)
     _require(
@@ -294,7 +366,30 @@ def attach_cells(rule, document, plan, sets):
                         all(spec.u_at(i, output) > 0 for i in _cases(spec, True, rule)),
                         "accuracy_gate_output_with_zero_u",
                     )
-    return replace(rule, cells=cells)
+    extra = None
+    if rule.in_range_cases_sha256 is None:
+        _require(in_range_document is None, "in_range_cases_not_registered")
+    else:
+        _require(
+            in_range_document is not None, "in_range_cases_missing_from_the_sealed_pack"
+        )
+        extra = in_range_cases(in_range_document)
+        _require(
+            extra.sha256 == rule.in_range_cases_sha256, "in_range_cases_sha256_mismatch"
+        )
+        for name, _inputs, truths, _u in extra.cases:
+            _require(
+                ranges.get(name) != OUT_OF_RANGE, "in_range_case_class_is_out_of_range"
+            )
+            _require(
+                all(_is_number(_gate_threshold(rule, o)) for o in truths),
+                "accuracy_gate_threshold_missing_for_an_output",
+            )
+    _require(
+        IN_RANGE in ranges.values() or extra is not None,
+        "accuracy_gate_without_in_range_cases",
+    )
+    return replace(rule, cells=cells, in_range=extra)
 
 
 def _quantile(values, q):
@@ -320,7 +415,7 @@ def _summary(values):
 def _ratios(specs, predict, ranges, rule):
     """``{(class, output): [|err|/U, ...]}`` over every reserved case; also ``{(class, output): [|err|, ...]}`` for cases
     whose U is zero (an exact output: reported raw, never divided)."""
-    ratios, raw = {}, {}
+    ratios, raw, invalid = {}, {}, {}
     for spec, name in specs:
         indices = _cases(spec, ranges[name] == IN_RANGE, rule)
         if not indices:
@@ -331,10 +426,10 @@ def _ratios(specs, predict, ranges, rule):
             "accuracy_prediction_invalid",
         )
         for index, prediction in zip(indices, batch):
-            _require(
-                pool_grader._valid_prediction(prediction, spec.outputs),
-                "accuracy_prediction_invalid",
-            )
+            if not pool_grader._valid_prediction(prediction, spec.outputs):
+                # the candidate's invalid answer: counted, and an in-range class holding one fails the gate
+                invalid[name] = invalid.get(name, 0) + 1
+                continue
             for output in spec.outputs:
                 error = abs(prediction[output] - spec.truths[index][output])
                 u = spec.u_at(index, output)
@@ -342,31 +437,60 @@ def _ratios(specs, predict, ranges, rule):
                     ratios.setdefault((name, output), []).append(error / u)
                 else:
                     raw.setdefault((name, output), []).append(error)
-    return ratios, raw
+    return ratios, raw, invalid
 
 
-def accuracy_record(specs, predict, plan, rule):
+def _case_ratios(extra, case_predict, ratios, invalid, outputs):
+    # Adds the in-range case set's |err|/U into ``ratios`` (by its class), counting invalid answers.
+    rows = [dict(inputs) for _name, inputs, _t, _u in extra.cases]
+    answers = case_predict(rows)
+    _require(
+        type(answers) is list and len(answers) == len(rows),
+        "accuracy_prediction_invalid",
+    )
+    for (name, _inputs, truths, u), answer in zip(extra.cases, answers):
+        outputs.setdefault(name, set()).update(truths)
+        if not pool_grader._valid_prediction(answer, tuple(truths)):
+            invalid[name] = invalid.get(name, 0) + 1
+            continue
+        for output, truth in truths.items():
+            ratios.setdefault((name, output), []).append(
+                abs(answer[output] - truth) / u[output]
+            )
+
+
+def accuracy_record(specs, predict, plan, rule, case_predict=None):
     """The custody accuracy record of one graded model (see the module docstring) and the gate verdict.
 
     ``{"schema", "rows": [{"class", "range", "family", "output", "scored", "n", "median", "p90", "max", "n_exact",
     "max_abs_exact", "verdict"}], "gate": {"statistic", "passed"}}`` in the plan's class order, then output name order.
     ``verdict`` is "PASS" / "FAIL" for in-range rows and None otherwise; the gate passes only when every in-range row
-    passes (a row without a number fails: fail closed). The thresholds themselves are the rule's, not repeated here.
+    passes (a row without a number, or a class holding an invalid answer, fails: fail closed). ``n_invalid`` counts a
+    class's invalid answers. The thresholds themselves are the rule's, not repeated here.
+
+    ``case_predict(rows)`` answers the registered in-range case set's input rows (derived outputs per row, or None for an
+    invalid answer); its classes follow the plan's, in name order (a class the plan also holds merges with it).
     """
     check_rule(rule)
     _require(rule.cells is not None, "scoring_cells_not_attached")
     ranges = class_ranges(specs, plan)
-    ratios, raw = _ratios(
+    ratios, raw, invalid = _ratios(
         [(spec, plan.class_of(spec.target_id)) for spec in specs], predict, ranges, rule
     )
     scored = {(c, o) for _f, c, o in rule.cells.scored}
     outputs = {}
     for spec in specs:
         outputs.setdefault(plan.class_of(spec.target_id), set()).update(spec.outputs)
+    order = [name for name in plan.classes if name in ranges]
+    if rule.in_range is not None:
+        _require(case_predict is not None, "in_range_cases_need_the_exam_table")
+        _case_ratios(rule.in_range, case_predict, ratios, invalid, outputs)
+        for name in rule.in_range.classes():
+            ranges.setdefault(name, IN_RANGE)
+            if name not in order:
+                order.append(name)
     rows, passed = [], True
-    for name in plan.classes:
-        if name not in ranges:
-            continue
+    for name in order:
         for output in sorted(outputs[name]):
             summary = _summary(ratios.get((name, output), []))
             exact = raw.get((name, output), [])
@@ -377,6 +501,7 @@ def accuracy_record(specs, predict, plan, rule):
                 )
                 ok = (
                     not exact
+                    and not invalid.get(name)
                     and value is not None
                     and _is_number(threshold)
                     and value <= threshold
@@ -393,6 +518,7 @@ def accuracy_record(specs, predict, plan, rule):
                     **summary,
                     "n_exact": len(exact),
                     "max_abs_exact": max(exact) if exact else None,
+                    "n_invalid": invalid.get(name, 0),
                     "verdict": verdict,
                 }
             )
@@ -491,10 +617,12 @@ __all__ = [
     "CELL_SCALES",
     "ENTERS",
     "GATE_CASES",
+    "IN_RANGE_CASES_SCHEMA",
     "RECORD_SCHEMA",
     "SCORING_CELLS_SCHEMA",
     "STATISTICS",
     "CellMap",
+    "InRangeCases",
     "PhysicsRefused",
     "PhysicsRule",
     "accuracy_record",
@@ -505,5 +633,6 @@ __all__ = [
     "class_ranges",
     "compose",
     "family_value",
+    "in_range_cases",
     "target_cells",
 ]

@@ -691,4 +691,152 @@ def test_the_physics_rule_registers_with_no_default(tmp_path):
             read({**good, key: value})
     with pytest.raises(pool_version.PoolConstantsNotRegistered):
         read({k: v for k, v in good.items() if k != "enters"})
+    with_cases = {**good, "in_range_cases_sha256": "c" * 64}
+    assert read(with_cases).physics.in_range_cases_sha256 == "c" * 64
+    with pytest.raises(pool_version.PoolConstantsNotRegistered):
+        read({**good, "in_range_cases_sha256": "not-hex"})
+    with pytest.raises(pool_version.PoolConstantsNotRegistered):
+        read({**good, "unknown": 1})
     assert pool_version.SCORING_CELLS in pool_version._OPTIONAL_MATERIAL_KEYS
+    assert pool_version.IN_RANGE_CASES in pool_version._OPTIONAL_MATERIAL_KEYS
+
+
+# ---------------------------------------------------------------- the in-range case set (truths outside the pool targets)
+
+PRIMARY = "fixture:primary"
+
+
+def _case_document(the_sets, count=6, name=PRIMARY):
+    """In-range cases read from rows the model answers (here: the in-range targets' pool rows, standing in for a
+    version's in-box non-TRAIN primaries), with their true outputs and U."""
+    from test_pool_plugin import U, truth
+
+    cases = []
+    for group in the_sets:
+        spec = group[0]  # the in-range target of each set
+        for design in spec.designs[:count]:
+            row = {"cond": 1.0, "x": design[0], "y": design[1]}
+            f, g = truth(row)
+            cases.append(
+                {
+                    "class": name,
+                    "inputs": row,
+                    "truths": {"f": f, "g": g},
+                    "u": {"f": U, "g": U},
+                }
+            )
+    return {"schema": pps.IN_RANGE_CASES_SCHEMA, "cases": cases}
+
+
+def _with_cases(policies, material, document):
+    digest = pps.in_range_cases(document).sha256
+    physics = dataclasses.replace(policies.physics, in_range_cases_sha256=digest)
+    return dataclasses.replace(policies, physics=physics), {
+        **material,
+        "in_range_cases": document,
+    }
+
+
+@pytest.mark.parametrize(
+    "mutate, code",
+    [
+        (lambda d: d.update(schema="x"), "in_range_cases_malformed"),
+        (lambda d: d.update(cases=[]), "in_range_cases_malformed"),
+        (lambda d: d["cases"][0]["u"].update(f=0.0), "in_range_case_malformed"),
+        (lambda d: d["cases"][0]["truths"].pop("g"), "in_range_case_malformed"),
+        (lambda d: d["cases"][0].update(extra=1), "in_range_case_malformed"),
+    ],
+)
+def test_the_in_range_case_set_refuses_a_malformed_document(mutate, code):
+    document = _case_document(_sets())
+    mutate(document)
+    with pytest.raises(pps.PhysicsRefused, match=code):
+        pps.in_range_cases(document)
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_registered_in_range_cases_are_recorded_and_gated_never_scored():
+    the_sets = _sets()
+    policies, material = _registered(the_sets, threshold=2.5)
+    plain, _ = _measure(the_sets, policies, material)
+    policies, material = _with_cases(policies, material, _case_document(the_sets))
+    result, _capture = _measure(the_sets, policies, material)
+    rows = [r for r in result["pool"]["accuracy"]["rows"] if r["class"] == PRIMARY]
+    assert {r["output"] for r in rows} == {"f", "g"}
+    assert all(
+        r["range"] == "in"
+        and r["n"] == 12
+        and r["median"] == pytest.approx(2.0)
+        and r["n_invalid"] == 0
+        and r["verdict"] == "PASS"
+        and r["scored"] is False
+        and r["family"] is None
+        for r in rows
+    )
+    assert result["gates"][pool_exam.ACCURACY_GATE] is True
+    assert (result["A"], result["D"]) == (plain["A"], plain["D"])  # never scored
+    tight = dataclasses.replace(
+        policies, physics=dataclasses.replace(policies.physics, gate_threshold=1.5)
+    )
+    failed, _ = _measure(the_sets, tight, material)
+    assert failed["gates"][pool_exam.ACCURACY_GATE] is False and failed["D"] == 0.0
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_an_invalid_answer_on_a_case_fails_the_gate_typed():
+    the_sets = _sets()
+    policies, material = _registered(the_sets, threshold=2.5)
+    policies, material = _with_cases(policies, material, _case_document(the_sets))
+    plan = coverage_plan(material["coverage_plan"])
+    attached_rule = pps.attach_cells(
+        policies.physics, CELLS, plan, the_sets, material["in_range_cases"]
+    )
+    record = pps.accuracy_record(
+        [s for g in the_sets for s in g],
+        lambda c, d: [{"f": 0.0, "g": 0.0} for _ in d],
+        plan,
+        attached_rule,
+        lambda rows: [None] * len(rows),
+    )
+    rows = [r for r in record["rows"] if r["class"] == PRIMARY]
+    assert all(r["n_invalid"] == 12 and r["verdict"] == "FAIL" for r in rows)
+    assert record["gate"]["passed"] is False
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_the_case_set_structure_is_refused_before_any_grade():
+    the_sets = _sets()
+    policies, material = _registered(the_sets, threshold=2.5)
+    document = _case_document(the_sets)
+    with_cases, with_material = _with_cases(policies, material, document)
+    with pytest.raises(pool_exam.ExamRefused, match="in_range_cases_not_registered"):
+        _measure(the_sets, policies, {**material, "in_range_cases": document})
+    with pytest.raises(pool_exam.ExamRefused, match="in_range_cases_missing"):
+        _measure(the_sets, with_cases, material)
+    other = _case_document(the_sets, count=3)
+    with pytest.raises(pool_exam.ExamRefused, match="in_range_cases_sha256_mismatch"):
+        _measure(the_sets, with_cases, {**with_material, "in_range_cases": other})
+    out_of_range = _case_document(the_sets, name=EDGE)
+    oor_policies, oor_material = _with_cases(policies, material, out_of_range)
+    with pytest.raises(pool_exam.ExamRefused, match="case_class_is_out_of_range"):
+        _measure(the_sets, oor_policies, oor_material)
+    stray = _case_document(the_sets)
+    stray["cases"][0]["inputs"] = {"cond": 1.0, "x": 0.123456, "y": 0.654321}
+    stray_policies, stray_material = _with_cases(policies, material, stray)
+    with pytest.raises(pool_exam.ExamRefused, match="in_range_case_not_an_exam_row"):
+        _measure(the_sets, stray_policies, stray_material)
+
+
+def test_a_version_with_no_in_range_case_at_all_refuses():
+    specs, _plan = stand_set()
+    out_only = [s for s in specs if s.extended]
+    plan = coverage_plan(
+        plan_document(
+            [EDGE, STEP, "fixture:extra"],
+            {"e0": EDGE, "s0": STEP, "x0": "fixture:extra"},
+        )
+    )
+    with pytest.raises(
+        pps.PhysicsRefused, match="accuracy_gate_without_in_range_cases"
+    ):
+        pps.attach_cells(rule(), CELLS, plan, (tuple(out_only),))

@@ -162,6 +162,7 @@ def measure_pool(
     coverage_plan_sums=None,
     variant_starts=None,
     scoring_cells=None,
+    in_range_cases=None,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
 
@@ -181,12 +182,15 @@ def measure_pool(
 
     ``scoring_cells`` is a NEW version's sealed scoring-cell document (`attach_physics`), required exactly when its
     policies carry a physics rule (`pool_physics_score`); None for every registered version, whose result is unchanged.
+    ``in_range_cases`` is its sealed in-range case set, required exactly when the rule registers one.
     With a physics rule A is the family value (`pool_physics_score.family_value`, per set), and the grade adds the
     mandatory gate `ACCURACY_GATE` (in-range accuracy, pass/fail) and the custody
     accuracy record under ``["pool"]["accuracy"]`` (and ``capture["accuracy"]``); `public` never carries the record.
     """
     policies = attach_coverage_plan(policies, coverage_plan, coverage_plan_sums, sets)
-    policies = attach_physics(policies, scoring_cells, sets, a_multiplier)
+    policies = attach_physics(
+        policies, scoring_cells, sets, a_multiplier, in_range_cases
+    )
     sets = attach_variant_starts(sets, policies.optimizer.variant_rule, variant_starts)
     _require(
         len(bank_rows) == len(outputs)
@@ -230,6 +234,25 @@ def measure_pool(
     }
     held = {tuple(bank_rows[i]["inputs"][n] for n in binding.input_names) for i in pool}
     _require(answered == held, "exam_pool_rows_differ_from_the_targets_pools")
+    case_predict = None
+    if policies.physics is not None and policies.physics.in_range is not None:
+        # The in-range case set's rows must be rows the model answered: read from its one table, never re-asked.
+        exam_inputs = {
+            tuple(quantize(r["inputs"])[n] for n in binding.input_names)
+            for r in bank_rows
+        }
+        for _name, inputs, _t, _u in policies.physics.in_range.cases:
+            _require(
+                set(inputs) == set(binding.input_names)
+                and tuple(quantize(inputs)[n] for n in binding.input_names)
+                in exam_inputs,
+                "in_range_case_not_an_exam_row",
+            )
+
+        def case_predict(rows):
+            answers = serve(rows)
+            return [submitted.derive(row, out) for row, out in zip(rows, answers)]
+
     raw_pool = serve([r["inputs"] for r in pool_row_dicts])
     physics_failed = pool_gates.failed_gates(submitted, pool_row_dicts, raw_pool)
     # An A_gen slice answer the Challenge's own validity gates refuse is the candidate's gate failure on a pool
@@ -268,6 +291,7 @@ def measure_pool(
                 pool_plugin.pool_predictor(submitted, serve),
                 policies.optimizer.coverage_plan,
                 policies.physics,
+                case_predict,
             )
         gates[ACCURACY_GATE] = bool((accuracy.get("gate") or {}).get("passed"))
         if capture is not None:
@@ -600,13 +624,14 @@ def attach_coverage_plan(policies, document, sums, sets):
     return replace(policies, optimizer=replace(optimizer, coverage_plan=plan))
 
 
-def attach_physics(policies, document, sets, a_multiplier=None):
+def attach_physics(policies, document, sets, a_multiplier=None, in_range_document=None):
     """``policies`` with a NEW version's sealed scoring cells attached to its physics rule, or `ExamRefused`. A version
     without a physics rule keeps its policies unchanged and its sealed material carries no scoring cells. The structure
     is the EXAM's: checked here, once, typed, before any submission is graded."""
     rule = policies.physics
     if rule is None:
         _require(document is None, "scoring_cells_not_registered")
+        _require(in_range_document is None, "in_range_cases_not_registered")
         return policies
     _require(
         policies.optimizer.a_gen_aggregate is None,
@@ -614,7 +639,11 @@ def attach_physics(policies, document, sets, a_multiplier=None):
     )
     try:
         attached = pool_physics_score.attach_cells(
-            rule, document, policies.optimizer.coverage_plan, sets
+            rule,
+            document,
+            policies.optimizer.coverage_plan,
+            sets,
+            in_range_document,
         )
     except pool_grader.PoolRefused as refused:
         raise ExamRefused(f"physics_structure_refused:{refused}") from None
