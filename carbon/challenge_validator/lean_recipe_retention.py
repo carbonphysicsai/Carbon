@@ -3525,8 +3525,9 @@ def _derived_build(
         generation += 1
     from carbon.research import ResearchServiceErrorCode, ResearchTaskProviderError
 
+    reread = task_id.value in provider._views
     try:
-        if task_id.value in provider._views:
+        if reread:
             # A retry: the task exists, and must be the very seed asked for (`_seed_for` is the official 0 exactly
             # when no derived seed was set, so seed 0 vs a derived seed differs either way). It is never admitted
             # again (as `rebind_origin`): its source was checked at its own admission, and a seed-0 task's validator
@@ -3573,6 +3574,8 @@ def _derived_build(
     if task.state is not DirectTaskStateV3.SUCCEEDED:
         failed = RetentionUnavailable("rebuild_task_" + task.state.value.lower())
         failed.task_id = task_id.value
+        # whether THIS call built it (a re-read task's failure happened in an earlier call's window)
+        failed.built_here = not reread
         raise failed
     return task_id.value
 
@@ -3630,11 +3633,18 @@ def rebuild_at_seed(
         failed_task = getattr(failed, "task_id", None) or task_id
         verdict = host_quiet.finish(probe)
         code = failed.code
-        ran = code.startswith(("rebuild_task_", "rebuild_grade_"))
+        # only a failure inside THIS probe window: a build this call started (never a re-read of an earlier
+        # failure, which happened on whatever host it met then), or this call's grade of the derived task
+        ran = (
+            code.startswith("rebuild_task_") and getattr(failed, "built_here", False)
+        ) or code.startswith("rebuild_grade_")
         if verdict is not None and not verdict.quiet and ran and failed_task:
-            host_quiet.mark_contended(
-                marks, failed_task, verdict, reason=code, path="crown_rebuild"
-            )
+            try:
+                host_quiet.mark_contended(
+                    marks, failed_task, verdict, reason=code, path="crown_rebuild"
+                )
+            except OSError:
+                raise failed from None  # no mark: as before (the task is read again)
             raise crown_average.RebuildInfra(
                 host_quiet.REBUILD_HOST_CONTENDED
             ) from failed

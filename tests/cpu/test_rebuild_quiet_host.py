@@ -408,3 +408,56 @@ def test_a_stepwise_remeasure_never_keeps_a_contended_rebuild(tmp_path):
     retention._one_rebuild_per_call(repeat, store, "sub-1", "key")  # the next tick
     assert repeat.rebuild_at(11)["evidence"]
     assert list(store.kept) == [(11, False)]
+
+
+def test_a_quiet_failure_read_again_on_a_busy_host_stays_the_models(
+    tmp_path, monkeypatch, loop
+):
+    """Self-review must-fix: the verdict covers THIS call's window. A task that failed on a quiet host and is only
+    READ again now (nothing is built) is never marked, whatever the host is doing at the re-read.
+    """
+    host, rebuild, marks = _rebuilder(tmp_path, monkeypatch)
+    host.state = DirectTaskStateV3.REFUSED
+    with pytest.raises(retention.RetentionUnavailable, match="rebuild_task_refused"):
+        rebuild(4242)  # quiet host: the model's own stop, as today
+    loop["containers"], loop["gpu"] = 1, 1  # a sibling door's build now runs
+    for _ in range(2):
+        with pytest.raises(
+            retention.RetentionUnavailable, match="rebuild_task_refused"
+        ):
+            rebuild(4242)  # re-read, not rebuilt
+    assert len(host.states) == 1 and not marks.exists()
+
+
+def test_a_mark_that_cannot_be_written_leaves_the_failure_as_before(
+    tmp_path, monkeypatch
+):
+    host, rebuild, marks = _rebuilder(tmp_path, monkeypatch)
+    host.state = DirectTaskStateV3.REFUSED
+
+    def broken(*a, **k):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(host_quiet, "mark_contended", broken)
+    token = _activate(False, 0, 0)
+    try:
+        with pytest.raises(
+            retention.RetentionUnavailable, match="rebuild_task_refused"
+        ):
+            rebuild(3)
+    finally:
+        host_quiet.deactivate(token)
+    assert not marks.exists()
+
+
+@pytest.mark.parametrize(
+    ("smi", "expected"),
+    [
+        ((6, "No devices were found\n"), 0),
+        ((0, "[N/A]\n"), None),
+        ((0, "١٢\n"), None),
+    ],
+)
+def test_the_gpu_probe_on_a_host_without_devices_or_pids(monkeypatch, smi, expected):
+    monkeypatch.setattr(host_quiet, "_run", _fake_run({"nvidia-smi": smi}))
+    assert host_quiet.foreign_gpu_compute() == expected

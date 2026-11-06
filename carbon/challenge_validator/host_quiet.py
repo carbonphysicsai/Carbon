@@ -86,7 +86,7 @@ def _container_pids(ids):
         if done.returncode != 0:
             return None
         for token in done.stdout.decode("utf-8", "replace").split()[1:]:
-            if token.isdigit():
+            if token.isascii() and token.isdigit():
                 pids.add(int(token))
     return pids
 
@@ -103,12 +103,15 @@ def foreign_gpu_compute():
         return 0
     except (OSError, subprocess.SubprocessError):
         return None
+    text = done.stdout.decode("utf-8", "replace")
+    if "No devices were found" in text:
+        return 0
     if done.returncode != 0:
         return None
     gpu = set()
-    for token in done.stdout.decode("utf-8", "replace").split():
-        if not token.strip().isdigit():
-            return None
+    for token in text.split():
+        if not (token.isascii() and token.isdigit()):
+            return None  # e.g. '[N/A]' (no host pid namespace): unknown, so not quiet
         gpu.add(int(token))
     if not gpu:
         return 0
