@@ -38,7 +38,8 @@ files the NEW revision's M2 rule names, sorted), so the record the receiver chec
   is on NEW with the same file count and bytes, no link anywhere on NEW's cache paths and the cache directories private
   (the receiver's own rule); an old root without a library cache or a receiver config is UNKNOWN, never empty;
   ``drain``: no ``draining`` flag in OLD's state directory (read from its config: H1's fixed state dir included);
-  ``release``: NEW root's ``release.json`` names NEW.
+  ``release``: NEW root's ``release.json`` names NEW; ``chain`` (H8): OLD's own chain-state is not DEGRADED (never
+  flip into a chain outage) unless ``--allow-chain-degraded REASON``.
 
 ``pushline`` (R28) prints the owner's exact push line only for a full sha that is a fast-forward of main and FINAL or
 LANDED in FINAL_HEADS; anything else refuses before an owner ask.
@@ -461,6 +462,33 @@ def caches_item(old_roots, new_root) -> dict:
     return {**out, "state": PASS}
 
 
+def chain_item(old_root, allow=None) -> dict:
+    """(H8) Never flip into a chain outage: OLD's own ``chain-state.json`` (written by H8 receivers) must not say
+    DEGRADED. ``allow`` (``--allow-chain-degraded REASON``) lets a fix-forward for the chain fault itself through,
+    named in the result (Validator-2 5 Nov 18:56: no guard without a way through when the harm is the guard's own).
+    A door from before H8 writes no such file: reported as not_reported, never a refusal.
+    """
+    path = Door(old_root).state / "chain-state.json"
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {"state": PASS, "chain": "not_reported"}
+    except (OSError, ValueError):
+        return {"state": UNKNOWN, "code": "chain_state_unreadable"}
+    if type(state) is not dict or state.get("state") not in ("OK", "DEGRADED"):
+        return {"state": UNKNOWN, "code": "chain_state_unreadable"}
+    if state["state"] == "OK":
+        return {"state": PASS, "chain": "OK"}
+    out = {
+        "chain": "DEGRADED",
+        "code": state.get("code"),
+        "since_ns": state.get("since_ns"),
+    }
+    if allow:
+        return {**out, "state": PASS, "allowed": allow}
+    return {**out, "state": REFUSE, "code": "chain_degraded"}
+
+
 def drain_item(old_root) -> dict:
     """OLD's drain flag, in the state directory its own config names (`door_drain.py`)."""
     flag = Door(old_root).state / DRAIN_NAME
@@ -615,6 +643,7 @@ def precheck(args) -> dict:
                 lambda: caches_item([args.old_root, *args.older_root], args.new_root),
             ),
             ("drain", lambda: drain_item(args.old_root)),
+            ("chain", lambda: chain_item(args.old_root, args.allow_chain_degraded)),
             ("release", lambda: release_item(args.new_root, new)),
         ]
     for name, run in checks:
@@ -750,6 +779,7 @@ def main(argv=None) -> int:
     p.add_argument("--declared", type=Path)
     p.add_argument("--declared-pack-change")
     p.add_argument("--declared-rule-change")
+    p.add_argument("--allow-chain-degraded")
     p.add_argument("--older-root", type=Path, action="append", default=[])
     pl = sub.add_parser("pushline")
     pl.add_argument("--repo", type=Path, required=True)

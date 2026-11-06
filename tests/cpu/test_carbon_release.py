@@ -316,6 +316,7 @@ def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
             "served_source",
             "caches",
             "drain",
+            "chain",
             "release",
         ],
         tool.PASS,
@@ -634,3 +635,25 @@ def test_served_source_changes_are_listed_never_refused(tool, repo):
         tool.served_files(
             root, base
         )  # a revision with no served list is never "nothing served"
+
+
+def test_never_flip_into_a_chain_outage_unless_said(tool, tmp_path):
+    root = _root(tmp_path, "old")
+    state = root / "receiver/state/chain-state.json"
+    assert tool.chain_item(root) == {"state": tool.PASS, "chain": "not_reported"}
+    state.write_text(json.dumps({"state": "OK"}), encoding="utf-8")
+    assert tool.chain_item(root)["chain"] == "OK"
+    state.write_text(
+        json.dumps(
+            {"state": "DEGRADED", "code": "PROVIDER_RATE_LIMITED", "since_ns": 1}
+        ),
+        encoding="utf-8",
+    )
+    out = tool.chain_item(root)
+    assert out["state"] == tool.REFUSE and out["code"] == "chain_degraded"
+    allowed = tool.chain_item(root, "fix-forward for the chain reader")
+    assert allowed["state"] == tool.PASS and allowed["allowed"].startswith(
+        "fix-forward"
+    )
+    state.write_text("{", encoding="utf-8")
+    assert tool.chain_item(root)["state"] == tool.UNKNOWN
