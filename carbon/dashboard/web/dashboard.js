@@ -863,7 +863,7 @@
       const pre = board.phase === "PRE_FIRST_RELEASE";
       const parts = [boardHead(board, true, c), boardBanners(board, c)];
       if (pre) parts.push(launchHero(board), beatBlock(board), stabilityLine(board), crownChanges(board), countsStrip(board));
-      else parts.push(leaderCard(board), stabilityLine(board), crownCheckBlock(board), crownChanges(board), countsStrip(board), leaderboard(board), gateFailures(board));
+      else parts.push(leaderCard(board), stabilityLine(board), queueBlock(c.queue), crownCheckBlock(board), crownChanges(board), countsStrip(board), leaderboard(board), gateFailures(board));
       parts.push(showcaseCard(), examLine(board), feedBlock(board));
       return h("div", {class: "page launch-page"}, parts);
     }
@@ -944,7 +944,42 @@
     const d = DETAILS[id];
     return d && d.about ? h("p", {class: "about"}, d.about) : null;
   }
-  function homeCard(entry, board, showClass) {
+  // The door's queue (queue.mjs): counts and the door's state, reported by the door (not signed).
+  function waitText(sec) {
+    if (!isNum(sec)) return null;
+    return sec < 90 ? Math.round(sec) + " s" : sec < 5400 ? Math.round(sec / 60) + " min" : (sec / 3600).toFixed(1) + " h";
+  }
+  function queueParts(q) {
+    return [q.waiting_to_build + " waiting to build", q.building_now + " building", q.waiting_to_grade + " waiting to grade",
+      q.grading_now ? "grading one now" : "none grading"];
+  }
+  function queueLine(panel) {
+    if (!isObject(panel) || panel.state !== "ACCEPTED" || !isObject(panel.queue)) return null;
+    const q = panel.queue;
+    const wait = waitText(q.wait_24h.median_s);
+    return h("p", {class: "hint queue-line"}, "Queue: " + queueParts(q).join(" · ") + " · door " + q.door_state
+      + (wait ? " · typical wait " + wait : ""));
+  }
+  function queueBlock(panel) {
+    if (!isObject(panel)) return null;
+    const head = h("div", {class: "block-head"}, h("h2", {id: "q-title"}, "Queue at the door"));
+    if (panel.state !== "ACCEPTED" || !isObject(panel.queue)) {
+      return section("queue", {class: "block queue", "aria-labelledby": "q-title"}, head,
+        h("p", {class: "hint"}, panel.state === "NOT_SERVED" ? "This door does not publish its queue yet." : "The queue is not available right now."));
+    }
+    const q = panel.queue;
+    const w = q.wait_24h;
+    return section("queue", {class: "block queue", "aria-labelledby": "q-title"}, head,
+      h("dl", {class: "stats compact"},
+        stat("Door", q.door_state),
+        stat("Waiting to build", String(q.waiting_to_build)),
+        stat("Building now", String(q.building_now)),
+        stat("Waiting to grade", String(q.waiting_to_grade)),
+        stat("Grading now", q.grading_now ? "1" : "0"),
+        stat("Typical wait, last 24 h", waitText(w.median_s) || "not enough verdicts yet", w.median_s === null ? null : "slowest 10 %: " + waitText(w.p90_s) + " · " + w.verdicts + " verdicts")),
+      h("p", {class: "hint"}, "Counts reported by the validator's door (not part of the signed feed), as of " + q.as_of.replace("T", " ").replace("Z", " UTC") + ". Submit to verdict, all submissions on this door."));
+  }
+  function homeCard(entry, board, showClass, panel) {
     if (!entry.slug) return h("div", {class: "card board-card"}, eyebrow("Feed refused"), h("p", {class: "fail"}, words(entry.code)));
     const phase = board ? PHASES[board.phase] || [words(board.phase), ""] : null;
     const king = board && board.king;
@@ -959,6 +994,7 @@
         : board && board.launch && board.launch.counts.graded > 0 ? h("p", {class: "hint"}, board.launch.counts.graded + " graded, no leader yet" + (best(board) !== null ? ". Best total " + total(best(board)) : "")) : null,
       board && board.launch ? beatBlock(board) : null,
       board && board.launch ? homeStatus(board) : null,
+      queueLine(panel),
       entry.state !== "ACCEPTED" ? h("p", {class: "fail"}, "Newest feed refused: " + words(entry.code)) : null);
   }
 
@@ -1002,10 +1038,10 @@
     const d = DETAILS[id];
     return d && d.order ? d.order : 100;
   }
-  function homeCards(index, boards) {
+  function homeCards(index, boards, queues) {
     const showClass = classChipShown(index.boards.map(b => b.device_class));
     const items = index.boards.map(e => ({id: e.challenge ? e.challenge.id : null, device: e.device_class || "",
-      node: homeCard(e, e.slug ? (boards || {})[e.slug] : null, showClass)}));
+      node: homeCard(e, e.slug ? (boards || {})[e.slug] : null, showClass, e.slug ? (queues || {})[e.slug] : null)}));
     items.push(...launchingCards(index).map(x => ({id: x.id, device: "", node: x.node})));
     const key = x => [x.id === null ? 1 : 0, x.id === null ? 0 : cardOrder(x.id), x.id === null ? "" : nameOf(x.id).toLowerCase(), x.device];
     items.sort((a, b) => { const ka = key(a), kb = key(b); for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] < kb[i] ? -1 : 1; return 0; });
@@ -1022,7 +1058,7 @@
       networkStrip(c.network),
       index.fixture ? h("p", {class: "notice"}, h("strong", null, "Fixture data. "), "These boards are synthetic, made to build and test the page. They are not results of any model or Challenge.") : null,
       index.boards.length || Object.keys(NAMES).length
-        ? h("div", {class: "board-grid"}, homeCards(index, boards))
+        ? h("div", {class: "board-grid"}, homeCards(index, boards, c.queues))
         : h("p", {class: "empty"}, "Launching soon on Carbon's test network. No board is published yet; each Challenge appears here, with its leader and the score to beat, as soon as the validator publishes it."));
   }
 
@@ -1204,13 +1240,17 @@
       }
       if (route.view === "home") {
         const boards = {};
-        await Promise.all(index.boards.filter(b => b.slug).map(async b => { boards[b.slug] = await optional("data/v2/" + encodeURIComponent(b.slug) + ".json"); }));
+        const queues = {};
+        await Promise.all(index.boards.filter(b => b.slug).map(async b => {
+          boards[b.slug] = await optional("data/v2/" + encodeURIComponent(b.slug) + ".json");
+          queues[b.slug] = await optional("data/queue/" + encodeURIComponent(b.slug) + ".json");
+        }));
         setLabels(index.fixture ? ["DEVELOPMENT", "FIXTURE"] : index.boards.length ? ["DEVELOPMENT"] : ["DEVELOPMENT", "TESTNET"]);
         const first = Object.values(boards).find(Boolean);
         setStamp(first ? footerStamp(first, now) : "No board published yet", first);
         // Fetched only when the index says a signed snapshot exists (S3).
         const network = index.network === true ? await optional("data/network.json") : null;
-        return show(homePage(index, boards, {now, network}));
+        return show(homePage(index, boards, {now, network, queues}));
       }
       const entry = index.boards.find(b => b.slug === route.slug);
       if (!entry) return show(h("p", {class: "notice"}, "No such board. ", h("a", {href: "#/"}, "All boards")));
@@ -1218,7 +1258,8 @@
       board.feed_state = board.feed_state || {state: entry.state, code: entry.code};
       setLabels(labelsOf(board));
       setStamp(footerStamp(board, now), board);
-      const ctx = {now, eraBefore: route.view === "board" ? eraBefore(board.slug, board.era) : null, classes: index.boards.map(b => b.device_class)};
+      const queue = route.view === "board" ? await optional("data/queue/" + encodeURIComponent(route.slug) + ".json") : null;
+      const ctx = {now, queue, eraBefore: route.view === "board" ? eraBefore(board.slug, board.era) : null, classes: index.boards.map(b => b.device_class)};
       document.title = nameOf(board.challenge.id) + " · " + document.title;
       return show(route.view === "miner" ? minerPage(board, route.hotkey, ctx) : boardPage(board, ctx));
     } catch (error) {

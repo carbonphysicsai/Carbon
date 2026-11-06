@@ -29,6 +29,8 @@ import {FETCH_HEADERS, FeedRefused, boardSlug, entry, panelSummary, parse, proje
 // DASHBOARD-02 S3: /data/network.json from the signed network snapshots in
 // the optional secret SNAPSHOT_URLS, checked against FEED_KEYS (404 unset).
 import {liveNetwork} from "./snapshot.mjs";
+// The door queue panel: /data/queue/<slug>.json from each door's public, unsigned queue document (queue.mjs).
+import {doorQueue, queueUrl} from "./queue.mjs";
 
 const INDEX_SCHEMA = "carbon.dashboard.index.v1";
 const MAX_FEED_BYTES = 16 * 2 ** 20;
@@ -185,6 +187,14 @@ export default {
       let network;
       try { network = await liveNetwork(env); } catch (error) { return plain("Network snapshot not configured: " + (error.code || "error"), 503); }
       return network ? json(network.view, 200, network.seconds) : plain("Network snapshot not configured", 404);
+    }
+    if (url.pathname.startsWith("/data/queue/")) {
+      let cfg;
+      try { cfg = config(env); } catch (error) { return plain("Feed not configured: " + (error.code || "error"), 503); }
+      const slug = decodeURIComponent(url.pathname.slice("/data/queue/".length)).replace(/\.json$/, "");
+      const feed = cfg.urls.find(u => { const q = queueUrl(u); return q && boardSlug(q.challengeId, "no-class") === slug; });
+      if (!feed) return plain("No such board", 404);
+      return json(await doorQueue(feed, fetch, FETCH_HEADERS, cfg.seconds), 200, cfg.seconds);
     }
     if (url.pathname.startsWith("/data/")) return plain("Not found", 404);
     return withHeaders(await env.ASSETS.fetch(request));
