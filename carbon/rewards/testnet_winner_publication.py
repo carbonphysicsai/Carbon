@@ -312,7 +312,7 @@ class TestnetWinnerIntentIssuer:
         return self._records(snapshot, observe=True)
 
     def _records(self, snapshot, *, observe, preview=False):
-        from .winner_eligibility import decide
+        from .winner_eligibility import decide, same_crown
 
         coldkeys = {p.hotkey: p.coldkey for p in snapshot.participants}
         found = {}
@@ -328,7 +328,7 @@ class TestnetWinnerIntentIssuer:
                     if r["promotion"]["model_id"] == promotion["model_id"]
                 ]
                 if known:
-                    if known[0]["promotion"] != promotion:
+                    if not same_crown(known[0]["promotion"], promotion):
                         _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
                     found[challenge] = known[0]
                 else:

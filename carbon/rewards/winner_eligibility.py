@@ -240,6 +240,55 @@ def _event_times(store, events):
     return [ms(by_sequence.get(e.get("sequence"))) for e in events]
 
 
+#: Promotion fields that are evidence for `decide`, not the crown's identity: a recorded king whose evidence is read
+#: differently later (an averaged crown read as verified once that reader existed) is still the same crown.
+EVIDENCE_FIELDS = frozenset({"repeat_verified"})
+
+
+def same_crown(recorded, promotion):
+    """Whether a recorded promotion and a fresh read of it are the same crown (evidence fields aside)."""
+
+    def identity(p):
+        return {k: v for k, v in p.items() if k not in EVIDENCE_FIELDS}
+
+    return identity(recorded) == identity(promotion)
+
+
+def _averaged_crown(store, model_id):
+    """Whether ``model_id``'s crown was decided by the averaged decision: a CHALLENGER crown decision AND an averaged
+    (N rebuilds) record filed for it on the SAME evaluation key. Read only, from the pool store's operations (its file
+    is a grading path, so it is read here rather than changed); a store that cannot say reads False.
+    """
+    db = getattr(store, "db", None)
+    if db is None:
+        return False
+    try:
+        with db() as connection:
+            rows = connection.execute(
+                "SELECT kind, body FROM operations "
+                "WHERE kind IN ('crown_decision.v1', 'crown_average.v1')"
+            ).fetchall()
+    except Exception:  # noqa: BLE001 - unreadable = unverified
+        return False
+    decided, averaged = set(), set()
+    for kind, raw in rows:
+        try:
+            body = json.loads(raw)
+        except (TypeError, ValueError):
+            continue
+        if type(body) is not dict or body.get("submission_id") != model_id:
+            continue
+        key = body.get("evaluation_key")
+        if type(key) is not str:
+            continue
+        # bank_promotion.CHALLENGER: the outcome only a verified crown change returns
+        if kind == "crown_decision.v1" and body.get("outcome") == "CHALLENGER":
+            decided.add(key)
+        elif kind == "crown_average.v1":
+            averaged.add(key)
+    return bool(decided & averaged)
+
+
 def _lean_crown(store, model_id, reason, previous):
     """One crown of a lean pool store as a promotion: the king, its miner and the king it beat."""
     row = store.submission(model_id)
@@ -256,12 +305,15 @@ def _lean_crown(store, model_id, reason, previous):
     }
     if previous is None:
         return {**promotion, "kind": FIRST}
-    # A crown change applies only after the contender's grade was repeat-verified
-    # (`bank_promotion.consider_private`), which files the mark beside the grade: the
-    # evidence a self-improvement reset (`decide`) trusts, with no threshold of its own.
+    # A crown change applies only after the contender's grade was verified (`bank_promotion.consider_private`):
+    # by the repeat, which files a mark beside the grade, or (OWNER-CROWN-GRADE-REPEAT-01, crowns since averaging) by
+    # the N=10 averaged decision, which files its record and the CHALLENGER outcome. Either is the evidence a
+    # self-improvement reset (`decide`) trusts, with no threshold of its own.
     marks = getattr(store, "repeat_marks", None)
     if marks is not None:
-        promotion["repeat_verified"] = len(marks(model_id)) > 0
+        promotion["repeat_verified"] = len(marks(model_id)) > 0 or _averaged_crown(
+            store, model_id
+        )
     return {**promotion, "kind": BANK}
 
 

@@ -468,3 +468,80 @@ def test_the_real_store_replays_every_crown_since_the_recorded_king(tmp_path):
     ]
     with pytest.raises(we.RewardFailure, match="PREDECESSOR_NOT_IN_DOOR_JOURNAL"):
         we.lean_crowns_since(store, "never-crowned")
+
+
+def _averaged_store(tmp_path):
+    """A real pool store where m1 (hk-a) is king and hk-a crowns its own m2 through the averaged decision path (no
+    repeat mark: bank_promotion's averaged branch files none)."""
+    store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: 0.0)
+    for model in ("m1", "m2", "m3"):
+        store.admit(
+            model,
+            request_digest=digest(["request", model]),
+            hotkey="hk-a",
+            challenge="electric-motor-magnetics",
+            strategy={},
+            binding={"challenge": {"id": "electric-motor-magnetics"}},
+        )
+    store.set_incumbent("m1", we.SEALED_TESTNET_REASON)
+    return store
+
+
+def test_an_averaged_self_beat_is_verified_and_resets_under_v5(tmp_path):
+    """Since crown averaging (OWNER-CROWN-GRADE-REPEAT-01: repeat only for the dethroned) a crown files no repeat mark;
+    its averaged record + CHALLENGER decision on the same key is the verification (Validator-2 09:26, 6 Nov).
+    """
+    store = _averaged_store(tmp_path)
+    key = digest("exam-key")
+    store.record_crown_average("m2", key, {"mean": 0.7})
+    store.record_crown_decision("m2", key, "CHALLENGER", None)
+    store.set_incumbent("m2", we.SEALED_TESTNET_REASON, expected="m1")
+    promotion = we.lean_promotion(store)
+    assert promotion["repeat_verified"] is True and store.repeat_marks("m2") == []
+    book = crowned(tmp_path, V5)
+    record = book.observe(V5, CHALLENGE, promotion, {"hk-a": "ck-a"}, LATER)
+    assert (record["eligible"], record["reason"], record["clock_ms"]) == (
+        True,
+        "self_improvement_reset",
+        LATER,
+    )
+
+
+@pytest.mark.parametrize(
+    "filed", ["nothing", "average_only", "decision_only", "other_key", "kept"]
+)
+def test_a_self_beat_without_a_verified_averaged_decision_still_refuses(
+    tmp_path, filed
+):
+    store = _averaged_store(tmp_path)
+    key = digest("exam-key")
+    if filed in ("average_only", "other_key"):
+        store.record_crown_average("m2", key, {"mean": 0.7})
+    if filed == "decision_only":
+        store.record_crown_decision("m2", key, "CHALLENGER", None)
+    if filed == "other_key":  # an average on one exam and a decision on another
+        store.record_crown_decision("m2", digest("other-key"), "CHALLENGER", None)
+    if filed == "kept":  # averaged, but the king kept the crown
+        store.record_crown_average("m2", key, {"mean": 0.7})
+        store.record_crown_decision("m2", key, "INCUMBENT_KEEPS", None)
+    store.set_incumbent("m2", we.SEALED_TESTNET_REASON, expected="m1")
+    promotion = we.lean_promotion(store)
+    assert promotion["repeat_verified"] is False
+    book = crowned(tmp_path, V5)
+    before = book.path.read_bytes()
+    with pytest.raises(RewardFailure, match="SELF_IMPROVEMENT_UNVERIFIED"):
+        book.observe(V5, CHALLENGE, promotion, {"hk-a": "ck-a"}, LATER)
+    assert book.path.read_bytes() == before
+
+
+def test_a_recorded_king_whose_evidence_reads_differently_is_the_same_crown():
+    """A king recorded before the averaged reader existed carries repeat_verified False; read again it says True. It is
+    the same crown (no TARGETS_CHANGED for every door); any identity field still differs.
+    """
+    recorded = bank("m2", "hk-b", "m1", "hk-a", repeat=False)
+    assert we.same_crown(recorded, {**recorded, "repeat_verified": True})
+    assert we.same_crown(
+        recorded, {k: v for k, v in recorded.items() if k != "repeat_verified"}
+    )
+    assert not we.same_crown(recorded, {**recorded, "hotkey": "hk-c"})
+    assert not we.same_crown(recorded, {**recorded, "previous": "m0"})
