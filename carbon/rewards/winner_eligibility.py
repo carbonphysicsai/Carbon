@@ -255,8 +255,9 @@ def same_crown(recorded, promotion):
 
 
 def _averaged_crown(store, model_id):
-    """Whether ``model_id``'s crown was decided by the averaged decision: a CHALLENGER crown decision AND an averaged
-    record that scored N of N, filed for it on the SAME evaluation key. Read only, from the pool store's operations (its file
+    """Whether ``model_id``'s crown was decided by the averaged decision: a CHALLENGER decision (a crown_decision row,
+    or a paused contender's crown_pause_resolved code ``CHALLENGER:<reason>``) AND an averaged record that scored N of
+    N, filed for it on the SAME evaluation key. Read only, from the pool store's operations (its file
     is a grading path, so it is read here rather than changed); a store that cannot say reads False.
     """
     db = getattr(store, "db", None)
@@ -265,8 +266,8 @@ def _averaged_crown(store, model_id):
     try:
         with db() as connection:
             rows = connection.execute(
-                "SELECT kind, body FROM operations "
-                "WHERE kind IN ('crown_decision.v1', 'crown_average.v1')"
+                "SELECT kind, body FROM operations WHERE kind IN "
+                "('crown_decision.v1', 'crown_pause_resolved.v1', 'crown_average.v1')"
             ).fetchall()
     except Exception:  # noqa: BLE001 - unreadable = unverified
         return False
@@ -283,6 +284,12 @@ def _averaged_crown(store, model_id):
             continue
         # bank_promotion.CHALLENGER: the outcome only a verified crown change returns
         if kind == "crown_decision.v1" and body.get("outcome") == "CHALLENGER":
+            decided.add(key)
+        elif kind == "crown_pause_resolved.v1" and str(body.get("code")).startswith(
+            "CHALLENGER:"
+        ):
+            # a paused contender decided by the sweep files its outcome here, never as a crown_decision row
+            # (crown_pause_sweep: f"{outcome}:{reason}"; the doors' d3e6bab9 writes no crown_decision.v1 at all)
             decided.add(key)
         elif kind == "crown_average.v1" and _all_admissible(body.get("private")):
             averaged.add(key)

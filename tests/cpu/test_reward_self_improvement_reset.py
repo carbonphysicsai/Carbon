@@ -586,3 +586,63 @@ def test_a_recorded_king_whose_evidence_reads_differently_is_the_same_crown():
     )
     assert not we.same_crown(recorded, {**recorded, "hotkey": "hk-c"})
     assert not we.same_crown(recorded, {**recorded, "previous": "m0"})
+
+
+def _paused_path(store, key, code):
+    """The real paused path, as the doors file it (crown_pause_sweep): paused -> trigger -> averaged record ->
+    pause resolved with ``f"{outcome}:{reason}"``; no crown_decision row (d3e6bab9 writes none).
+    """
+    store.record_crown_paused(
+        "m2",
+        key,
+        kind="pack",
+        exam=digest("exam"),
+        entry_id=digest("entry"),
+        pin=digest("pin"),
+    )
+    store.record_crown_trigger("m2", key)
+    store.record_crown_average("m2", key, AVERAGED)
+    store.resolve_crown_pause("m2", key, code)
+
+
+def test_a_paused_averaged_self_beat_resolved_challenger_is_verified(tmp_path):
+    store = _averaged_store(tmp_path)
+    key = digest("exam-key")
+    _paused_path(store, key, "CHALLENGER:mean_exceeds_incumbent_beyond_margin")
+    store.set_incumbent("m2", we.SEALED_TESTNET_REASON, expected="m1")
+    promotion = we.lean_promotion(store)
+    assert promotion["repeat_verified"] is True
+    with store.db() as db:
+        assert db.execute(
+            "SELECT COUNT(*) FROM operations WHERE kind='crown_decision.v1'"
+        ).fetchone() == (0,)
+    record = crowned(tmp_path, V5).observe(
+        V5, CHALLENGE, promotion, {"hk-a": "ck-a"}, LATER
+    )
+    assert (record["eligible"], record["reason"]) == (True, "self_improvement_reset")
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        "UNAVAILABLE:crown_rebuild_unavailable",
+        "FAILED_INFRA:crown_repeat_grade_mismatch",
+        "INCUMBENT_KEEPS:mean_within_margin",
+        "CHALLENGERX:other",
+    ],
+)
+def test_a_paused_self_beat_not_resolved_challenger_is_unverified(tmp_path, code):
+    store = _averaged_store(tmp_path)
+    _paused_path(store, digest("exam-key"), code)
+    store.set_incumbent("m2", we.SEALED_TESTNET_REASON, expected="m1")
+    assert we.lean_promotion(store)["repeat_verified"] is False
+
+
+def test_a_resolved_challenger_on_another_key_is_unverified(tmp_path):
+    store = _averaged_store(tmp_path)
+    store.record_crown_average("m2", digest("exam-key"), AVERAGED)
+    store.resolve_crown_pause(
+        "m2", digest("other-key"), "CHALLENGER:mean_exceeds_incumbent_beyond_margin"
+    )
+    store.set_incumbent("m2", we.SEALED_TESTNET_REASON, expected="m1")
+    assert we.lean_promotion(store)["repeat_verified"] is False
