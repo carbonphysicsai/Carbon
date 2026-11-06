@@ -256,7 +256,7 @@ def same_crown(recorded, promotion):
 
 def _averaged_crown(store, model_id):
     """Whether ``model_id``'s crown was decided by the averaged decision: a CHALLENGER crown decision AND an averaged
-    (N rebuilds) record filed for it on the SAME evaluation key. Read only, from the pool store's operations (its file
+    record that scored N of N, filed for it on the SAME evaluation key. Read only, from the pool store's operations (its file
     is a grading path, so it is read here rather than changed); a store that cannot say reads False.
     """
     db = getattr(store, "db", None)
@@ -284,9 +284,27 @@ def _averaged_crown(store, model_id):
         # bank_promotion.CHALLENGER: the outcome only a verified crown change returns
         if kind == "crown_decision.v1" and body.get("outcome") == "CHALLENGER":
             decided.add(key)
-        elif kind == "crown_average.v1":
+        elif kind == "crown_average.v1" and _all_admissible(body.get("private")):
             averaged.add(key)
     return bool(decided & averaged)
+
+
+def _all_admissible(private):
+    """An averaged record that scored N of N (counts only; no value read): its registered ``n``, n seeds and n totals,
+    and no per-seed statuses (`crown_average.run_average` files those only when a rebuild was not admissible). The
+    host-fault second build is not a field: `run_average` returns CHALLENGER only after it agreed, so the CHALLENGER
+    decision on the same key carries it (Carbon Validator, 6 Nov 09:31)."""
+    if type(private) is not dict or "statuses" in private:
+        return False
+    n = private.get("n")
+    return (
+        type(n) is int
+        and n > 0
+        and type(private.get("seeds")) is list
+        and type(private.get("totals")) is list
+        and len(private["seeds"]) == n
+        and len(private["totals"]) == n
+    )
 
 
 def _lean_crown(store, model_id, reason, previous):

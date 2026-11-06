@@ -470,6 +470,16 @@ def test_the_real_store_replays_every_crown_since_the_recorded_king(tmp_path):
         we.lean_crowns_since(store, "never-crowned")
 
 
+#: An averaged record that scored N of N (shape of `crown_average.run_average`'s private part; synthetic values).
+AVERAGED = {
+    "seeds": [1, 2, 3],
+    "n": 3,
+    "margin": 0.01,
+    "totals": [0.7, 0.7, 0.7],
+    "mean": 0.7,
+}
+
+
 def _averaged_store(tmp_path):
     """A real pool store where m1 (hk-a) is king and hk-a crowns its own m2 through the averaged decision path (no
     repeat mark: bank_promotion's averaged branch files none)."""
@@ -493,7 +503,7 @@ def test_an_averaged_self_beat_is_verified_and_resets_under_v5(tmp_path):
     """
     store = _averaged_store(tmp_path)
     key = digest("exam-key")
-    store.record_crown_average("m2", key, {"mean": 0.7})
+    store.record_crown_average("m2", key, AVERAGED)
     store.record_crown_decision("m2", key, "CHALLENGER", None)
     store.set_incumbent("m2", we.SEALED_TESTNET_REASON, expected="m1")
     promotion = we.lean_promotion(store)
@@ -508,7 +518,17 @@ def test_an_averaged_self_beat_is_verified_and_resets_under_v5(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "filed", ["nothing", "average_only", "decision_only", "other_key", "kept"]
+    "filed",
+    [
+        "nothing",
+        "average_only",
+        "decision_only",
+        "other_key",
+        "kept",
+        "host_fault_mismatch",
+        "not_all_admissible",
+        "short",
+    ],
 )
 def test_a_self_beat_without_a_verified_averaged_decision_still_refuses(
     tmp_path, filed
@@ -516,14 +536,35 @@ def test_a_self_beat_without_a_verified_averaged_decision_still_refuses(
     store = _averaged_store(tmp_path)
     key = digest("exam-key")
     if filed in ("average_only", "other_key"):
-        store.record_crown_average("m2", key, {"mean": 0.7})
+        store.record_crown_average("m2", key, AVERAGED)
     if filed == "decision_only":
         store.record_crown_decision("m2", key, "CHALLENGER", None)
     if filed == "other_key":  # an average on one exam and a decision on another
         store.record_crown_decision("m2", digest("other-key"), "CHALLENGER", None)
     if filed == "kept":  # averaged, but the king kept the crown
-        store.record_crown_average("m2", key, {"mean": 0.7})
+        store.record_crown_average("m2", key, AVERAGED)
         store.record_crown_decision("m2", key, "INCUMBENT_KEEPS", None)
+    if (
+        filed == "host_fault_mismatch"
+    ):  # the second build disagreed: FAILED_INFRA, never a verification
+        store.record_crown_average("m2", key, AVERAGED)
+        store.record_crown_decision(
+            "m2", key, "FAILED_INFRA", "crown_repeat_grade_mismatch"
+        )
+    if (
+        filed == "not_all_admissible"
+    ):  # a seed did not score (statuses filed): no average at all
+        unstable = {
+            "seeds": [1, 2, 3],
+            "n": 3,
+            "margin": 0.01,
+            "statuses": ["S", "x", "S"],
+        }
+        store.record_crown_average("m2", key, unstable)
+        store.record_crown_decision("m2", key, "CHALLENGER", None)
+    if filed == "short":  # fewer totals than its N
+        store.record_crown_average("m2", key, {**AVERAGED, "totals": [0.7, 0.7]})
+        store.record_crown_decision("m2", key, "CHALLENGER", None)
     store.set_incumbent("m2", we.SEALED_TESTNET_REASON, expected="m1")
     promotion = we.lean_promotion(store)
     assert promotion["repeat_verified"] is False
