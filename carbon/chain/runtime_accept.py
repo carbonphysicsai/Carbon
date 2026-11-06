@@ -354,9 +354,42 @@ async def resolve(endpoint, genesis_hash, journal, *, log=stderr_log):
     )
 
 
+def operator_pins(path):
+    """``(endpoint, genesis_hash, expected_runtime_spec, context)`` from the operator file a publishing loop runs, picked
+    by its ``schema``: the validator weights loop's (``validator_setup.weights``) or the development testnet's; any
+    other file refuses ``OPERATOR_CONFIG_SCHEMA_UNKNOWN``. The schema's own loader still checks the whole file
+    (owner-only, exact keys); this only chooses which loader."""
+    from carbon.development_testnet import operator as dev
+    from carbon.validator_setup import weights
+
+    try:
+        raw = json.loads(Path(path).read_bytes())
+        schema = raw.get("schema") if type(raw) is dict else None
+    except (OSError, ValueError):
+        raise RuntimeRefused("OPERATOR_CONFIG_UNREADABLE") from None
+    if schema == weights.SCHEMA:
+        config = weights.load_config(path)
+        return (
+            config.context.endpoint,
+            config.context.genesis_hash,
+            config.expected_runtime_spec,
+            config.context,
+        )
+    if schema == dev.SCHEMA:
+        config = dev.load_config(path)
+        return (
+            config.endpoint,
+            config.genesis_hash,
+            config.expected_runtime_spec,
+            config.context,
+        )
+    raise RuntimeRefused("OPERATOR_CONFIG_SCHEMA_UNKNOWN")
+
+
 def main(argv=None):
     """``baseline --config OPERATOR_CONFIG --standing STANDING --journal JOURNAL``: record the live runtime as THE
-    accepted surface; only the spec both of the owner's pins name, only when the probe says COMPATIBLE.
+    accepted surface; only the spec both of the owner's pins name, only when the probe says COMPATIBLE. The config is
+    either loop's operator file (``operator_pins``).
     """
     import argparse
     import asyncio
@@ -368,17 +401,27 @@ def main(argv=None):
     b.add_argument("--standing", type=Path, required=True)
     b.add_argument("--journal", type=Path, required=True)
     args = parser.parse_args(argv)
-    from carbon.development_testnet.operator import load_config
+    from carbon.development_testnet.model import DevelopmentTestnetFailure
     from carbon.rewards.testnet_winner_publication import load_standing
+    from carbon.validator_setup.bundle import SetupRefused
 
     from . import runtime_probe
 
-    config = load_config(args.config.absolute())
-    standing = load_standing(args.standing.absolute(), config.context)
+    try:
+        endpoint, genesis_hash, config_spec, context = operator_pins(
+            args.config.absolute()
+        )
+    except RuntimeRefused as refused:
+        print(json.dumps({"state": "REFUSED", "code": refused.code}))
+        return 3
+    except (SetupRefused, DevelopmentTestnetFailure) as refused:
+        print(json.dumps({"state": "REFUSED", "code": str(refused)}))
+        return 3
+    standing = load_standing(args.standing.absolute(), context)
 
     async def read():
-        live = await live_runtime(config.endpoint)
-        return live, await runtime_probe.probe(config.endpoint, config.genesis_hash)
+        live = await live_runtime(endpoint)
+        return live, await runtime_probe.probe(endpoint, genesis_hash)
 
     (spec, code_hash), report = asyncio.run(read())
     try:
@@ -387,8 +430,8 @@ def main(argv=None):
         body = baseline(
             store_for(args.journal),
             report,
-            owner_specs=(config.expected_runtime_spec, standing.expected_runtime_spec),
-            genesis_hash=config.genesis_hash,
+            owner_specs=(config_spec, standing.expected_runtime_spec),
+            genesis_hash=genesis_hash,
             code_hash=code_hash,
         )
     except RuntimeRefused as refused:

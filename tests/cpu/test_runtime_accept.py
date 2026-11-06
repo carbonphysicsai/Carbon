@@ -362,3 +362,144 @@ def test_misses_count_only_in_a_row(tmp_path):
     assert ra.readback_misses(journal, 497) == 2
     _add(journal, "f", 497, "ROW_VERIFIED")
     assert ra.readback_misses(journal, 497) == 0
+
+
+def _owner_only(path, body):
+    path.write_text(json.dumps(body), encoding="utf-8")
+    os.chmod(path, 0o600)
+    return path
+
+
+def _weights_loop_files(tmp_path, *, config_spec=488, standing_spec=488):
+    """The live weights loop's two files in their exact shapes (validator-weights-operator.v1 + its standing), test
+    values only."""
+    from carbon.chain import networks
+    from carbon.validator_setup import weights
+
+    config = _owner_only(
+        tmp_path / "operator.json",
+        {
+            "schema": weights.SCHEMA,
+            "context": {
+                "network": "testnet",
+                "endpoint": "wss://chain.test.invalid:443",
+                "chain_id": "test-chain",
+                "genesis_hash": networks.NETWORKS["testnet"].genesis_hash,
+                "netuid": networks.NETWORKS["testnet"].netuid,
+            },
+            "expected_runtime_spec": config_spec,
+            "publisher": {"hotkey": "test-hotkey", "coldkey": "test-coldkey"},
+            "wallet": {
+                "name": "test-wallet",
+                "hotkey_name": "test-hotkey-name",
+                "path": str(tmp_path / "wallets"),
+            },
+        },
+    )
+    _owner_only(tmp_path / "authority.json", {"record": "test"})
+    standing = _owner_only(
+        tmp_path / "standing.json",
+        {
+            "authority_record": "authority.json",
+            "policy_digest": "sha256:" + "0" * 64,
+            "publisher_hotkey": "test-hotkey",
+            "expected_runtime_spec": standing_spec,
+            "valid_from_block": 1,
+            "valid_through_block": 2,
+        },
+    )
+    return config, standing
+
+
+def _fake_chain(monkeypatch, spec=488, code=CODE_A, report=None):
+    from carbon.chain import runtime_probe
+
+    seen = []
+
+    async def live(endpoint):
+        seen.append(("live", endpoint))
+        return spec, code
+
+    async def probe(endpoint, genesis):
+        seen.append(("probe", endpoint, genesis))
+        return report or _report(spec)
+
+    monkeypatch.setattr(ra, "live_runtime", live)
+    monkeypatch.setattr(runtime_probe, "probe", probe)
+    return seen
+
+
+def _cli(config, standing, journal, capsys):
+    rc = ra.main(
+        ["baseline", "--config", str(config), "--standing", str(standing), "--journal", str(journal)]
+    )  # fmt: skip
+    return rc, json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+
+
+def test_the_baseline_cli_reads_the_weights_loops_operator_file(
+    monkeypatch, tmp_path, capsys
+):
+    """The weights loop's operator.json (validator-weights-operator.v1, 5 keys) baselines, reading the chain at its
+    own context endpoint + genesis; the result is the baseline the loop's execute() then resolves against.
+    """
+    from carbon.chain import networks
+
+    genesis = networks.NETWORKS["testnet"].genesis_hash
+    config, standing = _weights_loop_files(tmp_path)
+    seen = _fake_chain(monkeypatch)
+    journal = tmp_path / "publication.sqlite3"
+    rc, out = _cli(config, standing, journal, capsys)
+    assert rc == 0 and out["state"] == ra.BASELINE and out["spec_version"] == 488
+    assert out["surface_digest"] == DIGEST and out["code_hash"] == CODE_A
+    assert seen == [
+        ("live", "wss://chain.test.invalid:443"),
+        ("probe", "wss://chain.test.invalid:443", genesis),
+    ]
+    assert ra.has_baseline(journal) is True
+    assert (
+        asyncio.run(
+            ra.resolve("wss://chain.test.invalid:443", genesis, journal, log=None)
+        )
+        == 488
+    )
+
+
+def test_the_baseline_cli_still_needs_both_owner_pins_on_the_weights_file(
+    monkeypatch, tmp_path, capsys
+):
+    config, standing = _weights_loop_files(tmp_path, standing_spec=486)
+    _fake_chain(monkeypatch)
+    journal = tmp_path / "publication.sqlite3"
+    rc, out = _cli(config, standing, journal, capsys)
+    assert rc == 3 and out == {
+        "state": "REFUSED",
+        "code": "BASELINE_NOT_THE_OWNERS_SPEC",
+        "status": ra.COMPATIBLE,
+    }
+    assert ra.has_baseline(journal) is False
+
+
+def test_the_baseline_cli_refuses_an_unknown_or_loose_operator_file_before_the_chain(
+    monkeypatch, tmp_path, capsys
+):
+    config, standing = _weights_loop_files(tmp_path)
+    seen = _fake_chain(monkeypatch)
+    journal = tmp_path / "publication.sqlite3"
+    body = json.loads(config.read_text(encoding="utf-8"))
+    _owner_only(config, {**body, "schema": "carbon.something-else.v1"})
+    assert _cli(config, standing, journal, capsys) == (
+        3,
+        {"state": "REFUSED", "code": "OPERATOR_CONFIG_SCHEMA_UNKNOWN"},
+    )
+    _owner_only(config, body)
+    os.chmod(config, 0o644)  # the schema's own loader still checks the whole file
+    assert _cli(config, standing, journal, capsys) == (
+        3,
+        {"state": "REFUSED", "code": "OPERATOR_CONTEXT_OR_IDENTITY_REFUSED"},
+    )
+    _owner_only(config, {**body, "extra": 1})
+    assert _cli(config, standing, journal, capsys) == (
+        3,
+        {"state": "REFUSED", "code": "OPERATOR_CONTEXT_OR_IDENTITY_REFUSED"},
+    )
+    assert seen == [] and ra.has_baseline(journal) is False
