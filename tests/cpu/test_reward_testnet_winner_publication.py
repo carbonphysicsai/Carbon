@@ -721,41 +721,35 @@ def test_a_gap_the_doors_journal_cannot_bridge_refuses_and_writes_nothing(tmp_pa
     ]
 
 
-def test_a_cycle_that_issues_nothing_new_still_records_every_crown(tmp_path):
-    """RECONCILE_PENDING cycles (`record`) and a re-issue inside the epoch both record crowns: on 6 Nov the RB king
-    03ff14f8 lived through two RECONCILE_PENDING cycles and was never recorded."""
+def test_a_cycle_that_does_not_proceed_writes_nothing_and_the_next_replays_it(tmp_path):
+    """A refused or settling cycle (a re-issue inside the epoch, RECONCILE_PENDING) leaves the ledger byte-identical;
+    the next proceeding cycle replays every crown it missed, in the door's order, each clocked when it won (on 6 Nov
+    the RB king 03ff14f8 lived through two RECONCILE_PENDING cycles)."""
     v4 = wd.load_policy("testnet-winner-v4-launch")
     store = _LeanStore()
     store.crown("m1", "miner-hotkey")
     issuer, backend, challenge = _replaying(tmp_path, store, v4)
     ref = issuer.issue(_at(backend, 925))
-    store.crown("m2", "owner-hotkey", previous="m1")
-    # a re-issue inside the same epoch returns the stored intent AND records the new crown
+    history = issuer.ledger.path.read_bytes()
+    store.crown("m2", "owner-hotkey", previous="m1", at=11.2)
+    # a re-issue inside the same epoch returns the stored intent and writes nothing
     assert issuer.issue(_at(backend, 926)) == ref
-    assert [r["promotion"]["model_id"] for r in issuer.ledger.records(challenge)] == [
-        "m1",
-        "m2",
-    ]
-    # the usual cycle: one new crown, clocked when first observed (unchanged)
-    assert (
-        issuer.ledger.records(challenge)[1]["clock_ms"]
-        == _at(backend, 926).timestamp_ms
-    )
+    assert issuer.ledger.path.read_bytes() == history
     store.crown("m3", "miner-hotkey", previous="m2", at=12.0)
     store.crown("m4", "owner-hotkey", previous="m3", at=12.5)
-    # a RECONCILE_PENDING cycle builds no intent but records both crowns, in order, each at its door time
-    issuer.record(_at(backend, 1100))
+    issuer.issue(_at(backend, 1100))  # the next epoch's first issue proceeds
     records = issuer.ledger.records(challenge)
     assert [r["promotion"]["model_id"] for r in records] == ["m1", "m2", "m3", "m4"]
     assert [r["promotion"]["previous"] for r in records] == [None, "m1", "m2", "m3"]
-    assert [r["clock_ms"] for r in records[2:]] == [12000, 12500]
+    assert [r["clock_ms"] for r in records[1:]] == [11200, 12000, 12500]
 
 
 @pytest.mark.parametrize("entry", ["publication_run", "weights_execute"])
-def test_both_publishing_entry_points_record_on_a_reconcile_pending_cycle(
+def test_both_publishing_entry_points_write_nothing_on_a_reconcile_pending_cycle(
     monkeypatch, tmp_path, entry
 ):
-    """The live weights loop (validator_setup.weights.execute) and `run` observe before returning RECONCILE_PENDING."""
+    """The live weights loop (validator_setup.weights.execute) and `run` return RECONCILE_PENDING without observing or
+    recording anything (the next proceeding cycle replays what it missed)."""
     from types import SimpleNamespace
 
     from carbon.chain import sdk_weights
@@ -813,7 +807,7 @@ def test_both_publishing_entry_points_record_on_a_reconcile_pending_cycle(
                 )
             )
         )
-    assert out["status"] == "RECONCILE_PENDING" and recorded == ["snapshot"]
+    assert out["status"] == "RECONCILE_PENDING" and recorded == []
 
 
 def test_a_missed_crown_without_a_door_time_refuses_and_a_late_clock_is_capped(
@@ -829,7 +823,7 @@ def test_a_missed_crown_without_a_door_time_refuses_and_a_late_clock_is_capped(
     issuer.issue(_at(backend, 925))
     store.crown("m2", "owner-hotkey", previous="m1", at=12.0)
     store.crown("m3", "miner-hotkey", previous="m2")  # no time
-    for run in (lambda snap: twp.preview(issuer, snap), issuer.issue, issuer.record):
+    for run in (lambda snap: twp.preview(issuer, snap), issuer.issue):
         with pytest.raises(
             twp.WinnerPublicationRefused, match="CROWN_EVENT_TIME_MISSING"
         ):
@@ -842,7 +836,7 @@ def test_a_missed_crown_without_a_door_time_refuses_and_a_late_clock_is_capped(
         99.0,
     )  # the door's clock ahead of the chain
     later = _at(backend, 1100)
-    issuer.record(later)
+    issuer.issue(later)
     records = issuer.ledger.records(challenge)
     assert [(r["promotion"]["model_id"], r["clock_ms"]) for r in records[1:]] == [
         ("m2", 12000),

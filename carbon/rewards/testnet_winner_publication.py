@@ -173,8 +173,10 @@ class TestnetWinnerIntentIssuer:
     (`winner_eligibility.lean_crowns_since`). With it, a crown that came and
     went between two observations is still recorded, in the door's order, before
     the current one; without it only the current promotion is observed.
-    `record` observes on cycles that publish nothing new (RECONCILE_PENDING, a
-    re-issue inside the epoch), so no crown waits for the next intent.
+    Crowns are recorded only on a cycle that proceeds (a new epoch's first
+    issue): a refused or settling cycle leaves the ledger byte-identical, and
+    the next proceeding cycle replays every crown it missed, each clocked when
+    it won at the door.
     """
 
     def __init__(self, receipts, authorization, policy, ledger, sources, replays=None):
@@ -303,13 +305,6 @@ class TestnetWinnerIntentIssuer:
         ):
             _refuse("CROWN_EVENT_TIME_MISSING")
         return [(c["promotion"], c["journal"], c["journal"]["at_ms"]) for c in crowns]
-
-    def record(self, snapshot):
-        """Record every crown since each Challenge's last ledger record, building no intent: the cycles that publish
-        nothing new (RECONCILE_PENDING, a re-issue inside the epoch) still observe, so a crown that comes and goes
-        between two intents is recorded in the door's order (record integrity only; pay stays the crown holder at each update). A gap
-        refuses here, as in `issue`."""
-        return self._records(snapshot, observe=True)
 
     def _records(self, snapshot, *, observe, preview=False):
         from .winner_eligibility import decide, same_crown
@@ -469,8 +464,6 @@ class TestnetWinnerIntentIssuer:
                 (identity,),
             ).fetchone()
         if row is not None:
-            # the epoch's intent stands; a crown since it is still recorded now, not at the next epoch
-            self.record(snapshot)
             return TestnetWinnerWeightRef(identity, row[0])
         records = self._records(snapshot, observe=True)
         body = self._body(snapshot, records, self._targets(snapshot, records))
@@ -800,8 +793,6 @@ async def _run(args):
         # nothing new is published (fail closed), and the result says why.
         open_row = await settle_pending(publisher)
         if open_row is not None:
-            # nothing new is published, but every crown since the last record is (fail closed on a gap)
-            issuer.record((await backend.observe())[0])
             return {
                 "status": "RECONCILE_PENDING",
                 "dispatch": open_row.get("identity"),

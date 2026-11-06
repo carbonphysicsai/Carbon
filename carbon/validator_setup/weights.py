@@ -178,8 +178,6 @@ async def execute(args):
         publisher = publication.TestnetWinnerPublisher(issuer, backend)
         pending = await publication.settle_pending(publisher)
         if pending is not None:
-            # nothing new is published, but every crown since the last record is (fail closed on a gap)
-            issuer.record((await backend.observe())[0])
             return {
                 "status": "RECONCILE_PENDING",
                 "dispatch": pending.get("identity"),
