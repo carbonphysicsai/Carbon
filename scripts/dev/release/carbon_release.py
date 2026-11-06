@@ -44,6 +44,9 @@ files the NEW revision's M2 rule names, sorted), so the record the receiver chec
   ``release``: NEW root's ``release.json`` names NEW; ``chain`` (H8): OLD's own chain-state is not DEGRADED (never
   flip into a chain outage) unless ``--allow-chain-degraded REASON``.
 
+The result also carries ``release_class`` (s7.5), derived from the ``exam`` and ``served_source`` items, never typed:
+2 = the exam moves, 1 = served-source files change, 0 = neither, None = unknown (an item did not pass).
+
 ``pushline`` (R28) prints the owner's exact push line only for a full sha that is a fast-forward of main and FINAL or
 LANDED in FINAL_HEADS; anything else refuses before an owner ask.
 
@@ -778,6 +781,36 @@ def release_item(new_root, new) -> dict:
     return {"state": PASS, "sha256": _sha_file(path)}
 
 
+def release_class(items) -> dict:
+    """The release class (MAINNET_UPDATE_ARCHITECTURE s7.5) as the checks REPORT it, never as the operator says it:
+    2 = the exam moves (a declared grading-code change, a re-sealed pack or an M2 rule edit); 1 = served-source files
+    change (no key moves, R66, but every door is told); 0 = neither. None when the ``exam`` or ``served_source`` item did
+    not pass (the class is unknown, so nothing is routine). A state migration (class 3) is not visible in the diff:
+    the spare prepare's migration count says it."""
+    exam, served = items.get("exam"), items.get("served_source")
+    if (
+        type(exam) is not dict
+        or type(served) is not dict
+        or exam.get("state") != PASS
+        or served.get("state") != PASS
+    ):
+        return {"class": None, "basis": "exam_or_served_source_not_passed"}
+    if (
+        exam.get("declared")
+        or "pack_change" in exam
+        or "rule_change" in exam
+        or (exam.get("identity") or {}).get("state") != ei.SAME
+    ):
+        return {"class": 2, "basis": "exam_changes_declared"}
+    if served.get("changed"):
+        return {
+            "class": 1,
+            "basis": "served_source_changed",
+            "changed": served["changed"],
+        }
+    return {"class": 0, "basis": "exam_keys_equal_and_no_served_source"}
+
+
 def precheck(args) -> dict:
     out = {"schema": SCHEMA + ".precheck", "mode": args.mode, "items": {}}
     items = out["items"]
@@ -848,6 +881,7 @@ def precheck(args) -> dict:
     out["state"] = (
         REFUSE if REFUSE in states else UNKNOWN if UNKNOWN in states else PASS
     )
+    out["release_class"] = release_class(items)
     return out
 
 

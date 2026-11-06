@@ -326,6 +326,11 @@ def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
         tool.PASS,
     )
     assert (rc, out["state"]) in ((0, tool.PASS), (3, tool.REFUSE))
+    # a docs-only release: the tool itself reports class 0 (s7.5)
+    assert out["release_class"] == {
+        "class": 0,
+        "basis": "exam_keys_equal_and_no_served_source",
+    }
     (old_root / "receiver/state/draining").write_text("{}", encoding="utf-8")
     assert tool.main(argv) == 3
     assert (
@@ -767,3 +772,31 @@ def test_switch_mode_requires_the_host_roots(tool, repo, tmp_path):
     ]  # fmt: skip
     with pytest.raises(SystemExit):
         tool.main(argv)
+
+
+def test_the_release_class_is_reported_from_the_items_never_typed(tool):
+    same = {"state": tool.ei.SAME}
+    exam = {"state": tool.PASS, "identity": same}
+    served = {"state": tool.PASS, "changed": []}
+    assert tool.release_class({"exam": exam, "served_source": served})["class"] == 0
+    listed = {**served, "changed": ["carbon/level4/graph.py"]}
+    one = tool.release_class({"exam": exam, "served_source": listed})
+    assert (one["class"], one["changed"]) == (1, ["carbon/level4/graph.py"])
+    moved = {
+        "state": tool.PASS,
+        "identity": {"state": "EXAM_CHANGED"},
+        "declared": True,
+    }
+    assert tool.release_class({"exam": moved, "served_source": served})["class"] == 2
+    resealed = {**exam, "pack_change": "re-seal"}
+    assert tool.release_class({"exam": resealed, "served_source": listed})["class"] == 2
+    refused = {"state": tool.REFUSE, "code": "exam_change_undeclared"}
+    for items in (
+        {"exam": refused, "served_source": served},
+        {"served_source": served},
+        {},
+    ):
+        assert tool.release_class(items) == {
+            "class": None,
+            "basis": "exam_or_served_source_not_passed",
+        }
