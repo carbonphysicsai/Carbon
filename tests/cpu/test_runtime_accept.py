@@ -349,3 +349,16 @@ def test_the_publisher_refuses_a_changed_surface_typed_before_the_wallet(
     )  # main() prints its code, not FAILED_CLOSED
     assert str(seen["raised"]) == "UNSUPPORTED_RUNTIME_SURFACE"
     assert seen["wallet"] == 0 and seen["issuer_specs"] == [None]
+
+
+def test_misses_count_only_in_a_row(tmp_path):
+    journal = _journal_with(tmp_path)
+    _add(journal, "a", 497, "CHAIN_REJECTED")
+    _add(journal, "b", 497, "ROW_VERIFIED")
+    _add(journal, "c", 497, "CHAIN_REJECTED")
+    _add(journal, "d", 497, "DISPATCHED")  # in flight: skipped
+    assert ra.readback_misses(journal, 497) == 1  # the verified one ends the run
+    _add(journal, "e", 497, "EXPOSURE_CHANGED")
+    assert ra.readback_misses(journal, 497) == 2
+    _add(journal, "f", 497, "ROW_VERIFIED")
+    assert ra.readback_misses(journal, 497) == 0

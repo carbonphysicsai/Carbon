@@ -17,7 +17,7 @@ pinned SDK's own bindings.
   differences, rewritten only when the observed digest changes, cleared when a runtime is accepted.
 - An AUTO-accepted runtime stays in use only while the publisher's own read-back (`publisher.reconcile`: LastUpdate past
   the inclusion and the stored row equal to the target) confirms what was published under it: the first miss alerts,
-  `STOP_AFTER_MISSES` misses refuse it until a person re-baselines.
+  `STOP_AFTER_MISSES` CONSECUTIVE misses (no confirmed dispatch between them) refuse it until a person re-baselines.
 - The store is owner-only: a receipt that is a link, another user's, or readable by group/other is refused; every
   receipt names the chain's genesis and must match the publisher's.
 
@@ -175,9 +175,11 @@ def baseline(store, report, *, owner_specs, genesis_hash, code_hash):
 
 
 def readback_misses(journal, spec):
-    """How many dispatches made under ``spec`` the chain read-back did not confirm: CHAIN_REJECTED, EXPOSURE_CHANGED, or
-    a finalized row whose stored weights differ from the target (`publisher.reconcile`). Read-only; 0 when the journal
-    has no dispatch table yet."""
+    """How many of the LATEST dispatches made under ``spec``, in a row, the chain read-back did not confirm
+    (CHAIN_REJECTED, EXPOSURE_CHANGED, or a finalized row whose stored weights differ from the target:
+    `publisher.reconcile`). A confirmed dispatch (ROW_VERIFIED) ends the run, so two transient rejections weeks apart
+    never stop weights (Validator-2 20:04). Dispatches still in flight are skipped. Read-only; 0 without a journal.
+    """
     import sqlite3
 
     path = Path(journal).absolute()
@@ -187,14 +189,14 @@ def readback_misses(journal, spec):
         db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         try:
             rows = db.execute(
-                "SELECT document, state, tracking FROM publication_v1"
+                "SELECT document, state, tracking FROM publication_v1 ORDER BY rowid"
             ).fetchall()
         finally:
             db.close()
     except sqlite3.Error:
         return 0
     misses = 0
-    for document, state, tracking in rows:
+    for document, state, tracking in reversed(rows):
         try:
             caps = json.loads(document).get("capabilities") or {}
             reason = (json.loads(tracking) or {}).get("reason")
@@ -204,6 +206,8 @@ def readback_misses(journal, spec):
             continue
         if state in MISS_STATES or reason in MISS_REASONS:
             misses += 1
+        elif state == "ROW_VERIFIED":
+            break
     return misses
 
 
