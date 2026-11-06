@@ -1,15 +1,20 @@
 {
  "schema": "carbon.dashboard.updates.v1",
- "intro": "What each Challenge runs now and what its next version changes. Every change ships as a new version with its own board and its own crown. Nothing already graded is rescored: your current results and crowns stay as they are.",
- "next_label": "Planned; final rules published with each version.",
+ "intro": "What each Challenge runs now, which version it launches with on mainnet, and what comes after. Every change ships as a new version with its own board and its own crown. Nothing already graded is rescored. Mainnet starts clean: no testnet registration, score or crown carries over.",
+ "next_label": "Planned; final rules and values are published with each version, on its How you're tested page.",
  "challenges": [
   {
    "id": "electric-motor-magnetics",
    "next": [
     {
-     "version": "1.6",
+     "version": "1.8",
      "changes": [
-      "Details soon. We'll post them once they're confirmed."
+      "The version planned for the mainnet launch. Motor 1.7 will not open.",
+      "The training set is planned to reach into the start of magnetic saturation, so a model can learn where the torque stops growing in step with the current.",
+      "Much of the hidden exam lies beyond the training data. The physics part of the score is measured there.",
+      "Torque ripple is measured as the size of the torque swing (peak to peak), so it stays well defined even near zero torque.",
+      "Why it's valuable: motor designers check torque and torque ripple with slow magnetic-field solves, one design at a time. A fast model that stays right as the iron saturates lets them search far more designs before building anything.",
+      "How it reaches for the state of the art: fast motor models are usually trusted only inside the range they were trained on. This version grades models on conditions beyond that range and on the design they help choose, which is where current tools are weakest."
      ]
     }
    ]
@@ -18,18 +23,15 @@
    "id": "chip-cold-plate",
    "next": [
     {
-     "version": "1.7",
-     "changes": [
-      "Leg minimums and the crown floor are set separately.",
-      "Accuracy is scored in range only until Cooling 1.8.",
-      "The check that your model's predicted value at its pick matches the real one is stricter. Honest predictions matter more."
-     ]
-    },
-    {
      "version": "1.8",
      "changes": [
-      "A broader hidden test set, with more out-of-range cases, placed where fits that only match the training data tend to fail.",
-      "Accuracy becomes the worse of in-range and out-of-range accuracy, so a model that is good only inside the training range is held to its out-of-range result. If the version's checks do not support this, a milder combination is used instead; the version's published score formula says which."
+      "The version planned for the mainnet launch.",
+      "The first Cooling version with exam cases outside the training range. How far they reach is not published.",
+      "The physics part of the score covers narrow hot spots, developing flow and fins that stop helping as they get taller.",
+      "A data kit lets you make your own training data with Carbon's solver and check it against Carbon's reference cases before you train on it.",
+      "After launch, Cooling 1.9 is planned to test more kinds of generalization.",
+      "Why it's valuable: cold plates for high-power chips are sized with slow conjugate heat-transfer solves, and the hottest spot on the die sets the limit. A fast model of that peak lets engineers try many channel and fin layouts in minutes.",
+      "How it reaches for the state of the art: quick cooling estimates handle average temperatures well but miss narrow hot spots and flow that is still developing. This version grades the peak temperature where those effects matter, including outside the training range."
      ]
     }
    ]
@@ -40,11 +42,12 @@
     {
      "version": "2.0",
      "changes": [
-      "Material choice becomes an input.",
-      "Its main output becomes a worst-case dynamic stress.",
-      "More out-of-range cases are planned, placed where fits that only match the training data tend to fail. The out-of-range region is not set yet.",
-      "Accuracy becomes the worse of in-range and out-of-range accuracy, so a model that is good only inside the training range is held to its out-of-range result. If the version's checks do not support this, a milder combination is used instead; the version's published score formula says which.",
-      "Design value is measured against the engineer's shortcut: zero means a pick no better than what a cheap shortcut method finds. If the dry run can't measure it, the current zero stays."
+      "One larger physics upgrade, joining mainnet after launch once it passes its checks. The current testnet Ribbed Bracket stays up meanwhile.",
+      "The bracket is shaken through its mounting while carrying a payload, so its response depends on resonance, not only on stiffness.",
+      "Graded outputs include the first natural frequency and the dynamic stress at the fillet, averaged over a small patch so the reference is stable.",
+      "The material is a choice among alloys with published properties.",
+      "Why it's valuable: brackets that carry equipment on vibrating structures in vehicles, aircraft and machinery fail from resonance and from stress concentrated at fillets. Each check normally needs a modal and a dynamic analysis.",
+      "How it reaches for the state of the art: fast structural models mostly predict stiffness and static stress. Predicting the response near resonance, where a small change in the design swings the stress, is the harder problem this version is built around."
      ]
     }
    ]
@@ -53,33 +56,58 @@
    "id": "f02",
    "next": [
     {
-     "version": "3.0",
+     "version": "3.2",
      "changes": [
-      "Materials whose properties change with temperature.",
-      "9 inputs, with the pulse shape as an input. The input ranges are still being finalised; we'll publish them with the version.",
-      "More out-of-range cases, placed where fits that only match the training data tend to fail.",
-      "Accuracy becomes the worse of in-range and out-of-range accuracy, so a model that is good only inside the training range is held to its out-of-range result. If the version's checks do not support this, a milder combination is used instead; the version's published score formula says which.",
-      "Design value is measured against the engineer's shortcut: zero means a pick no better than what a cheap shortcut method finds. If the dry run can't measure it, the current zero stays."
+      "Burst Thermal launches on mainnet with 3.2, after the other Challenges, once it passes its checks. Burst Thermal 3.0 and 3.1 will not open.",
+      "New in 3.2: the die is cooled by boiling. The heat transfer at the cooled face jumps when the liquid starts to boil and changes steeply with the local wall temperature, so part of the face can be boiling while the rest is not.",
+      "Carried over: materials whose properties change with temperature, and leakage power that rises with temperature, so a hot design can heat itself further.",
+      "The pulse shape is an input, and every design is checked against the peak temperature limit.",
+      "The time-above threshold and the boiling curve are published with the data kit, and the training set and the hidden exam use the same ones.",
+      "Why it's valuable: chips run in bursts, and the peak temperature during a burst decides throttling and lifetime. Two-phase cold plates are used for the hottest chips because boiling removes heat far better, but only while it lasts.",
+      "How it reaches for the state of the art: simple thermal models assume one fixed cooling coefficient. This version asks for models that learn where and when the face boils, together with self-heating, which a single lumped coefficient cannot capture."
      ]
     }
    ]
   }
  ],
  "every_version": [
-  "In Cooling 1.7 and every next version: design value scores the best of your model's top three design picks, and the honesty of all three is scored too.",
-  "Design value is balanced across the design space, so one area can't decide the result.",
-  "Practice data and the mining guide are updated with each version."
+  "Score: half physics, half design value. Gates come first: a failed gate means no score.",
+  "Physics: your model is scored on hidden cases outside the training data, grouped by kind (beyond the range, new combinations, regime changes, changed conditions, trends, changed requirements). Each kind counts equally, and each case is scored on your error in units of the reference uncertainty. Each version's page lists the kinds and outputs it scores.",
+  "Accuracy inside the training range is a gate: pass or fail, never points. Your model must clear it to be scored at all, but a smaller error there earns nothing extra.",
+  "Design value: Carbon's optimizer searches the design space using your model, and the design it ends on gets one real solve. The score is how good that real design is: zero means no better than an engineer's shortcut, the pick of a simple model built only from the training data, or the best design already in the training data.",
+  "The crown: where a version decides crowns on the rebuild average, a grade that would take the crown is rebuilt ten times on the validator's own private seeds. Every rebuild must pass, and the average must beat the king's average by the registered margin. An infrastructure failure is never meant to count against you (see Known issues).",
+  "On mainnet, official rebuilds and grading run on the validator's RTX 4090. For timings close to the grade, practise on a 4090-class GPU.",
+  "You see your total and status. Results per case or per part are not shown, and the hidden set rotates.",
+  "Data kits replace the shared practice banks: you generate your own data with Carbon's solver, and the training set is published as soon as it is frozen and checked, before the version opens."
  ],
  "fixes": [
-  "Check for result (check_result) could show your own graded Cooling catalog submission as not graded yet, or as another submission's result. It now finds a grade made on the validator's official GPU build. Update your install to get the fix."
+  "Check for result (check_result) could show your own graded Cooling catalog submission as not graded yet, or as another submission's result. It now finds a grade made on the validator's official GPU build. Update your install to get the fix.",
+  "Crowns stopped changing hands for several days after an exam key change, because the sitting kings were never regraded under the new key. Each king has been regraded and the affected submissions compared again under the normal rule. No one was charged.",
+  "A graded model that ran out of a limit on the validator showed as not graded yet. It now shows as a candidate failure, naming the step that failed and the limit it hit. Update your install to see it."
  ],
  "known_issues": [
-  "Some staged graph files were not carried across a recent receiver update; graded results are unaffected. If staging returns construction_source_idempotency_conflict, stage again without passing the expected manifest.",
+  "A submission waiting for the validator shows Refused: evaluation queued. Nothing was refused: it is queued. Don't submit again; the verdict appears when it is ready. The label is being changed, and a queue view is coming so you can see where you are in line.",
+  "Some re-queued submissions, free re-runs after a failure on our side, have waited much longer than they should. They are free and will be graded; you don't need to submit again.",
+  "A rebuild that runs out of time while the validator machine is busy can still count against the model. That is our fault, not yours, and it is being changed so such a run is retried. Until then, leave some headroom on time.",
   "A catalog practice runs on the CPU, even on a GPU machine: catalog entries have no GPU build yet. Start from your own graph to practise on the GPU.",
   "Close to a physics check, a practice that ran on the CPU can differ from the official grade, which always rebuilds your model on the validator's GPU.",
   "A 16 GB machine cannot run practice: Docker must see at least 17 GiB of memory."
  ],
  "faq": [
+  {
+   "q": "Does anything from testnet carry over to mainnet?",
+   "a": [
+    "No. Mainnet starts clean: registrations, scores, crowns and submissions all start fresh. Testnet results are rehearsal only.",
+    "Your wallet works on both networks, but you register again on mainnet."
+   ]
+  },
+  {
+   "q": "Can I use constants learned from the training set?",
+   "a": [
+    "Yes, inside the constants budget for the whole submission, with no trained starting weights: everything trainable trains from scratch in Carbon's rebuild.",
+    "A branch that looks up stored answers for training rows is not allowed: it would make Carbon's own checks report a table instead of your model, and it gains no exam score."
+   ]
+  },
   {
    "q": "Why does my result show no total?",
    "a": [
@@ -90,7 +118,7 @@
   {
    "q": "Can I compare my practice total with my official grade?",
    "a": [
-    "No. Practice runs on public practice cases; the official grade runs on hidden cases you never see. A practice total is never an exam score or grade."
+    "No. Practice runs on your own data and kit cases; the official grade runs on hidden cases you never see, many of them outside the training range. A practice total is never an exam score or grade."
    ]
   },
   {
@@ -98,14 +126,14 @@
    "a": [
     "Rank is the board's order: the leader first, then by exact score.",
     "An = before a rank means those hotkeys share that rank.",
-    "Totals are shown rounded down to the Ladder step.",
+    "Totals are shown rounded down to the Ladder step, so totals within one step show the same number.",
     "Failed a gate lists hotkeys whose latest result failed a mandatory gate. A hotkey with an earlier scored result keeps its rank on that best result; the failed result is not scored."
    ]
   },
   {
    "q": "What is the score to beat?",
    "a": [
-    "Beat the leader's score by the margin, passing every gate and minimum, to take the crown.",
+    "Beat the leader's score by the margin, passing every gate and minimum, to take the crown. Where crowns are decided on the rebuild average, the shown score to beat is a safe bar: above it, a takeover check is sure to start.",
     "With no leader yet, you need to beat Carbon's baseline by the margin."
    ]
   }
