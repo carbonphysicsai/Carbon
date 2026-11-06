@@ -203,6 +203,7 @@ def test_only_the_code_revision_may_move_on_one_state(root):
 LEGACY_PATH_USERS = {
     "carbon/challenge_validator/state_binding.py": "the one reader and writer",
     "scripts/dev/release/state_snapshot.py": "hard-link class list; content never read",
+    "scripts/dev/release/carbon_release.py": "expected first-start file name for pre-H1 revisions; never read",
 }
 
 
