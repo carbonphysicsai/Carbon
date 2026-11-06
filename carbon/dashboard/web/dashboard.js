@@ -768,7 +768,7 @@
     const k = board.king;
     const digits = places([k && k.value, l.to_beat, l.margin, l.baseline_total]);
     const above = aboveBar(board);
-    const gap = above.length ? stat("Above the score to beat", String(above.length), "crown checks pending")
+    const gap = above.length ? stat("Above the score to beat", String(above.length), "crown check pending or decided")
       : k && isNum(k.margin) ? (k.margin === 0 ? stat("Lead over the runner-up", "Same Ladder step", "The crown goes to the higher exact score (hidden) and needs the margin to change hands.")
       : k.margin < 0 ? null
       : stat("Lead over the runner-up", signed(k.margin, Math.min(digits, 3)), k.runner_up ? shortKey(k.runner_up) : null)) : null;
@@ -827,8 +827,8 @@
     const above = aboveBar(board);
     if (!above.length) return null;
     return section("crown-checks", {class: "block crown-checks", "aria-labelledby": "ck-title"},
-      h("div", {class: "block-head"}, h("h2", {id: "ck-title"}, "Crown checks pending")),
-      h("p", {class: "lede"}, above.length + " above the score to beat. Each needs a " + (board.launch.to_beat_rule ? "rebuild-average " : "") + "crown check; the king holds until one passes."));
+      h("div", {class: "block-head"}, h("h2", {id: "ck-title"}, "Above the score to beat")),
+      h("p", {class: "lede"}, above.length + " above the score to beat. Each gets a " + (board.launch.to_beat_rule ? "rebuild-average " : "") + "crown check, pending or decided; the king keeps the crown unless one passes."));
   }
   function lastCrown(board) {
     const list = board.launch && board.launch.crown_changes;
@@ -948,7 +948,7 @@
   function homeStatus(board) {
     const above = aboveBar(board).length;
     const bits = [
-      above ? above + " above the bar: crown " + (above === 1 ? "check" : "checks") + " pending" : null,
+      above ? above + " above the bar: crown check pending or decided" : null,
       board.launch.king_stability === "UNSTABLE" ? "king's score varied between rebuilds" : null,
       lastCrown(board),
       board.freshness && isNum(board.freshness.age_seconds) ? "updated " + span(board.freshness.age_seconds) + " ago" : null,
