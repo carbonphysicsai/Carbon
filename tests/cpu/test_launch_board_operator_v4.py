@@ -74,7 +74,7 @@ def test_a_measured_king_and_a_decided_check(tmp_path, request):
     def prepare(store):
         store.record_crown_average("m-king", EXAM, {"mean": 0.7})
         store.record_crown_decision(
-            "m-other", EXAM, "INCUMBENT_KEEPS", "mean_within_margin"
+            "m-other", EXAM, "INCUMBENT_KEEPS", "mean_within_margin_or_tie"
         )
 
     board = _v4(tmp_path, the_door, prepare)
@@ -86,11 +86,14 @@ def test_a_measured_king_and_a_decided_check(tmp_path, request):
             "hotkey": OTHER,
             "state": "DECIDED",
             "outcome": "INCUMBENT_KEEPS",
-            "reason": "mean_within_margin",
+            "note": "the king keeps the crown",
         }
     ]
     text = json.dumps(board)
     assert '"mean"' not in text  # the mean never leaves
+    assert (
+        "within_margin" not in text and "reason" not in text
+    )  # the raw code never leaves
     assert "m-other" not in text and "m-king" not in text  # submission ids never leave
 
 
@@ -102,7 +105,9 @@ def test_a_king_mid_re_measure_shows_its_progress_and_no_stability(tmp_path, req
         for seed in (11, 12, 13):
             store.record_crown_rebuild("m-king", EXAM, seed, False, {"total": 0.6})
         store.record_crown_rebuild("m-king", EXAM, 11, True, {"total": 0.6})
-        store.record_crown_decision("m-other", EXAM, "UNAVAILABLE", "king_unmeasured")
+        store.record_crown_decision(
+            "m-other", EXAM, "UNAVAILABLE", "crown_average_king_unmeasured"
+        )
 
     board = _v4(tmp_path, the_door, prepare)
     n = board["king"]["measure"]["n"]

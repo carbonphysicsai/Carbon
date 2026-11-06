@@ -223,13 +223,13 @@ def _variants(signer, boards):
             "hotkey": OTHER,
             "state": "DECIDED",
             "outcome": "INCUMBENT_KEEPS",
-            "reason": "mean_within_margin",
+            "note": "the king keeps the crown",
         },
         {
             "hotkey": THIRD,
             "state": "PENDING",
             "outcome": "UNAVAILABLE",
-            "reason": "king_unmeasured",
+            "note": "waiting for the king's re-measure",
         },
     ]
 
@@ -268,7 +268,13 @@ def _variants(signer, boards):
     v4("v4_measure_with_mean", "STABLE", {**measured, "mean": 0.7}, checks)
     v4("v4_pending_decided", "STABLE", measured, [{**checks[0], "state": "PENDING"}])
     v4("v4_bad_outcome", "STABLE", measured, [{**checks[0], "outcome": "CROWNED"}])
-    v4("v4_bad_reason", "STABLE", measured, [{**checks[0], "reason": "Has Spaces"}])
+    v4("v4_bad_reason", "STABLE", measured, [{**checks[0], "note": "Has Spaces"}])
+    v4(
+        "v4_raw_reason",
+        "STABLE",
+        measured,
+        [{**checks[0], "reason": "mean_within_margin_or_tie"}],
+    )
     v4("v4_check_extra_key", "STABLE", measured, [{**checks[0], "seed": 3}])
     v4("v4_duplicate_check", "STABLE", measured, [checks[0], checks[0]])
     v4(
@@ -330,6 +336,7 @@ def test_worker_matches_launch_py_on_every_board_and_refusal(tmp_path):
         "v4_pending_decided",
         "v4_bad_outcome",
         "v4_bad_reason",
+        "v4_raw_reason",
         "v4_check_extra_key",
         "v4_duplicate_check",
         "v4_signed_under_v3_domain",

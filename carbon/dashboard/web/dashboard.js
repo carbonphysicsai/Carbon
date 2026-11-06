@@ -837,8 +837,7 @@
       h("p", {class: "hint"}, list.length ? pending + " pending, " + (list.length - pending) + " decided (latest per challenger). The king keeps the crown unless a check passes." : "No crown check yet."),
       list.length ? h("ol", {class: "cc-list"}, list.map(c => h("li", null,
         h("a", {href: minerHref(board.slug, c.hotkey), class: "key", title: c.hotkey}, shortKey(c.hotkey)),
-        " " + (c.state === "PENDING" ? "pending" : words(c.outcome)),
-        c.reason ? h("span", {class: "hint"}, " · " + words(c.reason)) : null))) : null);
+        " " + (typeof c.note === "string" ? c.note : c.state === "PENDING" ? "pending" : words(c.outcome))))) : null);
   }
   function crownCheckBlock(board) {
     if (Array.isArray(board.launch.crown_checks)) return checksBlock(board);

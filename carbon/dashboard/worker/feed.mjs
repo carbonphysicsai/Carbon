@@ -31,7 +31,12 @@ const LAUNCH_MEASURE_STATES = ["MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURE
 const LAUNCH_DECIDED = ["FIRST_INCUMBENT", "CHALLENGER", "INCUMBENT_KEEPS", "NO_WINNER", "INCUMBENT_DETHRONED"];
 const LAUNCH_CHECK_OUTCOMES = [...LAUNCH_DECIDED, "UNAVAILABLE", "FAILED_INFRA"];
 const LAUNCH_MAX_CROWN_CHECKS = 10;
-const LAUNCH_REASON = /^[a-z][a-z0-9_]{0,63}(:[a-z0-9_]{1,63})?$/u;
+// the closed public phrases per outcome (held equal to launch_board.NOTES)
+const LAUNCH_NOTES = {
+  CHALLENGER: ["took the crown"], FIRST_INCUMBENT: ["took the first crown"], INCUMBENT_DETHRONED: ["king removed"],
+  INCUMBENT_KEEPS: ["the king keeps the crown"], NO_WINNER: ["no crown change"],
+  FAILED_INFRA: ["retrying after an infrastructure fault"], UNAVAILABLE: ["waiting for the king's re-measure", "queued", "pending"],
+};
 const LAUNCH_MAX_CROWN_CHANGES = 5;
 const LAUNCH_CROWN_FIELDS = ["from_hotkey", "since_epoch", "to_hotkey", "total"];
 export const FIXTURE_PUBLIC_KEY = "d55fec2a82d5280786d8282263c8f324f43166eb036d38fb64bce7469d742cc8";
@@ -651,10 +656,10 @@ function launchCrownChecks(checks) {
   if (!Array.isArray(checks) || checks.length > LAUNCH_MAX_CROWN_CHECKS) throw new FeedRefused("crown_checks_invalid");
   const seen = new Set();
   for (const c of checks) {
-    if (!sameKeys(c, ["hotkey", "outcome", "reason", "state"]) || typeof c.hotkey !== "string" || !LAUNCH_SS58.test(c.hotkey)
+    if (!sameKeys(c, ["hotkey", "note", "outcome", "state"]) || typeof c.hotkey !== "string" || !LAUNCH_SS58.test(c.hotkey)
         || seen.has(c.hotkey) || !LAUNCH_CHECK_OUTCOMES.includes(c.outcome)
         || c.state !== (LAUNCH_DECIDED.includes(c.outcome) ? "DECIDED" : "PENDING")
-        || !(c.reason === null || (typeof c.reason === "string" && LAUNCH_REASON.test(c.reason)))) throw new FeedRefused("crown_checks_invalid");
+        || !LAUNCH_NOTES[c.outcome].includes(c.note)) throw new FeedRefused("crown_checks_invalid");
     seen.add(c.hotkey);
   }
 }
@@ -786,7 +791,7 @@ async function projectLaunch(document, pinned) {
       gate_names: gateNames,
       king_stability: v3 ? king.stability : null,
       king_measure: v4 && king.measure !== null ? {state: king.measure.state, kept: king.measure.kept.value, n: king.measure.n.value} : null,
-      crown_checks: v4 ? document.crown_checks.map(c => ({hotkey: c.hotkey, state: c.state, outcome: c.outcome, reason: c.reason})) : null,
+      crown_checks: v4 ? document.crown_checks.map(c => ({hotkey: c.hotkey, state: c.state, outcome: c.outcome, note: c.note})) : null,
       to_beat_rule: v2 ? king.to_beat_rule : null,
       crown_changes: v2 ? document.crown_changes.map(c => ({
         hotkey: c.to_hotkey, from_hotkey: c.from_hotkey, since_epoch: c.since_epoch.value, total: c.total.value,

@@ -60,7 +60,16 @@ DECIDED_OUTCOMES = (
 )
 CHECK_OUTCOMES = (*DECIDED_OUTCOMES, "UNAVAILABLE", "FAILED_INFRA")
 MAX_CROWN_CHECKS = 10
-_REASON = re.compile(r"[a-z][a-z0-9_]{0,63}(:[a-z0-9_]{1,63})?")
+# the closed public phrases per outcome (held equal to launch_board.NOTES)
+NOTES = {
+    "CHALLENGER": ("took the crown",),
+    "FIRST_INCUMBENT": ("took the first crown",),
+    "INCUMBENT_DETHRONED": ("king removed",),
+    "INCUMBENT_KEEPS": ("the king keeps the crown",),
+    "NO_WINNER": ("no crown change",),
+    "FAILED_INFRA": ("retrying after an infrastructure fault",),
+    "UNAVAILABLE": ("waiting for the king's re-measure", "queued", "pending"),
+}
 SCHEMAS = {
     SCHEMA: DOMAIN,
     SCHEMA_V2: DOMAIN_V2,
@@ -230,17 +239,14 @@ def _crown_checks(checks):
     for entry in checks:
         if (
             type(entry) is not dict
-            or set(entry) != {"hotkey", "state", "outcome", "reason"}
+            or set(entry) != {"hotkey", "state", "outcome", "note"}
             or type(entry["hotkey"]) is not str
             or not _SS58.fullmatch(entry["hotkey"])
             or entry["hotkey"] in seen
             or entry["outcome"] not in CHECK_OUTCOMES
             or entry["state"]
             != ("DECIDED" if entry["outcome"] in DECIDED_OUTCOMES else "PENDING")
-            or not (
-                entry["reason"] is None
-                or (type(entry["reason"]) is str and _REASON.fullmatch(entry["reason"]))
-            )
+            or entry["note"] not in NOTES[entry["outcome"]]
         ):
             raise LaunchRefused("crown_checks_invalid")
         seen.add(entry["hotkey"])

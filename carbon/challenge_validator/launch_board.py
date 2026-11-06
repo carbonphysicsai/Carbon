@@ -98,7 +98,49 @@ DECIDED_OUTCOMES = (
 )
 CHECK_OUTCOMES = (*DECIDED_OUTCOMES, "UNAVAILABLE", "FAILED_INFRA")
 CHECK_STATES = ("PENDING", "DECIDED")
-CHECK_FIELDS = frozenset({"hotkey", "state", "outcome", "reason"})
+CHECK_FIELDS = frozenset({"hotkey", "state", "outcome", "note"})
+#: The PUBLIC phrase of a crown check (Validator-2 5 Nov 22:10): a closed map from the internal outcome and reason, never
+#: the raw reason code. No near / far distinction (every INCUMBENT_KEEPS reads the same) and no gate or stability name.
+#: Unknown reasons read "pending". Its content is the Carbon Validator's receipt.
+NOTE_TOOK = "took the crown"
+NOTE_FIRST = "took the first crown"
+NOTE_REMOVED = "king removed"
+NOTE_KEEPS = "the king keeps the crown"
+NOTE_NO_CHANGE = "no crown change"
+NOTE_WAIT_KING = "waiting for the king's re-measure"
+NOTE_QUEUED = "queued"
+NOTE_RETRY = "retrying after an infrastructure fault"
+NOTE_PENDING = "pending"
+NOTES = {
+    "CHALLENGER": (NOTE_TOOK,),
+    "FIRST_INCUMBENT": (NOTE_FIRST,),
+    "INCUMBENT_DETHRONED": (NOTE_REMOVED,),
+    "INCUMBENT_KEEPS": (NOTE_KEEPS,),
+    "NO_WINNER": (NOTE_NO_CHANGE,),
+    "FAILED_INFRA": (NOTE_RETRY,),
+    "UNAVAILABLE": (NOTE_WAIT_KING, NOTE_QUEUED, NOTE_PENDING),
+}
+#: The internal UNAVAILABLE reasons that have their own phrase (crown_average.KING_UNMEASURED, bank_promotion.CROWNS_PAUSED /
+#: CROWN_QUEUED, written out so this module imports neither); every other reason is "pending".
+_WAIT_KING_REASONS = ("crown_average_king_unmeasured",)
+_QUEUED_REASONS = ("crowns_paused", "queued_behind_undecided_crown")
+
+
+def public_note(outcome, reason):
+    """The public phrase of a crown check's ``outcome`` and internal ``reason`` (`NOTES`), or None for an outcome outside
+    `CHECK_OUTCOMES`. The reason only picks between the UNAVAILABLE phrases; it is never published.
+    """
+    if outcome not in NOTES:
+        return None
+    if outcome != "UNAVAILABLE":
+        return NOTES[outcome][0]
+    if reason in _WAIT_KING_REASONS:
+        return NOTE_WAIT_KING
+    if reason in _QUEUED_REASONS:
+        return NOTE_QUEUED
+    return NOTE_PENDING
+
+
 #: A board shows at most this many crown checks, newest first.
 MAX_CROWN_CHECKS = 10
 CONFIG_SCHEMA = "carbon.validator.launch-board.config.v1"
@@ -127,7 +169,6 @@ KING_SECTION_V2 = (*KING_SECTION, "to_beat_rule")
 KING_SECTION_V3 = (*KING_SECTION_V2, "stability")
 KING_SECTION_V4 = (*KING_SECTION_V3, "measure")
 FIELDS_V4 = FIELDS_V2 | {"crown_checks"}
-_REASON = re.compile(r"[a-z][a-z0-9_]{0,63}(:[a-z0-9_]{1,63})?")
 #: A board shows at most this many changes of king, newest first.
 MAX_CROWN_CHANGES = 5
 CROWN_CHANGE_FIELDS = frozenset({"from_hotkey", "to_hotkey", "since_epoch", "total"})
@@ -296,7 +337,7 @@ def measure_checked(measure, *, king):
 
 def crown_checks_checked(checks):
     """The closed ``crown_checks`` list (at most `MAX_CROWN_CHECKS`; hotkeys distinct; an outcome in `CHECK_OUTCOMES`
-    whose state follows from it; a reason code or None) or `BoardRefused` ("board_crown_checks").
+    whose state follows from it; a public note from that outcome's `NOTES`) or `BoardRefused` ("board_crown_checks").
     """
     if type(checks) is not list or len(checks) > MAX_CROWN_CHECKS:
         raise BoardRefused("board_crown_checks")
@@ -311,17 +352,11 @@ def crown_checks_checked(checks):
             or check_["outcome"] not in CHECK_OUTCOMES
             or check_["state"]
             != ("DECIDED" if check_["outcome"] in DECIDED_OUTCOMES else "PENDING")
-            or not (
-                check_["reason"] is None
-                or (
-                    type(check_["reason"]) is str
-                    and _REASON.fullmatch(check_["reason"])
-                )
-            )
+            or check_["note"] not in NOTES[check_["outcome"]]
         ):
             raise BoardRefused("board_crown_checks")
         seen.add(check_["hotkey"])
-        out.append({k: check_[k] for k in ("hotkey", "state", "outcome", "reason")})
+        out.append({k: check_[k] for k in ("hotkey", "state", "outcome", "note")})
     return out
 
 

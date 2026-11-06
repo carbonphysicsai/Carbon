@@ -379,21 +379,18 @@ def king_measure(config, item, king_document):
 
 def crown_checks(config, item):
     """The v4 board's ``crown_checks``: the latest crown decision per contender, newest first (`PoolStore.crown_decisions`),
-    as hotkey + state + outcome + reason codes. A contender without an admitted hotkey (a derived, host-owned row) or with
-    an outcome outside the board's closed set is left out, never partly shown."""
+    as hotkey + state + outcome + the PUBLIC note (`launch_board.public_note`; the internal reason code never leaves). A
+    contender without an admitted hotkey (a derived, host-owned row) or with an outcome outside the board's closed set is
+    left out, never partly shown."""
     if not os.path.lexists(item["pool_store"]):
         return []
     store = ReadOnlyPoolStore(item["pool_store"])
     out, seen = [], set()
     for record in store.crown_decisions(limit=4 * launch_board.MAX_CROWN_CHECKS):
         hotkey = store.submission_hotkey(record["submission_id"])
-        outcome, reason = record["outcome"], record["reason"]
-        if (
-            hotkey is None
-            or hotkey in seen
-            or outcome not in launch_board.CHECK_OUTCOMES
-            or not (reason is None or launch_board._REASON.fullmatch(str(reason)))
-        ):
+        outcome = record["outcome"]
+        note = launch_board.public_note(outcome, record["reason"])
+        if hotkey is None or hotkey in seen or note is None:
             continue
         seen.add(hotkey)
         out.append(
@@ -403,7 +400,7 @@ def crown_checks(config, item):
                     "DECIDED" if outcome in launch_board.DECIDED_OUTCOMES else "PENDING"
                 ),
                 "outcome": outcome,
-                "reason": reason,
+                "note": note,
             }
         )
         if len(out) >= launch_board.MAX_CROWN_CHECKS:
