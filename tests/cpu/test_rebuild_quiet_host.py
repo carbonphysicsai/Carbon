@@ -537,3 +537,37 @@ def test_host_quiet_is_a_registered_grading_path():
     from carbon.challenge_validator import direct_receiver
 
     assert "carbon/challenge_validator/host_quiet.py" in direct_receiver.GRADING_PATHS
+
+
+@pytest.mark.parametrize("in_loop", [False, True])
+def test_no_artifact_directory_never_raises_and_adds_no_argument(monkeypatch, in_loop):
+    """gate383: with ``artifact_directory=None`` (a custody-source rebuild) rebuild_at_seed computes no marks path and
+    passes _derived_build exactly the arguments it had on main, in or out of the grading loop.
+    """
+    import contextlib
+
+    seen = []
+
+    def build(adapter_, origin, seed, *, rebuild, host_owner, **source):
+        seen.append(source)
+        return "rtsk_" + "d" * 64
+
+    monkeypatch.setattr(retention, "_derived_build", build)
+    monkeypatch.setattr(
+        retention, "retain_rebuild_evidence", lambda *a, **k: {"ok": True}
+    )
+    adapter = SimpleNamespace(deriving=lambda task, owner: contextlib.nullcontext())
+    token = _activate(False, 2, 1) if in_loop else None
+    try:
+        result = retention.rebuild_at_seed(
+            adapter,
+            ORIGIN,
+            7,
+            host_owner="host",
+            artifact_directory=None,
+            entry_directory=None,
+        )
+    finally:
+        if token is not None:
+            host_quiet.deactivate(token)
+    assert result == {"ok": True} and seen == [{}]
