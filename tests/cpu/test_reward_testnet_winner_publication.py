@@ -895,6 +895,7 @@ def test_a_preview_reads_the_published_epochs_from_the_loops_real_journal(tmp_pa
     issuer, backend, challenge = _replaying(tmp_path, store, v4)
     issuer.issue(_at(backend, 925))
     store.crown("m2", "owner-hotkey", previous="m1", at=11.2)
+    (tmp_path / "scratch").mkdir()
     scratch, _, _ = _replaying(tmp_path / "scratch", store, v4)
     scratch.ledger = issuer.ledger
     scratch.intent_journal = tmp_path / "publication.sqlite3"
