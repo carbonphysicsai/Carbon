@@ -96,6 +96,9 @@ COUNTED = frozenset(
         # The candidate's graph hit the inference wall twice in the official grade's pair
         # (Validator ruling, 2026-11-01): typed, unscored, charged.
         "WORKER_WALL_LIMIT_REACHED",
+        # A copy of a recipe already graded on this key (OWNER-PROBING-COUNTERS-01 (b), `recipe_copies`): no exam read,
+        # answered with the first copy's grade, its slot charged to its own allowance (Validator 11:03 (3)).
+        "DUPLICATE_OF_EARLIER",
     }
 )
 #: The outcomes that give the slot back.

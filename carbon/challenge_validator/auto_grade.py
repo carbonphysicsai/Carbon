@@ -83,6 +83,17 @@ class AutoGrader:
         self.activity = None
         for directory in (self.artifacts, self.entries, self.markers, self.failures):
             directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if pool_store is not None and hasattr(intake.adapter.ledger, "_db"):
+            # OWNER-PROBING-COUNTERS-01 (b) is not retroactive: every submission already admitted when this grader
+            # starts after the release is outside the copy rule (`recipe_copies.activate`, first start wins).
+            from . import recipe_copies
+
+            adapter = intake.adapter
+            recipe_copies.activate(
+                adapter.ledger,
+                adapter.contract_digest,
+                adapter.ledger.submitted_outcomes(adapter.contract_digest),
+            )
 
     def _marker(self, submission_id):
         return self.markers / (submission_id + ".json")
@@ -237,6 +248,13 @@ class AutoGrader:
             self.activity = None
         self._resume_paused_crowns()
         for submission_id in self.pending():
+            copy = self._copy_decision(submission_id)
+            if copy is not None:
+                decision, first = copy
+                if decision == "wait":
+                    continue  # an earlier identical recipe is still unsettled on this key: retried next round
+                if decision == "copy":
+                    return self._grade_copy(submission_id, first)
             sampler = _Sampler(
                 self.containers, self.sample_seconds, getattr(self, "gpu", None)
             )
@@ -326,6 +344,76 @@ class AutoGrader:
             )
             return submission_id, "GRADED"
         return None
+
+    def _exam_key(self):
+        snapshot = getattr(
+            getattr(self.intake.adapter, "discovery", None),
+            "evaluation_pack_snapshot",
+            None,
+        )
+        return getattr(snapshot, "manifest_digest", None)
+
+    def _copy_decision(self, submission_id):
+        """OWNER-PROBING-COUNTERS-01 (b) (`recipe_copies.decide`): ``(grade | wait | copy, first)``, or None where the
+        rule does not apply (no pool, or no pack: nothing is graded on a key)."""
+        from . import recipe_copies
+
+        ledger = getattr(getattr(self.intake, "adapter", None), "ledger", None)
+        if getattr(self, "pool_store", None) is None or not hasattr(ledger, "_db"):
+            return None
+        exam_key = self._exam_key()
+        if exam_key is None:
+            return None
+        return recipe_copies.decide(
+            adapter=self.intake.adapter,
+            ledger=self.intake.adapter.ledger,
+            marker=self.marker,
+            submission_id=submission_id,
+            challenge_id=self.intake.challenge.challenge_id,
+            challenge_version=self.intake.challenge.version,
+            exam_key=exam_key,
+        )
+
+    def _grade_copy(self, submission_id, first):
+        """A copy of ``first``, already graded on this key: no exam read; its own slot is counted against its own
+        allowance (a refusal is answered as any grade's refusal), the copy recorded, its marker DUPLICATE.
+        """
+        from . import exam_cap, recipe_copies
+
+        adapter = self.intake.adapter
+        challenge = self.intake.challenge
+        exam_key = self._exam_key()
+        cap = exam_cap.ExamCap(
+            adapter.ledger, cadence=getattr(adapter, "exam_cadence", None)
+        )
+        try:
+            reservation = cap.reserve(
+                hotkey=adapter.owner(submission_id),
+                challenge_id=challenge.challenge_id,
+                challenge_version=challenge.version,
+                exam_key=exam_key,
+                submission_id=submission_id,
+                block=exam_cap.submission_block(
+                    adapter.ledger, adapter.contract_digest, submission_id
+                ),
+            )
+        except exam_cap.ExamCapRefused as refused:
+            self._write(submission_id, "GRADED", code=refused.code)
+            return submission_id, "GRADED"
+        cap.settle(reservation, recipe_copies.DUPLICATE)
+        recipe_copies.record_copy(
+            adapter.ledger,
+            submission_id=submission_id,
+            first_id=first,
+            challenge_id=challenge.challenge_id,
+            challenge_version=challenge.version,
+            exam_key=exam_key,
+            recipe_digest_value=recipe_copies.stored_digest(
+                adapter.ledger, submission_id
+            ),
+        )
+        self._write(submission_id, "DUPLICATE", code=recipe_copies.DUPLICATE)
+        return submission_id, "DUPLICATE"
 
     def _king_upkeep(self):
         """Keep the king comparable on this door's current exam before anything is decided (`king_upkeep`): his

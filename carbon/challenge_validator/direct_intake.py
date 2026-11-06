@@ -568,6 +568,10 @@ class DirectRecipeIntake(BatteryIntake):
             return ("FAILED_INFRA" if state == "FAILED_INFRA" else "QUEUED"), None
         if marker.get("state") == "CANDIDATE_FAILED":
             return "CANDIDATE_FAILED", self.failure_v4("inference", marker.get("code"))
+        if marker.get("state") == "DUPLICATE":
+            # A copy of a recipe already graded on this key (OWNER-PROBING-COUNTERS-01 (b)): it has no grade of its own.
+            # v4 has no duplicate state; the labelled answer (the first copy's result) is a later feedback version.
+            return "NOT_GRADED", None
         if marker.get("state") == "FAILED":
             return "FAILED_INFRA", None
         state = self._grade_state(hotkey, submission_id)
