@@ -23,12 +23,14 @@ science) 5 Nov 18:13): for every NEW version, rules 2 and 3 are met ONLY in thei
 with that version's OWN owner record choosing it (the waiver form above). Both new forms also need the batch record in
 ``.agent/decisions`` (until it lands on main they fail closed: no stale pass, no new pass):
 
-2'. ``engineer_shortcut_d_zero``: the zero is the FIXED-OPTIMIZER zero, owner D6: "Prove fixed-optimizer design value
-    first: ~10 solves per version on custody hosts, fit vs physics-informed model; build only where it separates"
-    (``optimizer.d_zero.kind`` = ``fixed_optimizer``), with its design-value proof pointer
-    (``optimizer.d_zero.dv_proof_sha256``, 64 hex: the D6 fixed-optimizer or D9 adjacent-task proof, custody-resolved by
-    the Validator's receipt); the region classes stay graded on their own (``d_aggregate`` = ``balanced_region_mean`` and
-    a registered coverage plan). No D scored = that version's own owner record.
+2'. ``engineer_shortcut_d_zero``: the zero stays the owner's ENGINEER SHORTCUT at his budget B
+    (OWNER-DESIGN-VALUE-ENGINEER-BASELINE-01; ``optimizer.d_zero.kind`` = ``engineer_shortcut``), and D is built only
+    where it separates (owner D6: "Prove fixed-optimizer design value first: ~10 solves per version on custody hosts, fit
+    vs physics-informed model; build only where it separates"): its design-value proof pointer
+    (``optimizer.d_zero.dv_proof_sha256``, 64 hex, the D6 or D9 adjacent-task proof, custody-resolved by the Validator's
+    receipt) is required; the region classes stay graded on their own (``d_aggregate`` = ``balanced_region_mean`` and a
+    registered coverage plan). A fixed-optimizer zero is an open owner question (Sat 7): only with that version's OWN
+    owner record. No D scored = that version's own owner record.
 3'. ``ood_min_accuracy``: the generalization battery, owner A10: "Physics scoring: score only classes/outputs where the
     fit loses. Outside the training data"; A11: "In-range accuracy is a gate, threshold from the curves"; A13 (each family
     scored only where the fit loses, surviving families weighted equally); A14 (the gate records full aggregates). The
@@ -39,7 +41,7 @@ with that version's OWN owner record choosing it (the waiver form above). Both n
     call, like no D), and the weekly fresh-draw SE is built (``physics_se_not_built`` is a launch blocker).
 
 The fit-breaker intent is unchanged: a fit scores nothing from in-range accuracy, A counts only cells the fit loses, and
-D's zero is the fit-driven optimum.
+D is scored only where a proof shows it separates, above the engineer-shortcut zero.
 
 A rule is ON when its switch is registered; its owner values may still be HUMAN_INPUT (the grade then refuses, fail
 closed). A new version that is not graded on the pool path at all fails every rule unless waived. The versions that
@@ -150,7 +152,7 @@ def _rule_state(rule, entry, decisions, grader):
         proof = zero.get("dv_proof_sha256") if type(zero) is dict else None
         on = (
             type(zero) is dict
-            and zero.get("kind") == "fixed_optimizer"
+            and zero.get("kind") == "engineer_shortcut"
             and type(proof) is str
             and bool(_HEX64.fullmatch(proof))
             and optimizer.get("d_aggregate") == "balanced_region_mean"
@@ -303,7 +305,11 @@ def _all_on():
     return {
         "optimizer": {
             "budget": "HUMAN_INPUT",
-            "d_zero": {"kind": "fixed_optimizer", "dv_proof_sha256": "d6" * 32},
+            "d_zero": {
+                "kind": "engineer_shortcut",
+                "budget": "HUMAN_INPUT",
+                "dv_proof_sha256": "d6" * 32,
+            },
             "d_aggregate": "balanced_region_mean",
             "coverage_plan_sha256": "ab" * 32,
             "variant_rule": {"kind": "limit_shift", "limits": ["HUMAN_INPUT"]},
@@ -463,6 +469,22 @@ def test_no_d_scored_needs_the_versions_own_record(tmp_path):
     _record(tmp_path, "OWNER-MOTOR-17-NO-D-01")
     entry["fit_breaker"]["waivers"] = {
         "engineer_shortcut_d_zero": "OWNER-MOTOR-17-NO-D-01"
+    }
+    assert _check(entry, tmp_path) == []
+
+
+def test_a_fixed_optimizer_zero_needs_the_versions_own_record(tmp_path):
+    """Validator 18:2x: the owner's zero on record is the engineer shortcut; a fixed-optimizer zero is an open Sat 7
+    question, so it passes only with that version's own owner record."""
+    entry = _all_on()
+    entry["optimizer"]["d_zero"] = {
+        "kind": "fixed_optimizer",
+        "dv_proof_sha256": "d6" * 32,
+    }
+    assert _check(entry, tmp_path) == [(*NEW, "engineer_shortcut_d_zero", "rule_off")]
+    _record(tmp_path, "OWNER-MOTOR-17-FIXED-OPTIMIZER-ZERO-01")
+    entry["fit_breaker"]["waivers"] = {
+        "engineer_shortcut_d_zero": "OWNER-MOTOR-17-FIXED-OPTIMIZER-ZERO-01"
     }
     assert _check(entry, tmp_path) == []
 
