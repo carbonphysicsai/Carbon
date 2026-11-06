@@ -3612,8 +3612,18 @@ def rebuild_at_seed(
     """
     from carbon.challenge_validator import crown_average, host_quiet
 
-    marks = Path(artifact_directory).parent / host_quiet.MARKS_DIR
     probe = host_quiet.start()
+    # outside the grading loop (no probe) the call is exactly as before: no marks, no extra argument
+    marks = (
+        Path(artifact_directory).parent / host_quiet.MARKS_DIR
+        if probe is not None and artifact_directory is not None
+        else None
+    )
+    extra = (
+        {"contended": lambda tid: host_quiet.is_contended(marks, tid)}
+        if marks is not None
+        else {}
+    )
     task_id = None
     try:
         task_id = _derived_build(
@@ -3622,7 +3632,7 @@ def rebuild_at_seed(
             seed,
             rebuild=f"{origin}\0{seed}\0{repeat}",
             host_owner=host_owner,
-            contended=lambda tid: host_quiet.is_contended(marks, tid),
+            **extra,
             **(source or {}),
         )
         with adapter.deriving(task_id, host_owner):
@@ -3642,7 +3652,13 @@ def rebuild_at_seed(
             and getattr(failed, "built_here", False)
             and _wall_stopped_build(adapter, failed_task, host_owner)
         ) or code == "rebuild_grade_" + CANDIDATE_WALL_LIMIT_REACHED
-        if verdict is not None and not verdict.quiet and ran and failed_task:
+        if (
+            marks is not None
+            and verdict is not None
+            and not verdict.quiet
+            and ran
+            and failed_task
+        ):
             try:
                 host_quiet.mark_contended(
                     marks, failed_task, verdict, reason=code, path="crown_rebuild"
