@@ -419,3 +419,44 @@ def test_the_real_store_lists_the_marks_a_crown_filed(tmp_path):
     assert store.repeat_marks("m2") == [digest("key-1"), digest("key-2")]
     assert store.repeat_marks("m1") == [digest("key-1")]
     assert store.repeat_marks("other") == []
+
+
+def test_the_real_store_replays_every_crown_since_the_recorded_king(tmp_path):
+    """`lean_crowns_since` reads the door's own incumbent events in sequence order (6 Nov: two RB crowns inside one
+    weights cycle), each with the event that crowned it; a withdrawn crown is no king, and a king the journal never held
+    refuses."""
+    store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: 0.0)
+    for model, hotkey in (("m1", "hk-a"), ("m2", "hk-b"), ("m3", "hk-b")):
+        store.admit(
+            model,
+            request_digest=digest(["request", model]),
+            hotkey=hotkey,
+            challenge="electric-motor-magnetics",
+            strategy={},
+            binding={"challenge": {"id": "electric-motor-magnetics"}},
+        )
+    sealed = we.SEALED_TESTNET_REASON
+    store.set_incumbent("m1", sealed)
+    store.set_incumbent("m2", sealed, expected="m1")
+    store.set_incumbent("m3", sealed, expected="m2")
+    crowns = we.lean_crowns_since(store, "m1")
+    assert [
+        (
+            c["promotion"]["model_id"],
+            c["promotion"]["previous"],
+            c["promotion"]["hotkey"],
+            c["promotion"]["kind"],
+        )
+        for c in crowns
+    ] == [("m2", "m1", "hk-b", we.BANK), ("m3", "m2", "hk-b", we.BANK)]
+    assert crowns[-1]["promotion"] == we.lean_promotion(store)
+    sequences = [c["journal"]["sequence"] for c in crowns]
+    crowned = [e["sequence"] for e in store.events("incumbent")]
+    assert sequences == crowned[1:] and sequences == sorted(sequences)
+    assert all(c["journal"]["event_digest"].startswith("sha256:") for c in crowns)
+    assert crowns[0]["journal"]["event_digest"] != crowns[1]["journal"]["event_digest"]
+    assert [c["promotion"] for c in we.lean_crowns_since(store, "m3")] == [
+        we.lean_promotion(store)
+    ]
+    with pytest.raises(we.RewardFailure, match="PREDECESSOR_NOT_IN_DOOR_JOURNAL"):
+        we.lean_crowns_since(store, "never-crowned")

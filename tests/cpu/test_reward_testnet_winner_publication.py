@@ -498,7 +498,13 @@ class _LeanStore:
 
     def crown(self, model, hotkey, previous=None):
         self.models[model] = {"hotkey": hotkey, "binding": {}}
-        self._events.append({"model_id": model, "previous": previous})
+        self._events.append(
+            {
+                "model_id": model,
+                "previous": previous,
+                "reason": "bank_comparison_sealed_testnet",
+            }
+        )
         self._incumbent = {
             "model_id": model,
             "reason": "bank_comparison_sealed_testnet",
@@ -508,7 +514,7 @@ class _LeanStore:
         return self._incumbent
 
     def events(self, kind=None):
-        return [{"body": body} for body in self._events]
+        return [{"sequence": n, "body": body} for n, body in enumerate(self._events, 1)]
 
     def submission(self, model_id):
         return self.models[model_id]
@@ -612,3 +618,183 @@ def test_the_first_crown_path_is_unchanged(tmp_path):
         True,
         "first_incumbent_no_baseline",
     )
+
+
+# --- two crowns between two observations: every crown is replayed in the door's order (6 Nov, RB) --------------------
+
+
+def _replaying(tmp_path, store, policy):
+    issuer, backend, challenge = _lean(tmp_path, store, policy)
+    issuer.replays = {challenge: lambda recorded: we.lean_crowns_since(store, recorded)}
+    return issuer, backend, challenge
+
+
+def test_two_crowns_inside_one_cycle_are_both_recorded_in_the_doors_order(tmp_path):
+    v4 = wd.load_policy("testnet-winner-v4-launch")
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, challenge = _replaying(tmp_path, store, v4)
+    # issue() is where crowns are recorded (the owner-hotkey stand-in miner is not publishable in this double)
+    first = _at(backend, 925)
+    issuer.issue(first)
+    # between two observations: another miner takes the crown, then beats itself
+    store.crown("m2", "owner-hotkey", previous="m1")
+    store.crown("m3", "owner-hotkey", previous="m2")
+    later = _at(backend, 1100)
+    seen = twp.preview(issuer, later)  # the same replay in memory, writing nothing
+    assert [r["promotion"]["model_id"] for r in issuer.ledger.records(challenge)] == [
+        "m1"
+    ]
+    issuer.issue(later)
+    records = issuer.ledger.records(challenge)
+    assert [r["promotion"]["model_id"] for r in records] == ["m1", "m2", "m3"]
+    assert [r["promotion"]["previous"] for r in records] == [None, "m1", "m2"]
+    assert [(r["eligible"], r["reason"]) for r in records[1:]] == [
+        (True, "bank_improvement"),
+        (True, "same_miner_no_reset"),
+    ]
+    # each replayed crown carries the door event that crowned it (record integrity; never in the decision)
+    assert "journal" not in records[0]
+    assert [r["journal"]["sequence"] for r in records[1:]] == [2, 3]
+    # the middle king starts the new miner's clock at its observation; its own self-beat keeps it
+    assert records[2]["clock_ms"] == records[1]["clock_ms"] == later.timestamp_ms
+    assert seen["records"][challenge] == {
+        "hotkey": "owner-hotkey",
+        "kind": we.BANK,
+        "eligible": True,
+        "reason": "same_miner_no_reset",
+        "clock_ms": later.timestamp_ms,
+    }
+    assert [h["hotkey"] for h, _ in seen["targets"]["winners"]] == ["owner-hotkey"]
+
+
+def test_without_the_replay_the_skipped_king_refuses_as_on_6_nov(tmp_path):
+    v4 = wd.load_policy("testnet-winner-v4-launch")
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, _ = _lean(tmp_path, store, v4)
+    asyncio.run(
+        twp.TestnetWinnerPublisher(issuer, backend).publish(
+            issuer.issue(_at(backend, 925))
+        )
+    )
+    store.crown("m2", "owner-hotkey", previous="m1")
+    store.crown("m3", "owner-hotkey", previous="m2")
+    with pytest.raises(
+        twp.WinnerPublicationRefused, match="PREDECESSOR_RECORD_MISMATCH"
+    ):
+        twp.preview(issuer, _at(backend, 1100))
+
+
+def test_a_gap_the_doors_journal_cannot_bridge_refuses_and_writes_nothing(tmp_path):
+    v4 = wd.load_policy("testnet-winner-v4-launch")
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, challenge = _replaying(tmp_path, store, v4)
+    asyncio.run(
+        twp.TestnetWinnerPublisher(issuer, backend).publish(
+            issuer.issue(_at(backend, 925))
+        )
+    )
+    other = _LeanStore()  # a door journal that never held the recorded king
+    other.crown("m2", "owner-hotkey")
+    other.crown("m3", "owner-hotkey", previous="m2")
+    issuer.sources[challenge] = lambda: we.lean_promotion(other)
+    issuer.replays[challenge] = lambda recorded: we.lean_crowns_since(other, recorded)
+    for run in (lambda s: twp.preview(issuer, s), issuer.issue):
+        with pytest.raises(
+            twp.WinnerPublicationRefused, match="PREDECESSOR_NOT_IN_DOOR_JOURNAL"
+        ):
+            run(_at(backend, 1100))
+    assert [r["promotion"]["model_id"] for r in issuer.ledger.records(challenge)] == [
+        "m1"
+    ]
+
+
+def test_a_cycle_that_issues_nothing_new_still_records_every_crown(tmp_path):
+    """RECONCILE_PENDING cycles (`record`) and a re-issue inside the epoch both record crowns: on 6 Nov the RB king
+    03ff14f8 lived through two RECONCILE_PENDING cycles and was never recorded."""
+    v4 = wd.load_policy("testnet-winner-v4-launch")
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, challenge = _replaying(tmp_path, store, v4)
+    ref = issuer.issue(_at(backend, 925))
+    store.crown("m2", "owner-hotkey", previous="m1")
+    # a re-issue inside the same epoch returns the stored intent AND records the new crown
+    assert issuer.issue(_at(backend, 926)) == ref
+    assert [r["promotion"]["model_id"] for r in issuer.ledger.records(challenge)] == [
+        "m1",
+        "m2",
+    ]
+    store.crown("m3", "owner-hotkey", previous="m2")
+    store.crown("m4", "miner-hotkey", previous="m3")
+    # a RECONCILE_PENDING cycle builds no intent but records both crowns, in order
+    issuer.record(_at(backend, 1100))
+    records = issuer.ledger.records(challenge)
+    assert [r["promotion"]["model_id"] for r in records] == ["m1", "m2", "m3", "m4"]
+    assert [r["promotion"]["previous"] for r in records] == [None, "m1", "m2", "m3"]
+
+
+@pytest.mark.parametrize("entry", ["publication_run", "weights_execute"])
+def test_both_publishing_entry_points_record_on_a_reconcile_pending_cycle(
+    monkeypatch, tmp_path, entry
+):
+    """The live weights loop (validator_setup.weights.execute) and `run` observe before returning RECONCILE_PENDING."""
+    from types import SimpleNamespace
+
+    from carbon.chain import sdk_weights
+    from carbon.validator_setup import weights
+
+    recorded = []
+
+    class _Issuer:
+        def record(self, state):
+            recorded.append(state)
+
+    class _Backend:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def observe(self):
+            return "snapshot", None
+
+        async def close(self):
+            pass
+
+    async def pending(_publisher):
+        return {"identity": "d1", "state": "REVEAL_PENDING", "reason": None}
+
+    monkeypatch.setattr(twp, "_issuer", lambda *a, **k: _Issuer())
+    monkeypatch.setattr(twp, "settle_pending", pending)
+    monkeypatch.setattr(twp, "TestnetWinnerPublisher", lambda issuer, backend: object())
+    monkeypatch.setattr(sdk_weights, "BittensorPublicationBackend", _Backend)
+    config = SimpleNamespace(
+        context=SimpleNamespace(network="testnet", endpoint="wss://x", genesis_hash="0x0"),
+        endpoint="wss://x", genesis_hash="0x0", expected_runtime_spec=488, publisher_hotkey="5P",
+        wallet_name="w", wallet_hotkey_name="h", publisher_coldkey="5C", wallet_path=tmp_path,
+    )  # fmt: skip
+    journal = tmp_path / "state" / "publication.sqlite3"
+    journal.parent.mkdir(mode=0o700)
+    if entry == "publication_run":
+        monkeypatch.setattr(
+            "carbon.development_testnet.operator.load_config", lambda _p: config
+        )
+        monkeypatch.setattr(
+            "carbon.development_testnet.operator._wallet", lambda _c: object()
+        )
+        out = asyncio.run(
+            twp._run(SimpleNamespace(config=str(tmp_path / "c"), journal=journal))
+        )
+    else:
+        monkeypatch.setattr(weights, "load_config", lambda _p: config)
+        monkeypatch.setattr(
+            sdk_weights, "open_operator_wallet", lambda *a, **k: object()
+        )
+        out = asyncio.run(
+            weights.execute(
+                SimpleNamespace(
+                    config=str(tmp_path / "c"), journal=journal, action="run"
+                )
+            )
+        )
+    assert out["status"] == "RECONCILE_PENDING" and recorded == ["snapshot"]

@@ -135,11 +135,7 @@ def lean_promotion(store):
     incumbent = store.incumbent()
     if incumbent is None:
         return None
-    reason = incumbent.get("reason")
-    if reason == DEVELOPMENT_REASON:
-        raise RewardFailure("PROMOTION_DEVELOPMENT_ONLY")
-    if reason != SEALED_TESTNET_REASON:
-        raise RewardFailure("PROMOTION_REASON_UNKNOWN")
+    _lean_reason(incumbent.get("reason"))
     model_id = incumbent["model_id"]
     events = [
         e["body"]
@@ -148,7 +144,73 @@ def lean_promotion(store):
     ]
     if not events:
         raise RewardFailure("PROMOTION_UNRECORDED")
-    previous = events[-1].get("previous")
+    return _lean_crown(
+        store, model_id, incumbent.get("reason"), events[-1].get("previous")
+    )
+
+
+def _lean_reason(reason):
+    if reason == DEVELOPMENT_REASON:
+        raise RewardFailure("PROMOTION_DEVELOPMENT_ONLY")
+    if reason != SEALED_TESTNET_REASON:
+        raise RewardFailure("PROMOTION_REASON_UNKNOWN")
+
+
+def lean_crowns_since(store, recorded_model_id):
+    """Every crown the lean pool store's own incumbent journal holds after ``recorded_model_id`` (the Challenge's last
+    ledger record), oldest first, ending with the current incumbent exactly as `lean_promotion` reads it. Each item is
+    ``{"promotion": ..., "journal": {"sequence": n, "event_digest": "sha256:..."}}``: the door's own event that
+    crowned it (OWNER-CROWN-PAID-AT-UPDATE-01 replay, record integrity only).
+
+    Crowns can land between two observations (6 Nov: Ribbed Bracket crowned twice and the ledger never saw the middle
+    king). The publisher replays each one in the store's sequence order, each with its own previous king and reason,
+    so `decide` still checks every predecessor link. A gap is bridged only from this journal: if the recorded king is
+    not in it, or its last crown is not the current incumbent, nothing is replayed
+    (``PREDECESSOR_NOT_IN_DOOR_JOURNAL`` / ``DOOR_JOURNAL_DISAGREES_WITH_INCUMBENT``). Read only.
+    """
+    import hashlib
+
+    current = lean_promotion(store)
+    if current is None:
+        return []
+    events = list(store.events("incumbent"))
+    bodies = [e["body"] for e in events]
+
+    def journal(i):
+        body = json.dumps(bodies[i], sort_keys=True, separators=(",", ":")).encode()
+        return {
+            "sequence": events[i].get("sequence"),
+            "event_digest": "sha256:" + hashlib.sha256(body).hexdigest(),
+        }
+
+    recorded = [
+        i for i, b in enumerate(bodies) if b.get("model_id") == recorded_model_id
+    ]
+    if not recorded:
+        raise RewardFailure("PREDECESSOR_NOT_IN_DOOR_JOURNAL")
+    # a withdrawn crown (model_id None) is not a king; the next crown names previous None (a first incumbent)
+    crowns = [
+        i
+        for i in range(recorded[-1] + 1, len(bodies))
+        if bodies[i].get("model_id") is not None
+    ]
+    if current["model_id"] == recorded_model_id and not crowns:
+        return [{"promotion": current, "journal": journal(recorded[-1])}]
+    if not crowns or bodies[crowns[-1]].get("model_id") != current["model_id"]:
+        raise RewardFailure("DOOR_JOURNAL_DISAGREES_WITH_INCUMBENT")
+    out = []
+    for i in crowns[:-1]:
+        body = bodies[i]
+        _lean_reason(body.get("reason"))
+        promotion = _lean_crown(
+            store, body["model_id"], body["reason"], body.get("previous")
+        )
+        out.append({"promotion": promotion, "journal": journal(i)})
+    return [*out, {"promotion": current, "journal": journal(crowns[-1])}]
+
+
+def _lean_crown(store, model_id, reason, previous):
+    """One crown of a lean pool store as a promotion: the king, its miner and the king it beat."""
     row = store.submission(model_id)
     promotion = {
         "model_id": model_id,
@@ -311,9 +373,11 @@ class WinnerLedger:
             stream.flush()
             os.fsync(stream.fileno())
 
-    def observe(self, policy, challenge, promotion, coldkeys, now_ms):
+    def observe(self, policy, challenge, promotion, coldkeys, now_ms, journal=None):
         """The Challenge's current record, recording `promotion` first if it
-        is new. None when the Challenge has no incumbent."""
+        is new. None when the Challenge has no incumbent. ``journal`` (the door
+        event that crowned it, from a replay) is stored beside the decision; it
+        never enters the decision."""
         if promotion is None:
             return None
         mine = self.records(challenge)
@@ -322,6 +386,8 @@ class WinnerLedger:
                 return found
         previous = mine[-1] if mine else None
         record = decide(policy, challenge, promotion, previous, coldkeys, now_ms)
+        if journal is not None:
+            record = {**record, "journal": journal}
         self._append(record)
         return record
 

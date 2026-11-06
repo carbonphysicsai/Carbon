@@ -166,9 +166,18 @@ class TestnetWinnerIntentIssuer:
     promotion (`winner_eligibility.battery_promotion(target)`), or None while
     the Challenge has no serving validator. A Challenge without a source burns
     its share.
+
+    `replays` (optional) maps a Challenge to a callable that, given the model id
+    of the Challenge's last ledger record, returns every crown since it, oldest
+    first, ending with the current promotion, each with its door journal event
+    (`winner_eligibility.lean_crowns_since`). With it, a crown that came and
+    went between two observations is still recorded, in the door's order, before
+    the current one; without it only the current promotion is observed.
+    `record` observes on cycles that publish nothing new (RECONCILE_PENDING, a
+    re-issue inside the epoch), so no crown waits for the next intent.
     """
 
-    def __init__(self, receipts, authorization, policy, ledger, sources):
+    def __init__(self, receipts, authorization, policy, ledger, sources, replays=None):
         from carbon.transport.store import ReceiptJournal
 
         if type(receipts) is not ReceiptJournal:
@@ -195,6 +204,9 @@ class TestnetWinnerIntentIssuer:
             _refuse("SOURCE_OUTSIDE_POLICY")
         self.receipts, self.authorization = receipts, authorization
         self.policy, self.ledger, self.sources = policy, ledger, dict(sources)
+        self.replays = dict(replays or {})
+        if set(self.replays) - set(self.sources):
+            _refuse("SOURCE_OUTSIDE_POLICY")
         self.prefix, self.stage, self.maturity = STAGES[context.network]
         #: The bounded development profile is testnet's only.
         self.profile = (
@@ -236,6 +248,57 @@ class TestnetWinnerIntentIssuer:
         except Exception:  # noqa: BLE001 - closed source failure, no stale fallback
             raise WinnerPublicationRefused("WINNER_SOURCE_UNAVAILABLE") from None
 
+    #: Replay refusals passed through by name (the operator needs to know which); anything else is a closed
+    #: WINNER_SOURCE_UNAVAILABLE, as for the current promotion.
+    REPLAY_CODES = frozenset(
+        {
+            "PREDECESSOR_NOT_IN_DOOR_JOURNAL",
+            "DOOR_JOURNAL_DISAGREES_WITH_INCUMBENT",
+            "PROMOTION_DEVELOPMENT_ONLY",
+            "PROMOTION_REASON_UNKNOWN",
+        }
+    )
+
+    def _crowns(self, challenge, mine, promotion):
+        """``(promotion, journal)`` to observe, in order: every crown since the last record (``replays``), else the
+        current one alone."""
+        if not mine or challenge not in self.replays:
+            return [(promotion, None)]
+        try:
+            crowns = self.replays[challenge](mine[-1]["promotion"]["model_id"])
+        except Exception as failure:  # noqa: BLE001 - closed source failure
+            code = getattr(failure, "code", None) or str(failure)
+            _refuse(code if code in self.REPLAY_CODES else "WINNER_SOURCE_UNAVAILABLE")
+        if (
+            type(crowns) is not list
+            or not crowns
+            or any(
+                type(c) is not dict
+                or set(c) != {"promotion", "journal"}
+                or type(c["promotion"]) is not dict
+                or type(c["journal"]) is not dict
+                for c in crowns
+            )
+            or crowns[-1]["promotion"] != promotion
+            or any(
+                any(
+                    type(c["promotion"].get(k)) is not str or not c["promotion"][k]
+                    for k in ("model_id", "hotkey")
+                )
+                or c["promotion"].get("kind") not in (FIRST, FINAL, BANK)
+                for c in crowns
+            )
+        ):
+            _refuse("WINNER_SOURCE_UNAVAILABLE")
+        return [(c["promotion"], c["journal"]) for c in crowns]
+
+    def record(self, snapshot):
+        """Record every crown since each Challenge's last ledger record, building no intent: the cycles that publish
+        nothing new (RECONCILE_PENDING, a re-issue inside the epoch) still observe, so a crown that comes and goes
+        between two intents is recorded in the door's order (OWNER-CROWN-PAID-AT-UPDATE-01: record integrity). A gap
+        refuses here, as in `issue`."""
+        return self._records(snapshot, observe=True)
+
     def _records(self, snapshot, *, observe, preview=False):
         from .winner_eligibility import decide
 
@@ -259,22 +322,46 @@ class TestnetWinnerIntentIssuer:
                 else:
                     try:
                         if observe:
-                            found[challenge] = self.ledger.observe(
-                                self.policy,
-                                challenge,
-                                promotion,
-                                coldkeys,
-                                snapshot.timestamp_ms,
-                            )
+                            # each crown since the last record, in the door's order, each with its own predecessor
+                            for crown, journal in self._crowns(
+                                challenge, mine, promotion
+                            ):
+                                found[challenge] = self.ledger.observe(
+                                    self.policy,
+                                    challenge,
+                                    crown,
+                                    coldkeys,
+                                    snapshot.timestamp_ms,
+                                    journal,
+                                )
                         elif preview:
-                            found[challenge] = decide(
-                                self.policy,
-                                challenge,
-                                promotion,
-                                mine[-1] if mine else None,
-                                coldkeys,
-                                snapshot.timestamp_ms,
-                            )
+                            # the same replay in memory: nothing is written
+                            seen = list(mine)
+                            for crown, journal in self._crowns(
+                                challenge, mine, promotion
+                            ):
+                                again = [
+                                    r
+                                    for r in seen
+                                    if r["promotion"]["model_id"] == crown["model_id"]
+                                ]
+                                record = (
+                                    again[0]
+                                    if again
+                                    else decide(
+                                        self.policy,
+                                        challenge,
+                                        crown,
+                                        seen[-1] if seen else None,
+                                        coldkeys,
+                                        snapshot.timestamp_ms,
+                                    )
+                                )
+                                if not again:
+                                    if journal is not None:
+                                        record = {**record, "journal": journal}
+                                    seen.append(record)
+                                found[challenge] = record
                         else:
                             _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
                     except (WinnerIdentityFailure, WinnerCutoverFailure) as failure:
@@ -368,6 +455,8 @@ class TestnetWinnerIntentIssuer:
                 (identity,),
             ).fetchone()
         if row is not None:
+            # the epoch's intent stands; a crown since it is still recorded now, not at the next epoch
+            self.record(snapshot)
             return TestnetWinnerWeightRef(identity, row[0])
         records = self._records(snapshot, observe=True)
         body = self._body(snapshot, records, self._targets(snapshot, records))
@@ -569,7 +658,11 @@ def _issuer(args, config, journal, *, runtime_spec=None):
     from carbon.transport.store import ReceiptJournal
 
     from .winner_decay import load_policy
-    from .winner_eligibility import battery_promotion, lean_promotion
+    from .winner_eligibility import (
+        battery_promotion,
+        lean_crowns_since,
+        lean_promotion,
+    )
 
     policy = load_policy(args.policy_version)
     if config.context is None or (config.context.network, config.netuid) != (
@@ -582,7 +675,7 @@ def _issuer(args, config, journal, *, runtime_spec=None):
         from dataclasses import replace
 
         auth = replace(auth, expected_runtime_spec=runtime_spec)
-    sources = {}
+    sources, replays = {}, {}
     if args.battery_deployment:
         try:
             deployment.require_live(
@@ -605,12 +698,16 @@ def _issuer(args, config, journal, *, runtime_spec=None):
             _refuse("LEAN_POOL_ARGUMENT_INVALID")
         store = _open_lean_pool(Path(path))
         sources[challenge_id] = lambda store=store: lean_promotion(store)
+        replays[challenge_id] = lambda recorded, store=store: lean_crowns_since(
+            store, recorded
+        )
     return TestnetWinnerIntentIssuer(
         ReceiptJournal(Path(journal), config.context),
         auth,
         policy,
         WinnerLedger(Path(args.ledger)),
         sources,
+        replays,
     )
 
 
@@ -689,6 +786,8 @@ async def _run(args):
         # nothing new is published (fail closed), and the result says why.
         open_row = await settle_pending(publisher)
         if open_row is not None:
+            # nothing new is published, but every crown since the last record is (fail closed on a gap)
+            issuer.record((await backend.observe())[0])
             return {
                 "status": "RECONCILE_PENDING",
                 "dispatch": open_row.get("identity"),
