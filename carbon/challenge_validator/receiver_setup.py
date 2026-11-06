@@ -991,6 +991,17 @@ def catalog_status(receiver_state: Path) -> dict:
     )
 
 
+def _chain_state(root):
+    """``<state>/chain-state.json`` as the receiver wrote it (H8), or None (missing or unreadable)."""
+    try:
+        value = json.loads(
+            (Path(root) / "chain-state.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError):
+        return None
+    return value if type(value) is dict else None
+
+
 def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
     """What a validator checks (E7): the service, the local intake, the exam
     the receiver holds and its last graded submission. Read-only."""
@@ -1043,6 +1054,8 @@ def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
         "status": "RECEIVER_HEALTHY" if healthy else "RECEIVER_NOT_HEALTHY",
         # A door left DRAINING (scripts/dev/release/door_drain.py) admits but starts no work: shown, never silent.
         "draining": (root / "draining").exists(),
+        # H8: the receiver's own record of its chain (OK / DEGRADED since when, the last code); None before its first.
+        "chain": _chain_state(root),
         "catalog": catalog,
         "challenge": config.get("challenge"),
         "receiver_hotkey": config["receiver_hotkey"],

@@ -37,6 +37,10 @@ _TASK = re.compile(r"rtsk_[0-9a-f]{64}")
 _PENDING = frozenset({"task_not_succeeded"})
 #: Retention codes that mean "not gradable now" without having consumed anything.
 _NOT_YET = frozenset({"owned_task_unavailable", "verified_attempt_unavailable"})
+#: A provider that could not read the owner's registration from a fresh snapshot. While the door's chain is degraded
+#: this is a chain read that failed: the task waits and is graded once the chain answers, never FAILED and never a
+#: slot given back (H8; R38, 5 Nov). With a fresh snapshot it means what it always meant (handled as before).
+_CHAIN_CODES = frozenset({"direct_provider_registration_unavailable"})
 
 
 class AutoGrader:
@@ -122,6 +126,10 @@ class AutoGrader:
         stranded while the king could not be met, ahead of any new grade), and whenever the upkeep is due (`due`: the
         king's regrade, or one crown re-measure rebuild), so an idle door still keeps its king comparable.
         """
+        if self.chain_degraded():
+            # No fresh chain snapshot: every round would open a provider against a stale chain (H8). Nothing runs,
+            # nothing is marked; the round resumes by itself when the snapshot refresher reads the chain again.
+            return False
         if self._stranded_due():
             return True
         if self.pending():
@@ -129,6 +137,19 @@ class AutoGrader:
         if self._crowns_due():
             return True
         return self._upkeep_due()
+
+    def chain_degraded(self):
+        """Whether this door has no fresh chain snapshot now (the intake's window: ``latest()`` is None past its age
+        bound, on a conflict, or while unavailable). A grader without a window (tests, tools) is never degraded.
+        """
+        window = getattr(self.intake, "window", None)
+        if window is None:
+            return False
+        try:
+            return window.latest() is None
+        except Exception:  # noqa: BLE001
+            # an unreadable window is a degraded chain: grade nothing until it reads
+            return True
 
     def _stranded_due(self):
         """Whether the start-up filing of stranded challengers is still to be made now (`_king_upkeep`)."""
@@ -180,6 +201,8 @@ class AutoGrader:
         """
         from .lean_recipe_retention import RetentionUnavailable
 
+        if self.chain_degraded():
+            return None  # (H8) a stale chain: grade nothing, mark nothing
         self._king_upkeep()
         self._resume_paused_crowns()
         for submission_id in self.pending():
@@ -197,10 +220,19 @@ class AutoGrader:
                 code = getattr(unavailable, "code", None) or str(unavailable)
                 if code in _PENDING or code in _NOT_YET:
                     continue
+                if code in _CHAIN_CODES and self.chain_degraded():
+                    continue  # (H8) the chain went stale under this round: wait, never FAILED
                 self._keep(submission_id, unavailable)
                 self._fail(submission_id, _code(code))
                 return submission_id, "FAILED"
             except Exception as failure:  # noqa: BLE001 - typed, no private content
+                if (
+                    getattr(failure, "code", None) in _CHAIN_CODES
+                    and self.chain_degraded()
+                ):
+                    # the provider could not read the owner's registration because the chain went stale under this
+                    # round: not yet, never FAILED (H8; the cause the A2 one-shot requeue had to repair by hand)
+                    continue
                 self._keep(submission_id, failure)
                 if _candidate_wall_stop(failure) and self._wall_counted(
                     submission_id, sampler, started_ns

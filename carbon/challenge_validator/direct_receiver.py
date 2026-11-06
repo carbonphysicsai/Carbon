@@ -1948,15 +1948,24 @@ def serve(
         raise ReceiverUnavailable("installed_inference_worker_unavailable")
     # The receiver is the operator's own validator hotkey (E2): Carbon's network
     # publisher, or a hotkey holding a validator permit on the subnet now.
-    _require_receiver_identity(cfg["receiver_hotkey"], network, permits)
     stop = threading.Event() if stop is None else stop
     reader = PersistentBittensorReader() if reader is None else reader
-    snapshot = asyncio.run(reader.capture(network.context))
-    if (
-        snapshot.context != network.context
-        or snapshot.resolve(cfg["receiver_hotkey"]) is None
-    ):
-        raise ValueError("registered receiver snapshot required")
+    one_shot = (
+        retention is not None
+        or regrade
+        or grade_set
+        or remeasure is not None
+        or rebind is not None
+    )
+    snapshot = await_chain_identity(
+        cfg["receiver_hotkey"],
+        network,
+        permits,
+        reader,
+        stop,
+        Path(cfg["root"]),
+        wait=not one_shot,
+    )
     root = _private_directory(Path(cfg["root"]))
     # A standalone receiver has no local miner attachment to create the
     # shared cache parent before its first authenticated material chunk.
@@ -2251,6 +2260,7 @@ def serve(
             if timer is not None:
                 timer.start()
             watch = PermitWatch(cfg["receiver_hotkey"], network, permits, stop).start()
+            ChainStateWatch(window, root, stop).start()
             grader = None
             if "auto_grade" in cfg:
                 from carbon.challenge_validator.auto_grade import AutoGrader
@@ -2309,6 +2319,149 @@ def serve(
                     providers.cancel()
             finally:
                 providers.close()
+
+
+#: Chain failures a starting receiver waits out (infrastructure: the endpoint is down, slow, throttled or behind).
+#: A malformed, mismatched or unsupported answer is never waited out: the start refuses as before (fail closed).
+CHAIN_WAIT_CODES = frozenset(
+    {
+        "PROVIDER_UNAVAILABLE",
+        "TRANSPORT_TIMEOUT",
+        "TRANSPORT_FAILURE",
+        "CHAIN_FAILURE",
+        "INCOMPLETE_RESPONSE",
+        "STALE_SNAPSHOT",
+        "PROVIDER_RATE_LIMITED",
+    }
+)
+CHAIN_STATE_NAME = "chain-state.json"
+#: How a starting receiver re-reads an unavailable chain: first wait, doubling to the cap (operational values).
+CHAIN_RETRY_S, CHAIN_RETRY_MAX_S = 15.0, 120.0
+
+
+def write_chain_state(state_dir, state, *, code=None, since_ns=None, attempts=0):
+    """``<state>/chain-state.json`` (H8): OK or DEGRADED, since when, the last failure code and how many reads failed.
+    Atomic, owner-only; never raises (a state file must not stop a receiver)."""
+    import json
+
+    try:
+        path = Path(state_dir) / CHAIN_STATE_NAME
+        staged = path.with_name(f".{path.name}.{os.getpid()}")
+        staged.write_text(
+            json.dumps(
+                {
+                    "schema": "carbon.challenge-validator.chain-state.v1",
+                    "state": state,
+                    "since_ns": since_ns if since_ns is not None else time.time_ns(),
+                    "code": code,
+                    "failed_reads": attempts,
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+        os.chmod(staged, 0o600)
+        os.replace(staged, path)
+    except OSError:
+        pass
+
+
+#: How often a serving receiver records whether its snapshot window is fresh (operational value).
+CHAIN_STATE_EVERY_S = 30.0
+
+
+class ChainStateWatch:
+    """Keeps ``chain-state.json`` current while the receiver serves (H8): DEGRADED from the first check that finds no
+    fresh snapshot (``window.latest()`` is None), with the time it began; OK when the window reads again. Written on
+    every change and every check while DEGRADED (its ``failed_reads`` counts checks), so a watcher alerts on age.
+    It reads only the window; it never reads the chain itself or touches grading."""
+
+    def __init__(self, window, state_dir, stop, *, every=None):
+        self.window, self.state_dir, self.stop = window, Path(state_dir), stop
+        self.every = CHAIN_STATE_EVERY_S if every is None else every
+        self.since, self.checks = None, 0
+
+    def check_once(self):
+        try:
+            fresh = self.window.latest() is not None
+        except Exception:  # noqa: BLE001
+            # an unreadable window is a degraded one
+            fresh = False
+        if fresh:
+            if self.since is not None:
+                write_chain_state(self.state_dir, "OK", attempts=self.checks)
+            self.since, self.checks = None, 0
+            return "OK"
+        self.checks += 1
+        self.since = time.time_ns() if self.since is None else self.since
+        write_chain_state(
+            self.state_dir,
+            "DEGRADED",
+            code="snapshot_stale",
+            since_ns=self.since,
+            attempts=self.checks,
+        )
+        return "DEGRADED"
+
+    def run(self):
+        while not self.stop.wait(self.every):
+            self.check_once()
+
+    def start(self):
+        threading.Thread(
+            target=self.run, name="carbon-chain-state", daemon=True
+        ).start()
+        return self
+
+
+def await_chain_identity(
+    hotkey, network, permits, reader, stop, state_dir, *, wait=True, sleep=None
+):
+    """The receiver's identity check and its first registered snapshot, waiting out an unavailable chain (H8).
+
+    A throttled, cut or slow chain at start used to exit the receiver, and systemd restarted it every 30 s: a restart
+    loop with the door down (R38). Now a service start waits IN PROCESS: it re-reads every `CHAIN_RETRY_S`, doubling
+    to `CHAIN_RETRY_MAX_S`, logs each failure (`receiver_waiting_for_chain`) and keeps `chain-state.json` DEGRADED,
+    and proceeds the moment the chain answers. A stop request ends the wait. Nothing is served or admitted before the
+    identity check passes; a hotkey with no permit, or not in the snapshot, refuses exactly as before. One-shot operator
+    commands (``wait=False``) keep the old behaviour: the first chain failure is their answer.
+    """
+    from carbon.battery.intake import log
+    from carbon.chain.models import ChainFailure
+
+    pause = stop.wait if sleep is None else sleep
+    delay, attempts, since = CHAIN_RETRY_S, 0, None
+    while True:
+        try:
+            _require_receiver_identity(hotkey, network, permits)
+            snapshot = asyncio.run(reader.capture(network.context))
+        except (ReceiverUnavailable, ChainFailure) as failed:
+            code = (
+                failed.code.value
+                if isinstance(failed, ChainFailure)
+                else str(failed) or type(failed).__name__
+            )
+            waitable = code in CHAIN_WAIT_CODES or code == "receiver_permit_unavailable"
+            if not wait or not waitable:
+                raise
+            attempts += 1
+            since = time.time_ns() if since is None else since
+            write_chain_state(
+                state_dir, "DEGRADED", code=code, since_ns=since, attempts=attempts
+            )
+            log("receiver_waiting_for_chain", code=code, attempts=attempts)
+            if pause(delay):
+                raise ReceiverUnavailable(
+                    "receiver_stopped_waiting_for_chain"
+                ) from None
+            delay = min(delay * 2, CHAIN_RETRY_MAX_S)
+            continue
+        if snapshot.context != network.context or snapshot.resolve(hotkey) is None:
+            raise ValueError("registered receiver snapshot required")
+        write_chain_state(state_dir, "OK", attempts=attempts)
+        if attempts:
+            log("receiver_chain_recovered", attempts=attempts)
+        return snapshot
 
 
 def _require_receiver_identity(hotkey, network, permits=None):
