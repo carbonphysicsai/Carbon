@@ -119,6 +119,25 @@ def parse_rule(source: bytes):
     return paths, pattern
 
 
+def excluded(repo, commit):
+    """``GRADING_EXCLUDED`` as written at ``commit`` (read by ``ast``), or None when it is not assigned."""
+    try:
+        tree = ast.parse(_git(repo, "show", f"{commit}:{RULE_FILE}").decode("utf-8"))
+    except (SyntaxError, ValueError) as failed:
+        raise Unknown("grading_rule_unreadable") from failed
+    for node in tree.body:
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and getattr(node.targets[0], "id", None) == "GRADING_EXCLUDED"
+        ):
+            try:
+                return ast.literal_eval(node.value)
+            except ValueError as failed:
+                raise Unknown("grading_rule_unreadable") from failed
+    return None
+
+
 def _predicate(*rules):
     """True for a path ANY of ``rules`` names (prefixes end in ``/``; the rest exact; the module pattern full-match)."""
     compiled = [(paths, re.compile(pattern)) for paths, pattern in rules]
@@ -220,11 +239,30 @@ def check(repo, old, new, *, old_pack, new_pack, declared=None) -> dict:
     except (Unknown, UnicodeDecodeError) as failed:
         return {**out, "state": UNKNOWN, "reason": str(failed) or type(failed).__name__}
     rule_changed = not absent and rules[0] != rules[1]
+    additions_only = None
+    if rule_changed:
+        # (Validator-2 6 Nov 13:21) a rule change that only ADDS grading paths makes M2 stricter; anything else (a
+        # path removed, the module pattern or GRADING_EXCLUDED changed) can weaken it
+        try:
+            same_excluded = excluded(repo, old) == excluded(repo, new)
+        except Unknown as failed:
+            return {**out, "state": UNKNOWN, "reason": str(failed)}
+        (old_paths, old_pattern), (new_paths, new_pattern) = rules
+        additions_only = (
+            set(old_paths) <= set(new_paths)
+            and old_pattern == new_pattern
+            and same_excluded
+        )
+        out.update(
+            grading_rule_added=sorted(set(new_paths) - set(old_paths)),
+            grading_rule_removed=sorted(set(old_paths) - set(new_paths)),
+        )
     pack_changed = old_pack != new_pack
     out.update(
         old_grading_digest=digests[0],
         new_grading_digest=digests[1],
         grading_rule_changed=rule_changed,
+        grading_rule_additions_only=additions_only,
         grading_rule_absent_at=absent,
         grading_paths_changed=changed,
         build_inputs_moved=moved,

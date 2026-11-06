@@ -251,6 +251,14 @@ def exam_item(
     if result["grading_rule_changed"] and not rule_change:
         # an edit to the M2 rule itself: the receiver's own path list cannot show it, so it is said separately
         return {**item, "state": REFUSE, "code": "grading_rule_change_undeclared"}
+    if result["grading_rule_changed"] and not result.get("grading_rule_additions_only"):
+        # declared or not: a rule edit that removes a path or changes the pattern / exclusions can weaken M2
+        # (Validator-2 13:21); it needs its own reviewed head, never a declaration at switch time
+        return {
+            **item,
+            "state": REFUSE,
+            "code": "grading_rule_change_not_additions_only",
+        }
     if result["grading_rule_changed"]:
         item["rule_change"] = rule_change
     want = receiver_paths(repo, result["old"], result["new"])

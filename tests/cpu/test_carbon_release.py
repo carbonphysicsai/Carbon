@@ -545,6 +545,33 @@ def test_a_rule_only_change_is_said_separately(tool, repo):
     assert out["code"] == "grading_rule_change_undeclared"
     said = tool.exam_item(root, base, new, PACK, PACK, None, None, "M2 adds exam_cap")
     assert said["state"] == tool.PASS and said["rule_change"] == "M2 adds exam_cap"
+    assert said["identity"]["grading_rule_additions_only"] is True
+    assert said["identity"]["grading_rule_added"] == [
+        "carbon/challenge_validator/exam_cap.py"
+    ]
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        ('    "carbon/scoring/",\n', ""),  # a path removed
+        ("_hidden", "_secret"),  # the module pattern changed
+    ],
+)
+def test_a_rule_change_that_can_weaken_m2_refuses_even_when_declared(
+    tool, repo, change
+):
+    """Validator-2 13:21: only a pure addition of grading paths may be declared at switch time."""
+    root, base = repo
+    weaker = RULE.replace(*change)
+    assert weaker != RULE
+    new = _commit(
+        root, {"carbon/challenge_validator/direct_receiver.py": weaker}, "rule edit"
+    )
+    out = tool.exam_item(root, base, new, PACK, PACK, None, None, "said anyway")
+    assert out["state"] == tool.REFUSE
+    assert out["code"] == "grading_rule_change_not_additions_only"
+    assert out["identity"]["grading_rule_additions_only"] is False
 
 
 @POSIX
