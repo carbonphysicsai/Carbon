@@ -262,8 +262,14 @@ def test_audit_8_the_task_view_bound_is_caught_and_typed(
 ):
     recipe, envelope, _ = graph_case
     host = _provider(HOST, recipe, tmp_path=tmp_path)
-    for n in range(256):  # the host owner's never-pruned views (one per re-measure)
-        host[0]._views["rtsk_" + f"{n:064x}"] = object()
+    from carbon.research import DirectTaskStateV3
+
+    for n in range(
+        256
+    ):  # 256 LIVE host tasks: the host owner's bound counts only live ones
+        host[0]._views["rtsk_" + f"{n:064x}"] = SimpleNamespace(
+            state=DirectTaskStateV3.QUEUED
+        )
     with pytest.raises(retention.RetentionUnavailable) as bound:
         retention._derived_build(
             _adapter(recipe, envelope, host),

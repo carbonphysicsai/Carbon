@@ -1165,6 +1165,25 @@ class DirectDevelopmentTasksV3:
             self.owner == HOST_OWNER and task_value in self._task_seeds
         ) or task_value in self._origin_rebinds
 
+    def _at_task_bound(self) -> bool:
+        """The admission bound: 256 tasks per owner. A miner's owner counts every task it holds. The crown average's
+        HOST owner (by exact name: never a miner, whose owner is a verified ss58 address) counts only its LIVE tasks
+        (queued, running, cancel requested): its finished rebuilds are kept, never pruned, because a re-decision of
+        the same challenger asks for the same task again (its seeds and label are fixed) and reuses it, and the bank
+        files under that task id are write-once, so a dropped and rebuilt task would conflict with them forever
+        (Lead 5 Nov: at ~11 host tasks per averaged decision, 256 would fill after ~23 decisions).
+        """
+        from carbon.challenge_validator.crown_average import HOST_OWNER
+
+        if self.owner != HOST_OWNER:
+            return len(self._views) >= 256
+        live = (
+            DirectTaskStateV3.QUEUED,
+            DirectTaskStateV3.RUNNING,
+            DirectTaskStateV3.CANCEL_REQUESTED,
+        )
+        return sum(view.state in live for view in self._views.values()) >= 256
+
     def start_research_task(self, request, *, measure_query=False, graph_source=None):
         """Admit and queue one task. ``graph_source`` is the ORIGIN task's retained graph source envelope, for a
         crown-average derived rebuild only (`_derived_rebuild`): the host owner has no workspace, so the bytes come
@@ -1215,7 +1234,7 @@ class DirectDevelopmentTasksV3:
                         ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
                     )
                 return DirectStartTaskResultV3(False, self._views[prior])
-            if len(self._views) >= 256:
+            if self._at_task_bound():
                 raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
             try:
                 self._verify_images()
