@@ -12,7 +12,7 @@ import math
 import re
 import shutil
 import time
-from contextlib import ExitStack, contextmanager
+from contextlib import ExitStack, contextmanager, suppress
 from contextvars import ContextVar
 from functools import partial
 
@@ -103,6 +103,68 @@ def _stage_verified_overlay(source, target, receipt):
         entry.chmod(0o555 if entry.is_dir() else 0o444)
     target.chmod(0o555)
     _verified_overlay_tree(target, receipt)
+
+
+#: The trusted stage items a finished operation no longer needs: the pinned uv binary (~52 MB) and the copied sealed
+#: overlay tree. Both are content-pinned and rebuildable from their caches; everything else in the input (the program,
+#: the caller's files such as a build's ``example.npz``, which retention reads) stays.
+RECLAIMED_STAGE = "reclaimed.json"
+
+
+def _make_writable(path):
+    """Owner-writable again (the stage is made read-only for the container), so the tree can be removed."""
+    path.chmod(0o700 if path.is_dir() and not path.is_symlink() else 0o600)
+
+
+def reclaim_trusted_stage(stage):
+    """Remove a finished operation's trusted stage items, keeping their identities.
+
+    GPUYard 6 Nov (Deploy 06:48, Lead 07:00): every grade and rebuild staged a fresh ~52 MB ``uv-bin`` (and an overlay
+    tree) under ``ledger/operation-*/input`` and never reclaimed it, ~1.5 GB/h with crown averaging. Called only once
+    the operation's container is confirmed removed, so nothing reads the mount. Writes ``reclaimed.json`` (the uv
+    sha256 and the overlay's own receipt) beside them first, so the operation's record of what ran is unchanged.
+    Idempotent; a stage with neither item is left exactly as it is. Returns the bytes freed.
+    """
+    if stage.is_symlink() or not stage.is_dir():
+        return 0
+    uv = stage / "uv-bin"
+    overlay = stage / "overlay"
+    present_uv = uv.is_file() and not uv.is_symlink()
+    present_overlay = overlay.is_dir() and not overlay.is_symlink()
+    if not (present_uv or present_overlay):
+        return 0
+    receipt = overlay / ".overlay.json"
+    record = {
+        "schema": "carbon.autoresearch.reclaimed-stage.v1",
+        "uv_sha256": digest(uv.read_bytes()) if present_uv else None,
+        "overlay_receipt": (
+            json.loads(receipt.read_bytes())
+            if present_overlay and receipt.is_file() and not receipt.is_symlink()
+            else None
+        ),
+    }
+    stage.chmod(0o755)
+    marker = stage / RECLAIMED_STAGE
+    if not marker.exists():
+        write_once(marker, canonical(record))
+        marker.chmod(0o444)
+    freed = 0
+    if present_uv:
+        freed += uv.stat().st_size
+        _make_writable(uv)
+        uv.unlink()
+    if present_overlay:
+        entries = sorted(overlay.rglob("*"), reverse=True)
+        freed += sum(
+            e.stat().st_size for e in entries if e.is_file() and not e.is_symlink()
+        )
+        _make_writable(overlay)
+        for entry in entries:
+            if not entry.is_symlink():
+                _make_writable(entry)
+        shutil.rmtree(overlay)
+    stage.chmod(0o755)
+    return freed
 
 
 BOOTSTRAP = """
@@ -1785,6 +1847,12 @@ def _run_locked(
                     slot.close()
                 finally:
                     lease.close()
+    # The container is confirmed removed (or never created): the trusted stage items are reclaimed before any result
+    # is associated, so a stopped candidate's operation frees them too.
+    # Best effort: a reclaim that fails never changes the operation's outcome (the disk floor alert still sees it).
+    if trusted_stage_provider is not None or trusted_overlay is not None:
+        with suppress(OSError, ValueError):
+            reclaim_trusted_stage(stage)
     if candidate_stop is not None:
         # The candidate's own graph or recipe hit the worker's memory or wall
         # limit. The full reservation is kept and nothing is retried or
