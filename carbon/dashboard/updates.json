@@ -82,7 +82,7 @@
  ],
  "fixes": [
   "Check for result (check_result) could show your own graded Cooling catalog submission as not graded yet, or as another submission's result. It now finds a grade made on the validator's official GPU build. Update your install to get the fix.",
-  "Crowns stopped changing hands for several days after an exam key change, because the sitting kings were never regraded under the new key. Each king has been regraded and the affected submissions compared again under the normal rule. No one was charged.",
+  "Crowns stopped changing hands for several days after an exam key change, because the sitting kings were never regraded under the new key. Each king has now been regraded and every affected submission compared again under the normal rule, and eight crowns changed hands as a result.",
   "A graded model that ran out of a limit on the validator showed as not graded yet. It now shows as a candidate failure, naming the step that failed and the limit it hit. Update your install to see it."
  ],
  "known_issues": [
