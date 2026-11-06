@@ -363,3 +363,89 @@ def test_the_worker_and_the_page_name_the_averaged_rule():
         "const a = l.to_beat_rule;" in page
         and "Crowns compare rebuild averages" in page
     )
+
+
+# ---------------------------------------------------------------- a king rebuilt through a krb_ link (Lead 5 Nov 19:3x)
+
+
+def _real_store(tmp_path, *, linked):
+    """A real pool store: the king graded on OLD_KEY (crowned there), then rebuilt on the current exam as krb_k whose
+    evaluation is on CURRENT; ``linked`` files the king_rebuild.v1 link king -> krb_k.
+    """
+    from carbon.battery.pool_store import PoolStore
+
+    store = PoolStore(tmp_path / "pool.sqlite3")
+
+    def evaluation(op, sid, key, total):
+        body = {
+            "submission_id": sid,
+            "evaluation_key": key,
+            "owner": {"hotkey": HOTKEY, "request_digest": "r"},
+            "evidence": {
+                "model_p": {
+                    "score_status": "SCORED_DEVELOPMENT_CANDIDATE",
+                    "total_score": total,
+                }
+            },
+        }
+        with store.transaction() as db:
+            db.execute(
+                "INSERT INTO operations VALUES(?,?,?,?)",
+                (
+                    op,
+                    "private_evaluation.v1",
+                    "BOUND_DEVELOPMENT_ONLY",
+                    json.dumps(body),
+                ),
+            )
+
+    evaluation("e-old", "king", OLD_KEY, 0.80)
+    store.set_incumbent("king", "crowned")
+    evaluation("e-new", "krb_k", CURRENT, 0.78)
+    if linked:
+        with store.transaction() as db:
+            db.execute(
+                "INSERT INTO operations VALUES(?,?,?,?)",
+                (
+                    "l1",
+                    "king_rebuild.v1",
+                    "RECORDED",
+                    json.dumps(
+                        {"king_submission_id": "king", "derived_submission_id": "krb_k"}
+                    ),
+                ),
+            )
+    return store
+
+
+def test_a_linked_kings_key_is_his_rebuilt_rows_and_his_new_mean_shows(
+    receiver, tmp_path
+):
+    """Every door's king was rebuilt through a krb_ link: his re-measure files the mean on the derived row's key
+    (`king_upkeep._king_key_on`), so the king page must read the mean there."""
+    store = _real_store(tmp_path, linked=True)
+    assert store.incumbent_evaluation_key("king") == CURRENT
+    store.record_crown_average("king", CURRENT, {"mean": 0.76})
+    assert receiver(store) == {"base": 0.76, "margin": MARGIN_N}
+
+
+def test_an_old_key_mean_no_longer_shows_once_the_king_is_linked(receiver, tmp_path):
+    """A mean filed on the king's PRE-rebuild key is no measure of the exam he now stands on (NO CARRY): once linked,
+    the page states the single-grade rule until his new mean files."""
+    store = _real_store(tmp_path, linked=True)
+    store.record_crown_average("king", OLD_KEY, {"mean": 0.79})
+    assert receiver(store) is None
+    # ... and states the averaged bar again as soon as the mean on his current key is filed
+    store.record_crown_average("king", CURRENT, {"mean": 0.76})
+    assert receiver(store) == {"base": 0.76, "margin": MARGIN_N}
+
+
+def test_an_unlinked_king_keeps_his_own_key_and_an_unlinked_derived_row_is_not_his(
+    receiver, tmp_path
+):
+    store = _real_store(tmp_path, linked=False)
+    assert (
+        store.incumbent_evaluation_key("king") == OLD_KEY
+    )  # krb_k without a link is not his
+    store.record_crown_average("king", OLD_KEY, {"mean": 0.79})
+    assert receiver(store) == {"base": 0.79, "margin": MARGIN_N}

@@ -2898,18 +2898,34 @@ class PoolStore:
 
     def incumbent_evaluation_key(self, model_id):
         """The evaluation key of ``model_id``'s latest filed private evaluation (the one `incumbent_standing` reads), or
-        None. Reads only."""
+        None. Reads only.
+
+        Like `incumbent_standing`, a king rebuilt through a ``king_rebuild.v1`` link stands on his newest evaluation, the
+        linked derived row's, so his key is that row's: the key his re-measure files its mean on (`king_upkeep`). The
+        king page's averaged bar reads the mean on this key, and a mean filed on his pre-rebuild key no longer shows.
+        """
         with self.db() as db:
             rows = db.execute(
                 "SELECT body FROM operations WHERE kind='private_evaluation.v1' "
                 "AND state='BOUND_DEVELOPMENT_ONLY' ORDER BY rowid DESC"
             ).fetchall()
+            links = db.execute(
+                "SELECT body FROM operations WHERE kind='king_rebuild.v1'"
+            ).fetchall()
+        own = {model_id}
+        for (raw,) in links:
+            try:
+                link = json.loads(raw)
+            except ValueError:
+                continue
+            if link.get("king_submission_id") == model_id:
+                own.add(link.get("derived_submission_id"))
         for (raw,) in rows:
             try:
                 found = json.loads(raw)
             except ValueError:
                 continue
-            if found.get("submission_id") == model_id:
+            if found.get("submission_id") in own:
                 return found.get("evaluation_key")
         return None
 
