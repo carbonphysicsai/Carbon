@@ -425,7 +425,8 @@ def test_the_real_store_replays_every_crown_since_the_recorded_king(tmp_path):
     """`lean_crowns_since` reads the door's own incumbent events in sequence order (6 Nov: two RB crowns inside one
     weights cycle), each with the event that crowned it; a withdrawn crown is no king, and a king the journal never held
     refuses."""
-    store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: 0.0)
+    ticks = iter(range(100, 10_000))
+    store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: float(next(ticks)))
     for model, hotkey in (("m1", "hk-a"), ("m2", "hk-b"), ("m3", "hk-b")):
         store.admit(
             model,
@@ -455,6 +456,13 @@ def test_the_real_store_replays_every_crown_since_the_recorded_king(tmp_path):
     assert sequences == crowned[1:] and sequences == sorted(sequences)
     assert all(c["journal"]["event_digest"].startswith("sha256:") for c in crowns)
     assert crowns[0]["journal"]["event_digest"] != crowns[1]["journal"]["event_digest"]
+    # each crown's door time, read from the store's own events table (seconds -> ms), increasing
+    with store.db() as db:
+        at = dict(db.execute("SELECT sequence, at FROM events WHERE kind='incumbent'"))
+    assert [c["journal"]["at_ms"] for c in crowns] == [
+        round(at[q] * 1000) for q in sequences
+    ]
+    assert crowns[0]["journal"]["at_ms"] < crowns[1]["journal"]["at_ms"]
     assert [c["promotion"] for c in we.lean_crowns_since(store, "m3")] == [
         we.lean_promotion(store)
     ]

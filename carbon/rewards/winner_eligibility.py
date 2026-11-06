@@ -159,8 +159,9 @@ def _lean_reason(reason):
 def lean_crowns_since(store, recorded_model_id):
     """Every crown the lean pool store's own incumbent journal holds after ``recorded_model_id`` (the Challenge's last
     ledger record), oldest first, ending with the current incumbent exactly as `lean_promotion` reads it. Each item is
-    ``{"promotion": ..., "journal": {"sequence": n, "event_digest": "sha256:..."}}``: the door's own event that
-    crowned it (the replay is record integrity only; pay stays the crown holder at each update).
+    ``{"promotion": ..., "journal": {"sequence": n, "event_digest": "sha256:...", "at_ms": t}}``: the door's own
+    event that crowned it and when (``at_ms`` None when the store does not say). The replay is record integrity; pay
+    stays the crown holder at each update, and a crown the loop missed is clocked when it actually won (the issuer).
 
     Crowns can land between two observations (6 Nov: Ribbed Bracket crowned twice and the ledger never saw the middle
     king). The publisher replays each one in the store's sequence order, each with its own previous king and reason,
@@ -175,12 +176,14 @@ def lean_crowns_since(store, recorded_model_id):
         return []
     events = list(store.events("incumbent"))
     bodies = [e["body"] for e in events]
+    times = _event_times(store, events)
 
     def journal(i):
         body = json.dumps(bodies[i], sort_keys=True, separators=(",", ":")).encode()
         return {
             "sequence": events[i].get("sequence"),
             "event_digest": "sha256:" + hashlib.sha256(body).hexdigest(),
+            "at_ms": times[i],
         }
 
     recorded = [
@@ -209,6 +212,34 @@ def lean_crowns_since(store, recorded_model_id):
     return [*out, {"promotion": current, "journal": journal(crowns[-1])}]
 
 
+def _event_times(store, events):
+    """Each incumbent event's door time in ms (``events.at``, the store's clock in seconds), or None. Read only: the
+    event's own ``at`` when it carries one, else the store's events table by sequence (the pool store's ``events()``
+    returns no time, and its file is a grading path, so it is read here rather than changed).
+    """
+
+    def ms(value):
+        if type(value) in (int, float) and value >= 0:
+            return round(value * 1000)
+        return None
+
+    if all("at" in e for e in events):
+        return [ms(e["at"]) for e in events]
+    by_sequence = {}
+    db = getattr(store, "db", None)
+    if db is not None:
+        try:
+            with db() as connection:
+                by_sequence = dict(
+                    connection.execute(
+                        "SELECT sequence, at FROM events WHERE kind='incumbent'"
+                    ).fetchall()
+                )
+        except Exception:  # noqa: BLE001 - no time = the replay refuses by name
+            by_sequence = {}
+    return [ms(by_sequence.get(e.get("sequence"))) for e in events]
+
+
 def _lean_crown(store, model_id, reason, previous):
     """One crown of a lean pool store as a promotion: the king, its miner and the king it beat."""
     row = store.submission(model_id)
@@ -234,7 +265,9 @@ def _lean_crown(store, model_id, reason, previous):
     return {**promotion, "kind": BANK}
 
 
-def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
+def decide(
+    policy, challenge, promotion, previous_record, coldkeys, now_ms, crowned_ms=None
+):
     """The ledger record for a newly observed `promotion`: its eligibility,
     the reason, and the clock it pays from. `coldkeys` maps hotkeys to
     coldkeys (from the snapshot); `previous_record` is the Challenge's last
@@ -254,7 +287,11 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
         "winner_coldkey": winner_coldkey,
     }
 
-    def record(eligible, reason, clock_ms=now_ms):
+    # A crown the loop missed (a replay) starts its clock when it won at the door, never after the snapshot; every
+    # other crown when it is first observed (``now_ms``).
+    crown_ms = now_ms if crowned_ms is None else min(crowned_ms, now_ms)
+
+    def record(eligible, reason, clock_ms=crown_ms):
         return {**base, "eligible": eligible, "reason": reason, "clock_ms": clock_ms}
 
     if promotion.get("incumbent_reason") == SEALED_TESTNET_REASON and (
@@ -373,7 +410,16 @@ class WinnerLedger:
             stream.flush()
             os.fsync(stream.fileno())
 
-    def observe(self, policy, challenge, promotion, coldkeys, now_ms, journal=None):
+    def observe(
+        self,
+        policy,
+        challenge,
+        promotion,
+        coldkeys,
+        now_ms,
+        journal=None,
+        crowned_ms=None,
+    ):
         """The Challenge's current record, recording `promotion` first if it
         is new. None when the Challenge has no incumbent. ``journal`` (the door
         event that crowned it, from a replay) is stored beside the decision; it
@@ -385,7 +431,9 @@ class WinnerLedger:
             if found["promotion"]["model_id"] == promotion["model_id"]:
                 return found
         previous = mine[-1] if mine else None
-        record = decide(policy, challenge, promotion, previous, coldkeys, now_ms)
+        record = decide(
+            policy, challenge, promotion, previous, coldkeys, now_ms, crowned_ms
+        )
         if journal is not None:
             record = {**record, "journal": journal}
         self._append(record)

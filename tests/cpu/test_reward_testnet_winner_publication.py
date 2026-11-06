@@ -496,14 +496,18 @@ class _LeanStore:
         self._events = []
         self._incumbent = None
 
-    def crown(self, model, hotkey, previous=None):
+    def crown(self, model, hotkey, previous=None, at=None):
+        """``at``: the door's crown time in seconds (the pool store's ``events.at``); None = the store does not say."""
         self.models[model] = {"hotkey": hotkey, "binding": {}}
         self._events.append(
-            {
-                "model_id": model,
-                "previous": previous,
-                "reason": "bank_comparison_sealed_testnet",
-            }
+            (
+                {
+                    "model_id": model,
+                    "previous": previous,
+                    "reason": "bank_comparison_sealed_testnet",
+                },
+                at,
+            )
         )
         self._incumbent = {
             "model_id": model,
@@ -514,7 +518,10 @@ class _LeanStore:
         return self._incumbent
 
     def events(self, kind=None):
-        return [{"sequence": n, "body": body} for n, body in enumerate(self._events, 1)]
+        return [
+            {"sequence": n, "body": body, "at": at}
+            for n, (body, at) in enumerate(self._events, 1)
+        ]
 
     def submission(self, model_id):
         return self.models[model_id]
@@ -637,9 +644,9 @@ def test_two_crowns_inside_one_cycle_are_both_recorded_in_the_doors_order(tmp_pa
     # issue() is where crowns are recorded (the owner-hotkey stand-in miner is not publishable in this double)
     first = _at(backend, 925)
     issuer.issue(first)
-    # between two observations: another miner takes the crown, then beats itself
-    store.crown("m2", "owner-hotkey", previous="m1")
-    store.crown("m3", "owner-hotkey", previous="m2")
+    # between two observations: another miner takes the crown (door time 12.0 s), then beats itself (12.5 s)
+    store.crown("m2", "owner-hotkey", previous="m1", at=12.0)
+    store.crown("m3", "owner-hotkey", previous="m2", at=12.5)
     later = _at(backend, 1100)
     seen = twp.preview(issuer, later)  # the same replay in memory, writing nothing
     assert [r["promotion"]["model_id"] for r in issuer.ledger.records(challenge)] == [
@@ -656,14 +663,17 @@ def test_two_crowns_inside_one_cycle_are_both_recorded_in_the_doors_order(tmp_pa
     # each replayed crown carries the door event that crowned it (record integrity; never in the decision)
     assert "journal" not in records[0]
     assert [r["journal"]["sequence"] for r in records[1:]] == [2, 3]
-    # the middle king starts the new miner's clock at its observation; its own self-beat keeps it
-    assert records[2]["clock_ms"] == records[1]["clock_ms"] == later.timestamp_ms
+    assert [r["journal"]["at_ms"] for r in records[1:]] == [12000, 12500]
+    # missed crowns are clocked when they won at the door (owner + Carbon Validator, 6 Nov), observed at the replay:
+    # the middle king starts the new miner's clock at 12.0 s; its own self-beat keeps it (v4: no reset)
+    assert [r["observed_ms"] for r in records[1:]] == [later.timestamp_ms] * 2
+    assert records[1]["clock_ms"] == 12000 and records[2]["clock_ms"] == 12000
     assert seen["records"][challenge] == {
         "hotkey": "owner-hotkey",
         "kind": we.BANK,
         "eligible": True,
         "reason": "same_miner_no_reset",
-        "clock_ms": later.timestamp_ms,
+        "clock_ms": 12000,
     }
     assert [h["hotkey"] for h, _ in seen["targets"]["winners"]] == ["owner-hotkey"]
 
@@ -726,13 +736,19 @@ def test_a_cycle_that_issues_nothing_new_still_records_every_crown(tmp_path):
         "m1",
         "m2",
     ]
-    store.crown("m3", "owner-hotkey", previous="m2")
-    store.crown("m4", "miner-hotkey", previous="m3")
-    # a RECONCILE_PENDING cycle builds no intent but records both crowns, in order
+    # the usual cycle: one new crown, clocked when first observed (unchanged)
+    assert (
+        issuer.ledger.records(challenge)[1]["clock_ms"]
+        == _at(backend, 926).timestamp_ms
+    )
+    store.crown("m3", "miner-hotkey", previous="m2", at=12.0)
+    store.crown("m4", "owner-hotkey", previous="m3", at=12.5)
+    # a RECONCILE_PENDING cycle builds no intent but records both crowns, in order, each at its door time
     issuer.record(_at(backend, 1100))
     records = issuer.ledger.records(challenge)
     assert [r["promotion"]["model_id"] for r in records] == ["m1", "m2", "m3", "m4"]
     assert [r["promotion"]["previous"] for r in records] == [None, "m1", "m2", "m3"]
+    assert [r["clock_ms"] for r in records[2:]] == [12000, 12500]
 
 
 @pytest.mark.parametrize("entry", ["publication_run", "weights_execute"])
@@ -798,3 +814,37 @@ def test_both_publishing_entry_points_record_on_a_reconcile_pending_cycle(
             )
         )
     assert out["status"] == "RECONCILE_PENDING" and recorded == ["snapshot"]
+
+
+def test_a_missed_crown_without_a_door_time_refuses_and_a_late_clock_is_capped(
+    tmp_path,
+):
+    """No door time on a missed crown: CROWN_EVENT_TIME_MISSING, nothing written (never the replay's time). A door
+    time after the snapshot (clock skew) starts the clock at the snapshot, never after it (CLOCK_BEFORE_PROMOTION).
+    """
+    v4 = wd.load_policy("testnet-winner-v4-launch")
+    store = _LeanStore()
+    store.crown("m1", "miner-hotkey")
+    issuer, backend, challenge = _replaying(tmp_path, store, v4)
+    issuer.issue(_at(backend, 925))
+    store.crown("m2", "owner-hotkey", previous="m1", at=12.0)
+    store.crown("m3", "miner-hotkey", previous="m2")  # no time
+    for run in (lambda snap: twp.preview(issuer, snap), issuer.issue, issuer.record):
+        with pytest.raises(
+            twp.WinnerPublicationRefused, match="CROWN_EVENT_TIME_MISSING"
+        ):
+            run(_at(backend, 1100))
+    assert [r["promotion"]["model_id"] for r in issuer.ledger.records(challenge)] == [
+        "m1"
+    ]
+    store._events[-1] = (
+        store._events[-1][0],
+        99.0,
+    )  # the door's clock ahead of the chain
+    later = _at(backend, 1100)
+    issuer.record(later)
+    records = issuer.ledger.records(challenge)
+    assert [(r["promotion"]["model_id"], r["clock_ms"]) for r in records[1:]] == [
+        ("m2", 12000),
+        ("m3", later.timestamp_ms),
+    ]

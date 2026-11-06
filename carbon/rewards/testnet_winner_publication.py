@@ -256,14 +256,16 @@ class TestnetWinnerIntentIssuer:
             "DOOR_JOURNAL_DISAGREES_WITH_INCUMBENT",
             "PROMOTION_DEVELOPMENT_ONLY",
             "PROMOTION_REASON_UNKNOWN",
+            "CROWN_EVENT_TIME_MISSING",
         }
     )
 
     def _crowns(self, challenge, mine, promotion):
-        """``(promotion, journal)`` to observe, in order: every crown since the last record (``replays``), else the
-        current one alone."""
+        """``(promotion, journal, crowned_ms)`` to observe, in order: every crown since the last record
+        (``replays``), else the current one alone. ``crowned_ms`` is the door event time of a crown the loop missed
+        (two or more since the last record), else None (clocked at observation)."""
         if not mine or challenge not in self.replays:
-            return [(promotion, None)]
+            return [(promotion, None, None)]
         try:
             crowns = self.replays[challenge](mine[-1]["promotion"]["model_id"])
         except Exception as failure:  # noqa: BLE001 - closed source failure
@@ -290,7 +292,17 @@ class TestnetWinnerIntentIssuer:
             )
         ):
             _refuse("WINNER_SOURCE_UNAVAILABLE")
-        return [(c["promotion"], c["journal"]) for c in crowns]
+        if len(crowns) == 1:
+            # the usual cycle: one new crown, clocked when first observed
+            return [(crowns[0]["promotion"], crowns[0]["journal"], None)]
+        # crowns the loop missed: each clocked when it won at the door; one without a time refuses them all, before
+        # anything is written
+        if any(
+            type(c["journal"].get("at_ms")) is not int or c["journal"]["at_ms"] < 0
+            for c in crowns
+        ):
+            _refuse("CROWN_EVENT_TIME_MISSING")
+        return [(c["promotion"], c["journal"], c["journal"]["at_ms"]) for c in crowns]
 
     def record(self, snapshot):
         """Record every crown since each Challenge's last ledger record, building no intent: the cycles that publish
@@ -323,7 +335,7 @@ class TestnetWinnerIntentIssuer:
                     try:
                         if observe:
                             # each crown since the last record, in the door's order, each with its own predecessor
-                            for crown, journal in self._crowns(
+                            for crown, journal, crowned_ms in self._crowns(
                                 challenge, mine, promotion
                             ):
                                 found[challenge] = self.ledger.observe(
@@ -333,11 +345,12 @@ class TestnetWinnerIntentIssuer:
                                     coldkeys,
                                     snapshot.timestamp_ms,
                                     journal,
+                                    crowned_ms,
                                 )
                         elif preview:
                             # the same replay in memory: nothing is written
                             seen = list(mine)
-                            for crown, journal in self._crowns(
+                            for crown, journal, crowned_ms in self._crowns(
                                 challenge, mine, promotion
                             ):
                                 again = [
@@ -355,6 +368,7 @@ class TestnetWinnerIntentIssuer:
                                         seen[-1] if seen else None,
                                         coldkeys,
                                         snapshot.timestamp_ms,
+                                        crowned_ms,
                                     )
                                 )
                                 if not again:
