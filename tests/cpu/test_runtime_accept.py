@@ -184,3 +184,80 @@ def test_the_publisher_refuses_a_changed_surface_before_the_wallet(
     assert isinstance(seen["raised"], PublicationFailure)
     assert str(seen["raised"]) == "UNSUPPORTED_RUNTIME_SURFACE"
     assert seen["wallet"] == 0 and seen["issuer_specs"] == [None]
+
+
+def _journal_with(tmp_path, rows):
+    import sqlite3
+
+    path = tmp_path / "publication.sqlite3"
+    db = sqlite3.connect(path)
+    db.execute(
+        "CREATE TABLE publication_v1 (identity TEXT PRIMARY KEY, document TEXT, digest TEXT, state TEXT,"
+        " tracking TEXT, tracking_digest TEXT)"
+    )
+    for n, (spec, state, reason) in enumerate(rows):
+        db.execute(
+            "INSERT INTO publication_v1 VALUES (?,?,?,?,?,?)",
+            (
+                str(n),
+                json.dumps({"capabilities": {"spec_version": spec}}),
+                "d",
+                state,
+                json.dumps({"reason": reason}),
+                "t",
+            ),
+        )
+    db.commit()
+    db.close()
+    return path
+
+
+def _add(journal, identity, spec, state, reason=None):
+    import sqlite3
+
+    db = sqlite3.connect(journal)
+    db.execute(
+        "INSERT INTO publication_v1 VALUES (?,?,?,?,?,?)",
+        (
+            identity,
+            json.dumps({"capabilities": {"spec_version": spec}}),
+            "d",
+            state,
+            json.dumps({"reason": reason}),
+            "t",
+        ),
+    )
+    db.commit()
+    db.close()
+
+
+def test_an_auto_accepted_spec_stops_after_two_read_back_misses(tmp_path):
+    journal = _journal_with(tmp_path, [])
+    store = ra.store_for(journal)
+    ra.baseline(store, _report(488))
+    lines = []
+
+    def note(*a, **_k):
+        lines.append(a[0])
+
+    assert (
+        ra.decide(store, 497, 488, lambda: _report(497), journal=journal, log=note)
+        == 497
+    )
+    _add(journal, "a", 497, "ROW_VERIFIED")
+    assert ra.decide(store, 497, 488, _no_probe, journal=journal, log=note) == 497
+    assert lines == ["runtime_auto_accepted"]  # verified: no alert
+    _add(journal, "b", 497, "FINALIZED", "STORED_ROW_DIFFERS_FROM_TARGET")
+    assert ra.decide(store, 497, 488, _no_probe, journal=journal, log=note) == 497
+    assert ra.decide(store, 497, 488, _no_probe, journal=journal, log=note) == 497
+    assert lines == [
+        "runtime_auto_accepted",
+        "operator_alert",
+    ]  # the first miss alerts once, still used
+    _add(journal, "c", 497, "CHAIN_REJECTED")
+    with pytest.raises(ra.RuntimeRefused, match="RUNTIME_READBACK_FAILED"):
+        ra.decide(store, 497, 488, _no_probe, journal=journal, log=note)
+    # a baseline spec is a person's decision: its read-back is the operator's watch, never a stop here
+    _add(journal, "d", 488, "CHAIN_REJECTED")
+    _add(journal, "e", 488, "CHAIN_REJECTED")
+    assert ra.decide(store, 488, 488, _no_probe, journal=journal) == 488

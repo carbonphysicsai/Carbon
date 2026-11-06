@@ -6,6 +6,9 @@ without weights). The pin is now the USED-SURFACE DIGEST of `runtime_probe`: eve
 types), storage value type and runtime API the publish path and the capability snapshot touch, compared with the
 pinned SDK's own bindings.
 
+- An AUTO-accepted spec stays in use only while the chain confirms what was published under it: the publisher's own
+  read-back (`publisher.reconcile`: LastUpdate past the inclusion and the stored row equal to the target) is counted
+  per spec; the first miss alerts, `STOP_AFTER_MISSES` misses refuse that spec until a person re-baselines.
 - A BASELINE receipt is written once, on the operator's word: ``baseline`` probes the head and stores
   ``<receipts>/<spec>.json`` (decision BASELINE; only when the probe says COMPATIBLE_USED_SURFACE).
 - Every cycle, `resolve` reads the live spec. A spec with an ACCEPTED or BASELINE receipt is used as is. A NEW spec
@@ -108,7 +111,65 @@ def _baseline_digest(store):
     return next(iter(digests), None)
 
 
-def decide(store, live_spec, configured_spec, probe, *, log=None):
+#: A dispatch published under an auto-accepted spec that the chain then shows wrong (`publisher.reconcile`'s read-back).
+MISS_STATES = frozenset({"CHAIN_REJECTED", "EXPOSURE_CHANGED"})
+MISS_REASONS = frozenset({"STORED_ROW_DIFFERS_FROM_TARGET"})
+#: The first miss alerts; this many stop auto-acceptance of that spec until a person re-baselines (Validator-2 19:07).
+STOP_AFTER_MISSES = 2
+
+
+def readback_misses(journal, spec):
+    """How many dispatches made under ``spec`` the chain read-back did not confirm: CHAIN_REJECTED, EXPOSURE_CHANGED, or
+    a finalized row whose stored weights differ from the target (`publisher.reconcile`). Read-only; 0 when the journal
+    has no dispatch table yet."""
+    import sqlite3
+
+    path = Path(journal).absolute()
+    if not path.exists():
+        return 0
+    try:
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            rows = db.execute(
+                "SELECT document, state, tracking FROM publication_v1"
+            ).fetchall()
+        finally:
+            db.close()
+    except sqlite3.Error:
+        return 0
+    misses = 0
+    for document, state, tracking in rows:
+        try:
+            caps = json.loads(document).get("capabilities") or {}
+            reason = (json.loads(tracking) or {}).get("reason")
+        except (ValueError, AttributeError):
+            continue
+        if caps.get("spec_version") != int(spec):
+            continue
+        if state in MISS_STATES or reason in MISS_REASONS:
+            misses += 1
+    return misses
+
+
+def _readback_guard(store, journal, spec, note):
+    """An AUTO-accepted spec keeps being used only while the chain confirms what was published under it."""
+    body = receipt(store, spec)
+    if body is None or body["decision"] != ACCEPTED or journal is None:
+        return
+    misses = readback_misses(journal, spec)
+    if misses and not body.get("readback_alerted"):
+        _write(Path(store) / f"{int(spec)}.json", {**body, "readback_alerted": misses})
+        note(
+            "operator_alert",
+            code="runtime_readback_miss",
+            spec_version=int(spec),
+            misses=misses,
+        )
+    if misses >= STOP_AFTER_MISSES:
+        raise RuntimeRefused("RUNTIME_READBACK_FAILED")
+
+
+def decide(store, live_spec, configured_spec, probe, *, log=None, journal=None):
     """The spec this cycle may publish under, or `RuntimeRefused` (before any wallet).
 
     ``probe`` is a callable returning a `runtime_probe.compare` report for the live head (called only for a spec
@@ -118,6 +179,7 @@ def decide(store, live_spec, configured_spec, probe, *, log=None):
     note = log or (lambda *_a, **_k: None)
     known = receipt(store, live_spec)
     if known is not None and known["decision"] in (BASELINE, ACCEPTED):
+        _readback_guard(store, journal, live_spec, note)
         return int(live_spec)
     base = _baseline_digest(store)
     if base is None:
@@ -200,7 +262,9 @@ async def resolve(endpoint, genesis_hash, configured_spec, journal, *, log=None)
         store
     ):
         report = await runtime_probe.probe(endpoint, genesis_hash)
-    return decide(store, spec, configured_spec, lambda: report, log=log)
+    return decide(
+        store, spec, configured_spec, lambda: report, log=log, journal=journal
+    )
 
 
 def main(argv=None):
