@@ -579,10 +579,10 @@ def chain_binding_item(host_roots, expect="testnet", *, proc="/proc") -> dict:
     """(H8 part 3, Validator-2 6 Nov 09:22) No live door and no weights loop runs bound to anything but ``expect``:
     every running direct receiver's and weights-loop process's environment has ``CARBON_CHAIN_NETWORK`` unset/empty or
     ``testnet`` (``finney`` only when ``expect`` is finney) and no localnet variable; and no ``--host-root`` carries the
-    staging marker (``receiver/STAGING``). An environment this user cannot read is UNKNOWN, never a pass.
+    staging marker (``receiver/STAGING``; OLD and NEW are always read too). An environment this user cannot read is UNKNOWN, never a pass.
     """
     staged = sorted(
-        str(r) for r in host_roots if (Path(r) / "receiver" / "STAGING").exists()
+        {str(r) for r in host_roots if (Path(r) / "receiver" / "STAGING").exists()}
     )
     if staged:
         return {"state": REFUSE, "code": "staging_root_on_host", "roots": staged[:10]}
@@ -933,7 +933,10 @@ def precheck(args) -> dict:
             ("receivers", lambda: receivers_item(args.host_root)),
             (
                 "chain_binding",
-                lambda: chain_binding_item(args.host_root, args.expect_network),
+                lambda: chain_binding_item(
+                    [*args.host_root, args.old_root, args.new_root],
+                    args.expect_network,
+                ),
             ),
             (
                 "lock_versions",

@@ -596,10 +596,16 @@ print(json.dumps(out))
         "live": "localnet_requires_staging_root",
         "staging": "allowed",
     }
-    assert run({}) == {
-        "live": "allowed",
-        "staging": "allowed",
-    }  # a live binding is unchanged
+    # a live binding prepares a live root as before, and never a staging one
+    for live in (
+        {},
+        {"CARBON_CHAIN_NETWORK": "testnet"},
+        {"CARBON_CHAIN_NETWORK": "finney"},
+    ):
+        assert run(live) == {
+            "live": "allowed",
+            "staging": "staging_root_on_a_live_chain",
+        }
 
 
 def test_no_miner_facing_surface_names_the_localnet():

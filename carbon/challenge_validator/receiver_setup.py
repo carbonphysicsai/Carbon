@@ -81,17 +81,22 @@ STAGING_MARKER = "STAGING"
 
 
 def _require_live_chain_or_staging(receiver_state: Path) -> None:
-    """A process bound to the staging localnet (`carbon.chain.models.LOCALNET`) prepares only a staging root."""
+    """The localnet and a staging root go together (Validator-2, 6 Nov 09:35): a process bound to the staging localnet
+    (`carbon.chain.models.LOCALNET`) prepares only a root carrying the staging marker, and a live binding (testnet or
+    finney) refuses a root carrying it, so a staging root never becomes a door."""
     from carbon.chain.models import CARBON_NETWORK, LOCALNET
 
-    if (
-        CARBON_NETWORK == LOCALNET
-        and not (Path(receiver_state) / "receiver" / STAGING_MARKER).is_file()
-    ):
+    marked = (Path(receiver_state) / "receiver" / STAGING_MARKER).exists()
+    if CARBON_NETWORK == LOCALNET and not marked:
         raise SetupRefused(
             "localnet_requires_staging_root",
             "the localnet is for staging only: prepare a staging root (receiver/STAGING), "
             "or unset CARBON_CHAIN_NETWORK for a live door.",
+        )
+    if CARBON_NETWORK != LOCALNET and marked:
+        raise SetupRefused(
+            "staging_root_on_a_live_chain",
+            "this root is a staging root (receiver/STAGING): prepare a live door in a fresh root.",
         )
 
 
