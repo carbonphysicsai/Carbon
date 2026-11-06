@@ -295,7 +295,7 @@ class TestnetWinnerIntentIssuer:
     def record(self, snapshot):
         """Record every crown since each Challenge's last ledger record, building no intent: the cycles that publish
         nothing new (RECONCILE_PENDING, a re-issue inside the epoch) still observe, so a crown that comes and goes
-        between two intents is recorded in the door's order (OWNER-CROWN-PAID-AT-UPDATE-01: record integrity). A gap
+        between two intents is recorded in the door's order (record integrity only; pay stays the crown holder at each update). A gap
         refuses here, as in `issue`."""
         return self._records(snapshot, observe=True)
 

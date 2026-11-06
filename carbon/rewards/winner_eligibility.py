@@ -160,7 +160,7 @@ def lean_crowns_since(store, recorded_model_id):
     """Every crown the lean pool store's own incumbent journal holds after ``recorded_model_id`` (the Challenge's last
     ledger record), oldest first, ending with the current incumbent exactly as `lean_promotion` reads it. Each item is
     ``{"promotion": ..., "journal": {"sequence": n, "event_digest": "sha256:..."}}``: the door's own event that
-    crowned it (OWNER-CROWN-PAID-AT-UPDATE-01 replay, record integrity only).
+    crowned it (the replay is record integrity only; pay stays the crown holder at each update).
 
     Crowns can land between two observations (6 Nov: Ribbed Bracket crowned twice and the ledger never saw the middle
     king). The publisher replays each one in the store's sequence order, each with its own previous king and reason,
