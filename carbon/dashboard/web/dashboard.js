@@ -383,7 +383,7 @@
       h("div", {class: "chips"},
         chip(phase[0], phase[1]),
         board.device_class && classChipShown((ctx || {}).classes) ? chip(board.device_class, "chip-plain") : null,
-        board.launch ? chip("Exam " + board.launch.exam_version_label, "chip-plain") : chip("Era " + shortDigest(board.era), "chip-plain"),
+        board.launch ? chip(examName(board), "chip-plain") : chip("Era " + shortDigest(board.era), "chip-plain"),
         ok && board.challenge.rule ? chip("Rule " + board.challenge.rule, "chip-plain") : null,
         chip("Version " + board.challenge.version, "chip-plain")),
       // The one place rule text would go while the rules card is not OK.
@@ -560,6 +560,8 @@
       : "Ranked by " + label + "."];
     if (rulesOk(board) && lb.release_lag && isNum(lb.release_lag.hours)) notes.push("Scores publish about " + Math.round(lb.release_lag.hours) + " h after a window.");
     if (rulesOk(board) && isNum(lb.grain_pct)) notes.push("Grain " + fmt(lb.grain_pct) + "%.");
+    if (board.launch && king && Array.isArray(lb.entries) && lb.entries.length && !lb.entries.some(r => r.hotkey === king))
+      notes.push("The king's total is the validator's rebuild of his model, shown above.");
     if (notes.length) parts.push(h("p", {class: "hint"}, notes.join(" ")));
     if (sealed) parts.push(h("p", {class: "hint grain-sealed"}, SEALED_GRAIN));
     if (Array.isArray(lb.coldkeys) && lb.coldkeys.length) {
@@ -765,7 +767,10 @@
     const l = board.launch;
     const k = board.king;
     const digits = places([k && k.value, l.to_beat, l.margin, l.baseline_total]);
-    const gap = k && isNum(k.margin) ? (k.margin === 0 ? stat("Lead over the runner-up", "Same Ladder step", "The crown goes to the higher exact score (hidden) and needs the margin to change hands.")
+    const above = aboveBar(board);
+    const gap = above.length ? stat("Above the score to beat", String(above.length), "crown checks pending")
+      : k && isNum(k.margin) ? (k.margin === 0 ? stat("Lead over the runner-up", "Same Ladder step", "The crown goes to the higher exact score (hidden) and needs the margin to change hands.")
+      : k.margin < 0 ? null
       : stat("Lead over the runner-up", signed(k.margin, Math.min(digits, 3)), k.runner_up ? shortKey(k.runner_up) : null)) : null;
     const held = isNum(l.king_since_epoch) ? stat("Leader since", "epoch " + l.king_since_epoch) : null;
     const stats = [gap, held].filter(Boolean);
@@ -807,9 +812,32 @@
       h("rect", {x: 0, y: 0, width: 100, height: 8, class: "track"}),
       h("rect", {x: 0, y: 0, width: (Math.max(0, Math.min(1, v)) * 100).toFixed(1), height: 8, class: "fill"}));
   }
+  function examName(board) {
+    const label = String((board.launch || {}).exam_version_label || "").trim();
+    return !label || label.toLowerCase() === "exam" ? "Sealed exam" : "Exam " + label;
+  }
+  function aboveBar(board) {
+    const l = board.launch;
+    const lb = board.eligible_leaderboard;
+    if (!l || !isNum(l.to_beat) || !lb || !Array.isArray(lb.entries)) return [];
+    const king = board.king && board.king.hotkey;
+    return lb.entries.filter(r => r.hotkey !== king && isNum(r.screening_value) && r.screening_value > l.to_beat);
+  }
+  function crownCheckBlock(board) {
+    const above = aboveBar(board);
+    if (!above.length) return null;
+    return section("crown-checks", {class: "block crown-checks", "aria-labelledby": "ck-title"},
+      h("div", {class: "block-head"}, h("h2", {id: "ck-title"}, "Crown checks pending")),
+      h("p", {class: "lede"}, above.length + " above the score to beat. Each needs a " + (board.launch.to_beat_rule ? "rebuild-average " : "") + "crown check; the king holds until one passes."));
+  }
+  function lastCrown(board) {
+    const list = board.launch && board.launch.crown_changes;
+    const c = Array.isArray(list) ? list.find(x => isObject(x) && typeof x.hotkey === "string" && Number.isSafeInteger(x.since_epoch)) : null;
+    return c ? "Last crown: epoch " + c.since_epoch : null;
+  }
   function examLine(board) {
     const l = board.launch;
-    return h("p", {class: "hint exam-line"}, "Exam " + l.exam_version_label + " · totals rounded down to the Ladder step · " + GATE_WORDS);
+    return h("p", {class: "hint exam-line"}, examName(board) + " · totals rounded down to the Ladder step · " + GATE_WORDS);
   }
 
   function boardPage(board, ctx) {
@@ -818,7 +846,7 @@
       const pre = board.phase === "PRE_FIRST_RELEASE";
       const parts = [boardHead(board, true, c), boardBanners(board, c)];
       if (pre) parts.push(launchHero(board), beatBlock(board), stabilityLine(board), crownChanges(board), countsStrip(board));
-      else parts.push(leaderCard(board), stabilityLine(board), crownChanges(board), countsStrip(board), leaderboard(board), gateFailures(board));
+      else parts.push(leaderCard(board), stabilityLine(board), crownCheckBlock(board), crownChanges(board), countsStrip(board), leaderboard(board), gateFailures(board));
       parts.push(showcaseCard(), examLine(board), feedBlock(board));
       return h("div", {class: "page launch-page"}, parts);
     }
@@ -913,7 +941,19 @@
         : board && board.phase === "PRE_FIRST_RELEASE" ? h("p", {class: "hint"}, board.launch ? "No hotkey graded yet" : "First scores after the first release")
         : board && board.launch && board.launch.counts.graded > 0 ? h("p", {class: "hint"}, board.launch.counts.graded + " graded, no leader yet" + (best(board) !== null ? ". Best total " + total(best(board)) : "")) : null,
       board && board.launch ? beatBlock(board) : null,
+      board && board.launch ? homeStatus(board) : null,
       entry.state !== "ACCEPTED" ? h("p", {class: "fail"}, "Newest feed refused: " + words(entry.code)) : null);
+  }
+
+  function homeStatus(board) {
+    const above = aboveBar(board).length;
+    const bits = [
+      above ? above + " above the bar: crown " + (above === 1 ? "check" : "checks") + " pending" : null,
+      board.launch.king_stability === "UNSTABLE" ? "king's score varied between rebuilds" : null,
+      lastCrown(board),
+      board.freshness && isNum(board.freshness.age_seconds) ? "updated " + span(board.freshness.age_seconds) + " ago" : null,
+    ].filter(Boolean);
+    return bits.length ? h("p", {class: "hint home-status"}, bits.join(" · ")) : null;
   }
 
   // S3's signed network snapshot: drawn only when the file is present.

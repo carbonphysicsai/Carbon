@@ -16,8 +16,9 @@ from carbon.dashboard import build, fixtures
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "carbon" / "dashboard" / "web"
 WORKER = ROOT / "carbon" / "dashboard" / "worker" / "index.mjs"
-#: ENGINEERING BUDGET (DASHBOARD-02 plan, S2): the app without its fonts.
-BUDGET_BYTES = 128 * 1024
+#: ENGINEERING BUDGET (DASHBOARD-02 plan, S2): the app without its fonts. 128 KiB until 5 Nov, when the app sat ~100 bytes
+#: under it; raised to 136 KiB for the live crown-check state (Lead 21:52 overnight orders), still a small page.
+BUDGET_BYTES = 136 * 1024
 CSP = (
     "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; "
     "font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; "
