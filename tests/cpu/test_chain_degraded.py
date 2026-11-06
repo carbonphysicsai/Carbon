@@ -265,3 +265,44 @@ def test_a_one_shot_never_writes_the_doors_chain_state(tmp_path):
     assert (
         _state(tmp_path)["state"] == "DEGRADED"
     )  # the serving door's record is left as it was
+
+
+@pytest.mark.parametrize("degraded", [False, True])
+def test_an_unhashable_failure_code_is_graded_failed_never_a_type_error(degraded):
+    """A WorkerFailure-style code that is not a str (here a dict) must reach the normal FAILED path, never raise."""
+
+    class Odd(Exception):
+        def __init__(self):
+            super().__init__("odd")
+            self.code = {"stage": "inference"}  # unhashable
+
+    def retain(*_a, **_k):
+        raise Odd()
+
+    grader, calls = _grader(_Window(fresh=True), retain)
+    if degraded:
+        # degraded only after the round started (the stale-under-a-round branch is what is reached)
+        window = grader.intake.window
+
+        def retain_then_stale(*_a, **_k):
+            window.fresh = False
+            raise Odd()
+
+        grader.intake.retain_result = retain_then_stale
+    assert grader.run_once() == (TASK, "FAILED")
+    assert len(calls["fail"]) == 1
+
+
+def test_an_unhashable_retention_code_is_graded_failed_never_a_type_error():
+    class OddRetention(RetentionUnavailable):
+        @property
+        def code(self):
+            return ["unhashable"]
+
+    failure = OddRetention("x")
+
+    def retain(*_a, **_k):
+        raise failure
+
+    grader, _calls = _grader(_Window(fresh=True), retain)
+    assert grader.run_once()[1] == "FAILED"

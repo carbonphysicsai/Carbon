@@ -218,9 +218,16 @@ class AutoGrader:
                     )
             except RetentionUnavailable as unavailable:
                 code = getattr(unavailable, "code", None) or str(unavailable)
+                if not isinstance(code, str):
+                    # a non-str code (unhashable, e.g. a structured worker code) is never a set member: typed by text
+                    code = str(unavailable) or type(unavailable).__name__
                 if code in _PENDING or code in _NOT_YET:
                     continue
-                if code in _CHAIN_CODES and self.chain_degraded():
+                if (
+                    isinstance(code, str)
+                    and code in _CHAIN_CODES
+                    and self.chain_degraded()
+                ):
                     # (H8) the chain went stale under this round: wait, never FAILED, and stop the round (every
                     # other pending task would meet the same stale chain)
                     return None
@@ -228,8 +235,11 @@ class AutoGrader:
                 self._fail(submission_id, _code(code))
                 return submission_id, "FAILED"
             except Exception as failure:  # noqa: BLE001 - typed, no private content
+                failure_code = getattr(failure, "code", None)
                 if (
-                    getattr(failure, "code", None) in _CHAIN_CODES
+                    # a code may be any type (a WorkerFailure carries an unhashable one): only a str is a chain code
+                    isinstance(failure_code, str)
+                    and failure_code in _CHAIN_CODES
                     and self.chain_degraded()
                 ):
                     # the provider could not read the owner's registration because the chain went stale under this
