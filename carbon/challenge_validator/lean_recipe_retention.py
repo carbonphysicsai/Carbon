@@ -1659,7 +1659,9 @@ def _contend(
         )
         from carbon.challenge_validator import koth_journal
 
-        koth_journal.contention("live", submission_id, outcome, met)
+        koth_journal.contention(
+            "live", submission_id, outcome, met, store=promotion.store
+        )
         _watch_repeat_miss(promotion.store, adapter, submission_id, outcome)
         _file_if_paused(
             promotion.store,

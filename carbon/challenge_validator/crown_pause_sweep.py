@@ -132,7 +132,7 @@ def sweep(store, reconsider, *, kind, current_exam):
             except Exception:  # noqa: BLE001 - left unresolved, retried next tick
                 break
             koth_journal.contention(
-                "sweep", submission_id, outcome, incumbent.get("model_id")
+                "sweep", submission_id, outcome, incumbent.get("model_id"), store=store
             )
             if type(outcome) is not dict or "outcome" not in outcome:
                 break  # a refusal ({"error": ...}) is not a decision

@@ -217,6 +217,74 @@ def _variants(signer, boards):
         "UNSTABLE",
         mutate=lambda b: b["king"].__setitem__("mean", 0.7),
     )
+    measured = {"state": "MEASURED", "kept": 10, "n": 10}
+    checks = [
+        {
+            "hotkey": OTHER,
+            "state": "DECIDED",
+            "outcome": "INCUMBENT_KEEPS",
+            "reason": "mean_within_margin",
+        },
+        {
+            "hotkey": THIRD,
+            "state": "PENDING",
+            "outcome": "UNAVAILABLE",
+            "reason": "king_unmeasured",
+        },
+    ]
+
+    def v4(
+        name,
+        stability,
+        measure,
+        crown_checks,
+        *,
+        signed_under=launch.DOMAIN_V4,
+        mutate=None,
+    ):
+        body = {k: v for k, v in copy.deepcopy(graded).items() if k != "signature"}
+        body["schema"] = launch.SCHEMA_V4
+        body["king"]["to_beat_rule"] = launch.TO_BEAT_RULE_AVERAGED
+        body["king"]["stability"] = stability
+        body["king"]["measure"] = measure
+        body["crown_changes"] = two
+        body["crown_checks"] = crown_checks
+        if mutate:
+            mutate(body)
+        signature = signer._key.sign(signed_under + lb._canonical(body).encode())
+        out.append((name, {**body, "signature": signature.hex()}))
+
+    v4("v4_measured", "STABLE", measured, checks)
+    v4("v4_in_progress", None, {"state": "IN_PROGRESS", "kept": 3, "n": 10}, checks)
+    v4("v4_unmeasured", None, {"state": "UNMEASURED", "kept": 0, "n": 10}, [])
+    v4("v4_unstable", "UNSTABLE", {"state": "UNSTABLE", "kept": 7, "n": 10}, checks)
+    v4(
+        "v4_stability_disagrees",
+        "STABLE",
+        {"state": "IN_PROGRESS", "kept": 3, "n": 10},
+        checks,
+    )
+    v4("v4_kept_over_n", None, {"state": "IN_PROGRESS", "kept": 11, "n": 10}, checks)
+    v4("v4_measure_with_mean", "STABLE", {**measured, "mean": 0.7}, checks)
+    v4("v4_pending_decided", "STABLE", measured, [{**checks[0], "state": "PENDING"}])
+    v4("v4_bad_outcome", "STABLE", measured, [{**checks[0], "outcome": "CROWNED"}])
+    v4("v4_bad_reason", "STABLE", measured, [{**checks[0], "reason": "Has Spaces"}])
+    v4("v4_check_extra_key", "STABLE", measured, [{**checks[0], "seed": 3}])
+    v4("v4_duplicate_check", "STABLE", measured, [checks[0], checks[0]])
+    v4(
+        "v4_signed_under_v3_domain",
+        "STABLE",
+        measured,
+        checks,
+        signed_under=launch.DOMAIN_V3,
+    )
+    v4(
+        "v4_missing_checks",
+        "STABLE",
+        measured,
+        checks,
+        mutate=lambda b: b.pop("crown_checks"),
+    )
     body = {k: v for k, v in copy.deepcopy(graded).items() if k != "signature"}
     signature = signer._key.sign(launch.DOMAIN_V2 + lb._canonical(body).encode())
     out.append(("v1_signed_under_v2_domain", {**body, "signature": signature.hex()}))
@@ -253,6 +321,25 @@ def test_worker_matches_launch_py_on_every_board_and_refusal(tmp_path):
     codes = {name: want.get("code") for name, want in expected}
     assert codes["empty"] is None and codes["graded"] is None
     assert codes["v2_averaged_rule"] is None and codes["v3_averaged_rule"] is None
+    for name in ("v4_measured", "v4_in_progress", "v4_unmeasured", "v4_unstable"):
+        assert codes[name] is None, name
+    for name in (
+        "v4_stability_disagrees",
+        "v4_kept_over_n",
+        "v4_measure_with_mean",
+        "v4_pending_decided",
+        "v4_bad_outcome",
+        "v4_bad_reason",
+        "v4_check_extra_key",
+        "v4_duplicate_check",
+        "v4_signed_under_v3_domain",
+        "v4_missing_checks",
+    ):
+        assert codes[name] is not None, name
+    page = dict(expected_v2)["v4_in_progress"]["board"]["launch"]
+    assert page["king_measure"] == {"state": "IN_PROGRESS", "kept": 3, "n": 10}
+    assert [c["state"] for c in page["crown_checks"]] == ["DECIDED", "PENDING"]
+    assert "crown_checks" not in dict(expected_v2)["v3_stable"]["board"]["launch"]
     assert codes["v2_wrong_rule"] == "king_invalid"
     shown = dict(expected_v2)
     assert (

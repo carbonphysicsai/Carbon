@@ -45,7 +45,28 @@ DOMAIN_V2 = b"carbon.validator.launch-board.v2\x00"
 SCHEMA_V3 = "carbon.validator.launch-board.v3"
 DOMAIN_V3 = b"carbon.validator.launch-board.v3\x00"
 STABILITY = ("STABLE", "UNSTABLE")
-SCHEMAS = {SCHEMA: DOMAIN, SCHEMA_V2: DOMAIN_V2, SCHEMA_V3: DOMAIN_V3}
+# v4 adds the king's re-measure `measure` (a state and two counts) and `crown_checks` (latest decision per contender:
+# hotkey, state, outcome and reason codes) under its own domain (Lead 5 Nov 21:5x). Held equal to
+# `carbon.challenge_validator.launch_board`'s v4 shape.
+SCHEMA_V4 = "carbon.validator.launch-board.v4"
+DOMAIN_V4 = b"carbon.validator.launch-board.v4\x00"
+MEASURE_STATES = ("MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURED")
+DECIDED_OUTCOMES = (
+    "FIRST_INCUMBENT",
+    "CHALLENGER",
+    "INCUMBENT_KEEPS",
+    "NO_WINNER",
+    "INCUMBENT_DETHRONED",
+)
+CHECK_OUTCOMES = (*DECIDED_OUTCOMES, "UNAVAILABLE", "FAILED_INFRA")
+MAX_CROWN_CHECKS = 10
+_REASON = re.compile(r"[a-z][a-z0-9_]{0,63}(:[a-z0-9_]{1,63})?")
+SCHEMAS = {
+    SCHEMA: DOMAIN,
+    SCHEMA_V2: DOMAIN_V2,
+    SCHEMA_V3: DOMAIN_V3,
+    SCHEMA_V4: DOMAIN_V4,
+}
 MAX_CROWN_CHANGES = 5
 TOTAL = "total"
 SECTION_META = {
@@ -185,11 +206,56 @@ def _crown_changes(changes):
         _unit(entry["total"], "crown_changes_invalid")
 
 
+def _measure(measure, king):
+    if king is None:
+        if measure is not None:
+            raise LaunchRefused("king_invalid")
+        return
+    if (
+        type(measure) is not dict
+        or set(measure) != {"state", "kept", "n"}
+        or measure["state"] not in MEASURE_STATES
+        or type(measure["kept"]) is not int
+        or type(measure["n"]) is not int
+        or not 2 <= measure["n"] <= 100
+        or not 0 <= measure["kept"] <= measure["n"]
+    ):
+        raise LaunchRefused("king_invalid")
+
+
+def _crown_checks(checks):
+    if type(checks) is not list or len(checks) > MAX_CROWN_CHECKS:
+        raise LaunchRefused("crown_checks_invalid")
+    seen = set()
+    for entry in checks:
+        if (
+            type(entry) is not dict
+            or set(entry) != {"hotkey", "state", "outcome", "reason"}
+            or type(entry["hotkey"]) is not str
+            or not _SS58.fullmatch(entry["hotkey"])
+            or entry["hotkey"] in seen
+            or entry["outcome"] not in CHECK_OUTCOMES
+            or entry["state"]
+            != ("DECIDED" if entry["outcome"] in DECIDED_OUTCOMES else "PENDING")
+            or not (
+                entry["reason"] is None
+                or (type(entry["reason"]) is str and _REASON.fullmatch(entry["reason"]))
+            )
+        ):
+            raise LaunchRefused("crown_checks_invalid")
+        seen.add(entry["hotkey"])
+
+
 def _check(document):
-    v3 = document.get("schema") == SCHEMA_V3
+    v4 = document.get("schema") == SCHEMA_V4
+    v3 = v4 or document.get("schema") == SCHEMA_V3
     v2 = v3 or document.get("schema") == SCHEMA_V2
-    if set(document) != (FIELDS_V2 if v2 else FIELDS):
+    if set(document) != (
+        FIELDS_V2 | {"crown_checks"} if v4 else FIELDS_V2 if v2 else FIELDS
+    ):
         raise LaunchRefused("board_fields")
+    if v4:
+        _crown_checks(document["crown_checks"])
     if v2:
         _crown_changes(document["crown_changes"])
     network = document["network"]
@@ -225,9 +291,22 @@ def _check(document):
     want = KING_FIELDS | {"to_beat_rule"} if v2 else KING_FIELDS
     if v3:
         want = want | {"stability"}
+    if v4:
+        want = want | {"measure"}
     if type(king) is not dict or set(king) != want:
         raise LaunchRefused("king_invalid")
-    if v3 and (
+    if v4:
+        _measure(king["measure"], king["king"])
+        expected = (
+            None
+            if king["king"] is None
+            else {"MEASURED": "STABLE", "UNSTABLE": "UNSTABLE"}.get(
+                king["measure"]["state"]
+            )
+        )
+        if king["stability"] != expected:
+            raise LaunchRefused("king_invalid")
+    elif v3 and (
         king["stability"] not in (None, *STABILITY)
         or (king["stability"] is None) != (king["king"] is None)
     ):
@@ -388,6 +467,15 @@ def project(document, trust):
             },
             # v3 only: whether the king's latest re-measure was seed-fragile; None on v1/v2 (nothing drawn)
             "king_stability": king.get("stability"),
+            # v4 only: the king's re-measure progress and the latest crown decision per contender; None before v4
+            "king_measure": (
+                None if king.get("measure") is None else dict(king["measure"])
+            ),
+            "crown_checks": (
+                None
+                if "crown_checks" not in document
+                else [dict(c) for c in document["crown_checks"]]
+            ),
             # v2/v3 only: the page words the averaged bar differently
             "to_beat_rule": king.get("to_beat_rule"),
             "crown_changes": (

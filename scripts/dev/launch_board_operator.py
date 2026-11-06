@@ -102,7 +102,7 @@ from carbon.dashboard import feed as dashboard_feed
 CONFIG_SCHEMA = "carbon.launch-board.operator.config.v1"
 NAMES = {"schema", "network", "ledger", "receiver_url", "key", "out", "challenges"}
 OPTIONAL = {"upload_command", "fetch_timeout_seconds", "board"}
-BOARDS = ("v1", "v2", "v3")
+BOARDS = ("v1", "v2", "v3", "v4")
 CHALLENGE_NAMES = {"id", "version", "exam_version_label"}
 CHALLENGE_OPTIONAL = {"exam_key"}
 #: What a v2 Challenge must also name; a v1 config never carries them.
@@ -132,7 +132,11 @@ def load_config(path):
         raise OperatorRefused("operator_config")
     if raw.get("board", "v1") not in BOARDS:
         raise OperatorRefused("operator_config_board")
-    v2 = raw.get("board") in ("v2", "v3")  # v3 is v2 plus the king's stability
+    v2 = raw.get("board") in (
+        "v2",
+        "v3",
+        "v4",
+    )  # v3 is v2 plus the king's stability; v4 adds measure + checks
     for item in raw["challenges"]:
         required = CHALLENGE_NAMES | (CHALLENGE_V2 if v2 else set())
         if (
@@ -229,6 +233,10 @@ class ReadOnlyPoolStore:
     private_evaluation_bodies = PoolStore.private_evaluation_bodies
     crown_average_unstable = PoolStore.crown_average_unstable
     crown_mean = PoolStore.crown_mean
+    incumbent_evaluation_key = PoolStore.incumbent_evaluation_key
+    kept_crown_rebuilds = PoolStore.kept_crown_rebuilds
+    crown_decisions = PoolStore.crown_decisions
+    submission_hotkey = PoolStore.submission_hotkey
 
 
 class _ReadOnlyLedger:
@@ -330,6 +338,79 @@ def king_stability(config, item, king_document):
     return "STABLE"
 
 
+def king_measure(config, item, king_document):
+    """The v4 board's ``(stability, measure)`` for the king ``king_document`` names: ``(None, None)`` with no king. The
+    store's incumbent must BE that king (`king_mismatch`). On the king's CURRENT key (`incumbent_evaluation_key`, which
+    follows a rebuild link): MEASURED when a mean is filed there (stability STABLE), UNSTABLE when his re-measure was
+    seed-fragile (UNSTABLE), else IN_PROGRESS with the kept rebuild count, or UNMEASURED (stability None: not yet
+    measured, never defaulted). ``n`` is the registered N for the Challenge. Two counts leave this function; no seed or
+    mean does."""
+    from carbon.challenge_validator import crown_average
+
+    if king_document["king"] is None:
+        return None, None
+    if not os.path.lexists(item["pool_store"]):
+        raise OperatorRefused("king_mismatch")
+    store = ReadOnlyPoolStore(item["pool_store"])
+    incumbent = store.incumbent()
+    standing = (
+        None if incumbent is None else store.incumbent_standing(incumbent["model_id"])
+    )
+    if (
+        standing is None
+        or koth_public._owner_hotkey(standing["owner"])
+        != king_document["king"]["hotkey"]
+    ):
+        raise OperatorRefused("king_mismatch")
+    model = incumbent["model_id"]
+    key = store.incumbent_evaluation_key(model)
+    n = crown_average.load_rule().n_for(item["id"])
+    kept = 0 if key is None else min(store.kept_crown_rebuilds(model, key), n)
+    if key is not None and store.crown_mean(model, key) is not None:
+        return "STABLE", {"state": "MEASURED", "kept": n, "n": n}
+    if key is not None and store.crown_average_unstable(model, key):
+        return "UNSTABLE", {"state": "UNSTABLE", "kept": kept, "n": n}
+    return None, {
+        "state": "IN_PROGRESS" if kept else "UNMEASURED",
+        "kept": kept,
+        "n": n,
+    }
+
+
+def crown_checks(config, item):
+    """The v4 board's ``crown_checks``: the latest crown decision per contender, newest first (`PoolStore.crown_decisions`),
+    as hotkey + state + outcome + reason codes. A contender without an admitted hotkey (a derived, host-owned row) or with
+    an outcome outside the board's closed set is left out, never partly shown."""
+    if not os.path.lexists(item["pool_store"]):
+        return []
+    store = ReadOnlyPoolStore(item["pool_store"])
+    out, seen = [], set()
+    for record in store.crown_decisions(limit=4 * launch_board.MAX_CROWN_CHECKS):
+        hotkey = store.submission_hotkey(record["submission_id"])
+        outcome, reason = record["outcome"], record["reason"]
+        if (
+            hotkey is None
+            or hotkey in seen
+            or outcome not in launch_board.CHECK_OUTCOMES
+            or not (reason is None or launch_board._REASON.fullmatch(str(reason)))
+        ):
+            continue
+        seen.add(hotkey)
+        out.append(
+            {
+                "hotkey": hotkey,
+                "state": (
+                    "DECIDED" if outcome in launch_board.DECIDED_OUTCOMES else "PENDING"
+                ),
+                "outcome": outcome,
+                "reason": reason,
+            }
+        )
+        if len(out) >= launch_board.MAX_CROWN_CHECKS:
+            break
+    return out
+
+
 def slug_of(challenge):
     return dashboard_feed.board_slug(challenge["id"], "no-class")
 
@@ -358,8 +439,9 @@ def run_once(config, *, version=None):
     out.mkdir(parents=True, exist_ok=True)
     version = launch_board.now_version() if version is None else version
     timeout = config.get("fetch_timeout_seconds", 10)
-    v2 = config.get("board") in ("v2", "v3")
-    v3 = config.get("board") == "v3"
+    v2 = config.get("board") in ("v2", "v3", "v4")
+    v4 = config.get("board") == "v4"
+    v3 = v4 or config.get("board") == "v3"
     rows = []
     for item in config["challenges"]:
         challenge = type(
@@ -388,7 +470,15 @@ def run_once(config, *, version=None):
                     "exact_totals": exact,
                     "rebuild_noise": koth_registry.rebuild_noise(item["id"]),
                 }
-                if v3:
+                if v4:
+                    try:
+                        extra["stability"], extra["measure"] = king_measure(
+                            config, item, king
+                        )
+                        extra["crown_checks"] = crown_checks(config, item)
+                    except (sqlite3.Error, StateError):
+                        raise OperatorRefused("pool_store_unavailable") from None
+                elif v3:
                     try:
                         extra["stability"] = king_stability(config, item, king)
                     except (sqlite3.Error, StateError):
@@ -422,7 +512,7 @@ def run_once(config, *, version=None):
             )
             if v2:
                 row.update(
-                    board="v3" if v3 else "v2",
+                    board="v4" if v4 else "v3" if v3 else "v2",
                     crown_changes=len(board["crown_changes"]),
                 )
             if upload(config.get("upload_command"), path, name):

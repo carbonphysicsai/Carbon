@@ -19,11 +19,23 @@ def note(event, **fields):
         pass
 
 
-def contention(path, candidate, outcome, incumbent=None):
+def contention(path, candidate, outcome, incumbent=None, store=None):
     """The line of one crown comparison: ``path`` is live (a fresh grade) or sweep (a queued decision);
-    ``incumbent`` is the king it met (read before the decision)."""
+    ``incumbent`` is the king it met (read before the decision). With ``store`` (the pool store), the outcome and reason
+    codes are also filed for the public launch board's queue (`PoolStore.record_crown_decision`); that write is swallowed
+    on failure like the line, so it never changes an outcome."""
     if type(outcome) is not dict:
         return
+    if store is not None and type(outcome.get("outcome")) is str:
+        try:
+            store.record_crown_decision(
+                candidate,
+                outcome.get("evaluation_key"),
+                outcome["outcome"],
+                outcome.get("reason"),
+            )
+        except Exception:  # noqa: BLE001, S110
+            pass  # a record of the decision is never the decision
     note(
         "koth_contention",
         path=path,

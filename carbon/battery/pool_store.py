@@ -1893,6 +1893,97 @@ class PoolStore:
             )
         return attempts
 
+    # --- crown decisions, as the public launch board's queue shows them (Lead 5 Nov 21:5x, board v4) -----------------
+    # One append-only record per crown comparison: who, on which key, the outcome and reason CODES (closed, the same codes
+    # the receiver's journal line carries). Never a score, mean, seed or path. Written beside `koth_journal.contention`;
+    # a failed write never changes an outcome.
+
+    def record_crown_decision(self, submission_id, key, outcome, reason):
+        """File one crown comparison's outcome and reason codes (append-only)."""
+        if (
+            type(submission_id) is not str
+            or not submission_id
+            or type(outcome) is not str
+            or not outcome
+            or (reason is not None and type(reason) is not str)
+        ):
+            raise StateError("crown_decision_invalid")
+        at = self.clock()
+        body = canonical(
+            {
+                "schema": "carbon.challenge-validator.crown-decision.v1",
+                "submission_id": submission_id,
+                "evaluation_key": key,
+                "outcome": outcome,
+                "reason": reason,
+                "at": at,
+            }
+        )
+        op = self._bank_operation(
+            "crown_decision.v1", submission_id, [key, outcome, reason, at]
+        )
+        with self.transaction() as db:
+            db.execute(
+                "INSERT OR IGNORE INTO operations VALUES(?,?,?,?)",
+                (op, "crown_decision.v1", "RECORDED", body),
+            )
+
+    def crown_decisions(self, limit=10):
+        """The latest crown decision per submission, newest first, at most ``limit`` (read-only)."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_decision.v1' ORDER BY rowid DESC"
+            ).fetchall()
+        out, seen = [], set()
+        for (raw,) in rows:
+            try:
+                body = json.loads(raw)
+            except ValueError:
+                continue
+            sid = body.get("submission_id")
+            if sid in seen:
+                continue
+            seen.add(sid)
+            out.append(
+                {
+                    k: body.get(k)
+                    for k in ("submission_id", "evaluation_key", "outcome", "reason")
+                }
+            )
+            if len(out) >= limit:
+                break
+        return out
+
+    def kept_crown_rebuilds(self, submission_id, key):
+        """How many of ``submission_id``'s crown rebuild SEEDS on ``key`` are kept (the host-fault second build is not
+        counted): a re-measure's progress. Read-only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='crown_rebuild.v1'"
+            ).fetchall()
+        seeds = set()
+        for (raw,) in rows:
+            try:
+                body = json.loads(raw)
+            except ValueError:
+                continue
+            if (
+                body.get("submission_id") == submission_id
+                and body.get("evaluation_key") == key
+                and body.get("again") is False
+            ):
+                seeds.add(body.get("seed"))
+        return len(seeds)
+
+    def submission_hotkey(self, submission_id):
+        """The hotkey ``submission_id`` was admitted under, or None (a derived, host-owned row has none). Read-only."""
+        with self.db() as db:
+            row = db.execute(
+                "SELECT hotkey FROM submissions WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+        return None if row is None or type(row[0]) is not str else row[0]
+
     def crown_rebuild_cached(self, submission_id, key, seed, again):
         """The grade body of one finished crown rebuild (``again``: the host-fault second build), or None."""
         op = self._bank_operation("crown_rebuild.v1", submission_id, [key, seed, again])

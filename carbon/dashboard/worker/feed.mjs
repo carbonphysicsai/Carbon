@@ -24,6 +24,14 @@ export const LAUNCH_DOMAIN_V2 = "carbon.validator.launch-board.v2\u0000";
 export const LAUNCH_SCHEMA_V3 = "carbon.validator.launch-board.v3";
 export const LAUNCH_DOMAIN_V3 = "carbon.validator.launch-board.v3\u0000";
 const LAUNCH_STABILITY = ["STABLE", "UNSTABLE"];
+// v4 adds the king's re-measure `measure` and `crown_checks` under its own domain (held equal to launch.py's v4).
+export const LAUNCH_SCHEMA_V4 = "carbon.validator.launch-board.v4";
+export const LAUNCH_DOMAIN_V4 = "carbon.validator.launch-board.v4\u0000";
+const LAUNCH_MEASURE_STATES = ["MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURED"];
+const LAUNCH_DECIDED = ["FIRST_INCUMBENT", "CHALLENGER", "INCUMBENT_KEEPS", "NO_WINNER", "INCUMBENT_DETHRONED"];
+const LAUNCH_CHECK_OUTCOMES = [...LAUNCH_DECIDED, "UNAVAILABLE", "FAILED_INFRA"];
+const LAUNCH_MAX_CROWN_CHECKS = 10;
+const LAUNCH_REASON = /^[a-z][a-z0-9_]{0,63}(:[a-z0-9_]{1,63})?$/u;
 const LAUNCH_MAX_CROWN_CHANGES = 5;
 const LAUNCH_CROWN_FIELDS = ["from_hotkey", "since_epoch", "to_hotkey", "total"];
 export const FIXTURE_PUBLIC_KEY = "d55fec2a82d5280786d8282263c8f324f43166eb036d38fb64bce7469d742cc8";
@@ -633,11 +641,30 @@ function launchCrownChanges(changes) {
     launchUnit(c.total, "crown_changes_invalid");
   }
 }
+function launchMeasure(measure, king) {
+  if (king === null) { if (measure !== null) throw new FeedRefused("king_invalid"); return; }
+  if (!sameKeys(measure, ["kept", "n", "state"]) || !LAUNCH_MEASURE_STATES.includes(measure.state)
+      || !launchInt(measure.kept) || !launchInt(measure.n) || measure.n.value < 2 || measure.n.value > 100
+      || measure.kept.value < 0 || measure.kept.value > measure.n.value) throw new FeedRefused("king_invalid");
+}
+function launchCrownChecks(checks) {
+  if (!Array.isArray(checks) || checks.length > LAUNCH_MAX_CROWN_CHECKS) throw new FeedRefused("crown_checks_invalid");
+  const seen = new Set();
+  for (const c of checks) {
+    if (!sameKeys(c, ["hotkey", "outcome", "reason", "state"]) || typeof c.hotkey !== "string" || !LAUNCH_SS58.test(c.hotkey)
+        || seen.has(c.hotkey) || !LAUNCH_CHECK_OUTCOMES.includes(c.outcome)
+        || c.state !== (LAUNCH_DECIDED.includes(c.outcome) ? "DECIDED" : "PENDING")
+        || !(c.reason === null || (typeof c.reason === "string" && LAUNCH_REASON.test(c.reason)))) throw new FeedRefused("crown_checks_invalid");
+    seen.add(c.hotkey);
+  }
+}
 function launchCheck(document) {
-  const v3 = get(document, "schema") === LAUNCH_SCHEMA_V3;
+  const v4 = get(document, "schema") === LAUNCH_SCHEMA_V4;
+  const v3 = v4 || get(document, "schema") === LAUNCH_SCHEMA_V3;
   const v2 = v3 || get(document, "schema") === LAUNCH_SCHEMA_V2;
-  if (!sameKeys(document, v2 ? [...LAUNCH_FIELDS, "crown_changes"].sort() : LAUNCH_FIELDS)) throw new FeedRefused("board_fields");
+  if (!sameKeys(document, v4 ? [...LAUNCH_FIELDS, "crown_changes", "crown_checks"].sort() : v2 ? [...LAUNCH_FIELDS, "crown_changes"].sort() : LAUNCH_FIELDS)) throw new FeedRefused("board_fields");
   if (v2) launchCrownChanges(document.crown_changes);
+  if (v4) launchCrownChecks(document.crown_checks);
   const network = get(document, "network");
   const labels = get(document, "labels");
   if (typeof network !== "string" || !own(LAUNCH_NETWORK_LABELS, network) || !Array.isArray(labels)
@@ -653,9 +680,13 @@ function launchCheck(document) {
   const validator = get(document, "validator");
   if (!sameKeys(validator, ["feed_key"]) || typeof validator.feed_key !== "string" || !HEX_KEY.test(validator.feed_key)) throw new FeedRefused("validator_invalid");
   const king = get(document, "king");
-  if (!sameKeys(king, v3 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability"].sort() : v2 ? [...LAUNCH_KING_FIELDS, "to_beat_rule"].sort() : LAUNCH_KING_FIELDS)) throw new FeedRefused("king_invalid");
+  if (!sameKeys(king, v4 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability", "measure"].sort() : v3 ? [...LAUNCH_KING_FIELDS, "to_beat_rule", "stability"].sort() : v2 ? [...LAUNCH_KING_FIELDS, "to_beat_rule"].sort() : LAUNCH_KING_FIELDS)) throw new FeedRefused("king_invalid");
   if (v2 && king.to_beat_rule !== LAUNCH_TO_BEAT_RULE && king.to_beat_rule !== LAUNCH_TO_BEAT_RULE_AVERAGED) throw new FeedRefused("king_invalid");
-  if (v3 && ((king.stability !== null && !LAUNCH_STABILITY.includes(king.stability)) || (king.stability === null) !== (king.king === null))) throw new FeedRefused("king_invalid");
+  if (v4) {
+    launchMeasure(king.measure, king.king);
+    const expected = king.king === null ? null : ({MEASURED: "STABLE", UNSTABLE: "UNSTABLE"})[king.measure.state] ?? null;
+    if (king.stability !== expected) throw new FeedRefused("king_invalid");
+  } else if (v3 && ((king.stability !== null && !LAUNCH_STABILITY.includes(king.stability)) || (king.stability === null) !== (king.king === null))) throw new FeedRefused("king_invalid");
   const row = king.king;
   if (row !== null) {
     if (!sameKeys(row, LAUNCH_KING_ROW) || typeof row.hotkey !== "string" || !LAUNCH_SS58.test(row.hotkey)
@@ -691,10 +722,11 @@ function launchCheck(document) {
 }
 async function projectLaunch(document, pinned) {
   if (pinned.fixture) throw new FeedRefused("fixture_launch_board");
-  const v3 = document.schema === LAUNCH_SCHEMA_V3;
+  const v4 = document.schema === LAUNCH_SCHEMA_V4;
+  const v3 = v4 || document.schema === LAUNCH_SCHEMA_V3;
   const v2 = v3 || document.schema === LAUNCH_SCHEMA_V2;
-  const domain = v3 ? LAUNCH_DOMAIN_V3 : v2 ? LAUNCH_DOMAIN_V2 : LAUNCH_DOMAIN;
-  const signer = await verify(document, pinned, domain, v3 ? LAUNCH_SCHEMA_V3 : v2 ? LAUNCH_SCHEMA_V2 : LAUNCH_SCHEMA);
+  const domain = v4 ? LAUNCH_DOMAIN_V4 : v3 ? LAUNCH_DOMAIN_V3 : v2 ? LAUNCH_DOMAIN_V2 : LAUNCH_DOMAIN;
+  const signer = await verify(document, pinned, domain, v4 ? LAUNCH_SCHEMA_V4 : v3 ? LAUNCH_SCHEMA_V3 : v2 ? LAUNCH_SCHEMA_V2 : LAUNCH_SCHEMA);
   const counts = launchCheck(document);
   const ladder = document.ladder;
   const king = document.king;
@@ -753,6 +785,8 @@ async function projectLaunch(document, pinned) {
       network: document.network,
       gate_names: gateNames,
       king_stability: v3 ? king.stability : null,
+      king_measure: v4 && king.measure !== null ? {state: king.measure.state, kept: king.measure.kept.value, n: king.measure.n.value} : null,
+      crown_checks: v4 ? document.crown_checks.map(c => ({hotkey: c.hotkey, state: c.state, outcome: c.outcome, reason: c.reason})) : null,
       to_beat_rule: v2 ? king.to_beat_rule : null,
       crown_changes: v2 ? document.crown_changes.map(c => ({
         hotkey: c.to_hotkey, from_hotkey: c.from_hotkey, since_epoch: c.since_epoch.value, total: c.total.value,
@@ -767,7 +801,7 @@ async function projectLaunch(document, pinned) {
 }
 
 export async function project(document, pinned) {
-  if (isDict(document) && [LAUNCH_SCHEMA, LAUNCH_SCHEMA_V2, LAUNCH_SCHEMA_V3].includes(get(document, "schema"))) return projectLaunch(document, pinned);
+  if (isDict(document) && [LAUNCH_SCHEMA, LAUNCH_SCHEMA_V2, LAUNCH_SCHEMA_V3, LAUNCH_SCHEMA_V4].includes(get(document, "schema"))) return projectLaunch(document, pinned);
   const signer = await verify(document, pinned);
   if (own(document, "live")) throw new FeedRefused("live_not_authorized");
   const vals = values(get(document, "values"));
@@ -1287,6 +1321,8 @@ function launchV2(board) {
     network: launch.network,
     gate_names: gateNames,
     ...(launch.king_stability === null || launch.king_stability === undefined ? {} : {king_stability: launch.king_stability}),
+    ...(launch.king_measure === null || launch.king_measure === undefined ? {} : {king_measure: {...launch.king_measure}}),
+    ...(!Array.isArray(launch.crown_checks) ? {} : {crown_checks: launch.crown_checks.map(c => ({...c}))}),
     ...(launch.to_beat_rule === LAUNCH_TO_BEAT_RULE_AVERAGED ? {to_beat_rule: launch.to_beat_rule} : {}),
     ...(!Array.isArray(launch.crown_changes) ? {} : {crown_changes: launch.crown_changes.map(c => ({...c}))}),
   }};

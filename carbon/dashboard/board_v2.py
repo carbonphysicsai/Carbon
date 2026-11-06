@@ -626,6 +626,17 @@ def _launch(board):
                 if launch.get("king_stability") is None
                 else {"king_stability": launch["king_stability"]}
             ),
+            # v4 boards only: the king's re-measure progress (a state and two counts) and the crown checks
+            **(
+                {}
+                if launch.get("king_measure") is None
+                else {"king_measure": dict(launch["king_measure"])}
+            ),
+            **(
+                {}
+                if launch.get("crown_checks") is None
+                else {"crown_checks": [dict(c) for c in launch["crown_checks"]]}
+            ),
             # the averaged bar only (crown averaging on): the page says it is the king's rebuild mean plus a margin
             **(
                 {"to_beat_rule": launch["to_beat_rule"]}

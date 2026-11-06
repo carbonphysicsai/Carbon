@@ -767,13 +767,14 @@
     const l = board.launch;
     const k = board.king;
     const digits = places([k && k.value, l.to_beat, l.margin, l.baseline_total]);
-    const above = aboveBar(board);
+    const above = Array.isArray(l.crown_checks) ? [] : aboveBar(board);
     const gap = above.length ? stat("Above the score to beat", String(above.length), "crown check pending or decided")
       : k && isNum(k.margin) ? (k.margin === 0 ? stat("Lead over the runner-up", "Same Ladder step", "The crown goes to the higher exact score (hidden) and needs the margin to change hands.")
       : k.margin < 0 ? null
       : stat("Lead over the runner-up", signed(k.margin, Math.min(digits, 3)), k.runner_up ? shortKey(k.runner_up) : null)) : null;
     const held = isNum(l.king_since_epoch) ? stat("Leader since", "epoch " + l.king_since_epoch) : null;
-    const stats = [gap, held].filter(Boolean);
+    const measured = k && measureText(l.king_measure) ? stat("King's rebuild average", measureText(l.king_measure)) : null;
+    const stats = [gap, held, measured].filter(Boolean);
     return section("leader", {class: "card leader", "aria-labelledby": "leader-title"},
       h("div", {class: "card-top"}, crown(), h("h2", {id: "leader-title", class: "card-title"}, "Current leader")),
       k ? h("p", {class: "leader-key"}, hotkey(k.hotkey, {copy: true, href: minerHref(board.slug, k.hotkey)})) : h("p", {class: "leader-key"}, "No leader yet"),
@@ -823,7 +824,24 @@
     const king = board.king && board.king.hotkey;
     return lb.entries.filter(r => r.hotkey !== king && isNum(r.screening_value) && r.screening_value > l.to_beat);
   }
+  function measureText(m) {
+    if (!isObject(m)) return null;
+    return m.state === "MEASURED" ? "measured over " + m.n + " rebuilds" : m.state === "UNSTABLE" ? "varied between rebuilds"
+      : m.state === "IN_PROGRESS" ? m.kept + " of " + m.n + " rebuilds done" : "not measured yet (0 of " + m.n + ")";
+  }
+  function checksBlock(board) {
+    const list = board.launch.crown_checks.filter(c => isObject(c) && typeof c.hotkey === "string");
+    const pending = list.filter(c => c.state === "PENDING").length;
+    return section("crown-checks", {class: "block crown-checks", "aria-labelledby": "ck-title"},
+      h("div", {class: "block-head"}, h("h2", {id: "ck-title"}, "Crown checks")),
+      h("p", {class: "hint"}, list.length ? pending + " pending, " + (list.length - pending) + " decided (latest per challenger). The king keeps the crown unless a check passes." : "No crown check yet."),
+      list.length ? h("ol", {class: "cc-list"}, list.map(c => h("li", null,
+        h("a", {href: minerHref(board.slug, c.hotkey), class: "key", title: c.hotkey}, shortKey(c.hotkey)),
+        " " + (c.state === "PENDING" ? "pending" : words(c.outcome)),
+        c.reason ? h("span", {class: "hint"}, " · " + words(c.reason)) : null))) : null);
+  }
   function crownCheckBlock(board) {
+    if (Array.isArray(board.launch.crown_checks)) return checksBlock(board);
     const above = aboveBar(board);
     if (!above.length) return null;
     return section("crown-checks", {class: "block crown-checks", "aria-labelledby": "ck-title"},
@@ -946,10 +964,12 @@
   }
 
   function homeStatus(board) {
-    const above = aboveBar(board).length;
+    const above = Array.isArray(board.launch.crown_checks) ? 0 : aboveBar(board).length;
     const bits = [
       above ? above + " above the bar: crown check pending or decided" : null,
       board.launch.king_stability === "UNSTABLE" ? "king's score varied between rebuilds" : null,
+      board.king && measureText(board.launch.king_measure) ? "king " + measureText(board.launch.king_measure) : null,
+      Array.isArray(board.launch.crown_checks) ? board.launch.crown_checks.filter(c => c && c.state === "PENDING").length + " checks pending" : null,
       lastCrown(board),
       board.freshness && isNum(board.freshness.age_seconds) ? "updated " + span(board.freshness.age_seconds) + " ago" : null,
     ].filter(Boolean);

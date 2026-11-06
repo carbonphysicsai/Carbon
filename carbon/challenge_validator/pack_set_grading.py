@@ -406,7 +406,7 @@ def _contend_set(
         )
         from . import koth_journal
 
-        koth_journal.contention("live_set", origin, outcome)
+        koth_journal.contention("live_set", origin, outcome, store=promotion.store)
         retention._watch_repeat_miss(
             promotion.store, batch_adapters[batches[0]], origin, outcome
         )
