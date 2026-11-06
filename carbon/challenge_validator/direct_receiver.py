@@ -808,6 +808,9 @@ GRADING_PATHS = (
     "carbon/challenge_validator/scoring.py",
     "carbon/challenge_validator/koth_registry.py",
     "carbon/challenge_validator/crown_average.py",
+    # whether a timed build ran on a quiet host decides whose failure a wall stop is (owner 5 Nov: rebuilds consistently
+    # timed; Validator-2 21:28)
+    "carbon/challenge_validator/host_quiet.py",
     "carbon/challenge_validator/bank_promotion.py",
     "carbon/battery/pool_store.py",
     # registry

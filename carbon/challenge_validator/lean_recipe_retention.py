@@ -3635,9 +3635,13 @@ def rebuild_at_seed(
         code = failed.code
         # only a failure inside THIS probe window: a build this call started (never a re-read of an earlier
         # failure, which happened on whatever host it met then), or this call's grade of the derived task
+        # ONE rule with the counted grade (Validator-2 10:54 (A)): only a candidate WALL STOP inside THIS probe window
+        # can be a busy host's; any other failure is exactly as before
         ran = (
-            code.startswith("rebuild_task_") and getattr(failed, "built_here", False)
-        ) or code.startswith("rebuild_grade_")
+            code.startswith("rebuild_task_")
+            and getattr(failed, "built_here", False)
+            and _wall_stopped_build(adapter, failed_task, host_owner)
+        ) or code == "rebuild_grade_" + CANDIDATE_WALL_LIMIT_REACHED
         if verdict is not None and not verdict.quiet and ran and failed_task:
             try:
                 host_quiet.mark_contended(
@@ -3651,6 +3655,21 @@ def rebuild_at_seed(
         raise
     finally:
         host_quiet.finish(probe)
+
+
+def _wall_stopped_build(adapter, task_id, host_owner):
+    """Whether the derived task's own BUILD child ended at the wall (`LeanRecipeAdapter.failed_child`, the same record the
+    miner-visible failure reads); False when it cannot be read (a failure then stays exactly as before).
+    """
+    reader = getattr(adapter, "failed_child", None)
+    if reader is None:
+        return False
+    try:
+        with adapter.deriving(task_id, host_owner):
+            child, observation = reader(task_id)
+    except Exception:  # noqa: BLE001 - unreadable: not a wall stop, as before
+        return False
+    return child == "build" and observation == CANDIDATE_WALL_LIMIT_REACHED
 
 
 def _retained_rebuild(adapter, task_id, artifact_directory, entry_directory, runner):

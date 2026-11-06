@@ -141,8 +141,14 @@ def test_outside_the_grading_loop_there_is_no_probe():
 # ---------------------------------------------------------------- the crown rebuild path
 
 
-def _rebuilder(tmp_path, monkeypatch):
+def _rebuilder(
+    tmp_path, monkeypatch, observation=("build", "WORKER_WALL_LIMIT_REACHED")
+):
     adapter, host, _keys, _ = _fixture()
+    # the derived task's failed child, as `LeanRecipeAdapter.failed_child` reads it from the ledger
+    adapter.failed_child = (
+        observation if callable(observation) else (lambda task_id: observation)
+    )
     monkeypatch.setattr(ConstructionRecipe, "from_dict", classmethod(lambda cls, d: d))
     graded = _grade(0.70)
     monkeypatch.setattr(
@@ -461,3 +467,73 @@ def test_a_mark_that_cannot_be_written_leaves_the_failure_as_before(
 def test_the_gpu_probe_on_a_host_without_devices_or_pids(monkeypatch, smi, expected):
     monkeypatch.setattr(host_quiet, "_run", _fake_run({"nvidia-smi": smi}))
     assert host_quiet.foreign_gpu_compute() == expected
+
+
+@pytest.mark.parametrize(
+    "observation",
+    [
+        ("build", "WORKER_MEMORY_LIMIT_REACHED"),
+        ("build", "NONZERO_EXIT"),
+        ("inference", "WORKER_WALL_LIMIT_REACHED"),
+        (None, None),
+    ],
+)
+def test_only_a_build_wall_stop_on_a_busy_host_is_carbons(
+    tmp_path, monkeypatch, observation
+):
+    """Validator-2 10:54 (A), ONE rule with the counted grade: only a wall stop can be a busy host's. A memory stop, a
+    program error or an unreadable child on a busy host stays exactly as before (the model's, re-read).
+    """
+    host, rebuild, marks = _rebuilder(tmp_path, monkeypatch, observation)
+    host.state = DirectTaskStateV3.REFUSED
+    token = _activate(False, 2, 1)  # as busy as it gets
+    try:
+        with pytest.raises(
+            retention.RetentionUnavailable, match="rebuild_task_refused"
+        ):
+            rebuild(4242)
+    finally:
+        host_quiet.deactivate(token)
+    assert not marks.exists() and len(host.states) == 1
+
+
+def test_an_unreadable_failed_child_is_not_a_wall_stop(tmp_path, monkeypatch):
+    def broken(task_id):
+        raise OSError("ledger unreadable")
+
+    host, rebuild, marks = _rebuilder(tmp_path, monkeypatch, broken)
+    host.state = DirectTaskStateV3.REFUSED
+    token = _activate(False, 0, 0)
+    try:
+        with pytest.raises(
+            retention.RetentionUnavailable, match="rebuild_task_refused"
+        ):
+            rebuild(5)
+    finally:
+        host_quiet.deactivate(token)
+    assert not marks.exists()
+
+
+def test_a_non_wall_grade_failure_on_a_busy_host_is_as_before(tmp_path, monkeypatch):
+    _host, rebuild, marks = _rebuilder(tmp_path, monkeypatch)
+
+    def grade_fail(adapter, task, **kwargs):
+        raise retention.RetentionUnavailable("rebuild_grade_inference_pair_incomplete")
+
+    monkeypatch.setattr(retention, "retain_rebuild_evidence", grade_fail)
+    token = _activate(False, 0, 0)
+    try:
+        with pytest.raises(
+            retention.RetentionUnavailable, match="inference_pair_incomplete"
+        ):
+            rebuild(6)
+    finally:
+        host_quiet.deactivate(token)
+    assert not marks.exists()
+
+
+def test_host_quiet_is_a_registered_grading_path():
+    """Validator-2 10:54 (B): the quiet-host rule decides whose failure a wall stop is, so it is in GRADING_PATHS."""
+    from carbon.challenge_validator import direct_receiver
+
+    assert "carbon/challenge_validator/host_quiet.py" in direct_receiver.GRADING_PATHS
