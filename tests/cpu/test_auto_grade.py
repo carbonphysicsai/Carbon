@@ -410,7 +410,7 @@ def _wall_setup(
     intake = FakeIntake([A], {A: failure})
     intake.adapter = adapter
     grader = auto_grade.AutoGrader(
-        intake, tmp_path, host_lock=host_lock, containers=containers
+        intake, tmp_path, host_lock=host_lock, containers=containers, gpu=lambda: 0
     )
     return grader, cap, ident, ledger
 
@@ -544,6 +544,44 @@ def test_an_uncontended_wall_stop_is_logged_as_counted(tmp_path):
     assert grader.run_once() == (A, "CANDIDATE_FAILED")
     logged = json.loads((tmp_path / "auto-grade" / "wall-stops.jsonl").read_text())
     assert logged["counted"] is True and logged["stop_worker_containers"] == 0
+
+
+@pytest.mark.parametrize(
+    ("gpu", "why"),
+    [
+        (
+            lambda: 1,
+            "a foreign GPU compute process ran (the quiet-host rule's GPU condition)",
+        ),
+        (lambda: None, "the GPU could not be read"),
+    ],
+)
+def test_a_wall_stop_beside_foreign_gpu_work_is_given_back_never_counted(
+    tmp_path, gpu, why
+):
+    """Validator-2 5 Nov 21:28 (owner: "rebuilds consistently timed"): a wall stop is the candidate's only on a provably
+    quiet host; another process on the GPU makes it Carbon's (invariant 7), given back as FAILED_INFRA.
+    """
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, _cap, _ident, ledger = _wall_setup(tmp_path, wall)
+    grader.gpu = gpu
+    assert grader.run_once() == (A, "FAILED"), why
+    assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
+    logged = json.loads((tmp_path / "auto-grade" / "wall-stops.jsonl").read_text())
+    assert logged["counted"] is False and logged["uncontended"] is False
+
+
+def test_a_quiet_gpu_keeps_the_counted_wall_stop(tmp_path):
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, _cap, _ident, _ledger = _wall_setup(tmp_path, wall)
+    grader.gpu = lambda: 0
+    assert grader.run_once() == (A, "CANDIDATE_FAILED")
+    logged = json.loads((tmp_path / "auto-grade" / "wall-stops.jsonl").read_text())
+    assert logged["counted"] is True and logged["stop_foreign_gpu"] == 0
 
 
 def test_the_sampler_reads_the_host_while_a_grade_runs():

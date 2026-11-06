@@ -3457,7 +3457,15 @@ def retain_rebuild_evidence(
 
 
 def _derived_build(
-    adapter, origin, seed, *, rebuild, host_owner, recipe=None, graph_source=None
+    adapter,
+    origin,
+    seed,
+    *,
+    rebuild,
+    host_owner,
+    recipe=None,
+    graph_source=None,
+    contended=None,
 ):
     """BUILD ``origin``'s admitted recipe as a derived task under ``host_owner`` at ``seed`` (the shared build half of
     `rebuild_at_seed` and `rebuild_king`): the same admission, build and FAILED_INFRA rerun rule as any task, its identity
@@ -3467,6 +3475,10 @@ def _derived_build(
     ``recipe`` (a ConstructionRecipe) and, for a graph, ``graph_source`` (its envelope bytes) come from a caller that
     holds them from custody (`rebuild_king`: the pool's admitted recipe and the king's retained envelope); without
     them both are read from the ORIGIN task's provider, as the crown re-measure always has.
+
+    ``contended(task_id)`` (`host_quiet.is_contended`): a derived task that failed while the host was NOT quiet is,
+    like one that ended on infrastructure, never read again: the next try is its next fresh generation. A task that
+    did not succeed raises with its id on the error (``task_id``), so the caller can mark it.
     """
     from carbon.development_session.construction_recipe import ConstructionRecipe
     from carbon.research import DirectTaskStateV3
@@ -3505,8 +3517,9 @@ def _derived_build(
             rerun=generation,
         )
         task_id = provider._task_id(request)
-        if task_id.value not in provider._views or not adapter._ended_on_infra(
-            host_owner, task_id, provider
+        if task_id.value not in provider._views or not (
+            adapter._ended_on_infra(host_owner, task_id, provider)
+            or (contended is not None and contended(task_id.value))
         ):
             break
         generation += 1
@@ -3558,7 +3571,9 @@ def _derived_build(
         DirectGetTaskRequestV3(adapter.discovery.info.challenge_key, task_id)
     ).task
     if task.state is not DirectTaskStateV3.SUCCEEDED:
-        raise RetentionUnavailable("rebuild_task_" + task.state.value.lower())
+        failed = RetentionUnavailable("rebuild_task_" + task.state.value.lower())
+        failed.task_id = task_id.value
+        raise failed
     return task_id.value
 
 
@@ -3585,23 +3600,57 @@ def rebuild_at_seed(
     1 the host-fault second build). It appears in no miner's task list or status, takes no exam-cap slot, writes no
     Ladder document and is never a pool submission, crown contender or weights source: its only output is the
     bound evaluation evidence returned to `crown_average`. A retry finds the same task and reuses it.
+
+    QUIET HOST (owner 5 Nov 21:3x; Validator-2 21:28; `host_quiet`): inside the grading loop the host is probed for the
+    whole build and grade. A build or grade that fails while the host was NOT provably quiet is a busy host's failure,
+    never the model's: the task is marked host-contended (its next try is a fresh generation, the same seed) and this
+    raises `crown_average.RebuildInfra` (`host_quiet.REBUILD_HOST_CONTENDED`). On a quiet host, and outside the loop,
+    a failure is exactly as before.
     """
-    task_id = _derived_build(
-        adapter,
-        origin,
-        seed,
-        rebuild=f"{origin}\0{seed}\0{repeat}",
-        host_owner=host_owner,
-        **(source or {}),
-    )
-    with adapter.deriving(task_id, host_owner):
-        return retain_rebuild_evidence(
+    from carbon.challenge_validator import crown_average, host_quiet
+
+    marks = Path(artifact_directory).parent / host_quiet.MARKS_DIR
+    probe = host_quiet.start()
+    task_id = None
+    try:
+        task_id = _derived_build(
             adapter,
-            task_id,
-            artifact_directory=artifact_directory,
-            entry_directory=entry_directory,
-            runner=runner,
+            origin,
+            seed,
+            rebuild=f"{origin}\0{seed}\0{repeat}",
+            host_owner=host_owner,
+            contended=lambda tid: host_quiet.is_contended(marks, tid),
+            **(source or {}),
         )
+        with adapter.deriving(task_id, host_owner):
+            return _retained_rebuild(
+                adapter, task_id, artifact_directory, entry_directory, runner
+            )
+    except RetentionUnavailable as failed:
+        failed_task = getattr(failed, "task_id", None) or task_id
+        verdict = host_quiet.finish(probe)
+        code = failed.code
+        ran = code.startswith(("rebuild_task_", "rebuild_grade_"))
+        if verdict is not None and not verdict.quiet and ran and failed_task:
+            host_quiet.mark_contended(
+                marks, failed_task, verdict, reason=code, path="crown_rebuild"
+            )
+            raise crown_average.RebuildInfra(
+                host_quiet.REBUILD_HOST_CONTENDED
+            ) from failed
+        raise
+    finally:
+        host_quiet.finish(probe)
+
+
+def _retained_rebuild(adapter, task_id, artifact_directory, entry_directory, runner):
+    return retain_rebuild_evidence(
+        adapter,
+        task_id,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+        runner=runner,
+    )
 
 
 def _repeat_of(adapter, origin, entry_id, *, source=None, pool_store=None, **custody):

@@ -41,6 +41,7 @@ import math
 from pathlib import Path
 
 from carbon.challenge_validator import bank_promotion as bp
+from carbon.challenge_validator import host_quiet
 from carbon.challenge_validator.interface import is_digest
 
 SCHEMA = "carbon.crown.average-rule.v1"
@@ -62,6 +63,8 @@ MARGIN_UNREGISTERED = "crown_average_margin_unregistered"
 #: until it is re-measured at switch-over. A single grade is never compared as if it were a mean.
 KING_UNMEASURED = "crown_average_king_unmeasured"
 REBUILD_UNAVAILABLE = "crown_average_rebuild_unavailable"
+#: Every try of a seed met a busy host (`host_quiet`): Carbon's, never the model's; decided again later.
+REBUILD_HOST_CONTENDED = host_quiet.REBUILD_HOST_CONTENDED
 MEAN_EXCEEDS = "mean_exceeds_incumbent_beyond_margin"
 MEAN_WITHIN = "mean_within_margin_or_tie"
 FIRST_BEATS_BASELINE = "mean_beats_baseline_by_margin"
@@ -423,10 +426,13 @@ def _result(outcome, reason, **extra):
 def _one(rebuild, seed, retries):
     """The scored grade of one seed's rebuild, retrying infrastructure failures. Returns ``(status, total)`` or
     raises `RebuildInfra` when every attempt failed."""
+    contended = 0
     for _ in range(retries + 1):
         try:
             body = rebuild(seed)
-        except RebuildInfra:
+        except RebuildInfra as failed:
+            # a busy host's failure (`host_quiet`) is retried like any infrastructure failure, never the model's
+            contended += str(failed) == REBUILD_HOST_CONTENDED
             continue
         model = ((body or {}).get("evidence") or {}).get("model_p")
         status = model.get("score_status") if type(model) is dict else None
@@ -442,6 +448,8 @@ def _one(rebuild, seed, retries):
         ):
             raise CrownAverageInvalid("crown_average_grade_invalid")
         return status, (float(total) if status == bp.SCORED else None), body
+    if contended == retries + 1:
+        raise RebuildInfra(REBUILD_HOST_CONTENDED)
     raise RebuildInfra("every attempt failed")
 
 
@@ -479,8 +487,14 @@ def run_average(
     for seed in seeds:
         try:
             grades.append((seed, *_one(rebuild, seed, retries)))
-        except RebuildInfra:
-            return _result(bp.UNAVAILABLE, REBUILD_UNAVAILABLE)
+        except RebuildInfra as failed:
+            # every try met a busy host: said as such (never UNSTABLE, never a loss); otherwise as before
+            reason = (
+                REBUILD_HOST_CONTENDED
+                if str(failed) == REBUILD_HOST_CONTENDED
+                else REBUILD_UNAVAILABLE
+            )
+            return _result(bp.UNAVAILABLE, reason)
     private = {"seeds": seeds, "n": n, "margin": margin}
     if any(status != bp.SCORED for _seed, status, _t, _b in grades):
         # admissibility before averaging: a seed-fragile model cannot win on its good seeds

@@ -55,14 +55,21 @@ class AutoGrader:
         host_lock=False,
         containers=None,
         sample_seconds=5.0,
+        gpu=None,
     ):
         """``host_lock``: each grade runs under the host's official-grading lock (`direct_intake._WorkLock` with a
         lock dir). ``containers``: how many Carbon worker containers run on the host now (None = unknown); sampled
         every ``sample_seconds`` while a grade runs, for the wall-stop contention guard (Validator 4 Nov 17:16).
+        ``gpu``: how many foreign GPU compute processes run now (None = unknown; `host_quiet.foreign_gpu_compute`),
+        sampled beside it: the quiet-host rule's GPU condition (Validator-2 5 Nov 21:28). The same three conditions
+        decide whether a crown rebuild's failure was the model's or a busy host's (`host_quiet`).
         """
         self.intake = intake
         self.host_lock = host_lock is True
         self.containers = count_worker_containers if containers is None else containers
+        from . import host_quiet
+
+        self.gpu = host_quiet.foreign_gpu_compute if gpu is None else gpu
         self.sample_seconds = sample_seconds
         self.root = Path(root)
         base = self.root / "auto-grade"
@@ -197,8 +204,25 @@ class AutoGrader:
     def run_once(self):
         """Grade at most one ready task; returns ``(submission_id, state)`` or None.
 
-        ``state`` is GRADED, CANDIDATE_FAILED, FAILED or PENDING (nothing written for PENDING).
+        ``state`` is GRADED, CANDIDATE_FAILED, FAILED or PENDING (nothing written for PENDING). Every crown rebuild
+        started inside it (the king's re-measure, a challenger's averaging) probes whether the host is quiet
+        (`host_quiet`): this loop holds the host lock exactly when ``host_lock``.
         """
+        from . import host_quiet
+
+        # (a grader built without __init__, as some tests do, probes with the not-quiet defaults: no lock held)
+        token = host_quiet.activate(
+            lock_held=getattr(self, "host_lock", False),
+            containers=getattr(self, "containers", count_worker_containers),
+            gpu=getattr(self, "gpu", host_quiet.foreign_gpu_compute),
+            seconds=getattr(self, "sample_seconds", 5.0),
+        )
+        try:
+            return self._run_once()
+        finally:
+            host_quiet.deactivate(token)
+
+    def _run_once(self):
         from .lean_recipe_retention import RetentionUnavailable
 
         if self.chain_degraded():
@@ -206,7 +230,9 @@ class AutoGrader:
         self._king_upkeep()
         self._resume_paused_crowns()
         for submission_id in self.pending():
-            sampler = _Sampler(self.containers, self.sample_seconds)
+            sampler = _Sampler(
+                self.containers, self.sample_seconds, getattr(self, "gpu", None)
+            )
             started_ns = time.time_ns()
             try:
                 with sampler:
@@ -414,13 +440,18 @@ class AutoGrader:
         COUNTED; any failure there gives it back as before, never a crash (the task would run again on hidden
         inputs). Logged AFTER the outcome is known (``auto-grade/wall-stops.jsonl``: counts only).
         """
+        from . import host_quiet
+
         samples, stop = sampler.samples, sampler.stop_sample
         known = [s for s in samples if s is not None]
-        uncontended = (
-            self.host_lock
-            and stop == 0
-            and len(known) == len(samples)
-            and (not known or max(known) <= 1)
+        gpu_known = [g for g in sampler.gpu_samples if g is not None]
+        # + the GPU condition (Validator-2 5 Nov 21:28): no foreign GPU compute process during the run or at the stop
+        uncontended = host_quiet.uncontended(
+            lock_held=self.host_lock,
+            samples=samples,
+            stop=stop,
+            gpu_samples=sampler.gpu_samples,
+            gpu_stop=sampler.gpu_stop,
         )
         counted = False
         if uncontended:
@@ -443,6 +474,10 @@ class AutoGrader:
                             "unknown_samples": len(samples) - len(known),
                             "max_worker_containers": max(known) if known else None,
                             "stop_worker_containers": stop,
+                            "gpu_unknown_samples": len(sampler.gpu_samples)
+                            - len(gpu_known),
+                            "max_foreign_gpu": max(gpu_known) if gpu_known else None,
+                            "stop_foreign_gpu": sampler.gpu_stop,
                         },
                         sort_keys=True,
                     )
@@ -536,10 +571,12 @@ class _Sampler:
     within the first interval costs nothing (the not-ready tasks of every tick); a run that ends in a wall stop always
     has its samples, the last one taken at the stop."""
 
-    def __init__(self, count, seconds):
+    def __init__(self, count, seconds, gpu=None):
         import threading
 
         self.count, self.seconds, self.samples = count, seconds, []
+        self.gpu = (lambda: 0) if gpu is None else gpu
+        self.gpu_samples, self.gpu_stop = [], None
         self.stop_sample = None
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
@@ -547,6 +584,7 @@ class _Sampler:
     def _run(self):
         while not self._stop.wait(self.seconds):
             self.samples.append(self.count())
+            self.gpu_samples.append(self.gpu())
 
     def __enter__(self):
         self._thread.start()
@@ -557,6 +595,7 @@ class _Sampler:
         self._thread.join(self.seconds + 15)
         if kind is not None and _candidate_wall_stop(value):
             self.stop_sample = self.count()
+            self.gpu_stop = self.gpu()
         return False
 
 
