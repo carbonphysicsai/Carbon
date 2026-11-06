@@ -338,6 +338,27 @@ def king_stability(config, item, king_document):
     return "STABLE"
 
 
+#: The internal UNAVAILABLE reasons with their own public phrase (crown_average.KING_UNMEASURED; bank_promotion.CROWNS_PAUSED
+#: and CROWN_QUEUED). Kept here, on the validator side: the miner-surface board module names no internal reason.
+_WAIT_KING_REASONS = ("crown_average_king_unmeasured",)
+_QUEUED_REASONS = ("crowns_paused", "queued_behind_undecided_crown")
+
+
+def public_note(outcome, reason):
+    """The public phrase (`launch_board.NOTES`) of a crown check's ``outcome`` and internal ``reason``, or None for an
+    outcome outside the board's closed set. The reason only picks between the UNAVAILABLE phrases; it is never published.
+    """
+    if outcome not in launch_board.NOTES:
+        return None
+    if outcome != "UNAVAILABLE":
+        return launch_board.NOTES[outcome][0]
+    if reason in _WAIT_KING_REASONS:
+        return launch_board.NOTE_WAIT_KING
+    if reason in _QUEUED_REASONS:
+        return launch_board.NOTE_QUEUED
+    return launch_board.NOTE_PENDING
+
+
 def king_measure(config, item, king_document):
     """The v4 board's ``(stability, measure)`` for the king ``king_document`` names: ``(None, None)`` with no king. The
     store's incumbent must BE that king (`king_mismatch`). On the king's CURRENT key (`incumbent_evaluation_key`, which
@@ -379,7 +400,7 @@ def king_measure(config, item, king_document):
 
 def crown_checks(config, item):
     """The v4 board's ``crown_checks``: the latest crown decision per contender, newest first (`PoolStore.crown_decisions`),
-    as hotkey + state + outcome + the PUBLIC note (`launch_board.public_note`; the internal reason code never leaves). A
+    as hotkey + state + outcome + the PUBLIC note (`public_note`; the internal reason code never leaves). A
     contender without an admitted hotkey (a derived, host-owned row) or with an outcome outside the board's closed set is
     left out, never partly shown."""
     if not os.path.lexists(item["pool_store"]):
@@ -389,7 +410,7 @@ def crown_checks(config, item):
     for record in store.crown_decisions(limit=4 * launch_board.MAX_CROWN_CHECKS):
         hotkey = store.submission_hotkey(record["submission_id"])
         outcome = record["outcome"]
-        note = launch_board.public_note(outcome, record["reason"])
+        note = public_note(outcome, record["reason"])
         if hotkey is None or hotkey in seen or note is None:
             continue
         seen.add(hotkey)

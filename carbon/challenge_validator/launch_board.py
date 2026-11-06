@@ -99,9 +99,9 @@ DECIDED_OUTCOMES = (
 CHECK_OUTCOMES = (*DECIDED_OUTCOMES, "UNAVAILABLE", "FAILED_INFRA")
 CHECK_STATES = ("PENDING", "DECIDED")
 CHECK_FIELDS = frozenset({"hotkey", "state", "outcome", "note"})
-#: The PUBLIC phrase of a crown check (Validator-2 5 Nov 22:10): a closed map from the internal outcome and reason, never
-#: the raw reason code. No near / far distinction (every INCUMBENT_KEEPS reads the same) and no gate or stability name.
-#: Unknown reasons read "pending". Its content is the Carbon Validator's receipt.
+#: The PUBLIC phrase of a crown check (Validator-2 5 Nov 22:10): one of these closed phrases per outcome, never a raw
+#: reason code. The validator-side operator maps an internal reason to a phrase (`launch_board_operator.public_note`);
+#: this module, a miner surface, only checks the phrase is one of these. Content receipted by the Carbon Validator.
 NOTE_TOOK = "took the crown"
 NOTE_FIRST = "took the first crown"
 NOTE_REMOVED = "king removed"
@@ -120,27 +120,6 @@ NOTES = {
     "FAILED_INFRA": (NOTE_RETRY,),
     "UNAVAILABLE": (NOTE_WAIT_KING, NOTE_QUEUED, NOTE_PENDING),
 }
-#: The internal UNAVAILABLE reasons that have their own phrase (crown_average.KING_UNMEASURED, bank_promotion.CROWNS_PAUSED /
-#: CROWN_QUEUED, written out so this module imports neither); every other reason is "pending".
-_WAIT_KING_REASONS = ("crown_average_king_unmeasured",)
-_QUEUED_REASONS = ("crowns_paused", "queued_behind_undecided_crown")
-
-
-def public_note(outcome, reason):
-    """The public phrase of a crown check's ``outcome`` and internal ``reason`` (`NOTES`), or None for an outcome outside
-    `CHECK_OUTCOMES`. The reason only picks between the UNAVAILABLE phrases; it is never published.
-    """
-    if outcome not in NOTES:
-        return None
-    if outcome != "UNAVAILABLE":
-        return NOTES[outcome][0]
-    if reason in _WAIT_KING_REASONS:
-        return NOTE_WAIT_KING
-    if reason in _QUEUED_REASONS:
-        return NOTE_QUEUED
-    return NOTE_PENDING
-
-
 #: A board shows at most this many crown checks, newest first.
 MAX_CROWN_CHECKS = 10
 CONFIG_SCHEMA = "carbon.validator.launch-board.config.v1"

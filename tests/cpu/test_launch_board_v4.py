@@ -17,7 +17,9 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "dev"))
 
+import launch_board_operator as operator
 from test_koth_v2_crown_changes import HOTKEY, _args
 from test_launch_board_v3 import KEY, NOISE, NOW, A, _row
 
@@ -273,19 +275,22 @@ def test_every_internal_reason_maps_to_one_public_phrase_of_its_outcome():
     } <= codes
     for outcome in lb.CHECK_OUTCOMES:
         for code in (*sorted(codes), None, "never_seen_before"):
-            note = lb.public_note(outcome, code)
+            note = operator.public_note(outcome, code)
             assert note in lb.NOTES[outcome], (outcome, code)
     # no near / far: every INCUMBENT_KEEPS reads the same, whatever the reason
-    assert {lb.public_note("INCUMBENT_KEEPS", c) for c in codes} == {lb.NOTE_KEEPS}
+    assert {operator.public_note("INCUMBENT_KEEPS", c) for c in codes} == {
+        lb.NOTE_KEEPS
+    }
     assert (
-        lb.public_note("UNAVAILABLE", "crown_average_king_unmeasured")
+        operator.public_note("UNAVAILABLE", "crown_average_king_unmeasured")
         == lb.NOTE_WAIT_KING
     )
     assert (
-        lb.public_note("UNAVAILABLE", "queued_behind_undecided_crown") == lb.NOTE_QUEUED
+        operator.public_note("UNAVAILABLE", "queued_behind_undecided_crown")
+        == lb.NOTE_QUEUED
     )
-    assert lb.public_note("UNAVAILABLE", "never_seen_before") == lb.NOTE_PENDING
-    assert lb.public_note("SOMETHING_ELSE", None) is None
+    assert operator.public_note("UNAVAILABLE", "never_seen_before") == lb.NOTE_PENDING
+    assert operator.public_note("SOMETHING_ELSE", None) is None
     # no phrase names a gate, stability or nearness
     for phrases in lb.NOTES.values():
         for phrase in phrases:
