@@ -12,7 +12,7 @@ This guide gets you from a clean machine to your first graded model.
 
 > **You need a machine with 32 GB of memory.** With less, the installer stops at step 1 and says so ("This machine has X GiB of memory. Carbon needs 32 GB to install and practise; with less, the install fails partway. Use a machine with 32 GB or more."). An expert can go on anyway with `--allow-low-memory`; the install may fail partway.
 
-> **Testnet only, for now.** Everything here runs on Carbon's test network (subnet 567). Nothing is paid yet.
+> **Testnet only, for now.** Everything here runs on Carbon's test network (subnet 567). Nothing is paid yet. Mainnet: see *Moving to mainnet*.
 
 > **Mainnet starts clean.** Nothing from testnet carries over to mainnet: not registrations, scores, submissions, frontier standing or any other record. Plan to register and submit again.
 
@@ -423,9 +423,81 @@ Hermes asks you before each action that changes something (launch, practise, fre
 
 ---
 
+## Moving to mainnet
+
+Carbon's mainnet opens on **HUMAN_INPUT** (date). Until then, everything on
+this page runs on the test network. This section says what changes, what you
+do, and what stays the same.
+
+**What changes**
+
+- **The subnet.** Mainnet is subnet **HUMAN_INPUT** (netuid) on Bittensor's
+  main network (`--network finney` in `btcli`), not subnet 567 on the test
+  network.
+- **Real TAO.** Joining is paid in real TAO from your coldkey, and the cost
+  is set by the chain. **Check my balance** shows the live cost before you
+  sign; your wallet shows the exact figure again when you sign, and that is
+  the one that counts. Carbon never handles your money, your keys or your
+  recovery phrase.
+- **Where submissions go.** Each Challenge has its own mainnet grader
+  address: **HUMAN_INPUT** (per Challenge). The installer update puts them in
+  your profile; you type nothing.
+- **Which versions open.** The Challenge versions that open on mainnet:
+  **HUMAN_INPUT** (listed here when they open). Each opens only when its exam
+  is qualified, and each has its own *How you're tested* page in its data kit.
+- **Mainnet starts clean.** Nothing from the test network carries over: no
+  registration, crown, score, Ladder entry or submission. Test network
+  results are rehearsal only.
+- **The validator machine.** The official grade rebuilds your model on an
+  NVIDIA RTX 4090. Each Challenge's rebuild tolerance is published here after
+  it is measured on the mainnet validator: **HUMAN_INPUT**.
+
+**What stays the same**
+
+- You practise for free on your own machine, with no wallet, exactly as now.
+- The scoring rules of a version are the ones on its *How you're tested*
+  page. Scoring changes only ever arrive as a new version; results already
+  given are never re-scored.
+- Your keys stay in your own wallet. Carbon never asks for them.
+
+**What you do (if you mine on the test network now)**
+
+1. Update Carbon: `~/carbon/scripts/install_miner.sh --update`, with the
+   options you installed with.
+2. Pin `btcli` to the version named here for mainnet: **HUMAN_INPUT**
+   (bittensor-cli 9.23.2 on the test network today).
+3. Put some TAO in your coldkey, then register your hotkey on the mainnet
+   subnet in your own wallet tool:
+
+   ```bash
+   btcli subnets register --netuid <mainnet netuid> --wallet-name <your wallet> --hotkey <your hotkey> --network finney
+   ```
+
+   You can use the same wallet as on the test network; registration is
+   separate on each network.
+4. Restart your signer and switch your profile to mainnet: **HUMAN_INPUT**
+   (the exact step, from the installer update).
+5. Open **Setup**: **Join Carbon mining** confirms your registration from the
+   chain.
+6. Submit again. Nothing from the test network counts on mainnet.
+
+**Notices and changes**
+
+- Every change that affects miners is listed under *Changes* below, newest
+  first, with its date, what changed and what you need to do.
+- Mainnet launch notice and outage notices: **HUMAN_INPUT** (where they are
+  posted).
+- How fast mainnet fixes ship: **HUMAN_INPUT**.
+
+### Changes
+
+| Date | What changed | What you do |
+|---|---|---|
+| HUMAN_INPUT | Mainnet opens: subnet HUMAN_INPUT, versions HUMAN_INPUT | Steps 1–6 above |
+
 ## Report a problem
 
-Telegram: **@RBequette**. Please send:
+Telegram: **@RBequette** (on mainnet: **HUMAN_INPUT**, the support channel). Please send:
 
 - the app version (run `git -C ~/carbon rev-parse --short HEAD` and send what it prints),
 - the Challenge you were on,
