@@ -47,10 +47,21 @@ class QueueView:
         read of their task views only (never opens one, never takes a lock, never asks ``owner()`` / ``_provider()``).
         """
         opened = getattr(self.intake.adapter.provider_for, "_providers", None)
-        if type(opened) is not dict:
+        if not isinstance(opened, dict):
             return {}
+        for _attempt in range(2):
+            try:
+                providers = tuple(opened.values())
+                break
+            except (
+                RuntimeError
+            ):  # the receiver opened or closed a provider mid-read: read once more
+                continue
+        else:
+            # still changing: the page answers 503 (the contract), never a 500 or a guess (Validator-2 15:11)
+            raise qp.QueuePublicRefused("queue_unavailable")
         index = {}
-        for provider in tuple(opened.values()):
+        for provider in providers:
             try:
                 views = tuple(getattr(provider, "_views", {}).items())
             except (

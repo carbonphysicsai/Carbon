@@ -333,3 +333,37 @@ def test_a_provider_changing_mid_read_is_skipped_not_fatal(tmp_path):
     view.intake.adapter.provider_for._providers["5" + "M" * 47]._views = Changing()
     snap = view.snapshot()
     assert snap["waiting_to_grade"] == 1  # its task waits to grade in this snapshot
+
+
+class _ChangingProviders(dict):
+    """A providers dict the receiver changes while it is read: ``values()`` raises ``changes`` times."""
+
+    def __init__(self, inner, changes):
+        super().__init__(inner)
+        self.changes = changes
+
+    def values(self):
+        if self.changes > 0:
+            self.changes -= 1
+            raise RuntimeError("dictionary changed size during iteration")
+        return super().values()
+
+
+def test_the_providers_dict_changing_once_is_read_again(tmp_path):
+    view, _ = _door(
+        tmp_path, {TASKS[0]: (DirectTaskStateV3.QUEUED, NOW)}, pending=TASKS[:1]
+    )
+    holder = view.intake.adapter.provider_for
+    holder._providers = _ChangingProviders(holder._providers, changes=1)
+    status, body = queue_public.serve(view, CHALLENGE)
+    assert status == 200 and body["waiting_to_build"] == 1
+
+
+def test_the_providers_dict_still_changing_is_a_503_never_a_500(tmp_path):
+    view, _ = _door(tmp_path, {}, pending=TASKS[:1])
+    holder = view.intake.adapter.provider_for
+    holder._providers = _ChangingProviders(holder._providers, changes=5)
+    assert queue_public.serve(view, CHALLENGE) == (
+        503,
+        {"refused": "queue_unavailable"},
+    )
