@@ -245,7 +245,7 @@ def wired(door, monkeypatch, tmp_path):
         calls["built"] = (recipe, graph_source)
         return "rtsk_" + "d" * 64
 
-    def origin(adapter_, base, entries, entry_id, *, incumbent):
+    def origin(adapter_, base, entries, entry_id, *, incumbent, admitted=False):
         calls["origin"] = (entry_id, incumbent)
         retained = SimpleNamespace(
             digest=calls.get(
@@ -785,3 +785,150 @@ def test_a_filed_rebuild_that_still_cannot_be_met_is_a_typed_failure_never_a_reb
     out = step()
     assert out["state"] == "FAILED"
     assert out["code"] == "king_rebuild_link_unusable:evaluation_source_changed"
+
+
+# --- the winning CHALLENGER admitted under an earlier contract (Motor 5 Nov 01:23Z, rtsk_f6c94d98) -------------------
+
+
+def _old_contract_challenger(door, monkeypatch, tmp_path, built):
+    """The challenger's averaged rebuilds on a receiver whose CURRENT contract does not hold it (admitted under an
+    earlier one: adapter.owner is None). Its own retained recipe is read from custody; the build and the grade of each
+    seed are stood in (the GPU), everything between is the real code."""
+    import contextlib
+
+    admitted = door.store.submission("challenger")
+    recipe = SimpleNamespace(
+        digest=admitted["binding"]["recipe_digest"],
+        to_dict=lambda: {"source": {"kind": "graph"}},
+    )
+    reads = []
+
+    def origin(adapter_, base, entries, entry_id, *, incumbent=None, admitted=False):
+        reads.append((entry_id, incumbent, admitted))
+        files = {"source-envelope.json": b"the challenger's own envelope"}
+        return None, "challenger", None, None, files, recipe
+
+    monkeypatch.setattr(retention, "_regrade_origin", origin)
+    monkeypatch.setattr(retention, "_owner_directory", lambda value, label: value)
+
+    def build(adapter_, origin_, seed, *, rebuild, host_owner, **source):
+        built.append((seed, source))
+        return "rtsk_" + f"{seed:064x}"[-64:]
+
+    monkeypatch.setattr(retention, "_derived_build", build)
+    monkeypatch.setattr(
+        retention,
+        "retain_rebuild_evidence",
+        lambda adapter_, task_id, **k: {
+            "submission_id": "challenger",
+            "evidence": {
+                "model_p": {"score_status": bp.SCORED, "total_score": 0.70},
+                "score_compatibility": {"score_pack_digest": digest("pack")},
+            },
+        },
+    )
+    adapter = SimpleNamespace(
+        owner=lambda sid: None,  # the current contract does not hold it
+        deriving=lambda task, owner: contextlib.nullcontext(),
+    )
+    return adapter, reads
+
+
+def _average(repeat, tmp_path):
+    from test_crown_average import CHALLENGE, KEY, _rule
+
+    from carbon.challenge_validator import crown_average as ca
+
+    return ca.run_average(
+        key=KEY,
+        challenge_id=CHALLENGE,
+        submission_id="challenger",
+        rule=_rule(tmp_path),
+        rebuild=ca._guarded(repeat.rebuild_at),
+        rebuild_again=ca._guarded(repeat.rebuild_again_at),
+        king_mean=0.60,
+        baseline_floor=0.26,
+        tolerance=0.0,
+    )
+
+
+def test_a_winning_challenger_admitted_under_an_earlier_contract_takes_the_crown(
+    door, monkeypatch, tmp_path
+):
+    """Its 10 averaged rebuilds build from ITS OWN retained recipe and envelope (digest = its admission), read once
+    under its admitted owner, so the averaged decision is made: CHALLENGER (mean 0.70 beats the king's 0.60 by the
+    margin), where 5256c002 gave UNAVAILABLE crown_average_rebuild_unavailable."""
+    from carbon.challenge_validator import crown_average as ca
+
+    built = []
+    adapter, reads = _old_contract_challenger(door, monkeypatch, tmp_path, built)
+    repeat = retention._repeat_of(
+        adapter,
+        "challenger",
+        digest("challenger entry"),
+        pool_store=door.store,
+        artifact_directory=tmp_path,
+        entry_directory=tmp_path,
+    )
+    result = _average(repeat, tmp_path)
+    assert (result["outcome"], result["reason"]) == (bp.CHALLENGER, ca.MEAN_EXCEEDS)
+    assert reads == [
+        (digest("challenger entry"), "challenger", True)
+    ]  # read once, admitted owner
+    assert len(built) >= 10
+    for _seed, source in built:
+        assert (
+            source["recipe"].digest
+            == door.store.submission("challenger")["binding"]["recipe_digest"]
+        )
+        assert source["graph_source"] == b"the challenger's own envelope"
+
+
+def test_without_the_pool_the_old_contract_challenger_stays_unavailable_as_on_5256c002(
+    door, monkeypatch, tmp_path
+):
+    """The live failure, reproduced on the real `_derived_build`: no owner under the current contract ->
+    rebuild_origin_unavailable on every retry -> UNAVAILABLE crown_average_rebuild_unavailable.
+    """
+    from carbon.challenge_validator import crown_average as ca
+
+    built = []
+    adapter, _reads = _old_contract_challenger(door, monkeypatch, tmp_path, built)
+    monkeypatch.undo()  # the REAL _derived_build and retention helpers
+    repeat = retention._repeat_of(
+        adapter, "challenger", digest("challenger entry"),
+        artifact_directory=tmp_path, entry_directory=tmp_path,
+    )  # fmt: skip
+    result = _average(repeat, tmp_path)
+    assert (result["outcome"], result["reason"]) == (
+        bp.UNAVAILABLE,
+        ca.REBUILD_UNAVAILABLE,
+    )
+
+
+def test_a_challenger_whose_retained_recipe_is_not_its_admission_never_builds(
+    door, monkeypatch, tmp_path
+):
+    built = []
+    adapter, _reads = _old_contract_challenger(door, monkeypatch, tmp_path, built)
+    real = retention._regrade_origin
+
+    def other(*a, **k):
+        entry, sid, owner, manifest, files, _recipe = real(*a, **k)
+        return (
+            entry,
+            sid,
+            owner,
+            manifest,
+            files,
+            SimpleNamespace(digest="sha256:" + "0" * 64),
+        )
+
+    monkeypatch.setattr(retention, "_regrade_origin", other)
+    repeat = retention._repeat_of(
+        adapter, "challenger", digest("challenger entry"), pool_store=door.store,
+        artifact_directory=tmp_path, entry_directory=tmp_path,
+    )  # fmt: skip
+    with pytest.raises(retention.RetentionUnavailable, match="rebuild_recipe_differs"):
+        repeat.rebuild_at(7)
+    assert built == []

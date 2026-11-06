@@ -3169,29 +3169,52 @@ def filed_king_rebuild(pool_store, king, evaluation_key):
     }
 
 
-def retained_king_source(
-    adapter, pool_store, king, entry_id, *, artifact_directory, entry_directory
+def retained_origin_source(
+    adapter,
+    pool_store,
+    origin,
+    entry_id,
+    *,
+    artifact_directory,
+    entry_directory,
+    codes="rebuild",
 ):
-    """``{"recipe", "graph_source"}`` to BUILD the sitting ``king`` from custody: his own sha-checked retained recipe
-    (its digest equal to his ADMITTED recipe digest) and, for a graph, his retained source envelope, read through his
-    origin bank entry ``entry_id`` under the sitting-king owner lookup (`_regrade_origin`). For `rebuild_king` and the
-    re-measure of a king admitted under an earlier contract or pack, whose request the current provider does not hold
-    in memory (Deploy 5 Nov, Motor: a bare KeyError on his task id)."""
+    """``{"recipe", "graph_source"}`` to BUILD ``origin`` (a king or a challenger) from custody: its own sha-checked
+    retained recipe (its digest equal to its ADMITTED recipe digest in the pool) and, for a graph, its retained source
+    envelope, read through its bank entry ``entry_id`` under its admitted owner (`_regrade_origin` ``admitted``). For a
+    task admitted under an earlier contract or pack, whose owner and request the current contract and provider do not
+    hold (Deploy 5 Nov: the king's KeyError; the winning challenger's average, rebuild_origin_unavailable).
+    """
     base = _owner_directory(artifact_directory, "artifact_directory")
     entries = _owner_directory(entry_directory, "entry_directory")
-    _entry, origin, _owner, _manifest, files, recipe = _regrade_origin(
-        adapter, base, entries, entry_id, incumbent=king
+    _entry, found, _owner, _manifest, files, recipe = _regrade_origin(
+        adapter, base, entries, entry_id, incumbent=origin, admitted=True
     )
-    if origin != king:
-        raise RetentionUnavailable("king_rebuild_origin_differs")
-    if recipe.digest != pool_store.submission(king)["binding"].get("recipe_digest"):
-        raise RetentionUnavailable("king_rebuild_recipe_differs")
+    if found != origin:
+        raise RetentionUnavailable(codes + "_origin_differs")
+    if recipe.digest != pool_store.submission(origin)["binding"].get("recipe_digest"):
+        raise RetentionUnavailable(codes + "_recipe_differs")
     graph_source = None
     if recipe.to_dict()["source"]["kind"] == "graph":
         graph_source = files.get("source-envelope.json")
         if type(graph_source) is not bytes:
             raise RetentionUnavailable("rebuild_graph_source_unavailable")
     return {"recipe": recipe, "graph_source": graph_source}
+
+
+def retained_king_source(
+    adapter, pool_store, king, entry_id, *, artifact_directory, entry_directory
+):
+    """`retained_origin_source` for the sitting ``king`` (`rebuild_king`, his re-measure): its codes name the king."""
+    return retained_origin_source(
+        adapter,
+        pool_store,
+        king,
+        entry_id,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+        codes="king_rebuild",
+    )
 
 
 def _admit_king_rebuild(
@@ -3297,7 +3320,9 @@ def _regrade_incumbent(promotion):
     return None if row is None else row.get("model_id")
 
 
-def _regrade_origin(adapter, base, entries, entry_id, *, incumbent=None):
+def _regrade_origin(
+    adapter, base, entries, entry_id, *, incumbent=None, admitted=False
+):
     """The retained task behind one bank entry, with its owner from the receiver's ledger.
 
     The owner is the one the ledger records under the CURRENT contract; for the sitting king (``incumbent``, the pool
@@ -3325,7 +3350,9 @@ def _regrade_origin(adapter, base, entries, entry_id, *, incumbent=None):
     owner = getattr(adapter, "_derived_owners", {}).get(
         origin
     ) or adapter.ledger.owned_outcome(adapter.contract_digest, origin)
-    if owner is None and incumbent is not None and origin == incumbent:
+    # ``admitted``: an averaged rebuild of ANY origin (a challenger too) reads its own retained files under its admitted
+    # owner, never anything else of it (Validator-2 / Lead 5 Nov: the winning challenger's average refused)
+    if owner is None and (admitted or (incumbent is not None and origin == incumbent)):
         admitted = adapter.ledger.admitted_owner(origin)
         owner = None if admitted is None else admitted[1]
     if owner is None:
@@ -3599,6 +3626,28 @@ def _repeat_of(adapter, origin, entry_id, *, source=None, pool_store=None, **cus
     # The retained entry this repeat runs from: what a paused crown decision files to be made again.
     repeat.entry_id = entry_id
 
+    held = {"source": source}
+
+    def origin_source():
+        """The build source of ``origin``'s averaging rebuilds: the given one; else, when the CURRENT contract does not
+        hold ``origin`` (admitted under an earlier one: no owner or no request in its provider), its own retained
+        recipe and envelope from custody (`retained_origin_source`), read once; else None (the provider's request, as
+        before). Without the decision's pool the strict path stands."""
+        if (
+            held["source"] is None
+            and pool_store is not None
+            and adapter.owner(origin) is None
+        ):
+            held["source"] = retained_origin_source(
+                adapter,
+                pool_store,
+                origin,
+                entry_id,
+                artifact_directory=custody["artifact_directory"],
+                entry_directory=custody["entry_directory"],
+            )
+        return held["source"]
+
     def rebuild_at(seed, repeat_index=0):
         """The crown's averaging rebuild (`crown_average`): REBUILD the model from its recipe at a validator-chosen
         ``seed`` and grade it, uncounted (`rebuild_at_seed`). Never a regrade of the retained state, which would
@@ -3611,7 +3660,7 @@ def _repeat_of(adapter, origin, entry_id, *, source=None, pool_store=None, **cus
             seed,
             repeat=repeat_index,
             host_owner=crown_average.HOST_OWNER,
-            source=source,
+            source=origin_source(),
             **custody,
         )
 
