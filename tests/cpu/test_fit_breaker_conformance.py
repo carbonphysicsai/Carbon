@@ -35,13 +35,15 @@ with that version's OWN owner record choosing it (the waiver form above). Both n
     (``optimizer.d_zero.dv_proof_sha256``, 64 hex, the D6 or D9 adjacent-task proof, custody-resolved by the Validator's
     receipt) is required, and the region classes stay graded on their own (``d_aggregate`` = ``balanced_region_mean``
     and a registered coverage plan). The 4 Nov engineer-shortcut zero alone, or a fixed-optimizer zero alone, passes
-    only with that version's OWN owner record. No D scored = that version's own owner record.
+    only with that version's OWN owner record. No D scored = that version's own owner record, and a physics
+    ``total_rule`` of ``a_only`` (TOTAL = A, D dropped) IS no D scored (Validator 18:3x: that decision is deferred).
 3'. ``ood_min_accuracy``: the generalization battery, owner A10: "Physics scoring: score only classes/outputs where the
     fit loses. Outside the training data"; A11: "In-range accuracy is a gate, threshold from the curves"; A13 (each family
     scored only where the fit loses, surviving families weighted equally); A14 (the gate records full aggregates). The
     version's ``physics`` block (a sibling of ``a_rule``) enters as A outright (``enters`` = "a"; the in-range legs are
     record-only), names its sealed fit-loses cells (``cells_sha256``), declares its gate statistic and cases, keeps the
-    coverage plan, and has no ``a_gen_aggregate`` beside it. And the grader must be able to grade it honestly: it grades
+    coverage plan, declares its ``total_rule`` (``half_a_half_d`` or ``a_only``), and has no ``a_gen_aggregate``
+    beside it. And the grader must be able to grade it honestly: it grades
     the physics block, it refuses a scored-cell map with no cell (the fit wins everywhere: no A to score is the owner's
     call, like no D), and the weekly fresh-draw SE is built (``physics_se_not_built`` is a launch blocker).
 
@@ -107,6 +109,8 @@ BATCH_RECORD = "OWNER-EXAM-DESIGN-DECISIONS-BATCH-01"
 #: The battery's gate statistics and case sources (the grader's ``physics`` block).
 _GATE_STATISTICS = frozenset({"median", "p90", "max"})
 _GATE_CASES = frozenset({"agen", "pool"})
+#: How the physics score enters the total (Graphite's grader; no default: unset refuses).
+_TOTAL_RULES = frozenset({"half_a_half_d", "a_only"})
 
 
 def physics_grading():
@@ -193,6 +197,9 @@ def _rule_state(rule, entry, decisions, grader, version_key=(None, None)):
             and optimizer.get("d_aggregate") == "balanced_region_mean"
             and optimizer.get("coverage_plan_sha256") is not None
         )
+        physics = entry.get("physics")
+        if type(physics) is dict and physics.get("total_rule") == "a_only":
+            on = False  # TOTAL = A drops D: no D scored, the version's own record only
         if not on:
             return "rule_off"
         return (
@@ -211,6 +218,7 @@ def _rule_state(rule, entry, decisions, grader, version_key=(None, None)):
             and physics.get("gate_statistic") in _GATE_STATISTICS
             and physics.get("gate_cases") in _GATE_CASES
             and "gate_threshold" in physics
+            and physics.get("total_rule") in _TOTAL_RULES
             and "a_gen_aggregate" not in optimizer
             and optimizer.get("coverage_plan_sha256") is not None
         )
@@ -596,6 +604,28 @@ def test_a_single_component_zero_needs_the_versions_own_record(tmp_path, zero):
         "engineer_shortcut_d_zero": "OWNER-MOTOR-17-SINGLE-ZERO-01"
     }
     assert _check(entry, tmp_path) == []
+
+
+def test_a_total_of_a_only_is_no_d_scored_and_needs_the_versions_own_record(tmp_path):
+    """Validator 18:3x: TOTAL = A drops D, a deferred owner decision: even with the best-of zero it is no D scored."""
+    entry = _all_on()
+    entry["physics"]["total_rule"] = "a_only"
+    assert _check(entry, tmp_path) == [(*NEW, "engineer_shortcut_d_zero", "rule_off")]
+    _record(tmp_path, "OWNER-MOTOR-17-NO-D-01")
+    entry["fit_breaker"]["waivers"] = {
+        "engineer_shortcut_d_zero": "OWNER-MOTOR-17-NO-D-01"
+    }
+    assert _check(entry, tmp_path) == []
+
+
+@pytest.mark.parametrize("total", [None, "missing", "half_a_d", "a"])
+def test_a_physics_block_without_a_known_total_rule_fails_the_ood_rule(tmp_path, total):
+    entry = _all_on()
+    if total == "missing":
+        entry["physics"].pop("total_rule")
+    else:
+        entry["physics"]["total_rule"] = total
+    assert _check(entry, tmp_path) == [(*NEW, "ood_min_accuracy", "rule_off")]
 
 
 def test_a_new_version_off_the_pool_path_or_unregistered_fails_every_rule(tmp_path):
