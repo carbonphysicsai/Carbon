@@ -2277,6 +2277,10 @@ def serve(
                 )
                 # The caller's own submission's grade state (exam_feedback v2) reads its marker.
                 intake.grade_marker = grader.marker
+                # The public queue (`queue_public`): counts and the door's state, read from this door's own records.
+                from carbon.challenge_validator.queue_view import QueueView
+
+                intake.queue_view = QueueView(intake, grader, root)
             if "auto_grade" in cfg and cfg["auto_grade"].get("pool_store"):
                 intake.koth_view = _king_view(intake, cfg["auto_grade"]["pool_store"])
             if "launch_board" in cfg:

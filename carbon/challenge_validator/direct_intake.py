@@ -51,7 +51,7 @@ from carbon.transport.models import (
     parse_message,
 )
 
-from . import koth_public
+from . import koth_public, queue_public
 from .dispatch import Adapters, Validator
 from .interface import Submission, Unavailable
 from .lean_recipe import LeanRecipeAdapter
@@ -179,6 +179,8 @@ class DirectRecipeIntake(BatteryIntake):
         self.adapter = adapter
         #: The receiver's public king view (`koth_public`); None until it publishes one.
         self.koth_view = None
+        #: The public queue view (`queue_public`, `queue_view.QueueView`); None when this door does not grade.
+        self.queue_view = None
         #: The signed launch board's reader (`launch_board_file.read_board` bound to the
         #: configured file), or None when this receiver serves no board.
         self.board_feed = None
@@ -308,6 +310,8 @@ class DirectRecipeIntake(BatteryIntake):
             return self.public()
         if method == "GET" and path.startswith(koth_public.PATH):
             return self._koth(path)
+        if method == "GET" and path.startswith(queue_public.PATH):
+            return self._queue(path)
         if method == "GET" and path == FEED_PATH + self.challenge.challenge_id:
             return self._board()
         if method != "POST" or path != SUBMIT_PATH:
@@ -338,6 +342,15 @@ class DirectRecipeIntake(BatteryIntake):
         if asked != self.challenge.challenge_id:
             return _refused(404, "not_found")
         status, body = serve(self.koth_view, self.challenge)
+        return Answer(status, body)
+
+    def _queue(self, path):
+        """The public queue document of this receiver's one Challenge (`queue_public`); any other id is not found."""
+        from urllib.parse import unquote
+
+        if unquote(path[len(queue_public.PATH) :]) != self.challenge.challenge_id:
+            return _refused(404, "not_found")
+        status, body = queue_public.serve(self.queue_view, self.challenge)
         return Answer(status, body)
 
     async def _post(self, headers, body):

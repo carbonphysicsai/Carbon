@@ -78,6 +78,9 @@ class AutoGrader:
         self.markers = base / "markers"
         self.pool_store = pool_store
         self.failures = base / "failures"
+        #: What this grader is doing right now, for the public queue view (`queue_view`): "king" during the king's
+        #: upkeep, "grade" while a submission is graded, else None. Read only; it gates nothing.
+        self.activity = None
         for directory in (self.artifacts, self.entries, self.markers, self.failures):
             directory.mkdir(mode=0o700, parents=True, exist_ok=True)
 
@@ -227,7 +230,11 @@ class AutoGrader:
 
         if self.chain_degraded():
             return None  # (H8) a stale chain: grade nothing, mark nothing
-        self._king_upkeep()
+        self.activity = "king"
+        try:
+            self._king_upkeep()
+        finally:
+            self.activity = None
         self._resume_paused_crowns()
         for submission_id in self.pending():
             sampler = _Sampler(
@@ -235,13 +242,17 @@ class AutoGrader:
             )
             started_ns = time.time_ns()
             try:
-                with sampler:
-                    result = self.intake.retain_result(
-                        submission_id,
-                        artifact_directory=self.artifacts,
-                        entry_directory=self.entries,
-                        pool_store=self._pool(),
-                    )
+                self.activity = "grade"
+                try:
+                    with sampler:
+                        result = self.intake.retain_result(
+                            submission_id,
+                            artifact_directory=self.artifacts,
+                            entry_directory=self.entries,
+                            pool_store=self._pool(),
+                        )
+                finally:
+                    self.activity = None
             except RetentionUnavailable as unavailable:
                 code = getattr(unavailable, "code", None) or str(unavailable)
                 if not isinstance(code, str):
