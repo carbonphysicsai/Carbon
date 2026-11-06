@@ -640,3 +640,47 @@ def test_patch_refuses_a_sif_whose_edit_points_are_not_unique(tmp_path):
             v3.DeckRefused, match="sif_edit_points_not_found_exactly_once"
         ):
             v32._patch(tmp_path / "e", v3.resolve_case(CASE), table)
+
+
+def test_an_onset_ramp_from_the_curve_file_smooths_the_jump():
+    curve = {
+        **_curve_dict(),
+        "ramp_k": 1.0,
+    }  # q_nb rises from 0 at superheat 1.0 to the onset value at 2.0
+    by_s = {round(t - 273.15 - 40.0, 6): h for t, h in v32.h_eff_table(CASE, curve)}
+    assert by_s[1.0] == 3000.0  # the ramp start is still single-phase
+    s = 1.5  # half way up the ramp (a grid point: inlet at -10 + k x 0.5)
+    q_nb = 20000.0 * 0.5
+    assert by_s[s] == pytest.approx(
+        math.sqrt((3000.0 * (s + 10.0)) ** 2 + q_nb**2) / (s + 10.0)
+    )
+    assert 3000.0 < by_s[s] < by_s[2.0]
+    assert (
+        round(2.0 - v32.ONSET_EDGE_K, 6) not in by_s
+    )  # no sharp edge point when a ramp is set
+
+
+@pytest.mark.parametrize(
+    "ramp, why",
+    [
+        (-0.1, "curve_onset_ramp_invalid"),
+        (float("nan"), "curve_onset_ramp_invalid"),
+        (12.5, "curve_onset_ramp_invalid"),
+    ],
+)
+def test_an_invalid_onset_ramp_refuses(tmp_path, ramp, why):
+    path, digest = _curve(tmp_path, onset_ramp_k=ramp)
+    with pytest.raises(v3.DeckRefused, match=why):
+        v32.load_curve(path, expect_sha256=digest, test_mode=True)
+
+
+def test_the_ramp_is_recorded_in_the_deck(tmp_path):
+    curve, curve_sha = _curve(tmp_path, onset_ramp_k=0.5)
+    meta = v32.write_case_v32_test(
+        CASE,
+        tmp_path / "d",
+        curve_path=curve,
+        curve_sha256=curve_sha,
+        leakage=_test_leak(tmp_path),
+    )
+    assert meta["h_curve"]["ramp_k"] == 0.5

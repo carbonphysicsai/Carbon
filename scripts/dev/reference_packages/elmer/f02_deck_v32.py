@@ -114,12 +114,19 @@ def load_curve(path, *, expect_sha256, test_mode=False):
         tsat, tin = doc["tsat_c"], doc["inlet_c"]
         onb, cap = doc["onb_superheat_k"]["table_start"], doc["cap"]["superheat_k"]
         points = doc["superheat_k_to_q_nb_w_m2"]
-    except (KeyError, TypeError):
+        ramp = doc.get(
+            "onset_ramp_k", 0.0
+        )  # optional: the curve's own onset smoothing (0 = sharp)
+    except (KeyError, TypeError, AttributeError):
         raise DeckRefused("curve_fields") from None
     if not all(_finite(x) for x in (tsat, tin, onb, cap)) or not (
         tin < tsat and 0 <= onb < cap
     ):
         raise DeckRefused("curve_values_invalid")
+    if not (_finite(ramp) and 0 <= ramp and onb - ramp > tin - tsat):
+        raise DeckRefused(
+            "curve_onset_ramp_invalid"
+        )  # finite, >= 0, and the ramp starts above the inlet
     if (
         type(points) is not list
         or len(points) < 2
@@ -141,6 +148,7 @@ def load_curve(path, *, expect_sha256, test_mode=False):
         "inlet_c": float(tin),
         "onb_k": float(onb),
         "cap_k": float(cap),
+        "ramp_k": float(ramp),
         "points": [(float(a), float(b)) for a, b in points],
         "label": TEST_ONLY if (candidate or test_mode) else "REGISTERED",
         "sha256": "sha256:" + digest,
@@ -159,11 +167,14 @@ def h_eff_table(case, curve):
     # Every point is placed and classified in SUPERHEAT space (s = T - T_sat) with the curve's own exact onset and cap values,
     # so float rounding of T_sat + onset / T_sat + cap can neither push the top point off the curve nor un-boil the onset point.
     h_sp, tin, tsat = float(case["h_w_m2_k"]), curve["inlet_c"], curve["tsat_c"]
-    onb, cap = curve["onb_k"], curve["cap_k"]
+    onb, cap, ramp = curve["onb_k"], curve["cap_k"], curve.get("ramp_k", 0.0)
     s_in = tin - tsat  # < 0 (the inlet is subcooled)
+    # sharp onset (ramp 0): h_sp up to ONSET_EDGE_K below the onset; a ramp: q_nb rises linearly from 0 at (onset - ramp) to the
+    # curve's onset value at the onset (the curve file chooses the ramp: a modelling convention, not a value set here)
+    start = onb - (ramp if ramp > 0 else ONSET_EDGE_K)
     points = {
         round(s_in, 9): s_in,
-        round(onb - ONSET_EDGE_K, 9): onb - ONSET_EDGE_K,
+        round(start, 9): start,
         round(onb, 9): onb,
         round(cap, 9): cap,
     }
@@ -179,8 +190,12 @@ def h_eff_table(case, curve):
         s = points[key]
         if s < s_in or s > cap:
             continue
-        if s < onb:
+        if s <= start or (ramp == 0 and s < onb):
             h = h_sp
+        elif s < onb:
+            q_nb = _interp(curve["points"], onb) * (s - start) / ramp
+            q_sp = h_sp * (s - s_in)
+            h = math.sqrt(q_sp**2 + q_nb**2) / (s - s_in)
         else:
             q_nb = _interp(curve["points"], min(s, cap))
             q_sp = h_sp * (s - s_in)
@@ -258,6 +273,7 @@ def _finish(out, meta, curve, table, *, test=False):
         "inlet_c": curve["inlet_c"],
         "onb_k": curve["onb_k"],
         "cap_k": curve["cap_k"],
+        "ramp_k": curve["ramp_k"],
         "blend": BLEND,
         "table_sha256": _table_digest(table),
     }
