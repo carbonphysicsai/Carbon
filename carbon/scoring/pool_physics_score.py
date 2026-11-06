@@ -22,9 +22,14 @@ Q1: R15-disjointness from TRAIN is the pack's, checked where the pack is built).
 out-of-range classes have only EXTENDED targets; a class mixing both is refused.
 
 How the family value enters the score is the rule's ``enters``: ``"a"``: A IS the family value (EQ 5 Nov Q2, from the
-owner's words: in-range accuracy is a gate, so the in-range A_bank leaves the score). The A/D split is the owner's
-(``ad_split``, HUMAN_INPUT): the dual pack composes 0.5 A + 0.5 D, so only 0.5 grades and any other value refuses
-until that composition is built.
+owner's words: in-range accuracy is a gate, so the in-range A_bank leaves the score). The A/D split ``ad_split`` is
+owner-set at 0.5 (owner 17:50, "50/50"), the dual pack's 0.5 A + 0.5 D; any other value refuses until he changes it and
+that composition is built. The TOTAL of a version whose D does not separate is HUMAN_INPUT: such a version registers
+``d_separates`` as HUMAN_INPUT (or false) and refuses; only ``true`` grades.
+
+A cell's score maps |err| to [0, 1] with the version's registered accuracy function (EQ Q3): the A_gen atom
+benefit(|err| / agen_scales), or with the registered A multiplier applied (``cell_scale``). Which one is the
+Validator's ruling, so ``cell_scale`` has no default and refuses until registered.
 
 Off by default: `pool_proof_suite.Policies.physics` is None for every registered version, and every path that reads it
 is then unchanged, bit for bit. Nothing here names a Challenge.
@@ -47,8 +52,9 @@ ACCURACY_GATE = "in_range_accuracy"
 STATISTICS = ("median", "p90", "max")
 ENTERS = ("a",)
 GATE_CASES = ("agen", "pool")
-#: The only A/D split the dual pack's total composes today (0.5 A + 0.5 D).
+#: The A/D split: owner-set 0.5 (17:50), the only split the dual pack's total composes (0.5 A + 0.5 D).
 AD_SPLIT_BUILT = 0.5
+CELL_SCALES = ("agen_scales", "agen_scales_x_a_multiplier")
 IN_RANGE, OUT_OF_RANGE = "in", "out"
 
 
@@ -89,8 +95,10 @@ class PhysicsRule:
     ``gate_threshold``: the largest passing value of that statistic of |err|/U, one number for every output or
     ``{output: number}`` covering each gated output. Either left None (HUMAN_INPUT) refuses to grade. ``gate_cases``: the
     in-range gate's cases (`GATE_CASES`). ``enters``: how the family value enters the score (`ENTERS`). ``ad_split``: the
-    owner's weight of A in the total (HUMAN_INPUT; only `AD_SPLIT_BUILT` grades). ``cells``: the attached `CellMap`
-    (`attach_cells`), or None.
+    owner's weight of A in the total (owner-set `AD_SPLIT_BUILT`; any other value refuses). ``d_separates``: True when the
+    version's D separates (its total is 0.5 A + 0.5 D); otherwise the total is HUMAN_INPUT and the version refuses.
+    ``cell_scale``: the cell atom's scale (`CELL_SCALES`, the Validator's ruling; no default). ``cells``: the attached
+    `CellMap` (`attach_cells`); ``a_multiplier``: the registered A multiplier, attached at grade time; both None until.
     """
 
     cells_sha256: str
@@ -99,7 +107,10 @@ class PhysicsRule:
     gate_cases: str | None
     enters: str
     ad_split: object
+    d_separates: object
+    cell_scale: str | None
     cells: object = None
+    a_multiplier: object = None
 
 
 def check_rule(rule):
@@ -126,10 +137,15 @@ def check_rule(rule):
     _require(rule.gate_cases is not None, "accuracy_gate_cases_not_registered")
     _require(rule.gate_cases in GATE_CASES, "accuracy_gate_cases_must_be_agen_or_pool")
     _require(rule.enters in ENTERS, "physics_enters_must_be_a")
-    _require(rule.ad_split is not None, "ad_split_is_human_input")
     _require(
         _is_number(rule.ad_split) and rule.ad_split == AD_SPLIT_BUILT,
-        "ad_split_other_than_half_is_not_built",
+        "ad_split_must_be_the_owner_set_half",
+    )
+    _require(rule.d_separates is True, "total_without_a_separating_d_is_human_input")
+    _require(rule.cell_scale is not None, "cell_scale_not_registered")
+    _require(
+        rule.cell_scale in CELL_SCALES,
+        "cell_scale_must_be_agen_scales_or_x_a_multiplier",
     )
     _require(
         rule.cells is None
@@ -387,56 +403,92 @@ def accuracy_record(specs, predict, plan, rule):
     }
 
 
-def family_value(specs, predict, scales, plan, rule):
-    """One set's physics accuracy value: for each scored (family, class, output) cell, the mean over the class's reserved
-    cases in `specs` of the A_gen atom benefit(|err| / scales[output]); each family the mean of its scored cells; the value
-    the equal-weight mean over the surviving families (a family with a scored cell). Report-only cells never enter.
+def _atom(rule, error, scale):
+    """A cell's case score: the registered A_gen atom benefit(|err| / scale), with the scale tightened by the registered
+    A multiplier when ``cell_scale`` says so (`pool_proof_grid.tighten`: 1 / (1 + m x)).
+    """
+    if rule.cell_scale == "agen_scales_x_a_multiplier":
+        return benefit(rule.a_multiplier * error / scale)
+    return benefit(error / scale)
+
+
+def target_cells(spec, predict, scales, plan, rule):
+    """One target's contribution to its set's scored cells: ``{(family, class, output): (sum of case atoms, cases)}``
+    over its reserved slice (empty when its class holds no scored cell). Sums, so a set's cell mean is the pooled mean
+    over its targets' cases, and a target bootstrap recomposes it exactly (`compose`).
     """
     check_rule(rule)
     _require(rule.cells is not None, "scoring_cells_not_attached")
-    cells_by_class = {}
-    for family, name, output in rule.cells.scored:
+    _require(
+        rule.cell_scale != "agen_scales_x_a_multiplier"
+        or (_is_number(rule.a_multiplier) and rule.a_multiplier > 0),
+        "cell_scale_needs_the_registered_a_multiplier",
+    )
+    name = plan.class_of(spec.target_id)
+    cells = [(f, o) for f, c, o in rule.cells.scored if c == name]
+    if not cells or not spec.agen:
+        return {}
+    for _family, output in cells:
         _require(
             _is_number(scales.get(output)) and scales[output] > 0,
             "agen_scales_must_cover_the_scored_outputs",
         )
-        cells_by_class.setdefault(name, []).append((family, output))
-    atoms = {}
-    for spec in specs:
-        name = plan.class_of(spec.target_id)
-        if name not in cells_by_class or not spec.agen:
-            continue
-        batch = predict(spec.conditions, [list(spec.designs[i]) for i in spec.agen])
+    batch = predict(spec.conditions, [list(spec.designs[i]) for i in spec.agen])
+    _require(
+        type(batch) is list and len(batch) == len(spec.agen),
+        "agen_prediction_invalid",
+    )
+    sums = {(family, name, output): [0.0, 0] for family, output in cells}
+    for index, prediction in zip(spec.agen, batch):
         _require(
-            type(batch) is list and len(batch) == len(spec.agen),
+            pool_grader._valid_prediction(prediction, spec.outputs),
             "agen_prediction_invalid",
         )
-        for index, prediction in zip(spec.agen, batch):
-            _require(
-                pool_grader._valid_prediction(prediction, spec.outputs),
-                "agen_prediction_invalid",
-            )
-            for family, output in cells_by_class[name]:
-                atoms.setdefault((family, name, output), []).append(
-                    benefit(
-                        abs(prediction[output] - spec.truths[index][output])
-                        / scales[output]
-                    )
-                )
-    _require(
-        set(atoms) == set(rule.cells.scored), "scoring_cell_without_cases_in_a_set"
-    )
+        for family, output in cells:
+            error = abs(prediction[output] - spec.truths[index][output])
+            entry = sums[(family, name, output)]
+            entry[0] += _atom(rule, error, scales[output])
+            entry[1] += 1
+    return {key: (total, n) for key, (total, n) in sums.items()}
+
+
+def compose(contributions):
+    """A set's family value from its targets' `target_cells`: each cell the pooled mean of its case atoms, each family
+    the mean of its cells with a case, the value the equal-weight mean over the families with a cell. None when no cell
+    has a case (only a resample can draw that; the grade's structure check refuses it for a set).
+    """
+    pooled = {}
+    for contribution in contributions:
+        for key, (total, n) in contribution.items():
+            entry = pooled.setdefault(key, [0.0, 0])
+            entry[0] += total
+            entry[1] += n
     families = {}
-    for (family, _name, _output), values in sorted(atoms.items()):
-        families.setdefault(family, []).append(statistics.fmean(values))
+    for (family, _name, _output), (total, n) in sorted(pooled.items()):
+        if n:
+            families.setdefault(family, []).append(total / n)
+    if not families:
+        return None
     return statistics.fmean(
         statistics.fmean(cells) for _family, cells in sorted(families.items())
     )
 
 
+def family_value(specs, predict, scales, plan, rule):
+    """One set's physics accuracy value, which IS its A (``enters == "a"``): for each scored (family, class, output)
+    cell, the mean over the class's reserved cases in `specs` of the cell atom (`_atom`); each family the mean of its
+    scored cells; the value the equal-weight mean over the surviving families (a family with a scored cell). Report-only
+    cells never enter."""
+    contributions = [target_cells(spec, predict, scales, plan, rule) for spec in specs]
+    present = {key for c in contributions for key, (_t, n) in c.items() if n}
+    _require(present == set(rule.cells.scored), "scoring_cell_without_cases_in_a_set")
+    return compose(contributions)
+
+
 __all__ = [
     "ACCURACY_GATE",
     "AD_SPLIT_BUILT",
+    "CELL_SCALES",
     "ENTERS",
     "GATE_CASES",
     "RECORD_SCHEMA",
@@ -451,5 +503,7 @@ __all__ = [
     "cell_map_bytes",
     "check_rule",
     "class_ranges",
+    "compose",
     "family_value",
+    "target_cells",
 ]

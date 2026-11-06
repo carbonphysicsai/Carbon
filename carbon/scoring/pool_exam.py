@@ -186,7 +186,7 @@ def measure_pool(
     accuracy record under ``["pool"]["accuracy"]`` (and ``capture["accuracy"]``); `public` never carries the record.
     """
     policies = attach_coverage_plan(policies, coverage_plan, coverage_plan_sums, sets)
-    policies = attach_physics(policies, scoring_cells, sets)
+    policies = attach_physics(policies, scoring_cells, sets, a_multiplier)
     sets = attach_variant_starts(sets, policies.optimizer.variant_rule, variant_starts)
     _require(
         len(bank_rows) == len(outputs)
@@ -343,8 +343,34 @@ def measure_pool(
         d_values.append(min(grade.d, legs["C"]))
         reasons.update(grade.public()["reasons"])
     if capture is not None and policies.physics is not None:
-        # The target bootstrap does not recompose the family layer yet: the SE refuses, typed (`target_bootstrap_se`).
-        capture["se_basis"] = {"gated": False, "physics": True}
+        # A version with physics scoring: each target carries its d and its sums per scored cell (`target_cells`), so a
+        # resample recomposes cell -> family -> A exactly as the grade did (`total_of_targets`).
+        predict = suite.pool_predictor(plugin, descriptor, all_specs)
+        capture["se_basis"] = {
+            "gated": False,
+            "physics": True,
+            "c": legs["C"],
+            "a_sets": list(a_values),
+            "sets": [
+                [
+                    {
+                        "d": target.d,
+                        "cells": pool_physics_score.target_cells(
+                            spec,
+                            predict,
+                            policies.agen_scales,
+                            policies.optimizer.coverage_plan,
+                            policies.physics,
+                        ),
+                    }
+                    for spec, target in zip(specs, grade.targets, strict=True)
+                ]
+                for specs, (_t, grade, _g, _l) in zip(plugin.sets, per_set, strict=True)
+            ],
+            "total": 0.5 * statistics.fmean(a_values)
+            + 0.5 * statistics.fmean(d_values),
+        }
+        _basis_regions(capture["se_basis"], policies.optimizer, plugin.sets)
     elif capture is not None:
         predict = suite.pool_predictor(plugin, descriptor, all_specs)
         capture["se_basis"] = {
@@ -435,7 +461,12 @@ def total_of_targets(basis, sets):
     order = basis.get("classes")
     a_values, d_values = [], []
     for position, targets in enumerate(sets):
-        if basis.get("a_gen_aggregate") is None:
+        if basis.get("physics") is True:
+            # A IS the family value: recomposed from the drawn targets' cell sums. A draw holding no case of any scored
+            # cell (possible only in a resample) keeps the set's graded A: the bootstrap conditions on it.
+            a = pool_physics_score.compose([t["cells"] for t in targets])
+            a_values.append(basis["a_sets"][position] if a is None else a)
+        elif basis.get("a_gen_aggregate") is None:
             gens = [t["agen"] for t in targets if t["agen"] is not None]
             a_gen = statistics.fmean(gens) if gens else None
         elif basis["a_gen_aggregate"] == "ood_class_mean":
@@ -449,7 +480,10 @@ def total_of_targets(basis, sets):
             a_gen = statistics.fmean(v for _n, v in regions) if regions else None
         else:
             a_gen = _region_mean(targets, "agen", order)
-        a_values.append(pool_grader.combine_a(basis["a_bank"], a_gen, basis["a_rule"]))
+        if basis.get("physics") is not True:
+            a_values.append(
+                pool_grader.combine_a(basis["a_bank"], a_gen, basis["a_rule"])
+            )
         if basis.get("d_aggregate") is None:
             d = statistics.fmean(t["d"] for t in targets)
         else:
@@ -469,8 +503,6 @@ def target_bootstrap_se(basis, exam_key, *, resamples=200):
     import numpy as np
 
     _require(type(basis) is dict and basis.get("gated") is False, "gated")
-    # A version with physics scoring: the family layer is not recomposed per target yet (typed, never a wrong SE).
-    _require(basis.get("physics") is not True, "physics_se_not_built")
     sets = basis["sets"]
     sizes = [len(targets) for targets in sets]
     _require(sizes and min(sizes) >= SE_MIN_TARGETS, "too_few_targets")
@@ -568,7 +600,7 @@ def attach_coverage_plan(policies, document, sums, sets):
     return replace(policies, optimizer=replace(optimizer, coverage_plan=plan))
 
 
-def attach_physics(policies, document, sets):
+def attach_physics(policies, document, sets, a_multiplier=None):
     """``policies`` with a NEW version's sealed scoring cells attached to its physics rule, or `ExamRefused`. A version
     without a physics rule keeps its policies unchanged and its sealed material carries no scoring cells. The structure
     is the EXAM's: checked here, once, typed, before any submission is graded."""
@@ -586,7 +618,8 @@ def attach_physics(policies, document, sets):
         )
     except pool_grader.PoolRefused as refused:
         raise ExamRefused(f"physics_structure_refused:{refused}") from None
-    return replace(policies, physics=attached)
+    # The registered A multiplier rides with the rule: a cell scale that applies it reads it from there.
+    return replace(policies, physics=replace(attached, a_multiplier=a_multiplier))
 
 
 def attach_variant_starts(sets, rule, starts):

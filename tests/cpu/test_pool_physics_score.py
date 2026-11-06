@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import math
 import statistics
 import sys
 from pathlib import Path
@@ -67,8 +68,12 @@ def rule(
     enters="a",
     gate_cases="agen",
     ad_split=0.5,
+    d_separates=True,
+    cell_scale="agen_scales",
 ):
     return pps.PhysicsRule(
+        d_separates=d_separates,
+        cell_scale=cell_scale,
         cells_sha256=pps.cell_map(cells).sha256,
         gate_statistic=statistic,
         gate_cases=gate_cases,
@@ -144,8 +149,12 @@ def attached(specs, plan, **kw):
         ({"enters": "a_gen"}, "physics_enters_must_be_a"),
         ({"gate_cases": None}, "accuracy_gate_cases_not_registered"),
         ({"gate_cases": "train"}, "gate_cases_must_be_agen_or_pool"),
-        ({"ad_split": None}, "ad_split_is_human_input"),
-        ({"ad_split": 0.6}, "ad_split_other_than_half_is_not_built"),
+        ({"ad_split": None}, "ad_split_must_be_the_owner_set_half"),
+        ({"ad_split": 0.6}, "ad_split_must_be_the_owner_set_half"),
+        ({"d_separates": None}, "total_without_a_separating_d_is_human_input"),
+        ({"d_separates": False}, "total_without_a_separating_d_is_human_input"),
+        ({"cell_scale": None}, "cell_scale_not_registered"),
+        ({"cell_scale": "u"}, "cell_scale_must_be"),
     ],
 )
 def test_an_incomplete_rule_refuses_never_defaults(kw, code):
@@ -328,12 +337,16 @@ def test_structural_faults_refuse_at_attach():
 # ---------------------------------------------------------------- 4. the official grade (measure_pool)
 
 
-def _sets():
+def _sets(per_class=1):
     return tuple(
-        (
-            exam_target(f"in{s}", 30 + s),
-            exam_target(f"edge{s}", 40 + s, shell=SHELL),
-            exam_target(f"step{s}", 50 + s, shell=SHELL),
+        tuple(
+            target
+            for k in range(per_class)
+            for target in (
+                exam_target(f"in{s}k{k}", 30 + s + 100 * k),
+                exam_target(f"edge{s}k{k}", 40 + s + 100 * k, shell=SHELL),
+                exam_target(f"step{s}k{k}", 50 + s + 100 * k, shell=SHELL),
+            )
         )
         for s in range(2)
     )
@@ -342,7 +355,7 @@ def _sets():
 def _registered(the_sets, threshold):
     targets = {
         t.target_id: {"in": IN, "edge": EDGE, "step": STEP}[
-            t.target_id.rstrip("0123456789")
+            t.target_id.split("k")[0].rstrip("0123456789")
         ]
         for group in the_sets
         for t in group
@@ -471,12 +484,39 @@ def test_pool_gate_cases_read_every_kept_point_of_the_in_range_targets():
 
 
 @pytest.mark.usefixtures("geometric_v1_stand_in")
-def test_the_se_refuses_typed_for_a_physics_version():
-    the_sets = _sets()
+def test_the_target_bootstrap_recomposes_the_physics_total_exactly():
+    the_sets = _sets(per_class=2)  # 6 targets per set (the SE needs at least 4)
     policies, material = _registered(the_sets, threshold=2.5)
-    _result, capture = _measure(the_sets, policies, material)
-    with pytest.raises(pool_exam.ExamRefused, match="physics_se_not_built"):
-        pool_exam.target_bootstrap_se(capture["se_basis"], "ab" * 32)
+    result, capture = _measure(the_sets, policies, material)
+    basis = capture["se_basis"]
+    assert basis["physics"] is True
+    graded = 0.5 * result["A"] + 0.5 * result["D"]
+    assert basis["total"] == pytest.approx(graded, abs=1e-15)
+    # no resampling: the recomposed total is the graded one
+    assert pool_exam.total_of_targets(basis, basis["sets"]) == pytest.approx(
+        graded, abs=1e-15
+    )
+    spread, sizes = pool_exam.target_bootstrap_se(basis, "sha256:" + "ab" * 32)
+    assert sizes == [6, 6] and math.isfinite(spread) and spread >= 0.0
+    # deterministic in the exam key
+    assert pool_exam.target_bootstrap_se(basis, "sha256:" + "ab" * 32)[0] == spread
+
+
+def test_a_tightened_cell_scale_applies_the_registered_a_multiplier():
+    specs, plan = stand_set()
+    scales = {"f": 0.5, "g": 0.5}
+    plain = attached(specs, plan)
+    tight = dataclasses.replace(
+        attached(specs, plan, cell_scale="agen_scales_x_a_multiplier"), a_multiplier=2.0
+    )
+    edge = statistics.fmean([benefit(2 * 0.5 / 0.5), benefit(2 * 1.5 / 0.5)])
+    expected = statistics.fmean([edge, benefit(2 * 1.0 / 0.5)])
+    got = pps.family_value(specs, model(specs), scales, plan, tight)
+    assert got == pytest.approx(expected, abs=1e-15)
+    assert got < pps.family_value(specs, model(specs), scales, plan, plain)
+    unattached = dataclasses.replace(tight, a_multiplier=None)
+    with pytest.raises(pps.PhysicsRefused, match="needs_the_registered_a_multiplier"):
+        pps.family_value(specs, model(specs), scales, plan, unattached)
 
 
 @pytest.mark.usefixtures("geometric_v1_stand_in")
@@ -627,6 +667,8 @@ def test_the_physics_rule_registers_with_no_default(tmp_path):
         "gate_cases": "pool",
         "enters": "a",
         "ad_split": 0.5,
+        "d_separates": True,
+        "cell_scale": "agen_scales",
     }
     rule_read = read(good).physics
     assert rule_read == pps.PhysicsRule(**good) and rule_read.cells is None
@@ -638,7 +680,13 @@ def test_the_physics_rule_registers_with_no_default(tmp_path):
         read({**good, "gate_threshold": {"f": pool_version.HUMAN_INPUT}})
     with pytest.raises(pool_version.PoolConstantsNotRegistered):
         read({**good, "enters": "a_gen"})
-    for key, value in (("ad_split", pool_version.HUMAN_INPUT), ("ad_split", 0.6)):
+    for key, value in (
+        ("ad_split", pool_version.HUMAN_INPUT),
+        ("ad_split", 0.6),
+        ("d_separates", pool_version.HUMAN_INPUT),
+        ("d_separates", False),
+        ("cell_scale", pool_version.HUMAN_INPUT),
+    ):
         with pytest.raises(pool_version.PoolConstantsNotRegistered):
             read({**good, key: value})
     with pytest.raises(pool_version.PoolConstantsNotRegistered):
