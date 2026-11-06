@@ -567,7 +567,11 @@ WEIGHTS_MARKERS = (
     "carbon.validator_setup",
     "carbon.rewards.testnet_winner_publication",
     "wcycle",
+    # between cycles only the loop's shell script runs; its environment is what each cycle inherits
+    "weights-loop",
 )
+#: The process table the host checks read (a test points it at a fake one).
+PROC = "/proc"
 CHAIN_ENVIRONMENT = (
     "CARBON_CHAIN_NETWORK",
     "CARBON_LOCALNET_GENESIS",
@@ -575,7 +579,9 @@ CHAIN_ENVIRONMENT = (
 )
 
 
-def chain_binding_item(host_roots, expect="testnet", *, proc="/proc") -> dict:
+def chain_binding_item(
+    host_roots, expect="testnet", *, proc="/proc", receivers_expected=0
+) -> dict:
     """(H8 part 3, Validator-2 6 Nov 09:22) No live door and no weights loop runs bound to anything but ``expect``:
     every running direct receiver's and weights-loop process's environment has ``CARBON_CHAIN_NETWORK`` unset/empty or
     ``testnet`` (``finney`` only when ``expect`` is finney) and no localnet variable; and no ``--host-root`` carries the
@@ -589,7 +595,7 @@ def chain_binding_item(host_roots, expect="testnet", *, proc="/proc") -> dict:
     if not Path(proc).is_dir():
         return {"state": UNKNOWN, "code": "process_table_unreadable"}
     allowed = {"", "testnet"} if expect == "testnet" else {expect}
-    read, wrong = 0, []
+    read, wrong, receivers, loops = 0, [], 0, 0
     for entry in Path(proc).iterdir():
         if not entry.name.isdigit():
             continue
@@ -616,6 +622,8 @@ def chain_binding_item(host_roots, expect="testnet", *, proc="/proc") -> dict:
             if b"=" in item
         )
         read += 1
+        receivers += receiver
+        loops += not receiver
         if env.get("CARBON_CHAIN_NETWORK", "") not in allowed or any(
             name in env for name in CHAIN_ENVIRONMENT[1:]
         ):
@@ -632,7 +640,23 @@ def chain_binding_item(host_roots, expect="testnet", *, proc="/proc") -> dict:
             "code": "process_not_on_the_live_chain",
             "processes": wrong[:10],
         }
-    return {"state": PASS, "read": read, "expect": expect}
+    if receivers < receivers_expected or loops < 1:
+        # (Validator-2 10:43) a check that read nothing is no pass: the running doors and the weights loop must be
+        # FOUND, so a marker that stops matching surfaces here instead of passing silently
+        return {
+            "state": UNKNOWN,
+            "code": "binding_processes_missing",
+            "receivers": receivers,
+            "receivers_expected": receivers_expected,
+            "weights_loops": loops,
+        }
+    return {
+        "state": PASS,
+        "read": read,
+        "receivers": receivers,
+        "weights_loops": loops,
+        "expect": expect,
+    }
 
 
 def receivers_item(host_roots, *, proc="/proc") -> dict:
@@ -930,12 +954,18 @@ def precheck(args) -> dict:
             ("drain", lambda: drain_item(args.old_root)),
             ("chain", lambda: chain_item(args.old_root, args.allow_chain_degraded)),
             ("owners", lambda: owners_item(args.old_root)),
-            ("receivers", lambda: receivers_item(args.host_root)),
+            ("receivers", lambda: receivers_item(args.host_root, proc=PROC)),
             (
                 "chain_binding",
                 lambda: chain_binding_item(
                     [*args.host_root, args.old_root, args.new_root],
                     args.expect_network,
+                    proc=PROC,
+                    # every declared door but NEW (prepared, not yet started) must be running and read
+                    receivers_expected=len(
+                        {str(Path(r).absolute()) for r in args.host_root}
+                        - {str(Path(args.new_root).absolute())}
+                    ),
                 ),
             ),
             (

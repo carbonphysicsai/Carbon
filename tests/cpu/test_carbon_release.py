@@ -282,7 +282,7 @@ def test_drain_and_release_items(tool, tmp_path):
     )
 
 
-def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
+def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys, monkeypatch):
     root, _ = repo
     base = _commit(
         root,
@@ -304,6 +304,19 @@ def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys):
         "--old-root", str(old_root), "--new-root", str(new_root), "--final-heads", str(heads),
         "--host-root", str(old_root), "--host-root", str(new_root),
     ]  # fmt: skip
+    # this host's process table: OLD's receiver and the weights loop, both on testnet
+    run = ["python3", "-m", "carbon.challenge_validator.direct_receiver", "--config"]
+    monkeypatch.setattr(
+        tool,
+        "PROC",
+        _proc_env(
+            tmp_path / "host",
+            {
+                21: ([*run, str(old_root / "receiver/receiver.json")], {}),
+                22: (["bash", "/home/carbon/weights-loop5.sh"], {}),
+            },
+        ),
+    )
     rc = tool.main(argv)
     out = json.loads(capsys.readouterr().out)
     # the disk floor needs 20 GiB free: the result is either a full PASS or a disk-only REFUSE
@@ -839,8 +852,14 @@ def test_no_live_door_or_weights_loop_runs_off_the_live_chain(tool, tmp_path):
             13: (["bash"], {"CARBON_CHAIN_NETWORK": "localnet"}),
         },
     )
-    out = tool.chain_binding_item([door], proc=good)
-    assert out == {"state": tool.PASS, "read": 2, "expect": "testnet"}
+    out = tool.chain_binding_item([door], proc=good, receivers_expected=1)
+    assert out == {
+        "state": tool.PASS,
+        "read": 2,
+        "receivers": 1,
+        "weights_loops": 1,
+        "expect": "testnet",
+    }
     local = _proc_env(
         tmp_path / "b",
         {
@@ -880,4 +899,43 @@ def test_an_unreadable_process_environment_is_unknown_never_a_pass(tool, tmp_pat
     assert (out["state"], out["code"]) == (
         tool.UNKNOWN,
         "process_environment_unreadable",
+    )
+
+
+def test_a_binding_check_that_finds_no_door_or_no_weights_loop_is_unknown(
+    tool, tmp_path
+):
+    """Validator-2 10:43: read == 0 is never a pass. Fewer running receivers than declared doors, or no weights-loop
+    process (its shell script counts between cycles), is UNKNOWN with the counts."""
+    door = tmp_path / "rs27" / "CI_motor"
+    receiver = [
+        "python3",
+        "-m",
+        "carbon.challenge_validator.direct_receiver",
+        "--config",
+        str(door / "r.json"),
+    ]
+    loop = ["bash", "/home/carbon/weights-loop5.sh"]
+    nothing = _proc_env(tmp_path / "a", {13: (["sshd"], {})})
+    out = tool.chain_binding_item([door], proc=nothing, receivers_expected=1)
+    assert (out["state"], out["code"]) == (tool.UNKNOWN, "binding_processes_missing")
+    assert (out["receivers"], out["receivers_expected"], out["weights_loops"]) == (
+        0,
+        1,
+        0,
+    )
+    no_loop = _proc_env(tmp_path / "b", {11: (receiver, {})})
+    assert (
+        tool.chain_binding_item([door], proc=no_loop, receivers_expected=1)["state"]
+        == tool.UNKNOWN
+    )
+    no_door = _proc_env(tmp_path / "c", {12: (loop, {})})
+    assert (
+        tool.chain_binding_item([door], proc=no_door, receivers_expected=1)["state"]
+        == tool.UNKNOWN
+    )
+    both = _proc_env(tmp_path / "d", {11: (receiver, {}), 12: (loop, {})})
+    assert (
+        tool.chain_binding_item([door], proc=both, receivers_expected=1)["state"]
+        == tool.PASS
     )
