@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
-from carbon.chain import ChainContext
+from carbon.chain import ChainContext, networks
 from carbon.chain.models import identifier
 from carbon.chain.publication import PublicationFailure
 from carbon.chain.sdk import SDK_VERSION
@@ -34,9 +34,11 @@ from .model import (
 )
 
 SCHEMA = "carbon.development-testnet.operator.v1"
-STAGE = "PUBLIC_TESTNET_DEVELOPMENT"
-DEFAULT_ENDPOINT = "wss://test.finney.opentensor.ai:443"
-TESTNET_GENESIS = "0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105"
+#: The testnet row's values, kept as names for their importers; a config selects its row (`networks`) by
+#: ``context.network`` (F4: testnet 567 or finney 116, exactly one row, fail closed).
+STAGE = networks.NETWORKS["testnet"].stage
+DEFAULT_ENDPOINT = networks.NETWORKS["testnet"].endpoints[0]
+TESTNET_GENESIS = networks.TESTNET_GENESIS
 WORKER_PROFILE = "carbon.c03.linux-x86_64-cpu.development.v1"
 MINIMUM_HOST_MEMORY_BYTES = 6 * 1024**3
 MINIMUM_FREE_DISK_BYTES = 8 * 1024**3
@@ -60,13 +62,15 @@ class OperatorConfig:
     export_root: Path
     max_retained_bytes: int
     transaction_authorization: DevelopmentTransactionAuthorization | None
+    #: The registered network row this config binds (`networks.NETWORKS`).
+    network: str = "testnet"
 
     @property
     def context(self) -> ChainContext | None:
         if self.netuid is None:
             return None
         return ChainContext(
-            "testnet",
+            self.network,
             self.endpoint,
             self.chain_id,
             self.genesis_hash,
@@ -130,19 +134,39 @@ def load_config(path: Path) -> OperatorConfig:
     wallet = raw["wallet"]
     execution = raw["execution"]
     retention = raw["retention"]
+    if type(context) is not dict or set(context) != {
+        "network",
+        "endpoint",
+        "chain_id",
+        "genesis_hash",
+        "netuid",
+    }:
+        raise DevelopmentTestnetFailure("INVALID_OPERATOR_CONFIG")
+    try:
+        # exactly one registered row: network, chain id, genesis, endpoint, and the netuid once it is set
+        bound = networks.check_context(
+            network=context["network"],
+            chain_id=context["chain_id"],
+            genesis_hash=context["genesis_hash"],
+            endpoint=context["endpoint"],
+        )
+    except networks.NetworkRefused as refused:
+        raise DevelopmentTestnetFailure(refused.code.upper()) from None
+    if bound.stage is None:
+        raise DevelopmentTestnetFailure("NETWORK_STAGE_UNSET")
     if (
         raw["schema"] != SCHEMA
         or raw["profile_id"] != PROFILE_ID
-        or raw["stage"] != STAGE
-        or type(context) is not dict
-        or set(context) != {"network", "endpoint", "chain_id", "genesis_hash", "netuid"}
-        or context["network"] != "testnet"
-        or context["endpoint"] != DEFAULT_ENDPOINT
-        or context["chain_id"] != "bittensor-official-test"
-        or context["genesis_hash"] != TESTNET_GENESIS
+        or raw["stage"] != bound.stage
         or (
             context["netuid"] is not None
             and (type(context["netuid"]) is not int or context["netuid"] <= 0)
+        )
+        # finney binds Carbon's subnet exactly; the testnet development profile keeps its free netuid
+        or (
+            bound.network != "testnet"
+            and context["netuid"] is not None
+            and context["netuid"] != bound.netuid
         )
         or type(raw["expected_runtime_spec"]) is not int
         or raw["expected_runtime_spec"] <= 0
@@ -170,6 +194,9 @@ def load_config(path: Path) -> OperatorConfig:
     ):
         identifier(value)
     authorization = None
+    if raw["transaction_authorization"] is not None and bound.network != "testnet":
+        # the DEVELOPMENT transaction authorization (no-winner intents) is testnet-only by design
+        raise DevelopmentTestnetFailure("DEVELOPMENT_AUTHORIZATION_TESTNET_ONLY")
     if raw["transaction_authorization"] is not None:
         if (
             context["netuid"] is None
@@ -208,6 +235,7 @@ def load_config(path: Path) -> OperatorConfig:
         _path(path, retention["export_root"]),
         retention["max_retained_bytes"],
         authorization,
+        bound.network,
     )
 
 
@@ -297,7 +325,10 @@ async def doctor(config: OperatorConfig, *, online: bool) -> dict[str, object]:
         "publication_capability_eligible": None,
         "reason": "ONLINE_CHECK_NOT_REQUESTED",
     }
-    if online and config.context is not None and sdk == SDK_VERSION:
+    if online and config.network != "testnet":
+        # the online check reads through the DEVELOPMENT profile, testnet-only by design
+        chain["reason"] = "ONLINE_CHECK_TESTNET_ONLY"
+    elif online and config.context is not None and sdk == SDK_VERSION:
         backend = BittensorPublicationBackend(
             config.context,
             config.publisher_hotkey,

@@ -18,6 +18,13 @@ async def observe(network, endpoint, genesis_hash, expected_spec):
         or expected_spec <= 0
     ):
         raise SetupRefused("EXPLICIT_RUNTIME_CONTEXT_REQUIRED")
+    from carbon.chain import networks
+
+    try:
+        # the network's own genesis (F4): an unknown network or another chain's genesis is refused
+        networks.check_context(network=network, genesis_hash=genesis_hash)
+    except networks.NetworkRefused:
+        raise SetupRefused("EXPLICIT_RUNTIME_CONTEXT_REQUIRED") from None
     try:
         # A global metadata read has no selected Carbon subnet/policy. Netuid0
         # here validates transport syntax only and is never a publication context.

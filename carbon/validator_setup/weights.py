@@ -64,6 +64,15 @@ def load_config(path):
             or context["network"] not in ("testnet", "finney")
         ):
             raise ValueError
+        from carbon.chain import networks
+
+        # the network's own row (F4): its genesis and netuid, never a mixed pair (finney's genesis with 567, or the
+        # reverse). The endpoint and provider label stay the operator's: the genesis read at connect is the check.
+        networks.check_context(
+            network=context["network"],
+            genesis_hash=context["genesis_hash"],
+            netuid=context["netuid"],
+        )
         if (
             type(raw["expected_runtime_spec"]) is not int
             or raw["expected_runtime_spec"] <= 0

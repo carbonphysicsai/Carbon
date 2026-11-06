@@ -11,14 +11,16 @@ from carbon.validator_setup.bundle import SetupRefused
 
 
 def config(tmp_path, network="testnet"):
+    from carbon.chain import networks
+
     value = {
         "schema": weights.SCHEMA,
         "context": {
             "network": network,
             "endpoint": "wss://public-fixture.invalid",
             "chain_id": "fixture",
-            "genesis_hash": "0x" + "a" * 64,
-            "netuid": 567,
+            "genesis_hash": networks.NETWORKS[network].genesis_hash,
+            "netuid": networks.NETWORKS[network].netuid,
         },
         "expected_runtime_spec": 445,
         "publisher": {"hotkey": "fixture-publisher", "coldkey": "fixture-coldkey"},
@@ -43,7 +45,7 @@ def test_exact_context_and_own_identity_are_parsed_without_wallet_or_chain(
     assert parsed.context.network == network
     assert parsed.context.provider == raw["context"]["chain_id"]
     assert parsed.publisher_hotkey == "fixture-publisher"
-    assert parsed.netuid == 567
+    assert parsed.netuid == {"testnet": 567, "finney": 116}[network]
 
 
 @pytest.mark.parametrize("change", ["network", "genesis", "extra", "runtime", "mode"])
