@@ -41,6 +41,7 @@ is then unchanged, bit for bit. Nothing here names a Challenge.
 
 from __future__ import annotations
 
+import collections
 import hashlib
 import json
 import math
@@ -60,6 +61,15 @@ GATE_CASES = ("agen", "pool")
 AD_SPLIT_BUILT = 0.5
 CELL_SCALES = ("agen_scales", "agen_scales_x_a_multiplier")
 TOTAL_RULES = ("half_a_half_d", "a_only")
+#: How a version scores its battery cells (owner 6 Nov via EQ: headroom scoring adopted, provisional). "cells": the 5 Nov
+#: fit-loses scoring-cell map (cell atom benefit(|err| / scale)). "headroom": HEADROOM_SCORING_PLAN rev 2 (f3f47127):
+#: per admitted (class, output) the log (or linear) skill against the oracle classical anchor A_c, on the geometric mean
+#: of the floored errors |err| / U (floor 1 U).
+SCORINGS = ("cells", "headroom")
+SKILL_FORMS = ("log", "linear")
+HEADROOM_SCHEMA = "carbon.pool.headroom-admission.v1"
+ADMISSION_TESTS = ("H", "C", "O", "R", "V")
+VERDICTS = ("PASS", "FAIL")
 IN_RANGE_CASES_SCHEMA = "carbon.pool.in-range-cases.v1"
 IN_RANGE, OUT_OF_RANGE = "in", "out"
 
@@ -94,6 +104,23 @@ class CellMap:
 
 
 @dataclass(frozen=True)
+class HeadroomAdmission(CellMap):
+    """A version's sealed headroom admission (`headroom_admission`): the same families / scored-cell interface as
+    `CellMap` (``scored`` = the ADMITTED cells: all five tests PASS, the numeric ones re-checked here), plus each admitted
+    cell's anchor A_c (the oracle best of the classical panel's geometric-mean floored error, in U) and the closed list
+    of cells that were not admitted (report-only)."""
+
+    anchors: tuple = ()  # (((family, class, output), A_c), ...)
+    not_admitted: tuple = ()  # ((family, class, output), ...)
+
+    def anchor(self, key):
+        for cell, value in self.anchors:
+            if cell == key:
+                return value
+        raise PhysicsRefused("headroom_anchor_missing")
+
+
+@dataclass(frozen=True)
 class PhysicsRule:
     """A NEW version's physics scoring (all the owner's; None of these has a default).
 
@@ -121,6 +148,15 @@ class PhysicsRule:
     in_range_cases_sha256: str | None = None
     #: The attached `InRangeCases`, or None.
     in_range: object = None
+    #: `SCORINGS`. "cells" (the 5 Nov form, ``cells_sha256`` = the scoring-cell map) or "headroom" (``cells_sha256`` = the
+    #: sealed headroom admission document; ``cell_scale`` unused and None).
+    scoring: str = "cells"
+    #: Headroom only, each the owner's (registered per version, no default; None refuses): the skill form
+    #: (`SKILL_FORMS`), the headroom thresholds H_min / H_lo (U, > 1) and the resolution floor n_min (cases per class).
+    skill_form: str | None = None
+    h_min: object = None
+    h_lo: object = None
+    n_min: object = None
 
 
 def check_rule(rule):
@@ -156,16 +192,49 @@ def check_rule(rule):
         rule.total_rule in TOTAL_RULES,
         "physics_total_rule_must_be_half_a_half_d_or_a_only",
     )
-    _require(rule.cell_scale is not None, "cell_scale_not_registered")
-    _require(
-        rule.cell_scale in CELL_SCALES,
-        "cell_scale_must_be_agen_scales_or_x_a_multiplier",
-    )
-    _require(
-        rule.cells is None
-        or (isinstance(rule.cells, CellMap) and rule.cells.sha256 == rule.cells_sha256),
-        "scoring_cells_are_not_the_registered_ones",
-    )
+    _require(rule.scoring in SCORINGS, "physics_scoring_must_be_cells_or_headroom")
+    if rule.scoring == "headroom":
+        _require(rule.cell_scale is None, "headroom_has_no_cell_scale")
+        _require(rule.skill_form is not None, "headroom_skill_form_is_human_input")
+        _require(
+            rule.skill_form in SKILL_FORMS, "headroom_skill_form_must_be_log_or_linear"
+        )
+        for name in ("h_min", "h_lo"):
+            value = getattr(rule, name)
+            _require(value is not None, f"headroom_{name}_is_human_input")
+            _require(_is_number(value) and value > 1, f"headroom_{name}_must_exceed_1")
+        _require(rule.h_lo <= rule.h_min, "headroom_h_lo_must_not_exceed_h_min")
+        _require(rule.n_min is not None, "headroom_n_min_is_human_input")
+        _require(
+            type(rule.n_min) is int and rule.n_min >= 1,
+            "headroom_n_min_must_be_a_positive_int",
+        )
+        _require(
+            rule.cells is None
+            or (
+                isinstance(rule.cells, HeadroomAdmission)
+                and rule.cells.sha256 == rule.cells_sha256
+            ),
+            "headroom_admission_is_not_the_registered_one",
+        )
+    else:
+        _require(
+            all(
+                getattr(rule, n) is None
+                for n in ("skill_form", "h_min", "h_lo", "n_min")
+            ),
+            "headroom_values_need_headroom_scoring",
+        )
+        _require(rule.cell_scale is not None, "cell_scale_not_registered")
+        _require(
+            rule.cell_scale in CELL_SCALES,
+            "cell_scale_must_be_agen_scales_or_x_a_multiplier",
+        )
+        _require(
+            rule.cells is None
+            or (type(rule.cells) is CellMap and rule.cells.sha256 == rule.cells_sha256),
+            "scoring_cells_are_not_the_registered_ones",
+        )
     _require(
         rule.in_range_cases_sha256 is None
         or pool_grader._is_sha256(rule.in_range_cases_sha256),
@@ -284,6 +353,93 @@ def in_range_cases(document):
     )
 
 
+def headroom_admission(document, rule):
+    """The `HeadroomAdmission` of ``{"schema": HEADROOM_SCHEMA, "families": {family: [class, ...]}, "cells": [{"family",
+    "class", "output", "anchor_u", "anchor_lo_u", "n", "tests": {H, C, O, R, V: "PASS" | "FAIL"}}, ...]}`` under the
+    rule's registered thresholds, or `PhysicsRefused`.
+
+    A cell is ADMITTED when all five tests read PASS; then the numbers the grader can check are re-checked here: A_c ≥
+    H_min, its 90 % lower bound ≥ H_lo, n ≥ n_min, A_c > 1. A PASS that these numbers contradict refuses
+    (``headroom_verdict_contradicts_the_thresholds``): a structural fault, never a candidate's. FAIL cells are
+    report-only. (C), (O) and (V) are the Validator's verdicts and are taken as written.
+    """
+    _require(
+        type(document) is dict
+        and set(document) == {"schema", "families", "cells"}
+        and document["schema"] == HEADROOM_SCHEMA,
+        "headroom_admission_malformed",
+    )
+    families = document["families"]
+    _require(
+        type(families) is dict
+        and families
+        and all(type(f) is str and f for f in families)
+        and all(
+            type(c) is list and c and all(type(x) is str and x for x in c)
+            for c in families.values()
+        ),
+        "headroom_admission_families_must_name_classes",
+    )
+    every = [c for classes in families.values() for c in classes]
+    _require(len(set(every)) == len(every), "headroom_admission_class_in_two_families")
+    cells = document["cells"]
+    _require(type(cells) is list and cells, "headroom_admission_has_no_cell")
+    fields = {"family", "class", "output", "anchor_u", "anchor_lo_u", "n", "tests"}
+    admitted, anchors, refused, seen = [], [], [], set()
+    for cell in cells:
+        _require(
+            type(cell) is dict
+            and set(cell) == fields
+            and cell["family"] in families
+            and cell["class"] in families[cell["family"]]
+            and type(cell["output"]) is str
+            and cell["output"]
+            and _is_number(cell["anchor_u"])
+            and _is_number(cell["anchor_lo_u"])
+            and cell["anchor_lo_u"] <= cell["anchor_u"]
+            and type(cell["n"]) is int
+            and cell["n"] >= 1
+            and type(cell["tests"]) is dict
+            and set(cell["tests"]) == set(ADMISSION_TESTS)
+            and all(v in VERDICTS for v in cell["tests"].values()),
+            "headroom_admission_cell_malformed",
+        )
+        key = (cell["family"], cell["class"], cell["output"])
+        _require(key not in seen, "headroom_admission_duplicate_cell")
+        seen.add(key)
+        if all(cell["tests"][t] == "PASS" for t in ADMISSION_TESTS):
+            _require(
+                cell["anchor_u"] > 1
+                and cell["anchor_u"] >= rule.h_min
+                and cell["anchor_lo_u"] >= rule.h_lo
+                and cell["n"] >= rule.n_min,
+                "headroom_verdict_contradicts_the_thresholds",
+            )
+            admitted.append(key)
+            anchors.append((key, float(cell["anchor_u"])))
+        else:
+            refused.append(key)
+    _require(admitted, "headroom_admission_admits_no_cell")
+    return HeadroomAdmission(
+        families=tuple(sorted((f, tuple(c)) for f, c in families.items())),
+        scored=tuple(sorted(admitted)),
+        sha256=hashlib.sha256(cell_map_bytes(document)).hexdigest(),
+        anchors=tuple(sorted(anchors)),
+        not_admitted=tuple(sorted(refused)),
+    )
+
+
+def skill(rule, anchor, error):
+    """S_c of a class error ``error`` (the geometric mean of the floored |err| / U) against its anchor A_c, in [0, 1]:
+    log: ln(A / E) / ln(A); linear: (A − E) / (A − 1). 0 = the best classical method, 1 = reference accuracy (E = 1 U).
+    """
+    if rule.skill_form == "log":
+        value = math.log(anchor / error) / math.log(anchor)
+    else:
+        value = (anchor - error) / (anchor - 1.0)
+    return min(1.0, max(0.0, value))
+
+
 def class_ranges(specs, plan):
     """``{class: IN_RANGE | OUT_OF_RANGE}`` over the plan's classes present in `specs`; a class mixing in-range and
     EXTENDED targets is refused (the record and the gate never compare a mix)."""
@@ -330,7 +486,8 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
         "physics_rule_needs_a_registered_coverage_plan",
     )
     _require(document is not None, "scoring_cells_missing_from_the_sealed_pack")
-    cells = cell_map(document)
+    headroom = rule.scoring == "headroom"
+    cells = headroom_admission(document, rule) if headroom else cell_map(document)
     _require(cells.sha256 == rule.cells_sha256, "scoring_cells_sha256_mismatch")
     all_specs = [spec for group in sets for spec in group]
     ranges = class_ranges(all_specs, plan)
@@ -353,6 +510,14 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
                 any(spec.agen for spec in members),
                 "scoring_cell_without_cases_in_a_set",
             )
+            if headroom:
+                # the log skill divides by U: every admitted case needs one
+                _require(
+                    all(
+                        spec.u_at(i, output) > 0 for spec in members for i in spec.agen
+                    ),
+                    "headroom_output_with_zero_u",
+                )
         for name, kind in ranges.items():
             if kind != IN_RANGE:
                 continue
@@ -395,6 +560,17 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
         IN_RANGE in ranges.values() or extra is not None,
         "accuracy_gate_without_in_range_cases",
     )
+    if headroom:
+        # the admission's n is the class's reserved case count over the whole exam (a mismatch is a different exam)
+        counts = collections.Counter()
+        for spec in all_specs:
+            counts[plan.class_of(spec.target_id)] += len(spec.agen)
+        for cell in document["cells"]:
+            if (cell["family"], cell["class"], cell["output"]) in cells.scored:
+                _require(
+                    counts[cell["class"]] == cell["n"],
+                    "headroom_admission_n_is_not_the_exams_case_count",
+                )
     return replace(rule, cells=cells, in_range=extra)
 
 
@@ -465,6 +641,26 @@ def _case_ratios(extra, case_predict, ratios, invalid, outputs):
             )
 
 
+def _headroom_row(rule, name, output, values):
+    """A headroom version's record columns for one (class, output): admitted or not, and for an admitted cell its class
+    error E_c (geometric mean of the floored |err| / U over every case of the exam) and skill S_c. Custody only.
+    """
+    if rule.scoring != "headroom":
+        return {}
+    family = rule.cells.family_of(name)
+    key = (family, name, output)
+    if key not in rule.cells.scored:
+        return {"admitted": False, "class_error_u": None, "skill": None}
+    if not values:
+        return {"admitted": True, "class_error_u": None, "skill": None}
+    error = math.exp(statistics.fmean(math.log(max(v, 1.0)) for v in values))
+    return {
+        "admitted": True,
+        "class_error_u": error,
+        "skill": skill(rule, rule.cells.anchor(key), error),
+    }
+
+
 def accuracy_record(specs, predict, plan, rule, case_predict=None):
     """The custody accuracy record of one graded model (see the module docstring) and the gate verdict.
 
@@ -526,6 +722,7 @@ def accuracy_record(specs, predict, plan, rule, case_predict=None):
                     "max_abs_exact": max(exact) if exact else None,
                     "n_invalid": invalid.get(name, 0),
                     "verdict": verdict,
+                    **_headroom_row(rule, name, output, ratios.get((name, output), [])),
                 }
             )
     return {
@@ -551,8 +748,10 @@ def target_cells(spec, predict, scales, plan, rule):
     """
     check_rule(rule)
     _require(rule.cells is not None, "scoring_cells_not_attached")
+    headroom = rule.scoring == "headroom"
     _require(
-        rule.cell_scale != "agen_scales_x_a_multiplier"
+        headroom
+        or rule.cell_scale != "agen_scales_x_a_multiplier"
         or (_is_number(rule.a_multiplier) and rule.a_multiplier > 0),
         "cell_scale_needs_the_registered_a_multiplier",
     )
@@ -562,7 +761,7 @@ def target_cells(spec, predict, scales, plan, rule):
         return {}
     for _family, output in cells:
         _require(
-            _is_number(scales.get(output)) and scales[output] > 0,
+            headroom or (_is_number(scales.get(output)) and scales[output] > 0),
             "agen_scales_must_cover_the_scored_outputs",
         )
     batch = predict(spec.conditions, [list(spec.designs[i]) for i in spec.agen])
@@ -579,16 +778,22 @@ def target_cells(spec, predict, scales, plan, rule):
         for family, output in cells:
             error = abs(prediction[output] - spec.truths[index][output])
             entry = sums[(family, name, output)]
-            entry[0] += _atom(rule, error, scales[output])
+            if headroom:
+                # ln of the error in U, floored at 1 U (the reference resolves nothing finer)
+                entry[0] += math.log(max(error / spec.u_at(index, output), 1.0))
+            else:
+                entry[0] += _atom(rule, error, scales[output])
             entry[1] += 1
     return {key: (total, n) for key, (total, n) in sums.items()}
 
 
-def compose(contributions):
-    """A set's family value from its targets' `target_cells`: each cell the pooled mean of its case atoms, each family
-    the mean of its cells with a case, the value the equal-weight mean over the families with a cell. None when no cell
-    has a case (only a resample can draw that; the grade's structure check refuses it for a set).
+def compose(contributions, rule=None):
+    """A set's family value from its targets' `target_cells`: each cell the pooled mean of its case atoms (headroom: the
+    skill S_c of the geometric mean exp(mean ln e) against the cell's anchor), each family the mean of its cells with a
+    case, the value the equal-weight mean over the families with a cell. None when no cell has a case (only a resample
+    can draw that; the grade's structure check refuses it for a set).
     """
+    headroom = rule is not None and rule.scoring == "headroom"
     pooled = {}
     for contribution in contributions:
         for key, (total, n) in contribution.items():
@@ -596,9 +801,14 @@ def compose(contributions):
             entry[0] += total
             entry[1] += n
     families = {}
-    for (family, _name, _output), (total, n) in sorted(pooled.items()):
+    for key, (total, n) in sorted(pooled.items()):
         if n:
-            families.setdefault(family, []).append(total / n)
+            value = (
+                skill(rule, rule.cells.anchor(key), math.exp(total / n))
+                if headroom
+                else total / n
+            )
+            families.setdefault(key[0], []).append(value)
     if not families:
         return None
     return statistics.fmean(
@@ -614,7 +824,7 @@ def family_value(specs, predict, scales, plan, rule):
     contributions = [target_cells(spec, predict, scales, plan, rule) for spec in specs]
     present = {key for c in contributions for key, (_t, n) in c.items() if n}
     _require(present == set(rule.cells.scored), "scoring_cell_without_cases_in_a_set")
-    return compose(contributions)
+    return compose(contributions, rule)
 
 
 __all__ = [
@@ -623,12 +833,16 @@ __all__ = [
     "CELL_SCALES",
     "ENTERS",
     "GATE_CASES",
+    "HEADROOM_SCHEMA",
     "IN_RANGE_CASES_SCHEMA",
     "RECORD_SCHEMA",
+    "SCORINGS",
     "SCORING_CELLS_SCHEMA",
+    "SKILL_FORMS",
     "STATISTICS",
     "TOTAL_RULES",
     "CellMap",
+    "HeadroomAdmission",
     "InRangeCases",
     "PhysicsRefused",
     "PhysicsRule",
@@ -640,6 +854,8 @@ __all__ = [
     "class_ranges",
     "compose",
     "family_value",
+    "headroom_admission",
     "in_range_cases",
+    "skill",
     "target_cells",
 ]

@@ -582,6 +582,7 @@ def test_no_module_outside_the_grade_reads_the_accuracy_record():
         "carbon/scoring/pool_physics_score.py",
         "carbon/scoring/pool_proof_suite.py",
         "carbon/scoring/pool_version.py",  # reads the registered rule (host-only constants)
+        "scripts/dev/headroom_admission.py",  # the TL's custody writer of the admission file
     ]
 
 

@@ -389,6 +389,8 @@ def measure_pool(
             "gated": False,
             "physics": True,
             "a_only": a_only,
+            # in memory only (never serialized): the rule a resample recomposes headroom skill with
+            "physics_rule": policies.physics,
             "c": legs["C"],
             "a_sets": list(a_values),
             "sets": [
@@ -505,7 +507,9 @@ def total_of_targets(basis, sets):
         if basis.get("physics") is True:
             # A IS the family value: recomposed from the drawn targets' cell sums. A draw holding no case of any scored
             # cell (possible only in a resample) keeps the set's graded A: the bootstrap conditions on it.
-            a = pool_physics_score.compose([t["cells"] for t in targets])
+            a = pool_physics_score.compose(
+                [t["cells"] for t in targets], basis.get("physics_rule")
+            )
             a_values.append(basis["a_sets"][position] if a is None else a)
         elif basis.get("a_gen_aggregate") is None:
             gens = [t["agen"] for t in targets if t["agen"] is not None]

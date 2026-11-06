@@ -190,8 +190,9 @@ def _variant_rule(value):
 def _physics(value):
     """A new version's registered physics rule (`pool_physics_score.PhysicsRule`), or None when the key is absent (every
     registered version). Present, it has no default: ``{"cells_sha256", "gate_statistic", "gate_threshold", "gate_cases",
-    "enters", "ad_split", "total_rule", "cell_scale"}``,
-    and a null or HUMAN_INPUT anywhere in it refuses (the gate's statistic and threshold are the owner's).
+    "enters", "ad_split", "total_rule"}`` plus, for the 5 Nov cell scoring, ``"cell_scale"``, or, with ``"scoring":
+    "headroom"`` (owner 6 Nov), ``"skill_form", "h_min", "h_lo", "n_min"`` and no cell scale (``cells_sha256`` then names
+    the sealed headroom admission document). A null or HUMAN_INPUT anywhere in it refuses (the values are the owner's).
     """
     from carbon.scoring import pool_physics_score
 
@@ -206,12 +207,19 @@ def _physics(value):
         "enters",
         "ad_split",
         "total_rule",
-        "cell_scale",
     }
-    # optional: a registered in-range case set (absent = none)
-    if type(value) is not dict or not (
-        required <= set(value) <= required | {"in_range_cases_sha256"}
-    ):
+    if type(value) is not dict:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    headroom = value.get("scoring") == "headroom"
+    if headroom:
+        required = required | {"scoring", "skill_form", "h_min", "h_lo", "n_min"}
+    else:
+        required = required | {"cell_scale"}
+    # optional: a registered in-range case set (absent = none); headroom registers no cell scale
+    allowed = (
+        required | {"in_range_cases_sha256"} | (set() if headroom else {"scoring"})
+    )
+    if not required <= set(value) <= allowed:
         raise PoolConstantsNotRegistered("pool_constants_malformed")
     for item in value.values():
         if item is None:
@@ -220,7 +228,9 @@ def _physics(value):
         if type(item) is dict:
             for inner in item.values():
                 _picked(inner)
-    rule = pool_physics_score.PhysicsRule(**value)
+    rule = pool_physics_score.PhysicsRule(
+        **value, **({"cell_scale": None} if headroom else {})
+    )
     try:
         pool_physics_score.check_rule(rule)
     except pool_physics_score.PhysicsRefused:
