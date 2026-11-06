@@ -145,18 +145,16 @@ async def execute(args):
     issuer = publication._issuer(args, config, args.journal)
     # H8: the live runtime, after the issuer's own offline refusals and before any wallet. A new spec with the
     # accepted used-surface digest is published under at once; anything else refuses here, before signing.
-    if runtime_accept.has_baseline(args.journal):
-        try:
+    try:
+        spec = None
+        if runtime_accept.has_baseline(args.journal):
             spec = await runtime_accept.resolve(
-                config.context.endpoint,
-                config.context.genesis_hash,
-                config.expected_runtime_spec,
-                args.journal,
+                config.context.endpoint, config.context.genesis_hash, args.journal
             )
-        except runtime_accept.RuntimeRefused as refused:
-            raise PublicationFailure(refused.code) from None
-        if spec != config.expected_runtime_spec:
-            issuer = publication._issuer(args, config, args.journal, runtime_spec=spec)
+    except runtime_accept.RuntimeRefused as refused:
+        raise SetupRefused(refused.code) from None
+    if spec is not None and spec != config.expected_runtime_spec:
+        issuer = publication._issuer(args, config, args.journal, runtime_spec=spec)
     wallet = open_operator_wallet(
         config.wallet_name,
         config.wallet_hotkey_name,

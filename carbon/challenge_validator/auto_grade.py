@@ -221,7 +221,9 @@ class AutoGrader:
                 if code in _PENDING or code in _NOT_YET:
                     continue
                 if code in _CHAIN_CODES and self.chain_degraded():
-                    continue  # (H8) the chain went stale under this round: wait, never FAILED
+                    # (H8) the chain went stale under this round: wait, never FAILED, and stop the round (every
+                    # other pending task would meet the same stale chain)
+                    return None
                 self._keep(submission_id, unavailable)
                 self._fail(submission_id, _code(code))
                 return submission_id, "FAILED"
@@ -231,8 +233,10 @@ class AutoGrader:
                     and self.chain_degraded()
                 ):
                     # the provider could not read the owner's registration because the chain went stale under this
-                    # round: not yet, never FAILED (H8; the cause the A2 one-shot requeue had to repair by hand)
-                    continue
+                    # round: not yet, never FAILED (H8; the cause the A2 one-shot requeue had to repair by hand). The
+                    # round stops here. Narrow race left (a refresh landing between the provider's read and this check):
+                    # it gives today's behaviour, a FAILED_INFRA give-back = a free rerun.
+                    return None
                 self._keep(submission_id, failure)
                 if _candidate_wall_stop(failure) and self._wall_counted(
                     submission_id, sampler, started_ns

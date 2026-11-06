@@ -47,8 +47,12 @@ class ValidatorPermitReader:
             # A private event loop in a worker thread, so a caller already
             # inside an event loop can still call this.
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                # bounded (H8): a half-open socket must not hold a starting receiver past its stop request
                 found = pool.submit(
-                    asyncio.run, self._fetch(self.context, hotkey)
+                    asyncio.run,
+                    asyncio.wait_for(
+                        self._fetch(self.context, hotkey), PERMIT_READ_TIMEOUT_S
+                    ),
                 ).result()
         except ChainFailure as failure:
             raise PermitUnavailable(str(failure)) from None
@@ -62,6 +66,10 @@ class ValidatorPermitReader:
         if not registered:
             return None
         return {"permit": permit, "block": block}
+
+
+#: The longest one permit read may take (an operational bound, like the snapshot reader's 20 s read timeout).
+PERMIT_READ_TIMEOUT_S = 30.0
 
 
 async def _fetch(context, hotkey):

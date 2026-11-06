@@ -667,18 +667,16 @@ async def _run(args):
     issuer = _issuer(args, config, args.journal)
     # H8: the live runtime, after the issuer's own offline refusals and before any wallet. A new spec with the
     # accepted used-surface digest is published under at once; anything else refuses here, before signing.
-    if runtime_accept.has_baseline(args.journal):
-        try:
+    try:
+        spec = None
+        if runtime_accept.has_baseline(args.journal):
             spec = await runtime_accept.resolve(
-                config.endpoint,
-                config.genesis_hash,
-                config.expected_runtime_spec,
-                args.journal,
+                config.endpoint, config.genesis_hash, args.journal
             )
-        except runtime_accept.RuntimeRefused as refused:
-            raise PublicationFailure(refused.code) from None
-        if spec != config.expected_runtime_spec:
-            issuer = _issuer(args, config, args.journal, runtime_spec=spec)
+    except runtime_accept.RuntimeRefused as refused:
+        _refuse(refused.code)
+    if spec is not None and spec != config.expected_runtime_spec:
+        issuer = _issuer(args, config, args.journal, runtime_spec=spec)
     backend = BittensorPublicationBackend(
         config.context,
         config.publisher_hotkey,

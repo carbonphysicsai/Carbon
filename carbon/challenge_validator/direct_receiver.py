@@ -2345,6 +2345,8 @@ def write_chain_state(state_dir, state, *, code=None, since_ns=None, attempts=0)
     import json
 
     try:
+        if Path(state_dir).is_symlink() or not Path(state_dir).is_dir():
+            return
         path = Path(state_dir) / CHAIN_STATE_NAME
         staged = path.with_name(f".{path.name}.{os.getpid()}")
         staged.write_text(
@@ -2441,7 +2443,11 @@ def await_chain_identity(
                 if isinstance(failed, ChainFailure)
                 else str(failed) or type(failed).__name__
             )
-            waitable = code in CHAIN_WAIT_CODES or code == "receiver_permit_unavailable"
+            inner = str(failed.__cause__) if failed.__cause__ is not None else None
+            waitable = code in CHAIN_WAIT_CODES or (
+                code == "receiver_permit_unavailable"
+                and (inner in CHAIN_WAIT_CODES or inner == "permit_read_failed")
+            )
             if not wait or not waitable:
                 raise
             attempts += 1
@@ -2458,7 +2464,8 @@ def await_chain_identity(
             continue
         if snapshot.context != network.context or snapshot.resolve(hotkey) is None:
             raise ValueError("registered receiver snapshot required")
-        write_chain_state(state_dir, "OK", attempts=attempts)
+        if wait:  # a one-shot operator command never overwrites a serving door's record
+            write_chain_state(state_dir, "OK", attempts=attempts)
         if attempts:
             log("receiver_chain_recovered", attempts=attempts)
         return snapshot
@@ -2475,8 +2482,9 @@ def _require_receiver_identity(hotkey, network, permits=None):
     reader = ValidatorPermitReader(network.context) if permits is None else permits
     try:
         permit = reader.read(hotkey)
-    except PermitUnavailable:
-        raise ReceiverUnavailable("receiver_permit_unavailable") from None
+    except PermitUnavailable as unavailable:
+        # the chain's own code rides along (H8: only an unavailable chain is waited out at start)
+        raise ReceiverUnavailable("receiver_permit_unavailable") from unavailable
     if permit is None or permit["permit"] is not True:
         raise ValueError("receiver hotkey holds no validator permit on the subnet")
 
@@ -2870,7 +2878,8 @@ def main(argv=None):
         if type(code) is not str:
             code = "direct_receiver_unavailable"
         print(json.dumps({"unavailable": code}), flush=True)
-        return 1
+        # a stop request while waiting for the chain (H8) is a clean stop, not a failed unit
+        return 0 if code == "receiver_stopped_waiting_for_chain" else 1
     if args.rebind_origin is not None:
         print(
             json.dumps(

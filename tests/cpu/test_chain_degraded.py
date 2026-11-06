@@ -133,7 +133,9 @@ class _Permits:
 
         answer = self.answers.pop(0) if self.answers else {"permit": True}
         if answer == "unavailable":
-            raise PermitUnavailable("x")
+            raise PermitUnavailable("permit_read_failed")
+        if answer == "mismatch":
+            raise PermitUnavailable("IDENTITY_MISMATCH")  # a wrong-genesis endpoint
         return answer
 
 
@@ -243,3 +245,23 @@ def test_status_shows_the_chain_state(tmp_path):
     write_chain_state(tmp_path, "DEGRADED", code="PROVIDER_RATE_LIMITED", attempts=3)
     shown = receiver_setup._chain_state(tmp_path)
     assert shown["state"] == "DEGRADED" and shown["failed_reads"] == 3
+
+
+def test_a_wrong_chain_permit_answer_refuses_at_once_never_waited(tmp_path):
+    from carbon.challenge_validator.direct_receiver import ReceiverUnavailable
+
+    with pytest.raises(ReceiverUnavailable, match="receiver_permit_unavailable"):
+        _await(tmp_path, _Reader([]), _Permits(["mismatch"]))
+    assert not (
+        tmp_path / "chain-state.json"
+    ).exists()  # nothing waited, nothing recorded
+
+
+def test_a_one_shot_never_writes_the_doors_chain_state(tmp_path):
+    from carbon.challenge_validator.direct_receiver import write_chain_state
+
+    write_chain_state(tmp_path, "DEGRADED", code="PROVIDER_RATE_LIMITED", attempts=4)
+    _await(tmp_path, _Reader([]), wait=False)
+    assert (
+        _state(tmp_path)["state"] == "DEGRADED"
+    )  # the serving door's record is left as it was
