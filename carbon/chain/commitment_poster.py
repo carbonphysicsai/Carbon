@@ -780,6 +780,11 @@ def main(argv=None):
         help="post again a digest a validator refused as commitment_stale",
     )
     args = parser.parse_args(argv)
+    from .models import CARBON_NETWORK
+
+    if CARBON_NETWORK != "testnet":
+        # D5: mainnet commitments are not offered; a process bound elsewhere (F4) never pairs testnet's genesis with it
+        parser.error("commitments are offered on testnet only (D5)")
     context = ChainContext(
         "testnet", DEFAULT_ENDPOINT, "opentensor", TESTNET_GENESIS, CARBON_NETUID
     )

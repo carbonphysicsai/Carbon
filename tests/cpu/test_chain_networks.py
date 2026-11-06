@@ -16,9 +16,119 @@ from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
 
 
 def test_the_default_row_is_the_testnet_constants_byte_for_byte():
-    assert networks.DEFAULT is networks.NETWORKS[CARBON_NETWORK]
+    # this test process sets no CARBON_CHAIN_NETWORK: the binding is testnet, as before F4
+    assert networks.BOUND is networks.DEFAULT is networks.NETWORKS["testnet"]
     assert (networks.DEFAULT.network, networks.DEFAULT.netuid) == ("testnet", 567)
     assert (CARBON_NETWORK, CARBON_NETUID) == ("testnet", 567)
+
+
+_PROBE = """
+import json
+from carbon.chain import networks
+from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
+from carbon.development_session.chain_onboarding import carbon_testnet_context
+from carbon.development_session import miner_network
+context = carbon_testnet_context()
+print(json.dumps({
+    "constants": [CARBON_NETWORK, CARBON_NETUID],
+    "bound": networks.BOUND.network,
+    "context": [context.network, context.endpoint, context.provider, context.genesis_hash, context.netuid],
+    "miner_context": miner_network._context().netuid,
+}))
+"""
+
+
+def _bound(value):
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    env = {k: v for k, v in os.environ.items() if k != "CARBON_CHAIN_NETWORK"}
+    if value is not None:
+        env["CARBON_CHAIN_NETWORK"] = value
+    root = Path(__file__).resolve().parents[2]
+    env["PYTHONPATH"] = str(root)
+    return subprocess.run(
+        [sys.executable, "-c", _PROBE],
+        capture_output=True,
+        check=False,
+        text=True,
+        env=env,
+        cwd=root,
+        timeout=120,
+    )
+
+
+@pytest.mark.parametrize("value", [None, "", "testnet"])
+def test_an_unset_or_testnet_binding_is_testnet_567(value):
+    done = _bound(value)
+    assert done.returncode == 0, done.stderr[-400:]
+    out = json.loads(done.stdout)
+    testnet = networks.NETWORKS["testnet"]
+    assert out["constants"] == ["testnet", 567]
+    assert out["context"] == [
+        "testnet",
+        testnet.endpoints[0],
+        testnet.chain_id,
+        testnet.genesis_hash,
+        567,
+    ]
+    assert out["miner_context"] == 567
+
+
+def test_a_finney_binding_moves_every_guard_and_the_context_together():
+    done = _bound("finney")
+    assert done.returncode == 0, done.stderr[-400:]
+    out = json.loads(done.stdout)
+    finney = networks.NETWORKS["finney"]
+    assert out["constants"] == ["finney", 116]
+    assert out["bound"] == "finney"
+    assert out["context"] == [
+        "finney",
+        finney.endpoints[0],
+        finney.chain_id,
+        finney.genesis_hash,
+        116,
+    ]
+    assert out["miner_context"] == 116
+
+
+@pytest.mark.parametrize("value", ["mainnet", "Finney", "localnet", "567"])
+def test_an_unregistered_binding_refuses_at_import(value):
+    done = _bound(value)
+    assert done.returncode != 0
+    assert "CARBON_CHAIN_NETWORK names no registered network" in done.stderr
+
+
+def test_the_commitment_cli_stays_testnet_only_under_a_finney_binding():
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    env = {**os.environ, "CARBON_CHAIN_NETWORK": "finney", "PYTHONPATH": str(root)}
+    done = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "carbon.chain.commitment_poster",
+            "--hotkey",
+            "x",
+            "--digest",
+            "y",
+            "--plan",
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+        env=env,
+        cwd=root,
+        timeout=120,
+    )
+    assert done.returncode == 2
+    assert "testnet only (D5)" in done.stderr
 
 
 def test_the_two_rows_are_the_public_reads():

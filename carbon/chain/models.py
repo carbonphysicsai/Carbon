@@ -2,27 +2,30 @@
 
 import hashlib
 import json
+import os
 import re
 from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import Protocol
 from urllib.parse import urlsplit
 
-#: The network and subnet Carbon runs on.
+#: The network and subnet this PROCESS binds, chosen once at import.
 #:
-#: Testnet only, and deliberately a constant rather than configuration. There is
-#: no mainnet netuid yet, so a network-switching abstraction would be a shape
-#: built around a value nobody has chosen - and the wrong shape is harder to
-#: remove than the missing one is to add.
+#: The mainnet subnet now exists (finney netuid 116, Chain Auditor 5 Nov, F4),
+#: so the one consolidated constant (it replaced six copies asserted across
+#: `development_session` and `miner_mcp`) becomes the process's binding: every
+#: guard that compares against it moves together, never one copy alone.
 #:
-#: What this does replace is six copies of the same literal asserted
-#: independently across `development_session` and `miner_mcp`. A mainnet subnet
-#: will exist eventually, and scattered copies of the number are where that
-#: goes wrong: one of them gets updated and the others keep guarding the old
-#: network. Consolidating now costs nothing and removes that failure mode
-#: without pretending to solve the switch.
-CARBON_NETWORK = "testnet"
-CARBON_NETUID = 567
+#: ``CARBON_CHAIN_NETWORK`` names the row: unset (or empty) is testnet 567,
+#: byte for byte as before; ``finney`` is netuid 116; anything else refuses at
+#: import. `carbon.chain.networks` holds each row's chain id, genesis and
+#: endpoints, and the genesis read at connect is the identity check.
+NETWORK_ENVIRONMENT = "CARBON_CHAIN_NETWORK"
+_NETUIDS = {"testnet": 567, "finney": 116}
+CARBON_NETWORK = os.environ.get(NETWORK_ENVIRONMENT) or "testnet"
+if CARBON_NETWORK not in _NETUIDS:
+    raise RuntimeError("CARBON_CHAIN_NETWORK names no registered network")
+CARBON_NETUID = _NETUIDS[CARBON_NETWORK]
 
 
 class FailureCode(str, Enum):

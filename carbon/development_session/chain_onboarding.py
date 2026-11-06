@@ -49,14 +49,16 @@ def carbon_testnet_context():
     of an endpoint nobody had chosen - one had been chosen, in a module these
     doors were not looking at.
     """
+    from carbon.chain import networks
     from carbon.chain.models import ChainContext
-    from carbon.development_testnet.operator import DEFAULT_ENDPOINT, TESTNET_GENESIS
 
+    # the process's bound row (F4: ``CARBON_CHAIN_NETWORK``, testnet when unset): its public endpoint
+    bound = networks.BOUND
     return ChainContext(
         network=CARBON_NETWORK,
-        endpoint=DEFAULT_ENDPOINT,
-        provider="bittensor-official-test",
-        genesis_hash=TESTNET_GENESIS,
+        endpoint=bound.endpoints[0],
+        provider=bound.chain_id,
+        genesis_hash=bound.genesis_hash,
         netuid=CARBON_NETUID,
     )
 

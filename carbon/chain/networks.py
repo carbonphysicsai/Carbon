@@ -6,8 +6,8 @@ genesis hash, netuid and one of its registered endpoints (or the host's own loop
 (finney's genesis with the testnet netuid, or the reverse), an unknown network or an unregistered endpoint is refused by
 name. The genesis read at connect is the real identity check, so a URL alone never selects a network.
 
-`models.CARBON_NETWORK` / `CARBON_NETUID` stay the testnet row's, so nothing moves without a configuration that names
-another row. Binding a row grants no authority: a finney publish still needs OWNER-WEIGHTS-AUTHORITY-01 (enforced by
+`models.CARBON_NETWORK` / `CARBON_NETUID` are the process's row (``CARBON_CHAIN_NETWORK``; testnet when unset), so
+nothing moves without a configuration that names another row. Binding a row grants no authority: a finney publish still needs OWNER-WEIGHTS-AUTHORITY-01 (enforced by
 `rewards.winner_decay`), the owner's signature and the Validator's D1-D4 receipts (chain prep, 5 Nov).
 """
 
@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
-from .models import CARBON_NETUID, CARBON_NETWORK
+from .models import _NETUIDS, CARBON_NETWORK
 
 #: Public reads (Chain Auditor, 5 Nov; read again by TE 5 Nov): test.finney's genesis is the operator's long-standing
 #: pin; finney's genesis is the main chain's ("Bittensor"). Both chains ran runtime spec 488 on 5 Nov.
@@ -48,10 +48,10 @@ class NetworkRow:
 
 NETWORKS: dict[str, NetworkRow] = {
     "testnet": NetworkRow(
-        network=CARBON_NETWORK,
+        network="testnet",
         chain_id="bittensor-official-test",
         genesis_hash=TESTNET_GENESIS,
-        netuid=CARBON_NETUID,
+        netuid=_NETUIDS["testnet"],
         endpoints=("wss://test.finney.opentensor.ai:443",),
         stage="PUBLIC_TESTNET_DEVELOPMENT",
     ),
@@ -59,14 +59,16 @@ NETWORKS: dict[str, NetworkRow] = {
         network="finney",
         chain_id="bittensor-official-finney",
         genesis_hash=FINNEY_GENESIS,
-        netuid=116,
+        netuid=_NETUIDS["finney"],
         endpoints=("wss://entrypoint-finney.opentensor.ai:443",),
         stage="PUBLIC_MAINNET",
     ),
 }
 
-#: The row the rest of the code was written against (`models.CARBON_NETWORK`): a test holds it equal to the constants.
-DEFAULT = NETWORKS[CARBON_NETWORK]
+#: The row THIS process binds (`models.CARBON_NETWORK`, from ``CARBON_CHAIN_NETWORK``; testnet when unset).
+BOUND = NETWORKS[CARBON_NETWORK]
+#: The row the code was written against, and the binding when nothing is set.
+DEFAULT = NETWORKS["testnet"]
 
 
 def row(network: object) -> NetworkRow:
