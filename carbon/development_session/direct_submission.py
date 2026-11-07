@@ -441,6 +441,19 @@ GRADE_STATES_V4 = (
     "FAILED_INFRA",
     "NOT_GRADED",
 )
+#: v5: v4 plus CROWN_HELD_FOR_REVIEW (the caller's own submission is a filed contender while a menu-D version's crown
+#: change is held for review, `crown_hold`) and ``held_position`` {place, of} or None (`direct_intake`
+#: FEEDBACK_REPLY_SCHEMA_V5, TE-B 7 Nov); asked for only where advertised.
+FEEDBACK_REPLY_SCHEMA_V5 = "carbon.private-exam.ladder-feedback-reply.v5"
+FEEDBACK_V5_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V5,
+}
+HELD_STATE = "CROWN_HELD_FOR_REVIEW"
+GRADE_STATES_V5 = (*GRADE_STATES_V4, HELD_STATE)
+#: A bound on the held count a reply may name (a resource bound, not a policy value).
+MAX_HELD = 100000
 FAILURE_CHILDREN = ("build", "inference")
 FAILURE_OBSERVATIONS = (
     "WORKER_MEMORY_LIMIT_REACHED",
@@ -489,6 +502,20 @@ def _failure_v4(value):
     )
 
 
+def _held_position_v5(grade_state, held):
+    """A v5 reply's ``held_position``: {place, of} with 1 <= place <= of exactly when the submission is held, else
+    None. Anything else is refused, never trimmed."""
+    if grade_state != HELD_STATE:
+        return held is None
+    return (
+        type(held) is dict
+        and set(held) == {"place", "of"}
+        and type(held["place"]) is int
+        and type(held["of"]) is int
+        and 1 <= held["place"] <= held["of"] <= MAX_HELD
+    )
+
+
 def read_exam_feedback(
     url,
     signer,
@@ -519,7 +546,10 @@ def read_exam_feedback(
     facts = read(url)
     if facts.get("exam_feedback") != FEEDBACK_FACTS:
         raise DirectIntakeRefusal("exam_feedback_unavailable")
-    v4 = (
+    v5 = (
+        submission_id is not None and facts.get("exam_feedback_v5") == FEEDBACK_V5_FACTS
+    )
+    v4 = v5 or (
         submission_id is not None and facts.get("exam_feedback_v4") == FEEDBACK_V4_FACTS
     )
     v3 = not v4 and (
@@ -541,7 +571,10 @@ def read_exam_feedback(
         context=context,
         tool=FEEDBACK_TOOL,
         fields=(
-            {"reply": "v4" if v4 else "v3", "submission_id": submission_id}
+            {
+                "reply": "v5" if v5 else "v4" if v4 else "v3",
+                "submission_id": submission_id,
+            }
             if v4 or v3
             else ({"submission_id": submission_id} if v2 else {})
         ),
@@ -559,12 +592,16 @@ def read_exam_feedback(
         set(answer) != keys
         or answer["schema"]
         != (
-            FEEDBACK_REPLY_SCHEMA_V4
-            if v4
+            FEEDBACK_REPLY_SCHEMA_V5
+            if v5
             else (
-                FEEDBACK_REPLY_SCHEMA_V3
-                if v3
-                else (FEEDBACK_REPLY_SCHEMA_V2 if v2 else FEEDBACK_REPLY_SCHEMA)
+                FEEDBACK_REPLY_SCHEMA_V4
+                if v4
+                else (
+                    FEEDBACK_REPLY_SCHEMA_V3
+                    if v3
+                    else (FEEDBACK_REPLY_SCHEMA_V2 if v2 else FEEDBACK_REPLY_SCHEMA)
+                )
             )
         )
         or answer["challenge"]
@@ -574,15 +611,30 @@ def read_exam_feedback(
     if v2 and (
         type(answer["submission"]) is not dict
         or set(answer["submission"])
-        != ({"submission_id", "grade_state"} | ({"failure"} if v4 else set()))
+        != (
+            {"submission_id", "grade_state"}
+            | ({"failure"} if v4 else set())
+            | ({"held_position"} if v5 else set())
+        )
         or answer["submission"]["submission_id"] != submission_id
         or (
             answer["submission"]["grade_state"] is not None
             and answer["submission"]["grade_state"]
-            not in (GRADE_STATES_V4 if v4 else GRADE_STATES_V3 if v3 else GRADE_STATES)
+            not in (
+                GRADE_STATES_V5
+                if v5
+                else GRADE_STATES_V4 if v4 else GRADE_STATES_V3 if v3 else GRADE_STATES
+            )
         )
         or (v4 and answer["submission"]["grade_state"] is None)
         or (v4 and not _failure_v4(answer["submission"]["failure"]))
+        or (
+            v5
+            and not _held_position_v5(
+                answer["submission"]["grade_state"],
+                answer["submission"]["held_position"],
+            )
+        )
     ):
         raise DirectIntakeRefusal("exam_feedback_reply_invalid")
     try:

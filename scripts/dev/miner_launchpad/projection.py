@@ -448,6 +448,33 @@ def _part_feedback(document):
     return out
 
 
+#: The miner's own held crown change (signed feedback v5, `direct_submission.HELD_STATE`): what it means, in words.
+HELD_WORDS = (
+    "Your grade would take the crown. It is held for review: the king keeps the crown, and you keep your place "
+    "({place} of {of} held). When Carbon releases it, it is decided as normal."
+)
+
+
+def _crown_review(submission):
+    """``{"place", "of", "words"}`` when the receiver's v5 read says this submission's crown change is held for
+    review, else None. Read only from the miner's own signed reply, never computed."""
+    from carbon.development_session.direct_submission import (
+        HELD_STATE,
+        _held_position_v5,
+    )
+
+    if type(submission) is not dict or submission.get("grade_state") != HELD_STATE:
+        return None
+    held = submission.get("held_position")
+    if not _held_position_v5(HELD_STATE, held):
+        return None
+    return {
+        "place": held["place"],
+        "of": held["of"],
+        "words": HELD_WORDS.format(place=held["place"], of=held["of"]),
+    }
+
+
 def _grade(ladder, submission=None, epoch=None, also=()):
     """The miner's own Ladder for the exam, as the display rule shows it
     (Validator VALUE_SCORE_GAP): one graded total 0..1 per document, its
@@ -535,6 +562,12 @@ def _grade(ladder, submission=None, epoch=None, also=()):
         "best": best,
         "submission": submission,
         "score_direction": "higher_is_better",
+        # Signed feedback v5 only: this submission's crown change is held for review (`crown_hold`).
+        **(
+            {}
+            if (review := _crown_review(ladder.get("submission"))) is None
+            else {"crown_review": review}
+        ),
     }
 
 
