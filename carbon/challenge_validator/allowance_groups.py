@@ -36,7 +36,14 @@ from .exam_cap import ExamCapRefused
 UNMAPPED = ("per_coldkey", "refuse")
 UNRESOLVED = ("per_hotkey", "refuse")
 KEYS = ("unmapped_coldkey", "unresolved_hotkey", "max_map_age_blocks")
-COUNTS = ("funder", "coldkey", "own_hotkey", "map_unusable", "refused_unmapped", "refused_unresolved")
+COUNTS = (
+    "funder",
+    "coldkey",
+    "own_hotkey",
+    "map_unusable",
+    "refused_unmapped",
+    "refused_unresolved",
+)
 COUNTS_EVENT = "allowance_groups_hourly"
 COUNTS_PERIOD_S = 3600.0
 
@@ -67,7 +74,9 @@ def policy(block):
 class Grouping:
     """``hotkey -> group id`` for the exam cap, or `ExamCapRefused` under a ``refuse`` policy."""
 
-    def __init__(self, configured, window, funder_map, *, clock=time.monotonic, emit=None):
+    def __init__(
+        self, configured, window, funder_map, *, clock=time.monotonic, emit=None
+    ):
         self.policy = policy(configured)
         self.window = window
         #: () -> the current `funder_map.FunderMap` (the door's own copy, swapped whole on a reload).
@@ -99,12 +108,24 @@ class Grouping:
             self._count("own_hotkey")
             return "h:" + hotkey
         current = self.funder_map()
-        usable = current is not None and current.problem is None and current.block is not None
-        if usable and snapshot.finalized_block - current.block > self.policy["max_map_age_blocks"]:
+        usable = (
+            current is not None
+            and current.problem is None
+            and current.block is not None
+        )
+        if (
+            usable
+            and snapshot.finalized_block - current.block
+            > self.policy["max_map_age_blocks"]
+        ):
             usable = False
         if not usable:
-            if current is not None and (current.problem is not None or current.block is not None):
-                self._count("map_unusable")  # configured but unreadable, malformed or stale: alert, never refuse
+            if current is not None and (
+                current.problem is not None or current.block is not None
+            ):
+                self._count(
+                    "map_unusable"
+                )  # configured but unreadable, malformed or stale: alert, never refuse
             from .funder_map import FunderMap
 
             self._count("coldkey")

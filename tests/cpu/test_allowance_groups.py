@@ -1,5 +1,6 @@
 """OWNER-PROBING-COUNTERS-01 (a): the exam allowance shared per funder. Real `AttemptLedger`, `ExamCap`,
-`SnapshotWindow` and `funder_map`; every policy value here is a TEST value (the real ones are the owner's)."""
+`SnapshotWindow` and `funder_map`; every policy value here is a TEST value (the real ones are the owner's).
+"""
 
 from __future__ import annotations
 
@@ -17,7 +18,11 @@ from carbon.challenge_validator.ledger import AttemptLedger
 CHALLENGE, VERSION, EXAM = "electric-motor-magnetics", "1.8", "sha256:" + "1" * 64
 BLOCK = 10_000  # one epoch for every submission below unless stated
 GROUP_ID = "a" * 64
-POLICY = {"unmapped_coldkey": "per_coldkey", "unresolved_hotkey": "per_hotkey", "max_map_age_blocks": 7200}
+POLICY = {
+    "unmapped_coldkey": "per_coldkey",
+    "unresolved_hotkey": "per_hotkey",
+    "max_map_age_blocks": 7200,
+}
 
 
 def _cadence():
@@ -50,7 +55,11 @@ def _window(block=BLOCK):
 
 
 def _map(groups, block=BLOCK):
-    return funder_map.parse(json.dumps({"schema": funder_map.SCHEMA, "block": block, "groups": groups}).encode())
+    return funder_map.parse(
+        json.dumps(
+            {"schema": funder_map.SCHEMA, "block": block, "groups": groups}
+        ).encode()
+    )
 
 
 @pytest.fixture
@@ -66,7 +75,10 @@ def _install(policy=POLICY, current=None, window=None, emit=None, clock=None):
     if clock:
         kwargs["clock"] = clock
     grouping = allowance_groups.Grouping(
-        policy, window or _window(), lambda: current or funder_map.FunderMap.empty(), **kwargs
+        policy,
+        window or _window(),
+        lambda: current or funder_map.FunderMap.empty(),
+        **kwargs,
     )
     exam_cap.install_grouping(grouping)
     return grouping
@@ -119,7 +131,11 @@ def test_an_unset_or_invalid_policy_value_refuses(field, bad):
 
 
 def test_a_missing_or_extra_key_refuses_and_no_block_means_no_grouping():
-    for block in ({k: v for k, v in POLICY.items() if k != "max_map_age_blocks"}, {**POLICY, "x": 1}, []):
+    for block in (
+        {k: v for k, v in POLICY.items() if k != "max_map_age_blocks"},
+        {**POLICY, "x": 1},
+        [],
+    ):
         with pytest.raises(allowance_groups.AllowanceGroupsUnset):
             allowance_groups.policy(block)
     assert allowance_groups.from_config({}, _window(), lambda: None) is None
@@ -133,7 +149,9 @@ def test_without_a_grouping_every_hotkey_keeps_its_own_slot(cap):
     _grade(cap, "hk2")  # same coldkey, still its own slot: exactly as before
     with cap.ledger._db() as db:
         assert {r[0] for r in db.execute("SELECT group_id FROM exam_graded")} == {None}
-    assert exam_cap.plain_text("epoch_limit_reached").startswith("One graded exam per Challenge per round, and this")
+    assert exam_cap.plain_text("epoch_limit_reached").startswith(
+        "One graded exam per Challenge per round, and this"
+    )
 
 
 def test_hotkeys_of_one_coldkey_share_the_round_and_another_coldkey_does_not(cap):
@@ -158,7 +176,9 @@ def test_m_counts_groups_not_hotkeys(cap):
     _grade(cap, "hk3")
     assert cap.allowance(hotkey="hk1", block=BLOCK + 360)["active_miners"] == 2
     _install(current=_map({"cold": GROUP_ID, "cold3": GROUP_ID}))
-    assert cap.allowance(hotkey="hk1", block=BLOCK + 360)["active_miners"] == 3  # earlier rows keep their groups
+    assert (
+        cap.allowance(hotkey="hk1", block=BLOCK + 360)["active_miners"] == 3
+    )  # earlier rows keep their groups
 
 
 def test_a_stale_or_bad_map_is_per_coldkey_never_a_refusal(cap):
@@ -170,7 +190,9 @@ def test_a_stale_or_bad_map_is_per_coldkey_never_a_refusal(cap):
     )
     _grade(cap, "hk1")
     _grade(cap, "hk3")  # the stale map does not join them, and nobody is refused
-    _install(policy={**POLICY, "unmapped_coldkey": "refuse"}, current=funder_map.parse(b"{"))
+    _install(
+        policy={**POLICY, "unmapped_coldkey": "refuse"}, current=funder_map.parse(b"{")
+    )
     _grade(cap, "hk3", block=BLOCK + 360)
 
 
@@ -187,7 +209,10 @@ def test_unmapped_refuse_applies_only_under_a_usable_map(cap):
         submission_id="rtsk_" + "f" * 64,
         block=BLOCK,
     )
-    assert told["code"] == "allowance_group_unmapped" and "allowance map" in told["message"]
+    assert (
+        told["code"] == "allowance_group_unmapped"
+        and "allowance map" in told["message"]
+    )
     _install(policy=strict)  # no map at all: per coldkey, never everyone refused
     _grade(cap, "hk3")
 
@@ -197,7 +222,9 @@ def test_an_unresolved_hotkey_follows_its_policy(cap):
     _grade(cap, "stranger")  # not in the snapshot: its own hotkey, as before
     _install(policy={**POLICY, "unresolved_hotkey": "refuse"})
     _refused(cap, "stranger", "allowance_group_unresolved", block=BLOCK + 360)
-    _install(window=SnapshotWindow(clock=lambda: NOW / 1_000_000_000))  # no snapshot at all: per hotkey
+    _install(
+        window=SnapshotWindow(clock=lambda: NOW / 1_000_000_000)
+    )  # no snapshot at all: per hotkey
     _grade(cap, "hk1", block=BLOCK + 720)
     _grade(cap, "hk2", block=BLOCK + 720)
 
@@ -263,4 +290,7 @@ def test_the_hourly_line_carries_counts_only(cap):
         "refused_unmapped": 1,
         "refused_unresolved": 0,
     }
-    assert all(s not in repr(lines) for s in ("cold3", "hk1", "hk2", "hk3", "stranger", GROUP_ID))
+    assert all(
+        s not in repr(lines)
+        for s in ("cold3", "hk1", "hk2", "hk3", "stranger", GROUP_ID)
+    )

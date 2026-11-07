@@ -501,7 +501,8 @@ class ExamCap:
         self, db, hotkey, challenge_id, submission_id, epoch, cadence, group=None
     ):
         """The daily-allowance or epoch refusal code for a graded submission, or None (read-only). The rows counted
-        are its allowance group's, plus its own hotkey's rows filed before any grouping (not retroactive)."""
+        are its allowance group's, plus its own hotkey's rows filed before any grouping (not retroactive).
+        """
         group = "h:" + hotkey if group is None else group
         low, high = self._window(epoch)
         # A re-queued stuck task (`mark_requeued`) never counts against anyone's round or day (Validator 4 Nov 15:53).
