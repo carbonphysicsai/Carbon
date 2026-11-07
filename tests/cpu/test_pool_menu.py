@@ -382,3 +382,33 @@ def test_a_version_without_menu_grades_exactly_as_before():
     )
     assert plain == explicit and "menu" not in plain["pool"]
     assert "menu_d" not in before["se_basis"] and "menu" not in before
+
+
+def test_receiver_start_installs_the_menu_key_only_from_its_section(tmp_path):
+    import os
+
+    from carbon.challenge_validator import crown_average as ca
+    from carbon.challenge_validator import crown_average_host as host
+
+    try:
+        host.install({})
+        with pytest.raises(pool_exam.ExamRefused):
+            pool_menu.active_key()
+        for bad in (
+            {"menu_draw": []},
+            {"menu_draw": {}},
+            {"menu_draw": {"key_file": "x", "n": 1}},
+        ):
+            with pytest.raises(ca.CrownAverageInvalid):
+                host.install(bad)
+        if os.name != "nt":  # POSIX owner-only modes
+            key = tmp_path / "k"
+            key.write_bytes(b"c" * 32)
+            key.chmod(0o600)
+            host.install({"menu_draw": {"key_file": str(key)}})
+            assert pool_menu.active_key() == crown_d.derive_key(
+                b"c" * 32, "d-menu-sample"
+            )
+            assert ca.ACTIVE is None  # the menu key does not turn the crown average on
+    finally:
+        host.install({})
