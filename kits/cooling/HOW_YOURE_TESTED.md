@@ -110,7 +110,8 @@ are not shown, and the hidden sample rotates.
   thermal interface) and the hydraulic power.
 - **Reference uncertainty U:** Cooling 1.8's registered values:
   **HUMAN_INPUT** (Cooling 1.6: die peak 0.037 C, hydraulic power 3 % of the
-  value).
+  value). The published verify set carries die peak 0.85 C and hydraulic
+  power 0.012 W (Cooling 1.8's provisional U record).
 - **Outside the training range:** the exam includes an inner band just
   outside the training range and an outer shell beyond it. Cooling 1.8 is the
   first Cooling version with exam cases outside the training range. These
@@ -121,15 +122,14 @@ are not shown, and the hidden sample rotates.
 
 ## 4. Practice: the verify set
 
-- Cooling 1.8's verify set (a few designs Carbon solved with its pinned
-  reference, outside every sealed set): **HUMAN_INPUT** (published in this
-  kit after its digest is receipted). Until then `verify` refuses.
-- Once it is published, `verify` solves those designs on your machine and
-  compares within U, and once the app registers it, the app's practice score
-  for Cooling 1.8 uses the same designs and the grade's own measurement, labelled **practice (kit
-  verify set)**. It checks the gates and accuracy within U. Design value and
-  the minimums are not evaluated locally. A practice score is never
-  comparable to a grade.
+- Cooling 1.8's verify set is published in this kit: 6 designs Carbon solved
+  with its pinned reference, outside every sealed set. `verify` solves them
+  on your machine and compares within U, so you can check your kit against
+  Carbon's reference.
+- The app's practice score for Cooling 1.8 uses the same 6 designs and the
+  grade's own measurement, labelled **practice (kit verify set)**. It checks
+  the gates and accuracy within U. Design value and the minimums are not
+  evaluated locally. A practice score is never comparable to a grade.
 
 ## 5. The crown
 
