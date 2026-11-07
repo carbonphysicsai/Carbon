@@ -53,6 +53,11 @@ DECK_VERSION = "3.2"
 TEST_ONLY = v3.LEAKAGE_TEST_ONLY
 CURVE_SCHEMA = "carbon.f02.boiling-curve.v1"
 CURVE_SCHEMA_CANDIDATE = "carbon.f02.boiling-curve.v1-candidate"
+#: candidate forms the probe writer accepts (the researcher's r2 adds the onset ramp inside onb_superheat_k)
+CURVE_SCHEMAS_CANDIDATE = (
+    CURVE_SCHEMA_CANDIDATE,
+    "carbon.f02.boiling-curve.v1-candidate-r2",
+)
 BLEND = "asymptotic_n2"
 TABLE_STEP_K = 0.5
 ONSET_EDGE_K = 1e-3  # the table holds h_sp up to just below the onset, then the boiling value: a sharp, deterministic onset
@@ -102,27 +107,31 @@ def load_curve(path, *, expect_sha256, test_mode=False):
         doc = json.loads(raw)
     except ValueError:
         raise DeckRefused("curve_file_not_json") from None
-    if type(doc) is not dict or doc.get("schema") not in (
-        CURVE_SCHEMA,
-        CURVE_SCHEMA_CANDIDATE,
+    if (
+        type(doc) is not dict
+        or doc.get("schema") not in (CURVE_SCHEMA,) + CURVE_SCHEMAS_CANDIDATE
     ):
         raise DeckRefused("curve_schema")
-    candidate = doc["schema"] == CURVE_SCHEMA_CANDIDATE
+    candidate = doc["schema"] in CURVE_SCHEMAS_CANDIDATE
     if candidate and not test_mode:
         raise DeckRefused("curve_candidate_refuses_production")
     try:
         tsat, tin = doc["tsat_c"], doc["inlet_c"]
         onb, cap = doc["onb_superheat_k"]["table_start"], doc["cap"]["superheat_k"]
         points = doc["superheat_k_to_q_nb_w_m2"]
-        ramp = doc.get(
-            "onset_ramp_k", 0.0
-        )  # optional: the curve's own onset smoothing (0 = sharp)
+        ramp, ramp_start = _onset_ramp(doc)
     except (KeyError, TypeError, AttributeError):
         raise DeckRefused("curve_fields") from None
     if not all(_finite(x) for x in (tsat, tin, onb, cap)) or not (
         tin < tsat and 0 <= onb < cap
     ):
         raise DeckRefused("curve_values_invalid")
+    if ramp_start is not None and not (
+        _finite(ramp_start) and abs((onb - ramp) - ramp_start) <= 1e-9
+    ):
+        raise DeckRefused(
+            "curve_onset_ramp_inconsistent"
+        )  # ramp_start_k must equal table_start - onset_ramp_k
     if not (_finite(ramp) and 0 <= ramp and onb - ramp > tin - tsat):
         raise DeckRefused(
             "curve_onset_ramp_invalid"
@@ -153,6 +162,19 @@ def load_curve(path, *, expect_sha256, test_mode=False):
         "label": TEST_ONLY if (candidate or test_mode) else "REGISTERED",
         "sha256": "sha256:" + digest,
     }
+
+
+def _onset_ramp(doc):
+    """(ramp, ramp_start or None): ONE source, never a silent default when a ramp is written somewhere. The researcher's r2 form
+    keeps it in onb_superheat_k (onset_ramp_k [+ ramp_start_k]); a top-level onset_ramp_k is accepted only when the nested one is
+    absent, and both present must agree. No ramp anywhere = 0 (sharp)."""
+    onb_block = doc["onb_superheat_k"]
+    nested = onb_block.get("onset_ramp_k") if isinstance(onb_block, dict) else None
+    top = doc.get("onset_ramp_k")
+    if nested is not None and top is not None and nested != top:
+        raise DeckRefused("curve_onset_ramp_ambiguous")
+    ramp = nested if nested is not None else (top if top is not None else 0.0)
+    return ramp, onb_block.get("ramp_start_k") if isinstance(onb_block, dict) else None
 
 
 def _interp(points, x):

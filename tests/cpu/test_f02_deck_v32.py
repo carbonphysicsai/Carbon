@@ -684,3 +684,72 @@ def test_the_ramp_is_recorded_in_the_deck(tmp_path):
         leakage=_test_leak(tmp_path),
     )
     assert meta["h_curve"]["ramp_k"] == 0.5
+
+
+# --- the r2 curve form (onset ramp inside onb_superheat_k) ------------------------------------------------------------
+
+
+def _r2(tmp_path, name="r2.json", **onb):
+    block = {"table_start": 2.0, **onb}
+    return _curve(
+        tmp_path,
+        name,
+        schema="carbon.f02.boiling-curve.v1-candidate-r2",
+        onb_superheat_k=block,
+    )
+
+
+def test_the_r2_nested_ramp_is_read_never_silently_dropped(tmp_path):
+    path, digest = _r2(tmp_path, onset_ramp_k=0.4, ramp_start_k=1.6)
+    curve = v32.load_curve(path, expect_sha256=digest, test_mode=True)
+    assert curve["ramp_k"] == 0.4 and curve["label"] == v32.TEST_ONLY
+
+
+def test_r2_is_a_candidate_form(tmp_path, pinned, monkeypatch):
+    leak, _curve_ok, box, _region = pinned
+    path, digest = _r2(tmp_path, onset_ramp_k=0.4)
+    monkeypatch.setattr(v32, "V32_HT_SHA256", digest)
+    with pytest.raises(v3.DeckRefused, match="curve_candidate_refuses_production"):
+        v32.write_case_v32(
+            CASE, tmp_path / "d", leakage_path=leak, curve_path=path, box_path=box
+        )
+
+
+@pytest.mark.parametrize(
+    "onb, top, why",
+    [
+        ({"onset_ramp_k": 0.4}, 0.5, "curve_onset_ramp_ambiguous"),
+        (
+            {"onset_ramp_k": 0.4, "ramp_start_k": 1.5},
+            None,
+            "curve_onset_ramp_inconsistent",
+        ),
+    ],
+)
+def test_ambiguous_or_inconsistent_ramps_refuse(tmp_path, onb, top, why):
+    over = {"onset_ramp_k": top} if top is not None else {}
+    path, digest = _curve(
+        tmp_path,
+        "x.json",
+        schema="carbon.f02.boiling-curve.v1-candidate-r2",
+        onb_superheat_k={"table_start": 2.0, **onb},
+        **over,
+    )
+    with pytest.raises(v3.DeckRefused, match=why):
+        v32.load_curve(path, expect_sha256=digest, test_mode=True)
+
+
+def test_the_researchers_curve_a_loads_with_its_ramp_when_present():
+    from pathlib import Path
+
+    real = (
+        Path(__file__).resolve().parents[2]
+        / "codex-queue"
+        / "reports"
+        / "BT32_P0_20261106"
+        / "curve_A_r134a.json"
+    )
+    if not real.is_file():
+        pytest.skip("the researcher's curve file is not in the repository")
+    digest = hashlib.sha256(real.read_bytes()).hexdigest()
+    assert v32.load_curve(real, expect_sha256=digest, test_mode=True)["ramp_k"] == 0.4
