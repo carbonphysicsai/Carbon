@@ -81,6 +81,9 @@ _OPTIONAL_FIELDS = {
     # The Chain Auditor's operator-only coldkey -> allowance-group map (`funder_map`). Absent: each coldkey is its
     # own group. An unreadable or malformed map is no map (each coldkey its own group), never a refusal.
     "funder_map_file",
+    # OWNER-PROBING-COUNTERS-01 (a): {unmapped_coldkey, unresolved_hotkey, max_map_age_blocks}, every value the OWNER's
+    # (`allowance_groups.policy`). Absent: the exam cap is per hotkey as before. Present with any value unset: refused.
+    "allowance_groups",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -272,6 +275,10 @@ def load_config(path: Path) -> dict:
         from carbon.challenge_validator import request_buckets
 
         request_buckets.values(value["request_buckets"])
+    if "allowance_groups" in value:
+        from carbon.challenge_validator import allowance_groups
+
+        allowance_groups.policy(value["allowance_groups"])
     if "funder_map_file" in value:
         selected = value["funder_map_file"]
         if type(selected) is not str or not Path(selected).is_absolute():
@@ -2158,6 +2165,13 @@ def serve(
                 speed_sample_key=_speed_key(cfg),
                 request_buckets=_request_buckets(cfg),
                 funder_map=_funder_map(cfg),
+            )
+            # OWNER-PROBING-COUNTERS-01 (a): the exam cap's allowance group, on the SAME in-memory funder map as R89's
+            # request bucket (one group(), Validator-2 11:32); None (no block) = per hotkey as before.
+            from carbon.challenge_validator import allowance_groups, exam_cap
+
+            exam_cap.install_grouping(
+                allowance_groups.from_config(cfg, window, lambda: intake.funder_map)
             )
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention
