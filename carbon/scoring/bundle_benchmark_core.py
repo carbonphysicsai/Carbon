@@ -210,6 +210,7 @@ def _graph_measurement_binding(measurement, entry, originals, registration):
     if type(originals) is not dict or set(originals) - {
         "timed_query",
         "single_call_raw",
+        "menu_rowcheck_raw",
     } != {
         "inference_receipt_raw",
         "worker_evidence_raw",

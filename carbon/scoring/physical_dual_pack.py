@@ -1002,6 +1002,17 @@ def produce(
             "speed_call_seconds": call_s,
             "speed_outputs_match": outputs_match,
         }
+        if originals.get("menu_rowcheck_raw") is not None:
+            # A menu-D version's fresh keyed re-check (`pool_menu.read_rowcheck_side_file`); absent for every other
+            # version (its measure is called exactly as before). A malformed one is Carbon's gap.
+            from carbon.scoring import pool_exam, pool_menu
+
+            try:
+                pool_arguments["menu_rowcheck"] = pool_menu.read_rowcheck_side_file(
+                    originals["menu_rowcheck_raw"]
+                )
+            except pool_exam.ExamRefused as exc:
+                raise refused("menu_rowcheck_evidence_unavailable") from exc
 
     def leg(value):
         if value is None:

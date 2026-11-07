@@ -1862,6 +1862,9 @@ def serve(
     from carbon.challenge_validator import crown_average_host
 
     crown_average_host.install(cfg)
+    from carbon.challenge_validator import crown_hold
+
+    crown_hold.install(cfg)
     install_declared_change(cfg)
     install_king_retained_parents(cfg)
     selected_parent = (

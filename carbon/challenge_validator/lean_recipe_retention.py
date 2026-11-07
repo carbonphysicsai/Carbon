@@ -897,6 +897,167 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
     return raw
 
 
+def _menu_rowcheck_outputs(evidence, entry, subset, subset_shape, out_dtype, procedure):
+    """The FIRST fresh instance's flat raw answers of a re-check pair, read through the pair reader with the pair's own
+    identities and the subset's shapes; the state is bound to the graded entry's. Unreadable = Carbon's gap.
+    """
+    import numpy as np
+
+    from carbon.scoring import inference_pair_evidence as pair_reader
+
+    raw = _json(evidence)
+    try:
+        phases = [evidence[name] for name in ("primary", "repeat")]
+        read = pair_reader.read_inference_pair(
+            raw,
+            registered_sha256=_sha(raw),
+            expected={
+                "recipe_digest": evidence["recipe_digest"],
+                "state_digest": entry["state_digest"],
+                "inputs_digest": evidence["inputs_digest"],
+                "inference_image_id": evidence["inference_image_id"],
+                "operation_ids": [p["worker_operation"] for p in phases],
+                "ledger_identities": [
+                    p["accounting"]["ledger_identity"] for p in phases
+                ],
+                "controls_digests": [p["controls_digest"] for p in phases],
+                "input_shape": list(subset.shape),
+                "output_shape": list(subset_shape),
+                "input_dtype": str(subset.dtype),
+                "output_dtype": str(np.dtype(out_dtype)),
+            },
+            procedure=procedure,
+        )
+    except (pair_reader.PairEvidenceRefused, KeyError, TypeError, ValueError) as exc:
+        raise RetentionUnavailable("menu_rowcheck_evidence_unreadable") from exc
+    return list(read.outputs[0])
+
+
+def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
+    """A menu-D version's row-independence re-check (Carbon Validator-B 7 Nov (1); Validator-2B 7 Nov conditions 1-4):
+    a FRESH instance of the retained model answers a keyed subset of the graded query in a keyed order
+    (`pool_menu.rowcheck_plan`, key derive_key(K_crown, 'd-menu-rowcheck')), kept write-once beside the dual
+    measurement as a host-private side file (`pool_menu.rowcheck_side_file`). None for every version whose registration
+    has no ``menu`` block: nothing runs and nothing changes for it.
+
+    The queries run under the pair's own carrier, budget and wall caps (`infer_frozen_pair`, two fresh operations with
+    new identities). Any fault of Carbon's is `RetentionUnavailable` (FAILED_INFRA, the slot given back); a candidate
+    wall hit is retried once and a second is the candidate's typed failure, exactly as for the pair.
+    """
+    import numpy as np
+
+    from carbon.challenge_validator.crown_hold import menu_registered
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session.data import write_once
+    from carbon.development_session.paired_inference import (
+        InferencePairFailure,
+        infer_frozen_pair,
+    )
+    from carbon.scoring import pool_exam, pool_menu, pool_version
+
+    material = adapter.discovery._material
+    kit = material["construction_kit"]
+    if not menu_registered(kit["id"], kit["version"]):
+        return None
+    try:
+        rule = pool_version.registered_menu(kit["id"], kit["version"])
+    except (pool_version.PoolConstantsNotRegistered, pool_exam.ExamRefused) as exc:
+        raise RetentionUnavailable("menu_rowcheck_unavailable") from exc
+    if rule is None:
+        raise RetentionUnavailable("menu_rowcheck_unavailable")
+    path = _private_evaluation_directory(result, submission_id) / "menu-rowcheck.json"
+    if path.exists() or path.is_symlink():
+        return _private_measurement_bytes(path, PAIR_READ_BYTES)
+    inputs, output_shape = _graded_query(material, artifacts)
+    try:
+        positions = pool_menu.rowcheck_plan(
+            len(inputs), rule.rowcheck[2], pool_menu.rowcheck_key(), epoch=rule.epoch
+        )
+    except pool_exam.ExamRefused as exc:
+        raise RetentionUnavailable(exc.code) from exc
+    subset = np.ascontiguousarray(inputs[positions])
+    subset_shape = (len(positions), *tuple(output_shape)[1:])
+    owner = adapter.owner(submission_id) if regrade is None else regrade.owner
+    provider = adapter._provider(owner)
+    limits = material["construction_limits_document"]
+    policy = limits["reconstruction_resource_policy"]
+    interface = material["interface_document"]
+    accuracy = adapter.discovery.evaluation_pack_snapshot.read_json_role(
+        adapter.discovery.evaluation_pack_public_root,
+        "public",
+        "accuracy_definition",
+        max_bytes=65536,
+    )
+    if type(accuracy) is not dict:
+        raise RetentionUnavailable("inference_pair_procedure_unreadable")
+    procedure = accuracy.get("paired_repeat_procedure", "batched_measured")
+    image = _inference_image_of(provider, regrade)
+
+    def attempt(suffix):
+        return infer_frozen_pair(
+            provider.ledger,
+            owner=owner,
+            identity="menu-rowcheck-"
+            + adapter.discovery.evaluation_pack_snapshot.manifest_digest
+            + "-"
+            + submission_id
+            + suffix,
+            inference_image=image,
+            recipe=(
+                ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
+                if regrade is None
+                else regrade.recipe
+            ),
+            challenge_binding={
+                "challenge_id": kit["id"],
+                "challenge_version": kit["version"],
+                "train_digest": kit["train_digest"],
+                "interface_digest": kit["interface_digest"],
+                "construction_limits_digest": kit["construction_limits_digest"],
+            },
+            limits_document=limits,
+            state_bytes=artifacts["state.npz"],
+            expected_state_digest=entry["state_digest"],
+            inputs=subset,
+            expected_output_shape=subset_shape,
+            expected_output_dtype=output_dtype(interface),
+            allowlist_bytes=material["allowlist_bytes"],
+            seconds=policy["inference_wall_seconds_max"],
+            total_seconds=policy["total_reconstruction_wall_seconds_max"],
+            accelerator=getattr(provider, "inference_accelerator", None),
+            procedure=procedure,
+        )
+
+    walls = 0
+    while True:
+        try:
+            pair = attempt("" if walls == 0 else "-wall-retry")
+            break
+        except InferencePairFailure as failure:
+            if not _is_candidate_wall_hit(failure.cause):
+                raise RetentionUnavailable("menu_rowcheck_incomplete") from failure
+            walls += 1
+            if walls == 2:
+                raise CandidateWallLimitReached(
+                    CANDIDATE_WALL_LIMIT_REACHED
+                ) from failure
+    flat = _menu_rowcheck_outputs(
+        pair.evidence,
+        entry,
+        subset,
+        subset_shape,
+        output_dtype(interface),
+        procedure,
+    )
+    width = len(flat) // len(positions)
+    if not width or width * len(positions) != len(flat):
+        raise RetentionUnavailable("menu_rowcheck_evidence_unreadable")
+    rows = [flat[i * width : (i + 1) * width] for i in range(len(positions))]
+    side = pool_menu.rowcheck_side_file(positions, rows)
+    write_once(path, side)
+    return side
+
+
 def _single_call_raw(
     adapter, submission_id, result, artifacts, entry, regrade=None, runner=None
 ):
@@ -1210,6 +1371,10 @@ def _retain_selected_pack_evaluation(
                 raise RetentionUnavailable("pool_has_no_timed_query")
             # The binding re-derives the model's speed (the single-call median) from the same bytes.
             originals["single_call_raw"] = single_call
+        # A menu-D version's fresh keyed re-check (None, and nothing run, for every other version).
+        menu_rowcheck = _menu_rowcheck_raw(
+            adapter, submission_id, result, artifacts, registered["entry"], regrade
+        )
         prepared = produce_registered_dual_measurement(
             selected_pack=snapshot,
             public_root=discovery.evaluation_pack_public_root,
@@ -1223,6 +1388,7 @@ def _retain_selected_pack_evaluation(
             timing_step=_timing_step(adapter),
             copy_hotkey=getattr(adapter, "copy_hotkey", None),
             single_call_raw=single_call,
+            **({} if menu_rowcheck is None else {"menu_rowcheck_raw": menu_rowcheck}),
         )
         directory = _private_evaluation_directory(result, submission_id)
         measurement_path = directory / "dual-measurement.json"
@@ -1772,7 +1938,7 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
             store, kind, submission_id, outcome, filed=entry_id is not None
         )
         return
-    paused = outcome.get("reason") in (bp.CROWNS_PAUSED, bp.CROWN_QUEUED)
+    paused = outcome.get("reason") in (bp.CROWNS_PAUSED, bp.CROWN_QUEUED, bp.CROWN_HELD)
     # A decision the host could not make (UNAVAILABLE or FAILED_INFRA on a rebuild, a repeat, or a margin or king mean not
     # yet measured) is kept for retry the same way (`crown_pause_sweep`), never lost with the screening grade.
     retry = outcome.get("reason") in (

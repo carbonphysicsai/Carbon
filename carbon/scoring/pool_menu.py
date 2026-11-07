@@ -188,6 +188,54 @@ def rowcheck_plan(row_count, subset, key, *, epoch):
     return sorted(chosen, key=lambda i: rank(i, b"order"))
 
 
+ROWCHECK_SCHEMA = "carbon.menu-rowcheck.v1"
+
+
+def rowcheck_side_file(positions, outputs):
+    """The receiver's host-private re-check side file: the planned positions and the fresh instance's raw answers in
+    that order (custody only; never copied into a receipt or a public record)."""
+    _require(
+        type(positions) is list
+        and all(type(i) is int and i >= 0 for i in positions)
+        and type(outputs) is list
+        and len(outputs) == len(positions),
+        "menu_rowcheck_side_file_invalid",
+    )
+    body = {
+        "schema": ROWCHECK_SCHEMA,
+        "positions": positions,
+        "outputs": [[float(v) for v in row] for row in outputs],
+    }
+    import json
+
+    return json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
+
+
+def read_rowcheck_side_file(raw):
+    """``{"positions", "outputs"}`` of a re-check side file, or `ExamRefused` (Carbon's gap)."""
+    import json
+
+    try:
+        body = json.loads(raw)
+    except (TypeError, ValueError, UnicodeError):
+        _refuse("menu_rowcheck_side_file_invalid")
+    _require(
+        type(body) is dict
+        and set(body) == {"schema", "positions", "outputs"}
+        and body["schema"] == ROWCHECK_SCHEMA
+        and type(body["positions"]) is list
+        and all(type(i) is int and i >= 0 for i in body["positions"])
+        and type(body["outputs"]) is list
+        and len(body["outputs"]) == len(body["positions"])
+        and all(
+            type(row) is list and all(type(v) in (int, float) for v in row)
+            for row in body["outputs"]
+        ),
+        "menu_rowcheck_side_file_invalid",
+    )
+    return {"positions": body["positions"], "outputs": body["outputs"]}
+
+
 def rowcheck_differs(graded, recheck, positions, rule):
     """True when any re-check answer differs from the graded answer at the same bank position beyond the registered
     tolerance (|a - b| > abs_tol + rel_tol |a|, or a non-finite value on one side only). ``graded``: the graded raw

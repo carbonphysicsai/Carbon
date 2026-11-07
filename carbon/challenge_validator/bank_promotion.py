@@ -15,7 +15,7 @@ from dataclasses import asdict, dataclass
 
 from carbon.battery.pool_store import PoolStore, StateError, canonical
 
-from . import operator_pause
+from . import crown_hold, operator_pause
 from .interface import digest, is_digest
 
 #: A Challenge version's evaluation over its whole pack set
@@ -663,6 +663,16 @@ class BankPromotion:
                     "candidate": submission_id,
                     "incumbent": (self.store.incumbent() or {}).get("model_id"),
                 }
+            if crown_hold.held(self._state_dir(), submission_id):
+                # A menu-D version (Validator-2B 7 Nov): no automatic crown change until the crown-side re-score exists.
+                # Filed like a paused one, the king keeps the crown, and only the operator's release decides it.
+                return {
+                    "outcome": UNAVAILABLE,
+                    "reason": CROWN_HELD,
+                    "evaluation_key": evaluation_key,
+                    "candidate": submission_id,
+                    "incumbent": (self.store.incumbent() or {}).get("model_id"),
+                }
 
             behind = self._undecided_before(submission_id, evaluation_key)
             if behind:
@@ -852,6 +862,8 @@ REPEAT_TOLERANCE_UNREGISTERED = "crown_repeat_tolerance_unregistered"
 SCORE_LEVEL = frozenset({"total_score", "physics_benefit", "design_benefit"})
 #: The operator paused crown changes (`operator_pause`); the miner sees only UNAVAILABLE.
 CROWNS_PAUSED = "crowns_paused"
+#: A menu-D version's crown change, held until the operator releases it (`crown_hold`); the miner sees only this code.
+CROWN_HELD = crown_hold.CROWN_HELD
 #: A crown-changing contender met an earlier crown decision that is still UNRESOLVED (it could not be made): it is queued
 #: behind it, filed like a paused one and decided by `crown_pause_sweep` in admission order, never ahead of it.
 CROWN_QUEUED = "queued_behind_undecided_crown"

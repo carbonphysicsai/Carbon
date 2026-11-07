@@ -553,3 +553,125 @@ def test_row_accounting_counts_menu_rows_only_when_a_menu_is_present(monkeypatch
     )
     with pytest.raises(pool_exam.ExamRefused):
         pool_version.row_accounting({**material, "menu": _material()}, dtype=None)
+
+
+# ---------------------------------------------------------------- the receiver's re-check (Validator-2B conditions 1-4)
+
+
+def test_the_side_file_round_trips_and_a_malformed_one_is_carbons_gap():
+    raw = pool_menu.rowcheck_side_file([3, 1], [[1.0, 2.0], [float("nan"), 4.0]])
+    read = pool_menu.read_rowcheck_side_file(raw)
+    assert read["positions"] == [3, 1] and read["outputs"][0] == [1.0, 2.0]
+    for bad in (b"{}", b"not json", raw.replace(b"carbon.menu-rowcheck.v1", b"x")):
+        with pytest.raises(pool_exam.ExamRefused) as caught:
+            pool_menu.read_rowcheck_side_file(bad)
+        assert caught.value.code == "menu_rowcheck_side_file_invalid"
+
+
+def _receiver_adapter(version):
+    from types import SimpleNamespace
+
+    material = {
+        "construction_kit": {"id": "electric-motor-magnetics", "version": version}
+    }
+    return SimpleNamespace(discovery=SimpleNamespace(_material=material))
+
+
+def test_the_receiver_runs_no_recheck_for_a_version_without_a_menu(monkeypatch):
+    from carbon.challenge_validator import crown_hold
+    from carbon.challenge_validator import lean_recipe_retention as lrr
+
+    monkeypatch.setattr(crown_hold, "menu_registered", lambda c, v: False)
+    # nothing else of the adapter is touched: no query, no file
+    assert (
+        lrr._menu_rowcheck_raw(_receiver_adapter("1.5"), "rtsk_x", {}, {}, {}) is None
+    )
+
+
+def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
+    monkeypatch, tmp_path
+):
+    from types import SimpleNamespace
+
+    import numpy as np
+
+    from carbon.challenge_validator import crown_hold
+    from carbon.challenge_validator import lean_recipe_retention as lrr
+    from carbon.development_session import paired_inference
+
+    inputs = np.arange(40.0).reshape(20, 2)
+    rule = dataclasses.replace(_rule(), rowcheck=(0.0, 0.0, 5))
+    monkeypatch.setattr(crown_hold, "menu_registered", lambda c, v: True)
+    monkeypatch.setattr(pool_version, "registered_menu", lambda c, v: rule)
+    monkeypatch.setattr(lrr, "_graded_query", lambda m, a: (inputs, (20, 1)))
+    monkeypatch.setattr(lrr, "_private_evaluation_directory", lambda r, s: tmp_path)
+    monkeypatch.setattr(lrr, "_inference_image_of", lambda p, r: "image")
+    seen = {}
+
+    def fake_pair(ledger, **kwargs):
+        seen.update(kwargs)
+        return SimpleNamespace(evidence={"fake": True})
+
+    monkeypatch.setattr(paired_inference, "infer_frozen_pair", fake_pair)
+    monkeypatch.setattr(
+        lrr,
+        "_menu_rowcheck_outputs",
+        lambda evidence, entry, subset, shape, dtype, procedure: [
+            float(v) for v in subset[:, 0]
+        ],
+    )
+    snapshot = SimpleNamespace(
+        manifest_digest="sha256:" + "0" * 64,
+        read_json_role=lambda *a, **k: {"paired_repeat_procedure": "per_case"},
+    )
+    adapter = _receiver_adapter("1.8")
+    adapter.discovery._material.update(
+        {
+            "construction_limits_document": {
+                "reconstruction_resource_policy": {
+                    "inference_wall_seconds_max": 60,
+                    "total_reconstruction_wall_seconds_max": 120,
+                }
+            },
+            "interface_document": {},
+            "allowlist_bytes": 1,
+        }
+    )
+    adapter.discovery._material["construction_kit"].update(
+        {
+            "train_digest": "t",
+            "interface_digest": "i",
+            "construction_limits_digest": "l",
+        }
+    )
+    adapter.discovery.evaluation_pack_snapshot = snapshot
+    adapter.discovery.evaluation_pack_public_root = tmp_path
+    adapter.owner = lambda s: "owner"
+    adapter._provider = lambda o: SimpleNamespace(
+        ledger=None, _requests={"rtsk_x": SimpleNamespace(recipe={})}
+    )
+    monkeypatch.setattr(lrr, "output_dtype", lambda i: "float32")
+    monkeypatch.setattr(
+        "carbon.development_session.construction_recipe.ConstructionRecipe.from_dict",
+        staticmethod(lambda d: "recipe"),
+    )
+    try:
+        pool_menu.install_key(b"c" * 32)
+        raw = lrr._menu_rowcheck_raw(
+            adapter, "rtsk_x", {}, {"state.npz": b"s"}, {"state_digest": "d"}
+        )
+        key = pool_menu.rowcheck_key()
+    finally:
+        pool_menu.install_key(None)
+    plan = pool_menu.rowcheck_plan(20, 5, key, epoch=rule.epoch)
+    assert (
+        seen["inputs"].tolist() == inputs[plan].tolist()
+    )  # the keyed subset, in the keyed order
+    assert seen["expected_output_shape"] == (5, 1)
+    assert seen["identity"].startswith("menu-rowcheck-")  # never the pair's identity
+    read = pool_menu.read_rowcheck_side_file(raw)
+    assert read["positions"] == plan
+    assert read["outputs"] == [[float(inputs[i, 0])] for i in plan]
+    assert (
+        tmp_path / "menu-rowcheck.json"
+    ).read_bytes() == raw  # write-once, read back on a retry

@@ -178,7 +178,7 @@ class AutoGrader:
         return king_upkeep.due(pool, self.intake, active=crown_average.ACTIVE)
 
     def _crowns_due(self):
-        from . import crown_pause_sweep, operator_pause
+        from . import crown_hold, crown_pause_sweep, operator_pause
 
         pool = self._pool()
         if pool is None or not hasattr(pool, "paused_crowns"):
@@ -198,6 +198,8 @@ class AutoGrader:
                 # the sweep skips it until the king's regrade, which `_upkeep_due` asks about: no round for it here,
                 # else a failing regrade (retried once an epoch) would take the host lock every poll for nothing
                 continue
+            if crown_hold.held(pool.path.parent, record["submission_id"]):
+                return False  # a held menu-D crown stops the sweep there until the operator's release: no round
             attempts, last = pool.crown_pause_attempts(
                 record["submission_id"], record["evaluation_key"]
             )
