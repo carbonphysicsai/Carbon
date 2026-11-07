@@ -97,7 +97,7 @@ COUNTED = frozenset(
         # (Validator ruling, 2026-11-01): typed, unscored, charged.
         "WORKER_WALL_LIMIT_REACHED",
         # A copy of a recipe already graded on this key (OWNER-PROBING-COUNTERS-01 (b), `recipe_copies`): no exam read,
-        # answered with the first copy's grade, its slot charged to its own allowance (Validator 11:03 (3)).
+        # answered with the first copy's grade, its slot charged to its own allowance (Carbon Validator 6 Nov 11:03 (3): no free probe).
         "DUPLICATE_OF_EARLIER",
     }
 )

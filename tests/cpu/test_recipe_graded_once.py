@@ -424,3 +424,22 @@ def test_the_digest_is_the_canonical_recipe_digest_and_ignores_the_submitter(doo
         recipe_copies.stored_digest(door.ledger, T[0])
         == ConstructionRecipe.from_dict(_recipe()).digest
     )
+
+
+def test_waits_are_logged_once_an_hour_counts_only(door, monkeypatch):
+    from carbon.battery import intake as battery_intake
+
+    lines = []
+    monkeypatch.setattr(battery_intake, "log", lambda event, **f: lines.append((event, f)))
+    now = [0.0]
+    door.grader.clock = lambda: now[0]
+    door.submit(T[0], HOTKEYS[0], _recipe())
+    door.submit(T[1], HOTKEYS[1], _recipe())
+    door.ready.add(T[1])  # the first is still building: every round, the copy waits
+    for _ in range(3):
+        door.grader.run_once()
+    assert lines == []
+    now[0] = 3600.0
+    door.grader.run_once()
+    assert lines == [("recipe_copy_waits_hourly", {"waits": 4, "period_s": 3600})]
+    assert T[1] not in repr(lines) and HOTKEYS[1] not in repr(lines)

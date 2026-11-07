@@ -251,6 +251,7 @@ class AutoGrader:
                     # an earlier identical recipe is still unsettled on this key: retried next round (counted for the
                     # operator's read: `recipe_copy_waits`)
                     self.recipe_copy_waits = getattr(self, "recipe_copy_waits", 0) + 1
+                    self._log_copy_waits()
                     continue
                 if decision == "copy":
                     return self._grade_copy(submission_id, first)
@@ -343,6 +344,24 @@ class AutoGrader:
             )
             return submission_id, "GRADED"
         return None
+
+    def _log_copy_waits(self):
+        """At most one ``recipe_copy_waits_hourly`` line per hour: how many grade rounds left a copy waiting for its
+        unsettled first (Validator-2B 7 Nov; a WAIT is never silent). Counts only, never an id."""
+        from carbon.battery.intake import log
+
+        now = getattr(self, "clock", time.monotonic)()
+        since = getattr(self, "_copy_waits_since", None)
+        if since is None:
+            self._copy_waits_since, self._copy_waits_logged = now, 0
+            return
+        if now - since >= 3600:
+            log(
+                "recipe_copy_waits_hourly",
+                waits=self.recipe_copy_waits - self._copy_waits_logged,
+                period_s=round(now - since),
+            )
+            self._copy_waits_since, self._copy_waits_logged = now, self.recipe_copy_waits
 
     def _exam_key(self):
         snapshot = getattr(

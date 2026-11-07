@@ -10,7 +10,7 @@ ADMISSION order (`_admitted`: the attempt ledger's own sequence; never the task 
 
 - an earlier one with the same identity was GRADED (its slot COUNTED on this key) -> this one is a COPY of the earliest
   such: it is not graded (no exam read, no rebuild), it is answered with that grade, and its own slot is counted
-  against its own allowance (Validator (3): no free probe);
+  against its own allowance (Carbon Validator 6 Nov 11:03 (3): no free probe);
 - an earlier one with the same identity is still unsettled (no verdict marker yet, or its slot RESERVED / in flight)
   -> this one WAITS (pending, retried next round, no slot taken) until it settles (Validator-2 11:04);
 - every earlier one settled without a counted grade (refused, FAILED_INFRA, released) -> this one GRADES (the new
