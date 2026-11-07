@@ -58,7 +58,7 @@
     {
      "version": "3.2",
      "changes": [
-      "Burst Thermal launches on mainnet with 3.2, after the other Challenges, once it passes its checks. Burst Thermal 3.0 and 3.1 will not open.",
+      "Burst Thermal launches on mainnet with 3.2 once it passes its checks; its opening date is published when it is set. Burst Thermal 3.0 and 3.1 will not open.",
       "New in 3.2: the die is cooled by boiling. The heat transfer at the cooled face jumps when the liquid starts to boil and changes steeply with the local wall temperature, so part of the face can be boiling while the rest is not.",
       "Carried over: materials whose properties change with temperature, and leakage power that rises with temperature, so a hot design can heat itself further.",
       "The pulse shape is an input, and every design is checked against the peak temperature limit.",
@@ -74,8 +74,10 @@
   "Score: half physics, half design value. Gates come first: a failed gate means no score.",
   "Physics (planned for the new versions): your model is scored on hidden cases, many of them outside the training data, grouped into classes. A class scores zero at the best of Carbon's registered classical methods for it and one at reference accuracy. Only classes where those methods still miss by a wide margin are scored, and each family of classes counts equally.",
   "Accuracy inside the training range is a gate: pass or fail, never points. Your model must clear it to be scored at all, but a smaller error there earns nothing extra.",
-  "Design value (planned for the new versions): for each design task Carbon solves many candidate designs in advance and keeps them sealed. Your model ranks a fresh sample of them, and your top five picks are checked against the solved answers. Zero means no better than Carbon's classical picks on that sample; one means the best five picks possible from it.",
+  "Design value (planned for the new versions): for each design task Carbon solves many candidate designs in advance and keeps them sealed. Your model predicts each one on its own; a sample drawn after your predictions, changing on a registered schedule, then counts. Your top five picks in it are checked against the solved answers. Zero means no better than Carbon's classical picks on that sample.",
+  "If your model's predictions change with the batch it is shown, design value is zero for that grade.",
   "The crown: where a version decides crowns on the rebuild average, a grade that would take the crown is rebuilt ten times on the validator's own private seeds. Every rebuild must pass, and the average must beat the king's average by the registered margin. An infrastructure failure is never meant to count against you (see Known issues).",
+  "On the new versions, a grade that would take the crown is first held for review while Carbon's crown re-score is built: the king keeps the crown and your submission keeps its place in order until it is released and decided as normal.",
   "On mainnet, official rebuilds and grading run on the validator's RTX 4090. For timings close to the grade, practise on a 4090-class GPU.",
   "You see your total and status. Results per case or per part are not shown, and the hidden set rotates.",
   "Data kits replace the shared practice banks: you generate your own data with Carbon's solver, and the training set is published as soon as it is frozen and checked, before the version opens."
