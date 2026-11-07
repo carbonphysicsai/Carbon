@@ -439,19 +439,19 @@ do, and what stays the same.
   the one that counts. Carbon never handles your money, your keys or your
   recovery phrase.
 - **Where submissions go.** Each Challenge has its own mainnet grader
-  address: **HUMAN_INPUT** (per Challenge). The installer update puts them in
-  your profile; you type nothing.
+  address: **HUMAN_INPUT** (per Challenge). Setup writes each address into
+  your profile once it is published and your profile is on mainnet.
 - **Which versions open.** Motor 1.8 and Cooling 1.8 are planned to open
   first; Burst Thermal 3.2 and Ribbed Bracket 2.0 join after them, each once
-  it passes its checks. The list here is updated as each one opens. Each
-  opens only when its exam is qualified, and each has its own *How you're
-  tested* page in its data kit.
+  it passes its checks. We update this list as each one opens. Each version
+  has its own *How you're tested* page.
 - **Mainnet starts clean.** Nothing from the test network carries over: no
-  registration, crown, score, Ladder entry or submission. Test network
+  registration, crown, score, submission or frontier standing. Test network
   results are rehearsal only.
-- **The validator machine.** The official grade rebuilds your model on an
-  NVIDIA RTX 4090. Each Challenge's rebuild tolerance is published here after
-  it is measured on the mainnet validator: **HUMAN_INPUT**.
+- **The validator machine.** The official grade is planned to rebuild your
+  model on the validator's NVIDIA RTX 4090. Each Challenge's rebuild
+  tolerance is published here after it is measured on the mainnet
+  validator: **HUMAN_INPUT**.
 
 **What stays the same**
 
@@ -484,8 +484,9 @@ do, and what stays the same.
 
 **Notices and changes**
 
-- Every change that affects miners is listed under *Changes* below, newest
-  first, with its date, what changed and what you need to do.
+- We list changes that affect miners under *Changes* below, newest first,
+  with the date, what changed and what you need to do; the dashboard's
+  Updates page carries the same changes.
 - Mainnet launch notice and outage notices: **HUMAN_INPUT** (where they are
   posted).
 - How fast mainnet fixes ship: **HUMAN_INPUT**.
