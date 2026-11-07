@@ -450,7 +450,7 @@ def _part_feedback(document):
 
 #: The miner's own held crown change (signed feedback v5, `direct_submission.HELD_STATE`): what it means, in words.
 HELD_WORDS = (
-    "Your grade would take the crown. It is held for review: the king keeps the crown, and you keep your place "
+    "Your grade could take the crown. It is held for review: the king keeps the crown, and you keep your place "
     "({place} of {of} held). When Carbon releases it, it is decided as normal."
 )
 
