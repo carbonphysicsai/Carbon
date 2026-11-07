@@ -312,12 +312,296 @@ def derive_encoded_public_train(challenge_id: str) -> tuple[bytes, dict]:
     return raw, provenance
 
 
+#: Later public TRAINs, by the TRAIN name a version declares in the version
+#: registry (or its host overlay): the Challenge's native rows byte-equal plus
+#: added in-box rows, with the SAME numeric interface (Motor torque only:
+#: back-EMF stays unseen; Cooling peak/profile/pressure). Each is pinned by
+#: sha256 when its TRAIN is frozen; until then every pin is None and loading
+#: it refuses (HUMAN_INPUT), never a nearby TRAIN. ``encoded_from`` names the
+#: native TRAIN an encoded one is derived from (Cooling's law-safe encoding).
+EXTENDED = {
+    "motor-dev-train-1p8-v1": {
+        "challenge": motor.CHALLENGE.challenge_id,
+        "encoded_from": None,
+        "rows": None,
+        "source_sha256": None,
+        "train_sha256": None,
+        "provenance_sha256": None,
+    },
+    "cooling-dev-train-1p8-v1": {
+        "challenge": cooling.CHALLENGE.challenge_id,
+        "encoded_from": None,
+        "rows": None,
+        "source_sha256": None,
+        "train_sha256": None,
+        "provenance_sha256": None,
+    },
+    "cooling-dev-train-1p8-v1-encoded": {
+        "challenge": cooling.CHALLENGE.challenge_id,
+        "encoded_from": "cooling-dev-train-1p8-v1",
+        "rows": None,
+        "source_sha256": None,
+        "train_sha256": None,
+        "provenance_sha256": None,
+    },
+}
+#: Where the extended TRAIN files sit (the same data directory; a separate name so a test can point it elsewhere).
+_EXTENDED_DATA = _DATA
+_EXTENDED_TRANSFORM = "native-plus-added-jsonl-to-float64-npz-v1"
+#: The record fields a published added row keeps (allow-listed): no batch,
+#: run, wall time, diagnostics or source case id of the custody draw.
+_ADDED_FIELDS = ("schema", "kind", "status", "inputs", "outputs", "options", "image")
+_NATIVE_TRAIN_NAMES = {
+    motor.CHALLENGE.challenge_id: version_registry.MOTOR_TRAIN,
+    cooling.CHALLENGE.challenge_id: version_registry.COOLING_TRAIN,
+}
+
+
+def _train_name(challenge_id: str, version: str | None):
+    """The registered TRAIN name of a version, or None (no version, or one the
+    registry does not declare: the native/encoded rule below, as before). A
+    registered version naming a TRAIN this loader does not serve REFUSES: it
+    is never loaded as the native one."""
+    if version is None:
+        return None
+    entry = version_registry.find(challenge_id, version)
+    if entry is None:
+        return None
+    served = {_NATIVE_TRAIN_NAMES.get(challenge_id), *EXTENDED}
+    if challenge_id == cooling.CHALLENGE.challenge_id:
+        served.add(version_registry.COOLING_TRAIN_ENCODED)
+    if entry.train not in served:
+        raise ValueError(f"public TRAIN {entry.train!r} is not served by this loader")
+    return entry.train
+
+
+def _extended(name: str, challenge_id: str) -> dict:
+    spec = EXTENDED.get(name)
+    if spec is None or spec["challenge"] != challenge_id:
+        raise ValueError(
+            f"public TRAIN {name!r} is not an extended TRAIN of {challenge_id}"
+        )
+    pins = ("rows", "train_sha256", "provenance_sha256") + (
+        () if spec["encoded_from"] else ("source_sha256",)
+    )
+    if any(spec[key] is None for key in pins):
+        raise ValueError(f"public TRAIN {name!r} is not frozen yet (HUMAN_INPUT)")
+    return spec
+
+
+def assemble_extended_source(challenge_id: str, added_records) -> bytes:
+    """The public source JSONL of an extended TRAIN: the Challenge's pinned
+    native TRAIN lines byte-equal, then each typed-OK added record reduced to
+    the allow-listed fields (outputs: the predicted ones only), ordered by the
+    sha256 of its canonical inputs (never a draw id) and numbered on from the
+    native rows. Refuses a non-OK, duplicate, malformed or native-equal row."""
+    challenge, domain, count = _source(challenge_id)
+    native = (Path(__file__).resolve().parents[2] / challenge.TRAIN_PATH).read_bytes()
+    if _sha(native) != challenge.TRAIN_SHA256:
+        raise ValueError("public TRAIN source identity differs")
+    lines = native.splitlines()
+    if len(lines) != count:
+        raise ValueError("public TRAIN row count differs")
+    seen = {
+        _sha(_canonical({n: _number(v) for n, v in json.loads(line)["inputs"].items()}))
+        for line in lines
+    }
+    rows = []
+    for record in added_records:
+        if (
+            type(record) is not dict
+            or record.get("status") != "OK"
+            or record.get("schema") != _SOURCE_SCHEMAS[challenge_id]
+            or type(record.get("inputs")) is not dict
+            or set(record["inputs"]) != set(domain.INPUTS)
+            or type(record.get("outputs")) is not dict
+            or not set(domain.PREDICTED) <= set(record["outputs"])
+        ):
+            raise ValueError("an added TRAIN record is not a typed-OK reference record")
+        inputs = {name: _number(record["inputs"][name]) for name in domain.INPUTS}
+        key = _sha(_canonical(inputs))
+        if key in seen:
+            raise ValueError("an added TRAIN record repeats a TRAIN design")
+        seen.add(key)
+        row = {name: record[name] for name in _ADDED_FIELDS if name in record}
+        row["inputs"] = inputs
+        row["outputs"] = {name: record["outputs"][name] for name in domain.PREDICTED}
+        row["kind"] = "ordinary"
+        rows.append((key, row))
+    if not rows:
+        raise ValueError("an extended TRAIN needs at least one added row")
+    out = list(lines)
+    for index, (_, row) in enumerate(sorted(rows, key=lambda item: item[0]), count):
+        row["case_id"] = f"train-{index:04d}"
+        out.append(
+            json.dumps(
+                row, sort_keys=True, separators=(",", ":"), allow_nan=False
+            ).encode()
+        )
+    return b"\n".join(out) + b"\n"
+
+
+def derive_extended_public_train(name: str, source_raw: bytes) -> tuple[bytes, dict]:
+    """Fixed bytes of an extended native TRAIN from its source JSONL (as
+    `derive_public_train`, any row count: the native rows first)."""
+    spec = EXTENDED.get(name)
+    if spec is None or spec["encoded_from"] is not None:
+        raise ValueError(f"public TRAIN {name!r} is not an extended native TRAIN")
+    challenge_id = spec["challenge"]
+    challenge, domain, count = _source(challenge_id)
+    if type(source_raw) is not bytes:
+        raise ValueError("public TRAIN source must be bytes")
+    lines = source_raw.splitlines()
+    native = (
+        (Path(__file__).resolve().parents[2] / challenge.TRAIN_PATH)
+        .read_bytes()
+        .splitlines()
+    )
+    if len(lines) <= count or lines[:count] != native:
+        raise ValueError(
+            "an extended TRAIN must start with the native TRAIN rows byte-equal"
+        )
+    layout = numeric_interface_document(challenge_id)
+    inputs, targets, case_ids = [], [], []
+    for index, line in enumerate(lines):
+        row = json.loads(line, object_pairs_hook=_pairs, parse_constant=_nonfinite)
+        x_row, y_row = _row(challenge_id, domain, row, f"train-{index:04d}")
+        inputs.append(x_row)
+        targets.append(y_row)
+        case_ids.append(row["case_id"])
+    raw = _npz(np.asarray(inputs, dtype="<f8"), np.asarray(targets, dtype="<f8"))
+    provenance = {
+        "schema": _SCHEMA,
+        "scope": _SCOPE,
+        "challenge": layout["challenge"],
+        "native_identity": challenge.IDENTITY,
+        "source_schema": _SOURCE_SCHEMAS[challenge_id],
+        "train_name": name,
+        "native_source_sha256": "sha256:" + challenge.TRAIN_SHA256,
+        "source_sha256": "sha256:" + _sha(source_raw),
+        "train_sha256": "sha256:" + _sha(raw),
+        "transformation_version": _EXTENDED_TRANSFORM,
+        "case_ids": case_ids,
+        "numeric_interface": layout,
+    }
+    return raw, provenance
+
+
+def derive_extended_encoded_public_train(name: str, native: dict) -> tuple[bytes, dict]:
+    """The law-safe encoded form of a loaded extended Cooling TRAIN (as
+    `derive_encoded_public_train`)."""
+    from carbon.cold_plate.output_encoding import encode_targets
+
+    spec = EXTENDED.get(name)
+    if spec is None or spec["encoded_from"] is None:
+        raise ValueError(f"public TRAIN {name!r} is not an extended encoded TRAIN")
+    encoding = _cooling_encoding()
+    y = encode_targets(native["targets"])
+    raw = _npz(np.asarray(native["inputs"], dtype="<f8"), y.astype("<f8"))
+    provenance = {
+        "schema": _ENCODED_SCHEMA,
+        "scope": _SCOPE,
+        "challenge": native["provenance"]["challenge"],
+        "train_name": name,
+        "encoding": encoding,
+        "source_train_sha256": native["provenance"]["train_sha256"],
+        "train_sha256": "sha256:" + _sha(raw),
+        "transformation_version": "law-safe-output-encoding-v1",
+        "case_ids": list(native["case_ids"]),
+        "numeric_interface": numeric_interface_document(spec["challenge"], encoding),
+    }
+    return raw, provenance
+
+
+def _row(challenge_id, domain, row, case_id):
+    if (
+        type(row) is not dict
+        or row.get("schema") != _SOURCE_SCHEMAS[challenge_id]
+        or row.get("case_id") != case_id
+        or row.get("status") != "OK"
+        or type(row.get("inputs")) is not dict
+        or set(row["inputs"]) != set(domain.INPUTS)
+        or type(row.get("outputs")) is not dict
+        or not set(domain.PREDICTED) <= set(row["outputs"])
+    ):
+        raise ValueError("public TRAIN source row differs")
+    x_row = [_number(row["inputs"][name]) for name in domain.INPUTS]
+    output = row["outputs"]
+    if challenge_id == motor.CHALLENGE.challenge_id:
+        curve = output["torque_nm"]
+        if type(curve) is not list or len(curve) != domain.ANGLE_STEPS:
+            raise ValueError("Motor TRAIN curve differs")
+        return x_row, [_number(value) for value in curve]
+    profile = output["profile_c"]
+    if type(profile) is not list or len(profile) != domain.PROFILE_SEGMENTS:
+        raise ValueError("Cooling TRAIN profile differs")
+    return x_row, (
+        [_number(output["peak_c"])]
+        + [_number(value) for value in profile]
+        + [_number(output["pressure_drop_pa"])]
+    )
+
+
+def _load_extended(name: str, challenge_id: str) -> dict:
+    spec = _extended(name, challenge_id)
+    train_raw = (_EXTENDED_DATA / f"{name}.npz").read_bytes()
+    provenance_raw = (_EXTENDED_DATA / f"{name}.provenance.json").read_bytes()
+    if (
+        _sha(train_raw) != spec["train_sha256"]
+        or _sha(provenance_raw) != spec["provenance_sha256"]
+    ):
+        raise ValueError("extended public TRAIN artifact identity differs")
+    provenance = json.loads(
+        provenance_raw, object_pairs_hook=_pairs, parse_constant=_nonfinite
+    )
+    rows = spec["rows"]
+    if spec["encoded_from"] is None:
+        source_raw = (_EXTENDED_DATA / f"{name}.source.jsonl").read_bytes()
+        if _sha(source_raw) != spec["source_sha256"]:
+            raise ValueError("extended public TRAIN source identity differs")
+        want_raw, want = derive_extended_public_train(name, source_raw)
+        native_x = None
+    else:
+        native = _load_extended(spec["encoded_from"], challenge_id)
+        want_raw, want = derive_extended_encoded_public_train(name, native)
+        native_x = native["inputs"]
+    if (
+        want_raw != train_raw
+        or provenance != want
+        or len(provenance["case_ids"]) != rows
+    ):
+        raise ValueError("extended public TRAIN provenance differs")
+    with np.load(io.BytesIO(train_raw), allow_pickle=False) as data:
+        x, y = data["inputs"], data["targets"]
+    if native_x is not None and not np.array_equal(x, native_x):
+        raise ValueError("extended encoded public TRAIN inputs differ")
+    x.setflags(write=False)
+    y.setflags(write=False)
+    return {
+        "train": train_raw,
+        "inputs": x,
+        "targets": y,
+        "case_ids": tuple(provenance["case_ids"]),
+        "provenance": provenance,
+    }
+
+
+def load_extended_train(name: str, challenge_id: str) -> dict:
+    """One extended TRAIN by name (a native one for a sealed adapter's measurement); refuses until it is frozen."""
+    return _load_extended(name, challenge_id)
+
+
 def load_public_train(challenge_id: str, version: str | None = None) -> dict:
     """Load only pinned DEVELOPMENT bytes; never admit an evaluation role.
     `version` selects the encoded TRAIN where that version uses it
-    (`ENCODED_VERSIONS`); otherwise the native TRAIN, as for every version
-    before. Each version declares its TRAIN in the version registry, so
-    Cooling 1.4 names 1.3's encoded TRAIN itself."""
+    (`ENCODED_VERSIONS`), an extended TRAIN where it names one (`EXTENDED`),
+    otherwise the native TRAIN, as for every version before. Each version
+    declares its TRAIN in the version registry, so Cooling 1.4 names 1.3's
+    encoded TRAIN itself; a registered version naming a TRAIN this loader does
+    not serve refuses."""
+    name = _train_name(challenge_id, version)
+    if name in EXTENDED:
+        return _load_extended(name, challenge_id)
     if (challenge_id, version) in ENCODED_VERSIONS:
         return _load_encoded(challenge_id)
     challenge, domain, count = _source(challenge_id)
