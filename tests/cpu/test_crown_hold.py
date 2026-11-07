@@ -154,3 +154,9 @@ def test_the_sweep_stops_at_a_held_contender_with_no_attempt(tmp_path, hold_on):
 
 def test_the_store_double_is_the_operator_pause_one():
     assert issubclass(Store, base.Store)
+
+
+def test_the_hold_is_a_grading_path():
+    from carbon.challenge_validator import direct_receiver
+
+    assert "carbon/challenge_validator/crown_hold.py" in direct_receiver.GRADING_PATHS

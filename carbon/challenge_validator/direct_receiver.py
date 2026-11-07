@@ -816,6 +816,8 @@ GRADING_PATHS = (
     "carbon/challenge_validator/scoring.py",
     "carbon/challenge_validator/koth_registry.py",
     "carbon/challenge_validator/crown_average.py",
+    # a menu-D version's coded crown hold (Validator-2B 7 Nov): it decides whether a crown may change
+    "carbon/challenge_validator/crown_hold.py",
     # whether a timed build ran on a quiet host decides whose failure a wall stop is (owner 5 Nov: rebuilds consistently
     # timed; Validator-2 21:28)
     "carbon/challenge_validator/host_quiet.py",
