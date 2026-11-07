@@ -203,11 +203,13 @@ def _verify_set(outputs, inputs=None):
     }
 
 
-def test_verify_is_unpublished_until_receipted():
-    assert kit.VERIFY_SET_SHA256 is None
-    assert not kit.VERIFY_SET.exists()
-    with pytest.raises(kit.KitError, match="no verify set"):
-        kit.load_verify_set()
+def test_the_published_verify_set_is_the_receipted_file():
+    assert kit.VERIFY_SET.exists()
+    assert (
+        hashlib.sha256(kit.VERIFY_SET.read_bytes()).hexdigest() == kit.VERIFY_SET_SHA256
+    )
+    document = kit.load_verify_set()
+    assert len(document["designs"]) == 6 and document["version"] == "1.8"
 
 
 def test_verify_loads_only_the_receipted_bytes(tmp_path):
@@ -339,10 +341,15 @@ def _kit_files():
 
 
 def test_kit_holds_no_data_files():
+    """The one data file a kit ships is its published verify set, at the receipted digest."""
     assert not [
         p
         for p in _kit_files()
         if p.suffix in {".npz", ".npy", ".jsonl", ".json", ".tgz", ".gz"}
+        and not (
+            p == kit.VERIFY_SET
+            and hashlib.sha256(p.read_bytes()).hexdigest() == kit.VERIFY_SET_SHA256
+        )
     ]
 
 
@@ -357,9 +364,13 @@ def test_kit_text_has_no_forbidden_material():
 
 
 def test_kit_digests_are_only_its_grade_pins():
-    allowed = set(kit.GRADE_MODULES.values())
+    """The kit names only its grade pins and its verify set's receipted digest. The verify
+    set's bytes are pinned whole by that digest, so they are not scanned."""
+    allowed = set(kit.GRADE_MODULES.values()) | {kit.VERIFY_SET_SHA256}
     found = set()
     for path in _kit_files():
+        if path == kit.VERIFY_SET:
+            continue
         found |= set(re.findall(r"\b[0-9a-f]{64}\b", path.read_text(encoding="utf-8")))
     assert found <= allowed
 
