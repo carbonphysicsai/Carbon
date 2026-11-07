@@ -632,8 +632,11 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
     monkeypatch.setattr(lrr, "_inference_image_of", lambda p, r: "image")
     seen = {}
 
+    calls = []
+
     def fake_pair(ledger, **kwargs):
         seen.update(kwargs)
+        calls.append(kwargs["identity"])
         return SimpleNamespace(evidence={"fake": True})
 
     monkeypatch.setattr(paired_inference, "infer_frozen_pair", fake_pair)
@@ -679,26 +682,50 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
         "carbon.development_session.construction_recipe.ConstructionRecipe.from_dict",
         staticmethod(lambda d: "recipe"),
     )
-    try:
-        pool_menu.install_key(b"c" * 32)
-        raw = lrr._menu_rowcheck_raw(
+
+    def run():
+        return lrr._menu_rowcheck_raw(
             adapter, "rtsk_x", {}, {"state.npz": b"s"}, {"state_digest": "d"}
         )
+
+    try:
+        pool_menu.install_key(b"c" * 32)
+        raw = run()
+        first = dict(seen)
         key = pool_menu.rowcheck_key()
+        assert (
+            run() == raw and len(calls) == 1
+        )  # a retry reads the epoch's file back, no new query
+        # TE-B should-fix 1: after a rotation the new epoch's re-check is computed, never the old subset re-used
+        rotated = dataclasses.replace(rule, epoch="fixture-epoch-2")
+        monkeypatch.setattr(pool_version, "registered_menu", lambda c, v: rotated)
+        raw2 = run()
+        assert len(calls) == 2 and pool_menu.read_rowcheck_side_file(raw2)[
+            "positions"
+        ] == pool_menu.rowcheck_plan(20, 5, key, epoch="fixture-epoch-2")
+        # a cached file that is not this epoch's plan is Carbon's fault, never re-used
+        epoch2 = sorted(tmp_path.glob("menu-rowcheck-*.json"))
+        assert len(epoch2) == 2
+        for f in epoch2:
+            f.chmod(0o600)
+            f.write_bytes(pool_menu.rowcheck_side_file([0], [[0.0]]))
+        with pytest.raises(lrr.RetentionUnavailable, match="cache_not_this_epoch"):
+            run()
+        monkeypatch.setattr(pool_version, "registered_menu", lambda c, v: rule)
     finally:
         pool_menu.install_key(None)
     plan = pool_menu.rowcheck_plan(20, 5, key, epoch=rule.epoch)
     assert (
-        seen["inputs"].tolist() == inputs[plan].tolist()
+        first["inputs"].tolist() == inputs[plan].tolist()
     )  # the keyed subset, in the keyed order
-    assert seen["expected_output_shape"] == (5, 1)
-    assert seen["identity"].startswith("menu-rowcheck-")  # never the pair's identity
+    assert first["expected_output_shape"] == (5, 1)
+    assert first["identity"].startswith("menu-rowcheck-")  # never the pair's identity
     read = pool_menu.read_rowcheck_side_file(raw)
     assert read["positions"] == plan
     assert read["outputs"] == [[float(inputs[i, 0])] for i in plan]
-    assert (
+    assert not (
         tmp_path / "menu-rowcheck.json"
-    ).read_bytes() == raw  # write-once, read back on a retry
+    ).exists()  # one file per epoch, named by its hash
 
 
 def test_the_staged_recheck_is_read_only_inside_its_block():

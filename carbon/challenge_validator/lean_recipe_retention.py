@@ -976,9 +976,6 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         raise RetentionUnavailable("menu_rowcheck_unavailable") from exc
     if rule is None:
         raise RetentionUnavailable("menu_rowcheck_unavailable")
-    path = _private_evaluation_directory(result, submission_id) / "menu-rowcheck.json"
-    if path.exists() or path.is_symlink():
-        return _private_measurement_bytes(path, PAIR_READ_BYTES)
     inputs, output_shape = _graded_query(material, artifacts)
     try:
         positions = pool_menu.rowcheck_plan(
@@ -986,6 +983,24 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         )
     except pool_exam.ExamRefused as exc:
         raise RetentionUnavailable(exc.code) from exc
+    if not positions:  # (rowcheck_plan never yields none today; TE-B should-fix 2)
+        raise RetentionUnavailable("menu_rowcheck_evidence_unreadable")
+    # One write-once file per registered epoch (TE-B should-fix 1): a regrade after a menu rotation computes the new
+    # epoch's re-check instead of re-using the old subset (which the measure would refuse: a grade stall). A cached file
+    # whose positions are not this epoch's plan is Carbon's fault, never re-used.
+    tag = hashlib.sha256(rule.epoch.encode()).hexdigest()[:16]
+    path = _private_evaluation_directory(result, submission_id) / (
+        f"menu-rowcheck-{tag}.json"
+    )
+    if path.exists() or path.is_symlink():
+        cached = _private_measurement_bytes(path, PAIR_READ_BYTES)
+        try:
+            same = pool_menu.read_rowcheck_side_file(cached)["positions"] == positions
+        except pool_exam.ExamRefused:
+            same = False
+        if not same:
+            raise RetentionUnavailable("menu_rowcheck_cache_not_this_epoch")
+        return cached
     subset = np.ascontiguousarray(inputs[positions])
     subset_shape = (len(positions), *tuple(output_shape)[1:])
     owner = adapter.owner(submission_id) if regrade is None else regrade.owner
