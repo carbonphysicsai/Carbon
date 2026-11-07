@@ -431,9 +431,8 @@ do, and what stays the same.
 
 **What changes**
 
-- **The subnet.** Mainnet is subnet **HUMAN_INPUT** (netuid) on Bittensor's
-  main network (`--network finney` in `btcli`), not subnet 567 on the test
-  network.
+- **The subnet.** Mainnet is subnet **116** on Bittensor's main network
+  (`--network finney` in `btcli`), not subnet 567 on the test network.
 - **Real TAO.** Joining is paid in real TAO from your coldkey, and the cost
   is set by the chain. **Check my balance** shows the live cost before you
   sign; your wallet shows the exact figure again when you sign, and that is
@@ -442,9 +441,11 @@ do, and what stays the same.
 - **Where submissions go.** Each Challenge has its own mainnet grader
   address: **HUMAN_INPUT** (per Challenge). The installer update puts them in
   your profile; you type nothing.
-- **Which versions open.** The Challenge versions that open on mainnet:
-  **HUMAN_INPUT** (listed here when they open). Each opens only when its exam
-  is qualified, and each has its own *How you're tested* page in its data kit.
+- **Which versions open.** Motor 1.8 and Cooling 1.8 are planned to open
+  first; Burst Thermal 3.2 joins after them, once it passes its checks. Ribbed
+  Bracket: **HUMAN_INPUT**. The list here is updated as each one opens. Each
+  opens only when its exam is qualified, and each has its own *How you're
+  tested* page in its data kit.
 - **Mainnet starts clean.** Nothing from the test network carries over: no
   registration, crown, score, Ladder entry or submission. Test network
   results are rehearsal only.
@@ -470,7 +471,7 @@ do, and what stays the same.
    subnet in your own wallet tool:
 
    ```bash
-   btcli subnets register --netuid <mainnet netuid> --wallet-name <your wallet> --hotkey <your hotkey> --network finney
+   btcli subnets register --netuid 116 --wallet-name <your wallet> --hotkey <your hotkey> --network finney
    ```
 
    You can use the same wallet as on the test network; registration is
@@ -493,7 +494,7 @@ do, and what stays the same.
 
 | Date | What changed | What you do |
 |---|---|---|
-| HUMAN_INPUT | Mainnet opens: subnet HUMAN_INPUT, versions HUMAN_INPUT | Steps 1–6 above |
+| HUMAN_INPUT | Mainnet opens: subnet 116, versions HUMAN_INPUT | Steps 1–6 above |
 
 ## Report a problem
 
