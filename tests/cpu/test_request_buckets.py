@@ -310,6 +310,9 @@ def test_continuation_chunks_never_take_a_submits_tokens(door, monkeypatch):
     chunk_call = SimpleNamespace(
         operation="stage_research_source", request=SimpleNamespace(offset=8192)
     )
+    monkeypatch.setattr(
+        intake, "_continues_upload", lambda hotkey, request: request.offset > 0
+    )
     first_call = SimpleNamespace(
         operation="stage_research_source", request=SimpleNamespace(offset=0)
     )
@@ -349,3 +352,64 @@ def test_without_request_buckets_the_door_keeps_the_shared_peer_bucket(door):
         a for a in answers if _rate_refused(a)
     ]  # today's one shared bucket (burst 10)
     assert not any(_rate_refused(a) for a in answers[:10])
+
+
+# --- a continuation is this owner's own upload at its current length (Validator-2B 7 Nov) ----------------------------
+
+
+def _campaign(tmp_path):
+    from test_direct_source_staging import _ledger
+
+    return _ledger(tmp_path)
+
+
+def test_only_a_chunk_at_the_owners_current_length_is_a_continuation(tmp_path):
+    from test_direct_source_staging import _request
+
+    from carbon.development_session.direct_source_staging import (
+        continuation_at,
+        stage_source,
+    )
+    from carbon.level4 import staging
+
+    ledger = _campaign(tmp_path)
+    body = b'{"documents":{}}'
+    first = _request(staging.WORKSPACE_MANIFEST, body, 0, body[:8])
+    assert not continuation_at(ledger, "alice", first)  # offset 0: a request
+    second = _request(staging.WORKSPACE_MANIFEST, body, 8, body[8:12])
+    assert not continuation_at(ledger, "alice", second)  # nothing staged yet
+    stage_source(ledger, "alice", first)
+    assert continuation_at(ledger, "alice", second)
+    assert not continuation_at(ledger, "bob", second)  # another owner's upload
+    replayed = _request(staging.WORKSPACE_MANIFEST, body, 4, body[4:8])
+    assert not continuation_at(ledger, "alice", replayed)  # below the current length
+    ahead = _request(staging.WORKSPACE_MANIFEST, body, 12, body[12:])
+    assert not continuation_at(ledger, "alice", ahead)
+    assert not continuation_at(ledger, "alice", SimpleNamespace(offset=8))
+
+
+def test_an_empty_guard_and_a_forged_registered_flood_leave_the_real_hotkey_at_worst_503(
+    door,
+):
+    # Validator-2B 7 Nov: with the guard empty, a forger naming registered hotkeys can contend for in-flight
+    # slots (503 capacity) but never 429 the real hotkey.
+    intake = door.build(_frozen())
+    for _ in range(3):
+        door.post(intake, "nobody", claimed=False)
+    assert _rate_refused(door.post(intake, "nobody", claimed=False)[0])  # guard empty
+    for hotkey in ("miner", "miner2", "miner3") * 4:
+        forged, _ = door.post(intake, hotkey, forged=True)
+        assert forged.status == 401
+    real, _ = door.post(intake, "miner")
+    assert real.status != 429
+    # The in-flight cap is the only bound left on verified-looking traffic: full, it answers 503, never 429.
+    from carbon.battery.intake import IN_FLIGHT
+
+    for _ in range(IN_FLIGHT):
+        assert intake.limits._flight.acquire(blocking=False)
+    try:
+        crowded, _ = door.post(intake, "miner")
+        assert crowded.status == 503 and crowded.body["refused"] == "capacity"
+    finally:
+        for _ in range(IN_FLIGHT):
+            intake.limits._flight.release()

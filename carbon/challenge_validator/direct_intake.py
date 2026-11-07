@@ -239,15 +239,24 @@ class DirectRecipeIntake(BatteryIntake):
                 call = decode_research_call(received.call)
             except (ValueError, TypeError):
                 call = None
-            offset = getattr(getattr(call, "request", None), "offset", 0)
             chunk = (
                 call is not None
                 and call.operation == "stage_research_source"
-                and type(offset) is int
-                and offset > 0
+                and self._continues_upload(received.receipt.hotkey, call.request)
             )
         group = self.funder_map.group(received.receipt.coldkey)
         return self.request_buckets.charge_group(group, chunk=chunk)
+
+    def _continues_upload(self, hotkey, request):
+        """Whether a verified source chunk continues this hotkey's own staged upload at its current length (Validator-2B
+        7 Nov R89 condition): a read of its workspace, never a stage. Any failure to read says no (a request)."""
+        from carbon.development_session.direct_source_staging import continuation_at
+
+        try:
+            provider = self.adapter._provider(hotkey)
+            return continuation_at(provider.ledger, provider.owner, request)
+        except Exception:  # noqa: BLE001 - unreadable = not a continuation; the stage itself decides the reply
+            return False
 
     def _official_gpu(self):
         """Readiness for the public info document (`served.official_readiness`), cached for a few seconds: it
