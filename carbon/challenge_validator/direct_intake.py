@@ -249,13 +249,16 @@ class DirectRecipeIntake(BatteryIntake):
 
     def _continues_upload(self, hotkey, request):
         """Whether a verified source chunk continues this hotkey's own staged upload at its current length (Validator-2B
-        7 Nov R89 condition): a read of its workspace, never a stage. Any failure to read says no (a request)."""
+        7 Nov R89 condition): a read of its workspace, never a stage. Any failure to read says no (a request).
+        """
         from carbon.development_session.direct_source_staging import continuation_at
 
         try:
             provider = self.adapter._provider(hotkey)
             return continuation_at(provider.ledger, provider.owner, request)
-        except Exception:  # noqa: BLE001 - unreadable = not a continuation; the stage itself decides the reply
+        except (
+            Exception
+        ):  # noqa: BLE001 - unreadable = not a continuation; the stage itself decides the reply
             return False
 
     def _official_gpu(self):

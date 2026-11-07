@@ -1425,7 +1425,13 @@ def _handler(intake):
                 # behind one local forward all probe freely (GPU_REBUILD_RULINGS section 12).
                 body = read_body(self.connection, self.rfile, length, BODY_DEADLINE_S)
                 return self._answer(intake.route(method, self.path, headers, body))
-            if not intake.admit_before_body(method, peer, headers):
+            # A door that attributes requests itself (R89) says how; any other served object keeps its peer bucket.
+            admit = getattr(intake, "admit_before_body", None)
+            if not (
+                intake.limits.allow(peer)
+                if admit is None
+                else admit(method, peer, headers)
+            ):
                 self._drain(length)
                 return self._answer(_refused(429, "rate"))
             try:

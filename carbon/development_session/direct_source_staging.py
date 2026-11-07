@@ -67,7 +67,8 @@ def _partial_name(request: DirectStageSourceRequestV1) -> str:
 def continuation_at(ledger, owner: str, request) -> bool:
     """Whether ``request`` continues ``owner``'s OWN partial upload of that file exactly at its current length (offset > 0
     and == the bytes already staged). A read only: nothing is staged or changed. The R89 chunk bucket's test (Validator-2B
-    7 Nov): a first chunk, a replayed one, or one naming an upload this owner does not hold is a request, not a chunk."""
+    7 Nov): a first chunk, a replayed one, or one naming an upload this owner does not hold is a request, not a chunk.
+    """
     if (
         type(request) is not DirectStageSourceRequestV1
         or type(request.offset) is not int
