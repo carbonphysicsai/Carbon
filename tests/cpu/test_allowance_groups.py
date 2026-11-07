@@ -299,27 +299,39 @@ def test_the_hourly_line_carries_counts_only(cap):
 def test_a_map_merge_never_frees_a_slot_for_the_merged_hotkey(cap):
     _install()
     _grade(cap, "hk3")  # filed under cold3's own group
-    _install(current=_map({"cold": GROUP_ID, "cold3": GROUP_ID}))  # the refresh merges cold3 into a funder
-    _refused(cap, "hk3", "epoch_limit_reached")  # its earlier row still counts for itself
-    _grade(cap, "hk1")  # its new sibling: the earlier row is not theirs (not retroactive)
+    _install(
+        current=_map({"cold": GROUP_ID, "cold3": GROUP_ID})
+    )  # the refresh merges cold3 into a funder
+    _refused(
+        cap, "hk3", "epoch_limit_reached"
+    )  # its earlier row still counts for itself
+    _grade(
+        cap, "hk1"
+    )  # its new sibling: the earlier row is not theirs (not retroactive)
 
 
 def test_the_map_file_is_re_read_when_it_changes(tmp_path):
     import os
 
     path = tmp_path / "funder-map.json"
-    path.write_bytes(json.dumps({"schema": funder_map.SCHEMA, "block": 1, "groups": {}}).encode())
+    path.write_bytes(
+        json.dumps({"schema": funder_map.SCHEMA, "block": 1, "groups": {}}).encode()
+    )
     os.chmod(path, 0o600)
     watched = funder_map.Watched(path)
     first = watched.current()
     assert first.groups == {} and watched.current() is first  # unchanged: no re-read
     path.write_bytes(
-        json.dumps({"schema": funder_map.SCHEMA, "block": 2, "groups": {"cold": GROUP_ID}}).encode()
+        json.dumps(
+            {"schema": funder_map.SCHEMA, "block": 2, "groups": {"cold": GROUP_ID}}
+        ).encode()
     )
     os.utime(path, ns=(10**18, 10**18))
     second = watched.current()
     assert second.block == 2 and second.group("cold") == "f:" + GROUP_ID
     path.write_bytes(b"{")
     os.utime(path, ns=(2 * 10**18, 2 * 10**18))
-    assert watched.current().problem == "funder_map_malformed"  # never the old map silently kept
+    assert (
+        watched.current().problem == "funder_map_malformed"
+    )  # never the old map silently kept
     assert funder_map.Watched(None).current().problem is None

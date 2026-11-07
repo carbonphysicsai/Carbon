@@ -205,7 +205,8 @@ class DirectRecipeIntake(BatteryIntake):
 
     def _current_map(self):
         """The funder map to use now: re-read when the configured file changed (`funder_map.Watched`, set by the
-        receiver as ``funder_map_watch``), swapped whole, so R89 and the exam cap's grouping read ONE copy."""
+        receiver as ``funder_map_watch``), swapped whole, so R89 and the exam cap's grouping read ONE copy.
+        """
         watch = getattr(self, "funder_map_watch", None)
         if watch is not None:
             self.funder_map = watch.current()
