@@ -3,12 +3,14 @@ this door already keeps. Reads; writes nothing.
 
 - **waiting to build / building now / waiting to grade:** the auto-grader's PENDING tasks (submitted, no verdict marker
   yet: `AutoGrader.pending`), split by the task's own state in the providers ALREADY OPEN on this receiver: QUEUED
-  waits to build; RUNNING or CANCEL_REQUESTED is building; anything else (built, or a task no open provider holds, e.g.
-  admitted under an earlier contract, or requeued after an infrastructure failure) waits to grade. A pending task is
-  always counted somewhere.
+  waits to build; RUNNING or CANCEL_REQUESTED is building; SUCCEEDED (built, its grade not run yet) waits to grade.
+  NOTHING ELSE is counted (Deploy 6 Nov 18:59, all 4 doors read-only): a miner-CANCELLED task, a build that ended
+  REFUSED / FAILED_INFRA / UNRESOLVED, and a task no open store holds (A2 'archived for resubmit') never get a verdict
+  marker, so they stay in `pending()` forever; counting them inflated RB's queue by ~270 with none truly waiting.
 - **A GET never slows a grade** (Validator-2 12:37): task states come from ONE pass over the open providers' task views
   (dict reads, no lock taken, no provider opened, no `owner()` / `_provider()` call, so no source-identity hashing and no
-  registration read). A provider being changed mid-read is skipped for that snapshot (its tasks wait to grade).
+  registration read). A provider being changed mid-read is skipped for that one snapshot (its tasks drop out of the
+  counts until the next read, 30 s later: a brief undercount, never an inflated queue).
 - **grading now:** this door's in-flight record (``work-inflight.json``, `direct_intake._WorkLock`) is a GRADE round and
   the grader is grading a submission (not its king's upkeep).
 - **door state:** ``draining for an update`` while the operator's per-door DRAINING flag is set; ``paused`` while the
@@ -31,6 +33,8 @@ from . import queue_public as qp
 CACHE_S = 30.0
 DAY_S = 86400.0
 _BUILDING = frozenset({"RUNNING", "CANCEL_REQUESTED"})
+#: The one state that waits for a grade: built, no verdict yet.
+_BUILT = "SUCCEEDED"
 
 
 class QueueView:
@@ -66,7 +70,7 @@ class QueueView:
                 views = tuple(getattr(provider, "_views", {}).items())
             except (
                 RuntimeError
-            ):  # changed while read: its tasks wait to grade in this snapshot
+            ):  # changed while read: its tasks drop out of this snapshot only
                 continue
             for task, view in views:
                 try:
@@ -119,8 +123,9 @@ class QueueView:
                 counts["waiting_to_build"] += 1
             elif state in _BUILDING:
                 counts["building_now"] += 1
-            else:
+            elif state == _BUILT:
                 counts["waiting_to_grade"] += 1
+            # cancelled, a build that ended without success, or a task in no open store: closed, never waiting
         return {
             "door_state": self._door_state(),
             **counts,

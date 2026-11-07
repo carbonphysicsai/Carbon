@@ -164,7 +164,9 @@ def _door(tmp_path, states, *, pending, verdicts=(), clock=NOW):
     return queue_view.QueueView(intake, grader, tmp_path, clock=lambda: clock), grader
 
 
-def test_every_pending_task_is_counted_once_by_its_own_stage(tmp_path):
+def test_every_open_task_is_counted_once_by_its_own_stage_and_closed_ones_nowhere(
+    tmp_path,
+):
     states = {
         TASKS[0]: (DirectTaskStateV3.QUEUED, NOW - 100),
         TASKS[1]: (DirectTaskStateV3.QUEUED, NOW - 90),
@@ -182,9 +184,10 @@ def test_every_pending_task_is_counted_once_by_its_own_stage(tmp_path):
         snap["waiting_to_build"],
         snap["building_now"],
         snap["waiting_to_grade"],
-    ) == (2, 1, 3)
+    ) == (2, 1, 1)
+    # Deploy 6 Nov 18:59: only SUCCEEDED waits to grade; FAILED_INFRA (TASKS[4]) and no-store (TASKS[5]) count nowhere
     assert (
-        snap["waiting_to_build"] + snap["building_now"] + snap["waiting_to_grade"] == 6
+        snap["waiting_to_build"] + snap["building_now"] + snap["waiting_to_grade"] == 4
     )
     assert snap["door_state"] == queue_public.GRADING and snap["grading_now"] == 0
 
@@ -291,7 +294,10 @@ def test_a_snapshot_opens_no_provider_and_hashes_no_served_source(
     states = {TASKS[0]: (DirectTaskStateV3.QUEUED, NOW - 10)}
     view, _ = _door(tmp_path, states, pending=TASKS[:2])
     snap = view.snapshot()  # owner()/_provider() raise if called (see _door)
-    assert (snap["waiting_to_build"], snap["waiting_to_grade"]) == (1, 1)
+    assert (snap["waiting_to_build"], snap["waiting_to_grade"]) == (
+        1,
+        0,
+    )  # TASKS[1] in no open store: counted nowhere (Deploy 6 Nov 18:59)
 
 
 def test_a_get_while_a_build_holds_its_provider_lock_returns_at_once(tmp_path):
@@ -332,7 +338,12 @@ def test_a_provider_changing_mid_read_is_skipped_not_fatal(tmp_path):
 
     view.intake.adapter.provider_for._providers["5" + "M" * 47]._views = Changing()
     snap = view.snapshot()
-    assert snap["waiting_to_grade"] == 1  # its task waits to grade in this snapshot
+    # the snapshot still answers; its task has no state this read, so it is counted nowhere (Deploy 6 Nov 18:59)
+    assert (
+        snap["waiting_to_build"],
+        snap["building_now"],
+        snap["waiting_to_grade"],
+    ) == (0, 0, 0)
 
 
 class _ChangingProviders(dict):
@@ -367,3 +378,109 @@ def test_the_providers_dict_still_changing_is_a_503_never_a_500(tmp_path):
         503,
         {"refused": "queue_unavailable"},
     )
+
+
+# --- only a built task waits to grade (Deploy 6 Nov 18:59, read-only on all 4 doors) ---------------------------------
+
+
+def _ids(n, start=0):
+    return ["rtsk_" + f"{i:064x}" for i in range(start, start + n)]
+
+
+def _shaped(tmp_path, groups):
+    """``groups``: ``[(state or None, count)]``; ``None`` is a pending task no open store holds (archived for resubmit).
+    Returns the (view, grader) for those pending tasks."""
+    states, pending, start = {}, [], 1000
+    for state, count in groups:
+        ids = _ids(count, start)
+        start += count
+        pending += ids
+        if state is not None:
+            states.update({task: (state, NOW - 100) for task in ids})
+    return _door(tmp_path, states, pending=pending)
+
+
+def _counts(view):
+    snap = view._read()
+    return (snap["waiting_to_build"], snap["building_now"], snap["waiting_to_grade"])
+
+
+def test_rb_shape_cancelled_and_archived_is_nothing_waiting(tmp_path):
+    view, grader = _shaped(tmp_path, [(DirectTaskStateV3.CANCELLED, 259), (None, 15)])
+    assert len(grader.pending()) == 274  # the old page showed 274 waiting to grade
+    assert _counts(view) == (0, 0, 0)
+
+
+def test_bt_shape_all_cancelled_is_nothing_waiting(tmp_path):
+    view, _ = _shaped(tmp_path, [(DirectTaskStateV3.CANCELLED, 19)])
+    assert _counts(view) == (0, 0, 0)
+
+
+def test_motor_shape_only_the_built_requeues_wait_to_grade(tmp_path):
+    view, _ = _shaped(
+        tmp_path,
+        [
+            (DirectTaskStateV3.CANCELLED, 27),
+            (None, 4),
+            (DirectTaskStateV3.SUCCEEDED, 3),
+        ],
+    )
+    assert _counts(view) == (0, 0, 3)
+
+
+def test_cooling_shape_a_refused_build_does_not_wait_to_grade(tmp_path):
+    view, _ = _shaped(
+        tmp_path,
+        [
+            (DirectTaskStateV3.CANCELLED, 17),
+            (DirectTaskStateV3.SUCCEEDED, 5),
+            (DirectTaskStateV3.REFUSED, 2),
+        ],
+    )
+    assert _counts(view) == (0, 0, 5)
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        DirectTaskStateV3.CANCELLED,
+        DirectTaskStateV3.REFUSED,
+        DirectTaskStateV3.FAILED_INFRA,
+        DirectTaskStateV3.UNRESOLVED,
+        None,  # no open store holds it
+    ],
+    ids=lambda s: "NO_STORE" if s is None else s.value,
+)
+def test_a_closed_or_storeless_pending_task_is_counted_nowhere(tmp_path, state):
+    view, _ = _shaped(tmp_path, [(state, 1)])
+    assert _counts(view) == (0, 0, 0)
+
+
+@pytest.mark.parametrize(
+    ("state", "expected"),
+    [
+        (DirectTaskStateV3.QUEUED, (1, 0, 0)),
+        (DirectTaskStateV3.RUNNING, (0, 1, 0)),
+        (DirectTaskStateV3.CANCEL_REQUESTED, (0, 1, 0)),
+        (DirectTaskStateV3.SUCCEEDED, (0, 0, 1)),
+    ],
+    ids=lambda v: v.value if isinstance(v, DirectTaskStateV3) else None,
+)
+def test_each_open_state_is_counted_in_its_one_bucket(tmp_path, state, expected):
+    view, _ = _shaped(tmp_path, [(state, 1)])
+    assert _counts(view) == expected
+
+
+def test_the_public_page_for_the_rb_shape_shows_nothing_waiting_in_the_same_fields(
+    tmp_path,
+):
+    view, _ = _shaped(tmp_path, [(DirectTaskStateV3.CANCELLED, 259), (None, 15)])
+    status, body = queue_public.serve(view, CHALLENGE)
+    assert status == 200
+    assert set(body) == queue_public.FIELDS
+    assert (
+        body["waiting_to_build"],
+        body["building_now"],
+        body["waiting_to_grade"],
+    ) == (0, 0, 0)
+    assert "rtsk_" not in json.dumps(body)
