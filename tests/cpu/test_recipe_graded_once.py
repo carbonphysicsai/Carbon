@@ -430,7 +430,9 @@ def test_waits_are_logged_once_an_hour_counts_only(door, monkeypatch):
     from carbon.battery import intake as battery_intake
 
     lines = []
-    monkeypatch.setattr(battery_intake, "log", lambda event, **f: lines.append((event, f)))
+    monkeypatch.setattr(
+        battery_intake, "log", lambda event, **f: lines.append((event, f))
+    )
     now = [0.0]
     door.grader.clock = lambda: now[0]
     door.submit(T[0], HOTKEYS[0], _recipe())

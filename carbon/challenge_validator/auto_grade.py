@@ -347,7 +347,8 @@ class AutoGrader:
 
     def _log_copy_waits(self):
         """At most one ``recipe_copy_waits_hourly`` line per hour: how many grade rounds left a copy waiting for its
-        unsettled first (Validator-2B 7 Nov; a WAIT is never silent). Counts only, never an id."""
+        unsettled first (Validator-2B 7 Nov; a WAIT is never silent). Counts only, never an id.
+        """
         from carbon.battery.intake import log
 
         now = getattr(self, "clock", time.monotonic)()
@@ -361,7 +362,10 @@ class AutoGrader:
                 waits=self.recipe_copy_waits - self._copy_waits_logged,
                 period_s=round(now - since),
             )
-            self._copy_waits_since, self._copy_waits_logged = now, self.recipe_copy_waits
+            self._copy_waits_since, self._copy_waits_logged = (
+                now,
+                self.recipe_copy_waits,
+            )
 
     def _exam_key(self):
         snapshot = getattr(
