@@ -131,6 +131,9 @@ are not shown, and the hidden sample rotates.
   with its pinned reference, outside every sealed set. `verify` solves them
   on your machine and compares within U, so you can check your kit against
   Carbon's reference.
+- Known gap: no verify design runs hotter than 100 C, so `verify` and
+  practice do not check the hottest designs, near the coolant model's 99 C
+  end.
 - The app's practice score for Cooling 1.8 uses the same 6 designs and the
   grade's own measurement, labelled **practice (kit verify set)**. It checks
   the gates and accuracy within U. Design value and the minimums are not

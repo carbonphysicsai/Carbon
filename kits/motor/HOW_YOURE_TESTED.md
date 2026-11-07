@@ -28,9 +28,10 @@ deep. About 91 % of the box is buildable.
 dimensions, single-layer winding of 104 turns per slot, magnet remanence 1.2 T,
 stack length 35 mm. The iron is Brauer's law.
 
-**Official TRAIN:** Motor 1.8 has its own TRAIN set: the 150 cases of the
-earlier Motor TRAIN plus new rows inside the box, near the onset of saturation
-and at zero current, so those regimes can be learned from public data. Its name, size and
+**Official TRAIN:** Motor 1.8 has its own TRAIN set,
+motor-dev-train-1p8-v1: the 150 cases of the earlier Motor TRAIN, unchanged,
+plus new rows inside the box, near the onset of saturation and at zero
+current, so those regimes can be learned from public data. Its size and
 digest: **HUMAN_INPUT** (published at the TRAIN freeze). The grade trains your
 recipe on this TRAIN only, never on your kit data.
 
@@ -108,14 +109,16 @@ are not shown, and the hidden sample rotates.
 - **Graded outputs:** the torque curve at 60 rotor angles over one 15 degree
   period, read as mean torque and as torque ripple, the size of the torque
   swing (peak to peak, in N.m), so it stays well defined even near zero
-  torque. Any further Motor 1.8 output: **HUMAN_INPUT** (named here before
-  the version opens).
+  torque. Cogging, at zero current, is graded on that absolute swing in N.m,
+  never as a fraction of the mean. Motor 1.8 grades torque only; back-EMF is
+  planned for Motor 1.9.
 - **Reference uncertainty U:** Motor 1.8's registered values:
   **HUMAN_INPUT**. The published verify set carries mean torque 0.019 N.m
   and ripple fraction 0.15 (Motor 1.7's extended-shell U of record).
 - **Outside the training range:** hidden classes include cases outside the
-  training range, for example current densities past where the iron starts
-  to saturate. These cases count for the physics part, for the design menus
+  training range. The kinds Motor 1.8 tests include saturation (current
+  densities past where the iron starts to saturate), cross-saturation and
+  cogging at zero current. These cases count for the physics part, for the design menus
   and for the gates. Their extents are never published.
 - **A model has to generalise.** A fit of any one dataset, yours included,
   is tested where that dataset does not reach.
