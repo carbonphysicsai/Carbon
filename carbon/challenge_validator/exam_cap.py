@@ -197,13 +197,13 @@ _ROW_GROUP = "COALESCE(group_id, 'h:' || hotkey)"
 
 
 def install_grouping(grouping):
-    {Q}Install (or, with None, remove) this process's allowance grouping.{Q}
+    """Install (or, with None, remove) this process's allowance grouping."""
     global GROUPING
     GROUPING = grouping
 
 
 def group_of(hotkey):
-    {Q}The allowance group of ``hotkey``: the installed grouping's (it may raise `ExamCapRefused`), else its own.{Q}
+    """The allowance group of ``hotkey``: the installed grouping's (it may raise `ExamCapRefused`), else its own."""
     return "h:" + hotkey if GROUPING is None else GROUPING(hotkey)
 
 
