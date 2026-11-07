@@ -22,14 +22,40 @@ from kits.motor import kit
 KIT_DIR = Path(kit.__file__).resolve().parent
 
 
-def _record(case_id, inputs, curve, status="OK"):
-    return {
+def _linkage(curve, phase):
+    return [0.001 * (k + 1) + 0.0001 * "ABC".index(phase) for k in range(len(curve))]
+
+
+def _record(case_id, inputs, curve, status="OK", linkage=True):
+    record = {
         "schema": kit.RECORD_SCHEMA,
         "case_id": case_id,
         "status": status,
         "inputs": inputs,
         "outputs": {"torque_nm": curve},
     }
+    if linkage:
+        record["record_now"] = {
+            "phase_flux_linkage_wb": {p: _linkage(curve, p) for p in "ABC"}
+        }
+    return record
+
+
+#: A SYNTHETIC Motor 1.8 TRAIN interface (the real one is pinned at the freeze): torque, then A, B, C.
+INTERFACE_18 = {
+    "schema": "carbon.physical-public-train.numeric-interface.v1",
+    "target_slices": {
+        "torque_nm": [0, 60],
+        "phase_flux_linkage_wb_A": [60, 120],
+        "phase_flux_linkage_wb_B": [120, 180],
+        "phase_flux_linkage_wb_C": [180, 240],
+    },
+}
+
+
+@pytest.fixture
+def frozen(monkeypatch):
+    monkeypatch.setattr(kit, "numeric_interface", lambda: INTERFACE_18)
 
 
 def _fixture(tmp_path):
@@ -55,26 +81,79 @@ def _fixture(tmp_path):
 # --- parser -------------------------------------------------------------------
 
 
-def test_parser_writes_the_train_format(tmp_path):
+def test_parser_writes_the_train_format(tmp_path, frozen):
     cases, rows, path = _fixture(tmp_path)
     raw, provenance = kit.parse(path)
     with np.load(io.BytesIO(raw), allow_pickle=False) as data:
         assert data["inputs"].shape == (2, 8)
         assert data["inputs"].dtype == np.dtype("<f8")
-        assert data["targets"].shape == (2, 60)
+        assert data["targets"].shape == (2, 240)
         assert data["inputs"][1].tolist() == [
             cases[1]["inputs"][n] for n in domain.INPUTS
         ]
-        assert data["targets"][0].tolist() == rows[0]["outputs"]["torque_nm"]
+        torque = rows[0]["outputs"]["torque_nm"]
+        phases = rows[0]["record_now"]["phase_flux_linkage_wb"]
+        assert data["targets"][0].tolist() == [
+            *torque,
+            *phases["A"],
+            *phases["B"],
+            *phases["C"],
+        ]
         # The standard-library writer is byte-identical to Carbon's TRAIN writer.
         assert raw == physical_public_train._npz(data["inputs"], data["targets"])
     assert provenance["skipped"] == {"REFERENCE_TIMEOUT": 1}
     assert provenance["scope"] == "MINER_GENERATED_PRACTICE_ONLY"
-    # The numeric layout is Carbon's public TRAIN interface, unchanged.
-    assert provenance[
-        "numeric_interface"
-    ] == physical_public_train.numeric_interface_document("electric-motor-magnetics")
-    assert kit.read_npz(io.BytesIO(raw))["targets"][0] == (2, 60)
+    assert provenance["challenge"]["kit_version"] == "1.8"
+    # The numeric layout is Carbon's public 1.8 TRAIN interface, unchanged.
+    assert provenance["numeric_interface"] == INTERFACE_18
+    assert kit.read_npz(io.BytesIO(raw))["targets"][0] == (2, 240)
+
+
+def test_the_parser_refuses_until_the_1_8_train_is_frozen(tmp_path):
+    _cases, _rows, path = _fixture(tmp_path)
+    if physical_public_train.EXTENDED[kit.TRAIN_NAME]["provenance_sha256"] is None:
+        with pytest.raises(kit.KitError, match="published with its TRAIN at the freeze"):
+            kit.parse(path)
+
+
+def test_the_parser_refuses_a_record_without_the_flux_linkage(tmp_path, frozen):
+    path = tmp_path / "r.jsonl"
+    record = _record("a", dict(domain.NOMINAL), [1.0] * 60, linkage=False)
+    path.write_text(json.dumps(record) + "\n")
+    with pytest.raises(kit.KitError, match="record-now runner"):
+        kit.parse(path)
+    record = _record("a", dict(domain.NOMINAL), [1.0] * 60)
+    record["record_now"]["phase_flux_linkage_wb"]["C"].pop()
+    path.write_text(json.dumps(record) + "\n")
+    with pytest.raises(kit.KitError, match="phase_flux_linkage_wb_C must hold 60"):
+        kit.parse(path)
+
+
+@pytest.mark.parametrize(
+    ("slices", "code"),
+    [
+        ({}, "no target slices"),
+        ({"torque_nm": [0, 60], "back_emf": [60, 120]}, "does not carry"),
+        ({"torque_nm": [0, 60], "phase_flux_linkage_wb_A": [61, 121]}, "contiguous"),
+        ({"torque_nm": [1, 60]}, "contiguous"),
+    ],
+)
+def test_the_target_layout_is_whole_and_readable(slices, code):
+    with pytest.raises(kit.KitError, match=code):
+        kit.target_layout({"target_slices": slices})
+
+
+def test_the_layout_is_read_in_row_order():
+    shuffled = dict(reversed(list(INTERFACE_18["target_slices"].items())))
+    layout = kit.target_layout({"target_slices": shuffled})
+    assert [name for name, _s, _e in layout] == list(INTERFACE_18["target_slices"])
+
+
+def test_a_practice_score_reads_the_torque_slice_of_a_1_8_row(frozen):
+    row = [2.0] * 60 + [0.1] * 180
+    assert kit._torque_of(row) == [2.0] * 60
+    assert kit._torque_of([2.0] * 60) == [2.0] * 60
+    assert kit._torque_of([2.0] * 61) == [2.0] * 61  # left as it is: the gates fail it
 
 
 def test_reader_reads_carbons_public_train():
@@ -85,7 +164,7 @@ def test_reader_reads_carbons_public_train():
         assert arrays["targets"][1] == data["targets"].tolist()
 
 
-def test_parser_refuses_out_of_box_and_short_curves(tmp_path):
+def test_parser_refuses_out_of_box_and_short_curves(tmp_path, frozen):
     path = tmp_path / "r.jsonl"
     path.write_text(
         json.dumps(_record("a", dict(domain.NOMINAL, magnet_mm=99.0), [1.0] * 60))
@@ -120,6 +199,11 @@ def test_run_script_is_carbons(tmp_path):
     runner = kit._runner()
     p = kit.write_case(runner, kit.nominal()[0], tmp_path / "c")
     assert p == runner.case_params(domain.NOMINAL, {})
+    # the record-now runner wraps Carbon's runner: the .pro gains its one |b| print, and every record names it
+    assert "bmag" in (tmp_path / "c" / "machine.pro").read_text()
+    assert runner.RECORD_NOW_RUNNER["name"] == "record-now"
+    assert runner.RECORD_NOW_RUNNER["wraps"]["file"].endswith("run_batch.py")
+    kit.allowed_record({"case_id": "a", "record_now": {}, "runner": {}})
     script = kit._script(runner, p)
     assert script.count("getdp machine.pro") == domain.ANGLE_STEPS + 1
     assert (tmp_path / "c" / "mesh.py").read_bytes() == kit.MESH.read_bytes()

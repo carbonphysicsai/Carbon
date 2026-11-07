@@ -93,6 +93,7 @@ CODE_MODULES = (
     "carbon/level4/train.py",
     "carbon/level4/validate.py",
     "carbon/motor/exam.py",
+    "carbon/scoring/motor18_dual_pack.py",
 )
 
 
@@ -221,10 +222,19 @@ def _motor_quantities(curve):
     }
 
 
+def motor_torque(row):
+    """The torque curve a Motor check reads from a model's row: the torque slice of a whole 240-wide Motor 1.8 row (its
+    official split, `motor18_dual_pack.split`), any other row as it is, which the native gates then judge."""
+    from carbon.scoring import motor18_dual_pack
+
+    parts = motor18_dual_pack.split(row)
+    return list(row) if parts is None else parts["torque_nm"]
+
+
 def _motor_design(design, prediction, u):
     from carbon.motor import exam
 
-    curve = [float(v) for v in prediction]
+    curve = [float(v) for v in motor_torque(prediction)]
     verdict = exam.evaluate_case({"torque_nm": curve}, {"status": "OK"})
     row = {
         "case_id": design["case_id"],

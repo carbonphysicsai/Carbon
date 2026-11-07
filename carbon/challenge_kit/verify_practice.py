@@ -119,7 +119,8 @@ def _input_names(challenge_id):
 def score_motor(src: VerifySource, rows, train):
     """Motor practice on the verify set: (predictions by case id, summary, verify block).
 
-    `rows` are the model's 60-angle torque curves for `src.designs`, in order; `train` is the public TRAIN records
+    `rows` are the model's rows for `src.designs`, in order: 60-angle torque curves, or whole Motor 1.8 rows whose
+    torque slice is read (`local_scorer.motor_torque`); `train` is the public TRAIN records
     the practice scales come from (`exam.scales_from_train`), as the public practice bank uses them.
     """
     from carbon.challenge_kit import local_scorer
@@ -134,7 +135,7 @@ def score_motor(src: VerifySource, rows, train):
     predictions = {}
     scored = []
     for design, row in zip(designs, rows):
-        curve = [float(v) for v in row]
+        curve = [float(v) for v in local_scorer.motor_torque(row)]
         predictions[design["case_id"]] = {"torque_nm": curve}
         reference = {
             "case_id": design["case_id"],

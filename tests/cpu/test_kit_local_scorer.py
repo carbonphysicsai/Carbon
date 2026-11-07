@@ -470,3 +470,19 @@ def test_the_cli_agrees_and_its_run_time_import_closure_is_clean(agreed, tmp_pat
     report = json.loads(out.read_text(encoding="utf-8"))
     assert report["predictions_sha256"] == agreed.report["predictions_sha256"]
     assert str(tmp_path) not in out.read_text(encoding="utf-8")
+
+
+def test_a_motor_check_reads_the_torque_slice_of_a_1_8_row():
+    from carbon.motor import exam
+
+    torque = [2.0 + 0.001 * k for k in range(60)]
+    row = torque + [0.01] * 180
+    assert local_scorer.motor_torque(row) == torque
+    assert local_scorer.motor_torque(torque) == torque  # a 60-angle row as it is
+    design = {"case_id": "d", "truth": {"torque_nm": torque}}
+    whole = local_scorer._motor_design(design, row, None)
+    assert whole["prediction"] == {"torque_nm": torque}
+    assert whole["state"] == exam.SCORABLE
+    # a row that is neither is left as it is: Motor's own schema gate fails it
+    broken = local_scorer._motor_design(design, row[:-1], None)
+    assert broken["gates"]["schema_finite"] == exam.FAIL
