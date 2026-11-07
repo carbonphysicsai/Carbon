@@ -169,7 +169,9 @@ class RequestBuckets:
     def peek_group(self, group):
         """Before the body: may a POST of this group still be admitted by either of its buckets? A pure read."""
         with self._lock:
-            allowed = self._kinds["group"].peek(group) or self._kinds["chunks"].peek(group)
+            allowed = self._kinds["group"].peek(group) or self._kinds["chunks"].peek(
+                group
+            )
             if not allowed:
                 self._count("peek_429")
             return allowed

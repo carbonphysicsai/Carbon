@@ -428,7 +428,9 @@ def test_the_hourly_line_carries_counts_only():
     now = [0.0]
     lines = []
     buckets = RequestBuckets(
-        TEST_VALUES, clock=lambda: now[0], emit=lambda event, **f: lines.append((event, f))
+        TEST_VALUES,
+        clock=lambda: now[0],
+        emit=lambda event, **f: lines.append((event, f)),
     )
     group = funder_map.FunderMap.empty().group("cold")
     for _ in range(4):

@@ -219,7 +219,11 @@ class DirectRecipeIntake(BatteryIntake):
         if buckets is None or method != "POST":
             return super().admit_before_body(method, peer, headers)
         group = self._claimed_group(headers)
-        return buckets.charge_guard("unattributed") if group is None else buckets.peek_group(group)
+        return (
+            buckets.charge_guard("unattributed")
+            if group is None
+            else buckets.peek_group(group)
+        )
 
     def note_capacity(self):
         """The listener's 503 capacity answer, counted for the hourly request-buckets line (no buckets: nothing)."""
