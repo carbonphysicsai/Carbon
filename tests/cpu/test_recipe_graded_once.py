@@ -398,7 +398,9 @@ def test_the_digest_noted_at_admission_survives_a_restart(door):
 def test_noting_a_digest_never_changes_an_admission(door):
     intake = SimpleNamespace(adapter=door.adapter)
     for result in ({"kind": "REFUSED"}, {"outcome": {"task_id": T[7]}}, None):
-        assert direct_intake.DirectRecipeIntake._note_recipe_digest(intake, result) is None
+        assert (
+            direct_intake.DirectRecipeIntake._note_recipe_digest(intake, result) is None
+        )
 
 
 def test_a_copy_is_settled_never_pending(door):
@@ -407,7 +409,9 @@ def test_a_copy_is_settled_never_pending(door):
     door.ready |= {T[0], T[1]}
     door.grader.run_once()
     door.grader.run_once()
-    assert door.grader.pending() == []  # the queue view counts only pending tasks: a copy is in none of its counts
+    assert (
+        door.grader.pending() == []
+    )  # the queue view counts only pending tasks: a copy is in none of its counts
 
 
 def test_the_digest_is_the_canonical_recipe_digest_and_ignores_the_submitter(door):

@@ -133,7 +133,8 @@ def activate(ledger, contract_digest):
 
 def note_admitted(adapter, submission_id):
     """Store an admitted submission's recipe digest at once (while its provider still holds the request), so a restart,
-    which empties the providers' in-memory requests, cannot make a later copy read as fresh."""
+    which empties the providers' in-memory requests, cannot make a later copy read as fresh.
+    """
     with _db(adapter.ledger) as db:
         _prepare(db)
         return recipe_digest(adapter, submission_id, db)

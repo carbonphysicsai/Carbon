@@ -447,17 +447,20 @@ class DirectRecipeIntake(BatteryIntake):
 
     def _note_recipe_digest(self, result):
         """OWNER-PROBING-COUNTERS-01 (b): store an admitted task's recipe digest at admission (`recipe_copies.
-        note_admitted`), so a restart cannot make a later copy read as fresh. Best effort: never changes the answer."""
+        note_admitted`), so a restart cannot make a later copy read as fresh. Best effort: never changes the answer.
+        """
         outcome = result.get("outcome") if type(result) is dict else None
         task_id = outcome.get("task_id") if type(outcome) is dict else None
-        if type(task_id) is not str or not hasattr(getattr(self.adapter, "ledger", None), "_db"):
+        if type(task_id) is not str or not hasattr(
+            getattr(self.adapter, "ledger", None), "_db"
+        ):
             return
         from . import recipe_copies
 
         try:
             recipe_copies.note_admitted(self.adapter, task_id)
-        except Exception:  # noqa: BLE001 - the admission stands either way; the grader reads it again
-            pass
+        except Exception:  # noqa: BLE001 - never changes the admission
+            return
 
     def _feedback(self, hotkey, *, submission_id=None, v3=False, v4=False):
         """The caller's own best and latest Ladder documents for the active exam
