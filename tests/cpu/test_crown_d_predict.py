@@ -792,7 +792,10 @@ def test_local_serving_program_times_one_3000_call_de_search(tmp_path):
         seconds = time.monotonic() - started
         counts = predictor.counts()
     print(f"\nlive predictor 3000-call DE search: {seconds:.2f} s, {counts}")
-    assert counts["rows"] >= 2900 and result.pick is not None
+    # every model call the search made reached the container, within the budget; de_polish_v1 leaves unused
+    # calls unused (no limits = no polish; compass stops below step 1e-4), so the count is not ~3000
+    assert counts["rows"] == result.counts["model_calls"] <= 3000
+    assert result.pick is not None
 
 
 # --------------------------------------------------------------------------
