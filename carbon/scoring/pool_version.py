@@ -482,7 +482,7 @@ class PoolVariant(physical.Variant):
                 "menu_rowcheck_key": rowcheck_key,
             }
         return pool_exam.measure_pool(
-            binding=pool_adapters.official_binding(self._kind, self.VERSION),
+            binding=official_binding(self._kind, self.VERSION),
             sets=sets,
             policies=policies,
             bank_rows=bank_rows,
@@ -755,6 +755,28 @@ def strip_pool(bank):
     return out
 
 
+#: Pool bindings a version registers itself (its overlay dispatch, e.g. `motor18_dual_pack`), by (kind, version):
+#: a version whose decision `pool_adapters` cannot express reaches the pool exam without an edit to `pool_adapters.py`,
+#: a live producer FILE (Validator-2B 7 Nov 13:27). Add-only; every other version keeps `pool_adapters.official_binding`.
+_BINDINGS: dict = {}
+
+
+def register_binding(kind, version, factory):
+    """Register ``factory() -> ChallengeBinding`` for one (kind, version). Add-only: a different factory for a version
+    already registered is refused; registering the same one again is a no-op."""
+    key = (kind, version)
+    if _BINDINGS.get(key, factory) is not factory:
+        raise ValueError(f"{key!r} already has a different pool binding")
+    _BINDINGS[key] = factory
+
+
+def official_binding(kind, version):
+    """The OFFICIAL pool binding of one Challenge version: its own registered one (`register_binding`), else
+    `pool_adapters.official_binding` (every version before this hook, unchanged)."""
+    factory = _BINDINGS.get((kind, version))
+    return pool_adapters.official_binding(kind, version) if factory is None else factory()
+
+
 def material_from_set_dir(
     set_dir, *, kind, version, input_dtype, set_digest=None, sets_file="sets.json"
 ):
@@ -764,7 +786,7 @@ def material_from_set_dir(
     from carbon.scoring import pool_plugin
 
     root = Path(set_dir)
-    binding = pool_adapters.official_binding(kind, version)
+    binding = official_binding(kind, version)
     sets = json.loads((root / sets_file).read_text(encoding="utf-8"))
     groups = []
     for targets in sets.values():
