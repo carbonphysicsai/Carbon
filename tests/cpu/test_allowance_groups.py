@@ -348,6 +348,12 @@ def test_the_grouped_sentences_are_miner_x_b_s_final_wording():
     }
     assert "{when}" in GROUPED_LIMIT_TEXT["epoch_limit_reached"]
     for text in GROUPED_LIMIT_TEXT.values():
-        assert "Nothing was built or graded for this submission and it used none of your allowance." in text
+        assert (
+            "Nothing was built or graded for this submission and it used none of your allowance."
+            in text
+        )
         assert "wallet" not in text
-    assert set(LIMIT_TEXT) == {"epoch_limit_reached", "exam_daily_allowance_reached"}  # ungrouped text unchanged
+    assert set(LIMIT_TEXT) == {
+        "epoch_limit_reached",
+        "exam_daily_allowance_reached",
+    }  # ungrouped text unchanged
