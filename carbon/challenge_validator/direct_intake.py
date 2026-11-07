@@ -219,12 +219,17 @@ class DirectRecipeIntake(BatteryIntake):
         if buckets is None or method != "POST":
             return super().admit_before_body(method, peer, headers)
         group = self._claimed_group(headers)
-        return buckets.charge_guard() if group is None else buckets.peek_group(group)
+        return buckets.charge_guard("unattributed") if group is None else buckets.peek_group(group)
+
+    def note_capacity(self):
+        """The listener's 503 capacity answer, counted for the hourly request-buckets line (no buckets: nothing)."""
+        if self.request_buckets is not None:
+            self.request_buckets.note("capacity_503")
 
     def _unverified(self, answer):
         """A POST that failed before or at verification: charged to the guard (never to a group), then refused."""
         if self.request_buckets is not None:
-            self.request_buckets.charge_guard()
+            self.request_buckets.charge_guard("verify_failed")
         return answer
 
     def _verified_charge(self, received):

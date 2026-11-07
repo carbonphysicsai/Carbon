@@ -27,6 +27,18 @@ import time
 from collections import OrderedDict
 
 KINDS = ("guard", "group", "chunks")
+#: The hourly counts line (Validator-2B 7 Nov (1), for R30/R31 + Ops Watch): counts only, never a hotkey, group or peer.
+COUNTS = (
+    "guard_unattributed",
+    "guard_verify_failed",
+    "guard_429",
+    "peek_429",
+    "group_429",
+    "chunk_429",
+    "capacity_503",
+)
+COUNTS_EVENT = "request_buckets_hourly"
+COUNTS_PERIOD_S = 3600.0
 #: At most this many keyed buckets per kind; the least recently seen is evicted (as `PeerLimits`). Keys are
 #: verified funder groups, which cost a registration each, so eviction is not a cheap reset.
 MAX_KEYS = 4096
@@ -109,31 +121,63 @@ class _Buckets:
         return allowed
 
     def peek(self, key):
+        # A pure read (Validator-2B 7 Nov (3)): no token, refill time, LRU order or new key is written.
         now = self.clock()
-        tokens = self._tokens(key, now)
-        self._store(key, tokens, now)
-        return tokens >= 1
+        tokens, then = self._buckets.get(key, (self.burst, now))
+        return min(self.burst, tokens + (now - then) * self.rate) >= 1
 
 
 class RequestBuckets:
     """The guard, group and chunk buckets of one door. Thread-safe; every call is O(1)."""
 
-    def __init__(self, configured, *, clock=time.monotonic):
+    def __init__(self, configured, *, clock=time.monotonic, emit=None):
         checked = values(configured)
         self._lock = threading.Lock()
         self._kinds = {kind: _Buckets(*checked[kind], clock) for kind in KINDS}
+        self._clock = clock
+        self._emit = emit
+        self._counts = dict.fromkeys(COUNTS, 0)
+        self._since = clock()
 
-    def charge_guard(self):
-        """Charge the shared guard; False when it is empty (refuse 429 `rate`)."""
+    def _count(self, name):
+        # under self._lock
+        self._counts[name] += 1
+        now = self._clock()
+        if now - self._since >= COUNTS_PERIOD_S:
+            emit = self._emit
+            if emit is None:
+                from carbon.battery.intake import log as emit
+            emit(COUNTS_EVENT, period_s=round(now - self._since), **self._counts)
+            self._counts = dict.fromkeys(COUNTS, 0)
+            self._since = now
+
+    def note(self, name):
+        """Count one event of `COUNTS` (the door's 503 capacity answer is counted here)."""
         with self._lock:
-            return self._kinds["guard"].take(GUARD_KEY)
+            self._count(name)
+
+    def charge_guard(self, cause):
+        """Charge the shared guard for an ``unattributed`` POST or a ``verify_failed`` one; False when it is empty
+        (refuse 429 `rate`)."""
+        with self._lock:
+            self._count("guard_" + cause)
+            allowed = self._kinds["guard"].take(GUARD_KEY)
+            if not allowed:
+                self._count("guard_429")
+            return allowed
 
     def peek_group(self, group):
-        """Before the body: may a POST of this group still be admitted by either of its buckets? Charges nothing."""
+        """Before the body: may a POST of this group still be admitted by either of its buckets? A pure read."""
         with self._lock:
-            return self._kinds["group"].peek(group) or self._kinds["chunks"].peek(group)
+            allowed = self._kinds["group"].peek(group) or self._kinds["chunks"].peek(group)
+            if not allowed:
+                self._count("peek_429")
+            return allowed
 
     def charge_group(self, group, *, chunk):
         """After verification: charge the group's chunk bucket (a continuation chunk) or its request bucket."""
         with self._lock:
-            return self._kinds["chunks" if chunk else "group"].take(group)
+            allowed = self._kinds["chunks" if chunk else "group"].take(group)
+            if not allowed:
+                self._count("chunk_429" if chunk else "group_429")
+            return allowed

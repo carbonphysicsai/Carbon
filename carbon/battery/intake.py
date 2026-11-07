@@ -185,6 +185,13 @@ def log(event, *, out=None, **fields):
     print(json.dumps(record, sort_keys=True), file=out or sys.stderr, flush=True)
 
 
+def _note_capacity(intake):
+    """Tell a door that counts its refusals (the direct door's R89 hourly line) about a 503 capacity answer."""
+    note = getattr(intake, "note_capacity", None)
+    if note is not None:
+        note()
+
+
 class _MalformedDiagnostics:
     """At most one closed private event per branch per intake lifetime.
 
@@ -978,6 +985,7 @@ class BatteryIntake:
             return _refused(429, "rate")
         with self.limits.in_flight() as admitted:
             if not admitted:
+                _note_capacity(self)
                 return _refused(503, "capacity")
             return then()
 
@@ -1440,6 +1448,7 @@ def _handler(intake):
                 return self._answer(_refused(408, "body_timeout"))
             with intake.limits.in_flight() as admitted:
                 if not admitted:
+                    _note_capacity(intake)
                     return self._answer(_refused(503, "capacity"))
                 self._answer(intake.route(method, self.path, headers, body))
 

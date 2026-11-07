@@ -340,7 +340,7 @@ def test_gets_are_not_charged(door):
         assert intake.admit_before_body(
             "GET", "127.0.0.1", {"X-Bittensor-Hotkey": "miner"}
         )
-    assert all(buckets.charge_guard() for _ in range(3))
+    assert all(buckets.charge_guard("unattributed") for _ in range(3))
     group = intake.funder_map.group("cold")
     assert all(buckets.charge_group(group, chunk=False) for _ in range(2))
 
@@ -413,3 +413,59 @@ def test_an_empty_guard_and_a_forged_registered_flood_leave_the_real_hotkey_at_w
     finally:
         for _ in range(IN_FLIGHT):
             intake.limits._flight.release()
+
+
+def test_the_peek_writes_nothing():
+    buckets = _frozen()
+    group = funder_map.FunderMap.empty().group("cold")
+    before = {k: dict(b._buckets) for k, b in buckets._kinds.items()}
+    for _ in range(5):
+        assert buckets.peek_group(group)
+    assert {k: dict(b._buckets) for k, b in buckets._kinds.items()} == before
+
+
+def test_the_hourly_line_carries_counts_only():
+    now = [0.0]
+    lines = []
+    buckets = RequestBuckets(
+        TEST_VALUES, clock=lambda: now[0], emit=lambda event, **f: lines.append((event, f))
+    )
+    group = funder_map.FunderMap.empty().group("cold")
+    for _ in range(4):
+        buckets.charge_guard("unattributed")  # burst 3: the 4th is refused
+    buckets.charge_guard("verify_failed")
+    buckets.charge_group(group, chunk=False)
+    buckets.charge_group(group, chunk=False)
+    buckets.charge_group(group, chunk=False)
+    buckets.note("capacity_503")
+    assert lines == []
+    now[0] = request_buckets.COUNTS_PERIOD_S
+    buckets.note("capacity_503")
+    ((event, fields),) = lines
+    assert event == request_buckets.COUNTS_EVENT
+    assert fields == {
+        "period_s": 3600,
+        "guard_unattributed": 4,
+        "guard_verify_failed": 1,
+        "guard_429": 2,
+        "peek_429": 0,
+        "group_429": 1,
+        "chunk_429": 0,
+        "capacity_503": 2,
+    }
+    assert "cold" not in repr(lines) and group not in repr(lines)
+
+
+def test_a_full_in_flight_cap_is_counted(door):
+    from carbon.battery.intake import IN_FLIGHT
+
+    buckets = _frozen()
+    intake = door.build(buckets)
+    for _ in range(IN_FLIGHT):
+        assert intake.limits._flight.acquire(blocking=False)
+    try:
+        assert door.post(intake, "miner")[0].status == 503
+    finally:
+        for _ in range(IN_FLIGHT):
+            intake.limits._flight.release()
+    assert buckets._counts["capacity_503"] == 1
