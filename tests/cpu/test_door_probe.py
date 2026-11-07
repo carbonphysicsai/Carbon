@@ -198,7 +198,7 @@ def test_synthetic_document_is_named_by_its_digest():
     assert dp.synthetic_document("b", 20000)[1] != body
 
 
-def test_r13_outcomes_are_closed(monkeypatch):
+def test_r13_outcomes_are_closed(monkeypatch, tmp_path):
     from carbon.development_session import direct_submission as ds
 
     class _R:
@@ -206,8 +206,9 @@ def test_r13_outcomes_are_closed(monkeypatch):
 
     seen = {}
 
-    def fake(url, signer, *, read, **kw):
-        seen["facts"] = read(url)
+    def fake(url, signer, *, read, root, **kw):
+        assert root.is_dir()  # the ledger exists before an admission writes into it
+        seen["facts"] = [read(url), read(url)]  # a retry after a 429 reads again
         raise outcome
 
     monkeypatch.setattr(ds, "submit_and_wait", fake)
@@ -234,7 +235,9 @@ def test_r13_outcomes_are_closed(monkeypatch):
             send=None,
         )
         assert got == want
-        assert seen["facts"] == {"old": 1}  # the body is built from OLD's facts
+        assert (
+            seen["facts"] == [{"old": 1}] * 2
+        )  # every attempt is built on OLD's facts
 
 
 def _client(tmp_path, name, role, rate, posts, start, end):
@@ -286,3 +289,23 @@ def test_merge_attributes_429s_to_the_upload_window(tmp_path):
         fixed["honest_client_429_during_upload"] is False
         and fixed["honest_clients_zero_429"] is True
     )
+
+
+def test_only_the_earlier_grade_is_an_r13_pass():
+    assert dp.ACCEPTED_R13 == ("same_recipe_already_submitted",)
+
+
+def test_stop_during_the_baseline_does_not_end_it_or_pass(door, tmp_path, monkeypatch):
+    out = tmp_path / "run"
+    real = dp.run_phase
+
+    def early_stop(*args, **kwargs):
+        if args[5] == "baseline":
+            (out / dp.STOP).write_text("")  # the operator writes STOP too early
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(dp, "run_phase", early_stop)
+    assert _probe(door, out) == 1
+    summary = json.loads((out / "summary.json").read_text())
+    assert summary["baseline"]["requests"] > 0  # the baseline ran in full
+    assert summary["window"]["requests"] == 0 and summary["verdict"] == "FAIL"

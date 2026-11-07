@@ -60,7 +60,9 @@ USER_AGENT_PREFIX = "carbon-miner/"
 GAP_S = 1.0
 #: A local resource bound for the probe itself, not a door limit.
 MAX_IN_FLIGHT = 16
-ACCEPTED_R13 = ("admitted", "same_recipe_already_submitted", "result")
+#: The R13 pass (Q1 spec): NEW accepts the resubmit and returns the earlier grade, so no new
+#: task is made and no allowance is used. `admitted` / `result` are recorded but are not a pass.
+ACCEPTED_R13 = ("same_recipe_already_submitted",)
 #: Files the operator writes into the evidence directory.
 STOP, R13_ARM, R13_FIRE, BASELINE_OK = "STOP", "R13_ARM", "R13_FIRE", "BASELINE_OK"
 
@@ -97,7 +99,11 @@ def _schema_of(body):
     return schema if type(schema) is str and len(schema) <= 128 else None
 
 
-def fetch(base, path, *, timeout=10.0, agent=None):
+#: Longer than the front's <= 10 s HOLD (lock-in step 7), so a held request is a slow 200, not an error.
+GET_TIMEOUT_S = 30.0
+
+
+def fetch(base, path, *, timeout=GET_TIMEOUT_S, agent=None):
     """One GET; the record keeps the body's schema and digest, never the body."""
     request = urllib.request.Request(
         base.rstrip("/") + path, headers={"User-Agent": agent or user_agent()}
@@ -180,7 +186,8 @@ def run_phase(
     sleep=time.sleep,
 ):
     """GET one route per tick, round-robin, at `rate` per second; each tick on
-    its own thread so a held request shows as latency, not as a slowed rate."""
+    its own thread so a held request shows as latency (and, past 1 s, as a gap
+    in the 200s), never as a slowed rate."""
     start, rows, threads, i = clock(), [], [], 0
     saturated = 0
     while True:
@@ -325,7 +332,12 @@ def recording_send(recorder, client, *, spoof=None, timeout=30.0):
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 status, answer = response.status, json.loads(response.read(65536))
         except urllib.error.HTTPError as refused:
-            raw = refused.read(65536) or b"{}"
+            try:
+                raw = refused.read(65536) or b"{}"
+            except (
+                OSError
+            ):  # a 429 sent before the body was read, then the socket closed
+                raw = b"{}"
             try:
                 status, answer = refused.code, json.loads(raw)
             except ValueError:
@@ -383,18 +395,16 @@ def r13_resubmit(
     root,
     send,
 ):
-    """One signed submit whose body names OLD's snapshot (`facts_before`); the
-    later status reads use live facts. Returns a closed outcome, never raises a
-    refusal."""
+    """One signed submit whose body names OLD's snapshot (`facts_before`) on
+    every attempt, admission retries included. Returns a closed outcome, never
+    raises a refusal."""
     from carbon.development_session import direct_submission as ds
 
-    reads = {"n": 0}
-
     def read(url):
-        reads["n"] += 1
-        return facts_before if reads["n"] == 1 else ds.read_intake(url)
+        return facts_before
 
     epoch = int(recipe.digest[7:23], 16)
+    Path(root).mkdir(parents=True, exist_ok=True)
     try:
         ds.submit_and_wait(
             door,
@@ -484,9 +494,10 @@ def cmd_probe(args):
         "limits": served_limits(args.limits_from) if args.limits_from else None,
         "r13": None,
     }
-    stop = lambda: (out / STOP).exists()
+    # STOP ends the swap window only; the baseline always runs in full.
+    stop = lambda: (out / BASELINE_OK).exists() and (out / STOP).exists()
     baseline = run_phase(
-        args.door, paths, args.rate, args.baseline_s, recorder, "baseline", stop=stop
+        args.door, paths, args.rate, args.baseline_s, recorder, "baseline"
     )
     summary["baseline"] = baseline
     if baseline["non_200"] or baseline["requests"] == 0:
@@ -520,7 +531,12 @@ def cmd_probe(args):
         )
     recorder.close()
     r13_ok = summary["r13"] is None or summary["r13"].get("outcome") in ACCEPTED_R13
-    passed = not window["non_200"] and not window["gaps_over_1s"] and r13_ok
+    passed = (
+        window["requests"] > 0
+        and not window["non_200"]
+        and not window["gaps_over_1s"]
+        and r13_ok
+    )
     summary.update(
         window=window,
         start_utc=baseline["start_utc"],
@@ -640,11 +656,14 @@ def cmd_burst(args):
                         read=read,
                         send=send,
                     )
-                except ds.DirectIntakeRefusal:
+                except (ds.DirectIntakeRefusal, OSError, ValueError):
                     pass  # each attempt is already a row; the counts tell the story
             outcome = {"outcome": "done", "calls": n}
     except ds.DirectIntakeRefusal as refused:
         outcome = {"outcome": "refused", "code": refused.code}
+    # Evidence, not a crash: every client writes its summary so `merge` can run.
+    except Exception as failed:  # noqa: BLE001
+        outcome = {"outcome": "probe_error", "code": type(failed).__name__}
     ended = time.time()
     recorder.close()
     posts = [r for r in recorder.rows if r["route"] == "post"]
