@@ -211,7 +211,7 @@ def test_unmapped_refuse_applies_only_under_a_usable_map(cap):
     )
     assert (
         told["code"] == "allowance_group_unmapped"
-        and "allowance map" in told["message"]
+        and "not yet in the validator's funder map" in told["message"]
     )
     _install(policy=strict)  # no map at all: per coldkey, never everyone refused
     _grade(cap, "hk3")
@@ -248,7 +248,7 @@ def test_the_admission_check_reads_the_group(cap):
         block=BLOCK,
     )
     assert told["code"] == "epoch_limit_reached"
-    assert "funded from the same wallet" in told["message"]
+    assert "counts as one funder" in told["message"]
 
 
 def test_a_regrade_is_never_grouped_or_refused(cap):
@@ -335,3 +335,19 @@ def test_the_map_file_is_re_read_when_it_changes(tmp_path):
         watched.current().problem == "funder_map_malformed"
     )  # never the old map silently kept
     assert funder_map.Watched(None).current().problem is None
+
+
+def test_the_grouped_sentences_are_miner_x_b_s_final_wording():
+    from carbon.challenge_validator.exam_cap import GROUPED_LIMIT_TEXT, LIMIT_TEXT
+
+    assert set(GROUPED_LIMIT_TEXT) == {
+        "epoch_limit_reached",
+        "exam_daily_allowance_reached",
+        "allowance_group_unmapped",
+        "allowance_group_unresolved",
+    }
+    assert "{when}" in GROUPED_LIMIT_TEXT["epoch_limit_reached"]
+    for text in GROUPED_LIMIT_TEXT.values():
+        assert "Nothing was built or graded for this submission and it used none of your allowance." in text
+        assert "wallet" not in text
+    assert set(LIMIT_TEXT) == {"epoch_limit_reached", "exam_daily_allowance_reached"}  # ungrouped text unchanged
