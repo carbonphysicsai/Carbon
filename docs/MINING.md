@@ -442,8 +442,9 @@ do, and what stays the same.
   address: **HUMAN_INPUT** (per Challenge). Setup writes each address into
   your profile once it is published and your profile is on mainnet.
 - **Which versions open.** Motor 1.8 and Cooling 1.8 are planned to open
-  first; Burst Thermal 3.2 and Ribbed Bracket 2.0 join after them, each once
-  it passes its checks. We update this list as each one opens. Each version
+  first. Burst Thermal 3.2 opens once it passes its checks (date:
+  **HUMAN_INPUT**). Ribbed Bracket 2.0 joins later. We update this list as each
+  one opens. Each version
   has its own *How you're tested* page.
 - **Mainnet starts clean.** Nothing from the test network carries over: no
   registration, crown, score, submission or frontier standing. Test network
