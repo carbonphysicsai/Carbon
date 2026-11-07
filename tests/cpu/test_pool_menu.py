@@ -78,13 +78,25 @@ def _material(document=None):
     }
 
 
-def _rule(document=None, epoch="fixture-epoch-1"):
-    document = menu_document() if document is None else document
+#: SYNTHETIC re-check values (the real ones are the Validator's, registered with no default)
+ROWCHECK = (0.0, 1e-12, 8)
+EXCEPTION = "fixture-owner-exception"  # a one-task fixture needs an exception id (MIN_TASKS = 3)
+
+
+def _mk_rule(shas, epoch="fixture-epoch-1", exception=EXCEPTION):
     return pool_menu.MenuRule(
-        records_sha256=(("task-1", _record_sha(document)),),
+        records_sha256=tuple(shas),
         epoch=epoch,
         aggregate="mean",
+        rotation_days=7,
+        rowcheck=ROWCHECK,
+        min_tasks_exception=exception,
     )
+
+
+def _rule(document=None, epoch="fixture-epoch-1"):
+    document = menu_document() if document is None else document
+    return _mk_rule((("task-1", _record_sha(document)),), epoch=epoch)
 
 
 def _tasks(document=None):
@@ -109,13 +121,29 @@ def _constant_predict(rows):
 
 def test_an_absent_block_is_no_menu_and_the_block_has_no_default():
     assert pool_version._menu(pool_version._ABSENT) is None
-    good = {"records_sha256": {"task-1": "a" * 64}, "epoch": "e1", "aggregate": "mean"}
+    good = {
+        "records_sha256": {"task-1": "a" * 64},
+        "epoch": "e1",
+        "aggregate": "mean",
+        "rotation_days": 7,
+        "rowcheck": {"rel_tol": 0.0, "abs_tol": 1e-12, "subset": 8},
+        "min_tasks_exception": EXCEPTION,
+    }
     rule = pool_version._menu(good)
-    assert rule == pool_menu.MenuRule((("task-1", "a" * 64),), "e1", "mean")
+    assert rule == _mk_rule((("task-1", "a" * 64),), epoch="e1")
+    three = {
+        **{k: v for k, v in good.items() if k != "min_tasks_exception"},
+        "records_sha256": {f"task-{i}": "a" * 64 for i in range(3)},
+    }
+    assert pool_version._menu(three).min_tasks_exception is None
     for bad in (
         pool_version.HUMAN_INPUT,
         {**good, "epoch": pool_version.HUMAN_INPUT},
         {**good, "aggregate": pool_version.HUMAN_INPUT},
+        {**good, "rotation_days": pool_version.HUMAN_INPUT},
+        {**good, "rowcheck": pool_version.HUMAN_INPUT},
+        {**good, "rowcheck": {**good["rowcheck"], "abs_tol": pool_version.HUMAN_INPUT}},
+        {**good, "min_tasks_exception": pool_version.HUMAN_INPUT},
         {**good, "records_sha256": {"task-1": pool_version.HUMAN_INPUT}},
     ):
         with pytest.raises(
@@ -129,6 +157,12 @@ def test_an_absent_block_is_no_menu_and_the_block_has_no_default():
         {**good, "records_sha256": {}},
         {**good, "records_sha256": {"task-1": "not-a-sha"}},
         {k: v for k, v in good.items() if k != "epoch"},
+        {k: v for k, v in good.items() if k != "rotation_days"},
+        {k: v for k, v in good.items() if k != "rowcheck"},
+        # Carbon Validator-B 7 Nov (4): fewer than 3 tasks needs the owner's exception id
+        {k: v for k, v in good.items() if k != "min_tasks_exception"},
+        {**good, "rotation_days": 0},
+        {**good, "rowcheck": {**good["rowcheck"], "subset": 0}},
         {**good, "extra": 1},
     ):
         with pytest.raises(pool_version.PoolConstantsNotRegistered):
@@ -153,18 +187,12 @@ def test_tasks_load_only_against_the_registration():
         (_material(), _rule(other), "menu_record_sha256_not_registered"),
         (
             _material(),
-            pool_menu.MenuRule(
-                (("task-1", _record_sha(menu_document())), ("task-2", "b" * 64)),
-                "e",
-                "mean",
-            ),
+            _mk_rule((("task-1", _record_sha(menu_document())), ("task-2", "b" * 64))),
             "menu_registered_task_missing",
         ),
         (
             _material(),
-            pool_menu.MenuRule(
-                (("task-9", _record_sha(menu_document())),), "e", "mean"
-            ),
+            _mk_rule((("task-9", _record_sha(menu_document())),)),
             "menu_task_not_registered",
         ),
         ({"tasks": []}, _rule(), "menu_material_malformed"),
@@ -256,8 +284,26 @@ def test_the_draw_key_exists_only_once_installed_from_k_crown():
 # ---------------------------------------------------------------- 4-6. the official grade
 
 
+def _rowcheck(rows, outputs, *, key=KEY, change=None):
+    positions = pool_menu.rowcheck_plan(
+        len(rows), ROWCHECK[2], key, epoch="fixture-epoch-1"
+    )
+    again = [list(outputs[i]) for i in positions]
+    if change is not None:
+        again[0][0] += change
+    return {"positions": positions, "outputs": again}
+
+
 def _menu_grade(
-    *, drop_menu_rows=False, policies=None, tasks="default", key=KEY, serve=good_serve
+    *,
+    drop_menu_rows=False,
+    policies=None,
+    tasks="default",
+    key=KEY,
+    serve=good_serve,
+    rowcheck="default",
+    rowcheck_key=KEY,
+    change=None,
 ):
     the_sets = sets()
     tasks = _tasks() if tasks == "default" else tasks
@@ -273,6 +319,8 @@ def _menu_grade(
                 }
             )
     outputs = serve([r["inputs"] for r in rows])
+    if rowcheck == "default":
+        rowcheck = _rowcheck(rows, outputs, change=change)
     capture = {}
     result = pool_exam.measure_pool(
         binding=toy_binding(),
@@ -292,6 +340,8 @@ def _menu_grade(
         capture=capture,
         menu_tasks=tasks,
         menu_key=key,
+        menu_rowcheck=rowcheck,
+        menu_rowcheck_key=rowcheck_key,
     )
     return result, capture
 
@@ -353,6 +403,7 @@ def test_menu_material_must_match_the_registration_exactly():
         {"tasks": None},  # registered, no tasks
         {"key": None},  # registered, no key
         {"policies": POLICIES},  # tasks + key without a registration
+        {"policies": POLICIES, "tasks": None, "key": None},  # a re-check without one
     ):
         with pytest.raises(pool_exam.ExamRefused) as caught:
             _menu_grade(**kwargs)
@@ -412,3 +463,93 @@ def test_receiver_start_installs_the_menu_key_only_from_its_section(tmp_path):
             assert ca.ACTIVE is None  # the menu key does not turn the crown average on
     finally:
         host.install({})
+
+
+# ---------------------------------------------------------------- Carbon Validator-B 7 Nov (1): the re-check
+
+
+def test_the_recheck_plan_is_a_keyed_subset_in_a_keyed_order():
+    plan = pool_menu.rowcheck_plan(100, 8, KEY, epoch="fixture-epoch-1")
+    assert len(plan) == len(set(plan)) == 8 and all(0 <= i < 100 for i in plan)
+    assert plan == pool_menu.rowcheck_plan(100, 8, KEY, epoch="fixture-epoch-1")
+    assert plan != sorted(plan)  # a permuted order (for this fixed synthetic key)
+    assert plan != pool_menu.rowcheck_plan(100, 8, b"j" * 32, epoch="fixture-epoch-1")
+    with pytest.raises(pool_exam.ExamRefused):
+        pool_menu.rowcheck_plan(5, 8, KEY, epoch="fixture-epoch-1")
+
+
+def test_a_recheck_that_differs_gives_d_zero_typed_row_dependent():
+    same, _ = _menu_grade()
+    assert same["pool"]["menu"].get("state") is None and same["D"] > 0
+    differ, capture = _menu_grade(change=1e-6)
+    assert differ["D"] == 0.0
+    assert capture["menu"]["state"] == pool_menu.MODEL_ROW_DEPENDENT
+    assert capture["menu"]["predictions"] == {}
+    assert all(
+        t["state"] == pool_menu.MODEL_ROW_DEPENDENT for t in capture["menu"]["tasks"]
+    )
+
+
+def test_a_missing_or_wrong_recheck_is_carbons_gap():
+    for kwargs, code in (
+        ({"rowcheck": None}, "menu_rowcheck_unavailable"),
+        ({"rowcheck_key": None}, "menu_rowcheck_unavailable"),
+        (
+            {"rowcheck": {"positions": [0, 1], "outputs": [[0.0, 0.0]] * 2}},
+            "menu_rowcheck_positions_not_the_keyed_plan",
+        ),
+    ):
+        with pytest.raises(pool_exam.ExamRefused) as caught:
+            _menu_grade(**kwargs)
+        assert caught.value.code == code
+
+
+# ---------------------------------------------------------------- Carbon Validator-B 7 Nov (2): re-score
+
+
+def test_a_stored_record_rescores_on_other_draws_without_inference():
+    tasks = _tasks()
+    graded = pool_menu.score(
+        tasks, _rule(), _truth_predict, key=KEY, design_names=("x", "y")
+    )
+    stored = graded["record"]["predictions"]
+    one = pool_menu.rescore(tasks, _rule(), stored, key=KEY, epochs=["fixture-epoch-1"])
+    assert one == pytest.approx(graded["D"])
+    mean3 = pool_menu.rescore(
+        tasks, _rule(), stored, key=KEY, epochs=["fixture-epoch-1", "e2", "e3"]
+    )
+    assert mean3 == pytest.approx(1.0)  # a truthful model is 1 on every draw
+    with pytest.raises(pool_exam.ExamRefused) as caught:
+        pool_menu.rescore(tasks, _rule(), {"task-1": {}}, key=KEY, epochs=["e2"])
+    assert caught.value.code == "menu_stored_predictions_incomplete"
+
+
+# ---------------------------------------------------------------- Validator-2B a1.2: counts
+
+
+def test_row_accounting_counts_menu_rows_only_when_a_menu_is_present(monkeypatch):
+    material = {
+        "schema": pool_version.MATERIAL_SCHEMA,
+        "kind": "f02",
+        "version": "9.9",
+        "input_names": ["cond", "x", "y"],
+        "design_names": ["x", "y"],
+        "input_dtype": "float64",
+        "set_digest": "sha256:" + "0" * 64,
+        "sets": [[]],
+    }
+    monkeypatch.setattr(pool_version, "check_material", lambda m: m)
+    plain = pool_version.row_accounting(material, dtype=None)
+    assert "menu_rows" not in plain and plain["designs_total"] == 0
+    monkeypatch.setattr(pool_version, "registered_menu", lambda c, v: _rule())
+    counted = pool_version.row_accounting(
+        {**material, "menu": _material()}, dtype=None, challenge="f02"
+    )
+    (task,) = _tasks()
+    assert counted["menu_tasks"] == 1 and counted["menu_rows"] == len(task.record.pool)
+    assert counted["designs_total"] == len(task.record.pool)
+    assert counted["designs_total"] - counted["unique_rows"] == (
+        counted["dup_within_target"] + counted["dup_across_targets"]
+    )
+    with pytest.raises(pool_exam.ExamRefused):
+        pool_version.row_accounting({**material, "menu": _material()}, dtype=None)

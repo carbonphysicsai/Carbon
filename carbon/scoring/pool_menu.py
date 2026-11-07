@@ -37,6 +37,12 @@ MENU_KEY = "menu"
 AGGREGATES = ("mean",)
 #: The purpose label of the menu draw key (`crown_d.derive_key`; Validator 7 Nov 08:18).
 KEY_LABEL = "d-menu-sample"
+#: The purpose label of the row-independence re-check's subset and order (Carbon Validator-B, 7 Nov).
+ROWCHECK_LABEL = "d-menu-rowcheck"
+#: Carbon Validator-B 7 Nov (4): crown_d's minimum binds menu D (an owner exception names its decision id).
+MIN_TASKS = 3
+#: The state of a model whose re-check answers differ from its graded answers (Carbon Validator-B 7 Nov (1)): D = 0.
+MODEL_ROW_DEPENDENT = menu_score.MODEL_ROW_DEPENDENT
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")
@@ -45,6 +51,8 @@ _PROBLEM_KEYS = {"target_id", "outputs", "objective", "sense", "limits", "u", "b
 
 #: The validator host's menu draw key (bytes) or None: set only by `install_key` (receiver start / custody build).
 _ACTIVE_KEY = None
+#: The row-independence re-check key (bytes) or None: set with the draw key by `install_key`.
+_ROWCHECK_KEY = None
 
 
 def _refuse(code):
@@ -67,8 +75,13 @@ class MenuRule:
     """A version's registered menu block (all owner / Validator values; `pool_version._menu` parses it)."""
 
     records_sha256: tuple  # sorted ((task_id, sha256), ...)
-    epoch: str
+    epoch: str  # E1: one registered epoch id per version (Carbon Validator-B 7 Nov (3))
     aggregate: str
+    rotation_days: int  # the owner's rotation cadence, inside the same sealed pool
+    rowcheck: tuple  # (rel_tol, abs_tol, subset): the re-check's tolerance and size (the Validator's values)
+    min_tasks_exception: str | None = (
+        None  # an owner decision id allowing fewer than MIN_TASKS tasks
+    )
 
 
 def check_rule(rule):
@@ -91,21 +104,47 @@ def check_rule(rule):
         type(rule.epoch) is str and _ID.fullmatch(rule.epoch), "menu_epoch_invalid"
     )
     _require(rule.aggregate in AGGREGATES, "menu_aggregate_unregistered")
+    _require(
+        type(rule.rotation_days) is int and rule.rotation_days > 0,
+        "menu_rotation_days_invalid",
+    )
+    _require(
+        type(rule.rowcheck) is tuple
+        and len(rule.rowcheck) == 3
+        and all(_finite(t) and t >= 0 for t in rule.rowcheck[:2])
+        and type(rule.rowcheck[2]) is int
+        and rule.rowcheck[2] > 0,
+        "menu_rowcheck_invalid",
+    )
+    _require(
+        rule.min_tasks_exception is None
+        or (
+            type(rule.min_tasks_exception) is str
+            and _ID.fullmatch(rule.min_tasks_exception)
+        ),
+        "menu_min_tasks_exception_invalid",
+    )
+    _require(
+        len(rule.records_sha256) >= MIN_TASKS or rule.min_tasks_exception is not None,
+        "menu_tasks_below_minimum",
+    )
     return rule
 
 
 def install_key(k_crown):
     """Install the menu draw key from the validator host's K_crown (receiver start, or a custody build script).
     ``None`` turns it off. The key is held in this process only, never written."""
-    global _ACTIVE_KEY
+    global _ACTIVE_KEY, _ROWCHECK_KEY
     if k_crown is None:
-        _ACTIVE_KEY = None
+        _ACTIVE_KEY = _ROWCHECK_KEY = None
         return
     from carbon.scoring import crown_d
 
     try:
         _ACTIVE_KEY = crown_d.derive_key(k_crown, KEY_LABEL)
+        _ROWCHECK_KEY = crown_d.derive_key(k_crown, ROWCHECK_LABEL)
     except crown_d.CrownDRefused:
+        _ACTIVE_KEY = _ROWCHECK_KEY = None
         _refuse("menu_draw_key_invalid")
 
 
@@ -115,6 +154,98 @@ def active_key():
         type(_ACTIVE_KEY) is bytes and len(_ACTIVE_KEY) >= 32, "menu_draw_unavailable"
     )
     return _ACTIVE_KEY
+
+
+def rowcheck_key():
+    """The installed re-check key, or `ExamRefused("menu_rowcheck_unavailable")` (Carbon's gap)."""
+    _require(
+        type(_ROWCHECK_KEY) is bytes and len(_ROWCHECK_KEY) >= 32,
+        "menu_rowcheck_unavailable",
+    )
+    return _ROWCHECK_KEY
+
+
+def rowcheck_plan(row_count, subset, key, *, epoch):
+    """The re-check's bank positions IN QUERY ORDER: a keyed subset of ``subset`` positions of the graded query's
+    ``row_count`` rows, in a keyed permuted order (HMAC(key, purpose | epoch | position)); a fresh model instance
+    answers them in this order (Carbon Validator-B 7 Nov (1)). Custody only: never in a public record.
+    """
+    import hashlib
+    import hmac
+
+    _require(type(key) is bytes and len(key) >= 32, "menu_rowcheck_unavailable")
+    _require(type(epoch) is str and _ID.fullmatch(epoch), "menu_epoch_invalid")
+    _require(
+        type(row_count) is int and type(subset) is int and 0 < subset <= row_count,
+        "menu_rowcheck_subset_above_the_bank",
+    )
+
+    def rank(position, purpose):
+        message = b"\x00".join([purpose, epoch.encode(), str(position).encode()])
+        return hmac.new(key, message, hashlib.sha256).digest()
+
+    chosen = sorted(range(row_count), key=lambda i: rank(i, b"subset"))[:subset]
+    return sorted(chosen, key=lambda i: rank(i, b"order"))
+
+
+def rowcheck_differs(graded, recheck, positions, rule):
+    """True when any re-check answer differs from the graded answer at the same bank position beyond the registered
+    tolerance (|a - b| > abs_tol + rel_tol |a|, or a non-finite value on one side only). ``graded``: the graded raw
+    answers by bank position; ``recheck``: the fresh instance's raw answers in ``positions`` order.
+    """
+    check_rule(rule)
+    rel_tol, abs_tol, _subset = rule.rowcheck
+    _require(
+        type(recheck) is list and len(recheck) == len(positions),
+        "menu_rowcheck_count_mismatch",
+    )
+    for position, again in zip(positions, recheck, strict=True):
+        first = graded[position]
+        _require(
+            type(again) in (list, tuple) and len(again) == len(first),
+            "menu_rowcheck_shape_mismatch",
+        )
+        for a, b in zip(first, again, strict=True):
+            fa, fb = _finite(a), _finite(b)
+            if fa != fb:
+                return True
+            if fa and abs(a - b) > abs_tol + rel_tol * abs(a):
+                return True
+    return False
+
+
+def rescore(tasks, rule, predictions, *, key, epochs):
+    """The menu D re-scored from STORED full-pool predictions (a custody record's ``predictions``) on each of
+    ``epochs`` (keyed draw ids), with no inference: the mean over the epochs of the registered aggregate (Carbon
+    Validator-B 7 Nov (2): a close crown change is re-scored for both on 2 more keyed draws, mean of 3).
+    """
+    check_rule(rule)
+    _require(
+        type(epochs) in (list, tuple)
+        and epochs
+        and all(type(e) is str and _ID.fullmatch(e) for e in epochs),
+        "menu_epoch_invalid",
+    )
+    _require(type(predictions) is dict, "menu_stored_predictions_incomplete")
+    per_epoch = []
+    for epoch in epochs:
+        ds = []
+        for task in tasks:
+            stored = predictions.get(task.problem.target_id)
+            _require(
+                type(stored) is dict and set(stored) == set(task.record.pool),
+                "menu_stored_predictions_incomplete",
+            )
+            try:
+                ds.append(
+                    menu_score.score_task(
+                        task.problem, task.record, stored, key=key, epoch=epoch
+                    )["d"]
+                )
+            except menu_score.MenuRefused as exc:
+                _refuse(exc.code)
+        per_epoch.append(math.fsum(ds) / len(ds))
+    return math.fsum(per_epoch) / len(per_epoch)
 
 
 @dataclass(frozen=True)
@@ -268,7 +399,7 @@ def bank_rows(tasks, design_names):
     return [row for task in tasks for row in task_rows(task, design_names)[0]]
 
 
-def score(tasks, rule, predict_rows, *, key, design_names):
+def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
     """The version's menu D. ``predict_rows(rows) -> [derived outputs dict | None]`` reads the model's one table.
 
     Returns ``{"D", "record"}``: ``D`` the registered aggregate of the tasks' D_task; ``record`` the custody record
@@ -277,6 +408,29 @@ def score(tasks, rule, predict_rows, *, key, design_names):
     """
     check_rule(rule)
     results, predictions = [], {}
+    if row_dependent:
+        # Carbon Validator-B 7 Nov (1): the fresh re-check answered differently, so the model's ranking is not a
+        # function of each design alone. D = 0 for this grade, typed (the candidate's finding).
+        return {
+            "D": 0.0,
+            "record": {
+                "schema": "carbon.menu-grade.v1",
+                "metric": menu_score.METRIC,
+                "epoch": rule.epoch,
+                "aggregate": rule.aggregate,
+                "state": MODEL_ROW_DEPENDENT,
+                "tasks": [
+                    {
+                        "task_id": t.problem.target_id,
+                        "record_sha256": t.record.sha256,
+                        "state": MODEL_ROW_DEPENDENT,
+                        "d": 0.0,
+                    }
+                    for t in tasks
+                ],
+                "predictions": {},
+            },
+        }
     for task in tasks:
         rows, index = task_rows(task, design_names)
         derived = predict_rows(rows)

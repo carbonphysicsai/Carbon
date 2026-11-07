@@ -166,6 +166,8 @@ def measure_pool(
     in_range_cases=None,
     menu_tasks=None,
     menu_key=None,
+    menu_rowcheck=None,
+    menu_rowcheck_key=None,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
 
@@ -189,6 +191,9 @@ def measure_pool(
     ``menu_tasks`` / ``menu_key`` are a NEW version's sealed menu tasks (`pool_menu.load_tasks`) and the validator host's
     menu draw key, required exactly when its policies carry a ``menu`` rule: D is then the menu D (`pool_menu.score`)
     and the custody record lands under ``["pool"]["menu"]`` (and ``capture["menu"]``). None for every other version.
+    ``menu_rowcheck`` (``{"positions", "outputs"}``: a FRESH model instance's raw answers to a keyed subset of the bank in
+    a keyed order, `pool_menu.rowcheck_plan`) and ``menu_rowcheck_key`` are required with it (Carbon Validator-B 7 Nov
+    (1)); answers that differ from the graded ones beyond the registered tolerance give D = 0, MODEL_ROW_DEPENDENT.
     With a physics rule A is the family value (`pool_physics_score.family_value`, per set), and the grade adds the
     mandatory gate `ACCURACY_GATE` (in-range accuracy, pass/fail) and the custody
     accuracy record under ``["pool"]["accuracy"]`` (and ``capture["accuracy"]``); `public` never carries the record.
@@ -204,6 +209,18 @@ def measure_pool(
         or (menu is not None and menu_tasks and menu_key is not None),
         "menu_material_does_not_match_the_registration",
     )
+    _require(
+        menu is not None or (menu_rowcheck is None and menu_rowcheck_key is None),
+        "menu_material_does_not_match_the_registration",
+    )
+    if menu is not None:
+        # Carbon's gap (the receiver did not run the re-check), never a candidate failure
+        _require(
+            type(menu_rowcheck) is dict
+            and set(menu_rowcheck) == {"positions", "outputs"}
+            and menu_rowcheck_key is not None,
+            "menu_rowcheck_unavailable",
+        )
     _require(
         len(bank_rows) == len(outputs)
         and all(len(r) == len(bank_rows) for r in repeats),
@@ -412,12 +429,22 @@ def measure_pool(
 
         # The menu D replaces each set's pick D (Validator-2B (b): the epoch menu is drawn after the predictions); the
         # C rule still caps it, so the dual pack's 0.5 A + 0.5 D is each set's TOP as before.
+        positions = pool_menu.rowcheck_plan(
+            len(bank_rows), menu.rowcheck[2], menu_rowcheck_key, epoch=menu.epoch
+        )
+        _require(
+            list(menu_rowcheck["positions"]) == positions,
+            "menu_rowcheck_positions_not_the_keyed_plan",
+        )
         menu_graded = pool_menu.score(
             menu_tasks,
             menu,
             predict_rows,
             key=menu_key,
             design_names=binding.design_names,
+            row_dependent=pool_menu.rowcheck_differs(
+                outputs, menu_rowcheck["outputs"], positions, menu
+            ),
         )
         d_values = [min(menu_graded["D"], legs["C"]) for _ in d_values]
         if capture is not None:

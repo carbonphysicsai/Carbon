@@ -274,18 +274,22 @@ def _d_zero(value):
 def _menu(value):
     """A new version's registered menu D (`pool_menu.MenuRule`), or None when the key is absent (every registered
     version: D is the per-target pick, unchanged). Present, it has no default:
-    ``{"records_sha256": {task_id: sha256}, "epoch": id, "aggregate": "mean"}``; a null or HUMAN_INPUT refuses.
+    ``{"records_sha256": {task_id: sha256}, "epoch": id, "aggregate": "mean", "rotation_days": n,
+    "rowcheck": {"rel_tol", "abs_tol", "subset"}}`` plus an optional ``"min_tasks_exception"`` (an owner decision id,
+    for fewer than `pool_menu.MIN_TASKS` tasks); a null or HUMAN_INPUT refuses.
     """
     from carbon.scoring import pool_menu
 
     if value is _ABSENT:
         return None
     value = _picked(value)
-    if type(value) is not dict or set(value) != {
-        "records_sha256",
-        "epoch",
-        "aggregate",
-    }:
+    required = {"records_sha256", "epoch", "aggregate", "rotation_days", "rowcheck"}
+    if type(value) is not dict or not (
+        required <= set(value) <= required | {"min_tasks_exception"}
+    ):
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    rowcheck = _picked(value["rowcheck"])
+    if type(rowcheck) is not dict or set(rowcheck) != {"rel_tol", "abs_tol", "subset"}:
         raise PoolConstantsNotRegistered("pool_constants_malformed")
     shas = _picked(value["records_sha256"])
     if type(shas) is not dict or not shas:
@@ -296,6 +300,15 @@ def _menu(value):
         records_sha256=tuple(sorted(shas.items())),
         epoch=_picked(value["epoch"]),
         aggregate=_picked(value["aggregate"]),
+        rotation_days=_picked(value["rotation_days"]),
+        rowcheck=tuple(
+            _picked(rowcheck[name]) for name in ("rel_tol", "abs_tol", "subset")
+        ),
+        min_tasks_exception=(
+            _picked(value["min_tasks_exception"])
+            if "min_tasks_exception" in value
+            else None
+        ),
     )
     try:
         pool_menu.check_rule(rule)
@@ -425,6 +438,7 @@ class PoolVariant(physical.Variant):
         speed_call_seconds=None,
         speed_outputs_match=True,
         capture=None,
+        menu_rowcheck=None,
     ):
         from carbon.challenge_registry import speed_gate
 
@@ -457,7 +471,13 @@ class PoolVariant(physical.Variant):
         if tasks is not None:
             from carbon.scoring import pool_menu
 
-            menu_arguments = {"menu_tasks": tasks, "menu_key": pool_menu.active_key()}
+            menu_arguments = {
+                "menu_tasks": tasks,
+                "menu_key": pool_menu.active_key(),
+                # the receiver's fresh keyed re-check (None until the receiver supplies it: refuses, Carbon's gap)
+                "menu_rowcheck": menu_rowcheck,
+                "menu_rowcheck_key": pool_menu.rowcheck_key(),
+            }
         return pool_exam.measure_pool(
             binding=pool_adapters.official_binding(self._kind, self.VERSION),
             sets=sets,
@@ -639,7 +659,7 @@ def rows_from_material(material, *, dtype, challenge):
     return sorted(rows, key=key)
 
 
-def row_accounting(material, *, dtype):
+def row_accounting(material, *, dtype, challenge=None):
     """Counts only: how the pool's designs become the exam's pool rows (no input, truth or id leaves).
 
     ``designs_total`` is every design of every target; ``unique_rows`` the distinct model queries after quantising to the
@@ -647,6 +667,10 @@ def row_accounting(material, *, dtype):
     one target and those across targets (a Challenge whose model input is the design alone, such as F02, has no
     condition to tell two targets' equal designs apart), and into those that were distinct designs before the
     quantisation made them equal. ``designs_total - unique_rows == dup_within_target + dup_across_targets``.
+
+    A material with a ``menu`` (``challenge`` then required, for its registration) counts every (menu design x duty)
+    row the same way, each task one target, and adds ``menu_tasks`` / ``menu_rows`` (Validator-2B a1.2); a material
+    without one returns exactly the counts above.
     """
     import numpy as np
 
@@ -662,30 +686,47 @@ def row_accounting(material, *, dtype):
         "dup_created_by_quantisation": 0,
         "targets": 0,
     }
-    for group in material["sets"]:
-        for document in group:
-            spec = pool_grader.load_pool(document)
-            target = counts["targets"]
-            counts["targets"] += 1
-            fixed = spec.conditions["fixed"]
-            for design in spec.designs:
-                row = {**fixed, **dict(zip(design_names, design, strict=True))}
-                raw = tuple(float(row[name]) for name in names)
-                values = tuple(float(kind.type(row[name])) for name in names)
-                counts["designs_total"] += 1
-                if values not in first:
-                    first[values] = (target, raw)
-                    counts["unique_rows"] += 1
-                    continue
-                seen_target, seen_raw = first[values]
-                counts[
-                    (
-                        "dup_within_target"
-                        if seen_target == target
-                        else "dup_across_targets"
-                    )
-                ] += 1
-                counts["dup_created_by_quantisation"] += raw != seen_raw
+
+    def targets():
+        for group in material["sets"]:
+            for document in group:
+                spec = pool_grader.load_pool(document)
+                fixed = spec.conditions["fixed"]
+                yield [
+                    {**fixed, **dict(zip(design_names, design, strict=True))}
+                    for design in spec.designs
+                ]
+        if MENU in material:
+            from carbon.scoring import pool_menu
+
+            if challenge is None:
+                raise pool_exam.ExamRefused("menu_accounting_needs_the_challenge")
+            tasks = menu_tasks(
+                material, registered_menu(challenge, material["version"])
+            )
+            counts["menu_tasks"] = len(tasks)
+            counts["menu_rows"] = 0
+            for task in tasks:
+                rows = pool_menu.task_rows(task, design_names)[0]
+                counts["menu_rows"] += len(rows)
+                yield rows
+
+    for rows in targets():
+        target = counts["targets"]
+        counts["targets"] += 1
+        for row in rows:
+            raw = tuple(float(row[name]) for name in names)
+            values = tuple(float(kind.type(row[name])) for name in names)
+            counts["designs_total"] += 1
+            if values not in first:
+                first[values] = (target, raw)
+                counts["unique_rows"] += 1
+                continue
+            seen_target, seen_raw = first[values]
+            counts[
+                ("dup_within_target" if seen_target == target else "dup_across_targets")
+            ] += 1
+            counts["dup_created_by_quantisation"] += raw != seen_raw
     return counts
 
 
