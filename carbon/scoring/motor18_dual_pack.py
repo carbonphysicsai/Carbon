@@ -20,9 +20,17 @@ the version's `pool_constants.json` entry: until every owner value there is set,
 linkage in TRAIN leaks nothing). TRAIN and the prediction share ONE 240-wide row (`ROW`): the 60-angle torque, then the
 three phase flux linkages over the same 60 rotor steps, so there is no TRAIN-vs-prediction split and every route trains
 and predicts at TRAIN's width. The torque slice alone feeds Motor's sealed grader, its gates and the pk-pk binding; a
-row that is not a whole 240-wide 1.8 answer is the candidate's schema failure, never a refusal. The two graded
-back-EMF cells (`carbon.motor.back_emf`: ``back_emf_open_circuit``, ``ke_ll_loaded``) are the k_e,ll ab SHAPE of the
-predicted linkages; each refuses until its own U of record is registered (`back_emf.require_u`).
+row that is not a whole 240-wide 1.8 answer is the candidate's schema failure, never a refusal.
+
+The two back-EMF cells (`carbon.motor.back_emf.CELLS`: ``back_emf_open_circuit`` on the J = 0 class H-3,
+``ke_ll_loaded`` on the load-point classes H-1 / H-2; Carbon Validator-B 7 Nov: in their PARENT families) are pool
+outputs like any other, scored as ordinary headroom cells where the sealed admission admits them (mc-exam-B 7 Nov
+20:35). Their value is a WAVEFORM, the k_e,ll ab of the predicted linkages, registered with
+`pool_grader.register_waveform_output`: the error is `back_emf.shape_error` (each waveform over its own RMS), never
+|predicted - true|. A target grading one carries its custody reference k_e,ll waveform per point (derived from the
+record-now linkages with `back_emf.ke_line`) and its U of record measured ON k_e,ll: an absolute number above zero,
+or the pool refuses to load (the U is the sealed material's, never code). A prediction whose k_e,ll has no shape is
+not a valid answer on a target that grades it.
 """
 
 from __future__ import annotations
@@ -40,6 +48,8 @@ TRAIN = "motor-dev-train-1p8-v1"
 POOL_VERSIONS = {VERSION: ("motor-pool-sealed-v3", "motor-sealed-pool-set")}
 #: 1.8's OWN producer identity covers the sealed grader and this module (its pk-pk decision lives here).
 FILES = (*_sealed.FILES, "motor18_dual_pack.py")
+#: The two back-EMF cells' outputs (`back_emf.CELLS`), each the predicted k_e,ll ab waveform.
+EMF_OUTPUTS = ("back_emf_open_circuit", "ke_ll_loaded")
 #: The 1.8 row, in order, each slice the 60 rotor steps of one 15 degree mechanical window: the torque (N.m), then the
 #: per-phase flux linkages A, B, C (Wb; the record-now runner's ``phase_flux_linkage_wb``). The order is the 1.8 TRAIN
 #: interface's (mc-exam-B); a change here is a change of the 1.8 interface.
@@ -77,6 +87,37 @@ def linkages(raw):
     if parts is None:
         return None
     return {phase: parts["phase_flux_linkage_wb_" + phase.upper()] for phase in "abc"}
+
+
+def ke_ll(raw):
+    """The predicted k_e,ll ab waveform (V s / rad, one value per rotor step) of a whole 1.8 row, or None."""
+    from carbon.motor import back_emf
+
+    lam = linkages(raw)
+    return None if lam is None else tuple(back_emf.ke_line(lam))
+
+
+def _waveform_valid(value):
+    """A k_e,ll waveform `back_emf.shape_error` can grade: one finite value per rotor step, with a shape (RMS > 0)."""
+    from carbon.motor import back_emf
+
+    try:
+        values = back_emf._waveform(value, "waveform_invalid")
+    except back_emf.BackEmfUnavailable:
+        return False
+    return back_emf._rms(values) > 0
+
+
+def _waveform_error(predicted, true):
+    from carbon.motor import back_emf
+
+    return back_emf.shape_error(predicted, true)
+
+
+def _waveform_output():
+    from carbon.scoring import pool_grader
+
+    return pool_grader.WaveformOutput(valid=_waveform_valid, error=_waveform_error)
 
 
 def _sealed_rows(outputs, repeats):
@@ -164,9 +205,11 @@ def pool_adapter(version=VERSION):
         outputs = {"torque_nm": curve}
         if exam.FAIL in exam.gates(outputs).values():
             return None
+        wave = ke_ll(raw)
         return {
             "mean_torque_nm": sum(curve) / len(curve),
             "ripple_pk_pk_nm": max(curve) - min(curve),
+            **dict.fromkeys(EMF_OUTPUTS, wave),
         }
 
     return PoolAdapter(
@@ -175,7 +218,7 @@ def pool_adapter(version=VERSION):
         input_names=tuple(names),
         design_names=tuple(decision.DESIGN_VARIABLES),
         condition_names=tuple(decision.CONDITION_VARIABLES),
-        outputs=("mean_torque_nm", "ripple_pk_pk_nm"),
+        outputs=("mean_torque_nm", "ripple_pk_pk_nm", *EMF_OUTPUTS),
         objective="ripple_pk_pk_nm",
         sense="min",
         limits=(),
@@ -279,8 +322,10 @@ def dispatch(config):
     public region box here; hidden bounds never enter the overlay)."""
     if config:
         raise ValueError("Motor 1.8's dispatch takes no config")
-    from carbon.scoring import pool_version
+    from carbon.scoring import pool_grader, pool_version
 
+    for name in EMF_OUTPUTS:
+        pool_grader.register_waveform_output(name, _waveform_output())
     pool_version.register_binding(KIND, VERSION, official_binding)
     return {
         "challenge": CHALLENGE,

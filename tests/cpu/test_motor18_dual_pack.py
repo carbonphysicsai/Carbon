@@ -7,6 +7,7 @@ pool binding (absolute pk-pk) is reached through `pool_version` with `pool_adapt
 from __future__ import annotations
 
 import hashlib
+import math
 import json
 import os
 import subprocess
@@ -371,3 +372,99 @@ def test_an_empty_curve_fails_motors_own_schema_gate():
     from carbon.scoring import motor_dual_measurement as mdm
 
     assert exam.gates(mdm._curve([]))["schema_finite"] == exam.FAIL
+
+
+# --- the back-EMF cells ---------------------------------------------------------------------------------------------
+
+
+@pytest.fixture
+def waveforms():
+    from carbon.scoring import pool_grader
+
+    saved = dict(pool_grader._WAVEFORMS)
+    pool_grader._WAVEFORMS.clear()
+    yield pool_grader._WAVEFORMS
+    pool_grader._WAVEFORMS.clear()
+    pool_grader._WAVEFORMS.update(saved)
+
+
+def _balanced_row(amplitude=0.02, shift=0.3, harmonic=0.0, torque=2.0):
+    """A synthetic 1.8 row: flat torque, then balanced three-phase linkages (optionally with a 5th harmonic)."""
+    from carbon.motor import back_emf
+    from carbon.motor.domain import ANGLE_STEPS, FIXED
+
+    pairs = FIXED["poles"] // 2
+    theta = [k * back_emf.STEP_RAD for k in range(ANGLE_STEPS)]
+    phases = []
+    for k in range(3):
+        phases += [
+            amplitude * math.cos(pairs * t + shift - k * 2 * math.pi / 3)
+            + harmonic * math.cos(5 * (pairs * t + shift - k * 2 * math.pi / 3))
+            for t in theta
+        ]
+    return [torque] * ANGLE_STEPS + phases
+
+
+def test_the_emf_outputs_are_back_emfs_two_cells():
+    from carbon.motor import back_emf
+
+    assert motor18_dual_pack.EMF_OUTPUTS == back_emf.CELLS
+
+
+def test_derive_gives_both_cells_the_predicted_ke_ll_waveform(monkeypatch):
+    from carbon.motor import back_emf, exam
+
+    monkeypatch.setattr(pool_adapters, "_roles", _roles())
+    monkeypatch.setattr(exam, "gates", lambda outputs: {})
+    chosen = motor18_dual_pack.pool_adapter("1.8")
+    assert chosen.outputs == (
+        "mean_torque_nm",
+        "ripple_pk_pk_nm",
+        "back_emf_open_circuit",
+        "ke_ll_loaded",
+    )
+    row = _balanced_row()
+    derived = chosen.derive({}, row)
+    expected = tuple(back_emf.ke_line(motor18_dual_pack.linkages(row)))
+    assert derived["back_emf_open_circuit"] == derived["ke_ll_loaded"] == expected
+    assert derived["mean_torque_nm"] == pytest.approx(2.0)
+
+
+def test_the_dispatch_registers_both_waveform_outputs(clean_bindings, waveforms):
+    motor18_dual_pack.dispatch({})
+    assert set(waveforms) == set(motor18_dual_pack.EMF_OUTPUTS)
+    motor18_dual_pack.dispatch({})  # idempotent
+
+
+def test_a_waveform_needs_one_finite_value_per_step_and_a_shape():
+    from carbon.motor.domain import ANGLE_STEPS
+
+    valid = motor18_dual_pack._waveform_valid
+    assert valid(motor18_dual_pack.ke_ll(_balanced_row()))
+    assert not valid((0.0,) * ANGLE_STEPS)  # no shape
+    assert not valid((1.0,) * (ANGLE_STEPS - 1))
+    assert not valid((float("nan"),) + (1.0,) * (ANGLE_STEPS - 1))
+    assert not valid("wave")
+
+
+def test_the_graded_error_is_the_validators_shape_error(clean_bindings, waveforms):
+    from carbon.motor import back_emf
+    from carbon.scoring import pool_grader
+
+    motor18_dual_pack.dispatch({})
+    predicted, reference = _balanced_row(), _balanced_row(harmonic=0.002, amplitude=0.05)
+    truth = tuple(back_emf.ke_line(motor18_dual_pack.linkages(reference)))
+    error = pool_grader.difference(
+        "ke_ll_loaded", motor18_dual_pack.ke_ll(predicted), truth
+    )
+    assert error == pytest.approx(
+        back_emf.grade(
+            motor18_dual_pack.linkages(predicted), motor18_dual_pack.linkages(reference)
+        )
+    )
+    assert error > 0
+    # amplitude alone is not graded (each waveform over its own RMS)
+    louder = tuple(back_emf.ke_line(motor18_dual_pack.linkages(_balanced_row(amplitude=0.07))))
+    assert pool_grader.difference(
+        "back_emf_open_circuit", motor18_dual_pack.ke_ll(predicted), louder
+    ) == pytest.approx(0.0, abs=1e-12)

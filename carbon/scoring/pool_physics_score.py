@@ -613,7 +613,9 @@ def _ratios(specs, predict, ranges, rule):
                 invalid[name] = invalid.get(name, 0) + 1
                 continue
             for output in spec.outputs:
-                error = abs(prediction[output] - spec.truths[index][output])
+                error = pool_grader.difference(
+                    output, prediction[output], spec.truths[index][output]
+                )
                 u = spec.u_at(index, output)
                 if u > 0:
                     ratios.setdefault((name, output), []).append(error / u)
@@ -776,7 +778,9 @@ def target_cells(spec, predict, scales, plan, rule):
             "agen_prediction_invalid",
         )
         for family, output in cells:
-            error = abs(prediction[output] - spec.truths[index][output])
+            error = pool_grader.difference(
+                output, prediction[output], spec.truths[index][output]
+            )
             entry = sums[(family, name, output)]
             if headroom:
                 # ln of the error in U, floored at 1 U (the reference resolves nothing finer)

@@ -172,6 +172,53 @@ def _finite(value):
 
 
 @dataclass(frozen=True)
+class WaveformOutput:
+    """A derived output whose value is a waveform, not a number (Motor 1.8's k_e,ll, TE-B 7 Nov): ``valid(value)`` says
+    whether a value is one (a prediction that is not is the candidate's invalid answer; a truth that is not refuses the
+    pool), and ``error(predicted, true)`` is its registered |error| >= 0, in place of ``abs(predicted - true)``. Its U is
+    an absolute number > 0, and it is never an objective or a limit."""
+
+    valid: object
+    error: object
+
+
+#: The registered waveform outputs, by output name (`register_waveform_output`). EMPTY for every registered version, so
+#: every check below is then exactly the scalar one.
+_WAVEFORMS = {}
+
+
+def register_waveform_output(name, output):
+    """Register one waveform output (add-only: the same registration again is a no-op, a different one refuses)."""
+    _require(
+        type(name) is str and name and isinstance(output, WaveformOutput),
+        "waveform_output_registration_invalid",
+    )
+    _require(
+        _WAVEFORMS.setdefault(name, output) == output,
+        "waveform_output_already_registered_differently",
+    )
+
+
+def _value_ok(name, value):
+    output = _WAVEFORMS.get(name)
+    return _finite(value) if output is None else output.valid(value) is True
+
+
+def _keep(name, value):
+    return float(value) if name not in _WAVEFORMS else tuple(float(v) for v in value)
+
+
+def difference(name, predicted, true):
+    """|predicted - true| of output ``name``: the registered waveform error for a waveform output, else the plain one."""
+    output = _WAVEFORMS.get(name)
+    if output is None:
+        return abs(predicted - true)
+    error = output.error(predicted, true)
+    _require(_finite(error) and error >= 0, "waveform_error_invalid")
+    return float(error)
+
+
+@dataclass(frozen=True)
 class Limit:
     output: str
     kind: (
@@ -735,6 +782,7 @@ def build_target(
         "outputs_must_be_unique_and_non_empty",
     )
     _require(objective in outputs, "objective_must_be_an_output")
+    _require(objective not in _WAVEFORMS, "a_waveform_output_is_never_the_objective")
     _require(sense in ("max", "min"), "sense_must_be_max_or_min")
     limits = tuple(limits)
     _require(
@@ -742,6 +790,7 @@ def build_target(
             isinstance(l, Limit)
             and l.kind in ("<=", ">=")
             and l.output in outputs
+            and l.output not in _WAVEFORMS
             and _finite(l.bound)
             for l in limits
         ),
@@ -761,6 +810,10 @@ def build_target(
         any(_is_relative(v) or v > 0 for v in u.values()),
         "u_needs_one_predicted_output",
     )
+    _require(
+        all(_finite(u[k]) and u[k] > 0 for k in outputs if k in _WAVEFORMS),
+        "a_waveform_output_needs_an_absolute_u_above_zero",
+    )
     box = tuple((float(lo), float(hi)) for lo, hi in box)
     _require(
         box
@@ -779,7 +832,7 @@ def build_target(
         _require(
             type(truth) is dict
             and set(truth) == set(outputs)
-            and all(_finite(v) for v in truth.values()),
+            and all(_value_ok(k, v) for k, v in truth.items()),
             "truth_must_give_every_output_finite",
         )
     _require(type(seed) is int, "seed_must_be_an_int")
@@ -804,7 +857,7 @@ def build_target(
             continue
         keep.append(index)
     kept_designs = tuple(tuple(float(x) for x in designs[i]) for i in keep)
-    kept_truths = tuple({k: float(v) for k, v in truths[i].items()} for i in keep)
+    kept_truths = tuple({k: _keep(k, v) for k, v in truths[i].items()} for i in keep)
     kept_agen = tuple(n for n, i in enumerate(keep) if i in agen)
     queryable = tuple(n for n, i in enumerate(keep) if i not in agen)
     norm = tuple(
@@ -1099,12 +1152,22 @@ class TargetGrade:
     variant_fallback: bool = False
 
 
+def graded_answer(prediction, outputs):
+    """The prediction as a target grades it, or None when it is not a valid answer: a dict giving exactly ``outputs``,
+    each finite (a waveform output: valid). A prediction may also carry REGISTERED waveform outputs another target grades
+    (Motor 1.8's derive gives every target the same keys); they are dropped here. With no waveform output registered
+    this is exactly the scalar check (the same dict, or None)."""
+    if type(prediction) is not dict or not set(outputs) <= set(prediction):
+        return None
+    extra = set(prediction) - set(outputs)
+    if extra - set(_WAVEFORMS):
+        return None
+    graded = {k: prediction[k] for k in outputs} if extra else prediction
+    return graded if all(_value_ok(k, v) for k, v in graded.items()) else None
+
+
 def _valid_prediction(prediction, outputs):
-    return (
-        type(prediction) is dict
-        and set(prediction) == set(outputs)
-        and all(_finite(v) for v in prediction.values())
-    )
+    return graded_answer(prediction, outputs) is not None
 
 
 def _nearest(point, norm, candidates, taken):
@@ -1218,9 +1281,10 @@ def _grade_one(spec, predict, optimizer, honesty):
         if type(batch) is not list or len(batch) != len(chosen):
             return refused("prediction_invalid")
         for index, prediction in zip(chosen, batch):
-            if not _valid_prediction(prediction, spec.outputs):
+            graded = graded_answer(prediction, spec.outputs)
+            if graded is None:
                 return refused("prediction_invalid")
-            predictions[index] = {k: float(v) for k, v in prediction.items()}
+            predictions[index] = {k: _keep(k, v) for k, v in graded.items()}
         if len(chosen) < len(samples):
             break  # the budget or the pool ended mid-generation: nothing left to adapt to
         es.tell([key(i) for i in chosen])
@@ -1349,10 +1413,10 @@ def _top_k_grade(spec, predictions, feasible_predicted, key, optimizer, honesty)
 def _error(spec, index, prediction, honesty):
     ratios = []
     for k in spec.outputs:
-        difference = abs(prediction[k] - spec.truths[index][k])
+        error = difference(k, prediction[k], spec.truths[index][k])
         scale = spec.u_at(index, k)
         if scale > 0.0:
-            ratios.append(difference / scale)
+            ratios.append(error / scale)
         elif not math.isclose(
             prediction[k], spec.truths[index][k], rel_tol=1e-9, abs_tol=1e-12
         ):
@@ -1500,7 +1564,7 @@ def _target_agen(spec, predict, scales):
     for index, prediction in zip(spec.agen, batch):
         _require(_valid_prediction(prediction, spec.outputs), "agen_prediction_invalid")
         atoms += [
-            benefit(abs(prediction[k] - spec.truths[index][k]) / scales[k])
+            benefit(difference(k, prediction[k], spec.truths[index][k]) / scales[k])
             for k in spec.outputs
         ]
     return statistics.fmean(atoms)
