@@ -442,8 +442,8 @@ do, and what stays the same.
   address: **HUMAN_INPUT** (per Challenge). The installer update puts them in
   your profile; you type nothing.
 - **Which versions open.** Motor 1.8 and Cooling 1.8 are planned to open
-  first; Burst Thermal 3.2 joins after them, once it passes its checks. Ribbed
-  Bracket: **HUMAN_INPUT**. The list here is updated as each one opens. Each
+  first; Burst Thermal 3.2 and Ribbed Bracket 2.0 join after them, each once
+  it passes its checks. The list here is updated as each one opens. Each
   opens only when its exam is qualified, and each has its own *How you're
   tested* page in its data kit.
 - **Mainnet starts clean.** Nothing from the test network carries over: no
