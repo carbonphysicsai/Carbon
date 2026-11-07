@@ -256,9 +256,7 @@ class DirectRecipeIntake(BatteryIntake):
         try:
             provider = self.adapter._provider(hotkey)
             return continuation_at(provider.ledger, provider.owner, request)
-        except (
-            Exception
-        ):  # noqa: BLE001 - unreadable = not a continuation; the stage itself decides the reply
+        except Exception:  # noqa: BLE001 - unreadable = not a continuation
             return False
 
     def _official_gpu(self):
