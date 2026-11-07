@@ -222,6 +222,21 @@ class MotorCatalogPractice:
                 ]
             )
             expected_shape = (len(query), *tuple(expected_shape)[1:])
+        # New versions practise on the data kit's verify set (owner, 7 Nov: "Yes, verify set"): when this version
+        # is registered there, the query is the verify designs, scored below by the same practice measurement.
+        from carbon.challenge_kit import verify_practice
+
+        verify_src = verify_practice.source(
+            verify_practice.MOTOR, self.version, root=self.root
+        )
+        if verify_src is not None:
+            from . import domain
+
+            query = verify_src.query(domain.INPUTS).astype(
+                np.asarray(practice_inputs).dtype
+            )
+            n_bank, v2 = len(query), False
+            expected_shape = (len(query), *tuple(expected_shape)[1:])
         from carbon.development_session.catalog_gpu import backend_record
 
         source_kind = (
@@ -264,6 +279,11 @@ class MotorCatalogPractice:
                     identity=trial,
                     measure_query=practice_speed.measure(self.runner),
                     timing_optional=True,
+                    **(
+                        {}
+                        if verify_src is None
+                        else {"inputs": query, "expected_output_shape": expected_shape}
+                    ),
                     # A host with a JAX GPU worker practises the graph on it.
                     **({} if device is None else {"accelerator": device}),
                 )[0]
@@ -344,17 +364,23 @@ class MotorCatalogPractice:
         all_rows = result.inference.predictions
         rows, grid_rows = all_rows[:n_bank], all_rows[n_bank:]
         practice = PracticeSet.load(self.root)
-        by_case = dict(zip(material["practice_case_ids"], rows))
-        predictions = {
-            record["case_id"]: {
-                "torque_nm": [float(v) for v in by_case[record["case_id"]]]
+        verify_block = None
+        if verify_src is not None:
+            predictions, summary, verify_block = verify_practice.score_motor(
+                verify_src, rows, PublicMaterial.load(self.root).train
+            )
+        else:
+            by_case = dict(zip(material["practice_case_ids"], rows))
+            predictions = {
+                record["case_id"]: {
+                    "torque_nm": [float(v) for v in by_case[record["case_id"]]]
+                }
+                for record in practice.records
+                if record["case_id"] in by_case
             }
-            for record in practice.records
-            if record["case_id"] in by_case
-        }
-        _rows, summary = score_practice(
-            predictions, practice, PublicMaterial.load(self.root)
-        )
+            _rows, summary = score_practice(
+                predictions, practice, PublicMaterial.load(self.root)
+            )
         if source_kind != "graph":
             source = json.loads(canonical(strategy))["source"]
             catalog_source = {
@@ -379,7 +405,11 @@ class MotorCatalogPractice:
             "final_exam": False,
             "official_eligible": False,
             # PRACTICE-SAFETY-01: feedback only, on the same public cases.
-            "safety": safety_feedback(predictions, practice),
+            "safety": (
+                safety_feedback(predictions, practice)
+                if verify_src is None
+                else {"status": verify_practice.NOT_EVALUATED}
+            ),
             "recipe": strategy,
             # C13: the exam's dual measurement on the public development bank.
             "practice_dual": (
@@ -396,10 +426,19 @@ class MotorCatalogPractice:
                 )
                 if v2
                 else practice_dual.unavailable_v2(
-                    "motor", self.version, practice_dual.V1_RETIRED
+                    "motor",
+                    self.version,
+                    (
+                        practice_dual.V1_RETIRED
+                        if verify_src is None
+                        else "kit verify set: design value and minimums are not evaluated locally"
+                    ),
                 )
             ),
         }
+        if verify_block is not None:
+            out["practice_source"] = verify_practice.LABEL
+            out["verify"] = verify_block
         # One truth for "eligible": the exam's own gate verdict (practice_dual) wins over the
         # summary's, which stays beside it (Lead 02:13Z).
         from carbon.scoring import practice_dual as _practice_dual
