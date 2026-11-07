@@ -438,7 +438,6 @@ class PoolVariant(physical.Variant):
         speed_call_seconds=None,
         speed_outputs_match=True,
         capture=None,
-        menu_rowcheck=None,
     ):
         from carbon.challenge_registry import speed_gate
 
@@ -471,12 +470,16 @@ class PoolVariant(physical.Variant):
         if tasks is not None:
             from carbon.scoring import pool_menu
 
+            rowcheck_key = pool_menu.rowcheck_key()
             menu_arguments = {
                 "menu_tasks": tasks,
                 "menu_key": pool_menu.active_key(),
-                # the receiver's fresh keyed re-check (None until the receiver supplies it: refuses, Carbon's gap)
-                "menu_rowcheck": menu_rowcheck,
-                "menu_rowcheck_key": pool_menu.rowcheck_key(),
+                # the receiver's fresh keyed re-check, staged around its producer call (`pool_menu.staged_rowcheck`);
+                # none staged refuses (Carbon's gap)
+                "menu_rowcheck": pool_menu.take_rowcheck(
+                    len(bank_rows), policies.menu, rowcheck_key
+                ),
+                "menu_rowcheck_key": rowcheck_key,
             }
         return pool_exam.measure_pool(
             binding=pool_adapters.official_binding(self._kind, self.VERSION),

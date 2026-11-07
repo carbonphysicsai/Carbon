@@ -1864,9 +1864,6 @@ def serve(
     from carbon.challenge_validator import crown_average_host
 
     crown_average_host.install(cfg)
-    from carbon.challenge_validator import crown_hold
-
-    crown_hold.install(cfg)
     install_declared_change(cfg)
     install_king_retained_parents(cfg)
     selected_parent = (
@@ -2001,6 +1998,10 @@ def serve(
         )
     )
     challenge = material["challenge_key"]
+    # A menu-D version's coded crown hold, keyed on the version this receiver ACTUALLY serves (Validator-2B 7 Nov)
+    from carbon.challenge_validator import crown_hold
+
+    crown_hold.install(challenge.challenge_id, challenge.version)
     with owner_lock(root):
         pack_check = None
         pack_digest = None

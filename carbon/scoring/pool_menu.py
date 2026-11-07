@@ -23,6 +23,8 @@ snake_case code (Carbon's gap, never a candidate failure and never D = 0).
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import math
 import re
 from dataclasses import dataclass
@@ -189,6 +191,43 @@ def rowcheck_plan(row_count, subset, key, *, epoch):
 
 
 ROWCHECK_SCHEMA = "carbon.menu-rowcheck.v1"
+
+#: The re-check staged for the grade being produced in THIS context (`staged_rowcheck`): set by the receiver around its
+#: producer call, never through a producer file (Validator-2B 7 Nov must-fix 1: producer bytes never move).
+_STAGED = contextvars.ContextVar("carbon_menu_rowcheck", default=None)
+
+
+@contextlib.contextmanager
+def staged_rowcheck(source):
+    """Stage the re-check for the measure called inside this block: the receiver's side-file bytes, or (a custody
+    pack build only) ``source(positions) -> raw answers`` for Carbon's own in-pack baseline. Cleared on exit.
+    """
+    _require(
+        source is None or type(source) is bytes or callable(source),
+        "menu_rowcheck_side_file_invalid",
+    )
+    token = _STAGED.set(source)
+    try:
+        yield
+    finally:
+        _STAGED.reset(token)
+
+
+def take_rowcheck(row_count, rule, key):
+    """``{"positions", "outputs"}`` of the staged re-check for a bank of ``row_count`` rows, or None when nothing is
+    staged (the measure then refuses ``menu_rowcheck_unavailable``, Carbon's gap)."""
+    source = _STAGED.get()
+    if source is None:
+        return None
+    if type(source) is bytes:
+        return read_rowcheck_side_file(source)
+    positions = rowcheck_plan(row_count, rule.rowcheck[2], key, epoch=rule.epoch)
+    outputs = source(list(positions))
+    _require(
+        type(outputs) is list and len(outputs) == len(positions),
+        "menu_rowcheck_count_mismatch",
+    )
+    return {"positions": positions, "outputs": [list(row) for row in outputs]}
 
 
 def rowcheck_side_file(positions, outputs):

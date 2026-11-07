@@ -675,3 +675,74 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
     assert (
         tmp_path / "menu-rowcheck.json"
     ).read_bytes() == raw  # write-once, read back on a retry
+
+
+def test_the_staged_recheck_is_read_only_inside_its_block():
+    raw = pool_menu.rowcheck_side_file([1], [[2.0]])
+    assert pool_menu.take_rowcheck(4, _rule(), KEY) is None
+    with pool_menu.staged_rowcheck(raw):
+        assert pool_menu.take_rowcheck(4, _rule(), KEY) == {
+            "positions": [1],
+            "outputs": [[2.0]],
+        }
+    assert pool_menu.take_rowcheck(4, _rule(), KEY) is None
+    rule = dataclasses.replace(_rule(), rowcheck=(0.0, 0.0, 3))
+    with pool_menu.staged_rowcheck(lambda positions: [[float(i)] for i in positions]):
+        staged = pool_menu.take_rowcheck(10, rule, KEY)
+    assert staged["positions"] == pool_menu.rowcheck_plan(10, 3, KEY, epoch=rule.epoch)
+    assert staged["outputs"] == [[float(i)] for i in staged["positions"]]
+    with pool_menu.staged_rowcheck(None):
+        assert pool_menu.take_rowcheck(4, _rule(), KEY) is None
+
+
+# ---------------------------------------------------------------- Validator-2B must-fix 1: producer bytes never move
+
+#: producer_digest() of every dual-pack producer on main 3f7b80f8 (computed there, 7 Nov). A menu head that moved any
+#: producer file would refuse every live pack ('dual_native_producer_or_train_binding'), so these must not change here.
+PRODUCERS_ON_3F7B80F8 = {
+    "battery_dual_pack": "sha256:852fb21427ba7fec8c635fc588834455f1d55e91f3b4dfa5b925bea2b7924e22",
+    "battery_sealed_dual_pack": "sha256:e8d450a427d5c7572c9e1d41d070719bdc9ee10830e4eb41f09c5f8cabdaf45c",
+    "cooling_dual_pack": "sha256:c29704e900c345d1fc81653f78afc796ed91861370a584d7660a7f3dbeb5b0d0",
+    "cooling_encoded_dual_pack": "sha256:a468a5110c8245fa1c7e1ffb812cf9c78ecacc7b4ef1a245e02832da53ea3699",
+    "cooling_hotspot_dual_pack": "sha256:df9e5d27d3959d017b9aae7243a5846c74234a3825c376d9183f9d6e60451dca",
+    "cooling_pool_baseline_dual_pack": "sha256:8b33a0ee4098b7a92e81adb6cebc12600599893a88d1f9c8f683a753a1e2b0a2",
+    "f02_dual_pack": "sha256:60861496cb77682c25e338d75744a99161cc830ac94ded9c75d54890d7a00c9b",
+    "f02_sealed_dual_pack": "sha256:4c49041bb04d0971d25f896899f83f122082a24fc252210733c1f5d67d909263",
+    "f08_dual_pack": "sha256:1d244cf56dd30de4a7b6e3961cd4f6c4e9c007487941ae0dcd2de46e4cf0e29e",
+    "f08_sanity_dual_pack": "sha256:7315f94ab223cd28a4dd6641c0cd9e1afa649e8926ba154992d937be5ecff540",
+    "f08_sealed_dual_pack": "sha256:43847f922bb63e7f72136c67c2c3da74600c71485452e5f19f19228c36baaefb",
+    "motor_dual_pack": "sha256:3089b982651cd1b158affd8e145ad544a80d6be26d1e6ba01e9323bc502762b9",
+    "motor_pool_baseline_dual_pack": "sha256:cf89ca1e3a6ab3e035f0e56cb9dbc94238c1640a875e5f63b39755d870dcd913",
+    "motor_sealed_dual_pack": "sha256:3d45a99670763e003a6fa43393730ab7518e004c2a32a5ae80ef1b91e7b678f4",
+}
+
+
+def test_no_producer_digest_moves():
+    """Every producer's digest, computed in a FRESH interpreter (import order cannot matter), equals main 3f7b80f8's."""
+    import subprocess
+
+    code = (
+        "import importlib, json, sys; names = json.loads(sys.argv[1]); "
+        "print(json.dumps({n: importlib.import_module('carbon.scoring.' + n)"
+        ".producer_digest() for n in names}))"
+    )
+    done = subprocess.run(
+        [sys.executable, "-c", code, json.dumps(sorted(PRODUCERS_ON_3F7B80F8))],
+        cwd=HERE.parents[1],
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=True,
+    )
+    assert json.loads(done.stdout.strip().splitlines()[-1]) == PRODUCERS_ON_3F7B80F8
+
+
+def test_no_menu_file_is_a_producer_file():
+    from carbon.scoring import physical_dual_pack
+
+    assert not {
+        "pool_menu.py",
+        "pool_exam.py",
+        "pool_version.py",
+        "menu_score.py",
+    } & set(physical_dual_pack._SHARED_FILES)

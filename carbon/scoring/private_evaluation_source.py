@@ -74,7 +74,6 @@ def produce_dual_benchmark_input(
     timing_step: float,
     copy_hotkey: str | None = None,
     single_call_raw: bytes | None = None,
-    menu_rowcheck_raw: bytes | None = None,
 ) -> tuple[dict, dict, str]:
     """Run the fixed DEVELOPMENT cold-eight producer, or refuse unavailable roles.
 
@@ -131,21 +130,11 @@ def produce_dual_benchmark_input(
             # side file, `single_call_timing`): its speed is the median of those calls and the only speed it
             # has (GPU_REBUILD_RULINGS section 13), so the binding re-derives the measured model from the same
             # bytes. The side file itself is never copied into the receipt.
-            originals={
-                **graph_originals,
-                **(
-                    {}
-                    if single_call_raw is None
-                    else {"single_call_raw": single_call_raw}
-                ),
-                # a menu-D version's fresh keyed re-check (`pool_menu`, Carbon Validator-B 7 Nov (1)): a host-private
-                # side file like the single-call one, read by the producer only, never copied into the receipt
-                **(
-                    {}
-                    if menu_rowcheck_raw is None
-                    else {"menu_rowcheck_raw": menu_rowcheck_raw}
-                ),
-            },
+            originals=(
+                graph_originals
+                if single_call_raw is None
+                else {**graph_originals, "single_call_raw": single_call_raw}
+            ),
             source_raw=evaluation_source_receipt_raw,
             bank=bank,
             interface_names=names,
@@ -188,7 +177,6 @@ def produce_registered_dual_measurement(
     timing_step: float,
     copy_hotkey: str | None = None,
     single_call_raw: bytes | None = None,
-    menu_rowcheck_raw: bytes | None = None,
 ) -> PreparedPrivateDualMeasurement:
     """Bind a fixed producer's output with the real source/pack receipt checks.
 
@@ -208,7 +196,6 @@ def produce_registered_dual_measurement(
         timing_step=timing_step,
         copy_hotkey=copy_hotkey,
         single_call_raw=single_call_raw,
-        menu_rowcheck_raw=menu_rowcheck_raw,
     )
     return build_dual_measurement_receipt(
         selected_pack=selected_pack,
@@ -633,11 +620,7 @@ def graded_original_keys(originals):
     if type(originals) is not dict:
         return None
     # (a pool-graded version's single-call side file rides beside the graded originals)
-    keys = (
-        set(originals)
-        - _PAIR_ORIGINALS
-        - {"timed_query", "single_call_raw", "menu_rowcheck_raw"}
-    )
+    keys = set(originals) - _PAIR_ORIGINALS - {"timed_query", "single_call_raw"}
     for graded in (_GRADED_ORIGINALS, _BUNDLE_ORIGINALS):
         if keys == graded:
             return graded

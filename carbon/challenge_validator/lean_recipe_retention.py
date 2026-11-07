@@ -1375,21 +1375,27 @@ def _retain_selected_pack_evaluation(
         menu_rowcheck = _menu_rowcheck_raw(
             adapter, submission_id, result, artifacts, registered["entry"], regrade
         )
-        prepared = produce_registered_dual_measurement(
-            selected_pack=snapshot,
-            public_root=discovery.evaluation_pack_public_root,
-            private_root=private_root,
-            entry=registered["entry"],
-            trusted_job=source["trusted_job"],
-            registration=source["benchmark_registration"],
-            references=registered["references"],
-            graph_originals=originals,
-            evaluation_source_receipt_raw=registered["evaluation_source_receipt_raw"],
-            timing_step=_timing_step(adapter),
-            copy_hotkey=getattr(adapter, "copy_hotkey", None),
-            single_call_raw=single_call,
-            **({} if menu_rowcheck is None else {"menu_rowcheck_raw": menu_rowcheck}),
-        )
+        from carbon.scoring import pool_menu
+
+        # (a menu-D version's re-check is staged for the measure, never passed through a producer file: None stages
+        # nothing for every other version)
+        with pool_menu.staged_rowcheck(menu_rowcheck):
+            prepared = produce_registered_dual_measurement(
+                selected_pack=snapshot,
+                public_root=discovery.evaluation_pack_public_root,
+                private_root=private_root,
+                entry=registered["entry"],
+                trusted_job=source["trusted_job"],
+                registration=source["benchmark_registration"],
+                references=registered["references"],
+                graph_originals=originals,
+                evaluation_source_receipt_raw=registered[
+                    "evaluation_source_receipt_raw"
+                ],
+                timing_step=_timing_step(adapter),
+                copy_hotkey=getattr(adapter, "copy_hotkey", None),
+                single_call_raw=single_call,
+            )
         directory = _private_evaluation_directory(result, submission_id)
         measurement_path = directory / "dual-measurement.json"
         pin_path = directory / "dual-measurement-registration.json"

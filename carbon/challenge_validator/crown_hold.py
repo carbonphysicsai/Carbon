@@ -13,7 +13,8 @@ is built, a crown change on such a version is never made automatically:
   is written once in the pool store (the record of the release). A file that is not a private regular file of this
   user, or does not parse as exactly that, releases nothing (fail closed: held).
 
-`install` turns the hold on at receiver start when the served Challenge version's registration carries a ``menu``
+`install` turns the hold on at receiver start when the Challenge version the receiver actually serves (its material's
+challenge key) has a registration carrying a ``menu``
 block (read from the raw registration, so a version whose other constants are still HUMAN_INPUT is held too). Every
 other version is unchanged: the hold is never on for it.
 """
@@ -37,25 +38,36 @@ ACTIVE = False
 
 def menu_registered(challenge_id, version, *, path=None) -> bool:
     """Whether the version's raw registration carries a ``menu`` block (no other constant is read or checked)."""
+    # an unreadable registration cannot show the version is NOT a menu version: hold (fail closed)
+    return _reason(challenge_id, version, path=path) != "off"
+
+
+def install(challenge_id, version, *, log=None):
+    """Hold crowns when the version this receiver ACTUALLY serves (its material's challenge key, never the cfg's
+    selection: Validator-2B 7 Nov must-fix 2) registers a menu; off for every other version. Logs one line,
+    ``crown_hold_active=<bool> reason=<menu|unreadable|off>`` (Ops Watch)."""
+    global ACTIVE
+    reason = _reason(challenge_id, version)
+    ACTIVE = reason != "off"
+    line = f"crown_hold_active={str(ACTIVE).lower()} reason={reason}"
+    if log is None:
+        import sys
+
+        print(line, file=sys.stderr, flush=True)
+    else:
+        log(line)
+    return ACTIVE
+
+
+def _reason(challenge_id, version, *, path=None):
     from carbon.scoring import pool_version
 
     try:
         document = json.loads(Path(path or pool_version.CONSTANTS).read_bytes())
         entry = document["versions"].get(f"{challenge_id} {version}")
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
-        # an unreadable registration cannot show the version is NOT a menu version: hold (fail closed)
-        return True
-    return type(entry) is dict and "menu" in entry
-
-
-def install(cfg):
-    """Hold crowns for the served Challenge version when it registers a menu; off for every other version."""
-    global ACTIVE
-    selected = cfg.get("challenge") if type(cfg) is dict else None
-    if type(selected) is not dict or set(selected) != {"id", "version"}:
-        ACTIVE = False
-        return
-    ACTIVE = menu_registered(selected["id"], selected["version"])
+        return "unreadable"
+    return "menu" if type(entry) is dict and "menu" in entry else "off"
 
 
 def released(state_dir, submission_id) -> bool:
