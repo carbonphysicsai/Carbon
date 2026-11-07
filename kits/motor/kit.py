@@ -535,13 +535,12 @@ def read_npz(path):
 
 # --- verify ------------------------------------------------------------------
 
-#: Where the published verify set will sit (amendment A1). It is NOT shipped
-#: yet: the set (inputs plus Carbon's pinned truths, R15: inner half of the
-#: band, at least 0.10 from every sealed case, and in every later exclusion set)
-#: needs the exclusion rerun and the Validator's digest receipt first.
+#: The published verify set (amendment A1): Motor 1.8's 6 designs with Carbon's
+#: pinned truths and U, outside every sealed set, digest receipted by the
+#: Validator (7 Nov, board 07:55).
 VERIFY_SET = Path(__file__).with_name("verify_set.json")
 #: The receipted sha256 of that file; `verify` refuses any other bytes.
-VERIFY_SET_SHA256 = None
+VERIFY_SET_SHA256 = "e6179607b3790ac0b05658b1ee4019478a6aac9c2f3bb787a74f96cedc1c7327"
 HUMAN_INPUT = "HUMAN_INPUT"
 #: The graded quantities' registered measurement uncertainty U. Motor 1.5's
 #: published values (docs/MINING.md); the verify set file carries Motor 1.7's

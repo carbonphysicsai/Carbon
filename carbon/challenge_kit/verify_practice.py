@@ -31,7 +31,13 @@ MOTOR = "electric-motor-magnetics"
 
 #: (challenge id, version) -> (the verify set's path from the checkout root, its receipted sha256). Switching a
 #: version on = one row here, with the kit's file and the Validator-receipted digest. Empty until a set lands.
-REGISTRY: dict[tuple[str, str], tuple[str, str]] = {}
+REGISTRY: dict[tuple[str, str], tuple[str, str]] = {
+    # Motor 1.8: the kit's verify set, digest receipted by the Validator (7 Nov, board 07:55).
+    (MOTOR, "1.8"): (
+        "kits/motor/verify_set.json",
+        "e6179607b3790ac0b05658b1ee4019478a6aac9c2f3bb787a74f96cedc1c7327",
+    ),
+}
 
 
 class VerifyPracticeRefused(ValueError):

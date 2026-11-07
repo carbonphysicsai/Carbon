@@ -40,10 +40,12 @@ def _verify_set(tmp_path, n=3):
     return path, hashlib.sha256(raw).hexdigest(), data["targets"][:n]
 
 
-def test_the_registry_is_empty_until_a_verify_set_lands():
-    assert verify_practice.REGISTRY == {}
+def test_only_receipted_versions_practise_on_their_verify_set():
+    # Only Motor 1.8 is switched on (its verify set receipted); every other version keeps its practice.
+    assert set(verify_practice.REGISTRY) == {(verify_practice.MOTOR, "1.8")}
     assert verify_practice.source(verify_practice.MOTOR, "1.5") is None
-    assert verify_practice.source(verify_practice.MOTOR, "1.8") is None
+    src = verify_practice.source(verify_practice.MOTOR, "1.8")
+    assert len(src.case_ids) == 6
 
 
 def test_a_registered_set_loads_only_at_its_receipted_digest(tmp_path):
