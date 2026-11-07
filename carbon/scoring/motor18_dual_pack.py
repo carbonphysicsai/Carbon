@@ -16,9 +16,13 @@ Everything else delegates UNCHANGED to `motor_sealed_dual_pack`, whose bytes (so
 not move. The pool grade (A by the pool exam, its headroom `physics` block and the menu D) comes from `pool_version` and
 the version's `pool_constants.json` entry: until every owner value there is set, it refuses (HUMAN_INPUT).
 
-**Torque only** (the owner, 7 Nov: 'Torque-only, EMF in 1.9'). The model's prediction row is the 60-angle torque, the
-Motor 1.6 interface shape. Back-EMF and the k_e,ll cells are NOT part of 1.8: nothing here imports `carbon.motor.back_emf`
-or reads a flux linkage; they ship in 1.9 with the TRAIN-vs-prediction interface split.
+**Back-EMF in 1.8** (the owner, 7 Nov evening, reversing 'Torque-only, EMF in 1.9'; the Carbon Validator: the flux
+linkage in TRAIN leaks nothing). TRAIN and the prediction share ONE 240-wide row (`ROW`): the 60-angle torque, then the
+three phase flux linkages over the same 60 rotor steps, so there is no TRAIN-vs-prediction split and every route trains
+and predicts at TRAIN's width. The torque slice alone feeds Motor's sealed grader, its gates and the pk-pk binding; a
+row that is not a whole 240-wide 1.8 answer is the candidate's schema failure, never a refusal. The two graded
+back-EMF cells (`carbon.motor.back_emf`: ``back_emf_open_circuit``, ``ke_ll_loaded``) are the k_e,ll ab SHAPE of the
+predicted linkages; each refuses until its own U of record is registered (`back_emf.require_u`).
 """
 
 from __future__ import annotations
@@ -36,6 +40,57 @@ TRAIN = "motor-dev-train-1p8-v1"
 POOL_VERSIONS = {VERSION: ("motor-pool-sealed-v3", "motor-sealed-pool-set")}
 #: 1.8's OWN producer identity covers the sealed grader and this module (its pk-pk decision lives here).
 FILES = (*_sealed.FILES, "motor18_dual_pack.py")
+#: The 1.8 row, in order, each slice the 60 rotor steps of one 15 degree mechanical window: the torque (N.m), then the
+#: per-phase flux linkages A, B, C (Wb; the record-now runner's ``phase_flux_linkage_wb``). The order is the 1.8 TRAIN
+#: interface's (mc-exam-B); a change here is a change of the 1.8 interface.
+ROW = (
+    "torque_nm",
+    "phase_flux_linkage_wb_A",
+    "phase_flux_linkage_wb_B",
+    "phase_flux_linkage_wb_C",
+)
+
+
+def _width():
+    from carbon.motor.domain import ANGLE_STEPS
+
+    return len(ROW) * ANGLE_STEPS
+
+
+def split(raw):
+    """One 1.8 row -> ``{slice name: its 60 finite values}`` over `ROW`; None for any other width or a non-finite
+    value (a torque-only 60-wide row is not a 1.8 answer)."""
+    from carbon.motor.domain import ANGLE_STEPS
+    from carbon.scoring import pool_adapters
+
+    row = pool_adapters._finite_row(raw)
+    if row is None or len(row) != _width():
+        return None
+    return {
+        name: row[k * ANGLE_STEPS : (k + 1) * ANGLE_STEPS] for k, name in enumerate(ROW)
+    }
+
+
+def linkages(raw):
+    """The predicted phase flux linkages of a 1.8 row in `back_emf`'s form ``{"a", "b", "c"}``, or None."""
+    parts = split(raw)
+    if parts is None:
+        return None
+    return {phase: parts["phase_flux_linkage_wb_" + phase.upper()] for phase in "abc"}
+
+
+def _sealed_rows(outputs, repeats):
+    """The sealed grader's 60-angle torque rows of 1.8 answers. If ANY row is not a whole 1.8 answer, every row becomes
+    an empty curve: Motor's own schema gate then fails the grade (the candidate's answer, never a refusal), and the physics
+    half, which reads the probe rows, is never reached with a malformed one."""
+    rows = [split(row) for row in [*outputs, *(r for repeat in repeats for r in repeat)]]
+    if any(row is None for row in rows):
+        return [[] for _ in outputs], [[[] for _ in repeat] for repeat in repeats]
+    torque = [row["torque_nm"] for row in rows]
+    n = len(outputs)
+    return torque[:n], [
+        torque[n + k * n : n + (k + 1) * n] for k in range(len(repeats))
+    ]
 
 
 def _train():
@@ -52,8 +107,14 @@ def definition(*, bank, train_raw):
 def measure(
     *, bank_rows, outputs, repeats, definition, limits, objective, train_raw, names
 ):
-    """Motor's sealed measurement against 1.8's extended TRAIN."""
+    """Motor's sealed measurement against 1.8's extended TRAIN, on the torque slice of each 1.8 answer."""
     del train_raw
+    if (
+        type(outputs) is list
+        and type(repeats) in (list, tuple)
+        and all(type(r) is list and len(r) == len(outputs) for r in repeats)
+    ):
+        outputs, repeats = _sealed_rows(outputs, list(repeats))
     return _sealed.measure(
         bank_rows=bank_rows,
         outputs=outputs,
@@ -77,12 +138,9 @@ def applied_pack(**kwargs):
 
 
 def _torque(raw):
-    """One prediction row: exactly the 60-angle torque (N.m), finite, or None."""
-    from carbon.motor.domain import ANGLE_STEPS
-    from carbon.scoring import pool_adapters
-
-    row = pool_adapters._finite_row(raw)
-    return row if row is not None and len(row) == ANGLE_STEPS else None
+    """The 60-angle torque (N.m) of a whole, finite 1.8 row, or None."""
+    parts = split(raw)
+    return None if parts is None else parts["torque_nm"]
 
 
 def pool_adapter(version=VERSION):

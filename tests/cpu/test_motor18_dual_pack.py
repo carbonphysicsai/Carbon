@@ -204,7 +204,8 @@ def _roles():
     return lambda kind, version: (SimpleNamespace(), {}, {}, names)
 
 
-def _flat(level, ripple=0.0, extra=0):
+def _flat(level, ripple=0.0, extra=180):
+    """A synthetic row: the 60-angle torque, then ``extra`` linkage values (180 = a whole 1.8 row)."""
     from carbon.motor.domain import ANGLE_STEPS
 
     return [level + (ripple if i == 0 else 0.0) for i in range(ANGLE_STEPS)] + [
@@ -224,11 +225,11 @@ def test_the_binding_derives_absolute_pk_pk_from_the_60_angle_torque(monkeypatch
     )  # no floor or ceiling in code: they are sealed custody values
     derived = chosen.derive({}, _flat(2.0, ripple=0.3))
     assert derived["ripple_pk_pk_nm"] == pytest.approx(0.3)
-    assert derived["mean_torque_nm"] == pytest.approx(2.0 + 0.3 / len(_flat(0)))
+    assert derived["mean_torque_nm"] == pytest.approx(2.0 + 0.3 / len(_flat(0, extra=0)))
     assert chosen.derive({}, ["nan"] * len(_flat(0))) is None
     assert chosen.derive({}, _flat(2.0)[:-1]) is None
-    # torque only (the owner, 7 Nov): a row carrying anything beyond the 60 torque values is not a 1.8 answer
-    assert chosen.derive({}, _flat(2.0, extra=180)) is None
+    # back-EMF in 1.8 (the owner, 7 Nov evening): a torque-only 60-wide row is not a 1.8 answer
+    assert chosen.derive({}, _flat(2.0, extra=0)) is None
 
 
 def test_a_gate_failure_derives_nothing_and_the_gates_read_the_torque(monkeypatch):
@@ -244,9 +245,10 @@ def test_a_gate_failure_derives_nothing_and_the_gates_read_the_torque(monkeypatc
     assert motor18_dual_pack.pool_adapter("1.8").derive({}, _flat(2.0)) is None
     gates = motor18_dual_pack.physics_gates()
     assert gates.failed({}, _flat(2.0)) == ("g",)
-    assert gates.failed({}, _flat(2.0, extra=180)) == ("schema_finite",)
+    assert gates.failed({}, _flat(2.0, extra=0)) == ("schema_finite",)
     assert gates.failed({}, [1.0, 2.0]) == ("schema_finite",)
-    assert set(seen) == {len(_flat(0))}
+    assert gates.failed({}, _flat(2.0)[:-1] + ["inf"]) == ("schema_finite",)
+    assert set(seen) == {len(_flat(0, extra=0))}  # the gates see the torque slice only
 
 
 def test_only_1_8_has_this_adapter():
@@ -264,11 +266,108 @@ def test_the_official_binding_refuses_proof_suite_inputs(monkeypatch):
         binding.serve_default()
 
 
-def test_no_limit_value_and_no_back_emf_is_in_the_module():
+def test_no_limit_value_is_in_the_module():
     text = MODULE.read_text(encoding="utf-8")
-    assert (
-        "import back_emf" not in text
-        and "back_emf." not in text
-        and "flux_linkage" not in text
-    )
     assert "constraints" not in text and "important_limit_definition" not in text
+
+
+# --- the 240-wide 1.8 row -------------------------------------------------------------------------------------------
+
+
+def _whole(torque=2.0):
+    from carbon.motor.domain import ANGLE_STEPS
+
+    return (
+        [torque] * ANGLE_STEPS
+        + [0.1] * ANGLE_STEPS
+        + [0.2] * ANGLE_STEPS
+        + [0.3] * ANGLE_STEPS
+    )
+
+
+def test_the_row_is_torque_then_the_three_phase_linkages():
+    from carbon.motor.domain import ANGLE_STEPS
+
+    assert motor18_dual_pack.ROW == (
+        "torque_nm",
+        "phase_flux_linkage_wb_A",
+        "phase_flux_linkage_wb_B",
+        "phase_flux_linkage_wb_C",
+    )
+    parts = motor18_dual_pack.split(_whole())
+    assert list(parts) == list(motor18_dual_pack.ROW)
+    assert all(len(v) == ANGLE_STEPS for v in parts.values())
+    assert parts["torque_nm"] == [2.0] * ANGLE_STEPS
+    assert motor18_dual_pack.linkages(_whole()) == {
+        "a": [0.1] * ANGLE_STEPS,
+        "b": [0.2] * ANGLE_STEPS,
+        "c": [0.3] * ANGLE_STEPS,
+    }
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        [2.0] * 60,  # torque only
+        _whole()[:-1],
+        [*_whole(), 0.0],
+        _whole()[:-1] + ["nan"],
+        _whole()[:-1] + [None],
+        "not a row",
+    ],
+)
+def test_anything_but_a_whole_finite_240_row_is_not_an_answer(bad):
+    assert motor18_dual_pack.split(bad) is None
+    assert motor18_dual_pack.linkages(bad) is None
+
+
+def test_the_sealed_grader_sees_only_the_torque_slices(monkeypatch):
+    seen = {}
+
+    def fake_measure(**kwargs):
+        seen.update(kwargs)
+        return {"A": 1.0}
+
+    monkeypatch.setattr(motor18_dual_pack._sealed, "measure", fake_measure)
+    monkeypatch.setattr(motor18_dual_pack, "_train", lambda: "TRAIN-1.8")
+    rows = [_whole(1.0), _whole(2.0)]
+    motor18_dual_pack.measure(
+        bank_rows=["r1", "r2"],
+        outputs=rows,
+        repeats=[[_whole(1.0), _whole(2.0)], [_whole(1.0), _whole(2.0)]],
+        definition={},
+        limits={},
+        objective={},
+        train_raw=b"train-150",
+        names=[],
+    )
+    assert seen["outputs"] == [[1.0] * 60, [2.0] * 60]
+    assert seen["repeats"] == [[[1.0] * 60, [2.0] * 60]] * 2
+    assert seen["train_raw"] == "TRAIN-1.8"
+
+
+def test_one_malformed_row_anywhere_empties_every_sealed_row(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(
+        motor18_dual_pack._sealed, "measure", lambda **kw: seen.update(kw) or {}
+    )
+    monkeypatch.setattr(motor18_dual_pack, "_train", lambda: "TRAIN-1.8")
+    motor18_dual_pack.measure(
+        bank_rows=["r1", "r2"],
+        outputs=[_whole(), _whole()],
+        repeats=[[_whole(), _whole()], [_whole(), [2.0] * 60]],  # one twin is torque-only
+        definition={},
+        limits={},
+        objective={},
+        train_raw=None,
+        names=[],
+    )
+    assert seen["outputs"] == [[], []]
+    assert seen["repeats"] == [[[], []], [[], []]]
+
+
+def test_an_empty_curve_fails_motors_own_schema_gate():
+    from carbon.motor import exam
+    from carbon.scoring import motor_dual_measurement as mdm
+
+    assert exam.gates(mdm._curve([]))["schema_finite"] == exam.FAIL
