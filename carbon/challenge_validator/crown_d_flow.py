@@ -13,14 +13,17 @@ GRAPHITE_CROWN_D_INTERFACE_20261106.md). Custody only; off unless the version re
    pending.
 
 Cost shape (D_CROWN_COST_OPTIONS_20261107, design-optimum; C + B + A + D):
-- C: picks come from ONE rebuild, the registered `pick_rebuild_seed`; a model from another rebuild refuses.
+- C: picks come from ONE rebuild, drawn per epoch (`crown_d.draw_rebuild`, HMAC(K_crown, version | epoch |
+  'd-rebuild'), secret until the epoch closes); a model from another rebuild refuses.
 - B: the caller requests D as soon as that rebuild finishes, while the remaining rebuilds run; the crown decision
   still waits for both (HOLD).
 - A: the custody runner drives `CrownDQueue.run_round(solve, weekly_solves=..., width=...)`, one parallel round.
 - D: `request_contender` picks only the epoch's drawn k targets (`crown_d.draw_targets`, a custody key); a pick of an
   identical model + seed + target is read from the queue's pick cache (the king's picks are searched once).
 
-Nothing here solves, writes a door or moves a crown: the crown hook reads the decision.
+Nothing here solves, writes a door or moves a crown: the crown hook reads the decision. The hook (a later door
+head) also owns the '2 x seed-spread' hold (Validator 08:18): D rests on one rebuild, so a challenger's D margin must
+exceed twice the measured seed spread before it can move the crown; that check reads `advance`'s SOLVED D there.
 """
 
 from __future__ import annotations
@@ -42,32 +45,43 @@ def request_contender(
     submission,
     host_class,
     model_sha256,
-    rebuild_seed,
+    rebuild_index,
     epoch,
-    draw_key,
+    k_crown,
+    kinds,
 ):
     """Pick one design per DRAWN target and queue its coarse solve. ``problems``: {target_id: Problem} for every pool
     task of the version; ``evaluators``: {target_id: evaluator} or a callable ``target_id -> evaluator`` (built only
     for drawn targets whose pick is not cached), each a `pool_model_search.model_evaluator` over the contender's model
-    rebuilt with ``rebuild_seed`` (sha256 ``model_sha256``). Returns ``{target_id: pick}`` for the drawn targets,
-    which `advance` needs."""
+    rebuilt as rebuild ``rebuild_index`` (sha256 ``model_sha256``), which must be the epoch's drawn rebuild;
+    ``kinds``: {target_id: kind} (CONTROL never drawn); ``k_crown``: the custody crown key. Returns ``{target_id:
+    pick}`` for the drawn targets, which `advance` needs."""
     crown_d.check_rule(rule)
-    if rebuild_seed != rule.pick_rebuild_seed or type(rebuild_seed) is not int:
-        raise crown_d.CrownDRefused("crown_d_pick_not_from_the_registered_rebuild")
+    drawn_rebuild = crown_d.draw_rebuild(rule, k_crown, version=version, epoch=epoch)
+    if type(rebuild_index) is not int or rebuild_index != drawn_rebuild:
+        raise crown_d.CrownDRefused("crown_d_pick_not_from_the_drawn_rebuild")
+    if type(kinds) is not dict or set(kinds) != set(problems):
+        raise crown_d.CrownDRefused("crown_d_draw_targets_invalid")
     drawn = crown_d.draw_targets(
         rule,
-        draw_key,
+        crown_d.derive_key(k_crown, "d-task-draw"),
         challenge_id=challenge,
         version=version,
         epoch=epoch,
-        targets=list(problems),
+        targets=dict(kinds),
     )
     picks = {}
     for target_id in drawn:
         problem = problems[target_id]
         zero.entry(target_id)  # a target without a zero is never queued
         key = crown_d.pick_key(
-            challenge, version, target_id, problem, rule, model_sha256=model_sha256
+            challenge,
+            version,
+            target_id,
+            problem,
+            rule,
+            model_sha256=model_sha256,
+            rebuild_index=rebuild_index,
         )
         cached = queue.cached_pick(key)
         if cached is None:

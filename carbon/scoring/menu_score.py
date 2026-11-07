@@ -11,7 +11,8 @@ then the least predicted violation, invalid predictions last), and the top five 
     d(pick)  = 0 if the pick is truly infeasible (a true margin < 0), else clip((s - s_zero) / (s_ref - s_zero), 0, 1)
     raw      = sum_i w_i d(pick_i), w = (0.4, 0.25, 0.15, 0.12, 0.08)
     Z        = max(each classical arm's raw on the same menu, the random-pick expectation = mean d over the menu)
-    D_task   = clip((raw - Z) / (1 - Z), 0, 1)
+    oracle   = the raw of the truth-ordered top five of the same menu (the best any model can do on this sample)
+    D_task   = clip((raw - Z) / (oracle - Z), 0, 1)       (Validator 08:18: normalise to the sample's oracle)
 
 s = +objective for sense "max", -objective for "min" (larger is better). s_ref = the searched optimum's truth (the
 menu's 1); s_zero = the record's objective zero. Ties in the ranking (equal `_key`) are scored at the MEAN d of the
@@ -147,6 +148,11 @@ def menu_record(document, problem):
             "menu_design_invalid",
         )
         _require(_outputs_ok(row["truth"], names), "menu_truth_invalid")
+        for lim, m in zip(
+            problem.limits, _margins(problem, row["truth"]).values()
+        ):  # inside U the reference cannot tell feasible from infeasible
+            u = u_value(problem.u[lim.output], row["truth"][lim.output])
+            _require(u <= 0.0 or abs(m) >= u, "menu_truth_within_u_of_a_limit")
         pool[pid] = {
             "stratum": row["stratum"],
             "design": tuple(float(x) for x in design),
@@ -156,10 +162,13 @@ def menu_record(document, problem):
     _require(optimum in pool, "menu_optimum_not_in_pool")
     opt_truth = pool[optimum]["truth"]
     _require(
-        all(m >= 0.0 for m in _margins(problem, opt_truth).values())
-        and _signed(problem, opt_truth) == float(s_ref),
+        _signed(problem, opt_truth) == float(s_ref)
+        and all(
+            m >= u_value(problem.u[lim.output], opt_truth[lim.output])
+            for lim, m in zip(problem.limits, _margins(problem, opt_truth).values())
+        ),
         "menu_optimum_truth_is_not_s_ref",
-    )
+    )  # Q1: the optimum clears every limit by +U
     u_obj = u_value(problem.u[problem.objective], s_ref)
     for entry in pool.values():
         truth = entry["truth"]
@@ -311,22 +320,53 @@ def raw_score(problem, record, menu, predictions):
     return total
 
 
+def oracle_score(problem, record, menu):
+    """The raw of the truth-ordered top five of `menu`: the best raw any model can reach on this sample."""
+    ds = sorted((pick_d(problem, record, pid) for pid in menu), reverse=True)
+    return math.fsum(w * d for w, d in zip(WEIGHTS, ds))
+
+
+SCORED = "SCORED"
+MODEL_ROW_DEPENDENT = "MODEL_ROW_DEPENDENT"
+
+
+def score_task_live(problem, record, predict_menu, *, key, epoch):
+    """`score_task` with the predictions made here: ``predict_menu(menu_ids) -> {id: outputs | None}`` (built on a
+    `RowIndependentPredict`). A model caught giving batch-dependent predictions scores D = 0 for this epoch, typed
+    MODEL_ROW_DEPENDENT (the candidate's finding, shown on the board as that state)."""
+    menu = draw_menu(record, key, epoch=epoch)
+    try:
+        predictions = predict_menu(menu)
+    except ModelRowDependent:
+        return {
+            "metric": METRIC,
+            "state": MODEL_ROW_DEPENDENT,
+            "d": 0.0,
+            "menu_size": len(menu),
+        }
+    return score_task(problem, record, predictions, key=key, epoch=epoch)
+
+
 def score_task(problem, record, predictions, *, key, epoch):
     """The contender's D for one task this epoch (see the module docstring). ``predictions``: {menu id: outputs |
-    None} for every id of the epoch's menu. Returns numbers and counts only."""
+    None} for every id of the epoch's menu. ``key`` = crown_d.derive_key(K_crown, 'd-menu-sample'). Returns numbers
+    and counts only."""
     menu = draw_menu(record, key, epoch=epoch)
     raw = raw_score(problem, record, menu, predictions)
+    oracle = oracle_score(problem, record, menu)
     random_zero = math.fsum(pick_d(problem, record, pid) for pid in menu) / len(menu)
     zero, source = random_zero, "random"
     for arm in sorted(record.arms):
         arm_raw = raw_score(problem, record, menu, record.arms[arm])
         if arm_raw > zero:
             zero, source = arm_raw, "classical_arm"
-    _require(zero < 1.0, "menu_zero_at_one_task_has_no_room")
+    _require(zero < oracle, "menu_zero_at_oracle_task_has_no_room")
     return {
         "metric": METRIC,
-        "d": min(1.0, max(0.0, (raw - zero) / (1.0 - zero))),
+        "state": SCORED,
+        "d": min(1.0, max(0.0, (raw - zero) / (oracle - zero))),
         "raw": raw,
+        "oracle": oracle,
         "zero": zero,
         "zero_source": source,
         "menu_size": len(menu),
@@ -449,6 +489,8 @@ class RowIndependentPredict:
 __all__ = [
     "MENU_SCHEMA",
     "METRIC",
+    "MODEL_ROW_DEPENDENT",
+    "SCORED",
     "WEIGHTS",
     "MenuRecord",
     "MenuRefused",
@@ -459,7 +501,9 @@ __all__ = [
     "menu_record",
     "menu_rows",
     "merge_duties",
+    "oracle_score",
     "pick_d",
     "raw_score",
     "score_task",
+    "score_task_live",
 ]

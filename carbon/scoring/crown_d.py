@@ -12,8 +12,9 @@ design), computed once per exam version and registered by sha256.
 - `zero_record` / `attach_zero`: the sealed zero, checked against the registered sha, the targets and the optimizer
   it was built with (the zero's picks must come from the same search the miner faces).
 - `pick`: the fixed optimizer's one design per target, on the contender's model rebuilt with the registered seed
-  (`pick_rebuild_seed`, option C of D_CROWN_COST_OPTIONS_20261107: one rebuild, not ten); `pick_key` names a pick so
-  an identical model + seed + target is never searched twice (the king's picks are reused).
+  (option C of D_CROWN_COST_OPTIONS_20261107: one rebuild, not ten), the rebuild DRAWN per epoch with the custody key
+  (`draw_rebuild`, never disclosed before the epoch closes: a known index could be special-cased by a recipe);
+  `pick_key` names a pick (model, drawn rebuild, optimizer, budget, problem) so it is never searched twice.
 - `draw_targets`: the epoch's k of the version's N pool tasks (option D), drawn with a custody key; the king and every
   contender in one epoch face the same k.
 - `dedupe_key`: picks within half a grid cell of the unit box share one solve.
@@ -48,6 +49,8 @@ ZERO_SCHEMA = "carbon.crown-d.zero.v2"  # names the optimizer its picks were mad
 CMAES_PROOF = "cmaes_proof_v1"
 DE_POLISH = pool_model_search.DE_NAME  # "de_polish_v1"
 OPTIMIZERS = (CMAES_PROOF, DE_POLISH)
+MIN_TASKS = 3  # Validator 7 Nov 08:18: an epoch draws at least 3 tasks
+CONTROL = "CONTROL"  # a pool task kind that is never drawn for D
 ZERO_SOURCES = ("shortcut", "fit_pick", "train_best")
 
 SOLVED = "SOLVED"
@@ -106,11 +109,11 @@ class CrownDRule:
         int | None
     )  # fewest solved targets a D may rest on after reference failures
     optimizer: str | None = None  # OPTIMIZERS; None (HUMAN_INPUT) refuses
-    pick_rebuild_seed: int | None = (
-        None  # the rebuild whose model the picks come from (Validator; option C)
+    rebuilds: int | None = (
+        None  # how many rebuilds a contender runs; the D rebuild is drawn from them per epoch (option C)
     )
     tasks_per_epoch: int | None = (
-        None  # k of the version's N pool tasks drawn per epoch (owner; option D)
+        None  # k >= 3 of the version's scored pool tasks drawn per epoch (owner; option D)
     )
     model_call_budget: int | None = (
         None  # de_polish_v1 only: model calls per target (owner value); unused (None) for cmaes_proof_v1
@@ -157,11 +160,11 @@ def check_rule(rule):
         "crown_d_min_targets_invalid",
     )
     _require(
-        type(rule.pick_rebuild_seed) is int and rule.pick_rebuild_seed >= 0,
-        "crown_d_pick_rebuild_seed_invalid",
+        type(rule.rebuilds) is int and rule.rebuilds >= 1,
+        "crown_d_rebuilds_invalid",
     )
     _require(
-        type(rule.tasks_per_epoch) is int and rule.tasks_per_epoch >= 1,
+        type(rule.tasks_per_epoch) is int and rule.tasks_per_epoch >= MIN_TASKS,
         "crown_d_tasks_per_epoch_invalid",
     )
     _require(rule.optimizer in OPTIMIZERS, "crown_d_optimizer_unknown")
@@ -319,11 +322,39 @@ def pick(problem, evaluator, *, host_class, rule):
     )
 
 
-def pick_key(challenge_id, version, target_id, problem, rule, *, model_sha256):
-    """One key per (Challenge, version, target, problem, optimizer settings, rebuilt model): the same model rebuilt
-    with the same seed searched by the same fixed optimizer gives the same pick, so a cached pick is exact (the king's
-    picks are searched once per version, not once per contender)."""
+def derive_key(k_crown, label):
+    """A purpose key from the custody crown key: HMAC-SHA256(K_crown, label). Labels: 'd-task-draw', 'd-menu-sample'
+    (the Validator's 08:18 ruling). The result is custody material, never written to a miner surface.
+    """
+    _require(type(k_crown) is bytes and len(k_crown) >= 32, "crown_d_draw_key_invalid")
+    _require(type(label) is str and label, "crown_d_draw_ids_invalid")
+    return hmac.new(k_crown, label.encode(), "sha256").digest()
+
+
+def draw_rebuild(rule, k_crown, *, version, epoch):
+    """The epoch's D rebuild index in [0, rule.rebuilds): HMAC(K_crown, version | epoch | 'd-rebuild'). Secret until
+    the epoch closes (the caller never writes it to a miner surface)."""
     check_rule(rule)
+    _require(type(k_crown) is bytes and len(k_crown) >= 32, "crown_d_draw_key_invalid")
+    _require(type(epoch) is str and epoch, "crown_d_draw_ids_invalid")
+    digest = hmac.new(
+        k_crown, _canonical([version, epoch, "d-rebuild"]), "sha256"
+    ).digest()
+    return int.from_bytes(digest, "big") % rule.rebuilds
+
+
+def pick_key(
+    challenge_id, version, target_id, problem, rule, *, model_sha256, rebuild_index
+):
+    """One key per (Challenge, version, target, problem, optimizer, model-call budget, drawn rebuild index, rebuilt
+    model): the same model from the same rebuild searched by the same fixed optimizer gives the same pick, so a cached
+    pick is exact (the king's picks are searched once per epoch's rebuild, not once per contender).
+    """
+    check_rule(rule)
+    _require(
+        type(rebuild_index) is int and 0 <= rebuild_index < rule.rebuilds,
+        "crown_d_rebuild_index_invalid",
+    )
     _check_problem(problem)
     _require(
         type(model_sha256) is str and _SHA256.fullmatch(model_sha256) is not None,
@@ -337,7 +368,7 @@ def pick_key(challenge_id, version, target_id, problem, rule, *, model_sha256):
     settings = [
         rule.optimizer,
         rule.model_call_budget,
-        rule.pick_rebuild_seed,
+        rebuild_index,
         repr(problem),  # frozen dataclass: fixed, box, limits, U, seed, start
     ]
     return hashlib.sha256(
@@ -346,32 +377,53 @@ def pick_key(challenge_id, version, target_id, problem, rule, *, model_sha256):
 
 
 def draw_targets(rule, key, *, challenge_id, version, epoch, targets):
-    """The epoch's k = `rule.tasks_per_epoch` of the version's pool `targets` (option D): each target ranked by
-    HMAC-SHA256(key, [Challenge, version, epoch, target]), the k lowest kept, returned sorted. `key` is a custody
-    secret (>= 32 bytes; the Validator's), so no miner can tell the epoch's k in advance; the same key and epoch give
-    the same k for the king and every contender. Refuses k > N: a version must register at least k tasks.
-    """
+    """The epoch's k = `rule.tasks_per_epoch` of the version's SCORED pool tasks (option D). ``targets``:
+    {target_id: kind}; kind CONTROL is never drawn. k is split over the kinds in proportion to the scored pool's kind
+    mix (largest remainder, ties by kind name), and within a kind the targets with the lowest
+    HMAC-SHA256(key, [Challenge, version, epoch, target]) are kept. Returned sorted. `key` = derive_key(K_crown,
+    'd-task-draw'), custody only: the same key and epoch give the same k for the king and every contender. Refuses
+    k > the scored pool."""
     check_rule(rule)
     _require(type(key) is bytes and len(key) >= 32, "crown_d_draw_key_invalid")
     _require(
         type(epoch) is str and epoch and type(challenge_id) is str and challenge_id,
         "crown_d_draw_ids_invalid",
     )
-    pool = sorted(set(targets))
     _require(
-        pool and len(pool) == len(targets) and all(type(t) is str and t for t in pool),
+        type(targets) is dict
+        and targets
+        and all(
+            type(t) is str and t and type(k) is str and k for t, k in targets.items()
+        ),
         "crown_d_draw_targets_invalid",
     )
-    _require(rule.tasks_per_epoch <= len(pool), "crown_d_tasks_per_epoch_above_pool")
-    rank = {
-        t: hmac.new(
-            key, _canonical([challenge_id, version, epoch, t]), "sha256"
-        ).digest()
-        for t in pool
-    }
-    return tuple(
-        sorted(sorted(pool, key=lambda t: (rank[t], t))[: rule.tasks_per_epoch])
+    by_kind = {}
+    for t in sorted(targets):
+        if targets[t] != CONTROL:
+            by_kind.setdefault(targets[t], []).append(t)
+    scored = sum(len(v) for v in by_kind.values())
+    k = rule.tasks_per_epoch
+    _require(k <= scored, "crown_d_tasks_per_epoch_above_pool")
+    quota = {kind: k * len(v) // scored for kind, v in by_kind.items()}
+    left = k - sum(quota.values())
+    order = sorted(
+        by_kind, key=lambda kind: (-((k * len(by_kind[kind])) % scored), kind)
     )
+    for kind in order[:left]:
+        quota[kind] += 1
+    chosen = []
+    for kind, members in by_kind.items():
+        ranked = sorted(
+            members,
+            key=lambda t: (
+                hmac.new(
+                    key, _canonical([challenge_id, version, epoch, t]), "sha256"
+                ).digest(),
+                t,
+            ),
+        )
+        chosen += ranked[: quota[kind]]
+    return tuple(sorted(chosen))
 
 
 def dedupe_key(challenge_id, version, target_id, rung, problem, design, grid):

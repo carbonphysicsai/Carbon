@@ -21,11 +21,12 @@ ZERO = {
     "targets": {
         "t1": {"s_zero": 0.6, "s_ref": 1.0, "source": "fit_pick"},
         "t2": {"s_zero": 1.2, "s_ref": 2.0, "source": "shortcut"},
+        "t3": {"s_zero": 0.6, "s_ref": 1.0, "source": "train_best"},
     },
 }
 IDS = {"challenge": "fixture-motor", "version": "9.9"}
 MODEL_SHA = "ab" * 32
-DRAW_KEY = b"k" * 32  # synthetic
+K_CROWN = b"k" * 32  # synthetic
 
 
 class Clock:
@@ -40,6 +41,7 @@ def _setup(tmp_path, **rule):
     problems = {
         "t1": _problem(target_id="t1"),
         "t2": _problem(target_id="t2", fixed={"load": 2.0}),
+        "t3": _problem(target_id="t3"),
     }
     rule = _rule(zero_sha256=_sha(ZERO), **rule)
     zero = cd.attach_zero(rule, ZERO, list(problems.values()))
@@ -73,9 +75,12 @@ def _request(queue, rule, zero, problems, submission):
         submission=submission,
         host_class=HOST,
         model_sha256=MODEL_SHA,
-        rebuild_seed=0,
+        rebuild_index=cd.draw_rebuild(
+            rule, K_CROWN, version=IDS["version"], epoch="2026-W45"
+        ),
         epoch="2026-W45",
-        draw_key=DRAW_KEY,
+        k_crown=K_CROWN,
+        kinds={t: "scored" for t in problems},
         **IDS,
     )
 
@@ -104,16 +109,16 @@ def test_coarse_then_fine_near_the_limit_then_a_d(tmp_path):
     )
     calls = []
     queue.run_once(_solver(calls), weekly_solves=rule.weekly_solves)
-    assert sorted(calls) == [("t1", "coarse"), ("t2", "coarse")]
+    assert sorted(calls) == [("t1", "coarse"), ("t2", "coarse"), ("t3", "coarse")]
     # the model's optimum sits on the g <= 0.5 limit, within U: the fine rung is queued, D still holds
     assert (
         _advance(queue, rule, zero, problems, picks, "sub-a", clock, start)["state"]
         == "HOLD"
     )
     queue.run_once(_solver(calls), weekly_solves=rule.weekly_solves)
-    assert sorted(calls[2:]) == [("t1", "fine"), ("t2", "fine")]
+    assert sorted(calls[3:]) == [("t1", "fine"), ("t2", "fine"), ("t3", "fine")]
     out = _advance(queue, rule, zero, problems, picks, "sub-a", clock, start)
-    assert out["state"] == "SOLVED" and out["targets"] == 2 and 0.0 <= out["d"] <= 1.0
+    assert out["state"] == "SOLVED" and out["targets"] == 3 and 0.0 <= out["d"] <= 1.0
 
 
 def test_the_weekly_cap_defers_and_never_scores_zero(tmp_path):
@@ -134,7 +139,7 @@ def test_a_second_contender_with_the_same_picks_costs_no_solve(tmp_path):
             queue.run_once(_solver(calls), weekly_solves=rule.weekly_solves)
             _advance(queue, rule, zero, problems, picks, submission, clock, clock())
     assert (
-        len(calls) == 4
+        len(calls) == 6
     )  # 2 targets x (coarse + fine), once: sub-b is answered from the cache
     out = _advance(queue, rule, zero, problems, picks, "sub-b", clock, clock())
     assert out["state"] == "SOLVED"
@@ -150,7 +155,7 @@ def test_a_reference_failure_drops_its_target_and_the_rest_decide(tmp_path):
     for _ in range(3):
         queue.run_once(fail, weekly_solves=rule.weekly_solves)
         out = _advance(queue, rule, zero, problems, picks, "sub-a", clock, start)
-    assert out["state"] == "SOLVED" and out["targets"] == 1 and out["dropped"] == 1
+    assert out["state"] == "SOLVED" and out["targets"] == 2 and out["dropped"] == 1
 
 
 def test_infrastructure_faults_hold_until_the_bound_then_fail_as_infrastructure(

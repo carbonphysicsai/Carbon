@@ -182,7 +182,9 @@ def _score(record, preds, epoch="2026-W45"):
 def test_a_perfect_model_beats_the_zero_and_its_first_pick_is_the_optimum():
     record = _record()
     out = _score(record, _preds(record, lambda d: _truth(*d)))
-    assert out["d"] > 0.0 and out["raw"] > out["zero"]
+    assert out["d"] == pytest.approx(1.0) and out["raw"] == pytest.approx(out["oracle"])
+    assert out["oracle"] > out["zero"]  # the sample's oracle is the 1
+    assert out["state"] == ms.SCORED
     menu = ms.draw_menu(record, KEY, epoch="2026-W45")
     assert (
         ms.raw_score(_problem(), record, menu, _preds(record, lambda d: _truth(*d)))
@@ -190,8 +192,10 @@ def test_a_perfect_model_beats_the_zero_and_its_first_pick_is_the_optimum():
     )
     assert set(out) == {
         "metric",
+        "state",
         "d",
         "raw",
+        "oracle",
         "zero",
         "zero_source",
         "menu_size",
@@ -220,14 +224,80 @@ def test_a_truly_infeasible_pick_scores_zero():
     assert ms.pick_d(_problem(), record, "opt") == 1.0
 
 
-def test_the_zero_is_the_best_classical_arm_when_it_beats_random():
+def test_a_classical_arm_at_the_oracle_leaves_no_room_and_refuses():
     doc = _document()
     doc["arms"]["oracle"] = {row["id"]: _truth(*row["design"]) for row in doc["pool"]}
     record = ms.menu_record(doc, _problem())
+    with pytest.raises(ms.MenuRefused, match="menu_zero_at_oracle_task_has_no_room"):
+        _score(record, _preds(record, lambda d: _truth(*d)))
+
+
+def test_a_classical_arm_above_random_sets_the_zero():
+    doc = _document()
+    # an arm that ranks by the truth but sees only the spread stratum as feasible: better than random, below oracle
+    doc["arms"]["spread_only"] = {
+        row["id"]: (
+            _truth(*row["design"])
+            if row["stratum"] == "spread"
+            else {"f": 0.0, "g": 9.0}
+        )
+        for row in doc["pool"]
+    }
+    record = ms.menu_record(doc, _problem())
+    menu = ms.draw_menu(record, KEY, epoch="2026-W45")
+    arm = ms.raw_score(_problem(), record, menu, record.arms["spread_only"])
     out = _score(record, _preds(record, lambda d: _truth(*d)))
-    assert (
-        out["zero_source"] == "classical_arm" and out["d"] == 0.0
-    )  # equal to the oracle arm: no credit
+    assert out["zero"] == max(arm, out["zero"]) and out["d"] == pytest.approx(1.0)
+
+
+def test_pool_designs_within_u_of_a_limit_refuse():
+    doc = _document()
+    x = math.sqrt(0.497 / 2)  # g = 0.497: inside U = 0.01 of the limit 0.5
+    doc["pool"].append(
+        {"id": "edge", "stratum": "band", "design": [x, x], "truth": _truth(x, x)}
+    )
+    doc["arms"]["fit"]["edge"] = _fit([x, x])
+    with pytest.raises(ms.MenuRefused, match="menu_truth_within_u_of_a_limit"):
+        ms.menu_record(doc, _problem())
+
+
+def test_the_optimum_must_clear_every_limit_by_u():
+    doc = _document()
+    x = math.sqrt(
+        0.485 / 2
+    )  # g = 0.485: feasible but only 0.015 > U clear; then 0.495 is within U
+    y = math.sqrt(0.488 / 2)
+    for row in doc["pool"]:
+        if row["id"] == "opt":
+            row["design"], row["truth"] = [y, y], _truth(y, y)
+    doc["s_ref"] = 2 * y
+    doc["arms"]["fit"]["opt"] = _fit([y, y])
+    assert ms.menu_record(doc, _problem()).s_ref == 2 * y  # 0.012 clear: allowed
+    problem = _problem()
+    tight = psr.Problem(**{**problem.__dict__, "u": {"f": U, "g": 0.02}})
+    with pytest.raises(ms.MenuRefused):
+        ms.menu_record(doc, tight)  # with U = 0.02 the optimum is not +U clear
+    assert x < y
+
+
+def test_a_row_dependent_model_scores_zero_typed():
+    record = _record()
+
+    def predict_menu(menu):
+        raise ms.ModelRowDependent()
+
+    out = ms.score_task_live(
+        _problem(), record, predict_menu, key=KEY, epoch="2026-W45"
+    )
+    assert out["state"] == ms.MODEL_ROW_DEPENDENT and out["d"] == 0.0
+    ok = ms.score_task_live(
+        _problem(),
+        record,
+        lambda menu: {pid: _truth(*record.pool[pid]["design"]) for pid in menu},
+        key=KEY,
+        epoch="2026-W45",
+    )
+    assert ok["state"] == ms.SCORED and ok["d"] == pytest.approx(1.0)
 
 
 def test_the_optimistic_fit_arm_falls_for_the_traps():

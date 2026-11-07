@@ -60,8 +60,8 @@ def _rule(**kw):
         "dedupe_grid": 0.01,
         "min_targets": 2,
         "optimizer": "cmaes_proof_v1",
-        "pick_rebuild_seed": 0,
-        "tasks_per_epoch": 2,
+        "rebuilds": 10,
+        "tasks_per_epoch": 3,
     }
     args.update(kw)
     return cd.CrownDRule(**args)
