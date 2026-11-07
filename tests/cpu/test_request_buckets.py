@@ -320,7 +320,7 @@ def test_continuation_chunks_never_take_a_submits_tokens(door, monkeypatch):
     monkeypatch.setattr(direct_intake, "decode_research_call", lambda call: next(calls))
     staged = SimpleNamespace(
         call=SimpleNamespace(tool=RESEARCH_NAMESPACE),
-        receipt=SimpleNamespace(coldkey="cold"),
+        receipt=SimpleNamespace(hotkey="miner", coldkey="cold"),
     )
     assert intake._verified_charge(staged)
     assert intake._verified_charge(staged)
