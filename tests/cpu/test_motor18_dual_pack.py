@@ -330,7 +330,7 @@ def test_the_sealed_grader_sees_only_the_torque_slices(monkeypatch):
         return {"A": 1.0}
 
     monkeypatch.setattr(motor18_dual_pack._sealed, "measure", fake_measure)
-    monkeypatch.setattr(motor18_dual_pack, "_train", lambda: "TRAIN-1.8")
+    monkeypatch.setattr(motor18_dual_pack, "_torque_train", lambda: "TRAIN-1.8")
     rows = [_whole(1.0), _whole(2.0)]
     motor18_dual_pack.measure(
         bank_rows=["r1", "r2"],
@@ -352,7 +352,7 @@ def test_one_malformed_row_anywhere_empties_every_sealed_row(monkeypatch):
     monkeypatch.setattr(
         motor18_dual_pack._sealed, "measure", lambda **kw: seen.update(kw) or {}
     )
-    monkeypatch.setattr(motor18_dual_pack, "_train", lambda: "TRAIN-1.8")
+    monkeypatch.setattr(motor18_dual_pack, "_torque_train", lambda: "TRAIN-1.8")
     motor18_dual_pack.measure(
         bank_rows=["r1", "r2"],
         outputs=[_whole(), _whole()],
@@ -468,3 +468,51 @@ def test_the_graded_error_is_the_validators_shape_error(clean_bindings, waveform
     assert pool_grader.difference(
         "back_emf_open_circuit", motor18_dual_pack.ke_ll(predicted), louder
     ) == pytest.approx(0.0, abs=1e-12)
+
+
+def test_the_sealed_grader_reads_the_torque_slice_of_the_1_8_train(monkeypatch):
+    import io
+
+    import numpy as np
+
+    from carbon.challenge_kit import physical_public_train
+
+    rng = np.random.default_rng(0)
+    inputs, targets = rng.random((5, 8)), rng.random((5, 240))
+    monkeypatch.setattr(
+        motor18_dual_pack, "_train", lambda: physical_public_train._npz(inputs, targets)
+    )
+    with np.load(io.BytesIO(motor18_dual_pack._torque_train())) as data:
+        assert np.array_equal(data["inputs"], inputs)
+        assert np.array_equal(data["targets"], targets[:, :60])
+    # Motor's own TRAIN reader then sees 60-angle torque curves
+    from carbon.scoring import motor_dual_pack
+
+    records = motor_dual_pack._train_records(motor18_dual_pack._torque_train())
+    assert all(len(r["outputs"]["torque_nm"]) == 60 for r in records)
+    monkeypatch.setattr(
+        motor18_dual_pack,
+        "_train",
+        lambda: physical_public_train._npz(inputs, targets[:, :60]),
+    )
+    with pytest.raises(ValueError, match="not the 240-wide 1.8 row"):
+        motor18_dual_pack._torque_train()
+
+
+def test_definition_and_applied_pack_read_the_torque_view(monkeypatch):
+    seen = []
+    monkeypatch.setattr(motor18_dual_pack, "_torque_train", lambda: "VIEW")
+    monkeypatch.setattr(
+        motor18_dual_pack._sealed,
+        "definition",
+        lambda **kw: seen.append(("definition", kw["train_raw"])),
+    )
+    monkeypatch.setattr(
+        motor18_dual_pack._sealed,
+        "applied_pack",
+        lambda **kw: seen.append(("applied", kw.get("train_raw"))),
+    )
+    motor18_dual_pack.definition(bank={}, train_raw=b"other")
+    motor18_dual_pack.applied_pack(train_raw=b"other")
+    motor18_dual_pack.applied_pack()
+    assert seen == [("definition", "VIEW"), ("applied", "VIEW"), ("applied", None)]

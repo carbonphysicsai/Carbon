@@ -140,9 +140,31 @@ def _train():
     return physical_public_train.load_extended_train(TRAIN, CHALLENGE)["train"]
 
 
+def _torque_train():
+    """1.8's TRAIN as Motor's sealed grader reads it (its scales, physics-half response registration and TRAIN
+    spread are torque quantities): the same rows and inputs, only the torque slice of each 240-wide target, written with
+    the public TRAIN's own writer. The TRAIN pins the shared module adds name the PUBLISHED 1.8 TRAIN, never this view.
+    A 1.8 TRAIN that is not the 240-wide row refuses."""
+    import io
+
+    import numpy as np
+
+    from carbon.challenge_kit import physical_public_train
+    from carbon.motor.domain import ANGLE_STEPS
+
+    with np.load(io.BytesIO(_train()), allow_pickle=False) as data:
+        inputs = np.asarray(data["inputs"])
+        targets = np.asarray(data["targets"])
+    if targets.ndim != 2 or targets.shape[1] != _width():
+        raise ValueError("Motor 1.8's TRAIN is not the 240-wide 1.8 row")
+    return physical_public_train._npz(
+        inputs, np.ascontiguousarray(targets[:, :ANGLE_STEPS])
+    )
+
+
 def definition(*, bank, train_raw):
     del train_raw
-    return _sealed.definition(bank=bank, train_raw=_train())
+    return _sealed.definition(bank=bank, train_raw=_torque_train())
 
 
 def measure(
@@ -163,15 +185,15 @@ def measure(
         definition=definition,
         limits=limits,
         objective=objective,
-        train_raw=_train(),
+        train_raw=_torque_train(),
         names=names,
     )
 
 
 def applied_pack(**kwargs):
-    """Motor's applied pack on 1.8's extended TRAIN (when the sealed applied pack reads one)."""
+    """Motor's applied pack on 1.8's extended TRAIN's torque (when the sealed applied pack reads one)."""
     if "train_raw" in kwargs:
-        kwargs = {**kwargs, "train_raw": _train()}
+        kwargs = {**kwargs, "train_raw": _torque_train()}
     return _sealed.applied_pack(**kwargs)
 
 

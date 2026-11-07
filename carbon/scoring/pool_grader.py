@@ -173,7 +173,7 @@ def _finite(value):
 
 @dataclass(frozen=True)
 class WaveformOutput:
-    """A derived output whose value is a waveform, not a number (Motor 1.8's k_e,ll, TE-B 7 Nov): ``valid(value)`` says
+    """A derived output whose value is a waveform, not a number (TE-B 7 Nov): ``valid(value)`` says
     whether a value is one (a prediction that is not is the candidate's invalid answer; a truth that is not refuses the
     pool), and ``error(predicted, true)`` is its registered |error| >= 0, in place of ``abs(predicted - true)``. Its U is
     an absolute number > 0, and it is never an objective or a limit."""
@@ -1155,7 +1155,7 @@ class TargetGrade:
 def graded_answer(prediction, outputs):
     """The prediction as a target grades it, or None when it is not a valid answer: a dict giving exactly ``outputs``,
     each finite (a waveform output: valid). A prediction may also carry REGISTERED waveform outputs another target grades
-    (Motor 1.8's derive gives every target the same keys); they are dropped here. With no waveform output registered
+    (a version whose derive gives every target the same keys); they are dropped here. With no waveform output registered
     this is exactly the scalar check (the same dict, or None)."""
     if type(prediction) is not dict or not set(outputs) <= set(prediction):
         return None
