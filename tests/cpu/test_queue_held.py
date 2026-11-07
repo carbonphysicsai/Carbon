@@ -4,6 +4,7 @@ submission only, CROWN_HELD_FOR_REVIEW and its place among the held contenders. 
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -165,5 +166,5 @@ def test_v4_is_unchanged_on_a_held_submission():
 def test_v5_is_a_recognised_reply_and_advertised():
     assert direct_intake.feedback_reply({"reply": "v5", "submission_id": TASKS[0]}) == "v5"
     assert direct_intake.feedback_reply({"reply": "v6", "submission_id": TASKS[0]}) is None
-    text = open(direct_intake.__file__, encoding="utf-8").read()
+    text = Path(direct_intake.__file__).read_text(encoding="utf-8")
     assert '"exam_feedback_v5"' in text and "FEEDBACK_REPLY_SCHEMA_V5" in text
