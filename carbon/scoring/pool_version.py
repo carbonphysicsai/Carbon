@@ -477,7 +477,7 @@ class PoolVariant(physical.Variant):
                 # the receiver's fresh keyed re-check, staged around its producer call (`pool_menu.staged_rowcheck`);
                 # none staged refuses (Carbon's gap)
                 "menu_rowcheck": pool_menu.take_rowcheck(
-                    len(bank_rows), policies.menu, rowcheck_key
+                    bank_rows, policies.menu, rowcheck_key, names=names
                 ),
                 "menu_rowcheck_key": rowcheck_key,
             }
