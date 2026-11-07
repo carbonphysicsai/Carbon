@@ -407,6 +407,40 @@ def test_a_pass_appends_the_store_record_the_official_route_reads(tmp_path):
         w.write_record(c, job, {"run_digests": [run, run]})
 
 
+def test_a_stale_record_in_force_is_replaced_and_the_replacement_names_it(tmp_path):
+    pytest.importorskip("fcntl")
+    c = ctx(tmp_path)
+    item = next(
+        e
+        for e in listing.entries()
+        if RT in (e.get("bundle_refs") or {})
+        and e["catalog_id"] not in gpu_receipt.SMOKE_ONLY
+    )
+    cid = item["catalog_id"]
+    job = {
+        "key": f"{cid}|{RT}",
+        "catalog_id": cid,
+        "runtime": RT,
+        "bundle_digest": item["bundle_refs"][RT]["bundle_digest"],
+        "challenges": ["c1"],
+    }
+    run = "sha256:" + "d" * 64
+    first = w.write_record(c, job, {"run_digests": [run, run]})
+    # the first record was made on another image: it is in force but NOT done on the worker's current image
+    old = c.store.current(job["bundle_digest"], RT)
+    c.images = {**c.images, RT: "sha256:" + "f" * 64}
+    assert not w.record_is_done(c.store, job, c.images[RT], HOST)
+    second = w.write_record(c, job, {"run_digests": [run, run]})
+    new = c.store.current(job["bundle_digest"], RT)
+    assert second != first and new["image_id"] == "sha256:" + "f" * 64
+    assert new["supersedes"] == first
+    assert w.record_is_done(c.store, job, c.images[RT], HOST)
+    assert old["image_id"] != new["image_id"]
+    # once done on the current image, a further blind write is still refused
+    with pytest.raises(ValueError):
+        w.write_record(c, job, {"run_digests": [run, run]})
+
+
 def test_a_bad_pair_writes_no_record_and_a_typed_failure_line(tmp_path):
     pytest.importorskip("fcntl")
     q = w.Queue(":memory:")

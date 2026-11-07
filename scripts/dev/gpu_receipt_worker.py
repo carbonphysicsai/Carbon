@@ -577,8 +577,22 @@ def make_record(ctx, job, result):
 
 
 def write_record(ctx, job, result):
-    """Append the record to the on-box store (the worker is its only writer). Returns the record digest."""
-    return ctx.store.append(make_record(ctx, job, result))
+    """Append the record to the on-box store (the worker is its only writer). Returns the record digest.
+
+    A record already in force for this bundle and runtime that is STALE (another image, host class or determinism
+    flags: the worker only runs an entry whose record is not done) is REPLACED, and the replacement names it, as the
+    store requires. A record that is already done on this image and host class is never replaced: the store refuses the
+    blind second write, as before.
+    """
+    from carbon.backbone_catalog import receipt_store
+
+    record = make_record(ctx, job, result)
+    inforce = ctx.store.current(record["bundle_digest"], record["runtime_profile_id"])
+    if inforce is not None and not record_is_done(
+        ctx.store, job, ctx.images[job["runtime"]], ctx.host_class
+    ):
+        record["supersedes"] = receipt_store.digest(receipt_store.canonical(inforce))
+    return ctx.store.append(record)
 
 
 FAILURE_LOG = "failures.jsonl"
