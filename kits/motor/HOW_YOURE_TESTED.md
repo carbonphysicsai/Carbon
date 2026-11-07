@@ -29,8 +29,8 @@ dimensions, single-layer winding of 104 turns per slot, magnet remanence 1.2 T,
 stack length 35 mm. The iron is Brauer's law.
 
 **Official TRAIN:** Motor 1.8 has its own TRAIN set: the 150 cases of the
-earlier Motor TRAIN plus new rows inside the box near where the iron starts to
-saturate, so that bend can be learned from public data. Its name, size and
+earlier Motor TRAIN plus new rows inside the box, near the onset of saturation
+and at zero current, so those regimes can be learned from public data. Its name, size and
 digest: **HUMAN_INPUT** (published at the TRAIN freeze). The grade trains your
 recipe on this TRAIN only, never on your kit data.
 
@@ -137,9 +137,9 @@ are not shown, and the hidden sample rotates.
   registered margin; within it, the king keeps the crown. An infrastructure
   failure is retried and never counts against you.
 - Motor 1.8's margin: **HUMAN_INPUT** (registered before crowns open; until
-  then takeovers are paused).
-- To hold the crown a total must reach at least 0.05; below it, no one holds
-  the crown on Motor 1.8.
+  then takeovers are unavailable).
+- To hold the crown a total must reach a floor, currently 0.05 (provisional,
+  set by the owner); below it, no one holds the crown on Motor 1.8.
 - Make your graph robust to the seed: a model that trains well only at seed
   0 can fail the average.
 

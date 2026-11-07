@@ -125,8 +125,8 @@ are not shown, and the hidden sample rotates.
   reference, outside every sealed set): **HUMAN_INPUT** (published in this
   kit after its digest is receipted). Until then `verify` refuses.
 - Once it is published, `verify` solves those designs on your machine and
-  compares within U, and the app's practice score for Cooling 1.8 uses the
-  same designs and the grade's own measurement, labelled **practice (kit
+  compares within U, and once the app registers it, the app's practice score
+  for Cooling 1.8 uses the same designs and the grade's own measurement, labelled **practice (kit
   verify set)**. It checks the gates and accuracy within U. Design value and
   the minimums are not evaluated locally. A practice score is never
   comparable to a grade.
@@ -142,9 +142,9 @@ are not shown, and the hidden sample rotates.
   registered margin; within it, the king keeps the crown. An infrastructure
   failure is retried and never counts against you.
 - Cooling 1.8's margin: **HUMAN_INPUT** (registered before crowns open; until
-  then takeovers are paused).
-- To hold the crown a total must reach at least 0.05; below it, no one holds
-  the crown on Cooling 1.8.
+  then takeovers are unavailable).
+- To hold the crown a total must reach a floor, currently 0.05 (provisional,
+  set by the owner); below it, no one holds the crown on Cooling 1.8.
 - Make your graph robust to the seed: a model that trains well only at seed
   0 can fail the average.
 
