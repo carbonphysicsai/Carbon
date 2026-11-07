@@ -300,16 +300,114 @@ def test_a_copy_beyond_its_own_round_allowance_is_refused_like_any_grade(door):
     assert recipe_copies.first_of(door.ledger, T[2]) is None
 
 
-def test_the_v4_state_of_a_copy_is_not_graded_never_graded(door):
+def _copier_intake(door):
+    intake = SimpleNamespace(
+        grade_marker=door.grader.marker, adapter=door.adapter, challenge=CHALLENGE
+    )
+    intake._grade_state_v4 = lambda hotkey, sid: (
+        direct_intake.DirectRecipeIntake._grade_state_v4(intake, hotkey, sid)
+    )
+    intake._grade_state = lambda hotkey, sid: (
+        direct_intake.DirectRecipeIntake._grade_state(intake, hotkey, sid)
+    )
+    return intake
+
+
+def test_the_v4_state_of_a_copy_is_graded_its_slot_is_held(door):
+    # Validator-2B 7 Nov must-fix: v4 NOT_GRADED means "slot given back, nothing charged"; a copy's slot is COUNTED.
+    door.submit(T[0], HOTKEYS[0], _recipe())
+    door.submit(T[1], HOTKEYS[1], _recipe())
+    door.ready |= {T[0], T[1]}
+    door.grader.run_once()
+    assert door.grader.run_once() == (T[1], "DUPLICATE")
+    assert door.state(T[1]) == ("COUNTED", recipe_copies.DUPLICATE)
+    intake = _copier_intake(door)
+    assert direct_intake.DirectRecipeIntake._grade_state_v4(
+        intake, HOTKEYS[1], T[1]
+    ) == ("GRADED", None)
+
+
+def test_the_copiers_exact_v4_reply_carries_nothing_of_the_first(door, monkeypatch):
+    from carbon.challenge_validator import ladder_store
+
     door.submit(T[0], HOTKEYS[0], _recipe())
     door.submit(T[1], HOTKEYS[1], _recipe())
     door.ready |= {T[0], T[1]}
     door.grader.run_once()
     door.grader.run_once()
-    intake = SimpleNamespace(grade_marker=door.grader.marker)
-    assert direct_intake.DirectRecipeIntake._grade_state_v4(
-        intake, HOTKEYS[1], T[1]
-    ) == ("NOT_GRADED", None)
+    served = []
+
+    class _Ladder:
+        def __init__(self, ledger):
+            pass
+
+        def served(self, hotkey, challenge, exam_key):
+            served.append(hotkey)
+            return {"best": None, "latest": None}
+
+    monkeypatch.setattr(ladder_store, "LadderStore", _Ladder)
+    reply = direct_intake.DirectRecipeIntake._feedback(
+        _copier_intake(door), HOTKEYS[1], submission_id=T[1], v4=True
+    )
+    assert reply.status == 200
+    assert served == [HOTKEYS[1]]  # only the copier's own Ladder is read
+    assert reply.body == {
+        "schema": direct_intake.FEEDBACK_REPLY_SCHEMA_V4,
+        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
+        "best": None,
+        "latest": None,
+        "submission": {"submission_id": T[1], "grade_state": "GRADED", "failure": None},
+    }
+    flat = repr(reply.body)
+    assert T[0] not in flat and HOTKEYS[0] not in flat
+
+
+def test_earlier_means_admitted_earlier_never_a_smaller_task_id(door):
+    # Task ids are content hashes: the first submission may sort AFTER its copy.
+    door.submit(T[5], HOTKEYS[0], _recipe())
+    door.submit(T[1], HOTKEYS[1], _recipe())
+    door.ready |= {T[5], T[1]}
+    # T1 is listed first but was admitted second: it waits for T5, then copies it.
+    assert door.grader.run_once() == (T[5], "GRADED")
+    assert door.grader.run_once() == (T[1], "DUPLICATE")
+    assert recipe_copies.first_of(door.ledger, T[1]) == T[5]
+    assert door.graded == [T[5]]
+
+
+def test_a_wait_is_counted_for_the_operator(door):
+    door.submit(T[0], HOTKEYS[0], _recipe())
+    door.submit(T[1], HOTKEYS[1], _recipe())
+    door.ready.add(T[1])  # the first is still building
+    assert door.grader.run_once() is None
+    assert door.grader.recipe_copy_waits == 1
+
+
+def test_the_digest_noted_at_admission_survives_a_restart(door):
+    for sid, hotkey in ((T[0], HOTKEYS[0]), (T[1], HOTKEYS[1])):
+        door.submit(sid, hotkey, _recipe())
+        intake = SimpleNamespace(adapter=door.adapter)
+        direct_intake.DirectRecipeIntake._note_recipe_digest(
+            intake, {"kind": "OUTCOME", "outcome": {"task_id": sid}}
+        )
+    door.requests.clear()  # a restart: the providers' in-memory requests are gone
+    door.ready |= {T[0], T[1]}
+    assert door.grader.run_once() == (T[0], "GRADED")
+    assert door.grader.run_once() == (T[1], "DUPLICATE")
+
+
+def test_noting_a_digest_never_changes_an_admission(door):
+    intake = SimpleNamespace(adapter=door.adapter)
+    for result in ({"kind": "REFUSED"}, {"outcome": {"task_id": T[7]}}, None):
+        assert direct_intake.DirectRecipeIntake._note_recipe_digest(intake, result) is None
+
+
+def test_a_copy_is_settled_never_pending(door):
+    door.submit(T[0], HOTKEYS[0], _recipe())
+    door.submit(T[1], HOTKEYS[1], _recipe())
+    door.ready |= {T[0], T[1]}
+    door.grader.run_once()
+    door.grader.run_once()
+    assert door.grader.pending() == []  # the queue view counts only pending tasks: a copy is in none of its counts
 
 
 def test_the_digest_is_the_canonical_recipe_digest_and_ignores_the_submitter(door):

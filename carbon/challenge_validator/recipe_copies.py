@@ -5,8 +5,8 @@ Validator-2 11:04 in-flight rule; TE scope be9aed9a).
 signature, nonce or timestamp can be in it) for the same Challenge, version and evaluation key (the pack manifest
 digest). Near-identical recipes are NOT identical: they are the per-funder allowance's job, never fuzzy matching here.
 
-**Decision** for a submission about to be graded, over the EARLIER submissions of this receiver's contract in ledger
-order (`decide`):
+**Decision** for a submission about to be graded, over the EARLIER submissions of this receiver's contract in
+ADMISSION order (`_admitted`: the attempt ledger's own sequence; never the task id, a content hash) (`decide`):
 
 - an earlier one with the same identity was GRADED (its slot COUNTED on this key) -> this one is a COPY of the earliest
   such: it is not graded (no exam read, no rebuild), it is answered with that grade, and its own slot is counted
@@ -16,11 +16,12 @@ order (`decide`):
 - every earlier one settled without a counted grade (refused, FAILED_INFRA, released) -> this one GRADES (the new
   first: none of them read the exam).
 
-A rotated pack is a new key: the first submission on it grades. **Not retroactive:** a submission admitted before this
-rule's activation on its contract (`_activation`) is never matched, as a copy or as a first.
+A rotated pack is a new key: the first submission on it grades. **Not retroactive:** a submission admitted at or before
+this rule's activation on its contract (`_activation`: the ledger sequence at the grader's first start after the
+release) is never matched, as a copy or as a first.
 
 State (owner-only, in the receiver's own attempt ledger, beside the exam cap): ``recipe_copy_digests`` (submission ->
-recipe digest, immutable), ``recipe_copy_activation`` (contract -> the ledger index the rule starts at) and
+recipe digest, immutable, written at admission: `note_admitted`), ``recipe_copy_activation`` (contract -> the ledger index the rule starts at) and
 ``recipe_copies`` (the copy -> its first, key, digest). Nothing here is a grading path: a copy reads no exam.
 """
 
@@ -39,7 +40,7 @@ CREATE TABLE IF NOT EXISTS recipe_copy_digests(
 );
 CREATE TABLE IF NOT EXISTS recipe_copy_activation(
     contract_digest TEXT PRIMARY KEY,
-    first_index INTEGER NOT NULL,
+    after_seq INTEGER NOT NULL,
     activated_ns INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS recipe_copies(
@@ -94,29 +95,48 @@ def recipe_digest(adapter, submission_id, db):
     return digest
 
 
-def _activation(db, contract_digest, ordered):
-    """The ledger index this rule starts at for ``contract_digest`` (set once, at the first decision after release)."""
+def _admitted(db, contract_digest):
+    """``[(submission id, admission sequence)]`` of a contract's admitted submissions, oldest first: the attempt
+    ledger's own autoincrement sequence of each one's first OUTCOME row. A task id is a content hash, so ordering by it
+    would make "earlier" arbitrary."""
+    return db.execute(
+        "SELECT submission_id, MIN(seq) FROM attempts WHERE kind='OUTCOME' AND contract_digest=? "
+        "AND submission_id IS NOT NULL GROUP BY submission_id ORDER BY MIN(seq)",
+        (contract_digest,),
+    ).fetchall()
+
+
+def _activation(db, contract_digest):
+    """The ledger sequence this rule starts AFTER for ``contract_digest`` (set once, at the first call after release)."""
     row = db.execute(
-        "SELECT first_index FROM recipe_copy_activation WHERE contract_digest=?",
+        "SELECT after_seq FROM recipe_copy_activation WHERE contract_digest=?",
         (contract_digest,),
     ).fetchone()
     if row is not None:
         return row[0]
-    # Not retroactive: every submission already in the ledger when the rule first runs here is before it.
-    first = len(ordered)
+    # Not retroactive: every attempt already in the ledger when the rule first runs here is before it.
+    (after,) = db.execute("SELECT COALESCE(MAX(seq), 0) FROM attempts").fetchone()
     db.execute(
         "INSERT INTO recipe_copy_activation VALUES(?,?,?)",
-        (contract_digest, first, time.time_ns()),
+        (contract_digest, after, time.time_ns()),
     )
-    return first
+    return after
 
 
-def activate(ledger, contract_digest, ordered):
-    """Record the activation index for a contract now (the release step), so every submission admitted after this call
+def activate(ledger, contract_digest):
+    """Record the activation point for a contract now (the release step), so every submission admitted after this call
     is under the rule and none before it is. Idempotent: the first call wins."""
     with _db(ledger) as db:
         _prepare(db)
-        return _activation(db, contract_digest, list(ordered))
+        return _activation(db, contract_digest)
+
+
+def note_admitted(adapter, submission_id):
+    """Store an admitted submission's recipe digest at once (while its provider still holds the request), so a restart,
+    which empties the providers' in-memory requests, cannot make a later copy read as fresh."""
+    with _db(adapter.ledger) as db:
+        _prepare(db)
+        return recipe_digest(adapter, submission_id, db)
 
 
 def decide(
@@ -130,19 +150,23 @@ def decide(
     exam_key,
 ):
     """``(GRADE | WAIT | COPY, first submission id or None)`` for ``submission_id`` about to be graded (see module)."""
-    ordered = list(adapter.ledger.submitted_outcomes(adapter.contract_digest))
-    if submission_id not in ordered:
-        return GRADE, None
-    position = ordered.index(submission_id)
     with _db(ledger) as db:
         _prepare(db)
-        start = _activation(db, adapter.contract_digest, ordered)
-        if position < start:
+        ordered = _admitted(db, adapter.contract_digest)
+        own = dict(ordered).get(submission_id)
+        if own is None:
+            return GRADE, None  # no admission row: nothing to order it by
+        start = _activation(db, adapter.contract_digest)
+        if own <= start:
             return GRADE, None  # admitted before the rule: never matched
         digest = recipe_digest(adapter, submission_id, db)
         if digest is None:
             return GRADE, None
-        for earlier in ordered[start:position]:
+        for earlier, seq in ordered:
+            if seq <= start:
+                continue  # before the rule: never a first
+            if seq >= own:
+                break
             if recipe_digest(adapter, earlier, db) != digest:
                 continue
             row = db.execute(

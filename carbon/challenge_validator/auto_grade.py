@@ -89,11 +89,7 @@ class AutoGrader:
             from . import recipe_copies
 
             adapter = intake.adapter
-            recipe_copies.activate(
-                adapter.ledger,
-                adapter.contract_digest,
-                adapter.ledger.submitted_outcomes(adapter.contract_digest),
-            )
+            recipe_copies.activate(adapter.ledger, adapter.contract_digest)
 
     def _marker(self, submission_id):
         return self.markers / (submission_id + ".json")
@@ -252,7 +248,10 @@ class AutoGrader:
             if copy is not None:
                 decision, first = copy
                 if decision == "wait":
-                    continue  # an earlier identical recipe is still unsettled on this key: retried next round
+                    # an earlier identical recipe is still unsettled on this key: retried next round (counted for the
+                    # operator's read: `recipe_copy_waits`)
+                    self.recipe_copy_waits = getattr(self, "recipe_copy_waits", 0) + 1
+                    continue
                 if decision == "copy":
                     return self._grade_copy(submission_id, first)
             sampler = _Sampler(
