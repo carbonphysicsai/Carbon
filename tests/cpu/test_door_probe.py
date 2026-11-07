@@ -309,3 +309,17 @@ def test_stop_during_the_baseline_does_not_end_it_or_pass(door, tmp_path, monkey
     summary = json.loads((out / "summary.json").read_text())
     assert summary["baseline"]["requests"] > 0  # the baseline ran in full
     assert summary["window"]["requests"] == 0 and summary["verdict"] == "FAIL"
+
+
+def test_an_r13_worker_that_records_nothing_is_a_failed_run(
+    door, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        dp, "_r13_thread", lambda *args: None
+    )  # the worker ends without a result
+    out = tmp_path / "run"
+    argv = ["--r13-recipe", "r.json", "--hotkey", "h", "--receiver-hotkey", "r"]
+    assert _probe(door, out, *argv) == 1
+    summary = json.loads((out / "summary.json").read_text())
+    assert summary["r13"] == {"outcome": "probe_error", "code": "no_result"}
+    assert summary["verdict"] == "FAIL"
