@@ -1,6 +1,7 @@
 """Cooling 1.8's sealed adapter through a version-overlay dispatch (a TEMPORARY overlay file; the production overlay gains
 the 1.8 entry only at the TRAIN freeze). Checks: 1.8 routes to its own module, every other version delegates unchanged,
-the earlier Cooling producer identity does not move, and 1.8 refuses to measure until its extended TRAIN is frozen."""
+the earlier Cooling producer identity does not move, and 1.8 refuses to measure until its extended TRAIN is frozen.
+"""
 
 from __future__ import annotations
 
