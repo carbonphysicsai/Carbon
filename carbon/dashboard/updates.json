@@ -72,9 +72,9 @@
  ],
  "every_version": [
   "Score: half physics, half design value. Gates come first: a failed gate means no score.",
-  "Physics: your model is scored on hidden cases, many of them outside the training data, grouped into classes. A class scores zero at the best classical surrogate Carbon could build for it and one at reference accuracy. Only classes where that surrogate still misses by a wide margin are scored, and each family of classes counts equally.",
+  "Physics (planned for the new versions): your model is scored on hidden cases, many of them outside the training data, grouped into classes. A class scores zero at the best of Carbon's registered classical methods for it and one at reference accuracy. Only classes where those methods still miss by a wide margin are scored, and each family of classes counts equally.",
   "Accuracy inside the training range is a gate: pass or fail, never points. Your model must clear it to be scored at all, but a smaller error there earns nothing extra.",
-  "Design value: for each design task Carbon solves many candidate designs in advance and keeps them sealed. Your model ranks a fresh sample of them, and your top five picks are checked against the solved answers. Zero means no better than Carbon's classical picks on the same sample; one means the best picks any model could make.",
+  "Design value (planned for the new versions): for each design task Carbon solves many candidate designs in advance and keeps them sealed. Your model ranks a fresh sample of them, and your top five picks are checked against the solved answers. Zero means no better than Carbon's classical picks on that sample; one means the best five picks possible from it.",
   "The crown: where a version decides crowns on the rebuild average, a grade that would take the crown is rebuilt ten times on the validator's own private seeds. Every rebuild must pass, and the average must beat the king's average by the registered margin. An infrastructure failure is never meant to count against you (see Known issues).",
   "On mainnet, official rebuilds and grading run on the validator's RTX 4090. For timings close to the grade, practise on a 4090-class GPU.",
   "You see your total and status. Results per case or per part are not shown, and the hidden set rotates.",
@@ -86,7 +86,7 @@
   "A graded model that ran out of a limit on the validator showed as not graded yet. It now shows as a candidate failure, naming the step that failed and the limit it hit. Update your install to see it."
  ],
  "known_issues": [
-  "A submission waiting for the validator shows Refused: evaluation queued. Nothing was refused: it is queued. Don't submit again; the verdict appears when it is ready. The dashboard now shows each Challenge's queue, so you can see how many submissions are waiting; the label is being changed.",
+  "A submission waiting for the validator shows Refused: evaluation queued. Nothing was refused: it is queued. Don't submit again; the verdict appears when it is ready. Where a door publishes it, the dashboard shows that Challenge's queue: how many submissions are waiting and the typical wait. It does not show your own place in line. The label is being changed.",
   "Some re-queued submissions, free re-runs after a failure on our side, have waited much longer than they should. They are free and will be graded; you don't need to submit again.",
   "A rebuild that runs out of time while the validator machine is busy can still count against the model. That is our fault, not yours, and it is being changed so such a run is retried. Until then, leave some headroom on time.",
   "A catalog practice runs on the CPU, even on a GPU machine: catalog entries have no GPU build yet. Start from your own graph to practise on the GPU.",
