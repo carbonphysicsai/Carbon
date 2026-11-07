@@ -14,6 +14,7 @@ from test_direct_v3_durable_tasks import _fixture
 
 from carbon.battery.intake import SnapshotWindow
 from carbon.chain.models import MetagraphSnapshot, Participant
+from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
 from carbon.challenge_validator import AttemptLedger, direct_intake
 from carbon.challenge_validator import direct_receiver, funder_map, request_buckets
 from carbon.challenge_validator.direct_intake import (
@@ -158,7 +159,9 @@ def _state():
 
 @pytest.fixture
 def door(tmp_path, monkeypatch):
-    request, provider_factory, discovery = _fixture(tmp_path / "direct", monkeypatch)
+    request, provider_factory, discovery = _fixture(
+        tmp_path / "direct", monkeypatch, material=bundle_material_v5()
+    )
     provider = provider_factory()
     root = tmp_path / "attempts"
     root.mkdir(mode=0o700)
