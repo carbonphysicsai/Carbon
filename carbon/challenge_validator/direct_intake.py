@@ -89,6 +89,11 @@ GRADE_STATES_V3 = (*GRADE_STATES, "CANDIDATE_FAILED")
 #: graded. FAILED_INFRA: Carbon's side failed, nothing charged. NOT_GRADED: the grade could not be computed, the slot given
 #: back. Advertised as ``exam_feedback_v4``.
 FEEDBACK_REPLY_SCHEMA_V4 = "carbon.private-exam.ladder-feedback-reply.v4"
+#: v5 (Miner X-B / TE-B 7 Nov) = v4 plus CROWN_HELD_FOR_REVIEW for the caller's own submission while its crown change is
+#: held for review on a menu-D version (`crown_hold`), and ``held_position`` {place (1-based, filing order), of}, else
+#: None. No id and nothing of another miner. Advertised as ``exam_feedback_v5``.
+FEEDBACK_REPLY_SCHEMA_V5 = "carbon.private-exam.ladder-feedback-reply.v5"
+HELD_STATE = "CROWN_HELD_FOR_REVIEW"
 GRADE_STATES_V4 = (
     *GRADE_STATES_V3,
     "RECONSTRUCTION_FAILED",
@@ -125,7 +130,11 @@ def feedback_reply(fields):
         return None
     if set(fields) == {"submission_id"}:
         return "v2"
-    if set(fields) == {"reply", "submission_id"} and fields["reply"] in ("v3", "v4"):
+    if set(fields) == {"reply", "submission_id"} and fields["reply"] in (
+        "v3",
+        "v4",
+        "v5",
+    ):
         return fields["reply"]
     return None
 
@@ -288,6 +297,13 @@ class DirectRecipeIntake(BatteryIntake):
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
+                        "exam_feedback_v5": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V5,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
                     }
                 ),
                 "served_contracts": self.door.served_contracts(),
@@ -344,13 +360,22 @@ class DirectRecipeIntake(BatteryIntake):
         status, body = serve(self.koth_view, self.challenge)
         return Answer(status, body)
 
+    def _held(self):
+        """The held contenders' ids in filing order on a crown-hold door (`queue_view.QueueView.held`), else None."""
+        view = getattr(self, "queue_view", None)
+        return None if view is None else view.held()
+
     def _queue(self, path):
-        """The public queue document of this receiver's one Challenge (`queue_public`); any other id is not found."""
+        """The public queue document of this receiver's one Challenge (`queue_public`): v1 at its path, v2 at the same
+        path + ``/v2``; any other id is not found."""
         from urllib.parse import unquote
 
-        if unquote(path[len(queue_public.PATH) :]) != self.challenge.challenge_id:
+        asked, serve = unquote(path[len(queue_public.PATH) :]), queue_public.serve
+        if asked.endswith(queue_public.V2_SUFFIX):
+            asked, serve = asked[: -len(queue_public.V2_SUFFIX)], queue_public.serve_v2
+        if asked != self.challenge.challenge_id:
             return _refused(404, "not_found")
-        status, body = queue_public.serve(self.queue_view, self.challenge)
+        status, body = serve(self.queue_view, self.challenge)
         return Answer(status, body)
 
     async def _post(self, headers, body):
@@ -434,7 +459,8 @@ class DirectRecipeIntake(BatteryIntake):
                 received.receipt.hotkey,
                 submission_id=fields["submission_id"],
                 v3=reply == "v3",
-                v4=reply == "v4",
+                v4=reply in ("v4", "v5"),
+                v5=reply == "v5",
             )
         return _refused(400, "tool")
 
@@ -443,7 +469,7 @@ class DirectRecipeIntake(BatteryIntake):
         with self._write:
             return self.door.evaluate(submitted)
 
-    def _feedback(self, hotkey, *, submission_id=None, v3=False, v4=False):
+    def _feedback(self, hotkey, *, submission_id=None, v3=False, v4=False, v5=False):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
         (the signed hotkey is the key). With ``submission_id`` (v2), also that
@@ -464,6 +490,18 @@ class DirectRecipeIntake(BatteryIntake):
                     return _refused(503, "grade_state_unavailable")
             else:
                 grade_state = self._grade_state(hotkey, submission_id)
+            held_position = None
+            if v5:
+                try:
+                    held = self._held()
+                except (LookupError, ValueError, OSError):
+                    return _refused(503, "grade_state_unavailable")
+                if held and submission_id in held:
+                    grade_state = HELD_STATE
+                    held_position = {
+                        "place": held.index(submission_id) + 1,
+                        "of": len(held),
+                    }
             if not (v3 or v4) and grade_state not in GRADE_STATES:
                 grade_state = (
                     None  # CANDIDATE_FAILED is v3's; a v2 reply keeps its closed set
@@ -493,7 +531,9 @@ class DirectRecipeIntake(BatteryIntake):
                     if submission_id is None
                     else {
                         "schema": (
-                            FEEDBACK_REPLY_SCHEMA_V4
+                            FEEDBACK_REPLY_SCHEMA_V5
+                            if v5
+                            else FEEDBACK_REPLY_SCHEMA_V4
                             if v4
                             else (
                                 FEEDBACK_REPLY_SCHEMA_V3
@@ -505,6 +545,7 @@ class DirectRecipeIntake(BatteryIntake):
                             "submission_id": submission_id,
                             "grade_state": grade_state,
                             **({"failure": failure} if v4 else {}),
+                            **({"held_position": held_position} if v5 else {}),
                         },
                     }
                 ),
