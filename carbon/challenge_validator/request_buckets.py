@@ -40,11 +40,15 @@ def claimed_hotkey(headers):
     """The hotkey a request's signing header CLAIMS (unverified), or None when absent, repeated or malformed."""
     if not hasattr(headers, "items"):
         return None
-    found = [v for k, v in headers.items() if type(k) is str and k.lower() == HOTKEY_HEADER]
+    found = [
+        v for k, v in headers.items() if type(k) is str and k.lower() == HOTKEY_HEADER
+    ]
     if len(found) != 1 or type(found[0]) is not str:
         return None
     value = found[0]
-    return value if 1 <= len(value) <= 64 and value.isascii() and value.isalnum() else None
+    return (
+        value if 1 <= len(value) <= 64 and value.isascii() and value.isalnum() else None
+    )
 
 
 class RequestBucketsUnset(ValueError):
@@ -74,7 +78,9 @@ def values(block):
             or not _rate(entry["rate_per_s"])
             or not _burst(entry["burst"])
         ):
-            raise RequestBucketsUnset(f"request_buckets.{kind}: rate_per_s > 0 and burst >= 1 are owner values")
+            raise RequestBucketsUnset(
+                f"request_buckets.{kind}: rate_per_s > 0 and burst >= 1 are owner values"
+            )
         out[kind] = (float(entry["rate_per_s"]), entry["burst"])
     return out
 

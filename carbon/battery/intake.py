@@ -964,7 +964,8 @@ class BatteryIntake:
 
     def admit_before_body(self, method, peer, headers):
         """Charge a request's rate limit before a single body byte is read: here the peer's bucket. A door
-        that attributes requests itself (the direct door's R89 request buckets) overrides this."""
+        that attributes requests itself (the direct door's R89 request buckets) overrides this.
+        """
         return self.limits.allow(peer)
 
     def limited(self, peer, then, *, method="POST", headers=None):

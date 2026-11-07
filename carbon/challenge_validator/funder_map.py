@@ -32,7 +32,12 @@ _HEX = frozenset("0123456789abcdef")
 
 def _coldkey_group(coldkey):
     """The fallback group of an unmapped coldkey: a digest, never the ss58 itself."""
-    return "c:" + hashlib.sha256(("carbon.funder-group.coldkey.v1\0" + coldkey).encode()).hexdigest()
+    return (
+        "c:"
+        + hashlib.sha256(
+            ("carbon.funder-group.coldkey.v1\0" + coldkey).encode()
+        ).hexdigest()
+    )
 
 
 def _valid_group_id(value):
@@ -40,7 +45,12 @@ def _valid_group_id(value):
 
 
 def _valid_coldkey(value):
-    return type(value) is str and 1 <= len(value) <= 64 and value.isascii() and value.isalnum()
+    return (
+        type(value) is str
+        and 1 <= len(value) <= 64
+        and value.isascii()
+        and value.isalnum()
+    )
 
 
 @dataclass(frozen=True)
@@ -76,7 +86,12 @@ def parse(raw):
     if document["schema"] != SCHEMA:
         return FunderMap.empty("funder_map_schema")
     block, groups = document["block"], document["groups"]
-    if type(block) is not int or block < 0 or type(groups) is not dict or len(groups) > MAX_ENTRIES:
+    if (
+        type(block) is not int
+        or block < 0
+        or type(groups) is not dict
+        or len(groups) > MAX_ENTRIES
+    ):
         return FunderMap.empty("funder_map_malformed")
     if not all(_valid_coldkey(k) and _valid_group_id(v) for k, v in groups.items()):
         return FunderMap.empty("funder_map_malformed")

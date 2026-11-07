@@ -199,7 +199,9 @@ class DirectRecipeIntake(BatteryIntake):
         #: R89: the per-group request buckets (`request_buckets.RequestBuckets`), or None (the peer bucket, as before).
         self.request_buckets = request_buckets
         #: The allowance-group map; swapped whole on a reload, so a reload never empties a bucket.
-        self.funder_map = funder_maps.FunderMap.empty() if funder_map is None else funder_map
+        self.funder_map = (
+            funder_maps.FunderMap.empty() if funder_map is None else funder_map
+        )
 
     def _claimed_group(self, headers):
         """The group of the hotkey a POST CLAIMS, if it is registered in the latest snapshot; else None. Unverified:
@@ -227,7 +229,8 @@ class DirectRecipeIntake(BatteryIntake):
 
     def _verified_charge(self, received):
         """R89 after verification over a fresh nonce: charge the verified group's chunk bucket (a continuation
-        chunk) or its request bucket. True when admitted, or when this door has no request buckets."""
+        chunk) or its request bucket. True when admitted, or when this door has no request buckets.
+        """
         if self.request_buckets is None:
             return True
         chunk = False

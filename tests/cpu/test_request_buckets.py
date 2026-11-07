@@ -1,5 +1,6 @@
 """R89: the direct door's request buckets per verified funder group (Validator-2 6 Nov 09:16 option b;
-Release Architect 11:31 + Validator-2 11:32). Values here are TEST values only; the real ones are the owner's."""
+Release Architect 11:31 + Validator-2 11:32). Values here are TEST values only; the real ones are the owner's.
+"""
 
 from __future__ import annotations
 
@@ -15,8 +16,13 @@ from test_direct_v3_durable_tasks import _fixture
 from carbon.battery.intake import SnapshotWindow
 from carbon.chain.models import MetagraphSnapshot, Participant
 from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
-from carbon.challenge_validator import AttemptLedger, direct_intake
-from carbon.challenge_validator import direct_receiver, funder_map, request_buckets
+from carbon.challenge_validator import (
+    AttemptLedger,
+    direct_intake,
+    direct_receiver,
+    funder_map,
+    request_buckets,
+)
 from carbon.challenge_validator.direct_intake import (
     RESEARCH_NAMESPACE,
     STATUS_TOOL,
@@ -80,7 +86,9 @@ def test_a_missing_kind_or_extra_key_refuses():
         with pytest.raises(RequestBucketsUnset):
             request_buckets.values(block)
     with pytest.raises(RequestBucketsUnset):
-        direct_receiver._request_buckets({"request_buckets": {**TEST_VALUES, "guard": "HUMAN_INPUT"}})
+        direct_receiver._request_buckets(
+            {"request_buckets": {**TEST_VALUES, "guard": "HUMAN_INPUT"}}
+        )
 
 
 def test_no_block_means_no_request_buckets():
@@ -93,7 +101,9 @@ def test_claimed_hotkey_is_one_well_formed_header_or_none():
     assert claimed_hotkey({}) is None
     assert claimed_hotkey({"X-Bittensor-Hotkey": "a b"}) is None
     assert claimed_hotkey({"X-Bittensor-Hotkey": "m" * 65}) is None
-    assert claimed_hotkey({"X-Bittensor-Hotkey": "a", "x-bittensor-hotkey": "b"}) is None
+    assert (
+        claimed_hotkey({"X-Bittensor-Hotkey": "a", "x-bittensor-hotkey": "b"}) is None
+    )
     assert claimed_hotkey(None) is None
 
 
@@ -101,7 +111,9 @@ def test_claimed_hotkey_is_one_well_formed_header_or_none():
 
 
 def _map_bytes(groups, block=7):
-    return json.dumps({"schema": funder_map.SCHEMA, "block": block, "groups": groups}).encode()
+    return json.dumps(
+        {"schema": funder_map.SCHEMA, "block": block, "groups": groups}
+    ).encode()
 
 
 def test_unmapped_coldkeys_are_their_own_groups_and_never_show_the_ss58():
@@ -122,7 +134,10 @@ def test_a_map_joins_coldkeys_of_one_funder():
     "raw, problem",
     [
         (b"{", "funder_map_malformed"),
-        (json.dumps({"schema": "x", "block": 1, "groups": {}}).encode(), "funder_map_schema"),
+        (
+            json.dumps({"schema": "x", "block": 1, "groups": {}}).encode(),
+            "funder_map_schema",
+        ),
         (_map_bytes({"cold": "not-hex"}), "funder_map_malformed"),
         (_map_bytes({"cold": GROUP_ID}, block=-1), "funder_map_malformed"),
         (_map_bytes({"bad key": GROUP_ID}), "funder_map_malformed"),
@@ -174,7 +189,9 @@ def door(tmp_path, monkeypatch):
         return DirectRecipeIntake(
             context=CONTEXT,
             receiver="validator",
-            journal=ReceiptJournal(tmp_path / f"transport-{id(buckets)}.sqlite3", CONTEXT),
+            journal=ReceiptJournal(
+                tmp_path / f"transport-{id(buckets)}.sqlite3", CONTEXT
+            ),
             verifier=_Verifier(),
             window=window,
             discovery=discovery,
@@ -275,12 +292,16 @@ def test_the_pre_body_peek_charges_nothing(door):
     assert buckets.charge_group(group, chunk=False)
     assert buckets.charge_group(group, chunk=False)
     assert not buckets.charge_group(group, chunk=False)
-    assert buckets.charge_group(group, chunk=True)  # chunks still have tokens: the peek still admits
+    assert buckets.charge_group(
+        group, chunk=True
+    )  # chunks still have tokens: the peek still admits
     assert intake.admit_before_body("POST", "127.0.0.1", headers)
     assert buckets.charge_group(group, chunk=True)
     assert not intake.admit_before_body("POST", "127.0.0.1", headers)
     # An unregistered claim is the guard's, not anyone's group.
-    assert intake.admit_before_body("POST", "127.0.0.1", {"X-Bittensor-Hotkey": "stranger"})
+    assert intake.admit_before_body(
+        "POST", "127.0.0.1", {"X-Bittensor-Hotkey": "stranger"}
+    )
 
 
 def test_continuation_chunks_never_take_a_submits_tokens(door, monkeypatch):
@@ -289,17 +310,22 @@ def test_continuation_chunks_never_take_a_submits_tokens(door, monkeypatch):
     chunk_call = SimpleNamespace(
         operation="stage_research_source", request=SimpleNamespace(offset=8192)
     )
-    first_call = SimpleNamespace(operation="stage_research_source", request=SimpleNamespace(offset=0))
+    first_call = SimpleNamespace(
+        operation="stage_research_source", request=SimpleNamespace(offset=0)
+    )
     calls = iter([chunk_call, chunk_call, chunk_call, first_call])
     monkeypatch.setattr(direct_intake, "decode_research_call", lambda call: next(calls))
     staged = SimpleNamespace(
-        call=SimpleNamespace(tool=RESEARCH_NAMESPACE), receipt=SimpleNamespace(coldkey="cold")
+        call=SimpleNamespace(tool=RESEARCH_NAMESPACE),
+        receipt=SimpleNamespace(coldkey="cold"),
     )
     assert intake._verified_charge(staged)
     assert intake._verified_charge(staged)
     assert not intake._verified_charge(staged)  # this group's chunk bucket is empty
     assert intake._verified_charge(staged)  # a first chunk (offset 0) is a request
-    assert not _rate_refused(door.post(intake, "miner")[0])  # and a submit still has one
+    assert not _rate_refused(
+        door.post(intake, "miner")[0]
+    )  # and a submit still has one
 
 
 def test_gets_are_not_charged(door):
@@ -308,7 +334,9 @@ def test_gets_are_not_charged(door):
     # In-process GETs fall to the peer bucket as before (over HTTP a local-hop GET is charged nothing);
     # none touches the R89 buckets.
     for _ in range(5):
-        assert intake.admit_before_body("GET", "127.0.0.1", {"X-Bittensor-Hotkey": "miner"})
+        assert intake.admit_before_body(
+            "GET", "127.0.0.1", {"X-Bittensor-Hotkey": "miner"}
+        )
     assert all(buckets.charge_guard() for _ in range(3))
     group = intake.funder_map.group("cold")
     assert all(buckets.charge_group(group, chunk=False) for _ in range(2))
@@ -317,5 +345,7 @@ def test_gets_are_not_charged(door):
 def test_without_request_buckets_the_door_keeps_the_shared_peer_bucket(door):
     intake = door.build(None)
     answers = [door.post(intake, f"miner{'' if i % 2 else '3'}")[0] for i in range(12)]
-    assert [a for a in answers if _rate_refused(a)]  # today's one shared bucket (burst 10)
+    assert [
+        a for a in answers if _rate_refused(a)
+    ]  # today's one shared bucket (burst 10)
     assert not any(_rate_refused(a) for a in answers[:10])
