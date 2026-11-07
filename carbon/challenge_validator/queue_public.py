@@ -141,10 +141,13 @@ def document(snapshot, challenge):
 
 def document_v2(snapshot, challenge):
     """The v2 document: v1's, plus ``held_for_review``, the number of crown changes held for review on this door (a
-    menu-D version's coded crown hold, `crown_hold`): a count, or None on a door that holds no crown, never 0 for it."""
+    menu-D version's coded crown hold, `crown_hold`): a count, or None on a door that holds no crown, never 0 for it.
+    """
     body = document(snapshot, challenge)
     held = snapshot.get(HELD) if type(snapshot) is dict else None
-    if HELD not in snapshot or not (held is None or type(held) is int and 0 <= held <= 10**7):
+    if HELD not in snapshot or not (
+        held is None or type(held) is int and 0 <= held <= 10**7
+    ):
         raise QueuePublicRefused("queue_held_invalid")
     body = {**body, "schema": SCHEMA_V2, HELD: held}
     if set(body) != FIELDS_V2:

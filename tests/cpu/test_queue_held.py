@@ -1,6 +1,7 @@
 """The held-contender queue view (Miner X-B / TE-B 7 Nov): the public queue v2 adds ``held_for_review`` (a count on a
 crown-hold door, None elsewhere; v1 byte-identical), and the signed feedback v5 tells the caller, for its OWN held
-submission only, CROWN_HELD_FOR_REVIEW and its place among the held contenders. Fixture values only."""
+submission only, CROWN_HELD_FOR_REVIEW and its place among the held contenders. Fixture values only.
+"""
 
 from __future__ import annotations
 
@@ -25,8 +26,13 @@ class _Store:
         self.ids = list(ids)
 
     def paused_crowns(self, kind=None):
-        assert kind is None  # every kind: a pack contender and a set contender both wait
-        return [{"submission_id": i, "evaluation_key": "sha256:" + "a" * 64} for i in self.ids]
+        assert (
+            kind is None
+        )  # every kind: a pack contender and a set contender both wait
+        return [
+            {"submission_id": i, "evaluation_key": "sha256:" + "a" * 64}
+            for i in self.ids
+        ]
 
 
 # --- the public document ---------------------------------------------------------------------------------------------
@@ -36,24 +42,30 @@ def test_v1_is_unchanged_by_the_held_count():
     plain = queue_public.serve(_View(_snapshot()), CHALLENGE)
     with_held = queue_public.serve(_View(_snapshot(held_for_review=3)), CHALLENGE)
     assert plain == with_held
-    assert plain[1]["schema"] == queue_public.SCHEMA and "held_for_review" not in plain[1]
+    assert (
+        plain[1]["schema"] == queue_public.SCHEMA and "held_for_review" not in plain[1]
+    )
 
 
 def test_v2_adds_held_for_review_a_count_or_null():
     status, body = queue_public.serve_v2(_View(_snapshot(held_for_review=2)), CHALLENGE)
     assert status == 200 and body["schema"] == queue_public.SCHEMA_V2
     assert set(body) == queue_public.FIELDS_V2 and body["held_for_review"] == 2
-    _status, off = queue_public.serve_v2(_View(_snapshot(held_for_review=None)), CHALLENGE)
+    _status, off = queue_public.serve_v2(
+        _View(_snapshot(held_for_review=None)), CHALLENGE
+    )
     assert off["held_for_review"] is None  # a door that holds no crown: null, never 0
     v1 = queue_public.serve(_View(_snapshot(held_for_review=2)), CHALLENGE)[1]
-    assert {k: v for k, v in body.items() if k not in ("schema", "held_for_review")} == {
-        k: v for k, v in v1.items() if k != "schema"
-    }
+    assert {
+        k: v for k, v in body.items() if k not in ("schema", "held_for_review")
+    } == {k: v for k, v in v1.items() if k != "schema"}
 
 
 @pytest.mark.parametrize("bad", [-1, True, 1.0, "2"])
 def test_a_malformed_held_count_is_unavailable(bad):
-    status, body = queue_public.serve_v2(_View(_snapshot(held_for_review=bad)), CHALLENGE)
+    status, body = queue_public.serve_v2(
+        _View(_snapshot(held_for_review=bad)), CHALLENGE
+    )
     assert status == 503 and body == {"refused": "queue_held_invalid"}
 
 
@@ -77,7 +89,9 @@ def test_held_lists_every_filed_contender_in_filing_order(tmp_path, hold):
     grader._pool = lambda: _Store([TASKS[3], TASKS[1]])
     assert view.held() == [TASKS[3], TASKS[1]]
     assert view.snapshot()["held_for_review"] == 2
-    grader._pool = lambda: None  # a crown-hold door with no pool store: nothing held, not unknown
+    grader._pool = (
+        lambda: None
+    )  # a crown-hold door with no pool store: nothing held, not unknown
     assert view.held() == []
 
 
@@ -90,7 +104,9 @@ def test_the_v2_route_serves_this_challenge_only(tmp_path, hold):
     )
     assert ok.status == 200 and ok.body["held_for_review"] == 1
     assert ok.body["schema"] == queue_public.SCHEMA_V2
-    v1 = direct_intake.DirectRecipeIntake._queue(door, queue_public.PATH + CHALLENGE.challenge_id)
+    v1 = direct_intake.DirectRecipeIntake._queue(
+        door, queue_public.PATH + CHALLENGE.challenge_id
+    )
     assert v1.status == 200 and "held_for_review" not in v1.body
     other = direct_intake.DirectRecipeIntake._queue(
         door, queue_public.PATH + "f08-ribbed-bracket" + queue_public.V2_SUFFIX
@@ -103,7 +119,9 @@ def test_the_v2_route_serves_this_challenge_only(tmp_path, hold):
 
 def _intake(held, owners):
     intake = SimpleNamespace(
-        challenge=SimpleNamespace(challenge_id=CHALLENGE.challenge_id, version=CHALLENGE.version),
+        challenge=SimpleNamespace(
+            challenge_id=CHALLENGE.challenge_id, version=CHALLENGE.version
+        ),
         grade_marker=lambda sid: {"state": "GRADED"},
         adapter=SimpleNamespace(
             owner=lambda sid: owners.get(sid),
@@ -151,7 +169,9 @@ def test_v5_for_a_submission_that_is_not_held_says_nothing_held():
 def test_v5_never_answers_for_another_hotkeys_submission():
     intake = _intake([TASKS[0]], {TASKS[0]: OTHER})
     reply = _v5(intake, HOTKEY, TASKS[0])
-    assert reply.status == 404 and reply.body["refused"] == "feedback_submission_unknown"
+    assert (
+        reply.status == 404 and reply.body["refused"] == "feedback_submission_unknown"
+    )
 
 
 def test_v4_is_unchanged_on_a_held_submission():
@@ -160,11 +180,19 @@ def test_v4_is_unchanged_on_a_held_submission():
         intake, HOTKEY, submission_id=TASKS[1], v4=True
     )
     assert reply.body["schema"] == direct_intake.FEEDBACK_REPLY_SCHEMA_V4
-    assert reply.body["submission"] == {"submission_id": TASKS[1], "grade_state": "GRADED", "failure": None}
+    assert reply.body["submission"] == {
+        "submission_id": TASKS[1],
+        "grade_state": "GRADED",
+        "failure": None,
+    }
 
 
 def test_v5_is_a_recognised_reply_and_advertised():
-    assert direct_intake.feedback_reply({"reply": "v5", "submission_id": TASKS[0]}) == "v5"
-    assert direct_intake.feedback_reply({"reply": "v6", "submission_id": TASKS[0]}) is None
+    assert (
+        direct_intake.feedback_reply({"reply": "v5", "submission_id": TASKS[0]}) == "v5"
+    )
+    assert (
+        direct_intake.feedback_reply({"reply": "v6", "submission_id": TASKS[0]}) is None
+    )
     text = Path(direct_intake.__file__).read_text(encoding="utf-8")
     assert '"exam_feedback_v5"' in text and "FEEDBACK_REPLY_SCHEMA_V5" in text

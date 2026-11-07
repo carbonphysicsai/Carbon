@@ -533,12 +533,14 @@ class DirectRecipeIntake(BatteryIntake):
                         "schema": (
                             FEEDBACK_REPLY_SCHEMA_V5
                             if v5
-                            else FEEDBACK_REPLY_SCHEMA_V4
-                            if v4
                             else (
-                                FEEDBACK_REPLY_SCHEMA_V3
-                                if v3
-                                else FEEDBACK_REPLY_SCHEMA_V2
+                                FEEDBACK_REPLY_SCHEMA_V4
+                                if v4
+                                else (
+                                    FEEDBACK_REPLY_SCHEMA_V3
+                                    if v3
+                                    else FEEDBACK_REPLY_SCHEMA_V2
+                                )
                             )
                         ),
                         "submission": {
