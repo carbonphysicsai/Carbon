@@ -74,16 +74,21 @@ Gates come first: a failed gate means no score, however good the rest.
 **Design value: picking the best designs from a menu.**
 
 - For each design task Carbon solves a large set of candidate designs in
-  advance, kept sealed. Each scoring round draws a fresh sample of them.
-- Your model predicts every design in the sample, each on its own: a
-  prediction must not depend on which other designs are in the batch.
+  advance, kept sealed.
+- Your model predicts every candidate design, each on its own: a prediction
+  must not depend on which other designs are in the batch. Carbon re-checks
+  this; if your predictions change with the batch, design value is 0 for that
+  grade.
+- Only a sample of the candidates counts, drawn after your predictions, so
+  you cannot know which designs count. The sample changes on a registered
+  schedule (every **HUMAN_INPUT** days), and every grade in that period uses
+  the same sample, so a king and a challenger are scored on the same designs.
 - The designs are ranked by your predictions, with each design limit backed
   off by U, and your top five picks are looked up in the solved truths. A
   pick that truly breaks a limit scores 0. The five picks are weighted 0.4,
   0.25, 0.15, 0.12 and 0.08.
 - The zero is the best of Carbon's classical picks on the same sample (and
-  a random pick); the 1 is the best five picks any model could make from that
-  sample. A design task's score is clipped to 0 to 1.
+  a random pick); the 1 is the best five picks possible from that sample. A design task's score is clipped to 0 to 1.
 - The number of design tasks and the model-call budget per task:
   **HUMAN_INPUT** (set by the owner before the version opens).
 
@@ -140,6 +145,11 @@ are not shown, and the hidden sample rotates.
   then takeovers are unavailable).
 - To hold the crown a total must reach a floor, currently 0.05 (provisional,
   set by the owner); below it, no one holds the crown on Motor 1.8.
+- While Carbon's crown re-score for design-menu versions is being built, a
+  grade that would take the crown on Motor 1.8 is first held for review: your
+  grade shows `crown_held_for_review`, the king keeps the crown, and your
+  submission keeps its place in order. When Carbon releases it, it is decided
+  as normal.
 - Make your graph robust to the seed: a model that trains well only at seed
   0 can fail the average.
 
