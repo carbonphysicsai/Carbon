@@ -164,6 +164,8 @@ def measure_pool(
     variant_starts=None,
     scoring_cells=None,
     in_range_cases=None,
+    menu_tasks=None,
+    menu_key=None,
 ):
     """The adapter-shaped `measure` of a pool-graded version for one model.
 
@@ -184,6 +186,9 @@ def measure_pool(
     ``scoring_cells`` is a NEW version's sealed scoring-cell document (`attach_physics`), required exactly when its
     policies carry a physics rule (`pool_physics_score`); None for every registered version, whose result is unchanged.
     ``in_range_cases`` is its sealed in-range case set, required exactly when the rule registers one.
+    ``menu_tasks`` / ``menu_key`` are a NEW version's sealed menu tasks (`pool_menu.load_tasks`) and the validator host's
+    menu draw key, required exactly when its policies carry a ``menu`` rule: D is then the menu D (`pool_menu.score`)
+    and the custody record lands under ``["pool"]["menu"]`` (and ``capture["menu"]``). None for every other version.
     With a physics rule A is the family value (`pool_physics_score.family_value`, per set), and the grade adds the
     mandatory gate `ACCURACY_GATE` (in-range accuracy, pass/fail) and the custody
     accuracy record under ``["pool"]["accuracy"]`` (and ``capture["accuracy"]``); `public` never carries the record.
@@ -193,6 +198,12 @@ def measure_pool(
         policies, scoring_cells, sets, a_multiplier, in_range_cases
     )
     sets = attach_variant_starts(sets, policies.optimizer.variant_rule, variant_starts)
+    menu = getattr(policies, "menu", None)
+    _require(
+        (menu is None and menu_tasks is None and menu_key is None)
+        or (menu is not None and menu_tasks and menu_key is not None),
+        "menu_material_does_not_match_the_registration",
+    )
     _require(
         len(bank_rows) == len(outputs)
         and all(len(r) == len(bank_rows) for r in repeats),
@@ -234,6 +245,16 @@ def measure_pool(
         for r in pool_row_dicts
     }
     held = {tuple(bank_rows[i]["inputs"][n] for n in binding.input_names) for i in pool}
+    if menu is not None:
+        from carbon.scoring import pool_menu
+
+        menu_held = {
+            tuple(quantize(row)[n] for n in binding.input_names)
+            for row in pool_menu.bank_rows(menu_tasks, binding.design_names)
+        }
+        # Validator-2B a3: the menu designs, quantised as the bank holds them, are bank pool rows.
+        _require(menu_held <= held, "menu_rows_differ_from_the_bank")
+        answered = answered | menu_held
     _require(answered == held, "exam_pool_rows_differ_from_the_targets_pools")
     case_predict = None
     if policies.physics is not None and policies.physics.in_range is not None:
@@ -377,6 +398,30 @@ def measure_pool(
         # D as the total sees it: capped by C, so the dual pack's own 0.5 A + 0.5 D is each set's TOP.
         d_values.append(min(grade.d, legs["C"]))
         reasons.update(grade.public()["reasons"])
+    menu_graded = None
+    if menu is not None:
+        from carbon.scoring import pool_menu
+
+        def predict_rows(rows):
+            answers = serve(rows)
+            _require(
+                type(answers) is list and len(answers) == len(rows),
+                "serve_must_return_one_row_per_input",
+            )
+            return [submitted.derive(row, out) for row, out in zip(rows, answers)]
+
+        # The menu D replaces each set's pick D (Validator-2B (b): the epoch menu is drawn after the predictions); the
+        # C rule still caps it, so the dual pack's 0.5 A + 0.5 D is each set's TOP as before.
+        menu_graded = pool_menu.score(
+            menu_tasks,
+            menu,
+            predict_rows,
+            key=menu_key,
+            design_names=binding.design_names,
+        )
+        d_values = [min(menu_graded["D"], legs["C"]) for _ in d_values]
+        if capture is not None:
+            capture["menu"] = menu_graded["record"]
     a_only = policies.physics is not None and policies.physics.total_rule == "a_only"
     if a_only:
         # The owner's "physics score alone" for this version: D := A per set, so the dual pack's 0.5 A + 0.5 D is A.
@@ -392,6 +437,8 @@ def measure_pool(
             # in memory only (never serialized): the rule a resample recomposes headroom skill with
             "physics_rule": policies.physics,
             "c": legs["C"],
+            # a menu version: the resample holds the menu D fixed (it conditions on the epoch's draw); absent otherwise
+            **({} if menu_graded is None else {"menu_d": menu_graded["D"]}),
             "a_sets": list(a_values),
             "sets": [
                 [
@@ -419,6 +466,7 @@ def measure_pool(
             "gated": False,
             "a_bank": a_bank,
             "c": legs["C"],
+            **({} if menu_graded is None else {"menu_d": menu_graded["D"]}),
             "a_rule": dict(policies.a_rule),
             "sets": [
                 [
@@ -447,7 +495,13 @@ def measure_pool(
             "speed": speed,
             "reasons": sorted(reasons),
             "sets": len(per_set),
-            "set_totals": [t for t, _g, _a, _l in per_set],
+            # a menu version's set totals are recomposed with the menu D (the pick's totals no longer apply)
+            "set_totals": (
+                [t for t, _g, _a, _l in per_set]
+                if menu_graded is None
+                else [0.5 * a + 0.5 * d for a, d in zip(a_values, d_values)]
+            ),
+            **({} if menu_graded is None else {"menu": menu_graded["record"]}),
             **({} if accuracy is None else {"accuracy": accuracy}),
             **({"total_rule": "a_only"} if a_only else {}),
         },
@@ -533,6 +587,8 @@ def total_of_targets(basis, sets):
             d = statistics.fmean(t["d"] for t in targets)
         else:
             d = _region_mean(targets, "d", order)
+        if basis.get("menu_d") is not None:
+            d = basis["menu_d"]
         d_values.append(min(d, basis["c"]))
     if basis.get("a_only") is True:
         return statistics.fmean(

@@ -67,6 +67,9 @@ class Policies:
     #: A NEW version's physics scoring (`pool_physics_score.PhysicsRule`, its scoring cells attached): the in-range accuracy
     #: gate, the accuracy record and the family layer. None for every registered version: every path is then unchanged.
     physics: object = None
+    #: A NEW version's menu D (`pool_menu.MenuRule`): D from the sealed menus instead of the per-target pick. None for
+    #: every registered version: D is then unchanged.
+    menu: object = None
 
 
 @dataclass(frozen=True)

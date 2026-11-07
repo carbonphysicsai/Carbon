@@ -63,6 +63,7 @@ _OPTIONAL_FIELDS = {
     # the crown multi-rebuild average ruling (lead-records a322dea4): {"key_file": <absolute private file>} holds K_crown and turns the crown's
     # N-rebuild average on (`crown_average.install`). Absent: the crown rule is as before.
     "crown_average",
+    "menu_draw",
     # The on-box store of OFFICIAL GPU receipts (`backbone_catalog.receipt_store`, OWNER-GPU-OPEN-WITH-READY-01):
     # an exact absolute operator path in the validator state, written only by the standing receipt worker. Without
     # it no catalog entry is officially gradable (the official route never falls back to a CPU rebuild).
@@ -266,6 +267,13 @@ def load_config(path: Path) -> dict:
         section = value["crown_average"]
         if type(section) is not dict or set(section) != {"key_file"}:
             raise ValueError("invalid crown_average selection")
+        from carbon.challenge_validator import crown_average_host
+
+        crown_average_host.read_crown_key(section["key_file"])
+    if "menu_draw" in value:
+        section = value["menu_draw"]
+        if type(section) is not dict or set(section) != {"key_file"}:
+            raise ValueError("invalid menu_draw selection")
         from carbon.challenge_validator import crown_average_host
 
         crown_average_host.read_crown_key(section["key_file"])

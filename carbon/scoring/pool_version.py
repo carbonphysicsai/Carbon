@@ -55,7 +55,11 @@ SCORING_CELLS = "scoring_cells"
 #: Optional material field, NEW versions whose physics rule registers ``in_range_cases_sha256`` only: the sealed in-range
 #: case set (`pool_physics_score.in_range_cases`). Custody: hidden truths.
 IN_RANGE_CASES = "in_range_cases"
+#: Optional material field, NEW versions with a registered ``menu`` block only: the sealed menu tasks
+#: (`pool_menu.load_tasks`: per task its problem, duties and carbon.d-menu.v1 record). Custody: hidden truths.
+MENU = "menu"
 _OPTIONAL_MATERIAL_KEYS = {
+    MENU,
     RESPONSE_REFERENCE,
     COVERAGE_PLAN,
     COVERAGE_PLAN_SUMS,
@@ -267,6 +271,44 @@ def _d_zero(value):
     return {"kind": _picked(value["kind"]), "budget": _picked(value["budget"])}
 
 
+def _menu(value):
+    """A new version's registered menu D (`pool_menu.MenuRule`), or None when the key is absent (every registered
+    version: D is the per-target pick, unchanged). Present, it has no default:
+    ``{"records_sha256": {task_id: sha256}, "epoch": id, "aggregate": "mean"}``; a null or HUMAN_INPUT refuses.
+    """
+    from carbon.scoring import pool_menu
+
+    if value is _ABSENT:
+        return None
+    value = _picked(value)
+    if type(value) is not dict or set(value) != {
+        "records_sha256",
+        "epoch",
+        "aggregate",
+    }:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    shas = _picked(value["records_sha256"])
+    if type(shas) is not dict or not shas:
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    for item in shas.values():
+        _picked(item)
+    rule = pool_menu.MenuRule(
+        records_sha256=tuple(sorted(shas.items())),
+        epoch=_picked(value["epoch"]),
+        aggregate=_picked(value["aggregate"]),
+    )
+    try:
+        pool_menu.check_rule(rule)
+    except pool_exam.ExamRefused:
+        raise PoolConstantsNotRegistered("pool_constants_malformed") from None
+    return rule
+
+
+def registered_menu(challenge_id, version, *, path=CONSTANTS):
+    """The version's registered menu rule, or None (no ``menu`` block)."""
+    return registered_policies(challenge_id, version, path=path).menu
+
+
 def registered_policies(challenge_id, version, *, path=CONSTANTS):
     """The version's `pool_proof_suite.Policies` from the registered file, or `PoolConstantsNotRegistered`."""
     try:
@@ -317,7 +359,16 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
             c_rule=dict(_picked(entry["c_rule"])),
             # optional, NEW versions only: absent is no physics scoring (no accuracy gate, no record), unchanged
             physics=_physics(entry.get("physics", _ABSENT)),
+            # optional, NEW versions only: absent is today's per-target pick D, unchanged
+            menu=_menu(entry.get("menu", _ABSENT)),
         )
+        if (
+            policies.menu is not None
+            and policies.physics is not None
+            and policies.physics.total_rule == "a_only"
+        ):
+            # an A-only total has no D for a menu to score
+            raise PoolConstantsNotRegistered("pool_constants_malformed")
         pool_grader._check_policies(policies.optimizer, policies.honesty)
     except pool_exam.ExamRefused:
         raise
@@ -400,6 +451,13 @@ class PoolVariant(physical.Variant):
             )
             if key in material
         }
+        # A NEW version's menu D: its sealed tasks and the validator host's draw key; nothing for any other version.
+        menu_arguments = {}
+        tasks = menu_tasks(material, getattr(policies, "menu", None))
+        if tasks is not None:
+            from carbon.scoring import pool_menu
+
+            menu_arguments = {"menu_tasks": tasks, "menu_key": pool_menu.active_key()}
         return pool_exam.measure_pool(
             binding=pool_adapters.official_binding(self._kind, self.VERSION),
             sets=sets,
@@ -429,6 +487,7 @@ class PoolVariant(physical.Variant):
             speed_outputs_match=speed_outputs_match,
             capture=capture,
             **plan_material,
+            **menu_arguments,
         )
 
 
@@ -496,6 +555,36 @@ def check_material(material):
     return material
 
 
+def menu_tasks(material, rule):
+    """The sealed menu tasks (`pool_menu.load_tasks`) of a version whose registered menu rule is ``rule``, or None when
+    it has none. A menu in the material without a registration, or a registration without one, refuses (Carbon's
+    material)."""
+    from carbon.scoring import pool_menu
+
+    if rule is None:
+        if MENU in material:
+            raise pool_exam.ExamRefused("menu_material_without_a_registration")
+        return None
+    if MENU not in material:
+        raise pool_exam.ExamRefused("menu_material_missing_from_the_sealed_pack")
+    return pool_menu.load_tasks(
+        material[MENU],
+        rule,
+        input_names=material["input_names"],
+        design_names=material["design_names"],
+    )
+
+
+def _menu_rows(material, challenge):
+    """The menu's model input rows of a version's material (none without a ``menu`` field)."""
+    from carbon.scoring import pool_menu
+
+    if MENU not in material:
+        return []
+    tasks = menu_tasks(material, registered_menu(challenge, material["version"]))
+    return pool_menu.bank_rows(tasks, material["design_names"])
+
+
 def rows_from_material(material, *, dtype, challenge):
     """``[(case_id, record, input row)]`` of a pool-graded exam's design-search rows, in the canonical order
     (the order `copy_derivation.canonicalize` gives derived rows: by content, or by id for a Challenge whose ids
@@ -524,6 +613,10 @@ def rows_from_material(material, *, dtype, challenge):
                     )
                 values = tuple(float(kind.type(row[name])) for name in names)
                 seen.setdefault(values, None)
+    for row in _menu_rows(material, challenge):
+        # menu rows are plain pool rows: same quantisation, dedup and canonical content order (Validator-2B a1)
+        values = tuple(float(kind.type(row[name])) for name in names)
+        seen.setdefault(values, None)
     by_kind = {kind: challenge_id for challenge_id, kind in KINDS.items()}
     if material["kind"] not in by_kind:
         raise pool_exam.ExamRefused("pool_material_kind_unregistered")
