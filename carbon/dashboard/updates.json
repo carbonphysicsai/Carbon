@@ -88,7 +88,7 @@
   "A graded model that ran out of a limit on the validator showed as not graded yet. It now shows as a candidate failure, naming the step that failed and the limit it hit. Update your install to see it."
  ],
  "known_issues": [
-  "A submission waiting for the validator shows Refused: evaluation queued. Nothing was refused: it is queued. Don't submit again; the verdict appears when it is ready. Where a door publishes it, the dashboard shows that Challenge's queue: how many submissions are waiting and the typical wait. It does not show your own place in line. The label is being changed.",
+  "An older install shows a submission waiting for the validator as Refused: evaluation queued. Nothing was refused: it is queued, so don't submit again. Update your install and it reads Submitted, waiting for the validator's verdict. Where a door publishes it, the dashboard shows that Challenge's queue: how many submissions are waiting and the typical wait, not your own place in line.",
   "Some re-queued submissions, free re-runs after a failure on our side, have waited much longer than they should. They are free and will be graded; you don't need to submit again.",
   "A rebuild that runs out of time while the validator machine is busy can still count against the model. That is our fault, not yours, and it is being changed so such a run is retried. Until then, leave some headroom on time.",
   "A catalog practice runs on the CPU, even on a GPU machine: catalog entries have no GPU build yet. Start from your own graph to practise on the GPU.",
