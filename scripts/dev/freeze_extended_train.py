@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from carbon.challenge_kit import physical_public_train as ppt  # noqa: E402
+from carbon.challenge_kit import physical_public_train as ppt
 
 
 def _sha(raw):

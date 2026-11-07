@@ -249,7 +249,8 @@ def test_assemble_refuses_a_non_ok_or_malformed_added_record(change, match):
 
 
 def test_assemble_refuses_an_added_row_that_repeats_a_train_design():
-    native_first = json.loads(open(ppt.motor.TRAIN_PATH, "rb").readline())
+    with open(ppt.motor.TRAIN_PATH, "rb") as handle:
+        native_first = json.loads(handle.readline())
     record = {**_motor_record(0), "inputs": dict(native_first["inputs"])}
     with pytest.raises(ValueError, match="repeats a TRAIN design"):
         ppt.assemble_extended_source(MOTOR, [record])
