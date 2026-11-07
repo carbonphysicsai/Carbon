@@ -41,7 +41,7 @@ def _evaluator(predict=_derived):
 
 def _zero_doc(**rows):
     targets = rows or {"t1": {"s_zero": 0.6, "s_ref": 1.0, "source": "shortcut"}}
-    return {"schema": cd.ZERO_SCHEMA, "targets": targets}
+    return {"schema": cd.ZERO_SCHEMA_V1, "targets": targets}
 
 
 def _sha(doc):
@@ -59,6 +59,7 @@ def _rule(**kw):
         "fine_rung": "fine",
         "dedupe_grid": 0.01,
         "min_targets": 2,
+        "optimizer": "cmaes_proof_v1",
     }
     args.update(kw)
     return cd.CrownDRule(**args)
@@ -74,7 +75,15 @@ def test_a_complete_rule_passes():
     assert cd.check_rule(_rule()) == _rule()
 
 
-@pytest.mark.parametrize("name", [f.name for f in dataclasses.fields(cd.CrownDRule)])
+@pytest.mark.parametrize(
+    "name",
+    # model_call_budget is per optimizer (None is required for cmaes_proof_v1): test_crown_d_de.py
+    [
+        f.name
+        for f in dataclasses.fields(cd.CrownDRule)
+        if f.name != "model_call_budget"
+    ],
+)
 def test_each_none_field_is_human_input(name):
     with pytest.raises(cd.CrownDRefused) as err:
         cd.check_rule(_rule(**{name: None}))
@@ -122,9 +131,9 @@ def test_zero_record_parses_sorts_and_hashes_canonical_json():
 @pytest.mark.parametrize(
     "doc, code",
     [
-        ({"schema": cd.ZERO_SCHEMA}, "crown_d_zero_malformed"),
+        ({"schema": cd.ZERO_SCHEMA_V1}, "crown_d_zero_malformed"),
         ({"schema": "other", "targets": {}}, "crown_d_zero_schema_unknown"),
-        ({"schema": cd.ZERO_SCHEMA, "targets": {}}, "crown_d_zero_has_no_targets"),
+        ({"schema": cd.ZERO_SCHEMA_V1, "targets": {}}, "crown_d_zero_has_no_targets"),
         (
             _zero_doc(t1={"s_zero": 1.0, "s_ref": 1.0, "source": "shortcut"}),
             "crown_d_zero_s_ref_not_above_s_zero",
@@ -163,11 +172,13 @@ def test_attach_zero_checks_sha_and_coverage():
 
 
 def test_pick_returns_the_model_optimum():
-    p = cd.pick(_problem(), _evaluator(), host_class=HOST)
+    p = cd.pick(_problem(), _evaluator(), host_class=HOST, rule=_rule())
     assert p.target_id == "t1" and p.model_feasible and len(p.design) == 2
     x0, x1 = p.design
     assert x0**2 + x1**2 <= 0.5 and x0 + x1 > 1.0 - 0.02
-    assert cd.pick(_problem(), _evaluator(), host_class=HOST) == p  # deterministic
+    assert (
+        cd.pick(_problem(), _evaluator(), host_class=HOST, rule=_rule()) == p
+    )  # deterministic
 
 
 def test_pick_refuses_off_custody_before_any_model_call():
@@ -178,7 +189,7 @@ def test_pick_refuses_off_custody_before_any_model_call():
         return _derived(rows)
 
     with pytest.raises(ValueError, match="host_not_custody"):
-        cd.pick(_problem(), _evaluator(predict), host_class="lium")
+        cd.pick(_problem(), _evaluator(predict), host_class="lium", rule=_rule())
     assert calls == []
 
 
@@ -348,7 +359,12 @@ def test_pick_refuses_any_optimizer_but_the_fixed_one():
 
     for change in ({"seed": 7}, {"start": (0.2, 0.5)}):
         with pytest.raises(cd.CrownDRefused, match="not_the_fixed_optimizer"):
-            cd.pick(replace(_problem(), **change), _evaluator(), host_class=HOST)
+            cd.pick(
+                replace(_problem(), **change),
+                _evaluator(),
+                host_class=HOST,
+                rule=_rule(),
+            )
 
 
 def test_decide_counts_a_target_with_no_result_as_pending_never_dropped():

@@ -17,7 +17,7 @@ from carbon.challenge_validator.crown_d_queue import CrownDQueue
 from carbon.scoring import crown_d as cd
 
 ZERO = {
-    "schema": cd.ZERO_SCHEMA,
+    "schema": cd.ZERO_SCHEMA_V1,
     "targets": {
         "t1": {"s_zero": 0.6, "s_ref": 1.0, "source": "fit_pick"},
         "t2": {"s_zero": 1.2, "s_ref": 2.0, "source": "shortcut"},

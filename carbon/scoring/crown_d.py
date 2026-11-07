@@ -1,14 +1,16 @@
 """Crown-time D: the design value of a challenger that could take the crown (pure logic, custody only).
 
-When a challenger could change the crown, OUR fixed optimizer (`pool_model_search.model_search`, the proof settings)
-runs on the challenger's model and picks one design per target. That pick gets one reference solve (an injected
+When a challenger could change the crown, OUR fixed optimizer (the one the version registers: `cmaes_proof_v1` =
+`pool_model_search.model_search` at the proof settings, or `de_polish_v1` = `pool_model_search.model_search_de` at the
+registered model-call budget) runs on the challenger's model and picks one design per target. That pick gets one reference solve (an injected
 solver wrapper; nothing here solves). The solved result is scored against the version's sealed "zero": per target, the
 best of three cheap baselines (the registered shortcut's solved pick, a TRAIN-only fit's solved pick, the best TRAIN
 design), computed once per exam version and registered by sha256.
 
 - `CrownDRule`: the version's registered block. Every field is an owner / Validator value with no default; a None
   (HUMAN_INPUT) refuses, so a version without a complete block never runs crown-time D.
-- `zero_record` / `attach_zero`: the sealed zero, checked against the registered sha and the targets.
+- `zero_record` / `attach_zero`: the sealed zero, checked against the registered sha, the targets and the optimizer
+  it was built with (the zero's picks must come from the same search the miner faces).
 - `pick`: the fixed optimizer's one design per target.
 - `dedupe_key`: picks within half a grid cell of the unit box share one solve.
 - `needs_fine`: the coarse result is too close to a limit or to the zero to trust, so the fine rung is solved.
@@ -34,7 +36,13 @@ from carbon.scoring import pool_model_search
 from carbon.scoring.pool_grader import u_value
 from carbon.scoring.pool_solver_reference import _check_problem, _margins, _unit
 
-ZERO_SCHEMA = "carbon.crown-d.zero.v1"
+ZERO_SCHEMA_V1 = (
+    "carbon.crown-d.zero.v1"  # no optimizer field: built with cmaes_proof_v1
+)
+ZERO_SCHEMA = "carbon.crown-d.zero.v2"  # names the optimizer its picks were made with
+CMAES_PROOF = "cmaes_proof_v1"
+DE_POLISH = pool_model_search.DE_NAME  # "de_polish_v1"
+OPTIMIZERS = (CMAES_PROOF, DE_POLISH)
 ZERO_SOURCES = ("shortcut", "fit_pick", "train_best")
 
 SOLVED = "SOLVED"
@@ -92,12 +100,18 @@ class CrownDRule:
     min_targets: (
         int | None
     )  # fewest solved targets a D may rest on after reference failures
+    optimizer: str | None = None  # OPTIMIZERS; None (HUMAN_INPUT) refuses
+    model_call_budget: int | None = (
+        None  # de_polish_v1 only: model calls per target (owner value); unused (None) for cmaes_proof_v1
+    )
 
 
 def check_rule(rule):
     """Refuse an incomplete or out-of-range rule. Returns the rule."""
     _require(isinstance(rule, CrownDRule), "crown_d_rule_required")
     for field in fields(CrownDRule):
+        if field.name == "model_call_budget":
+            continue  # checked per optimizer below
         _require(
             getattr(rule, field.name) is not None,
             f"crown_d_{field.name}_is_human_input",
@@ -131,6 +145,21 @@ def check_rule(rule):
         type(rule.min_targets) is int and rule.min_targets >= 1,
         "crown_d_min_targets_invalid",
     )
+    _require(rule.optimizer in OPTIMIZERS, "crown_d_optimizer_unknown")
+    if rule.optimizer == DE_POLISH:
+        _require(
+            rule.model_call_budget is not None,
+            "crown_d_model_call_budget_is_human_input",
+        )
+        _require(
+            type(rule.model_call_budget) is int and rule.model_call_budget >= 1,
+            "crown_d_model_call_budget_invalid",
+        )
+    else:
+        _require(
+            rule.model_call_budget is None,
+            "crown_d_model_call_budget_not_used_by_cmaes_proof_v1",
+        )
     return rule
 
 
@@ -148,6 +177,7 @@ class ZeroEntry:
 class ZeroRecord:
     targets: tuple  # sorted ((target_id, ZeroEntry), ...)
     sha256: str  # of the document's canonical JSON
+    optimizer: str = CMAES_PROOF  # the optimizer the zero's picks were made with
 
     def entry(self, target_id):
         for tid, entry in self.targets:
@@ -157,13 +187,27 @@ class ZeroRecord:
 
 
 def zero_record(document):
-    """Parse the sealed per-version zero (schema ZERO_SCHEMA). A target with s_ref <= s_zero has no room above its
-    zero, so it could carry no information: refused, not silently dropped."""
+    """Parse the sealed per-version zero: schema ZERO_SCHEMA (v2, names its `optimizer`) or ZERO_SCHEMA_V1 (no
+    optimizer field; built with cmaes_proof_v1). A target with s_ref <= s_zero has no room above its zero, so it could
+    carry no information: refused, not silently dropped."""
     _require(
-        type(document) is dict and set(document) == {"schema", "targets"},
+        type(document) is dict and {"schema", "targets"} <= set(document),
         "crown_d_zero_malformed",
     )
-    _require(document["schema"] == ZERO_SCHEMA, "crown_d_zero_schema_unknown")
+    _require(
+        document["schema"] in (ZERO_SCHEMA, ZERO_SCHEMA_V1),
+        "crown_d_zero_schema_unknown",
+    )
+    if document["schema"] == ZERO_SCHEMA_V1:
+        _require(set(document) == {"schema", "targets"}, "crown_d_zero_malformed")
+        optimizer = CMAES_PROOF
+    else:
+        _require(
+            set(document) == {"schema", "optimizer", "targets"},
+            "crown_d_zero_malformed",
+        )
+        optimizer = document["optimizer"]
+        _require(optimizer in OPTIMIZERS, "crown_d_zero_optimizer_unknown")
     targets = document["targets"]
     _require(type(targets) is dict and targets, "crown_d_zero_has_no_targets")
     entries = []
@@ -190,7 +234,7 @@ def zero_record(document):
         sha = hashlib.sha256(_canonical(document)).hexdigest()
     except (TypeError, ValueError):
         raise CrownDRefused("crown_d_zero_malformed") from None
-    return ZeroRecord(targets=tuple(entries), sha256=sha)
+    return ZeroRecord(targets=tuple(entries), sha256=sha, optimizer=optimizer)
 
 
 def attach_zero(rule, document, problems):
@@ -198,6 +242,9 @@ def attach_zero(rule, document, problems):
     check_rule(rule)
     record = zero_record(document)
     _require(record.sha256 == rule.zero_sha256, "crown_d_zero_sha256_mismatch")
+    _require(
+        record.optimizer == rule.optimizer, "crown_d_zero_built_with_another_optimizer"
+    )
     known = {tid for tid, _ in record.targets}
     _require(
         all(p.target_id in known for p in problems), "crown_d_zero_missing_a_target"
@@ -217,17 +264,35 @@ class Pick:
     )
 
 
-def pick(problem, evaluator, *, host_class):
-    """The fixed optimizer's one design on the challenger's model (proof settings; custody host enforced there).
+def pick(problem, evaluator, *, host_class, rule):
+    """The registered optimizer's one design on the challenger's model (custody host enforced there).
 
-    The optimizer is FIXED: seed 0 and the box centre start (`pool_model_search.proof_problem`); any other setting
-    refuses, so the only thing that differs between contenders is their model."""
-    _require(
-        problem.seed == pool_model_search.PROOF_SEED
-        and tuple(problem.start) == (0.5,) * len(problem.box),
-        "crown_d_pick_not_the_fixed_optimizer",
-    )
-    result = pool_model_search.model_search(problem, evaluator, host_class=host_class)
+    The optimizer is FIXED per version (`rule.optimizer`), so the only thing that differs between contenders is their
+    model. `cmaes_proof_v1`: seed 0 and the box centre start (`pool_model_search.proof_problem`), the proof settings,
+    unchanged. `de_polish_v1`: seed 0 (public, fixed) and `rule.model_call_budget` model calls (at least one DE
+    generation, 16 per design input). Any other setting refuses."""
+    check_rule(rule)
+    if rule.optimizer == DE_POLISH:
+        _require(
+            problem.seed == pool_model_search.PROOF_SEED,
+            "crown_d_pick_not_the_fixed_optimizer",
+        )
+        _require(
+            rule.model_call_budget >= 16 * len(problem.box),
+            "crown_d_model_call_budget_below_one_de_generation",
+        )
+        result = pool_model_search.model_search_de(
+            problem, evaluator, host_class=host_class, budget=rule.model_call_budget
+        )
+    else:
+        _require(
+            problem.seed == pool_model_search.PROOF_SEED
+            and tuple(problem.start) == (0.5,) * len(problem.box),
+            "crown_d_pick_not_the_fixed_optimizer",
+        )
+        result = pool_model_search.model_search(
+            problem, evaluator, host_class=host_class
+        )
     return Pick(
         target_id=result.target_id,
         design=tuple(result.pick.design),

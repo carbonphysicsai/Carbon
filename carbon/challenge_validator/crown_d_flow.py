@@ -1,7 +1,7 @@
 """Crown-time D, end to end for one contender (scope GRAPHITE_CROWN_D_SCOPE_20261105.md; interface
 GRAPHITE_CROWN_D_INTERFACE_20261106.md). Custody only; off unless the version registers a `crown_d` block.
 
-1. `request_contender`: the fixed optimizer picks ONE design per target on the contender's model (`crown_d.pick`) and
+1. `request_contender`: the version's registered optimizer (`rule.optimizer`) picks ONE design per target on the contender's model (`crown_d.pick`) and
    each pick is queued for a COARSE-rung solve (`crown_d_queue`; a pick that matches an earlier solve within the dedupe
    grid is answered from the cache, at no budget).
 2. The custody runner calls `CrownDQueue.run_once(solve, weekly_solves=rule.weekly_solves)` with design-optimum's
@@ -42,7 +42,9 @@ def request_contender(
     for target_id in sorted(problems):
         problem = problems[target_id]
         zero.entry(target_id)  # a target without a zero is never queued
-        chosen = crown_d.pick(problem, evaluators[target_id], host_class=host_class)
+        chosen = crown_d.pick(
+            problem, evaluators[target_id], host_class=host_class, rule=rule
+        )
         picks[target_id] = chosen
         _enqueue(
             queue,
