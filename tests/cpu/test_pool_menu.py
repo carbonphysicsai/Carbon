@@ -578,14 +578,37 @@ def _receiver_adapter(version):
 
 
 def test_the_receiver_runs_no_recheck_for_a_version_without_a_menu(monkeypatch):
+    """gate422: off a menu receiver nothing of the adapter is read (an adapter with no construction kit, as the
+    retention fixtures have, must grade exactly as before)."""
     from carbon.challenge_validator import crown_hold
     from carbon.challenge_validator import lean_recipe_retention as lrr
 
+    class Untouchable:
+        def __getattr__(self, name):
+            raise AssertionError(
+                "a non-menu grade reads nothing of the adapter: " + name
+            )
+
+    monkeypatch.setattr(crown_hold, "ACTIVE", False)
+    assert lrr._menu_rowcheck_raw(Untouchable(), "rtsk_x", {}, {}, {}) is None
+    # on a menu receiver, a served version whose registration has no menu block runs nothing either
+    monkeypatch.setattr(crown_hold, "ACTIVE", True)
     monkeypatch.setattr(crown_hold, "menu_registered", lambda c, v: False)
-    # nothing else of the adapter is touched: no query, no file
     assert (
         lrr._menu_rowcheck_raw(_receiver_adapter("1.5"), "rtsk_x", {}, {}, {}) is None
     )
+
+
+def test_on_a_menu_receiver_an_adapter_with_no_kit_is_carbons_gap(monkeypatch):
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator import crown_hold
+    from carbon.challenge_validator import lean_recipe_retention as lrr
+
+    monkeypatch.setattr(crown_hold, "ACTIVE", True)
+    adapter = SimpleNamespace(discovery=SimpleNamespace(_material={}))
+    with pytest.raises(lrr.RetentionUnavailable, match="menu_rowcheck_unavailable"):
+        lrr._menu_rowcheck_raw(adapter, "rtsk_x", {}, {}, {})
 
 
 def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
@@ -602,6 +625,7 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
     inputs = np.arange(40.0).reshape(20, 2)
     rule = dataclasses.replace(_rule(), rowcheck=(0.0, 0.0, 5))
     monkeypatch.setattr(crown_hold, "menu_registered", lambda c, v: True)
+    monkeypatch.setattr(crown_hold, "ACTIVE", True)
     monkeypatch.setattr(pool_version, "registered_menu", lambda c, v: rule)
     monkeypatch.setattr(lrr, "_graded_query", lambda m, a: (inputs, (20, 1)))
     monkeypatch.setattr(lrr, "_private_evaluation_directory", lambda r, s: tmp_path)

@@ -946,7 +946,7 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     """
     import numpy as np
 
-    from carbon.challenge_validator.crown_hold import menu_registered
+    from carbon.challenge_validator import crown_hold
     from carbon.development_session.construction_recipe import ConstructionRecipe
     from carbon.development_session.data import write_once
     from carbon.development_session.paired_inference import (
@@ -955,9 +955,20 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     )
     from carbon.scoring import pool_exam, pool_menu, pool_version
 
-    material = adapter.discovery._material
-    kit = material["construction_kit"]
-    if not menu_registered(kit["id"], kit["version"]):
+    # Nothing of the adapter is read unless the version this receiver serves is a menu version (`crown_hold.install`
+    # in serve(), from its material's challenge key): every other version, and every grade outside a menu receiver,
+    # is untouched (gate422: reading the kit first broke adapters with no construction kit). A menu grade with no
+    # re-check refuses in the measure (menu_rowcheck_unavailable), fail closed.
+    if not crown_hold.ACTIVE:
+        return None
+    menu_registered = crown_hold.menu_registered
+    try:
+        material = adapter.discovery._material
+        kit = material["construction_kit"]
+        served = (kit["id"], kit["version"])
+    except (AttributeError, KeyError, TypeError) as exc:
+        raise RetentionUnavailable("menu_rowcheck_unavailable") from exc
+    if not menu_registered(*served):
         return None
     try:
         rule = pool_version.registered_menu(kit["id"], kit["version"])
