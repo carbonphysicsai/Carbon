@@ -36,6 +36,8 @@ TRAIN = "motor-dev-train-1p8-v1"
 POOL_VERSIONS = {VERSION: ("motor-pool-sealed-v3", "motor-sealed-pool-set")}
 #: 1.8's OWN producer identity covers the sealed grader and this module (its pk-pk decision lives here).
 FILES = (*_sealed.FILES, "motor18_dual_pack.py")
+
+
 def _train():
     from carbon.challenge_kit import physical_public_train
 
@@ -73,6 +75,7 @@ def applied_pack(**kwargs):
 
 # -- the pool binding: absolute pk-pk as a computed quantity -----------------------------------------------------------
 
+
 def _torque(raw):
     """One prediction row: exactly the 60-angle torque (N.m), finite, or None."""
     from carbon.motor.domain import ANGLE_STEPS
@@ -85,7 +88,8 @@ def _torque(raw):
 def pool_adapter(version=VERSION):
     """1.8's `PoolAdapter`: from the validity-gated 60-angle torque, its mean and its ABSOLUTE pk-pk ripple (max - min,
     N.m; the Carbon Validator 7 Nov 06:38). No limit is read or set here: the mean-torque floor and the pk-pk ceiling are
-    sealed custody values of the D targets and menu records (mc-exam-B 7 Nov (3)), never code or overlay config."""
+    sealed custody values of the D targets and menu records (mc-exam-B 7 Nov (3)), never code or overlay config.
+    """
     from carbon.motor import customer_decision as decision
     from carbon.motor import exam
     from carbon.scoring import pool_adapters
@@ -141,7 +145,8 @@ def physics_gates():
 
 def official_binding():
     """1.8's OFFICIAL pool binding (`pool_adapters.official_binding`'s shape, with this version's derive and gates): the
-    proof suite's controls are not part of the official grade, so each refuses if asked."""
+    proof suite's controls are not part of the official grade, so each refuses if asked.
+    """
     from carbon.scoring import pool_adapters, pool_plugin
 
     chosen = pool_adapter(VERSION)

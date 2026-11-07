@@ -1,7 +1,8 @@
 """Motor 1.8's sealed adapter through a version-overlay dispatch (a TEMPORARY overlay file; the production overlay gains
 the 1.8 entry only at the TRAIN freeze). Checks: 1.8 routes to its own module, every other version delegates unchanged,
 the earlier Motor producer identity does not move, 1.8 refuses to measure until its extended TRAIN is frozen, and its
-pool binding (absolute pk-pk) is reached through `pool_version` with `pool_adapters.py` untouched. Test values only."""
+pool binding (absolute pk-pk) is reached through `pool_version` with `pool_adapters.py` untouched. Test values only.
+"""
 
 from __future__ import annotations
 
@@ -132,7 +133,9 @@ def test_motor_1_8_routes_to_its_own_module_and_nothing_else_moves(overlay):
 
 def test_a_changed_module_file_is_refused_before_import(overlay):
     document = json.loads(overlay.read_bytes())
-    document["versions"]["electric-motor-magnetics 1.8"]["dispatch"]["sha256"] = "0" * 64
+    document["versions"]["electric-motor-magnetics 1.8"]["dispatch"]["sha256"] = (
+        "0" * 64
+    )
     overlay.write_text(json.dumps(document), encoding="utf-8")
     result = _run(overlay)
     assert result.returncode != 0 and "sha256 does not match" in result.stderr
@@ -168,10 +171,14 @@ def test_pool_adapters_py_is_untouched_and_still_a_live_producer_file():
 # --- the pool binding hook ------------------------------------------------------------------------------------------
 
 
-def test_an_unregistered_version_keeps_pool_adapters_binding(clean_bindings, monkeypatch):
+def test_an_unregistered_version_keeps_pool_adapters_binding(
+    clean_bindings, monkeypatch
+):
     seen = []
     monkeypatch.setattr(
-        pool_adapters, "official_binding", lambda kind, version: seen.append((kind, version)) or "theirs"
+        pool_adapters,
+        "official_binding",
+        lambda kind, version: seen.append((kind, version)) or "theirs",
     )
     assert pool_version.official_binding("motor", "1.6") == "theirs"
     pool_version.register_binding("motor", "1.8", lambda: "mine")
@@ -200,7 +207,9 @@ def _roles():
 def _flat(level, ripple=0.0, extra=0):
     from carbon.motor.domain import ANGLE_STEPS
 
-    return [level + (ripple if i == 0 else 0.0) for i in range(ANGLE_STEPS)] + [0.01] * extra
+    return [level + (ripple if i == 0 else 0.0) for i in range(ANGLE_STEPS)] + [
+        0.01
+    ] * extra
 
 
 def test_the_binding_derives_absolute_pk_pk_from_the_60_angle_torque(monkeypatch):
@@ -210,7 +219,9 @@ def test_the_binding_derives_absolute_pk_pk_from_the_60_angle_torque(monkeypatch
     monkeypatch.setattr(exam, "gates", lambda outputs: {})
     chosen = motor18_dual_pack.pool_adapter("1.8")
     assert chosen.objective == "ripple_pk_pk_nm" and chosen.sense == "min"
-    assert chosen.limits == ()  # no floor or ceiling in code: they are sealed custody values
+    assert (
+        chosen.limits == ()
+    )  # no floor or ceiling in code: they are sealed custody values
     derived = chosen.derive({}, _flat(2.0, ripple=0.3))
     assert derived["ripple_pk_pk_nm"] == pytest.approx(0.3)
     assert derived["mean_torque_nm"] == pytest.approx(2.0 + 0.3 / len(_flat(0)))
@@ -226,7 +237,9 @@ def test_a_gate_failure_derives_nothing_and_the_gates_read_the_torque(monkeypatc
     seen = []
     monkeypatch.setattr(pool_adapters, "_roles", _roles())
     monkeypatch.setattr(
-        exam, "gates", lambda outputs: seen.append(len(outputs["torque_nm"])) or {"g": exam.FAIL}
+        exam,
+        "gates",
+        lambda outputs: seen.append(len(outputs["torque_nm"])) or {"g": exam.FAIL},
     )
     assert motor18_dual_pack.pool_adapter("1.8").derive({}, _flat(2.0)) is None
     gates = motor18_dual_pack.physics_gates()
@@ -245,11 +258,17 @@ def test_the_official_binding_refuses_proof_suite_inputs(monkeypatch):
     monkeypatch.setattr(pool_adapters, "_roles", _roles())
     binding = motor18_dual_pack.official_binding()
     assert binding.kind == "motor" and binding.version == "1.8"
-    with pytest.raises(pool_adapters.PoolAdapterRefused, match="not_part_of_the_official_grade"):
+    with pytest.raises(
+        pool_adapters.PoolAdapterRefused, match="not_part_of_the_official_grade"
+    ):
         binding.serve_default()
 
 
 def test_no_limit_value_and_no_back_emf_is_in_the_module():
     text = MODULE.read_text(encoding="utf-8")
-    assert "import back_emf" not in text and "back_emf." not in text and "flux_linkage" not in text
+    assert (
+        "import back_emf" not in text
+        and "back_emf." not in text
+        and "flux_linkage" not in text
+    )
     assert "constraints" not in text and "important_limit_definition" not in text

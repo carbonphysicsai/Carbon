@@ -774,7 +774,9 @@ def official_binding(kind, version):
     """The OFFICIAL pool binding of one Challenge version: its own registered one (`register_binding`), else
     `pool_adapters.official_binding` (every version before this hook, unchanged)."""
     factory = _BINDINGS.get((kind, version))
-    return pool_adapters.official_binding(kind, version) if factory is None else factory()
+    return (
+        pool_adapters.official_binding(kind, version) if factory is None else factory()
+    )
 
 
 def material_from_set_dir(
