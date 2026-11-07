@@ -305,9 +305,13 @@ def test_continuation_chunks_never_take_a_submits_tokens(door, monkeypatch):
 def test_gets_are_not_charged(door):
     buckets = _frozen()
     intake = door.build(buckets)
-    for _ in range(20):
-        assert intake.admit_before_body("GET", "127.0.0.1", {})
-    assert buckets.charge_guard()
+    # In-process GETs fall to the peer bucket as before (over HTTP a local-hop GET is charged nothing);
+    # none touches the R89 buckets.
+    for _ in range(5):
+        assert intake.admit_before_body("GET", "127.0.0.1", {"X-Bittensor-Hotkey": "miner"})
+    assert all(buckets.charge_guard() for _ in range(3))
+    group = intake.funder_map.group("cold")
+    assert all(buckets.charge_group(group, chunk=False) for _ in range(2))
 
 
 def test_without_request_buckets_the_door_keeps_the_shared_peer_bucket(door):
