@@ -40,6 +40,7 @@ import re
 import sqlite3
 import stat
 import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -68,6 +69,8 @@ CREATE TABLE IF NOT EXISTS requests(
   queued_at REAL NOT NULL, finished_at REAL);
 CREATE UNIQUE INDEX IF NOT EXISTS requests_triple ON requests(submission, target, rung);
 CREATE TABLE IF NOT EXISTS solves(key TEXT PRIMARY KEY, outputs TEXT NOT NULL, at REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS picks(key TEXT PRIMARY KEY, design TEXT NOT NULL,
+  model_feasible INT NOT NULL CHECK(model_feasible IN (0,1)), at REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS budget(
   challenge TEXT NOT NULL, week TEXT NOT NULL, used INT NOT NULL DEFAULT 0,
   cap INT,
@@ -113,6 +116,28 @@ def _body(fixed, design):
         return canonical({"fixed": fixed, "design": [float(x) for x in design]})
     except (TypeError, ValueError) as error:
         raise CrownDQueueRefused("crown_d_field_invalid", "fixed") from error
+
+
+def _design(design):
+    if not isinstance(design, (list, tuple)) or not all(
+        isinstance(x, (int, float))
+        and not isinstance(x, bool)
+        and math.isfinite(float(x))
+        for x in design
+    ):
+        raise CrownDQueueRefused("crown_d_field_invalid", "design")
+    return design
+
+
+def _attempt(solve, target, rung, body):
+    """One solve, outside any transaction: (state, outputs, code), or None for an unclosed status."""
+    request = json.loads(body)
+    try:
+        result = solve(target, request["fixed"], request["design"], rung)
+    except Exception:  # noqa: BLE001 - a host / runner fault, never the miner's
+        return (FAILED_INFRA, None, SOLVE_RAISED)
+    closed = _closed(result)
+    return None if closed is None else (closed[0], closed[1], None)
 
 
 def _closed(result):
@@ -288,20 +313,95 @@ class CrownDQueue:
                 processed.append({"id": request_id, "state": SOLVED, "code": None})
                 continue
             _, challenge, target, rung, key, body = claimed
-            request = json.loads(body)
-            try:
-                result = solve(target, request["fixed"], request["design"], rung)
-            except Exception:  # noqa: BLE001 - a host / runner fault, never the miner's
-                outcome = (FAILED_INFRA, None, SOLVE_RAISED)
-            else:
-                closed = _closed(result)
-                if closed is None:
-                    self.unclosed_statuses += 1
-                    outcome = (FAILED_INFRA, None, NOT_CLOSED)
-                else:
-                    outcome = (closed[0], closed[1], None)
+            outcome = self._outcome(_attempt(solve, target, rung, body))
             processed.append(self._record(request_id, challenge, week, key, *outcome))
         return processed
+
+    def run_round(self, solve, *, weekly_solves, width):
+        """One PARALLEL round (option A): claim up to ``width`` QUEUED requests FIFO within the budgets, run their
+        solves at once (``width`` threads; ``solve`` dispatches to custody hosts and must be thread-safe), then
+        record every outcome. Cache answers and deferrals are as in `run_once`; the database is touched only from
+        the calling thread, and never while a solve runs. Returns the same rows as `run_once`.
+        """
+        if (
+            not isinstance(weekly_solves, int)
+            or isinstance(weekly_solves, bool)
+            or weekly_solves < 1
+        ):
+            raise CrownDQueueRefused(
+                "crown_d_weekly_solves_invalid", repr(weekly_solves)
+            )
+        if not isinstance(width, int) or isinstance(width, bool) or width < 1:
+            raise CrownDQueueRefused("crown_d_round_width_invalid", repr(width))
+        week = iso_week(self.clock())
+        with self.db() as db:
+            queued = [
+                row[0]
+                for row in db.execute(
+                    "SELECT id FROM requests WHERE state=? ORDER BY id", (QUEUED,)
+                )
+            ]
+        processed, claimed = [], []
+        for request_id in queued:
+            if len(claimed) == width:
+                break
+            got = self._claim(request_id, week, weekly_solves)
+            if got is None:
+                continue
+            if got[0] == SOLVED:
+                processed.append({"id": request_id, "state": SOLVED, "code": None})
+                continue
+            claimed.append((request_id, got))
+        if claimed:
+            with ThreadPoolExecutor(max_workers=len(claimed)) as pool:
+                futures = [
+                    pool.submit(_attempt, solve, got[2], got[3], got[5])
+                    for _, got in claimed
+                ]
+                attempts = [future.result() for future in futures]
+            for (request_id, got), attempt in zip(claimed, attempts):
+                _, challenge, _target, _rung, key, _body = got
+                outcome = self._outcome(attempt)
+                processed.append(
+                    self._record(request_id, challenge, week, key, *outcome)
+                )
+        return processed
+
+    def _outcome(self, attempt):
+        if attempt is None:
+            self.unclosed_statuses += 1
+            return (FAILED_INFRA, None, NOT_CLOSED)
+        return attempt
+
+    # --- picks (the model side; option D's cached king picks) ------------------
+
+    def cached_pick(self, key):
+        """``(design, model_feasible)`` for a stored pick key, else None."""
+        _text("key", key)
+        with self.db() as db:
+            row = db.execute(
+                "SELECT design, model_feasible FROM picks WHERE key=?", (key,)
+            ).fetchone()
+        return None if row is None else (tuple(json.loads(row[0])), bool(row[1]))
+
+    def store_pick(self, key, design, model_feasible):
+        """Keep one pick per key; a second store of the same key must carry the same pick."""
+        _text("key", key)
+        body = canonical([float(x) for x in _design(design)])
+        if not isinstance(model_feasible, bool):
+            raise CrownDQueueRefused("crown_d_field_invalid", "model_feasible")
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT design, model_feasible FROM picks WHERE key=?", (key,)
+            ).fetchone()
+            if row is not None:
+                if (row[0], bool(row[1])) != (body, model_feasible):
+                    raise CrownDQueueRefused("crown_d_pick_changed", key)
+                return
+            db.execute(
+                "INSERT INTO picks(key, design, model_feasible, at) VALUES(?,?,?,?)",
+                (key, body, int(model_feasible), self.clock()),
+            )
 
     def _claim(self, request_id, week, weekly_solves):
         """Answer from the cache, defer (None), or mark SOLVING and spend a unit."""

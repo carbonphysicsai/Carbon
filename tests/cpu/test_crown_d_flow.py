@@ -24,6 +24,8 @@ ZERO = {
     },
 }
 IDS = {"challenge": "fixture-motor", "version": "9.9"}
+MODEL_SHA = "ab" * 32
+DRAW_KEY = b"k" * 32  # synthetic
 
 
 class Clock:
@@ -70,6 +72,10 @@ def _request(queue, rule, zero, problems, submission):
         evaluators,
         submission=submission,
         host_class=HOST,
+        model_sha256=MODEL_SHA,
+        rebuild_seed=0,
+        epoch="2026-W45",
+        draw_key=DRAW_KEY,
         **IDS,
     )
 

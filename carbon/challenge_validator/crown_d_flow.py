@@ -12,6 +12,14 @@ GRAPHITE_CROWN_D_INTERFACE_20261106.md). Custody only; off unless the version re
    CROWN_DEFERRED_D_BUDGET or FAILED_INFRA. HOLD and DEFERRED keep the king's crown; D is never scored as 0 while
    pending.
 
+Cost shape (D_CROWN_COST_OPTIONS_20261107, design-optimum; C + B + A + D):
+- C: picks come from ONE rebuild, the registered `pick_rebuild_seed`; a model from another rebuild refuses.
+- B: the caller requests D as soon as that rebuild finishes, while the remaining rebuilds run; the crown decision
+  still waits for both (HOLD).
+- A: the custody runner drives `CrownDQueue.run_round(solve, weekly_solves=..., width=...)`, one parallel round.
+- D: `request_contender` picks only the epoch's drawn k targets (`crown_d.draw_targets`, a custody key); a pick of an
+  identical model + seed + target is read from the queue's pick cache (the king's picks are searched once).
+
 Nothing here solves, writes a door or moves a crown: the crown hook reads the decision.
 """
 
@@ -33,18 +41,45 @@ def request_contender(
     version,
     submission,
     host_class,
+    model_sha256,
+    rebuild_seed,
+    epoch,
+    draw_key,
 ):
-    """Pick one design per target and queue its coarse solve. ``problems`` / ``evaluators``: {target_id: ...}, the
-    version's `pool_solver_reference.Problem` per target and the contender's `pool_model_search.model_evaluator`.
-    Returns ``{target_id: pick}``, which `advance` needs to queue a fine rung."""
+    """Pick one design per DRAWN target and queue its coarse solve. ``problems``: {target_id: Problem} for every pool
+    task of the version; ``evaluators``: {target_id: evaluator} or a callable ``target_id -> evaluator`` (built only
+    for drawn targets whose pick is not cached), each a `pool_model_search.model_evaluator` over the contender's model
+    rebuilt with ``rebuild_seed`` (sha256 ``model_sha256``). Returns ``{target_id: pick}`` for the drawn targets,
+    which `advance` needs."""
     crown_d.check_rule(rule)
+    if rebuild_seed != rule.pick_rebuild_seed or type(rebuild_seed) is not int:
+        raise crown_d.CrownDRefused("crown_d_pick_not_from_the_registered_rebuild")
+    drawn = crown_d.draw_targets(
+        rule,
+        draw_key,
+        challenge_id=challenge,
+        version=version,
+        epoch=epoch,
+        targets=list(problems),
+    )
     picks = {}
-    for target_id in sorted(problems):
+    for target_id in drawn:
         problem = problems[target_id]
         zero.entry(target_id)  # a target without a zero is never queued
-        chosen = crown_d.pick(
-            problem, evaluators[target_id], host_class=host_class, rule=rule
+        key = crown_d.pick_key(
+            challenge, version, target_id, problem, rule, model_sha256=model_sha256
         )
+        cached = queue.cached_pick(key)
+        if cached is None:
+            evaluator = (
+                evaluators(target_id) if callable(evaluators) else evaluators[target_id]
+            )
+            chosen = crown_d.pick(problem, evaluator, host_class=host_class, rule=rule)
+            queue.store_pick(key, list(chosen.design), chosen.model_feasible)
+        else:
+            chosen = crown_d.Pick(
+                target_id=target_id, design=cached[0], model_feasible=cached[1]
+            )
         picks[target_id] = chosen
         _enqueue(
             queue,
@@ -106,7 +141,7 @@ def advance(
     crown_d.check_rule(rule)
     rows = queue.results(submission)
     results = {}
-    for target_id in sorted(problems):
+    for target_id in sorted(picks):  # the drawn targets
         problem, entry = problems[target_id], zero.entry(target_id)
         coarse = _final(rows.get((target_id, rule.coarse_rung)))
         final = coarse
@@ -136,7 +171,7 @@ def advance(
     return crown_d.decide(
         rule,
         results=results,
-        expected_targets=sorted(problems),
+        expected_targets=sorted(picks),
         requested_at=requested_at,
         now=now,
         budget_deferred=deferred,
