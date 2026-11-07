@@ -2166,12 +2166,18 @@ def serve(
                 request_buckets=_request_buckets(cfg),
                 funder_map=_funder_map(cfg),
             )
+            # The map file is re-read when the refresh job rewrites it (Test Lead-B 7 Nov (b)), for R89 and (a) alike.
+            from carbon.challenge_validator import funder_map as funder_maps
+
+            intake.funder_map_watch = funder_maps.Watched(
+                cfg.get("funder_map_file"), intake.funder_map
+            )
             # OWNER-PROBING-COUNTERS-01 (a): the exam cap's allowance group, on the SAME in-memory funder map as R89's
             # request bucket (one group(), Validator-2 11:32); None (no block) = per hotkey as before.
             from carbon.challenge_validator import allowance_groups, exam_cap
 
             exam_cap.install_grouping(
-                allowance_groups.from_config(cfg, window, lambda: intake.funder_map)
+                allowance_groups.from_config(cfg, window, intake._current_map)
             )
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention

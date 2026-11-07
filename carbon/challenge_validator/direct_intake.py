@@ -203,13 +203,21 @@ class DirectRecipeIntake(BatteryIntake):
             funder_maps.FunderMap.empty() if funder_map is None else funder_map
         )
 
+    def _current_map(self):
+        """The funder map to use now: re-read when the configured file changed (`funder_map.Watched`, set by the
+        receiver as ``funder_map_watch``), swapped whole, so R89 and the exam cap's grouping read ONE copy."""
+        watch = getattr(self, "funder_map_watch", None)
+        if watch is not None:
+            self.funder_map = watch.current()
+        return self.funder_map
+
     def _claimed_group(self, headers):
         """The group of the hotkey a POST CLAIMS, if it is registered in the latest snapshot; else None. Unverified:
         used only to peek, never to charge."""
         hotkey = claimed_hotkey(headers)
         snapshot = self.window.latest() if hotkey is not None else None
         member = None if snapshot is None else snapshot.resolve(hotkey)
-        return None if member is None else self.funder_map.group(member.coldkey)
+        return None if member is None else self._current_map().group(member.coldkey)
 
     def admit_before_body(self, method, peer, headers):
         """R89 before the body: an unattributable POST takes a guard token; a POST naming a registered hotkey is
@@ -253,7 +261,7 @@ class DirectRecipeIntake(BatteryIntake):
                 and call.operation == "stage_research_source"
                 and self._continues_upload(received.receipt.hotkey, call.request)
             )
-        group = self.funder_map.group(received.receipt.coldkey)
+        group = self._current_map().group(received.receipt.coldkey)
         return self.request_buckets.charge_group(group, chunk=chunk)
 
     def _continues_upload(self, hotkey, request):

@@ -102,6 +102,34 @@ def parse(raw):
     )
 
 
+class Watched:
+    """A configured map file, re-read when it changes on disk (its mtime, size or inode), never on a timer. The refresh
+    job rewrites it on every registration and every tempo (Test Lead-B 7 Nov (b)). ``current()`` returns the map to use
+    now: a new file that does not parse is no map (each coldkey its own group) with its ``problem`` set, never the old
+    one silently kept. A path of None never changes."""
+
+    def __init__(self, path, initial=None):
+        self.path = None if path is None else Path(path)
+        self._seen = self._stamp()
+        self._map = load(self.path) if initial is None else initial
+
+    def _stamp(self):
+        if self.path is None:
+            return None
+        try:
+            info = os.stat(self.path)
+        except OSError:
+            return "missing"
+        return (info.st_mtime_ns, info.st_size, info.st_ino)
+
+    def current(self):
+        stamp = self._stamp()
+        if stamp != self._seen:
+            self._seen = stamp
+            self._map = load(self.path)
+        return self._map
+
+
 def load(path):
     """Read an operator-only map file. A path of None means no map is configured (no problem)."""
     if path is None:

@@ -54,8 +54,9 @@ miner's result: the same recipe then runs again as a fresh task
 
 **Per funder (OWNER-PROBING-COUNTERS-01 (a)).** With a grouping installed (`install_grouping`,
 `allowance_groups`), the epoch slot and the daily allowance are counted per ALLOWANCE GROUP (every hotkey of one
-coldkey, joined per funder by the Chain Auditor's map) and ``M`` counts groups. A row filed before the grouping keeps
-its own hotkey (not retroactive): it still counts for that hotkey, never for its group's other hotkeys. With no grouping
+coldkey, joined per funder by the Chain Auditor's map) and ``M`` counts groups. A row always counts for its own hotkey;
+it counts for the group it was filed under. So a row filed before the grouping (not retroactive), or before a map merge
+moved its hotkey to another group, never counts for that hotkey's new siblings, and never stops counting for itself. With no grouping
 installed, every hotkey is its own group, exactly as before.
 
 The state lives in the receiver's own attempt ledger file (owner-only SQLite). Nothing here
@@ -511,7 +512,9 @@ class ExamCap:
             "AND submission_id NOT IN (SELECT submission_id FROM exam_requeues)"
         )
         allowed = self._allowance(db, group, epoch, cadence)["allowance"]
-        mine = f"({_ROW_GROUP}=? OR (group_id IS NULL AND hotkey=?))"
+        # A hotkey's OWN rows always count for it, whatever group they were filed under (a row filed before the
+        # grouping, or before a funder-map merge moved its group: Test Lead-B 7 Nov (a)); its group's other rows too.
+        mine = f"({_ROW_GROUP}=? OR hotkey=?)"
         used = db.execute(
             f"SELECT COUNT(*) FROM exam_graded WHERE {mine} AND "
             f"challenge_id=? AND epoch>? AND epoch<=? AND {held}",
