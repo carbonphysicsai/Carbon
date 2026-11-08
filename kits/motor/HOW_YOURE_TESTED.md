@@ -31,9 +31,9 @@ stack length 35 mm. The iron is Brauer's law.
 **Official TRAIN:** Motor 1.8 has its own TRAIN set: the 150 cases of the
 earlier Motor TRAIN plus new rows inside the box, near the onset of
 saturation and at zero current, so those regimes can be learned from public
-data. Every row is solved again on Carbon's record-now route, so each one
-also carries the flux linkage of the three phases. Its name, size and
-digest: **HUMAN_INPUT** (published at the TRAIN freeze). The grade trains your
+data. Every row is planned to be solved again on Carbon's record-now route,
+so that each one also carries the flux linkage of the three phases. Its name,
+size and digest: **HUMAN_INPUT** (published at the TRAIN freeze). The grade trains your
 recipe on this TRAIN only, never on your kit data.
 
 ## 2. How you're scored
@@ -112,15 +112,16 @@ are not shown, and the hidden sample rotates.
   swing (peak to peak, in N.m), so it stays well defined even near zero
   torque. Cogging, at zero current, is graded on that absolute swing in N.m,
   never as a fraction of the mean.
-- **Flux linkage and back-EMF:** the flux linkage of each of the three
-  phases, at the same 60 angles, is published in the training set and is an
-  output your model predicts (240 values per design: torque plus three flux
-  linkages). From it, Carbon plans to grade back-EMF outside the training
-  range, like torque: the shape of the open-circuit back-EMF waveform at zero
-  current, and the induced line voltage per unit speed at load. If that
-  grading is not ready when Motor 1.8 opens, Motor 1.8 grades torque only and
-  back-EMF moves to Motor 1.9; this page says which before the version
-  opens.
+- **Flux linkage and back-EMF (planned):** the flux linkage of each of the
+  three phases, at the same 60 angles, is planned to be published in the
+  training set and to be an output your model predicts (240 values per
+  design: torque plus three flux linkages). From it, Carbon plans to grade
+  back-EMF outside the training range, like torque: the shape of the
+  open-circuit back-EMF waveform at zero current, and the induced line voltage
+  per unit speed at load. If that grading is not ready when Motor 1.8 opens,
+  Motor 1.8 grades torque only (the training set may still carry the flux
+  linkage, unscored) and back-EMF moves to Motor 1.9. This page says which
+  before the version opens.
 - **Reference uncertainty U:** Motor 1.8's registered values:
   **HUMAN_INPUT**. The published verify set carries mean torque 0.019 N.m
   and ripple fraction 0.15 (Motor 1.7's extended-shell U of record).
