@@ -161,13 +161,18 @@ def _physics(sif):
 # --- pins -------------------------------------------------------------------------------------------------------------
 
 
-def test_box_and_curve_are_pinned_law_and_region_stay_human_input(tmp_path):
+def test_box_curve_and_law_are_pinned_region_stays_human_input(tmp_path):
     assert v32.DECK_VERSION == "3.2" and v32.BLEND == "asymptotic_n2"
-    assert v32.pins_status() == [
-        "V32_LAW_DECISION",
-        "V32_LAW_SHA256",
-        "V32_REGION_SHA256",
-    ]
+    assert v32.pins_status() == ["V32_REGION_SHA256"]
+    # the 3.2 law IS the signed 3.1 law, byte-identical (owner, Lead session, 8 Nov ~15:0x CST): same file pin, same decision id
+    assert v32.V32_LAW_SHA256 == v31.V31_LAW_SHA256
+    assert (
+        v32.V32_LAW_SHA256
+        == "f3eefda98fcadd0a14b3b1b57050a166a96c6a2e4fe66d8df49a037a5a42ae35"
+    )
+    assert v32.V32_LAW_DECISION == v31.V31_LAW_DECISION
+    assert v32.V32_LAW_RECORD == "OWNER-BT32-LAW-CURVE-SIGNED-01"
+    assert v32.V32_LAW_SHA256 != v3.SIGNED_LEAKAGE_SHA256
     assert (
         v32.V32_BOX_SHA256
         == "d620a81f82889d344a7721d4175716fc42ac6c5e5412931e880eb97fdea10799"

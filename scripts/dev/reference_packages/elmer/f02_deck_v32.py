@@ -71,8 +71,12 @@ UNDERSIDE_MASK = "Underside Max"
 UNDERSIDE_COLUMN = "boundary max: temperature over bc underside max"
 
 #: The 3.2 pins. HUMAN_INPUT until a reviewed change sets each one from its owner record (fail closed).
-V32_LAW_DECISION = HUMAN_INPUT
-V32_LAW_SHA256 = HUMAN_INPUT
+#: The law: the signed 3.1 leakage law, byte-identical (5 %, ITRS-anchored; ledger N8). Owner, Lead session, Sun 8 Nov 2026 ~15:0x CST,
+#: "Yes, sign it" to "BT 3.2 uses the signed 3.1 leakage law (f3eefda9, 5 %) and the researcher's r2 HFE-7100 curve 28be87ad, pinned as
+#: its registered copy dacf57f4" (record OWNER-BT32-LAW-CURVE-SIGNED-01). The decision id is the law file's own (write_case_v32 checks it).
+V32_LAW_DECISION = "OWNER-BT31-LAW-ANCHOR-SIGNED-01"
+V32_LAW_SHA256 = "f3eefda98fcadd0a14b3b1b57050a166a96c6a2e4fe66d8df49a037a5a42ae35"
+V32_LAW_RECORD = "OWNER-BT32-LAW-CURVE-SIGNED-01"
 #: The curve: the registered copy of the researcher's r2 HFE-7100 file (source 28be87ad...; only the schema label + status changed;
 #: h(T) tables byte-equal to the source on all 128 B1T3 designs). Owner 06:51 "the r2 curve" (box B1T3) + N16 O7; Carbon
 #: Validator-BT's pick (Sun 8 Nov 10:56 CST).

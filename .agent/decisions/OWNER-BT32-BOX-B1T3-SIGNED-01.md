@@ -18,7 +18,7 @@ Owner's words (verbatim): "Yes, sign. But no dates. Just ready as soon as the ca
   - `V32_HT_SHA256` = dacf57f4a3dc082f12c87569389a585e699abce5331477ce8b0a601bee8e50d3, `V32_HT_DECISION` = this record ("the r2 curve" by name; N16 O7). It is the registered copy of the researcher's r2 HFE-7100 file 28be87ad. Only the schema label and status changed, and its h(T) tables are byte-equal on all 128 B1T3 designs.
 
 ## Not covered by this record
-- Leakage-law coverage for 3.2 (N8): the `V32_LAW_*` pins stay HUMAN_INPUT until the owner's line.
+- Leakage-law coverage for 3.2 (N8): decided separately by OWNER-BT32-LAW-CURVE-SIGNED-01 (Sun 8 Nov ~15:0x CST). The `V32_LAW_*` pins are set there.
 - Region carry vs fresh draw (`V32_REGION_SHA256`).
 - Spend and door words.
 
