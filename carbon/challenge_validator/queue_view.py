@@ -18,6 +18,11 @@ this door already keeps. Reads; writes nothing.
   grader runs its king's upkeep; otherwise ``grading``.
 - **waits:** for every verdict marker written in the last 24 h: its write time minus the task's own creation time.
 
+- **held for review (v2):** on a door whose crown hold is active (`crown_hold.ACTIVE`, a menu-D version), the
+  unresolved filed contenders (`PoolStore.paused_crowns`, all kinds, filing order). Neither that record nor the grade
+  marker keeps WHY a contender was filed, and on such a door every crown change is held before anything else is
+  decided, so each is waiting for a crown decision. On every other door: None.
+
 The snapshot is cached for `CACHE_S` seconds: a busy page never rescans the markers per request.
 """
 
@@ -82,6 +87,19 @@ class QueueView:
                     ) from None
         return index
 
+    def held(self):
+        """The held contenders' submission ids, oldest filing first, on a crown-hold door; None on every other door.
+        A read of the pool store's filed contenders only (no grade, no lock)."""
+        from . import crown_hold
+
+        if not crown_hold.ACTIVE:
+            return None
+        opener = getattr(self.grader, "_pool", None)
+        store = opener() if callable(opener) else None
+        if store is None:
+            return []
+        return [record["submission_id"] for record in store.paused_crowns()]
+
     def _door_state(self):
         if (self.state / "draining").exists():
             return qp.DRAINING
@@ -132,6 +150,7 @@ class QueueView:
             "grading_now": self._grading_now(),
             "waits_s": self._waits(now, index),
             "as_of_unix": now,
+            qp.HELD: None if (held := self.held()) is None else len(held),
         }
 
     def snapshot(self):

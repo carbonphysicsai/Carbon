@@ -23,6 +23,10 @@ import json
 import math
 
 SCHEMA = "carbon.queue.public.v1"
+#: v2 (Miner X-B / TE-B 7 Nov) = v1's closed fields plus ``held_for_review``, served at ``PATH + <id> + V2_SUFFIX``
+#: (the koth /v2 pattern); v1 stays byte-identical for current clients.
+SCHEMA_V2 = "carbon.queue.public.v2"
+V2_SUFFIX = "/v2"
 PATH = "/carbon/v1/queue/"
 MAX_BYTES = 4096
 #: The door states a miner sees, in plain words (Miner X's spec): nothing else, never an operator reason.
@@ -47,6 +51,7 @@ FIELDS = frozenset(
         "as_of",
     }
 )
+FIELDS_V2 = FIELDS | {"held_for_review"}
 WAIT_FIELDS = frozenset({"verdicts", "median_s", "p90_s", "reason"})
 #: The raw snapshot a view returns (and nothing else is read from it).
 SNAPSHOT_FIELDS = frozenset(
@@ -60,6 +65,8 @@ SNAPSHOT_FIELDS = frozenset(
         "as_of_unix",
     }
 )
+#: The v2 count a view may add (`queue_view.QueueView.held`): an int on a crown-hold door, None on every other.
+HELD = "held_for_review"
 
 
 class QueuePublicRefused(ValueError):
@@ -105,7 +112,7 @@ def wait_summary(waits_s):
 
 def document(snapshot, challenge):
     """The public document from a view's raw snapshot, checked field by field (closed set)."""
-    if type(snapshot) is not dict or set(snapshot) != SNAPSHOT_FIELDS:
+    if type(snapshot) is not dict or set(snapshot) - {HELD} != SNAPSHOT_FIELDS:
         raise QueuePublicRefused("queue_snapshot_invalid")
     if snapshot["door_state"] not in DOOR_STATES:
         raise QueuePublicRefused("queue_door_state_invalid")
@@ -132,13 +139,34 @@ def document(snapshot, challenge):
     return body
 
 
-def serve(view, challenge):
+def document_v2(snapshot, challenge):
+    """The v2 document: v1's, plus ``held_for_review``, the number of crown changes held for review on this door (a
+    menu-D version's coded crown hold, `crown_hold`): a count, or None on a door that holds no crown, never 0 for it.
+    """
+    body = document(snapshot, challenge)
+    held = snapshot.get(HELD) if type(snapshot) is dict else None
+    if HELD not in snapshot or not (
+        held is None or type(held) is int and 0 <= held <= 10**7
+    ):
+        raise QueuePublicRefused("queue_held_invalid")
+    body = {**body, "schema": SCHEMA_V2, HELD: held}
+    if set(body) != FIELDS_V2:
+        raise QueuePublicRefused("queue_fields_differ")
+    return body
+
+
+def serve_v2(view, challenge):
+    """`serve` for the v2 document."""
+    return serve(view, challenge, render=document_v2)
+
+
+def serve(view, challenge, *, render=document):
     """``(status, document-or-refusal)`` as `koth_public.serve`: 200 with the document, 404 with no view, 503 when the
     view fails or the document would exceed `MAX_BYTES` (never partial)."""
     if view is None:
         return 404, {"refused": "queue_not_served"}
     try:
-        body = document(view.snapshot(), challenge)
+        body = render(view.snapshot(), challenge)
     except QueuePublicRefused as refused:
         return 503, {"refused": refused.code}
     except (AttributeError, OSError, ValueError, KeyError, TypeError):
