@@ -95,7 +95,9 @@ Gates come first: a failed gate means no score, however good the rest.
 - The zero is the best of Carbon's classical picks on the same sample (and
   a random pick); the 1 is the best five picks possible from that sample. A design task's score is clipped to 0 to 1.
 - The number of design tasks and the model-call budget per task:
-  **HUMAN_INPUT** (set by the owner before the version opens).
+  **HUMAN_INPUT** (set by the owner before the version opens). Cooling 1.8
+  aims for 3 design tasks. If fewer are ready, the version says so: design
+  value on fewer than 3 tasks is weaker against tuning.
 
 **Hard gates on every answer.**
 
@@ -122,6 +124,12 @@ are not shown, and the hidden sample rotates.
   first Cooling version with exam cases outside the training range. These
   cases count for the physics part, for the design menus and for the gates.
   Their extents are never published.
+- **The kinds Cooling 1.8 tests** include hot spots that are both narrow and
+  intense, intense hot spots, and fins that stop helping as they get taller.
+  Developing flow (where the flow has not settled yet near the inlet) is
+  included only if Cooling 1.8's new training rows show where it starts;
+  Carbon rates that at about one in three. If they do not, developing flow
+  moves to Cooling 1.9. This page says which before the version opens.
 - **A model has to generalise.** A fit of any one dataset, yours included,
   is tested where that dataset does not reach.
 

@@ -28,10 +28,11 @@ deep. About 91 % of the box is buildable.
 dimensions, single-layer winding of 104 turns per slot, magnet remanence 1.2 T,
 stack length 35 mm. The iron is Brauer's law.
 
-**Official TRAIN:** Motor 1.8 has its own TRAIN set,
-motor-dev-train-1p8-v1: the 150 cases of the earlier Motor TRAIN, unchanged,
-plus new rows inside the box, near the onset of saturation and at zero
-current, so those regimes can be learned from public data. Its size and
+**Official TRAIN:** Motor 1.8 has its own TRAIN set: the 150 cases of the
+earlier Motor TRAIN plus new rows inside the box, near the onset of
+saturation and at zero current, so those regimes can be learned from public
+data. Every row is solved again on Carbon's record-now route, so each one
+also carries the flux linkage of the three phases. Its name, size and
 digest: **HUMAN_INPUT** (published at the TRAIN freeze). The grade trains your
 recipe on this TRAIN only, never on your kit data.
 
@@ -110,15 +111,23 @@ are not shown, and the hidden sample rotates.
   period, read as mean torque and as torque ripple, the size of the torque
   swing (peak to peak, in N.m), so it stays well defined even near zero
   torque. Cogging, at zero current, is graded on that absolute swing in N.m,
-  never as a fraction of the mean. Motor 1.8 grades torque only; back-EMF is
-  planned for Motor 1.9.
+  never as a fraction of the mean.
+- **Flux linkage and back-EMF:** the flux linkage of each of the three
+  phases, at the same 60 angles, is published in the training set and is an
+  output your model predicts (240 values per design: torque plus three flux
+  linkages). From it, Carbon plans to grade back-EMF outside the training
+  range, like torque: the shape of the open-circuit back-EMF waveform at zero
+  current, and the induced line voltage per unit speed at load. If that
+  grading is not ready when Motor 1.8 opens, Motor 1.8 grades torque only and
+  back-EMF moves to Motor 1.9; this page says which before the version
+  opens.
 - **Reference uncertainty U:** Motor 1.8's registered values:
   **HUMAN_INPUT**. The published verify set carries mean torque 0.019 N.m
   and ripple fraction 0.15 (Motor 1.7's extended-shell U of record).
 - **Outside the training range:** hidden classes include cases outside the
   training range. The kinds Motor 1.8 tests include saturation (current
-  densities past where the iron starts to saturate), cross-saturation and
-  cogging at zero current. These cases count for the physics part, for the design menus
+  densities past where the iron starts to saturate), cross-saturation,
+  cogging at zero current and, as planned above, back-EMF. These cases count for the physics part, for the design menus
   and for the gates. Their extents are never published.
 - **A model has to generalise.** A fit of any one dataset, yours included,
   is tested where that dataset does not reach.
