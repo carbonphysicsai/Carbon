@@ -811,3 +811,26 @@ def test_docker_live_predictor_matches_infer_saved_bundle():
         "real-container comparison needs the installed C-03 worker image record "
         "and a ledger; run on the validator host"
     )
+
+
+def test_live_predict_checks_the_policy_under_the_versions_own_profile():
+    """Validator-2B 7 Nov: crown_d_predict calls verify_direct_resource_policy BARE (binding, limits_document), so the
+    check takes the version's own published profile and cannot drift from it."""
+    import ast
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parents[2]
+        / "carbon"
+        / "challenge_validator"
+        / "crown_d_predict.py"
+    ).read_text(encoding="utf-8")
+    calls = [
+        node
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "verify_direct_resource_policy"
+    ]
+    assert calls, "live predict must still check the published policy"
+    assert all(len(c.args) == 2 and not c.keywords for c in calls)

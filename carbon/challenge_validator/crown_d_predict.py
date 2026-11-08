@@ -261,7 +261,6 @@ def stage_files(
         ConstructionRecipe,
         RecipeRefused,
     )
-    from carbon.reconstruction.worker.model import worker_resources_version
 
     if (
         type(recipe) is not ConstructionRecipe
@@ -289,9 +288,9 @@ def stage_files(
     binding = worker._checked_binding(recipe, challenge_binding)
     allowed = worker._trusted_allowlist(allowlist_bytes)
     if limits_document is not None:
-        worker.verify_direct_resource_policy(
-            binding, limits_document, worker_resources_version(allowed.version)
-        )
+        # called bare (Validator-2B 7 Nov): the check takes the version's own published profile, the one live predict
+        # builds under; a caller naming its own profile could drift from it (test_published_policy_is_enforced)
+        worker.verify_direct_resource_policy(binding, limits_document)
     doc, parameters = load(state_bytes, recipe, allowed)
     declared = doc["graphs"][doc["entry"]]["inputs"]
     if len(declared) != len(parameters) + 1 or declared[-1]["name"] != input_name:
