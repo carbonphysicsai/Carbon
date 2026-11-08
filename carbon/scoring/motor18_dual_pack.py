@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import sys
 
+from carbon.motor import row18 as _row18
 from carbon.scoring import motor_sealed_dual_pack as _sealed
 
 CHALLENGE = _sealed.CHALLENGE
@@ -50,43 +51,16 @@ POOL_VERSIONS = {VERSION: ("motor-pool-sealed-v3", "motor-sealed-pool-set")}
 FILES = (*_sealed.FILES, "motor18_dual_pack.py")
 #: The two back-EMF cells' outputs (`back_emf.CELLS`), each the predicted k_e,ll ab waveform.
 EMF_OUTPUTS = ("back_emf_open_circuit", "ke_ll_loaded")
-#: The 1.8 row, in order, each slice the 60 rotor steps of one 15 degree mechanical window: the torque (N.m), then the
-#: per-phase flux linkages A, B, C (Wb; the record-now runner's ``phase_flux_linkage_wb``). The order is the 1.8 TRAIN
-#: interface's (mc-exam-B); a change here is a change of the 1.8 interface.
-ROW = (
-    "torque_nm",
-    "phase_flux_linkage_wb_A",
-    "phase_flux_linkage_wb_B",
-    "phase_flux_linkage_wb_C",
-)
+#: The 1.8 row (`carbon.motor.row18`, public, nothing sealed): torque, then phase linkages A, B, C.
+ROW = _row18.ROW
 
 
 def _width():
-    from carbon.motor.domain import ANGLE_STEPS
-
-    return len(ROW) * ANGLE_STEPS
+    return _row18.WIDTH
 
 
-def split(raw):
-    """One 1.8 row -> ``{slice name: its 60 finite values}`` over `ROW`; None for any other width or a non-finite
-    value (a torque-only 60-wide row is not a 1.8 answer)."""
-    from carbon.motor.domain import ANGLE_STEPS
-    from carbon.scoring import pool_adapters
-
-    row = pool_adapters._finite_row(raw)
-    if row is None or len(row) != _width():
-        return None
-    return {
-        name: row[k * ANGLE_STEPS : (k + 1) * ANGLE_STEPS] for k, name in enumerate(ROW)
-    }
-
-
-def linkages(raw):
-    """The predicted phase flux linkages of a 1.8 row in `back_emf`'s form ``{"a", "b", "c"}``, or None."""
-    parts = split(raw)
-    if parts is None:
-        return None
-    return {phase: parts["phase_flux_linkage_wb_" + phase.upper()] for phase in "abc"}
+split = _row18.split
+linkages = _row18.linkages
 
 
 def ke_ll(raw):
