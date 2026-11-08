@@ -1,7 +1,8 @@
 """BT 3.2 deck skeleton (f02_deck_v32): the 3.1 physics + two-phase boiling on the underside, pinned as the MEASURED CURVE.
 
 Claims:
-- every 3.2 pin ships HUMAN_INPUT and every SIGNED write refuses (writing nothing) until set; a CANDIDATE curve never writes a signed
+- the box and curve pins are the receipted B1T3 box and registered r2 curve; the law and region pins ship HUMAN_INPUT and every SIGNED
+  write refuses (writing nothing) until set; a box other than the pinned one refuses; a CANDIDATE curve never writes a signed
   deck; the probe writer takes a digest-pinned curve and labels every output TEST_ONLY;
 - the 3.2 sif is the 3.0 sif with exactly three edits: the underside coefficient becomes a per-case Variable Temperature table, the
   underside gets the mask flag, and the SaveScalars solver gets one masked underside-max operator;
@@ -160,20 +161,36 @@ def _physics(sif):
 # --- pins -------------------------------------------------------------------------------------------------------------
 
 
-def test_every_pin_ships_as_human_input(tmp_path):
+def test_box_and_curve_are_pinned_law_and_region_stay_human_input(tmp_path):
     assert v32.DECK_VERSION == "3.2" and v32.BLEND == "asymptotic_n2"
     assert v32.pins_status() == [
         "V32_LAW_DECISION",
-        "V32_HT_DECISION",
         "V32_LAW_SHA256",
-        "V32_HT_SHA256",
-        "V32_BOX_SHA256",
         "V32_REGION_SHA256",
     ]
+    assert (
+        v32.V32_BOX_SHA256
+        == "d620a81f82889d344a7721d4175716fc42ac6c5e5412931e880eb97fdea10799"
+    )
+    assert (
+        v32.V32_HT_SHA256
+        == "dacf57f4a3dc082f12c87569389a585e699abce5331477ce8b0a601bee8e50d3"
+    )
+    assert v32.V32_HT_DECISION == v32.V32_BASE_W_DECISION
     leak, _ = _leak(tmp_path, LAW_DECISION)
     curve, _ = _curve(tmp_path)
     box, _ = _ranges(tmp_path, "box.json", v3.BOX_SCHEMA, "box_sha256")
-    with pytest.raises(v3.DeckRefused, match="v32_box_is_human_input"):
+    with pytest.raises(v3.DeckRefused, match="v32_box_not_the_signed_one"):
+        v32.write_case_v32(
+            CASE, tmp_path / "d", leakage_path=leak, curve_path=curve, box_path=box
+        )
+    assert not (tmp_path / "d").exists()
+
+
+def test_signed_write_refuses_while_the_law_pin_is_open(tmp_path, pinned, monkeypatch):
+    leak, curve, box, _region = pinned
+    monkeypatch.setattr(v32, "V32_LAW_SHA256", v3.HUMAN_INPUT)
+    with pytest.raises(v3.DeckRefused, match="v32_law_sha256_is_human_input"):
         v32.write_case_v32(
             CASE, tmp_path / "d", leakage_path=leak, curve_path=curve, box_path=box
         )

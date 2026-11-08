@@ -73,9 +73,14 @@ UNDERSIDE_COLUMN = "boundary max: temperature over bc underside max"
 #: The 3.2 pins. HUMAN_INPUT until a reviewed change sets each one from its owner record (fail closed).
 V32_LAW_DECISION = HUMAN_INPUT
 V32_LAW_SHA256 = HUMAN_INPUT
-V32_HT_DECISION = HUMAN_INPUT
-V32_HT_SHA256 = HUMAN_INPUT
-V32_BOX_SHA256 = HUMAN_INPUT
+#: The curve: the registered copy of the researcher's r2 HFE-7100 file (source 28be87ad...; only the schema label + status changed;
+#: h(T) tables byte-equal to the source on all 128 B1T3 designs). Owner 06:51 "the r2 curve" (box B1T3) + N16 O7; Carbon
+#: Validator-BT's pick (Sun 8 Nov 10:56 CST).
+V32_HT_DECISION = "OWNER-BT32-BOX-B1T3-SIGNED-01"
+V32_HT_SHA256 = "dacf57f4a3dc082f12c87569389a585e699abce5331477ce8b0a601bee8e50d3"
+#: The public box B1T3: the signed 3.0 box C6 under the exact B1T map (canonical sha256, ``box_sha256``); coolant fixed at the
+#: curve inlet (not a range) and the start offset in [0, 5] K. Receipted by Carbon Validator-BT (Sun 8 Nov 10:55 CST).
+V32_BOX_SHA256 = "d620a81f82889d344a7721d4175716fc42ac6c5e5412931e880eb97fdea10799"
 V32_REGION_SHA256 = HUMAN_INPUT
 
 #: The 3.2 base (idle) power, W: the owner's signed box B1T3 (Lead session, Sun 8 Nov 2026 06:51 CST, "Yes, sign"): the B1T designs,

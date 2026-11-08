@@ -13,9 +13,12 @@ Owner's words (verbatim): "Yes, sign. But no dates. Just ready as soon as the ca
 ## Implemented by
 - `scripts/dev/reference_packages/elmer/f02_deck_v32.py`: `V32_BASE_W = 7.90`, `V32_BASE_W_DECISION` = this record. The 3.0 deck's `BASE_W` (20.0 W) is unchanged, and the 3.0 / 3.1 deck files stay byte-identical. The value becomes exam authority only after gate + Validator-2B FINAL.
 
+- Pin change 2 (Sun 8 Nov 2026, after Carbon Validator-BT's receipts 10:55 / 10:56 CST):
+  - `V32_BOX_SHA256` = d620a81f82889d344a7721d4175716fc42ac6c5e5412931e880eb97fdea10799, the canonical sha of the public box file `bt32-box-B1T3.json` (file 4ba6eb09). It is the signed 3.0 box C6 under the exact B1T map. Coolant is fixed at the curve inlet (not a range), and the start offset is in [0, 5] K.
+  - `V32_HT_SHA256` = dacf57f4a3dc082f12c87569389a585e699abce5331477ce8b0a601bee8e50d3, `V32_HT_DECISION` = this record ("the r2 curve" by name; N16 O7). It is the registered copy of the researcher's r2 HFE-7100 file 28be87ad. Only the schema label and status changed, and its h(T) tables are byte-equal on all 128 B1T3 designs.
+
 ## Not covered by this record
-- Leakage-law coverage for 3.2 (N8): the `V32_LAW_*` pins stay HUMAN_INPUT.
-- The curve pin (`V32_HT_*`) and the box file pin (`V32_BOX_SHA256`) need their own reviewed change citing the signed files by sha.
+- Leakage-law coverage for 3.2 (N8): the `V32_LAW_*` pins stay HUMAN_INPUT until the owner's line.
 - Region carry vs fresh draw (`V32_REGION_SHA256`).
 - Spend and door words.
 
