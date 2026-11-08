@@ -7,8 +7,8 @@ pool binding (absolute pk-pk) is reached through `pool_version` with `pool_adapt
 from __future__ import annotations
 
 import hashlib
-import math
 import json
+import math
 import os
 import subprocess
 import sys
@@ -226,7 +226,9 @@ def test_the_binding_derives_absolute_pk_pk_from_the_60_angle_torque(monkeypatch
     )  # no floor or ceiling in code: they are sealed custody values
     derived = chosen.derive({}, _flat(2.0, ripple=0.3))
     assert derived["ripple_pk_pk_nm"] == pytest.approx(0.3)
-    assert derived["mean_torque_nm"] == pytest.approx(2.0 + 0.3 / len(_flat(0, extra=0)))
+    assert derived["mean_torque_nm"] == pytest.approx(
+        2.0 + 0.3 / len(_flat(0, extra=0))
+    )
     assert chosen.derive({}, ["nan"] * len(_flat(0))) is None
     assert chosen.derive({}, _flat(2.0)[:-1]) is None
     # back-EMF in 1.8 (the owner, 7 Nov evening): a torque-only 60-wide row is not a 1.8 answer
@@ -356,7 +358,10 @@ def test_one_malformed_row_anywhere_empties_every_sealed_row(monkeypatch):
     motor18_dual_pack.measure(
         bank_rows=["r1", "r2"],
         outputs=[_whole(), _whole()],
-        repeats=[[_whole(), _whole()], [_whole(), [2.0] * 60]],  # one twin is torque-only
+        repeats=[
+            [_whole(), _whole()],
+            [_whole(), [2.0] * 60],
+        ],  # one twin is torque-only
         definition={},
         limits={},
         objective={},
@@ -452,7 +457,9 @@ def test_the_graded_error_is_the_validators_shape_error(clean_bindings, waveform
     from carbon.scoring import pool_grader
 
     motor18_dual_pack.dispatch({})
-    predicted, reference = _balanced_row(), _balanced_row(harmonic=0.002, amplitude=0.05)
+    predicted, reference = _balanced_row(), _balanced_row(
+        harmonic=0.002, amplitude=0.05
+    )
     truth = tuple(back_emf.ke_line(motor18_dual_pack.linkages(reference)))
     error = pool_grader.difference(
         "ke_ll_loaded", motor18_dual_pack.ke_ll(predicted), truth
@@ -464,7 +471,9 @@ def test_the_graded_error_is_the_validators_shape_error(clean_bindings, waveform
     )
     assert error > 0
     # amplitude alone is not graded (each waveform over its own RMS)
-    louder = tuple(back_emf.ke_line(motor18_dual_pack.linkages(_balanced_row(amplitude=0.07))))
+    louder = tuple(
+        back_emf.ke_line(motor18_dual_pack.linkages(_balanced_row(amplitude=0.07)))
+    )
     assert pool_grader.difference(
         "back_emf_open_circuit", motor18_dual_pack.ke_ll(predicted), louder
     ) == pytest.approx(0.0, abs=1e-12)

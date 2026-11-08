@@ -473,7 +473,9 @@ def target_layout(interface):
     edge = 0
     for name, start, end in layout:
         if name != "torque_nm" and not name.startswith(LINKAGE_SLICE):
-            raise KitError(f"the TRAIN interface names {name!r}, which a kit record does not carry")
+            raise KitError(
+                f"the TRAIN interface names {name!r}, which a kit record does not carry"
+            )
         if start != edge or not (type(end) is int and end > start):
             raise KitError("the TRAIN interface's target slices are not contiguous")
         edge = end

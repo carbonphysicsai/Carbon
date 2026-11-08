@@ -98,7 +98,9 @@ def _sealed_rows(outputs, repeats):
     """The sealed grader's 60-angle torque rows of 1.8 answers. If ANY row is not a whole 1.8 answer, every row becomes
     an empty curve: Motor's own schema gate then fails the grade (the candidate's answer, never a refusal), and the physics
     half, which reads the probe rows, is never reached with a malformed one."""
-    rows = [split(row) for row in [*outputs, *(r for repeat in repeats for r in repeat)]]
+    rows = [
+        split(row) for row in [*outputs, *(r for repeat in repeats for r in repeat)]
+    ]
     if any(row is None for row in rows):
         return [[] for _ in outputs], [[[] for _ in repeat] for repeat in repeats]
     torque = [row["torque_nm"] for row in rows]

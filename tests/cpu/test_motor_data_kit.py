@@ -112,7 +112,9 @@ def test_parser_writes_the_train_format(tmp_path, frozen):
 def test_the_parser_refuses_until_the_1_8_train_is_frozen(tmp_path):
     _cases, _rows, path = _fixture(tmp_path)
     if physical_public_train.EXTENDED[kit.TRAIN_NAME]["provenance_sha256"] is None:
-        with pytest.raises(kit.KitError, match="published with its TRAIN at the freeze"):
+        with pytest.raises(
+            kit.KitError, match="published with its TRAIN at the freeze"
+        ):
             kit.parse(path)
 
 

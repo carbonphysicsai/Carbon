@@ -149,9 +149,7 @@ def test_a_waveform_output_is_never_the_objective_or_a_limit(registry):
 def test_an_invalid_truth_waveform_refuses_the_pool(registry):
     pool_grader.register_waveform_output(WAVE, OUTPUT)
     with pytest.raises(PoolRefused, match="truth_must_give_every_output_finite"):
-        _target(
-            truths=[{"f": 0.1 * i, "g": 0.1, WAVE: [0.0, 1.0]} for i in range(100)]
-        )
+        _target(truths=[{"f": 0.1 * i, "g": 0.1, WAVE: [0.0, 1.0]} for i in range(100)])
 
 
 def test_the_answer_drops_registered_extras_and_checks_graded_waveforms(registry):
