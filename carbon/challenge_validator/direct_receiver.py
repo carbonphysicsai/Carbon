@@ -89,6 +89,9 @@ _OPTIONAL_FIELDS = {
     # OWNER-PROBING-COUNTERS-01 (a): {unmapped_coldkey, unresolved_hotkey, max_map_age_blocks}, every value the OWNER's
     # (`allowance_groups.policy`). Absent: the exam cap is per hotkey as before. Present with any value unset: refused.
     "allowance_groups",
+    # Owner decision #9 (8 Nov): absolute paths of `version_close.close_queued` files of this Challenge's EARLIER
+    # versions; the owner asking about one of its closed submissions is answered ``version_closed``. Absent: as before.
+    "version_closed_files",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -370,6 +373,8 @@ def load_config(path: Path) -> dict:
         selected = value["challenge"]
         if type(selected) is not dict or selected not in served_challenges():
             raise ValueError("registered direct Challenge selection required")
+    if "version_closed_files" in value:
+        _version_closed(value)
     if "auto_grade" in value and (
         type(value["auto_grade"]) is not dict
         or set(value["auto_grade"]) - {"pool_store"}
@@ -647,6 +652,23 @@ def _request_buckets(cfg):
 
     block = cfg.get("request_buckets")
     return None if block is None else RequestBuckets(block)
+
+
+def _version_closed(cfg):
+    """``{submission_id: owner}`` of the configured earlier versions' closed submissions (`version_close.load`), or
+    ``{}`` without the field. A field that names no file of an earlier version of THIS Challenge refuses.
+    """
+    if "version_closed_files" not in cfg:
+        return {}
+    from carbon.challenge_validator import version_close
+
+    selected = cfg["version_closed_files"]
+    challenge = cfg.get("challenge")
+    if type(selected) is not list or not selected or type(challenge) is not dict:
+        raise ValueError("version_closed_files needs a list of files and the Challenge")
+    return version_close.load(
+        selected, challenge_id=challenge.get("id"), version=challenge.get("version")
+    )
 
 
 def _funder_map(cfg):
@@ -2257,6 +2279,8 @@ def serve(
             intake.funder_map_watch = funder_maps.Watched(
                 cfg.get("funder_map_file"), intake.funder_map
             )
+            # Owner decision #9: the earlier versions' closed submissions this door answers ``version_closed`` for.
+            intake.version_closed = _version_closed(cfg)
             # OWNER-PROBING-COUNTERS-01 (a): the exam cap's allowance group, on the SAME in-memory funder map as R89's
             # request bucket (one group(), Validator-2 11:32); None (no block) = per hotkey as before.
             from carbon.challenge_validator import allowance_groups, exam_cap

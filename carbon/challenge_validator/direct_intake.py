@@ -588,6 +588,12 @@ class DirectRecipeIntake(BatteryIntake):
             if getattr(self, "grade_marker", None) is None:
                 return _refused(503, "grade_state_unavailable")
             if self.adapter.owner(submission_id) != hotkey:
+                # Owner decision #9: the caller's OWN submission that was still queued on an earlier version when this
+                # door left it (`version_close`) was closed, not graded, nothing charged: said typed. Any other id, and
+                # anyone else's closed one, stays unknown.
+                closed = getattr(self, "version_closed", None) or {}
+                if closed.get(submission_id, None) == hotkey:
+                    return _refused(410, "version_closed")
                 return _refused(404, "feedback_submission_unknown")
             failure = None
             if v4:
@@ -725,6 +731,9 @@ class DirectRecipeIntake(BatteryIntake):
             return "GRADED", None
         if marker.get("state") == "FAILED":
             return "FAILED_INFRA", None
+        if marker.get("state") == "VERSION_CLOSED":
+            # closed at a version flip (`version_close`, owner #9): not graded, nothing charged (a rollback's answer)
+            return "NOT_GRADED", None
         state = self._grade_state(hotkey, submission_id)
         if state is not None:
             return state, None
