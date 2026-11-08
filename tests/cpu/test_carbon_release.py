@@ -332,6 +332,7 @@ def test_precheck_switch_end_to_end(tool, repo, tmp_path, capsys, monkeypatch):
             "drain",
             "chain",
             "owners",
+            "door_network",
             "receivers",
             "chain_binding",
             "lock_versions",
@@ -1042,6 +1043,23 @@ def test_a_shared_host_holds_each_door_to_its_own_network(tool, tmp_path):
         "finney",
     )
 
+    # a host serving two networks runs a weights loop for EACH: one loop alone is not a pass
+    one_loop = _proc_env(
+        tmp_path / "one_loop",
+        {
+            11: (main_argv, {"CARBON_CHAIN_NETWORK": "finney"}),
+            12: (test_argv, {}),
+            13: (old_argv, {}),
+            14: (mainnet_loop, {"CARBON_CHAIN_NETWORK": "finney"}),
+        },
+    )
+    out = tool.chain_binding_item(doors, both, proc=one_loop, receivers_expected=3)
+    assert (out["state"], out["code"], out["networks_without_a_loop"]) == (
+        tool.UNKNOWN,
+        "binding_processes_missing",
+        ["testnet"],
+    )
+
     # a loop may be bound to any network the host serves, never to another
     stray = _proc_env(
         tmp_path / "stray",
@@ -1067,3 +1085,33 @@ def test_the_switch_precheck_takes_one_or_several_expected_networks(tool):
         "testnet",
         "finney",
     ]
+
+
+def test_new_serves_olds_door_on_olds_network(tool, tmp_path):
+    """N2/N3: a NEW prepared from a shell bound to another network matches its own record, so its own start would
+    pass; the switch precheck compares NEW's record with OLD's before the switch."""
+    old_test, _ = _door(tmp_path, "rs31", "testnet")
+    legacy, _ = _door(tmp_path, "rs30")  # no record: testnet
+    new_test, _ = _door(tmp_path, "rs32", "testnet")
+    new_finney, _ = _door(tmp_path, "rs32f", "finney")
+    old_main, _ = _door(tmp_path, "m1", "finney")
+    new_main, _ = _door(tmp_path, "m2", "finney")
+    assert tool.door_network_item(old_test, new_test) == {
+        "state": tool.PASS,
+        "network": "testnet",
+    }
+    assert tool.door_network_item(legacy, new_test)["state"] == tool.PASS
+    out = tool.door_network_item(old_test, new_finney, ["testnet", "finney"])
+    assert (out["state"], out["code"], out["old"], out["new"]) == (
+        tool.REFUSE,
+        "new_network_differs",
+        "testnet",
+        "finney",
+    )
+    assert tool.door_network_item(old_main, new_main, ["testnet", "finney"])[
+        "state"
+    ] == (tool.PASS)
+    out = tool.door_network_item(old_main, new_main, "testnet")
+    assert (out["state"], out["code"]) == (tool.REFUSE, "door_network_not_expected")
+    out = tool.door_network_item(tmp_path / "nowhere", new_test)
+    assert (out["state"], out["code"]) == (tool.UNKNOWN, "receiver_config_unreadable")

@@ -759,8 +759,10 @@ def _door_environment(receiver_state: Path) -> list[tuple[str, str]]:
     if network is None:
         raise SetupRefused(
             "chain_network_missing",
-            "this receiver was prepared before doors named their network; run `prepare` "
-            "for it again (with CARBON_CHAIN_NETWORK set to the door's network), then start it.",
+            "this receiver was prepared before doors named their network: run "
+            "`python -m carbon.challenge_validator.receiver_setup prepare` for this receiver state "
+            "again, in a shell bound to the door's network (CARBON_CHAIN_NETWORK unset for testnet, "
+            "finney for mainnet), then start it.",
         )
     pairs = [
         ("OPENBLAS_CORETYPE", cpu_pin.OPENBLAS_CORETYPE),
@@ -875,8 +877,14 @@ _UNIT_SAFE = frozenset(
 def _unit_text(receiver_state: Path, challenge: dict) -> str:
     command = _command(receiver_state)
     environment = _door_environment(receiver_state)
-    for part in (*command, str(REPO), *(value for _, value in environment)):
-        if not part or set(part) - _UNIT_SAFE:
+    # an environment value may also hold the brackets of an IPv6 loopback endpoint (ws://[::1]:PORT)
+    parts = [*command, str(REPO)]
+    values = [value for _, value in environment]
+    for part, safe in [
+        *((p, _UNIT_SAFE) for p in parts),
+        *((v, _UNIT_SAFE | {"[", "]"}) for v in values),
+    ]:
+        if not part or set(part) - safe:
             raise SetupRefused(
                 "receiver_path_unsupported",
                 "install Carbon and the receiver state under paths of letters, "

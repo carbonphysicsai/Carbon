@@ -587,18 +587,53 @@ CHAIN_ENVIRONMENT = (
 )
 
 
-def _door_network(words):
-    """The network a running receiver's own ``--config`` receiver.json names (``chain_network``; testnet for a root
-    prepared before the record existed), or None when the config cannot be read."""
+def _config_network(config):
+    """The network a receiver.json names (``chain_network``; testnet for a root prepared before the record existed),
+    or None when it cannot be read."""
     try:
-        config = Path(words[words.index("--config") + 1])
-        record = json.loads(config.read_text(encoding="utf-8"))
-    except (ValueError, IndexError, OSError):
+        record = json.loads(Path(config).read_text(encoding="utf-8"))
+    except (ValueError, OSError):
         return None
     if type(record) is not dict:
         return None
     network = record.get("chain_network", {"network": "testnet"})
     return network.get("network") if type(network) is dict else None
+
+
+def _door_network(words):
+    """The network a running receiver's own ``--config`` receiver.json names, or None when it cannot be read."""
+    try:
+        return _config_network(words[words.index("--config") + 1])
+    except (ValueError, IndexError):
+        return None
+
+
+def door_network_item(old_root, new_root, expect="testnet") -> dict:
+    """(N2/N3) NEW serves OLD's door, so it is bound to OLD's network: NEW's receiver.json names the same network as
+    OLD's, and one this host serves. A NEW prepared from a shell bound elsewhere (a testnet re-prepare in a shell still
+    exporting finney) refuses here, before the switch; its own process would match its record and start.
+    """
+    expects = (expect,) if isinstance(expect, str) else tuple(dict.fromkeys(expect))
+    config = Path("receiver") / "receiver.json"
+    old = _config_network(Path(old_root) / config)
+    new = _config_network(Path(new_root) / config)
+    if old is None or new is None:
+        return {
+            "state": UNKNOWN,
+            "code": "receiver_config_unreadable",
+            "old": old,
+            "new": new,
+        }
+    if new != old:
+        return {"state": REFUSE, "code": "new_network_differs", "old": old, "new": new}
+    if new not in expects:
+        return {
+            "state": REFUSE,
+            "code": "door_network_not_expected",
+            "network": new,
+            "expect": expect,
+        }
+    return {"state": PASS, "network": new}
 
 
 def chain_binding_item(
@@ -628,6 +663,7 @@ def chain_binding_item(
 
     loop_allowed = set().union(*(allowed_for(n) for n in expects))
     read, wrong, receivers, loops = 0, [], 0, 0
+    loops_by = dict.fromkeys(expects, 0)  # weights loops found per expected network
     for entry in Path(proc).iterdir():
         if not entry.name.isdigit():
             continue
@@ -685,13 +721,17 @@ def chain_binding_item(
             if door_network is not None:
                 item["door_network"] = door_network
             wrong.append(item)
+        elif not receiver:
+            loops_by[env.get("CARBON_CHAIN_NETWORK", "") or "testnet"] += 1
     if wrong:
         return {
             "state": REFUSE,
             "code": "process_not_on_the_live_chain",
             "processes": wrong[:10],
         }
-    if receivers < receivers_expected or loops < 1:
+    # (N2) a host that serves two networks runs one weights loop for each
+    unlooped = [n for n in expects if loops_by[n] < 1]
+    if receivers < receivers_expected or loops < 1 or unlooped:
         # (Validator-2 10:43) a check that read nothing is no pass: the running doors and the weights loop must be
         # FOUND, so a marker that stops matching surfaces here instead of passing silently
         return {
@@ -700,6 +740,7 @@ def chain_binding_item(
             "receivers": receivers,
             "receivers_expected": receivers_expected,
             "weights_loops": loops,
+            **({"networks_without_a_loop": unlooped} if unlooped else {}),
         }
     return {
         "state": PASS,
@@ -1011,6 +1052,14 @@ def precheck(args) -> dict:
             ("drain", lambda: drain_item(args.old_root)),
             ("chain", lambda: chain_item(args.old_root, args.allow_chain_degraded)),
             ("owners", lambda: owners_item(args.old_root)),
+            (
+                "door_network",
+                lambda: door_network_item(
+                    args.old_root,
+                    args.new_root,
+                    _expected_networks(args.expect_network),
+                ),
+            ),
             ("receivers", lambda: receivers_item(args.host_root, proc=PROC)),
             (
                 "chain_binding",

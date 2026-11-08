@@ -1142,3 +1142,84 @@ def test_a_bad_state_dir_is_refused_before_anything_is_written(
         with pytest.raises(receiver_setup.SetupRefused, match=code):
             _prepare(tmp_path, installed_state, state_dir=bad)
         assert not (tmp_path / "receiver-state" / "receiver").exists()
+
+
+def test_the_receiver_itself_refuses_a_process_bound_off_its_record(
+    tmp_path, monkeypatch, capsys
+):
+    """The serve entry point (every mode: serve, retain, regrade, remeasure) checks the record before any chain read:
+    a door whose receiver.json says finney, started in a testnet-bound process, refuses chain_network_mismatch.
+    """
+    from carbon.challenge_validator import cpu_pin
+
+    monkeypatch.setenv("OPENBLAS_CORETYPE", cpu_pin.OPENBLAS_CORETYPE)
+    monkeypatch.setenv("NPY_DISABLE_CPU_FEATURES", cpu_pin.NPY_DISABLE_CPU_FEATURES)
+    state = _prepared_state(tmp_path, {"network": "finney"})
+    config = state / "receiver" / receiver_setup.CONFIG_NAME
+    reached = []
+    monkeypatch.setattr(
+        direct_receiver,
+        "install_official_receipt_store",
+        lambda cfg: reached.append("past the check"),
+    )
+    assert direct_receiver.main(["--config", str(config)]) == 1
+    assert json.loads(capsys.readouterr().out.strip().splitlines()[-1]) == {
+        "unavailable": "chain_network_mismatch"
+    }
+    assert reached == []
+
+
+def test_a_foreground_start_runs_with_the_doors_environment_only(tmp_path, monkeypatch):
+    from carbon.challenge_validator import cpu_pin
+
+    env = {
+        "PATH": "/usr/bin",
+        "CARBON_CHAIN_NETWORK": "finney",  # an operator shell bound elsewhere
+        "CARBON_LOCALNET_GENESIS": "0x" + "11" * 32,
+        "CARBON_LOCALNET_ENDPOINT": "ws://127.0.0.1:1",
+    }
+    ran = []
+    monkeypatch.setattr(receiver_setup.os, "environ", env)
+    monkeypatch.setattr(receiver_setup.os, "chdir", lambda path: None)
+    monkeypatch.setattr(
+        receiver_setup.os, "execv", lambda exe, argv: ran.append((exe, dict(env)))
+    )
+    receiver_setup.start(_prepared_state(tmp_path / "t", {"network": "testnet"}))
+    seen = ran[-1][1]
+    assert seen["CARBON_CHAIN_NETWORK"] == "testnet"
+    assert (
+        "CARBON_LOCALNET_GENESIS" not in seen and "CARBON_LOCALNET_ENDPOINT" not in seen
+    )
+    assert seen["OPENBLAS_CORETYPE"] == cpu_pin.OPENBLAS_CORETYPE
+    assert seen["PATH"] == "/usr/bin"
+    receiver_setup.start(_prepared_state(tmp_path / "l", LOCALNET_RECORD))
+    seen = ran[-1][1]
+    assert seen["CARBON_CHAIN_NETWORK"] == "localnet"
+    assert seen["CARBON_LOCALNET_GENESIS"] == LOCALNET_RECORD["genesis"]
+    assert seen["CARBON_LOCALNET_ENDPOINT"] == LOCALNET_RECORD["endpoint"]
+
+
+@pytest.mark.parametrize(
+    "given, recorded",
+    [
+        ("ws://127.0.0.1:19944", "ws://127.0.0.1:19944"),
+        ("WS://LOCALHOST:9944/", "ws://localhost:9944"),
+        ("ws://127.0.0.1:9944?", "ws://127.0.0.1:9944"),
+        ("wss://[::1]:9944#", "wss://[::1]:9944"),
+    ],
+)
+def test_a_localnet_endpoint_is_recorded_in_one_spelling_its_reader_accepts(
+    tmp_path, monkeypatch, given, recorded
+):
+    from carbon.chain import models
+
+    monkeypatch.setattr(models, "CARBON_NETWORK", "localnet")
+    monkeypatch.setattr(models, "LOCALNET_GENESIS", LOCALNET_RECORD["genesis"])
+    monkeypatch.setattr(models, "LOCALNET_ENDPOINT", given)
+    record = direct_receiver.chain_network_record()
+    assert record["endpoint"] == recorded
+    # the record passes the receiver's own reader and the unit's character check
+    state = _prepared_state(tmp_path, record)
+    text = receiver_setup._unit_text(state, MOTOR)
+    assert f"Environment=CARBON_LOCALNET_ENDPOINT={recorded}" in text.splitlines()
+    direct_receiver.require_chain_network({"chain_network": record})

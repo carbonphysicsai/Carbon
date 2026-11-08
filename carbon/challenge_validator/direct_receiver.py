@@ -199,10 +199,23 @@ def _chain_network_shape(value) -> bool:
         and re.fullmatch(r"0x[0-9a-f]{64}", value["genesis"]) is not None
         and type(value["endpoint"]) is str
         and re.fullmatch(
-            r"wss?://(127\.0\.0\.1|localhost|\[::1\]):[0-9]{1,5}/?", value["endpoint"]
+            r"wss?://(127\.0\.0\.1|localhost|\[::1\]):[0-9]{1,5}", value["endpoint"]
         )
         is not None
     )
+
+
+def _normal_endpoint(endpoint: str) -> str:
+    """The localnet endpoint as ``scheme://host:port``, lower case: `carbon.chain.models` already accepted it (one
+    loopback host, a port, nothing else), so this only drops what urlsplit ignores (case, an empty ``/``, ``?``, ``#``)
+    and the record names one spelling, which its own reader (`_chain_network_shape`) accepts.
+    """
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(endpoint)
+    host = parts.hostname or ""
+    host = f"[{host}]" if ":" in host else host
+    return f"{parts.scheme.lower()}://{host}:{parts.port}"
 
 
 def chain_network_record() -> dict:
@@ -212,7 +225,8 @@ def chain_network_record() -> dict:
     record = {"network": models.CARBON_NETWORK}
     if models.CARBON_NETWORK == models.LOCALNET:
         record.update(
-            genesis=models.LOCALNET_GENESIS, endpoint=models.LOCALNET_ENDPOINT
+            genesis=models.LOCALNET_GENESIS,
+            endpoint=_normal_endpoint(models.LOCALNET_ENDPOINT),
         )
     return record
 
