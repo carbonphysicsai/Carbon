@@ -37,7 +37,7 @@ python3 -m kits.cooling generate --n 50 --seed 7 --out runs/s7 --parallel 4
 python3 -m kits.cooling parse runs/s7                  # runs/s7/train.npz + train.provenance.json
 python3 -m kits.cooling check runs/s7/train.npz
 python3 -m kits.cooling cost runs/s7
-python3 -m kits.cooling verify --out runs/verify       # once the verify set is published
+python3 -m kits.cooling verify --out runs/verify       # Cooling 1.8's published verify set
 python3 -m kits.cooling score runs/s7 --predictions my_predictions.json
 python3 -m kits.cooling licences                       # every licence in the image
 ```
@@ -61,8 +61,9 @@ python3 -m kits.cooling licences                       # every licence in the im
   sealed minimums, the information budget and the speed gate on the
   validator's machine print "not evaluated locally". A practice score is
   never an exam score or grade.
-- `verify` refuses until the version's verify set (a few designs with
-  Carbon's pinned truths) is published at its receipted digest.
+- `verify` solves Cooling 1.8's published verify set (6 designs with
+  Carbon's pinned truths, outside every sealed set) and compares within U; it
+  refuses any verify-set file whose bytes differ from the receipted digest.
 
 ## What is inside
 

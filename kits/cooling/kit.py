@@ -413,12 +413,12 @@ def parse(records_path):
 
 # --- verify ------------------------------------------------------------------
 
-#: Where the published verify set will sit (amendment A1). It is NOT shipped
-#: yet: the R15 draw awaits its exclusion rerun and the Validator's digest
-#: receipt, then its solves.
+#: The published verify set (amendment A1): Cooling 1.8's 6 designs with
+#: Carbon's pinned truths and U, outside every sealed set, digest receipted by
+#: the Carbon Validator (7 Nov, board 12:43).
 VERIFY_SET = Path(__file__).with_name("verify_set.json")
 #: The receipted sha256 of that file; `verify` refuses any other bytes.
-VERIFY_SET_SHA256 = None
+VERIFY_SET_SHA256 = "59dabd83e1484cac28e3ad811aac2cba325d3d8ffc994e37b2e0c78063a15bb0"
 HUMAN_INPUT = "HUMAN_INPUT"
 #: The graded quantities' registered measurement uncertainty U, as published
 #: for Cooling 1.6 (docs/MINING.md): die peak 0.037 C, hydraulic power 3 % of

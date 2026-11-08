@@ -226,6 +226,16 @@ class CoolingCatalogPractice:
             query = np.concatenate(
                 [inputs, practice_dual.query_inputs_v2("cooling", self.version, inputs)]
             )
+        # New versions practise on the data kit's verify set (owner, 7 Nov: "Yes, verify set"): when this version
+        # is registered there, the query is the verify designs, scored below by the same practice measurement.
+        from carbon.challenge_kit import verify_practice
+
+        verify_src = verify_practice.source(
+            verify_practice.COOLING, self.version, root=self.root
+        )
+        if verify_src is not None:
+            query = verify_src.query(interface["input_names"]).astype(inputs.dtype)
+            n_practice, v2 = len(query), False
         if source_kind == "graph":
             # Graph route v2: the miner's own graph on Carbon's graph training
             # adapter, one path for every Challenge (`graph_adapters.practise`).
@@ -343,16 +353,24 @@ class CoolingCatalogPractice:
                 )
         all_rows = result.inference.predictions
         rows, grid_rows = all_rows[:n_practice], all_rows[n_practice:]
-        if len(all_rows) != len(query) or len(rows) != len(practice.records):
+        if len(all_rows) != len(query) or len(rows) != n_practice:
             raise ValueError("cooling catalog practice row count differs")
         encoded = interface.get("output_encoding")
-        predictions = {
-            record["case_id"]: _outputs(row, slices, encoded)
-            for record, row in zip(practice.records, rows, strict=True)
-        }
-        _rows, summary = score_practice(
-            predictions, practice, PublicMaterial.load(self.root)
-        )
+        verify_block = None
+        if verify_src is not None:
+            predictions, summary, verify_block = verify_practice.score_cooling(
+                verify_src,
+                [_outputs(row, slices, encoded) for row in rows],
+                PublicMaterial.load(self.root).train,
+            )
+        else:
+            predictions = {
+                record["case_id"]: _outputs(row, slices, encoded)
+                for record, row in zip(practice.records, rows, strict=True)
+            }
+            _rows, summary = score_practice(
+                predictions, practice, PublicMaterial.load(self.root)
+            )
         if source_kind != "graph":
             source = json.loads(canonical(strategy))["source"]
             catalog_source = {
@@ -378,7 +396,11 @@ class CoolingCatalogPractice:
             "official_eligible": False,
             "scientific_qualification": False,
             # PRACTICE-SAFETY-01: feedback only, on the same public cases.
-            "safety": safety_feedback(predictions, practice),
+            "safety": (
+                safety_feedback(predictions, practice)
+                if verify_src is None
+                else {"status": verify_practice.NOT_EVALUATED}
+            ),
             "recipe": strategy,
             # C13: the exam's dual measurement needs Cooling's development bank,
             # whose rows are the counted decision-study evidence the miner-side
@@ -403,10 +425,17 @@ class CoolingCatalogPractice:
                     "scope": "PUBLIC_PRACTICE_FEEDBACK",
                     "challenge": {"id": kit["id"], "version": kit["version"]},
                     "available": False,
-                    "reason": "practice_dual_not_public_for_cooling",
+                    "reason": (
+                        "practice_dual_not_public_for_cooling"
+                        if verify_src is None
+                        else "kit verify set: design value and minimums are not evaluated locally"
+                    ),
                 }
             ),
         }
+        if verify_block is not None:
+            out["practice_source"] = verify_practice.LABEL
+            out["verify"] = verify_block
         # One truth for "eligible": the exam's own gate verdict (practice_dual) wins over the
         # summary's, which stays beside it (Lead 02:13Z).
         from carbon.scoring import practice_dual as _practice_dual
