@@ -167,7 +167,7 @@ def test_added_rows_are_ordered_by_inputs_after_the_kept_ids():
 
 def test_a_torque_not_byte_equal_to_train_150_stops():
     recs = _records()
-    recs[7]["outputs"]["torque_nm"][3] += 1e-12
+    recs[7]["outputs"]["torque_nm"][3] += 1e-9
     with pytest.raises(ValueError, match="byte-equal to TRAIN 150"):
         ppt.assemble_motor18_source(recs)
 
@@ -205,3 +205,29 @@ def test_derive_rechecks_the_byte_equal_torque(frozen):
     lines[0] = json.dumps(row, sort_keys=True, separators=(",", ":")).encode()
     with pytest.raises(ValueError, match="byte-equal"):
         ppt.derive_motor18_public_train(NAME, b"\n".join(lines) + b"\n")
+
+
+def test_host_order_rounding_within_the_ruling_is_accepted_and_recorded(frozen):
+    recs = _records()
+    for i in (3, 40, 99):
+        recs[i]["outputs"]["torque_nm"][5] += 3e-13
+    frozen(recs)
+    got = ppt.load_extended_train(NAME, MOTOR)
+    t = got["provenance"]["torque_vs_train150"]
+    assert t["host_order_rounding_rows"] == ["train-0003", "train-0040", "train-0099"]
+    assert t["byte_equal_rows"] == 147 and 0 < t["max_abs_delta_nm"] <= 4.0e-13
+    assert (
+        got["targets"][3, 5] == recs[3]["outputs"]["torque_nm"][5]
+    )  # the record-now torque, one source
+
+
+def test_rounding_beyond_the_ruling_still_stops():
+    recs = _records()
+    recs[3]["outputs"]["torque_nm"][5] += 5e-13
+    with pytest.raises(ValueError, match="STOP"):
+        ppt.assemble_motor18_source(recs)
+    recs = _records()
+    for i in (1, 2, 3, 4):
+        recs[i]["outputs"]["torque_nm"][0] += 1e-13
+    with pytest.raises(ValueError, match="more TRAIN 150 rows"):
+        ppt.assemble_motor18_source(recs)

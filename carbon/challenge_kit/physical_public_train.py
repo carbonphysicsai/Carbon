@@ -414,6 +414,46 @@ def _fresh(name: str, challenge_id: str) -> dict:
     return spec
 
 
+#: Carbon Validator-B, 8 Nov 00:44 CST, ruling (1) "M2 TORQUE TWINS": 3 of the 150
+#: re-solved TRAIN rows differ from TRAIN 150 by host-order double rounding,
+#: max |delta| 4.0e-13 N.m, ACCEPTED AS-IS (the row takes torque AND lambda
+#: from its record-now record). This allows exactly that and records it; any
+#: larger difference, or more rows, still REFUSES (STOP).
+TORQUE_ROUNDING_RULING = {
+    "source": "Carbon Validator-B 2026-11-08 00:44 CST ruling (1): host-order rounding",
+    "max_abs_delta_nm": 4.0e-13,
+    "max_rows": 3,
+}
+
+
+def _torque_check(rows_torque, native):
+    """{'byte_equal': n, 'host_order_rounding_rows': [...], 'max_abs_delta_nm': x} for the first
+    len(native) rows, or a refusal (STOP) beyond the ruling."""
+    rounding, worst = [], 0.0
+    for i, old in enumerate(native):
+        want = [_number(v) for v in old["outputs"]["torque_nm"]]
+        got = rows_torque[i]
+        if got == want:
+            continue
+        delta = max(abs(a - b) for a, b in zip(got, want, strict=True))
+        if not delta <= TORQUE_ROUNDING_RULING["max_abs_delta_nm"]:
+            raise ValueError(
+                f"train-{i:04d}: torque is not byte-equal to TRAIN 150 (STOP)"
+            )
+        rounding.append(f"train-{i:04d}")
+        worst = max(worst, delta)
+    if len(rounding) > TORQUE_ROUNDING_RULING["max_rows"]:
+        raise ValueError(
+            "more TRAIN 150 rows differ by rounding than the ruling allows (STOP)"
+        )
+    return {
+        "ruling": TORQUE_ROUNDING_RULING["source"],
+        "byte_equal_rows": len(native) - len(rounding),
+        "host_order_rounding_rows": rounding,
+        "max_abs_delta_nm": worst,
+    }
+
+
 def _lambda_of(record):
     lam = (record.get("record_now") or {}).get("phase_flux_linkage_wb")
     if type(lam) is not dict or set(lam) != set(_LAMBDA_PHASES):
@@ -507,12 +547,10 @@ def assemble_motor18_source(records) -> bytes:
         row = kept[f"train-{i:04d}"]
         if row["inputs"] != {n: _number(v) for n, v in old["inputs"].items()}:
             raise ValueError(f"train-{i:04d}: inputs differ from TRAIN 150")
-        if row["outputs"]["torque_nm"] != [
-            _number(v) for v in old["outputs"]["torque_nm"]
-        ]:
-            raise ValueError(
-                f"train-{i:04d}: torque is not byte-equal to TRAIN 150 (STOP)"
-            )
+    _torque_check(
+        [kept[f"train-{i:04d}"]["outputs"]["torque_nm"] for i in range(len(native))],
+        native,
+    )
     out = []
     for cid in ids:
         kept[cid]["case_id"] = cid
@@ -555,17 +593,14 @@ def derive_motor18_public_train(name: str, source_raw: bytes) -> tuple[bytes, di
             )
         ):
             raise ValueError("Motor 1.8 TRAIN lambda differs")
-        if index < len(native) and torque != [
-            _number(v) for v in native[index]["outputs"]["torque_nm"]
-        ]:
-            raise ValueError(
-                f"train-{index:04d}: torque is not byte-equal to TRAIN 150 (STOP)"
-            )
         inputs.append(x_row)
         targets.append(torque + [_number(v) for p in _LAMBDA_PHASES for v in lam[p]])
         case_ids.append(row["case_id"])
     if len(case_ids) < len(native):
         raise ValueError("a Motor 1.8 TRAIN covers at least the 150 TRAIN rows")
+    torque_vs_train150 = _torque_check(
+        [row[: domain.ANGLE_STEPS] for row in targets[: len(native)]], native
+    )
     raw = _npz(np.asarray(inputs, dtype="<f8"), np.asarray(targets, dtype="<f8"))
     provenance = {
         "schema": _SCHEMA,
@@ -578,6 +613,7 @@ def derive_motor18_public_train(name: str, source_raw: bytes) -> tuple[bytes, di
         "source_sha256": "sha256:" + _sha(source_raw),
         "train_sha256": "sha256:" + _sha(raw),
         "transformation_version": _FRESH_TRANSFORM,
+        "torque_vs_train150": torque_vs_train150,
         "case_ids": case_ids,
         "numeric_interface": layout,
     }
