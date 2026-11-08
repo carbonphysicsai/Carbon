@@ -63,6 +63,7 @@ _OPTIONAL_FIELDS = {
     # the crown multi-rebuild average ruling (lead-records a322dea4): {"key_file": <absolute private file>} holds K_crown and turns the crown's
     # N-rebuild average on (`crown_average.install`). Absent: the crown rule is as before.
     "crown_average",
+    "menu_draw",
     # The on-box store of OFFICIAL GPU receipts (`backbone_catalog.receipt_store`, OWNER-GPU-OPEN-WITH-READY-01):
     # an exact absolute operator path in the validator state, written only by the standing receipt worker. Without
     # it no catalog entry is officially gradable (the official route never falls back to a CPU rebuild).
@@ -287,6 +288,13 @@ def load_config(path: Path) -> dict:
         section = value["crown_average"]
         if type(section) is not dict or set(section) != {"key_file"}:
             raise ValueError("invalid crown_average selection")
+        from carbon.challenge_validator import crown_average_host
+
+        crown_average_host.read_crown_key(section["key_file"])
+    if "menu_draw" in value:
+        section = value["menu_draw"]
+        if type(section) is not dict or set(section) != {"key_file"}:
+            raise ValueError("invalid menu_draw selection")
         from carbon.challenge_validator import crown_average_host
 
         crown_average_host.read_crown_key(section["key_file"])
@@ -844,6 +852,8 @@ GRADING_PATHS = (
     "carbon/challenge_validator/scoring.py",
     "carbon/challenge_validator/koth_registry.py",
     "carbon/challenge_validator/crown_average.py",
+    # a menu-D version's coded crown hold (Validator-2B 7 Nov): it decides whether a crown may change
+    "carbon/challenge_validator/crown_hold.py",
     # whether a timed build ran on a quiet host decides whose failure a wall stop is (owner 5 Nov: rebuilds consistently
     # timed; Validator-2 21:28)
     "carbon/challenge_validator/host_quiet.py",
@@ -2024,6 +2034,10 @@ def serve(
         )
     )
     challenge = material["challenge_key"]
+    # A menu-D version's coded crown hold, keyed on the version this receiver ACTUALLY serves (Validator-2B 7 Nov)
+    from carbon.challenge_validator import crown_hold
+
+    crown_hold.install(challenge.challenge_id, challenge.version)
     with owner_lock(root):
         pack_check = None
         pack_digest = None

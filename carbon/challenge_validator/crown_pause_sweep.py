@@ -37,8 +37,9 @@ Rules (Validator, 2026-10-29):
 
 from __future__ import annotations
 
-from . import koth_journal, operator_pause
+from . import crown_hold, koth_journal, operator_pause
 from .bank_promotion import (
+    CROWN_HELD,
     CROWN_QUEUED,
     CROWNS_PAUSED,
     FAILED_INFRA,
@@ -123,6 +124,8 @@ def sweep(store, reconsider, *, kind, current_exam):
             code = "UNAVAILABLE:" + ROTATED
         elif awaits is not None and awaits(record):
             continue  # no contention possible until the king's regrade on this key: no GPU, no attempt, no alert
+        elif crown_hold.held(store.path.parent, submission_id):
+            break  # a menu-D crown held for the operator's release: no GPU, no attempt; nothing later decided ahead
         else:
             attempts, last = store.crown_pause_attempts(submission_id, key)
             if spaced(store, attempts, last):
@@ -136,7 +139,7 @@ def sweep(store, reconsider, *, kind, current_exam):
             )
             if type(outcome) is not dict or "outcome" not in outcome:
                 break  # a refusal ({"error": ...}) is not a decision
-            if outcome.get("reason") in (CROWNS_PAUSED, CROWN_QUEUED):
+            if outcome.get("reason") in (CROWNS_PAUSED, CROWN_QUEUED, CROWN_HELD):
                 break  # paused again, or an earlier record is still undecided (cannot happen to the oldest)
             if outcome.get("reason") == INCUMBENT_REGRADE_REQUIRED:
                 continue  # the king lost his evaluation on this key between the two reads: still pending

@@ -35,7 +35,18 @@ def read_crown_key(name) -> bytes:
 
 def install(cfg):
     """Turn the rule on (or off) from a receiver's configuration: the ``crown_average`` section names the private key
-    file. Absent: off."""
+    file. Absent: off. The ``menu_draw`` section (the same host's K_crown file) installs the menu D draw key
+    (`pool_menu.install_key`, purpose label ``d-menu-sample``); absent: off, and a menu version refuses to grade
+    (``menu_draw_unavailable``, Carbon's gap)."""
+    from carbon.scoring import pool_menu
+
+    menu = cfg.get("menu_draw")
+    if menu is None:
+        pool_menu.install_key(None)
+    else:
+        if type(menu) is not dict or set(menu) != {"key_file"}:
+            raise crown_average.CrownAverageInvalid("menu_draw_selection_invalid")
+        pool_menu.install_key(read_crown_key(menu["key_file"]))
     section = cfg.get("crown_average")
     if section is None:
         crown_average.ACTIVE = None
