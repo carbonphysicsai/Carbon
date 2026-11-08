@@ -94,13 +94,15 @@ class AutoGrader:
     def _marker(self, submission_id):
         return self.markers / (submission_id + ".json")
 
-    def _write(self, submission_id, state, *, code=None, entry_id=None):
+    def _write(self, submission_id, state, *, code=None, entry_id=None, next_step=None):
         body = {
             "schema": SCHEMA,
             "submission_id": submission_id,
             "state": state,
             "code": code,
             "entry_id": entry_id,
+            # a FAILED grade's next step (`auto_retry.NEXT_STEPS`, R39); absent on every other marker
+            **({} if next_step is None else {"next_step": next_step}),
         }
         fd = os.open(
             self._marker(submission_id), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
@@ -245,6 +247,7 @@ class AutoGrader:
         finally:
             self.activity = None
         self._resume_paused_crowns()
+        self._apply_due_retries()
         for submission_id in self.pending():
             copy = self._copy_decision(submission_id)
             if copy is not None:
@@ -528,11 +531,53 @@ class AutoGrader:
             state = self._give_back(submission_id)
         except Exception:  # noqa: BLE001 - the marker below still records the failure
             state = "UNRECORDED"
+        try:
+            next_step = self._next_step(submission_id, code, state)
+        except Exception:  # noqa: BLE001
+            next_step = None
         self._write(
             submission_id,
             "FAILED",
             code=code if state in (None, "RELEASED") else code + ":" + state.lower(),
+            next_step=next_step,
         )
+
+    def _next_step(self, submission_id, code, state):
+        """R39 (Validator-2B 7 Nov): the FAILED grade's next step. A COUNTED slot whose verdict was never delivered is
+        released (`auto_retry.release_undelivered`, every condition) and says so; a given-back grade gets its one free
+        automatic retry when its code is transient; a version-wide Carbon gap is given back for a resubmit after the
+        fix. None (operator alert) when a charged slot cannot be proven undelivered."""
+        from . import auto_retry
+
+        ledger = self.intake.adapter.ledger
+        if state == "COUNTED":
+            pool = None
+            try:
+                pool = self._pool()
+            except Exception:  # noqa: BLE001
+                pool = None
+            released = auto_retry.release_undelivered(
+                self.root, submission_id, code, ledger=ledger, pool_store=pool
+            )
+            return "slot_returned" if released else None
+        if state not in (None, "RELEASED"):
+            return None
+        if auto_retry.schedule(self.root, submission_id, code, ledger=ledger):
+            return "retry_scheduled"
+        return "slot_returned" if auto_retry.retryable(code) else "resubmit_after_fix"
+
+    def _apply_due_retries(self):
+        """Hand each due automatic retry back to the grader (`auto_retry.apply_due`): on an idle tick (or overdue),
+        never while the door drains. Never raises."""
+        from . import auto_retry
+
+        try:
+            draining = getattr(self.intake, "draining", None)
+            draining = bool(draining()) if callable(draining) else False
+            idle = not list(self.pending())
+            auto_retry.apply_due(self.root, draining=draining, idle=idle)
+        except Exception:  # noqa: BLE001
+            return
 
     def _give_back(self, submission_id):
         from .exam_cap import ExamCap

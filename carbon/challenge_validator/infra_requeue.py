@@ -313,8 +313,10 @@ def _binding_refusal(root, task, paths):
     return None
 
 
-def _requeue_refusal(root, db, door, task):
-    """None when ``requeue`` accepts the task, else its refusal code (read-only)."""
+def _requeue_refusal(root, db, door, task, *, auto=False):
+    """None when ``requeue`` accepts the task, else its refusal code (read-only). ``auto`` (the receiver's own one
+    automatic retry, `auto_retry`): the same criteria without the 4 Nov incident's cause filter, attempt 1 only.
+    """
     if type(task) is not str or not _TASK.fullmatch(task):
         return "not_a_task_id"
     attempt = _failed_attempt(root, task)
@@ -327,8 +329,10 @@ def _requeue_refusal(root, db, door, task):
             return "no_marker"
         if state != "FAILED":
             return "marker_" + state.lower()
-        if not _cause(paths):
+        if not auto and not _cause(paths):
             return "cause_not_requeueable"
+    elif auto:
+        return "already_requeued"
     else:
         # handed back once already: only attempt 2's FAILED binding conflict is handed back again
         if state != "FAILED":
@@ -386,10 +390,10 @@ def _requeue_refusal(root, db, door, task):
     return None
 
 
-def _decision(root, db, door, task):
+def _decision(root, db, door, task, *, auto=False):
     """``(action, refusal)``: ``("requeue", None)``, ``("archive", None)`` for a task the door cannot resolve that a
     resubmit will recreate, or ``(None, code)``."""
-    code = _requeue_refusal(root, db, door, task)
+    code = _requeue_refusal(root, db, door, task, auto=auto)
     if code is None:
         return "requeue", None
     if code == "task_row_missing":
@@ -463,8 +467,9 @@ def scan(root, *, split=DEFAULT_SPLIT):
     return out
 
 
-def requeue(root, tasks, *, apply=False, clock=time.time_ns):
-    """``{"requeued": [...], "refused": {task: code}}`` for each task (see the module text)."""
+def requeue(root, tasks, *, apply=False, clock=time.time_ns, auto=False):
+    """``{"requeued": [...], "refused": {task: code}}`` for each task (see the module text). ``auto``: the receiver's
+    own one automatic retry (`auto_retry`), logged as such."""
     out = {
         "schema": SCHEMA,
         "action": "requeue",
@@ -477,7 +482,7 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
     door = _Door(root)
     for task in tasks:
         with ledger._db() as db:
-            action, code = _decision(root, db, door, task)
+            action, code = _decision(root, db, door, task, auto=auto)
         if action is None:
             out["refused"][task] = code
             continue
@@ -505,6 +510,7 @@ def requeue(root, tasks, *, apply=False, clock=time.time_ns):
                             "kind": action,
                             "evaluation_kept": kept_evaluation,
                             "at_ns": int(clock()),
+                            **({"auto": True} if auto else {}),
                         },
                         sort_keys=True,
                     )
