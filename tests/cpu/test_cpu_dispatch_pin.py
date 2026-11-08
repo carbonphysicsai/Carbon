@@ -40,13 +40,36 @@ def test_the_worker_image_sets_the_pin():
 
 
 def test_the_receiver_service_unit_sets_the_pin(tmp_path):
-    from carbon.challenge_validator import receiver_setup
+    """The unit a receiver runs under carries the pin (read from the rendered unit, not the source text: since N3
+    the unit's environment is built from the door's own record, `receiver_setup._door_environment`).
+    """
+    from carbon.challenge_validator import direct_receiver, receiver_setup
+    from carbon.development_session.profile import canonical
 
-    source = _text("carbon/challenge_validator/receiver_setup.py")
-    assert '"Environment=OPENBLAS_CORETYPE=" + cpu_pin.OPENBLAS_CORETYPE' in source
+    config = tmp_path / "receiver" / receiver_setup.CONFIG_NAME
+    config.parent.mkdir(parents=True, mode=0o700)
+    raw = canonical(
+        {
+            "schema": direct_receiver.SCHEMA,
+            "root": str(tmp_path / "receiver" / "state"),
+            "runner_profile": str(tmp_path / "environment" / "runner-profile.json"),
+            "receiver_hotkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            "host": "127.0.0.1",
+            "port": 8769,
+            "lifetime_seconds": None,
+            "measure_query": True,
+            "chain_network": {"network": "testnet"},
+        }
+    )
+    config.write_bytes(raw if isinstance(raw, bytes) else raw.encode())
+    config.chmod(0o600)
+    lines = receiver_setup._unit_text(
+        tmp_path, {"id": "electric-motor-magnetics", "version": "1.0"}
+    ).splitlines()
+    assert f"Environment=OPENBLAS_CORETYPE={cpu_pin.OPENBLAS_CORETYPE}" in lines
     assert (
-        '"Environment=NPY_DISABLE_CPU_FEATURES=" + cpu_pin.NPY_DISABLE_CPU_FEATURES'
-        in source
+        f"Environment=NPY_DISABLE_CPU_FEATURES={cpu_pin.NPY_DISABLE_CPU_FEATURES}"
+        in lines
     )
     assert receiver_setup.cpu_pin is cpu_pin
 

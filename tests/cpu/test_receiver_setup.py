@@ -1179,12 +1179,24 @@ def test_a_foreground_start_runs_with_the_doors_environment_only(tmp_path, monke
         "CARBON_LOCALNET_ENDPOINT": "ws://127.0.0.1:1",
     }
     ran = []
+
+    class Execd(Exception):
+        """A real execv never returns: stop here, as the replaced process would."""
+
+    def execv(exe, argv):
+        ran.append((exe, dict(env)))
+        raise Execd
+
     monkeypatch.setattr(receiver_setup.os, "environ", env)
     monkeypatch.setattr(receiver_setup.os, "chdir", lambda path: None)
+    monkeypatch.setattr(receiver_setup.os, "execv", execv)
     monkeypatch.setattr(
-        receiver_setup.os, "execv", lambda exe, argv: ran.append((exe, dict(env)))
+        receiver_setup.subprocess,
+        "run",
+        lambda *a, **k: pytest.fail("a foreground start never runs systemd"),
     )
-    receiver_setup.start(_prepared_state(tmp_path / "t", {"network": "testnet"}))
+    with pytest.raises(Execd):
+        receiver_setup.start(_prepared_state(tmp_path / "t", {"network": "testnet"}))
     seen = ran[-1][1]
     assert seen["CARBON_CHAIN_NETWORK"] == "testnet"
     assert (
@@ -1192,7 +1204,8 @@ def test_a_foreground_start_runs_with_the_doors_environment_only(tmp_path, monke
     )
     assert seen["OPENBLAS_CORETYPE"] == cpu_pin.OPENBLAS_CORETYPE
     assert seen["PATH"] == "/usr/bin"
-    receiver_setup.start(_prepared_state(tmp_path / "l", LOCALNET_RECORD))
+    with pytest.raises(Execd):
+        receiver_setup.start(_prepared_state(tmp_path / "l", LOCALNET_RECORD))
     seen = ran[-1][1]
     assert seen["CARBON_CHAIN_NETWORK"] == "localnet"
     assert seen["CARBON_LOCALNET_GENESIS"] == LOCALNET_RECORD["genesis"]
