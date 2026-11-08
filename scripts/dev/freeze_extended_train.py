@@ -3,7 +3,8 @@
     python3 -I scripts/dev/freeze_extended_train.py NAME OUT_DIR RECORDS.jsonl [RECORDS.jsonl ...]
     python3 -I scripts/dev/freeze_extended_train.py NAME OUT_DIR --encoded      (Cooling: from the frozen native twin)
 
-NAME is a key of `physical_public_train.EXTENDED`. A native TRAIN is assembled with `assemble_extended_source` (the
+NAME is a key of `physical_public_train.EXTENDED` or `FRESH_LAMBDA` (Motor 1.8: ALL its records, the re-solved
+TRAIN rows with their train-NNNN ids included; the TRAIN 150 torque must be byte-equal, else it refuses). A native TRAIN is assembled with `assemble_extended_source` (the
 Challenge's native TRAIN lines byte-equal, then the added records: typed-OK only, allow-listed fields, predicted outputs
 only, ordered by their inputs, renumbered) and derived with `derive_extended_public_train`. An encoded TRAIN is derived
 from its native twin, which must already be pinned in this checkout. Writes OUT_DIR/NAME.{source.jsonl,npz,
@@ -38,9 +39,12 @@ def main(argv):
     if len(argv) < 3:
         raise SystemExit(__doc__)
     name, out = argv[0], Path(argv[1])
-    spec = ppt.EXTENDED.get(name)
+    fresh = name in ppt.FRESH_LAMBDA
+    spec = ppt.FRESH_LAMBDA[name] if fresh else ppt.EXTENDED.get(name)
     if spec is None:
-        raise SystemExit(f"refused: {name!r} is not an extended TRAIN")
+        raise SystemExit(f"refused: {name!r} is not an extended or fresh TRAIN")
+    if fresh:
+        spec = {**spec, "encoded_from": None}
     out.mkdir(parents=True, exist_ok=True)
     pins = {"name": name}
     if argv[2:] == ["--encoded"]:
@@ -56,8 +60,14 @@ def main(argv):
             for line in Path(path).read_text(encoding="utf-8").splitlines():
                 if line.strip():
                     records.append(json.loads(line))
-        source = ppt.assemble_extended_source(spec["challenge"], records)
-        raw, provenance = ppt.derive_extended_public_train(name, source)
+        if (
+            fresh
+        ):  # Motor 1.8: every row from record-now; TRAIN 150 torque byte-equal or REFUSE
+            source = ppt.assemble_motor18_source(records)
+            raw, provenance = ppt.derive_motor18_public_train(name, source)
+        else:
+            source = ppt.assemble_extended_source(spec["challenge"], records)
+            raw, provenance = ppt.derive_extended_public_train(name, source)
         _write(out / f"{name}.source.jsonl", source)
         pins["source_sha256"] = _sha(source)
     provenance_raw = (json.dumps(provenance, indent=1, sort_keys=True) + "\n").encode()

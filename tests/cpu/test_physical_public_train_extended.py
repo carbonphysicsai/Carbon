@@ -152,33 +152,19 @@ def test_a_registered_version_naming_an_unfrozen_extended_train_refuses(monkeypa
         ppt.load_public_train(MOTOR, "1.5")
 
 
-def test_motor_extended_train_roundtrip_native_rows_first_added_rows_allow_listed(
-    frozen, monkeypatch
+def test_cooling_extended_added_rows_are_allow_listed_with_predicted_outputs_only(
+    frozen,
 ):
     freeze, _ = frozen
-    records = [_motor_record(i, flux_linkage_wb=[0.1, 0.2]) for i in range(3)]
-    source = freeze("motor-dev-train-1p8-v1", records)
-    native = ppt.load_public_train(MOTOR)
-    entry = version_registry.entry(MOTOR, "1.5")
-    monkeypatch.setattr(
-        version_registry,
-        "find",
-        lambda c, v: dataclasses.replace(entry, train="motor-dev-train-1p8-v1"),
-    )
-    got = ppt.load_public_train(MOTOR, "1.5")
-    n = len(native["case_ids"])
-    assert got["inputs"].shape == (n + 3, len(motor_domain.INPUTS))
-    assert got["targets"].shape == (n + 3, motor_domain.ANGLE_STEPS)
-    assert np.array_equal(got["inputs"][:n], native["inputs"]) and np.array_equal(
-        got["targets"][:n], native["targets"]
-    )
+    source = freeze("cooling-dev-train-1p8-v1", [_cooling_record(i) for i in range(3)])
+    n = len(ppt.load_public_train(COOLING)["case_ids"])
+    native = ppt.load_public_train(COOLING)
+    got = ppt._load_extended("cooling-dev-train-1p8-v1", COOLING)
+    assert got["inputs"].shape[0] == n + 3
+    assert np.array_equal(got["targets"][:n], native["targets"])
     assert got["case_ids"][n:] == tuple(f"train-{i:04d}" for i in range(n, n + 3))
-    assert (
-        got["provenance"]["numeric_interface"]
-        == native["provenance"]["numeric_interface"]
-    )
-    added = [json.loads(line) for line in source.splitlines()[n:]]
-    for row in added:
+    for line in source.splitlines()[n:]:
+        row = json.loads(line)
         assert set(row) <= {
             "schema",
             "case_id",
@@ -189,13 +175,10 @@ def test_motor_extended_train_roundtrip_native_rows_first_added_rows_allow_liste
             "options",
             "image",
         }
-        assert set(row["outputs"]) == {"torque_nm"}  # back-EMF stays unseen
-    text = source.decode()
-    assert (
-        "pool-s6100" not in text
-        and "custody-run" not in text
-        and "flux_linkage" not in text
-    )
+        assert set(row["outputs"]) == {"peak_c", "profile_c", "pressure_drop_pa"}
+    # the added rows only (the native rows are public as they are)
+    text = b"\n".join(source.splitlines()[n:]).decode()
+    assert "pool-s6200" not in text and "custody" not in text and "mean_c" not in text
 
 
 def test_added_rows_are_ordered_by_their_inputs_not_by_the_records_order(frozen):
@@ -228,11 +211,11 @@ def test_cooling_extended_encoded_train_roundtrip(frozen, monkeypatch):
 
 def test_a_tampered_extended_train_refuses(frozen, tmp_path):
     freeze, _ = frozen
-    freeze("motor-dev-train-1p8-v1", [_motor_record(0)])
-    path = tmp_path / "motor-dev-train-1p8-v1.npz"
+    freeze("cooling-dev-train-1p8-v1", [_cooling_record(0)])
+    path = tmp_path / "cooling-dev-train-1p8-v1.npz"
     path.write_bytes(path.read_bytes() + b"\0")
     with pytest.raises(ValueError, match="identity differs"):
-        ppt._load_extended("motor-dev-train-1p8-v1", MOTOR)
+        ppt._load_extended("cooling-dev-train-1p8-v1", COOLING)
 
 
 @pytest.mark.parametrize(
@@ -259,9 +242,9 @@ def test_assemble_refuses_an_added_row_that_repeats_a_train_design():
 
 
 def test_derive_refuses_a_source_that_does_not_start_with_the_native_rows():
-    source = ppt.assemble_extended_source(MOTOR, [_motor_record(0)])
+    source = ppt.assemble_extended_source(COOLING, [_cooling_record(0)])
     lines = source.splitlines()
     with pytest.raises(ValueError, match="native TRAIN rows byte-equal"):
         ppt.derive_extended_public_train(
-            "motor-dev-train-1p8-v1", b"\n".join(lines[1:]) + b"\n"
+            "cooling-dev-train-1p8-v1", b"\n".join(lines[1:]) + b"\n"
         )
