@@ -105,6 +105,38 @@ class BittensorReader:
         raise ChainFailure(failure)
 
 
+#: The SDK's own connection task (`RpcSession._run`, bittensor 11.1). When a dial fails (an HTTP 429 upgrade refusal,
+#: the node down), the read that waited on it already fails typed, but the task's own exception is never collected, so
+#: asyncio prints "Task exception was never retrieved" and a Traceback when the task is freed (staging drills F1 / F3 /
+#: R7, 7 Nov: four in one run on a door that kept serving).
+SESSION_TASK = "rpc-session"
+#: The modules whose exceptions are a chain transport fault, not a Carbon bug.
+_TRANSPORT_MODULES = ("bittensor", "websockets")
+
+
+def _chain_transport_fault(failure):
+    if isinstance(failure, (OSError, TimeoutError)):
+        return True
+    return type(failure).__module__.split(".")[0] in _TRANSPORT_MODULES
+
+
+def session_exception_handler(loop, context):
+    """The reader loop's exception handler: an uncollected chain-transport failure of the SDK's session task is ONE
+    typed line, ``chain_session_error kind=<type>`` (the read it broke has already failed typed); everything else, a
+    Carbon bug included, goes to asyncio's default handler with its Traceback."""
+    task = context.get("future") or context.get("task")
+    failure = context.get("exception")
+    if (
+        isinstance(task, asyncio.Task)
+        and task.get_name() == SESSION_TASK
+        and failure is not None
+        and _chain_transport_fault(failure)
+    ):
+        _log.warning("chain_session_error kind=%s", type(failure).__name__)
+        return
+    loop.default_exception_handler(context)
+
+
 def _retry_after(value):
     """The endpoint's Retry-After as seconds, when it is a plain number of
     seconds; otherwise None (a date or a reset time is not trusted)."""
@@ -211,6 +243,7 @@ class PersistentBittensorReader(BittensorReader):
         with self._start_lock:
             if self._loop is None:
                 loop = asyncio.new_event_loop()
+                loop.set_exception_handler(session_exception_handler)
                 threading.Thread(
                     target=loop.run_forever, name="chain-reader", daemon=True
                 ).start()
