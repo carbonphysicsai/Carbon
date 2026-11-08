@@ -38,6 +38,10 @@ _FIELDS = {
     "measure_query",
 }
 _OPTIONAL_FIELDS = {
+    # The chain network this door is bound to (N3, lock-in rev 4): written by `receiver_setup prepare` from the network
+    # the prepare ran on, set into the unit's environment by `service`/`start`, and checked against the process's own
+    # binding at start (`require_chain_network`). Mainnet and testnet doors share one host, so the network is per door.
+    "chain_network",
     "material_cache_bytes",
     "construction_image_manifest",
     "inference_image_manifest",
@@ -177,6 +181,56 @@ def install_official_receipt_store(cfg) -> None:
             ).get("value"),
         )
     )
+
+
+#: The networks a door can be bound to (`carbon.chain.models`; localnet is staging only).
+CHAIN_NETWORKS = ("testnet", "finney", "localnet")
+
+
+def _chain_network_shape(value) -> bool:
+    """``{"network": "testnet"|"finney"}``, or the staging localnet with its genesis and its host-local endpoint."""
+    if type(value) is not dict or value.get("network") not in CHAIN_NETWORKS:
+        return False
+    if value["network"] != "localnet":
+        return set(value) == {"network"}
+    return (
+        set(value) == {"network", "genesis", "endpoint"}
+        and type(value["genesis"]) is str
+        and re.fullmatch(r"0x[0-9a-f]{64}", value["genesis"]) is not None
+        and type(value["endpoint"]) is str
+        and re.fullmatch(
+            r"wss?://(127\.0\.0\.1|localhost|\[::1\]):[0-9]{1,5}/?", value["endpoint"]
+        )
+        is not None
+    )
+
+
+def chain_network_record() -> dict:
+    """The network THIS process is bound to (`carbon.chain.models`), as a door's ``chain_network`` record."""
+    from carbon.chain import models
+
+    record = {"network": models.CARBON_NETWORK}
+    if models.CARBON_NETWORK == models.LOCALNET:
+        record.update(
+            genesis=models.LOCALNET_GENESIS, endpoint=models.LOCALNET_ENDPOINT
+        )
+    return record
+
+
+def require_chain_network(cfg: dict) -> None:
+    """(N3) A door runs only on the network its own record names: a process bound elsewhere (an operator shell's
+    environment, a unit written by hand, a mainnet door started like a testnet one) refuses before any chain read.
+    A record is required whenever the process is bound off testnet; a root prepared before the record existed (no
+    ``chain_network``) still starts on testnet, the only network such a root was ever prepared on.
+    """
+    observed = chain_network_record()
+    expected = cfg.get("chain_network")
+    if expected is None:
+        if observed["network"] != "testnet":
+            raise ReceiverUnavailable("chain_network_missing")
+        return
+    if expected != observed:
+        raise ReceiverUnavailable("chain_network_mismatch")
 
 
 def load_config(path: Path) -> dict:
@@ -319,6 +373,8 @@ def load_config(path: Path) -> dict:
         or not Path(value["launch_board"]).is_absolute()
     ):
         raise ValueError("invalid launch_board file")
+    if "chain_network" in value and not _chain_network_shape(value["chain_network"]):
+        raise ValueError("invalid chain_network")
     if "launch_board_key" in value and (
         "launch_board" not in value
         or type(value["launch_board_key"]) is not str
@@ -1896,6 +1952,7 @@ def serve(
     from scripts.dev.miner_launchpad.controller import owner_lock
 
     cfg = load_config(config_path)
+    require_chain_network(cfg)
     install_official_receipt_store(cfg)
     from carbon.challenge_validator import crown_average_host
 

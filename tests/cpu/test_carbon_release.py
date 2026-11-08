@@ -863,6 +863,8 @@ def _proc_env(tmp_path, processes):
 def test_no_live_door_or_weights_loop_runs_off_the_live_chain(tool, tmp_path):
     door = tmp_path / "rs27" / "CI_motor"
     (door / "receiver").mkdir(parents=True)
+    # a root prepared before doors named their network (N3): it is a testnet door
+    (door / "receiver" / "receiver.json").write_text("{}", encoding="utf-8")
     receiver = [
         "python3",
         "-m",
@@ -943,6 +945,8 @@ def test_a_binding_check_that_finds_no_door_or_no_weights_loop_is_unknown(
         str(door / "r.json"),
     ]
     loop = ["bash", "/home/carbon/weights-loop5.sh"]
+    door.mkdir(parents=True)
+    (door / "r.json").write_text("{}", encoding="utf-8")
     nothing = _proc_env(tmp_path / "a", {13: (["sshd"], {})})
     out = tool.chain_binding_item([door], proc=nothing, receivers_expected=1)
     assert (out["state"], out["code"]) == (tool.UNKNOWN, "binding_processes_missing")
@@ -966,3 +970,100 @@ def test_a_binding_check_that_finds_no_door_or_no_weights_loop_is_unknown(
         tool.chain_binding_item([door], proc=both, receivers_expected=1)["state"]
         == tool.PASS
     )
+
+
+def _door(tmp_path, name, network=None):
+    """A door root whose receiver.json names ``network`` (None: a root prepared before the record), and the argv of
+    the receiver running it."""
+    root = tmp_path / name
+    (root / "receiver").mkdir(parents=True)
+    record = {} if network is None else {"chain_network": {"network": network}}
+    config = root / "receiver" / "receiver.json"
+    config.write_text(json.dumps(record), encoding="utf-8")
+    argv = [
+        "python3",
+        "-m",
+        "carbon.challenge_validator.direct_receiver",
+        "--config",
+        str(config),
+    ]
+    return root, argv
+
+
+def test_a_shared_host_holds_each_door_to_its_own_network(tool, tmp_path):
+    """N2 (lock-in rev 4): mainnet and testnet doors share GPUYard. With both networks expected, each receiver is held
+    to the network its own receiver.json names; a mainnet door bound to testnet (or the reverse) refuses.
+    """
+    main_door, main_argv = _door(tmp_path, "main-rs1", "finney")
+    test_door, test_argv = _door(tmp_path, "test-rs31", "testnet")
+    # prepared before the record: a testnet door
+    old_door, old_argv = _door(tmp_path, "test-rs30")
+    mainnet_loop = ["/home/carbon/venv/bin/python", "/home/carbon/wcycle-finney.py"]
+    testnet_loop = ["/home/carbon/venv/bin/python", "/home/carbon/wcycle5.py"]
+    both = ["testnet", "finney"]
+    doors = [main_door, test_door, old_door]
+
+    good = _proc_env(
+        tmp_path / "good",
+        {
+            11: (main_argv, {"CARBON_CHAIN_NETWORK": "finney"}),
+            12: (test_argv, {"CARBON_CHAIN_NETWORK": "testnet"}),
+            13: (old_argv, {}),
+            14: (mainnet_loop, {"CARBON_CHAIN_NETWORK": "finney"}),
+            15: (testnet_loop, {}),
+        },
+    )
+    out = tool.chain_binding_item(doors, both, proc=good, receivers_expected=3)
+    assert (out["state"], out["receivers"], out["weights_loops"]) == (tool.PASS, 3, 2)
+
+    # the mainnet door started like a testnet one (the operator's shell, no network in the unit): refused
+    crossed = _proc_env(
+        tmp_path / "crossed",
+        {
+            11: (main_argv, {}),
+            12: (test_argv, {"CARBON_CHAIN_NETWORK": "finney"}),
+            14: (mainnet_loop, {"CARBON_CHAIN_NETWORK": "finney"}),
+        },
+    )
+    out = tool.chain_binding_item(doors, both, proc=crossed)
+    assert (out["state"], out["code"]) == (tool.REFUSE, "process_not_on_the_live_chain")
+    assert sorted(
+        (p["pid"], p["network"], p["door_network"]) for p in out["processes"]
+    ) == [
+        (11, "", "finney"),
+        (12, "finney", "testnet"),
+    ]
+
+    # a host declared testnet-only refuses a running mainnet door, even one bound right
+    out = tool.chain_binding_item(doors, "testnet", proc=good)
+    assert (out["state"], out["code"], out["door_network"]) == (
+        tool.REFUSE,
+        "receiver_network_not_expected",
+        "finney",
+    )
+
+    # a loop may be bound to any network the host serves, never to another
+    stray = _proc_env(
+        tmp_path / "stray",
+        {12: (test_argv, {}), 14: (mainnet_loop, {"CARBON_CHAIN_NETWORK": "localnet"})},
+    )
+    assert tool.chain_binding_item(doors, both, proc=stray)["state"] == tool.REFUSE
+
+    # a receiver whose own config cannot be read is UNKNOWN, never a pass
+    (old_door / "receiver" / "receiver.json").unlink()
+    out = tool.chain_binding_item(doors, both, proc=good)
+    assert (out["state"], out["code"], out["pid"]) == (
+        tool.UNKNOWN,
+        "receiver_config_unreadable",
+        13,
+    )
+
+
+def test_the_switch_precheck_takes_one_or_several_expected_networks(tool):
+    assert tool._expected_networks(None) == "testnet"
+    assert tool._expected_networks(["finney"]) == "finney"
+    assert tool._expected_networks(["finney", "finney"]) == "finney"
+    assert tool._expected_networks(["testnet", "finney", "testnet"]) == [
+        "testnet",
+        "finney",
+    ]

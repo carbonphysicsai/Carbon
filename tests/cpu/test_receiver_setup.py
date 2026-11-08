@@ -90,6 +90,8 @@ def test_prepare_writes_a_private_closed_configuration(
     config = json.loads(config_path.read_bytes())
     assert config["host"] == "127.0.0.1" and config["challenge"] == MOTOR
     assert config["receiver_hotkey"] == HOTKEY
+    # (N3) the door records the network its prepare ran on (testnet: the tests' process binding)
+    assert config["chain_network"] == {"network": "testnet"}
     assert config["construction_runtimes"] == direct_receiver.CONSTRUCTION_RUNTIMES
     assert done["construction_runtime_mode"] == "full_cpu"
     assert "evaluation_pack" not in config
@@ -215,10 +217,35 @@ def test_start_needs_a_prepared_state(tmp_path):
         receiver_setup.start(tmp_path)
 
 
-def _prepared_state(tmp_path):
+LOCALNET_RECORD = {
+    "network": "localnet",
+    "genesis": "0x" + "82" * 32,
+    "endpoint": "ws://127.0.0.1:19944",
+}
+
+
+def _prepared_state(tmp_path, chain_network=None, *, record=True):
+    """A receiver state with a closed private receiver.json (the receiver's own reader accepts it)."""
+    from carbon.development_session.profile import canonical
+
     config = tmp_path / "receiver" / receiver_setup.CONFIG_NAME
-    config.parent.mkdir(parents=True)
-    config.write_text("{}")
+    config.parent.mkdir(parents=True, mode=0o700)
+    value = {
+        "schema": direct_receiver.SCHEMA,
+        "root": str(tmp_path / "receiver" / "state"),
+        "runner_profile": str(tmp_path / "environment" / "runner-profile.json"),
+        "receiver_hotkey": HOTKEY,
+        "host": "127.0.0.1",
+        "port": 8769,
+        "lifetime_seconds": None,
+        "measure_query": True,
+    }
+    if record:
+        value["chain_network"] = chain_network or {"network": "testnet"}
+    raw = canonical(value)
+    config.write_bytes(raw if isinstance(raw, bytes) else raw.encode())
+    config.chmod(0o600)
+    direct_receiver.load_config(config)
     return tmp_path
 
 
@@ -242,6 +269,146 @@ def test_a_detached_start_refuses_without_linger(tmp_path, monkeypatch, linger):
     else:
         assert receiver_setup.start(state, detach=True) == 0
         assert calls == ["loginctl", "systemd-run"]
+
+
+def test_a_detached_start_carries_the_cpu_pin_and_the_doors_own_network(
+    tmp_path, monkeypatch
+):
+    # N3 (lock-in rev 4): a transient unit inherits nothing from the operator's shell.
+    from carbon.challenge_validator import cpu_pin
+
+    argvs = []
+
+    def run(argv, **kwargs):
+        argvs.append(argv)
+        stdout = "yes\n" if argv[0] == "loginctl" else ""
+        return type("Done", (), {"returncode": 0, "stdout": stdout})()
+
+    monkeypatch.setattr(receiver_setup.subprocess, "run", run)
+    for name, record in (("t", {"network": "testnet"}), ("l", LOCALNET_RECORD)):
+        state = _prepared_state(tmp_path / name, record)
+        assert receiver_setup.start(state, detach=True) == 0
+        setenv = [a for a in argvs[-1] if a.startswith("--setenv=")]
+        expected = [
+            f"--setenv=OPENBLAS_CORETYPE={cpu_pin.OPENBLAS_CORETYPE}",
+            f"--setenv=NPY_DISABLE_CPU_FEATURES={cpu_pin.NPY_DISABLE_CPU_FEATURES}",
+            f"--setenv=CARBON_CHAIN_NETWORK={record['network']}",
+        ]
+        if record["network"] == "localnet":
+            expected += [
+                f"--setenv=CARBON_LOCALNET_GENESIS={record['genesis']}",
+                f"--setenv=CARBON_LOCALNET_ENDPOINT={record['endpoint']}",
+            ]
+        assert setenv == expected
+        # the settings come before the command, so systemd-run reads them as its own options
+        assert argvs[-1].index(setenv[-1]) < argvs[-1].index("-m")
+
+
+def test_a_door_without_a_network_record_is_never_started(tmp_path, monkeypatch):
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append(argv[0])
+        return type("Done", (), {"returncode": 0, "stdout": "yes\n"})()
+
+    monkeypatch.setattr(receiver_setup.subprocess, "run", run)
+    monkeypatch.setattr(
+        receiver_setup.os,
+        "execv",
+        lambda *a: pytest.fail("a door without a record was started"),
+    )
+    state = _prepared_state(tmp_path, record=False)
+    for detach in (True, False):
+        with pytest.raises(receiver_setup.SetupRefused) as refused:
+            receiver_setup.start(state, detach=detach)
+        assert refused.value.code == "chain_network_missing"
+        assert "prepare" in refused.value.next_step
+    with pytest.raises(receiver_setup.SetupRefused, match="chain_network_missing"):
+        receiver_setup._unit_text(state, MOTOR)
+    assert "systemd-run" not in calls
+
+
+def test_each_door_on_one_host_binds_its_own_network(tmp_path):
+    # N2/N3: a mainnet and a testnet door (and staging's localnet) share one host; each unit names its own.
+    texts = {
+        name: receiver_setup._unit_text(_prepared_state(tmp_path / name, record), MOTOR)
+        for name, record in (
+            ("testnet", {"network": "testnet"}),
+            ("finney", {"network": "finney"}),
+            ("localnet", LOCALNET_RECORD),
+        )
+    }
+    for name, text in texts.items():
+        lines = text.splitlines()
+        assert f"Environment=CARBON_CHAIN_NETWORK={name}" in lines
+        assert (
+            sum(line.startswith("Environment=CARBON_CHAIN_NETWORK=") for line in lines)
+            == 1
+        )
+        assert any(line.startswith("Environment=OPENBLAS_CORETYPE=") for line in lines)
+        assert (
+            "Environment=CARBON_LOCALNET_GENESIS=" + LOCALNET_RECORD["genesis"] in lines
+        ) == (name == "localnet")
+    # the environment precedes ExecStart, inside [Service]
+    finney = texts["finney"].splitlines()
+    assert (
+        finney.index("[Service]")
+        < finney.index("Environment=CARBON_CHAIN_NETWORK=finney")
+        < next(i for i, line in enumerate(finney) if line.startswith("ExecStart="))
+    )
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        {"network": "mainnet"},
+        {"network": "finney", "genesis": "0x" + "00" * 32},
+        {"network": "localnet"},
+        {**LOCALNET_RECORD, "endpoint": "ws://10.0.0.5:9944"},
+        {**LOCALNET_RECORD, "genesis": "0x12"},
+        "finney",
+    ],
+)
+def test_a_malformed_network_record_is_refused_by_the_receivers_reader(
+    tmp_path, record
+):
+    with pytest.raises(ValueError, match="chain_network"):
+        _prepared_state(tmp_path, record)
+
+
+def test_a_receiver_runs_only_on_the_network_its_record_names(monkeypatch):
+    from carbon.chain import models
+
+    def bound(network, genesis=None, endpoint=None):
+        monkeypatch.setattr(models, "CARBON_NETWORK", network)
+        monkeypatch.setattr(models, "LOCALNET_GENESIS", genesis)
+        monkeypatch.setattr(models, "LOCALNET_ENDPOINT", endpoint)
+
+    def code(cfg):
+        try:
+            direct_receiver.require_chain_network(cfg)
+        except direct_receiver.ReceiverUnavailable as refused:
+            return refused.code
+        return "ok"
+
+    finney = {"chain_network": {"network": "finney"}}
+    testnet = {"chain_network": {"network": "testnet"}}
+    local = {"chain_network": LOCALNET_RECORD}
+    bound("finney")
+    assert code(finney) == "ok"
+    assert code(testnet) == "chain_network_mismatch"
+    # a mainnet-bound process never runs a root that does not name its network
+    assert code({}) == "chain_network_missing"
+    bound("testnet")
+    assert code(testnet) == "ok"
+    assert code(finney) == "chain_network_mismatch"
+    # a root prepared before the record: testnet, as it always was
+    assert code({}) == "ok"
+    bound("localnet", LOCALNET_RECORD["genesis"], LOCALNET_RECORD["endpoint"])
+    assert code(local) == "ok"
+    assert code({}) == "chain_network_missing"
+    bound("localnet", "0x" + "11" * 32, LOCALNET_RECORD["endpoint"])
+    assert code(local) == "chain_network_mismatch"  # another localnet is another chain
 
 
 def test_a_detached_start_proceeds_when_loginctl_cannot_say(tmp_path, monkeypatch):

@@ -389,6 +389,7 @@ def prepare(
     calls under it; without it a pool grade has no speed evidence (typed unavailable).
     """
     from carbon.challenge_validator.direct_receiver import (
+        chain_network_record,
         installed_source,
         load_config,
         read_speed_sample_key,
@@ -617,6 +618,8 @@ def prepare(
         "measure_query": True,
         "material_cache_bytes": MATERIAL_CACHE_BYTES,
         "challenge": challenge,
+        # (N3) the network this prepare ran on, so every start of this door binds it (`_door_environment`)
+        "chain_network": chain_network_record(),
     }
     if selection is not None:
         config["evaluation_pack"] = selection
@@ -744,6 +747,34 @@ def gpu_check(
     }
 
 
+def _door_environment(receiver_state: Path) -> list[tuple[str, str]]:
+    """(N3, lock-in rev 4) The environment every start of this door runs with: the CPU-dispatch pin and the chain
+    network its own ``receiver.json`` names. Mainnet and testnet doors share one host, so the network comes from the
+    door's record, never from the operator's shell; a root prepared before the record existed is prepared again.
+    """
+    from carbon.challenge_validator.direct_receiver import load_config
+
+    config = load_config(receiver_state / "receiver" / CONFIG_NAME)
+    network = config.get("chain_network")
+    if network is None:
+        raise SetupRefused(
+            "chain_network_missing",
+            "this receiver was prepared before doors named their network; run `prepare` "
+            "for it again (with CARBON_CHAIN_NETWORK set to the door's network), then start it.",
+        )
+    pairs = [
+        ("OPENBLAS_CORETYPE", cpu_pin.OPENBLAS_CORETYPE),
+        ("NPY_DISABLE_CPU_FEATURES", cpu_pin.NPY_DISABLE_CPU_FEATURES),
+        ("CARBON_CHAIN_NETWORK", network["network"]),
+    ]
+    if network["network"] == "localnet":
+        pairs += [
+            ("CARBON_LOCALNET_GENESIS", network["genesis"]),
+            ("CARBON_LOCALNET_ENDPOINT", network["endpoint"]),
+        ]
+    return pairs
+
+
 def _command(receiver_state: Path) -> list[str]:
     config = receiver_state / "receiver" / CONFIG_NAME
     if not config.is_file() or config.is_symlink():
@@ -782,8 +813,12 @@ def _lingers(user: str):
 def start(receiver_state: Path, *, detach: bool = False) -> int:
     """Run the receiver here, or as a transient user systemd unit with --detach."""
     command = _command(receiver_state)
+    environment = _door_environment(receiver_state)
     if not detach:
         os.chdir(REPO)
+        for name in ("CARBON_LOCALNET_GENESIS", "CARBON_LOCALNET_ENDPOINT"):
+            os.environ.pop(name, None)  # only the door's own record may name a localnet
+        os.environ.update(environment)
         os.execv(command[0], command)
     import getpass
 
@@ -804,6 +839,8 @@ def start(receiver_state: Path, *, detach: bool = False) -> int:
             "--collect",
             f"--unit={unit}",
             f"--property=WorkingDirectory={REPO}",
+            # (N3) the CPU pin and the door's own network: a transient unit inherits neither from this shell
+            *(f"--setenv={name}={value}" for name, value in environment),
             *command,
         ],
         check=False,
@@ -837,7 +874,8 @@ _UNIT_SAFE = frozenset(
 
 def _unit_text(receiver_state: Path, challenge: dict) -> str:
     command = _command(receiver_state)
-    for part in (*command, str(REPO)):
+    environment = _door_environment(receiver_state)
+    for part in (*command, str(REPO), *(value for _, value in environment)):
         if not part or set(part) - _UNIT_SAFE:
             raise SetupRefused(
                 "receiver_path_unsupported",
@@ -856,9 +894,9 @@ def _unit_text(receiver_state: Path, challenge: dict) -> str:
             "[Service]",
             "Type=simple",
             f"WorkingDirectory={REPO}",
-            # The CPU-dispatch pin (cpu_pin.py): scoring runs on the same kernels on every host.
-            "Environment=OPENBLAS_CORETYPE=" + cpu_pin.OPENBLAS_CORETYPE,
-            "Environment=NPY_DISABLE_CPU_FEATURES=" + cpu_pin.NPY_DISABLE_CPU_FEATURES,
+            # The CPU-dispatch pin (cpu_pin.py): scoring runs on the same kernels on every host; and (N3) the chain
+            # network this door's receiver.json names, so a mainnet and a testnet door on one host each bind their own.
+            *(f"Environment={name}={value}" for name, value in environment),
             "ExecStart=" + " ".join(command),
             "Restart=on-failure",
             "RestartSec=30",

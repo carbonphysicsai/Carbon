@@ -587,6 +587,20 @@ CHAIN_ENVIRONMENT = (
 )
 
 
+def _door_network(words):
+    """The network a running receiver's own ``--config`` receiver.json names (``chain_network``; testnet for a root
+    prepared before the record existed), or None when the config cannot be read."""
+    try:
+        config = Path(words[words.index("--config") + 1])
+        record = json.loads(config.read_text(encoding="utf-8"))
+    except (ValueError, IndexError, OSError):
+        return None
+    if type(record) is not dict:
+        return None
+    network = record.get("chain_network", {"network": "testnet"})
+    return network.get("network") if type(network) is dict else None
+
+
 def chain_binding_item(
     host_roots, expect="testnet", *, proc="/proc", receivers_expected=0
 ) -> dict:
@@ -594,7 +608,13 @@ def chain_binding_item(
     every running direct receiver's and weights-loop process's environment has ``CARBON_CHAIN_NETWORK`` unset/empty or
     ``testnet`` (``finney`` only when ``expect`` is finney) and no localnet variable; and no ``--host-root`` carries the
     staging marker (``receiver/STAGING``; OLD and NEW are always read too). An environment this user cannot read is UNKNOWN, never a pass.
+
+    (N2, lock-in rev 4) Mainnet and testnet doors share one host: ``expect`` may name several live networks (the ones
+    this host serves). A RECEIVER is then held to its OWN door's network, the ``chain_network`` its ``--config``
+    receiver.json names (a root prepared before that record is testnet); a door whose network this host does not
+    serve refuses (``receiver_network_not_expected``). A weights loop may be bound to any expected network.
     """
+    expects = (expect,) if isinstance(expect, str) else tuple(dict.fromkeys(expect))
     staged = sorted(
         {str(r) for r in host_roots if (Path(r) / "receiver" / "STAGING").exists()}
     )
@@ -602,7 +622,11 @@ def chain_binding_item(
         return {"state": REFUSE, "code": "staging_root_on_host", "roots": staged[:10]}
     if not Path(proc).is_dir():
         return {"state": UNKNOWN, "code": "process_table_unreadable"}
-    allowed = {"", "testnet"} if expect == "testnet" else {expect}
+
+    def allowed_for(network):
+        return {"", "testnet"} if network == "testnet" else {network}
+
+    loop_allowed = set().union(*(allowed_for(n) for n in expects))
     read, wrong, receivers, loops = 0, [], 0, 0
     for entry in Path(proc).iterdir():
         if not entry.name.isdigit():
@@ -632,16 +656,35 @@ def chain_binding_item(
         read += 1
         receivers += receiver
         loops += not receiver
+        allowed, door_network = loop_allowed, None
+        if receiver:
+            door_network = _door_network(words)
+            if door_network is None:
+                return {
+                    "state": UNKNOWN,
+                    "code": "receiver_config_unreadable",
+                    "pid": int(entry.name),
+                }
+            if door_network not in expects:
+                return {
+                    "state": REFUSE,
+                    "code": "receiver_network_not_expected",
+                    "pid": int(entry.name),
+                    "door_network": door_network,
+                    "expect": expect,
+                }
+            allowed = allowed_for(door_network)
         if env.get("CARBON_CHAIN_NETWORK", "") not in allowed or any(
             name in env for name in CHAIN_ENVIRONMENT[1:]
         ):
-            wrong.append(
-                {
-                    "pid": int(entry.name),
-                    "kind": "receiver" if receiver else "weights",
-                    "network": env.get("CARBON_CHAIN_NETWORK", ""),
-                }
-            )
+            item = {
+                "pid": int(entry.name),
+                "kind": "receiver" if receiver else "weights",
+                "network": env.get("CARBON_CHAIN_NETWORK", ""),
+            }
+            if door_network is not None:
+                item["door_network"] = door_network
+            wrong.append(item)
     if wrong:
         return {
             "state": REFUSE,
@@ -665,6 +708,12 @@ def chain_binding_item(
         "weights_loops": loops,
         "expect": expect,
     }
+
+
+def _expected_networks(given):
+    """``--expect-network`` as given: testnet when unset, one name when one, else the names in order."""
+    names = list(dict.fromkeys(given or ["testnet"]))
+    return names[0] if len(names) == 1 else names
 
 
 def receivers_item(host_roots, *, proc="/proc") -> dict:
@@ -967,7 +1016,7 @@ def precheck(args) -> dict:
                 "chain_binding",
                 lambda: chain_binding_item(
                     [*args.host_root, args.old_root, args.new_root],
-                    args.expect_network,
+                    _expected_networks(args.expect_network),
                     proc=PROC,
                     # every declared door but NEW (prepared, not yet started) must be running and read
                     receivers_expected=len(
@@ -1130,7 +1179,8 @@ def main(argv=None) -> int:
     p.add_argument("--host-root", type=Path, action="append", default=[])
     p.add_argument("--allow-mixed-lock")
     # the live chain every door and the weights loop must be bound to (switch mode, H8 part 3)
-    p.add_argument("--expect-network", choices=("testnet", "finney"), default="testnet")
+    # (N2) repeat it on a host that serves both: each door is then held to its own receiver.json's network
+    p.add_argument("--expect-network", choices=("testnet", "finney"), action="append")
     p.add_argument("--older-root", type=Path, action="append", default=[])
     pl = sub.add_parser("pushline")
     pl.add_argument("--repo", type=Path, required=True)
