@@ -586,7 +586,8 @@ def _request_buckets(cfg):
 
 def _version_closed(cfg):
     """``{submission_id: owner}`` of the configured earlier versions' closed submissions (`version_close.load`), or
-    ``{}`` without the field. A field that names no file of an earlier version of THIS Challenge refuses."""
+    ``{}`` without the field. A field that names no file of an earlier version of THIS Challenge refuses.
+    """
     if "version_closed_files" not in cfg:
         return {}
     from carbon.challenge_validator import version_close

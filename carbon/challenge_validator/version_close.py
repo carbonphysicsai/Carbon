@@ -65,7 +65,9 @@ def _write_marker(markers, submission_id):
         "entry_id": None,
     }
     fd = os.open(
-        _marker_path(markers, submission_id), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
+        _marker_path(markers, submission_id),
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+        0o600,
     )
     with os.fdopen(fd, "w") as handle:
         json.dump(body, handle, sort_keys=True)
@@ -178,9 +180,7 @@ def main(argv=None):
             {
                 "closed": len(document["closed"]),
                 "file": FILE,
-                "file_sha256": hashlib.sha256(
-                    _canonical(document) + b"\n"
-                ).hexdigest(),
+                "file_sha256": hashlib.sha256(_canonical(document) + b"\n").hexdigest(),
             },
             sort_keys=True,
         )

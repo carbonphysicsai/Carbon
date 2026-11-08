@@ -61,9 +61,12 @@ def root(tmp_path, monkeypatch):
 def _rows(path):
     with sqlite3.connect(path) as db:
         tables = [
-            r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            r[0]
+            for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")
         ]
-        return {t: db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in tables}  # noqa: S608
+        return {
+            t: db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in tables
+        }
 
 
 def test_the_closer_marks_only_the_never_graded_and_charges_nothing(root):
@@ -76,10 +79,16 @@ def test_the_closer_marks_only_the_never_graded_and_charges_nothing(root):
     assert document["challenge"] == {"id": CHALLENGE, "version": OLD}
     assert document["code"] == "version_closed"
     for sid in (T[0], T[2]):
-        marker = json.loads((root / "auto-grade" / "markers" / (sid + ".json")).read_text())
-        assert marker["state"] == "VERSION_CLOSED" and marker["code"] == "version_closed"
+        marker = json.loads(
+            (root / "auto-grade" / "markers" / (sid + ".json")).read_text()
+        )
+        assert (
+            marker["state"] == "VERSION_CLOSED" and marker["code"] == "version_closed"
+        )
     for sid, state in ((T[1], "GRADED"), (T[3], "FAILED")):
-        marker = json.loads((root / "auto-grade" / "markers" / (sid + ".json")).read_text())
+        marker = json.loads(
+            (root / "auto-grade" / "markers" / (sid + ".json")).read_text()
+        )
         assert marker["state"] == state
     # nothing charged: not one row in any table of the attempts ledger (attempts, exam cap, recipe copies)
     assert _rows(root / "attempts.sqlite3") == before
@@ -136,7 +145,10 @@ def test_the_new_door_tells_the_owner_its_submission_was_closed(root):
     # another hotkey asking about A's closed id, and anyone asking about an id that was not closed: unknown
     for hotkey, sid in ((HOT_B, T[0]), (HOT_A, T[1]), (HOT_B, T[4])):
         other = _ask(intake, hotkey, sid)
-        assert other.status == 404 and other.body["refused"] == "feedback_submission_unknown"
+        assert (
+            other.status == 404
+            and other.body["refused"] == "feedback_submission_unknown"
+        )
 
 
 def test_a_door_without_the_files_answers_as_before():
@@ -170,7 +182,10 @@ def _file(tmp_path, root, **change):
 
 def test_the_door_loads_an_earlier_versions_file(tmp_path, root):
     path = _file(tmp_path, root)
-    cfg = {"challenge": {"id": CHALLENGE, "version": NEW}, "version_closed_files": [path]}
+    cfg = {
+        "challenge": {"id": CHALLENGE, "version": NEW},
+        "version_closed_files": [path],
+    }
     assert direct_receiver._version_closed(cfg) == {T[0]: HOT_A, T[2]: HOT_A}
     assert direct_receiver._version_closed({"challenge": cfg["challenge"]}) == {}
 
@@ -185,9 +200,14 @@ def test_the_door_loads_an_earlier_versions_file(tmp_path, root):
         {"closed": [{"submission_id": T[0]}]},
     ],
 )
-def test_a_file_that_is_not_an_earlier_versions_refuses_the_start(tmp_path, root, change):
+def test_a_file_that_is_not_an_earlier_versions_refuses_the_start(
+    tmp_path, root, change
+):
     path = _file(tmp_path, root, **change)
-    cfg = {"challenge": {"id": CHALLENGE, "version": NEW}, "version_closed_files": [path]}
+    cfg = {
+        "challenge": {"id": CHALLENGE, "version": NEW},
+        "version_closed_files": [path],
+    }
     with pytest.raises(ValueError):
         direct_receiver._version_closed(cfg)
 
@@ -196,7 +216,10 @@ def test_a_file_that_is_not_an_earlier_versions_refuses_the_start(tmp_path, root
     "selected", [[], ["relative/closed.json"], "not-a-list", ["/no/such/closed.json"]]
 )
 def test_a_bad_selection_refuses_the_start(selected):
-    cfg = {"challenge": {"id": CHALLENGE, "version": NEW}, "version_closed_files": selected}
+    cfg = {
+        "challenge": {"id": CHALLENGE, "version": NEW},
+        "version_closed_files": selected,
+    }
     with pytest.raises(ValueError):
         direct_receiver._version_closed(cfg)
 
