@@ -4,7 +4,8 @@ free automatic retry; a charged slot whose verdict was never delivered is releas
 Claims:
 1. Only a transient Carbon code is retried: never a version-wide gap, a duplicate or an untyped value.
 2. One retry per task for life, persisted (the schedule log and any ledger re-queue), spaced, idle-first, never while
-   the door drains; applied through infra_requeue's own criteria (auto: no incident cause filter), reusing its row.
+   the door drains; applied through infra_requeue's own criteria (auto: no incident cause filter), reusing its row;
+   a refused retry writes an alert line.
 3. The real auto-grader writes the next step on every FAILED marker and re-grades the task itself, once.
 4. A COUNTED slot is released only when the pool store was read and holds no evaluation (a missing or unreadable
    store refuses), no Ladder document, exactly one COUNTED row and a scored status; anything else keeps the slot
@@ -110,6 +111,10 @@ def test_applying_reuses_infra_requeues_criteria_without_the_incident_cause(tmp_
     )  # never in a drain
     out = dict(auto_retry.apply_due(root, clock=lambda: later))
     assert out == {A: None, B: "exam_row_counted_or_reserved"}
+    # B's marker still says retry_scheduled (write-once): only the refused one reaches the operator's alert log
+    assert [
+        (r["task"], r["event"], r["reason"]) for r in _log(root, auto_retry.ALERT_NAME)
+    ] == [(B, "auto_retry_refused", "exam_row_counted_or_reserved")]
     assert not (
         root / "auto-grade" / "markers" / (A + ".json")
     ).exists()  # handed back to the grader

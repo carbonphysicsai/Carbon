@@ -154,6 +154,8 @@ def due(root, *, clock=time.time_ns, idle=True):
 def apply_due(root, *, draining=False, idle=True, clock=time.time_ns):
     """Hand each due retry back to the grader through `infra_requeue.requeue(auto=True)` (its criteria re-checked at
     the moment of applying). Each task is recorded applied or refused exactly once. Nothing while the door drains.
+    A refused retry also writes an alert line (Validator-2B 8 Nov must-fix 2): the task's write-once marker still says
+    ``retry_scheduled``, so the operator must learn that the retry did not happen.
     """
     if draining:
         return []
@@ -172,6 +174,16 @@ def apply_due(root, *, draining=False, idle=True, clock=time.time_ns):
                 "at_ns": int(clock()),
             },
         )
+        if refused:
+            _append(
+                _dir(root) / ALERT_NAME,
+                {
+                    "task": task,
+                    "event": "auto_retry_refused",
+                    "reason": refused,
+                    "at_ns": int(clock()),
+                },
+            )
         results.append((task, refused))
     return results
 
