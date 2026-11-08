@@ -21,10 +21,18 @@ class _Door(http.server.BaseHTTPRequestHandler):
     status = 200
     agents: ClassVar[list] = []
 
+    koth_refusal: ClassVar[str | None] = None
+
     def do_GET(self):
         type(self).agents.append(self.headers.get("User-Agent"))
+        status = type(self).status
         body = json.dumps({"schema": "x.v1", "path": self.path}).encode()
-        self.send_response(type(self).status)
+        if type(self).koth_refusal and self.path.startswith("/carbon/v1/koth/"):
+            status, body = (
+                404,
+                json.dumps({"refused": type(self).koth_refusal}).encode(),
+            )
+        self.send_response(status)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -35,7 +43,7 @@ class _Door(http.server.BaseHTTPRequestHandler):
 
 @pytest.fixture()
 def door():
-    _Door.status, _Door.agents = 200, []
+    _Door.status, _Door.agents, _Door.koth_refusal = 200, [], None
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Door)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{server.server_port}"
@@ -323,3 +331,28 @@ def test_an_r13_worker_that_records_nothing_is_a_failed_run(
     summary = json.loads((out / "summary.json").read_text())
     assert summary["r13"] == {"outcome": "probe_error", "code": "no_result"}
     assert summary["verdict"] == "FAIL"
+
+
+def test_a_door_with_no_king_yet_is_the_expected_state_not_a_fault(door, tmp_path):
+    _Door.koth_refusal = "koth_unpublished"  # staging, or a new version's first start
+    out = tmp_path / "run"
+    assert _probe(door, out) == 0
+    summary = json.loads((out / "summary.json").read_text())
+    assert summary["verdict"] == "PASS" and summary["non_200"] == {}
+    assert set(summary["window"]["expected"]) == {"koth", "koth_v2"}
+    rows = [json.loads(x) for x in (out / "requests.jsonl").read_text().splitlines()]
+    assert {r["refused"] for r in rows if r["route"] == "koth"} == {"koth_unpublished"}
+
+
+def test_any_other_king_refusal_still_aborts(door, tmp_path):
+    _Door.koth_refusal = "koth_unavailable"
+    assert _probe(door, tmp_path / "run") == 3
+
+
+def test_routes_picks_a_subset_and_refuses_unknown_names(door, tmp_path):
+    out = tmp_path / "run"
+    assert _probe(door, out, "--routes", "feed,intake") == 0
+    rows = [json.loads(x) for x in (out / "requests.jsonl").read_text().splitlines()]
+    assert {r["route"] for r in rows} == {"feed", "intake"}
+    with pytest.raises(SystemExit):
+        _probe(door, tmp_path / "bad", "--routes", "feed,kingdom")

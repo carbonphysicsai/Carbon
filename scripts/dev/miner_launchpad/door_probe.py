@@ -38,6 +38,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -99,6 +100,27 @@ def _schema_of(body):
     return schema if type(schema) is str and len(schema) <= 128 else None
 
 
+#: A door's documented answer that is not a fault (release-impl-B, 8 Nov): a door with no king yet (staging, or a new
+#: version's first start) answers its king routes 404 ``koth_unpublished`` (`koth_public.serve`). Counted apart as
+#: ``expected`` and as an answer for the gap rule; any other non-200 still fails.
+EXPECTED = {("koth", 404, "koth_unpublished"), ("koth_v2", 404, "koth_unpublished")}
+_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
+
+
+def _refused_of(body):
+    """The closed ``refused`` code of a refusal body, else None (never free text)."""
+    try:
+        value = json.loads(body)
+    except ValueError:
+        return None
+    code = value.get("refused") if type(value) is dict else None
+    return code if type(code) is str and _CODE.fullmatch(code) else None
+
+
+def expected(row):
+    return (row.get("route"), row.get("status"), row.get("refused")) in EXPECTED
+
+
 #: Longer than the front's <= 10 s HOLD (lock-in step 7), so a held request is a slow 200, not an error.
 GET_TIMEOUT_S = 30.0
 
@@ -123,6 +145,7 @@ def fetch(base, path, *, timeout=GET_TIMEOUT_S, agent=None):
         "bytes": len(body),
         "schema": _schema_of(body) if body else None,
         "body_sha256": hashlib.sha256(body).hexdigest() if body else None,
+        "refused": _refused_of(body) if body and status != 200 else None,
         "error": error,
     }
 
@@ -147,14 +170,18 @@ class Recorder:
 
 
 def window_stats(rows, start, end, *, gap_s=GAP_S):
-    """Counts for one phase: non-200 per route, max latency, gaps without a 200."""
-    non_200, statuses, latencies, ok_times = {}, {}, [], []
+    """Counts for one phase: non-200 per route, max latency, gaps without an answer (a 200, or an `EXPECTED`
+    documented refusal, which is counted apart)."""
+    non_200, statuses, latencies, ok_times, seen = {}, {}, [], [], {}
     for row in rows:
         key = str(row["status"]) if row["status"] is not None else "error"
         statuses[key] = statuses.get(key, 0) + 1
         latencies.append(row["latency_ms"])
         if row["status"] == 200:
             ok_times.append(row["done_s"])
+        elif expected(row):
+            ok_times.append(row["done_s"])
+            seen[row["route"]] = seen.get(row["route"], 0) + 1
         else:
             non_200[row["route"]] = non_200.get(row["route"], 0) + 1
     gaps, last = [], start
@@ -166,6 +193,7 @@ def window_stats(rows, start, end, *, gap_s=GAP_S):
         "requests": len(rows),
         "statuses": statuses,
         "non_200": non_200,
+        "expected": seen,
         "max_latency_ms": max(latencies, default=None),
         "gaps_over_1s": gaps,
         "max_gap_s": max((g["seconds"] for g in gaps), default=0.0),
@@ -483,6 +511,12 @@ def cmd_probe(args):
     out.mkdir(parents=True, exist_ok=False)
     recorder = Recorder(out / "requests.jsonl")
     paths = routes(args.challenge, queue=not args.no_queue)
+    if args.routes:
+        wanted = [name.strip() for name in args.routes.split(",") if name.strip()]
+        known = dict(paths)
+        if not wanted or any(name not in known for name in wanted):
+            raise SystemExit("--routes names one or more of: " + ",".join(known))
+        paths = [(name, known[name]) for name in wanted]
     summary = {
         "schema": SCHEMA,
         "mode": "probe",
@@ -792,6 +826,10 @@ def parser():
     p.add_argument("--out", required=True, help="new evidence directory")
     p.add_argument(
         "--no-queue", action="store_true", help="door without the queue route"
+    )
+    p.add_argument(
+        "--routes",
+        help="comma list of routes to probe (feed,koth,koth_v2,intake,queue); default all",
     )
     p.add_argument(
         "--limits-from",
