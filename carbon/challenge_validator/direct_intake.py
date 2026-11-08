@@ -441,7 +441,26 @@ class DirectRecipeIntake(BatteryIntake):
     def _admit(self, submitted):
         """The one admission path: a single writer, so a duplicate is admitted once."""
         with self._write:
-            return self.door.evaluate(submitted)
+            result = self.door.evaluate(submitted)
+            self._note_recipe_digest(result)
+            return result
+
+    def _note_recipe_digest(self, result):
+        """OWNER-PROBING-COUNTERS-01 (b): store an admitted task's recipe digest at admission (`recipe_copies.
+        note_admitted`), so a restart cannot make a later copy read as fresh. Best effort: never changes the answer.
+        """
+        outcome = result.get("outcome") if type(result) is dict else None
+        task_id = outcome.get("task_id") if type(outcome) is dict else None
+        if type(task_id) is not str or not hasattr(
+            getattr(self.adapter, "ledger", None), "_db"
+        ):
+            return
+        from . import recipe_copies
+
+        try:
+            recipe_copies.note_admitted(self.adapter, task_id)
+        except Exception:  # noqa: BLE001 - never changes the admission
+            return
 
     def _feedback(self, hotkey, *, submission_id=None, v3=False, v4=False):
         """The caller's own best and latest Ladder documents for the active exam
@@ -568,6 +587,11 @@ class DirectRecipeIntake(BatteryIntake):
             return ("FAILED_INFRA" if state == "FAILED_INFRA" else "QUEUED"), None
         if marker.get("state") == "CANDIDATE_FAILED":
             return "CANDIDATE_FAILED", self.failure_v4("inference", marker.get("code"))
+        if marker.get("state") == "DUPLICATE":
+            # A copy of a recipe already graded on this key (OWNER-PROBING-COUNTERS-01 (b)): its own slot is counted
+            # (no free probe), so v4 says GRADED, never NOT_GRADED ('given back, nothing charged': Validator-2B 7 Nov).
+            # Nothing of the first's is added to the copier's reply: not its id, its owner or its private feedback.
+            return "GRADED", None
         if marker.get("state") == "FAILED":
             return "FAILED_INFRA", None
         state = self._grade_state(hotkey, submission_id)
