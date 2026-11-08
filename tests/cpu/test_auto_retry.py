@@ -6,8 +6,9 @@ Claims:
 2. One retry per task for life, persisted (the schedule log and any ledger re-queue), spaced, idle-first, never while
    the door drains; applied through infra_requeue's own criteria (auto: no incident cause filter), reusing its row.
 3. The real auto-grader writes the next step on every FAILED marker and re-grades the task itself, once.
-4. A COUNTED slot is released only with no pool-store evaluation, no Ladder document, exactly one COUNTED row and a
-   scored status; anything else keeps the slot and writes an alert.
+4. A COUNTED slot is released only when the pool store was read and holds no evaluation (a missing or unreadable
+   store refuses), no Ladder document, exactly one COUNTED row and a scored status; anything else keeps the slot
+   and writes an alert.
 SYNTHETIC tasks and rows (test_infra_requeue's door fixtures)."""
 
 from __future__ import annotations
@@ -280,20 +281,64 @@ def test_a_counted_slot_is_released_only_when_every_condition_holds(
         assert _log(root, auto_retry.ALERT_NAME)[-1]["reason"] == refusal
 
 
-def test_an_unreadable_pool_store_never_proves_nothing_was_graded(tmp_path):
-    _root_dir, ledger = _root(tmp_path)
+class _Broken:
+    def private_evaluation_bodies(self):
+        raise OSError("locked")
+
+
+@pytest.mark.parametrize("store", [None, _Broken()], ids=["missing", "unreadable"])
+def test_an_unreadable_pool_store_never_proves_nothing_was_graded(tmp_path, store):
+    root, ledger = _root(tmp_path)
     _row(ledger, A, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")
-
-    class Broken:
-        def private_evaluation_bodies(self):
-            raise OSError("locked")
-
     assert (
         auto_retry.undelivered_refusal(
-            A, "WorkerFailure", ledger=ledger, pool_store=Broken()
+            A, "WorkerFailure", ledger=ledger, pool_store=store
         )
-        == "pool_store_has_a_graded_evaluation"
+        == "pool_store_unreadable"
     )
+    assert not auto_retry.release_undelivered(
+        root, A, "WorkerFailure", ledger=ledger, pool_store=store
+    )
+    assert _rows(ledger, A) == [("COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")]
+    assert _log(root, auto_retry.ALERT_NAME)[-1]["reason"] == "pool_store_unreadable"
+
+
+@pytest.mark.parametrize("configured", ["vanished", "corrupt", "not_configured"])
+def test_the_real_grader_keeps_a_counted_slot_when_the_pool_store_cannot_be_opened(
+    tmp_path, configured
+):
+    """Validator-2B 8 Nov: the grader opens the pool store itself (`_pool`) when the grade fails. A configured store
+    gone by then (`PoolStoreUnavailable`: the refund check gets None), one that cannot be read, or none configured at
+    all must keep the charged slot."""
+    from carbon.battery.pool_store import PoolStore
+    from carbon.challenge_validator import auto_grade
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A, cause="x")
+    (root / "auto-grade" / "markers" / (A + ".json")).unlink()
+    with ledger._db() as db:
+        db.execute("DELETE FROM exam_graded WHERE submission_id=?", (A,))
+
+    store = None if configured == "not_configured" else tmp_path / "pool.sqlite3"
+    if store is not None:
+        PoolStore(store)  # readable when the tick starts
+
+    def retain(task):  # the grade settled COUNTED, then the verdict was never delivered
+        _row(ledger, task, "COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")
+        if configured == "vanished":
+            store.unlink()
+        elif configured == "corrupt":
+            store.write_bytes(b"not a database")
+        raise RetentionUnavailable("inference_pair_incomplete")
+
+    grader = auto_grade.AutoGrader(_intake(ledger, retain), root, pool_store=store)
+    assert grader.run_once() == (A, "FAILED")
+    marker = grader.marker(A)
+    assert marker["code"] == "inference_pair_incomplete:counted"
+    assert "next_step" not in marker  # no next step: the operator decides
+    assert _rows(ledger, A) == [("COUNTED", "SCORED_DEVELOPMENT_CANDIDATE")]
+    assert _log(root, auto_retry.ALERT_NAME)[-1]["reason"] == "pool_store_unreadable"
 
 
 def test_each_next_step_has_its_one_sentence():

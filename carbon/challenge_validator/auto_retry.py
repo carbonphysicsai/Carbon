@@ -14,8 +14,8 @@ infrastructure failure is not scientific failure. Nothing here grades, scores or
   slot, its original epoch). It is spaced (`RETRY_SECONDS` after the failure; applied on an idle tick, or once overdue
   by `OVERDUE_SECONDS` so a busy door cannot starve it) and never while the door drains.
 - **A COUNTED slot with no delivered verdict** (Validator-2B (2)) is released automatically only when ALL hold
-  (`undelivered_refusal`): the marker is FAILED with a Carbon code; no graded private evaluation of the submission in
-  the pool store; no Ladder/feedback document for its round (`infra_requeue._ladder_shows_round`); exactly one COUNTED
+  (`undelivered_refusal`): the marker is FAILED with a Carbon code; the pool store was read and holds no graded
+  private evaluation of the submission (a missing or unreadable store refuses); no Ladder/feedback document for its round (`infra_requeue._ladder_shows_round`); exactly one COUNTED
   row; its status is a scored outcome (not a candidate outcome, not a duplicate). Else nothing changes and an alert
   line names the reason.
 """
@@ -181,15 +181,20 @@ def _scored_status():
     return "SCORED_DEVELOPMENT_CANDIDATE"
 
 
-def _pool_evaluated(pool_store, task) -> bool:
-    """Whether the pool store holds a graded private evaluation of this submission (fail closed: True on doubt)."""
+def _pool_refusal(pool_store, task):
+    """None only when the pool store was READ and holds no graded private evaluation of this submission, else the
+    reason. Fail closed (Validator-2B 8 Nov): a store that is not configured, cannot be opened (the grader passes None)
+    or cannot be read never proves that nothing was graded."""
     if pool_store is None:
-        return False
+        return "pool_store_unreadable"
     try:
-        bodies = pool_store.private_evaluation_bodies()
+        found = any(
+            type(b) is dict and b.get("submission_id") == task
+            for b in pool_store.private_evaluation_bodies()
+        )
     except Exception:  # noqa: BLE001
-        return True
-    return any(type(b) is dict and b.get("submission_id") == task for b in bodies)
+        return "pool_store_unreadable"
+    return "pool_store_has_a_graded_evaluation" if found else None
 
 
 def undelivered_refusal(task, code, *, ledger, pool_store):
@@ -199,8 +204,9 @@ def undelivered_refusal(task, code, *, ledger, pool_store):
 
     if type(code) is not str or not code:
         return "no_carbon_code"
-    if _pool_evaluated(pool_store, task):
-        return "pool_store_has_a_graded_evaluation"
+    pool_refusal = _pool_refusal(pool_store, task)
+    if pool_refusal is not None:
+        return pool_refusal
     with ledger._db() as db:
         rows = infra_requeue._rows(db, task)
         counted = [row for row in rows if row[1] == "COUNTED"]
