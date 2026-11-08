@@ -17,13 +17,25 @@ It writes under ``--out-dir``:
   ``sealed-batch.json`` (canonical, pool included) beside the roles;
 - ``record.json``: digests and counts only (pack manifest digest, batch fingerprints, set digest, row counts).
 
-Nothing here signs, issues a copy or touches a key: the signed copy is the Lead's `copy_issuance` step on the
-canonical pack. The truths stay in custody inside the pack's private files.
+Nothing here signs or issues a copy: the signed copy is the Lead's `copy_issuance` step on the canonical pack. The
+truths stay in custody inside the pack's private files.
+
+A MENU-D version (its pool_constants registration carries a ``menu`` block) also takes:
+
+- ``--menu-dir``: design-optimum's sealed menus, ``<task>.menu.json`` (carbon.d-menu.v1) + ``<task>.problem.json``
+  per task, in its own ``<output>@<duty>`` naming. They are renamed to the door's ``<duty>/<output>``
+  (`pool_menu.menu_material`), checked by the door's own loader, and ride in the pool material (``menu``), so every
+  (menu design x duty) becomes a plain pool row of the bank. ``menu-shas`` prints the record shas to register FIRST
+  (the build refuses unless the registration names exactly these shas).
+- ``--crown-key-file``: the validator host's K_crown file (owner-private), read only to derive the menu draw and
+  re-check keys for the in-pack baseline's own graded measure; a fresh run of the baseline answers the keyed re-check
+  subset (Carbon's model, never a miner's). Nothing is written from it.
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import sys
@@ -63,6 +75,8 @@ def build(
     baseline_binding_raw=None,
     calibration_pack_root=None,
     baseline_floor_total=None,
+    menu_dir=None,
+    crown_key_file=None,
 ):
     """The pool pack and its record. ``material`` (a ready `pool_version` material) replaces ``--set-dir``.
 
@@ -106,6 +120,15 @@ def build(
         material = pool_version.check_material(
             {**material, pool_version.RESPONSE_REFERENCE: response_reference}
         )
+    menu_shas = None
+    if menu_dir is not None:
+        material, menu_shas = _with_menu(challenge, version, material, menu_dir)
+    else:
+        from carbon.challenge_validator.crown_hold import menu_registered
+
+        # the raw registration's `menu` key (no other constant read): a menu version never builds without its menu
+        if menu_registered(challenge, version):
+            raise SystemExit(f"{challenge} {version} registers a menu: give --menu-dir")
     with_pool = {**document, "pool": material}
     raw, source_fp, canonical_fp = copy_package.canonical_batch(
         challenge, version, with_pool, records
@@ -128,23 +151,26 @@ def build(
         if baseline_binding_raw is not None
         else {}
     )
-    manifest_path = module.write_sealed_pack(
-        pack_root,
-        bank,
-        version=version,
-        inference_image_id=inference_image_id,
-        calibration=calibration,
-        **minimums,
-        # the crown floor (option B), a measured number; only versions whose writer registers one take it (Motor 1.6)
-        **(
-            {"baseline_floor_total": baseline_floor_total}
-            if baseline_floor_total is not None
-            else {}
-        ),
-    )
+    with _menu_keys(module, menu_shas, crown_key_file):
+        manifest_path = module.write_sealed_pack(
+            pack_root,
+            bank,
+            version=version,
+            inference_image_id=inference_image_id,
+            calibration=calibration,
+            **minimums,
+            # the crown floor (option B), a measured number; only versions whose writer registers one take it (Motor 1.6)
+            **(
+                {"baseline_floor_total": baseline_floor_total}
+                if baseline_floor_total is not None
+                else {}
+            ),
+        )
     (pack_root / source.SEALED_BATCH_FILE).write_bytes(raw)
     cohorts = list(bank["cohorts"])
-    accounting = pool_version.row_accounting(material, dtype=material["input_dtype"])
+    accounting = pool_version.row_accounting(
+        material, dtype=material["input_dtype"], challenge=challenge
+    )
     record = {
         "schema": "carbon.pool-pack.record.v1",
         "challenge": challenge,
@@ -156,6 +182,12 @@ def build(
         "set_digest": material["set_digest"],
         "input_dtype": material["input_dtype"],
         "pool_accounting": accounting,
+        # a menu version: the registered record shas (shas and counts only, never a menu value)
+        **(
+            {}
+            if menu_shas is None
+            else {"menu": {"tasks": len(menu_shas), "records_sha256": menu_shas}}
+        ),
         "rows": {
             "total": len(cohorts),
             "pool": cohorts.count(pool_exam.POOL_COHORT),
@@ -169,6 +201,112 @@ def build(
         json.dumps(record, sort_keys=True, indent=2) + "\n", encoding="utf-8"
     )
     return record
+
+
+def _menu_pairs(menu_dir):
+    """``[(problem_doc, record_doc)]`` of a menu directory: one ``<task>.problem.json`` per ``<task>.menu.json``."""
+    folder = Path(menu_dir)
+    records = sorted(folder.glob("*.menu.json"))
+    if not records:
+        raise SystemExit("--menu-dir has no <task>.menu.json")
+    pairs = []
+    for path in records:
+        stem = path.name[: -len(".menu.json")]
+        problem = folder / f"{stem}.problem.json"
+        if not problem.is_file():
+            raise SystemExit(f"--menu-dir: {stem}.menu.json has no {stem}.problem.json")
+        pairs.append(
+            (
+                json.loads(problem.read_text(encoding="utf-8")),
+                json.loads(path.read_text(encoding="utf-8")),
+            )
+        )
+    extra = {p.name for p in folder.glob("*.problem.json")} - {
+        r.name[: -len(".menu.json")] + ".problem.json" for r in records
+    }
+    if extra:
+        raise SystemExit(f"--menu-dir: problem files with no menu: {sorted(extra)}")
+    return pairs
+
+
+def menu_shas(challenge, version, menu_dir):
+    """The door-form record shas of a menu directory (what pool_constants registers), shas only."""
+    from carbon.scoring import pool_adapters, pool_menu, pool_version
+
+    binding = pool_adapters.official_binding(pool_version.KINDS[challenge], version)
+    _material, shas = pool_menu.menu_material(
+        _menu_pairs(menu_dir),
+        input_names=list(binding.input_names),
+        design_names=list(binding.design_names),
+    )
+    return shas
+
+
+def _with_menu(challenge, version, material, menu_dir):
+    """The pool material with the sealed menu, refused unless the registration names exactly its record shas."""
+    from carbon.scoring import pool_exam, pool_menu, pool_version
+
+    try:
+        menu, shas = pool_menu.menu_material(
+            _menu_pairs(menu_dir),
+            input_names=material["input_names"],
+            design_names=material["design_names"],
+        )
+        rule = pool_version.registered_menu(challenge, version)
+    except (pool_exam.ExamRefused, pool_version.PoolConstantsNotRegistered) as exc:
+        raise SystemExit(f"menu refused: {getattr(exc, 'code', exc)}") from exc
+    if rule is None or dict(rule.records_sha256) != shas:
+        raise SystemExit(
+            "register these menu record shas in pool_constants first: "
+            + json.dumps(shas, sort_keys=True)
+        )
+    return pool_version.check_material({**material, pool_version.MENU: menu}), shas
+
+
+def _baseline_recheck(module):
+    """The in-pack baseline's re-check source: a FRESH run of the writer's own ``pool_baseline`` on the keyed subset."""
+    import inspect
+
+    baseline = getattr(module, "pool_baseline", None)
+    if baseline is None:
+        raise SystemExit(
+            "a menu version's writer has no pool_baseline to answer the re-check"
+        )
+    takes_names = "names" in inspect.signature(baseline).parameters
+
+    def recheck(positions, bank_rows, names):
+        rows = [bank_rows[i] for i in positions]
+        outputs, _seconds = baseline(
+            bank_rows=rows,
+            sample_count=1,
+            **({"names": names} if takes_names else {}),
+        )
+        return [list(row) for row in outputs]
+
+    return recheck
+
+
+@contextlib.contextmanager
+def _menu_keys(module, menu_shas, crown_key_file):
+    """For a menu version only: the draw + re-check keys from K_crown and the baseline's fresh re-check, staged for the
+    in-pack baseline's graded measure; both are cleared on exit. Nothing for any other version.
+    """
+    if menu_shas is None:
+        yield
+        return
+    if crown_key_file is None:
+        raise SystemExit(
+            "a menu version's pack needs --crown-key-file (the in-pack baseline is graded on the menu)"
+        )
+    from carbon.challenge_validator.crown_average_host import read_crown_key
+    from carbon.scoring import pool_menu
+
+    pool_menu.install_key(read_crown_key(str(Path(crown_key_file).resolve())))
+    try:
+        with pool_menu.staged_rowcheck(_baseline_recheck(module)):
+            yield
+    finally:
+        pool_menu.install_key(None)
 
 
 def main(argv=None):
@@ -199,11 +337,33 @@ def main(argv=None):
         type=float,
         help="Motor 1.6: the crown floor (a MEASURED number: the best catalog entry's official total), carried in the score pack",
     )
+    one.add_argument(
+        "--menu-dir",
+        type=Path,
+        help="a menu-D version: design-optimum's sealed <task>.menu.json + <task>.problem.json",
+    )
+    one.add_argument(
+        "--crown-key-file",
+        type=Path,
+        help="a menu-D version: the validator host's K_crown file (owner-private; keys derived, nothing written)",
+    )
+    shas = sub.add_parser("menu-shas")
+    for flag in ("challenge", "version", "menu-dir"):
+        shas.add_argument("--" + flag, required=True)
     acc = sub.add_parser("accounting")
     for flag in ("challenge", "version", "set-dir", "input-dtype"):
         acc.add_argument("--" + flag, required=True)
     acc.add_argument("--set-digest")
     args = parser.parse_args(argv)
+    if args.command == "menu-shas":
+        print(
+            json.dumps(
+                menu_shas(args.challenge, args.version, args.menu_dir),
+                sort_keys=True,
+                indent=2,
+            )
+        )
+        return 0
     if args.command == "accounting":
         from carbon.scoring import pool_version
 
@@ -236,6 +396,8 @@ def main(argv=None):
         ),
         calibration_pack_root=args.calibration_pack,
         baseline_floor_total=args.baseline_floor_total,
+        menu_dir=args.menu_dir,
+        crown_key_file=args.crown_key_file,
         response_reference=(
             json.loads(Path(args.response_reference).read_text(encoding="utf-8"))
             if args.response_reference
