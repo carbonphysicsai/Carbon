@@ -185,6 +185,13 @@ def log(event, *, out=None, **fields):
     print(json.dumps(record, sort_keys=True), file=out or sys.stderr, flush=True)
 
 
+def _note_capacity(intake):
+    """Tell a door that counts its refusals (the direct door's R89 hourly line) about a 503 capacity answer."""
+    note = getattr(intake, "note_capacity", None)
+    if note is not None:
+        note()
+
+
 class _MalformedDiagnostics:
     """At most one closed private event per branch per intake lifetime.
 
@@ -955,18 +962,30 @@ class BatteryIntake:
         peer = peer_identity(headers, peer, self.proxy_header)
         if peer is None:
             return _refused(400, "peer_header_invalid")
-        return self.limited(peer, lambda: self.route(method, path, headers, body))
+        return self.limited(
+            peer,
+            lambda: self.route(method, path, headers, body),
+            method=method,
+            headers=headers,
+        )
 
-    def limited(self, peer, then):
-        """The peer's bucket, then the in-flight cap, then `then()`.
+    def admit_before_body(self, method, peer, headers):
+        """Charge a request's rate limit before a single body byte is read: here the peer's bucket. A door
+        that attributes requests itself (the direct door's R89 request buckets) overrides this.
+        """
+        return self.limits.allow(peer)
+
+    def limited(self, peer, then, *, method="POST", headers=None):
+        """The request's bucket (`admit_before_body`), then the in-flight cap, then `then()`.
 
         Nothing reads a body, parses a message or checks a signature before
         both limits have admitted the request.
         """
-        if not self.limits.allow(peer):
+        if not self.admit_before_body(method, peer, {} if headers is None else headers):
             return _refused(429, "rate")
         with self.limits.in_flight() as admitted:
             if not admitted:
+                _note_capacity(self)
                 return _refused(503, "capacity")
             return then()
 
@@ -1414,7 +1433,13 @@ def _handler(intake):
                 # behind one local forward all probe freely (GPU_REBUILD_RULINGS section 12).
                 body = read_body(self.connection, self.rfile, length, BODY_DEADLINE_S)
                 return self._answer(intake.route(method, self.path, headers, body))
-            if not intake.limits.allow(peer):
+            # A door that attributes requests itself (R89) says how; any other served object keeps its peer bucket.
+            admit = getattr(intake, "admit_before_body", None)
+            if not (
+                intake.limits.allow(peer)
+                if admit is None
+                else admit(method, peer, headers)
+            ):
                 self._drain(length)
                 return self._answer(_refused(429, "rate"))
             try:
@@ -1423,6 +1448,7 @@ def _handler(intake):
                 return self._answer(_refused(408, "body_timeout"))
             with intake.limits.in_flight() as admitted:
                 if not admitted:
+                    _note_capacity(intake)
                     return self._answer(_refused(503, "capacity"))
                 self._answer(intake.route(method, self.path, headers, body))
 

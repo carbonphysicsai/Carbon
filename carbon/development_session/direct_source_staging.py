@@ -51,6 +51,39 @@ def _verify_complete(name: str, body: bytes, fingerprint: str) -> None:
         raise ResearchTaskProviderError(ResearchServiceErrorCode.REFERENCE_MISMATCH)
 
 
+def _partial_name(request: DirectStageSourceRequestV1) -> str:
+    identity = (
+        request.name
+        + "\0"
+        + request.content_digest
+        + "\0"
+        + str(request.total_bytes)
+        + "\0"
+        + (request.expected_digest or "")
+    ).encode("ascii")
+    return "upload-" + hashlib.sha256(identity).hexdigest()
+
+
+def continuation_at(ledger, owner: str, request) -> bool:
+    """Whether ``request`` continues ``owner``'s OWN partial upload of that file exactly at its current length (offset > 0
+    and == the bytes already staged). A read only: nothing is staged or changed. The R89 chunk bucket's test (Validator-2B
+    7 Nov): a first chunk, a replayed one, or one naming an upload this owner does not hold is a request, not a chunk.
+    """
+    if (
+        type(request) is not DirectStageSourceRequestV1
+        or type(request.offset) is not int
+        or request.offset <= 0
+    ):
+        return False
+    try:
+        partial = ResearchWorkspace(ledger, owner).get_bounded(
+            _partial_name(request), request.total_bytes
+        )
+    except (WorkspaceFileMissing, WorkspaceBoundExceeded, ValueError, OSError):
+        return False
+    return len(partial) == request.offset
+
+
 def stage_source(
     ledger, owner: str, request: DirectStageSourceRequestV1
 ) -> DirectStageSourceResultV1:
@@ -87,16 +120,7 @@ def stage_source(
                 if current is None and expected is not None
                 else ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
             )
-        identity = (
-            name
-            + "\0"
-            + fingerprint
-            + "\0"
-            + str(request.total_bytes)
-            + "\0"
-            + (expected or "")
-        ).encode("ascii")
-        partial_name = "upload-" + hashlib.sha256(identity).hexdigest()
+        partial_name = _partial_name(request)
         try:
             partial = workspace.get_bounded(partial_name, request.total_bytes)
         except WorkspaceFileMissing:

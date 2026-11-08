@@ -51,10 +51,12 @@ from carbon.transport.models import (
     parse_message,
 )
 
+from . import funder_map as funder_maps
 from . import koth_public, queue_public
 from .dispatch import Adapters, Validator
 from .interface import Submission, Unavailable
 from .lean_recipe import LeanRecipeAdapter
+from .request_buckets import claimed_hotkey
 
 INFO_PATH = "/carbon/v1/construction/intake"
 #: The signed launch board: `GET FEED_PATH + <challenge id>` (the battery door's feed path).
@@ -152,6 +154,8 @@ class DirectRecipeIntake(BatteryIntake):
         measure_query: bool = False,
         copy_hotkey: str | None = None,
         speed_sample_key: bytes | None = None,
+        request_buckets=None,
+        funder_map=None,
         clock_ns=time.time_ns,
     ):
         adapter = LeanRecipeAdapter(
@@ -192,6 +196,86 @@ class DirectRecipeIntake(BatteryIntake):
         #: number of concurrent clients (GPU_REBUILD_RULINGS section 12). Reads (the public
         #: facts, status, the Ladder) never take it.
         self._write = threading.Lock()
+        #: R89: the per-group request buckets (`request_buckets.RequestBuckets`), or None (the peer bucket, as before).
+        self.request_buckets = request_buckets
+        #: The allowance-group map; swapped whole on a reload, so a reload never empties a bucket.
+        self.funder_map = (
+            funder_maps.FunderMap.empty() if funder_map is None else funder_map
+        )
+
+    def _current_map(self):
+        """The funder map to use now: re-read when the configured file changed (`funder_map.Watched`, set by the
+        receiver as ``funder_map_watch``), swapped whole, so R89 and the exam cap's grouping read ONE copy.
+        """
+        watch = getattr(self, "funder_map_watch", None)
+        if watch is not None:
+            self.funder_map = watch.current()
+        return self.funder_map
+
+    def _claimed_group(self, headers):
+        """The group of the hotkey a POST CLAIMS, if it is registered in the latest snapshot; else None. Unverified:
+        used only to peek, never to charge."""
+        hotkey = claimed_hotkey(headers)
+        snapshot = self.window.latest() if hotkey is not None else None
+        member = None if snapshot is None else snapshot.resolve(hotkey)
+        return None if member is None else self._current_map().group(member.coldkey)
+
+    def admit_before_body(self, method, peer, headers):
+        """R89 before the body: an unattributable POST takes a guard token; a POST naming a registered hotkey is
+        only peeked (refused at once when its group has no token left). Without request buckets, or for a GET,
+        the peer bucket as before."""
+        buckets = self.request_buckets
+        if buckets is None or method != "POST":
+            return super().admit_before_body(method, peer, headers)
+        group = self._claimed_group(headers)
+        return (
+            buckets.charge_guard("unattributed")
+            if group is None
+            else buckets.peek_group(group)
+        )
+
+    def note_capacity(self):
+        """The listener's 503 capacity answer, counted for the hourly request-buckets line (no buckets: nothing)."""
+        if self.request_buckets is not None:
+            self.request_buckets.note("capacity_503")
+
+    def _unverified(self, answer):
+        """A POST that failed before or at verification: charged to the guard (never to a group), then refused."""
+        if self.request_buckets is not None:
+            self.request_buckets.charge_guard("verify_failed")
+        return answer
+
+    def _verified_charge(self, received):
+        """R89 after verification over a fresh nonce: charge the verified group's chunk bucket (a continuation
+        chunk) or its request bucket. True when admitted, or when this door has no request buckets.
+        """
+        if self.request_buckets is None:
+            return True
+        chunk = False
+        if received.call.tool == RESEARCH_NAMESPACE:
+            try:
+                call = decode_research_call(received.call)
+            except (ValueError, TypeError):
+                call = None
+            chunk = (
+                call is not None
+                and call.operation == "stage_research_source"
+                and self._continues_upload(received.receipt.hotkey, call.request)
+            )
+        group = self._current_map().group(received.receipt.coldkey)
+        return self.request_buckets.charge_group(group, chunk=chunk)
+
+    def _continues_upload(self, hotkey, request):
+        """Whether a verified source chunk continues this hotkey's own staged upload at its current length (Validator-2B
+        7 Nov R89 condition): a read of its workspace, never a stage. Any failure to read says no (a request).
+        """
+        from carbon.development_session.direct_source_staging import continuation_at
+
+        try:
+            provider = self.adapter._provider(hotkey)
+            return continuation_at(provider.ledger, provider.owner, request)
+        except Exception:  # noqa: BLE001 - unreadable = not a continuation
+            return False
 
     def _official_gpu(self):
         """Readiness for the public info document (`served.official_readiness`), cached for a few seconds: it
@@ -358,10 +442,10 @@ class DirectRecipeIntake(BatteryIntake):
             envelope = parse_message(body)
         except TransportFailure as failure:
             self._malformed_diagnostics.note(failure, headers)
-            return _refused(400, failure.code.value)
+            return self._unverified(_refused(400, failure.code.value))
         snapshot = self.window.get(envelope["snapshot"])
         if snapshot is None:
-            return _refused(409, "snapshot_unknown")
+            return self._unverified(_refused(409, "snapshot_unknown"))
         gateway = AuthenticatedGateway(
             self.context,
             self.challenge,
@@ -377,12 +461,16 @@ class DirectRecipeIntake(BatteryIntake):
             )
         except TransportFailure as failure:
             self._malformed_diagnostics.note(failure, headers)
-            return _refused(
-                401 if failure.code is TransportCode.IDENTITY else 400,
-                failure.code.value,
+            return self._unverified(
+                _refused(
+                    401 if failure.code is TransportCode.IDENTITY else 400,
+                    failure.code.value,
+                )
             )
         except AuthFailure as failure:
-            return _refused(401, failure.code.value)
+            return self._unverified(_refused(401, failure.code.value))
+        if not self._verified_charge(received):
+            return _refused(429, "rate")
         if received.call.tool == RESEARCH_NAMESPACE:
             with self._write:
                 return self._stage_source(received)

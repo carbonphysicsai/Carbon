@@ -75,6 +75,15 @@ _OPTIONAL_FIELDS = {
     # receiver's parent moved (Validator 5 Nov, route (a)): his regrade may infer on his own retained parent when the
     # image store holds it with exactly that id (`lean_recipe_retention._regrade_inference_image`). Kings only.
     "king_retained_parents",
+    # R89 (Validator-2 6 Nov 09:16 option b): {guard, group, chunks: {rate_per_s, burst}}, every value the OWNER's
+    # (decision #10). Absent: the shared peer bucket as before. Present with any value unset: the receiver refuses.
+    "request_buckets",
+    # The Chain Auditor's operator-only coldkey -> allowance-group map (`funder_map`). Absent: each coldkey is its
+    # own group. An unreadable or malformed map is no map (each coldkey its own group), never a refusal.
+    "funder_map_file",
+    # OWNER-PROBING-COUNTERS-01 (a): {unmapped_coldkey, unresolved_hotkey, max_map_age_blocks}, every value the OWNER's
+    # (`allowance_groups.policy`). Absent: the exam cap is per hotkey as before. Present with any value unset: refused.
+    "allowance_groups",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -262,6 +271,18 @@ def load_config(path: Path) -> dict:
         _check_declared_change(value["declared_exam_change"])
     if "king_retained_parents" in value:
         _king_retained_parents(value["king_retained_parents"])
+    if "request_buckets" in value:
+        from carbon.challenge_validator import request_buckets
+
+        request_buckets.values(value["request_buckets"])
+    if "allowance_groups" in value:
+        from carbon.challenge_validator import allowance_groups
+
+        allowance_groups.policy(value["allowance_groups"])
+    if "funder_map_file" in value:
+        selected = value["funder_map_file"]
+        if type(selected) is not str or not Path(selected).is_absolute():
+            raise ValueError("exact funder map path required")
     if "crown_average" in value:
         section = value["crown_average"]
         if type(section) is not dict or set(section) != {"key_file"}:
@@ -540,6 +561,21 @@ def _set_batch_adapters(cfg, root, challenge, material, discovery, providers, le
             speed_sample_key=_speed_key(cfg),
         )
     return adapters
+
+
+def _request_buckets(cfg):
+    """R89's per-group request buckets when configured (every value the owner's), else None (the peer bucket)."""
+    from carbon.challenge_validator.request_buckets import RequestBuckets
+
+    block = cfg.get("request_buckets")
+    return None if block is None else RequestBuckets(block)
+
+
+def _funder_map(cfg):
+    """The configured allowance-group map; with none, every coldkey is its own group."""
+    from carbon.challenge_validator import funder_map
+
+    return funder_map.load(cfg.get("funder_map_file"))
 
 
 def _speed_key(cfg):
@@ -2127,6 +2163,21 @@ def serve(
                 measure_query=cfg["measure_query"],
                 copy_hotkey=cfg["receiver_hotkey"],
                 speed_sample_key=_speed_key(cfg),
+                request_buckets=_request_buckets(cfg),
+                funder_map=_funder_map(cfg),
+            )
+            # The map file is re-read when the refresh job rewrites it (Test Lead-B 7 Nov (b)), for R89 and (a) alike.
+            from carbon.challenge_validator import funder_map as funder_maps
+
+            intake.funder_map_watch = funder_maps.Watched(
+                cfg.get("funder_map_file"), intake.funder_map
+            )
+            # OWNER-PROBING-COUNTERS-01 (a): the exam cap's allowance group, on the SAME in-memory funder map as R89's
+            # request bucket (one group(), Validator-2 11:32); None (no block) = per hotkey as before.
+            from carbon.challenge_validator import allowance_groups, exam_cap
+
+            exam_cap.install_grouping(
+                allowance_groups.from_config(cfg, window, intake._current_map)
             )
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention

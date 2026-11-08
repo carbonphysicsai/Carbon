@@ -52,6 +52,13 @@ submission (a re-exam). A grading given back as FAILED_INFRA is never the
 miner's result: the same recipe then runs again as a fresh task
 (``released_on_infra``).
 
+**Per funder (OWNER-PROBING-COUNTERS-01 (a)).** With a grouping installed (`install_grouping`,
+`allowance_groups`), the epoch slot and the daily allowance are counted per ALLOWANCE GROUP (every hotkey of one
+coldkey, joined per funder by the Chain Auditor's map) and ``M`` counts groups. A row always counts for its own hotkey;
+it counts for the group it was filed under. So a row filed before the grouping (not retroactive), or before a map merge
+moved its hotkey to another group, never counts for that hotkey's new siblings, and never stops counting for itself. With no grouping
+installed, every hotkey is its own group, exactly as before.
+
 The state lives in the receiver's own attempt ledger file (owner-only SQLite). Nothing here
 touches a score, a bank entry or what a miner can see; a refusal is a typed code only.
 """
@@ -164,6 +171,48 @@ LIMIT_TEXT = {
         "past one day; try again in a later round."
     ),
 }
+#: The same refusals with an allowance grouping installed (OWNER-PROBING-COUNTERS-01 (a)): the slot is shared by every
+#: hotkey of one allowance group, so "this hotkey's" would be false. Miner X-B's final wording (7 Nov), traced against
+#: this module and `funder_map`; Validator-2B traces each sentence before any ``allowance_groups`` block is configured.
+GROUPED_LIMIT_TEXT = {
+    "epoch_limit_reached": (
+        "One graded exam per Challenge per round is shared by every hotkey Carbon counts as one funder: all hotkeys "
+        "of the same coldkey, and coldkeys funded from the same source. This round's graded exam for them is already "
+        "used or in progress. Nothing was built or graded for this submission and it used none of your allowance. "
+        "The next round opens at {when}."
+    ),
+    "exam_daily_allowance_reached": (
+        "The hotkeys Carbon counts as one funder with this one (the same coldkey, or coldkeys funded from the same "
+        "source) have used their shared graded exams for the day on this Challenge. Nothing was built or graded for "
+        "this submission and it used none of your allowance. A slot frees as earlier graded exams age past one day; "
+        "try again in a later round."
+    ),
+    "allowance_group_unmapped": (
+        "This hotkey's coldkey is not yet in the validator's funder map, so it cannot be graded yet. Nothing was "
+        "built or graded for this submission and it used none of your allowance. Try again later."
+    ),
+    "allowance_group_unresolved": (
+        "The validator cannot yet match this hotkey to its coldkey in its latest chain snapshot, so it cannot be "
+        "graded yet. Nothing was built or graded for this submission and it used none of your allowance. Try again "
+        "later."
+    ),
+}
+#: OWNER-PROBING-COUNTERS-01 (a): ``hotkey -> group id`` (`allowance_groups.Grouping`), or None = every hotkey is its own
+#: group (as before). Installed once per receiver process (`install_grouping`), like `crown_average.ACTIVE`.
+GROUPING = None
+#: The key of a row filed with no group (before the release, or with no grouping): its own hotkey.
+_ROW_GROUP = "COALESCE(group_id, 'h:' || hotkey)"
+
+
+def install_grouping(grouping):
+    """Install (or, with None, remove) this process's allowance grouping."""
+    global GROUPING
+    GROUPING = grouping
+
+
+def group_of(hotkey):
+    """The allowance group of ``hotkey``: the installed grouping's (it may raise `ExamCapRefused`), else its own."""
+    return "h:" + hotkey if GROUPING is None else GROUPING(hotkey)
 
 
 def next_round(block, *, now=None):
@@ -179,7 +228,7 @@ def next_round(block, *, now=None):
 
 def plain_text(code, retry=None):
     """The miner-facing sentence for a limit refusal ``code``, or None for any other code."""
-    text = LIMIT_TEXT.get(code)
+    text = (LIMIT_TEXT if GROUPING is None else GROUPED_LIMIT_TEXT).get(code)
     if text is None:
         return None
     retry = retry or {}
@@ -366,6 +415,10 @@ def _prepare(db):
     if "lane_seconds" not in columns:
         # The cadence's rolling mean reads lane_seconds only: older cpu_seconds rows are CPU time, a different unit.
         db.execute("ALTER TABLE exam_graded ADD COLUMN lane_seconds REAL")
+    if "group_id" not in columns:
+        # OWNER-PROBING-COUNTERS-01 (a): the allowance group a graded row was reserved under. NULL on every older row,
+        # which keeps its own hotkey (not retroactive).
+        db.execute("ALTER TABLE exam_graded ADD COLUMN group_id TEXT")
 
 
 class ExamCap:
@@ -413,15 +466,16 @@ class ExamCap:
     def _window(epoch):
         return epoch - DAY_EPOCHS, epoch
 
-    def _allowance(self, db, hotkey, epoch, cadence):
-        """``a`` and its inputs for one requester at one epoch (read-only)."""
+    def _allowance(self, db, group, epoch, cadence):
+        """``a`` and its inputs for one requester's allowance group at one epoch (read-only). ``M`` counts groups
+        (each pre-release row is its own hotkey's)."""
         low, high = self._window(epoch)
         rows = db.execute(
-            "SELECT DISTINCT hotkey FROM exam_graded WHERE kind='GRADED' AND "
+            f"SELECT DISTINCT {_ROW_GROUP} FROM exam_graded WHERE kind='GRADED' AND "
             "state IN ('RESERVED','COUNTED') AND epoch>? AND epoch<=?",
             (low, high),
         ).fetchall()
-        active = {row[0] for row in rows} | {hotkey}
+        active = {row[0] for row in rows} | {group}
         measured = cadence["rebuild_gpu_lane_hours"]
         total = 0.0
         for challenge_id in measured:
@@ -445,29 +499,38 @@ class ExamCap:
         }
 
     def allowance(self, *, hotkey: str, block: int) -> dict:
-        """The current daily allowance for a hotkey (operator view, no side effects)."""
+        """The current daily allowance for a hotkey's group (operator view, no side effects)."""
         cadence = self.cadence()
+        group = group_of(hotkey)
         with self.ledger._db() as db:
-            return self._allowance(db, hotkey, epoch_of(block), cadence)
+            return self._allowance(db, group, epoch_of(block), cadence)
 
-    def _limit_refusal(self, db, hotkey, challenge_id, submission_id, epoch, cadence):
-        """The daily-allowance or epoch refusal code for a graded submission, or None (read-only)."""
+    def _limit_refusal(
+        self, db, hotkey, challenge_id, submission_id, epoch, cadence, group=None
+    ):
+        """The daily-allowance or epoch refusal code for a graded submission, or None (read-only). The rows counted
+        are its allowance group's, plus its own hotkey's rows filed before any grouping (not retroactive).
+        """
+        group = "h:" + hotkey if group is None else group
         low, high = self._window(epoch)
         # A re-queued stuck task (`mark_requeued`) never counts against anyone's round or day (Validator 4 Nov 15:53).
         held = (
             "kind='GRADED' AND state IN ('RESERVED','COUNTED') AND submission_id<>? "
             "AND submission_id NOT IN (SELECT submission_id FROM exam_requeues)"
         )
-        allowed = self._allowance(db, hotkey, epoch, cadence)["allowance"]
+        allowed = self._allowance(db, group, epoch, cadence)["allowance"]
+        # A hotkey's OWN rows always count for it, whatever group they were filed under (a row filed before the
+        # grouping, or before a funder-map merge moved its group: Test Lead-B 7 Nov (a)); its group's other rows too.
+        mine = f"({_ROW_GROUP}=? OR hotkey=?)"
         used = db.execute(
-            "SELECT COUNT(*) FROM exam_graded WHERE hotkey=? AND "
+            f"SELECT COUNT(*) FROM exam_graded WHERE {mine} AND "
             f"challenge_id=? AND epoch>? AND epoch<=? AND {held}",
-            (hotkey, challenge_id, low, high, submission_id),
+            (group, hotkey, challenge_id, low, high, submission_id),
         ).fetchone()[0]
         in_epoch = db.execute(
-            "SELECT COUNT(*) FROM exam_graded WHERE hotkey=? AND "
+            f"SELECT COUNT(*) FROM exam_graded WHERE {mine} AND "
             f"challenge_id=? AND epoch=? AND {held}",
-            (hotkey, challenge_id, epoch, submission_id),
+            (group, hotkey, challenge_id, epoch, submission_id),
         ).fetchone()[0]
         return (
             "exam_daily_allowance_reached"
@@ -496,6 +559,11 @@ class ExamCap:
             return None
         if challenge_id not in cadence["rebuild_gpu_lane_hours"]:
             return None
+        try:
+            group = group_of(hotkey)
+        except ExamCapRefused as refused:
+            # the grouping's own refusal (an owner-chosen ``refuse`` policy): told at once, like a limit
+            return {"code": refused.code, "message": plain_text(refused.code)}
         epoch = epoch_of(block)
         with self.ledger._db() as db:
             row = db.execute(
@@ -519,7 +587,7 @@ class ExamCap:
             if first is not None and block - first[0] >= MAX_EXAM_AGE_BLOCKS:
                 return None
             code = self._limit_refusal(
-                db, hotkey, challenge_id, submission_id, epoch, cadence
+                db, hotkey, challenge_id, submission_id, epoch, cadence, group
             )
         if code is None:
             return None
@@ -550,6 +618,13 @@ class ExamCap:
         kind = "REGRADE" if regrade else "GRADED"
         key = (challenge_id, challenge_version, exam_key, submission_id)
         refusal = None
+        # NULL with no grouping installed: such a row keeps its own hotkey once a grouping is turned on
+        group = None
+        if not regrade and GROUPING is not None:
+            try:
+                group = GROUPING(hotkey)
+            except ExamCapRefused as refused:
+                refusal = refused.code
         with self.ledger._db() as db:
             row = db.execute(
                 "SELECT id, state FROM exam_graded WHERE challenge_id=? AND "
@@ -558,7 +633,9 @@ class ExamCap:
             ).fetchone()
             if row is not None and row[1] in ("RESERVED", "COUNTED"):
                 return row[0]
-            if not regrade:
+            if refusal is not None:
+                pass  # the grouping refused: no row, no key, only the audit line below
+            elif not regrade:
                 db.execute(
                     "INSERT OR IGNORE INTO exam_keys VALUES(?,?,?,?)",
                     (challenge_id, challenge_version, exam_key, block),
@@ -575,7 +652,7 @@ class ExamCap:
                     refusal = None
                 else:
                     refusal = self._limit_refusal(
-                        db, hotkey, challenge_id, submission_id, epoch, cadence
+                        db, hotkey, challenge_id, submission_id, epoch, cadence, group
                     )
             if refusal is None:
                 now = int(self.clock())
@@ -583,15 +660,15 @@ class ExamCap:
                     db.execute(
                         "UPDATE exam_graded SET state='RESERVED', status=NULL, "
                         "epoch=?, kind=?, reserved_ns=?, settled_ns=NULL, "
-                        "lane_seconds=NULL WHERE id=?",
-                        (epoch, kind, now, row[0]),
+                        "lane_seconds=NULL, group_id=? WHERE id=?",
+                        (epoch, kind, now, group, row[0]),
                     )
                     return row[0]
                 cursor = db.execute(
                     "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, "
-                    "exam_key, kind, epoch, submission_id, state, reserved_ns) "
-                    "VALUES(?,?,?,?,?,?,?, 'RESERVED', ?)",
-                    (*values[:4], kind, epoch, submission_id, now),
+                    "exam_key, kind, epoch, submission_id, state, reserved_ns, group_id) "
+                    "VALUES(?,?,?,?,?,?,?, 'RESERVED', ?, ?)",
+                    (*values[:4], kind, epoch, submission_id, now, group),
                 )
                 return cursor.lastrowid
         # Refused: no row for the attempt (no wear); only an audit line, in its own transaction.
