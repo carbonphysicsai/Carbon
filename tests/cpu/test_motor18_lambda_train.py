@@ -215,7 +215,7 @@ def test_host_order_rounding_within_the_ruling_is_accepted_and_recorded(frozen):
     got = ppt.load_extended_train(NAME, MOTOR)
     t = got["provenance"]["torque_vs_train150"]
     assert t["host_order_rounding_rows"] == ["train-0003", "train-0040", "train-0099"]
-    assert t["byte_equal_rows"] == 147 and 0 < t["max_abs_delta_nm"] <= 4.0e-13
+    assert t["byte_equal_rows"] == 147 and 0 < t["max_abs_delta_nm"] < 4.05e-13
     assert (
         got["targets"][3, 5] == recs[3]["outputs"]["torque_nm"][5]
     )  # the record-now torque, one source
@@ -223,7 +223,7 @@ def test_host_order_rounding_within_the_ruling_is_accepted_and_recorded(frozen):
 
 def test_rounding_beyond_the_ruling_still_stops():
     recs = _records()
-    recs[3]["outputs"]["torque_nm"][5] += 5e-13
+    recs[3]["outputs"]["torque_nm"][5] += 6e-13
     with pytest.raises(ValueError, match="STOP"):
         ppt.assemble_motor18_source(recs)
     recs = _records()

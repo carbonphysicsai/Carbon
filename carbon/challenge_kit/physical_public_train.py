@@ -416,12 +416,14 @@ def _fresh(name: str, challenge_id: str) -> dict:
 
 #: Carbon Validator-B, 8 Nov 00:44 CST, ruling (1) "M2 TORQUE TWINS": 3 of the 150
 #: re-solved TRAIN rows differ from TRAIN 150 by host-order double rounding,
-#: max |delta| 4.0e-13 N.m, ACCEPTED AS-IS (the row takes torque AND lambda
+#: max |delta| 4.0e-13 N.m (2 s.f.; measured 4.001e-13), ACCEPTED AS-IS (the row takes torque AND lambda
 #: from its record-now record). This allows exactly that and records it; any
 #: larger difference, or more rows, still REFUSES (STOP).
 TORQUE_ROUNDING_RULING = {
     "source": "Carbon Validator-B 2026-11-08 00:44 CST ruling (1): host-order rounding",
-    "max_abs_delta_nm": 4.0e-13,
+    # the ruling's "4.0e-13" is the measured 4.001e-13 at 2 significant figures (TL-2B 22:47); the bound is that
+    # figure's own precision, < 4.05e-13 (confirmed by Carbon Validator-Motor with the freeze pins)
+    "max_abs_delta_nm": 4.05e-13,
     "max_rows": 3,
 }
 
@@ -436,7 +438,7 @@ def _torque_check(rows_torque, native):
         if got == want:
             continue
         delta = max(abs(a - b) for a, b in zip(got, want, strict=True))
-        if not delta <= TORQUE_ROUNDING_RULING["max_abs_delta_nm"]:
+        if not delta < TORQUE_ROUNDING_RULING["max_abs_delta_nm"]:
             raise ValueError(
                 f"train-{i:04d}: torque is not byte-equal to TRAIN 150 (STOP)"
             )
