@@ -9,7 +9,9 @@ Claims:
   the case's own h_sp (so one factor table could not serve every case);
 - a coolant other than the curve's inlet refuses (O3); the curve file is validated;
 - observe_v32 keeps observe_v3's public result, types an UNDERSIDE max above T_sat + cap REFERENCE_INVALID (out_of_curve_range),
-  refuses a missing underside column and a non-3.2 deck, adds the CUSTODY_ONLY block; energy_balance refuses.
+  refuses a missing underside column and a non-3.2 deck, adds the CUSTODY_ONLY block; energy_balance refuses;
+- the 3.2 base power is the owner's signed 7.90 W (box B1T3); the 3.0 global stays 20.0 W before, after, and after a refusal; a 3.2 call
+  refuses if the 3.0 global was changed by someone else.
 """
 
 from __future__ import annotations
@@ -260,13 +262,17 @@ def test_table_depends_on_the_cases_own_h_sp():
 # --- the deck ---------------------------------------------------------------------------------------------------------
 
 
-def test_test_mode_deck_is_the_3_0_deck_plus_the_3_2_edits(tmp_path):
+def test_test_mode_deck_is_the_3_0_deck_plus_the_3_2_edits(tmp_path, monkeypatch):
     leak = _test_leak(tmp_path)
     curve, curve_sha = _curve(tmp_path)
     meta = v32.write_case_v32_test(
         CASE, tmp_path / "d32", curve_path=curve, curve_sha256=curve_sha, leakage=leak
     )
+    monkeypatch.setattr(
+        v3, "BASE_W", v32.V32_BASE_W
+    )  # the 3.0 deck at the 3.2 base: then only the 3.2 edits differ
     v3.write_case(CASE, tmp_path / "d30", test_mode=True, leakage=leak)
+    monkeypatch.undo()
     s32 = (tmp_path / "d32" / "case.sif").read_text()
     s30 = (tmp_path / "d30" / "case.sif").read_text()
     assert _strip_3_2(s32) == _strip_3_2(s30)
@@ -493,10 +499,14 @@ def _case_dir(
     return d
 
 
-def test_observe_v32_public_result_plus_custody(tmp_path):
+def test_observe_v32_public_result_plus_custody(tmp_path, monkeypatch):
     d = _case_dir(tmp_path)
     obs = v32.observe_v32(d, threshold_c=85.0, second_threshold_c=70.0)
+    monkeypatch.setattr(
+        v3, "BASE_W", v32.V32_BASE_W
+    )  # observe_v3's energy read is above the base: compare at the 3.2 base
     pub = v3.observe_v3(d, threshold_c=85.0)
+    monkeypatch.undo()
     assert {k: obs[k] for k in pub} == pub
     assert obs["deck_version"] == "3.2" and obs["custody"]["label"] == v31.CUSTODY_ONLY
     assert [v for _t, v in obs["custody"]["underside_max_trace_c"]] == [
@@ -753,3 +763,62 @@ def test_the_researchers_curve_a_loads_with_its_ramp_when_present():
         pytest.skip("the researcher's curve file is not in the repository")
     digest = hashlib.sha256(real.read_bytes()).hexdigest()
     assert v32.load_curve(real, expect_sha256=digest, test_mode=True)["ramp_k"] == 0.4
+
+
+# --- the 3.2 base power (owner box B1T3) -------------------------------------------------------------------------------
+
+
+def test_the_3_2_base_power_is_the_signed_value_and_3_0_is_unchanged():
+    assert (
+        v32.V32_BASE_W == 7.90
+        and v32.V32_BASE_W_DECISION == "OWNER-BT32-BOX-B1T3-SIGNED-01"
+    )
+    assert v3.BASE_W == v32.V3_BASE_W == 20.0
+
+
+def test_a_3_2_deck_runs_at_the_3_2_base_and_restores_3_0(tmp_path):
+    leak = _test_leak(tmp_path)
+    curve, curve_sha = _curve(tmp_path)
+    meta = v32.write_case_v32_test(
+        CASE, tmp_path / "d32", curve_path=curve, curve_sha256=curve_sha, leakage=leak
+    )
+    assert v3.BASE_W == 20.0
+    sched = [tuple(k) for k in meta["schedule_w"]]
+    assert sched[0] == (0, 7.90) and sched[-1] == (v3.HORIZON_S, 7.90)
+    assert {p for _t, p in sched} == {7.90, CASE["peak_w"]}
+    assert meta["base_power"] == {
+        "w": 7.90,
+        "decision": "OWNER-BT32-BOX-B1T3-SIGNED-01",
+    }
+    on_disk = json.loads((tmp_path / "d32" / "deck.json").read_text())
+    assert on_disk["base_power"]["w"] == 7.90 and on_disk["schedule_w"][0] == [0, 7.90]
+    v3.write_case(CASE, tmp_path / "d30", test_mode=True, leakage=leak)
+    s30 = json.loads((tmp_path / "d30" / "deck.json").read_text())
+    assert s30["schedule_w"][0] == [0, 20.0] and "base_power" not in s30
+
+
+def test_the_3_0_base_is_restored_after_a_refusal(tmp_path, monkeypatch):
+    leak = _test_leak(tmp_path)
+    curve, curve_sha = _curve(tmp_path)
+
+    def boom(*_a, **_k):
+        assert v3.BASE_W == 7.90
+        raise v3.DeckRefused("fixture")
+
+    monkeypatch.setattr(v3, "write_case", boom)
+    with pytest.raises(v3.DeckRefused, match="fixture"):
+        v32.write_case_v32_test(
+            CASE, tmp_path / "d", curve_path=curve, curve_sha256=curve_sha, leakage=leak
+        )
+    assert v3.BASE_W == 20.0 and not (tmp_path / "d").exists()
+
+
+def test_a_3_2_call_refuses_if_the_3_0_global_was_changed(tmp_path, monkeypatch):
+    leak = _test_leak(tmp_path)
+    curve, curve_sha = _curve(tmp_path)
+    monkeypatch.setattr(v3, "BASE_W", 12.0)
+    with pytest.raises(v3.DeckRefused, match="v3_base_w_is_not_the_3_0_value"):
+        v32.write_case_v32_test(
+            CASE, tmp_path / "d", curve_path=curve, curve_sha256=curve_sha, leakage=leak
+        )
+    assert v3.BASE_W == 12.0 and not (tmp_path / "d").exists()

@@ -24,6 +24,11 @@ PINS (fail closed). Every SIGNED 3.2 deck refuses until each pin is set by a rev
 ``V32_BOX_SHA256`` (public stages), ``V32_REGION_SHA256`` (hidden stages; the 3.1 region schema, nonce required). A case is written
 against EXACTLY ONE of the box or the region, inside it. The probe writer takes any digest-pinned curve (a CANDIDATE curve only there)
 and labels every output TEST_ONLY. Every writer builds into OUT.partial and renames it to OUT only when complete.
+THE BASE (IDLE) POWER. 3.2 runs at ``V32_BASE_W`` (owner box B1T3, record ``V32_BASE_W_DECISION``), not 3.0's ``v3.BASE_W``
+(20.0 W, unchanged: the 3.0 / 3.1 deck files stay byte-identical). The 3.0 code reads its module global at call time (the schedule
+knots, ``energy_j``, the energy read), so every 3.2 entry point that calls into it (both writers, ``observe_v32``) runs inside
+``_v32_base()``: under one lock it checks the global is 3.0's value, sets the 3.2 value, and restores 3.0's on exit (also on a
+refusal or crash). A process must not write or read 3.0 decks on another thread while a 3.2 call is running.
 ``energy_balance`` assumes a constant h and refuses on a 3.2 deck. ``observe_v32`` = ``observe_v3`` (public scalars, unchanged) + the
 out-of-curve check + the CUSTODY_ONLY block of 3.1 (plus the underside-max trace).
 """
@@ -35,6 +40,7 @@ import itertools
 import json
 import math
 import shutil
+import threading
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -71,6 +77,38 @@ V32_HT_DECISION = HUMAN_INPUT
 V32_HT_SHA256 = HUMAN_INPUT
 V32_BOX_SHA256 = HUMAN_INPUT
 V32_REGION_SHA256 = HUMAN_INPUT
+
+#: The 3.2 base (idle) power, W: the owner's signed box B1T3 (Lead session, Sun 8 Nov 2026 06:51 CST, "Yes, sign"): the B1T designs,
+#: base 7.90 W, HFE-7100, the r2 curve. 3.0's value stays ``V3_BASE_W``.
+V32_BASE_W = 7.90
+V32_BASE_W_DECISION = "OWNER-BT32-BOX-B1T3-SIGNED-01"
+V3_BASE_W = 20.0
+_BASE_LOCK = threading.RLock()
+_BASE_DEPTH = [0]
+
+
+@contextmanager
+def _v32_base():
+    """Run the 3.0 code at the 3.2 base power, restoring 3.0's value on exit; refuses if the 3.0 global is not 3.0's value."""
+    with _BASE_LOCK:
+        if _BASE_DEPTH[0]:
+            if v3.BASE_W != V32_BASE_W:
+                raise DeckRefused("v3_base_w_changed_inside_a_v32_call")
+            _BASE_DEPTH[0] += 1
+            try:
+                yield
+            finally:
+                _BASE_DEPTH[0] -= 1
+            return
+        if v3.BASE_W != V3_BASE_W:
+            raise DeckRefused("v3_base_w_is_not_the_3_0_value")
+        v3.BASE_W = V32_BASE_W
+        _BASE_DEPTH[0] = 1
+        try:
+            yield
+        finally:
+            _BASE_DEPTH[0] = 0
+            v3.BASE_W = V3_BASE_W
 
 
 def pins_status():
@@ -287,6 +325,7 @@ def _check_coolant(case, curve):
 
 def _finish(out, meta, curve, table, *, test=False):
     meta["deck_version"] = DECK_VERSION
+    meta["base_power"] = {"w": V32_BASE_W, "decision": V32_BASE_W_DECISION}
     meta["h_curve"] = {
         "schema": curve["schema"],
         "sha256": curve["sha256"],
@@ -319,7 +358,7 @@ def write_case_v32_test(
     case = v3.resolve_case(case)
     _check_coolant(case, curve)
     table = h_eff_table(case, curve)
-    with _building(out) as tmp:
+    with _building(out) as tmp, _v32_base():
         meta = v3.write_case(
             case,
             tmp,
@@ -396,7 +435,7 @@ def write_case_v32(
         "ht_decision": V32_HT_DECISION,
         "table_sha256": _table_digest(table),
     }
-    with _building(out) as tmp:
+    with _building(out) as tmp, _v32_base():
         meta = v3.write_case(
             case,
             tmp,
@@ -437,12 +476,13 @@ def observe_v32(
     meta = json.loads(Path(case_dir, "deck.json").read_text())
     if not is_v32_deck(meta):
         raise DeckRefused("not_a_v32_deck")
-    observed = v3.observe_v3(
-        case_dir,
-        threshold_c=threshold_c,
-        baseline_top_c=baseline_top_c,
-        log_path=log_path,
-    )
+    with _v32_base():
+        observed = v3.observe_v3(
+            case_dir,
+            threshold_c=threshold_c,
+            baseline_top_c=baseline_top_c,
+            log_path=log_path,
+        )
     observed["deck_version"] = DECK_VERSION
     observed["h_curve"] = {
         "label": meta["h_curve"]["label"],
