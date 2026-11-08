@@ -94,7 +94,6 @@ def test_the_session_task_name_is_the_sdks():
     assert sdk.SDK_VERSION == "11.1.0" and sdk.SESSION_TASK == "rpc-session"
 
 
-
 def test_the_installed_sdk_names_its_session_task_so():
     """The installed SDK (canonical environment) creates its connection task under exactly this name. The orphan itself
     appears only when an OPEN connection drops and the SDK re-dials in the background (drills F1 / F3 / R7), which the
@@ -104,4 +103,6 @@ def test_the_installed_sdk_names_its_session_task_so():
 
     from bittensor._transport import rpc
 
-    assert f'create_task(self._run(), name="{sdk.SESSION_TASK}")' in inspect.getsource(rpc)
+    assert f'create_task(self._run(), name="{sdk.SESSION_TASK}")' in inspect.getsource(
+        rpc
+    )
