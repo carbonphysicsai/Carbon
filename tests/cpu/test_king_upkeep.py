@@ -13,7 +13,9 @@ journal line. Synthetic grades and stand-ins; no model runs.
 from __future__ import annotations
 
 import json
+import os
 import sys
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -350,6 +352,138 @@ def test_the_tick_files_stranded_challengers_once_then_runs_upkeep_then_the_swee
         "sweep",
         "grades",
     ]
+
+
+def _ticking_grader(tmp_path, monkeypatch, order, *, others, pending=("t",)):
+    from carbon.challenge_validator import auto_grade
+
+    monkeypatch.setattr(
+        king_upkeep,
+        "file_stranded",
+        lambda *a: order.append("stranded") or (king_upkeep.STRANDED_DONE, 0),
+    )
+    monkeypatch.setattr(king_upkeep, "step", lambda *a, **k: order.append("upkeep"))
+    grader = auto_grade.AutoGrader.__new__(auto_grade.AutoGrader)
+    grader.root, grader.pool_store = tmp_path, tmp_path / "pool.sqlite3"
+    grader.artifacts = grader.entries = tmp_path
+    grader.intake = SimpleNamespace(adapter=SimpleNamespace(discovery=None))
+    grader.others_waiting = others
+    monkeypatch.setattr(auto_grade.AutoGrader, "_pool", lambda self: object())
+    monkeypatch.setattr(
+        auto_grade.AutoGrader,
+        "_resume_paused_crowns",
+        lambda self: order.append("sweep"),
+    )
+    monkeypatch.setattr(auto_grade.AutoGrader, "pending", lambda self: list(pending))
+    monkeypatch.setattr(
+        auto_grade.AutoGrader, "_apply_due_retries", lambda self, idle: False
+    )
+    monkeypatch.setattr(
+        auto_grade.AutoGrader,
+        "_copy_decision",
+        lambda self, s: order.append("grade") or ("wait", None),
+    )
+    return grader
+
+
+def test_f2_a_door_with_a_grade_defers_the_kings_upkeep_while_another_door_waits(
+    tmp_path, monkeypatch
+):
+    """Slow-tail F2: the grade goes first; the stranded filing still runs; a journal line says so (once)."""
+    from carbon.challenge_validator import koth_journal
+
+    order, notes = [], []
+    monkeypatch.setattr(koth_journal, "note", lambda event, **f: notes.append(event))
+    grader = _ticking_grader(tmp_path, monkeypatch, order, others=lambda: True)
+    grader.run_once()
+    grader.run_once()
+    assert order == ["stranded", "sweep", "grade", "sweep", "grade"]
+    assert notes == ["king_upkeep_deferred"]
+
+
+@pytest.mark.parametrize(
+    "others, pending",
+    [
+        (lambda: False, ("t",)),  # nobody waits: the upkeep runs first, as before
+        (
+            lambda: True,
+            (),
+        ),  # nothing to grade here: the upkeep round already queued behind the waiters (F1a)
+        (
+            None,
+            ("t",),
+        ),  # no waiter reader (a grader outside serve_loopback): never deferred
+    ],
+)
+def test_f2_the_upkeep_runs_first_when_nothing_should_go_ahead_of_it(
+    tmp_path, monkeypatch, others, pending
+):
+    order = []
+    grader = _ticking_grader(
+        tmp_path, monkeypatch, order, others=others, pending=pending
+    )
+    grader.run_once()
+    assert order[:2] == ["stranded", "upkeep"]
+
+
+def test_f2_a_waiter_reader_that_fails_never_skips_the_upkeep(tmp_path, monkeypatch):
+    def broken():
+        raise OSError("waiting dir")
+
+    order = []
+    _ticking_grader(tmp_path, monkeypatch, order, others=broken).run_once()
+    assert order[:2] == ["stranded", "upkeep"]
+
+
+def test_f2_the_upkeep_is_never_deferred_longer_than_the_cap(tmp_path, monkeypatch):
+    from carbon.challenge_validator import auto_grade, koth_journal
+
+    clock = [1000.0]
+    monkeypatch.setattr(auto_grade.time, "monotonic", lambda: clock[0])
+    notes = []
+    monkeypatch.setattr(koth_journal, "note", lambda event, **f: notes.append(event))
+    order = []
+    grader = _ticking_grader(tmp_path, monkeypatch, order, others=lambda: True)
+    grader.run_once()
+    clock[0] += auto_grade.UPKEEP_DEFER_MAX_SECONDS - 1
+    grader.run_once()
+    assert "upkeep" not in order
+    clock[0] += 1
+    grader.run_once()  # overdue: it runs although a door still waits
+    assert order.count("upkeep") == 1
+    assert notes == ["king_upkeep_deferred", "king_upkeep_deferred_cap"]
+    order.clear()
+    grader.run_once()  # a fresh deferral window starts
+    assert "upkeep" not in order
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX loopback receiver")
+def test_the_grader_reads_whether_another_door_waits_from_the_hosts_work_lock(
+    monkeypatch, tmp_path
+):
+    """Slow-tail F2: serve_loopback hands the grader the work lock's waiter reader (king upkeep defers to waiters)."""
+    from carbon.challenge_validator import direct_intake
+
+    stop = threading.Event()
+    intake = object.__new__(direct_intake.DirectRecipeIntake)
+    intake.window, intake.context = object(), object()
+    seen = []
+    grader = SimpleNamespace()
+    monkeypatch.setattr(direct_intake, "_advance_loop", lambda *a: stop.wait())
+    monkeypatch.setattr(
+        direct_intake, "_grade_loop", lambda g, s, work: seen.append(work) or s.wait()
+    )
+    monkeypatch.setattr(direct_intake, "refresher", lambda *a, **kw: kw["stop"].wait())
+    direct_intake.serve_loopback(
+        intake,
+        {"host": "127.0.0.1", "port": 0},
+        stop=stop,
+        ready=lambda _: stop.set(),
+        grader=grader,
+        grading_lock_dir=tmp_path,
+    )
+    assert grader.others_waiting == seen[0]._others_waiting
+    assert grader.others_waiting() is False  # nobody waits on this host
 
 
 # --- journal lines ---------------------------------------------------------------------------------------------------

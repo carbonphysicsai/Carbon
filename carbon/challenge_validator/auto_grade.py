@@ -43,6 +43,11 @@ _NOT_YET = frozenset({"owned_task_unavailable", "verified_attempt_unavailable"})
 _CHAIN_CODES = frozenset({"direct_provider_registration_unavailable"})
 
 
+#: Slow-tail F2: the longest the king's upkeep step is deferred in a row while other doors wait (engineering pacing,
+#: not a scientific value; Validator-2B / owner may set it): after this the upkeep runs even with a door waiting.
+UPKEEP_DEFER_MAX_SECONDS = 30 * 60
+
+
 class AutoGrader:
     """Grades each SUCCEEDED task of one served adapter, once."""
 
@@ -256,7 +261,10 @@ class AutoGrader:
             return None  # (H8) a stale chain: grade nothing, mark nothing
         self.activity = "king"
         try:
-            self._king_upkeep()
+            if self._upkeep_deferred():
+                self._file_stranded()
+            else:
+                self._king_upkeep()
         finally:
             self.activity = None
         self._resume_paused_crowns()
@@ -457,17 +465,64 @@ class AutoGrader:
         self._write(submission_id, "DUPLICATE", code=recipe_copies.DUPLICATE)
         return submission_id, "DUPLICATE"
 
+    def _upkeep_deferred(self):
+        """Slow-tail F2 (Graphite-B 8 Nov): whether this round skips the king's upkeep step (his regrade or one crown
+        re-measure rebuild, both rebuild-length holds of the host's one grading slot) because another door is waiting
+        for the host lock AND this door has a grade to run: the grade goes first and the upkeep runs in a round where
+        no door waits. Never longer than `UPKEEP_DEFER_MAX_SECONDS` in a row, so the king stays comparable. Deferring
+        decides nothing: a challenger graded meanwhile waits as PENDING_CONTENTION / KING_UNMEASURED (`king_upkeep`),
+        never dropped. Without a waiter reader (``others_waiting``, set by `direct_intake.serve_loopback`) nothing is
+        ever deferred. Never raises (doubt runs the upkeep).
+        """
+        from . import koth_journal
+
+        others = getattr(self, "others_waiting", None)
+        try:
+            wanted = others is not None and bool(others()) and bool(self.pending())
+        except Exception:  # noqa: BLE001
+            wanted = False
+        since = getattr(self, "_upkeep_deferred_since", None)
+        if not wanted:
+            self._upkeep_deferred_since = None
+            return False
+        now = time.monotonic()
+        if since is None:
+            self._upkeep_deferred_since = since = now
+            koth_journal.note("king_upkeep_deferred", reason="door_waiting")
+        if now - since >= UPKEEP_DEFER_MAX_SECONDS:
+            self._upkeep_deferred_since = None
+            koth_journal.note("king_upkeep_deferred_cap", seconds=round(now - since))
+            return False
+        return True
+
     def _king_upkeep(self):
         """Keep the king comparable on this door's current exam before anything is decided (`king_upkeep`): his
         uncounted regrade when challengers wait for it, or one crown re-measure rebuild. Never raises.
         """
         from . import crown_average, king_upkeep
 
-        pool = None
+        opened, pool = self._file_stranded()
+        if not opened:
+            return None
+        return king_upkeep.step(
+            pool,
+            self.intake,
+            root=self.root,
+            artifacts=self.artifacts,
+            entries=self.entries,
+            active=crown_average.ACTIVE,
+        )
+
+    def _file_stranded(self):
+        """The start-up filing of stranded challengers (`king_upkeep.file_stranded`), when due; returns ``(opened,
+        pool store)`` (``(False, None)`` when the store cannot be opened; ``(True, None)`` when it is not configured).
+        Runs even when the upkeep step is deferred (F2)."""
+        from . import king_upkeep
+
         try:
             pool = self._pool()
         except Exception:  # noqa: BLE001 - an unopenable store is the sweep's to report
-            return None
+            return False, None
         if pool is not None and self._stranded_due():
             # Once per start, before the first grade: queue every challenger graded while the king could not be met
             # (`recontend`), so it is contended ahead of anything graded after. Marked done only once the check was
@@ -481,14 +536,7 @@ class AutoGrader:
                 self._stranded_next = (
                     time.monotonic() + king_upkeep.STRANDED_RETRY_SECONDS
                 )
-        return king_upkeep.step(
-            pool,
-            self.intake,
-            root=self.root,
-            artifacts=self.artifacts,
-            entries=self.entries,
-            active=crown_average.ACTIVE,
-        )
+        return True, pool
 
     def _resume_paused_crowns(self):
         """Make the crown decisions the operator's pause withheld, once it is lifted."""
