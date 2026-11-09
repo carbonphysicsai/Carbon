@@ -56,8 +56,9 @@ Gates come first: a failed gate means no score, however good the rest.
   halving of the error is worth the same.
 - Carbon's classical panel: Gaussian process, polynomial ridge, RBF ridge,
   gradient boosting, nearest neighbours, kernel ridge with a prior, sparse
-  physics regression, a kernel fit on as much data as the kit can generate,
-  the engineer's shortcut (torque per amp), and the nearest TRAIN row. All
+  physics regression, a kernel fit on TRAIN plus extra solver data from
+  inside the published limits (the kind of data the kit lets you make), the
+  engineer's shortcut (torque per amp), and the nearest TRAIN row. The others
   are trained on the public TRAIN set only.
 - A class is scored only if it passes Carbon's admission checks, chief among
   them that the best classical method still misses reference accuracy by a
@@ -117,9 +118,11 @@ are not shown, and the hidden sample rotates.
   training set and to be an output your model predicts (240 values per
   design: torque plus three flux linkages). From it, Carbon plans to grade
   back-EMF outside the training range, like torque: the shape of the
-  open-circuit back-EMF waveform at zero current, and the induced line voltage
-  per unit speed at load. If that grading is not ready when Motor 1.8 opens,
-  Motor 1.8 grades torque only (the training set may still carry the flux
+  open-circuit back-EMF waveform at zero current, and the shape of the induced
+  line-voltage waveform at load. Both are graded by shape: each waveform is
+  scaled to its own size first, so its overall size is not graded. If that
+  grading is not ready, or does not pass Carbon's admission checks, when
+  Motor 1.8 opens, Motor 1.8 grades torque only (the training set may still carry the flux
   linkage, unscored) and back-EMF moves to Motor 1.9. This page says which
   before the version opens.
 - **Reference uncertainty U:** Motor 1.8's registered values:
