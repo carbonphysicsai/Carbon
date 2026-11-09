@@ -320,11 +320,18 @@ def dispatch(config):
     public region box here; hidden bounds never enter the overlay)."""
     if config:
         raise ValueError("Motor 1.8's dispatch takes no config")
-    from carbon.scoring import pool_grader, pool_version
+    from carbon.scoring import dev_grid, motor18_dev_grid, pool_grader, pool_version
 
     for name in EMF_OUTPUTS:
         pool_grader.register_waveform_output(name, _waveform_output())
     pool_version.register_binding(KIND, VERSION, official_binding)
+    # the 240-wide development bank and its adapter (`motor18_dev_grid`; refuses until its linkage file is pinned)
+    dev_grid.register(
+        CHALLENGE,
+        VERSION,
+        bank=motor18_dev_grid.bank,
+        adapter=motor18_dev_grid.adapter,
+    )
     return {
         "challenge": CHALLENGE,
         "version": VERSION,
