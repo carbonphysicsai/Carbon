@@ -87,7 +87,8 @@ def load_linkages(raw=None, *, pinned=None):
 
 def widen(bank, cases):
     """``bank`` with every reference widened to the 1.8 row: its own torque, then the linkages of ``cases``; a row with
-    no reference stays all-NaN. Every reference row needs its case's linkages (a missing one refuses)."""
+    no reference stays all-NaN. Every reference row needs its case's linkages (a missing one refuses).
+    """
     import numpy as np
 
     from carbon.motor import row18
@@ -130,7 +131,8 @@ def bank(version=VERSION):
 
 def adapter(version=VERSION):
     """Motor 1.8's development adapter: `motor18_dual_pack` (the torque slice to Motor's sealed grader) under the 1.8
-    entry's development evaluation, the PRACTICE rows selected out by cohort name (`motor_dev_grid`'s rule)."""
+    entry's development evaluation, the PRACTICE rows selected out by cohort name (`motor_dev_grid`'s rule).
+    """
     from carbon.challenge_kit import version_registry
     from carbon.scoring import motor18_dual_pack as m18
     from carbon.scoring import motor_dev_grid

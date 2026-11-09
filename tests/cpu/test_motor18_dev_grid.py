@@ -1,7 +1,8 @@
 """Motor 1.8's 240-wide development bank (`motor18_dev_grid`) and its builder. Claims: each reference keeps the bank's
 own torque and gains the record-now linkages, probes stay all-NaN 240 wide, nothing is served until the linkage file is
 pinned, the builder refuses a mismatch (inputs, torque beyond the rounding ruling, missing or duplicate records), and the
-1.8 dispatch registers this bank in `dev_grid` (add-only). Synthetic numbers only (never solver values)."""
+1.8 dispatch registers this bank in `dev_grid` (add-only). Synthetic numbers only (never solver values).
+"""
 
 from __future__ import annotations
 
@@ -21,7 +22,7 @@ from carbon.scoring import motor18_dev_grid as m
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "dev" / "motor"))
-import build_dev_bank_1p8 as builder  # noqa: E402
+import build_dev_bank_1p8 as builder
 
 IDS = ("practice-0000", "decision-d01-r01", "probe-01-d1m")
 
@@ -56,11 +57,15 @@ def test_each_reference_keeps_its_torque_and_gains_the_linkages():
     wide = m.widen(_bank(), CASES)
     refs = wide["references"]
     assert refs.shape == (3, 240)
-    assert np.array_equal(refs[0, :60], _bank()["references"][0])  # the bank's own torque, unchanged
+    assert np.array_equal(
+        refs[0, :60], _bank()["references"][0]
+    )  # the bank's own torque, unchanged
     assert refs[0, 60:120].tolist() == CASES[IDS[0]]["A"]
     assert refs[1, 180:240].tolist() == CASES[IDS[1]]["C"]
     assert np.isnan(refs[2]).all()  # a probe: no reference, all-NaN, 240 wide
-    assert wide["solver_evidence"] != _bank()["solver_evidence"]  # the linkage joins the identity
+    assert (
+        wide["solver_evidence"] != _bank()["solver_evidence"]
+    )  # the linkage joins the identity
     assert wide["case_ids"] == IDS and wide["cohorts"] == _bank()["cohorts"]
 
 
@@ -106,7 +111,10 @@ def _record(i, *, torque=None, inputs=None, status="OK", phases=None):
         "inputs": inputs
         or {n: float(v) for n, v in zip(INPUTS, bank["inputs"][i], strict=True)},
         "outputs": {
-            "torque_nm": [float(v) for v in (torque if torque is not None else bank["references"][i])]
+            "torque_nm": [
+                float(v)
+                for v in (torque if torque is not None else bank["references"][i])
+            ]
         },
         "record_now": {"phase_flux_linkage_wb": phases or _phases(i)},
     }
@@ -124,7 +132,9 @@ def _write(tmp_path, records, name="r.jsonl"):
 
 
 def test_the_builder_makes_the_file_the_bank_reads(tmp_path, base, monkeypatch):
-    path = _write(tmp_path, [_record(0), _record(1), _record(2, status="REFERENCE_INVALID")])
+    path = _write(
+        tmp_path, [_record(0), _record(1), _record(2, status="REFERENCE_INVALID")]
+    )
     out = tmp_path / "linkage.json"
     assert builder.main([path, "--out", str(out)]) == 0
     raw = out.read_bytes()
@@ -148,7 +158,9 @@ def test_torque_inside_the_rounding_ruling_is_recorded_beyond_it_stops(tmp_path,
     far = list(_bank()["references"][1])
     far[5] += 1e-6
     with pytest.raises(builder.BuildRefused, match="STOP"):
-        builder.build([_write(tmp_path, [_record(0), _record(1, torque=far)], "f.jsonl")])
+        builder.build(
+            [_write(tmp_path, [_record(0), _record(1, torque=far)], "f.jsonl")]
+        )
 
 
 @pytest.mark.parametrize(
@@ -166,7 +178,9 @@ def test_torque_inside_the_rounding_ruling_is_recorded_beyond_it_stops(tmp_path,
         ),
     ],
 )
-def test_the_builder_refuses_records_that_are_not_the_banks(tmp_path, base, records, code):
+def test_the_builder_refuses_records_that_are_not_the_banks(
+    tmp_path, base, records, code
+):
     with pytest.raises(builder.BuildRefused, match=code):
         builder.build([_write(tmp_path, records())])
 
