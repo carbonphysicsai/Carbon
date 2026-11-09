@@ -14,7 +14,9 @@ S1  States. Truth and prediction each take one state. ``recovery`` (``threshold_
 S2  Band. A case whose truth peak is within ``band_u`` of ``threshold_c`` (|peak - threshold| <= band_u) is not
     resolvable: it is neither credited nor charged in the EVENT part.
 S3  EVENT. m = resolvable cases whose predicted state differs from the true state. S_event = clip(1 - m / m_anchor, 0, 1),
-    admitted only when m_anchor >= 1.
+    admitted only when m_anchor >= 1. m_anchor is the panel's count over the class's resolvable cases of the WHOLE exam
+    (R of them); a set graded on r of them compares RATES, clip(1 - (m / r) / (m_anchor / R), 0, 1), which is the spec's
+    formula exactly when the set is the whole exam (r = R), and gives the event part no evidence (None) when r = 0.
 S4  VALUE. T = truth-value cases, minus band cases the model calls empty; B = the cases of T the model gives a value.
     E = geometric mean over B of max(|err| / value_u, 1). S_value = clip(ln(A_c / E) / ln(A_c), 0, 1) x |B| / |T| (the
     LOG skill as the spec writes it, whatever the version's skill form: only the log form makes calling a case empty
@@ -144,8 +146,8 @@ def in_band(typed, peak_truth):
 
 
 def case_sums(typed, truth, prediction, peak_truth):
-    """One case's contribution ``(m, log_b, b, t)``: the EVENT miss count (S3), the sum over B of
-    ln max(|err| / value_u, 1), |B| and |T| (S4). ``truth`` and ``prediction`` are raw values (the prediction already
+    """One case's contribution ``(m, r, log_b, b, t)``: the EVENT miss count and resolvable count (S2, S3), the sum over B
+    of ln max(|err| / value_u, 1), |B| and |T| (S4). ``truth`` and ``prediction`` are raw values (the prediction already
     validated by `state`)."""
     t_state, t_value = truth_state(typed.kind, truth)
     p = state(typed.kind, prediction)
@@ -155,6 +157,7 @@ def case_sums(typed, truth, prediction, peak_truth):
     p_state, p_value = p
     band = in_band(typed, peak_truth)
     m = 1 if (not band and p_state != t_state) else 0
+    r = 0 if band else 1
     log_b, b, t = 0.0, 0, 0
     if t_state == VALUE:
         if p_state == VALUE:
@@ -162,14 +165,14 @@ def case_sums(typed, truth, prediction, peak_truth):
             log_b = math.log(max(abs(p_value - t_value) / typed.value_u, 1.0))
         elif not band:
             t = 1  # a resolvable truth value called empty: in T, not in B (the coverage factor charges it)
-    return (m, log_b, b, t)
+    return (m, r, log_b, b, t)
 
 
 def add(a, b):
     return tuple(x + y for x, y in zip(a, b, strict=True))
 
 
-ZERO = (0, 0.0, 0, 0)
+ZERO = (0, 0, 0.0, 0, 0)
 
 
 def cell_sums(typed, cases):
@@ -186,19 +189,27 @@ def log_skill(anchor, error):
     return min(1.0, max(0.0, math.log(anchor / error) / math.log(anchor)))
 
 
-def combine(typed, sums, *, m_anchor, value_anchor):
+def combine(typed, sums, *, m_anchor, value_anchor, r_anchor=None):
     """S3-S5 from pooled ``sums``: the cell score, or None when neither part is admitted (the cell is not scored).
 
-    ``m_anchor``: the panel's least miss count (S6; the EVENT part needs >= 1). ``value_anchor``: the VALUE part's A_c when
-    its registered admission tests PASS, else None.
+    ``m_anchor``: the panel's least miss count (S6; the EVENT part needs >= 1), over ``r_anchor`` resolvable cases (the
+    whole exam's; None = the same cases as ``sums``, the spec's single-pool form). ``value_anchor``: the VALUE part's A_c
+    when its registered admission tests PASS, else None.
     """
-    m, log_b, b, t = sums
+    m, r, log_b, b, t = sums
     _require(
         type(m_anchor) is int and m_anchor >= 0, "typed_output_m_anchor_must_be_a_count"
     )
     event = None
     if m_anchor >= 1:
-        event = min(1.0, max(0.0, 1.0 - m / m_anchor))
+        if r_anchor is None:
+            event = min(1.0, max(0.0, 1.0 - m / m_anchor))
+        elif r >= 1:
+            _require(
+                type(r_anchor) is int and r_anchor >= m_anchor,
+                "typed_output_r_anchor_must_cover_m_anchor",
+            )
+            event = min(1.0, max(0.0, 1.0 - (m / r) / (m_anchor / r_anchor)))
     value = None
     if value_anchor is not None and t >= 1:
         value = 0.0 if b == 0 else log_skill(value_anchor, math.exp(log_b / b)) * b / t

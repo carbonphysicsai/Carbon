@@ -252,6 +252,7 @@ def test_the_typed_cell_scores_by_the_rule_and_recomposes_from_sums():
     expected_sums = tso.cell_sums(REC, [(r[1], r[3], r[0]) for r in EDGE_ROWS])
     assert expected_sums == (
         1,
+        3,
         math.log(2.0),
         1,
         2,
@@ -273,7 +274,7 @@ def test_event_only_and_unscored_typed_cells():
     s, attached = attach(
         doc(m_anchor=2, tests={**PASS, "H": "FAIL"})
     )  # VALUE tests fail: EVENT part alone
-    assert attached.cells.typed_anchor(("fixture-F1", EDGE, "rec")) == (2, None)
+    assert attached.cells.typed_anchor(("fixture-F1", EDGE, "rec")) == (2, None, 3)
     peak_value = pps.skill(attached, 8.0, 1.0)
     got = pps.family_value(s, model(s), {}, PLAN, attached)
     assert got == pytest.approx((peak_value + (1 - 1 / 2)) / 2)
@@ -324,7 +325,10 @@ def test_an_unregistered_typed_output_on_a_target_refuses():
     other = SimpleNamespace(
         **{**vars(s[1]), "typed_truths": tuple({"other": r[1]} for r in EDGE_ROWS)}
     )
-    with pytest.raises(pps.PhysicsRefused, match="typed_output_not_registered"):
+    with pytest.raises(
+        pps.PhysicsRefused,
+        match="typed_outputs_must_be_exactly_the_registered_ones_on_every_target",
+    ):
         pps.attach_cells(rule(doc()), doc(), PLAN, ((s[0], other),))
 
 
@@ -376,3 +380,116 @@ def test_the_registration_parses_typed_outputs_with_no_default():
         pool_version.PoolConstantsNotRegistered, match="pool_constants_malformed"
     ):
         pool_version._physics(bad)
+
+
+# ---------------------------------------------------------------- review fixes
+
+
+def test_an_in_range_class_with_no_both_value_case_adds_nothing_to_the_gate():
+    s = specs()
+    no_value = [
+        target(
+            "i0",
+            False,
+            [
+                (80.0, "NEVER_REACHED", 80.0, "NEVER_REACHED"),
+                (80.0, "NEVER_REACHED", 80.0, 3.0),
+            ],
+        ),
+        s[1],
+    ]
+    attached = pps.attach_cells(rule(doc()), doc(), PLAN, (tuple(no_value),))
+    record = pps.accuracy_record(no_value, model(no_value), PLAN, attached)
+    in_rec = next(
+        r for r in record["rows"] if r["class"] == IN and r["output"] == "rec"
+    )
+    assert (in_rec["n"], in_rec["verdict"]) == (0, "PASS")
+    assert record["gate"]["passed"] is True
+
+
+def test_a_bad_typed_answer_fails_the_validity_gate_not_the_challenge():
+    s, attached = attach()
+    check = pps.answer_check(attached)
+    assert pps.answer_check(dataclasses.replace(attached, typed_outputs=None)) is None
+    assert pool_grader.agen_predictions_valid(s, model(s), check) is True
+    for bad in (None, "NOT_REACHED", -1.0, math.nan):
+        broken = [s[0], target("e0", True, [EDGE_ROWS[0][:3] + (bad,)] + EDGE_ROWS[1:])]
+        assert pool_grader.agen_predictions_valid(broken, model(broken), check) is False
+    missing = SimpleNamespace(
+        **{**vars(s[1]), "answers": tuple({"peak": r[2]} for r in EDGE_ROWS)}
+    )
+    assert (
+        pool_grader.agen_predictions_valid(
+            [s[0], missing], model([s[0], missing]), check
+        )
+        is False
+    )
+
+
+@pytest.mark.parametrize("token", ["NOT_REACHED", "never_reached", ""])
+def test_an_unreadable_truth_token_is_refused_when_the_exam_is_attached(token):
+    s = specs()
+    rows = [EDGE_ROWS[0], (90.0, token, 90.0, "NEVER_REACHED")] + EDGE_ROWS[2:]
+    with pytest.raises(pps.PhysicsRefused, match="typed_output_truth_unreadable"):
+        pps.attach_cells(rule(doc()), doc(), PLAN, ((s[0], target("e0", True, rows)),))
+
+
+def test_every_target_must_carry_the_registered_typed_outputs():
+    s = specs()
+    bare = SimpleNamespace(**{**vars(s[0]), "typed_truths": ()})
+    with pytest.raises(
+        pps.PhysicsRefused, match="typed_outputs_must_be_exactly_the_registered_ones"
+    ):
+        pps.attach_cells(rule(doc()), doc(), PLAN, ((bare, s[1]),))
+
+
+def test_the_event_anchor_count_is_over_the_whole_exam():
+    s = specs()
+    s2 = [target("i1", False, IN_ROWS), target("e1", True, EDGE_ROWS)]
+    plan = pool_grader.coverage_plan(
+        plan_document([IN, EDGE], {"i0": IN, "e0": EDGE, "i1": IN, "e1": EDGE})
+    )
+    document = doc()
+    document["cells"] = [dict(c, n=8) for c in document["cells"]]
+    attached = pps.attach_cells(rule(document), document, plan, (tuple(s), tuple(s2)))
+    assert attached.cells.typed_anchor(("fixture-F1", EDGE, "rec")) == (
+        2,
+        8.0,
+        6,
+    )  # 3 resolvable cases per set
+    # per set: m 1 of r 3 against the anchor's 2 of 6: the same rate, so the EVENT part is 0
+    cells = pps.target_cells(s[1], model(s), {}, plan, attached)
+    typed_value = tso.combine(
+        REC,
+        cells[("fixture-F1", EDGE, "rec")][0],
+        m_anchor=2,
+        value_anchor=8.0,
+        r_anchor=6,
+    )
+    assert typed_value == pytest.approx(
+        0.5 * 0.0 + 0.5 * (math.log(8 / 2) / math.log(8)) * 1 / 2
+    )
+
+
+def test_the_admission_writer_accepts_typed_cells_only_when_named(tmp_path, capsys):
+    sys.path.insert(0, str(HERE.parents[1] / "scripts" / "dev"))
+    import headroom_admission as writer
+
+    draft = tmp_path / "draft.json"
+    draft.write_text(json.dumps({k: v for k, v in doc().items() if k != "schema"}))
+    args = ["--h-min", "4", "--h-lo", "2.5", "--n-min", "1"]
+    refused = tmp_path / "refused.json"
+    assert (
+        writer.main(["write", "--draft", str(draft), "--out", str(refused), *args]) == 1
+    )
+    assert "headroom_admission_cell_malformed" in capsys.readouterr().out
+    out = tmp_path / "admission.json"
+    typed = ["--typed-output", "rec"]
+    assert (
+        writer.main(["write", "--draft", str(draft), "--out", str(out), *args, *typed])
+        == 0
+    )
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["admitted"] == 2 and printed["sha256"] == rule(doc()).cells_sha256
+    assert writer.main(["check", str(out), *args, *typed]) == 0
+    assert EDGE not in capsys.readouterr().out

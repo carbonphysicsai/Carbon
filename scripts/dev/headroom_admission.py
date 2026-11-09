@@ -10,6 +10,11 @@ and ``cells`` [{family, class, output, anchor_u, anchor_lo_u, n, tests: {H, C, O
 validates it exactly as the grader will (`pool_physics_score.headroom_admission`, under the thresholds given, which must
 be the version's registered ones), writes the canonical bytes owner-only, and prints the sha256 and COUNTS only (cells,
 admitted, not admitted). It never prints an anchor or a class name: the document is custody material.
+
+``--typed-output NAME`` (repeatable; BT 3.2 rule bt32-threshold-recovery-two-part.v1, the version's registered typed-state
+outputs): that output's cells carry ``m_anchor`` (the classical panel's least resolvable miss count, from its two-part
+predictions, `typed_state_output.panel_anchor`) and are admitted for their EVENT part when it is >= 1, as the grader reads
+them.
 """
 
 from __future__ import annotations
@@ -28,7 +33,10 @@ from carbon.scoring import pool_physics_score as pps
 
 
 def _rule(args):
-    return SimpleNamespace(h_min=args.h_min, h_lo=args.h_lo, n_min=args.n_min)
+    typed = tuple(SimpleNamespace(output=name) for name in args.typed_output or ())
+    return SimpleNamespace(
+        h_min=args.h_min, h_lo=args.h_lo, n_min=args.n_min, typed_outputs=typed or None
+    )
 
 
 def _summary(admission, raw):
@@ -54,6 +62,7 @@ def main(argv=None):
         command.add_argument("--h-min", required=True, type=float)
         command.add_argument("--h-lo", required=True, type=float)
         command.add_argument("--n-min", required=True, type=int)
+        command.add_argument("--typed-output", action="append")
     args = parser.parse_args(argv)
     try:
         source = args.draft if args.command == "write" else args.document

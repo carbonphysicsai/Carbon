@@ -557,6 +557,14 @@ def _valid(prediction, spec, rule):
     )
 
 
+def answer_check(rule):
+    """The A_gen validity check of a version registering typed outputs (`_valid`), for `pool_grader.agen_predictions_valid`;
+    None for every other version (the outputs-only check, unchanged)."""
+    if rule is None or not typed_map(rule):
+        return None
+    return lambda prediction, spec: _valid(prediction, spec, rule)
+
+
 def _typed_case(spec, index, prediction, typed):
     """``(truth, prediction, peak_truth)`` of one case of typed output ``typed`` (`typed_state_output.case_sums`)."""
     return (
@@ -600,9 +608,10 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
             cases.setdefault(plan.class_of(spec.target_id), []).append(spec)
         for spec in group:
             _require(
-                set(_typed_names(spec)) <= set(typed_map(rule)),
-                "typed_output_not_registered",
+                set(_typed_names(spec)) == set(typed_map(rule)),
+                "typed_outputs_must_be_exactly_the_registered_ones_on_every_target",
             )
+            _check_typed_truths(spec, rule)
             for typed_name in _typed_names(spec):
                 _require(
                     typed_map(rule)[typed_name].band_output in spec.outputs,
@@ -678,6 +687,13 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
         IN_RANGE in ranges.values() or extra is not None,
         "accuracy_gate_without_in_range_cases",
     )
+    if extra is not None:
+        _require(
+            not any(
+                set(truths) & set(typed_map(rule)) for _n, _i, truths, _u in extra.cases
+            ),
+            "in_range_cases_cannot_hold_a_typed_output",
+        )
     if headroom:
         # the admission's n is the class's reserved case count over the whole exam (a mismatch is a different exam)
         counts = collections.Counter()
@@ -689,7 +705,50 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
                     counts[cell["class"]] == cell["n"],
                     "headroom_admission_n_is_not_the_exams_case_count",
                 )
+    if headroom and cells.typed_anchors:
+        # the EVENT part's anchor count is over the class's resolvable cases of the WHOLE exam (R); a set compares rates
+        resolvable = collections.Counter()
+        for spec in all_specs:
+            name = plan.class_of(spec.target_id)
+            for output in _typed_names(spec):
+                typed = typed_map(rule)[output]
+                for i in spec.agen:
+                    if not _band(typed, spec.truths[i][typed.band_output]):
+                        resolvable[(name, output)] += 1
+        cells = replace(
+            cells,
+            typed_anchors=tuple(
+                (key, (m, a, resolvable[(key[1], key[2])]))
+                for key, (m, a) in cells.typed_anchors
+            ),
+        )
     return replace(rule, cells=cells, in_range=extra)
+
+
+def _band(typed, peak):
+    try:
+        return tso.in_band(typed, peak)
+    except tso.TypedOutputRefused as refused:
+        raise PhysicsRefused(refused.code) from None
+
+
+def _check_typed_truths(spec, rule):
+    """Every typed truth is a state of its output's kind and every band truth is finite: the reference's structure, checked
+    before any submission is graded (a fault is the Challenge's, never a candidate's).
+    """
+    typed = typed_map(rule)
+    if not typed:
+        return
+    for index, row in enumerate(spec.typed_truths):
+        for output, value in row.items():
+            _require(
+                tso.state(typed[output].kind, value) is not None,
+                "typed_output_truth_unreadable",
+            )
+            _require(
+                _is_number(spec.truths[index][typed[output].band_output]),
+                "typed_output_band_truth_not_finite",
+            )
 
 
 def _quantile(values, q):
@@ -853,6 +912,9 @@ def accuracy_record(specs, predict, plan, rule, case_predict=None):
                     and _is_number(threshold)
                     and value <= threshold
                 )
+                if output in typed_map(rule) and value is None:
+                    # S7: an empty B adds nothing to the gate (a state mismatch is charged in the EVENT part)
+                    ok = not invalid.get(name) and _is_number(threshold)
                 verdict = "PASS" if ok else "FAIL"
                 passed = passed and ok
             rows.append(
@@ -965,9 +1027,13 @@ def compose(contributions, rule=None):
     for key, (total, n) in sorted(pooled.items()):
         if n and key[2] in typed:
             # S3-S5: the two-part value; None (neither part admitted for this answer) leaves the cell unscored
-            m_anchor, value_anchor = rule.cells.typed_anchor(key)
+            m_anchor, value_anchor, r_anchor = rule.cells.typed_anchor(key)
             value = tso.combine(
-                typed[key[2]], total, m_anchor=m_anchor, value_anchor=value_anchor
+                typed[key[2]],
+                total,
+                m_anchor=m_anchor,
+                value_anchor=value_anchor,
+                r_anchor=r_anchor,
             )
             if value is not None:
                 families.setdefault(key[0], []).append(value)
@@ -993,7 +1059,10 @@ def family_value(specs, predict, scales, plan, rule):
     contributions = [target_cells(spec, predict, scales, plan, rule) for spec in specs]
     present = {key for c in contributions for key, (_t, n) in c.items() if n}
     _require(present == set(rule.cells.scored), "scoring_cell_without_cases_in_a_set")
-    return compose(contributions, rule)
+    value = compose(contributions, rule)
+    # only a typed cell can leave a graded set with no scored cell (neither part admitted for this answer)
+    _require(value is not None, "physics_value_has_no_scored_cell_in_a_set")
+    return value
 
 
 __all__ = [

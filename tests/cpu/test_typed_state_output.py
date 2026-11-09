@@ -53,7 +53,8 @@ RECOVERY_VALUES = {
 def test_check1_nine_state_pairs(truth, pred):
     t, p = RECOVERY_VALUES[truth], RECOVERY_VALUES[pred]
     assert tso.state("recovery", p) is not None  # no token ever fails the gate
-    m, log_b, b, t_count = tso.case_sums(REC, t, p, FAR)
+    m, r, log_b, b, t_count = tso.case_sums(REC, t, p, FAR)
+    assert r == 1  # resolvable
     assert m == (0 if truth == pred else 1)
     assert t_count == (1 if truth == "VALUE" else 0)
     assert b == (1 if truth == pred == "VALUE" else 0)
@@ -108,11 +109,12 @@ def test_check2_band_case_called_empty_leaves_t():
     in_band = tso.case_sums(REC, 10.0, "NEVER_REACHED", NEAR)
     assert in_t == (
         1,
+        1,
         0.0,
         0,
         1,
     )  # resolvable: an EVENT miss and in T (coverage charges it)
-    assert in_band == (0, 0.0, 0, 0)  # band: neither an event miss nor in T
+    assert in_band == (0, 0, 0.0, 0, 0)  # band: neither an event miss nor in T
     base = [(20.0, 22.0, FAR)]
     assert _value_score(base + [(10.0, "NEVER_REACHED", NEAR)]) == _value_score(base)
 
@@ -122,7 +124,7 @@ def test_check3_m_anchor_zero_scores_value_only():
     cases = [(10.0, 12.0, FAR), ("NEVER_REACHED", 5.0, FAR)]
     sums = tso.cell_sums(REC, cases)
     only_value = tso.combine(REC, sums, m_anchor=0, value_anchor=A_C)
-    _m, log_b, b, t = sums
+    _m, _r, log_b, b, t = sums
     assert only_value == tso.log_skill(A_C, math.exp(log_b / b)) * b / t
 
 
@@ -132,7 +134,7 @@ def test_check4_t_zero_scores_event_only():
         ("NOT_RECOVERED", "NEVER_REACHED", FAR),
     ]
     sums = tso.cell_sums(REC, cases)
-    assert sums[3] == 0
+    assert sums[4] == 0
     assert tso.combine(REC, sums, m_anchor=2, value_anchor=A_C) == 1.0 - 1 / 2
     assert (
         tso.combine(REC, sums, m_anchor=0, value_anchor=A_C) is None
@@ -211,7 +213,7 @@ def test_check7_public_text_is_the_spec_lines():
 @pytest.mark.parametrize("truth", ["NOT_REACHED", 30.0])
 @pytest.mark.parametrize("pred", ["NOT_REACHED", 31.0])
 def test_check8_first_crossing_four_pairs(truth, pred):
-    m, _log_b, b, t = tso.case_sums(FIRST, truth, pred, 99.0)
+    m, _r, _log_b, b, t = tso.case_sums(FIRST, truth, pred, 99.0)
     same = (truth == "NOT_REACHED") == (pred == "NOT_REACHED")
     assert m == (0 if same else 1)
     assert t == (1 if truth != "NOT_REACHED" else 0)
@@ -233,3 +235,26 @@ def test_check9_gate_reads_only_both_value_cases():
     assert (
         tso.cell_sums(REC, mismatch)[0] == 2
     )  # the mismatches are charged in the EVENT part instead
+
+
+# -- the anchor over the whole exam, a set graded on part of it (review finding 3) -------------------------------------
+def test_event_part_compares_miss_rates_when_a_set_is_part_of_the_exam():
+    one_miss = tso.cell_sums(
+        REC, [(10.0, "NEVER_REACHED", FAR), (20.0, 20.0, FAR)]
+    )  # m 1, r 2
+    # the whole exam is this set (r = R): the spec's count form
+    assert tso.combine(
+        REC, one_miss, m_anchor=2, value_anchor=None, r_anchor=2
+    ) == pytest.approx(1 - 1 / 2)
+    assert tso.combine(REC, one_miss, m_anchor=2, value_anchor=None) == pytest.approx(
+        1 - 1 / 2
+    )
+    # the anchor missed 4 of 8 resolvable cases over two sets; a model missing at the same RATE scores 0, not 1 - 1/K
+    assert tso.combine(
+        REC, one_miss, m_anchor=4, value_anchor=None, r_anchor=8
+    ) == pytest.approx(0.0)
+    # no resolvable case in this set: the EVENT part has no evidence here
+    band_only = tso.cell_sums(REC, [("NEVER_REACHED", "NOT_RECOVERED", NEAR)])
+    assert (
+        tso.combine(REC, band_only, m_anchor=4, value_anchor=None, r_anchor=8) is None
+    )
