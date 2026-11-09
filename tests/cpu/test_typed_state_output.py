@@ -282,52 +282,86 @@ def test_the_deck_none_maps_to_never_reached_for_the_recovery_kind_only():
         tso.truth_from_deck("peak", None)
 
 
-# -- the raw-row codes (Validator-BT adapter ruling (B), BT32_ADAPTER_RULINGS_20261109 fbc9534e) ------------------------------------
-def test_the_raw_codes_decode_exactly_and_nothing_else_does():
-    assert tso.decode_raw("recovery", -1.0) == "NEVER_REACHED"
-    assert tso.decode_raw("recovery", -2) == "NOT_RECOVERED"
-    assert tso.decode_raw("first_crossing", -1.0) == "NOT_REACHED"
-    assert tso.decode_raw("recovery", 12.5) == 12.5
-    zero = tso.decode_raw("first_crossing", -0.0)
-    assert zero == 0.0 and math.copysign(1.0, zero) == 1.0  # -0.0 is the value 0
-    for kind, bad in (
-        ("recovery", -0.98),
-        ("recovery", -1.0000001),
-        ("recovery", -3.0),
-        ("first_crossing", -2.0),
-        ("first_crossing", -0.5),
-        ("recovery", math.nan),
-        ("recovery", math.inf),
-        ("first_crossing", -math.inf),
-        ("recovery", True),
-        (
-            "recovery",
-            "NEVER_REACHED",
-        ),  # a raw row is numbers: a word is not a raw answer
-        ("recovery", None),
-    ):
-        assert tso.decode_raw(kind, bad) is None, (kind, bad)
-    with pytest.raises(tso.TypedOutputRefused, match="typed_output_kind_unknown"):
-        tso.decode_raw("peak", -1.0)
+# -- the raw-row codes (Validator-BT adapter rulings rev 2, BT32_ADAPTER_RULINGS_20261109 ebc427fa, (B)) ------------------------------
+REC_COL, FIRST_COL = "threshold_recovery_s", "first_95c_crossing_s"
+
+
+def test_the_codes_table_is_keyed_by_the_registered_outputs():
+    assert set(tso.EMPTY_CODES) == {REC.output, FIRST.output} == {REC_COL, FIRST_COL}
+    assert set(tso.EMPTY_CODES[REC_COL]) == set(tso.KIND_TOKENS[REC.kind])
+    assert set(tso.EMPTY_CODES[FIRST_COL]) == set(tso.KIND_TOKENS[FIRST.kind])
+    with pytest.raises(tso.TypedOutputRefused, match="typed_output_has_no_codes"):
+        tso.decode("peak_top_c", -1.0)
+
+
+def test_a_negative_answer_reads_as_the_nearest_code():
+    for v in (-1.0, -0.93, -1.5, -1e-300, -1.4999):
+        assert tso.decode(REC_COL, v) == "NEVER_REACHED", v
+    for v in (-1.51, -7.0, -2.0, -1.5000001, -1e300):
+        assert tso.decode(REC_COL, v) == "NOT_RECOVERED", v
+    for v in (-1.0, -2.0, -0.01, -50.0):
+        assert tso.decode(FIRST_COL, v) == "NOT_REACHED", v
+    assert tso.decode(REC_COL, 12.5) == 12.5
+    zero = tso.decode(FIRST_COL, -0.0)
+    assert (
+        zero == 0.0 and math.copysign(1.0, zero) == 1.0
+    )  # -0.0 is the value 0, not a code
+    for bad in (math.nan, math.inf, -math.inf, True, "NEVER_REACHED", None):
+        assert tso.decode(REC_COL, bad) is None, bad
+        assert tso.decode(FIRST_COL, bad) is None, bad
 
 
 @pytest.mark.parametrize(
-    "typed, code, token",
+    "typed, column, raw, token",
     [
-        (REC, -1.0, "NEVER_REACHED"),
-        (REC, -2.0, "NOT_RECOVERED"),
-        (FIRST, -1.0, "NOT_REACHED"),
+        (REC, REC_COL, -1.0, "NEVER_REACHED"),
+        (REC, REC_COL, -0.93, "NEVER_REACHED"),
+        (REC, REC_COL, -1.5, "NEVER_REACHED"),
+        (REC, REC_COL, -1.51, "NOT_RECOVERED"),
+        (REC, REC_COL, -7.0, "NOT_RECOVERED"),
+        (FIRST, FIRST_COL, -1.0, "NOT_REACHED"),
+        (FIRST, FIRST_COL, -2.0, "NOT_REACHED"),
     ],
 )
-def test_a_code_scores_exactly_as_its_token(typed, code, token):
-    truths = [10.0, *tso.KIND_TOKENS[typed.kind]]
-    for truth in truths:
+def test_a_coded_answer_scores_exactly_as_its_token(typed, column, raw, token):
+    decoded = tso.decode(column, raw)
+    for truth in [10.0, *tso.KIND_TOKENS[typed.kind]]:
         for peak in (FAR, NEAR, 99.0):
-            assert tso.case_sums(
-                typed, truth, tso.decode_raw(typed.kind, code), peak
-            ) == tso.case_sums(typed, truth, token, peak)
+            assert tso.case_sums(typed, truth, decoded, peak) == tso.case_sums(
+                typed, truth, token, peak
+            )
+    # no gate change: the S7 ratios of a set answered with the code equal those answered with the token
+    cases = [
+        (10.0, 12.0, FAR),
+        (11.0, decoded, FAR),
+        ("NEVER_REACHED" if typed is REC else "NOT_REACHED", decoded, FAR),
+    ]
+    as_token = [(t, token if p is decoded else p, k) for t, p, k in cases]
+    assert tso.gate_ratios(typed, cases) == tso.gate_ratios(typed, as_token) == [1.0]
     # a code never enters B: with a value truth, the decoded code is in T only (an EVENT miss), never a VALUE error
     _m, _r, log_b, b, t = tso.case_sums(
-        typed, 10.0, tso.decode_raw(typed.kind, code), 99.0 if typed is FIRST else FAR
+        typed, 10.0, decoded, 99.0 if typed is FIRST else FAR
     )
     assert (log_b, b, t) == (0.0, 0, 1)
+
+
+def test_the_published_train_writes_the_exact_codes_and_they_read_back():
+    for column, codes in tso.EMPTY_CODES.items():
+        for token, code in codes.items():
+            assert (
+                tso.encode(column, token) == code and tso.decode(column, code) == token
+            )
+        assert (
+            tso.encode(column, 7.25) == 7.25
+            and tso.decode(column, tso.encode(column, 7.25)) == 7.25
+        )
+        assert math.copysign(1.0, tso.encode(column, -0.0)) == 1.0
+        for bad in (None, -1.0, math.nan, "OTHER", True):
+            with pytest.raises(
+                tso.TypedOutputRefused, match="typed_output_truth_unreadable"
+            ):
+                tso.encode(column, bad)
+    with pytest.raises(tso.TypedOutputRefused, match="typed_output_truth_unreadable"):
+        tso.encode(FIRST_COL, "NOT_RECOVERED")
+    # the deck's None goes through truth_from_deck first (recovery only), then encode
+    assert tso.encode(REC_COL, tso.truth_from_deck("recovery", None)) == -1.0

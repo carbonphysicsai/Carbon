@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from itertools import pairwise
 
 RULE_ID = "bt32-threshold-recovery-two-part.v1"
 VALUE = "VALUE"
@@ -60,13 +61,13 @@ PUBLIC_TEXT = (
 )
 
 
-#: The raw-row codes of the empty states (Carbon Validator-BT adapter ruling (B), BT32_ADAPTER_RULINGS_20261109 fbc9534e): a model's raw
-#: output row is numbers only, so in the two typed time columns, and ONLY there, these exact values stand for the tokens. Both outputs are
-#: times >= 0, so no code collides with a value. EXACT match, no tolerance: -0.98 is an invalid answer (snapping is the miner's job). The kit
-#: imports this table (one source); it maps its column names (threshold_recovery_s / first_95c_crossing_s) to these kinds.
+#: The raw-row codes of the empty states (Carbon Validator-BT adapter rulings rev 2, BT32_ADAPTER_RULINGS_20261109 ebc427fa, (B)): a
+#: model's raw output row is numbers only, so in the two typed time columns, and ONLY there, a negative number stands for a token. Keyed by the
+#: REGISTERED output names; {token: code}. Both outputs are times >= 0, so no code collides with a value. The published TRAIN writes exactly
+#: these codes (`encode`); a model's answer reads as the NEAREST code of its column (`decode`). ONE source: the kit imports this table.
 EMPTY_CODES = {
-    "recovery": {-1.0: "NEVER_REACHED", -2.0: "NOT_RECOVERED"},
-    "first_crossing": {-1.0: "NOT_REACHED"},
+    "threshold_recovery_s": {"NEVER_REACHED": -1.0, "NOT_RECOVERED": -2.0},
+    "first_95c_crossing_s": {"NOT_REACHED": -1.0},
 }
 
 
@@ -149,18 +150,37 @@ def truth_state(kind, value):
     return typed
 
 
-def decode_raw(kind, value):
-    """A model's RAW typed-column number as an answer `state` reads, BEFORE any scoring (ruling (B)): an exact code of the kind is its token;
-    a finite number >= 0 is the time (-0.0 is the value 0); anything else (another negative, -2 for first_crossing, NaN, inf, a bool, a
-    non-number) is None = an INVALID answer (the gate, as S1 / check 8). A code therefore never enters B, the VALUE error or the gate.
+def decode(output, value):
+    """A model's RAW number in a typed column as the answer `state` reads, BEFORE any scoring (rulings rev 2 (B) 2-5).
+    A finite number >= 0 is the time (-0.0 is the value 0.0). A finite negative is the NEAREST code of the column's `EMPTY_CODES`; a tie
+    goes to the code nearer 0, so threshold_recovery_s reads -1.5 <= v < 0 as NEVER_REACHED and v < -1.5 as NOT_RECOVERED, and
+    first_95c_crossing_s reads every v < 0 as NOT_REACHED. NaN, +/-inf, a bool or a non-number is None = an INVALID answer (the gate, S1 /
+    check 8). A negative therefore never reaches the scorer as a number: never B, the VALUE error or the gate ratios.
     """
-    _require(kind in EMPTY_CODES, "typed_output_kind_unknown")
+    _require(output in EMPTY_CODES, "typed_output_has_no_codes")
     if not _number(value):
         return None
     value = float(value)
     if value >= 0:
         return abs(value)
-    return EMPTY_CODES[kind].get(value)
+    # nearest code, by the midpoints between neighbouring codes (exact for any magnitude; a midpoint goes to the code nearer 0)
+    ladder = sorted(EMPTY_CODES[output].items(), key=lambda item: -item[1])
+    for (token, code), (_next, lower) in pairwise(ladder):
+        if value >= (code + lower) / 2:
+            return token
+    return ladder[-1][0]
+
+
+def encode(output, value):
+    """A typed truth (a time >= 0 or a token of the column) as the number the published TRAIN writes in its raw column: the token's EXACT
+    code (rev 2 (B) 4, 7), the time unchanged. Refuses anything `decode` would not read back to the same answer.
+    """
+    _require(output in EMPTY_CODES, "typed_output_has_no_codes")
+    if type(value) is str:
+        _require(value in EMPTY_CODES[output], "typed_output_truth_unreadable")
+        return EMPTY_CODES[output][value]
+    _require(_number(value) and value >= 0, "typed_output_truth_unreadable")
+    return abs(float(value))
 
 
 def truth_from_deck(kind, value):
