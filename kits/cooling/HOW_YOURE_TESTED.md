@@ -59,9 +59,11 @@ Gates come first: a failed gate means no score, however good the rest.
   halving of the error is worth the same.
 - Carbon's classical panel: Gaussian process, polynomial ridge, RBF ridge,
   gradient boosting, nearest neighbours, kernel ridge with a prior, sparse
-  physics regression, a kernel fit on as much data as the kit can generate,
-  the engineer's shortcut (the published closed-form correlations and fin model), and the nearest TRAIN row. All
-  are trained on the public TRAIN set only.
+  physics regression, a kernel fit on TRAIN plus extra solver data from
+  inside the published limits (the kind of data the kit lets you make), the
+  engineer's shortcut (the published closed-form correlations and fin model),
+  and the nearest TRAIN row. The others are trained on the public TRAIN set
+  only.
 - A class is scored only if it passes Carbon's admission checks, chief among
   them that the best classical method still misses reference accuracy by a
   wide margin there. Classes that fail are not scored. How many classes are scored in each family: **HUMAN_INPUT**
@@ -124,8 +126,8 @@ are not shown, and the hidden sample rotates.
   first Cooling version with exam cases outside the training range. These
   cases count for the physics part, for the design menus and for the gates.
   Their extents are never published.
-- **The kinds Cooling 1.8 plans to test** include hot spots that are both
-  narrow and intense, intense hot spots, and fins that stop helping as they
+- **The kinds Cooling 1.8 plans to test** include narrow, intense hot spots,
+  very intense hot spots, and fins that stop helping as they
   get taller. A kind that is not ready when the version opens is not scored.
   Developing flow (where the flow has not settled yet near the inlet) is
   included only if Cooling 1.8's new training rows show where it starts and
