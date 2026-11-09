@@ -153,9 +153,22 @@ class AutoGrader:
             return True
         if self.pending():
             return True
+        if self._retries_due():
+            return True
         if self._crowns_due():
             return True
         return self._upkeep_due()
+
+    def _retries_due(self):
+        """Whether an automatic retry (R39) is due on this idle door: without it a quiet door never runs the round
+        that applies it. Never raises (doubt waits for the next round with other work).
+        """
+        from . import auto_retry
+
+        try:
+            return bool(auto_retry.due(self.root, idle=True))
+        except Exception:  # noqa: BLE001
+            return False
 
     def chain_degraded(self):
         """Whether this door has no fresh chain snapshot now (the intake's window: ``latest()`` is None past its age
@@ -247,8 +260,10 @@ class AutoGrader:
         finally:
             self.activity = None
         self._resume_paused_crowns()
-        self._apply_due_retries()
-        for submission_id in self.pending():
+        pending = self.pending()
+        if self._apply_due_retries(idle=not pending):
+            pending = self.pending()  # a retry handed back is graded in this round
+        for submission_id in pending:
             copy = self._copy_decision(submission_id)
             if copy is not None:
                 decision, first = copy
@@ -566,18 +581,19 @@ class AutoGrader:
             return "retry_scheduled"
         return "slot_returned" if auto_retry.retryable(code) else "resubmit_after_fix"
 
-    def _apply_due_retries(self):
+    def _apply_due_retries(self, *, idle):
         """Hand each due automatic retry back to the grader (`auto_retry.apply_due`): on an idle tick (or overdue),
-        never while the door drains. Never raises."""
+        never while the door drains. True when one was handed back (the round re-lists its tasks once). Never
+        raises."""
         from . import auto_retry
 
         try:
             draining = getattr(self.intake, "draining", None)
             draining = bool(draining()) if callable(draining) else False
-            idle = not list(self.pending())
-            auto_retry.apply_due(self.root, draining=draining, idle=idle)
+            results = auto_retry.apply_due(self.root, draining=draining, idle=idle)
         except Exception:  # noqa: BLE001
-            return
+            return False
+        return any(refused is None for _task, refused in results)
 
     def _give_back(self, submission_id):
         from .exam_cap import ExamCap

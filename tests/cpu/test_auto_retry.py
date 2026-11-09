@@ -5,7 +5,7 @@ Claims:
 1. Only a transient Carbon code is retried: never a version-wide gap, a duplicate or an untyped value.
 2. One retry per task for life, persisted (the schedule log and any ledger re-queue), spaced, idle-first, never while
    the door drains; applied through infra_requeue's own criteria (auto: no incident cause filter), reusing its row;
-   a refused retry writes an alert line.
+   a refused retry writes an alert line; a due retry makes an idle door run its round.
 3. The real auto-grader writes the next step on every FAILED marker and re-grades the task itself, once.
 4. A COUNTED slot is released only when the pool store was read and holds no evaluation (a missing or unreadable
    store refuses), no Ladder document, exactly one COUNTED row and a scored status; anything else keeps the slot
@@ -174,6 +174,33 @@ def test_the_real_grader_writes_the_next_step_and_regrades_once(tmp_path, monkey
     assert attempts == [A, A]
     assert "next_step" not in grader.marker(A)
     assert len(_rows(ledger, A)) == 1
+
+
+def test_a_quiet_door_runs_the_round_that_applies_a_due_retry(tmp_path, monkeypatch):
+    """has_work sees a due retry: without it a door with nothing else to do never takes the round that applies it."""
+    from carbon.challenge_validator import auto_grade
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    root, ledger = _root(tmp_path)
+    _failed(root, ledger, A, cause="x")
+    (root / "auto-grade" / "markers" / (A + ".json")).unlink()
+    attempts = []
+
+    def retain(task):
+        attempts.append(task)
+        if len(attempts) == 1:
+            raise RetentionUnavailable("inference_pair_incomplete")
+        return {"entry_id": "sha256:" + "1" * 64}
+
+    monkeypatch.setattr(auto_retry, "RETRY_SECONDS", 0)
+    grader = auto_grade.AutoGrader(_intake(ledger, retain), root)
+    assert grader.run_once() == (A, "FAILED")
+    for name in ("_stranded_due", "_crowns_due", "_upkeep_due"):
+        monkeypatch.setattr(auto_grade.AutoGrader, name, lambda self: False)
+    assert grader.pending() == []
+    assert grader.has_work() is True
+    assert grader.run_once() == (A, "GRADED")
+    assert grader.has_work() is False  # applied once: nothing due any more
 
 
 def test_a_second_infra_failure_gets_no_second_retry(tmp_path, monkeypatch):
