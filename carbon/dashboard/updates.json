@@ -28,7 +28,7 @@
      "changes": [
       "The version planned for the mainnet launch.",
       "The first Cooling version with exam cases outside the training range. How far they reach is not published.",
-      "The physics part of the score is planned to cover narrow, intense hot spots, very intense hot spots, and fins that stop helping as they get taller. Developing flow is included only if the new training rows show where it starts and the exam region reaches it (Carbon's estimate: about one in three); otherwise it moves to Cooling 1.9.",
+      "The physics part of the score is planned to cover narrow, intense hot spots, very intense hot spots, and fins that stop helping as they get taller. Developing flow (flow still settling near the inlet) is planned for Cooling 1.9.",
       "A data kit lets you make your own training data with Carbon's solver and check it against Carbon's reference cases before you train on it.",
       "After launch, Cooling 1.9 is planned to test more kinds of generalization.",
       "Why it's valuable: cold plates for high-power chips are sized with slow conjugate heat-transfer solves, and the hottest spot on the die sets the limit. A fast model of that peak lets engineers try many channel and fin layouts in minutes.",
