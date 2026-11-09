@@ -109,13 +109,14 @@ def test_parser_writes_the_train_format(tmp_path, frozen):
     assert kit.read_npz(io.BytesIO(raw))["targets"][0] == (2, 240)
 
 
-def test_the_parser_refuses_until_the_1_8_train_is_frozen(tmp_path):
-    _cases, _rows, path = _fixture(tmp_path)
-    if physical_public_train.EXTENDED[kit.TRAIN_NAME]["provenance_sha256"] is None:
-        with pytest.raises(
-            kit.KitError, match="published with its TRAIN at the freeze"
-        ):
-            kit.parse(path)
+def test_the_kits_interface_is_carbons_1_8_train_interface(tmp_path):
+    interface = kit.numeric_interface()
+    assert interface == physical_public_train.motor18_interface_document()
+    assert interface["target_slices"] == INTERFACE_18["target_slices"]
+    # and the real interface parses a real-layout record set, no stand-in needed
+    _cases, rows, path = _fixture(tmp_path)
+    _raw, provenance = kit.parse(path)
+    assert provenance["numeric_interface"] == interface
 
 
 def test_the_parser_refuses_a_record_without_the_flux_linkage(tmp_path, frozen):

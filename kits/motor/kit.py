@@ -64,9 +64,8 @@ RECORD_SCHEMA = "carbon.motor.reference-record.v1"
 PROVENANCE_SCHEMA = "carbon.miner-kit-train.provenance.v1"
 SCOPE = "MINER_GENERATED_PRACTICE_ONLY"
 #: The public TRAIN whose numeric layout the parser writes: Motor 1.8's (the
-#: torque, then the phase flux linkages A, B, C). Its provenance is public and
-#: pinned by sha256 when that TRAIN is frozen; its numeric interface is copied,
-#: never edited, and until then the parser refuses.
+#: torque, then the phase flux linkages A, B, C), by Carbon's own interface
+#: document of it (`numeric_interface`).
 TRAIN_NAME = "motor-dev-train-1p8-v1"
 TRAIN_PROVENANCE = (
     ROOT / "carbon" / "challenge_kit" / "data" / f"{TRAIN_NAME}.provenance.json"
@@ -445,20 +444,13 @@ def _widened(bounds):
 
 
 def numeric_interface():
-    """Carbon's public Motor 1.8 TRAIN numeric interface (copied verbatim), only
-    from the provenance bytes pinned at that TRAIN's freeze."""
+    """Carbon's public Motor 1.8 TRAIN numeric interface, from Carbon's own
+    document of it (`physical_public_train.motor18_interface_document`, the
+    interface the 1.8 TRAIN's provenance records): torque, then the phase
+    flux linkages A, B, C, never edited here."""
     from carbon.challenge_kit import physical_public_train
 
-    pinned = physical_public_train.EXTENDED[TRAIN_NAME]["provenance_sha256"]
-    if pinned is None or not TRAIN_PROVENANCE.exists():
-        raise KitError(
-            "Motor 1.8's TRAIN interface is published with its TRAIN at the "
-            "freeze; until then the kit cannot write a 1.8 TRAIN"
-        )
-    raw = TRAIN_PROVENANCE.read_bytes()
-    if hashlib.sha256(raw).hexdigest() != pinned:
-        raise KitError("the Motor 1.8 TRAIN provenance differs from its pin")
-    return json.loads(raw)["numeric_interface"]
+    return physical_public_train.motor18_interface_document()
 
 
 def target_layout(interface):

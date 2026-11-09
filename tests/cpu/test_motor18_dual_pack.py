@@ -157,7 +157,20 @@ def test_1_8_reads_its_own_train_never_train_150():
     from carbon.challenge_kit import physical_public_train as ppt
 
     assert motor18_dual_pack.TRAIN != "motor-dev-train-150-v1"
-    assert motor18_dual_pack.TRAIN in ppt.EXTENDED
+    assert motor18_dual_pack.TRAIN in ppt.FRESH_LAMBDA
+
+
+def test_the_row_is_carbons_1_8_train_interface():
+    """The grade's row (`carbon.motor.row18`) and the 1.8 TRAIN interface (H-a) are ONE layout, in the same order."""
+    from carbon.challenge_kit import physical_public_train as ppt
+    from carbon.motor import row18
+
+    slices = ppt.motor18_interface_document()["target_slices"]
+    assert list(slices) == list(row18.ROW)
+    assert [tuple(v) for v in slices.values()] == [
+        (k * 60, (k + 1) * 60) for k in range(len(row18.ROW))
+    ]
+    assert row18.WIDTH == 240
 
 
 def test_pool_adapters_py_is_untouched_and_still_a_live_producer_file():
