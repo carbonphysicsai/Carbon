@@ -596,4 +596,6 @@ def spec_from_source(document, binding):
         # a new version's engineer's-shortcut zero (the custody shortcut run's anchor); absent = the median
         zero=document.get("zero"),
         near_limit=document.get("near_limit"),
+        # a typed-state version's typed truths (`pool_grader.build_target`); absent = none, every spec unchanged
+        typed_truths=document.get("typed_truths"),
     )

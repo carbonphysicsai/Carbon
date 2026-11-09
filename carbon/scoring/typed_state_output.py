@@ -139,6 +139,20 @@ def truth_state(kind, value):
     return typed
 
 
+def truth_from_deck(kind, value):
+    """A BT 3.2 deck record's value of a typed output as a pool truth (Validator-BT's adapter condition (a), spec rev 3).
+    The deck writes ``threshold_recovery_s`` as a number, ``"NOT_RECOVERED"``, or None (the peak never crossed the
+    threshold), and ``first_95c_crossing_s`` as a number or ``"NOT_REACHED"``. Only the recovery kind maps None, to
+    ``"NEVER_REACHED"``; every other value passes unchanged and must already be a readable truth (`truth_state`), so a
+    None of the first-crossing kind, or anything else unreadable, is the reference's fault (refused), never mapped.
+    """
+    _require(kind in KIND_TOKENS, "typed_output_kind_unknown")
+    if value is None and kind == "recovery":
+        value = "NEVER_REACHED"
+    truth_state(kind, value)
+    return value
+
+
 def in_band(typed, peak_truth):
     """S2: True when the truth peak sits within ``band_u`` of the threshold (not resolvable)."""
     _require(_number(peak_truth), "typed_output_band_truth_not_finite")

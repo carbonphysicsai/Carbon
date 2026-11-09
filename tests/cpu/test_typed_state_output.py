@@ -258,3 +258,25 @@ def test_event_part_compares_miss_rates_when_a_set_is_part_of_the_exam():
     assert (
         tso.combine(REC, band_only, m_anchor=4, value_anchor=None, r_anchor=8) is None
     )
+
+
+# -- the deck's record as a pool truth (Validator-BT adapter condition (a), spec rev 3) ---------------------------------
+def test_the_deck_none_maps_to_never_reached_for_the_recovery_kind_only():
+    assert tso.truth_from_deck("recovery", None) == "NEVER_REACHED"
+    assert tso.truth_from_deck("recovery", "NOT_RECOVERED") == "NOT_RECOVERED"
+    assert tso.truth_from_deck("recovery", 12.5) == 12.5
+    assert tso.truth_from_deck("first_crossing", "NOT_REACHED") == "NOT_REACHED"
+    assert tso.truth_from_deck("first_crossing", 3.0) == 3.0
+    for kind, bad in (
+        ("first_crossing", None),
+        ("first_crossing", "NEVER_REACHED"),
+        ("recovery", "NOT_REACHED"),
+        ("recovery", -1.0),
+        ("recovery", float("nan")),
+    ):
+        with pytest.raises(
+            tso.TypedOutputRefused, match="typed_output_truth_unreadable"
+        ):
+            tso.truth_from_deck(kind, bad)
+    with pytest.raises(tso.TypedOutputRefused, match="typed_output_kind_unknown"):
+        tso.truth_from_deck("peak", None)
