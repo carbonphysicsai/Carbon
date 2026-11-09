@@ -214,3 +214,22 @@ def test_the_1_8_dispatch_registers_the_240_wide_dev_bank(registry):
         pool_version._BINDINGS.clear()
         pool_version._BINDINGS.update(saved)
     assert registry[("electric-motor-magnetics", "1.8")] == (m.bank, m.adapter)
+
+
+def test_the_real_1_8_dev_bank_is_240_wide_with_its_own_torque():
+    """The pinned file (built from M2 s07 / s08) on the real 1.6 bank: every reference row whole and finite, its torque
+    the bank's own, every probe all-NaN; nothing else of the bank changes."""
+    base = m._base_bank()
+    wide = m.bank("1.8")
+    present = np.array(base["reference_present"])
+    assert wide["references"].shape == (len(base["case_ids"]), 240)
+    assert present.sum() == 78
+    assert np.isfinite(wide["references"][present]).all()
+    assert np.isnan(wide["references"][~present]).all()
+    assert np.array_equal(wide["references"][present, :60], base["references"][present])
+    for key in ("case_ids", "cohorts", "reference_records", "reference_present"):
+        assert wide[key] == base[key]
+    assert np.array_equal(wide["inputs"], base["inputs"])
+    document = json.loads(m.LINKAGE_FILE.read_bytes())
+    assert document["torque_check"]["byte_equal"] == 78
+    assert document["torque_check"]["host_order_rounding"] == []

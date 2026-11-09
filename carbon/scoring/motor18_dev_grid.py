@@ -1,4 +1,4 @@
-"""Motor 1.8's development bank and development adapter (mc-exam-B's H-a, option (a), 7 Nov 21:30): one width, one meaning.
+"""Motor 1.8's development bank and adapter (mc-exam-B's H-a, option (a), 7 Nov 21:30): one width, one meaning.
 
 Motor 1.8's model row is 240 wide (`carbon.motor.row18`: torque, then the phase flux linkages A, B, C). The graph route,
 the served material (`physical_material`: ``expected_output_shape`` = the bank's reference shape) and the public fixture
@@ -34,8 +34,9 @@ LINKAGE_FILE = (
     / "data"
     / "motor-dev-bank-1p8-linkage-v1.json"
 )
-#: The pinned sha256 of `LINKAGE_FILE` (set when it is built from the M2 s07 / s08 records); None refuses.
-LINKAGE_SHA256 = None
+#: The pinned sha256 of `LINKAGE_FILE`, built from the M2 s07 / s08 records (TL-2B 8 Nov 22:19: s07 b03dfc37,
+#: s08 f5cea772; 78 cases, torque byte-equal 78 / 78); None refuses.
+LINKAGE_SHA256 = "39869b279844e4628b656087f6b96605205ef609de069f6498d6be46b0f930d5"
 PHASES = ("A", "B", "C")
 
 
