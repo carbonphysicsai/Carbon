@@ -129,11 +129,8 @@ are not shown, and the hidden sample rotates.
 - **The kinds Cooling 1.8 plans to test** include narrow, intense hot spots,
   very intense hot spots, and fins that stop helping as they
   get taller. A kind that is not ready when the version opens is not scored.
-  Developing flow (where the flow has not settled yet near the inlet) is
-  included only if Cooling 1.8's new training rows show where it starts and
-  the exam's registered region reaches it; Carbon's current estimate is about
-  one in three. If not, developing flow moves to Cooling 1.9. This page says
-  which before the version opens.
+  Developing flow (flow still settling near the inlet) is planned for
+  Cooling 1.9.
 - **A model has to generalise.** A fit of any one dataset, yours included,
   is tested where that dataset does not reach.
 
