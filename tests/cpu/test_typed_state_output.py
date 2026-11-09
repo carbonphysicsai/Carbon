@@ -1,4 +1,4 @@
-"""Rule bt32-threshold-recovery-two-part.v1 (spec line rev 2, sha256 d0f6fc57...): the Validator's build checks 1-10.
+"""Rule bt32-threshold-recovery-two-part.v1 (spec line rev 3, sha256 8d812755...): the Validator's build checks 1-10.
 
 Synthetic values only: the threshold / U / weight below are fixtures, never the registered 3.2 numbers (HUMAN_INPUT).
 """

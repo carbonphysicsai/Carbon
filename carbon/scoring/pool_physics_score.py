@@ -462,8 +462,14 @@ def headroom_admission(document, rule):
                 "headroom_verdict_contradicts_the_thresholds",
             )
         if is_typed:
-            # S3 / S4: the EVENT part needs the panel to miscall >= 1 resolvable case; the VALUE part the five tests
-            event_ok = cell["m_anchor"] >= 1
+            # S3 / S4: the EVENT part needs the panel to miscall >= 1 resolvable case, a valid reference (V) and
+            # n >= n_min (spec rev 3: an invalid reference makes the true states as untrustworthy as the values);
+            # the VALUE part needs the five tests
+            event_ok = (
+                cell["m_anchor"] >= 1
+                and cell["tests"]["V"] == "PASS"
+                and cell["n"] >= rule.n_min
+            )
             if value_ok or event_ok:
                 admitted.append(key)
                 typed_anchors.append(

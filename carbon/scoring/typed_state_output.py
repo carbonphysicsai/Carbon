@@ -2,7 +2,7 @@
 ``bt32-threshold-recovery-two-part.v1``, Burst Thermal 3.2 only).
 
 Basis: the Lead's decision under the owner's delegation (8 Nov 2026, E1 two-part, event weight 1/2) and Carbon
-Validator-BT's spec line ``BT32_THRESHOLD_RECOVERY_SPEC_LINE.md`` rev 2 (sha256 d0f6fc57...), sections S1-S7. This module
+Validator-BT's spec line ``BT32_THRESHOLD_RECOVERY_SPEC_LINE.md`` rev 3 (sha256 8d812755...), sections S1-S7. This module
 holds the rule's arithmetic and nothing Challenge-specific beyond the two output KINDS the spec names. Every number
 (the threshold, the event weight, the band U, the value U) is the version's registration (`TypedOutput`); none has a
 default, and a missing one refuses (HUMAN_INPUT until the U panel is receipted).
@@ -14,7 +14,7 @@ S1  States. Truth and prediction each take one state. ``recovery`` (``threshold_
 S2  Band. A case whose truth peak is within ``band_u`` of ``threshold_c`` (|peak - threshold| <= band_u) is not
     resolvable: it is neither credited nor charged in the EVENT part.
 S3  EVENT. m = resolvable cases whose predicted state differs from the true state. S_event = clip(1 - m / m_anchor, 0, 1),
-    admitted only when m_anchor >= 1. m_anchor is the panel's count over the class's resolvable cases of the WHOLE exam
+    admitted only when m_anchor >= 1, the cell's (V) PASS and n >= n_min (rev 3). m_anchor is the panel's count over the class's resolvable cases of the WHOLE exam
     (R of them); a set graded on r of them compares RATES, clip(1 - (m / r) / (m_anchor / R), 0, 1), which is the spec's
     formula exactly when the set is the whole exam (r = R), and gives the event part no evidence (None) when r = 0.
 S4  VALUE. T = truth-value cases, minus band cases the model calls empty; B = the cases of T the model gives a value.

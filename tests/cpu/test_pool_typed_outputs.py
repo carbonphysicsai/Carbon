@@ -1,4 +1,4 @@
-"""Typed-state outputs on the pool path (BT 3.2 rule bt32-threshold-recovery-two-part.v1, spec line rev 2 d0f6fc57).
+"""Typed-state outputs on the pool path (BT 3.2 rule bt32-threshold-recovery-two-part.v1, spec line rev 3 8d812755).
 
 Claims:
 1. A target without typed truths, a rule without typed outputs and an admission cell without ``m_anchor`` are read
@@ -493,3 +493,22 @@ def test_the_admission_writer_accepts_typed_cells_only_when_named(tmp_path, caps
     assert printed["admitted"] == 2 and printed["sha256"] == rule(doc()).cells_sha256
     assert writer.main(["check", str(out), *args, *typed]) == 0
     assert EDGE not in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------- spec rev 3, check 11
+
+
+def test_check_11_the_event_part_needs_a_valid_reference_and_n_min():
+    base = rule(doc())
+    key = ("fixture-F1", EDGE, "rec")
+    # control: (V) PASS and n >= n_min, the VALUE tests failed: the EVENT part alone is admitted
+    ok = pps.headroom_admission(doc(m_anchor=2, tests={**PASS, "H": "FAIL"}), base)
+    assert key in ok.scored and ok.typed_anchor(key) == (2, None)
+    # (V) FAIL: not admitted at all, whatever m_anchor is (the VALUE part's five tests fail too)
+    v_fail = pps.headroom_admission(doc(m_anchor=2, tests={**PASS, "V": "FAIL"}), base)
+    assert key in v_fail.not_admitted and key not in v_fail.scored
+    # n < n_min: not admitted at all
+    thin = doc(m_anchor=2, tests={**PASS, "H": "FAIL"})
+    thin["cells"][-1]["n"] = 1
+    thin_admission = pps.headroom_admission(thin, dataclasses.replace(base, n_min=2))
+    assert key in thin_admission.not_admitted and key not in thin_admission.scored
