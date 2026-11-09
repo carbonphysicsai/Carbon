@@ -135,7 +135,8 @@ class AutoGrader:
     def oldest_pending_ns(self):
         """When this door's OLDEST ungraded submission was accepted (ns), or None with none: this door's place in the
         host's one waiting list for the grading lock (slow-tail F1a, `direct_intake._WorkLock`), for its rebuild and
-        its grade rounds alike, so the door holding the oldest submission on the host goes next."""
+        its grade rounds alike, so the door holding the oldest submission on the host goes next.
+        """
         adapter = getattr(self.intake, "adapter", None)
         ledger = getattr(adapter, "ledger", None)
         if not hasattr(ledger, "first_outcome_ns"):

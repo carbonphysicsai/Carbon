@@ -44,7 +44,9 @@ def test_the_ledger_walks_tasks_oldest_submission_first(tmp_path):
     ledger = AttemptLedger(tmp_path / "a.sqlite3", clock=lambda: next(clock))
     for sid in NEWEST_FIRST_BY_ID[:3]:
         _outcome(ledger, sid)
-    _outcome(ledger, NEWEST_FIRST_BY_ID[0])  # a later OUTCOME row of the oldest task keeps its first place
+    _outcome(
+        ledger, NEWEST_FIRST_BY_ID[0]
+    )  # a later OUTCOME row of the oldest task keeps its first place
     # an intent with no OUTCOME yet (an interrupted start) comes after, by id
     ledger.record_recipe_task_intent(CONTRACT, NEWEST_FIRST_BY_ID[4], HOTKEYS[1], "r")
     ledger.record_recipe_task_intent(CONTRACT, NEWEST_FIRST_BY_ID[3], HOTKEYS[1], "r")
@@ -163,9 +165,13 @@ def test_a_round_holding_a_newer_submission_waits_for_the_older_door(host, kind)
     time.sleep(8 * POLL)
     assert not entered.is_set()
     # its own place in the list is its oldest submission's time, not the moment it began to wait
-    mine = [p for p in (host / direct_intake.WAITING_DIR).iterdir() if p.name != "4001-11"]
+    mine = [
+        p for p in (host / direct_intake.WAITING_DIR).iterdir() if p.name != "4001-11"
+    ]
     assert [p.read_text() for p in mine] == ["2000"]
-    (host / direct_intake.WAITING_DIR / "4001-11").unlink()  # the older door got its turn
+    (
+        host / direct_intake.WAITING_DIR / "4001-11"
+    ).unlink()  # the older door got its turn
     assert entered.wait(2)
     release.set()
     thread.join(2)
@@ -195,7 +201,10 @@ def test_a_failing_place_reader_only_loses_the_place(host):
     release.set()
     thread.join(2)
     for odd in (-1, 1.5, "1000", True):
-        assert direct_intake._Taking(work, "advance", None, lambda v=odd: v)._place() is None
+        assert (
+            direct_intake._Taking(work, "advance", None, lambda v=odd: v)._place()
+            is None
+        )
 
 
 def test_the_loops_pass_the_graders_place(monkeypatch):
@@ -220,4 +229,7 @@ def test_the_loops_pass_the_graders_place(monkeypatch):
     direct_intake._grade_loop(grader, stop, Work())
     stop.clear()
     direct_intake._advance_loop(None, stop, Work(), grader.oldest_pending_ns)
-    assert seen == [("grade", grader.oldest_pending_ns), ("advance", grader.oldest_pending_ns)]
+    assert seen == [
+        ("grade", grader.oldest_pending_ns),
+        ("advance", grader.oldest_pending_ns),
+    ]

@@ -1274,7 +1274,8 @@ class _Taking:
             return None
         try:
             place = self.since()
-        except Exception as failure:  # noqa: BLE001 - a place is an optimisation, never a reason to stop work
+        # a place is an optimisation, never a reason to stop work
+        except Exception as failure:  # noqa: BLE001
             log("direct_work_place_unavailable", type=type(failure).__name__)
             return None
         return place if type(place) is int and place >= 0 else None

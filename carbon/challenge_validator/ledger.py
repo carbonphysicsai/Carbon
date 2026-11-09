@@ -389,7 +389,8 @@ class AttemptLedger:
         Lead / TE-B 8 Nov): by each task's first OUTCOME row (its accepted submission), then any intent-only task
         (an interrupted start, no OUTCOME yet) by id. The rebuild pass (`LeanRecipeAdapter.advance`) and the grader
         (`AutoGrader.pending`) both walk this order, so no newer submission is rebuilt or graded before an older one
-        of the same door. (It was by id, random hex, so an older task could be jumped again and again.)"""
+        of the same door. (It was by id, random hex, so an older task could be jumped again and again.)
+        """
         with self._db() as db:
             rows = db.execute(
                 "SELECT submission_id FROM ("
