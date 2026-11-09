@@ -385,17 +385,32 @@ class AttemptLedger:
         return None if row is None else bytes(row[0])
 
     def submitted_outcomes(self, contract_digest):
-        """Authenticated task IDs for one adapter's restart-safe advance pass."""
+        """Authenticated task IDs for one adapter's restart-safe advance pass, OLDEST SUBMISSION FIRST (slow-tail F0,
+        Lead / TE-B 8 Nov): by each task's first OUTCOME row (its accepted submission), then any intent-only task
+        (an interrupted start, no OUTCOME yet) by id. The rebuild pass (`LeanRecipeAdapter.advance`) and the grader
+        (`AutoGrader.pending`) both walk this order, so no newer submission is rebuilt or graded before an older one
+        of the same door. (It was by id, random hex, so an older task could be jumped again and again.)"""
         with self._db() as db:
             rows = db.execute(
-                "SELECT DISTINCT submission_id FROM ("
-                "SELECT submission_id FROM attempts WHERE kind='OUTCOME' "
-                "AND contract_digest=? AND submission_id IS NOT NULL "
-                "UNION ALL SELECT submission_id FROM recipe_task_intents "
-                "WHERE contract_digest=? ) ORDER BY submission_id",
+                "SELECT submission_id FROM ("
+                "SELECT submission_id, MIN(seq) AS first FROM attempts WHERE kind='OUTCOME' "
+                "AND contract_digest=? AND submission_id IS NOT NULL GROUP BY submission_id "
+                "UNION ALL SELECT submission_id, NULL FROM recipe_task_intents "
+                "WHERE contract_digest=? ) GROUP BY submission_id "
+                "ORDER BY MIN(first) IS NULL, MIN(first), submission_id",
                 (contract_digest, contract_digest),
             ).fetchall()
         return tuple(row[0] for row in rows)
+
+    def first_outcome_ns(self, contract_digest, submission_id):
+        """When the task's submission was accepted (its first OUTCOME row's ``at_ns``), or None."""
+        with self._db() as db:
+            row = db.execute(
+                "SELECT at_ns FROM attempts WHERE kind='OUTCOME' AND contract_digest=? AND submission_id=? "
+                "ORDER BY seq LIMIT 1",
+                (contract_digest, submission_id),
+            ).fetchone()
+        return None if row is None else int(row[0])
 
     def operator_refusals(self):
         with self._db() as db:
