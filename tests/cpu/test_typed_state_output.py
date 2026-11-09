@@ -280,3 +280,54 @@ def test_the_deck_none_maps_to_never_reached_for_the_recovery_kind_only():
             tso.truth_from_deck(kind, bad)
     with pytest.raises(tso.TypedOutputRefused, match="typed_output_kind_unknown"):
         tso.truth_from_deck("peak", None)
+
+
+# -- the raw-row codes (Validator-BT adapter ruling (B), BT32_ADAPTER_RULINGS_20261109 fbc9534e) ------------------------------------
+def test_the_raw_codes_decode_exactly_and_nothing_else_does():
+    assert tso.decode_raw("recovery", -1.0) == "NEVER_REACHED"
+    assert tso.decode_raw("recovery", -2) == "NOT_RECOVERED"
+    assert tso.decode_raw("first_crossing", -1.0) == "NOT_REACHED"
+    assert tso.decode_raw("recovery", 12.5) == 12.5
+    zero = tso.decode_raw("first_crossing", -0.0)
+    assert zero == 0.0 and math.copysign(1.0, zero) == 1.0  # -0.0 is the value 0
+    for kind, bad in (
+        ("recovery", -0.98),
+        ("recovery", -1.0000001),
+        ("recovery", -3.0),
+        ("first_crossing", -2.0),
+        ("first_crossing", -0.5),
+        ("recovery", math.nan),
+        ("recovery", math.inf),
+        ("first_crossing", -math.inf),
+        ("recovery", True),
+        (
+            "recovery",
+            "NEVER_REACHED",
+        ),  # a raw row is numbers: a word is not a raw answer
+        ("recovery", None),
+    ):
+        assert tso.decode_raw(kind, bad) is None, (kind, bad)
+    with pytest.raises(tso.TypedOutputRefused, match="typed_output_kind_unknown"):
+        tso.decode_raw("peak", -1.0)
+
+
+@pytest.mark.parametrize(
+    "typed, code, token",
+    [
+        (REC, -1.0, "NEVER_REACHED"),
+        (REC, -2.0, "NOT_RECOVERED"),
+        (FIRST, -1.0, "NOT_REACHED"),
+    ],
+)
+def test_a_code_scores_exactly_as_its_token(typed, code, token):
+    truths = [10.0, *tso.KIND_TOKENS[typed.kind]]
+    for truth in truths:
+        for peak in (FAR, NEAR, 99.0):
+            assert tso.case_sums(
+                typed, truth, tso.decode_raw(typed.kind, code), peak
+            ) == tso.case_sums(typed, truth, token, peak)
+    # a code never enters B: with a value truth, the decoded code is in T only (an EVENT miss), never a VALUE error
+    _m, _r, log_b, b, t = tso.case_sums(
+        typed, 10.0, tso.decode_raw(typed.kind, code), 99.0 if typed is FIRST else FAR
+    )
+    assert (log_b, b, t) == (0.0, 0, 1)

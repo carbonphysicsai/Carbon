@@ -60,6 +60,16 @@ PUBLIC_TEXT = (
 )
 
 
+#: The raw-row codes of the empty states (Carbon Validator-BT adapter ruling (B), BT32_ADAPTER_RULINGS_20261109 fbc9534e): a model's raw
+#: output row is numbers only, so in the two typed time columns, and ONLY there, these exact values stand for the tokens. Both outputs are
+#: times >= 0, so no code collides with a value. EXACT match, no tolerance: -0.98 is an invalid answer (snapping is the miner's job). The kit
+#: imports this table (one source); it maps its column names (threshold_recovery_s / first_95c_crossing_s) to these kinds.
+EMPTY_CODES = {
+    "recovery": {-1.0: "NEVER_REACHED", -2.0: "NOT_RECOVERED"},
+    "first_crossing": {-1.0: "NOT_REACHED"},
+}
+
+
 class TypedOutputRefused(ValueError):
     """The registration or the reference cannot give a sound typed-output score: the Challenge's, never a candidate's."""
 
@@ -137,6 +147,20 @@ def truth_state(kind, value):
     typed = state(kind, value)
     _require(typed is not None, "typed_output_truth_unreadable")
     return typed
+
+
+def decode_raw(kind, value):
+    """A model's RAW typed-column number as an answer `state` reads, BEFORE any scoring (ruling (B)): an exact code of the kind is its token;
+    a finite number >= 0 is the time (-0.0 is the value 0); anything else (another negative, -2 for first_crossing, NaN, inf, a bool, a
+    non-number) is None = an INVALID answer (the gate, as S1 / check 8). A code therefore never enters B, the VALUE error or the gate.
+    """
+    _require(kind in EMPTY_CODES, "typed_output_kind_unknown")
+    if not _number(value):
+        return None
+    value = float(value)
+    if value >= 0:
+        return abs(value)
+    return EMPTY_CODES[kind].get(value)
 
 
 def truth_from_deck(kind, value):
