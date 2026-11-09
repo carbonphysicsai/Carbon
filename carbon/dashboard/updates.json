@@ -13,7 +13,7 @@
       "The training set is planned to reach into the start of magnetic saturation, so a model can learn where the torque stops growing in step with the current.",
       "Much of the hidden exam lies beyond the training data. The physics part of the score is measured there.",
       "Torque ripple is measured as the size of the torque swing (peak to peak), so it stays well defined even near zero torque.",
-      "The flux linkage of each phase is planned to be published in the training set, and back-EMF to be graded beyond the training range like torque. If that grading is not ready when the version opens, Motor 1.8 grades torque only and back-EMF moves to Motor 1.9.",
+      "The flux linkage of each phase is planned to be published in the training set, and the shape of the back-EMF waveforms to be graded beyond the training range like torque. If that grading is not ready or does not pass Carbon's checks when the version opens, Motor 1.8 grades torque only and back-EMF moves to Motor 1.9.",
       "Why it's valuable: motor designers check torque and torque ripple with slow magnetic-field solves, one design at a time. A fast model that stays right as the iron saturates lets them search far more designs before building anything.",
       "How it reaches for the state of the art: fast motor models are usually trusted only inside the range they were trained on. This version grades models on conditions beyond that range and on the design they help choose, which is where current tools are weakest."
      ]
