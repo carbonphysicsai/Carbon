@@ -171,6 +171,36 @@ def decode(output, value):
     return ladder[-1][0]
 
 
+def decode_answer(answer):
+    """One derived answer with its typed columns (the `EMPTY_CODES` outputs it carries) decoded (`decode`), or None when any
+    of them is not a readable answer (NaN, inf, a non-number: the candidate's invalid answer). Every other key passes
+    unchanged; an answer without a typed column is returned as a copy. The version's derive calls this LAST, so the grade's
+    validity check and every score only ever see tokens or times >= 0 (rulings rev 2 (B) 5).
+    """
+    if type(answer) is not dict:
+        return None
+    out = dict(answer)
+    for output in EMPTY_CODES:
+        if output in out:
+            out[output] = decode(output, out[output])
+            if out[output] is None:
+                return None
+    return out
+
+
+def with_codes(derive):
+    """A typed-state version's derive (BT 3.2): ``derive(inputs, raw)``'s answer with its raw typed columns decoded to states
+    (`decode_answer`) BEFORE any check reads it; None stays None (an invalid row), and a typed column that is not a readable
+    answer makes the row invalid. Validator-BT adapter rulings rev 2 ebc427fa (B) 5. (It lives here, not in the adapters
+    module, so no producer file moves.)"""
+
+    def decoded(inputs, raw):
+        answer = derive(inputs, raw)
+        return None if answer is None else decode_answer(answer)
+
+    return decoded
+
+
 def encode(output, value):
     """A typed truth (a time >= 0 or a token of the column) as the number the published TRAIN writes in its raw column: the token's EXACT
     code (rev 2 (B) 4, 7), the time unchanged. Refuses anything `decode` would not read back to the same answer.
