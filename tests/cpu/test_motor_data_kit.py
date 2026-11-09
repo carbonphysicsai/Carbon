@@ -114,7 +114,7 @@ def test_the_kits_interface_is_carbons_1_8_train_interface(tmp_path):
     assert interface == physical_public_train.motor18_interface_document()
     assert interface["target_slices"] == INTERFACE_18["target_slices"]
     # and the real interface parses a real-layout record set, no stand-in needed
-    _cases, rows, path = _fixture(tmp_path)
+    _cases, _rows, path = _fixture(tmp_path)
     _raw, provenance = kit.parse(path)
     assert provenance["numeric_interface"] == interface
 
