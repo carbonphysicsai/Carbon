@@ -1,4 +1,4 @@
-# Motor data kit (Motor 1.7)
+# Motor data kit (Motor 1.8)
 
 Make your own Motor training data on your own machine, with the same public
 reference recipe, decks, sampler and runner Carbon used to make the Motor
@@ -36,7 +36,7 @@ python3 -m kits.motor generate --n 50 --seed 7 --out runs/s7 --parallel 4
 python3 -m kits.motor parse runs/s7                  # runs/s7/train.npz + train.provenance.json
 python3 -m kits.motor check runs/s7/train.npz
 python3 -m kits.motor cost runs/s7
-python3 -m kits.motor verify --out runs/verify       # once the verify set is published
+python3 -m kits.motor verify --out runs/verify       # Motor 1.8's published verify set
 python3 -m kits.motor score runs/s7 --predictions my_predictions.json
 python3 -m kits.motor licences                       # every licence in the image you built
 ```
@@ -48,8 +48,9 @@ python3 -m kits.motor licences                       # every licence in the imag
   without the kit). Design value on hidden targets, the sealed minimums, the
   information budget and the speed gate on the validator's machine print
   "not evaluated locally". A practice score is never an exam score or grade.
-- `verify` refuses until the version's verify set (a few designs with Carbon's
-  pinned truths) is published at its receipted digest.
+- `verify` solves Motor 1.8's published verify set (6 designs with Carbon's
+  pinned truths, outside every sealed set) and compares within U; it refuses
+  any verify-set file whose bytes differ from the receipted digest.
 
 - `--seed` is yours. The same seed gives the same cases; Carbon's own draws
   use labels the kit never uses.

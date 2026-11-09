@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 
 import pytest
 
@@ -98,24 +99,47 @@ def pinned(tmp_path, monkeypatch):
 # --- pins fail closed ------------------------------------------------------------------------------------------------
 
 
-def test_every_pin_ships_as_human_input():
-    assert v31.V31_LAW_DECISION == v3.HUMAN_INPUT
-    assert (
-        v31.V31_LAW_SHA256
-        == v31.V31_BOX_SHA256
-        == v31.V31_REGION_SHA256
-        == v3.HUMAN_INPUT
-    )
-    assert v31.pins_status() == [
-        "V31_LAW_DECISION",
-        "V31_LAW_SHA256",
-        "V31_BOX_SHA256",
-        "V31_REGION_SHA256",
-    ]
+def test_law_pin_is_the_signed_n8_law_and_the_ranges_stay_human_input():
+    assert v31.V31_LAW_DECISION == "OWNER-BT31-LAW-ANCHOR-SIGNED-01"
+    assert v31._is_pin(v31.V31_LAW_SHA256)
+    assert v31.V31_LAW_SHA256 != v3.SIGNED_LEAKAGE_SHA256
+    assert v31.V31_BOX_SHA256 == v31.V31_REGION_SHA256 == v3.HUMAN_INPUT
+    assert v31.pins_status() == ["V31_BOX_SHA256", "V31_REGION_SHA256"]
     assert v31.DECK_VERSION == "3.1"
+    record = (
+        Path(__file__).resolve().parents[2]
+        / ".agent"
+        / "decisions"
+        / "2026-11-06-OWNER-BT31-LAW-ANCHOR-SIGNED-01.md"
+    )
+    assert record.is_file() and "OWNER-BT31-LAW-ANCHOR-SIGNED-01" in record.read_text()
 
 
-def test_unpinned_writes_refuse(tmp_path):
+def test_the_staged_signed_law_file_loads_under_the_pin_when_present():
+    staged = (
+        Path(__file__).resolve().parents[2]
+        / "codex-queue"
+        / "reports"
+        / "BT31_LAW_SIGNED_20261106"
+        / "leak_bt31_signed.json"
+    )
+    if not staged.is_file():
+        pytest.skip("the signed law file is custody-staged, not in the repository")
+    leak = v31.load_v31_law(staged)
+    assert (
+        leak["decision"] == "OWNER-BT31-LAW-ANCHOR-SIGNED-01"
+        and leak["label"] == "REGISTERED"
+        and leak["form"] == "table"
+    )
+
+
+def _unpin_law(monkeypatch):
+    monkeypatch.setattr(v31, "V31_LAW_DECISION", v3.HUMAN_INPUT)
+    monkeypatch.setattr(v31, "V31_LAW_SHA256", v3.HUMAN_INPUT)
+
+
+def test_unpinned_writes_refuse(tmp_path, monkeypatch):
+    _unpin_law(monkeypatch)
     leak = _leak(tmp_path, FIXTURE_DECISION)
     box, _ = _ranges(tmp_path, "box.json", v3.BOX_SCHEMA, "box_sha256")
     region, _ = _ranges(tmp_path, "region.json", v31.REGION_SCHEMA, "region_sha256")
@@ -419,6 +443,7 @@ def test_partial_pins_refuse_and_write_nothing(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(v31, "V31_BOX_SHA256", box_sha)
     monkeypatch.setattr(v31, "V31_REGION_SHA256", region_sha)
+    _unpin_law(monkeypatch)
     # box + region pinned, law unset
     for kw in ({"box_path": box}, {"region_path": region}):
         with pytest.raises(v3.DeckRefused, match="v31_law_pin_is_human_input"):

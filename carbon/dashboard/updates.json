@@ -13,6 +13,7 @@
       "The training set is planned to reach into the start of magnetic saturation, so a model can learn where the torque stops growing in step with the current.",
       "Much of the hidden exam lies beyond the training data. The physics part of the score is measured there.",
       "Torque ripple is measured as the size of the torque swing (peak to peak), so it stays well defined even near zero torque.",
+      "The flux linkage of each phase is planned to be published in the training set, and the shape of the back-EMF waveforms to be graded beyond the training range like torque. If that grading is not ready or does not pass Carbon's checks when the version opens, Motor 1.8 grades torque only and back-EMF moves to Motor 1.9.",
       "Why it's valuable: motor designers check torque and torque ripple with slow magnetic-field solves, one design at a time. A fast model that stays right as the iron saturates lets them search far more designs before building anything.",
       "How it reaches for the state of the art: fast motor models are usually trusted only inside the range they were trained on. This version grades models on conditions beyond that range and on the design they help choose, which is where current tools are weakest."
      ]
@@ -27,11 +28,11 @@
      "changes": [
       "The version planned for the mainnet launch.",
       "The first Cooling version with exam cases outside the training range. How far they reach is not published.",
-      "The physics part of the score covers narrow hot spots, developing flow and fins that stop helping as they get taller.",
+      "The physics part of the score is planned to cover narrow, intense hot spots, very intense hot spots, and fins that stop helping as they get taller. Developing flow (flow still settling near the inlet) is planned for Cooling 1.9.",
       "A data kit lets you make your own training data with Carbon's solver and check it against Carbon's reference cases before you train on it.",
       "After launch, Cooling 1.9 is planned to test more kinds of generalization.",
       "Why it's valuable: cold plates for high-power chips are sized with slow conjugate heat-transfer solves, and the hottest spot on the die sets the limit. A fast model of that peak lets engineers try many channel and fin layouts in minutes.",
-      "How it reaches for the state of the art: quick cooling estimates handle average temperatures well but miss narrow hot spots and flow that is still developing. This version grades the peak temperature where those effects matter, including outside the training range."
+      "How it reaches for the state of the art: quick cooling estimates handle average temperatures well but miss narrow hot spots and flow that is still developing. This version grades the peak temperature where hot spots matter, including outside the training range."
      ]
     }
    ]
