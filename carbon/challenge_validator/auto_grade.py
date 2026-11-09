@@ -126,13 +126,28 @@ class AutoGrader:
         return body if type(body) is dict and body.get("schema") == SCHEMA else None
 
     def pending(self):
-        """Task ids with no marker yet, in the ledger's order."""
+        """Task ids with no marker yet, in the ledger's order: oldest submission first (`AttemptLedger.submitted_outcomes`)."""
         adapter = self.intake.adapter
         return [
             s
             for s in adapter.ledger.submitted_outcomes(adapter.contract_digest)
             if _TASK.fullmatch(s) and not self._marker(s).exists()
         ]
+
+    def oldest_pending_ns(self):
+        """When this door's OLDEST ungraded submission was accepted (ns), or None with none: this door's place in the
+        host's one waiting list for the grading lock (slow-tail F1a, `direct_intake._WorkLock`), for its rebuild and
+        its grade rounds alike, so the door holding the oldest submission on the host goes next.
+        """
+        adapter = getattr(self.intake, "adapter", None)
+        ledger = getattr(adapter, "ledger", None)
+        if not hasattr(ledger, "first_outcome_ns"):
+            return None
+        for submission_id in self.pending():
+            since = ledger.first_outcome_ns(adapter.contract_digest, submission_id)
+            if since is not None:
+                return since
+        return None
 
     def has_work(self):
         """Whether a grade round has anything to do: a task with no marker yet, or a paused crown decision the sweep
