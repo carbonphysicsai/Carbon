@@ -43,18 +43,18 @@ KIND_TOKENS = {
 #: The BT 3.2 kit page's scoring text for these outputs, verbatim from the spec line rev 2 "Public text" (the blockquote
 #: lines with their "> " removed, joined by newlines). Its sha256 is pinned by the tests.
 PUBLIC_TEXT = (
-    '**Threshold recovery (85 C).** Some designs never get hot enough to cross 85 C, and some may still be above it when\n'
+    "**Threshold recovery (85 C).** Some designs never get hot enough to cross 85 C, and some may still be above it when\n"
     'the window ends. For each design, give either a time in seconds or one of the words `"NEVER_REACHED"` or\n'
     '`"NOT_RECOVERED"`. Both words are valid answers, not errors; leaving the field out is still an error.\n'
-    '- **Half your score** for this output is calling the right one of the three. Designs whose peak sits too close to\n'
-    '  85 C for our reference to tell are not counted for this half.\n'
-    '- **The other half** is the accuracy of your time where both you and the reference give a time. A design that\n'
-    '  recovers but that you call empty counts the same as the best classical fit there.\n'
-    '\n'
+    "- **Half your score** for this output is calling the right one of the three. Designs whose peak sits too close to\n"
+    "  85 C for our reference to tell are not counted for this half.\n"
+    "- **The other half** is the accuracy of your time where both you and the reference give a time. A design that\n"
+    "  recovers but that you call empty counts the same as the best classical fit there.\n"
+    "\n"
     '**First 95 C crossing.** The same rule, with two answers: a time in seconds, or `"NOT_REACHED"`. Designs whose\n'
-    'peak sits too close to 95 C for our reference to tell are not counted for the first half.\n'
-    '\n'
-    'As everywhere in BT 3.2, 0 = the best classical method we could build, 1 = reference accuracy.'
+    "peak sits too close to 95 C for our reference to tell are not counted for the first half.\n"
+    "\n"
+    "As everywhere in BT 3.2, 0 = the best classical method we could build, 1 = reference accuracy."
 )
 
 
@@ -95,14 +95,29 @@ def check(typed):
     _require(type(typed.output) is str and typed.output, "typed_output_name_missing")
     _require(typed.kind in KIND_TOKENS, "typed_output_kind_unknown")
     _require(typed.rule == RULE_ID, "typed_output_rule_is_not_the_registered_one")
-    _require(type(typed.band_output) is str and typed.band_output and typed.band_output != typed.output,
-             "typed_output_band_output_missing")
+    _require(
+        type(typed.band_output) is str
+        and typed.band_output
+        and typed.band_output != typed.output,
+        "typed_output_band_output_missing",
+    )
     for name in ("threshold_c", "band_u", "value_u", "event_weight"):
-        _require(getattr(typed, name) is not None, f"typed_output_{name}_is_human_input")
+        _require(
+            getattr(typed, name) is not None, f"typed_output_{name}_is_human_input"
+        )
     _require(_number(typed.threshold_c), "typed_output_threshold_must_be_a_number")
-    _require(_number(typed.band_u) and typed.band_u >= 0, "typed_output_band_u_must_be_non_negative")
-    _require(_number(typed.value_u) and typed.value_u > 0, "typed_output_value_u_must_be_positive")
-    _require(_number(typed.event_weight) and 0 < typed.event_weight < 1, "typed_output_event_weight_must_be_in_0_1")
+    _require(
+        _number(typed.band_u) and typed.band_u >= 0,
+        "typed_output_band_u_must_be_non_negative",
+    )
+    _require(
+        _number(typed.value_u) and typed.value_u > 0,
+        "typed_output_value_u_must_be_positive",
+    )
+    _require(
+        _number(typed.event_weight) and 0 < typed.event_weight < 1,
+        "typed_output_event_weight_must_be_in_0_1",
+    )
 
 
 def state(kind, value):
@@ -134,7 +149,9 @@ def case_sums(typed, truth, prediction, peak_truth):
     validated by `state`)."""
     t_state, t_value = truth_state(typed.kind, truth)
     p = state(typed.kind, prediction)
-    _require(p is not None, "typed_output_prediction_invalid")  # callers gate invalid answers first
+    _require(
+        p is not None, "typed_output_prediction_invalid"
+    )  # callers gate invalid answers first
     p_state, p_value = p
     band = in_band(typed, peak_truth)
     m = 1 if (not band and p_state != t_state) else 0
@@ -176,7 +193,9 @@ def combine(typed, sums, *, m_anchor, value_anchor):
     its registered admission tests PASS, else None.
     """
     m, log_b, b, t = sums
-    _require(type(m_anchor) is int and m_anchor >= 0, "typed_output_m_anchor_must_be_a_count")
+    _require(
+        type(m_anchor) is int and m_anchor >= 0, "typed_output_m_anchor_must_be_a_count"
+    )
     event = None
     if m_anchor >= 1:
         event = min(1.0, max(0.0, 1.0 - m / m_anchor))
@@ -211,18 +230,29 @@ def panel_anchor(typed, members, cases):
     _require(type(members) is dict and members, "typed_output_panel_empty")
     misses, errors = [], []
     for name, rows in members.items():
-        _require(type(rows) is list and len(rows) == len(cases), f"typed_output_panel_member_misaligned:{name}")
+        _require(
+            type(rows) is list and len(rows) == len(cases),
+            f"typed_output_panel_member_misaligned:{name}",
+        )
         m, logs = 0, []
         for row, (truth, peak) in zip(rows, cases):
-            _require(type(row) is dict and set(row) == {"state", "value"}, f"typed_output_panel_member_not_two_part:{name}")
+            _require(
+                type(row) is dict and set(row) == {"state", "value"},
+                f"typed_output_panel_member_not_two_part:{name}",
+            )
             p = state(typed.kind, row["state"])
             _require(p is not None, f"typed_output_panel_member_state_invalid:{name}")
-            _require(_number(row["value"]) and row["value"] >= 0, f"typed_output_panel_member_value_invalid:{name}")
+            _require(
+                _number(row["value"]) and row["value"] >= 0,
+                f"typed_output_panel_member_value_invalid:{name}",
+            )
             t_state, t_value = truth_state(typed.kind, truth)
             if not in_band(typed, peak) and p[0] != t_state:
                 m += 1
             if t_state == VALUE:
-                logs.append(math.log(max(abs(row["value"] - t_value) / typed.value_u, 1.0)))
+                logs.append(
+                    math.log(max(abs(row["value"] - t_value) / typed.value_u, 1.0))
+                )
         misses.append(m)
         if logs:
             errors.append(math.exp(sum(logs) / len(logs)))

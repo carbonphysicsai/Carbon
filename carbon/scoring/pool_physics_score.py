@@ -35,6 +35,14 @@ A cell's score maps |err| to [0, 1] with the version's registered accuracy funct
 benefit(|err| / agen_scales), or with the registered A multiplier applied (``cell_scale``). Which one is the
 Validator's ruling, so ``cell_scale`` has no default and refuses until registered.
 
+TYPED-STATE OUTPUTS (``typed_outputs``; BT 3.2 rule bt32-threshold-recovery-two-part.v1, `typed_state_output`): an
+output whose truth can be EMPTY by physics (a state token) is carried beside the outputs (`TargetSpec.typed_truths`,
+accuracy-only) and scored in two parts: its admission cell carries the panel's ``m_anchor`` beside A_c; its cell value is
+the rule's EVENT / VALUE combination (`typed_state_output.combine`), pooled from sums so the bootstrap recomposes it; the
+in-range gate reads it only where truth and prediction both carry a value (S7). A prediction gives every typed output a
+number or one of its tokens; a missing or unreadable one is an invalid answer, as for any output. None (the default)
+leaves every path bit for bit.
+
 Off by default: `pool_proof_suite.Policies.physics` is None for every registered version, and every path that reads it
 is then unchanged, bit for bit. Nothing here names a Challenge.
 """
@@ -49,6 +57,7 @@ import statistics
 from dataclasses import dataclass, replace
 
 from carbon.scoring import pool_grader
+from carbon.scoring import typed_state_output as tso
 from carbon.scoring.design_fidelity import benefit
 
 SCORING_CELLS_SCHEMA = "carbon.pool.scoring-cells.v1"
@@ -112,6 +121,15 @@ class HeadroomAdmission(CellMap):
 
     anchors: tuple = ()  # (((family, class, output), A_c), ...)
     not_admitted: tuple = ()  # ((family, class, output), ...)
+    #: typed-state cells only: (((family, class, output), (m_anchor, A_c or None)), ...); A_c is None when the VALUE
+    #: part's tests did not pass (the cell is then admitted for its EVENT part alone).
+    typed_anchors: tuple = ()
+
+    def typed_anchor(self, key):
+        for cell, value in self.typed_anchors:
+            if cell == key:
+                return value
+        raise PhysicsRefused("headroom_typed_anchor_missing")
 
     def anchor(self, key):
         for cell, value in self.anchors:
@@ -157,6 +175,14 @@ class PhysicsRule:
     h_min: object = None
     h_lo: object = None
     n_min: object = None
+    #: Headroom only: the version's registered typed-state outputs (a tuple of `typed_state_output.TypedOutput`), or None
+    #: (every other version: no typed output, every path bit for bit).
+    typed_outputs: object = None
+
+
+def typed_map(rule):
+    """``{output: TypedOutput}`` of the rule's registered typed-state outputs (empty when none)."""
+    return {t.output: t for t in (getattr(rule, "typed_outputs", None) or ())}
 
 
 def check_rule(rule):
@@ -248,6 +274,19 @@ def check_rule(rule):
         ),
         "in_range_cases_are_not_the_registered_ones",
     )
+    if rule.typed_outputs is not None:
+        _require(rule.scoring == "headroom", "typed_outputs_need_headroom_scoring")
+        _require(
+            type(rule.typed_outputs) is tuple and rule.typed_outputs,
+            "typed_outputs_malformed",
+        )
+        for typed in rule.typed_outputs:
+            try:
+                tso.check(typed)
+            except tso.TypedOutputRefused as refused:
+                raise PhysicsRefused(refused.code) from None
+        names = [t.output for t in rule.typed_outputs]
+        _require(len(set(names)) == len(names), "typed_outputs_duplicate_output")
 
 
 def cell_map_bytes(document):
@@ -385,11 +424,17 @@ def headroom_admission(document, rule):
     cells = document["cells"]
     _require(type(cells) is list and cells, "headroom_admission_has_no_cell")
     fields = {"family", "class", "output", "anchor_u", "anchor_lo_u", "n", "tests"}
-    admitted, anchors, refused, seen = [], [], [], set()
+    typed = typed_map(rule)
+    admitted, anchors, refused, seen, typed_anchors = [], [], [], set(), []
     for cell in cells:
+        is_typed = type(cell) is dict and cell.get("output") in typed
         _require(
             type(cell) is dict
-            and set(cell) == fields
+            and set(cell) == (fields | {"m_anchor"} if is_typed else fields)
+            and (
+                not is_typed
+                or (type(cell["m_anchor"]) is int and cell["m_anchor"] >= 0)
+            )
             and cell["family"] in families
             and cell["class"] in families[cell["family"]]
             and type(cell["output"]) is str
@@ -407,7 +452,8 @@ def headroom_admission(document, rule):
         key = (cell["family"], cell["class"], cell["output"])
         _require(key not in seen, "headroom_admission_duplicate_cell")
         seen.add(key)
-        if all(cell["tests"][t] == "PASS" for t in ADMISSION_TESTS):
+        value_ok = all(cell["tests"][t] == "PASS" for t in ADMISSION_TESTS)
+        if value_ok:
             _require(
                 cell["anchor_u"] > 1
                 and cell["anchor_u"] >= rule.h_min
@@ -415,6 +461,23 @@ def headroom_admission(document, rule):
                 and cell["n"] >= rule.n_min,
                 "headroom_verdict_contradicts_the_thresholds",
             )
+        if is_typed:
+            # S3 / S4: the EVENT part needs the panel to miscall >= 1 resolvable case; the VALUE part the five tests
+            event_ok = cell["m_anchor"] >= 1
+            if value_ok or event_ok:
+                admitted.append(key)
+                typed_anchors.append(
+                    (
+                        key,
+                        (
+                            cell["m_anchor"],
+                            float(cell["anchor_u"]) if value_ok else None,
+                        ),
+                    )
+                )
+            else:
+                refused.append(key)
+        elif value_ok:
             admitted.append(key)
             anchors.append((key, float(cell["anchor_u"])))
         else:
@@ -426,6 +489,7 @@ def headroom_admission(document, rule):
         sha256=hashlib.sha256(cell_map_bytes(document)).hexdigest(),
         anchors=tuple(sorted(anchors)),
         not_admitted=tuple(sorted(refused)),
+        typed_anchors=tuple(sorted(typed_anchors)),
     )
 
 
@@ -468,6 +532,40 @@ def _gate_threshold(rule, output):
     return threshold if _is_number(threshold) else threshold.get(output)
 
 
+def _typed_names(spec):
+    """The typed-state output names a target carries (sorted), () for a target without any (or a stand-in without the
+    field)."""
+    typed = getattr(spec, "typed_truths", ())
+    return tuple(sorted(typed[0])) if typed else ()
+
+
+def _valid(prediction, spec, rule):
+    """A valid answer for this target: its outputs finite (as today) and, for each typed-state output it carries, a number
+    or one of that output's tokens (S1). Unchanged for a target without typed outputs.
+    """
+    if not _typed_names(spec):
+        return pool_grader._valid_prediction(prediction, spec.outputs)
+    typed = typed_map(rule)
+    names = _typed_names(spec)
+    return (
+        type(prediction) is dict
+        and set(prediction) == set(spec.outputs) | set(names)
+        and pool_grader._valid_prediction(
+            pool_grader.core_prediction(prediction, spec), spec.outputs
+        )
+        and all(tso.state(typed[n].kind, prediction[n]) is not None for n in names)
+    )
+
+
+def _typed_case(spec, index, prediction, typed):
+    """``(truth, prediction, peak_truth)`` of one case of typed output ``typed`` (`typed_state_output.case_sums`)."""
+    return (
+        spec.typed_truths[index][typed.output],
+        prediction[typed.output],
+        spec.truths[index][typed.band_output],
+    )
+
+
 def attach_cells(rule, document, plan, sets, in_range_document=None):
     """``rule`` with its sealed scoring cells attached, or `PhysicsRefused`: the EXAM's structure, checked once before any
     submission is graded, so a structural fault is never a candidate's result.
@@ -500,18 +598,32 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
         cases = {}
         for spec in group:
             cases.setdefault(plan.class_of(spec.target_id), []).append(spec)
+        for spec in group:
+            _require(
+                set(_typed_names(spec)) <= set(typed_map(rule)),
+                "typed_output_not_registered",
+            )
+            for typed_name in _typed_names(spec):
+                _require(
+                    typed_map(rule)[typed_name].band_output in spec.outputs,
+                    "typed_output_band_output_not_an_output",
+                )
         for _family, name, output in cells.scored:
             members = cases.get(name, [])
             _require(
-                all(output in spec.outputs for spec in members),
+                all(
+                    output in spec.outputs
+                    or (output in typed_map(rule) and output in _typed_names(spec))
+                    for spec in members
+                ),
                 "scoring_cells_output_not_an_output_of_its_class",
             )
             _require(
                 any(spec.agen for spec in members),
                 "scoring_cell_without_cases_in_a_set",
             )
-            if headroom:
-                # the log skill divides by U: every admitted case needs one
+            if headroom and output not in typed_map(rule):
+                # the log skill divides by U: every admitted case needs one (a typed output carries its registered U)
                 _require(
                     all(
                         spec.u_at(i, output) > 0 for spec in members for i in spec.agen
@@ -527,6 +639,12 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
                 "in_range_class_without_gate_cases_in_a_set",
             )
             for spec in members:
+                for output in _typed_names(spec):
+                    # S7: a typed output in range is gated too, on its both-value cases
+                    _require(
+                        _is_number(_gate_threshold(rule, output)),
+                        "accuracy_gate_threshold_missing_for_an_output",
+                    )
                 for output in spec.outputs:
                     threshold = _gate_threshold(rule, output)
                     _require(
@@ -608,10 +726,18 @@ def _ratios(specs, predict, ranges, rule):
             "accuracy_prediction_invalid",
         )
         for index, prediction in zip(indices, batch):
-            if not pool_grader._valid_prediction(prediction, spec.outputs):
+            if not _valid(prediction, spec, rule):
                 # the candidate's invalid answer: counted, and an in-range class holding one fails the gate
                 invalid[name] = invalid.get(name, 0) + 1
                 continue
+            for output in _typed_names(spec):
+                # S7: |err| / U only where truth and prediction both carry a value (a state mismatch never enters)
+                typed = typed_map(rule)[output]
+                ratios.setdefault((name, output), []).extend(
+                    tso.gate_ratios(
+                        typed, [_typed_case(spec, index, prediction, typed)]
+                    )
+                )
             for output in spec.outputs:
                 error = abs(prediction[output] - spec.truths[index][output])
                 u = spec.u_at(index, output)
@@ -622,7 +748,7 @@ def _ratios(specs, predict, ranges, rule):
     return ratios, raw, invalid
 
 
-def _case_ratios(extra, case_predict, ratios, invalid, outputs):
+def _case_ratios(extra, case_predict, ratios, invalid, outputs, rule=None):
     # Adds the in-range case set's |err|/U into ``ratios`` (by its class), counting invalid answers.
     rows = [dict(inputs) for _name, inputs, _t, _u in extra.cases]
     answers = case_predict(rows)
@@ -630,8 +756,12 @@ def _case_ratios(extra, case_predict, ratios, invalid, outputs):
         type(answers) is list and len(answers) == len(rows),
         "accuracy_prediction_invalid",
     )
+    typed = set(typed_map(rule)) if rule is not None else set()
     for (name, _inputs, truths, u), answer in zip(extra.cases, answers):
         outputs.setdefault(name, set()).update(truths)
+        if typed and type(answer) is dict:
+            # the case set holds numeric truths only: a typed output's answer is not graded here
+            answer = {k: v for k, v in answer.items() if k not in typed}
         if not pool_grader._valid_prediction(answer, tuple(truths)):
             invalid[name] = invalid.get(name, 0) + 1
             continue
@@ -651,6 +781,19 @@ def _headroom_row(rule, name, output, values):
     key = (family, name, output)
     if key not in rule.cells.scored:
         return {"admitted": False, "class_error_u": None, "skill": None}
+    if output in typed_map(rule):
+        # a typed output's class error here is over B only (the gate's view, S7); its score is the two-part cell value
+        error = (
+            math.exp(statistics.fmean(math.log(max(v, 1.0)) for v in values))
+            if values
+            else None
+        )
+        return {
+            "admitted": True,
+            "class_error_u": error,
+            "skill": None,
+            "typed": tso.RULE_ID,
+        }
     if not values:
         return {"admitted": True, "class_error_u": None, "skill": None}
     error = math.exp(statistics.fmean(math.log(max(v, 1.0)) for v in values))
@@ -682,11 +825,13 @@ def accuracy_record(specs, predict, plan, rule, case_predict=None):
     scored = {(c, o) for _f, c, o in rule.cells.scored}
     outputs = {}
     for spec in specs:
-        outputs.setdefault(plan.class_of(spec.target_id), set()).update(spec.outputs)
+        outputs.setdefault(plan.class_of(spec.target_id), set()).update(
+            spec.outputs + _typed_names(spec)
+        )
     order = [name for name in plan.classes if name in ranges]
     if rule.in_range is not None:
         _require(case_predict is not None, "in_range_cases_need_the_exam_table")
-        _case_ratios(rule.in_range, case_predict, ratios, invalid, outputs)
+        _case_ratios(rule.in_range, case_predict, ratios, invalid, outputs, rule)
         for name in rule.in_range.classes():
             ranges.setdefault(name, IN_RANGE)
             if name not in order:
@@ -769,13 +914,28 @@ def target_cells(spec, predict, scales, plan, rule):
         type(batch) is list and len(batch) == len(spec.agen),
         "agen_prediction_invalid",
     )
-    sums = {(family, name, output): [0.0, 0] for family, output in cells}
+    typed = typed_map(rule)
+    sums = {
+        (family, name, output): ([tso.ZERO, 0] if output in typed else [0.0, 0])
+        for family, output in cells
+    }
     for index, prediction in zip(spec.agen, batch):
         _require(
-            pool_grader._valid_prediction(prediction, spec.outputs),
+            _valid(prediction, spec, rule),
             "agen_prediction_invalid",
         )
         for family, output in cells:
+            if output in typed:
+                entry = sums[(family, name, output)]
+                entry[0] = tso.add(
+                    entry[0],
+                    tso.case_sums(
+                        typed[output],
+                        *_typed_case(spec, index, prediction, typed[output]),
+                    ),
+                )
+                entry[1] += 1
+                continue
             error = abs(prediction[output] - spec.truths[index][output])
             entry = sums[(family, name, output)]
             if headroom:
@@ -794,15 +954,24 @@ def compose(contributions, rule=None):
     can draw that; the grade's structure check refuses it for a set).
     """
     headroom = rule is not None and rule.scoring == "headroom"
+    typed = typed_map(rule) if rule is not None else {}
     pooled = {}
     for contribution in contributions:
         for key, (total, n) in contribution.items():
-            entry = pooled.setdefault(key, [0.0, 0])
-            entry[0] += total
+            entry = pooled.setdefault(key, [tso.ZERO if key[2] in typed else 0.0, 0])
+            entry[0] = tso.add(entry[0], total) if key[2] in typed else entry[0] + total
             entry[1] += n
     families = {}
     for key, (total, n) in sorted(pooled.items()):
-        if n:
+        if n and key[2] in typed:
+            # S3-S5: the two-part value; None (neither part admitted for this answer) leaves the cell unscored
+            m_anchor, value_anchor = rule.cells.typed_anchor(key)
+            value = tso.combine(
+                typed[key[2]], total, m_anchor=m_anchor, value_anchor=value_anchor
+            )
+            if value is not None:
+                families.setdefault(key[0], []).append(value)
+        elif n:
             value = (
                 skill(rule, rule.cells.anchor(key), math.exp(total / n))
                 if headroom

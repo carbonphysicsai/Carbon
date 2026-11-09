@@ -612,6 +612,14 @@ class TargetSpec:
     near_limit: object = None
     credit: tuple = ()
     v_ref: float | None = None
+    # A NEW version's TYPED-STATE outputs (`typed_state_output`; BT 3.2 rule bt32-threshold-recovery-two-part.v1): per
+    # kept point ``{output: number | state token}``, part of the identity; () for every other target. Accuracy-only: the
+    # optimiser, objective, limits and honesty never read them, and the D validity check ignores their keys.
+    typed_truths: tuple = ()
+
+    def typed_outputs(self):
+        """The typed-state output names this target carries (sorted; empty for every registered version)."""
+        return tuple(sorted(self.typed_truths[0])) if self.typed_truths else ()
 
     @property
     def extended(self):
@@ -720,6 +728,7 @@ def build_target(
     shell=None,
     zero=None,
     near_limit=None,
+    typed_truths=None,
 ):
     """Validate a target's sealed material and derive its reference.
 
@@ -806,6 +815,7 @@ def build_target(
     kept_designs = tuple(tuple(float(x) for x in designs[i]) for i in keep)
     kept_truths = tuple({k: float(v) for k, v in truths[i].items()} for i in keep)
     kept_agen = tuple(n for n, i in enumerate(keep) if i in agen)
+    kept_typed = _kept_typed(typed_truths, outputs, len(designs), keep)
     queryable = tuple(n for n, i in enumerate(keep) if i not in agen)
     norm = tuple(
         tuple((x - lo) / (hi - lo) for x, (lo, hi) in zip(design, box))
@@ -897,6 +907,9 @@ def build_target(
     if near_limit is not None:
         # only a new version's rule enters the identity: a registered version's digest is unchanged
         body["near_limit"] = dict(near_limit)
+    if kept_typed:
+        # only a new version's typed outputs enter the identity: a registered version's digest is unchanged
+        body["typed_truths"] = _typed_document(kept_typed)
     if zero is not None:
         # the zero's run names THIS pool (the body without the zero): a zero from another pool refuses (Validator
         # 21:30). Only a new version's zero enters the identity: a registered version's digest is unchanged.
@@ -933,7 +946,58 @@ def build_target(
         near_limit=None if near_limit is None else dict(near_limit),
         credit=credits,
         v_ref=v_ref,
+        typed_truths=kept_typed,
     )
+
+
+def _kept_typed(typed_truths, outputs, size, keep):
+    """The kept points' typed-state truths, ``()`` when the target has none. ``typed_truths``: ``{output: [value per
+    ORIGINAL pool design]}``, each value a finite number >= 0 or a non-empty state token (the rule types it); its names
+    are not outputs (accuracy-only, never optimised)."""
+    if typed_truths is None:
+        return ()
+    _require(
+        type(typed_truths) is dict
+        and typed_truths
+        and all(type(k) is str and k and k not in outputs for k in typed_truths)
+        and all(type(v) is list and len(v) == size for v in typed_truths.values()),
+        "typed_truths_must_name_new_outputs_per_design",
+    )
+    _require(
+        all(
+            (type(x) is str and x) or (_finite(x) and x >= 0)
+            for values in typed_truths.values()
+            for x in values
+        ),
+        "typed_truth_must_be_a_number_or_a_state_token",
+    )
+    names = sorted(typed_truths)
+    return tuple(
+        {
+            k: (
+                typed_truths[k][i]
+                if type(typed_truths[k][i]) is str
+                else float(typed_truths[k][i])
+            )
+            for k in names
+        }
+        for i in keep
+    )
+
+
+def _typed_document(kept_typed):
+    """``{output: [value per kept point]}`` of a target's typed truths, or None when it has none."""
+    if not kept_typed:
+        return None
+    return {k: [row[k] for row in kept_typed] for k in sorted(kept_typed[0])}
+
+
+def core_prediction(prediction, spec):
+    """A prediction without the target's typed-state keys (the D part's view); unchanged when it has none."""
+    if not getattr(spec, "typed_truths", ()) or type(prediction) is not dict:
+        return prediction
+    typed = set(spec.typed_truths[0])
+    return {k: v for k, v in prediction.items() if k not in typed}
 
 
 def attach_variants(spec, rule, starts):
@@ -1010,6 +1074,7 @@ def attach_variants(spec, rule, starts):
             "public": spec.public,
             "shell": spec.shell,
             "near_limit": spec.near_limit,
+            "typed_truths": _typed_document(spec.typed_truths),
         }
         try:
             variant = build_target(**question)
@@ -1218,6 +1283,7 @@ def _grade_one(spec, predict, optimizer, honesty):
         if type(batch) is not list or len(batch) != len(chosen):
             return refused("prediction_invalid")
         for index, prediction in zip(chosen, batch):
+            prediction = core_prediction(prediction, spec)
             if not _valid_prediction(prediction, spec.outputs):
                 return refused("prediction_invalid")
             predictions[index] = {k: float(v) for k, v in prediction.items()}
@@ -1498,6 +1564,7 @@ def _target_agen(spec, predict, scales):
     )
     atoms = []
     for index, prediction in zip(spec.agen, batch):
+        prediction = core_prediction(prediction, spec)
         _require(_valid_prediction(prediction, spec.outputs), "agen_prediction_invalid")
         atoms += [
             benefit(abs(prediction[k] - spec.truths[index][k]) / scales[k])
@@ -1610,7 +1677,9 @@ def agen_predictions_valid(specs, predict):
         batch = predict(spec.conditions, [list(spec.designs[i]) for i in spec.agen])
         if type(batch) is not list or len(batch) != len(spec.agen):
             return False
-        if not all(_valid_prediction(p, spec.outputs) for p in batch):
+        if not all(
+            _valid_prediction(core_prediction(p, spec), spec.outputs) for p in batch
+        ):
             return False
     return True
 
@@ -1693,6 +1762,11 @@ def dump_pool(spec):
         "pool_size": spec.pool_size,
         **({} if spec.zero is None else {"zero": dict(spec.zero)}),
         **({} if spec.near_limit is None else {"near_limit": dict(spec.near_limit)}),
+        **(
+            {}
+            if not spec.typed_truths
+            else {"typed_truths": _typed_document(spec.typed_truths)}
+        ),
     }
 
 
@@ -1720,6 +1794,7 @@ def load_pool(document):
         shell=document.get("shell"),
         zero=document.get("zero"),
         near_limit=document.get("near_limit"),
+        typed_truths=document.get("typed_truths"),
     )
     spec = replace(
         spec,
