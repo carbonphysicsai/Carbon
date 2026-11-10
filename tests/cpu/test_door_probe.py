@@ -844,3 +844,51 @@ def test_canary_refuses_another_receiver_hotkey(roots):
     _refused(
         "canary_receiver_hotkey_not_the_spares", lambda: _target(roots, receiver="5X")
     )
+
+
+def test_canary_unit_reads_are_user_units(monkeypatch):
+    """The receiver units are user units: every read names --user (V2B must-fix)."""
+    seen = []
+
+    class _Done:
+        stdout = " 0 "
+
+    def run(argv, **kw):
+        assert kw["check"] is True and kw["timeout"] > 0
+        seen.append(argv)
+        return _Done()
+
+    monkeypatch.setattr(dp.subprocess, "run", run)
+    assert dp.systemctl_show("carbon-spare.service", "NRestarts") == "0"
+    dp.journal_since("carbon-spare.service", 1_700_000_000.9)
+    assert seen[0] == [
+        "systemctl",
+        "--user",
+        "show",
+        "-p",
+        "NRestarts",
+        "--value",
+        "carbon-spare.service",
+    ]
+    assert seen[1][:4] == ["journalctl", "--user", "-u", "carbon-spare.service"]
+    assert seen[1][4:6] == ["--since", "@1700000000"]
+
+
+def test_canary_runs_one_submit_by_default():
+    args = dp.parser().parse_args(
+        [
+            "fresh",
+            "--canary",
+            "--door",
+            "http://127.0.0.1:1",
+            "--challenge",
+            "f02",
+            "--version",
+            "2.5",
+            "--receiver-hotkey",
+            "5R",
+            "--out",
+            "o",
+        ]
+    )
+    assert args.submits == 1

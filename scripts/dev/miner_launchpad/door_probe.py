@@ -29,7 +29,8 @@ Three modes, one evidence format:
   crown hold); a failed build or grade, FAILED_INFRA, NOT_GRADED, a refusal
   or no terminal state by ``--wait-s`` fails the run with its code.
 * ``fresh --canary`` (Rule A / S1 on a PREPARED SPARE before a switch;
-  Validator-2B 9 Nov 19:46): the same submits, at most 2, from the registered
+  Validator-2B 9 Nov 19:46): the same submits, ONE by default (V2B's ruling;
+  at most 2), from the registered
   canary hotkey only (``canary.CANARY_HOTKEYS``; never ``--client``), to the
   spare named by ``--spare-root`` and reached on 127.0.0.1 only. It refuses,
   before signing, any other host, a live front port (``LIVE_FRONT_PORTS``) or
@@ -992,9 +993,11 @@ def _state_dir(root, cfg):
     return (state if state.is_absolute() else Path(root) / state).resolve()
 
 
+#: The doors' receiver units are the operator's user units (`systemctl --user`;
+#: Validator-2B's code read of d502f260): every unit read names --user.
 def systemctl_show(unit, prop):
     return subprocess.run(
-        ["systemctl", "show", "-p", prop, "--value", unit],
+        ["systemctl", "--user", "show", "-p", prop, "--value", unit],
         capture_output=True,
         text=True,
         timeout=30,
@@ -1006,6 +1009,7 @@ def journal_since(unit, since):
     return subprocess.run(
         [
             "journalctl",
+            "--user",
             "-u",
             unit,
             "--since",
@@ -1454,7 +1458,10 @@ def parser():
         help="a prepared testnet SPARE on 127.0.0.1, from the canary hotkey only",
     )
     f.add_argument(
-        "--submits", type=int, default=2, help="--canary: 1 or 2 concurrent submits"
+        "--submits",
+        type=int,
+        default=1,
+        help="--canary: 1 submit (Validator-2B's ruling; at most 2)",
     )
     f.add_argument("--spare-root", help="--canary: the prepared spare's release root")
     f.add_argument("--live-root", help="--canary: the live door's release root")
