@@ -1,0 +1,23 @@
+{
+  "authority": "OWNER-WEIGHTS-AUTHORITY-01",
+  "baselines": {
+    "chip-cold-plate": null,
+    "electric-motor-magnetics": null
+  },
+  "burn_uid": 0,
+  "cadence_blocks": 360,
+  "challenges": [
+    "electric-motor-magnetics",
+    "chip-cold-plate"
+  ],
+  "decay": {
+    "full_ms": 86400000,
+    "halving_ms": 86400000
+  },
+  "membership_note": "MAINNET policy v1 (OWNER-MAINNET-WEIGHT-POLICY-V1-01): the testnet-winner-v5-launch rule on finney netuid 116 under OWNER-WEIGHTS-AUTHORITY-01, for the two launch Challenges Motor (electric-motor-magnetics) and Cooling (chip-cold-plate), each 1/2 of an epoch. self_improvement_factor = \"full_reset\" (OWNER-KING-SELF-IMPROVEMENT-RESET-01, carried to mainnet by the owner's words). Baselines null: the first-incumbent rule. Decay, cadence and burn UID 0 are the loader's fixed values. Adding a Challenge (Burst Thermal, Ribbed Bracket) is a new policy version. Applies going forward only: ledger records written under other policies are never recomputed. Not the registry's current policy; a standing authorization names its digest only when the owner approves it.",
+  "netuid": 116,
+  "network": "finney",
+  "schema": "carbon.rewards.testnet-winner-policy.v1",
+  "self_improvement_factor": "full_reset",
+  "version": "mainnet-winner-v1"
+}
