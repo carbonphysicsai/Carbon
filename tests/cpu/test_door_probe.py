@@ -356,3 +356,222 @@ def test_routes_picks_a_subset_and_refuses_unknown_names(door, tmp_path):
     assert {r["route"] for r in rows} == {"feed", "intake"}
     with pytest.raises(SystemExit):
         _probe(door, tmp_path / "bad", "--routes", "feed,kingdom")
+
+
+# ---------------------------------------------------------------- fresh (S1)
+
+
+def test_fresh_recipes_are_new_per_client_and_per_run_and_valid():
+    from carbon.battery import direct_graph
+
+    a, rate_a = dp.fresh_recipe(123456, 0)
+    b, _ = dp.fresh_recipe(123456, 1)
+    c, _ = dp.fresh_recipe(123457, 0)
+    assert len({a.digest, b.digest, c.digest}) == 3
+    assert dp.fresh_recipe(123456, 0)[0].digest == a.digest
+    assert abs(rate_a / dp.FRESH_BASE_RATE - 1) <= 1e-4
+    # Battery's own training check accepts it, at the moved rate.
+    assert direct_graph.training_settings(a)["learning_rate"] == rate_a
+    challenge = a.to_dict()["challenge"]
+    assert (challenge["id"], challenge["version"]) == dp.FRESH_CHALLENGE
+
+
+def test_fresh_needs_two_named_clients():
+    for specs in (
+        ["bob=5B"],
+        ["bob=5B", "bob=5C"],
+        ["Bob=5B", "c=5C"],
+        ["bob", "c=5C"],
+    ):
+        with pytest.raises(SystemExit):
+            dp.fresh_clients(specs)
+    assert dp.fresh_clients(["bob=5B", "charlie=5C"]) == [
+        ("bob", "5B"),
+        ("charlie", "5C"),
+    ]
+
+
+class _Clock:
+    def __init__(self):
+        self.t = 1_000_000.0
+
+    def __call__(self):
+        return self.t
+
+    def sleep(self, s):
+        self.t += s
+
+
+def _fresh(monkeypatch, tmp_path, *, built=None, raises=None, grades=(), wait_s=600):
+    from carbon.development_session import direct_submission as ds
+
+    clock = _Clock()
+    calls = {"stage": 0, "go": 0, "feedback": 0}
+    monkeypatch.setattr(
+        dp,
+        "stage_scaffold",
+        lambda *a, **k: calls.__setitem__("stage", calls["stage"] + 1) or 3,
+    )
+
+    def submit(url, signer, *, root, wait_s, **kw):
+        assert root.is_dir()
+        assert calls["go"] == 1  # every client submits only after the shared start
+        if raises is not None:
+            raise raises
+        return built
+
+    def feedback(url, signer, *, submission_id, **kw):
+        assert submission_id == built["task_id"]
+        calls["feedback"] += 1
+        reply = grades[min(calls["feedback"], len(grades)) - 1]
+        return reply
+
+    monkeypatch.setattr(ds, "submit_and_wait", submit)
+    monkeypatch.setattr(ds, "read_exam_feedback", feedback)
+
+    class _R:
+        digest = "sha256:" + "ab" * 32
+
+    row = dp.fresh_client(
+        "http://127.0.0.1:1",
+        None,
+        recipe=_R(),
+        contract="d",
+        receiver="r",
+        context=None,
+        root=tmp_path / "ledger",
+        read=None,
+        send=None,
+        wait_s=wait_s,
+        poll_s=30,
+        go=lambda: calls.__setitem__("go", calls["go"] + 1),
+        clock=clock,
+        sleep=clock.sleep,
+    )
+    return row, calls
+
+
+def _sub(state, failure=None):
+    reply = {"submission": {"submission_id": "t1", "grade_state": state}}
+    if failure:
+        reply["failure"] = {"code": failure}
+    return reply
+
+
+_BUILT = {"task_id": "t1", "state": "RECONSTRUCTED"}
+
+
+def test_fresh_client_follows_the_build_then_the_grade(monkeypatch, tmp_path):
+    row, calls = _fresh(
+        monkeypatch,
+        tmp_path,
+        built=_BUILT,
+        grades=[_sub("QUEUED"), _sub(None), _sub("GRADED")],
+    )
+    assert row["outcome"] == "graded" and row["grade_state"] == "GRADED"
+    assert row["task_id"] == "t1" and row["build_state"] == "RECONSTRUCTED"
+    assert calls == {"stage": 1, "go": 1, "feedback": 3}
+    assert row["seconds"] == 60.0  # two 30 s polls
+
+
+def test_fresh_crown_hold_counts_as_graded(monkeypatch, tmp_path):
+    row, _ = _fresh(
+        monkeypatch, tmp_path, built=_BUILT, grades=[_sub("CROWN_HELD_FOR_REVIEW")]
+    )
+    assert row["outcome"] == "graded"
+
+
+@pytest.mark.parametrize(
+    "grade, failure, code",
+    [
+        ("FAILED_INFRA", None, "FAILED_INFRA"),
+        ("NOT_GRADED", None, "NOT_GRADED"),
+        ("CANDIDATE_FAILED", "WORKER_WALL_LIMIT_REACHED", "WORKER_WALL_LIMIT_REACHED"),
+    ],
+)
+def test_fresh_grade_failures_fail_with_their_code(
+    monkeypatch, tmp_path, grade, failure, code
+):
+    row, _ = _fresh(monkeypatch, tmp_path, built=_BUILT, grades=[_sub(grade, failure)])
+    assert row["outcome"] == "grade_failed"
+    assert row["code"] == code and row["grade_state"] == grade
+
+
+def test_fresh_build_failure_fails_with_its_code(monkeypatch, tmp_path):
+    built = {"task_id": "t1", "state": "FAILED_INFRA", "failure": {"code": "x_infra"}}
+    row, calls = _fresh(monkeypatch, tmp_path, built=built)
+    assert row["outcome"] == "build_failed" and row["code"] == "x_infra"
+    assert calls["feedback"] == 0
+
+
+def test_fresh_no_grade_by_the_deadline_is_not_terminal(monkeypatch, tmp_path):
+    row, calls = _fresh(
+        monkeypatch, tmp_path, built=_BUILT, grades=[_sub("QUEUED")], wait_s=100
+    )
+    assert row["outcome"] == "not_terminal" and row["stage"] == "grade"
+    assert calls["feedback"] == 4  # t = 0, 30, 60, 90; a fifth would pass 100 s
+
+
+def test_fresh_a_receiver_without_the_per_submission_read_is_not_a_pass(
+    monkeypatch, tmp_path
+):
+    row, _ = _fresh(
+        monkeypatch, tmp_path, built=_BUILT, grades=[{"best": None, "latest": None}]
+    )
+    assert row["outcome"] == "grade_unreadable"
+
+
+def test_fresh_refusals_are_closed(monkeypatch, tmp_path):
+    from carbon.development_session import direct_submission as ds
+
+    for raised, want in (
+        (
+            ds.DirectConstructionPending("t9"),
+            {"outcome": "not_terminal", "task_id": "t9"},
+        ),
+        (
+            ds.DirectSameRecipeSubmitted({}),
+            {"outcome": "refused", "code": "same_recipe_already_submitted"},
+        ),
+        (
+            ds.DirectIntakeRefusal("construction_intake_unavailable"),
+            {"outcome": "refused", "code": "construction_intake_unavailable"},
+        ),
+        (RuntimeError("boom"), {"outcome": "probe_error", "code": "RuntimeError"}),
+    ):
+        row, _ = _fresh(monkeypatch, tmp_path, raises=raised)
+        assert {k: row.get(k) for k in want} == want
+
+
+def test_fresh_passes_only_when_every_client_is_graded_on_its_own_task():
+    clients = [("bob", "5B"), ("charlie", "5C")]
+    ok = {
+        "bob": {"outcome": "graded", "task_id": "t1"},
+        "charlie": {"outcome": "graded", "task_id": "t2"},
+    }
+    assert dp.fresh_verdict(clients, ok) == ("PASS", True)
+    same = {**ok, "charlie": {"outcome": "graded", "task_id": "t1"}}
+    assert dp.fresh_verdict(clients, same) == ("FAIL", False)
+    failed = {**ok, "charlie": {"outcome": "grade_failed", "task_id": "t2"}}
+    assert dp.fresh_verdict(clients, failed)[0] == "FAIL"
+    assert dp.fresh_verdict(clients, {"bob": ok["bob"]})[0] == "FAIL"
+
+
+def test_fresh_refuses_off_localnet(monkeypatch, tmp_path):
+    monkeypatch.delenv("CARBON_CHAIN_NETWORK", raising=False)
+    with pytest.raises(SystemExit):
+        dp.main(
+            [
+                "fresh",
+                "--door",
+                "http://127.0.0.1:1",
+                "--client",
+                "bob=5B",
+                "--client",
+                "charlie=5C",
+                "--receiver-hotkey",
+                "5R",
+                "--out",
+                str(tmp_path / "o"),
+            ]
+        )
