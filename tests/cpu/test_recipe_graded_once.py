@@ -445,3 +445,60 @@ def test_waits_are_logged_once_an_hour_counts_only(door, monkeypatch):
     door.grader.run_once()
     assert lines == [("recipe_copy_waits_hourly", {"waits": 4, "period_s": 3600})]
     assert T[1] not in repr(lines) and HOTKEYS[1] not in repr(lines)
+
+
+def _ledger_reading_owner(door):
+    """``owner`` as the real `LeanRecipeAdapter.owner` does it: through the attempt ledger (`owned_outcome`, its own
+    BEGIN IMMEDIATE connection), then the provider's retained request."""
+
+    def owner(sid):
+        hotkey = door.ledger.owned_outcome(CONTRACT, sid)
+        return hotkey if hotkey is not None and sid in door.requests else None
+
+    return owner
+
+
+def test_a_real_adapters_ledger_read_owner_never_locks_the_grade_round(door):
+    # RB door on 4affa5b9 (9 Nov): decide held a ledger transaction while the owner lookup opened a second one, so
+    # every submission admitted after the release failed its grade round with 'database is locked' and never graded.
+    door.adapter.owner = _ledger_reading_owner(door)
+    door.submit(T[0], HOTKEYS[0], _recipe())
+    door.submit(T[1], HOTKEYS[1], _recipe())
+    door.submit(T[2], HOTKEYS[2], _recipe(setting=2))
+    door.ready |= {T[0], T[1], T[2]}
+    assert door.grader.run_once() == (T[0], "GRADED")
+    assert door.grader.run_once() == (T[1], "DUPLICATE")
+    assert door.grader.run_once() == (T[2], "GRADED")
+    assert door.graded == [T[0], T[2]]
+
+
+def test_the_digest_is_noted_at_admission_with_a_ledger_reading_owner(door):
+    door.adapter.owner = _ledger_reading_owner(door)
+    door.submit(T[0], HOTKEYS[0], _recipe())
+    intake = SimpleNamespace(adapter=door.adapter)
+    direct_intake.DirectRecipeIntake._note_recipe_digest(
+        intake, {"kind": "OUTCOME", "outcome": {"task_id": T[0]}}
+    )
+    assert recipe_copies.stored_digest(door.ledger, T[0]) is not None
+
+
+def test_a_ledger_that_cannot_begin_raises_its_own_error_not_a_rollback_error(
+    door, monkeypatch
+):
+    import sqlite3
+
+    from carbon.challenge_validator import ledger as ledger_module
+
+    real_connect = sqlite3.connect
+    monkeypatch.setattr(
+        ledger_module.sqlite3,
+        "connect",
+        lambda *args, **kwargs: real_connect(*args, **{**kwargs, "timeout": 0.05}),
+    )
+    held = door.ledger._db()
+    held.__enter__()
+    try:
+        with pytest.raises(sqlite3.OperationalError, match="locked"):
+            door.ledger._db().__enter__()
+    finally:
+        held.__exit__(None, None, None)
