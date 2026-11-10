@@ -583,3 +583,264 @@ def test_fresh_refuses_off_localnet(monkeypatch, tmp_path):
                 str(tmp_path / "o"),
             ]
         )
+
+
+# ---------------------------------------------------------------- fresh --canary
+
+
+def _root(
+    base, name, port, *, state="receiver/state", network=None, challenge="f02", hk="5R"
+):
+    root = base / name
+    (root / "receiver" / "state").mkdir(parents=True)
+    cfg = {
+        "host": "127.0.0.1",
+        "port": port,
+        "root": state,
+        "challenge": {"id": challenge, "version": "2.5"},
+        "receiver_hotkey": hk,
+    }
+    if network is not None:
+        cfg["chain_network"] = network
+    (root / "receiver" / "receiver.json").write_text(json.dumps(cfg), "utf-8")
+    return root
+
+
+@pytest.fixture()
+def roots(tmp_path):
+    spare = _root(tmp_path, "spare", 18871)
+    live = _root(tmp_path, "live", 18771)
+
+    def show(unit, prop):
+        assert prop == "ExecStart"
+        return "{ path=/x ; argv[]=/x --config %s ; }" % (
+            spare / "receiver" / "receiver.json"
+        )
+
+    return spare, live, show
+
+
+def _target(roots, door="http://127.0.0.1:18871", unit="carbon-spare.service", **kw):
+    spare, live, show = roots
+    return dp.canary_target(
+        door,
+        kw.get("spare", spare),
+        kw.get("live", live),
+        unit,
+        challenge=kw.get("challenge", "f02"),
+        receiver=kw.get("receiver", "5R"),
+        show=kw.get("show", show),
+    )
+
+
+def _refused(code, call):
+    with pytest.raises(dp.CanaryRefused) as refused:
+        call()
+    assert refused.value.code == code
+
+
+def test_canary_target_accepts_only_the_prepared_spare(roots):
+    assert _target(roots) == 18871
+
+
+@pytest.mark.parametrize(
+    "door",
+    [
+        "http://localhost:18871",
+        "http://10.0.0.5:18871",
+        "https://127.0.0.1:18871",
+        "http://door.carbonphysics.ai:18871",
+        "http://127.0.0.1",
+        "http://127.0.0.1:18871/carbon/v1/mcp",
+        "http://u:p@127.0.0.1:18871",
+        "http://127.0.0.1:18871?x=1",
+        "http://127.0.0.1:notaport",
+    ],
+)
+def test_canary_refuses_anything_but_a_bare_loopback_url(roots, door):
+    _refused("canary_target_not_loopback_spare_url", lambda: _target(roots, door=door))
+
+
+@pytest.mark.parametrize("port", sorted(dp.LIVE_FRONT_PORTS))
+def test_canary_refuses_every_live_front_port(roots, port):
+    _refused(
+        "canary_target_live_port",
+        lambda: _target(roots, door=f"http://127.0.0.1:{port}"),
+    )
+
+
+def test_canary_refuses_the_live_roots_own_receiver_port(roots):
+    _refused(
+        "canary_target_live_port", lambda: _target(roots, door="http://127.0.0.1:18771")
+    )
+
+
+def test_canary_refuses_missing_roots(roots):
+    _refused("canary_roots_required", lambda: _target(roots, spare=None))
+    _refused("canary_roots_required", lambda: _target(roots, live=""))
+
+
+def test_canary_refuses_a_spare_that_is_in_or_holds_the_live_root(roots, tmp_path):
+    spare, live, _ = roots
+    _refused("canary_spare_is_live_root", lambda: _target(roots, spare=live))
+    inner = _root(live, "inner", 18871)
+    _refused("canary_spare_is_live_root", lambda: _target(roots, spare=inner))
+    _refused(
+        "canary_spare_is_live_root", lambda: _target(roots, live=spare / "receiver")
+    )
+
+
+def test_canary_refuses_an_unreadable_receiver_config(roots, tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    _refused("canary_receiver_config_unreadable", lambda: _target(roots, spare=empty))
+
+
+def test_canary_refuses_a_spare_not_serving_that_port(roots):
+    _refused(
+        "canary_target_not_the_spare",
+        lambda: _target(roots, door="http://127.0.0.1:18872"),
+    )
+
+
+def test_canary_refuses_a_spare_sharing_the_live_state(roots, tmp_path):
+    _, live, show = roots
+    shared = _root(
+        tmp_path, "shared", 18871, state=str((live / "receiver" / "state").resolve())
+    )
+    _refused(
+        "canary_spare_shares_live_state",
+        lambda: _target(roots, spare=shared, show=show),
+    )
+
+
+def test_canary_refuses_a_spare_on_another_network(roots, tmp_path):
+    main = _root(tmp_path, "main", 18871, network="finney")
+    _refused("canary_network_not_testnet", lambda: _target(roots, spare=main))
+
+
+@pytest.mark.parametrize("unit", ["", "x; rm -rf /", "carbon-spare", "a b.service"])
+def test_canary_refuses_a_bad_unit_name(roots, unit):
+    _refused("canary_unit_invalid", lambda: _target(roots, unit=unit))
+
+
+def test_canary_refuses_a_unit_that_is_not_the_spare(roots):
+    spare, live, _ = roots
+    live_cfg = str(live / "receiver" / "receiver.json")
+    spare_cfg = str(spare / "receiver" / "receiver.json")
+    _refused(
+        "canary_unit_not_the_spare",
+        lambda: _target(roots, show=lambda u, p: "argv[]=x --config " + live_cfg),
+    )
+    _refused(
+        "canary_unit_not_the_spare",
+        lambda: _target(
+            roots, show=lambda u, p: f"--config {spare_cfg} --config {live_cfg}"
+        ),
+    )
+
+    def broken(unit, prop):
+        raise OSError("no systemctl")
+
+    _refused("canary_unit_unreadable", lambda: _target(roots, show=broken))
+
+
+def _canary_main(tmp_path, *extra):
+    return dp.main(
+        [
+            "fresh",
+            "--canary",
+            "--door",
+            "http://127.0.0.1:18871",
+            "--challenge",
+            "f02",
+            "--version",
+            "2.5",
+            "--receiver-hotkey",
+            "5R",
+            "--out",
+            str(tmp_path / "o"),
+            *extra,
+        ]
+    )
+
+
+def test_canary_refuses_any_client_but_the_canary(tmp_path):
+    with pytest.raises(dp.CanaryRefused) as refused:
+        _canary_main(tmp_path, "--client", "bob=5B")
+    assert refused.value.code == "canary_client_given"
+
+
+@pytest.mark.parametrize("n", ["0", "3"])
+def test_canary_refuses_more_than_two_submits(tmp_path, n):
+    with pytest.raises(dp.CanaryRefused) as refused:
+        _canary_main(tmp_path, "--submits", n)
+    assert refused.value.code == "canary_too_many_submits"
+
+
+def test_canary_refuses_a_wall_over_an_hour(tmp_path):
+    with pytest.raises(dp.CanaryRefused) as refused:
+        _canary_main(tmp_path, "--wait-s", "3601")
+    assert refused.value.code == "canary_wall_over_cap"
+
+
+def test_canary_refusals_come_before_anything_is_written(tmp_path):
+    with pytest.raises(dp.CanaryRefused):
+        _canary_main(tmp_path, "--spare-root", str(tmp_path / "nope"))
+    assert not (tmp_path / "o").exists()
+
+
+def test_canary_hotkey_is_the_registered_one_only():
+    from carbon.challenge_validator.canary import CANARY_HOTKEYS
+
+    assert len(CANARY_HOTKEYS) == 1
+
+
+def test_canary_refuses_the_kings_recipe():
+    pages = {
+        "/koth/f02": '{"king": {"recipe": "sha256:' + "ab" * 32 + '"}}',
+        "/koth/f02/v2": "{}",
+    }
+
+    def get(url):
+        return next(v for k, v in pages.items() if url.endswith(k))
+
+    _refused(
+        "canary_recipe_is_kings",
+        lambda: dp.canary_not_kings(
+            "http://127.0.0.1:1", "f02", ["sha256:" + "ab" * 32], get=get
+        ),
+    )
+    dp.canary_not_kings("http://127.0.0.1:1", "f02", ["sha256:" + "cd" * 32], get=get)
+
+
+def test_canary_journal_counts_and_verdict():
+    text = "ok\nx direct_grade_failure y\nsqlite3.OperationalError: locked\nok\n"
+    assert dp.journal_counts(text) == {"direct_grade_failure": 1, "OperationalError": 1}
+    clients = [("canary_1", "5C"), ("canary_2", "5C")]
+    graded = {
+        "canary_1": {"outcome": "graded", "task_id": "t1"},
+        "canary_2": {"outcome": "graded", "task_id": "t2"},
+    }
+    clean = {"direct_grade_failure": 0, "OperationalError": 0}
+    assert dp.canary_verdict(clients, graded, clean, "0", "0")[0] == "PASS"
+    assert dp.canary_verdict(clients, graded, clean, "0", "1")[0] == "FAIL"
+    assert dp.canary_verdict(clients, graded, clean, None, None)[0] == "FAIL"
+    dirty = {"direct_grade_failure": 0, "OperationalError": 2}
+    assert dp.canary_verdict(clients, graded, dirty, "0", "0")[0] == "FAIL"
+    unread = {"direct_grade_failure": None, "OperationalError": None}
+    assert dp.canary_verdict(clients, graded, unread, "0", "0")[0] == "FAIL"
+
+
+def test_canary_refuses_another_doors_spare(roots, tmp_path):
+    _refused("canary_spare_of_another_door", lambda: _target(roots, challenge="f08"))
+    other = _root(tmp_path, "other", 18871, challenge="f08-ribbed-bracket")
+    _refused("canary_spare_of_another_door", lambda: _target(roots, spare=other))
+    other_live = _root(tmp_path, "other_live", 18772, challenge="f08-ribbed-bracket")
+    _refused("canary_spare_of_another_door", lambda: _target(roots, live=other_live))
+
+
+def test_canary_refuses_another_receiver_hotkey(roots):
+    _refused(
+        "canary_receiver_hotkey_not_the_spares", lambda: _target(roots, receiver="5X")
+    )

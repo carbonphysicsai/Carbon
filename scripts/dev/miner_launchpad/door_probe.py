@@ -28,6 +28,21 @@ Three modes, one evidence format:
   state and then its grade state. Pass: every client reaches GRADED (or the
   crown hold); a failed build or grade, FAILED_INFRA, NOT_GRADED, a refusal
   or no terminal state by ``--wait-s`` fails the run with its code.
+* ``fresh --canary`` (Rule A / S1 on a PREPARED SPARE before a switch;
+  Validator-2B 9 Nov 19:46): the same submits, at most 2, from the registered
+  canary hotkey only (``canary.CANARY_HOTKEYS``; never ``--client``), to the
+  spare named by ``--spare-root`` and reached on 127.0.0.1 only. It refuses,
+  before signing, any other host, a live front port (``LIVE_FRONT_PORTS``) or
+  the live root's own receiver port, a spare root that is, holds or sits in the
+  live root (``--live-root``) or shares its state directory, a spare whose
+  ``receiver.json`` does not name that port on 127.0.0.1, names a network
+  other than testnet, another Challenge than ``--challenge`` (in either root)
+  or another receiver hotkey than ``--receiver-hotkey``, a ``--unit`` whose ExecStart does not run the spare's
+  ``receiver.json`` (or runs the live one), a wall over 60 minutes, and a
+  recipe whose digest the spare's public king pages name. PASS adds: the
+  spare unit's journal since the start has 0 ``direct_grade_failure`` and 0
+  ``OperationalError`` lines and its NRestarts is unchanged. Standard output
+  carries counts and statuses only.
 
 Signed modes import Carbon and sign through the hotkey's external signer
 (``connect_signer``); no key material is read here. They refuse unless the
@@ -48,10 +63,12 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -939,12 +956,201 @@ def fresh_verdict(clients, results):
     return ("PASS" if graded and distinct else "FAIL"), distinct
 
 
+#: Live testnet door fronts (Validator-2B 19:46): never a canary target. The
+#: live root's own receiver port (its backend) is refused from --live-root.
+LIVE_FRONT_PORTS = frozenset({8771, 8772, 8773, 8775})
+#: A canary run's wall cap and submit cap (Validator-2B 19:46).
+CANARY_WALL_S = 3600.0
+CANARY_MAX_SUBMITS = 2
+#: The journal lines that fail a canary run.
+CANARY_JOURNAL_FAILURES = ("direct_grade_failure", "OperationalError")
+_UNIT = re.compile(r"[A-Za-z0-9@_.:-]{1,200}\.service")
+
+
+class CanaryRefused(SystemExit):
+    def __init__(self, code):
+        super().__init__("canary refused: " + code)
+        self.code = code
+
+
+def _receiver_config(root):
+    try:
+        cfg = json.loads(
+            (Path(root) / "receiver" / "receiver.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError):
+        raise CanaryRefused("canary_receiver_config_unreadable") from None
+    if type(cfg) is not dict:
+        raise CanaryRefused("canary_receiver_config_unreadable")
+    return cfg
+
+
+def _state_dir(root, cfg):
+    state = Path(cfg["root"]) if type(cfg.get("root")) is str else None
+    if state is None:
+        return None
+    return (state if state.is_absolute() else Path(root) / state).resolve()
+
+
+def systemctl_show(unit, prop):
+    return subprocess.run(
+        ["systemctl", "show", "-p", prop, "--value", unit],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=True,
+    ).stdout.strip()
+
+
+def journal_since(unit, since):
+    return subprocess.run(
+        [
+            "journalctl",
+            "-u",
+            unit,
+            "--since",
+            f"@{int(since)}",
+            "--no-pager",
+            "-o",
+            "cat",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=True,
+    ).stdout
+
+
+def journal_counts(text):
+    lines = text.splitlines()
+    return {
+        word: sum(1 for line in lines if word in line)
+        for word in CANARY_JOURNAL_FAILURES
+    }
+
+
+def canary_target(
+    door, spare_root, live_root, unit, *, challenge, receiver, show=systemctl_show
+):
+    """The spare's port, or CanaryRefused before anything is signed."""
+    url = urllib.parse.urlsplit(door)
+    try:
+        port = url.port
+    except ValueError:
+        port = None
+    if (
+        url.scheme != "http"
+        or url.hostname != "127.0.0.1"
+        or port is None
+        or url.path not in ("", "/")
+        or url.query
+        or url.fragment
+        or url.username
+        or url.password
+    ):
+        raise CanaryRefused("canary_target_not_loopback_spare_url")
+    if port in LIVE_FRONT_PORTS:
+        raise CanaryRefused("canary_target_live_port")
+    if not spare_root or not live_root:
+        raise CanaryRefused("canary_roots_required")
+    spare, live = Path(spare_root).resolve(), Path(live_root).resolve()
+    if spare == live or spare in live.parents or live in spare.parents:
+        raise CanaryRefused("canary_spare_is_live_root")
+    spare_cfg, live_cfg = _receiver_config(spare), _receiver_config(live)
+    if live_cfg.get("port") == port:
+        raise CanaryRefused("canary_target_live_port")
+    if spare_cfg.get("host") != "127.0.0.1" or spare_cfg.get("port") != port:
+        raise CanaryRefused("canary_target_not_the_spare")
+    spare_state, live_state = _state_dir(spare, spare_cfg), _state_dir(live, live_cfg)
+    if spare_state is None or spare_state == live_state:
+        raise CanaryRefused("canary_spare_shares_live_state")
+    if spare_cfg.get("chain_network", "testnet") != "testnet":
+        raise CanaryRefused("canary_network_not_testnet")
+    # The spare of THIS door: both roots serve --challenge (never another door's spare).
+    if any(
+        type(cfg.get("challenge")) is not dict
+        or cfg["challenge"].get("id") != challenge
+        for cfg in (spare_cfg, live_cfg)
+    ):
+        raise CanaryRefused("canary_spare_of_another_door")
+    if spare_cfg.get("receiver_hotkey") != receiver:
+        raise CanaryRefused("canary_receiver_hotkey_not_the_spares")
+    if type(unit) is not str or not _UNIT.fullmatch(unit):
+        raise CanaryRefused("canary_unit_invalid")
+    try:
+        exec_start = show(unit, "ExecStart")
+    except (OSError, subprocess.SubprocessError):
+        raise CanaryRefused("canary_unit_unreadable") from None
+    if (
+        str(spare / "receiver" / "receiver.json") not in exec_start
+        or str(live / "receiver" / "receiver.json") in exec_start
+    ):
+        raise CanaryRefused("canary_unit_not_the_spare")
+    return port
+
+
+def _public_get(url, limit=1 << 20):
+    try:
+        with urllib.request.urlopen(
+            urllib.request.Request(url, headers={"User-Agent": user_agent()}),
+            timeout=GET_TIMEOUT_S,
+        ) as response:
+            return response.read(limit).decode("utf-8", "replace")
+    except urllib.error.HTTPError as refused:
+        return refused.read(limit).decode("utf-8", "replace")
+
+
+def canary_not_kings(door, challenge, digests, *, get=_public_get):
+    """Refuse when the spare's public king pages name a recipe about to be sent."""
+    for _, path in routes(challenge, queue=False):
+        if path.startswith(KOTH):
+            body = get(door.rstrip("/") + path)
+            if any(d in body for d in digests):
+                raise CanaryRefused("canary_recipe_is_kings")
+
+
+def canary_verdict(clients, results, journal, nrestarts_before, nrestarts_after):
+    verdict, distinct = fresh_verdict(clients, results)
+    clean = all(journal.get(w) == 0 for w in CANARY_JOURNAL_FAILURES)
+    same = nrestarts_before is not None and nrestarts_before == nrestarts_after
+    return ("PASS" if verdict == "PASS" and clean and same else "FAIL"), distinct
+
+
+def canary_args(args):
+    """The canary run's clients, after every refusal that needs no Carbon import."""
+    if args.client:
+        raise CanaryRefused("canary_client_given")
+    if not 1 <= args.submits <= CANARY_MAX_SUBMITS:
+        raise CanaryRefused("canary_too_many_submits")
+    if not 0 < args.wait_s <= CANARY_WALL_S:
+        raise CanaryRefused("canary_wall_over_cap")
+    return canary_target(
+        args.door,
+        args.spare_root,
+        args.live_root,
+        args.unit,
+        challenge=args.challenge,
+        receiver=args.receiver_hotkey,
+    )
+
+
 def cmd_fresh(args):
-    clients = fresh_clients(args.client)
+    if args.canary:
+        canary_args(args)
+        _carbon(args.repo)
+        from carbon.challenge_validator.canary import CANARY_HOTKEYS
+
+        if len(CANARY_HOTKEYS) != 1:
+            raise CanaryRefused("canary_hotkey_not_single")
+        clients = [
+            ("canary_" + str(i + 1), CANARY_HOTKEYS[0]) for i in range(args.submits)
+        ]
+    else:
+        clients = fresh_clients(args.client)
+        _carbon(args.repo)
+        _require_localnet()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=False)
-    _carbon(args.repo)
-    _require_localnet()
     from carbon.chain.external_signer import connect_signer
     from carbon.development_session.chain_onboarding import carbon_testnet_context
 
@@ -955,6 +1161,9 @@ def cmd_fresh(args):
         fresh_recipe(args.challenge, args.version, run_k, i, args.catalog_id)
         for i in range(len(clients))
     ]
+    if args.canary:
+        canary_not_kings(args.door, args.challenge, [r[0].digest for r in recipes])
+        nrestarts_before = systemctl_show(args.unit, "NRestarts")
     context = carbon_testnet_context()
     recorder = Recorder(out / "requests.jsonl")
     barrier = threading.Barrier(len(clients))
@@ -1006,7 +1215,27 @@ def cmd_fresh(args):
     for thread in threads:
         thread.join()
     recorder.close()
-    verdict, distinct = fresh_verdict(clients, results)
+    canary = None
+    if args.canary:
+        try:
+            journal = journal_counts(journal_since(args.unit, started))
+        except (OSError, subprocess.SubprocessError):
+            journal = {w: None for w in CANARY_JOURNAL_FAILURES}
+        try:
+            nrestarts_after = systemctl_show(args.unit, "NRestarts")
+        except (OSError, subprocess.SubprocessError):
+            nrestarts_after = None  # unread: never a PASS (canary_verdict)
+        verdict, distinct = canary_verdict(
+            clients, results, journal, nrestarts_before, nrestarts_after
+        )
+        canary = {
+            "unit": args.unit,
+            "journal": journal,
+            "nrestarts_before": nrestarts_before,
+            "nrestarts_after": nrestarts_after,
+        }
+    else:
+        verdict, distinct = fresh_verdict(clients, results)
     summary = {
         "schema": SCHEMA,
         "mode": "fresh",
@@ -1017,10 +1246,34 @@ def cmd_fresh(args):
         "wait_s": args.wait_s,
         "clients": results,
         "task_ids_distinct": distinct,
+        "canary": canary,
         "verdict": verdict,
         "probe_sha256": _probe_digest(),
     }
-    print(json.dumps({"verdict": verdict, "sums": _write_summary(out, summary)}))
+    sums = _write_summary(out, summary)
+    if canary is None:
+        print(json.dumps({"verdict": verdict, "sums": sums}))
+    else:
+        # Counts and statuses only (Validator-2B (f)); ids stay in the evidence.
+        print(
+            json.dumps(
+                {
+                    "verdict": verdict,
+                    "submits": len(clients),
+                    "statuses": {
+                        n: {
+                            k: results.get(n, {}).get(k)
+                            for k in ("outcome", "grade_state", "code", "seconds")
+                        }
+                        for n, _ in clients
+                    },
+                    "journal": canary["journal"],
+                    "nrestarts_same": nrestarts_after is not None
+                    and nrestarts_before == nrestarts_after,
+                    "sums": sums,
+                }
+            )
+        )
     return 0 if verdict == "PASS" else 1
 
 
@@ -1193,9 +1446,19 @@ def parser():
         "--client",
         action="append",
         default=[],
-        required=True,
-        help="name=SS58 of a test hotkey whose signer is running; two or more",
+        help="name=SS58 of a test hotkey whose signer is running; two or more (not with --canary)",
     )
+    f.add_argument(
+        "--canary",
+        action="store_true",
+        help="a prepared testnet SPARE on 127.0.0.1, from the canary hotkey only",
+    )
+    f.add_argument(
+        "--submits", type=int, default=2, help="--canary: 1 or 2 concurrent submits"
+    )
+    f.add_argument("--spare-root", help="--canary: the prepared spare's release root")
+    f.add_argument("--live-root", help="--canary: the live door's release root")
+    f.add_argument("--unit", help="--canary: the spare's systemd receiver unit")
     f.add_argument("--receiver-hotkey", required=True)
     f.add_argument(
         "--wait-s",
