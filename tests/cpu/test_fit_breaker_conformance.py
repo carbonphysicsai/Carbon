@@ -47,6 +47,18 @@ with that version's OWN owner record choosing it (the waiver form above). Both n
     the physics block, it refuses a scored-cell map with no cell (the fit wins everywhere: no A to score is the owner's
     call, like no D), and the weekly fresh-draw SE is built (``physics_se_not_built`` is a launch blocker).
 
+AMENDMENT 2 (10 Nov; Validator-2B engineering ruling 05:45 'PATH (ii)', Carbon Validator-B science ruling
+D_ZERO_MENU_2PRIME_RULING_20261110.md 908e8fe2 conditions (a)-(f), owner record ``MENU_ZERO_RECORD``): for a version that
+registers a ``menu`` block, D is graded by the sealed menu records (`pool_menu`), and ``optimizer.d_zero`` grades
+nothing, so 2' reads the menu's zero instead: ``fit_breaker.d_zero`` (never read by ``carbon/``) =
+``{"kind": "best_of", "components": [...] (the same exact-set rule), "source": "menu_records", "dv_proof_sha256"
+(per-task hardness H1-H6 + bunching report, (d)), "arms_sha256" (the TRAIN-only fit panel in every record's arms, (a)),
+"zero_records_sha256": {task_id: sha256} (each record's zero record, one per registered menu task, (b))}``, with
+``optimizer.d_zero`` ABSENT (one zero only, (f)), ``d_aggregate`` = ``balanced_region_mean``, the coverage plan, and the
+menu's aggregate "mean" ((e)). That the records' arms are non-empty and their s_zero equals the zero record's ((a), (b),
+(c)) is a custody check, receipted by the version's Validator; this test checks the registration. A version without a
+menu is unchanged (2' as above).
+
 The fit-breaker intent is unchanged: a fit scores nothing from in-range accuracy, A counts only cells the fit loses, and
 D is scored only where a proof shows it separates, above the best of the fit's pick, TRAIN's best and the shortcut.
 
@@ -106,6 +118,19 @@ _RECORD_ID = re.compile(r"[A-Z0-9][A-Z0-9-]*-[0-9]{2}(-AMENDMENT(-[0-9]+)?)?")
 
 #: The owner record of the 5 Nov design (lead-records 53375256, blob 15d5f970): rules 2' and 3' need it in the tree.
 BATCH_RECORD = "OWNER-EXAM-DESIGN-DECISIONS-BATCH-01"
+#: The owner record that reads 2' from the menu's zero for a menu-D version (amendment 2, 10 Nov): it must be in the tree.
+MENU_ZERO_RECORD = "OWNER-MENU-D-ZERO-2PRIME-01"
+#: The keys of a menu-D version's ``fit_breaker.d_zero`` (amendment 2), exactly.
+_MENU_ZERO_KEYS = frozenset(
+    {
+        "kind",
+        "components",
+        "source",
+        "dv_proof_sha256",
+        "arms_sha256",
+        "zero_records_sha256",
+    }
+)
 #: The battery's gate statistics and case sources (the grader's ``physics`` block).
 _GATE_STATISTICS = frozenset({"median", "p90", "max"})
 _GATE_CASES = frozenset({"agen", "pool"})
@@ -185,6 +210,8 @@ def _rule_state(rule, entry, decisions, grader, version_key=(None, None)):
         variant = optimizer.get("variant_rule")
         on = type(variant) is dict and variant.get("kind") == "limit_shift"
         return None if on else "rule_off"
+    if rule == "engineer_shortcut_d_zero" and "menu" in entry:
+        return _menu_zero_state(entry, optimizer, breaker, decisions, version_key)
     if rule == "engineer_shortcut_d_zero":
         zero = optimizer.get("d_zero")
         proof = zero.get("dv_proof_sha256") if type(zero) is dict else None
@@ -228,6 +255,46 @@ def _rule_state(rule, entry, decisions, grader, version_key=(None, None)):
             return "owner_record_not_in_tree"
         return grader
     raise AssertionError(rule)
+
+
+def _is_hex64(value):
+    return type(value) is str and bool(_HEX64.fullmatch(value))
+
+
+def _menu_zero_state(entry, optimizer, breaker, decisions, version_key):
+    """Rule 2' for a menu-D version (amendment 2): None when on, else "rule_off" or "owner_record_not_in_tree"."""
+    zero = breaker.get("d_zero")
+    menu = entry.get("menu")
+    tasks = menu.get("records_sha256") if type(menu) is dict else None
+    zeros = zero.get("zero_records_sha256") if type(zero) is dict else None
+    physics = entry.get("physics")
+    on = (
+        "d_zero"
+        not in optimizer  # (f) one zero only: the grader's own zero stays unset
+        and type(zero) is dict
+        and set(zero) == _MENU_ZERO_KEYS
+        and zero["kind"] == "best_of"
+        and zero["source"] == "menu_records"
+        and _best_of_zero(zero, shortcut_screened(*version_key))
+        and _is_hex64(zero["dv_proof_sha256"])  # (d)
+        and _is_hex64(zero["arms_sha256"])  # (a)
+        # (b) one zero record per registered menu task, by sha
+        and type(zeros) is dict
+        and type(tasks) is dict
+        and bool(zeros)
+        and set(zeros) == set(tasks)
+        and all(_is_hex64(sha) for sha in zeros.values())
+        and menu.get("aggregate") == "mean"  # (e)
+        and optimizer.get("d_aggregate") == "balanced_region_mean"
+        and optimizer.get("coverage_plan_sha256") is not None
+        and not (type(physics) is dict and physics.get("total_rule") == "a_only")
+    )
+    if not on:
+        return "rule_off"
+    resolved = _waiver_resolves(BATCH_RECORD, decisions) and _waiver_resolves(
+        MENU_ZERO_RECORD, decisions
+    )
+    return None if resolved else "owner_record_not_in_tree"
 
 
 def _waiver_resolves(record_id, decisions):
@@ -671,3 +738,178 @@ def test_the_ood_min_waiver_names_the_versions_own_record_and_its_conditions_rep
     entry["optimizer"].pop("variant_rule")
     entry["fit_breaker"]["waivers"] = {"v_var": good}  # the report form is OOD-min only
     assert _check(entry, tmp_path) == [(*NEW, "v_var", "waiver_does_not_resolve")]
+
+
+# ---------------------------------------------------------------- amendment 2: rule 2' for a menu-D version (10 Nov)
+
+MENU_TASKS = ("task-1", "task-2", "task-3")
+
+
+def _menu_on():
+    """A new menu-D version in the amendment-2 form: the zero read from the menu records (fit_breaker.d_zero), the
+    grader's own d_zero absent."""
+    entry = _all_on()
+    zero = entry["optimizer"].pop("d_zero")
+    entry["menu"] = {
+        "records_sha256": {t: "e1" * 32 for t in MENU_TASKS},
+        "epoch": "HUMAN_INPUT",
+        "aggregate": "mean",
+        "rotation_days": "HUMAN_INPUT",
+        "rowcheck": "HUMAN_INPUT",
+    }
+    entry["fit_breaker"]["d_zero"] = {
+        "kind": "best_of",
+        "components": zero["components"],
+        "source": "menu_records",
+        "dv_proof_sha256": "d6" * 32,
+        "arms_sha256": "a7" * 32,
+        "zero_records_sha256": {t: "20" * 32 for t in MENU_TASKS},
+    }
+    return entry
+
+
+def _menu_check(entry, tmp_path, version=NEW, menu_record=True):
+    _record(tmp_path)
+    if menu_record:
+        _record(tmp_path, MENU_ZERO_RECORD)
+    return conformance_failures(
+        {version},
+        {"versions": {" ".join(version): entry}},
+        {version},
+        tmp_path,
+        grader=None,
+    )
+
+
+def test_a_menu_version_passes_with_the_menu_zero_and_the_owner_record(tmp_path):
+    assert _menu_check(_menu_on(), tmp_path) == []
+
+
+def test_a_menu_version_fails_closed_until_the_menu_zero_record_is_in_the_tree(
+    tmp_path,
+):
+    assert _menu_check(_menu_on(), tmp_path, menu_record=False) == [
+        (*NEW, "engineer_shortcut_d_zero", "owner_record_not_in_tree")
+    ]
+
+
+def test_a_menu_version_with_the_graders_own_zero_too_has_two_zeros_and_fails(
+    tmp_path,
+):
+    """Condition (f): one zero only."""
+    entry = _menu_on()
+    entry["optimizer"]["d_zero"] = dict(entry["fit_breaker"]["d_zero"])
+    assert _menu_check(entry, tmp_path) == [
+        (*NEW, "engineer_shortcut_d_zero", "rule_off")
+    ]
+
+
+@pytest.mark.parametrize(
+    "drop",
+    [
+        lambda e: e["fit_breaker"].pop("d_zero"),
+        lambda e: e["fit_breaker"]["d_zero"].update(source="optimizer"),
+        lambda e: e["fit_breaker"]["d_zero"].update(kind="engineer_shortcut"),
+        lambda e: e["fit_breaker"]["d_zero"].update(dv_proof_sha256="HUMAN_INPUT"),  # (d)
+        lambda e: e["fit_breaker"]["d_zero"].pop("arms_sha256"),  # (a)
+        lambda e: e["fit_breaker"]["d_zero"].update(arms_sha256=""),  # (a): no fit panel
+        lambda e: e["fit_breaker"]["d_zero"].update(zero_records_sha256={}),  # (b)
+        lambda e: e["fit_breaker"]["d_zero"]["zero_records_sha256"].pop("task-3"),  # (b): a task without its zero
+        lambda e: e["fit_breaker"]["d_zero"]["zero_records_sha256"].update({"task-9": "20" * 32}),
+        lambda e: e["fit_breaker"]["d_zero"]["zero_records_sha256"].update({"task-1": "x"}),
+        lambda e: e["fit_breaker"]["d_zero"].update(extra=1),
+        lambda e: e["fit_breaker"]["d_zero"]["components"].pop(),
+        lambda e: e["menu"].update(aggregate="max"),  # (e)
+        lambda e: e["optimizer"].pop("coverage_plan_sha256"),  # (e)
+        lambda e: e["optimizer"].pop("d_aggregate"),
+        lambda e: e["physics"].update(total_rule="a_only"),  # no D scored
+    ],
+)  # fmt: skip
+def test_a_menu_version_missing_any_condition_fails_rule_2prime(tmp_path, drop):
+    entry = _menu_on()
+    drop(entry)
+    failures = _menu_check(entry, tmp_path)
+    assert (*NEW, "engineer_shortcut_d_zero", "rule_off") in failures
+
+
+def test_a_screened_menu_version_needs_the_shortcut_component(tmp_path):
+    entry = _menu_on()
+    assert _menu_check(entry, tmp_path, version=SCREENED) == [
+        (*SCREENED, "engineer_shortcut_d_zero", "rule_off")
+    ]
+    entry["fit_breaker"]["d_zero"]["components"].append(
+        {"kind": "engineer_shortcut", "budget": "HUMAN_INPUT"}
+    )
+    assert _menu_check(entry, tmp_path, version=SCREENED) == []
+
+
+def test_a_version_without_a_menu_still_needs_the_graders_best_of_zero(tmp_path):
+    """Amendment 2 is for menu-D versions only: the menu zero in fit_breaker does nothing for a version with no menu."""
+    entry = _menu_on()
+    entry.pop("menu")
+    assert _menu_check(entry, tmp_path) == [
+        (*NEW, "engineer_shortcut_d_zero", "rule_off")
+    ]
+    assert _menu_check(_all_on(), tmp_path) == []  # unchanged
+
+
+def _synthetic(value):
+    """A stand-in for one HUMAN_INPUT leaf, by its key (synthetic, test-only; never a registered value)."""
+    return {
+        "agen_scales": {
+            "mean_torque_nm": 1.0,
+            "ripple_pk_pk_nm": 1.0,
+            "die_peak_c": 1.0,
+            "hydraulic_w": 1.0,
+        },
+        "scale": 1.0,
+        "population": None,
+        "sigma0": 0.25,
+        "budget": 60,
+        "limits[]": "synthetic_limit",  # one list element
+        "shifts[]": 0.1,
+        "min_valid": 1,
+        "gate_threshold": {"die_peak_c": 1.0, "hydraulic_w": 1.0},
+        "records_sha256": {t: "e1" * 32 for t in MENU_TASKS},
+        "zero_records_sha256": {t: "20" * 32 for t in MENU_TASKS},
+        "epoch": "synthetic-epoch",
+        "rotation_days": 7,
+        "rowcheck": {"rel_tol": 0.0, "abs_tol": 0.0, "subset": 3},
+    }.get(
+        value, "5e" * 32
+    )  # every other HUMAN_INPUT leaf is a sha
+
+
+def _fill(node, key=None):
+    if node == "HUMAN_INPUT":
+        return _synthetic(key)
+    if type(node) is dict:
+        return {k: _fill(v, k) for k, v in node.items()}
+    if type(node) is list:
+        return [_fill(v, f"{key}[]") for v in node]
+    return node
+
+
+@pytest.mark.parametrize(
+    "name", ["electric-motor-magnetics 1.8", "chip-cold-plate 1.8"]
+)
+def test_a_filled_1p8_row_passes_conformance_and_parses_in_the_grader(tmp_path, name):
+    """mc-exam-B's 05:42 gap: the registered 1.8 row, with every HUMAN_INPUT filled by a synthetic stand-in, both passes
+    the fit-breaker conformance and parses in `pool_version.registered_policies` (one zero, the grader's unset).
+    """
+    from carbon.scoring import pool_version
+
+    document = json.loads(CONSTANTS.read_bytes())
+    entry = _fill(document["versions"][name])
+    assert "HUMAN_INPUT" not in json.dumps(entry)
+    assert "d_zero" not in entry["optimizer"]
+    version = tuple(name.rsplit(" ", 1))
+    assert _menu_check(entry, tmp_path, version=version) == []
+    path = tmp_path / "pool_constants.json"
+    path.write_text(
+        json.dumps({"schema": document["schema"], "versions": {name: entry}}),
+        encoding="utf-8",
+    )
+    policies = pool_version.registered_policies(*version, path=path)
+    assert policies.optimizer.d_zero is None
+    assert policies.menu is not None and policies.physics is not None
