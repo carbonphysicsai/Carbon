@@ -120,9 +120,10 @@ are not shown, and the hidden sample rotates.
   and ripple fraction 0.15 (Motor 1.7's extended-shell U of record).
 - **Outside the training range:** hidden classes include cases outside the
   training range. The kinds Motor 1.8 tests include saturation (current
-  densities past where the iron starts to saturate), cross-saturation,
-  and cogging at zero current. These cases count for the physics part, for the design menus
-  and for the gates. Their extents are never published.
+  densities past where the iron starts to saturate) and cogging at zero
+  current. These cases count for the physics part, for the design menus and
+  for the gates. Their extents are never published. Cross-saturation is not
+  scored in Motor 1.8.
 - **A model has to generalise.** A fit of any one dataset, yours included,
   is tested where that dataset does not reach.
 
