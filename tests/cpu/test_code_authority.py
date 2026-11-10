@@ -581,6 +581,21 @@ def _research_environment_evidence_modules() -> set[str]:
     }
 
 
+def test_every_dev_grid_dispatch_target_is_a_live_scoring_dual_pack() -> None:
+    """`dev_grid._dispatched` imports only `version_overlay.SEALED_TARGET` values: each a `carbon.scoring.*_dual_pack`
+    module that exists and lies in no retired namespace."""
+    from carbon.challenge_kit import version_overlay
+
+    retired = tuple(_authority()["retired"]["runtime_namespaces"])
+    assert version_overlay.SEALED_TARGET
+    for challenge_id, module in version_overlay.SEALED_TARGET.items():
+        assert re.fullmatch(
+            r"carbon\.scoring\.[a-z0-9_]+_dual_pack", module
+        ), challenge_id
+        assert not _matches_namespace(module, retired), challenge_id
+        assert importlib.util.find_spec(module) is not None, challenge_id
+
+
 def test_canonical_python_cannot_import_retired_namespaces() -> None:
     authority = _authority()
     canonical = authority["canonical"]
@@ -616,6 +631,14 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "smoke",
             "importlib.import_module",
             "name",
+        ),
+        (
+            # The dev-grid overlay dispatch (Validator-2B, gate551 ruling): imports the sealed module of an armed
+            # overlay version's Challenge, always a `version_overlay.SEALED_TARGET` value (pinned by the test above).
+            "carbon/scoring/dev_grid.py",
+            "_dispatched",
+            "importlib.import_module",
+            "version_overlay.SEALED_TARGET[key[0]]",
         ),
         (
             # GPU lane tools (reviewed): the class check imports the version modules it reports on by name, and the
