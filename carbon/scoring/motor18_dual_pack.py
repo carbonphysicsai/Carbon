@@ -35,14 +35,13 @@ not a valid answer on a target that grades it.
 
 from __future__ import annotations
 
-import importlib
 import sys
 
 from carbon.motor import row18 as _row18
 
 #: The sealed module this version extends. It is imported LAZILY (`_sl`), never at this module's import: the overlay
 #: arms its dispatch on that module's import, so importing it here would call `dispatch` on a half-built module.
-_SEALED = "carbon.scoring.motor_sealed_dual_pack"
+_SEALED = "carbon.scoring.motor_sealed_dual_pack"  # the module `_sl` returns (a literal, function-local import)
 
 CHALLENGE = "electric-motor-magnetics"
 VERSION = "1.8"
@@ -56,7 +55,9 @@ _OWN_FILE = "motor18_dual_pack.py"
 
 
 def _sl():
-    return importlib.import_module(_SEALED)
+    from carbon.scoring import motor_sealed_dual_pack
+
+    return motor_sealed_dual_pack
 
 
 #: The two back-EMF cells' outputs (`back_emf.CELLS`), each the predicted k_e,ll ab waveform.

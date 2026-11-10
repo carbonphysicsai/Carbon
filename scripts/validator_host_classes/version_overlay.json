@@ -111,7 +111,7 @@
       "rebuild_wall_seconds": 648,
       "dispatch": {
         "module": "carbon.scoring.cooling18_dual_pack",
-        "sha256": "0dfe0fc02b3c55ae68f7d31df3a00dca97a241083c5ad3958704fe05f7e5dcf5",
+        "sha256": "2bb46a0d5262725febec26280a7e50012b43acc6bd2dfec8c98b19dc6a2f8f52",
         "config": {}
       }
     },
@@ -135,7 +135,7 @@
       "rebuild_wall_seconds": 648,
       "dispatch": {
         "module": "carbon.scoring.motor18_dual_pack",
-        "sha256": "fb44f8cae8af7e8d69d077644722753013ce6e312e15ee360e492a2e2e4237ac",
+        "sha256": "3924f6c28b0ea20478ca6e7d2b3df10ed8831fcd3b395be8809013fda6c242c7",
         "config": {}
       }
     }

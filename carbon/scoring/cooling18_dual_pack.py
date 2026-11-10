@@ -13,12 +13,11 @@ version's `pool_constants.json` entry: until every owner value there is set, it 
 
 from __future__ import annotations
 
-import importlib
 import sys
 
 #: The sealed module this version extends. It is imported LAZILY (`_enc`), never at this module's import: the overlay
 #: arms its dispatch on that module's import, so importing it here would call `dispatch` on a half-built module.
-_ENCODED = "carbon.scoring.cooling_encoded_dual_pack"
+_ENCODED = "carbon.scoring.cooling_encoded_dual_pack"  # the module `_enc` returns (a literal, function-local import)
 CHALLENGE = "chip-cold-plate"
 VERSION = "1.8"
 #: The native extended TRAIN whose rows this version's measurement reads (its encoded twin is what miners train on).
@@ -31,7 +30,9 @@ _OWN_FILE = "cooling18_dual_pack.py"
 
 
 def _enc():
-    return importlib.import_module(_ENCODED)
+    from carbon.scoring import cooling_encoded_dual_pack
+
+    return cooling_encoded_dual_pack
 
 
 def _native_train():

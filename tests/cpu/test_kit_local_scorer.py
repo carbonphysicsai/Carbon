@@ -196,8 +196,10 @@ def _verify_set():
         inputs = archive["inputs"]
     low, high = inputs.min(axis=0), inputs.max(axis=0)
     names = material["input_names"]
-    width = adapter.SPECS[KEY].outputs
-    fake = [0.5 + 0.001 * i for i in range(width)]
+    from carbon.motor.domain import ANGLE_STEPS
+
+    # the truth is a torque curve (a 240-wide Motor 1.8 row's torque slice is what every Motor check reads)
+    fake = [0.5 + 0.001 * i for i in range(ANGLE_STEPS)]
     designs = [
         {
             "case_id": f"synthetic-{index}",
@@ -283,9 +285,14 @@ def agreed(tmp_path_factory):
             _sha(verify_raw),
             timing_calls=3,
         )
+    whole = np.asarray(official.inference.predictions, dtype=adapter.SPECS[KEY].dtype)
     return SimpleNamespace(
-        official=np.asarray(
-            official.inference.predictions, dtype=adapter.SPECS[KEY].dtype
+        official=whole,
+        # The torque curve every Motor check reads from an official row: the whole row, or the torque slice of a
+        # 240-wide Motor 1.8 row (its public split, `carbon.motor.row18`, which the grade also uses).
+        official_torque=np.asarray(
+            [local_scorer.motor_torque(row) for row in whole],
+            dtype=adapter.SPECS[KEY].dtype,
         ),
         report=report,
         verify_raw=verify_raw,
@@ -304,8 +311,10 @@ def test_the_kit_scorer_s_predictions_are_bit_equal_to_the_official_path(agreed)
         [row["prediction"]["torque_nm"] for row in report["designs"]],
         dtype=adapter.SPECS[KEY].dtype,
     )
-    assert kit.shape == agreed.official.shape
-    assert kit.tobytes() == np.ascontiguousarray(agreed.official).tobytes()
+    assert kit.shape == agreed.official_torque.shape
+    assert kit.tobytes() == np.ascontiguousarray(agreed.official_torque).tobytes()
+    # the WHOLE official row (every slice of a 240-wide one) is bit-equal through the report's predictions sha256
+    assert agreed.official.shape == (len(FRACTIONS), adapter.SPECS[KEY].outputs)
     assert report["predictions_sha256"] == _sha(
         np.ascontiguousarray(agreed.official).tobytes()
     )
@@ -318,7 +327,7 @@ def test_gates_and_the_verify_check_equal_the_official_exam_on_official_predicti
 
     motor_kit = _motor_kit()
     rows = agreed.report["designs"]
-    for row, curve in zip(rows, agreed.official):
+    for row, curve in zip(rows, agreed.official_torque):
         verdict = exam.evaluate_case(
             {"torque_nm": [float(v) for v in curve]}, {"status": "OK"}
         )
@@ -331,7 +340,7 @@ def test_gates_and_the_verify_check_equal_the_official_exam_on_official_predicti
             "status": "OK",
             "outputs": {"torque_nm": [float(v) for v in curve]},
         }
-        for design, curve in zip(agreed.verify_doc["designs"], agreed.official)
+        for design, curve in zip(agreed.verify_doc["designs"], agreed.official_torque)
     ]
     kit_verify = motor_kit.verify_compare(agreed.verify_doc, records)
     for row, theirs in zip(rows, kit_verify["designs"]):

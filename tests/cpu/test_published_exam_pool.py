@@ -79,9 +79,13 @@ POOL_KEYS = frozenset(
         ("electric-motor-magnetics", "1.5"),
         # intended effect of registering Motor 1.6 (version overlay, sealed motor-pool-sealed-v2)
         ("electric-motor-magnetics", "1.6"),
+        # intended effect of registering Motor 1.8 (version overlay, sealed motor-pool-sealed-v3)
+        ("electric-motor-magnetics", "1.8"),
         ("chip-cold-plate", "1.5"),
         ("chip-cold-plate", "1.6"),
         ("chip-cold-plate", "1.7"),
+        # intended effect of registering Cooling 1.8 (version overlay, sealed cooling-pool-sealed-v4)
+        ("chip-cold-plate", "1.8"),
     }
 )
 
@@ -286,8 +290,9 @@ def test_only_a_fully_registered_version_publishes_numbers():
         (ROOT / "scripts/validator_host_classes/pool_constants.json").read_bytes()
     )
     for key in POOL_KEYS:
-        row = document["versions"][f"{key[0]} {key[1]}"]
-        registered = "HUMAN_INPUT" not in json.dumps(row)
+        # a pool version with no constants row yet (Motor / Cooling 1.8 before their slice 3) is NOT registered
+        row = document["versions"].get(f"{key[0]} {key[1]}")
+        registered = row is not None and "HUMAN_INPUT" not in json.dumps(row)
         assert (key in pe._REGISTERED_POOL) == registered, key
 
 
