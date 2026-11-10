@@ -361,19 +361,28 @@ def test_routes_picks_a_subset_and_refuses_unknown_names(door, tmp_path):
 # ---------------------------------------------------------------- fresh (S1)
 
 
-def test_fresh_recipes_are_new_per_client_and_per_run_and_valid():
-    from carbon.battery import direct_graph
+def test_fresh_recipes_are_new_per_client_and_per_run_and_bound_to_the_contract():
+    from carbon.reconstruction.served_recipe_contract import registered
 
-    a, rate_a = dp.fresh_recipe(123456, 0)
-    b, _ = dp.fresh_recipe(123456, 1)
-    c, _ = dp.fresh_recipe(123457, 0)
+    a, rate_a, entry, contract = dp.fresh_recipe("f02", "2.5", 123456, 0)
+    b = dp.fresh_recipe("f02", "2.5", 123456, 1)[0]
+    c = dp.fresh_recipe("f02", "2.5", 123457, 0)[0]
     assert len({a.digest, b.digest, c.digest}) == 3
-    assert dp.fresh_recipe(123456, 0)[0].digest == a.digest
+    assert dp.fresh_recipe("f02", "2.5", 123456, 0)[0].digest == a.digest
     assert abs(rate_a / dp.FRESH_BASE_RATE - 1) <= 1e-4
-    # Battery's own training check accepts it, at the moved rate.
-    assert direct_graph.training_settings(a)["learning_rate"] == rate_a
-    challenge = a.to_dict()["challenge"]
-    assert (challenge["id"], challenge["version"]) == dp.FRESH_CHALLENGE
+    doc = a.to_dict()
+    assert doc["source"]["catalog_id"] == entry
+    assert doc["procedure"]["configuration"]["learning_rate"] == rate_a
+    # The client-side check that refused the Battery-dev 1.0 scaffold (9 Nov).
+    assert doc["challenge"] == registered("f02", "2.5").construction_kit
+    assert contract == registered("f02", "2.5").digest
+
+
+def test_fresh_refuses_a_version_without_a_catalog_before_signing():
+    with pytest.raises(SystemExit, match="no catalog entry"):
+        dp.fresh_recipe("battery-fastcharge-ageing-development-v1", "1.0", 1, 0)
+    with pytest.raises(SystemExit, match="no catalog entry"):
+        dp.fresh_recipe("f02", "2.5", 1, 0, catalog_id="no.such.entry")
 
 
 def test_fresh_needs_two_named_clients():
@@ -406,12 +415,7 @@ def _fresh(monkeypatch, tmp_path, *, built=None, raises=None, grades=(), wait_s=
     from carbon.development_session import direct_submission as ds
 
     clock = _Clock()
-    calls = {"stage": 0, "go": 0, "feedback": 0}
-    monkeypatch.setattr(
-        dp,
-        "stage_scaffold",
-        lambda *a, **k: calls.__setitem__("stage", calls["stage"] + 1) or 3,
-    )
+    calls = {"go": 0, "feedback": 0}
 
     def submit(url, signer, *, root, wait_s, **kw):
         assert root.is_dir()
@@ -470,7 +474,7 @@ def test_fresh_client_follows_the_build_then_the_grade(monkeypatch, tmp_path):
     )
     assert row["outcome"] == "graded" and row["grade_state"] == "GRADED"
     assert row["task_id"] == "t1" and row["build_state"] == "RECONSTRUCTED"
-    assert calls == {"stage": 1, "go": 1, "feedback": 3}
+    assert calls == {"go": 1, "feedback": 3}
     assert row["seconds"] == 60.0  # two 30 s polls
 
 
@@ -565,6 +569,10 @@ def test_fresh_refuses_off_localnet(monkeypatch, tmp_path):
                 "fresh",
                 "--door",
                 "http://127.0.0.1:1",
+                "--challenge",
+                "f02",
+                "--version",
+                "2.5",
                 "--client",
                 "bob=5B",
                 "--client",

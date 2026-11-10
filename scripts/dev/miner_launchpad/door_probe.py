@@ -20,10 +20,11 @@ Three modes, one evidence format:
   client while an upload ran. ``--spoof-header`` adds a forged client-IP header
   to every POST (the RA spoof case).
 * ``fresh`` (standing row S1, after every release switch): N signed submits at
-  once, one per test hotkey, each of a NEW recipe (Battery 1.0's published
-  scaffold graph, staged first, with a per-run, per-client learning rate at
-  most one part in ten thousand off the default, so no submit is
-  ``same_recipe_already_submitted``). Each submit is followed to its build
+  once, one per test hotkey, each of a NEW recipe: the door's Challenge
+  version's catalog recipe (``--catalog-id``, default the recommended entry;
+  nothing to stage) with a per-run, per-client ``configuration.learning_rate``
+  at most one part in ten thousand off its base, so no submit is
+  ``same_recipe_already_submitted``. Each submit is followed to its build
   state and then its grade state. Pass: every client reaches GRADED (or the
   crown hold); a failed build or grade, FAILED_INFRA, NOT_GRADED, a refusal
   or no terminal state by ``--wait-s`` fails the run with its code.
@@ -731,64 +732,56 @@ def cmd_burst(args):
     return 0
 
 
-#: Battery-dev 1.0: the only Challenge version with a published scaffold graph to stage.
-FRESH_CHALLENGE = ("battery-fastcharge-ageing-development-v1", "1.0")
-#: The registered default learning rate the scaffold recipe trains at (capability_registry surfaces).
-FRESH_BASE_RATE = 0.002
+#: The learning rate a catalog entry trains at when its tested defaults name none.
+FRESH_BASE_RATE = 0.001
 #: A grade state that passes S1: the submission was graded (or graded and held as a crown contender).
 FRESH_GRADED = ("GRADED", "CROWN_HELD_FOR_REVIEW")
 #: Grade states that are still on their way; anything else is terminal.
 FRESH_WAITING = (None, "QUEUED")
 
 
-def fresh_recipe(run_k, index):
-    """Battery 1.0's published scaffold recipe, made NEW for this run and client:
-    the learning rate moves by (run_k * 1000 + index + 1) parts in 1e13 of the
-    default, so its digest is one no earlier run or other client submitted.
-    Training is otherwise the published scaffold's."""
-    from carbon.battery import public_scaffold
+def fresh_recipe(challenge_id, version, run_k, index, catalog_id=None):
+    """The Challenge version's ready catalog recipe (`toolbox.catalog_recipes`:
+    the entry `catalog_id`, else the recommended one, else the first), made NEW
+    for this run and client: `configuration.learning_rate` is the entry's own
+    default (or FRESH_BASE_RATE) times 1 + (run_k * 1000 + index + 1) * 1e-13,
+    so its digest is one no earlier run or other client submitted. Checked
+    against the entry's settings schema and the registered contract before
+    anything is signed. Returns (recipe, rate, catalog_id, contract digest)."""
+    from carbon.backbone_catalog import listing, settings
     from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.reconstruction.served_recipe_contract import registered
+    from scripts.dev.miner_launchpad.toolbox import catalog_recipes
 
-    value = public_scaffold.recipe()
-    rate = FRESH_BASE_RATE * (1 + (run_k * 1000 + index + 1) * 1e-13)
-    value["procedure"]["configuration"]["training"]["learning_rate"] = rate
-    recipe = ConstructionRecipe.from_dict(value)
-    challenge = recipe.to_dict()["challenge"]
-    if (challenge["id"], challenge["version"]) != FRESH_CHALLENGE:
-        raise SystemExit("the published scaffold no longer names Battery-dev 1.0")
-    return recipe, rate
-
-
-def stage_scaffold(door, signer, *, recipe, contract, receiver, context, read, send):
-    """Stage the scaffold graph's documents, then its manifest (`stage_graph`'s
-    order). Identical bytes already held are a no-op on the receiver."""
-    from carbon.battery import public_scaffold
-    from carbon.development_session import direct_source_submission as dss
-    from carbon.level4 import staging
-
-    manifest, documents = public_scaffold.graph()
-    files = staging.workspace(manifest, documents)
-    ordered = sorted(n for n in files if n != staging.WORKSPACE_MANIFEST)
-    ordered.append(staging.WORKSPACE_MANIFEST)
-    deadline = dss._transfer_deadline([(n, files[n]) for n in ordered], dss.CHUNK_BYTES)
-    pacer = dss._UploadPacer()
-    for name in ordered:
-        dss._stage_one(
-            door,
-            signer,
-            recipe=recipe,
-            contract_digest=contract,
-            receiver=receiver,
-            context=context,
-            name=name,
-            body=files[name],
-            expected_digest=None,
-            read=read,
-            send=send,
-            deadline=deadline,
-            pacer=pacer,
+    offered = catalog_recipes(challenge_id, version)
+    if catalog_id is not None:
+        offered = [e for e in offered if e["catalog_id"] == catalog_id]
+    else:
+        offered = [e for e in offered if e.get("recommended")] or offered
+    if not offered:
+        raise SystemExit(
+            f"{challenge_id} {version} serves no catalog entry"
+            + (f" named {catalog_id}" if catalog_id else "")
+            + "; fresh needs a direct catalog version"
         )
-    return len(ordered)
+    entry = offered[0]
+    item = listing.entry(entry["catalog_id"], challenge_id, version)
+    if "learning_rate" not in settings.SCHEMAS[item["settings_schema"]].configuration:
+        raise SystemExit(entry["catalog_id"] + " takes no configuration.learning_rate")
+    base = item["defaults"]["configuration"].get("learning_rate") or FRESH_BASE_RATE
+    rate = base * (1 + (run_k * 1000 + index + 1) * 1e-13)
+    value = json.loads(json.dumps(entry["recipe"]))
+    value["procedure"]["configuration"]["learning_rate"] = rate
+    settings.resolve(
+        item, value["procedure"]["configuration"], value["procedure"]["train_use"]
+    )
+    recipe = ConstructionRecipe.from_dict(value)
+    contract = registered(challenge_id, version)
+    if recipe.to_dict()["challenge"] != contract.construction_kit:
+        raise SystemExit(
+            f"{challenge_id} {version}: the catalog recipe's kit is not the registered contract's"
+        )
+    return recipe, rate, entry["catalog_id"], contract.digest
 
 
 def fresh_client(
@@ -808,7 +801,7 @@ def fresh_client(
     clock=time.time,
     sleep=time.sleep,
 ):
-    """One S1 client: stage, wait for `go` (all clients submit together), submit,
+    """One S1 client: wait for `go` (all clients submit together), submit,
     follow the build to a terminal state, then the grade. Returns a closed
     outcome with its times; never raises a refusal."""
     from carbon.development_session import direct_submission as ds
@@ -816,16 +809,6 @@ def fresh_client(
     row = {"recipe_digest": recipe.digest}
     started = clock()
     try:
-        row["staged_files"] = stage_scaffold(
-            door,
-            signer,
-            recipe=recipe,
-            contract=contract,
-            receiver=receiver,
-            context=context,
-            read=read,
-            send=send,
-        )
         if go is not None:
             go()
         row["submit_utc"] = utc(clock())
@@ -964,11 +947,15 @@ def cmd_fresh(args):
     _require_localnet()
     from carbon.chain.external_signer import connect_signer
     from carbon.development_session.chain_onboarding import carbon_testnet_context
-    from carbon.reconstruction.served_recipe_contract import registered
 
-    contract = registered(*FRESH_CHALLENGE).digest
-    context = carbon_testnet_context()
     run_k = int(time.time()) % 10**6
+    # Built and checked before any thread signs anything: a wrong version or
+    # kit stops the run here, with nothing sent.
+    recipes = [
+        fresh_recipe(args.challenge, args.version, run_k, i, args.catalog_id)
+        for i in range(len(clients))
+    ]
+    context = carbon_testnet_context()
     recorder = Recorder(out / "requests.jsonl")
     barrier = threading.Barrier(len(clients))
     results = {}
@@ -977,10 +964,13 @@ def cmd_fresh(args):
         barrier.wait(timeout=args.wait_s)
 
     def one(index, name, hotkey):
-        results[name] = {"hotkey": hotkey}
+        recipe, rate, catalog_id, contract = recipes[index]
+        results[name] = {
+            "hotkey": hotkey,
+            "catalog_id": catalog_id,
+            "learning_rate": rate,
+        }
         try:
-            recipe, rate = fresh_recipe(run_k, index)
-            results[name]["learning_rate"] = rate
             signer = connect_signer(hotkey)
         except Exception as failed:  # noqa: BLE001
             results[name].update(outcome="probe_error", code=type(failed).__name__)
@@ -1002,8 +992,8 @@ def cmd_fresh(args):
                 go=go,
             )
         )
-        # A client that ends before the shared start (a staging refusal) frees
-        # the others at once, as BrokenBarrierError, instead of after --wait-s.
+        # A client that ends before the shared start frees the others at
+        # once, as BrokenBarrierError, instead of after --wait-s.
         barrier.abort()
 
     threads = [
@@ -1021,7 +1011,7 @@ def cmd_fresh(args):
         "schema": SCHEMA,
         "mode": "fresh",
         "door": args.door,
-        "challenge": "/".join(FRESH_CHALLENGE),
+        "challenge": args.challenge + "/" + args.version,
         "start_utc": utc(started),
         "end_utc": utc(),
         "wait_s": args.wait_s,
@@ -1189,7 +1179,16 @@ def parser():
         "fresh",
         help="S1: N concurrent signed submits of NEW recipes (staging localnet)",
     )
-    f.add_argument("--door", required=True, help="a Battery-dev 1.0 door base URL")
+    f.add_argument("--door", required=True, help="the door base URL")
+    f.add_argument(
+        "--challenge", required=True, help="the door's Challenge id, e.g. f02"
+    )
+    f.add_argument(
+        "--version", required=True, help="a direct catalog version, e.g. 2.5"
+    )
+    f.add_argument(
+        "--catalog-id", help="the catalog entry (default: the recommended one)"
+    )
     f.add_argument(
         "--client",
         action="append",
