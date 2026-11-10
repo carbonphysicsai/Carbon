@@ -65,7 +65,7 @@ class Door:
     """One receiver: a real attempt ledger, providers holding each task's recipe, and a grade that reserves + counts."""
 
     def __init__(self, tmp_path):
-        (tmp_path / "ledger").mkdir(mode=0o700)
+        (tmp_path / "ledger").mkdir(mode=0o700, exist_ok=True)
         self.ledger = AttemptLedger(tmp_path / "ledger" / "attempts.sqlite3")
         self.owners, self.requests = {}, {}
         self.snapshot = SimpleNamespace(manifest_digest=EXAM)
@@ -445,3 +445,204 @@ def test_waits_are_logged_once_an_hour_counts_only(door, monkeypatch):
     door.grader.run_once()
     assert lines == [("recipe_copy_waits_hourly", {"waits": 4, "period_s": 3600})]
     assert T[1] not in repr(lines) and HOTKEYS[1] not in repr(lines)
+
+
+def _ledger_reading_owner(door):
+    """``owner`` as the real `LeanRecipeAdapter.owner` does it: through the attempt ledger (`owned_outcome`, its own
+    BEGIN IMMEDIATE connection), then the provider's retained request."""
+
+    def owner(sid):
+        hotkey = door.ledger.owned_outcome(CONTRACT, sid)
+        return hotkey if hotkey is not None and sid in door.requests else None
+
+    return owner
+
+
+def test_a_real_adapters_ledger_read_owner_never_locks_the_grade_round(door):
+    # RB door on 4affa5b9 (9 Nov): decide held a ledger transaction while the owner lookup opened a second one, so
+    # every submission admitted after the release failed its grade round with 'database is locked' and never graded.
+    door.adapter.owner = _ledger_reading_owner(door)
+    door.submit(T[0], HOTKEYS[0], _recipe())
+    door.submit(T[1], HOTKEYS[1], _recipe())
+    door.submit(T[2], HOTKEYS[2], _recipe(setting=2))
+    door.ready |= {T[0], T[1], T[2]}
+    assert door.grader.run_once() == (T[0], "GRADED")
+    assert door.grader.run_once() == (T[1], "DUPLICATE")
+    assert door.grader.run_once() == (T[2], "GRADED")
+    assert door.graded == [T[0], T[2]]
+
+
+def test_the_digest_is_noted_at_admission_with_a_ledger_reading_owner(door):
+    door.adapter.owner = _ledger_reading_owner(door)
+    door.submit(T[0], HOTKEYS[0], _recipe())
+    intake = SimpleNamespace(adapter=door.adapter)
+    direct_intake.DirectRecipeIntake._note_recipe_digest(
+        intake, {"kind": "OUTCOME", "outcome": {"task_id": T[0]}}
+    )
+    assert recipe_copies.stored_digest(door.ledger, T[0]) is not None
+
+
+def test_a_ledger_that_cannot_begin_raises_its_own_error_not_a_rollback_error(
+    door, monkeypatch
+):
+    import sqlite3
+
+    from carbon.challenge_validator import ledger as ledger_module
+
+    real_connect = sqlite3.connect
+    monkeypatch.setattr(
+        ledger_module.sqlite3,
+        "connect",
+        lambda *args, **kwargs: real_connect(*args, **{**kwargs, "timeout": 0.05}),
+    )
+    held = door.ledger._db()
+    held.__enter__()
+    try:
+        with pytest.raises(sqlite3.OperationalError, match="locked"):
+            door.ledger._db().__enter__()
+    finally:
+        held.__exit__(None, None, None)
+
+
+#: The exam-slot tables exactly as 2650bc09 (the release before 4affa5b9) created them: no ``group_id`` column, no
+#: recipe-copy tables. A door's ledger is carried across a release, never rebuilt.
+_EXAM_DDL_2650BC09 = (
+    (
+        "CREATE TABLE exam_graded(id INTEGER PRIMARY KEY AUTOINCREMENT, hotkey TEXT NOT NULL, "
+        "challenge_id TEXT NOT NULL, challenge_version TEXT NOT NULL, exam_key TEXT NOT NULL, "
+        "kind TEXT NOT NULL DEFAULT 'GRADED' CHECK(kind IN ('GRADED','REGRADE')), epoch INTEGER NOT NULL, "
+        "submission_id TEXT NOT NULL, state TEXT NOT NULL CHECK(state IN ('RESERVED','COUNTED','RELEASED')), "
+        "status TEXT, reserved_ns INTEGER NOT NULL, settled_ns INTEGER, cpu_seconds REAL, lane_seconds REAL, "
+        "UNIQUE(challenge_id, challenge_version, exam_key, submission_id))"
+    ),
+    "CREATE INDEX exam_graded_miner ON exam_graded(hotkey, challenge_id, challenge_version, exam_key)",
+    "CREATE INDEX exam_graded_epoch ON exam_graded(epoch, challenge_id)",
+    (
+        "CREATE TABLE exam_requeues(submission_id TEXT PRIMARY KEY, attempt INTEGER NOT NULL, "
+        "queued_ns INTEGER NOT NULL, reserved_ns INTEGER)"
+    ),
+    (
+        "CREATE TABLE exam_keys(challenge_id TEXT NOT NULL, challenge_version TEXT NOT NULL, "
+        "exam_key TEXT NOT NULL, first_block INTEGER NOT NULL, "
+        "PRIMARY KEY(challenge_id, challenge_version, exam_key))"
+    ),
+)
+
+
+def test_a_ledger_carried_from_2650bc09_grades_new_submissions_after_the_release(
+    tmp_path,
+):
+    # The RB door's case: a ledger written by 2650bc09 (an upload admitted before the switch), then the new grader's
+    # first start, then uploads admitted after it, with an owner() that reads that ledger.
+    (tmp_path / "ledger").mkdir(mode=0o700)
+    carried = AttemptLedger(tmp_path / "ledger" / "attempts.sqlite3")
+    with carried._db() as db:
+        for statement in _EXAM_DDL_2650BC09:
+            db.execute(statement)
+    carried.record(
+        SimpleNamespace(
+            hotkey=HOTKEYS[0],
+            receipt={"sequence": 1, "digest": "d", "block": 1400},
+            contract_digest=CONTRACT,
+        ),
+        kind="OUTCOME",
+        submission_id=T[0],
+    )
+    door = Door(
+        tmp_path
+    )  # the grader's first start on the new code: the copy rule activates after T[0]
+    door.owners[T[0]], door.requests[T[0]] = HOTKEYS[0], SimpleNamespace(
+        recipe=_recipe()
+    )
+    door.adapter.owner = _ledger_reading_owner(door)
+    door.submit(
+        T[1], HOTKEYS[1], _recipe()
+    )  # same recipe as the pre-release T[0]: never matched to it
+    door.submit(T[2], HOTKEYS[2], _recipe())  # a copy of T[1]
+    door.ready |= {T[0], T[1], T[2]}
+    assert door.grader.run_once() == (T[0], "GRADED")
+    assert door.grader.run_once() == (T[1], "GRADED")
+    assert door.grader.run_once() == (T[2], "DUPLICATE")
+    assert door.graded == [T[0], T[1]]
+
+
+def _bind_real_lean_recipe_owner(door):
+    """Bind the REAL `LeanRecipeAdapter.owner` (and the real `_request` it rebuilds the retained request with) onto the
+    door's adapter: ledger.owned_outcome on the door's own on-disk ledger, then the provider's retained request checked
+    against the request this adapter would build for that owner. Only the provider is stood in.
+    """
+    import types
+
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.registry.model import ChallengeKey
+
+    adapter = door.adapter
+    adapter._measure_query = False
+    adapter._identities = {
+        "challenge_info_digest": D,
+        "manifest_digest": D,
+        "construction_kit_digest": D,
+    }
+    adapter.discovery.info = SimpleNamespace(
+        challenge_key=ChallengeKey(CHALLENGE.challenge_id, CHALLENGE.version),
+        public_train_digest=D,
+        practice_inputs_digest=D,
+        interface_digest=D,
+        construction_limits_digest=D,
+    )
+    adapter.discovery._material = {
+        "construction_limits_document": {"reconstruction_resource_policy": {}}
+    }
+    adapter._request = types.MethodType(LeanRecipeAdapter._request, adapter)
+    adapter.owner = types.MethodType(LeanRecipeAdapter.owner, adapter)
+    provider = SimpleNamespace(
+        _requests=door.requests,
+        evaluation_pack_digest=EXAM,
+        _measured_tasks=set(),
+        _task_id=lambda request: SimpleNamespace(
+            value=next(s for s, r in door.requests.items() if r == request)
+        ),
+    )
+    adapter._provider = lambda owner: provider
+
+
+def _submit_real(door, sid, hotkey, recipe):
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+
+    door.submit(sid, hotkey, recipe)
+    door.requests[sid] = door.adapter._request(
+        hotkey, ConstructionRecipe.from_dict(recipe), evaluation_pack_digest=EXAM
+    )
+
+
+def test_the_real_lean_recipe_owner_on_a_rollback_journal_ledger_never_locks(door):
+    # Lead / Validator-2B 9 Nov: the bug on the real method. On 4affa5b9 note_admitted fails silently (digest never
+    # stored) and decide raises OperationalError: 'database is locked' on the nested connection, masked by _db's
+    # ROLLBACK as 'cannot rollback - no transaction is active'.
+    _bind_real_lean_recipe_owner(door)
+    with door.ledger._db() as db:
+        assert db.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
+    _submit_real(door, T[0], HOTKEYS[0], _recipe())
+    _submit_real(door, T[1], HOTKEYS[1], _recipe())
+    assert door.adapter.owner(T[1]) == HOTKEYS[1]  # the real method resolves it
+    # decide first, with no digest cached yet: exactly the RB door's path (decide > recipe_digest > owner)
+    decision = recipe_copies.decide(
+        adapter=door.adapter,
+        ledger=door.ledger,
+        marker=door.grader.marker,
+        submission_id=T[1],
+        challenge_id=CHALLENGE.challenge_id,
+        challenge_version=CHALLENGE.version,
+        exam_key=EXAM,
+    )
+    assert decision == (recipe_copies.WAIT, T[0])  # its first is still unsettled
+    intake = SimpleNamespace(adapter=door.adapter)
+    for sid in (T[0], T[1]):
+        direct_intake.DirectRecipeIntake._note_recipe_digest(
+            intake, {"kind": "OUTCOME", "outcome": {"task_id": sid}}
+        )
+        assert recipe_copies.stored_digest(door.ledger, sid) is not None
+    door.ready |= {T[0], T[1]}
+    assert door.grader.run_once() == (T[0], "GRADED")
+    assert door.grader.run_once() == (T[1], "DUPLICATE")
+    assert door.graded == [T[0]]

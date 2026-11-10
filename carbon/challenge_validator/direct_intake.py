@@ -573,7 +573,9 @@ class DirectRecipeIntake(BatteryIntake):
 
         try:
             recipe_copies.note_admitted(self.adapter, task_id)
-        except Exception:  # noqa: BLE001 - never changes the admission
+        except Exception as failure:  # noqa: BLE001 - never changes the admission
+            # said, never silent (RB door rs33, 9 Nov: a failing note hid a grade-time lock for every new submission)
+            log("recipe_digest_note_failed", type=type(failure).__name__)
             return
 
     def _feedback(self, hotkey, *, submission_id=None, v3=False, v4=False, v5=False):
