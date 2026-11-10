@@ -500,7 +500,7 @@ do, and what stays the same.
 
 ## Report a problem
 
-Telegram: **@RBequette** (on mainnet: **HUMAN_INPUT**, the support channel). Please send:
+Telegram: **@RBequette**, on the test network and on mainnet. Please send:
 
 - the app version (run `git -C ~/carbon rev-parse --short HEAD` and send what it prints),
 - the Challenge you were on,
