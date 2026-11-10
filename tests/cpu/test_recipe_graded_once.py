@@ -564,3 +564,85 @@ def test_a_ledger_carried_from_2650bc09_grades_new_submissions_after_the_release
     assert door.grader.run_once() == (T[1], "GRADED")
     assert door.grader.run_once() == (T[2], "DUPLICATE")
     assert door.graded == [T[0], T[1]]
+
+
+def _bind_real_lean_recipe_owner(door):
+    """Bind the REAL `LeanRecipeAdapter.owner` (and the real `_request` it rebuilds the retained request with) onto the
+    door's adapter: ledger.owned_outcome on the door's own on-disk ledger, then the provider's retained request checked
+    against the request this adapter would build for that owner. Only the provider is stood in.
+    """
+    import types
+
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.registry.model import ChallengeKey
+
+    adapter = door.adapter
+    adapter._measure_query = False
+    adapter._identities = {
+        "challenge_info_digest": D,
+        "manifest_digest": D,
+        "construction_kit_digest": D,
+    }
+    adapter.discovery.info = SimpleNamespace(
+        challenge_key=ChallengeKey(CHALLENGE.challenge_id, CHALLENGE.version),
+        public_train_digest=D,
+        practice_inputs_digest=D,
+        interface_digest=D,
+        construction_limits_digest=D,
+    )
+    adapter.discovery._material = {
+        "construction_limits_document": {"reconstruction_resource_policy": {}}
+    }
+    adapter._request = types.MethodType(LeanRecipeAdapter._request, adapter)
+    adapter.owner = types.MethodType(LeanRecipeAdapter.owner, adapter)
+    provider = SimpleNamespace(
+        _requests=door.requests,
+        evaluation_pack_digest=EXAM,
+        _measured_tasks=set(),
+        _task_id=lambda request: SimpleNamespace(
+            value=next(s for s, r in door.requests.items() if r == request)
+        ),
+    )
+    adapter._provider = lambda owner: provider
+
+
+def _submit_real(door, sid, hotkey, recipe):
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+
+    door.submit(sid, hotkey, recipe)
+    door.requests[sid] = door.adapter._request(
+        hotkey, ConstructionRecipe.from_dict(recipe), evaluation_pack_digest=EXAM
+    )
+
+
+def test_the_real_lean_recipe_owner_on_a_rollback_journal_ledger_never_locks(door):
+    # Lead / Validator-2B 9 Nov: the bug on the real method. On 4affa5b9 note_admitted fails silently (digest never
+    # stored) and decide raises OperationalError: 'database is locked' on the nested connection, masked by _db's
+    # ROLLBACK as 'cannot rollback - no transaction is active'.
+    _bind_real_lean_recipe_owner(door)
+    with door.ledger._db() as db:
+        assert db.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
+    _submit_real(door, T[0], HOTKEYS[0], _recipe())
+    _submit_real(door, T[1], HOTKEYS[1], _recipe())
+    assert door.adapter.owner(T[1]) == HOTKEYS[1]  # the real method resolves it
+    # decide first, with no digest cached yet: exactly the RB door's path (decide > recipe_digest > owner)
+    decision = recipe_copies.decide(
+        adapter=door.adapter,
+        ledger=door.ledger,
+        marker=door.grader.marker,
+        submission_id=T[1],
+        challenge_id=CHALLENGE.challenge_id,
+        challenge_version=CHALLENGE.version,
+        exam_key=EXAM,
+    )
+    assert decision == (recipe_copies.WAIT, T[0])  # its first is still unsettled
+    intake = SimpleNamespace(adapter=door.adapter)
+    for sid in (T[0], T[1]):
+        direct_intake.DirectRecipeIntake._note_recipe_digest(
+            intake, {"kind": "OUTCOME", "outcome": {"task_id": sid}}
+        )
+        assert recipe_copies.stored_digest(door.ledger, sid) is not None
+    door.ready |= {T[0], T[1]}
+    assert door.grader.run_once() == (T[0], "GRADED")
+    assert door.grader.run_once() == (T[1], "DUPLICATE")
+    assert door.graded == [T[0]]
