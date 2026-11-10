@@ -21,10 +21,18 @@ class _Door(http.server.BaseHTTPRequestHandler):
     status = 200
     agents: ClassVar[list] = []
 
+    koth_refusal: ClassVar[str | None] = None
+
     def do_GET(self):
         type(self).agents.append(self.headers.get("User-Agent"))
+        status = type(self).status
         body = json.dumps({"schema": "x.v1", "path": self.path}).encode()
-        self.send_response(type(self).status)
+        if type(self).koth_refusal and self.path.startswith("/carbon/v1/koth/"):
+            status, body = (
+                404,
+                json.dumps({"refused": type(self).koth_refusal}).encode(),
+            )
+        self.send_response(status)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -35,7 +43,7 @@ class _Door(http.server.BaseHTTPRequestHandler):
 
 @pytest.fixture()
 def door():
-    _Door.status, _Door.agents = 200, []
+    _Door.status, _Door.agents, _Door.koth_refusal = 200, [], None
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Door)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{server.server_port}"
@@ -323,3 +331,615 @@ def test_an_r13_worker_that_records_nothing_is_a_failed_run(
     summary = json.loads((out / "summary.json").read_text())
     assert summary["r13"] == {"outcome": "probe_error", "code": "no_result"}
     assert summary["verdict"] == "FAIL"
+
+
+def test_a_door_with_no_king_yet_is_the_expected_state_not_a_fault(door, tmp_path):
+    _Door.koth_refusal = "koth_unpublished"  # staging, or a new version's first start
+    out = tmp_path / "run"
+    assert _probe(door, out) == 0
+    summary = json.loads((out / "summary.json").read_text())
+    assert summary["verdict"] == "PASS" and summary["non_200"] == {}
+    assert set(summary["window"]["expected"]) == {"koth", "koth_v2"}
+    rows = [json.loads(x) for x in (out / "requests.jsonl").read_text().splitlines()]
+    assert {r["refused"] for r in rows if r["route"] == "koth"} == {"koth_unpublished"}
+
+
+def test_any_other_king_refusal_still_aborts(door, tmp_path):
+    _Door.koth_refusal = "koth_unavailable"
+    assert _probe(door, tmp_path / "run") == 3
+
+
+def test_routes_picks_a_subset_and_refuses_unknown_names(door, tmp_path):
+    out = tmp_path / "run"
+    assert _probe(door, out, "--routes", "feed,intake") == 0
+    rows = [json.loads(x) for x in (out / "requests.jsonl").read_text().splitlines()]
+    assert {r["route"] for r in rows} == {"feed", "intake"}
+    with pytest.raises(SystemExit):
+        _probe(door, tmp_path / "bad", "--routes", "feed,kingdom")
+
+
+# ---------------------------------------------------------------- fresh (S1)
+
+
+def test_fresh_recipes_are_new_per_client_and_per_run_and_bound_to_the_contract():
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    a, rate_a, entry, contract = dp.fresh_recipe("f02", "2.5", 123456, 0)
+    b = dp.fresh_recipe("f02", "2.5", 123456, 1)[0]
+    c = dp.fresh_recipe("f02", "2.5", 123457, 0)[0]
+    assert len({a.digest, b.digest, c.digest}) == 3
+    assert dp.fresh_recipe("f02", "2.5", 123456, 0)[0].digest == a.digest
+    assert abs(rate_a / dp.FRESH_BASE_RATE - 1) <= 1e-4
+    doc = a.to_dict()
+    assert doc["source"]["catalog_id"] == entry
+    assert doc["procedure"]["configuration"]["learning_rate"] == rate_a
+    # The client-side check that refused the Battery-dev 1.0 scaffold (9 Nov).
+    assert doc["challenge"] == registered("f02", "2.5").construction_kit
+    assert contract == registered("f02", "2.5").digest
+
+
+def test_fresh_refuses_a_version_without_a_catalog_before_signing():
+    with pytest.raises(SystemExit, match="no catalog entry"):
+        dp.fresh_recipe("battery-fastcharge-ageing-development-v1", "1.0", 1, 0)
+    with pytest.raises(SystemExit, match="no catalog entry"):
+        dp.fresh_recipe("f02", "2.5", 1, 0, catalog_id="no.such.entry")
+
+
+def test_fresh_needs_two_named_clients():
+    for specs in (
+        ["bob=5B"],
+        ["bob=5B", "bob=5C"],
+        ["Bob=5B", "c=5C"],
+        ["bob", "c=5C"],
+    ):
+        with pytest.raises(SystemExit):
+            dp.fresh_clients(specs)
+    assert dp.fresh_clients(["bob=5B", "charlie=5C"]) == [
+        ("bob", "5B"),
+        ("charlie", "5C"),
+    ]
+
+
+class _Clock:
+    def __init__(self):
+        self.t = 1_000_000.0
+
+    def __call__(self):
+        return self.t
+
+    def sleep(self, s):
+        self.t += s
+
+
+def _fresh(monkeypatch, tmp_path, *, built=None, raises=None, grades=(), wait_s=600):
+    from carbon.development_session import direct_submission as ds
+
+    clock = _Clock()
+    calls = {"go": 0, "feedback": 0}
+
+    def submit(url, signer, *, root, wait_s, **kw):
+        assert root.is_dir()
+        assert calls["go"] == 1  # every client submits only after the shared start
+        if raises is not None:
+            raise raises
+        return built
+
+    def feedback(url, signer, *, submission_id, **kw):
+        assert submission_id == built["task_id"]
+        calls["feedback"] += 1
+        reply = grades[min(calls["feedback"], len(grades)) - 1]
+        return reply
+
+    monkeypatch.setattr(ds, "submit_and_wait", submit)
+    monkeypatch.setattr(ds, "read_exam_feedback", feedback)
+
+    class _R:
+        digest = "sha256:" + "ab" * 32
+
+    row = dp.fresh_client(
+        "http://127.0.0.1:1",
+        None,
+        recipe=_R(),
+        contract="d",
+        receiver="r",
+        context=None,
+        root=tmp_path / "ledger",
+        read=None,
+        send=None,
+        wait_s=wait_s,
+        poll_s=30,
+        go=lambda: calls.__setitem__("go", calls["go"] + 1),
+        clock=clock,
+        sleep=clock.sleep,
+    )
+    return row, calls
+
+
+def _sub(state, failure=None):
+    reply = {"submission": {"submission_id": "t1", "grade_state": state}}
+    if failure:
+        reply["failure"] = {"code": failure}
+    return reply
+
+
+_BUILT = {"task_id": "t1", "state": "RECONSTRUCTED"}
+
+
+def test_fresh_client_follows_the_build_then_the_grade(monkeypatch, tmp_path):
+    row, calls = _fresh(
+        monkeypatch,
+        tmp_path,
+        built=_BUILT,
+        grades=[_sub("QUEUED"), _sub(None), _sub("GRADED")],
+    )
+    assert row["outcome"] == "graded" and row["grade_state"] == "GRADED"
+    assert row["task_id"] == "t1" and row["build_state"] == "RECONSTRUCTED"
+    assert calls == {"go": 1, "feedback": 3}
+    assert row["seconds"] == 60.0  # two 30 s polls
+
+
+def test_fresh_crown_hold_counts_as_graded(monkeypatch, tmp_path):
+    row, _ = _fresh(
+        monkeypatch, tmp_path, built=_BUILT, grades=[_sub("CROWN_HELD_FOR_REVIEW")]
+    )
+    assert row["outcome"] == "graded"
+
+
+@pytest.mark.parametrize(
+    "grade, failure, code",
+    [
+        ("FAILED_INFRA", None, "FAILED_INFRA"),
+        ("NOT_GRADED", None, "NOT_GRADED"),
+        ("CANDIDATE_FAILED", "WORKER_WALL_LIMIT_REACHED", "WORKER_WALL_LIMIT_REACHED"),
+    ],
+)
+def test_fresh_grade_failures_fail_with_their_code(
+    monkeypatch, tmp_path, grade, failure, code
+):
+    row, _ = _fresh(monkeypatch, tmp_path, built=_BUILT, grades=[_sub(grade, failure)])
+    assert row["outcome"] == "grade_failed"
+    assert row["code"] == code and row["grade_state"] == grade
+
+
+def test_fresh_build_failure_fails_with_its_code(monkeypatch, tmp_path):
+    built = {"task_id": "t1", "state": "FAILED_INFRA", "failure": {"code": "x_infra"}}
+    row, calls = _fresh(monkeypatch, tmp_path, built=built)
+    assert row["outcome"] == "build_failed" and row["code"] == "x_infra"
+    assert calls["feedback"] == 0
+
+
+def test_fresh_no_grade_by_the_deadline_is_not_terminal(monkeypatch, tmp_path):
+    row, calls = _fresh(
+        monkeypatch, tmp_path, built=_BUILT, grades=[_sub("QUEUED")], wait_s=100
+    )
+    assert row["outcome"] == "not_terminal" and row["stage"] == "grade"
+    assert calls["feedback"] == 4  # t = 0, 30, 60, 90; a fifth would pass 100 s
+
+
+def test_fresh_a_receiver_without_the_per_submission_read_is_not_a_pass(
+    monkeypatch, tmp_path
+):
+    row, _ = _fresh(
+        monkeypatch, tmp_path, built=_BUILT, grades=[{"best": None, "latest": None}]
+    )
+    assert row["outcome"] == "grade_unreadable"
+
+
+def test_fresh_refusals_are_closed(monkeypatch, tmp_path):
+    from carbon.development_session import direct_submission as ds
+
+    for raised, want in (
+        (
+            ds.DirectConstructionPending("t9"),
+            {"outcome": "not_terminal", "task_id": "t9"},
+        ),
+        (
+            ds.DirectSameRecipeSubmitted({}),
+            {"outcome": "refused", "code": "same_recipe_already_submitted"},
+        ),
+        (
+            ds.DirectIntakeRefusal("construction_intake_unavailable"),
+            {"outcome": "refused", "code": "construction_intake_unavailable"},
+        ),
+        (RuntimeError("boom"), {"outcome": "probe_error", "code": "RuntimeError"}),
+    ):
+        row, _ = _fresh(monkeypatch, tmp_path, raises=raised)
+        assert {k: row.get(k) for k in want} == want
+
+
+def test_fresh_passes_only_when_every_client_is_graded_on_its_own_task():
+    clients = [("bob", "5B"), ("charlie", "5C")]
+    ok = {
+        "bob": {"outcome": "graded", "task_id": "t1"},
+        "charlie": {"outcome": "graded", "task_id": "t2"},
+    }
+    assert dp.fresh_verdict(clients, ok) == ("PASS", True)
+    same = {**ok, "charlie": {"outcome": "graded", "task_id": "t1"}}
+    assert dp.fresh_verdict(clients, same) == ("FAIL", False)
+    failed = {**ok, "charlie": {"outcome": "grade_failed", "task_id": "t2"}}
+    assert dp.fresh_verdict(clients, failed)[0] == "FAIL"
+    assert dp.fresh_verdict(clients, {"bob": ok["bob"]})[0] == "FAIL"
+
+
+def test_fresh_refuses_off_localnet(monkeypatch, tmp_path):
+    monkeypatch.delenv("CARBON_CHAIN_NETWORK", raising=False)
+    with pytest.raises(SystemExit):
+        dp.main(
+            [
+                "fresh",
+                "--door",
+                "http://127.0.0.1:1",
+                "--challenge",
+                "f02",
+                "--version",
+                "2.5",
+                "--client",
+                "bob=5B",
+                "--client",
+                "charlie=5C",
+                "--receiver-hotkey",
+                "5R",
+                "--out",
+                str(tmp_path / "o"),
+            ]
+        )
+
+
+# ---------------------------------------------------------------- fresh --canary
+
+
+def _root(
+    base, name, port, *, state="receiver/state", network=None, challenge="f02", hk="5R"
+):
+    root = base / name
+    (root / "receiver" / "state").mkdir(parents=True)
+    cfg = {
+        "host": "127.0.0.1",
+        "port": port,
+        "root": state,
+        "challenge": {"id": challenge, "version": "2.5"},
+        "receiver_hotkey": hk,
+    }
+    if network is not None:
+        cfg["chain_network"] = network
+    (root / "receiver" / "receiver.json").write_text(json.dumps(cfg), "utf-8")
+    return root
+
+
+@pytest.fixture()
+def roots(tmp_path):
+    spare = _root(tmp_path, "spare", 18871)
+    live = _root(tmp_path, "live", 18771)
+
+    def show(unit, prop):
+        assert prop == "ExecStart"
+        return "{ path=/x ; argv[]=/x --config %s ; }" % (
+            spare / "receiver" / "receiver.json"
+        )
+
+    return spare, live, show
+
+
+def _target(roots, door="http://127.0.0.1:18871", unit="carbon-spare.service", **kw):
+    spare, live, show = roots
+    return dp.canary_target(
+        door,
+        kw.get("spare", spare),
+        kw.get("live", live),
+        unit,
+        challenge=kw.get("challenge", "f02"),
+        receiver=kw.get("receiver", "5R"),
+        show=kw.get("show", show),
+    )
+
+
+def _refused(code, call):
+    with pytest.raises(dp.CanaryRefused) as refused:
+        call()
+    assert refused.value.code == code
+
+
+def test_canary_target_accepts_only_the_prepared_spare(roots):
+    assert _target(roots) == 18871
+
+
+@pytest.mark.parametrize(
+    "door",
+    [
+        "http://localhost:18871",
+        "http://10.0.0.5:18871",
+        "https://127.0.0.1:18871",
+        "http://door.carbonphysics.ai:18871",
+        "http://127.0.0.1",
+        "http://127.0.0.1:18871/carbon/v1/mcp",
+        "http://u:p@127.0.0.1:18871",
+        "http://127.0.0.1:18871?x=1",
+        "http://127.0.0.1:notaport",
+    ],
+)
+def test_canary_refuses_anything_but_a_bare_loopback_url(roots, door):
+    _refused("canary_target_not_loopback_spare_url", lambda: _target(roots, door=door))
+
+
+@pytest.mark.parametrize("port", sorted(dp.LIVE_FRONT_PORTS))
+def test_canary_refuses_every_live_front_port(roots, port):
+    _refused(
+        "canary_target_live_port",
+        lambda: _target(roots, door=f"http://127.0.0.1:{port}"),
+    )
+
+
+def test_canary_refuses_the_live_roots_own_receiver_port(roots):
+    _refused(
+        "canary_target_live_port", lambda: _target(roots, door="http://127.0.0.1:18771")
+    )
+
+
+def test_canary_refuses_missing_roots(roots):
+    _refused("canary_roots_required", lambda: _target(roots, spare=None))
+    _refused("canary_roots_required", lambda: _target(roots, live=""))
+
+
+def test_canary_refuses_a_spare_that_is_in_or_holds_the_live_root(roots, tmp_path):
+    spare, live, _ = roots
+    _refused("canary_spare_is_live_root", lambda: _target(roots, spare=live))
+    inner = _root(live, "inner", 18871)
+    _refused("canary_spare_is_live_root", lambda: _target(roots, spare=inner))
+    _refused(
+        "canary_spare_is_live_root", lambda: _target(roots, live=spare / "receiver")
+    )
+
+
+def test_canary_refuses_an_unreadable_receiver_config(roots, tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    _refused("canary_receiver_config_unreadable", lambda: _target(roots, spare=empty))
+
+
+def test_canary_refuses_a_spare_not_serving_that_port(roots):
+    _refused(
+        "canary_target_not_the_spare",
+        lambda: _target(roots, door="http://127.0.0.1:18872"),
+    )
+
+
+def test_canary_refuses_a_spare_sharing_the_live_state(roots, tmp_path):
+    _, live, show = roots
+    shared = _root(
+        tmp_path, "shared", 18871, state=str((live / "receiver" / "state").resolve())
+    )
+    _refused(
+        "canary_spare_shares_live_state",
+        lambda: _target(roots, spare=shared, show=show),
+    )
+
+
+def test_canary_refuses_a_spare_on_another_network(roots, tmp_path):
+    main = _root(tmp_path, "main", 18871, network="finney")
+    _refused("canary_network_not_testnet", lambda: _target(roots, spare=main))
+
+
+@pytest.mark.parametrize("unit", ["", "x; rm -rf /", "carbon-spare", "a b.service"])
+def test_canary_refuses_a_bad_unit_name(roots, unit):
+    _refused("canary_unit_invalid", lambda: _target(roots, unit=unit))
+
+
+def test_canary_refuses_a_unit_that_is_not_the_spare(roots):
+    spare, live, _ = roots
+    live_cfg = str(live / "receiver" / "receiver.json")
+    spare_cfg = str(spare / "receiver" / "receiver.json")
+    _refused(
+        "canary_unit_not_the_spare",
+        lambda: _target(roots, show=lambda u, p: "argv[]=x --config " + live_cfg),
+    )
+    _refused(
+        "canary_unit_not_the_spare",
+        lambda: _target(
+            roots, show=lambda u, p: f"--config {spare_cfg} --config {live_cfg}"
+        ),
+    )
+
+    def broken(unit, prop):
+        raise OSError("no systemctl")
+
+    _refused("canary_unit_unreadable", lambda: _target(roots, show=broken))
+
+
+def _canary_main(tmp_path, *extra):
+    return dp.main(
+        [
+            "fresh",
+            "--canary",
+            "--door",
+            "http://127.0.0.1:18871",
+            "--challenge",
+            "f02",
+            "--version",
+            "2.5",
+            "--receiver-hotkey",
+            "5R",
+            "--out",
+            str(tmp_path / "o"),
+            *extra,
+        ]
+    )
+
+
+def test_canary_refuses_any_client_but_the_canary(tmp_path):
+    with pytest.raises(dp.CanaryRefused) as refused:
+        _canary_main(tmp_path, "--client", "bob=5B")
+    assert refused.value.code == "canary_client_given"
+
+
+@pytest.mark.parametrize("n", ["0", "3"])
+def test_canary_refuses_more_than_two_submits(tmp_path, n):
+    with pytest.raises(dp.CanaryRefused) as refused:
+        _canary_main(tmp_path, "--submits", n)
+    assert refused.value.code == "canary_too_many_submits"
+
+
+def test_canary_refuses_a_wall_over_an_hour(tmp_path):
+    with pytest.raises(dp.CanaryRefused) as refused:
+        _canary_main(tmp_path, "--wait-s", "3601")
+    assert refused.value.code == "canary_wall_over_cap"
+
+
+def test_canary_refusals_come_before_anything_is_written(tmp_path):
+    with pytest.raises(dp.CanaryRefused):
+        _canary_main(tmp_path, "--spare-root", str(tmp_path / "nope"))
+    assert not (tmp_path / "o").exists()
+
+
+def test_canary_hotkey_is_the_registered_one_only():
+    from carbon.challenge_validator.canary import CANARY_HOTKEYS
+
+    assert len(CANARY_HOTKEYS) == 1
+
+
+def test_canary_refuses_the_kings_recipe():
+    pages = {
+        "/koth/f02": '{"king": {"recipe": "sha256:' + "ab" * 32 + '"}}',
+        "/koth/f02/v2": "{}",
+    }
+
+    def get(url):
+        return next(v for k, v in pages.items() if url.endswith(k))
+
+    _refused(
+        "canary_recipe_is_kings",
+        lambda: dp.canary_not_kings(
+            "http://127.0.0.1:1", "f02", ["sha256:" + "ab" * 32], get=get
+        ),
+    )
+    dp.canary_not_kings("http://127.0.0.1:1", "f02", ["sha256:" + "cd" * 32], get=get)
+
+
+def test_canary_journal_counts_and_verdict():
+    grade = '{"event": "direct_grade", "service": "x", "state": "GRADED"}\n'
+    text = "ok\nx direct_grade_failure y\nsqlite3.OperationalError: locked\n" + grade
+    assert dp.journal_counts(text) == {
+        "direct_grade_failure": 1,
+        "OperationalError": 1,
+        "direct_grade": 1,
+    }
+    clients = [("canary_1", "5C"), ("canary_2", "5C")]
+    graded = {
+        "canary_1": {"outcome": "graded", "task_id": "t1"},
+        "canary_2": {"outcome": "graded", "task_id": "t2"},
+    }
+    clean = {"direct_grade_failure": 0, "OperationalError": 0}
+    assert dp.canary_verdict(clients, graded, clean, "0", "0")[0] == "PASS"
+    assert dp.canary_verdict(clients, graded, clean, "0", "1")[0] == "FAIL"
+    assert dp.canary_verdict(clients, graded, clean, None, None)[0] == "FAIL"
+    dirty = {"direct_grade_failure": 0, "OperationalError": 2}
+    assert dp.canary_verdict(clients, graded, dirty, "0", "0")[0] == "FAIL"
+    unread = {"direct_grade_failure": None, "OperationalError": None}
+    assert dp.canary_verdict(clients, graded, unread, "0", "0")[0] == "FAIL"
+
+
+def test_canary_refuses_another_doors_spare(roots, tmp_path):
+    _refused("canary_spare_of_another_door", lambda: _target(roots, challenge="f08"))
+    other = _root(tmp_path, "other", 18871, challenge="f08-ribbed-bracket")
+    _refused("canary_spare_of_another_door", lambda: _target(roots, spare=other))
+    other_live = _root(tmp_path, "other_live", 18772, challenge="f08-ribbed-bracket")
+    _refused("canary_spare_of_another_door", lambda: _target(roots, live=other_live))
+
+
+def test_canary_refuses_another_receiver_hotkey(roots):
+    _refused(
+        "canary_receiver_hotkey_not_the_spares", lambda: _target(roots, receiver="5X")
+    )
+
+
+def test_canary_unit_reads_are_user_units(monkeypatch):
+    """The receiver units are user units: every read names --user (V2B must-fix)."""
+    seen = []
+
+    class _Done:
+        stdout = " 0 "
+
+    def run(argv, **kw):
+        assert kw["check"] is True and kw["timeout"] > 0
+        seen.append(argv)
+        return _Done()
+
+    monkeypatch.setattr(dp.subprocess, "run", run)
+    assert dp.systemctl_show("carbon-spare.service", "NRestarts") == "0"
+    dp.journal_since("carbon-spare.service", 1_700_000_000.9)
+    assert seen[0] == [
+        "systemctl",
+        "--user",
+        "show",
+        "-p",
+        "NRestarts",
+        "--value",
+        "carbon-spare.service",
+    ]
+    assert seen[1][:4] == ["journalctl", "--user", "-u", "carbon-spare.service"]
+    assert seen[1][4:6] == ["--since", "@1700000000"]
+
+
+def test_canary_runs_one_submit_by_default():
+    args = dp.parser().parse_args(
+        [
+            "fresh",
+            "--canary",
+            "--door",
+            "http://127.0.0.1:1",
+            "--challenge",
+            "f02",
+            "--version",
+            "2.5",
+            "--receiver-hotkey",
+            "5R",
+            "--out",
+            "o",
+        ]
+    )
+    assert args.submits == 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "-- No entries --\n",
+        "No journal files were found.\n",
+        '{"event": "direct_grade_failure", "type": "OperationalError"}\n',
+        "direct_grade state=GRADED\n",  # not the receiver's JSON line
+    ],
+)
+def test_canary_a_journal_without_this_runs_grade_is_unread_and_fails(text):
+    counts = dp.journal_counts(text)
+    assert counts["direct_grade_failure"] is None
+    assert counts["OperationalError"] is None
+    clients = [("canary_1", "5C")]
+    graded = {"canary_1": {"outcome": "graded", "task_id": "t1"}}
+    assert dp.canary_verdict(clients, graded, counts, "0", "0")[0] == "FAIL"
+
+
+def test_canary_a_journal_with_the_grade_and_no_failures_passes():
+    text = '{"event": "direct_grade", "service": "x", "state": "GRADED"}\n'
+    counts = dp.journal_counts(text)
+    assert counts == {
+        "direct_grade_failure": 0,
+        "OperationalError": 0,
+        "direct_grade": 1,
+    }
+    clients = [("canary_1", "5C")]
+    graded = {"canary_1": {"outcome": "graded", "task_id": "t1"}}
+    assert dp.canary_verdict(clients, graded, counts, "0", "0")[0] == "PASS"
+
+
+@pytest.mark.parametrize("hotkeys", [(), ("5A", "5B")])
+def test_canary_refuses_unless_exactly_one_canary_is_registered(
+    monkeypatch, tmp_path, hotkeys
+):
+    from carbon.challenge_validator import canary
+
+    monkeypatch.setattr(dp, "canary_args", lambda args: 18871)
+    monkeypatch.setattr(canary, "CANARY_HOTKEYS", hotkeys)
+    with pytest.raises(dp.CanaryRefused) as refused:
+        _canary_main(tmp_path)
+    assert refused.value.code == "canary_hotkey_not_single"
+    assert not (tmp_path / "o").exists()
