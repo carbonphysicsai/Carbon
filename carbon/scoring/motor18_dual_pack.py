@@ -35,12 +35,16 @@ not a valid answer on a target that grades it.
 
 from __future__ import annotations
 
+import importlib
 import sys
 
 from carbon.motor import row18 as _row18
-from carbon.scoring import motor_sealed_dual_pack as _sealed
 
-CHALLENGE = _sealed.CHALLENGE
+#: The sealed module this version extends. It is imported LAZILY (`_sl`), never at this module's import: the overlay
+#: arms its dispatch on that module's import, so importing it here would call `dispatch` on a half-built module.
+_SEALED = "carbon.scoring.motor_sealed_dual_pack"
+
+CHALLENGE = "electric-motor-magnetics"
 VERSION = "1.8"
 KIND = "motor"
 #: The extended TRAIN every TRAIN-relative leg of this version reads.
@@ -48,7 +52,13 @@ TRAIN = "motor-dev-train-1p8-v1"
 #: Motor 1.8's sealed evaluation (a new exam key) and its pool set case. The name is the Validator's to confirm.
 POOL_VERSIONS = {VERSION: ("motor-pool-sealed-v3", "motor-sealed-pool-set")}
 #: 1.8's OWN producer identity covers the sealed grader and this module (its pk-pk decision lives here).
-FILES = (*_sealed.FILES, "motor18_dual_pack.py")
+_OWN_FILE = "motor18_dual_pack.py"
+
+
+def _sl():
+    return importlib.import_module(_SEALED)
+
+
 #: The two back-EMF cells' outputs (`back_emf.CELLS`), each the predicted k_e,ll ab waveform.
 EMF_OUTPUTS = ("back_emf_open_circuit", "ke_ll_loaded")
 #: The 1.8 row (`carbon.motor.row18`, public, nothing sealed): torque, then phase linkages A, B, C.
@@ -140,7 +150,7 @@ def _torque_train():
 
 def definition(*, bank, train_raw):
     del train_raw
-    return _sealed.definition(bank=bank, train_raw=_torque_train())
+    return _sl().definition(bank=bank, train_raw=_torque_train())
 
 
 def measure(
@@ -154,7 +164,7 @@ def measure(
         and all(type(r) is list and len(r) == len(outputs) for r in repeats)
     ):
         outputs, repeats = _sealed_rows(outputs, list(repeats))
-    return _sealed.measure(
+    return _sl().measure(
         bank_rows=bank_rows,
         outputs=outputs,
         repeats=repeats,
@@ -170,7 +180,7 @@ def applied_pack(**kwargs):
     """Motor's applied pack on 1.8's extended TRAIN's torque (when the sealed applied pack reads one)."""
     if "train_raw" in kwargs:
         kwargs = {**kwargs, "train_raw": _torque_train()}
-    return _sealed.applied_pack(**kwargs)
+    return _sl().applied_pack(**kwargs)
 
 
 # -- the pool binding: absolute pk-pk as a computed quantity -----------------------------------------------------------
@@ -288,8 +298,8 @@ def sealed_adapter(version):
 
 
 def _adapter_for_bank(bank, version):
-    if not _sealed.is_pool_bank(bank):
-        raise _sealed.Refused("motor_bank_population")
+    if not _sl().is_pool_bank(bank):
+        raise _sl().Refused("motor_bank_population")
     return sealed_adapter(version)
 
 
@@ -307,9 +317,9 @@ def _writer(root, bank, *, version=VERSION, **platform):
         bank,
         challenge=CHALLENGE,
         version=VERSION,
-        is_sealed_bank=_sealed.is_pool_bank,
-        refusal=_sealed.Refused("motor_bank_population"),
-        pack_suffix=_sealed.PACK_SUFFIX,
+        is_sealed_bank=_sl().is_pool_bank,
+        refusal=_sl().Refused("motor_bank_population"),
+        pack_suffix=_sl().PACK_SUFFIX,
         **platform,
     )
 
@@ -349,7 +359,10 @@ def producer_digest():
 
 
 def __getattr__(name):
-    return getattr(_sealed, name)
+    if name == "FILES":
+        # 1.8's OWN producer identity: the sealed grader's files, then this one (its pk-pk decision lives here)
+        return (*_sl().FILES, _OWN_FILE)
+    return getattr(_sl(), name)
 
 
 _SELF = sys.modules[__name__]

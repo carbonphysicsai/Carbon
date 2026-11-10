@@ -114,6 +114,30 @@
         "sha256": "0dfe0fc02b3c55ae68f7d31df3a00dca97a241083c5ad3958704fe05f7e5dcf5",
         "config": {}
       }
+    },
+    "electric-motor-magnetics 1.8": {
+      "challenge_id": "electric-motor-magnetics",
+      "version": "1.8",
+      "train": "motor-dev-train-1p8-v1",
+      "allowlist": "v8",
+      "step_caps": false,
+      "pack_version": "motor-normal-construction-development-8",
+      "development_evaluation": [
+        "motor-dual-development-grid-v2",
+        "motor-development-grid-8x6"
+      ],
+      "sealed_evaluation": "motor-pool-sealed-v3",
+      "campaign": "catalog",
+      "catalog": true,
+      "graph_adapter": "v2",
+      "catalog_entries_from": [],
+      "predecessor": "1.6",
+      "rebuild_wall_seconds": 648,
+      "dispatch": {
+        "module": "carbon.scoring.motor18_dual_pack",
+        "sha256": "fb44f8cae8af7e8d69d077644722753013ce6e312e15ee360e492a2e2e4237ac",
+        "config": {}
+      }
     }
   }
 }

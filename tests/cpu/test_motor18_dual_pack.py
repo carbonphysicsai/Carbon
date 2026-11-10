@@ -30,7 +30,7 @@ def _entry():
         "train": motor18_dual_pack.TRAIN,
         "allowlist": "v8",
         "step_caps": False,
-        "pack_version": "motor-normal-construction-development-test-1p8",
+        "pack_version": "motor-normal-construction-development-8",
         "development_evaluation": [
             "motor-dual-development-grid-v2",
             "motor-development-grid-8x6",
@@ -103,7 +103,8 @@ def overlay(tmp_path):
             ROOT / "scripts" / "validator_host_classes" / "version_overlay.json"
         ).read_bytes()
     )
-    document["versions"]["electric-motor-magnetics 1.8"] = _entry()
+    # the PRODUCTION entry (registered 9 Nov); a test entry for 1.8 would be refused as a different one
+    assert document["versions"]["electric-motor-magnetics 1.8"] == _entry()
     path = tmp_path / "version_overlay.json"
     path.write_text(json.dumps(document), encoding="utf-8")
     return path
@@ -129,7 +130,7 @@ def test_motor_1_8_routes_to_its_own_module_and_nothing_else_moves(overlay):
     assert out["module_15"]
     assert out["digest_same"] and out["digest_18_differs"]
     assert out["binding_registered"] and out["binding_16_unregistered"]
-    assert "not frozen yet" in out["train"]
+    assert out["train"] == "loaded"
 
 
 def test_a_changed_module_file_is_refused_before_import(overlay):
@@ -344,7 +345,7 @@ def test_the_sealed_grader_sees_only_the_torque_slices(monkeypatch):
         seen.update(kwargs)
         return {"A": 1.0}
 
-    monkeypatch.setattr(motor18_dual_pack._sealed, "measure", fake_measure)
+    monkeypatch.setattr(motor18_dual_pack._sl(), "measure", fake_measure)
     monkeypatch.setattr(motor18_dual_pack, "_torque_train", lambda: "TRAIN-1.8")
     rows = [_whole(1.0), _whole(2.0)]
     motor18_dual_pack.measure(
@@ -365,7 +366,7 @@ def test_the_sealed_grader_sees_only_the_torque_slices(monkeypatch):
 def test_one_malformed_row_anywhere_empties_every_sealed_row(monkeypatch):
     seen = {}
     monkeypatch.setattr(
-        motor18_dual_pack._sealed, "measure", lambda **kw: seen.update(kw) or {}
+        motor18_dual_pack._sl(), "measure", lambda **kw: seen.update(kw) or {}
     )
     monkeypatch.setattr(motor18_dual_pack, "_torque_train", lambda: "TRAIN-1.8")
     motor18_dual_pack.measure(
@@ -525,12 +526,12 @@ def test_definition_and_applied_pack_read_the_torque_view(monkeypatch):
     seen = []
     monkeypatch.setattr(motor18_dual_pack, "_torque_train", lambda: "VIEW")
     monkeypatch.setattr(
-        motor18_dual_pack._sealed,
+        motor18_dual_pack._sl(),
         "definition",
         lambda **kw: seen.append(("definition", kw["train_raw"])),
     )
     monkeypatch.setattr(
-        motor18_dual_pack._sealed,
+        motor18_dual_pack._sl(),
         "applied_pack",
         lambda **kw: seen.append(("applied", kw.get("train_raw"))),
     )

@@ -361,10 +361,10 @@ _NATIVE_TRAIN_NAMES = {
 FRESH_LAMBDA = {
     "motor-dev-train-1p8-v1": {
         "challenge": motor.CHALLENGE.challenge_id,
-        "rows": None,
-        "source_sha256": None,
-        "train_sha256": None,
-        "provenance_sha256": None,
+        "rows": 194,
+        "source_sha256": "efaacc92d96a6e5ea61aeed79db86cc653c1d12e09287e0bab692541fb55949d",
+        "train_sha256": "de1c73cc3fe22bb5945e02626f982ca83a4f0273a82e6c3d0398c28a2e32fbd4",
+        "provenance_sha256": "ee44b1740fa941df0e02c946b55abf0fd30ef6ec28d5936b17444740604d002f",
     },
 }
 _LAMBDA_PHASES = ("A", "B", "C")

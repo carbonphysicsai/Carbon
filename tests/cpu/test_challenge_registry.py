@@ -94,7 +94,8 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
         if c["challenge_id"] == MOTOR
     }
     # Motor 1.4: graph route v2; Motor 1.5: pool-graded; Motor 1.6: pool-graded, in-pack baseline.
-    assert set(motor) == {"1.0", "1.2", "1.3", "1.4", "1.5", "1.6"}
+    # Motor 1.8: back-EMF, its own frozen 194 x 240 TRAIN; reserved until its pool constants are registered.
+    assert set(motor) == {"1.0", "1.2", "1.3", "1.4", "1.5", "1.6", "1.8"}
     for entry in motor.values():
         assert entry["status"] == _expected_status(MOTOR, entry["version"])
         # A catalog version adds the one shared GPU practice profile.

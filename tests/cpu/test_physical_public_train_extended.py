@@ -158,6 +158,11 @@ def test_a_registered_version_naming_an_unknown_train_refuses(monkeypatch):
 
 
 def test_a_registered_version_naming_an_unfrozen_extended_train_refuses(monkeypatch):
+    table = {k: dict(v) for k, v in ppt.FRESH_LAMBDA.items()}
+    table["motor-dev-train-1p8-v1"].update(
+        rows=None, source_sha256=None, train_sha256=None, provenance_sha256=None
+    )
+    monkeypatch.setattr(ppt, "FRESH_LAMBDA", table)
     entry = version_registry.entry(MOTOR, "1.5")
     monkeypatch.setattr(
         version_registry,

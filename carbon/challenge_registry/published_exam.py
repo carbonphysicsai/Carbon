@@ -1007,6 +1007,11 @@ _MOTOR_POOL = _pool_block(
 _MOTOR_POOL_16 = _pool_block(
     _MOTOR, "electric-motor-magnetics 1.6", "motor-pool-sealed-v2"
 )
+#: Motor 1.8: 1.6's published block under its own sealed evaluation (its own frozen 240-wide TRAIN; the headroom physics,
+#: back-EMF cells and menu D blocks are published from its pool constants once registered, slice 3). Reserved until then.
+_MOTOR_POOL_18 = _pool_block(
+    _MOTOR, "electric-motor-magnetics 1.8", "motor-pool-sealed-v3"
+)
 _COOLING_POOL = _pool_block(_COOLING, "chip-cold-plate 1.5", "cooling-pool-sealed-v1")
 # OWNER-COOLING-HOTSPOT-GATE-DROP-01: a new version, never a rewrite of _COOLING.
 _COOLING_POOL_16 = {
@@ -1061,6 +1066,7 @@ _POOL_VERSIONS = frozenset(
         ("f02", "2.5"),
         ("electric-motor-magnetics", "1.5"),
         ("electric-motor-magnetics", "1.6"),
+        ("electric-motor-magnetics", "1.8"),
         ("chip-cold-plate", "1.5"),
         ("chip-cold-plate", "1.6"),
         ("chip-cold-plate", "1.7"),
@@ -1075,6 +1081,7 @@ _BY_VERSION = {
     ("f02", "2.5"): _F02_POOL,
     ("electric-motor-magnetics", "1.5"): _MOTOR_POOL,
     ("electric-motor-magnetics", "1.6"): _MOTOR_POOL_16,
+    ("electric-motor-magnetics", "1.8"): _MOTOR_POOL_18,
     ("chip-cold-plate", "1.5"): _COOLING_POOL,
     ("chip-cold-plate", "1.6"): _COOLING_POOL_16,
     ("chip-cold-plate", "1.7"): _COOLING_POOL_17,
