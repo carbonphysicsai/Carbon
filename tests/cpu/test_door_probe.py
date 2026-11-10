@@ -929,3 +929,17 @@ def test_canary_a_journal_with_the_grade_and_no_failures_passes():
     clients = [("canary_1", "5C")]
     graded = {"canary_1": {"outcome": "graded", "task_id": "t1"}}
     assert dp.canary_verdict(clients, graded, counts, "0", "0")[0] == "PASS"
+
+
+@pytest.mark.parametrize("hotkeys", [(), ("5A", "5B")])
+def test_canary_refuses_unless_exactly_one_canary_is_registered(
+    monkeypatch, tmp_path, hotkeys
+):
+    from carbon.challenge_validator import canary
+
+    monkeypatch.setattr(dp, "canary_args", lambda args: 18871)
+    monkeypatch.setattr(canary, "CANARY_HOTKEYS", hotkeys)
+    with pytest.raises(dp.CanaryRefused) as refused:
+        _canary_main(tmp_path)
+    assert refused.value.code == "canary_hotkey_not_single"
+    assert not (tmp_path / "o").exists()
