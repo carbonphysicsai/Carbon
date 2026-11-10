@@ -203,12 +203,15 @@ class AttemptLedger:
     def _db(self):
         db = sqlite3.connect(self.path, isolation_level=None)
         try:
+            # A BEGIN that fails (e.g. 'database is locked') is raised as itself: there is no transaction to roll back,
+            # and a ROLLBACK here would replace the real cause with 'cannot rollback' (RB door, 4affa5b9, 9 Nov).
             db.execute("BEGIN IMMEDIATE")
-            yield db
-            db.execute("COMMIT")
-        except BaseException:
-            db.execute("ROLLBACK")
-            raise
+            try:
+                yield db
+                db.execute("COMMIT")
+            except BaseException:
+                db.execute("ROLLBACK")
+                raise
         finally:
             db.close()
 
