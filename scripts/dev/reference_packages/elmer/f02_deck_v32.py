@@ -85,7 +85,12 @@ V32_HT_SHA256 = "dacf57f4a3dc082f12c87569389a585e699abce5331477ce8b0a601bee8e50d
 #: The public box B1T3: the signed 3.0 box C6 under the exact B1T map (canonical sha256, ``box_sha256``); coolant fixed at the
 #: curve inlet (not a range) and the start offset in [0, 5] K. Receipted by Carbon Validator-BT (Sun 8 Nov 10:55 CST).
 V32_BOX_SHA256 = "d620a81f82889d344a7721d4175716fc42ac6c5e5412931e880eb97fdea10799"
-V32_REGION_SHA256 = HUMAN_INPUT
+#: The hidden region: the BT 3.2 region drawn under key 0a11147f (drawn canonical 9f5e254f), every drawn side through the per-side
+#: probe + edge check (Carbon Validator-BT, Tue 10 Nov 07:49 CST), signed by the owner in the DC-B session, Tue 10 Nov 2026
+#: ~10:00 CST (record OWNER-BT32-REGION-SIGNED-01). The pin is the POST-signature canonical (status OWNER_SIGNED); the file and
+#: its values stay in custody.
+V32_REGION_SHA256 = "55fae831e40518120f550993cf6a3e28bf92ffd80df7ab0d02372eacf39bee0f"
+V32_REGION_RECORD = "OWNER-BT32-REGION-SIGNED-01"
 
 #: The 3.2 base (idle) power, W: the owner's signed box B1T3 (Lead session, Sun 8 Nov 2026 06:51 CST, "Yes, sign"): the B1T designs,
 #: base 7.90 W, HFE-7100, the r2 curve. 3.0's value stays ``V3_BASE_W``.
