@@ -89,8 +89,9 @@
   "A graded model that ran out of a limit on the validator showed as not graded yet. It now shows as a candidate failure, naming the step that failed and the limit it hit. Update your install to see it."
  ],
  "known_issues": [
+  "Grading on Burst Thermal and Cooling on testnet is paused by a fault in the new release: the validator machine kept giving its grading turns to the other Challenges. Your uploads are accepted and waiting in the queue, and none were lost. They will be graded once the fix is released. You don't need to submit again. Ribbed Bracket and Motor are grading new uploads.",
   "An older install shows a submission waiting for the validator as Refused: evaluation queued. Nothing was refused: it is queued, so don't submit again. Update your install and it reads Submitted, waiting for the validator's verdict. Where a door publishes it, the dashboard shows that Challenge's queue: how many submissions are waiting and the typical wait, not your own place in line.",
-  "Some re-queued submissions, free re-runs after a failure on our side, have waited much longer than they should. They are free and will be graded; you don't need to submit again.",
+  "A small number of re-queued uploads on Ribbed Bracket and Motor, free re-runs after a failure on our side, cannot be graded as stored. That is our fault, not yours. If you have one, submit the same model again: it is graded normally and counts as a normal submission. Other re-queued submissions will be graded as normal.",
   "A rebuild that runs out of time while the validator machine is busy can still count against the model. That is our fault, not yours, and it is being changed so such a run is retried. Until then, leave some headroom on time.",
   "A catalog practice runs on the CPU, even on a GPU machine: catalog entries have no GPU build yet. Start from your own graph to practise on the GPU.",
   "Close to a physics check, a practice that ran on the CPU can differ from the official grade, which always rebuilds your model on the validator's GPU.",
