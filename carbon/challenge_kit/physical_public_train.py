@@ -339,6 +339,9 @@ EXTENDED = {
 }
 #: Where the extended TRAIN files sit (the same data directory; a separate name so a test can point it elsewhere).
 _EXTENDED_DATA = _DATA
+#: The re-derive tolerance of an extended ENCODED TRAIN's targets: float64 round-off of the same transform on another
+#: platform (the measured difference is <= 8.9e-16; this is ~4,500x that and far below any U). Not a science value.
+_ENCODED_ROUNDOFF = 4e-12
 _EXTENDED_TRANSFORM = "native-plus-added-jsonl-to-float64-npz-v1"
 #: The record fields a published added row keeps (allow-listed): no batch,
 #: run, wall time, diagnostics or source case id of the custody draw.
@@ -864,6 +867,30 @@ def _load_extended(name: str, challenge_id: str) -> dict:
         native = _load_extended(spec["encoded_from"], challenge_id)
         want_raw, want = derive_extended_encoded_public_train(name, native)
         native_x = native["inputs"]
+        # The encoding is a float transform whose last bit varies by platform math (measured 9 Nov: <= 8.9e-16 between
+        # the canonical Linux build and Windows, on numpy 2.4.4 AND 2.4.6). The pinned sha256 already fixes the bytes;
+        # the re-derive checks the MEANING: the same provenance (bar its own sha line), the same inputs byte for byte,
+        # and targets equal to the re-encoded native TRAIN within float64 round-off (`_ENCODED_ROUNDOFF`).
+        want = {**want, "train_sha256": "sha256:" + _sha(train_raw)}
+        if want_raw != train_raw:
+            with (
+                np.load(io.BytesIO(train_raw), allow_pickle=False) as got,
+                np.load(io.BytesIO(want_raw), allow_pickle=False) as ref,
+            ):
+                if (
+                    set(got.files) != {"inputs", "targets"}
+                    or got["inputs"].tobytes() != ref["inputs"].tobytes()
+                    or got["targets"].shape != ref["targets"].shape
+                    or got["targets"].dtype != ref["targets"].dtype
+                    or not np.allclose(
+                        got["targets"],
+                        ref["targets"],
+                        rtol=_ENCODED_ROUNDOFF,
+                        atol=_ENCODED_ROUNDOFF,
+                    )
+                ):
+                    raise ValueError("extended public TRAIN provenance differs")
+            want_raw = train_raw
     if (
         want_raw != train_raw
         or provenance != want
