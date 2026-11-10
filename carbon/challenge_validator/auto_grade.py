@@ -94,13 +94,15 @@ class AutoGrader:
     def _marker(self, submission_id):
         return self.markers / (submission_id + ".json")
 
-    def _write(self, submission_id, state, *, code=None, entry_id=None):
+    def _write(self, submission_id, state, *, code=None, entry_id=None, next_step=None):
         body = {
             "schema": SCHEMA,
             "submission_id": submission_id,
             "state": state,
             "code": code,
             "entry_id": entry_id,
+            # a FAILED grade's next step (`auto_retry.NEXT_STEPS`, R39); absent on every other marker
+            **({} if next_step is None else {"next_step": next_step}),
         }
         fd = os.open(
             self._marker(submission_id), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
@@ -124,13 +126,28 @@ class AutoGrader:
         return body if type(body) is dict and body.get("schema") == SCHEMA else None
 
     def pending(self):
-        """Task ids with no marker yet, in the ledger's order."""
+        """Task ids with no marker yet, in the ledger's order: oldest submission first (`AttemptLedger.submitted_outcomes`)."""
         adapter = self.intake.adapter
         return [
             s
             for s in adapter.ledger.submitted_outcomes(adapter.contract_digest)
             if _TASK.fullmatch(s) and not self._marker(s).exists()
         ]
+
+    def oldest_pending_ns(self):
+        """When this door's OLDEST ungraded submission was accepted (ns), or None with none: this door's place in the
+        host's one waiting list for the grading lock (slow-tail F1a, `direct_intake._WorkLock`), for its rebuild and
+        its grade rounds alike, so the door holding the oldest submission on the host goes next.
+        """
+        adapter = getattr(self.intake, "adapter", None)
+        ledger = getattr(adapter, "ledger", None)
+        if not hasattr(ledger, "first_outcome_ns"):
+            return None
+        for submission_id in self.pending():
+            since = ledger.first_outcome_ns(adapter.contract_digest, submission_id)
+            if since is not None:
+                return since
+        return None
 
     def has_work(self):
         """Whether a grade round has anything to do: a task with no marker yet, or a paused crown decision the sweep
@@ -151,9 +168,22 @@ class AutoGrader:
             return True
         if self.pending():
             return True
+        if self._retries_due():
+            return True
         if self._crowns_due():
             return True
         return self._upkeep_due()
+
+    def _retries_due(self):
+        """Whether an automatic retry (R39) is due on this idle door: without it a quiet door never runs the round
+        that applies it. Never raises (doubt waits for the next round with other work).
+        """
+        from . import auto_retry
+
+        try:
+            return bool(auto_retry.due(self.root, idle=True))
+        except Exception:  # noqa: BLE001
+            return False
 
     def chain_degraded(self):
         """Whether this door has no fresh chain snapshot now (the intake's window: ``latest()`` is None past its age
@@ -245,7 +275,10 @@ class AutoGrader:
         finally:
             self.activity = None
         self._resume_paused_crowns()
-        for submission_id in self.pending():
+        pending = self.pending()
+        if self._apply_due_retries(idle=not pending):
+            pending = self.pending()  # a retry handed back is graded in this round
+        for submission_id in pending:
             copy = self._copy_decision(submission_id)
             if copy is not None:
                 decision, first = copy
@@ -528,11 +561,54 @@ class AutoGrader:
             state = self._give_back(submission_id)
         except Exception:  # noqa: BLE001 - the marker below still records the failure
             state = "UNRECORDED"
+        try:
+            next_step = self._next_step(submission_id, code, state)
+        except Exception:  # noqa: BLE001
+            next_step = None
         self._write(
             submission_id,
             "FAILED",
             code=code if state in (None, "RELEASED") else code + ":" + state.lower(),
+            next_step=next_step,
         )
+
+    def _next_step(self, submission_id, code, state):
+        """R39 (Validator-2B 7 Nov): the FAILED grade's next step. A COUNTED slot whose verdict was never delivered is
+        released (`auto_retry.release_undelivered`, every condition) and says so; a given-back grade gets its one free
+        automatic retry when its code is transient; a version-wide Carbon gap is given back for a resubmit after the
+        fix. None (operator alert) when a charged slot cannot be proven undelivered."""
+        from . import auto_retry
+
+        ledger = self.intake.adapter.ledger
+        if state == "COUNTED":
+            pool = None
+            try:
+                pool = self._pool()
+            except Exception:  # noqa: BLE001
+                pool = None
+            released = auto_retry.release_undelivered(
+                self.root, submission_id, code, ledger=ledger, pool_store=pool
+            )
+            return "slot_returned" if released else None
+        if state not in (None, "RELEASED"):
+            return None
+        if auto_retry.schedule(self.root, submission_id, code, ledger=ledger):
+            return "retry_scheduled"
+        return "slot_returned" if auto_retry.retryable(code) else "resubmit_after_fix"
+
+    def _apply_due_retries(self, *, idle):
+        """Hand each due automatic retry back to the grader (`auto_retry.apply_due`): on an idle tick (or overdue),
+        never while the door drains. True when one was handed back (the round re-lists its tasks once). Never
+        raises."""
+        from . import auto_retry
+
+        try:
+            draining = getattr(self.intake, "draining", None)
+            draining = bool(draining()) if callable(draining) else False
+            results = auto_retry.apply_due(self.root, draining=draining, idle=idle)
+        except Exception:  # noqa: BLE001
+            return False
+        return any(refused is None for _task, refused in results)
 
     def _give_back(self, submission_id):
         from .exam_cap import ExamCap

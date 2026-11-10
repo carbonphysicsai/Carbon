@@ -729,21 +729,129 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
 
 
 def test_the_staged_recheck_is_read_only_inside_its_block():
+    rows4, rows10 = [{"inputs": {}}] * 4, [{"inputs": {"i": i}} for i in range(10)]
     raw = pool_menu.rowcheck_side_file([1], [[2.0]])
-    assert pool_menu.take_rowcheck(4, _rule(), KEY) is None
+    assert pool_menu.take_rowcheck(rows4, _rule(), KEY) is None
     with pool_menu.staged_rowcheck(raw):
-        assert pool_menu.take_rowcheck(4, _rule(), KEY) == {
+        assert pool_menu.take_rowcheck(rows4, _rule(), KEY) == {
             "positions": [1],
             "outputs": [[2.0]],
         }
-    assert pool_menu.take_rowcheck(4, _rule(), KEY) is None
+    assert pool_menu.take_rowcheck(rows4, _rule(), KEY) is None
     rule = dataclasses.replace(_rule(), rowcheck=(0.0, 0.0, 3))
-    with pool_menu.staged_rowcheck(lambda positions: [[float(i)] for i in positions]):
-        staged = pool_menu.take_rowcheck(10, rule, KEY)
+    seen = {}
+
+    def fresh(positions, bank_rows, names):
+        seen["names"] = names
+        return [[float(bank_rows[i]["inputs"]["i"])] for i in positions]
+
+    with pool_menu.staged_rowcheck(fresh):
+        staged = pool_menu.take_rowcheck(rows10, rule, KEY, names=("a",))
     assert staged["positions"] == pool_menu.rowcheck_plan(10, 3, KEY, epoch=rule.epoch)
     assert staged["outputs"] == [[float(i)] for i in staged["positions"]]
+    assert seen["names"] == ("a",)
     with pool_menu.staged_rowcheck(None):
-        assert pool_menu.take_rowcheck(4, _rule(), KEY) is None
+        assert pool_menu.take_rowcheck(rows4, _rule(), KEY) is None
+
+
+# ---------------------------------------------------------------- G1: design-optimum naming -> the door's
+
+
+def _do_pair_two_duties():
+    """A SYNTHETIC 2-duty task in design-optimum's own naming: f, g at duty 'over'; g at duty 'rated'."""
+    document = menu_document()
+
+    def at(truth):
+        return {"f@over": truth["f"], "g@over": truth["g"], "g@rated": truth["g"]}
+
+    record = {
+        **document,
+        "pool": [{**row, "truth": at(row["truth"])} for row in document["pool"]],
+        "arms": {
+            arm: {pid: (None if o is None else at(o)) for pid, o in preds.items()}
+            for arm, preds in document["arms"].items()
+        },
+    }
+    problem = {
+        "target_id": "task-1",
+        "outputs": ["f@over", "g@over", "g@rated"],
+        "objective": "f@over",
+        "sense": "max",
+        "limits": [["g@over", "<=", 0.5], ["g@rated", "<=", 0.5]],
+        "u": {"f@over": U, "g@over": U, "g@rated": U},
+        "box": [[0.0, 1.0], [0.0, 1.0]],
+        "duties": {"over": {"cond": 1.0}, "rated": {"cond": 2.0}},
+    }
+    return problem, record
+
+
+def test_design_optimum_names_become_the_doors_and_the_task_loads():
+    problem, record = _do_pair_two_duties()
+    material, shas = pool_menu.menu_material(
+        [(problem, record)], input_names=("cond", "x", "y"), design_names=("x", "y")
+    )
+    (task,) = material["tasks"]
+    assert task["problem"]["outputs"] == ["over/f", "over/g", "rated/g"]
+    assert task["problem"]["objective"] == "over/f"
+    assert task["duties"] == [["over", {"cond": 1.0}], ["rated", {"cond": 2.0}]]
+    assert set(task["record"]["pool"][0]["truth"]) == {"over/f", "over/g", "rated/g"}
+    # the sha to register is the sha of the RENAMED record, and the door loads it under that sha
+    (loaded,) = pool_menu.load_tasks(
+        material,
+        _mk_rule(tuple(sorted(shas.items()))),
+        input_names=("cond", "x", "y"),
+        design_names=("x", "y"),
+    )
+    assert loaded.record.sha256 == shas["task-1"]
+    # the door's merge of per-duty predictions reaches every task output (no menu_derived_outputs refusal)
+    graded = pool_menu.score(
+        (loaded,),
+        _mk_rule(tuple(sorted(shas.items()))),
+        _truth_predict,
+        key=KEY,
+        design_names=("x", "y"),
+    )
+    assert graded["D"] == pytest.approx(1.0)
+
+
+def test_a_one_duty_task_keeps_bare_names_and_bad_names_refuse():
+    problem, record = _do_pair_two_duties()
+    one = {
+        **problem,
+        "outputs": ["f@over", "g@over"],
+        "limits": [["g@over", "<=", 0.5]],
+        "u": {"f@over": U, "g@over": U},
+        "duties": {"over": {"cond": 1.0}},
+    }
+    one_record = {
+        **record,
+        "pool": [
+            {**r, "truth": {k: v for k, v in r["truth"].items() if k != "g@rated"}}
+            for r in record["pool"]
+        ],
+        "arms": {
+            a: {
+                pid: (
+                    None
+                    if o is None
+                    else {k: v for k, v in o.items() if k != "g@rated"}
+                )
+                for pid, o in p.items()
+            }
+            for a, p in record["arms"].items()
+        },
+    }
+    material, _shas = pool_menu.menu_material(
+        [(one, one_record)], input_names=("cond", "x", "y"), design_names=("x", "y")
+    )
+    assert material["tasks"][0]["problem"]["outputs"] == ["f", "g"]
+    assert material["tasks"][0]["duties"] == [["", {"cond": 1.0}]]
+    for bad in ({**problem, "objective": "f"}, {**problem, "objective": "f@nowhere"}):
+        with pytest.raises(pool_exam.ExamRefused) as caught:
+            pool_menu.menu_material(
+                [(bad, record)], input_names=("cond", "x", "y"), design_names=("x", "y")
+            )
+        assert caught.value.code == "menu_custody_name_not_output_at_duty"
 
 
 # ---------------------------------------------------------------- Validator-2B must-fix 1: producer bytes never move

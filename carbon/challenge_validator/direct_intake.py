@@ -588,6 +588,12 @@ class DirectRecipeIntake(BatteryIntake):
             if getattr(self, "grade_marker", None) is None:
                 return _refused(503, "grade_state_unavailable")
             if self.adapter.owner(submission_id) != hotkey:
+                # Owner decision #9: the caller's OWN submission that was still queued on an earlier version when this
+                # door left it (`version_close`) was closed, not graded, nothing charged: said typed. Any other id, and
+                # anyone else's closed one, stays unknown.
+                closed = getattr(self, "version_closed", None) or {}
+                if closed.get(submission_id, None) == hotkey:
+                    return _refused(410, "version_closed")
                 return _refused(404, "feedback_submission_unknown")
             failure = None
             if v4:
@@ -725,6 +731,9 @@ class DirectRecipeIntake(BatteryIntake):
             return "GRADED", None
         if marker.get("state") == "FAILED":
             return "FAILED_INFRA", None
+        if marker.get("state") == "VERSION_CLOSED":
+            # closed at a version flip (`version_close`, owner #9): not graded, nothing charged (a rollback's answer)
+            return "NOT_GRADED", None
         state = self._grade_state(hotkey, submission_id)
         if state is not None:
             return state, None
@@ -929,7 +938,11 @@ def serve_loopback(
             kwargs={"stop": stop, "reader": reader},
             daemon=True,
         ),
-        threading.Thread(target=_advance_loop, args=(intake, stop, work), daemon=True),
+        threading.Thread(
+            target=_advance_loop,
+            args=(intake, stop, work, getattr(grader, "oldest_pending_ns", None)),
+            daemon=True,
+        ),
     ]
     if grader is not None:
         # A receiver that grades its own submissions (auto_grade): one grade at a
@@ -1088,8 +1101,9 @@ class _WorkLock:
         self._legacy = threading.local()
         self._yield_until = 0.0
         self._was_draining = None
-        #: This door's place in the host's waiting list (`_mark_waiting`): the time its current GRADE round began to
-        #: wait, or None. A grade round takes the host lock only when no live other door has waited longer.
+        #: This door's place in the host's waiting list (`_mark_waiting`): the acceptance time of its oldest ungraded
+        #: submission when the round knows it (``since``, slow-tail F1a), else the time its current GRADE round began to
+        #: wait; None while not queued. A queued round takes the host lock only when no live other door is ahead of it.
         self._wait_since = None
         self._grade_round = False
         if self._state is not None:
@@ -1157,10 +1171,12 @@ class _WorkLock:
         return bool(self._waiters())
 
     def _behind_an_earlier_waiter(self):
-        """Whether a GRADE round must let another door go first: a live other door has waited longer (round-robin
-        across doors, Deploy 5 Nov: Motor's due king work lost the race to three doors for over an hour). A round that
-        is not yet waiting counts as arriving now, so it queues behind every current waiter; ties go to the lower
-        pid. Advance rounds never queue (they cannot tell whether they have work), as before.
+        """Whether a QUEUED round must let another door go first: a live other door is ahead of it in the host's one
+        waiting list (Deploy 5 Nov: Motor's due king work lost the race to three doors for over an hour). A round's
+        place is the acceptance time of its door's oldest ungraded submission when it carries one (``since``: slow-tail
+        F1a, Lead / TE-B 8 Nov), for a GRADE and an ADVANCE (rebuild) round alike, so the oldest submission on the host
+        always goes next whichever step it needs; a grade round without one counts as arriving now. Ties go to the
+        lower pid. An advance round without a place (nothing ungraded on its door) never queues, as before.
         """
         if not self._grade_round:
             return False
@@ -1226,11 +1242,13 @@ class _WorkLock:
             if self._others_waiting():
                 self._yield_until = time.monotonic() + 2 * self._poll
 
-    def taking(self, kind, *, has_work=None):
+    def taking(self, kind, *, has_work=None, since=None):
         """A context for one round of ``kind`` work (``advance`` or ``grade``). ``has_work`` (called under the
         door's own lock) lets a round with nothing to do skip the host lock entirely (`WorkDeclined("idle")`).
+        ``since`` (called likewise) gives the round's place in the host's waiting list: the acceptance time (ns) of
+        its door's oldest ungraded submission, or None (`AutoGrader.oldest_pending_ns`).
         """
-        return _Taking(self, kind, has_work)
+        return _Taking(self, kind, has_work, since)
 
     # The earlier ``with work:`` form (one advance round), kept for callers outside this module; per thread.
     def __enter__(self):
@@ -1246,8 +1264,21 @@ class _WorkLock:
 class _Taking:
     """One round of work under `_WorkLock`; see there."""
 
-    def __init__(self, work, kind, has_work):
-        self.work, self.kind, self.has_work = work, kind, has_work
+    def __init__(self, work, kind, has_work, since=None):
+        self.work, self.kind, self.has_work, self.since = work, kind, has_work, since
+
+    def _place(self):
+        """The round's place from ``since`` (a non-negative int of ns), or None: a failing or odd reader never
+        blocks a round, it only loses its place (the earlier behaviour)."""
+        if self.since is None:
+            return None
+        try:
+            place = self.since()
+        # a place is an optimisation, never a reason to stop work
+        except Exception as failure:  # noqa: BLE001
+            log("direct_work_place_unavailable", type=type(failure).__name__)
+            return None
+        return place if type(place) is int and place >= 0 else None
 
     def _inflight(self):
         return {
@@ -1277,9 +1308,15 @@ class _Taking:
                 raise WorkDeclined(reason)
             if self.has_work is not None and not self.has_work():
                 raise WorkDeclined("idle")
+            # slow-tail F1a: a round that knows its door's oldest ungraded submission queues by it (advance included)
+            place = self._place() if work._dir is not None else None
+            if place is not None:
+                work._grade_round = True
+                work._wait_since = place
+            queued = work._grade_round
             while work._dir is not None and not work._try_host():
-                if visible and not waiting:
-                    if work._state is not None:
+                if queued and not waiting:
+                    if visible and work._state is not None:
                         _write_record(
                             work._state / WAIT_NAME,
                             {**self._inflight(), "pid_start": None},
@@ -1334,19 +1371,23 @@ class _Taking:
         return False
 
 
-def _round(work, kind, has_work=None):
+def _round(work, kind, has_work=None, since=None):
     """One work round: `_WorkLock.taking` when ``work`` is one, else ``work`` itself (any lock, as before)."""
     taking = getattr(work, "taking", None)
-    return work if taking is None else taking(kind, has_work=has_work)
+    if taking is None:
+        return work
+    if since is None:
+        return taking(kind, has_work=has_work)
+    return taking(kind, has_work=has_work, since=since)
 
 
-def _advance_loop(intake, stop, work=None):
+def _advance_loop(intake, stop, work=None, since=None):
     work = work or _WorkLock(stop=stop)
     failures = 0
     while not stop.is_set():
         wait = 1
         try:
-            with _round(work, "advance"):
+            with _round(work, "advance", since=since):
                 intake.advance()
             failures = 0
         except WorkDeclined:
@@ -1371,7 +1412,12 @@ def _grade_loop(grader, stop, work):
         wait = 5
         try:
             # Only a door with something to grade takes the host lock (MAINNET_UPDATE_ARCHITECTURE s2.4 Step A).
-            with _round(work, "grade", getattr(grader, "has_work", None)):
+            with _round(
+                work,
+                "grade",
+                getattr(grader, "has_work", None),
+                getattr(grader, "oldest_pending_ns", None),
+            ):
                 graded = grader.run_once()
             failures = 0
         except WorkDeclined:

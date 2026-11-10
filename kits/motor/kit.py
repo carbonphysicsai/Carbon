@@ -48,7 +48,7 @@ from carbon.motor import domain, exam, getdp, population
 ROOT = Path(carbon.__file__).resolve().parents[1]
 
 CHALLENGE_ID = "electric-motor-magnetics"
-KIT_VERSION = "1.7"
+KIT_VERSION = "1.8"
 RECIPE = ROOT / "scripts" / "dev" / "motor" / "reference" / "Dockerfile"
 RUNNER = ROOT / "scripts" / "dev" / "motor" / "reference" / "run_batch.py"
 MESH = ROOT / "carbon" / "motor" / "mesh.py"

@@ -192,6 +192,126 @@ def rowcheck_plan(row_count, subset, key, *, epoch):
 
 ROWCHECK_SCHEMA = "carbon.menu-rowcheck.v1"
 
+# --- custody: design-optimum's menus -> the door's sealed material (G1/G2, Graphite-B 7 Nov) -------------------------
+
+#: design-optimum's per-task problem file (written beside each carbon.d-menu.v1 record by its menu stage): its own
+#: naming, ``<output>@<duty>`` (custody_solve.MultiDuty), with the duties' fixed conditions.
+DO_PROBLEM_KEYS = {
+    "target_id",
+    "outputs",
+    "objective",
+    "sense",
+    "limits",
+    "u",
+    "box",
+    "duties",
+}
+
+
+def _door_name(name, duties):
+    """``<output>@<duty>`` -> the door's ``<duty>/<output>`` (`menu_score.merge_duties`); a one-duty task keeps the
+    bare output name. Anything else refuses (never guessed)."""
+    _require(
+        type(name) is str and name.count("@") == 1,
+        "menu_custody_name_not_output_at_duty",
+    )
+    output, duty = name.split("@")
+    _require(output and duty in duties, "menu_custody_name_not_output_at_duty")
+    return output if len(duties) == 1 else f"{duty}/{output}"
+
+
+def _rename(mapping, duties):
+    return {_door_name(k, duties): v for k, v in mapping.items()}
+
+
+def door_task(problem_doc, record_doc):
+    """One sealed menu task in the door's form (``{"problem", "duties", "record"}``, `load_tasks`) from design-optimum's
+    problem file and record. Only NAMES change: every ``<output>@<duty>`` becomes the door's name, in the problem
+    (outputs, objective, limits, u) and in the record (every truth, every arm prediction); values, ids, strata, quotas,
+    designs and the reference values are copied as they are. The door's record sha is the sha of the RENAMED record,
+    the one the door reads, so it is the sha to register."""
+    _require(
+        type(problem_doc) is dict and set(problem_doc) == DO_PROBLEM_KEYS,
+        "menu_custody_problem_malformed",
+    )
+    duties = problem_doc["duties"]
+    _require(
+        type(duties) is dict
+        and duties
+        and all(type(v) is dict for v in duties.values()),
+        "menu_custody_duties_malformed",
+    )
+    _require(
+        type(problem_doc["limits"]) is list
+        and all(type(l) is list and len(l) == 3 for l in problem_doc["limits"]),
+        "menu_custody_problem_malformed",
+    )
+    problem = {
+        "target_id": problem_doc["target_id"],
+        "outputs": [_door_name(o, duties) for o in problem_doc["outputs"]],
+        "objective": _door_name(problem_doc["objective"], duties),
+        "sense": problem_doc["sense"],
+        "limits": [
+            {"output": _door_name(o, duties), "kind": k, "bound": b}
+            for o, k, b in problem_doc["limits"]
+        ],
+        "u": _rename(problem_doc["u"], duties),
+        "box": problem_doc["box"],
+    }
+    _require(
+        type(record_doc) is dict and type(record_doc.get("pool")) is list,
+        "menu_custody_record_malformed",
+    )
+    record = {
+        **record_doc,
+        "pool": [
+            {**row, "truth": _rename(row["truth"], duties)}
+            for row in record_doc["pool"]
+        ],
+        "arms": {
+            arm: {
+                pid: (None if out is None else _rename(out, duties))
+                for pid, out in preds.items()
+            }
+            for arm, preds in record_doc["arms"].items()
+        },
+    }
+    door_duties = (
+        [["", dict(next(iter(duties.values())))]]
+        if len(duties) == 1
+        else [[name, dict(fixed)] for name, fixed in sorted(duties.items())]
+    )
+    return {"problem": problem, "duties": door_duties, "record": record}
+
+
+def menu_material(pairs, *, input_names, design_names):
+    """``(material, {task_id: record sha})``: the sealed ``definition["pool"]["menu"]`` of design-optimum's
+    ``[(problem_doc, record_doc), ...]``, checked through the door's own `load_tasks` against the shas it computes (so
+    a material that would refuse at grade time refuses here, at build). The shas are the ones to register.
+    """
+    tasks = [door_task(problem, record) for problem, record in pairs]
+    material = {"tasks": tasks}
+    shas = {}
+    for task in tasks:
+        problem = _problem(task["problem"])
+        try:
+            shas[problem.target_id] = menu_score.menu_record(
+                task["record"], problem
+            ).sha256
+        except menu_score.MenuRefused as exc:
+            _refuse(exc.code)
+    probe = MenuRule(
+        records_sha256=tuple(sorted(shas.items())),
+        epoch="custody-build-check",
+        aggregate="mean",
+        rotation_days=1,
+        rowcheck=(0.0, 0.0, 1),
+        min_tasks_exception="custody-build-check",  # the count is checked against the REGISTRATION at grade time
+    )
+    load_tasks(material, probe, input_names=input_names, design_names=design_names)
+    return material, shas
+
+
 #: The re-check staged for the grade being produced in THIS context (`staged_rowcheck`): set by the receiver around its
 #: producer call, never through a producer file (Validator-2B 7 Nov must-fix 1: producer bytes never move).
 _STAGED = contextvars.ContextVar("carbon_menu_rowcheck", default=None)
@@ -213,16 +333,18 @@ def staged_rowcheck(source):
         _STAGED.reset(token)
 
 
-def take_rowcheck(row_count, rule, key):
-    """``{"positions", "outputs"}`` of the staged re-check for a bank of ``row_count`` rows, or None when nothing is
-    staged (the measure then refuses ``menu_rowcheck_unavailable``, Carbon's gap)."""
+def take_rowcheck(bank_rows, rule, key, *, names=None):
+    """``{"positions", "outputs"}`` of the staged re-check for the measure's ``bank_rows``, or None when nothing is
+    staged (the measure then refuses ``menu_rowcheck_unavailable``, Carbon's gap). A staged callable (custody pack
+    builds only, for Carbon's own in-pack baseline) is called as ``source(positions, bank_rows, names)`` and returns a
+    FRESH run's raw answers to those rows in that order."""
     source = _STAGED.get()
     if source is None:
         return None
     if type(source) is bytes:
         return read_rowcheck_side_file(source)
-    positions = rowcheck_plan(row_count, rule.rowcheck[2], key, epoch=rule.epoch)
-    outputs = source(list(positions))
+    positions = rowcheck_plan(len(bank_rows), rule.rowcheck[2], key, epoch=rule.epoch)
+    outputs = source(list(positions), bank_rows, names)
     _require(
         type(outputs) is list and len(outputs) == len(positions),
         "menu_rowcheck_count_mismatch",

@@ -38,6 +38,10 @@ _FIELDS = {
     "measure_query",
 }
 _OPTIONAL_FIELDS = {
+    # The chain network this door is bound to (N3, lock-in rev 4): written by `receiver_setup prepare` from the network
+    # the prepare ran on, set into the unit's environment by `service`/`start`, and checked against the process's own
+    # binding at start (`require_chain_network`). Mainnet and testnet doors share one host, so the network is per door.
+    "chain_network",
     "material_cache_bytes",
     "construction_image_manifest",
     "inference_image_manifest",
@@ -85,6 +89,9 @@ _OPTIONAL_FIELDS = {
     # OWNER-PROBING-COUNTERS-01 (a): {unmapped_coldkey, unresolved_hotkey, max_map_age_blocks}, every value the OWNER's
     # (`allowance_groups.policy`). Absent: the exam cap is per hotkey as before. Present with any value unset: refused.
     "allowance_groups",
+    # Owner decision #9 (8 Nov): absolute paths of `version_close.close_queued` files of this Challenge's EARLIER
+    # versions; the owner asking about one of its closed submissions is answered ``version_closed``. Absent: as before.
+    "version_closed_files",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -177,6 +184,70 @@ def install_official_receipt_store(cfg) -> None:
             ).get("value"),
         )
     )
+
+
+#: The networks a door can be bound to (`carbon.chain.models`; localnet is staging only).
+CHAIN_NETWORKS = ("testnet", "finney", "localnet")
+
+
+def _chain_network_shape(value) -> bool:
+    """``{"network": "testnet"|"finney"}``, or the staging localnet with its genesis and its host-local endpoint."""
+    if type(value) is not dict or value.get("network") not in CHAIN_NETWORKS:
+        return False
+    if value["network"] != "localnet":
+        return set(value) == {"network"}
+    return (
+        set(value) == {"network", "genesis", "endpoint"}
+        and type(value["genesis"]) is str
+        and re.fullmatch(r"0x[0-9a-f]{64}", value["genesis"]) is not None
+        and type(value["endpoint"]) is str
+        and re.fullmatch(
+            r"wss?://(127\.0\.0\.1|localhost|\[::1\]):[0-9]{1,5}", value["endpoint"]
+        )
+        is not None
+    )
+
+
+def _normal_endpoint(endpoint: str) -> str:
+    """The localnet endpoint as ``scheme://host:port``, lower case: `carbon.chain.models` already accepted it (one
+    loopback host, a port, nothing else), so this only drops what urlsplit ignores (case, an empty ``/``, ``?``, ``#``)
+    and the record names one spelling, which its own reader (`_chain_network_shape`) accepts.
+    """
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(endpoint)
+    host = parts.hostname or ""
+    host = f"[{host}]" if ":" in host else host
+    return f"{parts.scheme.lower()}://{host}:{parts.port}"
+
+
+def chain_network_record() -> dict:
+    """The network THIS process is bound to (`carbon.chain.models`), as a door's ``chain_network`` record."""
+    from carbon.chain import models
+
+    record = {"network": models.CARBON_NETWORK}
+    if models.CARBON_NETWORK == models.LOCALNET:
+        record.update(
+            genesis=models.LOCALNET_GENESIS,
+            endpoint=_normal_endpoint(models.LOCALNET_ENDPOINT),
+        )
+    return record
+
+
+def require_chain_network(cfg: dict) -> None:
+    """(N3) A door runs only on the network its own record names: a process bound elsewhere (an operator shell's
+    environment, a unit written by hand, a mainnet door started like a testnet one) refuses before any chain read.
+    A record is required whenever the process is bound off testnet; a root prepared before the record existed (no
+    ``chain_network``) still starts on testnet, the only network such a root was ever prepared on.
+    """
+    observed = chain_network_record()
+    expected = cfg.get("chain_network")
+    if expected is None:
+        if observed["network"] != "testnet":
+            raise ReceiverUnavailable("chain_network_missing")
+        return
+    if expected != observed:
+        raise ReceiverUnavailable("chain_network_mismatch")
 
 
 def load_config(path: Path) -> dict:
@@ -302,6 +373,8 @@ def load_config(path: Path) -> dict:
         selected = value["challenge"]
         if type(selected) is not dict or selected not in served_challenges():
             raise ValueError("registered direct Challenge selection required")
+    if "version_closed_files" in value:
+        _version_closed(value)
     if "auto_grade" in value and (
         type(value["auto_grade"]) is not dict
         or set(value["auto_grade"]) - {"pool_store"}
@@ -319,6 +392,8 @@ def load_config(path: Path) -> dict:
         or not Path(value["launch_board"]).is_absolute()
     ):
         raise ValueError("invalid launch_board file")
+    if "chain_network" in value and not _chain_network_shape(value["chain_network"]):
+        raise ValueError("invalid chain_network")
     if "launch_board_key" in value and (
         "launch_board" not in value
         or type(value["launch_board_key"]) is not str
@@ -577,6 +652,23 @@ def _request_buckets(cfg):
 
     block = cfg.get("request_buckets")
     return None if block is None else RequestBuckets(block)
+
+
+def _version_closed(cfg):
+    """``{submission_id: owner}`` of the configured earlier versions' closed submissions (`version_close.load`), or
+    ``{}`` without the field. A field that names no file of an earlier version of THIS Challenge refuses.
+    """
+    if "version_closed_files" not in cfg:
+        return {}
+    from carbon.challenge_validator import version_close
+
+    selected = cfg["version_closed_files"]
+    challenge = cfg.get("challenge")
+    if type(selected) is not list or not selected or type(challenge) is not dict:
+        raise ValueError("version_closed_files needs a list of files and the Challenge")
+    return version_close.load(
+        selected, challenge_id=challenge.get("id"), version=challenge.get("version")
+    )
 
 
 def _funder_map(cfg):
@@ -1896,6 +1988,7 @@ def serve(
     from scripts.dev.miner_launchpad.controller import owner_lock
 
     cfg = load_config(config_path)
+    require_chain_network(cfg)
     install_official_receipt_store(cfg)
     from carbon.challenge_validator import crown_average_host
 
@@ -2186,6 +2279,8 @@ def serve(
             intake.funder_map_watch = funder_maps.Watched(
                 cfg.get("funder_map_file"), intake.funder_map
             )
+            # Owner decision #9: the earlier versions' closed submissions this door answers ``version_closed`` for.
+            intake.version_closed = _version_closed(cfg)
             # OWNER-PROBING-COUNTERS-01 (a): the exam cap's allowance group, on the SAME in-memory funder map as R89's
             # request bucket (one group(), Validator-2 11:32); None (no block) = per hotkey as before.
             from carbon.challenge_validator import allowance_groups, exam_cap
