@@ -873,3 +873,16 @@ def test_a_plan_is_a_frozen_value():
     assert isinstance(plan, CoveragePlan)
     with pytest.raises(dataclasses.FrozenInstanceError):
         plan.classes = ()
+
+
+def test_motor_1p8_registers_torque_outputs_only():
+    """Motor 1.8 back-EMF = FALLBACK (Lead 10 Nov, with Carbon Validator-Motor): torque only in 1.8, back-EMF moves to
+    1.9. Its registration names the two torque outputs and no back-EMF output or cell.
+    """
+    document = json.loads(pool_version.CONSTANTS.read_bytes())
+    entry = document["versions"]["electric-motor-magnetics 1.8"]
+    assert "emf" not in json.dumps(entry).lower()
+    assert set(entry["physics"]["gate_threshold"]) == {
+        "mean_torque_nm",
+        "ripple_pk_pk_nm",
+    }
