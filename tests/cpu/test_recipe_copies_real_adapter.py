@@ -91,7 +91,8 @@ def test_the_grade_time_lookup_on_a_cache_miss_uses_the_real_adapter(
     tmp_path, monkeypatch
 ):
     """The exact rs33 path: the digest was never noted (the swallowed failure), so the decision itself must ask the
-    real adapter for it; before the fix this raised OperationalError after the busy timeout."""
+    real adapter for it; before the fix this raised OperationalError after the busy timeout.
+    """
     request, adapter, ledger, result = _admitted_door(tmp_path, monkeypatch)
     sid = result["outcome"]["submission_id"]
     assert recipe_copies.stored_digest(ledger, sid) is None  # nothing noted
@@ -111,4 +112,6 @@ def test_a_failing_note_is_said_never_silent(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(adapter, "owner", broken)
     intake = SimpleNamespace(adapter=adapter)
     assert direct_intake.DirectRecipeIntake._note_recipe_digest(intake, result) is None
-    assert "recipe_digest_note_failed" in capsys.readouterr().err  # the journal (stderr)
+    assert (
+        "recipe_digest_note_failed" in capsys.readouterr().err
+    )  # the journal (stderr)
