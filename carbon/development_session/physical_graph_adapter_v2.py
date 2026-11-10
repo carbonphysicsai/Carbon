@@ -289,6 +289,18 @@ SPECS = {
         "float64",
         "1.6",
     ),
+    ("chip-cold-plate", "1.8"): Spec(
+        "chip-cold-plate",
+        "1.8",
+        "chip-cold-plate-public-jax-graph-v2",
+        "cooling-dev-train-1p8-v1-encoded",
+        "5c1e2bed7d381a5ee915fc5c4bb26e43d7c692c9d7dd34d4dfa84a1c327cf223",
+        458,
+        9,
+        32,
+        "float64",
+        "1.7",
+    ),
 }
 ADAPTER_IDS = frozenset(spec.adapter_id for spec in SPECS.values())
 

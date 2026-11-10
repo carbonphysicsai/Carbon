@@ -89,6 +89,31 @@
           "region_sha256": "248460a61ec806ea6756b1a453e5e15890e69f4a6bc30814b11c6d53686a8b4c"
         }
       }
+    },
+    "chip-cold-plate 1.8": {
+      "challenge_id": "chip-cold-plate",
+      "version": "1.8",
+      "train": "cooling-dev-train-1p8-v1-encoded",
+      "allowlist": "v8",
+      "step_caps": false,
+      "pack_version": "cooling-normal-construction-development-9",
+      "development_evaluation": [
+        "cooling-dual-development-grid-v3",
+        "cooling-development-grid-8x6"
+      ],
+      "sealed_evaluation": "cooling-pool-sealed-v4",
+      "campaign": "catalog",
+      "catalog": true,
+      "graph_adapter": "v2",
+      "output_encoding": "cooling-law-safe-output-encoding",
+      "catalog_entries_from": [],
+      "predecessor": "1.7",
+      "rebuild_wall_seconds": 648,
+      "dispatch": {
+        "module": "carbon.scoring.cooling18_dual_pack",
+        "sha256": "145887a1d287a98c7ffbda9a90532f0b504a646ec45fea69970c08bedd2cb84a",
+        "config": {}
+      }
     }
   }
 }

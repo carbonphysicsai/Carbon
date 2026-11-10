@@ -323,18 +323,18 @@ EXTENDED = {
     "cooling-dev-train-1p8-v1": {
         "challenge": cooling.CHALLENGE.challenge_id,
         "encoded_from": None,
-        "rows": None,
-        "source_sha256": None,
-        "train_sha256": None,
-        "provenance_sha256": None,
+        "rows": 458,
+        "source_sha256": "bc689332047e8f011228356b5301210e95f5ef6eaeb4b5c7829fa40dcacca1ca",
+        "train_sha256": "326cb30187cbb6cc108bbe435ad7dc01851e4459dd4858fb17bc9c26a8ccfeb7",
+        "provenance_sha256": "2e5a9b1234bf000e57d03d2ab6b450d312c84eaca634e857c920a21a7238fd94",
     },
     "cooling-dev-train-1p8-v1-encoded": {
         "challenge": cooling.CHALLENGE.challenge_id,
         "encoded_from": "cooling-dev-train-1p8-v1",
-        "rows": None,
+        "rows": 458,
         "source_sha256": None,
-        "train_sha256": None,
-        "provenance_sha256": None,
+        "train_sha256": "5c1e2bed7d381a5ee915fc5c4bb26e43d7c692c9d7dd34d4dfa84a1c327cf223",
+        "provenance_sha256": "bc0ce49229a19cd30c644480a63ba8ececdf1755b7f6e4db78b74a9942663c9f",
     },
 }
 #: Where the extended TRAIN files sit (the same data directory; a separate name so a test can point it elsewhere).

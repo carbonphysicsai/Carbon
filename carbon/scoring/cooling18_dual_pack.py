@@ -15,9 +15,12 @@ from __future__ import annotations
 
 import sys
 
-from carbon.scoring import cooling_encoded_dual_pack as _encoded
+import importlib
 
-CHALLENGE = _encoded.CHALLENGE
+#: The sealed module this version extends. It is imported LAZILY (`_enc`), never at this module's import: the overlay
+#: arms its dispatch on that module's import, so importing it here would call `dispatch` on a half-built module.
+_ENCODED = "carbon.scoring.cooling_encoded_dual_pack"
+CHALLENGE = "chip-cold-plate"
 VERSION = "1.8"
 #: The native extended TRAIN whose rows this version's measurement reads (its encoded twin is what miners train on).
 NATIVE_TRAIN = "cooling-dev-train-1p8-v1"
@@ -25,7 +28,11 @@ NATIVE_TRAIN = "cooling-dev-train-1p8-v1"
 SERVED_TRAIN = "cooling-dev-train-1p8-v1-encoded"
 #: Cooling 1.8's sealed evaluation (a new exam key) and its pool set case. The name is the Validator's to confirm.
 POOL_VERSIONS = {VERSION: ("cooling-pool-sealed-v4", "cooling-sealed-pool-set")}
-FILES = (*_encoded.FILES, "cooling18_dual_pack.py")
+_OWN_FILE = "cooling18_dual_pack.py"
+
+
+def _enc():
+    return importlib.import_module(_ENCODED)
 
 
 def _native_train():
@@ -36,7 +43,7 @@ def _native_train():
 
 def definition(*, bank, train_raw, rule="baseline_legs"):
     del train_raw
-    return _encoded._cooling.definition(bank=bank, train_raw=_native_train(), rule=rule)
+    return _enc()._cooling.definition(bank=bank, train_raw=_native_train(), rule=rule)
 
 
 def measure(
@@ -44,10 +51,10 @@ def measure(
 ):
     """Cooling's measurement of decoded rows against 1.8's native extended TRAIN."""
     del train_raw
-    return _encoded._cooling.measure(
+    return _enc()._cooling.measure(
         bank_rows=bank_rows,
-        outputs=_encoded._decoded(outputs),
-        repeats=[_encoded._decoded(repeat) for repeat in repeats],
+        outputs=_enc()._decoded(outputs),
+        repeats=[_enc()._decoded(repeat) for repeat in repeats],
         definition=definition,
         limits=limits,
         objective=objective,
@@ -59,7 +66,7 @@ def measure(
 def applied_pack(*, bank_rows, definition, limits, objective, train_raw, names):
     """Cooling's applied pack (its learned-krr-v1 baseline) on 1.8's native extended TRAIN."""
     del train_raw
-    return _encoded._cooling.applied_pack(
+    return _enc()._cooling.applied_pack(
         bank_rows=bank_rows,
         definition=definition,
         limits=limits,
@@ -82,8 +89,8 @@ def sealed_adapter(version):
 
 
 def _adapter_for_bank(bank, version):
-    if not _encoded.is_pool_bank(bank):
-        raise _encoded._cooling.Refused("cooling_bank_population")
+    if not _enc().is_pool_bank(bank):
+        raise _enc()._cooling.Refused("cooling_bank_population")
     return sealed_adapter(version)
 
 
@@ -101,9 +108,9 @@ def _writer(root, bank, *, version=VERSION, **platform):
         bank,
         challenge=CHALLENGE,
         version=VERSION,
-        is_sealed_bank=_encoded.is_pool_bank,
-        refusal=_encoded._cooling.Refused("cooling_bank_population"),
-        pack_suffix=_encoded.PACK_SUFFIX,
+        is_sealed_bank=_enc().is_pool_bank,
+        refusal=_enc()._cooling.Refused("cooling_bank_population"),
+        pack_suffix=_enc().PACK_SUFFIX,
         **platform,
     )
 
@@ -131,7 +138,10 @@ def producer_digest():
 
 
 def __getattr__(name):
-    return getattr(_encoded, name)
+    if name == "FILES":
+        # 1.8's own producer identity: the sealed module's files, then this one
+        return (*_enc().FILES, _OWN_FILE)
+    return getattr(_enc(), name)
 
 
 _SELF = sys.modules[__name__]
