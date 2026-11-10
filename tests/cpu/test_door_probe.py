@@ -815,8 +815,13 @@ def test_canary_refuses_the_kings_recipe():
 
 
 def test_canary_journal_counts_and_verdict():
-    text = "ok\nx direct_grade_failure y\nsqlite3.OperationalError: locked\nok\n"
-    assert dp.journal_counts(text) == {"direct_grade_failure": 1, "OperationalError": 1}
+    grade = '{"event": "direct_grade", "service": "x", "state": "GRADED"}\n'
+    text = "ok\nx direct_grade_failure y\nsqlite3.OperationalError: locked\n" + grade
+    assert dp.journal_counts(text) == {
+        "direct_grade_failure": 1,
+        "OperationalError": 1,
+        "direct_grade": 1,
+    }
     clients = [("canary_1", "5C"), ("canary_2", "5C")]
     graded = {
         "canary_1": {"outcome": "graded", "task_id": "t1"},
@@ -892,3 +897,35 @@ def test_canary_runs_one_submit_by_default():
         ]
     )
     assert args.submits == 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "-- No entries --\n",
+        "No journal files were found.\n",
+        '{"event": "direct_grade_failure", "type": "OperationalError"}\n',
+        "direct_grade state=GRADED\n",  # not the receiver's JSON line
+    ],
+)
+def test_canary_a_journal_without_this_runs_grade_is_unread_and_fails(text):
+    counts = dp.journal_counts(text)
+    assert counts["direct_grade_failure"] is None
+    assert counts["OperationalError"] is None
+    clients = [("canary_1", "5C")]
+    graded = {"canary_1": {"outcome": "graded", "task_id": "t1"}}
+    assert dp.canary_verdict(clients, graded, counts, "0", "0")[0] == "FAIL"
+
+
+def test_canary_a_journal_with_the_grade_and_no_failures_passes():
+    text = '{"event": "direct_grade", "service": "x", "state": "GRADED"}\n'
+    counts = dp.journal_counts(text)
+    assert counts == {
+        "direct_grade_failure": 0,
+        "OperationalError": 0,
+        "direct_grade": 1,
+    }
+    clients = [("canary_1", "5C")]
+    graded = {"canary_1": {"outcome": "graded", "task_id": "t1"}}
+    assert dp.canary_verdict(clients, graded, counts, "0", "0")[0] == "PASS"

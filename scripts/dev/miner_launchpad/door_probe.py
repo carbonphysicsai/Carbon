@@ -41,8 +41,10 @@ Three modes, one evidence format:
   or another receiver hotkey than ``--receiver-hotkey``, a ``--unit`` whose ExecStart does not run the spare's
   ``receiver.json`` (or runs the live one), a wall over 60 minutes, and a
   recipe whose digest the spare's public king pages name. PASS adds: the
-  spare unit's journal since the start has 0 ``direct_grade_failure`` and 0
-  ``OperationalError`` lines and its NRestarts is unchanged. Standard output
+  spare unit's journal since the start carries at least one of the receiver's
+  ``direct_grade`` lines (else the read counts as unread: an empty journal is
+  never zero failures) and has 0 ``direct_grade_failure`` and 0
+  ``OperationalError`` lines, and its NRestarts is unchanged. Standard output
   carries counts and statuses only.
 
 Signed modes import Carbon and sign through the hotkey's external signer
@@ -1025,12 +1027,33 @@ def journal_since(unit, since):
     ).stdout
 
 
+def _grade_lines(lines):
+    """The receiver's own `direct_grade` lines (`direct_intake._grade_loop`:
+    one JSON line per graded task, event == "direct_grade")."""
+    n = 0
+    for line in lines:
+        try:
+            record = json.loads(line)
+        except ValueError:
+            continue
+        if type(record) is dict and record.get("event") == "direct_grade":
+            n += 1
+    return n
+
+
 def journal_counts(text):
+    """Failure counts over the run's window, or every count None (unread, a
+    FAIL) when the window holds no `direct_grade` line of the receiver: an
+    empty read (a user journal not persisted, 'No journal files were found' at
+    rc 0, a wrong unit) never passes as zero failures (Validator-2B, 66f5fa36)."""
     lines = text.splitlines()
+    grades = _grade_lines(lines)
+    if grades == 0:
+        return {word: None for word in CANARY_JOURNAL_FAILURES} | {"direct_grade": 0}
     return {
         word: sum(1 for line in lines if word in line)
         for word in CANARY_JOURNAL_FAILURES
-    }
+    } | {"direct_grade": grades}
 
 
 def canary_target(
@@ -1224,7 +1247,9 @@ def cmd_fresh(args):
         try:
             journal = journal_counts(journal_since(args.unit, started))
         except (OSError, subprocess.SubprocessError):
-            journal = {w: None for w in CANARY_JOURNAL_FAILURES}
+            journal = {w: None for w in CANARY_JOURNAL_FAILURES} | {
+                "direct_grade": None
+            }
         try:
             nrestarts_after = systemctl_show(args.unit, "NRestarts")
         except (OSError, subprocess.SubprocessError):
