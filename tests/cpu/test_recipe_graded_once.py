@@ -65,7 +65,7 @@ class Door:
     """One receiver: a real attempt ledger, providers holding each task's recipe, and a grade that reserves + counts."""
 
     def __init__(self, tmp_path):
-        (tmp_path / "ledger").mkdir(mode=0o700)
+        (tmp_path / "ledger").mkdir(mode=0o700, exist_ok=True)
         self.ledger = AttemptLedger(tmp_path / "ledger" / "attempts.sqlite3")
         self.owners, self.requests = {}, {}
         self.snapshot = SimpleNamespace(manifest_digest=EXAM)
@@ -502,3 +502,65 @@ def test_a_ledger_that_cannot_begin_raises_its_own_error_not_a_rollback_error(
             door.ledger._db().__enter__()
     finally:
         held.__exit__(None, None, None)
+
+
+#: The exam-slot tables exactly as 2650bc09 (the release before 4affa5b9) created them: no ``group_id`` column, no
+#: recipe-copy tables. A door's ledger is carried across a release, never rebuilt.
+_EXAM_DDL_2650BC09 = (
+    (
+        "CREATE TABLE exam_graded(id INTEGER PRIMARY KEY AUTOINCREMENT, hotkey TEXT NOT NULL, "
+        "challenge_id TEXT NOT NULL, challenge_version TEXT NOT NULL, exam_key TEXT NOT NULL, "
+        "kind TEXT NOT NULL DEFAULT 'GRADED' CHECK(kind IN ('GRADED','REGRADE')), epoch INTEGER NOT NULL, "
+        "submission_id TEXT NOT NULL, state TEXT NOT NULL CHECK(state IN ('RESERVED','COUNTED','RELEASED')), "
+        "status TEXT, reserved_ns INTEGER NOT NULL, settled_ns INTEGER, cpu_seconds REAL, lane_seconds REAL, "
+        "UNIQUE(challenge_id, challenge_version, exam_key, submission_id))"
+    ),
+    "CREATE INDEX exam_graded_miner ON exam_graded(hotkey, challenge_id, challenge_version, exam_key)",
+    "CREATE INDEX exam_graded_epoch ON exam_graded(epoch, challenge_id)",
+    (
+        "CREATE TABLE exam_requeues(submission_id TEXT PRIMARY KEY, attempt INTEGER NOT NULL, "
+        "queued_ns INTEGER NOT NULL, reserved_ns INTEGER)"
+    ),
+    (
+        "CREATE TABLE exam_keys(challenge_id TEXT NOT NULL, challenge_version TEXT NOT NULL, "
+        "exam_key TEXT NOT NULL, first_block INTEGER NOT NULL, "
+        "PRIMARY KEY(challenge_id, challenge_version, exam_key))"
+    ),
+)
+
+
+def test_a_ledger_carried_from_2650bc09_grades_new_submissions_after_the_release(
+    tmp_path,
+):
+    # The RB door's case: a ledger written by 2650bc09 (an upload admitted before the switch), then the new grader's
+    # first start, then uploads admitted after it, with an owner() that reads that ledger.
+    (tmp_path / "ledger").mkdir(mode=0o700)
+    carried = AttemptLedger(tmp_path / "ledger" / "attempts.sqlite3")
+    with carried._db() as db:
+        for statement in _EXAM_DDL_2650BC09:
+            db.execute(statement)
+    carried.record(
+        SimpleNamespace(
+            hotkey=HOTKEYS[0],
+            receipt={"sequence": 1, "digest": "d", "block": 1400},
+            contract_digest=CONTRACT,
+        ),
+        kind="OUTCOME",
+        submission_id=T[0],
+    )
+    door = Door(
+        tmp_path
+    )  # the grader's first start on the new code: the copy rule activates after T[0]
+    door.owners[T[0]], door.requests[T[0]] = HOTKEYS[0], SimpleNamespace(
+        recipe=_recipe()
+    )
+    door.adapter.owner = _ledger_reading_owner(door)
+    door.submit(
+        T[1], HOTKEYS[1], _recipe()
+    )  # same recipe as the pre-release T[0]: never matched to it
+    door.submit(T[2], HOTKEYS[2], _recipe())  # a copy of T[1]
+    door.ready |= {T[0], T[1], T[2]}
+    assert door.grader.run_once() == (T[0], "GRADED")
+    assert door.grader.run_once() == (T[1], "GRADED")
+    assert door.grader.run_once() == (T[2], "DUPLICATE")
+    assert door.graded == [T[0], T[1]]
