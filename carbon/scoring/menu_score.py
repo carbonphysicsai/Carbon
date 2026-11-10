@@ -188,6 +188,9 @@ def menu_record(document, problem):
     _require(1 + sum(quotas.values()) >= TOP, "menu_smaller_than_top_five")
     arms = document["arms"]
     _require(type(arms) is dict, "menu_arms_malformed")
+    # at least one classical arm: an empty set drops every fit out of the epoch zero Z (Carbon Validator-B 10 Nov,
+    # D_ZERO_MENU_2PRIME_RULING_20261110 condition (a))
+    _require(arms, "menu_arms_empty")
     for arm, preds in arms.items():
         _require(
             type(arm) is str
