@@ -949,6 +949,9 @@ def serve_loopback(
     if grader is not None:
         # A receiver that grades its own submissions (auto_grade): one grade at a
         # time, never while a reconstruction runs.
+        if getattr(grader, "others_waiting", None) is None:
+            # slow-tail F2: the king's upkeep waits while another door waits for the host lock
+            grader.others_waiting = getattr(work, "_others_waiting", None)
         threads.append(
             threading.Thread(target=_grade_loop, args=(grader, stop, work), daemon=True)
         )
