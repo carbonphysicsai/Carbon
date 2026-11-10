@@ -13,9 +13,8 @@ version's `pool_constants.json` entry: until every owner value there is set, it 
 
 from __future__ import annotations
 
-import sys
-
 import importlib
+import sys
 
 #: The sealed module this version extends. It is imported LAZILY (`_enc`), never at this module's import: the overlay
 #: arms its dispatch on that module's import, so importing it here would call `dispatch` on a half-built module.
@@ -115,12 +114,43 @@ def _writer(root, bank, *, version=VERSION, **platform):
     )
 
 
+#: The version whose public practice grid 1.8 practises on (its predecessor; the cells are TRAIN-independent).
+_PRACTICE_FROM = "1.7"
+
+
+def _dev_bank(version=VERSION):
+    """Cooling 1.8's development bank: its predecessor's public practice grid with probes, unchanged."""
+    from carbon.scoring import practice_grid
+
+    if version != VERSION:
+        raise ValueError("cooling18 dev bank is for 1.8 only")
+    return practice_grid.practice_bank("cooling", _PRACTICE_FROM)
+
+
+def _dev_adapter(version=VERSION):
+    """Cooling 1.8's development adapter: this module (Cooling's measurement against 1.8's own TRAIN) under the 1.8
+    entry's development evaluation."""
+    from carbon.challenge_kit import version_registry
+    from carbon.scoring import physical_dual_pack as physical
+
+    if version != VERSION:
+        raise ValueError("cooling18 dev adapter is for 1.8 only")
+    evaluation, case_id = version_registry.entry(
+        CHALLENGE, version
+    ).development_evaluation
+    return physical.Variant(_SELF, version, evaluation, case_id)
+
+
 def dispatch(config):
     """The overlay dispatch: registers Cooling 1.8 in `cooling_encoded_dual_pack`'s tables without editing that file.
     ``config`` must be empty (1.8 carries no public region box here; hidden bounds never enter the overlay).
     """
     if config:
         raise ValueError("Cooling 1.8's dispatch takes no config")
+    from carbon.scoring import dev_grid
+
+    # 1.8's practice grid: 1.7's public practice cells, graded by THIS module (so against 1.8's TRAIN)
+    dev_grid.register(CHALLENGE, VERSION, bank=_dev_bank, adapter=_dev_adapter)
     return {
         "challenge": CHALLENGE,
         "version": VERSION,

@@ -1043,6 +1043,15 @@ _COOLING_POOL_17 = {
     },
 }
 
+#: Cooling 1.8: 1.7's published block under its own sealed evaluation (its own frozen TRAIN; the headroom physics and
+#: menu D blocks are published from its pool constants once registered, slice 3). Reserved until then.
+_COOLING_POOL_18 = {
+    **_COOLING_POOL_17,
+    **_pool_block(_COOLING, "chip-cold-plate 1.8", "cooling-pool-sealed-v4"),
+    "physics_laws": _COOLING_POOL_17["physics_laws"],
+    "score": _COOLING_POOL_17["score"],
+}
+
 #: Versions graded by the pool grader (their `_BY_VERSION` entry must carry a
 #: `pool_score(...)` score); the block of every other version is unchanged.
 _POOL_VERSIONS = frozenset(
@@ -1055,6 +1064,7 @@ _POOL_VERSIONS = frozenset(
         ("chip-cold-plate", "1.5"),
         ("chip-cold-plate", "1.6"),
         ("chip-cold-plate", "1.7"),
+        ("chip-cold-plate", "1.8"),
     }
 )
 
@@ -1068,6 +1078,7 @@ _BY_VERSION = {
     ("chip-cold-plate", "1.5"): _COOLING_POOL,
     ("chip-cold-plate", "1.6"): _COOLING_POOL_16,
     ("chip-cold-plate", "1.7"): _COOLING_POOL_17,
+    ("chip-cold-plate", "1.8"): _COOLING_POOL_18,
     ("f02", "2.4"): _F02,
     ("electric-motor-magnetics", "1.4"): _MOTOR,
     ("chip-cold-plate", "1.4"): _COOLING,

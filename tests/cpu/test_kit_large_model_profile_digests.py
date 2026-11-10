@@ -144,7 +144,15 @@ def test_new_registrations_publish_and_enforce_their_current_profile(key, monkey
     assert registry.VERSIONS[key].predecessor == before
     material = physical_material.bundle_material(*key)
     predecessor = physical_material.bundle_material(key[0], before)
-    assert material["train"] == predecessor["train"]
+    if registry.entry(*key).train == registry.entry(key[0], before).train:
+        assert material["train"] == predecessor["train"]
+    else:
+        # a version with its OWN frozen TRAIN (Motor / Cooling 1.8) serves exactly that pinned artifact
+        from carbon.challenge_kit import physical_public_train
+
+        assert (
+            material["train"] == physical_public_train.load_public_train(*key)["train"]
+        )
     assert material["allowlist_bytes"] == predecessor["allowlist_bytes"]
     limits = material["construction_limits_document"]
     assert limits["reconstruction_resource_policy"] == (

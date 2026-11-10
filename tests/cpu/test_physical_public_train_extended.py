@@ -116,6 +116,8 @@ def test_every_registered_motor_and_cooling_version_loads_the_same_train_as_befo
         native = ppt.load_public_train(challenge)["train"]
         for version in version_registry.versions(challenge):
             entry = version_registry.entry(challenge, version)
+            if entry.train in ppt.EXTENDED or entry.train in ppt.FRESH_LAMBDA:
+                continue  # a 1.8 version serves its OWN frozen TRAIN (tested below)
             got = ppt.load_public_train(challenge, entry.version)["train"]
             if entry.train == version_registry.COOLING_TRAIN_ENCODED:
                 assert got == ppt._load_encoded(challenge)["train"]
@@ -123,11 +125,25 @@ def test_every_registered_motor_and_cooling_version_loads_the_same_train_as_befo
                 assert got == native
 
 
-def test_the_production_extended_trains_are_not_frozen_and_refuse():
+def test_the_production_extended_trains_load_when_frozen_and_refuse_until_then():
     for name, spec in ppt.EXTENDED.items():
-        assert spec["train_sha256"] is None and spec["rows"] is None
-        with pytest.raises(ValueError, match="not frozen yet"):
-            ppt._load_extended(name, spec["challenge"])
+        if spec["train_sha256"] is None:
+            assert spec["rows"] is None
+            with pytest.raises(ValueError, match="not frozen yet"):
+                ppt._load_extended(name, spec["challenge"])
+            continue
+        got = ppt._load_extended(name, spec["challenge"])
+        assert got["inputs"].shape[0] == len(got["case_ids"]) == spec["rows"]
+
+
+def test_cooling_1_8_serves_its_frozen_458_row_train():
+    """The Carbon Validator-B receipted freeze (9 Nov, R2 canonical pins): TRAIN 400 byte-equal, then 58 added rows."""
+    native = ppt.load_public_train(COOLING)
+    got = ppt.load_public_train(COOLING, "1.8")
+    assert got["inputs"].shape == (458, 9) and got["targets"].shape == (458, 32)
+    assert np.array_equal(got["inputs"][:400], native["inputs"])
+    assert got["case_ids"] == tuple(f"train-{i:04d}" for i in range(458))
+    assert got["provenance"]["encoding"] == ppt._cooling_encoding()
 
 
 def test_a_registered_version_naming_an_unknown_train_refuses(monkeypatch):

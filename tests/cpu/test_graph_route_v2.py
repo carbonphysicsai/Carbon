@@ -76,6 +76,15 @@ for _key in sorted(OVERLAY):
     _sealed = version_registry.entry(*_key).sealed_evaluation or ""
     if "-pool-sealed-" in _sealed:
         POOL[_key] = _sealed
+#: The overlay versions that serve their OWN frozen TRAIN (Motor 1.8 / Cooling 1.8: the predecessor's rows plus added
+#: rows, `physical_public_train.EXTENDED` / `FRESH_LAMBDA`), not their predecessor's: their material is checked against
+#: that frozen TRAIN and their spec, never against the predecessor's bytes.
+OWN_TRAIN = frozenset(
+    key
+    for key in OVERLAY
+    if version_registry.entry(*key).train
+    != version_registry.entry(key[0], version_registry.entry(*key).predecessor).train
+)
 
 #: Every existing version's construction limits digest, as served at
 #: composite 40 (5b1f2928f), before graph route v2.
@@ -220,7 +229,7 @@ def test_v1_worker_programs_and_staged_modules_keep_their_bytes():
     assert not any(name.endswith("_v2") for name in staged)
 
 
-@pytest.mark.parametrize("key", NEW)
+@pytest.mark.parametrize("key", [key for key in NEW if key not in OWN_TRAIN])
 def test_a_new_version_is_its_predecessor_s_material(key):
     """Validator (a)(2): the new version's TRAIN and interface equal its
     predecessor's, and so do its bank and its evaluation versions."""
@@ -297,6 +306,33 @@ def test_a_new_version_is_its_predecessor_s_material(key):
     assert limits["challenge"] == {"id": cid, "version": version}
 
 
+@pytest.mark.parametrize("key", sorted(OWN_TRAIN))
+def test_an_own_train_version_serves_its_frozen_train_and_its_spec(key):
+    """A version with its own TRAIN: the served material's TRAIN is the frozen, pinned artifact its graph spec names
+    (bytes, rows and interface widths), and its physics, adapter and sealed evaluation are its own.
+    """
+    from carbon.challenge_kit import physical_public_train as ppt
+
+    cid, version = key
+    entry = version_registry.entry(cid, version)
+    spec = adapter.SPECS[key]
+    material = physical_material.bundle_material(cid, version)
+    assert spec.train_use == entry.train
+    assert material["construction_kit"]["train_digest"] == "sha256:" + spec.train_sha256
+    loaded = ppt.load_public_train(cid, version)
+    assert loaded["inputs"].shape == (spec.rows, spec.inputs)
+    assert loaded["targets"].shape == (spec.rows, spec.outputs)
+    assert spec.predecessor == entry.predecessor
+    assert POOL[key] == entry.sealed_evaluation
+    assert physical_adapters_adapter(cid, version) is not None
+
+
+def physical_adapters_adapter(cid, version):
+    from carbon.scoring import physical_adapters
+
+    return physical_adapters.adapter(cid, version)
+
+
 def test_the_registry_declares_each_new_version_in_full():
     """Each graph route v2 version is written out, never read through its
     predecessor: every field but its identity, pack version, adapter, catalog
@@ -353,6 +389,9 @@ def test_the_registry_declares_each_new_version_in_full():
         if (cid, version) in POOL:
             # a pool version grades under its own sealed evaluation and publishes its own facts
             own_here = own_here | {"sealed_evaluation", "facts"}
+        if (cid, version) in OWN_TRAIN:
+            # its own frozen TRAIN (tested against its spec above)
+            own_here = own_here | {"train"}
         for field in new.__dataclass_fields__:
             if field not in own_here:
                 assert getattr(new, field) == getattr(old, field), (cid, field)
@@ -412,7 +451,7 @@ def _scorer_tables():
     # under its own development evaluation version (`scoring.dev_grid`).
     from carbon.scoring import dev_grid
 
-    for key in dev_grid.GRID_KINDS:
+    for key in (*dev_grid.GRID_KINDS, *dev_grid._REGISTERED):
         variant = dev_grid.adapter(*key)
         development[key] = (variant.EVALUATION_VERSION, variant.CASE_ID)
     # Scoring v2: F08, F02 and Motor are graded by their sealed grid graders.
@@ -495,7 +534,9 @@ def test_versions_naming_the_same_train_serve_the_same_bytes():
         digest = physical_material.construction_kit(cid, version)["train_digest"]
         seen.setdefault(entry.train, set()).add(digest)
     assert all(len(digests) == 1 for digests in seen.values()), seen
-    assert len(seen) == 6
+    assert len(seen) == 6 + len(
+        {version_registry.entry(*key).train for key in OWN_TRAIN}
+    )
 
 
 def test_f08_train_is_an_explicit_table_that_refuses_unknown_versions():
@@ -551,9 +592,19 @@ def test_graph_route_v2_versions_offer_their_predecessor_s_entries_and_their_own
         ids = [e["catalog_id"] for e in listing.entries(cid, version)]
         assert (len(ids), sum(i.startswith("v2.") for i in ids)) == (total, v2)
     for cid, version in OVERLAY & set(_offered()):
+        entry = version_registry.entry(cid, version)
+        if (cid, version) in OWN_TRAIN:
+            # its own TRAIN: no receipt binds that TRAIN's digest, so it carries NO predecessor entry (it lists none)
+            # until entries are measured on its frozen TRAIN
+            assert entry.catalog_entries_from == ()
+            assert not [
+                e
+                for e in listing.entries(cid, version)
+                if not e["catalog_id"].startswith("v2.")
+            ], (cid, version)
+            continue
         # an overlay pool version carries its predecessor's catalog (the identity-only diff): its counts equal the
         # predecessor's, a property rather than a pinned pair
-        entry = version_registry.entry(cid, version)
         own = [e["catalog_id"] for e in listing.entries(cid, version)]
         before = [e["catalog_id"] for e in listing.entries(cid, entry.predecessor)]
         assert len(own) == len(before) and sum(i.startswith("v2.") for i in own) == sum(

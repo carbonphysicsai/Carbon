@@ -174,6 +174,17 @@ def test_a_new_version_moves_only_by_its_wall_fields(key, monkeypatch):
         },
     }
     key_600 = key
+    entry = version_registry.entry(*key)
+    if (
+        key in OVERLAY
+        and entry.train != version_registry.entry(key[0], entry.predecessor).train
+    ):
+        # its OWN frozen TRAIN (Motor / Cooling 1.8): not "its predecessor's document plus the wall"; the walls are
+        # checked above, and no catalog receipt binds its TRAIN, so it serves no carried entry
+        from carbon.backbone_catalog import served
+
+        assert served.document(*key)["entries"] == {}
+        return
     if key == ("chip-cold-plate", "1.6") or key in OVERLAY:
         # A scoring successor changes no construction setting. Restore its identity and lineage, then require the
         # existing predecessor document's pin: for an overlay version, the nearest predecessor that is pinned here
