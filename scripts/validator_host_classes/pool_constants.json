@@ -209,6 +209,164 @@
         "population": "HUMAN_INPUT",
         "sigma0": "HUMAN_INPUT"
       }
+    },
+    "chip-cold-plate 1.8": {
+      "a_multiplier": 3.0,
+      "a_rule": {
+        "kind": "mean"
+      },
+      "agen_scales": "HUMAN_INPUT",
+      "c_rule": {
+        "kind": "min"
+      },
+      "honesty": {
+        "reduction": "max",
+        "scale": "HUMAN_INPUT"
+      },
+      "optimizer": {
+        "budget": 3000,
+        "population": "HUMAN_INPUT",
+        "sigma0": "HUMAN_INPUT",
+        "d_zero": {
+          "kind": "best_of",
+          "components": [
+            {
+              "kind": "fit_pick"
+            },
+            {
+              "kind": "train_best"
+            },
+            {
+              "kind": "engineer_shortcut",
+              "budget": "HUMAN_INPUT"
+            }
+          ],
+          "dv_proof_sha256": "HUMAN_INPUT"
+        },
+        "d_aggregate": "balanced_region_mean",
+        "coverage_plan_sha256": "HUMAN_INPUT",
+        "coverage_plan_sums_sha256": "HUMAN_INPUT",
+        "variant_rule": {
+          "kind": "limit_shift",
+          "limits": [
+            "HUMAN_INPUT"
+          ],
+          "shifts": [
+            "HUMAN_INPUT"
+          ],
+          "min_valid": "HUMAN_INPUT",
+          "aggregate": "mean"
+        }
+      },
+      "physics": {
+        "scoring": "headroom",
+        "cells_sha256": "HUMAN_INPUT",
+        "gate_statistic": "p90",
+        "gate_threshold": "HUMAN_INPUT",
+        "gate_cases": "agen",
+        "enters": "a",
+        "ad_split": 0.5,
+        "total_rule": "half_a_half_d",
+        "skill_form": "log",
+        "h_min": 4,
+        "h_lo": 2.5,
+        "n_min": 12,
+        "in_range_cases_sha256": "HUMAN_INPUT"
+      },
+      "menu": {
+        "records_sha256": "HUMAN_INPUT",
+        "epoch": "HUMAN_INPUT",
+        "aggregate": "mean",
+        "rotation_days": "HUMAN_INPUT",
+        "rowcheck": "HUMAN_INPUT"
+      },
+      "fit_breaker": {
+        "separation_read_sha256": "HUMAN_INPUT"
+      },
+      "provisional": {
+        "record": "PENDING-OWNER-RECORD (owner words typed in mc-exam-B Tue 10 Nov 2026 (sheet rev 10 606859c4; TEAM_BOARD verbatim): A-side constants as Motor 1.6 / Cooling 1.7; the physics gate rule; model-call budget 3,000 per task. Headroom values H_min 4 / H_lo 2.5 / n_min 12 / log skill: owner N18 (6 Nov, PROVISIONAL 'to start'). total_rule half_a_half_d: the version's D decided (Motor (c) 9 Nov; Cooling 9 Nov 18:4x + 22:0x). Every HUMAN_INPUT is a measured or custody value (agen and honesty scales, optimizer shape, shas): the version refuses to grade until each is registered. Gate threshold: by the typed rule, from the frozen-TRAIN curve by Tue 12:00 (Carbon Validator-B c28b7161), rounded up to 2 significant digits)",
+        "scope": "testnet",
+        "status": "PROVISIONAL"
+      }
+    },
+    "electric-motor-magnetics 1.8": {
+      "a_multiplier": 3.0,
+      "a_rule": {
+        "kind": "mean"
+      },
+      "agen_scales": "HUMAN_INPUT",
+      "c_rule": {
+        "kind": "min"
+      },
+      "honesty": {
+        "reduction": "max",
+        "scale": "HUMAN_INPUT"
+      },
+      "optimizer": {
+        "budget": 3000,
+        "population": "HUMAN_INPUT",
+        "sigma0": "HUMAN_INPUT",
+        "d_zero": {
+          "kind": "best_of",
+          "components": [
+            {
+              "kind": "fit_pick"
+            },
+            {
+              "kind": "train_best"
+            }
+          ],
+          "dv_proof_sha256": "HUMAN_INPUT"
+        },
+        "d_aggregate": "balanced_region_mean",
+        "coverage_plan_sha256": "HUMAN_INPUT",
+        "coverage_plan_sums_sha256": "HUMAN_INPUT",
+        "variant_rule": {
+          "kind": "limit_shift",
+          "limits": [
+            "HUMAN_INPUT"
+          ],
+          "shifts": [
+            "HUMAN_INPUT"
+          ],
+          "min_valid": "HUMAN_INPUT",
+          "aggregate": "mean"
+        }
+      },
+      "physics": {
+        "scoring": "headroom",
+        "cells_sha256": "HUMAN_INPUT",
+        "gate_statistic": "p90",
+        "gate_threshold": {
+          "mean_torque_nm": 39.3,
+          "ripple_pk_pk_nm": 14.2
+        },
+        "gate_cases": "agen",
+        "enters": "a",
+        "ad_split": 0.5,
+        "total_rule": "half_a_half_d",
+        "skill_form": "log",
+        "h_min": 4,
+        "h_lo": 2.5,
+        "n_min": 12,
+        "in_range_cases_sha256": "HUMAN_INPUT"
+      },
+      "menu": {
+        "records_sha256": "HUMAN_INPUT",
+        "epoch": "HUMAN_INPUT",
+        "aggregate": "mean",
+        "rotation_days": "HUMAN_INPUT",
+        "rowcheck": "HUMAN_INPUT"
+      },
+      "fit_breaker": {
+        "separation_read_sha256": "HUMAN_INPUT"
+      },
+      "provisional": {
+        "record": "PENDING-OWNER-RECORD (owner words typed in mc-exam-B Tue 10 Nov 2026 (sheet rev 10 606859c4; TEAM_BOARD verbatim): A-side constants as Motor 1.6 / Cooling 1.7; the physics gate rule; model-call budget 3,000 per task. Headroom values H_min 4 / H_lo 2.5 / n_min 12 / log skill: owner N18 (6 Nov, PROVISIONAL 'to start'). total_rule half_a_half_d: the version's D decided (Motor (c) 9 Nov; Cooling 9 Nov 18:4x + 22:0x). Every HUMAN_INPUT is a measured or custody value (agen and honesty scales, optimizer shape, shas): the version refuses to grade until each is registered. Gate threshold: option (a), the measured classical bar of gate-read 2dbd5bb0 on gate set 7d1761c3, Carbon Validator-Motor's block 3bfd960e)",
+        "gate_threshold_label": "prior_krr not run; upper bound (re-register lower only if a later receipted classical member beats it; never raise it)",
+        "scope": "testnet",
+        "status": "PROVISIONAL"
+      }
     }
   }
 }

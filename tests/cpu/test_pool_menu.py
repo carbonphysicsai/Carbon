@@ -169,9 +169,14 @@ def test_an_absent_block_is_no_menu_and_the_block_has_no_default():
             pool_version._menu(bad)
 
 
+#: The registered menu-D versions (mc-exam-B slice 3a, 10 Nov): listed by name, never derived.
+MENU_VERSIONS = frozenset({"electric-motor-magnetics 1.8", "chip-cold-plate 1.8"})
+
+
 def test_every_registered_version_has_no_menu_block():
     document = json.loads(Path(pool_version.CONSTANTS).read_bytes())
-    assert all("menu" not in entry for entry in document["versions"].values())
+    for name, entry in document["versions"].items():
+        assert ("menu" in entry) is (name in MENU_VERSIONS), name
 
 
 # ---------------------------------------------------------------- 3. tasks against the registration

@@ -493,12 +493,24 @@ def test_the_registration_reads_every_field_with_no_default_when_present(tmp_pat
             _policies(tmp_path, _entry(**fields))
 
 
+#: The registered NEW versions in the 5 Nov fit-breaker form (mc-exam-B slice 3a, 10 Nov): listed by name, never derived.
+_FIVE_NOV_FORM = frozenset({"electric-motor-magnetics 1.8", "chip-cold-plate 1.8"})
+
+
 def test_every_registered_version_registers_no_plan_and_no_a_gen_aggregate():
     assert (
         OptimizerPolicy(budget=5, sigma0=0.3, population=None).a_gen_aggregate is None
     )
     document = json.loads(pool_version.CONSTANTS.read_bytes())
     for name, entry in document["versions"].items():
+        if name in _FIVE_NOV_FORM:
+            # a NEW version in the 5 Nov fit-breaker form (test_fit_breaker_conformance): its coverage plan is
+            # REQUIRED, its A is the physics block, and it has no A_gen aggregate
+            assert "physics" in entry, name
+            assert "a_gen_aggregate" not in entry["optimizer"], name
+            assert "coverage_plan_sha256" in entry["optimizer"], name
+            assert "coverage_plan_sums_sha256" in entry["optimizer"], name
+            continue
         for key in (
             "a_gen_aggregate",
             "coverage_plan_sha256",
