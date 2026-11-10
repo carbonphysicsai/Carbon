@@ -71,14 +71,21 @@ def _prepare(db):
             db.execute(statement)
 
 
-def recipe_digest(adapter, submission_id, db):
-    """The admitted recipe digest of ``submission_id``, cached once known; None when this receiver cannot read it."""
+def _stored(db, submission_id):
     row = db.execute(
         "SELECT recipe_digest FROM recipe_copy_digests WHERE submission_id=?",
         (submission_id,),
     ).fetchone()
-    if row is not None:
-        return row[0]
+    return None if row is None else row[0]
+
+
+def _request_digest(adapter, submission_id):
+    """The admitted recipe digest from this receiver's own provider, or None when it cannot read it.
+
+    NEVER called inside a ledger transaction: ``adapter.owner`` reads the attempt ledger itself, and two
+    ``BEGIN IMMEDIATE`` connections in one process wait on each other until 'database is locked' (the RB door on
+    4affa5b9, 9 Nov: every submission after the release stopped grading).
+    """
     from carbon.development_session.construction_recipe import ConstructionRecipe
 
     owner = adapter.owner(submission_id)
@@ -87,12 +94,27 @@ def recipe_digest(adapter, submission_id, db):
     request = adapter._provider(owner)._requests.get(submission_id)
     if request is None:
         return None
-    digest = ConstructionRecipe.from_dict(request.recipe).digest
-    db.execute(
-        "INSERT OR IGNORE INTO recipe_copy_digests VALUES(?,?)",
-        (submission_id, digest),
-    )
-    return digest
+    return ConstructionRecipe.from_dict(request.recipe).digest
+
+
+def recipe_digest(adapter, submission_id, ledger):
+    """The admitted recipe digest of ``submission_id``, cached once known (the first stored one wins); None when this
+    receiver cannot read it. Opens its own short ledger transactions, so the caller must not hold one.
+    """
+    with _db(ledger) as db:
+        _prepare(db)
+        stored = _stored(db, submission_id)
+    if stored is not None:
+        return stored
+    digest = _request_digest(adapter, submission_id)
+    if digest is None:
+        return None
+    with _db(ledger) as db:
+        db.execute(
+            "INSERT OR IGNORE INTO recipe_copy_digests VALUES(?,?)",
+            (submission_id, digest),
+        )
+        return _stored(db, submission_id)
 
 
 def _admitted(db, contract_digest):
@@ -135,9 +157,7 @@ def note_admitted(adapter, submission_id):
     """Store an admitted submission's recipe digest at once (while its provider still holds the request), so a restart,
     which empties the providers' in-memory requests, cannot make a later copy read as fresh.
     """
-    with _db(adapter.ledger) as db:
-        _prepare(db)
-        return recipe_digest(adapter, submission_id, db)
+    return recipe_digest(adapter, submission_id, adapter.ledger)
 
 
 def decide(
@@ -150,7 +170,11 @@ def decide(
     challenge_version,
     exam_key,
 ):
-    """``(GRADE | WAIT | COPY, first submission id or None)`` for ``submission_id`` about to be graded (see module)."""
+    """``(GRADE | WAIT | COPY, first submission id or None)`` for ``submission_id`` about to be graded (see module).
+
+    The order and the activation point are read in one transaction; each recipe digest is then read (and, the first
+    time, stored) outside it (`recipe_digest`), and each earlier first's slot state in its own short transaction.
+    """
     with _db(ledger) as db:
         _prepare(db)
         ordered = _admitted(db, adapter.contract_digest)
@@ -158,31 +182,32 @@ def decide(
         if own is None:
             return GRADE, None  # no admission row: nothing to order it by
         start = _activation(db, adapter.contract_digest)
-        if own <= start:
-            return GRADE, None  # admitted before the rule: never matched
-        digest = recipe_digest(adapter, submission_id, db)
-        if digest is None:
-            return GRADE, None
-        for earlier, seq in ordered:
-            if seq <= start:
-                continue  # before the rule: never a first
-            if seq >= own:
-                break
-            if recipe_digest(adapter, earlier, db) != digest:
-                continue
+    if own <= start:
+        return GRADE, None  # admitted before the rule: never matched
+    digest = recipe_digest(adapter, submission_id, ledger)
+    if digest is None:
+        return GRADE, None
+    for earlier, seq in ordered:
+        if seq <= start:
+            continue  # before the rule: never a first
+        if seq >= own:
+            break
+        if recipe_digest(adapter, earlier, ledger) != digest:
+            continue
+        with _db(ledger) as db:
             row = db.execute(
                 "SELECT state FROM exam_graded WHERE challenge_id=? AND challenge_version=? AND exam_key=? "
                 "AND submission_id=? AND kind='GRADED'",
                 (challenge_id, challenge_version, exam_key, earlier),
             ).fetchone()
-            if row is not None and row[0] == "COUNTED":
-                return COPY, earlier
-            if row is not None and row[0] == "RESERVED":
-                return WAIT, earlier
-            if row is None and marker(earlier) is None:
-                return WAIT, earlier  # still building or queued: unsettled
-            # RELEASED, or settled with no counted grade: never read the exam, not a first
-        return GRADE, None
+        if row is not None and row[0] == "COUNTED":
+            return COPY, earlier
+        if row is not None and row[0] == "RESERVED":
+            return WAIT, earlier
+        if row is None and marker(earlier) is None:
+            return WAIT, earlier  # still building or queued: unsettled
+        # RELEASED, or settled with no counted grade: never read the exam, not a first
+    return GRADE, None
 
 
 def record_copy(
