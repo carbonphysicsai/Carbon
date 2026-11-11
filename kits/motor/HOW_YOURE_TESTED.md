@@ -113,15 +113,17 @@ are not shown, and the hidden sample rotates.
   swing (peak to peak, in N.m), so it stays well defined even near zero
   torque. Cogging, at zero current, is graded on that absolute swing in N.m,
   never as a fraction of the mean.
-- **Back-EMF:** Motor 1.8 grades torque only (the training set may still
-  carry the flux linkage, unscored) and back-EMF moves to Motor 1.9.
+- **Back-EMF:** Motor 1.8 is planned to grade torque and the open-circuit
+  back-EMF shape (the waveform at zero current), if that cell passes its
+  pre-registered checks; the loaded back-EMF shape moves to Motor 1.9. The
+  training set carries the flux linkage.
 - **Reference uncertainty U:** Motor 1.8's registered values:
   **HUMAN_INPUT**. The published verify set carries mean torque 0.019 N.m
   and ripple fraction 0.15 (Motor 1.7's extended-shell U of record).
 - **Outside the training range:** hidden classes include cases outside the
   training range. The kinds Motor 1.8 tests include saturation (current
-  densities past where the iron starts to saturate) and cogging at zero
-  current. These cases count for the physics part, for the design menus and
+  densities past where the iron starts to saturate), cogging at zero current
+  and, as planned above, the open-circuit back-EMF shape. These cases count for the physics part, for the design menus and
   for the gates. Their extents are never published. Cross-saturation is not
   scored in Motor 1.8.
 - **A model has to generalise.** A fit of any one dataset, yours included,
