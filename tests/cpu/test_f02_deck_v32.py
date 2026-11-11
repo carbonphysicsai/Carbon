@@ -1,9 +1,10 @@
 """BT 3.2 deck skeleton (f02_deck_v32): the 3.1 physics + two-phase boiling on the underside, pinned as the MEASURED CURVE.
 
 Claims:
-- the box and curve pins are the receipted B1T3 box and registered r2 curve; the law and region pins ship HUMAN_INPUT and every SIGNED
-  write refuses (writing nothing) until set; a box other than the pinned one refuses; a CANDIDATE curve never writes a signed
-  deck; the probe writer takes a digest-pinned curve and labels every output TEST_ONLY;
+- the box, curve, law and region pins are the receipted B1T3 box, registered r2 curve, signed 3.1 law and the owner-signed
+  region (post-signature canonical); with any pin HUMAN_INPUT every SIGNED write refuses (writing nothing); a box or region
+  other than the pinned one refuses; a CANDIDATE curve never writes a signed deck;
+  the probe writer takes a digest-pinned curve and labels every output TEST_ONLY;
 - the 3.2 sif is the 3.0 sif with exactly three edits: the underside coefficient becomes a per-case Variable Temperature table, the
   underside gets the mask flag, and the SaveScalars solver gets one masked underside-max operator;
 - the per-case table is h_sp below the onset and sqrt(q_sp^2 + q_nb^2)/(T - T_in) from the onset to T_sat + cap, and it depends on
@@ -161,9 +162,20 @@ def _physics(sif):
 # --- pins -------------------------------------------------------------------------------------------------------------
 
 
-def test_box_curve_and_law_are_pinned_region_stays_human_input(tmp_path):
+def test_box_curve_law_and_region_are_pinned(tmp_path):
     assert v32.DECK_VERSION == "3.2" and v32.BLEND == "asymptotic_n2"
-    assert v32.pins_status() == ["V32_REGION_SHA256"]
+    assert v32.pins_status() == []
+    # the region: the owner-signed BT 3.2 region (key 0a11147f, drawn 9f5e254f), pinned at its POST-signature canonical
+    # (owner, DC-B session, Tue 10 Nov 2026 ~10:00 CST, record OWNER-BT32-REGION-SIGNED-01)
+    assert (
+        v32.V32_REGION_SHA256
+        == "55fae831e40518120f550993cf6a3e28bf92ffd80df7ab0d02372eacf39bee0f"
+    )
+    assert (
+        v32.V32_REGION_SHA256
+        != "9f5e254fcd75c19c15935f93d7237900b624c6fec6cbd35826f8bb311b039f3b"
+    )
+    assert v32.V32_REGION_RECORD == "OWNER-BT32-REGION-SIGNED-01"
     # the 3.2 law IS the signed 3.1 law, byte-identical (owner, Lead session, 8 Nov ~15:0x CST): same file pin, same decision id
     assert v32.V32_LAW_SHA256 == v31.V31_LAW_SHA256
     assert (
@@ -190,6 +202,34 @@ def test_box_curve_and_law_are_pinned_region_stays_human_input(tmp_path):
             CASE, tmp_path / "d", leakage_path=leak, curve_path=curve, box_path=box
         )
     assert not (tmp_path / "d").exists()
+    # a region that is not the signed one (any other canonical) refuses at the real pin, writing nothing
+    region, _ = _ranges(tmp_path, "region.json", v31.REGION_SCHEMA, "region_sha256")
+    with pytest.raises(v3.DeckRefused, match="v32_region_not_the_signed_one"):
+        v32.write_case_v32(
+            CASE,
+            tmp_path / "r",
+            leakage_path=leak,
+            curve_path=curve,
+            region_path=region,
+        )
+    assert not (tmp_path / "r").exists()
+
+
+def test_signed_write_refuses_while_the_region_pin_is_open(
+    tmp_path, pinned, monkeypatch
+):
+    leak, curve, _box, region = pinned
+    monkeypatch.setattr(v32, "V32_REGION_SHA256", v3.HUMAN_INPUT)
+    assert v32.pins_status() == ["V32_REGION_SHA256"]
+    with pytest.raises(v3.DeckRefused, match="v32_region_is_human_input"):
+        v32.write_case_v32(
+            CASE,
+            tmp_path / "r",
+            leakage_path=leak,
+            curve_path=curve,
+            region_path=region,
+        )
+    assert not (tmp_path / "r").exists()
 
 
 def test_signed_write_refuses_while_the_law_pin_is_open(tmp_path, pinned, monkeypatch):

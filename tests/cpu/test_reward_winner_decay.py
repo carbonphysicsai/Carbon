@@ -158,3 +158,23 @@ def test_a_policy_outside_its_authority_is_malformed_even_when_pinned(
     with pytest.raises(RewardFailure) as refused:
         wd.load_policy(directory=copy)
     assert str(refused.value) == "WEIGHT_POLICY_MALFORMED"
+
+
+def test_the_registered_mainnet_policy_is_the_owners_launch_rule():
+    """OWNER-MAINNET-WEIGHT-POLICY-V1-01: Motor + Cooling on finney 116, full
+    reset, first-incumbent baselines; registered but not the current policy."""
+    policy = wd.load_policy("mainnet-winner-v1")
+    assert (policy.network, policy.netuid, policy.authority) == (
+        "finney",
+        116,
+        wd.MAINNET_AUTHORITY,
+    )
+    assert policy.challenges == ("electric-motor-magnetics", "chip-cold-plate")
+    assert policy.share == Q12 // 2
+    assert policy.self_improvement_factor == wd.FULL_RESET
+    assert policy.baselines == (
+        ("chip-cold-plate", None),
+        ("electric-motor-magnetics", None),
+    )
+    assert (policy.cadence_blocks, policy.burn_uid) == (360, 0)
+    assert wd.load_policy().version == "testnet-winner-v1"

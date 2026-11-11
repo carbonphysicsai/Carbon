@@ -442,10 +442,10 @@ do, and what stays the same.
   address: **HUMAN_INPUT** (per Challenge). Setup writes each address into
   your profile once it is published and your profile is on mainnet.
 - **Which versions open.** Motor 1.8 and Cooling 1.8 are planned to open
-  first. Burst Thermal 3.2 opens once it passes its checks (date:
-  **HUMAN_INPUT**). Ribbed Bracket 2.0 joins later. We update this list as each
-  one opens. Each version
-  has its own *How you're tested* page.
+  first. Burst Thermal 3.2 and Ribbed Bracket 2.0 each open once it passes
+  its checks (dates: **HUMAN_INPUT**). All four are planned to score both
+  physics and design value, behind a physics gate. We update this list as each one
+  opens. Each version has its own *How you're tested* page.
 - **Mainnet starts clean.** Nothing from the test network carries over: no
   registration, crown, score, submission or frontier standing. Test network
   results are rehearsal only.
@@ -500,7 +500,7 @@ do, and what stays the same.
 
 ## Report a problem
 
-Telegram: **@RBequette** (on mainnet: **HUMAN_INPUT**, the support channel). Please send:
+Telegram: **@RBequette**, on the test network and on mainnet. Please send:
 
 - the app version (run `git -C ~/carbon rev-parse --short HEAD` and send what it prints),
 - the Challenge you were on,

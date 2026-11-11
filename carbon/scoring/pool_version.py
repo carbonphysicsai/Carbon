@@ -276,7 +276,8 @@ def _menu(value):
     version: D is the per-target pick, unchanged). Present, it has no default:
     ``{"records_sha256": {task_id: sha256}, "epoch": id, "aggregate": "mean", "rotation_days": n,
     "rowcheck": {"rel_tol", "abs_tol", "subset"}}`` plus an optional ``"min_tasks_exception"`` (an owner decision id,
-    for fewer than `pool_menu.MIN_TASKS` tasks); a null or HUMAN_INPUT refuses.
+    for fewer than `pool_menu.MIN_TASKS` tasks) and an optional ``"tasks_per_epoch"`` (the owner's k of the tasks
+    scored per epoch, `pool_menu.draw_tasks`; absent = every task); a null or HUMAN_INPUT refuses.
     """
     from carbon.scoring import pool_menu
 
@@ -285,8 +286,10 @@ def _menu(value):
     value = _picked(value)
     required = {"records_sha256", "epoch", "aggregate", "rotation_days", "rowcheck"}
     if type(value) is not dict or not (
-        required <= set(value) <= required | {"min_tasks_exception"}
+        required <= set(value) <= required | {"min_tasks_exception", "tasks_per_epoch"}
     ):
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    if "tasks_per_epoch" in value and _picked(value["tasks_per_epoch"]) is None:
         raise PoolConstantsNotRegistered("pool_constants_malformed")
     rowcheck = _picked(value["rowcheck"])
     if type(rowcheck) is not dict or set(rowcheck) != {"rel_tol", "abs_tol", "subset"}:
@@ -308,6 +311,9 @@ def _menu(value):
             _picked(value["min_tasks_exception"])
             if "min_tasks_exception" in value
             else None
+        ),
+        tasks_per_epoch=(
+            _picked(value["tasks_per_epoch"]) if "tasks_per_epoch" in value else None
         ),
     )
     try:

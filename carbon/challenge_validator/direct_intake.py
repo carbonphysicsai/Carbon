@@ -949,6 +949,9 @@ def serve_loopback(
     if grader is not None:
         # A receiver that grades its own submissions (auto_grade): one grade at a
         # time, never while a reconstruction runs.
+        if getattr(grader, "others_waiting", None) is None:
+            # slow-tail F2: the king's upkeep waits while another door waits for the host lock
+            grader.others_waiting = getattr(work, "_others_waiting", None)
         threads.append(
             threading.Thread(target=_grade_loop, args=(grader, stop, work), daemon=True)
         )
@@ -1108,6 +1111,11 @@ class _WorkLock:
         #: wait; None while not queued. A queued round takes the host lock only when no live other door is ahead of it.
         self._wait_since = None
         self._grade_round = False
+        #: The place each kind of round last HELD the host lock with (``{kind: place}``). A round whose place has not
+        #: moved since (its door's oldest unmarked submission is still the same one) counts as arriving now: a place
+        #: frozen on an item that never gets a marker (a cancelled or orphaned task) must never keep the head of the
+        #: host's waiting list, or every younger door starves (RB + Motor vs BT + Cooling, 10 Nov 06:15).
+        self._served = {}
         if self._state is not None:
             for name in (INFLIGHT_NAME, WAIT_NAME):
                 left = self._state / name
@@ -1268,6 +1276,8 @@ class _Taking:
 
     def __init__(self, work, kind, has_work, since=None):
         self.work, self.kind, self.has_work, self.since = work, kind, has_work, since
+        #: The place this round queued by (None: none, or a frozen one that already had its turn).
+        self.place = None
 
     def _place(self):
         """The round's place from ``since`` (a non-negative int of ns), or None: a failing or odd reader never
@@ -1312,6 +1322,11 @@ class _Taking:
                 raise WorkDeclined("idle")
             # slow-tail F1a: a round that knows its door's oldest ungraded submission queues by it (advance included)
             place = self._place() if work._dir is not None else None
+            if place is not None and work._served.get(self.kind) == place:
+                # this door already held the host with this same place and it did not move: no head of the queue
+                # again until it does (it queues as a round without a place: round-robin, as before F1a)
+                place = None
+            self.place = place
             if place is not None:
                 work._grade_round = True
                 work._wait_since = place
@@ -1362,6 +1377,8 @@ class _Taking:
 
     def __exit__(self, *exc):
         work = self.work
+        if self.place is not None:
+            work._served[self.kind] = self.place  # this round held the host with it
         try:
             if work._state is not None:
                 (work._state / INFLIGHT_NAME).unlink(missing_ok=True)

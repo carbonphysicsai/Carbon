@@ -233,3 +233,63 @@ def test_the_loops_pass_the_graders_place(monkeypatch):
         ("grade", grader.oldest_pending_ns),
         ("advance", grader.oldest_pending_ns),
     ]
+
+
+# --- a frozen place never keeps the head (10 Nov 06:15: RB + Motor starved BT + Cooling) -------------------------------
+
+
+def _held(work, kind, since, has=None):
+    """One round that takes the host lock at once (no other waiter) and releases it."""
+    entered, release, thread = _try(work, kind, has_work=has, since=since)
+    assert entered.wait(2)
+    release.set()
+    thread.join(2)
+
+
+@pytest.mark.parametrize("kind", ["grade", "advance"])
+def test_a_place_that_did_not_move_after_its_round_no_longer_goes_first(host, kind):
+    """The door's oldest unmarked item never gets a marker (cancelled, orphaned): after one round held with that
+    place, its next rounds of the same kind do not take the head again, so a younger door waiting gets its turn.
+    """
+    stop = threading.Event()
+    work = _WorkLock(host, poll_s=POLL, stop=stop)
+    has = (lambda: True) if kind == "grade" else None
+    _held(work, kind, lambda: 1000, has)  # its turn at the head, with the frozen place
+    _other_door_waits_since(host, 2000)  # a younger door now waits
+    entered, release, thread = _try(work, kind, has_work=has, since=lambda: 1000)
+    time.sleep(8 * POLL)
+    if kind == "grade":
+        assert (
+            not entered.is_set()
+        )  # queued as arriving now: behind the younger door's 2000
+        (
+            host / direct_intake.WAITING_DIR / "4001-11"
+        ).unlink()  # the younger door got its turn
+        assert entered.wait(2)
+    else:
+        # an advance round without a place never queues (as before F1a): it takes a free lock, and the post-round
+        # stand-back (`_release_host`) is what lets the waiting door in
+        assert entered.wait(2)
+    release.set()
+    thread.join(2)
+
+
+def test_a_place_that_moved_keeps_its_age_place(host):
+    """The oldest item settled: the door's next oldest is a NEW place, so it queues by age again (F1a kept)."""
+    work = _WorkLock(host, poll_s=POLL)
+    has = lambda: True
+    _held(work, "grade", lambda: 1000, has)
+    _other_door_waits_since(host, 2000)
+    _held(
+        work, "grade", lambda: 1500, has
+    )  # 1500 < 2000: still ahead of the younger door
+
+
+def test_a_frozen_place_is_per_kind(host):
+    """A rebuild round held with the place does not take the grade round's turn (each step gets one)."""
+    work = _WorkLock(host, poll_s=POLL)
+    _held(work, "advance", lambda: 1000)
+    _other_door_waits_since(host, 2000)
+    _held(
+        work, "grade", lambda: 1000, lambda: True
+    )  # the grade's first turn with it: ahead of 2000

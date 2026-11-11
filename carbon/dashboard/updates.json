@@ -13,7 +13,7 @@
       "The training set is planned to reach into the start of magnetic saturation, so a model can learn where the torque stops growing in step with the current.",
       "Much of the hidden exam lies beyond the training data. The physics part of the score is measured there.",
       "Torque ripple is measured as the size of the torque swing (peak to peak), so it stays well defined even near zero torque.",
-      "The flux linkage of each phase is planned to be published in the training set, and the shape of the back-EMF waveforms to be graded beyond the training range like torque. If that grading is not ready or does not pass Carbon's checks when the version opens, Motor 1.8 grades torque only and back-EMF moves to Motor 1.9.",
+      "Motor 1.8 is planned to grade torque and the open-circuit back-EMF shape (the waveform at zero current), if that cell passes its pre-registered checks; the loaded back-EMF shape moves to Motor 1.9. The training set carries the flux linkage.",
       "Why it's valuable: motor designers check torque and torque ripple with slow magnetic-field solves, one design at a time. A fast model that stays right as the iron saturates lets them search far more designs before building anything.",
       "How it reaches for the state of the art: fast motor models are usually trusted only inside the range they were trained on. This version grades models on conditions beyond that range and on the design they help choose, which is where current tools are weakest."
      ]
@@ -28,9 +28,9 @@
      "changes": [
       "The version planned for the mainnet launch.",
       "The first Cooling version with exam cases outside the training range. How far they reach is not published.",
-      "The physics part of the score is planned to cover narrow, intense hot spots, very intense hot spots, and fins that stop helping as they get taller. Developing flow (flow still settling near the inlet) is planned for Cooling 1.9.",
+      "The physics part of the score is planned to cover narrow, intense hot spots and very intense hot spots. Developing flow (flow still settling near the inlet) and fins that stop helping as they get taller are planned for a later Cooling version; its date is published when it is set.",
       "A data kit lets you make your own training data with Carbon's solver and check it against Carbon's reference cases before you train on it.",
-      "After launch, Cooling 1.9 is planned to test more kinds of generalization.",
+      "After launch, a later Cooling version is planned to test more kinds of generalization.",
       "Why it's valuable: cold plates for high-power chips are sized with slow conjugate heat-transfer solves, and the hottest spot on the die sets the limit. A fast model of that peak lets engineers try many channel and fin layouts in minutes.",
       "How it reaches for the state of the art: quick cooling estimates handle average temperatures well but miss narrow hot spots and flow that is still developing. This version grades the peak temperature where hot spots matter, including outside the training range."
      ]
@@ -84,13 +84,15 @@
   "Data kits replace the shared practice banks: you generate your own data with Carbon's solver, and the training set is published as soon as it is frozen and checked, before the version opens."
  ],
  "fixes": [
+  "Grading on Burst Thermal and Cooling on testnet was paused by a fault in a release: the validator machine kept giving its grading turns to the other Challenges. It is fixed: all four Challenges grade again, and the uploads that waited have been graded.",
   "Check for result (check_result) could show your own graded Cooling catalog submission as not graded yet, or as another submission's result. It now finds a grade made on the validator's official GPU build. Update your install to get the fix.",
   "Crowns stopped changing hands for several days after an exam key change, because the sitting kings were never regraded under the new key. Each king has now been regraded and every affected submission compared again under the normal rule, and eight crowns changed hands as a result.",
   "A graded model that ran out of a limit on the validator showed as not graded yet. It now shows as a candidate failure, naming the step that failed and the limit it hit. Update your install to see it."
  ],
  "known_issues": [
+  "Testnet Motor and Cooling are planned to move to version 1.8 at their next update; the exact time is posted when the switch starts. Miner files are not carried across the 1.8 version change: please re-upload (the app uploads your graph files from your project when you submit). A submission still queued on the old version is closed, not graded, nothing charged (code version_closed).",
   "An older install shows a submission waiting for the validator as Refused: evaluation queued. Nothing was refused: it is queued, so don't submit again. Update your install and it reads Submitted, waiting for the validator's verdict. Where a door publishes it, the dashboard shows that Challenge's queue: how many submissions are waiting and the typical wait, not your own place in line.",
-  "Some re-queued submissions, free re-runs after a failure on our side, have waited much longer than they should. They are free and will be graded; you don't need to submit again.",
+  "A small number of re-queued uploads on Ribbed Bracket and Motor, free re-runs after a failure on our side, cannot be graded as stored. That is our fault, not yours. If you have one, submit the same model again: it is graded normally and counts as a normal submission. Other re-queued submissions will be graded as normal until the switch.",
   "A rebuild that runs out of time while the validator machine is busy can still count against the model. That is our fault, not yours, and it is being changed so such a run is retried. Until then, leave some headroom on time.",
   "A catalog practice runs on the CPU, even on a GPU machine: catalog entries have no GPU build yet. Start from your own graph to practise on the GPU.",
   "Close to a physics check, a practice that ran on the CPU can differ from the official grade, which always rebuilds your model on the validator's GPU.",
