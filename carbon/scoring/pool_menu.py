@@ -17,6 +17,13 @@ The draw key is ``crown_d.derive_key(K_crown, "d-menu-sample")``, installed on t
 configuration or a record. The epoch is the version's registered epoch id (E1): every grade of the version draws the
 same menu, so a king and a challenger are always scored on the same draw.
 
+A version may register ``tasks_per_epoch`` k (the owner's number; Carbon Validator-Motor 10 Nov ruling (i)): each
+epoch then scores ONE secret draw of k of its registered tasks (`draw_tasks`: the k lowest HMAC ranks under the same
+menu key, domain ``task-draw``, bound to the epoch id and the version's whole task registration), the same k for every
+grade of the epoch, and D is the mean over those k. The model still answers every task's rows (the bank never shows
+which tasks count) and the custody record keeps every task's full-pool predictions, so a later epoch re-scores on its
+own draw without inference. Absent (None), every registered task is scored, exactly as before.
+
 Fail closed: anything wrong with Carbon's material, registration or key raises `pool_exam.ExamRefused` with a closed
 snake_case code (Carbon's gap, never a candidate failure and never D = 0).
 """
@@ -84,6 +91,9 @@ class MenuRule:
     min_tasks_exception: str | None = (
         None  # an owner decision id allowing fewer than MIN_TASKS tasks
     )
+    tasks_per_epoch: int | None = (
+        None  # k of the registered tasks scored per epoch (the owner's number); None = every task
+    )
 
 
 def check_rule(rule):
@@ -130,7 +140,48 @@ def check_rule(rule):
         len(rule.records_sha256) >= MIN_TASKS or rule.min_tasks_exception is not None,
         "menu_tasks_below_minimum",
     )
+    _require(
+        rule.tasks_per_epoch is None
+        or (
+            type(rule.tasks_per_epoch) is int
+            and MIN_TASKS <= rule.tasks_per_epoch <= len(rule.records_sha256)
+        ),
+        "menu_tasks_per_epoch_invalid",
+    )
     return rule
+
+
+#: The HMAC domain of the per-epoch task draw (under the menu draw key; distinct from `menu_score`'s ``draw``).
+TASK_DRAW_DOMAIN = "task-draw"
+
+
+def draw_tasks(rule, key, *, epoch):
+    """The epoch's scored task ids, sorted: every registered task when ``rule.tasks_per_epoch`` is None, else the k
+    with the lowest HMAC(key, [``task-draw``, epoch, the version's whole task registration, task id]) ranks. The same
+    (key, epoch, registration) always gives the same set. Custody only: never in a public record.
+    """
+    import hashlib
+    import hmac
+    import json
+
+    check_rule(rule)
+    _require(type(key) is bytes and len(key) >= 32, "menu_draw_key_invalid")
+    _require(type(epoch) is str and _ID.fullmatch(epoch), "menu_epoch_invalid")
+    ids = [task_id for task_id, _sha in rule.records_sha256]
+    if rule.tasks_per_epoch is None:
+        return tuple(ids)
+    registration = [list(pair) for pair in rule.records_sha256]
+
+    def rank(task_id):
+        message = json.dumps(
+            [TASK_DRAW_DOMAIN, epoch, registration, task_id],
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        return hmac.new(key, message, hashlib.sha256).digest()
+
+    chosen = sorted(ids, key=lambda t: (rank(t), t))[: rule.tasks_per_epoch]
+    return tuple(sorted(chosen))
 
 
 def install_key(k_crown):
@@ -437,14 +488,19 @@ def rescore(tasks, rule, predictions, *, key, epochs):
     )
     _require(type(predictions) is dict, "menu_stored_predictions_incomplete")
     per_epoch = []
+    for task in tasks:
+        stored = predictions.get(task.problem.target_id)
+        _require(
+            type(stored) is dict and set(stored) == set(task.record.pool),
+            "menu_stored_predictions_incomplete",
+        )
     for epoch in epochs:
         ds = []
+        drawn = set(draw_tasks(rule, key, epoch=epoch))
         for task in tasks:
-            stored = predictions.get(task.problem.target_id)
-            _require(
-                type(stored) is dict and set(stored) == set(task.record.pool),
-                "menu_stored_predictions_incomplete",
-            )
+            if task.problem.target_id not in drawn:
+                continue  # each epoch scores its own draw (never mixed across epochs)
+            stored = predictions[task.problem.target_id]
             try:
                 ds.append(
                     menu_score.score_task(
@@ -617,6 +673,13 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
     """
     check_rule(rule)
     results, predictions = [], {}
+    drawn = set(draw_tasks(rule, key, epoch=rule.epoch))
+    # a registered k is logged in the custody record; with none the record is exactly as before
+    drawn_note = (
+        {}
+        if rule.tasks_per_epoch is None
+        else {"tasks_per_epoch": rule.tasks_per_epoch}
+    )
     if row_dependent:
         # Carbon Validator-B 7 Nov (1): the fresh re-check answered differently, so the model's ranking is not a
         # function of each design alone. D = 0 for this grade, typed (the candidate's finding).
@@ -627,6 +690,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
                 "metric": menu_score.METRIC,
                 "epoch": rule.epoch,
                 "aggregate": rule.aggregate,
+                **drawn_note,
                 "state": MODEL_ROW_DEPENDENT,
                 "tasks": [
                     {
@@ -636,6 +700,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
                         "d": 0.0,
                     }
                     for t in tasks
+                    if t.problem.target_id in drawn
                 ],
                 "predictions": {},
             },
@@ -655,6 +720,12 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
                 outputs is None or names <= set(outputs),
                 "menu_derived_outputs_do_not_cover_the_task",
             )
+        predictions[task.problem.target_id] = {
+            pid: (None if out is None else {k: out[k] for k in sorted(names)})
+            for pid, out in sorted(merged.items())
+        }
+        if task.problem.target_id not in drawn:
+            continue  # answered and kept (a later epoch may draw it), not scored this epoch
         try:
             result = menu_score.score_task(
                 task.problem, task.record, merged, key=key, epoch=rule.epoch
@@ -670,10 +741,6 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
                 "menu_size": result["menu_size"],
             }
         )
-        predictions[task.problem.target_id] = {
-            pid: (None if out is None else {k: out[k] for k in sorted(names)})
-            for pid, out in sorted(merged.items())
-        }
     d = math.fsum(r["d"] for r in results) / len(results)
     return {
         "D": d,
@@ -682,6 +749,7 @@ def score(tasks, rule, predict_rows, *, key, design_names, row_dependent=False):
             "metric": menu_score.METRIC,
             "epoch": rule.epoch,
             "aggregate": rule.aggregate,
+            **drawn_note,
             "tasks": results,
             "predictions": predictions,
         },
