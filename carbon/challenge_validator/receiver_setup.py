@@ -199,11 +199,37 @@ def _pack_selection(pack: Path | None) -> dict | None:
     }
 
 
+def _require_store_network(store: Path) -> None:
+    """(V2B 11 Nov 13:18, (b)) A door prepares only from a pack store of its own
+    network: the store records the network whose pinned producer key verified its
+    imports (a store with no record is testnet's), and the prepare process's own
+    binding is the door's network (N3 records it in receiver.json)."""
+    from carbon.challenge_validator.answer_key import AnswerKeyRefused
+    from carbon.challenge_validator.sealed_pack_import import SealedPackStore
+    from carbon.challenge_validator.validator_host import installed_network
+
+    try:
+        stored = SealedPackStore(store).network()
+    except AnswerKeyRefused as refused:
+        raise SetupRefused(
+            refused.code, "this pack store's network record is unreadable."
+        ) from None
+    door = installed_network()
+    if stored != door:
+        raise SetupRefused(
+            "pack_store_network_mismatch",
+            f"this pack store holds {stored} exams and this door is {door}; "
+            "import this network's copies into a store of its own and prepare "
+            "from that.",
+        )
+
+
 def _stored_pack(store: Path, digest: str, challenge: dict) -> Path:
     """The verified directory of a delivered pack, by manifest digest."""
     from carbon.challenge_validator.answer_key import AnswerKeyRefused
     from carbon.challenge_validator.sealed_pack_import import SealedPackStore
 
+    _require_store_network(store)
     try:
         return SealedPackStore(store).pack_directory(
             digest, challenge["id"], challenge["version"]
@@ -222,6 +248,7 @@ def _stored_pack_set(store: Path, set_key: str, challenge: dict):
     from carbon.challenge_validator.answer_key import AnswerKeyRefused
     from carbon.challenge_validator.sealed_pack_import import SealedPackStore
 
+    _require_store_network(store)
     try:
         batches = SealedPackStore(store).pack_set(
             set_key, challenge["id"], challenge["version"]

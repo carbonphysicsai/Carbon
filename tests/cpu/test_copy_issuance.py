@@ -459,3 +459,32 @@ def test_a_differing_role_is_named_with_where_and_how_much_never_a_value(
     assert detail["kind"] == "elements" and detail["different"] == 2
     assert detail["max_relative_difference"] < 1e-8
     assert tool._json_difference({"a": [1.0]}, {"a": [1.0 + 1e-15]})["kind"] == "float"
+
+
+def test_importing_with_the_pinned_key_binds_the_store_to_this_network(
+    job, tmp_path, monkeypatch
+):
+    # V2B 11 Nov 13:18 (b): a copy verified with THIS network's pinned key binds its store to this network; a
+    # rehearsal key (the explicit override) binds nothing.
+    from carbon.challenge_validator import sealed_pack_import as sp
+    from carbon.challenge_validator import validator_host
+
+    issuance.issue(job["config"])
+    tool = _tool()
+    monkeypatch.setattr(
+        validator_host, "pinned_producer_key", lambda: job["key"].public_key
+    )
+    monkeypatch.setattr(validator_host, "installed_network", lambda: "finney-116")
+    store = tmp_path / "mainnet-store"
+    tool.import_one(store, _copy_file(job, ONE), ONE)
+    assert sp.SealedPackStore(store).network() == "finney-116"
+    # the same store, imported into from a testnet-bound process: refused, nothing stored
+    monkeypatch.setattr(validator_host, "installed_network", lambda: "testnet-567")
+    before = sorted(p.name for p in store.iterdir())
+    with pytest.raises(sp.AnswerKeyRefused, match="answer_key_store_network_mismatch"):
+        tool.import_one(store, _copy_file(job, TWO), TWO)
+    assert sorted(p.name for p in store.iterdir()) == before
+    # a rehearsal key binds nothing
+    rehearsal = tmp_path / "rehearsal-store"
+    tool.import_one(rehearsal, _copy_file(job, TWO), TWO, job["key"].public_key)
+    assert not (rehearsal / sp.STORE_NETWORK_FILE).exists()

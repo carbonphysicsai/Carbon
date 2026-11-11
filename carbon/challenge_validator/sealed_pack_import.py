@@ -80,6 +80,13 @@ _SET_COMMITMENT_FIELDS = {
 MAX_FILES = 256
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 DELIVERED_DIRECTORY = ".delivered"
+#: The network whose release-pinned producer key verified this store's imports (V2B 11 Nov 13:18, (b)): a store
+#: serves ONE network for life, and a door prepares only from a store of its own network.
+STORE_NETWORK_FILE = ".store-network.json"
+STORE_NETWORK_SCHEMA = "carbon.sealed-pack-store-network.v1"
+#: A store with no record predates it; until per-network keys, only testnet 567 ever imported into a store.
+LEGACY_STORE_NETWORK = "testnet-567"
+_NETWORK = re.compile(r"[a-z]+-[0-9]+")
 
 
 def commitment_for(challenge_id, challenge_version, manifest_bytes, files, window):
@@ -326,6 +333,65 @@ class SealedPackStore:
         info = os.lstat(self.root)
         if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
             raise AnswerKeyRefused("answer_key_outbox_not_owner_only")
+
+    def network(self):
+        """The network this store's imports were verified for: its record, or
+        `LEGACY_STORE_NETWORK` for a store that predates the record."""
+        path = self.root / STORE_NETWORK_FILE
+        if not path.exists() and not path.is_symlink():
+            return LEGACY_STORE_NETWORK
+        try:
+            if path.is_symlink():
+                raise ValueError("symlink")
+            value = json.loads(path.read_bytes())
+            if (
+                type(value) is not dict
+                or set(value) != {"schema", "network"}
+                or value["schema"] != STORE_NETWORK_SCHEMA
+                or type(value["network"]) is not str
+                or _NETWORK.fullmatch(value["network"]) is None
+            ):
+                raise ValueError("malformed")
+        except (OSError, ValueError):
+            raise AnswerKeyRefused("answer_key_store_network_invalid") from None
+        return value["network"]
+
+    def _holds_anything(self):
+        if not self.root.is_dir():
+            return False
+        return any(entry.name != STORE_NETWORK_FILE for entry in self.root.iterdir())
+
+    def bind_network(self, network):
+        """Bind this store to ``network`` (the installed network whose pinned key
+        verifies what is imported), once: a store bound to another network, or a
+        store that already holds the legacy (testnet) network's imports, refuses
+        ``answer_key_store_network_mismatch``. Binding again to the same network
+        changes nothing."""
+        if type(network) is not str or _NETWORK.fullmatch(network) is None:
+            raise AnswerKeyRefused("answer_key_store_network_invalid")
+        self._owner_only_root()
+        path = self.root / STORE_NETWORK_FILE
+        if path.exists() or path.is_symlink():
+            if self.network() != network:
+                raise AnswerKeyRefused("answer_key_store_network_mismatch")
+            return network
+        if network != LEGACY_STORE_NETWORK and self._holds_anything():
+            raise AnswerKeyRefused("answer_key_store_network_mismatch")
+        body = json.dumps(
+            {"network": network, "schema": STORE_NETWORK_SCHEMA},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            # bound meanwhile by another importer: it must be the same network
+            if self.network() != network:
+                raise AnswerKeyRefused("answer_key_store_network_mismatch") from None
+            return network
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(body)
+        return network
 
     def holds(self, commitment):
         try:

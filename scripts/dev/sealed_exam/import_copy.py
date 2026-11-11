@@ -11,7 +11,9 @@ nothing else; a copy that does not verify is refused with its typed code and not
 copy again changes nothing.
 
 ``--producer-public-key`` defaults to the release-pinned exam producer key of the installed network
-(`validator_host.pinned_producer_key`); give it only for a rehearsal copy signed by a rehearsal key.
+(`validator_host.pinned_producer_key`); give it only for a rehearsal copy signed by a rehearsal key. With the pinned key,
+the store is bound to the installed network (`SealedPackStore.bind_network`): a store already bound to, or holding,
+another network's exams refuses, and `receiver_setup prepare --pack-store` takes a store only for its own network.
 
 Then: `receiver_setup prepare --pack-store <store> --pack-digest <digest> --speed-sample-key-file <K_speed file> ...`.
 """
@@ -32,13 +34,19 @@ def import_one(store, copy, hotkey, producer_public_key=None):
     """The canonical manifest digest of the imported copy (see the module docstring)."""
     from carbon.challenge_validator import copy_delivery
     from carbon.challenge_validator.sealed_pack_import import SealedPackStore
-    from carbon.challenge_validator.validator_host import pinned_producer_key
+    from carbon.challenge_validator.validator_host import (
+        installed_network,
+        pinned_producer_key,
+    )
 
     package = json.loads(Path(copy).read_bytes())
-    key = pinned_producer_key() if producer_public_key is None else producer_public_key
-    return copy_delivery.import_copy(
-        SealedPackStore(store), package, key, hotkey=hotkey
-    )
+    pack_store = SealedPackStore(store)
+    if producer_public_key is None:
+        key = pinned_producer_key()
+        pack_store.bind_network(installed_network())
+    else:
+        key = producer_public_key
+    return copy_delivery.import_copy(pack_store, package, key, hotkey=hotkey)
 
 
 def main(argv=None):
