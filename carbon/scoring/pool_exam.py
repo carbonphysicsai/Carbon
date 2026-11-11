@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import math
 import random
 import statistics
@@ -258,6 +259,19 @@ def measure_pool(
         not accuracy_only or (menu is not None and policies.physics is not None),
         "accuracy_only_targets_need_a_menu_and_a_physics_rule",
     )
+    if accuracy_only:
+        # Each scored case is graded ONCE, in its own target's role (CV-B A4, CV-Motor (3)): a target id twice, or the
+        # same case (its fixed conditions + design) in two targets or two sets, is the exam's structural fault.
+        _require(
+            len({spec.target_id for spec in all_specs}) == len(all_specs),
+            "accuracy_only_target_id_twice",
+        )
+        cases = [
+            (json.dumps(spec.conditions.get("fixed"), sort_keys=True), design)
+            for spec in all_specs
+            for design in spec.designs
+        ]
+        _require(len(set(cases)) == len(cases), "accuracy_case_in_two_targets")
     # The owner's C rule is `min` (D = min(D, C)); the dual pack's own total then equals each set's TOP.
     _require(policies.c_rule.get("kind") == "min", "official_c_rule_must_be_min")
     # The model's one table over EVERY exam row; every lookup below is a read of it.
@@ -706,10 +720,12 @@ def _stratified_draw(generator, targets, classes):
 
 
 def geometric_v1_names_valid(classes):
-    """Whether every class name of a coverage plan is a geometric-v1 name. The vocabulary must be read from the receipted
-    geometric-v1 rule code (the coverage plan package's probe_set.py), which is not in this repository, and no list is
-    typed here: until it lands, every coverage plan is refused (fail closed)."""
-    raise ExamRefused("geometric_v1_vocabulary_not_in_the_repository")
+    """Whether every class name of a coverage plan is a geometric-v1 name. The vocabulary is read from the receipted
+    geometric-v1 rule code (`carbon.scoring.geometric_v1`, B1 option (a)); no name is typed here.
+    """
+    from carbon.scoring import geometric_v1
+
+    return geometric_v1.names_valid(classes)
 
 
 def attach_coverage_plan(policies, document, sums, sets):

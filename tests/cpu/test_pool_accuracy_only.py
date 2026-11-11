@@ -401,3 +401,99 @@ def test_a_menu_version_with_multi_design_targets_grades_as_before():
         for targets in capture["se_basis"]["sets"]
         for t in targets
     )
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_each_case_is_graded_once_a_case_in_two_targets_refuses():
+    the_sets = _accuracy_sets()
+    first = the_sets[0][0]  # an in-range target of set 0
+    twin = pool_grader.build_accuracy_target(
+        target_id="in7k0",  # another in-range id, the SAME cases
+        conditions={**first.conditions, "target_id": "in7k0"},
+        outputs=first.outputs,
+        u=first.u,
+        box=first.box,
+        designs=[list(d) for d in first.designs],
+        truths=[dict(t) for t in first.truths],
+    )
+    doubled = (the_sets[0], (twin, *the_sets[1][1:]))
+    with pytest.raises(pool_exam.ExamRefused) as caught:
+        _grade(doubled)
+    assert caught.value.code == "accuracy_case_in_two_targets"
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_the_total_is_exactly_the_registered_a_cells_and_gate_plus_the_menu_d(
+    monkeypatch,
+):
+    """CV-B A3 / CV-Motor (2): no pick D and no A_bank leg is computed for an accuracy-only version (each would raise
+    here), the bank's A legs move nothing, and every set's total is 0.5 x its physics A + 0.5 x the menu D capped by C.
+    """
+    import test_pool_physics_score as physics_tests
+
+    from carbon.scoring import pool_proof_suite
+
+    def forbidden(*_a, **_k):
+        raise AssertionError(
+            "an accuracy-only version computed a pick or an A_bank leg"
+        )
+
+    monkeypatch.setattr(pool_grader, "grade_set", forbidden)
+    monkeypatch.setattr(pool_grader, "combine_a", forbidden)
+    monkeypatch.setattr(pool_proof_suite, "score_specs", forbidden)
+    the_sets = _accuracy_sets()
+    result, _capture = _grade(the_sets)
+    c = result["design_fidelity"]["C"]
+    d = min(_menu_d(), c)
+    assert result["D"] == d
+    assert result["pool"]["set_totals"] == pytest.approx(
+        [0.5 * a + 0.5 * d for a in _per_set_a(the_sets)], abs=1e-15
+    )
+    # the sealed grader's bank A legs never enter: a different base A gives the same A, D and set totals
+    original = physics_tests.fake_measure
+
+    def other_base(**kw):
+        return {**original(**kw), "A": 0.123, "A_legs": {"x": 0.9}}
+
+    monkeypatch.setattr(sys.modules[__name__], "fake_measure", other_base)
+    again, _ = _grade(the_sets)
+    assert (again["A"], again["D"], again["pool"]["set_totals"]) == (
+        result["A"],
+        result["D"],
+        result["pool"]["set_totals"],
+    )
+
+
+def _per_set_a(the_sets):
+    seen = []
+    real = pps.family_value
+
+    def recording(*a):
+        value = real(*a)
+        seen.append(value)
+        return value
+
+    pps.family_value = recording
+    try:
+        _grade(the_sets)
+    finally:
+        pps.family_value = real
+    return seen
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_a_version_without_the_key_still_runs_the_pick_on_every_set(monkeypatch):
+    """CV-B A1: no accuracy-only target, so the existing path runs unchanged (score_specs once per set)."""
+    from carbon.scoring import pool_proof_suite
+
+    calls = []
+    real = pool_proof_suite.score_specs
+
+    def recording(plugin, specs, *a):
+        calls.append(tuple(s.target_id for s in specs))
+        return real(plugin, specs, *a)
+
+    monkeypatch.setattr(pool_proof_suite, "score_specs", recording)
+    the_sets = _sets()
+    _grade(the_sets)
+    assert calls == [tuple(t.target_id for t in group) for group in the_sets]

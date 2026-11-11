@@ -618,12 +618,11 @@ def test_the_material_plan_attaches_only_when_registered_listed_and_complete(
         )
 
 
-def test_class_names_must_be_geometric_v1_and_every_plan_refuses_until_the_rule_lands(
-    monkeypatch,
-):
+def test_class_names_must_be_geometric_v1(monkeypatch):
     sets, document, sums, _plan, registered = _plan_and_sums()
+    # the receipted rule (carbon.scoring.geometric_v1) refuses the fixture's names: they are not geometric-v1 names
     with pytest.raises(
-        pool_exam.ExamRefused, match="geometric_v1_vocabulary_not_in_the_repository"
+        pool_exam.ExamRefused, match="coverage_plan_class_not_geometric_v1"
     ):
         pool_exam.attach_coverage_plan(registered, document, sums, sets)
     monkeypatch.setattr(pool_exam, "geometric_v1_names_valid", lambda classes: False)
