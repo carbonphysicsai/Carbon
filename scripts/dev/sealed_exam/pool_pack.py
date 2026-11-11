@@ -60,6 +60,84 @@ def _writer(challenge):
     return module
 
 
+#: The sealed documents a version's raw registration asks for: (material key, CLI flag, the registration leaf that
+#: requires it, how the file is read). A leaf present with any value but null (HUMAN_INPUT counts: a registration still
+#: to fill) requires the document; a document whose leaf is absent or null refuses. These are the grader's own rules
+#: (pool_exam.attach_coverage_plan / attach_physics / attach_variant_starts, pool_physics_score.attach_cells), checked
+#: here before a pack is written, so a 1.8 pack can no longer leave them out (mc-exam-B, Wed 11 Nov 2026, blocker B2).
+SEALED_DOCUMENTS = (
+    ("coverage_plan", "coverage-plan", ("optimizer", "coverage_plan_sha256"), "json"),
+    (
+        "coverage_plan_sums",
+        "coverage-plan-sums",
+        ("optimizer", "coverage_plan_sums_sha256"),
+        "text",
+    ),
+    ("scoring_cells", "scoring-cells", ("physics",), "json"),
+    ("in_range_cases", "in-range-cases", ("physics", "in_range_cases_sha256"), "json"),
+    ("variant_starts", "variant-starts", ("optimizer", "variant_rule"), "json"),
+)
+
+
+def _registered_leaf(entry, path):
+    value = entry
+    for key in path:
+        if type(value) is not dict or key not in value:
+            return False
+        value = value[key]
+    return value is not None
+
+
+def read_document(path, kind):
+    """One sealed document file: exact text (the plan's SHA256SUMS) or JSON."""
+    text = Path(path).read_text(encoding="utf-8")
+    return text if kind == "text" else json.loads(text)
+
+
+def _with_documents(challenge, version, material, documents, *, constants=None):
+    """``material`` with the version's registered sealed documents added (``documents``: material key -> document or
+    None), or SystemExit naming the flag. Reads only the raw registration (as crown_hold does).
+    """
+    from carbon.scoring import pool_version
+
+    keys = {
+        pool_version.COVERAGE_PLAN,
+        pool_version.COVERAGE_PLAN_SUMS,
+        pool_version.SCORING_CELLS,
+        pool_version.IN_RANGE_CASES,
+        pool_version.VARIANT_STARTS,
+    }
+    if keys != {row[0] for row in SEALED_DOCUMENTS}:
+        raise SystemExit(
+            "pool_pack's sealed-document table differs from pool_version's material keys"
+        )
+    documents = dict(documents or {})
+    unknown = set(documents) - keys
+    if unknown:
+        raise SystemExit(f"unknown sealed document(s): {sorted(unknown)}")
+    try:
+        raw = json.loads(Path(constants or pool_version.CONSTANTS).read_bytes())
+        entry = raw["versions"].get(f"{challenge} {version}")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        raise SystemExit("the pool constants registration is unreadable") from None
+    entry = entry if type(entry) is dict else {}
+    added = dict(material)
+    for key, flag, leaf, _kind in SEALED_DOCUMENTS:
+        given = documents.get(key) is not None
+        required = _registered_leaf(entry, leaf)
+        if required and not given:
+            raise SystemExit(
+                f"{challenge} {version} registers {'.'.join(leaf)}: give --{flag}"
+            )
+        if given and not required:
+            raise SystemExit(
+                f"{challenge} {version} does not register {'.'.join(leaf)}: --{flag} refused"
+            )
+        if given:
+            added[key] = documents[key]
+    return pool_version.check_material(added)
+
+
 def build(
     *,
     challenge,
@@ -77,6 +155,7 @@ def build(
     baseline_floor_total=None,
     menu_dir=None,
     crown_key_file=None,
+    documents=None,
 ):
     """The pool pack and its record. ``material`` (a ready `pool_version` material) replaces ``--set-dir``.
 
@@ -120,6 +199,7 @@ def build(
         material = pool_version.check_material(
             {**material, pool_version.RESPONSE_REFERENCE: response_reference}
         )
+    material = _with_documents(challenge, version, material, documents)
     menu_shas = None
     if menu_dir is not None:
         material, menu_shas = _with_menu(challenge, version, material, menu_dir)
@@ -347,6 +427,12 @@ def main(argv=None):
         type=Path,
         help="a menu-D version: the validator host's K_crown file (owner-private; keys derived, nothing written)",
     )
+    for key, flag, leaf, kind in SEALED_DOCUMENTS:
+        one.add_argument(
+            "--" + flag,
+            type=Path,
+            help=f"required when the version registers {'.'.join(leaf)} ({kind}); carried in the sealed material",
+        )
     shas = sub.add_parser("menu-shas")
     for flag in ("challenge", "version", "menu-dir"):
         shas.add_argument("--" + flag, required=True)
@@ -398,6 +484,11 @@ def main(argv=None):
         baseline_floor_total=args.baseline_floor_total,
         menu_dir=args.menu_dir,
         crown_key_file=args.crown_key_file,
+        documents={
+            key: read_document(getattr(args, flag.replace("-", "_")), kind)
+            for key, flag, _leaf, kind in SEALED_DOCUMENTS
+            if getattr(args, flag.replace("-", "_")) is not None
+        },
         response_reference=(
             json.loads(Path(args.response_reference).read_text(encoding="utf-8"))
             if args.response_reference
