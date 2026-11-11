@@ -347,7 +347,8 @@
         "epoch": "HUMAN_INPUT",
         "aggregate": "mean",
         "rotation_days": "HUMAN_INPUT",
-        "rowcheck": "HUMAN_INPUT"
+        "rowcheck": "HUMAN_INPUT",
+        "tasks_per_epoch": 3
       },
       "fit_breaker": {
         "separation_read_sha256": "HUMAN_INPUT",

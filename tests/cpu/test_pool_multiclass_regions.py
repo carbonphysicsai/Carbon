@@ -873,3 +873,15 @@ def test_a_plan_is_a_frozen_value():
     assert isinstance(plan, CoveragePlan)
     with pytest.raises(dataclasses.FrozenInstanceError):
         plan.classes = ()
+
+
+def test_motor_1p8_menu_scores_3_of_4_tasks_per_epoch():
+    """Owner, typed in mc-exam-B 10 Nov 21:4x: 'Motor has 4 tasks, 3 scored per epoch; the fewer-than-3 exception
+    label is dropped.' Motor 1.8's menu registers tasks_per_epoch 3 and no min_tasks_exception; Cooling 1.8 scores
+    every task (no tasks_per_epoch).
+    """
+    document = json.loads(pool_version.CONSTANTS.read_bytes())
+    motor = document["versions"]["electric-motor-magnetics 1.8"]["menu"]
+    assert motor["tasks_per_epoch"] == 3
+    assert "min_tasks_exception" not in motor
+    assert "tasks_per_epoch" not in document["versions"]["chip-cold-plate 1.8"]["menu"]
