@@ -332,9 +332,25 @@ class InRangeCases:
         return sorted({case[0] for case in self.cases})
 
 
+def _truth_ok(name, value):
+    """A case truth: a number, or for an output registered as a waveform (`pool_grader.register_waveform_output`, B6) a
+    list of numbers. Whether a waveform truth has a SHAPE is checked separately (`_reference_has_shape`).
+    """
+    if name in pool_grader._WAVEFORMS:
+        return type(value) is list and bool(value) and all(_is_number(v) for v in value)
+    return _is_number(value)
+
+
+def _reference_has_shape(name, value):
+    return name not in pool_grader._WAVEFORMS or pool_grader._value_ok(name, value)
+
+
 def in_range_cases(document):
     """The `InRangeCases` of ``{"schema": IN_RANGE_CASES_SCHEMA, "cases": [{"class", "inputs": {input: number},
     "truths": {output: number}, "u": {output: number > 0}}]}``, or `PhysicsRefused`. Truths and U name the same outputs.
+    A truth of an output registered as a WAVEFORM (B6: Motor 1.8's open-circuit back-EMF, k_e,ll) is its reference
+    waveform (a list of numbers) with an absolute U > 0; a reference waveform with no shape is the exam's typed reference
+    fault (``in_range_case_reference_has_no_shape``), never a candidate's failure.
     """
     _require(
         type(document) is dict
@@ -355,14 +371,32 @@ def in_range_cases(document):
                 type(case[k]) is dict
                 and case[k]
                 and all(type(n) is str and _is_number(v) for n, v in case[k].items())
-                for k in ("inputs", "truths", "u")
+                for k in ("inputs", "u")
+            )
+            and type(case["truths"]) is dict
+            and case["truths"]
+            and all(
+                type(n) is str and _truth_ok(n, v) for n, v in case["truths"].items()
             )
             and set(case["truths"]) == set(case["u"])
             and all(v > 0 for v in case["u"].values()),
             "in_range_case_malformed",
         )
+        _require(
+            all(_reference_has_shape(n, v) for n, v in case["truths"].items()),
+            "in_range_case_reference_has_no_shape",
+        )
         cases.append(
-            (case["class"], dict(case["inputs"]), dict(case["truths"]), dict(case["u"]))
+            (
+                case["class"],
+                dict(case["inputs"]),
+                # a scalar truth exactly as given (as before); a waveform truth as its tuple of floats
+                {
+                    n: (pool_grader._keep(n, v) if n in pool_grader._WAVEFORMS else v)
+                    for n, v in case["truths"].items()
+                },
+                dict(case["u"]),
+            )
         )
     return InRangeCases(
         cases=tuple(cases),
@@ -651,13 +685,27 @@ def _case_ratios(extra, case_predict, ratios, invalid, outputs):
     )
     for (name, _inputs, truths, u), answer in zip(extra.cases, answers):
         outputs.setdefault(name, set()).update(truths)
-        if not pool_grader._valid_prediction(answer, tuple(truths)):
+        if not _case_answer_valid(answer, truths):
             invalid[name] = invalid.get(name, 0) + 1
             continue
         for output, truth in truths.items():
+            # a scalar: |a - t| / U exactly as before; a registered waveform: its registered error (shape_error) / U (B6)
             ratios.setdefault((name, output), []).append(
-                abs(answer[output] - truth) / u[output]
+                pool_grader.difference(output, answer[output], truth) / u[output]
             )
+
+
+def _case_answer_valid(answer, truths):
+    """Whether a model's answer can be graded on a case. A case with only scalar truths: exactly the target check
+    (`pool_grader._valid_prediction`). A case naming a registered WAVEFORM output (B6): each truth output is present and
+    valid (a waveform with a shape), and the derive's other keys are not graded here, so an OC case is not refused for the
+    torque scalars the same derive also returns."""
+    if not any(output in pool_grader._WAVEFORMS for output in truths):
+        return pool_grader._valid_prediction(answer, tuple(truths))
+    return type(answer) is dict and all(
+        output in answer and pool_grader._value_ok(output, answer[output])
+        for output in truths
+    )
 
 
 def _headroom_row(rule, name, output, values):
