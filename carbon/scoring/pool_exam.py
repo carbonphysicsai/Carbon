@@ -247,6 +247,17 @@ def measure_pool(
     )
     all_specs = [spec for group in sets for spec in group]
     _require(all_specs, "exam_has_no_targets")
+    # R1: a version's targets are all accuracy-only or none; all accuracy-only needs the sealed menu (its D) and the
+    # physics rule (its A). Every other version has none and is unchanged.
+    accuracy_only = {bool(getattr(spec, "accuracy_only", False)) for spec in all_specs}
+    _require(
+        len(accuracy_only) == 1, "accuracy_only_targets_mixed_with_optimizer_targets"
+    )
+    accuracy_only = accuracy_only == {True}
+    _require(
+        not accuracy_only or (menu is not None and policies.physics is not None),
+        "accuracy_only_targets_need_a_menu_and_a_physics_rule",
+    )
     # The owner's C rule is `min` (D = min(D, C)); the dual pack's own total then equals each set's TOP.
     _require(policies.c_rule.get("kind") == "min", "official_c_rule_must_be_min")
     # The model's one table over EVERY exam row; every lookup below is a read of it.
@@ -399,10 +410,19 @@ def measure_pool(
         else tighten(legs["A"], a_multiplier)
     )
     descriptor = {"kind": "good"}
-    per_set = [
-        suite.score_specs(plugin, specs, descriptor, policies, all_specs)
-        for specs in plugin.sets
-    ]
+    if accuracy_only:
+        # R1: no optimisation problem, so no pick D (the menu below gives D) and no set total from a pick: A per set is
+        # the physics family value, exactly as `score_specs` computes it for a physics version.
+        good = suite.pool_predictor(plugin, descriptor, all_specs)
+        per_set = [
+            (None, None, suite._physics_a_gen(specs, good, policies), legs)
+            for specs in plugin.sets
+        ]
+    else:
+        per_set = [
+            suite.score_specs(plugin, specs, descriptor, policies, all_specs)
+            for specs in plugin.sets
+        ]
     a_values, d_values, reasons, a_gen = [], [], set(), []
     for _total, grade, gen, _legs in per_set:
         a_gen.append(gen)
@@ -412,6 +432,8 @@ def measure_pool(
             if policies.physics is not None
             else pool_grader.combine_a(a_bank, gen, policies.a_rule)
         )
+        if grade is None:
+            continue  # accuracy-only: the menu D replaces every set's D below
         # D as the total sees it: capped by C, so the dual pack's own 0.5 A + 0.5 D is each set's TOP.
         d_values.append(min(grade.d, legs["C"]))
         reasons.update(grade.public()["reasons"])
@@ -446,7 +468,7 @@ def measure_pool(
                 outputs, menu_rowcheck["outputs"], positions, menu
             ),
         )
-        d_values = [min(menu_graded["D"], legs["C"]) for _ in d_values]
+        d_values = [min(menu_graded["D"], legs["C"]) for _ in per_set]
         if capture is not None:
             capture["menu"] = menu_graded["record"]
     a_only = policies.physics is not None and policies.physics.total_rule == "a_only"
@@ -470,7 +492,8 @@ def measure_pool(
             "sets": [
                 [
                     {
-                        "d": target.d,
+                        # an accuracy-only target has no pick d (the basis holds the menu D fixed)
+                        "d": None if target is None else target.d,
                         "cells": pool_physics_score.target_cells(
                             spec,
                             predict,
@@ -479,7 +502,11 @@ def measure_pool(
                             policies.physics,
                         ),
                     }
-                    for spec, target in zip(specs, grade.targets, strict=True)
+                    for spec, target in zip(
+                        specs,
+                        [None] * len(specs) if grade is None else grade.targets,
+                        strict=True,
+                    )
                 ]
                 for specs, (_t, grade, _g, _l) in zip(plugin.sets, per_set, strict=True)
             ],
@@ -610,12 +637,13 @@ def total_of_targets(basis, sets):
             a_values.append(
                 pool_grader.combine_a(basis["a_bank"], a_gen, basis["a_rule"])
             )
-        if basis.get("d_aggregate") is None:
+        if basis.get("menu_d") is not None:
+            # a menu version: the resample holds the epoch's menu D fixed (an accuracy-only target has no pick d)
+            d = basis["menu_d"]
+        elif basis.get("d_aggregate") is None:
             d = statistics.fmean(t["d"] for t in targets)
         else:
             d = _region_mean(targets, "d", order)
-        if basis.get("menu_d") is not None:
-            d = basis["menu_d"]
         d_values.append(min(d, basis["c"]))
     if basis.get("a_only") is True:
         return statistics.fmean(

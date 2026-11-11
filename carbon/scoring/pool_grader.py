@@ -659,6 +659,9 @@ class TargetSpec:
     near_limit: object = None
     credit: tuple = ()
     v_ref: float | None = None
+    # An ACCURACY-ONLY target (`build_accuracy_target`): every case is reserved for accuracy, there is no optimisation
+    # problem (no objective, limits, reference, start or seed), so it never enters `grade_set`. False for every other.
+    accuracy_only: bool = False
 
     @property
     def extended(self):
@@ -989,6 +992,147 @@ def build_target(
     )
 
 
+#: The identity marker of an accuracy-only target (`build_accuracy_target`).
+ACCURACY_ONLY = "accuracy_only"
+#: The optimisation fields an accuracy-only target never carries: present (in a pool source or a pool document) = refused.
+ACCURACY_ONLY_ABSENT = frozenset(
+    {
+        "objective",
+        "sense",
+        "limits",
+        "start",
+        "seed",
+        "zero",
+        "near_limit",
+        "variants",
+        "excluded",
+    }
+)
+
+
+def build_accuracy_target(
+    *,
+    target_id,
+    conditions,
+    outputs,
+    u,
+    box,
+    designs,
+    truths,
+    public=False,
+    shell=None,
+):
+    """An ACCURACY-ONLY target (R1, a version whose D is the sealed menu and whose A is the physics score): its cases are
+    scored for accuracy only, so EVERY design is in the reserved slice (``agen``) and none is queryable. There is no
+    optimisation problem: no objective, sense, limits, reference, median, start, seed, zero, near-limit rule or variants,
+    and no within-U exclusion (with no limits every case is kept). It needs >= 1 case. The box is required (it checks
+    the designs' shape). An EXTENDED target (a shell) must have EVERY case in its out-of-range shell (``designs`` mode)
+    or its fixed conditions in it (``conditions`` mode). Its identity body is marked ``accuracy_only``, so its digest
+    never equals a multi-design target's. `grade_set` refuses it: it contributes accuracy only, never a pick D.
+    """
+    _require(type(target_id) is str and target_id, "target_id_required")
+    _require(type(conditions) is dict, "conditions_must_be_a_dict")
+    outputs = tuple(outputs)
+    _require(
+        len(outputs) == len(set(outputs)) and outputs,
+        "outputs_must_be_unique_and_non_empty",
+    )
+    _require(set(u) == set(outputs), "u_must_cover_exactly_the_outputs")
+    _require(
+        all(_valid_u(v) for v in u.values()),
+        "u_must_be_non_negative_and_finite_or_relative",
+    )
+    _require(
+        any(_is_relative(v) or v > 0 for v in u.values()),
+        "u_needs_one_predicted_output",
+    )
+    _require(
+        all(_finite(u[k]) and u[k] > 0 for k in outputs if k in _WAVEFORMS),
+        "a_waveform_output_needs_an_absolute_u_above_zero",
+    )
+    box = tuple((float(lo), float(hi)) for lo, hi in box)
+    _require(
+        box
+        and all(math.isfinite(lo) and math.isfinite(hi) and hi > lo for lo, hi in box),
+        "box_must_be_finite_with_hi_above_lo",
+    )
+    _require(
+        len(designs) == len(truths) and len(designs) >= 1,
+        "accuracy_only_target_needs_matching_designs_and_truths",
+    )
+    for design, truth in zip(designs, truths):
+        _require(
+            len(design) == len(box) and all(_finite(x) for x in design),
+            "design_must_match_the_box_and_be_finite",
+        )
+        _require(
+            type(truth) is dict
+            and set(truth) == set(outputs)
+            and all(_value_ok(k, v) for k, v in truth.items()),
+            "truth_must_give_every_output_finite",
+        )
+    _require(type(public) is bool, "public_must_be_a_bool")
+    kept_designs = tuple(tuple(float(x) for x in design) for design in designs)
+    kept_truths = tuple({k: _keep(k, v) for k, v in truth.items()} for truth in truths)
+    if shell is not None:
+        shell = _valid_shell(shell, len(box), conditions.get("fixed", {}))
+        if shell["mode"] == "designs":
+            # every case, not only a queryable one: an accuracy-only target's cases are all scored
+            _require(
+                all(in_ood_shell(design, shell["inputs"]) for design in kept_designs),
+                "accuracy_case_outside_the_ood_shell",
+            )
+        else:
+            _require(
+                conditions_in_ood_shell(conditions["fixed"], shell),
+                "conditions_not_in_the_ood_shell",
+            )
+    body = {
+        ACCURACY_ONLY: True,
+        "target_id": target_id,
+        "conditions": conditions,
+        "outputs": list(outputs),
+        "u": u,
+        "box": [list(b) for b in box],
+        "designs": [list(d) for d in kept_designs],
+        "truths": list(kept_truths),
+        "public": public,
+        "shell": _shell_json(shell),
+    }
+    size = len(kept_designs)
+    return TargetSpec(
+        target_id=target_id,
+        conditions=conditions,
+        outputs=outputs,
+        objective=None,
+        sign=0.0,
+        limits=(),
+        u=dict(u),
+        box=box,
+        designs=kept_designs,
+        norm=tuple(
+            tuple((x - lo) / (hi - lo) for x, (lo, hi) in zip(design, box))
+            for design in kept_designs
+        ),
+        truths=kept_truths,
+        feasible=(),
+        queryable=(),
+        agen=tuple(range(size)),
+        reference=None,
+        s_ref=None,
+        s_low=None,
+        start=(),
+        seed=None,
+        excluded=0,
+        digest=_digest(body),
+        public=public,
+        shell=shell,
+        origin=tuple(range(size)),
+        pool_size=size,
+        accuracy_only=True,
+    )
+
+
 def attach_variants(spec, rule, starts):
     """``spec`` with its neighbour-task variants built (custody; `OptimizerPolicy.variant_rule`).
 
@@ -1001,6 +1145,7 @@ def attach_variants(spec, rule, starts):
     limit, its bound (or its margin over the basis condition) is 0 so a relative shift moves nothing, the basis condition
     is not one of the target's fixed conditions, `build_target` refuses it, or no queryable point stays truly infeasible
     (the shifted question is no longer a choice)."""
+    _require(not spec.accuracy_only, "accuracy_only_target_has_no_variants")
     slots = variant_slots(rule)
     over = _variant_basis(rule)
     fixed = spec.conditions.get("fixed")
@@ -1452,6 +1597,11 @@ class SetGrade:
 
 def grade_set(specs, predict, optimizer, honesty):
     _require(len(specs) >= 1, "set_needs_targets")
+    # an accuracy-only target has no optimisation problem: it is never asked for a pick D (fail closed)
+    _require(
+        not any(getattr(s, "accuracy_only", False) for s in specs),
+        "accuracy_only_target_has_no_optimizer_pick",
+    )
     _require(
         len({s.target_id for s in specs}) == len(specs), "target_ids_must_be_unique"
     )
@@ -1733,7 +1883,26 @@ PRACTICE_SCHEMA = "carbon.pool-grade.practice.v1"
 
 def dump_pool(spec):
     """A target's pool as a JSON-ready document (layout `carbon.pool.v1`). `digest` is the identity to pin: the
-    sha256 of the canonical body, so a pool's exact content is its identity."""
+    sha256 of the canonical body, so a pool's exact content is its identity. An accuracy-only target's document carries ``accuracy_only`` and none
+    of the optimisation fields (`ACCURACY_ONLY_ABSENT`)."""
+    if spec.accuracy_only:
+        return {
+            "schema": POOL_SCHEMA,
+            ACCURACY_ONLY: True,
+            "public": spec.public,
+            "digest": spec.digest,
+            "target_id": spec.target_id,
+            "conditions": spec.conditions,
+            "outputs": list(spec.outputs),
+            "u": spec.u,
+            "box": [list(b) for b in spec.box],
+            "designs": [list(d) for d in spec.designs],
+            "truths": list(spec.truths),
+            "agen": list(spec.agen),
+            "shell": _shell_json(spec.shell),
+            "origin": list(spec.origin),
+            "pool_size": spec.pool_size,
+        }
     return {
         "schema": POOL_SCHEMA,
         "public": spec.public,
@@ -1766,6 +1935,8 @@ def load_pool(document):
         type(document) is dict and document.get("schema") == POOL_SCHEMA,
         "pool_schema_unknown",
     )
+    if ACCURACY_ONLY in document:
+        return _load_accuracy_only(document)
     spec = build_target(
         target_id=document["target_id"],
         conditions=document["conditions"],
@@ -1795,6 +1966,54 @@ def load_pool(document):
         "pool_digest_does_not_match_its_content",
     )
     return replace(spec, excluded=document["excluded"])
+
+
+#: An accuracy-only pool document's exact keys (`dump_pool`).
+_ACCURACY_ONLY_KEYS = frozenset(
+    {
+        "schema",
+        ACCURACY_ONLY,
+        "public",
+        "digest",
+        "target_id",
+        "conditions",
+        "outputs",
+        "u",
+        "box",
+        "designs",
+        "truths",
+        "agen",
+        "shell",
+        "origin",
+        "pool_size",
+    }
+)
+
+
+def _load_accuracy_only(document):
+    _require(
+        document[ACCURACY_ONLY] is True and set(document) == _ACCURACY_ONLY_KEYS,
+        "accuracy_only_pool_document_malformed",
+    )
+    spec = build_accuracy_target(
+        target_id=document["target_id"],
+        conditions=document["conditions"],
+        outputs=document["outputs"],
+        u=document["u"],
+        box=document["box"],
+        designs=document["designs"],
+        truths=document["truths"],
+        public=document["public"],
+        shell=document.get("shell"),
+    )
+    _require(
+        spec.digest == document["digest"]
+        and list(document["agen"]) == list(spec.agen)
+        and list(document["origin"]) == list(spec.origin)
+        and document["pool_size"] == spec.pool_size,
+        "pool_digest_does_not_match_its_content",
+    )
+    return spec
 
 
 def practice_report(
