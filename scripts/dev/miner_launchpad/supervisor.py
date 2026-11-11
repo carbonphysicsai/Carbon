@@ -144,6 +144,17 @@ NEXT_ACTIONS = {
         "for what you needed; if the result was Carbon's own public document, "
         "report the campaign and the marker classes its refusal record names."
     ),
+    # A catalog backbone with no official GPU receipt on the validator yet: Carbon's GAP
+    # (`challenge_validator.dispatch`; `backbone_catalog.served.expand_official` refuses it
+    # before anything is reserved), never the miner's setup.
+    "catalog_gpu_receipt_pending": (
+        "This backbone is not yet GPU-checked on the validator, so it cannot "
+        "be graded officially yet. This is on Carbon's side and does not count "
+        "against you; nothing was charged. Under Backbone, pick one marked "
+        "neither 'practice only' nor 'not yet GPU-checked on the validator', or "
+        "submit a model built from your own graph. Practice on this backbone "
+        "still works, and your campaign and frozen candidate are kept."
+    ),
     "submission_policy_invalid": "Restore the campaign’s original frozen launch records; this policy cannot change on resume.",
     "submission_retained_by_policy": "This launch retains candidates without commitment or validator submission. Launch a separate campaign to submit.",
     "construction_checks_unavailable": (
