@@ -250,8 +250,20 @@ def _accuracy_sets(per_class=1):
     )
 
 
-def _grade(the_sets, *, threshold=2.5, menu=True, physics=True, serve=good_serve):
+AUTO = object()
+
+
+def _grade(
+    the_sets, *, threshold=2.5, menu=True, physics=True, serve=good_serve, kind=AUTO
+):
     policies, material = _registered(the_sets, threshold)
+    if kind is AUTO:
+        # the registration names the kind of the material it grades (Validator-2B M-1)
+        every = all(t.accuracy_only for group in the_sets for t in group)
+        kind = "accuracy_only" if every else None
+    policies = dataclasses.replace(
+        policies, physics=dataclasses.replace(policies.physics, target_kind=kind)
+    )
     if menu:
         policies = dataclasses.replace(policies, menu=menu_rule())
     if not physics:
@@ -497,3 +509,98 @@ def test_a_version_without_the_key_still_runs_the_pick_on_every_set(monkeypatch)
     the_sets = _sets()
     _grade(the_sets)
     assert calls == [tuple(t.target_id for t in group) for group in the_sets]
+
+
+# ---------------------------------------------------------------- the REGISTRATION keys the kind (Validator-2B M-1, N-1)
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_the_registered_kind_and_the_material_kind_must_agree_both_ways():
+    # accuracy-only material on a registration that does not name the kind: refused (the pack builder cannot decide it)
+    with pytest.raises(pool_exam.ExamRefused) as caught:
+        _grade(_accuracy_sets(), kind=None)
+    assert caught.value.code == "accuracy_only_targets_not_registered"
+    # a registration naming the kind, with multi-design material: refused
+    with pytest.raises(pool_exam.ExamRefused) as caught:
+        _grade(_sets(), kind="accuracy_only")
+    assert caught.value.code == "registered_target_kind_not_in_the_material"
+
+
+def test_the_target_kind_registers_with_no_default():
+    from carbon.scoring import pool_version
+
+    block = {
+        "scoring": "headroom",
+        "cells_sha256": "c" * 64,
+        "gate_statistic": "p90",
+        "gate_threshold": {"f": 1.0},
+        "gate_cases": "agen",
+        "enters": "a",
+        "ad_split": 0.5,
+        "total_rule": "half_a_half_d",
+        "skill_form": "log",
+        "h_min": 4,
+        "h_lo": 2.5,
+        "n_min": 12,
+    }
+    assert pool_version._physics(block).target_kind is None  # absent: today's kind
+    assert (
+        pool_version._physics({**block, "target_kind": "accuracy_only"}).target_kind
+        == "accuracy_only"
+    )
+    with pytest.raises(pool_version.PoolConstantsNotRegistered, match="not_registered"):
+        pool_version._physics({**block, "target_kind": pool_version.HUMAN_INPUT})
+    with pytest.raises(pool_version.PoolConstantsNotRegistered, match="not_registered"):
+        pool_version._physics({**block, "target_kind": None})
+    for bad in ("multi_design", "", 1, ["accuracy_only"]):
+        with pytest.raises(pool_version.PoolConstantsNotRegistered, match="malformed"):
+            pool_version._physics({**block, "target_kind": bad})
+
+
+def test_both_1_8_rows_register_the_accuracy_only_kind_and_no_other_row_does():
+    from carbon.scoring import pool_version
+
+    rows = json.loads(pool_version.CONSTANTS.read_bytes())["versions"]
+    kinds = {
+        key: row["physics"].get("target_kind")
+        for key, row in rows.items()
+        if "physics" in row
+    }
+    assert kinds == {
+        "chip-cold-plate 1.8": "accuracy_only",
+        "electric-motor-magnetics 1.8": "accuracy_only",
+    }
+    assert all(
+        "target_kind" not in json.dumps(row)
+        for key, row in rows.items()
+        if key not in kinds
+    )
+    for key in kinds:
+        # each row's physics block parses with its kind once its HUMAN_INPUT leaves are filled (synthetic here)
+        block = {
+            k: ("c" * 64 if v == pool_version.HUMAN_INPUT else v)
+            for k, v in rows[key]["physics"].items()
+        }
+        assert pool_version._physics(block).target_kind == "accuracy_only"
+        assert "menu" in rows[key]  # the kind needs the menu (its D)
+
+
+def test_an_accuracy_only_target_is_never_public():
+    base = toy_target("t0", 7)
+    with pytest.raises(
+        pool_grader.PoolRefused, match="accuracy_only_target_is_never_public"
+    ):
+        pool_grader.build_accuracy_target(
+            target_id="t0",
+            conditions=base.conditions,
+            outputs=base.outputs,
+            u=base.u,
+            box=base.box,
+            designs=[list(base.designs[0])],
+            truths=[dict(base.truths[0])],
+            public=True,
+        )
+    with pytest.raises(
+        pool_grader.PoolRefused, match="accuracy_only_target_is_never_public"
+    ):
+        pool_plugin.spec_from_source(_source(base, public=True), toy_binding())

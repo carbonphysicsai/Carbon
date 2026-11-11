@@ -196,7 +196,9 @@ def _physics(value):
     registered version). Present, it has no default: ``{"cells_sha256", "gate_statistic", "gate_threshold", "gate_cases",
     "enters", "ad_split", "total_rule"}`` plus, for the 5 Nov cell scoring, ``"cell_scale"``, or, with ``"scoring":
     "headroom"`` (owner 6 Nov), ``"skill_form", "h_min", "h_lo", "n_min"`` and no cell scale (``cells_sha256`` then names
-    the sealed headroom admission document). A null or HUMAN_INPUT anywhere in it refuses (the values are the owner's).
+    the sealed headroom admission document). Optional: ``"in_range_cases_sha256"`` and ``"target_kind"`` (R1:
+    ``"accuracy_only"``, `pool_physics_score.TARGET_KINDS`; absent = today's targets). A null or HUMAN_INPUT anywhere in it
+    refuses (the values are the owner's).
     """
     from carbon.scoring import pool_physics_score
 
@@ -219,9 +221,12 @@ def _physics(value):
         required = required | {"scoring", "skill_form", "h_min", "h_lo", "n_min"}
     else:
         required = required | {"cell_scale"}
-    # optional: a registered in-range case set (absent = none); headroom registers no cell scale
+    # optional: a registered in-range case set (absent = none) and target kind (absent = today's multi-design targets;
+    # Validator-2B M-1); headroom registers no cell scale
     allowed = (
-        required | {"in_range_cases_sha256"} | (set() if headroom else {"scoring"})
+        required
+        | {"in_range_cases_sha256", "target_kind"}
+        | (set() if headroom else {"scoring"})
     )
     if not required <= set(value) <= allowed:
         raise PoolConstantsNotRegistered("pool_constants_malformed")

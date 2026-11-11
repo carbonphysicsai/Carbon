@@ -1072,6 +1072,8 @@ def build_accuracy_target(
             "truth_must_give_every_output_finite",
         )
     _require(type(public) is bool, "public_must_be_a_bool")
+    # its cases are sealed scored cases: never a public practice pool (Validator-2B N-1, fail closed)
+    _require(public is False, "accuracy_only_target_is_never_public")
     kept_designs = tuple(tuple(float(x) for x in design) for design in designs)
     kept_truths = tuple({k: _keep(k, v) for k, v in truth.items()} for truth in truths)
     if shell is not None:

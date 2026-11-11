@@ -66,6 +66,9 @@ TOTAL_RULES = ("half_a_half_d", "a_only")
 #: per admitted (class, output) the log (or linear) skill against the oracle classical anchor A_c, on the geometric mean
 #: of the floored errors |err| / U (floor 1 U).
 SCORINGS = ("cells", "headroom")
+#: A version's registered target kind (`PhysicsRule.target_kind`): "accuracy_only" (R1: every target carries scored cases
+#: only; `pool_grader.build_accuracy_target`). Absent (None) = today's multi-design targets.
+TARGET_KINDS = ("accuracy_only",)
 SKILL_FORMS = ("log", "linear")
 HEADROOM_SCHEMA = "carbon.pool.headroom-admission.v1"
 ADMISSION_TESTS = ("H", "C", "O", "R", "V")
@@ -157,11 +160,18 @@ class PhysicsRule:
     h_min: object = None
     h_lo: object = None
     n_min: object = None
+    #: The version's registered target kind (`TARGET_KINDS`, Validator-2B M-1): the registration, never the pack material,
+    #: decides it; the grade requires the material's targets to be of exactly this kind. None = today's kind.
+    target_kind: str | None = None
 
 
 def check_rule(rule):
     """`PhysicsRefused` unless the rule is complete. HUMAN_INPUT (None) in the gate is never defaulted."""
     _require(isinstance(rule, PhysicsRule), "physics_rule_malformed")
+    _require(
+        rule.target_kind is None or rule.target_kind in TARGET_KINDS,
+        "physics_target_kind_unknown",
+    )
     _require(pool_grader._is_sha256(rule.cells_sha256), "cells_sha256_must_be_64_hex")
     _require(rule.gate_statistic is not None, "accuracy_gate_statistic_is_human_input")
     _require(

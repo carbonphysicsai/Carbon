@@ -259,6 +259,16 @@ def measure_pool(
         not accuracy_only or (menu is not None and policies.physics is not None),
         "accuracy_only_targets_need_a_menu_and_a_physics_rule",
     )
+    # The REGISTRATION decides the kind, never the pack material (Validator-2B M-1): both must agree, both ways.
+    registered_kind = getattr(policies.physics, "target_kind", None)
+    _require(
+        not accuracy_only or registered_kind == "accuracy_only",
+        "accuracy_only_targets_not_registered",
+    )
+    _require(
+        accuracy_only or registered_kind is None,
+        "registered_target_kind_not_in_the_material",
+    )
     if accuracy_only:
         # Each scored case is graded ONCE, in its own target's role (CV-B A4, CV-Motor (3)): a target id twice, or the
         # same case (its fixed conditions + design) in two targets or two sets, is the exam's structural fault.
