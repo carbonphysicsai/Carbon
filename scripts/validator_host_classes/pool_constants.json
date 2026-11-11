@@ -255,6 +255,7 @@
         "ad_split": 0.5,
         "total_rule": "half_a_half_d",
         "target_kind": "accuracy_only",
+        "region_sha256": "HUMAN_INPUT",
         "skill_form": "log",
         "h_min": 4,
         "h_lo": 2.5,

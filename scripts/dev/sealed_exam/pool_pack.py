@@ -76,6 +76,7 @@ SEALED_DOCUMENTS = (
     ("scoring_cells", "scoring-cells", ("physics",), "json"),
     ("in_range_cases", "in-range-cases", ("physics", "in_range_cases_sha256"), "json"),
     ("variant_starts", "variant-starts", ("optimizer", "variant_rule"), "json"),
+    ("region", "region", ("physics", "region_sha256"), "json"),
 )
 
 
@@ -106,6 +107,7 @@ def _with_documents(challenge, version, material, documents, *, constants=None):
         pool_version.SCORING_CELLS,
         pool_version.IN_RANGE_CASES,
         pool_version.VARIANT_STARTS,
+        pool_version.REGION,
     }
     if keys != {row[0] for row in SEALED_DOCUMENTS}:
         raise SystemExit(

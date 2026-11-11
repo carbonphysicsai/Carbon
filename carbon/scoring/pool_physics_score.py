@@ -163,6 +163,9 @@ class PhysicsRule:
     #: The version's registered target kind (`TARGET_KINDS`, Validator-2B M-1): the registration, never the pack material,
     #: decides it; the grade requires the material's targets to be of exactly this kind. None = today's kind.
     target_kind: str | None = None
+    #: The canonical sha256 of the version's SIGNED region document (B5, CV-B W1-W3): the official derive then grades
+    #: inputs inside its extended bounds (`cooling_region`). None = the TRAIN box, as before.
+    region_sha256: str | None = None
 
 
 def check_rule(rule):
@@ -171,6 +174,10 @@ def check_rule(rule):
     _require(
         rule.target_kind is None or rule.target_kind in TARGET_KINDS,
         "physics_target_kind_unknown",
+    )
+    _require(
+        rule.region_sha256 is None or pool_grader._is_sha256(rule.region_sha256),
+        "region_sha256_must_be_64_hex",
     )
     _require(pool_grader._is_sha256(rule.cells_sha256), "cells_sha256_must_be_64_hex")
     _require(rule.gate_statistic is not None, "accuracy_gate_statistic_is_human_input")

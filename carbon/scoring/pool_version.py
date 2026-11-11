@@ -58,8 +58,13 @@ IN_RANGE_CASES = "in_range_cases"
 #: Optional material field, NEW versions with a registered ``menu`` block only: the sealed menu tasks
 #: (`pool_menu.load_tasks`: per task its problem, duties and carbon.d-menu.v1 record). Custody: hidden truths.
 MENU = "menu"
+#: Optional material field, NEW versions whose physics rule registers ``region_sha256`` only: the SIGNED region document
+#: (``extended`` bounds per input) whose canonical sha256 it registers; the official derive grades inside it
+#: (`cooling_region`, B5). Custody: hidden bounds.
+REGION = "region"
 _OPTIONAL_MATERIAL_KEYS = {
     MENU,
+    REGION,
     RESPONSE_REFERENCE,
     COVERAGE_PLAN,
     COVERAGE_PLAN_SUMS,
@@ -196,9 +201,10 @@ def _physics(value):
     registered version). Present, it has no default: ``{"cells_sha256", "gate_statistic", "gate_threshold", "gate_cases",
     "enters", "ad_split", "total_rule"}`` plus, for the 5 Nov cell scoring, ``"cell_scale"``, or, with ``"scoring":
     "headroom"`` (owner 6 Nov), ``"skill_form", "h_min", "h_lo", "n_min"`` and no cell scale (``cells_sha256`` then names
-    the sealed headroom admission document). Optional: ``"in_range_cases_sha256"`` and ``"target_kind"`` (R1:
-    ``"accuracy_only"``, `pool_physics_score.TARGET_KINDS`; absent = today's targets). A null or HUMAN_INPUT anywhere in it
-    refuses (the values are the owner's).
+    the sealed headroom admission document). Optional: ``"in_range_cases_sha256"``, ``"target_kind"`` (R1:
+    ``"accuracy_only"``, `pool_physics_score.TARGET_KINDS`; absent = today's targets) and ``"region_sha256"`` (B5: the
+    signed region the derive grades inside; absent = the TRAIN box). A null or HUMAN_INPUT anywhere in it refuses (the
+    values are the owner's).
     """
     from carbon.scoring import pool_physics_score
 
@@ -225,7 +231,7 @@ def _physics(value):
     # Validator-2B M-1); headroom registers no cell scale
     allowed = (
         required
-        | {"in_range_cases_sha256", "target_kind"}
+        | {"in_range_cases_sha256", "target_kind", "region_sha256"}
         | (set() if headroom else {"scoring"})
     )
     if not required <= set(value) <= allowed:
@@ -493,7 +499,10 @@ class PoolVariant(physical.Variant):
                 "menu_rowcheck_key": rowcheck_key,
             }
         return pool_exam.measure_pool(
-            binding=official_binding(self._kind, self.VERSION),
+            # a version registering a signed region derives inside it (B5); every other version: the binding as before
+            binding=official_binding(
+                self._kind, self.VERSION, region=sealed_region(policies, material)
+            ),
             sets=sets,
             policies=policies,
             bank_rows=bank_rows,
@@ -781,13 +790,73 @@ def register_binding(kind, version, factory):
     _BINDINGS[key] = factory
 
 
-def official_binding(kind, version):
+def official_binding(kind, version, region=None):
     """The OFFICIAL pool binding of one Challenge version: its own registered one (`register_binding`), else
-    `pool_adapters.official_binding` (every version before this hook, unchanged)."""
+    `pool_adapters.official_binding` (every version before this hook, unchanged). ``region`` (a checked signed region
+    document, `sealed_region` / `checked_region`; Cooling only) bounds its derive by the region's extended bounds
+    (`cooling_region.bounded_binding`, B5); None leaves the binding exactly as before.
+    """
     factory = _BINDINGS.get((kind, version))
-    return (
+    binding = (
         pool_adapters.official_binding(kind, version) if factory is None else factory()
     )
+    if region is None:
+        return binding
+    from carbon.scoring import cooling_region
+
+    try:
+        return cooling_region.bounded_binding(binding, region)
+    except cooling_region.RegionRefused as refused:
+        raise pool_exam.ExamRefused(refused.code) from None
+
+
+def _region_document(registered, document):
+    """``document`` when the registration names a region and its canonical sha256 is that one; None when neither is
+    present; else `ExamRefused` (a region with none registered, a registered one missing, or another document).
+    """
+    from carbon.scoring import cooling_region
+
+    if registered is None:
+        if document is not None:
+            raise pool_exam.ExamRefused("region_not_registered")
+        return None
+    if document is None:
+        raise pool_exam.ExamRefused("region_missing_from_the_sealed_pack")
+    try:
+        sha = cooling_region.canonical_sha256(document)
+    except cooling_region.RegionRefused as refused:
+        raise pool_exam.ExamRefused(refused.code) from None
+    if sha != registered:
+        raise pool_exam.ExamRefused("region_sha256_mismatch")
+    return document
+
+
+def sealed_region(policies, material):
+    """The grade's region: the sealed material's ``region`` document checked against the parsed registration's
+    ``physics.region_sha256`` (`_region_document`). None for every version that registers none (its material carries
+    none)."""
+    physics = getattr(policies, "physics", None)
+    return _region_document(
+        None if physics is None else physics.region_sha256, material.get(REGION)
+    )
+
+
+def checked_region(challenge_id, version, document, *, path=CONSTANTS):
+    """For a custody builder (truths derived the same way as the grade): ``document`` checked against the RAW
+    registration's ``physics.region_sha256`` (read like `menu_registered`, so other HUMAN_INPUT constants do not block
+    it). A registered HUMAN_INPUT or null refuses (not registered yet)."""
+    try:
+        raw = json.loads(Path(path).read_bytes())
+        entry = raw["versions"].get(f"{challenge_id} {version}")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        raise PoolConstantsNotRegistered("pool_constants_unreadable") from None
+    physics = entry.get("physics") if type(entry) is dict else None
+    registered = None
+    if type(physics) is dict and "region_sha256" in physics:
+        registered = _picked(physics["region_sha256"])
+        if registered is None:
+            raise PoolConstantsNotRegistered("pool_constants_not_registered")
+    return _region_document(registered, document)
 
 
 def material_from_set_dir(
