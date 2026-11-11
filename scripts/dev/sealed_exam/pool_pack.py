@@ -63,7 +63,7 @@ def _writer(challenge):
 #: The sealed documents a version's raw registration asks for: (material key, CLI flag, the registration leaf that
 #: requires it, how the file is read). A leaf present with any value but null (HUMAN_INPUT counts: a registration still
 #: to fill) requires the document; a document whose leaf is absent or null refuses. These are the grader's own rules
-#: (pool_exam.attach_coverage_plan / attach_physics / attach_variant_starts, pool_physics_score.attach_cells), checked
+#: (pool_exam.attach_coverage_plan / attach_physics / attach_variant_starts and the cells attach under it), checked
 #: here before a pack is written, so a 1.8 pack can no longer leave them out (mc-exam-B, Wed 11 Nov 2026, blocker B2).
 SEALED_DOCUMENTS = (
     ("coverage_plan", "coverage-plan", ("optimizer", "coverage_plan_sha256"), "json"),
