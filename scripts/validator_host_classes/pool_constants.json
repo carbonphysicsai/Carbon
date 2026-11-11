@@ -246,7 +246,10 @@
         "scoring": "headroom",
         "cells_sha256": "HUMAN_INPUT",
         "gate_statistic": "p90",
-        "gate_threshold": "HUMAN_INPUT",
+        "gate_threshold": {
+          "die_peak_c": 28,
+          "hydraulic_w": 1.0
+        },
         "gate_cases": "agen",
         "enters": "a",
         "ad_split": 0.5,
@@ -259,9 +262,9 @@
       },
       "menu": {
         "records_sha256": "HUMAN_INPUT",
-        "epoch": "HUMAN_INPUT",
+        "epoch": "E1",
         "aggregate": "mean",
-        "rotation_days": "HUMAN_INPUT",
+        "rotation_days": 7,
         "rowcheck": "HUMAN_INPUT"
       },
       "fit_breaker": {
@@ -329,8 +332,8 @@
         "cells_sha256": "HUMAN_INPUT",
         "gate_statistic": "p90",
         "gate_threshold": {
-          "mean_torque_nm": 39.3,
-          "ripple_pk_pk_nm": 14.2
+          "mean_torque_nm": 26.79,
+          "ripple_pk_pk_nm": 11.44
         },
         "gate_cases": "agen",
         "enters": "a",
@@ -344,9 +347,9 @@
       },
       "menu": {
         "records_sha256": "HUMAN_INPUT",
-        "epoch": "HUMAN_INPUT",
+        "epoch": "E1",
         "aggregate": "mean",
-        "rotation_days": "HUMAN_INPUT",
+        "rotation_days": 7,
         "rowcheck": "HUMAN_INPUT",
         "tasks_per_epoch": 3
       },
