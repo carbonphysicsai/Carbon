@@ -405,7 +405,7 @@ def test_exams_are_verified_only_against_the_release_pinned_producer_key(
     # asked.
     registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
     unregistered = tmp_path / "unregistered.json"
-    unregistered.write_text(json.dumps({**registry, "producer_public_key": None}))
+    unregistered.write_text(json.dumps(_with_key(registry, "testnet-567", None)))
     monkeypatch.setattr(validator_host, "EXAM_PRODUCER", unregistered)
     asked = []
     with pytest.raises(receiver_setup.SetupRefused, match="exam_producer_unregistered"):
@@ -419,7 +419,7 @@ def test_exams_are_verified_only_against_the_release_pinned_producer_key(
         )
     assert asked == []
     pinned = tmp_path / "exam_producer.json"
-    pinned.write_text(json.dumps({**registry, "producer_public_key": "b" * 64}))
+    pinned.write_text(json.dumps(_with_key(registry, "testnet-567", "b" * 64)))
     monkeypatch.setattr(validator_host, "EXAM_PRODUCER", pinned)
     used = []
     validator_host.fetch_exams(
@@ -431,7 +431,7 @@ def test_exams_are_verified_only_against_the_release_pinned_producer_key(
         sync=lambda store, fetcher, key, *a, **k: used.append(key) or {"packages": []},
     )
     assert used == ["b" * 64]
-    pinned.write_text(json.dumps({**registry, "producer_public_key": "B" * 64}))
+    pinned.write_text(json.dumps(_with_key(registry, "testnet-567", "B" * 64)))
     with pytest.raises(
         receiver_setup.SetupRefused, match="exam_producer_registry_invalid"
     ):
@@ -458,12 +458,16 @@ def test_the_release_pins_the_testnet_exam_producer_key():
     assert key == "375e792210bf352ae3b331b9f5055414a05480fb9ab0b8a891585c435060ec17"
     assert key_id(key) == "carbon-producer-8d358757cf077562"
     registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
-    assert registry["network"] == "testnet-567"
-    assert registry["decision"] == "OWNER-TESTNET-EXAM-KEYS-01"
+    assert registry["schema"] == "carbon.validator.exam-producer.v3"
+    testnet = registry["networks"]["testnet-567"]
+    assert testnet["decision"] == "OWNER-TESTNET-EXAM-KEYS-01"
+    assert testnet["producer_public_key"] == key
     assert validator_host.installed_network() == "testnet-567"
 
 
-@pytest.mark.parametrize("network", ["finney-64", "testnet-1", "mainnet-567"])
+@pytest.mark.parametrize(
+    "network", ["finney-64", "testnet-1", "mainnet-567", "localnet-2"]
+)
 def test_a_key_pinned_for_another_network_is_never_trusted(network):
     # A mainnet (or any other) install never trusts the testnet exam key.
     with pytest.raises(
@@ -472,17 +476,150 @@ def test_a_key_pinned_for_another_network_is_never_trusted(network):
         validator_host.pinned_producer_key(network=network)
 
 
-def test_a_record_without_its_network_or_decision_is_refused(tmp_path):
+def test_a_record_without_its_networks_or_a_decision_is_refused(tmp_path):
     registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
-    for dropped in ("network", "decision"):
-        record = tmp_path / f"no-{dropped}.json"
-        record.write_text(
-            json.dumps({k: v for k, v in registry.items() if k != dropped})
-        )
+    broken = [
+        {k: v for k, v in registry.items() if k != "networks"},
+        {**registry, "networks": {}},
+        {
+            **registry,
+            "networks": {
+                **registry["networks"],
+                "testnet-567": {
+                    "producer_public_key": registry["networks"]["testnet-567"][
+                        "producer_public_key"
+                    ]
+                },
+            },
+        },
+        {**registry, "network": "testnet-567"},  # a stray v2 field
+        {**registry, "schema": "carbon.validator.exam-producer.v2"},
+    ]
+    for i, document in enumerate(broken):
+        record = tmp_path / f"broken-{i}.json"
+        record.write_text(json.dumps(document))
         with pytest.raises(
             receiver_setup.SetupRefused, match="exam_producer_registry_invalid"
         ):
-            validator_host.pinned_producer_key(record)
+            validator_host.pinned_producer_key(record, network="testnet-567")
+
+
+def _with_key(registry, network, key, decision=None):
+    """``registry`` with ``network``'s entry set to ``key`` (and ``decision``)."""
+    entry = dict(registry["networks"].get(network, {"decision": "D-TEST"}))
+    entry["producer_public_key"] = key
+    if decision is not None:
+        entry["decision"] = decision
+    return {**registry, "networks": {**registry["networks"], network: entry}}
+
+
+MAINNET_TEST_KEY = (
+    "c" * 64
+)  # a test value: the real mainnet key comes by its own reviewed commit
+
+
+def test_each_network_verifies_only_its_own_pinned_key(tmp_path):
+    # Lock-in rev 4 (Deploy-B, MAINNET_EXAM_KEYS_OPTIONS): testnet and mainnet doors run the same release,
+    # so one record pins both networks, and each door trusts only its own network's key.
+    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
+    testnet_key = registry["networks"]["testnet-567"]["producer_public_key"]
+    record = tmp_path / "both.json"
+    record.write_text(
+        json.dumps(
+            _with_key(registry, "finney-116", MAINNET_TEST_KEY, "OWNER-TEST-ONLY")
+        )
+    )
+    assert validator_host.pinned_producer_key(record, network="finney-116") == (
+        MAINNET_TEST_KEY
+    )
+    assert (
+        validator_host.pinned_producer_key(record, network="testnet-567") == testnet_key
+    )
+    # a mainnet door never gets the testnet key, nor a testnet door the mainnet key
+    assert testnet_key != MAINNET_TEST_KEY
+    for network in ("finney-64", "localnet-2", "mainnet-116"):
+        with pytest.raises(
+            receiver_setup.SetupRefused, match="exam_producer_wrong_network"
+        ):
+            validator_host.pinned_producer_key(record, network=network)
+
+
+def test_the_release_pins_the_mainnet_exam_producer_key():
+    # OWNER-MAINNET-EXAM-KEYS-01: the fresh mainnet producer key created on custody2; its public half is the
+    # finney 116 trust root, distinct from the testnet key.
+    from carbon.challenge_validator.answer_key import key_id
+
+    key = validator_host.pinned_producer_key(network="finney-116")
+    assert key == "e5672ac1539b3858fca4e782da4ec66224e3786687c01cb289fface56fd09c5b"
+    assert key_id(key) == "carbon-producer-e2906e038e95ab4c"
+    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
+    assert (
+        registry["networks"]["finney-116"]["decision"] == "OWNER-MAINNET-EXAM-KEYS-01"
+    )
+    assert key != validator_host.pinned_producer_key(network="testnet-567")
+    assert sorted(registry["networks"]) == ["finney-116", "testnet-567"]
+
+
+def test_an_unset_network_key_refuses_and_never_falls_back(tmp_path):
+    # A network listed without a key yet refuses typed, naming the network; it never borrows another's key.
+    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
+    record = tmp_path / "unset.json"
+    record.write_text(
+        json.dumps(_with_key(registry, "finney-116", None, "HUMAN_INPUT"))
+    )
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="exam_producer_unregistered"
+    ) as refused:
+        validator_host.pinned_producer_key(record, network="finney-116")
+    assert "finney-116" in str(refused.value)
+    assert validator_host.pinned_producer_key(record, network="testnet-567") == (
+        registry["networks"]["testnet-567"]["producer_public_key"]
+    )
+
+
+def test_one_key_is_never_pinned_for_two_networks(tmp_path):
+    # Reusing the testnet key for mainnet (Deploy-B's rejected option C) breaks the cross-network refusal:
+    # the record itself is invalid, for every door that reads it.
+    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
+    testnet_key = registry["networks"]["testnet-567"]["producer_public_key"]
+    record = tmp_path / "reused.json"
+    record.write_text(
+        json.dumps(_with_key(registry, "finney-116", testnet_key, "OWNER-TEST-ONLY"))
+    )
+    for network in ("testnet-567", "finney-116"):
+        with pytest.raises(
+            receiver_setup.SetupRefused, match="exam_producer_registry_invalid"
+        ):
+            validator_host.pinned_producer_key(record, network=network)
+
+
+def test_a_network_named_twice_is_refused(tmp_path):
+    # json keeps the last of two equal names; the pin must never resolve that silently
+    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
+    testnet = json.dumps(registry["networks"]["testnet-567"])
+    other = json.dumps({"decision": "OWNER-TEST-ONLY", "producer_public_key": "d" * 64})
+    raw = (
+        '{"about": "x", "schema": "carbon.validator.exam-producer.v3", "networks": '
+        f'{{"testnet-567": {other}, "testnet-567": {testnet}}}}}'
+    )
+    record = tmp_path / "twice.json"
+    record.write_text(raw)
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="exam_producer_registry_invalid"
+    ):
+        validator_host.pinned_producer_key(record, network="testnet-567")
+
+
+def test_a_set_key_names_a_real_decision(tmp_path):
+    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
+    record = tmp_path / "placeholder.json"
+    record.write_text(
+        json.dumps(_with_key(registry, "finney-116", MAINNET_TEST_KEY, "HUMAN_INPUT"))
+    )
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="exam_producer_registry_invalid"
+    ):
+        validator_host.pinned_producer_key(record, network="finney-116")
 
 
 def test_the_receivers_chain_context_is_the_network_the_key_check_reads(tmp_path):
