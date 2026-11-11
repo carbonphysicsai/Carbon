@@ -127,9 +127,9 @@ are not shown, and the hidden sample rotates.
   cases count for the physics part, for the design menus and for the gates.
   Their extents are never published.
 - **The kinds Cooling 1.8 plans to test** include narrow, intense hot spots
-  and very intense hot spots. A kind that is not ready when the version opens
-  is not scored. Developing flow (flow still settling near the inlet) and fins
-  that stop helping as they get taller are planned for Cooling 1.9.
+  and very intense hot spots. Developing flow (flow still settling near the
+  inlet) and fins that stop helping as they get taller are planned for a later
+  Cooling version; its date is published when it is set.
 - **A model has to generalise.** A fit of any one dataset, yours included,
   is tested where that dataset does not reach.
 
