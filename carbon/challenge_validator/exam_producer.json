@@ -2,8 +2,8 @@
   "about": "The producer public keys that sign Carbon's sealed exams, one per network, pinned in the release a validator installs (Validator, E4 condition 1). A validator accepts exam packages signed only by the key pinned for the network it is installed on: a network with no entry refuses (exam_producer_wrong_network) and a network whose key is not yet set refuses (exam_producer_unregistered), so a mainnet install never trusts the testnet key and no key ever serves two networks. An exam-source file never supplies a key. Each entry names the decision that set it; an entry changes only by a reviewed commit.",
   "networks": {
     "finney-116": {
-      "decision": "HUMAN_INPUT",
-      "producer_public_key": null
+      "decision": "OWNER-MAINNET-EXAM-KEYS-01",
+      "producer_public_key": "e5672ac1539b3858fca4e782da4ec66224e3786687c01cb289fface56fd09c5b"
     },
     "testnet-567": {
       "decision": "OWNER-TESTNET-EXAM-KEYS-01",

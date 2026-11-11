@@ -153,7 +153,18 @@ def pinned_producer_key(path: Path | None = None, *, network: str | None = None)
         )
 
     try:
-        value = json.loads(Path(EXAM_PRODUCER if path is None else path).read_bytes())
+
+        def unique(pairs):
+            # a name twice (e.g. two "testnet-567" entries) must never be resolved silently by json's last-wins
+            names = [name for name, _ in pairs]
+            if len(names) != len(set(names)):
+                raise ValueError("duplicate name")
+            return dict(pairs)
+
+        value = json.loads(
+            Path(EXAM_PRODUCER if path is None else path).read_bytes(),
+            object_pairs_hook=unique,
+        )
         if (
             type(value) is not dict
             or set(value) != {"schema", "about", "networks"}
