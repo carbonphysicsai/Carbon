@@ -84,13 +84,13 @@
   "Data kits replace the shared practice banks: you generate your own data with Carbon's solver, and the training set is published as soon as it is frozen and checked, before the version opens."
  ],
  "fixes": [
+  "Grading on Burst Thermal and Cooling on testnet was paused by a fault in a release: the validator machine kept giving its grading turns to the other Challenges. It is fixed: all four Challenges grade again, and the uploads that waited have been graded.",
   "Check for result (check_result) could show your own graded Cooling catalog submission as not graded yet, or as another submission's result. It now finds a grade made on the validator's official GPU build. Update your install to get the fix.",
   "Crowns stopped changing hands for several days after an exam key change, because the sitting kings were never regraded under the new key. Each king has now been regraded and every affected submission compared again under the normal rule, and eight crowns changed hands as a result.",
   "A graded model that ran out of a limit on the validator showed as not graded yet. It now shows as a candidate failure, naming the step that failed and the limit it hit. Update your install to see it."
  ],
  "known_issues": [
   "Testnet Motor and Cooling are planned to move to version 1.8 at their next update; the exact time is posted when the switch starts. Miner files are not carried across the 1.8 version change: please re-upload (the app uploads your graph files from your project when you submit). A submission still queued on the old version is closed, not graded, nothing charged (code version_closed).",
-  "Grading on Burst Thermal and Cooling on testnet is paused by a fault in the new release: the validator machine kept giving its grading turns to the other Challenges. Your uploads are accepted and waiting in the queue, and none were lost. They will be graded once the fix is released. You don't need to submit again. Ribbed Bracket and Motor are grading new uploads.",
   "An older install shows a submission waiting for the validator as Refused: evaluation queued. Nothing was refused: it is queued, so don't submit again. Update your install and it reads Submitted, waiting for the validator's verdict. Where a door publishes it, the dashboard shows that Challenge's queue: how many submissions are waiting and the typical wait, not your own place in line.",
   "A small number of re-queued uploads on Ribbed Bracket and Motor, free re-runs after a failure on our side, cannot be graded as stored. That is our fault, not yours. If you have one, submit the same model again: it is graded normally and counts as a normal submission. Other re-queued submissions will be graded as normal until the switch.",
   "A rebuild that runs out of time while the validator machine is busy can still count against the model. That is our fault, not yours, and it is being changed so such a run is retried. Until then, leave some headroom on time.",
