@@ -193,6 +193,33 @@ def _torque(raw):
     return None if parts is None else parts["torque_nm"]
 
 
+#: The input that switches the drive current off. At J == 0 exactly (open circuit) there is no motoring quadrant: the
+#: period-mean torque is cogging alone, near zero and of either sign, so `motoring_mean_nonnegative` (a MOTORING check)
+#: is NOT_APPLICABLE there, as `paired_repeat` is without a twin (Carbon Validator-Motor, Wed 11 Nov 11:05; ruling
+#: reports/CALIB18_MOTOR_RULING_20261111 RULING.md 77117b6b section 4). Applicability only: the allowance and the gate
+#: at J > 0 are unchanged, and a row whose J is absent or not a plain number keeps the gate (fail closed).
+OPEN_CIRCUIT_INPUT = "current_density_a_mm2"
+
+
+def _open_circuit(inputs):
+    """True only when the row's current density is a plain number exactly equal to 0."""
+    try:
+        j = inputs[OPEN_CIRCUIT_INPUT]
+    except (KeyError, TypeError, IndexError):
+        return False
+    return type(j) in (int, float) and not isinstance(j, bool) and j == 0
+
+
+def gates18(curve, inputs):
+    """Motor's `exam.gates` on a 1.8 torque curve, with `motoring_mean_nonnegative` NOT_APPLICABLE at J == 0."""
+    from carbon.motor import exam
+
+    verdicts = exam.gates({"torque_nm": curve})
+    if _open_circuit(inputs) and "motoring_mean_nonnegative" in verdicts:
+        verdicts["motoring_mean_nonnegative"] = exam.NOT_APPLICABLE
+    return verdicts
+
+
 def pool_adapter(version=VERSION):
     """1.8's `PoolAdapter`: from the validity-gated 60-angle torque, its mean and its ABSOLUTE pk-pk ripple (max - min,
     N.m; the Carbon Validator 7 Nov 06:38). No limit is read or set here: the mean-torque floor and the pk-pk ceiling are
@@ -207,12 +234,11 @@ def pool_adapter(version=VERSION):
         raise PoolAdapterRefused("motor18_pool_adapter_is_for_1.8_only")
     _chosen, _limits, _objective, names = pool_adapters._roles(KIND, version)
 
-    def derive(_inputs, raw):
+    def derive(inputs, raw):
         curve = _torque(raw)
         if curve is None:
             return None
-        outputs = {"torque_nm": curve}
-        if exam.FAIL in exam.gates(outputs).values():
+        if exam.FAIL in gates18(curve, inputs).values():
             return None
         wave = ke_ll(raw)
         return {
@@ -243,11 +269,11 @@ def physics_gates():
 
     names = tuple(g.gate_id for g in exam.GATES if g.gate_id != "paired_repeat")
 
-    def failed(_inputs, raw):
+    def failed(inputs, raw):
         curve = _torque(raw)
         if curve is None:
             return ("schema_finite",)
-        verdicts = exam.gates({"torque_nm": curve})
+        verdicts = gates18(curve, inputs)
         return tuple(sorted(n for n, v in verdicts.items() if v == exam.FAIL))
 
     return PhysicsGates(KIND, VERSION, names, failed)

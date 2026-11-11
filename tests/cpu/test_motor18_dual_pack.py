@@ -268,6 +268,42 @@ def test_a_gate_failure_derives_nothing_and_the_gates_read_the_torque(monkeypatc
     assert set(seen) == {len(_flat(0, extra=0))}  # the gates see the torque slice only
 
 
+def test_a_true_j0_record_below_minus_allowance_is_scorable(monkeypatch):
+    """At J == 0 exactly (open circuit) the period-mean torque is cogging alone and may sit below -allowance; a TRUE
+    such record is SCORABLE: `motoring_mean_nonnegative` is NOT_APPLICABLE there (Carbon Validator-Motor, Wed 11 Nov
+    11:05, CALIB18_MOTOR_RULING RULING.md 77117b6b section 4). Nothing at J > 0 changes, J absent or not a plain number
+    keeps the gate, and `exam.gates` itself (every other Motor version) is unchanged."""
+    from carbon.motor import exam
+
+    monkeypatch.setattr(pool_adapters, "_roles", _roles())
+    row = _flat(
+        -0.05, ripple=0.02
+    )  # mean about -0.05 N.m, far below -(1e-3 x 0.05 + 1e-3) N.m
+    torque = row[: len(_flat(0, extra=0))]
+    assert exam.gates({"torque_nm": torque})["motoring_mean_nonnegative"] == exam.FAIL
+    chosen = motor18_dual_pack.pool_adapter("1.8")
+    gates = motor18_dual_pack.physics_gates()
+    for j in (0.0, 0):
+        open_circuit = {"current_density_a_mm2": j}
+        derived = chosen.derive(open_circuit, row)
+        assert derived is not None and derived["mean_torque_nm"] < 0
+        assert derived["ripple_pk_pk_nm"] == pytest.approx(0.02)
+        assert gates.failed(open_circuit, row) == ()
+        verdicts = motor18_dual_pack.gates18(torque, open_circuit)
+        assert verdicts["motoring_mean_nonnegative"] == exam.NOT_APPLICABLE
+        assert verdicts["schema_finite"] == exam.PASS
+    for inputs in (
+        {"current_density_a_mm2": 5.0},
+        {"current_density_a_mm2": 1e-12},
+        {},
+        {"current_density_a_mm2": False},
+        {"current_density_a_mm2": "0"},
+        None,
+    ):
+        assert chosen.derive(inputs, row) is None
+        assert gates.failed(inputs, row) == ("motoring_mean_nonnegative",)
+
+
 def test_only_1_8_has_this_adapter():
     with pytest.raises(pool_adapters.PoolAdapterRefused, match="for_1.8_only"):
         motor18_dual_pack.pool_adapter("1.6")

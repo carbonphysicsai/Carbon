@@ -135,7 +135,7 @@
       "rebuild_wall_seconds": 648,
       "dispatch": {
         "module": "carbon.scoring.motor18_dual_pack",
-        "sha256": "3924f6c28b0ea20478ca6e7d2b3df10ed8831fcd3b395be8809013fda6c242c7",
+        "sha256": "030233810ba623ac772411d77b93f680f8d0b85f619b572a9e4872c3f2bf71ec",
         "config": {}
       }
     }
