@@ -640,6 +640,21 @@ def menu_tasks(material, rule):
     )
 
 
+def _challenge_id(material, challenge):
+    """The Challenge id of ``material`` (from its own ``kind``), checked against the caller's ``challenge``, which may be
+    the id (custody tools) or the practice-grid kind (the sealed packs' `probe_design.with_probes` path passes
+    ``"motor"`` / ``"cooling"`` / ``"f02"`` / ``"f08"``). The pool-constants registration is keyed by the id, so a
+    menu's rule must be read under it, never under the kind (12 Nov: a Motor 1.8 menu bank refused
+    pool_constants_unregistered_version)."""
+    by_kind = {kind: challenge_id for challenge_id, kind in KINDS.items()}
+    if material["kind"] not in by_kind:
+        raise pool_exam.ExamRefused("pool_material_kind_unregistered")
+    challenge_id = by_kind[material["kind"]]
+    if challenge not in (challenge_id, material["kind"]):
+        raise pool_exam.ExamRefused("pool_material_kind_mismatch")
+    return challenge_id
+
+
 def _menu_rows(material, challenge):
     """The menu's model input rows of a version's material (none without a ``menu`` field)."""
     from carbon.scoring import pool_menu
@@ -678,7 +693,7 @@ def rows_from_material(material, *, dtype, challenge):
                     )
                 values = tuple(float(kind.type(row[name])) for name in names)
                 seen.setdefault(values, None)
-    for row in _menu_rows(material, challenge):
+    for row in _menu_rows(material, _challenge_id(material, challenge)):
         # menu rows are plain pool rows: same quantisation, dedup and canonical content order (Validator-2B a1)
         values = tuple(float(kind.type(row[name])) for name in names)
         seen.setdefault(values, None)
@@ -747,7 +762,10 @@ def row_accounting(material, *, dtype, challenge=None):
             if challenge is None:
                 raise pool_exam.ExamRefused("menu_accounting_needs_the_challenge")
             tasks = menu_tasks(
-                material, registered_menu(challenge, material["version"])
+                material,
+                registered_menu(
+                    _challenge_id(material, challenge), material["version"]
+                ),
             )
             counts["menu_tasks"] = len(tasks)
             counts["menu_rows"] = 0
