@@ -1224,6 +1224,9 @@ def test_an_open_door_is_held_to_its_own_network_and_its_stores(tool, tmp_path):
         "pack_store_network_unreadable",
     )
     out = tool.open_door_item(tmp_path / "no-root", "finney", both)
+    assert (out["state"], out["code"]) == (tool.REFUSE, "new_root_missing")
+    (tmp_path / "no-config").mkdir()
+    out = tool.open_door_item(tmp_path / "no-config", "finney", both)
     assert (out["state"], out["code"]) == (tool.UNKNOWN, "receiver_config_unreadable")
 
 
@@ -1263,6 +1266,73 @@ def test_a_pending_weights_loop_is_named_never_assumed(tool, tmp_path):
     assert (out["state"], out["networks_without_a_loop"]) == (tool.UNKNOWN, ["testnet"])
 
 
+def _unit(tmp_path, root, network="finney", *, extra=(), drop_in=None, config=None):
+    """A door unit as `receiver_setup service` writes it (and an optional drop-in), for ``root``."""
+    unit = tmp_path / "units" / f"{root.name}.service"
+    unit.parent.mkdir(parents=True, exist_ok=True)
+    config = config or root / "receiver" / "receiver.json"
+    lines = [
+        "[Unit]", "Description=Carbon validator receiver", "", "[Service]", "Type=simple",
+        "Environment=OPENBLAS_CORETYPE=Haswell", f"Environment=CARBON_CHAIN_NETWORK={network}", *extra,
+        f"ExecStart=/c/.venv/bin/python -B -m carbon.challenge_validator.direct_receiver --config {config}",
+        "", "[Install]", "WantedBy=default.target", "",
+    ]  # fmt: skip
+    unit.write_text("\n".join(lines), encoding="utf-8")
+    if drop_in is not None:
+        (unit.parent / (unit.name + ".d")).mkdir()
+        (unit.parent / (unit.name + ".d") / "z.conf").write_text(
+            drop_in, encoding="utf-8"
+        )
+    return unit
+
+
+def test_the_open_door_unit_binds_its_own_network(tool, tmp_path):
+    """R-a (V2C 21:13): the installed, not yet started unit is read: its network, no localnet variable, no unread
+    environment file, and it runs this root."""
+    root = _fresh(tmp_path, "m1")
+    ok = _unit(tmp_path, root)
+    out = tool.new_unit_item(root, "finney", ok)
+    assert (out["state"], out["network"]) == (tool.PASS, "finney")
+
+    def code(unit, network="finney"):
+        out = tool.new_unit_item(root, network, unit)
+        return out["state"], out.get("code")
+
+    def other(name, **kw):
+        sub = tmp_path / name
+        sub.mkdir()
+        return _unit(sub, root, **kw)
+
+    wrong = (tool.REFUSE, "unit_network_not_the_door_network")
+    assert code(ok, "testnet") == wrong
+    assert code(tmp_path / "none.service") == (tool.REFUSE, "new_unit_missing")
+    # a testnet-bound unit, or one naming no network (its shell would decide: never a pass)
+    assert code(other("a", network="testnet")) == wrong
+    assert code(other("b", network="")) == wrong
+    # a drop-in overrides the unit, as systemd applies it
+    drop = "[Service]\nEnvironment=CARBON_LOCALNET_ENDPOINT=ws://127.0.0.1:19944\n"
+    assert code(other("c", drop_in=drop)) == (
+        tool.REFUSE,
+        "unit_has_localnet_variable",
+    )
+    assert (
+        code(
+            other(
+                "d", drop_in='[Service]\nEnvironment="CARBON_CHAIN_NETWORK=testnet"\n'
+            )
+        )
+        == wrong
+    )
+    unread = other("e", extra=("EnvironmentFile=/etc/carbon.env",))
+    assert code(unread) == (tool.UNKNOWN, "unit_environment_file_unread")
+    elsewhere = tmp_path / "other" / "receiver" / "receiver.json"
+    assert code(other("f", config=elsewhere)) == (tool.REFUSE, "unit_runs_another_root")
+    # the default path is the one receiver_setup.unit_name gives this root
+    from carbon.challenge_validator import receiver_setup
+
+    assert tool.door_unit_path(root).name == receiver_setup.unit_name(root) + ".service"
+
+
 def test_precheck_open_end_to_end(tool, repo, tmp_path, capsys, monkeypatch):
     root, base = repo
     new = _commit(root, {"docs/notes.md": "open\n"}, "the release")
@@ -1271,6 +1341,7 @@ def test_precheck_open_end_to_end(tool, repo, tmp_path, capsys, monkeypatch):
     fresh = _fresh(tmp_path, "m1", store=store, accepted=new)
     release = json.dumps(tool.manifest(root, new))
     (fresh / "release.json").write_text(release, encoding="utf-8")
+    unit = _unit(tmp_path, fresh)
     # the testnet door already serving on this host
     test_door, test_argv = _door(tmp_path, "rs40", "testnet")
     (test_door / "receiver" / "state").mkdir()
@@ -1290,35 +1361,41 @@ def test_precheck_open_end_to_end(tool, repo, tmp_path, capsys, monkeypatch):
         "precheck", "--mode", "open", "--repo", str(root), "--new-rev", new,
         "--new-root", str(fresh), "--final-heads", str(heads), "--new-network", "finney",
         "--expect-network", "testnet", "--expect-network", "finney", "--weights-loop-pending", "finney",
-        "--host-root", str(test_door), "--host-root", str(fresh),
+        "--new-unit", str(unit), "--host-root", str(test_door), "--host-root", str(fresh),
     ]  # fmt: skip
-    rc = tool.main(argv)
-    out = json.loads(capsys.readouterr().out)
-    others = {k: v["state"] for k, v in out["items"].items() if k != "disk"}
-    assert others == dict.fromkeys(
-        [
-            "final_heads",
-            "accepted",
-            "release",
-            "open_door",
-            "receivers",
-            "chain_binding",
-            "lock_versions",
-        ],
-        tool.PASS,
-    )
-    # the disk floor needs 20 GiB free: a full PASS or a disk-only REFUSE
-    assert (rc, out["state"]) in ((0, tool.PASS), (3, tool.REFUSE))
-    assert out["release_class"] == {"class": None, "basis": "open_has_no_old_door"}
-    assert "old" not in out and out["new"] == new
+    items = ["final_heads", "accepted", "release", "open_door", "unit"]
+    items += ["receivers", "chain_binding", "lock_versions"]
+    for mode in ("open", "release"):  # release: the lock-in's day-of name for open
+        rc = tool.main([a if a != "open" else mode for a in argv])
+        out = json.loads(capsys.readouterr().out)
+        others = {k: v["state"] for k, v in out["items"].items() if k != "disk"}
+        assert others == dict.fromkeys(items, tool.PASS)
+        # the disk floor needs 20 GiB free: a full PASS or a disk-only REFUSE
+        assert (rc, out["state"]) in ((0, tool.PASS), (3, tool.REFUSE))
+        assert out["release_class"] == {"class": None, "basis": "open_has_no_old_door"}
+        assert "old" not in out and (out["new"], out["mode"]) == (new, "open")
+        assert out.get("mode_given") == (None if mode == "open" else "release")
 
-    # the same fresh root prepared from a testnet store refuses before it opens
+    # the staging marker on the fresh root refuses
+    (fresh / "receiver" / "STAGING").write_text("", encoding="utf-8")
+    assert tool.main(argv) == 3
+    out = json.loads(capsys.readouterr().out)
+    assert out["items"]["open_door"]["code"] == "new_root_is_staging"
+    assert out["items"]["chain_binding"]["code"] == "staging_root_on_host"
+    (fresh / "receiver" / "STAGING").unlink()
+    # the same fresh root prepared from a legacy (testnet-567) store refuses before it opens
     (store / ".store-network.json").unlink()
     assert tool.main(argv) == 3
     out = json.loads(capsys.readouterr().out)
     assert out["items"]["open_door"]["code"] == "pack_store_network_mismatch"
+    # a missing new root refuses
+    assert (
+        tool.main([a if a != str(fresh) else str(tmp_path / "gone") for a in argv]) == 3
+    )
+    out = json.loads(capsys.readouterr().out)
+    assert out["items"]["open_door"]["code"] == "new_root_missing"
 
-    # usage: the day-of line as first written (no such mode), no network, an OLD, a network not expected, a pending
+    # usage (exit 2): no network, an OLD, an option open mode does not read (R-b), a network not expected, a pending
     # loop on a network not expected
     i = argv.index("--new-network")
     head = argv[:i]  # mode, repo, rev, root, heads
@@ -1326,16 +1403,14 @@ def test_precheck_open_end_to_end(tool, repo, tmp_path, capsys, monkeypatch):
     def line(*extra):
         return [*head, *extra, "--host-root", str(test_door)]
 
-    assert tool.main(line("--new-network", "finney", "--expect-network", "finney")) in (
-        0,
-        3,
-        4,
-    )
-    capsys.readouterr()
     for bad in (
-        [a if a != "open" else "release" for a in argv],
         argv[:i] + argv[i + 2 :],
         [*argv, "--old-root", str(test_door)],
+        [*argv, "--old-rev", base],
+        [*argv, "--new-pack", PACK],
+        [*argv, "--declared", str(heads)],
+        [*argv, "--allow-chain-degraded", "why"],
+        [*argv, "--older-root", str(test_door)],
         line("--new-network", "finney", "--expect-network", "testnet"),
         line("--new-network", "testnet", "--weights-loop-pending", "finney"),
     ):
@@ -1343,7 +1418,9 @@ def test_precheck_open_end_to_end(tool, repo, tmp_path, capsys, monkeypatch):
             tool.main(bad)
 
 
-def test_prepare_and_switch_keep_their_old_door_and_options(tool, repo, tmp_path):
+def test_prepare_and_switch_keep_their_old_door_and_refuse_unused_options(
+    tool, repo, tmp_path
+):
     root, base = repo
     full = [
         "precheck", "--mode", "prepare", "--repo", str(root),
@@ -1354,7 +1431,20 @@ def test_prepare_and_switch_keep_their_old_door_and_options(tool, repo, tmp_path
         i = full.index(flag)
         with pytest.raises(SystemExit):
             tool.main(full[:i] + full[i + 2 :])
-    # the open-mode options never ride a prepare or a switch
-    for extra in (["--new-network", "finney"], ["--weights-loop-pending", "finney"]):
+    # (R-b) prepare reads no host, chain or open-mode option: each refuses, never silently ignored
+    for extra in (
+        ["--new-network", "finney"],
+        ["--weights-loop-pending", "finney"],
+        ["--new-unit", str(tmp_path)],
+        ["--expect-network", "finney"],
+        ["--host-root", str(tmp_path)],
+        ["--allow-mixed-lock", "why"],
+        ["--allow-chain-degraded", "why"],
+        ["--older-root", str(tmp_path)],
+    ):
         with pytest.raises(SystemExit):
             tool.main([*full, *extra])
+    switch = [a if a != "prepare" else "switch" for a in full]
+    for extra in (["--new-network", "finney"], ["--new-unit", str(tmp_path)]):
+        with pytest.raises(SystemExit):
+            tool.main([*switch, "--host-root", str(tmp_path), *extra])
