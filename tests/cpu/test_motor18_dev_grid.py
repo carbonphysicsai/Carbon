@@ -247,3 +247,23 @@ def test_the_real_1_8_dev_bank_is_240_wide_with_its_own_torque():
     document = json.loads(m.LINKAGE_FILE.read_bytes())
     assert document["torque_check"]["byte_equal"] == 78
     assert document["torque_check"]["host_order_rounding"] == []
+
+
+def test_the_1_8_pack_serves_the_1_1_sealed_batch_and_1_7_stays_refused():
+    """pool_pack canonicalises the plain A batch under the version it builds (copy_package.canonical_batch ->
+    motor_sealed_pack.sealed_bank), so 1.8 must pass the served-version check; 1.7 was never registered.
+    """
+    from carbon.challenge_kit import motor_sealed_pack
+    from carbon.challenge_kit.version_registry import find
+    from carbon.challenge_validator import motor_sealed
+
+    assert "1.8" in motor_sealed.SERVED_VERSIONS
+    assert "1.7" not in motor_sealed.SERVED_VERSIONS
+    assert find(motor_sealed.CHALLENGE_ID, "1.8").predecessor == "1.6"
+    # 1.8 passes the version check (then the bogus document is refused as such)
+    with pytest.raises(motor_sealed_pack.SealedPackRefused) as refused:
+        motor_sealed_pack.sealed_bank({}, [], version="1.8")
+    assert refused.value.code == "motor_sealed_document_malformed"
+    with pytest.raises(motor_sealed_pack.SealedPackRefused) as refused:
+        motor_sealed_pack.sealed_bank({}, [], version="1.7")
+    assert refused.value.code == "motor_sealed_version"

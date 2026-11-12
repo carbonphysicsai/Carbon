@@ -40,7 +40,9 @@ CHALLENGE_VERSION = "1.1"
 #: 1.4 (graph route v2) changes construction only, as 1.2 and 1.3 did.
 #: 1.5 (pool grade) adds its pool rows to the same sealed cells (`pool_version`).
 #: 1.6 (pool grade, in-pack baseline) is 1.5's exam material under a new scoring.
-SERVED_VERSIONS = (CHALLENGE_VERSION, "1.2", "1.3", "1.4", "1.5", "1.6")
+#: 1.8 (menu headroom; predecessor 1.6) carries the same 1.1 sealed batch as its plain A batch
+#: (`pool_pack` canonicalises it under 1.8). 1.7 was never registered and stays refused.
+SERVED_VERSIONS = (CHALLENGE_VERSION, "1.2", "1.3", "1.4", "1.5", "1.6", "1.8")
 RULE_SCHEMA = "carbon.motor.sealed-batch-rule.v1"
 DOCUMENT_SCHEMA = "carbon.motor.sealed-batch.v1"
 DEPLOYMENT_SCHEMA = "carbon.motor.sealed-deployment.v1"
