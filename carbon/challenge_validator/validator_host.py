@@ -312,6 +312,16 @@ def fetch_exams(
     store_root = _host_dir(installed_state) / EXAMS_DIRECTORY
     store_root.mkdir(mode=0o700, parents=True, exist_ok=True)
     store = SealedPackStore(store_root)
+    if producer_public_key is None:
+        # verified with THIS network's pinned key: the store serves this network only (V2B 11 Nov, (b))
+        try:
+            store.bind_network(installed_network())
+        except AnswerKeyRefused as refused:
+            raise SetupRefused(
+                refused.code,
+                "this host's exam store holds another network's exams; a door "
+                "takes exams only from a store of its own network.",
+            ) from None
     real = fetcher is None
     fetcher = fetcher or _fetcher(source, hotkey)
     if set_fetcher is None and real:
