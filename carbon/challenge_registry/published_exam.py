@@ -544,7 +544,7 @@ def _with_registered_score(score, own):
 
 
 _MENU_HEADROOM_SOURCE = (
-    "carbon/scoring/pool_menu.py, menu_score.py, pool_physics_score.py, pool_exam.py; "
+    "carbon/scoring/pool_menu.py, menu_score.py, pool_exam.py and its headroom scorer; "
     "scripts/validator_host_classes/pool_constants.json"
 )
 
