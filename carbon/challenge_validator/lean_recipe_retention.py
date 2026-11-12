@@ -779,6 +779,23 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
 PAIR_READ_BYTES = 8 * 1024**2
 
 
+def _pair_read_limit(adapter, artifacts):
+    """The read-back cap of a retained pair or re-check file: `PAIR_READ_BYTES`, or the byte bound of the graded query's
+    own shape where that is larger (`pair_read_bound.pair_bytes`: Motor 1.8's 2564 x 240 pair is ~30 MB; CV-Motor-C,
+    Thu 12 Nov 17:24). Every live version's bound is below `PAIR_READ_BYTES`, so its cap is unchanged; a shape that
+    cannot be read keeps `PAIR_READ_BYTES`."""
+    from carbon.scoring import pair_read_bound
+
+    try:
+        inputs, output_shape = _graded_query(adapter.discovery._material, artifacts)
+        width = 1
+        for n in output_shape[1:]:
+            width *= int(n)
+        return max(PAIR_READ_BYTES, pair_read_bound.pair_bytes(len(inputs), width))
+    except (RetentionUnavailable, AttributeError, KeyError, TypeError, ValueError):
+        return PAIR_READ_BYTES
+
+
 def _graded_query(material, artifacts):
     """``(inputs, expected output shape)`` of the query the graded inference ACTUALLY ran: the retained
     ``inputs.npz``. Everything that repeats or times that inference (the repeat pair, the single-call
@@ -822,7 +839,7 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
     path = _private_evaluation_directory(result, submission_id) / "inference-pair.json"
     # (a retry reads it back: it holds both phases' predictions, ~1.9 MB at 646 rows)
     if path.exists() or path.is_symlink():
-        return _private_measurement_bytes(path, PAIR_READ_BYTES)
+        return _private_measurement_bytes(path, _pair_read_limit(adapter, artifacts))
     owner = adapter.owner(submission_id) if regrade is None else regrade.owner
     provider = adapter._provider(owner)
     material = adapter.discovery._material
@@ -904,30 +921,36 @@ def _menu_rowcheck_outputs(evidence, entry, subset, subset_shape, out_dtype, pro
     import numpy as np
 
     from carbon.scoring import inference_pair_evidence as pair_reader
+    from carbon.scoring import pair_read_bound
 
     raw = _json(evidence)
     try:
         phases = [evidence[name] for name in ("primary", "repeat")]
-        read = pair_reader.read_inference_pair(
-            raw,
-            registered_sha256=_sha(raw),
-            expected={
-                "recipe_digest": evidence["recipe_digest"],
-                "state_digest": entry["state_digest"],
-                "inputs_digest": evidence["inputs_digest"],
-                "inference_image_id": evidence["inference_image_id"],
-                "operation_ids": [p["worker_operation"] for p in phases],
-                "ledger_identities": [
-                    p["accounting"]["ledger_identity"] for p in phases
-                ],
-                "controls_digests": [p["controls_digest"] for p in phases],
-                "input_shape": list(subset.shape),
-                "output_shape": list(subset_shape),
-                "input_dtype": str(subset.dtype),
-                "output_dtype": str(np.dtype(out_dtype)),
-            },
-            procedure=procedure,
-        )
+        width = 1
+        for n in tuple(subset_shape)[1:]:
+            width *= int(n)
+        # read under a ceiling sized from the subset's own shape (a menu version's re-check: Motor / Cooling 1.8 only)
+        with pair_read_bound.raised(pair_read_bound.pair_bytes(len(subset), width)):
+            read = pair_reader.read_inference_pair(
+                raw,
+                registered_sha256=_sha(raw),
+                expected={
+                    "recipe_digest": evidence["recipe_digest"],
+                    "state_digest": entry["state_digest"],
+                    "inputs_digest": evidence["inputs_digest"],
+                    "inference_image_id": evidence["inference_image_id"],
+                    "operation_ids": [p["worker_operation"] for p in phases],
+                    "ledger_identities": [
+                        p["accounting"]["ledger_identity"] for p in phases
+                    ],
+                    "controls_digests": [p["controls_digest"] for p in phases],
+                    "input_shape": list(subset.shape),
+                    "output_shape": list(subset_shape),
+                    "input_dtype": str(subset.dtype),
+                    "output_dtype": str(np.dtype(out_dtype)),
+                },
+                procedure=procedure,
+            )
     except (pair_reader.PairEvidenceRefused, KeyError, TypeError, ValueError) as exc:
         raise RetentionUnavailable("menu_rowcheck_evidence_unreadable") from exc
     return list(read.outputs[0])
@@ -993,7 +1016,7 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         f"menu-rowcheck-{tag}.json"
     )
     if path.exists() or path.is_symlink():
-        cached = _private_measurement_bytes(path, PAIR_READ_BYTES)
+        cached = _private_measurement_bytes(path, _pair_read_limit(adapter, artifacts))
         try:
             same = pool_menu.read_rowcheck_side_file(cached)["positions"] == positions
         except pool_exam.ExamRefused:
@@ -1908,7 +1931,6 @@ def _control_check(repeat, control, comparator):
         return None
 
     def check():
-
         evidence = repeat_grade(repeat.adapter, control["entry_id"], **repeat.custody)
         return _control_reproduced(control, evidence, comparator)
 
@@ -4165,7 +4187,9 @@ def regrade_retained_entry(
         )
         operations = json.loads(_private_measurement_bytes(operations_path, 65536))
         worker_evidence = (
-            _private_measurement_bytes(task_root / "worker-evidence.json", 16 * 1024**2)
+            _private_measurement_bytes(
+                task_root / "worker-evidence.json", 16 * 1024**2
+            )
             if kind == "graph"
             else None
         )

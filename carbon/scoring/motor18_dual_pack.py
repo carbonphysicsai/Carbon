@@ -52,6 +52,9 @@ TRAIN = "motor-dev-train-1p8-v1"
 POOL_VERSIONS = {VERSION: ("motor-pool-sealed-v3", "motor-sealed-pool-set")}
 #: 1.8's OWN producer identity covers the sealed grader and this module (its pk-pk decision lives here).
 _OWN_FILE = "motor18_dual_pack.py"
+#: and the repeat pair's byte bound its grade reads under (`pair_read_bound`: 2564 x 240 overflows the shared reader's
+#: fixed 4 MiB; CV-Motor-C, Thu 12 Nov 17:24)
+_BOUND_FILE = "pair_read_bound.py"
 
 
 def _sl():
@@ -357,10 +360,19 @@ def dispatch(config):
     public region box here; hidden bounds never enter the overlay)."""
     if config:
         raise ValueError("Motor 1.8's dispatch takes no config")
-    from carbon.scoring import dev_grid, motor18_dev_grid, pool_grader, pool_version
+    from carbon.scoring import (
+        dev_grid,
+        motor18_dev_grid,
+        pair_read_bound,
+        pool_grader,
+        pool_version,
+    )
 
     for name in EMF_OUTPUTS:
         pool_grader.register_waveform_output(name, _waveform_output())
+    # the repeat pair of a 1.8 grade is read under a ceiling sized from its own bank, never the shared fixed 4 MiB
+    # (every other version's grade reads under the unchanged ceiling; no shared producer byte moves)
+    pair_read_bound.size_produce(CHALLENGE, VERSION)
     pool_version.register_binding(KIND, VERSION, official_binding)
     # the 240-wide development bank and its adapter (`motor18_dev_grid`; refuses until its linkage file is pinned)
     dev_grid.register(
@@ -387,8 +399,9 @@ def producer_digest():
 
 def __getattr__(name):
     if name == "FILES":
-        # 1.8's OWN producer identity: the sealed grader's files, then this one (its pk-pk decision lives here)
-        return (*_sl().FILES, _OWN_FILE)
+        # 1.8's OWN producer identity: the sealed grader's files, then this one (its pk-pk decision lives here), then
+        # the pair bound its grade reads under
+        return (*_sl().FILES, _OWN_FILE, _BOUND_FILE)
     return getattr(_sl(), name)
 
 
