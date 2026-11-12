@@ -582,15 +582,14 @@ def _d_text(own):
     d = own["d"]
     weights = ", ".join(f"{w:g}" for w in MENU_PICK_WEIGHTS)
     return (
-        f"D is design value on a menu of solved designs. Each epoch Carbon draws, in secret, {d['tasks_per_epoch']} of "
+        f"D is design value on a menu of solved designs. Carbon draws, in secret, {d['tasks_per_epoch']} of "
         "its registered design tasks; each task is a large set of designs whose true outputs Carbon has solved. Your "
         "model predicts every design once, never knowing which ones count, and must answer each the same way "
         "whatever else is in the batch (otherwise D = 0). The designs are ranked by your predictions against the "
         "task's limits, and your top five picks are looked up in the truths: a pick that is truly infeasible scores "
         f"0, and the five are weighted {weights}. A task scores 0 at the better of Carbon's classical methods and a "
         "random pick, and 1 at the best five any model could pick from that sample. D is the "
-        f"{d['aggregate']} over the epoch's tasks, capped by C: D = min(menu D, C). Every grade in an epoch uses the "
-        f"same draw, and the draw changes every {d['rotation_days']} days."
+        f"{d['aggregate']} over those tasks, capped by C: D = min(menu D, C). Every grade uses the same draw."
     )
 
 
@@ -600,7 +599,6 @@ def _menu_headroom_design_search(own):
         "menu": {
             "tasks_per_epoch": own["d"]["tasks_per_epoch"],
             "aggregate": own["d"]["aggregate"],
-            "rotation_days": own["d"]["rotation_days"],
             "pick_weights": list(MENU_PICK_WEIGHTS),
         },
         "deterministic": "The same model gives the same score within an epoch, so the paired repeat check holds.",
@@ -629,7 +627,7 @@ def _menu_headroom_score(score, own):
         },
         {
             "id": "D_menu",
-            "measures": "the value of your model's top five picks on the epoch's secret design tasks",
+            "measures": "the value of your model's top five picks on the secret design tasks",
         },
         next(dict(leg) for leg in _SCORE_LEGS if leg["id"] == "C"),
     ]
@@ -1170,9 +1168,21 @@ _MOTOR_POOL_16 = _pool_block(
 )
 #: Motor 1.8: 1.6's published block under its own sealed evaluation (its own frozen 240-wide TRAIN; the headroom physics,
 #: back-EMF cells and menu D blocks are published from its pool constants once registered, slice 3). Reserved until then.
-_MOTOR_POOL_18 = _pool_block(
-    _MOTOR, "electric-motor-magnetics 1.8", "motor-pool-sealed-v3"
-)
+#: F-1 (Carbon Validator-Motor-C, Thu 12 Nov 10:37): four sections inherited from 1.6 are not true for 1.8 and are CUT, not
+#: reworded: 'uncertainty' (1.6's output set), the pick-D 'limits' keys (1.8 D is the menu, which carries its own task limits)
+#: and 'design_value_scales' (1.6 pick-D scales), and 'exam_shape' (the 1.4 batch shape; 1.8 is a pool). The public input box
+#: stays: it equals carbon/motor/domain.py INPUT_BOUNDS, and the frozen 1.8 TRAIN lies inside it.
+_MOTOR_POOL_18 = {
+    key: value
+    for key, value in _pool_block(
+        _MOTOR, "electric-motor-magnetics 1.8", "motor-pool-sealed-v3"
+    ).items()
+    if key not in ("uncertainty", "design_value_scales", "exam_shape")
+}
+_MOTOR_POOL_18["limits"] = {
+    "inputs": _MOTOR["limits"]["inputs"],
+    "source": "carbon/motor/domain.py INPUT_BOUNDS",
+}
 _COOLING_POOL = _pool_block(_COOLING, "chip-cold-plate 1.5", "cooling-pool-sealed-v1")
 # OWNER-COOLING-HOTSPOT-GATE-DROP-01: a new version, never a rewrite of _COOLING.
 _COOLING_POOL_16 = {

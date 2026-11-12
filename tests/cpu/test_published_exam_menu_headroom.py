@@ -126,10 +126,14 @@ def test_a_registered_menu_headroom_block_states_menu_d_headroom_a_and_the_gate(
     assert search["menu"] == {
         "tasks_per_epoch": 3,
         "aggregate": "mean",
-        "rotation_days": 7,
         "pick_weights": [0.4, 0.25, 0.15, 0.12, 0.08],
     }
     assert "top five picks" in search["what"] and "D = 0" in search["what"]
+    # F-1 (Miner X-C FD-1): no code changes the draw on a schedule, so no rotation is stated.
+    assert "days" not in search["what"] and "Each epoch" not in search["what"]
+    # F-1 (Carbon Validator-Motor-C S1-S4): the 1.6 sections that are not true for 1.8 are cut.
+    assert not {"uncertainty", "design_value_scales", "exam_shape"} & set(block)
+    assert set(block["limits"]) == {"inputs", "source"}
     lines = {line["id"]: line for line in block["how_you_are_tested"]}
     assert "variants" not in lines
     assert lines["inverse_design"]["title"] == "Design value"
