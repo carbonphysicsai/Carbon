@@ -1408,6 +1408,55 @@ def test_the_open_door_unit_binds_its_own_network(tool, tmp_path, monkeypatch):
     assert tool.door_unit_path(root).name == receiver_setup.unit_name(root) + ".service"
 
 
+def test_a_prepared_door_accepts_the_revision_its_runner_profile_names(tool, tmp_path):
+    """(Deploy-C 12 Nov) `receiver_setup prepare` puts the accepted revision in the runner profile, not receiver.json;
+    the receiver compares the profile's, so the precheck reads it there (and refuses to pick when the two differ).
+    """
+    rev, other = "a" * 40, "b" * 40
+
+    def prepared(
+        name, profile=rev, config=None, profile_path="environment/runner-profile.json"
+    ):
+        root = _fresh(tmp_path, name, accepted=config)
+        cfg = json.loads(
+            (root / "receiver" / "receiver.json").read_text(encoding="utf-8")
+        )
+        cfg["runner_profile"] = str(root / profile_path)
+        (root / "receiver" / "receiver.json").write_text(
+            json.dumps(cfg), encoding="utf-8"
+        )
+        if profile is not None:
+            (root / "environment").mkdir()
+            (root / "environment" / "runner-profile.json").write_text(
+                json.dumps({"accepted_revision": profile}), encoding="utf-8"
+            )
+        return root
+
+    out = tool.open_accepted_item(prepared("p-ok"), rev)
+    assert (out["state"], out["source"]) == (tool.PASS, "runner_profile")
+    out = tool.open_accepted_item(prepared("p-other"), other)
+    assert (out["state"], out["code"]) == (
+        tool.REFUSE,
+        "new_rev_is_not_the_accepted_revision",
+    )
+    assert (
+        tool.open_accepted_item(prepared("p-agree", config=rev), rev)["state"]
+        == tool.PASS
+    )
+    out = tool.open_accepted_item(prepared("p-differ", config=other), rev)
+    assert (out["state"], out["code"], out["source"]) == (
+        tool.UNKNOWN,
+        "new_accepted_revision_missing",
+        "receiver_config_and_runner_profile_differ",
+    )
+    out = tool.open_accepted_item(prepared("p-none", profile=None), rev)
+    assert (out["state"], out["code"]) == (
+        tool.UNKNOWN,
+        "new_accepted_revision_missing",
+    )
+    assert tool.Door(prepared("p-door")).accepted == rev
+
+
 def _pin(finney="f" * 64, *, name="finney-116", extra=()):
     """An exam_producer.json pinning a testnet key and (unless None) a finney key under ``name`` (+ ``extra`` names)."""
     networks = {"testnet-567": {"decision": "T", "producer_public_key": "e" * 64}}

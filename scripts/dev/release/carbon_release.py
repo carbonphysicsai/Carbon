@@ -320,6 +320,19 @@ def tree_size(root) -> int:
     return total
 
 
+def _profile_accepted(path, root):
+    """The ``accepted_revision`` of the runner profile a door's config names (relative = under the root), or None."""
+    if type(path) is not str:
+        return None
+    profile = Path(path) if Path(path).is_absolute() else Path(root) / path
+    try:
+        value = json.loads(profile.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    accepted = value.get("accepted_revision") if type(value) is dict else None
+    return accepted if type(accepted) is str and accepted else None
+
+
 class Door:
     """A prepared door root, read from its own receiver config (``<root>/receiver/receiver.json``): its state
     directory (``root`` in the config: ``<root>/receiver/state``, or H1's fixed per-door path) and its accepted
@@ -341,7 +354,21 @@ class Door:
             self.state = self.root / self.state
         if not self.state.is_dir():
             raise ei.Unknown("state_dir_missing")
-        self.accepted = cfg.get("accepted_revision")
+        # (Deploy-C 12 Nov) `receiver_setup prepare` writes the accepted revision into the runner profile the config
+        # names, not into receiver.json, and the receiver compares the profile's (`direct_receiver`); a config that
+        # also names one must agree with it, else neither is trusted (UNKNOWN downstream)
+        named = cfg.get("accepted_revision")
+        profiled = _profile_accepted(cfg.get("runner_profile"), self.root)
+        if named is not None and profiled is not None and named != profiled:
+            self.accepted, self.accepted_from = (
+                None,
+                "receiver_config_and_runner_profile_differ",
+            )
+        elif profiled is not None:
+            self.accepted, self.accepted_from = profiled, "runner_profile"
+        else:
+            self.accepted = named
+            self.accepted_from = None if named is None else "receiver_config"
 
     def size(self) -> int:
         size = tree_size(self.root)
@@ -1394,12 +1421,20 @@ UNIT_SHOW = _systemctl_show
 
 def open_accepted_item(new_root, new) -> dict:
     """The fresh door's config ACCEPTS the revision given (``accepted_item`` without an OLD side)."""
-    accepted = Door(new_root).accepted
-    if accepted is None:
-        return {"state": UNKNOWN, "code": "new_accepted_revision_missing"}
-    if accepted != new:
-        return {"state": REFUSE, "code": "new_rev_is_not_the_accepted_revision"}
-    return {"state": PASS}
+    door = Door(new_root)
+    if door.accepted is None:
+        return {
+            "state": UNKNOWN,
+            "code": "new_accepted_revision_missing",
+            "source": door.accepted_from,
+        }
+    if door.accepted != new:
+        return {
+            "state": REFUSE,
+            "code": "new_rev_is_not_the_accepted_revision",
+            "source": door.accepted_from,
+        }
+    return {"state": PASS, "source": door.accepted_from}
 
 
 #: every precheck option beyond the always-required ones, and which modes read it (R-b: anything else refuses)
