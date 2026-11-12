@@ -659,6 +659,9 @@ def door_network_item(old_root, new_root, expect="testnet") -> dict:
 STORE_NETWORK_FILE = ".store-network.json"
 STORE_NETWORK_SCHEMA = "carbon.sealed-pack-store-network.v1"
 LEGACY_STORE_NETWORK = "testnet-567"
+#: (V2C M-1, 11 Nov) each network's ONE pinned ``NETWORK-NETUID`` (`carbon.chain.models._NETUIDS`, which a test
+#: holds this to): a store or pin entry is compared by its full name, so another netuid of the same network refuses
+PINNED_NETWORK = {"testnet": "testnet-567", "finney": "finney-116"}
 
 
 def _store_network(store):
@@ -690,8 +693,9 @@ def open_door_item(new_root, network, expect="testnet") -> dict:
     """(Fri mainnet day-of, step 2) A FRESH door has no OLD to compare with, so its own records are checked before it
     opens: its receiver.json names ``network`` explicitly (a root with no ``chain_network`` record is a testnet root
     and never opens as a mainnet door), that network is one this host serves, and every pack store the door reads
-    (``evaluation_pack.sealed_delivery`` and ``evaluation_pack_set``) is bound to that same network. A non-testnet door
-    must serve a sealed delivery; it never opens on a pack copied in by hand.
+    (``evaluation_pack.sealed_delivery`` and ``evaluation_pack_set``) is bound to that network's pinned
+    ``NETWORK-NETUID`` (`PINNED_NETWORK`, compared in full: V2C M-1). A non-testnet door must serve a sealed delivery;
+    it never opens on a pack copied in by hand.
     """
     expects = (expect,) if isinstance(expect, str) else tuple(dict.fromkeys(expect))
     if not Path(new_root).is_dir():
@@ -750,13 +754,14 @@ def open_door_item(new_root, network, expect="testnet") -> dict:
                 "store": store,
             }
         seen.append({"store": store, "network": stored})
-        if stored.rsplit("-", 1)[0] != recorded:
+        if stored != PINNED_NETWORK.get(recorded):
             return {
                 **out,
                 "state": REFUSE,
                 "code": "pack_store_network_mismatch",
                 "store": store,
                 "store_network": stored,
+                "pinned": PINNED_NETWORK.get(recorded),
             }
     return {**out, "state": PASS, "stores": seen}
 
@@ -766,7 +771,8 @@ PRODUCER_PIN = "carbon/challenge_validator/exam_producer.json"
 
 def producer_key_item(repo, new, network) -> dict:
     """(Deploy-C 11 Nov, (f)) The release the door runs pins a producer key for its network (`validator_host.
-    pinned_producer_key` reads exactly this file in NEW's tree): one ``<network>-<netuid>`` entry, its key set. With the
+    pinned_producer_key` reads exactly this file in NEW's tree): one entry named the network's pinned ``NETWORK-NETUID``
+    (`PINNED_NETWORK`), its key set; an entry of the same network under another netuid refuses. With the
     store bound to that network (``open_door``), every copy in it was verified with this pinned key: a store records a
     network only on a pinned-key import, and refuses a rehearsal-key import once bound (`import_copy`).
     """
@@ -782,6 +788,7 @@ def producer_key_item(repo, new, network) -> dict:
         return {"state": REFUSE, "code": "producer_pin_missing_in_release"}
     try:
         entries = json.loads(shown.stdout)["networks"]
+        # any entry of this network under another netuid is refused, never skipped: the pinned pair is the only name
         mine = {
             name: entry
             for name, entry in entries.items()
@@ -789,6 +796,15 @@ def producer_key_item(repo, new, network) -> dict:
         }
     except (ValueError, KeyError, TypeError, AttributeError):
         return {"state": UNKNOWN, "code": "producer_pin_unreadable"}
+    pinned = PINNED_NETWORK.get(network)
+    if pinned is None or set(mine) - {pinned}:
+        return {
+            "state": REFUSE,
+            "code": "producer_pin_wrong_netuid",
+            "network": network,
+            "pinned": pinned,
+            "entries": sorted(mine),
+        }
     if len(mine) != 1:
         return {"state": REFUSE, "code": "producer_key_not_pinned", "network": network}
     ((name, entry),) = mine.items()

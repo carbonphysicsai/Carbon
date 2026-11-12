@@ -1187,6 +1187,24 @@ def test_an_open_door_is_held_to_its_own_network_and_its_stores(tool, tmp_path):
         "pack_store_network_mismatch",
         str(testnet),
     )
+    # (V2C M-1) the FULL name: the same network under another netuid refuses, for either network
+    out = check("m-999", store=_store(tmp_path, "s-finney-999", "finney-999"))
+    assert (out["state"], out["code"], out["store_network"], out["pinned"]) == (
+        tool.REFUSE,
+        "pack_store_network_mismatch",
+        "finney-999",
+        "finney-116",
+    )
+    tn999 = _store(tmp_path, "s-testnet-999", "testnet-999")
+    out = tool.open_door_item(
+        _fresh(tmp_path, "t-999", "testnet", store=tn999), "testnet", both
+    )
+    assert (out["state"], out["code"]) == (tool.REFUSE, "pack_store_network_mismatch")
+    for ok in (legacy, testnet):
+        out = tool.open_door_item(
+            _fresh(tmp_path, f"t-{ok.name}", "testnet", store=ok), "testnet", both
+        )
+        assert out["state"] == tool.PASS
     # a root with no network record is a testnet root, never a mainnet door
     out = check("m-norec", None, store=finney)
     assert (out["state"], out["code"]) == (tool.REFUSE, "new_door_network_unrecorded")
@@ -1390,10 +1408,11 @@ def test_the_open_door_unit_binds_its_own_network(tool, tmp_path, monkeypatch):
     assert tool.door_unit_path(root).name == receiver_setup.unit_name(root) + ".service"
 
 
-def _pin(finney="f" * 64):
-    """An exam_producer.json pinning a testnet key and (unless None) a finney key."""
+def _pin(finney="f" * 64, *, name="finney-116", extra=()):
+    """An exam_producer.json pinning a testnet key and (unless None) a finney key under ``name`` (+ ``extra`` names)."""
     networks = {"testnet-567": {"decision": "T", "producer_public_key": "e" * 64}}
-    networks["finney-116"] = {"decision": "M", "producer_public_key": finney}
+    for each in (name, *extra):
+        networks[each] = {"decision": "M", "producer_public_key": finney}
     return json.dumps(
         {"networks": networks, "schema": "carbon.validator.exam-producer.v3"}
     )
@@ -1420,6 +1439,32 @@ def test_the_release_pins_a_producer_key_for_the_door_network(tool, repo):
     assert tool.producer_key_item(root, pinned, "testnet")["network"] == "testnet-567"
     bad = _commit(root, {tool.PRODUCER_PIN: "{"}, "broken")
     assert tool.producer_key_item(root, bad, "finney")["state"] == tool.UNKNOWN
+    # (V2C M-1) the entry is named by the network's pinned pair: another netuid refuses, alone or beside the pinned one
+    for label, pin in (
+        ("only 999", _pin(name="finney-999")),
+        ("116 and 999", _pin(extra=("finney-999",))),
+    ):
+        out = tool.producer_key_item(
+            root, _commit(root, {tool.PRODUCER_PIN: pin}, label), "finney"
+        )
+        assert (out["state"], out["code"], out["pinned"]) == (
+            tool.REFUSE,
+            "producer_pin_wrong_netuid",
+            "finney-116",
+        )
+    assert tool.producer_key_item(root, pinned, "localnet")["code"] == (
+        "producer_pin_wrong_netuid"
+    )
+
+
+def test_the_pinned_network_pairs_are_the_chain_netuids(tool):
+    """(V2C M-1) the tool imports no carbon code, so its constant is held to the chain's own netuid table here."""
+    from carbon.chain.models import _NETUIDS
+
+    assert tool.PINNED_NETWORK == {
+        network: f"{network}-{netuid}" for network, netuid in _NETUIDS.items()
+    }
+    assert tool.PINNED_NETWORK["testnet"] == tool.LEGACY_STORE_NETWORK
 
 
 def test_precheck_open_end_to_end(tool, repo, tmp_path, capsys, monkeypatch):
