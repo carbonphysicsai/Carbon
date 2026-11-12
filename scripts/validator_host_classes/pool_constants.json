@@ -255,7 +255,7 @@
         "ad_split": 0.5,
         "total_rule": "half_a_half_d",
         "target_kind": "accuracy_only",
-        "region_sha256": "HUMAN_INPUT",
+        "region_sha256": "20befd3a5c0dbdf94b61ef650e107ba34bf615e40104e652b737ac9b8e033a4e",
         "skill_form": "log",
         "h_min": 4,
         "h_lo": 2.5,
@@ -292,7 +292,7 @@
         }
       },
       "provisional": {
-        "record": "PENDING-OWNER-RECORD (owner words typed in mc-exam-B Tue 10 Nov 2026 (sheet rev 10 606859c4; TEAM_BOARD verbatim): A-side constants as Motor 1.6 / Cooling 1.7; the physics gate rule; model-call budget 3,000 per task. Headroom values H_min 4 / H_lo 2.5 / n_min 12 / log skill: owner N18 (6 Nov, PROVISIONAL 'to start'). total_rule half_a_half_d: the version's D decided (Motor (c) 9 Nov; Cooling 9 Nov 18:4x + 22:0x). Every value still unset is a measured or custody value (agen and honesty scales, optimizer shape, shas): the version refuses to grade until each is registered. Gate threshold: by the typed rule, from the frozen-TRAIN curve by Tue 12:00 (Carbon Validator-B c28b7161), rounded up to 2 significant digits) FILL 11 Nov 19:2x (mc-exam-B): physics.gate_threshold die_peak_c 28 -> 35 (hydraulic_w 1.0 unchanged) = T_new set on the fresh gate set c18-gate-r2 (838a315a) by the owner's rule before any learned read (owner 11 Nov 12:5x, ledger L440; Carbon Validator-B registered T_new f8725460 17:42; F3-fresh PASS receipt 4ecd6345). Optimizer population null and sigma0 0.25 (owner 11 Nov 19:12, board L7471: 'population null and sigma0 0.25 as every registered version').",
+        "record": "PENDING-OWNER-RECORD (owner words typed in mc-exam-B Tue 10 Nov 2026 (sheet rev 10 606859c4; TEAM_BOARD verbatim): A-side constants as Motor 1.6 / Cooling 1.7; the physics gate rule; model-call budget 3,000 per task. Headroom values H_min 4 / H_lo 2.5 / n_min 12 / log skill: owner N18 (6 Nov, PROVISIONAL 'to start'). total_rule half_a_half_d: the version's D decided (Motor (c) 9 Nov; Cooling 9 Nov 18:4x + 22:0x). Every value still unset is a measured or custody value (agen and honesty scales, optimizer shape, shas): the version refuses to grade until each is registered. Gate threshold: by the typed rule, from the frozen-TRAIN curve by Tue 12:00 (Carbon Validator-B c28b7161), rounded up to 2 significant digits) FILL 11 Nov 19:2x (mc-exam-B): physics.gate_threshold die_peak_c 28 -> 35 (hydraulic_w 1.0 unchanged) = T_new set on the fresh gate set c18-gate-r2 (838a315a) by the owner's rule before any learned read (owner 11 Nov 12:5x, ledger L440; Carbon Validator-B registered T_new f8725460 17:42; F3-fresh PASS receipt 4ecd6345). Optimizer population null and sigma0 0.25 (owner 11 Nov 19:12, board L7471: 'population null and sigma0 0.25 as every registered version'). FILL 11 Nov 21:3x (mc-exam-C): physics.region_sha256 = the signed Cooling region v1 canonical sha 20befd3a (region file e2042fea; CV-B receipt Mon 9 Nov L5967; the region of record every 1.8 hidden draw and the gate set of record c18-gate-r2 838a315a used, CV-B L6520 / TL-2B L7434), named by Carbon Validator-C 11 Nov 21:08 (board L7508, narrowed L7509: physics derive bounds only; no D target box re-typed); not optA c1fbc07f.",
         "scope": "testnet",
         "status": "PROVISIONAL"
       }

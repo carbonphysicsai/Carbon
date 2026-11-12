@@ -321,12 +321,19 @@ def test_the_region_sha_registers_with_no_default():
             pool_version._physics({**block, "region_sha256": bad})
 
 
-def test_only_cooling_1_8_registers_a_region_and_it_waits_for_the_seal():
+#: The signed Cooling region v1's canonical sha, named as Cooling 1.8's region of record by Carbon Validator-C
+#: (11 Nov 21:08, board L7508/L7509; CV-B receipt 9 Nov L5967). Not optA c1fbc07f.
+COOLING_18_REGION_OF_RECORD = (
+    "20befd3a5c0dbdf94b61ef650e107ba34bf615e40104e652b737ac9b8e033a4e"
+)
+
+
+def test_only_cooling_1_8_registers_a_region_and_it_is_the_region_of_record():
     rows = json.loads(pool_version.CONSTANTS.read_bytes())["versions"]
     registering = {
         key: row["physics"]["region_sha256"]
         for key, row in rows.items()
         if "region_sha256" in (row.get("physics") or {})
     }
-    # HUMAN_INPUT until the seal names the signed region of record (W1: never typed here)
-    assert registering == {"chip-cold-plate 1.8": pool_version.HUMAN_INPUT}
+    # The 3b fill registers the signed region of record (W1); no other version names a region
+    assert registering == {"chip-cold-plate 1.8": COOLING_18_REGION_OF_RECORD}
