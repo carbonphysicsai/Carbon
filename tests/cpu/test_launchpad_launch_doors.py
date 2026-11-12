@@ -16,7 +16,7 @@ from scripts.dev.miner_launchpad.environment_setup import (
 )
 
 LAUNCH = {
-    ("electric-motor-magnetics", "1.5"): "motor-door",
+    ("electric-motor-magnetics", "1.8"): "motor-door",
     ("chip-cold-plate", "1.6"): "cooling-door",
     ("f08-ribbed-bracket", "1.7"): "ribbed-bracket-door",
     ("f02", "2.5"): "burst-thermal-door",
