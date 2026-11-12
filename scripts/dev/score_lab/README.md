@@ -1,5 +1,22 @@
 # Scorelab (OPT-15)
 
+## Selected-design value diagnostic (development)
+
+`carbon.design_search.indexed.selected_value_diagnostic` measures the
+achieved buyer-weighted objective of a committed indexed decision using
+producer-accepted references for the **selected** action in every mandatory
+index. Unselected menu actions may have unresolved references; this does not
+erase a verified selected outcome. A selected unresolved action remains
+`SELECTED_UNRESOLVED`, and any selected hard-limit breach, including in a
+zero-weight index, is `SELECTED_INFEASIBLE`. The result reports per-index
+outcomes, full-menu reference coverage, and a candidate score equal to the
+negative achieved objective for minimization (positive for maximization).
+It does not infer a menu optimum or regret, accept its own reference evidence,
+alter official scoring, or qualify a scientific reference.
+
+The Challenge's scientific owner controls real limit values, acceptance and
+score adoption; the Test Lead coordinates registered execution and caps.
+
 ## OPT-16: V2 bank producer workflow
 
 `bank-plan` consumes a registered V2 definition, a digest-bound committed draw

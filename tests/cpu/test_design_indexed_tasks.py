@@ -8,7 +8,7 @@ import pytest
 
 from carbon.design_search import controls, diversity, power, tasks
 from carbon.design_search.__main__ import main as report_main
-from carbon.design_search.indexed import EQUIVALENCE_RULE
+from carbon.design_search.indexed import EQUIVALENCE_RULE, selected_value_diagnostic
 from carbon.design_search.task_projection import miner_projection
 
 BANDS = (5, 15, 25, 35, 40)
@@ -151,6 +151,52 @@ def test_zero_weight_band_breach_makes_entire_map_infeasible():
     assert result["per_index"][0]["outcome"]["kind"] == "SELECTED_FEASIBLE"
     assert result["per_index"][1]["outcome"]["kind"] == "SELECTED_INFEASIBLE"
     assert result["aggregate"] is None
+
+
+def test_selected_value_does_not_require_unselected_menu_reference():
+    indexed = _indexed(bands=(5, 15), weights=[1, 0], budgets=[2, 2])
+    commitment = tasks.run_indexed_optimizer(indexed, _pick_a, model_id="toy-model")[
+        "commitment"
+    ]
+    references = _references(indexed)
+    for reference in references:
+        reference["values"] = {
+            key: value for key, value in reference["values"].items() if key[0] == "a"
+        }
+    assert (
+        tasks.judge_indexed(indexed, commitment, references)["reference_resolved"]
+        is False
+    )
+    achieved = selected_value_diagnostic(indexed, commitment, references)
+    assert achieved["state"] == "SELECTED_FEASIBLE"
+    assert achieved["selected_objective"] == pytest.approx(10)
+    assert achieved["candidate_score"] == pytest.approx(-10)
+    assert achieved["full_menu_reference_resolved"] is False
+    assert achieved["reference_best"] is None
+    assert achieved["regret"] is None
+    assert [row["kind"] for row in achieved["per_index"]] == [
+        "SELECTED_FEASIBLE",
+        "SELECTED_FEASIBLE",
+    ]
+
+    # A mandatory zero-weight band still blocks the selected map.
+    references[1]["values"][("a", "private-condition-0")]["margin"] = -1
+    breached = selected_value_diagnostic(indexed, commitment, references)
+    assert breached["state"] == "SELECTED_INFEASIBLE"
+    assert breached["selected_objective"] is None
+    assert breached["candidate_score"] is None
+
+    # Missing selected evidence is unresolved, never a scored failure.
+    del references[1]["values"][("a", "private-condition-0")]
+    missing = selected_value_diagnostic(indexed, commitment, references)
+    assert missing["state"] == "SELECTED_UNRESOLVED"
+    assert missing["selected_objective"] is None
+    assert missing["candidate_score"] is None
+
+    altered = json.loads(json.dumps(commitment))
+    altered["subcommitments"][0]["selected"] = "b"
+    with pytest.raises(tasks.TaskError, match="commitment was altered"):
+        selected_value_diagnostic(indexed, altered, references)
 
 
 def test_registered_quotas_hard_stop_and_multi_start_replay():

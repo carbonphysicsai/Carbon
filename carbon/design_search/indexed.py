@@ -407,3 +407,66 @@ def judge_indexed(registered, commitment, references):
         "regret": aggregate["regret"] if aggregate is not None else None,
         "unit": registered["identity"]["objective"]["unit"],
     }
+
+
+def selected_value_diagnostic(registered, commitment, references):
+    """Producer-only value of a committed map, using its selected references.
+
+    References for unselected candidates may be absent. This measures the
+    achieved objective of a selected design; it does not claim a bank optimum,
+    regret, reference adequacy, or an official score. The producer must accept
+    and bind the supplied reference quantities before calling this function.
+    ``judge_indexed`` validates the task, commitment, accounting, index order,
+    and each registered hard limit, including zero-weight indices.
+    """
+    judged = judge_indexed(registered, commitment, references)
+    per_index = []
+    for row in judged["per_index"]:
+        outcome = row["outcome"]
+        per_index.append(
+            {
+                "index_value": row["index_value"],
+                "buyer_weight": row["buyer_weight"],
+                "selected": outcome["selected"],
+                "kind": outcome["kind"],
+                "selected_objective": row["selected_objective"],
+            }
+        )
+    kinds = [row["kind"] for row in per_index]
+    if "SELECTED_INFEASIBLE" in kinds:
+        state = "SELECTED_INFEASIBLE"
+    elif any(row["selected"] is None for row in per_index):
+        state = "ABSTAINED"
+    elif any(kind != "SELECTED_FEASIBLE" for kind in kinds):
+        state = "SELECTED_UNRESOLVED"
+    else:
+        state = "SELECTED_FEASIBLE"
+    objective = None
+    if state == "SELECTED_FEASIBLE":
+        objective = float(
+            sum(
+                tasks._number(row["buyer_weight"], "buyer weight")
+                * tasks._number(row["selected_objective"], "selected objective")
+                for row in per_index
+            )
+        )
+    candidate_score = None
+    if objective is not None:
+        candidate_score = (
+            -objective
+            if registered["identity"]["objective"]["sense"] == "min"
+            else objective
+        )
+    return {
+        "schema": "carbon.design-search.selected-value-diagnostic.v1",
+        "task_digest": registered["task_digest"],
+        "model_id": commitment["model_id"],
+        "state": state,
+        "per_index": per_index,
+        "selected_objective": objective,
+        "candidate_score": candidate_score,
+        "unit": registered["identity"]["objective"]["unit"],
+        "full_menu_reference_resolved": judged["reference_resolved"],
+        "reference_best": None,
+        "regret": None,
+    }
