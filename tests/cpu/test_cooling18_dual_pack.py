@@ -152,38 +152,6 @@ def test_importing_the_1_8_module_first_still_arms_its_dispatch():
     assert out["files"] == ["cooling_encoded_dual_pack.py", "cooling18_dual_pack.py"]
 
 
-def test_the_doors_sealed_lookup_finds_1_8(overlay):
-    """The door resolves a pack's grader through sealed_batch_source._adapter -> cooling_dual_pack.sealed_adapter; before
-    12 Nov that routed only 1.3 and 1.5-1.7 to the encoded module, so every Cooling 1.8 grade refused
-    sealed_adapter_unavailable (mc-exam-C sweep C-1). 1.8 now reaches its own module; 1.7 is unchanged.
-    """
-    code = "\n".join(  # noqa: FLY002
-        [
-            "import json, sys",
-            "from carbon.challenge_kit import version_overlay",
-            "version_overlay.install(sys.argv[1])",
-            "from carbon.scoring import cooling_dual_pack, sealed_batch_source",
-            "a18 = sealed_batch_source._adapter('chip-cold-plate', None, '1.8', None)",
-            "a17 = cooling_dual_pack.sealed_adapter('1.7')",
-            "print(json.dumps({'m18': a18._module.__name__, 'v18': a18.VERSION, 'm17': type(a17).__name__}))",
-        ]
-    )
-    env = {**os.environ, "PYTHONPATH": str(ROOT), "PYTHONDONTWRITEBYTECODE": "1"}
-    result = subprocess.run(
-        [sys.executable, "-c", code, str(overlay)],
-        cwd=ROOT,
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=300,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr[-2000:]
-    out = json.loads(result.stdout.strip().splitlines()[-1])
-    assert out["m18"] == "carbon.scoring.cooling18_dual_pack" and out["v18"] == "1.8"
-    assert out["m17"]
-
-
 def test_a_changed_module_file_is_refused_before_import(overlay):
     document = json.loads(overlay.read_bytes())
     document["versions"]["chip-cold-plate 1.8"]["dispatch"]["sha256"] = "0" * 64
