@@ -14,6 +14,7 @@ copy again changes nothing.
 (`validator_host.pinned_producer_key`); give it only for a rehearsal copy signed by a rehearsal key. With the pinned key,
 the store is bound to the installed network (`SealedPackStore.bind_network`): a store already bound to, or holding,
 another network's exams refuses, and `receiver_setup prepare --pack-store` takes a store only for its own network.
+A rehearsal key never imports into a store that records its network (``answer_key_store_bound_rehearsal_key``).
 
 Then: `receiver_setup prepare --pack-store <store> --pack-digest <digest> --speed-sample-key-file <K_speed file> ...`.
 """
@@ -33,7 +34,11 @@ if str(ROOT) not in sys.path:
 def import_one(store, copy, hotkey, producer_public_key=None):
     """The canonical manifest digest of the imported copy (see the module docstring)."""
     from carbon.challenge_validator import copy_delivery
-    from carbon.challenge_validator.sealed_pack_import import SealedPackStore
+    from carbon.challenge_validator.answer_key import AnswerKeyRefused
+    from carbon.challenge_validator.sealed_pack_import import (
+        STORE_NETWORK_FILE,
+        SealedPackStore,
+    )
     from carbon.challenge_validator.validator_host import (
         installed_network,
         pinned_producer_key,
@@ -45,6 +50,11 @@ def import_one(store, copy, hotkey, producer_public_key=None):
         key = pinned_producer_key()
         pack_store.bind_network(installed_network())
     else:
+        # (Deploy-C 11 Nov) a store that records its network holds only copies its pinned key verified: a rehearsal
+        # copy never joins it, so the record alone proves every import in it used the pinned key (release precheck)
+        record = Path(store) / STORE_NETWORK_FILE
+        if record.exists() or record.is_symlink():
+            raise AnswerKeyRefused("answer_key_store_bound_rehearsal_key")
         key = producer_public_key
     return copy_delivery.import_copy(pack_store, package, key, hotkey=hotkey)
 

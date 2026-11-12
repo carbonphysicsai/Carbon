@@ -1286,13 +1286,70 @@ def _unit(tmp_path, root, network="finney", *, extra=(), drop_in=None, config=No
     return unit
 
 
-def test_the_open_door_unit_binds_its_own_network(tool, tmp_path):
+def _loaded_as_written(tool, monkeypatch, unit_dir):
+    """`systemctl --user show` as systemd would answer after a daemon-reload: what the unit file (+ drop-ins) says."""
+
+    def show(name):
+        unit = next(Path(unit_dir).rglob(name))
+        env, files, exec_start, _ = tool._unit_service(unit)
+        return {
+            "LoadState": "loaded",
+            "NeedDaemonReload": "no",
+            "Environment": " ".join(f"{k}={v}" for k, v in env.items()),
+            "EnvironmentFiles": " ".join(files),
+            "ExecStart": "{ path=/c/.venv/bin/python ; argv[]="
+            + (exec_start or "")
+            + " ; }",
+        }
+
+    monkeypatch.setattr(tool, "UNIT_SHOW", show)
+
+
+def test_the_open_door_unit_binds_its_own_network(tool, tmp_path, monkeypatch):
     """R-a (V2C 21:13): the installed, not yet started unit is read: its network, no localnet variable, no unread
-    environment file, and it runs this root."""
+    environment file, and it runs this root; then (Deploy-C) what systemd LOADED for it says the same.
+    """
+    _loaded_as_written(tool, monkeypatch, tmp_path)
     root = _fresh(tmp_path, "m1")
     ok = _unit(tmp_path, root)
     out = tool.new_unit_item(root, "finney", ok)
-    assert (out["state"], out["network"]) == (tool.PASS, "finney")
+    assert (out["state"], out["network"], out["loaded"]) == (tool.PASS, "finney", True)
+
+    # what systemd loaded wins: an edit without a daemon-reload, a stale load, a loaded testnet binding, no read
+    def loaded(**props):
+        base = {
+            "LoadState": "loaded",
+            "NeedDaemonReload": "no",
+            "Environment": "CARBON_CHAIN_NETWORK=finney",
+            "EnvironmentFiles": "",
+            "ExecStart": f"{{ argv[]=python --config {root}/receiver/receiver.json ; }}",
+        }
+        monkeypatch.setattr(tool, "UNIT_SHOW", lambda name: {**base, **props})
+        out = tool.new_unit_item(root, "finney", ok)
+        return out["state"], out.get("code")
+
+    assert loaded() == (tool.PASS, None)
+    assert loaded(NeedDaemonReload="yes") == (tool.REFUSE, "unit_not_loaded_as_written")
+    assert loaded(LoadState="not-found") == (tool.REFUSE, "unit_not_loaded_as_written")
+    assert loaded(Environment="CARBON_CHAIN_NETWORK=testnet") == (
+        tool.REFUSE,
+        "unit_network_not_the_door_network",
+    )
+    assert loaded(
+        Environment="CARBON_CHAIN_NETWORK=finney CARBON_LOCALNET_GENESIS=0x1"
+    ) == (tool.REFUSE, "unit_has_localnet_variable")
+    assert loaded(EnvironmentFiles="/etc/carbon.env (ignore_errors=no)") == (
+        tool.UNKNOWN,
+        "unit_environment_file_unread",
+    )
+    assert loaded(ExecStart="{ argv[]=python --config /elsewhere ; }") == (
+        tool.REFUSE,
+        "unit_runs_another_root",
+    )
+    monkeypatch.setattr(tool, "UNIT_SHOW", lambda name: None)
+    out = tool.new_unit_item(root, "finney", ok)
+    assert (out["state"], out["code"]) == (tool.UNKNOWN, "unit_loaded_state_unread")
+    _loaded_as_written(tool, monkeypatch, tmp_path)
 
     def code(unit, network="finney"):
         out = tool.new_unit_item(root, network, unit)
@@ -1333,15 +1390,50 @@ def test_the_open_door_unit_binds_its_own_network(tool, tmp_path):
     assert tool.door_unit_path(root).name == receiver_setup.unit_name(root) + ".service"
 
 
+def _pin(finney="f" * 64):
+    """An exam_producer.json pinning a testnet key and (unless None) a finney key."""
+    networks = {"testnet-567": {"decision": "T", "producer_public_key": "e" * 64}}
+    networks["finney-116"] = {"decision": "M", "producer_public_key": finney}
+    return json.dumps(
+        {"networks": networks, "schema": "carbon.validator.exam-producer.v3"}
+    )
+
+
+def test_the_release_pins_a_producer_key_for_the_door_network(tool, repo):
+    """(f, Deploy-C): the tree the door runs pins its network's producer key (what `pinned_producer_key` reads)."""
+    root, base = repo
+    out = tool.producer_key_item(root, base, "finney")
+    assert (out["state"], out["code"]) == (
+        tool.REFUSE,
+        "producer_pin_missing_in_release",
+    )
+    unset = _commit(root, {tool.PRODUCER_PIN: _pin(None)}, "testnet only")
+    out = tool.producer_key_item(root, unset, "finney")
+    assert (out["state"], out["code"]) == (tool.REFUSE, "producer_key_not_pinned")
+    pinned = _commit(root, {tool.PRODUCER_PIN: _pin()}, "the mainnet pin")
+    out = tool.producer_key_item(root, pinned, "finney")
+    assert (out["state"], out["network"], out["decision"]) == (
+        tool.PASS,
+        "finney-116",
+        "M",
+    )
+    assert tool.producer_key_item(root, pinned, "testnet")["network"] == "testnet-567"
+    bad = _commit(root, {tool.PRODUCER_PIN: "{"}, "broken")
+    assert tool.producer_key_item(root, bad, "finney")["state"] == tool.UNKNOWN
+
+
 def test_precheck_open_end_to_end(tool, repo, tmp_path, capsys, monkeypatch):
     root, base = repo
-    new = _commit(root, {"docs/notes.md": "open\n"}, "the release")
+    new = _commit(
+        root, {"docs/notes.md": "open\n", tool.PRODUCER_PIN: _pin()}, "the release"
+    )
     heads = _heads(tmp_path, [(new, "FINAL")])
     store = _store(tmp_path, "store-finney", "finney-116")
     fresh = _fresh(tmp_path, "m1", store=store, accepted=new)
     release = json.dumps(tool.manifest(root, new))
     (fresh / "release.json").write_text(release, encoding="utf-8")
     unit = _unit(tmp_path, fresh)
+    _loaded_as_written(tool, monkeypatch, tmp_path)
     # the testnet door already serving on this host
     test_door, test_argv = _door(tmp_path, "rs40", "testnet")
     (test_door / "receiver" / "state").mkdir()
@@ -1363,7 +1455,7 @@ def test_precheck_open_end_to_end(tool, repo, tmp_path, capsys, monkeypatch):
         "--expect-network", "testnet", "--expect-network", "finney", "--weights-loop-pending", "finney",
         "--new-unit", str(unit), "--host-root", str(test_door), "--host-root", str(fresh),
     ]  # fmt: skip
-    items = ["final_heads", "accepted", "release", "open_door", "unit"]
+    items = ["final_heads", "accepted", "release", "open_door", "unit", "producer_key"]
     items += ["receivers", "chain_binding", "lock_versions"]
     for mode in ("open", "release"):  # release: the lock-in's day-of name for open
         rc = tool.main([a if a != "open" else mode for a in argv])

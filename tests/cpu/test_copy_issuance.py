@@ -488,3 +488,12 @@ def test_importing_with_the_pinned_key_binds_the_store_to_this_network(
     rehearsal = tmp_path / "rehearsal-store"
     tool.import_one(rehearsal, _copy_file(job, TWO), TWO, job["key"].public_key)
     assert not (rehearsal / sp.STORE_NETWORK_FILE).exists()
+    # (Deploy-C 11 Nov) and never joins a store that records its network, so a bound store holds pinned-key copies
+    # only: refused, nothing stored
+    monkeypatch.setattr(validator_host, "installed_network", lambda: "finney-116")
+    before = sorted(p.name for p in store.rglob("*"))
+    with pytest.raises(
+        sp.AnswerKeyRefused, match="answer_key_store_bound_rehearsal_key"
+    ):
+        tool.import_one(store, _copy_file(job, TWO), TWO, job["key"].public_key)
+    assert sorted(p.name for p in store.rglob("*")) == before

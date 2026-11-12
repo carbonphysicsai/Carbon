@@ -53,7 +53,9 @@ files the NEW revision's M2 rule names, sorted), so the record the receiver chec
   is expected, and every pack store it reads is bound to that network (a non-testnet door must serve a sealed
   delivery), and NEW is no staging root; ``unit``: NEW's installed, not yet started unit (``--new-unit``, default the
   one `receiver_setup service` names) sets ``CARBON_CHAIN_NETWORK`` to that network, no localnet variable, no unread
-  ``EnvironmentFile`` and runs NEW's receiver.json; ``disk`` (1 x NEW's own root + 20 GiB); ``receivers``,
+  ``EnvironmentFile`` and runs NEW's receiver.json, in the file AND in what systemd loaded (``systemctl --user
+  show``; not loaded or awaiting a daemon-reload refuses); ``producer_key``: NEW's tree pins a producer key for that
+  network (with the store bound to it, every copy there was verified with that key: `import_copy`); ``disk`` (1 x NEW's own root + 20 GiB); ``receivers``,
   ``chain_binding`` and ``lock_versions`` over every OTHER ``--host-root`` (each running, bound to its own network).
   ``--weights-loop-pending NET`` names an expected network whose weights loop starts only after its doors open;
   nothing else is relaxed. ``--mode release`` (the lock-in's day-of name) runs open mode.
@@ -79,6 +81,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import stat
 import sys
@@ -758,6 +761,47 @@ def open_door_item(new_root, network, expect="testnet") -> dict:
     return {**out, "state": PASS, "stores": seen}
 
 
+PRODUCER_PIN = "carbon/challenge_validator/exam_producer.json"
+
+
+def producer_key_item(repo, new, network) -> dict:
+    """(Deploy-C 11 Nov, (f)) The release the door runs pins a producer key for its network (`validator_host.
+    pinned_producer_key` reads exactly this file in NEW's tree): one ``<network>-<netuid>`` entry, its key set. With the
+    store bound to that network (``open_door``), every copy in it was verified with this pinned key: a store records a
+    network only on a pinned-key import, and refuses a rehearsal-key import once bound (`import_copy`).
+    """
+    import subprocess
+
+    shown = subprocess.run(
+        ["git", "-C", str(repo), "show", f"{new}:{PRODUCER_PIN}"],
+        capture_output=True,
+        timeout=60,
+        check=False,
+    )
+    if shown.returncode != 0:
+        return {"state": REFUSE, "code": "producer_pin_missing_in_release"}
+    try:
+        entries = json.loads(shown.stdout)["networks"]
+        mine = {
+            name: entry
+            for name, entry in entries.items()
+            if name.rsplit("-", 1)[0] == network
+        }
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return {"state": UNKNOWN, "code": "producer_pin_unreadable"}
+    if len(mine) != 1:
+        return {"state": REFUSE, "code": "producer_key_not_pinned", "network": network}
+    ((name, entry),) = mine.items()
+    if type(entry) is not dict or not entry.get("producer_public_key"):
+        return {"state": REFUSE, "code": "producer_key_not_pinned", "network": name}
+    return {
+        "state": PASS,
+        "network": name,
+        "decision": entry.get("decision"),
+        "public_key": entry["producer_public_key"],
+    }
+
+
 def chain_binding_item(
     host_roots,
     expect="testnet",
@@ -1162,6 +1206,10 @@ def open_checks(args, new) -> list:
             lambda: new_unit_item(args.new_root, args.new_network, args.new_unit),
         ),
         (
+            "producer_key",
+            lambda: producer_key_item(args.repo, new, args.new_network),
+        ),
+        (
             "disk",
             lambda: disk_item(
                 args.mode, None, args.new_root, size=Door(args.new_root).size()
@@ -1201,8 +1249,6 @@ def _unit_service(path):
     """The [Service] ``Environment``, ``EnvironmentFile`` and ``ExecStart`` lines of a unit and its drop-ins
     (``<unit>.d/*.conf``, in name order, each later one overriding), as systemd applies them.
     """
-    import shlex
-
     env, env_files, exec_start, read = {}, [], None, []
     for file in [path, *sorted(Path(str(path) + ".d").glob("*.conf"))]:
         read.append(str(file))
@@ -1244,12 +1290,46 @@ def new_unit_item(new_root, network, unit=None) -> dict:
     except (OSError, ValueError):
         return {"state": UNKNOWN, "code": "new_unit_unreadable", "unit": str(path)}
     out = {"unit": str(path), "files": read}
+    config = str(Path(new_root) / "receiver" / "receiver.json")
+    refused = _unit_binding(env, env_files, exec_start, network, config)
+    if refused:
+        return {**out, **refused}
+    # (Deploy-C 11 Nov) and what systemd itself LOADED for that unit (`systemctl --user show`): a unit edited without
+    # a daemon-reload, or a drop-in somewhere this reader does not look, still starts with the loaded environment
+    loaded = UNIT_SHOW(path.name)
+    if loaded is None:
+        return {**out, "state": UNKNOWN, "code": "unit_loaded_state_unread"}
+    if loaded.get("LoadState") != "loaded" or loaded.get("NeedDaemonReload") == "yes":
+        return {
+            **out,
+            "state": REFUSE,
+            "code": "unit_not_loaded_as_written",
+            "load_state": loaded.get("LoadState"),
+            "need_daemon_reload": loaded.get("NeedDaemonReload"),
+        }
+    try:
+        loaded_env = dict(
+            word.partition("=")[::2]
+            for word in shlex.split(loaded.get("Environment", ""))
+        )
+    except ValueError:
+        return {**out, "state": UNKNOWN, "code": "unit_loaded_state_unread"}
+    files = loaded.get("EnvironmentFiles", "").strip()
+    refused = _unit_binding(
+        loaded_env, files, loaded.get("ExecStart", ""), network, config, loaded=True
+    )
+    if refused:
+        return {**out, **refused, "read": "systemctl"}
+    return {**out, "state": PASS, "network": network, "loaded": True}
+
+
+def _unit_binding(env, env_files, exec_start, network, config, *, loaded=False):
+    """The refusal for a unit environment and ExecStart that do not bind ``network`` and ``config``, or None."""
     if env_files:
-        return {**out, "state": UNKNOWN, "code": "unit_environment_file_unread"}
+        return {"state": UNKNOWN, "code": "unit_environment_file_unread"}
     localnet = sorted(n for n in CHAIN_ENVIRONMENT[1:] if n in env)
     if localnet:
         return {
-            **out,
             "state": REFUSE,
             "code": "unit_has_localnet_variable",
             "names": localnet,
@@ -1257,16 +1337,43 @@ def new_unit_item(new_root, network, unit=None) -> dict:
     bound = env.get("CARBON_CHAIN_NETWORK", "")
     if bound != network:
         return {
-            **out,
             "state": REFUSE,
             "code": "unit_network_not_the_door_network",
             "network": bound,
         }
-    config = str(Path(new_root) / "receiver" / "receiver.json")
-    words = (exec_start or "").split()
+    words = (exec_start or "").replace(";", " ").split()
     if "--config" not in words or words[words.index("--config") + 1 :][:1] != [config]:
-        return {**out, "state": REFUSE, "code": "unit_runs_another_root"}
-    return {**out, "state": PASS, "network": bound}
+        return {"state": REFUSE, "code": "unit_runs_another_root"}
+    return None
+
+
+def _systemctl_show(name):
+    """``systemctl --user show`` of a unit's load state, environment and ExecStart (one property per line), or None
+    when it cannot be read (no systemctl, no user manager): never a pass."""
+    import subprocess
+
+    if shutil.which("systemctl") is None:
+        return None
+    props = "LoadState,NeedDaemonReload,Environment,EnvironmentFiles,ExecStart"
+    try:
+        done = subprocess.run(
+            ["systemctl", "--user", "show", name, "-p", props],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if done.returncode != 0:
+        return None
+    return dict(
+        line.partition("=")[::2] for line in done.stdout.splitlines() if "=" in line
+    )
+
+
+#: how the unit check reads what systemd loaded (a test points it at a fake)
+UNIT_SHOW = _systemctl_show
 
 
 def open_accepted_item(new_root, new) -> dict:
