@@ -476,6 +476,35 @@ def test_the_total_is_exactly_the_registered_a_cells_and_gate_plus_the_menu_d(
     )
 
 
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_the_honesty_scale_is_inert_for_an_accuracy_only_menu_version(monkeypatch):
+    """Motor 1.8 (CV-Motor-C ruling of 12 Nov): an accuracy-only + menu version has no pick, so the registered honesty
+    scale s_h enters no grade. The same grade under s_h = 1.0 and s_h = 1000.0 is identical in every field, record
+    included; registered_policies still needs s_h finite and > 0, so the registration carries a labelled inert value.
+    """
+    here = sys.modules[__name__]
+    real = here._registered
+    the_sets = _accuracy_sets()
+    results = []
+    for scale in (1.0, 1000.0):
+
+        def registered(*a, scale=scale, **k):
+            policies, material = real(*a, **k)
+            return (
+                dataclasses.replace(
+                    policies,
+                    honesty=dataclasses.replace(policies.honesty, scale=scale),
+                ),
+                material,
+            )
+
+        monkeypatch.setattr(here, "_registered", registered)
+        result, capture = _grade(the_sets)
+        results.append((result, capture))
+    assert results[0] == results[1]
+    assert results[0][0]["D"] > 0  # a real menu D was graded, not a refusal
+
+
 def _per_set_a(the_sets):
     seen = []
     real = pps.family_value
