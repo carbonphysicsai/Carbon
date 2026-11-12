@@ -744,8 +744,9 @@ def attach_coverage_plan(policies, document, sums, sets):
     A version that registers no coverage plan keeps its policies unchanged and its sealed material carries none. A
     version that registers one (`coverage_plan_sha256` and `coverage_plan_sums_sha256`) grades only with a sealed
     class-map ``document`` of exactly that sha256, listed in a ``sums`` text (the plan package's SHA256SUMS) of exactly
-    that sha256, whose class names are geometric-v1 names, and that classes every target of every set, each set holding
-    every registered class (a missing target or class is refused, never defaulted or skipped).
+    that sha256, whose class names are geometric-v1 names (or, for a version that registers an admission class
+    vocabulary, exactly that vocabulary: X-1), and that classes every target of every set, each set holding every
+    registered class (a missing target or class is refused, never defaulted or skipped).
     """
     optimizer = policies.optimizer
     registered = optimizer.coverage_plan_sha256
@@ -766,10 +767,18 @@ def attach_coverage_plan(policies, document, sums, sets):
         "coverage_plan_sums_sha256_mismatch",
     )
     _require(listed, "coverage_plan_not_listed_in_its_sums")
-    _require(
-        geometric_v1_names_valid(plan.classes) is True,
-        "coverage_plan_class_not_geometric_v1",
-    )
+    vocabulary = optimizer.coverage_class_vocabulary
+    if vocabulary is None:
+        _require(
+            geometric_v1_names_valid(plan.classes) is True,
+            "coverage_plan_class_not_geometric_v1",
+        )
+    else:
+        # X-1 (Carbon Validator-C b98e6e19): the version's registered admission labels, read from its registration
+        _require(
+            set(plan.classes) == set(vocabulary),
+            "coverage_plan_classes_are_not_the_registered_vocabulary",
+        )
     for group in sets:
         try:
             classes = {pool_grader.region_class(spec, plan) for spec in group}

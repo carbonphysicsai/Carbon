@@ -177,6 +177,24 @@ def _coverage_plan_sha256(value):
     return _picked(value)
 
 
+def _coverage_class_vocabulary(value):
+    """A new version's registered admission class vocabulary (X-1: a list of unique non-empty class names) as a tuple,
+    or None when the key is absent (every other version: the geometric-v1 check, unchanged). Present, it has no default:
+    a null, HUMAN_INPUT or anything but a non-empty list of unique non-empty strings refuses.
+    """
+    if value is _ABSENT:
+        return None
+    value = _picked(value)
+    if (
+        type(value) is not list
+        or not value
+        or not all(type(c) is str and c for c in value)
+        or len(set(value)) != len(value)
+    ):
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    return tuple(value)
+
+
 def _variant_rule(value):
     """The registered neighbour-task rule of a new version (`pool_grader.OptimizerPolicy.variant_rule`), or None when the
     key is absent (every registered version). Present, it has no default: a null refuses, and so does HUMAN_INPUT
@@ -373,6 +391,10 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
                 ),
                 coverage_plan_sums_sha256=_coverage_plan_sha256(
                     optimizer.get("coverage_plan_sums_sha256", _ABSENT)
+                ),
+                # optional, NEW versions only (X-1): absent is the geometric-v1 class check, unchanged
+                coverage_class_vocabulary=_coverage_class_vocabulary(
+                    optimizer.get("coverage_class_vocabulary", _ABSENT)
                 ),
                 # optional, NEW versions only: absent is today's D, bit for bit
                 variant_rule=_variant_rule(optimizer.get("variant_rule", _ABSENT)),

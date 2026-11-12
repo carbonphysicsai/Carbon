@@ -267,6 +267,12 @@ class OptimizerPolicy:
     #: The sha256 (64 hex) of the coverage plan package's SHA256SUMS file, which must list the class-map document; registered
     #: beside `coverage_plan_sha256` (both or neither). None for every registered version.
     coverage_plan_sums_sha256: str | None = None
+    #: The version's registered ADMISSION class vocabulary (X-1, Carbon Validator-C COOL18_CELL_CLASS_RULING b98e6e19):
+    #: a tuple of unique class names, read from the version's registration in the pool constants (never typed in the
+    #: grader). When set, the coverage plan's classes must be exactly these names (`pool_exam.attach_coverage_plan`)
+    #: instead of geometric-v1 names. None (every version that registers none) keeps the geometric-v1 check unchanged.
+    #: Needs a registered coverage plan.
+    coverage_class_vocabulary: tuple | None = None
     #: The attached class map (`CoveragePlan`, custody material checked against both digests), or None.
     coverage_plan: object = None
     #: Neighbour-task robustness of D, for NEW exam versions only (OWNER-DESIGN-DECISION-FIDELITY-01: V_var, the pick
@@ -492,6 +498,21 @@ def _check_policies(optimizer, honesty):
         (optimizer.coverage_plan_sha256 is None)
         == (optimizer.coverage_plan_sums_sha256 is None),
         "coverage_plan_needs_its_map_and_sums_digests",
+    )
+    vocabulary = optimizer.coverage_class_vocabulary
+    _require(
+        vocabulary is None
+        or (
+            type(vocabulary) is tuple
+            and vocabulary
+            and all(type(c) is str and c for c in vocabulary)
+            and len(set(vocabulary)) == len(vocabulary)
+        ),
+        "coverage_class_vocabulary_must_be_unique_names",
+    )
+    _require(
+        vocabulary is None or optimizer.coverage_plan_sha256 is not None,
+        "coverage_class_vocabulary_needs_a_registered_coverage_plan",
     )
     _require(
         optimizer.a_gen_aggregate is None or optimizer.coverage_plan_sha256 is not None,
