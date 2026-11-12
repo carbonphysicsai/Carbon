@@ -218,7 +218,7 @@ The exam is not a surprise: you can read what it measures and what passes. What 
 - **Gates come before the score.** A failed gate is never made up for by a good score. Physics laws marked *gated* below fail a model; laws marked *measured* count in *A_law* but are **not yet registered as gate margins**. A gate that fails is named; which design failed is not.
 - **Two gates on every launch version.** The Challenge's physics gates must hold on every design your model answers in the exam, inside and outside the training range. And your model must answer each design in at most 1/500 of the time the reference solver needs for one design, measured on the validator's machine as the median time of single-design calls, each a separate call with the model's loading included; a slower model fails the gate and gets no score. Ceilings per design: Burst Thermal 0.38 s, Ribbed Bracket 2.08 s, Cooling 2.84 s, Motor 3.3 s.
 - **Practice and exam.** Practice uses the public bank; its totals are not exam totals.
-- **King of the hill.** The best total wins. A challenger must beat the king by the registered margin, a tie keeps the king, and the first king must beat Carbon's baseline by the margin. The margin is **not yet registered**, so takeovers are paused.
+- **King of the hill.** The best total wins. A challenger must beat the king by the registered margin, a tie keeps the king, and the first king must beat Carbon's baseline by the margin. The margin is **not yet registered**, so takeovers are paused. How a king is paid: see *How rewards work*.
 
 ### Ribbed Bracket 1.7
 
@@ -422,6 +422,63 @@ Hermes asks you before each action that changes something (launch, practise, fre
 **Need help?** Message the Carbon team on Telegram: [@RBequette](https://t.me/RBequette).
 
 ---
+
+## How rewards work
+
+These are Carbon's registered rules for paying miners. We publish the rules,
+not an income forecast: what you earn on mainnet depends on the emissions
+available, the improvements you prove and the market price of alpha.
+
+**Shares.** Miner emissions are split equally between the Challenges in the
+mainnet policy. At the mainnet launch that is **Motor and Cooling, one half
+each**. Burst Thermal and Ribbed Bracket each join when they open, and the
+split changes then (a new policy version, published before it applies). The
+test network runs the same rule over its four Challenges, paid in test TAO,
+which has no money value.
+
+**One king per Challenge.** The king is the miner whose model holds the
+crown (see *King of the hill* above).
+
+- **The first king** must beat Carbon's baseline by the registered margin.
+  Being first, or submitting the best of several models below the baseline,
+  earns nothing. Mainnet starts with no king, so nobody is paid until a model
+  clears that bar.
+- **Taking the crown** needs a model that beats the king by the registered
+  margin. A tie keeps the king.
+- **The margin is not yet registered**, so no crown changes hands until it is.
+
+**What a king is paid.** For the first 24 hours after winning, the king gets
+the Challenge's whole share. Then the rate halves every 24 hours: one half on
+the second day, one quarter on the third, and so on. Whatever is not paid is
+burned, not handed to anyone else. One win with no further improvement pays,
+in total, just under two days of the Challenge's full share; about 99 % of
+that arrives in the first seven days.
+
+**Starting the 24 hours again.**
+
+- **Beat your own score.** If the king's new model beats its own crown score
+  by the registered margin, confirmed by a repeat of the official grade, the
+  rate goes back to the full share for a new 24 hours. Your other hotkeys
+  count as you: a model from the same hotkey or the same coldkey is a
+  self-improvement, not a takeover.
+- **Beat the king.** A different miner (a different hotkey and a different
+  coldkey) who takes the crown starts at the full share. The old king's
+  payment stops.
+
+A revision that does not clear the margin changes nothing. The rule pays for
+verified progress, not for holding the crown.
+
+**When there is no king.** If a Challenge has no king, its whole share is
+burned. It is never given to miners in other Challenges.
+
+**When payment is set.** Weights are set at each weight update, every 360
+blocks (about 72 minutes), and follow whoever holds the crown at that update.
+A crown won and lost between two updates earns nothing. The 24-hour clock
+runs from the moment the crown was won.
+
+**An example.** One king, no further improvement, 30 days: the king receives
+just under 2 of the 30 days of the Challenge's share and about 93 % is burned.
+A miner who improves more often earns more of it.
 
 ## Moving to mainnet
 

@@ -101,7 +101,11 @@ class WinnerPolicy:
     cadence_blocks: int
     #: Each Challenge's registered public baseline (a construction digest), or
     #: None while testnet keeps the validator's first-incumbent rule
-    #: (OWNER-TESTNET-WEIGHTS-01 §2b).
+    #: (OWNER-TESTNET-WEIGHTS-01 §2b). None does NOT let the first eligible
+    #: submission take the crown: the validator's promotion rule still makes
+    #: the first crown beat Carbon's baseline floor by the registered margin
+    #: (OWNER-FIRST-CROWN-BEATS-BASELINE-01). A policy's "first-incumbent rule"
+    #: note means only that no baseline construction digest is pinned here.
     baselines: tuple = ()
     #: The owner record the policy names (`NETWORK_AUTHORITIES`).
     authority: str = AUTHORITY
