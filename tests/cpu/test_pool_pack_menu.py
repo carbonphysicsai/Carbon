@@ -88,8 +88,10 @@ def test_the_in_pack_baseline_answers_the_recheck_with_a_fresh_run():
     rows = [{"inputs": {"i": i}} for i in range(6)]
     assert recheck([4, 1], rows, ("n",)) == [[4.0], [1.0]]
     assert calls == [(2, ("n",), 1)]
+    # a writer with no in-pack baseline (Motor / Cooling 1.8) builds; a re-check, if anything ever asked for one, refuses
+    unavailable = pool_pack._baseline_recheck(SimpleNamespace())
     with pytest.raises(SystemExit, match="no pool_baseline"):
-        pool_pack._baseline_recheck(SimpleNamespace())
+        unavailable([0], rows, ("n",))
 
 
 @pytest.mark.skipif(

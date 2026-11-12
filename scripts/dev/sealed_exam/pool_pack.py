@@ -351,9 +351,14 @@ def _baseline_recheck(module):
 
     baseline = getattr(module, "pool_baseline", None)
     if baseline is None:
-        raise SystemExit(
-            "a menu version's writer has no pool_baseline to answer the re-check"
-        )
+        # A writer with no in-pack baseline (Motor 1.8 and Cooling 1.8 write through sealed_pack_writer, which grades
+        # none) never asks for the re-check; if anything does, it refuses here, loudly, instead of answering it.
+        def unavailable(positions, bank_rows, names):
+            raise SystemExit(
+                "the in-pack re-check was asked for, but this version's writer has no pool_baseline to answer it"
+            )
+
+        return unavailable
     takes_names = "names" in inspect.signature(baseline).parameters
 
     def recheck(positions, bank_rows, names):
