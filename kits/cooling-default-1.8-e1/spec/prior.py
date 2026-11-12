@@ -91,23 +91,13 @@ def _pg(name, t):
 
 def _nu_fully_developed(a):
     return 8.235 * (
-        1
-        - 2.0421 * a
-        + 3.0853 * a**2
-        - 2.4765 * a**3
-        + 1.0578 * a**4
-        - 0.1861 * a**5
+        1 - 2.0421 * a + 3.0853 * a**2 - 2.4765 * a**3 + 1.0578 * a**4 - 0.1861 * a**5
     )
 
 
 def _f_re(a):
     return 24.0 * (
-        1
-        - 1.3553 * a
-        + 1.9467 * a**2
-        - 1.7012 * a**3
-        + 0.9564 * a**4
-        - 0.2537 * a**5
+        1 - 1.3553 * a + 1.9467 * a**2 - 1.7012 * a**3 + 0.9564 * a**4 - 0.2537 * a**5
     )
 
 
@@ -138,7 +128,7 @@ def _shift(x, by, fill):
 
 def _solve_tridiagonal(off, diag, rhs):
     """Solve off*x[i-1] + diag[i]*x[i] + off*x[i+1] = rhs[i] (no neighbour past either end) by parallel cyclic reduction."""
-    n, width = diag.shape
+    _, width = diag.shape
     index = jnp.arange(width)
     lower = jnp.where(index == 0, 0.0, 1.0).astype(diag.dtype)[None, :] * off
     upper = jnp.where(index == width - 1, 0.0, 1.0).astype(diag.dtype)[None, :] * off
@@ -202,7 +192,6 @@ def native(x, steps_per_segment=STEPS_PER_SEGMENT, passes=COUPLING_PASSES):
     )  # (n, steps)
     applied = flux * period[:, None]
     absorbed = applied
-    col = lambda a, i: a[:, i]  # noqa: E731
 
     for _ in range(passes):
         # the bulk temperature entering each cell: a sequential march
