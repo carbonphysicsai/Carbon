@@ -229,18 +229,7 @@
         "sigma0": 0.25,
         "d_aggregate": "balanced_region_mean",
         "coverage_plan_sha256": "HUMAN_INPUT",
-        "coverage_plan_sums_sha256": "HUMAN_INPUT",
-        "variant_rule": {
-          "kind": "limit_shift",
-          "limits": [
-            "HUMAN_INPUT"
-          ],
-          "shifts": [
-            "HUMAN_INPUT"
-          ],
-          "min_valid": "HUMAN_INPUT",
-          "aggregate": "mean"
-        }
+        "coverage_plan_sums_sha256": "HUMAN_INPUT"
       },
       "physics": {
         "scoring": "headroom",
@@ -270,6 +259,9 @@
         "rowcheck": "HUMAN_INPUT"
       },
       "fit_breaker": {
+        "waivers": {
+          "v_var": "OWNER-VARIANT-RULE-NULL-MENU-D-18-01"
+        },
         "separation_read_sha256": "HUMAN_INPUT",
         "d_zero": {
           "kind": "best_of",
@@ -292,7 +284,7 @@
         }
       },
       "provisional": {
-        "record": "PENDING-OWNER-RECORD (owner words typed in mc-exam-B Tue 10 Nov 2026 (sheet rev 10 606859c4; TEAM_BOARD verbatim): A-side constants as Motor 1.6 / Cooling 1.7; the physics gate rule; model-call budget 3,000 per task. Headroom values H_min 4 / H_lo 2.5 / n_min 12 / log skill: owner N18 (6 Nov, PROVISIONAL 'to start'). total_rule half_a_half_d: the version's D decided (Motor (c) 9 Nov; Cooling 9 Nov 18:4x + 22:0x). Every value still unset is a measured or custody value (agen and honesty scales, optimizer shape, shas): the version refuses to grade until each is registered. Gate threshold: by the typed rule, from the frozen-TRAIN curve by Tue 12:00 (Carbon Validator-B c28b7161), rounded up to 2 significant digits) FILL 11 Nov 19:2x (mc-exam-B): physics.gate_threshold die_peak_c 28 -> 35 (hydraulic_w 1.0 unchanged) = T_new set on the fresh gate set c18-gate-r2 (838a315a) by the owner's rule before any learned read (owner 11 Nov 12:5x, ledger L440; Carbon Validator-B registered T_new f8725460 17:42; F3-fresh PASS receipt 4ecd6345). Optimizer population null and sigma0 0.25 (owner 11 Nov 19:12, board L7471: 'population null and sigma0 0.25 as every registered version'). FILL 11 Nov 21:3x (mc-exam-C): physics.region_sha256 = the signed Cooling region v1 canonical sha 20befd3a (region file e2042fea; CV-B receipt Mon 9 Nov L5967; the region of record every 1.8 hidden draw and the gate set of record c18-gate-r2 838a315a used, CV-B L6520 / TL-2B L7434), named by Carbon Validator-C 11 Nov 21:08 (board L7508, narrowed L7509: physics derive bounds only; no D target box re-typed); not optA c1fbc07f.",
+        "record": "PENDING-OWNER-RECORD (owner words typed in mc-exam-B Tue 10 Nov 2026 (sheet rev 10 606859c4; TEAM_BOARD verbatim): A-side constants as Motor 1.6 / Cooling 1.7; the physics gate rule; model-call budget 3,000 per task. Headroom values H_min 4 / H_lo 2.5 / n_min 12 / log skill: owner N18 (6 Nov, PROVISIONAL 'to start'). total_rule half_a_half_d: the version's D decided (Motor (c) 9 Nov; Cooling 9 Nov 18:4x + 22:0x). Every value still unset is a measured or custody value (agen and honesty scales, optimizer shape, shas): the version refuses to grade until each is registered. Gate threshold: by the typed rule, from the frozen-TRAIN curve by Tue 12:00 (Carbon Validator-B c28b7161), rounded up to 2 significant digits) FILL 11 Nov 19:2x (mc-exam-B): physics.gate_threshold die_peak_c 28 -> 35 (hydraulic_w 1.0 unchanged) = T_new set on the fresh gate set c18-gate-r2 (838a315a) by the owner's rule before any learned read (owner 11 Nov 12:5x, ledger L440; Carbon Validator-B registered T_new f8725460 17:42; F3-fresh PASS receipt 4ecd6345). Optimizer population null and sigma0 0.25 (owner 11 Nov 19:12, board L7471: 'population null and sigma0 0.25 as every registered version'). FILL 11 Nov 21:3x (mc-exam-C): physics.region_sha256 = the signed Cooling region v1 canonical sha 20befd3a (region file e2042fea; CV-B receipt Mon 9 Nov L5967; the region of record every 1.8 hidden draw and the gate set of record c18-gate-r2 838a315a used, CV-B L6520 / TL-2B L7434), named by Carbon Validator-C 11 Nov 21:08 (board L7508, narrowed L7509: physics derive bounds only; no D target box re-typed); not optA c1fbc07f. FILL 11 Nov 22:xx (mc-exam-C): no optimizer.variant_rule key (the absent key is the registry's 'no rule', policy variant_rule null) and fit_breaker.waivers.v_var = OWNER-VARIANT-RULE-NULL-MENU-D-18-01 (owner 11 Nov 19:12, board L7471: 'recorded as such: menu D replaces pick D; no score effect'; form ruled by Validator-2C; CV-C L7503, CV-Motor-C L7522).",
         "scope": "testnet",
         "status": "PROVISIONAL"
       }
@@ -316,18 +308,7 @@
         "sigma0": 0.25,
         "d_aggregate": "balanced_region_mean",
         "coverage_plan_sha256": "HUMAN_INPUT",
-        "coverage_plan_sums_sha256": "HUMAN_INPUT",
-        "variant_rule": {
-          "kind": "limit_shift",
-          "limits": [
-            "HUMAN_INPUT"
-          ],
-          "shifts": [
-            "HUMAN_INPUT"
-          ],
-          "min_valid": "HUMAN_INPUT",
-          "aggregate": "mean"
-        }
+        "coverage_plan_sums_sha256": "HUMAN_INPUT"
       },
       "physics": {
         "scoring": "headroom",
@@ -358,6 +339,9 @@
         "tasks_per_epoch": 3
       },
       "fit_breaker": {
+        "waivers": {
+          "v_var": "OWNER-VARIANT-RULE-NULL-MENU-D-18-01"
+        },
         "separation_read_sha256": "HUMAN_INPUT",
         "d_zero": {
           "kind": "best_of",
@@ -376,7 +360,7 @@
         }
       },
       "provisional": {
-        "record": "PENDING-OWNER-RECORD (owner words typed in mc-exam-B Tue 10 Nov 2026 (sheet rev 10 606859c4; TEAM_BOARD verbatim): A-side constants as Motor 1.6 / Cooling 1.7; the physics gate rule; model-call budget 3,000 per task. Headroom values H_min 4 / H_lo 2.5 / n_min 12 / log skill: owner N18 (6 Nov, PROVISIONAL 'to start'). total_rule half_a_half_d: the version's D decided (Motor (c) 9 Nov; Cooling 9 Nov 18:4x + 22:0x). Every value still unset is a measured or custody value (agen and honesty scales, optimizer shape, shas): the version refuses to grade until each is registered. Gate threshold: option (a), the measured classical bar on gate set 7d1761c3 (n 23), re-registered LOWER-only 11 Nov 09:54 by Carbon Validator-Motor (board L7108) to the strongest single receipted classical member on both outputs, c1_gp_kernels of the (C) sweep (EXT_SWEEP_C1C5 c13abf71), gate-read ff05cb47, unrounded; owner (a) words: 're-register lower only if a later receipted classical member beats it; never raise it'; above 5 U, told to the owner as information) FILL 11 Nov 19:2x (mc-exam-B): optimizer population null and sigma0 0.25 (owner 11 Nov 19:12, board L7471: 'population null and sigma0 0.25 as every registered version'). FILL 11 Nov 21:2x (mc-exam-C): gate_threshold back_emf_open_circuit = gbm p90 of the OC gate read at full precision (owner 11 Nov 16:55, board L7405, option (a): 'register the measured bar ... (gbm p90, full precision) for the open-circuit output, provisional; re-register lower only if a later receipted classical member beats it; never raise it'; registered by Carbon Validator-Motor 16:55, board L7407; oc-read a052154c, gate.json 07f44968, OC gate set 697a0d7b n 24, oc_read rev 2 ca53af9e, U of record debc7114; value posted by Test Lead-C 21:1x, re-read from a052154c by mc-exam-C). Label: 'measured classical bar; above 5 U, owner chose (a) Wed 11 Nov; lower-only'.",
+        "record": "PENDING-OWNER-RECORD (owner words typed in mc-exam-B Tue 10 Nov 2026 (sheet rev 10 606859c4; TEAM_BOARD verbatim): A-side constants as Motor 1.6 / Cooling 1.7; the physics gate rule; model-call budget 3,000 per task. Headroom values H_min 4 / H_lo 2.5 / n_min 12 / log skill: owner N18 (6 Nov, PROVISIONAL 'to start'). total_rule half_a_half_d: the version's D decided (Motor (c) 9 Nov; Cooling 9 Nov 18:4x + 22:0x). Every value still unset is a measured or custody value (agen and honesty scales, optimizer shape, shas): the version refuses to grade until each is registered. Gate threshold: option (a), the measured classical bar on gate set 7d1761c3 (n 23), re-registered LOWER-only 11 Nov 09:54 by Carbon Validator-Motor (board L7108) to the strongest single receipted classical member on both outputs, c1_gp_kernels of the (C) sweep (EXT_SWEEP_C1C5 c13abf71), gate-read ff05cb47, unrounded; owner (a) words: 're-register lower only if a later receipted classical member beats it; never raise it'; above 5 U, told to the owner as information) FILL 11 Nov 19:2x (mc-exam-B): optimizer population null and sigma0 0.25 (owner 11 Nov 19:12, board L7471: 'population null and sigma0 0.25 as every registered version'). FILL 11 Nov 21:2x (mc-exam-C): gate_threshold back_emf_open_circuit = gbm p90 of the OC gate read at full precision (owner 11 Nov 16:55, board L7405, option (a): 'register the measured bar ... (gbm p90, full precision) for the open-circuit output, provisional; re-register lower only if a later receipted classical member beats it; never raise it'; registered by Carbon Validator-Motor 16:55, board L7407; oc-read a052154c, gate.json 07f44968, OC gate set 697a0d7b n 24, oc_read rev 2 ca53af9e, U of record debc7114; value posted by Test Lead-C 21:1x, re-read from a052154c by mc-exam-C). Label: 'measured classical bar; above 5 U, owner chose (a) Wed 11 Nov; lower-only'. FILL 11 Nov 22:xx (mc-exam-C): no optimizer.variant_rule key (the absent key is the registry's 'no rule', policy variant_rule null) and fit_breaker.waivers.v_var = OWNER-VARIANT-RULE-NULL-MENU-D-18-01 (owner 11 Nov 19:12, board L7471: 'recorded as such: menu D replaces pick D; no score effect'; form ruled by Validator-2C; CV-C L7503, CV-Motor-C L7522).",
         "gate_threshold_label": "measured classical bar (torque: c1_gp_kernels, gate-read ff05cb47, L7108; back-EMF OC: gbm, oc-read a052154c, L7405/L7407); upper bound only for the gate-panel members NOT_RUN at L7108 (the king refit, in-range Kt = Ke); CAP_KERNEL report-only; re-register lower only if a later receipted classical member beats it; never raise it",
         "scope": "testnet",
         "status": "PROVISIONAL"

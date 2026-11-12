@@ -146,20 +146,30 @@ def test_a_version_registering_none_is_unchanged(tmp_path):
     assert out == _material()
 
 
-def test_both_1_8_registrations_require_all_five():
-    """The real Motor 1.8 and Cooling 1.8 rows (Line D) register a coverage plan, a physics block with in-range cases and
-    a variant rule: a pack without the five documents refuses. Cooling 1.8 also registers its signed region (B5), so its
-    pack needs that sixth document; Motor 1.8 registers none (its derive reads no bounds).
+def test_both_1_8_registrations_require_their_documents():
+    """The real Motor 1.8 and Cooling 1.8 rows (Line D) register a coverage plan (+ sums) and a physics block with in-range
+    cases, and NO variant rule (owner 11 Nov 19:12, record OWNER-VARIANT-RULE-NULL-MENU-D-18-01: menu D replaces pick D;
+    Validator-2C 21:32 option A): a pack without those four documents refuses, and needs no variant starts. Cooling 1.8
+    also registers its signed region (B5), so its pack needs that fifth document; Motor 1.8 registers none (its derive
+    reads no bounds). Where a variant rule IS registered, the variant starts are still required (not weakened).
     """
     pack = _pool_pack()
     raw = json.loads(Path(pool_version.CONSTANTS).read_bytes())["versions"]
+    every = {row[0] for row in pack.SEALED_DOCUMENTS}
     for name in ("electric-motor-magnetics 1.8", "chip-cold-plate 1.8"):
         entry = raw[name]
-        required = {
-            row[0]
-            for row in pack.SEALED_DOCUMENTS
-            if pack._registered_leaf(entry, row[2])
-        }
-        five = {row[0] for row in pack.SEALED_DOCUMENTS} - {pool_version.REGION}
-        expected = five | ({pool_version.REGION} if name.startswith("chip") else set())
-        assert required == expected, name
+        assert "variant_rule" not in entry["optimizer"], name
+
+        def required(row_entry):
+            return {
+                row[0]
+                for row in pack.SEALED_DOCUMENTS
+                if pack._registered_leaf(row_entry, row[2])
+            }
+
+        four = every - {pool_version.REGION, pool_version.VARIANT_STARTS}
+        expected = four | ({pool_version.REGION} if name.startswith("chip") else set())
+        assert required(entry) == expected, name
+        with_rule = json.loads(json.dumps(entry))
+        with_rule["optimizer"]["variant_rule"] = {"kind": "limit_shift"}
+        assert required(with_rule) == expected | {pool_version.VARIANT_STARTS}, name

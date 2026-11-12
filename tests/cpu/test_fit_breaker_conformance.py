@@ -890,6 +890,21 @@ def _fill(node, key=None):
     return node
 
 
+def _seed_named_waiver_records(entry, folder):
+    """Copy, byte for byte, each REAL tracked owner record the row's waivers name (never a synthetic stub).
+
+    Returns the waived rule names; a named record must exist exactly once in the tracked decisions folder.
+    """
+    folder.mkdir()
+    waivers = entry.get("fit_breaker", {}).get("waivers", {})
+    for waiver in waivers.values():
+        record = waiver["record"] if type(waiver) is dict else waiver
+        found = sorted(DECISIONS.glob(f"*-{record}.md"))
+        assert len(found) == 1, (record, found)
+        (folder / found[0].name).write_bytes(found[0].read_bytes())
+    return sorted(waivers)
+
+
 @pytest.mark.parametrize(
     "name", ["electric-motor-magnetics 1.8", "chip-cold-plate 1.8"]
 )
@@ -904,7 +919,13 @@ def test_a_filled_1p8_row_passes_conformance_and_parses_in_the_grader(tmp_path, 
     assert "HUMAN_INPUT" not in json.dumps(entry)
     assert "d_zero" not in entry["optimizer"]
     version = tuple(name.rsplit(" ", 1))
-    assert _menu_check(entry, tmp_path, version=version) == []
+    waived = _seed_named_waiver_records(entry, tmp_path / "with")
+    assert _menu_check(entry, tmp_path / "with", version=version) == []
+    # V2C 11 Nov 21:32 (option A): a waiver whose record is not in the folder still fails (rule 4 logic untouched).
+    (tmp_path / "without").mkdir()
+    failures = _menu_check(entry, tmp_path / "without", version=version)
+    for rule in waived:
+        assert (*version, rule, "waiver_does_not_resolve") in failures
     path = tmp_path / "pool_constants.json"
     path.write_text(
         json.dumps({"schema": document["schema"], "versions": {name: entry}}),
