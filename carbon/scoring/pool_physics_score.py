@@ -553,19 +553,23 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
             cases.setdefault(plan.class_of(spec.target_id), []).append(spec)
         for _family, name, output in cells.scored:
             members = cases.get(name, [])
+            # A cell is graded over the class's targets that CARRY its output: a class may also hold a target that does
+            # not (a sibling holding only some outputs of the same rows, e.g. rows with no reference for one output;
+            # Carbon Validator-Motor R1 cond 5). Every set still needs a carrier with cases: none = refused.
+            carriers = [spec for spec in members if output in spec.outputs]
             _require(
-                all(output in spec.outputs for spec in members),
+                not members or carriers,
                 "scoring_cells_output_not_an_output_of_its_class",
             )
             _require(
-                any(spec.agen for spec in members),
+                any(spec.agen for spec in carriers),
                 "scoring_cell_without_cases_in_a_set",
             )
             if headroom:
                 # the log skill divides by U: every admitted case needs one
                 _require(
                     all(
-                        spec.u_at(i, output) > 0 for spec in members for i in spec.agen
+                        spec.u_at(i, output) > 0 for spec in carriers for i in spec.agen
                     ),
                     "headroom_output_with_zero_u",
                 )
@@ -612,14 +616,16 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
         "accuracy_gate_without_in_range_cases",
     )
     if headroom:
-        # the admission's n is the class's reserved case count over the whole exam (a mismatch is a different exam)
+        # the admission's n is the cell's reserved case count over the whole exam, over the class's targets that carry
+        # the cell's output (a mismatch is a different exam)
         counts = collections.Counter()
         for spec in all_specs:
-            counts[plan.class_of(spec.target_id)] += len(spec.agen)
+            for output in spec.outputs:
+                counts[(plan.class_of(spec.target_id), output)] += len(spec.agen)
         for cell in document["cells"]:
             if (cell["family"], cell["class"], cell["output"]) in cells.scored:
                 _require(
-                    counts[cell["class"]] == cell["n"],
+                    counts[(cell["class"], cell["output"])] == cell["n"],
                     "headroom_admission_n_is_not_the_exams_case_count",
                 )
     return replace(rule, cells=cells, in_range=extra)
@@ -823,7 +829,8 @@ def target_cells(spec, predict, scales, plan, rule):
         "cell_scale_needs_the_registered_a_multiplier",
     )
     name = plan.class_of(spec.target_id)
-    cells = [(f, o) for f, c, o in rule.cells.scored if c == name]
+    # only the cells whose output this target carries (`attach_cells`: a cell is graded over its carriers)
+    cells = [(f, o) for f, c, o in rule.cells.scored if c == name and o in spec.outputs]
     if not cells or not spec.agen:
         return {}
     for _family, output in cells:

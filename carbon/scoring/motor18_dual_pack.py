@@ -370,6 +370,10 @@ def dispatch(config):
 
     for name in EMF_OUTPUTS:
         pool_grader.register_waveform_output(name, _waveform_output())
+    # 1.8's derive gives every target both torque scalars; an H-3 target grades pk-pk (and OC) only, so the mean torque
+    # it does not grade is dropped from its answer, never graded and never an invalid answer (the 6th seam, 12 Nov)
+    for name in ("mean_torque_nm", "ripple_pk_pk_nm"):
+        pool_grader.register_companion_output(name)
     # the repeat pair of a 1.8 grade is read under a ceiling sized from its own bank, never the shared fixed 4 MiB
     # (every other version's grade reads under the unchanged ceiling; no shared producer byte moves)
     pair_read_bound.size_produce(CHALLENGE, VERSION)

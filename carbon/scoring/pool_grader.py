@@ -199,6 +199,20 @@ def register_waveform_output(name, output):
     )
 
 
+#: Scalar outputs a version's derive gives EVERY target while each target grades only some of them
+#: (`register_companion_output`): an answer may carry one where its target does not grade it, and it is dropped there,
+#: never graded, exactly as a registered waveform output another target grades. EMPTY for every registered version, so
+#: every check below is then exactly as before.
+_COMPANIONS = set()
+
+
+def register_companion_output(name):
+    """Register one companion scalar output (add-only; the same name again is a no-op)."""
+    _require(type(name) is str and name, "companion_output_registration_invalid")
+    _require(name not in _WAVEFORMS, "a_waveform_output_is_not_a_companion")
+    _COMPANIONS.add(name)
+
+
 def _value_ok(name, value):
     output = _WAVEFORMS.get(name)
     return _finite(value) if output is None else output.valid(value) is True
@@ -1336,13 +1350,13 @@ class TargetGrade:
 
 def graded_answer(prediction, outputs):
     """The prediction as a target grades it, or None when it is not a valid answer: a dict giving exactly ``outputs``,
-    each finite (a waveform output: valid). A prediction may also carry REGISTERED waveform outputs another target grades
-    (a version whose derive gives every target the same keys); they are dropped here. With no waveform output registered
-    this is exactly the scalar check (the same dict, or None)."""
+    each finite (a waveform output: valid). A prediction may also carry REGISTERED waveform or companion outputs another
+    target grades (a version whose derive gives every target the same keys); they are dropped here, never graded. With
+    none registered this is exactly the scalar check (the same dict, or None)."""
     if type(prediction) is not dict or not set(outputs) <= set(prediction):
         return None
     extra = set(prediction) - set(outputs)
-    if extra - set(_WAVEFORMS):
+    if extra - set(_WAVEFORMS) - _COMPANIONS:
         return None
     graded = {k: prediction[k] for k in outputs} if extra else prediction
     return graded if all(_value_ok(k, v) for k, v in graded.items()) else None
