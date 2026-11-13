@@ -1921,12 +1921,12 @@ def _contend(
             bind_inputs["score_pack"],
             accuracy,
             exam=_floor_exam(adapter),
-            version=adapter.challenge_version,
+            version=_registry_version(adapter),
         )
         control = _control_check(
             repeat,
             koth_registry.control(
-                adapter.challenge_id, version=adapter.challenge_version
+                adapter.challenge_id, version=_registry_version(adapter)
             ),
             comparator,
         )
@@ -2130,6 +2130,13 @@ def _report_pending_contention(store, kind, submission_id, outcome, *, filed):
         pass
 
 
+def _registry_version(adapter):
+    """The Challenge version a host registry (noise, control, margin_N) is read for: this adapter's own, else None (the
+    registries then read the version this receiver serves, else the Challenge id: `registry_version`).
+    """
+    return getattr(adapter, "challenge_version", None)
+
+
 def _floor_exam(adapter):
     """The exam a registered crown floor is keyed by (`koth_registry.registered_floor`): this version, its registered menu
     epoch and the digest of the exact sealed evaluation pack. None for a version with no menu block (read from the raw
@@ -2203,7 +2210,7 @@ def reconsider_paused_pack(
                 score_pack,
                 accuracy,
                 exam=_floor_exam(adapter),
-                version=adapter.challenge_version,
+                version=_registry_version(adapter),
             ),
             sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
             repeat=watched,
@@ -2339,7 +2346,7 @@ def remeasure_incumbent_pack(
                     score_pack,
                     accuracy,
                     exam=_floor_exam(adapter),
-                    version=adapter.challenge_version,
+                    version=_registry_version(adapter),
                 ),
                 repeat,
             )
@@ -2495,7 +2502,9 @@ def _timing_step(adapter):
     from carbon.scoring import grade_feedback
 
     key = adapter.discovery.info.challenge_key
-    noise = koth_registry.rebuild_noise(key.challenge_id, version=key.version)
+    noise = koth_registry.rebuild_noise(
+        key.challenge_id, version=getattr(key, "version", None)
+    )
     return grade_feedback.step(None if noise is None else noise["value"])
 
 
@@ -2563,7 +2572,7 @@ def _record_ladder(
             **about,
             rebuild_noise=koth_registry.rebuild_noise(
                 adapter.discovery.info.challenge_key.challenge_id,
-                version=adapter.discovery.info.challenge_key.version,
+                version=getattr(adapter.discovery.info.challenge_key, "version", None),
             ),
         )
     except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:

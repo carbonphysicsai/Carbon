@@ -362,8 +362,9 @@ def test_every_decision_call_site_passes_the_version():
         ROOT / "carbon" / "challenge_validator" / "lean_recipe_retention.py"
     ).read_text(encoding="utf-8")
     assert (
-        source.count("version=adapter.challenge_version") >= 4
+        source.count("version=_registry_version(adapter)") == 4
     )  # 3 comparators + control
+    assert "def _registry_version(adapter)" in source
     receiver = (
         ROOT / "carbon" / "challenge_validator" / "direct_receiver.py"
     ).read_text(encoding="utf-8")
