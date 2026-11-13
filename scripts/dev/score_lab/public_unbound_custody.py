@@ -10,6 +10,7 @@ import argparse
 import ast
 import base64
 import binascii
+import contextlib
 import hashlib
 import io
 import json
@@ -17,6 +18,7 @@ import math
 import re
 import struct
 import sys
+import threading
 import zipfile
 from pathlib import Path
 
@@ -970,6 +972,35 @@ GRAPH_HTTP_SCOPE = "PUBLIC_DEVELOPMENT_LOCAL_C03_NORMAL_LAUNCHPAD_HTTP"
 MAX_GRAPH_FILES = 128
 MAX_GRAPH_FILE_BYTES = 512 * 1024 * 1024
 MAX_GRAPH_TOTAL_BYTES = 768 * 1024 * 1024
+#: The most one retained ``.json`` is read at, and the ceiling of ``.py``. A version whose graded query is larger than
+#: every live version's (Motor 1.8: a 2564 x 240 bank, `predictions.json` 12.3 MB, `worker-evidence.json` 16.5 MB with the
+#: predictions as base64) reads its own retained set under a ceiling sized from ITS bank (`raised_json_bytes`, the caller's
+#: `pair_read_bound.pair_bytes`); every other read keeps this 4 MiB.
+GRAPH_JSON_FILE_BYTES = 4 * 1024 * 1024
+GRAPH_PY_FILE_BYTES = 4 * 1024 * 1024
+_JSON_LIMIT_LOCK = threading.RLock()
+
+
+@contextlib.contextmanager
+def raised_json_bytes(limit):
+    """Read retained ``.json`` files under ``max(the standing ceiling, limit)`` inside the block (restored after it).
+
+    ``limit`` is a resource cap sized from the registered bank, never a scientific value: a file inside it is read and
+    checked exactly as before (its declared sha256, the roles, the receipts), and a file outside it is still refused
+    (``graph_artifact_size``). The ceiling is a module constant, so the change is process-global: it happens only under one
+    lock that every raise holds, and it is restored however the block ends."""
+    global GRAPH_JSON_FILE_BYTES
+    if type(limit) is not int or isinstance(limit, bool) or limit < 1:
+        raise ValueError("raised_json_bytes_limit")
+    with _JSON_LIMIT_LOCK:
+        before = GRAPH_JSON_FILE_BYTES
+        GRAPH_JSON_FILE_BYTES = max(before, limit)
+        try:
+            yield GRAPH_JSON_FILE_BYTES
+        finally:
+            GRAPH_JSON_FILE_BYTES = before
+
+
 _GRAPH_PATH_PART = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 _GRAPH_REQUIRED = frozenset(
     {
@@ -1074,9 +1105,17 @@ def _graph_rehash_inventory(
             16 * 1024 * 1024
             if name == native_prediction_path
             else (
-                4 * 1024 * 1024
-                if name.endswith((".json", ".py"))
-                else 128 * 1024 * 1024 if name.endswith(".gz") else MAX_GRAPH_FILE_BYTES
+                GRAPH_JSON_FILE_BYTES
+                if name.endswith(".json")
+                else (
+                    GRAPH_PY_FILE_BYTES
+                    if name.endswith(".py")
+                    else (
+                        128 * 1024 * 1024
+                        if name.endswith(".gz")
+                        else MAX_GRAPH_FILE_BYTES
+                    )
+                )
             )
         )
         body = _read_bounded(_graph_file(root, name), file_limit, "graph_artifact")

@@ -129,8 +129,21 @@ def _parse_receipt(raw):
     return value
 
 
+ORIGINAL_BYTES = 4 * 1024 * 1024
+
+
+def _original_limit():
+    """The most a retained graph original (the worker evidence, the predictions) is parsed at: 4 MiB, or the repeat-pair
+    reader's ceiling where a grade has sized it from its own bank (`pair_read_bound`: Motor 1.8's 2564 x 240 predictions
+    are 12.3 MB and the worker evidence carries them as base64, 16.5 MB). The reader's ceiling is 4 MiB outside such a
+    grade, so every other version parses under the unchanged cap."""
+    from carbon.scoring import inference_pair_evidence
+
+    return max(ORIGINAL_BYTES, inference_pair_evidence._MAX_BYTES)
+
+
 def _parse_graph_original(raw, label, *, object_required=True):
-    if type(raw) is not bytes or not 0 < len(raw) <= 4 * 1024 * 1024:
+    if type(raw) is not bytes or not 0 < len(raw) <= _original_limit():
         raise BundleBenchmarkRefused(f"{label}_bytes")
 
     def unique_pairs(pairs):

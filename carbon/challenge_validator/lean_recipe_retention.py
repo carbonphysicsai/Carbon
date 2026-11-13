@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import stat
@@ -794,6 +795,38 @@ def _pair_read_limit(adapter, artifacts):
         return max(PAIR_READ_BYTES, pair_read_bound.pair_bytes(len(inputs), width))
     except (RetentionUnavailable, AttributeError, KeyError, TypeError, ValueError):
         return PAIR_READ_BYTES
+
+
+#: The standing read cap of a regrade's retained predictions and worker evidence.
+REGRADE_RETAINED_BYTES = 16 * 1024**2
+
+
+def _regrade_bank_bound(bank_rows, expected_output_shape):
+    """The byte bound of one retained file of a regrade over ``bank_rows`` rows of ``expected_output_shape``, sized from the
+    bank like the repeat pair (`pair_read_bound.pair_bytes`, an upper bound of BOTH phases' predictions as base64 plus the
+    envelope; the worker evidence is the predictions as base64 plus the origin's evidence, so it fits). None when the shape
+    cannot be read: the standing caps then apply, unchanged. It is a resource cap, never a scientific value.
+    """
+    from carbon.scoring import pair_read_bound
+
+    try:
+        width = math.prod(int(n) for n in tuple(expected_output_shape)[1:])
+        return pair_read_bound.pair_bytes(int(bank_rows), width)
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return None
+
+
+def _custody_json_ceiling(bank_bound):
+    """The custody inventory's ``.json`` ceiling for a bank of ``bank_bound`` bytes (`_regrade_bank_bound`): raised only
+    where the bound is larger than `PAIR_READ_BYTES` (as `_pair_read_limit`: every live version's bound is below it), so
+    every other version's custody keeps its standing 4 MiB; else a no-op."""
+    import contextlib
+
+    if bank_bound is None or bank_bound <= PAIR_READ_BYTES:
+        return contextlib.nullcontext()
+    from scripts.dev.score_lab.public_unbound_custody import raised_json_bytes
+
+    return raised_json_bytes(bank_bound)
 
 
 def _graded_query(material, artifacts):
@@ -4155,6 +4188,10 @@ def regrade_retained_entry(
         or _tensors(inputs=bank) != bank_raw
     ):
         raise RetentionUnavailable("regrade_case_bank_contract_changed")
+    # Every retained file of this regrade is read under the standing caps, or the bound of THIS bank where that is larger
+    # (Motor 1.8's 2564 x 240 bank: predictions.json 12.3 MB, worker-evidence.json 16.5 MB, already 98% of 16 MiB).
+    bank_bound = _regrade_bank_bound(len(bank), material["expected_output_shape"])
+    retained_limit = max(REGRADE_RETAINED_BYTES, bank_bound or 0)
 
     task_root = base / regrade_id
     operations_path = base / (regrade_id + ".regrade-operation.json")
@@ -4169,7 +4206,7 @@ def regrade_retained_entry(
         # A retry reads the retained bytes and never replays an identity.
         task_root = _owner_directory(task_root, "task_artifacts")
         predictions = _private_measurement_bytes(
-            task_root / "predictions.json", 16 * 1024**2
+            task_root / "predictions.json", retained_limit
         )
         receipt_raw = _private_measurement_bytes(
             task_root / "inference-receipt.json", 65536
@@ -4181,14 +4218,16 @@ def regrade_retained_entry(
         )
         timed_predictions = (
             _private_measurement_bytes(
-                task_root / "timed-query-predictions.json", 16 * 1024**2
+                task_root / "timed-query-predictions.json", retained_limit
             )
             if timed
             else None
         )
         operations = json.loads(_private_measurement_bytes(operations_path, 65536))
         worker_evidence = (
-            _private_measurement_bytes(task_root / "worker-evidence.json", 16 * 1024**2)
+            _private_measurement_bytes(
+                task_root / "worker-evidence.json", retained_limit
+            )
             if kind == "graph"
             else None
         )
@@ -4257,7 +4296,7 @@ def regrade_retained_entry(
             output = provider.ledger.root / result.worker_operation / "snapshot"
             return _snapshot(
                 output / "predictions.json",
-                limit=16 * 1024**2,
+                limit=retained_limit,
                 digest=result.predictions_digest,
                 label=label + "_prediction_snapshot",
             ), _receipt_snapshot(
@@ -4342,10 +4381,13 @@ def regrade_retained_entry(
         )
         manifest_path = base / (regrade_id + ".roles.json")
         write_once(manifest_path, _json(new_manifest))
-        custody = prepare_custody_v5(task_root, manifest_path)
-        custody_path = base / (regrade_id + ".custody.json")
-        write_once(custody_path, _json(custody))
-        saved = create_entry_v5(task_root, manifest_path, custody_path, entries)
+        # The custody inventory reads every retained .json under its 4 MiB cap, or this bank's bound where that is larger
+        # (`create_entry_v5` re-runs the same custody check, so it reads under the same ceiling).
+        with _custody_json_ceiling(bank_bound):
+            custody = prepare_custody_v5(task_root, manifest_path)
+            custody_path = base / (regrade_id + ".custody.json")
+            write_once(custody_path, _json(custody))
+            saved = create_entry_v5(task_root, manifest_path, custody_path, entries)
     except (OSError, ValueError) as exc:
         raise RetentionUnavailable("operator_bank_custody_unavailable") from exc
     if saved["entry"]["state_digest"] != entry["state_digest"]:
