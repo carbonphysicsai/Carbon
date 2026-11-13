@@ -408,20 +408,30 @@ def test_a_gpu_deployment_may_name_the_pytorch_gpu_worker(tmp_path):
 
 
 def test_an_acceptance_admits_only_its_networks(record, monkeypatch, tmp_path):
-    # Every recorded class is testnet-only (OWNER-GPU-DEVICE-CLASSES-01).
-    for profiles in ha.ACCEPTED_DEVICE_CLASSES.values():
-        assert all(e["networks"] == ("testnet",) for e in profiles.values())
-    for network in ("finney", None):
+    # OWNER-GPU-DEVICE-CLASSES-01 is testnet only; OWNER-CONTAINMENT-ACCEPT-GPUYARD-MAINNET-01 adds
+    # finney (mainnet 116) for the RTX 4090 alone, under both profiles, and no other class or network.
+    for kind, profiles in ha.ACCEPTED_DEVICE_CLASSES.items():
+        expected = (
+            ("testnet", "finney") if kind == "NVIDIA GeForce RTX 4090" else ("testnet",)
+        )
+        assert all(e["networks"] == expected for e in profiles.values()), kind
+        for entry in profiles.values():
+            assert set(entry["by_network"]) == set(expected)
+    for network in ("localnet", "mainnet", "", None):
         with pytest.raises(ha.DeviceClassNotAccepted):
             worker.CarrierBackend(
                 SimpleNamespace(), gpu_image(), device="gpu", network=network
             )
+    for network in ("testnet", "finney"):
+        worker.CarrierBackend(
+            SimpleNamespace(), torch_gpu_image(), device="gpu", network=network
+        )
     ledger = SimpleNamespace(root=tmp_path, reserve=lambda *a, **k: None)
     with pytest.raises(ha.DeviceClassNotAccepted):
         research_carrier._run_locked(
             ledger,
             accelerator=research_carrier.VALIDATOR_GPU,
-            network="finney",
+            network="localnet",
             owner="o",
             identity="t",
             source="print(1)",
@@ -431,3 +441,23 @@ def test_an_acceptance_admits_only_its_networks(record, monkeypatch, tmp_path):
             provenance=research_carrier.VALIDATOR_PROVENANCE,
             extra_resources={},
         )
+
+
+def test_the_finney_acceptance_cites_the_owner_record_and_admits_nothing_else(record):
+    """The 4090's finney entry names the owner's 12 Nov 2026 mainnet record; the A40 is not on finney."""
+    finney = {"record": "OWNER-CONTAINMENT-ACCEPT-GPUYARD-MAINNET-01"}
+    for profile in (GPU_PROFILE.profile_id, torch_profile.GPU_PROFILE_ID):
+        entry = ha.require_accepted("NVIDIA GeForce RTX 4090", profile, "finney")
+        assert entry["by_network"]["finney"]["record"] == finney["record"]
+        assert entry["by_network"]["testnet"]["record"] == "OWNER-GPU-DEVICE-CLASSES-01"
+        assert "2026-11-12-OWNER-CONTAINMENT-ACCEPT-GPUYARD-MAINNET-01.md" in (
+            entry["by_network"]["finney"]["evidence"]
+        )
+        with pytest.raises(ha.DeviceClassNotAccepted):
+            ha.require_accepted("NVIDIA A40", profile, "finney")
+        with pytest.raises(ha.DeviceClassNotAccepted):
+            ha.require_accepted("NVIDIA H100", profile, "finney")
+    with pytest.raises(ha.DeviceClassNotAccepted):
+        ha.require_accepted("NVIDIA GeForce RTX 4090", "other_profile", "finney")
+    # The testnet acceptance is unchanged.
+    ha.require_accepted("NVIDIA A40", GPU_PROFILE.profile_id, "testnet")
