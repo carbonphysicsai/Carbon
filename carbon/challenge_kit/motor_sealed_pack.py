@@ -44,6 +44,16 @@ def _canonical(value) -> bytes:
     return canonical(value)
 
 
+def _model_row_width(version):
+    """The width of a version's model row when it is wider than the sealed torque slice, else None (every other
+    version: the bank's reference width is the torque slice's)."""
+    if version == "1.8":
+        from carbon.motor import row18
+
+        return row18.WIDTH
+    return None
+
+
 def sealed_bank(document, records, *, version="1.1") -> dict:
     """The sealed batch as a bank in Motor's ``development_bank`` format."""
     from carbon.challenge_kit import physical_public_train
@@ -95,6 +105,16 @@ def sealed_bank(document, records, *, version="1.1") -> dict:
         or not np.isfinite(targets).all()
     ):
         raise SealedPackRefused("motor_sealed_bank_shape")
+    row_width = _model_row_width(version)
+    if row_width is not None:
+        # The model's answer is wider than the sealed truth's torque slice (Motor 1.8's 240-wide row): the bank's reference
+        # rows are that wide too, because the producer reads ONE width from the bank for the registered output shape, the
+        # reference rows and the check of every answer. The torque slice is the sealed truth; the other columns are
+        # structural padding (zeros) that no measure reads (Motor's measure reads each reference RECORD's torque, and a
+        # probe or pool row carries no reference at all).
+        padded = np.zeros((targets.shape[0], row_width), dtype="<f8")
+        padded[:, : targets.shape[1]] = targets
+        targets = padded
     inputs_array.setflags(write=False)
     targets.setflags(write=False)
     evidence = _canonical(
