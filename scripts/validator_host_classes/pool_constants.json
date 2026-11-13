@@ -260,7 +260,10 @@
       },
       "fit_breaker": {
         "waivers": {
-          "v_var": "OWNER-VARIANT-RULE-NULL-MENU-D-18-01"
+          "v_var": "OWNER-VARIANT-RULE-NULL-MENU-D-18-01",
+          "separation_read": "OWNER-COOL18-FIT-BREAKER-SEAL-WAIVER-01",
+          "engineer_shortcut_d_zero": "OWNER-COOL18-FIT-BREAKER-SEAL-WAIVER-01",
+          "ood_min_accuracy": {"record": "OWNER-COOL18-FIT-BREAKER-SEAL-WAIVER-01", "conditions_report_sha256": "c5bddda7d15e706562288ad6b2b9c9c90b02e52ae57caf7e6c40987bd21373b4"}
         },
         "separation_read_sha256": "HUMAN_INPUT",
         "d_zero": {
