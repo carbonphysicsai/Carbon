@@ -579,7 +579,8 @@ def spec_from_source(document, binding):
             and (
                 "agen" not in document
                 or list(document["agen"]) == list(range(len(document["designs"])))
-            ),
+            )
+            and document.get("extended", True) is True,
             "accuracy_only_pool_source_malformed",
         )
         return pool_grader.build_accuracy_target(
@@ -592,6 +593,7 @@ def spec_from_source(document, binding):
             truths=document["truths"],
             public=bool(document.get("public", False)),
             shell=document.get("shell"),
+            extended="extended" in document,
         )
     limits = []
     for row in document["limits"]:

@@ -683,10 +683,14 @@ class TargetSpec:
     # An ACCURACY-ONLY target (`build_accuracy_target`): every case is reserved for accuracy, there is no optimisation
     # problem (no objective, limits, reference, start or seed), so it never enters `grade_set`. False for every other.
     accuracy_only: bool = False
+    # An ACCURACY-ONLY target declared out of range with no shell (`build_accuracy_target(extended=True)`): its cases
+    # are past TRAIN but outside the OOD shell (Motor 1.8's inner-band H-1 rows, unshelled by a CV ruling: no
+    # shell-mode check, the same range as the shelled targets of their class). Part of the identity. False for every other.
+    declared_extended: bool = False
 
     @property
     def extended(self):
-        return self.shell is not None
+        return self.shell is not None or self.declared_extended
 
 
 def _digest(value):
@@ -1042,6 +1046,7 @@ def build_accuracy_target(
     truths,
     public=False,
     shell=None,
+    extended=False,
 ):
     """An ACCURACY-ONLY target (R1, a version whose D is the sealed menu and whose A is the physics score): its cases are
     scored for accuracy only, so EVERY design is in the reserved slice (``agen``) and none is queryable. There is no
@@ -1093,6 +1098,12 @@ def build_accuracy_target(
             "truth_must_give_every_output_finite",
         )
     _require(type(public) is bool, "public_must_be_a_bool")
+    # ``extended=True`` declares an UNSHELLED target out of range (its class's range, as the physics score reads it);
+    # a shelled target is extended already, so the flag never rides with a shell (one form only)
+    _require(type(extended) is bool, "extended_must_be_a_bool")
+    _require(
+        not (extended and shell is not None), "a_shelled_target_is_already_extended"
+    )
     # its cases are sealed scored cases: never a public practice pool (Validator-2B N-1, fail closed)
     _require(public is False, "accuracy_only_target_is_never_public")
     kept_designs = tuple(tuple(float(x) for x in design) for design in designs)
@@ -1121,6 +1132,8 @@ def build_accuracy_target(
         "truths": list(kept_truths),
         "public": public,
         "shell": _shell_json(shell),
+        # only when declared: every target without the flag keeps its identity byte for byte
+        **({"extended": True} if extended else {}),
     }
     size = len(kept_designs)
     return TargetSpec(
@@ -1153,6 +1166,7 @@ def build_accuracy_target(
         origin=tuple(range(size)),
         pool_size=size,
         accuracy_only=True,
+        declared_extended=extended,
     )
 
 
@@ -1925,6 +1939,7 @@ def dump_pool(spec):
             "shell": _shell_json(spec.shell),
             "origin": list(spec.origin),
             "pool_size": spec.pool_size,
+            **({"extended": True} if spec.declared_extended else {}),
         }
     return {
         "schema": POOL_SCHEMA,
@@ -2015,7 +2030,9 @@ _ACCURACY_ONLY_KEYS = frozenset(
 
 def _load_accuracy_only(document):
     _require(
-        document[ACCURACY_ONLY] is True and set(document) == _ACCURACY_ONLY_KEYS,
+        document[ACCURACY_ONLY] is True
+        and set(document) in (_ACCURACY_ONLY_KEYS, _ACCURACY_ONLY_KEYS | {"extended"})
+        and document.get("extended", True) is True,
         "accuracy_only_pool_document_malformed",
     )
     spec = build_accuracy_target(
@@ -2028,6 +2045,7 @@ def _load_accuracy_only(document):
         truths=document["truths"],
         public=document["public"],
         shell=document.get("shell"),
+        extended="extended" in document,
     )
     _require(
         spec.digest == document["digest"]
