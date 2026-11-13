@@ -73,6 +73,16 @@ def test_the_counted_graph_grade_reaches_a_computed_score_at_the_canarys_shape(
     assert scored["status"] == "SCORED_DEVELOPMENT_CANDIDATE"
     assert type(scored["score"]) is float and 0.0 < scored["score"] <= 1.0
     assert set(scored["gates"].values()) == {"PASS"}
+    # The pool filing re-binds the 16.8 MB worker evidence too: it must read under the bank's bound (the whole-chain read,
+    # 13 Nov: it refused at 4 MiB, was swallowed into koth_comparison {"error"}, and nothing was filed or contended).
+    koth = result["koth_comparison"]
+    assert "error" not in koth, koth
+    # KNOWN OPEN ITEM, not a defect of this grade: Motor 1.8's pack registers no crown floor (baseline_floor_total), so a
+    # crown contention is UNAVAILABLE with this code until the owner/Validator registers one (a measured number).
+    assert (
+        koth["outcome"] == "UNAVAILABLE"
+        and koth["reason"] == "baseline_floor_unregistered"
+    )
     assert graph_e2e._cap_rows(fixture) == [
         (
             graph_e2e.TASK,

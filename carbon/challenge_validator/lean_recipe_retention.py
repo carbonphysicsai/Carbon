@@ -1592,15 +1592,20 @@ def _retain_selected_pack_evaluation(
             )
         koth = None
         if pool_store is not None and not uncounted:
-            koth = _contend(
-                adapter,
-                pool_store,
-                record_id,
-                artifacts,
-                bind_inputs,
-                source_pin,
-                regrade.repeat if regrade is not None else repeat,
-            )
+            # The pool filing re-binds the same evidence (`PoolStore.record_private_evaluation` -> the binding), so it
+            # reads under the bank's bound too: at Motor 1.8's 2611 x 240 the worker evidence is 16.8 MB and the default
+            # 4 MiB refused it as benchmark_reduction_refused, which `_contend` turned into koth_comparison {"error"}
+            # (nothing filed in the pool, no contention), with the grade itself bound (13 Nov, found by the whole-chain read).
+            with _sized_pair_ceiling(adapter, artifacts):
+                koth = _contend(
+                    adapter,
+                    pool_store,
+                    record_id,
+                    artifacts,
+                    bind_inputs,
+                    source_pin,
+                    regrade.repeat if regrade is not None else repeat,
+                )
     except (
         ImportError,
         OSError,
