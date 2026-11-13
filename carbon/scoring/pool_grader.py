@@ -684,7 +684,7 @@ class TargetSpec:
     # problem (no objective, limits, reference, start or seed), so it never enters `grade_set`. False for every other.
     accuracy_only: bool = False
     # An ACCURACY-ONLY target declared out of range with no shell (`build_accuracy_target(extended=True)`): its cases
-    # are past TRAIN but outside the OOD shell (Motor 1.8's inner-band H-1 rows, unshelled by a CV ruling: no
+    # are past TRAIN but outside the OOD shell (a version's inner-band rows, unshelled by a CV ruling: no
     # shell-mode check, the same range as the shelled targets of their class). Part of the identity. False for every other.
     declared_extended: bool = False
 
@@ -1975,7 +1975,7 @@ def load_pool(document):
     )
     if ACCURACY_ONLY in document:
         return _load_accuracy_only(document)
-    # the declared-extended flag is an accuracy-only target's alone (CV-Motor-C E-1): never ignored on any other
+    # the declared-extended flag is an accuracy-only target's alone (the science ruling's E-1): never ignored on any other
     _require("extended" not in document, "extended_flag_is_for_accuracy_only_targets")
     spec = build_target(
         target_id=document["target_id"],
