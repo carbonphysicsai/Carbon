@@ -6,6 +6,9 @@
     python3 -I -B scripts/dev/release/carbon_release.py precheck --mode prepare|switch --repo R \\
         --old-rev OLD --new-rev NEW --old-pack D --new-pack D --old-root DIR --new-root DIR \\
         --final-heads TSV [--declared FILE] [--older-root DIR ...]
+    python3 -I -B scripts/dev/release/carbon_release.py precheck --mode open --repo R --new-rev NEW --new-root DIR \\
+        --final-heads TSV --new-network finney --expect-network testnet --expect-network finney \\
+        [--weights-loop-pending finney] [--new-unit FILE] [--host-root DIR ...]   (--mode release = --mode open)
     python3 -I -B scripts/dev/release/carbon_release.py pushline --repo R --sha FULL_SHA --final-heads TSV [--main REF]
     python3 -I -B scripts/dev/release/carbon_release.py log append --log FILE --event JSON
     python3 -I -B scripts/dev/release/carbon_release.py log verify --log FILE
@@ -45,6 +48,19 @@ files the NEW revision's M2 rule names, sorted), so the record the receiver chec
   has the round-robin host lock, every other door has it too or is DRAINING (``--allow-mixed-lock REASON``);
   ``release``: NEW root's ``release.json`` names NEW; ``chain`` (H8): OLD's own chain-state is not DEGRADED (never
   flip into a chain outage) unless ``--allow-chain-degraded REASON``.
+- open (a FRESH door with no OLD: the mainnet day-of roots): ``final_heads``; ``accepted`` and ``release`` for NEW
+  only; ``open_door``: NEW's receiver.json names ``--new-network`` explicitly (no record = a testnet root), that network
+  is expected, and every pack store it reads is bound to that network (a non-testnet door must serve a sealed
+  delivery), and NEW is no staging root; ``unit``: NEW's installed, not yet started unit (``--new-unit``, default the
+  one `receiver_setup service` names) sets ``CARBON_CHAIN_NETWORK`` to that network, no localnet variable, no unread
+  ``EnvironmentFile`` and runs NEW's receiver.json, in the file AND in what systemd loaded (``systemctl --user
+  show``; not loaded or awaiting a daemon-reload refuses); ``producer_key``: NEW's tree pins a producer key for that
+  network (with the store bound to it, every copy there was verified with that key: `import_copy`); ``disk`` (1 x NEW's own root + 20 GiB); ``receivers``,
+  ``chain_binding`` and ``lock_versions`` over every OTHER ``--host-root`` (each running, bound to its own network).
+  ``--weights-loop-pending NET`` names an expected network whose weights loop starts only after its doors open;
+  nothing else is relaxed. ``--mode release`` (the lock-in's day-of name) runs open mode.
+
+In every mode an option the mode does not read refuses (exit 2), never silently ignored (V2C R-b).
 
 The result also carries ``release_class`` (s7.5), derived from the ``exam`` and ``served_source`` items, never typed:
 2 = the exam moves, 1 = served-source files change, 0 = neither, None = unknown (an item did not pass).
@@ -65,6 +81,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import stat
 import sys
@@ -78,7 +95,9 @@ SCHEMA = "carbon.release.v1"
 PASS, REFUSE, UNKNOWN = "PASS", "REFUSE", "UNKNOWN"
 GIB = 1 << 30
 DISK_HEADROOM = 20 * GIB
-DISK_FACTOR = {"prepare": 2.0, "switch": 1.5}
+#: free space needed on NEW's filesystem, as a multiple of the measured root (OLD; open mode: the fresh root itself,
+#: room for it to grow by its own size) + DISK_HEADROOM
+DISK_FACTOR = {"prepare": 2.0, "switch": 1.5, "open": 1.0}
 LANDABLE = {"FINAL", "LANDED"}
 BINDING_FILE = "carbon/challenge_validator/state_binding.py"
 LIBRARY = "environment/campaigns/.direct-development/library-cache"
@@ -301,6 +320,19 @@ def tree_size(root) -> int:
     return total
 
 
+def _profile_accepted(path, root):
+    """The ``accepted_revision`` of the runner profile a door's config names (relative = under the root), or None."""
+    if type(path) is not str:
+        return None
+    profile = Path(path) if Path(path).is_absolute() else Path(root) / path
+    try:
+        value = json.loads(profile.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    accepted = value.get("accepted_revision") if type(value) is dict else None
+    return accepted if type(accepted) is str and accepted else None
+
+
 class Door:
     """A prepared door root, read from its own receiver config (``<root>/receiver/receiver.json``): its state
     directory (``root`` in the config: ``<root>/receiver/state``, or H1's fixed per-door path) and its accepted
@@ -322,7 +354,21 @@ class Door:
             self.state = self.root / self.state
         if not self.state.is_dir():
             raise ei.Unknown("state_dir_missing")
-        self.accepted = cfg.get("accepted_revision")
+        # (Deploy-C 12 Nov) `receiver_setup prepare` writes the accepted revision into the runner profile the config
+        # names, not into receiver.json, and the receiver compares the profile's (`direct_receiver`); a config that
+        # also names one must agree with it, else neither is trusted (UNKNOWN downstream)
+        named = cfg.get("accepted_revision")
+        profiled = _profile_accepted(cfg.get("runner_profile"), self.root)
+        if named is not None and profiled is not None and named != profiled:
+            self.accepted, self.accepted_from = (
+                None,
+                "receiver_config_and_runner_profile_differ",
+            )
+        elif profiled is not None:
+            self.accepted, self.accepted_from = profiled, "runner_profile"
+        else:
+            self.accepted = named
+            self.accepted_from = None if named is None else "receiver_config"
 
     def size(self) -> int:
         size = tree_size(self.root)
@@ -636,8 +682,176 @@ def door_network_item(old_root, new_root, expect="testnet") -> dict:
     return {"state": PASS, "network": new}
 
 
+#: a sealed-pack store's network record (`sealed_pack_import.STORE_NETWORK_FILE`); none = the legacy testnet store
+STORE_NETWORK_FILE = ".store-network.json"
+STORE_NETWORK_SCHEMA = "carbon.sealed-pack-store-network.v1"
+LEGACY_STORE_NETWORK = "testnet-567"
+#: (V2C M-1, 11 Nov) each network's ONE pinned ``NETWORK-NETUID`` (`carbon.chain.models._NETUIDS`, which a test
+#: holds this to): a store or pin entry is compared by its full name, so another netuid of the same network refuses
+PINNED_NETWORK = {"testnet": "testnet-567", "finney": "finney-116"}
+
+
+def _store_network(store):
+    """A pack store's recorded network (``NETWORK-NETUID``), the legacy testnet one when it has no record, or None when
+    the record cannot be read. Read as `SealedPackStore.network` reads it; this tool imports no carbon code.
+    """
+    path = Path(store) / STORE_NETWORK_FILE
+    if not Path(store).is_dir():
+        return None
+    if not path.exists() and not path.is_symlink():
+        return LEGACY_STORE_NETWORK
+    if path.is_symlink():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if (
+        type(value) is not dict
+        or set(value) != {"network", "schema"}
+        or value["schema"] != STORE_NETWORK_SCHEMA
+        or type(value["network"]) is not str
+    ):
+        return None
+    return value["network"]
+
+
+def open_door_item(new_root, network, expect="testnet") -> dict:
+    """(Fri mainnet day-of, step 2) A FRESH door has no OLD to compare with, so its own records are checked before it
+    opens: its receiver.json names ``network`` explicitly (a root with no ``chain_network`` record is a testnet root
+    and never opens as a mainnet door), that network is one this host serves, and every pack store the door reads
+    (``evaluation_pack.sealed_delivery`` and ``evaluation_pack_set``) is bound to that network's pinned
+    ``NETWORK-NETUID`` (`PINNED_NETWORK`, compared in full: V2C M-1). A non-testnet door must serve a sealed delivery;
+    it never opens on a pack copied in by hand.
+    """
+    expects = (expect,) if isinstance(expect, str) else tuple(dict.fromkeys(expect))
+    if not Path(new_root).is_dir():
+        return {"state": REFUSE, "code": "new_root_missing"}
+    if (Path(new_root) / "receiver" / "STAGING").exists():
+        return {"state": REFUSE, "code": "new_root_is_staging"}
+    try:
+        record = json.loads(
+            (Path(new_root) / "receiver" / "receiver.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError):
+        return {"state": UNKNOWN, "code": "receiver_config_unreadable"}
+    if type(record) is not dict:
+        return {"state": UNKNOWN, "code": "receiver_config_unreadable"}
+    chain = record.get("chain_network")
+    recorded = chain.get("network") if type(chain) is dict else None
+    if recorded is None:
+        return {"state": REFUSE, "code": "new_door_network_unrecorded"}
+    out = {"network": recorded}
+    if recorded != network:
+        return {
+            **out,
+            "state": REFUSE,
+            "code": "new_door_network_not_the_one_named",
+            "named": network,
+        }
+    if recorded not in expects:
+        return {
+            **out,
+            "state": REFUSE,
+            "code": "door_network_not_expected",
+            "expect": expect,
+        }
+    stores = []
+    pack = record.get("evaluation_pack")
+    delivery = pack.get("sealed_delivery") if type(pack) is dict else None
+    if type(delivery) is dict:
+        stores.append(delivery.get("store"))
+    block = record.get("evaluation_pack_set")
+    if type(block) is dict:
+        stores.append(block.get("store"))
+    if not stores:
+        if recorded != "testnet":
+            return {**out, "state": REFUSE, "code": "new_door_pack_not_sealed_delivery"}
+        return {**out, "state": PASS, "stores": []}
+    seen = []
+    for store in dict.fromkeys(stores):
+        if type(store) is not str:
+            return {**out, "state": UNKNOWN, "code": "pack_store_unreadable"}
+        stored = _store_network(store)
+        if stored is None:
+            return {
+                **out,
+                "state": UNKNOWN,
+                "code": "pack_store_network_unreadable",
+                "store": store,
+            }
+        seen.append({"store": store, "network": stored})
+        if stored != PINNED_NETWORK.get(recorded):
+            return {
+                **out,
+                "state": REFUSE,
+                "code": "pack_store_network_mismatch",
+                "store": store,
+                "store_network": stored,
+                "pinned": PINNED_NETWORK.get(recorded),
+            }
+    return {**out, "state": PASS, "stores": seen}
+
+
+PRODUCER_PIN = "carbon/challenge_validator/exam_producer.json"
+
+
+def producer_key_item(repo, new, network) -> dict:
+    """(Deploy-C 11 Nov, (f)) The release the door runs pins a producer key for its network (`validator_host.
+    pinned_producer_key` reads exactly this file in NEW's tree): one entry named the network's pinned ``NETWORK-NETUID``
+    (`PINNED_NETWORK`), its key set; an entry of the same network under another netuid refuses. With the
+    store bound to that network (``open_door``), every copy in it was verified with this pinned key: a store records a
+    network only on a pinned-key import, and refuses a rehearsal-key import once bound (`import_copy`).
+    """
+    import subprocess
+
+    shown = subprocess.run(
+        ["git", "-C", str(repo), "show", f"{new}:{PRODUCER_PIN}"],
+        capture_output=True,
+        timeout=60,
+        check=False,
+    )
+    if shown.returncode != 0:
+        return {"state": REFUSE, "code": "producer_pin_missing_in_release"}
+    try:
+        entries = json.loads(shown.stdout)["networks"]
+        # any entry of this network under another netuid is refused, never skipped: the pinned pair is the only name
+        mine = {
+            name: entry
+            for name, entry in entries.items()
+            if name.rsplit("-", 1)[0] == network
+        }
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return {"state": UNKNOWN, "code": "producer_pin_unreadable"}
+    pinned = PINNED_NETWORK.get(network)
+    if pinned is None or set(mine) - {pinned}:
+        return {
+            "state": REFUSE,
+            "code": "producer_pin_wrong_netuid",
+            "network": network,
+            "pinned": pinned,
+            "entries": sorted(mine),
+        }
+    if len(mine) != 1:
+        return {"state": REFUSE, "code": "producer_key_not_pinned", "network": network}
+    ((name, entry),) = mine.items()
+    if type(entry) is not dict or not entry.get("producer_public_key"):
+        return {"state": REFUSE, "code": "producer_key_not_pinned", "network": name}
+    return {
+        "state": PASS,
+        "network": name,
+        "decision": entry.get("decision"),
+        "public_key": entry["producer_public_key"],
+    }
+
+
 def chain_binding_item(
-    host_roots, expect="testnet", *, proc="/proc", receivers_expected=0
+    host_roots,
+    expect="testnet",
+    *,
+    proc="/proc",
+    receivers_expected=0,
+    loops_pending=(),
 ) -> dict:
     """(H8 part 3, Validator-2 6 Nov 09:22) No live door and no weights loop runs bound to anything but ``expect``:
     every running direct receiver's and weights-loop process's environment has ``CARBON_CHAIN_NETWORK`` unset/empty or
@@ -648,6 +862,10 @@ def chain_binding_item(
     this host serves). A RECEIVER is then held to its OWN door's network, the ``chain_network`` its ``--config``
     receiver.json names (a root prepared before that record is testnet); a door whose network this host does not
     serve refuses (``receiver_network_not_expected``). A weights loop may be bound to any expected network.
+
+    ``loops_pending`` (open mode, ``--weights-loop-pending``) names an expected network whose weights loop has not
+    started YET (mainnet day-of: the finney loop starts after its doors open); it is exempt from the one-loop-per-
+    network rule only, never from the binding rules, and must itself be an expected network.
     """
     expects = (expect,) if isinstance(expect, str) else tuple(dict.fromkeys(expect))
     staged = sorted(
@@ -729,9 +947,10 @@ def chain_binding_item(
             "code": "process_not_on_the_live_chain",
             "processes": wrong[:10],
         }
-    # (N2) a host that serves two networks runs one weights loop for each
-    unlooped = [n for n in expects if loops_by[n] < 1]
-    if receivers < receivers_expected or loops < 1 or unlooped:
+    # (N2) a host that serves two networks runs one weights loop for each (a pending one is named, never assumed)
+    unlooped = [n for n in expects if loops_by[n] < 1 and n not in loops_pending]
+    looped_needed = any(n not in loops_pending for n in expects)
+    if receivers < receivers_expected or (loops < 1 and looped_needed) or unlooped:
         # (Validator-2 10:43) a check that read nothing is no pass: the running doors and the weights loop must be
         # FOUND, so a marker that stops matching surfaces here instead of passing silently
         return {
@@ -748,6 +967,7 @@ def chain_binding_item(
         "receivers": receivers,
         "weights_loops": loops,
         "expect": expect,
+        **({"loops_pending": sorted(loops_pending)} if loops_pending else {}),
     }
 
 
@@ -1008,9 +1228,259 @@ def release_class(items) -> dict:
     return {"class": 0, "basis": "exam_keys_equal_and_no_served_source"}
 
 
+def open_checks(args, new) -> list:
+    """(Fri mainnet day-of, step 2) The items for opening a FRESH door, one with no OLD to compare: the release and
+    its records, the new door's own network and pack stores, disk, and every other door on this host still bound
+    right. There is no exam comparison (nothing to compare with), so ``release_class`` is reported unknown.
+    """
+    expect = _expected_networks(args.expect_network)
+    others = [
+        r
+        for r in args.host_root
+        if Path(r).absolute() != Path(args.new_root).absolute()
+    ]
+    return [
+        ("final_heads", lambda: final_heads_status(args.final_heads, new)),
+        ("accepted", lambda: open_accepted_item(args.new_root, new)),
+        ("release", lambda: release_item(args.new_root, new)),
+        ("open_door", lambda: open_door_item(args.new_root, args.new_network, expect)),
+        (
+            "unit",
+            lambda: new_unit_item(args.new_root, args.new_network, args.new_unit),
+        ),
+        (
+            "producer_key",
+            lambda: producer_key_item(args.repo, new, args.new_network),
+        ),
+        (
+            "disk",
+            lambda: disk_item(
+                args.mode, None, args.new_root, size=Door(args.new_root).size()
+            ),
+        ),
+        ("receivers", lambda: receivers_item([*others, args.new_root], proc=PROC)),
+        (
+            "chain_binding",
+            lambda: chain_binding_item(
+                [*others, args.new_root],
+                expect,
+                proc=PROC,
+                # every other declared door must be running and read; NEW is prepared, not yet started
+                receivers_expected=len({str(Path(r).absolute()) for r in others}),
+                loops_pending=tuple(args.weights_loop_pending),
+            ),
+        ),
+        (
+            "lock_versions",
+            lambda: lock_versions_item(args.repo, others, new, args.allow_mixed_lock),
+        ),
+    ]
+
+
+#: where `receiver_setup service` installs a door's unit
+UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
+
+
+def door_unit_path(new_root) -> Path:
+    """The unit `receiver_setup service` installs for ``new_root`` (`receiver_setup.unit_name`: carbon-receiver- + the
+    first 12 hex of sha256 of the receiver-state path as given there)."""
+    digest = hashlib.sha256(str(Path(new_root)).encode()).hexdigest()[:12]
+    return UNIT_DIR / f"carbon-receiver-{digest}.service"
+
+
+def _unit_service(path):
+    """The [Service] ``Environment``, ``EnvironmentFile`` and ``ExecStart`` lines of a unit and its drop-ins
+    (``<unit>.d/*.conf``, in name order, each later one overriding), as systemd applies them.
+    """
+    env, env_files, exec_start, read = {}, [], None, []
+    for file in [path, *sorted(Path(str(path) + ".d").glob("*.conf"))]:
+        read.append(str(file))
+        section = None
+        for raw in file.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line[0] in "#;":
+                continue
+            if line.startswith("[") and line.endswith("]"):
+                section = line[1:-1]
+                continue
+            key, _, value = line.partition("=")
+            if section != "Service":
+                continue
+            key, value = key.strip(), value.strip()
+            if key == "Environment":
+                if not value:
+                    env = {}  # an empty assignment resets the list
+                for word in shlex.split(value):
+                    name, _, setting = word.partition("=")
+                    env[name] = setting
+            elif key == "EnvironmentFile":
+                env_files.append(value)
+            elif key == "ExecStart":
+                exec_start = value or None
+    return env, env_files, exec_start, read
+
+
+def new_unit_item(new_root, network, unit=None) -> dict:
+    """(V2C 11 Nov 21:13, R-a) The fresh door's installed unit binds the network its own record names: its
+    ``CARBON_CHAIN_NETWORK`` is ``network``, it sets no localnet variable, it reads no environment file this check
+    cannot see, and it runs THIS root's receiver.json. A missing unit refuses: the door is not installed.
+    """
+    path = Path(unit) if unit is not None else door_unit_path(new_root)
+    if not path.is_file():
+        return {"state": REFUSE, "code": "new_unit_missing", "unit": str(path)}
+    try:
+        env, env_files, exec_start, read = _unit_service(path)
+    except (OSError, ValueError):
+        return {"state": UNKNOWN, "code": "new_unit_unreadable", "unit": str(path)}
+    out = {"unit": str(path), "files": read}
+    config = str(Path(new_root) / "receiver" / "receiver.json")
+    refused = _unit_binding(env, env_files, exec_start, network, config)
+    if refused:
+        return {**out, **refused}
+    # (Deploy-C 11 Nov) and what systemd itself LOADED for that unit (`systemctl --user show`): a unit edited without
+    # a daemon-reload, or a drop-in somewhere this reader does not look, still starts with the loaded environment
+    loaded = UNIT_SHOW(path.name)
+    if loaded is None:
+        return {**out, "state": UNKNOWN, "code": "unit_loaded_state_unread"}
+    if loaded.get("LoadState") != "loaded" or loaded.get("NeedDaemonReload") == "yes":
+        return {
+            **out,
+            "state": REFUSE,
+            "code": "unit_not_loaded_as_written",
+            "load_state": loaded.get("LoadState"),
+            "need_daemon_reload": loaded.get("NeedDaemonReload"),
+        }
+    try:
+        loaded_env = dict(
+            word.partition("=")[::2]
+            for word in shlex.split(loaded.get("Environment", ""))
+        )
+    except ValueError:
+        return {**out, "state": UNKNOWN, "code": "unit_loaded_state_unread"}
+    files = loaded.get("EnvironmentFiles", "").strip()
+    refused = _unit_binding(
+        loaded_env, files, loaded.get("ExecStart", ""), network, config, loaded=True
+    )
+    if refused:
+        return {**out, **refused, "read": "systemctl"}
+    return {**out, "state": PASS, "network": network, "loaded": True}
+
+
+def _unit_binding(env, env_files, exec_start, network, config, *, loaded=False):
+    """The refusal for a unit environment and ExecStart that do not bind ``network`` and ``config``, or None."""
+    if env_files:
+        return {"state": UNKNOWN, "code": "unit_environment_file_unread"}
+    localnet = sorted(n for n in CHAIN_ENVIRONMENT[1:] if n in env)
+    if localnet:
+        return {
+            "state": REFUSE,
+            "code": "unit_has_localnet_variable",
+            "names": localnet,
+        }
+    bound = env.get("CARBON_CHAIN_NETWORK", "")
+    if bound != network:
+        return {
+            "state": REFUSE,
+            "code": "unit_network_not_the_door_network",
+            "network": bound,
+        }
+    words = (exec_start or "").replace(";", " ").split()
+    if "--config" not in words or words[words.index("--config") + 1 :][:1] != [config]:
+        return {"state": REFUSE, "code": "unit_runs_another_root"}
+    return None
+
+
+def _systemctl_show(name):
+    """``systemctl --user show`` of a unit's load state, environment and ExecStart (one property per line), or None
+    when it cannot be read (no systemctl, no user manager): never a pass."""
+    import subprocess
+
+    if shutil.which("systemctl") is None:
+        return None
+    props = "LoadState,NeedDaemonReload,Environment,EnvironmentFiles,ExecStart"
+    try:
+        done = subprocess.run(
+            ["systemctl", "--user", "show", name, "-p", props],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if done.returncode != 0:
+        return None
+    return dict(
+        line.partition("=")[::2] for line in done.stdout.splitlines() if "=" in line
+    )
+
+
+#: how the unit check reads what systemd loaded (a test points it at a fake)
+UNIT_SHOW = _systemctl_show
+
+
+def open_accepted_item(new_root, new) -> dict:
+    """The fresh door's config ACCEPTS the revision given (``accepted_item`` without an OLD side)."""
+    door = Door(new_root)
+    if door.accepted is None:
+        return {
+            "state": UNKNOWN,
+            "code": "new_accepted_revision_missing",
+            "source": door.accepted_from,
+        }
+    if door.accepted != new:
+        return {
+            "state": REFUSE,
+            "code": "new_rev_is_not_the_accepted_revision",
+            "source": door.accepted_from,
+        }
+    return {"state": PASS, "source": door.accepted_from}
+
+
+#: every precheck option beyond the always-required ones, and which modes read it (R-b: anything else refuses)
+_SHARED = ("old_rev", "old_pack", "new_pack", "old_root", "declared")
+PRECHECK_USES = {
+    "prepare": {*_SHARED, "declared_pack_change", "declared_rule_change"},
+    "switch": {
+        *_SHARED,
+        "declared_pack_change",
+        "declared_rule_change",
+        "allow_chain_degraded",
+        "host_root",
+        "allow_mixed_lock",
+        "expect_network",
+        "older_root",
+    },
+    "open": {
+        "new_network",
+        "expect_network",
+        "weights_loop_pending",
+        "new_unit",
+        "host_root",
+        "allow_mixed_lock",
+    },
+}
+PRECHECK_OPTIONS = sorted(set().union(*PRECHECK_USES.values()))
+PRECHECK_REQUIRES = {
+    "prepare": ("old_rev", "old_pack", "new_pack", "old_root"),
+    "switch": ("old_rev", "old_pack", "new_pack", "old_root", "host_root"),
+    "open": ("new_network",),
+}
+
+
 def precheck(args) -> dict:
     out = {"schema": SCHEMA + ".precheck", "mode": args.mode, "items": {}}
-    items = out["items"]
+    if getattr(args, "mode_given", None):
+        out["mode_given"] = args.mode_given
+    if args.mode == "open":
+        try:
+            new = ei.resolve(args.repo, args.new_rev)
+        except ei.Unknown as failed:
+            return {**out, "state": UNKNOWN, "code": str(failed)}
+        out.update(new=new)
+        return _run_checks(
+            out, open_checks(args, new), class_basis="open_has_no_old_door"
+        )
     try:
         new = ei.resolve(args.repo, args.new_rev)
         old = ei.resolve(args.repo, args.old_rev)
@@ -1089,6 +1559,11 @@ def precheck(args) -> dict:
             ),
             ("release", lambda: release_item(args.new_root, new)),
         ]
+    return _run_checks(out, checks)
+
+
+def _run_checks(out, checks, *, class_basis=None) -> dict:
+    items = out["items"]
     for name, run in checks:
         try:
             items[name] = run()
@@ -1099,7 +1574,11 @@ def precheck(args) -> dict:
     out["state"] = (
         REFUSE if REFUSE in states else UNKNOWN if UNKNOWN in states else PASS
     )
-    out["release_class"] = release_class(items)
+    out["release_class"] = (
+        release_class(items)
+        if class_basis is None
+        else {"class": None, "basis": class_basis}
+    )
     return out
 
 
@@ -1213,11 +1692,14 @@ def main(argv=None) -> int:
     d.add_argument("--reason", required=True)
     d.add_argument("--evidence", type=Path, required=True)
     p = sub.add_parser("precheck")
-    p.add_argument("--mode", choices=sorted(DISK_FACTOR), required=True)
+    # ``release`` is the lock-in's day-of name for ``open`` (a fresh door)
+    p.add_argument("--mode", choices=sorted({*DISK_FACTOR, "release"}), required=True)
     p.add_argument("--repo", type=Path, required=True)
-    for name in ("--old-rev", "--new-rev", "--old-pack", "--new-pack"):
-        p.add_argument(name, required=True)
-    p.add_argument("--old-root", type=Path, required=True)
+    p.add_argument("--new-rev", required=True)
+    # OLD and the packs: required in prepare/switch; open mode (a fresh door) has no OLD
+    for name in ("--old-rev", "--old-pack", "--new-pack"):
+        p.add_argument(name)
+    p.add_argument("--old-root", type=Path)
     p.add_argument("--new-root", type=Path, required=True)
     p.add_argument("--final-heads", type=Path, required=True)
     p.add_argument("--declared", type=Path)
@@ -1231,6 +1713,17 @@ def main(argv=None) -> int:
     # (N2) repeat it on a host that serves both: each door is then held to its own receiver.json's network
     p.add_argument("--expect-network", choices=("testnet", "finney"), action="append")
     p.add_argument("--older-root", type=Path, action="append", default=[])
+    # open mode: the network the fresh door serves (its receiver.json and pack stores must name it) ...
+    p.add_argument("--new-network", choices=("testnet", "finney"))
+    # ... and an expected network whose weights loop has not started yet (it starts after its doors open)
+    p.add_argument(
+        "--weights-loop-pending",
+        choices=("testnet", "finney"),
+        action="append",
+        default=[],
+    )
+    # ... and the fresh door's installed (not started) systemd unit; default: the one `receiver_setup service` names
+    p.add_argument("--new-unit", type=Path)
     pl = sub.add_parser("pushline")
     pl.add_argument("--repo", type=Path, required=True)
     pl.add_argument("--sha", required=True)
@@ -1263,12 +1756,34 @@ def main(argv=None) -> int:
         elif args.command == "pushline":
             result = pushline(args.repo, args.sha, args.final_heads, main=args.main)
         elif args.command == "precheck":
-            for name in ("old_pack", "new_pack"):
-                ei.pack(getattr(args, name))
-            if args.mode == "switch" and not args.host_root:
-                parser.error(
-                    "--host-root (every door root on this host, OLD and NEW) is required in switch mode"
-                )
+            if args.mode == "release":
+                # (Fri day-of step 2 as the lock-in names it) the release precheck of a fresh door = open mode
+                args.mode, args.mode_given = "open", "release"
+            # (V2C 11 Nov 21:13, R-b) an option the mode does not use is refused, never silently ignored
+            unused = [
+                "--" + name.replace("_", "-")
+                for name in PRECHECK_OPTIONS
+                if getattr(args, name) not in (None, [])
+                and name not in PRECHECK_USES[args.mode]
+            ]
+            if unused:
+                parser.error(f"{', '.join(unused)}: not used in {args.mode} mode")
+            missing = [
+                "--" + name.replace("_", "-")
+                for name in PRECHECK_REQUIRES[args.mode]
+                if getattr(args, name) in (None, [])
+            ]
+            if missing:
+                parser.error(f"{', '.join(missing)}: required in {args.mode} mode")
+            if args.mode == "open":
+                expected = set(args.expect_network or ["testnet"])
+                if args.new_network not in expected:
+                    parser.error("--new-network must be one of the --expect-network")
+                if not set(args.weights_loop_pending) <= expected:
+                    parser.error("--weights-loop-pending must be an --expect-network")
+            else:
+                for name in ("old_pack", "new_pack"):
+                    ei.pack(getattr(args, name))
             result = precheck(args)
         elif args.log_command == "append":
             result = log_append(args.log, json.loads(args.event))
