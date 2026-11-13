@@ -2127,27 +2127,31 @@ def _report_pending_contention(store, kind, submission_id, outcome, *, filed):
 
 def _floor_exam(adapter):
     """The exam a registered crown floor is keyed by (`koth_registry.registered_floor`): this version, its registered menu
-    epoch and the digest of the exact sealed evaluation pack. None when any of them is not readable, or the version has no
-    menu: the comparator then finds no registered floor (UNAVAILABLE downstream, never a guess), exactly as before.
+    epoch and the digest of the exact sealed evaluation pack. None for a version with no menu block (read from the raw
+    registration alone, as `crown_hold` does, so no other constant of a live non-menu version is ever parsed here), and
+    None when anything else cannot be read: the comparator then finds no registered floor (UNAVAILABLE downstream, never a
+    guess), exactly as before. The lookup is an optional extra of the crown decision, so no failure of it may break a grade.
     """
-    from carbon.scoring import pool_exam, pool_version
+    from carbon.challenge_validator import crown_hold
+    from carbon.scoring import pool_version
 
     try:
+        if not crown_hold.menu_registered(
+            adapter.challenge_id, adapter.challenge_version
+        ):
+            return None
         digest = adapter.discovery.evaluation_pack_digest
         rule = pool_version.registered_menu(
             adapter.challenge_id, adapter.challenge_version
         )
-    except (
-        AttributeError,
-        pool_version.PoolConstantsNotRegistered,
-        pool_exam.ExamRefused,
-    ):
+        epoch = None if rule is None else rule.epoch
+    except Exception:  # noqa: BLE001 - no registered floor, never a broken grade
         return None
-    if rule is None or type(digest) is not str or type(rule.epoch) is not str:
+    if type(digest) is not str or type(epoch) is not str:
         return None
     return {
         "version": adapter.challenge_version,
-        "epoch": rule.epoch,
+        "epoch": epoch,
         "evaluation_pack_digest": digest,
     }
 

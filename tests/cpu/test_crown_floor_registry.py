@@ -393,8 +393,16 @@ def _adapter(digest_value=PACK, version="9.9"):
     )
 
 
+@pytest.fixture
+def menu_version(monkeypatch):
+    """The fixture version registers a menu (the raw-registration check `crown_hold` makes)."""
+    from carbon.challenge_validator import crown_hold
+
+    monkeypatch.setattr(crown_hold, "menu_registered", lambda challenge, version: True)
+
+
 def test_the_floor_exam_is_the_version_its_registered_epoch_and_the_exact_pack(
-    monkeypatch,
+    monkeypatch, menu_version
 ):
     monkeypatch.setattr(
         pool_version,
@@ -404,26 +412,49 @@ def test_the_floor_exam_is_the_version_its_registered_epoch_and_the_exact_pack(
     assert lrr._floor_exam(_adapter()) == EXAM
 
 
-def test_the_floor_exam_is_none_when_anything_is_unreadable(monkeypatch):
+def test_a_version_with_no_menu_block_never_parses_its_other_constants(monkeypatch):
+    """A live non-menu door: only the raw registration is read, never `registered_policies`."""
+    from carbon.challenge_validator import crown_hold
+
+    def never(challenge, version):
+        raise AssertionError("registered_menu consulted for a non-menu version")
+
+    monkeypatch.setattr(pool_version, "registered_menu", never)
+    monkeypatch.setattr(crown_hold, "menu_registered", lambda challenge, version: False)
+    assert lrr._floor_exam(_adapter()) is None
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        pool_version.PoolConstantsNotRegistered("x"),
+        pool_exam.ExamRefused("x"),
+        TypeError("x"),
+        ValueError("x"),
+        KeyError("x"),
+        RuntimeError("x"),
+    ],
+)
+def test_no_failure_of_the_lookup_breaks_a_grade(monkeypatch, menu_version, error):
+    def raises(challenge, version):
+        raise error
+
+    monkeypatch.setattr(pool_version, "registered_menu", raises)
+    assert lrr._floor_exam(_adapter()) is None
+
+
+def test_the_floor_exam_is_none_when_anything_is_missing(monkeypatch, menu_version):
     monkeypatch.setattr(pool_version, "registered_menu", lambda c, v: None)
-    assert lrr._floor_exam(_adapter()) is None  # no menu block
-
-    def not_registered(challenge, version):
-        raise pool_version.PoolConstantsNotRegistered("x")
-
-    monkeypatch.setattr(pool_version, "registered_menu", not_registered)
-    assert lrr._floor_exam(_adapter()) is None
-
-    def refused(challenge, version):
-        raise pool_exam.ExamRefused("x")
-
-    monkeypatch.setattr(pool_version, "registered_menu", refused)
-    assert lrr._floor_exam(_adapter()) is None
+    assert lrr._floor_exam(_adapter()) is None  # a menu row that reads as no rule
     monkeypatch.setattr(
         pool_version, "registered_menu", lambda c, v: SimpleNamespace(epoch="E1")
     )
     assert lrr._floor_exam(_adapter(digest_value=None)) is None
     assert lrr._floor_exam(SimpleNamespace(challenge_id=CHALLENGE)) is None
+    monkeypatch.setattr(
+        pool_version, "registered_menu", lambda c, v: SimpleNamespace(epoch=None)
+    )
+    assert lrr._floor_exam(_adapter()) is None
 
 
 def test_every_pool_grade_call_site_passes_the_exam():
