@@ -127,3 +127,35 @@ def test_the_1_8_registrations_carry_no_crown_d_block():
         document["versions"]["electric-motor-magnetics 1.8"]["menu"]["tasks_per_epoch"]
         == K
     )
+
+
+def _crown_d_dropping_blocks(document):
+    """Every registered crown_d block that could rest D on fewer targets than it draws (CV-Motor-C 17:50 ruling: the
+    fix is min_targets = tasks_per_epoch, so a REFERENCE_FAILED target ends as FAILED_INFRA, never a smaller mean).
+    """
+    bad = []
+    for key, row in document["versions"].items():
+        block = row.get("crown_d")
+        if block is None:
+            continue
+        k, floor = block.get("tasks_per_epoch"), block.get("min_targets")
+        if not (type(k) is int and type(floor) is int and floor == k):
+            bad.append(key)
+    return bad
+
+
+def test_no_registered_crown_d_block_rests_d_on_fewer_targets_than_it_draws():
+    document = json.loads(
+        (ROOT / "scripts/validator_host_classes/pool_constants.json").read_bytes()
+    )
+    assert _crown_d_dropping_blocks(document) == []
+    # the check bites: a block with min_targets below its k (or either unset) is flagged
+    synthetic = {
+        "versions": {
+            "x 1": {"crown_d": {"tasks_per_epoch": 3, "min_targets": 2}},
+            "x 2": {"crown_d": {"tasks_per_epoch": 3, "min_targets": "HUMAN_INPUT"}},
+            "x 3": {"crown_d": {"tasks_per_epoch": 3, "min_targets": 3}},
+            "x 4": {},
+        }
+    }
+    assert _crown_d_dropping_blocks(synthetic) == ["x 1", "x 2"]
