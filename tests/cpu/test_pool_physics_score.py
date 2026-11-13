@@ -379,8 +379,18 @@ def _registered(the_sets, threshold):
     }
 
 
-def _measure(the_sets, policies, material, serve=good_serve):
+def _measure(the_sets, policies, material, serve=good_serve, extra_pool_inputs=()):
     rows = exam_rows(the_sets)
+    # pool rows no target holds (the in-range case set's rows, which the pack adds to the pool: `pool_version`)
+    rows += [
+        {
+            "case_id": f"extra:{i}",
+            "inputs": dict(inputs),
+            "reference": None,
+            "cohort": pool_exam.POOL_COHORT,
+        }
+        for i, inputs in enumerate(extra_pool_inputs)
+    ]
     outputs = serve([r["inputs"] for r in rows])
     capture = {}
     result = pool_exam.measure_pool(
@@ -901,3 +911,52 @@ def test_the_record_carries_the_sealed_graders_measured_laws_every_grade(monkeyp
     failed, _ = _measure(the_sets, tight, material)
     assert failed["pool"]["accuracy"]["laws"]["physics_half"] == half
     assert "laws" not in json.dumps(pool_exam.public(result))
+
+
+def _cases_outside_the_pool_targets(the_sets, count=6):
+    """The in-range case set as a real version registers it: in-box rows that are NOT any target's pool design."""
+    from test_pool_plugin import U, truth
+
+    document = _case_document(the_sets, count=count)
+    for k, case in enumerate(document["cases"]):
+        row = {"cond": 1.0, "x": 0.111 + 0.0137 * k, "y": 0.222 + 0.0071 * k}
+        f, g = truth(row)
+        case.update(inputs=row, truths={"f": f, "g": g}, u={"f": U, "g": U})
+    held = {
+        (r["inputs"]["cond"], r["inputs"]["x"], r["inputs"]["y"])
+        for r in exam_rows(the_sets)
+    }
+    assert not any(
+        (c["inputs"]["cond"], c["inputs"]["x"], c["inputs"]["y"]) in held
+        for c in document["cases"]
+    )
+    return document
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_in_range_cases_outside_the_pool_targets_are_graded_when_the_pack_carries_their_rows():
+    """Canary 3 (13 Nov): a 1.8-style in-range case set (rows no target holds) refused every grade as
+    in_range_case_not_an_exam_row because the bank never held its rows. With the rows in the pool (the pack adds
+    them), the grade reads each answer from the model's one table and the gate is computed.
+    """
+    the_sets = _sets()
+    policies, material = _registered(the_sets, threshold=2.5)
+    document = _cases_outside_the_pool_targets(the_sets)
+    policies, material = _with_cases(policies, material, document)
+    extra = [c["inputs"] for c in document["cases"]]
+    result, _ = _measure(the_sets, policies, material, extra_pool_inputs=extra)
+    assert result["gates"][pool_exam.ACCURACY_GATE] is True
+    assert result["D"] > 0
+    # the rows are what the pack must add: without them the grade names the missing row, as before
+    with pytest.raises(pool_exam.ExamRefused, match="in_range_case_not_an_exam_row"):
+        _measure(the_sets, policies, material)
+    # and a pool row that is no target's, no menu's and no case's is still refused
+    with pytest.raises(
+        pool_exam.ExamRefused, match="exam_pool_rows_differ_from_the_targets_pools"
+    ):
+        _measure(
+            the_sets,
+            policies,
+            material,
+            extra_pool_inputs=[*extra, {"cond": 1.0, "x": 0.9, "y": 0.9}],
+        )

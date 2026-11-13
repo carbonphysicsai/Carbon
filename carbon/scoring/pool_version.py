@@ -665,6 +665,24 @@ def _menu_rows(material, challenge):
     return pool_menu.bank_rows(tasks, material["design_names"])
 
 
+def _in_range_rows(material):
+    """The model input rows of a version's registered in-range case set (none without an ``in_range_cases`` field).
+
+    The model answers only the bank's rows, so a case's row must be a bank row for the grade to read its answer from
+    the model's one table (`pool_exam.measure_pool`): the case set's inputs are pool rows, like the menu's (inputs only;
+    the truths stay in custody). A case that does not name the model's whole row is the pack's fault, refused here.
+    """
+    document = material.get(IN_RANGE_CASES)
+    if document is None:
+        return []
+    cases = document.get("cases") if type(document) is dict else None
+    if type(cases) is not list or not all(
+        type(case) is dict and type(case.get("inputs")) is dict for case in cases
+    ):
+        raise pool_exam.ExamRefused("in_range_cases_malformed")
+    return [case["inputs"] for case in cases]
+
+
 def rows_from_material(material, *, dtype, challenge):
     """``[(case_id, record, input row)]`` of a pool-graded exam's design-search rows, in the canonical order
     (the order `copy_derivation.canonicalize` gives derived rows: by content, or by id for a Challenge whose ids
@@ -695,6 +713,14 @@ def rows_from_material(material, *, dtype, challenge):
                 seen.setdefault(values, None)
     for row in _menu_rows(material, _challenge_id(material, challenge)):
         # menu rows are plain pool rows: same quantisation, dedup and canonical content order (Validator-2B a1)
+        values = tuple(float(kind.type(row[name])) for name in names)
+        seen.setdefault(values, None)
+    for row in _in_range_rows(material):
+        # the in-range case set's rows are plain pool rows too: the model answers them with every other bank row
+        if set(row) != set(names):
+            raise pool_exam.ExamRefused(
+                "in_range_case_inputs_do_not_complete_the_model_row"
+            )
         values = tuple(float(kind.type(row[name])) for name in names)
         seen.setdefault(values, None)
     by_kind = {kind: challenge_id for challenge_id, kind in KINDS.items()}
@@ -773,6 +799,11 @@ def row_accounting(material, *, dtype, challenge=None):
                 rows = pool_menu.task_rows(task, design_names)[0]
                 counts["menu_rows"] += len(rows)
                 yield rows
+        in_range = _in_range_rows(material)
+        if in_range:
+            # one more target, like the menu's tasks: its rows are pool rows (`rows_from_material`)
+            counts["in_range_cases"] = len(in_range)
+            yield in_range
 
     for rows in targets():
         target = counts["targets"]

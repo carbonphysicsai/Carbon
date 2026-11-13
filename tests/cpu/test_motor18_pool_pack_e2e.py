@@ -137,8 +137,31 @@ def _documents():
         pool_version.COVERAGE_PLAN: plan,
         pool_version.COVERAGE_PLAN_SUMS: "0" * 64 + "  coverage-plan.json\n",
         pool_version.SCORING_CELLS: {"schema": "fixture.scoring-cells"},
-        pool_version.IN_RANGE_CASES: {"schema": "fixture.in-range-cases"},
+        pool_version.IN_RANGE_CASES: _in_range_document(),
     }
+
+
+IN_RANGE_CASES = 5
+
+
+def _in_range_document():
+    """The version's sealed in-range case set, shaped as the real one is (P1 r8 in-range-cases.json): each case is a
+    class, the model's FULL input row at a point no pool target holds, its truths and U. Synthetic values only.
+    """
+    cases = []
+    for k in range(IN_RANGE_CASES):
+        rng = random.Random(900 + k)
+        row = {name: rng.random() for name in DESIGN_INPUTS}
+        row[CONDITION_INPUTS[0]], row[CONDITION_INPUTS[1]] = 8.0, 10.0
+        cases.append(
+            {
+                "class": "fixture:in_train",
+                "inputs": row,
+                "truths": {"f": sum(row[n] for n in DESIGN_INPUTS), "g": 0.5},
+                "u": {"f": 0.01, "g": 0.01},
+            }
+        )
+    return {"schema": "carbon.pool.in-range-cases.v1", "cases": cases}
 
 
 def _registration(tmp_path, menu_shas):
@@ -196,8 +219,9 @@ def test_a_full_motor_1_8_pool_pack_builds_end_to_end(batch, tmp_path, registere
     )
     rows = record["rows"]
     assert rows["cells"] == len(document["cases"]) and rows["probes"] > 0
-    # 2 targets x 16 designs + the menu's (design x duty) rows, all as pool rows
+    # 2 targets x 16 designs + the menu's (design x duty) rows + the in-range case set's rows, all as pool rows
     assert rows["pool"] > 32
+    assert record["pool_accounting"]["in_range_cases"] == IN_RANGE_CASES
     assert rows["total"] == rows["pool"] + rows["probes"] + rows["cells"]
     assert record["menu"] == {"tasks": 3, "records_sha256": shas}
     # the pack resolves back to a Motor 1.8 pool bank with its grader
@@ -207,6 +231,17 @@ def test_a_full_motor_1_8_pool_pack_builds_end_to_end(batch, tmp_path, registere
     # the door's side: the written pack's bank rebuilds (menu rows and all) and finds Motor 1.8's own grader
     bank = source._build(MOTOR, source._kit(MOTOR), carried[0], carried[1], VERSION)
     assert len(bank["case_ids"]) == rows["total"]
+    # canary 3 (13 Nov): every registered in-range case's row is a bank row (a pool row), by the grade's own quantiser
+    # (pool_exam.measure_pool L313-323), or the grade refuses in_range_case_not_an_exam_row
+    quantize = pool_exam._quantizer(carried[0]["pool"]["input_dtype"])
+    pool_inputs = {
+        tuple(float(v) for v in row)
+        for row, cohort in zip(bank["inputs"], bank["cohorts"], strict=True)
+        if cohort == pool_exam.POOL_COHORT
+    }
+    for case in _in_range_document()["cases"]:
+        row = tuple(quantize(case["inputs"])[n] for n in NAMES)
+        assert row in pool_inputs, "an in-range case row is missing from the pool"
     adapter = source._adapter(MOTOR, bank, VERSION, None)
     assert adapter is not None and adapter.VERSION == VERSION
     assert math.isfinite(len(json.dumps(record)))

@@ -307,6 +307,19 @@ def measure_pool(
         # Validator-2B a3: the menu designs, quantised as the bank holds them, are bank pool rows.
         _require(menu_held <= held, "menu_rows_differ_from_the_bank")
         answered = answered | menu_held
+    if policies.physics is not None and policies.physics.in_range is not None:
+        # The sealed in-range case set's rows are pool rows too (`pool_version.rows_from_material`: the model answers
+        # only the bank's rows). A case row that is no pool row is left out of `answered` here and refused below as
+        # `in_range_case_not_an_exam_row` when it is no bank row at all (a cell or probe row is a bank row).
+        answered = answered | {
+            row
+            for row in (
+                tuple(quantize(inputs)[n] for n in binding.input_names)
+                for _name, inputs, _t, _u in policies.physics.in_range.cases
+                if set(inputs) == set(binding.input_names)
+            )
+            if row in held
+        }
     _require(answered == held, "exam_pool_rows_differ_from_the_targets_pools")
     case_predict = None
     if policies.physics is not None and policies.physics.in_range is not None:
