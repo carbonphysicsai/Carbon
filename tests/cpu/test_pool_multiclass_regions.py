@@ -493,12 +493,24 @@ def test_the_registration_reads_every_field_with_no_default_when_present(tmp_pat
             _policies(tmp_path, _entry(**fields))
 
 
+#: The registered NEW versions in the 5 Nov fit-breaker form (mc-exam-B slice 3a, 10 Nov): listed by name, never derived.
+_FIVE_NOV_FORM = frozenset({"electric-motor-magnetics 1.8", "chip-cold-plate 1.8"})
+
+
 def test_every_registered_version_registers_no_plan_and_no_a_gen_aggregate():
     assert (
         OptimizerPolicy(budget=5, sigma0=0.3, population=None).a_gen_aggregate is None
     )
     document = json.loads(pool_version.CONSTANTS.read_bytes())
     for name, entry in document["versions"].items():
+        if name in _FIVE_NOV_FORM:
+            # a NEW version in the 5 Nov fit-breaker form (test_fit_breaker_conformance): its coverage plan is
+            # REQUIRED, its A is the physics block, and it has no A_gen aggregate
+            assert "physics" in entry, name
+            assert "a_gen_aggregate" not in entry["optimizer"], name
+            assert "coverage_plan_sha256" in entry["optimizer"], name
+            assert "coverage_plan_sums_sha256" in entry["optimizer"], name
+            continue
         for key in (
             "a_gen_aggregate",
             "coverage_plan_sha256",
@@ -606,12 +618,11 @@ def test_the_material_plan_attaches_only_when_registered_listed_and_complete(
         )
 
 
-def test_class_names_must_be_geometric_v1_and_every_plan_refuses_until_the_rule_lands(
-    monkeypatch,
-):
+def test_class_names_must_be_geometric_v1(monkeypatch):
     sets, document, sums, _plan, registered = _plan_and_sums()
+    # the receipted rule (carbon.scoring.geometric_v1) refuses the fixture's names: they are not geometric-v1 names
     with pytest.raises(
-        pool_exam.ExamRefused, match="geometric_v1_vocabulary_not_in_the_repository"
+        pool_exam.ExamRefused, match="coverage_plan_class_not_geometric_v1"
     ):
         pool_exam.attach_coverage_plan(registered, document, sums, sets)
     monkeypatch.setattr(pool_exam, "geometric_v1_names_valid", lambda classes: False)
@@ -861,3 +872,15 @@ def test_a_plan_is_a_frozen_value():
     assert isinstance(plan, CoveragePlan)
     with pytest.raises(dataclasses.FrozenInstanceError):
         plan.classes = ()
+
+
+def test_motor_1p8_menu_scores_3_of_4_tasks_per_epoch():
+    """Owner, typed in mc-exam-B 10 Nov 21:4x: 'Motor has 4 tasks, 3 scored per epoch; the fewer-than-3 exception
+    label is dropped.' Motor 1.8's menu registers tasks_per_epoch 3 and no min_tasks_exception; Cooling 1.8 scores
+    every task (no tasks_per_epoch).
+    """
+    document = json.loads(pool_version.CONSTANTS.read_bytes())
+    motor = document["versions"]["electric-motor-magnetics 1.8"]["menu"]
+    assert motor["tasks_per_epoch"] == 3
+    assert "min_tasks_exception" not in motor
+    assert "tasks_per_epoch" not in document["versions"]["chip-cold-plate 1.8"]["menu"]

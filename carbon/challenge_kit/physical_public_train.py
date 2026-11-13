@@ -323,22 +323,25 @@ EXTENDED = {
     "cooling-dev-train-1p8-v1": {
         "challenge": cooling.CHALLENGE.challenge_id,
         "encoded_from": None,
-        "rows": None,
-        "source_sha256": None,
-        "train_sha256": None,
-        "provenance_sha256": None,
+        "rows": 458,
+        "source_sha256": "bc689332047e8f011228356b5301210e95f5ef6eaeb4b5c7829fa40dcacca1ca",
+        "train_sha256": "326cb30187cbb6cc108bbe435ad7dc01851e4459dd4858fb17bc9c26a8ccfeb7",
+        "provenance_sha256": "2e5a9b1234bf000e57d03d2ab6b450d312c84eaca634e857c920a21a7238fd94",
     },
     "cooling-dev-train-1p8-v1-encoded": {
         "challenge": cooling.CHALLENGE.challenge_id,
         "encoded_from": "cooling-dev-train-1p8-v1",
-        "rows": None,
+        "rows": 458,
         "source_sha256": None,
-        "train_sha256": None,
-        "provenance_sha256": None,
+        "train_sha256": "5c1e2bed7d381a5ee915fc5c4bb26e43d7c692c9d7dd34d4dfa84a1c327cf223",
+        "provenance_sha256": "bc0ce49229a19cd30c644480a63ba8ececdf1755b7f6e4db78b74a9942663c9f",
     },
 }
 #: Where the extended TRAIN files sit (the same data directory; a separate name so a test can point it elsewhere).
 _EXTENDED_DATA = _DATA
+#: The re-derive tolerance of an extended ENCODED TRAIN's targets: float64 round-off of the same transform on another
+#: platform (the measured difference is <= 8.9e-16; this is ~4,500x that and far below any U). Not a science value.
+_ENCODED_ROUNDOFF = 4e-12
 _EXTENDED_TRANSFORM = "native-plus-added-jsonl-to-float64-npz-v1"
 #: The record fields a published added row keeps (allow-listed): no batch,
 #: run, wall time, diagnostics or source case id of the custody draw.
@@ -358,10 +361,10 @@ _NATIVE_TRAIN_NAMES = {
 FRESH_LAMBDA = {
     "motor-dev-train-1p8-v1": {
         "challenge": motor.CHALLENGE.challenge_id,
-        "rows": None,
-        "source_sha256": None,
-        "train_sha256": None,
-        "provenance_sha256": None,
+        "rows": 194,
+        "source_sha256": "efaacc92d96a6e5ea61aeed79db86cc653c1d12e09287e0bab692541fb55949d",
+        "train_sha256": "de1c73cc3fe22bb5945e02626f982ca83a4f0273a82e6c3d0398c28a2e32fbd4",
+        "provenance_sha256": "ee44b1740fa941df0e02c946b55abf0fd30ef6ec28d5936b17444740604d002f",
     },
 }
 _LAMBDA_PHASES = ("A", "B", "C")
@@ -864,6 +867,30 @@ def _load_extended(name: str, challenge_id: str) -> dict:
         native = _load_extended(spec["encoded_from"], challenge_id)
         want_raw, want = derive_extended_encoded_public_train(name, native)
         native_x = native["inputs"]
+        # The encoding is a float transform whose last bit varies by platform math (measured 9 Nov: <= 8.9e-16 between
+        # the canonical Linux build and Windows, on numpy 2.4.4 AND 2.4.6). The pinned sha256 already fixes the bytes;
+        # the re-derive checks the MEANING: the same provenance (bar its own sha line), the same inputs byte for byte,
+        # and targets equal to the re-encoded native TRAIN within float64 round-off (`_ENCODED_ROUNDOFF`).
+        want = {**want, "train_sha256": "sha256:" + _sha(train_raw)}
+        if want_raw != train_raw:
+            with (
+                np.load(io.BytesIO(train_raw), allow_pickle=False) as got,
+                np.load(io.BytesIO(want_raw), allow_pickle=False) as ref,
+            ):
+                if (
+                    set(got.files) != {"inputs", "targets"}
+                    or got["inputs"].tobytes() != ref["inputs"].tobytes()
+                    or got["targets"].shape != ref["targets"].shape
+                    or got["targets"].dtype != ref["targets"].dtype
+                    or not np.allclose(
+                        got["targets"],
+                        ref["targets"],
+                        rtol=_ENCODED_ROUNDOFF,
+                        atol=_ENCODED_ROUNDOFF,
+                    )
+                ):
+                    raise ValueError("extended public TRAIN provenance differs")
+            want_raw = train_raw
     if (
         want_raw != train_raw
         or provenance != want

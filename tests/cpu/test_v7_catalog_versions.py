@@ -368,7 +368,8 @@ def test_motor_1_3_is_its_own_catalog_campaign():
     from carbon.motor import campaign
 
     # 1.6: intended effect of registering Motor 1.6 through the version overlay with catalog: true
-    assert campaign.CATALOG_VERSIONS == ("1.2", "1.3", "1.4", "1.5", "1.6")
+    # 1.8: intended effect of registering Motor 1.8 through the version overlay (campaign catalog, like 1.6)
+    assert campaign.CATALOG_VERSIONS == ("1.2", "1.3", "1.4", "1.5", "1.6", "1.8")
     document = describe(MOTOR, "1.3")
     assert document["identity"] == "carbon.electric-motor-magnetics-catalog.1.3"
     recipe = catalog_recipe(version="1.3")
@@ -381,6 +382,7 @@ def test_motor_1_3_is_its_own_catalog_campaign():
         "1.4",
         "1.5",
         "1.6",
+        "1.8",
     }
     assert built[(MOTOR, "1.3")]().key.version == "1.3"
     assert built[(MOTOR, "1.2")]().key.version == "1.2"

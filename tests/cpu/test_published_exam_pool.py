@@ -79,9 +79,13 @@ POOL_KEYS = frozenset(
         ("electric-motor-magnetics", "1.5"),
         # intended effect of registering Motor 1.6 (version overlay, sealed motor-pool-sealed-v2)
         ("electric-motor-magnetics", "1.6"),
+        # intended effect of registering Motor 1.8 (version overlay, sealed motor-pool-sealed-v3)
+        ("electric-motor-magnetics", "1.8"),
         ("chip-cold-plate", "1.5"),
         ("chip-cold-plate", "1.6"),
         ("chip-cold-plate", "1.7"),
+        # intended effect of registering Cooling 1.8 (version overlay, sealed cooling-pool-sealed-v4)
+        ("chip-cold-plate", "1.8"),
     }
 )
 
@@ -286,8 +290,9 @@ def test_only_a_fully_registered_version_publishes_numbers():
         (ROOT / "scripts/validator_host_classes/pool_constants.json").read_bytes()
     )
     for key in POOL_KEYS:
-        row = document["versions"][f"{key[0]} {key[1]}"]
-        registered = "HUMAN_INPUT" not in json.dumps(row)
+        # a pool version with no constants row yet (Motor / Cooling 1.8 before their slice 3) is NOT registered
+        row = document["versions"].get(f"{key[0]} {key[1]}")
+        registered = row is not None and "HUMAN_INPUT" not in json.dumps(row)
         assert (key in pe._REGISTERED_POOL) == registered, key
 
 
@@ -334,8 +339,23 @@ def test_the_provisional_versions_publish_motor_1_5_s_row_with_their_own_scales(
         assert pe.for_version(*key)["design_search"] is not pe._DESIGN_SEARCH
 
 
+#: Registered by commit R (12 Nov): its own menu-D row (MOTOR_18_REGISTRATION), not Motor 1.5's
+MOTOR_18 = ("electric-motor-magnetics", "1.8")
+
+
+def test_motor_1_8_publishes_its_own_registered_block():
+    own = pe.registered_pool(*MOTOR_18)
+    assert own is not None and own == pe.MOTOR_18_REGISTRATION
+    block = pe.for_version(*MOTOR_18)
+    assert block["design_search"] is not pe._DESIGN_SEARCH
+    assert set(block) <= pe.ALLOWED_FIELDS
+    words = " ".join(_walk(block)).lower()
+    for word in WITHHELD:
+        assert word not in words, word
+
+
 def test_every_other_pool_version_still_says_not_yet_registered():
-    for key in POOL_KEYS - {MOTOR_15} - PROVISIONAL:
+    for key in POOL_KEYS - {MOTOR_15, MOTOR_18} - PROVISIONAL:
         block = pe.for_version(*key)
         assert block["design_search"] is pe._DESIGN_SEARCH
         assert block["design_search"]["search"]["query_budget"] == pe.NOT_REGISTERED
@@ -372,3 +392,13 @@ def test_f08_17_publishes_its_owner_set_query_budget_of_80():
     }
     assert "The query budget is 80." in lines["inverse_design"]
     assert "80 times" in lines["registered_values"]
+
+
+def test_motor_1_8_opens_with_its_graph_example_and_no_catalog_one():
+    """Miner X-C 12 Nov 17:47: once registered, describe(Motor, 1.8) raised TypeError (no catalog entry carries to
+    1.8's TRAIN), so the Control Center could not open it. It opens, and its only example is the graph route's.
+    """
+    from carbon.challenge_registry import registry
+
+    described = registry.describe(*MOTOR_18)
+    assert [e["recipe"]["source"]["kind"] for e in described["examples"]] == ["graph"]

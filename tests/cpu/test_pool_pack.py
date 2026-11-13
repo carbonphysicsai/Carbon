@@ -621,3 +621,47 @@ def test_a_binding_needs_its_calibration_pack_and_a_calibration_pack_takes_none(
             calibration_pack_root=tmp_path,
             **common,
         )
+
+
+def test_a_menu_banks_rows_read_the_registration_under_the_challenge_id_not_the_kind(
+    batch, monkeypatch
+):
+    """12 Nov (TL-2C scratch P3 on S3): the sealed packs reach pool rows through probe_design.with_probes, which passes
+    the practice-grid KIND ('motor'), while the pool-constants registration is keyed by the Challenge ID. The menu's
+    rule must be read under the id (from the material's own kind); a caller naming another Challenge refuses.
+    """
+    from carbon.scoring import pool_menu
+
+    seen = []
+
+    def registered(challenge_id, version):
+        seen.append((challenge_id, version))
+        if challenge_id != MOTOR:
+            raise pool_version.PoolConstantsNotRegistered(
+                "pool_constants_unregistered_version"
+            )
+        return "RULE"
+
+    menu_row = {name: 0.375 + i / 64 for i, name in enumerate(NAMES)}
+    monkeypatch.setattr(pool_version, "registered_menu", registered)
+    monkeypatch.setattr(
+        pool_version, "menu_tasks", lambda m, rule: ["task"] if rule == "RULE" else None
+    )
+    monkeypatch.setattr(pool_menu, "bank_rows", lambda tasks, design_names: [menu_row])
+    monkeypatch.setattr(pool_version, "check_material", lambda m: m)
+    menu_material = {**material(), pool_version.MENU: {"stub": True}}
+    plain = pool_version.rows_from_material(material(), dtype="<f8", challenge=MOTOR)
+    by_kind = pool_version.rows_from_material(
+        menu_material, dtype="<f8", challenge="motor"
+    )
+    by_id = pool_version.rows_from_material(menu_material, dtype="<f8", challenge=MOTOR)
+    assert by_kind == by_id and len(by_kind) == len(plain) + 1
+    assert [float(np.float64(menu_row[n])) for n in NAMES] in [r[2] for r in by_kind]
+    # end to end: the kit's own probe path (challenge='motor') builds the menu bank
+    seen.clear()
+    bank = _bank(batch, menu_material)
+    assert seen and set(seen) == {(MOTOR, POOL_VERSION)}
+    menu_inputs = np.asarray([menu_row[n] for n in NAMES], dtype=bank["inputs"].dtype)
+    assert any(np.array_equal(row, menu_inputs) for row in bank["inputs"])
+    with pytest.raises(pool_exam.ExamRefused, match="pool_material_kind_mismatch"):
+        pool_version.rows_from_material(menu_material, dtype="<f8", challenge="cooling")

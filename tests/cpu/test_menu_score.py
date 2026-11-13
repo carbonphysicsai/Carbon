@@ -140,6 +140,11 @@ def test_the_record_parses_and_hashes():
             lambda d: d["arms"]["fit"].pop("s0"),
             "menu_arm_must_predict_every_pool_design",
         ),
+        (
+            lambda d: d.update(arms={}),
+            "menu_arms_empty",
+        ),  # CV-B 10 Nov (a): a fit in the zero
+        (lambda d: d.update(arms=[]), "menu_arms_malformed"),
         (lambda d: d["pool"][1]["design"].__setitem__(0, 1.5), "menu_design_invalid"),
         (
             lambda d: d["pool"][1]["truth"].__setitem__("g", math.nan),

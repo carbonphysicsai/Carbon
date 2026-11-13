@@ -614,6 +614,29 @@ def _entries():
             _graph_route(_motor_describe_catalog, MOTOR_CHALLENGE, "1.6"),
             None,
         ),
+        # Motor 1.8 (back-EMF: its own frozen 194 x 240 TRAIN, a new sealed exam); RESERVED until its pool constants are registered.
+        Entry(
+            MOTOR_CHALLENGE,
+            "1.8",
+            "Electric-motor magnetics (DEVELOPMENT periodic cross-section, pool-graded exam, in-pack baseline, backbone catalog and graph training adapter v2, allowlist v8)",
+            _pool_status(MOTOR_CHALLENGE, "1.8"),
+            "launch",
+            "carbonphysicsai/Carbon#344",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(_motor_describe_catalog, MOTOR_CHALLENGE, "1.8"),
+            None,
+        ),
         # Cooling 1.2, Cooling's catalog version (allowlist v7 and the backbone
         # catalog, as Motor 1.2/1.3): Carbon's tested backbones by catalog id
         # on the direct recipe path; the Level 0 strategy compiler stays 1.0's.
@@ -758,6 +781,29 @@ def _entries():
                 catalog_gpu,
             ),
             _graph_route(_cold_plate_describe_catalog, COLD_PLATE_CHALLENGE, "1.7"),
+            None,
+        ),
+        # Cooling 1.8 (its own frozen 458-row TRAIN, a new sealed exam); RESERVED until its pool constants are registered.
+        Entry(
+            COLD_PLATE_CHALLENGE,
+            "1.8",
+            "AI-chip liquid cold plate (DEVELOPMENT periodic cell, pool-graded exam on its own extended TRAIN, in-pack baseline, backbone catalog, graph training adapter v2, allowlist v8, law-safe output encoding)",
+            _pool_status(COLD_PLATE_CHALLENGE, "1.8"),
+            "launch",
+            "carbonphysicsai/Carbon#342",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(_cold_plate_describe_catalog, COLD_PLATE_CHALLENGE, "1.8"),
             None,
         ),
         # F08 (Ribbed Bracket) 1.4 and F02 (Burst Thermal) 2.3, direct-recipe

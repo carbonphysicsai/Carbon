@@ -172,6 +172,67 @@ def _finite(value):
 
 
 @dataclass(frozen=True)
+class WaveformOutput:
+    """A derived output whose value is a waveform, not a number (TE-B 7 Nov): ``valid(value)`` says
+    whether a value is one (a prediction that is not is the candidate's invalid answer; a truth that is not refuses the
+    pool), and ``error(predicted, true)`` is its registered |error| >= 0, in place of ``abs(predicted - true)``. Its U is
+    an absolute number > 0, and it is never an objective or a limit."""
+
+    valid: object
+    error: object
+
+
+#: The registered waveform outputs, by output name (`register_waveform_output`). EMPTY for every registered version, so
+#: every check below is then exactly the scalar one.
+_WAVEFORMS = {}
+
+
+def register_waveform_output(name, output):
+    """Register one waveform output (add-only: the same registration again is a no-op, a different one refuses)."""
+    _require(
+        type(name) is str and name and isinstance(output, WaveformOutput),
+        "waveform_output_registration_invalid",
+    )
+    _require(
+        _WAVEFORMS.setdefault(name, output) == output,
+        "waveform_output_already_registered_differently",
+    )
+
+
+#: Scalar outputs a version's derive gives EVERY target while each target grades only some of them
+#: (`register_companion_output`): an answer may carry one where its target does not grade it, and it is dropped there,
+#: never graded, exactly as a registered waveform output another target grades. EMPTY for every registered version, so
+#: every check below is then exactly as before.
+_COMPANIONS = set()
+
+
+def register_companion_output(name):
+    """Register one companion scalar output (add-only; the same name again is a no-op)."""
+    _require(type(name) is str and name, "companion_output_registration_invalid")
+    _require(name not in _WAVEFORMS, "a_waveform_output_is_not_a_companion")
+    _COMPANIONS.add(name)
+
+
+def _value_ok(name, value):
+    output = _WAVEFORMS.get(name)
+    return _finite(value) if output is None else output.valid(value) is True
+
+
+def _keep(name, value):
+    return float(value) if name not in _WAVEFORMS else tuple(float(v) for v in value)
+
+
+def difference(name, predicted, true):
+    """|predicted - true| of output ``name``: the registered waveform error for a waveform output, else the plain one."""
+    output = _WAVEFORMS.get(name)
+    if output is None:
+        return abs(predicted - true)
+    error = output.error(predicted, true)
+    _require(_finite(error) and error >= 0, "waveform_error_invalid")
+    return float(error)
+
+
+@dataclass(frozen=True)
 class Limit:
     output: str
     kind: (
@@ -220,6 +281,12 @@ class OptimizerPolicy:
     #: The sha256 (64 hex) of the coverage plan package's SHA256SUMS file, which must list the class-map document; registered
     #: beside `coverage_plan_sha256` (both or neither). None for every registered version.
     coverage_plan_sums_sha256: str | None = None
+    #: The version's registered ADMISSION class vocabulary (X-1, Carbon Validator-C COOL18_CELL_CLASS_RULING b98e6e19):
+    #: a tuple of unique class names, read from the version's registration in the pool constants (never typed in the
+    #: grader). When set, the coverage plan's classes must be exactly these names (`pool_exam.attach_coverage_plan`)
+    #: instead of geometric-v1 names. None (every version that registers none) keeps the geometric-v1 check unchanged.
+    #: Needs a registered coverage plan.
+    coverage_class_vocabulary: tuple | None = None
     #: The attached class map (`CoveragePlan`, custody material checked against both digests), or None.
     coverage_plan: object = None
     #: Neighbour-task robustness of D, for NEW exam versions only (OWNER-DESIGN-DECISION-FIDELITY-01: V_var, the pick
@@ -446,6 +513,21 @@ def _check_policies(optimizer, honesty):
         == (optimizer.coverage_plan_sums_sha256 is None),
         "coverage_plan_needs_its_map_and_sums_digests",
     )
+    vocabulary = optimizer.coverage_class_vocabulary
+    _require(
+        vocabulary is None
+        or (
+            type(vocabulary) is tuple
+            and vocabulary
+            and all(type(c) is str and c for c in vocabulary)
+            and len(set(vocabulary)) == len(vocabulary)
+        ),
+        "coverage_class_vocabulary_must_be_unique_names",
+    )
+    _require(
+        vocabulary is None or optimizer.coverage_plan_sha256 is not None,
+        "coverage_class_vocabulary_needs_a_registered_coverage_plan",
+    )
     _require(
         optimizer.a_gen_aggregate is None or optimizer.coverage_plan_sha256 is not None,
         "a_gen_aggregate_needs_a_registered_coverage_plan",
@@ -612,10 +694,17 @@ class TargetSpec:
     near_limit: object = None
     credit: tuple = ()
     v_ref: float | None = None
+    # An ACCURACY-ONLY target (`build_accuracy_target`): every case is reserved for accuracy, there is no optimisation
+    # problem (no objective, limits, reference, start or seed), so it never enters `grade_set`. False for every other.
+    accuracy_only: bool = False
+    # An ACCURACY-ONLY target declared out of range with no shell (`build_accuracy_target(extended=True)`): its cases
+    # are past TRAIN but outside the OOD shell (a version's inner-band rows, unshelled by a CV ruling: no
+    # shell-mode check, the same range as the shelled targets of their class). Part of the identity. False for every other.
+    declared_extended: bool = False
 
     @property
     def extended(self):
-        return self.shell is not None
+        return self.shell is not None or self.declared_extended
 
 
 def _digest(value):
@@ -735,6 +824,7 @@ def build_target(
         "outputs_must_be_unique_and_non_empty",
     )
     _require(objective in outputs, "objective_must_be_an_output")
+    _require(objective not in _WAVEFORMS, "a_waveform_output_is_never_the_objective")
     _require(sense in ("max", "min"), "sense_must_be_max_or_min")
     limits = tuple(limits)
     _require(
@@ -742,6 +832,7 @@ def build_target(
             isinstance(l, Limit)
             and l.kind in ("<=", ">=")
             and l.output in outputs
+            and l.output not in _WAVEFORMS
             and _finite(l.bound)
             for l in limits
         ),
@@ -761,6 +852,10 @@ def build_target(
         any(_is_relative(v) or v > 0 for v in u.values()),
         "u_needs_one_predicted_output",
     )
+    _require(
+        all(_finite(u[k]) and u[k] > 0 for k in outputs if k in _WAVEFORMS),
+        "a_waveform_output_needs_an_absolute_u_above_zero",
+    )
     box = tuple((float(lo), float(hi)) for lo, hi in box)
     _require(
         box
@@ -779,7 +874,7 @@ def build_target(
         _require(
             type(truth) is dict
             and set(truth) == set(outputs)
-            and all(_finite(v) for v in truth.values()),
+            and all(_value_ok(k, v) for k, v in truth.items()),
             "truth_must_give_every_output_finite",
         )
     _require(type(seed) is int, "seed_must_be_an_int")
@@ -804,7 +899,7 @@ def build_target(
             continue
         keep.append(index)
     kept_designs = tuple(tuple(float(x) for x in designs[i]) for i in keep)
-    kept_truths = tuple({k: float(v) for k, v in truths[i].items()} for i in keep)
+    kept_truths = tuple({k: _keep(k, v) for k, v in truths[i].items()} for i in keep)
     kept_agen = tuple(n for n, i in enumerate(keep) if i in agen)
     queryable = tuple(n for n, i in enumerate(keep) if i not in agen)
     norm = tuple(
@@ -936,6 +1031,159 @@ def build_target(
     )
 
 
+#: The identity marker of an accuracy-only target (`build_accuracy_target`).
+ACCURACY_ONLY = "accuracy_only"
+#: The optimisation fields an accuracy-only target never carries: present (in a pool source or a pool document) = refused.
+ACCURACY_ONLY_ABSENT = frozenset(
+    {
+        "objective",
+        "sense",
+        "limits",
+        "start",
+        "seed",
+        "zero",
+        "near_limit",
+        "variants",
+        "excluded",
+    }
+)
+
+
+def build_accuracy_target(
+    *,
+    target_id,
+    conditions,
+    outputs,
+    u,
+    box,
+    designs,
+    truths,
+    public=False,
+    shell=None,
+    extended=False,
+):
+    """An ACCURACY-ONLY target (R1, a version whose D is the sealed menu and whose A is the physics score): its cases are
+    scored for accuracy only, so EVERY design is in the reserved slice (``agen``) and none is queryable. There is no
+    optimisation problem: no objective, sense, limits, reference, median, start, seed, zero, near-limit rule or variants,
+    and no within-U exclusion (with no limits every case is kept). It needs >= 1 case. The box is required (it checks
+    the designs' shape). An EXTENDED target (a shell) must have EVERY case in its out-of-range shell (``designs`` mode)
+    or its fixed conditions in it (``conditions`` mode). Its identity body is marked ``accuracy_only``, so its digest
+    never equals a multi-design target's. `grade_set` refuses it: it contributes accuracy only, never a pick D.
+    """
+    _require(type(target_id) is str and target_id, "target_id_required")
+    _require(type(conditions) is dict, "conditions_must_be_a_dict")
+    outputs = tuple(outputs)
+    _require(
+        len(outputs) == len(set(outputs)) and outputs,
+        "outputs_must_be_unique_and_non_empty",
+    )
+    _require(set(u) == set(outputs), "u_must_cover_exactly_the_outputs")
+    _require(
+        all(_valid_u(v) for v in u.values()),
+        "u_must_be_non_negative_and_finite_or_relative",
+    )
+    _require(
+        any(_is_relative(v) or v > 0 for v in u.values()),
+        "u_needs_one_predicted_output",
+    )
+    _require(
+        all(_finite(u[k]) and u[k] > 0 for k in outputs if k in _WAVEFORMS),
+        "a_waveform_output_needs_an_absolute_u_above_zero",
+    )
+    box = tuple((float(lo), float(hi)) for lo, hi in box)
+    _require(
+        box
+        and all(math.isfinite(lo) and math.isfinite(hi) and hi > lo for lo, hi in box),
+        "box_must_be_finite_with_hi_above_lo",
+    )
+    _require(
+        len(designs) == len(truths) and len(designs) >= 1,
+        "accuracy_only_target_needs_matching_designs_and_truths",
+    )
+    for design, truth in zip(designs, truths):
+        _require(
+            len(design) == len(box) and all(_finite(x) for x in design),
+            "design_must_match_the_box_and_be_finite",
+        )
+        _require(
+            type(truth) is dict
+            and set(truth) == set(outputs)
+            and all(_value_ok(k, v) for k, v in truth.items()),
+            "truth_must_give_every_output_finite",
+        )
+    _require(type(public) is bool, "public_must_be_a_bool")
+    # ``extended=True`` declares an UNSHELLED target out of range (its class's range, as the physics score reads it);
+    # a shelled target is extended already, so the flag never rides with a shell (one form only)
+    _require(type(extended) is bool, "extended_must_be_a_bool")
+    _require(
+        not (extended and shell is not None), "a_shelled_target_is_already_extended"
+    )
+    # its cases are sealed scored cases: never a public practice pool (Validator-2B N-1, fail closed)
+    _require(public is False, "accuracy_only_target_is_never_public")
+    kept_designs = tuple(tuple(float(x) for x in design) for design in designs)
+    kept_truths = tuple({k: _keep(k, v) for k, v in truth.items()} for truth in truths)
+    if shell is not None:
+        shell = _valid_shell(shell, len(box), conditions.get("fixed", {}))
+        if shell["mode"] == "designs":
+            # every case, not only a queryable one: an accuracy-only target's cases are all scored
+            _require(
+                all(in_ood_shell(design, shell["inputs"]) for design in kept_designs),
+                "accuracy_case_outside_the_ood_shell",
+            )
+        else:
+            _require(
+                conditions_in_ood_shell(conditions["fixed"], shell),
+                "conditions_not_in_the_ood_shell",
+            )
+    body = {
+        ACCURACY_ONLY: True,
+        "target_id": target_id,
+        "conditions": conditions,
+        "outputs": list(outputs),
+        "u": u,
+        "box": [list(b) for b in box],
+        "designs": [list(d) for d in kept_designs],
+        "truths": list(kept_truths),
+        "public": public,
+        "shell": _shell_json(shell),
+        # only when declared: every target without the flag keeps its identity byte for byte
+        **({"extended": True} if extended else {}),
+    }
+    size = len(kept_designs)
+    return TargetSpec(
+        target_id=target_id,
+        conditions=conditions,
+        outputs=outputs,
+        objective=None,
+        sign=0.0,
+        limits=(),
+        u=dict(u),
+        box=box,
+        designs=kept_designs,
+        norm=tuple(
+            tuple((x - lo) / (hi - lo) for x, (lo, hi) in zip(design, box))
+            for design in kept_designs
+        ),
+        truths=kept_truths,
+        feasible=(),
+        queryable=(),
+        agen=tuple(range(size)),
+        reference=None,
+        s_ref=None,
+        s_low=None,
+        start=(),
+        seed=None,
+        excluded=0,
+        digest=_digest(body),
+        public=public,
+        shell=shell,
+        origin=tuple(range(size)),
+        pool_size=size,
+        accuracy_only=True,
+        declared_extended=extended,
+    )
+
+
 def attach_variants(spec, rule, starts):
     """``spec`` with its neighbour-task variants built (custody; `OptimizerPolicy.variant_rule`).
 
@@ -948,6 +1196,7 @@ def attach_variants(spec, rule, starts):
     limit, its bound (or its margin over the basis condition) is 0 so a relative shift moves nothing, the basis condition
     is not one of the target's fixed conditions, `build_target` refuses it, or no queryable point stays truly infeasible
     (the shifted question is no longer a choice)."""
+    _require(not spec.accuracy_only, "accuracy_only_target_has_no_variants")
     slots = variant_slots(rule)
     over = _variant_basis(rule)
     fixed = spec.conditions.get("fixed")
@@ -1099,12 +1348,22 @@ class TargetGrade:
     variant_fallback: bool = False
 
 
+def graded_answer(prediction, outputs):
+    """The prediction as a target grades it, or None when it is not a valid answer: a dict giving exactly ``outputs``,
+    each finite (a waveform output: valid). A prediction may also carry REGISTERED waveform or companion outputs another
+    target grades (a version whose derive gives every target the same keys); they are dropped here, never graded. With
+    none registered this is exactly the scalar check (the same dict, or None)."""
+    if type(prediction) is not dict or not set(outputs) <= set(prediction):
+        return None
+    extra = set(prediction) - set(outputs)
+    if extra - set(_WAVEFORMS) - _COMPANIONS:
+        return None
+    graded = {k: prediction[k] for k in outputs} if extra else prediction
+    return graded if all(_value_ok(k, v) for k, v in graded.items()) else None
+
+
 def _valid_prediction(prediction, outputs):
-    return (
-        type(prediction) is dict
-        and set(prediction) == set(outputs)
-        and all(_finite(v) for v in prediction.values())
-    )
+    return graded_answer(prediction, outputs) is not None
 
 
 def _nearest(point, norm, candidates, taken):
@@ -1218,9 +1477,10 @@ def _grade_one(spec, predict, optimizer, honesty):
         if type(batch) is not list or len(batch) != len(chosen):
             return refused("prediction_invalid")
         for index, prediction in zip(chosen, batch):
-            if not _valid_prediction(prediction, spec.outputs):
+            graded = graded_answer(prediction, spec.outputs)
+            if graded is None:
                 return refused("prediction_invalid")
-            predictions[index] = {k: float(v) for k, v in prediction.items()}
+            predictions[index] = {k: _keep(k, v) for k, v in graded.items()}
         if len(chosen) < len(samples):
             break  # the budget or the pool ended mid-generation: nothing left to adapt to
         es.tell([key(i) for i in chosen])
@@ -1349,10 +1609,10 @@ def _top_k_grade(spec, predictions, feasible_predicted, key, optimizer, honesty)
 def _error(spec, index, prediction, honesty):
     ratios = []
     for k in spec.outputs:
-        difference = abs(prediction[k] - spec.truths[index][k])
+        error = difference(k, prediction[k], spec.truths[index][k])
         scale = spec.u_at(index, k)
         if scale > 0.0:
-            ratios.append(difference / scale)
+            ratios.append(error / scale)
         elif not math.isclose(
             prediction[k], spec.truths[index][k], rel_tol=1e-9, abs_tol=1e-12
         ):
@@ -1388,6 +1648,11 @@ class SetGrade:
 
 def grade_set(specs, predict, optimizer, honesty):
     _require(len(specs) >= 1, "set_needs_targets")
+    # an accuracy-only target has no optimisation problem: it is never asked for a pick D (fail closed)
+    _require(
+        not any(getattr(s, "accuracy_only", False) for s in specs),
+        "accuracy_only_target_has_no_optimizer_pick",
+    )
     _require(
         len({s.target_id for s in specs}) == len(specs), "target_ids_must_be_unique"
     )
@@ -1500,7 +1765,7 @@ def _target_agen(spec, predict, scales):
     for index, prediction in zip(spec.agen, batch):
         _require(_valid_prediction(prediction, spec.outputs), "agen_prediction_invalid")
         atoms += [
-            benefit(abs(prediction[k] - spec.truths[index][k]) / scales[k])
+            benefit(difference(k, prediction[k], spec.truths[index][k]) / scales[k])
             for k in spec.outputs
         ]
     return statistics.fmean(atoms)
@@ -1669,7 +1934,27 @@ PRACTICE_SCHEMA = "carbon.pool-grade.practice.v1"
 
 def dump_pool(spec):
     """A target's pool as a JSON-ready document (layout `carbon.pool.v1`). `digest` is the identity to pin: the
-    sha256 of the canonical body, so a pool's exact content is its identity."""
+    sha256 of the canonical body, so a pool's exact content is its identity. An accuracy-only target's document carries ``accuracy_only`` and none
+    of the optimisation fields (`ACCURACY_ONLY_ABSENT`)."""
+    if spec.accuracy_only:
+        return {
+            "schema": POOL_SCHEMA,
+            ACCURACY_ONLY: True,
+            "public": spec.public,
+            "digest": spec.digest,
+            "target_id": spec.target_id,
+            "conditions": spec.conditions,
+            "outputs": list(spec.outputs),
+            "u": spec.u,
+            "box": [list(b) for b in spec.box],
+            "designs": [list(d) for d in spec.designs],
+            "truths": list(spec.truths),
+            "agen": list(spec.agen),
+            "shell": _shell_json(spec.shell),
+            "origin": list(spec.origin),
+            "pool_size": spec.pool_size,
+            **({"extended": True} if spec.declared_extended else {}),
+        }
     return {
         "schema": POOL_SCHEMA,
         "public": spec.public,
@@ -1702,6 +1987,10 @@ def load_pool(document):
         type(document) is dict and document.get("schema") == POOL_SCHEMA,
         "pool_schema_unknown",
     )
+    if ACCURACY_ONLY in document:
+        return _load_accuracy_only(document)
+    # the declared-extended flag is an accuracy-only target's alone (the science ruling's E-1): never ignored on any other
+    _require("extended" not in document, "extended_flag_is_for_accuracy_only_targets")
     spec = build_target(
         target_id=document["target_id"],
         conditions=document["conditions"],
@@ -1731,6 +2020,57 @@ def load_pool(document):
         "pool_digest_does_not_match_its_content",
     )
     return replace(spec, excluded=document["excluded"])
+
+
+#: An accuracy-only pool document's exact keys (`dump_pool`).
+_ACCURACY_ONLY_KEYS = frozenset(
+    {
+        "schema",
+        ACCURACY_ONLY,
+        "public",
+        "digest",
+        "target_id",
+        "conditions",
+        "outputs",
+        "u",
+        "box",
+        "designs",
+        "truths",
+        "agen",
+        "shell",
+        "origin",
+        "pool_size",
+    }
+)
+
+
+def _load_accuracy_only(document):
+    _require(
+        document[ACCURACY_ONLY] is True
+        and set(document) in (_ACCURACY_ONLY_KEYS, _ACCURACY_ONLY_KEYS | {"extended"})
+        and document.get("extended", True) is True,
+        "accuracy_only_pool_document_malformed",
+    )
+    spec = build_accuracy_target(
+        target_id=document["target_id"],
+        conditions=document["conditions"],
+        outputs=document["outputs"],
+        u=document["u"],
+        box=document["box"],
+        designs=document["designs"],
+        truths=document["truths"],
+        public=document["public"],
+        shell=document.get("shell"),
+        extended="extended" in document,
+    )
+    _require(
+        spec.digest == document["digest"]
+        and list(document["agen"]) == list(spec.agen)
+        and list(document["origin"]) == list(spec.origin)
+        and document["pool_size"] == spec.pool_size,
+        "pool_digest_does_not_match_its_content",
+    )
+    return spec
 
 
 def practice_report(

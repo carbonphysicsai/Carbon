@@ -738,7 +738,7 @@ def verify_direct_resource_policy(
     version (dependency preparation), accepts the policy of either profile.
     """
     from carbon.challenge_kit import synthetic_linear_field_2d
-    from carbon.challenge_kit.version_registry import task_wall_seconds
+    from carbon.challenge_kit.task_wall_overrides import total_wall_seconds
 
     from .research_carrier import _worker_profile
 
@@ -880,7 +880,9 @@ def verify_direct_resource_policy(
             "scratch_inodes_max": profile["scratch"]["inodes"],
             "build_wall_seconds_max": profile["deadline_seconds"],
             "inference_wall_seconds_max": profile["deadline_seconds"],
-            "total_reconstruction_wall_seconds_max": task_wall_seconds(rebuild),
+            "total_reconstruction_wall_seconds_max": total_wall_seconds(
+                challenge_id, version, rebuild
+            ),
             "network": profile["security"]["network"],
             "cleanup_required": True,
         }

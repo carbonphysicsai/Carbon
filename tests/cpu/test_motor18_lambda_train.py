@@ -102,8 +102,22 @@ def frozen(tmp_path, monkeypatch):
     return freeze
 
 
-def test_the_production_motor18_train_is_not_frozen_and_refuses():
-    assert ppt.FRESH_LAMBDA[NAME]["train_sha256"] is None
+def test_the_production_motor18_train_is_frozen_at_194_by_240():
+    """The 9 Nov freeze (M2 + M2b + M2c record-now rows): TRAIN 150 ids kept, 162 M2 rows then 32 adds."""
+    got = ppt.load_extended_train(NAME, MOTOR)
+    assert got["inputs"].shape == (194, 8) and got["targets"].shape == (194, 240)
+    assert got["case_ids"] == tuple(f"train-{i:04d}" for i in range(194))
+    native = ppt.load_public_train(MOTOR)
+    assert np.array_equal(got["inputs"][:150], native["inputs"])
+    assert got["provenance"]["torque_vs_train150"]["byte_equal_rows"] == 147
+
+
+def test_an_unfrozen_fresh_train_refuses(monkeypatch):
+    table = {k: dict(v) for k, v in ppt.FRESH_LAMBDA.items()}
+    table[NAME].update(
+        rows=None, source_sha256=None, train_sha256=None, provenance_sha256=None
+    )
+    monkeypatch.setattr(ppt, "FRESH_LAMBDA", table)
     with pytest.raises(ValueError, match="not frozen yet"):
         ppt.load_extended_train(NAME, MOTOR)
 

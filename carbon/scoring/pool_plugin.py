@@ -570,6 +570,33 @@ def spec_from_source(document, binding):
         == document.get("target_id", conditions.get("target_id")),
         "conditions_must_be_target_id_and_fixed",
     )
+    if pool_grader.ACCURACY_ONLY in document:
+        # R1: an accuracy-only target (a menu + physics version). Every case is reserved for accuracy; an optimisation
+        # field present is refused, never ignored; ``agen``, if given, must be every case.
+        _require(
+            document[pool_grader.ACCURACY_ONLY] is True
+            and not (pool_grader.ACCURACY_ONLY_ABSENT & set(document))
+            and (
+                "agen" not in document
+                or list(document["agen"]) == list(range(len(document["designs"])))
+            )
+            and document.get("extended", True) is True,
+            "accuracy_only_pool_source_malformed",
+        )
+        return pool_grader.build_accuracy_target(
+            target_id=conditions["target_id"],
+            conditions=conditions,
+            outputs=document.get("outputs") or tuple(document["truths"][0]),
+            u=document["u"],
+            box=document["box"],
+            designs=document["designs"],
+            truths=document["truths"],
+            public=bool(document.get("public", False)),
+            shell=document.get("shell"),
+            extended="extended" in document,
+        )
+    # the declared-extended flag is an accuracy-only target's alone (CV-Motor-C E-1): never ignored on any other
+    _require("extended" not in document, "extended_flag_is_for_accuracy_only_targets")
     limits = []
     for row in document["limits"]:
         output, kind, bound = (

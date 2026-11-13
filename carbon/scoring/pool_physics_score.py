@@ -66,6 +66,9 @@ TOTAL_RULES = ("half_a_half_d", "a_only")
 #: per admitted (class, output) the log (or linear) skill against the oracle classical anchor A_c, on the geometric mean
 #: of the floored errors |err| / U (floor 1 U).
 SCORINGS = ("cells", "headroom")
+#: A version's registered target kind (`PhysicsRule.target_kind`): "accuracy_only" (R1: every target carries scored cases
+#: only; `pool_grader.build_accuracy_target`). Absent (None) = today's multi-design targets.
+TARGET_KINDS = ("accuracy_only",)
 SKILL_FORMS = ("log", "linear")
 HEADROOM_SCHEMA = "carbon.pool.headroom-admission.v1"
 ADMISSION_TESTS = ("H", "C", "O", "R", "V")
@@ -157,11 +160,25 @@ class PhysicsRule:
     h_min: object = None
     h_lo: object = None
     n_min: object = None
+    #: The version's registered target kind (`TARGET_KINDS`, Validator-2B M-1): the registration, never the pack material,
+    #: decides it; the grade requires the material's targets to be of exactly this kind. None = today's kind.
+    target_kind: str | None = None
+    #: The canonical sha256 of the version's SIGNED region document (B5, CV-B W1-W3): the official derive then grades
+    #: inputs inside its extended bounds (`cooling_region`). None = the TRAIN box, as before.
+    region_sha256: str | None = None
 
 
 def check_rule(rule):
     """`PhysicsRefused` unless the rule is complete. HUMAN_INPUT (None) in the gate is never defaulted."""
     _require(isinstance(rule, PhysicsRule), "physics_rule_malformed")
+    _require(
+        rule.target_kind is None or rule.target_kind in TARGET_KINDS,
+        "physics_target_kind_unknown",
+    )
+    _require(
+        rule.region_sha256 is None or pool_grader._is_sha256(rule.region_sha256),
+        "region_sha256_must_be_64_hex",
+    )
     _require(pool_grader._is_sha256(rule.cells_sha256), "cells_sha256_must_be_64_hex")
     _require(rule.gate_statistic is not None, "accuracy_gate_statistic_is_human_input")
     _require(
@@ -315,9 +332,25 @@ class InRangeCases:
         return sorted({case[0] for case in self.cases})
 
 
+def _truth_ok(name, value):
+    """A case truth: a number, or for an output registered as a waveform (`pool_grader.register_waveform_output`, B6) a
+    list of numbers. Whether a waveform truth has a SHAPE is checked separately (`_reference_has_shape`).
+    """
+    if name in pool_grader._WAVEFORMS:
+        return type(value) is list and bool(value) and all(_is_number(v) for v in value)
+    return _is_number(value)
+
+
+def _reference_has_shape(name, value):
+    return name not in pool_grader._WAVEFORMS or pool_grader._value_ok(name, value)
+
+
 def in_range_cases(document):
     """The `InRangeCases` of ``{"schema": IN_RANGE_CASES_SCHEMA, "cases": [{"class", "inputs": {input: number},
     "truths": {output: number}, "u": {output: number > 0}}]}``, or `PhysicsRefused`. Truths and U name the same outputs.
+    A truth of an output registered as a WAVEFORM (B6: Motor 1.8's open-circuit back-EMF, k_e,ll) is its reference
+    waveform (a list of numbers) with an absolute U > 0; a reference waveform with no shape is the exam's typed reference
+    fault (``in_range_case_reference_has_no_shape``), never a candidate's failure.
     """
     _require(
         type(document) is dict
@@ -338,14 +371,32 @@ def in_range_cases(document):
                 type(case[k]) is dict
                 and case[k]
                 and all(type(n) is str and _is_number(v) for n, v in case[k].items())
-                for k in ("inputs", "truths", "u")
+                for k in ("inputs", "u")
+            )
+            and type(case["truths"]) is dict
+            and case["truths"]
+            and all(
+                type(n) is str and _truth_ok(n, v) for n, v in case["truths"].items()
             )
             and set(case["truths"]) == set(case["u"])
             and all(v > 0 for v in case["u"].values()),
             "in_range_case_malformed",
         )
+        _require(
+            all(_reference_has_shape(n, v) for n, v in case["truths"].items()),
+            "in_range_case_reference_has_no_shape",
+        )
         cases.append(
-            (case["class"], dict(case["inputs"]), dict(case["truths"]), dict(case["u"]))
+            (
+                case["class"],
+                dict(case["inputs"]),
+                # a scalar truth exactly as given (as before); a waveform truth as its tuple of floats
+                {
+                    n: (pool_grader._keep(n, v) if n in pool_grader._WAVEFORMS else v)
+                    for n, v in case["truths"].items()
+                },
+                dict(case["u"]),
+            )
         )
     return InRangeCases(
         cases=tuple(cases),
@@ -502,19 +553,23 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
             cases.setdefault(plan.class_of(spec.target_id), []).append(spec)
         for _family, name, output in cells.scored:
             members = cases.get(name, [])
+            # A cell is graded over the class's targets that CARRY its output: a class may also hold a target that does
+            # not (a sibling holding only some outputs of the same rows, e.g. rows with no reference for one output;
+            # Carbon Validator-Motor R1 cond 5). Every set still needs a carrier with cases: none = refused.
+            carriers = [spec for spec in members if output in spec.outputs]
             _require(
-                all(output in spec.outputs for spec in members),
+                not members or carriers,
                 "scoring_cells_output_not_an_output_of_its_class",
             )
             _require(
-                any(spec.agen for spec in members),
+                any(spec.agen for spec in carriers),
                 "scoring_cell_without_cases_in_a_set",
             )
             if headroom:
                 # the log skill divides by U: every admitted case needs one
                 _require(
                     all(
-                        spec.u_at(i, output) > 0 for spec in members for i in spec.agen
+                        spec.u_at(i, output) > 0 for spec in carriers for i in spec.agen
                     ),
                     "headroom_output_with_zero_u",
                 )
@@ -561,14 +616,16 @@ def attach_cells(rule, document, plan, sets, in_range_document=None):
         "accuracy_gate_without_in_range_cases",
     )
     if headroom:
-        # the admission's n is the class's reserved case count over the whole exam (a mismatch is a different exam)
+        # the admission's n is the cell's reserved case count over the whole exam, over the class's targets that carry
+        # the cell's output (a mismatch is a different exam)
         counts = collections.Counter()
         for spec in all_specs:
-            counts[plan.class_of(spec.target_id)] += len(spec.agen)
+            for output in spec.outputs:
+                counts[(plan.class_of(spec.target_id), output)] += len(spec.agen)
         for cell in document["cells"]:
             if (cell["family"], cell["class"], cell["output"]) in cells.scored:
                 _require(
-                    counts[cell["class"]] == cell["n"],
+                    counts[(cell["class"], cell["output"])] == cell["n"],
                     "headroom_admission_n_is_not_the_exams_case_count",
                 )
     return replace(rule, cells=cells, in_range=extra)
@@ -613,7 +670,9 @@ def _ratios(specs, predict, ranges, rule):
                 invalid[name] = invalid.get(name, 0) + 1
                 continue
             for output in spec.outputs:
-                error = abs(prediction[output] - spec.truths[index][output])
+                error = pool_grader.difference(
+                    output, prediction[output], spec.truths[index][output]
+                )
                 u = spec.u_at(index, output)
                 if u > 0:
                     ratios.setdefault((name, output), []).append(error / u)
@@ -632,13 +691,27 @@ def _case_ratios(extra, case_predict, ratios, invalid, outputs):
     )
     for (name, _inputs, truths, u), answer in zip(extra.cases, answers):
         outputs.setdefault(name, set()).update(truths)
-        if not pool_grader._valid_prediction(answer, tuple(truths)):
+        if not _case_answer_valid(answer, truths):
             invalid[name] = invalid.get(name, 0) + 1
             continue
         for output, truth in truths.items():
+            # a scalar: |a - t| / U exactly as before; a registered waveform: its registered error (shape_error) / U (B6)
             ratios.setdefault((name, output), []).append(
-                abs(answer[output] - truth) / u[output]
+                pool_grader.difference(output, answer[output], truth) / u[output]
             )
+
+
+def _case_answer_valid(answer, truths):
+    """Whether a model's answer can be graded on a case. A case with only scalar truths: exactly the target check
+    (`pool_grader._valid_prediction`). A case naming a registered WAVEFORM output (B6): each truth output is present and
+    valid (a waveform with a shape), and the derive's other keys are not graded here, so an OC case is not refused for the
+    torque scalars the same derive also returns."""
+    if not any(output in pool_grader._WAVEFORMS for output in truths):
+        return pool_grader._valid_prediction(answer, tuple(truths))
+    return type(answer) is dict and all(
+        output in answer and pool_grader._value_ok(output, answer[output])
+        for output in truths
+    )
 
 
 def _headroom_row(rule, name, output, values):
@@ -756,7 +829,8 @@ def target_cells(spec, predict, scales, plan, rule):
         "cell_scale_needs_the_registered_a_multiplier",
     )
     name = plan.class_of(spec.target_id)
-    cells = [(f, o) for f, c, o in rule.cells.scored if c == name]
+    # only the cells whose output this target carries (`attach_cells`: a cell is graded over its carriers)
+    cells = [(f, o) for f, c, o in rule.cells.scored if c == name and o in spec.outputs]
     if not cells or not spec.agen:
         return {}
     for _family, output in cells:
@@ -776,7 +850,9 @@ def target_cells(spec, predict, scales, plan, rule):
             "agen_prediction_invalid",
         )
         for family, output in cells:
-            error = abs(prediction[output] - spec.truths[index][output])
+            error = pool_grader.difference(
+                output, prediction[output], spec.truths[index][output]
+            )
             entry = sums[(family, name, output)]
             if headroom:
                 # ln of the error in U, floored at 1 U (the reference resolves nothing finer)

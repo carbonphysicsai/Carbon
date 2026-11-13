@@ -26,6 +26,15 @@ SCHEMA = "carbon.published-exam.v1"
 SCHEMA_POOL = "carbon.published-exam.v2"
 NOT_REGISTERED = "not yet registered"
 
+#: A version graded by menu D and headroom A (Motor 1.8; Cooling 1.8 once a cell is admitted) registers this ``kind``
+#: in `_REGISTERED_POOL`. Its registered values are the menu, headroom, gate and total blocks of its pool-constants row,
+#: and it publishes its own design-value and score text: no query budget, first step, honesty scale, A_gen scale or
+#: variant (menu D replaces pick D; owner 11 Nov 19:12, OWNER-VARIANT-RULE-NULL-MENU-D-18-01). An entry without a
+#: ``kind`` is a pick-D version and is published exactly as before.
+MENU_HEADROOM = "menu_d_headroom_a"
+#: The weights of the five ranked picks of a menu task (`carbon.scoring.menu_score.WEIGHTS`; a test holds them equal).
+MENU_PICK_WEIGHTS = (0.4, 0.25, 0.15, 0.12, 0.08)
+
 #: The Validator's allow-list: the only top-level sections the published block
 #: may carry. A new section goes to the Validator before it is published
 #: (default: withhold). The door test also scans every served value for the
@@ -454,6 +463,44 @@ _REGISTERED_POOL = {
 }
 
 
+#: Motor 1.8's published registration (kind `MENU_HEADROOM`), copied from its pool-constants row (a test holds them
+#: equal). It enters `_REGISTERED_POOL`, flipping the version from RESERVED to offered, only in the change that fills
+#: the row's last HUMAN_INPUT leaf (`test_only_a_fully_registered_version_publishes_numbers`). Gate thresholds: the
+#: measured classical bar, re-registered lower only, never raised (row's provisional.gate_threshold_label).
+MOTOR_18_REGISTRATION = {
+    "kind": MENU_HEADROOM,
+    "d": {
+        "rule": "menu",
+        "tasks_per_epoch": 3,
+        "aggregate": "mean",
+        "rotation_days": 7,
+    },
+    "a": {
+        "scoring": "headroom",
+        "skill_form": "log",
+        "h_min": 4,
+        "h_lo": 2.5,
+        "n_min": 12,
+    },
+    "gate": {
+        "statistic": "p90",
+        "threshold_u": {
+            "mean_torque_nm": 26.79,
+            "ripple_pk_pk_nm": 11.44,
+            "back_emf_open_circuit": 73.01390113743528,
+        },
+    },
+    "total": {"rule": "half_a_half_d", "ad_split": 0.5},
+    "c_rule": "min",
+    "source": "scripts/validator_host_classes/pool_constants.json (owner sheet rev 10, 10 Nov; menu D, owner 7 Nov; "
+    "OWNER-VARIANT-RULE-NULL-MENU-D-18-01; PROVISIONAL, testnet)",
+}
+
+
+#: The flip (commit R, 12 Nov): the Motor 1.8 row has no HUMAN_INPUT left, so it is registered and offered.
+_REGISTERED_POOL[("electric-motor-magnetics", "1.8")] = MOTOR_18_REGISTRATION
+
+
 def registered_pool(challenge_id, version):
     """The registered owner constants of a pool version, or None."""
     own = _REGISTERED_POOL.get((challenge_id, version))
@@ -461,6 +508,8 @@ def registered_pool(challenge_id, version):
 
 
 def _registered_text(own):
+    if _is_menu_headroom(own):
+        return " ".join((_gate_text(own), _a_text(own), _d_text(own)))
     scales = ", ".join(
         f"{name} {value:.4f}" for name, value in own["a_gen_scales"].items()
     )
@@ -498,14 +547,128 @@ def _with_registered_score(score, own):
     return score
 
 
+_MENU_HEADROOM_SOURCE = (
+    "carbon/scoring/pool_menu.py, menu_score.py, pool_exam.py and its headroom scorer; "
+    "scripts/validator_host_classes/pool_constants.json"
+)
+
+
+def _is_menu_headroom(own):
+    return own is not None and own.get("kind") == MENU_HEADROOM
+
+
+def _gate_text(own):
+    gate = own["gate"]
+    limits = ", ".join(
+        f"{name} {value:.4g} U" for name, value in gate["threshold_u"].items()
+    )
+    return (
+        f"In-range accuracy is a gate, never points: on Carbon's hidden in-range cases, the {gate['statistic']} of your "
+        "model's error in units of the reference's uncertainty U must be at most the registered threshold for every "
+        f"output ({limits}). Failing it, or any other mandatory gate, gives no score."
+    )
+
+
+def _a_text(own):
+    a = own["a"]
+    return (
+        "A is accuracy beyond the training data, scored only in the admitted cells: (class of hidden out-of-range "
+        "cases, output) pairs where Carbon's own classical fits are measurably weak: the best classical method's "
+        f"error A_c there is at least {a['h_min']:g} U (and at least {a['h_lo']:g} U at its lower confidence bound), on "
+        f"at least {a['n_min']} cases. In each cell E is the geometric mean of "
+        "your model's |err| / U, each case floored at 1 U, and A_c the best classical method's E. The cell scores "
+        "ln(A_c / E) / ln(A_c), clipped to 0..1: 0 = no better than the best classical fit, 1 = the reference's own "
+        "accuracy. A is the mean over the cells, each family weighted equally."
+    )
+
+
+def _d_text(own):
+    d = own["d"]
+    weights = ", ".join(f"{w:g}" for w in MENU_PICK_WEIGHTS)
+    return (
+        f"D is design value on a menu of solved designs. Carbon draws, in secret, {d['tasks_per_epoch']} of "
+        "its registered design tasks; each task is a large set of designs whose true outputs Carbon has solved. Your "
+        "model predicts every design once, never knowing which ones count, and must answer each the same way "
+        "whatever else is in the batch (otherwise D = 0). The designs are ranked by your predictions against the "
+        "task's limits, and your top five picks are looked up in the truths: a pick that is truly infeasible scores "
+        f"0, and the five are weighted {weights}. A task scores 0 at the better of Carbon's classical methods and a "
+        "random pick, and 1 at the best five any model could pick from that sample. D is the "
+        f"{d['aggregate']} over those tasks, capped by C: D = min(menu D, C). Every grade uses the same draw."
+    )
+
+
+def _menu_headroom_design_search(own):
+    return {
+        "what": _d_text(own),
+        "menu": {
+            "tasks_per_epoch": own["d"]["tasks_per_epoch"],
+            "aggregate": own["d"]["aggregate"],
+            "pick_weights": list(MENU_PICK_WEIGHTS),
+        },
+        "deterministic": "The same model gives the same score within an epoch, so the paired repeat check holds.",
+        "disclosure": "You see the rounded total and a closed reason code. The tasks, their limits and optima, the "
+        "drawn menu, your picks and the solved designs stay private.",
+        "source": own["source"],
+    }
+
+
+def _menu_headroom_score(score, own):
+    score = copy.deepcopy(score)
+    total = own["total"]
+    score["formula"] = (
+        f"TOTAL = {total['ad_split']:g} * A + {1 - total['ad_split']:g} * D"
+    )
+    score["weights"] = {"A": total["ad_split"], "D": 1 - total["ad_split"]}
+    score["rule"] = {
+        "A": _a_text(own),
+        "D": "D = min(menu D, C); see design_search",
+        "gate": _gate_text(own),
+    }
+    score["legs"] = [
+        {
+            "id": "A_headroom",
+            "measures": "accuracy in the admitted out-of-range cells, against the best classical fit",
+        },
+        {
+            "id": "D_menu",
+            "measures": "the value of your model's top five picks on the secret design tasks",
+        },
+        next(dict(leg) for leg in _SCORE_LEGS if leg["id"] == "C"),
+    ]
+    score["source"] = _MENU_HEADROOM_SOURCE
+    return score
+
+
+#: The how-tested lines a menu-D + headroom version states in place of the pick-D ones (none of its tasks has a
+#: variant limit: no variant rule is registered).
+def _menu_headroom_lines(own):
+    return {
+        "inverse_design": ("Design value", _d_text(own)),
+        "optimizer": (
+            "Accuracy beyond the training data",
+            _a_text(own) + " " + _gate_text(own),
+        ),
+        "variants": None,
+    }
+
+
 def how_you_are_tested(challenge_id, version=None):
     """The "How you are tested" lines of a pool-graded version of
     ``challenge_id``: id, title and text each; the speed line also names this
     Challenge's ceiling per design."""
     ceiling = _SPEED_CEILING_SECONDS[challenge_id]
     registered = registered_pool(challenge_id, version)
+    menu_lines = (
+        _menu_headroom_lines(registered) if _is_menu_headroom(registered) else {}
+    )
     lines = []
     for line_id, title, text in HOW_TESTED_LINES:
+        if line_id in menu_lines:
+            if menu_lines[line_id] is None:
+                continue
+            title, text = menu_lines[line_id]
+            lines.append({"id": line_id, "title": title, "text": text})
+            continue
         if line_id == "speed":
             text = text + f" The ceiling for this Challenge is {ceiling} s per design."
         if registered is not None and line_id == "inverse_design":
@@ -1007,6 +1170,23 @@ _MOTOR_POOL = _pool_block(
 _MOTOR_POOL_16 = _pool_block(
     _MOTOR, "electric-motor-magnetics 1.6", "motor-pool-sealed-v2"
 )
+#: Motor 1.8: 1.6's published block under its own sealed evaluation (its own frozen 240-wide TRAIN; the headroom physics,
+#: back-EMF cells and menu D blocks are published from its pool constants once registered, slice 3). Reserved until then.
+#: F-1 (Carbon Validator-Motor-C, Thu 12 Nov 10:37): four sections inherited from 1.6 are not true for 1.8 and are CUT, not
+#: reworded: 'uncertainty' (1.6's output set), the pick-D 'limits' keys (1.8 D is the menu, which carries its own task limits)
+#: and 'design_value_scales' (1.6 pick-D scales), and 'exam_shape' (the 1.4 batch shape; 1.8 is a pool). The public input box
+#: stays: it equals carbon/motor/domain.py INPUT_BOUNDS, and the frozen 1.8 TRAIN lies inside it.
+_MOTOR_POOL_18 = {
+    key: value
+    for key, value in _pool_block(
+        _MOTOR, "electric-motor-magnetics 1.8", "motor-pool-sealed-v3"
+    ).items()
+    if key not in ("uncertainty", "design_value_scales", "exam_shape")
+}
+_MOTOR_POOL_18["limits"] = {
+    "inputs": _MOTOR["limits"]["inputs"],
+    "source": "carbon/motor/domain.py INPUT_BOUNDS",
+}
 _COOLING_POOL = _pool_block(_COOLING, "chip-cold-plate 1.5", "cooling-pool-sealed-v1")
 # OWNER-COOLING-HOTSPOT-GATE-DROP-01: a new version, never a rewrite of _COOLING.
 _COOLING_POOL_16 = {
@@ -1043,6 +1223,15 @@ _COOLING_POOL_17 = {
     },
 }
 
+#: Cooling 1.8: 1.7's published block under its own sealed evaluation (its own frozen TRAIN; the headroom physics and
+#: menu D blocks are published from its pool constants once registered, slice 3). Reserved until then.
+_COOLING_POOL_18 = {
+    **_COOLING_POOL_17,
+    **_pool_block(_COOLING, "chip-cold-plate 1.8", "cooling-pool-sealed-v4"),
+    "physics_laws": _COOLING_POOL_17["physics_laws"],
+    "score": _COOLING_POOL_17["score"],
+}
+
 #: Versions graded by the pool grader (their `_BY_VERSION` entry must carry a
 #: `pool_score(...)` score); the block of every other version is unchanged.
 _POOL_VERSIONS = frozenset(
@@ -1052,9 +1241,11 @@ _POOL_VERSIONS = frozenset(
         ("f02", "2.5"),
         ("electric-motor-magnetics", "1.5"),
         ("electric-motor-magnetics", "1.6"),
+        ("electric-motor-magnetics", "1.8"),
         ("chip-cold-plate", "1.5"),
         ("chip-cold-plate", "1.6"),
         ("chip-cold-plate", "1.7"),
+        ("chip-cold-plate", "1.8"),
     }
 )
 
@@ -1065,9 +1256,11 @@ _BY_VERSION = {
     ("f02", "2.5"): _F02_POOL,
     ("electric-motor-magnetics", "1.5"): _MOTOR_POOL,
     ("electric-motor-magnetics", "1.6"): _MOTOR_POOL_16,
+    ("electric-motor-magnetics", "1.8"): _MOTOR_POOL_18,
     ("chip-cold-plate", "1.5"): _COOLING_POOL,
     ("chip-cold-plate", "1.6"): _COOLING_POOL_16,
     ("chip-cold-plate", "1.7"): _COOLING_POOL_17,
+    ("chip-cold-plate", "1.8"): _COOLING_POOL_18,
     ("f02", "2.4"): _F02,
     ("electric-motor-magnetics", "1.4"): _MOTOR,
     ("chip-cold-plate", "1.4"): _COOLING,
@@ -1093,7 +1286,10 @@ def for_version(challenge_id, version):
         block["design_search"] = _DESIGN_SEARCH
         block["how_you_are_tested"] = how_you_are_tested(challenge_id, version)
         registered = registered_pool(challenge_id, version)
-        if registered is not None:
+        if _is_menu_headroom(registered):
+            block["design_search"] = _menu_headroom_design_search(registered)
+            block["score"] = _menu_headroom_score(block["score"], registered)
+        elif registered is not None:
             block["design_search"] = _with_registered_design_search(
                 _DESIGN_SEARCH, registered
             )

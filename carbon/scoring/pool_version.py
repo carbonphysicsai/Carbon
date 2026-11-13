@@ -58,8 +58,13 @@ IN_RANGE_CASES = "in_range_cases"
 #: Optional material field, NEW versions with a registered ``menu`` block only: the sealed menu tasks
 #: (`pool_menu.load_tasks`: per task its problem, duties and carbon.d-menu.v1 record). Custody: hidden truths.
 MENU = "menu"
+#: Optional material field, NEW versions whose physics rule registers ``region_sha256`` only: the SIGNED region document
+#: (``extended`` bounds per input) whose canonical sha256 it registers; the official derive grades inside it
+#: (`cooling_region`, B5). Custody: hidden bounds.
+REGION = "region"
 _OPTIONAL_MATERIAL_KEYS = {
     MENU,
+    REGION,
     RESPONSE_REFERENCE,
     COVERAGE_PLAN,
     COVERAGE_PLAN_SUMS,
@@ -172,6 +177,24 @@ def _coverage_plan_sha256(value):
     return _picked(value)
 
 
+def _coverage_class_vocabulary(value):
+    """A new version's registered admission class vocabulary (X-1: a list of unique non-empty class names) as a tuple,
+    or None when the key is absent (every other version: the geometric-v1 check, unchanged). Present, it has no default:
+    a null, HUMAN_INPUT or anything but a non-empty list of unique non-empty strings refuses.
+    """
+    if value is _ABSENT:
+        return None
+    value = _picked(value)
+    if (
+        type(value) is not list
+        or not value
+        or not all(type(c) is str and c for c in value)
+        or len(set(value)) != len(value)
+    ):
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    return tuple(value)
+
+
 def _variant_rule(value):
     """The registered neighbour-task rule of a new version (`pool_grader.OptimizerPolicy.variant_rule`), or None when the
     key is absent (every registered version). Present, it has no default: a null refuses, and so does HUMAN_INPUT
@@ -196,7 +219,10 @@ def _physics(value):
     registered version). Present, it has no default: ``{"cells_sha256", "gate_statistic", "gate_threshold", "gate_cases",
     "enters", "ad_split", "total_rule"}`` plus, for the 5 Nov cell scoring, ``"cell_scale"``, or, with ``"scoring":
     "headroom"`` (owner 6 Nov), ``"skill_form", "h_min", "h_lo", "n_min"`` and no cell scale (``cells_sha256`` then names
-    the sealed headroom admission document). A null or HUMAN_INPUT anywhere in it refuses (the values are the owner's).
+    the sealed headroom admission document). Optional: ``"in_range_cases_sha256"``, ``"target_kind"`` (R1:
+    ``"accuracy_only"``, `pool_physics_score.TARGET_KINDS`; absent = today's targets) and ``"region_sha256"`` (B5: the
+    signed region the derive grades inside; absent = the TRAIN box). A null or HUMAN_INPUT anywhere in it refuses (the
+    values are the owner's).
     """
     from carbon.scoring import pool_physics_score
 
@@ -219,9 +245,12 @@ def _physics(value):
         required = required | {"scoring", "skill_form", "h_min", "h_lo", "n_min"}
     else:
         required = required | {"cell_scale"}
-    # optional: a registered in-range case set (absent = none); headroom registers no cell scale
+    # optional: a registered in-range case set (absent = none) and target kind (absent = today's multi-design targets;
+    # Validator-2B M-1); headroom registers no cell scale
     allowed = (
-        required | {"in_range_cases_sha256"} | (set() if headroom else {"scoring"})
+        required
+        | {"in_range_cases_sha256", "target_kind", "region_sha256"}
+        | (set() if headroom else {"scoring"})
     )
     if not required <= set(value) <= allowed:
         raise PoolConstantsNotRegistered("pool_constants_malformed")
@@ -276,7 +305,8 @@ def _menu(value):
     version: D is the per-target pick, unchanged). Present, it has no default:
     ``{"records_sha256": {task_id: sha256}, "epoch": id, "aggregate": "mean", "rotation_days": n,
     "rowcheck": {"rel_tol", "abs_tol", "subset"}}`` plus an optional ``"min_tasks_exception"`` (an owner decision id,
-    for fewer than `pool_menu.MIN_TASKS` tasks); a null or HUMAN_INPUT refuses.
+    for fewer than `pool_menu.MIN_TASKS` tasks) and an optional ``"tasks_per_epoch"`` (the owner's k of the tasks
+    scored per epoch, `pool_menu.draw_tasks`; absent = every task); a null or HUMAN_INPUT refuses.
     """
     from carbon.scoring import pool_menu
 
@@ -285,8 +315,10 @@ def _menu(value):
     value = _picked(value)
     required = {"records_sha256", "epoch", "aggregate", "rotation_days", "rowcheck"}
     if type(value) is not dict or not (
-        required <= set(value) <= required | {"min_tasks_exception"}
+        required <= set(value) <= required | {"min_tasks_exception", "tasks_per_epoch"}
     ):
+        raise PoolConstantsNotRegistered("pool_constants_malformed")
+    if "tasks_per_epoch" in value and _picked(value["tasks_per_epoch"]) is None:
         raise PoolConstantsNotRegistered("pool_constants_malformed")
     rowcheck = _picked(value["rowcheck"])
     if type(rowcheck) is not dict or set(rowcheck) != {"rel_tol", "abs_tol", "subset"}:
@@ -308,6 +340,9 @@ def _menu(value):
             _picked(value["min_tasks_exception"])
             if "min_tasks_exception" in value
             else None
+        ),
+        tasks_per_epoch=(
+            _picked(value["tasks_per_epoch"]) if "tasks_per_epoch" in value else None
         ),
     )
     try:
@@ -356,6 +391,10 @@ def registered_policies(challenge_id, version, *, path=CONSTANTS):
                 ),
                 coverage_plan_sums_sha256=_coverage_plan_sha256(
                     optimizer.get("coverage_plan_sums_sha256", _ABSENT)
+                ),
+                # optional, NEW versions only (X-1): absent is the geometric-v1 class check, unchanged
+                coverage_class_vocabulary=_coverage_class_vocabulary(
+                    optimizer.get("coverage_class_vocabulary", _ABSENT)
                 ),
                 # optional, NEW versions only: absent is today's D, bit for bit
                 variant_rule=_variant_rule(optimizer.get("variant_rule", _ABSENT)),
@@ -482,7 +521,10 @@ class PoolVariant(physical.Variant):
                 "menu_rowcheck_key": rowcheck_key,
             }
         return pool_exam.measure_pool(
-            binding=pool_adapters.official_binding(self._kind, self.VERSION),
+            # a version registering a signed region derives inside it (B5); every other version: the binding as before
+            binding=official_binding(
+                self._kind, self.VERSION, region=sealed_region(policies, material)
+            ),
             sets=sets,
             policies=policies,
             bank_rows=bank_rows,
@@ -598,6 +640,21 @@ def menu_tasks(material, rule):
     )
 
 
+def _challenge_id(material, challenge):
+    """The Challenge id of ``material`` (from its own ``kind``), checked against the caller's ``challenge``, which may be
+    the id (custody tools) or the practice-grid kind (the sealed packs' `probe_design.with_probes` path passes
+    ``"motor"`` / ``"cooling"`` / ``"f02"`` / ``"f08"``). The pool-constants registration is keyed by the id, so a
+    menu's rule must be read under it, never under the kind (12 Nov: a Motor 1.8 menu bank refused
+    pool_constants_unregistered_version)."""
+    by_kind = {kind: challenge_id for challenge_id, kind in KINDS.items()}
+    if material["kind"] not in by_kind:
+        raise pool_exam.ExamRefused("pool_material_kind_unregistered")
+    challenge_id = by_kind[material["kind"]]
+    if challenge not in (challenge_id, material["kind"]):
+        raise pool_exam.ExamRefused("pool_material_kind_mismatch")
+    return challenge_id
+
+
 def _menu_rows(material, challenge):
     """The menu's model input rows of a version's material (none without a ``menu`` field)."""
     from carbon.scoring import pool_menu
@@ -636,7 +693,7 @@ def rows_from_material(material, *, dtype, challenge):
                     )
                 values = tuple(float(kind.type(row[name])) for name in names)
                 seen.setdefault(values, None)
-    for row in _menu_rows(material, challenge):
+    for row in _menu_rows(material, _challenge_id(material, challenge)):
         # menu rows are plain pool rows: same quantisation, dedup and canonical content order (Validator-2B a1)
         values = tuple(float(kind.type(row[name])) for name in names)
         seen.setdefault(values, None)
@@ -705,7 +762,10 @@ def row_accounting(material, *, dtype, challenge=None):
             if challenge is None:
                 raise pool_exam.ExamRefused("menu_accounting_needs_the_challenge")
             tasks = menu_tasks(
-                material, registered_menu(challenge, material["version"])
+                material,
+                registered_menu(
+                    _challenge_id(material, challenge), material["version"]
+                ),
             )
             counts["menu_tasks"] = len(tasks)
             counts["menu_rows"] = 0
@@ -755,6 +815,90 @@ def strip_pool(bank):
     return out
 
 
+#: Pool bindings a version registers itself (its overlay dispatch, e.g. `motor18_dual_pack`), by (kind, version):
+#: a version whose decision `pool_adapters` cannot express reaches the pool exam without an edit to `pool_adapters.py`,
+#: a live producer FILE (Validator-2B 7 Nov 13:27). Add-only; every other version keeps `pool_adapters.official_binding`.
+_BINDINGS: dict = {}
+
+
+def register_binding(kind, version, factory):
+    """Register ``factory() -> ChallengeBinding`` for one (kind, version). Add-only: a different factory for a version
+    already registered is refused; registering the same one again is a no-op."""
+    key = (kind, version)
+    if _BINDINGS.get(key, factory) is not factory:
+        raise ValueError(f"{key!r} already has a different pool binding")
+    _BINDINGS[key] = factory
+
+
+def official_binding(kind, version, region=None):
+    """The OFFICIAL pool binding of one Challenge version: its own registered one (`register_binding`), else
+    `pool_adapters.official_binding` (every version before this hook, unchanged). ``region`` (a checked signed region
+    document, `sealed_region` / `checked_region`; Cooling only) bounds its derive by the region's extended bounds
+    (`cooling_region.bounded_binding`, B5); None leaves the binding exactly as before.
+    """
+    factory = _BINDINGS.get((kind, version))
+    binding = (
+        pool_adapters.official_binding(kind, version) if factory is None else factory()
+    )
+    if region is None:
+        return binding
+    from carbon.scoring import cooling_region
+
+    try:
+        return cooling_region.bounded_binding(binding, region)
+    except cooling_region.RegionRefused as refused:
+        raise pool_exam.ExamRefused(refused.code) from None
+
+
+def _region_document(registered, document):
+    """``document`` when the registration names a region and its canonical sha256 is that one; None when neither is
+    present; else `ExamRefused` (a region with none registered, a registered one missing, or another document).
+    """
+    from carbon.scoring import cooling_region
+
+    if registered is None:
+        if document is not None:
+            raise pool_exam.ExamRefused("region_not_registered")
+        return None
+    if document is None:
+        raise pool_exam.ExamRefused("region_missing_from_the_sealed_pack")
+    try:
+        sha = cooling_region.canonical_sha256(document)
+    except cooling_region.RegionRefused as refused:
+        raise pool_exam.ExamRefused(refused.code) from None
+    if sha != registered:
+        raise pool_exam.ExamRefused("region_sha256_mismatch")
+    return document
+
+
+def sealed_region(policies, material):
+    """The grade's region: the sealed material's ``region`` document checked against the parsed registration's
+    ``physics.region_sha256`` (`_region_document`). None for every version that registers none (its material carries
+    none)."""
+    physics = getattr(policies, "physics", None)
+    return _region_document(
+        None if physics is None else physics.region_sha256, material.get(REGION)
+    )
+
+
+def checked_region(challenge_id, version, document, *, path=CONSTANTS):
+    """For a custody builder (truths derived the same way as the grade): ``document`` checked against the RAW
+    registration's ``physics.region_sha256`` (read like `menu_registered`, so other HUMAN_INPUT constants do not block
+    it). A registered HUMAN_INPUT or null refuses (not registered yet)."""
+    try:
+        raw = json.loads(Path(path).read_bytes())
+        entry = raw["versions"].get(f"{challenge_id} {version}")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        raise PoolConstantsNotRegistered("pool_constants_unreadable") from None
+    physics = entry.get("physics") if type(entry) is dict else None
+    registered = None
+    if type(physics) is dict and "region_sha256" in physics:
+        registered = _picked(physics["region_sha256"])
+        if registered is None:
+            raise PoolConstantsNotRegistered("pool_constants_not_registered")
+    return _region_document(registered, document)
+
+
 def material_from_set_dir(
     set_dir, *, kind, version, input_dtype, set_digest=None, sets_file="sets.json"
 ):
@@ -764,7 +908,7 @@ def material_from_set_dir(
     from carbon.scoring import pool_plugin
 
     root = Path(set_dir)
-    binding = pool_adapters.official_binding(kind, version)
+    binding = official_binding(kind, version)
     sets = json.loads((root / sets_file).read_text(encoding="utf-8"))
     groups = []
     for targets in sets.values():

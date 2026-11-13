@@ -109,6 +109,18 @@ _PINNED_NUMPY_PAYLOADS = {
     "carbon/challenge_kit/data/cooling-dev-train-400-v2-encoded.npz": (
         "2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0"
     ),
+    # The 1.8 frozen TRAINs (each its kit's train_digest; the freeze pins in
+    # `physical_public_train`): Cooling 1.8's native extended TRAIN and its
+    # law-safe encoded twin (canonical bytes), and Motor 1.8's 240-wide TRAIN.
+    "carbon/challenge_kit/data/cooling-dev-train-1p8-v1.npz": (
+        "326cb30187cbb6cc108bbe435ad7dc01851e4459dd4858fb17bc9c26a8ccfeb7"
+    ),
+    "carbon/challenge_kit/data/cooling-dev-train-1p8-v1-encoded.npz": (
+        "5c1e2bed7d381a5ee915fc5c4bb26e43d7c692c9d7dd34d4dfa84a1c327cf223"
+    ),
+    "carbon/challenge_kit/data/motor-dev-train-1p8-v1.npz": (
+        "de1c73cc3fe22bb5945e02626f982ca83a4f0273a82e6c3d0398c28a2e32fbd4"
+    ),
 }
 
 

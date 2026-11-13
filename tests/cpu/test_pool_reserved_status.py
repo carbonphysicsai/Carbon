@@ -19,6 +19,7 @@ POOL = [
     ("f08-ribbed-bracket", "1.6"),
     ("f08-ribbed-bracket", "1.7"),
     ("f02", "2.5"),
+    ("electric-motor-magnetics", "1.8"),
 ]
 #: Registered PROVISIONAL (testnet) by OWNER-POOL-CONSTANTS-PROVISIONAL-01; the guard grid on the final pools can
 #: send one back to RESERVED.

@@ -8,7 +8,10 @@ where a public function exists:
   kept if buildable), seeded from YOUR seed, never a Carbon label;
 - the case writer, rotor currents, run script and reading of the torque:
   `scripts/dev/motor/reference/run_batch.py` (`case_params`, `currents`,
-  `analyze`, `REFERENCE_CHECKS`), the runner Carbon itself used;
+  `analyze`, `REFERENCE_CHECKS`), the runner Carbon itself used, wrapped by
+  `scripts/dev/motor/reference/run_batch_record_now.py` (the record-now runner
+  Carbon's Motor 1.8 TRAIN rows come from): the same solve, plus each phase's
+  flux linkage, which Motor 1.8's TRAIN and models carry beside the torque;
 - the GetDP formulation `carbon/motor/getdp.py` and the mesher
   `carbon/motor/mesh.py`;
 - the solver image is built by you from `scripts/dev/motor/reference/Dockerfile`.
@@ -51,20 +54,25 @@ CHALLENGE_ID = "electric-motor-magnetics"
 KIT_VERSION = "1.8"
 RECIPE = ROOT / "scripts" / "dev" / "motor" / "reference" / "Dockerfile"
 RUNNER = ROOT / "scripts" / "dev" / "motor" / "reference" / "run_batch.py"
+#: The record-now runner that wraps `RUNNER` (its solve unchanged) and adds the flux linkage.
+RECORD_NOW = (
+    ROOT / "scripts" / "dev" / "motor" / "reference" / "run_batch_record_now.py"
+)
 MESH = ROOT / "carbon" / "motor" / "mesh.py"
 IMAGE = "carbon-motor-kit:local"
 RECORD_SCHEMA = "carbon.motor.reference-record.v1"
 PROVENANCE_SCHEMA = "carbon.miner-kit-train.provenance.v1"
 SCOPE = "MINER_GENERATED_PRACTICE_ONLY"
-#: The public TRAIN file whose numeric layout the parser writes (its
-#: provenance is public; its numeric interface is copied, never edited).
+#: The public TRAIN whose numeric layout the parser writes: Motor 1.8's (the
+#: torque, then the phase flux linkages A, B, C), by Carbon's own interface
+#: document of it (`numeric_interface`).
+TRAIN_NAME = "motor-dev-train-1p8-v1"
 TRAIN_PROVENANCE = (
-    ROOT
-    / "carbon"
-    / "challenge_kit"
-    / "data"
-    / "motor-dev-train-150-v1.provenance.json"
+    ROOT / "carbon" / "challenge_kit" / "data" / f"{TRAIN_NAME}.provenance.json"
 )
+#: The record field each TRAIN target slice is read from: the torque from
+#: ``outputs``, a phase linkage from the record-now runner's ``record_now``.
+LINKAGE_SLICE = "phase_flux_linkage_wb_"
 DOCKER_START_FAILURES = {125, 126, 127}
 
 
@@ -152,6 +160,8 @@ RECORD_KEYS = frozenset(
         "outputs",
         "derived",
         "checks",
+        "record_now",
+        "runner",
     }
 )
 
@@ -183,10 +193,16 @@ def audit_output(out):
 
 
 def _runner():
-    """Carbon's own Motor runner module, loaded from its file."""
-    spec = importlib.util.spec_from_file_location("_carbon_motor_run_batch", RUNNER)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    """Carbon's own Motor runner, loaded from its file and wrapped by the
+    record-now runner (`RECORD_NOW`): the same solve, plus the flux linkage.
+    Every kit record names that runner (``runner``), as Carbon's own do."""
+    spec = importlib.util.spec_from_file_location(
+        "_carbon_motor_run_batch_record_now", RECORD_NOW
+    )
+    wrapper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(wrapper)
+    module = wrapper.install(wrapper._load_run_batch())
+    module.RECORD_NOW_RUNNER = wrapper.runner_provenance()
     return module
 
 
@@ -268,7 +284,8 @@ def write_case(runner, entry, case_dir):
     shutil.copy(MESH, case_dir / "mesh.py")
     (case_dir / "params.json").write_text(json.dumps(p, indent=1))
     p_pro = {**p, "coil_area_mm2": domain.coil_area_mm2(entry["inputs"])}
-    (case_dir / "machine.pro").write_text(getdp.pro_text(p_pro, nonlinear=getdp.BRAUER))
+    pro = runner.getdp.pro_text(p_pro, nonlinear=getdp.BRAUER)
+    (case_dir / "machine.pro").write_text(pro)
     return p
 
 
@@ -284,6 +301,8 @@ def run_case(runner, entry, out, *, cpus, timeout_s, image=IMAGE):
         "image": image,
         "source": "MINER_KIT",
     }
+    if hasattr(runner, "RECORD_NOW_RUNNER"):
+        record["runner"] = runner.RECORD_NOW_RUNNER
     p = write_case(runner, entry, case_dir)
     name = f"carbon-motor-kit-{case_id}"[:120]
     command = [
@@ -425,8 +444,41 @@ def _widened(bounds):
 
 
 def numeric_interface():
-    """Carbon's public TRAIN numeric interface for Motor (copied verbatim)."""
-    return json.loads(TRAIN_PROVENANCE.read_text(encoding="utf-8"))["numeric_interface"]
+    """Carbon's public Motor 1.8 TRAIN numeric interface, from Carbon's own
+    document of it (`physical_public_train.motor18_interface_document`, the
+    interface the 1.8 TRAIN's provenance records): torque, then the phase
+    flux linkages A, B, C, never edited here."""
+    from carbon.challenge_kit import physical_public_train
+
+    return physical_public_train.motor18_interface_document()
+
+
+def target_layout(interface):
+    """The interface's target slices in row order: ``[(name, start, end)]``,
+    contiguous from 0, each one the kit can read from a record."""
+    slices = interface.get("target_slices") if type(interface) is dict else None
+    if type(slices) is not dict or not slices:
+        raise KitError("the TRAIN interface names no target slices")
+    layout = sorted(
+        ((name, *bounds) for name, bounds in slices.items()), key=lambda s: s[1]
+    )
+    edge = 0
+    for name, start, end in layout:
+        if name != "torque_nm" and not name.startswith(LINKAGE_SLICE):
+            raise KitError(
+                f"the TRAIN interface names {name!r}, which a kit record does not carry"
+            )
+        if start != edge or not (type(end) is int and end > start):
+            raise KitError("the TRAIN interface's target slices are not contiguous")
+        edge = end
+    return layout
+
+
+def _slice_values(row, name):
+    if name == "torque_nm":
+        return row.get("outputs", {}).get("torque_nm")
+    phases = (row.get("record_now") or {}).get("phase_flux_linkage_wb") or {}
+    return phases.get(name[len(LINKAGE_SLICE) :])
 
 
 def _npy(rows, width):
@@ -449,7 +501,7 @@ def _npz(inputs, targets):
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_STORED) as archive:
         for name, rows, width in (
             ("inputs", inputs, len(domain.INPUTS)),
-            ("targets", targets, domain.ANGLE_STEPS),
+            ("targets", targets, len(targets[0])),
         ):
             member = zipfile.ZipInfo(name + ".npy", date_time=(1980, 1, 1, 0, 0, 0))
             member.create_system = 3
@@ -466,10 +518,14 @@ def _finite(value):
 
 
 def parse(records_path):
-    """Turn records.jsonl into (npz bytes, provenance). Only OK records with
-    a buildable in-box case and a finite 60-value curve are kept; every other
-    record is counted, never silently used."""
+    """Turn records.jsonl into (npz bytes, provenance), in Motor 1.8's TRAIN
+    layout: per case the 60-value torque, then each phase's 60-value flux
+    linkage (record-now). Only OK records with a buildable in-box case and every
+    slice whole and finite are kept; every other record is counted, never
+    silently used."""
     records_path = refuse_protected(records_path)
+    interface = numeric_interface()
+    layout = target_layout(interface)
     inputs, targets, case_ids, skipped = [], [], [], {}
     for line in Path(records_path).read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -480,13 +536,21 @@ def parse(records_path):
             skipped[status or "unknown"] = skipped.get(status or "unknown", 0) + 1
             continue
         check_case({"case_id": row.get("case_id"), "inputs": row.get("inputs")})
-        curve = row.get("outputs", {}).get("torque_nm")
-        if type(curve) is not list or len(curve) != domain.ANGLE_STEPS:
-            raise KitError(
-                f"{row['case_id']}: the torque curve must hold {domain.ANGLE_STEPS} values"
-            )
+        target = []
+        for name, start, end in layout:
+            values = _slice_values(row, name)
+            if type(values) is not list or len(values) != end - start:
+                raise KitError(
+                    f"{row['case_id']}: {name} must hold {end - start} values"
+                    + (
+                        " (a Motor 1.8 record comes from the record-now runner)"
+                        if name != "torque_nm"
+                        else ""
+                    )
+                )
+            target += [_finite(v) for v in values]
         inputs.append([_finite(row["inputs"][name]) for name in domain.INPUTS])
-        targets.append([_finite(v) for v in curve])
+        targets.append(target)
         case_ids.append(row["case_id"])
     if not case_ids:
         raise KitError("no OK records to parse")
@@ -500,7 +564,7 @@ def parse(records_path):
         "train_sha256": "sha256:" + hashlib.sha256(raw).hexdigest(),
         "case_ids": case_ids,
         "skipped": dict(sorted(skipped.items())),
-        "numeric_interface": numeric_interface(),
+        "numeric_interface": interface,
     }
     return raw, provenance
 
@@ -688,6 +752,23 @@ def grade_pin():
     }
 
 
+def _torque_of(row):
+    """The torque a practice score reads from a model's row: a 60-value row as
+    it is; a whole Motor 1.8 row's torque slice (by the 1.8 TRAIN interface).
+    Any other row is returned as it is, and the native gates fail it."""
+    row = list(row)
+    if len(row) == domain.ANGLE_STEPS:
+        return row
+    try:
+        layout = target_layout(numeric_interface())
+    except KitError:
+        return row
+    if len(row) != layout[-1][2]:
+        return row
+    torque = next((s for s in layout if s[0] == "torque_nm"), None)
+    return row if torque is None else row[torque[1] : torque[2]]
+
+
 def score(records, predictions):
     """The practice score of a model's predictions on YOUR kit cases.
 
@@ -711,7 +792,10 @@ def score(records, predictions):
             "commit; update the checkout or the kit together"
         )
     if not isinstance(predictions, dict):
-        raise KitError("predictions must map case_id to a 60-value torque curve")
+        raise KitError(
+            "predictions must map case_id to a model's row (the 60-value torque, "
+            "or a whole Motor 1.8 row, whose torque slice is scored)"
+        )
     train = challenge.PublicMaterial.load(ROOT).train
     scales = candidates.scales(train)
     f0_scale = motor_dual_pack._definition_values()["f0_scale"]
@@ -720,7 +804,7 @@ def score(records, predictions):
         case_id = record.get("case_id")
         if record.get("status") != "OK" or case_id not in predictions:
             continue
-        prediction = {"torque_nm": [float(v) for v in predictions[case_id]]}
+        prediction = {"torque_nm": [float(v) for v in _torque_of(predictions[case_id])]}
         verdict = exam.evaluate_case(prediction, record)
         row = {"case_id": case_id, "state": verdict["state"], "gates": verdict["gates"]}
         if verdict["state"] == exam.SCORABLE:

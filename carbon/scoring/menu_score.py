@@ -188,6 +188,9 @@ def menu_record(document, problem):
     _require(1 + sum(quotas.values()) >= TOP, "menu_smaller_than_top_five")
     arms = document["arms"]
     _require(type(arms) is dict, "menu_arms_malformed")
+    # at least one classical arm: an empty set drops every fit out of the epoch zero Z (Carbon Validator-B 10 Nov,
+    # D_ZERO_MENU_2PRIME_RULING_20261110 condition (a))
+    _require(arms, "menu_arms_empty")
     for arm, preds in arms.items():
         _require(
             type(arm) is str
@@ -292,10 +295,24 @@ def pick_d(problem, record, pid):
     return min(1.0, max(0.0, share))
 
 
-def raw_score(problem, record, menu, predictions):
-    """sum_i w_i d(pick_i) over the top five of `menu` ranked by `predictions` ({id: outputs | None}) on the
-    backed-off limits; tied keys share the mean d of their group over the slots they occupy.
-    """
+def _group_d(ds):
+    """A tied group's mean d: exactly the members' value when they all share it (no rounding on a constant group)."""
+    return ds[0] if all(d == ds[0] for d in ds) else math.fsum(ds) / len(ds)
+
+
+def _weighted(slots):
+    """sum_i w_i slot_i in slot order: the ONE accumulation the raw, every arm's raw and the oracle use, so equal slot
+    values give bit-equal scores (Q4 12 Nov: an fsum oracle against a running-sum raw let a no-room task pass or
+    refuse on a last-bit rounding)."""
+    total = 0.0
+    for w, d in zip(WEIGHTS, slots):
+        total += w * d
+    return total
+
+
+def _slots(problem, record, menu, predictions):
+    """The d of each of the five slots of `menu` ranked by `predictions` on the backed-off limits; tied keys share
+    the mean d of their group over the slots they occupy."""
     _require(set(predictions) >= set(menu), "menu_predictions_missing_a_design")
     names = set(problem.outputs)
     ranked_problem = backed_off(problem)
@@ -306,24 +323,33 @@ def raw_score(problem, record, menu, predictions):
             outputs = None  # a missing / non-finite prediction is the model's invalid prediction: ranks last
         keyed.append((_key(ranked_problem, _point(ranked_problem, outputs)), pid))
     keyed.sort(key=lambda item: item[0])
-    total, slot, i = 0.0, 0, 0
-    while slot < TOP:
+    slots, i = [], 0
+    while len(slots) < TOP:
         j = i
         while j < len(keyed) and keyed[j][0] == keyed[i][0]:
             j += 1
-        group = [pick_d(problem, record, pid) for _, pid in keyed[i:j]]
-        mean = math.fsum(group) / len(group)
-        for _ in range(min(j - i, TOP - slot)):
-            total += WEIGHTS[slot] * mean
-            slot += 1
+        mean = _group_d([pick_d(problem, record, pid) for _, pid in keyed[i:j]])
+        slots += [mean] * min(j - i, TOP - len(slots))
         i = j
-    return total
+    return tuple(slots)
+
+
+def _oracle_slots(problem, record, menu):
+    return tuple(
+        sorted((pick_d(problem, record, pid) for pid in menu), reverse=True)[:TOP]
+    )
+
+
+def raw_score(problem, record, menu, predictions):
+    """sum_i w_i d(pick_i) over the top five of `menu` ranked by `predictions` ({id: outputs | None}) on the
+    backed-off limits; tied keys share the mean d of their group over the slots they occupy.
+    """
+    return _weighted(_slots(problem, record, menu, predictions))
 
 
 def oracle_score(problem, record, menu):
     """The raw of the truth-ordered top five of `menu`: the best raw any model can reach on this sample."""
-    ds = sorted((pick_d(problem, record, pid) for pid in menu), reverse=True)
-    return math.fsum(w * d for w, d in zip(WEIGHTS, ds))
+    return _weighted(_oracle_slots(problem, record, menu))
 
 
 SCORED = "SCORED"
@@ -353,14 +379,20 @@ def score_task(problem, record, predictions, *, key, epoch):
     and counts only."""
     menu = draw_menu(record, key, epoch=epoch)
     raw = raw_score(problem, record, menu, predictions)
-    oracle = oracle_score(problem, record, menu)
-    random_zero = math.fsum(pick_d(problem, record, pid) for pid in menu) / len(menu)
-    zero, source = random_zero, "random"
+    best = _oracle_slots(problem, record, menu)
+    oracle = _weighted(best)
+    ds = [pick_d(problem, record, pid) for pid in menu]
+    zero, source = _group_d(ds), "random"
+    # No room is decided on the slot values, not on rounded sums (Q4 12 Nov): the random pick reaches the oracle
+    # exactly when every menu design has the same d, an arm exactly when its five slots are the oracle's five.
+    no_room = all(d == ds[0] for d in ds)
     for arm in sorted(record.arms):
-        arm_raw = raw_score(problem, record, menu, record.arms[arm])
+        arm_slots = _slots(problem, record, menu, record.arms[arm])
+        no_room = no_room or arm_slots == best
+        arm_raw = _weighted(arm_slots)
         if arm_raw > zero:
             zero, source = arm_raw, "classical_arm"
-    _require(zero < oracle, "menu_zero_at_oracle_task_has_no_room")
+    _require(not no_room and zero < oracle, "menu_zero_at_oracle_task_has_no_room")
     return {
         "metric": METRIC,
         "state": SCORED,

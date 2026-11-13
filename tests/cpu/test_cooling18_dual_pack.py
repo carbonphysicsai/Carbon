@@ -27,7 +27,7 @@ def _entry():
         "train": cooling18_dual_pack.SERVED_TRAIN,
         "allowlist": "v8",
         "step_caps": False,
-        "pack_version": "cooling-normal-construction-development-test-1p8",
+        "pack_version": "cooling-normal-construction-development-9",
         "development_evaluation": [
             "cooling-dual-development-grid-v3",
             "cooling-development-grid-8x6",
@@ -99,7 +99,8 @@ def overlay(tmp_path):
             ROOT / "scripts" / "validator_host_classes" / "version_overlay.json"
         ).read_bytes()
     )
-    document["versions"]["chip-cold-plate 1.8"] = _entry()
+    # the PRODUCTION entry (registered 9 Nov); a test entry for 1.8 would be refused as a different one
+    assert document["versions"]["chip-cold-plate 1.8"] == _entry()
     path = tmp_path / "version_overlay.json"
     path.write_text(json.dumps(document), encoding="utf-8")
     return path
@@ -119,7 +120,36 @@ def test_cooling_1_8_routes_to_its_own_module_and_nothing_else_moves(overlay):
         and out["module_15"] == "carbon.scoring.cooling_encoded_dual_pack"
     )
     assert out["digest_same"] and out["digest_18_differs"]
-    assert "not frozen yet" in out["train"]
+    assert out["train"] == "loaded"
+
+
+def test_importing_the_1_8_module_first_still_arms_its_dispatch():
+    """The overlay arms 1.8 on the sealed module's import; importing cooling18_dual_pack FIRST must not run `dispatch`
+    on a half-built module (it imports the sealed module lazily)."""
+    code = "\n".join(  # noqa: FLY002
+        [
+            "import json",
+            "from carbon.challenge_kit import version_overlay",
+            "version_overlay.install()",
+            "from carbon.scoring import cooling18_dual_pack as c18",
+            "from carbon.scoring import cooling_encoded_dual_pack as enc",
+            "print(json.dumps({'module': enc.sealed_adapter('1.8')._module.__name__, 'files': list(c18.FILES[-2:])}))",
+        ]
+    )
+    env = {**os.environ, "PYTHONPATH": str(ROOT), "PYTHONDONTWRITEBYTECODE": "1"}
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr[-2000:]
+    out = json.loads(result.stdout.strip().splitlines()[-1])
+    assert out["module"] == "carbon.scoring.cooling18_dual_pack"
+    assert out["files"] == ["cooling_encoded_dual_pack.py", "cooling18_dual_pack.py"]
 
 
 def test_a_changed_module_file_is_refused_before_import(overlay):

@@ -229,6 +229,7 @@ def catalog_recipe(catalog_id=None, version=CATALOG_VERSION):
     from carbon.challenge_kit import physical_public
     from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
 
+    empty = catalog_id is None and not listing.entries(MOTOR_CHALLENGE, version)
     if catalog_id is None:
         catalog_id = listing.preferred(MOTOR_CHALLENGE, version) or "neuralop.FNO"
     from carbon.challenge_registry import build_memo
@@ -237,7 +238,12 @@ def catalog_recipe(catalog_id=None, version=CATALOG_VERSION):
         ("kit", MOTOR_CHALLENGE, version),
         lambda: physical_public.construction_kit(MOTOR_CHALLENGE, version),
     )
-    item = listing.entry(catalog_id, MOTOR_CHALLENGE, version)
+    # A version that offers no catalog entry (Motor 1.8: no entry carries to its TRAIN; Miner X-C 12 Nov 17:47) gets,
+    # with no id named, an unfilled template whose catalog_id and output format are None: an explicit gap, never a
+    # recipe that runs (as Cooling's `cold_plate.catalog_recipe` does for an empty catalog).
+    item = None if empty else listing.entry(catalog_id, MOTOR_CHALLENGE, version)
+    if empty:
+        catalog_id = None
     return {
         "schema": "carbon.construction-recipe.v1",
         "challenge": kit,
@@ -253,10 +259,24 @@ def catalog_recipe(catalog_id=None, version=CATALOG_VERSION):
             "initial_state": None,
         },
         "output": {
-            "format": item["output_format"],
+            "format": None if empty else item["output_format"],
             "interface_digest": kit["interface_digest"],
         },
     }
+
+
+def _catalog_examples(version):
+    """The ready catalog example, or none for a version that offers no catalog entry. Motor 1.8 offers none by design
+    (its TRAIN differs from every catalog version's, so no entry carries to it; its only route is a miner graph recipe:
+    Miner X-C, Thu 12 Nov 17:47): asking `catalog_recipe` there would raise, and the Control Center and
+    ``carbon_challenges describe`` could not open the version. The graph route adds its own example after this.
+    """
+    from carbon.backbone_catalog import listing
+    from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
+
+    if not listing.entries(MOTOR_CHALLENGE, version):
+        return []
+    return [{"recipe": catalog_recipe(version=version)}]
 
 
 def describe_catalog(version=CATALOG_VERSION):
@@ -387,7 +407,7 @@ def describe_catalog(version=CATALOG_VERSION):
             "practice": "aggregate public-practice components and typed gates",
             "evaluation": "the receiver's judged feedback",
         },
-        "examples": [{"recipe": catalog_recipe(version=version)}],
+        "examples": _catalog_examples(version),
         "unsupported": unsupported,
         "exclusion_scope": {
             "catalog": "Carbon's tested bundles only; miner source stays closed",

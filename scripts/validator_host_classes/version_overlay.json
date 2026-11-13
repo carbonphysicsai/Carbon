@@ -89,6 +89,55 @@
           "region_sha256": "248460a61ec806ea6756b1a453e5e15890e69f4a6bc30814b11c6d53686a8b4c"
         }
       }
+    },
+    "chip-cold-plate 1.8": {
+      "challenge_id": "chip-cold-plate",
+      "version": "1.8",
+      "train": "cooling-dev-train-1p8-v1-encoded",
+      "allowlist": "v8",
+      "step_caps": false,
+      "pack_version": "cooling-normal-construction-development-9",
+      "development_evaluation": [
+        "cooling-dual-development-grid-v3",
+        "cooling-development-grid-8x6"
+      ],
+      "sealed_evaluation": "cooling-pool-sealed-v4",
+      "campaign": "catalog",
+      "catalog": true,
+      "graph_adapter": "v2",
+      "output_encoding": "cooling-law-safe-output-encoding",
+      "catalog_entries_from": [],
+      "predecessor": "1.7",
+      "rebuild_wall_seconds": 648,
+      "dispatch": {
+        "module": "carbon.scoring.cooling18_dual_pack",
+        "sha256": "2bb46a0d5262725febec26280a7e50012b43acc6bd2dfec8c98b19dc6a2f8f52",
+        "config": {}
+      }
+    },
+    "electric-motor-magnetics 1.8": {
+      "challenge_id": "electric-motor-magnetics",
+      "version": "1.8",
+      "train": "motor-dev-train-1p8-v1",
+      "allowlist": "v8",
+      "step_caps": false,
+      "pack_version": "motor-normal-construction-development-8",
+      "development_evaluation": [
+        "motor-dual-development-grid-v2",
+        "motor-development-grid-8x6"
+      ],
+      "sealed_evaluation": "motor-pool-sealed-v3",
+      "campaign": "catalog",
+      "catalog": true,
+      "graph_adapter": "v2",
+      "catalog_entries_from": [],
+      "predecessor": "1.6",
+      "rebuild_wall_seconds": 648,
+      "dispatch": {
+        "module": "carbon.scoring.motor18_dual_pack",
+        "sha256": "a191c1e2b9d5b70f77c97054b219e3f7921f21ef8078df815fcafd3c3db6abd7",
+        "config": {}
+      }
     }
   }
 }

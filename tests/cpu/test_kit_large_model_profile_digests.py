@@ -144,12 +144,28 @@ def test_new_registrations_publish_and_enforce_their_current_profile(key, monkey
     assert registry.VERSIONS[key].predecessor == before
     material = physical_material.bundle_material(*key)
     predecessor = physical_material.bundle_material(key[0], before)
-    assert material["train"] == predecessor["train"]
+    if registry.entry(*key).train == registry.entry(key[0], before).train:
+        assert material["train"] == predecessor["train"]
+    else:
+        # a version with its OWN frozen TRAIN (Motor / Cooling 1.8) serves exactly that pinned artifact
+        from carbon.challenge_kit import physical_public_train
+
+        assert (
+            material["train"] == physical_public_train.load_public_train(*key)["train"]
+        )
     assert material["allowlist_bytes"] == predecessor["allowlist_bytes"]
     limits = material["construction_limits_document"]
-    assert limits["reconstruction_resource_policy"] == (
+    # the predecessor's policy, except a version's own owner-set whole-task wall (Motor 1.8: `task_wall_overrides`)
+    from carbon.challenge_kit import task_wall_overrides
+
+    expected = dict(
         predecessor["construction_limits_document"]["reconstruction_resource_policy"]
     )
+    if key in task_wall_overrides.OVERRIDES:
+        expected["total_reconstruction_wall_seconds_max"] = (
+            task_wall_overrides.OVERRIDES[key]
+        )
+    assert limits["reconstruction_resource_policy"] == expected
     kit = material["construction_kit"]
     binding = {
         "challenge_id": key[0],

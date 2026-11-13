@@ -114,6 +114,11 @@ def test_an_unknown_aggregate_is_refused(value):
         grade_set([toy_target()], oracle([toy_target()]), bad, HONESTY)
 
 
+#: Registered versions whose row names balanced_region_mean EXPLICITLY (owner values, pool constants 1051ee13, 10 Nov):
+#: a new version's own choice, never a rescore of an older one. Every other registered version keeps the plain mean.
+BALANCED_REGISTERED = {"electric-motor-magnetics 1.8"}
+
+
 def test_registered_versions_keep_the_plain_mean_and_the_aggregate_is_never_defaulted():
     import json
 
@@ -128,6 +133,10 @@ def test_registered_versions_keep_the_plain_mean_and_the_aggregate_is_never_defa
         try:
             policies = pool_version.registered_policies(challenge, version)
         except pool_version.PoolConstantsNotRegistered:
+            continue
+        if name in BALANCED_REGISTERED:
+            assert policies.optimizer.d_aggregate == "balanced_region_mean", name
+            assert entry["optimizer"]["d_aggregate"] == "balanced_region_mean", name
             continue
         assert policies.optimizer.d_aggregate is None, name
         assert "d_aggregate" not in entry["optimizer"], name

@@ -142,9 +142,13 @@ def test_every_version_registered_today_is_not_held():
     from carbon.scoring import pool_version
 
     document = json.loads(Path(pool_version.CONSTANTS).read_bytes())
+    # the menu-D versions (mc-exam-B slice 3a, 10 Nov) ARE held, by design, until the crown-side re-score is built;
+    # listed by name, never derived, so a new menu version is a test change
+    menu_versions = {"electric-motor-magnetics 1.8", "chip-cold-plate 1.8"}
     for key in document["versions"]:
         challenge_id, version = key.rsplit(" ", 1)
-        assert crown_hold.menu_registered(challenge_id, version) is False
+        held = key in menu_versions
+        assert crown_hold.menu_registered(challenge_id, version) is held, key
 
 
 def test_the_sweep_stops_at_a_held_contender_with_no_attempt(tmp_path, hold_on):
