@@ -14,6 +14,7 @@ import json
 import math
 from pathlib import Path
 
+from carbon.challenge_validator import registry_version
 from carbon.challenge_validator.bank_promotion import COMPARATOR_SCHEMA
 from carbon.challenge_validator.interface import is_digest
 
@@ -66,8 +67,8 @@ def _load(path=REGISTRY):
     known = registered_challenges()
     for challenge, noise in document["challenges"].items():
         if (
-            # A plain lookup would silently ignore a misspelled id: refuse it.
-            challenge not in known
+            # A plain lookup would silently ignore a misspelled id: refuse it ("<id> <version>" is a versioned entry).
+            not registry_version.known_key(challenge, known)
             or type(noise) is not dict
             or set(noise) - {"control"} != {"value", "measurement_digest"}
             or type(noise["value"]) not in (int, float)
@@ -108,17 +109,18 @@ def _control_ok(control):
     )
 
 
-def rebuild_noise(challenge_id, *, path=REGISTRY):
-    """The Challenge's registered `{value, measurement_digest}`, or None."""
-    noise = _load(path).get(challenge_id)
+def rebuild_noise(challenge_id, *, path=REGISTRY, version=None):
+    """The Challenge's registered `{value, measurement_digest}`, or None. A version's own entry
+    (``"<id> <version>"``) is read first, then the Challenge id (`registry_version`)."""
+    noise = registry_version.find(_load(path), challenge_id, version)
     return None if noise is None else {k: v for k, v in noise.items() if k != "control"}
 
 
-def control(challenge_id, *, path=REGISTRY):
+def control(challenge_id, *, path=REGISTRY, version=None):
     """The Challenge's registered control `{entry_id, reference_total, reference_fingerprint, control_basis,
     evaluation_pack_digest}`, or None: with none, a beyond-tolerance repeat is FAILED_INFRA, as before (fail closed).
     """
-    noise = _load(path).get(challenge_id)
+    noise = registry_version.find(_load(path), challenge_id, version)
     found = None if noise is None else noise.get("control")
     return None if found is None else dict(found)
 
@@ -188,9 +190,15 @@ def registered_floor(
     rule = crown_average.load_rule(
         crown_average.REGISTRY if margin_path is None else margin_path
     )
-    noise = rebuild_noise(challenge_id, path=noise_path)
-    margin_digest = rule.margin_digest_for(challenge_id)
-    if noise is None or margin_digest is None or rule.margin_for(challenge_id) is None:
+    # the noise and margin of THIS version (its own entry, else the Challenge's: `registry_version`)
+    version = exam["version"]
+    noise = rebuild_noise(challenge_id, path=noise_path, version=version)
+    margin_digest = rule.margin_digest_for(challenge_id, version)
+    if (
+        noise is None
+        or margin_digest is None
+        or rule.margin_for(challenge_id, version) is None
+    ):
         return None
     for entry in _load_floors(path):
         if (
@@ -233,6 +241,7 @@ def comparator(
     exam=None,
     floors=FLOORS,
     margins=None,
+    version=None,
 ):
     """The DEVELOPMENT comparator for one Challenge and its selected pack:
     the pack's score digest, its leg-minimum source entries (never contenders)
@@ -250,7 +259,7 @@ def comparator(
         "scope": "DEVELOPMENT",
         "challenge": challenge_id,
         "score_pack_digest": score_pack["pack_digest"],
-        "rebuild_noise": rebuild_noise(challenge_id, path=path),
+        "rebuild_noise": rebuild_noise(challenge_id, path=path, version=version),
         "ties": "incumbent_keeps",
         "minimum_source_entry_ids": minimum_source_entry_ids(accuracy_definition),
         "baseline_total": baseline_total(
@@ -263,7 +272,7 @@ def comparator(
 
 
 def comparator_for_set(
-    challenge_id, score_packs, accuracy_definitions, *, path=REGISTRY
+    challenge_id, score_packs, accuracy_definitions, *, path=REGISTRY, version=None
 ):
     """The DEVELOPMENT comparator for a Challenge version's whole pack set: the
     score digest of the set's packs, the union of their leg-minimum source
@@ -295,7 +304,7 @@ def comparator_for_set(
         "score_pack_digest": digest(
             sorted(pack["pack_digest"] for pack in score_packs)
         ),
-        "rebuild_noise": rebuild_noise(challenge_id, path=path),
+        "rebuild_noise": rebuild_noise(challenge_id, path=path, version=version),
         "ties": "incumbent_keeps",
         "minimum_source_entry_ids": sources,
         "baseline_total": (

@@ -52,7 +52,7 @@ def test_a_repeat_miss_with_a_reproducing_control_is_counted_once_feeds_the_ladd
     _register_koth(
         monkeypatch, tmp_path, pool_adapter.challenge_id, noise=1e-9, minima=(0.0, 0.0)
     )
-    monkeypatch.setattr(koth_registry, "control", lambda challenge: dict(CONTROL))
+    monkeypatch.setattr(koth_registry, "control", lambda challenge, **_: dict(CONTROL))
     store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: 123.0)
     first = "rtsk_" + "1" * 64
     pool_adapter.ledger.record_recipe_task_intent(

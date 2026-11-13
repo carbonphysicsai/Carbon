@@ -41,7 +41,7 @@ import math
 from pathlib import Path
 
 from carbon.challenge_validator import bank_promotion as bp
-from carbon.challenge_validator import host_quiet
+from carbon.challenge_validator import host_quiet, registry_version
 from carbon.challenge_validator.interface import is_digest
 
 SCHEMA = "carbon.crown.average-rule.v1"
@@ -96,18 +96,20 @@ class Rule:
         self._override = document["challenge_n"]
         self._margins = document["margins"]
 
-    def n_for(self, challenge_id):
-        return self._override.get(challenge_id, self._n)
+    def n_for(self, challenge_id, version=None):
+        found = registry_version.find(self._override, challenge_id, version)
+        return self._n if found is None else found
 
-    def margin_digest_for(self, challenge_id):
-        entry = self._margins.get(challenge_id)
+    def margin_digest_for(self, challenge_id, version=None):
+        entry = registry_version.find(self._margins, challenge_id, version)
         return None if entry is None else entry["measurement_digest"]
 
-    def margin_for(self, challenge_id):
-        """The registered margin_N of ``challenge_id`` at the N now configured for it, or None: absent, or
-        measured at a different N (a stale margin is never used)."""
-        entry = self._margins.get(challenge_id)
-        if entry is None or entry["n"] != self.n_for(challenge_id):
+    def margin_for(self, challenge_id, version=None):
+        """The registered margin_N of ``challenge_id`` (a version's own entry first: `registry_version`) at the N now
+        configured for it, or None: absent, or measured at a different N (a stale margin is never used).
+        """
+        entry = registry_version.find(self._margins, challenge_id, version)
+        if entry is None or entry["n"] != self.n_for(challenge_id, version):
             return None
         return entry["value"]
 
@@ -146,12 +148,12 @@ def load_rule(path=REGISTRY):
 
     known = registered_challenges()
     for challenge, n in document["challenge_n"].items():
-        if challenge not in known:
+        if not registry_version.known_key(challenge, known):
             raise CrownAverageInvalid("crown_average_challenge_unknown")
         _count(n, "crown_average_n_invalid")
     for challenge, entry in document["margins"].items():
         if (
-            challenge not in known
+            not registry_version.known_key(challenge, known)
             or type(entry) is not dict
             or set(entry) != {"value", "n", "measurement_digest"}
             or type(entry["value"]) not in (int, float)

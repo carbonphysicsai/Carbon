@@ -2133,6 +2133,10 @@ def serve(
     from carbon.challenge_validator import crown_hold
 
     crown_hold.install(challenge.challenge_id, challenge.version)
+    # the registries' version key (noise, control, margin_N): this receiver's own version's entry first, else the Challenge's
+    from carbon.challenge_validator import registry_version
+
+    registry_version.serve(challenge.challenge_id, challenge.version)
     with owner_lock(root):
         pack_check = None
         pack_digest = None
@@ -2720,7 +2724,9 @@ def _king_view(intake, pool_store):
         open_store=lambda: _open_pool_store(pool_store),
         epoch_of=epoch_of,
         exam_version_label=label if type(label) is str and label else "exam",
-        rebuild_noise_of=lambda: koth_registry.rebuild_noise(challenge.challenge_id),
+        rebuild_noise_of=lambda: koth_registry.rebuild_noise(
+            challenge.challenge_id, version=challenge.version
+        ),
         # The comparator's baseline total, registered when the comparator was built for
         # the exam set (`BankPromotion.consider_private`): never the private score pack.
         baseline=lambda: _open_pool_store(pool_store).latest_baseline(

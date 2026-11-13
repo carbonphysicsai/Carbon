@@ -278,7 +278,9 @@ def v2_sources(config, item, king_document, exam_key):
         open_store=lambda: store,
         epoch_of=epoch_of,
         exam_version_label=king_document["exam_version_label"],
-        rebuild_noise_of=lambda: koth_registry.rebuild_noise(item["id"]),
+        rebuild_noise_of=lambda: koth_registry.rebuild_noise(
+            item["id"], version=item["version"]
+        ),
     )
     changes = view.crown_changes(limit=launch_board.MAX_CROWN_CHANGES)
     king_model_id = None
@@ -385,7 +387,7 @@ def king_measure(config, item, king_document):
         raise OperatorRefused("king_mismatch")
     model = incumbent["model_id"]
     key = store.incumbent_evaluation_key(model)
-    n = crown_average.load_rule().n_for(item["id"])
+    n = crown_average.load_rule().n_for(item["id"], item["version"])
     kept = 0 if key is None else min(store.kept_crown_rebuilds(model, key), n)
     if key is not None and store.crown_mean(model, key) is not None:
         return "STABLE", {"state": "MEASURED", "kept": n, "n": n}
@@ -486,7 +488,9 @@ def run_once(config, *, version=None):
                 extra = {
                     "crown_changes": changes,
                     "exact_totals": exact,
-                    "rebuild_noise": koth_registry.rebuild_noise(item["id"]),
+                    "rebuild_noise": koth_registry.rebuild_noise(
+                        item["id"], version=item["version"]
+                    ),
                 }
                 if v4:
                     try:

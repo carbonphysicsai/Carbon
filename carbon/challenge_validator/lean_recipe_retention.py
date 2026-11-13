@@ -1921,9 +1921,14 @@ def _contend(
             bind_inputs["score_pack"],
             accuracy,
             exam=_floor_exam(adapter),
+            version=adapter.challenge_version,
         )
         control = _control_check(
-            repeat, koth_registry.control(adapter.challenge_id), comparator
+            repeat,
+            koth_registry.control(
+                adapter.challenge_id, version=adapter.challenge_version
+            ),
+            comparator,
         )
         reader = getattr(promotion.store, "incumbent", None)
         met = ((reader() if reader is not None else None) or {}).get("model_id")
@@ -2194,7 +2199,11 @@ def reconsider_paused_pack(
             record["submission_id"],
             record["evaluation_key"],
             koth_registry.comparator(
-                adapter.challenge_id, score_pack, accuracy, exam=_floor_exam(adapter)
+                adapter.challenge_id,
+                score_pack,
+                accuracy,
+                exam=_floor_exam(adapter),
+                version=adapter.challenge_version,
             ),
             sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
             repeat=watched,
@@ -2330,6 +2339,7 @@ def remeasure_incumbent_pack(
                     score_pack,
                     accuracy,
                     exam=_floor_exam(adapter),
+                    version=adapter.challenge_version,
                 ),
                 repeat,
             )
@@ -2484,9 +2494,8 @@ def _timing_step(adapter):
     from carbon.challenge_validator import koth_registry
     from carbon.scoring import grade_feedback
 
-    noise = koth_registry.rebuild_noise(
-        adapter.discovery.info.challenge_key.challenge_id
-    )
+    key = adapter.discovery.info.challenge_key
+    noise = koth_registry.rebuild_noise(key.challenge_id, version=key.version)
     return grade_feedback.step(None if noise is None else noise["value"])
 
 
@@ -2553,7 +2562,8 @@ def _record_ladder(
             ),
             **about,
             rebuild_noise=koth_registry.rebuild_noise(
-                adapter.discovery.info.challenge_key.challenge_id
+                adapter.discovery.info.challenge_key.challenge_id,
+                version=adapter.discovery.info.challenge_key.version,
             ),
         )
     except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:

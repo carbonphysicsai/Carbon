@@ -105,7 +105,9 @@ def _on_the_ladder_step(board):
 
     from .launch_board import floor9
 
-    registered = koth_registry.rebuild_noise(board["challenge"]["id"])
+    registered = koth_registry.rebuild_noise(
+        board["challenge"]["id"], version=board["challenge"]["version"]
+    )
     noise = None if registered is None else registered["value"]
     totals = [row["total"] for row in board["ladder"] if row["total"] is not None]
     if board["king"]["king"] is not None:
