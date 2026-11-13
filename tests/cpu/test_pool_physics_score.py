@@ -947,6 +947,12 @@ def test_in_range_cases_outside_the_pool_targets_are_graded_when_the_pack_carrie
     result, _ = _measure(the_sets, policies, material, extra_pool_inputs=extra)
     assert result["gates"][pool_exam.ACCURACY_GATE] is True
     assert result["D"] > 0
+    # The case rows are answered pool rows and nothing more: they never score or enter any target's pool (CV-Motor-C
+    # decides if they ever should). The same exam without the case set grades the same A, D and gates.
+    plain_policies, plain_material = _registered(the_sets, threshold=2.5)
+    plain, _ = _measure(the_sets, plain_policies, plain_material)
+    assert (result["A"], result["D"]) == (plain["A"], plain["D"])
+    assert result["gates"] == plain["gates"]
     # the rows are what the pack must add: without them the grade names the missing row, as before
     with pytest.raises(pool_exam.ExamRefused, match="in_range_case_not_an_exam_row"):
         _measure(the_sets, policies, material)
