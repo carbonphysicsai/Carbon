@@ -1931,6 +1931,7 @@ def _control_check(repeat, control, comparator):
         return None
 
     def check():
+
         evidence = repeat_grade(repeat.adapter, control["entry_id"], **repeat.custody)
         return _control_reproduced(control, evidence, comparator)
 
@@ -4187,9 +4188,7 @@ def regrade_retained_entry(
         )
         operations = json.loads(_private_measurement_bytes(operations_path, 65536))
         worker_evidence = (
-            _private_measurement_bytes(
-                task_root / "worker-evidence.json", 16 * 1024**2
-            )
+            _private_measurement_bytes(task_root / "worker-evidence.json", 16 * 1024**2)
             if kind == "graph"
             else None
         )

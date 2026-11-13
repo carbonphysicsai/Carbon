@@ -93,18 +93,16 @@ def test_the_bound_holds_for_the_longest_float_json_writes():
 
 
 def test_the_ceiling_is_restored_when_the_read_fails_and_never_lowered():
-    with pytest.raises(RuntimeError):
-        with bound.raised(bound.pair_bytes(ROWS, WIDTH)):
-            raise RuntimeError("grade failed")
+    with pytest.raises(RuntimeError), bound.raised(bound.pair_bytes(ROWS, WIDTH)):
+        raise RuntimeError("grade failed")
     assert reader._MAX_BYTES == FIXED
     with bound.raised(1) as ceiling:
         assert ceiling == FIXED  # a smaller bound never lowers the reader's own ceiling
     for shape in ((0, 1), (1, 0), (1.0, 2), (2, None)):
         with pytest.raises(ValueError):
             bound.pair_bytes(*shape)
-    with pytest.raises(ValueError):
-        with bound.raised(0):
-            pass
+    with pytest.raises(ValueError), bound.raised(0):
+        pass
 
 
 def test_every_live_size_keeps_the_retention_read_cap_unchanged():
