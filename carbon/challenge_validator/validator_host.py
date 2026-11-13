@@ -67,7 +67,7 @@ DEFAULT_BASE_PORT = receiver_setup.DEFAULT_PORT
 PUBLISHED = "scripts/dev/miner_launchpad/published_endpoints.json"
 EXAM_SOURCE_SCHEMA = "carbon.validator-host.exam-source.v2"
 EXAM_PRODUCER = Path(__file__).with_name("exam_producer.json")
-EXAM_PRODUCER_SCHEMA = "carbon.validator.exam-producer.v2"
+EXAM_PRODUCER_SCHEMA = "carbon.validator.exam-producer.v3"
 EXAMS_DIRECTORY = "exams"
 
 
@@ -136,46 +136,87 @@ def installed_network() -> str:
 
 def pinned_producer_key(path: Path | None = None, *, network: str | None = None) -> str:
     """The release-pinned producer public key for the installed network, or a
-    typed refusal: a key pinned for another network is never trusted."""
+    typed refusal: a key pinned for another network is never trusted.
+
+    The release pins one key per network (schema v3, lock-in rev 4: testnet and
+    mainnet doors run the same tree). The installed network's own entry is the
+    only one read: no entry refuses ``exam_producer_wrong_network``, an entry
+    whose key is not set yet refuses ``exam_producer_unregistered``. A record
+    that pins one key for two networks is refused as invalid, so a testnet key
+    can never verify a mainnet exam."""
     import re
 
-    try:
-        value = json.loads(Path(EXAM_PRODUCER if path is None else path).read_bytes())
-        key = value["producer_public_key"]
-        if (
-            type(value) is not dict
-            or set(value)
-            != {"schema", "about", "decision", "network", "producer_public_key"}
-            or value["schema"] != EXAM_PRODUCER_SCHEMA
-            or type(value["network"]) is not str
-            or type(value["decision"]) is not str
-            or not value["decision"]
-        ):
-            raise ValueError("malformed")
-    except (OSError, ValueError, KeyError, TypeError):
-        raise SetupRefused(
+    def invalid():
+        return SetupRefused(
             "exam_producer_registry_invalid",
             "this Carbon release's exam producer record is unreadable; reinstall.",
-        ) from None
-    if key is None:
-        raise SetupRefused(
-            "exam_producer_unregistered",
-            "no exam producer key is registered in this Carbon release yet, so "
-            "no exam can be verified; update Carbon when one is published.",
         )
-    if type(key) is not str or not re.fullmatch(r"[0-9a-f]{64}", key):
-        raise SetupRefused(
-            "exam_producer_registry_invalid",
-            "this Carbon release's exam producer key is malformed; reinstall.",
+
+    try:
+
+        def unique(pairs):
+            # a name twice (e.g. two "testnet-567" entries) must never be resolved silently by json's last-wins
+            names = [name for name, _ in pairs]
+            if len(names) != len(set(names)):
+                raise ValueError("duplicate name")
+            return dict(pairs)
+
+        value = json.loads(
+            Path(EXAM_PRODUCER if path is None else path).read_bytes(),
+            object_pairs_hook=unique,
         )
+        if (
+            type(value) is not dict
+            or set(value) != {"schema", "about", "networks"}
+            or value["schema"] != EXAM_PRODUCER_SCHEMA
+            or type(value["networks"]) is not dict
+            or not value["networks"]
+        ):
+            raise ValueError("malformed")
+        for name, entry in value["networks"].items():
+            if (
+                type(name) is not str
+                or not re.fullmatch(r"[a-z]+-[0-9]+", name)
+                or type(entry) is not dict
+                or set(entry) != {"decision", "producer_public_key"}
+                or type(entry["decision"]) is not str
+                or not entry["decision"]
+            ):
+                raise ValueError("malformed")
+            key = entry["producer_public_key"]
+            if key is not None and (
+                type(key) is not str
+                or not re.fullmatch(r"[0-9a-f]{64}", key)
+                # a set key names the decision that set it, never a placeholder
+                or entry["decision"] == "HUMAN_INPUT"
+            ):
+                raise ValueError("malformed")
+        pinned = [
+            e["producer_public_key"]
+            for e in value["networks"].values()
+            if e["producer_public_key"] is not None
+        ]
+        if len(pinned) != len(set(pinned)):
+            raise ValueError("one key pinned for two networks")
+    except (OSError, ValueError, KeyError, TypeError):
+        raise invalid() from None
     installed = installed_network() if network is None else network
-    if value["network"] != installed:
+    entry = value["networks"].get(installed)
+    if entry is None:
         raise SetupRefused(
             "exam_producer_wrong_network",
-            f"this release's exam producer key is for {value['network']}, not "
-            f"this install's {installed}; no exam can be verified here.",
+            f"this release pins no exam producer key for this install's "
+            f"{installed} (it pins {', '.join(sorted(value['networks']))}); "
+            "no exam can be verified here.",
         )
-    return key
+    if entry["producer_public_key"] is None:
+        raise SetupRefused(
+            "exam_producer_unregistered",
+            f"no exam producer key is registered for {installed} in this Carbon "
+            "release yet, so no exam can be verified; update Carbon when one is "
+            "published.",
+        )
+    return entry["producer_public_key"]
 
 
 def read_exam_source(path: Path) -> dict:
@@ -271,6 +312,16 @@ def fetch_exams(
     store_root = _host_dir(installed_state) / EXAMS_DIRECTORY
     store_root.mkdir(mode=0o700, parents=True, exist_ok=True)
     store = SealedPackStore(store_root)
+    if producer_public_key is None:
+        # verified with THIS network's pinned key: the store serves this network only (V2B 11 Nov, (b))
+        try:
+            store.bind_network(installed_network())
+        except AnswerKeyRefused as refused:
+            raise SetupRefused(
+                refused.code,
+                "this host's exam store holds another network's exams; a door "
+                "takes exams only from a store of its own network.",
+            ) from None
     real = fetcher is None
     fetcher = fetcher or _fetcher(source, hotkey)
     if set_fetcher is None and real:

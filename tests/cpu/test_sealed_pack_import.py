@@ -112,7 +112,9 @@ def test_the_receiver_takes_the_pack_by_digest_from_the_store(tmp_path):
     adapter = _adapter(tmp_path)
     ak.sync(adapter, _Fetcher(package), key.public_key, CHALLENGE)
     directory = receiver_setup._stored_pack(
-        tmp_path / "packs", commitment["manifest_digest"], {"id": CHALLENGE, "version": VERSION}
+        tmp_path / "packs",
+        commitment["manifest_digest"],
+        {"id": CHALLENGE, "version": VERSION},
     )
     manifest, files = _pack()
     assert (directory / "evaluation-pack.json").read_bytes() == manifest
@@ -169,7 +171,8 @@ def test_extra_or_missing_files_are_refused(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "name", ["../escape.bin", "/abs.bin", "a/../../b.bin", "a\\b.bin", "evaluation-pack.json"]
+    "name",
+    ["../escape.bin", "/abs.bin", "a/../../b.bin", "a\\b.bin", "evaluation-pack.json"],
 )
 def test_a_path_that_leaves_the_pack_is_refused(tmp_path, name):
     manifest, files = _pack()
@@ -181,7 +184,9 @@ def test_a_path_that_leaves_the_pack_is_refused(tmp_path, name):
 
 def test_wrong_challenge_version_and_producer_are_refused(tmp_path):
     key, _, package = _signed(tmp_path)
-    _refused(_adapter(tmp_path, version="2.0"), key, package, "answer_key_wrong_challenge")
+    _refused(
+        _adapter(tmp_path, version="2.0"), key, package, "answer_key_wrong_challenge"
+    )
     other = ak.ProducerKey.create(str(tmp_path / "other.key"))
     with pytest.raises(ak.AnswerKeyRefused) as refused:
         ak.sync(_adapter(tmp_path), _Fetcher(package), other.public_key, CHALLENGE)
@@ -199,7 +204,9 @@ def test_a_manifest_that_is_not_its_committed_digest_is_refused(tmp_path):
 def test_a_hidden_batch_commitment_still_packages_and_other_kinds_do_not(tmp_path):
     key = ak.ProducerKey.create(str(tmp_path / "k.key"))
     with pytest.raises(ak.AnswerKeyRefused) as refused:
-        ak.package(key, {"schema": sp.SEALED_COMMITMENT_SCHEMA, "kind": "screening"}, {})
+        ak.package(
+            key, {"schema": sp.SEALED_COMMITMENT_SCHEMA, "kind": "screening"}, {}
+        )
     assert refused.value.code == "answer_key_kind_not_served"
     with pytest.raises(ak.AnswerKeyRefused) as refused:
         ak.package(key, {"schema": "something-else", "kind": "sealed_pack"}, {})
@@ -232,7 +239,9 @@ def test_sealed_means_delivered_through_the_answer_key_route(tmp_path):
     assert not manual.delivered(digest, CHALLENGE, VERSION)
     # A delivery record that names another pack does not vouch for this one.
     record = store.root / ".delivered" / (digest.removeprefix("sha256:") + ".json")
-    record.write_bytes(record.read_bytes().replace(digest.encode(), _sha(b"x").encode()))
+    record.write_bytes(
+        record.read_bytes().replace(digest.encode(), _sha(b"x").encode())
+    )
     assert not store.delivered(digest, CHALLENGE, VERSION)
 
 
@@ -260,7 +269,9 @@ def test_the_receiver_decides_sealed_from_delivery_not_shape(tmp_path):
     # A claim whose root is not the store's directory for the digest.
     other = tmp_path / "typed-copy"
     other.mkdir()
-    moved = dict(delivered, root=str(other), public_root=str(other), private_root=str(other))
+    moved = dict(
+        delivered, root=str(other), public_root=str(other), private_root=str(other)
+    )
     assert not dr._delivered_sealed(moved, challenge)
     # Another Challenge version.
     assert not dr._delivered_sealed(
@@ -288,4 +299,85 @@ def test_an_operator_typed_digest_must_be_64_lowercase_hex(tmp_path, bad):
     with pytest.raises(receiver_setup.SetupRefused):
         receiver_setup._stored_pack(
             tmp_path / "packs", bad, {"id": CHALLENGE, "version": VERSION}
+        )
+
+
+# --- one store, one network (V2B 11 Nov 13:18, (b)) -----------------------------------------------
+
+
+def test_a_store_without_a_record_is_testnets_and_binds_once(tmp_path):
+    store = sp.SealedPackStore(tmp_path / "fresh")
+    assert store.network() == sp.LEGACY_STORE_NETWORK == "testnet-567"
+    assert store.bind_network("finney-116") == "finney-116"
+    assert store.network() == "finney-116"
+    assert store.bind_network("finney-116") == "finney-116"  # again: unchanged
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_store_network_mismatch"):
+        store.bind_network("testnet-567")
+    record = tmp_path / "fresh" / sp.STORE_NETWORK_FILE
+    assert oct(record.stat().st_mode & 0o777) == "0o600"
+
+
+def test_a_store_holding_testnet_exams_never_becomes_a_mainnet_store(tmp_path):
+    key, _commitment, package = _signed(tmp_path)
+    adapter = _adapter(tmp_path)
+    ak.sync(adapter, _Fetcher(package), key.public_key, CHALLENGE)
+    store = sp.SealedPackStore(tmp_path / "packs")
+    assert store.network() == "testnet-567"  # imported before any record
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_store_network_mismatch"):
+        store.bind_network("finney-116")
+    assert store.bind_network("testnet-567") == "testnet-567"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"not json",
+        b'{"network": "finney-116"}',
+        b'{"network": "FINNEY", "schema": "carbon.sealed-pack-store-network.v1"}',
+        b'{"network": "finney-116", "schema": "carbon.sealed-pack-store-network.v1", "x": 1}',
+    ],
+)
+def test_an_unreadable_store_record_is_refused(tmp_path, body):
+    root = tmp_path / "s"
+    root.mkdir(mode=0o700)
+    (root / sp.STORE_NETWORK_FILE).write_bytes(body)
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_store_network_invalid"):
+        sp.SealedPackStore(root).network()
+
+
+def test_a_door_prepares_only_from_a_store_of_its_own_network(tmp_path, monkeypatch):
+    from carbon.challenge_validator import validator_host
+
+    key, commitment, package = _signed(tmp_path)
+    adapter = _adapter(tmp_path)
+    ak.sync(adapter, _Fetcher(package), key.public_key, CHALLENGE)
+    challenge = {"id": CHALLENGE, "version": VERSION}
+    digest = commitment["manifest_digest"]
+    # the legacy store (testnet's) serves a testnet door ...
+    monkeypatch.setattr(validator_host, "installed_network", lambda: "testnet-567")
+    assert receiver_setup._stored_pack(tmp_path / "packs", digest, challenge).is_dir()
+    # ... and never a mainnet door
+    monkeypatch.setattr(validator_host, "installed_network", lambda: "finney-116")
+    with pytest.raises(receiver_setup.SetupRefused) as refused:
+        receiver_setup._stored_pack(tmp_path / "packs", digest, challenge)
+    assert refused.value.code == "pack_store_network_mismatch"
+    assert "testnet-567" in str(refused.value) and "finney-116" in str(refused.value)
+    # a mainnet store serves the mainnet door, never a testnet one
+    (tmp_path / "main").mkdir()
+    key2, commitment2, package2 = _signed(tmp_path / "main")
+    main_store = tmp_path / "main-packs"
+    sp.SealedPackStore(main_store).bind_network("finney-116")
+    main_adapter = sp.SealedPackAdapter(
+        CHALLENGE, VERSION, sp.SealedPackStore(main_store)
+    )
+    ak.sync(main_adapter, _Fetcher(package2), key2.public_key, CHALLENGE)
+    assert receiver_setup._stored_pack(
+        main_store, commitment2["manifest_digest"], challenge
+    ).is_dir()
+    monkeypatch.setattr(validator_host, "installed_network", lambda: "testnet-567")
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="pack_store_network_mismatch"
+    ):
+        receiver_setup._stored_pack(
+            main_store, commitment2["manifest_digest"], challenge
         )

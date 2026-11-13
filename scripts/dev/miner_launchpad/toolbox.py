@@ -122,9 +122,18 @@ ENTRY_VARIANTS = {
 }
 
 
+#: What a miner (and an agent) is told about a smoke-only catalog entry (`gpu_receipt.SMOKE_ONLY`): its GPU build
+#: is not bit-reproducible, so the official repeat receipt the validator's grading needs cannot be issued for it under
+#: today's admission rule (CATALOG_GPU_PENDING_DIAGNOSIS_20261111). Practice is open.
+PRACTICE_ONLY_NOTE = (
+    "Practice only: this model isn't bit-reproducible on the GPU, so it can't get "
+    "the official receipt yet. Pick another entry to be graded."
+)
+
+
 @functools.lru_cache(maxsize=16)
 def _catalog_recipes(challenge_id, version):
-    from carbon.backbone_catalog import listing, settings
+    from carbon.backbone_catalog import gpu_receipt, listing, settings
     from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_catalog
     from scripts.dev.miner_launchpad.starting_entry import starting_entry
 
@@ -155,6 +164,13 @@ def _catalog_recipes(challenge_id, version):
                 **(
                     {"variant": ENTRY_VARIANTS[item["catalog_id"]]}
                     if item["catalog_id"] in ENTRY_VARIANTS
+                    else {}
+                ),
+                # A smoke-only entry (not bit-reproducible on the GPU): practice only, said so beside the entry,
+                # so nobody picks it for an official submission it can never pass.
+                **(
+                    {"practice_only": PRACTICE_ONLY_NOTE}
+                    if item["catalog_id"] in gpu_receipt.SMOKE_ONLY
                     else {}
                 ),
                 # A pre-v2 entry on a version that offers v2.* ones: said so beside the entry.

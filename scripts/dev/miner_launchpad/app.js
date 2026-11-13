@@ -3809,7 +3809,9 @@
     const keepKept = keptEntry && !untouched && (journeyDrafts[pickedKey] === true || keptEntry.installed !== false);
     const start = keepKept ? keptEntry.catalog_id : firstChoice.catalog_id;
     const pickLabel = el("label", "Backbone"); const pick = document.createElement("select"); pick.id = "journey-backbone-" + run.id; pickLabel.htmlFor = pick.id;
-    for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "") + (item.legacy ? " (legacy)" : "") + (item.installed === false ? " (not installed yet)" : "") + (item.officially_gradable === false ? " (" + GPU_RECEIPT_PENDING_WORDS + ")" : "")); option.value = item.catalog_id; pick.append(option); }
+    // A smoke-only entry (`practice_only`, toolbox.PRACTICE_ONLY_NOTE) is practice only unless the validator lists it ready.
+    const practiceOnly = item => typeof item.practice_only === "string" && item.officially_gradable !== true;
+    for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "") + (item.legacy ? " (legacy)" : "") + (item.installed === false ? " (not installed yet)" : "") + (practiceOnly(item) ? " (practice only)" : item.officially_gradable === false ? " (" + GPU_RECEIPT_PENDING_WORDS + ")" : "")); option.value = item.catalog_id; pick.append(option); }
     pick.value = start; pick.dataset.draft = "1";
     const about = el("p", undefined, "hint"); about.id = "journey-backbone-about-" + run.id;
     // OWNER-GPU-OPEN-WITH-READY-01: an entry with no official GPU build yet can be practised, but the validator
@@ -3824,9 +3826,10 @@
       const absent = current().installed === false;
       missing.hidden = !absent;
       missing.textContent = absent ? PRACTICE_CODES.catalog_entry_not_installed + "." : "";
-      const notYet = current().officially_gradable === false;
-      gradable.hidden = !notYet;
-      gradable.textContent = notYet ? GPU_RECEIPT_PENDING_NOTE : "";
+      const onlyPractice = practiceOnly(current());
+      const notYet = !onlyPractice && current().officially_gradable === false;
+      gradable.hidden = !(onlyPractice || notYet);
+      gradable.textContent = onlyPractice ? current().practice_only : notYet ? GPU_RECEIPT_PENDING_NOTE : "";
       about.textContent = current().variant ? current().variant : current().legacy ? "A legacy entry: " + current().legacy : "A backbone Carbon has tested on this Challenge. Its tested settings are the starting point."; };
     try { const kept = JSON.parse(raw.value); const s = kept?.procedure?.train_use?.steps, r = kept?.procedure?.configuration?.learning_rate; if (keepKept) { if (Number.isFinite(s)) steps.value = String(s); if (Number.isFinite(r)) rate.value = String(r); } } catch (_) { /* kept as typed */ }
     const write = () => {
