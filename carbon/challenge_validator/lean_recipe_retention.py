@@ -1917,7 +1917,10 @@ def _contend(
             max_bytes=65536,
         )
         comparator = koth_registry.comparator(
-            adapter.challenge_id, bind_inputs["score_pack"], accuracy
+            adapter.challenge_id,
+            bind_inputs["score_pack"],
+            accuracy,
+            exam=_floor_exam(adapter),
         )
         control = _control_check(
             repeat, koth_registry.control(adapter.challenge_id), comparator
@@ -2122,6 +2125,33 @@ def _report_pending_contention(store, kind, submission_id, outcome, *, filed):
         pass
 
 
+def _floor_exam(adapter):
+    """The exam a registered crown floor is keyed by (`koth_registry.registered_floor`): this version, its registered menu
+    epoch and the digest of the exact sealed evaluation pack. None when any of them is not readable, or the version has no
+    menu: the comparator then finds no registered floor (UNAVAILABLE downstream, never a guess), exactly as before.
+    """
+    from carbon.scoring import pool_exam, pool_version
+
+    try:
+        digest = adapter.discovery.evaluation_pack_digest
+        rule = pool_version.registered_menu(
+            adapter.challenge_id, adapter.challenge_version
+        )
+    except (
+        AttributeError,
+        pool_version.PoolConstantsNotRegistered,
+        pool_exam.ExamRefused,
+    ):
+        return None
+    if rule is None or type(digest) is not str or type(rule.epoch) is not str:
+        return None
+    return {
+        "version": adapter.challenge_version,
+        "epoch": rule.epoch,
+        "evaluation_pack_digest": digest,
+    }
+
+
 def reconsider_paused_pack(
     adapter, pool_store, record, *, artifact_directory, entry_directory, runner=None
 ):
@@ -2159,7 +2189,9 @@ def reconsider_paused_pack(
         promotion.consider_private(
             record["submission_id"],
             record["evaluation_key"],
-            koth_registry.comparator(adapter.challenge_id, score_pack, accuracy),
+            koth_registry.comparator(
+                adapter.challenge_id, score_pack, accuracy, exam=_floor_exam(adapter)
+            ),
             sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
             repeat=watched,
         )
@@ -2289,7 +2321,12 @@ def remeasure_incumbent_pack(
                 pool_store,
                 submission_id,
                 evaluation_key,
-                koth_registry.comparator(adapter.challenge_id, score_pack, accuracy),
+                koth_registry.comparator(
+                    adapter.challenge_id,
+                    score_pack,
+                    accuracy,
+                    exam=_floor_exam(adapter),
+                ),
                 repeat,
             )
     except RebuildStep:

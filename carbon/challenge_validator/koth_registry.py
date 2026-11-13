@@ -27,6 +27,25 @@ REGISTRY = (
     / "koth_rebuild_noise.json"
 )
 SCHEMA = "carbon.koth.rebuild-noise-registry.v1"
+#: The registered crown FLOORS of exams whose pack carries none (Motor 1.8: V2C's option B, 13 Nov), host-read data beside
+#: the margins for the same reason (a measured number is registered without touching any code).
+FLOORS = (
+    Path(__file__).resolve().parents[2]
+    / "scripts"
+    / "validator_host_classes"
+    / "crown_floor.json"
+)
+FLOOR_SCHEMA = "carbon.crown.floor-registry.v1"
+_FLOOR_ENTRY = {
+    "challenge",
+    "version",
+    "epoch",
+    "evaluation_pack_digest",
+    "value",
+    "measurement_digest",
+    "rebuild_noise_measurement_digest",
+    "crown_margin_measurement_digest",
+}
 
 
 class RegistryInvalid(ValueError):
@@ -104,6 +123,96 @@ def control(challenge_id, *, path=REGISTRY):
     return None if found is None else dict(found)
 
 
+def _load_floors(path=FLOORS):
+    """The registered floors, one per exact (challenge, version, epoch, evaluation pack digest); the shape is closed."""
+    document = json.loads(Path(path).read_bytes())
+    if (
+        type(document) is not dict
+        or set(document) != {"schema", "floors"}
+        or document["schema"] != FLOOR_SCHEMA
+        or type(document["floors"]) is not list
+    ):
+        raise RegistryInvalid("crown_floor_registry_invalid")
+    from carbon.challenge_validator.exam_cap import registered_challenges
+
+    known = registered_challenges()
+    seen = set()
+    for entry in document["floors"]:
+        if (
+            type(entry) is not dict
+            or set(entry) != _FLOOR_ENTRY
+            # a misspelled id would silently match nothing: refuse it (as the noise registry does)
+            or entry["challenge"] not in known
+            or not all(type(entry[k]) is str and entry[k] for k in ("version", "epoch"))
+            or not all(
+                is_digest(entry[k])
+                for k in (
+                    "evaluation_pack_digest",
+                    "measurement_digest",
+                    "rebuild_noise_measurement_digest",
+                    "crown_margin_measurement_digest",
+                )
+            )
+            or type(entry["value"]) not in (int, float)
+            or not math.isfinite(entry["value"])
+            or not 0 <= entry["value"] <= 1
+        ):
+            raise RegistryInvalid("crown_floor_registry_invalid")
+        key = (
+            entry["challenge"],
+            entry["version"],
+            entry["epoch"],
+            entry["evaluation_pack_digest"],
+        )
+        if key in seen:
+            raise RegistryInvalid("crown_floor_registry_invalid")
+        seen.add(key)
+    return document["floors"]
+
+
+def registered_floor(
+    challenge_id, exam, *, path=FLOORS, noise_path=REGISTRY, margin_path=None
+):
+    """The crown floor registered for exactly this exam, or None (UNAVAILABLE downstream, never a default).
+
+    ``exam`` is ``{"version", "epoch", "evaluation_pack_digest"}``: the version and menu epoch being graded and the digest
+    of the exact sealed evaluation pack. A floor is the baseline's total on THAT exam at THAT epoch, so another pack, epoch
+    or version finds nothing. Each entry also names the rebuild-noise and crown-margin measurements it was registered
+    beside: a floor is found only while the Challenge's registered noise and margin are those very measurements, so a
+    crown can never be decided on a floor measured on 1.8 against a noise or margin that was not (V2C must-have 5).
+    """
+    if exam is None:
+        return None
+    from carbon.challenge_validator import crown_average
+
+    rule = crown_average.load_rule(
+        crown_average.REGISTRY if margin_path is None else margin_path
+    )
+    noise = rebuild_noise(challenge_id, path=noise_path)
+    margin_digest = rule.margin_digest_for(challenge_id)
+    if noise is None or margin_digest is None or rule.margin_for(challenge_id) is None:
+        return None
+    for entry in _load_floors(path):
+        if (
+            entry["challenge"],
+            entry["version"],
+            entry["epoch"],
+            entry["evaluation_pack_digest"],
+        ) == (
+            challenge_id,
+            exam["version"],
+            exam["epoch"],
+            exam["evaluation_pack_digest"],
+        ):
+            if (
+                entry["rebuild_noise_measurement_digest"] != noise["measurement_digest"]
+                or entry["crown_margin_measurement_digest"] != margin_digest
+            ):
+                return None
+            return float(entry["value"])
+    return None
+
+
 def _refuse_practice(*documents):
     """A practice document is feedback on the public bank, never a grade: its pack or
     definition cannot make a comparator (practice dual v2, Validator condition)."""
@@ -115,10 +224,24 @@ def _refuse_practice(*documents):
             raise RegistryInvalid("practice_is_not_a_grade")
 
 
-def comparator(challenge_id, score_pack, accuracy_definition, *, path=REGISTRY):
+def comparator(
+    challenge_id,
+    score_pack,
+    accuracy_definition,
+    *,
+    path=REGISTRY,
+    exam=None,
+    floors=FLOORS,
+    margins=None,
+):
     """The DEVELOPMENT comparator for one Challenge and its selected pack:
     the pack's score digest, its leg-minimum source entries (never contenders)
-    and the registered rebuild noise (None means UNAVAILABLE)."""
+    and the registered rebuild noise (None means UNAVAILABLE).
+
+    ``exam`` is ``{"version", "epoch", "evaluation_pack_digest"}`` of the exam being graded, or None (the default: the
+    floor then comes from the pack alone, exactly as before). With it, a floor registered for exactly that exam
+    (`registered_floor`) stands in when the pack carries none; the pack's own floor always wins.
+    """
     from carbon.scoring.physical_dual_pack import minimum_source_entry_ids
 
     _refuse_practice(score_pack, accuracy_definition)
@@ -130,7 +253,12 @@ def comparator(challenge_id, score_pack, accuracy_definition, *, path=REGISTRY):
         "rebuild_noise": rebuild_noise(challenge_id, path=path),
         "ties": "incumbent_keeps",
         "minimum_source_entry_ids": minimum_source_entry_ids(accuracy_definition),
-        "baseline_total": baseline_total(score_pack),
+        "baseline_total": baseline_total(
+            score_pack,
+            registered_floor(
+                challenge_id, exam, path=floors, noise_path=path, margin_path=margins
+            ),
+        ),
     }
 
 
@@ -176,14 +304,30 @@ def comparator_for_set(
     }
 
 
-def baseline_total(score_pack):
+def baseline_total(score_pack, registered=None):
     """The crown floor: Carbon's baseline, the unpaid starting king the first crown must beat by the margin
     (OWNER-FIRST-CROWN-BEATS-BASELINE-01).
+
+    ``registered`` is a floor registered for this exact exam (`registered_floor`), or None. The pack's own total (below)
+    always wins; a registered floor that disagrees with it is a refusal, never a pick; with no pack total the registered
+    floor stands in; with neither the result is None (UNAVAILABLE downstream, never a default).
 
     Normally the total of a model sitting exactly on the pack's leg minimums (None when the pack has no minimums). A pack
     that carries ``baseline_floor_total`` (OWNER-EXAM-VALUE-PICKS-01, option B) uses THAT instead: the floor is separate
     from the minimums, which stay untouched; it can never sit below the minimums-derived total (a refusal). Absent, this is
     exactly what it always was."""
+    own = _pack_floor(score_pack)
+    if registered is None:
+        return own
+    if own is None:
+        return float(registered)
+    if not math.isclose(own, registered, rel_tol=0, abs_tol=1e-12):
+        raise RegistryInvalid("registered_floor_differs_from_the_packs_own")
+    return own
+
+
+def _pack_floor(score_pack):
+    """The pack's own crown floor: its ``baseline_floor_total`` or, with none, the minimums-derived total."""
     derived = minimums_total(score_pack)
     if "baseline_floor_total" not in score_pack:
         return derived
