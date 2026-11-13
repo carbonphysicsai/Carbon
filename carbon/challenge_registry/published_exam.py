@@ -497,6 +497,9 @@ MOTOR_18_REGISTRATION = {
 }
 
 
+#: The flip (commit R, 12 Nov): the Motor 1.8 row has no HUMAN_INPUT left, so it is registered and offered.
+_REGISTERED_POOL[("electric-motor-magnetics", "1.8")] = MOTOR_18_REGISTRATION
+
 def registered_pool(challenge_id, version):
     """The registered owner constants of a pool version, or None."""
     own = _REGISTERED_POOL.get((challenge_id, version))

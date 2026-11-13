@@ -259,6 +259,20 @@ def catalog_recipe(catalog_id=None, version=CATALOG_VERSION):
     }
 
 
+def _catalog_examples(version):
+    """The ready catalog example, or none for a version that offers no catalog entry. Motor 1.8 offers none by design
+    (its TRAIN differs from every catalog version's, so no entry carries to it; its only route is a miner graph recipe:
+    Miner X-C, Thu 12 Nov 17:47): asking `catalog_recipe` there would raise, and the Control Center and
+    ``carbon_challenges describe`` could not open the version. The graph route adds its own example after this.
+    """
+    from carbon.backbone_catalog import listing
+    from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
+
+    if not listing.entries(MOTOR_CHALLENGE, version):
+        return []
+    return [{"recipe": catalog_recipe(version=version)}]
+
+
 def describe_catalog(version=CATALOG_VERSION):
     """Motor's catalog version: Carbon's tested backbones by catalog id, built
     and judged as the Carbon bundle each names, on the direct recipe path."""
@@ -387,7 +401,7 @@ def describe_catalog(version=CATALOG_VERSION):
             "practice": "aggregate public-practice components and typed gates",
             "evaluation": "the receiver's judged feedback",
         },
-        "examples": [{"recipe": catalog_recipe(version=version)}],
+        "examples": _catalog_examples(version),
         "unsupported": unsupported,
         "exclusion_scope": {
             "catalog": "Carbon's tested bundles only; miner source stays closed",
