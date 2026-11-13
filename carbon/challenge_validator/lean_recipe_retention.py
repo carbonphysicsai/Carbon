@@ -797,6 +797,22 @@ def _pair_read_limit(adapter, artifacts):
         return PAIR_READ_BYTES
 
 
+def _sized_pair_ceiling(adapter, artifacts):
+    """The repeat-pair / graded-original ceiling (`inference_pair_evidence._MAX_BYTES`, read by
+    `bundle_benchmark_core._original_limit`) raised to this graded query's own bound (`_pair_read_limit`) for a block that
+    runs outside `physical_dual_pack.produce`, whose own wrapper (`pair_read_bound.size_produce`) raises it only inside.
+    A no-op for every version whose bound is within `PAIR_READ_BYTES` (all but Motor 1.8).
+    """
+    import contextlib
+
+    from carbon.scoring import pair_read_bound
+
+    limit = _pair_read_limit(adapter, artifacts)
+    if limit <= PAIR_READ_BYTES:
+        return contextlib.nullcontext()
+    return pair_read_bound.raised(limit)
+
+
 #: The standing read cap of a regrade's retained predictions and worker evidence.
 REGRADE_RETAINED_BYTES = 16 * 1024**2
 
@@ -1553,9 +1569,12 @@ def _retain_selected_pack_evaluation(
             "selected_evaluation_pack": snapshot,
         }
         source_pin = registered["registered_source_receipt_sha256"]
-        binding = bind_private_evaluation_evidence(
-            registered_source_receipt_sha256=source_pin, **bind_inputs
-        )
+        # The binding re-authenticates the retained originals (the worker evidence carries the predictions as base64: 16.8 MB at
+        # Motor 1.8's 2564 x 240) OUTSIDE the producer's own sized ceiling, so it reads under this bank's bound too.
+        with _sized_pair_ceiling(adapter, artifacts):
+            binding = bind_private_evaluation_evidence(
+                registered_source_receipt_sha256=source_pin, **bind_inputs
+            )
         binding_path = directory / "private-evaluation-binding.json"
         write_once(binding_path, _json(binding))
         write_once(directory / INSTALLED_COMMIT_SIDECAR, _json(_installed_commit()))

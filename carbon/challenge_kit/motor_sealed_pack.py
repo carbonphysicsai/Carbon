@@ -44,6 +44,10 @@ def _canonical(value) -> bytes:
     return canonical(value)
 
 
+#: The structural fill of a wider model row's non-truth columns (a constant, so a test can prove no reader scores them).
+_ROW_PAD = 0.0
+
+
 def _model_row_width(version):
     """The width of a version's model row when it is wider than the sealed torque slice, else None (every other
     version: the bank's reference width is the torque slice's)."""
@@ -112,7 +116,7 @@ def sealed_bank(document, records, *, version="1.1") -> dict:
         # reference rows and the check of every answer. The torque slice is the sealed truth; the other columns are
         # structural padding (zeros) that no measure reads (Motor's measure reads each reference RECORD's torque, and a
         # probe or pool row carries no reference at all).
-        padded = np.zeros((targets.shape[0], row_width), dtype="<f8")
+        padded = np.full((targets.shape[0], row_width), _ROW_PAD, dtype="<f8")
         padded[:, : targets.shape[1]] = targets
         targets = padded
     inputs_array.setflags(write=False)
