@@ -229,6 +229,7 @@ def catalog_recipe(catalog_id=None, version=CATALOG_VERSION):
     from carbon.challenge_kit import physical_public
     from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
 
+    empty = catalog_id is None and not listing.entries(MOTOR_CHALLENGE, version)
     if catalog_id is None:
         catalog_id = listing.preferred(MOTOR_CHALLENGE, version) or "neuralop.FNO"
     from carbon.challenge_registry import build_memo
@@ -237,7 +238,12 @@ def catalog_recipe(catalog_id=None, version=CATALOG_VERSION):
         ("kit", MOTOR_CHALLENGE, version),
         lambda: physical_public.construction_kit(MOTOR_CHALLENGE, version),
     )
-    item = listing.entry(catalog_id, MOTOR_CHALLENGE, version)
+    # A version that offers no catalog entry (Motor 1.8: no entry carries to its TRAIN; Miner X-C 12 Nov 17:47) gets,
+    # with no id named, an unfilled template whose catalog_id and output format are None: an explicit gap, never a
+    # recipe that runs (as Cooling's `cold_plate.catalog_recipe` does for an empty catalog).
+    item = None if empty else listing.entry(catalog_id, MOTOR_CHALLENGE, version)
+    if empty:
+        catalog_id = None
     return {
         "schema": "carbon.construction-recipe.v1",
         "challenge": kit,
@@ -253,7 +259,7 @@ def catalog_recipe(catalog_id=None, version=CATALOG_VERSION):
             "initial_state": None,
         },
         "output": {
-            "format": item["output_format"],
+            "format": None if empty else item["output_format"],
             "interface_digest": kit["interface_digest"],
         },
     }
