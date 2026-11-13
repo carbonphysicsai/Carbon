@@ -155,9 +155,17 @@ def test_new_registrations_publish_and_enforce_their_current_profile(key, monkey
         )
     assert material["allowlist_bytes"] == predecessor["allowlist_bytes"]
     limits = material["construction_limits_document"]
-    assert limits["reconstruction_resource_policy"] == (
+    # the predecessor's policy, except a version's own owner-set whole-task wall (Motor 1.8: `task_wall_overrides`)
+    from carbon.challenge_kit import task_wall_overrides
+
+    expected = dict(
         predecessor["construction_limits_document"]["reconstruction_resource_policy"]
     )
+    if key in task_wall_overrides.OVERRIDES:
+        expected["total_reconstruction_wall_seconds_max"] = (
+            task_wall_overrides.OVERRIDES[key]
+        )
+    assert limits["reconstruction_resource_policy"] == expected
     kit = material["construction_kit"]
     binding = {
         "challenge_id": key[0],

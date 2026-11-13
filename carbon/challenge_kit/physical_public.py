@@ -67,8 +67,8 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
     )
 
     from .served_versions import step_caps, worker_resources
+    from .task_wall_overrides import total_wall_seconds
     from .version_registry import entry as _registered
-    from .version_registry import task_wall_seconds
 
     _, _, count = _identity(challenge_id, version)
     # A graph route v2 version's rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01)
@@ -98,8 +98,10 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
             "scratch_inodes_max": profile["scratch"]["inodes"],
             "build_wall_seconds_max": profile["deadline_seconds"],
             "inference_wall_seconds_max": profile["deadline_seconds"],
-            "total_reconstruction_wall_seconds_max": task_wall_seconds(
-                _registered(challenge_id, version).rebuild_wall_seconds
+            "total_reconstruction_wall_seconds_max": total_wall_seconds(
+                challenge_id,
+                version,
+                _registered(challenge_id, version).rebuild_wall_seconds,
             ),
             "network": profile["security"]["network"],
             "cleanup_required": True,

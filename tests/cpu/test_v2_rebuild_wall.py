@@ -164,7 +164,12 @@ def test_a_new_version_moves_only_by_its_wall_fields(key, monkeypatch):
     document = _limits(*key)
     policy = document["reconstruction_resource_policy"]
     assert [policy[name] for name in WALLS] == [REBUILD_LIMIT_SECONDS] * 2
-    assert policy["total_reconstruction_wall_seconds_max"] == 947
+    # the whole-task wall: 947, or the version's own owner-set override (Motor 1.8: 1590, `task_wall_overrides`)
+    from carbon.challenge_kit import task_wall_overrides
+
+    assert policy[
+        "total_reconstruction_wall_seconds_max"
+    ] == task_wall_overrides.OVERRIDES.get(key, 947)
     at_600 = {
         **document,
         "reconstruction_resource_policy": {
