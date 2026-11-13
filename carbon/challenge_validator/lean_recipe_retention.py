@@ -2501,9 +2501,9 @@ def _timing_step(adapter):
     from carbon.challenge_validator import koth_registry
     from carbon.scoring import grade_feedback
 
-    key = adapter.discovery.info.challenge_key
     noise = koth_registry.rebuild_noise(
-        key.challenge_id, version=getattr(key, "version", None)
+        adapter.discovery.info.challenge_key.challenge_id,
+        version=_registry_version(adapter),
     )
     return grade_feedback.step(None if noise is None else noise["value"])
 
@@ -2572,7 +2572,7 @@ def _record_ladder(
             **about,
             rebuild_noise=koth_registry.rebuild_noise(
                 adapter.discovery.info.challenge_key.challenge_id,
-                version=getattr(adapter.discovery.info.challenge_key, "version", None),
+                version=_registry_version(adapter),
             ),
         )
     except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:

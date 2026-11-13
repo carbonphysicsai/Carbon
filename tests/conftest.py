@@ -66,6 +66,23 @@ def _fresh_direct_contract_caches():
     clear()
 
 
+@pytest.fixture(autouse=True)
+def _no_served_registry_version():
+    """The version a receiver serves (`registry_version.serve`, set at receiver start) is process state: no test leaves
+    one for the next, so a registry lookup reads the Challenge id unless the test names a version.
+    """
+    import sys
+
+    def clear():
+        loaded = sys.modules.get("carbon.challenge_validator.registry_version")
+        if loaded is not None:
+            loaded.serve(None, None)
+
+    clear()
+    yield
+    clear()
+
+
 #: Tools a canonical run must have. A test that skips because one is missing is a
 #: FAILURE there (a gate that skipped the browser-page tests silently proved nothing);
 #: elsewhere the skip stands. `CARBON_CANONICAL_DEV_ENV` is set only by the canonical

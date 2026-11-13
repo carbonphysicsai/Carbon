@@ -39,11 +39,17 @@ def keys(challenge_id, version=None):
 
 
 def known_key(key, known):
-    """Whether a registry key is a registered Challenge id, or a registered id and one version (no space in either)."""
+    """Whether a registry key is a registered Challenge id, or a registered Challenge id and ONE of its registered versions
+    (`version_registry`): a misspelled version would load and never be read, so a version would silently keep the
+    Challenge's value; it is refused instead."""
     if key in known:
         return True
     challenge, _, version = key.partition(" ")
-    return challenge in known and bool(version) and " " not in version
+    if challenge not in known or not version or " " in version:
+        return False
+    from carbon.challenge_kit import version_registry
+
+    return version_registry.find(challenge, version) is not None
 
 
 def find(table, challenge_id, version=None):

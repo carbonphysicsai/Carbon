@@ -94,6 +94,12 @@ def test_a_malformed_served_version_refuses(bad):
         ("not-a-challenge 1.8", False),
         (f"{CHALLENGE} ", False),
         (f"{CHALLENGE} 1.8 extra", False),
+        (
+            f"{CHALLENGE} 1.08",
+            False,
+        ),  # a misspelled version: refused, never silently the Challenge's value
+        (f"{CHALLENGE} 9.9", False),  # a version the Challenge does not register
+        ("chip-cold-plate 9.9", False),
         (f"{CHALLENGE}  1.8", False),
         ("not-a-challenge", False),
     ],
@@ -198,7 +204,8 @@ def test_a_versions_own_n_applies_and_the_others_keep_the_default(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "key", ["not-a-challenge 1.8", f"{CHALLENGE} ", f"{CHALLENGE} 1 8"]
+    "key",
+    ["not-a-challenge 1.8", f"{CHALLENGE} ", f"{CHALLENGE} 1 8", f"{CHALLENGE} 1.08"],
 )
 def test_a_malformed_margin_or_n_key_refuses(tmp_path, key):
     with pytest.raises(ca.CrownAverageInvalid):
@@ -344,11 +351,10 @@ def test_the_ladder_step_reads_the_versions_noise(tmp_path, monkeypatch):
 
     monkeypatch.setattr(kr, "rebuild_noise", fake)
     adapter = SimpleNamespace(
+        challenge_version="1.8",
         discovery=SimpleNamespace(
-            info=SimpleNamespace(
-                challenge_key=SimpleNamespace(challenge_id=CHALLENGE, version="1.8")
-            )
-        )
+            info=SimpleNamespace(challenge_key=SimpleNamespace(challenge_id=CHALLENGE))
+        ),
     )
     step = lrr._timing_step(adapter)
     assert seen == [(CHALLENGE, "1.8")]
@@ -361,9 +367,9 @@ def test_every_decision_call_site_passes_the_version():
     source = (
         ROOT / "carbon" / "challenge_validator" / "lean_recipe_retention.py"
     ).read_text(encoding="utf-8")
-    assert (
-        source.count("version=_registry_version(adapter)") == 4
-    )  # 3 comparators + control
+    # 3 comparators, the control, the timing step and the Ladder document: one source of the version
+    assert source.count("version=_registry_version(adapter)") == 6
+    assert "challenge_key.version" not in source
     assert "def _registry_version(adapter)" in source
     receiver = (
         ROOT / "carbon" / "challenge_validator" / "direct_receiver.py"
