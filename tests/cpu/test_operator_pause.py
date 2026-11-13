@@ -407,7 +407,7 @@ def test_the_pack_decision_is_made_from_the_filed_evaluation_with_no_regrade(
         raise AssertionError("a resumed decision takes no regrade, slot or Ladder")
 
     monkeypatch.setattr(bp.BankPromotion, "consider_private", consider)
-    monkeypatch.setattr(koth_registry, "comparator", lambda *a: {"c": 1})
+    monkeypatch.setattr(koth_registry, "comparator", lambda *a, **k: {"c": 1})
     monkeypatch.setattr(retention, "regrade_retained_entry", forbidden)
     monkeypatch.setattr(retention, "_record_ladder", forbidden)
     snapshot = SimpleNamespace(read_json_role=lambda *a, **k: {})

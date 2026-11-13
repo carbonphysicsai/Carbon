@@ -45,7 +45,7 @@ def _register_koth(
     settings = {"noise": noise, "minima": minima}
     real = koth_registry.comparator
 
-    def comparator(challenge, score_pack, accuracy_definition):
+    def comparator(challenge, score_pack, accuracy_definition, **keywords):
         registry = {"schema": koth_registry.SCHEMA, "challenges": {}}
         if settings["noise"] is not None:
             registry["challenges"][challenge] = {
@@ -61,7 +61,8 @@ def _register_koth(
                 for i, name in enumerate(("A", "D"))
             }
             pack = {**score_pack, "legs": legs}
-        return real(challenge, pack, accuracy_definition, path=path)
+        # the call site also passes the exam identity (`exam=`): the registered floors are the real (empty) file's
+        return real(challenge, pack, accuracy_definition, path=path, **keywords)
 
     monkeypatch.setattr(koth_registry, "comparator", comparator)
     # The fixture's Challenge id is not a real one: let the registry loader accept it.
