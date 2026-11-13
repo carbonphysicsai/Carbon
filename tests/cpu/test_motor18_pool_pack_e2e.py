@@ -242,6 +242,16 @@ def test_a_full_motor_1_8_pool_pack_builds_end_to_end(batch, tmp_path, registere
     for case in _in_range_document()["cases"]:
         row = tuple(quantize(case["inputs"])[n] for n in NAMES)
         assert row in pool_inputs, "an in-range case row is missing from the pool"
+    # canary 4 (13 Nov): the pack's mandatory gates end physics_pool, speed, in_range_accuracy, the order and the set
+    # `measure_pool` emits for a version with a registered physics rule (physical_dual_pack's dual_native_gate_contract)
+    pack_gates = json.loads(
+        (out / "pack" / "private" / "score_pack.json").read_bytes()
+    )["hard_gates"]
+    assert pack_gates[-3:] == [
+        pool_exam.PHYSICS_GATE,
+        pool_exam.SPEED_GATE,
+        pool_exam.ACCURACY_GATE,
+    ]
     adapter = source._adapter(MOTOR, bank, VERSION, None)
     assert adapter is not None and adapter.VERSION == VERSION
     assert math.isfinite(len(json.dumps(record)))

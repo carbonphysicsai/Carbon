@@ -460,8 +460,23 @@ class PoolVariant(physical.Variant):
                 *applied["hard_gates"],
                 pool_exam.PHYSICS_GATE,
                 pool_exam.SPEED_GATE,
+                # a version registering a physics rule: `measure_pool` adds the in-range accuracy gate LAST, so the
+                # pack's mandatory gates (the score pack's hard gates and the registration's) must name it, in order
+                # (canary 4, 13 Nov: dual_native_gate_contract). A version without one is unchanged.
+                *self._accuracy_gate(),
             ],
         }
+
+    def _accuracy_gate(self):
+        try:
+            policies = registered_policies(self._challenge_id, self.VERSION)
+        except PoolConstantsNotRegistered:
+            return ()  # a version with no registered constants grades nothing (`measure` refuses first)
+        return (
+            (pool_exam.ACCURACY_GATE,)
+            if getattr(policies, "physics", None) is not None
+            else ()
+        )
 
     def measure(
         self,

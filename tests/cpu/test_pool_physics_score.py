@@ -966,3 +966,63 @@ def test_in_range_cases_outside_the_pool_targets_are_graded_when_the_pack_carrie
             material,
             extra_pool_inputs=[*extra, {"cond": 1.0, "x": 0.9, "y": 0.9}],
         )
+
+
+@pytest.mark.usefixtures("geometric_v1_stand_in")
+def test_the_packs_mandatory_gates_name_the_accuracy_gate_in_the_order_measure_pool_emits_them(
+    monkeypatch,
+):
+    """Canary 4 (13 Nov): once physics.in_range was registered, `measure_pool` emitted the in-range accuracy gate but
+    the pack's mandatory gates (`PoolVariant.applied_pack`, the score pack's hard gates and the registration's) did
+    not name it, so the dual pack refused every grade as dual_native_gate_contract. The contract the producer checks
+    is exact list equality, order included: pack gates == registration gates == list(measured["gates"]).
+    """
+    from types import SimpleNamespace
+
+    from carbon.scoring import pool_version
+
+    the_sets = _sets()
+    with_physics, material = _registered(the_sets, threshold=2.5)
+    without_physics = dataclasses.replace(with_physics, physics=None)
+    measured, _ = _measure(the_sets, with_physics, material)
+    native = [
+        "finite",
+        "paired_repeat",
+        "physics_laws",
+    ]  # the stand-in sealed grader's own gates
+
+    module = SimpleNamespace(applied_pack=lambda **kwargs: {"hard_gates": list(native)})
+    variant = pool_version.PoolVariant(
+        module, "9.9", "e", "case", kind="motor", challenge_id="fixture-challenge"
+    )
+    monkeypatch.setattr(
+        pool_version, "registered_policies", lambda *a, **k: with_physics
+    )
+    assert variant.applied_pack(bank_rows=[])["hard_gates"] == list(measured["gates"])
+    assert (
+        variant.applied_pack(bank_rows=[])["hard_gates"][-1] == pool_exam.ACCURACY_GATE
+    )
+    # a version with no physics rule is exactly what it was
+    monkeypatch.setattr(
+        pool_version, "registered_policies", lambda *a, **k: without_physics
+    )
+    plan_only = {
+        k: v
+        for k, v in material.items()
+        if k in ("coverage_plan", "coverage_plan_sums")
+    }
+    plain, _ = _measure(the_sets, without_physics, plan_only)
+    assert variant.applied_pack(bank_rows=[])["hard_gates"] == list(plain["gates"])
+    assert pool_exam.ACCURACY_GATE not in plain["gates"]
+
+    def unregistered(*a, **k):
+        raise pool_version.PoolConstantsNotRegistered(
+            "pool_constants_unregistered_version"
+        )
+
+    monkeypatch.setattr(pool_version, "registered_policies", unregistered)
+    assert variant.applied_pack(bank_rows=[])["hard_gates"] == [
+        *native,
+        pool_exam.PHYSICS_GATE,
+        pool_exam.SPEED_GATE,
+    ]
