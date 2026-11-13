@@ -1975,6 +1975,8 @@ def load_pool(document):
     )
     if ACCURACY_ONLY in document:
         return _load_accuracy_only(document)
+    # the declared-extended flag is an accuracy-only target's alone (CV-Motor-C E-1): never ignored on any other
+    _require("extended" not in document, "extended_flag_is_for_accuracy_only_targets")
     spec = build_target(
         target_id=document["target_id"],
         conditions=document["conditions"],

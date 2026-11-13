@@ -128,3 +128,48 @@ def test_shelled_plus_plain_unshelled_still_refuses():
         match="physics_class_mixes_in_range_and_out_of_range_targets",
     ):
         pps.class_ranges(specs, _plan({"H-1": specs}))
+
+
+def test_the_flag_on_any_other_target_refuses_never_ignored():
+    """CV-Motor-C E-1: only an accuracy-only target may carry it; a multi-design pool document or source refuses."""
+    multi = toy_target("m0", 3)
+    with pytest.raises(
+        pool_grader.PoolRefused, match="extended_flag_is_for_accuracy_only_targets"
+    ):
+        pool_grader.load_pool({**pool_grader.dump_pool(multi), "extended": True})
+    source = {
+        "design_names": list(toy_binding().design_names),
+        "target_id": multi.target_id,
+        "conditions": multi.conditions,
+        "objective": multi.objective,
+        "sense": "max",
+        "limits": [],
+        "u": multi.u,
+        "box": [list(b) for b in multi.box],
+        "designs": [list(d) for d in multi.designs],
+        "truths": [dict(t) for t in multi.truths],
+        "extended": True,
+    }
+    with pytest.raises(
+        pool_plugin.PluginRefused, match="extended_flag_is_for_accuracy_only_targets"
+    ):
+        pool_plugin.spec_from_source(source, toy_binding())
+
+
+def test_every_other_reader_of_extended_sees_the_declared_target_out_of_range():
+    """CV-Motor-C E-3: the grader's other readers go through the same property. The plan names the region class (never
+    the 'extended_shell' fallback), the A_gen buckets accept its reserved slice, and a plain unshelled one still refuses
+    there."""
+    shelled = [_acc(f"h{i}", 50 + i, shell=SHELL) for i in range(2)]
+    declared = _acc("d0", 60, extended=True)
+    plan = _plan({"H-1": [*shelled, declared]})
+    assert pool_grader.region_class(declared, plan) == "H-1"
+    assert pool_grader.region_class(declared) == "extended_shell"
+    pool_grader.agen_buckets([*shelled, declared], plan, 1)
+    plain = _acc("d1", 61)
+    with pytest.raises(
+        pool_grader.PoolRefused, match="a_gen_slice_on_an_in_range_target"
+    ):
+        pool_grader.agen_buckets(
+            [*shelled, plain], _plan({"H-1": [*shelled, plain]}), 1
+        )

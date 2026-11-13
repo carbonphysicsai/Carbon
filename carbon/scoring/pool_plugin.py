@@ -595,6 +595,8 @@ def spec_from_source(document, binding):
             shell=document.get("shell"),
             extended="extended" in document,
         )
+    # the declared-extended flag is an accuracy-only target's alone (CV-Motor-C E-1): never ignored on any other
+    _require("extended" not in document, "extended_flag_is_for_accuracy_only_targets")
     limits = []
     for row in document["limits"]:
         output, kind, bound = (
