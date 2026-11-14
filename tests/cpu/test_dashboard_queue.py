@@ -507,18 +507,15 @@ def test_the_page_says_so_when_nothing_is_waiting_or_the_list_is_unavailable_and
             }
         )
     )
-    assert (
-        nothing["tables"] == 0
-        and "Nothing is waiting at this door right now." in nothing["text"]
-    )
+    assert nothing["tables"] == 0 and "Nothing is waiting right now." in nothing["text"]
     down = _page(
         _panel({"state": "UNAVAILABLE", "code": "rows_http_503", "rows": None})
     )
     assert (
         down["tables"] == 0
-        and "The list of submissions is not available right now." in down["text"]
+        and "The submission list is not available right now." in down["text"]
     )
     for panel in ({"state": "NOT_SERVED", "code": None, "rows": None}, None):
         plain = _page(_panel(panel))
-        assert plain["tables"] == 0 and "list of submissions" not in plain["text"]
+        assert plain["tables"] == 0 and "submission list" not in plain["text"]
         assert "Waiting to build" in plain["text"]  # the counts panel is unchanged
