@@ -70,9 +70,14 @@ task whose marker is CANDIDATE_FAILED / WORKER_WALL_LIMIT_REACHED and whose exam
 WORKER_WALL_LIMIT_REACHED is given back through `ExamCap.reclass_counted_wall`: RELEASED / FAILED_INFRA, so the miner's
 resubmit of the recipe runs as a FRESH task in their next slot. ``--ruling`` names the Validator's ruling (a closed id, e.g.
 ``CVMOTORC-L9753``) and is required; it is written, with the prior state, to ``requeued/reclass.jsonl``. NO regrade, NO
-rescore, NO re-queue (a re-queue would replay the task's settled FAILED_MINER operation), and the marker, the evaluation
-files and any Ladder document are left exactly as they are (the record). REFUSED for any other marker or row state, a task
-already reclassed, or a task ``release`` gave back. The dry run also shows the task's ``wall-stops.jsonl`` row (counts only).
+rescore, NO re-queue (a re-queue would replay the task's settled FAILED_MINER operation). The miner-facing marker is
+REPLACED, so the miner stops seeing "your program hit the wall" once the ledger says RELEASED / FAILED_INFRA (invariant 7;
+Validator-2C): the old marker is first copied byte-for-byte to ``requeued/reclass-kept/<id>.json`` (create-only, fsynced; its
+sha256 goes into the reclass record), then the new marker (FAILED, ``reclassed_not_the_candidates``, next step
+``slot_returned``) is written to a temporary file beside it and ``os.replace``d over the old one, so the task has a marker at
+every instant (with none, the grader would pick the task up and replay it). The evaluation files and any Ladder document are
+left as they are (the record). REFUSED for any other marker or row state, a task already reclassed, or a task ``release``
+gave back. The dry run also shows the task's ``wall-stops.jsonl`` row (counts only) and changes nothing.
 
 Without ``--apply`` nothing changes. Each prints one JSON document: task ids, codes and counts only (no hotkey, path or
 score). Runs with the door up: sqlite writes go through the ledger's own transactions, the owner stores are opened
@@ -723,21 +728,72 @@ def release(root, task, *, apply=False, clock=time.time_ns):
 
 
 _RULING = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{2,95}")
+#: The marker code and next step a re-classed task shows (`auto_retry.NEXT_STEPS`: "slot_returned").
+RECLASSED_CODE = "reclassed_not_the_candidates"
 
 
 def _marker_body(path):
     """The marker's ``(state, code)``, or ``(None, None)`` when it is absent, a link, unreadable or not a marker."""
+    body = _marker_document(path)
+    return (None, None) if body is None else (body.get("state"), body.get("code"))
+
+
+def _marker_document(path):
+    """The marker's parsed document, or None when it is absent, a link, unreadable or not a marker."""
     from .auto_grade import SCHEMA as MARKER_SCHEMA
 
     if path.is_symlink():
-        return None, None
+        return None
     try:
         body = json.loads(path.read_text())
     except (OSError, ValueError):
-        return None, None
+        return None
     if type(body) is not dict or body.get("schema") != MARKER_SCHEMA:
-        return None, None
-    return body.get("state"), body.get("code")
+        return None
+    return body
+
+
+def _replace_marker_keep(paths, task, old_bytes):
+    """Keep the old marker byte-for-byte (create-only, fsynced) and return the kept copy's sha256."""
+    kept_directory = paths["kept_marker"].parent / "reclass-kept"
+    kept_directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    kept = kept_directory / (task + ".json")
+    digest = hashlib.sha256(old_bytes).hexdigest()
+    try:
+        fd = os.open(kept, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        # a run that stopped after keeping: the same bytes are fine, anything else is a conflict
+        if hashlib.sha256(kept.read_bytes()).hexdigest() != digest:
+            raise
+    else:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(old_bytes)
+            handle.flush()
+            os.fsync(handle.fileno())
+    return digest
+
+
+def _write_reclassed_marker(paths, task, entry_id):
+    """The re-classed marker: a temporary file in ``markers/`` (never named ``*.json``), fsynced, then ``os.replace``d over
+    the old marker (atomic: the task is never without one)."""
+    from .auto_grade import SCHEMA as MARKER_SCHEMA
+
+    body = {
+        "schema": MARKER_SCHEMA,
+        "submission_id": task,
+        "state": "FAILED",
+        "code": RECLASSED_CODE,
+        "entry_id": entry_id,
+        "next_step": "slot_returned",
+    }
+    temporary = paths["marker"].parent / (task + ".json.reclass-tmp")
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as handle:
+        json.dump(body, handle, sort_keys=True)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, paths["marker"])
 
 
 def _wall_stop_row(root, task):
@@ -793,9 +849,23 @@ def reclass(root, task, *, ruling, apply=False, clock=time.time_ns):
     from .exam_cap import ExamCapRefused
 
     try:
+        old_bytes = paths["marker"].read_bytes()
+    except OSError:
+        return {**out, "refused": "marker_is_not_a_counted_wall_stop"}
+    document = _marker_document(paths["marker"]) or {}
+    try:
+        kept_sha256 = _replace_marker_keep(paths, task, old_bytes)
+    except OSError:
+        return {**out, "refused": "reclass_kept_copy_unavailable"}
+    try:
         done = cap.reclass_counted_wall(task)
     except ExamCapRefused as refused:
         return {**out, "refused": refused.code}
+    marker_replaced = True
+    try:
+        _write_reclassed_marker(paths, task, document.get("entry_id"))
+    except OSError:
+        marker_replaced = False  # the ledger row is given back; the record below says the marker still needs replacing
     record = {
         "task": task,
         "row": done["row"],
@@ -803,6 +873,8 @@ def reclass(root, task, *, ruling, apply=False, clock=time.time_ns):
         "prior_status": done["prior_status"],
         "marker_state": state,
         "marker_code": code,
+        "marker_kept_sha256": kept_sha256,
+        "marker_replaced": marker_replaced,
         "state": "RELEASED",
         "status": "FAILED_INFRA",
         "reason": "counted_wall_stop_ruled_not_the_candidates",
@@ -818,6 +890,7 @@ def reclass(root, task, *, ruling, apply=False, clock=time.time_ns):
         **out,
         "reclassed": before,
         "after": {"state": "RELEASED", "status": "FAILED_INFRA"},
+        "marker": {"replaced": marker_replaced, "kept_sha256": kept_sha256},
         "wall_stop": wall_stop,
     }
 

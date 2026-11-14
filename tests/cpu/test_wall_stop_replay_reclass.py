@@ -11,12 +11,19 @@ rescore, no regrade, no re-queue. SYNTHETIC ledgers and markers.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+from pathlib import Path
 
 import pytest
 
-from carbon.challenge_validator import auto_grade, infra_requeue
+from carbon.challenge_validator import (
+    auto_grade,
+    auto_retry,
+    direct_intake,
+    infra_requeue,
+)
 from carbon.challenge_validator.exam_cap import ExamCap, ExamCapRefused
 from tests.cpu import test_auto_grade as ag
 from tests.cpu.test_infra_requeue import A, B, _root, _row, _rows
@@ -141,7 +148,10 @@ def test_apply_gives_the_slot_back_keeps_the_history_and_logs_the_ruling(tmp_pat
     assert out["after"] == {"state": "RELEASED", "status": "FAILED_INFRA"}
     # the row stays as history, given back; nothing else of the door moves
     assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]
-    assert path.read_bytes() == before  # the marker is the record
+    kept = root / "auto-grade" / "requeued" / "reclass-kept" / (A + ".json")
+    assert kept.read_bytes() == before  # the old marker, byte for byte
+    sha = hashlib.sha256(before).hexdigest()
+    assert out["marker"] == {"replaced": True, "kept_sha256": sha}
     lines = (
         (root / "auto-grade" / "requeued" / "reclass.jsonl").read_text().splitlines()
     )
@@ -154,9 +164,114 @@ def test_apply_gives_the_slot_back_keeps_the_history_and_logs_the_ruling(tmp_pat
     )
     assert (record["state"], record["status"]) == ("RELEASED", "FAILED_INFRA")
     assert record["reason"] == "counted_wall_stop_ruled_not_the_candidates"
+    assert record["marker_kept_sha256"] == sha and record["marker_replaced"] is True
     assert not list(
         (root / "auto-grade" / "requeued").glob("*.attempt-*")
     )  # no requeue
+
+
+def _read(path):
+    return json.loads(path.read_text())
+
+
+def test_the_marker_is_replaced_so_the_miner_stops_seeing_a_wall_stop(tmp_path):
+    root, _ledger, path = _counted_wall(tmp_path)
+    infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    marker = _read(path)
+    assert marker["schema"] == auto_grade.SCHEMA and marker["submission_id"] == A
+    assert marker["state"] == "FAILED"
+    assert (
+        marker["code"] == infra_requeue.RECLASSED_CODE == "reclassed_not_the_candidates"
+    )
+    assert marker["next_step"] == "slot_returned"
+    assert marker["next_step"] in auto_retry.NEXT_STEPS
+    # no temporary file is left in the markers directory
+    assert sorted(p.name for p in path.parent.iterdir()) == [A + ".json"]
+
+
+class _Intake:
+    """What `DirectRecipeIntake._grade_state_v4` and `_grade_state` read: the task's marker, nothing else."""
+
+    def __init__(self, path):
+        self.path = path
+
+    def grade_marker(self, submission_id):
+        return json.loads(self.path.read_text())
+
+    _grade_state_v4 = direct_intake.DirectRecipeIntake._grade_state_v4
+    _grade_state = direct_intake.DirectRecipeIntake._grade_state
+    failure_v4 = direct_intake.DirectRecipeIntake.failure_v4
+
+
+def test_the_miner_reads_infrastructure_after_the_reclass_not_a_wall_stop(tmp_path):
+    """Validator-2C: v4 grade_state FAILED_INFRA (no failure), v3 not CANDIDATE_FAILED, once the ledger says RELEASED."""
+    root, _ledger, path = _counted_wall(tmp_path)
+    intake = _Intake(path)
+    state, failure = intake._grade_state_v4("hotkey", A)
+    assert state == "CANDIDATE_FAILED" and failure is not None  # as it was
+    assert intake._grade_state("hotkey", A) == "CANDIDATE_FAILED"
+    infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert intake._grade_state_v4("hotkey", A) == ("FAILED_INFRA", None)
+    assert intake._grade_state("hotkey", A) is None
+
+
+def test_the_task_has_a_marker_at_every_instant(tmp_path, monkeypatch):
+    """With no marker the grader's `pending()` would pick the task up and replay it: the replacement is one os.replace."""
+    root, _ledger, path = _counted_wall(tmp_path)
+    seen = []
+    real = os.replace
+
+    def replace(source, target):
+        seen.append((Path(source).name, Path(target).name, path.exists()))
+        real(source, target)
+        seen.append(("after", path.name, path.exists()))
+
+    monkeypatch.setattr(infra_requeue.os, "replace", replace)
+    infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert seen == [
+        (A + ".json.reclass-tmp", A + ".json", True),  # the old marker is still there
+        ("after", A + ".json", True),
+    ]
+    # and the temporary name is never a marker name (`markers/*.json`)
+    assert not (A + ".json.reclass-tmp").endswith(".json")
+
+
+def test_a_dry_run_changes_nothing_not_even_the_marker(tmp_path):
+    root, _ledger, path = _counted_wall(tmp_path)
+    before, mtime = path.read_bytes(), path.stat().st_mtime_ns
+    infra_requeue.reclass(root, A, ruling=RULING)
+    assert path.read_bytes() == before and path.stat().st_mtime_ns == mtime
+    assert not (root / "auto-grade" / "requeued").exists()
+
+
+def test_a_conflicting_kept_copy_refuses_and_changes_nothing(tmp_path):
+    root, ledger, path = _counted_wall(tmp_path)
+    kept = root / "auto-grade" / "requeued" / "reclass-kept"
+    kept.mkdir(parents=True, mode=0o700)
+    (kept / (A + ".json")).write_text("something else")
+    before = path.read_bytes()
+    out = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert out["refused"] == "reclass_kept_copy_unavailable"
+    assert path.read_bytes() == before
+    assert _rows(ledger, A) == [("COUNTED", "WORKER_WALL_LIMIT_REACHED")]
+
+
+def test_a_marker_that_cannot_be_replaced_is_said_in_the_record(tmp_path, monkeypatch):
+    root, ledger, path = _counted_wall(tmp_path)
+    before = path.read_bytes()
+
+    def refuse(source, target):
+        raise OSError("disk")
+
+    monkeypatch.setattr(infra_requeue.os, "replace", refuse)
+    out = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert out["marker"]["replaced"] is False
+    assert path.read_bytes() == before  # still the old marker: never left without one
+    assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]
+    record = json.loads(
+        (root / "auto-grade" / "requeued" / "reclass.jsonl").read_text().splitlines()[0]
+    )
+    assert record["marker_replaced"] is False
 
 
 def test_the_miners_slot_is_free_again(tmp_path):
