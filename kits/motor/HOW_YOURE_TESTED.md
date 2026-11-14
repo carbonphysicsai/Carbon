@@ -99,9 +99,14 @@ Gates come first: a failed gate means no score, however good the rest.
 
 - The physics gates hold on every design your model answers, inside and
   outside the training range. Motor 1.8's gate list: **HUMAN_INPUT**.
-- Speed and rebuild limits for Motor 1.8: **HUMAN_INPUT** (Motor 1.5: each
-  design answered in at most 3.3 s on the validator's machine; 4 CPUs,
-  16 GiB, build and inference up to 648 s each, 947 s in total).
+- Rebuild limits for Motor 1.8: your model's build and its inference may
+  each take up to **648 seconds**, and the whole rebuild has **1,590
+  seconds** in total (its exam bank is larger than Motor 1.5's, so its
+  total is longer; the build and the inference are still limited to 648
+  seconds each), on 4 CPUs and 16 GiB. A build or an inference that reaches
+  a limit is a normal timeout.
+- Speed limit for Motor 1.8: **HUMAN_INPUT** (Motor 1.5: each design
+  answered in at most 3.3 s on the validator's machine).
 
 **What you see:** your total and your status. Per-case and per-class results
 are not shown, and the hidden sample rotates.
