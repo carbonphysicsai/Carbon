@@ -218,17 +218,27 @@ def test_a_malformed_margin_or_n_key_refuses(tmp_path, key):
 
 
 def test_every_committed_entry_reads_the_same_for_any_version():
-    """Bare ids only: a version lookup falls back to the Challenge's entry, so no value moves."""
+    """A version lookup falls back to the Challenge's (bare id) entry, so no value moves for a version with no entry of
+    its own; a versioned entry (e.g. an owner-provisional Motor 1.8) applies to its own version only.
+    """
     document = json.loads(kr.REGISTRY.read_bytes())
+    margins = json.loads(ca.REGISTRY.read_bytes())["margins"]
     rule = ca.load_rule()
-    for challenge in document["challenges"]:
-        assert " " not in challenge
+    own = {k for k in (*document["challenges"], *margins) if " " in k}
+    for challenge in (k for k in document["challenges"] if " " not in k):
         for version in ("1.5", "1.8", "2.0"):
+            if f"{challenge} {version}" in own:
+                continue  # this version has its own registered entry
             assert kr.rebuild_noise(challenge, version=version) == kr.rebuild_noise(
                 challenge
             )
             assert rule.margin_for(challenge, version) == rule.margin_for(challenge)
             assert rule.n_for(challenge, version) == rule.n_for(challenge)
+    # and a versioned entry never changes another version's reading
+    for key in own:
+        challenge, _, version = key.partition(" ")
+        other = "1.5" if version != "1.5" else "1.6"
+        assert rule.margin_for(challenge, other) == rule.margin_for(challenge)
 
 
 # --- the crown floor pins the version's own noise and margin -----------------------------------------------------------------

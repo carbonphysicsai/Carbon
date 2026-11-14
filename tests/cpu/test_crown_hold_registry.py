@@ -79,13 +79,32 @@ def serve(monkeypatch, tmp_path):
 # --- shipped held ------------------------------------------------------------------------------------------------------
 
 
-def test_the_committed_registry_lists_nothing_so_motor_18_is_held_by_default():
+def test_the_committed_registry_holds_motor_18_unless_an_owner_record_registers_it_off():
+    """Shipped EMPTY: Motor 1.8 is held by default. Once the owner registers the hold OFF, the committed entry is
+    exactly the tracked owner-provisional record's (its pack, epoch and the digest of his words).
+    """
     document = json.loads(crown_hold.REGISTRY.read_bytes())
-    assert document["schema"] == crown_hold.REGISTRY_SCHEMA and document["holds"] == []
-    assert crown_hold.registered_off(MOTOR, "1.8") is None
+    assert document["schema"] == crown_hold.REGISTRY_SCHEMA
+    record_path = (
+        crown_hold.REGISTRY.parent / "records" / "crown_provisional_motor18.json"
+    )
+    off = crown_hold.registered_off(MOTOR, "1.8")
+    if not document["holds"]:
+        assert off is None
+    else:
+        record = json.loads(record_path.read_bytes())
+        assert record["crown_hold"] == "OFF_REGISTERED"
+        assert off == {
+            "menu_epoch": record["menu_epoch"],
+            "evaluation_pack_digest": record["evaluation_pack_digest"],
+        }
     crown_hold.install(MOTOR, "1.8", log=lambda line: None)
-    crown_hold.bind_pack(PACK, log=lambda line: None)
-    assert crown_hold.ACTIVE is True and crown_hold.holding() is True
+    crown_hold.bind_pack(
+        PACK, log=lambda line: None
+    )  # a pack that is not the registered one
+    assert crown_hold.ACTIVE is True
+    # held for any other pack, whatever the registry says; off only for the exact registered exam
+    assert crown_hold.holding() is True
     assert crown_hold.held("/nowhere", "any-contender") is True
 
 

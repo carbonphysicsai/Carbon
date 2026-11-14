@@ -76,12 +76,14 @@ def test_the_committed_registry_is_structurally_sound():
     assert rule.n_for(CHALLENGE) >= 2 and rule.seed_range >= 2**16
     listed = document["margins"]
     assert listed
-    for challenge, entry in listed.items():
+    for key, entry in listed.items():
+        # a key is a Challenge id or "<Challenge id> <version>" (the version key)
+        challenge, _, version = key.partition(" ")
         assert challenge in exam_cap.registered_challenges()
-        assert entry["n"] == rule.n_for(challenge)
+        assert entry["n"] == rule.n_for(challenge, version or None)
         assert math.isfinite(entry["value"]) and entry["value"] > 0
         assert re.fullmatch(r"sha256:[0-9a-f]{64}", entry["measurement_digest"])
-        assert rule.margin_for(challenge) == entry["value"]
+        assert rule.margin_for(challenge, version or None) == entry["value"]
     # a Challenge the file does not name has no margin: UNAVAILABLE, never guessed
     assert rule.margin_for("a-challenge-with-no-entry") is None
 
