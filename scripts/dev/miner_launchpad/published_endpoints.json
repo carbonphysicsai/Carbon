@@ -41,6 +41,14 @@
       "version": "2.5",
       "intake_url": "https://burst-thermal-door.carbonphysics.ai",
       "receiver_hotkey": "5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR"
+    },
+    {
+      "network": "finney",
+      "netuid": 116,
+      "challenge": "electric-motor-magnetics",
+      "version": "1.8",
+      "intake_url": "https://motor-door-116.carbonphysics.ai",
+      "receiver_hotkey": "5DDLUnX2yicKLC1T5PN7bkwgU51buJt93XQFV1giqhDsGUTk"
     }
   ]
 }

@@ -128,17 +128,28 @@ def test_the_submit_time_step_names_the_tunnel_or_validator_too():
     assert "tunnel" in step and "validator" in step and "cannot" in step
 
 
-def test_the_tunnel_target_is_not_published():
+def test_the_tunnel_target_is_not_published(monkeypatch):
     """OWNER-AX42-DOOR-PRIVATE-01: the loopback-through-tunnel address works
     only where the tunnel key is held, so nothing publishes it. A published
-    door is a public https hostname (`<name>-door.carbonphysics.ai`), never a
-    loopback or tunnel address."""
+    door is a public https hostname (`<name>-door.carbonphysics.ai`, or
+    `<name>-door-<netuid>.carbonphysics.ai` for a mainnet subnet's own door),
+    never a loopback or tunnel address. Each entry is read as the deployment of
+    its own network and subnet (an entry for another network is not published to
+    this one)."""
+    import re
+
+    from carbon.chain import models
+
     document = json.loads(environment.PUBLISHED_ENDPOINTS.read_bytes())
     for entry in document["endpoints"]:
         host = entry["intake_url"].removeprefix("https://")
         assert entry["intake_url"].startswith("https://")
-        assert host.endswith("-door.carbonphysics.ai")
+        assert re.fullmatch(
+            r"[a-z0-9]+(-[a-z0-9]+)*-door(-[0-9]+)?\.carbonphysics\.ai", host
+        )
         assert not host.startswith(("127.", "localhost", "[::1]"))
+        monkeypatch.setattr(models, "CARBON_NETWORK", entry["network"])
+        monkeypatch.setattr(models, "CARBON_NETUID", entry["netuid"])
         assert (
             environment.published_endpoints()["endpoints"][entry["challenge"]][
                 entry["version"]
