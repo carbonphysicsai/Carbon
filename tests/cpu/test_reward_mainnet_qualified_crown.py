@@ -85,8 +85,6 @@ def test_a_qualified_sealed_crown_on_its_pack_is_paid_on_mainnet():
             (PACK, OTHER_PACK),
             "sealed_crown_pack_not_qualified",
         ),
-        ("mainnet-winner-v3", MOTOR, (), "sealed_crown_pack_not_qualified"),
-        ("mainnet-winner-v3", MOTOR, None, "sealed_crown_pack_not_qualified"),
     ],
 )
 def test_every_other_sealed_crown_still_burns_off_testnet(
@@ -94,6 +92,19 @@ def test_every_other_sealed_crown_still_burns_off_testnet(
 ):
     out = decide(wd.load_policy(policy), challenge, sealed_first(packs))
     assert (out["eligible"], out["reason"]) == (False, reason)
+
+
+@pytest.mark.parametrize("packs", [(), None])
+def test_unreadable_pack_evidence_records_nothing_on_a_qualified_policy(packs):
+    """UNREADABLE is not UNQUALIFIED: decide raises, so the ledger appends nothing and the next cycle retries."""
+    with pytest.raises(RewardFailure) as refused:
+        decide(wd.load_policy("mainnet-winner-v3"), MOTOR, sealed_first(packs))
+    assert str(refused.value) == "CROWN_PACK_EVIDENCE_UNAVAILABLE"
+
+
+def test_unreadable_evidence_on_an_unqualified_challenge_still_burns_quietly():
+    out = decide(wd.load_policy("mainnet-winner-v3"), COOLING, sealed_first(None))
+    assert (out["eligible"], out["reason"]) == (False, "sealed_crown_testnet_only")
 
 
 def test_testnet_pays_sealed_crowns_exactly_as_before():
@@ -107,8 +118,13 @@ def test_pack_digests_are_evidence_not_crown_identity():
 
 
 class _Store:
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, path, key="sha256:" + "e" * 64, fail=False):
+        self.path, self.key, self.fail = path, key, fail
+
+    def incumbent_evaluation_key(self, model_id):
+        if self.fail:
+            raise sqlite3.OperationalError("database is locked")
+        return self.key
 
     @contextlib.contextmanager
     def db(self):
@@ -119,29 +135,94 @@ class _Store:
             connection.close()
 
 
-def test_crown_pack_digests_read_single_and_set_bindings(tmp_path):
+OWN_KEY, OLD_KEY = "sha256:" + "e" * 64, "sha256:" + "f" * 64
+
+
+def _pool(tmp_path, rows):
     path = tmp_path / "pool.sqlite3"
     with sqlite3.connect(path) as c:
         c.execute(
             "CREATE TABLE operations (op_id TEXT, kind TEXT, state TEXT, body TEXT)"
         )
-        rows = [
-            ("m1", {"evaluation_pack_digest": PACK}),
-            ("m1", {"batches": [{"evaluation_pack_digest": OTHER_PACK}, "junk"]}),
-            ("m2", {"evaluation_pack_digest": "sha256:" + "2" * 64}),
-        ]
-        for i, (sub, evidence) in enumerate(rows):
-            body = json.dumps({"submission_id": sub, "evidence": evidence})
+        for i, (state, key, evidence) in enumerate(rows):
+            body = json.dumps(
+                {"submission_id": "m1", "evaluation_key": key, "evidence": evidence}
+            )
             c.execute(
-                "INSERT INTO operations VALUES (?, 'private_evaluation.v1', 'X', ?)",
-                (str(i), body),
+                "INSERT INTO operations VALUES (?, 'private_evaluation.v1', ?, ?)",
+                (str(i), state, body),
             )
         c.execute(
-            "INSERT INTO operations VALUES ('9', 'private_evaluation.v1', 'X', 'not json')"
+            "INSERT INTO operations VALUES ('x', 'private_evaluation.v1', "
+            "'BOUND_DEVELOPMENT_ONLY', 'not json')"
         )
+    return path
+
+
+def test_crown_pack_digests_read_only_the_crowns_own_evaluation(tmp_path):
+    path = _pool(
+        tmp_path,
+        [
+            ("BOUND_DEVELOPMENT_ONLY", OLD_KEY, {"evaluation_pack_digest": OTHER_PACK}),
+            ("SOMETHING_ELSE", OWN_KEY, {"evaluation_pack_digest": OTHER_PACK}),
+            ("BOUND_DEVELOPMENT_ONLY", OWN_KEY, {"evaluation_pack_digest": PACK}),
+        ],
+    )
+    assert we._crown_pack_digests(_Store(path), "m1") == [PACK]
+
+
+def test_crown_pack_digests_read_a_set_bindings_batches(tmp_path):
+    batches = [
+        {"evaluation_pack_digest": PACK},
+        {"evaluation_pack_digest": OTHER_PACK},
+        "junk",
+    ]
+    path = _pool(tmp_path, [("BOUND_DEVELOPMENT_ONLY", OWN_KEY, {"batches": batches})])
     assert we._crown_pack_digests(_Store(path), "m1") == sorted([PACK, OTHER_PACK])
-    assert we._crown_pack_digests(_Store(path), "absent") == []
-    assert we._crown_pack_digests(object(), "m1") == []
+
+
+def test_crown_pack_digests_unreadable_is_none_never_empty(tmp_path):
+    path = _pool(
+        tmp_path,
+        [("BOUND_DEVELOPMENT_ONLY", OWN_KEY, {"evaluation_pack_digest": PACK})],
+    )
+    assert we._crown_pack_digests(_Store(path, fail=True), "m1") is None  # db raises
+    assert we._crown_pack_digests(_Store(path, key=None), "m1") is None  # no key
+    assert we._crown_pack_digests(_Store(path, key=OLD_KEY), "m1") is None  # no row
+    assert we._crown_pack_digests(object(), "m1") is None  # a store that cannot say
+
+
+def test_db_raises_no_row_and_wrong_pack_end_to_end(tmp_path):
+    policy = wd.load_policy("mainnet-winner-v3")
+    path = _pool(
+        tmp_path,
+        [("BOUND_DEVELOPMENT_ONLY", OWN_KEY, {"evaluation_pack_digest": OTHER_PACK})],
+    )
+    for store in (_Store(path, fail=True), _Store(path, key=OLD_KEY)):
+        packs = we._crown_pack_digests(store, "m1")
+        with pytest.raises(RewardFailure, match="CROWN_PACK_EVIDENCE_UNAVAILABLE"):
+            decide(policy, MOTOR, sealed_first(packs))
+    packs = we._crown_pack_digests(_Store(path), "m1")
+    out = decide(policy, MOTOR, sealed_first(packs))
+    assert (out["eligible"], out["reason"]) == (
+        False,
+        "sealed_crown_pack_not_qualified",
+    )
+
+
+def test_every_qualification_names_a_committed_decision_record_by_sha():
+    registry = json.loads((wd.POLICY_DIR / "registry.json").read_text())
+    decisions = wd.POLICY_DIR.parents[2] / ".agent/decisions"
+    shas = {
+        "sha256:" + hashlib.sha256(f.read_bytes()).hexdigest()
+        for f in decisions.glob("*.md")
+    }
+    seen = 0
+    for version in registry["versions"]:
+        for _challenge, record_sha, _packs in wd.load_policy(version).qualified_sealed:
+            assert record_sha in shas
+            seen += 1
+    assert seen >= 1
 
 
 def _copy_with_v3(tmp_path, mutate):

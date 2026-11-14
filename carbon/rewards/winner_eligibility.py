@@ -315,38 +315,47 @@ def _all_admissible(private):
 
 
 def _crown_pack_digests(store, model_id):
-    """The evaluation pack digest(s) ``model_id``'s private evaluation was graded on (a single binding's
-    ``evaluation_pack_digest``, or a set binding's per-batch ones), sorted. Read only from the pool store's
-    operations; a store that cannot say reads [] (an unreadable crown is never qualified).
+    """The evaluation pack digest(s) of the crown's OWN evaluation, sorted, or None when they cannot be read.
+
+    The crown's evaluation is the store's ``incumbent_evaluation_key(model_id)`` (the key its king page reads,
+    rebuild links included): only the BOUND_DEVELOPMENT_ONLY ``private_evaluation.v1`` row filed on that key is read
+    (a single binding's ``evaluation_pack_digest``, or a set binding's per-batch ones), never a union of every row.
+    None (UNREADABLE: the store cannot be read, has no key, no such row, or the row names no pack) is NOT "unqualified":
+    `decide` then refuses to record anything this cycle, so a transient read never becomes a permanent record.
     """
+    key_of = getattr(store, "incumbent_evaluation_key", None)
     db = getattr(store, "db", None)
-    if db is None:
-        return []
+    if key_of is None or db is None:
+        return None
     try:
+        key = key_of(model_id)
+        if type(key) is not str or not key:
+            return None
         with db() as connection:
             rows = connection.execute(
-                "SELECT body FROM operations WHERE kind = 'private_evaluation.v1'"
+                "SELECT body FROM operations WHERE kind = 'private_evaluation.v1' "
+                "AND state = 'BOUND_DEVELOPMENT_ONLY' ORDER BY rowid DESC"
             ).fetchall()
-    except Exception:  # noqa: BLE001 - unreadable = unqualified
-        return []
-    found = set()
+    except Exception:  # noqa: BLE001 - unreadable, never "unqualified"
+        return None
     for (raw,) in rows:
         try:
             body = json.loads(raw)
         except (TypeError, ValueError):
             continue
-        if type(body) is not dict or body.get("submission_id") != model_id:
+        if type(body) is not dict or body.get("evaluation_key") != key:
             continue
         evidence = body.get("evidence")
         if type(evidence) is not dict:
-            continue
+            return None
         digests = [evidence.get("evaluation_pack_digest")] + [
             b.get("evaluation_pack_digest")
             for b in (evidence.get("batches") or [])
             if type(b) is dict
         ]
-        found.update(d for d in digests if type(d) is str and d)
-    return sorted(found)
+        found = sorted({d for d in digests if type(d) is str and d})
+        return found or None
+    return None
 
 
 def _lean_crown(store, model_id, reason, previous):
@@ -364,8 +373,12 @@ def _lean_crown(store, model_id, reason, previous):
         "incumbent_reason": reason,
     }
     # Evidence for a non-testnet policy's sealed-crown qualification (`decide`); kept out of the crown identity.
+    # NOTE: the reason NAME says "testnet" for historical reasons, but it is the reason EVERY sealed-exam crown
+    # carries, the finney 116 door's included (bank_promotion.SEALED_TESTNET_PROMOTION); do not "fix" it here.
     packs = (
-        _crown_pack_digests(store, model_id) if reason == SEALED_TESTNET_REASON else []
+        _crown_pack_digests(store, model_id)
+        if reason == SEALED_TESTNET_REASON
+        else None
     )
     if packs:
         promotion["evaluation_pack_digests"] = packs
@@ -425,7 +438,10 @@ def decide(
         if packs is None:
             return record(False, "sealed_crown_testnet_only")
         graded = promotion.get("evaluation_pack_digests")
-        if type(graded) is not list or not graded or not set(graded) <= packs:
+        if type(graded) is not list or not graded:
+            # UNREADABLE is not UNQUALIFIED: record nothing (a ledger record is immutable); the next cycle retries.
+            raise RewardFailure("CROWN_PACK_EVIDENCE_UNAVAILABLE")
+        if not set(graded) <= packs:
             return record(False, "sealed_crown_pack_not_qualified")
 
     def same_miner(previous_hotkey):
