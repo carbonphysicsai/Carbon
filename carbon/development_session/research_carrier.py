@@ -420,6 +420,11 @@ def _cancel_active_intent(ledger, *, owner, identity):
 
 # Fixed public construction phases use the same private, closed diagnostic
 # vocabulary. These records never enter the worker snapshot or public task.
+#: The direct graph route's inference program (the counted grade's graded pass, its pair, the single-call loop and the menu
+#: re-check all run it). It was in neither evidence set, so a failed graph inference left only `intent.json` and its input
+#: folder, a slow model's wall stop and a stalled worker alike (13 Nov, Motor 1.8 testnet wall stops): nothing said how far a
+#: stop got. It now keeps the same private, bounded, closed-vocabulary evidence as the bundle inference.
+GRAPH_INFERENCE_PROVENANCE = "DIRECT_GRAPH_PUBLIC_INFERENCE"
 _FIXED_DIAGNOSTIC_PROVENANCES = frozenset(
     {
         "BATTERY_PUBLIC_PRACTICE",
@@ -427,6 +432,7 @@ _FIXED_DIAGNOSTIC_PROVENANCES = frozenset(
         LIBRARY_BUILD_PROVENANCE,
         LIBRARY_OVERLAY_BUILD_PROVENANCE,
         "DIRECT_BUNDLE_PUBLIC_INFERENCE",
+        GRAPH_INFERENCE_PROVENANCE,
     }
 )
 
@@ -716,7 +722,11 @@ _PRIVATE_PROGRAM_FILES = frozenset(
     }
 )
 _PROGRAM_EVIDENCE_PROVENANCES = frozenset(
-    {LIBRARY_PREP_PROVENANCE, LIBRARY_OVERLAY_BUILD_PROVENANCE}
+    {
+        LIBRARY_PREP_PROVENANCE,
+        LIBRARY_OVERLAY_BUILD_PROVENANCE,
+        GRAPH_INFERENCE_PROVENANCE,
+    }
 )
 
 
