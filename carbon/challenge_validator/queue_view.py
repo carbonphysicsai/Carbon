@@ -18,7 +18,7 @@ this door already keeps. Reads; writes nothing.
   grader runs its king's upkeep; otherwise ``grading``.
 - **waits:** for every verdict marker written in the last 24 h: its write time minus the task's own creation time.
 
-- **held for review (v2):** on a door whose crown hold is active (`crown_hold.ACTIVE`, a menu-D version), the
+- **held for review (v2):** on a door whose crown hold is on (`crown_hold.holding()`: a menu-D version whose hold the registry does not list off), the
   unresolved filed contenders (`PoolStore.paused_crowns`, all kinds, filing order). Neither that record nor the grade
   marker keeps WHY a contender was filed, and on such a door every crown change is held before anything else is
   decided, so each is waiting for a crown decision. On every other door: None.
@@ -92,7 +92,7 @@ class QueueView:
         A read of the pool store's filed contenders only (no grade, no lock)."""
         from . import crown_hold
 
-        if not crown_hold.ACTIVE:
+        if not crown_hold.holding():
             return None
         opener = getattr(self.grader, "_pool", None)
         store = opener() if callable(opener) else None

@@ -121,6 +121,7 @@ def test_install_holds_exactly_the_served_versions_whose_registration_carries_a_
         assert lines[-1] == "crown_hold_active=true reason=unreadable"
     finally:
         crown_hold.ACTIVE = False
+        crown_hold.SERVED = None
 
 
 def test_the_receiver_keys_the_hold_on_the_served_material_not_the_cfg():
