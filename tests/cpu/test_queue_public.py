@@ -359,6 +359,13 @@ class _ChangingProviders(dict):
             raise RuntimeError("dictionary changed size during iteration")
         return super().values()
 
+    def items(self):
+        # the reader now reads the providers WITH their keys (the per-submission rows' short hotkey): the same change, the same refusal
+        if self.changes > 0:
+            self.changes -= 1
+            raise RuntimeError("dictionary changed size during iteration")
+        return super().items()
+
 
 def test_the_providers_dict_changing_once_is_read_again(tmp_path):
     view, _ = _door(

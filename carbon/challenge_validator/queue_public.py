@@ -21,12 +21,36 @@ from __future__ import annotations
 import datetime
 import json
 import math
+import re
 
 SCHEMA = "carbon.queue.public.v1"
 #: v2 (Miner X-B / TE-B 7 Nov) = v1's closed fields plus ``held_for_review``, served at ``PATH + <id> + V2_SUFFIX``
 #: (the koth /v2 pattern); v1 stays byte-identical for current clients.
 SCHEMA_V2 = "carbon.queue.public.v2"
 V2_SUFFIX = "/v2"
+#: v3 (owner 14 Nov: "show the actual queue") = v2's closed fields plus ``rows``: one row per pending submission, served at
+#: ``PATH + <id> + V3_SUFFIX``. v1 and v2 stay byte-identical. A row says WHERE a submission waits and for how long, never WHAT it
+#: is: ``position`` (1-based, oldest first), ``hotkey`` (first 4 and last 4 characters of the public key), ``state`` (one of
+#: `ROW_STATES`) and ``in_queue_s`` (seconds since the submission was accepted, floored to `ROWS_QUANTUM_S`). No task id, recipe,
+#: score, pack, seed, exam case, build or grade duration, or any other hotkey field.
+#: TIMING: the rows are rebuilt only on a fixed wall-clock boundary (`ROWS_QUANTUM_S`) and every time is floored to it, so no
+#: state change of one submission is visible finer than the quantum (the public ``grading_now`` flag is read at 30 s today), and the
+#: document names at most `MAX_ROWS` rows. The quantum is an ENGINEERING value (not science, not economics): the owner / V2C may set it.
+SCHEMA_V3 = "carbon.queue.public.v3"
+V3_SUFFIX = "/v3"
+ROWS = "rows"
+ROWS_QUANTUM_S = 300
+MAX_ROWS = 100
+MAX_BYTES_V3 = 32768
+WAITING_TO_BUILD = "waiting to build"
+BUILDING = "building"
+WAITING_TO_GRADE = "waiting to grade"
+GRADING_ROW = "grading"
+CROWN_CHECK = "crown check"
+ROW_STATES = (WAITING_TO_BUILD, BUILDING, WAITING_TO_GRADE, GRADING_ROW, CROWN_CHECK)
+ROW_FIELDS = frozenset({"position", "hotkey", "state", "in_queue_s"})
+#: A short key: 4 characters, an ellipsis, 4 characters (a public chain address's first and last 4), or None when the door cannot say.
+_SHORT_KEY = re.compile(r"[1-9A-HJ-NP-Za-km-z]{4}\u2026[1-9A-HJ-NP-Za-km-z]{4}")
 PATH = "/carbon/v1/queue/"
 MAX_BYTES = 4096
 #: The door states a miner sees, in plain words (Miner X's spec): nothing else, never an operator reason.
@@ -52,6 +76,7 @@ FIELDS = frozenset(
     }
 )
 FIELDS_V2 = FIELDS | {"held_for_review"}
+FIELDS_V3 = FIELDS_V2 | {"rows", "more_rows", "rows_as_of"}
 WAIT_FIELDS = frozenset({"verdicts", "median_s", "p90_s", "reason"})
 #: The raw snapshot a view returns (and nothing else is read from it).
 SNAPSHOT_FIELDS = frozenset(
@@ -112,7 +137,7 @@ def wait_summary(waits_s):
 
 def document(snapshot, challenge):
     """The public document from a view's raw snapshot, checked field by field (closed set)."""
-    if type(snapshot) is not dict or set(snapshot) - {HELD} != SNAPSHOT_FIELDS:
+    if type(snapshot) is not dict or set(snapshot) - {HELD, ROWS} != SNAPSHOT_FIELDS:
         raise QueuePublicRefused("queue_snapshot_invalid")
     if snapshot["door_state"] not in DOOR_STATES:
         raise QueuePublicRefused("queue_door_state_invalid")
@@ -160,17 +185,86 @@ def serve_v2(view, challenge):
     return serve(view, challenge, render=document_v2)
 
 
-def serve(view, challenge, *, render=document):
+def short_hotkey(hotkey):
+    """First 4 + ellipsis + last 4 of a public key, or None for anything that is not a plausible address."""
+    if type(hotkey) is not str or not 8 < len(hotkey) <= 64 or not hotkey.isascii():
+        return None
+    short = hotkey[:4] + "\u2026" + hotkey[-4:]
+    return short if _SHORT_KEY.fullmatch(short) else None
+
+
+def floor_to_quantum(seconds):
+    """``seconds`` floored to a whole `ROWS_QUANTUM_S` (never negative)."""
+    return int(max(0, seconds) // ROWS_QUANTUM_S) * ROWS_QUANTUM_S
+
+
+def document_v3(snapshot, challenge):
+    """The v3 document: v2's fields plus the per-submission ``rows`` (position, short hotkey, state, time in queue), at most
+    `MAX_ROWS` of them, ``more_rows`` counting the rest, and ``rows_as_of`` (the quantum boundary the rows were read at).
+    """
+    body = document_v2(snapshot, challenge)
+    found = snapshot.get(ROWS) if type(snapshot) is dict else None
+    if type(found) is not dict or set(found) != {"rows", "as_of_unix"}:
+        raise QueuePublicRefused("queue_rows_invalid")
+    listed, stamp = found["rows"], found["as_of_unix"]
+    if (
+        type(listed) is not list
+        or type(stamp) not in (int, float)
+        or not math.isfinite(stamp)
+        or stamp <= 0
+    ):
+        raise QueuePublicRefused("queue_rows_invalid")
+    rows = []
+    for position, row in enumerate(listed, 1):
+        if (
+            type(row) is not dict
+            or set(row) != ROW_FIELDS
+            or row["position"] != position
+            or row["state"] not in ROW_STATES
+            or not (row["hotkey"] is None or _SHORT_KEY.fullmatch(str(row["hotkey"])))
+            or type(row["in_queue_s"]) is not int
+            or isinstance(row["in_queue_s"], bool)
+            or row["in_queue_s"] < 0
+            or row["in_queue_s"] % ROWS_QUANTUM_S
+        ):
+            raise QueuePublicRefused("queue_rows_invalid")
+        rows.append(dict(row))
+    body = {
+        **body,
+        "schema": SCHEMA_V3,
+        "rows": rows[:MAX_ROWS],
+        "more_rows": max(0, len(rows) - MAX_ROWS),
+        "rows_as_of": datetime.datetime.fromtimestamp(stamp, datetime.UTC).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        ),
+    }
+    if set(body) != FIELDS_V3:
+        raise QueuePublicRefused("queue_fields_differ")
+    return body
+
+
+def serve_v3(view, challenge):
+    """`serve` for the v3 document (the larger `MAX_BYTES_V3`)."""
+    return serve(
+        view,
+        challenge,
+        render=document_v3,
+        limit=MAX_BYTES_V3,
+        read="snapshot_v3",
+    )
+
+
+def serve(view, challenge, *, render=document, limit=MAX_BYTES, read="snapshot"):
     """``(status, document-or-refusal)`` as `koth_public.serve`: 200 with the document, 404 with no view, 503 when the
     view fails or the document would exceed `MAX_BYTES` (never partial)."""
     if view is None:
         return 404, {"refused": "queue_not_served"}
     try:
-        body = render(view.snapshot(), challenge)
+        body = render(getattr(view, read)(), challenge)
     except QueuePublicRefused as refused:
         return 503, {"refused": refused.code}
     except (AttributeError, OSError, ValueError, KeyError, TypeError):
         return 503, {"refused": "queue_unavailable"}
-    if len(json.dumps(body, sort_keys=True, separators=(",", ":"))) > MAX_BYTES:
+    if len(json.dumps(body, sort_keys=True, separators=(",", ":"))) > limit:
         return 503, {"refused": "queue_unavailable"}
     return 200, body

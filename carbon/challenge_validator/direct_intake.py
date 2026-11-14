@@ -463,12 +463,15 @@ class DirectRecipeIntake(BatteryIntake):
 
     def _queue(self, path):
         """The public queue document of this receiver's one Challenge (`queue_public`): v1 at its path, v2 at the same
-        path + ``/v2``; any other id is not found."""
+        path + ``/v2``, v3 (the per-submission rows) at ``/v3``; any other id is not found.
+        """
         from urllib.parse import unquote
 
         asked, serve = unquote(path[len(queue_public.PATH) :]), queue_public.serve
         if asked.endswith(queue_public.V2_SUFFIX):
             asked, serve = asked[: -len(queue_public.V2_SUFFIX)], queue_public.serve_v2
+        elif asked.endswith(queue_public.V3_SUFFIX):
+            asked, serve = asked[: -len(queue_public.V3_SUFFIX)], queue_public.serve_v3
         if asked != self.challenge.challenge_id:
             return _refused(404, "not_found")
         status, body = serve(self.queue_view, self.challenge)
