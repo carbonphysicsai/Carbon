@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -24,9 +25,13 @@ class FakeIntake:
         )
         self.behaviour = behaviour
         self.calls = []
+        #: seconds a grade takes before it answers: a real wall stop takes the whole wall, so the sampler has run
+        self.delay = 0
 
     def retain_result(self, submission_id, **kwargs):
         self.calls.append((submission_id, sorted(kwargs)))
+        if self.delay:
+            time.sleep(self.delay)
         outcome = self.behaviour[submission_id]
         if isinstance(outcome, Exception):
             raise outcome
@@ -370,6 +375,7 @@ def _wall_setup(
     host_lock=True,
     containers=lambda: 0,
     reserved_ns=2**62,  # reserved by THIS attempt (after it started)
+    delay=0.3,  # a real wall stop runs long enough to be sampled; 0 = a replay that answers at once
 ):
     """A grader whose retention raises ``failure`` after the bank grade settled the slot ``row``."""
     from carbon.challenge_validator.exam_cap import ExamCap
@@ -409,8 +415,14 @@ def _wall_setup(
     )
     intake = FakeIntake([A], {A: failure})
     intake.adapter = adapter
+    intake.delay = delay
     grader = auto_grade.AutoGrader(
-        intake, tmp_path, host_lock=host_lock, containers=containers, gpu=lambda: 0
+        intake,
+        tmp_path,
+        host_lock=host_lock,
+        containers=containers,
+        gpu=lambda: 0,
+        sample_seconds=0.02,
     )
     return grader, cap, ident, ledger
 
@@ -534,6 +546,55 @@ def test_a_wall_stop_under_possible_contention_is_given_back_and_logged(
     ]
     assert logged["task"] == A and logged["counted"] is False
     assert logged["host_lock"] is host_lock
+
+
+def test_a_wall_stop_with_no_in_run_sample_is_a_replay_and_never_counted(tmp_path):
+    """Testnet #2 (13 Nov): an automatic retry re-read the kept ledger row of the killed graded op (no new run), the
+    sampler took 0 samples, and the vacuous quiet verdict COUNTED it. A wall stop takes the whole wall: with no in-run
+    sample nothing was observed, so it is given back as infrastructure, as before."""
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, cap, ident, ledger = _wall_setup(tmp_path, wall, delay=0)
+    assert grader.run_once() == (A, "FAILED")
+    assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
+    assert cap.released_on_infra(**ident)
+    logged = json.loads((tmp_path / "auto-grade" / "wall-stops.jsonl").read_text())
+    assert logged["counted"] is False and logged["uncontended"] is False
+    assert logged["samples"] == 0
+
+
+def test_the_retry_of_a_given_back_wall_stop_never_counts_the_replayed_kill(tmp_path):
+    """First attempt: the kill met a busy host and was given back (FAILED_INFRA). Its automatic retry (the marker moved
+    aside, the same task graded again) replays the same killed operation at once with no sample: still given back,
+    never COUNTED by a quiet verdict that observed nothing."""
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    wall = _miner_failure(WorkerCode.DEADLINE.value, "WORKER_WALL_LIMIT_REACHED")
+    grader, _cap, _ident, ledger = _wall_setup(tmp_path, wall, containers=lambda: 2)
+    assert grader.run_once() == (A, "FAILED")
+    assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
+    (
+        tmp_path / "auto-grade" / "markers" / (A + ".json")
+    ).unlink()  # what the requeue does
+    # the retry's own reservation, settled as an unfinished grade before the replay raises
+    with ledger._db() as db:
+        db.execute(
+            "UPDATE exam_graded SET state='RELEASED', status='UNAVAILABLE' "
+            "WHERE submission_id=?",
+            (A,),
+        )
+    grader.containers = lambda: 0  # the host is quiet now, and nothing runs
+    grader.intake.delay = 0
+    assert grader.run_once() == (A, "FAILED")
+    assert _row(ledger) == [("RELEASED", "FAILED_INFRA")]
+    last = [
+        json.loads(line)
+        for line in (tmp_path / "auto-grade" / "wall-stops.jsonl")
+        .read_text()
+        .splitlines()
+    ][-1]
+    assert last["samples"] == 0 and last["counted"] is False
 
 
 def test_an_uncontended_wall_stop_is_logged_as_counted(tmp_path):

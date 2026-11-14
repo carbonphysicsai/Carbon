@@ -124,13 +124,23 @@ def foreign_gpu_compute():
     return len(gpu - own)
 
 
-def uncontended(*, lock_held, samples, stop, gpu_samples, gpu_stop):
+def uncontended(
+    *, lock_held, samples, stop, gpu_samples, gpu_stop, require_samples=False
+):
     """The ruling's three conditions on one run's samples. ``samples`` / ``stop``: Carbon worker containers during the
     run (at most this build's own: <= 1) and at the stop (this build's own already removed: 0); ``gpu_samples`` /
     ``gpu_stop``: foreign GPU compute processes (0 every time). An unreadable sample (None) is not quiet.
+
+    ``require_samples``: the run must have been OBSERVED, at least one in-run sample of each kind. A build that ends
+    inside the first sampling interval has only its stop sample, which is enough for a failure that happened at the stop
+    (`Probe`: the default) but says nothing about a wall stop, which takes the whole wall: a wall stop "observed" with
+    no in-run sample is a replay of an earlier operation (a retry that re-read the kept ledger row, no new run), whose
+    quiet verdict would be vacuous (testnet #2, 13 Nov: counted with 0 samples). The wall-stop count passes True.
     """
     known = [s for s in samples if s is not None]
     gpu_known = [g for g in gpu_samples if g is not None]
+    if require_samples and not (samples and gpu_samples):
+        return False
     return bool(
         lock_held
         and stop == 0

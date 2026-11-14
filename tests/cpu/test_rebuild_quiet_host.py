@@ -59,6 +59,30 @@ def test_any_failed_condition_or_unreadable_sample_is_not_quiet(changes, why):
     assert _quiet(**changes) is False, why
 
 
+QUIET = {
+    "lock_held": True,
+    "samples": [1],
+    "stop": 0,
+    "gpu_samples": [0],
+    "gpu_stop": 0,
+}
+
+
+def test_require_samples_needs_one_in_run_sample_of_each_kind():
+    """The wall-stop count asks for an OBSERVED run (testnet #2, 13 Nov): no in-run sample is not quiet. The default is
+    unchanged for the probe, where a short build is judged by its stop sample."""
+    assert host_quiet.uncontended(**QUIET, require_samples=True)
+    assert not host_quiet.uncontended(**{**QUIET, "samples": []}, require_samples=True)
+    assert not host_quiet.uncontended(
+        **{**QUIET, "gpu_samples": []}, require_samples=True
+    )
+    assert not host_quiet.uncontended(
+        **{**QUIET, "samples": [], "gpu_samples": []}, require_samples=True
+    )
+    # the default keeps today's reading for a build with no in-run samples
+    assert host_quiet.uncontended(**{**QUIET, "samples": [], "gpu_samples": []})
+
+
 def test_a_build_with_no_in_run_samples_is_judged_by_its_stop_sample():
     assert _quiet(samples=[], gpu_samples=[]) is True
     assert _quiet(samples=[], gpu_samples=[], stop=None) is False

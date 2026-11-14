@@ -699,6 +699,9 @@ class AutoGrader:
             stop=stop,
             gpu_samples=sampler.gpu_samples,
             gpu_stop=sampler.gpu_stop,
+            # a wall stop takes the whole wall: one with no in-run sample is a replay of an earlier operation (an
+            # automatic retry re-reading the kept ledger row, no new run), never a quiet host observed
+            require_samples=True,
         )
         counted = False
         if uncontended:
