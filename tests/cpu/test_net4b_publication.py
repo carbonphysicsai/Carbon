@@ -95,6 +95,36 @@ def test_unsupported_runtime_configuration_fails_without_loser_distribution(
 
 
 @pytest.mark.parametrize(
+    "count,maximum,accepted",
+    [
+        (1, 2, True),  # the localnet/testnet shape, unchanged
+        (2, 2, True),  # the original bound, unchanged
+        (1, 8, True),  # finney: subnet 116 runs one mechanism, the chain allows eight
+        (1, 1, True),
+        (1, 65535, True),
+        (2, 8, False),  # two mechanisms are only supported under the original bound
+        (3, 8, False),
+        (3, 3, False),
+        (0, 8, False),
+        (1, 0, False),  # the count can never exceed the maximum
+        (2, 1, False),
+    ],
+)
+def test_the_mechanism_configuration_accepts_one_mechanism_under_any_maximum_only(
+    tmp_path, count, maximum, accepted
+):
+    _, _, gate, caps, resolved = prepared(tmp_path)
+    changed = replace(caps, mechanism_count=count, maximum_mechanisms=maximum)
+    if accepted:
+        plan = compile_targets(resolved, gate.adapter.state, changed, "validator")
+        reference = compile_targets(resolved, gate.adapter.state, caps, "validator")
+        assert plan.q12 == reference.q12 and plan.integers == reference.integers
+    else:
+        with pytest.raises(PublicationFailure, match="MECHANISM"):
+            compile_targets(resolved, gate.adapter.state, changed, "validator")
+
+
+@pytest.mark.parametrize(
     "case", ["loser", "zero", "duplicate", "clip", "negative", "float"]
 )
 def test_final_integer_guard_rejects_changed_or_malformed_representation(

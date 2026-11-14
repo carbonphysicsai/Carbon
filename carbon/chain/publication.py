@@ -68,7 +68,12 @@ class RuntimeCapabilities:
             uint(value, U16)
         for value in (self.version_key, self.rate_limit, self.last_update):
             uint(value)
-        if not 1 <= self.mechanism_count <= self.maximum_mechanisms <= 2:
+        # The publisher only ever sets mechanism 0 (`sdk_weights` mechid 0). So a network that runs ONE mechanism may allow any
+        # number of them at most (finney's MaxMechanismCount is 8 and its subnet 116 runs 1, 13 Nov: the weights cycle refused
+        # every publication); two mechanisms stay supported only under the original bound (at most 2); everything else is refused.
+        one_mechanism = self.mechanism_count == 1 <= self.maximum_mechanisms
+        original_bound = 1 <= self.mechanism_count <= self.maximum_mechanisms <= 2
+        if not (one_mechanism or original_bound):
             raise PublicationFailure("UNSUPPORTED_MECHANISM_CONFIGURATION")
         if self.burn_mode != "Burn":
             raise PublicationFailure("VERIFIED_BURN_MODE_REQUIRED")
