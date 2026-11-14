@@ -71,6 +71,12 @@ Gates come first: a failed gate means no score, however good the rest.
 
 - Your accuracy inside the training range must clear a threshold, or the
   result is not admitted. Clearing it by more earns nothing extra.
+- The gate is checked per hidden in-range class and per output. One invalid
+  answer fails that class, for every output it holds.
+- When it fails, the grade names each failing output and why: **over the
+  limit** (the output's error is too large on some hidden in-range class) or
+  **an invalid answer** (your model gave an invalid answer on one). It never
+  shows the error values, the class or the cases.
 - The threshold: **HUMAN_INPUT** (set by the owner; until it is set, the
   version does not open).
 

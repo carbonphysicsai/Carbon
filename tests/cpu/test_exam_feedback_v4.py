@@ -287,7 +287,7 @@ def test_an_unreadable_task_is_a_typed_503_not_a_wrong_state(tmp_path, ledger):
         ({"reply": "v3", "submission_id": A}, "v3"),
         ({"reply": "v4", "submission_id": A}, "v4"),
         ({"reply": "v5", "submission_id": A}, "v5"),
-        ({"reply": "v6", "submission_id": A}, None),
+        ({"reply": "v7", "submission_id": A}, None),
         ({"reply": "v4"}, None),
         ({"reply": "v4", "submission_id": 7}, None),
         ({"reply": "v4", "submission_id": A, "extra": 1}, None),

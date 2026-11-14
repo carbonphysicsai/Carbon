@@ -1718,8 +1718,9 @@ def _retain_selected_pack_evaluation(
         write_once(directory / INSTALLED_COMMIT_SIDECAR, _json(_installed_commit()))
         if uncounted and regrade.promotion is not None:
             _record_regraded_evidence(regrade, bind_inputs, source_pin)
+        accuracy_record = None
         if (regrade is not None and regrade.exam_se) or _pool_graded(adapter):
-            _write_exam_se(
+            accuracy_record = _write_exam_se(
                 adapter,
                 snapshot,
                 directory,
@@ -1802,6 +1803,7 @@ def _retain_selected_pack_evaluation(
                         for name, leg in registered["score_pack"]["legs"].items()
                     },
                     score_pack=registered["score_pack"],
+                    accuracy=accuracy_record,
                 )
             }
         ),
@@ -1860,6 +1862,7 @@ def _write_exam_se(
         sealed_batch_source,
     )
 
+    # Returned: the grade's custody accuracy record (None for a version with no physics scoring), for the gate-failure feedback.
     document = {
         "schema": exam_rotation.SE_SCHEMA,
         "exam_key": snapshot.manifest_digest,
@@ -1942,6 +1945,7 @@ def _write_exam_se(
                 }
             ),
         )
+    return report.get("accuracy")
 
 
 def _rebuild_lane_seconds(adapter, submission_id, evidence, exam_key):
@@ -2671,6 +2675,7 @@ def _record_ladder(
     recipe_digest=None,
     leg_minimums=None,
     score_pack=None,
+    accuracy=None,
 ):
     """Apply the bound result to the miner's private-exam Ladder
     (`ladder_store`), stepped by the Challenge's registered rebuild noise from
@@ -2696,7 +2701,7 @@ def _record_ladder(
             and epoch is not None
             and part_feedback.served(challenge_key.challenge_id, exam_version)
         )
-        LadderStore(adapter.ledger).record(
+        shown = LadderStore(adapter.ledger).record(
             hotkey,
             challenge_key,
             exam_key,
@@ -2715,7 +2720,27 @@ def _record_ladder(
         )
     except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
         return "UNAVAILABLE: " + str(getattr(exc, "code", type(exc).__name__))
-    return "RECORDED"
+    return "RECORDED" + _record_gate_failures(
+        adapter, submission_id, exam_key, shown, accuracy
+    )
+
+
+def _record_gate_failures(adapter, submission_id, exam_key, shown, accuracy):
+    """A gate-failed grade's failing OUTPUTS and their closed REASON (`gate_failure_feedback`), kept per submission beside the Ladder,
+    for the v6 feedback reply. Its own failure never touches the grade or the Ladder: the state then says so. ``""`` when there is
+    nothing to record (any other status, or no identifiable failing output)."""
+    if type(shown) is not dict or shown.get("status") != "GATE_FAILED":
+        return ""
+    try:
+        from carbon.challenge_validator import gate_failure_feedback
+
+        failures = gate_failure_feedback.derive(accuracy)
+        if failures is None:
+            return ""
+        gate_failure_feedback.record(adapter.ledger, submission_id, exam_key, failures)
+    except Exception as failure:  # noqa: BLE001 - never changes the grade
+        return " (gate_failures unavailable: " + type(failure).__name__ + ")"
+    return ""
 
 
 def _pool_graded_version(adapter) -> bool:

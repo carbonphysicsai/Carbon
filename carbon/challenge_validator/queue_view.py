@@ -24,6 +24,14 @@ this door already keeps. Reads; writes nothing.
   decided, so each is waiting for a crown decision. On every other door: None.
 
 The snapshot is cached for `CACHE_S` seconds: a busy page never rescans the markers per request.
+
+PER-SUBMISSION ROWS (v3, owner 14 Nov "show the actual queue"; `snapshot_v3`): one row per pending submission, oldest first, then
+one per graded contender waiting for the crown sweep ("crown check"). A row is ``position``, ``hotkey`` (first and last 4 characters
+of the OWNING provider's key: the open providers' own keys, never an ``owner()`` / ``_provider()`` call), ``state`` and ``in_queue_s``
+(seconds since the task was created, floored to `queue_public.ROWS_QUANTUM_S`). The rows are rebuilt ONLY when the wall clock crosses
+a quantum boundary, never per request, so no row's state or disappearance is visible finer than the quantum: the per-submission timing
+channel a finer view would open (a model that spends longer on some hidden input would show it in its own row's duration) is cut to
+that resolution. Nothing else about a submission is read: no recipe, score, pack, case or duration.
 """
 
 from __future__ import annotations
@@ -50,6 +58,9 @@ class QueueView:
         self.clock = clock
         self._lock = threading.Lock()
         self._cached = None
+        self._rows_cached = None
+        #: ``{task id: provider key}`` from the last `_index` pass (the owning provider's own key; read only).
+        self._owners = {}
 
     def _index(self):
         """``{task id: (state name, created unix seconds)}`` over the providers already open on this receiver: a
@@ -60,7 +71,7 @@ class QueueView:
             return {}
         for _attempt in range(2):
             try:
-                providers = tuple(opened.values())
+                providers = tuple(opened.items())
                 break
             except (
                 RuntimeError
@@ -69,8 +80,8 @@ class QueueView:
         else:
             # still changing: the page answers 503 (the contract), never a 500 or a guess (Validator-2 15:11)
             raise qp.QueuePublicRefused("queue_unavailable")
-        index = {}
-        for provider in providers:
+        index, owners = {}, {}
+        for key, provider in providers:
             try:
                 views = tuple(getattr(provider, "_views", {}).items())
             except (
@@ -80,11 +91,13 @@ class QueueView:
             for task, view in views:
                 try:
                     index[task] = (view.state.value, view.created_at_micros / 1e6)
+                    owners[task] = key
                 except (AttributeError, TypeError):
                     # a malformed view is not a count: the page answers 503, never a guess (Validator-2 12:24)
                     raise qp.QueuePublicRefused(
                         "queue_provider_state_invalid"
                     ) from None
+        self._owners = owners
         return index
 
     def held(self):
@@ -152,6 +165,75 @@ class QueueView:
             "as_of_unix": now,
             qp.HELD: None if (held := self.held()) is None else len(held),
         }
+
+    def _read_rows(self, boundary):
+        """The per-submission rows as of the quantum ``boundary`` (see the module text): pending submissions in the ledger's order
+        (oldest first), then the graded contenders waiting for the crown sweep."""
+        index = self._index()
+        grading = getattr(self.grader, "grading_submission", None)
+        graded_now = getattr(self.grader, "activity", None) == "grade"
+        entries = []
+        for submission_id in self.grader.pending():
+            state, created = index.get(submission_id, (None, None))
+            if state == "QUEUED":
+                label = qp.WAITING_TO_BUILD
+            elif state in _BUILDING:
+                label = qp.BUILDING
+            elif state == _BUILT:
+                label = (
+                    qp.GRADING_ROW
+                    if graded_now and submission_id == grading
+                    else qp.WAITING_TO_GRADE
+                )
+            else:
+                continue  # cancelled, a build that ended without success, or a task in no open store: never waiting
+            entries.append((submission_id, label, created))
+        for submission_id, since in self._crown_checks():
+            entries.append((submission_id, qp.CROWN_CHECK, since))
+        rows = []
+        for position, (submission_id, label, created) in enumerate(entries, 1):
+            age = 0 if created is None else boundary - created
+            rows.append(
+                {
+                    "position": position,
+                    "hotkey": qp.short_hotkey(self._owners.get(submission_id)),
+                    "state": label,
+                    "in_queue_s": qp.floor_to_quantum(age),
+                }
+            )
+        return rows
+
+    def _crown_checks(self):
+        """``[(submission id, graded-at unix seconds or None)]`` of the graded contenders still waiting for the crown sweep
+        (`PoolStore.paused_crowns`, filing order). A read of the pool's filed contenders and the grade markers' write times only.
+        """
+        opener = getattr(self.grader, "_pool", None)
+        try:
+            store = opener() if callable(opener) else None
+            records = [] if store is None else store.paused_crowns()
+        except (OSError, ValueError, KeyError, LookupError) as failure:
+            raise qp.QueuePublicRefused("queue_rows_unavailable") from failure
+        waiting = []
+        for record in records:
+            submission_id = record["submission_id"]
+            try:
+                graded = (self.grader.markers / f"{submission_id}.json").stat().st_mtime
+            except OSError:
+                graded = None
+            waiting.append((submission_id, graded))
+        return waiting
+
+    def snapshot_v3(self):
+        """`snapshot` plus the per-submission rows, rebuilt only when the clock crosses a quantum boundary."""
+        base = self.snapshot()
+        with self._lock:
+            boundary = int(self.clock() // qp.ROWS_QUANTUM_S) * qp.ROWS_QUANTUM_S
+            if self._rows_cached is None or self._rows_cached["as_of_unix"] != boundary:
+                self._rows_cached = {
+                    "rows": self._read_rows(boundary),
+                    "as_of_unix": float(boundary),
+                }
+            return {qp.ROWS: dict(self._rows_cached), **base}
 
     def snapshot(self):
         with self._lock:

@@ -192,7 +192,7 @@ def test_v5_is_a_recognised_reply_and_advertised():
         direct_intake.feedback_reply({"reply": "v5", "submission_id": TASKS[0]}) == "v5"
     )
     assert (
-        direct_intake.feedback_reply({"reply": "v6", "submission_id": TASKS[0]}) is None
+        direct_intake.feedback_reply({"reply": "v7", "submission_id": TASKS[0]}) is None
     )
     text = Path(direct_intake.__file__).read_text(encoding="utf-8")
     assert '"exam_feedback_v5"' in text and "FEEDBACK_REPLY_SCHEMA_V5" in text
