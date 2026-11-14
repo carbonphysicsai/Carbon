@@ -1,5 +1,7 @@
 {
-  "challenge_n": {},
+  "challenge_n": {
+    "electric-motor-magnetics 1.8": 3
+  },
   "margins": {
     "chip-cold-plate": {
       "measurement_digest": "sha256:bbac8bc8857b1e648a29edb9fd0dcb7b3662957b5e0f950012f75f26dfbdbb62",
@@ -12,9 +14,9 @@
       "value": 0.0025056870668293094
     },
     "electric-motor-magnetics 1.8": {
-      "measurement_digest": "sha256:e288cdaa42338e4eaa89a8447760a7183889f555e7e94956f53ca23734d43597",
-      "n": 10,
-      "value": 0.0079
+      "measurement_digest": "sha256:02b8e330de5910c3099f7016a6a1e9bd78b42b676198f8b411ddc4c7f5924d8f",
+      "n": 3,
+      "value": 0.0129
     },
     "f02": {
       "measurement_digest": "sha256:d694e4502e7e0b208c4850399131a7be6b3891a08364913287daa55c9b988830",

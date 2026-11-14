@@ -1,0 +1,18 @@
+{
+  "challenge": "electric-motor-magnetics",
+  "evaluation_pack_digest": "sha256:ee2348b1738fb13984601473b5624bfefc2f65d8c7c7e91471c2d4c419a5742c",
+  "kind": "OWNER_PROVISIONAL_NOT_MEASURED",
+  "menu_epoch": "E1",
+  "owner_words_sha256": "sha256:52bb8dd99c237a1165a014ff5ee9f3065fc07dd53998953c3504044b3d4ad6ed",
+  "owner_words_verbatim": "Motor 1.8 on 116: crown rebuilds N = 3 (+ the host-fault rebuild), declared and forward-only; owner-provisional margin at n = 3 of 0.0129, labelled OWNER_PROVISIONAL_NOT_MEASURED and replaced forward-only by the measured pooled-rebuild value; no decided crown is re-decided. Graphite-C may commit it as data (Runner-C gate, Validator-2C FINAL, PR Head-C push) for the speed-bundle door restart.",
+  "replacement_rule": "Owner-set provisional N and margin_3, NOT measured on Motor 1.8. Declared and FORWARD-ONLY: replaced by the measured pooled-rebuild margin of the crown campaign (Validator-Motor-C's recal rule); no crown already decided is re-decided or rescored. The floor 0.05, the rebuild noise 0.0079 and the crown hold-off stay as the first record (crown_provisional_motor18.json) registers them.",
+  "schema": "carbon.crown.provisional-record.v1",
+  "supplements": "crown_provisional_motor18.json",
+  "typed_at": "Sat 14 Nov 2026 ~07:15 CST",
+  "typed_in": "Graphite-C session (owner, verbatim)",
+  "values": {
+    "crown_margin_3": 0.0129,
+    "crown_n": 3
+  },
+  "version": "1.8"
+}
