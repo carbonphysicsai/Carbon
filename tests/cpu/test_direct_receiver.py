@@ -1102,6 +1102,24 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
     assert unknown._providers[OWNER].queued_tasks() == (queued.task_id,)
     unknown.close()
 
+    # ONE read decides: the snapshot is stale when _manifest reads it (judged not live) but a fresh one with the SAME
+    # registration has landed before the cancel branch (the start-up refresher runs during restore): nothing is cancelled.
+    reads = []
+
+    def stale_then_fresh():
+        reads.append(1)
+        return None if len(reads) == 1 else advanced
+
+    racing = pool(advanced)
+    racing.window = SimpleNamespace(latest=stale_then_fresh)
+    racing.restore()
+    assert (
+        len(reads) >= 2
+    )  # the stale read in _manifest, then the fresh one for the decision
+    assert racing._providers[OWNER].queued_tasks() == (queued.task_id,)
+    assert racing._unobserved == set()
+    racing.close()
+
     recycled = replace(
         advanced,
         participants=(
@@ -2048,8 +2066,13 @@ def _unobserved_pool(tmp_path, provider, *, fresh, same):
     pool._unobserved.add(OWNER)
     state = {"fresh": fresh}
     pool._observed = lambda: object() if state["fresh"] else None
+    pool._record_in = staticmethod(
+        lambda observed, hotkey: (
+            {"admission": "frozen"} if same else {"admission": "changed"}
+        )
+    )
     pool._admission = lambda hotkey: (
-        {"admission": "frozen"} if same else {"admission": "changed"}
+        pool._record_in(pool._observed(), hotkey) if state["fresh"] else None
     )
     pool._same_registration = staticmethod(
         lambda frozen, current: current is not None

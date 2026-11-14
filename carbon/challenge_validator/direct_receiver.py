@@ -1618,15 +1618,20 @@ class OwnerProviders:
 
     def _admission(self, hotkey):
         """Recheck registration against the current finalized receiver window."""
+        observed = self._observed()
+        if observed is None:
+            return None
+        return self._record_in(observed, hotkey)
+
+    @staticmethod
+    def _record_in(observed, hotkey):
+        """``hotkey``'s registration record in the ONE snapshot ``observed``, or None when it is not registered there."""
         from carbon.development_session.chain_onboarding import (
             OnboardingFailure,
             PublicAddress,
             RegisteredMiner,
         )
 
-        observed = self._observed()
-        if observed is None:
-            return None
         try:
             return RegisteredMiner(observed, PublicAddress(hotkey)).record()
         except OnboardingFailure:
@@ -1880,9 +1885,16 @@ class OwnerProviders:
                 self._providers[hotkey] = provider
                 self._controls[hotkey] = control
                 self._admissions[hotkey] = frozen_admission
-                if restoring and not live and self._observed() is None:
+                observed = self._observed() if restoring and not live else None
+                if restoring and not live and observed is None:
                     self._unobserved.add(hotkey)
-                if restoring and not live and self._observed() is not None:
+                elif (
+                    restoring
+                    and not live
+                    and not self._same_registration(
+                        frozen_admission, self._record_in(observed, hotkey)
+                    )
+                ):
                     # A revoked/recycled miner retains cleanup custody, never
                     # the right to launch a queued child from old authority.
                     # Only when a FRESH snapshot positively shows a different (or no) registration: with NO usable
@@ -1911,7 +1923,10 @@ class OwnerProviders:
         restore (the intake's and the advance loop's), under the lock; nothing happens until a fresh snapshot exists. A
         cancellation that fails leaves the owner to be decided again on the next call (it cannot launch meanwhile: the
         registration re-check in `_open` refuses it)."""
-        if not self._unobserved or self._observed() is None:
+        if not self._unobserved:
+            return
+        observed = self._observed()  # ONE read decides this whole sweep
+        if observed is None:
             return
         for hotkey in sorted(self._unobserved):
             provider = self._providers.get(hotkey)
@@ -1919,7 +1934,7 @@ class OwnerProviders:
                 self._unobserved.discard(hotkey)
                 continue
             if self._same_registration(
-                self._admissions[hotkey], self._admission(hotkey)
+                self._admissions[hotkey], self._record_in(observed, hotkey)
             ):
                 self._unobserved.discard(hotkey)
                 continue
