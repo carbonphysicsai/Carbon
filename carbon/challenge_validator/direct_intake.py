@@ -1044,6 +1044,15 @@ WORK_POLL_S = 1.0
 #: A waiting door refreshes its entry every poll; an entry not refreshed for this long is not a waiter (a frozen
 #: process never holds the round-robin): an operational value, not a scientific one.
 WAITER_STALE_S = 30.0
+#: The host's list of doors that OUTRANK the testnet doors in the waiting list (in the lock's own directory): one file
+#: per live waiting door, named like its waiting entry. A door bound to finney 116 is always in it while it waits; a
+#: testnet door joins it once it has been held back for `MAINNET_FIRST_PATIENCE_S` (so testnet is never starved).
+PRIORITY_DIR = "official-grading.priority"
+#: The network whose doors go first for the host's grading lock (the mainnet subnet, `carbon.chain.models`).
+MAINNET_FIRST_NETWORK = "finney"
+#: How long a testnet round may be held back by waiting mainnet doors before it counts as one of them (an operational
+#: bound on starvation, not a scientific value; the owner's rule is mainnet first, never testnet forever behind).
+MAINNET_FIRST_PATIENCE_S = 7200.0
 
 
 class WorkDeclined(Exception):
@@ -1095,9 +1104,25 @@ class _WorkLock:
     """
 
     def __init__(
-        self, grading_lock_dir=None, *, state_dir=None, stop=None, poll_s=None
+        self,
+        grading_lock_dir=None,
+        *,
+        state_dir=None,
+        stop=None,
+        poll_s=None,
+        network=None,
     ):
         self._lock = threading.Lock()
+        if network is None:
+            from carbon.chain import models
+
+            network = models.CARBON_NETWORK
+        #: Mainnet first (owner, 13 Nov): a door bound to finney goes before any testnet door for the host lock.
+        self._mainnet = network == MAINNET_FIRST_NETWORK
+        #: When this round was first held back by an outranking waiter (monotonic), and whether it has waited
+        #: `MAINNET_FIRST_PATIENCE_S` and so counts as outranking too (reset at every round start).
+        self._held_since = None
+        self._promoted = False
         self._dir = grading_lock_dir
         self._state = None if state_dir is None else Path(state_dir)
         self._stop = stop if stop is not None else threading.Event()
@@ -1151,10 +1176,25 @@ class _WorkLock:
     def _waiting_dir(self):
         return Path(self._dir) / WAITING_DIR
 
+    def _priority_dir(self):
+        return Path(self._dir) / PRIORITY_DIR
+
+    def _outranks(self):
+        """Whether this door's round goes before every testnet round: a finney door, or a testnet round that has
+        waited out `MAINNET_FIRST_PATIENCE_S`."""
+        return self._mainnet or self._promoted
+
     def _waiters(self):
         """``[(since_ns, pid)]`` of every LIVE other process (another door) waiting for the host lock with a grade to
         run. An entry whose process is gone (pid reused or exited) is not a waiter; one without a readable time
         counts as waiting since 0 (oldest: never lets a door jump it)."""
+        return [(since, pid) for _, since, pid in self._classed_waiters()]
+
+    def _classed_waiters(self):
+        """``[(class, since_ns, pid)]`` of the live other waiting doors: class 0 when the door is in the priority
+        list (finney, or a testnet round past its patience), else 1 (a door that wrote no such file, an older build
+        included, is class 1). Sorts first-come within a class, class 0 before class 1.
+        """
         mine = os.getpid()
         try:
             entries = list(self._waiting_dir().iterdir())
@@ -1173,7 +1213,8 @@ class _WorkLock:
                 since = int(entry.read_text().strip() or 0)
             except (OSError, ValueError):
                 since = 0
-            live.append((since, int(pid)))
+            outranks = (self._priority_dir() / entry.name).exists()
+            live.append((0 if outranks else 1, since, int(pid)))
         return live
 
     def _others_waiting(self):
@@ -1187,20 +1228,44 @@ class _WorkLock:
         F1a, Lead / TE-B 8 Nov), for a GRADE and an ADVANCE (rebuild) round alike, so the oldest submission on the host
         always goes next whichever step it needs; a grade round without one counts as arriving now. Ties go to the
         lower pid. An advance round without a place (nothing ungraded on its door) never queues, as before.
+
+        MAINNET FIRST (owner, 13 Nov): every waiting finney door goes before every testnet round, queued or not
+        (an advance round without a place included: it still never queues among its own class). A testnet round held
+        back this way for `MAINNET_FIRST_PATIENCE_S` counts as outranking too from then on (first come among them), so
+        testnet is never starved forever. Within one class the order is the one above, unchanged; a lone door, or doors
+        of one network, see no difference. A round already holding the host lock is never preempted.
         """
+        waiters = self._classed_waiters()
+        if not self._outranks():
+            if any(rank == 0 for rank, _, _ in waiters):
+                now = time.monotonic()
+                if self._held_since is None:
+                    self._held_since = now
+                if now - self._held_since < MAINNET_FIRST_PATIENCE_S:
+                    return True
+                self._promoted = True
+                log("direct_work_mainnet_first_patience_spent")
+            else:
+                self._held_since = None
         if not self._grade_round:
             return False
         mine = (
+            0 if self._outranks() else 1,
             time.time_ns() if self._wait_since is None else self._wait_since,
             os.getpid(),
         )
-        return any(other < mine for other in self._waiters())
+        return any(other < mine for other in waiters)
 
     def _mark_waiting(self, waiting):
         """This door's entry in the host's waiting list (``<lock dir>/official-grading.waiting/<pid>-<start>``), holding
         the time it began to wait (its place in the round-robin)."""
         path = self._waiting_dir() / f"{os.getpid()}-{_process_start(os.getpid())}"
+        rank = self._priority_dir() / path.name
         if waiting:
+            if self._outranks() and not rank.exists():
+                # BEFORE the waiting entry, so a reader never sees an outranking door as class 1
+                self._priority_dir().mkdir(mode=0o700, exist_ok=True)
+                rank.touch(mode=0o600)
             if self._wait_since is not None and path.exists():
                 os.utime(path)  # still waiting: refreshed every poll (`WAITER_STALE_S`)
                 return
@@ -1213,6 +1278,7 @@ class _WorkLock:
             os.replace(staged, path)
         else:
             path.unlink(missing_ok=True)
+            rank.unlink(missing_ok=True)
             self._wait_since = None
 
     def _try_host(self):
@@ -1313,6 +1379,7 @@ class _Taking:
         visible = self.kind == "grade" and self.has_work is not None
         work._grade_round = visible
         work._wait_since = None
+        work._held_since, work._promoted = None, False
         waiting = False
         try:
             reason = work._declined()
