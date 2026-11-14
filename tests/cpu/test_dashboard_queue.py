@@ -257,8 +257,16 @@ def test_the_rows_reader_accepts_exactly_the_closed_v3_document():
             "cases": [],
             "fetches": [],
             "row_cases": [
-                {"name": "good", "text": json.dumps(_rows_doc(rows)), "challenge": MOTOR},
-                {"name": "empty", "text": json.dumps(_rows_doc([])), "challenge": MOTOR},
+                {
+                    "name": "good",
+                    "text": json.dumps(_rows_doc(rows)),
+                    "challenge": MOTOR,
+                },
+                {
+                    "name": "empty",
+                    "text": json.dumps(_rows_doc([])),
+                    "challenge": MOTOR,
+                },
             ],
         }
     )["rowsChecked"]
@@ -281,7 +289,11 @@ def test_the_rows_reader_accepts_exactly_the_closed_v3_document():
         ("not_a_list", _rows_doc(rows="rows"), "rows_count"),
         ("101_rows", _rows_doc([_row(i + 1) for i in range(101)]), "rows_count"),
         ("extra_row_field", _rows_doc([{**_row(1), "score": 0.5}]), "rows_row"),
-        ("missing_row_field", _rows_doc([{"position": 1, "state": "building", "hotkey": None}]), "rows_row"),
+        (
+            "missing_row_field",
+            _rows_doc([{"position": 1, "state": "building", "hotkey": None}]),
+            "rows_row",
+        ),
         ("position", _rows_doc([_row(2)]), "rows_row"),
         ("state", _rows_doc([_row(1, "waiting to grade")]), "rows_row"),
         ("old_state", _rows_doc([_row(1, "grading")]), "rows_row"),
@@ -325,11 +337,27 @@ def test_the_rows_come_from_the_feeds_own_door_at_the_v3_path_and_fail_closed():
             "urls": [FEED, "http://x/carbon/v1/feed/a", "https://x/other"],
             "fetches": [],
             "row_fetches": [
-                {"name": "ok", "feed": FEED, "status": 200, "body": json.dumps(_rows_doc())},
+                {
+                    "name": "ok",
+                    "feed": FEED,
+                    "status": 200,
+                    "body": json.dumps(_rows_doc()),
+                },
                 {"name": "not_served", "feed": FEED, "status": 404, "body": "{}"},
                 {"name": "down", "feed": FEED, "status": 503, "body": "{}"},
-                {"name": "wrong", "feed": FEED, "status": 200, "body": json.dumps(_doc())},
-                {"name": "unreachable", "feed": FEED, "status": 200, "body": "", "throws": True},
+                {
+                    "name": "wrong",
+                    "feed": FEED,
+                    "status": 200,
+                    "body": json.dumps(_doc()),
+                },
+                {
+                    "name": "unreachable",
+                    "feed": FEED,
+                    "status": 200,
+                    "body": "",
+                    "throws": True,
+                },
             ],
         }
     )
@@ -340,13 +368,22 @@ def test_the_rows_come_from_the_feeds_own_door_at_the_v3_path_and_fail_closed():
     assert got["rowUrls"]["http://x/carbon/v1/feed/a"] is None
     assert got["rowUrls"]["https://x/other"] is None
     fetched = got["rowsFetched"]
-    assert fetched["ok"]["state"] == "ACCEPTED" and len(fetched["ok"]["rows"]["rows"]) == 1
+    assert (
+        fetched["ok"]["state"] == "ACCEPTED" and len(fetched["ok"]["rows"]["rows"]) == 1
+    )
     assert fetched["ok"]["asked"] == [
         f"https://motor-door.example/carbon/v1/queue/{MOTOR}/v3"
     ]
-    assert fetched["not_served"]["state"] == "NOT_SERVED" and fetched["not_served"]["rows"] is None
-    assert fetched["down"]["code"] == "rows_http_503" and fetched["down"]["rows"] is None
-    assert fetched["wrong"]["state"] == "UNAVAILABLE" and fetched["wrong"]["rows"] is None
+    assert (
+        fetched["not_served"]["state"] == "NOT_SERVED"
+        and fetched["not_served"]["rows"] is None
+    )
+    assert (
+        fetched["down"]["code"] == "rows_http_503" and fetched["down"]["rows"] is None
+    )
+    assert (
+        fetched["wrong"]["state"] == "UNAVAILABLE" and fetched["wrong"]["rows"] is None
+    )
     assert fetched["unreachable"]["code"] == "rows_unreachable"
 
 
@@ -358,7 +395,12 @@ def test_the_rows_reader_accepts_what_the_doors_writer_writes():
     challenge = type("C", (), {"challenge_id": MOTOR, "version": "1.8"})()
     q = qp.ROWS_QUANTUM_S
     rows = [
-        {"position": 1, "hotkey": qp.short_hotkey("5Grw" + "A" * 40 + "utQY"), "state": state, "in_queue_s": i * q}
+        {
+            "position": 1,
+            "hotkey": qp.short_hotkey("5Grw" + "A" * 40 + "utQY"),
+            "state": state,
+            "in_queue_s": i * q,
+        }
         for i, state in enumerate(qp.ROW_STATES)
     ]
     for i, row in enumerate(rows):
@@ -376,9 +418,15 @@ def test_the_rows_reader_accepts_what_the_doors_writer_writes():
     }
     text = json.dumps(qp.document_v3(snapshot, challenge))
     got = _run(
-        {"cases": [], "fetches": [], "row_cases": [{"name": "door", "text": text, "challenge": MOTOR}]}
+        {
+            "cases": [],
+            "fetches": [],
+            "row_cases": [{"name": "door", "text": text, "challenge": MOTOR}],
+        }
     )["rowsChecked"]["door"]
-    assert got["ok"] is True and [r["state"] for r in got["value"]["rows"]] == list(qp.ROW_STATES)
+    assert got["ok"] is True and [r["state"] for r in got["value"]["rows"]] == list(
+        qp.ROW_STATES
+    )
 
 
 # --- the page: the rows table under the counts -----------------------------------------------------------------------------
@@ -414,7 +462,11 @@ def test_the_page_shows_one_row_per_submission_and_says_what_it_does_not_show():
             {
                 "state": "ACCEPTED",
                 "code": None,
-                "rows": {"rows": rows, "more_rows": 7, "rows_as_of": "2026-11-14T13:00:00Z"},
+                "rows": {
+                    "rows": rows,
+                    "more_rows": 7,
+                    "rows_as_of": "2026-11-14T13:00:00Z",
+                },
             }
         )
     )
@@ -430,16 +482,42 @@ def test_the_page_shows_one_row_per_submission_and_says_what_it_does_not_show():
     assert "crown check row means the grade beat the king's screening" in text
     assert "recipe, score or the exam is shown" in text
     assert "2026-11-14 13:00:00 UTC" in text
-    assert got["inQueue"] == ["under 5 min", "under 5 min", "5 min", "15 min", "1 h 0 min", "1 h 30 min", ""]
+    assert got["inQueue"] == [
+        "under 5 min",
+        "under 5 min",
+        "5 min",
+        "15 min",
+        "1 h 0 min",
+        "1 h 30 min",
+        "",
+    ]
 
 
 def test_the_page_says_so_when_nothing_is_waiting_or_the_list_is_unavailable_and_nothing_when_not_served():
     nothing = _page(
-        _panel({"state": "ACCEPTED", "code": None, "rows": {"rows": [], "more_rows": 0, "rows_as_of": "2026-11-14T13:00:00Z"}})
+        _panel(
+            {
+                "state": "ACCEPTED",
+                "code": None,
+                "rows": {
+                    "rows": [],
+                    "more_rows": 0,
+                    "rows_as_of": "2026-11-14T13:00:00Z",
+                },
+            }
+        )
     )
-    assert nothing["tables"] == 0 and "Nothing is waiting at this door right now." in nothing["text"]
-    down = _page(_panel({"state": "UNAVAILABLE", "code": "rows_http_503", "rows": None}))
-    assert down["tables"] == 0 and "The list of submissions is not available right now." in down["text"]
+    assert (
+        nothing["tables"] == 0
+        and "Nothing is waiting at this door right now." in nothing["text"]
+    )
+    down = _page(
+        _panel({"state": "UNAVAILABLE", "code": "rows_http_503", "rows": None})
+    )
+    assert (
+        down["tables"] == 0
+        and "The list of submissions is not available right now." in down["text"]
+    )
     for panel in ({"state": "NOT_SERVED", "code": None, "rows": None}, None):
         plain = _page(_panel(panel))
         assert plain["tables"] == 0 and "list of submissions" not in plain["text"]
