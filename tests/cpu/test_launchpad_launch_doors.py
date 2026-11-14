@@ -20,8 +20,9 @@ from scripts.dev.miner_launchpad.environment_setup import (
 NETUID = {"testnet": 567, "finney": 116}
 
 LAUNCH = {
+    # No testnet Motor: once a Challenge is on main there is no testnet door for it
+    # (owner rule, 13 Nov); testnet Motor's door closed when Motor 1.8 opened on 116.
     "testnet": {
-        ("electric-motor-magnetics", "1.8"): "motor-door",
         ("chip-cold-plate", "1.6"): "cooling-door",
         ("f08-ribbed-bracket", "1.7"): "ribbed-bracket-door",
         ("f02", "2.5"): "burst-thermal-door",

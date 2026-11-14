@@ -12,7 +12,7 @@ This guide gets you from a clean machine to your first graded model.
 
 > **You need a machine with 32 GB of memory.** With less, the installer stops at step 1 and says so ("This machine has X GiB of memory. Carbon needs 32 GB to install and practise; with less, the install fails partway. Use a machine with 32 GB or more."). An expert can go on anyway with `--allow-low-memory`; the install may fail partway.
 
-> **Testnet only, for now.** Everything here runs on Carbon's test network (subnet 567). Nothing is paid yet. Mainnet: see *Moving to mainnet*.
+> **Motor is on mainnet; the other Challenges are still on the test network.** Motor runs on mainnet (subnet 116); Cooling, Ribbed Bracket and Burst Thermal run on Carbon's test network (subnet 567) until they launch. Nothing on the test network is paid. Mainnet: see *Moving to mainnet*.
 
 > **Mainnet starts clean.** Nothing from testnet carries over to mainnet: not registrations, scores, submissions, frontier standing or any other record. Plan to register and submit again.
 
@@ -252,7 +252,7 @@ Official submissions for this version go to https://burst-thermal-door.carbonphy
 
 ### Motor 1.5
 
-Official submissions for this version go to https://motor-door.carbonphysics.ai until testnet Motor moves to 1.8; from that switch the same address takes Motor 1.8 instead (its rules: `kits/motor/HOW_YOURE_TESTED.md`). The installer update puts that address in your profile; you type nothing.
+Motor 1.5 is no longer graded: Motor is version 1.8 (its rules: `kits/motor/HOW_YOURE_TESTED.md`), and its grader is on mainnet only; the test network has no Motor door. The gates and laws below are Motor 1.5's, kept for reference.
 
 - **Hard gates:** `native_motor_valid`, `complete_fixed_coverage`, `physics_laws`, `schema_finite` (the torque curve has 60 finite values), `motoring_mean_nonnegative` (mean(torque) is at least -(1e-3 x max|torque| + 1e-3 N.m)), `paired_repeat` (within 32 float32 ulp), and the two gates above
 - **Physics laws (gated):** `mean_torque_positive`: the mean torque of the predicted curve is positive wherever the current density exceeds 1 A/mm^2
@@ -375,7 +375,7 @@ Any agent that speaks MCP can drive Carbon with the same tools the page uses: la
 claude mcp add carbon --scope user -- ~/carbon/.venv/bin/carbon-mcp --configuration ~/.carbon/development-launchpad/environment/runner-profile.json
 ```
 
-Then ask it, for example: *"Launch a Carbon campaign on electric-motor-magnetics 1.5 with agent none, run two practices, freeze the better eligible one, submit it, and check the result."*
+Then ask it, for example: *"Launch a Carbon campaign on chip-cold-plate 1.6 with agent none, run two practices, freeze the better eligible one, submit it, and check the result."*
 
 Your agent can set up practice-only too: `carbon_setup_status` lists `practice_choice` (the call is `carbon_setup_practice` with `{"confirm": true}`). An agent should offer it and take it only when you choose it.
 
@@ -436,8 +436,8 @@ open on mainnet; until then it is **burned**, never handed to miners in
 other Challenges. At the mainnet launch only Motor is open, so three
 quarters of the emissions burn, and each Challenge's quarter starts paying
 when it opens (any change to the policy is published as a new policy version
-before it applies). The test network runs the same rule over its four
-Challenges, paid in test TAO, which has no money value.
+before it applies). The test network runs the same rule over the
+Challenges it still serves, paid in test TAO, which has no money value.
 
 **One king per Challenge.** The king is the miner whose model holds the
 crown (see *King of the hill* above).
@@ -501,11 +501,12 @@ do, and what stays the same.
 - **Where submissions go.** Each Challenge has its own mainnet grader
   address: **HUMAN_INPUT** (per Challenge). Setup writes each address into
   your profile once it is published and your profile is on mainnet.
-- **Which versions open.** Motor 1.8 and Cooling 1.8 are planned to open
-  first. Burst Thermal 3.2 and Ribbed Bracket 2.0 each open once it passes
+- **Which versions open.** Motor 1.8 is open on mainnet. Cooling 1.8 is
+  planned to open next, directly on mainnet, with no test-network 1.8
+  version. Burst Thermal 3.2 and Ribbed Bracket 2.0 each open once it passes
   its checks (dates: **HUMAN_INPUT**). All four are planned to score both
-  physics and design value, behind a physics gate. We update this list as each one
-  opens. Each version has its own *How you're tested* page.
+  physics and design value, behind a physics gate. We update this list as each
+  one opens. Each version has its own *How you're tested* page.
 - **Mainnet starts clean.** Nothing from the test network carries over: no
   registration, crown, score, submission or frontier standing. Test network
   results are rehearsal only.

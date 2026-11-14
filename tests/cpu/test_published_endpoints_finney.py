@@ -1,4 +1,4 @@
-"""The published endpoints list carries Motor 1.8 on finney subnet 116 beside the testnet entries (13 Nov).
+"""The published endpoints list carries Motor 1.8 on finney subnet 116 beside the testnet entries of the Challenges still on the test network (13 Nov).
 
 A miner on finney 116 reads the entry for (finney, 116) only, and a testnet miner never sees it: entries for another network or
 subnet are skipped. The real file loads without a problem (a malformed entry would publish nothing at all).
@@ -31,9 +31,11 @@ def test_the_list_names_motor_1_8_on_finney_116_exactly():
             "receiver_hotkey": FINNEY_RECEIVER,
         }
     ]
-    # the testnet entries are untouched: four, all on netuid 567
+    # the testnet entries: Motor's door closed when Motor 1.8 opened on 116 (owner rule, 13 Nov),
+    # so three remain, all on netuid 567, and none names Motor
     testnet = [e for e in document["endpoints"] if e["network"] == "testnet"]
-    assert len(testnet) == 4 and {e["netuid"] for e in testnet} == {567}
+    assert len(testnet) == 3 and {e["netuid"] for e in testnet} == {567}
+    assert MOTOR not in {e["challenge"] for e in testnet}
 
 
 @pytest.fixture
@@ -72,13 +74,9 @@ def test_a_testnet_miner_never_sees_the_finney_entry(on):
         for entry in versions.values()
     }
     assert FINNEY_URL not in urls
+    # a testnet miner is offered no Motor door: it closed when Motor opened on 116
     assert set(published["endpoints"]) == {
         "f08-ribbed-bracket",
-        MOTOR,
         "chip-cold-plate",
         "f02",
     }
-    assert (
-        published["endpoints"][MOTOR]["1.8"]["intake_url"]
-        == "https://motor-door.carbonphysics.ai"
-    )
