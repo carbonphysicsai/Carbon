@@ -24,6 +24,7 @@ from test_crown_average_wiring import (
     _comparator,
     _flow,
     _pair,
+    _Pairs,
 )
 
 from carbon.challenge_validator import bank_promotion as bp
@@ -326,6 +327,91 @@ def test_the_sweep_resumes_it_every_tick_without_spacing_alert_or_resolution_unt
     assert (
         len(repeat.asked) == CALLS
     )  # every rebuild ran exactly once across the live call and the ticks
+
+
+def test_a_stepped_decision_resumes_across_a_restart_from_the_kept_rebuilds_and_equals_the_single_call_one(
+    tmp_path, monkeypatch
+):
+    """Run 2 of the N + 1 stepped rebuilds (the live call and one sweep tick), then RESTART: a NEW PoolStore on the same file, a
+    fresh Active and flow, cleared sweep process state. The sweep resumes from the rebuilds kept on disk: the kept ones are
+    not run again, the decision and its private record equal the single-call ones, and the crown moves exactly once.
+    """
+    from carbon.battery.pool_store import PoolStore
+
+    single = tmp_path / "single"
+    single.mkdir()
+    store0, flow0 = _king_and_contender(single, monkeypatch, contender_total=0.7123)
+    flow0.consider_private(
+        "b",
+        KEY,
+        _comparator(),
+        repeat=Repeat("b", [0.7123] * N),
+        average=_active(single, n=N),
+    )
+    expected_mean = store0.crown_mean("b")
+    assert store0.incumbent()["model_id"] == "b" and expected_mean is not None
+
+    stepped = tmp_path / "stepped"
+    stepped.mkdir()
+    store, flow = _king_and_contender(stepped, monkeypatch, contender_total=0.7123)
+    exam = digest("exam")
+    before = Repeat("b", [0.7123] * N)
+    first = flow.consider_private(
+        "b", KEY, _comparator(), repeat=before, average=_stepped(stepped)
+    )
+    before.entry_id = digest("entry")
+    lrr._file_if_paused(store, first, "pack", "b", exam, before, digest("pin"))
+
+    def tick(the_store, the_flow, the_repeat, the_average):
+        return sweep.sweep(
+            the_store,
+            lambda record: the_flow.consider_private(
+                record["submission_id"],
+                record["evaluation_key"],
+                _comparator(),
+                repeat=the_repeat,
+                average=the_average,
+            ),
+            kind="pack",
+            current_exam=exam,
+        )
+
+    assert tick(store, flow, before, _stepped(stepped)) == []  # the second rebuild
+    assert len(before.asked) == 2 and store.kept_crown_rebuilds("b", KEY) == 2
+    assert store.incumbent()["model_id"] == "a"  # nothing moved yet
+
+    # --- the restart: a new store on the SAME file, a new flow and Active, cleared process state ---
+    del store, flow
+    sweep._FIRST_SEEN.clear()
+    sweep._KING_CHANGED.clear()
+    reopened = PoolStore(stepped / "pool.sqlite", clock=lambda: 0.0)
+    a, b = _body("a", 0.70), _body("b", 0.7123)
+    monkeypatch.setattr(
+        reopened,
+        "private_evaluation_pair",
+        _Pairs({"a": _pair(a, None), "b": _pair(b, a)}),
+    )
+    new_flow = bp.BankPromotion(
+        reopened, registered_source_receipt_sha256=digest("pin")
+    )
+    after = Repeat("b", [0.7123] * N)
+    after.entry_id = digest("entry")
+    assert (
+        reopened.kept_crown_rebuilds("b", KEY) == 2
+    )  # the kept rebuilds survived the restart
+    average = _stepped(stepped)
+    resolved = []
+    for _ in range(CALLS):  # more ticks than needed: the rest are no-ops
+        resolved += tick(reopened, new_flow, after, average)
+    assert resolved == [("b", f"{bp.CHALLENGER}:{ca.MEAN_EXCEEDS}")]  # decided once
+    # the kept rebuilds were not run again: the remaining two ran, the first two did not
+    assert len(before.asked) + len(after.asked) == CALLS
+    assert len(after.asked) == CALLS - 2
+    assert reopened.incumbent()["model_id"] == "b"
+    assert (
+        reopened.crown_mean("b") == expected_mean
+    )  # equals the single-call decision's mean
+    assert reopened.paused_crowns("pack") == []
 
 
 def test_a_second_contender_waits_behind_the_one_in_progress(tmp_path, monkeypatch):
