@@ -243,6 +243,9 @@ class MinerProgramFailure(Exception):
         super().__init__(result["observation"])
         self.result = result
         self.code = WorkerCode(result["failure_code"])
+        #: True only on a REPLAY of an already settled operation (`run_script`: nothing ran this time). A replay is the
+        #: record of an EARLIER observation, never a new one: no door counts it against a candidate.
+        self.replayed = False
 
 
 MINER_FAILURE_SCHEMA = "carbon.autoresearch.miner-program-failure.v1"
@@ -1480,8 +1483,12 @@ def _run_locked(
         if admission["state"] == "RESERVED":
             raise ValueError("research operation ambiguous; reconcile, never duplicate")
         if admission["state"] == "FAILED_MINER":
-            # A replay reports the same typed outcome, never a success.
-            raise MinerProgramFailure(admission["result"])
+            # A replay reports the same typed outcome, never a success, and says that it IS a replay: the worker did not
+            # run, so a door must not read it as a fresh observation of the candidate's own wall stop (13 Nov: a
+            # re-queued task replayed its first attempt's contended stop and was counted against the miner).
+            replay = MinerProgramFailure(admission["result"])
+            replay.replayed = True
+            raise replay
         return admission["result"]
     started = time.monotonic()
     started_unix = time.time()

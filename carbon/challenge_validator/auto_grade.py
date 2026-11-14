@@ -355,7 +355,14 @@ class AutoGrader:
                         submission_id, "CANDIDATE_FAILED", code=_WALL_LIMIT_REACHED
                     )
                     return submission_id, "CANDIDATE_FAILED"
-                self._fail(submission_id, type(failure).__name__)
+                self._fail(
+                    submission_id,
+                    (
+                        REPLAYED_NOT_RERUN
+                        if getattr(failure, "replayed", False) is True
+                        else type(failure).__name__
+                    ),
+                )
                 return submission_id, "FAILED"
             entry = result.get("entry_id") if type(result) is dict else None
             if (
@@ -783,6 +790,9 @@ class AutoGrader:
 
 
 _WALL_LIMIT_REACHED = "WORKER_WALL_LIMIT_REACHED"
+#: The marker code of a grade that REPLAYED a settled candidate failure instead of running (a re-queued task whose
+#: first attempt already settled FAILED_MINER): typed so, given back as infrastructure and never counted.
+REPLAYED_NOT_RERUN = "replayed_not_rerun"
 #: The carrier names every worker container it starts ``carbon-d4-<launch digest>`` (`research_carrier`).
 _WORKER_PREFIX = "carbon-d4-"
 
@@ -857,6 +867,9 @@ def _candidate_wall_stop(error):
 
     return (
         isinstance(error, carrier.MinerProgramFailure)
+        # a REPLAY of a settled failure (the worker did not run) is the record of an earlier observation: never a new
+        # candidate wall stop, so never counted here (`research_carrier.MinerProgramFailure.replayed`)
+        and getattr(error, "replayed", False) is not True
         and error.code is WorkerCode.DEADLINE
         and error.result.get("observation") == carrier.CANDIDATE_WALL_LIMIT
     )

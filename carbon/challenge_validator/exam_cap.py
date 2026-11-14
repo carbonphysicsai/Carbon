@@ -942,6 +942,46 @@ class ExamCap:
             ).rowcount
         return "COUNTED" if changed == 1 else None
 
+    def reclass_counted_wall(self, submission_id: str) -> dict:
+        """Give back the one COUNTED slot of a candidate wall stop that the Validator ruled was NOT the candidate's
+        (`infra_requeue.reclass`, the owner path; invariant 7: no count without a supported model-speed cause). Only a
+        GRADED row in exactly COUNTED / WORKER_WALL_LIMIT_REACHED is moved (compare-and-swap) to RELEASED /
+        FAILED_INFRA: the row stays as history, nothing is regraded or rescored, and the same recipe runs again as a
+        fresh task. Returns the row as it was; refuses ``reclass_no_single_counted_wall_row`` unless exactly one such
+        row exists, ``reclass_row_changed`` on a race.
+        """
+        if type(submission_id) is not str or not submission_id:
+            raise ExamCapRefused("exam_cap_identity_unavailable")
+        with self.ledger._db() as db:
+            rows = db.execute(
+                "SELECT id, hotkey, challenge_id, challenge_version, exam_key, epoch, "
+                "state, status FROM exam_graded WHERE submission_id=? AND kind='GRADED' "
+                "AND state='COUNTED' AND status='WORKER_WALL_LIMIT_REACHED'",
+                (submission_id,),
+            ).fetchall()
+            if len(rows) != 1:
+                raise ExamCapRefused("reclass_no_single_counted_wall_row")
+            row = rows[0]
+            changed = db.execute(
+                "UPDATE exam_graded SET state='RELEASED', status='FAILED_INFRA', "
+                "settled_ns=? WHERE id=? AND state='COUNTED' AND "
+                "status='WORKER_WALL_LIMIT_REACHED'",
+                (int(self.clock()), row[0]),
+            ).rowcount
+            if changed != 1:
+                raise ExamCapRefused("reclass_row_changed")
+        names = (
+            "row",
+            "hotkey",
+            "challenge_id",
+            "challenge_version",
+            "exam_key",
+            "epoch",
+            "prior_state",
+            "prior_status",
+        )
+        return dict(zip(names, row))
+
     def released_on_infra(
         self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
     ) -> bool:

@@ -10,6 +10,7 @@ reserved or graded. `auto_grade._give_back` then raised as well (fixed in A1), s
     python -m carbon.challenge_validator.infra_requeue requeue --root RECEIVER_STATE --ids IDS.txt [--apply]
     python -m carbon.challenge_validator.infra_requeue release --root RECEIVER_STATE --id rtsk_... [--apply]
     python -m carbon.challenge_validator.infra_requeue keep-evaluation --root RECEIVER_STATE --ids IDS.txt [--apply]
+    python -m carbon.challenge_validator.infra_requeue reclass --root RECEIVER_STATE --id rtsk_... --ruling ID [--apply]
 
 ``list`` (read-only) regenerates the task list from the door itself, BY CRITERION, never from a frozen file: every
 FAILED task ``requeue`` would accept (with its arrival time, grouped at ``--split``, 3 Nov 00:00Z by default, for
@@ -63,6 +64,15 @@ and the miner's Ladder shows nothing from that round) is given back through the 
 state written to ``requeued/releases.jsonl`` with its reason; no regrade, no rescore. REFUSED when the grade was
 delivered (a GRADED or CANDIDATE_FAILED marker, or a Ladder document of that round), when the task has no marker yet,
 or when the row is not COUNTED. Whether the result was filed in the pool/KOTH store is read by the TL before a release.
+
+``reclass`` (13 Nov; the owner path for a COUNTED candidate wall stop the Validator ruled was not the candidate's): one
+task whose marker is CANDIDATE_FAILED / WORKER_WALL_LIMIT_REACHED and whose exam row is exactly one GRADED row COUNTED /
+WORKER_WALL_LIMIT_REACHED is given back through `ExamCap.reclass_counted_wall`: RELEASED / FAILED_INFRA, so the miner's
+resubmit of the recipe runs as a FRESH task in their next slot. ``--ruling`` names the Validator's ruling (a closed id, e.g.
+``CVMOTORC-L9753``) and is required; it is written, with the prior state, to ``requeued/reclass.jsonl``. NO regrade, NO
+rescore, NO re-queue (a re-queue would replay the task's settled FAILED_MINER operation), and the marker, the evaluation
+files and any Ladder document are left exactly as they are (the record). REFUSED for any other marker or row state, a task
+already reclassed, or a task ``release`` gave back. The dry run also shows the task's ``wall-stops.jsonl`` row (counts only).
 
 Without ``--apply`` nothing changes. Each prints one JSON document: task ids, codes and counts only (no hotkey, path or
 score). Runs with the door up: sqlite writes go through the ledger's own transactions, the owner stores are opened
@@ -712,6 +722,106 @@ def release(root, task, *, apply=False, clock=time.time_ns):
     }
 
 
+_RULING = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{2,95}")
+
+
+def _marker_body(path):
+    """The marker's ``(state, code)``, or ``(None, None)`` when it is absent, a link, unreadable or not a marker."""
+    from .auto_grade import SCHEMA as MARKER_SCHEMA
+
+    if path.is_symlink():
+        return None, None
+    try:
+        body = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None, None
+    if type(body) is not dict or body.get("schema") != MARKER_SCHEMA:
+        return None, None
+    return body.get("state"), body.get("code")
+
+
+def _wall_stop_row(root, task):
+    """The task's LAST ``wall-stops.jsonl`` row (counts and booleans only), or None."""
+    path = Path(root) / "auto-grade" / "wall-stops.jsonl"
+    found = None
+    try:
+        for line in path.read_text().splitlines():
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if type(row) is dict and row.get("task") == task:
+                found = {k: v for k, v in row.items() if k != "task"}
+    except OSError:
+        return None
+    return found
+
+
+def reclass(root, task, *, ruling, apply=False, clock=time.time_ns):
+    """Give back one COUNTED candidate wall stop the Validator ruled was not the candidate's (see the module text)."""
+    out = {
+        "schema": SCHEMA,
+        "action": "reclass",
+        "apply": apply,
+        "task": task,
+        "ruling": ruling,
+    }
+    if type(task) is not str or not _TASK.fullmatch(task):
+        return {**out, "refused": "not_a_task_id"}
+    if type(ruling) is not str or not _RULING.fullmatch(ruling):
+        return {**out, "refused": "ruling_id_required"}
+    if _released(root, task):
+        return {**out, "refused": "already_given_back"}
+    paths = _paths(root, task)
+    state, code = _marker_body(paths["marker"])
+    if state != "CANDIDATE_FAILED" or code != "WORKER_WALL_LIMIT_REACHED":
+        return {**out, "refused": "marker_is_not_a_counted_wall_stop"}
+    ledger, cap = _ledger(root)
+    with ledger._db() as db:
+        counted = [
+            row
+            for row in _rows(db, task)
+            if row[1] == "COUNTED" and row[2] == "WORKER_WALL_LIMIT_REACHED"
+        ]
+        if len(counted) != 1 or len(_rows(db, task)) != 1:
+            return {**out, "refused": "reclass_no_single_counted_wall_row"}
+    row = counted[0]
+    before = {"row": row[0], "prior_state": row[1], "prior_status": row[2]}
+    wall_stop = _wall_stop_row(root, task)
+    if not apply:
+        return {**out, "reclassed": before, "wall_stop": wall_stop}
+    from .exam_cap import ExamCapRefused
+
+    try:
+        done = cap.reclass_counted_wall(task)
+    except ExamCapRefused as refused:
+        return {**out, "refused": refused.code}
+    record = {
+        "task": task,
+        "row": done["row"],
+        "prior_state": done["prior_state"],
+        "prior_status": done["prior_status"],
+        "marker_state": state,
+        "marker_code": code,
+        "state": "RELEASED",
+        "status": "FAILED_INFRA",
+        "reason": "counted_wall_stop_ruled_not_the_candidates",
+        "ruling": ruling,
+        "wall_stop": wall_stop,
+        "at_ns": int(clock()),
+    }
+    directory = paths["kept_marker"].parent
+    directory.mkdir(mode=0o700, exist_ok=True)
+    with open(directory / "reclass.jsonl", "a", encoding="utf-8") as log:
+        log.write(json.dumps(record, sort_keys=True) + "\n")
+    return {
+        **out,
+        "reclassed": before,
+        "after": {"state": "RELEASED", "status": "FAILED_INFRA"},
+        "wall_stop": wall_stop,
+    }
+
+
 def _stuck(root, task):
     """Whether ``task`` is one of this door's A2 stuck tasks: handed back or archived by ``requeue``, released by
     ``release``, or still FAILED for the registration cause."""
@@ -732,16 +842,20 @@ def _stuck(root, task):
 
 
 def _released(root, task):
-    """Whether ``release`` gave this task's slot back (its line in ``requeued/releases.jsonl``)."""
-    log = Path(root) / "auto-grade" / "requeued" / "releases.jsonl"
-    try:
-        return any(
-            json.loads(line).get("task") == task
-            for line in log.read_text().splitlines()
-            if line.strip()
-        )
-    except (OSError, ValueError, AttributeError):
-        return False
+    """Whether ``release`` (or ``reclass``) gave this task's slot back (its line in ``requeued/releases.jsonl`` or
+    ``requeued/reclass.jsonl``)."""
+    for name in ("releases.jsonl", "reclass.jsonl"):
+        log = Path(root) / "auto-grade" / "requeued" / name
+        try:
+            if any(
+                json.loads(line).get("task") == task
+                for line in log.read_text().splitlines()
+                if line.strip()
+            ):
+                return True
+        except (OSError, ValueError, AttributeError):
+            continue
+    return False
 
 
 def _ns(text):
@@ -895,6 +1009,13 @@ def main(argv=None):
     four.add_argument("--root", type=Path, required=True)
     four.add_argument("--ids", type=Path, required=True, help="the re-queued task ids")
     four.add_argument("--apply", action="store_true")
+    five = sub.add_parser("reclass")
+    five.add_argument("--root", type=Path, required=True)
+    five.add_argument("--id", required=True)
+    five.add_argument(
+        "--ruling", required=True, help="the Validator ruling id (a closed id)"
+    )
+    five.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     if args.cmd == "list":
         out = scan(args.root, split=args.split)
@@ -930,10 +1051,12 @@ def main(argv=None):
             window_end=args.window_end,
             apply=args.apply,
         )
+    elif args.cmd == "reclass":
+        out = reclass(args.root, args.id, ruling=args.ruling, apply=args.apply)
     else:
         out = release(args.root, args.id, apply=args.apply)
     print(json.dumps(out, sort_keys=True))
-    return 3 if args.cmd == "release" and out.get("refused") else 0
+    return 3 if args.cmd in ("release", "reclass") and out.get("refused") else 0
 
 
 if __name__ == "__main__":

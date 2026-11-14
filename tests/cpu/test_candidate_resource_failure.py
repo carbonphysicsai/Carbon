@@ -148,12 +148,15 @@ def test_the_wall_stop_is_a_typed_candidate_failure(harness, monkeypatch, proven
 def test_a_replay_of_the_settled_failure_stays_typed(harness, monkeypatch):
     _observe(monkeypatch, _observation(oom_kill=2, peak=LIMIT))
     error = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"exit=137\n")
-    with pytest.raises(carrier.MinerProgramFailure):
+    with pytest.raises(carrier.MinerProgramFailure) as first:
         _run_failing(harness, error, provenance=GRAPH_BUILD)
+    assert first.value.replayed is False  # a real observation
     harness.fail_stage = None
     with pytest.raises(carrier.MinerProgramFailure) as again:
         harness.run(provenance=GRAPH_BUILD)
     assert again.value.result["observation"] == carrier.CANDIDATE_MEMORY_LIMIT
+    # nothing ran this time: the replay says so, so no door reads it as a NEW candidate observation (13 Nov)
+    assert again.value.replayed is True
 
 
 def test_other_provenances_keep_the_infrastructure_failure(harness, monkeypatch):
