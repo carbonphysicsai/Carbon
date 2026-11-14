@@ -537,23 +537,23 @@ do, and what stays the same.
 
    You can use the same wallet as on the test network; registration is
    separate on each network.
-4. Restart your signer and the Control Center on mainnet. Carbon reads the
-   network from the environment variable `CARBON_CHAIN_NETWORK` (unset means
-   the test network), so start each of them with it set to `finney`. The
-   installer printed both commands when it finished; put the variable in
-   front of each:
+4. Move your install to mainnet by running the installer again with the
+   network named, with the options you installed with:
 
    ```bash
-   CARBON_CHAIN_NETWORK=finney ~/carbon/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>
-   CARBON_CHAIN_NETWORK=finney ~/carbon/.venv/bin/carbon-control-center --state-dir <your state directory> --port <your port>
+   ~/carbon/scripts/install_miner.sh --update --network finney
    ```
 
-   If the Control Center runs as the installer's systemd user service, add the
-   variable to its unit instead (`systemctl --user edit <your service name>`,
-   then under `[Service]` add `Environment=CARBON_CHAIN_NETWORK=finney`) and
-   restart it. An agent that starts Carbon's MCP server itself needs the same
-   variable in that server's environment. A process started without it is on
-   the test network and cannot reach the mainnet grader.
+   (add `--service` if the Control Center runs as a systemd user service).
+   It points the Control Center, and with `--service` its unit, at subnet
+   116, and it prints your signer command and the command to start the
+   Control Center again, each with the network set. Restart your signer with
+   the command it printed. A later `--update` keeps a service that runs
+   mainnet on mainnet; `--network testnet` moves it back to the test
+   network. If you start Carbon's MCP server from your own agent, set
+   `CARBON_CHAIN_NETWORK=finney` in that server's environment as well. A
+   process started without the network is on the test network and cannot
+   reach the mainnet grader.
 5. Open **Setup**: **Join Carbon mining** confirms your registration from the
    chain.
 6. Submit again. Nothing from the test network counts on mainnet.

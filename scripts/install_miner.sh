@@ -70,6 +70,7 @@ PYTORCH=0
 START=1
 UPDATE=0
 SERVICE=0
+NETWORK=""
 REMOVE_OLD_IMAGES=0
 REMOVE_CATALOG_IMAGES=0
 ALLOW_LOW_MEMORY=0
@@ -102,6 +103,7 @@ usage() {
   cat <<'EOF'
 usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --release TAG]
                                 [--no-start] [--service] [--port PORT]
+                                [--network testnet|finney]
        scripts/install_miner.sh --development-candidate REVISION TREE SOURCE_DIGEST
                                 [--gpu] [--pytorch] [--no-start] [--port PORT]
 
@@ -151,6 +153,13 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                other CARBON_STATE_DIR. An install never writes, starts or
                stops another state directory's service
   --port PORT  the Control Center's local port (default 8788)
+  --network NETWORK
+               the Bittensor network this install mines on: testnet (subnet
+               567, the default) or finney (mainnet, subnet 116). It sets
+               CARBON_CHAIN_NETWORK for this install's own steps, for the
+               Control Center (and, with --service, in its unit), and in the
+               signer command printed at the end. An update keeps the network
+               of this install's own service unit; name it to change it
   --allow-low-memory
                expert override: go on although this machine has less memory
                than Carbon needs (32 GB). The install may fail partway
@@ -176,6 +185,7 @@ while [[ $# -gt 0 ]]; do
     --remove-catalog-images) REMOVE_CATALOG_IMAGES=1 ;;
     --allow-low-memory) ALLOW_LOW_MEMORY=1 ;;
     --port) PORT="${2:?--port needs a value}"; PORT_GIVEN=1; shift ;;
+    --network) NETWORK="${2:?--network needs a value}"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
   esac
@@ -300,6 +310,30 @@ service_mode=0
 if [[ "${SERVICE}" == 1 || "${own_unit}" == 1 ]]; then
   service_mode=1
 fi
+
+# The network this install mines on. An own unit that already runs mainnet keeps it on an update that names none (a missing
+# option must never move a mainnet miner back to the test network); naming one changes it.
+#: unit_network UNIT: the network a unit file binds (its CARBON_CHAIN_NETWORK), or nothing.
+unit_network() {
+  sed -n 's/^Environment=CARBON_CHAIN_NETWORK=\(.*\)$/\1/p' -- "$1" 2>/dev/null | head -n 1
+}
+case "${NETWORK}" in
+  ""|testnet|finney) ;;
+  *) usage >&2; echo "Carbon install stopped: --network is testnet or finney, not ${NETWORK}." >&2; exit 2 ;;
+esac
+if [[ -z "${NETWORK}" && "${own_unit}" == 1 && "$(unit_network "${UNIT}")" == finney ]]; then
+  NETWORK=finney
+  echo "Note: this install's service runs mainnet (finney, subnet 116); it stays on mainnet. Name --network testnet to move it back."
+fi
+network_env=""
+network_args=()
+if [[ "${NETWORK}" == finney ]]; then
+  # Read once at import by every Carbon process (carbon/chain/models.py): this install's own steps, the Control Center it
+  # starts here, and (below) the unit and the signer command carry it.
+  export CARBON_CHAIN_NETWORK=finney
+  network_env="CARBON_CHAIN_NETWORK=finney "
+fi
+[[ -z "${NETWORK}" ]] || network_args=(--network "${NETWORK}")
 
 if [[ -n "${RELEASE}" ]]; then
   # A release names its own revision: its tag.
@@ -1151,13 +1185,15 @@ if [[ "${catalog_missing}" =~ ^[0-9]+$ ]]; then
     || echo "The catalog install could not start; the Control Center's setup offers it again, or run: ${python} -B -m scripts.dev.catalog_install --state-dir ${STATE_DIR}"
 fi
 
+subnet=567
+[[ "${NETWORK}" != finney ]] || subnet=116
 cat <<EOF
 
 Next, in a terminal of your own (Carbon never holds your key):
-  ${repo_root}/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>
+  ${network_env}${repo_root}/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>
 
 Then, in the Control Center:
-  - Wallet & Identity: confirm your hotkey is registered on subnet 567
+  - Wallet & Identity: confirm your hotkey is registered on subnet ${subnet}
     (it prepares the unsigned call and the command to run if not; you sign
     it in your own wallet).
   - Set up your environment: inference, compute and agent; the image paths
@@ -1218,7 +1254,7 @@ page_link_for
 launcher=("${repo_root}/.venv/bin/carbon-control-center")
 [[ -x "${launcher[0]}" ]] \
   || launcher=("${python}" "${repo_root}/scripts/dev/miner_launchpad/controller.py")
-start_command="PYTHONDONTWRITEBYTECODE=1 ${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
+start_command="${network_env}PYTHONDONTWRITEBYTECODE=1 ${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
 
 # Units written before LA-F15 all had the default service's name, so one may
 # run another state directory than its name's. This install never rewrites
@@ -1242,14 +1278,14 @@ if [[ "${service_mode}" == 1 ]]; then
     unit_port="$(sed -n 's/^ExecStart=.* --port \([0-9]*\)$/\1/p' -- "${UNIT}" | head -n 1)"
     if [[ -n "${unit_port}" ]]; then
       PORT="${unit_port}"
-      start_command="PYTHONDONTWRITEBYTECODE=1 ${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
+      start_command="${network_env}PYTHONDONTWRITEBYTECODE=1 ${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
       page_link_for
     fi
   fi
   command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1 \
     || fail "--service needs systemd's user manager (systemctl --user). On WSL, turn systemd on in /etc/wsl.conf; or start it yourself with: ${start_command}"
   mkdir -p "$(dirname -- "${UNIT}")"
-  "${setup_cli[@]}" service-unit --state-dir "${STATE_DIR}" --port "${PORT}" > "${UNIT}.tmp"
+  "${setup_cli[@]}" service-unit --state-dir "${STATE_DIR}" --port "${PORT}" ${network_args[@]+"${network_args[@]}"} > "${UNIT}.tmp"
   mv -f "${UNIT}.tmp" "${UNIT}"
   # The log carries the session token. The unit's UMask covers a log the
   # service creates; systemd leaves an existing one's mode alone, so this

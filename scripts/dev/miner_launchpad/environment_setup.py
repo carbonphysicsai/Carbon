@@ -2244,7 +2244,13 @@ def profile_staleness(profile, cfg) -> tuple[list[str], str | None]:
     return setup.profile_staleness(cfg)
 
 
-def service_unit(state_dir, port, repo=REPO) -> str:
+#: The networks `scripts/install_miner.sh --network` may name for a miner install: ``testnet`` (a process with no
+#: ``CARBON_CHAIN_NETWORK``, the default, byte for byte as before) and ``finney`` (mainnet subnet 116). The process binds its
+#: network once at import from that environment variable (`carbon.chain.models`), so the unit and the installer set it.
+MINER_NETWORKS = ("testnet", "finney")
+
+
+def service_unit(state_dir, port, repo=REPO, network=None) -> str:
     """The systemd user unit that runs this checkout's Control Center
     (LP-PROD-E): `carbon-control-center` on loopback, restarted on failure.
 
@@ -2263,6 +2269,10 @@ def service_unit(state_dir, port, repo=REPO) -> str:
             raise ValueError("service_paths_must_be_plain_absolute_paths")
     if type(port) is not int or not 1024 <= port <= 65535:
         raise ValueError("service_port_must_be_unprivileged")
+    if network is not None and network not in MINER_NETWORKS:
+        raise ValueError("service_network_unknown")
+    # Mainnet: the Control Center (and every process it starts) binds finney 116; testnet adds nothing (the default).
+    chain = "Environment=CARBON_CHAIN_NETWORK=finney\n" if network == "finney" else ""
     return (
         "# Written by scripts/install_miner.sh (LP-PROD-E); it rewrites this\n"
         "# file on every install. Loopback only: nothing here is public.\n"
@@ -2275,6 +2285,7 @@ def service_unit(state_dir, port, repo=REPO) -> str:
         f"ExecStart={binary} --state-dir {state_dir} --port {port}\n"
         "Environment=PYTHONUNBUFFERED=1\n"
         "Environment=PYTHONDONTWRITEBYTECODE=1\n"
+        f"{chain}"
         "UMask=0077\n"
         f"StandardOutput=append:{log}\n"
         "StandardError=inherit\n"
@@ -4886,6 +4897,8 @@ def main(argv=None) -> int:
         command.add_argument("--state-dir", type=Path, required=True)
         if name in ("service-unit", "session-link"):
             command.add_argument("--port", type=int, required=True)
+        if name == "service-unit":
+            command.add_argument("--network", choices=MINER_NETWORKS, default=None)
     args = parser.parse_args(argv)
     state_dir = args.state_dir
     if args.command == "gpu-installed":
@@ -4916,7 +4929,7 @@ def main(argv=None) -> int:
         return 0
     if args.command == "service-unit":
         try:
-            print(service_unit(state_dir, args.port), end="")
+            print(service_unit(state_dir, args.port, network=args.network), end="")
         except ValueError as refused:
             print("Carbon service unit refused: " + str(refused), file=sys.stderr)
             return 2
