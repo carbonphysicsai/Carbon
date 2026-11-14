@@ -2,7 +2,7 @@
   "floors": [
     {
       "challenge": "electric-motor-magnetics",
-      "crown_margin_measurement_digest": "sha256:e288cdaa42338e4eaa89a8447760a7183889f555e7e94956f53ca23734d43597",
+      "crown_margin_measurement_digest": "sha256:02b8e330de5910c3099f7016a6a1e9bd78b42b676198f8b411ddc4c7f5924d8f",
       "epoch": "E1",
       "evaluation_pack_digest": "sha256:ee2348b1738fb13984601473b5624bfefc2f65d8c7c7e91471c2d4c419a5742c",
       "measurement_digest": "sha256:e288cdaa42338e4eaa89a8447760a7183889f555e7e94956f53ca23734d43597",
