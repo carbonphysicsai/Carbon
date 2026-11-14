@@ -267,6 +267,9 @@ def test_a_marker_that_cannot_be_replaced_is_said_in_the_record(tmp_path, monkey
     out = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
     assert out["marker"]["replaced"] is False
     assert path.read_bytes() == before  # still the old marker: never left without one
+    assert sorted(p.name for p in path.parent.iterdir()) == [
+        A + ".json"
+    ]  # no stray file
     assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]
     record = json.loads(
         (root / "auto-grade" / "requeued" / "reclass.jsonl").read_text().splitlines()[0]
