@@ -55,7 +55,7 @@ def _record(*rows, statistic="p90"):
 # --- derive: the allow-list ------------------------------------------------------------------------------------------
 
 
-def test_an_output_over_limit_and_a_class_with_an_invalid_answer_are_named_by_reason():
+def test_an_output_over_limit_and_a_class_with_an_invalid_answer_are_named_by_reason_once_per_output():
     record = _record(
         _row("c1", "torque_mean", "FAIL", p90=3.2),
         _row("c1", "efficiency", "PASS"),
@@ -64,11 +64,42 @@ def test_an_output_over_limit_and_a_class_with_an_invalid_answer_are_named_by_re
         _row("c2", "core_loss", "FAIL", n_invalid=1, p90=0.1),
         _row("c3", "efficiency", "PASS"),
     )
+    # torque_mean fails over the limit in c1 and as an invalid answer in c2: ONE entry, invalid_answer first
     assert gff.derive(record) == [
         {"output": "core_loss", "reason": "invalid_answer"},
         {"output": "torque_mean", "reason": "invalid_answer"},
-        {"output": "torque_mean", "reason": "over_limit"},
     ]
+
+
+def test_two_classes_failing_one_output_for_different_reasons_give_the_single_class_entry_byte_for_byte():
+    """V2C 14 Nov: two entries for one output would say there are at least two hidden classes. The list must not depend on how many
+    classes fail the output, nor on their order."""
+    one_class = _record(_row("c1", "torque_mean", "FAIL", n_invalid=1))
+    over_then_invalid = _record(
+        _row("c1", "torque_mean", "FAIL", p90=3.2),
+        _row("c2", "torque_mean", "FAIL", n_invalid=2),
+    )
+    invalid_then_over = _record(
+        _row("c1", "torque_mean", "FAIL", n_invalid=2),
+        _row("c2", "torque_mean", "FAIL", p90=3.2),
+    )
+    three_classes = _record(
+        _row("c1", "torque_mean", "FAIL", p90=3.2),
+        _row("c2", "torque_mean", "FAIL", n_invalid=1),
+        _row("c3", "torque_mean", "FAIL", n_invalid=5),
+        _row("c4", "torque_mean", "FAIL", p90=9.0),
+    )
+    expected = json.dumps(gff.derive(one_class), sort_keys=True)
+    for record in (over_then_invalid, invalid_then_over, three_classes):
+        assert json.dumps(gff.derive(record), sort_keys=True) == expected
+    assert gff.derive(one_class) == [
+        {"output": "torque_mean", "reason": "invalid_answer"}
+    ]
+    # and over the limit everywhere stays one over_limit entry, however many classes fail it
+    over_only = _record(
+        _row("c1", "a", "FAIL", p90=2.0), _row("c2", "a", "FAIL", p90=7.0)
+    )
+    assert gff.derive(over_only) == [{"output": "a", "reason": "over_limit"}]
 
 
 def test_only_the_failing_in_range_rows_count_and_the_list_is_sorted_and_distinct():
@@ -117,9 +148,7 @@ def test_the_derived_list_carries_the_output_and_the_reason_only():
     assert all(set(item) == {"output", "reason"} for item in failures)
     assert "hidden_class" not in text and "3.2" not in text and "4" not in text
     for name in LEAK:
-        assert name not in text.replace("over_limit", "").replace(
-            "invalid_answer", ""
-        )
+        assert name not in text.replace("over_limit", "").replace("invalid_answer", "")
 
 
 def test_an_unregistered_looking_output_name_is_never_shown():
@@ -149,6 +178,10 @@ def test_an_unregistered_looking_output_name_is_never_shown():
             {"output": "a", "reason": "over_limit"},
             {"output": "a", "reason": "over_limit"},
         ],
+        [
+            {"output": "a", "reason": "invalid_answer"},
+            {"output": "a", "reason": "over_limit"},
+        ],  # two entries for one output
         [{"output": 1, "reason": "over_limit"}],
         "a",
     ],
@@ -464,7 +497,8 @@ def test_the_projection_names_the_failing_outputs_in_words_and_as_data():
     words = shown["latest"]["words"]
     assert "in range accuracy" in words
     assert (
-        "core_loss: an invalid answer" in words and "torque_mean: over the limit" in words
+        "core_loss: an invalid answer" in words
+        and "torque_mean: over the limit" in words
     )
     for name in LEAK:
         assert name not in words.replace("in range accuracy", "")

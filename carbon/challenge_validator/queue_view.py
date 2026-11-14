@@ -170,8 +170,6 @@ class QueueView:
         """The per-submission rows as of the quantum ``boundary`` (see the module text): pending submissions in the ledger's order
         (oldest first), then the graded contenders waiting for the crown sweep."""
         index = self._index()
-        grading = getattr(self.grader, "grading_submission", None)
-        graded_now = getattr(self.grader, "activity", None) == "grade"
         entries = []
         for submission_id in self.grader.pending():
             state, created = index.get(submission_id, (None, None))
@@ -181,10 +179,8 @@ class QueueView:
                 label = qp.BUILDING
             elif state == _BUILT:
                 label = (
-                    qp.GRADING_ROW
-                    if graded_now and submission_id == grading
-                    else qp.WAITING_TO_GRADE
-                )
+                    qp.IN_GRADING
+                )  # built, no verdict yet: waiting or being graded, not told apart per row
             else:
                 continue  # cancelled, a build that ended without success, or a task in no open store: never waiting
             entries.append((submission_id, label, created))

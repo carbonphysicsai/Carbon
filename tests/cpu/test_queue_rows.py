@@ -57,8 +57,8 @@ class _View:
 
 def test_the_v3_document_is_v2_plus_the_closed_rows():
     rows = [
-        _row(1, "grading", in_queue_s=900),
-        _row(2, "waiting to grade", in_queue_s=600),
+        _row(1, "in grading", in_queue_s=900),
+        _row(2, "in grading", in_queue_s=600),
         _row(3, "building", in_queue_s=300),
         _row(4, "waiting to build"),
         _row(5, "crown check", hotkey=None, in_queue_s=3000),
@@ -149,8 +149,11 @@ def test_time_is_floored_to_the_quantum():
 
 def _states(now):
     return {
-        TASKS[0]: (DirectTaskStateV3.SUCCEEDED, now - 2 * Q - 5),  # built, being graded
-        TASKS[1]: (DirectTaskStateV3.SUCCEEDED, now - Q - 5),  # built, waiting to grade
+        TASKS[0]: (
+            DirectTaskStateV3.SUCCEEDED,
+            now - 2 * Q - 5,
+        ),  # built, no verdict yet
+        TASKS[1]: (DirectTaskStateV3.SUCCEEDED, now - Q - 5),  # built, no verdict yet
         TASKS[2]: (DirectTaskStateV3.RUNNING, now - 100),  # building
         TASKS[3]: (DirectTaskStateV3.QUEUED, now - 3 * Q + 1),  # waiting to build
         TASKS[4]: (DirectTaskStateV3.FAILED_INFRA, now - 50),  # closed: never a row
@@ -163,14 +166,13 @@ def _states(now):
 
 
 def test_one_row_per_pending_submission_oldest_first_with_the_states(tmp_path):
-    view, grader = _door(tmp_path, _states(START), pending=TASKS[:6], clock=START)
-    grader.activity, grader.grading_submission = "grade", TASKS[0]
+    view, _grader = _door(tmp_path, _states(START), pending=TASKS[:6], clock=START)
     rows = view.snapshot_v3()["rows"]
     assert rows["as_of_unix"] == START // Q * Q
     assert [r["position"] for r in rows["rows"]] == [1, 2, 3, 4]
     assert [r["state"] for r in rows["rows"]] == [
-        "grading",
-        "waiting to grade",
+        "in grading",
+        "in grading",
         "building",
         "waiting to build",
     ]
@@ -186,35 +188,54 @@ def test_one_row_per_pending_submission_oldest_first_with_the_states(tmp_path):
     assert status == 200 and len(body["rows"]) == 4
 
 
-def test_a_submission_is_grading_only_while_it_is_the_one_being_graded(tmp_path):
+def test_a_built_submission_is_one_state_whatever_the_grader_is_doing(tmp_path):
+    """V2C 14 Nov: 'grading' and 'waiting to grade' are not told apart per row (a visible grade start would expose each grade's
+    length in quantum steps): a built submission with no verdict is 'in grading' whether the grader is on it, on another or idle.
+    """
+    assert queue_public.ROW_STATES == (
+        "waiting to build",
+        "building",
+        "in grading",
+        "crown check",
+    )
     view, grader = _door(tmp_path, _states(START), pending=TASKS[:4], clock=START)
-    grader.activity, grader.grading_submission = "grade", TASKS[1]
-    states = {
-        r["state"] for r in view.snapshot_v3()["rows"]["rows"] if r["position"] == 1
-    }
-    assert states == {"waiting to grade"}  # TASKS[0] is not the one being graded
-    grader.activity, grader.grading_submission = "king", TASKS[1]
-    view._rows_cached = None
-    assert "grading" not in {r["state"] for r in view.snapshot_v3()["rows"]["rows"]}
+    seen = []
+    for activity in (None, "grade", "king"):
+        grader.activity = activity
+        view._rows_cached = None
+        seen.append(
+            [
+                r["state"]
+                for r in view.snapshot_v3()["rows"]["rows"]
+                if r["position"] <= 2
+            ]
+        )
+    assert seen == [["in grading", "in grading"]] * 3
+    for row in view.snapshot_v3()["rows"]["rows"]:
+        assert row["state"] not in ("grading", "waiting to grade")
 
 
 def test_nothing_changes_within_a_quantum_and_the_rows_follow_the_next_boundary(
     tmp_path,
 ):
     now = [START]
-    view, grader = _door(tmp_path, _states(START), pending=TASKS[:4], clock=START)
+    view, _grader = _door(tmp_path, _states(START), pending=TASKS[:4], clock=START)
     view.clock = lambda: now[0]
     first = view.snapshot_v3()["rows"]
-    grader.activity, grader.grading_submission = "grade", TASKS[0]
+    provider = view.intake.adapter.provider_for._providers[HOTKEY]
+    provider._views[TASKS[3]].state = (
+        DirectTaskStateV3.RUNNING
+    )  # waiting to build -> building
     now[0] = (
         START + Q - 20
     )  # still the same quantum: not rebuilt, whatever happened meanwhile
     assert view.snapshot_v3()["rows"] == first
-    assert "grading" not in {r["state"] for r in first["rows"]}
+    assert first["rows"][-1]["state"] == "waiting to build"
     now[0] = (START // Q + 1) * Q + 1  # the next boundary
     later = view.snapshot_v3()["rows"]
     assert later["as_of_unix"] == (START // Q + 1) * Q
-    assert "grading" in {r["state"] for r in later["rows"]}
+    assert later["rows"][-1]["state"] == "building"
+    assert [r["state"] for r in later["rows"][:2]] == ["in grading", "in grading"]
 
 
 def test_the_rows_never_ask_owner_or_provider_and_carry_no_task_id(tmp_path):
@@ -299,8 +320,3 @@ def test_the_v3_route_serves_this_challenge_only_and_v1_v2_are_unchanged(tmp_pat
         door, queue_public.PATH + "f08-ribbed-bracket" + queue_public.V3_SUFFIX
     )
     assert other.status == 404
-
-
-def test_the_grader_notes_which_submission_it_is_grading(tmp_path):
-    _view, grader = _door(tmp_path, {}, pending=[])
-    assert grader.grading_submission is None  # the attribute exists from the start

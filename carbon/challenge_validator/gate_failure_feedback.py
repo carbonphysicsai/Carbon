@@ -9,6 +9,8 @@ A grade that fails the in-range accuracy gate says which registered OUTPUT faile
 Published, prospective, for every miner. NEVER shown: the p90 or any ratio, the class, a count, the cases, a threshold. Only the
 registered output NAME (already public: it is in the exam's published interface) and the reason leave this module.
 
+ONE entry per output: when the same output fails for different reasons in different hidden classes, ``invalid_answer`` takes precedence, so
+the list never reveals how many hidden classes there are (V2C 14 Nov: two entries for one output would say there are at least two classes).
 The failures are derived by an allow-list from the grade's custody accuracy record (the `pool_exam` measurement), at grade time, and
 kept per submission in a table of their own beside the Ladder (`gate_failures_v1`), so no stored Ladder document changes shape and a rollback to
 code without this module leaves the table unread. They are served only on the v6 feedback reply (`direct_intake`): older clients never ask for it.
@@ -54,7 +56,9 @@ def derive(accuracy):
     ``accuracy`` is the custody accuracy record. A row counts only when its verdict is FAIL (an in-range class and output). The reason
     is ``invalid_answer`` when the row's class holds an invalid answer (``n_invalid`` > 0), else ``over_limit`` when the row has a
     numeric gate statistic and no exact-row case; a failing row that is neither (no value, or an exact-row case) is left out, never
-    guessed. With no identifiable failing row the answer is None: nothing is claimed.
+    guessed. One entry per OUTPUT: an output that fails as an invalid answer in one class and over the limit in another is listed once, as
+    ``invalid_answer``, so the list says nothing about how many classes there are. With no identifiable failing row the answer is None:
+    nothing is claimed.
     """
     if type(accuracy) is not dict:
         return None
@@ -63,7 +67,7 @@ def derive(accuracy):
     statistic = gate.get("statistic") if type(gate) is dict else None
     if type(rows) is not list or type(statistic) is not str:
         return None
-    found = set()
+    found = {}
     for row in rows:
         if type(row) is not dict or row.get("verdict") != "FAIL":
             continue
@@ -72,22 +76,24 @@ def derive(accuracy):
             continue
         invalid, exact = row.get("n_invalid"), row.get("n_exact")
         if type(invalid) is int and not isinstance(invalid, bool) and invalid > 0:
-            found.add((output, "invalid_answer"))
+            found[output] = (
+                "invalid_answer"  # takes precedence over any other reason for the same output
+            )
         elif (
             _number(row.get(statistic))
             and type(exact) is int
             and not isinstance(exact, bool)
             and exact == 0
         ):
-            found.add((output, "over_limit"))
+            found.setdefault(output, "over_limit")
     if not found:
         return None
-    return [{"output": o, "reason": r} for o, r in sorted(found)][:MAX_OUTPUTS]
+    return [{"output": o, "reason": r} for o, r in sorted(found.items())][:MAX_OUTPUTS]
 
 
 def valid(failures):
-    """Whether ``failures`` is exactly what `derive` emits (a closed shape): a non-empty, sorted, distinct list of
-    ``{"output", "reason"}`` with a registered-shaped output name and one of `REASONS`, nothing else.
+    """Whether ``failures`` is exactly what `derive` emits (a closed shape): a non-empty list of ``{"output", "reason"}``,
+    sorted by output with ONE entry per output, a registered-shaped output name and one of `REASONS`, nothing else.
     """
     if type(failures) is not list or not 1 <= len(failures) <= MAX_OUTPUTS:
         return False
@@ -102,7 +108,8 @@ def valid(failures):
         ):
             return False
         keys.append((item["output"], item["reason"]))
-    return keys == sorted(set(keys))
+    outputs = [output for output, _reason in keys]
+    return outputs == sorted(set(outputs))
 
 
 def _canonical(failures):
