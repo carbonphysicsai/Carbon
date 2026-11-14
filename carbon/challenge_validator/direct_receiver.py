@@ -993,6 +993,13 @@ GRADING_EXCLUDED = (
         "which feedback schema is served: display",
     ),
     (
+        "carbon.challenge_validator.gate_failure_feedback",
+        (
+            "the failing output names and closed reasons published after a gate-failed grade: display derived from the grade's record"
+            " by an allow-list, never a grade input or a score (Bundle A; Validator to confirm)"
+        ),
+    ),
+    (
         "carbon.challenge_validator.repeat_miss_watch",
         "an operator watch: writes no result",
     ),

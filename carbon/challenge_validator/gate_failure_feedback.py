@@ -9,7 +9,7 @@ A grade that fails the in-range accuracy gate says which registered OUTPUT faile
 Published, prospective, for every miner. NEVER shown: the p90 or any ratio, the class, a count, the cases, a threshold. Only the
 registered output NAME (already public: it is in the exam's published interface) and the reason leave this module.
 
-The failures are derived by an allow-list from the grade's custody accuracy record (`pool_physics_score.accuracy_record`), at grade time, and
+The failures are derived by an allow-list from the grade's custody accuracy record (the `pool_exam` measurement), at grade time, and
 kept per submission in a table of their own beside the Ladder (`gate_failures_v1`), so no stored Ladder document changes shape and a rollback to
 code without this module leaves the table unread. They are served only on the v6 feedback reply (`direct_intake`): older clients never ask for it.
 """
