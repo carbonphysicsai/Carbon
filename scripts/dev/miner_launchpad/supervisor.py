@@ -1195,9 +1195,10 @@ NEXT_ACTIONS = {
         "then submit again; the frozen candidate is kept."
     ),
     "TRANSPORT_STALE": (
-        "The request was too old when the validator received it. Check this "
-        "machine's clock, then submit again; the request is rebuilt and "
-        "signed afresh, and the frozen candidate is kept."
+        "The validator turned this request away before admitting it, even "
+        "after Carbon sent it again a few times. This is on the validator's "
+        "side, not your machine's clock. Submit again shortly; the request "
+        "is rebuilt and signed afresh, and the frozen candidate is kept."
     ),
     "TRANSPORT_REPLAY": (
         "The validator had already received this exact request. Submit "

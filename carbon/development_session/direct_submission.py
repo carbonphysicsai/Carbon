@@ -8,6 +8,8 @@ reconstructed result is construction evidence, never a scored verdict.
 from __future__ import annotations
 
 import json
+import os
+import random
 import re
 import time
 import urllib.error
@@ -97,13 +99,34 @@ class DirectIntakeRateLimit(DirectIntakeRefusal):
         super().__init__("rate")
 
 
+#: The receiver's typed transport refusal for a request that lost the door's ordering check (store.admit: a request whose
+#: time or chain snapshot is behind one it already admitted, which concurrent requests on a busy door can do). It is refused
+#: BEFORE admission, nothing was recorded, so a rebuilt, re-signed request is safe to send again. It is not the miner's clock.
+TRANSPORT_STALE = "TRANSPORT_STALE"
+#: Automatic resends of a request refused TRANSPORT_STALE, each rebuilt and signed afresh, after a short jittered wait.
+BUSY_RETRIES = 2
+
+
+class DirectIntakeBusy(DirectIntakeRefusal):
+    """The door was busy: it refused the request as TRANSPORT_STALE before admitting anything."""
+
+    def __init__(self):
+        super().__init__(TRANSPORT_STALE)
+
+
+def _busy_wait():
+    """The jittered pause before a resend after TRANSPORT_STALE (seconds)."""
+    return random.uniform(0.25, 0.75)
+
+
 def retry_rate_limited(operation, *, deadline, clock=time.monotonic, sleep=time.sleep):
-    """Retry only an explicit pre-admission HTTP rate refusal, within a deadline.
+    """Retry only an explicit pre-admission HTTP rate refusal (and a TRANSPORT_STALE one, a few times), within a deadline.
 
     The operation must rebuild and sign its request on every attempt. Other
     refusals and ambiguous network failures propagate without replay.
     """
     last = None
+    busy = 0
     for attempt in range(31):
         if clock() >= deadline:
             if last is not None:
@@ -111,6 +134,17 @@ def retry_rate_limited(operation, *, deadline, clock=time.monotonic, sleep=time.
             raise DirectIntakeRefusal("construction_request_deadline")
         try:
             return operation()
+        except DirectIntakeBusy as refused:
+            # TRANSPORT_STALE: refused before admission, so the rebuilt and re-signed request may be sent again, at most
+            # BUSY_RETRIES times, after a short jittered wait; then the typed refusal reaches the miner.
+            last = refused
+            busy += 1
+            remaining = deadline - clock()
+            if busy > BUSY_RETRIES or remaining <= 0:
+                raise
+            sleep(min(_busy_wait(), remaining))
+            if clock() >= deadline:
+                raise
         except DirectIntakeRateLimit as refused:
             last = refused
             remaining = deadline - clock()
@@ -353,6 +387,30 @@ def _submit_attempt(root, epoch):
     except (OSError, ValueError):
         return 0
     return value if 0 <= value < 1000 else 0
+
+
+def _cancelled_by_stop(outcome):
+    """Whether a terminal outcome is the validator's own cancellation of the task (`direct_task_cancelled`: a stop before it
+    ran), not a result about the candidate."""
+    failure = outcome.get("failure")
+    return (
+        outcome.get("state") == "FAILED_INFRA"
+        and type(failure) is dict
+        and failure.get("code") == "direct_task_cancelled"
+    )
+
+
+def _set_cancelled_record_aside(root, epoch, record_path):
+    """Keep the cancelled task's admission record under its own name (never deleted) and make the next submit a NEW request
+    (a bumped request id), so the frozen recipe is submitted again for a fresh task."""
+    for n in range(1, 1000):
+        aside = record_path.with_name(record_path.stem + f".cancelled-{n}.json")
+        if not aside.exists():
+            os.replace(record_path, aside)
+            break
+    else:  # pragma: no cover - a thousand cancelled generations of one epoch
+        raise DirectIntakeRefusal("construction_cancelled_records_exhausted")
+    _bump_submit_attempt(root, epoch)
 
 
 def _bump_submit_attempt(root, epoch):
@@ -692,8 +750,13 @@ def submit_and_wait(
     sleep=time.sleep,
     wait_s=WAIT_S,
     observe_only=False,
+    _after_cancel=False,
 ):
     """Submit one frozen recipe, then poll its owner-bound DEVELOPMENT task.
+
+    A recorded task the validator CANCELLED (a restart or door switch stopped it before it ran) is not the candidate's result:
+    the old record is kept aside and ONE new task is submitted from the same frozen recipe (the validator starts a fresh
+    generation of a task that ended on its own side), instead of polling the cancelled id for ever.
 
     A retry after admission polls the recorded task; it never signs another
     submission. A lost HTTP response can be retried because the validator's
@@ -825,6 +888,8 @@ def submit_and_wait(
                 or answer.get("kind") != "OUTCOME"
             ):
                 code = _refusal_code(answer, "construction_intake_unavailable")
+                if code == TRANSPORT_STALE:
+                    raise DirectIntakeBusy()
                 if code == "TRANSPORT_CONFLICT":
                     # The next submit uses a new request id (H16).
                     _bump_submit_attempt(root, epoch)
@@ -909,9 +974,10 @@ def submit_and_wait(
                 or type(answer) is not dict
                 or answer.get("kind") != "OUTCOME"
             ):
-                raise DirectIntakeRefusal(
-                    _refusal_code(answer, "construction_status_unavailable")
-                )
+                code = _refusal_code(answer, "construction_status_unavailable")
+                if code == TRANSPORT_STALE:
+                    raise DirectIntakeBusy()
+                raise DirectIntakeRefusal(code)
             outcome, _ = _outcome(
                 answer,
                 contract_digest=contract_digest,
@@ -926,6 +992,25 @@ def submit_and_wait(
             observe, deadline=deadline, clock=clock, sleep=sleep
         )
         if outcome.get("state") in TERMINAL:
+            if _cancelled_by_stop(outcome) and not observe_only and not _after_cancel:
+                _set_cancelled_record_aside(root, epoch, record_path)
+                return submit_and_wait(
+                    url,
+                    signer,
+                    root=root,
+                    epoch=epoch,
+                    recipe=recipe,
+                    contract_digest=contract_digest,
+                    receiver=receiver,
+                    context=context,
+                    read=read,
+                    send=send,
+                    clock=clock,
+                    sleep=sleep,
+                    wait_s=wait_s,
+                    observe_only=observe_only,
+                    _after_cancel=True,
+                )
             return outcome
         if outcome.get("state") != "ADMITTED":
             raise DirectIntakeRefusal("construction_intake_answer_unrecognised")

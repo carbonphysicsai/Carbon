@@ -1090,3 +1090,178 @@ def test_same_recipe_refusal_returns_the_earlier_result_and_records_no_epoch(
         client.DirectIntakeRefusal, match="construction_intake_answer_unrecognised"
     ):
         submit(lambda *_: (400, malformed))
+
+
+# --- a busy door (TRANSPORT_STALE) and a cancelled old task (Bundle A follow-up, 14 Nov 2026) --------------------------------
+
+
+def _client(tmp_path, monkeypatch, send, *, sleeps=None, wait_s=10, now=None):
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+    monkeypatch.setattr(client, "_busy_wait", lambda: 0.5)
+    clock = now if now is not None else [0.0]
+    pauses = sleeps if sleeps is not None else []
+
+    def sleep(seconds):
+        pauses.append(seconds)
+        clock[0] += seconds
+
+    return lambda: client.submit_and_wait(
+        _URL,
+        "external-signer",
+        root=tmp_path,
+        epoch=1,
+        recipe=_recipe(),
+        contract_digest=_CONTRACT,
+        receiver=_RECEIVER,
+        context=_CONTEXT,
+        read=lambda url: _facts(),
+        send=send,
+        clock=lambda: clock[0],
+        sleep=sleep,
+        wait_s=wait_s,
+    )
+
+
+@pytest.mark.parametrize("phase", ["submit", "status"])
+def test_a_transport_stale_refusal_is_resent_signed_afresh_and_succeeds(
+    tmp_path, monkeypatch, phase
+):
+    sent, stale = [], [False]
+
+    def send(url, body, headers):
+        request = json.loads(body)
+        sent.append((request["tool"], request["request"]))
+        is_submit = request["tool"] == client.SUBMIT_TOOL
+        if (phase == "submit") == is_submit and not stale[0]:
+            stale[0] = True
+            return 400, {"refused": "TRANSPORT_STALE"}
+        return (202 if is_submit else 200), _answer(
+            "ADMITTED" if is_submit else "RECONSTRUCTED"
+        )
+
+    sleeps = []
+    result = _client(tmp_path, monkeypatch, send, sleeps=sleeps)()
+    assert result["state"] == "RECONSTRUCTED" and result["task_id"] == "task-1"
+    tools = [tool for tool, _ in sent]
+    assert tools.count(client.SUBMIT_TOOL) == (2 if phase == "submit" else 1)
+    assert tools.count(client.STATUS_TOOL) == (2 if phase == "status" else 1)
+    assert 0.5 in sleeps  # the jittered pause between the refusal and the resend
+
+
+def test_a_busy_door_is_resent_at_most_twice_then_the_typed_refusal_reaches_the_miner(
+    tmp_path, monkeypatch
+):
+    sent = []
+
+    def send(url, body, headers):
+        sent.append(json.loads(body)["tool"])
+        return 400, {"refused": "TRANSPORT_STALE"}
+
+    with pytest.raises(client.DirectIntakeRefusal) as refused:
+        _client(tmp_path, monkeypatch, send)()
+    assert refused.value.code == "TRANSPORT_STALE"
+    assert (
+        sent.count(client.SUBMIT_TOOL) == 1 + client.BUSY_RETRIES
+    )  # never an endless loop
+    assert not (
+        tmp_path / "construction-intake-epoch-1.json"
+    ).exists()  # nothing was admitted
+
+
+def test_other_refusals_are_never_resent(tmp_path, monkeypatch):
+    sent = []
+
+    def send(url, body, headers):
+        sent.append(json.loads(body)["tool"])
+        return 400, {"refused": "TRANSPORT_IDENTITY"}
+
+    with pytest.raises(client.DirectIntakeRefusal, match="TRANSPORT_IDENTITY"):
+        _client(tmp_path, monkeypatch, send)()
+    assert sent == [client.SUBMIT_TOOL]
+
+
+def _cancelled(task_id):
+    return _answer(
+        "FAILED_INFRA", task_id=task_id, failure={"code": "direct_task_cancelled"}
+    )
+
+
+def test_a_task_the_validator_cancelled_is_submitted_again_as_a_new_task(
+    tmp_path, monkeypatch
+):
+    sent = []
+    admitted = []
+
+    def send(url, body, headers):
+        request = json.loads(body)
+        sent.append((request["tool"], request["request"]))
+        if request["tool"] == client.SUBMIT_TOOL:
+            admitted.append(f"task-{len(admitted) + 1}")
+            return 202, _answer("ADMITTED", task_id=admitted[-1])
+        task = request["fields"]["submission_id"]
+        return 200, (
+            _cancelled(task)
+            if task == "task-1"
+            else _answer("RECONSTRUCTED", task_id=task)
+        )
+
+    result = _client(tmp_path, monkeypatch, send)()
+    assert result["state"] == "RECONSTRUCTED" and result["task_id"] == "task-2"
+    assert [tool for tool, _ in sent] == [
+        client.SUBMIT_TOOL,
+        client.STATUS_TOOL,
+        client.SUBMIT_TOOL,
+        client.STATUS_TOOL,
+    ]
+    first, second = sent[0][1], sent[2][1]
+    assert first != second and second.endswith(
+        "-r1"
+    )  # a NEW request, never a replay of the cancelled one
+    record = json.loads((tmp_path / "construction-intake-epoch-1.json").read_bytes())
+    assert record["submission_id"] == "task-2"
+    aside = json.loads(
+        (tmp_path / "construction-intake-epoch-1.cancelled-1.json").read_bytes()
+    )
+    assert (
+        aside["submission_id"] == "task-1"
+    )  # the cancelled record is kept, never deleted
+
+
+def test_a_second_cancellation_is_returned_and_never_resubmitted_again(
+    tmp_path, monkeypatch
+):
+    submits = []
+
+    def send(url, body, headers):
+        request = json.loads(body)
+        if request["tool"] == client.SUBMIT_TOOL:
+            submits.append(request["request"])
+            return 202, _answer("ADMITTED", task_id=f"task-{len(submits)}")
+        return 200, _cancelled(request["fields"]["submission_id"])
+
+    result = _client(tmp_path, monkeypatch, send)()
+    assert result["state"] == "FAILED_INFRA" and result["task_id"] == "task-2"
+    assert len(submits) == 2  # one automatic new task per call, then the miner decides
+
+
+def test_other_infrastructure_failures_are_not_resubmitted(tmp_path, monkeypatch):
+    submits = []
+
+    def send(url, body, headers):
+        request = json.loads(body)
+        if request["tool"] == client.SUBMIT_TOOL:
+            submits.append(1)
+            return 202, _answer("ADMITTED")
+        return 200, _answer(
+            "FAILED_INFRA", failure={"code": "direct_task_failed_infra"}
+        )
+
+    result = _client(tmp_path, monkeypatch, send)()
+    assert result["state"] == "FAILED_INFRA" and len(submits) == 1

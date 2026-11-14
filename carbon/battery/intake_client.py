@@ -405,7 +405,10 @@ REFUSALS = {
         "Your hotkey is not registered on this subnet (or the validator's is "
         "not). Register first, then resend."
     ),
-    "TRANSPORT_STALE": "The request is too old. Rebuild, sign and send at once.",
+    "TRANSPORT_STALE": (
+        "The validator turned this request away before admitting it. "
+        "Rebuild, sign and send it again shortly."
+    ),
     "TRANSPORT_REPLAY": "This exact request was already received.",
     "TRANSPORT_CONFLICT": "A different request reused this request id.",
     "TRANSPORT_CONTEXT": "The message names another network, subnet or Challenge.",
