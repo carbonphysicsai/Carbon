@@ -429,12 +429,15 @@ These are Carbon's registered rules for paying miners. We publish the rules,
 not an income forecast: what you earn on mainnet depends on the emissions
 available, the improvements you prove and the market price of alpha.
 
-**Shares.** Miner emissions are split equally between the Challenges in the
-mainnet policy. At the mainnet launch that is **Motor and Cooling, one half
-each**. Burst Thermal and Ribbed Bracket each join when they open, and the
-split changes then (a new policy version, published before it applies). The
-test network runs the same rule over its four Challenges, paid in test TAO,
-which has no money value.
+**Shares.** The mainnet policy gives each of the four Challenges (Motor,
+Cooling, Burst Thermal and Ribbed Bracket) **one quarter** of the miner
+emissions. A Challenge's quarter is paid to its king once that Challenge is
+open on mainnet; until then it is **burned**, never handed to miners in
+other Challenges. At the mainnet launch only Motor is open, so three
+quarters of the emissions burn, and each Challenge's quarter starts paying
+when it opens (any change to the policy is published as a new policy version
+before it applies). The test network runs the same rule over its four
+Challenges, paid in test TAO, which has no money value.
 
 **One king per Challenge.** The king is the miner whose model holds the
 crown (see *King of the hill* above).
@@ -534,8 +537,23 @@ do, and what stays the same.
 
    You can use the same wallet as on the test network; registration is
    separate on each network.
-4. Restart your signer and switch your profile to mainnet: **HUMAN_INPUT**
-   (the exact step, from the installer update).
+4. Restart your signer and the Control Center on mainnet. Carbon reads the
+   network from the environment variable `CARBON_CHAIN_NETWORK` (unset means
+   the test network), so start each of them with it set to `finney`. The
+   installer printed both commands when it finished; put the variable in
+   front of each:
+
+   ```bash
+   CARBON_CHAIN_NETWORK=finney ~/carbon/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>
+   CARBON_CHAIN_NETWORK=finney ~/carbon/.venv/bin/carbon-control-center --state-dir <your state directory> --port <your port>
+   ```
+
+   If the Control Center runs as the installer's systemd user service, add the
+   variable to its unit instead (`systemctl --user edit <your service name>`,
+   then under `[Service]` add `Environment=CARBON_CHAIN_NETWORK=finney`) and
+   restart it. An agent that starts Carbon's MCP server itself needs the same
+   variable in that server's environment. A process started without it is on
+   the test network and cannot reach the mainnet grader.
 5. Open **Setup**: **Join Carbon mining** confirms your registration from the
    chain.
 6. Submit again. Nothing from the test network counts on mainnet.
