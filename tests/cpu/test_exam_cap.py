@@ -1205,6 +1205,54 @@ def test_a_task_that_ended_on_infra_is_run_again_and_a_candidate_failure_is_not(
     assert host.submit(own)["submission_id"] == refused
 
 
+def _queue_place_host(cap, monkeypatch, *, marked):
+    """Two accepted submissions (A first, then B); A's task is then CANCELLED by a stop (with or without its marker); A's
+    recipe is resubmitted through the real `evaluate`. Returns ``(host, first, other, resubmitted)``.
+    """
+    from carbon.research import DirectTaskStateV3
+
+    host = _rerun_adapter(cap, monkeypatch)
+    contract = host.adapter.contract_digest
+    first = host.submit("sha256:" + "8" * 64)["submission_id"]
+    other = host.submit("sha256:" + "9" * 64)["submission_id"]
+    for task in (first, other):
+        cap.ledger.record(
+            SimpleNamespace(
+                hotkey=HOTKEY,
+                receipt={"sequence": 1, "digest": "d", "block": 1},
+                contract_digest=contract,
+            ),
+            kind="OUTCOME",
+            submission_id=task,
+        )
+    host.tasks[first].state = DirectTaskStateV3.CANCELLED
+    if marked:
+        directory = Path(cap.ledger.path).parent / "auto-grade" / "markers"
+        directory.mkdir(parents=True)
+        (directory / (first + ".json")).write_text(
+            json.dumps({"state": "FAILED", "code": "cancelled_by_carbon_stop"})
+        )
+    resubmitted = host.submit("sha256:" + "8" * 64)["submission_id"]
+    assert resubmitted not in (first, other)  # a fresh generation, a new task id
+    return host, first, other, resubmitted
+
+
+def test_a_resubmission_of_a_stop_cancelled_task_takes_its_original_queue_place(
+    cap, monkeypatch
+):
+    host, _first, other, resubmitted = _queue_place_host(cap, monkeypatch, marked=True)
+    order = cap.ledger.submitted_outcomes(host.adapter.contract_digest)
+    assert order.index(resubmitted) < order.index(other)
+
+
+def test_a_resubmission_of_an_unmarked_cancelled_task_waits_at_the_back(
+    cap, monkeypatch
+):
+    host, _first, other, resubmitted = _queue_place_host(cap, monkeypatch, marked=False)
+    order = cap.ledger.submitted_outcomes(host.adapter.contract_digest)
+    assert order.index(resubmitted) > order.index(other)
+
+
 def test_infra_re_runs_are_bounded(cap, monkeypatch):
     from carbon.challenge_validator import lean_recipe
     from carbon.challenge_validator.interface import Unavailable

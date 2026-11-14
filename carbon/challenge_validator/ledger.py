@@ -62,6 +62,16 @@ CREATE TABLE IF NOT EXISTS recipe_task_intents(
     request_sha256 TEXT NOT NULL,
     PRIMARY KEY(contract_digest, submission_id)
 );
+CREATE TABLE IF NOT EXISTS queue_place_grants(
+    contract_digest TEXT NOT NULL,
+    new_task TEXT NOT NULL,
+    from_task TEXT NOT NULL,
+    hotkey TEXT NOT NULL,
+    place_seq INTEGER NOT NULL,
+    granted_ns INTEGER NOT NULL,
+    PRIMARY KEY(contract_digest, new_task),
+    UNIQUE(contract_digest, from_task)
+);
 CREATE TABLE IF NOT EXISTS catalog_submissions(
     contract_digest TEXT NOT NULL,
     submission_id TEXT NOT NULL,
@@ -396,15 +406,66 @@ class AttemptLedger:
         """
         with self._db() as db:
             rows = db.execute(
-                "SELECT submission_id FROM ("
+                "SELECT t.submission_id FROM ("
                 "SELECT submission_id, MIN(seq) AS first FROM attempts WHERE kind='OUTCOME' "
                 "AND contract_digest=? AND submission_id IS NOT NULL GROUP BY submission_id "
                 "UNION ALL SELECT submission_id, NULL FROM recipe_task_intents "
-                "WHERE contract_digest=? ) GROUP BY submission_id "
-                "ORDER BY MIN(first) IS NULL, MIN(first), submission_id",
-                (contract_digest, contract_digest),
+                "WHERE contract_digest=? ) AS t "
+                "LEFT JOIN queue_place_grants AS g ON g.contract_digest=? AND g.new_task=t.submission_id "
+                "GROUP BY t.submission_id "
+                "ORDER BY MIN(COALESCE(g.place_seq, t.first)) IS NULL, MIN(COALESCE(g.place_seq, t.first)), "
+                "t.submission_id",
+                (contract_digest, contract_digest, contract_digest),
             ).fetchall()
         return tuple(row[0] for row in rows)
+
+    def grant_queue_place(self, contract_digest, *, from_task, new_task, hotkey):
+        """Give ``new_task`` (the resubmission of the recipe of ``from_task``, a task a receiver stop cancelled) the ORIGINAL
+        arrival place of ``from_task`` in `submitted_outcomes`, ONCE per ``from_task`` and only to the SAME hotkey.
+
+        The place is ``from_task``'s first OUTCOME row (its accepted submission); it is a pure ordering fact, written to its
+        own table: no attempt row, no slot, no score. Returns ``"granted"``, ``"already_granted"`` (the same pair again),
+        or a refusal code: ``"no_original"`` (``from_task`` has no accepted submission here), ``"hotkey_mismatch"``,
+        ``"from_task_used"`` (it already gave its place to another task), ``"same_task"`` or ``"incomplete"``.
+        """
+        values = (contract_digest, from_task, new_task, hotkey)
+        if not all(type(value) is str and value for value in values):
+            return "incomplete"
+        if from_task == new_task:
+            return "same_task"
+        with self._db() as db:
+            original = db.execute(
+                "SELECT MIN(seq), MIN(hotkey), MAX(hotkey) FROM attempts WHERE kind='OUTCOME' "
+                "AND contract_digest=? AND submission_id=? AND hotkey IS NOT NULL",
+                (contract_digest, from_task),
+            ).fetchone()
+            if original is None or original[0] is None:
+                return "no_original"
+            if original[1] != _kept(hotkey) or original[2] != _kept(hotkey):
+                return "hotkey_mismatch"
+            prior = db.execute(
+                "SELECT new_task FROM queue_place_grants WHERE contract_digest=? AND from_task=?",
+                (contract_digest, from_task),
+            ).fetchone()
+            if prior is not None:
+                return "already_granted" if prior[0] == new_task else "from_task_used"
+            if db.execute(
+                "SELECT 1 FROM queue_place_grants WHERE contract_digest=? AND new_task=?",
+                (contract_digest, new_task),
+            ).fetchone():
+                return "from_task_used"  # this task already holds another task's place
+            db.execute(
+                "INSERT INTO queue_place_grants VALUES(?,?,?,?,?,?)",
+                (
+                    contract_digest,
+                    new_task,
+                    from_task,
+                    _kept(hotkey),
+                    int(original[0]),
+                    int(self.clock()),
+                ),
+            )
+        return "granted"
 
     def first_outcome_ns(self, contract_digest, submission_id):
         """When the task's submission was accepted (its first OUTCOME row's ``at_ns``), or None."""

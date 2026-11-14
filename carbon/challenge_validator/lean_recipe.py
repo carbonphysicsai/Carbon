@@ -12,6 +12,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import re
 from collections.abc import Callable
 from pathlib import Path
 
@@ -330,6 +331,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
         # infrastructure (the task, or its grading released as FAILED_INFRA)
         # is never the miner's result (invariant 7): the next generation is a
         # fresh task, graded in the miner's next slot.
+        earlier_generations = []
         for rerun in range(MAX_INFRA_RERUNS + 1):
             request = self._request(
                 submission.hotkey,
@@ -342,6 +344,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 raise SameRecipeAlreadySubmitted(self.outcome(task_id.value))
             if not self._ended_on_infra(submission.hotkey, task_id, provider):
                 break
+            earlier_generations.append(task_id.value)
         else:
             raise Unavailable("direct_infra_rerun_limit_reached")
         self._refuse_spent_round(submission, task_id.value, provider)
@@ -358,6 +361,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
             task_id.value,
             submission.hotkey,
             "sha256:" + hashlib.sha256(canonical_bytes(request)).hexdigest(),
+        )
+        self._give_back_queue_place(
+            earlier_generations, task_id.value, submission.hotkey
         )
         if submission.strategy.get("source", {}).get("kind") == "catalog":
             from carbon.backbone_catalog.served import submission_document
@@ -614,6 +620,58 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 )
                 return phase, observation if type(observation) is str else None
         return None, None
+
+    #: The marker code of a task a receiver stop cancelled (`cancelled_markers`, 14 Nov 2026).
+    STOP_CANCELLED_CODE = "cancelled_by_carbon_stop"
+
+    def _stop_cancelled(self, task_id):
+        """Whether ``task_id`` carries the terminal marker of a task a receiver STOP cancelled (state FAILED, code
+        ``cancelled_by_carbon_stop``, in the door's auto-grade marker directory), read only.
+        """
+        path = getattr(self.ledger, "path", None)
+        if path is None or re.fullmatch(r"rtsk_[0-9a-f]{64}", str(task_id)) is None:
+            return False
+        marker = Path(path).parent / "auto-grade" / "markers" / (task_id + ".json")
+        try:
+            body = json.loads(marker.read_bytes())
+        except (OSError, ValueError):
+            return False
+        return (
+            type(body) is dict
+            and body.get("state") == "FAILED"
+            and body.get("code") == self.STOP_CANCELLED_CODE
+        )
+
+    def _give_back_queue_place(self, earlier_generations, new_task, hotkey):
+        """Owner ruling 14 Nov 2026 ("give them their queue place"): a resubmission of the identical recipe of a task a receiver
+        stop cancelled (its terminal marker is ``cancelled_by_carbon_stop``) takes that task's ORIGINAL arrival place in the
+        queue, once per cancelled task and only for the same hotkey (`AttemptLedger.grant_queue_place`). Only the
+        resubmission that arrives AFTER this runs; a queue already formed is never re-ordered. An unmarked earlier generation
+        (a miner's own cancel, an infrastructure failure) changes nothing. Never fails the submission: the place is an
+        ordering courtesy, and any error leaves the task at the back as before."""
+        if not earlier_generations or not hasattr(self.ledger, "grant_queue_place"):
+            return
+        try:
+            for earlier in earlier_generations:
+                if not self._stop_cancelled(earlier):
+                    continue
+                result = self.ledger.grant_queue_place(
+                    self.contract_digest,
+                    from_task=earlier,
+                    new_task=new_task,
+                    hotkey=hotkey,
+                )
+                from carbon.challenge_validator.koth_journal import note
+
+                note(
+                    "queue_place_" + result,
+                    from_task=earlier,
+                    new_task=new_task,
+                )
+                if result in ("granted", "already_granted"):
+                    return
+        except Exception:  # noqa: BLE001 - never fails a submission
+            return
 
     def _active_owner(self, submission_id):
         try:
