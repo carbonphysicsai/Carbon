@@ -46,6 +46,7 @@ from .bank_promotion import (
     INCUMBENT_REGRADE_REQUIRED,
     UNAVAILABLE,
 )
+from .crown_average import REBUILD_IN_PROGRESS
 
 ROTATED = "exam_rotated_during_pause"
 ALREADY_INCUMBENT = "already_incumbent"
@@ -141,6 +142,11 @@ def sweep(store, reconsider, *, kind, current_exam):
                 break  # a refusal ({"error": ...}) is not a decision
             if outcome.get("reason") in (CROWNS_PAUSED, CROWN_QUEUED, CROWN_HELD):
                 break  # paused again, or an earlier record is still undecided (cannot happen to the oldest)
+            if outcome.get("reason") == REBUILD_IN_PROGRESS:
+                # a stepwise decision ran ONE new rebuild (kept) and stopped: not a failure, so no attempt is counted, no spacing
+                # applies and nothing is alerted; the record stays unresolved and the next tick resumes it. The tick ends here
+                # (it ran GPU work), so a live grade runs before the next rebuild.
+                break
             if outcome.get("reason") == INCUMBENT_REGRADE_REQUIRED:
                 continue  # the king lost his evaluation on this key between the two reads: still pending
             code = f"{outcome['outcome']}:{outcome.get('reason')}"

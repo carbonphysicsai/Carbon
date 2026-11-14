@@ -19,6 +19,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from carbon.challenge_kit.interface_dtype import output_dtype
+from carbon.challenge_validator import crown_average as crown_average_step
 from carbon.development_session.graph_gpu_lane import OPS_NOTE as _OPS_NOTE
 
 
@@ -2207,6 +2208,7 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
         bp.REPEAT_UNAVAILABLE,
         bp.REPEAT_MISMATCH,
         crown_average.REBUILD_UNAVAILABLE,
+        crown_average.REBUILD_IN_PROGRESS,
         crown_average.MARGIN_UNREGISTERED,
         crown_average.KING_UNMEASURED,
     ) and outcome.get("outcome") in (bp.UNAVAILABLE, bp.FAILED_INFRA)
@@ -2227,8 +2229,13 @@ def _file_if_paused(store, outcome, kind, submission_id, exam, repeat, pin):
         entry_id=entry_id,
         pin=pin,
     )
-    if retry and not paused:
-        # The live trigger's own failure is the first failed attempt: the sweep's retry waits for its epoch.
+    if (
+        retry
+        and not paused
+        and outcome.get("reason") != crown_average.REBUILD_IN_PROGRESS
+    ):
+        # The live trigger's own failure is the first failed attempt: the sweep's retry waits for its epoch. A stepwise decision
+        # that ran one rebuild and stopped (REBUILD_IN_PROGRESS) is no failure: it counts no attempt and the sweep resumes it.
         store.note_crown_pause_attempt(
             submission_id,
             outcome["evaluation_key"],
@@ -2502,40 +2509,20 @@ def remeasure_incumbent_pack(
 REMEASURE_IN_PROGRESS = "REMEASURE_IN_PROGRESS"
 
 
-class RebuildStep(BaseException):
-    """Raised by a stepwise re-measure in place of a second new rebuild in one call. A BaseException, so the averaging
-    loop's own infrastructure retries (`crown_average._guarded`, `_one`) never take it for a failed build.
-    """
+#: The stepwise stop (a BaseException, so the averaging loop's retries never take it for a failed build): defined in
+#: `crown_average`, shared by the king's re-measure here and a contender's stepwise decision (`Active.decide`).
+RebuildStep = crown_average_step.RebuildStep
 
 
 def _one_rebuild_per_call(repeat, store, submission_id, key):
     """Wrap ``repeat``'s rebuilds: a rebuild already kept is returned from the store; the first new one runs and is
     kept; any further new one raises `RebuildStep`. A grade that is not a measurement (infrastructure) is not kept.
     """
-    from carbon.challenge_validator import bank_promotion as bp
-
-    ran = []
-
-    def kept(build, again):
-        def run(seed, *rest):
-            hit = store.crown_rebuild_cached(submission_id, key, seed, again)
-            if hit is not None:
-                return hit
-            if ran:
-                raise RebuildStep
-            ran.append(seed)
-            body = build(seed, *rest)
-            model = ((body or {}).get("evidence") or {}).get("model_p")
-            status = model.get("score_status") if type(model) is dict else None
-            if type(status) is str and status not in bp.NOT_MEASURED:
-                store.record_crown_rebuild(submission_id, key, seed, again, body)
-            return body
-
-        return run
-
-    first, second = repeat.rebuild_at, repeat.rebuild_again_at
-    repeat.rebuild_at = kept(first, False)
-    repeat.rebuild_again_at = kept(second, True)
+    repeat.rebuild_at, repeat.rebuild_again_at = (
+        crown_average_step.one_new_rebuild_per_call(
+            store, submission_id, key, repeat.rebuild_at, repeat.rebuild_again_at
+        )
+    )
 
 
 #: The label of a crown origin rebind's derived request (`LeanRecipeAdapter._request`'s ``rebuild``): its own task

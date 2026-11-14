@@ -53,6 +53,7 @@ def install(cfg):
         return
     if type(section) is not dict or set(section) != {"key_file"}:
         raise crown_average.CrownAverageInvalid("crown_average_selection_invalid")
+    # stepwise: a contender's N+1 rebuilds run ONE per sweep tick, so a live grade runs between two of them (Bundle A2)
     crown_average.ACTIVE = crown_average.Active(
-        crown_average.load_rule(), read_crown_key(section["key_file"])
+        crown_average.load_rule(), read_crown_key(section["key_file"]), stepwise=True
     )

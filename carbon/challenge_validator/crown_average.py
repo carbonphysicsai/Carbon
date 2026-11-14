@@ -63,6 +63,10 @@ MARGIN_UNREGISTERED = "crown_average_margin_unregistered"
 #: until it is re-measured at switch-over. A single grade is never compared as if it were a mean.
 KING_UNMEASURED = "crown_average_king_unmeasured"
 REBUILD_UNAVAILABLE = "crown_average_rebuild_unavailable"
+#: A stepwise crown decision ran ONE new rebuild and stopped (`Active.decide` with ``stepwise``): the contender is filed for the
+#: sweep, which resumes it on its next tick from the rebuilds kept so far. Not a failure of anything: no attempt is counted,
+#: no retry spacing applies and nothing is alerted.
+REBUILD_IN_PROGRESS = "crown_average_rebuild_in_progress"
 #: Every try of a seed met a busy host (`host_quiet`): Carbon's, never the model's; decided again later.
 REBUILD_HOST_CONTENDED = host_quiet.REBUILD_HOST_CONTENDED
 MEAN_EXCEEDS = "mean_exceeds_incumbent_beyond_margin"
@@ -253,8 +257,12 @@ ACTIVE = None
 class Active:
     """The rule in force on one receiver: the registered rule and K_crown (never printed, never logged)."""
 
-    def __init__(self, rule, key):
+    def __init__(self, rule, key, *, stepwise=False):
         self.rule, self._key = rule, key
+        #: A contender's decision runs at most ONE new rebuild per call and is resumed by the sweep from the rebuilds kept
+        #: (`one_new_rebuild_per_call`), so a live grade runs between two rebuilds. Off here (the whole decision in one
+        #: call, as before); the receiver turns it on at install (`crown_average_host.install`).
+        self.stepwise = stepwise
 
     def __repr__(self):
         return "Active(<redacted>)"
@@ -324,17 +332,34 @@ class Active:
 
         # logged privately so the per-day trigger count is visible (abuse shows as a rate)
         store.record_crown_trigger(submission_id, evaluation_key)
-        result = run_average(
-            key=self._key,
-            challenge_id=comparator["challenge"],
-            submission_id=submission_id,
-            rule=self.rule,
-            rebuild=guarded(rebuild),
-            rebuild_again=guarded(again),
-            king_mean=king_mean if status == bp.SCORED else None,
-            baseline_floor=comparator.get("baseline_total"),
-            tolerance=(comparator.get("rebuild_noise") or {}).get("value"),
-        )
+        if self.stepwise and hasattr(store, "crown_rebuild_cached"):
+            rebuild, again = one_new_rebuild_per_call(
+                store,
+                submission_id,
+                evaluation_key,
+                rebuild,
+                again,
+                retry_in_call=True,
+            )
+        try:
+            result = run_average(
+                key=self._key,
+                challenge_id=comparator["challenge"],
+                submission_id=submission_id,
+                rule=self.rule,
+                rebuild=guarded(rebuild),
+                rebuild_again=guarded(again),
+                king_mean=king_mean if status == bp.SCORED else None,
+                baseline_floor=comparator.get("baseline_total"),
+                tolerance=(comparator.get("rebuild_noise") or {}).get("value"),
+            )
+        except RebuildStep:
+            # One new rebuild ran and was kept; the rest wait for the sweep's next tick (the contender stays filed).
+            return {
+                **outcome,
+                "outcome": bp.UNAVAILABLE,
+                "reason": REBUILD_IN_PROGRESS,
+            }
         private = result.get("private")
         if private is not None:
             try:
@@ -419,6 +444,50 @@ def _guarded(build):
 class RebuildInfra(Exception):
     """A rebuild failed for a reason that says nothing about the model (infrastructure): retried, never counted
     against the miner."""
+
+
+class RebuildStep(BaseException):
+    """Raised by a stepwise crown decision in place of a second NEW rebuild in one call. A BaseException, so the
+    averaging loop's own infrastructure retries (`_guarded`, `_one`) never take it for a failed build.
+    """
+
+
+def one_new_rebuild_per_call(
+    store, submission_id, key, first, second, *, retry_in_call=False
+):
+    """``(rebuild, again)`` wrapping ``first`` / ``second`` (the seeded rebuild and the host-fault second build): a rebuild
+    already kept in ``store`` (`PoolStore.crown_rebuild_cached`) is returned from it; the first NEW one runs and is kept;
+    any further new one raises `RebuildStep`. A grade that is not a measurement (infrastructure) is not kept. Shared by
+    the king's stepwise re-measure and a contender's stepwise decision: the same cache, the same rule.
+
+    ``retry_in_call`` (the contender's decision): the new rebuild counts as run only once it RETURNED, so an infrastructure
+    failure is retried inside the call by the averaging loop's own retries (`_one`) and, if every try fails, ends the
+    decision UNAVAILABLE ``rebuild_unavailable`` (an attempt counted, spaced, alerted: a persistent fault never burns the GPU
+    every tick). The king's re-measure keeps its earlier rule (a failed new rebuild stops the call).
+    """
+    ran = []
+
+    def kept(build, again):
+        def run(seed, *rest):
+            hit = store.crown_rebuild_cached(submission_id, key, seed, again)
+            if hit is not None:
+                return hit
+            if ran:
+                raise RebuildStep
+            if not retry_in_call:
+                ran.append(seed)
+            body = build(seed, *rest)
+            if retry_in_call:
+                ran.append(seed)
+            model = ((body or {}).get("evidence") or {}).get("model_p")
+            status = model.get("score_status") if type(model) is dict else None
+            if type(status) is str and status not in bp.NOT_MEASURED:
+                store.record_crown_rebuild(submission_id, key, seed, again, body)
+            return body
+
+        return run
+
+    return kept(first, False), kept(second, True)
 
 
 def _result(outcome, reason, **extra):
@@ -552,14 +621,17 @@ def public_view(result):
 
 __all__ = [
     "ACTIVE",
+    "REBUILD_IN_PROGRESS",
     "Active",
     "CrownAverageInvalid",
     "CrownAverageUnavailable",
+    "RebuildStep",
     "Rule",
     "derive_seeds",
     "host_fault_index",
     "load_rule",
     "margin_n",
+    "one_new_rebuild_per_call",
     "public_view",
     "run_average",
     "triggered",
