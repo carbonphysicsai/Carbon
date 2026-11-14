@@ -28,14 +28,19 @@ SCHEMA = "carbon.queue.public.v1"
 #: (the koth /v2 pattern); v1 stays byte-identical for current clients.
 SCHEMA_V2 = "carbon.queue.public.v2"
 V2_SUFFIX = "/v2"
-#: v3 (owner 14 Nov: "show the actual queue") = v2's closed fields plus ``rows``: one row per pending submission, served at
+#: v3 = v2's closed fields plus ``rows``: one row per pending submission, served at
 #: ``PATH + <id> + V3_SUFFIX``. v1 and v2 stay byte-identical. A row says WHERE a submission waits and for how long, never WHAT it
 #: is: ``position`` (1-based, oldest first), ``hotkey`` (first 4 and last 4 characters of the public key), ``state`` (one of
-#: `ROW_STATES`) and ``in_queue_s`` (seconds since the submission was accepted, floored to `ROWS_QUANTUM_S`). No task id, recipe,
+#: `ROW_STATES`; "crown check" says plainly that the grade beat the king's screening) and ``in_queue_s`` (seconds since the submission was accepted, floored to `ROWS_QUANTUM_S`). No task id, recipe,
 #: score, pack, seed, exam case, build or grade duration, or any other hotkey field.
 #: TIMING: the rows are rebuilt only on a fixed wall-clock boundary (`ROWS_QUANTUM_S`) and every time is floored to it, so no
 #: state change of one submission is visible finer than the quantum (the public ``grading_now`` flag is read at 30 s today), and the
 #: document names at most `MAX_ROWS` rows. The quantum is an ENGINEERING value (not science, not economics): the owner / V2C may set it.
+#: OWNER WORDS (relayed by the Lead on 14 Nov, typed by the owner in the Lead session, not in this one): "show the actual queue", and to add the
+#: public per-submission queue view to the same upgrade (Bundle A). Spec as the Lead relayed it: position, short hotkey, state, time in queue;
+#: nothing about recipes, scores or the exam.
+#: DISCLOSURE, plainly: a "crown check" row shows which grades beat the king's screening (a graded contender whose crown decision is still to
+#: be made); a "hotkey" is the first and last 4 characters of a public key; "in grading" covers both waiting to be graded and being graded.
 SCHEMA_V3 = "carbon.queue.public.v3"
 V3_SUFFIX = "/v3"
 ROWS = "rows"
@@ -44,10 +49,13 @@ MAX_ROWS = 100
 MAX_BYTES_V3 = 32768
 WAITING_TO_BUILD = "waiting to build"
 BUILDING = "building"
-WAITING_TO_GRADE = "waiting to grade"
-GRADING_ROW = "grading"
+#: One state for a built submission that has no verdict yet: "waiting to grade" and "grading" are NOT told apart per row (V2C 14 Nov: a
+#: visible grade start would expose each grade's length in quantum steps). The counts (v1/v2) still carry both, as before.
+IN_GRADING = "in grading"
+#: A graded contender waiting for the crown sweep: its grade beat the king's screening (it is a crown-changing contender, or the first
+#: king's candidate), so the crown decision (the repeat grade and rebuilds) is still to be made.
 CROWN_CHECK = "crown check"
-ROW_STATES = (WAITING_TO_BUILD, BUILDING, WAITING_TO_GRADE, GRADING_ROW, CROWN_CHECK)
+ROW_STATES = (WAITING_TO_BUILD, BUILDING, IN_GRADING, CROWN_CHECK)
 ROW_FIELDS = frozenset({"position", "hotkey", "state", "in_queue_s"})
 #: A short key: 4 characters, an ellipsis, 4 characters (a public chain address's first and last 4), or None when the door cannot say.
 _SHORT_KEY = re.compile(r"[1-9A-HJ-NP-Za-km-z]{4}\u2026[1-9A-HJ-NP-Za-km-z]{4}")

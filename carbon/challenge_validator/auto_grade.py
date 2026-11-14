@@ -86,9 +86,6 @@ class AutoGrader:
         #: What this grader is doing right now, for the public queue view (`queue_view`): "king" during the king's
         #: upkeep, "grade" while a submission is graded, else None. Read only; it gates nothing.
         self.activity = None
-        #: The submission being graded right now (None otherwise), for the public queue's per-submission rows (`queue_view`).
-        #: Read only; it gates nothing.
-        self.grading_submission = None
         for directory in (self.artifacts, self.entries, self.markers, self.failures):
             directory.mkdir(mode=0o700, parents=True, exist_ok=True)
         if pool_store is not None and hasattr(intake.adapter.ledger, "_db"):
@@ -307,7 +304,6 @@ class AutoGrader:
             started_ns = time.time_ns()
             try:
                 self.activity = "grade"
-                self.grading_submission = submission_id
                 try:
                     with sampler:
                         result = self.intake.retain_result(
@@ -318,7 +314,6 @@ class AutoGrader:
                         )
                 finally:
                     self.activity = None
-                    self.grading_submission = None
             except RetentionUnavailable as unavailable:
                 code = getattr(unavailable, "code", None) or str(unavailable)
                 if not isinstance(code, str):
