@@ -1084,6 +1084,24 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
     assert retained == frozen
     resumed.close()
 
+    # An owner whose registration is UNKNOWN at restore (no usable snapshot: the start snapshot aged past the window during
+    # start-up) keeps its queue QUEUED and cannot launch from old authority; it is not treated as revoked.
+    unknown = pool(advanced)
+    unknown.window = SimpleNamespace(latest=lambda: None)
+    unknown.restore()
+    assert unknown._providers[OWNER].queued_tasks() == (queued.task_id,)
+    assert unknown._unobserved == {OWNER}
+    with pytest.raises(Unavailable, match="direct_provider_registration_unavailable"):
+        unknown(OWNER)  # not launchable from old authority while there is no snapshot
+    assert unknown._providers[OWNER].queued_tasks() == (queued.task_id,)
+    # the first FRESH snapshot with the SAME registration proves the owner live: it is decided once, the queue stays, and the
+    # owner may build again
+    unknown.window = SimpleNamespace(latest=lambda: advanced)
+    assert unknown(OWNER) is unknown._providers[OWNER]
+    assert unknown._unobserved == set()
+    assert unknown._providers[OWNER].queued_tasks() == (queued.task_id,)
+    unknown.close()
+
     recycled = replace(
         advanced,
         participants=(
@@ -2004,3 +2022,86 @@ def test_a_receiver_without_a_receipt_store_has_no_official_gpu_receipt(
     monkeypatch.setattr(gpu_receipt, "OFFICIAL_STORE", object())
     receiver.install_official_receipt_store(_config(tmp_path))
     assert gpu_receipt.OFFICIAL_STORE is None
+
+
+class _FakeOwnerProvider:
+    def __init__(self, queued):
+        self._queued, self.cancelled = list(queued), []
+
+    def queued_tasks(self):
+        return tuple(self._queued)
+
+    def cancel_observed_task(self, task_id, challenge):
+        self.cancelled.append(task_id)
+        self._queued.remove(task_id)
+
+
+def _unobserved_pool(tmp_path, provider, *, fresh, same):
+    pool = receiver.OwnerProviders(
+        tmp_path,
+        SimpleNamespace(info=SimpleNamespace(challenge_key="key")),
+        None,
+        None,
+    )
+    pool._providers[OWNER] = provider
+    pool._admissions[OWNER] = {"admission": "frozen"}
+    pool._unobserved.add(OWNER)
+    state = {"fresh": fresh}
+    pool._observed = lambda: object() if state["fresh"] else None
+    pool._admission = lambda hotkey: (
+        {"admission": "frozen"} if same else {"admission": "changed"}
+    )
+    pool._same_registration = staticmethod(
+        lambda frozen, current: current is not None
+        and frozen["admission"] == current["admission"]
+    )
+    return pool, state
+
+
+def test_a_queue_kept_while_the_registration_was_unknown_is_cancelled_by_the_first_fresh_changed_snapshot_and_never_builds(
+    tmp_path,
+):
+    from carbon.challenge_validator.interface import Unavailable
+
+    provider = _FakeOwnerProvider(["task-a", "task-b"])
+    pool, state = _unobserved_pool(tmp_path, provider, fresh=False, same=False)
+    # no usable snapshot: nothing is decided, nothing is cancelled, the owner cannot build
+    pool._settle_unobserved()
+    assert provider.cancelled == [] and pool._unobserved == {OWNER}
+    with pytest.raises(Unavailable, match="direct_provider_registration_unavailable"):
+        pool(OWNER)
+    assert provider.cancelled == []
+    # the first fresh snapshot shows a CHANGED registration: the kept queue is cancelled, never built
+    state["fresh"] = True
+    with pytest.raises(Unavailable, match="direct_provider_registration_unavailable"):
+        pool(OWNER)
+    assert provider.cancelled == ["task-a", "task-b"] and pool._unobserved == set()
+
+
+def test_a_queue_kept_while_unknown_survives_a_fresh_snapshot_with_the_same_registration(
+    tmp_path,
+):
+    provider = _FakeOwnerProvider(["task-a"])
+    pool, _state = _unobserved_pool(tmp_path, provider, fresh=True, same=True)
+    pool._settle_unobserved()
+    assert provider.cancelled == [] and pool._unobserved == set()
+
+
+def test_a_failed_cancellation_of_an_unknown_owner_is_decided_again_and_never_builds(
+    tmp_path,
+):
+    class Failing(_FakeOwnerProvider):
+        fail = True
+
+        def cancel_observed_task(self, task_id, challenge):
+            if self.fail:
+                raise RuntimeError("cancel failed")
+            super().cancel_observed_task(task_id, challenge)
+
+    provider = Failing(["task-a"])
+    pool, _ = _unobserved_pool(tmp_path, provider, fresh=True, same=False)
+    pool._settle_unobserved()
+    assert pool._unobserved == {OWNER} and provider.cancelled == []
+    provider.fail = False
+    pool._settle_unobserved()
+    assert pool._unobserved == set() and provider.cancelled == ["task-a"]

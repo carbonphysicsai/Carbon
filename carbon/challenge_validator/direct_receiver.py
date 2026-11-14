@@ -1597,6 +1597,9 @@ class OwnerProviders:
         self._providers = {}
         self._controls = {}
         self._admissions = {}
+        #: Owners restored while their registration was UNKNOWN (no usable snapshot): their queues were kept; the first
+        #: fresh snapshot decides each (`_settle_unobserved`).
+        self._unobserved = set()
         self._closing = False
 
     def gpu_runtimes(self):
@@ -1621,6 +1624,19 @@ class OwnerProviders:
             RegisteredMiner,
         )
 
+        observed = self._observed()
+        if observed is None:
+            return None
+        try:
+            return RegisteredMiner(observed, PublicAddress(hotkey)).record()
+        except OnboardingFailure:
+            return None
+
+    def _observed(self):
+        """The finalized snapshot a registration is checked against, or None when there is NO usable one: none held, older
+        than the window's freshness, a durable high-water conflict, or another chain context. None means the registration is
+        UNKNOWN, which is not the same as a registration the chain shows to be revoked or recycled.
+        """
         observed = self.window.latest() if self.window is not None else self.snapshot
         if (
             observed is None
@@ -1628,10 +1644,7 @@ class OwnerProviders:
             or observed.context != self.snapshot.context
         ):
             return None
-        try:
-            return RegisteredMiner(observed, PublicAddress(hotkey)).record()
-        except OnboardingFailure:
-            return None
+        return observed
 
     @staticmethod
     def _same_registration(frozen, current):
@@ -1807,6 +1820,8 @@ class OwnerProviders:
         with self._lock:
             if self._closing:
                 raise Unavailable("direct_receiver_stopping")
+            if not restoring:
+                self._settle_unobserved()
             if hotkey not in self._providers:
                 if not restoring and not host and self._admission(hotkey) is None:
                     raise Unavailable("direct_provider_registration_unavailable")
@@ -1865,9 +1880,16 @@ class OwnerProviders:
                 self._providers[hotkey] = provider
                 self._controls[hotkey] = control
                 self._admissions[hotkey] = frozen_admission
-                if restoring and not live:
+                if restoring and not live and self._observed() is None:
+                    self._unobserved.add(hotkey)
+                if restoring and not live and self._observed() is not None:
                     # A revoked/recycled miner retains cleanup custody, never
                     # the right to launch a queued child from old authority.
+                    # Only when a FRESH snapshot positively shows a different (or no) registration: with NO usable
+                    # snapshot the registration is unknown, not revoked (the start snapshot ages past 60 s during start-up,
+                    # before the intake's refresher runs: 14 Nov, 112 live queued tasks of 80 owners cancelled), so the queue
+                    # stays QUEUED, the owner cannot launch from old authority (the registration re-check below refuses while
+                    # there is no snapshot) and the first fresh snapshot decides.
                     for task_id in provider.queued_tasks():
                         provider.cancel_observed_task(
                             task_id, self.discovery.info.challenge_key
@@ -1881,6 +1903,34 @@ class OwnerProviders:
             ):
                 raise Unavailable("direct_provider_registration_unavailable")
             return self._providers[hotkey]
+
+    def _settle_unobserved(self):
+        """The FIRST fresh snapshot decides every owner restored while its registration was unknown: the same registration
+        keeps its (kept) queue, now allowed to build; a different or absent one cancels its queued tasks exactly as a restore
+        against a fresh snapshot does (`cancel_observed_task`) and never builds them. Runs at every provider request after
+        restore (the intake's and the advance loop's), under the lock; nothing happens until a fresh snapshot exists. A
+        cancellation that fails leaves the owner to be decided again on the next call (it cannot launch meanwhile: the
+        registration re-check in `_open` refuses it)."""
+        if not self._unobserved or self._observed() is None:
+            return
+        for hotkey in sorted(self._unobserved):
+            provider = self._providers.get(hotkey)
+            if provider is None:
+                self._unobserved.discard(hotkey)
+                continue
+            if self._same_registration(
+                self._admissions[hotkey], self._admission(hotkey)
+            ):
+                self._unobserved.discard(hotkey)
+                continue
+            try:
+                for task_id in provider.queued_tasks():
+                    provider.cancel_observed_task(
+                        task_id, self.discovery.info.challenge_key
+                    )
+            except Exception:  # noqa: BLE001, S112 - decided again on the next call
+                continue
+            self._unobserved.discard(hotkey)
 
     def __call__(self, hotkey):
         from carbon.challenge_validator import crown_average
@@ -2284,7 +2334,11 @@ def serve(
         try:
             ledger = AttemptLedger(root / "attempts.sqlite3")
             if retention is None:
-                _exam_cap_startup(ledger, discovery, providers.restore)
+                # The start snapshot ages past the window's 60 s during pack verification and the restore of every owner;
+                # keep fresh snapshots flowing until the intake's own refresher takes over, so no owner is restored against
+                # a snapshot that has silently expired.
+                with retention_snapshots(window, network.context, reader):
+                    _exam_cap_startup(ledger, discovery, providers.restore)
             intake = DirectRecipeIntake(
                 context=network.context,
                 receiver=cfg["receiver_hotkey"],
