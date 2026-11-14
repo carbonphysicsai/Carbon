@@ -174,9 +174,20 @@ LAUNCH = "sha256:" + "1" * 64
 NAME = "carbon-d4-" + LAUNCH[7:31]
 
 
-class CpuCLI:
-    def __init__(self, stdout=b"", error=False):
-        self.stdout, self.error, self.calls = stdout, error, []
+CONTAINER_ID = "ab" * 32
+PID = 4242
+SCOPE = f"/system.slice/docker-{CONTAINER_ID}.scope"
+CPU_STAT = (
+    b"usage_usec 123456789\nuser_usec 100000000\nsystem_usec 23456789\nnr_periods 0\n"
+)
+
+
+class InspectCLI:
+    """The only docker call the reading makes is one `inspect`: no exec into the candidate's container."""
+
+    def __init__(self, stdout=None, error=False):
+        self.stdout = f"{CONTAINER_ID} {PID}\n".encode() if stdout is None else stdout
+        self.error, self.calls = error, []
 
     def run(self, arguments, *, timeout):
         self.calls.append((arguments, timeout))
@@ -185,53 +196,128 @@ class CpuCLI:
         return SimpleNamespace(stdout=self.stdout)
 
 
-def _cpu(cli, **changes):
+@pytest.fixture
+def host(tmp_path):
+    """A fake host: /proc/<pid>/cgroup naming the container's scope, and that scope's cpu.stat."""
+    proc, cgroup = tmp_path / "proc", tmp_path / "cgroup"
+    (proc / str(PID)).mkdir(parents=True)
+    (proc / str(PID) / "cgroup").write_bytes(f"0::{SCOPE}\n".encode())
+    (cgroup / SCOPE.lstrip("/")).mkdir(parents=True)
+    (cgroup / SCOPE.lstrip("/") / "cpu.stat").write_bytes(CPU_STAT)
+    return SimpleNamespace(proc=proc, cgroup=cgroup)
+
+
+def _cpu(cli, host, **changes):
     return carrier._fixed_program_cpu_usage_usec(
         cli,
         **{
             "container_name": NAME,
             "launch_digest": LAUNCH,
             "deadline": time.monotonic() + 1,
+            "proc_root": str(host.proc),
+            "cgroup_root": str(host.cgroup),
             **changes,
         },
     )
 
 
-CPU_STAT = (
-    b"usage_usec 123456789\nuser_usec 100000000\nsystem_usec 23456789\nnr_periods 0\n"
-)
-
-
-def test_the_cpu_reading_is_one_bounded_read_of_this_launchs_cgroup():
-    cli = CpuCLI(CPU_STAT)
-    assert _cpu(cli) == 123456789
-    ((arguments, timeout),) = cli.calls
-    assert arguments == ["exec", NAME, "/bin/cat", "/sys/fs/cgroup/cpu.stat"]
+def test_the_cpu_reading_is_one_inspect_and_two_host_file_reads_never_an_exec(host):
+    cli = InspectCLI()
+    assert _cpu(cli, host) == 123456789
+    ((arguments, timeout),) = cli.calls  # exactly one docker call, and it is an inspect
+    assert arguments == ["inspect", NAME, "--format", "{{.Id}} {{.State.Pid}}"]
     assert 0 < timeout <= 0.5
+    assert "exec" not in arguments
 
 
-@pytest.mark.parametrize(
-    "cli,changes",
-    [
-        (CpuCLI(b""), {}),  # nothing read
-        (CpuCLI(b"user_usec 5\n"), {}),  # no usage_usec line
-        (CpuCLI(b"usage_usec -5\n"), {}),  # not a decimal
-        (CpuCLI(b"usage_usec 12x\n"), {}),
-        (CpuCLI(b"usage_usec " + b"9" * 30 + b"\n"), {}),  # not a u64
-        (CpuCLI(b"usage_usec 1\n" + b"x" * 5000), {}),  # over the bound
-        (CpuCLI(b"\xff\xfe"), {}),  # not ascii
-        (CpuCLI(error=True), {}),  # the read failed
-        (CpuCLI(CPU_STAT), {"container_name": "carbon-d4-other"}),  # not this launch
-        (CpuCLI(CPU_STAT), {"launch_digest": "sha256:short"}),
-        (CpuCLI(CPU_STAT), {"deadline": time.monotonic() - 1}),  # no budget left
-        (
-            CpuCLI(CPU_STAT),
-            {"deadline": float("inf") * 0},
-        ),  # a deadline that is not a number
-    ],
+def test_the_cpu_reading_works_for_a_cgroupfs_path_too(host):
+    scope = f"/docker/{CONTAINER_ID}"
+    (host.proc / str(PID) / "cgroup").write_bytes(f"0::{scope}\n".encode())
+    (host.cgroup / "docker" / CONTAINER_ID).mkdir(parents=True)
+    (host.cgroup / "docker" / CONTAINER_ID / "cpu.stat").write_bytes(b"usage_usec 77\n")
+    assert _cpu(InspectCLI(), host) == 77
+
+
+UNTRUSTED = (
+    "inspect_empty",
+    "inspect_garbled",
+    "inspect_short_id",
+    "inspect_bad_pid",
+    "inspect_error",
+    "no_proc_entry",
+    "cgroup_v1_only",  # no `0::` line
+    "path_without_this_containers_id",  # a reused pid / another container's cgroup
+    "path_with_dotdot",
+    "path_with_odd_characters",
+    "no_cpu_stat",
+    "no_usage_line",
+    "usage_not_decimal",
+    "usage_not_u64",
+    "cpu_stat_too_big",
+    "cpu_stat_not_ascii",
+    "cpu_stat_is_a_symlink",
+    "wrong_container_name",
+    "bad_launch_digest",
+    "no_budget",
+    "deadline_not_a_number",
 )
-def test_a_cpu_reading_that_cannot_be_trusted_is_none_and_never_raises(cli, changes):
-    assert _cpu(cli, **changes) is None
+
+
+@pytest.mark.parametrize("change", UNTRUSTED)
+def test_a_cpu_reading_that_cannot_be_trusted_is_none_and_never_raises(host, change):
+    cli, changes = InspectCLI(), {}
+    cgroup_file = host.proc / str(PID) / "cgroup"
+    stat_file = host.cgroup / SCOPE.lstrip("/") / "cpu.stat"
+    if change == "inspect_empty":
+        cli = InspectCLI(b"")
+    elif change == "inspect_garbled":
+        cli = InspectCLI(b"not an id\n")
+    elif change == "inspect_short_id":
+        cli = InspectCLI(f"{CONTAINER_ID[:-2]} {PID}\n".encode())
+    elif change == "inspect_bad_pid":
+        cli = InspectCLI(f"{CONTAINER_ID} 0\n".encode())
+    elif change == "inspect_error":
+        cli = InspectCLI(error=True)
+    elif change == "no_proc_entry":
+        cgroup_file.unlink()
+    elif change == "cgroup_v1_only":
+        cgroup_file.write_bytes(b"12:cpu,cpuacct:/docker/x\n")
+    elif change == "path_without_this_containers_id":
+        cgroup_file.write_bytes(b"0::/system.slice/docker-" + b"cd" * 32 + b".scope\n")
+    elif change == "path_with_dotdot":
+        cgroup_file.write_bytes(
+            f"0::/system.slice/../docker-{CONTAINER_ID}.scope\n".encode()
+        )
+    elif change == "path_with_odd_characters":
+        cgroup_file.write_bytes(
+            f"0::/system.slice/docker-{CONTAINER_ID}.scope;x\n".encode()
+        )
+    elif change == "no_cpu_stat":
+        stat_file.unlink()
+    elif change == "no_usage_line":
+        stat_file.write_bytes(b"user_usec 5\n")
+    elif change == "usage_not_decimal":
+        stat_file.write_bytes(b"usage_usec 12x\n")
+    elif change == "usage_not_u64":
+        stat_file.write_bytes(b"usage_usec " + b"9" * 30 + b"\n")
+    elif change == "cpu_stat_too_big":
+        stat_file.write_bytes(b"usage_usec 1\n" + b"x" * 5000)
+    elif change == "cpu_stat_not_ascii":
+        stat_file.write_bytes(b"\xff\xfe")
+    elif change == "cpu_stat_is_a_symlink":
+        stat_file.unlink()
+        target = host.cgroup / "elsewhere"
+        target.write_bytes(CPU_STAT)
+        stat_file.symlink_to(target)
+    elif change == "wrong_container_name":
+        changes = {"container_name": "carbon-d4-other"}
+    elif change == "bad_launch_digest":
+        changes = {"launch_digest": "sha256:short"}
+    elif change == "no_budget":
+        changes = {"deadline": time.monotonic() - 1}
+    elif change == "deadline_not_a_number":
+        changes = {"deadline": float("nan")}
+    assert _cpu(cli, host, **changes) is None
 
 
 def _readings(monkeypatch, *values):

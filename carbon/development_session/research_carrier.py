@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import shutil
+import stat as stat_module
 import time
 from contextlib import ExitStack, contextmanager, suppress
 from contextvars import ContextVar
@@ -706,12 +708,38 @@ def _retain_practice_failure(operation, stage, error):
         return
 
 
-def _fixed_program_cpu_usage_usec(cli, *, container_name, launch_digest, deadline):
+_CGROUP_PATH = re.compile(r"/[A-Za-z0-9_.:@-]+(?:/[A-Za-z0-9_.:@-]+)*")
+
+
+def _read_small_file(path, limit=4096):
+    """At most ``limit`` bytes of one regular file, never following a link; None when it cannot be read as such."""
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        if not stat_module.S_ISREG(os.fstat(fd).st_mode):
+            return None
+        raw = os.read(fd, limit + 1)
+    finally:
+        os.close(fd)
+    return raw if 0 < len(raw) <= limit else None
+
+
+def _fixed_program_cpu_usage_usec(
+    cli,
+    *,
+    container_name,
+    launch_digest,
+    deadline,
+    proc_root="/proc",
+    cgroup_root="/sys/fs/cgroup",
+):
     """The container cgroup's cumulative CPU time in microseconds (``usage_usec`` of ``cpu.stat``), or None.
 
-    One bounded read of this exact launch, fail-soft, no inference: with the program's own wall time it is the host-side
-    way to tell a pass that was COMPUTING (CPU time near wall time times the cores it used) from one that was BLOCKED
-    (CPU time near zero), with no worker-image change. It is a number in a private record, never a decision.
+    Read from the HOST (no ``docker exec`` into the candidate's container): one ``docker inspect`` for the container's full id and
+    its init pid, then the host's own ``/proc/<pid>/cgroup`` for the cgroup path (cgroup v2, whichever driver names it) and that
+    cgroup's ``cpu.stat``. The path is used only if it names THIS container's full id, so a reused pid cannot be another
+    container's. Fail-soft, no inference: with the program's own wall time it is the host-side way to tell a pass that was
+    COMPUTING (CPU time near wall time times the cores it used) from one that was BLOCKED (CPU time near zero), with no
+    worker-image change. It is a number in a private record, never a decision.
     """
     try:
         remaining = deadline - time.monotonic()
@@ -724,12 +752,35 @@ def _fixed_program_cpu_usage_usec(cli, *, container_name, launch_digest, deadlin
         ):
             return None
         raw = cli.run(
-            ["exec", container_name, "/bin/cat", "/sys/fs/cgroup/cpu.stat"],
+            ["inspect", container_name, "--format", "{{.Id}} {{.State.Pid}}"],
             timeout=min(0.5, remaining),
         ).stdout
-        if type(raw) is not bytes or not 0 < len(raw) <= 4096:
+        if type(raw) is not bytes or not 0 < len(raw) <= 256:
             return None
-        for line in raw.decode("ascii", "strict").splitlines():
+        parts = raw.decode("ascii", "strict").split()
+        if len(parts) != 2 or re.fullmatch(r"[0-9a-f]{64}", parts[0]) is None:
+            return None
+        if not parts[1].isdecimal() or not 0 < int(parts[1]) < 2**22:
+            return None
+        container_id, pid = parts[0], int(parts[1])
+        listing = _read_small_file(f"{proc_root}/{pid}/cgroup")
+        if listing is None:
+            return None
+        relative = None
+        for line in listing.decode("ascii", "strict").splitlines():
+            if line.startswith("0::"):
+                relative = line[3:]
+        if (
+            relative is None
+            or _CGROUP_PATH.fullmatch(relative) is None
+            or any(part in ("", ".", "..") for part in relative.split("/")[1:])
+            or container_id not in relative
+        ):
+            return None
+        counters = _read_small_file(f"{cgroup_root}{relative}/cpu.stat")
+        if counters is None:
+            return None
+        for line in counters.decode("ascii", "strict").splitlines():
             key, _, number = line.partition(" ")
             if key == "usage_usec":
                 value = int(number) if number.isdecimal() else None
