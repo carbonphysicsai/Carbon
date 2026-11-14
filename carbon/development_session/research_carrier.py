@@ -706,6 +706,39 @@ def _retain_practice_failure(operation, stage, error):
         return
 
 
+def _fixed_program_cpu_usage_usec(cli, *, container_name, launch_digest, deadline):
+    """The container cgroup's cumulative CPU time in microseconds (``usage_usec`` of ``cpu.stat``), or None.
+
+    One bounded read of this exact launch, fail-soft, no inference: with the program's own wall time it is the host-side
+    way to tell a pass that was COMPUTING (CPU time near wall time times the cores it used) from one that was BLOCKED
+    (CPU time near zero), with no worker-image change. It is a number in a private record, never a decision.
+    """
+    try:
+        remaining = deadline - time.monotonic()
+        if (
+            not math.isfinite(remaining)
+            or remaining <= 0
+            or type(launch_digest) is not str
+            or re.fullmatch(r"sha256:[0-9a-f]{64}", launch_digest) is None
+            or container_name != "carbon-d4-" + launch_digest[7:31]
+        ):
+            return None
+        raw = cli.run(
+            ["exec", container_name, "/bin/cat", "/sys/fs/cgroup/cpu.stat"],
+            timeout=min(0.5, remaining),
+        ).stdout
+        if type(raw) is not bytes or not 0 < len(raw) <= 4096:
+            return None
+        for line in raw.decode("ascii", "strict").splitlines():
+            key, _, number = line.partition(" ")
+            if key == "usage_usec":
+                value = int(number) if number.isdecimal() else None
+                return value if value is not None and value < 2**64 else None
+    except Exception:  # noqa: BLE001 - a private observation never gates work
+        return None
+    return None
+
+
 _PROGRAM_STATE_FORMAT = (
     '{"launch_digest":{{json (index .Config.Labels '
     '"org.opencontainers.image.carbon.c03.launch")}},'
@@ -1627,6 +1660,14 @@ def _run_locked(
                 diagnose_policy=provenance in _FIXED_DIAGNOSTIC_PROVENANCES,
             )
         baseline_digest = None
+        baseline_cpu = None
+        if provenance == GRAPH_INFERENCE_PROVENANCE:
+            baseline_cpu = _fixed_program_cpu_usage_usec(
+                cli,
+                container_name=name,
+                launch_digest=launch,
+                deadline=min(time.monotonic() + 1, started + seconds - 45),
+            )
         if provenance in _PROGRAM_EVIDENCE_PROVENANCES:
             try:
                 baseline_digest = _retain_fixed_program_evidence(
@@ -1642,6 +1683,11 @@ def _run_locked(
                             launch_digest=launch,
                             image_id=image.image_id,
                             deadline=min(time.monotonic() + 1, started + seconds - 45),
+                        ),
+                        **(
+                            {"cpu_usage_usec": baseline_cpu}
+                            if provenance == GRAPH_INFERENCE_PROVENANCE
+                            else {}
                         ),
                     },
                 )
@@ -1689,6 +1735,28 @@ def _run_locked(
                             image_id=image.image_id,
                             deadline=min(time.monotonic() + 1, started + seconds - 30),
                         )
+                        failure_cpu = {}
+                        if provenance == GRAPH_INFERENCE_PROVENANCE:
+                            # CPU time of the container at the failure, and the part used during the program (None when
+                            # either reading failed): with elapsed_milliseconds, computing vs blocked, host-side only
+                            after = _fixed_program_cpu_usage_usec(
+                                cli,
+                                container_name=name,
+                                launch_digest=launch,
+                                deadline=min(
+                                    time.monotonic() + 1, started + seconds - 30
+                                ),
+                            )
+                            failure_cpu = {
+                                "cpu_usage_usec": after,
+                                "cpu_usec_during_program": (
+                                    after - baseline_cpu
+                                    if after is not None
+                                    and baseline_cpu is not None
+                                    and after >= baseline_cpu
+                                    else None
+                                ),
+                            }
                         _retain_fixed_program_evidence(
                             operation,
                             "private-program-failure-evidence.json",
@@ -1711,6 +1779,7 @@ def _run_locked(
                                 ).exists(),
                                 "observed_exec_exit": observed_exit,
                                 "observation": failure_observation,
+                                **failure_cpu,
                                 "interpretation": "Observations only; no inferred kill cause.",
                             },
                         )

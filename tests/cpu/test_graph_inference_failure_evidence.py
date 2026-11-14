@@ -11,6 +11,8 @@ the caller, and the policy diagnosis (`diagnose_policy`) now also names the fail
 
 import contextlib
 import json
+import time
+from types import SimpleNamespace
 
 import pytest
 from test_candidate_resource_failure import (
@@ -164,3 +166,158 @@ def test_the_policy_diagnostic_is_only_a_private_marker_and_the_code_stays_polic
     assert bare.code is named.code is WorkerCode.POLICY
     assert bare.private_diagnostic == b""
     assert named.private_diagnostic.startswith(runtime._CONTROL_PREDICATE_PREFIX)
+
+
+# ---- CPU time vs wall time: the host-side stall-vs-slow reading ------------------------------------------
+
+LAUNCH = "sha256:" + "1" * 64
+NAME = "carbon-d4-" + LAUNCH[7:31]
+
+
+class CpuCLI:
+    def __init__(self, stdout=b"", error=False):
+        self.stdout, self.error, self.calls = stdout, error, []
+
+    def run(self, arguments, *, timeout):
+        self.calls.append((arguments, timeout))
+        if self.error:
+            raise WorkerFailure(WorkerCode.RUNTIME)
+        return SimpleNamespace(stdout=self.stdout)
+
+
+def _cpu(cli, **changes):
+    return carrier._fixed_program_cpu_usage_usec(
+        cli,
+        **{
+            "container_name": NAME,
+            "launch_digest": LAUNCH,
+            "deadline": time.monotonic() + 1,
+            **changes,
+        },
+    )
+
+
+CPU_STAT = (
+    b"usage_usec 123456789\nuser_usec 100000000\nsystem_usec 23456789\nnr_periods 0\n"
+)
+
+
+def test_the_cpu_reading_is_one_bounded_read_of_this_launchs_cgroup():
+    cli = CpuCLI(CPU_STAT)
+    assert _cpu(cli) == 123456789
+    ((arguments, timeout),) = cli.calls
+    assert arguments == ["exec", NAME, "/bin/cat", "/sys/fs/cgroup/cpu.stat"]
+    assert 0 < timeout <= 0.5
+
+
+@pytest.mark.parametrize(
+    "cli,changes",
+    [
+        (CpuCLI(b""), {}),  # nothing read
+        (CpuCLI(b"user_usec 5\n"), {}),  # no usage_usec line
+        (CpuCLI(b"usage_usec -5\n"), {}),  # not a decimal
+        (CpuCLI(b"usage_usec 12x\n"), {}),
+        (CpuCLI(b"usage_usec " + b"9" * 30 + b"\n"), {}),  # not a u64
+        (CpuCLI(b"usage_usec 1\n" + b"x" * 5000), {}),  # over the bound
+        (CpuCLI(b"\xff\xfe"), {}),  # not ascii
+        (CpuCLI(error=True), {}),  # the read failed
+        (CpuCLI(CPU_STAT), {"container_name": "carbon-d4-other"}),  # not this launch
+        (CpuCLI(CPU_STAT), {"launch_digest": "sha256:short"}),
+        (CpuCLI(CPU_STAT), {"deadline": time.monotonic() - 1}),  # no budget left
+        (
+            CpuCLI(CPU_STAT),
+            {"deadline": float("inf") * 0},
+        ),  # a deadline that is not a number
+    ],
+)
+def test_a_cpu_reading_that_cannot_be_trusted_is_none_and_never_raises(cli, changes):
+    assert _cpu(cli, **changes) is None
+
+
+def _readings(monkeypatch, *values):
+    """The CPU reading answers with ``values`` in order (the baseline, then the failure)."""
+    answers = list(values)
+    monkeypatch.setattr(
+        carrier,
+        "_fixed_program_cpu_usage_usec",
+        lambda *a, **k: answers.pop(0) if answers else None,
+    )
+
+
+def test_the_baseline_and_the_failure_evidence_carry_the_cpu_time_of_the_pass(
+    harness, monkeypatch
+):
+    _observe(monkeypatch, _observation())
+    _readings(monkeypatch, 1_000_000, 1_900_000)
+    error = WorkerFailure(
+        WorkerCode.RUNTIME, private_diagnostic=b"stream command timed out"
+    )
+    with pytest.raises(carrier.MinerProgramFailure):
+        _run_failing(harness, error, provenance=GRAPH_INFERENCE, seconds=46)
+    operation = _operation(harness)
+    baseline = json.loads((operation / "private-program-baseline.json").read_bytes())
+    failed = json.loads(
+        (operation / "private-program-failure-evidence.json").read_bytes()
+    )
+    assert baseline["cpu_usage_usec"] == 1_000_000
+    assert failed["cpu_usage_usec"] == 1_900_000
+    # 0.9 s of CPU during the program, against the wall time recorded beside it: the discriminator, no verdict
+    assert failed["cpu_usec_during_program"] == 900_000
+    assert "elapsed_milliseconds" in failed
+    # blame is untouched: still the candidate's typed wall stop
+    assert _state(harness) == "FAILED_MINER"
+
+
+@pytest.mark.parametrize(
+    "readings",
+    [
+        (None, 5),  # no baseline
+        (5, None),  # no reading at the failure
+        (None, None),
+        (
+            9,
+            5,
+        ),  # a counter that went backwards (a different cgroup): never a negative figure
+    ],
+)
+def test_a_missing_or_inconsistent_cpu_reading_gives_none_and_the_same_failure(
+    harness, monkeypatch, readings
+):
+    _observe(monkeypatch, {"status": "UNKNOWN", "state": None, "memory": None})
+    _readings(monkeypatch, *readings)
+    original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"exit=1\n")
+    with pytest.raises(WorkerFailure) as caught:
+        _run_failing(harness, original, provenance=GRAPH_INFERENCE)
+    assert caught.value is original
+    failed = json.loads(
+        (_operation(harness) / "private-program-failure-evidence.json").read_bytes()
+    )
+    assert failed["cpu_usec_during_program"] is None
+    assert harness.events[-2:] == ["CLEANUP", "ABSENCE_QUERY"]
+
+
+def test_the_cpu_reading_is_only_for_the_graph_inference_evidence(harness, monkeypatch):
+    """The overlay build keeps exactly the evidence it had: no cpu fields, no extra read."""
+    from test_fixed_program_failure_evidence import _overlay_arguments
+
+    _observe(monkeypatch, {"status": "UNKNOWN", "state": None, "memory": None})
+    monkeypatch.setattr(
+        carrier,
+        "_fixed_program_cpu_usage_usec",
+        lambda *a, **k: pytest.fail("a cpu read outside the graph inference"),
+    )
+    provenance = carrier.LIBRARY_OVERLAY_BUILD_PROVENANCE
+    original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"exit=1\n")
+    with pytest.raises(WorkerFailure):
+        _run_failing(
+            harness,
+            original,
+            provenance=provenance,
+            **_overlay_arguments(harness, provenance),
+        )
+    operation = _operation(harness)
+    for name in (
+        "private-program-baseline.json",
+        "private-program-failure-evidence.json",
+    ):
+        assert "cpu_usage_usec" not in json.loads((operation / name).read_bytes())
