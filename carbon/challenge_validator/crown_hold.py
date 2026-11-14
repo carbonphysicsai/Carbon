@@ -18,14 +18,17 @@ challenge key) has a registration carrying a ``menu``
 block (read from the raw registration, so a version whose other constants are still HUMAN_INPUT is held too). Every
 other version is unchanged: the hold is never on for it.
 
-The hold can be registered OFF for one exact version (the owner's ruling, 13 Nov: once a version's floor, noise and
-margin_N are registered its crowns change by the coded rule, with no human release). That is a registry entry in
-`scripts/validator_host_classes/crown_hold.json` (host-read data, outside `carbon/`, like the noise, margin and floor
-registries): ``{"challenge", "version", "hold": "off", "authority": <digest of the owner's typed line>}``. It is read at
-decision time (`holding`), so registering it needs no restart. ``ACTIVE`` keeps its meaning (the served version is a
-menu version: the menu re-check still runs); only the HOLD is off. No entry, an unreadable or malformed registry, or any
-other version: the hold is exactly what it was (fail closed). The operator's pause flag (`operator_pause`) is checked
-before the hold and still stops every crown change.
+The hold can be registered OFF for one exact exam of one version (the owner's ruling, 13 Nov: once a version's floor,
+noise and margin_N are registered its crowns change by the coded rule, with no daily human release). That is a registry
+entry in `scripts/validator_host_classes/crown_hold.json` (host-read data, outside `carbon/`, like the noise, margin and
+floor registries): ``{"challenge", "version", "menu_epoch", "evaluation_pack_digest", "hold": "off", "authority": <digest
+of the owner's typed line>}``. The registry is read ONCE, at `install` (a change goes through commit, push and a door
+roll, never an in-place edit), and the result is logged. The hold is off only WHILE the entry's pack digest equals the
+sealed evaluation pack this receiver serves (`bind_pack`) AND its menu epoch equals the registered menu epoch of the
+version: a re-pack or a rotation to another epoch re-engages the hold. ``ACTIVE`` keeps its meaning (the served version
+is a menu version: the menu re-check still runs); only the HOLD is off. No entry, an unreadable or malformed registry,
+an unbound pack, or any other version: the hold is exactly what it was (fail closed). The operator's pause flag
+(`operator_pause`) is checked before the hold and still stops every crown change.
 """
 
 from __future__ import annotations
@@ -44,7 +47,14 @@ REGISTRY = (
     / "crown_hold.json"
 )
 REGISTRY_SCHEMA = "carbon.crown.hold-registry.v1"
-_ENTRY = {"challenge", "version", "hold", "authority"}
+_ENTRY = {
+    "challenge",
+    "version",
+    "menu_epoch",
+    "evaluation_pack_digest",
+    "hold",
+    "authority",
+}
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
 #: The closed reason code of a held crown change (the miner sees this code only).
@@ -56,6 +66,13 @@ _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,255}")
 ACTIVE = False
 #: ``(challenge_id, version)`` the receiver serves, set by `install` (None until then).
 SERVED = None
+#: The registry's off entry for the served version, read once by `install`: ``{"menu_epoch", "evaluation_pack_digest"}``
+#: or None. It takes effect only while `PACK` and `EPOCH` equal it (`off_in_force`).
+OFF = None
+#: The sealed evaluation pack digest the receiver serves (`bind_pack`) and the version's registered menu epoch
+#: (`install`); None until set.
+PACK = None
+EPOCH = None
 
 
 def menu_registered(challenge_id, version, *, path=None) -> bool:
@@ -64,26 +81,74 @@ def menu_registered(challenge_id, version, *, path=None) -> bool:
     return _reason(challenge_id, version, path=path) != "off"
 
 
+def _say(line, log):
+    if log is None:
+        import sys
+
+        print(line, file=sys.stderr, flush=True)
+    else:
+        log(line)
+
+
+def _registered_epoch(challenge_id, version):
+    """The version's registered menu epoch, or None when it cannot be read (fail closed)."""
+    try:
+        from carbon.scoring import pool_version
+
+        rule = pool_version.registered_menu(challenge_id, version)
+        return rule.epoch if rule is not None and type(rule.epoch) is str else None
+    except Exception:  # noqa: BLE001 - unreadable: the hold stays (fail closed)
+        return None
+
+
 def install(challenge_id, version, *, log=None):
     """Hold crowns when the version this receiver ACTUALLY serves (its material's challenge key, never the cfg's
-    selection: Validator-2B 7 Nov must-fix 2) registers a menu; off for every other version. Logs one line,
-    ``crown_hold_active=<bool> reason=<menu|unreadable|off>`` (Ops Watch)."""
-    global ACTIVE, SERVED
+    selection: Validator-2B 7 Nov must-fix 2) registers a menu; off for every other version. Reads the registry's hold-off
+    entry ONCE and says what it found. Logs, last, ``crown_hold_active=<bool> reason=<menu|unreadable|off>`` (Ops Watch).
+    The off entry takes effect only once `bind_pack` names the served pack and only while its epoch is the registered one.
+    """
+    global ACTIVE, SERVED, OFF, PACK, EPOCH
     reason = _reason(challenge_id, version)
     ACTIVE = reason != "off"
     SERVED = (challenge_id, version)
-    lines = []
-    if ACTIVE and registered_off(challenge_id, version):
-        lines.append("crown_hold_registered_off=true (the registry lists this version)")
-    lines.append(f"crown_hold_active={str(ACTIVE).lower()} reason={reason}")
-    for line in lines:
-        if log is None:
-            import sys
-
-            print(line, file=sys.stderr, flush=True)
+    PACK = None
+    OFF = registered_off(challenge_id, version) if ACTIVE else None
+    EPOCH = _registered_epoch(challenge_id, version) if ACTIVE else None
+    if ACTIVE:
+        if OFF is None:
+            _say("crown_hold_registry_off=false (no entry for this version)", log)
         else:
-            log(line)
+            _say(
+                "crown_hold_registry_off=true"
+                f" pack={OFF['evaluation_pack_digest'][:23]} epoch={OFF['menu_epoch']}"
+                f" registered_epoch={EPOCH} (in force only while both match the served pack)",
+                log,
+            )
+    _say(f"crown_hold_active={str(ACTIVE).lower()} reason={reason}", log)
     return ACTIVE
+
+
+def bind_pack(evaluation_pack_digest, *, log=None):
+    """Name the sealed evaluation pack this receiver serves (called once the pack is attached). Returns whether the
+    registered hold-off is in force for it, and says so when an entry exists."""
+    global PACK
+    PACK = evaluation_pack_digest if type(evaluation_pack_digest) is str else None
+    if OFF is not None:
+        _say(f"crown_hold_off_in_force={str(off_in_force()).lower()}", log)
+    return off_in_force()
+
+
+def off_in_force() -> bool:
+    """Whether the registry's hold-off entry applies now: it exists for the served version and BOTH its pack digest and
+    its menu epoch equal the served sealed pack and the registered menu epoch. Anything else stays held.
+    """
+    return (
+        OFF is not None
+        and PACK is not None
+        and EPOCH is not None
+        and OFF["evaluation_pack_digest"] == PACK
+        and OFF["menu_epoch"] == EPOCH
+    )
 
 
 def _reason(challenge_id, version, *, path=None):
@@ -123,11 +188,11 @@ def released(state_dir, submission_id) -> bool:
     return submission_id in body["released"]
 
 
-def registered_off(challenge_id, version, *, path=None) -> bool:
-    """Whether the registry lists the hold OFF for exactly this version. Anything unreadable or malformed, a version the
-    Challenge does not register, a duplicate entry, an unknown field, a value other than "off" or an authority that is
-    not a digest makes the WHOLE registry read as "no entry": the hold stays on (fail closed).
-    """
+def registered_off(challenge_id, version, *, path=None):
+    """The registry's hold-off entry for exactly this version (``{"menu_epoch", "evaluation_pack_digest"}``), or None.
+    Anything unreadable or malformed, a version the Challenge does not register, a duplicate, an unknown field, a value
+    other than "off", a pack that is not a digest, an empty epoch or an authority that is not a digest makes the WHOLE
+    registry read as "no entry": the hold stays on (fail closed)."""
     try:
         document = json.loads(Path(REGISTRY if path is None else path).read_bytes())
         if (
@@ -136,12 +201,12 @@ def registered_off(challenge_id, version, *, path=None) -> bool:
             or document["schema"] != REGISTRY_SCHEMA
             or type(document["holds"]) is not list
         ):
-            return False
+            return None
         from carbon.challenge_kit import version_registry
         from carbon.challenge_validator.exam_cap import registered_challenges
 
         known = registered_challenges()
-        seen = set()
+        found = {}
         for entry in document["holds"]:
             if (
                 type(entry) is not dict
@@ -150,26 +215,31 @@ def registered_off(challenge_id, version, *, path=None) -> bool:
                 or type(entry["version"]) is not str
                 or version_registry.find(entry["challenge"], entry["version"]) is None
                 or entry["hold"] != "off"
+                or type(entry["menu_epoch"]) is not str
+                or not entry["menu_epoch"]
+                or type(entry["evaluation_pack_digest"]) is not str
+                or not _DIGEST.fullmatch(entry["evaluation_pack_digest"])
                 or type(entry["authority"]) is not str
                 or not _DIGEST.fullmatch(entry["authority"])
             ):
-                return False
+                return None
             key = (entry["challenge"], entry["version"])
-            if key in seen:
-                return False
-            seen.add(key)
-        return (challenge_id, version) in seen
+            if key in found:
+                return None
+            found[key] = {
+                "menu_epoch": entry["menu_epoch"],
+                "evaluation_pack_digest": entry["evaluation_pack_digest"],
+            }
+        return found.get((challenge_id, version))
     except Exception:  # noqa: BLE001 - unreadable: the hold stays (fail closed)
-        return False
+        return None
 
 
-def holding(*, path=None) -> bool:
-    """Whether the served version's crown changes are held for review: it is a menu version (`ACTIVE`) and the registry
-    does not list its hold OFF. Read at call time, so registering the entry needs no restart.
+def holding() -> bool:
+    """Whether the served version's crown changes are held for review: it is a menu version (`ACTIVE`) and the
+    registered hold-off is not in force (`off_in_force`: both the served pack and the menu epoch match its entry).
     """
-    if not ACTIVE:
-        return False
-    return SERVED is None or not registered_off(*SERVED, path=path)
+    return ACTIVE and not off_in_force()
 
 
 def held(state_dir, submission_id, *, active=None) -> bool:

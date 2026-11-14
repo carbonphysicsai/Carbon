@@ -1,8 +1,11 @@
-"""The crown hold of a menu-D version can be registered OFF for one exact version (the owner's ruling, 13 Nov).
+"""The crown hold of a menu-D version can be registered OFF for one exact exam of one version (the owner's ruling, 13 Nov;
+V2C's must-fixes M1 and M2).
 
 Shipped with NO entry: Motor 1.8 stays held by default. Off only via an entry of
-`scripts/validator_host_classes/crown_hold.json`; every other version is unchanged; a bad registry holds (fail closed);
-the operator pause flag still stops every crown change. SYNTHETIC grades and registry files; no value is registered.
+`scripts/validator_host_classes/crown_hold.json` that pins the sealed evaluation pack digest AND the menu epoch, and only
+WHILE both equal the served pack and the registered menu epoch (a re-pack or a rotation re-engages the hold). The registry
+is read once, at install. Every other version is unchanged; a bad registry holds (fail closed); the operator's pause flag
+still stops every crown change. SYNTHETIC grades, digests and registry files; no value is registered.
 """
 
 from __future__ import annotations
@@ -23,13 +26,16 @@ posix = pytest.mark.skipif(
 )
 MOTOR, COOLING = "electric-motor-magnetics", "chip-cold-plate"
 AUTHORITY = digest("the typed owner line")
+PACK = digest("the sealed evaluation pack the door serves")
+EPOCH = "E1"
 
 
 @pytest.fixture(autouse=True)
 def _restore_hold():
     yield
     crown_hold.ACTIVE = False
-    crown_hold.SERVED = None
+    for name in ("SERVED", "OFF", "PACK", "EPOCH"):
+        setattr(crown_hold, name, None)
 
 
 def _registry(tmp_path, holds, **extra):
@@ -44,6 +50,8 @@ def _off(challenge=MOTOR, version="1.8", **changes):
     return {
         "challenge": challenge,
         "version": version,
+        "menu_epoch": EPOCH,
+        "evaluation_pack_digest": PACK,
         "hold": "off",
         "authority": AUTHORITY,
         **changes,
@@ -51,12 +59,21 @@ def _off(challenge=MOTOR, version="1.8", **changes):
 
 
 @pytest.fixture
-def served_18(monkeypatch, tmp_path):
-    """The receiver serves Motor 1.8 (a menu version in the real registration) with the registry file at tmp_path."""
-    monkeypatch.setattr(crown_hold, "REGISTRY", tmp_path / "crown_hold.json")
-    _registry(tmp_path, [])
-    crown_hold.install(MOTOR, "1.8", log=lambda line: None)
-    assert crown_hold.ACTIVE is True
+def serve(monkeypatch, tmp_path):
+    """Start a receiver serving Motor 1.8: the registry file at tmp_path, the registered menu epoch, the served pack."""
+
+    def start(holds, *, pack=PACK, epoch=EPOCH, challenge=MOTOR, version="1.8"):
+        monkeypatch.setattr(crown_hold, "REGISTRY", _registry(tmp_path, holds))
+        monkeypatch.setattr(
+            crown_hold, "_registered_epoch", lambda challenge_id, version_id: epoch
+        )
+        lines = []
+        crown_hold.install(challenge, version, log=lines.append)
+        if pack is not None:
+            crown_hold.bind_pack(pack, log=lines.append)
+        return lines
+
+    return start
 
 
 # --- shipped held ------------------------------------------------------------------------------------------------------
@@ -65,8 +82,9 @@ def served_18(monkeypatch, tmp_path):
 def test_the_committed_registry_lists_nothing_so_motor_18_is_held_by_default():
     document = json.loads(crown_hold.REGISTRY.read_bytes())
     assert document["schema"] == crown_hold.REGISTRY_SCHEMA and document["holds"] == []
-    assert crown_hold.registered_off(MOTOR, "1.8") is False
+    assert crown_hold.registered_off(MOTOR, "1.8") is None
     crown_hold.install(MOTOR, "1.8", log=lambda line: None)
+    crown_hold.bind_pack(PACK, log=lambda line: None)
     assert crown_hold.ACTIVE is True and crown_hold.holding() is True
     assert crown_hold.held("/nowhere", "any-contender") is True
 
@@ -82,53 +100,96 @@ def test_the_registry_is_outside_the_worker_image_build_inputs():
     )
 
 
-# --- off only via a registry entry -----------------------------------------------------------------------------------------
+# --- off only via an entry, and only for that exact pack and epoch -----------------------------------------------------
 
 
-def test_an_entry_turns_the_hold_off_for_exactly_that_version_and_needs_no_restart(
-    served_18, tmp_path
+def test_an_entry_turns_the_hold_off_while_the_pack_and_the_epoch_match(
+    serve, tmp_path
 ):
-    assert crown_hold.holding() is True
-    _registry(tmp_path, [_off()])  # registered after install: read at call time
-    assert crown_hold.registered_off(MOTOR, "1.8") is True
+    serve([_off()])
+    assert crown_hold.off_in_force() is True
     assert crown_hold.holding() is False
     assert crown_hold.held(tmp_path, "any-contender") is False
     # the version is still a menu version: the menu re-check (`ACTIVE`) keeps running
     assert crown_hold.ACTIVE is True and crown_hold.menu_registered(MOTOR, "1.8")
 
 
-def test_removing_the_entry_holds_again(served_18, tmp_path):
-    _registry(tmp_path, [_off()])
-    assert crown_hold.holding() is False
-    _registry(tmp_path, [])
+def test_before_the_pack_is_bound_the_hold_stays_on(serve):
+    serve([_off()], pack=None)
+    assert crown_hold.holding() is True
+    crown_hold.bind_pack(None)  # a receiver with no sealed pack
     assert crown_hold.holding() is True
 
 
-def test_a_registered_off_install_says_so(monkeypatch, tmp_path):
-    monkeypatch.setattr(crown_hold, "REGISTRY", _registry(tmp_path, [_off()]))
-    lines = []
-    crown_hold.install(MOTOR, "1.8", log=lines.append)
-    assert lines[-1] == "crown_hold_active=true reason=menu"
-    assert lines[0].startswith("crown_hold_registered_off=true")
+def test_a_re_pack_re_engages_the_hold(serve):
+    """V2C M1: the entry pins the pack digest; a receiver serving another pack is held."""
+    serve([_off()], pack=digest("a re-packed exam"))
+    assert crown_hold.holding() is True
+    # and binding the pinned pack afterwards is what turns it off
+    assert crown_hold.bind_pack(PACK, log=lambda line: None) is True
+    assert crown_hold.holding() is False
+
+
+def test_an_epoch_change_re_engages_the_hold(serve):
+    """V2C M1: the entry pins the menu epoch; a version registered at another epoch is held."""
+    serve([_off()], epoch="E2")
+    assert crown_hold.holding() is True
+    serve(
+        [_off(menu_epoch="E2")], epoch="E1"
+    )  # the entry names an epoch that is not the registered one
+    assert crown_hold.holding() is True
+    serve([_off(menu_epoch="E2")], epoch="E2")  # both at E2: in force again
+    assert crown_hold.holding() is False
+    serve([_off()], epoch=None)  # the registered epoch cannot be read
+    assert crown_hold.holding() is True
+
+
+# --- read once, at install (V2C M2) ---------------------------------------------------------------------------------------
+
+
+def test_the_registry_is_read_once_at_install_and_the_result_is_logged(serve, tmp_path):
+    lines = serve([_off()])
+    assert any(
+        line.startswith("crown_hold_registry_off=true") and PACK[:23] in line
+        for line in lines
+    )
+    assert lines[-1] == "crown_hold_off_in_force=true"
+    assert "crown_hold_active=true reason=menu" in lines
+    # a later edit of the file changes nothing in this process (a change is commit + push + roll)
+    _registry(tmp_path, [])
+    assert crown_hold.holding() is False
+    # and the other direction: an entry added after install does not turn the hold off
+    serve([])
+    _registry(tmp_path, [_off()])
+    assert crown_hold.holding() is True
+
+
+def test_an_install_without_an_entry_says_so(serve):
+    lines = serve([])
+    assert lines[0].startswith("crown_hold_registry_off=false")
+    assert (
+        lines[-1] == "crown_hold_active=true reason=menu"
+    )  # no bind_pack line without an entry
+
+
+def test_a_mismatched_pack_is_logged_as_not_in_force(serve):
+    lines = serve([_off()], pack=digest("another pack"))
+    assert lines[-1] == "crown_hold_off_in_force=false"
 
 
 # --- every other version unchanged ------------------------------------------------------------------------------------------
 
 
-def test_an_entry_for_one_version_changes_no_other(monkeypatch, tmp_path):
-    monkeypatch.setattr(crown_hold, "REGISTRY", _registry(tmp_path, [_off()]))
+def test_an_entry_for_one_version_changes_no_other(serve):
     # another menu version (Cooling 1.8) stays held
-    crown_hold.install(COOLING, "1.8", log=lambda line: None)
+    serve([_off()], challenge=COOLING, version="1.8")
     assert crown_hold.ACTIVE is True and crown_hold.holding() is True
-    assert crown_hold.registered_off(COOLING, "1.8") is False
+    assert crown_hold.registered_off(COOLING, "1.8", path=crown_hold.REGISTRY) is None
     # a version with no menu block: never held, exactly as before
-    crown_hold.install(MOTOR, "1.5", log=lambda line: None)
+    serve([_off()], challenge=MOTOR, version="1.5")
     assert crown_hold.ACTIVE is False and crown_hold.holding() is False
     # and an entry for a non-menu version does not make it a menu version
-    monkeypatch.setattr(
-        crown_hold, "REGISTRY", _registry(tmp_path, [_off(version="1.5")])
-    )
-    crown_hold.install(MOTOR, "1.5", log=lambda line: None)
+    serve([_off(version="1.5")], challenge=MOTOR, version="1.5")
     assert crown_hold.ACTIVE is False and crown_hold.holding() is False
 
 
@@ -142,6 +203,7 @@ def test_the_hold_of_every_registered_version_is_what_it_was(monkeypatch, tmp_pa
     for key in document["versions"]:
         challenge_id, version = key.rsplit(" ", 1)
         crown_hold.install(challenge_id, version, log=lambda line: None)
+        crown_hold.bind_pack(PACK, log=lambda line: None)
         assert crown_hold.holding() is crown_hold.menu_registered(
             challenge_id, version
         ), key
@@ -157,33 +219,46 @@ def test_the_hold_of_every_registered_version_is_what_it_was(monkeypatch, tmp_pa
         [_off(hold=True)],
         [_off(authority="not a digest")],
         [_off(authority=None)],
+        [_off(evaluation_pack_digest="not a digest")],
+        [_off(evaluation_pack_digest=None)],
+        [_off(menu_epoch="")],
+        [_off(menu_epoch=None)],
         [_off(version="1.08")],  # a version the Challenge does not register
         [_off(version="9.9")],
         [_off(challenge="not-a-challenge")],
         [{**_off(), "extra": 1}],
         [{k: v for k, v in _off().items() if k != "authority"}],
+        [{k: v for k, v in _off().items() if k != "menu_epoch"}],
+        [{k: v for k, v in _off().items() if k != "evaluation_pack_digest"}],
         [_off(), _off()],  # a duplicate
         [_off(), _off(version="1.08")],  # one bad entry voids the whole registry
         "not a list",
     ],
 )
-def test_a_malformed_registry_leaves_the_hold_on(served_18, tmp_path, holds):
-    _registry(tmp_path, holds)
-    assert crown_hold.registered_off(MOTOR, "1.8") is False
+def test_a_malformed_registry_leaves_the_hold_on(serve, holds):
+    serve(holds)
+    assert crown_hold.OFF is None
     assert crown_hold.holding() is True
 
 
-def test_an_unreadable_or_foreign_registry_leaves_the_hold_on(served_18, tmp_path):
-    path = tmp_path / "crown_hold.json"
-    path.write_text("not json")
-    assert crown_hold.holding() is True
-    path.write_text(json.dumps({"schema": "x", "holds": [_off()]}))
-    assert crown_hold.holding() is True
-    path.write_text(
-        json.dumps({"schema": crown_hold.REGISTRY_SCHEMA, "holds": [_off()], "x": 1})
-    )
-    assert crown_hold.holding() is True
+def test_an_unreadable_or_foreign_registry_leaves_the_hold_on(
+    serve, monkeypatch, tmp_path
+):
+    serve([_off()])
+    path = crown_hold.REGISTRY
+    for body in (
+        "not json",
+        json.dumps({"schema": "x", "holds": [_off()]}),
+        json.dumps({"schema": crown_hold.REGISTRY_SCHEMA, "holds": [_off()], "x": 1}),
+    ):
+        path.write_text(body)
+        assert crown_hold.registered_off(MOTOR, "1.8") is None
+        crown_hold.install(MOTOR, "1.8", log=lambda line: None)
+        crown_hold.bind_pack(PACK, log=lambda line: None)
+        assert crown_hold.holding() is True
     path.unlink()
+    crown_hold.install(MOTOR, "1.8", log=lambda line: None)
+    crown_hold.bind_pack(PACK, log=lambda line: None)
     assert crown_hold.holding() is True
 
 
@@ -192,11 +267,12 @@ def test_an_unreadable_or_foreign_registry_leaves_the_hold_on(served_18, tmp_pat
 
 @posix
 @pytest.mark.parametrize("name", sorted(CHANGES))
-def test_with_the_hold_off_the_coded_rule_decides(served_18, tmp_path, name):
+def test_with_the_hold_off_the_coded_rule_decides(serve, tmp_path, name):
     """Held (no entry): UNAVAILABLE / crown_held_for_review. Off: the coded comparison decides as for any version."""
+    serve([])
     held, store = consider(CHANGES[name], tmp_path, repeat=never)
     assert held["reason"] == crown_hold.CROWN_HELD and store.moves == []
-    _registry(tmp_path, [_off()])
+    serve([_off()])
     decided, store = consider(CHANGES[name], tmp_path)
     assert decided["reason"] != crown_hold.CROWN_HELD
     assert decided["outcome"] in bp.CROWN_CHANGING and store.moves != []
@@ -205,9 +281,9 @@ def test_with_the_hold_off_the_coded_rule_decides(served_18, tmp_path, name):
 @posix
 @pytest.mark.parametrize("name", sorted(CHANGES))
 def test_the_pause_flag_still_stops_every_crown_change_with_the_hold_off(
-    served_18, tmp_path, name
+    serve, tmp_path, name
 ):
-    _registry(tmp_path, [_off()])
+    serve([_off()])
     flag(tmp_path, {"crowns_paused": True})
     outcome, store = consider(CHANGES[name], tmp_path, repeat=never)
     assert outcome["outcome"] == bp.UNAVAILABLE
@@ -216,7 +292,8 @@ def test_the_pause_flag_still_stops_every_crown_change_with_the_hold_off(
 
 
 @posix
-def test_the_operators_release_still_works_while_the_hold_is_on(served_18, tmp_path):
+def test_the_operators_release_still_works_while_the_hold_is_on(serve, tmp_path):
+    serve([])
     release(tmp_path, ["c"])
     decided, store = consider(CHANGES["takeover"], tmp_path)
     assert decided["outcome"] == bp.CHALLENGER and store.moves != []
@@ -225,7 +302,7 @@ def test_the_operators_release_still_works_while_the_hold_is_on(served_18, tmp_p
 # --- what the queue shows -----------------------------------------------------------------------------------------------------------
 
 
-def test_the_queue_shows_held_contenders_only_while_the_hold_is_on(served_18, tmp_path):
+def test_the_queue_shows_held_contenders_only_while_the_hold_is_on(serve):
     class Pool:
         def paused_crowns(self):
             return [{"submission_id": "c"}]
@@ -235,9 +312,27 @@ def test_the_queue_shows_held_contenders_only_while_the_hold_is_on(served_18, tm
 
     view = queue_view.QueueView.__new__(queue_view.QueueView)
     view.grader = Grader()
+    serve([])
     assert view.held() == ["c"]
-    _registry(tmp_path, [_off()])
+    serve([_off()])
     assert view.held() is None  # a door that holds no crown shows None, never 0
+    serve([_off()], pack=digest("a re-packed exam"))
+    assert view.held() == ["c"]  # a re-pack re-engages it
+
+
+# --- the receiver ---------------------------------------------------------------------------------------------------------------
+
+
+def test_the_receiver_names_its_sealed_pack_right_after_attaching_it():
+    import inspect
+
+    from carbon.challenge_validator import direct_receiver
+
+    source = inspect.getsource(direct_receiver.serve)
+    attach = source.index("_sealed_pack(")
+    bind = source.index("crown_hold.bind_pack(pack_digest)")
+    discovery = source.index("DirectFixtureDiscovery(")
+    assert source.index("crown_hold.install(") < attach < bind < discovery
 
 
 def test_the_hold_code_is_a_grading_path():

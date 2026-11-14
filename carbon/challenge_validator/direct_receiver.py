@@ -2141,6 +2141,8 @@ def serve(
             pack_digest, pack_check, pack_snapshot = _sealed_pack(
                 root, cfg["evaluation_pack"], challenge
             )
+        # the sealed pack this receiver serves: a registered crown hold-off applies to exactly that pack (and menu epoch)
+        crown_hold.bind_pack(pack_digest)
         discovery = DirectFixtureDiscovery(
             material,
             task_admission=True,
