@@ -673,6 +673,81 @@ class LeanRecipeAdapter(ChallengeAdapter):
         except Exception:  # noqa: BLE001 - never fails a submission
             return
 
+    def settle_stop_cancelled_places(self):
+        """The one-shot for miners who ALREADY resubmitted (owner ruling 14 Nov 2026, the Lead's): for every task whose terminal
+        marker is ``cancelled_by_carbon_stop``, find its resubmission (the next generation of the same owner, recipe and
+        pack: the SAME deterministic task identity `evaluate` and `owner` derive) and, if that resubmission is not yet
+        settled (it carries no marker of its own), give it the cancelled task's original arrival place
+        (`AttemptLedger.grant_queue_place`: once per cancelled task, same hotkey by construction since the owner is part of
+        the identity). Idempotent: a task that already gave its place, or has no resubmission yet, changes nothing; the
+        resubmissions that arrive later are handled at their own `evaluate`. Read-only on markers; the only write is the
+        ledger's grant row. Returns the number of marked tasks it could not look at yet (their owner's registration was
+        unavailable); the caller asks again until it is 0. Never raises for one task: that task is left for the next call.
+        """
+        path = getattr(self.ledger, "path", None)
+        if path is None or not hasattr(self.ledger, "grant_queue_place"):
+            return 0
+        directory = Path(path).parent / "auto-grade" / "markers"
+        try:
+            marked = sorted(
+                entry.stem
+                for entry in directory.glob("rtsk_*.json")
+                if self._stop_cancelled(entry.stem)
+            )
+        except OSError:
+            return 0
+        from carbon.development_session.construction_recipe import ConstructionRecipe
+
+        unresolved, left = 0, []
+        for task in marked:
+            try:
+                owner = self.ledger.owned_outcome(self.contract_digest, task)
+                if owner is None:
+                    continue
+                provider = self._provider(owner)
+                retained = provider._requests.get(task)
+                if retained is None:
+                    continue
+                recipe = ConstructionRecipe.from_dict(retained.recipe)
+                chain = [
+                    provider._task_id(
+                        self._request(
+                            owner,
+                            recipe,
+                            evaluation_pack_digest=provider.evaluation_pack_digest,
+                            rerun=rerun,
+                        )
+                    ).value
+                    for rerun in range(MAX_INFRA_RERUNS + 1)
+                ]
+                if task not in chain:
+                    continue
+                for successor in chain[chain.index(task) + 1 :]:
+                    if (
+                        self.ledger.owned_outcome(self.contract_digest, successor)
+                        != owner
+                    ):
+                        continue  # never submitted
+                    if (directory / (successor + ".json")).exists():
+                        continue  # settled (a later stop's marker, a grade, a failure): needs no place
+                    result = self.ledger.grant_queue_place(
+                        self.contract_digest,
+                        from_task=task,
+                        new_task=successor,
+                        hotkey=owner,
+                    )
+                    from carbon.challenge_validator.koth_journal import note
+
+                    note("queue_place_" + result, from_task=task, new_task=successor)
+                    break
+            except Exception:  # noqa: BLE001 - asked again next call
+                unresolved += 1
+                left.append(task)
+        self.queue_places_unresolved = tuple(
+            left
+        )  # for the caller's give-up journal line
+        return unresolved
+
     def _active_owner(self, submission_id):
         try:
             return self.owner(submission_id)

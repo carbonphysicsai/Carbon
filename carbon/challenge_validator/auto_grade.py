@@ -269,11 +269,56 @@ class AutoGrader:
         finally:
             host_quiet.deactivate(token)
 
+    #: The re-ask bound of `_settle_queue_places`: at least this many seconds between two asks, at most this many asks in all
+    #: (the first at the first tick, so the last is about two hours later), after which it stops asking until the next start.
+    PLACES_RETRY_SECONDS = 600.0
+    PLACES_MAX_ASKS = 12
+
+    def _settle_queue_places(self):
+        """Until it has looked at every task a receiver stop cancelled, ask the adapter to give each already-queued
+        resubmission its original arrival place (`LeanRecipeAdapter.settle_stop_cancelled_places`, the owner's ruling of 14
+        Nov 2026): at the first tick after a start, then again only while an owner's registration was still unavailable, no
+        more often than every `PLACES_RETRY_SECONDS` and at most `PLACES_MAX_ASKS` times in all (an owner who never becomes
+        available must not cost a scan of every marker on every tick). An ordering courtesy: nothing it does fails or delays a
+        grade."""
+        if getattr(self, "_places_settled", False):
+            return
+        now = time.monotonic()
+        if now < getattr(self, "_places_after", 0.0):
+            return
+        asks = getattr(self, "_places_asks", 0) + 1
+        self._places_asks = asks
+        self._places_after = now + self.PLACES_RETRY_SECONDS
+        last = asks >= self.PLACES_MAX_ASKS
+        if last:
+            # the last ask: it does not repeat until the next start
+            self._places_settled = True
+        adapter = getattr(getattr(self, "intake", None), "adapter", None)
+        settle = getattr(adapter, "settle_stop_cancelled_places", None)
+        if settle is None:
+            self._places_settled = True
+            return
+        try:
+            if settle() == 0:
+                self._places_settled = True
+            elif last:
+                from .koth_journal import note
+
+                # giving up: the marked tasks it never managed to look at, for the operator (a resubmission that arrives
+                # later still takes its place at its own `evaluate`)
+                note(
+                    "queue_place_gave_up",
+                    tasks=list(getattr(adapter, "queue_places_unresolved", ())),
+                )
+        except Exception:  # noqa: BLE001 - asked again later, within the bound
+            return
+
     def _run_once(self):
         from .lean_recipe_retention import RetentionUnavailable
 
         if self.chain_degraded():
             return None  # (H8) a stale chain: grade nothing, mark nothing
+        self._settle_queue_places()
         self.activity = "king"
         try:
             if self._upkeep_deferred():

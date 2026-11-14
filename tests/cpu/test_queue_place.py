@@ -206,3 +206,80 @@ def test_a_bad_task_id_never_reaches_a_path(ledger):
     door = _door(ledger)
     assert door._stop_cancelled("../../etc/passwd") is False
     assert door._stop_cancelled("rtsk_short") is False
+
+
+# --- the grader asks the adapter until every cancelled task has been looked at, within a bound -------------------------------
+
+
+def _grader(settle):
+    from carbon.challenge_validator.auto_grade import AutoGrader
+
+    grader = object.__new__(AutoGrader)
+    grader.intake = SimpleNamespace(
+        adapter=SimpleNamespace(settle_stop_cancelled_places=settle)
+    )
+    return grader
+
+
+def test_the_grader_asks_until_nothing_is_left_spaced_in_time_and_never_fails_a_tick(
+    monkeypatch,
+):
+    from carbon.challenge_validator import auto_grade
+
+    clock = [1000.0]
+    monkeypatch.setattr(auto_grade.time, "monotonic", lambda: clock[0])
+    answers = iter([1, RuntimeError("boom"), 0])
+    asked = []
+
+    def settle():
+        asked.append(clock[0])
+        answer = next(answers)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    grader = _grader(settle)
+    grader._settle_queue_places()
+    grader._settle_queue_places()  # inside the spacing: not asked again
+    assert asked == [1000.0]
+    for _ in range(4):
+        clock[0] += grader.PLACES_RETRY_SECONDS
+        grader._settle_queue_places()
+    assert (
+        len(asked) == 3
+    )  # unresolved -> asked again; an error -> asked again; 0 -> never again
+    # an adapter without the method (a fixture) settles at once
+    plain = _grader(None)
+    plain.intake = SimpleNamespace(adapter=SimpleNamespace())
+    plain._settle_queue_places()
+    assert plain._places_settled is True
+
+
+def test_an_owner_who_never_becomes_available_costs_a_bounded_number_of_scans(
+    monkeypatch,
+):
+    from carbon.challenge_validator import auto_grade
+
+    clock = [0.0]
+    monkeypatch.setattr(auto_grade.time, "monotonic", lambda: clock[0])
+    asked = []
+
+    journal = []
+    monkeypatch.setattr(
+        "carbon.challenge_validator.koth_journal.note",
+        lambda event, **fields: journal.append((event, fields)),
+    )
+
+    def settle():
+        asked.append(1)
+        return 1  # one marked task whose owner is never available
+
+    grader = _grader(settle)
+    grader.intake.adapter.queue_places_unresolved = (A,)
+    for _ in range(500):  # a tick every minute for a long while
+        grader._settle_queue_places()
+        clock[0] += 60.0
+    assert len(asked) == grader.PLACES_MAX_ASKS  # then it stops until the next start
+    assert journal == [
+        ("queue_place_gave_up", {"tasks": [A]})
+    ]  # the leftover ids, once

@@ -1253,6 +1253,103 @@ def test_a_resubmission_of_an_unmarked_cancelled_task_waits_at_the_back(
     assert order.index(resubmitted) > order.index(other)
 
 
+def _already_resubmitted_host(cap, monkeypatch):
+    """A first and a second submission; the first is CANCELLED by a stop and the miner resubmits it BEFORE its marker exists
+    (so the resubmission waits at the back); the marker is written afterwards."""
+    import json
+
+    from carbon.research import DirectTaskStateV3
+
+    host = _rerun_adapter(cap, monkeypatch)
+    contract = host.adapter.contract_digest
+    first = host.submit("sha256:" + "8" * 64)["submission_id"]
+    other = host.submit("sha256:" + "9" * 64)["submission_id"]
+    for task in (first, other):
+        cap.ledger.record(
+            SimpleNamespace(
+                hotkey=HOTKEY,
+                receipt={"sequence": 1, "digest": "d", "block": 1},
+                contract_digest=contract,
+            ),
+            kind="OUTCOME",
+            submission_id=task,
+        )
+    host.tasks[first].state = DirectTaskStateV3.CANCELLED
+    resubmitted = host.submit("sha256:" + "8" * 64)["submission_id"]
+    cap.ledger.record(
+        SimpleNamespace(
+            hotkey=HOTKEY,
+            receipt={"sequence": 1, "digest": "d", "block": 1},
+            contract_digest=contract,
+        ),
+        kind="OUTCOME",
+        submission_id=resubmitted,
+    )
+    directory = Path(cap.ledger.path).parent / "auto-grade" / "markers"
+    directory.mkdir(parents=True)
+
+    def mark(task, code="cancelled_by_carbon_stop"):
+        (directory / (task + ".json")).write_text(
+            json.dumps({"state": "FAILED", "code": code})
+        )
+
+    return host, first, other, resubmitted, mark
+
+
+def test_the_one_shot_gives_an_already_queued_resubmission_the_original_place_once(
+    cap, monkeypatch
+):
+    host, first, other, resubmitted, mark = _already_resubmitted_host(cap, monkeypatch)
+    contract = host.adapter.contract_digest
+    order = cap.ledger.submitted_outcomes(contract)
+    assert order.index(resubmitted) > order.index(other)  # it waits at the back
+    assert host.adapter.settle_stop_cancelled_places() == 0  # no marker: unaffected
+    assert cap.ledger.submitted_outcomes(contract) == order
+    mark(first)
+    assert host.adapter.settle_stop_cancelled_places() == 0
+    after = cap.ledger.submitted_outcomes(contract)
+    assert after.index(resubmitted) < after.index(other)
+    assert host.adapter.settle_stop_cancelled_places() == 0  # idempotent
+    assert cap.ledger.submitted_outcomes(contract) == after
+
+
+def test_the_one_shot_leaves_a_settled_resubmission_and_other_markers_alone(
+    cap, monkeypatch
+):
+    host, first, _other, resubmitted, mark = _already_resubmitted_host(cap, monkeypatch)
+    contract = host.adapter.contract_digest
+    order = cap.ledger.submitted_outcomes(contract)
+    mark(first, code="some_other_code")  # not a stop cancellation
+    host.adapter.settle_stop_cancelled_places()
+    assert cap.ledger.submitted_outcomes(contract) == order
+    mark(first)
+    mark(
+        resubmitted, code="worker_wall_limit_reached"
+    )  # the resubmission is already settled
+    host.adapter.settle_stop_cancelled_places()
+    assert cap.ledger.submitted_outcomes(contract) == order
+
+
+def test_the_one_shot_counts_a_task_it_could_not_look_at_and_never_raises(
+    cap, monkeypatch
+):
+    from carbon.challenge_validator.interface import Unavailable
+
+    host, first, _other, _resubmitted, mark = _already_resubmitted_host(
+        cap, monkeypatch
+    )
+    mark(first)
+
+    def unavailable(_hotkey):
+        raise Unavailable("direct_provider_registration_unavailable")
+
+    provider = host.adapter._provider
+    host.adapter._provider = unavailable
+    assert host.adapter.settle_stop_cancelled_places() == 1  # asked again later
+    host.adapter._provider = provider
+    assert host.adapter.settle_stop_cancelled_places() == 0
+
+
 def test_infra_re_runs_are_bounded(cap, monkeypatch):
     from carbon.challenge_validator import lean_recipe
     from carbon.challenge_validator.interface import Unavailable
