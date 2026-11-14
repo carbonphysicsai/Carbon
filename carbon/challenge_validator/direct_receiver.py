@@ -1906,7 +1906,17 @@ class OwnerProviders:
             )
 
     def cancel(self):
-        """Close admission and request only our providers' domain cancellation."""
+        """Close admission and request our providers' domain cancellation of every task that holds work.
+
+        A task still QUEUED holds nothing (no container, no reserved operation): it is LEFT QUEUED, durable in its
+        owner's task store, and the next start restores it for a live owner and builds it (`restore`, then the advance
+        loop), so a restart or a door switch carries the queue instead of cancelling every miner's not-yet-built
+        submission (13 Nov: two stops cancelled 75 and left every identical resubmission waiting behind them). A task
+        RUNNING or already CANCEL_REQUESTED is still cancelled: it holds a worker that must be reconciled. A revoked or
+        recycled owner's queue is still cancelled, at the restore (`_open`: ``restoring and not live``).
+        """
+        from carbon.research import DirectTaskStateV3
+
         with self._lock:
             self._closing = True
             providers = tuple(self._providers.values())
@@ -1915,6 +1925,8 @@ class OwnerProviders:
             with provider._lock:
                 views = tuple(provider._views.values())
             for view in views:
+                if view.state is DirectTaskStateV3.QUEUED:
+                    continue
                 try:
                     provider.cancel_observed_task(
                         view.task_id, self.discovery.info.challenge_key

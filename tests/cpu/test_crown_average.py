@@ -514,3 +514,35 @@ def test_the_rebuild_noise_floor_binds_when_it_is_larger():
     for bad in (-1, float("nan"), True, None):
         with pytest.raises(ca.CrownAverageInvalid):
             ca.margin_n(bad, 10)
+
+
+# --- N = 3 is data (Bundle A, 14 Nov 2026) --------------------------------------------------------------------
+
+
+def test_n3_with_only_the_n10_margin_registered_fails_closed_and_nothing_is_rebuilt(
+    tmp_path,
+):
+    """Setting a Challenge's N to 3 while its registered margin was measured at N = 10: no margin is used (None), the decision is
+    UNAVAILABLE / MARGIN_UNREGISTERED and not one rebuild is run. The margin_3 is the owner's value, registered with its own
+    measurement digest; until then a crown at N = 3 cannot be decided."""
+    rule = _rule(tmp_path, challenge_n={CHALLENGE: 3})
+    assert rule.n_for(CHALLENGE) == 3 and rule.margin_for(CHALLENGE) is None
+    builds = Builds([0.99] * 3)
+    result = _run(
+        tmp_path, builds, n=3
+    )  # the helper's default margin entry is the N = 10 one
+    assert (result["outcome"], result["reason"]) == (
+        bp.UNAVAILABLE,
+        ca.MARGIN_UNREGISTERED,
+    )
+    assert builds.asked == []
+
+
+def test_n3_with_its_own_margin_runs_exactly_three_rebuilds(tmp_path):
+    margin_3 = {CHALLENGE: {"value": 0.0035, "n": 3, "measurement_digest": MEASUREMENT}}
+    rule = _rule(tmp_path, challenge_n={CHALLENGE: 3}, margins=margin_3)
+    assert rule.n_for(CHALLENGE) == 3 and rule.margin_for(CHALLENGE) == 0.0035
+    builds = Builds([0.70] * 3)
+    result = _run(tmp_path, builds, n=3, margins=margin_3)
+    assert result["outcome"] == bp.CHALLENGER and len(builds.asked) == 3
+    assert result["private"]["n"] == 3

@@ -52,6 +52,144 @@ def _settle_candidate_wall_hit(cap, reservation, result) -> dict:
     }
 
 
+class EarlyWallStop(RetentionUnavailable):
+    """The counted bank grade's graded pass provably cannot finish inside the published inference wall (a STRICT LOWER
+    BOUND from the origin's own measured op A, see `early_wall_stop_decision`): the grade is not run. Carries ``record``
+    (counts and seconds only, for the private evaluation directory)."""
+
+    def __init__(self, record):
+        super().__init__("early_wall_stop")
+        self.record = record
+
+
+#: The host registry of the early wall stop (`early_wall_stop_rule`): empty = OFF, for every version, until the owner and the
+#: Validator register a row. Host-side values, never part of the pack.
+EARLY_WALL_STOP_REGISTRY = (
+    Path(__file__).resolve().parents[2]
+    / "scripts"
+    / "validator_host_classes"
+    / "early_wall_stop.json"
+)
+EARLY_WALL_STOP_SCHEMA = "carbon.exam.early-wall-stop.v1"
+_EARLY_ROW_KEYS = {"enabled", "s_max_seconds", "margin", "evidence_sha256"}
+
+
+def early_wall_stop_rule(challenge_id, version, *, path=None):
+    """The registered ``{"s_max_seconds", "margin"}`` of ``"<challenge> <version>"``, or None when the early stop is OFF for it:
+    the registry is absent, malformed, has no row, or the row is not enabled. NEVER raises (fail open: the published wall
+    kills the pass as before). A row is ``{"enabled": true, "s_max_seconds": >= 0, "margin": >= 1, "evidence_sha256":
+    "sha256:<64 hex>"}``; anything else in it makes the whole row OFF."""
+    try:
+        document = json.loads(
+            Path(EARLY_WALL_STOP_REGISTRY if path is None else path).read_bytes()
+        )
+        if (
+            type(document) is not dict
+            or document.get("schema") != EARLY_WALL_STOP_SCHEMA
+        ):
+            return None
+        row = (document.get("rows") or {}).get(f"{challenge_id} {version}")
+        if (
+            type(row) is not dict
+            or set(row) != _EARLY_ROW_KEYS
+            or row["enabled"] is not True
+        ):
+            return None
+        s_max, margin = row["s_max_seconds"], row["margin"]
+        if (
+            type(s_max) not in (int, float)
+            or type(margin) not in (int, float)
+            or isinstance(s_max, bool)
+            or isinstance(margin, bool)
+            or not math.isfinite(s_max)
+            or not math.isfinite(margin)
+            or s_max < 0
+            or margin < 1.0
+            or re.fullmatch(r"sha256:[0-9a-f]{64}", str(row["evidence_sha256"])) is None
+        ):
+            return None
+        return {"s_max_seconds": float(s_max), "margin": float(margin)}
+    except Exception:  # noqa: BLE001 - OFF, never a failure of a grade
+        return None
+
+
+def early_wall_stop_decision(a_seconds, a_rows, rows, wall_seconds, rule):
+    """``(stop, lower_bound_seconds)``. The whole-bank per-case pass costs ``start-up + rows x c``; the origin's practice pass
+    cost ``start-up + a_rows x c`` = ``a_seconds``, with the start-up at most ``s_max_seconds``, so ``c >= (a_seconds - s_max) /
+    a_rows`` and the whole-bank pass takes AT LEAST ``rows x (a_seconds - s_max) / a_rows``. Stop only when that lower bound
+    exceeds ``wall_seconds x margin`` (margin >= 1): the pass could not have finished inside the wall, so the outcome equals
+    waiting out the kill. A missing or non-positive measurement, ``a_seconds <= s_max`` or an unregistered rule never stops.
+    """
+    if rule is None:
+        return False, None
+    try:
+        if not (a_seconds > 0 and a_rows > 0 and rows > 0 and wall_seconds > 0):
+            return False, None
+        per_call = (a_seconds - rule["s_max_seconds"]) / a_rows
+        if not per_call > 0:
+            return False, None
+        lower = rows * per_call
+        return lower > wall_seconds * rule["margin"], lower
+    except (TypeError, ValueError, ZeroDivisionError, OverflowError):
+        return False, None
+
+
+def _origin_inference_seconds(provider, owner, origin):
+    """The measured wall seconds of the ORIGIN task's own graded practice pass (its ``inference`` child operation, ``actual``
+    elapsed milliseconds, SUCCEEDED), or None. Read-only; None on anything else (fail open).
+    """
+    from carbon.development_session.bundle_construction_worker import (
+        direct_child_identity,
+    )
+
+    try:
+        identity = direct_child_identity(origin, "inference")
+        with provider.ledger.db() as db:
+            row = db.execute(
+                "SELECT state, actual FROM operations WHERE id=? AND owner=?",
+                (identity, owner),
+            ).fetchone()
+        if row is None or row[0] != "SUCCEEDED" or row[1] is None:
+            return None
+        milliseconds = json.loads(row[1]).get("numerical_milliseconds")
+        if type(milliseconds) is not int or milliseconds <= 0:
+            return None
+        return milliseconds / 1000.0
+    except Exception:  # noqa: BLE001 - fail open
+        return None
+
+
+def _check_early_wall_stop(
+    adapter, provider, owner, origin, material, rows, wall_seconds
+):
+    """Raise `EarlyWallStop` when the registered rule says the counted graded pass cannot finish inside the wall; return None
+    otherwise (and on every doubt). OFF unless a row is registered."""
+    rule = early_wall_stop_rule(adapter.challenge_id, adapter.challenge_version)
+    if rule is None:
+        return
+    a_seconds = _origin_inference_seconds(provider, owner, origin)
+    if a_seconds is None:
+        return
+    try:
+        a_rows = len(material["practice_inputs"])
+    except Exception:  # noqa: BLE001 - fail open
+        return
+    stop, lower = early_wall_stop_decision(a_seconds, a_rows, rows, wall_seconds, rule)
+    if stop:
+        raise EarlyWallStop(
+            {
+                "schema": "carbon.exam.early-wall-stop-record.v1",
+                "origin_op_a_seconds": a_seconds,
+                "origin_op_a_rows": a_rows,
+                "bank_rows": rows,
+                "inference_wall_seconds": wall_seconds,
+                "s_max_seconds": rule["s_max_seconds"],
+                "margin": rule["margin"],
+                "lower_bound_seconds": lower,
+            }
+        )
+
+
 def _is_candidate_wall_hit(error) -> bool:
     """Whether `error` is the carrier's observed candidate wall stop (never a host fault)."""
     from carbon.development_session import research_carrier as carrier
@@ -2712,6 +2850,18 @@ def _counted_bank_grade(
             counted=True,
             runner=runner,
         )
+    except EarlyWallStop as stopped:
+        # The registered strict lower bound: the pass could not have finished inside the wall. The candidate's wall stop,
+        # typed and settled exactly as a stop at the wall (COUNTED, never FAILED_INFRA, no retry); the projection is kept
+        # privately beside the evaluation (counts and seconds only, best effort).
+        try:
+            from carbon.development_session.data import write_once
+
+            directory = _private_evaluation_directory(bound, submission_id)
+            write_once(directory / "early-wall-stop.json", _json(stopped.record))
+        except Exception:  # noqa: BLE001, S110 - evidence is best effort
+            pass
+        return _settle_candidate_wall_hit(cap, reservation, bound)
     except Exception:
         # The grading did not complete: the slot goes back (it is not the miner's result).
         try:
@@ -4371,6 +4521,18 @@ def regrade_retained_entry(
                     **graph_query,
                 )
 
+            if counted and pool:
+                # Bundle A (dark until registered): a graded pass that provably cannot finish inside the published wall is not
+                # run; `_counted_bank_grade` settles it as the candidate's wall stop (`early_wall_stop_decision`).
+                _check_early_wall_stop(
+                    adapter,
+                    provider,
+                    owner,
+                    origin,
+                    material,
+                    len(bank),
+                    policy["inference_wall_seconds_max"],
+                )
             graded = infer("graded", False)
             timed_result = infer("timed", True) if timed else None
         except RecipeRefused as refused:
