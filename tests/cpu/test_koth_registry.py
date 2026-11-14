@@ -27,11 +27,13 @@ def test_the_committed_registry_loads_and_lists_only_registered_noise():
     from carbon.challenge_validator.exam_cap import registered_challenges
 
     registered = kr._load()
-    for challenge, noise in registered.items():
+    for key, noise in registered.items():
+        # a key is a Challenge id or "<Challenge id> <version>" (the version key)
+        challenge, _, version = key.partition(" ")
         assert challenge in registered_challenges()
         assert noise["value"] > 0
         assert noise["measurement_digest"].startswith("sha256:")
-        assert kr.rebuild_noise(challenge) == noise
+        assert kr.rebuild_noise(challenge, version=version or None) == noise
 
 
 def test_a_challenge_absent_from_the_committed_registry_has_no_noise(tmp_path):
