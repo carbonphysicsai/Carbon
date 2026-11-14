@@ -145,6 +145,15 @@ class HostFacts:
     """
 
     facts: frozenset = frozenset()
+    #: The implemented intake versions, as `(challenge_id, version)`, that have NO door this
+    #: deployment submits to (no published endpoint on the process network and no endpoint of the
+    #: operator's own). `offered_catalog` and the Control Center leave them out. Empty is
+    #: "nothing is known to lack a door": a practice-only profile (nothing is submitted) and an
+    #: endpoint list that cannot be read both leave it empty. It is a display filter only: the
+    #: submit refusal (`evaluation_unavailable`) does not read it, and a launch or a describe by
+    #: exact id is unchanged. Not part of the host's identity (`compare=False`), so it never
+    #: splits a cache keyed by the host.
+    doorless: frozenset = field(default=frozenset(), compare=False)
 
     @staticmethod
     def observe(configured=()):
@@ -1124,9 +1133,17 @@ def is_offered(summary) -> bool:
 
 
 def offered_catalog(host=None):
-    """`catalog` for a miner's eyes: the entries `is_offered` refuses are left out."""
+    """`catalog` for a miner's eyes: the entries `is_offered` refuses are left out, and so is a
+    version this host's deployment has no door for (`HostFacts.doorless`): the app offers only
+    versions a miner can submit to. Practice on such a version stays reachable by exact id.
+    """
+    host = host if host is not None else HostFacts.observe()
     document = catalog(host)
-    document["challenges"] = [c for c in document["challenges"] if is_offered(c)]
+    document["challenges"] = [
+        c
+        for c in document["challenges"]
+        if is_offered(c) and (c["challenge_id"], c["version"]) not in host.doorless
+    ]
     return document
 
 

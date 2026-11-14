@@ -316,6 +316,10 @@ def _challenges(profile_state, host, cfg=None):
             "tracking": entry["tracking"],
             "profile": LAUNCH_PROFILE if profile else None,
             "implemented": entry["status"] == IMPLEMENTED,
+            # False for a version this deployment has no door for (`HostFacts.doorless`): the page
+            # offers only versions a miner can submit to. Absent entries read as True.
+            "has_door": (entry["challenge_id"], entry["version"])
+            not in getattr(host, "doorless", ()),
             "usable_here": bool(profile and profile["usable_here"]),
             "missing_here": list(profile["missing_here"]) if profile else [],
             # Everything the miner weighs when choosing what to mine

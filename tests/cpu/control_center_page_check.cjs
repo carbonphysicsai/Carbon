@@ -82,7 +82,7 @@ function selectable() { return listedChallenges(fx.caps).find(entry => entry.imp
 // Challenge that cannot practise is Coming soon (Battery is out of launch), so no wizard scenario picks it.
 function listedChallenges(capabilities = fx.caps) {
   const newer = (x, y) => { const a = String(x || "").split(".").map(Number), b = String(y || "").split(".").map(Number); for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); return false; };
-  const open = capabilities.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development");
+  const open = capabilities.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development" && entry.has_door !== false);
   return open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newer(other.version, entry.version)));
 }
 function listedChallenge(capabilities = fx.caps) {
@@ -136,7 +136,9 @@ function offeredChoices(page) {
   const cards = all(page, "#challenge-catalog [data-challenge]").map(node => node.dataset.challenge).sort();
   assert.deepEqual(cards, expected.map(entry => entry.challenge_id).sort(),
     "all actual offered entries, including the neutral reference fixture, remain visible");
-  for (const id of ["electric-motor-magnetics", "chip-cold-plate", "f08-ribbed-bracket", "f02"]) assert.ok(cards.includes(id));
+  // The fixture is a testnet profile: Motor has no testnet door (owner rule, 13 Nov), so it is not offered here.
+  for (const id of ["chip-cold-plate", "f08-ribbed-bracket", "f02"]) assert.ok(cards.includes(id), id + " has a testnet door and is offered");
+  assert.ok(!cards.includes("electric-motor-magnetics"), "Motor has no testnet door and is not offered");
   assert.ok(cards.includes("fixture-reference-burgers"), "the reference fixture is not a fifth production Challenge");
   assert.ok(!cards.some(id => id.includes("battery")), "historical Battery remains outside the launch portfolio");
   assert.deepEqual(all(page, "#wizard-challenges input").map(node => node.value).sort(),
@@ -375,6 +377,36 @@ scenario("acceptance labels name a revision and never follow availability", asyn
   assert.ok(!page.text("research-selects").includes("Tested at"));
   assert.ok(!page.text("launchpad-strip").includes("Tested at"));
   assert.equal(byValue(page, "#research-selects input", "manual").disabled, false);
+  clean(page);
+});
+
+scenario("a version with no door is not offered, and a newest one with no door does not hide an older one that has a door", async () => {
+  // Owner rule, 13 Nov: the app offers only versions a door serves (testnet Motor has none; Cooling 1.8 has none
+  // while Cooling 1.6 does). `has_door` is the controller's word; the page drops such a version BEFORE it keeps
+  // the newest per Challenge, and a Challenge with no door at all is not offered.
+  const state = world();
+  const versions = {};
+  for (const entry of state.caps.challenges.filter(item => item.implemented && item.portfolio !== "historical_development" && !["RESERVED", "RETIRED", "DEFERRED"].includes(item.status))) (versions[entry.challenge_id] ||= []).push(entry);
+  const ids = Object.keys(versions).filter(id => versions[id].length >= 2);
+  assert.ok(ids.length >= 2, "two Challenges with several versions in this scenario");
+  const newer = (x, y) => { const a = String(x).split(".").map(Number), b = String(y).split(".").map(Number); for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); return false; };
+  const sorted = list => [...list].sort((x, y) => (newer(x.version, y.version) ? -1 : 1));
+  const [servedId, doorlessId] = ids;
+  const [top, keep] = sorted(versions[servedId]);
+  top.has_door = false;
+  keep.has_door = true;
+  for (const entry of versions[doorlessId]) entry.has_door = false;
+  const listed = listedChallenges(state.caps).map(entry => entry.challenge_id + "@" + entry.version);
+  assert.ok(!listed.includes(servedId + "@" + top.version), "the newest version with no door is not offered");
+  assert.ok(listed.includes(servedId + "@" + keep.version), "the newest version that has a door is offered instead");
+  assert.ok(!listed.some(value => value.startsWith(doorlessId + "@")), "a Challenge with no door at all is not offered");
+  const page = await open(state);
+  page.go("#launch");
+  await page.advance(0);
+  const values = all(page, "#wizard-challenges input").map(node => node.value);
+  assert.ok(values.includes(servedId + "@" + keep.version), "the page offers " + servedId + "@" + keep.version + ": " + values.join(","));
+  assert.ok(!values.includes(servedId + "@" + top.version), "the page does not offer the version with no door");
+  assert.ok(!values.some(value => value.startsWith(doorlessId + "@")), "the page does not offer a Challenge with no door");
   clean(page);
 });
 
@@ -3563,9 +3595,11 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   const page = await open(state);
   const historical = new Set(state.caps.challenges.filter(entry => entry.portfolio === "historical_development").map(entry => entry.challenge_id));
   assert.ok(historical.size, "the fixture retains historical Challenge records");
-  const offered = state.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development");
+  // Offered = the latest version of each Challenge that has a door (this fixture is a testnet profile).
+  const offered = state.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development" && entry.has_door !== false);
   const latest = id => offered.filter(entry => entry.challenge_id === id).map(entry => entry.version).sort((a, b) => parseFloat(b) - parseFloat(a))[0];
-  assert.ok(offered.filter(entry => entry.challenge_id === "electric-motor-magnetics").length > 1, "the fixture has several Motor versions");
+  assert.ok(state.caps.challenges.filter(entry => entry.challenge_id === "electric-motor-magnetics").length > 1, "the fixture has several Motor versions");
+  assert.ok(state.caps.challenges.filter(entry => entry.challenge_id === "chip-cold-plate").length > 1, "the fixture has several Cooling versions");
   page.go("#launch");
   await page.advance(0);
   const inputs = [...all(page, "#wizard-challenges input")];
@@ -3579,8 +3613,9 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   const text = page.text("challenge-catalog");
   assert.ok(all(page, "#challenge-catalog [data-challenge]").every(card => !historical.has(card.dataset.challenge)), "historical Challenges are absent from the catalog DOM");
   assert.doesNotMatch(text, /Reserved|Deferred|Retired/);
-  assert.doesNotMatch(text, /electric-motor-magnetics · version 1\.(0|2)/);
-  assert.ok(text.includes("electric-motor-magnetics · version " + latest("electric-motor-magnetics")), "Motor is listed at its latest version");
+  assert.doesNotMatch(text, /chip-cold-plate · version 1\.(0|2)/);
+  assert.ok(!text.includes("electric-motor-magnetics"), "Motor has no testnet door and is not listed");
+  assert.ok(text.includes("chip-cold-plate · version " + latest("chip-cold-plate")), "Cooling is listed at its latest version that has a door");
   clean(page);
 });
 

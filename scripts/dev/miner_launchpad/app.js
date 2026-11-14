@@ -2216,7 +2216,10 @@
     if (!caps) return [];
     // The one offered rule (registry OFFERED_PORTFOLIOS): not-implemented entries are never offered, and an
     // implemented one kept for history (Battery, out of the launch set) is listed for old campaigns only.
-    const open = caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development");
+    // A version this deployment has no door for (has_door false) is never offered, and is dropped BEFORE the
+    // newest-per-Challenge rule below, so a newest version with no door cannot hide an older one that has one
+    // (Cooling 1.8 with no door, Cooling 1.6 with one). A practice-only profile has no such versions.
+    const open = caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status) && entry.portfolio !== "historical_development" && entry.has_door !== false);
     return open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newerVersion(other.version, entry.version)));
   }
   function challengeEntry(selection) {

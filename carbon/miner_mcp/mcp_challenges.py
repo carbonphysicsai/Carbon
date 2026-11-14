@@ -12,6 +12,7 @@ served by that Challenge's composition. There is no default and no fallback.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from pathlib import Path
 from typing import Annotated
@@ -319,7 +320,24 @@ def configured_host_facts(profile=None):
             logging.getLogger(__name__).warning(
                 "trusted worker image fact unavailable", exc_info=True
             )
-    return HostFacts.observe(configured)
+    return dataclasses.replace(
+        HostFacts.observe(configured), doorless=_doorless(profile)
+    )
+
+
+def _doorless(profile):
+    """The versions this deployment has no door for (`HostFacts.doorless`), or none when that
+    cannot be read: the offered lists then show everything, and the submit refusal stands.
+    """
+    try:
+        from scripts.dev.miner_launchpad.environment_setup import doorless_versions
+
+        return doorless_versions(profile)
+    except Exception:  # display only: a failure hides nothing
+        logging.getLogger(__name__).warning(
+            "doorless versions unavailable", exc_info=True
+        )
+        return frozenset()
 
 
 def make_challenge_tools(*, guard=None, host_facts=None):

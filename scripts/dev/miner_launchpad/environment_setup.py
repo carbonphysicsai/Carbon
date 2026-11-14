@@ -2132,6 +2132,58 @@ def published_entry(published, challenge) -> dict | None:
     return published["endpoints"].get(challenge["id"], {}).get(challenge["version"])
 
 
+def doorless_versions(cfg=None) -> frozenset:
+    """The implemented versions `(challenge_id, version)` of the Challenges that submit through
+    an intake which this deployment has no door for: the app offers a miner only versions it can
+    submit to, so these are left out of the Challenges page and the MCP list
+    (`HostFacts.doorless`). Every version of such a Challenge is named, the old ones that never
+    had an intake included: a version that cannot be submitted is not offered, and its being the
+    newest left over must not bring it back.
+
+    A version has a door when `published_endpoints` names it for the process network
+    (`CARBON_CHAIN_NETWORK`), or when the profile names an intake of the miner's own for
+    its Challenge (`intakes`, by id) or for exactly that version (`direct_intake_serves`).
+    A published endpoint the profile once carried (`version_intakes`) is not counted: a
+    door that closed leaves a stale profile entry, and Review writes it again.
+
+    Empty, so that nothing is hidden, for a practice-only profile (nothing is submitted, so
+    no door is needed: practice stays free on every version) and when the endpoint list
+    cannot be read (the page then says nothing about doors; a submit is still refused by
+    the runner). A Challenge that submits through no intake is never named. Display only: it
+    grants and refuses nothing.
+    """
+    from carbon.challenge_registry import catalog
+    from carbon.challenge_registry.registry import IMPLEMENTED
+
+    cfg = cfg if type(cfg) is dict else {}
+    if "practice_principal" in cfg:
+        return frozenset()
+    published = published_endpoints()
+    if published["problem"]:
+        return frozenset()
+    with_intake = {challenge["id"] for challenge in intake_challenges()}
+    own = cfg.get("intakes")
+    own = {k for k, v in own.items() if type(v) is str} if type(own) is dict else set()
+    serves = cfg.get("direct_intake_serves")
+    serves = (
+        {(serves.get("id"), serves.get("version"))}
+        if type(serves) is dict and type(cfg.get("direct_intake_target")) is dict
+        else set()
+    )
+    return frozenset(
+        (entry["challenge_id"], entry["version"])
+        for entry in catalog()["challenges"]
+        if entry["status"] == IMPLEMENTED
+        and entry["challenge_id"] in with_intake
+        and entry["challenge_id"] not in own
+        and (entry["challenge_id"], entry["version"]) not in serves
+        and published_entry(
+            published, {"id": entry["challenge_id"], "version": entry["version"]}
+        )
+        is None
+    )
+
+
 def extra_gpu_manifest(state_dir, offered) -> str | None:
     """The PyTorch GPU worker the installer built with --pytorch --gpu, beside
     the JAX GPU worker setup offers (`offered`, the installer's recorded or
