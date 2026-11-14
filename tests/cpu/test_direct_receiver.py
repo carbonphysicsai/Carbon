@@ -1567,11 +1567,12 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
             db.execute("SELECT view FROM direct_tasks").fetchone()[0],
             research.DirectTaskViewV3,
         )
-        assert view.state is research.DirectTaskStateV3.CANCELLED
+        assert view.state is research.DirectTaskStateV3.QUEUED  # carried across the stop (Bundle A queue-carry)
 
     # Reopen the signed task under the same receiver identity without
-    # listening, dispatching, or cancelling any retained work. A cancelled
-    # task and an unowned identity cannot enter the existing bank.
+    # listening, dispatching, or cancelling any retained work. A task that has
+    # not SUCCEEDED (queued, carried across the stop) and an unowned identity
+    # cannot enter the bank.
     from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
 
     artifacts, entries = tmp_path / "bank-artifacts", tmp_path / "bank-entries"
