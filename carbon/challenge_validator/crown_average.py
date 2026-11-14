@@ -460,10 +460,11 @@ def one_new_rebuild_per_call(
     any further new one raises `RebuildStep`. A grade that is not a measurement (infrastructure) is not kept. Shared by
     the king's stepwise re-measure and a contender's stepwise decision: the same cache, the same rule.
 
-    ``retry_in_call`` (the contender's decision): the new rebuild counts as run only once it RETURNED, so an infrastructure
-    failure is retried inside the call by the averaging loop's own retries (`_one`) and, if every try fails, ends the
-    decision UNAVAILABLE ``rebuild_unavailable`` (an attempt counted, spaced, alerted: a persistent fault never burns the GPU
-    every tick). The king's re-measure keeps its earlier rule (a failed new rebuild stops the call).
+    ``retry_in_call`` (the contender's decision): the new rebuild counts as run only once it returned a MEASUREMENT (the body
+    is kept), so an infrastructure failure, whether raised or returned as a FAILED_INFRA / INDETERMINATE_EVIDENCE body, is
+    retried inside the call by the averaging loop's own retries (`_one`) and, if every try fails, ends the decision
+    UNAVAILABLE ``rebuild_unavailable`` (an attempt counted, spaced, alerted: a persistent fault never burns the GPU every
+    tick). The king's re-measure keeps its earlier rule (a failed new rebuild stops the call).
     """
     ran = []
 
@@ -477,12 +478,16 @@ def one_new_rebuild_per_call(
             if not retry_in_call:
                 ran.append(seed)
             body = build(seed, *rest)
-            if retry_in_call:
-                ran.append(seed)
             model = ((body or {}).get("evidence") or {}).get("model_p")
             status = model.get("score_status") if type(model) is dict else None
-            if type(status) is str and status not in bp.NOT_MEASURED:
+            measured = type(status) is str and status not in bp.NOT_MEASURED
+            if measured:
                 store.record_crown_rebuild(submission_id, key, seed, again, body)
+            if retry_in_call and measured:
+                # the step is counted only for a KEPT measurement: a returned FAILED_INFRA / INDETERMINATE_EVIDENCE body is
+                # retried by the averaging loop (`_one`) and, if it never measures, ends the decision UNAVAILABLE
+                # rebuild_unavailable (counted, spaced, alerted), never an endless REBUILD_IN_PROGRESS
+                ran.append(seed)
             return body
 
         return run

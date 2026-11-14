@@ -206,6 +206,65 @@ def test_a_rebuild_that_never_recovers_is_a_counted_unavailable_not_an_endless_i
     assert store.kept_crown_rebuilds("b", KEY) == 0
 
 
+@pytest.mark.parametrize("unmeasured", ["FAILED_INFRA", "INDETERMINATE_EVIDENCE"])
+def test_a_returned_unmeasured_body_once_is_retried_inside_the_call_and_the_step_is_the_kept_one(
+    tmp_path, monkeypatch, unmeasured
+):
+    store, flow = _king_and_contender(tmp_path, monkeypatch)
+
+    class OnceUnmeasured(Repeat):
+        bad = 1
+
+        def rebuild_at(self, seed):
+            self.asked.append(seed)
+            if self.bad:
+                self.bad -= 1
+                return _body("b", None, unmeasured)
+            index = self.order.setdefault(seed, len(self.order))
+            return _body("b", self.totals[index])
+
+    repeat, average = OnceUnmeasured("b", [0.71] * N), _stepped(tmp_path)
+    outcome = flow.consider_private(
+        "b", KEY, _comparator(), repeat=repeat, average=average
+    )
+    assert (outcome["outcome"], outcome["reason"]) == (
+        bp.UNAVAILABLE,
+        ca.REBUILD_IN_PROGRESS,
+    )
+    assert len(repeat.asked) == 2  # the unmeasured body, then the retry that measured
+    assert (
+        store.kept_crown_rebuilds("b", KEY) == 1
+    )  # the unmeasured body was never kept
+
+
+@pytest.mark.parametrize("unmeasured", ["FAILED_INFRA", "INDETERMINATE_EVIDENCE"])
+def test_a_returned_unmeasured_body_always_is_a_counted_unavailable_never_an_endless_in_progress(
+    tmp_path, monkeypatch, unmeasured
+):
+    store, flow = _king_and_contender(tmp_path, monkeypatch)
+
+    class AlwaysUnmeasured(Repeat):
+        def rebuild_at(self, seed):
+            self.asked.append(seed)
+            return _body("b", None, unmeasured)
+
+    repeat, average = AlwaysUnmeasured("b", [0.71] * N), _stepped(tmp_path)
+    for tick in range(
+        3
+    ):  # tick after tick: every one is the counted refusal, never a silent in-progress
+        outcome = flow.consider_private(
+            "b", KEY, _comparator(), repeat=repeat, average=average
+        )
+        assert (outcome["outcome"], outcome["reason"]) == (
+            bp.UNAVAILABLE,
+            ca.REBUILD_UNAVAILABLE,
+        )
+        assert len(repeat.asked) == 3 * (
+            tick + 1
+        )  # the in-call retries (2) plus the first try, each tick
+    assert store.kept_crown_rebuilds("b", KEY) == 0
+
+
 # --- the live trigger files it and the sweep resumes it ------------------------------------------------------------------------
 
 
