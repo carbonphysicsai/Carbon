@@ -1567,7 +1567,8 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
             db.execute("SELECT view FROM direct_tasks").fetchone()[0],
             research.DirectTaskViewV3,
         )
-        assert view.state is research.DirectTaskStateV3.QUEUED  # carried across the stop (Bundle A queue-carry)
+        # carried across the stop (Bundle A queue-carry)
+        assert view.state is research.DirectTaskStateV3.QUEUED
 
     # Reopen the signed task under the same receiver identity without
     # listening, dispatching, or cancelling any retained work. A task that has
