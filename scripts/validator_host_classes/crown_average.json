@@ -11,6 +11,11 @@
       "n": 10,
       "value": 0.0025056870668293094
     },
+    "electric-motor-magnetics 1.8": {
+      "measurement_digest": "sha256:e288cdaa42338e4eaa89a8447760a7183889f555e7e94956f53ca23734d43597",
+      "n": 10,
+      "value": 0.0079
+    },
     "f02": {
       "measurement_digest": "sha256:d694e4502e7e0b208c4850399131a7be6b3891a08364913287daa55c9b988830",
       "n": 10,

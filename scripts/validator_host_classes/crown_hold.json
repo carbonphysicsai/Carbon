@@ -1,4 +1,13 @@
 {
-  "holds": [],
+  "holds": [
+    {
+      "authority": "sha256:facec4d4f248819a35206b8e03059cc94b16a81401a9243d50e2d9ff25cb4605",
+      "challenge": "electric-motor-magnetics",
+      "evaluation_pack_digest": "sha256:ee2348b1738fb13984601473b5624bfefc2f65d8c7c7e91471c2d4c419a5742c",
+      "hold": "off",
+      "menu_epoch": "E1",
+      "version": "1.8"
+    }
+  ],
   "schema": "carbon.crown.hold-registry.v1"
 }

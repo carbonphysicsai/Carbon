@@ -1,0 +1,19 @@
+{
+  "challenge": "electric-motor-magnetics",
+  "crown_hold": "OFF_REGISTERED",
+  "evaluation_pack_digest": "sha256:ee2348b1738fb13984601473b5624bfefc2f65d8c7c7e91471c2d4c419a5742c",
+  "kind": "OWNER_PROVISIONAL_NOT_MEASURED",
+  "menu_epoch": "E1",
+  "owner_words_sha256": "sha256:facec4d4f248819a35206b8e03059cc94b16a81401a9243d50e2d9ff25cb4605",
+  "owner_words_verbatim": "Owner-provisional Motor 1.8 crown values for netuid 116, menu epoch E1, on the evaluation pack the 116 door grades: floor 0.05, rebuild noise 0.0079, margin_10 0.0079, labelled OWNER_PROVISIONAL_NOT_MEASURED and replaced forward-only by measured values with no crown re-decided; and crown_hold off for exactly that exam. Graphite-C may register them via the version-key route in one reviewed commit (Runner-C gate, Validator-2C FINAL, PR Head-C push), and Deploy-C may roll the 116 door to it on Validator-2C's GO, through Sun 15 Nov 23:59 CST.\n",
+  "replacement_rule": "Owner-set provisional values, NOT measured on Motor 1.8. Replaced FORWARD-ONLY by the measured floor, noise and margin_N of the crown campaign (Validator-Motor-C's recal rule); no crown already decided is re-decided or rescored.",
+  "schema": "carbon.crown.provisional-record.v1",
+  "typed_at": "Sat 14 Nov 2026 ~00:05 CST",
+  "typed_in": "Graphite-C session (owner, verbatim)",
+  "values": {
+    "crown_floor": 0.05,
+    "crown_margin_10": 0.0079,
+    "rebuild_noise": 0.0079
+  },
+  "version": "1.8"
+}
