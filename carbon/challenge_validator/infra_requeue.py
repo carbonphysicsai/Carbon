@@ -79,6 +79,13 @@ every instant (with none, the grader would pick the task up and replay it). The 
 left as they are (the record). REFUSED for any other marker or row state, a task already reclassed, or a task ``release``
 gave back. The dry run also shows the task's ``wall-stops.jsonl`` row (counts only) and changes nothing.
 
+``reclass --apply`` is RESUMABLE: a run that gave the ledger row back and then died (before the marker was replaced, or
+before its record was written) is FINISHED by running the same command again, never redone. It resumes only when the kept
+copy of the old marker exists, the current marker is byte-identical to it, the exam row is exactly one GRADED row RELEASED /
+FAILED_INFRA, and the task has no reclass record or only records with ``marker_replaced`` false, under the same ruling id;
+it then replaces the marker and appends a record with ``resumed: true`` and ``marker_replaced: true``. Any other state is
+refused as before; a dry run shows ``would_resume``. A completed reclass is never resumed (``already_given_back``).
+
 Without ``--apply`` nothing changes. Each prints one JSON document: task ids, codes and counts only (no hotkey, path or
 score). Runs with the door up: sqlite writes go through the ledger's own transactions, the owner stores are opened
 read-only, and the marker move is the single commit point the grader observes.
@@ -818,6 +825,113 @@ def _wall_stop_row(root, task):
     return found
 
 
+def _log_lines(root, name, task):
+    """The task's lines of ``requeued/<name>`` (parsed objects), oldest first."""
+    log = Path(root) / "auto-grade" / "requeued" / name
+    found = []
+    try:
+        for line in log.read_text().splitlines():
+            try:
+                record = json.loads(line)
+            except ValueError:
+                continue
+            if type(record) is dict and record.get("task") == task:
+                found.append(record)
+    except OSError:
+        pass
+    return found
+
+
+def _reclass_records(root, task):
+    return _log_lines(root, "reclass.jsonl", task)
+
+
+def _release_logged(root, task):
+    return bool(_log_lines(root, "releases.jsonl", task))
+
+
+def _resumable(root, task, paths, records):
+    """The state of an interrupted ``reclass`` that ``--apply`` may FINISH, or None. All must hold: the kept copy of the
+    old marker exists, the current marker is byte-identical to it (so it was never replaced) and is a counted wall stop,
+    the exam row is exactly one GRADED row RELEASED / FAILED_INFRA (the give-back happened), and the task has either no
+    reclass record (the process died before writing it) or only records saying the marker was not replaced.
+    """
+    kept = paths["kept_marker"].parent / "reclass-kept" / (task + ".json")
+    try:
+        kept_bytes = kept.read_bytes()
+        current = paths["marker"].read_bytes()
+    except OSError:
+        return None
+    if kept_bytes != current or paths["marker"].is_symlink():
+        return None
+    document = _marker_document(paths["marker"])
+    if (
+        document is None
+        or document.get("state") != "CANDIDATE_FAILED"
+        or document.get("code") != "WORKER_WALL_LIMIT_REACHED"
+    ):
+        return None
+    if any(record.get("marker_replaced") is not False for record in records):
+        return None
+    ledger, _cap = _ledger(root)
+    with ledger._db() as db:
+        rows = _rows(db, task)
+    if len(rows) != 1 or (rows[0][1], rows[0][2]) != ("RELEASED", "FAILED_INFRA"):
+        return None
+    return {
+        "row": rows[0][0],
+        "kept_sha256": hashlib.sha256(kept_bytes).hexdigest(),
+        "entry_id": document.get("entry_id"),
+    }
+
+
+def _resume(root, task, paths, resumable, records, out, *, ruling, clock):
+    """Finish an interrupted reclass: the marker (and the record, when none exists). Nothing else is touched."""
+    if records and records[-1].get("ruling") != ruling:
+        return {**out, "refused": "ruling_differs_from_the_interrupted_run"}
+    wall_stop = _wall_stop_row(root, task)
+    shown = {
+        "row": resumable["row"],
+        "marker_kept_sha256": resumable["kept_sha256"],
+        "after": {"state": "RELEASED", "status": "FAILED_INFRA"},
+    }
+    if not out["apply"]:
+        return {**out, "would_resume": shown, "wall_stop": wall_stop}
+    try:
+        _write_reclassed_marker(paths, task, resumable["entry_id"])
+    except OSError:
+        return {**out, "refused": "reclass_marker_replace_failed"}
+    earlier = records[-1] if records else {}
+    record = {
+        "task": task,
+        "row": resumable["row"],
+        # the give-back itself is the interrupted run's: its prior state is in its record, or unknown when it left none
+        "prior_state": earlier.get("prior_state"),
+        "prior_status": earlier.get("prior_status"),
+        "marker_state": "CANDIDATE_FAILED",
+        "marker_code": "WORKER_WALL_LIMIT_REACHED",
+        "marker_kept_sha256": resumable["kept_sha256"],
+        "marker_replaced": True,
+        "resumed": True,
+        "state": "RELEASED",
+        "status": "FAILED_INFRA",
+        "reason": "counted_wall_stop_ruled_not_the_candidates",
+        "ruling": ruling,
+        "wall_stop": wall_stop,
+        "at_ns": int(clock()),
+    }
+    directory = paths["kept_marker"].parent
+    directory.mkdir(mode=0o700, exist_ok=True)
+    with open(directory / "reclass.jsonl", "a", encoding="utf-8") as log:
+        log.write(json.dumps(record, sort_keys=True) + "\n")
+    return {
+        **out,
+        "resumed": shown,
+        "marker": {"replaced": True, "kept_sha256": resumable["kept_sha256"]},
+        "wall_stop": wall_stop,
+    }
+
+
 def reclass(root, task, *, ruling, apply=False, clock=time.time_ns):
     """Give back one COUNTED candidate wall stop the Validator ruled was not the candidate's (see the module text)."""
     out = {
@@ -831,9 +945,20 @@ def reclass(root, task, *, ruling, apply=False, clock=time.time_ns):
         return {**out, "refused": "not_a_task_id"}
     if type(ruling) is not str or not _RULING.fullmatch(ruling):
         return {**out, "refused": "ruling_id_required"}
-    if _released(root, task):
+    records = _reclass_records(root, task)
+    if _release_logged(root, task) or any(
+        record.get("marker_replaced") is True for record in records
+    ):
         return {**out, "refused": "already_given_back"}
     paths = _paths(root, task)
+    resumable = _resumable(root, task, paths, records)
+    if resumable is not None:
+        return _resume(
+            root, task, paths, resumable, records, out, ruling=ruling, clock=clock
+        )
+    if records:
+        # an incomplete earlier run whose state is no longer what it left: nothing to finish, nothing to redo
+        return {**out, "refused": "already_given_back"}
     state, code = _marker_body(paths["marker"])
     if state != "CANDIDATE_FAILED" or code != "WORKER_WALL_LIMIT_REACHED":
         return {**out, "refused": "marker_is_not_a_counted_wall_stop"}

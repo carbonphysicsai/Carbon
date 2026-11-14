@@ -434,3 +434,130 @@ def test_a_root_with_no_state_is_not_a_crash(tmp_path):
     os.chmod(root, 0o700)
     out = infra_requeue.reclass(root, A, ruling=RULING)
     assert out["refused"] == "marker_is_not_a_counted_wall_stop"
+
+
+# --- a half-done reclass is finished, never stranded (V2C) --------------------------------------------------------------
+
+
+def _records(root):
+    log = root / "auto-grade" / "requeued" / "reclass.jsonl"
+    return [json.loads(line) for line in log.read_text().splitlines()]
+
+
+def _fail_replace(monkeypatch):
+    def refuse(source, target):
+        raise OSError("disk")
+
+    monkeypatch.setattr(infra_requeue.os, "replace", refuse)
+
+
+def test_a_replace_that_failed_after_the_give_back_is_finished_by_a_rerun(
+    tmp_path, monkeypatch
+):
+    root, ledger, path = _counted_wall(tmp_path)
+    intake = _Intake(path)
+    with monkeypatch.context() as broken:
+        _fail_replace(broken)
+        first = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert first["marker"]["replaced"] is False
+    assert (
+        intake._grade_state_v4("hotkey", A)[0] == "CANDIDATE_FAILED"
+    )  # still stranded
+    dry = infra_requeue.reclass(root, A, ruling=RULING)
+    assert dry["would_resume"]["after"] == {
+        "state": "RELEASED",
+        "status": "FAILED_INFRA",
+    }
+    assert (
+        intake._grade_state_v4("hotkey", A)[0] == "CANDIDATE_FAILED"
+    )  # a dry run changes nothing
+    done = infra_requeue.reclass(root, A, ruling=RULING, apply=True, clock=lambda: 9)
+    assert "refused" not in done and done["marker"]["replaced"] is True
+    assert intake._grade_state_v4("hotkey", A) == ("FAILED_INFRA", None)
+    assert _rows(ledger, A) == [("RELEASED", "FAILED_INFRA")]
+    records = _records(root)
+    assert [r["marker_replaced"] for r in records] == [False, True]
+    assert records[1]["resumed"] is True and records[1]["at_ns"] == 9
+    assert (
+        records[1]["prior_state"] == "COUNTED"
+    )  # taken from the interrupted run's own record
+    assert (
+        sum(r["marker_replaced"] is True for r in records) == 1
+    )  # one completed record
+    # a resume after a completed reclass is refused
+    again = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert again["refused"] == "already_given_back"
+    assert len(_records(root)) == 2
+
+
+def test_a_run_that_died_before_its_record_is_finished_by_a_rerun(tmp_path):
+    root, ledger, path = _counted_wall(tmp_path)
+    intake = _Intake(path)
+    paths = infra_requeue._paths(root, A)
+    # the interrupted run: kept the old marker, gave the row back, then died (no marker replaced, no record)
+    infra_requeue._replace_marker_keep(paths, A, path.read_bytes())
+    ExamCap(ledger).reclass_counted_wall(A)
+    assert not (root / "auto-grade" / "requeued" / "reclass.jsonl").exists()
+    assert intake._grade_state_v4("hotkey", A)[0] == "CANDIDATE_FAILED"
+    done = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert "refused" not in done and done["marker"]["replaced"] is True
+    assert intake._grade_state_v4("hotkey", A) == ("FAILED_INFRA", None)
+    records = _records(root)
+    assert len(records) == 1 and records[0]["resumed"] is True
+    assert records[0]["marker_replaced"] is True
+    assert (
+        records[0]["prior_state"] is None
+    )  # unknown: the interrupted run left no record
+    assert infra_requeue.reclass(root, A, ruling=RULING, apply=True)["refused"] == (
+        "already_given_back"
+    )
+
+
+def test_a_resume_needs_the_marker_to_be_what_the_interrupted_run_kept(tmp_path):
+    root, ledger, path = _counted_wall(tmp_path)
+    paths = infra_requeue._paths(root, A)
+    infra_requeue._replace_marker_keep(paths, A, path.read_bytes())
+    ExamCap(ledger).reclass_counted_wall(A)
+    changed = _read(path)
+    changed["entry_id"] = "sha256:" + "9" * 64
+    path.write_text(json.dumps(changed))
+    before = path.read_bytes()
+    out = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert out["refused"] == "reclass_no_single_counted_wall_row"
+    assert path.read_bytes() == before
+    assert not (root / "auto-grade" / "requeued" / "reclass.jsonl").exists()
+
+
+def test_a_released_row_with_no_kept_copy_is_not_resumed(tmp_path):
+    root, ledger, path = _counted_wall(tmp_path)
+    ExamCap(ledger).reclass_counted_wall(
+        A
+    )  # given back by something else: no kept copy
+    before = path.read_bytes()
+    out = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert out["refused"] == "reclass_no_single_counted_wall_row"
+    assert path.read_bytes() == before
+
+
+def test_a_resume_keeps_the_interrupted_runs_ruling(tmp_path, monkeypatch):
+    root, _ledger, path = _counted_wall(tmp_path)
+    with monkeypatch.context() as broken:
+        _fail_replace(broken)
+        infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    before = path.read_bytes()
+    other = infra_requeue.reclass(root, A, ruling="CVMOTORC-OTHER", apply=True)
+    assert other["refused"] == "ruling_differs_from_the_interrupted_run"
+    assert path.read_bytes() == before
+
+
+def test_a_resume_that_cannot_replace_the_marker_changes_nothing_more(
+    tmp_path, monkeypatch
+):
+    root, _ledger, path = _counted_wall(tmp_path)
+    with monkeypatch.context() as broken:
+        _fail_replace(broken)
+        infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+        out = infra_requeue.reclass(root, A, ruling=RULING, apply=True)
+    assert out["refused"] == "reclass_marker_replace_failed"
+    assert len(_records(root)) == 1  # no second record for a failed resume
+    assert sorted(p.name for p in path.parent.iterdir()) == [A + ".json"]
