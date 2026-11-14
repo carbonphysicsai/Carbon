@@ -1,0 +1,35 @@
+{
+  "authority": "OWNER-WEIGHTS-AUTHORITY-01",
+  "baselines": {
+    "chip-cold-plate": null,
+    "electric-motor-magnetics": null,
+    "f02": null,
+    "f08-ribbed-bracket": null
+  },
+  "burn_uid": 0,
+  "cadence_blocks": 360,
+  "challenges": [
+    "electric-motor-magnetics",
+    "chip-cold-plate",
+    "f08-ribbed-bracket",
+    "f02"
+  ],
+  "decay": {
+    "full_ms": 86400000,
+    "halving_ms": 86400000
+  },
+  "membership_note": "MAINNET policy v3: mainnet-winner-v2's rule (finney 116, OWNER-WEIGHTS-AUTHORITY-01, four Challenges x 1/4, unlaunched or unpaid shares burn to UID 0, full_reset, null first-incumbent baselines) PLUS the owner's qualification OWNER-MAINNET-QUALIFIED-STANDING-01 (Sat 14 Nov 2026, TEAM_BOARD L10325): Motor 1.8 sealed-exam crowns graded on the 116 door's pack ee2348b1 are payable on mainnet (qualified_sealed names the record sha256 and the pack). Any other Challenge, or a Motor crown on another pack, is still refused as before. Applies going forward only: ledger records written under other policies are never recomputed. Not the registry's current policy; a standing authorization names its digest only when the owner approves it.",
+  "netuid": 116,
+  "network": "finney",
+  "qualified_sealed": {
+    "electric-motor-magnetics": {
+      "evaluation_pack_digests": [
+        "sha256:ee2348b1738fb13984601473b5624bfefc2f65d8c7c7e91471c2d4c419a5742c"
+      ],
+      "record_sha256": "sha256:cbd0a566f1f3e90d8c0d7e9cdf78b90359ba265344abdeb5f25433335e259235"
+    }
+  },
+  "schema": "carbon.rewards.testnet-winner-policy.v1",
+  "self_improvement_factor": "full_reset",
+  "version": "mainnet-winner-v3"
+}

@@ -77,6 +77,10 @@ _KEYS = frozenset(
         "membership_note",
     }
 )
+#: OPTIONAL policy field (owner qualification, invariant 5): the Challenges whose SEALED-exam crowns a non-testnet
+#: policy may pay, each bound to the owner's qualification record (sha256 of its decision file) and to the exact
+#: evaluation pack digest(s) its crowns must come from. A policy without it pays no sealed crown off testnet.
+QUALIFIED_SEALED = "qualified_sealed"
 _DECAY = {"full_ms": DAY_MS, "halving_ms": DAY_MS}
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 #: The closed set of self-improvement factors (OWNER-KING-SELF-IMPROVEMENT-RESET-01). ``None``: a same-miner
@@ -109,6 +113,17 @@ class WinnerPolicy:
     baselines: tuple = ()
     #: The owner record the policy names (`NETWORK_AUTHORITIES`).
     authority: str = AUTHORITY
+    #: ``((challenge, record_sha256, (evaluation_pack_digest, ...)), ...)``: the sealed-crown qualifications
+    #: (`QUALIFIED_SEALED`); empty for every policy that registers none.
+    qualified_sealed: tuple = ()
+
+    def qualified_packs(self, challenge):
+        """The evaluation pack digests a SEALED crown of ``challenge`` must come from to be payable off testnet, or
+        None when the policy does not qualify ``challenge``."""
+        for name, _record, packs in self.qualified_sealed:
+            if name == challenge:
+                return frozenset(packs)
+        return None
 
     def baseline(self, challenge):
         return dict(self.baselines)[challenge]
@@ -136,11 +151,13 @@ def load_policy(version=None, directory=None):
     if found != pinned:
         raise RewardFailure("WEIGHT_POLICY_ALTERED")
     challenges = document.get("challenges") if type(document) is dict else None
+    qualified = document.get(QUALIFIED_SEALED) if type(document) is dict else None
     factor = document.get("self_improvement_factor") if challenges else None
     baselines = document.get("baselines") if challenges else None
     if (
         type(document) is not dict
-        or set(document) != _KEYS
+        or set(document) not in (_KEYS, _KEYS | {QUALIFIED_SEALED})
+        or (QUALIFIED_SEALED in document and not _qualified_ok(qualified, challenges))
         or document["schema"] != POLICY_SCHEMA
         or document["version"] != version
         or not network_authorized(
@@ -173,7 +190,38 @@ def load_policy(version=None, directory=None):
         cadence_blocks=document["cadence_blocks"],
         baselines=tuple(sorted(baselines.items())),
         authority=document["authority"],
+        qualified_sealed=(
+            ()
+            if qualified is None
+            else tuple(
+                (c, q["record_sha256"], tuple(q["evaluation_pack_digests"]))
+                for c, q in sorted(qualified.items())
+            )
+        ),
     )
+
+
+def _qualified_ok(qualified, challenges):
+    """A well-formed `QUALIFIED_SEALED` value: a non-empty map from the policy's own Challenges to exactly
+    ``{"record_sha256": digest, "evaluation_pack_digests": [distinct digests, at least one]}``.
+    """
+    if type(qualified) is not dict or not qualified or type(challenges) is not list:
+        return False
+    for challenge, entry in qualified.items():
+        packs = entry.get("evaluation_pack_digests") if type(entry) is dict else None
+        if (
+            challenge not in challenges
+            or type(entry) is not dict
+            or set(entry) != {"record_sha256", "evaluation_pack_digests"}
+            or type(entry["record_sha256"]) is not str
+            or not DIGEST.fullmatch(entry["record_sha256"])
+            or type(packs) is not list
+            or not packs
+            or len(set(packs)) != len(packs)
+            or not all(type(d) is str and DIGEST.fullmatch(d) for d in packs)
+        ):
+            return False
+    return True
 
 
 def winner_fraction(clock_ms, now_ms):

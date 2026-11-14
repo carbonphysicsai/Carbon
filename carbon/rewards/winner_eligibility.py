@@ -242,7 +242,7 @@ def _event_times(store, events):
 
 #: Promotion fields that are evidence for `decide`, not the crown's identity: a recorded king whose evidence is read
 #: differently later (an averaged crown read as verified once that reader existed) is still the same crown.
-EVIDENCE_FIELDS = frozenset({"repeat_verified"})
+EVIDENCE_FIELDS = frozenset({"repeat_verified", "evaluation_pack_digests"})
 
 
 def same_crown(recorded, promotion):
@@ -314,6 +314,41 @@ def _all_admissible(private):
     )
 
 
+def _crown_pack_digests(store, model_id):
+    """The evaluation pack digest(s) ``model_id``'s private evaluation was graded on (a single binding's
+    ``evaluation_pack_digest``, or a set binding's per-batch ones), sorted. Read only from the pool store's
+    operations; a store that cannot say reads [] (an unreadable crown is never qualified).
+    """
+    db = getattr(store, "db", None)
+    if db is None:
+        return []
+    try:
+        with db() as connection:
+            rows = connection.execute(
+                "SELECT body FROM operations WHERE kind = 'private_evaluation.v1'"
+            ).fetchall()
+    except Exception:  # noqa: BLE001 - unreadable = unqualified
+        return []
+    found = set()
+    for (raw,) in rows:
+        try:
+            body = json.loads(raw)
+        except (TypeError, ValueError):
+            continue
+        if type(body) is not dict or body.get("submission_id") != model_id:
+            continue
+        evidence = body.get("evidence")
+        if type(evidence) is not dict:
+            continue
+        digests = [evidence.get("evaluation_pack_digest")] + [
+            b.get("evaluation_pack_digest")
+            for b in (evidence.get("batches") or [])
+            if type(b) is dict
+        ]
+        found.update(d for d in digests if type(d) is str and d)
+    return sorted(found)
+
+
 def _lean_crown(store, model_id, reason, previous):
     """One crown of a lean pool store as a promotion: the king, its miner and the king it beat."""
     row = store.submission(model_id)
@@ -328,6 +363,12 @@ def _lean_crown(store, model_id, reason, previous):
         "contract_digest": row["binding"].get("contract_digest"),
         "incumbent_reason": reason,
     }
+    # Evidence for a non-testnet policy's sealed-crown qualification (`decide`); kept out of the crown identity.
+    packs = (
+        _crown_pack_digests(store, model_id) if reason == SEALED_TESTNET_REASON else []
+    )
+    if packs:
+        promotion["evaluation_pack_digests"] = packs
     if previous is None:
         return {**promotion, "kind": FIRST}
     # A crown change applies only after the contender's grade was verified (`bank_promotion.consider_private`):
@@ -375,8 +416,17 @@ def decide(
         policy.network != "testnet"
     ):
         # A sealed-exam crown is paid on testnet only until qualification
-        # (invariant 5): any other network's policy refuses it.
-        return record(False, "sealed_crown_testnet_only")
+        # (invariant 5): any other network's policy refuses it, UNLESS the
+        # policy names the Challenge in its owner qualification
+        # (`winner_decay.QUALIFIED_SEALED`) AND every pack the crown was graded
+        # on is one that qualification names (a re-seal is never paid silently).
+        qualified = getattr(policy, "qualified_packs", None)
+        packs = None if qualified is None else qualified(challenge)
+        if packs is None:
+            return record(False, "sealed_crown_testnet_only")
+        graded = promotion.get("evaluation_pack_digests")
+        if type(graded) is not list or not graded or not set(graded) <= packs:
+            return record(False, "sealed_crown_pack_not_qualified")
 
     def same_miner(previous_hotkey):
         if promotion["hotkey"] == previous_hotkey:
