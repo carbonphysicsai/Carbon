@@ -712,11 +712,24 @@ def test_the_image_record_may_not_be_a_symlink(harness, tmp_path):
 
 def test_the_host_root_is_not_environment_configurable(monkeypatch):
     """No environment variable redirects the registered execution class."""
-    import importlib
+    import importlib.util
+    import sys
 
     from carbon.reconstruction.worker import accelerator_runtime
 
     monkeypatch.setenv("CARBON_ACCELERATOR_HOST_ROOT", "/tmp/attacker")
     monkeypatch.setenv("HOST_ROOT", "/tmp/attacker")
-    reloaded = importlib.reload(accelerator_runtime)
-    assert str(reloaded.HOST_ROOT) == "/var/lib/carbon/accelerators"
+    # Execute a FRESH COPY of the module's source under another name: `importlib.reload(accelerator_runtime)` re-ran the code in
+    # the shared module object, replacing its functions (`shared_host_lease`, ...) while every module that had imported them
+    # (`development_admission`) kept the old ones, which failed `test_shared_host_lease`'s identity check in any shard that ran this
+    # test first. The copy proves the same thing (the import-time HOST_ROOT ignores the environment) and mutates nothing.
+    name = "carbon.reconstruction.worker._accelerator_runtime_fresh_copy"
+    spec = importlib.util.spec_from_file_location(name, accelerator_runtime.__file__)
+    fresh = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(
+        sys.modules, name, fresh
+    )  # dataclasses and relative imports resolve through it; removed after the test
+    spec.loader.exec_module(fresh)
+    assert fresh is not accelerator_runtime
+    assert str(fresh.HOST_ROOT) == "/var/lib/carbon/accelerators"
+    assert str(accelerator_runtime.HOST_ROOT) == "/var/lib/carbon/accelerators"
