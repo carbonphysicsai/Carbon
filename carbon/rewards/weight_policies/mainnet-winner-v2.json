@@ -1,0 +1,27 @@
+{
+  "authority": "OWNER-WEIGHTS-AUTHORITY-01",
+  "baselines": {
+    "chip-cold-plate": null,
+    "electric-motor-magnetics": null,
+    "f02": null,
+    "f08-ribbed-bracket": null
+  },
+  "burn_uid": 0,
+  "cadence_blocks": 360,
+  "challenges": [
+    "electric-motor-magnetics",
+    "chip-cold-plate",
+    "f08-ribbed-bracket",
+    "f02"
+  ],
+  "decay": {
+    "full_ms": 86400000,
+    "halving_ms": 86400000
+  },
+  "membership_note": "MAINNET policy v2 (owner, Fri 13 Nov 2026, relayed by the Lead, TEAM_BOARD L9622, verbatim: 'can we start at 75% burn since it's one challenge, then go to 50% once cooling live, then the next 50% with the next 2'): mainnet-winner-v1's rule on finney netuid 116 under OWNER-WEIGHTS-AUTHORITY-01 for FOUR Challenges, each 1/4 of an epoch: Motor (electric-motor-magnetics), Cooling (chip-cold-plate), Ribbed Bracket (f08-ribbed-bracket) and Burst Thermal (f02). A Challenge with no mainnet pool store yet, or no eligible winner, has no payee, so its 1/4 burns to UID 0: Motor alone = 75% burn; Motor + Cooling = 50%; all four = 0% burn from unlaunched Challenges. self_improvement_factor = \"full_reset\" and null first-incumbent baselines exactly as v1. Decay, cadence and burn UID 0 are the loader's fixed values. Applies going forward only: ledger records written under other policies are never recomputed. Not the registry's current policy; a standing authorization names its digest only when the owner approves it.",
+  "netuid": 116,
+  "network": "finney",
+  "schema": "carbon.rewards.testnet-winner-policy.v1",
+  "self_improvement_factor": "full_reset",
+  "version": "mainnet-winner-v2"
+}

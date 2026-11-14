@@ -7,6 +7,7 @@
     "testnet-winner-v3-five-challenge-dev": "sha256:4b488bce0a43bc9b1f3914bb11b72d026ba2a1154fae5a83bc6649774c5add71",
     "testnet-winner-v4-launch": "sha256:b26fed6c50229413223b3c785bc0439b66094e60b9af1afad2dce406fe41c325",
     "testnet-winner-v5-launch": "sha256:2990d644b6d65b855dde87c757a3a7ddefcd930a7073a3c3030213b95f5ee317",
-    "mainnet-winner-v1": "sha256:a5b44f59c36b3a090bbd949aca3f9133a73b8ea97ab9ed5849f63a44f7ed1b93"
+    "mainnet-winner-v1": "sha256:a5b44f59c36b3a090bbd949aca3f9133a73b8ea97ab9ed5849f63a44f7ed1b93",
+    "mainnet-winner-v2": "sha256:24a72e01bf2de06b163034bb0c952be0b77b353363a9e0749582641e068dc114"
   }
 }

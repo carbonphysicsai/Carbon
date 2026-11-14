@@ -178,3 +178,54 @@ def test_the_registered_mainnet_policy_is_the_owners_launch_rule():
     )
     assert (policy.cadence_blocks, policy.burn_uid) == (360, 0)
     assert wd.load_policy().version == "testnet-winner-v1"
+
+
+MAINNET_V2_CHALLENGES = (
+    "electric-motor-magnetics",
+    "chip-cold-plate",
+    "f08-ribbed-bracket",
+    "f02",
+)
+
+
+def test_the_registered_mainnet_v2_policy_is_four_challenges_at_a_quarter():
+    """Owner, Fri 13 Nov 2026 (TEAM_BOARD L9622): start at 75% burn with one Challenge, 50% once Cooling is live, then
+    the remaining 50% with the next two. Four Challenges at 1/4 each; registered but not the current policy.
+    """
+    policy = wd.load_policy("mainnet-winner-v2")
+    assert (policy.network, policy.netuid, policy.authority) == (
+        "finney",
+        116,
+        wd.MAINNET_AUTHORITY,
+    )
+    assert policy.challenges == MAINNET_V2_CHALLENGES
+    assert policy.share == Q12 // 4 and 4 * policy.share == Q12
+    assert policy.self_improvement_factor == wd.FULL_RESET
+    assert policy.baselines == tuple(sorted((c, None) for c in MAINNET_V2_CHALLENGES))
+    assert (policy.cadence_blocks, policy.burn_uid) == (360, 0)
+    assert wd.load_policy("mainnet-winner-v1").challenges == (
+        "electric-motor-magnetics",
+        "chip-cold-plate",
+    )
+    assert wd.load_policy().version == "testnet-winner-v1"
+
+
+@pytest.mark.parametrize(
+    ("live", "burn"),
+    [
+        ((), Q12),  # launch day before any king: all burns
+        (("electric-motor-magnetics",), Q12 * 3 // 4),  # Motor only: 75 % burn
+        (
+            ("electric-motor-magnetics", "chip-cold-plate"),
+            Q12 // 2,
+        ),  # + Cooling: 50 % burn
+        (MAINNET_V2_CHALLENGES, 0),  # all four with a fresh winner: nothing burns
+    ],
+)
+def test_mainnet_v2_burns_each_unlaunched_challenges_quarter(live, burn):
+    policy = wd.load_policy("mainnet-winner-v2")
+    winners = {c: wd.Winner(f"hk-{c}", T0) for c in live}
+    targets = wd.epoch_targets(policy, winners, T0)
+    assert targets["burn"] == burn
+    assert targets["winners"] == {f"hk-{c}": Q12 // 4 for c in live}
+    assert targets["burn"] + sum(targets["winners"].values()) == Q12
