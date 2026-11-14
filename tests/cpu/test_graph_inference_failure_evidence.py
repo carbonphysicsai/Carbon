@@ -407,3 +407,61 @@ def test_the_cpu_reading_is_only_for_the_graph_inference_evidence(harness, monke
         "private-program-failure-evidence.json",
     ):
         assert "cpu_usage_usec" not in json.loads((operation / name).read_bytes())
+
+
+# ---- hostile worker: nothing the candidate's container prints can reach the recorded value ------------------
+
+
+class HostileCLI(InspectCLI):
+    """A docker CLI whose every `exec` into the candidate's container would answer with a forged cpu.stat."""
+
+    def __init__(self):
+        super().__init__()
+        self.execs = []
+
+    def run(self, arguments, *, timeout):
+        if arguments and arguments[0] == "exec":
+            self.execs.append(arguments)
+            return SimpleNamespace(stdout=b"usage_usec 1\nuser_usec 1\n")
+        return super().run(arguments, timeout=timeout)
+
+
+def test_a_container_that_fakes_its_cpu_stat_cannot_change_the_recorded_value(host):
+    """The reading never asks the container anything: the forged answer an exec would return is never reached, and the value
+    recorded is the host kernel's own file."""
+    cli = HostileCLI()
+    assert _cpu(cli, host) == 123456789  # the host file, not the forged 1
+    assert cli.execs == []
+    # the container cannot even choose WHICH cgroup is read: the path must name the full id docker reports
+    (host.proc / str(PID) / "cgroup").write_bytes(
+        b"0::/system.slice/docker-" + b"ee" * 32 + b".scope\n"
+    )
+    assert _cpu(cli, host) is None
+
+
+def test_no_exec_reaches_the_candidates_container_for_the_cpu_reading_in_a_real_run(
+    harness, monkeypatch
+):
+    """Through the whole graph inference failure path: the docker calls the carrier makes through `run` are never an exec, and
+    none names cpu.stat (the program and exporter streams are not `run` calls)."""
+    seen = []
+    base = carrier.DockerCLI
+
+    class Recording(base):
+        def run(self, arguments, **kwargs):
+            seen.append(list(arguments))
+            return super().run(arguments, **kwargs)
+
+    monkeypatch.setattr(carrier, "DockerCLI", Recording)
+    _observe(
+        monkeypatch, _observation()
+    )  # the memory observation (pre-existing) is stubbed: not the cpu reading
+    error = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"exit=1\n")
+    with pytest.raises(WorkerFailure):
+        _run_failing(harness, error, provenance=GRAPH_INFERENCE)
+    assert seen, "the fixture made no docker call through run"
+    assert not [argv for argv in seen if argv and argv[0] == "exec"]
+    assert not [argv for argv in seen if any("cpu.stat" in part for part in argv)]
+    assert any(
+        argv[:2] == ["inspect", argv[1]] for argv in seen if len(argv) > 1
+    ), "the cpu reading's one inspect did not run"
