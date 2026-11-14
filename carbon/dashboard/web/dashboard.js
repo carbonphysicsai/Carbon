@@ -960,6 +960,31 @@
     return h("p", {class: "hint queue-line"}, "Queue: " + queueParts(q).join(" · ") + " · door " + q.door_state
       + (wait ? " · typical wait " + wait : ""));
   }
+  // The door's per-submission rows (queue.mjs doorRows, carbon.queue.public.v3): position, short hotkey, state, time in queue.
+  // Reported by the door, not signed. Times are in 5-minute steps on purpose (the door floors them), and so is the refresh.
+  function inQueueText(sec) {
+    if (!isNum(sec)) return "";
+    if (sec < 300) return "under 5 min";
+    return sec < 3600 ? Math.floor(sec / 60) + " min" : Math.floor(sec / 3600) + " h " + (Math.floor(sec / 60) % 60) + " min";
+  }
+  function rowsBlock(rowsPanel) {
+    if (!isObject(rowsPanel) || rowsPanel.state !== "ACCEPTED" || !isObject(rowsPanel.rows)) {
+      return rowsPanel && rowsPanel.state === "UNAVAILABLE" ? h("p", {class: "hint"}, "The list of submissions is not available right now.") : null;
+    }
+    const r = rowsPanel.rows;
+    if (!Array.isArray(r.rows) || r.rows.length === 0) return h("p", {class: "hint"}, "Nothing is waiting at this door right now.");
+    const head = h("tr", null, ["#", "Hotkey", "State", "In queue"].map(t => h("th", {scope: "col"}, t)));
+    const body = r.rows.map(row => h("tr", null,
+      h("td", null, String(row.position)),
+      h("td", {class: "key"}, row.hotkey || "unknown"),
+      h("td", null, row.state),
+      h("td", null, inQueueText(row.in_queue_s))));
+    return h("div", {class: "queue-rows"},
+      h("div", {class: "table-wrap"}, h("table", {class: "queue-table"}, h("thead", null, head), h("tbody", null, ...body))),
+      h("p", {class: "hint"}, (r.more_rows > 0 ? "and " + r.more_rows + " more. " : "")
+        + "One row per submission waiting at this door, oldest first. Hotkeys are shortened, times are rounded down to 5 minutes and the list refreshes every 5 minutes. A crown check row means the grade beat the king's screening and its crown decision is still to be made. Nothing about a submission's recipe, score or the exam is shown. Reported by the validator's door (not signed), as of "
+        + r.rows_as_of.replace("T", " ").replace("Z", " UTC") + "."));
+  }
   function queueBlock(panel) {
     if (!isObject(panel)) return null;
     const head = h("div", {class: "block-head"}, h("h2", {id: "q-title"}, "Queue at the door"));
@@ -977,7 +1002,8 @@
         stat("Waiting to grade", String(q.waiting_to_grade)),
         stat("Grading now", q.grading_now ? "1" : "0"),
         stat("Typical wait, last 24 h", waitText(w.median_s) || "not enough verdicts yet", w.median_s === null ? null : "slowest 10 %: " + waitText(w.p90_s) + " · " + w.verdicts + " verdicts")),
-      h("p", {class: "hint"}, "Counts reported by the validator's door (not part of the signed feed), as of " + q.as_of.replace("T", " ").replace("Z", " UTC") + ". Submit to verdict, all submissions on this door."));
+      h("p", {class: "hint"}, "Counts reported by the validator's door (not part of the signed feed), as of " + q.as_of.replace("T", " ").replace("Z", " UTC") + ". Submit to verdict, all submissions on this door."),
+      rowsBlock(panel.rows_panel));
   }
   function homeCard(entry, board, showClass, panel) {
     if (!entry.slug) return h("div", {class: "card board-card"}, eyebrow("Feed refused"), h("p", {class: "fail"}, words(entry.code)));
@@ -1119,7 +1145,7 @@
   const api = {setBeat: on => { BEAT = on; }, nameOf, setNames, sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, REFUSALS, SEALED_GRAIN, PHASES,
     KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
     h, walk, textOf, mount, places, fmt, toBeat, total, classChipShown, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
-    rulesOk, sectionLabel, sparkline, targetCard, historySpec, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
+    queueBlock, rowsBlock, inQueueText, rulesOk, sectionLabel, sparkline, targetCard, historySpec, boardPage, minerPage, homePage, minePage, updatesPage, networkStrip, footerStamp};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
 
