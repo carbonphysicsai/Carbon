@@ -450,6 +450,14 @@ FEEDBACK_V5_FACTS = {
     "fields": ["reply", "submission_id"],
     "reply_schema": FEEDBACK_REPLY_SCHEMA_V5,
 }
+#: v6: v5 plus ``submission.gate_failures`` (`direct_intake` FEEDBACK_REPLY_SCHEMA_V6, owner 14 Nov): for the caller's own gate-failed grade the
+#: failing OUTPUTS with one closed reason each (`gate_failure_feedback`), else None; asked for only where advertised.
+FEEDBACK_REPLY_SCHEMA_V6 = "carbon.private-exam.ladder-feedback-reply.v6"
+FEEDBACK_V6_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V6,
+}
 HELD_STATE = "CROWN_HELD_FOR_REVIEW"
 GRADE_STATES_V5 = (*GRADE_STATES_V4, HELD_STATE)
 #: A bound on the held count a reply may name (a resource bound, not a policy value).
@@ -502,6 +510,14 @@ def _failure_v4(value):
     )
 
 
+def _gate_failures_v6(failures):
+    """A v6 reply's ``gate_failures``: None, or exactly the closed list `gate_failure_feedback` emits (output names and one of two
+    reasons, nothing else)."""
+    from carbon.challenge_validator import gate_failure_feedback
+
+    return failures is None or gate_failure_feedback.valid(failures)
+
+
 def _held_position_v5(grade_state, held):
     """A v5 reply's ``held_position``: {place, of} with 1 <= place <= of exactly when the submission is held, else
     None. Anything else is refused, never trimmed."""
@@ -546,7 +562,10 @@ def read_exam_feedback(
     facts = read(url)
     if facts.get("exam_feedback") != FEEDBACK_FACTS:
         raise DirectIntakeRefusal("exam_feedback_unavailable")
-    v5 = (
+    v6 = (
+        submission_id is not None and facts.get("exam_feedback_v6") == FEEDBACK_V6_FACTS
+    )
+    v5 = v6 or (
         submission_id is not None and facts.get("exam_feedback_v5") == FEEDBACK_V5_FACTS
     )
     v4 = v5 or (
@@ -572,7 +591,7 @@ def read_exam_feedback(
         tool=FEEDBACK_TOOL,
         fields=(
             {
-                "reply": "v5" if v5 else "v4" if v4 else "v3",
+                "reply": "v6" if v6 else "v5" if v5 else "v4" if v4 else "v3",
                 "submission_id": submission_id,
             }
             if v4 or v3
@@ -592,15 +611,19 @@ def read_exam_feedback(
         set(answer) != keys
         or answer["schema"]
         != (
-            FEEDBACK_REPLY_SCHEMA_V5
-            if v5
+            FEEDBACK_REPLY_SCHEMA_V6
+            if v6
             else (
-                FEEDBACK_REPLY_SCHEMA_V4
-                if v4
+                FEEDBACK_REPLY_SCHEMA_V5
+                if v5
                 else (
-                    FEEDBACK_REPLY_SCHEMA_V3
-                    if v3
-                    else (FEEDBACK_REPLY_SCHEMA_V2 if v2 else FEEDBACK_REPLY_SCHEMA)
+                    FEEDBACK_REPLY_SCHEMA_V4
+                    if v4
+                    else (
+                        FEEDBACK_REPLY_SCHEMA_V3
+                        if v3
+                        else (FEEDBACK_REPLY_SCHEMA_V2 if v2 else FEEDBACK_REPLY_SCHEMA)
+                    )
                 )
             )
         )
@@ -615,6 +638,7 @@ def read_exam_feedback(
             {"submission_id", "grade_state"}
             | ({"failure"} if v4 else set())
             | ({"held_position"} if v5 else set())
+            | ({"gate_failures"} if v6 else set())
         )
         or answer["submission"]["submission_id"] != submission_id
         or (
@@ -635,6 +659,7 @@ def read_exam_feedback(
                 answer["submission"]["held_position"],
             )
         )
+        or (v6 and not _gate_failures_v6(answer["submission"]["gate_failures"]))
     ):
         raise DirectIntakeRefusal("exam_feedback_reply_invalid")
     try:

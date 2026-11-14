@@ -475,6 +475,35 @@ def _crown_review(submission):
     }
 
 
+#: How a failing output's closed reason reads (owner 14 Nov, signed feedback v6): never a p90, ratio, class, count or case.
+GATE_FAILURE_WORDS = {
+    "over_limit": "over the limit",
+    "invalid_answer": "an invalid answer",
+}
+
+
+def _with_gate_failures(own, ladder):
+    """``own`` (this submission's GATE_FAILED grade) with the failing OUTPUTS the receiver's v6 read names for it, each with its closed
+    reason, in words and as data; ``own`` unchanged when there are none (an older receiver, another status, a malformed list). Read
+    only from the miner's own signed reply, never computed."""
+    from carbon.challenge_validator import gate_failure_feedback
+
+    if own is None or own.get("status") != "GATE_FAILED":
+        return own
+    block = ladder.get("submission")
+    failures = block.get("gate_failures") if type(block) is dict else None
+    if not gate_failure_feedback.valid(failures):
+        return own
+    named = ", ".join(
+        f"{item['output']}: {GATE_FAILURE_WORDS[item['reason']]}" for item in failures
+    )
+    return {
+        **own,
+        "gate_failures": [dict(item) for item in failures],
+        "words": own["words"] + "; failing output(s): " + named,
+    }
+
+
 def _grade(ladder, submission=None, epoch=None, also=()):
     """The miner's own Ladder for the exam, as the display rule shows it
     (Validator VALUE_SCORE_GAP): one graded total 0..1 per document, its
@@ -549,6 +578,7 @@ def _grade(ladder, submission=None, epoch=None, also=()):
         and latest.get("recipe_digest") in (submission, *also)
         else None
     )
+    own = _with_gate_failures(own, ladder)
     # M1 E2E R8-1: agents read the key's latest grade as their own, so the
     # answer says in words whether this submission has a grade, and which way
     # the score points (R8-3).

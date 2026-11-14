@@ -368,7 +368,11 @@ HOW_TESTED_LINES = (
             "The physics gates that check a single answer run on every answer "
             "your model gives, inside and outside the range. Failing any gate "
             "means no score at all, however good the rest. You are told which "
-            "gate failed, never which design."
+            "gate failed, never which design. The in-range accuracy gate is checked "
+            "per hidden in-range class and per output, and one invalid answer fails "
+            "that class. When it fails, the grade names each failing output and why: "
+            "over the limit, or an invalid answer. It never shows the error values, "
+            "the class or the cases."
         ),
     ),
     ("speed", "Speed", SPEED_LINE),

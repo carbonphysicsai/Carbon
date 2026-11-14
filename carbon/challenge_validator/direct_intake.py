@@ -95,6 +95,10 @@ FEEDBACK_REPLY_SCHEMA_V4 = "carbon.private-exam.ladder-feedback-reply.v4"
 #: held for review on a menu-D version (`crown_hold`), and ``held_position`` {place (1-based, filing order), of}, else
 #: None. No id and nothing of another miner. Advertised as ``exam_feedback_v5``.
 FEEDBACK_REPLY_SCHEMA_V5 = "carbon.private-exam.ladder-feedback-reply.v5"
+#: v6 (owner 14 Nov: "yes tell them") = v5 plus ``submission.gate_failures``: for the caller's own gate-failed grade the failing OUTPUTS, each
+#: with one closed reason (``over_limit`` | ``invalid_answer``), else None (`gate_failure_feedback`). Never a p90, ratio, class, count or case.
+#: Advertised as ``exam_feedback_v6``; a v2..v5 reply is unchanged.
+FEEDBACK_REPLY_SCHEMA_V6 = "carbon.private-exam.ladder-feedback-reply.v6"
 HELD_STATE = "CROWN_HELD_FOR_REVIEW"
 GRADE_STATES_V4 = (
     *GRADE_STATES_V3,
@@ -136,6 +140,7 @@ def feedback_reply(fields):
         "v3",
         "v4",
         "v5",
+        "v6",
     ):
         return fields["reply"]
     return None
@@ -388,6 +393,13 @@ class DirectRecipeIntake(BatteryIntake):
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
+                        "exam_feedback_v6": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V6,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
                     }
                 ),
                 "served_contracts": self.door.served_contracts(),
@@ -547,8 +559,9 @@ class DirectRecipeIntake(BatteryIntake):
                 received.receipt.hotkey,
                 submission_id=fields["submission_id"],
                 v3=reply == "v3",
-                v4=reply in ("v4", "v5"),
-                v5=reply == "v5",
+                v4=reply in ("v4", "v5", "v6"),
+                v5=reply in ("v5", "v6"),
+                v6=reply == "v6",
             )
         return _refused(400, "tool")
 
@@ -578,7 +591,9 @@ class DirectRecipeIntake(BatteryIntake):
             log("recipe_digest_note_failed", type=type(failure).__name__)
             return
 
-    def _feedback(self, hotkey, *, submission_id=None, v3=False, v4=False, v5=False):
+    def _feedback(
+        self, hotkey, *, submission_id=None, v3=False, v4=False, v5=False, v6=False
+    ):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
         (the signed hotkey is the key). With ``submission_id`` (v2), also that
@@ -623,6 +638,16 @@ class DirectRecipeIntake(BatteryIntake):
                 )
         snapshot = getattr(self.adapter.discovery, "evaluation_pack_snapshot", None)
         exam_key = getattr(snapshot, "manifest_digest", None)
+        gate_failures = None
+        if v6 and exam_key is not None:
+            from . import gate_failure_feedback
+
+            try:
+                gate_failures = gate_failure_feedback.read(
+                    self.adapter.ledger, submission_id, exam_key
+                )
+            except (OSError, ValueError):
+                return _refused(503, "grade_state_unavailable")
         documents = {"best": None, "latest": None}
         if exam_key is not None:
             try:
@@ -646,15 +671,19 @@ class DirectRecipeIntake(BatteryIntake):
                     if submission_id is None
                     else {
                         "schema": (
-                            FEEDBACK_REPLY_SCHEMA_V5
-                            if v5
+                            FEEDBACK_REPLY_SCHEMA_V6
+                            if v6
                             else (
-                                FEEDBACK_REPLY_SCHEMA_V4
-                                if v4
+                                FEEDBACK_REPLY_SCHEMA_V5
+                                if v5
                                 else (
-                                    FEEDBACK_REPLY_SCHEMA_V3
-                                    if v3
-                                    else FEEDBACK_REPLY_SCHEMA_V2
+                                    FEEDBACK_REPLY_SCHEMA_V4
+                                    if v4
+                                    else (
+                                        FEEDBACK_REPLY_SCHEMA_V3
+                                        if v3
+                                        else FEEDBACK_REPLY_SCHEMA_V2
+                                    )
                                 )
                             )
                         ),
@@ -663,6 +692,7 @@ class DirectRecipeIntake(BatteryIntake):
                             "grade_state": grade_state,
                             **({"failure": failure} if v4 else {}),
                             **({"held_position": held_position} if v5 else {}),
+                            **({"gate_failures": gate_failures} if v6 else {}),
                         },
                     }
                 ),
