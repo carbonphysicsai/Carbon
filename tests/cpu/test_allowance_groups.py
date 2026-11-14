@@ -248,7 +248,7 @@ def test_the_admission_check_reads_the_group(cap):
         block=BLOCK,
     )
     assert told["code"] == "epoch_limit_reached"
-    assert "counts as one funder" in told["message"]
+    assert "same coldkey" in told["message"] and "funder" not in told["message"]
 
 
 def test_a_regrade_is_never_grouped_or_refused(cap):
@@ -348,11 +348,21 @@ def test_the_grouped_sentences_are_miner_x_b_s_final_wording():
     }
     assert "{when}" in GROUPED_LIMIT_TEXT["epoch_limit_reached"]
     for text in GROUPED_LIMIT_TEXT.values():
+        # true at admission AND at grading: a submission refused at grading has used a build, never a grade or a slot
+        assert "was not graded" in text and "graded-exam slot" in text
         assert (
-            "Nothing was built or graded for this submission and it used none of your allowance."
-            in text
+            "that build was spent" in text
+            or "a build" in text
+            or "had been built" in text
         )
-        assert "wallet" not in text
+        assert "Nothing was built" not in text
+        assert (
+            "wallet" not in text and "funded from" not in text and "source" not in text
+        )
+    # the grouped round / day sentences name the same coldkey only
+    for code in ("epoch_limit_reached", "exam_daily_allowance_reached"):
+        assert "same coldkey" in GROUPED_LIMIT_TEXT[code]
+        assert "funder" not in GROUPED_LIMIT_TEXT[code]
     assert set(LIMIT_TEXT) == {
         "epoch_limit_reached",
         "exam_daily_allowance_reached",

@@ -176,25 +176,26 @@ LIMIT_TEXT = {
 #: this module and `funder_map`; Validator-2B traces each sentence before any ``allowance_groups`` block is configured.
 GROUPED_LIMIT_TEXT = {
     "epoch_limit_reached": (
-        "One graded exam per Challenge per round is shared by every hotkey Carbon counts as one funder: all hotkeys "
-        "of the same coldkey, and coldkeys funded from the same source. This round's graded exam for them is already "
-        "used or in progress. Nothing was built or graded for this submission and it used none of your allowance. "
-        "The next round opens at {when}."
+        "One graded exam per Challenge per round is shared by every hotkey of the same coldkey. This round's graded "
+        "exam for them is already used or in progress, so this submission was not graded and no extra graded-exam "
+        "slot was used for it. If it was refused after it had been built, that build was spent; no grade and no "
+        "extra slot was. The next round opens at {when}."
     ),
     "exam_daily_allowance_reached": (
-        "The hotkeys Carbon counts as one funder with this one (the same coldkey, or coldkeys funded from the same "
-        "source) have used their shared graded exams for the day on this Challenge. Nothing was built or graded for "
-        "this submission and it used none of your allowance. A slot frees as earlier graded exams age past one day; "
-        "try again in a later round."
+        "The hotkeys of the same coldkey have used their shared graded exams for the day on this Challenge, so this "
+        "submission was not graded and no extra graded-exam slot was used for it. If it was refused after it had been "
+        "built, that build was spent; no grade and no extra slot was. A slot frees as earlier graded exams age past "
+        "one day; try again in a later round."
     ),
     "allowance_group_unmapped": (
-        "This hotkey's coldkey is not yet in the validator's funder map, so it cannot be graded yet. Nothing was "
-        "built or graded for this submission and it used none of your allowance. Try again later."
+        "This hotkey's coldkey is not yet in the validator's funder map, so it cannot be graded yet. This submission "
+        "was not graded and no graded-exam slot was used for it; if it had been built, that build was spent. Try "
+        "again later."
     ),
     "allowance_group_unresolved": (
         "The validator cannot yet match this hotkey to its coldkey in its latest chain snapshot, so it cannot be "
-        "graded yet. Nothing was built or graded for this submission and it used none of your allowance. Try again "
-        "later."
+        "graded yet. This submission was not graded and no graded-exam slot was used for it; if it had been built, "
+        "that build was spent. Try again later."
     ),
 }
 #: OWNER-PROBING-COUNTERS-01 (a): ``hotkey -> group id`` (`allowance_groups.Grouping`), or None = every hotkey is its own
