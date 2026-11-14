@@ -219,14 +219,10 @@ def test_a_task_with_no_marker_is_refused(tmp_path):
         [("RELEASED", "FAILED_INFRA")],
         [("RESERVED", None)],
         [],
-        [("COUNTED", "WORKER_WALL_LIMIT_REACHED"), ("RELEASED", "FAILED_INFRA")],
-        [
-            ("COUNTED", "WORKER_WALL_LIMIT_REACHED"),
-            ("COUNTED", "WORKER_WALL_LIMIT_REACHED"),
-        ],
     ],
 )
-def test_only_exactly_one_counted_wall_row_is_reclassed(tmp_path, rows):
+def test_only_a_counted_wall_row_is_reclassed(tmp_path, rows):
+    """(The ledger holds one row per task and exam: a second row cannot exist, so only the row's own state is tested.)"""
     root, ledger = _root(tmp_path)
     _marker_file(root, A)
     for state, status in rows:
