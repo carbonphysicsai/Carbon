@@ -1,0 +1,38 @@
+{
+  "challenge": "electric-motor-magnetics",
+  "evidence": {
+    "basis": "s_max_seconds = the max, over 36 of 36 FINISHED grades (netuid 116: 23; testnet door rs38: 13), of the field the code compares: the origin task's 'inference' child operation in the owner ledger (direct-<sha256(origin)>-inference), state SUCCEEDED, actual.numerical_milliseconds / 1000 (lean_recipe_retention._origin_inference_seconds).",
+    "evidence_sha256": "sha256:f6cf433e3c57fa7b1d8b9ca5a9955f593cf28516c25e5b388b14a10bf5fd4ae5",
+    "evidence_where": "Deploy-C's private list on the validator host (content private; its sha256 posted on the board, Sat 14 Nov 18:23 CST)",
+    "rounding": "_origin_inference_seconds accepts only an INTEGER numerical_milliseconds, so every value has exactly 3 decimals: 54.828 is the stored maximum itself (CV-Motor-C's round-up rule changes nothing)."
+  },
+  "label": "Motor 1.8 early stop, 116, owner-ordered 14 Nov; s_max = max finished op A (36/36, numerical_ms), margin = 1.5x; a projection, not a strict lower bound (CV-Motor-C L10440); skips count as the miner's try",
+  "owner_words": [
+    {
+      "source": "codex-queue/reports/DECISION_LEDGER_20261105.md, the Sat 14 Nov 08:00 CST entry",
+      "typed_at": "Sat 14 Nov 2026 08:00 CST",
+      "typed_in": "the Lead session (Team C)",
+      "verbatim": "I mean if they built a model that's too big it should count as their try or they can flood us with those"
+    },
+    {
+      "source": "codex-queue/reports/DECISION_LEDGER_20261105.md, the Sat 14 Nov ~18:2x CST entry",
+      "typed_at": "Sat 14 Nov 2026 ~18:2x CST",
+      "typed_in": "the Lead session (Team C)",
+      "verbatim": "Switch it on now"
+    }
+  ],
+  "projection_caveat": "The rule is a projection, not a strict lower bound: a model with an unusually slow start but fast answers can be skipped and counted (Carbon Validator-Motor-C, board L10440). No separate owner acceptance of this caveat is on record; the owner's words recorded here are the two verbatim lines above.",
+  "receipts": [
+    "Carbon Validator-Motor-C, board Sat 14 Nov 08:08 CST (s_max read, science) and 18:21 CST L10784 (values + rule + label)",
+    "Validator-2C, board Sat 14 Nov 08:08 CST (s_max read accepted) and 18:21 CST L10785 (values head conditions)"
+  ],
+  "record_check": "At these values: 0 of 36 finished grades would have been skipped; 5 of 6 testnet wall stops and 0 of 2 116 wall stops would have been stopped early (Carbon Validator-Motor-C 08:08 / 18:21).",
+  "rule": "skip the whole-bank pass when 2611 x (op A - s_max_seconds) / 154 > margin x 648 s = 972 s (lean_recipe_retention.early_wall_stop_decision); a skip COUNTS as the miner's try, like a wall timeout at the published limit",
+  "schema": "carbon.exam.early-wall-stop-record.v1",
+  "values": {
+    "enabled": true,
+    "margin": 1.5,
+    "s_max_seconds": 54.828
+  },
+  "version": "1.8"
+}
