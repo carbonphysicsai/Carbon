@@ -1287,6 +1287,7 @@ def test_a_second_subset_wall_hit_settles_candidate_failed_with_pass_inference_p
     assert result["private_evaluation_reason"] == retention.CANDIDATE_WALL_LIMIT_REACHED
     assert result["private_evaluation_pass"] == "inference_pair"
     assert settled == [retention.CANDIDATE_WALL_LIMIT_REACHED]
+    (tmp_path / "grader").mkdir(mode=0o700)
     grader, *_rest, task = _grader(tmp_path / "grader", result)
     assert grader.run_once() == (task, "CANDIDATE_FAILED")
     assert grader.marker(task)["pass"] == "inference_pair"

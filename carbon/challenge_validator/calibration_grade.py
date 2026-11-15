@@ -570,7 +570,9 @@ def grade(
         raise CalibrationRefused("dual_native_" + exc.code) from exc
     from carbon.scoring import subset_repeat_evidence
 
-    if subset_repeat_evidence.is_subset_version(adapter.CHALLENGE, adapter.VERSION):
+    if subset_repeat_evidence.is_subset_version(
+        getattr(adapter, "CHALLENGE", None), getattr(adapter, "VERSION", None)
+    ):
         # A subset-repeat version (Motor 1.8; CV-Motor-B Q2): this tool runs two FULL repeats, so every row of both is
         # held to the official grade's decisive rule (bit-exact whole rows), besides the torque gate the measure ran.
         from carbon.scoring import subset_repeat_produce
