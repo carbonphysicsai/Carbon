@@ -35,8 +35,8 @@ NEXT_STEPS = {
     "in your next round as usual.",
     "resubmit_after_fix": "A Carbon-side gap stopped this grade for this version; no slot is charged for it; resubmit "
     "after Carbon posts the fix.",
-    "resubmit_program_changed": "Carbon's grading program changed while this grade was in progress; no slot is charged "
-    "for it; resubmit and it is graded in your next round under the current program.",
+    "resubmit_program_changed": "Carbon's grading program changed while this grade was in progress; no slot was charged "
+    "for it; resubmit it and it is built and graded again from the start under the current program.",
 }
 #: Carbon codes an automatic retry cannot fix (review of 15 Nov, findings 2b and 3): a vmap-64 grade whose retained
 #: graded bytes were made by another inference (`lean_recipe_retention.GRADED_PROGRAM_CHANGED`: its write-once regrade
