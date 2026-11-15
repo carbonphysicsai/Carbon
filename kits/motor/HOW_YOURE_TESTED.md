@@ -1,10 +1,8 @@
 # Motor 1.8: how you're tested
 
 Every value here is Carbon's published or registered value. Where Motor 1.8's
-own value is not registered yet, the page says **HUMAN_INPUT**: it is filled
-from the registered record before Motor 1.8 opens, and until then the version
-does not grade. Where an earlier Motor version's published value is shown, it
-is for reference only.
+own value is not published here, the page says **HUMAN_INPUT**. Where an
+earlier Motor version's published value is shown, it is for reference only.
 
 ## 1. The internal range (the kit samples anywhere inside it)
 
@@ -77,8 +75,10 @@ Gates come first: a failed gate means no score, however good the rest.
   limit** (the output's error is too large on some hidden in-range class) or
   **an invalid answer** (your model gave an invalid answer on one). It never
   shows the error values, the class or the cases.
-- The threshold: **HUMAN_INPUT** (set by the owner; until it is set, the
-  version does not open).
+- The threshold, as registered: the 90th percentile (p90) of your model's
+  error, in units of the reference's uncertainty U, must be at most 26.79 U
+  for mean torque, 11.44 U for torque ripple (peak to peak) and 73.01 U for
+  open-circuit back-EMF, on Carbon's hidden in-range cases.
 
 **Design value: picking the best designs from a menu.**
 
@@ -90,7 +90,7 @@ Gates come first: a failed gate means no score, however good the rest.
   grade.
 - Only a sample of the candidates counts, drawn after your predictions, so
   you cannot know which designs count. The sample changes on a registered
-  schedule (every **HUMAN_INPUT** days), and every grade in that period uses
+  schedule (every 7 days), and every grade in that period uses
   the same sample, so a king and a challenger are scored on the same designs.
 - The designs are ranked by your predictions, with each design limit backed
   off by U, and your top five picks are looked up in the solved truths. A
@@ -98,8 +98,7 @@ Gates come first: a failed gate means no score, however good the rest.
   0.25, 0.15, 0.12 and 0.08.
 - The zero is the best of Carbon's classical picks on the same sample (and
   a random pick); the 1 is the best five picks possible from that sample. A design task's score is clipped to 0 to 1.
-- The number of design tasks and the model-call budget per task:
-  **HUMAN_INPUT** (set by the owner before the version opens).
+- Carbon draws 3 design tasks per epoch.
 
 **Hard gates on every answer.**
 
@@ -111,6 +110,10 @@ Gates come first: a failed gate means no score, however good the rest.
   total is longer; the build and the inference are still limited to 648
   seconds each), on 4 CPUs and 16 GiB. A build or an inference that reaches
   a limit is a normal timeout.
+- Early stop: a model whose projected run time is past the 648 s limit is
+  stopped early, and a stop counts as a try, like a timeout. It is a
+  projection, so a model with a very slow start can be stopped even if its
+  full run would have fitted.
 - Speed limit for Motor 1.8: **HUMAN_INPUT** (Motor 1.5: each design
   answered in at most 3.3 s on the validator's machine).
 
@@ -155,23 +158,20 @@ are not shown, and the hidden sample rotates.
 
 - Every graded total is shown rounded down to the Ladder step, so totals
   within one step show the same number.
-- When a grade would take the crown, the validator rebuilds that model 10
-  times on its own private seeds (never seed 0). Every rebuild must pass every
-  gate and minimum, or there is no takeover. The challenger takes the crown
-  only if its 10-rebuild average beats the king's average by more than the
-  registered margin; within it, the king keeps the crown. An infrastructure
-  failure is retried and never counts against you.
-- Motor 1.8's margin: **HUMAN_INPUT** (registered before crowns open; until
-  then takeovers are unavailable).
-- To hold the crown a total must reach a floor, currently 0.05 (provisional,
-  set by the owner); below it, no one holds the crown on Motor 1.8.
-- While Carbon's crown re-score for design-menu versions is being built, a
-  grade that would take the crown on Motor 1.8 is first held for review: your
-  grade shows `crown_held_for_review`, the king keeps the crown, and your
-  submission keeps its place in order. When Carbon releases it, it is decided
-  as normal.
-- Make your graph robust to the seed: a model that trains well only at seed
-  0 can fail the average.
+- Crowns come straight from your official graded score; there are no crown
+  rebuilds. A grade that passes every gate and minimum takes the crown when
+  its official total beats the sitting king's official total by more than the
+  registered margin, 0.0129; a tie, or anything within the margin, keeps the
+  king. Contenders
+  are decided in queue order, each against the king of that moment. An
+  infrastructure failure is retried and never counts against you.
+- The king's public page shows the score to beat: an official score above it,
+  passing every gate and minimum, takes the crown. Public totals are rounded
+  down to the Ladder step, so the page also shows the range the exact bar (the
+  king's official total plus the margin) lies in.
+- When there is no king, a grade takes the crown only if its official total
+  is above the floor, currently 0.05 (provisional, set by the owner), by more
+  than the same margin.
 
 ## 6. Rules for your graph
 
