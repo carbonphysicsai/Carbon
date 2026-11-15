@@ -2918,16 +2918,21 @@ def _counted_bank_grade(
             "private_evaluation_reason": code,
             **_limit_message(adapter, submission_id, code),
         }
+    from carbon.development_session.research_carrier import grade_session
+
     try:
-        graded = regrade_retained_entry(
-            adapter,
-            bound["entry_id"],
-            artifact_directory=artifact_directory,
-            entry_directory=entry_directory,
-            pool_store=pool_store,
-            counted=True,
-            runner=runner,
-        )
+        # Item 4: the grade's fixed inference ops (graded pass, pair / repeat, menu re-check) share ONE worker container,
+        # each its own process; the speed stage keeps its own. Removed when the grade ends, however it ends.
+        with grade_session():
+            graded = regrade_retained_entry(
+                adapter,
+                bound["entry_id"],
+                artifact_directory=artifact_directory,
+                entry_directory=entry_directory,
+                pool_store=pool_store,
+                counted=True,
+                runner=runner,
+            )
     except EarlyWallStop as stopped:
         # The registered strict lower bound: the pass could not have finished inside the wall. The candidate's wall stop,
         # typed and settled exactly as a stop at the wall (COUNTED, never FAILED_INFRA, no retry); the projection is kept
