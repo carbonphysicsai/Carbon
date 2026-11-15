@@ -495,7 +495,11 @@ PHYSICAL_V2_INFER_PROGRAM = _v2_infer_program()
 #: operation (graded per case, the repeat pair, the menu row check, the speed warm-up and timed calls, the batched
 #: timing query) goes through the one compiled function, so the timed calls answer bit for bit as the graded run did
 #: (`single_call_timing.outputs_match_graded`) and a call uses the memory it does today. Every other version keeps
-#: `PHYSICAL_V2_INFER_PROGRAM` byte for byte. Only `carbon/development_session` changes: no exam key moves.
+#: `PHYSICAL_V2_INFER_PROGRAM` byte for byte. Only `carbon/development_session` changes: no exam key moves (this file is
+#: in the adapter's source identity, so it reaches a door by a door switch, never a values roll). The build's own
+#: predictions and the miner kit's scorer stay eager (`carbon.level4.train.JIT_FORWARD_VERSIONS` stays empty): they
+#: never meet the judge's outputs. For a graph whose branches or loop counts turn on a value (comparisons, rounding,
+#: a tolerance loop), compiled and eager answers can differ by more than rounding; every judged call is compiled alike.
 JIT_INFERENCE_VERSIONS = frozenset({("electric-motor-magnetics", "1.8")})
 _EAGER_MEMBER = "member_forward = rebuild(doc, allowed)\n"
 _COMPILED_MEMBER = (

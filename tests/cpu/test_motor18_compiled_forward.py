@@ -65,7 +65,8 @@ def test_the_programs_derived_from_the_compiled_one_still_derive_and_stay_compil
 def motor18():
     from test_registered_graph_pair_execution import _artifact
 
-    return _artifact("ensemble64", MOTOR_18)
+    # seeded random parameters: every public row answers differently, so equality checks cannot pass on a constant
+    return _artifact("ensemble64", MOTOR_18, seed=18)
 
 
 def _contract(artifact):
@@ -131,6 +132,7 @@ def test_the_compiled_pair_equals_the_eager_answers_within_1e_12_on_public_rows(
     np.testing.assert_array_equal(phases[0], phases[1])  # the repeat: bit for bit
     eager = _expected(motor18, per_case=True)  # the interpreter, op by op
     assert np.all(np.isfinite(eager)) and np.any(eager != 0)
+    assert len({row.tobytes() for row in eager}) == len(eager)  # every row differs
     np.testing.assert_allclose(phases[0], eager, rtol=1e-12, atol=1e-12)
 
 
@@ -187,6 +189,14 @@ def test_the_timed_single_calls_answer_exactly_as_the_compiled_graded_run(
     single = np.asarray(timed.predictions).tolist()
     whole = np.asarray(graded.predictions).tolist()
     assert single_call_timing.outputs_match_graded(single, whole, indices) is True
+    # not vacuous: the eight public rows answer differently, so a wrong row would not match
+    assert len({tuple(row) for row in whole[:8]}) == 8
+    assert (
+        single_call_timing.outputs_match_graded(
+            single, whole, indices[1:] + indices[:1]
+        )
+        is False
+    )
 
 
 @posix
@@ -249,4 +259,5 @@ def test_the_menu_row_check_answers_every_row_bit_for_bit_as_the_compiled_graded
         "member_forward = jax.jit(rebuild(doc, allowed))" in call["source"]
         for call in seen
     )
+    assert len({row.tobytes() for row in graded}) == len(graded)  # every row differs
     assert checked.tobytes() == graded[keyed].tobytes()  # bit for bit, every row
