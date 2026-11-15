@@ -1,0 +1,40 @@
+{
+  "challenge": "electric-motor-magnetics",
+  "label": "Motor 1.8 crowns on the OFFICIAL grades, 116, owner-ordered 14 Nov: no crown rebuild, no repeat grade, no protection window; margin 0.0129",
+  "notes": [
+    "The margin 0.0129 is the registered N=3 margin value (crown_average.json), reused by the owner's pick for a single official score vs the king's official score.",
+    "A king whose official grade fails a mandatory gate is still dethroned (unchanged).",
+    "With no king, the first-crown bar is the baseline floor + the same 0.0129 (the comparator's one margin).",
+    "crown_hold is unchanged (off for Motor 1.8 by its own registry entry); the operator's crown pause is unchanged."
+  ],
+  "owner_words": [
+    {
+      "source": "codex-queue/reports/DECISION_LEDGER_20261105.md L591 (the Sat 14 Nov 19:41 CST entry)",
+      "typed_at": "Sat 14 Nov 2026 19:41 CST",
+      "typed_in": "the Lead session",
+      "verbatim": "I'm making an executive decision to completely dump the crown regrading. This is too much of a pain in the ass. We will score submissions. And if you're above UC you win. I'm done. More simplicity. Now. We clear the queue in order and new kings win. That's fucking it."
+    },
+    {
+      "source": "codex-queue/reports/DECISION_LEDGER_20261105.md L592 (the Sat 14 Nov 19:44 CST entry)",
+      "typed_at": "Sat 14 Nov 2026 19:44 CST",
+      "typed_in": "the Lead session",
+      "verbatim": ".0129"
+    },
+    {
+      "source": "codex-queue/reports/DECISION_LEDGER_20261105.md L593 (the Sat 14 Nov 19:45 CST entry)",
+      "typed_at": "Sat 14 Nov 2026 19:45 CST",
+      "typed_in": "the Lead session",
+      "verbatim": "No protection. New kings win. I don't need a queue of contenders building"
+    }
+  ],
+  "receipts": [
+    "Validator-2B, board Sat 14 Nov ~20:0x CST: 3b760c98 CONTENT OK (954 crown/bank tests on Linux); must-fix = this record"
+  ],
+  "registry": "scripts/validator_host_classes/crown_official_score.json, versions['electric-motor-magnetics 1.8']",
+  "rule": "a contender whose OFFICIAL total is greater than the sitting king's OFFICIAL total + margin becomes king at once; within the margin (a tie) the king keeps the crown; contenders are decided in queue order (crown_pause_sweep oldest-first; an undecided earlier one holds later ones back), each against the king of its moment; no crown rebuild and no repeat grade (bank_promotion.consider_private with crown_official on; crown_average off)",
+  "schema": "carbon.exam.crown-official-score-record.v1",
+  "values": {
+    "margin": 0.0129
+  },
+  "version": "1.8"
+}

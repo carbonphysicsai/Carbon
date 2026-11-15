@@ -286,3 +286,31 @@ def test_off_the_decision_is_exactly_as_before(tmp_path, monkeypatch):
     assert outcome["outcome"] == bp.UNAVAILABLE
     assert outcome["reason"] == bp.REPEAT_UNAVAILABLE
     assert store.incumbent() is None
+
+
+# ----------------------------------------------------------------------------------------- the decision record
+
+
+def test_the_decision_record_quotes_the_owner_and_carries_the_registrys_margin():
+    """docs/records/2026-11-14-motor18-crown-official-score.json: the owner's three lines (19:41, 19:44, 19:45, typed in
+    the Lead session, ledger L591-L593) and EXACTLY the registry row's margin, so the two never drift apart.
+    """
+    from pathlib import Path
+
+    root = Path(crown_official.REGISTRY).resolve().parents[2]
+    record = json.loads(
+        (root / "docs/records/2026-11-14-motor18-crown-official-score.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert record["challenge"] == CHALLENGE and record["version"] == VERSION
+    assert [w["typed_at"] for w in record["owner_words"]] == [
+        "Sat 14 Nov 2026 19:41 CST",
+        "Sat 14 Nov 2026 19:44 CST",
+        "Sat 14 Nov 2026 19:45 CST",
+    ]
+    assert all(w["typed_in"] == "the Lead session" for w in record["owner_words"])
+    assert record["owner_words"][1]["verbatim"] == ".0129"
+    assert record["values"] == {
+        "margin": crown_official.registered(CHALLENGE, VERSION)["margin"]
+    }
