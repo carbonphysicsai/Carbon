@@ -279,7 +279,9 @@ def test_each_stratums_draw_is_independent_of_the_others(tmp_path, monkeypatch):
             MOTOR, "1.8", _bank([c for c in cohorts if c != PROBE])
         ),
     )[1]
-    assert alone == {POOL: both[POOL]}
+    # the same draw over the same pool stratum (its rows sit 300 positions earlier once the probe rows are gone)
+    assert list(alone) == [POOL]
+    assert [p + 300 for p in alone[POOL]] == both[POOL]
     assert subset.grade_key(KEY, "rtsk_a", POOL) != subset.grade_key(
         KEY, "rtsk_a", PROBE
     )
