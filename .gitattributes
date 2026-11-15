@@ -79,3 +79,6 @@ carbon/scoring/sealed_grid_common.py -text
 carbon/scoring/sealed_pack_writer.py -text
 # Recorded host fixtures are LF (they were written CRLF on Windows once: git diff --check failed).
 tests/fixtures/gpu_hosts/** text eol=lf
+
+# Public website (carbonwebsite): exact deployed bytes; never normalize line endings or whitespace.
+website/carbonwebsite/site/** -text whitespace=-trailing-space
