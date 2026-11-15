@@ -2,18 +2,23 @@
 make some barely fitting rule that causes things to fail and our system to be fragile."; CV-Motor-B ruling S2).
 
 A vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`, Motor 1.8) grades every row in an
-isolated lane of a 64-lane compiled call, while the speed gate's timed calls stay per-case compiled calls: the two are
+isolated lane of a multi-lane compiled call (at most 64 lanes, fewer for a large model), while the speed gate's timed calls stay per-case compiled calls: the two are
 Carbon's own programs over the same row and agree to rounding, not bit for bit. Their comparison
 (`lean_recipe_retention._single_call_raw`) is therefore a WIDE-MARGIN combined tolerance per value, over every value of
 a row: ``|timed - graded| <= atol + rtol * |graded|``, both sides finite, the same shape.
 
 - The VALUES are a host values row, outside ``carbon/`` (`REGISTRY`, ``"<challenge> <version>": {"rtol", "atol"}``),
-  posted by CV-Motor-B. Until they are set (``null``, HUMAN_INPUT) or when the row is malformed, a vmap-64 version is
-  refused: the receiver does not serve it (`require_served`) and its grade's speed stage is typed unavailable
-  (`UNREGISTERED`, a version-wide Carbon gap: no automatic retry). Never exact, never a guess.
-- A timed answer BEYOND the tolerance is CARBON's (two of our programs disagree), never the miner's: the stage raises
-  `DISAGREE`, the grade is given back as FAILED_INFRA (slot released, one automatic retry, alerted), and the scorer never
-  receives a speed mismatch for a vmap-64 version.
+  posted by CV-Motor-B. ``atol`` must be positive (a zero atol would make a value near zero need exact equality, the
+  barely fitting case) and ``rtol`` non-negative. Unset (``null``, HUMAN_INPUT) or malformed, a vmap-64 version is
+  refused: the receiver does not serve it (`require_served`), and a grade reads the row FIRST, before any exam read or
+  inference (`lean_recipe_retention.regrade_retained_entry`), and stops with `UNREGISTERED`. Never exact, never a guess.
+- A timed answer BEYOND the tolerance is CARBON's (two of our programs disagree), never the miner's: the single-call
+  stage raises `DISAGREE` and writes no side file, so the scorer never receives a speed mismatch for a vmap-64 version.
+- Both codes leave the evaluation's private grading by raising (`lean_recipe_retention._propagated_carbon_failures`), so
+  the receiver's grader writes a FAILED marker through its give-back (`auto_grade.AutoGrader._fail`): the exam slot is
+  released as FAILED_INFRA, never a candidate outcome and never a speed FAIL. `DISAGREE` is transient
+  (`auto_retry.retryable`): one automatic re-grade for the task's life, and a second failure stays FAILED for the
+  operator. `UNREGISTERED` is version-wide: the slot is returned, no automatic retry until the row is fixed.
 - Every other version is untouched: `tolerance` is None and the stage compares exactly, as before.
 
 This is a values contract only; it changes no score, no gate and no producer file.
@@ -52,8 +57,13 @@ def _vmap64(challenge_id, version) -> bool:
     return (challenge_id, version) in VMAP64_INFERENCE_VERSIONS
 
 
-def _value(value):
-    if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+def _value(value, *, positive=False):
+    if (
+        type(value) not in (int, float)
+        or not math.isfinite(value)
+        or value < 0
+        or (positive and value <= 0)
+    ):
         raise SpeedMatchUnregistered()
     return float(value)
 
@@ -74,11 +84,8 @@ def tolerance(challenge_id, version, *, path=None):
     row = rows.get(f"{challenge_id} {version}") if type(rows) is dict else None
     if type(row) is not dict or set(row) != {"rtol", "atol"}:
         raise SpeedMatchUnregistered()
-    rtol, atol = _value(row["rtol"]), _value(row["atol"])
-    if rtol == 0.0 and atol == 0.0:
-        # a zero tolerance is exact equality, which the ruling rules out for a vmap-64 version
-        raise SpeedMatchUnregistered()
-    return rtol, atol
+    # a zero atol makes a value near zero need exact equality: the barely fitting rule the ruling rules out
+    return _value(row["rtol"]), _value(row["atol"], positive=True)
 
 
 def require_served(challenge_id, version, *, path=None) -> None:

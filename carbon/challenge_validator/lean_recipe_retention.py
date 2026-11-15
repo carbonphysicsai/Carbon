@@ -1510,6 +1510,53 @@ def _single_call_raw(
     return raw
 
 
+#: The retained graded predictions were produced by a different inference program than the one a comparison against
+#: them would run now (review of 15 Nov, finding 1): Carbon's, never the candidate's (FAILED_INFRA, slot released).
+GRADED_PROGRAM_CHANGED = "graded_program_changed"
+
+
+def _check_graded_program(material, artifacts, regrade):
+    """Refuse (`GRADED_PROGRAM_CHANGED`) a comparison against retained graded bytes made by another program.
+
+    For a vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) the repeat pair, the menu row
+    check and the subset repeat must run the SAME program as the retained graded pass, or a bit-exact comparison would
+    charge the switch to the candidate (MODEL_ROW_DEPENDENT, a failed paired repeat). The graded program's digest is
+    recorded beside the counted / regrade inference (`regrade_retained_entry`, its operations file); a retained pass
+    with no record (made before the record existed, or a task's own practice inference) counts as different. Every
+    other version is unchecked, as before.
+    """
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_INFERENCE_VERSIONS,
+        graded_program_sha256,
+    )
+
+    if "worker-evidence.json" not in artifacts:
+        return
+    try:
+        kit = material["construction_kit"]
+        key = (kit["id"], kit["version"])
+    except (KeyError, TypeError):
+        return
+    if key not in VMAP64_INFERENCE_VERSIONS:
+        return
+    recorded = (
+        None if regrade is None else getattr(regrade, "graded_program_sha256", None)
+    )
+    if recorded is None or recorded != graded_program_sha256(*key):
+        raise RetentionUnavailable(GRADED_PROGRAM_CHANGED)
+
+
+def _propagated_carbon_failures():
+    """Carbon's own failures that leave a grade FAILED_INFRA through the grader's give-back (`auto_grade._fail`: slot
+    released, one automatic retry where transient), never an UNAVAILABLE evaluation filed as graded.
+    """
+    from carbon.challenge_validator import speed_match
+
+    return frozenset(
+        {GRADED_PROGRAM_CHANGED, speed_match.DISAGREE, speed_match.UNREGISTERED}
+    )
+
+
 def _retain_selected_pack_evaluation(
     adapter,
     submission_id,
@@ -1643,6 +1690,9 @@ def _retain_selected_pack_evaluation(
                     else {}
                 ),
             }
+        # Before any comparison against the retained graded bytes (the pair, the single calls, the menu row check):
+        # they were made by the program those comparisons run.
+        _check_graded_program(getattr(discovery, "_material", None), artifacts, regrade)
         # Graph and bundle alike: the paired repeat is what the KOTH comparison
         # binds (v4). Never gates retention: this runs after bank custody, and a
         # missing or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
@@ -1836,6 +1886,12 @@ def _retain_selected_pack_evaluation(
         if reservation is not None:
             # Grading did not complete (infrastructure or evidence), so the slot is returned.
             cap.settle(reservation, "UNAVAILABLE")
+        if (
+            isinstance(exc, RetentionUnavailable)
+            and exc.code in _propagated_carbon_failures()
+        ):
+            # Carbon's own failure (review of 15 Nov, finding 2): the grader gives it back as FAILED_INFRA.
+            raise
         reason = (
             str(exc)
             if isinstance(exc, RetentionUnavailable)
@@ -3525,6 +3581,21 @@ class _Regrade:
     #: The pool submission id the regraded evidence is filed under, when it is not the origin task's own: a king's
     #: rebuild (route (b)) is filed under its DERIVED row (`king_rebuild_id`), never under the host task.
     file_as: object = None
+    #: The digest of the program that made the retained graded bytes (`_check_graded_program`); None when unrecorded.
+    graded_program_sha256: object = None
+
+
+def _vmap64_served(material):
+    """Whether the served version is a vmap-64 one (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`)."""
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_INFERENCE_VERSIONS,
+    )
+
+    try:
+        kit = material["construction_kit"]
+        return (kit["id"], kit["version"]) in VMAP64_INFERENCE_VERSIONS
+    except (KeyError, TypeError):
+        return False
 
 
 def _inference_image_of(provider, regrade):
@@ -4504,6 +4575,17 @@ def regrade_retained_entry(
     snapshot = discovery.evaluation_pack_snapshot
     if snapshot is None or discovery.evaluation_pack_digest != snapshot.manifest_digest:
         raise RetentionUnavailable("evaluation_pack_not_selected")
+    # A vmap-64 version's speed-match tolerance is read FIRST, before any exam read or inference (review of 15 Nov,
+    # finding 5): unset or malformed is Carbon's version-wide gap. Every other version reads nothing here.
+    from carbon.challenge_validator import speed_match
+
+    try:
+        served_kit = discovery._material["construction_kit"]
+        speed_match.tolerance(served_kit["id"], served_kit["version"])
+    except speed_match.SpeedMatchUnregistered as gap:
+        raise RetentionUnavailable(gap.code) from gap
+    except (AttributeError, KeyError, TypeError):
+        pass
     base = _owner_directory(artifact_directory, "artifact_directory")
     entries = _owner_directory(entry_directory, "entry_directory")
     entry, origin, owner, manifest, files, recipe = _regrade_origin(
@@ -4706,6 +4788,10 @@ def regrade_retained_entry(
                 timed_result.worker_operation if timed_result is not None else None
             ),
         }
+        if kind == "graph" and _vmap64_served(material):
+            # Which program made these graded bytes: every later comparison against them checks it
+            # (`_check_graded_program`). Only a vmap-64 version records it; every other file keeps its bytes.
+            operations["graded_program_sha256"] = _sha(graph_query["program"].encode())
         worker_evidence = (
             _graph_regrade_worker_evidence(
                 files["worker-evidence.json"],
@@ -4724,6 +4810,7 @@ def regrade_retained_entry(
             else None
         )
     operation = operations["inference_operation"]
+    graded_program = operations.get("graded_program_sha256")
 
     artifacts = dict(files)
     if pool:
@@ -4851,6 +4938,7 @@ def regrade_retained_entry(
             ),
             inference_image,
             file_as,
+            graded_program if type(graded_program) is str else None,
         ),
         **({"pool_store": pool_store} if counted else {}),
     )

@@ -16,7 +16,6 @@ import inspect
 import json
 
 import pytest
-from test_auto_grade import A, _grader, _marker
 from test_single_call_layer_b import _run, stage  # noqa: F401 - the stage fixture
 
 from carbon.challenge_validator import auto_retry, direct_receiver, speed_match
@@ -77,6 +76,11 @@ def test_a_registered_row_is_read_exactly(tmp_path):
         {"rtol": True, "atol": 1e-12},
         {"rtol": "1e-9", "atol": 1e-12},
         {"rtol": 0, "atol": 0.0},  # zero is exact equality: ruled out
+        {
+            "rtol": 1e-9,
+            "atol": 0,
+        },  # a zero atol: a value near zero needs exact equality
+        {"rtol": 1e-9, "atol": -1e-12},
         "HUMAN_INPUT",
     ],
 )
@@ -189,15 +193,11 @@ def test_every_other_version_still_compares_exactly(stage):  # noqa: F811
     assert match is False  # recorded for the gate, as before
 
 
-def test_a_disagreement_is_given_back_as_failed_infra_and_retried_once(tmp_path):
-    grader, _intake = _grader(
-        tmp_path, [A], {A: retention.RetentionUnavailable(speed_match.DISAGREE)}
-    )
-    assert grader.run_once() == (A, "FAILED")
-    marker = _marker(tmp_path, A)
-    assert marker["state"] == "FAILED" and marker["code"] == speed_match.DISAGREE
-    assert marker["entry_id"] is None  # no grade, no score, no candidate outcome
-    assert auto_retry.retryable(speed_match.DISAGREE) is True
+def test_the_failure_codes_retry_as_ruled():
+    """The real counted-grade path to the grader's FAILED marker is `test_vmap64_carbon_failures`."""
+    assert (
+        auto_retry.retryable(speed_match.DISAGREE) is True
+    )  # transient: one retry for the task's life
     # an unset tolerance is version-wide: the slot is returned, no automatic retry into the same gap
     assert auto_retry.retryable(speed_match.UNREGISTERED) is False
 
