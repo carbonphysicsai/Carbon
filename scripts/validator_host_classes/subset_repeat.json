@@ -1,0 +1,9 @@
+{
+  "rows": {
+    "electric-motor-magnetics 1.8": {
+      "repeat_detect_prob": 0.999,
+      "repeat_fail_fraction": 0.10
+    }
+  },
+  "schema": "carbon.exam.subset-repeat.v1"
+}

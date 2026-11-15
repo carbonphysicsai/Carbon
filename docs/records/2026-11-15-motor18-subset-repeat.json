@@ -1,0 +1,52 @@
+{
+  "challenge": "electric-motor-magnetics",
+  "confirm_before_switch": "Deploy-B / Validator-2B confirm producer_successor.pack_producer_digest equals the live Motor 1.8 pack's accuracy_definition.producer_digest (computed here as Motor 1.8's producer digest at e6f67358, the compiled-forward head, before this change).",
+  "label": "Motor 1.8: the two full-bank inference-pair passes become ONE keyed subset repeat, as the SAME version (pack and exam key unchanged); k from the owner's promise (f 0.10, P 0.999 gives 66 rows)",
+  "owner_words": [
+    {
+      "source": "codex-queue/handoff-20261021/TEAM_BOARD.md, the Sun 15 Nov 08:19 CST Lead line",
+      "typed_at": "Sun 15 Nov 2026 08:19 CST",
+      "typed_in": "the Lead session",
+      "verbatim": "Annoying. Yeah. Get that in. The most efficient way to check. I also do not think that needs a new exam version."
+    },
+    {
+      "source": "codex-queue/handoff-20261021/TEAM_BOARD.md, the Sun 15 Nov 08:38 CST Lead line",
+      "typed_at": "Sun 15 Nov 2026 08:38 CST",
+      "typed_in": "the Lead session",
+      "verbatim": "66 rows. But we need a % that generalizes for challenges"
+    }
+  ],
+  "rule": "k = min(ceil(ln(1 - P) / ln(1 - f)), graded bank rows), from scripts/validator_host_classes/subset_repeat.json (f = repeat_fail_fraction, P = repeat_detect_prob, each strictly between 0 and 1). A missing, null or malformed promise: the receiver does not serve and a grade is Carbon's typed unavailable. Code: carbon/scoring/subset_repeat_evidence.py, subset_repeat_produce.py, producer_successor.py (Motor 1.8 producer files only); door: lean_recipe_retention._subset_repeat_raw and subset_repeat_serve_check.",
+  "schema": "carbon.exam.subset-repeat-record.v1",
+  "science_ruling": {
+    "by": "CV-Motor-B",
+    "source": "codex-queue/handoff-20261021/TEAM_BOARD.md, board ~08:2x CST Sun 15 Nov",
+    "summary": [
+      "(1) The subset repeat is its own mandatory gate on k rows: a per-grade secret key, never disclosed, draws k rows over the whole graded bank after the graded predictions are committed; they are re-predicted in a fresh process (same image, state and inputs) and each must pass the existing paired_repeat rule. A mismatch leaves the grade unscored, the candidate's failure, exactly as a pair mismatch today (native_motor_valid and complete_fixed_coverage fail).",
+      "(2) Non-sampled rows get twin None: their paired_repeat reads NOT_APPLICABLE and their scores are unchanged. The repeat never changes a score value; the twin is used only inside gates.",
+      "(3) 'Three runs agree' (graded vs repeat 1 vs repeat 2) becomes graded vs the fresh repeat on the sampled rows; the 'exactly 2 full repeats' requirement is replaced for Motor 1.8 only.",
+      "(4) The sample size is a values setting that fails closed when unset; superseded in form by the owner's 08:38 promise (the values file stores f and P, k is derived)."
+    ]
+  },
+  "validator_conditions": {
+    "R-1": "ONE successor row, Motor 1.8 only, mapping the live pack's exact pinned producer digest to the exact new code digest; recomputed at load, any mismatch refused; this record carries the owner's words and CV-Motor-B's sign-off.",
+    "R-2": "The repeat feeds pass/fail only.",
+    "R-3": "New grades carry the NEW producer digest in their evidence and measurement basis; old grades are read with their own digest; nothing is rescored.",
+    "R-4": "The pack's public accuracy_definition does not change; the kit page and launchpad inference_pair line say the repeat is a keyed sample of the graded designs.",
+    "R-5": "Door switch with declared evidence; the receiver's start-up check names the successor row.",
+    "by": "Validator-2B",
+    "rejected": "Patching the reader at runtime from a non-producer module."
+  },
+  "values": {
+    "derived_k_at_the_live_bank": 66,
+    "producer_successor": {
+      "pack_producer_digest": "sha256:9c5ac4dbee486fbf9b986b22f5b1b2f2b1a4b415512a950379761159967e32cc",
+      "producer_digest": "sha256:a2ebe2b8934a7141e876c9b543aee4b9a779d2049ab4620c082200455c8dce4f"
+    },
+    "promise": {
+      "repeat_detect_prob": 0.999,
+      "repeat_fail_fraction": 0.10
+    }
+  },
+  "version": "1.8"
+}

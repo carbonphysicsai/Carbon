@@ -55,6 +55,15 @@ _OWN_FILE = "motor18_dual_pack.py"
 #: and the repeat pair's byte bound its grade reads under (`pair_read_bound`: 2564 x 240 overflows the shared reader's
 #: fixed 4 MiB; CV-Motor-C, Thu 12 Nov 17:24)
 _BOUND_FILE = "pair_read_bound.py"
+#: and its keyed subset repeat (owner, Sun 15 Nov 2026 08:19 + 08:38 CST; CV-Motor-B; Validator-2B R-1..R-5): the side
+#: file's reader and the draw, the producer successor row's reader, and the subset producer the door routes 1.8 to. Their
+#: bytes move 1.8's producer digest only; the live pack's pinned digest reads as the new one through ONE successor row
+#: (`producer_successor`, docs/records/2026-11-15-motor18-subset-repeat.json).
+_SUBSET_FILES = (
+    "subset_repeat_evidence.py",
+    "producer_successor.py",
+    "subset_repeat_produce.py",
+)
 
 
 def _sl():
@@ -404,8 +413,8 @@ def producer_digest():
 def __getattr__(name):
     if name == "FILES":
         # 1.8's OWN producer identity: the sealed grader's files, then this one (its pk-pk decision lives here), then
-        # the pair bound its grade reads under
-        return (*_sl().FILES, _OWN_FILE, _BOUND_FILE)
+        # the pair bound its grade reads under, then its keyed subset repeat
+        return (*_sl().FILES, _OWN_FILE, _BOUND_FILE, *_SUBSET_FILES)
     return getattr(_sl(), name)
 
 

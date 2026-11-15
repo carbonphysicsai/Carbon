@@ -440,17 +440,27 @@ def _bind_dual_evaluation(
         "important_limit_definition_sha256",
         "design_objective_sha256",
     }
-    if (
-        type(basis) is not dict
-        or set(basis) != basis_fields
-        or basis["schema"] != "carbon.scoring.dual-measurement-contract.v1"
-        or any(
-            type(basis[key]) is not str or _SHA256.fullmatch(basis[key]) is None
+    shaped = (
+        type(basis) is dict
+        and set(basis) == basis_fields
+        and basis["schema"] == "carbon.scoring.dual-measurement-contract.v1"
+        and all(
+            type(basis[key]) is str and _SHA256.fullmatch(basis[key]) is not None
             for key in basis_fields - {"schema"}
         )
-        or _sha(_canonical(basis)) != score_pack.get("measurement_contract_digest")
-        or evidence["producer_digest"] != basis["producer_digest"]
-    ):
+    )
+    pinned = score_pack.get("measurement_contract_digest")
+    if shaped and _sha(_canonical(basis)) != pinned:
+        # A basis that carries the ACTUAL producer of a version graded through its registered producer successor
+        # (Validator-2B R-1/R-3, Motor 1.8's keyed subset repeat): it is the pack's pinned contract only when the
+        # version's ONE successor row maps the pinned producer to exactly that one. Every other basis is unchanged.
+        from carbon.scoring import producer_successor
+
+        through = producer_successor.pinned_basis(
+            source["challenge"], source["challenge_version"], basis
+        )
+        shaped = through is not None and _sha(_canonical(through)) == pinned
+    if not shaped or evidence["producer_digest"] != basis["producer_digest"]:
         raise PrivateEvaluationEvidenceRefused("dual_measurement_contract")
     for role in (
         "accuracy_definition",
