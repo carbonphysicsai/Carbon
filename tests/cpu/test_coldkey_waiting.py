@@ -128,6 +128,73 @@ def test_built_counts_while_ungraded_and_frees_the_place_once_graded():
         assert guard.refusal(hotkey="hk-a2", task_id="t2", limit=1) is None, state
 
 
+def test_a_built_task_the_grade_round_cannot_grade_now_never_holds_the_coldkey_for_good():
+    """`AutoGrader.stalled` (an owned task or verified attempt it cannot read): pending forever, so it must not hold."""
+    guard = cw.Guard(
+        opened=lambda: {"hk-a1": SimpleNamespace(_views={"t1": _View("SUCCEEDED")})},
+        pending=lambda: ["t1"],
+        snapshot=lambda: _Snapshot(COLDKEYS),
+        stalled=lambda: {"t1"},
+    )
+    assert guard.refusal(hotkey="hk-a2", task_id="t2", limit=1) is None
+
+
+def test_the_grade_round_records_a_not_yet_task_as_stalled_and_a_building_one_not(
+    tmp_path,
+):
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from test_auto_grade import A, B, C, _grader
+
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    grader, _intake = _grader(
+        tmp_path,
+        [A, B, C],
+        {
+            A: RetentionUnavailable("owned_task_unavailable"),
+            B: RetentionUnavailable("task_not_succeeded"),
+            C: "sha256:" + "3" * 64,
+        },
+    )
+    assert grader.run_once() == (C, "GRADED")
+    assert grader.stalled == {A}
+
+
+def test_an_unreadable_provider_map_fails_open_and_is_said_once(monkeypatch):
+    said = []
+    monkeypatch.setattr(
+        "carbon.battery.intake.log", lambda event, **fields: said.append(event)
+    )
+    guard = cw.Guard(
+        opened=lambda: None, pending=list, snapshot=lambda: _Snapshot(COLDKEYS)
+    )
+    for _ in range(3):
+        assert guard.refusal(hotkey="hk-a2", task_id="t2", limit=1) is None
+    assert said == ["coldkey_waiting_unreadable"]
+
+
+def test_the_receiver_installs_the_guard_with_every_input():
+    """A tripwire on the wiring (a wrong attribute would fail open, said once): serve() builds the guard from the open
+    providers, the grader's pending list and stalled set, and the snapshot window."""
+    import inspect
+
+    from carbon.challenge_validator import direct_receiver
+
+    source = inspect.getsource(direct_receiver.serve)
+    for part in (
+        "coldkey_waiting.Guard(",
+        '"_providers"',
+        "pending=grader.pending",
+        "snapshot=window.latest",
+        'getattr(grader, "stalled"',
+    ):
+        assert part in source, part
+    assert "self._providers = {}" in inspect.getsource(direct_receiver.OwnerProviders)
+
+
 def test_a_resend_of_the_same_submission_is_never_refused():
     guard = _guard({"hk-a1": {"t1": "QUEUED"}})
     assert guard.refusal(hotkey="hk-a1", task_id="t1", limit=1) is None
@@ -163,7 +230,7 @@ def test_a_read_that_cannot_be_made_never_refuses():
         raise RuntimeError("store busy")
 
     guard = cw.Guard(
-        opened=lambda: {"hk-a1": SimpleNamespace(_views={"t1": _View("QUEUED")})},
+        opened=lambda: {"hk-a1": SimpleNamespace(_views={"t1": _View("SUCCEEDED")})},
         pending=broken,
         snapshot=lambda: _Snapshot(COLDKEYS),
     )
@@ -255,7 +322,8 @@ def test_through_the_real_adapter_a_second_waiting_submission_is_refused_before_
     assert list(provider._views) == [sid]
     # the SAME recipe again (a resend of the waiting submission) is not refused by this rule
     again = _submit(door, adapter, request.recipe, 3)
-    assert again.get("code") != cw.CODE
+    assert again["kind"] == "OUTCOME"
+    assert again["outcome"]["submission_id"] == sid
 
 
 def test_through_the_real_adapter_with_no_registered_limit_nothing_changes(

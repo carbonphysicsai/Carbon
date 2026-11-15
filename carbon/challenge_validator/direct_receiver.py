@@ -2551,6 +2551,7 @@ def serve(
                     ),
                     pending=grader.pending,
                     snapshot=window.latest,
+                    stalled=lambda: getattr(grader, "stalled", frozenset()),
                 )
             if "auto_grade" in cfg and cfg["auto_grade"].get("pool_store"):
                 intake.koth_view = _king_view(intake, cfg["auto_grade"]["pool_store"])

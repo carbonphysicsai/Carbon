@@ -364,6 +364,12 @@ class AutoGrader:
                 if not isinstance(code, str):
                     # a non-str code (unhashable, e.g. a structured worker code) is never a set member: typed by text
                     code = str(unavailable) or type(unavailable).__name__
+                if code in _NOT_YET:
+                    # not gradable now: one waiting submission per coldkey (`coldkey_waiting`) does not let it hold its
+                    # coldkey's place (a new set, swapped whole, so the intake's thread reads it without a lock)
+                    self.stalled = getattr(self, "stalled", frozenset()) | {
+                        submission_id
+                    }
                 if code in _PENDING or code in _NOT_YET:
                     continue
                 if (

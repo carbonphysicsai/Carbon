@@ -13,8 +13,12 @@ refusal at grading time would still have spent a whole build.
   for no coldkey.
 - WAITING is read from the task views of the providers already open on this door (no provider is opened, no ledger lock
   taken): a task QUEUED, RUNNING or CANCEL_REQUESTED, or SUCCEEDED and still in the grader's pending list (built, no
-  grade marker yet). A task just started is QUEUED in its view at once, so the guard's lock (held from this check to
-  the task's start) closes the window in which two hotkeys of one coldkey could both pass.
+  grade marker yet), unless the grade round found it NOT gradable now (`AutoGrader.stalled`: an owned task or verified
+  attempt it cannot read), which would otherwise hold the coldkey for good. ANY terminal state frees the place: the round
+  writes a marker for every grade it settles (graded, refused, wall or early stop, failed incl. an infra give-back).
+- ATOMIC: on the live door every submit is already decided under the intake's one writer lock
+  (`DirectRecipeIntake._write`); the guard's own lock, held from this check to the task's start (a just-started task is
+  QUEUED in its view at once), keeps that true for any other caller.
 - The submission's OWN task (a resend of the same recipe; the same task id) is never counted against it.
 - Submissions already waiting when the rule is switched on are KEPT: nothing is cancelled or judged again.
 - A read that cannot be made (the views changing too fast, no snapshot) never refuses: the door takes the submission as
@@ -72,42 +76,26 @@ def limit_for(challenge_id, version, *, path=None):
 
 class Guard:
     """The door's guard: ``opened()`` -> the providers already open (``{hotkey: provider}``), ``pending()`` -> the grader's
-    ungraded task ids, ``snapshot()`` -> the latest chain snapshot (or None). Installed on the adapter by the receiver.
-    """
+    ungraded task ids, ``snapshot()`` -> the latest chain snapshot (or None), ``stalled()`` -> the task ids the grade round
+    found not gradable now. Installed on the adapter by the receiver."""
 
-    def __init__(self, *, opened, pending, snapshot):
+    def __init__(self, *, opened, pending, snapshot, stalled=frozenset):
         self._opened, self._pending, self._snapshot = opened, pending, snapshot
+        self._stalled = stalled
         #: held from the check to the task's start (`LeanRecipeAdapter.evaluate`): one submission decided at a time
         self.lock = threading.Lock()
+        self._said_unreadable = False
 
-    def _waiting(self):
-        """``{task id: owner hotkey}`` of every waiting task, or None when the views cannot be read now."""
-        opened = self._opened()
-        if not isinstance(opened, dict):
-            return None
-        for _attempt in range(2):
+    def _unreadable(self):
+        """Fail open, said once (counts only): a wiring fault must never turn the rule off silently."""
+        if not self._said_unreadable:
+            self._said_unreadable = True
             try:
-                providers = tuple(opened.items())
-                break
-            except RuntimeError:  # opened or closed mid-read
-                continue
-        else:
-            return None
-        try:
-            pending = set(self._pending())
-        except Exception:  # noqa: BLE001 - fail open
-            return None
-        waiting = {}
-        for hotkey, provider in providers:
-            try:
-                views = tuple(getattr(provider, "_views", {}).items())
-            except RuntimeError:
-                return None
-            for task, view in views:
-                state = getattr(getattr(view, "state", None), "value", None)
-                if state in _BUILDING or (state == _BUILT and task in pending):
-                    waiting[task] = hotkey
-        return waiting
+                from carbon.battery.intake import log
+
+                log("coldkey_waiting_unreadable")
+            except Exception:  # noqa: BLE001, S110 - the log is best effort
+                pass
 
     def refusal(self, *, hotkey, task_id, limit):
         """``(code, message)`` when ``hotkey``'s NEW submission ``task_id`` must be refused now, else None."""
@@ -117,19 +105,42 @@ class Guard:
         member = snapshot.resolve(hotkey)
         if member is None:
             return UNRESOLVED, UNRESOLVED_MESSAGE
-        waiting = self._waiting()
-        if waiting is None:
+        opened = self._opened()
+        if not isinstance(opened, dict):
+            self._unreadable()
             return None
-        coldkeys = {}
-        held = 0
-        for task, owner in waiting.items():
-            if task == task_id:
-                continue  # its own task (a resend): never counted against it
-            if owner not in coldkeys:
-                found = snapshot.resolve(owner)
-                coldkeys[owner] = None if found is None else found.coldkey
-            if coldkeys[owner] == member.coldkey:
-                held += 1
+        for _attempt in range(2):
+            try:
+                providers = tuple(opened.items())
+                break
+            except RuntimeError:  # opened or closed mid-read
+                continue
+        else:
+            return None
+        held, built = 0, []
+        for owner, provider in providers:
+            found = snapshot.resolve(owner)
+            if found is None or found.coldkey != member.coldkey:
+                continue  # another coldkey, or an owner that cannot be resolved (counts for no coldkey)
+            try:
+                views = tuple(getattr(provider, "_views", {}).items())
+            except RuntimeError:
+                return None
+            for task, view in views:
+                if task == task_id:
+                    continue  # its own task (a resend): never counted against it
+                state = getattr(getattr(view, "state", None), "value", None)
+                if state in _BUILDING:
+                    held += 1
+                elif state == _BUILT:
+                    built.append(task)
+        if held < limit and built:
+            # only now the grader's list: a built task holds the place while it waits for its grade
+            try:
+                pending, stalled = set(self._pending()), set(self._stalled())
+            except Exception:  # noqa: BLE001 - fail open
+                return None
+            held += sum(1 for task in built if task in pending and task not in stalled)
         return (CODE, MESSAGE) if held >= limit else None
 
 
