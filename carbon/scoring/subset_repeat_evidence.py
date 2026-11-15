@@ -210,7 +210,8 @@ _TORQUE_GATE = ("mean_torque_nm", "ripple_pk_pk_nm")
 _OC_GATE = ("back_emf_open_circuit",)
 
 #: Each subset version's strata (CV-Motor-B, Sun 15 Nov, after the owner's "Yes for 66 per stratum"). The sealed grid's
-#: cells are always ALL re-run and are no stratum here. Every other graded row must land in exactly ONE stratum:
+#: cells are always ALL re-run and are no stratum here. Every other graded row must land in AT LEAST one stratum; a row
+#: in several is a member of each (CV-Motor-B 17:43 CST, "overlaps allowed, dedupe after drawing"):
 #: - ``probe_response``: the bank's probe rows (their cohort);
 #: - ``H-1`` / ``H-3a`` / ``H-3b``: pool rows of the targets the REGISTERED coverage plan (``coverage_plan_sha256``,
 #:   vocabulary ``coverage_class_vocabulary``) puts in that class;
@@ -346,8 +347,9 @@ def _pool_sources(challenge, version, bank, defined):
 
 def census(challenge, version, bank):
     """Counts only: ``{"sealed": n, "strata": {name: n}, "overlaps": {"a+b": n}, "none": n}`` of one graded bank under the
-    version's code-defined strata. A row in two strata is counted under ``overlaps`` (never resolved), a row in none
-    under ``none``; neither is in any stratum's ``n``."""
+    version's code-defined strata. A row in two or more strata is a member of EACH (every stratum keeps its full
+    population; CV-Motor-B 17:43 CST) and is also counted under ``overlaps`` by stratum set; a row in none is counted
+    under ``none`` and is in no stratum's ``n``."""
     import numpy as np
 
     defined = definitions(challenge, version)
@@ -377,12 +379,12 @@ def census(challenge, version, bank):
                 for name, d in defined.items()
                 if d.source != "cohort" and row in sources[(d.source, d.selector)]
             ]
-        if len(hits) == 1:
-            members[hits[0]].append(i)
-        elif hits:
+        for name in hits:
+            members[name].append(i)
+        if len(hits) > 1:
             label = "+".join(sorted(hits))
             overlaps[label] = overlaps.get(label, 0) + 1
-        else:
+        elif not hits:
             none.append(i)
     return {
         "sealed": sealed,
@@ -393,13 +395,12 @@ def census(challenge, version, bank):
 
 
 def bank_strata(challenge, version, bank):
-    """The graded bank split into the version's strata, or a typed refusal: a row in TWO strata
-    (``subset_repeat_row_in_two_strata``) or in NONE (``subset_repeat_row_in_no_stratum``), no sealed cells, an empty
-    stratum, or a registered gate set of another size (``subset_repeat_gate_set_size``).
+    """The graded bank split into the version's strata (a row in two strata is a member of each: overlaps allowed, deduped
+    after drawing by `positions_of`), or a typed refusal: a row in NO stratum (``subset_repeat_row_in_no_stratum``), no
+    sealed cells, an empty stratum, or a registered gate set of another size (``subset_repeat_gate_set_size``).
     """
     defined = definitions(challenge, version)
     counted = census(challenge, version, bank)
-    _require(not counted["overlaps"], "subset_repeat_row_in_two_strata")
     _require(not counted["none"], "subset_repeat_row_in_no_stratum")
     _require(bool(counted["sealed"]), "subset_repeat_bank_strata")
     for name, d in defined.items():
@@ -533,7 +534,8 @@ def plan(k_speed, submission_id, *, challenge, version, strata):
 
 
 def positions_of(sealed, keyed):
-    """Every repeated row, ascending: the order the fresh run answered them in."""
+    """Every repeated row, ascending and ONCE (a row drawn by two strata is re-run once and checked for each): the order
+    the fresh run answered them in."""
     return sorted({*sealed, *(p for rows in keyed.values() for p in rows)})
 
 

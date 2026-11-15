@@ -7,7 +7,8 @@ Loads the pack and its carried sealed bank exactly as grading does (`calibration
 the copy of ``--copy-hotkey`` when given), splits it with the version's code-defined strata
 (`subset_repeat_evidence.census`) and prints ONE JSON line of COUNTS ONLY: the sealed cells, each stratum's row count
 ``n``, its mode (``all`` re-runs every row, ``keyed`` re-runs ``min(k, n)``), the rows it re-runs per grade, the rows
-in two strata (by stratum pair) or in none, and the per-grade total (sealed + the sum). ``k`` comes from the
+in two strata (by stratum set; each is in every one of their ``n``) or in none, and the per-grade total (sealed + the
+sum: an upper bound, since a row drawn by two strata is re-run once). ``k`` comes from the
 registered f and P (`subset_repeat_evidence.registered_rate`); the strata list in the values file is not needed.
 
 It prints no row, position, id, input, truth or key. It writes nothing.
@@ -51,8 +52,7 @@ def counts(bank, challenge, version):
         "challenge": challenge,
         "version": version,
         "rows": sealed
-        + sum(s["n"] for s in strata.values())
-        + sum(counted["overlaps"].values())
+        + len({i for rows in counted["members"].values() for i in rows})
         + len(counted["none"]),
         "sealed": sealed,
         "strata": strata,

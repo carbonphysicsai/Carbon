@@ -1,6 +1,7 @@
 """Motor 1.8's subset-repeat strata (CV-Motor-B, Sun 15 Nov, after the owner's "Yes for 66 per stratum"): every graded
-row lands in exactly ONE stratum, from its registered source; a row in two or in none refuses; keyed strata re-run
-min(66, n) rows and the gate sets every row; the counts tool prints counts only.
+row lands in AT LEAST one stratum, from its registered source; a row in two is a member of each (CV-Motor-B 17:43 CST:
+overlaps allowed, deduped after drawing); a row in none refuses; keyed strata re-run min(66, n) rows and the gate sets
+every row; the counts tool prints counts only.
 
 The registered sources are read from the committed registration (pool_constants.json) where the test checks them; the
 banks and their pool sources are synthetic (no sealed custody material is in the repository).
@@ -196,25 +197,62 @@ def test_min_66_per_keyed_stratum_and_every_gate_row(synthetic):
         assert len(rows) == counts[name] and set(rows) <= set(strata.members[name])
 
 
-@pytest.mark.parametrize(
-    "extra, code",
-    [
-        ([(POOL, ("H-1", "menu_D3"))], "subset_repeat_row_in_two_strata"),
-        ([(POOL, ("gate_oc_697a0d7b", "H-3a"))], "subset_repeat_row_in_two_strata"),
-        ([(POOL, None)], "subset_repeat_row_in_no_stratum"),
-        ([("practice", None)], "subset_repeat_row_in_no_stratum"),
-    ],
-)
-def test_a_row_in_two_strata_or_in_none_refuses(synthetic, extra, code):
-    bank = _bank(_spec(extra=extra))
+@pytest.mark.parametrize("cohort", [POOL, "practice"])
+def test_a_row_in_no_stratum_refuses(synthetic, cohort):
+    bank = _bank(_spec(extra=[(cohort, None)]))
     with pytest.raises(subset.SubsetRepeatRefused) as caught:
         subset.bank_strata(MOTOR, "1.8", bank)
-    assert caught.value.code == code
-    counted = subset.census(MOTOR, "1.8", bank)
-    if code.endswith("two_strata"):
-        assert sum(counted["overlaps"].values()) == 1  # reported, never resolved
-    else:
-        assert len(counted["none"]) == 1
+    assert caught.value.code == "subset_repeat_row_in_no_stratum"
+    assert len(subset.census(MOTOR, "1.8", bank)["none"]) == 1
+
+
+def test_a_row_in_two_strata_is_drawn_by_both_rerun_once_and_fails_both_when_it_differs(
+    synthetic,
+):
+    """CV-Motor-B 17:43 CST: each stratum keeps its FULL membership and draws its own rows; the op re-runs the union
+    once per row; a shared row counts for every stratum that drew it. H-3b (n 7 + 1) and menu_D5 (n 3 + 1) are drawn
+    whole, so the shared row is drawn by both."""
+    bank = _bank(_spec(extra=[(POOL, ("H-3b", "menu_D5"))]))
+    shared = len(bank["cohorts"]) - 1
+    strata = subset.bank_strata(MOTOR, "1.8", bank)
+    assert shared in strata.members["H-3b"] and shared in strata.members["menu_D5"]
+    assert (len(strata.members["H-3b"]), len(strata.members["menu_D5"])) == (8, 4)
+    assert subset.census(MOTOR, "1.8", bank)["overlaps"] == {"H-3b+menu_D5": 1}
+    sealed, keyed = subset.plan(
+        KEY, "rtsk_a", challenge=MOTOR, version="1.8", strata=strata
+    )
+    drew = [name for name, rows in keyed.items() if shared in rows]
+    assert drew == ["H-3b", "menu_D5"]
+    positions = subset.positions_of(sealed, keyed)
+    assert positions.count(shared) == 1  # re-run ONCE
+    assert len(positions) == len(set(positions))
+    graded = {p: [0.25 * p, -1.5] for p in positions}
+    fresh = {p: list(row) for p, row in graded.items()}
+    fresh[shared] = [
+        0.25 * shared,
+        -1.5 + 2.0**-40,
+    ]  # one value differs in the last bits
+
+    def stratum_passes(name):
+        return all(subset.rows_agree(graded[p], fresh[p]) for p in keyed[name])
+
+    assert not stratum_passes("H-3b") and not stratum_passes("menu_D5")  # fails BOTH
+    assert all(stratum_passes(name) for name in keyed if name not in drew)
+
+
+def test_a_gate_row_shared_with_another_stratum_counts_against_the_registered_gate_size(
+    synthetic,
+):
+    """A shared gate row is one of the gate's rows: with the full gate set plus a row also in a class, the gate holds 25
+    and refuses its registered 24 (a gate set != its registered n still refuses)."""
+    bank = _bank(_spec(extra=[(POOL, ("gate_oc_697a0d7b", "H-3a"))]))
+    with pytest.raises(subset.SubsetRepeatRefused) as caught:
+        subset.bank_strata(MOTOR, "1.8", bank)
+    assert caught.value.code == "subset_repeat_gate_set_size"
+    strata = subset.bank_strata(
+        MOTOR, "1.8", _bank(_spec(oc=23, extra=[(POOL, ("gate_oc_697a0d7b", "H-3a"))]))
+    )
+    assert len(strata.members["gate_oc_697a0d7b"]) == 24
 
 
 @pytest.mark.parametrize(
@@ -424,11 +462,14 @@ def test_the_counts_tool_prints_counts_only(synthetic):
         == 30 + 66 + 66 + 40 + 7 + 23 + 24 + 66 + 66 + 3 + 66
     )
     assert document["rows"] == len(_spec())
-    # an overlap is counted, not resolved and not refused
+    # an overlap is counted (and the row is in both strata's n), never refused
     overlapping = _tool().counts(
         _bank(_spec(extra=[(POOL, ("H-1", "menu_D3"))])), MOTOR, "1.8"
     )
     assert overlapping["overlaps"] == {"H-1+menu_D3": 1}
+    assert overlapping["strata"]["H-1"]["n"] == 121
+    assert overlapping["strata"]["menu_D3"]["n"] == 71
+    assert overlapping["rows"] == len(_spec()) + 1
 
 
 def test_only_door_and_grade_modules_import_the_subset_repeat_evidence():
