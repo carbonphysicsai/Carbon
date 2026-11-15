@@ -493,6 +493,7 @@ GRADE_STATE_WORDS = {
     "SUPERSEDED_BY_OWN_LATER_SUBMIT": "not graded: your own later submission took this round's graded slot",
     "ROUND_LIMIT_REACHED": "not graded: your key's graded exams for this round or this day were already used",
     "CROWN_HELD_FOR_REVIEW": "counted as your try: its crown change is held for review",
+    "WITHDRAWN_BY_MINER": "withdrawn by you while it was still queued: not built, not graded, and it used no try",
 }
 #: The failing step, what was observed and which pass (the receiver's closed ``failure``; ``pass`` from v8), in words.
 FAILURE_CHILD_WORDS = {

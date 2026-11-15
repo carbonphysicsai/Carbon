@@ -3985,6 +3985,52 @@ class RunnerAdapter:
             raise Rejected("construction_intake_unavailable", 409) from None
         return self.read(identity)
 
+    def withdraw_admitted(self, admitted, request):
+        # Owner GO 15 Nov 2026 (via the Lead): the miner withdraws its own queued, not-yet-building submission, a signed
+        # request through the latest epoch's own admission record (`withdraw_submission`). Unlike check_result it is not
+        # refused while the campaign's submit thread still polls the validator: that is exactly when a submission waits
+        # in the queue. The poll then ends on the withdrawn outcome (code withdrawn_by_miner), never a resubmit.
+        from carbon.chain.external_signer import SignerFailure
+        from carbon.development_session.direct_submission import (
+            WITHDRAW_WORDS,
+            DirectIntakeRefusal,
+            DirectWithdrawRefused,
+            withdraw_submission,
+        )
+
+        identity = admitted.campaign["id"]
+        root = Path(admitted.campaign["root"])
+        epochs = sorted(
+            int(found.group(1))
+            for path in root.glob("construction-intake-epoch-*.json")
+            if (
+                found := re.fullmatch(
+                    r"construction-intake-epoch-(\d+)\.json", path.name
+                )
+            )
+            is not None
+        )
+        if not epochs:
+            raise stepped(
+                "no_queued_submission", WITHDRAW_WORDS["no_queued_submission"]
+            )
+        try:
+            signer = (self.verdict_signer or signer_ready)(self.configured())
+            withdraw_submission(root, epochs[-1], signer)
+        except DirectWithdrawRefused as refused:
+            raise stepped(refused.code, refused.words) from None
+        except DirectIntakeRefusal as refused:
+            raise Rejected(refused.code, 409) from None
+        except SignerFailure as failure:
+            raise Rejected(
+                exception_code(failure) or "signer_unavailable", 409
+            ) from None
+        except OSError:
+            raise stepped(
+                "withdraw_unavailable", WITHDRAW_WORDS["withdraw_unavailable"]
+            ) from None
+        return self.read(identity)
+
     def campaign_view_admitted(self, admitted, request):
         # The research surface's one document (RSURF-D1), which the page
         # polls: a phantom in-flight campaign is settled first.

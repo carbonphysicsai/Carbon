@@ -90,6 +90,7 @@ def test_a_reply_about_another_task_shows_nothing():
         ("ROUND_LIMIT_REACHED", "already used"),
         ("SUPERSEDED_BY_OWN_LATER_SUBMIT", "later submission"),
         ("CROWN_HELD_FOR_REVIEW", "held for review"),
+        ("WITHDRAWN_BY_MINER", "used no try"),
     ],
 )
 def test_every_state_reads_in_words_and_claims_no_ladder_line(state, phrase):
@@ -99,7 +100,8 @@ def test_every_state_reads_in_words_and_claims_no_ladder_line(state, phrase):
 
 
 def test_every_state_and_observation_the_receiver_can_send_has_words():
-    assert set(projection.GRADE_STATE_WORDS) == set(client.GRADE_STATES_V5)
+    # v9 adds WITHDRAWN_BY_MINER (a miner's own withdrawal of a queued submission): every state a v9 reply can send has words
+    assert set(projection.GRADE_STATE_WORDS) == set(client.GRADE_STATES_V9)
     assert set(projection.FAILURE_OBSERVATION_WORDS) == set(client.FAILURE_OBSERVATIONS)
     assert set(projection.FAILURE_CHILD_WORDS) == set(client.FAILURE_CHILDREN)
     assert set(projection.FAILURE_PASS_WORDS) == set(direct_intake.FAILURE_PASSES)
