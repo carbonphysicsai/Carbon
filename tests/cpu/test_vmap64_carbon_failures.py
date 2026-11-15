@@ -249,8 +249,10 @@ def test_graded_bytes_of_another_inference_are_never_compared(
     elif switch in ("program_text", "staged_file"):
         _changed_query(monkeypatch, switch)
     elif switch == "image_id":
-        provider = fixture.adapter._provider(e2e.OWNER)
-        provider.inference_image = WorkerImageIdentity(*(("sha256:" + "e" * 64,) * 8))
+        # (a provider image that moved is refused earlier, regrade_construction_parent_differs; here the regrade's
+        # own chosen image differs, so only the inference digest can see it)
+        moved = WorkerImageIdentity(*(("sha256:" + "e" * 64,) * 8))
+        monkeypatch.setattr(retention, "_regrade_inference_image", lambda *a: moved)
     root = tmp_path / "receiver"
     outcome, marker = _graded_by(auto_grade.AutoGrader(_Intake(fixture), root), root)
     if switch == "same":

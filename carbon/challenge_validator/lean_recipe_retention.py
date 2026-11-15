@@ -1448,7 +1448,7 @@ def _single_call_raw(
             None
             if tolerance is None
             else _requeue_attempt(
-                adapter.ledger,
+                getattr(adapter, "ledger", None),
                 (
                     regrade.origin_task_id
                     if regrade is not None and regrade.counted
