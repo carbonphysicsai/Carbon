@@ -346,6 +346,22 @@ def king_stability(config, item, king_document):
     return "STABLE"
 
 
+def official_rule(item, king):
+    """The v2 king document with the bar's rule NAMED as it decides: for a version that registers official-score crowns
+    (`official_score`), a door whose king page still says the averaged id (`koth_public.TO_BEAT_RULE_AVERAGED`, a receiver
+    before the official bar's id) is shown under the single-grade id (`koth_public.TO_BEAT_RULE`), the rule that decides
+    its crowns. Only the name: the score to beat is the door's own number (for this rule both ids give the same
+    guaranteed bound, floor + step + margin, rounded up). Any other document is returned as it is.
+    """
+    if (
+        type(king) is dict
+        and king.get("to_beat_rule") == koth_public.TO_BEAT_RULE_AVERAGED
+        and official_score(item)
+    ):
+        return {**king, "to_beat_rule": koth_public.TO_BEAT_RULE}
+    return king
+
+
 def official_score(item):
     """True when ``item``'s Challenge version registers official-score crowns (`crown_official.registered`, the same
     registry file the receiver reads at start); a malformed registry refuses (``crown_official_invalid``).
@@ -525,6 +541,7 @@ def run_once(config, *, version=None):
             exam_key = item.get("exam_key", "latest")
             extra = {}
             if v2:
+                king = official_rule(item, king)
                 # The closed v2 king check the build makes, first: the sources read
                 # only a king document of exactly that shape.
                 launch_board._king(king, v2=True)
