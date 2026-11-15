@@ -2841,28 +2841,6 @@ def _page_noise(challenge):
     )
 
 
-def _official_bar(pool_store, challenge_id):
-    """The king page's bar under official-score crowns: ``{"base": the king's official total (no king: the baseline),
-    "margin": the rule's margin}``, so the published score to beat is never below the real bar; None without a store
-    or a base."""
-    from carbon.challenge_validator import crown_official
-
-    store = _open_pool_store(pool_store)
-    if store is None:
-        return None
-    incumbent = store.incumbent()
-    if incumbent is None:
-        base = store.latest_baseline(challenge_id)
-    else:
-        standing = store.incumbent_standing(incumbent["model_id"])
-        base = None if standing is None else standing["total"]
-    return (
-        None
-        if base is None
-        else {"base": base, "margin": crown_official.ACTIVE["margin"]}
-    )
-
-
 def _crown_bar(pool_store, challenge_id):
     """The averaged bar of the king page (`koth_public.TO_BEAT_RULE_AVERAGED`, Lead 5 Nov) when this receiver runs crown
     averaging, or None. A screening grade must beat the king's N-rebuild MEAN by more than margin_N
@@ -2874,8 +2852,10 @@ def _crown_bar(pool_store, challenge_id):
     from carbon.challenge_validator import crown_average, crown_official
 
     if crown_official.ACTIVE is not None:
-        # official-score crowns: the king's OFFICIAL total + the rule's margin (never the rebuild noise)
-        return _official_bar(pool_store, challenge_id)
+        # Official-score crowns (owner 14 Nov) ARE the single-grade rule: the king's official total + the rule's margin.
+        # So the page keeps the original bar (`koth_public.TO_BEAT_RULE`: the step-floored king total + step + margin,
+        # rounded up, with `_page_noise`'s margin), under its original id, never the averaged one.
+        return None
     active = crown_average.ACTIVE
     if active is None:
         return None

@@ -368,43 +368,31 @@ def test_the_official_record_check_refuses_anything_else():
 def test_the_king_page_shows_the_official_margin_and_a_bar_never_below_the_real_one(
     official, monkeypatch
 ):
-    """TE-B must-fix 1: under official crowns the page's margin is the rule's (never the rebuild noise) and its score to
-    beat is the king's OFFICIAL total + the margin, rounded UP; with no king, the baseline + the margin.
+    """TE-B must-fix 1: under official crowns the page's margin is the rule's (never the rebuild noise). Official crowns
+    ARE the single-grade rule, so the page keeps its original bar and id (no averaged bar; Deploy-B 14 Nov: the averaged
+    id named a rule that no longer decides): the step-floored king total + step + margin, rounded UP, never below the
+    real bar (the exact total + the margin), and the exact total never shown.
     """
     import types
 
     from carbon.challenge_validator import direct_receiver, koth_public
+    from carbon.scoring import grade_feedback as gf
 
     challenge = types.SimpleNamespace(challenge_id=CHALLENGE, version=VERSION)
     assert direct_receiver._page_noise(challenge)["value"] == MARGIN
-
-    class Store:
-        def __init__(self, king):
-            self.king = king
-
-        def incumbent(self):
-            return None if self.king is None else {"model_id": "k"}
-
-        def incumbent_standing(self, model):
-            return {"total": 0.55999}
-
-        def latest_baseline(self, challenge_id):
-            return 0.5
-
-    for king, base in (("k", 0.55999), (None, 0.5)):
-        monkeypatch.setattr(
-            direct_receiver, "_open_pool_store", lambda _p, k=king: Store(k)
-        )
-        assert direct_receiver._crown_bar("store", CHALLENGE) == {
-            "base": base,
-            "margin": MARGIN,
-        }
+    monkeypatch.setattr(
+        direct_receiver,
+        "_open_pool_store",
+        lambda _p: pytest.fail("the official page reads no averaged bar"),
+    )
+    assert direct_receiver._crown_bar("store", CHALLENGE) is None
     # TE-B's worst case: a king at 0.55999 must publish a score to beat at or above 0.55999 + 0.0129 = 0.57289
-    for king_total in (0.5, 0.55999, 0.6, 0.7129, 0.79):
-        shown = koth_public.to_beat_averaged(
-            {"base": king_total, "margin": MARGIN}, MARGIN
-        )
+    for king_total in (0.5, 0.55999, 0.6, 0.66, 0.6655, 0.7129, 0.79):
+        shown = koth_public.to_beat_v2(gf.floor_to_step(king_total, MARGIN), MARGIN)
         assert shown >= king_total + MARGIN - 1e-12, (king_total, shown)
+    # the live 116 case: a king floored to 0.66 shows 0.693 (the true bar lies between 0.673 and 0.693)
+    assert koth_public.to_beat_v2(0.66, MARGIN) == 0.693
+    assert koth_public.TO_BEAT_RULE == "floor_plus_step_plus_margin"
 
 
 def test_off_the_king_page_is_as_before(monkeypatch):
