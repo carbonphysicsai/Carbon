@@ -93,7 +93,7 @@ def _motor18_promise(tmp_path, row):
     return _promise_file(tmp_path, {f"{MOTOR} 1.8": row})
 
 
-#: The committed values file: the owner's f and P, the strata HUMAN_INPUT (null) until CV-Motor names them.
+#: The committed values file: the owner's f and P and CV-Motor-B's strata names.
 COMMITTED = ROOT / "scripts" / "validator_host_classes" / "subset_repeat.json"
 POOL, PROBE = "pool_design", "probe_response"
 #: A test promise: the owner's f and P with two synthetic strata named in the test (CV-Motor's list is pending).
@@ -104,12 +104,38 @@ PROMISE = {
 }
 
 
+#: The code's real strata, captured before any test replaces them (`test_motor18_subset_repeat_strata` tests them).
+REAL_STRATA = subset.STRATA
+#: Synthetic cohort strata for this file's synthetic banks and the Motor 1.5 fixture.
+COHORT_STRATA = {
+    POOL: subset.Stratum("cohort", POOL),
+    PROBE: subset.Stratum("cohort", PROBE),
+}
+
+
 @pytest.fixture(autouse=True)
 def promise(tmp_path_factory, monkeypatch):
-    """Every test reads the test promise unless it registers its own (the committed strata are null: fail closed)."""
+    """Every test reads the test promise and the synthetic cohort strata unless it registers its own."""
     path = _motor18_promise(tmp_path_factory.mktemp("promise"), PROMISE)
     monkeypatch.setattr(subset, "VALUES_PATH", path)
+    monkeypatch.setattr(
+        subset,
+        "STRATA",
+        {(MOTOR, "1.8"): dict(COHORT_STRATA), (MOTOR, "1.5"): dict(COHORT_STRATA)},
+    )
     return path
+
+
+def _bank(cohorts):
+    """A synthetic graded bank: its cohorts and one distinct input row each (no pool material: cohort strata only)."""
+    return {
+        "cohorts": list(cohorts),
+        "inputs": [[float(i)] for i in range(len(cohorts))],
+    }
+
+
+def _strata(cohorts, version="1.8"):
+    return subset.bank_strata(MOTOR, version, _bank(cohorts))
 
 
 def _cohorts(n, sealed=30, probes=20):
@@ -119,16 +145,16 @@ def _cohorts(n, sealed=30, probes=20):
 # -- the promise and k ---------------------------------------------------------------------------------------------------
 
 
-def test_the_committed_promise_is_the_owners_f_and_p_with_the_strata_pending():
+def test_the_committed_promise_is_the_owners_f_and_p_and_cv_motors_strata():
     row = json.loads(COMMITTED.read_text(encoding="utf-8"))["rows"][f"{MOTOR} 1.8"]
     assert row == {
         "repeat_fail_fraction": 0.10,
         "repeat_detect_prob": 0.999,
-        "strata": None,
+        "strata": list(REAL_STRATA[(MOTOR, "1.8")]),
     }
-    with pytest.raises(subset.SubsetRepeatRefused) as caught:
-        subset.registered_promise(MOTOR, "1.8", path=COMMITTED)
-    assert caught.value.code == "subset_repeat_strata_unregistered"
+    assert subset.registered_promise(MOTOR, "1.8", path=COMMITTED)[2] == list(
+        REAL_STRATA[(MOTOR, "1.8")]
+    )
 
 
 def test_k_is_66_inside_each_stratum_capped_at_its_size():
@@ -138,7 +164,10 @@ def test_k_is_66_inside_each_stratum_capped_at_its_size():
     assert subset.derived_k(0.10, 0.999, 40) == 40
     assert subset.derived_k(0.10, 0.999, 1) == 1
     cohorts = [GRID] * 30 + [PROBE] * 40 + [POOL] * 2494
-    assert subset.registered_counts(MOTOR, "1.8", cohorts) == {POOL: 66, PROBE: 40}
+    assert subset.registered_counts(MOTOR, "1.8", _strata(cohorts)) == {
+        POOL: 66,
+        PROBE: 40,
+    }
 
 
 @pytest.mark.parametrize(
@@ -184,7 +213,7 @@ def test_an_unknown_stratum_fails_closed(tmp_path, monkeypatch):
         _motor18_promise(tmp_path, {**PROMISE, "strata": [POOL, "practice"]}),
     )
     with pytest.raises(subset.SubsetRepeatRefused) as caught:
-        subset.registered_counts(MOTOR, "1.8", _cohorts(200))
+        subset.registered_counts(MOTOR, "1.8", _strata(_cohorts(200)))
     assert caught.value.code == "subset_repeat_stratum_unknown"
 
 
@@ -211,7 +240,9 @@ KEY = bytes(range(32))  # synthetic K_speed
 
 
 def _plan(sid, cohorts):
-    return subset.plan(KEY, sid, challenge=MOTOR, version="1.8", cohorts=cohorts)
+    return subset.plan(
+        KEY, sid, challenge=MOTOR, version="1.8", strata=_strata(cohorts)
+    )
 
 
 def test_every_grade_repeats_all_sealed_cells_plus_min_k_size_rows_in_each_stratum():
@@ -238,7 +269,16 @@ def test_each_stratums_draw_is_independent_of_the_others(tmp_path, monkeypatch):
         "VALUES_PATH",
         _motor18_promise(tmp_path, {**PROMISE, "strata": [POOL]}),
     )
-    alone = _plan("rtsk_a", cohorts)[1]
+    monkeypatch.setattr(subset, "STRATA", {(MOTOR, "1.8"): {POOL: COHORT_STRATA[POOL]}})
+    alone = subset.plan(
+        KEY,
+        "rtsk_a",
+        challenge=MOTOR,
+        version="1.8",
+        strata=subset.bank_strata(
+            MOTOR, "1.8", _bank([c for c in cohorts if c != PROBE])
+        ),
+    )[1]
     assert alone == {POOL: both[POOL]}
     assert subset.grade_key(KEY, "rtsk_a", POOL) != subset.grade_key(
         KEY, "rtsk_a", PROBE
@@ -523,7 +563,10 @@ def small_promise(tmp_path, monkeypatch):
             {**PROMISE, "repeat_fail_fraction": 0.9, "repeat_detect_prob": 0.99},
         ),
     )
-    assert subset.registered_counts(MOTOR, "1.8", COHORTS) == {POOL: 2, PROBE: 2}
+    assert subset.registered_counts(MOTOR, "1.8", _strata(COHORTS)) == {
+        POOL: 2,
+        PROBE: 2,
+    }
 
 
 def _side(*, sealed=SEALED, keyed=KEYED, answers=None, sid=SID, **overrides):
@@ -544,12 +587,13 @@ def _side(*, sealed=SEALED, keyed=KEYED, answers=None, sid=SID, **overrides):
 
 
 def _read(raw, graded_inputs, **changes):
+    cohorts = changes.pop("cohorts", COHORTS)
     arguments = {
         "registered_sha256": _sha(raw),
         "challenge": MOTOR,
         "version": "1.8",
         "evaluation_pack_digest": PACK,
-        "cohorts": COHORTS,
+        "strata": _strata(cohorts),
         "graded_inputs": graded_inputs,
         "output_shape": [N, WIDTH],
         "recipe_digest": RECIPE,
@@ -684,12 +728,43 @@ def test_non_finite_or_malformed_fresh_answers_are_read_as_the_candidates(
     answers = [_row(p) for p in (0, 1, 2, 3, 5, 7, 8, 9)]
     answers[1][7] = float("nan")
     answers[4] = answers[4][:-1]
+    answers[6][3] = 10**400  # a JSON integer no float holds
     raw, graded_inputs = _side(answers=answers)
     twins = _read(raw, graded_inputs)
     assert math.isnan(twins[1][7])
     assert twins[5] == ()
+    assert twins[8] == ()
     graded = [_row(p) for p in range(N)]
     assert not subset_repeat_produce.repeat_holds(graded, twins)
+    assert not subset_repeat_produce.repeat_holds(
+        graded, [t if i == 8 else None for i, t in enumerate(twins)]
+    )
+
+
+def test_a_bank_without_sealed_cells_is_refused_at_read_time(small_promise):
+    raw, graded_inputs = _side(sealed=[])
+    strata = _strata(COHORTS)
+    unsealed = subset.BankStrata(
+        sealed=(),
+        members={**strata.members, POOL: (0, 1, 2, 3, *strata.members[POOL])},
+        every=strata.every,
+    )
+    with pytest.raises(subset.SubsetRepeatRefused) as caught:
+        subset.read(
+            raw,
+            registered_sha256=_sha(raw),
+            challenge=MOTOR,
+            version="1.8",
+            evaluation_pack_digest=PACK,
+            strata=unsealed,
+            graded_inputs=graded_inputs,
+            output_shape=[N, WIDTH],
+            recipe_digest=RECIPE,
+            state_digest=STATE,
+            inference_image_id=IMAGE,
+            graded_operation=GRADED_OP,
+        )
+    assert caught.value.code == "subset_repeat_positions"
 
 
 # -- the real pool-graded fixture (Motor 1.5's, admitted as a subset version here) ------------------------------------------
@@ -720,7 +795,13 @@ def _fixture_side(case, *, change=None):
     pack = case["snapshot"].manifest_digest
     cohorts = list(case["bank"]["cohorts"])
     sealed, keyed = subset.plan(
-        POOL_KEY, FIX_SID, challenge=MOTOR, version="1.5", cohorts=cohorts
+        POOL_KEY,
+        FIX_SID,
+        challenge=MOTOR,
+        version="1.5",
+        strata=subset.bank_strata(
+            MOTOR, "1.5", {"cohorts": cohorts, "inputs": case["bank"]["inputs"]}
+        ),
     )
     positions = subset.positions_of(sealed, keyed)
     answers = [list(case["outputs"][p]) for p in positions]
@@ -1069,7 +1150,7 @@ def _door(tmp_path, monkeypatch, plays, *, n=200, promise=None, key=KEY):
         retention, "_private_evaluation_directory", lambda result, sid: tmp_path
     )
     monkeypatch.setattr(
-        retention, "_subset_bank_cohorts", lambda adapter, inputs: _cohorts(n)
+        retention, "_subset_bank", lambda adapter, inputs: _bank(_cohorts(n))
     )
     if promise is not None:
         monkeypatch.setattr(subset, "VALUES_PATH", _motor18_promise(tmp_path, promise))
@@ -1150,7 +1231,7 @@ def test_the_door_runs_one_fresh_op_on_the_sealed_cells_and_each_stratums_keyed_
     assert len(calls) == 1  # ONE op, no pair
     document = json.loads(raw)
     sealed, keyed = subset.plan(
-        KEY, "rtsk_x", challenge=MOTOR, version="1.8", cohorts=_cohorts(200)
+        KEY, "rtsk_x", challenge=MOTOR, version="1.8", strata=_strata(_cohorts(200))
     )
     assert document["sealed_positions"] == sealed == list(range(30))
     assert document["keyed_positions"] == keyed
@@ -1383,7 +1464,7 @@ def _serve(retention, monkeypatch, *, pinned=OLD_MOTOR18, cohorts=None, key=KEY)
     monkeypatch.setattr(
         sealed_batch_source,
         "resolve",
-        lambda **kw: ({"cohorts": cohorts or _cohorts(200)}, None),
+        lambda **kw: (_bank(cohorts or _cohorts(200)), None),
     )
     return retention.subset_repeat_serve_check(
         MOTOR,
@@ -1418,7 +1499,11 @@ def test_the_serve_check_names_the_successor_row_and_the_strata(monkeypatch):
         ({"pinned": "sha256:" + "e" * 64}, "producer_successor_mismatch"),
         ({"key": None}, "subset_repeat_key_unavailable"),
         ({"key": b"short"}, "subset_repeat_key_unavailable"),
-        ({"cohorts": [GRID] * 30 + [POOL] * 100}, "subset_repeat_stratum_unknown"),
+        ({"cohorts": [GRID] * 30 + [POOL] * 100}, "subset_repeat_stratum_empty"),
+        (
+            {"cohorts": [GRID] * 30 + [POOL] * 100 + ["other"]},
+            "subset_repeat_row_in_no_stratum",
+        ),
         ({"cohorts": [PROBE] * 30 + [POOL] * 100}, "subset_repeat_bank_strata"),
     ],
 )
@@ -1450,17 +1535,6 @@ def test_the_serve_check_refuses_an_unregistered_promise_or_strata(
     with pytest.raises(retention.RetentionUnavailable) as caught:
         retention.subset_repeat_serve_check(MOTOR, "1.8", speed_key=KEY)
     assert str(caught.value) == code
-
-
-def test_the_committed_values_keep_the_door_closed_until_cv_names_the_strata(
-    monkeypatch,
-):
-    from carbon.challenge_validator import lean_recipe_retention as retention
-
-    monkeypatch.setattr(subset, "VALUES_PATH", COMMITTED)
-    with pytest.raises(retention.RetentionUnavailable) as caught:
-        retention.subset_repeat_serve_check(MOTOR, "1.8", speed_key=KEY)
-    assert str(caught.value) == "subset_repeat_strata_unregistered"
 
 
 def test_the_receiver_runs_the_serve_check_at_start_with_the_hosts_key():
@@ -1514,7 +1588,7 @@ def test_the_record_carries_both_owner_lines_and_the_values():
     assert record["values"]["promise"] == {
         "repeat_fail_fraction": 0.10,
         "repeat_detect_prob": 0.999,
-        "strata": None,
+        "strata": list(REAL_STRATA[(MOTOR, "1.8")]),
     }
     assert record["values"]["producer_successor"] == producer_successor.row(
         MOTOR, "1.8"

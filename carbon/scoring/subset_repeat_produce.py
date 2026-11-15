@@ -266,7 +266,9 @@ def _inputs(
             challenge=adapter.CHALLENGE,
             version=adapter.VERSION,
             evaluation_pack_digest=selected.manifest_digest,
-            cohorts=list(bank["cohorts"]),
+            strata=subset_evidence.bank_strata(
+                adapter.CHALLENGE, adapter.VERSION, bank
+            ),
             graded_inputs=graded_inputs,
             output_shape=measurement["output_shape"],
             recipe_digest=receipt["recipe_digest"],

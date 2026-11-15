@@ -1141,8 +1141,8 @@ def subset_repeat_serve_check(
     """The receiver's start-up check of a subset version (Validator-2B R-5): None for every other version. For a subset
     version the owner's promise must be registered, its strata named (else `subset_repeat_promise_unregistered` /
     `subset_repeat_strata_unregistered`: the door does not serve), the grading host's K_speed (``speed_key``) must be
-    present (else `subset_repeat_key_unavailable`), and, with the served sealed pack, every stratum must be a label of
-    its carried bank (else `subset_repeat_stratum_unknown`) and its pinned producer must bind the producer recomputed
+    present (else `subset_repeat_key_unavailable`), and, with the served sealed pack, its carried bank must split into
+    exactly the version's strata, each row in exactly one (`subset_repeat_evidence.bank_strata`), and its pinned producer must bind the producer recomputed
     now, exactly or through the version's ONE successor row (else `producer_successor_mismatch`). Returns the successor row it names (or the exact
     binding), so the start-up log says which row the door grades under."""
     import importlib
@@ -1181,10 +1181,8 @@ def subset_repeat_serve_check(
         )
         if sealed is None:
             raise RetentionUnavailable("subset_repeat_bank_unavailable")
-        cohorts = list(sealed[0]["cohorts"])
-        named["counts"] = subset.registered_counts(challenge_id, version, cohorts)
-        if not subset.sealed_positions(cohorts):
-            raise RetentionUnavailable("subset_repeat_bank_strata")
+        strata = subset.bank_strata(challenge_id, version, sealed[0])
+        named["counts"] = subset.registered_counts(challenge_id, version, strata)
     except subset.SubsetRepeatRefused as refused:
         raise RetentionUnavailable(refused.code) from refused
     except (sealed_batch_source.SealedBankRefused, ValueError, KeyError) as exc:
@@ -1205,9 +1203,9 @@ def subset_repeat_serve_check(
     return {**named, "pack_producer_digest": pinned, "producer_digest": identity}
 
 
-def _subset_bank_cohorts(adapter, inputs):
-    """The cohorts of the sealed bank this grade's delivered query IS (row for row), from the served pack's carried
-    batch (as the single-call stage resolves it). A query that is not that bank is Carbon's gap.
+def _subset_bank(adapter, inputs):
+    """The sealed bank this grade's delivered query IS (row for row), from the served pack's carried batch (as the
+    single-call stage resolves it). A query that is not that bank is Carbon's gap.
     """
     import numpy as np
 
@@ -1231,7 +1229,7 @@ def _subset_bank_cohorts(adapter, inputs):
         np.asarray(bank["inputs"], dtype=inputs.dtype), inputs
     ):
         raise RetentionUnavailable("subset_repeat_query_is_not_the_bank")
-    return list(bank["cohorts"])
+    return bank
 
 
 def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
@@ -1267,13 +1265,15 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
         promise = subset.registered_promise(kit["id"], kit["version"])
         speed_key = getattr(adapter, "speed_sample_key", None)
         subset.grade_key(speed_key, submission_id, "key-check")
-        cohorts = _subset_bank_cohorts(adapter, inputs)
+        strata = subset.bank_strata(
+            kit["id"], kit["version"], _subset_bank(adapter, inputs)
+        )
         sealed, keyed = subset.plan(
             speed_key,
             submission_id,
             challenge=kit["id"],
             version=kit["version"],
-            cohorts=cohorts,
+            strata=strata,
         )
     except subset.SubsetRepeatRefused as refused:
         raise RetentionUnavailable(refused.code) from refused

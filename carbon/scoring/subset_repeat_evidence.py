@@ -34,6 +34,7 @@ import itertools
 import json
 import math
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 #: The versions whose repeat is the keyed subset repeat (every other version keeps the full pair, unchanged).
@@ -121,14 +122,7 @@ def _probability(value):
     return type(value) is float and math.isfinite(value) and 0.0 < value < 1.0
 
 
-def registered_promise(challenge, version, *, path=None):
-    """``(repeat_fail_fraction, repeat_detect_prob, strata)`` registered for ``"<challenge> <version>"``.
-
-    ``f`` and ``P`` must each be a JSON number strictly between 0 and 1 (finite, never a bool); ``strata`` (owner, Sun 15
-    Nov ~09:5x CST: "Yes for 66 per stratum"; the names are CV-Motor's) is a non-empty list of distinct graded-bank
-    cohort labels, never the sealed grid's (its rows are all re-run). An absent file or row, a null or malformed value,
-    or any other key refuses (fail closed): ``subset_repeat_promise_unregistered``, or
-    ``subset_repeat_strata_unregistered`` for the strata alone."""
+def _promise_row(challenge, version, path):
     try:
         document = json.loads(Path(VALUES_PATH if path is None else path).read_bytes())
     except (OSError, ValueError) as exc:
@@ -145,6 +139,26 @@ def registered_promise(challenge, version, *, path=None):
         and _probability(row["repeat_detect_prob"]),
         "subset_repeat_promise_unregistered",
     )
+    return row
+
+
+def registered_rate(challenge, version, *, path=None):
+    """``(repeat_fail_fraction, repeat_detect_prob)`` alone (a count tool needs no strata): each a JSON number strictly
+    between 0 and 1 (finite, never a bool), else ``subset_repeat_promise_unregistered``.
+    """
+    row = _promise_row(challenge, version, path)
+    return row["repeat_fail_fraction"], row["repeat_detect_prob"]
+
+
+def registered_promise(challenge, version, *, path=None):
+    """``(repeat_fail_fraction, repeat_detect_prob, strata)`` registered for ``"<challenge> <version>"``.
+
+    ``f`` and ``P`` as `registered_rate`; ``strata`` (owner, Sun 15 Nov ~09:5x CST: "Yes for 66 per stratum"; the names
+    are CV-Motor-B's, defined in code by `STRATA`) is a non-empty list of distinct names, never the sealed grid's (its
+    rows are all re-run). An absent file or row, a null or malformed value, or any other key refuses (fail closed):
+    ``subset_repeat_promise_unregistered``, or ``subset_repeat_strata_unregistered`` for the strata alone.
+    """
+    row = _promise_row(challenge, version, path)
     strata = row["strata"]
     _require(
         type(strata) is list
@@ -173,24 +187,251 @@ def derived_k(fail_fraction, detect_prob, n_rows):
     return max(1, min(need, n_rows))
 
 
-def stratum_rows(cohorts, name):
-    """The graded bank's rows labelled ``name``."""
-    return [i for i, cohort in enumerate(cohorts) if cohort == name]
+# -- the strata ----------------------------------------------------------------------------------------------------------
 
 
-def registered_counts(challenge, version, cohorts, *, path=None):
-    """``{stratum: k}`` for one graded bank (``cohorts``, one label per row): ``k = min(66-style k, the stratum's
-    rows)`` per registered stratum. A stratum the bank has no row of refuses ``subset_repeat_stratum_unknown``.
+@dataclass(frozen=True)
+class Stratum:
+    """One stratum of a subset version's graded bank: where its rows come from (``source``, ``selector``), whether every
+    row is re-run (``every``) or ``min(k, n)`` keyed rows, and, for a registered gate set, its registered size ``n``.
     """
-    fail_fraction, detect_prob, strata = registered_promise(
+
+    source: str  # "cohort" | "coverage_class" | "in_range_outputs" | "menu_task"
+    selector: object
+    every: bool = False
+    n: int | None = None
+
+
+#: The torque outputs and the open-circuit output of Motor 1.8's in-range gate case sets (pool_constants physics
+#: gate_threshold): a case of the registered in-range case set (``in_range_cases_sha256``) belongs to the torque gate
+#: set when its truths are exactly the torque outputs, and to the OC gate set when they are exactly the OC output.
+_TORQUE_GATE = ("mean_torque_nm", "ripple_pk_pk_nm")
+_OC_GATE = ("back_emf_open_circuit",)
+
+#: Each subset version's strata (CV-Motor-B, Sun 15 Nov, after the owner's "Yes for 66 per stratum"). The sealed grid's
+#: cells are always ALL re-run and are no stratum here. Every other graded row must land in exactly ONE stratum:
+#: - ``probe_response``: the bank's probe rows (their cohort);
+#: - ``H-1`` / ``H-3a`` / ``H-3b``: pool rows of the targets the REGISTERED coverage plan (``coverage_plan_sha256``,
+#:   vocabulary ``coverage_class_vocabulary``) puts in that class;
+#: - ``gate_torque_7d1761c3`` / ``gate_oc_697a0d7b``: ALL rows of the registered in-range case set's torque gate cases
+#:   (gate set 7d1761c3, n 23) and open-circuit gate cases (gate set 697a0d7b, n 24) (pool_constants record);
+#: - ``menu_D3`` .. ``menu_D6``: the menu rows (design x duty) of each registered menu task.
+#: Sources and sizes are the registered ones (pool_constants), read and checked at every build; nothing here is a value.
+STRATA = {
+    ("electric-motor-magnetics", "1.8"): {
+        "probe_response": Stratum("cohort", "probe_response"),
+        "H-1": Stratum("coverage_class", "H-1"),
+        "H-3a": Stratum("coverage_class", "H-3a"),
+        "H-3b": Stratum("coverage_class", "H-3b"),
+        "gate_torque_7d1761c3": Stratum("in_range_outputs", _TORQUE_GATE, True, 23),
+        "gate_oc_697a0d7b": Stratum("in_range_outputs", _OC_GATE, True, 24),
+        **{
+            f"menu_{task}": Stratum("menu_task", task)
+            for task in ("D3", "D4", "D5", "D6")
+        },
+    }
+}
+
+
+@dataclass(frozen=True)
+class BankStrata:
+    """One graded bank split into its strata: ``sealed`` positions (all re-run), ``members`` {stratum: positions} and the
+    strata re-run in full (``every``)."""
+
+    sealed: tuple
+    members: dict
+    every: frozenset
+
+
+def definitions(challenge, version):
+    """The code-defined strata of a subset version, or a typed refusal."""
+    found = STRATA.get((challenge, version))
+    _require(found is not None, "subset_repeat_strata_undefined")
+    return found
+
+
+def _pool_key(kind, names):
+    def key(row):
+        return tuple(float(kind.type(row[name])) for name in names)
+
+    return key
+
+
+def _pool_sources(challenge, version, bank, defined):
+    """``{(source, selector): {quantised pool row}}`` for every pool-row stratum source, from the bank's carried pool
+    material, each checked against its registration (coverage plan and sums, in-range case set, menu records).
+    """
+    import numpy as np
+
+    from carbon.scoring import (
+        pool_exam,
+        pool_grader,
+        pool_menu,
+        pool_physics_score,
+        pool_version,
+    )
+
+    wanted = {(d.source, d.selector) for d in defined.values() if d.source != "cohort"}
+    if not wanted:
+        return {}, None
+    material = bank.get("pool") if type(bank) is dict else None
+    try:
+        pool_version.check_material(material)
+        names, design_names = material["input_names"], material["design_names"]
+        kind = np.dtype(material["input_dtype"])
+        key = _pool_key(kind, names)
+        policies = pool_version.registered_policies(challenge, version)
+        sets = tuple(
+            tuple(pool_grader.load_pool(document) for document in group)
+            for group in material["sets"]
+        )
+        sources = {source: set() for source in wanted}
+        if any(source == "coverage_class" for source, _ in wanted):
+            plan = pool_exam.attach_coverage_plan(
+                policies,
+                material.get(pool_version.COVERAGE_PLAN),
+                material.get(pool_version.COVERAGE_PLAN_SUMS),
+                sets,
+            ).optimizer.coverage_plan
+            _require(plan is not None, "subset_repeat_coverage_plan_unregistered")
+            for group in sets:
+                for spec in group:
+                    bucket = sources.get(
+                        ("coverage_class", plan.class_of(spec.target_id))
+                    )
+                    if bucket is None:
+                        continue
+                    fixed = spec.conditions["fixed"]
+                    for design in spec.designs:
+                        bucket.add(
+                            key(
+                                {
+                                    **fixed,
+                                    **dict(zip(design_names, design, strict=True)),
+                                }
+                            )
+                        )
+        if any(source == "in_range_outputs" for source, _ in wanted):
+            registered = getattr(policies.physics, "in_range_cases_sha256", None)
+            cases = pool_physics_score.in_range_cases(
+                material.get(pool_version.IN_RANGE_CASES)
+            )
+            _require(
+                registered is not None and cases.sha256 == registered,
+                "subset_repeat_in_range_cases_unregistered",
+            )
+            for _class, inputs, truths, _u in cases.cases:
+                bucket = sources.get(("in_range_outputs", tuple(sorted(truths))))
+                if bucket is not None:
+                    bucket.add(key(inputs))
+        if any(source == "menu_task" for source, _ in wanted):
+            tasks = pool_version.menu_tasks(
+                material, pool_version.registered_menu(challenge, version)
+            )
+            _require(tasks is not None, "subset_repeat_menu_unregistered")
+            for task in tasks:
+                bucket = sources.get(("menu_task", task.problem.target_id))
+                if bucket is not None:
+                    bucket.update(
+                        key(row) for row in pool_menu.task_rows(task, design_names)[0]
+                    )
+    except SubsetRepeatRefused:
+        raise
+    except Exception as exc:
+        # any fault of the sealed material is Carbon's, typed
+        raise SubsetRepeatRefused("subset_repeat_strata_material") from exc
+    return sources, key
+
+
+def census(challenge, version, bank):
+    """Counts only: ``{"sealed": n, "strata": {name: n}, "overlaps": {"a+b": n}, "none": n}`` of one graded bank under the
+    version's code-defined strata. A row in two strata is counted under ``overlaps`` (never resolved), a row in none
+    under ``none``; neither is in any stratum's ``n``."""
+    import numpy as np
+
+    defined = definitions(challenge, version)
+    try:
+        cohorts = list(bank["cohorts"])
+        inputs = np.asarray(bank["inputs"])
+        _require(len(inputs) == len(cohorts), "subset_repeat_bank_shape")
+    except (KeyError, TypeError) as exc:
+        raise SubsetRepeatRefused("subset_repeat_bank_shape") from exc
+    sources, key = _pool_sources(challenge, version, bank, defined)
+    names = list(bank["pool"]["input_names"]) if key is not None else None
+    members = {name: [] for name in defined}
+    overlaps, none, sealed = {}, [], []
+    for i, cohort in enumerate(cohorts):
+        if cohort == SEALED_COHORT:
+            sealed.append(i)
+            continue
+        hits = [
+            name
+            for name, d in defined.items()
+            if d.source == "cohort" and d.selector == cohort
+        ]
+        if key is not None and cohort != "probe_response":
+            row = key(dict(zip(names, inputs[i], strict=True)))
+            hits += [
+                name
+                for name, d in defined.items()
+                if d.source != "cohort" and row in sources[(d.source, d.selector)]
+            ]
+        if len(hits) == 1:
+            members[hits[0]].append(i)
+        elif hits:
+            label = "+".join(sorted(hits))
+            overlaps[label] = overlaps.get(label, 0) + 1
+        else:
+            none.append(i)
+    return {
+        "sealed": sealed,
+        "members": members,
+        "overlaps": overlaps,
+        "none": none,
+    }
+
+
+def bank_strata(challenge, version, bank):
+    """The graded bank split into the version's strata, or a typed refusal: a row in TWO strata
+    (``subset_repeat_row_in_two_strata``) or in NONE (``subset_repeat_row_in_no_stratum``), no sealed cells, an empty
+    stratum, or a registered gate set of another size (``subset_repeat_gate_set_size``).
+    """
+    defined = definitions(challenge, version)
+    counted = census(challenge, version, bank)
+    _require(not counted["overlaps"], "subset_repeat_row_in_two_strata")
+    _require(not counted["none"], "subset_repeat_row_in_no_stratum")
+    _require(bool(counted["sealed"]), "subset_repeat_bank_strata")
+    for name, d in defined.items():
+        _require(bool(counted["members"][name]), "subset_repeat_stratum_empty")
+        _require(
+            d.n is None or len(counted["members"][name]) == d.n,
+            "subset_repeat_gate_set_size",
+        )
+    return BankStrata(
+        sealed=tuple(counted["sealed"]),
+        members={name: tuple(rows) for name, rows in counted["members"].items()},
+        every=frozenset(name for name, d in defined.items() if d.every),
+    )
+
+
+def registered_counts(challenge, version, strata, *, path=None):
+    """``{stratum: k}`` of one graded bank: ``n`` for a stratum re-run in full, else ``min(k, n)`` with ``k`` from the
+    registered promise. The promise must name exactly the version's strata (``subset_repeat_stratum_unknown`` for a
+    name the code does not define, ``subset_repeat_strata_unregistered`` for a missing one).
+    """
+    fail_fraction, detect_prob, names = registered_promise(
         challenge, version, path=path
     )
-    counts = {}
-    for name in strata:
-        size = len(stratum_rows(cohorts, name))
-        _require(size > 0, "subset_repeat_stratum_unknown")
-        counts[name] = derived_k(fail_fraction, detect_prob, size)
-    return counts
+    _require(set(names) <= set(strata.members), "subset_repeat_stratum_unknown")
+    _require(set(names) == set(strata.members), "subset_repeat_strata_unregistered")
+    return {
+        name: (
+            len(strata.members[name])
+            if name in strata.every
+            else derived_k(fail_fraction, detect_prob, len(strata.members[name]))
+        )
+        for name in names
+    }
 
 
 # -- the identities -----------------------------------------------------------------------------------------------------
@@ -272,27 +513,22 @@ def keyed_sample(key, candidates, k):
     return sorted(rows[:k])
 
 
-def sealed_positions(cohorts):
-    """The graded bank's sealed cells (its rows of the sealed grid cohort), every one re-run on every grade."""
-    return stratum_rows(cohorts, SEALED_COHORT)
-
-
-def plan(k_speed, submission_id, *, challenge, version, cohorts):
-    """``(sealed, {stratum: keyed})`` positions of one grade's repeat: ALL the sealed cells (CV-Motor-B, Q1 = B), plus,
-    INDEPENDENTLY inside EACH registered stratum, ``min(k, the stratum's rows)`` keyed rows (owner, "Yes for 66 per
-    stratum"), each drawn under its own per-stratum key."""
-    sealed = sealed_positions(cohorts)
-    _require(bool(sealed), "subset_repeat_bank_strata")
-    counts = registered_counts(challenge, version, cohorts)
+def plan(k_speed, submission_id, *, challenge, version, strata):
+    """``(sealed, {stratum: positions})`` of one grade's repeat: ALL the sealed cells (CV-Motor-B, Q1 = B), every row of a
+    stratum re-run in full, and, INDEPENDENTLY inside each other stratum, ``min(k, n)`` keyed rows (owner, "Yes for 66
+    per stratum"), each drawn under its own per-stratum key."""
+    counts = registered_counts(challenge, version, strata)
     keyed = {
-        name: keyed_sample(
-            grade_key(k_speed, submission_id, name),
-            stratum_rows(cohorts, name),
-            k,
+        name: (
+            list(strata.members[name])
+            if name in strata.every
+            else keyed_sample(
+                grade_key(k_speed, submission_id, name), strata.members[name], k
+            )
         )
         for name, k in counts.items()
     }
-    return sealed, keyed
+    return list(strata.sealed), keyed
 
 
 def positions_of(sealed, keyed):
@@ -383,7 +619,8 @@ def _answers(raw, rows, rest):
     for value in parsed:
         try:
             row = flat(value, rest)
-        except RecursionError:
+        except (RecursionError, OverflowError):
+            # (a JSON integer too large for a float is a malformed answer, the candidate's)
             row = None
         answers.append(() if row is None else tuple(row))
     return answers
@@ -413,7 +650,7 @@ def read(
     challenge,
     version,
     evaluation_pack_digest,
-    cohorts,
+    strata,
     graded_inputs,
     output_shape,
     recipe_digest,
@@ -425,8 +662,8 @@ def read(
     shape; non-finite values kept), None on every row that is not repeat-checked.
 
     The side file must be exactly the registered bytes and bind this grade: the served version and evaluation pack;
-    ALL the bank's sealed cells (``cohorts``) plus, in each registered stratum, exactly ``min(k, its rows)`` distinct
-    keyed rows of that stratum, ``k`` from the registered promise; the graded run's recipe, state and image; inputs that are exactly the graded query's rows at those
+    ALL the bank's sealed cells plus, in each registered stratum of ``strata`` (`bank_strata`), exactly its registered
+    count (`registered_counts`) of distinct rows of that stratum (every row of a stratum re-run in full); the graded run's recipe, state and image; inputs that are exactly the graded query's rows at those
     positions; and ONE settled operation that is not the graded one, under the ledger identity the door gives this
     submission's repeat (or its wall retry). ``output_shape`` is the graded query's full output shape. Anything else
     refuses, typed (Carbon's gap, never a verdict)."""
@@ -452,7 +689,8 @@ def read(
     )
     _require(_sha(raw) == registered_sha256, "subset_repeat_registered_digest")
     _require(
-        type(cohorts) in (list, tuple) and len(cohorts) == n_rows,
+        type(strata) is BankStrata
+        and len(strata.sealed) + sum(len(r) for r in strata.members.values()) == n_rows,
         "subset_repeat_expected_shape",
     )
     try:
@@ -481,17 +719,18 @@ def read(
             document["keyed_positions"],
             document["k"],
         )
-        counts = registered_counts(challenge, version, cohorts)
+        counts = registered_counts(challenge, version, strata)
         _require(
             document["n_rows"] == n_rows
-            and sealed == sealed_positions(cohorts)
+            and bool(strata.sealed)
+            and sealed == list(strata.sealed)
             and type(keyed) is dict
             and set(keyed) == set(counts)
             and k == counts
             and all(
                 _ascending(keyed[name], n_rows)
                 and len(keyed[name]) == counts[name]
-                and all(cohorts[p] == name for p in keyed[name])
+                and set(keyed[name]) <= set(strata.members[name])
                 for name in counts
             ),
             "subset_repeat_positions",
@@ -589,10 +828,16 @@ __all__ = [
     "RUN_SCHEMA",
     "SCHEMA",
     "SEALED_COHORT",
+    "STRATA",
     "SUBSET_REPEAT_VERSIONS",
     "VALUES_PATH",
     "VALUES_SCHEMA",
+    "BankStrata",
+    "Stratum",
     "SubsetRepeatRefused",
+    "bank_strata",
+    "census",
+    "definitions",
     "derived_k",
     "grade_key",
     "is_subset_version",
@@ -603,8 +848,8 @@ __all__ = [
     "read",
     "registered_counts",
     "registered_promise",
+    "registered_rate",
     "rows_agree",
     "run_identity",
-    "sealed_positions",
     "side_file",
 ]

@@ -3,7 +3,18 @@
     "electric-motor-magnetics 1.8": {
       "repeat_detect_prob": 0.999,
       "repeat_fail_fraction": 0.10,
-      "strata": null
+      "strata": [
+        "probe_response",
+        "H-1",
+        "H-3a",
+        "H-3b",
+        "gate_torque_7d1761c3",
+        "gate_oc_697a0d7b",
+        "menu_D3",
+        "menu_D4",
+        "menu_D5",
+        "menu_D6"
+      ]
     }
   },
   "schema": "carbon.exam.subset-repeat.v1"
