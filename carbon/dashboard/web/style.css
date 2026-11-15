@@ -80,6 +80,7 @@ main:focus{outline:none}
 .card-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .card-title{font-family:var(--mono);font-size:12px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-fg)}
 .crown{width:22px;height:15px;fill:var(--red);flex:none}
+.crown-in{width:1.4em;height:1em;margin-left:4px;vertical-align:-.1em}
 .duo{display:grid;gap:16px}
 .king{box-shadow:inset 0 3px 0 var(--fg)}
 .king-key{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 4px;font-size:20px}

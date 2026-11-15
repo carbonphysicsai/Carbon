@@ -232,13 +232,15 @@
     if (parts[0] === "mine") return {view: "mine"};
     if (parts[0] === "updates") return {view: "updates"};
     if (parts[0] === "showcase") return {view: "showcase", file: parts[1] || null};
-    return {view: "home"};
+    return parts[0] === "testnet" ? {view: "home", net: "testnet"} : {view: "home"};
   }
   function boardHref(slug) { return "#/b/" + encodeURIComponent(slug); }
   function minerHref(slug, hotkey) { return boardHref(slug) + "/m/" + encodeURIComponent(hotkey); }
-  function labelsOf(board) {
+  function labelsOf(board, full) {
     const labels = Array.isArray(board && board.labels) ? board.labels.slice() : [];
     if (!labels.includes("DEVELOPMENT")) labels.unshift("DEVELOPMENT");
+    const l = (full || board || {}).launch;
+    if (l && l.network === "mainnet") labels.push("MAINNET");
     return labels;
   }
 
@@ -256,8 +258,8 @@
   function stat(label, value, note, cls) {
     return h("div", {class: "stat " + (cls || "")}, h("dt", null, label), h("dd", null, value), note ? h("dd", {class: "note"}, note) : null);
   }
-  function crown() {
-    return h("svg", {viewBox: "0 0 24 16", class: "crown", "aria-hidden": "true", focusable: "false"},
+  function crown(label) {
+    return h("svg", {viewBox: "0 0 24 16", class: label ? "crown crown-in" : "crown", ...(label ? {role: "img", "aria-label": label} : {"aria-hidden": "true"}), focusable: "false"},
       h("path", {d: "M2 14h20L20 4l-5 5-3-7-3 7-5-5z"}));
   }
   function table(caption, head, rows, opts) {
@@ -744,7 +746,7 @@
         h("span", {class: "key", title: c.hotkey}, shortKey(c.hotkey)),
         c.from_hotkey === c.hotkey ? " re-took the crown" : [" took the crown from ",
           typeof c.from_hotkey === "string" ? h("span", {class: "key", title: c.from_hotkey}, shortKey(c.from_hotkey)) : "Carbon's baseline"],
-        h("span", {class: "hint"}, " · epoch " + c.since_epoch + (isNum(c.total) ? " · total " + total(c.total) : "")))))
+        h("span", {class: "hint"}, " · submitted in epoch " + c.since_epoch + (isNum(c.total) ? " · total " + total(c.total) : "")))))
         : h("p", {class: "hint"}, "No crown has changed hands yet."));
   }
   function stabilityLine(board) {
@@ -850,7 +852,7 @@
   function lastCrown(board) {
     const list = board.launch && board.launch.crown_changes;
     const c = Array.isArray(list) ? list.find(x => isObject(x) && typeof x.hotkey === "string" && Number.isSafeInteger(x.since_epoch)) : null;
-    return c ? "Last crown: epoch " + c.since_epoch : null;
+    return c ? "King submitted in epoch " + c.since_epoch : null;
   }
   function examLine(board) {
     const l = board.launch;
@@ -999,9 +1001,9 @@
     return h("a", {class: "card board-card", href: boardHref(entry.slug)},
       h("div", {class: "board-card-head"}, h("h3", null, nameOf(entry.challenge.id)), phase ? chip(phase[0], phase[1]) : null),
       aboutLine(entry.challenge.id),
-      h("div", {class: "chips"}, showClass ? chip(entry.device_class || "no device class", "chip-plain") : null, labelsOf(entry).filter(l => l !== "DEVELOPMENT").map(l => chip(l, l === "FIXTURE" ? "chip-warn" : "chip-plain"))),
+      h("div", {class: "chips"}, showClass ? chip(entry.device_class || "no device class", "chip-plain") : null, labelsOf(entry, board).filter(l => l !== "DEVELOPMENT").map(l => chip(l, l === "FIXTURE" ? "chip-warn" : "chip-plain"))),
       king ? h("div", {class: "board-card-king"},
-        h("span", {class: "eyebrow"}, "King"), h("span", {class: "key"}, shortKey(king.hotkey)),
+        h("span", {class: "eyebrow"}, "King"), h("span", {class: "key"}, shortKey(king.hotkey), crown("king")),
         isNum(king.value) ? h("span", {class: "board-card-value"}, total(king.value), h("small", null, " " + sectionLabel(board))) : null)
         : board && board.phase === "PRE_FIRST_RELEASE" ? h("p", {class: "hint"}, board.launch ? "No hotkey graded yet" : "First scores after the first release")
         : board && board.launch && board.launch.counts.graded > 0 ? h("p", {class: "hint"}, board.launch.counts.graded + " graded, no leader yet" + (best(board) !== null ? ". Best total " + total(best(board)) : "")) : null,
@@ -1051,11 +1053,12 @@
     const d = DETAILS[id];
     return d && d.order ? d.order : 100;
   }
-  function homeCards(index, boards, queues) {
+  const netOf = (e, b) => labelsOf(e, b).includes("MAINNET") ? "mainnet" : "testnet";
+  function homeCards(index, boards, queues, net) {
     const showClass = classChipShown(index.boards.map(b => b.device_class));
-    const items = index.boards.map(e => ({id: e.challenge ? e.challenge.id : null, device: e.device_class || "",
+    const items = index.boards.filter(e => !net || !e.slug || netOf(e, (boards || {})[e.slug]) === net).map(e => ({id: e.challenge ? e.challenge.id : null, device: e.device_class || "",
       node: homeCard(e, e.slug ? (boards || {})[e.slug] : null, showClass, e.slug ? (queues || {})[e.slug] : null)}));
-    items.push(...launchingCards(index).map(x => ({id: x.id, device: "", node: x.node})));
+    if (net !== "mainnet") items.push(...launchingCards(index).map(x => ({id: x.id, device: "", node: x.node})));
     const key = x => [x.id === null ? 1 : 0, x.id === null ? 0 : cardOrder(x.id), x.id === null ? "" : nameOf(x.id).toLowerCase(), x.device];
     items.sort((a, b) => { const ka = key(a), kb = key(b); for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] < kb[i] ? -1 : 1; return 0; });
     return items.map(x => x.node);
@@ -1070,8 +1073,12 @@
         h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), SHOWCASE ? h("a", {class: "btn", href: "#/showcase"}, "Design showcase") : null)),
       networkStrip(c.network),
       index.fixture ? h("p", {class: "notice"}, h("strong", null, "Fixture data. "), "These boards are synthetic, made to build and test the page. They are not results of any model or Challenge.") : null,
+      c.net ? h("div", {class: "actions", role: "group", "aria-label": "Network"}, ["Mainnet", "Testnet"].map(t => {
+        const on = c.net === t.toLowerCase();
+        return h("a", {class: on ? "btn btn-primary" : "btn", href: "#/" + t.toLowerCase(), "aria-current": on ? "page" : null}, t);
+      })) : null,
       index.boards.length || Object.keys(NAMES).length
-        ? h("div", {class: "board-grid"}, homeCards(index, boards, c.queues))
+        ? h("div", {class: "board-grid"}, homeCards(index, boards, c.queues, c.net))
         : h("p", {class: "empty"}, "Launching soon on Carbon's test network. No board is published yet; each Challenge appears here, with its leader and the score to beat, as soon as the validator publishes it."));
   }
 
@@ -1263,7 +1270,7 @@
         setStamp(first ? footerStamp(first, now) : "No board published yet", first);
         // Fetched only when the index says a signed snapshot exists (S3).
         const network = index.network === true ? await optional("data/network.json") : null;
-        return show(homePage(index, boards, {now, network, queues}));
+        return show(homePage(index, boards, {now, network, queues, net: route.net || "mainnet"}));
       }
       const entry = index.boards.find(b => b.slug === route.slug);
       if (!entry) return show(h("p", {class: "notice"}, "No such board. ", h("a", {href: "#/"}, "All boards")));

@@ -133,3 +133,68 @@ assert.equal(D.toBeat(0.828), "0.828");
   b.launch.to_beat = 0.7285;
   assert.ok(D.textOf(D.boardPage(b, {now})).includes("0.729"), "a 4-place to_beat reads rounded up on the page");
 }
+
+// ---- 6. every launch card names its network (owner 15 Nov): MAINNET from the signed board's launch.network, as TESTNET ----
+{
+  const main = JSON.parse(JSON.stringify(Object.values(boardsV2)[0]));
+  main.launch.network = "mainnet"; main.labels = ["DEVELOPMENT"];
+  const test = JSON.parse(JSON.stringify(Object.values(boardsV2)[0]));
+  test.launch.network = "testnet"; test.labels = ["DEVELOPMENT", "TESTNET"];
+  assert.deepEqual(D.labelsOf(main), ["DEVELOPMENT", "MAINNET"], "mainnet board: MAINNET");
+  assert.deepEqual(D.labelsOf(test), ["DEVELOPMENT", "TESTNET"], "testnet board: TESTNET, never MAINNET");
+  assert.deepEqual(D.labelsOf({labels: ["DEVELOPMENT"]}), ["DEVELOPMENT"], "no network on the board: no badge is invented");
+  // the board page draws its header chips from labelsOf(board) (setLabels), checked above
+  // the home card: the index entry carries labels only, the board carries the network
+  const entry = {slug: main.slug, challenge: main.challenge, labels: ["DEVELOPMENT"], device_class: null};
+  const home = D.textOf(D.homePage({fixture: false, boards: [entry]}, {[main.slug]: main}, {now}));
+  assert.ok(home.includes("MAINNET"), "the mainnet home card shows MAINNET");  // (launching-soon cards keep their own TESTNET chip)
+  const tentry = {...entry, labels: ["DEVELOPMENT", "TESTNET"]};
+  const thome = D.textOf(D.homePage({fixture: false, boards: [tentry]}, {[test.slug]: test}, {now}));
+  assert.ok(thome.includes("TESTNET") && !thome.includes("MAINNET"), "a testnet home card never shows MAINNET");
+}
+
+// ---- 7. an official-score board (single-grade id: the projection passes no rule) says a grade above the bar TAKES the crown ----
+{
+  const off = JSON.parse(JSON.stringify(Object.values(boardsV2)[0]));
+  off.king.value = 0.66; off.launch.margin = 0.0129; off.launch.to_beat = 0.693; delete off.launch.to_beat_rule;
+  const text = D.textOf(D.boardPage(off, {now}));
+  assert.ok(text.includes("passing every gate and minimum, to take the crown"), "official: takes the crown");
+  assert.ok(!text.includes("for a crown check"), "official: no crown-check wording");
+  assert.ok(text.includes("The exact bar is between " + D.total(0.66 + 0.0129) + " and " + D.toBeat(0.693) + "."), "official: range line");
+}
+
+// ---- 8. the Mainnet | Testnet tabs (owner 15 Nov): filter by the badge's network, mainnet by default, kept in the URL ----
+{
+  assert.deepEqual(D.parseRoute("#/testnet"), {view: "home", net: "testnet"});
+  assert.deepEqual(D.parseRoute("#/mainnet"), {view: "home"}, "mainnet is the home route's default");
+  assert.deepEqual(D.parseRoute("#/"), {view: "home"});
+  const [a, b2] = Object.values(boardsV2);
+  const main = JSON.parse(JSON.stringify(a)); main.launch.network = "mainnet"; main.labels = ["DEVELOPMENT"];
+  const test = JSON.parse(JSON.stringify(b2)); test.launch.network = "testnet"; test.labels = ["DEVELOPMENT", "TESTNET"];
+  const idx = {fixture: false, boards: [
+    {slug: main.slug, state: "ACCEPTED", challenge: main.challenge, labels: ["DEVELOPMENT"], device_class: null},
+    {slug: test.slug, state: "ACCEPTED", challenge: test.challenge, labels: ["DEVELOPMENT", "TESTNET"], device_class: null}]};
+  const boards = {[main.slug]: main, [test.slug]: test};
+  const links = tree => { const out = []; D.walk(tree, n => { if (n.tag === "a" && /^#\/(mainnet|testnet)$/.test(n.attrs.href)) out.push([n.attrs.href, n.attrs["aria-current"] || null, D.textOf(n).trim()]); }); return out; };
+  const onMain = D.homePage(idx, boards, {now, net: "mainnet"});
+  assert.deepEqual(links(onMain), [["#/mainnet", "page", "Mainnet"], ["#/testnet", null, "Testnet"]], "two tabs, Mainnet selected");
+  assert.deepEqual(titles(onMain), [D.nameOf(main.challenge.id)], "mainnet tab: the mainnet card only, no launching cards");
+  const onTest = D.homePage(idx, boards, {now, net: "testnet"});
+  assert.deepEqual(links(onTest), [["#/mainnet", null, "Mainnet"], ["#/testnet", "page", "Testnet"]], "Testnet selected");
+  const testTitles = titles(onTest);
+  assert.ok(testTitles.includes(D.nameOf(test.challenge.id)) && !testTitles.includes(D.nameOf(main.challenge.id)), "testnet tab: no mainnet card");
+  assert.ok(testTitles.length > 1, "testnet tab keeps the launching-soon cards");
+  // the badge stays on every card
+  assert.ok(D.textOf(onMain).includes("MAINNET") && D.textOf(onTest).includes("TESTNET"));
+  // ---- 9. the king's crown after his shortened key, labelled "king"; the epoch is the king's submission epoch ----
+  let mark = null;
+  D.walk(onMain, n => { for (const c of n.children) if (c.tag === "svg" && c.attrs["aria-label"] === "king") mark = {parent: n, svg: c}; });
+  assert.ok(mark, "a crown labelled king: " + JSON.stringify(main.king));
+  assert.equal(mark.parent.attrs.class, "key", "inside the key span, after the key");
+  mark = mark.svg;
+  assert.ok(mark && mark.attrs.role === "img" && mark.attrs["aria-label"] === "king" && /(^| )crown-in( |$)/.test(mark.attrs.class), "crown icon after the key");
+  const crowned = JSON.parse(JSON.stringify(main));
+  crowned.launch.crown_changes = [{hotkey: crowned.king.hotkey, from_hotkey: null, since_epoch: 26400, total: 0.66}];
+  const t9 = D.textOf(D.homePage({...idx, boards: [idx.boards[0]]}, {[main.slug]: crowned}, {now, net: "mainnet"}));
+  assert.ok(t9.includes("King submitted in epoch 26400") && !t9.includes("Last crown"), "the epoch is labelled as the submission's");
+}
