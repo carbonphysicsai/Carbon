@@ -1,7 +1,8 @@
 """The speed gate's match for a vmap-64 version (owner, Sun 15 Nov 2026 ~11:1x CST via the Lead: "Just don't make some
 barely fitting rule that causes things to fail and our system to be fragile."; CV-Motor-B ruling S2).
 
-Claims: the committed values row is HUMAN_INPUT (null) and a null or malformed row refuses the vmap-64 version, at
+Claims: the committed values row carries CV-Motor-B's posted values (rtol 1e-9, atol 1e-9), and a null or malformed row
+refuses the vmap-64 version, at
 serve and at grade time (typed, version-wide, no automatic retry), never exact and never a guess; within the registered
 wide tolerance the timed calls match; beyond it the stage raises Carbon's typed `speed_outputs_disagree`, which the
 grader gives back as FAILED_INFRA (slot released, one automatic retry), and no side file (so no speed mismatch) ever
@@ -33,14 +34,19 @@ def _registry(tmp_path, row=FIXTURE, key="electric-motor-magnetics 1.8", **chang
     return path
 
 
-def test_the_committed_row_is_human_input_and_refuses_the_vmap64_version():
+def test_the_committed_row_is_cv_motors_posted_values(tmp_path):
+    """CV-Motor-B, team board Sun 15 Nov 2026: rtol 1e-9, atol 1e-9 on all 240 values."""
     document = json.loads(speed_match.REGISTRY.read_bytes())
     assert document["schema"] == speed_match.SCHEMA
     assert document["rows"] == {
-        "electric-motor-magnetics 1.8": {"rtol": None, "atol": None}
+        "electric-motor-magnetics 1.8": {"rtol": 1e-9, "atol": 1e-9}
     }
+    assert speed_match.tolerance(*MOTOR_18) == (1e-9, 1e-9)
+    speed_match.require_served(*MOTOR_18)
+    # a null row (as before the values were posted) still refuses the version
+    null = _registry(tmp_path, {"rtol": None, "atol": None})
     with pytest.raises(speed_match.SpeedMatchUnregistered) as refused:
-        speed_match.tolerance(*MOTOR_18)
+        speed_match.tolerance(*MOTOR_18, path=null)
     assert refused.value.code == speed_match.UNREGISTERED
     # every other version: no tolerance, the exact comparison as before
     for key in (
@@ -162,11 +168,14 @@ def test_beyond_the_tolerance_the_stage_is_carbons_never_a_speed_fail(
 
 
 def test_an_unset_tolerance_leaves_the_grade_unavailable_before_anything_runs(
-    stage, monkeypatch  # noqa: F811
+    stage, monkeypatch, tmp_path  # noqa: F811
 ):
     stage.adapter.discovery._material["construction_kit"].update(
         {"id": MOTOR_18[0], "version": MOTOR_18[1]}
-    )  # the committed row: null
+    )
+    monkeypatch.setattr(
+        speed_match, "REGISTRY", _registry(tmp_path, {"rtol": None, "atol": None})
+    )  # an unset row
     with pytest.raises(retention.RetentionUnavailable, match=speed_match.UNREGISTERED):
         _run(stage)
     assert stage.calls == [] and not (stage.private_dir / "single-call.json").exists()
