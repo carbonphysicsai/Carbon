@@ -214,3 +214,43 @@ def test_a_v8_kit_against_a_receiver_without_v8_asks_v7_unchanged(ledger, monkey
     got, sent = _kit(monkeypatch, body, ("v2", "v3", "v4", "v5", "v6", "v7"))
     assert sent == {"reply": "v7", "submission_id": SID}
     assert got["submission"]["failure"] == WALL
+
+
+def test_a_counted_wall_stop_from_the_graded_pass_writes_its_pass_on_the_marker(
+    tmp_path, monkeypatch
+):
+    """The auto-grade exception path (a counted graded-pass wall stop raised out of the regrade): the exception's
+    ``carbon_pass``, set where the graded pass runs, reaches the marker."""
+    from test_while_walls_typed_candidate_failure import _grader
+
+    from carbon.challenge_validator import auto_grade
+
+    stop = RuntimeError("the graded pass hit the wall")
+    stop.carbon_pass = "graded_pass"
+    grader, *_rest, task = _grader(tmp_path, stop)
+    monkeypatch.setattr(auto_grade, "_candidate_wall_stop", lambda error: error is stop)
+    monkeypatch.setattr(grader, "_wall_counted", lambda *args: True)
+    assert grader.run_once() == (task, "CANDIDATE_FAILED")
+    assert grader.marker(task)["pass"] == "graded_pass"
+
+
+def test_a_marker_pass_is_shown_only_for_a_counted_wall_stop(ledger):
+    intake = _intake8(ledger)
+    intake._grade_state_v4 = lambda hotkey, sid: ("RECONSTRUCTION_FAILED", dict(WALL))
+    failure = _reply(intake, **V8).body["submission"]["failure"]
+    assert (
+        failure["pass"] is None
+    )  # the marker names a pass, but this grade is not a counted wall stop
+
+
+def test_the_cpu_model_is_the_first_model_name_line_printable_and_bounded(tmp_path):
+    info = tmp_path / "cpuinfo"
+    info.write_text(
+        "processor\t: 0\nmodel name\t: AMD EPYC 7402P 24-Core Processor\nmodel name\t: other\n"
+    )
+    assert direct_intake._cpu_model(info) == "AMD EPYC 7402P 24-Core Processor"
+    info.write_text("model name\t: " + "x" * 200 + "\n")
+    assert direct_intake._cpu_model(info) == "x" * 96
+    info.write_text("processor\t: 0\n")
+    assert direct_intake._cpu_model(info) is None
+    assert direct_intake._cpu_model(tmp_path / "absent") is None

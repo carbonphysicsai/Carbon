@@ -510,7 +510,10 @@ FAILURE_PASS_WORDS = {
     "graded_pass": "in the graded pass",
     "inference_pair": "in the official inference pair (twice)",
     "menu_rowcheck": "in the menu row check (twice)",
-    "early_stop": "before the graded pass: your own practice run projected it past the limit (stopped early)",
+    "early_stop": (
+        "before the graded pass: projected past the limit from your submission's own measured practice inference "
+        "(stopped early)"
+    ),
 }
 
 

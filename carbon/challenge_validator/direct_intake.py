@@ -109,6 +109,7 @@ FEEDBACK_REPLY_SCHEMA_V7 = "carbon.private-exam.ladder-feedback-reply.v7"
 #: None) and ``grade_worker`` (the public facts of the machine that grades: CPU model, the registered CPU count and memory, GPU
 #: or not). Nothing measured. Opt-in (a kit in the field pins v4's closed ``failure`` keys); advertised as ``exam_feedback_v8``.
 FEEDBACK_REPLY_SCHEMA_V8 = "carbon.private-exam.ladder-feedback-reply.v8"
+#: A wall stop in any other pass (e.g. the speed sample) is still counted and reads ``pass: None``.
 FAILURE_PASSES = ("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
 #: The reasons only a v7 reply carries.
 V7_ONLY_REASONS = ("TIMED_OUT", "STOPPED_EARLY")
@@ -141,10 +142,10 @@ PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
 SOURCE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
 
 
-def _cpu_model():
+def _cpu_model(path="/proc/cpuinfo"):
     """This host's CPU model name as ``/proc/cpuinfo`` reports it (printable, at most 96 characters), or None."""
     try:
-        with open("/proc/cpuinfo", encoding="ascii", errors="replace") as info:
+        with open(path, encoding="ascii", errors="replace") as info:
             for line in info:
                 if line.startswith("model name"):
                     name = line.split(":", 1)[1].strip()

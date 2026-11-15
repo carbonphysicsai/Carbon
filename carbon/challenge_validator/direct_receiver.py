@@ -2541,6 +2541,8 @@ def serve(
                 from carbon.challenge_validator.queue_view import QueueView
 
                 intake.queue_view = QueueView(intake, grader, root)
+                # exam_feedback v8's public grade-worker line: whether the official inference image is a GPU image
+                intake.grading_gpu = backend is not None
                 # One waiting submission per coldkey (owner 14 Nov; `coldkey_waiting`): ON only for a version whose
                 # limit is registered; waiting = this door's open task views + the grader's ungraded list
                 from carbon.challenge_validator import coldkey_waiting
