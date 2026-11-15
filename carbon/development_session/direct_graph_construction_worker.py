@@ -8,7 +8,6 @@ graph and numeric state, never the submitted manifest or TRAIN archive.
 from __future__ import annotations
 
 import functools
-import hashlib
 import inspect
 import json
 import re
@@ -571,13 +570,21 @@ def vmap64_lanes(doc, members, memory_bytes, share, most):
 
 
 _LANES_ANCHOR = _COMPILED_MEMBER
-_LANES_DEFINED = (
-    _COMPILED_MEMBER
-    + "# vmap-64: this model's fixed lane count (resource containment, never science).\n"
-    + inspect.getsource(vmap64_lanes)
-    + "lane_count = vmap64_lanes(doc, len(member_arrays), __MEMORY_BYTES__, __SHARE__,"
-    + " __MOST__)\n"
-)
+
+
+def _lanes_defined() -> str:
+    """The lane count's definition the vmap program carries after its compiled member forward: `vmap64_lanes`'s own
+    source, read only when the vmap program is built (never at import, so a host without sources still loads this
+    module)."""
+    return (
+        _COMPILED_MEMBER
+        + "# vmap-64: this model's fixed lane count (resource containment, never science).\n"
+        + inspect.getsource(vmap64_lanes)
+        + "lane_count = vmap64_lanes(doc, len(member_arrays), __MEMORY_BYTES__, __SHARE__,"
+        + " __MOST__)\n"
+    )
+
+
 _PER_CASE_CALLS = (
     "    # public constant (zeros), so no output can depend on another case.\n"
     "    for index in range(len(input_array)):\n"
@@ -609,14 +616,15 @@ _VMAP64_CALLS = """    # public constant (zeros), so no output can depend on ano
 """
 
 
-def _v2_vmap64_infer_template() -> str:
+@functools.lru_cache(maxsize=1)
+def vmap64_infer_template() -> str:
     """`PHYSICAL_V2_COMPILED_INFER_PROGRAM` with two anchored replacements and nothing else: the model's lane count,
     defined after its compiled member forward, and the graded per-case loop run as isolated lanes (every anchor the
     derived speed and practice programs read is kept). ``__MEMORY_BYTES__`` stays for `vmap64_infer_program`.
     """
     program = PHYSICAL_V2_COMPILED_INFER_PROGRAM
     for old, new in (
-        (_LANES_ANCHOR, _LANES_DEFINED),
+        (_LANES_ANCHOR, _lanes_defined()),
         (_PER_CASE_CALLS, _VMAP64_CALLS),
     ):
         if program.count(old) != 1:
@@ -625,9 +633,6 @@ def _v2_vmap64_infer_template() -> str:
     return program.replace("__SHARE__", repr(VMAP64_MEMORY_SHARE)).replace(
         "__MOST__", str(VMAP64_LANES)
     )
-
-
-PHYSICAL_V2_VMAP64_INFER_TEMPLATE = _v2_vmap64_infer_template()
 
 
 def _version_memory_bytes(challenge_id: str, version: str) -> int:
@@ -648,7 +653,7 @@ def vmap64_infer_program(challenge_id: str, version: str) -> str:
     """The vmap-64 inference program of one version: the template with that version's registered worker memory."""
     if (challenge_id, version) not in VMAP64_INFERENCE_VERSIONS:
         raise RuntimeError("not a vmap-64 version")
-    return PHYSICAL_V2_VMAP64_INFER_TEMPLATE.replace(
+    return vmap64_infer_template().replace(
         "__MEMORY_BYTES__", str(_version_memory_bytes(challenge_id, version))
     )
 
@@ -676,12 +681,6 @@ def vmap64_state_lanes(
         state, recipe, Allowlist(allowlist_bytes)
     )
     return vmap64_model_lanes(challenge_id, version, doc, len(members))
-
-
-def graded_program_sha256(challenge_id: str, version: str) -> str:
-    """The digest of the program a graph route v2 version's graded inference runs today (`v2_infer_query`)."""
-    raw = v2_infer_query(challenge_id, version)["program"].encode()
-    return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
 def vmap64_chunks(positions, row_count: int, lanes: int) -> dict:

@@ -80,7 +80,8 @@ def test_the_vmap64_program_is_two_anchored_replacements_of_the_compiled_one():
     lanes = _vmap64()
     compiled = worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
     defined = (
-        worker._LANES_DEFINED.replace("__MEMORY_BYTES__", str(MOTOR_18_MEMORY))
+        worker._lanes_defined()
+        .replace("__MEMORY_BYTES__", str(MOTOR_18_MEMORY))
         .replace("__SHARE__", "0.5")
         .replace("__MOST__", "64")
     )
