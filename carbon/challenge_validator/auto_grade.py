@@ -389,6 +389,10 @@ class AutoGrader:
         if self._apply_due_retries(idle=not pending):
             pending = self.pending()  # a retry handed back is graded in this round
         for submission_id in pending:
+            if self._settle_withdrawn(submission_id):
+                # withdrawn by its owner, its marker missing: settled first, before any copy rule (an unsettled earlier
+                # identical recipe must not hold it pending), and never graded or charged
+                continue
             copy = self._copy_decision(submission_id)
             if copy is not None:
                 decision, first = copy
@@ -399,8 +403,6 @@ class AutoGrader:
                     self._log_copy_waits()
                     continue
                 if decision == "copy":
-                    if self._settle_withdrawn(submission_id):
-                        continue  # withdrawn by its owner: never graded as a copy (nothing charged)
                     return self._grade_copy(submission_id, first)
             sampler = _Sampler(
                 self.containers, self.sample_seconds, getattr(self, "gpu", None)
@@ -429,11 +431,7 @@ class AutoGrader:
                     self.stalled = getattr(self, "stalled", frozenset()) | {
                         submission_id
                     }
-                if code in _PENDING:
-                    # not built: a task its owner withdrew whose marker is missing is settled here (`_settle_withdrawn`)
-                    self._settle_withdrawn(submission_id)
-                    continue
-                if code in _NOT_YET:
+                if code in _PENDING or code in _NOT_YET:
                     continue
                 if (
                     isinstance(code, str)

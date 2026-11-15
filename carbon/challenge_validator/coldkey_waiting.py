@@ -62,8 +62,8 @@ MESSAGE = (
 HOTKEY_MESSAGE = (
     "One waiting submission per hotkey on this Challenge: this hotkey already has a submission queued, building or "
     "waiting for its grade on this validator. Nothing was built or graded for this submission and it used none of "
-    "your allowance. Submit again once that submission has its result, or withdraw it while it is still queued "
-    "(withdraw command)."
+    "your allowance. Submit again once that submission has its result, or withdraw it while it is still queued, if "
+    "this validator offers withdrawal (withdraw command)."
 )
 UNRESOLVED_MESSAGE = (
     "The validator cannot yet match this hotkey to its coldkey in its latest chain snapshot, so it cannot take this "

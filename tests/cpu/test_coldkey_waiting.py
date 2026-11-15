@@ -285,7 +285,10 @@ def test_per_hotkey_only_the_same_hotkeys_waiting_submission_refuses_the_next(st
     assert code == cw.HOTKEY_CODE and message == cw.HOTKEY_MESSAGE
     assert "per hotkey" in message and "Nothing was built" in message
     # a miner may withdraw its own queued submission (owner GO 15 Nov 2026): the refusal says so
-    assert "withdraw it while it is still queued (withdraw command)" in message
+    assert (
+        "withdraw it while it is still queued, if this validator offers withdrawal"
+        in message
+    )
     # another hotkey of the SAME coldkey is not held back any more, nor one of another coldkey
     assert guard.refusal(hotkey="hk-a2", task_id="t2", limit=1, per="hotkey") is None
     assert guard.refusal(hotkey="hk-b", task_id="t2", limit=1, per="hotkey") is None
