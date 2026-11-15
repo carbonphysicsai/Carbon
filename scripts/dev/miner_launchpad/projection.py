@@ -480,6 +480,78 @@ def _crown_review(submission):
     }
 
 
+#: What each grade state of the receiver's signed v4+ read means (`direct_intake._grade_state_v4`), in words.
+GRADE_STATE_WORDS = {
+    "QUEUED": "waiting in this validator's queue: not built or not graded yet",
+    "GRADED": "graded: it counted as your try (its result is the Ladder line)",
+    "CANDIDATE_FAILED": "counted as your try: your model's own run failed while it was being graded",
+    "RECONSTRUCTION_FAILED": "your recipe's own build or practice run failed before grading: nothing was graded",
+    "FAILED_INFRA": "the validator's side failed: it is not your result and nothing was charged",
+    "NOT_GRADED": "not graded: the slot was given back and nothing was charged",
+    "SUPERSEDED_BY_OWN_LATER_SUBMIT": "not graded: your own later submission took this round's graded slot",
+    "ROUND_LIMIT_REACHED": "not graded: this round's graded exam for your key was already used",
+    "CROWN_HELD_FOR_REVIEW": "graded: its crown change is held for review",
+}
+#: The failing step and what was observed (the receiver's closed v4 ``failure``), in words.
+FAILURE_CHILD_WORDS = {
+    "build": "the build of your model",
+    "inference": "your model's inference on the exam",
+}
+FAILURE_OBSERVATION_WORDS = {
+    "WORKER_WALL_LIMIT_REACHED": "ran into the time limit",
+    "WORKER_MEMORY_LIMIT_REACHED": "reached the memory limit",
+    "OOM_KILLED": "was stopped for running out of memory",
+    "NONZERO_EXIT": "exited with an error",
+    "OWN_ALLOWANCE_ELAPSED": "used up your own time allowance",
+}
+
+
+def _limit_words(limit):
+    """A public registered limit in words: ``inference_wall_seconds_max = 648 s``; memory in GiB when whole."""
+    name, value = limit["name"], limit["value"]
+    if name.endswith("_seconds_max"):
+        return f"{name} = {value} s"
+    if name == "memory_bytes_max" and value % 1024**3 == 0:
+        return f"{name} = {value // 1024**3} GiB"
+    return f"{name} = {value}"
+
+
+def _why(submission):
+    """Why this submission's try ended as it did: ``{"grade_state", "failure", "words"}`` from the receiver's own signed v4+
+    read of THIS submission (its closed grade state and allow-listed ``failure``: the failing step, what was observed,
+    and the public registered limit), or None for an older receiver or a reply without them. Read only, never computed,
+    and nothing measured (the receiver sends no seconds or memory of a hidden-input run).
+    """
+    from carbon.development_session.direct_submission import _failure_v4
+
+    if type(submission) is not dict:
+        return None
+    state = submission.get("grade_state")
+    if state not in GRADE_STATE_WORDS or "failure" not in submission:
+        return None
+    failure = submission["failure"]
+    if not _failure_v4(failure):
+        return None
+    words = GRADE_STATE_WORDS[state]
+    if failure is not None:
+        parts = []
+        if failure["child"] is not None:
+            parts.append(FAILURE_CHILD_WORDS[failure["child"]])
+        if failure["observation"] is not None:
+            parts.append(FAILURE_OBSERVATION_WORDS[failure["observation"]])
+        if parts:
+            words += "; " + " ".join(parts)
+        if failure["limit"] is not None:
+            words += " (" + _limit_words(failure["limit"]) + ")"
+        if failure["code"] is not None:
+            words += "; code " + failure["code"]
+    return {
+        "grade_state": state,
+        "failure": None if failure is None else dict(failure),
+        "words": words,
+    }
+
+
 #: How a failing output's closed reason reads (owner 14 Nov, signed feedback v6): never a p90, ratio, class, count or case.
 GATE_FAILURE_WORDS = {
     "over_limit": "over the limit",
@@ -603,6 +675,8 @@ def _grade(ladder, submission=None, epoch=None, also=()):
             if (review := _crown_review(ladder.get("submission"))) is None
             else {"crown_review": review}
         ),
+        # Signed feedback v4+ only: why this try ended as it did (Lead 15 Nov: every settled task says why).
+        **({} if (why := _why(ladder.get("submission"))) is None else {"why": why}),
     }
 
 
