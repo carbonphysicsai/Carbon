@@ -649,6 +649,13 @@ def _launch(board):
                 if launch.get("crown_changes") is None
                 else {"crown_changes": [dict(c) for c in launch["crown_changes"]]}
             ),
+            # v5 boards only: when the crown was DECIDED (UTC), and why a NOT_SCORED row stopped (hotkey -> reason)
+            **(
+                {}
+                if launch.get("crowned_utc") is None
+                else {"crowned_utc": launch["crowned_utc"]}
+            ),
+            **({"reasons": dict(launch["reasons"])} if launch.get("reasons") else {}),
         }
     }
 

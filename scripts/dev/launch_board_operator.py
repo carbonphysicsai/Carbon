@@ -102,7 +102,7 @@ from carbon.dashboard import feed as dashboard_feed
 CONFIG_SCHEMA = "carbon.launch-board.operator.config.v1"
 NAMES = {"schema", "network", "ledger", "receiver_url", "key", "out", "challenges"}
 OPTIONAL = {"upload_command", "fetch_timeout_seconds", "board"}
-BOARDS = ("v1", "v2", "v3", "v4")
+BOARDS = ("v1", "v2", "v3", "v4", "v5")
 CHALLENGE_NAMES = {"id", "version", "exam_version_label"}
 CHALLENGE_OPTIONAL = {"exam_key"}
 #: What a v2 Challenge must also name; a v1 config never carries them.
@@ -136,7 +136,8 @@ def load_config(path):
         "v2",
         "v3",
         "v4",
-    )  # v3 is v2 plus the king's stability; v4 adds measure + checks
+        "v5",
+    )  # v3 is v2 plus the king's stability; v4 adds measure + checks; v5 is v3 plus crown time + row reasons
     for item in raw["challenges"]:
         required = CHALLENGE_NAMES | (CHALLENGE_V2 if v2 else set())
         if (
@@ -357,6 +358,37 @@ def official_score(item):
         raise OperatorRefused("crown_official_invalid") from None
 
 
+def crowned_utc(config, item, king_document):
+    """The v5 board's ``crowned_utc``: when the store's incumbent, who must BE the king the document names
+    (`king_mismatch`), was DECIDED (the incumbent row's ``since``, written by the crown decision itself: never the
+    submission's arrival), as UTC to the second; None with no king or no recorded decision time."""
+    import datetime
+
+    if king_document["king"] is None:
+        return None
+    if not os.path.lexists(item["pool_store"]):
+        raise OperatorRefused("king_mismatch")
+    store = ReadOnlyPoolStore(item["pool_store"])
+    incumbent = store.incumbent()
+    standing = (
+        None if incumbent is None else store.incumbent_standing(incumbent["model_id"])
+    )
+    if (
+        standing is None
+        or koth_public._owner_hotkey(standing["owner"])
+        != king_document["king"]["hotkey"]
+    ):
+        raise OperatorRefused("king_mismatch")
+    with store.db() as db:
+        row = db.execute("SELECT since FROM incumbent WHERE id=1").fetchone()
+    since = None if row is None else row[0]
+    if type(since) not in (int, float) or isinstance(since, bool) or since <= 0:
+        return None
+    return datetime.datetime.fromtimestamp(int(since), datetime.UTC).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+
+
 #: The internal UNAVAILABLE reasons with their own public phrase (crown_average.KING_UNMEASURED; bank_promotion.CROWNS_PAUSED
 #: and CROWN_QUEUED). Kept here, on the validator side: the miner-surface board module names no internal reason.
 _WAIT_KING_REASONS = ("crown_average_king_unmeasured",)
@@ -476,9 +508,10 @@ def run_once(config, *, version=None):
     out.mkdir(parents=True, exist_ok=True)
     version = launch_board.now_version() if version is None else version
     timeout = config.get("fetch_timeout_seconds", 10)
-    v2 = config.get("board") in ("v2", "v3", "v4")
+    v2 = config.get("board") in ("v2", "v3", "v4", "v5")
+    v5 = config.get("board") == "v5"
     v4 = config.get("board") == "v4"
-    v3 = v4 or config.get("board") == "v3"
+    v3 = v5 or v4 or config.get("board") == "v3"
     rows = []
     for item in config["challenges"]:
         challenge = type(
@@ -520,6 +553,8 @@ def run_once(config, *, version=None):
                 elif v3:
                     try:
                         extra["stability"] = king_stability(config, item, king)
+                        if v5:
+                            extra["crowned_utc"] = crowned_utc(config, item, king)
                     except (sqlite3.Error, StateError):
                         raise OperatorRefused("pool_store_unavailable") from None
             board = launch_board.build_from_ledger(
@@ -551,7 +586,7 @@ def run_once(config, *, version=None):
             )
             if v2:
                 row.update(
-                    board="v4" if v4 else "v3" if v3 else "v2",
+                    board="v5" if v5 else "v4" if v4 else "v3" if v3 else "v2",
                     crown_changes=len(board["crown_changes"]),
                 )
             if upload(config.get("upload_command"), path, name):

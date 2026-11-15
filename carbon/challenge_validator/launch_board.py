@@ -87,6 +87,16 @@ BOARD_DOMAIN_V4 = b"carbon.validator.launch-board.v4\x00"
 #: MEASURED: a mean is filed on the king's current key; UNSTABLE: his re-measure was seed-fragile; IN_PROGRESS: some
 #: rebuilds are kept, the mean is not filed yet; UNMEASURED: none kept.
 MEASURE_STATES = ("MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURED")
+#: The v5 board (Lead 15 Nov: official-score doors): v3's shape plus ONE king field, ``crowned_utc`` (when the crown was
+#: DECIDED, UTC to the second, null with no king or no recorded decision time; the king's ``since_epoch`` stays the epoch
+#: his submission arrived in), and ONE ladder-row field, ``reason`` (`PUBLIC_REASONS` for a NOT_SCORED row whose latest
+#: result stopped at the inference wall, else null), under its OWN signing domain. It branches from v3, not v4: an
+#: official-score king has no rebuild measure. v1-v4 stay byte-identical; no other version's signature verifies as v5.
+SCHEMA_V5 = "carbon.validator.launch-board.v5"
+BOARD_DOMAIN_V5 = b"carbon.validator.launch-board.v5\x00"
+#: The NOT_SCORED reasons a public row may name (`grade_feedback.REASONS`): the two counted wall outcomes only. Any other
+#: reason stays the miner's own feedback; the row says null.
+PUBLIC_REASONS = ("TIMED_OUT", "STOPPED_EARLY")
 MEASURE_FIELDS = frozenset({"state", "kept", "n"})
 #: The crown outcomes that DECIDE a contender (bank_promotion's); anything else (UNAVAILABLE, FAILED_INFRA) is PENDING.
 DECIDED_OUTCOMES = (
@@ -147,12 +157,14 @@ KING_SECTION = ("king", "margin", "to_beat", "baseline_total")
 KING_SECTION_V2 = (*KING_SECTION, "to_beat_rule")
 KING_SECTION_V3 = (*KING_SECTION_V2, "stability")
 KING_SECTION_V4 = (*KING_SECTION_V3, "measure")
+KING_SECTION_V5 = (*KING_SECTION_V3, "crowned_utc")
 FIELDS_V4 = FIELDS_V2 | {"crown_checks"}
 #: A board shows at most this many changes of king, newest first.
 MAX_CROWN_CHANGES = 5
 CROWN_CHANGE_FIELDS = frozenset({"from_hotkey", "to_hotkey", "since_epoch", "total"})
 CHALLENGE_FIELDS = frozenset({"id", "version", "exam_version_label"})
 LADDER_FIELDS = frozenset({"rank", "hotkey", "total", "status", "gate_names"})
+LADDER_FIELDS_V5 = LADDER_FIELDS | {"reason"}
 COUNT_FIELDS = ("graded", "scored", "gate_failed", "not_scored")
 #: A ladder this long is the whole table; the board shows no more rows than this.
 MAX_LADDER = 512
@@ -202,6 +214,8 @@ class BoardRefused(ValueError):
 def _domain(document):
     """The signing domain of a board's schema: v2 and v3 each have their own, anything else is v1's."""
     schema = document.get("schema")
+    if schema == SCHEMA_V5:
+        return BOARD_DOMAIN_V5
     if schema == SCHEMA_V4:
         return BOARD_DOMAIN_V4
     if schema == SCHEMA_V3:
@@ -279,6 +293,15 @@ def _king(raw, *, v2=False):
         "baseline_total": optional("baseline_total", floor9),
         **({"to_beat_rule": raw["to_beat_rule"]} if v2 else {}),
     }
+
+
+def _crowned_ok(crowned_utc, king):
+    """v5: no king has no crown time; a king's is null (no recorded decision time) or a UTC second."""
+    if king is None:
+        return crowned_utc is None
+    return crowned_utc is None or (
+        type(crowned_utc) is str and _UTC.fullmatch(crowned_utc) is not None
+    )
 
 
 def _stability_ok(stability, king, measure):
@@ -376,7 +399,13 @@ def crown_changes_checked(changes):
 
 
 def ladder_rows(
-    rows, *, exact=None, king_hotkey=None, king_total=None, rebuild_noise=None
+    rows,
+    *,
+    exact=None,
+    king_hotkey=None,
+    king_total=None,
+    rebuild_noise=None,
+    reasons=False,
 ):
     """The board's ladder from `ladder_store.board_rows`: ``[(hotkey, best,
     latest)]`` with each document as the Ladder serves it. One row per hotkey:
@@ -393,8 +422,12 @@ def ladder_rows(
     step-floored, and the exact totals never leave this function: only the order is revealed. On such a
     board the KING row's shown total is ``king_total`` (the crown standing's floored total, as the king page shows it)
     rather than its single best grade, so the board and the king page always agree.
+
+    With ``reasons`` (a v5 board) each row also carries ``reason``: `PUBLIC_REASONS` for a NOT_SCORED latest result that
+    stopped at the inference wall, else null.
     """
     kept = []
+    reason_of = {}
     for hotkey, best, latest in rows:
         if type(hotkey) is not str or not _SS58.fullmatch(hotkey):
             raise BoardRefused("board_hotkey")
@@ -408,6 +441,12 @@ def ladder_rows(
         )
         if gates is not None and len(gates) > MAX_GATES:
             raise BoardRefused("board_gates")
+        reason = latest.get("reason")
+        reason_of[hotkey] = (
+            reason
+            if latest["status"] == "NOT_SCORED" and reason in PUBLIC_REASONS
+            else None
+        )
         kept.append((hotkey, total, latest["status"], gates))
     if exact is None:
         kept.sort(key=lambda row: (row[1] is None, -(row[1] or 0.0), row[0]))
@@ -433,6 +472,7 @@ def ladder_rows(
             "total": total,
             "status": status,
             "gate_names": gates,
+            **({"reason": reason_of[hotkey]} if reasons else {}),
         }
         out.append(row)
     if len(out) > MAX_LADDER:
@@ -596,6 +636,7 @@ def build(
     stability=_ABSENT,
     measure=_ABSENT,
     crown_checks=None,
+    crowned_utc=_ABSENT,
 ):
     """The signed launch board for one Challenge.
 
@@ -610,9 +651,12 @@ def build(
         raise BoardRefused("board_network")
     if type(version) is not int or version < 1:
         raise BoardRefused("board_version")
+    v5 = crowned_utc is not _ABSENT
     v4 = measure is not _ABSENT
-    v3 = v4 or stability is not _ABSENT
+    v3 = v5 or v4 or stability is not _ABSENT
     v2 = crown_changes is not None
+    if v5 and (v4 or stability is _ABSENT):
+        raise BoardRefused("board_v5_is_v3_plus_two_fields")
     if v3 and not v2:
         raise BoardRefused("board_v3_needs_crown_changes")  # v3 is v2 plus one field
     if v4 and (stability is _ABSENT or crown_checks is None):
@@ -634,10 +678,17 @@ def build(
         king_hotkey=None if king["king"] is None else king["king"]["hotkey"],
         king_total=None if king["king"] is None else king["king"]["total"],
         rebuild_noise=rebuild_noise if v2 else None,
+        reasons=v5,
     )
+    if v5 and not _crowned_ok(crowned_utc, king["king"]):
+        raise BoardRefused("board_crowned_utc")
     moment = datetime.datetime.now(datetime.UTC) if now is None else now
     document = {
-        "schema": SCHEMA_V4 if v4 else SCHEMA_V3 if v3 else SCHEMA_V2 if v2 else SCHEMA,
+        "schema": (
+            SCHEMA_V5
+            if v5
+            else SCHEMA_V4 if v4 else SCHEMA_V3 if v3 else SCHEMA_V2 if v2 else SCHEMA
+        ),
         "version": version,
         "labels": list(LABELS[network]),
         "network": network,
@@ -650,7 +701,8 @@ def build(
         "validator": {"feed_key": key.public_key},
         "king": {name: king[name] for name in (KING_SECTION_V2 if v2 else KING_SECTION)}
         | ({"stability": stability} if v3 else {})
-        | ({"measure": measure_checked(measure, king=king["king"])} if v4 else {}),
+        | ({"measure": measure_checked(measure, king=king["king"])} if v4 else {})
+        | ({"crowned_utc": crowned_utc} if v5 else {}),
         "ladder": ladder,
         "counts": counts(ladder),
         **({"crown_changes": crown_changes_checked(crown_changes)} if v2 else {}),
@@ -663,8 +715,9 @@ def build(
 def check(document, *, unsigned=False):
     """The document when it has exactly the board's closed shape, else a
     `BoardRefused`: the writer's last step and the reader's first."""
+    v5 = type(document) is dict and document.get("schema") == SCHEMA_V5
     v4 = type(document) is dict and document.get("schema") == SCHEMA_V4
-    v3 = v4 or (type(document) is dict and document.get("schema") == SCHEMA_V3)
+    v3 = v5 or v4 or (type(document) is dict and document.get("schema") == SCHEMA_V3)
     v2 = v3 or (type(document) is dict and document.get("schema") == SCHEMA_V2)
     want = (FIELDS_V4 if v4 else FIELDS_V2 if v2 else FIELDS) - (
         {"signature"} if unsigned else set()
@@ -672,7 +725,7 @@ def check(document, *, unsigned=False):
     if type(document) is not dict or set(document) != want:
         raise BoardRefused("board_fields")
     if (
-        document["schema"] not in (SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4)
+        document["schema"] not in (SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5)
         or document["network"] not in NETWORKS
     ):
         raise BoardRefused("board_schema")
@@ -701,11 +754,17 @@ def check(document, *, unsigned=False):
         raise BoardRefused("board_validator")
     king = document["king"]
     if type(king) is not dict or set(king) != set(
-        KING_SECTION_V4
-        if v4
-        else KING_SECTION_V3 if v3 else KING_SECTION_V2 if v2 else KING_SECTION
+        KING_SECTION_V5
+        if v5
+        else (
+            KING_SECTION_V4
+            if v4
+            else KING_SECTION_V3 if v3 else KING_SECTION_V2 if v2 else KING_SECTION
+        )
     ):
         raise BoardRefused("board_king")
+    if v5 and not _crowned_ok(king["crowned_utc"], king["king"]):
+        raise BoardRefused("board_crowned_utc")
     if v3 and not _stability_ok(
         king["stability"], king["king"], king["measure"] if v4 else _ABSENT
     ):
@@ -719,7 +778,7 @@ def check(document, *, unsigned=False):
             **{
                 name: value
                 for name, value in king.items()
-                if name not in ("stability", "measure")
+                if name not in ("stability", "measure", "crowned_utc")
             },
         },
         v2=v2,
@@ -736,7 +795,7 @@ def check(document, *, unsigned=False):
     for row in ladder:
         if (
             type(row) is not dict
-            or set(row) != LADDER_FIELDS
+            or set(row) != (LADDER_FIELDS_V5 if v5 else LADDER_FIELDS)
             or type(row["rank"]) is not int
             or row["rank"] < 1
             or type(row["hotkey"]) is not str
@@ -746,6 +805,10 @@ def check(document, *, unsigned=False):
         ):
             raise BoardRefused("board_ladder")
         seen.add(row["hotkey"])
+        if v5 and row["reason"] is not None and (
+            row["status"] != "NOT_SCORED" or row["reason"] not in PUBLIC_REASONS
+        ):
+            raise BoardRefused("board_ladder")
         if row["total"] is not None:
             _unit(row["total"], "board_ladder")
             if not on_nine(row["total"]):
@@ -826,6 +889,7 @@ def build_from_ledger(
     stability=_ABSENT,
     measure=_ABSENT,
     crown_checks=None,
+    crowned_utc=_ABSENT,
 ):
     """The signed board for ``challenge`` (an object with `challenge_id` and `version`)
     from the receiver's ledger file (read-only) and its king document. ``exam_key``
@@ -848,6 +912,7 @@ def build_from_ledger(
         stability=stability,
         measure=measure,
         crown_checks=crown_checks,
+        crowned_utc=crowned_utc,
     )
 
 

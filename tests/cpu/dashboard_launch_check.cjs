@@ -70,7 +70,7 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   const text = check(tree, where);
   assert.ok(D.textOf(nodes(tree, "h1")[0]).trim() === D.nameOf(board.challenge.id), where + ": the title is the name, never the raw id");
   assert.ok(hasClass(tree, "card") || hasClass(tree, "hero"), where + ": a standing is drawn");
-  assert.ok(text.includes("Graded") && text.includes("Failed a gate") && text.includes(String(board.launch.counts.graded)), where + ": the counts");
+  assert.ok(text.includes("Hotkeys") && text.includes("Failed a gate") && text.includes(String(board.launch.counts.graded)), where + ": the counts");
   assert.ok(!text.includes("Eligible for the championship"), where + ": a launch board is not a championship");
   assert.ok(!text.includes("Rules unavailable"), where + ": no rules line on a launch board");
   assert.ok(text.includes("Design showcase") && hasClass(tree, "teaser"), where + ": the public design showcase is offered");

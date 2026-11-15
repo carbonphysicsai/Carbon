@@ -705,7 +705,7 @@
   // shows the validator's rounded totals and counts only. Nothing finer than the
   // Ladder step, no case, target or pool; every number is the validator's.
   // One page per Challenge: the leader first, then the ladder, then the showcase.
-  const LAUNCH_COUNTS = [["graded", "Graded"], ["scored", "Scored"], ["gate_failed", "Failed a gate"], ["not_scored", "Not scored"]];
+  const LAUNCH_COUNTS = [["graded", "Hotkeys"], ["scored", "Scored"], ["gate_failed", "Failed a gate"], ["not_scored", "Not scored"]];
   const GATE_WORDS = "A failed gate is named, never scored.";
   function launchHero(board) {
     const l = board.launch;
@@ -772,9 +772,11 @@
       : k && isNum(k.margin) ? (k.margin === 0 ? stat("Lead over the runner-up", "Same Ladder step", "The crown goes to the higher exact score (hidden) and needs the margin to change hands.")
       : k.margin < 0 ? null
       : stat("Lead over the runner-up", signed(k.margin, Math.min(digits, 3)), k.runner_up ? shortKey(k.runner_up) : null)) : null;
-    const held = isNum(l.king_since_epoch) ? stat("Leader since", "epoch " + l.king_since_epoch) : null;
+    // v5: when the crown was decided; the feed's epoch is the king's SUBMISSION epoch, said so
+    const crowned = typeof l.crowned_utc === "string" ? utcSeconds(l.crowned_utc) : null;
+    const held = isNum(l.king_since_epoch) ? stat("King submitted in", "epoch " + l.king_since_epoch) : null;
     const measured = k && measureText(l.king_measure) ? stat("King's rebuild average", measureText(l.king_measure)) : null;
-    const stats = [gap, held, measured].filter(Boolean);
+    const stats = [gap, crowned !== null ? stat("Crowned", utc(crowned)) : null, held, measured].filter(Boolean);
     return section("leader", {class: "card leader", "aria-labelledby": "leader-title"},
       h("div", {class: "card-top"}, crown(), h("h2", {id: "leader-title", class: "card-title"}, "Current leader")),
       k ? h("p", {class: "leader-key"}, hotkey(k.hotkey, {copy: true, href: minerHref(board.slug, k.hotkey)})) : h("p", {class: "leader-key"}, "No leader yet"),
@@ -786,6 +788,15 @@
     const l = board.launch;
     return h("dl", {class: "counts-strip", "aria-label": "Standing"},
       LAUNCH_COUNTS.map(([key, label]) => h("div", {class: "count-cell"}, h("dt", null, label), h("dd", null, String(l.counts[key])))));
+  }
+  // v5: a hotkey whose latest result stopped at the inference time limit (counted, not scored); its best keeps its rank.
+  const STOP_WORDS = {TIMED_OUT: "stopped at the inference time limit", STOPPED_EARLY: "stopped early: it could not finish inside the time limit"};
+  function stops(board) {
+    const r = board.launch.reasons || {};
+    const rows = Object.keys(r).filter(k => STOP_WORDS[r[k]]).sort().map(k => h("tr", null, h("td", null, h("span", {class: "key", title: k}, shortKey(k))), h("td", null, STOP_WORDS[r[k]])));
+    return rows.length ? section("stops", {class: "block", "aria-labelledby": "st-title"}, h("div", {class: "block-head"}, h("h2", {id: "st-title"}, "Stopped at the time limit")),
+      h("p", {class: "hint"}, "These hotkeys' latest result was stopped at the inference time limit, so it is not scored; it counts as a try. A hotkey with an earlier scored result keeps its rank on that best result."),
+      table("Hotkeys stopped at the time limit", [["Hotkey"], ["Outcome"]], rows)) : null;
   }
   // A hotkey whose latest result failed a gate, with its gates; an earlier scored best keeps its rank.
   function gateFailures(board) {
@@ -863,7 +874,7 @@
       const pre = board.phase === "PRE_FIRST_RELEASE";
       const parts = [boardHead(board, true, c), boardBanners(board, c)];
       if (pre) parts.push(launchHero(board), beatBlock(board), stabilityLine(board), crownChanges(board), countsStrip(board));
-      else parts.push(leaderCard(board), stabilityLine(board), queueBlock(c.queue), crownCheckBlock(board), crownChanges(board), countsStrip(board), leaderboard(board), gateFailures(board));
+      else parts.push(leaderCard(board), stabilityLine(board), queueBlock(c.queue), crownCheckBlock(board), crownChanges(board), countsStrip(board), leaderboard(board), gateFailures(board), stops(board));
       parts.push(showcaseCard(), examLine(board), feedBlock(board));
       return h("div", {class: "page launch-page"}, parts);
     }
@@ -1004,7 +1015,7 @@
         h("span", {class: "eyebrow"}, "King"), h("span", {class: "key"}, shortKey(king.hotkey)),
         isNum(king.value) ? h("span", {class: "board-card-value"}, total(king.value), h("small", null, " " + sectionLabel(board))) : null)
         : board && board.phase === "PRE_FIRST_RELEASE" ? h("p", {class: "hint"}, board.launch ? "No hotkey graded yet" : "First scores after the first release")
-        : board && board.launch && board.launch.counts.graded > 0 ? h("p", {class: "hint"}, board.launch.counts.graded + " graded, no leader yet" + (best(board) !== null ? ". Best total " + total(best(board)) : "")) : null,
+        : board && board.launch && board.launch.counts.graded > 0 ? h("p", {class: "hint"}, board.launch.counts.graded + " hotkeys graded, no leader yet" + (best(board) !== null ? ". Best total " + total(best(board)) : "")) : null,
       board && board.launch ? beatBlock(board) : null,
       board && board.launch ? homeStatus(board) : null,
       queueLine(panel),

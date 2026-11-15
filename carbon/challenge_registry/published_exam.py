@@ -166,6 +166,8 @@ _GRADE = {
         "DECISION_INELIGIBLE",
         "FAILED_INFRA",
         "INDETERMINATE",
+        "TIMED_OUT",
+        "STOPPED_EARLY",
     ],
     "source": "carbon/scoring/grade_feedback.py STATUSES, REASONS",
 }

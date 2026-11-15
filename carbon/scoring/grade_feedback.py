@@ -93,18 +93,28 @@ NEVER_SHOWN = (
     "unrounded_values",
     "another_hotkeys_anything",
 )
+#: TIMED_OUT and STOPPED_EARLY (Lead 15 Nov, additive): the candidate's own graded pass stopped at the published
+#: inference wall, or was not run because it provably could not finish inside it (the registered early stop). Both
+#: are COUNTED candidate outcomes (the slot is used), never infrastructure.
 REASONS = (
     "LEG_MINIMUM_FAILED",
     "CANDIDATE_INVALID",
     "DECISION_INELIGIBLE",
     "FAILED_INFRA",
     "INDETERMINATE",
+    "TIMED_OUT",
+    "STOPPED_EARLY",
 )
+#: The graded statuses of the two wall outcomes (`lean_recipe_retention`: the carrier's wall stop, the early stop).
+WALL_STOP_STATUS = "WORKER_WALL_LIMIT_REACHED"
+EARLY_STOP_STATUS = "EARLY_WALL_STOP"
 _REASON_OF_STATUS = {
     "REQUIRED_LEG_MINIMUM_FAILED": "LEG_MINIMUM_FAILED",
     "CANDIDATE_INVALID": "CANDIDATE_INVALID",
     "DECISION_OUTCOME_INELIGIBLE": "DECISION_INELIGIBLE",
     "FAILED_INFRA": "FAILED_INFRA",
+    WALL_STOP_STATUS: "TIMED_OUT",
+    EARLY_STOP_STATUS: "STOPPED_EARLY",
 }
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 STATUSES = ("IMPROVED", "NO_IMPROVEMENT", "GATE_FAILED", "NOT_SCORED")

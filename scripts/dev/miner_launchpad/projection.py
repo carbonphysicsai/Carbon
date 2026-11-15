@@ -387,6 +387,11 @@ NOT_SCORED_WORDS = {
     "INDETERMINATE": (
         "not graded: the evidence was indeterminate; your allowance is not used"
     ),
+    "TIMED_OUT": "not scored: stopped at the inference time limit; your allowance is used",
+    "STOPPED_EARLY": (
+        "not scored: stopped early, it could not finish inside the inference time"
+        " limit; your allowance is used"
+    ),
 }
 _LEG = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,31}")
 #: A registered component's metric name (a pack's own names, e.g. "accuracy_mean").

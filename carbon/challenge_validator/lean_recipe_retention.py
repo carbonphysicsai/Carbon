@@ -36,6 +36,9 @@ class RetentionUnavailable(ValueError):
 #: grade's inference pair: a typed candidate failure, not scored, the slot kept
 #: (`exam_cap.COUNTED`), never FAILED_INFRA.
 CANDIDATE_WALL_LIMIT_REACHED = "WORKER_WALL_LIMIT_REACHED"
+#: The Ladder's graded statuses of the two counted wall outcomes (`grade_feedback`: reasons TIMED_OUT / STOPPED_EARLY).
+WALL_STOP_STATUS = CANDIDATE_WALL_LIMIT_REACHED
+EARLY_STOP_STATUS = "EARLY_WALL_STOP"
 
 
 class CandidateWallLimitReached(RetentionUnavailable):
@@ -61,6 +64,8 @@ class EarlyWallStop(RetentionUnavailable):
     def __init__(self, record):
         super().__init__("early_wall_stop")
         self.record = record
+        #: The stopped submission's recipe digest (set where the stop is raised), for its Ladder row.
+        self.recipe_digest = None
 
 
 #: The host registry of the early wall stop (`early_wall_stop_rule`): empty = OFF, for every version, until the owner and the
@@ -1755,7 +1760,17 @@ def _retain_selected_pack_evaluation(
         AttributeError,
     ) as exc:
         if isinstance(exc, CandidateWallLimitReached):
-            return _settle_candidate_wall_hit(cap, reservation, result)
+            settled = _settle_candidate_wall_hit(cap, reservation, result)
+            if not uncounted:
+                # A counted wall stop is the miner's graded outcome: it reaches the Ladder (and so the board) as
+                # NOT_SCORED / TIMED_OUT (Lead 15 Nov), never as nothing.
+                settled["ladder_feedback_state"] = _record_stop_ladder(
+                    adapter,
+                    record_id,
+                    WALL_STOP_STATUS,
+                    lambda: registered["entry"]["recipe_digest"],
+                )
+            return settled
         if reservation is not None:
             # Grading did not complete (infrastructure or evidence), so the slot is returned.
             cap.settle(reservation, "UNAVAILABLE")
@@ -2712,6 +2727,44 @@ def _record_ladder(
     )
 
 
+def _record_stop_ladder(adapter, submission_id, status, recipe_of):
+    """File a COUNTED wall stop (``status``: `WALL_STOP_STATUS` or `EARLY_STOP_STATUS`) on the miner's Ladder as a
+    NOT_SCORED document with its reason (TIMED_OUT / STOPPED_EARLY, `grade_feedback`), read against the served pack's
+    own registration (evaluation version, registered score pack's gates and legs) as a graded result is. ``recipe_of``
+    returns the submission's recipe digest (the v3/v4 document names its submission). Its own failure never changes the
+    settled outcome: the state then names the refusal."""
+    try:
+        from carbon.scoring import dual_score
+        from carbon.scoring.solver_benchmark_v3 import register_pack
+
+        snapshot = adapter.discovery.evaluation_pack_snapshot
+        private_root = adapter.discovery.evaluation_pack_private_root
+        source = snapshot.read_source_registration(private_root)
+        document = snapshot.read_json_role(
+            private_root, "private", "score_pack", max_bytes=65536
+        )
+        body = {key: value for key, value in document.items() if key != "pack_digest"}
+        score_pack = (
+            dual_score.register_pack(body)
+            if document.get("schema") == dual_score.PACK_SCHEMA
+            else register_pack(body)
+        )
+        recipe_digest = recipe_of()
+    except Exception as failure:  # noqa: BLE001 - never changes the settled outcome
+        return "UNAVAILABLE: ladder_stop_" + type(failure).__name__
+    return _record_ladder(
+        adapter,
+        submission_id,
+        exam_key=snapshot.manifest_digest,
+        exam_version=source["evaluation_version"],
+        gates=score_pack["hard_gates"],
+        graded={"status": status},
+        recipe_digest=recipe_digest,
+        leg_minimums={name: leg["minimum"] for name, leg in score_pack["legs"].items()},
+        score_pack=score_pack,
+    )
+
+
 def _record_gate_failures(adapter, submission_id, exam_key, shown, accuracy):
     """A gate-failed grade's failing OUTPUTS and their closed REASON (`gate_failure_feedback`), kept per submission beside the Ladder,
     for the v6 feedback reply. Its own failure never touches the grade or the Ladder: the state then says so. ``""`` when there is
@@ -2873,7 +2926,12 @@ def _counted_bank_grade(
             write_once(directory / "early-wall-stop.json", _json(stopped.record))
         except Exception:  # noqa: BLE001, S110 - evidence is best effort
             pass
-        return _settle_candidate_wall_hit(cap, reservation, bound)
+        settled = _settle_candidate_wall_hit(cap, reservation, bound)
+        # The miner's graded outcome: NOT_SCORED / STOPPED_EARLY on the Ladder (and so the board), Lead 15 Nov.
+        settled["ladder_feedback_state"] = _record_stop_ladder(
+            adapter, submission_id, EARLY_STOP_STATUS, lambda: stopped.recipe_digest
+        )
+        return settled
     except Exception:
         # The grading did not complete: the slot goes back (it is not the miner's result).
         try:
@@ -4536,15 +4594,19 @@ def regrade_retained_entry(
             if counted and pool:
                 # Bundle A (dark until registered): a graded pass that provably cannot finish inside the published wall is not
                 # run; `_counted_bank_grade` settles it as the candidate's wall stop (`early_wall_stop_decision`).
-                _check_early_wall_stop(
-                    adapter,
-                    provider,
-                    owner,
-                    origin,
-                    material,
-                    len(bank),
-                    policy["inference_wall_seconds_max"],
-                )
+                try:
+                    _check_early_wall_stop(
+                        adapter,
+                        provider,
+                        owner,
+                        origin,
+                        material,
+                        len(bank),
+                        policy["inference_wall_seconds_max"],
+                    )
+                except EarlyWallStop as stopped:
+                    stopped.recipe_digest = entry.get("recipe_digest")
+                    raise
             graded = infer("graded", False)
             timed_result = infer("timed", True) if timed else None
         except RecipeRefused as refused:

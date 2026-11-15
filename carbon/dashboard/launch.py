@@ -50,6 +50,11 @@ STABILITY = ("STABLE", "UNSTABLE")
 # `carbon.challenge_validator.launch_board`'s v4 shape.
 SCHEMA_V4 = "carbon.validator.launch-board.v4"
 DOMAIN_V4 = b"carbon.validator.launch-board.v4\x00"
+# v5 (Lead 15 Nov) = v3 plus the king's `crowned_utc` (when the crown was decided, or null) and a ladder-row `reason`
+# (PUBLIC_REASONS on a NOT_SCORED row that stopped at the inference wall, else null). Held equal to launch_board's v5.
+SCHEMA_V5 = "carbon.validator.launch-board.v5"
+DOMAIN_V5 = b"carbon.validator.launch-board.v5\x00"
+PUBLIC_REASONS = ("TIMED_OUT", "STOPPED_EARLY")
 MEASURE_STATES = ("MEASURED", "UNSTABLE", "IN_PROGRESS", "UNMEASURED")
 DECIDED_OUTCOMES = (
     "FIRST_INCUMBENT",
@@ -75,6 +80,7 @@ SCHEMAS = {
     SCHEMA_V2: DOMAIN_V2,
     SCHEMA_V3: DOMAIN_V3,
     SCHEMA_V4: DOMAIN_V4,
+    SCHEMA_V5: DOMAIN_V5,
 }
 MAX_CROWN_CHANGES = 5
 TOTAL = "total"
@@ -253,8 +259,9 @@ def _crown_checks(checks):
 
 
 def _check(document):
+    v5 = document.get("schema") == SCHEMA_V5
     v4 = document.get("schema") == SCHEMA_V4
-    v3 = v4 or document.get("schema") == SCHEMA_V3
+    v3 = v5 or v4 or document.get("schema") == SCHEMA_V3
     v2 = v3 or document.get("schema") == SCHEMA_V2
     if set(document) != (
         FIELDS_V2 | {"crown_checks"} if v4 else FIELDS_V2 if v2 else FIELDS
@@ -299,7 +306,18 @@ def _check(document):
         want = want | {"stability"}
     if v4:
         want = want | {"measure"}
+    if v5:
+        want = want | {"crowned_utc"}
     if type(king) is not dict or set(king) != want:
+        raise LaunchRefused("king_invalid")
+    if v5 and not (
+        king["crowned_utc"] is None
+        or (
+            king["king"] is not None
+            and type(king["crowned_utc"]) is str
+            and _UTC.fullmatch(king["crowned_utc"])
+        )
+    ):
         raise LaunchRefused("king_invalid")
     if v4:
         _measure(king["measure"], king["king"])
@@ -341,7 +359,7 @@ def _check(document):
     for entry in ladder:
         if (
             type(entry) is not dict
-            or set(entry) != LADDER_FIELDS
+            or set(entry) != (LADDER_FIELDS | {"reason"} if v5 else LADDER_FIELDS)
             or type(entry["rank"]) is not int
             or entry["rank"] < 1
             or type(entry["hotkey"]) is not str
@@ -351,6 +369,10 @@ def _check(document):
         ):
             raise LaunchRefused("ladder_invalid")
         seen.add(entry["hotkey"])
+        if v5 and entry["reason"] is not None and (
+            entry["status"] != "NOT_SCORED" or entry["reason"] not in PUBLIC_REASONS
+        ):
+            raise LaunchRefused("ladder_invalid")
         _unit(entry["total"], "ladder_invalid", nullable=True)
         gates = entry["gate_names"]
         if gates is not None and (
@@ -484,6 +506,9 @@ def project(document, trust):
             ),
             # v2/v3 only: the page words the averaged bar differently
             "to_beat_rule": king.get("to_beat_rule"),
+            # v5 only: when the crown was DECIDED (UTC), and why a NOT_SCORED row stopped (hotkey -> public reason)
+            "crowned_utc": king.get("crowned_utc"),
+            "reasons": {e["hotkey"]: e["reason"] for e in ladder if e.get("reason")},
             "crown_changes": (
                 None
                 if document["schema"] == SCHEMA
