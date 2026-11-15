@@ -58,6 +58,7 @@ def door(tmp_path, monkeypatch):
         controls=[],
         holds=[],
         active_holds=0,
+        max_holds=0,
         fail_program=set(),  # op identities whose program raises
         fail_reset=0,  # how many next resets refuse
         watchdogs=[],
@@ -120,6 +121,7 @@ def door(tmp_path, monkeypatch):
     def hold(*, identity=None, **kwargs):
         state.holds.append(identity)
         state.active_holds += 1
+        state.max_holds = max(state.max_holds, state.active_holds)
         try:
             yield None
         finally:
@@ -164,7 +166,7 @@ def door(tmp_path, monkeypatch):
     # The ledger lease is a POSIX flock (not this test's subject); reconcile takes it.
     monkeypatch.setattr(carrier, "_numerical_lease", lambda ledger: nullcontext())
 
-    def run(identity, provenance=MEMBER, **overrides):
+    def run(identity, provenance=MEMBER, files_extra=None, **overrides):
         return carrier._run_locked(
             ledger,
             **{
@@ -174,6 +176,7 @@ def door(tmp_path, monkeypatch):
                 "files": {
                     "identity.txt": json.dumps(identity).encode(),
                     "state.npz": b"state-" + identity.encode(),
+                    **(files_extra or {}),
                 },
                 "image": IMAGE,
                 "seconds": 60,
@@ -317,7 +320,8 @@ def test_the_speed_stage_closes_the_session_and_keeps_its_own_container(door):
     names = [name for name, _, _ in door.created]
     assert names[0].startswith(carrier.SESSION_CONTAINER_PREFIX)
     assert names[1] == intent(door, timed)["container"]
-    assert names[1].startswith("carbon-d4-") and "session" not in intent(door, timed)
+    assert names[1] == "carbon-d4-" + door.created[1][1][7:31]
+    assert "session" not in intent(door, timed)
     assert names[2].startswith(carrier.SESSION_CONTAINER_PREFIX)
     # The session was removed, and its hold released, before the timing op asked for its own.
     first_removal = door.removed.index((names[0], door.created[0][1]))
@@ -340,7 +344,11 @@ def test_ops_that_are_not_members_keep_their_own_container(door):
         other = door.run("practice", provenance="BATTERY_PUBLIC_PRACTICE")
         door.run("pair-primary")
     assert "session" not in intent(door, other)
-    assert len(door.created) == 2  # the session (both members) + the practice op's own
+    # The practice op closed the session first (it takes its own hold), then pair-primary opened a new one.
+    assert len(door.created) == 3
+    assert door.created[1][0] == intent(door, other)["container"]
+    assert door.created[0][0] in [name for name, _ in door.removed[:1]]
+    assert door.active_holds == 0
 
 
 @pytest.mark.parametrize("raised", [RuntimeError("grade failed"), KeyboardInterrupt()])
@@ -362,7 +370,7 @@ def test_sessions_never_nest_and_never_outlive_their_grade(door):
         door.run("graded")
     assert carrier._GRADE_SESSION.get() is None
     door.run("graded-next-grade")
-    assert door.created[-1][0].startswith("carbon-d4-")
+    assert door.created[-1][0] == "carbon-d4-" + door.created[-1][1][7:31]
 
 
 def test_an_op_that_would_outlive_the_session_starts_a_new_one(door, monkeypatch):
@@ -455,3 +463,116 @@ def test_the_reset_rebuilds_exactly_what_the_image_entrypoint_makes():
         "wipe('/scratch')" in carrier.SESSION_RESET
         and "wipe('/dev/shm')" in carrier.SESSION_RESET
     )
+
+
+def test_no_op_of_the_grade_ever_holds_a_second_hold_behind_the_session(door):
+    """Review F1: a live session holds the timing gate SHARED; any op that would take its own hold closes it first."""
+    with carrier.grade_session():
+        door.run("graded")
+        door.run("practice", provenance="BATTERY_PUBLIC_PRACTICE")
+        door.run("single-call-x")
+    # At most one hold at a time: the session's was released before each other op asked.
+    assert door.max_holds == 1
+
+
+def test_a_waiting_timing_stage_on_the_other_lane_makes_the_session_yield(
+    door, monkeypatch
+):
+    """Review F1: another lane's timing stage waits for at most one op, as it waits for one container today."""
+    with carrier.grade_session() as session:
+        door.run("graded")
+        monkeypatch.setattr(carrier, "_timing_wanted", lambda: True)
+        door.run("pair-primary")
+        assert session.opened == 2
+    assert door.removed[0] == door.created[0][:2]
+
+
+def test_a_timing_measurement_never_joins(door):
+    """Review F2: the batched cold query (measure_query) and the single-call loop are taken in their own container."""
+    measured = json.dumps({"measure_query": True}).encode()
+    single = json.dumps({"single_call": {"indices": [0]}}).encode()
+    with carrier.grade_session():
+        door.run("graded")
+        cold = door.run("regrade-timed-x", files_extra={"control.json": measured})
+        loop = door.run("regrade-loop-x", files_extra={"control.json": single})
+        plain = door.run(
+            "pair-primary", files_extra={"control.json": b'{"per_case": true}'}
+        )
+    assert "session" not in intent(door, cold) and "session" not in intent(door, loop)
+    assert "session" in intent(door, plain)
+
+
+def test_session_names_are_seen_by_the_host_contention_probes():
+    """Review F3: host_quiet / auto_grade find worker containers by the `carbon-d4-` prefix."""
+    from carbon.challenge_validator import auto_grade, host_quiet
+
+    launch = "sha256:" + "c" * 64
+    session_name = carrier._container_names(launch)[1]
+    assert session_name.startswith(host_quiet.WORKER_PREFIX)
+    assert session_name.startswith(auto_grade._WORKER_PREFIX)
+    assert session_name != carrier._container_names(launch)[0]
+    assert not re.fullmatch(r"carbon-d4-[0-9a-f]{24}", session_name)
+
+
+def test_a_session_too_close_to_its_deadline_is_retired_with_margin(door, monkeypatch):
+    """Review F4: the op's wall plus the reset and reservation must fit before the session's deadline."""
+    import time
+
+    with carrier.grade_session() as session:
+        door.run("graded")
+        # 60 s wall + 30 s left: enough for the wall alone, not for the margin.
+        monkeypatch.setattr(session, "deadline_unix", time.time() + 90)
+        door.run("pair-primary")
+        assert session.opened == 2
+
+
+def test_the_reset_restores_the_scratch_root_mode_and_xattrs():
+    """Review F5."""
+    assert "os.chmod('/scratch',0o700)" in carrier.SESSION_RESET
+    assert "os.removexattr('/scratch',a)" in carrier.SESSION_RESET
+
+
+def test_a_dead_controllers_session_folder_is_swept_and_a_live_one_kept(
+    door, monkeypatch
+):
+    """Review F6."""
+    root = door.ledger.root
+    dead = root / ("session-" + "d" * 64)
+    live = root / ("session-" + "e" * 64)
+    unread = root / ("session-" + "f" * 64)
+    for directory, pid in ((dead, 111), (live, 222)):
+        (directory / "input").mkdir(parents=True)
+        (directory / "intent.json").write_bytes(
+            json.dumps(
+                {
+                    "container": carrier.SESSION_CONTAINER_PREFIX
+                    + directory.name[8:32],
+                    "reaper": {"pid": pid, "identity": f"id-{pid}"},
+                }
+            ).encode()
+        )
+    unread.mkdir()
+    monkeypatch.setattr(
+        carrier.liveness_reaper,
+        "process_identity",
+        lambda pid: "id-222" if pid == 222 else None,
+    )
+    with carrier.grade_session():
+        door.run("graded")
+    assert not dead.exists() and live.exists() and unread.exists()
+
+
+def test_a_successful_op_whose_inputs_cannot_be_cleared_still_succeeds(
+    door, monkeypatch
+):
+    """Review F7: the session is retired instead; the op's outcome is its own."""
+    with carrier.grade_session() as session:
+
+        def broken():
+            raise OSError("unlink refused")
+
+        monkeypatch.setattr(session, "clear_input", broken)
+        result = door.run("graded")
+        assert door.live == {}
+    assert door.ledger.operation_state("graded", owner="alice") == "SUCCEEDED"
+    assert intent(door, result)["container"] == door.created[0][0]

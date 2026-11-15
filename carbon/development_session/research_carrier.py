@@ -1241,7 +1241,10 @@ def _fixed_practice_stage(operation, provenance, stage):
 #: its own `docker exec` (a NEW process), instead of one container each: the create / start / teardown is paid once.
 #: Everything an op records stays per op (ledger operation, intent, controls digest, outputs, evidence). The program
 #: sees exactly today's paths (`/input`, `/scratch/workspace`, `/scratch/output`) and today's environment.
-SESSION_CONTAINER_PREFIX = "carbon-d4s-"
+#: The session name keeps the carrier's `carbon-d4-` prefix, so the host's contention probes (`host_quiet`,
+#: `auto_grade`) see a session container as they see any worker container; `s-` is not hex, so it never equals an
+#: op's own `carbon-d4-<24 hex>` name.
+SESSION_CONTAINER_PREFIX = "carbon-d4-s-"
 #: The only ops that join: Carbon's fixed inference program (graded pass, pair / subset repeat, menu row check). The
 #: build, the speed stage and anything timed keep their own container.
 SESSION_PROVENANCES = frozenset(
@@ -1254,8 +1257,9 @@ SESSION_LIFETIME_SECONDS = 3600
 #: container and the op runs in a NEW session container, as today's next op runs in a new container) if anything of the
 #: previous op could still act or be read: a process other than the image's PID 1 entrypoint (still waiting, never
 #: authorized), an OOM in the cgroup or a memory peak at the limit (the per-op memory classification reads these
-#: counters), or a SysV / POSIX IPC object. Then it empties /scratch and /dev/shm and rebuilds exactly what the
-#: entrypoint makes in a new container (home, tmp, cache, jax-cache at 0700, control-ready at 0400).
+#: counters), or a SysV / POSIX IPC object. Then it empties /scratch and /dev/shm, restores the /scratch root's
+#: mode (0700) and drops its user xattrs, and rebuilds exactly what the entrypoint makes in a new container (home,
+#: tmp, cache, jax-cache at 0700, control-ready at 0400).
 SESSION_RESET = """
 import os,shutil,sys
 from pathlib import Path
@@ -1289,6 +1293,10 @@ def wipe(root):
     if os.listdir(root): sys.exit(8)
 wipe('/scratch')
 wipe('/dev/shm')
+os.chmod('/scratch',0o700)
+for a in os.listxattr('/scratch'):
+    if a.startswith('user.'): os.removexattr('/scratch',a)
+if [a for a in os.listxattr('/scratch') if a.startswith('user.')]: sys.exit(8)
 for c in ('home','tmp','cache','jax-cache'): (s/c).mkdir(mode=0o700)
 (s/'control-ready').touch(mode=0o400)
 """
@@ -1323,6 +1331,54 @@ def _timing_stage(identity):
     return grade_lanes.is_timing_identity(identity) or bool(
         grade_lanes._EXCLUSIVE.get()
     )
+
+
+def _timing_wanted():
+    """Whether another lane's timing stage is waiting for the host timing gate (`grade_lanes`). A live session then
+    yields before its next op, so that stage waits for at most one op, as it waits for one container today.
+    """
+    from carbon.reconstruction import grade_lanes
+
+    lane = grade_lanes.current()
+    return lane is not None and grade_lanes._wanted_by_others(lane.lock_dir)
+
+
+def _timed_control(files):
+    """Whether an op's staged control asks for a timing measurement (the batched cold query or the single-call
+    loop): a timing measurement is taken in its own container, as today, never in a reused one.
+    """
+    raw = files.get("control.json") if type(files) is dict else None
+    if raw is None:
+        return False
+    try:
+        control = json.loads(raw)
+    except (TypeError, ValueError):
+        return True
+    return type(control) is not dict or bool(
+        control.get("measure_query") or "single_call" in control
+    )
+
+
+def _sweep_stale_sessions(root, cli):
+    """Remove session folders a dead controller left (its recorded controller is gone and its container is absent);
+    a folder whose controller lives, or with no readable intent yet, is never touched.
+    """
+    for directory in root.glob("session-*"):
+        try:
+            intent = json.loads((directory / "intent.json").read_bytes())
+            guard = intent["reaper"]
+            name = intent["container"]
+            if not str(name).startswith(SESSION_CONTAINER_PREFIX):
+                continue
+            if liveness_reaper.process_identity(guard["pid"]) == guard["identity"]:
+                continue
+            if cli.run(
+                ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
+            ).stdout.strip():
+                continue
+        except Exception:  # noqa: BLE001, S112 - an unreadable folder is left as it is
+            continue
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 class _GradeSession:
@@ -1360,6 +1416,7 @@ class _GradeSession:
         worker,
         bootstrap,
         plain,
+        files,
     ):
         """Whether this op joins: Carbon's fixed inference program, CPU, no trusted stage or overlay, today's bootstrap,
         the grade's ledger and owner, and (once open) the session's image and worker profile.
@@ -1369,8 +1426,9 @@ class _GradeSession:
             or provenance not in SESSION_PROVENANCES
             or bootstrap != BOOTSTRAP
             or type(seconds) is not int
-            or seconds + 60 > SESSION_LIFETIME_SECONDS
+            or seconds + 90 > SESSION_LIFETIME_SECONDS
             or _timing_stage(identity)
+            or _timed_control(files)
         ):
             return False
         if self.ledger_root is not None and (
@@ -1386,7 +1444,11 @@ class _GradeSession:
         would outlive; then name the container the op will run in, so its intent can name it.
         """
         self.ledger_root, self.owner = ledger.root, owner
-        if self.live and time.time() + seconds - 30 > self.deadline_unix:
+        # Retire a session this op could outlive (its wall plus the 30 s reset and the reservation), or one another
+        # lane's timing stage is waiting behind.
+        if self.live and (
+            time.time() + seconds + 60 > self.deadline_unix or _timing_wanted()
+        ):
             self.close(cli)
         if self.live:
             try:
@@ -1404,6 +1466,7 @@ class _GradeSession:
             except WorkerFailure:
                 self.close(cli)
         if self.launch is None:
+            _sweep_stale_sessions(ledger.root, cli)
             self.launch = digest(
                 canonical(
                     {
@@ -1504,11 +1567,16 @@ class _GradeSession:
 
     def after_op(self, cli, *, ok):
         """The op's inputs leave `/input`; an op that did not finish cleanly takes the container with it."""
+        if ok:
+            try:
+                self.clear_input()
+            except OSError:
+                self.close(cli)
+            return
         try:
             self.clear_input()
         finally:
-            if not ok:
-                self.close(cli)
+            self.close(cli)
 
     def close(self, cli=None):
         """Remove the exact session container (confirmed absent), release the timing hold, delete the session folder.
@@ -1775,8 +1843,8 @@ def _run_locked(
         canonical({"owner": owner, "identity": identity, "request": request})
     )
     # Item 4: inside a counted grade's `grade_session()`, a member op runs as an exec in the grade's session container
-    # (reset for it here, before its reservation); a timing op closes the session first, so its EXCLUSIVE hold never
-    # waits on its own grade. Outside a session, or for any other op, nothing here changes.
+    # (reset for it here, before its reservation); any other op (a timing op above all) closes the session first,
+    # so its own hold never waits behind its own grade's. Outside a session nothing here changes.
     session = _GRADE_SESSION.get()
     if session is not None:
         if _timing_stage(identity):
@@ -1793,6 +1861,7 @@ def _run_locked(
                 None, provenance, worker_resources_version, rebuild_wall_seconds
             ),
             bootstrap=bootstrap,
+            files=files,
             plain=(
                 not miner_lane
                 and trusted_overlay is None
@@ -1803,6 +1872,9 @@ def _run_locked(
         ):
             session.prepare(ledger, owner=owner, seconds=seconds, cli=DockerCLI())
         else:
+            # Any other op takes its own container and its own timing hold: the session is closed first, so no op
+            # of this grade holds a second hold behind the session's (two lanes would otherwise wait on each other).
+            session.close()
             session = None
     operation = ledger.root / ("operation-" + launch[7:])
     if miner_lane:
@@ -1965,8 +2037,8 @@ def _run_locked(
                 raise ValueError("research host ineligible")
     except Exception:
         if session is not None:
-            with suppress(OSError):
-                session.clear_input()
+            with suppress(Exception):
+                session.after_op(cli, ok=False)
         _settle_nothing_created(
             ledger,
             owner=owner,
