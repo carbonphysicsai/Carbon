@@ -105,13 +105,17 @@ def test_page_crown_section_shows_the_registered_official_score_rule_and_floor()
 
 
 def test_page_states_the_registered_early_stop_and_the_overlay_wall():
+    """The early stop is OFF for Motor 1.8 (owner, 15 Nov 07:02 CST, at the compiled-forward switch): the page says so
+    and no longer describes a projection stop."""
     stop = _registry("early_wall_stop.json")["rows"][ROW]
-    assert stop["enabled"] is True and stop["margin"] == 1.0
+    assert stop["enabled"] is False
     wall = _registry("version_overlay.json")["versions"][ROW]["rebuild_wall_seconds"]
     page = _page()
     assert f"up to **{wall} seconds**" in page
-    assert f"projected run time is past the {wall} s limit" in page
-    assert "a stop counts as a try" in page
+    assert "Early stop: off for Motor 1.8 for now." in page
+    assert f"an inference that reaches the {wall} s limit is a normal timeout" in page
+    assert "projected run time" not in page
+    assert "stopped early, and a stop counts as a try" not in page
 
 
 def test_page_no_longer_says_the_version_does_not_grade():

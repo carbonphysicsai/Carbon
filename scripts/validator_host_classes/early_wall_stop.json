@@ -1,7 +1,7 @@
 {
   "rows": {
     "electric-motor-magnetics 1.8": {
-      "enabled": true,
+      "enabled": false,
       "evidence_sha256": "sha256:f6cf433e3c57fa7b1d8b9ca5a9955f593cf28516c25e5b388b14a10bf5fd4ae5",
       "margin": 1.0,
       "s_max_seconds": 54.828

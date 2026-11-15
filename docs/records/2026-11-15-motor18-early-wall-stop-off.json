@@ -1,0 +1,25 @@
+{
+  "challenge": "electric-motor-magnetics",
+  "evidence": {
+    "basis": "No new measurement: s_max_seconds and its evidence are kept unchanged from docs/records/2026-11-14-motor18-early-wall-stop-margin-1.json, but they were measured on the EAGER (op by op) forward. The compiled forward that rides the same head makes inference faster, so that s_max no longer describes how a Motor 1.8 grade runs; the rule is OFF until s_max is re-measured on compiled grades.",
+    "evidence_sha256": "sha256:f6cf433e3c57fa7b1d8b9ca5a9955f593cf28516c25e5b388b14a10bf5fd4ae5"
+  },
+  "label": "Motor 1.8 early stop, 116: OFF at the compiled-forward switch (owner, 15 Nov 07:02 CST); re-enabled only after s_max is re-measured on compiled grades",
+  "owner_words": [
+    {
+      "source": "codex-queue/reports/DECISION_LEDGER_20261105.md, the Sun 15 Nov 07:02 CST entry",
+      "typed_at": "Sun 15 Nov 2026 07:02 CST",
+      "typed_in": "the Lead session",
+      "verbatim": "yes, early stop off. and hopefully there's a fix for 2 there has to be"
+    }
+  ],
+  "rule": "lean_recipe_retention.early_wall_stop_rule reads a row whose enabled is not true as OFF: no pass is skipped by projection; an inference that reaches the published 648 s wall is a normal counted wall stop, as before the early stop existed.",
+  "schema": "carbon.exam.early-wall-stop-record.v1",
+  "supersedes": "docs/records/2026-11-14-motor18-early-wall-stop-margin-1.json (enabled, margin 1.0), kept unchanged as history",
+  "values": {
+    "enabled": false,
+    "margin": 1.0,
+    "s_max_seconds": 54.828
+  },
+  "version": "1.8"
+}

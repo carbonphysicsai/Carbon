@@ -55,7 +55,13 @@ def _precision(dtype):
 
 @pytest.fixture(scope="module", params=sorted(FORMATS))
 def artifact(request):
-    kind, key = request.param, FORMATS[request.param]
+    return _artifact(request.param, FORMATS[request.param])
+
+
+def _artifact(kind, key, seed=None):
+    """One real codec state of ``kind`` for the version ``key``, with synthetic parameters: zeros and a last bias (each
+    row then answers the same), or, with ``seed``, small seeded random values in every parameter, so every row answers
+    differently and the members differ."""
     material = physical_material.bundle_material(*key)
     permitted = allowlist_module.Allowlist(material["allowlist_bytes"])
     with _precision(material["practice_inputs"].dtype):
@@ -77,6 +83,10 @@ def artifact(request):
     width = physical_graph_state._width(doc)
     dtype = parameters[0].dtype
     parameters[-1][...] = np.arange(width, dtype=dtype) / 4
+    if seed is not None:
+        rng = np.random.default_rng(seed)
+        for value in parameters:
+            value[...] = rng.standard_normal(value.shape).astype(dtype) * 0.1
     mu, sd = np.arange(width, dtype=dtype) / 2, np.full(width, 2, dtype)
     if kind == "bundle":
         value = recipe.to_dict()

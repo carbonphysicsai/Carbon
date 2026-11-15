@@ -12,5 +12,5 @@ PASS_LINES = {
     "graded_pass": "Your built model answers the hidden exam designs once, and its answers are scored.",
     "inference_pair": "Carbon runs your built model on the exam a second time, as the repeat that the public accuracy definition describes.",
     "menu_rowcheck": "Carbon checks that each of your model's design answers does not depend on which other designs are in the batch.",
-    "early_stop": "Before the graded pass, a model projected to run past the limit is stopped early; it counts as a try, like a timeout.",
+    "early_stop": "Before the graded pass, a model projected to run past the limit is stopped early when the early stop is on; it counts as a try, like a timeout.",
 }
