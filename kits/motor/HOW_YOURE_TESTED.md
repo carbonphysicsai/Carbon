@@ -110,16 +110,15 @@ Gates come first: a failed gate means no score, however good the rest.
   total is longer; the build and the inference are still limited to 648
   seconds each), on 4 CPUs and 16 GiB. A build or an inference that reaches
   a limit is a normal timeout.
-- Early stop: a model whose projected run time is past the 648 s limit is
-  stopped early, and a stop counts as a try, like a timeout. It is a
-  projection, so a model with a very slow start can be stopped even if its
-  full run would have fitted.
+- Early stop: off for Motor 1.8 for now. No run is stopped on a projection;
+  an inference that reaches the 648 s limit is a normal timeout, and a
+  timeout counts as a try.
 - When a try ends at a limit, the result of a kit that shows it names the
   pass it ended in. The four pass names, each in one line:
   - `graded_pass`: Your built model answers the hidden exam designs once, and its answers are scored.
   - `inference_pair`: Carbon runs your built model on the exam a second time, as the repeat that the public accuracy definition describes.
   - `menu_rowcheck`: Carbon checks that each of your model's design answers does not depend on which other designs are in the batch.
-  - `early_stop`: Before the graded pass, a model projected to run past the limit is stopped early; it counts as a try, like a timeout.
+  - `early_stop`: Before the graded pass, a model projected to run past the limit is stopped early when the early stop is on; it counts as a try, like a timeout.
   A stop in any other part of a grade is counted the same way and shows no
   pass name. Nothing measured is shown: no seconds, no counts, no cases.
 - Speed limit for Motor 1.8: **HUMAN_INPUT** (Motor 1.5: each design
