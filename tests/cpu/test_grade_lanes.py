@@ -102,10 +102,15 @@ def test_the_values_row_allows_two_lanes_and_anything_else_is_one(tmp_path):
     assert grade_lanes.registered_lanes(*key, path=garbage) == 1
 
 
-def test_the_shipped_values_file_enables_no_lanes():
-    """Nothing changes on any host until the owner's values row lands."""
+def test_the_shipped_values_file_enables_two_lanes_for_motor_18_only():
+    """The owner's row (typed 15 Nov 17:02 CST, Deploy-B): two lanes for Motor 1.8 and no other version."""
     document = json.loads(grade_lanes.REGISTRY.read_bytes())
-    assert document == {"schema": grade_lanes.SCHEMA, "rows": {}}
+    assert document == {
+        "schema": grade_lanes.SCHEMA,
+        "rows": {"electric-motor-magnetics 1.8": {"lanes": 2}},
+    }
+    assert grade_lanes.registered_lanes("electric-motor-magnetics", "1.8") == 2
+    assert grade_lanes.registered_lanes("electric-motor-magnetics", "1.7") == 1
     assert grade_lanes.REGISTRY.read_bytes().count(b"\r") == 0
 
 
