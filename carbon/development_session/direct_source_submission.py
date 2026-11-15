@@ -529,8 +529,22 @@ STAGED_GRAPHS = "direct-graph-stages.json"
 STAGED_GRAPHS_SCHEMA = "carbon.construction.staged-graphs.v1"
 #: The most earlier graph manifests `stage_graph_source` offers as the held one before it refuses.
 REPLACE_CANDIDATES = 8
+#: Other campaigns on this host that `stage_graph_source` also asks (newest first), and the most digests they add: a
+#: manifest staged from an EARLIER campaign is held by the same door for the same owner (Lead 15 Nov: UID 269's new
+#: campaign could not name its first campaign's staged manifest, so every stage refused).
+SIBLING_CAMPAIGNS = 32
+SIBLING_CANDIDATES = 16
 _NOT_FOUND = "construction_source_reference_not_found"
 _CONFLICT = "construction_source_idempotency_conflict"
+
+
+def _is_manifest_digest(value):
+    return (
+        type(value) is str
+        and len(value) == 71
+        and value.startswith("sha256:")
+        and all(c in "0123456789abcdef" for c in value[7:])
+    )
 
 
 def _door_key(url, receiver, recipe, owner):
@@ -598,6 +612,64 @@ def _earlier_graph_manifests(ledger, recipe):
     return ordered[:REPLACE_CANDIDATES]
 
 
+def _sibling_roots(ledger):
+    """The other campaign roots next to this campaign's (each holds ``campaign.sqlite3``), newest first, at most
+    `SIBLING_CAMPAIGNS`. Read only; a folder that cannot be read is left out."""
+    root = Path(ledger.root)
+    found = []
+    try:
+        entries = list(root.parent.iterdir())
+    except OSError:
+        return []
+    for entry in entries:
+        try:
+            if (
+                entry == root
+                or entry.is_symlink()
+                or not entry.is_dir()
+                or not (entry / "campaign.sqlite3").is_file()
+            ):
+                continue
+            found.append((entry.stat().st_mtime, entry.name, entry))
+        except OSError:
+            continue
+    found.sort(reverse=True)
+    return [entry for _mtime, _name, entry in found[:SIBLING_CAMPAIGNS]]
+
+
+def _sibling_manifests(ledger, recipe, key):
+    """Manifest digests this host's OTHER campaigns may have staged at this door for this owner, newest campaign first:
+    FIRST every sibling's exact record for the same door key (a fact), THEN their frozen graph recipes for the same
+    Challenge version (guesses, at most `SIBLING_CANDIDATES`), so guesses never crowd out a record. Format-checked; a
+    sibling whose record cannot be read only adds its frozen recipes."""
+    siblings = _sibling_roots(ledger)
+    views = [type("SiblingLedger", (), {"root": sibling})() for sibling in siblings]
+    records = []
+    for view in views:
+        try:
+            recorded = _read_staged(view).get(key)
+        except (DirectIntakeRefusal, OSError):
+            continue
+        if _is_manifest_digest(recorded) and recorded not in records:
+            records.append(recorded)
+    guesses = []
+    for view in views:
+        for digest in _earlier_graph_manifests(view, recipe):
+            if _is_manifest_digest(digest) and digest not in records + guesses:
+                guesses.append(digest)
+        if len(guesses) >= SIBLING_CANDIDATES:
+            break
+    return records + guesses[:SIBLING_CANDIDATES]
+
+
+def _sibling_manifests_or_none(ledger, recipe, key):
+    """`_sibling_manifests`, or [] on ANY error: another campaign's files never break a stage that worked before."""
+    try:
+        return _sibling_manifests(ledger, recipe, key)
+    except Exception:  # noqa: BLE001 - fall back to this campaign's own candidates only
+        return []
+
+
 def stage_graph_source(
     url,
     signer,
@@ -617,8 +689,12 @@ def stage_graph_source(
     replaces the held one by compare-and-swap (`stage_graph`'s ``expected_manifest_digest``): the expectation is this
     owner's last staged manifest at this door (recorded in the campaign ledger, `STAGED_GRAPHS`); when nothing is
     recorded (a manifest staged before this record existed) the campaign's earlier frozen graph recipes are offered,
-    newest first; when the receiver holds no manifest (a re-prepared door) the graph is staged afresh. Any other
-    refusal, or a held manifest none of those names, refuses with the receiver's code: nothing is overwritten blind.
+    newest first; when the receiver holds no manifest (a re-prepared door) the graph is staged afresh. Only when all of
+    those are refused, what this host's OTHER campaigns recorded for this door, then froze (`_sibling_manifests`: a new
+    campaign of the same miner meets the manifest an earlier campaign staged; Lead 15 Nov, UID 269). Any other refusal,
+    or a held manifest none of those names, refuses with the receiver's code: nothing is overwritten blind. Two
+    campaigns of ONE hotkey staging at once can now replace each other's held manifest (the held one is the owner's own
+    workspace; a task already admitted keeps the source it was admitted with).
     """
     if type(recipe) is not ConstructionRecipe:
         recipe = ConstructionRecipe.from_dict(recipe)
@@ -634,10 +710,23 @@ def stage_graph_source(
             expectations.append(digest)
     if None not in expectations:
         expectations.append(None)
+    current = recipe.to_dict()["source"]["submission_digest"]
     last = None
     tried = set()
     queue = list(expectations)
-    while queue:
+    siblings_asked = False
+    while True:
+        if not queue:
+            # only once this campaign's own candidates and 'nothing held' were all refused: the other campaigns' ones
+            if siblings_asked:
+                break
+            siblings_asked = True
+            queue = [
+                digest
+                for digest in _sibling_manifests_or_none(ledger, recipe, key)
+                if digest not in tried and digest != current
+            ]
+            continue
         expected = queue.pop(0)
         if expected in tried:
             continue
