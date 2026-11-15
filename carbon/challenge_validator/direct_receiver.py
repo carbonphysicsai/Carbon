@@ -946,6 +946,9 @@ GRADING_PATHS = (
     "carbon/challenge_validator/crown_average.py",
     # a menu-D version's coded crown hold (Validator-2B 7 Nov): it decides whether a crown may change
     "carbon/challenge_validator/crown_hold.py",
+    # a vmap-64 version's speed-match tolerance (CV-Motor-B S2, 15 Nov): it decides whether a timed stage matches or is
+    # Carbon's FAILED_INFRA
+    "carbon/challenge_validator/speed_match.py",
     # whether a timed build ran on a quiet host decides whose failure a wall stop is (owner 5 Nov: rebuilds consistently
     # timed; Validator-2 21:28)
     "carbon/challenge_validator/host_quiet.py",
