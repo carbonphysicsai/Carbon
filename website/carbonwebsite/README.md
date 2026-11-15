@@ -8,13 +8,18 @@ any other way, or the next deploy from here will silently undo that change.
 The Ask Carbon API is a separate Worker (`ask-carbon-public`, in
 `website/ask-carbon/`). Deploying this folder does not touch it.
 
+The Chinese pages under `/zh/` are also a separate Worker,
+`carbon-zh-preview` (routes include `zh-preview.carbonphysics.ai` and
+`carbonphysics.ai/zh/`), whose source is not in this repository. They are not in
+this folder, deploying it does not change them, and `compare-live.mjs` skips
+`/zh/`. The English pages' EN / 中文 switch links to them.
+
 ## Change a page
 
 Edit the files under `site/` and open a pull request. The diff is the change a
 visitor will see, and merging it publishes it. Shared pieces (header, footer,
 menus) are copied into each page, so a header change touches every
-`index.html`, `404.html`, and the two `zh/` pages, which have their own Chinese
-header.
+`index.html` and `404.html`.
 
 ## Deploy
 
@@ -89,7 +94,9 @@ files in all. Cloudflare's edge additions were removed: the bot-challenge
 script and Web Analytics beacon in HTML, and the managed block Cloudflare puts
 in front of `robots.txt` (the recovered `robots.txt` matches the October
 manifest byte for byte). Every page was then loaded from this folder alone in
-Chromium, desktop and phone, with no missing file.
+Chromium, desktop and phone, with no missing file. The 62 files under `zh/`
+were later removed: the first deploy showed `/zh/` is served by the
+`carbon-zh-preview` Worker, so 116 files remain.
 
 Cloudflare offers no way to list the files a Worker serves, so a file that live
 serves but nothing links to cannot be found this way. Of the October manifest's

@@ -21,6 +21,11 @@ const SITE = option("--site", fileURLToPath(new URL("../site", import.meta.url))
 const HOST = option("--host", "carbonphysics.ai");
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 
+// Paths carbonphysics.ai serves from another Worker, so a deploy of this folder
+// cannot change them and they are not compared: /zh/ is the `carbon-zh-preview`
+// Worker's route. Also skipped in a --site copy from before they left the folder.
+export const SERVED_ELSEWHERE = ["zh/"];
+
 export const removeEdgeAdditions = (path, bytes) => {
   if (path === "robots.txt") {
     const text = bytes.toString("utf8"), end = "# END Cloudflare Managed Content\n", i = text.indexOf(end);
@@ -36,7 +41,8 @@ const urlPath = (path) => path === "index.html" ? "" : path.endsWith("/index.htm
 const walk = async (d) => (await Promise.all((await readdir(d, { withFileTypes: true })).map((e) => e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]))).flat();
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const files = (await walk(SITE)).map((f) => relative(SITE, f).split("\\").join("/")).sort();
+  const files = (await walk(SITE)).map((f) => relative(SITE, f).split("\\").join("/"))
+    .filter((path) => !SERVED_ELSEWHERE.some((prefix) => path.startsWith(prefix))).sort();
   const problems = [];
   for (const path of files) {
     const response = await fetch(`https://${HOST}/${encodeURI(urlPath(path))}`, { headers: { "user-agent": "carbon-compare-live/1" } });
