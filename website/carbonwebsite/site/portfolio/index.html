@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en" data-page="portfolio">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Challenge Portfolio · Carbon</title>
+<meta name="description" content="Eight physical problems. Faster engineering decisions, physical outcomes to prove and conditional value at customer scale. Future fixed-resource model-versus-solver design contests.">
+<link rel="canonical" href="https://carbonphysics.ai/portfolio/">
+<meta name="theme-color" content="#f5f5f0">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Carbon">
+<meta property="og:title" content="Turning Physics AI Into Industrial Value · Carbon">
+<meta property="og:description" content="Eight physical problems. Faster engineering decisions, physical outcomes to prove and conditional value at customer scale. Future fixed-resource model-versus-solver design contests.">
+<meta property="og:url" content="https://carbonphysics.ai/portfolio/">
+<meta property="og:image" content="https://carbonphysics.ai/assets/og-carbon.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@carbonphysicsai">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/neue-0.otf" as="font" type="font/otf" crossorigin>
+<link rel="preload" href="/assets/neue-1.otf" as="font" type="font/otf" crossorigin>
+<link rel="stylesheet" href="/site.css">
+<style>.pf-main{--paper:#f5f5f0;--ink:#121212;--muted:#454547;--line:#D8D9D4;--accent:#F04F34;--panel:#E8E8E3}
+*{box-sizing:border-box}
+.pf-main{font-size:16px;line-height:normal;-webkit-font-smoothing:antialiased}
+.pf-main :where(h1,h2,h3,h4){letter-spacing:normal;line-height:inherit}
+a{color:inherit;text-decoration:none}
+:where(.pf-main) a:hover{text-decoration:underline;text-underline-offset:4px}
+:where(.pf-main) a:focus-visible{outline:2px solid var(--accent);outline-offset:5px}
+p,h1,h2,h3{margin:0}
+.pf-hero{padding:44px 0 32px}
+h1{font-size:clamp(34px,4.2vw,58px);font-weight:400;letter-spacing:-.045em;line-height:1.08}
+h1 span{color:var(--accent)}
+.pf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.pf-card{display:grid;grid-template-columns:34% minmax(0,1fr);border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#FFFFFF;scroll-margin-top:24px}
+.pf-visual{position:relative;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;padding:40px 0}
+.pf-number{position:absolute;left:18px;top:17px;color:#454547;font-size:12px;font-variant-numeric:tabular-nums}
+.pf-visual svg{display:block;width:100%;height:auto;overflow:visible}
+.pf-visual svg text{font-family:Montreal,Arial,sans-serif;font-size:9px;fill:#454547;letter-spacing:.06em}
+.pf-card-copy{padding:22px 23px 20px;min-width:0}
+.pf-card h2{font-size:24px;font-weight:400;line-height:1.07;letter-spacing:-.028em}
+.pf-highlight{color:var(--accent);font-size:13px;line-height:1.4;margin-top:8px}
+.pf-card h3{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);line-height:1.5}
+.pf-use{margin-top:17px}
+.pf-use p{font-size:12px;line-height:1.45;margin-top:4px;max-width:42ch}
+.pf-impact{border-block:1px solid #D8D9D4;margin:16px 0 13px;padding:11px 0 9px}
+.pf-impact h3{font-size:9px;letter-spacing:.055em}
+.pf-impact h3 span{font-weight:400;letter-spacing:0;text-transform:none;white-space:nowrap}
+.pf-outcome{font-size:12px;line-height:1.45;margin-top:4px}
+.pf-scale{background:#F5F5F0;border-radius:3px;margin-top:10px;padding:10px 11px}
+.pf-scale h3{font-size:8px}
+.pf-impact-values{display:grid;grid-template-columns:minmax(0,1fr) 15px minmax(0,1fr);gap:5px;margin-top:7px;align-items:start}
+.pf-impact-values strong{font-size:26px;font-weight:400;letter-spacing:-.04em;white-space:nowrap;line-height:1.1}
+.pf-impact-values strong span{font-size:10px;letter-spacing:0;margin-left:4px}
+.pf-impact-arrow{padding-top:6px;color:#85878C;font-size:13px}
+.pf-impact-values small{display:block;font-size:9px;color:var(--muted);line-height:1.4;margin-top:3px}
+.pf-basis{display:inline-block;margin-top:7px;color:var(--muted);font-size:9px;line-height:1.5;min-height:20px}
+.pf-customers p{font-size:11px;line-height:1.4;margin-top:4px}
+.pf-method{display:grid;grid-template-columns:1fr 1fr;gap:32px;padding:26px 0 22px;color:var(--muted);font-size:11px;line-height:1.6}
+.pf-method h2{color:var(--ink);font-size:12px;font-weight:600;margin-bottom:5px}
+.pf-method>p{padding-top:23px}
+@media(min-width:1600px){.pf-card-copy{padding:24px 26px}.pf-card h2{font-size:26px}.pf-use p{font-size:13px}.pf-impact h3{font-size:9px}.pf-customers p{font-size:12px}}
+@media(max-width:1190px) and (min-width:861px){.pf-card{grid-template-columns:26% minmax(0,1fr)}.pf-card-copy{padding:19px 17px}.pf-card h2{font-size:22px}.pf-impact-values strong{font-size:22px}.pf-impact-values strong span{font-size:9px}.pf-impact h3 span{display:block}.pf-number{left:12px}.pf-scale{padding:9px}}
+@media(max-width:860px){.pf-grid{grid-template-columns:1fr}.pf-card{grid-template-columns:32% minmax(0,1fr)}.pf-card-copy{padding:24px}.pf-card h2{font-size:27px}.pf-use p{font-size:14px;max-width:none}.pf-highlight{font-size:14px}.pf-card h3{font-size:10px}.pf-impact h3{font-size:9px}.pf-impact-values strong{font-size:32px}.pf-impact-values small,.pf-basis{font-size:10px}.pf-customers p{font-size:13px}.pf-method{gap:22px}}
+@media(max-width:560px){.pf-hero{padding:30px 0 24px}h1{font-size:42px}.pf-card{grid-template-columns:1fr}.pf-visual{height:180px;padding:0}.pf-visual svg{height:175px;width:auto;max-width:100%}.pf-number{top:14px;left:16px}.pf-card-copy{padding:21px 22px}.pf-card h2{font-size:26px}.pf-use{margin-top:15px}.pf-use p{font-size:13px}.pf-impact h3{font-size:9px}.pf-customers p{font-size:12px}.pf-method{grid-template-columns:1fr;gap:14px;padding:23px 0}.pf-method>p{padding-top:0}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media(max-width:860px){.pf-outcome{font-size:13px}.pf-scale h3{font-size:9px}.pf-impact-values strong{font-size:29px}}
+@media(max-width:560px){.pf-impact-values strong{font-size:26px}.pf-impact-values small{font-size:9px}.pf-outcome{font-size:13px}}
+@media(max-width:360px){.pf-impact-values strong{font-size:24px}}
+@media print{@page{size:A4 landscape;margin:10mm}.pf-hero{padding:14px 0}h1{font-size:30px}.pf-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.pf-card{break-inside:avoid;grid-template-columns:30% minmax(0,1fr)}.pf-card-copy{padding:12px}.pf-card h2{font-size:19px}.pf-impact-values strong{font-size:23px}.pf-use{margin-top:9px}.pf-use p{font-size:11px}.pf-impact{margin:10px 0}.pf-visual{-webkit-print-color-adjust:exact;print-color-adjust:exact}.pf-method{font-size:9px;padding:14px 0}}
+/* Carbon brand refresh. Content and grid below the hero are retained. */
+.pf-main{--mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+body{font-synthesis:none}
+strong,b{font-weight:600}
+.pf-hero{background:var(--ink);color:var(--paper);padding:34px 0 27px}
+.pf-hero-label{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;letter-spacing:.09em;line-height:1.5;text-transform:uppercase;color:#D8D9D4;margin-bottom:42px}
+.pf-hero-label::before{content:"";display:block;width:6px;height:6px;background:var(--accent);border-radius:50%;flex-shrink:0}
+.pf-hero-grid{display:grid;grid-template-columns:minmax(0,1.34fr) minmax(0,1fr);gap:6%;align-items:center}
+.pf-hero-copy{min-width:0;padding-block:12px 18px}
+.pf-hero h1{font-size:clamp(56px,7.1vw,102px);font-weight:600;letter-spacing:-.048em;line-height:1.01;margin:0}
+.pf-hero h1 .pf-title-line{display:block;color:var(--paper);white-space:nowrap}
+.pf-hero-lede{font-size:20px;line-height:1.48;color:#BCBDC0;max-width:540px;margin-top:29px}
+.pf-hero-lede strong{font-weight:400;color:var(--paper)}
+.pf-hero-actions{display:flex;align-items:center;gap:25px;margin-top:30px;flex-wrap:wrap}
+.pf-button{display:inline-flex;align-items:center;justify-content:space-between;gap:30px;background:var(--accent);color:var(--ink);padding:17px 21px;font-size:14px;font-weight:600;line-height:1.4;min-height:54px;transition:background .15s}
+.pf-button:hover{background:#FF715A;text-decoration:none}
+.pf-button span{font-size:18px}
+.pf-hero-link{display:inline-flex;align-items:center;gap:16px;font-size:14px;border-bottom:1px solid #85878C;padding:10px 0;line-height:1.4}
+.pf-hero-link:hover{color:var(--accent);text-decoration:none}
+.pf-map{min-width:0;background:#1D1D1E;border:1px solid #454547}
+.pf-map-head,.pf-map-foot{display:flex;justify-content:space-between;gap:14px;padding:16px 19px;font-family:var(--mono);font-size:10px;line-height:1.5;color:#D8D9D4}
+.pf-map-head{letter-spacing:.035em;text-transform:uppercase}
+.pf-map-row{display:grid;grid-template-columns:45px minmax(0,1fr) 14px;align-items:center;gap:12px;padding:18px 19px;border-top:1px solid #454547;transition:background .15s}
+.pf-map-row:hover{background:#29292B;text-decoration:none}
+.pf-map-row>span:first-child{font-family:var(--mono);font-size:11px;color:#C2C3C5}
+.pf-map-row b{display:block;font-size:17px;line-height:1.3;font-weight:400;letter-spacing:-.02em}
+.pf-map-row small{display:block;font-size:11px;line-height:1.5;color:#BCBDC0;margin-top:4px}
+.pf-map-row .pf-map-arrow{font-size:17px;color:#D8D9D4}
+.pf-map-compute{border-left:2px solid var(--accent);padding-left:17px;background:#2B211F}
+.pf-map-foot{border-top:1px solid #454547;font-size:9px}
+.pf-hero-note{border-top:1px solid #454547;display:flex;gap:30px;align-items:baseline;margin-top:38px;padding-top:20px;color:#BCBDC0;font-size:11px;line-height:1.55}
+.pf-hero-note>span{font-family:var(--mono);font-size:10px;color:#D8D9D4;white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
+.pf-hero-note p{max-width:830px}
+.pf-content{padding-top:32px}
+.pf-card h2{font-weight:600}
+.pf-highlight{color:var(--ink);font-weight:600}
+.pf-number{font-family:var(--mono);font-size:11px}
+.pf-visual svg text{fill:#454547}
+@media(min-width:1600px){.pf-hero{padding-top:42px}.pf-hero h1{font-size:106px}.pf-hero-label{margin-bottom:48px}.pf-hero-grid{gap:6%}.pf-hero-lede{font-size:21px}.pf-hero-note{margin-top:46px}}
+@media(max-width:1100px) and (min-width:901px){.pf-hero-grid{gap:4%;grid-template-columns:minmax(0,1.26fr) minmax(0,1fr)}.pf-hero h1{font-size:7.1vw}.pf-hero-lede{font-size:18px}.pf-map-row{padding:16px 15px;gap:8px;grid-template-columns:39px minmax(0,1fr) 14px}.pf-map-compute{padding-left:13px}.pf-map-head,.pf-map-foot{padding-inline:15px}.pf-map-row b{font-size:16px}.pf-map-row small{font-size:10px}.pf-hero-actions{gap:18px}.pf-button{padding-inline:17px;font-size:13px;gap:17px}.pf-hero-link{font-size:13px;gap:10px}}
+@media(max-width:900px){.pf-hero-grid{grid-template-columns:1fr;gap:34px}.pf-hero{padding:30px 0 25px}.pf-hero-label{margin-bottom:30px}.pf-hero h1{font-size:clamp(54px,10.7vw,88px)}.pf-hero-copy{padding:0}.pf-hero-lede{font-size:20px;max-width:580px;margin-top:25px}.pf-hero-actions{margin-top:24px}.pf-map-row{grid-template-columns:52px minmax(0,1fr) 16px;padding-block:16px}.pf-map-head,.pf-map-foot{padding-block:14px}.pf-hero-note{margin-top:28px;gap:18px}}
+@media(max-width:560px){.pf-hero{padding:27px 0 23px}.pf-hero-label{font-size:9px;letter-spacing:.075em;margin-bottom:29px}.pf-hero h1{font-size:clamp(43px,11.6vw,64px);letter-spacing:-.04em;line-height:1.03}.pf-hero-lede{font-size:17px;line-height:1.5;margin-top:23px}.pf-hero-actions{gap:16px 20px;margin-top:23px}.pf-button{font-size:13px;min-height:50px;padding:15px 17px;gap:24px}.pf-hero-link{font-size:13px;gap:14px}.pf-hero-grid{gap:31px}.pf-map-head,.pf-map-foot{padding:13px 14px;font-size:9px}.pf-map-row{grid-template-columns:41px minmax(0,1fr) 13px;padding:16px 14px;gap:9px}.pf-map-compute{padding-left:12px}.pf-map-row b{font-size:17px}.pf-map-row small{font-size:11px}.pf-map-row>span:first-child{font-size:10px}.pf-map-foot{font-size:8px;gap:8px}.pf-hero-note{display:block;margin-top:25px;padding-top:17px;font-size:10px}.pf-hero-note>span{display:block;font-size:9px;margin-bottom:7px}.pf-content{padding-top:24px}}
+@media(max-width:360px){.pf-hero h1{font-size:11.5vw}.pf-hero-label{font-size:8px}.pf-map-row b{font-size:16px}.pf-map-row small{font-size:10px}.pf-map-foot{font-size:7.5px}.pf-hero-lede{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.pf-button,.pf-map-row{transition:none}}
+@media print{.pf-hero-actions{display:none}.pf-hero{padding:20px;background:#121212!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pf-hero-grid{grid-template-columns:1.25fr 1fr;gap:35px}.pf-hero h1{font-size:52px}.pf-hero-label{margin-bottom:20px}.pf-hero-lede{font-size:15px}.pf-map-row{padding-block:9px}.pf-map-row b{font-size:13px}.pf-map-row small{font-size:9px}.pf-map-head,.pf-map-foot{padding-block:10px}.pf-hero-note{margin-top:20px;padding-top:12px;font-size:9px}.pf-content{padding-top:18px}}
+/* Concept visuals: compact photographic treatment, original card layout. */
+.pf-visual--photo{padding:0;background:#121212;overflow:hidden;isolation:isolate}
+.pf-challenge-photo{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:50% 50%;z-index:0}
+.pf-visual--photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,18,18,.58) 0%,transparent 25%,transparent 64%,rgba(18,18,18,.88) 100%);pointer-events:none;z-index:1}
+.pf-visual--photo .pf-number{z-index:2;color:#F5F5F0}
+@media(max-width:560px){.pf-challenge-photo{object-position:50% 39%}}
+/* Approved portfolio names, headline and outcome emphasis. */
+.pf-hero h1{font-size:clamp(54px,5.9vw,84px);letter-spacing:-.045em;line-height:1.06}
+.pf-hero-lede{color:var(--paper)}
+.pf-scale{--result-size:26px}
+.pf-scale .pf-impact-values>div:last-child strong{color:var(--accent);font-size:var(--result-size);font-weight:600}
+@media(max-width:1100px) and (min-width:901px){.pf-hero h1{font-size:clamp(50px,5.9vw,65px)}}
+@media(max-width:1190px) and (min-width:861px){.pf-scale{--result-size:24px}}
+@media(max-width:900px){.pf-hero h1{font-size:clamp(44px,8.9vw,76px)}}
+@media(max-width:860px){.pf-scale{--result-size:29px}}
+@media(max-width:560px){.pf-hero h1{font-size:clamp(32px,11vw,58px);line-height:1.08}.pf-scale{--result-size:26px}#photonics .pf-challenge-photo{object-position:50% 55%}#battery .pf-challenge-photo{object-position:50% 32%}#motors .pf-challenge-photo{object-position:50% 43%}#vibration .pf-challenge-photo{object-position:50% 75%}#acoustics .pf-challenge-photo{object-position:50% 50%}#mixing .pf-challenge-photo{object-position:50% 45%}}
+@media(max-width:360px){.pf-scale{--result-size:24px}}
+@media print{.pf-hero h1{font-size:40px}.pf-scale{--result-size:24px}}
+/* Muted homepage-style image layer: permanent greyscale and a Mineral White wash. */
+.pf-challenge-photo{filter:grayscale(1) contrast(.76) brightness(1.1)}
+.pf-visual--photo::after{background:linear-gradient(180deg,rgba(18,18,18,.36) 0%,transparent 25%,transparent 65%,rgba(18,18,18,.78) 100%),rgba(245,245,240,.14)}
+.pf-visual--photo .pf-number{text-shadow:0 1px 3px rgba(18,18,18,.85)}
+/* A shared visual comparison and the Carbon website footer. */
+.pf-comparison{border-top:1px solid var(--line);padding:48px 0 58px}
+.pf-compare-intro{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:end;margin-bottom:30px}
+.pf-compare-eyebrow{font-family:var(--mono);color:var(--muted);font-size:10px;line-height:1.6;letter-spacing:.065em;text-transform:uppercase;margin-bottom:17px}
+.pf-compare-intro h2{font-size:clamp(36px,3.6vw,50px);font-weight:600;line-height:1.04;letter-spacing:-.035em}
+.pf-compare-intro>p{color:var(--muted);font-size:16px;line-height:1.55;max-width:55ch;padding-bottom:3px}
+.pf-compare-conditions{display:flex;align-items:center;justify-content:space-between;gap:18px;border-block:1px solid var(--line);padding:16px 0;margin-bottom:22px;font-size:12px;line-height:1.5}
+.pf-compare-conditions>strong{font-weight:600;flex-shrink:0}
+.pf-compare-conditions ul{display:flex;flex-wrap:wrap;gap:10px 26px;list-style:none;padding:0;margin:0;color:var(--muted)}
+.pf-compare-conditions li{display:flex;align-items:center;gap:8px}
+.pf-compare-conditions li::before{content:"";width:4px;height:4px;background:#85878C;flex-shrink:0}
+.pf-compare-views{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.pf-compare-view{margin:0;overflow:hidden;border:1px solid var(--line);border-radius:6px;background:#fff;display:flex;flex-direction:column}
+.pf-compare-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 22px}
+.pf-compare-heading h3{font-size:22px;font-weight:600;line-height:1.2;letter-spacing:-.025em}
+.pf-compare-heading>span{font-family:var(--mono);font-size:9px;line-height:1.5;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.pf-compare-image{height:300px;background:#1B1B1C;overflow:hidden}
+.pf-compare-image img{display:block;width:100%;height:100%;object-fit:contain;filter:saturate(.84) contrast(.96);mix-blend-mode:normal}
+.pf-compare-view figcaption{padding:16px 22px 18px;font-size:13px;line-height:1.5;color:var(--muted);max-width:55ch}
+.pf-compare-note{font-size:11px;line-height:1.5;color:var(--muted);margin-top:12px}
+.pf-compare-scorecard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--line);margin-top:30px;padding-top:24px}
+.pf-compare-scorecard>div{display:flex;gap:18px;padding:0 28px;border-left:1px solid var(--line)}
+.pf-compare-scorecard>div:first-child{padding-left:0;border-left:0}
+.pf-compare-scorecard>div:last-child{padding-right:0}
+.pf-compare-scorecard>div>span{font-family:var(--mono);color:var(--accent);font-size:11px;line-height:1.6;padding-top:3px}
+.pf-compare-scorecard h3{font-size:19px;line-height:1.3;font-weight:600;letter-spacing:-.02em;margin-bottom:7px}
+.pf-compare-scorecard p{font-size:13px;line-height:1.5;color:var(--muted);max-width:31ch}
+@media(max-width:1000px){.pf-compare-intro{gap:30px}.pf-compare-intro>p{font-size:14px}.pf-compare-conditions ul{gap:10px 18px}.pf-compare-image{height:250px}.pf-compare-heading{padding:16px 18px}.pf-compare-heading h3{font-size:20px}.pf-compare-heading>span{font-size:8px}.pf-compare-view figcaption{padding:14px 18px 16px}.pf-compare-scorecard>div{padding-inline:20px;gap:12px}}
+@media(max-width:700px){.pf-comparison{padding:34px 0 40px}.pf-compare-intro{grid-template-columns:1fr;gap:18px;margin-bottom:24px}.pf-compare-intro h2{font-size:38px}.pf-compare-eyebrow{font-size:9px;margin-bottom:14px}.pf-compare-intro>p{font-size:14px;max-width:50ch}.pf-compare-conditions{display:block;padding:14px 0;margin-bottom:18px}.pf-compare-conditions ul{display:grid;grid-template-columns:1fr 1fr;gap:9px 20px;margin-top:11px;font-size:11px}.pf-compare-views{grid-template-columns:1fr;gap:18px}.pf-compare-image{height:auto;aspect-ratio:5/3;max-height:300px}.pf-compare-heading{padding:16px 19px}.pf-compare-heading h3{font-size:22px}.pf-compare-heading>span{font-size:8px}.pf-compare-view figcaption{padding:15px 19px 17px;font-size:13px}.pf-compare-note{font-size:10px;margin-top:12px}.pf-compare-scorecard{grid-template-columns:1fr;padding-top:0;margin-top:24px}.pf-compare-scorecard>div,.pf-compare-scorecard>div:first-child{padding:20px 0;border-left:0;border-bottom:1px solid var(--line);gap:18px}.pf-compare-scorecard>div:last-child{border-bottom:0;padding-bottom:0}.pf-compare-scorecard h3{font-size:18px;margin-bottom:5px}.pf-compare-scorecard p{font-size:12px;max-width:44ch}}
+@media print{.pf-comparison{padding-block:24px;break-before:page}.pf-compare-intro h2{font-size:32px}.pf-compare-image{height:220px}}
+/* Shared colour convention makes the hypothetical design change visible. */
+.pf-thermal-key{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 15px;font-size:12px;line-height:1.5}
+.pf-thermal-key>p{font-weight:600}
+.pf-thermal-key>p>span{font-weight:400;color:var(--muted);margin-left:5px}
+.pf-thermal-scale{display:flex;align-items:center;gap:10px;font-size:10px;color:var(--muted);flex-shrink:0}
+.pf-thermal-scale i{display:block;width:140px;height:6px;background:linear-gradient(90deg,#135FAD 0%,#18BCD7 30%,#79CF98 49%,#F1D15A 65%,#F59935 80%,#F04F34 100%)}
+.pf-compare-view figcaption{max-width:none;padding:16px 22px 19px}
+.pf-compare-view figcaption strong{display:flex;gap:10px;align-items:center;color:var(--ink);font-size:17px;font-weight:600;line-height:1.35;letter-spacing:-.015em}
+.pf-compare-view figcaption strong::before{content:"";width:7px;height:7px;flex-shrink:0;background:var(--accent);border-radius:50%}
+.pf-compare-view--redesign figcaption strong::before{background:#208FAD}
+.pf-compare-view figcaption>span{display:block;font-size:12px;line-height:1.5;margin:5px 0 0 17px}
+@media(max-width:1000px){.pf-compare-view figcaption{padding:15px 18px 18px}.pf-compare-view figcaption strong{font-size:16px}}
+@media(max-width:700px){.pf-thermal-key{align-items:flex-start;flex-direction:column;gap:12px;margin-bottom:17px;font-size:11px}.pf-thermal-scale{width:100%;font-size:10px;justify-content:space-between}.pf-thermal-scale i{width:auto;flex:1}.pf-compare-view figcaption{padding:15px 19px 18px}.pf-compare-view figcaption strong{font-size:17px}.pf-compare-view figcaption>span{font-size:12px}}
+/* State the customer / deployment basis beside each scale illustration. */
+.pf-scale .pf-scale-scope{font-size:11px;line-height:1.45;font-weight:600;color:var(--ink);margin-top:6px}
+.pf-scale .pf-impact-values{margin-top:10px}
+.pf-scale .pf-impact-values small{font-size:10px;line-height:1.45}
+html[lang="zh-CN"] .pf-scale .pf-scale-scope,html[lang="zh-CN"] .pf-scale .pf-impact-values small{line-height:1.6}
+/* Visible assumptions and calculations travel with each customer-value example. */
+.pf-scale--explain{padding:12px}
+.pf-scale--explain h3{font-size:9px;letter-spacing:.05em}
+.pf-scale--explain .pf-scale-scope{margin-top:5px;font-size:11px;line-height:1.45}
+.pf-scale--explain .pf-impact-values{margin-top:12px;column-gap:7px}
+.pf-value-label{display:block;font-size:8px;font-weight:600;line-height:1.3;letter-spacing:.035em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.pf-scale--explain .pf-impact-values strong{display:block;font-size:26px;line-height:1.15;white-space:nowrap}
+.pf-scale--explain .pf-impact-values>div:last-child strong{font-size:26px}
+.pf-scale--explain .pf-impact-values strong .pf-stat-prefix{font-size:12px;letter-spacing:0;margin:0 2px 0 0}
+.pf-scale--explain .pf-impact-values strong .pf-stat-unit{font-size:11px;letter-spacing:0;margin-left:3px}
+.pf-scale--explain .pf-impact-values small{font-size:10px;line-height:1.4;margin-top:4px}
+.pf-scale--explain .pf-impact-arrow{padding-top:22px}
+.pf-value-details{margin:12px 0 0;padding-top:9px;border-top:1px solid var(--line);font-size:10px;line-height:1.45;color:var(--muted)}
+.pf-value-details>div+div{margin-top:6px}
+.pf-value-details dt{display:inline;font-weight:600;color:var(--ink)}
+.pf-value-details dd{display:inline;margin:0}
+.pf-value-status{font-size:9px;line-height:1.45;color:var(--muted);border-top:1px solid var(--line);margin-top:9px;padding-top:7px}
+@media(max-width:1190px) and (min-width:861px){.pf-scale--explain{padding:10px}.pf-scale--explain .pf-impact-values strong,.pf-scale--explain .pf-impact-values>div:last-child strong{font-size:24px}}
+@media(max-width:360px){.pf-scale--explain{padding:10px}.pf-scale--explain .pf-impact-values{column-gap:5px}.pf-scale--explain .pf-impact-values strong,.pf-scale--explain .pf-impact-values>div:last-child strong{font-size:24px}.pf-value-label{font-size:7.5px}.pf-scale--explain .pf-impact-values strong .pf-stat-prefix,.pf-scale--explain .pf-impact-values strong .pf-stat-unit{font-size:10px}}
+/* Economic impact revision: explicit customer, annual financial outcome and conditional inputs. */
+.pf-economic-headline{font-size:14px;line-height:1.35;font-weight:600;color:var(--ink);margin-top:7px}
+.pf-scale--economic .pf-scale-scope{font-size:10px;font-weight:400;margin-top:7px}
+.pf-scale--economic .pf-impact-values{grid-template-columns:minmax(0,1fr) 13px minmax(0,1.08fr);gap:8px}
+.pf-scale--economic .pf-impact-values strong{font-size:25px!important;white-space:normal;overflow-wrap:normal}
+.pf-scale--economic .pf-impact-values>div:last-child strong{white-space:nowrap}
+.pf-economic-owner,.pf-economic-condition{font-size:10px;line-height:1.5;margin-top:10px;color:var(--muted)}
+.pf-economic-owner b,.pf-economic-condition b{font-weight:600;color:var(--ink)}
+.pf-economic-detail{border-top:1px solid var(--line);margin-top:11px;padding-top:8px}
+.pf-economic-detail summary{font-size:10px;line-height:1.45;font-weight:600;cursor:pointer;min-height:28px;padding:4px 0;color:var(--ink)}
+.pf-economic-detail summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.pf-economic-detail .pf-value-details{border:0;padding-top:0;margin-top:8px}
+.pf-economic-detail a{text-decoration:underline;text-underline-offset:3px}
+@media(max-width:1190px) and (min-width:861px){.pf-scale--economic .pf-impact-values strong{font-size:23px!important}}
+@media(max-width:560px){.pf-economic-headline{font-size:16px}.pf-scale--economic .pf-scale-scope,.pf-economic-owner,.pf-economic-condition,.pf-economic-detail summary,.pf-economic-detail .pf-value-details{font-size:11px}.pf-scale--economic .pf-impact-values strong{font-size:27px!important}}
+@media(max-width:360px){.pf-scale--economic .pf-impact-values strong{font-size:23px!important}}
+</style>
+<script type="module">// The portfolio is complete without JavaScript. Retire old review-page anchors
+// without adding a calculator, tracking, storage or remote requests.
+const retireOldAnchor = () => {
+  if (location.hash === "#economics") {
+    const url = new URL(location.href);
+    url.hash = "";
+    history.replaceState(null, "", url.href);
+  }
+};
+retireOldAnchor();
+addEventListener("hashchange", retireOldAnchor);
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><div class="wrap header-inner">
+  <a href="/" aria-label="Carbon home"><img class="wordmark" src="/assets/brand-2.svg" width="172" height="40" alt="Carbon"/></a>
+  <nav class="desktop-nav" aria-label="Main">
+    <div class="nav-menu-wrap">
+      <button type="button" id="explore-trigger" class="nav-trigger" aria-haspopup="menu" aria-expanded="false" aria-controls="explore-menu">Explore Carbon <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <div class="nav-popover" id="explore-menu" role="menu" data-open="false">
+        <a href="/customers/" role="menuitem">Customers</a><a href="/miners/" role="menuitem">Miners</a><a href="/validators/" role="menuitem">Validators</a>
+      </div>
+    </div>
+    <a href="/investors/">Investors</a><a href="/portfolio/" aria-current="page">Challenge Portfolio</a><a href="/about/">About Us</a><a href="/papers/">Technical Papers</a>
+  </nav>
+  <div class="header-actions"><div class="header-lang" role="group" aria-label="Language"><span aria-current="true" lang="en">EN</span><span class="header-lang-sep" aria-hidden="true">/</span><a href="/zh/portfolio/" lang="zh-Hans" hreflang="zh-Hans">中文</a></div><a class="header-ask" href="/?ask-carbon=open" data-ask-carbon-launch>Ask Carbon</a><a class="header-contact" href="/workbench/">Start a Project <span aria-hidden="true">↗</span></a></div>
+  <div class="mobile-nav"><div class="header-lang" role="group" aria-label="Language"><span aria-current="true" lang="en">EN</span><span class="header-lang-sep" aria-hidden="true">/</span><a href="/zh/portfolio/" lang="zh-Hans" hreflang="zh-Hans">中文</a></div><button type="button" id="sheet-trigger" class="mobile-trigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="mobile-sheet">Menu <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></button></div>
+</div></header>
+<div class="sheet-overlay" id="sheet-overlay" data-open="false"></div>
+<div class="mobile-sheet" id="mobile-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" data-open="false">
+  <h2 id="sheet-title"><img class="wordmark" alt="Carbon" src="/assets/brand-2.svg"></h2>
+  <p data-slot="sheet-description">Discovery + Evidence for Physics AI</p>
+  <nav aria-label="Mobile"><a href="/">Home</a><a href="/investors/">Investors</a><a href="/portfolio/" aria-current="page">Challenge Portfolio</a><a href="/customers/">Customers</a><a href="/miners/">Miners</a><a href="/validators/">Validators</a><a href="/about/">About Us</a><a href="/papers/">Technical Papers</a><a href="/?ask-carbon=open" data-ask-carbon-launch>Ask Carbon</a></nav>
+  <a class="button" href="/workbench/">Start a Project <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a>
+  <button type="button" class="sheet-close" id="sheet-close"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg><span class="sr-only">Close</span></button>
+</div>
+<main id="main" tabindex="-1" class="pf-main"><section class="pf-hero" aria-labelledby="portfolio-title"><div class="wrap">
+  <p class="pf-hero-label">Carbon / Challenge Portfolio</p>
+  <div class="pf-hero-grid">
+    <div class="pf-hero-copy">
+      <h1 id="portfolio-title"><span class="pf-title-line">Turning Physics AI</span>
+      <span class="pf-title-line">Into Industrial Value</span></h1>
+      <p class="pf-hero-lede">Can we help engineers make better decisions, with evidence, at a lower total cost?</p>
+      <div class="pf-hero-actions"><a class="pf-button" href="#portfolio">Explore the Challenges <span aria-hidden="true">↓</span></a><a class="pf-hero-link" href="#design-contest">How We Test Value <span aria-hidden="true">↗</span></a></div>
+    </div>
+    <nav class="pf-map" aria-label="Eight proposed challenges across five industry groups">
+      <div class="pf-map-head"><span>Opportunity Map</span><span>08 Challenges</span></div>
+      <a class="pf-map-row pf-map-compute" href="#cooling"><span>01–03</span><div><b>AI hardware</b><small>Cooling · burst power · optical I/O</small></div><span class="pf-map-arrow" aria-hidden="true">↗</span></a>
+      <a class="pf-map-row" href="#battery"><span>04</span><div><b>Battery engineering</b><small>Charging decisions + degradation</small></div><span class="pf-map-arrow" aria-hidden="true">↗</span></a>
+      <a class="pf-map-row" href="#motors"><span>05–06</span><div><b>Precision motion</b><small>Torque variation · structural resonance</small></div><span class="pf-map-arrow" aria-hidden="true">↗</span></a>
+      <a class="pf-map-row" href="#acoustics"><span>07</span><div><b>Industrial equipment</b><small>Compact acoustic design</small></div><span class="pf-map-arrow" aria-hidden="true">↗</span></a>
+      <a class="pf-map-row" href="#mixing"><span>08</span><div><b>Lab + process automation</b><small>Passive mixing cartridges</small></div><span class="pf-map-arrow" aria-hidden="true">↗</span></a>
+      <div class="pf-map-foot"><span>One evidence standard.</span><span>Challenge-specific tests.</span></div>
+    </nav>
+  </div>
+  <div class="pf-hero-note"><span>Proposed research portfolio</span><p>Scale figures are conditional illustrations, not Carbon results, performance targets, forecasts or total ROI.</p></div>
+</div></section>
+<div class="wrap pf-content"><section class="pf-grid" id="portfolio" aria-label="Eight research problems"><article class="pf-card" id="cooling" aria-labelledby="cooling-title">
+    <div class="pf-visual pf-visual--photo"><span class="pf-number">01</span><img class="pf-challenge-photo" src="/assets/portfolio/cooling.webp" loading="lazy" width="1024" height="1536" alt="Liquid-cooling cold plate with exposed microchannels and coolant fittings. Concept image." decoding="async"></div>
+    <div class="pf-card-copy"><h2 id="cooling-title">Cooler AI Compute</h2><p class="pf-highlight">More compute. Less pumping.</p>
+      <div class="pf-use"><h3>Industrial use</h3><p>Screen cold-plate channel designs for AI servers with hotspot-temperature and pumping constraints.</p></div>
+      <div class="pf-impact"><h3>Impact to prove</h3><p class="pf-outcome">Lower pumping demand at the same thermal requirement.</p><div class="pf-scale pf-scale--explain pf-scale--economic" role="group" aria-labelledby="cooling-value-title" data-evidence-status="hypothetical" data-currency="USD" data-value-period="annual">
+<h3 id="cooling-value-title">Illustrative annual customer value</h3>
+<p class="pf-economic-headline">Spend less on electricity for cooling pumps.</p>
+<p class="pf-scale-scope">One deployment with 1 MW of average cooling-pump electrical demand</p>
+<div class="pf-impact-values">
+<div><span class="pf-value-label">If the customer achieves</span><strong>10%</strong><small>less pump electricity at the same cooling duty</small></div>
+<span class="pf-impact-arrow" aria-hidden="true">→</span>
+<div><span class="pf-value-label">The example is worth</span><strong><span class="pf-stat-prefix">US$</span>87,600<span class="pf-stat-unit">/yr</span></strong><small>less electricity spend per year</small></div>
+</div>
+<p class="pf-economic-owner"><b>Who benefits:</b> Data-centre operator.</p>
+<p class="pf-economic-condition"><b>To turn this into money:</b> The operator must reduce metered electrical demand across the installed cooling loop while meeting the same chip-temperature and heat-removal requirements.</p>
+<details class="pf-economic-detail"><summary>Assumptions, calculation and proof needed</summary>
+<dl class="pf-value-details">
+<div><dt>Assumed inputs:</dt> <dd>Assume pump demand falls from 1,000 to 900 kW for 8,760 hours/year, at US$0.10/kWh. This is pump power, not server power or total cooling power.</dd></div>
+<div><dt>Calculation:</dt> <dd>100 kW × 8,760 hours/year × US$0.10/kWh = US$87,600/year.</dd></div>
+<div><dt>Financial meaning:</dt> <dd>Avoided operating spend. A reduction in actual recurring spending, before adoption costs and Carbon fees.</dd></div>
+<div><dt>Proof needed:</dt> <dd>Measure flow, pressure drop, pump efficiency and electrical power at realistic loads. Deduct any higher cold-plate, installation, maintenance or reliability cost.</dd></div>
+<div><dt>Technical context:</dt> <dd><a href="https://arpa-e.energy.gov/programs-and-initiatives/view-all-programs/coolerchips" target="_blank" rel="noreferrer">ARPA-E: COOLERCHIPS ↗</a>. This source supports the mechanism, not these assumed gains or dollar inputs.</dd></div>
+</dl></details>
+<p class="pf-value-status">Hypothetical example, not a Carbon result or forecast. Deduct Carbon fees and all adoption costs. Customer benefit is not Carbon revenue.</p>
+</div><a class="pf-basis" href="https://github.com/carbonphysicsai/Carbon/blob/59d0fd589895557db607d228689010e65b6a33b5/Design_Specs/Challenge_Roadmap.md" target="_blank" rel="noreferrer">Research basis ↗</a></div>
+      <div class="pf-customers"><h3>Customer targets</h3><p>Cold-plate manufacturers · Server OEMs</p></div>
+    </div>
+  </article>
+<article class="pf-card" id="thermal" aria-labelledby="thermal-title">
+    <div class="pf-visual pf-visual--photo"><span class="pf-number">02</span><img class="pf-challenge-photo" src="/assets/portfolio/thermal.webp" loading="lazy" width="1024" height="1536" alt="AI processor with an illustrative thermal pattern on its silicon surface. Concept image, not measured thermal data." decoding="async"></div>
+    <div class="pf-card-copy"><h2 id="thermal-title">AI Compute Efficiency</h2><p class="pf-highlight">Find the thermal room to move.</p>
+      <div class="pf-use"><h3>Industrial use</h3><p>Compare chip power schedules to predict temperature limits, burst duration and recovery.</p></div>
+      <div class="pf-impact"><h3>Impact to prove</h3><p class="pf-outcome">More useful compute within independently checked temperature limits.</p><div class="pf-scale pf-scale--explain pf-scale--economic" role="group" aria-labelledby="thermal-value-title" data-evidence-status="hypothetical" data-currency="USD" data-value-period="annual">
+<h3 id="thermal-value-title">Illustrative annual customer value</h3>
+<p class="pf-economic-headline">Complete the same AI work with fewer paid GPU-hours.</p>
+<p class="pf-scale-scope">US$20 million/year spent on GPU time eligible for the improvement</p>
+<div class="pf-impact-values">
+<div><span class="pf-value-label">If the customer achieves</span><strong>+1%</strong><small>more completed work per paid GPU-hour</small></div>
+<span class="pf-impact-arrow" aria-hidden="true">→</span>
+<div><span class="pf-value-label">The example is worth</span><strong><span class="pf-stat-prefix">US$</span>≈198k<span class="pf-stat-unit">/yr</span></strong><small>less GPU rental spend per year for the same work</small></div>
+</div>
+<p class="pf-economic-owner"><b>Who benefits:</b> Buyer of metered GPU compute.</p>
+<p class="pf-economic-condition"><b>To turn this into money:</b> The customer must be able to stop paying for the hours released. Fixed commitments or an owned fleet create spare capacity first, not an immediate cash saving.</p>
+<details class="pf-economic-detail"><summary>Assumptions, calculation and proof needed</summary>
+<dl class="pf-value-details">
+<div><dt>Assumed inputs:</dt> <dd>Assume 1% higher sustained throughput on the same workload and hardware, at the same hourly rate, power budget and temperature limits. The entire US$20m example budget is eligible.</dd></div>
+<div><dt>Calculation:</dt> <dd>US$20,000,000 − (US$20,000,000 ÷ 1.01) ≈ US$198,020/year.</dd></div>
+<div><dt>Financial meaning:</dt> <dd>Avoided operating spend. A reduction in actual recurring spending, before adoption costs and Carbon fees.</dd></div>
+<div><dt>Proof needed:</dt> <dd>Measure completed work over full workload cycles, including recovery time. Confirm quality, billing granularity, utilisation and hardware limits.</dd></div>
+<div><dt>Technical context:</dt> <dd><a href="https://docs.nvidia.com/deeplearning/tensorrt/latest/performance/benchmarking.html" target="_blank" rel="noreferrer">NVIDIA: Performance Benchmarking ↗</a>. This source supports the mechanism, not these assumed gains or dollar inputs.</dd></div>
+</dl></details>
+<p class="pf-value-status">Hypothetical example, not a Carbon result or forecast. Deduct Carbon fees and all adoption costs. Customer benefit is not Carbon revenue.</p>
+</div><a class="pf-basis" href="https://github.com/carbonphysicsai/Carbon/blob/59d0fd589895557db607d228689010e65b6a33b5/Design_Specs/Challenge_Roadmap.md" target="_blank" rel="noreferrer">Research basis ↗</a></div>
+      <div class="pf-customers"><h3>Customer targets</h3><p>Accelerator teams · Power-management engineers</p></div>
+    </div>
+  </article>
+<article class="pf-card" id="photonics" aria-labelledby="photonics-title">
+    <div class="pf-visual pf-visual--photo"><span class="pf-number">03</span><img class="pf-challenge-photo" src="/assets/portfolio/photonics.webp" loading="lazy" width="1024" height="1536" alt="Silicon-photonics chip in a precision optical alignment assembly. Concept image." decoding="async"></div>
+    <div class="pf-card-copy"><h2 id="photonics-title">Optical AI Links</h2><p class="pf-highlight">Design for variation, not perfection.</p>
+      <div class="pf-use"><h3>Industrial use</h3><p>Screen 3D fiber-to-chip grating designs across wavelength, alignment and fabrication variation.</p></div>
+      <div class="pf-impact"><h3>Impact to prove</h3><p class="pf-outcome">More devices meeting the optical specification across actual manufacturing variation.</p><div class="pf-scale pf-scale--explain pf-scale--economic" role="group" aria-labelledby="photonics-value-title" data-evidence-status="hypothetical" data-currency="USD" data-value-period="annual">
+<h3 id="photonics-value-title">Illustrative annual customer value</h3>
+<p class="pf-economic-headline">Sell more working optical devices from the same production run.</p>
+<p class="pf-scale-scope">One million finished-device production starts per year</p>
+<div class="pf-impact-values">
+<div><span class="pf-value-label">If the customer achieves</span><strong>+1 pp</strong><small>saleable-device yield: 90% → 91%</small></div>
+<span class="pf-impact-arrow" aria-hidden="true">→</span>
+<div><span class="pf-value-label">The example is worth</span><strong><span class="pf-stat-prefix">US$</span>1m<span class="pf-stat-unit">/yr</span></strong><small>additional annual contribution from 10,000 extra devices sold</small></div>
+</div>
+<p class="pf-economic-owner"><b>Who benefits:</b> Optical-device manufacturer.</p>
+<p class="pf-economic-condition"><b>To turn this into money:</b> The manufacturer must confirm final device yield and sell the extra units. Passing a coupler test alone does not establish saleable-product yield.</p>
+<details class="pf-economic-detail"><summary>Assumptions, calculation and proof needed</summary>
+<dl class="pf-value-details">
+<div><dt>Assumed inputs:</dt> <dd>Assume improved coupling converts 10,000 otherwise lost devices into saleable units, worth US$100 each after additional finishing, testing and selling costs.</dd></div>
+<div><dt>Calculation:</dt> <dd>1,000,000 devices/year × (91% − 90%) × US$100/device = US$1,000,000/year.</dd></div>
+<div><dt>Financial meaning:</dt> <dd>Additional operating contribution. Extra sales less the variable costs of earning them, before fixed overhead and adoption costs.</dd></div>
+<div><dt>Proof needed:</dt> <dd>Test fabrication and alignment variation, downstream acceptance and reliability. Exclude units already recovered through rework and deduct process-change costs.</dd></div>
+<div><dt>Technical context:</dt> <dd><a href="https://www.imec-int.com/en/articles/interfacing-silicon-photonics-high-density-co-packaged-optics" target="_blank" rel="noreferrer">imec: Interfacing silicon photonics for high-density co-packaged optics ↗</a>. This source supports the mechanism, not these assumed gains or dollar inputs.</dd></div>
+</dl></details>
+<p class="pf-value-status">Hypothetical example, not a Carbon result or forecast. Deduct Carbon fees and all adoption costs. Customer benefit is not Carbon revenue.</p>
+</div><a class="pf-basis" href="https://github.com/carbonphysicsai/Carbon/blob/59d0fd589895557db607d228689010e65b6a33b5/Design_Specs/Challenge_Roadmap.md" target="_blank" rel="noreferrer">Research basis ↗</a></div>
+      <div class="pf-customers"><h3>Customer targets</h3><p>Silicon-photonics teams · Optical-packaging firms</p></div>
+    </div>
+  </article>
+<article class="pf-card" id="battery" aria-labelledby="battery-title">
+    <div class="pf-visual pf-visual--photo"><span class="pf-number">04</span><img class="pf-challenge-photo" src="/assets/portfolio/battery.webp" loading="lazy" width="1024" height="1536" alt="Cylindrical battery cell in an electrical charging and test fixture. Concept image." decoding="async"></div>
+    <div class="pf-card-copy"><h2 id="battery-title">Battery Charge Intelligence</h2><p class="pf-highlight">Faster charging. Degradation in view.</p>
+      <div class="pf-use"><h3>Industrial use</h3><p>Search charging protocols that trade charge time against voltage, temperature and ageing constraints.</p></div>
+      <div class="pf-impact"><h3>Impact to prove</h3><p class="pf-outcome">Less charging dwell at independently checked cell-specific constraints.</p><div class="pf-scale pf-scale--explain pf-scale--economic" role="group" aria-labelledby="battery-value-title" data-evidence-status="hypothetical" data-currency="USD" data-value-period="annual">
+<h3 id="battery-value-title">Illustrative annual customer value</h3>
+<p class="pf-economic-headline">Return vehicles to paid work sooner.</p>
+<p class="pf-scale-scope">1,000 comparable on-shift charges/day over 300 operating days/year</p>
+<div class="pf-impact-values">
+<div><span class="pf-value-label">If the customer achieves</span><strong>−5 min</strong><small>charging time per event, within the same cell limits</small></div>
+<span class="pf-impact-arrow" aria-hidden="true">→</span>
+<div><span class="pf-value-label">The example is worth</span><strong><span class="pf-stat-prefix">US$</span>500k<span class="pf-stat-unit">/yr</span></strong><small>additional annual contribution from productive vehicle time</small></div>
+</div>
+<p class="pf-economic-owner"><b>Who benefits:</b> Time-constrained fleet operator.</p>
+<p class="pf-economic-condition"><b>To turn this into money:</b> Charging must interrupt revenue-producing work. Overnight or idle-time charging may produce no additional income even if it finishes faster.</p>
+<details class="pf-economic-detail"><summary>Assumptions, calculation and proof needed</summary>
+<dl class="pf-value-details">
+<div><dt>Assumed inputs:</dt> <dd>Assume half the released charging time becomes paid work, earning US$40 per extra vehicle-hour after driver, energy, maintenance and other variable costs.</dd></div>
+<div><dt>Calculation:</dt> <dd>1,000 × 300 × 5/60 × 50% × US$40 = US$500,000/year. That is 12,500 extra productive vehicle-hours.</dd></div>
+<div><dt>Financial meaning:</dt> <dd>Additional operating contribution. Extra sales less the variable costs of earning them, before fixed overhead and adoption costs.</dd></div>
+<div><dt>Proof needed:</dt> <dd>Confirm the same starting and target charge, safety and cell-life limits. Measure usable fleet time and deduct charger upgrades, demand charges and any battery-life cost.</dd></div>
+<div><dt>Technical context:</dt> <dd><a href="https://www.nlr.gov/transportation/t3co" target="_blank" rel="noreferrer">National Laboratory of the Rockies: T3CO ↗</a>. This source supports the mechanism, not these assumed gains or dollar inputs.</dd></div>
+</dl></details>
+<p class="pf-value-status">Hypothetical example, not a Carbon result or forecast. Deduct Carbon fees and all adoption costs. Customer benefit is not Carbon revenue.</p>
+</div><a class="pf-basis" href="https://github.com/carbonphysicsai/Carbon/blob/59d0fd589895557db607d228689010e65b6a33b5/docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md" target="_blank" rel="noreferrer">Research basis ↗</a></div>
+      <div class="pf-customers"><h3>Customer targets</h3><p>Cell manufacturers · OEM battery teams</p></div>
+    </div>
+  </article>
+<article class="pf-card" id="motors" aria-labelledby="motors-title">
+    <div class="pf-visual pf-visual--photo"><span class="pf-number">05</span><img class="pf-challenge-photo" src="/assets/portfolio/motors.webp" loading="lazy" width="1024" height="1536" alt="Precision electric motor with exposed copper windings, rotor and shaft. Concept image." decoding="async"></div>
+    <div class="pf-card-copy"><h2 id="motors-title">Precision Motors</h2><p class="pf-highlight">Optimize the whole torque curve.</p>
+      <div class="pf-use"><h3>Industrial use</h3><p>Screen motor geometry and current for smooth torque while retaining required mean torque.</p></div>
+      <div class="pf-impact"><h3>Impact to prove</h3><p class="pf-outcome">Lower torque ripple without sacrificing required mean torque.</p><div class="pf-scale pf-scale--explain pf-scale--economic" role="group" aria-labelledby="motors-value-title" data-evidence-status="hypothetical" data-currency="USD" data-value-period="annual">
+<h3 id="motors-value-title">Illustrative annual customer value</h3>
+<p class="pf-economic-headline">Make more saleable parts by reducing motion-related defects.</p>
+<p class="pf-scale-scope">Illustrative production application: one million parts started per year</p>
+<div class="pf-impact-values">
+<div><span class="pf-value-label">If the customer achieves</span><strong>2% → 1%</strong><small>parts rejected because of motion errors</small></div>
+<span class="pf-impact-arrow" aria-hidden="true">→</span>
+<div><span class="pf-value-label">The example is worth</span><strong><span class="pf-stat-prefix">US$</span>200k<span class="pf-stat-unit">/yr</span></strong><small>additional annual contribution from 10,000 recovered parts sold</small></div>
+</div>
+<p class="pf-economic-owner"><b>Who benefits:</b> Precision-manufacturing operator.</p>
+<p class="pf-economic-condition"><b>To turn this into money:</b> The customer must prove that motor torque variation causes those defects. A reduction in torque ripple is not the same percentage reduction in scrap.</p>
+<details class="pf-economic-detail"><summary>Assumptions, calculation and proof needed</summary>
+<dl class="pf-value-details">
+<div><dt>Assumed inputs:</dt> <dd>Assume smoother motor-driven motion reduces motion-related rejects by one percentage point. Each extra saleable part adds US$20 after remaining variable costs.</dd></div>
+<div><dt>Calculation:</dt> <dd>1,000,000 parts/year × (2% − 1%) × US$20/part = US$200,000/year.</dd></div>
+<div><dt>Financial meaning:</dt> <dd>Additional operating contribution. Extra sales less the variable costs of earning them, before fixed overhead and adoption costs.</dd></div>
+<div><dt>Proof needed:</dt> <dd>Measure motion and final part quality with a tuned controller, at the same mean torque, speed and production conditions. Confirm demand for recovered parts.</dd></div>
+<div><dt>Technical context:</dt> <dd><a href="https://www.kollmorgen.com/en-us/blogs/everywhere-cogging-torque-and-torque-ripple-what-you-need-to-know" target="_blank" rel="noreferrer">Kollmorgen: Cogging Torque vs Torque Ripple ↗</a>. This source supports the mechanism, not these assumed gains or dollar inputs.</dd></div>
+</dl></details>
+<p class="pf-value-status">Hypothetical example, not a Carbon result or forecast. Deduct Carbon fees and all adoption costs. Customer benefit is not Carbon revenue.</p>
+</div><a class="pf-basis" href="https://github.com/carbonphysicsai/Carbon/blob/59d0fd589895557db607d228689010e65b6a33b5/Design_Specs/Challenge_Roadmap.md" target="_blank" rel="noreferrer">Research basis ↗</a></div>
+      <div class="pf-customers"><h3>Customer targets</h3><p>Actuator manufacturers · Robotics motor teams</p></div>
+    </div>
+  </article>
+<article class="pf-card" id="vibration" aria-labelledby="vibration-title">
+    <div class="pf-visual pf-visual--photo"><span class="pf-number">06</span><img class="pf-challenge-photo" src="/assets/portfolio/vibration.webp" loading="lazy" width="1024" height="1536" alt="Machined, ribbed structural link between precision robot joints. Concept image." decoding="async"></div>
+    <div class="pf-card-copy"><h2 id="vibration-title">Low-Vibration Robotics</h2><p class="pf-highlight">Put stiffness where motion needs it.</p>
+      <div class="pf-use"><h3>Industrial use</h3><p>Compare robot-link and precision-stage geometries under mass, stiffness and vibration constraints.</p></div>
+      <div class="pf-impact"><h3>Impact to prove</h3><p class="pf-outcome">Less vibration while meeting mass and stiffness requirements.</p><div class="pf-scale pf-scale--explain pf-scale--economic" role="group" aria-labelledby="vibration-value-title" data-evidence-status="hypothetical" data-currency="USD" data-value-period="annual">
+<h3 id="vibration-value-title">Illustrative annual customer value</h3>
+<p class="pf-economic-headline">Produce more on the same automation line.</p>
+<p class="pf-scale-scope">One line, 4,000 productive hours/year, one accepted part per cycle</p>
+<div class="pf-impact-values">
+<div><span class="pf-value-label">If the customer achieves</span><strong>10 → 9.5 s</strong><small>total machine cycle after reducing vibration settling time</small></div>
+<span class="pf-impact-arrow" aria-hidden="true">→</span>
+<div><span class="pf-value-label">The example is worth</span><strong><span class="pf-stat-prefix">US$</span>≈379k<span class="pf-stat-unit">/yr</span></strong><small>additional annual contribution from about 75,789 extra parts sold</small></div>
+</div>
+<p class="pf-economic-owner"><b>Who benefits:</b> Precision-automation operator.</p>
+<p class="pf-economic-condition"><b>To turn this into money:</b> The line must be cycle-time constrained, with demand and downstream capacity for the extra output. A 25% shorter settling phase means 5% off this total cycle, not 25% more production.</p>
+<details class="pf-economic-detail"><summary>Assumptions, calculation and proof needed</summary>
+<dl class="pf-value-details">
+<div><dt>Assumed inputs:</dt> <dd>Assume settling falls from 2.0 to 1.5 seconds inside a 10-second cycle; the other 8 seconds stay unchanged. Each extra part adds US$5 after variable costs.</dd></div>
+<div><dt>Calculation:</dt> <dd>[(4,000 × 3,600 ÷ 9.5) − (4,000 × 3,600 ÷ 10)] × US$5 ≈ US$378,947/year.</dd></div>
+<div><dt>Financial meaning:</dt> <dd>Additional operating contribution. Extra sales less the variable costs of earning them, before fixed overhead and adoption costs.</dd></div>
+<div><dt>Proof needed:</dt> <dd>Measure the complete machine cycle at the same positioning tolerance, payload, mass, stiffness and accepted-quality requirements.</dd></div>
+<div><dt>Technical context:</dt> <dd><a href="https://www.aerotech.com/implementation-of-the-enhanced-throughput-module-etm-to-improve-machine-throughput/" target="_blank" rel="noreferrer">Aerotech: Improving machine throughput with ETM ↗</a>. This source supports the mechanism, not these assumed gains or dollar inputs.</dd></div>
+</dl></details>
+<p class="pf-value-status">Hypothetical example, not a Carbon result or forecast. Deduct Carbon fees and all adoption costs. Customer benefit is not Carbon revenue.</p>
+</div><a class="pf-basis" href="https://github.com/carbonphysicsai/Carbon/blob/59d0fd589895557db607d228689010e65b6a33b5/Design_Specs/Challenge_Roadmap.md" target="_blank" rel="noreferrer">Research basis ↗</a></div>
+      <div class="pf-customers"><h3>Customer targets</h3><p>Precision-automation firms · Motion-stage OEMs</p></div>
+    </div>
+  </article>
+<article class="pf-card" id="acoustics" aria-labelledby="acoustics-title">
+    <div class="pf-visual pf-visual--photo"><span class="pf-number">07</span><img class="pf-challenge-photo" src="/assets/portfolio/acoustics.webp" loading="lazy" width="1024" height="1536" alt="Cutaway of a compact industrial compressor silencer with internal acoustic chambers. Concept image." decoding="async"></div>
+    <div class="pf-card-copy"><h2 id="acoustics-title">Quieter Machines</h2><p class="pf-highlight">Less noise. Within the package.</p>
+      <div class="pf-use"><h3>Industrial use</h3><p>Screen passive chamber and duct layouts for attenuation across a declared acoustic source band.</p></div>
+      <div class="pf-impact"><h3>Impact to prove</h3><p class="pf-outcome">Required band attenuation in a compact, manufacturable package.</p><div class="pf-scale pf-scale--explain pf-scale--economic" role="group" aria-labelledby="acoustics-value-title" data-evidence-status="hypothetical" data-currency="USD" data-value-period="annual">
+<h3 id="acoustics-value-title">Illustrative annual customer value</h3>
+<p class="pf-economic-headline">Spend less to meet the same noise specification.</p>
+<p class="pf-scale-scope">100,000 comparable silencers manufactured per year</p>
+<div class="pf-impact-values">
+<div><span class="pf-value-label">If the customer achieves</span><strong>US$1</strong><small>lower recurring build cost per finished silencer</small></div>
+<span class="pf-impact-arrow" aria-hidden="true">→</span>
+<div><span class="pf-value-label">The example is worth</span><strong><span class="pf-stat-prefix">US$</span>100k<span class="pf-stat-unit">/yr</span></strong><small>less manufacturing spend per year</small></div>
+</div>
+<p class="pf-economic-owner"><b>Who benefits:</b> Silencer or equipment manufacturer.</p>
+<p class="pf-economic-condition"><b>To turn this into money:</b> The manufacturer needs a production quote confirming the lower unit cost. A quieter or smaller design is not automatically cheaper to manufacture.</p>
+<details class="pf-economic-detail"><summary>Assumptions, calculation and proof needed</summary>
+<dl class="pf-value-details">
+<div><dt>Assumed inputs:</dt> <dd>Assume the new geometry lowers materials and assembly cost by US$1 per unit at the same volume, attenuation band and pressure-loss limit.</dd></div>
+<div><dt>Calculation:</dt> <dd>100,000 silencers/year × US$1 lower unit cost = US$100,000/year.</dd></div>
+<div><dt>Financial meaning:</dt> <dd>Avoided manufacturing spend. A reduction in actual recurring spending, before adoption costs and Carbon fees.</dd></div>
+<div><dt>Proof needed:</dt> <dd>Check integrated noise, pressure loss, durability and production yield. Deduct tooling, redesign, integration and any additional operating-energy cost.</dd></div>
+<div><dt>Technical context:</dt> <dd><a href="https://www.osha.gov/otm/section-3-health-hazards/chapter-5" target="_blank" rel="noreferrer">OSHA Technical Manual: Noise ↗</a>. This source supports the mechanism, not these assumed gains or dollar inputs.</dd></div>
+</dl></details>
+<p class="pf-value-status">Hypothetical example, not a Carbon result or forecast. Deduct Carbon fees and all adoption costs. Customer benefit is not Carbon revenue.</p>
+</div><a class="pf-basis" href="https://github.com/carbonphysicsai/Carbon/blob/59d0fd589895557db607d228689010e65b6a33b5/Design_Specs/Challenge_Roadmap.md" target="_blank" rel="noreferrer">Research basis ↗</a></div>
+      <div class="pf-customers"><h3>Customer targets</h3><p>Compressor manufacturers · Industrial OEMs</p></div>
+    </div>
+  </article>
+<article class="pf-card" id="mixing" aria-labelledby="mixing-title">
+    <div class="pf-visual pf-visual--photo"><span class="pf-number">08</span><img class="pf-challenge-photo" src="/assets/portfolio/mixing.webp" loading="lazy" width="1024" height="1536" alt="Transparent microfluidic mixing cartridge with clear and vermilion tracer fluids. Concept image." decoding="async"></div>
+    <div class="pf-card-copy"><h2 id="mixing-title">Faster Fluid Mixing</h2><p class="pf-highlight">Uniform mixing before the outlet.</p>
+      <div class="pf-use"><h3>Industrial use</h3><p>Compare channel grooves and flow settings for outlet uniformity within residence-time constraints.</p></div>
+      <div class="pf-impact"><h3>Impact to prove</h3><p class="pf-outcome">Greater flow at the same verified outlet-mixing requirement.</p><div class="pf-scale pf-scale--explain pf-scale--economic" role="group" aria-labelledby="mixing-value-title" data-evidence-status="hypothetical" data-currency="USD" data-value-period="annual">
+<h3 id="mixing-value-title">Illustrative annual customer value</h3>
+<p class="pf-economic-headline">Process more paid samples with the same mixing equipment.</p>
+<p class="pf-scale-scope">Illustrative lab application: one million completed, paid samples/year</p>
+<div class="pf-impact-values">
+<div><span class="pf-value-label">If the customer achieves</span><strong>+10%</strong><small>higher flow at the same verified mixing quality</small></div>
+<span class="pf-impact-arrow" aria-hidden="true">→</span>
+<div><span class="pf-value-label">The example is worth</span><strong><span class="pf-stat-prefix">US$</span>200k<span class="pf-stat-unit">/yr</span></strong><small>additional annual contribution from 100,000 extra completed samples</small></div>
+</div>
+<p class="pf-economic-owner"><b>Who benefits:</b> Laboratory or sample-processing operator.</p>
+<p class="pf-economic-condition"><b>To turn this into money:</b> The lab must have paid demand and spare capacity in preparation, reaction, detection and reporting. Faster flow alone does not establish faster end-to-end sample processing.</p>
+<details class="pf-economic-detail"><summary>Assumptions, calculation and proof needed</summary>
+<dl class="pf-value-details">
+<div><dt>Assumed inputs:</dt> <dd>Assume mixing is the binding bottleneck and the 10% flow gain creates 10% more completed samples. Each extra sample adds US$2 after reagents, consumables and other variable costs.</dd></div>
+<div><dt>Calculation:</dt> <dd>1,000,000 samples/year × 10% × US$2/sample = US$200,000/year.</dd></div>
+<div><dt>Financial meaning:</dt> <dd>Additional operating contribution. Extra sales less the variable costs of earning them, before fixed overhead and adoption costs.</dd></div>
+<div><dt>Proof needed:</dt> <dd>Measure accepted samples per hour, mixing quality, pressure, reagent use and fouling under the actual fluid and operating conditions.</dd></div>
+<div><dt>Technical context:</dt> <dd><a href="https://www.nature.com/articles/s41598-024-66664-z" target="_blank" rel="noreferrer">Scientific Reports: Optimization of passive micromixers ↗</a>. This source supports the mechanism, not these assumed gains or dollar inputs.</dd></div>
+</dl></details>
+<p class="pf-value-status">Hypothetical example, not a Carbon result or forecast. Deduct Carbon fees and all adoption costs. Customer benefit is not Carbon revenue.</p>
+</div><a class="pf-basis" href="https://github.com/carbonphysicsai/Carbon/blob/59d0fd589895557db607d228689010e65b6a33b5/Design_Specs/Challenge_Roadmap.md" target="_blank" rel="noreferrer">Research basis ↗</a></div>
+      <div class="pf-customers"><h3>Customer targets</h3><p>Microfluidic developers · Lab-automation firms</p></div>
+    </div>
+  </article></section>
+<aside class="pf-method" aria-labelledby="scenario-title"><div><h2 id="scenario-title">What these dollar figures mean</h2><p>These are one-year customer scenarios with assumed inputs. The supplied material does not demonstrate these gains. Cost savings require an actual bill or build-cost reduction; extra contribution requires additional sales after their variable costs. The figures are not market forecasts or Carbon revenue.</p></div><p>Deduct data, training, verification, hardware changes, integration, serving, upkeep and Carbon fees to calculate net value. Validate the gain against a strong existing workflow. Do not add overlapping benefits or multiply these examples into an industry total without eligible-customer and adoption evidence. Customer types are targets, not clients; card visuals are concepts.</p></aside>
+<section class="pf-comparison" id="design-contest" aria-labelledby="contest-title">
+  <div class="pf-compare-intro">
+    <div><p class="pf-compare-eyebrow">How we test value / Future design contest</p><h2 id="contest-title">Better designs.<br>Same constraints.</h2></div>
+    <p>Once eligible models ship, we’ll compare the leading model with a strong solver-led design workflow. The question: which produces better, independently verified designs within the same limits?</p>
+  </div>
+  <div class="pf-compare-conditions">
+    <strong>Fixed for both</strong>
+    <ul aria-label="Shared comparison constraints"><li>Design bounds</li><li>Physical constraints</li><li>Compute budget</li><li>Wall-clock budget</li></ul>
+  </div>
+  <div class="pf-thermal-key">
+    <p>Cooling design <span>· Illustrative improvement</span></p>
+    <div class="pf-thermal-scale" aria-label="Shared illustrative colour scale: blue is cooler, red is hotter"><span>Cooler</span><i aria-hidden="true"></i><span>Hotter</span></div>
+  </div>
+  <div class="pf-compare-views">
+    <figure class="pf-compare-view pf-compare-view--baseline">
+      <div class="pf-compare-heading"><h3>Solver view</h3><span>Reference design</span></div>
+      <div class="pf-compare-image"><img src="/assets/portfolio/design-contest-baseline.webp" loading="lazy" width="1200" height="720" alt="Concept cooling plate with straight channels and a large red-orange hotspot concentrated in the centre." decoding="async"></div>
+      <figcaption><strong>Concentrated hotspot</strong><span>Reference channel layout</span></figcaption>
+    </figure>
+    <figure class="pf-compare-view pf-compare-view--redesign">
+      <div class="pf-compare-heading"><h3>Leading model</h3><span>Example redesign</span></div>
+      <div class="pf-compare-image"><img src="/assets/portfolio/design-contest-redesign.webp" loading="lazy" width="1200" height="720" alt="Concept redesign in the same housing, with finer curved channels, blue-cyan cooling colours and a smaller, cooler central warm region. Illustrative improvement only." decoding="async"></div>
+      <figcaption><strong>Cooler, more even temperature</strong><span>Example model-guided channel redesign</span></figcaption>
+    </figure>
+  </div>
+  <p class="pf-compare-note">We created these images to illustrate a possible design improvement. Carbon has not measured this outcome.</p>
+  <div class="pf-compare-scorecard" aria-label="What the contest will measure">
+    <div><span aria-hidden="true">01</span><div><h3>Design quality</h3><p>Independently checked performance against the same physical constraints.</p></div></div>
+    <div><span aria-hidden="true">02</span><div><h3>Search time</h3><p>Elapsed time to reach a design that passes the agreed checks.</p></div></div>
+    <div><span aria-hidden="true">03</span><div><h3>Total cost</h3><p>Preparation, model build, search and verification all count.</p></div></div>
+  </div>
+</section>
+</div></main><footer class="site-footer"><div class="wrap"><div class="footer-top"><div><a href="/" aria-label="Carbon home"><img class="wordmark" src="/assets/brand-1.svg" width="150" height="35" alt="Carbon"/></a><p>Discovery + Evidence Infrastructure for Physics AI</p></div><nav class="footer-nav" aria-label="Footer"><div><a href="/investors/">Investors</a><a href="/miners/">Miners</a><a href="/customers/">Customers</a><a href="/validators/">Validators</a></div><div><a href="/about/">About Us</a><a href="/papers/">Technical Papers</a><a href="https://x.com/carbonphysicsai" target="_blank" rel="noreferrer">Follow Carbon ↗</a><a href="mailto:hello@carbonphysics.ai">Discuss a Project</a></div></nav></div><div class="footer-bottom"><span>© 2026 Carbon</span><span>Prove the Work.</span><a href="/workbench/">Workbench</a></div></div></footer>
+
+<script>
+(function () {
+  // Ask Carbon: on the homepage open the panel in place; elsewhere the link navigates to /?ask-carbon=open
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('[data-ask-carbon-launch]');
+    if (!a) return;
+    var w = document.querySelector('ask-carbon');
+    if (w && typeof w.open === 'function') { e.preventDefault(); var sh = document.getElementById('mobile-sheet'); if (sh && sh.dataset.open === 'true') document.getElementById('sheet-close').click(); w.open(); }
+  });
+  // Technical papers: cover click opens the page-stack reader
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('.pp-cover');
+    var closer = e.target.closest && e.target.closest('[data-pp-close]');
+    var modal = document.getElementById('pp-modal');
+    if (!modal) return;
+    if (btn) {
+      var src = btn.getAttribute('data-pdf');
+      document.getElementById('pp-modal-title').textContent = btn.getAttribute('data-title');
+      document.getElementById('pp-modal-download').setAttribute('href', src);
+      var reader = document.getElementById('pp-modal-frame'), base = btn.getAttribute('data-pages'), n = parseInt(btn.getAttribute('data-count'), 10) || 0, html = '';
+      for (var i = 1; i <= n; i++) { var num = (n >= 10 && i < 10) ? '0' + i : String(i); html += '<img src="' + base + '-' + num + '.webp" alt="Page ' + i + '" loading="' + (i <= 2 ? 'eager' : 'lazy') + '" decoding="async">'; }
+      reader.innerHTML = html; reader.scrollTop = 0;
+      modal.setAttribute('data-open', 'true'); document.body.style.overflow = 'hidden';
+      var c = modal.querySelector('.pp-modal-close'); if (c) c.focus();
+    } else if (closer) {
+      modal.setAttribute('data-open', 'false'); document.getElementById('pp-modal-frame').innerHTML = ''; document.body.style.overflow = '';
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    var modal = document.getElementById('pp-modal');
+    if (e.key === 'Escape' && modal && modal.getAttribute('data-open') === 'true') { modal.setAttribute('data-open', 'false'); document.getElementById('pp-modal-frame').innerHTML = ''; document.body.style.overflow = ''; }
+  });
+  // Explore Carbon dropdown
+  var trigger = document.getElementById('explore-trigger'), menu = document.getElementById('explore-menu');
+  function setMenu(open) { menu.dataset.open = open; trigger.setAttribute('aria-expanded', open); }
+  trigger.addEventListener('click', function (e) { e.stopPropagation(); setMenu(menu.dataset.open !== 'true'); });
+  document.addEventListener('click', function (e) { if (!menu.contains(e.target)) setMenu(false); });
+  // Mobile sheet
+  var sheet = document.getElementById('mobile-sheet'), overlay = document.getElementById('sheet-overlay'), sheetTrigger = document.getElementById('sheet-trigger');
+  function setSheet(open) { sheet.dataset.open = open; overlay.dataset.open = open; sheetTrigger.setAttribute('aria-expanded', open); document.body.style.overflow = open ? 'hidden' : ''; if (open) sheet.querySelector('nav a').focus(); else sheetTrigger.focus(); }
+  sheetTrigger.addEventListener('click', function () { setSheet(true); });
+  document.getElementById('sheet-close').addEventListener('click', function () { setSheet(false); });
+  overlay.addEventListener('click', function () { setSheet(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { setMenu(false); if (sheet.dataset.open === 'true') setSheet(false); } });
+})();
+</script>
+<script type="application/json" id="carbon-economic-scenarios">{"purpose": "Explicit economic scenario metadata matching visible portfolio content", "as_of": "2026-10-04", "all_scenarios_are_hypothetical": true, "gain_probability_estimated": false, "market_size_estimated": false, "carbon_revenue_estimated": false, "scenarios": [{"id": "cooling", "name": "Cooler AI Compute", "headline": "Spend less on electricity for cooling pumps.", "beneficiary": "Data-centre operator", "scope": "One deployment with 1 MW of average cooling-pump electrical demand", "gain": "10%", "gain_label": "less pump electricity at the same cooling duty", "amount": "87,600", "benefit": "less electricity spend per year", "kind": "Avoided operating spend", "annual": 87600, "assumption": "Assume pump demand falls from 1,000 to 900 kW for 8,760 hours/year, at US$0.10/kWh. This is pump power, not server power or total cooling power.", "calculation": "100 kW × 8,760 hours/year × US$0.10/kWh = US$87,600/year.", "condition": "The operator must reduce metered electrical demand across the installed cooling loop while meeting the same chip-temperature and heat-removal requirements.", "validation": "Measure flow, pressure drop, pump efficiency and electrical power at realistic loads. Deduct any higher cold-plate, installation, maintenance or reliability cost.", "old": "US$876 per kW-year is correct arithmetic, but the headline gives the investor a unit conversion rather than a deployment-sized budget. The larger example was buried.", "why": "Pump electricity is the financial outcome closest to the stated challenge. I would lead with a whole-deployment bill reduction. Higher rack density or less thermal throttling may be worth more, but neither follows from lower pumping demand alone.", "bridge": "Lower hydraulic resistance at the required heat removal → lower actual pump electricity → a lower electricity bill.", "proof": "Shorter link to cash; achievable gain remains unproven.", "failure": "A cold plate can show lower simulated pressure drop without changing the facility pump operating point. Pump efficiency, other loop losses, controls or a changed flow requirement can erase the predicted saving.", "upside": "An OEM may earn a premium or win a design-in if cooling enables higher-power servers. Require a system-level demonstration and a customer price or capacity decision before valuing that route.", "economics": "The operator receives the bill saving. A cold-plate supplier captures a share through price, design wins or licensing. Carbon needs access to the supplier and evidence from the operator; the full electricity saving is not Carbon revenue.", "evidence": ["A measured deployment pump-power baseline and electricity tariff.", "Matched thermal duty and operating hours, including pump efficiency and loop losses.", "A quoted hardware and integration premium, service life, maintenance costs and an identified economic buyer."], "sensitivity_title": "Average electrical pump-power reduction; all other inputs fixed", "sensitivity": [["25 kW", "US$21,900/year"], ["100 kW", "US$87,600/year"], ["250 kW", "US$219,000/year"]], "verdict": "Suitable for a first commercial test because the money can be reconciled to a meter. A project serving one small installation may have too little pump spend to support substantial fees. Aggregate eligible deployments before proposing a price.", "status": "hypothetical_conditional_scenario", "is_measured_carbon_result": false, "is_forecast": false, "currency": "USD", "period": "per year", "input_provenance": "Analyst-selected illustrative assumptions, not market averages or measured Carbon performance", "includes_carbon_fees": false, "includes_one_time_adoption_costs": false}, {"id": "thermal", "name": "AI Compute Efficiency", "headline": "Complete the same AI work with fewer paid GPU-hours.", "beneficiary": "Buyer of metered GPU compute", "scope": "US$20 million/year spent on GPU time eligible for the improvement", "gain": "+1%", "gain_label": "more completed work per paid GPU-hour", "amount": "≈198k", "benefit": "less GPU rental spend per year for the same work", "kind": "Avoided operating spend", "annual": 198019.80198019743, "assumption": "Assume 1% higher sustained throughput on the same workload and hardware, at the same hourly rate, power budget and temperature limits. The entire US$20m example budget is eligible.", "calculation": "US$20,000,000 − (US$20,000,000 ÷ 1.01) ≈ US$198,020/year.", "condition": "The customer must be able to stop paying for the hours released. Fixed commitments or an owned fleet create spare capacity first, not an immediate cash saving.", "validation": "Measure completed work over full workload cycles, including recovery time. Confirm quality, billing granularity, utilisation and hardware limits.", "old": "101 rather than 100 work units restates the assumed percentage. The fleet size does no work in the calculation and the reader cannot connect the improvement to a budget.", "why": "Cost per completed workload gives an investor a clear purchase rationale. Using a metered-compute customer makes the cash conversion explicit without inventing a GPU purchase price or treating capacity as cash.", "bridge": "Better power scheduling within thermal limits → more useful work per billed hour → fewer billed hours for a fixed workload.", "proof": "Workload and contract validation required.", "failure": "A higher burst rate may require enough recovery time to leave sustained throughput unchanged. Memory, networking, software or utilisation can dominate. A reserved contract can leave the invoice unchanged even when the engineering gain is real.", "upside": "A capacity-constrained owner may defer purchases or sell more compute. Treat that as an alternative business case, using a real acquisition quote or incremental margin and demand. Do not add it to avoided rental spend for the same work.", "economics": "The compute buyer receives the saving; an accelerator or firmware supplier may capture value through performance differentiation. Carbon must identify whether the payer controls scheduling, deployment and the workload budget.", "evidence": ["Baseline paid hours and costs for the affected workloads, excluding ineligible storage, networking and fixed charges.", "Sustained end-to-end throughput at matched quality, power and temperature constraints.", "Proof that billed hours or a planned purchase fall, after provider minimums and contractual commitments."], "sensitivity_title": "Sustained throughput gain on the same US$20m eligible budget", "sensitivity": [["+0.5%", "≈US$99,502/year"], ["+1%", "≈US$198,020/year"], ["+2%", "≈US$392,157/year"]], "verdict": "A strong value proposition where measured thermal scheduling limits throughput and the customer can monetise the capacity. A generic temperature predictor without demonstrated workload improvement does not support this economic claim.", "status": "hypothetical_conditional_scenario", "is_measured_carbon_result": false, "is_forecast": false, "currency": "USD", "period": "per year", "input_provenance": "Analyst-selected illustrative assumptions, not market averages or measured Carbon performance", "includes_carbon_fees": false, "includes_one_time_adoption_costs": false}, {"id": "photonics", "name": "Optical AI Links", "headline": "Sell more working optical devices from the same production run.", "beneficiary": "Optical-device manufacturer", "scope": "One million finished-device production starts per year", "gain": "+1 pp", "gain_label": "saleable-device yield: 90% → 91%", "amount": "1m", "benefit": "additional annual contribution from 10,000 extra devices sold", "kind": "Additional operating contribution", "annual": 1000000, "assumption": "Assume improved coupling converts 10,000 otherwise lost devices into saleable units, worth US$100 each after additional finishing, testing and selling costs.", "calculation": "1,000,000 devices/year × (91% − 90%) × US$100/device = US$1,000,000/year.", "condition": "The manufacturer must confirm final device yield and sell the extra units. Passing a coupler test alone does not establish saleable-product yield.", "validation": "Test fabrication and alignment variation, downstream acceptance and reliability. Exclude units already recovered through rework and deduct process-change costs.", "old": "10,000 extra optical-spec passes establishes a useful physical quantity but leaves the per-device economics and final-product acceptance unstated.", "why": "Recovered saleable output is a more direct commercial explanation than an optical efficiency percentage. The number becomes meaningful once the manufacturer identifies what failure costs and whether improved coupling removes that failure.", "bridge": "A coupling design tolerates more real variation → fewer final-product optical failures → more accepted devices sold from the same production starts.", "proof": "Manufacturing-yield validation required.", "failure": "A part can pass the optical test but fail another specification. The gain may already be recoverable through alignment or rework. Unsold inventory creates no contribution, and additional packaging or test costs can consume the margin.", "upside": "Lower assembly alignment effort or laser-power demand may create other value. Measure those effects as separate cases and check for overlap with the recovered-device benefit.", "economics": "The manufacturer receives the extra contribution. Carbon could charge for design research, evaluation or access to a useful model, but access to process variation and production evidence is essential. Foundry and packaging qualification can lengthen adoption.", "evidence": ["A failure Pareto showing the share of yield loss attributable to the targeted optical interface.", "Blind acceptance across realistic manufacturing and alignment distributions, followed by final-device qualification.", "Actual incremental net receipts per recovered unit, available demand and revised downstream costs."], "sensitivity_title": "Final saleable-device yield increase at 1m starts/year and US$100 per recovered sale", "sensitivity": [["+0.5 percentage points", "US$500,000/year"], ["+1 percentage point", "US$1,000,000/year"], ["+2 percentage points", "US$2,000,000/year"]], "verdict": "A high-value route when optical coupling is a documented yield limiter. The investor should request manufacturing data before treating a simulated optical gain as an improvement in factory economics.", "status": "hypothetical_conditional_scenario", "is_measured_carbon_result": false, "is_forecast": false, "currency": "USD", "period": "per year", "input_provenance": "Analyst-selected illustrative assumptions, not market averages or measured Carbon performance", "includes_carbon_fees": false, "includes_one_time_adoption_costs": false}, {"id": "battery", "name": "Battery Charge Intelligence", "headline": "Return vehicles to paid work sooner.", "beneficiary": "Time-constrained fleet operator", "scope": "1,000 comparable on-shift charges/day over 300 operating days/year", "gain": "−5 min", "gain_label": "charging time per event, within the same cell limits", "amount": "500k", "benefit": "additional annual contribution from productive vehicle time", "kind": "Additional operating contribution", "annual": 500000, "assumption": "Assume half the released charging time becomes paid work, earning US$40 per extra vehicle-hour after driver, energy, maintenance and other variable costs.", "calculation": "1,000 × 300 × 5/60 × 50% × US$40 = US$500,000/year. That is 12,500 extra productive vehicle-hours.", "condition": "Charging must interrupt revenue-producing work. Overnight or idle-time charging may produce no additional income even if it finishes faster.", "validation": "Confirm the same starting and target charge, safety and cell-life limits. Measure usable fleet time and deduct charger upgrades, demand charges and any battery-life cost.", "old": "83 battery-hours/day sounds valuable but is neither labour saved nor fleet output. The original example leaves the operating calendar and productive use of those minutes unresolved.", "why": "Productive vehicle time communicates a business outcome. The 50% conversion assumption prevents treating every saved charging minute as paid work, while making that remaining assumption visible for diligence.", "bridge": "A validated charging protocol shortens dwell → dispatch can use some released time → the same fleet completes additional paid work.", "proof": "Cell-to-pack and fleet-operation validation required.", "failure": "Cell-level timing may not survive pack thermal limits, charger limits or control restrictions. Dispatch, drivers or demand may block productive use. Faster charging can lose its benefit through degradation or higher peak-power costs.", "upside": "A fleet might avoid buying reserve vehicles or batteries. Value that route with a duty-cycle study and purchase quote instead of adding a second value to the same recovered capacity.", "economics": "The fleet receives the operating benefit, while the cell or battery OEM controls much of the implementation and warranty. Carbon needs a route from the model user to that decision-maker and the end-user economics.", "evidence": ["Pack- and charger-level timing on the actual duty cycle, plus sufficient ageing and safety evidence.", "Dispatch records showing charging as the limiting activity and the fraction of released time that becomes paid work.", "Contribution per productive vehicle-hour and all charging, infrastructure and degradation cost changes."], "sensitivity_title": "Share of the 25,000 released vehicle-hours/year that becomes productive work", "sensitivity": [["0%", "US$0/year"], ["50%", "US$500,000/year"], ["100%", "US$1,000,000/year"]], "verdict": "Prioritise customers who charge during valuable operating time. A generic fast-charge claim is a weak economic proposition for fleets whose charging fits inside existing idle windows.", "status": "hypothetical_conditional_scenario", "is_measured_carbon_result": false, "is_forecast": false, "currency": "USD", "period": "per year", "input_provenance": "Analyst-selected illustrative assumptions, not market averages or measured Carbon performance", "includes_carbon_fees": false, "includes_one_time_adoption_costs": false}, {"id": "motors", "name": "Precision Motors", "headline": "Make more saleable parts by reducing motion-related defects.", "beneficiary": "Precision-manufacturing operator", "scope": "Illustrative production application: one million parts started per year", "gain": "2% → 1%", "gain_label": "parts rejected because of motion errors", "amount": "200k", "benefit": "additional annual contribution from 10,000 recovered parts sold", "kind": "Additional operating contribution", "annual": 200000, "assumption": "Assume smoother motor-driven motion reduces motion-related rejects by one percentage point. Each extra saleable part adds US$20 after remaining variable costs.", "calculation": "1,000,000 parts/year × (2% − 1%) × US$20/part = US$200,000/year.", "condition": "The customer must prove that motor torque variation causes those defects. A reduction in torque ripple is not the same percentage reduction in scrap.", "validation": "Measure motion and final part quality with a tuned controller, at the same mean torque, speed and production conditions. Confirm demand for recovered parts.", "old": "One fewer prototype round is a generic research saving shared by almost any design tool. Without a quoted round cost it tells an investor little about this challenge’s distinctive value.", "why": "Production quality offers a recurring customer benefit from smoother torque. This is an illustrative manufacturing application, not a claim that all motor or robotics users lose parts this way.", "bridge": "A motor design reduces torque variation → the installed machine tracks motion more accurately → fewer parts fail the customer’s acceptance test.", "proof": "Longer causal chain; application-specific evidence essential.", "failure": "A tuned controller may already reject the ripple. Gearboxes, bearings, fixtures or the process can dominate defects. A motor redesign can sacrifice torque density or cost more to manufacture without changing saleable yield.", "upside": "Some customers may value image stability, force consistency or a smaller actuator instead of production yield. They need their own economic model; do not reuse this factory example across unrelated motor applications.", "economics": "The factory receives the extra contribution. The actuator OEM must demonstrate it and capture value in design wins or pricing. Carbon’s commercial route depends on access to machine-level data, not only a motor torque curve.", "evidence": ["A machine-level diagnosis connecting torque variation to a measurable defect category.", "A comparison against a well-tuned motor-and-controller baseline, with accepted part quality and unchanged mean-torque requirements.", "Recovered saleable output, net value per extra unit, actual demand and motor redesign costs."], "sensitivity_title": "Reduction in motion-related reject rate at 1m starts/year and US$20 per extra sale", "sensitivity": [["0.2 percentage points", "US$40,000/year"], ["0.5 percentage points", "US$100,000/year"], ["1 percentage point", "US$200,000/year"]], "verdict": "Find a specific motor-to-process application before underwriting the production-value claim. Until that customer evidence exists, the challenge establishes a smoother torque curve, not a proven factory profit improvement.", "status": "hypothetical_conditional_scenario", "is_measured_carbon_result": false, "is_forecast": false, "currency": "USD", "period": "per year", "input_provenance": "Analyst-selected illustrative assumptions, not market averages or measured Carbon performance", "includes_carbon_fees": false, "includes_one_time_adoption_costs": false}, {"id": "vibration", "name": "Low-Vibration Robotics", "headline": "Produce more on the same automation line.", "beneficiary": "Precision-automation operator", "scope": "One line, 4,000 productive hours/year, one accepted part per cycle", "gain": "10 → 9.5 s", "gain_label": "total machine cycle after reducing vibration settling time", "amount": "≈379k", "benefit": "additional annual contribution from about 75,789 extra parts sold", "kind": "Additional operating contribution", "annual": 378947.3684210528, "assumption": "Assume settling falls from 2.0 to 1.5 seconds inside a 10-second cycle; the other 8 seconds stay unchanged. Each extra part adds US$5 after variable costs.", "calculation": "[(4,000 × 3,600 ÷ 9.5) − (4,000 × 3,600 ÷ 10)] × US$5 ≈ US$378,947/year.", "condition": "The line must be cycle-time constrained, with demand and downstream capacity for the extra output. A 25% shorter settling phase means 5% off this total cycle, not 25% more production.", "validation": "Measure the complete machine cycle at the same positioning tolerance, payload, mass, stiffness and accepted-quality requirements.", "old": "The second identical prototype-round example conceals the difference between motor smoothness and structural vibration. It omits the recurring value of shorter move-and-settle cycles.", "why": "More accepted output per machine-hour is the strongest broadly understandable operational case. It connects vibration to a production bottleneck and makes the full-cycle denominator explicit.", "bridge": "A better structure improves settling under the chosen control system → the full machine cycle shortens → a constrained line produces more accepted parts.", "proof": "Whole-machine and bottleneck validation required.", "failure": "A changed natural frequency does not by itself guarantee faster settling. Damping, controller tuning, payload and another process step may dominate. If the line is demand-limited, additional capacity has no additional sales value.", "upside": "A buyer may avoid another machine or shift instead of increasing sales. Use a real capacity plan and quote, and treat it as an alternative to the incremental contribution case.", "economics": "The operator receives throughput value. A stage or robot OEM can sell a productivity premium if the improvement survives integration. The commercial proof belongs at the installed process and workpiece, not just the structural model.", "evidence": ["A timestamped cycle breakdown and a measured positioning/settling acceptance rule.", "Production-quality cycle tests across the relevant payloads and controllers.", "Demand, downstream capacity, incremental margin and the cost of a structural redesign."], "sensitivity_title": "Reduction in the entire 10-second cycle; all other example inputs fixed", "sensitivity": [["2%: 10 → 9.8 seconds", "≈US$146,939/year"], ["5%: 10 → 9.5 seconds", "≈US$378,947/year"], ["10%: 10 → 9 seconds", "US$800,000/year"]], "verdict": "A strong candidate for a concrete industrial demonstration with a motion-stage or automation partner. The pass condition must include full-cycle accepted output, not only a favourable vibration metric.", "status": "hypothetical_conditional_scenario", "is_measured_carbon_result": false, "is_forecast": false, "currency": "USD", "period": "per year", "input_provenance": "Analyst-selected illustrative assumptions, not market averages or measured Carbon performance", "includes_carbon_fees": false, "includes_one_time_adoption_costs": false}, {"id": "acoustics", "name": "Quieter Machines", "headline": "Spend less to meet the same noise specification.", "beneficiary": "Silencer or equipment manufacturer", "scope": "100,000 comparable silencers manufactured per year", "gain": "US$1", "gain_label": "lower recurring build cost per finished silencer", "amount": "100k", "benefit": "less manufacturing spend per year", "kind": "Avoided manufacturing spend", "annual": 100000, "assumption": "Assume the new geometry lowers materials and assembly cost by US$1 per unit at the same volume, attenuation band and pressure-loss limit.", "calculation": "100,000 silencers/year × US$1 lower unit cost = US$100,000/year.", "condition": "The manufacturer needs a production quote confirming the lower unit cost. A quieter or smaller design is not automatically cheaper to manufacture.", "validation": "Check integrated noise, pressure loss, durability and production yield. Deduct tooling, redesign, integration and any additional operating-energy cost.", "old": "The original US$1 × 100,000 example is already the clearest direct financial claim. Its missing link is why an acoustic design change reduces the finished component’s cost.", "why": "Keep the direct cost-saving route and state the unchanged performance requirement. It is more defensible than pricing avoided fines, assuming a selling-price premium or equating decibel reduction with a percentage saving.", "bridge": "A manufacturable chamber or duct design meets the same attenuation requirement with a lower quoted build cost → lower spend for the same production volume.", "proof": "Quoted-cost and integrated-performance validation required.", "failure": "Complex geometry can raise fabrication cost. A compact silencer can increase back-pressure, energy use, fouling or maintenance. A source-band attenuation result also does not prove whole-machine noise performance.", "upside": "Meeting a customer’s size or acoustic requirement can win an otherwise inaccessible equipment contract. Include it only with a named procurement requirement, probability and margin; the portfolio should not count speculative contract revenue.", "economics": "The manufacturer captures the saving if it retains the price difference. Competitive purchasing may pass it to the equipment buyer. Carbon’s addressable fee depends on program volume, redesign cost and commercial control of the part.", "evidence": ["Like-for-like supplier quotes at the expected production volume.", "Integrated attenuation, flow, pressure-loss and durability tests.", "Tooling and redesign costs, unit yield, operating-energy impacts and the economic owner of the savings."], "sensitivity_title": "Recurring unit-cost reduction at 100,000 units/year", "sensitivity": [["US$0.25 per unit", "US$25,000/year"], ["US$1 per unit", "US$100,000/year"], ["US$3 per unit", "US$300,000/year"]], "verdict": "A clear manufacturing-cost case if the geometry changes a real bill of materials or assembly operation. The modest per-program budget favours repeatable delivery and reuse across several product programs.", "status": "hypothetical_conditional_scenario", "is_measured_carbon_result": false, "is_forecast": false, "currency": "USD", "period": "per year", "input_provenance": "Analyst-selected illustrative assumptions, not market averages or measured Carbon performance", "includes_carbon_fees": false, "includes_one_time_adoption_costs": false}, {"id": "mixing", "name": "Faster Fluid Mixing", "headline": "Process more paid samples with the same mixing equipment.", "beneficiary": "Laboratory or sample-processing operator", "scope": "Illustrative lab application: one million completed, paid samples/year", "gain": "+10%", "gain_label": "higher flow at the same verified mixing quality", "amount": "200k", "benefit": "additional annual contribution from 100,000 extra completed samples", "kind": "Additional operating contribution", "annual": 200000, "assumption": "Assume mixing is the binding bottleneck and the 10% flow gain creates 10% more completed samples. Each extra sample adds US$2 after reagents, consumables and other variable costs.", "calculation": "1,000,000 samples/year × 10% × US$2/sample = US$200,000/year.", "condition": "The lab must have paid demand and spare capacity in preparation, reaction, detection and reporting. Faster flow alone does not establish faster end-to-end sample processing.", "validation": "Measure accepted samples per hour, mixing quality, pressure, reagent use and fouling under the actual fluid and operating conditions.", "old": "44 minutes removed from an eight-hour flow step is correct, but it does not show whether a customer earns more, spends less or removes a capacity constraint.", "why": "Completed, paid sample throughput gives a microfluidic customer a business denominator. The explicit bottleneck condition prevents extrapolating a channel-level flow gain into an entire laboratory’s output.", "bridge": "A channel maintains mixing quality at higher flow → a mixing-limited workflow completes more accepted samples → customers pay for the extra completed work.", "proof": "Workflow-bottleneck and application validation required.", "failure": "Mixing may occupy only milliseconds in a long assay. Reaction, detection, handling or analysis may constrain total output instead. Higher flow can consume more reagent or raise pressure and clogging costs without earning more.", "upside": "Other customers may value lower reagent use or fewer failed batches. Those are separate applications requiring dose, uniformity and quality evidence; a passive-mixing result does not establish pharmaceutical production qualification.", "economics": "The lab operator receives the extra contribution; a cartridge or automation OEM may capture part through product pricing. Carbon needs a customer who can identify the actual bottleneck and supply accepted-output economics.", "evidence": ["A measured end-to-end workflow identifying mixing as the binding constraint.", "Accepted-sample throughput with matched mixing quality and quantified reagent, pressure and maintenance costs.", "Demand for the extra samples and actual net receipts after incremental variable costs."], "sensitivity_title": "Fraction of the possible 10% flow gain realised as extra paid end-to-end sample output", "sensitivity": [["0% realised", "US$0/year"], ["50% realised: 5% more samples", "US$100,000/year"], ["100% realised: 10% more samples", "US$200,000/year"]], "verdict": "Select a mixing-constrained application before assigning a financial outcome. A clear local flow gain can have zero capacity value in an unconstrained laboratory.", "status": "hypothetical_conditional_scenario", "is_measured_carbon_result": false, "is_forecast": false, "currency": "USD", "period": "per year", "input_provenance": "Analyst-selected illustrative assumptions, not market averages or measured Carbon performance", "includes_carbon_fees": false, "includes_one_time_adoption_costs": false}]}</script>
+</body>
+</html>

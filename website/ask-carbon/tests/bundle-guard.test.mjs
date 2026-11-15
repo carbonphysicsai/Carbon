@@ -597,7 +597,7 @@ test("a homepage edit applies after the source pin, and the report names it and 
 
 // --- the shipped declarations ----------------------------------------------
 
-test("the shipped replacements and additions load against the shipped baseline and link the miner dashboard", async () => {
+test("the shipped replacements and additions load against the shipped baseline and link the Start mining page", async () => {
   const root = fileURLToPath(new URL("..", import.meta.url));
   const manifest = await loadBaselineManifest();
   const replacements = await loadSiteReplacements(join(root, "site-replacements.json"), manifest);
@@ -611,13 +611,7 @@ test("the shipped replacements and additions load against the shipped baseline a
   // Link-only compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): the page names no provider.
   assert.doesNotMatch(page, /RunPod|Lium|Targon/);
   const miners = replacements[0].bytes.toString("utf8");
-  // OWNER-WEBSITE-DASHBOARD-01: the hero button goes to the dashboard's mining view.
-  assert.match(miners, /<a class="button" href="https:\/\/dashboard\.carbonphysics\.ai\/#\/mine">Start Mining Carbon <svg/);
+  assert.match(miners, /<a class="button" href="\/start-mining\/">Start mining <svg/);
   assert.doesNotMatch(miners, /href="#start">Start a development run/);
-  // Dashboard is its own top-level item, on desktop and in the mobile menu, on both pages.
-  for (const html of [miners, page]) {
-    assert.match(html, /<nav class="desktop-nav"[\s\S]*?<\/div>\s*<\/div>\s*<a href="https:\/\/dashboard\.carbonphysics\.ai\/">Dashboard<\/a><a href="\/investors\/">/);
-    assert.match(html, /<nav aria-label="Mobile">[^\n]*<a href="https:\/\/dashboard\.carbonphysics\.ai\/">Dashboard<\/a>/);
-  }
   assert.match(replacements[1].bytes.toString("utf8"), /<loc>https:\/\/carbonphysics.ai\/start-mining\/<\/loc>/);
 });

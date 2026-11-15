@@ -5,9 +5,9 @@
     {
       "path": "miners/index.html",
       "source": "site/miners/index.html",
-      "sha256": "fbffe87ac67d227879a2b85fc5f006755f07ca18907bf793ec8e80f5528c7a30",
-      "decision": "OWNER-WEBSITE-START-MINING-01 (2026-10-02); OWNER-WEBSITE-DASHBOARD-01 (2026-11-15)",
-      "reason": "The miner page hero button reads Start Mining Carbon and goes to https://dashboard.carbonphysics.ai/#/mine (it was Start a development run, to #start; then Start mining, to /start-mining/). The header and mobile menu list Dashboard (https://dashboard.carbonphysics.ai/) as its own item after Explore Carbon / Validators. Every other byte is the v4 baseline page 88517c7c."
+      "sha256": "044edfef68bd7378b6036bcb6b5dda648123e389de997190457b0e2498481525",
+      "decision": "OWNER-WEBSITE-START-MINING-01 (2026-10-02); candidate ask-carbon-public-release-2026-10-02.1",
+      "reason": "The miner page hero button reads Start mining and goes to /start-mining/ (it was Start a development run, to #start). Every other byte is the v4 baseline page 88517c7c."
     },
     {
       "path": "sitemap.xml",
