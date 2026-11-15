@@ -293,6 +293,13 @@ NEXT_ACTIONS = {
         "and output from the toolbox's catalog recipe for this campaign's "
         "exact version."
     ),
+    # A submit, or a result read, that met the miner's own withdrawal of its queued submission (owner GO 15 Nov 2026):
+    # never the round's verdict; the same words as the kit's (`direct_submission.WITHDRAW_WORDS`).
+    "withdrawn_by_miner": (
+        "You withdrew this submission while it was still queued: it was not built or graded and used no try. Your "
+        "frozen candidate is kept: submit again when ready. Each withdrawal of the same model counts toward the "
+        "validator's limit of retries for that model on this exam."
+    ),
     "no_submitted_result": (
         "No submit of this campaign reached a validator yet, so there is no "
         "grade to read. If a submit was refused, its reason is the campaign's "

@@ -466,6 +466,25 @@ def test_the_grade_round_repairs_a_withdrawal_whose_record_and_marker_were_not_w
     assert _withdraw(d, sid).status == 200
 
 
+def test_the_repair_runs_before_the_copy_rule_so_a_waiting_copy_never_holds_it(
+    tmp_path, monkeypatch
+):
+    """An unsettled earlier identical recipe would make the copy rule WAIT on this task every round: the withdrawal's repair
+    comes first, so the withdrawn task is settled anyway (and never graded or charged as a copy).
+    """
+    d = _door(tmp_path, monkeypatch)
+    sid = _queued(d)
+    assert d.adapter.withdraw("miner", sid) == lr.WITHDRAWN  # the cancel only
+    asked = []
+    d.grader._copy_decision = lambda task: asked.append(task) or ("wait", UNKNOWN)
+    d.intake.retain_result = lambda *a, **k: pytest.fail(
+        "a withdrawn task is never retained"
+    )
+    assert d.grader.run_once() is None
+    assert d.grader.marker(sid)["state"] == auto_grade.WITHDRAWN_STATE
+    assert asked == [] and d.grader.pending() == []
+
+
 def test_a_failing_marker_write_answers_503_and_the_retry_completes_it(
     tmp_path, monkeypatch
 ):
@@ -731,7 +750,7 @@ def test_the_kit_refuses_before_signing_where_the_door_does_not_take_withdrawals
             read=lambda url: _facts(withdraw=False),
             send=lambda *a: sent.append(a),
         )
-    assert refused.value.code == "withdraw_unavailable"
+    assert refused.value.code == "withdraw_not_offered"
     assert "does not take withdrawals yet" in refused.value.words
     assert sent == [] and record.exists()
 
@@ -743,7 +762,8 @@ def test_the_kit_refuses_before_signing_where_the_door_does_not_take_withdrawals
         (409, "withdraw_too_late", "can no longer be withdrawn"),
         (404, "withdraw_submission_unknown", "nothing to withdraw"),
         (400, "withdraw_fields", "Update your kit"),
-        (503, "withdraw_unavailable", "nothing was changed"),
+        (503, "withdraw_unavailable", "may have happened"),
+        (503, "withdraw_unavailable", "Run withdraw again"),
     ],
 )
 def test_each_door_refusal_reads_in_plain_words_and_keeps_the_record(
@@ -793,25 +813,316 @@ def test_without_an_admission_record_there_is_nothing_to_withdraw(tmp_path):
     assert refused.value.code == "no_queued_submission"
 
 
-def test_the_kit_never_resubmits_a_withdrawn_task_by_itself(tmp_path, monkeypatch):
-    from test_direct_submission import _answer, _client
-
-    submits = []
+def _poll_send(states, submits):
+    """A door whose status answers come from ``states`` (task -> outcome state, or "withdrawn"), counting SUBMITs."""
+    from test_direct_submission import _answer
 
     def send(url, body, headers):
         request = json.loads(body)
         if request["tool"] == client.SUBMIT_TOOL:
             submits.append(request["request"])
-            return 202, _answer("ADMITTED", task_id="task-1")
-        return 200, _answer(
-            "FAILED_INFRA", task_id="task-1", failure={"code": "withdrawn_by_miner"}
-        )
+            return 202, _answer("ADMITTED", task_id=f"task-{len(submits)}")
+        task = request["fields"]["submission_id"]
+        if states.get(task) == "withdrawn":
+            return 200, _answer(
+                "FAILED_INFRA", task_id=task, failure={"code": "withdrawn_by_miner"}
+            )
+        return 200, _answer(states.get(task, "RECONSTRUCTED"), task_id=task)
 
-    result = _client(tmp_path, monkeypatch, send)()
-    assert result["failure"] == {"code": "withdrawn_by_miner"}
+    return send
+
+
+@pytest.mark.parametrize("observe_only", [False, True])
+def test_a_withdrawn_task_is_never_a_result_its_record_is_set_aside_and_nothing_resubmitted(
+    tmp_path, monkeypatch, observe_only
+):
+    """The record was not set aside by the kit (the door answered 503 after its cancel, a crash after the 200, or a
+    withdrawal from another client): the next submit or result read sets it aside and refuses ``withdrawn_by_miner``,
+    an observation too, so no caller ever stores it as the round's verdict."""
+    from test_direct_submission import _client
+
+    record = _admitted_epoch(tmp_path, monkeypatch)
+    submits = []
+    send = _poll_send({"task-1": "withdrawn"}, submits)
+    run = _client(tmp_path, monkeypatch, send, wait_s=10)
+    if observe_only:
+        from test_direct_submission import _CONTEXT, _CONTRACT, _RECEIVER, _URL, _recipe
+        from test_direct_submission import _facts as plain_facts
+
+        def run():
+            return client.submit_and_wait(
+                _URL,
+                "external-signer",
+                root=tmp_path,
+                epoch=1,
+                recipe=_recipe(),
+                contract_digest=_CONTRACT,
+                receiver=_RECEIVER,
+                context=_CONTEXT,
+                read=lambda url: plain_facts(),
+                send=send,
+                clock=lambda: 0.0,
+                sleep=lambda seconds: None,
+                wait_s=10,
+                observe_only=True,
+            )
+
+    with pytest.raises(client.DirectIntakeRefusal) as refused:
+        run()
+    assert refused.value.code == "withdrawn_by_miner"
+    assert "submit again when ready" in refused.value.words
+    assert client.WITHDRAW_RETRY_WORDS in refused.value.words
+    assert submits == []  # the admission was earlier: nothing was resubmitted by itself
+    assert not record.exists()
+    aside = tmp_path / "construction-intake-epoch-1.withdrawn-1.json"
+    assert json.loads(aside.read_bytes())["submission_id"] == "task-1"
+    # the next submit is a fresh request for a fresh task
+    again = _client(tmp_path, monkeypatch, _poll_send({}, submits), wait_s=10)()
+    assert again["task_id"] == "task-1" and len(submits) == 1
+    assert submits[0].endswith("-r1")
+
+
+def test_a_record_naming_a_newer_task_is_never_set_aside_for_an_older_withdrawal(
+    tmp_path, monkeypatch
+):
+    record = _admitted_epoch(tmp_path, monkeypatch, task="task-2")
+    before = record.read_bytes()
     assert (
-        len(submits) == 1
-    )  # a stop's cancellation is resubmitted once; a withdrawal never
+        client._set_cancelled_record_aside(
+            tmp_path, 1, record, label="withdrawn", task_id="task-1"
+        )
+        is False
+    )
+    assert record.read_bytes() == before
+    assert not (tmp_path / "construction-intake-epoch-1.attempt").exists()
+
+
+def test_a_set_aside_never_writes_over_an_existing_aside_copy(tmp_path, monkeypatch):
+    record = _admitted_epoch(tmp_path, monkeypatch)
+    taken = tmp_path / "construction-intake-epoch-1.withdrawn-1.json"
+    taken.write_text("kept")
+    assert client._set_cancelled_record_aside(
+        tmp_path, 1, record, label="withdrawn", task_id="task-1"
+    )
+    assert taken.read_text() == "kept"
+    moved = tmp_path / "construction-intake-epoch-1.withdrawn-2.json"
+    assert json.loads(moved.read_bytes())["submission_id"] == "task-1"
+    assert not record.exists()
+
+
+def test_the_kit_re_reads_the_record_before_setting_it_aside(tmp_path, monkeypatch):
+    """A newer submit recorded between the withdrawal's send and its set-aside is never moved."""
+    record = _admitted_epoch(tmp_path, monkeypatch)
+    newer = json.loads(record.read_bytes())
+    newer["submission_id"] = "task-2"
+
+    def send(url, body, headers):
+        record.write_text(json.dumps(newer))
+        return 200, {"withdrawn": "task-1", "grade_state": "WITHDRAWN_BY_MINER"}
+
+    client.withdraw_submission(
+        tmp_path, 1, "external-signer", read=lambda url: _facts(), send=send
+    )
+    assert json.loads(record.read_bytes())["submission_id"] == "task-2"
+    assert not list(tmp_path.glob("construction-intake-epoch-1.withdrawn-*.json"))
+
+
+# --- the campaign: withdraw during the submit's poll, then submit again in the SAME round ---------------------------
+
+
+def _f08_answer(state, task, contract, challenge, **outcome):
+    answer = {
+        "schema": client.RESULT_SCHEMA,
+        "kind": "OUTCOME",
+        "code": None,
+        "pinned": {
+            "contract_digest": contract.digest,
+            "rule_digest": "sha256:" + "b" * 64,
+            "implementation_digest": "sha256:" + "c" * 64,
+            "identities_digest": "sha256:" + "d" * 64,
+        },
+        "outcome": {
+            "schema": client.OUTCOME_SCHEMA,
+            "submission_id": task,
+            "challenge": dict(challenge),
+            "state": state,
+            "evidence": contract.evidence_label,
+            "qualification": False,
+            "reward": False,
+            "task_id": task,
+            **outcome,
+        },
+        "evidence": "DEVELOPMENT",
+        "qualification": False,
+        "reward": False,
+    }
+    if state == "RECONSTRUCTED":
+        answer["outcome"]["state_digest"] = "sha256:" + "e" * 64
+        answer["outcome"]["predictions_digest"] = "sha256:" + "f" * 64
+    return answer
+
+
+@pytest.mark.parametrize("withdrawn_by", ["this_kit", "another_client"])
+def test_a_withdraw_during_the_submit_poll_leaves_the_round_open_and_the_same_round_resubmits(
+    tmp_path, monkeypatch, withdrawn_by
+):
+    """Freeze, submit, withdraw while the submit still polls the validator, then submit again in the SAME round: the
+    withdrawn task is never stored as the round's verdict (no permitted feedback), the frozen candidate is kept, and the
+    resubmission's result is the round's verdict."""
+    import asyncio
+    import dataclasses
+    import functools
+
+    from test_direct_submission import _CONTEXT
+    from test_miner_freeze_submit import prepared as freeze_prepared
+
+    from carbon.challenge_registry.campaigns import campaign_for
+    from carbon.challenge_registry.direct import graph_recipe
+    from carbon.development_session import (
+        construction_recipe,
+        direct_source_submission,
+        research_report,
+    )
+    from carbon.development_session import research_campaign as rc
+    from carbon.development_session.profile import canonical
+    from carbon.direct_campaign.spec import F08
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    version, receiver = "1.4", "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    url = "http://127.0.0.1:8769"
+    challenge = {"id": F08.challenge_id, "version": version}
+    contract = registered(F08.challenge_id, version)
+    recipe = graph_recipe(F08, "sha256:" + "a" * 64, version=version)
+    value, _final = freeze_prepared(tmp_path / "c", monkeypatch, practiced=(recipe,))
+    manifest = {**value.manifest, "construction_mode": "direct"}
+    (value.ledger.root / "campaign-manifest.json").write_bytes(canonical(manifest))
+    value = dataclasses.replace(
+        value,
+        manifest=manifest,
+        campaign=campaign_for(challenge),
+        args=SimpleNamespace(
+            intakes={F08.challenge_id: url}, receivers={F08.challenge_id: receiver}
+        ),
+        sdk=SimpleNamespace(
+            connection=SimpleNamespace(miner_key="miner-key", chain_context=_CONTEXT)
+        ),
+    )
+    root = value.ledger.root
+    monkeypatch.setattr(
+        direct_source_submission, "stage_graph_source", lambda *a, **k: None
+    )
+    monkeypatch.setattr(research_report, "report", lambda *a, **k: None)
+    # the frozen graph's source envelope from the miner's workspace (staged to the door by `stage_graph_source`, a stand-in)
+    monkeypatch.setattr(
+        construction_recipe, "graph_envelope_from_workspace", lambda *a: b"{}"
+    )
+    monkeypatch.setattr(
+        client, "read_exam_feedback", lambda *a, **k: {"best": None, "latest": None}
+    )
+    monkeypatch.setattr(
+        client,
+        "BittensorMessageSigner",
+        lambda signer: SimpleNamespace(sign=lambda body, **kw: {"signed": "fixture"}),
+    )
+    facts = {
+        "schema": client.PUBLIC_SCHEMA,
+        "network": _CONTEXT.network,
+        "genesis": _CONTEXT.genesis_hash,
+        "netuid": _CONTEXT.netuid,
+        "challenge": challenge,
+        "receiver": receiver,
+        "snapshot": {"id": "snapshot-1"},
+        "discovery_path": client.INFO_PATH,
+        "path": client.SUBMIT_PATH,
+        "tools": [client.SUBMIT_TOOL, client.STATUS_TOOL],
+        "served_contracts": [{"level": 0, "digest": contract.digest}],
+        "score_pack": None,
+        "qualification": False,
+        "reward": False,
+        client.WITHDRAW_FACTS_NAME: dict(client.WITHDRAW_FACTS),
+    }
+
+    def answer(state, task, **outcome):
+        return _f08_answer(state, task, contract, challenge, **outcome)
+
+    submits, withdrawn, aside = [], set(), []
+
+    def send(url, body, headers):
+        request = json.loads(body)
+        tool, fields = request["tool"], request["fields"]
+        if tool == client.SUBMIT_TOOL:
+            submits.append(request["request"])
+            return 202, answer("ADMITTED", f"task-{len(submits)}")
+        if tool == client.WITHDRAW_TOOL:
+            withdrawn.add(fields["submission_id"])
+            return 200, {
+                "withdrawn": fields["submission_id"],
+                "grade_state": "WITHDRAWN_BY_MINER",
+            }
+        task = fields["submission_id"]
+        if task == "task-1" and task not in withdrawn:
+            # the miner withdraws while this submit still polls the validator
+            if withdrawn_by == "this_kit":
+                client.withdraw_submission(
+                    root, 1, "miner-key", read=lambda url: facts, send=send
+                )
+                aside.append(not (root / "construction-intake-epoch-1.json").exists())
+            else:
+                withdrawn.add(task)
+            return 200, answer("ADMITTED", task)
+        if task in withdrawn:
+            return 200, answer(
+                "FAILED_INFRA", task, failure={"code": "withdrawn_by_miner"}
+            )
+        return 200, answer("RECONSTRUCTED", task)
+
+    clock = [0.0]
+    monkeypatch.setattr(
+        client,
+        "submit_and_wait",
+        functools.partial(
+            client.submit_and_wait,
+            read=lambda url: facts,
+            send=send,
+            clock=lambda: clock[0],
+            sleep=lambda seconds: clock.__setitem__(0, clock[0] + seconds),
+        ),
+    )
+    asyncio.run(rc.freeze_candidate(value, strategy=recipe, reason="practised"))
+    with pytest.raises(rc.OperationRefused, match="withdrawn_by_miner"):
+        asyncio.run(rc.submit_frozen(value))
+    folder = root / "epoch-1"
+    assert not (folder / "permitted-final-feedback.json").exists()  # no verdict
+    assert rc._open_epoch(value) == 1 and (folder / "selected-recipe.json").exists()
+    assert not (root / "construction-intake-epoch-1.json").exists()
+    kept = json.loads(
+        (root / "construction-intake-epoch-1.withdrawn-1.json").read_bytes()
+    )
+    assert kept["submission_id"] == "task-1"
+    assert aside == ([True] if withdrawn_by == "this_kit" else [])
+    # the same round again: a fresh request, a fresh task, and ITS result is the round's verdict
+    done = asyncio.run(rc.submit_frozen(value))
+    assert done["epoch"] == 1 and done["feedback"]["result"]["task_id"] == "task-2"
+    assert len(submits) == 2 and submits[1].endswith("-r1")
+    stored = json.loads((folder / "permitted-final-feedback.json").read_bytes())
+    assert stored["result"]["task_id"] == "task-2"
+    assert rc._open_epoch(value) == 2
+
+
+def test_no_background_verdict_read_stores_a_direct_campaigns_withdrawn_task():
+    """The launchpad's background verdict read (`verdict_read.read_queued_verdict`) stores only through a Challenge's
+    ``queued_verdict``, which no direct (recipe) campaign has: a withdrawn recipe task reaches the round's record only
+    through `submit_and_wait`, which refuses it (above, an observation too)."""
+    from carbon.battery import campaign as battery_campaign
+    from carbon.challenge_registry.campaigns import implemented_campaigns
+
+    reading = [
+        campaign.queued_verdict
+        for _entry, campaign in implemented_campaigns()
+        if campaign.queued_verdict is not None
+    ]
+    # only the Battery's own (remote submission) campaign reads queued verdicts; no recipe campaign does
+    assert reading and all(read is battery_campaign.queued_verdict for read in reading)
 
 
 # --- the launchpad operation --------------------------------------------------------------------------------------
@@ -825,6 +1136,16 @@ def test_the_withdraw_operation_is_a_gated_signed_non_read_operation():
     assert op.gates == ("request", "profile", "campaign")
     assert "withdraw" not in operations.READ_ONLY_OPERATIONS
     assert "withdraw" in practice_only.REGISTERED_ONLY
+    # the retries a withdrawal costs the same model are said plainly, digit-free (the bound is not public)
+    said = "counts toward the validator's limit of retries for that model on this exam"
+    assert said in op.summary and said in client.WITHDRAWN_WORDS
+    assert not any(ch.isdigit() for ch in client.WITHDRAW_RETRY_WORDS)
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
+    assert (
+        NEXT_ACTIONS["withdrawn_by_miner"]
+        == client.WITHDRAW_WORDS["withdrawn_by_miner"]
+    )
     from carbon.miner_mcp.mcp_operations import operation_tool_names
 
     assert "carbon_withdraw" in operation_tool_names()

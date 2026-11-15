@@ -415,18 +415,55 @@ def _cancelled_by_stop(outcome):
     )
 
 
-def _set_cancelled_record_aside(root, epoch, record_path, label="cancelled"):
+def _withdrawn_by_miner(outcome):
+    """Whether a terminal outcome is the miner's OWN withdrawal of the queued task (`withdrawn_by_miner`): never a verdict."""
+    failure = outcome.get("failure") if type(outcome) is dict else None
+    return (
+        outcome.get("state") == "FAILED_INFRA"
+        and type(failure) is dict
+        and failure.get("code") == WITHDRAWN_CODE
+    )
+
+
+def _record_names(record_path, task_id):
+    """Whether the admission record at ``record_path`` exists now and names ``task_id`` (read again, never assumed)."""
+    try:
+        if record_path.is_symlink():
+            return False
+        recorded = json.loads(record_path.read_bytes())
+    except (OSError, ValueError):
+        return False
+    return type(recorded) is dict and recorded.get("submission_id") == task_id
+
+
+def _set_cancelled_record_aside(
+    root, epoch, record_path, label="cancelled", task_id=None
+):
     """Keep the cancelled (or, ``label`` "withdrawn", the miner-withdrawn) task's admission record under its own name (never
     deleted) and make the next submit a NEW request (a bumped request id), so the frozen recipe is submitted again for a
-    fresh task."""
+    fresh task. With ``task_id``, only while the record still names that task: a record another call already set aside,
+    or one that names a newer task, is left alone (returns False). The aside name is taken with a hard link, which never
+    replaces an existing file, so two callers can never write over each other's aside copy.
+    """
+    if task_id is not None and not _record_names(record_path, task_id):
+        return False
     for n in range(1, 1000):
         aside = record_path.with_name(record_path.stem + f".{label}-{n}.json")
-        if not aside.exists():
-            os.replace(record_path, aside)
-            break
+        try:
+            os.link(record_path, aside)
+        except FileExistsError:
+            continue
+        except FileNotFoundError:
+            return False  # another call set it aside first
+        break
     else:  # pragma: no cover - a thousand cancelled generations of one epoch
         raise DirectIntakeRefusal("construction_cancelled_records_exhausted")
+    try:
+        os.unlink(record_path)
+    except FileNotFoundError:
+        return False  # another call set it aside first (its own aside copy is kept)
     _bump_submit_attempt(root, epoch)
+    return True
 
 
 def _bump_submit_attempt(root, epoch):
@@ -867,6 +904,18 @@ def read_exam_feedback(
         raise DirectIntakeRefusal("exam_feedback_reply_invalid") from None
 
 
+def _refuse_withdrawn(root, epoch, record_path, outcome):
+    """A task its miner withdrew while queued is never this epoch's verdict: its admission record is set aside (only while
+    it still names that task), so the next submit is a fresh task of the same frozen candidate, and the read is refused
+    ``withdrawn_by_miner`` (an observation too), so no caller stores it as the epoch's feedback.
+    """
+    if _withdrawn_by_miner(outcome):
+        _set_cancelled_record_aside(
+            root, epoch, record_path, label="withdrawn", task_id=outcome.get("task_id")
+        )
+        raise DirectWithdrawRefused(WITHDRAWN_CODE)
+
+
 def submit_and_wait(
     url,
     signer,
@@ -1050,6 +1099,7 @@ def submit_and_wait(
         )
         record_path.chmod(0o600)
         if outcome["state"] in TERMINAL:
+            _refuse_withdrawn(root, epoch, record_path, outcome)
             return outcome
     if wait_s == 0:
         # The tool door requests admission only. A same-moment STATUS call can
@@ -1125,8 +1175,11 @@ def submit_and_wait(
             observe, deadline=deadline, clock=clock, sleep=sleep
         )
         if outcome.get("state") in TERMINAL:
+            _refuse_withdrawn(root, epoch, record_path, outcome)
             if _cancelled_by_stop(outcome) and not observe_only and not _after_cancel:
-                _set_cancelled_record_aside(root, epoch, record_path)
+                _set_cancelled_record_aside(
+                    root, epoch, record_path, task_id=outcome.get("task_id")
+                )
                 return submit_and_wait(
                     url,
                     signer,
@@ -1157,6 +1210,8 @@ def submit_and_wait(
 #: A miner withdraws its OWN queued, not-yet-building official submission (owner GO 15 Nov 2026 via the Lead): the door's
 #: tool and its public facts entry, pinned exactly (`direct_intake.withdraw_facts`), never part of the pinned `tools` list.
 WITHDRAW_TOOL = "construction_withdraw"
+#: The outcome code of a task its miner withdrew (`lean_recipe.WITHDRAWN_CODE`).
+WITHDRAWN_CODE = "withdrawn_by_miner"
 WITHDRAW_FACTS_NAME = "construction_withdraw_v1"
 WITHDRAW_FACTS = {
     "tool": WITHDRAW_TOOL,
@@ -1166,10 +1221,25 @@ WITHDRAW_FACTS = {
     "owner": "authenticated_hotkey",
 }
 #: The door's withdraw refusals, and this kit's own, in plain words for the miner.
+#: Said with every withdrawal (owner GO 15 Nov 2026): a withdrawal is not free of consequence for the same model.
+WITHDRAW_RETRY_WORDS = "Each withdrawal of the same model counts toward the validator's limit of retries for that model on this exam."
+#: What the miner reads when a withdrawal went through (the kit's answer, the Launchpad's message).
+WITHDRAWN_WORDS = (
+    "Withdrawn: it was not built or graded and used no try or allowance, and your waiting place is free. Your frozen "
+    "candidate is kept: submit again when ready. " + WITHDRAW_RETRY_WORDS
+)
 WITHDRAW_WORDS = {
+    "withdraw_not_offered": (
+        "This validator does not take withdrawals yet; nothing was changed. Check for the result instead."
+    ),
     "withdraw_unavailable": (
-        "This validator does not take withdrawals yet, or could not record one just now; nothing was changed. "
-        "Check for the result instead, or try again later."
+        "The validator could not complete the withdrawal just now: it may have happened but not be fully recorded "
+        "yet. Run withdraw again (it is safe to repeat) or check_result."
+    ),
+    # A submit or result read that met the miner's own withdrawal: never the epoch's verdict.
+    "withdrawn_by_miner": (
+        "You withdrew this submission while it was still queued: it was not built or graded and used no try. Your "
+        "frozen candidate is kept: submit again when ready. " + WITHDRAW_RETRY_WORDS
     ),
     "withdraw_too_late": (
         "This submission is already building or built (or has already ended); it can no longer be withdrawn. "
@@ -1181,7 +1251,7 @@ WITHDRAW_WORDS = {
     ),
     "withdraw_fields": (
         "The withdraw request was not one the validator reads (this kit and the validator disagree); nothing was "
-        "changed. Update your kit and try again."
+        "withdrawn. Update your kit and try again."
     ),
     "no_queued_submission": (
         "No submit of this campaign reached a validator yet, so there is nothing to withdraw."
@@ -1242,7 +1312,7 @@ def withdraw_submission(root, epoch, signer, *, read=read_intake, send=post):
     def once():
         facts = read(url)
         if facts.get(WITHDRAW_FACTS_NAME) != WITHDRAW_FACTS:
-            raise DirectWithdrawRefused("withdraw_unavailable")
+            raise DirectWithdrawRefused("withdraw_not_offered")
         body = _body(
             facts,
             recipe=recipe,
@@ -1269,8 +1339,9 @@ def withdraw_submission(root, epoch, signer, *, read=read_intake, send=post):
         return answer
 
     answer = retry_rate_limited(once, deadline=deadline)
-    if record_path.exists():
-        _set_cancelled_record_aside(root, epoch, record_path, label="withdrawn")
+    _set_cancelled_record_aside(
+        root, epoch, record_path, label="withdrawn", task_id=submission_id
+    )
     return answer
 
 

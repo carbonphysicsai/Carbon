@@ -785,7 +785,9 @@ OPERATIONS = {
             "WITHDRAWN_BY_MINER. Refused once the submission is building or "
             "built (withdraw_too_late), and by a validator that does not take "
             "withdrawals. Your frozen candidate is kept: submit again when "
-            "ready.",
+            "ready, in the same round. Each withdrawal of the same model counts "
+            "toward the validator's limit of retries for that model on this "
+            "exam.",
             frozenset({"campaign"}),
             frozenset(),
             ("request", "profile", "campaign"),

@@ -3532,7 +3532,7 @@
       withdraw.addEventListener("click", async () => {
         if (busy || !connected) return;
         busy = true; render();
-        try { await api("/api/v1/operations/withdraw", {campaign}, undefined, 60000); message("Withdrawn: it used no try. Submit again when ready."); }
+        try { await api("/api/v1/operations/withdraw", {campaign}, undefined, 60000); message("Withdrawn: it was not built or graded and used no try. Submit again when ready. Each withdrawal of the same model counts toward the validator's limit of retries for that model on this exam."); }
         catch (error) { message("Not withdrawn: " + (error.message || "the validator could not be reached") + ".", true); }
         finally { busy = false; await refresh(); render(); }
       });
