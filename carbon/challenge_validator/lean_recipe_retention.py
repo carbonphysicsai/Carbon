@@ -1118,6 +1118,182 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
     return raw
 
 
+def _subset_repeat_version(adapter) -> bool:
+    """Whether this receiver's version is graded with the keyed subset repeat (`subset_repeat_evidence`)."""
+    from carbon.scoring import subset_repeat_evidence
+
+    return subset_repeat_evidence.is_subset_version(
+        getattr(adapter, "challenge_id", None),
+        getattr(adapter, "challenge_version", None),
+    )
+
+
+def subset_repeat_serve_check(
+    challenge_id, version, *, pack_snapshot=None, public_root=None
+):
+    """The receiver's start-up check of a subset version (Validator-2B R-5): None for every other version. For a subset
+    version the owner's promise must be registered (else `subset_repeat_promise_unregistered`: the door does not serve),
+    and, with the served sealed pack, its pinned producer must bind the producer recomputed now, exactly or through the
+    version's ONE successor row (else `producer_successor_mismatch`). Returns the successor row it names (or the exact
+    binding), so the start-up log says which row the door grades under."""
+    import importlib
+
+    from carbon.scoring import physical_dual_pack, producer_successor
+    from carbon.scoring import subset_repeat_evidence as subset
+
+    if not subset.is_subset_version(challenge_id, version):
+        return None
+    try:
+        promise = subset.registered_promise(challenge_id, version)
+    except subset.SubsetRepeatRefused as refused:
+        raise RetentionUnavailable(refused.code) from refused
+    named = {
+        "challenge": challenge_id,
+        "version": version,
+        "repeat_fail_fraction": promise[0],
+        "repeat_detect_prob": promise[1],
+        "successor_row": producer_successor.row(challenge_id, version),
+    }
+    if pack_snapshot is None:
+        return named
+    try:
+        accuracy = pack_snapshot.read_json_role(
+            public_root, "public", "accuracy_definition", max_bytes=1024 * 1024
+        )
+        module = importlib.import_module(subset.PRODUCERS[(challenge_id, version)])
+        identity = physical_dual_pack.producer_digest(module)
+    except (ImportError, KeyError, OSError, ValueError) as exc:
+        raise RetentionUnavailable("producer_successor_mismatch") from exc
+    pinned = accuracy.get("producer_digest") if type(accuracy) is dict else None
+    if not producer_successor.binds(challenge_id, version, pinned, identity):
+        raise RetentionUnavailable("producer_successor_mismatch")
+    return {**named, "pack_producer_digest": pinned, "producer_digest": identity}
+
+
+def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
+    """A subset version's repeat (owner, Sun 15 Nov 2026 08:19 + 08:38 CST; CV-Motor-B's ruling; Validator-2B R-1..R-5),
+    in place of the two full-bank pair passes: after the graded predictions are retained, a per-grade key (HMAC of the
+    grading host's K_speed under the subset repeat's own domain tag and the submission id) draws ``k`` distinct rows of
+    the delivered graded query, and ONE fresh worker process re-predicts exactly those rows (same image, state and
+    inputs; the pack's per-case procedure). ``k`` comes from the version's registered promise
+    (`subset_repeat_evidence.registered_k`): none registered is Carbon's typed gap, never "no repeat". Kept write-once
+    beside the dual measurement as a host-private side file (one file per ``k``; a retry or regrade reads it back after
+    checking it is this grade's draw), never a public byte.
+
+    A candidate wall hit is retried once under a fresh identity; a second is the candidate's typed failure, counted as
+    the closed public pass ``inference_pair``. Any other fault is Carbon's (`subset_repeat_incomplete`).
+    """
+    import numpy as np
+
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session.data import write_once
+    from carbon.development_session.paired_inference import (
+        InferencePairFailure,
+        infer_frozen_once,
+    )
+    from carbon.scoring import subset_repeat_evidence as subset
+
+    material = adapter.discovery._material
+    kit = material["construction_kit"]
+    inputs, output_shape = _graded_query(material, artifacts)
+    try:
+        k = subset.registered_k(kit["id"], kit["version"], len(inputs))
+        key = getattr(adapter, "speed_sample_key", None)
+        positions = subset.draw(subset.grade_key(key, submission_id), len(inputs), k)
+    except subset.SubsetRepeatRefused as refused:
+        raise RetentionUnavailable(refused.code) from refused
+    path = _private_evaluation_directory(result, submission_id) / (
+        f"subset-repeat-{k}.json"
+    )
+    if path.exists() or path.is_symlink():
+        cached = _private_measurement_bytes(path, _pair_read_limit(adapter, artifacts))
+        try:
+            same = json.loads(cached).get("positions") == positions
+        except (ValueError, AttributeError):
+            same = False
+        if not same:
+            raise RetentionUnavailable("subset_repeat_cache_not_this_draw")
+        return cached
+    owner = adapter.owner(submission_id) if regrade is None else regrade.owner
+    provider = adapter._provider(owner)
+    limits = material["construction_limits_document"]
+    policy = limits["reconstruction_resource_policy"]
+    interface = material["interface_document"]
+    accuracy = adapter.discovery.evaluation_pack_snapshot.read_json_role(
+        adapter.discovery.evaluation_pack_public_root,
+        "public",
+        "accuracy_definition",
+        max_bytes=65536,
+    )
+    if (
+        type(accuracy) is not dict
+        or accuracy.get("paired_repeat_procedure") != "per_case"
+    ):
+        raise RetentionUnavailable("subset_repeat_procedure_unregistered")
+    rows = np.ascontiguousarray(inputs[positions])
+    rows_shape = (len(positions), *tuple(output_shape)[1:])
+    image = _inference_image_of(provider, regrade)
+
+    def attempt(suffix):
+        return infer_frozen_once(
+            provider.ledger,
+            owner=owner,
+            identity="subset-repeat-"
+            + adapter.discovery.evaluation_pack_snapshot.manifest_digest
+            + "-"
+            + submission_id
+            + suffix,
+            inference_image=image,
+            recipe=(
+                ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
+                if regrade is None
+                else regrade.recipe
+            ),
+            challenge_binding={
+                "challenge_id": kit["id"],
+                "challenge_version": kit["version"],
+                "train_digest": kit["train_digest"],
+                "interface_digest": kit["interface_digest"],
+                "construction_limits_digest": kit["construction_limits_digest"],
+            },
+            limits_document=limits,
+            state_bytes=artifacts["state.npz"],
+            expected_state_digest=entry["state_digest"],
+            inputs=rows,
+            expected_output_shape=rows_shape,
+            expected_output_dtype=output_dtype(interface),
+            allowlist_bytes=material["allowlist_bytes"],
+            seconds=policy["inference_wall_seconds_max"],
+            total_seconds=policy["total_reconstruction_wall_seconds_max"],
+            accelerator=getattr(provider, "inference_accelerator", None),
+            procedure="per_case",
+        )
+
+    walls = 0
+    while True:
+        try:
+            run = attempt("" if walls == 0 else "-wall-retry")
+            break
+        except InferencePairFailure as failure:
+            if not _is_candidate_wall_hit(failure.cause):
+                raise RetentionUnavailable("subset_repeat_incomplete") from failure
+            walls += 1
+            if walls == 2:
+                stopped = CandidateWallLimitReached(CANDIDATE_WALL_LIMIT_REACHED)
+                # the closed public pass name of the repeat (exam feedback v8), unchanged by the subset form
+                stopped.carbon_pass = "inference_pair"
+                raise stopped from failure
+    raw = subset.side_file(
+        challenge=kit["id"],
+        version=kit["version"],
+        n_rows=len(inputs),
+        positions=positions,
+        run=run.evidence,
+    )
+    write_once(path, raw)
+    return raw
+
+
 def _menu_rowcheck_outputs(evidence, entry, subset, subset_shape, out_dtype, procedure):
     """The FIRST fresh instance's flat raw answers of a re-check pair, read through the pair reader with the pair's own
     identities and the subset's shapes; the state is bound to the graded entry's. Unreadable = Carbon's gap.
@@ -1777,7 +1953,10 @@ def _retain_selected_pack_evaluation(
         # Graph and bundle alike: the paired repeat is what the KOTH comparison
         # binds (v4). Never gates retention: this runs after bank custody, and a
         # missing or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
-        pair_raw = _inference_pair_raw(
+        # A subset version (Motor 1.8) runs ONE keyed subset repeat instead of the pair: its side file rides in the same
+        # repeat-evidence slot, read only by that version's own producer (`subset_repeat_produce`).
+        subset_repeat = _subset_repeat_version(adapter)
+        pair_raw = (_subset_repeat_raw if subset_repeat else _inference_pair_raw)(
             adapter,
             submission_id,
             result,
@@ -1812,6 +1991,10 @@ def _retain_selected_pack_evaluation(
 
         # (a menu-D version's re-check is staged for the measure, never passed through a producer file: None stages
         # nothing for every other version)
+        if subset_repeat:
+            from carbon.scoring.subset_repeat_produce import (
+                produce_registered_dual_measurement,
+            )
         with pool_menu.staged_rowcheck(menu_rowcheck):
             prepared = produce_registered_dual_measurement(
                 selected_pack=snapshot,
@@ -2113,6 +2296,10 @@ def _write_exam_se(
                 )
             bank, module = sealed[0], sealed[1]
             measure = pool_exam_se.bootstrap_total_se
+            if _subset_repeat_version(adapter):
+                from carbon.scoring import subset_repeat_produce
+
+                measure = subset_repeat_produce.bootstrap_total_se
         else:
             bank = physical_pack.development_bank(
                 adapter.challenge_id, adapter.challenge_version
@@ -2168,7 +2355,10 @@ def _rebuild_lane_seconds(adapter, submission_id, evidence, exam_key):
     of its worker operations (build, graded inference, timed query, repeat pair), one official lane. None when the
     receipts carry none, so the registered measured value keeps standing in for it."""
     try:
-        from carbon.development_session.paired_inference import pair_identities
+        from carbon.development_session.paired_inference import (
+            pair_identities,
+            repeat_identity,
+        )
 
         provider = adapter._provider(adapter.owner(submission_id))
         operations = [
@@ -2176,6 +2366,10 @@ def _rebuild_lane_seconds(adapter, submission_id, evidence, exam_key):
             for name in ("build_operation", "inference_operation", "timed_operation")
         ]
         operations += list(pair_identities("pair-" + exam_key + "-" + submission_id))
+        # (a subset version's one keyed repeat; no such operation exists for any other version)
+        operations.append(
+            repeat_identity("subset-repeat-" + exam_key + "-" + submission_id)
+        )
         milliseconds = 0
         with provider.ledger.db() as db:
             for operation in operations:

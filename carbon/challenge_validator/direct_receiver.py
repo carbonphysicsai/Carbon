@@ -2251,6 +2251,29 @@ def serve(
             )
         # the sealed pack this receiver serves: a registered crown hold-off applies to exactly that pack (and menu epoch)
         crown_hold.bind_pack(pack_digest)
+        # a keyed-subset-repeat version (Motor 1.8): no registered promise, or a pack whose pinned producer does not bind
+        # this code (exactly or through its ONE successor row), and the door does not serve (Validator-2B R-5)
+        try:
+            subset_repeat = lean_recipe_retention.subset_repeat_serve_check(
+                challenge.challenge_id,
+                challenge.version,
+                pack_snapshot=pack_snapshot,
+                public_root=(
+                    Path(cfg["evaluation_pack"]["public_root"])
+                    if pack_snapshot is not None
+                    else None
+                ),
+            )
+        except lean_recipe_retention.RetentionUnavailable as refused:
+            raise ReceiverUnavailable(str(refused)) from refused
+        if subset_repeat is not None:
+            import sys
+
+            print(
+                json.dumps({"subset_repeat": subset_repeat}, sort_keys=True),
+                file=sys.stderr,
+                flush=True,
+            )
         discovery = DirectFixtureDiscovery(
             material,
             task_admission=True,
