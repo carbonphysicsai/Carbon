@@ -1327,6 +1327,7 @@ def _single_call_raw(
     bytes and never replays an identity."""
     import numpy as np
 
+    from carbon.challenge_validator import speed_match
     from carbon.development_session import single_call_timing
     from carbon.development_session.bundle_construction_worker import (
         INFER_PROGRAM,
@@ -1354,6 +1355,12 @@ def _single_call_raw(
         raise RetentionUnavailable("single_call_needs_the_cpu_grading_image")
     material = adapter.discovery._material
     kit = material["construction_kit"]
+    # None (exact, as before) for every version but a vmap-64 one, whose registered tolerance must be set: unset or
+    # malformed is a version-wide Carbon gap, typed, never exact and never a guess (checked before anything runs)
+    try:
+        tolerance = speed_match.tolerance(kit["id"], kit["version"])
+    except speed_match.SpeedMatchUnregistered as gap:
+        raise RetentionUnavailable(gap.code) from gap
     limits = material["construction_limits_document"]
     policy = limits["reconstruction_resource_policy"]
     interface = material["interface_document"]
@@ -1439,9 +1446,16 @@ def _single_call_raw(
             **{**graph_query, "program": derived},
         )
         call_s = stage.receipt["single_call"]["call_s"]
-        match = single_call_timing.outputs_match_graded(
-            stage.predictions, graded, indices
-        )
+        if tolerance is None:
+            match = single_call_timing.outputs_match_graded(
+                stage.predictions, graded, indices
+            )
+        elif speed_match.outputs_agree(stage.predictions, graded, indices, tolerance):
+            match = True
+        else:
+            # a vmap-64 version (owner, Sun 15 Nov 2026 ~11:1x): a timed answer beyond the wide-margin tolerance is
+            # CARBON's (two programs of ours disagree), never the miner's speed FAIL: typed unavailable, FAILED_INFRA
+            raise RetentionUnavailable(speed_match.DISAGREE)
         document = single_call_timing.side_file(
             indices=indices,
             warmup_digest=stage.receipt["single_call"]["warmup_digest"],

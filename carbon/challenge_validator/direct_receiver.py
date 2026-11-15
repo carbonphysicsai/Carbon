@@ -2027,6 +2027,16 @@ class OwnerProviders:
             provider.close()
 
 
+def _require_speed_match(challenge_id, version):
+    """Refuse to serve a vmap-64 version whose speed-match tolerance is unset or malformed (`speed_match`)."""
+    from carbon.challenge_validator import speed_match
+
+    try:
+        speed_match.require_served(challenge_id, version)
+    except speed_match.SpeedMatchUnregistered as gap:
+        raise ReceiverUnavailable(gap.code) from gap
+
+
 def serve(
     config_path: Path,
     *,
@@ -2225,6 +2235,9 @@ def serve(
     from carbon.challenge_validator import registry_version
 
     registry_version.serve(challenge.challenge_id, challenge.version)
+    # a vmap-64 version (Motor 1.8) is not served until its speed-match tolerance is registered (owner, Sun 15 Nov 2026
+    # ~11:1x): every other version passes unchanged
+    _require_speed_match(challenge.challenge_id, challenge.version)
     with owner_lock(root):
         pack_check = None
         pack_digest = None
