@@ -395,7 +395,7 @@ def _cancel_active_intent(ledger, *, owner, identity):
                 {"owner": owner, "identity": identity, "request": intent["request"]}
             )
         )
-        name = "carbon-d4-" + launch[7:31]
+        name, label = _intent_container(intent, launch)
         if (
             intent["launch"] != launch
             or intent["container"] != name
@@ -420,7 +420,7 @@ def _cancel_active_intent(ledger, *, owner, identity):
                 )
         except Exception:  # noqa: BLE001, S110 - observation never gates cleanup
             pass
-        remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
+        remove_exact_container(cli=cli, container_name=name, launch_digest=label)
 
 
 # Fixed public construction phases use the same private, closed diagnostic
@@ -751,7 +751,7 @@ def _fixed_program_cpu_usage_usec(
             or remaining <= 0
             or type(launch_digest) is not str
             or re.fullmatch(r"sha256:[0-9a-f]{64}", launch_digest) is None
-            or container_name != "carbon-d4-" + launch_digest[7:31]
+            or container_name not in _container_names(launch_digest)
         ):
             return None
         raw = cli.run(
@@ -854,7 +854,7 @@ def _fixed_program_container_observation(
             or re.fullmatch(r"sha256:[0-9a-f]{64}", launch_digest) is None
             or type(image_id) is not str
             or re.fullmatch(r"sha256:[0-9a-f]{64}", image_id) is None
-            or container_name != "carbon-d4-" + launch_digest[7:31]
+            or container_name not in _container_names(launch_digest)
         ):
             return unknown
         value = cli.json(
@@ -961,7 +961,7 @@ def _fixed_program_container_end(cli, *, container_name, launch_digest, deadline
             or not math.isfinite(deadline)
             or type(launch_digest) is not str
             or re.fullmatch(r"sha256:[0-9a-f]{64}", launch_digest) is None
-            or container_name != "carbon-d4-" + launch_digest[7:31]
+            or container_name not in _container_names(launch_digest)
         ):
             return None
 
@@ -1236,6 +1236,398 @@ def _fixed_practice_stage(operation, provenance, stage):
         raise
 
 
+#: ONE CONTAINER SESSION PER GRADE (item 4, Sun 15 Nov; owner "as fast as possible"). Inside `grade_session()` (opened
+#: around a counted grade only), the grade's fixed inference ops run one after another in ONE worker container, each as
+#: its own `docker exec` (a NEW process), instead of one container each: the create / start / teardown is paid once.
+#: Everything an op records stays per op (ledger operation, intent, controls digest, outputs, evidence). The program
+#: sees exactly today's paths (`/input`, `/scratch/workspace`, `/scratch/output`) and today's environment.
+#: The session name keeps the carrier's `carbon-d4-` prefix, so the host's contention probes (`host_quiet`,
+#: `auto_grade`) see a session container as they see any worker container; `s-` is not hex, so it never equals an
+#: op's own `carbon-d4-<24 hex>` name.
+SESSION_CONTAINER_PREFIX = "carbon-d4-s-"
+#: The only ops that join: Carbon's fixed inference program (graded pass, pair / subset repeat, menu row check). The
+#: build, the speed stage and anything timed keep their own container.
+SESSION_PROVENANCES = frozenset(
+    {"DIRECT_BUNDLE_PUBLIC_INFERENCE", "DIRECT_GRAPH_PUBLIC_INFERENCE"}
+)
+#: The session container's own hard lifetime (its deadline watchdog); a controller that dies is covered sooner by the
+#: liveness reaper. An op whose own deadline would pass it starts a new session instead.
+SESSION_LIFETIME_SECONDS = 3600
+#: Run before every op after a session's first, as the worker user. It refuses (non-zero exit: the host then removes the
+#: container and the op runs in a NEW session container, as today's next op runs in a new container) if anything of the
+#: previous op could still act or be read: a process other than the image's PID 1 entrypoint (still waiting, never
+#: authorized), an OOM in the cgroup or a memory peak at the limit (the per-op memory classification reads these
+#: counters), or a SysV / POSIX IPC object. Then it empties /scratch and /dev/shm, restores the /scratch root's
+#: mode (0700) and drops its user xattrs, and rebuilds exactly what the entrypoint makes in a new container (home,
+#: tmp, cache, jax-cache at 0700, control-ready at 0400). Last it sets the /scratch root's atime and mtime to 0 and
+#: refuses unless both read back 0: an op could set them (a future atime survives relatime), so none carries over.
+SESSION_RESET = """
+import os,shutil,sys
+from pathlib import Path
+me=os.getpid()
+for p in os.listdir('/proc'):
+    if p.isdigit() and int(p) not in (1,me): sys.exit(3)
+if b'carbon.reconstruction.worker.entrypoint' not in Path('/proc/1/cmdline').read_bytes(): sys.exit(3)
+s=Path('/scratch')
+if os.path.lexists('/scratch/authorized'): sys.exit(4)
+ev=dict(l.split() for l in Path('/sys/fs/cgroup/memory.events').read_text().splitlines())
+if int(ev.get('oom','0')) or int(ev.get('oom_kill','0')): sys.exit(5)
+mx=Path('/sys/fs/cgroup/memory.max').read_text().strip()
+pk=Path('/sys/fs/cgroup/memory.peak')
+if pk.exists() and mx!='max' and int(pk.read_text())>=int(mx): sys.exit(6)
+for f in ('shm','msg','sem'):
+    q=Path('/proc/sysvipc')/f
+    if q.exists() and q.read_text().splitlines()[1:]: sys.exit(7)
+if os.path.isdir('/dev/mqueue') and os.listdir('/dev/mqueue'): sys.exit(7)
+def wipe(root):
+    for name in os.listdir(root):
+        p=os.path.join(root,name)
+        if os.path.isdir(p) and not os.path.islink(p):
+            os.chmod(p,0o700)
+            for d,subs,_ in os.walk(p):
+                for x in subs:
+                    y=os.path.join(d,x)
+                    if not os.path.islink(y): os.chmod(y,0o700)
+            shutil.rmtree(p)
+        else:
+            os.unlink(p)
+    if os.listdir(root): sys.exit(8)
+wipe('/scratch')
+wipe('/dev/shm')
+os.chmod('/scratch',0o700)
+for a in os.listxattr('/scratch'):
+    if a.startswith('user.'): os.removexattr('/scratch',a)
+if [a for a in os.listxattr('/scratch') if a.startswith('user.')]: sys.exit(8)
+for c in ('home','tmp','cache','jax-cache'): (s/c).mkdir(mode=0o700)
+(s/'control-ready').touch(mode=0o400)
+os.utime('/scratch',ns=(0,0))
+t=os.stat('/scratch')
+if t.st_atime_ns or t.st_mtime_ns: sys.exit(9)
+"""
+_GRADE_SESSION: ContextVar = ContextVar("carbon_grade_session", default=None)
+
+
+def _container_names(launch_digest):
+    """The container names a launch digest may label: an op's own container, or a grade session's."""
+    return (
+        "carbon-d4-" + launch_digest[7:31],
+        SESSION_CONTAINER_PREFIX + launch_digest[7:31],
+    )
+
+
+def _intent_container(intent, launch):
+    """`(container name, container launch label)` an op's durable intent names: its own container, or the grade
+    session container it ran in (the session's own launch labels that container)."""
+    session = intent.get("session")
+    if session is None:
+        return "carbon-d4-" + launch[7:31], launch
+    label = session.get("launch") if type(session) is dict else None
+    if type(label) is not str or re.fullmatch(r"sha256:[0-9a-f]{64}", label) is None:
+        raise ValueError("invalid grade session intent")
+    return SESSION_CONTAINER_PREFIX + label[7:31], label
+
+
+def _timing_stage(identity):
+    """An op that holds the host timing gate EXCLUSIVE (`grade_lanes.container_hold`): it must never wait on its own
+    grade's session, so the session is closed first."""
+    from carbon.reconstruction import grade_lanes
+
+    return grade_lanes.is_timing_identity(identity) or bool(
+        grade_lanes._EXCLUSIVE.get()
+    )
+
+
+def _timing_wanted():
+    """Whether another lane's timing stage is waiting for the host timing gate (`grade_lanes`). A live session then
+    yields before its next op, so that stage waits for at most one op, as it waits for one container today.
+    """
+    from carbon.reconstruction import grade_lanes
+
+    lane = grade_lanes.current()
+    return lane is not None and grade_lanes._wanted_by_others(lane.lock_dir)
+
+
+def _timed_control(files):
+    """Whether an op's staged control asks for a timing measurement (the batched cold query or the single-call
+    loop): a timing measurement is taken in its own container, as today, never in a reused one.
+    """
+    raw = files.get("control.json") if type(files) is dict else None
+    if raw is None:
+        return False
+    try:
+        control = json.loads(raw)
+    except (TypeError, ValueError):
+        return True
+    return type(control) is not dict or bool(
+        control.get("measure_query") or "single_call" in control
+    )
+
+
+def _sweep_stale_sessions(root, cli):
+    """Remove session folders a dead controller left (its recorded controller is gone and its container is absent);
+    a folder whose controller lives, or with no readable intent yet, is never touched.
+    """
+    for directory in root.glob("session-*"):
+        try:
+            intent = json.loads((directory / "intent.json").read_bytes())
+            guard = intent["reaper"]
+            name = intent["container"]
+            if not str(name).startswith(SESSION_CONTAINER_PREFIX):
+                continue
+            if liveness_reaper.process_identity(guard["pid"]) == guard["identity"]:
+                continue
+            if cli.run(
+                ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
+            ).stdout.strip():
+                continue
+        except Exception:  # noqa: BLE001, S112 - an unreadable folder is left as it is
+            continue
+        shutil.rmtree(directory, ignore_errors=True)
+
+
+class _GradeSession:
+    """One counted grade's worker container, opened by its first member op and removed at the grade's end (or as soon
+    as any op in it fails, is cancelled or would outlive it; the next member op then opens a new one). Never shared
+    across grades: it lives only inside `grade_session()`."""
+
+    def __init__(self):
+        self.ledger_root = None
+        self.owner = None
+        self.launch = None
+        self.name = None
+        self.directory = None
+        self.input = None
+        self.live = False
+        self.created = False
+        self.image_id = None
+        self.worker = None
+        self.cpuset = None
+        self.deadline_unix = None
+        self.hold = ExitStack()
+        self.sequence = 0
+        #: How many session containers this grade opened (evidence for the timing run; never read by a decision).
+        self.opened = 0
+
+    def member(
+        self,
+        ledger,
+        *,
+        owner,
+        identity,
+        image,
+        provenance,
+        seconds,
+        worker,
+        bootstrap,
+        plain,
+        files,
+    ):
+        """Whether this op joins: Carbon's fixed inference program, CPU, no trusted stage or overlay, today's bootstrap,
+        the grade's ledger and owner, and (once open) the session's image and worker profile.
+        """
+        if (
+            not plain
+            or provenance not in SESSION_PROVENANCES
+            or bootstrap != BOOTSTRAP
+            or type(seconds) is not int
+            or seconds + 90 > SESSION_LIFETIME_SECONDS
+            or _timing_stage(identity)
+            or _timed_control(files)
+        ):
+            return False
+        if self.ledger_root is not None and (
+            self.ledger_root != ledger.root or self.owner != owner
+        ):
+            return False
+        return not self.live or (
+            self.image_id == image.image_id and self.worker == worker
+        )
+
+    def prepare(self, ledger, *, owner, seconds, cli):
+        """Before the op's reservation: reset a live session for this op (a refusal removes it), or retire one this op
+        would outlive; then name the container the op will run in, so its intent can name it.
+        """
+        self.ledger_root, self.owner = ledger.root, owner
+        # Retire a session this op could outlive (its wall plus the 30 s reset and the reservation), or one another
+        # lane's timing stage is waiting behind.
+        if self.live and (
+            time.time() + seconds + 60 > self.deadline_unix or _timing_wanted()
+        ):
+            self.close(cli)
+        if self.live:
+            try:
+                cli.run(
+                    [
+                        "exec",
+                        self.name,
+                        "/opt/carbon-worker/bin/python",
+                        "-I",
+                        "-c",
+                        SESSION_RESET,
+                    ],
+                    timeout=30,
+                )
+            except WorkerFailure:
+                self.close(cli)
+        if self.launch is None:
+            _sweep_stale_sessions(ledger.root, cli)
+            self.launch = digest(
+                canonical(
+                    {
+                        "schema": "carbon.autoresearch.grade-session.v1",
+                        "owner": owner,
+                        "ledger": str(ledger.root),
+                        "nonce": os.urandom(16).hex(),
+                    }
+                )
+            )
+            self.name = SESSION_CONTAINER_PREFIX + self.launch[7:31]
+            self.directory = ledger.root / ("session-" + self.launch[7:])
+            self.directory.mkdir(mode=0o700)
+            self.input = self.directory / "input"
+            self.input.mkdir(mode=0o755)
+            self.input.chmod(0o755)
+        self.sequence += 1
+
+    def link(self, stage):
+        """The op's staged inputs, shown at `/input` exactly as its own container would show them (hard links of the
+        op's retained stage; a copy where a link is refused). The session's input folder is empty between ops.
+        """
+        if any(self.input.iterdir()):
+            raise ValueError("grade session input not empty")
+        for path in sorted(stage.iterdir()):
+            if path.is_symlink() or not path.is_file():
+                raise ValueError("grade session stages plain files only")
+            target = self.input / path.name
+            try:
+                os.link(path, target)
+            except OSError:
+                shutil.copyfile(path, target)
+                target.chmod(stat_module.S_IMODE(path.stat().st_mode))
+
+    def open(self, *, cli, image, cpuset, worker):
+        """The session's ONE create + start, under today's `create_arguments`, holding the host timing gate (shared)
+        once for the container's whole life (`grade_lanes.container_hold`). A failure removes what was made.
+        """
+        from carbon.reconstruction import grade_lanes
+
+        guard = liveness_reaper.controller_guard()
+        deadline = time.time() + SESSION_LIFETIME_SECONDS
+        try:
+            self.hold.enter_context(
+                grade_lanes.container_hold(identity="grade-session-" + self.launch[7:])
+            )
+            write_once(
+                self.directory / "intent.json",
+                canonical(
+                    {
+                        "schema": "carbon.autoresearch.grade-session-intent.v1",
+                        "launch": self.launch,
+                        "container": self.name,
+                        "owner": self.owner,
+                        "deadline_unix": deadline,
+                        "reaper": guard,
+                    }
+                ),
+            )
+            self.created = True
+            cli.run(
+                create_arguments(
+                    container_name=self.name,
+                    image_id=image.image_id,
+                    input_directory=self.input,
+                    cpuset=cpuset,
+                    launch_digest=self.launch,
+                    worker_profile=worker,
+                ),
+                timeout=30,
+            )
+            spawn_watchdog(
+                container_name=self.name,
+                launch_digest=self.launch,
+                deadline_unix=float(deadline),
+            )
+            liveness_reaper.spawn_liveness_reaper(
+                container_name=self.name, launch_digest=self.launch, guard=guard
+            )
+            cli.run(["start", self.name], timeout=20)
+        except BaseException:
+            self.close(cli)
+            raise
+        self.live = True
+        self.opened += 1
+        self.image_id, self.worker, self.cpuset = image.image_id, worker, cpuset
+        self.deadline_unix = deadline
+
+    def clear_input(self):
+        if self.input is not None and self.input.is_dir():
+            for path in self.input.iterdir():
+                try:
+                    path.unlink()
+                except PermissionError:
+                    # A development host that will not unlink a read-only file (Windows); a door unlinks directly.
+                    path.chmod(0o600)
+                    path.unlink()
+
+    def after_op(self, cli, *, ok):
+        """The op's inputs leave `/input`; an op that did not finish cleanly takes the container with it."""
+        if ok:
+            try:
+                self.clear_input()
+            except OSError:
+                self.close(cli)
+            return
+        try:
+            self.clear_input()
+        finally:
+            self.close(cli)
+
+    def close(self, cli=None):
+        """Remove the exact session container (confirmed absent), release the timing hold, delete the session folder.
+        Removal that cannot be confirmed raises and keeps the folder (its intent names the container).
+        """
+        try:
+            if self.created:
+                cli = cli or DockerCLI()
+                remove_exact_container(
+                    cli=cli, container_name=self.name, launch_digest=self.launch
+                )
+                if cli.run(
+                    ["ps", "-aq", "--filter", "name=^" + self.name + "$"], timeout=10
+                ).stdout.strip():
+                    raise ValueError("grade session cleanup uncertain")
+            if self.directory is not None:
+                shutil.rmtree(self.directory, ignore_errors=True)
+        finally:
+            self.hold.close()
+            self.hold = ExitStack()
+        self.live = self.created = False
+        self.launch = self.name = self.directory = self.input = None
+        self.image_id = self.worker = self.cpuset = self.deadline_unix = None
+
+
+@contextmanager
+def grade_session():
+    """One counted grade's session (item 4). Ops run in it only through `_run_locked`'s membership rule; everything is
+    removed when this exits, normally or not. Never nested, never reused across grades.
+    """
+    if _GRADE_SESSION.get() is not None:
+        raise ValueError("grade sessions do not nest")
+    session = _GradeSession()
+    token = _GRADE_SESSION.set(session)
+    failed = True
+    try:
+        yield session
+        failed = False
+    finally:
+        _GRADE_SESSION.reset(token)
+        try:
+            session.close()
+        except Exception:
+            if not failed:
+                raise
+
+
 def _run_locked(
     ledger,
     *,
@@ -1454,6 +1846,40 @@ def _run_locked(
     launch = digest(
         canonical({"owner": owner, "identity": identity, "request": request})
     )
+    # Item 4: inside a counted grade's `grade_session()`, a member op runs as an exec in the grade's session container
+    # (reset for it here, before its reservation); any other op (a timing op above all) closes the session first,
+    # so its own hold never waits behind its own grade's. Outside a session nothing here changes.
+    session = _GRADE_SESSION.get()
+    if session is not None:
+        if _timing_stage(identity):
+            session.close()
+            session = None
+        elif device is None and session.member(
+            ledger,
+            owner=owner,
+            identity=identity,
+            image=image,
+            provenance=provenance,
+            seconds=seconds,
+            worker=_worker_profile(
+                None, provenance, worker_resources_version, rebuild_wall_seconds
+            ),
+            bootstrap=bootstrap,
+            files=files,
+            plain=(
+                not miner_lane
+                and trusted_overlay is None
+                and trusted_stage_provider is None
+                and not executable_files
+                and program_name == "program.py"
+            ),
+        ):
+            session.prepare(ledger, owner=owner, seconds=seconds, cli=DockerCLI())
+        else:
+            # Any other op takes its own container and its own timing hold: the session is closed first, so no op
+            # of this grade holds a second hold behind the session's (two lanes would otherwise wait on each other).
+            session.close()
+            session = None
     operation = ledger.root / ("operation-" + launch[7:])
     if miner_lane:
         # The miner's disk; the only bound is their own retained_bytes budget.
@@ -1492,7 +1918,9 @@ def _run_locked(
         return admission["result"]
     started = time.monotonic()
     started_unix = time.time()
-    name = "carbon-d4-" + launch[7:31]
+    name = "carbon-d4-" + launch[7:31] if session is None else session.name
+    # The label of the container the op runs in: its own launch, or its grade session's.
+    clabel = launch if session is None else session.launch
     # The durable intent is written first, before staging, image verification
     # or the host doctor: an interruption anywhere after the reservation then
     # leaves an operation reconcile_worker can settle, rather than a RESERVED
@@ -1516,6 +1944,16 @@ def _run_locked(
                     None if seconds is None else started_unix + seconds - 30
                 ),
                 **({} if guard is None else {"reaper": guard}),
+                **(
+                    {}
+                    if session is None
+                    else {
+                        "session": {
+                            "launch": session.launch,
+                            "sequence": session.sequence,
+                        }
+                    }
+                ),
             }
         ),
     )
@@ -1553,6 +1991,8 @@ def _run_locked(
                 _stage_verified_overlay(
                     trusted_overlay.path, stage / "overlay", overlay_receipt
                 )
+            if session is not None:
+                session.link(stage)
         with _fixed_practice_stage(operation, provenance, "HOST_READINESS"):
             if provenance == LIBRARY_BUILD_PROVENANCE:
                 from .research_image import verify_library_worker_image
@@ -1600,6 +2040,9 @@ def _run_locked(
                     raise shortfall
                 raise ValueError("research host ineligible")
     except Exception:
+        if session is not None:
+            with suppress(Exception):
+                session.after_op(cli, ok=False)
         _settle_nothing_created(
             ledger,
             owner=owner,
@@ -1638,88 +2081,97 @@ def _run_locked(
             device, provenance, worker_resources_version, rebuild_wall_seconds
         )
     create_attempted = False
+    session_op_ok = False
     candidate_stop = None
     output = operation / "export.stream"
     lease = ExitStack()
     slot = ExitStack()
     try:
-        with _fixed_practice_stage(operation, provenance, "DEVICE_LEASE"):
-            if device is not None:
-                from carbon.reconstruction.worker.accelerator_runtime import (
-                    miner_device_lease,
-                    reject_existing_device_containers,
-                    shared_host_lease,
-                )
-
-                # This host's own concurrent runs on the device, and Carbon's own
-                # retained work on it; nothing about anyone else's use of the GPU.
-                lease.enter_context(miner_device_lease(device.device_uuid))
-                # Serialize only check/record/create against Carbon's own
-                # launches. This is not an exclusive GPU lease or assurance.
-                slot.enter_context(shared_host_lease())
-                reject_existing_device_containers(
-                    cli=cli, device_uuid=device.device_uuid
-                )
-            # Two grade lanes only (`grade_lanes.container_hold`; nothing outside a lane-bound round): this container
-            # holds the host timing gate for its whole life, released with the lease after it is removed, so a timing
-            # stage on the other lane never runs beside it.
-            from carbon.reconstruction import grade_lanes
-
-            lease.enter_context(grade_lanes.container_hold(identity=identity))
-        with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
-            _check_cancel(ledger, owner, identity)
-        with _fixed_practice_stage(operation, provenance, "CREATE"):
-            try:
+        if session is None:
+            with _fixed_practice_stage(operation, provenance, "DEVICE_LEASE"):
                 if device is not None:
                     from carbon.reconstruction.worker.accelerator_runtime import (
-                        mark_device_allocation,
+                        miner_device_lease,
+                        reject_existing_device_containers,
+                        shared_host_lease,
                     )
 
-                    # The same task-owned provenance the existing miner-script
-                    # and reconstruction paths persist before create. Cleanup
-                    # may complete only the authority that owns this launch.
-                    mark_device_allocation(
-                        container_name=name,
-                        launch_digest=launch,
-                        authority=worker.accelerator_authority,
+                    # This host's own concurrent runs on the device, and Carbon's own
+                    # retained work on it; nothing about anyone else's use of the GPU.
+                    lease.enter_context(miner_device_lease(device.device_uuid))
+                    # Serialize only check/record/create against Carbon's own
+                    # launches. This is not an exclusive GPU lease or assurance.
+                    slot.enter_context(shared_host_lease())
+                    reject_existing_device_containers(
+                        cli=cli, device_uuid=device.device_uuid
                     )
-                create_attempted = True
-                cli.run(
-                    create_arguments(
-                        container_name=name,
-                        image_id=image.image_id,
-                        input_directory=stage,
-                        cpuset=checked.cpuset,
-                        launch_digest=launch,
-                        worker_profile=worker,
+                # Two grade lanes only (`grade_lanes.container_hold`; nothing outside a lane-bound round): this container
+                # holds the host timing gate for its whole life, released with the lease after it is removed, so a timing
+                # stage on the other lane never runs beside it.
+                from carbon.reconstruction import grade_lanes
+
+                lease.enter_context(grade_lanes.container_hold(identity=identity))
+            with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
+                _check_cancel(ledger, owner, identity)
+            with _fixed_practice_stage(operation, provenance, "CREATE"):
+                try:
+                    if device is not None:
+                        from carbon.reconstruction.worker.accelerator_runtime import (
+                            mark_device_allocation,
+                        )
+
+                        # The same task-owned provenance the existing miner-script
+                        # and reconstruction paths persist before create. Cleanup
+                        # may complete only the authority that owns this launch.
+                        mark_device_allocation(
+                            container_name=name,
+                            launch_digest=launch,
+                            authority=worker.accelerator_authority,
+                        )
+                    create_attempted = True
+                    cli.run(
+                        create_arguments(
+                            container_name=name,
+                            image_id=image.image_id,
+                            input_directory=stage,
+                            cpuset=checked.cpuset,
+                            launch_digest=launch,
+                            worker_profile=worker,
+                        ),
+                        timeout=30,
+                    )
+                finally:
+                    slot.close()
+            with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
+                _check_cancel(ledger, owner, identity)
+            with _fixed_practice_stage(operation, provenance, "WATCHDOG"):
+                spawn_watchdog(
+                    container_name=name,
+                    launch_digest=launch,
+                    deadline_unix=float(started_unix + seconds - 30),
+                    **(
+                        {"intent_path": operation / "intent.json"}
+                        if provenance == LIBRARY_PREP_PROVENANCE
+                        else {}
                     ),
-                    timeout=30,
                 )
-            finally:
-                slot.close()
-        with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
-            _check_cancel(ledger, owner, identity)
-        with _fixed_practice_stage(operation, provenance, "WATCHDOG"):
-            spawn_watchdog(
-                container_name=name,
-                launch_digest=launch,
-                deadline_unix=float(started_unix + seconds - 30),
-                **(
-                    {"intent_path": operation / "intent.json"}
-                    if provenance == LIBRARY_PREP_PROVENANCE
-                    else {}
-                ),
-            )
-        with _fixed_practice_stage(operation, provenance, "START"):
-            cli.run(["start", name], timeout=20)
+            with _fixed_practice_stage(operation, provenance, "START"):
+                cli.run(["start", name], timeout=20)
+        elif not session.live:
+            with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
+                _check_cancel(ledger, owner, identity)
+            # The grade session's ONE create + start (its first member op, or the first after a removal); its
+            # timing hold, watchdog and liveness reaper are the session's own.
+            with _fixed_practice_stage(operation, provenance, "CREATE"):
+                session.open(cli=cli, image=image, cpuset=checked.cpuset, worker=worker)
         with _fixed_practice_stage(operation, provenance, "CONTROLS"):
             control_digest, controls = inspect_effective_controls(
                 cli=cli,
                 container_name=name,
                 image_id=image.image_id,
-                input_directory=stage,
-                cpuset=checked.cpuset,
-                launch_digest=launch,
+                input_directory=stage if session is None else session.input,
+                cpuset=checked.cpuset if session is None else session.cpuset,
+                launch_digest=clabel,
                 worker_profile=worker,
                 diagnose_policy=provenance in _FIXED_DIAGNOSTIC_PROVENANCES,
             )
@@ -1729,7 +2181,7 @@ def _run_locked(
             baseline_cpu = _fixed_program_cpu_usage_usec(
                 cli,
                 container_name=name,
-                launch_digest=launch,
+                launch_digest=clabel,
                 deadline=min(time.monotonic() + 1, started + seconds - 45),
             )
         if provenance in _PROGRAM_EVIDENCE_PROVENANCES:
@@ -1744,7 +2196,7 @@ def _run_locked(
                         "observation": _fixed_program_container_observation(
                             cli,
                             container_name=name,
-                            launch_digest=launch,
+                            launch_digest=clabel,
                             image_id=image.image_id,
                             deadline=min(time.monotonic() + 1, started + seconds - 45),
                         ),
@@ -1795,7 +2247,7 @@ def _run_locked(
                         failure_observation = _fixed_program_container_observation(
                             cli,
                             container_name=name,
-                            launch_digest=launch,
+                            launch_digest=clabel,
                             image_id=image.image_id,
                             deadline=min(time.monotonic() + 1, started + seconds - 30),
                         )
@@ -1806,7 +2258,7 @@ def _run_locked(
                             after = _fixed_program_cpu_usage_usec(
                                 cli,
                                 container_name=name,
-                                launch_digest=launch,
+                                launch_digest=clabel,
                                 deadline=min(
                                     time.monotonic() + 1, started + seconds - 30
                                 ),
@@ -1851,7 +2303,7 @@ def _run_locked(
                             cli,
                             operation,
                             container_name=name,
-                            launch_digest=launch,
+                            launch_digest=clabel,
                             deadline=min(time.monotonic() + 2, started + seconds - 30),
                         )
                     except Exception:  # noqa: BLE001, S110 - preserve original failure
@@ -1864,7 +2316,7 @@ def _run_locked(
                         cli,
                         error,
                         container_name=name,
-                        launch_digest=launch,
+                        launch_digest=clabel,
                         image_id=image.image_id,
                         program_started=program_started,
                         program_timeout=program_timeout,
@@ -1931,7 +2383,7 @@ def _run_locked(
                                 "observation": _fixed_program_container_observation(
                                     cli,
                                     container_name=name,
-                                    launch_digest=launch,
+                                    launch_digest=clabel,
                                     image_id=image.image_id,
                                     deadline=min(
                                         time.monotonic() + 1, started + seconds - 30
@@ -1944,7 +2396,7 @@ def _run_locked(
                             cli,
                             operation,
                             container_name=name,
-                            launch_digest=launch,
+                            launch_digest=clabel,
                             deadline=min(time.monotonic() + 2, started + seconds - 30),
                         )
                     except Exception:  # noqa: BLE001, S110 - preserve original failure
@@ -1958,9 +2410,23 @@ def _run_locked(
                         "controls": controls,
                         "controls_digest": control_digest,
                         "resources": observed,
+                        # A session's cgroup counters span its ops (each op starts from a reset, no OOM, peak
+                        # below the limit): named so no reader takes them for this op alone.
+                        **(
+                            {}
+                            if session is None
+                            else {
+                                "session": {
+                                    "container": name,
+                                    "sequence": session.sequence,
+                                    "counters": "SESSION_CUMULATIVE",
+                                }
+                            }
+                        ),
                     }
                 ),
             )
+        session_op_ok = True
     except _CandidateResourceStop as stop:
         # Settled below, once cleanup of this exact container is observed.
         candidate_stop = stop
@@ -1984,6 +2450,10 @@ def _run_locked(
                         raise ValueError(
                             "research cleanup uncertain; capacity stays reserved"
                         )
+                if session is not None:
+                    # The op's inputs leave the session; an op that did not finish cleanly (failure, wall or
+                    # memory stop, cancel) removes the session container, confirmed, before any outcome.
+                    session.after_op(cli, ok=session_op_ok)
         finally:
             with _fixed_practice_stage(operation, provenance, "LEASE_RELEASE"):
                 try:
@@ -2938,7 +3408,7 @@ def reconcile_worker(ledger, *, owner, identity):
                 {"owner": owner, "identity": identity, "request": intent["request"]}
             )
         )
-        name = "carbon-d4-" + launch[7:31]
+        name, label = _intent_container(intent, launch)
         if (
             intent["launch"] != launch
             or intent["container"] != name
@@ -2946,7 +3416,7 @@ def reconcile_worker(ledger, *, owner, identity):
         ):
             raise ValueError("worker intent identity conflict")
         cli = DockerCLI()
-        remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
+        remove_exact_container(cli=cli, container_name=name, launch_digest=label)
         if cli.run(
             ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
         ).stdout.strip():
