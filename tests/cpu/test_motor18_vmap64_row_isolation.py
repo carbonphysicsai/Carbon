@@ -178,3 +178,17 @@ def test_under_isolated_lanes_a_rows_answer_ignores_its_companion_lanes(
     )  # bit for bit, whatever the companions
     # and each lane is the row answered alone (zero companions): the eager per-case answer, within the owner's bound
     assert float(np.max(np.abs(first - _eager(planted, one)))) < SAME_VERSION_BOUND
+
+
+@pytest.fixture(autouse=True)
+def _vmap64_machinery_opted_in(monkeypatch):
+    """Motor 1.8 is NOT a vmap-64 version since the owner's 116 rollback to A9 behaviour (Sun 15 Nov 2026; it grades
+    with the per-case compiled program, tests/cpu/test_motor18_rollback_program.py). These tests exercise the dormant
+    vmap-64 machinery with Motor 1.8 opted back in."""
+    from carbon.development_session import direct_graph_construction_worker
+
+    monkeypatch.setattr(
+        direct_graph_construction_worker,
+        "VMAP64_INFERENCE_VERSIONS",
+        frozenset({("electric-motor-magnetics", "1.8")}),
+    )

@@ -635,8 +635,11 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
         paired_inference,
     )
 
-    assert ("electric-motor-magnetics", "1.8") in (
-        direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS
+    # Motor 1.8 is not a vmap-64 version since the 116 rollback (owner, 15 Nov); the lane form is exercised opted in
+    monkeypatch.setattr(
+        direct_graph_construction_worker,
+        "VMAP64_INFERENCE_VERSIONS",
+        frozenset({("electric-motor-magnetics", "1.8")}),
     )
     if not lanes:
         monkeypatch.setattr(
