@@ -181,3 +181,113 @@ def test_motor_and_cooling_stage_a_graph_before_its_submit(
     )
     asyncio.run(campaign.evaluate(prepared, 1, recipe))
     assert order == ["stage", "submit"]
+
+
+# --- a manifest staged from an EARLIER campaign of the same miner (Lead 15 Nov, UID 269) ----------------------------
+
+
+def _campaign(campaigns, name, *frozen, staged=None, mtime=None):
+    """A campaign root on this host: ``campaign.sqlite3`` present, its frozen graph recipes, its staged-door record."""
+    import os
+
+    root = campaigns / name
+    root.mkdir(parents=True)
+    (root / "campaign.sqlite3").write_bytes(b"")
+    ledger = _ledger(root, *frozen)
+    if staged is not None:
+        (root / dss.STAGED_GRAPHS).write_text(
+            json.dumps({"schema": dss.STAGED_GRAPHS_SCHEMA, "doors": staged})
+        )
+    if mtime is not None:
+        os.utime(root, (mtime, mtime))
+    return ledger
+
+
+def _key(recipe, url=URL, owner="alice"):
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+
+    return dss._door_key(url, RECEIVER, ConstructionRecipe.from_dict(recipe), owner)
+
+
+def test_a_new_campaign_finds_the_manifest_its_earlier_campaign_staged(tmp_path):
+    """The UID 269 shape: campaign 1 staged and froze A at this door; campaign 2 (new ledger, nothing recorded, no
+    earlier epochs) stages B. Its own candidates cannot name A; its sibling's record does.
+    """
+    campaigns = tmp_path / "campaigns"
+    _campaign(campaigns, "first", _recipe(A), staged={_key(_recipe(A)): A})
+    second = _campaign(campaigns, "second")
+    door = Door(held=A)
+    assert _stage(second, _recipe(B), door)["manifest_digest"] == B
+    assert door.held == B and door.calls == [None, A]
+    assert list(_recorded(second).values()) == [B]
+
+
+def test_a_sibling_frozen_graph_is_offered_when_it_recorded_nothing(tmp_path):
+    campaigns = tmp_path / "campaigns"
+    _campaign(
+        campaigns, "first", _recipe(C)
+    )  # froze C, no staged record (staged before the record existed)
+    second = _campaign(campaigns, "second")
+    door = Door(held=C)
+    _stage(second, _recipe(A), door)
+    assert door.held == A and door.calls == [None, C]
+
+
+def test_only_the_same_door_key_and_challenge_are_offered_and_nothing_held_stays_last(
+    tmp_path,
+):
+    campaigns = tmp_path / "campaigns"
+    cooling = _recipe(C, key=(COOLING, "1.5"))
+    _campaign(
+        campaigns,
+        "other",
+        cooling,  # another Challenge: never offered
+        staged={
+            _key(_recipe(A), url="http://elsewhere:1"): A,
+            _key(_recipe(A), owner="bob"): B,  # another owner's key
+            _key(_recipe(A)): "not-a-digest",
+        },
+    )
+    second = _campaign(campaigns, "second")
+    door = Door(held="sha256:" + "d" * 64)
+    with pytest.raises(DirectIntakeRefusal, match="idempotency_conflict"):
+        _stage(second, _recipe(A), door)
+    assert door.calls == [
+        None
+    ]  # nothing from the other door, owner, Challenge or a malformed record
+    assert not (second.root / dss.STAGED_GRAPHS).exists()
+
+
+def test_siblings_are_bounded_newest_first_and_a_broken_one_is_skipped(
+    tmp_path, monkeypatch
+):
+    campaigns = tmp_path / "campaigns"
+    monkeypatch.setattr(dss, "SIBLING_CAMPAIGNS", 3)
+    digests = ["sha256:" + f"{n:064x}" for n in range(1, 5)]
+    for n, digest in enumerate(digests):
+        _campaign(
+            campaigns,
+            f"c{n}",
+            staged={_key(_recipe(digest)): digest},
+            mtime=1_000_000 + n,
+        )
+    (campaigns / "broken").mkdir()
+    (campaigns / "broken" / "campaign.sqlite3").write_bytes(b"")
+    (campaigns / "broken" / dss.STAGED_GRAPHS).write_text("{not json")
+    import os
+
+    os.utime(campaigns / "broken", (1_000_002.5, 1_000_002.5))  # between the two newest
+    current = _campaign(campaigns, "current", mtime=1)
+    door = Door(
+        held=digests[0]
+    )  # held by the OLDEST sibling: beyond the bound, so never named
+    with pytest.raises(DirectIntakeRefusal, match="idempotency_conflict"):
+        _stage(current, _recipe(A), door)
+    # the three newest siblings, newest first: c3, the broken one (adds nothing), c2; c1 and c0 are beyond the bound
+    assert door.calls[1:] == [digests[3], digests[2]]
+
+
+def test_a_campaign_with_no_siblings_behaves_as_before(tmp_path):
+    ledger, door = _ledger(tmp_path, _recipe(A), _recipe(B)), Door(held=A)
+    _stage(ledger, _recipe(C), door)
+    assert door.calls == [None, B, A]
