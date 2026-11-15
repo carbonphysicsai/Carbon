@@ -726,9 +726,9 @@
     // Validator 18:56: low = floored king total + margin, rounded DOWN; public values only.
     const a = l.to_beat_rule; // the averaged bar
     if (isNum(l.to_beat) && (a || k && isNum(k.value))) return {label: "Score to beat (guaranteed)", value: toBeat(l.to_beat),
-      line: (a ? "Crowns compare rebuild averages: this is the leader's average plus the margin, rounded up. "
+      line: (a ? "This is the king's score plus the margin, rounded up. "
         : isNum(l.margin) ? "The exact bar is between " + total(k.value + l.margin) + " and " + toBeat(l.to_beat) + ". " : "")
-        + "Score above " + toBeat(l.to_beat) + ", passing every gate and minimum, " + (a ? "for a crown check: your average must beat it." : "to take the crown.")};
+        + "Score above " + toBeat(l.to_beat) + ", passing every gate and minimum, " + (a ? "for a crown check." : "to take the crown.")};
     if (isNum(l.baseline_total)) return {label: "Carbon's baseline", value: fmt(l.baseline_total, digits),
       line: isNum(l.margin) ? "To take the first crown, beat Carbon's baseline by " + fmt(l.margin, digits) + ". A tie keeps the baseline."
         : "The margin is not yet registered, so no crown can change hands yet."};
@@ -845,7 +845,7 @@
     if (!above.length) return null;
     return section("crown-checks", {class: "block crown-checks", "aria-labelledby": "ck-title"},
       h("div", {class: "block-head"}, h("h2", {id: "ck-title"}, "Above the score to beat")),
-      h("p", {class: "lede"}, above.length + " above the score to beat. Each gets a " + (board.launch.to_beat_rule ? "rebuild-average " : "") + "crown check, pending or decided; the king keeps the crown unless one passes."));
+      h("p", {class: "lede"}, above.length + " above the score to beat. Each gets a crown check, pending or decided; the king keeps the crown unless one passes."));
   }
   function lastCrown(board) {
     const list = board.launch && board.launch.crown_changes;

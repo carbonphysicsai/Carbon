@@ -358,11 +358,13 @@ def test_the_worker_and_the_page_name_the_averaged_rule():
     worker = (root / "worker" / "feed.mjs").read_text(encoding="utf-8")
     page = (root / "web" / "dashboard.js").read_text(encoding="utf-8")
     assert f'LAUNCH_TO_BEAT_RULE_AVERAGED = "{kp.TO_BEAT_RULE_AVERAGED}"' in worker
-    # the page reads the rule only where the projection passed it, which is the averaged bar alone
+    # the page reads the rule only where the projection passed it; its words fit both crown rules (the rebuild average
+    # and, owner 14 Nov, the official score with no rebuild), so the bar never says a crown compares rebuild averages
     assert (
         "const a = l.to_beat_rule;" in page
-        and "Crowns compare rebuild averages" in page
+        and "This is the king's score plus the margin, rounded up." in page
     )
+    assert "Crowns compare rebuild averages" not in page and "rebuild-average" not in page
 
 
 # ---------------------------------------------------------------- a king rebuilt through a krb_ link (Lead 5 Nov 19:3x)
