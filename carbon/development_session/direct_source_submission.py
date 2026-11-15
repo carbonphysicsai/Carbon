@@ -638,23 +638,36 @@ def _sibling_roots(ledger):
 
 
 def _sibling_manifests(ledger, recipe, key):
-    """Manifest digests this host's OTHER campaigns may have staged at this door for this owner: each one's recorded
-    digest for the same door key, then its frozen graph recipes for the same Challenge version (newest campaign first),
-    format-checked, at most `SIBLING_CANDIDATES`. A sibling whose record cannot be read only adds its frozen recipes.
-    """
-    out = []
-    for sibling in _sibling_roots(ledger):
-        view = type("SiblingLedger", (), {"root": sibling})()
+    """Manifest digests this host's OTHER campaigns may have staged at this door for this owner, newest campaign first:
+    FIRST every sibling's exact record for the same door key (a fact), THEN their frozen graph recipes for the same
+    Challenge version (guesses, at most `SIBLING_CANDIDATES`), so guesses never crowd out a record. Format-checked; a
+    sibling whose record cannot be read only adds its frozen recipes."""
+    siblings = _sibling_roots(ledger)
+    views = [type("SiblingLedger", (), {"root": sibling})() for sibling in siblings]
+    records = []
+    for view in views:
         try:
             recorded = _read_staged(view).get(key)
         except (DirectIntakeRefusal, OSError):
-            recorded = None
-        for digest in [recorded, *_earlier_graph_manifests(view, recipe)]:
-            if _is_manifest_digest(digest) and digest not in out:
-                out.append(digest)
-        if len(out) >= SIBLING_CANDIDATES:
+            continue
+        if _is_manifest_digest(recorded) and recorded not in records:
+            records.append(recorded)
+    guesses = []
+    for view in views:
+        for digest in _earlier_graph_manifests(view, recipe):
+            if _is_manifest_digest(digest) and digest not in records + guesses:
+                guesses.append(digest)
+        if len(guesses) >= SIBLING_CANDIDATES:
             break
-    return out[:SIBLING_CANDIDATES]
+    return records + guesses[:SIBLING_CANDIDATES]
+
+
+def _sibling_manifests_or_none(ledger, recipe, key):
+    """`_sibling_manifests`, or [] on ANY error: another campaign's files never break a stage that worked before."""
+    try:
+        return _sibling_manifests(ledger, recipe, key)
+    except Exception:  # noqa: BLE001 - fall back to this campaign's own candidates only
+        return []
 
 
 def stage_graph_source(
@@ -676,9 +689,12 @@ def stage_graph_source(
     replaces the held one by compare-and-swap (`stage_graph`'s ``expected_manifest_digest``): the expectation is this
     owner's last staged manifest at this door (recorded in the campaign ledger, `STAGED_GRAPHS`); when nothing is
     recorded (a manifest staged before this record existed) the campaign's earlier frozen graph recipes are offered,
-    newest first; then what this host's OTHER campaigns staged or froze for this door (`_sibling_manifests`: a new
-    campaign of the same miner meets the manifest an earlier campaign staged); when the receiver holds no manifest (a re-prepared door) the graph is staged afresh. Any other
-    refusal, or a held manifest none of those names, refuses with the receiver's code: nothing is overwritten blind.
+    newest first; when the receiver holds no manifest (a re-prepared door) the graph is staged afresh. Only when all of
+    those are refused, what this host's OTHER campaigns recorded for this door, then froze (`_sibling_manifests`: a new
+    campaign of the same miner meets the manifest an earlier campaign staged; Lead 15 Nov, UID 269). Any other refusal,
+    or a held manifest none of those names, refuses with the receiver's code: nothing is overwritten blind. Two
+    campaigns of ONE hotkey staging at once can now replace each other's held manifest (the held one is the owner's own
+    workspace; a task already admitted keeps the source it was admitted with).
     """
     if type(recipe) is not ConstructionRecipe:
         recipe = ConstructionRecipe.from_dict(recipe)
@@ -692,16 +708,25 @@ def stage_graph_source(
     for digest in _earlier_graph_manifests(ledger, recipe):
         if digest not in expectations:
             expectations.append(digest)
-    current = recipe.to_dict()["source"]["submission_digest"]
-    for digest in _sibling_manifests(ledger, recipe, key):
-        if digest not in expectations and digest != current:
-            expectations.append(digest)
     if None not in expectations:
         expectations.append(None)
+    current = recipe.to_dict()["source"]["submission_digest"]
     last = None
     tried = set()
     queue = list(expectations)
-    while queue:
+    siblings_asked = False
+    while True:
+        if not queue:
+            # only once this campaign's own candidates and 'nothing held' were all refused: the other campaigns' ones
+            if siblings_asked:
+                break
+            siblings_asked = True
+            queue = [
+                digest
+                for digest in _sibling_manifests_or_none(ledger, recipe, key)
+                if digest not in tried and digest != current
+            ]
+            continue
         expected = queue.pop(0)
         if expected in tried:
             continue
