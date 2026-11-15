@@ -37,6 +37,7 @@ that resolution. Nothing else about a submission is read: no recipe, score, pack
 from __future__ import annotations
 
 import json
+import sqlite3
 import threading
 import time
 from pathlib import Path
@@ -170,6 +171,7 @@ class QueueView:
         """The per-submission rows as of the quantum ``boundary`` (see the module text): pending submissions in the ledger's order
         (oldest first), then the graded contenders waiting for the crown sweep."""
         index = self._index()
+        origins = self._place_origins()
         entries = []
         for submission_id in self.grader.pending():
             state, created = index.get(submission_id, (None, None))
@@ -183,6 +185,9 @@ class QueueView:
                 )  # built, no verdict yet: waiting or being graded, not told apart per row
             else:
                 continue  # cancelled, a build that ended without success, or a task in no open store: never waiting
+            if created is not None and submission_id in origins:
+                # a granted queue place: the wait runs from the ORIGINAL arrival (the clock only moves earlier, never later)
+                created = min(created, origins[submission_id])
             entries.append((submission_id, label, created))
         for submission_id, since in self._crown_checks():
             entries.append((submission_id, qp.CROWN_CHECK, since))
@@ -198,6 +203,22 @@ class QueueView:
                 }
             )
         return rows
+
+    def _place_origins(self):
+        """``{task id: original arrival (unix seconds)}`` of every task that holds a queue place (`AttemptLedger.grant_queue_place`: a
+        resubmission of a stop-cancelled task takes that task's original arrival PLACE, so its rank is the original's while its task is new).
+        Counting its wait from the ORIGINAL arrival makes the clock agree with the rank. A ledger without the read (a stand-in) gives none.
+        """
+        adapter = self.intake.adapter
+        reader = getattr(getattr(adapter, "ledger", None), "queue_place_origins", None)
+        if not callable(reader):
+            return {}
+        try:
+            return {
+                task: ns / 1e9 for task, ns in reader(adapter.contract_digest).items()
+            }
+        except (OSError, ValueError, sqlite3.Error) as failure:
+            raise qp.QueuePublicRefused("queue_rows_unavailable") from failure
 
     def _crown_checks(self):
         """``[(submission id, graded-at unix seconds or None)]`` of the graded contenders still waiting for the crown sweep
