@@ -763,6 +763,8 @@ class AutoGrader:
             return "slot_returned" if released else None
         if state not in (None, "RELEASED"):
             return None
+        if code in auto_retry.OWN_NEXT_STEPS:
+            return auto_retry.OWN_NEXT_STEPS[code]
         if auto_retry.schedule(self.root, submission_id, code, ledger=ledger):
             return "retry_scheduled"
         return "slot_returned" if auto_retry.retryable(code) else "resubmit_after_fix"

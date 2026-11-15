@@ -378,5 +378,7 @@ def test_each_next_step_has_its_one_sentence():
         "retry_scheduled",
         "slot_returned",
         "resubmit_after_fix",
+        "resubmit_program_changed",
     }
     assert all(type(s) is str and s for s in auto_retry.NEXT_STEPS.values())
+    assert set(auto_retry.OWN_NEXT_STEPS.values()) <= set(auto_retry.NEXT_STEPS)

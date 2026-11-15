@@ -1160,6 +1160,13 @@ def _menu_rowcheck_outputs(evidence, entry, subset, subset_shape, out_dtype, pro
     return list(read.outputs[0])
 
 
+def _served_recipe(adapter, submission_id):
+    """The admitted recipe dict of a served task (its provider's own request)."""
+    return (
+        adapter._provider(adapter.owner(submission_id))._requests[submission_id].recipe
+    )
+
+
 def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
     """A menu-D version's row-independence re-check (Carbon Validator-B 7 Nov (1); Validator-2B 7 Nov conditions 1-4):
     a FRESH instance of the retained model answers a keyed subset of the graded query in a keyed order
@@ -1176,6 +1183,13 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     from carbon.challenge_validator import crown_hold
     from carbon.development_session.construction_recipe import ConstructionRecipe
     from carbon.development_session.data import write_once
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_INFERENCE_VERSIONS as vmap64_versions,
+    )
+    from carbon.development_session.direct_graph_construction_worker import (
+        vmap64_rerun_rows,
+        vmap64_state_lanes,
+    )
     from carbon.development_session.paired_inference import (
         InferencePairFailure,
         infer_frozen_pair,
@@ -1228,8 +1242,31 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         if not same:
             raise RetentionUnavailable("menu_rowcheck_cache_not_this_epoch")
         return cached
-    subset = np.ascontiguousarray(inputs[positions])
-    subset_shape = (len(positions), *tuple(output_shape)[1:])
+    recipe = (
+        ConstructionRecipe.from_dict(_served_recipe(adapter, submission_id))
+        if regrade is None
+        else regrade.recipe
+    )
+    # A vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) answers each row in an isolated
+    # lane of a chunk of the model's own L lanes, bit for bit only beside the same companions and padding: its fresh
+    # instance re-runs the ORIGINAL chunks that hold the planned positions (`vmap64_rerun_rows` at the model's L), so
+    # every row sits in its original chunk and lane, and the side file keeps the planned positions in the keyed order
+    # with their answers picked from that run. Every other version queries the keyed subset in the keyed order.
+    queried, picked = positions, None
+    if (kit["id"], kit["version"]) in vmap64_versions:
+        try:
+            lanes = vmap64_state_lanes(
+                kit["id"],
+                kit["version"],
+                artifacts["state.npz"],
+                recipe,
+                material["allowlist_bytes"],
+            )
+        except (KeyError, TypeError, ValueError, RuntimeError) as exc:
+            raise RetentionUnavailable("menu_rowcheck_unavailable") from exc
+        queried, picked = vmap64_rerun_rows(positions, len(inputs), lanes)
+    subset = np.ascontiguousarray(inputs[queried])
+    subset_shape = (len(queried), *tuple(output_shape)[1:])
     owner = adapter.owner(submission_id) if regrade is None else regrade.owner
     provider = adapter._provider(owner)
     limits = material["construction_limits_document"]
@@ -1256,11 +1293,7 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
             + submission_id
             + suffix,
             inference_image=image,
-            recipe=(
-                ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
-                if regrade is None
-                else regrade.recipe
-            ),
+            recipe=recipe,
             challenge_binding={
                 "challenge_id": kit["id"],
                 "challenge_version": kit["version"],
@@ -1302,10 +1335,12 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         output_dtype(interface),
         procedure,
     )
-    width = len(flat) // len(positions)
-    if not width or width * len(positions) != len(flat):
+    width = len(flat) // len(queried)
+    if not width or width * len(queried) != len(flat):
         raise RetentionUnavailable("menu_rowcheck_evidence_unreadable")
-    rows = [flat[i * width : (i + 1) * width] for i in range(len(positions))]
+    rows = [flat[i * width : (i + 1) * width] for i in range(len(queried))]
+    if picked is not None:
+        rows = [rows[i] for i in picked]
     side = pool_menu.rowcheck_side_file(positions, rows)
     write_once(path, side)
     return side
@@ -1327,6 +1362,7 @@ def _single_call_raw(
     bytes and never replays an identity."""
     import numpy as np
 
+    from carbon.challenge_validator import speed_match
     from carbon.development_session import single_call_timing
     from carbon.development_session.bundle_construction_worker import (
         INFER_PROGRAM,
@@ -1354,6 +1390,12 @@ def _single_call_raw(
         raise RetentionUnavailable("single_call_needs_the_cpu_grading_image")
     material = adapter.discovery._material
     kit = material["construction_kit"]
+    # None (exact, as before) for every version but a vmap-64 one, whose registered tolerance must be set: unset or
+    # malformed is a version-wide Carbon gap, typed, never exact and never a guess (checked before anything runs)
+    try:
+        tolerance = speed_match.tolerance(kit["id"], kit["version"])
+    except speed_match.SpeedMatchUnregistered as gap:
+        raise RetentionUnavailable(gap.code) from gap
     limits = material["construction_limits_document"]
     policy = limits["reconstruction_resource_policy"]
     interface = material["interface_document"]
@@ -1399,13 +1441,29 @@ def _single_call_raw(
             else {}
         )
         derived = single_call_timing.program(graph_query.get("program", INFER_PROGRAM))
+        # A vmap-64 grade re-queued after `speed_outputs_disagree` (its ONE automatic retry, review of 15 Nov finding 2)
+        # times AGAIN, warm-up and calls, under its own identity: the same identity would hand back the earlier
+        # operation's answers. The graded bytes are reused. Every other version keeps its identity, as before.
+        attempt = (
+            None
+            if tolerance is None
+            else _requeue_attempt(
+                getattr(adapter, "ledger", None),
+                (
+                    regrade.origin_task_id
+                    if regrade is not None and regrade.counted
+                    else submission_id
+                ),
+            )
+        )
         stage = _infer_state(
             provider.ledger,
             owner=owner,
             identity="single-call-"
             + hashlib.sha256(
                 (snapshot.manifest_digest + "|" + submission_id).encode()
-            ).hexdigest(),
+            ).hexdigest()
+            + ("" if attempt is None else f"-attempt{attempt}"),
             inference_image=_inference_image_of(provider, regrade),
             recipe=(
                 ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
@@ -1439,9 +1497,16 @@ def _single_call_raw(
             **{**graph_query, "program": derived},
         )
         call_s = stage.receipt["single_call"]["call_s"]
-        match = single_call_timing.outputs_match_graded(
-            stage.predictions, graded, indices
-        )
+        if tolerance is None:
+            match = single_call_timing.outputs_match_graded(
+                stage.predictions, graded, indices
+            )
+        elif speed_match.outputs_agree(stage.predictions, graded, indices, tolerance):
+            match = True
+        else:
+            # a vmap-64 version (owner, Sun 15 Nov 2026 ~11:1x): a timed answer beyond the wide-margin tolerance is
+            # CARBON's (two programs of ours disagree), never the miner's speed FAIL: typed unavailable, FAILED_INFRA
+            raise RetentionUnavailable(speed_match.DISAGREE)
         document = single_call_timing.side_file(
             indices=indices,
             warmup_digest=stage.receipt["single_call"]["warmup_digest"],
@@ -1459,6 +1524,116 @@ def _single_call_raw(
     raw = _json(document)
     write_once(path, raw)
     return raw
+
+
+#: The retained graded predictions were produced by a different inference (program text, staged modules or worker
+#: image) than the one a comparison against them would run now (review of 15 Nov, findings 1 and 1b): Carbon's, never
+#: the candidate's (FAILED_INFRA, slot released). NOT retried automatically (`auto_retry`): the regrade's graded bytes
+#: are write-once, so a retry meets the same record; the drain at a switch prevents it, a resubmit is graded afresh.
+GRADED_PROGRAM_CHANGED = "graded_program_changed"
+#: A vmap-64 version graded without a regrade's record: the task's own inference on a NON-SEALED pack (regrade None).
+#: Motor 1.8 is only ever graded on its sealed pool pack (`_counted_bank_grade`), so this is never its path; typed,
+#: version-wide and not retried (`auto_retry`), never a comparison against unrecorded bytes.
+VMAP64_NEEDS_SEALED_PACK = "vmap64_grade_needs_sealed_pack"
+
+
+def _graded_inference_digest(adapter, material, recipe, image):
+    """ONE digest of everything that decides a graph's graded bytes besides its state and query: the inference
+    program text, every staged module the worker gets (names and bytes, sorted) and the worker image id. Recorded beside
+    a vmap-64 regrade's graded pass and recomputed, the same way, before any comparison against it.
+    """
+    from carbon.development_session.bundle_construction_worker import (
+        _checked_binding,
+        _stage_bundle_modules,
+    )
+
+    kit = material["construction_kit"]
+    binding = _checked_binding(
+        recipe,
+        {
+            "challenge_id": kit["id"],
+            "challenge_version": kit["version"],
+            "train_digest": kit["train_digest"],
+            "interface_digest": kit["interface_digest"],
+            "construction_limits_digest": kit["construction_limits_digest"],
+        },
+    )
+    query = _graph_regrade_query(adapter.discovery, material, recipe=recipe)
+    files, _codec = _stage_bundle_modules(binding, training=False)
+    files.update(query.get("staged_files") or {})
+    return _sha(
+        _json(
+            {
+                "schema": "carbon.lean-recipe.graded-inference.v1",
+                "program_sha256": _sha(query["program"].encode()),
+                "staged_files": {name: _sha(files[name]) for name in sorted(files)},
+                "inference_image_id": image.image_id,
+            }
+        )
+    )
+
+
+def _check_graded_program(adapter, material, artifacts, regrade):
+    """Refuse a comparison against retained graded bytes made by another inference.
+
+    For a vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) the repeat pair, the single
+    calls, the menu row check and the subset repeat must run the SAME inference as the retained graded pass, or a
+    bit-exact comparison would charge a switch to the candidate (MODEL_ROW_DEPENDENT, a failed paired repeat). The
+    regrade records `_graded_inference_digest` beside its graded pass (its operations file); a different or missing
+    record is `GRADED_PROGRAM_CHANGED`, and a vmap-64 grade with no regrade at all is `VMAP64_NEEDS_SEALED_PACK`.
+    Every other version is unchecked, as before.
+    """
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_INFERENCE_VERSIONS,
+    )
+
+    if "worker-evidence.json" not in artifacts:
+        return
+    try:
+        kit = material["construction_kit"]
+        key = (kit["id"], kit["version"])
+    except (KeyError, TypeError):
+        return
+    if key not in VMAP64_INFERENCE_VERSIONS:
+        return
+    if regrade is None:
+        raise RetentionUnavailable(VMAP64_NEEDS_SEALED_PACK)
+    recorded = getattr(regrade, "graded_inference_sha256", None)
+    image = _inference_image_of(adapter._provider(regrade.owner), regrade)
+    if recorded is None or recorded != _graded_inference_digest(
+        adapter, material, regrade.recipe, image
+    ):
+        raise RetentionUnavailable(GRADED_PROGRAM_CHANGED)
+
+
+def _requeue_attempt(ledger, submission_id):
+    """The attempt number of this task's re-queue (`ExamCap.mark_requeued`: 2 for its one automatic retry), or None
+    when it was never re-queued."""
+    try:
+        with ledger._db() as db:
+            row = db.execute(
+                "SELECT attempt FROM exam_requeues WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+    except Exception:  # noqa: BLE001 - no ledger or no requeue table: never re-queued
+        return None
+    return row[0] if row is not None and type(row[0]) is int else None
+
+
+def _propagated_carbon_failures():
+    """Carbon's own failures that leave a grade FAILED_INFRA through the grader's give-back (`auto_grade._fail`: slot
+    released, one automatic retry where transient), never an UNAVAILABLE evaluation filed as graded.
+    """
+    from carbon.challenge_validator import speed_match
+
+    return frozenset(
+        {
+            GRADED_PROGRAM_CHANGED,
+            VMAP64_NEEDS_SEALED_PACK,
+            speed_match.DISAGREE,
+            speed_match.UNREGISTERED,
+        }
+    )
 
 
 def _retain_selected_pack_evaluation(
@@ -1594,6 +1769,11 @@ def _retain_selected_pack_evaluation(
                     else {}
                 ),
             }
+        # Before any comparison against the retained graded bytes (the pair, the single calls, the menu row check):
+        # they were made by the program those comparisons run.
+        _check_graded_program(
+            adapter, getattr(discovery, "_material", None), artifacts, regrade
+        )
         # Graph and bundle alike: the paired repeat is what the KOTH comparison
         # binds (v4). Never gates retention: this runs after bank custody, and a
         # missing or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
@@ -1787,6 +1967,12 @@ def _retain_selected_pack_evaluation(
         if reservation is not None:
             # Grading did not complete (infrastructure or evidence), so the slot is returned.
             cap.settle(reservation, "UNAVAILABLE")
+        if (
+            isinstance(exc, RetentionUnavailable)
+            and exc.code in _propagated_carbon_failures()
+        ):
+            # Carbon's own failure (review of 15 Nov, finding 2): the grader gives it back as FAILED_INFRA.
+            raise
         reason = (
             str(exc)
             if isinstance(exc, RetentionUnavailable)
@@ -3476,6 +3662,21 @@ class _Regrade:
     #: The pool submission id the regraded evidence is filed under, when it is not the origin task's own: a king's
     #: rebuild (route (b)) is filed under its DERIVED row (`king_rebuild_id`), never under the host task.
     file_as: object = None
+    #: The digest of the inference that made the retained graded bytes (`_graded_inference_digest`); None unrecorded.
+    graded_inference_sha256: object = None
+
+
+def _vmap64_served(material):
+    """Whether the served version is a vmap-64 one (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`)."""
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_INFERENCE_VERSIONS,
+    )
+
+    try:
+        kit = material["construction_kit"]
+        return (kit["id"], kit["version"]) in VMAP64_INFERENCE_VERSIONS
+    except (KeyError, TypeError):
+        return False
 
 
 def _inference_image_of(provider, regrade):
@@ -4455,6 +4656,17 @@ def regrade_retained_entry(
     snapshot = discovery.evaluation_pack_snapshot
     if snapshot is None or discovery.evaluation_pack_digest != snapshot.manifest_digest:
         raise RetentionUnavailable("evaluation_pack_not_selected")
+    # A vmap-64 version's speed-match tolerance is read FIRST, before any exam read or inference (review of 15 Nov,
+    # finding 5): unset or malformed is Carbon's version-wide gap. Every other version reads nothing here.
+    from carbon.challenge_validator import speed_match
+
+    try:
+        served_kit = discovery._material["construction_kit"]
+        speed_match.tolerance(served_kit["id"], served_kit["version"])
+    except speed_match.SpeedMatchUnregistered as gap:
+        raise RetentionUnavailable(gap.code) from gap
+    except (AttributeError, KeyError, TypeError):
+        pass
     base = _owner_directory(artifact_directory, "artifact_directory")
     entries = _owner_directory(entry_directory, "entry_directory")
     entry, origin, owner, manifest, files, recipe = _regrade_origin(
@@ -4657,6 +4869,13 @@ def regrade_retained_entry(
                 timed_result.worker_operation if timed_result is not None else None
             ),
         }
+        if kind == "graph" and _vmap64_served(material):
+            # Which inference made these graded bytes (program, staged modules, image): every later comparison
+            # against them checks it (`_check_graded_program`). Only a vmap-64 version records it; every other
+            # version's operations file keeps its bytes.
+            operations["graded_inference_sha256"] = _graded_inference_digest(
+                adapter, material, recipe, inference_image
+            )
         worker_evidence = (
             _graph_regrade_worker_evidence(
                 files["worker-evidence.json"],
@@ -4675,6 +4894,7 @@ def regrade_retained_entry(
             else None
         )
     operation = operations["inference_operation"]
+    graded_inference = operations.get("graded_inference_sha256")
 
     artifacts = dict(files)
     if pool:
@@ -4802,6 +5022,7 @@ def regrade_retained_entry(
             ),
             inference_image,
             file_as,
+            graded_inference if type(graded_inference) is str else None,
         ),
         **({"pool_store": pool_store} if counted else {}),
     )

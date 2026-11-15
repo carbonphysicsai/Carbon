@@ -3,8 +3,8 @@ Validator-2B 7 Nov rulings (1)-(3); scope codex-queue/reports/GRAPHITE_B_R39_R40
 infrastructure failure is not scientific failure. Nothing here grades, scores or rescores anything.
 
 - **Next step** (every FAILED marker, private; a closed code whose sentence is true for it, `NEXT_STEPS`):
-  ``retry_scheduled`` / ``slot_returned`` / ``resubmit_after_fix``, or None when a charged slot could not be proven
-  undelivered (the operator decides; an alert line is written).
+  ``retry_scheduled`` / ``slot_returned`` / ``resubmit_after_fix`` / ``resubmit_program_changed``, or None when a
+  charged slot could not be proven undelivered (the operator decides; an alert line is written).
 - **Retry, once per task for life** (persisted: the schedule log here + the ledger's ``exam_requeues`` row of the
   re-grade). Only for a transient Carbon code (`retryable`): never a version-wide Carbon gap (a registration, a pack,
   the menu keys: a retry meets the same gap, so the slot is returned and the operator re-queues after the fix), never a
@@ -35,7 +35,15 @@ NEXT_STEPS = {
     "in your next round as usual.",
     "resubmit_after_fix": "A Carbon-side gap stopped this grade for this version; no slot is charged for it; resubmit "
     "after Carbon posts the fix.",
+    "resubmit_program_changed": "Carbon's grading program changed while this grade was in progress; no slot was charged "
+    "for it; resubmit it and it is built and graded again from the start under the current program.",
 }
+#: Carbon codes an automatic retry cannot fix (review of 15 Nov, findings 2b and 3): a vmap-64 grade whose retained
+#: graded bytes were made by another inference (`lean_recipe_retention.GRADED_PROGRAM_CHANGED`: its write-once regrade
+#: would meet the same record) and a vmap-64 grade off its sealed pack (`VMAP64_NEEDS_SEALED_PACK`). Never retried.
+_NOT_RETRIED = frozenset({"graded_program_changed", "vmap64_grade_needs_sealed_pack"})
+#: The next step a FAILED marker shows for a code that names its own (the operator's plain line), else the usual rule.
+OWN_NEXT_STEPS = {"graded_program_changed": "resubmit_program_changed"}
 #: Spacing of the one retry after its failure (the crown sweep's own retry spacing), and when a retry that waited for
 #: an idle tick is applied anyway.
 RETRY_SECONDS = 15 * 60
@@ -71,7 +79,7 @@ def retryable(code) -> bool:
     base = code.split(":", 1)[0]
     if "DUPLICATE" in base.upper():
         return False
-    if base in _VERSION_WIDE_CLASSES:
+    if base in _VERSION_WIDE_CLASSES or base in _NOT_RETRIED:
         return False
     if any(base.startswith(p) for p in _VERSION_WIDE_PREFIXES):
         return False

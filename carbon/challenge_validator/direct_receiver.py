@@ -946,6 +946,9 @@ GRADING_PATHS = (
     "carbon/challenge_validator/crown_average.py",
     # a menu-D version's coded crown hold (Validator-2B 7 Nov): it decides whether a crown may change
     "carbon/challenge_validator/crown_hold.py",
+    # a vmap-64 version's speed-match tolerance (CV-Motor-B S2, 15 Nov): it decides whether a timed stage matches or is
+    # Carbon's FAILED_INFRA
+    "carbon/challenge_validator/speed_match.py",
     # whether a timed build ran on a quiet host decides whose failure a wall stop is (owner 5 Nov: rebuilds consistently
     # timed; Validator-2 21:28)
     "carbon/challenge_validator/host_quiet.py",
@@ -2027,6 +2030,16 @@ class OwnerProviders:
             provider.close()
 
 
+def _require_speed_match(challenge_id, version):
+    """Refuse to serve a vmap-64 version whose speed-match tolerance is unset or malformed (`speed_match`)."""
+    from carbon.challenge_validator import speed_match
+
+    try:
+        speed_match.require_served(challenge_id, version)
+    except speed_match.SpeedMatchUnregistered as gap:
+        raise ReceiverUnavailable(gap.code) from gap
+
+
 def serve(
     config_path: Path,
     *,
@@ -2225,6 +2238,9 @@ def serve(
     from carbon.challenge_validator import registry_version
 
     registry_version.serve(challenge.challenge_id, challenge.version)
+    # a vmap-64 version (Motor 1.8) is not served until its speed-match tolerance is registered (owner, Sun 15 Nov 2026
+    # ~11:1x): every other version passes unchanged
+    _require_speed_match(challenge.challenge_id, challenge.version)
     with owner_lock(root):
         pack_check = None
         pack_digest = None
