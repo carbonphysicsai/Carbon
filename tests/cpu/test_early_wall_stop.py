@@ -1,9 +1,9 @@
-"""The early wall stop of the counted bank grade (Bundle A, 14 Nov 2026; shipped dark, switched ON for Motor 1.8 on 14 Nov).
+"""The early wall stop of the counted bank grade (Bundle A, 14 Nov 2026; shipped dark, switched ON for Motor 1.8 on 14 Nov; margin 1.0 from 14 Nov 23:36 CST).
 
 A counted graded pass whose STRICT LOWER BOUND from the origin's own measured practice pass already exceeds the published
 inference wall is settled as the candidate's wall stop without running. OFF unless the host registry has an enabled row; every
 doubt fails open (the pass runs and the wall kills it as before). The registry tests pin the committed production row
-(Motor 1.8: s_max 54.828 s, margin 1.5, and its decision record); every other test uses synthetic numbers and ids.
+(Motor 1.8: s_max 54.828 s, margin 1.0, and its decision record); every other test uses synthetic numbers and ids.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ def _row(**changes):
 
 def test_the_committed_registry_enables_exactly_motor_1_8_at_cv_motor_cs_values():
     """The early stop is ON for Motor 1.8 only (owner, 14 Nov 2026: 'Switch it on now'; skips count): s_max_seconds = the max
-    finished op A over 36 of 36 grades, margin = the owner's 1.5x, evidence = the sha of Deploy-C's private list (Validator-Motor-C
+    finished op A over 36 of 36 grades, margin = the owner's 1.0 ('1.0 and yes', 14 Nov 23:36 CST; was 1.5), evidence = the sha of Deploy-C's private list (Validator-Motor-C
     board 18:21, Deploy-C 18:23). Every other version stays OFF."""
     from carbon.challenge_validator import registry_version
 
@@ -55,7 +55,7 @@ def test_the_committed_registry_enables_exactly_motor_1_8_at_cv_motor_cs_values(
             "electric-motor-magnetics 1.8": {
                 "enabled": True,
                 "evidence_sha256": "sha256:f6cf433e3c57fa7b1d8b9ca5a9955f593cf28516c25e5b388b14a10bf5fd4ae5",
-                "margin": 1.5,
+                "margin": 1.0,
                 "s_max_seconds": 54.828,
             }
         },
@@ -65,7 +65,7 @@ def test_the_committed_registry_enables_exactly_motor_1_8_at_cv_motor_cs_values(
         assert registry_version.known_key(key, exam_cap.registered_challenges()), key
     assert lrr.early_wall_stop_rule("electric-motor-magnetics", "1.8") == {
         "s_max_seconds": 54.828,
-        "margin": 1.5,
+        "margin": 1.0,
     }
     for challenge, version in (
         ("electric-motor-magnetics", "1.7"),
@@ -77,14 +77,16 @@ def test_the_committed_registry_enables_exactly_motor_1_8_at_cv_motor_cs_values(
 
 
 def test_at_the_committed_values_the_projection_skips_only_what_cannot_finish():
-    """The rule's own arithmetic at the registered values (2611 bank rows, 154 practice rows, wall 648 s, margin 1.5: skip when
-    2611 x (op A - s_max) / 154 > 972 s, i.e. op A > 54.828 + 57.33...): a 55 s op A never skips, a 120 s one does.
+    """The rule's own arithmetic at the registered values (2611 bank rows, 154 practice rows, wall 648 s, margin 1.0: skip when
+    2611 x (op A - s_max) / 154 > 648 s, i.e. op A > 54.828 + 38.22...): a 55 s or a 90 s op A never skips; the 96-98 s op A of
+    the three 14 Nov wall stops (Deploy-B) now does.
     """
     rule = lrr.early_wall_stop_rule("electric-motor-magnetics", "1.8")
     assert lrr.early_wall_stop_decision(55.0, 154, 2611, 648.0, rule)[0] is False
-    assert lrr.early_wall_stop_decision(100.0, 154, 2611, 648.0, rule)[0] is False
-    assert lrr.early_wall_stop_decision(120.0, 154, 2611, 648.0, rule)[0] is True
-    threshold = 54.828 + 972.0 * 154 / 2611
+    assert lrr.early_wall_stop_decision(90.0, 154, 2611, 648.0, rule)[0] is False
+    for op_a in (96.275, 97.612, 98.159):
+        assert lrr.early_wall_stop_decision(op_a, 154, 2611, 648.0, rule)[0] is True
+    threshold = 54.828 + 648.0 * 154 / 2611
     assert (
         lrr.early_wall_stop_decision(threshold - 0.01, 154, 2611, 648.0, rule)[0]
         is False
@@ -96,7 +98,7 @@ def test_at_the_committed_values_the_projection_skips_only_what_cannot_finish():
 
 
 def test_the_decision_record_matches_the_row_and_both_ride_a_values_only_roll():
-    """The decision record (docs/records/2026-11-14-motor18-early-wall-stop.json) carries EXACTLY the registry row's values and
+    """The CURRENT decision record (docs/records/2026-11-14-motor18-early-wall-stop-margin-1.json) carries EXACTLY the registry row's values and
     evidence, quotes the owner's words verbatim with where they were typed, and both files are paths a values-only descendant
     may change (research_campaign.descendant_path_allowed), so the live door takes them by an in-place values roll.
     """
@@ -105,7 +107,7 @@ def test_the_decision_record_matches_the_row_and_both_ride_a_values_only_roll():
     from carbon.development_session.research_campaign import descendant_path_allowed
 
     root = Path(lrr.EARLY_WALL_STOP_REGISTRY).resolve().parents[2]
-    record_path = "docs/records/2026-11-14-motor18-early-wall-stop.json"
+    record_path = "docs/records/2026-11-14-motor18-early-wall-stop-margin-1.json"
     record = json.loads((root / record_path).read_text())
     row = json.loads(lrr.EARLY_WALL_STOP_REGISTRY.read_text())["rows"][
         "electric-motor-magnetics 1.8"
@@ -119,7 +121,15 @@ def test_the_decision_record_matches_the_row_and_both_ride_a_values_only_roll():
     }
     assert record["evidence"]["evidence_sha256"] == row["evidence_sha256"]
     quotes = {w["verbatim"] for w in record["owner_words"]}
-    assert "Switch it on now" in quotes
+    assert {"Switch it on now", "1.0 and yes"} <= quotes
+    # the margin-1.5 record stays unchanged, as history
+    earlier = json.loads(
+        (root / "docs/records/2026-11-14-motor18-early-wall-stop.json").read_text()
+    )
+    assert earlier["values"]["margin"] == 1.5
+    assert record["supersedes"].startswith(
+        "docs/records/2026-11-14-motor18-early-wall-stop.json"
+    )
     assert all(
         w["typed_in"] and w["typed_at"] and w["source"] for w in record["owner_words"]
     )

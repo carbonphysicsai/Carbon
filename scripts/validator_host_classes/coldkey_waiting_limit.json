@@ -1,0 +1,8 @@
+{
+  "rows": {
+    "electric-motor-magnetics 1.8": {
+      "limit": 1
+    }
+  },
+  "schema": "carbon.exam.coldkey-waiting-limit.v1"
+}

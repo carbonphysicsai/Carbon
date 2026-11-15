@@ -1,0 +1,34 @@
+{
+  "challenge": "electric-motor-magnetics",
+  "evidence": {
+    "basis": "s_max_seconds unchanged from the 14 Nov record (docs/records/2026-11-14-motor18-early-wall-stop.json): the max, over 36 of 36 FINISHED grades, of the origin task's 'inference' child operation actual.numerical_milliseconds / 1000.",
+    "evidence_sha256": "sha256:f6cf433e3c57fa7b1d8b9ca5a9955f593cf28516c25e5b388b14a10bf5fd4ae5",
+    "margin_check": "Deploy-B's read before the owner's pick (decision ledger, Sat 14 Nov 23:36 CST entry): at margin 1.0, 0 of 40 finished grades would have been stopped and 3 of 6 grades that ran to the wall would have been.",
+    "rounding": "unchanged: _origin_inference_seconds accepts only an INTEGER numerical_milliseconds, so 54.828 is the stored maximum itself."
+  },
+  "label": "Motor 1.8 early stop, 116: margin 1.5 -> 1.0 (owner, 14 Nov 23:36 CST); s_max unchanged; a projection, not a strict lower bound (Carbon Validator-Motor-C L10440); skips count as the miner's try",
+  "owner_words": [
+    {
+      "source": "codex-queue/reports/DECISION_LEDGER_20261105.md, the Sat 14 Nov 18:2x CST entry",
+      "typed_at": "Sat 14 Nov 2026 ~18:2x CST",
+      "typed_in": "the Lead session (Team C)",
+      "verbatim": "Switch it on now"
+    },
+    {
+      "source": "codex-queue/reports/DECISION_LEDGER_20261105.md, the Sat 14 Nov 23:36 CST entry",
+      "typed_at": "Sat 14 Nov 2026 23:36 CST",
+      "typed_in": "the Lead session",
+      "verbatim": "1.0 and yes"
+    }
+  ],
+  "projection_caveat": "The rule is a projection, not a strict lower bound: a model with an unusually slow start but fast answers can be skipped and counted (Carbon Validator-Motor-C, board L10440). At margin 1.0 a pass is skipped as soon as its projected cost exceeds the wall itself.",
+  "rule": "skip the whole-bank pass when 2611 x (op A - s_max_seconds) / 154 > margin x 648 s = 648 s (lean_recipe_retention.early_wall_stop_decision); a skip COUNTS as the miner's try, like a wall timeout at the published limit",
+  "schema": "carbon.exam.early-wall-stop-record.v1",
+  "supersedes": "docs/records/2026-11-14-motor18-early-wall-stop.json (margin 1.5), kept unchanged as history",
+  "values": {
+    "enabled": true,
+    "margin": 1.0,
+    "s_max_seconds": 54.828
+  },
+  "version": "1.8"
+}

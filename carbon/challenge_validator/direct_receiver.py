@@ -2541,6 +2541,17 @@ def serve(
                 from carbon.challenge_validator.queue_view import QueueView
 
                 intake.queue_view = QueueView(intake, grader, root)
+                # One waiting submission per coldkey (owner 14 Nov; `coldkey_waiting`): ON only for a version whose
+                # limit is registered; waiting = this door's open task views + the grader's ungraded list
+                from carbon.challenge_validator import coldkey_waiting
+
+                intake.adapter.coldkey_waiting = coldkey_waiting.Guard(
+                    opened=lambda: getattr(
+                        intake.adapter.provider_for, "_providers", None
+                    ),
+                    pending=grader.pending,
+                    snapshot=window.latest,
+                )
             if "auto_grade" in cfg and cfg["auto_grade"].get("pool_store"):
                 intake.koth_view = _king_view(intake, cfg["auto_grade"]["pool_store"])
             if "launch_board" in cfg:

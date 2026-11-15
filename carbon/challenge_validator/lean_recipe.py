@@ -348,43 +348,47 @@ class LeanRecipeAdapter(ChallengeAdapter):
         else:
             raise Unavailable("direct_infra_rerun_limit_reached")
         self._refuse_spent_round(submission, task_id.value, provider)
-        source = recipe.to_dict()["source"]
-        if source["kind"] == "graph":
-            try:
-                graph_envelope_from_workspace(provider.ledger, provider.owner, recipe)
-            except RecipeRefused as refused:
-                raise Unavailable(refused.code) from None
-        from carbon.research import canonical_bytes
+        # One waiting submission per coldkey (`coldkey_waiting`): checked, and its place held, until the task is started
+        with self._coldkey_place(submission.hotkey, task_id.value):
+            source = recipe.to_dict()["source"]
+            if source["kind"] == "graph":
+                try:
+                    graph_envelope_from_workspace(
+                        provider.ledger, provider.owner, recipe
+                    )
+                except RecipeRefused as refused:
+                    raise Unavailable(refused.code) from None
+            from carbon.research import canonical_bytes
 
-        self.ledger.record_recipe_task_intent(
-            self.contract_digest,
-            task_id.value,
-            submission.hotkey,
-            "sha256:" + hashlib.sha256(canonical_bytes(request)).hexdigest(),
-        )
-        self._give_back_queue_place(
-            earlier_generations, task_id.value, submission.hotkey
-        )
-        if submission.strategy.get("source", {}).get("kind") == "catalog":
-            from carbon.backbone_catalog.served import submission_document
-
-            self.ledger.record_catalog_submission(
+            self.ledger.record_recipe_task_intent(
                 self.contract_digest,
                 task_id.value,
-                submission_document(submission.strategy, recipe.to_dict()),
+                submission.hotkey,
+                "sha256:" + hashlib.sha256(canonical_bytes(request)).hexdigest(),
             )
-        try:
-            task = provider.start_research_task(
-                request, measure_query=self._measure_query
-            ).task
-        except ResearchTaskProviderError as refused:
-            if refused.code in (
-                ResearchServiceErrorCode.REFERENCE_NOT_FOUND,
-                ResearchServiceErrorCode.REFERENCE_MISMATCH,
-                ResearchServiceErrorCode.BOUND_EXCEEDED,
-            ):
-                raise Unavailable("direct_" + refused.code.value.lower()) from None
-            raise Unavailable("direct_provider_unavailable") from None
+            self._give_back_queue_place(
+                earlier_generations, task_id.value, submission.hotkey
+            )
+            if submission.strategy.get("source", {}).get("kind") == "catalog":
+                from carbon.backbone_catalog.served import submission_document
+
+                self.ledger.record_catalog_submission(
+                    self.contract_digest,
+                    task_id.value,
+                    submission_document(submission.strategy, recipe.to_dict()),
+                )
+            try:
+                task = provider.start_research_task(
+                    request, measure_query=self._measure_query
+                ).task
+            except ResearchTaskProviderError as refused:
+                if refused.code in (
+                    ResearchServiceErrorCode.REFERENCE_NOT_FOUND,
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH,
+                    ResearchServiceErrorCode.BOUND_EXCEEDED,
+                ):
+                    raise Unavailable("direct_" + refused.code.value.lower()) from None
+                raise Unavailable("direct_provider_unavailable") from None
         if task.task_id != task_id:
             raise RuntimeError("direct task identity changed after owner intent")
         return self._project(task, provider)
@@ -405,6 +409,31 @@ class LeanRecipeAdapter(ChallengeAdapter):
             exam_key=provider.evaluation_pack_digest,
             submission_id=submission_id,
         )
+
+    @contextlib.contextmanager
+    def _coldkey_place(self, hotkey, task_id):
+        """One waiting submission per coldkey (`coldkey_waiting`), when the receiver installed the guard and the version
+        registers a limit: refuse now, before any intent or build, if this hotkey's coldkey already has that many
+        submissions waiting; otherwise hold the guard's lock until the body (the task's start) is done, so two hotkeys of
+        one coldkey can never both pass. Off (no guard, no limit): nothing is checked or held.
+        """
+        from carbon.challenge_validator import coldkey_waiting
+
+        guard = getattr(self, "coldkey_waiting", None)
+        limit = (
+            None
+            if guard is None
+            else coldkey_waiting.limit_for(self.challenge_id, self.challenge_version)
+        )
+        if limit is None:
+            yield
+            return
+        with guard.lock:
+            refused = guard.refusal(hotkey=hotkey, task_id=task_id, limit=limit)
+            if refused is not None:
+                code, message = refused
+                raise Unavailable(code, retry={"message": message})
+            yield
 
     def _refuse_spent_round(self, submission, task_id, provider):
         """One graded exam per Challenge per round: a hotkey whose graded exam already holds this

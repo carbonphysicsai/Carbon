@@ -1,0 +1,20 @@
+{
+  "label": "One waiting submission per coldkey at submit, Motor 1.8 on 116 (owner, 14 Nov 23:36 CST)",
+  "owner_words": [
+    {
+      "source": "codex-queue/reports/DECISION_LEDGER_20261105.md, the Sat 14 Nov 23:36 CST entry",
+      "typed_at": "Sat 14 Nov 2026 23:36 CST",
+      "typed_in": "the Lead session",
+      "verbatim": "1.0 and yes"
+    }
+  ],
+  "proposal_answered": "TE-B's estimate on the team board, Sat 14 Nov 23:30 CST, relayed by the Lead: at submit, refuse a new submission if a hotkey of the same coldkey already has a submission queued, building or built and not yet graded on this door; limit 1 as a values setting; submissions already waiting are kept.",
+  "registry": "scripts/validator_host_classes/coldkey_waiting_limit.json",
+  "rule": "carbon/challenge_validator/coldkey_waiting.py: the coldkey is the door's own latest chain snapshot's; a submitter the snapshot cannot resolve is refused with the existing retry code allowance_group_unresolved; a resend of the same submission is never refused; per-round grading (exam_cap) is unchanged.",
+  "schema": "carbon.exam.coldkey-waiting-limit-record.v1",
+  "values": {
+    "electric-motor-magnetics 1.8": {
+      "limit": 1
+    }
+  }
+}
