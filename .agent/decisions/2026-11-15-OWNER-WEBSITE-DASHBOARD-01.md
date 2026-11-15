@@ -49,6 +49,21 @@ applied, checked by reversing them back to the stripped live bytes:
   1160px, Menu sheet up to 1100px (was 1020px). Checked in Chromium every 2px
   from 1090px to 1608px and every 10px from 800px; no item wraps.
 
-**Limits.** Not deployed: publication through Cloudflare is the owner's action.
-The upload set is twelve pages plus `site.css`; whether it can be uploaded on
-its own or must be merged into the full site depends on how live is deployed.
+**Owner, verbatim, on how the site is deployed:** "Yeah I'm pretty sure we have
+uploaded to replace the whole site. I'm open to a better way though. Guided by
+you on this"
+
+**Source of truth (agent's choice, as invited).** The complete live site is now
+kept at `website/carbonwebsite/site/` (178 files, identical to live before this
+change, checked with `website/carbonwebsite/tools/compare-live.mjs`). Site
+changes are made there by pull request and deployed from that folder with the
+same `wrangler deploy --assets` form used before; the folder's README gives the
+steps and rollback. The Dashboard change is a separate commit on top of the
+snapshot touching exactly the twelve pages and `site.css` above. The earlier
+edits to the outdated `website/ask-carbon/site/` copies were reverted; those
+records stay as October history.
+
+**Limits.** Not deployed: deploying is the owner's action. Cloudflare cannot
+list the files a Worker serves, so a live file nothing links to would not be in
+the snapshot and a whole-site deploy would remove it; of the October manifest's
+100 files, 99 were found and the other already returned 404.
