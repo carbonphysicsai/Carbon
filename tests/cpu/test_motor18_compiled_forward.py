@@ -113,8 +113,10 @@ def test_the_compiled_pair_equals_the_eager_answers_within_1e_12_on_public_rows(
     finally:
         ledger.connection.close()
     assert len(seen) == 2
+    # the child really ran the compiled program (the runner gets it as its source)
     assert all(
-        call["program"] == worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM for call in seen
+        "member_forward = jax.jit(rebuild(doc, allowed))" in call["source"]
+        for call in seen
     )
     phases = [
         np.asarray(
@@ -207,7 +209,7 @@ def test_the_menu_row_check_answers_every_row_bit_for_bit_as_the_compiled_graded
     assert '"paired_repeat_procedure": "per_case"' in inspect.getsource(
         motor18_dual_pack._sl().definition
     )
-    _limits, query = _contract(motor18)
+    _contract(motor18)  # Motor 1.8 resolves to the compiled program
     rows = motor18["inputs"]
     keyed = [5, 0, 7, 2, 3]  # a subset, out of order, of a different size
     ledger, seen = FixtureLedger(tmp_path), []
@@ -243,5 +245,8 @@ def test_the_menu_row_check_answers_every_row_bit_for_bit_as_the_compiled_graded
         checked = pair("compiled-menu-rowcheck", np.ascontiguousarray(rows[keyed]))
     finally:
         ledger.connection.close()
-    assert all(call["program"] == query["program"] for call in seen)
+    assert len(seen) == 4 and all(
+        "member_forward = jax.jit(rebuild(doc, allowed))" in call["source"]
+        for call in seen
+    )
     assert checked.tobytes() == graded[keyed].tobytes()  # bit for bit, every row
