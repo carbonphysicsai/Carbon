@@ -571,9 +571,11 @@ def small_promise(tmp_path, monkeypatch):
     }
 
 
-def _side(*, sealed=SEALED, keyed=KEYED, answers=None, sid=SID, **overrides):
+def _side(*, sealed=SEALED, keyed=KEYED, answers=None, sid=SID, lanes=1, **overrides):
     graded_inputs = np.arange(N * 3, dtype=np.float64).reshape(N, 3)
     positions = subset.positions_of(sealed, keyed)
+    if lanes is not None:
+        positions, _where = subset.rerun_rows(MOTOR, "1.8", positions, N, lanes)
     answers = [_row(p) for p in positions] if answers is None else answers
     raw = subset.side_file(
         challenge=MOTOR,
@@ -583,6 +585,7 @@ def _side(*, sealed=SEALED, keyed=KEYED, answers=None, sid=SID, **overrides):
         n_rows=N,
         sealed=list(sealed),
         keyed=keyed,
+        lanes=lanes,
         run=_run(graded_inputs, positions, answers, **overrides),
     )
     return raw, graded_inputs
@@ -615,6 +618,38 @@ def test_the_reader_returns_one_twin_per_repeated_row_and_none_elsewhere(
     assert len(twins) == N
     assert [i for i, t in enumerate(twins) if t is not None] == [0, 1, 2, 3, 5, 7, 8, 9]
     assert list(twins[5]) == _row(5)
+
+
+def test_a_vmap64_side_file_reruns_the_original_chunks_and_picks_the_drawn_rows(
+    small_promise,
+):
+    """L = 4: the drawn rows 0-3, 5, 7, 8, 9 sit in chunks 0 (0-3), 1 (4-7) and 2 (8-9, short): all 10 rows are
+    re-run, and only the drawn ones are repeat-checked."""
+    raw, graded_inputs = _side(lanes=4)
+    assert json.loads(raw)["lanes"] == 4
+    assert json.loads(raw)["run"]["logical_prediction_rows"] == N
+    twins = _read(raw, graded_inputs)
+    assert [i for i, t in enumerate(twins) if t is not None] == [0, 1, 2, 3, 5, 7, 8, 9]
+    assert list(twins[7]) == _row(7) and twins[4] is None and twins[6] is None
+    assert subset.rerun_rows(MOTOR, "1.8", [3, 9], 10, 4) == (
+        [0, 1, 2, 3, 8, 9],
+        [3, 5],
+    )
+
+
+@pytest.mark.parametrize("lanes", [None, 0, 65, True, "4"])
+def test_a_vmap64_side_file_without_its_lane_count_is_refused(small_promise, lanes):
+    raw, graded_inputs = _side()
+    bad = raw.replace(b'"lanes":1', b'"lanes":' + json.dumps(lanes).encode())
+    with pytest.raises(subset.SubsetRepeatRefused) as caught:
+        _read(bad, graded_inputs, registered_sha256=_sha(bad))
+    assert caught.value.code in ("subset_repeat_lanes", "subset_repeat_shape")
+
+
+def test_a_version_that_is_not_vmap64_names_no_lane_count():
+    assert subset.rerun_rows(MOTOR, "1.5", [4, 2], 10, None) == ([4, 2], [0, 1])
+    with pytest.raises(subset.SubsetRepeatRefused):
+        subset.rerun_rows(MOTOR, "1.5", [4, 2], 10, 8)
 
 
 def test_the_wall_retry_identity_is_accepted(small_promise):
@@ -1124,7 +1159,7 @@ def test_the_operator_tool_routes_a_subset_version_to_its_own_producer():
 # -- the door ------------------------------------------------------------------------------------------------------------
 
 
-def _door(tmp_path, monkeypatch, plays, *, n=200, promise=None, key=KEY):
+def _door(tmp_path, monkeypatch, plays, *, n=200, promise=None, key=KEY, lanes=8):
     """The REAL `_subset_repeat_raw` over a fake `infer_frozen_once` that plays ``plays`` in order; the bank has 30
     sealed cells, 20 probe rows and ``n - 50`` pool rows."""
     from carbon.challenge_validator import lean_recipe_retention as retention
@@ -1154,6 +1189,9 @@ def _door(tmp_path, monkeypatch, plays, *, n=200, promise=None, key=KEY):
     monkeypatch.setattr(
         retention, "_subset_bank", lambda adapter, inputs: _bank(_cohorts(n))
     )
+    from carbon.development_session import direct_graph_construction_worker as worker
+
+    monkeypatch.setattr(worker, "vmap64_state_lanes", lambda *a: lanes)
     if promise is not None:
         monkeypatch.setattr(subset, "VALUES_PATH", _motor18_promise(tmp_path, promise))
     snapshot = SimpleNamespace(
@@ -1242,8 +1280,12 @@ def test_the_door_runs_one_fresh_op_on_the_sealed_cells_and_each_stratums_keyed_
     assert document["submission_id"] == "rtsk_x"
     assert document["evaluation_pack_digest"] == PACK
     positions = subset.positions_of(sealed, keyed)
-    assert np.array_equal(calls[0]["inputs"], practice[positions])
-    assert calls[0]["expected_output_shape"] == (116, WIDTH)
+    # vmap-64 (L = 8 here): the ORIGINAL chunks holding every drawn row, never single rows
+    queried, _where = subset.rerun_rows(MOTOR, "1.8", positions, 200, 8)
+    assert document["lanes"] == 8
+    assert set(positions) <= set(queried) and len(queried) % 8 == 0
+    assert np.array_equal(calls[0]["inputs"], practice[queried])
+    assert calls[0]["expected_output_shape"] == (len(queried), WIDTH)
     assert calls[0]["procedure"] == "per_case"
     assert calls[0]["identity"] == subset.run_identity(PACK, "rtsk_x")
     assert document["run"] == {"fixture": True}
@@ -1337,7 +1379,7 @@ def test_no_key_refuses_at_grade_time(tmp_path, monkeypatch):
     assert str(caught.value) == "subset_repeat_key_unavailable" and not calls
 
 
-def _retain(tmp_path, monkeypatch, version, repeat):
+def _retain(tmp_path, monkeypatch, version, repeat, regrade=None, material=None):
     """`_retain_selected_pack_evaluation` up to and including the repeat (``repeat`` replaces it)."""
     from carbon.challenge_validator import exam_cap
     from carbon.challenge_validator import lean_recipe_retention as retention
@@ -1396,10 +1438,12 @@ def _retain(tmp_path, monkeypatch, version, repeat):
         ledger=object(),
         contract_digest="c",
         owner=lambda sid: "owner",
+        _provider=lambda owner: SimpleNamespace(),
         discovery=SimpleNamespace(
             evaluation_pack_snapshot=snapshot,
             evaluation_pack_private_root=tmp_path,
             evaluation_pack_public_root=tmp_path,
+            **({} if material is None else {"_material": material}),
         ),
     )
     result = retention._retain_selected_pack_evaluation(
@@ -1411,8 +1455,75 @@ def _retain(tmp_path, monkeypatch, version, repeat):
             "inference-receipt.json": b"r",
             "worker-evidence.json": b"w",
         },
+        regrade=regrade,
     )
     return result, seen, settled
+
+
+def test_a_graded_pass_from_another_inference_refuses_before_the_subset_op(
+    tmp_path, monkeypatch
+):
+    """vmap-64: the graded rows the subset repeat compares against must come from the inference it runs. A regrade
+    whose recorded graded-inference digest differs is Carbon's GRADED_PROGRAM_CHANGED (FAILED_INFRA, not retried),
+    raised before the subset op runs, never a candidate's repeat failure."""
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    monkeypatch.setattr(
+        retention, "_graded_inference_digest", lambda *a: "sha256:" + "2" * 64
+    )
+    monkeypatch.setattr(retention, "_inference_image_of", lambda *a: None)
+    regrade = SimpleNamespace(
+        counted=False,
+        origin_task_id="rtsk_x",
+        owner="owner",
+        recipe={},
+        graded_inference_sha256="sha256:" + "1" * 64,
+        promotion=None,
+        repeat=None,
+        exam_se=False,
+    )
+    material = {"construction_kit": {"id": MOTOR, "version": "1.8"}}
+    with pytest.raises(retention.RetentionUnavailable) as caught:
+        _retain(
+            tmp_path,
+            monkeypatch,
+            "1.8",
+            lambda: b"never",
+            regrade=regrade,
+            material=material,
+        )
+    assert str(caught.value) == retention.GRADED_PROGRAM_CHANGED
+    assert retention.GRADED_PROGRAM_CHANGED in retention._propagated_carbon_failures()
+
+
+def test_a_recorded_graded_inference_reaches_the_subset_op(tmp_path, monkeypatch):
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    monkeypatch.setattr(
+        retention, "_graded_inference_digest", lambda *a: "sha256:" + "1" * 64
+    )
+    monkeypatch.setattr(retention, "_inference_image_of", lambda *a: None)
+    regrade = SimpleNamespace(
+        counted=False,
+        origin_task_id="rtsk_x",
+        owner="owner",
+        recipe={},
+        graded_inference_sha256="sha256:" + "1" * 64,
+        promotion=None,
+        repeat=None,
+        exam_se=False,
+    )
+    material = {"construction_kit": {"id": MOTOR, "version": "1.8"}}
+    result, seen, _settled = _retain(
+        tmp_path,
+        monkeypatch,
+        "1.8",
+        lambda: b"subset-evidence",
+        regrade=regrade,
+        material=material,
+    )
+    assert seen == ["subset"]
+    assert result["private_evaluation_reason"] == "stopped_after_the_repeat"
 
 
 def test_the_retention_runs_the_subset_repeat_and_never_the_pair_for_motor_18(

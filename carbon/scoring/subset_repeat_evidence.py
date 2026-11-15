@@ -71,6 +71,7 @@ _DOCUMENT = {
     "sealed_positions",
     "keyed_positions",
     "k",
+    "lanes",
     "run",
     "scientific_qualification",
     "official_eligible",
@@ -555,9 +556,11 @@ def side_file(
     sealed,
     keyed,
     run,
+    lanes=None,
 ):
-    """The host-private side file of one subset repeat (canonical JSON bytes). ``keyed`` is ``{stratum: positions}``;
-    the run answered the graded rows at `positions_of` (sealed, keyed), in that order.
+    """The host-private side file of one subset repeat (canonical JSON bytes). ``keyed`` is ``{stratum: positions}``.
+    The run answered the graded rows `rerun_rows` names: for a vmap-64 version (``lanes`` = the model's L) the ORIGINAL
+    chunks holding every drawn row, else the drawn rows (`positions_of`) themselves, in that order.
     """
     return canonical(
         {
@@ -570,6 +573,7 @@ def side_file(
             "sealed_positions": list(sealed),
             "keyed_positions": {name: list(rows) for name, rows in keyed.items()},
             "k": {name: len(rows) for name, rows in keyed.items()},
+            "lanes": lanes,
             "run": run,
             "scientific_qualification": False,
             "official_eligible": False,
@@ -579,6 +583,34 @@ def side_file(
 
 def _sha(raw):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def rerun_rows(challenge, version, positions, n_rows, lanes):
+    """``(queried rows, where)``: the graded rows a subset repeat's fresh run answers, in order, and the index of each
+    drawn position's answer in it. A vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`)
+    graded each row in an isolated lane of a chunk of the model's L lanes, bit for bit only beside the same companions
+    and padding, so its run is the ORIGINAL chunks (`vmap64_rerun_rows` at ``lanes``, which must be its L); every
+    other version runs the drawn rows themselves (``lanes`` None)."""
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_INFERENCE_VERSIONS,
+        VMAP64_LANES,
+        vmap64_rerun_rows,
+    )
+
+    if (challenge, version) in VMAP64_INFERENCE_VERSIONS:
+        _require(
+            type(lanes) is int
+            and not isinstance(lanes, bool)
+            and 1 <= lanes <= VMAP64_LANES,
+            "subset_repeat_lanes",
+        )
+        try:
+            queried, where = vmap64_rerun_rows(list(positions), n_rows, lanes)
+        except ValueError as exc:
+            raise SubsetRepeatRefused("subset_repeat_lanes") from exc
+        return list(queried), list(where)
+    _require(lanes is None, "subset_repeat_lanes")
+    return list(positions), list(range(len(positions)))
 
 
 def _ascending(values, n_rows):
@@ -736,9 +768,12 @@ def read(
             "subset_repeat_positions",
         )
         positions = positions_of(sealed, keyed)
+        queried, where = rerun_rows(
+            challenge, version, positions, n_rows, document["lanes"]
+        )
         run = document["run"]
         _require(type(run) is dict and set(run) == _RUN, "subset_repeat_run_shape")
-        subset = np.ascontiguousarray(np.asarray(graded_inputs)[positions])
+        subset = np.ascontiguousarray(np.asarray(graded_inputs)[queried])
         _require(
             run["schema"] == RUN_SCHEMA
             and run["execution_boundary"] == "C03_DOCKER"
@@ -749,7 +784,7 @@ def read(
             and run["inference_image_id"] == inference_image_id
             and run["inputs_digest"] == _sha(_tensors(inputs=subset))
             and type(run["logical_prediction_rows"]) is int
-            and run["logical_prediction_rows"] == len(positions)
+            and run["logical_prediction_rows"] == len(queried)
             and type(run["elapsed_seconds"]) in (int, float)
             and math.isfinite(run["elapsed_seconds"])
             and run["elapsed_seconds"] >= 0,
@@ -814,10 +849,11 @@ def read(
         if isinstance(exc, SubsetRepeatRefused):
             raise
         raise SubsetRepeatRefused("subset_repeat_evidence_unreadable") from exc
-    answers = _answers(predictions_raw, len(positions), rest)
+    answers = _answers(predictions_raw, len(queried), rest)
     twins = [None] * n_rows
-    for position, answer in zip(positions, answers, strict=True):
-        twins[position] = answer
+    # only the drawn rows are repeat-checked; a re-run chunk's other rows are read but never judged
+    for position, index in zip(positions, where, strict=True):
+        twins[position] = answers[index]
     del width
     return twins
 
@@ -849,6 +885,7 @@ __all__ = [
     "registered_counts",
     "registered_promise",
     "registered_rate",
+    "rerun_rows",
     "rows_agree",
     "run_identity",
     "side_file",

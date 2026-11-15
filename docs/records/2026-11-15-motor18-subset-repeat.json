@@ -3,6 +3,7 @@
   "confirm_before_switch": "Deploy-B / Validator-2B confirm producer_successor.pack_producer_digest equals the live Motor 1.8 pack's accuracy_definition.producer_digest (computed here as Motor 1.8's producer digest at e6f67358, the compiled-forward head, before this change).",
   "implementation": [
     "Rows that are not repeated are not repeat-checked.",
+    "Under vmap-64 (Motor 1.8's graded rows answered in isolated lanes of chunks of the model's own L lanes), the ONE fresh process re-runs the ORIGINAL chunks holding every drawn row (direct_graph_construction_worker.vmap64_rerun_rows at the model's L, named in the side file as lanes), never single rows: a drawn row sits in its original chunk and lane, so it answers bit for bit as graded. The other rows of those chunks are read but not repeat-checked. Before the comparison, the graded-inference guard (lean_recipe_retention._check_graded_program) refuses graded rows made by another program, staged modules or image as Carbon's graded_program_changed (FAILED_INFRA, not retried). Cost: the drawn rows touch most chunks, about one compiled vmap pass.",
     "The shared sealed measure takes two full twin rows, so a row that is not repeated (or whose fresh answer is not one finite row of the graded width) is given its own graded answer as its twin. Its internal paired_repeat then reads PASS; that verdict is never exported (the aggregate counts only FAIL) and has no score effect (score_case reads the twin only inside its gates; the pool rows' twins are never read).",
     "The bit-exact whole-row check (subset_repeat_evidence.rows_agree) is the decisive gate over every repeated row; a failure sets native_motor_valid and complete_fixed_coverage FAIL, A None, D 0.",
     "The strata are defined in code (subset_repeat_evidence.STRATA), each tied to its registered source in pool_constants and checked at every build: probe_response = the bank's probe cohort; H-1 / H-3a / H-3b = pool rows of the targets the registered coverage plan (coverage_plan_sha256 65e3d90b, sums 0893d54b, coverage_class_vocabulary) classes so; gate_torque_7d1761c3 / gate_oc_697a0d7b = the rows of the registered in-range case set (in_range_cases_sha256 8ee64cc0) whose truths are exactly the torque outputs (mean_torque_nm, ripple_pk_pk_nm) / exactly the OC output (back_emf_open_circuit), checked against their registered sizes n 23 / n 24; menu_D3 .. menu_D6 = each registered menu task's (design x duty) rows. The values row names exactly these strata (null or another name fails closed). Each keyed stratum is drawn under its own key HMAC(K_speed, 'carbon.subset-repeat/1' || 0x00 || submission id || 0x00 || stratum).",
@@ -60,7 +61,7 @@
     "derived_k_per_stratum": 66,
     "producer_successor": {
       "pack_producer_digest": "sha256:9c5ac4dbee486fbf9b986b22f5b1b2f2b1a4b415512a950379761159967e32cc",
-      "producer_digest": "sha256:238ce8af5327a0940edaba870f7325da0c54c0630be8300c342699ed767ffd80"
+      "producer_digest": "sha256:73f72be161278e694cb620ebf36ae8c0dd278a53b30dcb6fb42bec53c5919d2e"
     },
     "promise": {
       "repeat_detect_prob": 0.999,

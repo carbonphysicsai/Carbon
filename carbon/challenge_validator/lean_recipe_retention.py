@@ -1250,6 +1250,13 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
 
     from carbon.development_session.construction_recipe import ConstructionRecipe
     from carbon.development_session.data import write_once
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_INFERENCE_VERSIONS as vmap64_versions,
+    )
+    from carbon.development_session.direct_graph_construction_worker import (
+        vmap64_rerun_rows,
+        vmap64_state_lanes,
+    )
     from carbon.development_session.paired_inference import (
         InferencePairFailure,
         infer_frozen_once,
@@ -1314,8 +1321,31 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
         or accuracy.get("paired_repeat_procedure") != "per_case"
     ):
         raise RetentionUnavailable("subset_repeat_procedure_unregistered")
-    rows = np.ascontiguousarray(inputs[positions])
-    rows_shape = (len(positions), *tuple(output_shape)[1:])
+    recipe = (
+        ConstructionRecipe.from_dict(_served_recipe(adapter, submission_id))
+        if regrade is None
+        else regrade.recipe
+    )
+    # A vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) graded each row in an isolated lane
+    # of a chunk of the model's own L lanes, bit for bit only beside the same companions and padding: the fresh process
+    # re-runs the ORIGINAL chunks that hold every drawn row (`vmap64_rerun_rows` at the model's L), never single rows,
+    # and the side file names L so the scorer picks each drawn row's answer from that run. Every other version queries
+    # the drawn rows themselves.
+    lanes, queried = None, positions
+    if (kit["id"], kit["version"]) in vmap64_versions:
+        try:
+            lanes = vmap64_state_lanes(
+                kit["id"],
+                kit["version"],
+                artifacts["state.npz"],
+                recipe,
+                material["allowlist_bytes"],
+            )
+        except (KeyError, TypeError, ValueError, RuntimeError) as exc:
+            raise RetentionUnavailable("subset_repeat_lanes_unavailable") from exc
+        queried, _where = vmap64_rerun_rows(positions, len(inputs), lanes)
+    rows = np.ascontiguousarray(inputs[queried])
+    rows_shape = (len(queried), *tuple(output_shape)[1:])
     image = _inference_image_of(provider, regrade)
 
     def attempt(retry):
@@ -1324,11 +1354,7 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
             owner=owner,
             identity=subset.run_identity(pack, submission_id, retry=retry),
             inference_image=image,
-            recipe=(
-                ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
-                if regrade is None
-                else regrade.recipe
-            ),
+            recipe=recipe,
             challenge_binding={
                 "challenge_id": kit["id"],
                 "challenge_version": kit["version"],
@@ -1371,6 +1397,7 @@ def _subset_repeat_raw(adapter, submission_id, result, artifacts, entry, regrade
         n_rows=len(inputs),
         sealed=sealed,
         keyed=keyed,
+        lanes=lanes,
         run=run.evidence,
     )
     write_once(path, raw)
