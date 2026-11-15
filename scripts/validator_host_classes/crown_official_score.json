@@ -1,0 +1,9 @@
+{
+  "schema": "carbon.crown-official-score.v1",
+  "source": "Owner 14 Nov 2026, verbatim via the Lead: crown rebuilds dropped; 'No protection. New kings win. I don't need a queue of contenders building'; the margin '.0129'. A version listed here decides its crowns on the OFFICIAL grades: contender total > king total + margin (a tie keeps the king), in queue order, with no crown rebuild and no repeat grade (carbon/challenge_validator/crown_official.py). A version not listed decides crowns as before.",
+  "versions": {
+    "electric-motor-magnetics 1.8": {
+      "margin": 0.0129
+    }
+  }
+}

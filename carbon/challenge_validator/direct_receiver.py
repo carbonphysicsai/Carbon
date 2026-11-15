@@ -2217,6 +2217,10 @@ def serve(
     from carbon.challenge_validator import crown_hold
 
     crown_hold.install(challenge.challenge_id, challenge.version)
+    # OFFICIAL-SCORE CROWNS (owner 14 Nov; `crown_official`): read once for the SERVED version; on, the crown average is off
+    from carbon.challenge_validator import crown_official
+
+    crown_official.install(challenge.challenge_id, challenge.version)
     # the registries' version key (noise, control, margin_N): this receiver's own version's entry first, else the Challenge's
     from carbon.challenge_validator import registry_version
 

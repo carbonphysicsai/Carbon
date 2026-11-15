@@ -639,6 +639,13 @@ class BankPromotion:
 
         active = crown_average.ACTIVE if average is None else average
         screened = comparator
+        # OFFICIAL-SCORE CROWNS (owner 14 Nov; `crown_official`): the two OFFICIAL grades decide with the registered
+        # margin, and a crown change below is applied with no rebuild and no repeat. Off: None, nothing differs.
+        from carbon.challenge_validator import crown_official
+
+        official = crown_official.comparator(comparator)
+        if official is not None:
+            active, screened = None, official
         if active is not None:
             try:
                 pair, screened = active.screening(self.store, pair, comparator)
@@ -686,6 +693,19 @@ class BankPromotion:
                     "candidate": submission_id,
                     "incumbent": (self.store.incumbent() or {}).get("model_id"),
                 }
+
+            if official is not None:
+                # OFFICIAL SCORE: the decision IS the official grades' comparison (oldest-first, after the pause, the hold
+                # and the queue checks above): applied now, with no repeat grade and no rebuild of either model.
+                if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):
+                    self.store.set_incumbent(
+                        submission_id, reason, expected=pair["expected_incumbent"]
+                    )
+                elif outcome["outcome"] == DETHRONED:
+                    self.store.vacate_incumbent(
+                        pair["expected_incumbent"], "incumbent_failed_mandatory_gate"
+                    )
+                return outcome
 
             # A mark belongs to the grade's own evaluation key: a carried king's grade is filed under his old key.
             def own_key(row):
