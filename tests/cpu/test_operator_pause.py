@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 
 from carbon.challenge_validator import bank_promotion as bp
-from carbon.challenge_validator import operator_pause
+from carbon.challenge_validator import crown_pause_sweep, operator_pause
 from carbon.validator_setup import weights
 from carbon.validator_setup.bundle import SetupRefused
 from tests.cpu import test_crown_grade_repeat as base
@@ -296,6 +296,11 @@ def test_a_crash_mid_sweep_resumes_where_it_stopped_and_decides_nobody_twice(
         "a"
     ]  # stopped at b: c not decided ahead of it
     assert [r["submission_id"] for r in store.paused_crowns()] == ["b", "c"]
+    # the crash now counts a failed attempt (and is journaled): the retry is SPACED like any undecided decision, so the next
+    # tick inside the spacing does not try it again; once the spacing has passed it resumes where it stopped
+    assert sweep(store, flaky) == [] and calls == ["a", "b"]
+    real_clock = store.clock
+    store.clock = lambda: real_clock() + crown_pause_sweep.RETRY_SECONDS + 1
     assert [n for n, _ in sweep(store, flaky)] == ["b", "c"]
     assert calls == ["a", "b", "b", "c"]
     assert sweep(store, flaky) == []

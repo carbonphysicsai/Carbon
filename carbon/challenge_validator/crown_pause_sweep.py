@@ -103,6 +103,44 @@ def spaced(store, attempts, last):
 ALERT_AFTER = 3
 
 
+def _failed_loudly(store, record, error, *, waiting, queued):
+    """A `reconsider` that RAISED (a StateError such as ``evaluation_source_changed``, an unreadable role, a missing retained
+    entry...) used to end the tick with NO journal line, NO attempt and NO alert, every tick, and the sweep stops at the oldest
+    record, so every later one waited with it (14 Nov: three records sat silently on a king evaluation under another source pin).
+    Now it says so: one journal line (record id, exception type, closed code: never the message), a failed attempt counted so the
+    retry is spaced (`spaced`) and the typed alert follows after `ALERT_AFTER` attempts exactly as for an undecided outcome. The
+    sweep still stops here (admission order is kept); nothing is skipped and no record is resolved.
+    """
+    submission_id, key = record["submission_id"], record["evaluation_key"]
+    code = getattr(error, "code", None)
+    code = (
+        code
+        if type(code) is str and 0 < len(code) <= 128 and code.isprintable()
+        else ""
+    )
+    name = type(error).__name__
+    attempt = f"EXCEPTION:{name}:{code}" if code else f"EXCEPTION:{name}"
+    koth_journal.note(
+        "crown_sweep_reconsider_failed",
+        submission_id=submission_id,
+        error=name,
+        code=code,
+    )
+    try:
+        failed = store.note_crown_pause_attempt(submission_id, key, attempt)
+        if failed >= ALERT_AFTER:
+            store.record_crown_pause_alert(
+                submission_id,
+                key,
+                failed,
+                attempt,
+                waiting=waiting,
+                queued=[r["submission_id"] for r in queued],
+            )
+    except Exception:  # noqa: BLE001 - the journal line is the record
+        return
+
+
 def sweep(store, reconsider, *, kind, current_exam):
     """Make every unresolved paused decision of ``kind`` again; returns ``[(submission_id, code)]`` resolved now.
 
@@ -133,7 +171,14 @@ def sweep(store, reconsider, *, kind, current_exam):
                 break  # tried within RETRY_SECONDS already: no GPU is burned again before then
             try:
                 outcome = reconsider(record)
-            except Exception:  # noqa: BLE001 - left unresolved, retried next tick
+            except Exception as error:  # noqa: BLE001 - spaced retry
+                _failed_loudly(
+                    store,
+                    record,
+                    error,
+                    waiting=len(pending) - place - 1,
+                    queued=pending[place + 1 :],
+                )
                 break
             koth_journal.contention(
                 "sweep", submission_id, outcome, incumbent.get("model_id"), store=store
