@@ -568,6 +568,24 @@ def grade(
         )
     except adapter.Refused as exc:
         raise CalibrationRefused("dual_native_" + exc.code) from exc
+    from carbon.scoring import subset_repeat_evidence
+
+    if subset_repeat_evidence.is_subset_version(adapter.CHALLENGE, adapter.VERSION):
+        # A subset-repeat version (Motor 1.8; CV-Motor-B Q2): this tool runs two FULL repeats, so every row of both is
+        # held to the official grade's decisive rule (bit-exact whole rows), besides the torque gate the measure ran.
+        from carbon.scoring import subset_repeat_produce
+
+        measured = subset_repeat_produce.gated(
+            adapter,
+            measured,
+            all(
+                subset_repeat_produce.repeat_holds(
+                    [[float(v) for v in row] for row in graded],
+                    [tuple(float(v) for v in row) for row in repeat],
+                )
+                for repeat in repeats
+            ),
+        )
     gates = list(pack.get("hard_gates", []))
     _require(gates == list(measured["gates"]), "dual_native_gate_contract")
 

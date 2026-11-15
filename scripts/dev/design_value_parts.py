@@ -414,12 +414,25 @@ def load_run(manifest, base=None):
     single = manifest.get("single_call_raw")
     dual = _json(path(manifest["dual_measurement"]))
 
+    entry = _json(path(manifest["entry"]))
+    # A subset-repeat version (Motor 1.8) is graded by its own producer (`subset_repeat_produce`), never the shared one:
+    # its repeat evidence is the subset side file and its pack's pinned producer reads through its successor row.
+    from carbon.scoring import subset_repeat_evidence
+
+    produce = source.produce_dual_benchmark_input
+    if subset_repeat_evidence.is_subset_version(
+        entry.get("challenge"), entry.get("challenge_version")
+    ):
+        from carbon.scoring import subset_repeat_produce
+
+        produce = subset_repeat_produce.produce_dual_benchmark_input
+
     def run_measure():
-        return source.produce_dual_benchmark_input(
+        return produce(
             selected_pack=selected,
             public_root=Path(manifest["public_root"]),
             private_root=Path(manifest["private_root"]),
-            entry=_json(path(manifest["entry"])),
+            entry=entry,
             trusted_job=_json(path(manifest["trusted_job"])),
             registration=_json(path(manifest["registration"])),
             references=_json(path(manifest["references"])),

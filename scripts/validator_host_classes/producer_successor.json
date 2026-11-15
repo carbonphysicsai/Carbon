@@ -2,7 +2,7 @@
   "rows": {
     "electric-motor-magnetics 1.8": {
       "pack_producer_digest": "sha256:9c5ac4dbee486fbf9b986b22f5b1b2f2b1a4b415512a950379761159967e32cc",
-      "producer_digest": "sha256:a2ebe2b8934a7141e876c9b543aee4b9a779d2049ab4620c082200455c8dce4f"
+      "producer_digest": "sha256:5e784fb83a83387ec436793431c1d8e2c7a9ed263d20c6f2de9e976b946fdeab"
     }
   },
   "schema": "carbon.exam.producer-successor.v1"

@@ -2251,8 +2251,10 @@ def serve(
             )
         # the sealed pack this receiver serves: a registered crown hold-off applies to exactly that pack (and menu epoch)
         crown_hold.bind_pack(pack_digest)
-        # a keyed-subset-repeat version (Motor 1.8): no registered promise, or a pack whose pinned producer does not bind
-        # this code (exactly or through its ONE successor row), and the door does not serve (Validator-2B R-5)
+        # a subset-repeat version (Motor 1.8): no registered promise, no grading-host K_speed, or a pack whose pinned
+        # producer does not bind this code (exactly or through its ONE successor row), and the door does not serve (R-5)
+        from carbon.scoring import subset_repeat_evidence
+
         try:
             subset_repeat = lean_recipe_retention.subset_repeat_serve_check(
                 challenge.challenge_id,
@@ -2261,6 +2263,14 @@ def serve(
                 public_root=(
                     Path(cfg["evaluation_pack"]["public_root"])
                     if pack_snapshot is not None
+                    else None
+                ),
+                # (read only for a subset version: every other door's start-up is unchanged)
+                speed_key=(
+                    _speed_key(cfg)
+                    if subset_repeat_evidence.is_subset_version(
+                        challenge.challenge_id, challenge.version
+                    )
                     else None
                 ),
             )

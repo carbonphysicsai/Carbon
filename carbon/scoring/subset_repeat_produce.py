@@ -1,4 +1,4 @@
-"""The dual producer of a keyed-subset-repeat version (`subset_repeat_evidence.SUBSET_REPEAT_VERSIONS`: Motor 1.8).
+"""The dual producer of a subset-repeat version (`subset_repeat_evidence.SUBSET_REPEAT_VERSIONS`: Motor 1.8).
 
 `physical_dual_pack.produce` reads the full repeat pair (`private_evaluation_source.read_inference_repeats`) and binds
 the pack's pinned producer by exact equality; both live in shared producer files whose bytes every other live pack pins.
@@ -7,25 +7,29 @@ So a subset version is produced HERE, never by editing them: the door routes a s
 called unchanged: the same role reads, bindings, authenticated graded outputs, pool query measurement, the adapter's
 `measure`, the shared receipt builder and its pack checks.
 
-What differs, exactly (CV-Motor-B's ruling; Validator-2B R-1..R-3):
+What differs, exactly (CV-Motor-B's rulings; Validator-2B R-1..R-3):
 
 - **The producer binding** (R-1): the pinned digest must equal the producer recomputed here, or the version's ONE
   successor row must map exactly that pinned digest to exactly this producer (`producer_successor.binds`). The shared
   receipt builder checks the pack under the pinned digest it was sealed with; the receipt then records the ACTUAL
   producer digest in its evidence and measurement basis (R-3). Nothing older is rescored.
-- **The repeat** (rulings 1-3): the repeat-evidence slot of the graded originals (``inference_pair_raw`` /
-  ``inference_pair_sha256``, the slot the full pair rides in for every other version) carries the keyed subset repeat's
-  side file, read by `subset_repeat_evidence.read` into one fresh answer per sampled row and None elsewhere. Its own
-  schema tells it from a pair: neither reader accepts the other's document. Missing or broken evidence is typed
-  unavailable (``dual_repeat_evidence_unavailable``), never a candidate verdict.
-- **The gate** (`measure_subset`): every sampled row's fresh answer must pass Motor's existing ``paired_repeat`` rule
-  against the graded answer (`carbon.motor.exam.gates`, unchanged, on the row's torque slice as the pair is compared
-  today); a row without a twin reads NOT_APPLICABLE. One FAIL anywhere in the bank makes the grade unscored exactly as a
-  pair mismatch on a graded cell does today: ``native_motor_valid`` and ``complete_fixed_coverage`` FAIL, A is None and
-  D is 0. The repeat feeds pass/fail only (R-2): the adapter's own measure runs with each sampled row's fresh answer as
-  its twin and every other row's graded answer as its own twin, so no row's score input moves (``paired_repeat`` of an
-  answer against itself cannot FAIL; the shared sealed measure takes two full twin rows, as `pool_plugin` and the
-  baseline packs already pass ``[outputs, outputs]``).
+- **The repeat** (Q1 = B): the repeat-evidence slot of the graded originals (``inference_pair_raw`` /
+  ``inference_pair_sha256``, the slot the full pair rides in for every other version) carries the subset repeat's side
+  file: ALL the sealed cells plus ``k`` keyed rows of the rest of the bank, re-run in one fresh process, read by
+  `subset_repeat_evidence.read` into one fresh answer per repeated row and None on every row that is not
+  repeat-checked. Its own schema tells it from a pair: neither reader accepts the other's document. Missing or broken
+  evidence is typed unavailable (``dual_repeat_evidence_unavailable``), never a candidate verdict.
+- **The gate** (`measure_subset`, Q2): the DECISIVE rule is that every repeated row's fresh answer equals the graded
+  answer bit for bit over the whole row (`subset_repeat_evidence.rows_agree`); a differing value, a malformed or a
+  non-finite fresh answer fails it. One failure makes the grade unscored exactly as a pair mismatch on a graded cell
+  does today: ``native_motor_valid`` and ``complete_fixed_coverage`` FAIL, A is None and D is 0. Motor's existing
+  torque-slice ``paired_repeat`` gate runs as it always did, inside the adapter's measure, on each repeated sealed
+  cell's fresh answer.
+- **What the repeat may touch** (R-2): fresh answers reach only gates. The shared sealed measure takes two full twin
+  rows (as `pool_plugin` and the baseline packs pass ``[outputs, outputs]``), so a row that is not repeat-checked (or
+  whose fresh answer is not one finite row of the right width) is given its own graded answer as its twin: its
+  ``paired_repeat`` then reads PASS internally. That verdict is never exported (the aggregate counts only FAIL) and has
+  no score effect: `exam.score_case` reads the twin only inside its gates, and the pool rows' twins are never read.
 
 This module is a producer file of Motor 1.8 only (`motor18_dual_pack.FILES`).
 """
@@ -34,6 +38,7 @@ from __future__ import annotations
 
 import io
 import json
+import math
 
 from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import producer_successor
@@ -51,35 +56,31 @@ def _source():
     return private_evaluation_source
 
 
-def _torque(row):
-    from carbon.motor import row18
-
-    parts = row18.split(row)
-    return None if parts is None else parts["torque_nm"]
-
-
 def repeat_holds(outputs, twins):
-    """Whether every sampled row's fresh answer passes Motor's ``paired_repeat`` rule against its graded answer.
+    """The subset gate's decisive rule over the whole graded bank: every repeated row (``twins[i]`` not None) equals its
+    graded answer bit for bit over the whole row. Rows that are not repeat-checked are not judged here.
+    """
+    return all(
+        subset_evidence.rows_agree(output, twin)
+        for output, twin in zip(outputs, twins, strict=True)
+        if twin is not None
+    )
 
-    ``twins`` holds one entry per graded row: the fresh answer, or None (not sampled: ``paired_repeat`` is
-    NOT_APPLICABLE there, `exam.gates(prediction, None)`). A graded answer that is no whole 1.8 row has no repeat
-    verdict here (its own schema failure is judged where it always was); a fresh answer that is no whole 1.8 row FAILS,
-    as the existing rule fails an unreadable twin."""
-    from carbon.motor import exam
 
-    for output, twin in zip(outputs, twins, strict=True):
-        if twin is None:
-            continue  # exam.gates(prediction, None)["paired_repeat"] == NOT_APPLICABLE
-        verdicts = exam.gates(
-            {"torque_nm": _torque(output)}, {"torque_nm": _torque(twin)}
-        )
-        if verdicts.get("paired_repeat") == exam.FAIL:
-            return False
-    return True
+def _twin_row(output, twin):
+    """The twin row the adapter's measure is given: the fresh answer when it is one finite row of the graded width,
+    else the graded answer itself (the exact check has already failed such a row)."""
+    if (
+        twin is not None
+        and len(twin) == len(output)
+        and all(type(v) is float and math.isfinite(v) for v in twin)
+    ):
+        return list(twin)
+    return list(output)
 
 
 def measure_subset(adapter, *, outputs, twins, capture=None, **arguments):
-    """The adapter's measure of one grade under the keyed subset repeat (see the module docstring)."""
+    """The adapter's measure of one grade under the subset repeat (see the module docstring)."""
     if (
         type(outputs) is not list
         or type(twins) is not list
@@ -87,8 +88,7 @@ def measure_subset(adapter, *, outputs, twins, capture=None, **arguments):
     ):
         raise adapter.Refused("motor_prediction_roster")
     repeat = [
-        list(output if twin is None else twin)
-        for output, twin in zip(outputs, twins, strict=True)
+        _twin_row(output, twin) for output, twin in zip(outputs, twins, strict=True)
     ]
     measured = adapter.measure(
         outputs=outputs,
@@ -96,7 +96,14 @@ def measure_subset(adapter, *, outputs, twins, capture=None, **arguments):
         **({} if capture is None else {"capture": capture}),
         **arguments,
     )
-    if repeat_holds(outputs, twins):
+    return gated(adapter, measured, repeat_holds(outputs, twins), capture=capture)
+
+
+def gated(adapter, measured, holds, *, capture=None):
+    """``measured`` unchanged when the repeat holds; else the grade unscored exactly as a pair mismatch on a graded cell
+    leaves it: ``native_motor_valid`` and ``complete_fixed_coverage`` FAIL, A None, D 0.
+    """
+    if holds:
         return measured
     gates = dict(measured.get("gates") or {})
     if not set(REPEAT_GATES) <= set(gates):
@@ -258,6 +265,8 @@ def _inputs(
             registered_sha256=originals["inference_pair_sha256"],
             challenge=adapter.CHALLENGE,
             version=adapter.VERSION,
+            evaluation_pack_digest=selected.manifest_digest,
+            cohorts=list(bank["cohorts"]),
             graded_inputs=graded_inputs,
             output_shape=measurement["output_shape"],
             recipe_digest=receipt["recipe_digest"],
@@ -357,7 +366,7 @@ def _produce(
         measured = measure_subset(
             adapter,
             outputs=outputs,
-            twins=[None if t is None else list(t) for t in ctx["twins"]],
+            twins=list(ctx["twins"]),
             bank_rows=physical.bank_rows(bank, interface_names),
             definition=definition,
             limits=roles["important_limit_definition"],
@@ -454,6 +463,78 @@ def _resolve(selected_pack, private_root, entry, copy_hotkey):
     return adapter, bank, names
 
 
+def produce_dual_benchmark_input(
+    *,
+    selected_pack,
+    public_root,
+    private_root,
+    entry,
+    trusted_job,
+    registration,
+    references,
+    graph_originals,
+    evaluation_source_receipt_raw,
+    timing_step,
+    copy_hotkey=None,
+    single_call_raw=None,
+):
+    """`private_evaluation_source.produce_dual_benchmark_input` for a subset version: ``(measured model, benchmark,
+    actual producer digest)`` (operator tools re-measure a subset grade through this, never the shared path).
+    """
+    model, benchmark, identity, _pinned = _produce_input(
+        selected_pack=selected_pack,
+        public_root=public_root,
+        private_root=private_root,
+        entry=entry,
+        trusted_job=trusted_job,
+        registration=registration,
+        references=references,
+        graph_originals=graph_originals,
+        evaluation_source_receipt_raw=evaluation_source_receipt_raw,
+        timing_step=timing_step,
+        copy_hotkey=copy_hotkey,
+        single_call_raw=single_call_raw,
+    )
+    return model, benchmark, identity
+
+
+def _produce_input(
+    *,
+    selected_pack,
+    public_root,
+    private_root,
+    entry,
+    trusted_job,
+    registration,
+    references,
+    graph_originals,
+    evaluation_source_receipt_raw,
+    timing_step,
+    copy_hotkey,
+    single_call_raw,
+):
+    adapter, bank, names = _resolve(selected_pack, private_root, entry, copy_hotkey)
+    return produce(
+        adapter,
+        selected=selected_pack,
+        public_root=public_root,
+        private_root=private_root,
+        entry=entry,
+        job=trusted_job,
+        registration=registration,
+        references=references,
+        originals=(
+            graph_originals
+            if single_call_raw is None
+            else {**graph_originals, "single_call_raw": single_call_raw}
+        ),
+        source_raw=evaluation_source_receipt_raw,
+        bank=bank,
+        interface_names=names,
+        timing_step=timing_step,
+    )
+
+
 def produce_registered_dual_measurement(
     *,
     selected_pack,
@@ -473,25 +554,19 @@ def produce_registered_dual_measurement(
     checks the pack under its pinned producer; the receipt then carries the actual producer digest (R-3).
     """
     source_module = _source()
-    adapter, bank, names = _resolve(selected_pack, private_root, entry, copy_hotkey)
-    measured_model, benchmark, identity, pinned = produce(
-        adapter,
-        selected=selected_pack,
+    measured_model, benchmark, identity, pinned = _produce_input(
+        selected_pack=selected_pack,
         public_root=public_root,
         private_root=private_root,
         entry=entry,
-        job=trusted_job,
+        trusted_job=trusted_job,
         registration=registration,
         references=references,
-        originals=(
-            graph_originals
-            if single_call_raw is None
-            else {**graph_originals, "single_call_raw": single_call_raw}
-        ),
-        source_raw=evaluation_source_receipt_raw,
-        bank=bank,
-        interface_names=names,
+        graph_originals=graph_originals,
+        evaluation_source_receipt_raw=evaluation_source_receipt_raw,
         timing_step=timing_step,
+        copy_hotkey=copy_hotkey,
+        single_call_raw=single_call_raw,
     )
     prepared = source_module.build_dual_measurement_receipt(
         selected_pack=selected_pack,
@@ -572,7 +647,7 @@ def bootstrap_total_se(
         measure_subset(
             adapter,
             outputs=[list(values[i * width : (i + 1) * width]) for i in range(n)],
-            twins=[None if t is None else list(t) for t in ctx["twins"]],
+            twins=list(ctx["twins"]),
             bank_rows=physical.bank_rows(bank, interface_names),
             definition=ctx["definition"],
             limits=roles["important_limit_definition"],
@@ -601,8 +676,10 @@ __all__ = [
     "PROCEDURE",
     "REPEAT_GATES",
     "bootstrap_total_se",
+    "gated",
     "measure_subset",
     "produce",
+    "produce_dual_benchmark_input",
     "produce_registered_dual_measurement",
     "repeat_holds",
 ]

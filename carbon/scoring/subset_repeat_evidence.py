@@ -1,22 +1,23 @@
-"""The keyed subset repeat: one fresh run of a secret sample of the graded rows (Motor 1.8 only).
+"""The subset repeat: one fresh run of the sealed cells and a secret sample of the other graded rows (Motor 1.8 only).
 
 The owner, Sun 15 Nov 2026 08:19 CST (the Lead session): replace Motor 1.8's two full-bank inference-pair passes with
 a keyed subset repeat, as the SAME version (pack and exam key unchanged); and 08:38 CST: "66 rows. But we need a % that
-generalizes for challenges". CV-Motor-B's ruling (board ~08:2x) and Validator-2B's R-1..R-5 bind it
+generalizes for challenges". CV-Motor-B's rulings (board, Sun 15 Nov) and Validator-2B's R-1..R-5 bind it
 (docs/records/2026-11-15-motor18-subset-repeat.json):
 
-- After the graded predictions are committed, a per-GRADE secret key (HMAC of the grading host's K_speed under this
-  module's own domain tag and the submission id, so it is independent of the speed sample) draws ``k`` distinct rows
-  uniformly over the delivered graded query. The host re-predicts exactly those rows in ONE fresh worker process (same
-  image, state and inputs), kept write-once beside the dual measurement as a host-private side file. The rows and the
-  key never reach any public or miner surface.
+- After the graded predictions are committed, the host re-runs, in ONE fresh worker process (same image, state and
+  inputs), ALL the graded bank's sealed cells plus ``k`` rows drawn uniformly over the REST of the bank (Q1 = B,
+  STRATIFIED), by a per-GRADE secret key (HMAC of the grading host's K_speed under this module's own domain tag and the
+  submission id, so independent of the speed sample). It is kept write-once beside the dual measurement as a
+  host-private side file. The rows and the key never reach any public or miner surface.
 - ``k`` is derived from the version's registered PROMISE (`registered_promise`): with ``f`` the fraction of rows a model
   may answer differently on a repeat and ``P`` the probability the repeat must catch it, ``k = min(ceil(ln(1 - P) /
-  ln(1 - f)), rows)``. An absent, null or malformed promise fails closed (the receiver will not serve; a grade is
-  Carbon's typed unavailable), never "no repeat".
-- The scorer reads the side file (`read`) into one value per graded bank row: the fresh answer on a sampled row, None on
-  every other row. Missing or inconsistent evidence is typed unavailable (`SubsetRepeatRefused`), never a candidate
-  verdict.
+  ln(1 - f)), rows outside the sealed cells)``. An absent, null or malformed promise fails closed (the receiver will not
+  serve; a grade is Carbon's typed unavailable), never "no repeat".
+- The scorer reads the side file (`read`) into one value per graded bank row: the fresh answer on a repeated row, None
+  on every row that is not repeat-checked. Each fresh answer must equal the graded answer BIT FOR BIT over the whole row
+  (`rows_agree`, Q2). Missing or inconsistent evidence is typed unavailable (`SubsetRepeatRefused`), never a candidate
+  verdict; a malformed or non-finite fresh answer is read as such and fails the exact check (the candidate's).
 
 `SUBSET_REPEAT_VERSIONS` is the ONE registry of the versions graded this way: the door and the scorer both read it.
 This module is a producer file of Motor 1.8 only (`motor18_dual_pack.FILES`); no other version's producer identity
@@ -54,14 +55,16 @@ _PROMISE_KEYS = {"repeat_fail_fraction", "repeat_detect_prob"}
 DOMAIN = b"carbon.subset-repeat/1"
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _OPERATION = re.compile(r"operation-[0-9a-f]{64}\Z")
-_LEDGER = re.compile(r"subset-repeat-[0-9a-f]{64}\Z")
 _DOCUMENT = {
     "schema",
     "challenge",
     "challenge_version",
+    "evaluation_pack_digest",
+    "submission_id",
     "n_rows",
+    "sealed_positions",
+    "keyed_positions",
     "k",
-    "positions",
     "run",
     "scientific_qualification",
     "official_eligible",
@@ -157,6 +160,26 @@ def registered_k(challenge, version, n_rows, *, path=None):
     return derived_k(fail_fraction, detect_prob, n_rows)
 
 
+# -- the identities -----------------------------------------------------------------------------------------------------
+
+
+def run_identity(evaluation_pack_digest, submission_id, *, retry=False):
+    """The identity the door gives one subset repeat (its wall retry adds ``-wall-retry``)."""
+    return (
+        "subset-repeat-"
+        + evaluation_pack_digest
+        + "-"
+        + submission_id
+        + ("-wall-retry" if retry else "")
+    )
+
+
+def ledger_identity(identity):
+    """The ledger child of a run identity (`paired_inference.repeat_identity`, the same formula; a test holds them
+    equal)."""
+    return "subset-repeat-" + hashlib.sha256(identity.encode()).hexdigest()
+
+
 # -- the draw -----------------------------------------------------------------------------------------------------------
 
 
@@ -193,22 +216,39 @@ def _uniform(key):
     return below
 
 
-def draw(key, n_rows, k):
-    """``k`` distinct row positions of ``n_rows``, uniformly (a keyed partial Fisher-Yates shuffle), ascending."""
+def keyed_sample(key, candidates, k):
+    """``k`` distinct members of ``candidates``, uniformly (a keyed partial Fisher-Yates shuffle), ascending."""
+    rows = list(candidates)
     _require(
         type(key) is bytes
         and len(key) == 32
-        and type(n_rows) is int
         and type(k) is int
-        and 1 <= k <= n_rows,
+        and 1 <= k <= len(rows),
         "subset_repeat_draw_invalid",
     )
     below = _uniform(key)
-    rows = list(range(n_rows))
     for i in range(k):
-        j = i + below(n_rows - i)
+        j = i + below(len(rows) - i)
         rows[i], rows[j] = rows[j], rows[i]
     return sorted(rows[:k])
+
+
+def sealed_positions(cohorts):
+    """The graded bank's sealed cells (its rows of the sealed grid cohort), every one re-run on every grade."""
+    from carbon.scoring.sealed_grid_common import GRID_COHORT
+
+    return [i for i, cohort in enumerate(cohorts) if cohort == GRID_COHORT]
+
+
+def plan(key, *, challenge, version, cohorts):
+    """``(sealed, keyed)`` positions of one grade's repeat (CV-Motor-B, Q1 = B, STRATIFIED): ALL the sealed cells, plus
+    ``k`` keyed rows drawn uniformly over the REST of the graded bank, ``k`` from the registered promise over that rest.
+    """
+    sealed = sealed_positions(cohorts)
+    rest = [i for i in range(len(cohorts)) if i not in set(sealed)]
+    _require(bool(sealed) and bool(rest), "subset_repeat_bank_strata")
+    k = registered_k(challenge, version, len(rest))
+    return sealed, keyed_sample(key, rest, k)
 
 
 # -- the side file ------------------------------------------------------------------------------------------------------
@@ -220,16 +260,30 @@ def canonical(value):
     ).encode("utf-8")
 
 
-def side_file(*, challenge, version, n_rows, positions, run):
-    """The host-private side file of one keyed subset repeat (canonical JSON bytes)."""
+def side_file(
+    *,
+    challenge,
+    version,
+    evaluation_pack_digest,
+    submission_id,
+    n_rows,
+    sealed,
+    keyed,
+    run,
+):
+    """The host-private side file of one subset repeat (canonical JSON bytes). The run answered the graded rows at
+    ``sorted(sealed + keyed)``, in that order."""
     return canonical(
         {
             "schema": SCHEMA,
             "challenge": challenge,
             "challenge_version": version,
+            "evaluation_pack_digest": evaluation_pack_digest,
+            "submission_id": submission_id,
             "n_rows": n_rows,
-            "k": len(positions),
-            "positions": list(positions),
+            "sealed_positions": list(sealed),
+            "keyed_positions": list(keyed),
+            "k": len(keyed),
             "run": run,
             "scientific_qualification": False,
             "official_eligible": False,
@@ -241,12 +295,75 @@ def _sha(raw):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+def _ascending(values, n_rows):
+    return (
+        type(values) is list
+        and all(type(p) is int and 0 <= p < n_rows for p in values)
+        and all(a < b for a, b in itertools.pairwise(values))
+    )
+
+
+def _answers(raw, rows, rest):
+    """The fresh answers, one per repeated row, as flat tuples of floats (non-finite values kept, so the exact check
+    fails them), or ``()`` for a row that is not one answer of the registered shape. Never refuses: a malformed fresh
+    answer is the candidate's (CV-Motor-B, Q2)."""
+
+    def flat(value, shape):
+        if not shape:
+            if type(value) in (int, float) and not isinstance(value, bool):
+                return [float(value)]
+            return None
+        if type(value) is not list or len(value) != shape[0]:
+            return None
+        out = []
+        for item in value:
+            part = flat(item, shape[1:])
+            if part is None:
+                return None
+            out.extend(part)
+        return out
+
+    try:
+        parsed = json.loads(raw.decode("utf-8"), parse_constant=float)
+    except (UnicodeError, ValueError, RecursionError, OverflowError):
+        return [()] * rows
+    if type(parsed) is not list or len(parsed) != rows:
+        return [()] * rows
+    answers = []
+    for value in parsed:
+        try:
+            row = flat(value, rest)
+        except RecursionError:
+            row = None
+        answers.append(() if row is None else tuple(row))
+    return answers
+
+
+def rows_agree(graded, fresh):
+    """The subset repeat's decisive rule (CV-Motor-B, Q2): the fresh answer equals the graded answer BIT FOR BIT over the
+    whole row. A different value (``0.0`` and ``-0.0`` differ), a non-finite or missing value, or a row of another
+    width disagrees."""
+    if fresh is None or len(fresh) != len(graded):
+        return False
+    return all(
+        type(b) is float and math.isfinite(b) and float(a).hex() == b.hex()
+        for a, b in zip(graded, fresh, strict=True)
+    )
+
+
+#: The carrier's own ceiling on a worker's predictions file (`bundle_construction_worker._infer_state`): every answer
+#: the carrier accepted is read, so a large or malformed answer is judged, never turned into Carbon's gap.
+_ANSWER_BYTES = 16 * 1024**2
+
+
 def read(
     raw,
     *,
     registered_sha256,
     challenge,
     version,
+    evaluation_pack_digest,
+    cohorts,
     graded_inputs,
     output_shape,
     recipe_digest,
@@ -254,25 +371,27 @@ def read(
     inference_image_id,
     graded_operation,
 ):
-    """The fresh answer per graded bank row: a tuple of floats on a sampled row, None on every other row.
+    """The fresh answer per graded bank row: a tuple on a repeated row (``()`` when it is no answer of the registered
+    shape; non-finite values kept), None on every row that is not repeat-checked.
 
-    The side file must be exactly the registered bytes and bind the graded run: its recipe, state and image, inputs that
-    are exactly the graded query's rows at its positions, and an operation that is not the graded one, settled in the
-    ledger. ``output_shape`` is the graded query's full output shape (rows first). Anything else refuses, typed.
-    """
+    The side file must be exactly the registered bytes and bind this grade: the served version and evaluation pack;
+    ALL the bank's sealed cells (``cohorts``) plus exactly ``k`` keyed rows outside them, ``k`` from the registered
+    promise; the graded run's recipe, state and image; inputs that are exactly the graded query's rows at those
+    positions; and ONE settled operation that is not the graded one, under the ledger identity the door gives this
+    submission's repeat (or its wall retry). ``output_shape`` is the graded query's full output shape. Anything else
+    refuses, typed (Carbon's gap, never a verdict)."""
     import numpy as np
 
     from carbon.development_session.bundle_construction_worker import _tensors
     from carbon.scoring import inference_pair_evidence as pair
-    from carbon.scoring import pair_read_bound
 
     try:
         n_rows = int(output_shape[0])
         rest = [int(v) for v in output_shape[1:]]
         width = math.prod(rest)
-        limit = 2 * pair_read_bound.pair_bytes(n_rows, width)
     except (TypeError, ValueError, IndexError) as exc:
         raise SubsetRepeatRefused("subset_repeat_expected_shape") from exc
+    limit = 4 * (_ANSWER_BYTES + pair._MAX_RECEIPT) // 3 + 2 * 1024**2
     _require(
         type(registered_sha256) is str
         and _DIGEST.fullmatch(registered_sha256) is not None,
@@ -282,6 +401,10 @@ def read(
         type(raw) is bytes and 0 < len(raw) <= limit, "subset_repeat_evidence_bytes"
     )
     _require(_sha(raw) == registered_sha256, "subset_repeat_registered_digest")
+    _require(
+        type(cohorts) in (list, tuple) and len(cohorts) == n_rows,
+        "subset_repeat_expected_shape",
+    )
     try:
         document = pair._parse(raw, limit, "subset_repeat")
         _require(
@@ -290,26 +413,36 @@ def read(
             and canonical(document) == raw,
             "subset_repeat_shape",
         )
+        submission = document["submission_id"]
         _require(
             document["schema"] == SCHEMA
             and document["challenge"] == challenge
             and document["challenge_version"] == version
             and is_subset_version(challenge, version)
+            and document["evaluation_pack_digest"] == evaluation_pack_digest
+            and type(submission) is str
+            and bool(submission)
             and document["scientific_qualification"] is False
             and document["official_eligible"] is False,
             "subset_repeat_identity",
         )
-        positions, k = document["positions"], document["k"]
+        sealed, keyed, k = (
+            document["sealed_positions"],
+            document["keyed_positions"],
+            document["k"],
+        )
+        expected_sealed = sealed_positions(cohorts)
         _require(
             document["n_rows"] == n_rows
+            and sealed == expected_sealed
+            and _ascending(keyed, n_rows)
+            and not set(keyed) & set(sealed)
             and type(k) is int
-            and 1 <= k <= n_rows
-            and type(positions) is list
-            and len(positions) == k
-            and all(type(p) is int and 0 <= p < n_rows for p in positions)
-            and all(a < b for a, b in itertools.pairwise(positions)),
+            and len(keyed) == k
+            and k == registered_k(challenge, version, n_rows - len(sealed)),
             "subset_repeat_positions",
         )
+        positions = sorted([*sealed, *keyed])
         run = document["run"]
         _require(type(run) is dict and set(run) == _RUN, "subset_repeat_run_shape")
         subset = np.ascontiguousarray(np.asarray(graded_inputs)[positions])
@@ -323,7 +456,7 @@ def read(
             and run["inference_image_id"] == inference_image_id
             and run["inputs_digest"] == _sha(_tensors(inputs=subset))
             and type(run["logical_prediction_rows"]) is int
-            and run["logical_prediction_rows"] == k
+            and run["logical_prediction_rows"] == len(positions)
             and type(run["elapsed_seconds"]) in (int, float)
             and math.isfinite(run["elapsed_seconds"])
             and run["elapsed_seconds"] >= 0,
@@ -351,10 +484,7 @@ def read(
             and set(originals) == {"predictions.json", "receipt.json"},
             "subset_repeat_originals_shape",
         )
-        predictions_raw = pair._original(
-            originals["predictions.json"],
-            pair_read_bound.predictions_bytes(k, width),
-        )
+        predictions_raw = pair._original(originals["predictions.json"], _ANSWER_BYTES)
         receipt_raw = pair._original(originals["receipt.json"], pair._MAX_RECEIPT)
         receipt = pair._parse(receipt_raw, pair._MAX_RECEIPT, "receipt")
         _require(
@@ -370,21 +500,16 @@ def read(
         accounting = phase["accounting"]
         ledger = accounting.get("ledger_identity") if type(accounting) is dict else None
         _require(
-            type(ledger) is str and _LEDGER.fullmatch(ledger) is not None,
+            ledger
+            in {
+                ledger_identity(
+                    run_identity(evaluation_pack_digest, submission, retry=retry)
+                )
+                for retry in (False, True)
+            },
             "subset_repeat_accounting_identity",
         )
         pair._accounting(accounting, ledger, operation, originals)
-        try:
-            flat = pair._flat(
-                pair._parse(
-                    predictions_raw,
-                    pair_read_bound.predictions_bytes(k, width),
-                    "prediction",
-                ),
-                [k, *rest],
-            )
-        except RecursionError as exc:
-            raise SubsetRepeatRefused("subset_repeat_prediction_shape") from exc
     except pair.PairEvidenceRefused as exc:
         code = (
             exc.code
@@ -396,9 +521,11 @@ def read(
         if isinstance(exc, SubsetRepeatRefused):
             raise
         raise SubsetRepeatRefused("subset_repeat_evidence_unreadable") from exc
+    answers = _answers(predictions_raw, len(positions), rest)
     twins = [None] * n_rows
-    for i, position in enumerate(positions):
-        twins[position] = tuple(flat[i * width : (i + 1) * width])
+    for position, answer in zip(positions, answers, strict=True):
+        twins[position] = answer
+    del width
     return twins
 
 
@@ -412,11 +539,16 @@ __all__ = [
     "VALUES_SCHEMA",
     "SubsetRepeatRefused",
     "derived_k",
-    "draw",
     "grade_key",
     "is_subset_version",
+    "keyed_sample",
+    "ledger_identity",
+    "plan",
     "read",
     "registered_k",
     "registered_promise",
+    "rows_agree",
+    "run_identity",
+    "sealed_positions",
     "side_file",
 ]

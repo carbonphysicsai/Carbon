@@ -13,7 +13,8 @@ per version (``scripts/validator_host_classes/producer_successor.json``):
 exactly the producer's digest recomputed at load (`physical_dual_pack.producer_digest`); any mismatch, a missing or
 malformed registry, or a version with no row refuses as before. New grades carry the new digest in their evidence and
 measurement basis (R-3); a measurement basis that carries the row's producer digest is that pinned contract read through
-the row (`pinned_basis`), never a rescore. The record is docs/records/2026-11-15-motor18-subset-repeat.json.
+the row (`pinned_basis`), never a rescore. A row may name only a subset-repeat version (L2). The record is
+docs/records/2026-11-15-motor18-subset-repeat.json.
 
 This module is a producer file of Motor 1.8 only (`motor18_dual_pack.FILES`).
 """
@@ -49,6 +50,11 @@ def row(challenge, version, *, path=None):
         or set(document) != {"schema", "rows"}
         or type(document["rows"]) is not dict
     ):
+        return None
+    from carbon.scoring.subset_repeat_evidence import SUBSET_REPEAT_VERSIONS
+
+    # (L2) a row may name only a subset-repeat version; any other row makes the whole registry refuse
+    if not set(document["rows"]) <= {f"{c} {v}" for c, v in SUBSET_REPEAT_VERSIONS}:
         return None
     found = document["rows"].get(f"{challenge} {version}")
     if (
@@ -92,4 +98,10 @@ def pinned_basis(challenge, version, basis, *, path=None):
     return {**basis, "producer_digest": found["pack_producer_digest"]}
 
 
-__all__ = ["REGISTRY", "SCHEMA", "binds", "pinned_basis", "row"]
+__all__ = [
+    "REGISTRY",
+    "SCHEMA",
+    "binds",
+    "pinned_basis",
+    "row",
+]
