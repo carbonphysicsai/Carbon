@@ -34,6 +34,17 @@ OUTCOME_SCHEMA = "carbon.lean-recipe-development-outcome.v1"
 #: infrastructure failures (invariant 7): an engineering bound on retries of our
 #: own failures, never a scientific value. Past it the door is unavailable.
 MAX_INFRA_RERUNS = 16
+#: A miner's own withdrawal of its queued, not-yet-building submission (owner GO 15 Nov 2026 via the Lead: "those 3 are
+#: fine."): the durable cancellation id the provider keeps for it is this prefix + the task id, so a withdrawn task is told
+#: apart from a receiver stop's cancellation (``mcp-cancel-``) after any restart.
+WITHDRAW_PREFIX = "miner-withdraw-"
+#: The public failure code a withdrawn task projects with (never ``direct_task_cancelled``, which the kit resubmits).
+WITHDRAWN_CODE = "withdrawn_by_miner"
+#: `LeanRecipeAdapter.withdraw`'s closed answers.
+WITHDRAWN = "WITHDRAWN"
+ALREADY_WITHDRAWN = "ALREADY_WITHDRAWN"
+WITHDRAW_TOO_LATE = "TOO_LATE"
+WITHDRAW_UNKNOWN = "UNKNOWN"
 _SOURCE_PATHS = (
     "carbon/challenge_validator/lean_recipe.py",
     "carbon/development_session/construction_recipe.py",
@@ -103,6 +114,12 @@ def _implementation_identity() -> str:
             "source_identity": _source_identity(),
         }
     )
+
+
+def _withdrawn_cancellation(provider, task_value):
+    """Whether the provider's durable cancellation id of ``task_value`` is its owner's withdrawal (`WITHDRAW_PREFIX`)."""
+    cancellation = getattr(provider, "_cancellations", {}).get(task_value)
+    return type(cancellation) is str and cancellation == WITHDRAW_PREFIX + task_value
 
 
 class LeanRecipeAdapter(ChallengeAdapter):
@@ -412,24 +429,28 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
     @contextlib.contextmanager
     def _coldkey_place(self, hotkey, task_id):
-        """One waiting submission per coldkey (`coldkey_waiting`), when the receiver installed the guard and the version
-        registers a limit: refuse now, before any intent or build, if this hotkey's coldkey already has that many
-        submissions waiting; otherwise hold the guard's lock until the body (the task's start) is done, so two hotkeys of
-        one coldkey can never both pass. Off (no guard, no limit): nothing is checked or held.
+        """One waiting submission per coldkey (`coldkey_waiting`), or per hotkey when the row says ``"per": "hotkey"``,
+        when the receiver installed the guard and the version registers a limit: refuse now, before any intent or build,
+        if this hotkey's coldkey (or the hotkey itself) already has that many submissions waiting; otherwise hold the
+        guard's lock until the body (the task's start) is done, so two submissions can never both pass. Off (no guard,
+        no limit): nothing is checked or held.
         """
         from carbon.challenge_validator import coldkey_waiting
 
         guard = getattr(self, "coldkey_waiting", None)
-        limit = (
+        rule = (
             None
             if guard is None
-            else coldkey_waiting.limit_for(self.challenge_id, self.challenge_version)
+            else coldkey_waiting.rule_for(self.challenge_id, self.challenge_version)
         )
-        if limit is None:
+        if rule is None:
             yield
             return
+        limit, per = rule
         with guard.lock:
-            refused = guard.refusal(hotkey=hotkey, task_id=task_id, limit=limit)
+            refused = guard.refusal(
+                hotkey=hotkey, task_id=task_id, limit=limit, per=per
+            )
             if refused is not None:
                 code, message = refused
                 raise Unavailable(code, retry={"message": message})
@@ -481,6 +502,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
         if task.state in (
             DirectTaskStateV3.FAILED_INFRA,
             DirectTaskStateV3.UNRESOLVED,
+            # A miner's own withdrawal (`withdraw`) is CANCELLED too: the same recipe submitted again is the next
+            # generation, so each withdraw uses one of the MAX_INFRA_RERUNS generations of a recipe on a pack.
             DirectTaskStateV3.CANCELLED,
         ):
             return True
@@ -536,7 +559,13 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     task.terminal_receipt.refusal_code
                     if state is DirectTaskStateV3.UNRESOLVED
                     and task.terminal_receipt.refusal_code is not None
-                    else "direct_task_" + state.value.lower()
+                    else (
+                        # the miner's own withdrawal: its own code, so a kit never resubmits it as a stop's cancellation
+                        WITHDRAWN_CODE
+                        if state is DirectTaskStateV3.CANCELLED
+                        and _withdrawn_cancellation(provider, task.task_id.value)
+                        else "direct_task_" + state.value.lower()
+                    )
                 )
             }
             if state is DirectTaskStateV3.FAILED_INFRA:
@@ -813,13 +842,108 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     continue
                 raise
             if task.state is DirectTaskStateV3.QUEUED:
-                provider.run_queued_task(task_id)
+                try:
+                    provider.run_queued_task(task_id)
+                except ResearchTaskProviderError as refused:
+                    if (
+                        refused.code is ResearchServiceErrorCode.INVALID_TASK_TRANSITION
+                        and self._withdrawn_now(provider, submission_id)
+                    ):
+                        # its owner withdrew it between this read and the start (`withdraw`): never a worker failure
+                        continue
+                    raise
                 moved += 1
                 # One operator pass dispatches at most one construction. The
                 # existing carrier enforces its per-child resource limits;
                 # this adapter never fans out a backlog on one call.
                 break
         return moved
+
+    @staticmethod
+    def _withdrawn_now(provider, submission_id):
+        """Whether ``submission_id`` is CANCELLED by its owner's withdrawal in ``provider`` now (under its lock)."""
+        from carbon.research import DirectTaskStateV3
+
+        with provider._lock:
+            view = provider._views.get(submission_id)
+            return (
+                view is not None
+                and view.state is DirectTaskStateV3.CANCELLED
+                and _withdrawn_cancellation(provider, submission_id)
+            )
+
+    def withdraw(self, hotkey, submission_id):
+        """A miner withdraws its OWN queued, not-yet-building official submission (owner GO 15 Nov 2026 via the Lead).
+
+        Returns `WITHDRAWN` (it was QUEUED and is now CANCELLED under the durable cancellation id `WITHDRAW_PREFIX` + its
+        id), `ALREADY_WITHDRAWN` (the same withdrawal again: idempotent), `WITHDRAW_TOO_LATE` (building, cancel
+        requested, built or ended in any other way: nothing is changed) or `WITHDRAW_UNKNOWN` (no such submission, or
+        not this hotkey's: one answer for both, so nothing is said of another key's). The state check and the cancel
+        are made under the provider's own lock, the lock its QUEUED -> RUNNING start takes, so a withdrawal and a start
+        can never both happen: whichever takes the lock first wins, and the other sees the state it left.
+
+        Nothing else is written here: no try is used and no allowance (a slot is reserved only when a grade starts,
+        `exam_cap.ExamCap.reserve`). The door records the withdrawal and its terminal grade marker after this
+        (`DirectRecipeIntake._withdraw`); the grade round repairs a missing marker (`AutoGrader._settle_withdrawn`).
+        """
+        from carbon.research import (
+            DirectCancelTaskRequestV3,
+            DirectTaskStateV3,
+            ResearchTaskId,
+        )
+
+        if type(hotkey) is not str or type(submission_id) is not str:
+            return WITHDRAW_UNKNOWN
+        if self.ledger.owned_outcome(self.contract_digest, submission_id) != hotkey:
+            return WITHDRAW_UNKNOWN
+        try:
+            owner = self.owner(submission_id)
+        except Unavailable as unavailable:
+            if unavailable.code == "direct_provider_binding_unavailable":
+                return WITHDRAW_UNKNOWN  # no provider for that hotkey on this door
+            raise
+        if owner != hotkey:
+            return WITHDRAW_UNKNOWN
+        provider = self._provider(hotkey)
+        with provider._lock:
+            view = provider._views.get(submission_id)
+            if view is None:
+                return WITHDRAW_UNKNOWN
+            if view.state is DirectTaskStateV3.CANCELLED and _withdrawn_cancellation(
+                provider, submission_id
+            ):
+                return ALREADY_WITHDRAWN
+            if view.state is not DirectTaskStateV3.QUEUED:
+                return WITHDRAW_TOO_LATE
+            ended = provider.cancel_research_task(
+                DirectCancelTaskRequestV3(
+                    self.discovery.info.challenge_key,
+                    ResearchTaskId(submission_id),
+                    WITHDRAW_PREFIX + submission_id,
+                )
+            ).task
+            if ended.state is not DirectTaskStateV3.CANCELLED:
+                raise RuntimeError("a queued task's withdrawal did not cancel it")
+        return WITHDRAWN
+
+    def withdrawn_by_miner(self, submission_id):
+        """The owning hotkey when ``submission_id`` is CANCELLED by its owner's withdrawal (`withdraw`), else None: the grade
+        round's repair of a withdrawal whose ledger row or marker was not written (`AutoGrader._settle_withdrawn`). A read
+        of the owner's provider view only, through the door's own provider for that owner.
+        """
+        from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
+
+        owner = self.ledger.owned_outcome(self.contract_digest, submission_id)
+        if owner is None:
+            return None
+        provider = self.provider_for(owner)
+        if (
+            type(provider) is not DirectDevelopmentTasksV3
+            or provider.owner != owner
+            or provider.discovery is not self.discovery
+        ):
+            return None
+        return owner if self._withdrawn_now(provider, submission_id) else None
 
     def score_record(self, submission_id):
         raise LookupError("score_pack_unbound")

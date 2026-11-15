@@ -1,4 +1,5 @@
-"""One waiting submission per coldkey (owner 14 Nov 2026, 23:36 CST: "1.0 and yes"; `coldkey_waiting`).
+"""One waiting submission per coldkey (owner 14 Nov 2026, 23:36 CST: "1.0 and yes"; `coldkey_waiting`), and per HOTKEY
+(owner 15 Nov 2026, 06:52 CST: "those 3 are fine."; a row's ``"per": "hotkey"``, the committed Motor 1.8 value).
 
 At SUBMIT, before any intent or build, a NEW submission is refused while a hotkey of the same coldkey already has one
 waiting on the door (queued, building, or built and not yet graded). The guard's own rules are tested on stub task views;
@@ -20,24 +21,29 @@ from carbon.challenge_validator import coldkey_waiting as cw
 # --- the committed value ------------------------------------------------------------------------------------------
 
 
-def test_the_committed_registry_sets_one_waiting_submission_for_motor_1_8_only():
+def test_the_committed_registry_sets_one_waiting_submission_per_hotkey_for_motor_1_8_only():
     from pathlib import Path
 
     from carbon.development_session.research_campaign import descendant_path_allowed
 
     assert json.loads(cw.REGISTRY.read_text()) == {
-        "rows": {"electric-motor-magnetics 1.8": {"limit": 1}},
+        "rows": {"electric-motor-magnetics 1.8": {"limit": 1, "per": "hotkey"}},
         "schema": cw.SCHEMA,
     }
+    assert cw.rule_for("electric-motor-magnetics", "1.8") == (1, "hotkey")
     assert cw.limit_for("electric-motor-magnetics", "1.8") == 1
     for other in (("electric-motor-magnetics", "1.7"), ("chip-cold-plate", "1.8")):
-        assert cw.limit_for(*other) is None
+        assert cw.rule_for(*other) is None and cw.limit_for(*other) is None
     root = Path(cw.REGISTRY).resolve().parents[2]
     record = json.loads(
-        (root / "docs/records/2026-11-14-coldkey-waiting-limit.json").read_text()
+        (root / "docs/records/2026-11-15-hotkey-waiting-limit.json").read_text()
     )
     assert record["values"] == json.loads(cw.REGISTRY.read_text())["rows"]
-    assert [w["verbatim"] for w in record["owner_words"]] == ["1.0 and yes"]
+    assert [w["verbatim"] for w in record["owner_words"]] == ["those 3 are fine."]
+    first = json.loads(
+        (root / "docs/records/2026-11-14-coldkey-waiting-limit.json").read_text()
+    )
+    assert [w["verbatim"] for w in first["owner_words"]] == ["1.0 and yes"]
     # a values-only path: the limit can change (or go off) without a code change
     assert descendant_path_allowed(
         Path(cw.REGISTRY).resolve().relative_to(root).as_posix()
@@ -46,7 +52,17 @@ def test_the_committed_registry_sets_one_waiting_submission_for_motor_1_8_only()
 
 @pytest.mark.parametrize(
     "row",
-    [None, {}, {"limit": 0}, {"limit": True}, {"limit": 1.0}, {"limit": 1, "x": 2}],
+    [
+        None,
+        {},
+        {"limit": 0},
+        {"limit": True},
+        {"limit": 1.0},
+        {"limit": 1, "x": 2},
+        {"limit": 1, "per": "subnet"},
+        {"limit": 1, "per": None},
+        {"limit": 1, "per": "hotkey", "x": 2},
+    ],
 )
 def test_a_missing_or_malformed_row_is_off(tmp_path, row):
     path = tmp_path / "limit.json"
@@ -56,6 +72,22 @@ def test_a_missing_or_malformed_row_is_off(tmp_path, row):
     path.write_text("{not json")
     assert cw.limit_for("c", "1.0", path=path) is None
     assert cw.limit_for("c", "1.0", path=tmp_path / "absent.json") is None
+    assert cw.rule_for("c", "1.0", path=path) is None
+
+
+@pytest.mark.parametrize(
+    ("row", "rule"),
+    [
+        ({"limit": 1}, (1, "coldkey")),
+        ({"limit": 2, "per": "coldkey"}, (2, "coldkey")),
+        ({"limit": 1, "per": "hotkey"}, (1, "hotkey")),
+    ],
+)
+def test_a_row_counts_per_coldkey_unless_it_says_per_hotkey(tmp_path, row, rule):
+    path = tmp_path / "limit.json"
+    path.write_text(json.dumps({"schema": cw.SCHEMA, "rows": {"c 1.0": row}}))
+    assert cw.rule_for("c", "1.0", path=path) == rule
+    assert cw.limit_for("c", "1.0", path=path) == rule[0]
 
 
 # --- the guard on stub views --------------------------------------------------------------------------------------
@@ -243,10 +275,52 @@ def test_a_read_that_cannot_be_made_never_refuses():
     )
 
 
+# --- per hotkey ---------------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("state", ["QUEUED", "RUNNING", "CANCEL_REQUESTED"])
+def test_per_hotkey_only_the_same_hotkeys_waiting_submission_refuses_the_next(state):
+    guard = _guard({"hk-a1": {"t1": state}})
+    code, message = guard.refusal(hotkey="hk-a1", task_id="t2", limit=1, per="hotkey")
+    assert code == cw.HOTKEY_CODE and message == cw.HOTKEY_MESSAGE
+    assert "per hotkey" in message and "Nothing was built" in message
+    # a miner may withdraw its own queued submission (owner GO 15 Nov 2026): the refusal says so
+    assert (
+        "withdraw it while it is still queued, if this validator offers withdrawal"
+        in message
+    )
+    # another hotkey of the SAME coldkey is not held back any more, nor one of another coldkey
+    assert guard.refusal(hotkey="hk-a2", task_id="t2", limit=1, per="hotkey") is None
+    assert guard.refusal(hotkey="hk-b", task_id="t2", limit=1, per="hotkey") is None
+
+
+def test_per_hotkey_needs_no_chain_snapshot_and_never_refuses_an_unresolved_coldkey():
+    queued = {"hk-new": {"t1": "QUEUED"}}
+    for guard in (_guard(queued, snapshot=False), _guard(queued, coldkeys={})):
+        refused = guard.refusal(hotkey="hk-new", task_id="t2", limit=1, per="hotkey")
+        assert refused[0] == cw.HOTKEY_CODE
+        other = guard.refusal(hotkey="hk-other", task_id="t2", limit=1, per="hotkey")
+        assert other is None
+
+
+def test_per_hotkey_keeps_the_resend_built_and_limit_rules():
+    guard = _guard({"hk-a1": {"t1": "QUEUED"}})
+    assert guard.refusal(hotkey="hk-a1", task_id="t1", limit=1, per="hotkey") is None
+    assert guard.refusal(hotkey="hk-a1", task_id="t2", limit=2, per="hotkey") is None
+    built = _guard({"hk-a1": {"t1": "SUCCEEDED"}}, pending=["t1"])
+    refused = built.refusal(hotkey="hk-a1", task_id="t2", limit=1, per="hotkey")
+    assert refused[0] == cw.HOTKEY_CODE
+    graded = _guard({"hk-a1": {"t1": "SUCCEEDED"}}, pending=[])
+    assert graded.refusal(hotkey="hk-a1", task_id="t2", limit=1, per="hotkey") is None
+    for ended in ("FAILED", "CANCELLED"):
+        done = _guard({"hk-a1": {"t1": ended}})
+        assert done.refusal(hotkey="hk-a1", task_id="t2", limit=1, per="hotkey") is None
+
+
 # --- the wiring through the REAL adapter --------------------------------------------------------------------------
 
 
-def _door(tmp_path, monkeypatch, *, limit=1):
+def _door(tmp_path, monkeypatch, *, limit=1, per=None):
     from test_direct_v3_durable_tasks import _fixture
 
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
@@ -268,7 +342,12 @@ def _door(tmp_path, monkeypatch, *, limit=1):
     rows = (
         {}
         if limit is None
-        else {f"{adapter.challenge_id} {adapter.challenge_version}": {"limit": limit}}
+        else {
+            f"{adapter.challenge_id} {adapter.challenge_version}": {
+                "limit": limit,
+                **({} if per is None else {"per": per}),
+            }
+        }
     )
     registry.write_text(json.dumps({"schema": cw.SCHEMA, "rows": rows}))
     monkeypatch.setattr(cw, "REGISTRY", registry)
@@ -326,6 +405,20 @@ def test_through_the_real_adapter_a_second_waiting_submission_is_refused_before_
     assert again["outcome"]["submission_id"] == sid
 
 
+def test_through_the_real_adapter_per_hotkey_a_second_waiting_submission_is_refused(
+    tmp_path, monkeypatch
+):
+    request, adapter, ledger, door, provider = _door(
+        tmp_path, monkeypatch, per="hotkey"
+    )
+    sid = _submit(door, adapter, request.recipe, 1)["outcome"]["submission_id"]
+    intents = _intents(ledger)
+    refused = _submit(door, adapter, _other(request.recipe), 2)
+    assert (refused["kind"], refused["code"]) == ("UNAVAILABLE", cw.HOTKEY_CODE)
+    assert refused["retry"]["message"] == cw.HOTKEY_MESSAGE
+    assert _intents(ledger) == intents and list(provider._views) == [sid]
+
+
 def test_through_the_real_adapter_with_no_registered_limit_nothing_changes(
     tmp_path, monkeypatch
 ):
@@ -374,7 +467,7 @@ def _race(monkeypatch, *, locked):
         guard.lock = (
             contextlib.nullcontext()
         )  # the control: the same check with no lock
-    monkeypatch.setattr(cw, "limit_for", lambda challenge, version: 1)
+    monkeypatch.setattr(cw, "rule_for", lambda challenge, version: (1, "coldkey"))
     adapter = SimpleNamespace(
         coldkey_waiting=guard, challenge_id="c", challenge_version="1.0"
     )

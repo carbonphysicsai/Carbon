@@ -3524,6 +3524,20 @@
       });
       panel.append(check);
     }
+    // Owner GO 15 Nov 2026: while the validator still holds it in its queue (received, not rebuilt yet), the miner may
+    // withdraw it (a signed request; no try or allowance used). The validator refuses once it is building or built.
+    if (o.grade !== undefined && campaign && o.state === "ADMITTED") {
+      const withdraw = document.createElement("button"); withdraw.type = "button";
+      withdraw.textContent = "Withdraw (while queued)";
+      withdraw.addEventListener("click", async () => {
+        if (busy || !connected) return;
+        busy = true; render();
+        try { await api("/api/v1/operations/withdraw", {campaign}, undefined, 60000); message("Withdrawn: it was not built or graded and used no try. Submit again when ready. Each withdrawal of the same model counts toward the validator's limit of retries for that model on this exam."); }
+        catch (error) { message("Not withdrawn: " + (error.message || "the validator could not be reached") + ".", true); }
+        finally { busy = false; await refresh(); render(); }
+      });
+      panel.append(withdraw);
+    }
   }
   function tabSubmission(panel, run) {
     if (run.selects === "miner") renderJourneySubmission(panel, run);

@@ -415,17 +415,55 @@ def _cancelled_by_stop(outcome):
     )
 
 
-def _set_cancelled_record_aside(root, epoch, record_path):
-    """Keep the cancelled task's admission record under its own name (never deleted) and make the next submit a NEW request
-    (a bumped request id), so the frozen recipe is submitted again for a fresh task."""
+def _withdrawn_by_miner(outcome):
+    """Whether a terminal outcome is the miner's OWN withdrawal of the queued task (`withdrawn_by_miner`): never a verdict."""
+    failure = outcome.get("failure") if type(outcome) is dict else None
+    return (
+        outcome.get("state") == "FAILED_INFRA"
+        and type(failure) is dict
+        and failure.get("code") == WITHDRAWN_CODE
+    )
+
+
+def _record_names(record_path, task_id):
+    """Whether the admission record at ``record_path`` exists now and names ``task_id`` (read again, never assumed)."""
+    try:
+        if record_path.is_symlink():
+            return False
+        recorded = json.loads(record_path.read_bytes())
+    except (OSError, ValueError):
+        return False
+    return type(recorded) is dict and recorded.get("submission_id") == task_id
+
+
+def _set_cancelled_record_aside(
+    root, epoch, record_path, label="cancelled", task_id=None
+):
+    """Keep the cancelled (or, ``label`` "withdrawn", the miner-withdrawn) task's admission record under its own name (never
+    deleted) and make the next submit a NEW request (a bumped request id), so the frozen recipe is submitted again for a
+    fresh task. With ``task_id``, only while the record still names that task: a record another call already set aside,
+    or one that names a newer task, is left alone (returns False). The aside name is taken with a hard link, which never
+    replaces an existing file, so two callers can never write over each other's aside copy.
+    """
+    if task_id is not None and not _record_names(record_path, task_id):
+        return False
     for n in range(1, 1000):
-        aside = record_path.with_name(record_path.stem + f".cancelled-{n}.json")
-        if not aside.exists():
-            os.replace(record_path, aside)
-            break
+        aside = record_path.with_name(record_path.stem + f".{label}-{n}.json")
+        try:
+            os.link(record_path, aside)
+        except FileExistsError:
+            continue
+        except FileNotFoundError:
+            return False  # another call set it aside first
+        break
     else:  # pragma: no cover - a thousand cancelled generations of one epoch
         raise DirectIntakeRefusal("construction_cancelled_records_exhausted")
+    try:
+        os.unlink(record_path)
+    except FileNotFoundError:
+        return False  # another call set it aside first (its own aside copy is kept)
     _bump_submit_attempt(root, epoch)
+    return True
 
 
 def _bump_submit_attempt(root, epoch):
@@ -547,10 +585,20 @@ FEEDBACK_V8_FACTS = {
     "fields": ["reply", "submission_id"],
     "reply_schema": FEEDBACK_REPLY_SCHEMA_V8,
 }
+#: v9: v8 plus the grade state WITHDRAWN_BY_MINER (the signer withdrew this submission while it was still queued, `withdraw_submission`)
+#: (`direct_intake` FEEDBACK_REPLY_SCHEMA_V9, owner GO 15 Nov); asked for only where advertised. An older reply says NOT_GRADED.
+FEEDBACK_REPLY_SCHEMA_V9 = "carbon.private-exam.ladder-feedback-reply.v9"
+FEEDBACK_V9_FACTS = {
+    **FEEDBACK_FACTS,
+    "fields": ["reply", "submission_id"],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA_V9,
+}
+WITHDRAWN_STATE = "WITHDRAWN_BY_MINER"
 FAILURE_PASSES = ("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
 GRADE_WORKER_KEYS = ("cpu_model", "cpu_count", "memory_bytes", "gpu")
 HELD_STATE = "CROWN_HELD_FOR_REVIEW"
 GRADE_STATES_V5 = (*GRADE_STATES_V4, HELD_STATE)
+GRADE_STATES_V9 = (*GRADE_STATES_V5, WITHDRAWN_STATE)
 #: A bound on the held count a reply may name (a resource bound, not a policy value).
 MAX_HELD = 100000
 FAILURE_CHILDREN = ("build", "inference")
@@ -690,7 +738,10 @@ def read_exam_feedback(
     facts = read(url)
     if facts.get("exam_feedback") != FEEDBACK_FACTS:
         raise DirectIntakeRefusal("exam_feedback_unavailable")
-    v8 = (
+    v9 = (
+        submission_id is not None and facts.get("exam_feedback_v9") == FEEDBACK_V9_FACTS
+    )
+    v8 = v9 or (
         submission_id is not None and facts.get("exam_feedback_v8") == FEEDBACK_V8_FACTS
     )
     v7 = v8 or (
@@ -726,12 +777,16 @@ def read_exam_feedback(
         fields=(
             {
                 "reply": (
-                    "v8"
-                    if v8
+                    "v9"
+                    if v9
                     else (
-                        "v7"
-                        if v7
-                        else "v6" if v6 else "v5" if v5 else "v4" if v4 else "v3"
+                        "v8"
+                        if v8
+                        else (
+                            "v7"
+                            if v7
+                            else "v6" if v6 else "v5" if v5 else "v4" if v4 else "v3"
+                        )
                     )
                 ),
                 "submission_id": submission_id,
@@ -753,27 +808,31 @@ def read_exam_feedback(
         set(answer) != keys
         or answer["schema"]
         != (
-            FEEDBACK_REPLY_SCHEMA_V8
-            if v8
+            FEEDBACK_REPLY_SCHEMA_V9
+            if v9
             else (
-                FEEDBACK_REPLY_SCHEMA_V7
-                if v7
+                FEEDBACK_REPLY_SCHEMA_V8
+                if v8
                 else (
-                    FEEDBACK_REPLY_SCHEMA_V6
-                    if v6
+                    FEEDBACK_REPLY_SCHEMA_V7
+                    if v7
                     else (
-                        FEEDBACK_REPLY_SCHEMA_V5
-                        if v5
+                        FEEDBACK_REPLY_SCHEMA_V6
+                        if v6
                         else (
-                            FEEDBACK_REPLY_SCHEMA_V4
-                            if v4
+                            FEEDBACK_REPLY_SCHEMA_V5
+                            if v5
                             else (
-                                FEEDBACK_REPLY_SCHEMA_V3
-                                if v3
+                                FEEDBACK_REPLY_SCHEMA_V4
+                                if v4
                                 else (
-                                    FEEDBACK_REPLY_SCHEMA_V2
-                                    if v2
-                                    else FEEDBACK_REPLY_SCHEMA
+                                    FEEDBACK_REPLY_SCHEMA_V3
+                                    if v3
+                                    else (
+                                        FEEDBACK_REPLY_SCHEMA_V2
+                                        if v2
+                                        else FEEDBACK_REPLY_SCHEMA
+                                    )
                                 )
                             )
                         )
@@ -800,9 +859,17 @@ def read_exam_feedback(
             answer["submission"]["grade_state"] is not None
             and answer["submission"]["grade_state"]
             not in (
-                GRADE_STATES_V5
-                if v5
-                else GRADE_STATES_V4 if v4 else GRADE_STATES_V3 if v3 else GRADE_STATES
+                GRADE_STATES_V9
+                if v9
+                else (
+                    GRADE_STATES_V5
+                    if v5
+                    else (
+                        GRADE_STATES_V4
+                        if v4
+                        else GRADE_STATES_V3 if v3 else GRADE_STATES
+                    )
+                )
             )
         )
         or (v4 and answer["submission"]["grade_state"] is None)
@@ -835,6 +902,18 @@ def read_exam_feedback(
         }
     except LadderStoreRefused:
         raise DirectIntakeRefusal("exam_feedback_reply_invalid") from None
+
+
+def _refuse_withdrawn(root, epoch, record_path, outcome):
+    """A task its miner withdrew while queued is never this epoch's verdict: its admission record is set aside (only while
+    it still names that task), so the next submit is a fresh task of the same frozen candidate, and the read is refused
+    ``withdrawn_by_miner`` (an observation too), so no caller stores it as the epoch's feedback.
+    """
+    if _withdrawn_by_miner(outcome):
+        _set_cancelled_record_aside(
+            root, epoch, record_path, label="withdrawn", task_id=outcome.get("task_id")
+        )
+        raise DirectWithdrawRefused(WITHDRAWN_CODE)
 
 
 def submit_and_wait(
@@ -1020,6 +1099,7 @@ def submit_and_wait(
         )
         record_path.chmod(0o600)
         if outcome["state"] in TERMINAL:
+            _refuse_withdrawn(root, epoch, record_path, outcome)
             return outcome
     if wait_s == 0:
         # The tool door requests admission only. A same-moment STATUS call can
@@ -1095,8 +1175,11 @@ def submit_and_wait(
             observe, deadline=deadline, clock=clock, sleep=sleep
         )
         if outcome.get("state") in TERMINAL:
+            _refuse_withdrawn(root, epoch, record_path, outcome)
             if _cancelled_by_stop(outcome) and not observe_only and not _after_cancel:
-                _set_cancelled_record_aside(root, epoch, record_path)
+                _set_cancelled_record_aside(
+                    root, epoch, record_path, task_id=outcome.get("task_id")
+                )
                 return submit_and_wait(
                     url,
                     signer,
@@ -1122,6 +1205,144 @@ def submit_and_wait(
         sleep(min(POLL_S, max(0.0, deadline - clock())))
         if clock() >= deadline:
             raise DirectConstructionPending(task_id)
+
+
+#: A miner withdraws its OWN queued, not-yet-building official submission (owner GO 15 Nov 2026 via the Lead): the door's
+#: tool and its public facts entry, pinned exactly (`direct_intake.withdraw_facts`), never part of the pinned `tools` list.
+WITHDRAW_TOOL = "construction_withdraw"
+#: The outcome code of a task its miner withdrew (`lean_recipe.WITHDRAWN_CODE`).
+WITHDRAWN_CODE = "withdrawn_by_miner"
+WITHDRAW_FACTS_NAME = "construction_withdraw_v1"
+WITHDRAW_FACTS = {
+    "tool": WITHDRAW_TOOL,
+    "fields": ["submission_id"],
+    "states": ["QUEUED"],
+    "path": SUBMIT_PATH,
+    "owner": "authenticated_hotkey",
+}
+#: The door's withdraw refusals, and this kit's own, in plain words for the miner.
+#: Said with every withdrawal (owner GO 15 Nov 2026): a withdrawal is not free of consequence for the same model.
+WITHDRAW_RETRY_WORDS = "Each withdrawal of the same model counts toward the validator's limit of retries for that model on this exam."
+#: What the miner reads when a withdrawal went through (the kit's answer, the Launchpad's message).
+WITHDRAWN_WORDS = (
+    "Withdrawn: it was not built or graded and used no try or allowance, and your waiting place is free. Your frozen "
+    "candidate is kept: submit again when ready. " + WITHDRAW_RETRY_WORDS
+)
+WITHDRAW_WORDS = {
+    "withdraw_not_offered": (
+        "This validator does not take withdrawals yet; nothing was changed. Check for the result instead."
+    ),
+    "withdraw_unavailable": (
+        "The validator could not complete the withdrawal just now: it may have happened but not be fully recorded "
+        "yet. Run withdraw again (it is safe to repeat) or check_result."
+    ),
+    # A submit or result read that met the miner's own withdrawal: never the epoch's verdict.
+    "withdrawn_by_miner": (
+        "You withdrew this submission while it was still queued: it was not built or graded and used no try. Your "
+        "frozen candidate is kept: submit again when ready. " + WITHDRAW_RETRY_WORDS
+    ),
+    "withdraw_too_late": (
+        "This submission is already building or built (or has already ended); it can no longer be withdrawn. "
+        "Check for the result instead."
+    ),
+    "withdraw_submission_unknown": (
+        "This validator holds no queued submission of yours with this id, so there is nothing to withdraw. "
+        "Check for the result of your latest submit."
+    ),
+    "withdraw_fields": (
+        "The withdraw request was not one the validator reads (this kit and the validator disagree); nothing was "
+        "withdrawn. Update your kit and try again."
+    ),
+    "no_queued_submission": (
+        "No submit of this campaign reached a validator yet, so there is nothing to withdraw."
+    ),
+}
+
+
+class DirectWithdrawRefused(DirectIntakeRefusal):
+    """A withdrawal the door (or this kit) refused: its closed ``code`` and plain ``words`` for the miner."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.words = WITHDRAW_WORDS.get(
+            code,
+            "The validator refused the withdrawal ("
+            + code
+            + "); nothing was changed on your side.",
+        )
+
+
+def withdraw_submission(root, epoch, signer, *, read=read_intake, send=post):
+    """Withdraw the epoch's own queued submission at the validator it was submitted to; returns the door's answer
+    ``{"withdrawn": <submission id>, "grade_state": "WITHDRAWN_BY_MINER"}``.
+
+    Everything the request binds (intake, receiver, chain context, contract, the submission id) comes from the epoch's own
+    admission record and its frozen selection, as `refresh_exam_feedback` reads them; it is signed by the miner's signer,
+    as every signed read and submit is. Refused `withdraw_unavailable` before anything is signed where the door does not
+    advertise `WITHDRAW_FACTS` exactly. A withdrawal uses no try and no allowance; the validator frees the waiting place.
+    On success the admission record is set aside under its own name (kept, never deleted) and the next submit is a NEW
+    request, so the same frozen recipe can be submitted again as a fresh task. A withdrawn task is never resubmitted by
+    itself (its code is ``withdrawn_by_miner``, not a stop's cancellation)."""
+    root = Path(root)
+    folder = root / ("epoch-" + str(int(epoch)))
+    record_path = _record_path(root, epoch)
+    try:
+        if record_path.is_symlink():
+            raise ValueError("record is a link")
+        record = json.loads(record_path.read_bytes())
+        selected = json.loads((folder / "selected-recipe.json").read_bytes())
+        recipe = ConstructionRecipe.from_dict(selected["strategy"])
+        context = ChainContext(**record["context"])
+    except (OSError, ValueError, TypeError, KeyError):
+        raise DirectWithdrawRefused("no_queued_submission") from None
+    if type(record) is not dict:
+        raise DirectWithdrawRefused("no_queued_submission")
+    submission_id = record.get("submission_id")
+    if (
+        record.get("schema") != RECORD_SCHEMA
+        or record.get("epoch") != int(epoch)
+        or record.get("recipe_digest") != recipe.digest
+        or type(submission_id) is not str
+        or not submission_id
+    ):
+        raise DirectWithdrawRefused("no_queued_submission")
+    url = record["url"]
+    deadline = time.monotonic() + 60.0
+
+    def once():
+        facts = read(url)
+        if facts.get(WITHDRAW_FACTS_NAME) != WITHDRAW_FACTS:
+            raise DirectWithdrawRefused("withdraw_not_offered")
+        body = _body(
+            facts,
+            recipe=recipe,
+            contract_digest=record["contract_digest"],
+            receiver=record["receiver"],
+            context=context,
+            tool=WITHDRAW_TOOL,
+            fields={"submission_id": submission_id},
+            request=f"construction-withdraw-{int(epoch)}-{time.time_ns()}",
+        )
+        headers = BittensorMessageSigner(signer).sign(
+            body, receiver=record["receiver"], nonce_ns=time.time_ns()
+        )
+        status, answer = send(url, body, headers)
+        if status == 429 and type(answer) is dict and answer.get("refused") == "rate":
+            raise DirectIntakeRateLimit()
+        if status != 200 or type(answer) is not dict:
+            code = _refusal_code(answer, "withdraw_unavailable")
+            if code == TRANSPORT_STALE:
+                raise DirectIntakeBusy()
+            raise DirectWithdrawRefused(code)
+        if answer != {"withdrawn": submission_id, "grade_state": WITHDRAWN_STATE}:
+            raise DirectWithdrawRefused("withdraw_reply_invalid")
+        return answer
+
+    answer = retry_rate_limited(once, deadline=deadline)
+    _set_cancelled_record_aside(
+        root, epoch, record_path, label="withdrawn", task_id=submission_id
+    )
+    return answer
 
 
 #: An epoch's Ladder as last read again by the miner (M1 E2E U53): the

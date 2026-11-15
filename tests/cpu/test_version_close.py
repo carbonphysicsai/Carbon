@@ -226,3 +226,48 @@ def test_a_bad_selection_refuses_the_start(selected):
 
 def test_the_field_is_an_allowed_optional_receiver_field():
     assert "version_closed_files" in direct_receiver._OPTIONAL_FIELDS
+
+
+def _owner_store(root, hotkey, rows):
+    """The owner's task store as the receiver keeps it (`OwnerProviders`): ``direct_tasks`` with its cancellation ids."""
+    import hashlib
+
+    store = root / "owners" / hashlib.sha256(hotkey.encode()).hexdigest() / "tasks"
+    store.mkdir(parents=True)
+    with sqlite3.connect(store / "direct-tasks.sqlite3") as db:
+        db.execute(
+            "CREATE TABLE direct_tasks(id TEXT PRIMARY KEY, request BLOB, view BLOB, cancellation TEXT)"
+        )
+        for task, cancellation in rows:
+            db.execute(
+                "INSERT INTO direct_tasks VALUES(?,?,?,?)",
+                (task, b"", b"", cancellation),
+            )
+
+
+def test_a_withdrawn_task_whose_marker_is_not_written_yet_is_never_closed(root):
+    """A miner's withdrawal (owner GO 15 Nov 2026) whose door call stopped after the cancel: the closer skips it, so the
+    withdrawal's own repair writes its WITHDRAWN_BY_MINER marker. Found by the door's withdrawal row, or by the owner's
+    task store's durable cancellation id when the row was not written either. A stop's cancellation is closed as before.
+    """
+    from carbon.challenge_validator.lean_recipe import WITHDRAW_PREFIX
+
+    ledger = AttemptLedger(root / "attempts.sqlite3")
+    ledger.record_miner_withdrawal(CONTRACT, T[0], HOT_A)  # row written, marker not
+    _owner_store(
+        root,
+        HOT_A,
+        [(T[0], WITHDRAW_PREFIX + T[0]), (T[2], "mcp-cancel-" + T[2])],
+    )
+    document = vc.close_queued(root, challenge_id=CHALLENGE, version=OLD)
+    assert document["closed"] == [{"submission_id": T[2], "owner": HOT_A}]
+    assert not (root / "auto-grade" / "markers" / (T[0] + ".json")).exists()
+
+
+def test_a_withdrawal_found_only_in_the_owners_task_store_is_never_closed(root):
+    from carbon.challenge_validator.lean_recipe import WITHDRAW_PREFIX
+
+    _owner_store(root, HOT_A, [(T[2], WITHDRAW_PREFIX + T[2])])
+    document = vc.close_queued(root, challenge_id=CHALLENGE, version=OLD)
+    assert document["closed"] == [{"submission_id": T[0], "owner": HOT_A}]
+    assert not (root / "auto-grade" / "markers" / (T[2] + ".json")).exists()

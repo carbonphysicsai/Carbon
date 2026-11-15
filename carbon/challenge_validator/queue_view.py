@@ -16,7 +16,8 @@ this door already keeps. Reads; writes nothing.
 - **door state:** ``draining for an update`` while the operator's per-door DRAINING flag is set; ``paused`` while the
   door's chain read is stale (it grades nothing until the chain answers, H8); ``re-measuring the king`` while the
   grader runs its king's upkeep; otherwise ``grading``.
-- **waits:** for every verdict marker written in the last 24 h: its write time minus the task's own creation time.
+- **waits:** for every verdict marker written in the last 24 h: its write time minus the task's own creation time. A
+  submission its owner WITHDREW while queued (marker WITHDRAWN_BY_MINER) never waited for a verdict: it is not a sample.
 
 - **held for review (v2):** on a door whose crown hold is on (`crown_hold.holding()`: a menu-D version whose hold the registry does not list off), the
   unresolved filed contenders (`PoolStore.paused_crowns`, all kinds, filing order). Neither that record nor the grade
@@ -49,6 +50,17 @@ DAY_S = 86400.0
 _BUILDING = frozenset({"RUNNING", "CANCEL_REQUESTED"})
 #: The one state that waits for a grade: built, no verdict yet.
 _BUILT = "SUCCEEDED"
+
+
+def _withdrawn(marker):
+    """Whether the marker file is a withdrawal's (`auto_grade.WITHDRAWN_STATE`); read only for a CANCELLED task."""
+    from .auto_grade import WITHDRAWN_STATE
+
+    try:
+        body = json.loads(marker.read_bytes())
+    except (OSError, ValueError):
+        return False
+    return type(body) is dict and body.get("state") == WITHDRAWN_STATE
 
 
 class QueueView:
@@ -140,7 +152,9 @@ class QueueView:
                 continue
             if now - written > DAY_S:
                 continue
-            _state, created = index.get(marker.stem, (None, None))
+            state, created = index.get(marker.stem, (None, None))
+            if state == "CANCELLED" and _withdrawn(marker):
+                continue  # withdrawn by its owner while queued: no grade was waited for
             if created is not None and written >= created:
                 waits.append(written - created)
         return waits

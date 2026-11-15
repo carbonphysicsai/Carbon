@@ -24,7 +24,9 @@ REGISTRATION_REQUIRED = "registration_required"
 #: one (a result check reads the validator's intake). A practice-only profile
 #: is refused each of them; everything that reads its own campaign, stops or
 #: practises is not listed here (Validator receipt: research and report only).
-REGISTERED_ONLY = frozenset({"freeze_candidate", "submit", "commit", "check_result"})
+REGISTERED_ONLY = frozenset(
+    {"freeze_candidate", "submit", "commit", "check_result", "withdraw"}
+)
 #: The one Graphite submission policy a practice-only launch may take: retain
 #: a selected candidate, never commit or submit it. Its selection itself is a
 #: phase the ledger refuses a practice-only campaign, so the campaign stops

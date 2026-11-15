@@ -8,7 +8,8 @@ clean queue, so a submission still queued on the old door is not carried. It is 
   Every submitted task of the old version's served contract that the grader never marked (`AutoGrader.pending`'s own
   rule) gets an auto-grade marker ``VERSION_CLOSED`` (code ``version_closed``). Nothing else is written there: no
   attempt row, no exam-cap slot (a slot is reserved only when a grade starts, `exam_cap.ExamCap.reserve`), no recipe
-  copy row. A rollback to that root grades none of them (the marker stands) and answers v4 ``NOT_GRADED``.
+  copy row. A rollback to that root grades none of them (the marker stands) and answers v4 ``NOT_GRADED``. A task
+  its owner WITHDREW while queued whose marker is not written yet is skipped: its own WITHDRAWN_BY_MINER marker follows.
 - It also writes ``version-closed.json`` in the old root: the closed ids with their owners. The NEW door names that
   file in its configuration (``version_closed_files``); when the owner asks about one of its own closed submissions
   there, it answers the typed refusal ``version_closed`` (HTTP 410), never ``feedback_submission_unknown``. Any other
@@ -85,6 +86,44 @@ def _closed(markers, submission_id):
     return type(body) is dict and body.get("state") == STATE
 
 
+def _withdrawn(root, ledger, contract, submission_id):
+    """Whether its owner WITHDREW ``submission_id`` while it was queued (`LeanRecipeAdapter.withdraw`): the door's withdrawal
+    row, or the owner's task store's durable cancellation id (read only), in case the door stopped before its row and marker
+    were written. Such a task is never closed here: the withdrawal's own repair writes its WITHDRAWN_BY_MINER marker
+    (`AutoGrader._settle_withdrawn`). Anything unreadable says no (the task is closed as before: not graded either way).
+    """
+    import hashlib
+    import sqlite3
+
+    from .lean_recipe import WITHDRAW_PREFIX
+
+    if ledger.miner_withdrawal(contract, submission_id) is not None:
+        return True
+    owner = ledger.owned_outcome(contract, submission_id)
+    if type(owner) is not str:
+        return False
+    store = (
+        Path(root)
+        / "owners"
+        / hashlib.sha256(owner.encode()).hexdigest()
+        / "tasks"
+        / "direct-tasks.sqlite3"
+    )
+    if store.is_symlink() or not store.is_file():
+        return False
+    try:
+        db = sqlite3.connect(f"file:{store}?mode=ro", uri=True)
+        try:
+            row = db.execute(
+                "SELECT cancellation FROM direct_tasks WHERE id=?", (submission_id,)
+            ).fetchone()
+        finally:
+            db.close()
+    except sqlite3.Error:
+        return False
+    return row is not None and row[0] == WITHDRAW_PREFIX + submission_id
+
+
 def close_queued(root, *, challenge_id, version):
     """Close every never-graded task of ``challenge_id`` ``version`` on the STOPPED door root ``root``; returns the
     ``version-closed.json`` document (also written there, once)."""
@@ -103,6 +142,8 @@ def close_queued(root, *, challenge_id, version):
         if not _TASK.fullmatch(submission_id):
             continue
         if not _marker_path(markers, submission_id).exists():
+            if _withdrawn(root, ledger, contract, submission_id):
+                continue  # withdrawn by its owner: its own marker, never VERSION_CLOSED
             _write_marker(markers, submission_id)
         if not _closed(markers, submission_id):
             continue  # the grader's own outcome stands

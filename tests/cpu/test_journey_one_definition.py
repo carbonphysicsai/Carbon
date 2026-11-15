@@ -343,6 +343,9 @@ def test_every_operation_in_the_table_is_a_step_or_read_by_the_journey():
         # tests/cpu/test_launchpad_compute_budget_status.py
         # (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
         | {"budget_status"}
+        # Withdrawing a queued submission needs a validator that holds it in its queue, which the journey's fixture
+        # does not: pinned (the runner body, the signed request, the door) by tests/cpu/test_miner_withdraw.py.
+        | {"withdraw"}
     )
     # Halt and resume are the lifecycle controls, pinned by the door-parity
     # test through both doors; the journey has no pause in it. A journal note

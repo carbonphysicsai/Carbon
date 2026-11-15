@@ -109,6 +109,18 @@ FEEDBACK_REPLY_SCHEMA_V7 = "carbon.private-exam.ladder-feedback-reply.v7"
 #: None) and ``grade_worker`` (the public facts of the machine that grades: CPU model, the registered CPU count and memory, GPU
 #: or not). Nothing measured. Opt-in (a kit in the field pins v4's closed ``failure`` keys); advertised as ``exam_feedback_v8``.
 FEEDBACK_REPLY_SCHEMA_V8 = "carbon.private-exam.ladder-feedback-reply.v8"
+#: v9 (owner GO 15 Nov 2026 via the Lead, "those 3 are fine.": a miner may withdraw its own queued submission) = v8 plus the grade
+#: state WITHDRAWN_BY_MINER for a submission its owner withdrew while it was still queued. Opt-in (a kit in the field pins its own
+#: closed state set): every older reply (v4..v8) says NOT_GRADED for it, which it already reads. Advertised as ``exam_feedback_v9``.
+FEEDBACK_REPLY_SCHEMA_V9 = "carbon.private-exam.ladder-feedback-reply.v9"
+#: The grade state only a v9 reply names (`auto_grade.WITHDRAWN_STATE`).
+WITHDRAWN_STATE = "WITHDRAWN_BY_MINER"
+#: A miner withdraws its OWN queued, not-yet-building submission (owner GO 15 Nov 2026 via the Lead): signed by the same hotkey,
+#: ``{submission_id}``; no try and no allowance is used, the waiting place is freed, the task's marker is WITHDRAWN_BY_MINER.
+#: Advertised in its own facts entry (``construction_withdraw_v1``) by a door that grades its own submissions, never in `tools`
+#: (deployed clients pin that list exactly).
+WITHDRAW_TOOL = "construction_withdraw"
+WITHDRAW_FACTS_NAME = "construction_withdraw_v1"
 #: A wall stop in any other pass (e.g. the speed sample) is still counted and reads ``pass: None``.
 FAILURE_PASSES = ("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
 #: The reasons only a v7 reply carries.
@@ -155,6 +167,18 @@ def _cpu_model(path="/proc/cpuinfo"):
     return None
 
 
+def withdraw_facts():
+    """The ``construction_withdraw_v1`` public facts entry (the kit pins it exactly): the tool, its one field, and the one task
+    state it can still withdraw."""
+    return {
+        "tool": WITHDRAW_TOOL,
+        "fields": ["submission_id"],
+        "states": ["QUEUED"],
+        "path": SUBMIT_PATH,
+        "owner": "authenticated_hotkey",
+    }
+
+
 def feedback_reply(fields):
     """Which per-submission feedback reply a signed request's fields ask for: ``"v2"`` (``submission_id`` alone),
     ``"v3"`` or ``"v4"`` (``reply`` + ``submission_id``), or None for anything else (refused ``feedback_fields``).
@@ -170,6 +194,7 @@ def feedback_reply(fields):
         "v6",
         "v7",
         "v8",
+        "v9",
     ):
         return fields["reply"]
     return None
@@ -234,6 +259,8 @@ class DirectRecipeIntake(BatteryIntake):
         #: The auto-grade marker reader (`AutoGrader.marker`), or None when this receiver does not
         #: grade its own submissions (then no grade state is served).
         self.grade_marker = None
+        #: The withdrawal's marker writer (`AutoGrader.withdrawn`), or None: then no withdrawal is advertised or taken.
+        self.withdraw_marker = None
         #: One writer at a time for the calls that change state (an admission or a source
         #: stage): the cap, idempotency and the once-per-epoch rule hold exactly under any
         #: number of concurrent clients (GPU_REBUILD_RULINGS section 12). Reads (the public
@@ -443,7 +470,20 @@ class DirectRecipeIntake(BatteryIntake):
                             "path": SUBMIT_PATH,
                             "owner": "authenticated_hotkey",
                         },
+                        "exam_feedback_v9": {
+                            "tool": FEEDBACK_TOOL,
+                            "fields": ["reply", "submission_id"],
+                            "reply_schema": FEEDBACK_REPLY_SCHEMA_V9,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        },
                     }
+                ),
+                **(
+                    {}
+                    if getattr(self, "grade_marker", None) is None
+                    or getattr(self, "withdraw_marker", None) is None
+                    else {WITHDRAW_FACTS_NAME: withdraw_facts()}
                 ),
                 "served_contracts": self.door.served_contracts(),
                 # Which catalog entries are officially gradable now: ids and the receipt log's head digest only.
@@ -605,13 +645,66 @@ class DirectRecipeIntake(BatteryIntake):
                 received.receipt.hotkey,
                 submission_id=fields["submission_id"],
                 v3=reply == "v3",
-                v4=reply in ("v4", "v5", "v6", "v7", "v8"),
-                v5=reply in ("v5", "v6", "v7", "v8"),
-                v6=reply in ("v6", "v7", "v8"),
-                v7=reply in ("v7", "v8"),
-                v8=reply == "v8",
+                v4=reply in ("v4", "v5", "v6", "v7", "v8", "v9"),
+                v5=reply in ("v5", "v6", "v7", "v8", "v9"),
+                v6=reply in ("v6", "v7", "v8", "v9"),
+                v7=reply in ("v7", "v8", "v9"),
+                v8=reply in ("v8", "v9"),
+                v9=reply == "v9",
             )
+        if received.call.tool == WITHDRAW_TOOL:
+            return self._withdraw(received.receipt.hotkey, fields)
         return _refused(400, "tool")
+
+    def _withdraw(self, hotkey, fields):
+        """The signed hotkey withdraws its OWN queued, not-yet-building submission (`LeanRecipeAdapter.withdraw`).
+
+        Order: the provider's cancel first (the one step that decides, under the provider's lock against a start), then the
+        withdrawal row, then the terminal marker (`AutoGrader.withdrawn`). A call that stops after the cancel answers 503;
+        the same withdrawal again is idempotent and writes what is missing, and the grade round repairs a missing marker
+        itself (`AutoGrader._settle_withdrawn`), so the task never stays pending and is never graded. Answers: 200
+        ``{"withdrawn", "grade_state"}`` (also for the same withdrawal again); 409 ``withdraw_too_late`` (building, built or
+        ended); 404 ``withdraw_submission_unknown`` (unknown, another hotkey's, or no provider for it here: one answer);
+        400 ``withdraw_fields``.
+        """
+        from .lean_recipe import (
+            ALREADY_WITHDRAWN,
+            WITHDRAW_TOO_LATE,
+            WITHDRAWN,
+        )
+
+        if (
+            set(fields) != {"submission_id"}
+            or type(fields["submission_id"]) is not str
+            or not fields["submission_id"]
+        ):
+            return _refused(400, "withdraw_fields")
+        mark = getattr(self, "withdraw_marker", None)
+        if getattr(self, "grade_marker", None) is None or mark is None:
+            return _refused(
+                400, "tool"
+            )  # not advertised here: this door does not grade its own submissions
+        submission_id = fields["submission_id"]
+        with self._write:
+            try:
+                result = self.adapter.withdraw(hotkey, submission_id)
+            except Unavailable:
+                return _refused(503, "withdraw_unavailable")
+            if result == WITHDRAW_TOO_LATE:
+                return _refused(409, "withdraw_too_late")
+            if result not in (WITHDRAWN, ALREADY_WITHDRAWN):
+                return _refused(404, "withdraw_submission_unknown")
+            try:
+                self.adapter.ledger.record_miner_withdrawal(
+                    self.adapter.contract_digest, submission_id, hotkey
+                )
+                mark(submission_id)
+            # any failure is said, then repaired: the same withdrawal again, or the grade round
+            except Exception as failure:  # noqa: BLE001
+                log("withdraw_record_failed", type=type(failure).__name__)
+                return _refused(503, "withdraw_unavailable")
+        log("miner_withdrew", again=result == ALREADY_WITHDRAWN)
+        return Answer(200, {"withdrawn": submission_id, "grade_state": WITHDRAWN_STATE})
 
     def _admit(self, submitted):
         """The one admission path: a single writer, so a duplicate is admitted once."""
@@ -650,6 +743,7 @@ class DirectRecipeIntake(BatteryIntake):
         v6=False,
         v7=False,
         v8=False,
+        v9=False,
     ):
         """The caller's own best and latest Ladder documents for the active exam
         (each None until there is one): nothing else, and never another hotkey's
@@ -675,6 +769,8 @@ class DirectRecipeIntake(BatteryIntake):
                     grade_state, failure = self._grade_state_v4(hotkey, submission_id)
                 except (Unavailable, LookupError, ValueError, OSError):
                     return _refused(503, "grade_state_unavailable")
+                if grade_state == WITHDRAWN_STATE and not v9:
+                    grade_state = "NOT_GRADED"  # v4..v8: withdrawn = not graded, nothing charged (a state they read)
             else:
                 grade_state = self._grade_state(hotkey, submission_id)
             held_position = None
@@ -744,24 +840,28 @@ class DirectRecipeIntake(BatteryIntake):
                     if submission_id is None
                     else {
                         "schema": (
-                            FEEDBACK_REPLY_SCHEMA_V8
-                            if v8
+                            FEEDBACK_REPLY_SCHEMA_V9
+                            if v9
                             else (
-                                FEEDBACK_REPLY_SCHEMA_V7
-                                if v7
+                                FEEDBACK_REPLY_SCHEMA_V8
+                                if v8
                                 else (
-                                    FEEDBACK_REPLY_SCHEMA_V6
-                                    if v6
+                                    FEEDBACK_REPLY_SCHEMA_V7
+                                    if v7
                                     else (
-                                        FEEDBACK_REPLY_SCHEMA_V5
-                                        if v5
+                                        FEEDBACK_REPLY_SCHEMA_V6
+                                        if v6
                                         else (
-                                            FEEDBACK_REPLY_SCHEMA_V4
-                                            if v4
+                                            FEEDBACK_REPLY_SCHEMA_V5
+                                            if v5
                                             else (
-                                                FEEDBACK_REPLY_SCHEMA_V3
-                                                if v3
-                                                else FEEDBACK_REPLY_SCHEMA_V2
+                                                FEEDBACK_REPLY_SCHEMA_V4
+                                                if v4
+                                                else (
+                                                    FEEDBACK_REPLY_SCHEMA_V3
+                                                    if v3
+                                                    else FEEDBACK_REPLY_SCHEMA_V2
+                                                )
                                             )
                                         )
                                     )
@@ -827,10 +927,15 @@ class DirectRecipeIntake(BatteryIntake):
         CANDIDATE_FAILED one is the inference child at the graded wall. A grade whose reason v3 leaves None is GRADED
         while its slot is held (a counted outcome), else NOT_GRADED (given back, nothing charged).
         """
+        from .lean_recipe import WITHDRAWN_CODE
+
         marker = self.grade_marker(submission_id)
         if marker is None:
             projected = self.adapter.outcome(submission_id)
             state = projected.get("state")
+            if (projected.get("failure") or {}).get("code") == WITHDRAWN_CODE:
+                # withdrawn by its owner, its marker not written yet (the grade round repairs it): the same answer
+                return WITHDRAWN_STATE, None
             if state == "RECONSTRUCTION_FAILED":
                 child, observation = self.adapter.failed_child(submission_id)
                 code = (projected.get("failure") or {}).get("code")
@@ -848,6 +953,9 @@ class DirectRecipeIntake(BatteryIntake):
         if marker.get("state") == "VERSION_CLOSED":
             # closed at a version flip (`version_close`, owner #9): not graded, nothing charged (a rollback's answer)
             return "NOT_GRADED", None
+        if marker.get("state") == WITHDRAWN_STATE:
+            # withdrawn by its owner while queued: never graded, nothing charged (`_feedback` says NOT_GRADED before v9)
+            return WITHDRAWN_STATE, None
         state = self._grade_state(hotkey, submission_id)
         if state is not None:
             return state, None

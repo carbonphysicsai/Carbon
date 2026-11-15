@@ -1,7 +1,8 @@
 {
   "rows": {
     "electric-motor-magnetics 1.8": {
-      "limit": 1
+      "limit": 1,
+      "per": "hotkey"
     }
   },
   "schema": "carbon.exam.coldkey-waiting-limit.v1"

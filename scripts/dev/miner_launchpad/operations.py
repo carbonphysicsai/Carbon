@@ -772,6 +772,27 @@ OPERATIONS = {
             ("request", "profile", "campaign"),
             admits_work=False,
         ),
+        # A miner withdraws its own queued, not-yet-building official submission (owner GO 15 Nov 2026 via the Lead):
+        # a signed request to the validator the latest submit went to; it withdraws work, so registration does not gate it
+        # here (a practice-only profile is refused: `practice_only.REGISTERED_ONLY`).
+        Operation(
+            "withdraw",
+            "Withdraw your latest submission while it is still waiting in the "
+            "validator's queue (not yet building): a signed request, by your "
+            "signer, to the validator your latest submit went to. It uses no try "
+            "and none of your allowance, frees your waiting place, and the "
+            "validator records it as withdrawn by you; check_result then shows "
+            "WITHDRAWN_BY_MINER. Refused once the submission is building or "
+            "built (withdraw_too_late), and by a validator that does not take "
+            "withdrawals. Your frozen candidate is kept: submit again when "
+            "ready, in the same round. Each withdrawal of the same model counts "
+            "toward the validator's limit of retries for that model on this "
+            "exam.",
+            frozenset({"campaign"}),
+            frozenset(),
+            ("request", "profile", "campaign"),
+            admits_work=False,
+        ),
         Operation(
             "campaign_view",
             "The campaign's research view: the one allow-listed document the "

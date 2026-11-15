@@ -75,6 +75,8 @@ def test_the_registered_only_operations_are_the_table_s_signing_ones():
         "submit",
         "commit",
         "check_result",
+        # a withdrawal is a signed request to a validator (owner GO 15 Nov 2026)
+        "withdraw",
     }
     assert practice_only.REGISTERED_ONLY <= set(OPERATIONS)
 

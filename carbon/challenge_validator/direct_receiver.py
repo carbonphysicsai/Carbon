@@ -2537,6 +2537,8 @@ def serve(
                 )
                 # The caller's own submission's grade state (exam_feedback v2) reads its marker.
                 intake.grade_marker = grader.marker
+                # A miner's withdrawal of its own queued submission writes its terminal marker (`construction_withdraw_v1`).
+                intake.withdraw_marker = grader.withdrawn
                 # The public queue (`queue_public`): counts and the door's state, read from this door's own records.
                 from carbon.challenge_validator.queue_view import QueueView
 
