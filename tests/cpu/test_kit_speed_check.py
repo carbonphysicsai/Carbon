@@ -66,15 +66,11 @@ def test_the_workload_is_fixed_public_and_exact():
     first, second = speed_workload.build(public), speed_workload.build(public)
     assert first["workload_digest"] == second["workload_digest"]
     assert first["state"] == second["state"]
-    # The first BATCH PUBLIC practice rows, nothing else.
+    # The PUBLIC practice rows, nothing else.
     np.testing.assert_array_equal(
-        first["inputs"],
-        np.asarray(public["practice_inputs"])[: speed_workload.BATCH],
+        first["inputs"], np.asarray(public["practice_inputs"])
     )
-    assert first["expected_output_shape"] == (
-        speed_workload.BATCH,
-        tuple(public["expected_output_shape"])[1],
-    )
+    assert first["expected_output_shape"] == tuple(public["expected_output_shape"])
     assert set(first["identity"]) == {
         "schema",
         "challenge",
@@ -83,10 +79,44 @@ def test_the_workload_is_fixed_public_and_exact():
         "inputs_digest",
         "allowlist_digest",
         "program_digest",
+        "staged_digests",
+        "input_name",
         "batch",
     }
     assert first["binding"]["challenge_version"] == speed_workload.VERSION
     assert speed_workload.inference_wall_seconds(public) == 648
+
+
+def test_the_workload_times_the_doors_own_program_for_the_version(monkeypatch):
+    """The program, input name and staged modules are the door's own choice for the version
+    (`registered_inference_contract` -> `v2_infer_query`), so a switch of that choice (the compiled forward) is followed,
+    and it names a different workload: a reference measured on one program is never compared with another.
+    """
+    from carbon.development_session import direct_graph_construction_worker as worker
+    from carbon.development_session.bundle_construction_worker import timed_program
+
+    work = speed_workload.build()
+    door = worker.v2_infer_query(speed_workload.CHALLENGE, speed_workload.VERSION)
+    assert work["query"]["program"] == door["program"]
+    assert work["query"]["input_name"] == door["input_name"] == "inputs/features"
+    assert work["query"]["staged_files"] == door["staged_files"]
+    assert work["query"]["provenance"] == worker.INFERENCE_PROVENANCE
+    # The timed child derives its per-call program from it (the anchors are intact).
+    assert timed_program(door["program"]) != door["program"]
+    original = worker.v2_infer_query
+
+    def switched(challenge_id, version):
+        query = dict(original(challenge_id, version))
+        query["program"] = query["program"].replace(
+            "member_forward = rebuild(doc, allowed)",
+            "member_forward = jax.jit(rebuild(doc, allowed))",
+        )
+        return query
+
+    monkeypatch.setattr(worker, "v2_infer_query", switched)
+    after = speed_workload.build()
+    assert after["query"]["program"] != work["query"]["program"]
+    assert after["workload_digest"] != work["workload_digest"]
 
 
 def test_the_graph_uses_only_plain_allowlisted_ops_and_public_seeded_parameters():
@@ -102,7 +132,7 @@ def test_the_graph_uses_only_plain_allowlisted_ops_and_public_seeded_parameters(
     assert sum(node["op"] == "tanh" for node in nodes) == speed_workload.HIDDEN_LAYERS
     assert doc["graphs"]["main"]["inputs"][-1] == {
         "value": 2 * (speed_workload.HIDDEN_LAYERS + 1),
-        "name": "inputs/x",
+        "name": "inputs/features",
         "dtype": "float64",
         "shape": [speed_workload.BATCH, 8],
     }
@@ -189,9 +219,9 @@ def test_the_workload_runs_the_grades_own_timed_program_and_reports_per_call(
     tmp_path,
 ):
     pytest.importorskip("jax")
-    from carbon.development_session.bundle_construction_worker import (
-        INFER_PROGRAM,
-        timed_program,
+    from carbon.development_session.bundle_construction_worker import timed_program
+    from carbon.development_session.direct_graph_construction_worker import (
+        v2_infer_query,
     )
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
@@ -205,13 +235,14 @@ def test_the_workload_runs_the_grades_own_timed_program_and_reports_per_call(
         inference_image=image,
         runner=_local_runner(seen),
     )
-    assert seen[0]["source"] == timed_program(INFER_PROGRAM)
-    assert seen[0]["provenance"] == "DIRECT_BUNDLE_PUBLIC_INFERENCE"
+    door = v2_infer_query(speed_workload.CHALLENGE, speed_workload.VERSION)
+    assert seen[0]["source"] == timed_program(door["program"])
+    assert seen[0]["provenance"] == "DIRECT_GRAPH_PUBLIC_INFERENCE"
     assert seen[0]["rebuild_wall_seconds"] == 648
     assert result["schema"] == speed_workload.RESULT_SCHEMA
     assert result["workload_digest"] == speed_workload.build()["workload_digest"]
     assert result["image_id"] == image.image_id
-    assert result["per_call_rows"] == speed_workload.BATCH
+    assert result["per_call_rows"] == len(speed_workload.material()["practice_inputs"])
     assert 0 < result["per_call_median_seconds"] <= result["per_call_max_seconds"]
     # The ledger reopens frozen (a second kit run reuses it).
     assert speed_workload.open_ledger(tmp_path / "ledger").root == ledger.root
