@@ -237,6 +237,49 @@ def _challenges():
 LAUNCH_CHALLENGE, LAUNCH_VERSION = _challenges()
 
 
+@contextlib.contextmanager
+def fixture_doors():
+    """The published endpoints this smoke runs against: a fixture door for the launch
+    Challenge on the network the smoke simulates (`stub_onboarding`), like the stubbed chain.
+
+    The wizard offers only versions a published door serves (`doorless_versions`). The real
+    list (`published_endpoints.json`) changes when Carbon opens or closes a door, as when
+    Motor moved to mainnet and its testnet door closed, and the smoke must not pass or fail
+    on that. No request reaches the fixture door."""
+    from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
+    from scripts.dev.miner_launchpad import environment_setup
+
+    with tempfile.TemporaryDirectory(prefix="carbon-smoke-doors-") as directory:
+        path = Path(directory) / "published_endpoints.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "schema": environment_setup.PUBLISHED_SCHEMA,
+                    "about": "Browser smoke fixture: one door for the launch Challenge.",
+                    "entry_fields": {},
+                    "endpoints": [
+                        {
+                            "network": CARBON_NETWORK,
+                            "netuid": CARBON_NETUID,
+                            "challenge": LAUNCH_CHALLENGE,
+                            "version": LAUNCH_VERSION,
+                            "intake_url": "https://smoke-fixture-door.carbonphysics.ai",
+                            "receiver_hotkey": "5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR",
+                        }
+                    ],
+                }
+            )
+        )
+        published = environment_setup.published_endpoints(path)
+        assert not published["problem"], published
+        original = environment_setup.PUBLISHED_ENDPOINTS
+        environment_setup.PUBLISHED_ENDPOINTS = path
+        try:
+            yield
+        finally:
+            environment_setup.PUBLISHED_ENDPOINTS = original
+
+
 def choose(session, name, value):
     """Pick a wizard choice the way a person does: its radio, by value."""
     selector = f"input[name={name}][value={json.dumps(value)}]"
@@ -2502,7 +2545,8 @@ def fresh_miner():
 
 
 if __name__ == "__main__":
-    run()
-    journey()
-    setup_journey()
-    fresh_miner()
+    with fixture_doors():
+        run()
+        journey()
+        setup_journey()
+        fresh_miner()
