@@ -1,23 +1,29 @@
-"""Motor 1.8's inference compiles each member's forward, as the SAME version (owner, Sun 15 Nov 2026 via the Lead:
-"nope I'm counting that as the same version. 15 decimal places is fine.").
+"""Motor 1.8's inference: each member's forward compiled, and its GRADED per-case procedure run as isolated vmap-64
+lanes, as the SAME version (owner, Sun 15 Nov 2026 via the Lead: "nope I'm counting that as the same version. 15
+decimal places is fine."; then "I want the 64 rows working" and "Yes and yes"; ~11:1x CST: differences at the
+13th-15th decimal are negligible; bound 1e-12, a TEST assertion here, never a runtime rule).
 
-Claims: only Motor 1.8 gets the compiled program, which differs from the eager one by one anchored line, and every
-program derived from it (the speed gate's single calls, the practice timing) still derives; on PUBLIC practice rows the
-compiled per-case answers equal the eager interpreter's within 1e-12; the repeat pair answers bit for bit alike; and the
-speed gate's timed single calls answer EXACTLY as the compiled graded run did (`outputs_match_graded`), so no grade
-fails speed on a rounding difference. The programs really run (subprocesses) over a real codec state with synthetic
+Claims: only Motor 1.8 gets the vmap-64 program, one anchored replacement of the compiled one, and every other
+version's program keeps its bytes; every program derived from it (the speed gate's single calls, the practice timing)
+still derives, with the timed calls still per-case; over 150 seeded rows (three chunks, the last short) the vmap-64
+answers equal the eager interpreter's per-case answers within 1e-12 (bit equality is claimed neither way); the repeat
+pair answers bit for bit alike; re-running the ORIGINAL chunks in a fresh process answers bit for bit; and the timed
+single calls match the graded rows within a wide combined tolerance (`speed_match`; the values here are a synthetic
+fixture, not the registered row). The programs really run (subprocesses) over a real codec state with synthetic
 parameters; this is program-contract evidence, not a speed measurement, science or qualification.
 """
 
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 
 import numpy as np
 import pytest
 
+from carbon.challenge_validator import speed_match
 from carbon.development_session import (
     bundle_construction_worker,
     direct_graph_construction_worker,
@@ -29,14 +35,28 @@ from carbon.development_session import (
 worker = direct_graph_construction_worker
 MOTOR_18 = ("electric-motor-magnetics", "1.8")
 posix = pytest.mark.skipif(os.name != "posix", reason="fixed program subprocesses")
+#: The owner's same-version bound (~11:1x): a test assertion only.
+SAME_VERSION_BOUND = 1e-12
+#: A SYNTHETIC wide tolerance for the timed-call check below (not the registered values, which stay HUMAN_INPUT).
+FIXTURE_TOLERANCE = (1e-9, 1e-12)
+#: The eager and compiled programs' bytes at the vmap-64 head's base (origin/main 57af6692 and later): unchanged.
+PROGRAM_SHA256 = {
+    "PHYSICAL_V2_INFER_PROGRAM": "db89e9d63e84dda12547e629ab9aee52592c992dff50b0eb292173256a876c65",
+    "PHYSICAL_V2_COMPILED_INFER_PROGRAM": "512cb25053d6b45b6e0db589618e7da895480f2070640739462dbd0787da248a",
+    "PHYSICAL_INFER_PROGRAM": "dec3bf54fbaee202ed5f1621a7746e8c7f047d0fcdbc93cde32eacff2558d4de",
+}
+ROWS = 150  # chunks 0 and 1 full, chunk 2 holds 22 rows and 42 all-zero pad lanes
 
 
-def test_only_motor_1_8_gets_the_compiled_program_and_it_differs_by_one_line():
+def test_only_motor_1_8_gets_the_vmap64_program_and_every_other_program_keeps_its_bytes():
     assert worker.JIT_INFERENCE_VERSIONS == frozenset({MOTOR_18})
+    assert worker.VMAP64_INFERENCE_VERSIONS == frozenset({MOTOR_18})
+    for name, sha in PROGRAM_SHA256.items():
+        assert hashlib.sha256(getattr(worker, name).encode()).hexdigest() == sha, name
     for key in physical_graph_adapter_v2.SPECS:
         program = worker.v2_infer_query(*key)["program"]
         expected = (
-            worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
+            worker.PHYSICAL_V2_VMAP64_INFER_PROGRAM
             if key == MOTOR_18
             else worker.PHYSICAL_V2_INFER_PROGRAM
         )
@@ -48,17 +68,64 @@ def test_only_motor_1_8_gets_the_compiled_program_and_it_differs_by_one_line():
         compiled.replace(worker._COMPILED_MEMBER, worker._EAGER_MEMBER)
         == worker.PHYSICAL_V2_INFER_PROGRAM
     )
-    compile(compiled, "compiled", "exec")
 
 
-def test_the_programs_derived_from_the_compiled_one_still_derive_and_stay_compiled():
+def test_the_vmap64_program_is_one_anchored_replacement_of_the_compiled_one():
+    lanes = worker.PHYSICAL_V2_VMAP64_INFER_PROGRAM
     compiled = worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
-    for derived in (
-        single_call_timing.program(compiled),
-        bundle_construction_worker.timed_program(compiled),
-    ):
-        assert derived != compiled and "jax.jit(rebuild(doc, allowed))" in derived
+    assert compiled.count(worker._PER_CASE_CALLS) == 1
+    assert lanes.count(worker._VMAP64_CALLS) == 1
+    assert lanes.replace(worker._VMAP64_CALLS, worker._PER_CASE_CALLS) == compiled
+    assert "jax.jit(jax.vmap(" in lanes and "lanes = 64" in lanes
+    compile(lanes, "vmap64", "exec")
+
+
+def _branch(program, head, tail):
+    start = program.index(head)
+    return program[start : program.index(tail, start)]
+
+
+def test_the_programs_derived_from_it_still_derive_and_the_timed_calls_stay_per_case():
+    lanes = worker.PHYSICAL_V2_VMAP64_INFER_PROGRAM
+    single = single_call_timing.program(lanes)
+    practice = bundle_construction_worker.timed_program(lanes)
+    for derived in (single, practice):
+        assert derived != lanes and "jax.jit(rebuild(doc, allowed))" in derived
         compile(derived, "derived", "exec")
+    # the speed gate's warm-up and timed calls: one design per call through the per-case compiled forward
+    timed = _branch(single, "if single_call is not None:\n", "\nelif per_case:\n")
+    assert "forward(*parameter_arrays, part)" in timed and "lane_forward" not in timed
+    # the practice per-call timing: one design per call as well
+    assert "produced = forward(*parameter_arrays, part)" in practice
+    # the graded per-case branch of both derived programs is the vmap-64 lanes
+    for program in (lanes, single, practice):
+        graded = _branch(
+            program, "# One case per call: the case is row 0", "\nelif graph_source:\n"
+        )
+        assert "lane_forward(arrays, chunk)" in graded
+        assert "forward(*parameter_arrays" not in graded
+
+
+def test_the_original_chunks_of_graded_positions():
+    chunks = worker.vmap64_chunks([140, 3, 60, 130, 10], ROWS)
+    assert list(chunks) == [0, 2]
+    assert chunks[0] == tuple(range(64)) and chunks[2] == tuple(range(128, 150))
+    rows, where = worker.vmap64_rerun_rows([140, 3, 60, 130, 10], ROWS)
+    assert rows == [*range(64), *range(128, 150)]
+    for position, index in zip([140, 3, 60, 130, 10], where):
+        assert rows[index] == position and index % 64 == position % 64
+    assert worker.vmap64_rerun_rows([7, 7], 8) == (list(range(8)), [7, 7])
+    for positions, count in (
+        ([], 10),
+        ([10], 10),
+        ([-1], 10),
+        ([True], 10),
+        (["1"], 10),
+        ([1], 0),
+        (5, 10),
+    ):
+        with pytest.raises(ValueError, match="vmap64_chunk_positions_invalid"):
+            worker.vmap64_chunks(positions, count)
 
 
 @pytest.fixture(scope="module")
@@ -67,6 +134,42 @@ def motor18():
 
     # seeded random parameters: every public row answers differently, so equality checks cannot pass on a constant
     return _artifact("ensemble64", MOTOR_18, seed=18)
+
+
+def _rows(artifact, count=ROWS):
+    """``count`` distinct rows near the public practice rows (synthetic, public)."""
+    base = artifact["inputs"]
+    rows = np.concatenate([base * (1.0 + 0.004 * k) for k in range(-(-count // 8))])
+    rows = np.ascontiguousarray(rows[:count], dtype=base.dtype)
+    assert len({row.tobytes() for row in rows}) == count
+    return rows
+
+
+def _eager(artifact, rows):
+    """The interpreter, op by op, one row per call at row 0 of the declared batch (the per-case procedure)."""
+    from test_registered_graph_pair_execution import _precision
+
+    from carbon.level4 import interpret
+
+    doc, members, mu, sd, combine = artifact["loaded"]
+    batch = doc["graphs"][doc["entry"]]["inputs"][-1]["shape"][0]
+    with _precision(artifact["dtype"]):
+        import jax.numpy as jnp
+
+        fn = interpret.rebuild(doc, artifact["allowlist"])
+        out = []
+        for row in rows:
+            padded = np.zeros((batch, *rows.shape[1:]), rows.dtype)
+            padded[0] = row
+            total = sum(
+                np.asarray(
+                    fn(*[jnp.asarray(p) for p in params], jnp.asarray(padded))[0]
+                )
+                * combine[index]
+                for index, params in enumerate(members)
+            )
+            out.append((total * sd + mu)[0])
+        return np.asarray(out)
 
 
 def _contract(artifact):
@@ -78,48 +181,34 @@ def _contract(artifact):
         artifact["binding"], limits, recipe=artifact["recipe"]
     )
     assert dtype == artifact["dtype"] == "float64"
-    assert query["program"] == worker.PHYSICAL_V2_COMPILED_INFER_PROGRAM
+    assert query["program"] == worker.PHYSICAL_V2_VMAP64_INFER_PROGRAM
     return limits, query
 
 
-@posix
-def test_the_compiled_pair_equals_the_eager_answers_within_1e_12_on_public_rows(
-    motor18, tmp_path
-):
-    from test_paired_inference import FixtureLedger
-    from test_registered_graph_pair_execution import _expected, _image, _runner
+def _pair(artifact, ledger, run, identity, inputs):
+    """Both phases of a per-case pair (two fresh processes) over ``inputs``."""
+    from test_registered_graph_pair_execution import _image
 
-    _contract(motor18)
-    ledger, seen = FixtureLedger(tmp_path), []
-    try:
-        evidence = paired_inference.infer_frozen_pair(
-            ledger,
-            owner="fixture-owner",
-            identity="compiled-pair",
-            inference_image=_image(),
-            recipe=motor18["recipe"],
-            challenge_binding=motor18["binding"],
-            limits_document=motor18["material"]["construction_limits_document"],
-            state_bytes=motor18["state"],
-            expected_state_digest=paired_inference._digest(motor18["state"]),
-            inputs=motor18["inputs"],
-            expected_output_shape=(len(motor18["inputs"]), motor18["width"]),
-            expected_output_dtype=motor18["dtype"],
-            allowlist_bytes=motor18["material"]["allowlist_bytes"],
-            seconds=motor18["policy"]["inference_wall_seconds_max"],
-            total_seconds=motor18["policy"]["total_reconstruction_wall_seconds_max"],
-            procedure="per_case",
-            runner=_runner(ledger, seen),
-        ).evidence
-    finally:
-        ledger.connection.close()
-    assert len(seen) == 2
-    # the child really ran the compiled program (the runner gets it as its source)
-    assert all(
-        "member_forward = jax.jit(rebuild(doc, allowed))" in call["source"]
-        for call in seen
-    )
-    phases = [
+    evidence = paired_inference.infer_frozen_pair(
+        ledger,
+        owner="fixture-owner",
+        identity=identity,
+        inference_image=_image(),
+        recipe=artifact["recipe"],
+        challenge_binding=artifact["binding"],
+        limits_document=artifact["material"]["construction_limits_document"],
+        state_bytes=artifact["state"],
+        expected_state_digest=paired_inference._digest(artifact["state"]),
+        inputs=inputs,
+        expected_output_shape=(len(inputs), artifact["width"]),
+        expected_output_dtype=artifact["dtype"],
+        allowlist_bytes=artifact["material"]["allowlist_bytes"],
+        seconds=artifact["policy"]["inference_wall_seconds_max"],
+        total_seconds=artifact["policy"]["total_reconstruction_wall_seconds_max"],
+        procedure="per_case",
+        runner=run,
+    ).evidence
+    return [
         np.asarray(
             json.loads(
                 base64.b64decode(
@@ -129,15 +218,68 @@ def test_the_compiled_pair_equals_the_eager_answers_within_1e_12_on_public_rows(
         )
         for phase in ("primary", "repeat")
     ]
-    np.testing.assert_array_equal(phases[0], phases[1])  # the repeat: bit for bit
-    eager = _expected(motor18, per_case=True)  # the interpreter, op by op
-    assert np.all(np.isfinite(eager)) and np.any(eager != 0)
-    assert len({row.tobytes() for row in eager}) == len(eager)  # every row differs
-    np.testing.assert_allclose(phases[0], eager, rtol=1e-12, atol=1e-12)
 
 
 @posix
-def test_the_timed_single_calls_answer_exactly_as_the_compiled_graded_run(
+def test_the_vmap64_pair_equals_eager_within_1e_12_and_repeats_bit_for_bit(
+    motor18, tmp_path
+):
+    from test_paired_inference import FixtureLedger
+    from test_registered_graph_pair_execution import _runner
+
+    _contract(motor18)
+    rows = _rows(motor18)
+    ledger, seen = FixtureLedger(tmp_path), []
+    try:
+        primary, repeat = _pair(
+            motor18, ledger, _runner(ledger, seen), "vmap64-pair", rows
+        )
+    finally:
+        ledger.connection.close()
+    assert len(seen) == 2
+    # the child really ran the vmap-64 program (the runner gets it as its source)
+    assert all("lane_forward = jax.jit(jax.vmap(" in call["source"] for call in seen)
+    assert primary.tobytes() == repeat.tobytes()  # a fresh process repeats bit for bit
+    eager = _eager(motor18, rows)
+    assert np.all(np.isfinite(eager)) and np.any(eager != 0)
+    assert len({row.tobytes() for row in eager}) == len(eager)  # every row differs
+    assert primary.shape == eager.shape == (ROWS, motor18["width"])
+    # the owner's same-version bound; bit equality is claimed neither way
+    assert float(np.max(np.abs(primary - eager))) < SAME_VERSION_BOUND
+
+
+@posix
+def test_rerunning_the_original_chunks_in_a_fresh_process_is_bit_exact(
+    motor18, tmp_path
+):
+    """The menu row check and the subset repeat's form: the rows of the ORIGINAL chunks, ascending, through the same
+    program in a fresh process, each graded position answered bit for bit (tolerance 0/0).
+    """
+    from test_paired_inference import FixtureLedger
+    from test_registered_graph_pair_execution import _runner
+
+    _contract(motor18)
+    rows = _rows(motor18)
+    keyed = [140, 3, 60, 130, 10]  # a keyed order, chunks 0 and 2 (the short last one)
+    queried, where = worker.vmap64_rerun_rows(keyed, ROWS)
+    ledger, seen = FixtureLedger(tmp_path), []
+    run = _runner(ledger, seen)
+    try:
+        graded, _ = _pair(motor18, ledger, run, "vmap64-graded", rows)
+        again, _ = _pair(
+            motor18, ledger, run, "vmap64-chunks", np.ascontiguousarray(rows[queried])
+        )
+    finally:
+        ledger.connection.close()
+    assert len(seen) == 4
+    assert again.shape == (len(queried), motor18["width"])
+    assert again[where].tobytes() == graded[keyed].tobytes()  # bit for bit, every row
+    # every re-run row, not only the keyed ones
+    assert again.tobytes() == graded[queried].tobytes()
+
+
+@posix
+def test_the_timed_single_calls_match_the_vmap64_graded_rows_within_the_tolerance(
     motor18, tmp_path
 ):
     from test_paired_inference import FixtureLedger
@@ -145,8 +287,9 @@ def test_the_timed_single_calls_answer_exactly_as_the_compiled_graded_run(
 
     limits, query = _contract(motor18)
     program = query.pop("program")
-    bank = np.tile(motor18["inputs"], (4, 1))
-    indices = list(range(single_call_timing.SAMPLE))
+    bank = _rows(motor18)
+    indices = list(range(0, ROWS, 7))[: single_call_timing.SAMPLE]  # every chunk
+    assert len(indices) == single_call_timing.SAMPLE and indices[-1] >= 128
     common = {
         "owner": "fixture-owner",
         "inference_image": _image(),
@@ -161,13 +304,11 @@ def test_the_timed_single_calls_answer_exactly_as_the_compiled_graded_run(
         **query,
     }
     ledger, seen = FixtureLedger(tmp_path), []
-    run = _runner(
-        ledger, seen
-    )  # one runner: its operation folders are numbered per runner
+    run = _runner(ledger, seen)
     try:
         graded = bundle_construction_worker._infer_state(
             ledger,
-            identity="compiled-graded",
+            identity="vmap64-graded",
             inputs=bank,
             expected_output_shape=(len(bank), motor18["width"]),
             program=program,
@@ -176,7 +317,7 @@ def test_the_timed_single_calls_answer_exactly_as_the_compiled_graded_run(
         )
         timed = bundle_construction_worker._infer_state(
             ledger,
-            identity="compiled-single-call",
+            identity="vmap64-single-call",
             inputs=bank,
             expected_output_shape=(single_call_timing.SAMPLE, motor18["width"]),
             single_call={"indices": indices, "warmup": motor18["inputs"][:1]},
@@ -188,76 +329,20 @@ def test_the_timed_single_calls_answer_exactly_as_the_compiled_graded_run(
         ledger.connection.close()
     single = np.asarray(timed.predictions).tolist()
     whole = np.asarray(graded.predictions).tolist()
-    assert single_call_timing.outputs_match_graded(single, whole, indices) is True
-    # not vacuous: the eight public rows answer differently, so a wrong row would not match
-    assert len({tuple(row) for row in whole[:8]}) == 8
+    assert speed_match.outputs_agree(single, whole, indices, FIXTURE_TOLERANCE) is True
+    # the per-case timed answers are within the same-version bound of the vmap-64 graded rows
+    gap = np.abs(np.asarray(single) - np.asarray(whole)[indices])
+    assert float(np.max(gap)) < SAME_VERSION_BOUND
+    # not vacuous: rows answer differently, so a wrong row does not agree
     assert (
-        single_call_timing.outputs_match_graded(
-            single, whole, indices[1:] + indices[:1]
+        speed_match.outputs_agree(
+            single, whole, indices[1:] + indices[:1], FIXTURE_TOLERANCE
         )
         is False
     )
-
-
-@posix
-def test_the_menu_row_check_answers_every_row_bit_for_bit_as_the_compiled_graded_run(
-    motor18, tmp_path
-):
-    """The menu row check (tolerance 0/0) runs a FRESH process over a keyed subset in a keyed order, through the same
-    registered procedure (Motor: ``per_case``). Under the compiled forward each row is still answered alone, at row 0
-    of the declared batch, by a function compiled for that one shape, so neither the companions nor the position nor
-    the subset size can change a bit."""
-    import inspect
-
-    from test_paired_inference import FixtureLedger
-    from test_registered_graph_pair_execution import _image, _runner
-
-    from carbon.scoring import motor18_dual_pack
-
-    # Motor 1.8's definition is the sealed Motor one's, which registers the per-case repeat procedure
-    assert motor18_dual_pack._sl().__name__ == "carbon.scoring.motor_sealed_dual_pack"
-    assert '"paired_repeat_procedure": "per_case"' in inspect.getsource(
-        motor18_dual_pack._sl().definition
+    # planted: one timed value far beyond the tolerance does not agree
+    planted = [list(row) for row in single]
+    planted[5][17] = whole[indices[5]][17] + 1e-6
+    assert (
+        speed_match.outputs_agree(planted, whole, indices, FIXTURE_TOLERANCE) is False
     )
-    _contract(motor18)  # Motor 1.8 resolves to the compiled program
-    rows = motor18["inputs"]
-    keyed = [5, 0, 7, 2, 3]  # a subset, out of order, of a different size
-    ledger, seen = FixtureLedger(tmp_path), []
-    run = _runner(
-        ledger, seen
-    )  # one runner: its operation folders are numbered per runner
-
-    def pair(identity, inputs):
-        evidence = paired_inference.infer_frozen_pair(
-            ledger,
-            owner="fixture-owner",
-            identity=identity,
-            inference_image=_image(),
-            recipe=motor18["recipe"],
-            challenge_binding=motor18["binding"],
-            limits_document=motor18["material"]["construction_limits_document"],
-            state_bytes=motor18["state"],
-            expected_state_digest=paired_inference._digest(motor18["state"]),
-            inputs=inputs,
-            expected_output_shape=(len(inputs), motor18["width"]),
-            expected_output_dtype=motor18["dtype"],
-            allowlist_bytes=motor18["material"]["allowlist_bytes"],
-            seconds=motor18["policy"]["inference_wall_seconds_max"],
-            total_seconds=motor18["policy"]["total_reconstruction_wall_seconds_max"],
-            procedure="per_case",
-            runner=run,
-        ).evidence
-        raw = evidence["primary"]["originals"]["predictions.json"]["raw_base64"]
-        return np.asarray(json.loads(base64.b64decode(raw)))
-
-    try:
-        graded = pair("compiled-graded-rows", rows)
-        checked = pair("compiled-menu-rowcheck", np.ascontiguousarray(rows[keyed]))
-    finally:
-        ledger.connection.close()
-    assert len(seen) == 4 and all(
-        "member_forward = jax.jit(rebuild(doc, allowed))" in call["source"]
-        for call in seen
-    )
-    assert len({row.tobytes() for row in graded}) == len(graded)  # every row differs
-    assert checked.tobytes() == graded[keyed].tobytes()  # bit for bit, every row

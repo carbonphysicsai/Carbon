@@ -1,0 +1,10 @@
+{
+  "note": "The speed gate's per-value match tolerance for a vmap-64 version: |timed - graded| <= atol + rtol * |graded| over every value of a row (owner, Sun 15 Nov 2026 ~11:1x CST via the Lead: wide margin, never a barely fitting rule; CV-Motor-B ruling S2). HUMAN_INPUT: null until CV-Motor-B posts the values in a reviewed values commit; null or malformed refuses the version (carbon/challenge_validator/speed_match.py).",
+  "rows": {
+    "electric-motor-magnetics 1.8": {
+      "atol": null,
+      "rtol": null
+    }
+  },
+  "schema": "carbon.validator.speed-match-tolerance.v1"
+}

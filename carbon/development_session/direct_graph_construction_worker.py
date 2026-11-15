@@ -518,6 +518,105 @@ def _v2_compiled_infer_program() -> str:
 
 PHYSICAL_V2_COMPILED_INFER_PROGRAM = _v2_compiled_infer_program()
 
+#: Graph route v2 versions whose GRADED per-case procedure runs `VMAP64_LANES` isolated blocks per compiled call, as
+#: the SAME version (owner, Sun 15 Nov 2026, Lead session: "I want the 64 rows working", then "Yes and yes"; and ~11:1x
+#: CST via the Lead: differences at the 13th-15th decimal are negligible; bound 1e-12, held as a TEST assertion against
+#: eager, never a runtime rule). Measured on the grade class (Deploy-B, bench_jit3): 1.421e-14 max |diff| against eager,
+#: 1.1 s per pass against 3.4 s for the per-case compiled calls.
+#: ONE FIXED LANE LAYOUT (`vmap64_chunks`): query row i is lane i % 64 of chunk i // 64; each lane is its own block
+#: (the case at row 0 of the declared batch, the other batch rows zero, exactly the per-case call's block), and a
+#: short last chunk's spare lanes are all-zero blocks whose answers are dropped. Nothing else changes: the member
+#: forward is the compiled one (`JIT_INFERENCE_VERSIONS`), the members combine and the decoder applies as before, and
+#: every single-design call (the speed warm-up and timed calls, the practice per-call timing, the batched timing
+#: query) stays the per-case compiled `forward`. So a timed call and the graded row agree only within the registered
+#: speed-match tolerance (`carbon.challenge_validator.speed_match`, a values row; a disagreement beyond it is Carbon's),
+#: while two runs of the same chunks agree bit for bit (the repeat pair over the whole query; the menu row check and
+#: the subset repeat over the ORIGINAL chunks). A version here must also be in `JIT_INFERENCE_VERSIONS`.
+VMAP64_INFERENCE_VERSIONS = frozenset({("electric-motor-magnetics", "1.8")})
+VMAP64_LANES = 64
+_PER_CASE_CALLS = (
+    "    # public constant (zeros), so no output can depend on another case.\n"
+    "    for index in range(len(input_array)):\n"
+    "        part = jnp.pad(input_array[index:index + 1],\n"
+    "                       [(0, batch - 1)] + [(0, 0)] * (input_array.ndim - 1))\n"
+    "        outputs = forward(*parameter_arrays, part)\n"
+    "        if len(outputs) != 1:\n"
+    "            raise ValueError(arity)\n"
+    "        blocks.append(outputs[0][:1])\n"
+)
+_VMAP64_CALLS = """    # public constant (zeros), so no output can depend on another case.
+    # vmap-64 (owner, Sun 15 Nov 2026): the SAME per-case blocks, __LANES__ per compiled call. Row i is lane
+    # i % __LANES__ of chunk i // __LANES__; each lane is its own block (the case at row 0, the other batch rows zero),
+    # and a short last chunk's spare lanes are all-zero blocks whose answers are dropped. A lane never sees another.
+    lanes = __LANES__
+    lane_forward = jax.jit(jax.vmap(lambda arrays, block: member_forward(*arrays, block),
+                                    in_axes=(None, 0)))
+    for start in range(0, len(input_array), lanes):
+        used = min(lanes, len(input_array) - start)
+        chunk = jnp.zeros((lanes, batch) + tuple(input_array.shape[1:]), input_array.dtype)
+        chunk = chunk.at[:used, 0].set(input_array[start:start + used])
+        total = None
+        for weights, arrays in zip(combine, member_arrays):
+            produced = lane_forward(arrays, chunk)
+            if len(produced) != 1:
+                raise ValueError(arity)
+            term = produced[0][:, 0] * jnp.asarray(weights)
+            total = term if total is None else total + term
+        blocks.append(total[:used])
+""".replace(
+    "__LANES__", str(VMAP64_LANES)
+)
+
+
+def _v2_vmap64_infer_program() -> str:
+    """`PHYSICAL_V2_COMPILED_INFER_PROGRAM` with its graded per-case loop run as isolated vmap-64 lanes: one anchored
+    replacement, nothing else (every anchor the derived speed and practice programs read is kept).
+    """
+    if PHYSICAL_V2_COMPILED_INFER_PROGRAM.count(_PER_CASE_CALLS) != 1:
+        raise RuntimeError("graph route v2 inference program anchor moved")
+    return PHYSICAL_V2_COMPILED_INFER_PROGRAM.replace(_PER_CASE_CALLS, _VMAP64_CALLS)
+
+
+PHYSICAL_V2_VMAP64_INFER_PROGRAM = _v2_vmap64_infer_program()
+
+
+def vmap64_chunks(positions, row_count: int) -> dict:
+    """The ORIGINAL vmap-64 chunks that hold ``positions`` (indices into a graded query of ``row_count`` rows):
+    ``{chunk index: (query rows of that chunk, in lane order)}``, ascending. A chunk is whole (all its rows, the last
+    chunk short when ``row_count`` is not a multiple of `VMAP64_LANES`), so a fresh process that runs the rows of these
+    chunks, concatenated in ascending chunk order, through the same program puts every row in its original chunk and
+    lane with the same companions and the same zero padding, and so answers it bit for bit as the graded run did (see
+    `vmap64_rerun_rows`)."""
+    if (
+        type(row_count) is not int
+        or row_count <= 0
+        or type(positions) not in (list, tuple)
+        or not positions
+        or any(
+            type(p) is not int or type(p) is bool or not 0 <= p < row_count
+            for p in positions
+        )
+    ):
+        raise ValueError("vmap64_chunk_positions_invalid")
+    chosen = sorted({p // VMAP64_LANES for p in positions})
+    return {
+        chunk: tuple(
+            range(chunk * VMAP64_LANES, min((chunk + 1) * VMAP64_LANES, row_count))
+        )
+        for chunk in chosen
+    }
+
+
+def vmap64_rerun_rows(positions, row_count: int) -> tuple:
+    """``(rows, where)``: the graded-query rows a re-run must query, in order (the ORIGINAL chunks of
+    `vmap64_chunks`, ascending), and for each of ``positions`` (in the given order) the index of its answer in that
+    re-run. Only the last original chunk can be short, and it is then also last in the re-run, so its padding is
+    the same."""
+    chunks = vmap64_chunks(positions, row_count)
+    rows = [row for chunk in chunks.values() for row in chunk]
+    at = {row: index for index, row in enumerate(rows)}
+    return rows, [at[p] for p in positions]
+
 
 def graph_adapter_ids() -> frozenset:
     """Every graph adapter the receiver can run: the synthetic one (1.3), the
@@ -532,11 +631,16 @@ def v2_infer_query(challenge_id: str, version: str) -> dict:
     source-free inference: the ensemble state, combined and decoded by its own
     program (the receiver and regrade share it); a version in
     `JIT_INFERENCE_VERSIONS` gets that program with its member forward
-    compiled. The output dtype is the interface's, which each caller passes."""
+    compiled, and one in `VMAP64_INFERENCE_VERSIONS` the compiled program with
+    its graded per-case loop run as isolated vmap-64 lanes. The output dtype is
+    the interface's, which each caller passes."""
     from . import physical_graph_adapter_v2
 
     physical_graph_adapter_v2.spec_for(challenge_id, version)
     compiled = (challenge_id, version) in JIT_INFERENCE_VERSIONS
+    lanes = (challenge_id, version) in VMAP64_INFERENCE_VERSIONS
+    if lanes and not compiled:
+        raise RuntimeError("a vmap-64 version must also be a compiled version")
     root = Path(__file__).resolve().parents[2]
     names = (
         "carbon.development_session.physical_graph_state",
@@ -545,9 +649,13 @@ def v2_infer_query(challenge_id: str, version: str) -> dict:
     return {
         "input_name": "inputs/features",
         "program": (
-            PHYSICAL_V2_COMPILED_INFER_PROGRAM
-            if compiled
-            else PHYSICAL_V2_INFER_PROGRAM
+            PHYSICAL_V2_VMAP64_INFER_PROGRAM
+            if lanes
+            else (
+                PHYSICAL_V2_COMPILED_INFER_PROGRAM
+                if compiled
+                else PHYSICAL_V2_INFER_PROGRAM
+            )
         ),
         "staged_files": {
             name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
