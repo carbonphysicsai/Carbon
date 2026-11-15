@@ -642,6 +642,12 @@ def test_the_receiver_recheck_queries_the_keyed_subset_in_the_keyed_order(
         monkeypatch.setattr(
             direct_graph_construction_worker, "VMAP64_INFERENCE_VERSIONS", frozenset()
         )
+    # the model's own lane count, read from its state (a stand-in state here: L = 64)
+    monkeypatch.setattr(
+        direct_graph_construction_worker,
+        "vmap64_state_lanes",
+        lambda challenge_id, version, state, recipe, allowlist: 64,
+    )
     rows_total = 150 if lanes else 20  # three chunks under vmap-64, the last short
     inputs = np.arange(rows_total * 2.0).reshape(rows_total, 2)
     rule = dataclasses.replace(_rule(), rowcheck=(0.0, 0.0, 5))

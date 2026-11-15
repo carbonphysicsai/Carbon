@@ -38,10 +38,14 @@ def _graded_branch(program):
 
 def test_every_bank_prediction_of_motor_1_8_is_an_isolated_lane():
     program = worker.v2_infer_query(*MOTOR_18)["program"]
-    assert program == worker.PHYSICAL_V2_VMAP64_INFER_PROGRAM
+    assert program == worker.vmap64_infer_program(*MOTOR_18)
     # the graded per-case branch: one lane per case, each lane a zero block with the case at row 0, nothing else
     graded = _graded_branch(program)
-    assert "chunk = jnp.zeros((lanes, batch) + tuple(input_array.shape[1:])" in graded
+    assert (
+        "chunk = jnp.zeros((lane_count, batch) + tuple(input_array.shape[1:])" in graded
+    )
+    # the lane count is the model's own, fixed (`vmap64_lanes` of its graph): defined once, before any call
+    assert program.count("lane_count = vmap64_lanes(doc, len(member_arrays), ") == 1
     assert "chunk = chunk.at[:used, 0].set(input_array[start:start + used])" in graded
     assert (
         "jax.jit(jax.vmap(lambda arrays, block: member_forward(*arrays, block),"
@@ -151,6 +155,8 @@ def test_under_isolated_lanes_a_rows_answer_ignores_its_companion_lanes(
         np.concatenate([base * (1.0 + 0.004 * k) for k in range(8)]), base.dtype
     )
     assert one.shape[0] == worker.VMAP64_LANES
+    doc, members = planted["loaded"][:2]
+    assert worker.vmap64_model_lanes(*MOTOR_18, doc, len(members)) == 64  # one chunk
     kept = [0, 17, 40, 63]
     other = one[::-1] * 1.5  # every other lane holds a different row
     two = np.ascontiguousarray(other)

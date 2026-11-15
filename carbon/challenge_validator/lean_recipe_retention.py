@@ -1160,6 +1160,13 @@ def _menu_rowcheck_outputs(evidence, entry, subset, subset_shape, out_dtype, pro
     return list(read.outputs[0])
 
 
+def _served_recipe(adapter, submission_id):
+    """The admitted recipe dict of a served task (its provider's own request)."""
+    return (
+        adapter._provider(adapter.owner(submission_id))._requests[submission_id].recipe
+    )
+
+
 def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
     """A menu-D version's row-independence re-check (Carbon Validator-B 7 Nov (1); Validator-2B 7 Nov conditions 1-4):
     a FRESH instance of the retained model answers a keyed subset of the graded query in a keyed order
@@ -1181,6 +1188,7 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
     )
     from carbon.development_session.direct_graph_construction_worker import (
         vmap64_rerun_rows,
+        vmap64_state_lanes,
     )
     from carbon.development_session.paired_inference import (
         InferencePairFailure,
@@ -1234,14 +1242,29 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         if not same:
             raise RetentionUnavailable("menu_rowcheck_cache_not_this_epoch")
         return cached
+    recipe = (
+        ConstructionRecipe.from_dict(_served_recipe(adapter, submission_id))
+        if regrade is None
+        else regrade.recipe
+    )
     # A vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) answers each row in an isolated
-    # lane of a 64-lane chunk, bit for bit only beside the same companions and padding: its fresh instance re-runs the
-    # ORIGINAL chunks that hold the planned positions (`vmap64_rerun_rows`), so every row sits in its original chunk and
-    # lane, and the side file keeps the planned positions in the keyed order with their answers picked from that run.
-    # Every other version queries the keyed subset in the keyed order, as before.
+    # lane of a chunk of the model's own L lanes, bit for bit only beside the same companions and padding: its fresh
+    # instance re-runs the ORIGINAL chunks that hold the planned positions (`vmap64_rerun_rows` at the model's L), so
+    # every row sits in its original chunk and lane, and the side file keeps the planned positions in the keyed order
+    # with their answers picked from that run. Every other version queries the keyed subset in the keyed order.
     queried, picked = positions, None
     if (kit["id"], kit["version"]) in vmap64_versions:
-        queried, picked = vmap64_rerun_rows(positions, len(inputs))
+        try:
+            lanes = vmap64_state_lanes(
+                kit["id"],
+                kit["version"],
+                artifacts["state.npz"],
+                recipe,
+                material["allowlist_bytes"],
+            )
+        except (KeyError, TypeError, ValueError, RuntimeError) as exc:
+            raise RetentionUnavailable("menu_rowcheck_unavailable") from exc
+        queried, picked = vmap64_rerun_rows(positions, len(inputs), lanes)
     subset = np.ascontiguousarray(inputs[queried])
     subset_shape = (len(queried), *tuple(output_shape)[1:])
     owner = adapter.owner(submission_id) if regrade is None else regrade.owner
@@ -1270,11 +1293,7 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
             + submission_id
             + suffix,
             inference_image=image,
-            recipe=(
-                ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
-                if regrade is None
-                else regrade.recipe
-            ),
+            recipe=recipe,
             challenge_binding={
                 "challenge_id": kit["id"],
                 "challenge_version": kit["version"],
