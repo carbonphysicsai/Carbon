@@ -107,6 +107,10 @@ def test_another_coldkey_is_never_held_back():
 
 
 def test_built_counts_while_ungraded_and_frees_the_place_once_graded():
+    """Only queued / building / built-and-ungraded holds the place. ANY terminal state frees it: the grade round writes a
+    marker (it leaves `AutoGrader.pending`) for every grade it settles (GRADED, a limit refusal at grading, the
+    candidate's wall stop or early stop = CANDIDATE_FAILED, FAILED incl. an infrastructure give-back), and a build that
+    failed, was cancelled or ended on infrastructure is never a waiting state."""
     assert (
         _guard({"hk-a1": {"t1": "SUCCEEDED"}}, pending=["t1"]).refusal(
             hotkey="hk-a2", task_id="t2", limit=1
@@ -277,3 +281,62 @@ def test_the_lock_is_held_until_the_task_has_started(tmp_path, monkeypatch):
     assert _submit(door, adapter, request.recipe, 1)["kind"] == "OUTCOME"
     assert seen == [True] and not adapter.coldkey_waiting.lock.locked()
     assert isinstance(adapter.coldkey_waiting.lock, type(threading.Lock()))
+
+
+def _race(monkeypatch, *, locked):
+    """Two hotkeys of ONE coldkey released at the same instant through `LeanRecipeAdapter._coldkey_place`; each, once
+    past the check, starts its task (a QUEUED view) a moment later, as the real start does.
+    """
+    import contextlib
+    import time
+
+    from carbon.challenge_validator.interface import Unavailable
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+
+    providers = {
+        "hk-a1": SimpleNamespace(_views={}),
+        "hk-a2": SimpleNamespace(_views={}),
+    }
+    guard = cw.Guard(
+        opened=lambda: providers,
+        pending=list,
+        snapshot=lambda: _Snapshot(COLDKEYS),
+    )
+    if not locked:
+        guard.lock = (
+            contextlib.nullcontext()
+        )  # the control: the same check with no lock
+    monkeypatch.setattr(cw, "limit_for", lambda challenge, version: 1)
+    adapter = SimpleNamespace(
+        coldkey_waiting=guard, challenge_id="c", challenge_version="1.0"
+    )
+    start = threading.Barrier(2)
+    results = []
+
+    def submit(hotkey, task_id):
+        start.wait()
+        try:
+            with LeanRecipeAdapter._coldkey_place(adapter, hotkey, task_id):
+                time.sleep(0.05)
+                providers[hotkey]._views[task_id] = _View("QUEUED")
+            results.append("admitted")
+        except Unavailable as refused:
+            results.append(refused.code)
+
+    threads = [
+        threading.Thread(target=submit, args=("hk-a1", "t1")),
+        threading.Thread(target=submit, args=("hk-a2", "t2")),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(10)
+    return sorted(results)
+
+
+def test_two_hotkeys_of_one_coldkey_at_the_same_instant_only_one_is_admitted(
+    monkeypatch,
+):
+    assert _race(monkeypatch, locked=True) == sorted(["admitted", cw.CODE])
+    # the control proves the test sees the race: without the lock both would pass
+    assert _race(monkeypatch, locked=False) == ["admitted", "admitted"]
