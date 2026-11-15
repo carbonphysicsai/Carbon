@@ -3312,23 +3312,49 @@ def _arguments(raw):
 _LEVEL4_DOC = re.compile(r"level4-doc-([0-9a-f]{64})\.json")
 
 
-def _level4_export(relative, body):
-    """``(exact workspace name, byte limit)`` for a run's Level 4 graph file, else None (the run's prefixed name).
+def _level4_export(relative, body, workspace):
+    """The exact workspace name of a run's Level 4 graph file, or None (the run's prefixed name, as every export).
 
     Owner via the Lead, 15 Nov 2026 ("miners enabled, not limited"): a graph document larger than one ``write_file``
     call could reach a direct campaign's workspace by no route (a run's export is renamed ``<task>-<name>``, and a
     renamed document exceeds the 96-character name limit). So a run that lowers its model and writes
-    ``level4-manifest.json`` and ``level4-doc-<sha256>.json`` to ../output has them exported under those exact names,
-    up to the largest Level 4 intake bounds (`level4.intake.CONTAINMENT_BOUNDS`); the recipe's own Challenge bounds
-    still apply when it is frozen and staged. A document whose name is not the sha256 of its bytes keeps the prefix.
+    ``level4-doc-<sha256>.json`` and ``level4-manifest.json`` to ../output has them exported under those exact names,
+    within the largest Level 4 intake bounds (`level4.intake.CONTAINMENT_BOUNDS`; the recipe's own Challenge bounds
+    still apply when it is frozen and staged):
+
+    - a document only when its name IS the sha256 of its bytes (so it can never shadow anything);
+    - the manifest only when it names documents and EVERY one of them is already in the workspace (`export` handles
+      the manifest after the run's documents), so a run never replaces a usable manifest with one whose documents
+      did not arrive. It then replaces the held manifest: the latest lowering run wins, as a later ``write_file`` of it
+      would (a frozen candidate keeps its own envelope).
     """
     from carbon.level4 import intake, staging
 
     if relative == staging.WORKSPACE_MANIFEST:
-        return relative, intake.CONTAINMENT_BOUNDS["manifest_bytes"]
+        if len(body) > intake.CONTAINMENT_BOUNDS["manifest_bytes"]:
+            return None
+        try:
+            names = json.loads(body).get("documents")
+        except (ValueError, AttributeError):
+            return None
+        if type(names) is not dict or not names:
+            return None
+        for name in names.values():
+            if type(name) is not str or not re.fullmatch(r"sha256:[0-9a-f]{64}", name):
+                return None
+            if (
+                workspace.current_digest(staging.WORKSPACE_PREFIX + name[7:] + ".json")
+                is None
+            ):
+                return None
+        return relative
     match = _LEVEL4_DOC.fullmatch(relative)
-    if match is not None and hashlib.sha256(body).hexdigest() == match.group(1):
-        return relative, intake.CONTAINMENT_BOUNDS["document_bytes"]
+    if (
+        match is not None
+        and len(body) <= intake.CONTAINMENT_BOUNDS["document_bytes"]
+        and hashlib.sha256(body).hexdigest() == match.group(1)
+    ):
+        return relative
     return None
 
 
@@ -3560,7 +3586,13 @@ class PublicResearchExecutor:
         path. `skip` names files that are the carrier's, not the program's."""
         snapshot = self.ledger.root / result["operation"] / "snapshot"
         exported = []
-        for relative, fingerprint in result["files"].items():
+        from carbon.level4.staging import WORKSPACE_MANIFEST
+
+        # a Level 4 manifest last, after the documents it names (`_level4_export`); every other order is kept
+        files = sorted(
+            result["files"].items(), key=lambda i: i[0] == WORKSPACE_MANIFEST
+        )
+        for relative, fingerprint in files:
             if "/" in relative or relative in skip:
                 continue  # nested checkpoint bundles remain retained by task
             body = (snapshot / relative).read_bytes()
@@ -3573,24 +3605,21 @@ class PublicResearchExecutor:
                     expected=fingerprint,
                     observed=digest(body),
                 )
-            name, limit = identity[-20:] + "-" + relative, 8 * 1024**2
-            exact = _level4_export(relative, body)
+            exact = _level4_export(relative, body, self.workspace)
             if exact is not None:
-                name, limit = exact
-            if len(body) <= limit and len(name) <= 96:
-                if exact is None:
-                    self.workspace.put(name, body)
-                else:
-                    # the run's latest lowering replaces the held manifest, as a write_file naming its digest would
-                    # (a frozen candidate keeps its own envelope); a document named by its digest is identical or new
-                    try:
-                        self.workspace.put(
-                            name,
-                            body,
-                            expected_digest=self.workspace.current_digest(name),
-                        )
-                    except WorkspaceConflict:
-                        continue  # changed while exporting: not exported, the run's result is unchanged
+                try:
+                    self.workspace.put(
+                        exact,
+                        body,
+                        expected_digest=self.workspace.current_digest(exact),
+                    )
+                    exported.append(exact)
+                    continue
+                except WorkspaceConflict:
+                    pass  # changed while exporting: exported under the run's prefixed name instead, as before
+            name = identity[-20:] + "-" + relative
+            if len(body) <= 8 * 1024**2 and len(name) <= 96:
+                self.workspace.put(name, body)
                 exported.append(name)
         return exported
 

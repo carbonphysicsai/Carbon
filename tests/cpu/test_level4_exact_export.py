@@ -72,22 +72,33 @@ def _doc(size, salt=b""):
 TASK = "rtsk_" + "a" * 44 + "0123456789abcdefghij"
 
 
-def test_only_the_level4_manifest_and_a_digest_named_document_keep_their_names():
+def test_only_a_digest_named_document_and_a_complete_manifest_keep_their_names(
+    tmp_path,
+):
+    from carbon.development_session.research_workspace import ResearchWorkspace
+
+    workspace = ResearchWorkspace(_ledger(tmp_path), "alice")
     name, body = _doc(10)
     hexed = name[7:]
-    assert rt._level4_export("level4-manifest.json", b"{}")[0] == "level4-manifest.json"
-    assert rt._level4_export(f"level4-doc-{hexed}.json", body)[0] == (
+    assert rt._level4_export(f"level4-doc-{hexed}.json", body, workspace) == (
         f"level4-doc-{hexed}.json"
     )
-    assert (
-        rt._level4_export(f"level4-doc-{'0' * 64}.json", body) is None
-    )  # not its digest
+    assert rt._level4_export(f"level4-doc-{'0' * 64}.json", body, workspace) is None
     for other in (
         "notes.txt",
         "level4-envelope.json.gz",
         f"level4-doc-{hexed}.json.bak",
     ):
-        assert rt._level4_export(other, body) is None
+        assert rt._level4_export(other, body, workspace) is None
+    manifest = json.dumps({"documents": {"forward": name}}).encode()
+    # its document is not in the workspace yet: the manifest keeps the run's prefix
+    assert rt._level4_export("level4-manifest.json", manifest, workspace) is None
+    workspace.put(f"level4-doc-{hexed}.json", body)
+    assert rt._level4_export("level4-manifest.json", manifest, workspace) == (
+        "level4-manifest.json"
+    )
+    for bad in (b"{", b"[]", b'{"documents": {}}', b'{"documents": {"forward": "x"}}'):
+        assert rt._level4_export("level4-manifest.json", bad, workspace) is None
 
 
 def test_a_392_kb_forward_document_reaches_the_frozen_recipes_envelope(tmp_path):
@@ -202,3 +213,85 @@ def test_a_document_larger_than_the_8_mib_export_cap_is_exported_up_to_the_level
         TASK, _run(ledger, "op-1", {f"level4-doc-{name[7:]}.json": body})
     )
     assert exported == [f"level4-doc-{name[7:]}.json"]
+
+
+def test_a_manifest_whose_documents_did_not_arrive_never_replaces_a_usable_one(
+    tmp_path,
+):
+    from carbon.development_session.research_workspace import ResearchWorkspace
+
+    ledger = _ledger(tmp_path)
+    executor = _executor(ledger)
+    good, good_body = _doc(100, b"g")
+    held = json.dumps({"documents": {"forward": good}}).encode()
+    executor.export(
+        TASK,
+        _run(
+            ledger,
+            "op-1",
+            {"level4-manifest.json": held, f"level4-doc-{good[7:]}.json": good_body},
+        ),
+    )
+    lost, _lost_body = _doc(100, b"l")
+    broken = json.dumps({"documents": {"forward": lost}}).encode()
+    exported = executor.export(
+        TASK[:-1] + "k", _run(ledger, "op-2", {"level4-manifest.json": broken})
+    )
+    assert exported == [
+        TASK[:-1][-19:] + "k-level4-manifest.json"
+    ]  # the run's prefixed name, as before
+    assert ResearchWorkspace(ledger, "alice").get("level4-manifest.json") == held
+
+
+def test_a_run_replaces_a_manifest_the_miner_wrote_with_write_file(tmp_path):
+    from carbon.development_session.research_workspace import ResearchWorkspace
+
+    ledger = _ledger(tmp_path)
+    workspace = ResearchWorkspace(ledger, "alice")
+    workspace.put(
+        "level4-manifest.json", b'{"documents": {}}'
+    )  # as write_file leaves it
+    name, body = _doc(100)
+    newer = json.dumps({"documents": {"forward": name}}).encode()
+    exported = _executor(ledger).export(
+        TASK,
+        _run(
+            ledger,
+            "op-1",
+            {"level4-manifest.json": newer, f"level4-doc-{name[7:]}.json": body},
+        ),
+    )
+    assert exported == [
+        f"level4-doc-{name[7:]}.json",
+        "level4-manifest.json",
+    ]  # documents first
+    assert workspace.get("level4-manifest.json") == newer
+
+
+def test_an_oversized_manifest_and_a_write_conflict_fall_back_to_the_prefixed_name(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session.research_workspace import WorkspaceConflict
+
+    ledger = _ledger(tmp_path)
+    executor = _executor(ledger)
+    name, body = _doc(100)
+    big = json.dumps(
+        {"documents": {"forward": name}, "pad": "x" * (17 * 1024)}
+    ).encode()
+    executor.workspace.put(f"level4-doc-{name[7:]}.json", body)
+    assert executor.export(
+        TASK, _run(ledger, "op-1", {"level4-manifest.json": big})
+    ) == [TASK[-20:] + "-level4-manifest.json"]
+    real = executor.workspace.put
+
+    def racing(file_name, data, *, expected_digest=None):
+        if file_name == "level4-manifest.json":
+            raise WorkspaceConflict("changed while exporting")
+        return real(file_name, data, expected_digest=expected_digest)
+
+    monkeypatch.setattr(executor.workspace, "put", racing)
+    small = json.dumps({"documents": {"forward": name}}).encode()
+    assert executor.export(
+        TASK[:-1] + "m", _run(ledger, "op-2", {"level4-manifest.json": small})
+    ) == [TASK[:-1][-19:] + "m-level4-manifest.json"]
