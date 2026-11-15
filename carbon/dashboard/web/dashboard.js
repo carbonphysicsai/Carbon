@@ -236,9 +236,11 @@
   }
   function boardHref(slug) { return "#/b/" + encodeURIComponent(slug); }
   function minerHref(slug, hotkey) { return boardHref(slug) + "/m/" + encodeURIComponent(hotkey); }
-  function labelsOf(board) {
+  function labelsOf(board, full) {
     const labels = Array.isArray(board && board.labels) ? board.labels.slice() : [];
     if (!labels.includes("DEVELOPMENT")) labels.unshift("DEVELOPMENT");
+    const l = (full || board || {}).launch;
+    if (l && l.network === "mainnet") labels.push("MAINNET");
     return labels;
   }
 
@@ -999,7 +1001,7 @@
     return h("a", {class: "card board-card", href: boardHref(entry.slug)},
       h("div", {class: "board-card-head"}, h("h3", null, nameOf(entry.challenge.id)), phase ? chip(phase[0], phase[1]) : null),
       aboutLine(entry.challenge.id),
-      h("div", {class: "chips"}, showClass ? chip(entry.device_class || "no device class", "chip-plain") : null, labelsOf(entry).filter(l => l !== "DEVELOPMENT").map(l => chip(l, l === "FIXTURE" ? "chip-warn" : "chip-plain"))),
+      h("div", {class: "chips"}, showClass ? chip(entry.device_class || "no device class", "chip-plain") : null, labelsOf(entry, board).filter(l => l !== "DEVELOPMENT").map(l => chip(l, l === "FIXTURE" ? "chip-warn" : "chip-plain"))),
       king ? h("div", {class: "board-card-king"},
         h("span", {class: "eyebrow"}, "King"), h("span", {class: "key"}, shortKey(king.hotkey)),
         isNum(king.value) ? h("span", {class: "board-card-value"}, total(king.value), h("small", null, " " + sectionLabel(board))) : null)

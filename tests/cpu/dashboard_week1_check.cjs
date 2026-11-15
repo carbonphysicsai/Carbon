@@ -122,3 +122,32 @@ assert.equal(D.toBeat(0.828), "0.828");
   b.launch.to_beat = 0.7285;
   assert.ok(D.textOf(D.boardPage(b, {now})).includes("0.729"), "a 4-place to_beat reads rounded up on the page");
 }
+
+// ---- 6. every launch card names its network (owner 15 Nov): MAINNET from the signed board's launch.network, as TESTNET ----
+{
+  const main = JSON.parse(JSON.stringify(Object.values(boardsV2)[0]));
+  main.launch.network = "mainnet"; main.labels = ["DEVELOPMENT"];
+  const test = JSON.parse(JSON.stringify(Object.values(boardsV2)[0]));
+  test.launch.network = "testnet"; test.labels = ["DEVELOPMENT", "TESTNET"];
+  assert.deepEqual(D.labelsOf(main), ["DEVELOPMENT", "MAINNET"], "mainnet board: MAINNET");
+  assert.deepEqual(D.labelsOf(test), ["DEVELOPMENT", "TESTNET"], "testnet board: TESTNET, never MAINNET");
+  assert.deepEqual(D.labelsOf({labels: ["DEVELOPMENT"]}), ["DEVELOPMENT"], "no network on the board: no badge is invented");
+  // the board page draws its header chips from labelsOf(board) (setLabels), checked above
+  // the home card: the index entry carries labels only, the board carries the network
+  const entry = {slug: main.slug, challenge: main.challenge, labels: ["DEVELOPMENT"], device_class: null};
+  const home = D.textOf(D.homePage({fixture: false, boards: [entry]}, {[main.slug]: main}, {now}));
+  assert.ok(home.includes("MAINNET"), "the mainnet home card shows MAINNET");  // (launching-soon cards keep their own TESTNET chip)
+  const tentry = {...entry, labels: ["DEVELOPMENT", "TESTNET"]};
+  const thome = D.textOf(D.homePage({fixture: false, boards: [tentry]}, {[test.slug]: test}, {now}));
+  assert.ok(thome.includes("TESTNET") && !thome.includes("MAINNET"), "a testnet home card never shows MAINNET");
+}
+
+// ---- 7. an official-score board (single-grade id: the projection passes no rule) says a grade above the bar TAKES the crown ----
+{
+  const off = JSON.parse(JSON.stringify(Object.values(boardsV2)[0]));
+  off.king.value = 0.66; off.launch.margin = 0.0129; off.launch.to_beat = 0.693; delete off.launch.to_beat_rule;
+  const text = D.textOf(D.boardPage(off, {now}));
+  assert.ok(text.includes("passing every gate and minimum, to take the crown"), "official: takes the crown");
+  assert.ok(!text.includes("for a crown check"), "official: no crown-check wording");
+  assert.ok(text.includes("The exact bar is between " + D.total(0.66 + 0.0129) + " and " + D.toBeat(0.693) + "."), "official: range line");
+}
