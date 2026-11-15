@@ -3503,6 +3503,8 @@
       ...(o.grade !== undefined ? [gradeLine(o.grade, o.state)] : []),
       // Signed feedback v5: this submission's crown change is held for review (the projection's own words).
       ...(o.grade && o.grade.crown_review && typeof o.grade.crown_review.words === "string" ? ["Crown: " + o.grade.crown_review.words] : []),
+      // Signed feedback v4+: why this try ended as it did (the projection's own words; nothing measured).
+      ...(o.grade && o.grade.why && typeof o.grade.why.words === "string" ? ["Why: " + o.grade.why.words] : []),
       ...(o.practice_dual ? [practiceDualLine(o.practice_dual)] : []),
       ...(o.practice_dual ? practicePoolLines(o.practice_dual) : []),
       (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",

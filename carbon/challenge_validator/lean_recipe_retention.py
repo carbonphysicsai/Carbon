@@ -45,14 +45,25 @@ class CandidateWallLimitReached(RetentionUnavailable):
     """The candidate's own graph ended the pair's inference at the wall, twice."""
 
 
-def _settle_candidate_wall_hit(cap, reservation, result) -> dict:
-    """The candidate's own wall hit, twice: typed, unscored, the slot kept (COUNTED)."""
+#: Which pass of a counted grade a candidate wall stop ended (exam_feedback v8, Lead 15 Nov: "which phase/pass"): closed names.
+WALL_STOP_PASSES = ("graded_pass", "inference_pair", "menu_rowcheck", "early_stop")
+
+
+def _settle_candidate_wall_hit(cap, reservation, result, pass_name=None) -> dict:
+    """The candidate's own wall hit, twice: typed, unscored, the slot kept (COUNTED). ``pass_name`` (one of
+    `WALL_STOP_PASSES`, else not kept) names the pass it ended, for the miner's own feedback.
+    """
     if reservation is not None:
         cap.settle(reservation, CANDIDATE_WALL_LIMIT_REACHED)
     return {
         **result,
         "private_evaluation_state": "CANDIDATE_FAILED",
         "private_evaluation_reason": CANDIDATE_WALL_LIMIT_REACHED,
+        **(
+            {"private_evaluation_pass": pass_name}
+            if pass_name in WALL_STOP_PASSES
+            else {}
+        ),
     }
 
 
@@ -1099,9 +1110,9 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
                 raise RetentionUnavailable("inference_pair_incomplete") from failure
             walls += 1
             if walls == 2:
-                raise CandidateWallLimitReached(
-                    CANDIDATE_WALL_LIMIT_REACHED
-                ) from failure
+                stopped = CandidateWallLimitReached(CANDIDATE_WALL_LIMIT_REACHED)
+                stopped.carbon_pass = "inference_pair"
+                raise stopped from failure
     raw = _json(pair.evidence)
     write_once(path, raw)
     return raw
@@ -1280,9 +1291,9 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
                 raise RetentionUnavailable("menu_rowcheck_incomplete") from failure
             walls += 1
             if walls == 2:
-                raise CandidateWallLimitReached(
-                    CANDIDATE_WALL_LIMIT_REACHED
-                ) from failure
+                stopped = CandidateWallLimitReached(CANDIDATE_WALL_LIMIT_REACHED)
+                stopped.carbon_pass = "menu_rowcheck"
+                raise stopped from failure
     flat = _menu_rowcheck_outputs(
         pair.evidence,
         entry,
@@ -1760,7 +1771,9 @@ def _retain_selected_pack_evaluation(
         AttributeError,
     ) as exc:
         if isinstance(exc, CandidateWallLimitReached):
-            settled = _settle_candidate_wall_hit(cap, reservation, result)
+            settled = _settle_candidate_wall_hit(
+                cap, reservation, result, getattr(exc, "carbon_pass", None)
+            )
             if not uncounted:
                 # A counted wall stop is the miner's graded outcome: it reaches the Ladder (and so the board) as
                 # NOT_SCORED / TIMED_OUT (Lead 15 Nov), never as nothing.
@@ -2926,7 +2939,7 @@ def _counted_bank_grade(
             write_once(directory / "early-wall-stop.json", _json(stopped.record))
         except Exception:  # noqa: BLE001, S110 - evidence is best effort
             pass
-        settled = _settle_candidate_wall_hit(cap, reservation, bound)
+        settled = _settle_candidate_wall_hit(cap, reservation, bound, "early_stop")
         # The miner's graded outcome: NOT_SCORED / STOPPED_EARLY on the Ladder (and so the board), Lead 15 Nov.
         recipe_digest = stopped.recipe_digest
         settled["ladder_feedback_state"] = _record_stop_ladder(
@@ -4608,7 +4621,17 @@ def regrade_retained_entry(
                 except EarlyWallStop as stopped:
                     stopped.recipe_digest = entry.get("recipe_digest")
                     raise
-            graded = infer("graded", False)
+            try:
+                graded = infer("graded", False)
+            except Exception as failure:
+                # which pass a counted wall stop ended, for the miner's own feedback (exam_feedback v8); nothing else
+                try:
+                    failure.carbon_pass = "graded_pass"
+                except (
+                    AttributeError
+                ):  # an exception that takes no attribute: re-raised unchanged
+                    pass
+                raise
             timed_result = infer("timed", True) if timed else None
         except RecipeRefused as refused:
             raise RetentionUnavailable("regrade_inference_" + refused.code) from refused

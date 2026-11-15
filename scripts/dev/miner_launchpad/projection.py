@@ -264,6 +264,7 @@ def _validator_outcome(epoch, path):
                 submitted,
                 epoch,
                 also=_graded_digests(path, submitted),
+                task=result["submission_id"],
             )
         if type(outcome.get("practice_dual")) is dict:
             # C13: the evaluator's practice dual block, allow-listed.
@@ -480,19 +481,20 @@ def _crown_review(submission):
     }
 
 
-#: What each grade state of the receiver's signed v4+ read means (`direct_intake._grade_state_v4`), in words.
+#: What each grade state of the receiver's signed v4+ read means (`direct_intake._grade_state_v4`), in words. Each says only what
+#: the state guarantees (a GRADED copy or held slot has no Ladder line; a FAILED marker's counted slot is given back later).
 GRADE_STATE_WORDS = {
-    "QUEUED": "waiting in this validator's queue: not built or not graded yet",
-    "GRADED": "graded: it counted as your try (its result is the Ladder line)",
+    "QUEUED": "waiting at this validator: not built or not graded yet",
+    "GRADED": "counted as your try",
     "CANDIDATE_FAILED": "counted as your try: your model's own run failed while it was being graded",
-    "RECONSTRUCTION_FAILED": "your recipe's own build or practice run failed before grading: nothing was graded",
-    "FAILED_INFRA": "the validator's side failed: it is not your result and nothing was charged",
+    "RECONSTRUCTION_FAILED": "your recipe's own run failed before it could be graded: nothing was graded",
+    "FAILED_INFRA": "the validator's side failed: it is not your result, and a counted slot is given back",
     "NOT_GRADED": "not graded: the slot was given back and nothing was charged",
     "SUPERSEDED_BY_OWN_LATER_SUBMIT": "not graded: your own later submission took this round's graded slot",
-    "ROUND_LIMIT_REACHED": "not graded: this round's graded exam for your key was already used",
-    "CROWN_HELD_FOR_REVIEW": "graded: its crown change is held for review",
+    "ROUND_LIMIT_REACHED": "not graded: your key's graded exams for this round or this day were already used",
+    "CROWN_HELD_FOR_REVIEW": "counted as your try: its crown change is held for review",
 }
-#: The failing step and what was observed (the receiver's closed v4 ``failure``), in words.
+#: The failing step, what was observed and which pass (the receiver's closed ``failure``; ``pass`` from v8), in words.
 FAILURE_CHILD_WORDS = {
     "build": "the build of your model",
     "inference": "your model's inference on the exam",
@@ -503,6 +505,12 @@ FAILURE_OBSERVATION_WORDS = {
     "OOM_KILLED": "was stopped for running out of memory",
     "NONZERO_EXIT": "exited with an error",
     "OWN_ALLOWANCE_ELAPSED": "used up your own time allowance",
+}
+FAILURE_PASS_WORDS = {
+    "graded_pass": "in the graded pass",
+    "inference_pair": "in the official inference pair (twice)",
+    "menu_rowcheck": "in the menu row check (twice)",
+    "early_stop": "before the graded pass: your own practice run projected it past the limit (stopped early)",
 }
 
 
@@ -516,40 +524,73 @@ def _limit_words(limit):
     return f"{name} = {value}"
 
 
-def _why(submission):
-    """Why this submission's try ended as it did: ``{"grade_state", "failure", "words"}`` from the receiver's own signed v4+
-    read of THIS submission (its closed grade state and allow-listed ``failure``: the failing step, what was observed,
-    and the public registered limit), or None for an older receiver or a reply without them. Read only, never computed,
-    and nothing measured (the receiver sends no seconds or memory of a hidden-input run).
-    """
-    from carbon.development_session.direct_submission import _failure_v4
+def _worker_words(worker):
+    """The grading machine's public facts in words (v8): 'graded on AMD EPYC 7402P ..., 4 CPUs, 16 GiB, no GPU'."""
+    parts = [worker["cpu_model"]] if worker["cpu_model"] else []
+    if worker["cpu_count"]:
+        parts.append(f"{worker['cpu_count']} CPUs")
+    if worker["memory_bytes"]:
+        memory = worker["memory_bytes"]
+        parts.append(
+            f"{memory // 1024**3} GiB" if memory % 1024**3 == 0 else f"{memory} bytes"
+        )
+    parts.append("GPU" if worker["gpu"] else "no GPU")
+    return "graded on " + ", ".join(parts)
 
-    if type(submission) is not dict:
+
+def _why(submission, task):
+    """Why THIS submission's try ended as it did: ``{"grade_state", "failure", "words"}`` (plus ``grade_worker`` from a v8 read)
+    from the receiver's own signed v4+ read of the task ``task`` (its closed grade state and allow-listed ``failure``: the
+    failing step, what was observed, the public registered limit, and from v8 the pass), or None: an older receiver, a reply
+    for another task (a stale read after a resubmit), or anything this kit cannot name. Read only, never computed, and
+    nothing measured (the receiver sends no seconds or memory of a hidden-input run)."""
+    from carbon.development_session.direct_submission import (
+        _failure_v4,
+        _failure_v8,
+        _grade_worker_v8,
+    )
+
+    if (
+        type(submission) is not dict
+        or type(task) is not str
+        or not task
+        or submission.get("submission_id") != task
+        or "failure" not in submission
+    ):
         return None
     state = submission.get("grade_state")
-    if state not in GRADE_STATE_WORDS or "failure" not in submission:
-        return None
+    words = GRADE_STATE_WORDS.get(state)
     failure = submission["failure"]
-    if not _failure_v4(failure):
+    if words is None or not (_failure_v8(failure) or _failure_v4(failure)):
         return None
-    words = GRADE_STATE_WORDS[state]
     if failure is not None:
-        parts = []
-        if failure["child"] is not None:
-            parts.append(FAILURE_CHILD_WORDS[failure["child"]])
-        if failure["observation"] is not None:
-            parts.append(FAILURE_OBSERVATION_WORDS[failure["observation"]])
-        if parts:
-            words += "; " + " ".join(parts)
+        details = []
+        child = FAILURE_CHILD_WORDS.get(failure["child"])
+        seen = FAILURE_OBSERVATION_WORDS.get(failure["observation"])
+        if child and seen:
+            details.append(child + " " + seen)
+        elif child:
+            details.append("failing step: " + child)
+        elif seen:
+            details.append("it " + seen)
+        if failure.get("pass") in FAILURE_PASS_WORDS:
+            details.append(FAILURE_PASS_WORDS[failure["pass"]])
         if failure["limit"] is not None:
-            words += " (" + _limit_words(failure["limit"]) + ")"
+            details.append("(" + _limit_words(failure["limit"]) + ")")
         if failure["code"] is not None:
-            words += "; code " + failure["code"]
-    return {
+            details.append("code " + failure["code"])
+        if details:
+            words += "; " + " ".join(details)
+    shown = {
         "grade_state": state,
         "failure": None if failure is None else dict(failure),
         "words": words,
     }
+    worker = submission.get("grade_worker")
+    if worker is not None and _grade_worker_v8(worker):
+        shown["grade_worker"] = dict(worker)
+        shown["words"] += ". " + _worker_words(worker)
+    return shown
 
 
 #: How a failing output's closed reason reads (owner 14 Nov, signed feedback v6): never a p90, ratio, class, count or case.
@@ -581,7 +622,7 @@ def _with_gate_failures(own, ladder):
     }
 
 
-def _grade(ladder, submission=None, epoch=None, also=()):
+def _grade(ladder, submission=None, epoch=None, also=(), task=None):
     """The miner's own Ladder for the exam, as the display rule shows it
     (Validator VALUE_SCORE_GAP): one graded total 0..1 per document, its
     A and D as detail, a gate failure as not eligible; None when the
@@ -676,7 +717,11 @@ def _grade(ladder, submission=None, epoch=None, also=()):
             else {"crown_review": review}
         ),
         # Signed feedback v4+ only: why this try ended as it did (Lead 15 Nov: every settled task says why).
-        **({} if (why := _why(ladder.get("submission"))) is None else {"why": why}),
+        **(
+            {}
+            if (why := _why(ladder.get("submission"), task)) is None
+            else {"why": why}
+        ),
     }
 
 
