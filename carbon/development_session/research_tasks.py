@@ -76,7 +76,11 @@ from .research_carrier import (
     request_cancel,
     run_script,
 )
-from .research_workspace import ResearchWorkspace, request_capability
+from .research_workspace import (
+    ResearchWorkspace,
+    WorkspaceConflict,
+    request_capability,
+)
 
 
 class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
@@ -3303,6 +3307,31 @@ def _arguments(raw):
     return value
 
 
+#: A Level 4 graph document a run exports under its OWN name: named by the sha256 of its bytes, as the graph reader
+#: (`construction_recipe.graph_envelope_from_workspace`) looks it up.
+_LEVEL4_DOC = re.compile(r"level4-doc-([0-9a-f]{64})\.json")
+
+
+def _level4_export(relative, body):
+    """``(exact workspace name, byte limit)`` for a run's Level 4 graph file, else None (the run's prefixed name).
+
+    Owner via the Lead, 15 Nov 2026 ("miners enabled, not limited"): a graph document larger than one ``write_file``
+    call could reach a direct campaign's workspace by no route (a run's export is renamed ``<task>-<name>``, and a
+    renamed document exceeds the 96-character name limit). So a run that lowers its model and writes
+    ``level4-manifest.json`` and ``level4-doc-<sha256>.json`` to ../output has them exported under those exact names,
+    up to the largest Level 4 intake bounds (`level4.intake.CONTAINMENT_BOUNDS`); the recipe's own Challenge bounds
+    still apply when it is frozen and staged. A document whose name is not the sha256 of its bytes keeps the prefix.
+    """
+    from carbon.level4 import intake, staging
+
+    if relative == staging.WORKSPACE_MANIFEST:
+        return relative, intake.CONTAINMENT_BOUNDS["manifest_bytes"]
+    match = _LEVEL4_DOC.fullmatch(relative)
+    if match is not None and hashlib.sha256(body).hexdigest() == match.group(1):
+        return relative, intake.CONTAINMENT_BOUNDS["document_bytes"]
+    return None
+
+
 class PublicResearchExecutor:
     """Trusted owner-bound composition; it receives no wallet or API key."""
 
@@ -3544,9 +3573,24 @@ class PublicResearchExecutor:
                     expected=fingerprint,
                     observed=digest(body),
                 )
-            name = identity[-20:] + "-" + relative
-            if len(body) <= 8 * 1024**2 and len(name) <= 96:
-                self.workspace.put(name, body)
+            name, limit = identity[-20:] + "-" + relative, 8 * 1024**2
+            exact = _level4_export(relative, body)
+            if exact is not None:
+                name, limit = exact
+            if len(body) <= limit and len(name) <= 96:
+                if exact is None:
+                    self.workspace.put(name, body)
+                else:
+                    # the run's latest lowering replaces the held manifest, as a write_file naming its digest would
+                    # (a frozen candidate keeps its own envelope); a document named by its digest is identical or new
+                    try:
+                        self.workspace.put(
+                            name,
+                            body,
+                            expected_digest=self.workspace.current_digest(name),
+                        )
+                    except WorkspaceConflict:
+                        continue  # changed while exporting: not exported, the run's result is unchanged
                 exported.append(name)
         return exported
 
