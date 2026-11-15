@@ -1,4 +1,4 @@
-"""Motor 1.8's graph build runs its forward compiled (carbon/level4/train.py JIT_FORWARD_VERSIONS; owner via the Lead,
+"""Motor 1.8's graph build runs its forward compiled (physical_graph_adapter_v2.JIT_BUILD_VERSIONS; owner via the Lead,
 Sun 15 Nov 2026: "Just don't count it out due to a tiny difference", item 7 y).
 
 Claims, on a PUBLIC synthetic Motor 1.8 graph fitted on Motor 1.8's public TRAIN through the real
@@ -16,6 +16,7 @@ import sys
 
 import pytest
 
+from carbon.development_session import physical_graph_adapter_v2 as adapter
 from carbon.level4 import train
 
 MOTOR_18 = ("electric-motor-magnetics", "1.8")
@@ -26,8 +27,8 @@ def _fitted(monkeypatch, *, compiled):
     from test_graph_route_v2 import _fit, _x64
 
     monkeypatch.setattr(
-        train,
-        "JIT_FORWARD_VERSIONS",
+        adapter,
+        "JIT_BUILD_VERSIONS",
         frozenset({MOTOR_18}) if compiled else frozenset(),
     )
     with _x64(MOTOR_18):  # Motor 1.8's interface is float64
@@ -36,7 +37,10 @@ def _fitted(monkeypatch, *, compiled):
 
 
 def test_motor_1_8_builds_compiled_and_matches_the_eager_build(monkeypatch):
-    assert train.forward_mode(*MOTOR_18) == train.FORWARD_JIT
+    assert adapter.build_forward_mode(*MOTOR_18) == train.FORWARD_JIT
+    assert adapter.build_forward_mode("electric-motor-magnetics", "1.6") == (
+        train.FORWARD_EAGER
+    )
     _model, eager, _ = _fitted(monkeypatch, compiled=False)
     model, compiled, _ = _fitted(monkeypatch, compiled=True)
     assert model.prepared.isolated_apply is not None  # really the compiled forward
