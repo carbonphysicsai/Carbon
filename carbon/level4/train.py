@@ -121,17 +121,21 @@ class Prepared:
 
 
 #: How a graph forward runs: op by op ("eager") or jitted ("jit": compiled once per input shape, so once per params state).
-#: Practice, the trainer's train predictions and the judge's inference all call `Prepared.apply`, so a version runs jitted
-#: everywhere or nowhere. Kept in this module (staged into every graph worker) so the workers stage nothing new.
+#: The trainer's train predictions and local practice call `Prepared.apply`; graph route v2 grading runs its own registered
+#: inference program instead. Kept in this module (staged into every graph worker) so the workers stage nothing new.
 FORWARD_EAGER = "eager"
 FORWARD_JIT = "jit"
 FORWARD_MODES = (FORWARD_EAGER, FORWARD_JIT)
 #: Cases per mapped isolated call of a jitted forward (memory: this many blocks of the declared batch at once).
 #: An engineering bound, not a scientific value; every chunk compiles to the same shape.
 ISOLATED_CHUNK = 64
-#: (challenge_id, version) pairs whose graph forward is jitted. A version opts in only by a Validator ruling; every live
-#: (graded) version stays eager, so nothing graded is rescored. Empty until that ruling.
-JIT_FORWARD_VERSIONS: frozenset = frozenset()
+#: (challenge_id, version) pairs whose graph forward is jitted where `prepare` is used: the graph route v2 BUILD (its
+#: post-fit TRAIN predictions; the training loop is already a jitted scan) and the kit's local predictions. The judge's
+#: inference is NOT here: it runs the registered inference program (`direct_graph_construction_worker.v2_infer_query`).
+#: Motor 1.8: owner, Sun 15 Nov 2026 via the Lead ("Just don't count it out due to a tiny difference"; item 7 y): on 5 of
+#: 5 public models the trained parameters and train_loss were bit-identical to eager and the compiled build was bit-exact
+#: with itself in a fresh process and in the same process (tests/cpu/test_motor18_build_jit.py holds that).
+JIT_FORWARD_VERSIONS: frozenset = frozenset({("electric-motor-magnetics", "1.8")})
 
 
 def forward_mode(challenge_id, version):

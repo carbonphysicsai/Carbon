@@ -71,8 +71,12 @@ def _scan_submission(allowlist, n=4):
     return parsed, verdict
 
 
-def test_no_version_is_opted_in_until_the_validator_rules():
-    assert train.JIT_FORWARD_VERSIONS == frozenset()
+def test_only_motor_1_8_is_opted_in():
+    """Motor 1.8 (owner via the Lead, 15 Nov 2026, item 7; tests/cpu/test_motor18_build_jit.py); every other version eager."""
+    assert train.JIT_FORWARD_VERSIONS == frozenset(
+        {("electric-motor-magnetics", "1.8")}
+    )
+    assert train.forward_mode("electric-motor-magnetics", "1.8") == train.FORWARD_JIT
     for key in (
         ("f08-ribbed-bracket", "1.7"),
         ("electric-motor-magnetics", "1.6"),
