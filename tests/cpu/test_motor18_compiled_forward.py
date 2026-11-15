@@ -182,3 +182,60 @@ def test_the_timed_single_calls_answer_exactly_as_the_compiled_graded_run(
     single = np.asarray(timed.predictions).tolist()
     whole = np.asarray(graded.predictions).tolist()
     assert single_call_timing.outputs_match_graded(single, whole, indices) is True
+
+
+@posix
+def test_the_menu_row_check_answers_every_row_bit_for_bit_as_the_compiled_graded_run(
+    motor18, tmp_path
+):
+    """The menu row check (tolerance 0/0) runs a FRESH process over a keyed subset in a keyed order, through the same
+    registered procedure (Motor: ``per_case``). Under the compiled forward each row is still answered alone, at row 0
+    of the declared batch, by a function compiled for that one shape, so neither the companions nor the position nor
+    the subset size can change a bit."""
+    import inspect
+
+    from test_paired_inference import FixtureLedger
+    from test_registered_graph_pair_execution import _image, _runner
+
+    from carbon.scoring import motor18_dual_pack
+
+    # Motor 1.8's definition is the sealed Motor one's, which registers the per-case repeat procedure
+    assert motor18_dual_pack._sl().__name__ == "carbon.scoring.motor_sealed_dual_pack"
+    assert '"paired_repeat_procedure": "per_case"' in inspect.getsource(
+        motor18_dual_pack._sl().definition
+    )
+    _limits, query = _contract(motor18)
+    rows = motor18["inputs"]
+    keyed = [5, 0, 7, 2, 3]  # a subset, out of order, of a different size
+    ledger, seen = FixtureLedger(tmp_path), []
+
+    def pair(identity, inputs):
+        evidence = paired_inference.infer_frozen_pair(
+            ledger,
+            owner="fixture-owner",
+            identity=identity,
+            inference_image=_image(),
+            recipe=motor18["recipe"],
+            challenge_binding=motor18["binding"],
+            limits_document=motor18["material"]["construction_limits_document"],
+            state_bytes=motor18["state"],
+            expected_state_digest=paired_inference._digest(motor18["state"]),
+            inputs=inputs,
+            expected_output_shape=(len(inputs), motor18["width"]),
+            expected_output_dtype=motor18["dtype"],
+            allowlist_bytes=motor18["material"]["allowlist_bytes"],
+            seconds=motor18["policy"]["inference_wall_seconds_max"],
+            total_seconds=motor18["policy"]["total_reconstruction_wall_seconds_max"],
+            procedure="per_case",
+            runner=_runner(ledger, seen),
+        ).evidence
+        raw = evidence["primary"]["originals"]["predictions.json"]["raw_base64"]
+        return np.asarray(json.loads(base64.b64decode(raw)))
+
+    try:
+        graded = pair("compiled-graded-rows", rows)
+        checked = pair("compiled-menu-rowcheck", np.ascontiguousarray(rows[keyed]))
+    finally:
+        ledger.connection.close()
+    assert all(call["program"] == query["program"] for call in seen)
+    assert checked.tobytes() == graded[keyed].tobytes()  # bit for bit, every row
