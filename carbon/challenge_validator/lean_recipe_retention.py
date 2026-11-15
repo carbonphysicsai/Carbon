@@ -1453,6 +1453,104 @@ def _served_recipe(adapter, submission_id):
     )
 
 
+#: The basis record of a vmap-64 version's structural row check: its side file holds the RETAINED GRADED rows, never a
+#: fresh re-run, and this host-private record (beside it) says so (`pool_menu.read_rowcheck_side_file` is strict).
+ROWCHECK_BASIS_SCHEMA = "carbon.lean-recipe.menu-rowcheck-basis.v1"
+ROWCHECK_BASIS = "STRUCTURAL_ISOLATED_VMAP64"
+#: The tests that prove a vmap-64 graded row is a function of that row alone (R1 code path + the planted cross-row model).
+ROWCHECK_PROOF_TESTS = (
+    "tests/cpu/test_motor18_vmap64_row_isolation.py::test_every_bank_prediction_of_motor_1_8_is_an_isolated_lane",
+    "tests/cpu/test_motor18_vmap64_row_isolation.py::test_the_planted_model_really_depends_on_its_batch_rows",
+    (
+        "tests/cpu/test_motor18_vmap64_row_isolation.py::"
+        "test_under_isolated_lanes_a_rows_answer_ignores_its_companion_lanes"
+    ),
+)
+
+
+#: The structural row check could not be proven to read rows of the isolated vmap-64 pass: Carbon's, typed. Refused
+#: rather than run as a real re-check, which would compare the graded rows against another program's.
+ROWCHECK_STRUCTURAL_UNPROVEN = "menu_rowcheck_structural_unproven"
+
+
+def _structural_rowcheck(
+    adapter, result, submission_id, artifacts, regrade, positions, path, tag, material
+):
+    """A vmap-64 version's menu row check with NO inference operation (owner "Yes and yes", Lead ledger ~09:xx: "record
+    row independence as STRUCTURAL under the 64-row mode ... IN PLACE OF re-predicting rows"; Lead trim change 3, V-Motor
+    and V2B to sign). Every graded row was answered in its own isolated lane (the R1 code path and the planted cross-row
+    test, `ROWCHECK_PROOF_TESTS`), so the side file holds the RETAINED GRADED rows at the keyed positions (unchanged,
+    `pool_menu.rowcheck_plan`) and the measure reads D = 0 by construction. The graded rows must come from the vmap
+    program (CV-Motor-B, condition 1, FAIL CLOSED): the retained graded-inference digest must equal this version's vmap
+    program's digest recomputed now, the program the regrade query names must BE that vmap program (every lane one real
+    case: row i in lane i % L of chunk i // L, the other batch rows zero), and the model's lane count must be a
+    registered vmap one (1..64, `vmap64_lanes`). Anything unproven is `ROWCHECK_STRUCTURAL_UNPROVEN` (a real re-check
+    would compare different programs); a grade with no recorded graded inference is `VMAP64_NEEDS_SEALED_PACK`. A
+    write-once host-private basis record beside the side file says the rows are the graded ones, never a fresh run,
+    and the row check is never repeatability evidence."""
+    from carbon.development_session.data import write_once
+    from carbon.development_session.direct_graph_construction_worker import (
+        VMAP64_LANES,
+        vmap64_infer_program,
+        vmap64_state_lanes,
+    )
+    from carbon.scoring import pool_menu
+
+    recorded = getattr(regrade, "graded_inference_sha256", None)
+    if regrade is None or recorded is None:
+        raise RetentionUnavailable(VMAP64_NEEDS_SEALED_PACK)
+    kit = material["construction_kit"]
+    try:
+        image = _inference_image_of(adapter._provider(regrade.owner), regrade)
+        current = _graded_inference_digest(adapter, material, regrade.recipe, image)
+        program = _graph_regrade_query(
+            adapter.discovery, material, recipe=regrade.recipe
+        ).get("program")
+        vmap_program = vmap64_infer_program(kit["id"], kit["version"])
+        lanes = vmap64_state_lanes(
+            kit["id"],
+            kit["version"],
+            artifacts["state.npz"],
+            regrade.recipe,
+            material["allowlist_bytes"],
+        )
+    except (AttributeError, KeyError, TypeError, ValueError, RuntimeError) as exc:
+        raise RetentionUnavailable(ROWCHECK_STRUCTURAL_UNPROVEN) from exc
+    if (
+        recorded != current
+        or program != vmap_program
+        or type(lanes) is not int
+        or not 1 <= lanes <= VMAP64_LANES
+    ):
+        raise RetentionUnavailable(ROWCHECK_STRUCTURAL_UNPROVEN)
+    try:
+        graded = json.loads(artifacts["predictions.json"])
+        rows = [[float(v) for v in graded[p]] for p in positions]
+    except (KeyError, TypeError, ValueError, IndexError) as exc:
+        raise RetentionUnavailable("menu_rowcheck_graded_rows_unreadable") from exc
+    side = pool_menu.rowcheck_side_file(positions, rows)
+    directory = _private_evaluation_directory(result, submission_id)
+    write_once(
+        directory / f"menu-rowcheck-basis-{tag}.json",
+        _json(
+            {
+                "schema": ROWCHECK_BASIS_SCHEMA,
+                "basis": ROWCHECK_BASIS,
+                "side_file_sha256": _sha(side),
+                "positions_sha256": _sha(_json(positions)),
+                "graded_predictions_sha256": _sha(artifacts["predictions.json"]),
+                "graded_inference_sha256": recorded,
+                "program_sha256": _sha(vmap_program.encode()),
+                "lanes": lanes,
+                "repeatability_evidence": False,
+                "proof_tests": list(ROWCHECK_PROOF_TESTS),
+            }
+        ),
+    )
+    write_once(path, side)
+    return side
+
+
 def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
     """A menu-D version's row-independence re-check (Carbon Validator-B 7 Nov (1); Validator-2B 7 Nov conditions 1-4):
     a FRESH instance of the retained model answers a keyed subset of the graded query in a keyed order
@@ -1528,16 +1626,26 @@ def _menu_rowcheck_raw(adapter, submission_id, result, artifacts, entry, regrade
         if not same:
             raise RetentionUnavailable("menu_rowcheck_cache_not_this_epoch")
         return cached
+    if (kit["id"], kit["version"]) in vmap64_versions:
+        # vmap-64: row independence is STRUCTURAL, so no inference runs (owner "Yes and yes"; Lead, trim change 3)
+        return _structural_rowcheck(
+            adapter,
+            result,
+            submission_id,
+            artifacts,
+            regrade,
+            positions,
+            path,
+            tag,
+            material,
+        )
     recipe = (
         ConstructionRecipe.from_dict(_served_recipe(adapter, submission_id))
         if regrade is None
         else regrade.recipe
     )
-    # A vmap-64 version (`direct_graph_construction_worker.VMAP64_INFERENCE_VERSIONS`) answers each row in an isolated
-    # lane of a chunk of the model's own L lanes, bit for bit only beside the same companions and padding: its fresh
-    # instance re-runs the ORIGINAL chunks that hold the planned positions (`vmap64_rerun_rows` at the model's L), so
-    # every row sits in its original chunk and lane, and the side file keeps the planned positions in the keyed order
-    # with their answers picked from that run. Every other version queries the keyed subset in the keyed order.
+    # (A vmap-64 version never reaches here: its row check is structural, `_structural_rowcheck`, above. The lane
+    # re-run below is kept for a vmap-64 version only as dead code's safety: it would re-run the ORIGINAL chunks.)
     queried, picked = positions, None
     if (kit["id"], kit["version"]) in vmap64_versions:
         try:
@@ -2055,7 +2163,8 @@ def _retain_selected_pack_evaluation(
                     else {}
                 ),
             }
-        # Before any comparison against the retained graded bytes (the pair, the single calls, the menu row check):
+        # Before any comparison against the retained graded bytes (the pair or the subset repeat, the single calls, the
+        # menu row check, whose vmap-64 form reads them under the basis STRUCTURAL_ISOLATED_VMAP64):
         # they were made by the program those comparisons run.
         _check_graded_program(
             adapter, getattr(discovery, "_material", None), artifacts, regrade
