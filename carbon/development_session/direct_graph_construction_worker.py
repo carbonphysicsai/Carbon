@@ -535,7 +535,10 @@ PHYSICAL_V2_COMPILED_INFER_PROGRAM = _v2_compiled_infer_program()
 #: disagreement beyond it is Carbon's), while two runs of the same chunks agree bit for bit (the repeat pair over the
 #: whole query; the menu row check and the subset repeat over the ORIGINAL chunks, `vmap64_rerun_rows`). A version here
 #: must also be in `JIT_INFERENCE_VERSIONS`.
-VMAP64_INFERENCE_VERSIONS = frozenset({("electric-motor-magnetics", "1.8")})
+#: EMPTY since the owner's 116 rollback to A9 behaviour (Sun 15 Nov 2026, typed in Deploy-B: per-case compiled, no batched
+#: grading): Motor 1.8 grades with the per-case compiled program again, byte for byte the 57af6692 program
+#: (tests/cpu/test_motor18_compiled_forward.py pins its sha). The vmap-64 machinery stays, unused, for a later ruling.
+VMAP64_INFERENCE_VERSIONS: frozenset = frozenset()
 #: The most lanes one compiled call carries.
 VMAP64_LANES = 64
 #: RESOURCE CONTAINMENT, not science (review of 15 Nov, finding 3): the share of the version's registered worker memory

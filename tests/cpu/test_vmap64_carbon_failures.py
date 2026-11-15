@@ -332,3 +332,17 @@ def test_every_other_version_keeps_its_graded_marker_path(case, tmp_path, monkey
     assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY", result
     (operations,) = fixture.base.glob("*.regrade-operation.json")
     assert "graded_inference_sha256" not in json.loads(operations.read_bytes())
+
+
+@pytest.fixture(autouse=True)
+def _vmap64_machinery_opted_in(monkeypatch):
+    """Motor 1.8 is NOT a vmap-64 version since the owner's 116 rollback to A9 behaviour (Sun 15 Nov 2026; it grades
+    with the per-case compiled program, tests/cpu/test_motor18_rollback_program.py). These tests exercise the dormant
+    vmap-64 machinery with Motor 1.8 opted back in."""
+    from carbon.development_session import direct_graph_construction_worker
+
+    monkeypatch.setattr(
+        direct_graph_construction_worker,
+        "VMAP64_INFERENCE_VERSIONS",
+        frozenset({("electric-motor-magnetics", "1.8")}),
+    )
