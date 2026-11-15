@@ -7,6 +7,7 @@ controls of a real daemon, bit-equal outputs) is the scratch-door run's evidence
 """
 
 import json
+import os
 import re
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
@@ -530,6 +531,28 @@ def test_the_reset_restores_the_scratch_root_mode_and_xattrs():
     """Review F5."""
     assert "os.chmod('/scratch',0o700)" in carrier.SESSION_RESET
     assert "os.removexattr('/scratch',a)" in carrier.SESSION_RESET
+
+
+def test_the_reset_zeroes_the_scratch_root_times_last_and_checks_them(tmp_path):
+    """V2B S-1: an op could set the /scratch root's times (a future atime survives relatime). The reset sets both to 0
+    after the rebuild (which moves mtime) and refuses unless both read back 0."""
+    reset = carrier.SESSION_RESET
+    tail = reset[reset.index("os.utime('/scratch'") :]
+    assert reset.index("(s/'control-ready').touch") < reset.index("os.utime('/scratch'")
+    assert "sys.exit(9)" in tail
+    root = tmp_path / "scratch"
+    root.mkdir()
+    os.utime(root, ns=(4102444800 * 10**9, 4102444800 * 10**9))
+    exec(  # noqa: S102 - the reset's own tail, run on a stand-in root
+        compile(
+            "import os,sys\n" + tail.replace("'/scratch'", repr(str(root))),
+            "<tail>",
+            "exec",
+        ),
+        {},
+    )
+    times = os.stat(root)
+    assert (times.st_atime_ns, times.st_mtime_ns) == (0, 0)
 
 
 def test_a_dead_controllers_session_folder_is_swept_and_a_live_one_kept(

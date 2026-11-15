@@ -1259,7 +1259,8 @@ SESSION_LIFETIME_SECONDS = 3600
 #: authorized), an OOM in the cgroup or a memory peak at the limit (the per-op memory classification reads these
 #: counters), or a SysV / POSIX IPC object. Then it empties /scratch and /dev/shm, restores the /scratch root's
 #: mode (0700) and drops its user xattrs, and rebuilds exactly what the entrypoint makes in a new container (home,
-#: tmp, cache, jax-cache at 0700, control-ready at 0400).
+#: tmp, cache, jax-cache at 0700, control-ready at 0400). Last it sets the /scratch root's atime and mtime to 0 and
+#: refuses unless both read back 0: an op could set them (a future atime survives relatime), so none carries over.
 SESSION_RESET = """
 import os,shutil,sys
 from pathlib import Path
@@ -1299,6 +1300,9 @@ for a in os.listxattr('/scratch'):
 if [a for a in os.listxattr('/scratch') if a.startswith('user.')]: sys.exit(8)
 for c in ('home','tmp','cache','jax-cache'): (s/c).mkdir(mode=0o700)
 (s/'control-ready').touch(mode=0o400)
+os.utime('/scratch',ns=(0,0))
+t=os.stat('/scratch')
+if t.st_atime_ns or t.st_mtime_ns: sys.exit(9)
 """
 _GRADE_SESSION: ContextVar = ContextVar("carbon_grade_session", default=None)
 
