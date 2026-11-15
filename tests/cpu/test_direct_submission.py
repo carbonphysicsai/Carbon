@@ -986,6 +986,55 @@ def test_a_result_survives_a_door_update_that_moved_only_the_doors_code(
     assert record.read_bytes() == original
 
 
+def test_check_result_still_refuses_a_door_that_now_grades_under_another_rule(
+    tmp_path, monkeypatch
+):
+    """The 'check result' path itself (observe_only, a recorded submission): a changed score rule is never read as this
+    task's result, whatever the code identity says."""
+    record = client._record_path(tmp_path, 1)
+    record.write_text(
+        json.dumps(
+            {
+                **client._binding(_URL, _recipe(), _CONTRACT, _RECEIVER, _CONTEXT, 1),
+                "submission_id": "task-1",
+                "pinned": _PINNED,
+            }
+        )
+    )
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(url, body, headers):
+        answer = _answer("RECONSTRUCTED")
+        answer["pinned"]["rule_digest"] = "sha256:" + "8" * 64
+        return 200, answer
+
+    with pytest.raises(
+        client.DirectIntakeRefusal, match="construction_intake_identity_mismatch"
+    ):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=lambda _url: _facts(),
+            send=send,
+            observe_only=True,
+            wait_s=10,
+        )
+
+
 def test_a_door_update_between_admission_and_the_status_read_still_reads_the_result(
     tmp_path, monkeypatch
 ):
